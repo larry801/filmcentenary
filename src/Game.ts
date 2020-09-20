@@ -1,26 +1,20 @@
-import { Game } from "boardgame.io";
+import {Ctx, Game} from "boardgame.io";
+import {IG, setup} from "./types/setup";
+import {playCard} from "./game/moves";
 
 export interface DemoState {
   numbers: [number, number];
   string?: string;
 }
 
-export const DemoGame: Game<DemoState> = {
-  setup: (ctx) => ({
-    numbers: [ctx.random!.D6(), ctx.random!.D6()]
-  }),
+export const FilmCentenaryGame: Game<IG> = {
+  setup:setup,
+
+  phases:{
+
+  },
 
   moves: {
-    addString: (G, ctx, string: string) => {
-      G.string = string;
-    },
-
-    deleteString: (G) => {
-      delete G.string;
-    },
-
-    getNewNumbers: (G, ctx) => {
-      G.numbers = [ctx.random!.D6(), ctx.random!.D6()];
-    }
+    playCard:playCard,
   }
 };

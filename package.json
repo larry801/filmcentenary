@@ -5,7 +5,14 @@
   "keywords": [],
   "main": "src/index.tsx",
   "dependencies": {
+    "@material-ui/core": "^4.11.0",
+    "@types/koa-ratelimit": "^4.2.1",
+    "@types/koa-static": "^4.0.1",
+    "@types/uuid": "^8.3.0",
     "boardgame.io": "0.40.0",
+    "esm": "^3.2.25",
+    "koa-ratelimit": "^4.2.1",
+    "koa-static": "^5.0.0",
     "react": "16.13.1",
     "react-dom": "16.13.1",
     "react-scripts": "3.4.3"
@@ -19,8 +26,12 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "build:server": "tsc -p tsconfig.server.json",
+    "start:server": "node -r esm build/server.js",
+    "serve": "yarn build:server && yarn start:server"
   },
+  "license": "MIT",
   "browserslist": [
     ">0.2%",
     "not dead",

@@ -3,6 +3,7 @@
     "./src/*"
   ],
   "compilerOptions": {
+    "baseUrl": "./src/",
     "strict": true,
     "esModuleInterop": true,
     "lib": [
@@ -20,5 +21,5 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true
-  }
+  },
 }
