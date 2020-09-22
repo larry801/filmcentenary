@@ -30,11 +30,7 @@ export const NormalPhase :PhaseConfig ={
 
 }
 
-export const CheckPhase :PhaseConfig ={
-    onBegin:(G:IG,ctx:Ctx)=>{
 
-    },
-}
 
 export const  setupStage:StageConfig ={
     moves:{

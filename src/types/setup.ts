@@ -25,6 +25,11 @@ export interface IG {
         endPhase: boolean,
         endStage: boolean,
     },
+    c:{
+      players:PlayerID[],
+      slots:ICardSlot[],
+      buildingSlots:IBuildingSlot[],
+    },
     pub: IPubInfo[],
     e: { choices: any[], stack: any[], card: ICard },
     player: IPrivateInfo[],
@@ -137,6 +142,11 @@ export function setup(ctx: Ctx, setupData: any): IG {
         },
         playerCount: ctx.numPlayers,
         pub: pub,
+        c:{
+            players:[],
+            slots:[],
+            buildingSlots:[],
+        },
         e: {choices: [], stack: [],card:B07},
         competitionInfo: {
             region: Region.NA,

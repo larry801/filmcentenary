@@ -1,7 +1,8 @@
 import {
-    CardCategory, IBasicCard,
+    BasicCardID,
+    CardCategory,
+    IBasicCard,
     IBuyInfo,
-    ICard,
     ICardSlot,
     ICost,
     IEra,
@@ -13,7 +14,7 @@ import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {cardsByCond, idToCard} from "../types/cards";
 import {Stage} from "boardgame.io/core";
-import {changeBothStage, changePlayerStage, changeStage} from "./logFix";
+import {changePlayerStage} from "./logFix";
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -62,19 +63,35 @@ export const doConfirm = (G: IG, ctx: Ctx, a: boolean) => {
         // TODO
     }else {
         switch (stage) {
-            case "tempStudioRespond":
-                G.pub[0].tempStudios.push(0);
-                return
             case "optionalEff":
+                if(a){
+                    let eff=G.e.stack.pop();
+                    if(eff===undefined){
+                        throw new Error();
+                    }else {
+                        G.e.stack.push(eff.a)
+                    }
+                    curEffectExec(G,ctx);
+                }else {
+                    let eff=G.e.stack.pop();
+                    if(eff===undefined){
+                        // TODO
+                        throw new Error();
+                    }else {
+                        G.e.stack.push(eff.a)
+                        curEffectExec(G,ctx);
+                    }
+                }
                 return;
             default:
-                throw new  Error("Unsupported stage" + stage);
+                throw new  Error("Unsupported stage " + stage);
         }
     }
 }
 
 export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
     let obj = G.player[parseInt(p)];
+    let pObj = G.pub[parseInt(p)];
     if (card.category === CardCategory.BASIC) {
         // @ts-ignore
         G.basicCards[card.cardId] -= 1;
@@ -86,11 +103,13 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
             slot.card = null;
             if (slot.comment !== null) {
                 obj.hand.push(slot.comment);
+                pObj.allCards.push(slot.comment);
                 slot.comment = null;
             }//TODO update
         }
     }
     obj.hand.push(card);
+    pObj.allCards.push(card)
 }
 
 
@@ -107,22 +126,24 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             slot.card = null;
             if (slot.comment !== null) {
                 obj.discard.push(slot.comment);
+                obj.allCards.push(slot.comment);
                 slot.comment = null;
             }//TODO update
         }
     }
     obj.discard.push(card);
+    obj.allCards.push(card);
 }
 
 
-const idInhand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
+const idInHand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
     return G.player[p].hand.filter(c => c.cardId === cardId).length > 0;
 }
 
 export const getPidHasCard = (G: IG, ctx: Ctx, cardId: string): number[] => {
     let p: number[] = [];
     Array(G.playerCount).fill(1).filter((i, idx) => {
-            if (idInhand(G, ctx, idx, cardId)) {
+            if (idInHand(G, ctx, idx, cardId)) {
                 p.push(idx);
             }
         }
@@ -130,22 +151,18 @@ export const getPidHasCard = (G: IG, ctx: Ctx, cardId: string): number[] => {
     return p;
 }
 export const studioInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
+    if(r===Region.NONE)return false;
     return G.regions[r].buildings.filter(s => s.content === "studio" && s.owner === p).length > 0;
 }
-export const checkTempStudioResponse = (G:IG,ctx:Ctx,p:PlayerID,cardId:string):void =>{
-    let obj =G.pub[parseInt(p)];
-    if(obj.respondMark.tempStudioRespond){
-       return
-    }else {
-        changePlayerStage(G,ctx,"tempStudioRespond",p);
-    }
+
+export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region, p: PlayerID): PlayerID[] => {
+    if(r===Region.NONE)return [];
+    return  Array(G.playerCount).fill(1).map((i,idx)=>idx.toString()).filter(pid=>studioInRegion(G,ctx,r,pid));
 }
 
 export const posOfPlayer = (G: IG, ctx: Ctx,p:PlayerID): number => {
     return G.order.indexOf(p);
 }
-
-
 
 export const curEffectExec = (G: IG, ctx: Ctx): void => {
     let eff = G.e.stack.pop();
@@ -173,14 +190,15 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             }
             break;
         case "share":
-            // @ts-ignore
             let region1: Region = G.e.card.region;
-            if (G.regions[region1].share >= eff.a) {
-                obj.shares[region1] += eff.a;
-                G.regions[region1].share -= eff.a;
-            } else {
-                obj.shares[region1] += G.regions[region1].share;
-                G.regions[region1].share = 0
+            if(region1 !==Region.NONE){
+                if (G.regions[region1].share >= eff.a) {
+                    obj.shares[region1] += eff.a;
+                    G.regions[region1].share -= eff.a;
+                } else {
+                    obj.shares[region1] += G.regions[region1].share;
+                    G.regions[region1].share = 0
+            }
             }
             break;
         case "drawCard":
@@ -259,6 +277,7 @@ export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
 }
 
 export const cardSlotOnBoard = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICardSlot | null => {
+    if(card.region===Region.NONE)return null;
     let r = G.regions[card.region];
     if (card.category === CardCategory.LEGEND) {
         if (r.legend.card !== null) {
@@ -291,11 +310,13 @@ export function idOnBoard(G: IG, ctx: Ctx, id: string): boolean {
 }
 
 export function cardDepleted(G: IG, ctx: Ctx, region: Region) {
+    if(region===Region.NONE)return false;
     let r = G.regions[region];
     return r.legend.card === null && r.normal.filter(value => value.card !== null).length === 0;
 }
 
 export function shareDepleted(G: IG, ctx: Ctx, region: Region) {
+    if(region===Region.NONE)return false;
     return G.regions[region].share === 0;
 }
 
@@ -313,6 +334,7 @@ export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
 }
 
 export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
+    if(r===Region.NONE)return;
     let legend = cardsByCond(r, e, true);
     let normal = cardsByCond(r, e, false);
     G.secret.regions[r].legendDeck = shuffle(ctx, legend);
@@ -370,6 +392,13 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
 export const updateSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
     let d;
     // TODO return basic card
+    if(slot.comment!==null){
+        // @ts-ignore
+        let commentId:BasicCardID = slot.comment.cardId;
+        G.basicCards[commentId] ++;
+        slot.comment=null;
+    }
+    if(slot.region===Region.NONE)return;
     if (slot.isLegend) {
         d = G.secret.regions[slot.region].legendDeck;
     } else {

@@ -9,6 +9,7 @@ import {actualStage, studioInRegion} from "../game/util";
 import i18n from "../constant/i18n";
 import {FilteredMetadata, PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
+import {PubPanel} from "./pub";
 
 
 
@@ -40,6 +41,7 @@ export const FilmCentenaryBoard = ({G, ctx, moves, isActive, matchData, playerID
         <BoardRegion {...G.regions[1]}/>
         <BoardRegion {...G.regions[2]}/>
         <BoardRegion {...G.regions[3]}/>
+        {G.pub.map(u=><PubPanel {...u}/>)}
         {playerID !== null ? <PlayerHand G={G} playerID={playerID} ctx={ctx}/> : ""}
         <ChoiceDialog callback={moves.choose}
                       choices={

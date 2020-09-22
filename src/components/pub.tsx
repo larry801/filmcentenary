@@ -11,6 +11,6 @@ export const PubPanel = (i:IPubInfo)=>{
       <Typography>   {i18n.pub.res} {i.resource}</Typography>
       <Typography>   {i18n.pub.cash} {i.cash}</Typography>
       <Typography>   {i18n.pub.industry} {i.industry}</Typography>
-      <Typography>   {i18n.pub.aesthetics} {i.aesthetics}</Typography>
+        <Typography>   {i18n.pub.aesthetics} { i.aesthetics}</Typography>
     </Grid>
 }

@@ -2,7 +2,8 @@ export enum Region {
     NA,
     WE,
     EE,
-    ASIA
+    ASIA,
+    NONE,
 }
 
 export enum CardType {
@@ -72,7 +73,7 @@ export interface INormalOrLegendCard extends ICard{
     era: IEra,
 }
 
-export interface IBasicCard extends ICard {
+export interface IBasicCard extends ICard{
     readonly category: CardCategory.BASIC,
     cost: ICost,
     vp: number,

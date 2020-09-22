@@ -1,13 +1,16 @@
 import {
     CardCategory,
-    CardType, cost,
+    CardType,
+    cost,
     ICost,
     IEffect,
     IEra,
     IEventCard,
-    IFilmCard, INormalOrLegendCard,
+    IFilmCard,
+    INormalOrLegendCard,
     IPersonCard,
-    ISchoolCard, Region
+    ISchoolCard,
+    Region
 } from "./core";
 
 
@@ -73,7 +76,8 @@ export function schoolCard(arg: IArgFilmCard): ISchoolCard {
 
 export function eventCard(arg: IArgEvent): IEventCard {
     return {
-        cost: cost(0,0,0),
+        region: Region.NONE,
+        cost: cost(0, 0, 0),
         category: CardCategory.BASIC,
         type: CardType.E,
         era: arg.era,
@@ -1515,22 +1519,24 @@ const CARDS = {
         aesthetics: 1,
     }),
 }
-export function idToCard(id:string):INormalOrLegendCard{
-    if(id in CARDS){
+
+export function idToCard(id: string): INormalOrLegendCard {
+    if (id in CARDS) {
         // @ts-ignore
         return CARDS[id];
-    }else {
+    } else {
         throw new Error("No such id" + id);
     }
 }
-export function cardsByCond(r: Region, e: IEra,isLegend:boolean): INormalOrLegendCard[] {
-    let cards = Object.entries(CARDS);
-    let res= cards.filter(c=>c[1].era===e).filter(c=>c[1].region===r)
 
-    if(isLegend){
-        res = res.filter(c=>c[1].category===CardCategory.LEGEND)
-    }else {
-        res = res.filter(c=>c[1].category===CardCategory.NORMAL)
+export function cardsByCond(r: Region, e: IEra, isLegend: boolean): INormalOrLegendCard[] {
+    let cards = Object.entries(CARDS);
+    let res = cards.filter(c => c[1].era === e).filter(c => c[1].region === r)
+
+    if (isLegend) {
+        res = res.filter(c => c[1].category === CardCategory.LEGEND)
+    } else {
+        res = res.filter(c => c[1].category === CardCategory.NORMAL)
     }
-    return res.map(c=>c[1]);
+    return res.map(c => c[1]);
 }

@@ -1,6 +1,7 @@
-import {CardCategory, CardType, cost, IBasicCard} from "../../types/core";
+import {CardCategory, CardType, cost, IBasicCard, Region} from "../../types/core";
 
 export const B01:IBasicCard={
+    region:Region.NONE,
     aesthetics: 1, cardId: "B01",
     cost: cost(2,0,0),
     industry: 0,
@@ -10,6 +11,7 @@ export const B01:IBasicCard={
     category:CardCategory.BASIC
 }
 export const B02:IBasicCard={
+    region:Region.NONE,
     aesthetics: 0, cardId: "B02",
     cost: cost(2,0,0),
     industry: 1,
@@ -21,6 +23,7 @@ export const B02:IBasicCard={
 export const B03:IBasicCard={
     aesthetics: 0, cardId: "B03",
     cost: cost(2,0,0),
+    region:Region.NONE,
     industry: 0,
     type: CardType.F,
     vp: 0,
@@ -33,6 +36,7 @@ export const B04:IBasicCard={
     industry: 0,
     type: CardType.F,
     vp: -3,
+    region:Region.NONE,
     name:"Bad Film",
     category:CardCategory.BASIC
 }
@@ -43,9 +47,12 @@ export const B05:IBasicCard={
     type: CardType.F,
     vp: 3,
     name:"Classic Film",
-    category:CardCategory.BASIC
+    category:CardCategory.BASIC,
+    region:Region.NONE,
 }
+
 export const B07:IBasicCard={
+    region:Region.NONE,
     aesthetics: 0, cardId: "B07",
     cost: cost(0,0,0),
     industry: 0,
