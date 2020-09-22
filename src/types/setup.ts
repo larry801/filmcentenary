@@ -13,13 +13,20 @@ import {
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {B01, B02, B07} from "../constant/cards/basic";
-import {shuffle} from "../game/util";
+import {fillPlayerHand, drawForRegion, shuffle} from "../game/util";
 
 export interface IG {
     order: PlayerID[],
     playerCount: number,
+    logDiscrepancyWorkaround: boolean,
+    pending: {
+        endActivePlayer: boolean,
+        endTurn: boolean,
+        endPhase: boolean,
+        endStage: boolean,
+    },
     pub: IPubInfo[],
-    e: { choices: any[], stack: any[], },
+    e: { choices: any[], stack: any[], card: ICard },
     player: IPrivateInfo[],
     competitionInfo: {
         region: Region,
@@ -44,7 +51,15 @@ export interface IG {
         3: IRegionInfo,
     },
     pendingEffects: IEffect[],
-    basicCards: number[],
+    basicCards:{
+        "B01":number,
+        "B02":number,
+        "B03":number,
+        "B04":number
+        "B05":number,
+        "B06":number,
+        "B07":number,
+    },
 }
 
 function pubPlayer(): IPubInfo {
@@ -60,12 +75,16 @@ function pubPlayer(): IPubInfo {
         revealedHand: [],
         school: null,
         shares: {
-            NA: 0,
-            WE: 0,
-            EE: 0,
-            ASIA: 0,
+            0: 0,
+            1: 0,
+            2: 0,
+            3: 0,
         },
-        vp: 0
+        tempStudios:[],
+        vp: 0,
+        respondMark:{
+            tempStudioRespond:false,
+        },
     }
 }
 
@@ -107,11 +126,18 @@ export function setup(ctx: Ctx, setupData: any): IG {
     }
     let events = shuffle(ctx, []);
     let realOrder = shuffle(ctx, order);
-    return {
+    let g = {
         order: realOrder,
+        logDiscrepancyWorkaround: true,
+        pending: {
+            endActivePlayer: false,
+            endTurn: false,
+            endPhase: false,
+            endStage: false,
+        },
         playerCount: ctx.numPlayers,
         pub: pub,
-        e: { choices: [], stack: [], },
+        e: {choices: [], stack: [],card:B07},
         competitionInfo: {
             region: Region.NA,
             atk: '0',
@@ -179,6 +205,21 @@ export function setup(ctx: Ctx, setupData: any): IG {
             },
         },
         pendingEffects: [],
-        basicCards: [20, 20, 10, 40],
+        basicCards: {
+            "B01":20,
+            "B02":20,
+            "B03":10,
+            "B04":40,
+            "B05":20,
+            "B06":0,
+            "B07":0,
+        },
     }
+    drawForRegion(g, ctx, Region.NA, IEra.ONE);
+    drawForRegion(g, ctx, Region.WE, IEra.ONE);
+    drawForRegion(g, ctx, Region.EE, IEra.ONE);
+    for (let i = 0; i < ctx.numPlayers; i++) {
+        fillPlayerHand(g, ctx, i.toString());
+    }
+    return g;
 }

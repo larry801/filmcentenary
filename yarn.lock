@@ -1203,6 +1203,22 @@
   dependencies:
     "@hapi/hoek" "^8.3.0"
 
+"@i18n-chain/core@^0.8.0":
+  version "0.8.0"
+  resolved "https://registry.npm.taobao.org/@i18n-chain/core/download/@i18n-chain/core-0.8.0.tgz#f75000a0f70bd4749ff9dfc164cce79cb94dfe93"
+  integrity sha1-91AAoPcL1HSf+d/BZMznnLlN/pM=
+  dependencies:
+    tslib "^1.10.0"
+
+"@i18n-chain/react@^0.8.0":
+  version "0.8.0"
+  resolved "https://registry.npm.taobao.org/@i18n-chain/react/download/@i18n-chain/react-0.8.0.tgz#d4d429de7dc7e6f7a4ac35a2d77dd6b244e4e18e"
+  integrity sha1-1NQp3n3H5vekrDWi133WskTk4Y4=
+  dependencies:
+    "@i18n-chain/core" "^0.8.0"
+    hoist-non-react-statics "^3.3.1"
+    tslib "^1.10.0"
+
 "@jest/console@^24.7.1", "@jest/console@^24.9.0":
   version "24.9.0"
   resolved "https://registry.npm.taobao.org/@jest/console/download/@jest/console-24.9.0.tgz?cache=0&sync_timestamp=1597057474584&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2F%40jest%2Fconsole%2Fdownload%2F%40jest%2Fconsole-24.9.0.tgz#79b1bc06fb74a8cfb01cbdedf945584b1b9707f0"
@@ -5485,7 +5501,7 @@ hmac-drbg@^1.0.0:
     minimalistic-assert "^1.0.0"
     minimalistic-crypto-utils "^1.0.1"
 
-hoist-non-react-statics@^3.3.2:
+hoist-non-react-statics@^3.3.1, hoist-non-react-statics@^3.3.2:
   version "3.3.2"
   resolved "https://registry.npm.taobao.org/hoist-non-react-statics/download/hoist-non-react-statics-3.3.2.tgz?cache=0&sync_timestamp=1579746018776&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2Fhoist-non-react-statics%2Fdownload%2Fhoist-non-react-statics-3.3.2.tgz#ece0acaf71d62c2969c2ec59feff42a4b1a85b45"
   integrity sha1-7OCsr3HWLClpwuxZ/v9CpLGoW0U=

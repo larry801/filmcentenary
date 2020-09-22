@@ -1,64 +1,81 @@
-import {TurnConfig, PhaseConfig, LongFormMove} from 'boardgame.io';
+import {LongFormMove, PlayerID} from 'boardgame.io';
 import {IG} from "../types/setup";
 import {Ctx} from "boardgame.io";
-import {CardType, IBasicCard, IBuyInfo, ICard, ICardSlot, IFilmCard, INormalOrLegendCard} from "../types/core";
+import {
+    CardType,
+    IBasicCard,
+    IBuyInfo,
+    ICard,
+    ICardSlot,
+    IFilmCard,
+    INormalOrLegendCard,
+    IPubInfo
+} from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {canBuyCard, curPid} from "./util";
+import {canBuyCard, curPid, drawCardForPlayer, curEffectExec} from "./util";
 
 export const drawCard: LongFormMove = {
     move: (G: IG, ctx: Ctx) => {
-        let pid = parseInt(ctx.currentPlayer);
-        let p = G.player[pid]
-        let s = G.secret.playerDecks[pid]
-        if (s.length === 0) {
-            if (ctx.random === undefined) {
-
-            } else {
-                s = ctx.random.Shuffle(G.pub[pid].discard)
-            }
-        }
-        let card = s.pop();
-        if (card === undefined) {
-            // TODO what if player has no card at all?
-            throw new Error("Error drawing card");
-        } else {
-            p.hand.push(card);
-        }
+        drawCardForPlayer(G, ctx, ctx.currentPlayer);
     },
     client: false,
 }
 
 export const buyCard = {
     move(G: IG, ctx: Ctx, arg: IBuyInfo): any {
-        if(canBuyCard(G,ctx,arg)){
-            let pn:number = curPid(G,ctx);
+        if (canBuyCard(G, ctx, arg)) {
+            let pn: number = curPid(G, ctx);
             let discard = G.pub[pn].discard;
-            if (arg.target.type === CardType.S){
-                // TODO previous school
+            if (arg.target.type === CardType.S) {
+                // TODO previous school response
                 G.pub[pn].school = arg.target;
-            }else{
+            } else {
                 discard.push(arg.target)
             }
-            let card:ICard;
-            for(card of arg.helper){
+            let card: ICard;
+            for (card of arg.helper) {
                 discard.push(card);
             }
-        }else{
+        } else {
             return INVALID_MOVE;
         }
     },
-    client:false,
+    client: false,
 }
 export const chooseTarget: LongFormMove = {
-    move: (G: IG, ctx: Ctx, arg: IBuyInfo) => {
+    move: (G: IG, ctx: Ctx, arg: PlayerID) => {
+
     }
 }
 export const chooseEffect: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IBuyInfo) => {
     }
 }
+
+export interface IPlayCardInfo {
+    card: ICard,
+    idx: number
+}
+
+export const moveBlocker: LongFormMove = {
+    move: (G: IG, ctx: Ctx, arg: boolean) => {
+        return INVALID_MOVE;
+    },
+    client: false,
+}
+
+export const confirmRespond: LongFormMove = {
+    move: (G: IG, ctx: Ctx, arg: boolean) => {
+        curEffectExec(G, ctx);
+    },
+    client: false
+}
+
 export const playCard: LongFormMove = {
-    move: (G: IG, ctx: Ctx, arg: IBuyInfo) => {
+    move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
+        let c = G.player[curPid(G, ctx)].hand.splice(arg.idx, 1);
+        G.e.card = c[0];
+        curEffectExec(G, ctx);
     }
 }
 
@@ -79,10 +96,10 @@ export const competitionCard: LongFormMove = {
         } else {
             i.progress -= f;
         }
-        if(f>=5){
+        if (f >= 5) {
 
         }
-        if(f<=5){
+        if (f <= 5) {
 
         }
     }
@@ -106,4 +123,10 @@ export const comment: LongFormMove = {
             arg.target.comment = arg.comment;
         }
     }
+}
+
+export const initialSetup: LongFormMove = {
+    move: (G: IG, ctx: Ctx, args: IPubInfo[]) => {
+
+    },
 }

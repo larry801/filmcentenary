@@ -1,5 +1,5 @@
 import React from "react";
-import {Paper, Typography} from "@material-ui/core";
+import {Grid, Paper, Typography} from "@material-ui/core";
 import {ICardSlot, IRegionInfo} from "../types/core";
 import {BoardProps} from "boardgame.io/react";
 
@@ -13,15 +13,16 @@ export const BoardCardSlot =({region,card,isLegend,comment}:ICardSlot)=>{
 
 export const BoardRegion = (region:IRegionInfo)=>{
     const {era,share,legend,normal} = region;
-    return <>
-    <Paper>
+    return <Grid container>
         <Typography>时代:{era}</Typography>
         <Typography>份额:{share}</Typography>
-        <BoardCardSlot region={legend.region}
-                       isLegend={true} card={legend.card} comment={legend.comment}/>
-        {normal.map(slot=>
-            <BoardCardSlot region={slot.region} isLegend={false} card={slot.card} comment={slot.comment}/>
+        <Grid item><BoardCardSlot region={legend.region}
+                       isLegend={true} card={legend.card} comment={legend.comment}/></Grid>
+        {normal.map((slot,i)=>
+                <Grid item key={i}>
+                    <BoardCardSlot region={slot.region} isLegend={false} card={slot.card}
+                                   comment={slot.comment}/>
+                </Grid>
             )}
-    </Paper>
-    </>
+    </Grid>
 }

@@ -7,6 +7,9 @@ export function getCardEffect(id: string): any {
     return effects[id];
 }
 
+const noEff = {e: "none", a: ""};
+const noResponse = {pre: "none", effect: noEff};
+
 export interface CardEffect {
     canBuy: (G: IG, ctx: Ctx) => boolean,
     canArchive: (G: IG, ctx: Ctx) => boolean,
@@ -28,11 +31,59 @@ export interface IEff {
 const effects = {
     "B01": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {e: "res", a: 1},
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "none", a: ""},
+        archive: noEff,
+    },
+    "B02": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {e: "res", a: 1},
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+    },
+    "B03": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {e: "res", a: 1},
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+    },
+    "B04": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {e: "res", a: 1},
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+    },
+    "B05": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {e: "res", a: 1},
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+    },
+    "B06": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {e: "res", a: 1},
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+    },
+    "B07": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {e: "res", a: 1},
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
     },
     "1101": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -51,8 +102,8 @@ const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "none", a: ""},
-        response: {pre:"none", effect:{e:"none",a:""},},
+        archive: noEff,
+        response: noResponse,
 
     },
     "1102": {
@@ -72,7 +123,7 @@ const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "none", a: ""},
+        archive: noEff,
         response: {
             pre: {type: "eventCard", a: "E02"},
             effect: {
@@ -85,7 +136,7 @@ const effects = {
     },
     "1103": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
         play:
             {
@@ -97,12 +148,12 @@ const effects = {
             },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: {e: "update", a: 1},
-        response: {pre:"none", effect:{e:"none",a:""},},
+        response: noResponse,
 
     },
     "1104": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {e: "cash", a: 1},
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -110,7 +161,7 @@ const effects = {
     },
     "1105": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => G.regions[Region.NA].era !== IEra.THREE,
         play: {
             e: "era", a: [
@@ -129,40 +180,40 @@ const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        response: {pre:"none", effect:{e:"none",a:""},},
-        archive: {e: "none", a: ""},
+        response: noResponse,
+        archive: noEff,
     },
     "1106": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => G.regions[Region.NA].era !== IEra.THREE,
         play: {
             e: "era", a: [
                 {e: "step", a: [{e: "cash", a: 1}, {e: "drawCard", a: 1}]},
                 {e: "step", a: [{e: "cash", a: 1}, {e: "drawCard", a: 1}]},
-                {e: "none", a: ""},
+                noEff,
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        response: {pre:"none", effect:{e:"none",a:""},},
-        archive: {e: "none", a: ""},
+        response: noResponse,
+        archive: noEff,
     },
     "1107": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "era", a: [
                 {e: "step", a: [{e: "cash", a: 2}, {e: "vp", a: 1}]},
-                {e: "comment", a: 1},
-                {e: "comment", a: 1},
+                {e: "aesAward", a: 1},
+                {e: "aesAward", a: 1},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => G.regions[Region.NA].era !== IEra.ONE,
-        response: {pre:"none", effect:{e:"none",a:""},},
+        response: noResponse,
         archive: {
             e: "era", a: [
-                {e: "none", a: ""},
+                noEff,
                 {e: "aestheticsBreakthrough", a: 1},
                 {e: "aestheticsBreakthrough", a: 1},
             ]
@@ -170,31 +221,31 @@ const effects = {
     },
     "1108": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
-        play: {e: "none", a: ""},
+        play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
-        response: {pre:"none", effect:{e:"none",a:""},},
+        response: noResponse,
         archive: {e: "pay", a: {e: "cash", a: 1},},
     },
     "1109": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "era", a: [
                 {e: "step", a: [{e: "res", a: 2}, {e: "share", a: 1}]},
-                {e: "choice", a: [{e: "step", a: [{e: "cash", a: 1}, {e: "vp", a: 1}]}, {e: "competition", a: 1},]},
-                {e: "choice", a: [{e: "step", a: [{e: "cash", a: 1}, {e: "vp", a: 1}]}, {e: "competition", a: 1},]},
+                {e: "cash", a: 1}, {e: "vp", a: 1},
+                {e: "cash", a: 1}, {e: "vp", a: 1},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        response: {pre:"none", effect:{e:"none",a:""},},
-        archive: {e: "none", a: ""},
+        response: noResponse,
+        archive: noEff,
     },
     "1110": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "era", a: [
@@ -204,7 +255,7 @@ const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        response: {pre:"none", effect:{e:"none",a:""},},
+        response: noResponse,
         archive: {e: "none", a: "",},
     },
     "1201": {
@@ -224,7 +275,7 @@ const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        response: {pre:"none", effect:{e:"none",a:""},},
+        response: noResponse,
         archive: {e: "none", a: "",},
     },
     "1202": {
@@ -244,7 +295,7 @@ const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "none", a: ""},
+        archive: noEff,
         response: {
             pre: {type: "eventCard", a: "E02"},
             effect: {o: true, e: "step", a: [{e: "searchAndArchive", a: "1102"}, {e: "addVp", a: 2}]},
@@ -287,13 +338,13 @@ const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "none", a: ""},
-        response: {pre:"none", effect:{e:"none",a:""},},
+        archive: noEff,
+        response: noResponse,
 
     },
     "1206": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "era", a: [
@@ -305,37 +356,37 @@ const effects = {
         canArchive: (G: IG, ctx: Ctx) => G.regions[Region.WE].era !== IEra.ONE,
         archive: {
             e: "era", a: [
-                {e: "none", a: ""},
+                noEff,
                 {e: "othersBuy", a: "B04"},
                 {e: "othersBuy", a: "B04"},
             ]
         },
-        response: {pre:"none", effect:{e:"none",a:""},},
+        response: noResponse,
     },
     "1207": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => G.regions[Region.WE].era !== IEra.THREE,
         play: {
             e: "era", a: [
                 {e: "step", a: [{e: "resFromIndustry", a: 1}, {e: "card", a: 1}]},
                 {e: "step", a: [{e: "cash", a: 1}, {e: "vp", a: 1}]},
-                {e: "none", a: ""},
+                noEff,
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => G.regions[Region.NA].era !== IEra.ONE,
         archive: {
             e: "era", a: [
-                {e: "none", a: ""},
+                noEff,
                 {e: "aestheticsBreakthrough", a: 1},
                 {e: "aestheticsBreakthrough", a: 1},
             ]
         },
-        response: {pre:"none", effect:{e:"none",a:""},},
+        response: noResponse,
     },
     "1208": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
@@ -344,11 +395,11 @@ const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "none", a: ""},
-        response: {pre:"none", effect:{e:"none",a:""},},
+        archive: noEff,
+        response: noResponse,
     },
     "1209": {
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canBuy: (G: IG, ctx: Ctx) => true,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
@@ -358,51 +409,51 @@ const effects = {
             },
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "none", a: ""},
-        response: {pre:"none", effect:{e:"none",a:""},},
+        archive: noEff,
+        response: noResponse,
     },
-    "1210":{
+    "1210": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
-        canPlay: (G: IG, ctx: Ctx) => G.regions[Region.WE].era===IEra.ONE,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => G.regions[Region.WE].era === IEra.ONE,
         play: {
             e: "era", a: [
-                {e:"res",a:2},
-                {e:"none",a:""},
-                {e:"none",a:""},
+                {e: "res", a: 2},
+                noEff,
+                noEff,
             ],
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "step", a: [{e:"vp",a:5},{e:"cash",a:1}]},
+        archive: {e: "step", a: [{e: "vp", a: 5}, {e: "cash", a: 2}]},
         response: {
-            pre:{type:"or",a: [{type:"discard"},{type:"archive"}],},
-            effect:{e: "step", a: [{e:"vp",a:5},{e:"cash",a:1}]},
+            pre: {type: "none", a: "E02"},
+            effect: noEff,
+        },
     },
-    },
-    "1211":{
+    "1211": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
-        canPlay: (G: IG, ctx: Ctx) => G.regions[Region.WE].era!==IEra.THREE,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => G.regions[Region.WE].era !== IEra.THREE,
         play: {
             e: "era", a: [
-                {e:"res",a:2},
-                {e:"comment",a:1},
-                {e:"none",a:""},
+                {e: "res", a: 2},
+                {e: "comment", a: 1},
+                noEff,
             ],
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e:"none",a:""},
-        response: {pre:{type:"discard"},effect:{e:"cash",a:1}},
+        archive: noEff,
+        response: {pre: {type: "discard"}, effect: {e: "cash", a: 1}},
 
     },
-    "1301":{
-        "school":{
-            hand:4,
-            action:2,
+    "1301": {
+        "school": {
+            hand: 4,
+            action: 2,
         },
         response: {
             pre: {type: "turnStart"},
-            effect: {e:"step",a:[{e:"vp",a:1},{e: "discardAndDraw", a: 1}]},
+            effect: {e: "step", a: [{e: "vp", a: 1}, {e: "discardAndDraw", a: 1}]},
         },
     },
     "1302": {
@@ -422,81 +473,146 @@ const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "none", a: ""},
+        archive: noEff,
         response: {
             pre: {type: "none", a: "E02"},
-            effect: {e:"none",a:""},
+            effect: noEff,
         },
     },
     "1303": {
-        "school":{
-            hand:4,
-            action:2,
+        "school": {
+            hand: 4,
+            action: 2,
         },
         response: {
             pre: {type: "othersBuySchool"},
-            effect: {e:"step",a:[{e:"cash",a:1},{e: "vp", a: 1}]},
+            effect: {e: "step", a: [{e: "cash", a: 1}, {e: "vp", a: 1}]},
         },
     },
     "1304": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
-        canPlay: (G: IG, ctx: Ctx) => G.regions[Region.WE].era!==IEra.THREE,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => G.regions[Region.WE].era !== IEra.THREE,
         play: {
             e: "era", a: [
-                {e: "step", a: [{e:"res",a:2},{e:"vp",a:1}]},
-                {e: "step", a: [{e:"cash",a:1},{e:"vp",a:2}]},
-                {e:"none",a:""},
+                {e: "step", a: [{e: "res", a: 2}, {e: "vp", a: 1}]},
+                {e: "step", a: [{e: "cash", a: 1}, {e: "vp", a: 2}]},
+                noEff,
             ],
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: {e: "comment", a: 1},
-        response: {pre:"none", effect:{e:"none",a:""},},
+        response: noResponse,
     },
     "1305": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "era", a: [
-                {e:"drawCard",a:2},
-                {e:"archiveHand",a:1},
-                {e:"vp",a:2},
+                {e: "drawCard", a: 2},
+                {e: "archiveHand", a: 1},
+                {e: "vp", a: 2},
             ],
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "step", a: [{e:"vp",a:5},{e:"cash",a:1}]},
+        archive: {e: "step", a: [{e: "vp", a: 5}, {e: "cash", a: 1}]},
         response: {
-            pre:{
+            pre: {
                 type: "or",
-                a: [{e:"discard",},{e:"archive"}]
+                a: [{e: "discard",}, {e: "archive"}]
             },
-            effect:{e: "step", a: [{e:"vp",a:5},{e:"cash",a:1}]},
+            effect: {e: "step", a: [{e: "vp", a: 5}, {e: "cash", a: 1}]},
         },
 
     },
     "1306": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
-        canPlay: (G: IG, ctx: Ctx) => G.regions[Region.WE].era!==IEra.THREE,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => G.regions[Region.WE].era !== IEra.THREE,
         play: {
             e: "era", a: [
-                {e: "step", a: [{e:"res",a:1},{e:"drawCard",a:1}]},
-                {e:"res",a:1},
-                {e:"none",a:""},
+                {e: "step", a: [{e: "res", a: 1}, {e: "drawCard", a: 1}]},
+                {e: "res", a: 1},
+                noEff,
             ],
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e:"none",a:""},
-        response: {pre:"none", effect:{e:"none",a:""},},
+        archive: noEff,
+        response: noResponse,
     },
-    "1307":{
+    "1307": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "none", a: ""},
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
-        play: {e: "step", a: [{e:"drawCard",a:1},{e:"vp",a:1}]},
+        play: {e: "step", a: [{e: "drawCard", a: 1}, {e: "vp", a: 1}]},
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e:"none",a:""},
-        response: {pre:"none", effect:{e:"none",a:""},},
+        archive: noEff,
+        response: noResponse,
+    },
+    "2101": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+        school: {
+            hand: 6,
+            action: 2,
+        },
+    },
+    "2102": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: "noStudio", a: {e: "discardIndustry", a: 1}},
+                {e: "studio", a: {e: "buyCardIntoHand", a: "B02"}},
+                {e: "drawCard", a: 1},
+                {
+                    e: "optional", a: {
+                        e: "competition", a: {
+                            bonus: 1,
+                            onWin: {e: "share", a: 1}
+                        }
+                    }
+                }
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "2103": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "choice", a: [
+                {e: "industryUp", a: 1},
+                {e: "buyCard", a: "2107"},
+            ]
+        },
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: {
+            e: "step", a: [
+                {e: "buyCardToHand", a: "B05"},
+                {
+                    e: "noStudio", a: {
+                        e: "step", a: [
+                            {e: "discard", a: 1},
+                            {e: "buyCardToHand", a: "B04"},
+                        ]
+                    }
+                },
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "2104":{
+
     }
 }

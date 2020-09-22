@@ -1,5 +1,3 @@
-import {Ctx} from "boardgame.io";
-
 export enum Region {
     NA,
     WE,
@@ -12,7 +10,6 @@ export enum CardType {
     F,
     S,
     P,
-    B
 }
 
 export interface ICardSlot {
@@ -32,20 +29,12 @@ export interface IEffect {
 
 }
 
-export interface ICheck {
-    (g: any, ctx: Ctx, p: string): boolean;
-}
-
 export interface IBuyInfo {
     buyer: string,
     target: ICard,
     resource: number,
     cash: number,
     helper: ICard[],
-}
-
-export interface IBuyCard {
-    (G: any, ctx: Ctx, info: IBuyInfo): boolean;
 }
 
 export enum CardCategory {
@@ -59,13 +48,9 @@ export interface ICard {
     cost:ICost,
     cardId: string,
     name: string,
+    region:Region,
     type: CardType,
     category: CardCategory,
-}
-
-export interface IMovieCard extends ICard{
-    vp:number,
-    cost:ICost,
 }
 
 export function cost(r:number, i:number, a:number): ICost{
@@ -78,44 +63,43 @@ export function cost(r:number, i:number, a:number): ICost{
 
 export interface INormalOrLegendCard extends ICard{
     readonly category: CardCategory,
+    readonly type: CardType,
     cost: ICost,
     vp: number,
-    effect: any,
     industry: number,
     aesthetics: number,
-    region:Region,
+    region: Region,
+    era: IEra,
 }
 
 export interface IBasicCard extends ICard {
     readonly category: CardCategory.BASIC,
     cost: ICost,
     vp: number,
-    effect: any,
     industry: number,
     aesthetics: number,
 }
-
-export interface IFilmCard extends ICard {
+export interface ISchoolCard extends INormalOrLegendCard{
+    readonly type: CardType.S,
+}
+export interface IFilmCard extends INormalOrLegendCard {
     readonly type: CardType.F,
-    vp: number,
-    industry: number,
-    aesthetics: number,
-    playable: ICheck | boolean,
-    canArchive: ICheck | boolean,
 }
-
+export enum BasicCardID{
+    "B01"="B01",
+    "B02"="B02",
+    "B03"="B03",
+    "B04"="B04",
+    "B05"="B05",
+    "B06"="B06",
+    "B07"="B07",
+}
 export interface IEventCard extends ICard {
     era: IEra,
     effect: IEffect,
 }
 
-export interface IPersonCard extends ICard {
-    aesthetics:number,
-    industry:number,
-    vp: number,
-    playable: ICheck | boolean,
-    canArchive: ICheck | boolean,
-    cost: ICost,
+export interface IPersonCard extends INormalOrLegendCard {
     readonly type:CardType.P,
 }
 
@@ -131,10 +115,10 @@ export interface IScoreCard extends ICard {
 }
 
 export interface IPlayerShare {
-    NA: number,
-    WE: number,
-    EE: number,
-    ASIA: number,
+    0: number,
+    1: number,
+    2: number,
+    3: number,
 }
 
 export interface IPubInfo {
@@ -150,6 +134,10 @@ export interface IPubInfo {
     school: ICard | null,
     vp: number,
     shares: IPlayerShare,
+    tempStudios:Region[],
+    respondMark:{
+        tempStudioRespond:boolean,
+    }
 }
 
 export interface IPrivateInfo {
@@ -173,18 +161,8 @@ export interface IRegionInfo {
 }
 
 export interface IRegionPrivate {
-    legendDeck:ICard[],
-    normalDeck:ICard[],
-}
-
-export interface Setup {
-    pub: IPubInfo[],
-    player: IPrivateInfo[],
-    eventDeck:IEventCard[],
-    secret: {
-        eventDeck: IEventCard[],
-        regionDeck: any,
-    }
+    legendDeck:INormalOrLegendCard[],
+    normalDeck:INormalOrLegendCard[],
 }
 
 

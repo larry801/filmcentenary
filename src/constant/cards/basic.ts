@@ -1,12 +1,8 @@
-import {CardCategory,
-    CardType,
-    cost,
-    IBasicCard
-} from "../../types/core";
+import {CardCategory, CardType, cost, IBasicCard} from "../../types/core";
 
 export const B01:IBasicCard={
     aesthetics: 1, cardId: "B01",
-    cost: cost(2,0,0), effect: {},
+    cost: cost(2,0,0),
     industry: 0,
     type: CardType.F,
     vp: 0,
@@ -15,7 +11,7 @@ export const B01:IBasicCard={
 }
 export const B02:IBasicCard={
     aesthetics: 0, cardId: "B02",
-    cost: cost(2,0,0), effect: {},
+    cost: cost(2,0,0),
     industry: 1,
     type: CardType.F,
     vp: 0,
@@ -24,7 +20,7 @@ export const B02:IBasicCard={
 }
 export const B03:IBasicCard={
     aesthetics: 0, cardId: "B03",
-    cost: cost(2,0,0), effect: {},
+    cost: cost(2,0,0),
     industry: 0,
     type: CardType.F,
     vp: 0,
@@ -33,7 +29,7 @@ export const B03:IBasicCard={
 }
 export const B04:IBasicCard={
     aesthetics: 0, cardId: "B04",
-    cost: cost(0,0,0), effect: {},
+    cost: cost(0,0,0),
     industry: 0,
     type: CardType.F,
     vp: -3,
@@ -42,7 +38,7 @@ export const B04:IBasicCard={
 }
 export const B05:IBasicCard={
     aesthetics: 1, cardId: "B05",
-    cost: cost(6,1,1), effect: {},
+    cost: cost(6,1,1),
     industry: 1,
     type: CardType.F,
     vp: 3,
@@ -51,10 +47,10 @@ export const B05:IBasicCard={
 }
 export const B07:IBasicCard={
     aesthetics: 0, cardId: "B07",
-    cost: cost(0,0,0), effect: {},
+    cost: cost(0,0,0),
     industry: 0,
-    type: CardType.B,
     vp: 0,
     name:"Fund",
+    type:CardType.F,
     category:CardCategory.BASIC
 }
