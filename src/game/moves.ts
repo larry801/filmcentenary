@@ -8,7 +8,6 @@ import {
     ICard,
     ICardSlot,
     IFilmCard,
-    INormalOrLegendCard,
     IPubInfo
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";

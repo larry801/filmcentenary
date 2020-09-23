@@ -4,10 +4,11 @@ import en from "./locales/en";
 
 const i18n = createI18n({
     defaultLocale: {
-        key: 'en',
-        values: en,},
+        key: 'zh_CN',
+        values: zh_CN,},
 });
 
-i18n._.define('zh_CN', zh_CN);
+//i18n._.define('zh_CN', zh_CN);
+i18n._.define('en', en);
 
 export default i18n;

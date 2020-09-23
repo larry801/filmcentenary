@@ -31,11 +31,12 @@ export interface IChoiceProps {
     show:boolean,
     title:string,
     toggleText: string,
+    initial:boolean,
 }
 
-export const ChoiceDialog =({callback,show,choices,title,toggleText,defaultChoice}:IChoiceProps)=>{
+export const ChoiceDialog =({initial,callback,show,choices,title,toggleText,defaultChoice}:IChoiceProps)=>{
     const classes = useStyles();
-    const [open, setOpen] = React.useState(true);
+    const [open, setOpen] = React.useState(initial);
     const [choice, setChoice] = React.useState(defaultChoice);
 
     const handleClickOpen = () => {
@@ -49,14 +50,14 @@ export const ChoiceDialog =({callback,show,choices,title,toggleText,defaultChoic
     useI18n(i18n);
 
     return  show?<>
-        <Button onClick={()=>handleClickOpen()}> {toggleText}</Button>
+        <Button variant={"outlined"} onClick={()=>handleClickOpen()}> {toggleText}</Button>
         <Dialog open={open} onClose={()=>handleClose()} aria-label={title}>
             <DialogTitle>
                 {title}
             </DialogTitle>
             <DialogContent>
                 <FormControl required component="fieldset">
-                    <FormGroup>
+                    <FormGroup className={classes.formControl}>
                         <FormLabel component="legend">{toggleText}</FormLabel>
                         <RadioGroup aria-label={title} name="choice" value={choice}
                                     onChange={(e) => setChoice(e.target.value)}>

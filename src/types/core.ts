@@ -86,6 +86,14 @@ export interface ISchoolCard extends INormalOrLegendCard{
 export interface IFilmCard extends INormalOrLegendCard {
     readonly type: CardType.F,
 }
+
+export enum EventCardID{
+    "E01"="E01"
+}
+export enum NormalOrLegendCardID{
+    "p1101"="1101"
+}
+
 export enum BasicCardID{
     "B01"="B01",
     "B02"="B02",

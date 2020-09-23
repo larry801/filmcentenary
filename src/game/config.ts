@@ -2,7 +2,7 @@ import {TurnConfig, PhaseConfig, StageConfig}from 'boardgame.io/src/types';
 import {IG} from "../types/setup";
 import {Ctx} from "boardgame.io";
 import {TurnOrder} from "boardgame.io/core";
-import {confirmRespond, initialSetup, moveBlocker} from "./moves";
+import {buyCard, confirmRespond, drawCard, initialSetup, moveBlocker, playCard} from "./moves";
 
 export const tempStudioRespond:StageConfig ={
     moves:{
@@ -21,6 +21,11 @@ export const NormalTurn :TurnConfig ={
     stages:{
         tempStudioRespond:tempStudioRespond,
         moveBlockerStage:moveBlockerStage
+    },
+    moves:{
+        drawCard:drawCard,
+        buyCard:buyCard,
+        playCard:playCard
     }
 }
 
@@ -29,8 +34,6 @@ export const NormalPhase :PhaseConfig ={
     turn:NormalTurn,
 
 }
-
-
 
 export const  setupStage:StageConfig ={
     moves:{

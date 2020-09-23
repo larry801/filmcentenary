@@ -19,10 +19,6 @@ export interface CardEffect {
     buy: IEff,
 }
 
-/*
-*
-*
-* */
 export interface IEff {
     e: string,
     a: IEff[] | number | string,
@@ -49,31 +45,37 @@ const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
-        play: {e: "res", a: 1},
+        play: {
+            e: "pay", a: {
+                cost: {e: "vp", a: 2}, eff: {
+                    e: "step", a: [
+                        {e: "res", a: 1},
+                        {e: "cash", a: 1},
+                    ]
+                }
+            }
+        },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
     },
     "B04": {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
-        canPlay: (G: IG, ctx: Ctx) => true,
+        canPlay: (G: IG, ctx: Ctx) => false,
         play: {e: "res", a: 1},
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: noEff,
+        archive: {e: "pay", a: {e: "vp", a: 2}},
     },
     "B05": {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
-        play: {e: "res", a: 1},
-        canArchive: (G: IG, ctx: Ctx) => true,
-        archive: noEff,
-    },
-    "B06": {
-        canBuy: (G: IG, ctx: Ctx) => true,
-        buy: noEff,
-        canPlay: (G: IG, ctx: Ctx) => true,
-        play: {e: "res", a: 1},
+        play: {
+            e: "choice", a: [
+                {e: "drawCard", a: 1},
+                {e: "aesAward", a: 1}
+            ]
+        },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
     },
@@ -516,14 +518,8 @@ const effects = {
             ],
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "step", a: [{e: "vp", a: 5}, {e: "cash", a: 1}]},
-        response: {
-            pre: {
-                type: "or",
-                a: [{e: "discard",}, {e: "archive"}]
-            },
-            effect: {e: "step", a: [{e: "vp", a: 5}, {e: "cash", a: 1}]},
-        },
+        archive: noEff,
+        response: noResponse,
 
     },
     "1306": {
@@ -565,7 +561,12 @@ const effects = {
     },
     "2102": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: noEff,
+        buy: {
+            e: "choice", a: [
+                {e: "industryUp", a: 1},
+                {e: "buyCard", a: "2114"},
+            ]
+        },
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
@@ -612,7 +613,14 @@ const effects = {
         archive: noEff,
         response: noResponse,
     },
-    "2104":{
-
+    "2104": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        response: {
+            pre: {type: "loseVp"},
+            effect: {e: "res", a: 1},
+        },
     }
 }

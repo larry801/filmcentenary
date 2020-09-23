@@ -14,7 +14,7 @@ import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {cardsByCond, idToCard} from "../types/cards";
 import {Stage} from "boardgame.io/core";
-import {changePlayerStage} from "./logFix";
+import {changeStage} from "./logFix";
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -142,7 +142,7 @@ const idInHand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
 
 export const getPidHasCard = (G: IG, ctx: Ctx, cardId: string): number[] => {
     let p: number[] = [];
-    Array(G.playerCount).fill(1).filter((i, idx) => {
+    Array(G.playerCount).fill(1).forEach((i, idx) => {
             if (idInHand(G, ctx, idx, cardId)) {
                 p.push(idx);
             }
@@ -155,9 +155,14 @@ export const studioInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean
     return G.regions[r].buildings.filter(s => s.content === "studio" && s.owner === p).length > 0;
 }
 
-export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region, p: PlayerID): PlayerID[] => {
+export const studioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if(r===Region.NONE)return [];
     return  Array(G.playerCount).fill(1).map((i,idx)=>idx.toString()).filter(pid=>studioInRegion(G,ctx,r,pid));
+}
+
+export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
+    if(r===Region.NONE)return [];
+    return  Array(G.playerCount).fill(1).map((i,idx)=>idx.toString()).filter(pid=>!studioInRegion(G,ctx,r,pid));
 }
 
 export const posOfPlayer = (G: IG, ctx: Ctx,p:PlayerID): number => {
@@ -182,12 +187,18 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             obj.vp += eff.a;
             break;
         case "noStudio":
-
+            G.c.players = noStudioPlayers(G,ctx,region);
+            changeStage(G,ctx,"choosePlayer")
+            break;
+        case "studio":
+            let players = studioPlayers(G,ctx,region);
+            players.forEach(p=>playerEffExec(G,ctx));
             break;
         case "step":
-            for (let e of eff.a) {
-                G.e.stack.push(e)
-            }
+            eff.a.reduceRight((_: any, item: any) => {
+                return G.e.stack.push(item);
+            });
+
             break;
         case "share":
             let region1: Region = G.e.card.region;
@@ -207,10 +218,8 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             }
             break;
         case "shareToVp":
-            // @ts-ignore
-            let r: Region = G.e.card.region;
-            // @ts-ignore
-            obj.vp += obj.shares[r];
+            if(region===Region.NONE)return;
+            obj.vp += obj.shares[region];
             break;
         case "aesAward":
             for (let i = 0; i < eff.a; i++) {
@@ -320,16 +329,40 @@ export function shareDepleted(G: IG, ctx: Ctx, region: Region) {
     return G.regions[region].share === 0;
 }
 
-export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
+export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     let cost: ICost = arg.target.cost;
     let resRequired = 0;
+    let pub = G.pub[parseInt(arg.buyer)]
     let aesthetics: number = cost.aesthetics
     let industry: number = cost.industry
-    let resGiven: number = arg.resource + arg.cash;
+    aesthetics -= pub.aesthetics;
+    industry -= pub.industry;
     for (const helperItem of arg.helper) {
-        aesthetics += 1;
-        industry += 1;
+        // @ts-ignore
+        industry -= helperItem.industry;
+        // @ts-ignore
+        aesthetics -= helperItem.aesthetics;
     }
+    if(aesthetics>0)resRequired+=aesthetics*2;
+    if(industry>0)resRequired+=industry*2;
+    return resRequired;
+}
+
+export function canAfford(G:IG,ctx:Ctx,card:INormalOrLegendCard,p:PlayerID){
+    let pub = G.pub[parseInt(p)]
+     let res = resCost(G,ctx,{
+         buyer:p,
+         target:card,
+         helper:G.player[parseInt(p)].hand,
+         resource:0,
+         cash:0
+     })
+    return pub.cash + pub.resource >= res;
+}
+
+export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
+    let resRequired = resCost(G,ctx,arg);
+    let resGiven: number = arg.resource + arg.cash;
     return resRequired === resGiven;
 }
 
