@@ -93,16 +93,12 @@ export function changePhase(G: IG, ctx: Ctx, phase: string) {
 
 export function autoEventsOnMove(G: IG, ctx: Ctx): void {
     if (G.pending.endTurn) {
-        // @ts-ignore
         ctx.events?.endTurn?.();
     }
     if (G.pending.endPhase) {
-        // @ts-ignore
-        ctx.events?.endPhaes?.();
+        ctx.events?.endPhase?.();
     }
     if (G.pending.endActivePlayer) {
-        // @ts-ignore
         ctx.events?.setActivePlayers?.({current: Stage.NULL});
     }
-
 }

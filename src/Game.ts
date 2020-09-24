@@ -1,20 +1,21 @@
-import {Ctx, Game} from "boardgame.io";
+import {Game} from "boardgame.io";
 import {IG, setup} from "./types/setup";
-import {playCard} from "./game/moves";
-
-export interface DemoState {
-  numbers: [number, number];
-  string?: string;
-}
+import {breakthrough, buyCard, drawCard, initialSetup, playCard} from "./game/moves";
+import {InitPhase, NormalPhase} from "./game/config";
 
 export const FilmCentenaryGame: Game<IG> = {
   setup:setup,
 
   phases:{
-
+    InitPhase:InitPhase,
+    NormalPhase:NormalPhase,
   },
 
   moves: {
-    playCard:playCard,
+    initialSetup:initialSetup,
+    drawCard: drawCard,
+    buyCard: buyCard,
+    playCard: playCard,
+    breakthrough:breakthrough,
   }
 };

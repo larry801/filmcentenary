@@ -9,11 +9,12 @@ const zh_CN: Locale = {
         4: "无"
     },
     action: {
+        initialSetup:"补充初始牌",
         draw:"摸牌",
         play:"出牌",
         breakthrough:"突破",
         studio:"建造制片厂",
-        theater:"建造电影院",
+        cinema:"建造电影院",
         aestheticsLevelUp:"提升美学等级",
         industryLevelUp:"提升工业等级",
     },
@@ -32,6 +33,7 @@ const zh_CN: Locale = {
         buyCard:{
             basic:"购买基础牌",
             board:"购买",
+            cost:"费用",
         },
         comment: {
             title:"评论",
@@ -64,7 +66,17 @@ const zh_CN: Locale = {
         vp: "声望：",
         share: "份额：",
         era: "时代："
-    }
+    },
+    score: {
+        first: "第一",
+        second: "第二",
+        third: "第三",
+        cardName: ['{{ear}}{{region}}{{rank}}',{
+            era:undefined,
+            rank:undefined,
+            region:undefined,
+        }],
+    },
 
 };
 

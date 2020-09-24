@@ -12,6 +12,8 @@ export interface ICardSlotProp {
     slot:ICardSlot,
     G:IG,
     ctx:Ctx,
+    buy:(target:ICard,resource:number,cash:number,helper:ICard[])=>void,
+    canBuy:(target:ICard,resource:number,cash:number,helper:ICard[])=>boolean,
     comment:(slot:ICardSlot,card:IBasicCard|null)=>void,
     playerID:PlayerID|null,
 }
@@ -19,7 +21,7 @@ export interface ICardSlotProp {
 
 
 
-export const BoardCardSlot =({playerID,slot,G,ctx,comment}:ICardSlotProp)=>{
+export const BoardCardSlot =({playerID,slot,buy,canBuy,G,ctx,comment}:ICardSlotProp)=>{
     return <>
         <Paper>
             {slot.card===null? "":slot.card.name}
@@ -29,8 +31,8 @@ export const BoardCardSlot =({playerID,slot,G,ctx,comment}:ICardSlotProp)=>{
                     <BuyCard slot={slot}
                              card={slot.card}
                              helpers={G.player[(parseInt(playerID))].hand}
-                             buy={(cardId: string, helper: boolean[]) => {}}
-                             canBuy={(cardId: string, helper: boolean[]) => false}
+                             buy={buy}
+                             canBuy={canBuy}
                              affordable={canAfford(G,ctx,slot.card,playerID)} G={G} playerID={playerID}/>
                 </div>:<></>}
         </Paper>
@@ -50,33 +52,46 @@ export const BoardRegion = ({r,region,G,ctx,playerID,moves}:IRegionProp)=>{
     const {era,share,legend,normal} = region;
 
     const canBuy = (target:ICard,resource:number,cash:number,helper:ICard[])=>canBuyCard(G,ctx,{
-        buyer: '1',
+        buyer: playerID===null?'0':playerID,
         target: target,
         resource: resource,
         cash: cash,
         helper:helper,
     });
+    const buy = (target:ICard,resource:number,cash:number,helper:ICard[])=>{
+        moves.buyCard({
+            buyer: playerID===null?'0':playerID,
+            target: target,
+            resource: resource,
+            cash: cash,
+            helper:helper,
+        })
+    }
 
     const comment = (slot:ICardSlot,card:IBasicCard|null)=>moves.comment(G,ctx,{target:slot,comment:card})
 
 
     return <Grid container>
         <div style={{ display: 'block' }}><Typography>{i18n.region[r]}</Typography></div>
-        <div style={{ display: 'block' }}><Typography>{i18n.pub.era} {i18n.era[era]}</Typography></div>
+        <div style={{ display: 'inline-flex' }}><Typography>{i18n.pub.era} {i18n.era[era]}</Typography></div>
         <div style={{ display: 'block' }}><Typography>{i18n.pub.share} {share}</Typography></div>
         <Grid item><BoardCardSlot
             G={G}
             ctx={ctx}
-            slot={region.legend}
+            slot={legend}
             comment={comment}
-             playerID={playerID}
+            canBuy={canBuy}
+            buy={buy}
+         playerID={playerID}
         /></Grid>
         {normal.map((slot,i)=>
                 <Grid item key={i}>
                     <BoardCardSlot
                         G={G}
                         ctx={ctx}
+                        buy={buy}
                         slot={slot}
+                        canBuy={canBuy}
                         comment={comment}
                         playerID={playerID}
                     />

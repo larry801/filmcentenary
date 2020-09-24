@@ -1,4 +1,4 @@
-import {CardCategory, CardType, cost, IBasicCard, Region} from "../../types/core";
+import {BasicCardID, CardCategory, CardType, cost, IBasicCard, Region} from "../../types/core";
 
 export const B01:IBasicCard={
     region:Region.NONE,
@@ -50,7 +50,16 @@ export const B05:IBasicCard={
     category:CardCategory.BASIC,
     region:Region.NONE,
 }
-
+export const B06:IBasicCard={
+    aesthetics: 1, cardId: "B05",
+    cost: cost(6,1,1),
+    industry: 1,
+    type: CardType.F,
+    vp: 3,
+    name:"Classic Film",
+    category:CardCategory.BASIC,
+    region:Region.NONE,
+}
 export const B07:IBasicCard={
     region:Region.NONE,
     aesthetics: 0, cardId: "B07",
@@ -60,4 +69,16 @@ export const B07:IBasicCard={
     name:"Fund",
     type:CardType.F,
     category:CardCategory.BASIC
+}
+const BasicCards={
+    B01:B01,
+    B02:B02,
+    B03:B03,
+    B04:B04,
+    B05:B05,
+    B06:B06,
+    B07:B07,
+}
+export function getBasicCard(id:BasicCardID):IBasicCard{
+    return BasicCards[id];
 }

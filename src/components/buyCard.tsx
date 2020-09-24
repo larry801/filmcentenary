@@ -18,8 +18,8 @@ export interface IBuyDialogProps {
     slot: ICardSlot,
     card: INormalOrLegendCard,
     helpers: ICard[],
-    buy: (cardId: string, helper: boolean[]) => void,
-    canBuy: (cardId: string, helper: boolean[]) => boolean,
+    buy: (target:ICard,resource:number,cash:number,helper:ICard[])=> void,
+    canBuy: (target:ICard,resource:number,cash:number,helper:ICard[]) => boolean,
     affordable: boolean,
     G: IG,
     playerID: PlayerID,
@@ -39,6 +39,9 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
         setChecked(newHelper)
     }
 
+    const pub = G.pub[parseInt(playerID)];
+
+
     return <div>
         <Button disabled={!affordable} onClick={() => {
             setOpen(true)
@@ -50,6 +53,15 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                 {i18n.dialog.buyCard.board} {card.name}
             </DialogTitle>
             <DialogContent>
+                <div style={{display: 'inline-flex'}} key={"res-"}>
+                    <Typography variant={"h6"}>{i18n.dialog.buyCard.cost} {card.cost.res}</Typography>
+                    <Typography variant={"h6"}>{i18n.pub.industry} {card.cost.industry}</Typography>
+                    <Typography variant={"h6"}>{i18n.pub.aesthetics} {card.cost.aesthetics}</Typography>
+                </div>
+                <div style={{display: 'block'}} key={"res-"}>
+                    <Typography variant={"h6"}>{i18n.pub.industry} {pub.industry}</Typography>
+                    <Typography variant={"h6"}>{i18n.pub.aesthetics} {pub.aesthetics}</Typography>
+                </div>
                 <FormControl required component="fieldset">
                     <FormLabel component="legend">
                         {i18n.dialog.buyCard.board} {card.name}
@@ -60,7 +72,7 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                                     onClick={() => setRes(res - 1)}
                             >-</Button>
                             <Typography>{res}</Typography>
-                            <Button style={{display: 'inline-flex'}} onClick={() => setRes(res + 1)}
+                            <Button  onClick={() => setRes(res + 1)}
                                     disabled={G.pub[parseInt(playerID)].cash === deposit}
                             >+</Button></div>
                         <div style={{display: 'inline-flex'}} key={"deposit"}>
@@ -73,7 +85,11 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                                     disabled={G.pub[parseInt(playerID)].resource === res}
                             >+</Button>
                         </div>
-                        {helpers.map((p, idx) =>
+
+                        {helpers
+                            // @ts-ignore
+                            .filter(c=> c.industry>0&&c.aesthetics>0)
+                            .map((p, idx) =>
                             <Tooltip title={p.name} key={idx} leaveDelay={50}>
                                 <FormControlLabel disabled={false}
                                                   key={idx} id={p.cardId}
@@ -86,16 +102,15 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                                 />
                             </Tooltip>)}
                     </FormGroup>
-
                 </FormControl>
             </DialogContent>
             <DialogActions>
                 <Button
                     variant={"contained"}
                     onClick={() => {
-                        buy(card.cardId, checked)
+                        buy(card,res,deposit,helpers.filter((c,idx)=>checked[idx]))
                     }} color="primary"
-                    disabled={!canBuy(card.cardId, checked)}
+                    disabled={!canBuy(card,res,deposit,helpers.filter((c,idx)=>checked[idx]))}
                 >
                     {i18n.confirm}
                 </Button>

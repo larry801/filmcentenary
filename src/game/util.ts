@@ -174,6 +174,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
     let obj = G.pub[curPid(G, ctx)];
     let card: INormalOrLegendCard;
     let region = G.e.card.region;
+    console.log(JSON.stringify(eff));
     switch (eff.e) {
         case "none":
             return

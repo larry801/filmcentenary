@@ -12,8 +12,8 @@ const rootElement = document.getElementById("root");
 render(
  <div>
         <Grid container>
-            <Grid item> <FilmClient playerID={'0'}/></Grid>
-            <Grid item> <FilmClient playerID={'1'}/></Grid>
+            <Grid item> <FilmClient playerID='0'/></Grid>
+            <Grid item> <FilmClient playerID='1'/></Grid>
         </Grid>
     </div>, rootElement
 );

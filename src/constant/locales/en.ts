@@ -34,6 +34,7 @@ const en = {
         buyCard: {
             basic: "Buy basic card",
             board: "Buy card",
+            cost: "Cost:",
         },
         comment: {
             title: "Comment",
@@ -42,13 +43,14 @@ const en = {
         }
     },
     action: {
-        draw:"Draw additional card",
-        play:"Play",
-        breakthrough:"Breakthrough",
-        studio:"建造制片厂",
-        theater:"建造电影院",
-        aestheticsLevelUp:"提升美学等级",
-        industryLevelUp:"提升工业等级",
+        initialSetup:"Initial setup",
+        draw: "Draw additional card",
+        play: "Play",
+        breakthrough: "Breakthrough",
+        studio: "Build Studio",
+        cinema: "Build Cinema",
+        aestheticsLevelUp: "Upgrade aesthetics",
+        industryLevelUp: "Upgrade industry",
     },
     playerName: {
         spectator: "Spectator",
@@ -63,7 +65,17 @@ const en = {
         vp: "Prestige:",
         share: "Share",
         era: "Era",
-    }
+    },
+    score: {
+        first: "Champion of",
+        second: "Runner up of",
+        third: "Third place of",
+        cardName: ['{{rank}} {{region}} {{ear}}',{
+            era:undefined,
+            rank:undefined,
+            region:undefined,
+        }],
+    },
 }
 export default en;
 export type Locale = typeof en;

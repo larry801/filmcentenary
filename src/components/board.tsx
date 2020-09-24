@@ -12,7 +12,7 @@ import {PubPanel} from "./pub";
 import {BasicCardID, Region} from "../types/core";
 
 
-export const FilmCentenaryBoard = ({G, ctx, moves, isActive, matchData, playerID}: BoardProps<IG>) => {
+export const FilmCentenaryBoard = ({G, ctx, events, moves, isActive, matchData, playerID}: BoardProps<IG>) => {
 
     const canMoveCurrent = ctx.currentPlayer === playerID && ctx.activePlayers === null;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
@@ -47,14 +47,24 @@ export const FilmCentenaryBoard = ({G, ctx, moves, isActive, matchData, playerID
 
     return <div>
         {ctx.phase === "InitPhase" ?
-            <Button onClick={() => moves.initialSetup(G.regions)}>                    {i18n.confirm}
-            </Button> : <div></div>}
-        <BoardRegion r={Region.NA} moves={moves} region={G.regions[0]} G={G} ctx={ctx} playerID={playerID}/>
-        <BoardRegion r={Region.WE} moves={moves} region={G.regions[1]} G={G} ctx={ctx} playerID={playerID}/>
-        <BoardRegion r={Region.EE} moves={moves} region={G.regions[2]} G={G} ctx={ctx} playerID={playerID}/>
-        <BoardRegion r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx} playerID={playerID}/>
-        {G.pub.map((u,idx) => <PubPanel key={idx} {...u}/>)}
-
+            <Button
+                disabled={!canMove}
+                onClick={() => moves.initialSetup({...G.regions})}>
+                {i18n.action.initialSetup}
+            </Button> :
+            <>
+                <BoardRegion r={Region.NA} moves={moves} region={G.regions[0]} G={G} ctx={ctx} playerID={playerID}/>
+                <BoardRegion r={Region.WE} moves={moves} region={G.regions[1]} G={G} ctx={ctx} playerID={playerID}/>
+                <BoardRegion r={Region.EE} moves={moves} region={G.regions[2]} G={G} ctx={ctx} playerID={playerID}/>
+                <BoardRegion r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx} playerID={playerID}/>
+            </>}
+        {G.pub.map((u, idx) => <PubPanel key={idx} {...u}/>)}
+        {G.pending.endPhase ?
+            <Button
+                variant={"contained"}
+                onClick={() => events.endPhase}
+            >E</Button>
+            : <></>}
 
         <ChoiceDialog
             initial={false}
@@ -68,11 +78,16 @@ export const FilmCentenaryBoard = ({G, ctx, moves, isActive, matchData, playerID
                         value: id
                     }
                 }
-            )
-            }
+            )}
             defaultChoice={"B01"} show={ctx.currentPlayer === playerID}
             title={i18n.dialog.buyCard.basic} toggleText={i18n.dialog.buyCard.basic}/>
-        {canMoveCurrent?<Button variant={"contained"} onClick={()=>moves.drawCard()} >{i18n.action.draw}</Button>:<></>}
+        {playerID !== null && canMoveCurrent ?
+            <Button
+                disabled={G.pub[parseInt(playerID)].action === 0}
+                variant={"outlined"}
+                onClick={() => moves.drawCard()}>
+                {i18n.action.draw}
+            </Button> : <></>}
         <ChoiceDialog
             initial={true}
             callback={moves.choose}
@@ -94,6 +109,6 @@ export const FilmCentenaryBoard = ({G, ctx, moves, isActive, matchData, playerID
             title={i18n.dialog.choosePlayer.title}
             toggleText={i18n.dialog.choosePlayer.toggleText}
         />
-        {playerID !== null && canMoveCurrent ? <PlayerHand G={G} playerID={playerID} ctx={ctx}/> : ""}
+        {playerID !== null ? <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/> : ""}
     </div>
 }

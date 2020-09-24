@@ -11,10 +11,13 @@ import {
     IPubInfo
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {canBuyCard, curPid, drawCardForPlayer, curEffectExec} from "./util";
+import {canBuyCard, curPid, drawCardForPlayer, curEffectExec, curPub} from "./util";
+import {changeStage, signalEndPhase} from "./logFix";
+import {getCardEffect} from "../constant/effects";
 
 export const drawCard: LongFormMove = {
     move: (G: IG, ctx: Ctx) => {
+        curPub(G,ctx).action --;
         drawCardForPlayer(G, ctx, ctx.currentPlayer);
     },
     client: false,
@@ -42,42 +45,46 @@ export const buyCard = {
     client: false,
 }
 export const chooseTarget: LongFormMove = {
+    client:false,
     move: (G: IG, ctx: Ctx, arg: PlayerID) => {
 
     }
 }
 export const chooseEffect: LongFormMove = {
+    client:false,
     move: (G: IG, ctx: Ctx, arg: IBuyInfo) => {
     }
+}
+export const moveBlocker: LongFormMove = {
+    client:false,
+    move: (G: IG, ctx: Ctx, arg: boolean) => {
+        return INVALID_MOVE;
+    },
+}
+
+export const confirmRespond: LongFormMove = {
+    client:false,
+    move: (G: IG, ctx: Ctx, arg: boolean) => {
+        curEffectExec(G, ctx);
+    },
 }
 
 export interface IPlayCardInfo {
     card: ICard,
-    idx: number
-}
-
-export const moveBlocker: LongFormMove = {
-    move: (G: IG, ctx: Ctx, arg: boolean) => {
-        return INVALID_MOVE;
-    },
-    client: false,
-}
-
-export const confirmRespond: LongFormMove = {
-    move: (G: IG, ctx: Ctx, arg: boolean) => {
-        curEffectExec(G, ctx);
-    },
-    client: false
+    idx: number,
+    playerID:PlayerID,
+    res:number,
 }
 
 export const playCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
         let c = G.player[curPid(G, ctx)].hand.splice(arg.idx, 1);
         G.e.card = c[0];
+        G.e.stack.push(getCardEffect(c[0].cardId).play)
         curEffectExec(G, ctx);
-    }
+    },
+    client:false,
 }
-
 
 export const competitionCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IFilmCard) => {
@@ -101,11 +108,26 @@ export const competitionCard: LongFormMove = {
         if (f <= 5) {
 
         }
-    }
-
+    },
+    client:false,
 }
+
 export const breakthrough: LongFormMove = {
-    move: (G: IG, ctx: Ctx, arg: IBuyInfo) => {
+    client:false,
+
+    move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
+        let p = G.pub[parseInt(arg.playerID)];
+        p.action -= 1;
+        p.resource -= arg.res;
+        p.cash -= (2 - arg.res);
+        let c = G.player[curPid(G, ctx)].hand.splice(arg.idx, 1)[0];
+        p.archive.push(c);
+        if(p.industry >0){
+            changeStage(G,ctx,"industryBreakthrough")
+        }
+        if(p.aesthetics > 0){
+            changeStage(G,ctx,"aestheticsBreakthrough")
+        }
     }
 }
 
@@ -115,6 +137,7 @@ export interface ICommentArg {
 }
 
 export const comment: LongFormMove = {
+    client:false,
     move: (G: IG, ctx: Ctx, arg: ICommentArg) => {
         if (arg.comment === null && arg.target.comment !== null) {
             arg.target.comment = null;
@@ -125,7 +148,8 @@ export const comment: LongFormMove = {
 }
 
 export const initialSetup: LongFormMove = {
+    client:false,
     move: (G: IG, ctx: Ctx, args: IPubInfo[]) => {
-
+        signalEndPhase(G,ctx);
     },
 }
