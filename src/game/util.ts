@@ -14,7 +14,7 @@ import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {cardsByCond, idToCard} from "../types/cards";
 import {Stage} from "boardgame.io/core";
-import {changeStage} from "./logFix";
+import {changePlayerStage, changeStage} from "./logFix";
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -193,25 +193,12 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             break;
         case "studio":
             let players = studioPlayers(G,ctx,region);
-            players.forEach(p=>playerEffExec(G,ctx));
+            players.forEach(p=>playerEffExec(G,ctx,p));
             break;
         case "step":
             eff.a.reduceRight((_: any, item: any) => {
                 return G.e.stack.push(item);
             });
-
-            break;
-        case "share":
-            let region1: Region = G.e.card.region;
-            if(region1 !==Region.NONE){
-                if (G.regions[region1].share >= eff.a) {
-                    obj.shares[region1] += eff.a;
-                    G.regions[region1].share -= eff.a;
-                } else {
-                    obj.shares[region1] += G.regions[region1].share;
-                    G.regions[region1].share = 0
-            }
-            }
             break;
         case "drawCard":
             for (let i = 0; i < eff.a; i++) {
@@ -240,6 +227,17 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             card = idToCard(eff.a);
             doBuy(G,ctx,card,ctx.currentPlayer);
             break;
+        case "share":
+            if(region !==Region.NONE){
+                if (G.regions[region].share >= eff.a) {
+                    obj.shares[region] += eff.a;
+                    G.regions[region].share -= eff.a;
+                } else {
+                    obj.shares[region] += G.regions[region].share;
+                    G.regions[region].share = 0
+                }
+            }
+            break
         case "archiveHand":
         case "discardIndustry":
         case "discardAesthetics":
@@ -258,12 +256,59 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
         default:
             throw new Error(JSON.stringify(eff));
     }
-    if (G.e.stack.length >= 0) {
+    if (G.e.stack.length > 0) {
         curEffectExec(G, ctx);
     }
 }
-export const playerEffExec = (G: IG, ctx: Ctx): void => {
-
+export const playerEffExec = (G: IG, ctx: Ctx,p:PlayerID): void => {
+    let eff = G.e.stack.pop();
+    let obj = G.pub[parseInt(p)];
+    let card: INormalOrLegendCard;
+    let region = G.e.card.region;
+    switch (eff.e) {
+        case "none":
+            return
+        case "share":
+            if(region !==Region.NONE){
+                if (G.regions[region].share >= eff.a) {
+                    obj.shares[region] += eff.a;
+                    G.regions[region].share -= eff.a;
+                } else {
+                    obj.shares[region] += G.regions[region].share;
+                    G.regions[region].share = 0
+                }
+            }
+            break
+        case "cash":
+            obj.cash += eff.a;
+            break;
+        case "res":
+            obj.resource += eff.a;
+            break;
+        case "vp":
+            obj.vp += eff.a;
+            break;
+        case "drawCard":
+            for (let i = 0; i < eff.a; i++) {
+                drawCardForPlayer(G, ctx, p);
+            }
+            break;
+        case "buyCard":
+            card = idToCard(eff.a);
+            doBuy(G,ctx,card,ctx.currentPlayer);
+            break;
+        case "buyCardToHand":
+            card = idToCard(eff.a);
+            doBuy(G,ctx,card,ctx.currentPlayer);
+            break;
+        case "archiveHand":
+        case "discardIndustry":
+        case "discardAesthetics":
+            changePlayerStage(G,ctx,p,"chooseTarget");
+            break
+        default:
+            throw new Error(JSON.stringify(eff));
+    }
 }
 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
