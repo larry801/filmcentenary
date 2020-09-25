@@ -1,6 +1,7 @@
 import {
     BasicCardID,
     CardCategory,
+    CardType,
     IBasicCard,
     IBuyInfo,
     ICardSlot,
@@ -57,36 +58,83 @@ export const actualStage = (G: IG, ctx: Ctx,): string => {
     }
 }
 
-export const doConfirm = (G: IG, ctx: Ctx, a: boolean) => {
-    let stage =actualStage(G,ctx);
-    if(stage===Stage.NULL){
+export const doConfirm = (G: IG, ctx: Ctx, a: boolean):void => {
+    let stage = actualStage(G, ctx);
+    if (stage === Stage.NULL) {
         // TODO
-    }else {
+    } else {
         switch (stage) {
             case "optionalEff":
-                if(a){
-                    let eff=G.e.stack.pop();
-                    if(eff===undefined){
+                if (a) {
+                    let eff = G.e.stack.pop();
+                    if (eff === undefined) {
                         throw new Error();
-                    }else {
+                    } else {
                         G.e.stack.push(eff.a)
                     }
-                    curEffectExec(G,ctx);
-                }else {
-                    let eff=G.e.stack.pop();
-                    if(eff===undefined){
+                    curEffectExec(G, ctx);
+                } else {
+                    let eff = G.e.stack.pop();
+                    if (eff === undefined) {
                         // TODO
                         throw new Error();
-                    }else {
+                    } else {
                         G.e.stack.push(eff.a)
-                        curEffectExec(G,ctx);
+                        curEffectExec(G, ctx);
                     }
                 }
                 return;
             default:
-                throw new  Error("Unsupported stage " + stage);
+                throw new Error("Unsupported stage " + stage);
         }
     }
+}
+
+function simpleEffectExec(G: IG, ctx: Ctx,p:PlayerID):void{
+    let eff = G.e.stack.pop();
+    let obj = G.pub[parseInt(p)];
+    let card: INormalOrLegendCard;
+    let region = G.e.card.region;
+    switch (eff.e) {
+        case "none":
+            return
+        case "share":
+            if (region !== Region.NONE) {
+                if (G.regions[region].share >= eff.a) {
+                    obj.shares[region] += eff.a;
+                    G.regions[region].share -= eff.a;
+                } else {
+                    obj.shares[region] += G.regions[region].share;
+                    G.regions[region].share = 0
+                }
+            }
+            break
+        case "deposit":
+            obj.deposit += eff.a;
+            break;
+        case "res":
+            obj.resource += eff.a;
+            break;
+        case "vp":
+            obj.vp += eff.a;
+            break;
+        case "drawCard":
+            for (let i = 0; i < eff.a; i++) {
+                drawCardForPlayer(G, ctx, p);
+            }
+            break;
+        case "buyCard":
+            card = idToCard(eff.a);
+            doBuy(G, ctx, card, ctx.currentPlayer);
+            break;
+        case "buyCardToHand":
+            card = idToCard(eff.a);
+            doBuyToHand(G, ctx, card, ctx.currentPlayer);
+            break;
+        default:
+            throw new Error(JSON.stringify(eff));
+    }
+
 }
 
 export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
@@ -116,25 +164,41 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
     let obj = G.pub[parseInt(p)];
     if (card.category === CardCategory.BASIC) {
-        // @ts-ignore
-        G.basicCards[card.cardId] -= 1;
+        G.basicCards[card.cardId as BasicCardID] -= 1;
     } else {
         let slot = cardSlotOnBoard(G, ctx, card);
         if (slot === null) {
-            throw new Error("Cannot buy card off board!");
+            throw new Error("Cannot buy normal or legend card off board!");
         } else {
             slot.card = null;
             if (slot.comment !== null) {
                 obj.discard.push(slot.comment);
                 obj.allCards.push(slot.comment);
                 slot.comment = null;
-            }//TODO update
+            }
+            let region = card.region;
+            if (region !== Region.NONE) {
+                let share = 0;
+                if (slot.isLegend) {
+                    share ++;
+                }
+                if (card.type === CardType.F){
+                    share ++;
+                }
+                if (G.regions[region].share > share){
+                    G.regions[region].share -= share;
+                    obj.shares[region] += share;
+                }else {
+                    obj.shares[region] += G.regions[region].share;
+                    G.regions[region].share = 0;
+                }
+            }
+            updateSlot(G, ctx, slot);
         }
     }
     obj.discard.push(card);
     obj.allCards.push(card);
 }
-
 
 const idInHand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
     return G.player[p].hand.filter(c => c.cardId === cardId).length > 0;
@@ -151,96 +215,48 @@ export const getPidHasCard = (G: IG, ctx: Ctx, cardId: string): number[] => {
     return p;
 }
 export const studioInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
-    if(r===Region.NONE)return false;
+    if (r === Region.NONE) return false;
     return G.regions[r].buildings.filter(s => s.content === "studio" && s.owner === p).length > 0;
 }
 
 export const studioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
-    if(r===Region.NONE)return [];
-    return  Array(G.playerCount).fill(1).map((i,idx)=>idx.toString()).filter(pid=>studioInRegion(G,ctx,r,pid));
+    if (r === Region.NONE) return [];
+    return Array(G.playerCount).fill(1).map((i, idx) => idx.toString()).filter(pid => studioInRegion(G, ctx, r, pid));
 }
 
 export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
-    if(r===Region.NONE)return [];
-    return  Array(G.playerCount).fill(1).map((i,idx)=>idx.toString()).filter(pid=>!studioInRegion(G,ctx,r,pid));
+    if (r === Region.NONE) return [];
+    return Array(G.playerCount).fill(1).map((i, idx) => idx.toString()).filter(pid => !studioInRegion(G, ctx, r, pid));
 }
 
-export const posOfPlayer = (G: IG, ctx: Ctx,p:PlayerID): number => {
+export const posOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
     return G.order.indexOf(p);
 }
 
 export const curEffectExec = (G: IG, ctx: Ctx): void => {
     let eff = G.e.stack.pop();
-    let obj = G.pub[curPid(G, ctx)];
-    let card: INormalOrLegendCard;
+    //let obj = G.pub[curPid(G, ctx)];
+    //let card: INormalOrLegendCard;
     let region = G.e.card.region;
     console.log(JSON.stringify(eff));
     switch (eff.e) {
-        case "none":
-            return
-        case "cash":
-            obj.cash += eff.a;
-            break;
-        case "res":
-            obj.resource += eff.a;
-            break;
-        case "vp":
-            obj.vp += eff.a;
-            break;
         case "noStudio":
-            G.c.players = noStudioPlayers(G,ctx,region);
-            changeStage(G,ctx,"choosePlayer")
+            G.c.players = noStudioPlayers(G, ctx, region);
+            changeStage(G, ctx, "choosePlayer")
             break;
         case "studio":
-            let players = studioPlayers(G,ctx,region);
-            players.forEach(p=>playerEffExec(G,ctx,p));
+            let players = studioPlayers(G, ctx, region);
+            players.forEach(p => simpleEffectExec(G, ctx, p));
             break;
         case "step":
             eff.a.reduceRight((_: any, item: any) => {
                 return G.e.stack.push(item);
             });
             break;
-        case "drawCard":
-            for (let i = 0; i < eff.a; i++) {
-                drawCardForPlayer(G, ctx, ctx.currentPlayer);
-            }
-            break;
-        case "shareToVp":
-            if(region===Region.NONE)return;
-            obj.vp += obj.shares[region];
-            break;
-        case "aesAward":
-            for (let i = 0; i < eff.a; i++) {
-                aesAward(G, ctx, ctx.currentPlayer);
-            }
-            break;
-        case "industryAward":
-            for (let i = 0; i < eff.a; i++) {
-                industryAward(G, ctx, ctx.currentPlayer);
-            }
-            break;
-        case "buyCard":
-            card = idToCard(eff.a);
-            doBuy(G,ctx,card,ctx.currentPlayer);
-            break;
-        case "buyCardToHand":
-            card = idToCard(eff.a);
-            doBuy(G,ctx,card,ctx.currentPlayer);
-            break;
-        case "share":
-            if(region !==Region.NONE){
-                if (G.regions[region].share >= eff.a) {
-                    obj.shares[region] += eff.a;
-                    G.regions[region].share -= eff.a;
-                } else {
-                    obj.shares[region] += G.regions[region].share;
-                    G.regions[region].share = 0
-                }
-            }
-            break
         case "archiveHand":
         case "discardIndustry":
         case "discardAesthetics":
+            G.e.stack.push(eff);
             ctx.events?.setStage?.("chooseTarget");
             break
         case "choice":
@@ -254,60 +270,27 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             ctx.events?.setStage?.(eff.e);
             return;
         default:
-            throw new Error(JSON.stringify(eff));
+            G.e.stack.push(eff);
+            simpleEffectExec(G,ctx,ctx.currentPlayer);
     }
     if (G.e.stack.length > 0) {
         curEffectExec(G, ctx);
     }
 }
-export const playerEffExec = (G: IG, ctx: Ctx,p:PlayerID): void => {
+export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let eff = G.e.stack.pop();
-    let obj = G.pub[parseInt(p)];
-    let card: INormalOrLegendCard;
-    let region = G.e.card.region;
+    //let obj = G.pub[parseInt(p)];
+    //let card: INormalOrLegendCard;
+    //let region = G.e.card.region;
     switch (eff.e) {
-        case "none":
-            return
-        case "share":
-            if(region !==Region.NONE){
-                if (G.regions[region].share >= eff.a) {
-                    obj.shares[region] += eff.a;
-                    G.regions[region].share -= eff.a;
-                } else {
-                    obj.shares[region] += G.regions[region].share;
-                    G.regions[region].share = 0
-                }
-            }
-            break
-        case "cash":
-            obj.cash += eff.a;
-            break;
-        case "res":
-            obj.resource += eff.a;
-            break;
-        case "vp":
-            obj.vp += eff.a;
-            break;
-        case "drawCard":
-            for (let i = 0; i < eff.a; i++) {
-                drawCardForPlayer(G, ctx, p);
-            }
-            break;
-        case "buyCard":
-            card = idToCard(eff.a);
-            doBuy(G,ctx,card,ctx.currentPlayer);
-            break;
-        case "buyCardToHand":
-            card = idToCard(eff.a);
-            doBuy(G,ctx,card,ctx.currentPlayer);
-            break;
         case "archiveHand":
         case "discardIndustry":
         case "discardAesthetics":
-            changePlayerStage(G,ctx,p,"chooseTarget");
+            changePlayerStage(G, ctx, p, "chooseHand");
             break
         default:
-            throw new Error(JSON.stringify(eff));
+            G.e.stack.push(eff);
+            simpleEffectExec(G,ctx,p);
     }
 }
 
@@ -323,7 +306,7 @@ export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
 
 export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let o = G.pub[parseInt(p)];
-    if (o.industry > 1) o.cash += 2;
+    if (o.industry > 1) o.deposit += 2;
     if (o.industry > 4) drawCardForPlayer(G, ctx, p);
     if (o.industry > 7) drawCardForPlayer(G, ctx, p);
     if (o.industry >= 10) {
@@ -332,7 +315,7 @@ export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
 }
 
 export const cardSlotOnBoard = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICardSlot | null => {
-    if(card.region===Region.NONE)return null;
+    if (card.region === Region.NONE) return null;
     let r = G.regions[card.region];
     if (card.category === CardCategory.LEGEND) {
         if (r.legend.card !== null) {
@@ -365,13 +348,13 @@ export function idOnBoard(G: IG, ctx: Ctx, id: string): boolean {
 }
 
 export function cardDepleted(G: IG, ctx: Ctx, region: Region) {
-    if(region===Region.NONE)return false;
+    if (region === Region.NONE) return false;
     let r = G.regions[region];
     return r.legend.card === null && r.normal.filter(value => value.card !== null).length === 0;
 }
 
 export function shareDepleted(G: IG, ctx: Ctx, region: Region) {
-    if(region===Region.NONE)return false;
+    if (region === Region.NONE) return false;
     return G.regions[region].share === 0;
 }
 
@@ -389,31 +372,31 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
         // @ts-ignore
         aesthetics -= helperItem.aesthetics;
     }
-    if(aesthetics>0)resRequired+=aesthetics*2;
-    if(industry>0)resRequired+=industry*2;
+    if (aesthetics > 0) resRequired += aesthetics * 2;
+    if (industry > 0) resRequired += industry * 2;
     return resRequired + arg.target.cost.res;
 }
 
-export function canAfford(G:IG,ctx:Ctx,card:INormalOrLegendCard,p:PlayerID){
+export function canAfford(G: IG, ctx: Ctx, card: INormalOrLegendCard, p: PlayerID) {
     let pub = G.pub[parseInt(p)]
-     let res = resCost(G,ctx,{
-         buyer:p,
-         target:card,
-         helper:G.player[parseInt(p)].hand,
-         resource:0,
-         cash:0
-     })
-    return pub.cash + pub.resource >= res;
+    let res = resCost(G, ctx, {
+        buyer: p,
+        target: card,
+        helper: G.player[parseInt(p)].hand,
+        resource: 0,
+        deposit: 0
+    })
+    return pub.deposit + pub.resource >= res;
 }
 
 export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
-    let resRequired = resCost(G,ctx,arg);
-    let resGiven: number = arg.resource + arg.cash;
+    let resRequired = resCost(G, ctx, arg);
+    let resGiven: number = arg.resource + arg.deposit;
     return resRequired === resGiven;
 }
 
 export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
-    if(r===Region.NONE)return;
+    if (r === Region.NONE) return;
     let legend = cardsByCond(r, e, true);
     let normal = cardsByCond(r, e, false);
     G.secret.regions[r].legendDeck = shuffle(ctx, legend);
@@ -470,13 +453,13 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
 
 export const updateSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
     let d;
-    if(slot.comment!==null){
+    if (slot.comment !== null) {
         // @ts-ignore
-        let commentId:BasicCardID = slot.comment.cardId;
-        G.basicCards[commentId] ++;
-        slot.comment=null;
+        let commentId: BasicCardID = slot.comment.cardId;
+        G.basicCards[commentId]++;
+        slot.comment = null;
     }
-    if(slot.region===Region.NONE)return;
+    if (slot.region === Region.NONE) return;
     if (slot.isLegend) {
         d = G.secret.regions[slot.region].legendDeck;
     } else {
@@ -495,5 +478,29 @@ export const updateSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
         } else {
             d.push(oldCard);
         }
+    }
+}
+
+export const additionalCostForUpgrade = (level: number): number => {
+    if (level < 4) {
+        return 0;
+    } else {
+        if (level < 7) {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+}
+
+export const canUpgrade = (G: IG, ctx: Ctx, p: PlayerID, isIndustry: boolean) => {
+    let o = G.pub[parseInt(p)]
+    let targetLevel: number;
+    targetLevel = isIndustry ? o.industry + 1 : o.aesthetics + 1;
+    let cost: number = additionalCostForUpgrade(targetLevel);
+    if (cost === 0) {
+        return true;
+    } else {
+        return cost <= o.resource + o.deposit;
     }
 }

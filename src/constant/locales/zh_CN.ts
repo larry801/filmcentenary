@@ -17,9 +17,21 @@ const zh_CN: Locale = {
         cinema:"建造电影院",
         aestheticsLevelUp:"提升美学等级",
         industryLevelUp:"提升工业等级",
-        endStage:"End Stage",
-        endTurn:"End Turn",
-        endPhase:"End Phase",
+        endStage:"结束行动",
+        endTurn:"结束回合",
+        endPhase:"结束阶段",
+    },
+    effect:{
+        comment:"评论",
+        industryBreakthrough:"工业突破",
+        aestheticsBreakthrough:"",
+        buyCard:"Buy card for free",
+        buyCardToHand:"Buy card for free, and add to hand.",
+        industryLevelUp:"Upgrade Industry",
+        buildCinema:"Build Cinema",
+        buildStudio:"Build Studio",
+        aestheticsLevelUp:"Upgrade Aesthetics",
+        refactor:"Do Refactor",
     },
     cancel:"取消",
     era:{
@@ -41,7 +53,17 @@ const zh_CN: Locale = {
         comment: {
             title:"评论",
             removeCommentCard:"移除评论",
-        }
+        },
+        chooseEffect:{
+            title:"请选择一项效果执行",
+            toggleText:"选择效果",
+        },
+        confirmRespond:{
+            title:"请选择是否执行效果",
+            toggleText:"确认",
+            yes:"Yes",
+            no:"No"
+        },
     },
     playerName:{
         spectator:"旁观",
@@ -62,10 +84,10 @@ const zh_CN: Locale = {
     },
     pub: {
         res: "资源：",
-        cash: "存款：",
+        deposit: "存款：",
         action: "行动力：",
-        industry: "工业：",
-        aesthetics: "美学：",
+        industry: "工业等级：",
+        aesthetics: "美学等级：",
         vp: "声望：",
         share: "份额：",
         era: "时代："

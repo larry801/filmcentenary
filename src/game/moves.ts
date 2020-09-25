@@ -11,7 +11,15 @@ import {
     IPubInfo
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {canBuyCard, curPid, drawCardForPlayer, curEffectExec, curPub} from "./util";
+import {
+    canBuyCard,
+    curPid,
+    drawCardForPlayer,
+    curEffectExec,
+    curPub,
+    doBuy,
+    playerEffExec
+} from "./util";
 import {changeStage, signalEndPhase} from "./logFix";
 import {getCardEffect} from "../constant/effects";
 
@@ -41,20 +49,54 @@ export const buyCard = {
         } else {
             return INVALID_MOVE;
         }
+        let p = curPub(G,ctx);
+        p.action --;
+        p.resource -= arg.resource;
+        p.deposit -= arg.deposit;
+        arg.helper.forEach(c=>{
+            let pHand =G.player[parseInt(arg.buyer)].hand;
+            let idx = pHand.indexOf(c)
+            pHand.splice(idx,1);
+        })
+        // @ts-ignore
+        doBuy(G,ctx,arg.target,ctx.currentPlayer);
+        let eff = getCardEffect(arg.target.cardId);
+        G.e.stack.push(eff.buy);
+        curEffectExec(G,ctx);
     },
     client: false,
 }
 export const chooseTarget: LongFormMove = {
     client:false,
     move: (G: IG, ctx: Ctx, arg: PlayerID) => {
+        playerEffExec(G,ctx,arg);
+    }
+}
+
+export const chooseHand: LongFormMove = {
+    client:false,
+    move: (G: IG, ctx: Ctx, arg: number) => {
 
     }
 }
+
 export const chooseEffect: LongFormMove = {
     client:false,
-    move: (G: IG, ctx: Ctx, arg: IBuyInfo) => {
+    move: (G: IG, ctx: Ctx, arg: string) => {
+        let eff = G.e.choices[parseInt(arg)];
+        G.e.stack.push(eff);
+        G.e.choices = []
+        curEffectExec(G,ctx);
     }
 }
+
+export const requesetEndTurn:LongFormMove = {
+    client:false,
+    move: (G: IG, ctx: Ctx, arg: string) => {
+
+    }
+}
+
 export const moveBlocker: LongFormMove = {
     client:false,
     move: (G: IG, ctx: Ctx, arg: boolean) => {
@@ -64,7 +106,12 @@ export const moveBlocker: LongFormMove = {
 
 export const confirmRespond: LongFormMove = {
     client:false,
-    move: (G: IG, ctx: Ctx, arg: boolean) => {
+    move: (G: IG, ctx: Ctx, arg: string) => {
+        if(arg==="yes"){
+
+        }else {
+            G.e.stack.pop();
+        }
         curEffectExec(G, ctx);
     },
 }
@@ -116,16 +163,39 @@ export const breakthrough: LongFormMove = {
     client:false,
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
         let p = G.pub[parseInt(arg.playerID)];
+        let playerObj = G.player[parseInt(arg.playerID)];
         p.action -= 1;
         p.resource -= arg.res;
-        p.cash -= (2 - arg.res);
+        p.deposit -= (2 - arg.res);
         let c = G.player[curPid(G, ctx)].hand.splice(arg.idx, 1)[0];
         p.archive.push(c);
-        if(p.industry >0){
-            changeStage(G,ctx,"industryBreakthrough")
+        if(p.industry === 0 && p.aesthetics === 0) {
+            return;
         }
-        if(p.aesthetics > 0){
-            changeStage(G,ctx,"aestheticsBreakthrough")
+        if(p.industry > 0 && p.aesthetics >0){
+            G.e.choices.push({e:"industryBreakthrough",a:p.industry})
+            G.e.choices.push({e:"aestheticsBreakthrough",a:p.aesthetics})
+            changeStage(G,ctx,"chooseEffect")
+        }else{
+            if(p.industry === 0) {
+                if(playerObj.hand.length===0){
+                    p.aesthetics ++;
+                }else {
+                    G.e.choices.push({e:"aestheticsLevelUp",a:1})
+                    G.e.choices.push({e:"refactor",a:1})
+                    changeStage(G,ctx,"chooseEffect")
+                }
+            }else{
+                if(p.resource + p.deposit < 3){
+                    p.industry ++;
+                }else {
+                    G.e.choices.push({e: "industryLevelUp", a: 1})
+                    G.e.choices.push({e: "buildStudio", a: 1})
+                    G.e.choices.push({e: "buildCinema", a: 1})
+                    changeStage(G, ctx, "chooseEffect")
+                }
+            }
+
         }
     }
 }

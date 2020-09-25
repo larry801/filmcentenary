@@ -38,7 +38,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                                 playerID: playerID,
                                 res: res,
                             })}
-                            disabled={playerID!==ctx.currentPlayer||p.action < 1 || p.cash < deposit}
+                            disabled={playerID!==ctx.currentPlayer||p.action < 1 || p.deposit < deposit}
                         >{i18n.action.breakthrough}</Button>
                     </AccordionDetails>
                 </Accordion>

@@ -55,7 +55,7 @@ export const BoardRegion = ({r,region,G,ctx,playerID,moves}:IRegionProp)=>{
         buyer: playerID===null?'0':playerID,
         target: target,
         resource: resource,
-        cash: cash,
+        deposit: cash,
         helper:helper,
     });
     const buy = (target:ICard,resource:number,cash:number,helper:ICard[])=>{

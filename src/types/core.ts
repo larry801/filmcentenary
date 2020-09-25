@@ -34,7 +34,7 @@ export interface IBuyInfo {
     buyer: string,
     target: ICard,
     resource: number,
-    cash: number,
+    deposit: number,
     helper: ICard[],
 }
 
@@ -132,7 +132,7 @@ export interface IPlayerShare {
 
 export interface IPubInfo {
     action: number,
-    cash: number,
+    deposit: number,
     resource: number,
     archive: ICard[],
     allCards: ICard[],

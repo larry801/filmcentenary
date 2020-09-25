@@ -50,7 +50,7 @@ const effects = {
                 cost: {e: "vp", a: 2}, eff: {
                     e: "step", a: [
                         {e: "res", a: 1},
-                        {e: "cash", a: 1},
+                        {e: "deposit", a: 1},
                     ]
                 }
             }
@@ -121,7 +121,7 @@ const effects = {
             e: "step", a: [
                 {e: "update", a: 1},
                 {e: "noStudio", a: {e: "loseCash", a: 1}},
-                {e: "studio", a: {e: "cash", a: 1}},
+                {e: "studio", a: {e: "deposit", a: 1}},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -144,7 +144,7 @@ const effects = {
             {
                 e: "era", a: [
                     {e: "step", a: [{e: "res", a: 1}, {e: "shareToVp", a: Region.NA}]},
-                    {e: "cash", a: 1},
+                    {e: "deposit", a: 1},
                     {e: "vp", a: 2},
                 ]
             },
@@ -157,7 +157,7 @@ const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
-        play: {e: "cash", a: 1},
+        play: {e: "deposit", a: 1},
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: {e: "alternative", a: {e: "buyCard", a: "2107"}, o: true},
     },
@@ -169,13 +169,13 @@ const effects = {
             e: "era", a: [
                 {
                     e: "step", a: [
-                        {e: "cash", a: 1},
+                        {e: "deposit", a: 1},
                         {e: "drawCard", a: 1},
                     ]
                 },
                 {
                     e: "step", a: [
-                        {e: "cash", a: 1},
+                        {e: "deposit", a: 1},
                         {e: "drawCard", a: 1},
                     ]
                 },
@@ -191,8 +191,8 @@ const effects = {
         canPlay: (G: IG, ctx: Ctx) => G.regions[Region.NA].era !== IEra.THREE,
         play: {
             e: "era", a: [
-                {e: "step", a: [{e: "cash", a: 1}, {e: "drawCard", a: 1}]},
-                {e: "step", a: [{e: "cash", a: 1}, {e: "drawCard", a: 1}]},
+                {e: "step", a: [{e: "deposit", a: 1}, {e: "drawCard", a: 1}]},
+                {e: "step", a: [{e: "deposit", a: 1}, {e: "drawCard", a: 1}]},
                 noEff,
             ]
         },
@@ -206,7 +206,7 @@ const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "era", a: [
-                {e: "step", a: [{e: "cash", a: 2}, {e: "vp", a: 1}]},
+                {e: "step", a: [{e: "deposit", a: 2}, {e: "vp", a: 1}]},
                 {e: "aesAward", a: 1},
                 {e: "aesAward", a: 1},
             ]
@@ -228,7 +228,7 @@ const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         response: noResponse,
-        archive: {e: "pay", a: {e: "cash", a: 1},},
+        archive: {e: "pay", a: {e: "deposit", a: 1},},
     },
     "1109": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -237,8 +237,8 @@ const effects = {
         play: {
             e: "era", a: [
                 {e: "step", a: [{e: "res", a: 2}, {e: "share", a: 1}]},
-                {e: "cash", a: 1}, {e: "vp", a: 1},
-                {e: "cash", a: 1}, {e: "vp", a: 1},
+                {e: "deposit", a: 1}, {e: "vp", a: 1},
+                {e: "deposit", a: 1}, {e: "vp", a: 1},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -273,7 +273,7 @@ const effects = {
             e: "step", a: [
                 {e: "comment", a: 1},
                 {e: "noStudio", a: {e: "discardIndustry", a: 1}},
-                {e: "studio", a: {e: "cash", a: 1}},
+                {e: "studio", a: {e: "deposit", a: 1}},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -320,7 +320,7 @@ const effects = {
         },
         response: {
             pre: {type: "breakthrough"},
-            effect: {e: "cash", a: 1},
+            effect: {e: "deposit", a: 1},
         },
     },
     "1205": {
@@ -335,8 +335,8 @@ const effects = {
         play: {
             e: "era", a: [
                 {e: "res", a: 2},
-                {e: "cash", a: 1},
-                {e: "cash", a: 1},
+                {e: "deposit", a: 1},
+                {e: "deposit", a: 1},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -372,7 +372,7 @@ const effects = {
         play: {
             e: "era", a: [
                 {e: "step", a: [{e: "resFromIndustry", a: 1}, {e: "card", a: 1}]},
-                {e: "step", a: [{e: "cash", a: 1}, {e: "vp", a: 1}]},
+                {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 1}]},
                 noEff,
             ]
         },
@@ -392,7 +392,7 @@ const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: "cash", a: 1},
+                {e: "deposit", a: 1},
                 {e: "shareToVp", a: 1},
             ]
         },
@@ -426,7 +426,7 @@ const effects = {
             ],
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "step", a: [{e: "vp", a: 5}, {e: "cash", a: 2}]},
+        archive: {e: "step", a: [{e: "vp", a: 5}, {e: "deposit", a: 2}]},
         response: {
             pre: {type: "none", a: "E02"},
             effect: noEff,
@@ -445,7 +445,7 @@ const effects = {
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {pre: {type: "discard"}, effect: {e: "cash", a: 1}},
+        response: {pre: {type: "discard"}, effect: {e: "deposit", a: 1}},
 
     },
     "1301": {
@@ -488,7 +488,7 @@ const effects = {
         },
         response: {
             pre: {type: "othersBuySchool"},
-            effect: {e: "step", a: [{e: "cash", a: 1}, {e: "vp", a: 1}]},
+            effect: {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 1}]},
         },
     },
     "1304": {
@@ -498,7 +498,7 @@ const effects = {
         play: {
             e: "era", a: [
                 {e: "step", a: [{e: "res", a: 2}, {e: "vp", a: 1}]},
-                {e: "step", a: [{e: "cash", a: 1}, {e: "vp", a: 2}]},
+                {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 2}]},
                 noEff,
             ],
         },

@@ -10,6 +10,18 @@ const en = {
         "B06": "",
         "B07": "Fund",
     },
+    effect:{
+        comment:"Comment",
+        industryBreakthrough:"industryBreakthrough",
+        aestheticsBreakthrough:"aestheticsBreakthrough",
+        buyCard:"Buy card for free",
+        buyCardToHand:"Buy card for free, and add to hand.",
+        industryLevelUp:"Upgrade Industry",
+        buildCinema:"Build Cinema",
+        buildStudio:"Build Studio",
+        aestheticsLevelUp:"Upgrade Aesthetics",
+        refactor:"Do Refactor",
+    },
     hand: {
         title: "Hands"
     },
@@ -39,8 +51,17 @@ const en = {
         comment: {
             title: "Comment",
             removeCommentCard: "Remove Comment Card",
-
-        }
+        },
+        chooseEffect:{
+            title:"请选择一项效果执行",
+            toggleText:"选择效果",
+        },
+        confirmRespond:{
+            title:"Please choose ",
+            toggleText:"Confirm Effect",
+            yes:"Yes",
+            no:"No"
+        },
     },
     action: {
         initialSetup:"Initial setup",
@@ -61,7 +82,7 @@ const en = {
     },
     pub: {
         res: "Resource:",
-        cash: "Reserve:",
+        deposit: "Deposit:",
         action: "Action:",
         industry: "Industry:",
         aesthetics: "Aesthetics:",

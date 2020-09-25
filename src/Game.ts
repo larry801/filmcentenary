@@ -1,6 +1,15 @@
 import {Game} from "boardgame.io";
 import {IG, setup} from "./types/setup";
-import {breakthrough, buyCard, drawCard, initialSetup, playCard} from "./game/moves";
+import {
+  breakthrough,
+  buyCard, chooseEffect,
+  chooseHand,
+  chooseTarget,
+  drawCard,
+  initialSetup,
+  moveBlocker,
+  playCard
+} from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
 
 export const FilmCentenaryGame: Game<IG> = {
@@ -17,5 +26,9 @@ export const FilmCentenaryGame: Game<IG> = {
     buyCard: buyCard,
     playCard: playCard,
     breakthrough:breakthrough,
+    moveBlocker: moveBlocker,
+    chooseTarget:chooseTarget,
+    chooseHand:chooseHand,
+    chooseEffect:chooseEffect
   }
 };

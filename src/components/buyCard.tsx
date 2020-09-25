@@ -53,12 +53,12 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                 {i18n.dialog.buyCard.board} {card.name}
             </DialogTitle>
             <DialogContent>
-                <div style={{display: 'inline-flex'}} key={"res-"}>
+                <div style={{display: 'inline-flex'}} key={"card"}>
                     <Typography variant={"h6"}>{i18n.dialog.buyCard.cost} {card.cost.res}</Typography>
                     <Typography variant={"h6"}>{i18n.pub.industry} {card.cost.industry}</Typography>
                     <Typography variant={"h6"}>{i18n.pub.aesthetics} {card.cost.aesthetics}</Typography>
                 </div>
-                <div style={{display: 'block'}} key={"res-"}>
+                <div style={{display: 'block'}} key={"player"}>
                     <Typography variant={"h6"}>{i18n.pub.industry} {pub.industry}</Typography>
                     <Typography variant={"h6"}>{i18n.pub.aesthetics} {pub.aesthetics}</Typography>
                 </div>
@@ -67,22 +67,29 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                         {i18n.dialog.buyCard.board} {card.name}
                     </FormLabel>
                     <FormGroup>
-                        <div style={{display: 'inline-flex'}} key={"res-"}>
-                            <Button disabled={res <= 0}
-                                    onClick={() => setRes(res - 1)}
+                        <div style={{display: 'inline-flex'}} key={"res"}>
+                            <Typography variant={"h6"}>{i18n.pub.res} </Typography>
+                            <Button
+                                disabled={res <= 0}
+                                onClick={() => setRes(res - 1)}
                             >-</Button>
                             <Typography>{res}</Typography>
-                            <Button  onClick={() => setRes(res + 1)}
-                                    disabled={G.pub[parseInt(playerID)].cash === deposit}
+                            <Button
+                                onClick={() => setRes(res + 1)}
+                                disabled={G.pub[parseInt(playerID)].deposit <= deposit}
                             >+</Button></div>
                         <div style={{display: 'inline-flex'}} key={"deposit"}>
-                            <Button disabled={deposit <= 0}
-                                    onClick={() => {
-                                        setDeposit(deposit - 1)
-                                    }}>-</Button>
+                            <Typography variant={"h6"}>{i18n.pub.deposit} </Typography>
+
+                            <Button
+                                disabled={deposit <= 0}
+                                onClick={() => {
+                                    setDeposit(deposit - 1)
+                                }}>-</Button>
                             <Typography>{deposit}</Typography>
-                            <Button onClick={() => setDeposit(deposit + 1)}
-                                    disabled={G.pub[parseInt(playerID)].resource === res}
+                            <Button
+                                onClick={() => setDeposit(deposit + 1)}
+                                disabled={G.pub[parseInt(playerID)].resource <= res}
                             >+</Button>
                         </div>
 
@@ -109,6 +116,7 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                     variant={"contained"}
                     onClick={() => {
                         buy(card,res,deposit,helpers.filter((c,idx)=>checked[idx]))
+                        setOpen(false)
                     }} color="primary"
                     disabled={!canBuy(card,res,deposit,helpers.filter((c,idx)=>checked[idx]))}
                 >

@@ -89,6 +89,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, isActive, matchData, 
             )}
             defaultChoice={"B01"} show={ctx.currentPlayer === playerID}
             title={i18n.dialog.buyCard.basic} toggleText={i18n.dialog.buyCard.basic}/>
+
         {playerID !== null && canMoveCurrent ?
             <Button
                 disabled={G.pub[parseInt(playerID)].action === 0}
@@ -98,7 +99,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, isActive, matchData, 
             </Button> : <></>}
         <ChoiceDialog
             initial={true}
-            callback={moves.choose}
+            callback={moves.chooseTarget}
             choices={
                 Array(G.playerCount)
                     .fill(1)
@@ -111,12 +112,32 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, isActive, matchData, 
                             hidden: false, disabled: false
                         }
                     })
-            }
-            defaultChoice={'0'}
-            show={isActive && actualStage(G, ctx) === "chooseTarget"}
+            } defaultChoice={'0'} show={isActive && actualStage(G, ctx) === "chooseTarget"}
             title={i18n.dialog.choosePlayer.title}
-            toggleText={i18n.dialog.choosePlayer.toggleText}
-        />
+            toggleText={i18n.dialog.choosePlayer.toggleText}/>
+        <ChoiceDialog
+            callback={moves.chooseEffect}
+            choices={G.e.choices.map((c,idx)=>{
+                return {
+                // @ts-ignore
+                label: i18n.effect[c.e],
+                disabled: false,
+                hidden: false,
+                value: idx.toString()
+            }})} defaultChoice={"0"}
+            show={isActive && actualStage(G,ctx)==="chooseEffect"}
+            title={i18n.dialog.chooseEffect.title} toggleText={i18n.dialog.chooseEffect.toggleText}
+            initial={true}/>
+        <ChoiceDialog
+            callback={moves.confirmRespond}
+            choices={[
+                {label:i18n.dialog.confirmRespond.yes,value:"yes",disabled:false,hidden:false},
+                {label:i18n.dialog.confirmRespond.no,value:"no",disabled:false,hidden:false}
+            ]} defaultChoice={"no"}
+            show={isActive && actualStage(G,ctx)==="confirmRespond"}
+            title={i18n.dialog.confirmRespond.title} toggleText={i18n.dialog.confirmRespond.toggleText}
+            initial={true}/>
+
         {playerID !== null ? <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/> : ""}
     </div>
 }
