@@ -391,7 +391,7 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     }
     if(aesthetics>0)resRequired+=aesthetics*2;
     if(industry>0)resRequired+=industry*2;
-    return resRequired;
+    return resRequired + arg.target.cost.res;
 }
 
 export function canAfford(G:IG,ctx:Ctx,card:INormalOrLegendCard,p:PlayerID){

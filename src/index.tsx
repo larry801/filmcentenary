@@ -5,8 +5,17 @@ import {Client} from "boardgame.io/react";
 import {FilmCentenaryGame} from "./Game";
 import {FilmCentenaryBoard} from "./components/board";
 import {Grid} from "@material-ui/core";
+import { Local} from "boardgame.io/multiplayer";
+
 const FilmClient = Client(
-    {game: FilmCentenaryGame, board: FilmCentenaryBoard}
+    {
+        game: FilmCentenaryGame,
+        board: FilmCentenaryBoard,
+        // @ts-ignore
+        multiplayer:Local({
+            bots: {}
+        }),
+    }
 );
 const rootElement = document.getElementById("root");
 render(
