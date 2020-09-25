@@ -12,9 +12,7 @@ const FilmClient = Client(
         game: FilmCentenaryGame,
         board: FilmCentenaryBoard,
         // @ts-ignore
-        multiplayer:Local({
-            bots: {}
-        }),
+        multiplayer:Local(),
     }
 );
 const rootElement = document.getElementById("root");

@@ -59,13 +59,21 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, isActive, matchData, 
                 <BoardRegion r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx} playerID={playerID}/>
             </>}
         {G.pub.map((u, idx) => <PubPanel key={idx} {...u}/>)}
-        {G.pending.endPhase ?
-            <Button
-                variant={"contained"}
-                onClick={() => events.endPhase}
-            >E</Button>
+        {G.pending.endPhase && canMoveCurrent ? <Button
+                variant={"outlined"}
+                onClick={() => events?.endPhase?.()}
+            >{i18n.action.endPhase}</Button>
             : <></>}
-
+        {G.pending.endTurn && canMoveCurrent ? <Button
+                variant={"outlined"}
+                onClick={() => events?.endTurn?.()}
+            >{i18n.action.endTurn}</Button>
+            : <></>}
+        {G.pending.endStage && canMoveCurrent ? <Button
+                variant={"outlined"}
+                onClick={() => events?.endStage?.()}
+            >{i18n.action.endStage}</Button>
+            : <></>}
         <ChoiceDialog
             initial={false}
             callback={buy}

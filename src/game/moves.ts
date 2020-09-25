@@ -114,7 +114,6 @@ export const competitionCard: LongFormMove = {
 
 export const breakthrough: LongFormMove = {
     client:false,
-
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
         let p = G.pub[parseInt(arg.playerID)];
         p.action -= 1;

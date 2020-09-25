@@ -88,7 +88,7 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
 
                         {helpers
                             // @ts-ignore
-                            .filter(c=> c.industry>0&&c.aesthetics>0)
+                            .filter(c=> c.industry>0 || c.aesthetics>0)
                             .map((p, idx) =>
                             <Tooltip title={p.name} key={idx} leaveDelay={50}>
                                 <FormControlLabel disabled={false}

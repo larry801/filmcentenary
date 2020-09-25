@@ -23,18 +23,18 @@ export interface ICardSlotProp {
 
 export const BoardCardSlot =({playerID,slot,buy,canBuy,G,ctx,comment}:ICardSlotProp)=>{
     return <>
-        <Paper>
-            {slot.card===null? "":slot.card.name}
-            {slot.comment===null? "":slot.comment.name}
+        <Paper style={{ display: 'inline-flex' }} variant={"outlined"}>
+            <Typography>{slot.card===null? "":slot.card.name} </Typography>
+            <Typography>{slot.comment===null? "":slot.comment.name} </Typography>
             {playerID!==null && slot.card !==null && ctx.currentPlayer===playerID?
-                <div><Comment slot={slot} comment={comment} G={G}/>
+                <><Comment slot={slot} comment={comment} G={G}/>
                     <BuyCard slot={slot}
                              card={slot.card}
                              helpers={G.player[(parseInt(playerID))].hand}
                              buy={buy}
                              canBuy={canBuy}
                              affordable={canAfford(G,ctx,slot.card,playerID)} G={G} playerID={playerID}/>
-                </div>:<></>}
+                </>:<></>}
         </Paper>
     </>
 }

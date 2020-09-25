@@ -17,6 +17,9 @@ const zh_CN: Locale = {
         cinema:"建造电影院",
         aestheticsLevelUp:"提升美学等级",
         industryLevelUp:"提升工业等级",
+        endStage:"End Stage",
+        endTurn:"End Turn",
+        endPhase:"End Phase",
     },
     cancel:"取消",
     era:{

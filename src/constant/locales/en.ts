@@ -51,6 +51,9 @@ const en = {
         cinema: "Build Cinema",
         aestheticsLevelUp: "Upgrade aesthetics",
         industryLevelUp: "Upgrade industry",
+        endStage:"End Stage",
+        endTurn:"End Turn",
+        endPhase:"End Phase",
     },
     playerName: {
         spectator: "Spectator",

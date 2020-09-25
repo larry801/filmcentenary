@@ -470,7 +470,6 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
 
 export const updateSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
     let d;
-    // TODO return basic card
     if(slot.comment!==null){
         // @ts-ignore
         let commentId:BasicCardID = slot.comment.cardId;
@@ -486,14 +485,15 @@ export const updateSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
     if (d.length === 0) {
         return;
     } else {
-        if (slot.card === null) {
-
-        } else {
-            d.push(slot.card);
-        }
+        let oldCard = slot.card;
         let c = d.pop();
         if (c !== undefined) {
             slot.card = c;
+        }
+        if (oldCard === null) {
+
+        } else {
+            d.push(oldCard);
         }
     }
 }
