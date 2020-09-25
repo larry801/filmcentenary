@@ -25,12 +25,11 @@ export interface IG {
         endPhase: boolean,
         endStage: boolean,
     },
-    c:{
-      players:PlayerID[],
-      slots:ICardSlot[],
-      buildingSlots:IBuildingSlot[],
-    cardIDs:string[],
-
+    c: {
+        players: PlayerID[],
+        slots: ICardSlot[],
+        buildingSlots: IBuildingSlot[],
+        cardIDs: string[],
     },
     pub: IPubInfo[],
     e: { choices: any[], stack: any[], card: ICard },
@@ -38,7 +37,10 @@ export interface IG {
     competitionInfo: {
         region: Region,
         atk: PlayerID,
+        atkPlayedCard: boolean,
         def: PlayerID,
+        defPlayedCard: boolean,
+        pending: boolean,
         progress: number,
     },
     secret: {
@@ -58,14 +60,14 @@ export interface IG {
         3: IRegionInfo,
     },
     pendingEffects: IEffect[],
-    basicCards:{
-        "B01":number,
-        "B02":number,
-        "B03":number,
-        "B04":number
-        "B05":number,
-        "B06":number,
-        "B07":number,
+    basicCards: {
+        "B01": number,
+        "B02": number,
+        "B03": number,
+        "B04": number
+        "B05": number,
+        "B06": number,
+        "B07": number,
     },
 }
 
@@ -87,10 +89,10 @@ function pubPlayer(): IPubInfo {
             2: 0,
             3: 0,
         },
-        tempStudios:[],
+        tempStudios: [],
         vp: 0,
-        respondMark:{
-            tempStudioRespond:false,
+        respondMark: {
+            tempStudioRespond: false,
         },
     }
 }
@@ -144,18 +146,21 @@ export function setup(ctx: Ctx, setupData: any): IG {
         },
         playerCount: ctx.numPlayers,
         pub: pub,
-        c:{
-            players:[],
-            slots:[],
-            buildingSlots:[],
-            cardIDs:[],
+        c: {
+            players: [],
+            slots: [],
+            buildingSlots: [],
+            cardIDs: [],
         },
-        e: {choices: [], stack: [],card:B07},
+        e: {choices: [], stack: [], card: B07},
         competitionInfo: {
             region: Region.NA,
             atk: '0',
-            def: '0',
+            atkPlayedCard: false,
+            def: '1',
+            defPlayedCard: false,
             progress: 0,
+            pending:false,
         },
         player: players,
         secret: {
@@ -219,13 +224,13 @@ export function setup(ctx: Ctx, setupData: any): IG {
         },
         pendingEffects: [],
         basicCards: {
-            "B01":20,
-            "B02":20,
-            "B03":10,
-            "B04":40,
-            "B05":20,
-            "B06":0,
-            "B07":0,
+            "B01": 20,
+            "B02": 20,
+            "B03": 10,
+            "B04": 40,
+            "B05": 20,
+            "B06": 0,
+            "B07": 0,
         },
     }
     drawForRegion(g, ctx, Region.NA, IEra.ONE);
