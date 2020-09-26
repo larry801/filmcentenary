@@ -8,7 +8,7 @@ import {
     drawCard,
     initialSetup,
     moveBlocker,
-    playCard
+    playCard, requestEndTurn
 } from "./moves";
 import {IG} from "../types/setup";
 import {cleanPendingSignal} from "./logFix";
@@ -22,6 +22,11 @@ export const tempStudioRespond: StageConfig = {
 export const chooseEffectStage: StageConfig = {
     moves:{
         chooseEffect:chooseEffect
+    }
+}
+export const confirmRespondStage: StageConfig = {
+    moves:{
+        confirmRespond:confirmRespond,
     }
 }
 
@@ -51,12 +56,18 @@ export const NormalTurn: TurnConfig = {
         chooseEffect:chooseEffectStage,
         chooseHand:chooseHandStage,
         chooseTarget:chooseTargetStage,
+        confirmRespond:confirmRespondStage,
     },
     moves: {
         drawCard: drawCard,
         buyCard: buyCard,
         playCard: playCard,
         breakthrough:breakthrough,
+        moveBlocker: moveBlocker,
+        chooseTarget:chooseTarget,
+        chooseHand:chooseHand,
+        chooseEffect:chooseEffect,
+        requestEndTurn:requestEndTurn,
     }
 }
 

@@ -8,7 +8,7 @@ import {
   drawCard,
   initialSetup,
   moveBlocker,
-  playCard
+  playCard, requestEndTurn
 } from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
 
@@ -29,6 +29,7 @@ export const FilmCentenaryGame: Game<IG> = {
     moveBlocker: moveBlocker,
     chooseTarget:chooseTarget,
     chooseHand:chooseHand,
-    chooseEffect:chooseEffect
+    chooseEffect:chooseEffect,
+    requestEndTurn:requestEndTurn,
   }
 };

@@ -1,4 +1,5 @@
 import {
+    EventCardID,
     IBuildingSlot,
     ICard,
     ICardSlot,
@@ -18,6 +19,7 @@ import {fillPlayerHand, drawForRegion, shuffle} from "../game/util";
 export interface IG {
     order: PlayerID[],
     playerCount: number,
+    activeEvents:EventCardID[],
     logDiscrepancyWorkaround: boolean,
     pending: {
         endActivePlayer: boolean,
@@ -73,6 +75,7 @@ export interface IG {
 
 function pubPlayer(): IPubInfo {
     return {
+        champions:[],
         action: 1,
         aesthetics: 0,
         allCards: [B01, B02, B07, B07, B07, B07, B07, B07],
@@ -81,6 +84,7 @@ function pubPlayer(): IPubInfo {
         discard: [],
         industry: 0,
         resource: 0,
+        playedCardInTurn: [],
         revealedHand: [],
         school: null,
         shares: {
@@ -93,6 +97,7 @@ function pubPlayer(): IPubInfo {
         vp: 0,
         respondMark: {
             tempStudioRespond: false,
+            eventRespond: false,
         },
     }
 }
@@ -162,6 +167,7 @@ export function setup(ctx: Ctx, setupData: any): IG {
             progress: 0,
             pending:false,
         },
+        activeEvents:[],
         player: players,
         secret: {
             regions: {

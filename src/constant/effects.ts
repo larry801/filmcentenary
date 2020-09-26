@@ -24,6 +24,33 @@ export interface IEff {
     a: IEff[] | number | string,
 }
 
+const eventEffects ={
+    "E01":{
+        e:"step",
+        a:[
+            {e:"enableHollyWood",a:1},
+            {e:"everyPlayer",a:{e:"industryOrAestheticsLevelUp",a:1}}
+        ]
+    },
+    "E02":{
+        e:"step",
+        a:[
+            {e:"everyPlayer",a:{e:"deposit",a:2}},
+            {e:"everyPlayer",a:{e:"discard",a:1}},
+            {e:"respond",a:{e:"discard",a:1}},
+        ]
+    },
+    "E03": {e:"active",a:"E03"},
+    "E04":{
+        e:"step",
+        a:[
+            {e:"everyPlayer",a:{e:"buyCard",a:"B05"}},
+            {e:"playerVpChampion",a:{e:"optional",a:{e:"discard",a:1}}},
+        ]
+    },
+
+}
+
 const effects = {
     "B01": {
         canBuy: (G: IG, ctx: Ctx) => true,

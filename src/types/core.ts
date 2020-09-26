@@ -88,7 +88,11 @@ export interface IFilmCard extends INormalOrLegendCard {
 }
 
 export enum EventCardID{
-    "E01"="E01"
+    "E01"="E01",
+    "E02"="E02",
+    "E03"="E03",
+    "E04"="E04",
+    "E05"="E05",
 }
 export enum NormalOrLegendCardID{
     "p1101"="1101"
@@ -130,7 +134,13 @@ export interface IPlayerShare {
     3: number,
 }
 
+export interface Champion{
+    era:IEra,
+    region:Region,
+}
+
 export interface IPubInfo {
+    champions:Champion[],
     action: number,
     deposit: number,
     resource: number,
@@ -138,6 +148,7 @@ export interface IPubInfo {
     allCards: ICard[],
     discard: ICard[],
     revealedHand: ICard[],
+    playedCardInTurn: ICard[],
     industry: number,
     aesthetics: number,
     school: ICard | null,
@@ -146,6 +157,7 @@ export interface IPubInfo {
     tempStudios:Region[],
     respondMark:{
         tempStudioRespond:boolean,
+        eventRespond: boolean,
     }
 }
 

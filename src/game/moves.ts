@@ -1,26 +1,32 @@
-import {LongFormMove, PlayerID} from 'boardgame.io';
+import {Ctx, LongFormMove, PlayerID} from 'boardgame.io';
 import {IG} from "../types/setup";
-import {Ctx} from "boardgame.io";
 import {
     CardType,
+    EventCardID,
     IBasicCard,
     IBuyInfo,
     ICard,
     ICardSlot,
     IFilmCard,
-    IPubInfo
+    INormalOrLegendCard,
+    IPubInfo,
+    Region
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
+    aesAward,
     canBuyCard,
-    curPid,
-    drawCardForPlayer,
+    checkRegionScoring,
     curEffectExec,
+    curPid,
     curPub,
     doBuy,
+    drawCardForPlayer,
+    fillPlayerHand,
+    industryAward,
     playerEffExec
 } from "./util";
-import {changeStage, signalEndPhase} from "./logFix";
+import {changeStage, signalEndPhase, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
 
 export const drawCard: LongFormMove = {
@@ -66,6 +72,7 @@ export const buyCard = {
     },
     client: false,
 }
+
 export const chooseTarget: LongFormMove = {
     client:false,
     move: (G: IG, ctx: Ctx, arg: PlayerID) => {
@@ -87,13 +94,42 @@ export const chooseEffect: LongFormMove = {
         G.e.stack.push(eff);
         G.e.choices = []
         curEffectExec(G,ctx);
+        ctx?.events?.endStage?.();
     }
 }
 
-export const requesetEndTurn:LongFormMove = {
+export const requestEndTurn:LongFormMove = {
     client:false,
     move: (G: IG, ctx: Ctx, arg: string) => {
+        let obj = G.pub[parseInt(ctx.currentPlayer)]
+        obj.playedCardInTurn.forEach(c=>obj.discard.push(c));
+        obj.playedCardInTurn = [];
+        if(obj.school !== null){
+            let act = getCardEffect(obj.school.cardId).school.action;
+            if(act===1){
+                if(G.activeEvents.includes(EventCardID.E03)){
+                    obj.action = 2
+                }else{
+                    obj.action = 1
+                }
+            }else {
+                obj.action = act;
+            }
+        }else{
+            if(G.activeEvents.includes(EventCardID.E03)){
+                obj.action = 2
+            }else{
+                obj.action = 1
+            }
+        }
+        fillPlayerHand(G,ctx,ctx.currentPlayer);
+        aesAward(G,ctx,ctx.currentPlayer);
+        industryAward(G,ctx,ctx.currentPlayer);
+        let na  = checkRegionScoring(G,ctx,Region.NA);
+        if(na){
 
+        }
+        signalEndTurn(G,ctx);
     }
 }
 
@@ -162,28 +198,33 @@ export const competitionCard: LongFormMove = {
 export const breakthrough: LongFormMove = {
     client:false,
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
+        console.log(JSON.stringify(arg));
         let p = G.pub[parseInt(arg.playerID)];
         let playerObj = G.player[parseInt(arg.playerID)];
         p.action -= 1;
         p.resource -= arg.res;
         p.deposit -= (2 - arg.res);
-        let c = G.player[curPid(G, ctx)].hand.splice(arg.idx, 1)[0];
+        // @ts-ignore
+        let c:INormalOrLegendCard |IBasicCard = G.player[curPid(G, ctx)].hand.splice(arg.idx, 1)[0];
         p.archive.push(c);
-        if(p.industry === 0 && p.aesthetics === 0) {
+        let i = c.industry
+        let a = c.aesthetics
+        if(i === 0 && a === 0) {
             return;
         }
-        if(p.industry > 0 && p.aesthetics >0){
+        if(i > 0 && a >0){
             G.e.choices.push({e:"industryBreakthrough",a:p.industry})
             G.e.choices.push({e:"aestheticsBreakthrough",a:p.aesthetics})
             changeStage(G,ctx,"chooseEffect")
         }else{
-            if(p.industry === 0) {
+            if(i === 0) {
                 if(playerObj.hand.length===0){
                     p.aesthetics ++;
                 }else {
                     G.e.choices.push({e:"aestheticsLevelUp",a:1})
                     G.e.choices.push({e:"refactor",a:1})
-                    changeStage(G,ctx,"chooseEffect")
+                    console.log("chooseEffect")
+                    changeStage(G, ctx, "chooseEffect")
                 }
             }else{
                 if(p.resource + p.deposit < 3){
@@ -195,7 +236,6 @@ export const breakthrough: LongFormMove = {
                     changeStage(G, ctx, "chooseEffect")
                 }
             }
-
         }
     }
 }

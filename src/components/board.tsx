@@ -4,12 +4,14 @@ import {IG} from "../types/setup";
 import {BoardRegion} from "./region";
 import {PlayerHand} from "./playerHand";
 import {ChoiceDialog} from "./modals";
-import {activePlayer, actualStage, studioInRegion} from "../game/util";
+import {activePlayer, actualStage, canBuyCard, studioInRegion} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
 import {PubPanel} from "./pub";
-import {BasicCardID, Region} from "../types/core";
+import {BasicCardID, ICard, Region} from "../types/core";
+import {BuyCard} from "./buyCard";
+import {getBasicCard} from "../constant/cards/basic";
 
 
 export const FilmCentenaryBoard = ({G, ctx, events, moves, isActive, matchData, playerID}: BoardProps<IG>) => {
@@ -17,6 +19,24 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, isActive, matchData, 
     const canMoveCurrent = ctx.currentPlayer === playerID && ctx.activePlayers === null;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
     const canMove = ctx.currentPlayer === playerID ? canMoveCurrent : canMoveOutOfTurn;
+
+    const canBuy = (target: ICard, resource: number, cash: number, helper: ICard[]) => canBuyCard(G, ctx, {
+        buyer: playerID === null ? '0' : playerID,
+        target: target,
+        resource: resource,
+        deposit: cash,
+        helper: helper,
+    });
+
+    const buy = (target: ICard, resource: number, cash: number, helper: ICard[]) => {
+        moves.buyCard({
+            buyer: playerID === null ? '0' : playerID,
+            target: target,
+            resource: resource,
+            cash: cash,
+            helper: helper,
+        })
+    }
 
 
     const getName = (playerID: PlayerID | null): string => {
@@ -36,11 +56,11 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, isActive, matchData, 
             }
         }
     }
-    const cards: BasicCardID[] = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03, BasicCardID.B05];
-    const buy = (cardId: string) => moves.buyCard(G, ctx, {
+    const cards: BasicCardID[] = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03];
+    const buyBasic = (cardId: string) => moves.buyCard({
         buyer: playerID,
-        target: cardId,
-        resource: 0,
+        target: getBasicCard(cardId as BasicCardID),
+        resource: 2,
         cash: 0,
         helper: [],
     });
@@ -76,7 +96,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, isActive, matchData, 
             : <></>}
         <ChoiceDialog
             initial={false}
-            callback={buy}
+            callback={buyBasic}
             choices={cards.map(
                 id => {
                     return {
@@ -87,16 +107,34 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, isActive, matchData, 
                     }
                 }
             )}
-            defaultChoice={"B01"} show={ctx.currentPlayer === playerID}
+            defaultChoice={"B01"} show={ctx.currentPlayer === playerID
+        && G.pub[parseInt(playerID)].resource + G.pub[parseInt(playerID)].deposit >= 2
+            }
             title={i18n.dialog.buyCard.basic} toggleText={i18n.dialog.buyCard.basic}/>
-
+        {playerID !== null && canMoveCurrent && G.pub[parseInt(playerID)].resource + G.pub[parseInt(playerID)].deposit >= 2?
+            <BuyCard slot={{
+                comment: null, region: Region.NONE, isLegend: false,
+                // @ts-ignore
+                card: getBasicCard(BasicCardID.B05),
+            }}
+                // @ts-ignore
+                     card={getBasicCard(BasicCardID.B05)} helpers={[]}
+                     buy={buy} canBuy={canBuy} affordable={true} G={G} playerID={playerID}/>
+            :<></>
+        }
         {playerID !== null && canMoveCurrent ?
+            <>
             <Button
                 disabled={G.pub[parseInt(playerID)].action === 0}
                 variant={"outlined"}
                 onClick={() => moves.drawCard()}>
                 {i18n.action.draw}
-            </Button> : <></>}
+            </Button> </>: <></>}
+        {playerID !== null && G.pub[parseInt(playerID)].action === 0?
+        <Button
+            onClick={()=>moves.requestEndTurn(playerID)}>
+            {i18n.action.endStage}
+        </Button>:<></>}
         <ChoiceDialog
             initial={true}
             callback={moves.chooseTarget}

@@ -15,7 +15,10 @@ import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {cardsByCond, idToCard} from "../types/cards";
 import {Stage} from "boardgame.io/core";
-import {changePlayerStage, changeStage} from "./logFix";
+import {changePlayerStage, changeStage, signalEndTurn} from "./logFix";
+import {getCardEffect} from "../constant/effects";
+import {getBasicCard} from "../constant/cards/basic";
+import {parse} from "uuid";
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -26,7 +29,11 @@ export function activePlayer(ctx: Ctx) {
         return ctx.currentPlayer
     } else {
         let players = Object.keys(ctx.activePlayers);
+        if (players.length === 1) {
+            return players[0];
+        }
         players.splice(players.indexOf(ctx.currentPlayer), 1);
+        console.log(JSON.stringify(players));
         return players[0];
     }
 }
@@ -58,7 +65,7 @@ export const actualStage = (G: IG, ctx: Ctx,): string => {
     }
 }
 
-export const doConfirm = (G: IG, ctx: Ctx, a: boolean):void => {
+export const doConfirm = (G: IG, ctx: Ctx, a: boolean): void => {
     let stage = actualStage(G, ctx);
     if (stage === Stage.NULL) {
         // TODO
@@ -90,7 +97,7 @@ export const doConfirm = (G: IG, ctx: Ctx, a: boolean):void => {
     }
 }
 
-function simpleEffectExec(G: IG, ctx: Ctx,p:PlayerID):void{
+function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     let eff = G.e.stack.pop();
     let obj = G.pub[parseInt(p)];
     let card: INormalOrLegendCard;
@@ -131,6 +138,12 @@ function simpleEffectExec(G: IG, ctx: Ctx,p:PlayerID):void{
             card = idToCard(eff.a);
             doBuyToHand(G, ctx, card, ctx.currentPlayer);
             break;
+        case "aestheticsLevelUp":
+            obj.aesthetics++;
+            break
+        case "industryLevelUp":
+            obj.industry++;
+            break;
         default:
             throw new Error(JSON.stringify(eff));
     }
@@ -160,11 +173,15 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
     pObj.allCards.push(card)
 }
 
-
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
     let obj = G.pub[parseInt(p)];
     if (card.category === CardCategory.BASIC) {
-        G.basicCards[card.cardId as BasicCardID] -= 1;
+        let count = G.basicCards[card.cardId as BasicCardID];
+        if (count > 0) {
+            G.basicCards[card.cardId as BasicCardID] -= 1;
+            obj.discard.push(card);
+            obj.allCards.push(card);
+        }
     } else {
         let slot = cardSlotOnBoard(G, ctx, card);
         if (slot === null) {
@@ -180,24 +197,25 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             if (region !== Region.NONE) {
                 let share = 0;
                 if (slot.isLegend) {
-                    share ++;
+                    share++;
                 }
-                if (card.type === CardType.F){
-                    share ++;
+                if (card.type === CardType.F) {
+                    share++;
                 }
-                if (G.regions[region].share > share){
+                if (G.regions[region].share > share) {
                     G.regions[region].share -= share;
                     obj.shares[region] += share;
-                }else {
+                } else {
                     obj.shares[region] += G.regions[region].share;
                     G.regions[region].share = 0;
                 }
             }
             updateSlot(G, ctx, slot);
         }
+        obj.discard.push(card);
+        obj.allCards.push(card);
     }
-    obj.discard.push(card);
-    obj.allCards.push(card);
+
 }
 
 const idInHand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
@@ -233,6 +251,11 @@ export const posOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
     return G.order.indexOf(p);
 }
 
+export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
+    if (r === Region.NONE) return false;
+    return cardDepleted(G, ctx, r) || shareDepleted(G, ctx, r);
+}
+
 export const curEffectExec = (G: IG, ctx: Ctx): void => {
     let eff = G.e.stack.pop();
     //let obj = G.pub[curPid(G, ctx)];
@@ -253,25 +276,26 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
                 return G.e.stack.push(item);
             });
             break;
+        case "refactor":
         case "archiveHand":
         case "discardIndustry":
         case "discardAesthetics":
             G.e.stack.push(eff);
-            ctx.events?.setStage?.("chooseTarget");
+            ctx.events?.setStage?.("chooseHand");
             break
         case "choice":
             G.e.choices = eff.a;
             ctx.events?.setStage?.(eff.e);
             return;
         case "update":
-        case "pay":
         case "comment":
-        case "alternative":
             ctx.events?.setStage?.(eff.e);
             return;
+        case "pay":
+            ctx.events?.setStage?.("confirmRespond");
         default:
             G.e.stack.push(eff);
-            simpleEffectExec(G,ctx,ctx.currentPlayer);
+            simpleEffectExec(G, ctx, ctx.currentPlayer);
     }
     if (G.e.stack.length > 0) {
         curEffectExec(G, ctx);
@@ -290,7 +314,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break
         default:
             G.e.stack.push(eff);
-            simpleEffectExec(G,ctx,p);
+            simpleEffectExec(G, ctx, p);
     }
 }
 
@@ -427,6 +451,7 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
             throw new Error();
         } else {
             s = ctx.random.Shuffle(G.pub[pid].discard)
+            G.pub[pid].discard = [];
         }
     }
     let card = s.pop();
@@ -444,10 +469,14 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
     if (s === null) {
         limit = 4;
     } else {
-        limit = 5;
+        limit = getCardEffect(s.cardId).school.hand;
     }
-    for (let t = 0; t < limit; t++) {
-        drawCardForPlayer(G, ctx, p);
+    let handCount: number = G.player[i].hand.length;
+    if (handCount < limit) {
+        let drawCount: number = limit - handCount;
+        for (let t = 0; t < drawCount; t++) {
+            drawCardForPlayer(G, ctx, p);
+        }
     }
 }
 
@@ -502,5 +531,60 @@ export const canUpgrade = (G: IG, ctx: Ctx, p: PlayerID, isIndustry: boolean) =>
         return true;
     } else {
         return cost <= o.resource + o.deposit;
+    }
+}
+
+export const legendCount = (G: IG, ctx: Ctx, r: Region, e: IEra, p: PlayerID): number => {
+    return G.pub[parseInt(p)].allCards
+        .filter(c =>
+            c.category === CardCategory.LEGEND
+            && c.region === r
+            // @ts-ignore
+            && c.era === e)
+        .length;
+}
+
+export const getFirstPlayer = (G: IG, ctx: Ctx, r: Region): PlayerID => {
+    return '0'
+}
+
+export const doEndTurn = (G: IG, ctx: Ctx,): void => {
+    signalEndTurn(G, ctx);
+}
+
+
+const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
+    if (r === Region.NONE) return;
+    let era = G.regions[r].era;
+    const rank = (a: PlayerID, b: PlayerID): number => {
+        let p1 = G.pub[parseInt(a)];
+        let p2 = G.pub[parseInt(b)];
+        if (p1.shares[r] > p2.shares[r]) return 1;
+        if (legendCount(G, ctx, r, era, a) > legendCount(G, ctx, r, era, b)) return 1;
+        if (posOfPlayer(G, ctx, a) < posOfPlayer(G, ctx, b)) {
+            return 1;
+        } else {
+            throw Error("Two player has the same pos")
+        }
+    }
+    let rankingPlayer: PlayerID[] = [];
+    Array(G.playerCount).fill(1).forEach((i, idx) => {
+        if (G.pub[idx].shares[r] === 0) {
+            doBuy(G, ctx, getBasicCard(BasicCardID.B04), idx.toString())
+        } else {
+            rankingPlayer.push(idx.toString())
+        }
+    });
+    let rankResult = rankingPlayer.sort(rank);
+    let firstPlayer: PlayerID = rankResult[0];
+    G.pub[parseInt(firstPlayer)].champions.push({
+        era: era,
+        region: r,
+    })
+    // TODO score card
+    if (G.secret.events.length === 1) {
+
+    } else {
+        changePlayerStage(G, ctx, "chooseEvent", firstPlayer);
     }
 }
