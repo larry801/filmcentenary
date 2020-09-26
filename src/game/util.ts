@@ -401,7 +401,7 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     return resRequired + arg.target.cost.res;
 }
 
-export function canAfford(G: IG, ctx: Ctx, card: INormalOrLegendCard, p: PlayerID) {
+export function canAfford(G: IG, ctx: Ctx, card: INormalOrLegendCard|IBasicCard, p: PlayerID) {
     let pub = G.pub[parseInt(p)]
     let res = resCost(G, ctx, {
         buyer: p,

@@ -20,7 +20,10 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     expanded={expanded === idx}
                     onChange={() => setExpanded(idx)}
                     key={idx}>
-                    <AccordionSummary key={idx}>{c.name}</AccordionSummary>
+                    <AccordionSummary key={idx}>{
+                        // @ts-ignore
+                        i18n.card[c.cardId]
+                    }</AccordionSummary>
                     <AccordionDetails key={idx}>
                         <Button
                             onClick={() => {

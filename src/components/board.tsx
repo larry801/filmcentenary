@@ -4,14 +4,14 @@ import {IG} from "../types/setup";
 import {BoardRegion} from "./region";
 import {PlayerHand} from "./playerHand";
 import {ChoiceDialog} from "./modals";
-import {activePlayer, actualStage, canBuyCard, studioInRegion} from "../game/util";
+import {activePlayer, actualStage, canAfford, canBuyCard, studioInRegion} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
 import {PubPanel} from "./pub";
 import {BasicCardID, ICard, Region} from "../types/core";
 import {BuyCard} from "./buyCard";
-import {getBasicCard} from "../constant/cards/basic";
+import {B05, getBasicCard} from "../constant/cards/basic";
 
 
 export const FilmCentenaryBoard = ({G, ctx, events, moves, isActive, matchData, playerID}: BoardProps<IG>) => {
@@ -111,14 +111,14 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, isActive, matchData, 
         && G.pub[parseInt(playerID)].resource + G.pub[parseInt(playerID)].deposit >= 2
             }
             title={i18n.dialog.buyCard.basic} toggleText={i18n.dialog.buyCard.basic}/>
-        {playerID !== null && canMoveCurrent && G.pub[parseInt(playerID)].resource + G.pub[parseInt(playerID)].deposit >= 2?
+        {playerID !== null && canMoveCurrent && canAfford(G,ctx,B05,ctx.currentPlayer) ?
             <BuyCard slot={{
                 comment: null, region: Region.NONE, isLegend: false,
                 // @ts-ignore
-                card: getBasicCard(BasicCardID.B05),
+                card:B05,
             }}
                 // @ts-ignore
-                     card={getBasicCard(BasicCardID.B05)} helpers={[]}
+                     card={B05} helpers={G.player[parseInt(playerID)].hand}
                      buy={buy} canBuy={canBuy} affordable={true} G={G} playerID={playerID}/>
             :<></>
         }

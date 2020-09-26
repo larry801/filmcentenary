@@ -42,15 +42,24 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
     const pub = G.pub[parseInt(playerID)];
 
 
+
     return <div>
         <Button disabled={!affordable} onClick={() => {
             setOpen(true)
         }}>
             {i18n.dialog.buyCard.board}
+            {
+                // @ts-ignore
+                i18n.card[card.cardId]
+            }
         </Button>
         <Dialog onClose={() => setOpen(false)} open={open}>
             <DialogTitle>
-                {i18n.dialog.buyCard.board} {card.name}
+                {i18n.dialog.buyCard.board}
+                {
+                    // @ts-ignore
+                    i18n.card[card.cardId]
+                }
             </DialogTitle>
             <DialogContent>
                 <div style={{display: 'inline-flex'}} key={"card"}>
@@ -64,7 +73,10 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                 </div>
                 <FormControl required component="fieldset">
                     <FormLabel component="legend">
-                        {i18n.dialog.buyCard.board} {card.name}
+                        {i18n.dialog.buyCard.board}                {
+                        // @ts-ignore
+                        i18n.card[card.cardId]
+                    }
                     </FormLabel>
                     <FormGroup>
                         <div style={{display: 'inline-flex'}} key={"res"}>
@@ -97,15 +109,24 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                             // @ts-ignore
                             .filter(c=> c.industry>0 || c.aesthetics>0)
                             .map((p, idx) =>
-                            <Tooltip title={p.name} key={idx} leaveDelay={50}>
+                            <Tooltip title=                {
+                                // @ts-ignore
+                                i18n.card[p.cardId]
+                            } key={idx} leaveDelay={50}>
                                 <FormControlLabel disabled={false}
                                                   key={idx} id={p.cardId}
                                                   control={<Checkbox
                                                       value={idx}
                                                       checked={checked[idx]}
                                                       onChange={(e)=>handleChange(e)}
-                                                      name={p.name}/>}
-                                                  label={p.name}
+                                                      name=                {
+                                                          // @ts-ignore
+                                                          i18n.card[p.cardId]
+                                                      }/>}
+                                                  label=                {
+                                                      // @ts-ignore
+                                                      i18n.card[p.cardId]
+                                                  }
                                 />
                             </Tooltip>)}
                     </FormGroup>

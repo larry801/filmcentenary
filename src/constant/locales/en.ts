@@ -12,6 +12,9 @@ const en = {
         buildStudio:"Build Studio",
         aestheticsLevelUp:"Upgrade Aesthetics",
         refactor:"Do Refactor",
+        discard:"Discard hand",
+        discardIndustry:"Discard hand with industry mark",
+        discardAesthetics:"Discard hand with aesthetics mark",
     },
     hand: {
         title: "Hands"

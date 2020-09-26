@@ -6,7 +6,7 @@ import {
     Accordion,
     AccordionSummary,
     AccordionDetails,
-    createStyles, Theme
+    createStyles, Theme, DialogTitle
 } from "@material-ui/core";
 import {IBasicCard, ICard, ICardSlot, IRegionInfo, Region} from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
@@ -33,8 +33,14 @@ export const BoardCardSlot = ({playerID, slot, buy, canBuy, G, ctx, comment}: IC
 
     return <>
         <Paper style={{display: 'inline-flex'}} variant={variant}>
-            <Typography>{slot.card === null ? "" : slot.card.name} </Typography>
-            <Typography>{slot.comment === null ? "" : slot.comment.name} </Typography>
+            <Typography>{slot.card === null ? "" :
+                // @ts-ignore
+                i18n.card[slot.card.cardId]
+            } </Typography>
+            <Typography>{slot.comment === null ? "" :
+                // @ts-ignore
+                i18n.card[slot.card.cardId]
+            } </Typography>
             {playerID !== null && slot.card !== null && ctx.currentPlayer === playerID ?
                 <><Comment slot={slot} comment={comment} G={G}/>
                     <BuyCard slot={slot}
