@@ -3,12 +3,13 @@ import {TurnOrder} from "boardgame.io/core";
 import {
     breakthrough,
     buyCard,
-    chooseEffect, chooseEvent, chooseHand, chooseTarget, competitionCard,
+    chooseEffect, chooseEvent, chooseHand, chooseTarget, comment, competitionCard,
     confirmRespond,
     drawCard,
     initialSetup,
     moveBlocker,
-    playCard, requestEndTurn
+    updateSlot,
+    playCard, requestEndTurn,
 } from "./moves";
 import {IG} from "../types/setup";
 import {cleanPendingSignal} from "./logFix";
@@ -58,18 +59,29 @@ export const moveBlockerStage: StageConfig = {
         moveBlocker: moveBlocker,
     }
 }
-
+export const updateSlotStage: StageConfig = {
+    moves: {
+        updateSlot: updateSlot,
+    }
+}
+export const commentStage: StageConfig = {
+    moves: {
+        comment: comment,
+    }
+}
 export const NormalTurn: TurnConfig = {
     onBegin:(G:IG,ctx:Ctx)=>cleanPendingSignal(G,ctx),
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
-        moveBlockerStage: moveBlockerStage,
         chooseEffect:chooseEffectStage,
+        chooseEvent:chooseEventStage,
         chooseHand:chooseHandStage,
         chooseTarget:chooseTargetStage,
+        comment:commentStage,
+        competitionCard:competitionCardStage,
         confirmRespond:confirmRespondStage,
-        chooseEvent:chooseEventStage,
-        competitionCard:competitionCardStage
+        moveBlockerStage: moveBlockerStage,
+        updateSlot:updateSlotStage,
     },
     moves: {
         drawCard: drawCard,
@@ -83,6 +95,8 @@ export const NormalTurn: TurnConfig = {
         chooseEvent:chooseEvent,
         competitionCard:competitionCard,
         requestEndTurn:requestEndTurn,
+        updateSlot:updateSlot,
+        comment:comment,
     }
 }
 

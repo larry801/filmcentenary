@@ -19,7 +19,7 @@ import {
     curEffectExec,
     curPid,
     curPub, doAestheticsBreakthrough,
-    doBuy, doIndustryBreakthrough,
+    doBuy, doIndustryBreakthrough, doUpdateSlot,
     drawCardForPlayer,
     fillPlayerHand,
     industryAward,
@@ -96,7 +96,7 @@ export const chooseHand: LongFormMove = {
 export const chooseEffect: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
-        let eff = G.events[parseInt(arg)];
+        let eff = G.e.choices[parseInt(arg)];
         G.e.stack.push(eff);
         console.log(JSON.stringify(eff));
         curEffectExec(G, ctx);
@@ -105,6 +105,14 @@ export const chooseEffect: LongFormMove = {
         }
     }
 }
+
+export const updateSlot = {
+    client:false,
+    move: (G:IG, ctx:Ctx, slot: ICardSlot) => {
+        doUpdateSlot(G,ctx,slot);
+    }
+}
+
 export const chooseEvent: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: string) => {

@@ -4,11 +4,11 @@ import {
   breakthrough,
   buyCard, chooseEffect, chooseEvent,
   chooseHand,
-  chooseTarget, competitionCard,
+  chooseTarget, comment, competitionCard,
   drawCard,
   initialSetup,
   moveBlocker,
-  playCard, requestEndTurn
+  playCard, requestEndTurn, updateSlot
 } from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
 
@@ -33,5 +33,7 @@ export const FilmCentenaryGame: Game<IG> = {
     chooseEffect:chooseEffect,
     competitionCard:competitionCard,
     requestEndTurn:requestEndTurn,
+    updateSlot:updateSlot,
+    comment:comment,
   }
 };

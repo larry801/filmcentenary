@@ -213,7 +213,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                     G.regions[region].share = 0;
                 }
             }
-            updateSlot(G, ctx, slot);
+            doUpdateSlot(G, ctx, slot);
         }
         if (card.type === CardType.S) {
             let school = obj.school;
@@ -263,7 +263,10 @@ export const studioInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean
     if (r === Region.NONE) return false;
     return G.regions[r].buildings.filter(s => s.content === "studio" && s.owner === p).length > 0;
 }
-
+export const cinemaInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
+    if (r === Region.NONE) return false;
+    return G.regions[r].buildings.filter(s => s.content === "cinema" && s.owner === p).length > 0;
+}
 export const studioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
     return Array(G.playerCount).fill(1).map((i, idx) => idx.toString()).filter(pid => studioInRegion(G, ctx, r, pid));
@@ -293,7 +296,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
         case "noStudio":
             G.c.players = noStudioPlayers(G, ctx, region);
             changeStage(G, ctx, "chooseTarget")
-            break;
+            return;
         case "studio":
             let players = studioPlayers(G, ctx, region);
             players.forEach(p => simpleEffectExec(G, ctx, p));
@@ -518,7 +521,7 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
     }
 }
 
-export const updateSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
+export const doUpdateSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
     let d;
     if (slot.comment !== null) {
         // @ts-ignore
@@ -636,7 +639,7 @@ const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
 
 export function canBuildStudioInRegion(G:IG, ctx:Ctx, p:PlayerID,r:Region) :boolean{
     if(r===Region.NONE)return false;
-    if(G.pub[parseInt(p)].building.studioBuilt){
+    if(G.pub[parseInt(p)].building.studioBuilt || cinemaInRegion(G,ctx,r,p)){
         return false;
     }else {
         return G.regions[r].buildings.filter(slot=>slot.activated&&slot.owner==="").length > 0;
@@ -653,7 +656,7 @@ export function studioSlotsAvailable(G:IG, ctx:Ctx, p:PlayerID):Region[]{
 
 export function canBuildCinemaInRegion(G:IG, ctx:Ctx, p:PlayerID,r:Region):boolean{
     if(r===Region.NONE)return false;
-    if(G.pub[parseInt(p)].building.cinemaBuilt){
+    if(G.pub[parseInt(p)].building.cinemaBuilt || studioInRegion(G,ctx,r,p)){
         return false;
     }else {
         return G.regions[r].buildings.filter(slot=>slot.activated&&slot.owner==="").length > 0;
