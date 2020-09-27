@@ -11,6 +11,7 @@ const FilmClient = Client(
     {
         game: FilmCentenaryGame,
         board: FilmCentenaryBoard,
+        debug: false,
         // @ts-ignore
         multiplayer:Local(),
     }

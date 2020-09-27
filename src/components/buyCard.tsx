@@ -11,15 +11,16 @@ import FormControlLabel from "@material-ui/core/FormControlLabel";
 import Tooltip from "@material-ui/core/Tooltip";
 import {getBasicCard} from "../constant/cards/basic";
 import Typography from "@material-ui/core/Typography";
-import {PlayerID} from "boardgame.io";
+import {Ctx, PlayerID} from "boardgame.io";
+import {resCost} from "../game/util";
 
 
 export interface IBuyDialogProps {
     slot: ICardSlot,
-    card: INormalOrLegendCard|IBasicCard,
+    card: INormalOrLegendCard | IBasicCard,
     helpers: ICard[],
-    buy: (target:ICard,resource:number,cash:number,helper:ICard[])=> void,
-    canBuy: (target:ICard,resource:number,cash:number,helper:ICard[]) => boolean,
+    buy: (target: ICard, resource: number, deposit: number, helper: ICard[]) => void,
+    canBuy: (target: ICard, resource: number, deposit: number, helper: ICard[]) => boolean,
     affordable: boolean,
     G: IG,
     playerID: PlayerID,
@@ -40,8 +41,25 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
     }
 
     const pub = G.pub[parseInt(playerID)];
+    const canProceed :boolean = canBuy(card, res, deposit, helpers.filter((c, idx) => checked[idx]));
+    const resourceInsufficient = pub.resource <= res;
+    const depositInsufficient = pub.deposit <= deposit;
 
-
+    const canHelp = (helper: INormalOrLegendCard): boolean => {
+        if (card.industry === 0 && card.aesthetics === 0) {
+            return false;
+        } else {
+            if (card.industry !== 0) {
+                if (card.aesthetics !== 0) {
+                    return helper.industry > 0 && helper.aesthetics > 0;
+                } else {
+                    return helper.industry > 0;
+                }
+            } else {
+                return helper.aesthetics > 0;
+            }
+        }
+    }
 
     return <div>
         <Button disabled={!affordable} onClick={() => {
@@ -69,8 +87,8 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                 </div>
                 <FormControl required component="fieldset">
                     <FormLabel component="legend"
-                               error={!canBuy(card,res,deposit,helpers.filter((c,idx)=>checked[idx]))}>
-                        {i18n.dialog.buyCard.board}                {
+                               error={!canBuy(card, res, deposit, helpers.filter((c, idx) => checked[idx]))}>
+                        {i18n.dialog.buyCard.board} {
                         // @ts-ignore
                         i18n.card[card.cardId]
                     }
@@ -89,11 +107,10 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                             <Typography>{res}</Typography>
                             <Button
                                 onClick={() => setRes(res + 1)}
-                                disabled={G.pub[parseInt(playerID)].deposit <= res}
+                                disabled={resourceInsufficient || canProceed}
                             >+</Button></div>
                         <div style={{display: 'inline-flex'}} key={"deposit"}>
                             <Typography variant={"h6"}>{i18n.pub.deposit} </Typography>
-
                             <Button
                                 disabled={deposit <= 0}
                                 onClick={() => {
@@ -102,34 +119,26 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                             <Typography>{deposit}</Typography>
                             <Button
                                 onClick={() => setDeposit(deposit + 1)}
-                                disabled={G.pub[parseInt(playerID)].resource <= deposit}
+                                disabled={depositInsufficient || canProceed}
                             >+</Button>
                         </div>
 
-                        {helpers
-                            // @ts-ignore
-                            .filter(c=> c.industry>0 || c.aesthetics>0)
-                            .map((p, idx) =>
-                            <Tooltip title=                {
-                                // @ts-ignore
-                                i18n.card[p.cardId]
-                            } key={idx} leaveDelay={50}>
-                                <FormControlLabel disabled={false}
-                                                  key={idx} id={p.cardId}
-                                                  control={<Checkbox
-                                                      value={idx}
-                                                      checked={checked[idx]}
-                                                      onChange={(e)=>handleChange(e)}
-                                                      name=                {
-                                                          // @ts-ignore
-                                                          i18n.card[p.cardId]
-                                                      }/>}
-                                                  label=                {
-                                                      // @ts-ignore
-                                                      i18n.card[p.cardId]
-                                                  }
-                                />
-                            </Tooltip>)}
+                        {helpers.map((p, idx) =>
+                            canHelp(p as INormalOrLegendCard)?<FormControlLabel
+                                key={idx} id={p.cardId}
+                                control={<Checkbox
+                                    value={idx}
+                                    checked={checked[idx]}
+                                    onChange={(e) => handleChange(e)}
+                                    name={
+                                        // @ts-ignore
+                                        i18n.card[p.cardId]
+                                    }/>}
+                                label={
+                                    // @ts-ignore
+                                    i18n.card[p.cardId]
+                                }
+                            />:<></>)}
                     </FormGroup>
                 </FormControl>
             </DialogContent>
@@ -137,11 +146,10 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                 <Button
                     variant={"contained"}
                     onClick={() => {
-                        buy(card,res,deposit,helpers.filter((c,idx)=>checked[idx]))
+                        buy(card, res, deposit, helpers.filter((c, idx) => checked[idx]))
                         setOpen(false)
                     }} color="primary"
-                    disabled={!canBuy(card,res,deposit,helpers.filter((c,idx)=>checked[idx]))}
-                >
+                    disabled={!canProceed}>
                     {i18n.confirm}
                 </Button>
                 <Button onClick={() => {

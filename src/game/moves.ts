@@ -216,6 +216,7 @@ export const requestEndTurn: LongFormMove = {
         if (na) {
 
         }
+        obj.resource = 0;
         signalEndTurn(G, ctx);
     },
 }

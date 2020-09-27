@@ -22,8 +22,8 @@ export interface ICardSlotProp {
     slot: ICardSlot,
     G: IG,
     ctx: Ctx,
-    buy: (target: ICard, resource: number, cash: number, helper: ICard[]) => void,
-    canBuy: (target: ICard, resource: number, cash: number, helper: ICard[]) => boolean,
+    buy: (target: ICard, resource: number, deposit: number, helper: ICard[]) => void,
+    canBuy: (target: ICard, resource: number, deposit: number, helper: ICard[]) => boolean,
     comment: (slot: ICardSlot, card: IBasicCard | null) => void,
     playerID: PlayerID | null,
 }
@@ -81,20 +81,20 @@ export const BoardRegion = ({r, region, G, ctx, playerID, moves}: IRegionProp) =
     const [expanded, setExpanded] = React.useState(true);
     const classes = useStyles();
 
-    const canBuy = (target: ICard, resource: number, cash: number, helper: ICard[]) => canBuyCard(G, ctx, {
+    const canBuy = (target: ICard, resource: number, deposit: number, helper: ICard[]) => canBuyCard(G, ctx, {
         buyer: playerID === null ? '0' : playerID,
         target: target,
         resource: resource,
-        deposit: cash,
+        deposit: deposit,
         helper: helper,
     });
 
-    const buy = (target: ICard, resource: number, cash: number, helper: ICard[]) => {
+    const buy = (target: ICard, resource: number, deposit: number, helper: ICard[]) => {
         moves.buyCard({
             buyer: playerID === null ? '0' : playerID,
             target: target,
             resource: resource,
-            cash: cash,
+            deposit: deposit,
             helper: helper,
         })
     }

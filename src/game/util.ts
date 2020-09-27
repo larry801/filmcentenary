@@ -457,6 +457,7 @@ export function canAfford(G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCar
 export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     let resRequired = resCost(G, ctx, arg);
     let resGiven: number = arg.resource + arg.deposit;
+    console.log(resGiven,resRequired);
     return resRequired === resGiven;
 }
 

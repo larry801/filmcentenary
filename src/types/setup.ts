@@ -89,7 +89,7 @@ function pubPlayer(): IPubInfo {
         deposit: 0,
         discard: [],
         industry: 0,
-        resource: 10,
+        resource: 0,
         playedCardInTurn: [],
         revealedHand: [],
         school: null,
