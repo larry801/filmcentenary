@@ -31,6 +31,10 @@ const zh_CN: Locale = {
         buyCardToHand:"并加入手牌",
         industryLevelUp:"提升工业等级",
         buildCinema:"建造电影院",
+        buildCinemaInRegion:["在{{region}}建造电影院",
+            {
+                region: undefined,
+            }],
         buildStudio:"建造制片厂",
         aestheticsLevelUp:"提升美学等级",
         refactor:"重构",
@@ -50,6 +54,10 @@ const zh_CN: Locale = {
         chooseHand:{
             title:"请选择一张手牌执行效果",
             toggleText:"选择手牌",
+        },
+        chooseRegion: {
+            title: "请选择效果目标区域",
+            toggleText: "选择区域",
         },
         chooseTarget: {
             title: "请选择效果目标玩家",
@@ -156,7 +164,7 @@ const zh_CN: Locale = {
         '1303':'电影眼睛派',
         '1304':'母亲',
         '1305':'战舰波将金',
-        '1306':'持揚影机的人',
+        '1306':'持摄影机的人',
         '1307':'谢尔盖神父',
         '2101':'古典好莱坞',
         '2102':'约翰·福特',

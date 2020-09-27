@@ -9,7 +9,7 @@ import {
     initialSetup,
     moveBlocker,
     updateSlot,
-    playCard, requestEndTurn,
+    playCard, requestEndTurn, chooseRegion,
 } from "./moves";
 import {IG} from "../types/setup";
 import {cleanPendingSignal} from "./logFix";
@@ -69,6 +69,11 @@ export const commentStage: StageConfig = {
         comment: comment,
     }
 }
+export const chooseRegionStage: StageConfig = {
+    moves: {
+        chooseRegion: chooseRegion,
+    }
+}
 export const NormalTurn: TurnConfig = {
     onBegin:(G:IG,ctx:Ctx)=>cleanPendingSignal(G,ctx),
     order: TurnOrder.CUSTOM_FROM("order"),
@@ -76,6 +81,7 @@ export const NormalTurn: TurnConfig = {
         chooseEffect:chooseEffectStage,
         chooseEvent:chooseEventStage,
         chooseHand:chooseHandStage,
+        chooseRegion:chooseRegionStage,
         chooseTarget:chooseTargetStage,
         comment:commentStage,
         competitionCard:competitionCardStage,
@@ -97,6 +103,7 @@ export const NormalTurn: TurnConfig = {
         requestEndTurn:requestEndTurn,
         updateSlot:updateSlot,
         comment:comment,
+        chooseRegion:chooseRegion,
     }
 }
 
@@ -118,7 +125,6 @@ export const InitPhase: PhaseConfig = {
         stages: {
             setupStage: setupStage
         },
-
     },
     next:"NormalPhase",
 }

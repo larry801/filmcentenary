@@ -31,7 +31,7 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
     const [open, setOpen] = React.useState(false);
     const [res, setRes] = React.useState(0);
     const [deposit, setDeposit] = React.useState(0);
-    const [checked, setChecked] = React.useState(helpers.map(c => false));
+    const [checked, setChecked] = React.useState(Array(helpers.length).fill(false));
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let newHelper = [...checked]
         // @ts-ignore
@@ -67,17 +67,18 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                     <Typography variant={"h6"}>{i18n.pub.industry} {card.cost.industry}</Typography>
                     <Typography variant={"h6"}>{i18n.pub.aesthetics} {card.cost.aesthetics}</Typography>
                 </div>
-                <div style={{display: 'block'}} key={"player"}>
-                    <Typography variant={"h6"}>{i18n.pub.industry} {pub.industry}</Typography>
-                    <Typography variant={"h6"}>{i18n.pub.aesthetics} {pub.aesthetics}</Typography>
-                </div>
                 <FormControl required component="fieldset">
-                    <FormLabel component="legend">
+                    <FormLabel component="legend"
+                               error={!canBuy(card,res,deposit,helpers.filter((c,idx)=>checked[idx]))}>
                         {i18n.dialog.buyCard.board}                {
                         // @ts-ignore
                         i18n.card[card.cardId]
                     }
                     </FormLabel>
+                    <div style={{display: 'block'}} key={"player"}>
+                        <Typography variant={"h6"}>{i18n.pub.industry} {pub.industry}</Typography>
+                        <Typography variant={"h6"}>{i18n.pub.aesthetics} {pub.aesthetics}</Typography>
+                    </div>
                     <FormGroup>
                         <div style={{display: 'inline-flex'}} key={"res"}>
                             <Typography variant={"h6"}>{i18n.pub.res} </Typography>
@@ -88,7 +89,7 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                             <Typography>{res}</Typography>
                             <Button
                                 onClick={() => setRes(res + 1)}
-                                disabled={G.pub[parseInt(playerID)].deposit <= deposit}
+                                disabled={G.pub[parseInt(playerID)].deposit <= res}
                             >+</Button></div>
                         <div style={{display: 'inline-flex'}} key={"deposit"}>
                             <Typography variant={"h6"}>{i18n.pub.deposit} </Typography>
@@ -101,7 +102,7 @@ export const BuyCard = ({canBuy, card, buy, affordable, helpers, G, playerID}: I
                             <Typography>{deposit}</Typography>
                             <Button
                                 onClick={() => setDeposit(deposit + 1)}
-                                disabled={G.pub[parseInt(playerID)].resource <= res}
+                                disabled={G.pub[parseInt(playerID)].resource <= deposit}
                             >+</Button>
                         </div>
 

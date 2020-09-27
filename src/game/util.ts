@@ -700,13 +700,13 @@ export function fillEventCard(G: IG, ctx: Ctx) {
 export function doIndustryBreakthrough(G:IG,ctx:Ctx,player:PlayerID){
     let p = G.pub[parseInt(player)];
     let totalResource = p.resource + p.deposit;
-    if (additionalCostForUpgrade(p.industry) >= totalResource) {
+    if (additionalCostForUpgrade(p.industry) <= totalResource) {
         G.e.choices.push({e: "industryLevelUp", a: 1})
     }
-    if (p.resource + p.deposit >= 3 && studioSlotsAvailable(G, ctx, player).length > 0) {
+    if (totalResource >= 3 && studioSlotsAvailable(G, ctx, player).length > 0) {
         G.e.choices.push({e: "buildStudio", a: 1})
     }
-    if (p.resource + p.deposit >= 3 && cinemaSlotsAvailable(G, ctx, player).length > 0) {
+    if (totalResource >= 3 && cinemaSlotsAvailable(G, ctx, player).length > 0) {
         G.e.choices.push({e: "buildCinema", a: 1})
     }
     G.e.choices.push({e: "skipBreakthrough", a: 1})
@@ -717,7 +717,7 @@ export function doAestheticsBreakthrough(G:IG,ctx:Ctx,player:PlayerID){
     let p = G.pub[parseInt(player)];
     let playerObj = G.player[parseInt(player)];
     let totalResource = p.resource + p.deposit;
-    if (additionalCostForUpgrade(p.industry) >= totalResource) {
+    if (additionalCostForUpgrade(p.industry) <= totalResource) {
         G.e.choices.push({e: "aestheticsLevelUp", a: 1})
     }
     if (playerObj.hand.length > 0) {
@@ -725,4 +725,12 @@ export function doAestheticsBreakthrough(G:IG,ctx:Ctx,player:PlayerID){
     }
     G.e.choices.push({e: "skipBreakthrough", a: 1})
     changeStage(G, ctx, "chooseEffect")
+}
+
+export function checkNextEffect(G:IG,ctx:Ctx){
+    if (G.e.stack.length === 0) {
+        ctx?.events?.endStage?.();
+    }else {
+        curEffectExec(G,ctx);
+    }
 }

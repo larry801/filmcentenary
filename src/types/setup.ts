@@ -36,7 +36,7 @@ export interface IG {
         cardIDs: string[],
     },
     pub: IPubInfo[],
-    e: { choices: any[], stack: any[], card: ICard },
+    e: { choices: any[], stack: any[], card: ICard ,regions:Region[]},
     player: IPrivateInfo[],
     competitionInfo: {
         region: Region,
@@ -89,7 +89,7 @@ function pubPlayer(): IPubInfo {
         deposit: 0,
         discard: [],
         industry: 0,
-        resource: 0,
+        resource: 10,
         playedCardInTurn: [],
         revealedHand: [],
         school: null,
@@ -124,17 +124,18 @@ function emptyLegendCardSlot(region: Region): ICardSlot {
     }
 }
 
-function emptyBuildingSlot(region: Region): IBuildingSlot {
+function emptyBuildingSlot(region: Region,activated:boolean = true): IBuildingSlot {
     return {
         region: region,
         content: "",
         isCinema:false,
-        activated: false,
+        activated: activated,
         owner: "",
     }
 }
 
-export function setup(ctx: Ctx, setupData: any): IG {
+// noinspection JSUnusedLocalSymbols
+export const setup = (ctx: Ctx, setupData: any): IG => {
     let pub: IPubInfo[] = [];
     let players: IPrivateInfo[] = [];
     let decks: ICard[][] = [];
@@ -146,9 +147,9 @@ export function setup(ctx: Ctx, setupData: any): IG {
         decks.push(shuffle(ctx, [B01, B02, B07, B07, B07, B07, B07, B07]));
     }
     let events = shuffle(ctx, []);
-    let realOrder = shuffle(ctx, order);
-    let g = {
-        order: realOrder,
+    let randomOrder = shuffle(ctx, order);
+    let G = {
+        order: randomOrder,
         logDiscrepancyWorkaround: true,
         pending: {
             endActivePlayer: false,
@@ -164,8 +165,9 @@ export function setup(ctx: Ctx, setupData: any): IG {
             slots: [],
             buildingSlots: [],
             cardIDs: [],
+
         },
-        e: {choices: [], stack: [], card: B07},
+        e: {choices: [], stack: [], card: B07, regions: [],},
         competitionInfo: {
             region: Region.NONE,
             atk: '0',
@@ -202,7 +204,11 @@ export function setup(ctx: Ctx, setupData: any): IG {
         regions: {
             0: {
                 era: IEra.ONE,
-                buildings: [emptyBuildingSlot(0)],
+                buildings: [
+                    emptyBuildingSlot(0),
+                    emptyBuildingSlot(0,false),
+                    emptyBuildingSlot(0,false),
+                ],
                 legend: emptyLegendCardSlot(0),
                 normal: [
                     emptyNormalCardSlot(0),
@@ -213,7 +219,10 @@ export function setup(ctx: Ctx, setupData: any): IG {
             },
             1: {
                 era: IEra.ONE,
-                buildings: [emptyBuildingSlot(1)],
+                buildings: [
+                    emptyBuildingSlot(1),
+                    emptyBuildingSlot(1,false)
+                ],
                 legend: emptyLegendCardSlot(1),
                 normal: [
                     emptyNormalCardSlot(1),
@@ -223,14 +232,20 @@ export function setup(ctx: Ctx, setupData: any): IG {
             },
             2: {
                 era: IEra.ONE,
-                buildings: [emptyBuildingSlot(2)],
+                buildings: [
+                    emptyBuildingSlot(2),
+                    emptyBuildingSlot(2,false),
+                ],
                 legend: emptyLegendCardSlot(2),
                 normal: [emptyNormalCardSlot(2), emptyNormalCardSlot(2)],
                 share: 4,
             },
             3: {
                 era: IEra.ONE,
-                buildings: [emptyBuildingSlot(3)],
+                buildings: [
+                    emptyBuildingSlot(3),
+                    emptyBuildingSlot(3, false),
+                ],
                 legend: emptyLegendCardSlot(3),
                 normal: [emptyNormalCardSlot(3), emptyNormalCardSlot(3)],
                 share: 0,
@@ -248,12 +263,19 @@ export function setup(ctx: Ctx, setupData: any): IG {
             "B07": 0,
         },
     }
-    drawForRegion(g, ctx, Region.NA, IEra.ONE);
-    drawForRegion(g, ctx, Region.WE, IEra.ONE);
-    drawForRegion(g, ctx, Region.EE, IEra.ONE);
-    for (let i = 0; i < ctx.numPlayers; i++) {
-        fillPlayerHand(g, ctx, i.toString());
+    if (ctx.numPlayers > 2){
+        G.regions[Region.NA].buildings[1].activated = true;
+        G.regions[Region.WE].buildings[1].activated = true;
     }
-    doFillNewEraEvents(g,ctx,IEra.ONE);
-    return g;
-}
+    if (ctx.numPlayers > 3) {
+        G.regions[Region.EE].buildings[1].activated = true;
+    }
+    drawForRegion(G, ctx, Region.NA, IEra.ONE);
+    drawForRegion(G, ctx, Region.WE, IEra.ONE);
+    drawForRegion(G, ctx, Region.EE, IEra.ONE);
+    for (let i = 0; i < ctx.numPlayers; i++) {
+        fillPlayerHand(G, ctx, i.toString());
+    }
+    doFillNewEraEvents(G,ctx,IEra.ONE);
+    return G;
+};

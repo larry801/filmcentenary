@@ -9,6 +9,10 @@ const en = {
         buyCardToHand:"Buy card for free, and add to hand.",
         industryLevelUp:"Upgrade Industry",
         buildCinema:"Build Cinema",
+        buildCinemaInRegion:["Build Cinema in {{region}}",
+            {
+                region: undefined,
+            }],
         buildStudio:"Build Studio",
         aestheticsLevelUp:"Upgrade Aesthetics",
         refactor:"Do Refactor",
@@ -37,6 +41,10 @@ const en = {
         chooseTarget: {
             title: "Please choose target player of current effect.",
             toggleText: "Choose Target Player",
+        },
+        chooseRegion: {
+            title: "Please choose target region of current effect.",
+            toggleText: "Choose Region",
         },
         chooseEvent: {
             title: "Please choose event card.",

@@ -14,16 +14,21 @@ import {
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
     aesAward,
-    canBuyCard,
+    canBuyCard, checkNextEffect,
     checkRegionScoring,
+    cinemaSlotsAvailable,
     curEffectExec,
     curPid,
-    curPub, doAestheticsBreakthrough,
-    doBuy, doIndustryBreakthrough, doUpdateSlot,
+    curPub,
+    doAestheticsBreakthrough,
+    doBuy,
+    doIndustryBreakthrough,
+    doUpdateSlot,
     drawCardForPlayer,
     fillPlayerHand,
     industryAward,
     playerEffExec,
+    studioSlotsAvailable,
 } from "./util";
 import {changeStage, signalEndPhase, signalEndTurn} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
@@ -48,10 +53,10 @@ export const buyCard = {
             arg.helper.forEach(c => {
                 let pHand = G.player[parseInt(arg.buyer)].hand;
                 let idx = pHand.indexOf(c)
-                let helper :ICard = pHand.splice(idx, 1)[0];
+                let helper: ICard = pHand.splice(idx, 1)[0];
                 p.discard.push(helper);
             })
-            doBuy(G, ctx, arg.target as INormalOrLegendCard|IBasicCard, ctx.currentPlayer);
+            doBuy(G, ctx, arg.target as INormalOrLegendCard | IBasicCard, ctx.currentPlayer);
             let eff = getCardEffect(arg.target.cardId);
             G.e.stack.push(eff.buy);
             curEffectExec(G, ctx);
@@ -97,22 +102,76 @@ export const chooseEffect: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         let eff = G.e.choices[parseInt(arg)];
+        let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
+        let regions: Region[];
+        switch (eff.e) {
+            case "buildStudio":
+                G.e.choices = [];
+                G.e.stack.push(eff);
+                regions = studioSlotsAvailable(G, ctx, p);
+                regions.forEach(r => G.e.regions.push(r));
+                changeStage(G, ctx, "chooseRegion");
+                return;
+            case "buildCinema":
+                G.e.choices = [];
+                G.e.stack.push(eff);
+
+                regions = cinemaSlotsAvailable(G, ctx, p);
+                regions.forEach(r => G.e.regions.push(r));
+                changeStage(G, ctx, "chooseRegion");
+                return;
+        }
         G.e.stack.push(eff);
         console.log(JSON.stringify(eff));
         curEffectExec(G, ctx);
-        if (G.e.stack.length === 0) {
-
-        }
+        checkNextEffect(G,ctx);
     }
 }
 
 export const updateSlot = {
-    client:false,
-    move: (G:IG, ctx:Ctx, slot: ICardSlot) => {
-        doUpdateSlot(G,ctx,slot);
+    client: false,
+    move: (G: IG, ctx: Ctx, slot: ICardSlot) => {
+        doUpdateSlot(G, ctx, slot);
     }
 }
-
+export const chooseRegion = {
+    client: false,
+    move: (G: IG, ctx: Ctx, region: string) => {
+        let r = parseInt(region) as Region;
+        if (r === Region.NONE) return;
+        let eff = G.e.stack.pop();
+        let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
+        switch (eff.e) {
+            case "buildStudio":
+                G.e.regions = [];
+                G.regions[r].buildings.forEach(slot => {
+                    if (slot.activated && slot.owner === "") {
+                        slot.owner = p;
+                        slot.content = "studio"
+                        slot.isCinema = false;
+                        G.pub[parseInt(p)].building.studioBuilt = true;
+                        checkNextEffect(G,ctx);
+                        return;
+                    }
+                })
+                break;
+            case "buildCinema":
+                G.regions[r].buildings.forEach(slot => {
+                    if (slot.activated && slot.owner === "") {
+                        slot.owner = p;
+                        slot.content = "cinema"
+                        slot.isCinema = true;
+                        G.pub[parseInt(p)].building.cinemaBuilt = true;
+                        checkNextEffect(G,ctx);
+                        return;
+                    }
+                })
+                break;
+            default:
+                throw new Error();
+        }
+    }
+}
 export const chooseEvent: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: string) => {

@@ -66,6 +66,16 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves,undo,redo, isActive, m
         helper: [],
     });
 
+    const effectName=(eff:any):string=>{
+      // @ts-ignore
+        let name = i18n.effect[eff.e];
+      if(typeof name === "string"){
+          return name;
+      }else {
+          return name(eff.a);
+      }
+    }
+
     return <div>
         {ctx.phase === "InitPhase" ?
             <Button
@@ -82,16 +92,18 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves,undo,redo, isActive, m
 
         <Grid container spacing={4}>
             <Grid item><Typography>{i18n.pub.events}</Typography></Grid>
-            {G.events.map(e=><Grid item><Paper elevation={10}><Typography>{
+            {G.events.map((e,idx)=><Grid key={idx} item>
+                <Paper key={idx} elevation={10}>
+                    <Typography>{
             // @ts-ignore
             i18n.card[e.cardId]
             }</Typography></Paper></Grid>)}</Grid>
         {G.pub.map((u, idx) => <PubPanel key={idx} {...u}/>)}
-        {isActive && canMove ?<Button
+        {isActive  ?<Button
             variant={"outlined"}
             onClick={()=>undo()}
         >{i18n.action.undo}</Button>:<></>}
-        {isActive && canMove ?<Button
+        {isActive ?<Button
             variant={"outlined"}
             onClick={()=>redo()}
         >{i18n.action.redo}</Button>:<></>}
@@ -153,6 +165,21 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves,undo,redo, isActive, m
         </Button>:<></>}
         <ChoiceDialog
             initial={true}
+            callback={moves.chooseRegion}
+            choices={
+               G.e.regions
+                    .map(r => {
+                        return {
+                            label: i18n.region[r],
+                            value: r.toString(),
+                            hidden: false, disabled: false
+                        }
+                    })
+            } defaultChoice={"4"} show={isActive && actualStage(G, ctx) === "chooseRegion"}
+            title={i18n.dialog.chooseRegion.title}
+            toggleText={i18n.dialog.chooseRegion.toggleText}/>
+        <ChoiceDialog
+            initial={true}
             callback={moves.chooseTarget}
             choices={
                 Array(G.playerCount)
@@ -202,8 +229,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves,undo,redo, isActive, m
             callback={moves.chooseEffect}
             choices={G.e.choices.map((c,idx)=>{
                 return {
-                // @ts-ignore
-                label: i18n.effect[c.e],
+                label: effectName(c),
                 disabled: false,
                 hidden: false,
                 value: idx.toString()
