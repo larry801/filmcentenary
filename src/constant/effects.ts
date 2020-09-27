@@ -385,6 +385,12 @@ const effects = {
         },
     },
     "1203": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
         "school": {
             hand: 4,
             action: 1,
@@ -395,6 +401,12 @@ const effects = {
         },
     },
     "1204": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
         "school": {
             hand: 4,
             action: 2,
@@ -530,6 +542,12 @@ const effects = {
 
     },
     "1301": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
         "school": {
             hand: 4,
             action: 2,
@@ -567,6 +585,12 @@ const effects = {
             hand: 4,
             action: 2,
         },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
         response: {
             pre: {type: "othersBuySchool"},
             effect: {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 1}]},
@@ -695,6 +719,12 @@ const effects = {
         response: noResponse,
     },
     "2104": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
         "school": {
             hand: 5,
             action: 2,

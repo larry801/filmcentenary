@@ -104,7 +104,8 @@ const zh_CN: Locale = {
         aesthetics: "美学等级：",
         vp: "声望：",
         share: "份额：",
-        era: "时代："
+        era: "时代：",
+        school: "流派：",
     },
     score: {
         first: "第一",

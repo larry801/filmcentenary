@@ -101,8 +101,9 @@ const en = {
         industry: "Industry:",
         aesthetics: "Aesthetics:",
         vp: "Prestige:",
-        share: "Share",
-        era: "Era",
+        share: "Share:",
+        era: "Era:",
+        school: "School:",
     },
     score: {
         first: "Champion of",

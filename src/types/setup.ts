@@ -87,7 +87,7 @@ function pubPlayer(): IPubInfo {
         aesthetics: 0,
         allCards: [B01, B02, B07, B07, B07, B07, B07, B07],
         archive: [],
-        deposit: 0,
+        deposit: 20,
         discard: [],
         industry: 0,
         resource: 0,
