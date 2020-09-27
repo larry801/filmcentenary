@@ -8,11 +8,9 @@ import {Button, Checkbox, DialogActions, DialogContent, DialogTitle, FormControl
 import Dialog from "@material-ui/core/Dialog";
 import FormLabel from "@material-ui/core/FormLabel";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Tooltip from "@material-ui/core/Tooltip";
 import {getBasicCard} from "../constant/cards/basic";
 import Typography from "@material-ui/core/Typography";
-import {Ctx, PlayerID} from "boardgame.io";
-import {resCost} from "../game/util";
+import {PlayerID} from "boardgame.io";
 
 
 export interface IBuyDialogProps {
