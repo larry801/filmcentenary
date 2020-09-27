@@ -1,7 +1,6 @@
 import {Ctx, LongFormMove, PlayerID} from 'boardgame.io';
 import {IG} from "../types/setup";
 import {
-    CardType,
     EventCardID,
     IBasicCard,
     IBuyInfo,
@@ -40,36 +39,26 @@ export const drawCard: LongFormMove = {
 
 export const buyCard = {
     move(G: IG, ctx: Ctx, arg: IBuyInfo): any {
+        console.log(JSON.stringify(arg));
         if (canBuyCard(G, ctx, arg)) {
-            let pn: number = curPid(G, ctx);
-            let discard = G.pub[pn].discard;
-            if (arg.target.type === CardType.S) {
-                // TODO previous school response
-                G.pub[pn].school = arg.target;
-            } else {
-                discard.push(arg.target)
-            }
-            let card: ICard;
-            for (card of arg.helper) {
-                discard.push(card);
-            }
+            let p = curPub(G, ctx);
+            p.action--;
+            p.resource -= arg.resource;
+            p.deposit -= arg.deposit;
+            arg.helper.forEach(c => {
+                let pHand = G.player[parseInt(arg.buyer)].hand;
+                let idx = pHand.indexOf(c)
+                let helper :ICard = pHand.splice(idx, 1)[0];
+                p.discard.push(helper);
+            })
+            doBuy(G, ctx, arg.target as INormalOrLegendCard|IBasicCard, ctx.currentPlayer);
+            let eff = getCardEffect(arg.target.cardId);
+            G.e.stack.push(eff.buy);
+            curEffectExec(G, ctx);
         } else {
             return INVALID_MOVE;
         }
-        let p = curPub(G, ctx);
-        p.action--;
-        p.resource -= arg.resource;
-        p.deposit -= arg.deposit;
-        arg.helper.forEach(c => {
-            let pHand = G.player[parseInt(arg.buyer)].hand;
-            let idx = pHand.indexOf(c)
-            pHand.splice(idx, 1);
-        })
-        // @ts-ignore
-        doBuy(G, ctx, arg.target, ctx.currentPlayer);
-        let eff = getCardEffect(arg.target.cardId);
-        G.e.stack.push(eff.buy);
-        curEffectExec(G, ctx);
+
     },
     client: false,
 }
@@ -109,6 +98,7 @@ export const chooseEffect: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: string) => {
         let eff = G.events[parseInt(arg)];
         G.e.stack.push(eff);
+        console.log(JSON.stringify(eff));
         curEffectExec(G, ctx);
         if (G.e.stack.length === 0) {
 
@@ -129,7 +119,7 @@ export const chooseEvent: LongFormMove = {
 }
 export const requestEndTurn: LongFormMove = {
     client: false,
-    undoable:false,
+    undoable: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         let obj = G.pub[parseInt(arg)]
         obj.playedCardInTurn.forEach(c => obj.discard.push(c));
@@ -247,9 +237,9 @@ export const breakthrough: LongFormMove = {
             changeStage(G, ctx, "chooseEffect")
         } else {
             if (i === 0) {
-                doAestheticsBreakthrough(G,ctx,arg.playerID);
+                doAestheticsBreakthrough(G, ctx, arg.playerID);
             } else {
-                doIndustryBreakthrough(G,ctx,arg.playerID);
+                doIndustryBreakthrough(G, ctx, arg.playerID);
             }
         }
     }

@@ -7,11 +7,11 @@ export enum Region {
 }
 
 export enum CardType {
-    E,
-    F,
-    S,
-    P,
-    V,
+    E,//event
+    F,//film
+    S,//school
+    P,//people
+    V,//scoring
 }
 
 export interface ICardSlot {
@@ -156,7 +156,7 @@ export interface IPubInfo {
     playedCardInTurn: ICard[],
     industry: number,
     aesthetics: number,
-    school: ICard | null,
+    school: ISchoolCard | null,
     vp: number,
     shares: IPlayerShare,
     tempStudios:Region[],

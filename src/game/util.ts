@@ -9,7 +9,7 @@ import {
     ICost,
     IEra,
     INormalOrLegendCard,
-    IPubInfo,
+    IPubInfo, ISchoolCard,
     Region
 } from "../types/core";
 import {IG} from "../types/setup";
@@ -215,10 +215,34 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             }
             updateSlot(G, ctx, slot);
         }
-        obj.discard.push(card);
+        if (card.type === CardType.S) {
+            let school = obj.school;
+            // TODO previous school response
+            let kino = getKinoEyePlayer(G,ctx);
+            if(kino!==null){
+                G.e.stack.push(getCardEffect("1303").repsonse.effect);
+                simpleEffectExec(G,ctx,kino);
+            }
+            if (school !== null) {
+               obj.archive.push(school);
+            }
+            obj.school = card as ISchoolCard;
+        }else{
+            obj.discard.push(card);
+        }
         obj.allCards.push(card);
     }
 
+}
+
+export function getKinoEyePlayer(G:IG,ctx:Ctx):PlayerID|null{
+    Array(ctx.numPlayers).fill(1).map((i,idx)=>idx.toString())
+        .forEach(i=>{
+            if(G.pub[parseInt(i)].school?.cardId === "1303"){
+                return i;
+            }
+        })
+    return null;
 }
 
 const idInHand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
@@ -400,6 +424,9 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
         let school = getCardEffect(pub.school.cardId).school;
         aesthetics -= school.aesthetics;
         industry -= school.industry
+        if(arg.target.type === CardType.S){
+            resRequired += pub.school.era;
+        }
     }
     for (const helperItem of arg.helper) {
         // @ts-ignore
@@ -427,8 +454,6 @@ export function canAfford(G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCar
 export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     let resRequired = resCost(G, ctx, arg);
     let resGiven: number = arg.resource + arg.deposit;
-    console.log(resRequired);
-    console.log(resGiven);
     return resRequired === resGiven;
 }
 
