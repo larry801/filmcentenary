@@ -21,20 +21,20 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves,undo,redo, isActive, m
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
     const canMove = ctx.currentPlayer === playerID ? canMoveCurrent : canMoveOutOfTurn;
 
-    const canBuy = (target: ICard, resource: number, cash: number, helper: ICard[]) => canBuyCard(G, ctx, {
+    const canBuy = (target: ICard, resource: number, deposit: number, helper: ICard[]) => canBuyCard(G, ctx, {
         buyer: playerID === null ? '0' : playerID,
         target: target,
         resource: resource,
-        deposit: cash,
+        deposit: deposit,
         helper: helper,
     });
 
-    const buy = (target: ICard, resource: number, cash: number, helper: ICard[]) => {
+    const buy = (target: ICard, resource: number, deposit: number, helper: ICard[]) => {
         moves.buyCard({
             buyer: playerID === null ? '0' : playerID,
             target: target,
             resource: resource,
-            cash: cash,
+            deposit: deposit,
             helper: helper,
         })
     }
@@ -62,7 +62,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves,undo,redo, isActive, m
         buyer: playerID,
         target: getBasicCard(cardId as BasicCardID),
         resource: 2,
-        cash: 0,
+        deposit: 0,
         helper: [],
     });
 
