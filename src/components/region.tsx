@@ -1,14 +1,15 @@
 import React from "react";
 import {
+    Accordion,
+    AccordionDetails,
+    AccordionSummary,
+    createStyles,
     Grid,
     Paper,
+    Theme,
     Typography,
-    Accordion,
-    AccordionSummary,
-    AccordionDetails,
-    createStyles, Theme, DialogTitle
 } from "@material-ui/core";
-import {IBasicCard, ICard, ICardSlot, IRegionInfo, Region} from "../types/core";
+import {IBasicCard, ICard, ICardSlot, IEra, IRegionInfo, Region} from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {useI18n} from "@i18n-chain/react";
@@ -98,9 +99,11 @@ export const BoardRegion = ({r, region, G, ctx, playerID, moves}: IRegionProp) =
         })
     }
 
+    const show = r===Region.ASIA ? era !== IEra.ONE : true;
+
     const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment(G, ctx, {target: slot, comment: card})
 
-    return <Grid container>
+    return show?<Grid container>
         <Accordion expanded={expanded}
                    onChange={() => setExpanded(!expanded)}
                    key={r}>
@@ -127,5 +130,5 @@ export const BoardRegion = ({r, region, G, ctx, playerID, moves}: IRegionProp) =
                 )}
             </AccordionDetails>
         </Accordion>
-    </Grid>
+    </Grid>:<></>
 }

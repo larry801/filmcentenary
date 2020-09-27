@@ -78,6 +78,7 @@ const E14: IEventCard = eventCard({
 
 
 const EVENT_CARDS = [E01,E02,E03,E04,E05,E06,E07,E08,E09,E10,E11,E12,E13,E14]
+const EVENT_ERA = [[E01,E02,E03,E04,],[E05,E06,E07,E08,E09,],[E10,E11,E12,E13,E14]]
 let idToCard = new Map();
 let nameToCard = new Map();
 EVENT_CARDS.forEach((v:IEventCard)=>{
@@ -85,5 +86,5 @@ EVENT_CARDS.forEach((v:IEventCard)=>{
     nameToCard.set(v.name,v);
 })
 export const eventCardByName = (name:string, locale:string) => nameToCard.get(name);
-
+export const eventCardByEra = (era:IEra)=>EVENT_ERA[era];
 export const eventCardById = (id:string) => idToCard.get(id);

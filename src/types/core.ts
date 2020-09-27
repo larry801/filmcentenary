@@ -11,6 +11,7 @@ export enum CardType {
     F,
     S,
     P,
+    V,
 }
 
 export interface ICardSlot {
@@ -141,6 +142,10 @@ export interface Champion{
 
 export interface IPubInfo {
     champions:Champion[],
+    building:{
+        cinemaBuilt:boolean,
+        studioBuilt:boolean,
+    }
     action: number,
     deposit: number,
     resource: number,
@@ -169,6 +174,7 @@ export interface IPrivateInfo {
 export interface IBuildingSlot {
     region:Region,
     content:string,
+    isCinema:boolean
     activated: boolean,
     owner: string,
 }

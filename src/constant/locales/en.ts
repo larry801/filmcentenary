@@ -15,6 +15,7 @@ const en = {
         discard:"Discard hand",
         discardIndustry:"Discard hand with industry mark",
         discardAesthetics:"Discard hand with aesthetics mark",
+        skipBreakthrough:"Skip Breakthrough",
     },
     hand: {
         title: "Hands"
@@ -33,9 +34,13 @@ const en = {
         2: "Modern",
     },
     dialog: {
-        choosePlayer: {
+        chooseTarget: {
             title: "Please choose target player of current effect.",
             toggleText: "Choose Target Player",
+        },
+        chooseEvent: {
+            title: "Please choose event card.",
+            toggleText: "Choose Event Card",
         },
         buyCard: {
             basic: "Buy basic card",
@@ -47,8 +52,12 @@ const en = {
             removeCommentCard: "Remove Comment Card",
         },
         chooseEffect:{
-            title:"请选择一项效果执行",
-            toggleText:"选择效果",
+            title:"Please choose which effect to execute",
+            toggleText:"Choose effect",
+        },
+        chooseHand:{
+            title:"Please choose one card from hand as target of effect",
+            toggleText:"Choose card from hand",
         },
         confirmRespond:{
             title:"Please choose ",
@@ -69,12 +78,15 @@ const en = {
         endStage:"End Stage",
         endTurn:"End Turn",
         endPhase:"End Phase",
+        undo:"Undo",
+        redo:"Redo",
     },
     playerName: {
         spectator: "Spectator",
         player: "Player",
     },
     pub: {
+        events: "Event cards:",
         res: "Resource:",
         deposit: "Deposit:",
         action: "Action:",

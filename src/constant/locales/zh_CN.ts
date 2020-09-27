@@ -20,6 +20,8 @@ const zh_CN: Locale = {
         endStage:"结束行动",
         endTurn:"结束回合",
         endPhase:"结束阶段",
+        undo:"撤销",
+        redo:"恢复",
     },
     effect:{
         comment:"评论",
@@ -35,6 +37,7 @@ const zh_CN: Locale = {
         discard:"丢弃手牌",
         discardIndustry:"丢弃带有工业角标的手牌",
         discardAesthetics:"丢弃带有美学角标的手牌",
+        skipBreakthrough:"跳过本次突破",
     },
     cancel:"取消",
     era:{
@@ -44,9 +47,17 @@ const zh_CN: Locale = {
     },
     setup:"补充初始排列",
     dialog: {
-        choosePlayer: {
+        chooseHand:{
+            title:"请选择一张手牌执行效果",
+            toggleText:"选择手牌",
+        },
+        chooseTarget: {
             title: "请选择效果目标玩家",
             toggleText: "选择目标"
+        },
+        chooseEvent: {
+            title: "请选择事件牌",
+            toggleText: "选择事件牌",
         },
         buyCard:{
             basic:"购买基础牌",
@@ -77,6 +88,7 @@ const zh_CN: Locale = {
         title: "手牌"
     },
     pub: {
+        events: "事件牌区：",
         res: "资源：",
         deposit: "存款：",
         action: "行动力：",

@@ -16,7 +16,7 @@ import {PlayerID} from "boardgame.io";
 
 export interface IBuyDialogProps {
     slot: ICardSlot,
-    card: INormalOrLegendCard,
+    card: INormalOrLegendCard|IBasicCard,
     helpers: ICard[],
     buy: (target:ICard,resource:number,cash:number,helper:ICard[])=> void,
     canBuy: (target:ICard,resource:number,cash:number,helper:ICard[]) => boolean,

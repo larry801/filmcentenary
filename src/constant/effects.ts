@@ -1,10 +1,14 @@
 import {IG} from "../types/setup";
 import {Ctx} from "boardgame.io";
-import {IEra, Region} from "../types/core";
+import {EventCardID, IEra, Region} from "../types/core";
+
+export function getEvent(id:EventCardID){
+    return eventEffects[id];
+}
 
 export function getCardEffect(id: string): any {
     // @ts-ignore
-    return effects[id];
+    return effects[id]
 }
 
 const noEff = {e: "none", a: ""};
@@ -24,31 +28,82 @@ export interface IEff {
     a: IEff[] | number | string,
 }
 
-const eventEffects ={
-    "E01":{
-        e:"step",
-        a:[
-            {e:"enableHollyWood",a:1},
-            {e:"everyPlayer",a:{e:"industryOrAestheticsLevelUp",a:1}}
+const eventEffects = {
+    "E01": {
+        e: "step",
+        a: [
+            {e: "enableHollywood", a: 1},
+            {e: "everyPlayer", a: {e: "industryOrAestheticsLevelUp", a: 1}}
         ]
     },
-    "E02":{
-        e:"step",
-        a:[
-            {e:"everyPlayer",a:{e:"deposit",a:2}},
-            {e:"everyPlayer",a:{e:"discard",a:1}},
-            {e:"respond",a:{e:"discard",a:1}},
+    "E02": {
+        e: "step",
+        a: [
+            {e: "everyPlayer", a: {e: "deposit", a: 2}},
+            {e: "everyPlayer", a: {e: "discard", a: 1}},
+            {e: "respond", a: {e: "discard", a: 1}},
         ]
     },
-    "E03": {e:"active",a:"E03"},
-    "E04":{
-        e:"step",
-        a:[
-            {e:"everyPlayer",a:{e:"buyCard",a:"B05"}},
-            {e:"playerVpChampion",a:{e:"optional",a:{e:"discard",a:1}}},
+    "E03": {e: "active", a: "E03"},
+    "E04": {
+        e: "step",
+        a: [
+            {e: "everyPlayer", a: {e: "buyCard", a: "B05"}},
+            {e: "playerVpChampion", a: {e: "optional", a: {e: "discard", a: 1}}},
         ]
     },
+    "E05": {
+        e: "step",
+        a: [
+            {e: "everyPlayer", a: {e: "deposit", a: 3}},
+            {e: "buildingNA", a: {e: "discard", a: 2}},
+        ]
+    },
+    "E06": {
+        e: "step",
+        a: [
+            {e: "everyPlayer", a: {e: "buyCard", a: "B05"}},
+            {e: "playerVpChampion", a: {e: "aestheticsLevelUp", a: 1}},
 
+        ]
+    },
+    "E07": {
+        e: "step",
+        a: [
+            {e: "everyPlayer", a: {e: "industryOrAestheticsLevelUp", a: 1}},
+            {e: "playerNotVpChampion", a: {e: "buyCard", a: "B04"}},
+        ]
+    },
+    "E08": {
+        e: "step",
+        a: [
+            {e: "everyPlayer", a: {e: "archiveToEEBuildingVP", a: 1}},
+            {e: "noBuildingEE", a: {e: "buyCard", a: "B04"}},
+        ]
+    },
+    "E09": {
+        e: "step",
+        a: [
+            {e: "enableBollywood", a: 1},
+            {e: "aesLowest", a: {e: "aestheticsLevelUp", a: 1}},
+            {e: "industryLowest", a: {e: "industryLevelUp", a: 1}},
+        ]
+    },
+    "E10": {
+        e: "toPlayerArchive",a:1,
+    },
+    "E11":{
+        e: "toPlayerArchive",a:1,
+    },
+    "E12":{
+        e: "toPlayerArchive",a:1,
+    },
+    "E13":{
+        e: "toPlayerArchive",a:1,
+    },
+    "E14":{
+        e: "toPlayerArchive",a:1,
+    },
 }
 
 const effects = {

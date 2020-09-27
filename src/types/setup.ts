@@ -14,7 +14,7 @@ import {
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {B01, B02, B07} from "../constant/cards/basic";
-import {fillPlayerHand, drawForRegion, shuffle} from "../game/util";
+import {doFillNewEraEvents, drawForRegion, fillPlayerHand, shuffle} from "../game/util";
 
 export interface IG {
     order: PlayerID[],
@@ -27,6 +27,8 @@ export interface IG {
         endPhase: boolean,
         endStage: boolean,
     },
+    scoringRegions:Region[],
+    events:IEventCard[],
     c: {
         players: PlayerID[],
         slots: ICardSlot[],
@@ -75,6 +77,10 @@ export interface IG {
 
 function pubPlayer(): IPubInfo {
     return {
+        building:{
+          cinemaBuilt:false,
+          studioBuilt:false,
+        },
         champions:[],
         action: 1,
         aesthetics: 0,
@@ -122,6 +128,7 @@ function emptyBuildingSlot(region: Region): IBuildingSlot {
     return {
         region: region,
         content: "",
+        isCinema:false,
         activated: false,
         owner: "",
     }
@@ -151,6 +158,7 @@ export function setup(ctx: Ctx, setupData: any): IG {
         },
         playerCount: ctx.numPlayers,
         pub: pub,
+        events:[],
         c: {
             players: [],
             slots: [],
@@ -159,7 +167,7 @@ export function setup(ctx: Ctx, setupData: any): IG {
         },
         e: {choices: [], stack: [], card: B07},
         competitionInfo: {
-            region: Region.NA,
+            region: Region.NONE,
             atk: '0',
             atkPlayedCard: false,
             def: '1',
@@ -228,6 +236,7 @@ export function setup(ctx: Ctx, setupData: any): IG {
                 share: 0,
             },
         },
+        scoringRegions:[],
         pendingEffects: [],
         basicCards: {
             "B01": 20,
@@ -245,5 +254,6 @@ export function setup(ctx: Ctx, setupData: any): IG {
     for (let i = 0; i < ctx.numPlayers; i++) {
         fillPlayerHand(g, ctx, i.toString());
     }
+    doFillNewEraEvents(g,ctx,IEra.ONE);
     return g;
 }

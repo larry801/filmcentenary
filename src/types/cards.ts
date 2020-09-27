@@ -377,7 +377,7 @@ const CARDS = {
     "1306": filmCard({
         era: IEra.ONE,
         region: Region.EE,
-        name: "持揚影机的人",
+        name: "持摄影机的人",
         cardId: "1306",
         cost: cost(3, 1, 0),
         vp: 2,

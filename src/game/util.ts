@@ -2,6 +2,7 @@ import {
     BasicCardID,
     CardCategory,
     CardType,
+    EventCardID,
     IBasicCard,
     IBuyInfo,
     ICardSlot,
@@ -17,8 +18,9 @@ import {cardsByCond, idToCard} from "../types/cards";
 import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
-import {getBasicCard} from "../constant/cards/basic";
-import {parse} from "uuid";
+import {B04, getBasicCard} from "../constant/cards/basic";
+import {eventCardByEra} from "../constant/cards/event";
+import {getScoreCard, scoreCardCount} from "../constant/cards/score";
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -104,6 +106,7 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     let region = G.e.card.region;
     switch (eff.e) {
         case "none":
+        case "skipBreakthrough":
             return
         case "share":
             if (region !== Region.NONE) {
@@ -265,7 +268,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
     switch (eff.e) {
         case "noStudio":
             G.c.players = noStudioPlayers(G, ctx, region);
-            changeStage(G, ctx, "choosePlayer")
+            changeStage(G, ctx, "chooseTarget")
             break;
         case "studio":
             let players = studioPlayers(G, ctx, region);
@@ -280,9 +283,10 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
         case "archiveHand":
         case "discardIndustry":
         case "discardAesthetics":
+            console.log(JSON.stringify(eff));
             G.e.stack.push(eff);
-            ctx.events?.setStage?.("chooseHand");
-            break
+            changeStage(G, ctx, "chooseHand");
+            return;
         case "choice":
             G.e.choices = eff.a;
             ctx.events?.setStage?.(eff.e);
@@ -293,6 +297,8 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             return;
         case "pay":
             ctx.events?.setStage?.("confirmRespond");
+            return;
+
         default:
             G.e.stack.push(eff);
             simpleEffectExec(G, ctx, ctx.currentPlayer);
@@ -384,12 +390,17 @@ export function shareDepleted(G: IG, ctx: Ctx, region: Region) {
 
 export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     let cost: ICost = arg.target.cost;
-    let resRequired = 0;
+    let resRequired = cost.res;
     let pub = G.pub[parseInt(arg.buyer)]
     let aesthetics: number = cost.aesthetics
     let industry: number = cost.industry
     aesthetics -= pub.aesthetics;
     industry -= pub.industry;
+    if(pub.school!==null){
+        let school = getCardEffect(pub.school.cardId).school;
+        aesthetics -= school.aesthetics;
+        industry -= school.industry
+    }
     for (const helperItem of arg.helper) {
         // @ts-ignore
         industry -= helperItem.industry;
@@ -398,10 +409,10 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     }
     if (aesthetics > 0) resRequired += aesthetics * 2;
     if (industry > 0) resRequired += industry * 2;
-    return resRequired + arg.target.cost.res;
+    return resRequired;
 }
 
-export function canAfford(G: IG, ctx: Ctx, card: INormalOrLegendCard|IBasicCard, p: PlayerID) {
+export function canAfford(G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID) {
     let pub = G.pub[parseInt(p)]
     let res = resCost(G, ctx, {
         buyer: p,
@@ -416,6 +427,8 @@ export function canAfford(G: IG, ctx: Ctx, card: INormalOrLegendCard|IBasicCard,
 export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     let resRequired = resCost(G, ctx, arg);
     let resGiven: number = arg.resource + arg.deposit;
+    console.log(resRequired);
+    console.log(resGiven);
     return resRequired === resGiven;
 }
 
@@ -552,7 +565,7 @@ export const doEndTurn = (G: IG, ctx: Ctx,): void => {
     signalEndTurn(G, ctx);
 }
 
-
+// eslint-disable-next-line
 const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     if (r === Region.NONE) return;
     let era = G.regions[r].era;
@@ -581,10 +594,107 @@ const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         era: era,
         region: r,
     })
-    // TODO score card
-    if (G.secret.events.length === 1) {
+
+    let scoreCount = scoreCardCount(r,era);
+    for(let i=0;i<scoreCount;i++){
+        // @ts-ignore
+        G.pub[parseInt(rankResult[i])].discard.push(
+            // @ts-ignore
+            getScoreCard(r,era,i+1)
+        )
+    }
+    for(let i=scoreCount;i<rankResult.length;i++){
+        doBuy(G,ctx,B04,rankResult[i])
+    }
+    changePlayerStage(G, ctx, "chooseEvent", firstPlayer);
+}
+
+export function canBuildStudioInRegion(G:IG, ctx:Ctx, p:PlayerID,r:Region) :boolean{
+    if(r===Region.NONE)return false;
+    if(G.pub[parseInt(p)].building.studioBuilt){
+        return false;
+    }else {
+        return G.regions[r].buildings.filter(slot=>slot.activated&&slot.owner==="").length > 0;
+    }
+}
+
+export function cinemaSlotsAvailable(G:IG, ctx:Ctx, p:PlayerID):Region[]{
+    return [Region.NA,Region.WE,Region.EE,Region.ASIA].filter(r=>canBuildCinemaInRegion(G,ctx,p,r));
+}
+
+export function studioSlotsAvailable(G:IG, ctx:Ctx, p:PlayerID):Region[]{
+    return [Region.NA,Region.WE,Region.EE,Region.ASIA].filter(r=>canBuildStudioInRegion(G,ctx,p,r));
+}
+
+export function canBuildCinemaInRegion(G:IG, ctx:Ctx, p:PlayerID,r:Region):boolean{
+    if(r===Region.NONE)return false;
+    if(G.pub[parseInt(p)].building.cinemaBuilt){
+        return false;
+    }else {
+        return G.regions[r].buildings.filter(slot=>slot.activated&&slot.owner==="").length > 0;
+    }
+}
+
+export function doFillNewEraEvents(G: IG, ctx: Ctx, newEra: IEra) {
+    G.secret.events = shuffle(ctx, eventCardByEra(newEra));
+    for (let i = 0; i < 2; i++) {
+        let newEvent = G.secret.events.pop();
+        if (newEvent === undefined) {
+
+        } else {
+            G.events.push(newEvent)
+        }
+    }
+}
+
+export function fillEventCard(G: IG, ctx: Ctx) {
+    let region = G.scoringRegions.slice(-1)[0];
+    if (region === Region.NONE) return;
+    let era = G.regions[region].era;
+    let newEra: IEra = era === IEra.THREE ? era : era + 1;
+    let newEvent = G.secret.events.pop();
+    if (newEvent === undefined) {
 
     } else {
-        changePlayerStage(G, ctx, "chooseEvent", firstPlayer);
+        G.events.push(newEvent)
     }
+    if (G.secret.events.length === 1) {
+        if(G.secret.events[0].cardId==="E03"){
+            G.activeEvents.push(EventCardID.E03);
+        }
+        if(newEra!==era)
+        {
+            doFillNewEraEvents(G, ctx, newEra);
+        }
+    }
+}
+
+export function doIndustryBreakthrough(G:IG,ctx:Ctx,player:PlayerID){
+    let p = G.pub[parseInt(player)];
+    let totalResource = p.resource + p.deposit;
+    if (additionalCostForUpgrade(p.industry) >= totalResource) {
+        G.e.choices.push({e: "industryLevelUp", a: 1})
+    }
+    if (p.resource + p.deposit >= 3 && studioSlotsAvailable(G, ctx, player).length > 0) {
+        G.e.choices.push({e: "buildStudio", a: 1})
+    }
+    if (p.resource + p.deposit >= 3 && cinemaSlotsAvailable(G, ctx, player).length > 0) {
+        G.e.choices.push({e: "buildCinema", a: 1})
+    }
+    G.e.choices.push({e: "skipBreakthrough", a: 1})
+    changeStage(G, ctx, "chooseEffect")
+}
+
+export function doAestheticsBreakthrough(G:IG,ctx:Ctx,player:PlayerID){
+    let p = G.pub[parseInt(player)];
+    let playerObj = G.player[parseInt(player)];
+    let totalResource = p.resource + p.deposit;
+    if (additionalCostForUpgrade(p.industry) >= totalResource) {
+        G.e.choices.push({e: "aestheticsLevelUp", a: 1})
+    }
+    if (playerObj.hand.length > 0) {
+        G.e.choices.push({e: "refactor", a: 1})
+    }
+    G.e.choices.push({e: "skipBreakthrough", a: 1})
+    changeStage(G, ctx, "chooseEffect")
 }

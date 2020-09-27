@@ -2,9 +2,9 @@ import {Game} from "boardgame.io";
 import {IG, setup} from "./types/setup";
 import {
   breakthrough,
-  buyCard, chooseEffect,
+  buyCard, chooseEffect, chooseEvent,
   chooseHand,
-  chooseTarget,
+  chooseTarget, competitionCard,
   drawCard,
   initialSetup,
   moveBlocker,
@@ -29,7 +29,9 @@ export const FilmCentenaryGame: Game<IG> = {
     moveBlocker: moveBlocker,
     chooseTarget:chooseTarget,
     chooseHand:chooseHand,
+    chooseEvent:chooseEvent,
     chooseEffect:chooseEffect,
+    competitionCard:competitionCard,
     requestEndTurn:requestEndTurn,
   }
 };

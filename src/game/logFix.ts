@@ -49,7 +49,8 @@ export function signalEndPhase(G: IG, ctx: Ctx): void {
 }
 
 export function changeStage(G: IG, ctx: Ctx, stage: string): void {
-    ctx.events?.setStage?.(stage);
+    // @ts-ignore
+    ctx.events.setStage(stage);
 }
 
 export const changPlayerStage = (G: IG, ctx: Ctx, p: PlayerID, stage: string): void=>{

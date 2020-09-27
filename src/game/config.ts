@@ -3,7 +3,7 @@ import {TurnOrder} from "boardgame.io/core";
 import {
     breakthrough,
     buyCard,
-    chooseEffect, chooseHand, chooseTarget,
+    chooseEffect, chooseEvent, chooseHand, chooseTarget, competitionCard,
     confirmRespond,
     drawCard,
     initialSetup,
@@ -24,6 +24,17 @@ export const chooseEffectStage: StageConfig = {
         chooseEffect:chooseEffect
     }
 }
+export const chooseEventStage: StageConfig = {
+    moves:{
+        chooseEvent:chooseEvent
+    }
+}
+export const competitionCardStage: StageConfig = {
+    moves:{
+        competitionCard:competitionCard
+    }
+}
+
 export const confirmRespondStage: StageConfig = {
     moves:{
         confirmRespond:confirmRespond,
@@ -57,6 +68,8 @@ export const NormalTurn: TurnConfig = {
         chooseHand:chooseHandStage,
         chooseTarget:chooseTargetStage,
         confirmRespond:confirmRespondStage,
+        chooseEvent:chooseEventStage,
+        competitionCard:competitionCardStage
     },
     moves: {
         drawCard: drawCard,
@@ -67,6 +80,8 @@ export const NormalTurn: TurnConfig = {
         chooseTarget:chooseTarget,
         chooseHand:chooseHand,
         chooseEffect:chooseEffect,
+        chooseEvent:chooseEvent,
+        competitionCard:competitionCard,
         requestEndTurn:requestEndTurn,
     }
 }
