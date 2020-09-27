@@ -25,6 +25,7 @@ export function signalEndActivePlayer(G: IG, ctx: Ctx, originalStage = false): v
 
 export function cleanPendingSignal(G: IG, ctx: Ctx): void {
     G.pending = {
+        ...G.pending,
         endActivePlayer: false,
         endTurn: false,
         endPhase: false,

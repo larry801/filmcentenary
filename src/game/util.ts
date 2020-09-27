@@ -147,6 +147,12 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "industryLevelUp":
             obj.industry++;
             break;
+        case "industryAward":
+            industryAward(G,ctx,p);
+            break;
+        case "aesAward":
+            aesAward(G,ctx,p);
+            break;
         default:
             throw new Error(JSON.stringify(eff));
     }
@@ -356,9 +362,6 @@ export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     if (o.aesthetics > 1) o.vp += 2;
     if (o.aesthetics > 4) o.vp += 1;
     if (o.aesthetics > 7) o.vp += 1;
-    if (o.aesthetics >= 10) {
-        // TODO
-    }
 }
 
 export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
@@ -366,9 +369,6 @@ export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     if (o.industry > 1) o.deposit += 2;
     if (o.industry > 4) drawCardForPlayer(G, ctx, p);
     if (o.industry > 7) drawCardForPlayer(G, ctx, p);
-    if (o.industry >= 10) {
-        // TODO
-    }
 }
 
 export const cardSlotOnBoard = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICardSlot | null => {

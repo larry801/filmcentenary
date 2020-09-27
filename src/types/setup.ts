@@ -22,6 +22,7 @@ export interface IG {
     activeEvents:EventCardID[],
     logDiscrepancyWorkaround: boolean,
     pending: {
+        lastRoundOfGame: boolean,
         endActivePlayer: boolean,
         endTurn: boolean,
         endPhase: boolean,
@@ -152,6 +153,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         order: randomOrder,
         logDiscrepancyWorkaround: true,
         pending: {
+            lastRoundOfGame: false,
             endActivePlayer: false,
             endTurn: false,
             endPhase: false,
