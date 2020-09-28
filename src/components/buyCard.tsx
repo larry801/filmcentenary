@@ -12,6 +12,7 @@ import {getBasicCard} from "../constant/cards/basic";
 import {Ctx, PlayerID} from "boardgame.io";
 import {canAfford, canBuyCard, resCost} from "../game/util";
 import Slider from "@material-ui/core/Slider";
+import Grid from "@material-ui/core/Grid";
 
 export interface IBuyDialogProps {
     card: INormalOrLegendCard | IBasicCard,
@@ -103,10 +104,12 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         }
     };
 
-    return <div>
-        <Button disabled={!affordable} onClick={() => {
-            setOpen(true)
-        }}>{i18n.dialog.buyCard.board} {i18n.card[card.cardId as BasicCardID]}</Button>
+    return <Grid item>
+        <Button
+            disabled={!affordable}
+            onClick={() => {setOpen(true)}}
+            variant={"outlined"}
+        >{i18n.dialog.buyCard.board} {i18n.card[card.cardId as BasicCardID]}</Button>
         <Dialog onClose={() => setOpen(false)} open={open}>
             <DialogTitle>
                 {i18n.dialog.buyCard.board}
@@ -166,7 +169,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                 </Button>
             </DialogActions>
         </Dialog>
-    </div>
+    </Grid>
 }
 
 export interface ICommentProps {

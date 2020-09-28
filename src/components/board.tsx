@@ -11,7 +11,7 @@ import Button from "@material-ui/core/Button";
 import {PubPanel} from "./pub";
 import {BasicCardID, EventCardID, ICard, Region} from "../types/core";
 import {BuyCard} from "./buyCard";
-import {B05, getBasicCard} from "../constant/cards/basic";
+import {B01, B02, B03, B05, getBasicCard} from "../constant/cards/basic";
 import {Paper, Grid, Typography} from "@material-ui/core";
 
 
@@ -38,14 +38,6 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
             }
         }
     }
-    const cards: BasicCardID[] = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03];
-    const buyBasic = (cardId: string) => moves.buyCard({
-        buyer: playerID,
-        target: getBasicCard(cardId as BasicCardID),
-        resource: 2,
-        deposit: 0,
-        helper: [],
-    });
 
     const effectName = (eff: any): string => {
         // @ts-ignore
@@ -104,30 +96,26 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                 onClick={() => events?.endStage?.()}
             >{i18n.action.endStage}</Button>
             : <></>}
+        {playerID !== null && canMoveCurrent ?
+            <Grid container>
+                <Grid item><Typography
+                    variant={"h6"}
+                    color="inherit"
+                >{i18n.dialog.buyCard.basic}</Typography></Grid>
+                <BuyCard
+                    card={B01} helpers={G.player[parseInt(playerID)].hand}
+                    G={G} playerID={playerID} ctx={ctx} moves={moves}/>
+                <BuyCard
+                    card={B02} helpers={G.player[parseInt(playerID)].hand}
+                    G={G} playerID={playerID} ctx={ctx} moves={moves}/>
+                <BuyCard
+                    card={B03} helpers={G.player[parseInt(playerID)].hand}
+                    G={G} playerID={playerID} ctx={ctx} moves={moves}/>
+                <BuyCard
+                    card={B05} helpers={G.player[parseInt(playerID)].hand}
+                    G={G} playerID={playerID} ctx={ctx} moves={moves}/>
 
-        <ChoiceDialog
-            initial={false}
-            callback={buyBasic}
-            choices={cards.map(
-                id => {
-                    return {
-                        label: i18n.card[id],
-                        disabled: G.basicCards[id] === 0,
-                        hidden: false,
-                        value: id
-                    }
-                }
-            )}
-            defaultChoice={"B01"} show={ctx.currentPlayer === playerID
-        && G.pub[parseInt(playerID)].resource + G.pub[parseInt(playerID)].deposit >= 2
-        }
-            title={i18n.dialog.buyCard.basic} toggleText={i18n.dialog.buyCard.basic}/>
-        {playerID !== null && canMoveCurrent && canAfford(G, ctx, B05, ctx.currentPlayer) ?
-            <BuyCard
-                moves={moves}
-             card={B05} helpers={G.player[parseInt(playerID)].hand}
-                G={G} playerID={playerID} ctx={ctx}/>
-            : <></>
+            </Grid> : <></>
         }
         {playerID !== null && canMoveCurrent ?
             <>
