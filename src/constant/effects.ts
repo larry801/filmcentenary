@@ -48,7 +48,7 @@ const eventEffects = {
     "E04": {
         e: "step",
         a: [
-            {e: "everyPlayer", a: {e: "buyCard", a: "B05"}},
+            {e: "everyPlayer", a: {e: "buy", a: "B05"}},
             {e: "playerVpChampion", a: {e: "optional", a: {e: "discard", a: 1}}},
         ]
     },
@@ -62,7 +62,7 @@ const eventEffects = {
     "E06": {
         e: "step",
         a: [
-            {e: "everyPlayer", a: {e: "buyCard", a: "B05"}},
+            {e: "everyPlayer", a: {e: "buy", a: "B05"}},
             {e: "playerVpChampion", a: {e: "aestheticsLevelUp", a: 1}},
 
         ]
@@ -71,14 +71,14 @@ const eventEffects = {
         e: "step",
         a: [
             {e: "everyPlayer", a: {e: "industryOrAestheticsLevelUp", a: 1}},
-            {e: "playerNotVpChampion", a: {e: "buyCard", a: "B04"}},
+            {e: "playerNotVpChampion", a: {e: "buy", a: "B04"}},
         ]
     },
     "E08": {
         e: "step",
         a: [
             {e: "everyPlayer", a: {e: "archiveToEEBuildingVP", a: 1}},
-            {e: "noBuildingEE", a: {e: "buyCard", a: "B04"}},
+            {e: "noBuildingEE", a: {e: "buy", a: "B04"}},
         ]
     },
     "E09": {
@@ -174,7 +174,7 @@ const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryUp", a: 1},
-                {e: "buyCard", a: "1103"},
+                {e: "buy", a: "1103"},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -195,7 +195,7 @@ const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryUp", a: 1},
-                {e: "buyCard", a: "1104"},
+                {e: "buy", a: "1104"},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -240,7 +240,7 @@ const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {e: "deposit", a: 1},
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "alternative", a: {e: "buyCard", a: "2107"}, o: true},
+        archive: {e: "alternative", a: {e: "buy", a: "2107"}, o: true},
     },
     "1105": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -339,14 +339,14 @@ const effects = {
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         response: noResponse,
-        archive: {e: "none", a: "",},
+        archive: noEff,
     },
     "1201": {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: {
             e: "choice", a: [
                 {e: "aestheticsUp", a: 1},
-                {e: "buyCard", a: "1207"},
+                {e: "buy", a: "1207"},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -359,14 +359,14 @@ const effects = {
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         response: noResponse,
-        archive: {e: "none", a: "",},
+        archive: noEff,
     },
     "1202": {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: {
             e: "choice", a: [
                 {e: "industryUp", a: 1},
-                {e: "buyCard", a: "1210"},
+                {e: "buy", a: "1210"},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -421,7 +421,7 @@ const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryUp", a: 1},
-                {e: "buyCard", a: "1104"},
+                {e: "buy", a: "1104"},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -562,7 +562,7 @@ const effects = {
         buy: {
             e: "choice", a: [
                 {e: "aestheticsUp", a: 1},
-                {e: "buyCard", a: "1305"},
+                {e: "buy", a: "1305"},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -669,7 +669,7 @@ const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryUp", a: 1},
-                {e: "buyCard", a: "2114"},
+                {e: "buy", a: "2114"},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -697,7 +697,7 @@ const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryUp", a: 1},
-                {e: "buyCard", a: "2107"},
+                {e: "buy", a: "2107"},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -738,15 +738,15 @@ const effects = {
         buy: {
             e: "choice", a: [
                 {e: "aestheticsUp", a: 1},
-                {e: "buyCard", a: "2109"},
+                {e: "buy", a: "2109"},
             ]
         },
         play: {
             e: "step",
             a: [
                 {e: "comment", a: 1},
-                {e: "buyCard", a: "B01"},
-                {e: "noStudio", a: {e: "buyCard", a: "B04"}},
+                {e: "buy", a: "B01"},
+                {e: "noStudio", a: {e: "buy", a: "B04"}},
                 {e: "studio", a: {e: "drawCard", a: 1}},
             ]
         }
@@ -754,7 +754,7 @@ const effects = {
     "2106": {
         play: {
             e: "era", a: [
-                {e: "none", a: 1},
+                noEff,
                 {e: "step", a: [{e: "res", a: 4}, {e: "share", a: 1}]},
                 {
                     e: "step", a: [
@@ -767,7 +767,7 @@ const effects = {
     },
     "2107": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "buyCard", a: "B02"},
+        buy: {e: "buy", a: "B02"},
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "era", a: [
@@ -790,7 +790,7 @@ const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: "none", a: 1},
+                noEff,
                 {
                     e: "step", a: [
                         {e: "res", a: 2},
@@ -813,9 +813,9 @@ const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "era", a: [
-                {e: "none", a: 1},
+                noEff,
                 {e: "drawCard", a: 2},
-                {e: "buyCard", a: "B05"},
+                {e: "buy", a: "B05"},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -833,7 +833,7 @@ const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: "none", a: 3},
+                noEff,
                 {e: "res", a: 3},
                 {e: "res", a: 1},
             ]
@@ -842,7 +842,7 @@ const effects = {
         archive: {
             e: "choice", a: [
                 {e: "industryBreakthrough", a: 1},
-                {e: "buyCard", a: "3111"},
+                {e: "buy", a: "3111"},
             ]
         },
         response: noResponse,
@@ -873,7 +873,7 @@ const effects = {
         play: {
             e: "era",
             a: [
-                {e: "none", a: 0},
+                noEff,
                 {
                     e: "step", a: [
                         {e: "res", a: 3},
@@ -900,7 +900,7 @@ const effects = {
         play: {
             e: "era",
             a: [
-                {e: "none", a: 3},
+                noEff,
                 {
                     e: "step", a: [
                         {e: "res", a: 3},
@@ -924,16 +924,92 @@ const effects = {
         archive: noEff,
         response: noResponse,
     },
-    "3206": {
+    "2114": {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
-        canPlay: (G: IG, ctx: Ctx) => true,
+        canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "step", a: [
-                {e: "res", a: 3},
-                {e: "vp", a: 3},
-                {e: "discard", a: 1},
+            e: "era",
+            a: [
+                noEff,
+                {
+                    e: "step", a: [
+                        {e: "res", a: 2},
+                        {e: "buy", a: "B01"},
+                    ]
+                },
+                {
+                    e: "step", a: [
+                        {e: "deposit", a: 1},
+                        {e: "comment", a: 1},
+                    ]
+                },
             ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: {e: "aesAward", a: 2},
+        response: noResponse,
+    },
+    "2201": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: {
+            e: "step", a: [
+                {e: "deposit", a: 1},
+                {e: "vp", a: 2},
+            ]
+        },
+        response: {
+            type: "buyAesthetics",
+        },
+        school: {
+            hand: 5,
+            action: 2,
+        },
+    },
+    "2202":{
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response:noResponse,
+    },
+    "2203":{
+            canBuy: (G: IG, ctx: Ctx) => true,
+            buy: {
+                e: "choice", a: [
+                    {e: "industryLevelUp", a: 1},
+                    {e: "buy", a: "2209"},
+                ]
+            },
+            canPlay: (G: IG, ctx: Ctx) => false,
+            play: {
+                e: "step", a:
+                    [
+                        {e: "res", a: 3},
+                        {e: "vp", a: 3},
+                        {e: "discard", a: {e:"loseVp",a:2}},
+                    ]
+            },
+            canArchive: (G: IG, ctx: Ctx) => true,
+            archive: noEff,
+            response:noResponse,
+        },
+    "3206": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff, canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a:
+                [
+                    {e: "res", a: 3},
+                    {e: "vp", a: 3},
+                    {e: "discard", a: 1},
+                ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,

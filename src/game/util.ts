@@ -108,6 +108,18 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "none":
         case "skipBreakthrough":
             return
+        case "enableBollywood":
+            G.regions[Region.ASIA].buildings[1].activated = true;
+            break;
+        case "enableHollywood":
+            G.regions[Region.NA].buildings[2].activated = true;
+            break;
+        case "loseVp":
+            obj.vp -= eff.a;
+            if (obj.school?.cardId === "2104") {
+                obj.resource++;
+            }
+            break;
         case "share":
             if (region !== Region.NONE) {
                 if (G.regions[region].share >= eff.a) {
@@ -148,10 +160,10 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             obj.industry++;
             break;
         case "industryAward":
-            industryAward(G,ctx,p);
+            industryAward(G, ctx, p);
             break;
         case "aesAward":
-            aesAward(G,ctx,p);
+            aesAward(G, ctx, p);
             break;
         default:
             throw new Error(JSON.stringify(eff));
@@ -224,16 +236,16 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         if (card.type === CardType.S) {
             let school = obj.school;
             // TODO previous school response
-            let kino = getKinoEyePlayer(G,ctx);
-            if(kino!==null){
+            let kino = getKinoEyePlayer(G, ctx);
+            if (kino !== null) {
                 G.e.stack.push(getCardEffect("1303").repsonse.effect);
-                simpleEffectExec(G,ctx,kino);
+                simpleEffectExec(G, ctx, kino);
             }
             if (school !== null) {
-               obj.archive.push(school);
+                obj.archive.push(school);
             }
             obj.school = card as ISchoolCard;
-        }else{
+        } else {
             obj.discard.push(card);
         }
         obj.allCards.push(card);
@@ -241,10 +253,10 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
 
 }
 
-export function getKinoEyePlayer(G:IG,ctx:Ctx):PlayerID|null{
-    Array(ctx.numPlayers).fill(1).map((i,idx)=>idx.toString())
-        .forEach(i=>{
-            if(G.pub[parseInt(i)].school?.cardId === "1303"){
+export function getKinoEyePlayer(G: IG, ctx: Ctx): PlayerID | null {
+    Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString())
+        .forEach(i => {
+            if (G.pub[parseInt(i)].school?.cardId === "1303") {
                 return i;
             }
         })
@@ -265,6 +277,7 @@ export const getPidHasCard = (G: IG, ctx: Ctx, cardId: string): number[] => {
     );
     return p;
 }
+
 export const studioInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
     if (r === Region.NONE) return false;
     return G.regions[r].buildings.filter(s => s.content === "studio" && s.owner === p).length > 0;
@@ -292,6 +305,19 @@ export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
     return cardDepleted(G, ctx, r) || shareDepleted(G, ctx, r);
 }
 
+export const seqFromActive = (G: IG, ctx: Ctx): PlayerID[] => {
+    let act = activePlayer(ctx);
+    let pos = posOfPlayer(G, ctx, act);
+    let seq = [];
+    for (let i = pos; i < ctx.numPlayers; i++) {
+        seq.push(G.order[i])
+    }
+    for (let i = 0; i < pos; i++) {
+        seq.push(G.order[i])
+    }
+    return seq;
+}
+
 export const curEffectExec = (G: IG, ctx: Ctx): void => {
     let eff = G.e.stack.pop();
     //let obj = G.pub[curPid(G, ctx)];
@@ -299,6 +325,16 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
     let region = G.e.card.region;
     console.log(JSON.stringify(eff));
     switch (eff.e) {
+        case "everyPlayer":
+            if (G.c.players.length === 0) {
+                G.c.players = seqFromActive(G, ctx);
+                G.e.stack.push(eff);
+            }else {
+                // TODO switch player
+                let player = '1';
+                playerEffExec(G,ctx,player)
+            }
+            break
         case "noStudio":
             G.c.players = noStudioPlayers(G, ctx, region);
             changeStage(G, ctx, "chooseTarget")
@@ -331,7 +367,6 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
         case "pay":
             ctx.events?.setStage?.("confirmRespond");
             return;
-
         default:
             G.e.stack.push(eff);
             simpleEffectExec(G, ctx, ctx.currentPlayer);
@@ -423,11 +458,11 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     let industry: number = cost.industry
     aesthetics -= pub.aesthetics;
     industry -= pub.industry;
-    if(pub.school!==null){
+    if (pub.school !== null) {
         let school = getCardEffect(pub.school.cardId).school;
         aesthetics -= school.aesthetics;
         industry -= school.industry
-        if(arg.target.type === CardType.S){
+        if (arg.target.type === CardType.S) {
             resRequired += pub.school.era;
         }
     }
@@ -457,7 +492,7 @@ export function canAfford(G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCar
 export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     let resRequired = resCost(G, ctx, arg);
     let resGiven: number = arg.resource + arg.deposit;
-    console.log(resGiven,resRequired);
+    console.log(resGiven, resRequired);
     return resRequired === resGiven;
 }
 
@@ -624,43 +659,43 @@ const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         region: r,
     })
 
-    let scoreCount = scoreCardCount(r,era);
-    for(let i=0;i<scoreCount;i++){
+    let scoreCount = scoreCardCount(r, era);
+    for (let i = 0; i < scoreCount; i++) {
         // @ts-ignore
         G.pub[parseInt(rankResult[i])].discard.push(
             // @ts-ignore
-            getScoreCard(r,era,i+1)
+            getScoreCard(r, era, i + 1)
         )
     }
-    for(let i=scoreCount;i<rankResult.length;i++){
-        doBuy(G,ctx,B04,rankResult[i])
+    for (let i = scoreCount; i < rankResult.length; i++) {
+        doBuy(G, ctx, B04, rankResult[i])
     }
     changePlayerStage(G, ctx, "chooseEvent", firstPlayer);
 }
 
-export function canBuildStudioInRegion(G:IG, ctx:Ctx, p:PlayerID,r:Region) :boolean{
-    if(r===Region.NONE)return false;
-    if(G.pub[parseInt(p)].building.studioBuilt || cinemaInRegion(G,ctx,r,p)){
+export function canBuildStudioInRegion(G: IG, ctx: Ctx, p: PlayerID, r: Region): boolean {
+    if (r === Region.NONE) return false;
+    if (G.pub[parseInt(p)].building.studioBuilt || cinemaInRegion(G, ctx, r, p)) {
         return false;
-    }else {
-        return G.regions[r].buildings.filter(slot=>slot.activated&&slot.owner==="").length > 0;
+    } else {
+        return G.regions[r].buildings.filter(slot => slot.activated && slot.owner === "").length > 0;
     }
 }
 
-export function cinemaSlotsAvailable(G:IG, ctx:Ctx, p:PlayerID):Region[]{
-    return [Region.NA,Region.WE,Region.EE,Region.ASIA].filter(r=>canBuildCinemaInRegion(G,ctx,p,r));
+export function cinemaSlotsAvailable(G: IG, ctx: Ctx, p: PlayerID): Region[] {
+    return [Region.NA, Region.WE, Region.EE, Region.ASIA].filter(r => canBuildCinemaInRegion(G, ctx, p, r));
 }
 
-export function studioSlotsAvailable(G:IG, ctx:Ctx, p:PlayerID):Region[]{
-    return [Region.NA,Region.WE,Region.EE,Region.ASIA].filter(r=>canBuildStudioInRegion(G,ctx,p,r));
+export function studioSlotsAvailable(G: IG, ctx: Ctx, p: PlayerID): Region[] {
+    return [Region.NA, Region.WE, Region.EE, Region.ASIA].filter(r => canBuildStudioInRegion(G, ctx, p, r));
 }
 
-export function canBuildCinemaInRegion(G:IG, ctx:Ctx, p:PlayerID,r:Region):boolean{
-    if(r===Region.NONE)return false;
-    if(G.pub[parseInt(p)].building.cinemaBuilt || studioInRegion(G,ctx,r,p)){
+export function canBuildCinemaInRegion(G: IG, ctx: Ctx, p: PlayerID, r: Region): boolean {
+    if (r === Region.NONE) return false;
+    if (G.pub[parseInt(p)].building.cinemaBuilt || studioInRegion(G, ctx, r, p)) {
         return false;
-    }else {
-        return G.regions[r].buildings.filter(slot=>slot.activated&&slot.owner==="").length > 0;
+    } else {
+        return G.regions[r].buildings.filter(slot => slot.activated && slot.owner === "").length > 0;
     }
 }
 
@@ -688,17 +723,16 @@ export function fillEventCard(G: IG, ctx: Ctx) {
         G.events.push(newEvent)
     }
     if (G.secret.events.length === 1) {
-        if(G.secret.events[0].cardId==="E03"){
+        if (G.secret.events[0].cardId === "E03") {
             G.activeEvents.push(EventCardID.E03);
         }
-        if(newEra!==era)
-        {
+        if (newEra !== era) {
             doFillNewEraEvents(G, ctx, newEra);
         }
     }
 }
 
-export function doIndustryBreakthrough(G:IG,ctx:Ctx,player:PlayerID){
+export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     let p = G.pub[parseInt(player)];
     let totalResource = p.resource + p.deposit;
     if (additionalCostForUpgrade(p.industry) <= totalResource) {
@@ -714,7 +748,7 @@ export function doIndustryBreakthrough(G:IG,ctx:Ctx,player:PlayerID){
     changeStage(G, ctx, "chooseEffect")
 }
 
-export function doAestheticsBreakthrough(G:IG,ctx:Ctx,player:PlayerID){
+export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     let p = G.pub[parseInt(player)];
     let playerObj = G.player[parseInt(player)];
     let totalResource = p.resource + p.deposit;
@@ -728,10 +762,10 @@ export function doAestheticsBreakthrough(G:IG,ctx:Ctx,player:PlayerID){
     changeStage(G, ctx, "chooseEffect")
 }
 
-export function checkNextEffect(G:IG,ctx:Ctx){
+export function checkNextEffect(G: IG, ctx: Ctx) {
     if (G.e.stack.length === 0) {
         ctx?.events?.endStage?.();
-    }else {
-        curEffectExec(G,ctx);
+    } else {
+        curEffectExec(G, ctx);
     }
 }

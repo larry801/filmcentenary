@@ -175,8 +175,7 @@ export const chooseRegion = {
 export const chooseEvent: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
-        // @ts-ignore
-        let eid: EventCardID = G.events[parseInt(arg)].cardId;
+        let eid: EventCardID = G.events[parseInt(arg)].cardId as EventCardID;
         G.e.stack.push(getEvent(eid));
         curEffectExec(G, ctx);
         if (G.e.stack.length === 0) {

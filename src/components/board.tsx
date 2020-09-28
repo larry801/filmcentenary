@@ -9,13 +9,13 @@ import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
 import {PubPanel} from "./pub";
-import {BasicCardID, ICard, Region} from "../types/core";
+import {BasicCardID, EventCardID, ICard, Region} from "../types/core";
 import {BuyCard} from "./buyCard";
 import {B05, getBasicCard} from "../constant/cards/basic";
 import {Paper, Grid, Typography} from "@material-ui/core";
 
 
-export const FilmCentenaryBoard = ({G, ctx, events, moves,undo,redo, isActive, matchData, playerID}: BoardProps<IG>) => {
+export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive, matchData, playerID}: BoardProps<IG>) => {
 
     const canMoveCurrent = ctx.currentPlayer === playerID && ctx.activePlayers === null;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
@@ -38,7 +38,6 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves,undo,redo, isActive, m
             helper: helper,
         })
     }
-
 
     const getName = (playerID: PlayerID | null): string => {
         const fallbackName = i18n.playerName.player + playerID;
@@ -66,14 +65,14 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves,undo,redo, isActive, m
         helper: [],
     });
 
-    const effectName=(eff:any):string=>{
-      // @ts-ignore
+    const effectName = (eff: any): string => {
+        // @ts-ignore
         let name = i18n.effect[eff.e];
-      if(typeof name === "string"){
-          return name;
-      }else {
-          return name(eff.a);
-      }
+        if (typeof name === "string") {
+            return name;
+        } else {
+            return name(eff.a);
+        }
     }
 
     return <div>
@@ -92,21 +91,22 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves,undo,redo, isActive, m
 
         <Grid container spacing={4}>
             <Grid item><Typography>{i18n.pub.events}</Typography></Grid>
-            {G.events.map((e,idx)=><Grid key={idx} item>
+            {G.events.map((e, idx) => <Grid key={idx} item>
                 <Paper key={idx} elevation={10}>
-                    <Typography>{
-            // @ts-ignore
-            i18n.card[e.cardId]
-            }</Typography></Paper></Grid>)}</Grid>
-        {G.pub.map((u, idx) => <PubPanel key={idx} {...u}/>)}
-        {isActive  ?<Button
+                    <Typography>{i18n.card[e.cardId as EventCardID]}</Typography>
+                </Paper></Grid>)}</Grid>
+        {G.pub.map((u, idx) => <Grid container>
+            <Grid item><Typography>{getName(idx.toString())}</Typography></Grid>
+            <PubPanel key={idx} {...u}/>
+        </Grid>)}
+        {isActive ? <Button
             variant={"outlined"}
-            onClick={()=>undo()}
-        >{i18n.action.undo}</Button>:<></>}
-        {isActive ?<Button
+            onClick={() => undo()}
+        >{i18n.action.undo}</Button> : <></>}
+        {isActive ? <Button
             variant={"outlined"}
-            onClick={()=>redo()}
-        >{i18n.action.redo}</Button>:<></>}
+            onClick={() => redo()}
+        >{i18n.action.redo}</Button> : <></>}
         {G.pending.endPhase && canMoveCurrent ? <Button
                 variant={"outlined"}
                 onClick={() => events?.endPhase?.()}
@@ -138,36 +138,36 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves,undo,redo, isActive, m
             )}
             defaultChoice={"B01"} show={ctx.currentPlayer === playerID
         && G.pub[parseInt(playerID)].resource + G.pub[parseInt(playerID)].deposit >= 2
-            }
+        }
             title={i18n.dialog.buyCard.basic} toggleText={i18n.dialog.buyCard.basic}/>
-        {playerID !== null && canMoveCurrent && canAfford(G,ctx,B05,ctx.currentPlayer) ?
+        {playerID !== null && canMoveCurrent && canAfford(G, ctx, B05, ctx.currentPlayer) ?
             <BuyCard slot={{
                 comment: null, region: Region.NONE, isLegend: false,
                 // @ts-ignore
-                card:B05,
+                card: B05,
             }}
-                 card={B05} helpers={G.player[parseInt(playerID)].hand}
-                 buy={buy} canBuy={canBuy} affordable={true} G={G} playerID={playerID}/>
-            :<></>
+                     card={B05} helpers={G.player[parseInt(playerID)].hand}
+                     buy={buy} canBuy={canBuy} affordable={true} G={G} playerID={playerID}/>
+            : <></>
         }
         {playerID !== null && canMoveCurrent ?
             <>
+                <Button
+                    disabled={G.pub[parseInt(playerID)].action === 0}
+                    variant={"outlined"}
+                    onClick={() => moves.drawCard()}>
+                    {i18n.action.draw}
+                </Button> </> : <></>}
+        {playerID !== null && G.pub[parseInt(playerID)].action === 0 ?
             <Button
-                disabled={G.pub[parseInt(playerID)].action === 0}
-                variant={"outlined"}
-                onClick={() => moves.drawCard()}>
-                {i18n.action.draw}
-            </Button> </>: <></>}
-        {playerID !== null && G.pub[parseInt(playerID)].action === 0?
-        <Button
-            onClick={()=>moves.requestEndTurn(playerID)}>
-            {i18n.action.endStage}
-        </Button>:<></>}
+                onClick={() => moves.requestEndTurn(playerID)}>
+                {i18n.action.endStage}
+            </Button> : <></>}
         <ChoiceDialog
             initial={true}
             callback={moves.chooseRegion}
             choices={
-               G.e.regions
+                G.e.regions
                     .map(r => {
                         return {
                             label: i18n.region[r],
@@ -197,53 +197,56 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves,undo,redo, isActive, m
             title={i18n.dialog.chooseTarget.title}
             toggleText={i18n.dialog.chooseTarget.toggleText}/>
 
-        {playerID !== null?
+        {playerID !== null ?
             <ChoiceDialog
                 callback={moves.chooseEvent}
-                choices={G.events.map((c,idx)=>{
+                choices={G.events.map((c, idx) => {
                     return {
                         // @ts-ignore
                         label: i18n.card[c.cardId],
                         disabled: false,
                         hidden: false,
                         value: idx.toString()
-                    }})} defaultChoice={"0"}
-                show={isActive && actualStage(G,ctx)==="chooseEvent"}
+                    }
+                })} defaultChoice={"0"}
+                show={isActive && actualStage(G, ctx) === "chooseEvent"}
                 title={i18n.dialog.chooseEvent.title} toggleText={i18n.dialog.chooseEvent.toggleText}
-                initial={true}/>:<></>}
-        {playerID !== null?
+                initial={true}/> : <></>}
+        {playerID !== null ?
+            <ChoiceDialog
+                callback={moves.chooseHand}
+                choices={G.player[parseInt(playerID)].hand.map((c, idx) => {
+                    return {
+                        // @ts-ignore
+                        label: i18n.card[c.cardId],
+                        disabled: false,
+                        hidden: false,
+                        value: idx.toString()
+                    }
+                })} defaultChoice={"0"}
+                show={isActive && actualStage(G, ctx) === "chooseHand"}
+                title={i18n.dialog.chooseHand.title} toggleText={i18n.dialog.chooseHand.toggleText}
+                initial={true}/> : <></>}
         <ChoiceDialog
-            callback={moves.chooseHand}
-            choices={G.player[parseInt(playerID)].hand.map((c,idx)=>{
+            callback={moves.chooseEffect}
+            choices={G.e.choices.map((c, idx) => {
                 return {
-                    // @ts-ignore
-                    label: i18n.card[c.cardId],
+                    label: effectName(c),
                     disabled: false,
                     hidden: false,
                     value: idx.toString()
-                }})} defaultChoice={"0"}
-            show={isActive && actualStage(G,ctx)==="chooseHand"}
-            title={i18n.dialog.chooseHand.title} toggleText={i18n.dialog.chooseHand.toggleText}
-            initial={true}/>:<></>}
-        <ChoiceDialog
-            callback={moves.chooseEffect}
-            choices={G.e.choices.map((c,idx)=>{
-                return {
-                label: effectName(c),
-                disabled: false,
-                hidden: false,
-                value: idx.toString()
-            }})} defaultChoice={"0"}
-            show={isActive && actualStage(G,ctx)==="chooseEffect"}
+                }
+            })} defaultChoice={"0"}
+            show={isActive && actualStage(G, ctx) === "chooseEffect"}
             title={i18n.dialog.chooseEffect.title} toggleText={i18n.dialog.chooseEffect.toggleText}
             initial={true}/>
         <ChoiceDialog
             callback={moves.confirmRespond}
             choices={[
-                {label:i18n.dialog.confirmRespond.yes,value:"yes",disabled:false,hidden:false},
-                {label:i18n.dialog.confirmRespond.no,value:"no",disabled:false,hidden:false}
+                {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
+                {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
             ]} defaultChoice={"no"}
-            show={isActive && actualStage(G,ctx)==="confirmRespond"}
+            show={isActive && actualStage(G, ctx) === "confirmRespond"}
             title={i18n.dialog.confirmRespond.title} toggleText={i18n.dialog.confirmRespond.toggleText}
             initial={true}/>
 

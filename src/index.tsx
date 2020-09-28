@@ -6,6 +6,7 @@ import {FilmCentenaryGame} from "./Game";
 import {FilmCentenaryBoard} from "./components/board";
 import {Grid} from "@material-ui/core";
 import { Local} from "boardgame.io/multiplayer";
+import Lobby from './components/lobby'
 
 const FilmClient = Client(
     {
@@ -23,5 +24,6 @@ render(
             <Grid item> <FilmClient playerID='0'/></Grid>
             <Grid item> <FilmClient playerID='1'/></Grid>
         </Grid>
-    </div>, rootElement
+     {false?<Lobby/>:<></>}
+ </div>, rootElement
 );

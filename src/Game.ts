@@ -22,7 +22,7 @@ import {Region} from "./types/core";
 
 export const FilmCentenaryGame: Game<IG> = {
     setup: setup,
-
+    name: "FilmCentenary",
     phases: {
         InitPhase: InitPhase,
         NormalPhase: NormalPhase,

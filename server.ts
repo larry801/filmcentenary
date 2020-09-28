@@ -35,10 +35,10 @@ app.use(
         driver: 'memory',
         db: db,
         // 1 min window
-        duration: 60000,
+        duration: 6000,
         errorMessage: 'Too many requests',
         id: (ctx:Koa.Context) => ctx.ip,
-        max: 25,
+        max: 36,
     })
 );
 
