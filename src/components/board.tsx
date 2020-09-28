@@ -21,24 +21,6 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
     const canMove = ctx.currentPlayer === playerID ? canMoveCurrent : canMoveOutOfTurn;
 
-    const canBuy = (target: ICard, resource: number, deposit: number, helper: ICard[]) => canBuyCard(G, ctx, {
-        buyer: playerID === null ? '0' : playerID,
-        target: target,
-        resource: resource,
-        deposit: deposit,
-        helper: helper,
-    });
-
-    const buy = (target: ICard, resource: number, deposit: number, helper: ICard[]) => {
-        moves.buyCard({
-            buyer: playerID === null ? '0' : playerID,
-            target: target,
-            resource: resource,
-            deposit: deposit,
-            helper: helper,
-        })
-    }
-
     const getName = (playerID: PlayerID | null): string => {
         const fallbackName = i18n.playerName.player + playerID;
         if (playerID === null) {
@@ -141,13 +123,10 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
         }
             title={i18n.dialog.buyCard.basic} toggleText={i18n.dialog.buyCard.basic}/>
         {playerID !== null && canMoveCurrent && canAfford(G, ctx, B05, ctx.currentPlayer) ?
-            <BuyCard slot={{
-                comment: null, region: Region.NONE, isLegend: false,
-                // @ts-ignore
-                card: B05,
-            }}
-                     card={B05} helpers={G.player[parseInt(playerID)].hand}
-                     buy={buy} canBuy={canBuy} affordable={true} G={G} playerID={playerID}/>
+            <BuyCard
+                moves={moves}
+             card={B05} helpers={G.player[parseInt(playerID)].hand}
+                G={G} playerID={playerID} ctx={ctx}/>
             : <></>
         }
         {playerID !== null && canMoveCurrent ?

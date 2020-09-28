@@ -15,20 +15,18 @@ import {IG} from "../types/setup";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
 import {BuyCard, Comment} from "./buyCard";
-import {canAfford, canBuyCard} from "../game/util";
 import {makeStyles} from "@material-ui/core/styles";
 
 export interface ICardSlotProp {
     slot: ICardSlot,
     G: IG,
     ctx: Ctx,
-    buy: (target: ICard, resource: number, deposit: number, helper: ICard[]) => void,
-    canBuy: (target: ICard, resource: number, deposit: number, helper: ICard[]) => boolean,
+    moves: Record<string, (...args: any[]) => void>,
     comment: (slot: ICardSlot, card: IBasicCard | null) => void,
     playerID: PlayerID | null,
 }
 
-export const BoardCardSlot = ({playerID, slot, buy, canBuy, G, ctx, comment}: ICardSlotProp) => {
+export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlotProp) => {
 
     const variant = slot.isLegend ? "elevation" : "outlined"
 
@@ -44,12 +42,12 @@ export const BoardCardSlot = ({playerID, slot, buy, canBuy, G, ctx, comment}: IC
             } </Typography>
             {playerID !== null && slot.card !== null && ctx.currentPlayer === playerID ?
                 <><Comment slot={slot} comment={comment} G={G}/>
-                    <BuyCard slot={slot}
-                             card={slot.card}
-                             helpers={G.player[(parseInt(playerID))].hand}
-                             buy={buy}
-                             canBuy={canBuy}
-                             affordable={canAfford(G, ctx, slot.card, playerID)} G={G} playerID={playerID}/>
+                    <BuyCard
+                         card={slot.card}
+                         helpers={G.player[(parseInt(playerID))].hand}
+                         ctx={ctx}
+                         G={G}
+                         playerID={playerID} moves={moves}/>
                 </> : <></>}
         </Paper>
     </>
@@ -81,24 +79,6 @@ export const BoardRegion = ({r, region, G, ctx, playerID, moves}: IRegionProp) =
     const [expanded, setExpanded] = React.useState(true);
     const classes = useStyles();
 
-    const canBuy = (target: ICard, resource: number, deposit: number, helper: ICard[]) => canBuyCard(G, ctx, {
-        buyer: playerID === null ? '0' : playerID,
-        target: target,
-        resource: resource,
-        deposit: deposit,
-        helper: helper,
-    });
-
-    const buy = (target: ICard, resource: number, deposit: number, helper: ICard[]) => {
-        moves.buyCard({
-            buyer: playerID === null ? '0' : playerID,
-            target: target,
-            resource: resource,
-            deposit: deposit,
-            helper: helper,
-        })
-    }
-
     const show = r===Region.ASIA ? era !== IEra.ONE : true;
 
     const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment(G, ctx, {target: slot, comment: card})
@@ -117,14 +97,16 @@ export const BoardRegion = ({r, region, G, ctx, playerID, moves}: IRegionProp) =
             <AccordionDetails key={r}>
                 <Grid item><BoardCardSlot
                     G={G} ctx={ctx} slot={legend}
-                    comment={comment} canBuy={canBuy}
-                    buy={buy} playerID={playerID}
+                    moves={moves}
+                    comment={comment}
+                    playerID={playerID}
                 /></Grid>
                 {normal.map((slot, i) =>
                     <Grid item key={i}>
                         <BoardCardSlot
-                            G={G} ctx={ctx} buy={buy} slot={slot}
-                            canBuy={canBuy} comment={comment} playerID={playerID}
+                            moves={moves}
+                            G={G} ctx={ctx} slot={slot}
+                            comment={comment} playerID={playerID}
                         />
                     </Grid>
                 )}
