@@ -681,8 +681,8 @@ const effects = {
                 {
                     e: "optional", a: {
                         e: "competition", a: {
-                            bonus: 1,
-                            onWin: {e: "share", a: 1}
+                            bonus: 0,
+                            onWin: noEff,
                         }
                     }
                 }
@@ -970,36 +970,57 @@ const effects = {
             action: 2,
         },
     },
-    "2202":{
+    "2202": {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response:noResponse,
+        response: noResponse,
     },
-    "2203":{
-            canBuy: (G: IG, ctx: Ctx) => true,
-            buy: {
-                e: "choice", a: [
-                    {e: "industryLevelUp", a: 1},
-                    {e: "buy", a: "2209"},
-                ]
-            },
-            canPlay: (G: IG, ctx: Ctx) => false,
-            play: {
-                e: "step", a:
-                    [
-                        {e: "res", a: 3},
-                        {e: "vp", a: 3},
-                        {e: "discard", a: {e:"loseVp",a:2}},
-                    ]
-            },
-            canArchive: (G: IG, ctx: Ctx) => true,
-            archive: noEff,
-            response:noResponse,
+    "2203": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "choice", a: [
+                {e: "industryLevelUp", a: 1},
+                {e: "buy", a: "2209"},
+            ]
         },
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: {
+            e: "step", a:
+                [
+                    {e: "res", a: 3},
+                    {e: "vp", a: 3},
+                    {e: "discard", a: {e: "loseVp", a: 2}},
+                ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "2406": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: {
+            e: "era", a: [
+                noEff,
+                {
+                    e: "step", a:
+                        [
+                            {e: "res", a: 2},
+                            {e: "deposit", a: 1},
+                        ]
+                },
+                {e:"peekIndustry",a:3},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
     "3206": {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff, canPlay: (G: IG, ctx: Ctx) => true,
@@ -1014,5 +1035,5 @@ const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-    }
+    },
 }

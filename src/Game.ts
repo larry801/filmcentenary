@@ -1,4 +1,4 @@
-import {Ctx, Game} from "boardgame.io";
+import {Ctx, Game, PlayerID} from "boardgame.io";
 import {IG, setup} from "./types/setup";
 import {
     breakthrough,
@@ -12,7 +12,7 @@ import {
     competitionCard,
     drawCard,
     initialSetup,
-    moveBlocker,
+    moveBlocker, peek,
     playCard,
     requestEndTurn,
     updateSlot
@@ -27,7 +27,26 @@ export const FilmCentenaryGame: Game<IG> = {
         InitPhase: InitPhase,
         NormalPhase: NormalPhase,
     },
+    minPlayers: 3,
+    maxPlayers: 4,
+    playerView: (G:IG, ctx:Ctx, playerID:PlayerID) => {
+        let r = {...G};
+        if (r.secret !== undefined) {
+            delete r.secret;
+        }
+        for (let p = 0; p < r.player.length; p++) {
+            console.log(p);
+            console.log(JSON.stringify(G.player))
 
+            if (p.toString() !== playerID) {
+                G.player[p].handSize = G.player[p].hand.length;
+                G.player[p].hand = [];
+                G.player[p].cardsToPeek = [];
+                console.log(JSON.stringify(G.player))
+            }
+        }
+        return r;
+    },
     moves: {
         initialSetup: initialSetup,
         drawCard: drawCard,
@@ -44,6 +63,7 @@ export const FilmCentenaryGame: Game<IG> = {
         updateSlot: updateSlot,
         comment: comment,
         chooseRegion: chooseRegion,
+        peek:peek,
     },
 
     endIf: (G: IG, ctx: Ctx) => {

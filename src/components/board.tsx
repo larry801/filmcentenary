@@ -1,18 +1,20 @@
 import React from "react";
 import {BoardProps} from "boardgame.io/react";
 import {IG} from "../types/setup";
-import {BoardRegion} from "./region";
+import {BoardCardSlot, BoardRegion} from "./region";
 import {PlayerHand} from "./playerHand";
 import {ChoiceDialog} from "./modals";
-import {activePlayer, actualStage, canAfford, canBuyCard, studioInRegion} from "../game/util";
+import {activePlayer, actualStage, studioInRegion} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
 import {PubPanel} from "./pub";
-import {BasicCardID, EventCardID, ICard, Region} from "../types/core";
+import {BasicCardID, EventCardID, IBasicCard, ICardSlot, Region, ValidRegions} from "../types/core";
 import {BuyCard} from "./buyCard";
-import {B01, B02, B03, B05, getBasicCard} from "../constant/cards/basic";
+import {B01, B02, B03, B05} from "../constant/cards/basic";
 import {Paper, Grid, Typography} from "@material-ui/core";
+import {Simulate} from "react-dom/test-utils";
+import play = Simulate.play;
 
 
 export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive, matchData, playerID}: BoardProps<IG>) => {
@@ -49,29 +51,54 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
         }
     }
 
-    return <div>
+    const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment(G, ctx, {target: slot, comment: card})
+
+    const cardBoard = ctx.numPlayers === 2 ?
+        <Grid container spacing={2} alignItems="center">
+            <Grid item><Typography>{i18n.pub.share}</Typography></Grid>
+            {ValidRegions.map(r => <Grid item><Typography>{i18n.region[r]} {G.regions[r as 0 | 1 | 2 | 3].share}</Typography></Grid>)}
+            <BoardCardSlot slot={G.twoPlayer.school[0]} G={G} ctx={ctx} moves={moves} comment={comment}
+                           playerID={playerID}/>
+            <BoardCardSlot slot={G.twoPlayer.school[1]} G={G} ctx={ctx} moves={moves} comment={comment}
+                           playerID={playerID}/>
+            <BoardCardSlot slot={G.twoPlayer.film[0]} G={G} ctx={ctx} moves={moves} comment={comment}
+                           playerID={playerID}/>
+            <BoardCardSlot slot={G.twoPlayer.film[1]} G={G} ctx={ctx} moves={moves} comment={comment}
+                           playerID={playerID}/>
+            <BoardCardSlot slot={G.twoPlayer.film[2]} G={G} ctx={ctx} moves={moves} comment={comment}
+                           playerID={playerID}/>
+            <BoardCardSlot slot={G.twoPlayer.film[3]} G={G} ctx={ctx} moves={moves} comment={comment}
+                           playerID={playerID}/>
+        </Grid> :
+        <>
+            <BoardRegion r={Region.NA} moves={moves} region={G.regions[0]} G={G} ctx={ctx} playerID={playerID}/>
+            <BoardRegion r={Region.WE} moves={moves} region={G.regions[1]} G={G} ctx={ctx} playerID={playerID}/>
+            <BoardRegion r={Region.EE} moves={moves} region={G.regions[2]} G={G} ctx={ctx} playerID={playerID}/>
+            <BoardRegion r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx} playerID={playerID}/>
+        </>
+
+    return <Grid container alignItems="center">
+        <Grid
+            container spacing={2}
+            alignItems="center"
+        >
+            <Grid item><Typography>{i18n.pub.events}</Typography></Grid>
+            {ctx.numPlayers !== 2 ? G.events.map((e, idx) => <Grid key={idx} item>
+                <Paper key={idx} elevation={10}>
+                    <Typography>{i18n.card[e.cardId as EventCardID]}</Typography>
+                </Paper></Grid>):<></>}
+        </Grid>
         {ctx.phase === "InitPhase" ?
             <Button
                 disabled={!canMove}
                 onClick={() => moves.initialSetup({...G.regions})}>
                 {i18n.action.initialSetup}
-            </Button> :
-            <>
-                <BoardRegion r={Region.NA} moves={moves} region={G.regions[0]} G={G} ctx={ctx} playerID={playerID}/>
-                <BoardRegion r={Region.WE} moves={moves} region={G.regions[1]} G={G} ctx={ctx} playerID={playerID}/>
-                <BoardRegion r={Region.EE} moves={moves} region={G.regions[2]} G={G} ctx={ctx} playerID={playerID}/>
-                <BoardRegion r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx} playerID={playerID}/>
-            </>}
+            </Button> :cardBoard
+        }
 
-        <Grid container spacing={4}>
-            <Grid item><Typography>{i18n.pub.events}</Typography></Grid>
-            {G.events.map((e, idx) => <Grid key={idx} item>
-                <Paper key={idx} elevation={10}>
-                    <Typography>{i18n.card[e.cardId as EventCardID]}</Typography>
-                </Paper></Grid>)}</Grid>
-        {G.pub.map((u, idx) => <Grid container>
+        {G.pub.map((u, idx) => <Grid container key={idx}>
             <Grid item><Typography>{getName(idx.toString())}</Typography></Grid>
-            <PubPanel key={idx} {...u}/>
+            <Grid item><PubPanel key={idx} {...u}/></Grid>
         </Grid>)}
         {isActive ? <Button
             variant={"outlined"}
@@ -130,6 +157,21 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                 onClick={() => moves.requestEndTurn(playerID)}>
                 {i18n.action.endStage}
             </Button> : <></>}
+        {playerID !== null ?<ChoiceDialog
+            initial={true}
+            callback={moves.peek}
+            choices={
+                G.player[parseInt(playerID)].cardsToPeek
+                    .map(r => {
+                        return {
+                            label: i18n.card[r.cardId as BasicCardID],
+                            value: r.cardId,
+                            hidden: false, disabled: true
+                        }
+                    })
+            } defaultChoice={"0"} show={isActive && actualStage(G, ctx) === "peek"}
+            title={i18n.dialog.peek.title}
+            toggleText={i18n.dialog.peek.title}/>:<></>}
         <ChoiceDialog
             initial={true}
             callback={moves.chooseRegion}
@@ -149,7 +191,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
             initial={true}
             callback={moves.chooseTarget}
             choices={
-                Array(G.playerCount)
+                Array(ctx.numPlayers)
                     .fill(1)
                     .map((i, idx) => idx)
                     .filter(p => !studioInRegion(G, ctx, G.e.card.region, p.toString()))
@@ -217,6 +259,6 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
             title={i18n.dialog.confirmRespond.title} toggleText={i18n.dialog.confirmRespond.toggleText}
             initial={true}/>
 
-        {playerID !== null ? <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/> : ""}
-    </div>
+        {playerID !== null ? <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/> : <></>}
+    </Grid>
 }

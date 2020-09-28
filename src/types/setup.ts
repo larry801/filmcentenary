@@ -9,17 +9,21 @@ import {
     IPrivateInfo,
     IPubInfo,
     IRegionInfo,
-    IRegionPrivate,
+    IRegionPrivate, ISchoolCard,
     Region
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {B01, B02, B07} from "../constant/cards/basic";
-import {doFillNewEraEvents, drawForRegion, fillPlayerHand, shuffle} from "../game/util";
+import {doFillNewEraEvents, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
 
 export interface IG {
+    twoPlayer: {
+        school: ICardSlot[],
+        film: ICardSlot[],
+    },
     order: PlayerID[],
     playerCount: number,
-    activeEvents:EventCardID[],
+    activeEvents: EventCardID[],
     logDiscrepancyWorkaround: boolean,
     pending: {
         lastRoundOfGame: boolean,
@@ -28,8 +32,8 @@ export interface IG {
         endPhase: boolean,
         endStage: boolean,
     },
-    scoringRegions:Region[],
-    events:IEventCard[],
+    scoringRegions: Region[],
+    events: IEventCard[],
     c: {
         players: PlayerID[],
         slots: ICardSlot[],
@@ -37,7 +41,7 @@ export interface IG {
         cardIDs: string[],
     },
     pub: IPubInfo[],
-    e: { choices: any[], stack: any[], card: ICard ,regions:Region[]},
+    e: { choices: any[], stack: any[], card: ICard, regions: Region[] },
     player: IPrivateInfo[],
     competitionInfo: {
         region: Region,
@@ -57,6 +61,10 @@ export interface IG {
         },
         events: IEventCard[],
         playerDecks: ICard[][],
+        twoPlayer:{
+            school:ISchoolCard[],
+            film:ICard[],
+        },
     },
     regions: {
         0: IRegionInfo,
@@ -78,11 +86,11 @@ export interface IG {
 
 function pubPlayer(): IPubInfo {
     return {
-        building:{
-          cinemaBuilt:false,
-          studioBuilt:false,
+        building: {
+            cinemaBuilt: false,
+            studioBuilt: false,
         },
-        champions:[],
+        champions: [],
         action: 1,
         aesthetics: 0,
         allCards: [B01, B02, B07, B07, B07, B07, B07, B07],
@@ -110,7 +118,7 @@ function pubPlayer(): IPubInfo {
 }
 
 function privatePlayer(): IPrivateInfo {
-    return {hand: [], filmAwardCandidate: null}
+    return {hand: [], handSize:0,cardsToPeek:[]}
 }
 
 function emptyNormalCardSlot(region: Region): ICardSlot {
@@ -125,11 +133,11 @@ function emptyLegendCardSlot(region: Region): ICardSlot {
     }
 }
 
-function emptyBuildingSlot(region: Region,activated:boolean = true): IBuildingSlot {
+function emptyBuildingSlot(region: Region, activated: boolean = true): IBuildingSlot {
     return {
         region: region,
         content: "",
-        isCinema:false,
+        isCinema: false,
         activated: activated,
         owner: "",
     }
@@ -141,6 +149,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     let players: IPrivateInfo[] = [];
     let decks: ICard[][] = [];
     let order: PlayerID[] = [];
+    console.log(JSON.stringify(ctx));
     for (let i = 0; i < ctx.numPlayers; i++) {
         order.push(i.toString());
         pub.push(pubPlayer());
@@ -150,6 +159,18 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     let events = shuffle(ctx, []);
     let randomOrder = shuffle(ctx, order);
     let G = {
+        twoPlayer: {
+            school: [
+                emptyNormalCardSlot(Region.NONE),
+                emptyNormalCardSlot(Region.NONE),
+            ],
+            film: [
+                emptyNormalCardSlot(Region.NONE),
+                emptyNormalCardSlot(Region.NONE),
+                emptyNormalCardSlot(Region.NONE),
+                emptyNormalCardSlot(Region.NONE),
+            ],
+        },
         order: randomOrder,
         logDiscrepancyWorkaround: true,
         pending: {
@@ -161,7 +182,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         },
         playerCount: ctx.numPlayers,
         pub: pub,
-        events:[],
+        events: [],
         c: {
             players: [],
             slots: [],
@@ -177,9 +198,9 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             def: '1',
             defPlayedCard: false,
             progress: 0,
-            pending:false,
+            pending: false,
         },
-        activeEvents:[],
+        activeEvents: [],
         player: players,
         secret: {
             regions: {
@@ -200,6 +221,10 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                     normalDeck: [],
                 },
             },
+            twoPlayer:{
+              school:[],
+              film:[],
+            },
             events: events,
             playerDecks: decks,
         },
@@ -208,8 +233,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(0),
-                    emptyBuildingSlot(0,false),
-                    emptyBuildingSlot(0,false),
+                    emptyBuildingSlot(0, false),
+                    emptyBuildingSlot(0, false),
                 ],
                 legend: emptyLegendCardSlot(0),
                 normal: [
@@ -223,7 +248,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(1),
-                    emptyBuildingSlot(1,false)
+                    emptyBuildingSlot(1, false)
                 ],
                 legend: emptyLegendCardSlot(1),
                 normal: [
@@ -236,7 +261,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(2),
-                    emptyBuildingSlot(2,false),
+                    emptyBuildingSlot(2, false),
                 ],
                 legend: emptyLegendCardSlot(2),
                 normal: [emptyNormalCardSlot(2), emptyNormalCardSlot(2)],
@@ -253,7 +278,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 share: 0,
             },
         },
-        scoringRegions:[],
+        scoringRegions: [],
         pendingEffects: [],
         basicCards: {
             "B01": 20,
@@ -265,19 +290,29 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             "B07": 0,
         },
     }
-    if (ctx.numPlayers > 2){
+    if (ctx.numPlayers > 2) {
         G.regions[Region.NA].buildings[1].activated = true;
         G.regions[Region.WE].buildings[1].activated = true;
+        G.pub[G.order[2]].vp = 1;
     }
     if (ctx.numPlayers > 3) {
         G.regions[Region.EE].buildings[1].activated = true;
+        G.pub[G.order[3]].vp = 2;
     }
-    drawForRegion(G, ctx, Region.NA, IEra.ONE);
-    drawForRegion(G, ctx, Region.WE, IEra.ONE);
-    drawForRegion(G, ctx, Region.EE, IEra.ONE);
+    if (ctx.numPlayers === 2) {
+        G.regions[Region.NA].share = 12;
+        G.regions[Region.WE].share = 10;
+        G.regions[Region.EE].share = 8;
+        G.regions[Region.ASIA].share = 10;
+        drawForTwoPlayerEra(G,ctx,IEra.ONE);
+    } else {
+        drawForRegion(G, ctx, Region.NA, IEra.ONE);
+        drawForRegion(G, ctx, Region.WE, IEra.ONE);
+        drawForRegion(G, ctx, Region.EE, IEra.ONE);
+    }
     for (let i = 0; i < ctx.numPlayers; i++) {
         fillPlayerHand(G, ctx, i.toString());
     }
-    doFillNewEraEvents(G,ctx,IEra.ONE);
+    doFillNewEraEvents(G, ctx, IEra.ONE);
     return G;
 };

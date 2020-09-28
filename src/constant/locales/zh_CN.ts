@@ -217,6 +217,9 @@ const zh_CN: Locale = {
             title:"请选择一张手牌执行效果",
             toggleText:"选择手牌",
         },
+        peek:{
+            title:"查看牌堆顶",
+        },
         chooseRegion: {
             title: "请选择效果目标区域",
             toggleText: "选择区域",

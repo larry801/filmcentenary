@@ -4,6 +4,7 @@ import {Accordion, AccordionDetails, AccordionSummary, Button, Typography} from 
 import {Ctx} from "boardgame.io";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
+import Grid from "@material-ui/core/Grid";
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
 
@@ -13,7 +14,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
     const [expanded, setExpanded] = React.useState(hand.length);
     const res = p.resource >= 2 ? 2 : p.resource;
     const deposit = 2 - res;
-    return <div>
+    return <Grid>
         <Typography>{i18n.hand.title}</Typography>
         {hand.map((c, idx) =>
                 <Accordion
@@ -51,5 +52,5 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     </AccordionDetails>
                 </Accordion>
         ) }
-    </div>
+    </Grid>
 }

@@ -9,7 +9,7 @@ import {
     IFilmCard,
     INormalOrLegendCard,
     IPubInfo,
-    Region
+    Region, ValidRegions
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
@@ -71,6 +71,17 @@ export const buyCard = {
 export const chooseTarget: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: PlayerID) => {
+        let eff = G.e.stack.pop();
+        switch (eff.e) {
+            case "loseAnyRegionShare":
+                let p = G.c.players[0];
+                G.e.regions = ValidRegions.filter(
+                    // @ts-ignore
+                    r => G.pub[parseInt(p)].shares[r] > 0
+                )
+                changeStage(G, ctx, "chooseRegion")
+                return;
+        }
         playerEffExec(G, ctx, arg);
     }
 }
@@ -92,6 +103,15 @@ export const chooseHand: LongFormMove = {
                 pub.vp += (card.vp + G.e.card.vp);
                 doBuy(G, ctx, B05, player);
                 break;
+            case "archiveHand":
+                hand.splice(parseInt(arg), 1);
+                pub.archive.push(card);
+                break;
+            case "discardIndustry":
+            case "discardAesthetics":
+                hand.splice(parseInt(arg), 1);
+                pub.discard.push(card);
+                break;
             default:
                 throw  new Error();
         }
@@ -104,7 +124,26 @@ export const chooseEffect: LongFormMove = {
         let eff = G.e.choices[parseInt(arg)];
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
         let regions: Region[];
+        let top;
         switch (eff.e) {
+            case "industryBreakthrough":
+                top = G.e.stack.pop();
+                if (top.e === "industryOrAestheticsBreakthrough") {
+                    top.a.industry--;
+                }
+                G.e.stack.push(top);
+                G.e.choices = [];
+                doIndustryBreakthrough(G, ctx, p);
+                return;
+            case "aestheticsBreakthrough":
+                top = G.e.stack.pop();
+                if (top.e === "industryOrAestheticsBreakthrough") {
+                    top.a.industry--;
+                }
+                G.e.stack.push(top);
+                G.e.choices = [];
+                doAestheticsBreakthrough(G, ctx, p);
+                break;
             case "buildStudio":
                 G.e.choices = [];
                 G.e.stack.push(eff);
@@ -115,7 +154,6 @@ export const chooseEffect: LongFormMove = {
             case "buildCinema":
                 G.e.choices = [];
                 G.e.stack.push(eff);
-
                 regions = cinemaSlotsAvailable(G, ctx, p);
                 regions.forEach(r => G.e.regions.push(r));
                 changeStage(G, ctx, "chooseRegion");
@@ -124,7 +162,7 @@ export const chooseEffect: LongFormMove = {
         G.e.stack.push(eff);
         console.log(JSON.stringify(eff));
         curEffectExec(G, ctx);
-        checkNextEffect(G,ctx);
+        checkNextEffect(G, ctx);
     }
 }
 
@@ -143,14 +181,14 @@ export const chooseRegion = {
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
         switch (eff.e) {
             case "buildStudio":
-                G.e.regions = [];
                 G.regions[r].buildings.forEach(slot => {
                     if (slot.activated && slot.owner === "") {
                         slot.owner = p;
                         slot.content = "studio"
                         slot.isCinema = false;
                         G.pub[parseInt(p)].building.studioBuilt = true;
-                        checkNextEffect(G,ctx);
+                        G.e.regions = [];
+                        checkNextEffect(G, ctx);
                         return;
                     }
                 })
@@ -162,25 +200,71 @@ export const chooseRegion = {
                         slot.content = "cinema"
                         slot.isCinema = true;
                         G.pub[parseInt(p)].building.cinemaBuilt = true;
-                        checkNextEffect(G,ctx);
+                        G.e.regions = [];
+                        checkNextEffect(G, ctx);
                         return;
                     }
                 })
                 break;
+            case "loseAnyRegionShare":
+                p = G.c.players[0] as PlayerID;
+                G.pub[parseInt(p)].shares[r]--;
+                G.regions[r].share++;
+                break;
+            case "anyRegionShare":
+                G.pub[parseInt(p)].shares[r]--;
+                G.regions[r].share++;
+                break;
             default:
                 throw new Error();
         }
+        G.e.regions = [];
+        checkNextEffect(G, ctx);
+        return;
     }
 }
+
+export const peek: LongFormMove = {
+    client: false,
+    undoable: false,
+    move: (G: IG, ctx: Ctx, args: any) => {
+        let eff = G.e.stack.pop();
+        let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID;
+        let playerObj = G.player[parseInt(p)];
+        let pub = G.pub[parseInt(p)];
+        switch (eff.e) {
+            case "peekIndustry":
+                for(let card of playerObj.cardsToPeek){
+                    let c = card as INormalOrLegendCard;
+                    if (c.industry > 0){
+                        playerObj.hand.push(c);
+                    }else {
+                        pub.discard.push(c);
+                    }
+                }
+                break;
+            case "peekAesthetics":
+                for(let card of playerObj.cardsToPeek){
+                    let c = card as INormalOrLegendCard;
+                    if (c.aesthetics > 0){
+                        playerObj.hand.push(c);
+                    }else {
+                        pub.discard.push(c);
+                    }
+                }
+                break;
+        }
+        checkNextEffect(G,ctx);
+    }
+}
+
 export const chooseEvent: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         let eid: EventCardID = G.events[parseInt(arg)].cardId as EventCardID;
         G.e.stack.push(getEvent(eid));
         curEffectExec(G, ctx);
-        if (G.e.stack.length === 0) {
-            ctx?.events?.endStage?.();
-        }
+        checkNextEffect(G,ctx);
     }
 }
 export const requestEndTurn: LongFormMove = {
@@ -258,6 +342,8 @@ export const playCard: LongFormMove = {
 
 export const competitionCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IFilmCard) => {
+        let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID;
+
         let f = arg.cost.res;
         let i = G.competitionInfo;
         if (arg.industry > 0) {
@@ -299,9 +385,13 @@ export const breakthrough: LongFormMove = {
             return;
         }
         if (i > 0 && a > 0) {
-            G.e.choices.push({e: "industryBreakthrough", a: p.industry})
-            G.e.choices.push({e: "aestheticsBreakthrough", a: p.aesthetics})
-            changeStage(G, ctx, "chooseEffect")
+            G.e.stack.push({
+                e: "industryOrAestheticsBreakthrough", a: {
+                    industry: p.industry,
+                    aesthetics: p.aesthetics,
+                }
+            })
+
         } else {
             if (i === 0) {
                 doAestheticsBreakthrough(G, ctx, arg.playerID);

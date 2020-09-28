@@ -1529,7 +1529,17 @@ export function idToCard(id: string): INormalOrLegendCard {
     }
 }
 
-export function cardsByCond(r: Region, e: IEra, isLegend: boolean): INormalOrLegendCard[] {
+export function schoolCardsByEra( e: IEra){
+    let cards = Object.entries(CARDS);
+    let res = cards.filter(c => c[1].era === e).filter(c => c[1].type === CardType.S)
+    return res.map(c => c[1]);
+}
+export function filmCardsByEra( e: IEra){
+    let cards = Object.entries(CARDS);
+    let res = cards.filter(c => c[1].era === e).filter(c => c[1].type === CardType.F)
+    return res.map(c => c[1]);
+}
+export function cardsByCond(r: Region, e: IEra, isLegend: boolean=false): INormalOrLegendCard[] {
     let cards = Object.entries(CARDS);
     let res = cards.filter(c => c[1].era === e).filter(c => c[1].region === r)
 

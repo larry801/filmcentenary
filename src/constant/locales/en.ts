@@ -240,6 +240,9 @@ const en = {
             title: "Please choose target player of current effect.",
             toggleText: "Choose Target Player",
         },
+        peek:{
+            title:"Peek cards on the top of the deck",
+        },
         chooseRegion: {
             title: "Please choose target region of current effect.",
             toggleText: "Choose Region",

@@ -9,7 +9,7 @@ import {
     initialSetup,
     moveBlocker,
     updateSlot,
-    playCard, requestEndTurn, chooseRegion,
+    playCard, requestEndTurn, chooseRegion, peek,
 } from "./moves";
 import {IG} from "../types/setup";
 import {cleanPendingSignal} from "./logFix";
@@ -74,6 +74,12 @@ export const chooseRegionStage: StageConfig = {
         chooseRegion: chooseRegion,
     }
 }
+
+export const peekStage: StageConfig = {
+    moves: {
+        peek: peek,
+    }
+}
 export const NormalTurn: TurnConfig = {
     onBegin:(G:IG,ctx:Ctx)=>cleanPendingSignal(G,ctx),
     order: TurnOrder.CUSTOM_FROM("order"),
@@ -88,6 +94,7 @@ export const NormalTurn: TurnConfig = {
         confirmRespond:confirmRespondStage,
         moveBlockerStage: moveBlockerStage,
         updateSlot:updateSlotStage,
+        peek:peekStage,
     },
     moves: {
         drawCard: drawCard,
@@ -104,6 +111,7 @@ export const NormalTurn: TurnConfig = {
         updateSlot:updateSlot,
         comment:comment,
         chooseRegion:chooseRegion,
+        peek:peek,
     }
 }
 

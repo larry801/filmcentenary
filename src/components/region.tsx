@@ -9,7 +9,7 @@ import {
     Theme,
     Typography,
 } from "@material-ui/core";
-import {IBasicCard, ICard, ICardSlot, IEra, IRegionInfo, Region} from "../types/core";
+import {IBasicCard, ICardSlot, IEra, IRegionInfo, Region} from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {useI18n} from "@i18n-chain/react";

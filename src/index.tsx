@@ -10,6 +10,7 @@ import Lobby from './components/lobby'
 
 const FilmClient = Client(
     {
+        numPlayers: 3,
         game: FilmCentenaryGame,
         board: FilmCentenaryBoard,
         debug: false,
@@ -20,9 +21,13 @@ const FilmClient = Client(
 const rootElement = document.getElementById("root");
 render(
  <div>
-        <Grid container>
+        <Grid container
+              direction="column"
+              justify="space-evenly"
+              alignItems="baseline">
             <Grid item> <FilmClient playerID='0'/></Grid>
             <Grid item> <FilmClient playerID='1'/></Grid>
+            <Grid item> <FilmClient playerID='2'/></Grid>
         </Grid>
      {false?<Lobby/>:<></>}
  </div>, rootElement

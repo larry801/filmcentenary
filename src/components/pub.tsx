@@ -1,5 +1,5 @@
 import React from "react";
-import {BasicCardID, IPubInfo, Region} from "../types/core";
+import {BasicCardID, IPubInfo, ValidRegions} from "../types/core";
 import {Grid, Typography} from "@material-ui/core";
 import {useI18n} from '@i18n-chain/react';
 import i18n from '../constant/i18n'
@@ -21,8 +21,8 @@ export const PubPanel = (i: IPubInfo) => {
             {i.school !== null ?
                 <Typography> {i18n.pub.school} {i18n.card[i.school.cardId as BasicCardID]} </Typography> : <></>}
                 <Typography>   {i18n.pub.share} </Typography>
-            {[Region.NA, Region.WE, Region.EE, Region.ASIA].map(r =>
-                <Typography>   {i18n.region[r]} {
+            {ValidRegions.map(r =>
+                <Typography  key={r}>   {i18n.region[r]} {
                     i.shares[r as 0 | 1 | 2 | 3]
                 }</Typography>
             )}
