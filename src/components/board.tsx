@@ -4,7 +4,7 @@ import {IG} from "../types/setup";
 import {BoardCardSlot, BoardRegion} from "./region";
 import {PlayerHand} from "./playerHand";
 import {ChoiceDialog} from "./modals";
-import {activePlayer, actualStage, studioInRegion} from "../game/util";
+import {activePlayer, actualStage, effName, studioInRegion} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
@@ -12,9 +12,7 @@ import {PubPanel} from "./pub";
 import {BasicCardID, EventCardID, IBasicCard, ICardSlot, Region, ValidRegions} from "../types/core";
 import {BuyCard} from "./buyCard";
 import {B01, B02, B03, B05} from "../constant/cards/basic";
-import {Paper, Grid, Typography} from "@material-ui/core";
-import {Simulate} from "react-dom/test-utils";
-import play = Simulate.play;
+import {Grid, Paper, Typography} from "@material-ui/core";
 
 
 export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive, matchData, playerID}: BoardProps<IG>) => {
@@ -41,21 +39,11 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
         }
     }
 
-    const effectName = (eff: any): string => {
-        // @ts-ignore
-        let name = i18n.effect[eff.e];
-        if (typeof name === "string") {
-            return name;
-        } else {
-            return name(eff.a);
-        }
-    }
-
     const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment(G, ctx, {target: slot, comment: card})
 
     const cardBoard = ctx.numPlayers === 2 ?
         <Grid container spacing={2} alignItems="center">
-            <Grid item><Typography>{i18n.pub.share}</Typography></Grid>
+            <Grid item xs={12} ><Typography>{i18n.pub.share}</Typography></Grid>
             {ValidRegions.map(r => <Grid item><Typography>{i18n.region[r]} {G.regions[r as 0 | 1 | 2 | 3].share}</Typography></Grid>)}
             <BoardCardSlot slot={G.twoPlayer.school[0]} G={G} ctx={ctx} moves={moves} comment={comment}
                            playerID={playerID}/>
@@ -77,29 +65,30 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
             <BoardRegion r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx} playerID={playerID}/>
         </>
 
-    return <Grid container alignItems="center">
-        <Grid
-            container spacing={2}
-            alignItems="center"
+    return <Grid container justify="space-evenly" alignItems="center">
+        <Grid xs={12}   spacing={2} container item
         >
-            <Grid item><Typography>{i18n.pub.events}</Typography></Grid>
-            {ctx.numPlayers !== 2 ? G.events.map((e, idx) => <Grid key={idx} item>
+            <Grid item xs={4}><Typography>{i18n.pub.events}</Typography></Grid>
+            {ctx.numPlayers !== 2 ? G.events.map((e, idx) => <Grid key={idx} item xs={4}>
                 <Paper key={idx} elevation={10}>
                     <Typography>{i18n.card[e.cardId as EventCardID]}</Typography>
                 </Paper></Grid>):<></>}
         </Grid>
         {ctx.phase === "InitPhase" ?
-            <Button
+            <Grid item>
+            <Button fullWidth={true}
                 disabled={!canMove}
                 onClick={() => moves.initialSetup({...G.regions})}>
                 {i18n.action.initialSetup}
-            </Button> :cardBoard
+            </Button> </Grid>:cardBoard
         }
 
-        {G.pub.map((u, idx) => <Grid container key={idx}>
-            <Grid item><Typography>{getName(idx.toString())}</Typography></Grid>
-            <Grid item><PubPanel key={idx} {...u}/></Grid>
+        {G.pub.map((u, idx) => <Grid container item key={idx} xs={12} sm={6}>
+            <Grid item xs={6} sm={4} md={2} xl={1}><Typography>{getName(idx.toString())}</Typography></Grid>
+            <PubPanel key={idx} {...u}/>
         </Grid>)}
+        <Grid item xs={12} sm={6}>
+
         {isActive ? <Button
             variant={"outlined"}
             onClick={() => undo()}
@@ -124,7 +113,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
             >{i18n.action.endStage}</Button>
             : <></>}
         {playerID !== null && canMoveCurrent ?
-            <Grid container>
+            <>
                 <Grid item><Typography
                     variant={"h6"}
                     color="inherit"
@@ -142,7 +131,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                     card={B05} helpers={G.player[parseInt(playerID)].hand}
                     G={G} playerID={playerID} ctx={ctx} moves={moves}/>
 
-            </Grid> : <></>
+            </> : <></>
         }
         {playerID !== null && canMoveCurrent ?
             <>
@@ -240,7 +229,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
             callback={moves.chooseEffect}
             choices={G.e.choices.map((c, idx) => {
                 return {
-                    label: effectName(c),
+                    label: effName(c),
                     disabled: false,
                     hidden: false,
                     value: idx.toString()
@@ -258,7 +247,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
             show={isActive && actualStage(G, ctx) === "confirmRespond"}
             title={i18n.dialog.confirmRespond.title} toggleText={i18n.dialog.confirmRespond.toggleText}
             initial={true}/>
-
+        </Grid>
         {playerID !== null ? <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/> : <></>}
     </Grid>
 }

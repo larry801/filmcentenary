@@ -342,8 +342,7 @@ export const playCard: LongFormMove = {
 
 export const competitionCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IFilmCard) => {
-        let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID;
-
+        //let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID;
         let f = arg.cost.res;
         let i = G.competitionInfo;
         if (arg.industry > 0) {

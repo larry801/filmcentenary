@@ -170,6 +170,17 @@ const en = {
     confirm: "OK",
     cancel: "Cancel",
     effect: {
+        school:["手牌上限：{{hand}}行动力：{{action}}",{
+            hand:undefined,
+            action:undefined
+        }],
+        continuous:"[Continuous:]",
+        playCardHeader:"【出牌】：",
+        buyCardHeader:"【购买】：",
+        breakthroughHeader:"【突破】：",
+        schoolHeader:"【流派】：",
+        responseHeader:"【响应】：",
+        choice:"Please choose a effect to execute:",
         comment: ["Comment {{a}}", {
             a: (value: number = 1) => {
                 if (value <= 1) {

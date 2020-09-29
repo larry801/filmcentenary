@@ -10,7 +10,7 @@ import {
     IEra,
     INormalOrLegendCard,
     IPubInfo,
-    ISchoolCard,
+    ISchoolCard, NoneBasicCardID,
     Region
 } from "../types/core";
 import {IG} from "../types/setup";
@@ -22,6 +22,7 @@ import {getCardEffect} from "../constant/effects";
 import {B04, getBasicCard} from "../constant/cards/basic";
 import {eventCardByEra} from "../constant/cards/event";
 import {getScoreCard, scoreCardCount} from "../constant/cards/score";
+import i18n from "../constant/i18n";
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -154,7 +155,7 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "vp":
             obj.vp += eff.a;
             break;
-        case "drawCard":
+        case "draw":
             for (let i = 0; i < eff.a; i++) {
                 drawCardForPlayer(G, ctx, p);
             }
@@ -366,9 +367,8 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             G.e.choices.push({e: "aestheticsBreakthrough", a: eff.a.aesthetics})
             changeStage(G, ctx, "chooseEffect")
             return;
-        case "peekIndustry":
-        case "peekAesthetics":
-            let peekCount = eff.a;
+        case "peek":
+            let peekCount = eff.a.count;
             let deck = G.secret.playerDecks[curPid(G, ctx)];
             let len = deck.length;
             if (len < peekCount) {
@@ -528,7 +528,6 @@ export function shareDepleted(G: IG, ctx: Ctx, region: Region) {
 
 export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     let cost: ICost = arg.target.cost;
-    console.log(JSON.stringify(arg));
     let resRequired = cost.res;
     let pub = G.pub[parseInt(arg.buyer)]
     let aesthetics: number = cost.aesthetics
@@ -924,5 +923,46 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         ctx?.events?.endStage?.();
     } else {
         curEffectExec(G, ctx);
+    }
+}
+
+export const cardEffectText = (cardId:BasicCardID|NoneBasicCardID)=>{
+    // @ts-ignore
+    let effObj = getCardEffect(cardId);
+    let r:string[] = [];
+    if(effObj.buy.e !== "none"){
+        r.push(i18n.effect.schoolHeader);
+    }
+    if(effObj.play.e !== "none"){
+        r.push(i18n.effect.schoolHeader);
+    }
+    if(effObj.archive.e !== "none"){
+        r.push(i18n.effect.schoolHeader);
+    }
+    if(effObj.hasOwnProperty("school")){
+        r.push(i18n.effect.schoolHeader);
+    }
+    if(effObj.hasOwnProperty("continuous")){
+        r.push(i18n.effect.continuous);
+        r.push(effName(effObj.school));
+        r.push(effName(effObj.continuous));
+    }
+}
+
+export const effName = (eff: any): string => {
+    if (eff.e === "step") {
+        // @ts-ignore
+        return eff.a.map(e => effectName(e)).join();
+    }
+    if (eff.e === "choice") {
+        // @ts-ignore
+        return eff.a.map(e => effectName(e)).unshift(i18n.effect.choice).join();
+    }
+    // @ts-ignore
+    let name = i18n.effect[eff.e];
+    if (typeof name === "string") {
+        return name;
+    } else {
+        return name(eff.a);
     }
 }

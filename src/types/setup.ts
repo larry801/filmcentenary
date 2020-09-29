@@ -149,7 +149,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     let players: IPrivateInfo[] = [];
     let decks: ICard[][] = [];
     let order: PlayerID[] = [];
-    console.log(JSON.stringify(ctx));
     for (let i = 0; i < ctx.numPlayers; i++) {
         order.push(i.toString());
         pub.push(pubPlayer());

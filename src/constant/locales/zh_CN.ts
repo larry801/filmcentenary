@@ -184,6 +184,17 @@ const zh_CN: Locale = {
         redo:"恢复",
     },
     effect:{
+        school:["手牌上限：{{hand}}行动力：{{action}}",{
+            hand:undefined,
+            action:undefined
+        }],
+        continuous:"【持续】：",
+        playCardHeader:"【出牌】：",
+        buyCardHeader:"【购买】：",
+        breakthroughHeader:"【突破】：",
+        schoolHeader:"【流派】：",
+        responseHeader:"【响应】：",
+        choice:"请选择一项执行：",
         comment:["评论{{a}}次",{a: (value: number = 1) => value.toString()}],
         industryBreakthrough:"工业突破{{a}}",
         aestheticsBreakthrough:"美学突破{{a}}",

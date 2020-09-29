@@ -79,11 +79,11 @@ export const BoardRegion = ({r, region, G, ctx, playerID, moves}: IRegionProp) =
     const [expanded, setExpanded] = React.useState(true);
     const classes = useStyles();
 
-    const show = r===Region.ASIA ? era !== IEra.ONE : true;
+    const show = r === Region.NONE ? era !== IEra.ONE : true;
 
     const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment(G, ctx, {target: slot, comment: card})
 
-    return show?<Grid container>
+    return show?<Grid item xs={12} sm={6}>
         <Accordion expanded={expanded}
                    onChange={() => setExpanded(!expanded)}
                    key={r}>

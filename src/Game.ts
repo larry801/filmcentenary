@@ -34,17 +34,20 @@ export const FilmCentenaryGame: Game<IG> = {
         if (r.secret !== undefined) {
             delete r.secret;
         }
+        console.log(JSON.stringify(r.player))
+        let newPlayerObj = []
         for (let p = 0; p < r.player.length; p++) {
-            console.log(p);
-            console.log(JSON.stringify(G.player))
-
             if (p.toString() !== playerID) {
-                G.player[p].handSize = G.player[p].hand.length;
-                G.player[p].hand = [];
-                G.player[p].cardsToPeek = [];
-                console.log(JSON.stringify(G.player))
+                newPlayerObj.push({
+                    hand :[],
+                    handSize: G.player[parseInt(playerID)].hand.length,
+                    cardsToPeek :[]
+                });
+            }else {
+                newPlayerObj.push(G.player[parseInt(playerID)]);
             }
         }
+        r.player = newPlayerObj;
         return r;
     },
     moves: {

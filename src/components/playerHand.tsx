@@ -14,7 +14,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
     const [expanded, setExpanded] = React.useState(hand.length);
     const res = p.resource >= 2 ? 2 : p.resource;
     const deposit = 2 - res;
-    return <Grid>
+    return <Grid item xs={12} sm={6}>
         <Typography>{i18n.hand.title}</Typography>
         {hand.map((c, idx) =>
                 <Accordion
