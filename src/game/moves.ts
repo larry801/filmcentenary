@@ -9,12 +9,14 @@ import {
     IFilmCard,
     INormalOrLegendCard,
     IPubInfo,
-    Region, ValidRegions
+    Region,
+    ValidRegions
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
-    aesAward,
-    canBuyCard, checkNextEffect,
+    aesAward, buildingPlayers,
+    canBuyCard,
+    checkNextEffect,
     checkRegionScoring,
     cinemaSlotsAvailable,
     curEffectExec,
@@ -23,14 +25,15 @@ import {
     doAestheticsBreakthrough,
     doBuy,
     doIndustryBreakthrough,
+    doScoring,
     doUpdateSlot,
     drawCardForPlayer,
     fillPlayerHand,
-    industryAward,
+    industryAward, nextPlayer,
     playerEffExec,
     studioSlotsAvailable,
 } from "./util";
-import {changeStage, signalEndPhase, signalEndTurn} from "./logFix";
+import {changeStage, signalEndPhase} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
 import {B05} from "../constant/cards/basic";
 
@@ -90,31 +93,66 @@ export const chooseHand: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         let eff = G.e.stack.pop();
-        let player = ctx.playerID !== undefined ? ctx.playerID : ctx.currentPlayer;
-        let hand = G.player[parseInt(player)].hand;
-        let pub = G.pub[parseInt(player)];
+        let p = ctx.playerID !== undefined ? ctx.playerID : ctx.currentPlayer;
+        let hand = G.player[parseInt(p)].hand;
+        let pub = G.pub[parseInt(p)];
         // @ts-ignore
         let card: IBasicCard | INormalOrLegendCard = hand[parseInt(arg)]
         switch (eff.e) {
+            case "everyPlayer":
+                switch (eff.e.a.e) {
+                    case "discard":
+                        hand.splice(parseInt(arg), 1);
+                        pub.discard.push(card);
+                        G.e.stack.push(eff);
+                        nextPlayer(G, ctx);
+                        return;
+                    case "archiveToEEBuildingVP":
+                        hand.splice(parseInt(arg), 1);
+                        pub.archive.push(card);
+                        let eeBuilding = buildingPlayers(G, ctx, Region.EE);
+                        if (eeBuilding.length > 0) {
+                            for (let ep of eeBuilding) {
+                                G.pub[parseInt(ep)].vp += card.vp;
+                            }
+                        }
+                        G.e.stack.push(eff);
+                        nextPlayer(G, ctx);
+                        return;
+                    default:
+                        throw new Error()
+                }
+            case "handToOthers":
+                hand.splice(parseInt(arg), 1);
+                let targetPub = G.player[parseInt(G.c.players[0])];
+                targetPub.hand.push(card);
+                break;
             case "refactor":
                 hand.splice(parseInt(arg), 1);
                 pub.archive.push(card);
                 // @ts-ignore
                 pub.vp += (card.vp + G.e.card.vp);
-                doBuy(G, ctx, B05, player);
+                doBuy(G, ctx, B05, p);
                 break;
             case "archiveHand":
                 hand.splice(parseInt(arg), 1);
                 pub.archive.push(card);
                 break;
+            case "discard":
             case "discardIndustry":
             case "discardAesthetics":
                 hand.splice(parseInt(arg), 1);
                 pub.discard.push(card);
+                if (eff.a > 1) {
+                    eff.a--;
+                    G.e.stack.push(eff);
+                    return;
+                }
                 break;
             default:
-                throw  new Error();
+                throw new Error();
         }
+        checkNextEffect(G, ctx);
     }
 }
 
@@ -126,6 +164,17 @@ export const chooseEffect: LongFormMove = {
         let regions: Region[];
         let top;
         switch (eff.e) {
+            case "everyPlayer":
+                G.e.stack.push(eff);
+                switch (eff.e.a.e) {
+                    case "industryOrAestheticsLevelUp":
+                        G.e.stack.push(eff);
+                        playerEffExec(G, ctx, p);
+                        nextPlayer(G, ctx);
+                        return;
+                    default:
+                        throw new Error()
+                }
             case "industryBreakthrough":
                 top = G.e.stack.pop();
                 if (top.e === "industryOrAestheticsBreakthrough") {
@@ -234,27 +283,27 @@ export const peek: LongFormMove = {
         let pub = G.pub[parseInt(p)];
         switch (eff.e) {
             case "peekIndustry":
-                for(let card of playerObj.cardsToPeek){
+                for (let card of playerObj.cardsToPeek) {
                     let c = card as INormalOrLegendCard;
-                    if (c.industry > 0){
+                    if (c.industry > 0) {
                         playerObj.hand.push(c);
-                    }else {
+                    } else {
                         pub.discard.push(c);
                     }
                 }
                 break;
             case "peekAesthetics":
-                for(let card of playerObj.cardsToPeek){
+                for (let card of playerObj.cardsToPeek) {
                     let c = card as INormalOrLegendCard;
-                    if (c.aesthetics > 0){
+                    if (c.aesthetics > 0) {
                         playerObj.hand.push(c);
-                    }else {
+                    } else {
                         pub.discard.push(c);
                     }
                 }
                 break;
         }
-        checkNextEffect(G,ctx);
+        checkNextEffect(G, ctx);
     }
 }
 
@@ -264,7 +313,7 @@ export const chooseEvent: LongFormMove = {
         let eid: EventCardID = G.events[parseInt(arg)].cardId as EventCardID;
         G.e.stack.push(getEvent(eid));
         curEffectExec(G, ctx);
-        checkNextEffect(G,ctx);
+        checkNextEffect(G, ctx);
     }
 }
 export const requestEndTurn: LongFormMove = {
@@ -295,12 +344,14 @@ export const requestEndTurn: LongFormMove = {
         fillPlayerHand(G, ctx, ctx.currentPlayer);
         aesAward(G, ctx, ctx.currentPlayer);
         industryAward(G, ctx, ctx.currentPlayer);
-        let na = checkRegionScoring(G, ctx, Region.NA);
-        if (na) {
-
-        }
+        ValidRegions.forEach(r => {
+            let we = checkRegionScoring(G, ctx, r);
+            if (we) {
+                G.scoringRegions.push(r)
+            }
+        })
         obj.resource = 0;
-        signalEndTurn(G, ctx);
+        doScoring(G, ctx);
     },
 }
 

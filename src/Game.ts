@@ -34,7 +34,6 @@ export const FilmCentenaryGame: Game<IG> = {
         if (r.secret !== undefined) {
             delete r.secret;
         }
-        console.log(JSON.stringify(r.player))
         let newPlayerObj = []
         for (let p = 0; p < r.player.length; p++) {
             if (p.toString() !== playerID) {
