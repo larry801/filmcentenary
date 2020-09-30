@@ -1,6 +1,6 @@
 import {Region} from "../../types/core";
 
-const cards ={
+const cards = {
     "B01": "Literary Film",
     "B02": "Commercial Film",
     "B03": "B-Movie",
@@ -153,128 +153,150 @@ const cards ={
     '3413': 'Children of the Heaven',
     '3414': 'Taste of Cherry',
 };
-
 const region = {
     0: "North America",
-        1: "West Europe",
-        2: "East Europe",
-        3: "Asia",
-        4: "None",
+    1: "West Europe",
+    2: "East Europe",
+    3: "Asia",
+    4: "Any Region",
 };
+const argValue = {a: (value: number = 1): string => value.toString()};
+
+const argRegion = {
+    a: (value: Region = Region.NONE) => {
+        return region[value]
+    }
+}
 const era = {
     0: "Invention",
     1: "Classic",
     2: "Modern",
 };
+const argCardName = {
+    a: (value: string = "E02") => {
+        // @ts-ignore
+        return cards[value]
+    }
+};
+const argTimes = {
+    a: (value: number = 1) => {
+        if (value <= 1) {
+            return `once`;
+        } else {
+            if (value === 2) {
+                return `twice`;
+            } else {
+                return `${value} times`;
+            }
+        }
+    },
+}
 const en = {
     confirm: "OK",
     cancel: "Cancel",
+    lobby:{
+        title:"大厅",
+        join:"加入",
+        play:"开始",
+        leave:"离开",
+        exitMatch:"退出游戏",
+        exitLobby:"退出大厅",
+        cannotJoin:"无法加入，已经在其他游戏中。",
+    },
     effect: {
-        era:{
+        era: {
             0: "Era 1",
             1: "Era 2",
             2: "Era 3",
         },
-        event:["After {{a}}",{
-            a: (value: string = "E02") => {
-                // @ts-ignore
-                return cards[value]
-            }}],
-        optional:"【optional】",
-        othersBuySchool:"When another company buys a school card,",
-        turnStart:"On every turn start",
-        studio:["{{r}}地区有制片厂的公司，",{
-            a: (value: Region = Region.NONE) => {
-                return region[value]
-            }}],
-        building:["{{r}}地区有建筑的公司，",{
-            a: (value: Region = Region.NONE) => {
-                return region[value]
-            }}],
-        noStudio:["{{r}}地区没有制片厂的公司，",{
-            a: (value: Region = Region.NONE) => {
-                return region[value]
-            }}],
-        noBuilding:["{{r}}地区没有建筑的公司，",{
-            a: (value: Region = Region.NONE) => {
-                return region[value]
-            }}],
-        lose:["When you lose {{a}},",{
-            a: (value: string = "E02") => {
-                // @ts-ignore
-                return cards[value]
-            }}],
-        school:["手牌上限：{{hand}}行动力：{{action}}",{
-            hand:undefined,
-            action:undefined
-        }],
-        continuous:"[Continuous:]",
-        scoringHeader:"【出牌】：",
-        playCardHeader:"【出牌】：",
-        buyCardHeader:"【购买】：",
-        breakthroughHeader:"【突破】：",
-        schoolHeader:"【流派】：",
-        responseHeader:"【响应】：",
-        choice:"Please choose a effect to execute:",
-        comment: ["Comment {{a}}", {
-            a: (value: number = 1) => {
-                if (value <= 1) {
-                    return `once`;
-                } else {
-                    if(value ===2){
-                        return `twice`;
-                    }else {
-                        return `${value} times`;
-                    }
+        event: ["After {{a}}", argCardName],
+        optional: "【optional】",
+        pay:"支付",
+        undefined:"Undefined",
+        update:["Update {{a}}",argTimes],
+        noBuildingEE:"东欧地区没有建筑的公司",
+        playerVpChampion:"声望最高的公司",
+        playerNotVpChampion:"声望不是最高的公司",
+        aesLowest:"美学等级最低的公司",
+        industryLowest:"工业等级最低的公司",
+        competition: ["争夺一次{{bonus}}{{win}}", {
+            bonus: (value: number = 0) => {
+                if(value>0){
+                    return "竞争力+" + value.toString()
+                }else {
+                    return "";
                 }
             },
-        }],
-        industryBreakthrough: "Industry breakthrough",
-        aestheticsBreakthrough: "Aesthetics breakthrough",
-        buyCard: ["Buy card {{a}} for free",{
-            a: (value: string = "B01") => {
-                // @ts-ignore
-                return cards[value]
+            onWin: (e:any)=>{
+                if(e.e !== "none")
+                {
+                    return "若这次争夺获胜你额外获得一个" +  region[e.a as Region] +"地区份额"
+                }else{
+                    return "";
+                }
         }}],
-        buyCardToHand: ["Buy card {{a}} for free, and add to hand.",{
-            a: (value: string = "B01") => {
-                // @ts-ignore
-                return cards[value]
-            }}],
-        industryLevelUp: ["Upgrade industry level {{a}}",{
-            a: (value: number = 1) => {
-                if (value <= 1) {
-                    return `once`;
-                } else {
-                    if(value ===2){
-                        return `twice`;
-                    }else {
-                        return `${value} times`;
-                    }
-                }
-            },
+        loseVp: ["Lose {{a}} prestige", argValue],
+        loseDeposit: ["Lose {{a}} deposit", argValue],
+        competitionStart: "On competition start,",
+        competitionBonus: ["competition progress +{{a}}", argValue],
+        archive: ["Put {{a}} card(s) into your archive.", argValue],
+        resFromIndustry: "按照你的工业等级获得资源",
+        resFromAesthetics: "按照你的美学等级获得资源",
+        aesAward: ["执行美学奖励{{a}}次", argValue],
+        industryAward: ["执行工业奖励{{a}}次", argValue],
+        searchAndArchive: "检索此牌并置入档案馆",
+        draw: ["Draw {{a}} card(s)", argValue],
+        discard: ["Discard {{a}} card(s)", argValue],
+        discardNormalOrLegend: ["弃{{a}}张普通或传奇牌", argValue],
+        discardIndustry: ["Discard {{a}} card(s) with industry mark", argValue],
+        discardAesthetics: ["Discard {{a}} card(s) with aesthetics mark", argValue],
+        allNoStudioPlayer: ["All company with no studio in {{a}},", argRegion],
+        vp: ["{{a}}声望", argValue],
+        res: ["{{a}}资源", argValue],
+        deposit: ["{{a}}存款", argValue],
+        loseAnyRegionShare: ["Lose {{a}} share(s) of any region", argValue],
+        share: ["获得{{a}}个{{r}}地区的份额", argValue],
+        shareNA: ["获得{{a}}个西欧地区的份额", argValue],
+        shareWE: ["获得{{a}}个西欧地区的份额", argValue],
+        shareEE: ["获得{{a}}个西欧地区的份额", argValue],
+        shareASIA: ["获得{{a}}个西欧地区的份额", argValue],
+        shareToVp: ["按照你当前持有的{{a}}份额获得声望", argRegion],
+        anyRegionShare: ["获得{{a}}个任意地区的份额", argValue],
+        deductRes: ["deduct {{a}} resource(s) from cost.", argValue],
+        extraEffect: "Extra effect:",
+        buyAesthetics: "When you buys a card with aesthetics marker,",
+        loseVpRespond: "When you lose vp,",
+        othersBuySchool: "When another company buys a school card,",
+        turnStart: "On every turn start",
+        studio: "本地区有制片厂的公司，",
+        building: "本地区有建筑的公司，",
+        noStudio: "本地区没有制片厂的公司，",
+        noBuilding: "本地区没有建筑的公司，",
+        lose: ["When you lose {{a}},", argCardName],
+        school: ["手牌上限：{{hand}}行动力：{{action}}", {
+            hand: undefined,
+            action: undefined
         }],
-        aestheticsLevelUp: ["Upgrade Aesthetics",{
-            a: (value: number = 1) => {
-                if (value <= 1) {
-                    return `once`;
-                } else {
-                    if(value ===2){
-                        return `twice`;
-                    }else {
-                        return `${value} times`;
-                    }
-                }
-            },
-        }],
+        continuous: "[Continuous:]",
+        scoringHeader: "【Scoring】： ",
+        playCardHeader: "【出牌】： ",
+        buyCardHeader: "【购买】： ",
+        breakthroughHeader: "【突破】： ",
+        schoolHeader: "【流派】： ",
+        responseHeader: "【响应】： ",
+        choice: "Please choose a effect to execute:",
+        comment: ["Comment {{a}}",],
+        industryBreakthrough: ["Industry breakthrough"],
+        aestheticsBreakthrough: ["Aesthetics breakthrough"],
+        buy: ["Buy card {{a}} for free", argCardName],
+        buyCardToHand: ["Buy card {{a}} for free, and add to hand.", argCardName],
+        industryLevelUp: ["Upgrade industry level {{a}}", argTimes],
+        aestheticsLevelUp: ["Upgrade Aesthetics", argTimes],
         buildCinema: "Build Cinema",
-        buildCinemaInRegion: ["Build cinema in {{a}}", {a: (r:Region)=>region[r],}],
+        buildCinemaInRegion: ["Build cinema in {{a}}", argRegion],
         buildStudio: "Build Studio",
-        buildStudioInRegion: ["Build studio in {{a}}", {a: (r:Region)=>region[r],}],
+        buildStudioInRegion: ["Build studio in {{a}}", argRegion],
         refactor: "Do Refactor",
-        discard: "Discard hand",
-        discardIndustry: "Discard hand with industry mark",
-        discardAesthetics: "Discard hand with aesthetics mark",
         skipBreakthrough: "Skip Breakthrough",
     },
     hand: {
@@ -286,8 +308,8 @@ const en = {
             title: "Please choose target player of current effect.",
             toggleText: "Choose Target Player",
         },
-        peek:{
-            title:"Peek cards on the top of the deck",
+        peek: {
+            title: "Peek cards on the top of the deck",
         },
         chooseRegion: {
             title: "Please choose target region of current effect.",
@@ -341,8 +363,8 @@ const en = {
         player: "Player",
     },
     pub: {
-        handSize:"Hand Size",
-        estimatedFinalScore:" Estimated Final Score",
+        handSize: "Hand Size",
+        estimatedFinalScore: " Estimated Final Score",
         events: "Event cards:",
         res: "Resource:",
         deposit: "Deposit:",
@@ -359,7 +381,7 @@ const en = {
         allCards: "All cards",
         inferredHands: "Inferred hands",
         archive: "Archive",
-        playedCards: "Turn cards",
+        playedCards: "Played Cards",
     },
     score: {
         first: "Champion of",

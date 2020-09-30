@@ -75,7 +75,7 @@ export const ChoiceDialog =({initial,callback,show,choices,title,toggleText,defa
             </DialogContent>
             <DialogActions>
                 <Button onClick={()=>{
-                    handleClose();
+                    //handleClose();
                     callback(choice);
                 }} color="primary">
                     {i18n.confirm}

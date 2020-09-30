@@ -10,9 +10,10 @@ import FormLabel from "@material-ui/core/FormLabel";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import {getBasicCard} from "../constant/cards/basic";
 import {Ctx, PlayerID} from "boardgame.io";
-import {canAfford, canBuyCard, resCost} from "../game/util";
+import {canAfford, canBuyCard, cardEffectText, resCost} from "../game/util";
 import Slider from "@material-ui/core/Slider";
 import Grid from "@material-ui/core/Grid";
+import Typography from "@material-ui/core/Typography";
 
 export interface IBuyDialogProps {
     card: INormalOrLegendCard | IBasicCard,
@@ -34,13 +35,14 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         deposit: 0,
         helper: [],
     }));
-    const [deposit, setDeposit] = React.useState(Math.max(resCost(G, ctx, {
-        buyer: playerID,
-        target: card,
-        resource: 0,
-        deposit: 0,
-        helper: [],
-    }) - G.pub[parseInt(playerID)].resource,0));
+    const [deposit, setDeposit] = React.useState(Math.max(
+        resCost(G, ctx, {
+                buyer: playerID,
+                target: card,
+                resource: 0,
+                deposit: 0,
+                helper: [],
+    }) - G.pub[parseInt(playerID)].resource, 0));
     const [checked, setChecked] = React.useState(Array(helpers.length).fill(false));
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,11 +66,10 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         }
         setChecked(newHelper);
         setCost(newCost);
-        console.log(newHelper,newCost,deposit,newMax,newMin);
     }
 
-    const affordable = canAfford(G, ctx, card, playerID);
     const pub = G.pub[parseInt(playerID)];
+    const affordable = canAfford(G, ctx, card, playerID) && pub.action > 0;
     const buyArg = {
         buyer: playerID,
         target: card,
@@ -98,7 +99,6 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     }
 
     const handleSliderChange = (event: any, newValue: number | number[]) => {
-        console.log(event,newValue)
         if (typeof newValue === "number") {
             setDeposit(newValue);
         }
@@ -119,6 +119,10 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                 {i18n.pub.aestheticsMarker} {card.cost.aesthetics}
             </DialogTitle>
             <DialogContent>
+                <Typography>{
+                    // @ts-ignore
+                    cardEffectText(card.cardId)
+                }</Typography>
                 <FormControl required component="fieldset">
                     <FormLabel component="legend" error={!canBuy}>
                         {i18n.dialog.buyCard.cost} {i18n.pub.res} {cost - deposit}

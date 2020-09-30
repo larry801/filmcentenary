@@ -6,6 +6,7 @@ import {
     IBuyInfo,
     ICard,
     ICardSlot,
+    IEra,
     IFilmCard,
     INormalOrLegendCard,
     IPubInfo,
@@ -26,14 +27,14 @@ import {
     doAestheticsBreakthrough,
     doBuy,
     doIndustryBreakthrough,
-    tryScoring,
     doUpdateSlot,
     drawCardForPlayer,
     fillPlayerHand,
-    industryAward, nextEra,
+    industryAward,
     nextPlayer,
     playerEffExec,
     studioSlotsAvailable,
+    tryScoring,
 } from "./util";
 import {changePlayerStage, changeStage, signalEndPhase} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
@@ -49,7 +50,6 @@ export const drawCard: LongFormMove = {
 
 export const buyCard = {
     move(G: IG, ctx: Ctx, arg: IBuyInfo): any {
-        console.log(JSON.stringify(arg));
         if (canBuyCard(G, ctx, arg)) {
             let p = curPub(G, ctx);
             p.action--;
@@ -63,8 +63,10 @@ export const buyCard = {
             })
             doBuy(G, ctx, arg.target as INormalOrLegendCard | IBasicCard, ctx.currentPlayer);
             let eff = getCardEffect(arg.target.cardId);
-            G.e.stack.push(eff.buy);
-            curEffectExec(G, ctx);
+            if (eff.e !== "none") {
+                G.e.stack.push(eff.buy);
+                checkNextEffect(G, ctx);
+            }
         } else {
             return INVALID_MOVE;
         }
@@ -106,8 +108,12 @@ export const chooseHand: LongFormMove = {
                     case "discard":
                         hand.splice(parseInt(arg), 1);
                         pub.discard.push(card);
+                        if (eff.e.a.a > 1) {
+                            eff.e.a.a--;
+                        } else {
+                            nextPlayer(G, ctx);
+                        }
                         G.e.stack.push(eff);
-                        nextPlayer(G, ctx);
                         return;
                     case "archiveToEEBuildingVP":
                         hand.splice(parseInt(arg), 1);
@@ -133,7 +139,7 @@ export const chooseHand: LongFormMove = {
                 pub.vp += (card.vp + G.e.card.vp);
                 doBuy(G, ctx, B05, p);
                 break;
-            case "archiveHand":
+            case "archive":
                 hand.splice(parseInt(arg), 1);
                 pub.archive.push(card);
                 break;
@@ -206,11 +212,11 @@ export const chooseEffect: LongFormMove = {
                 regions.forEach(r => G.e.regions.push(r));
                 changeStage(G, ctx, "chooseRegion");
                 return;
+            default:
+                G.e.stack.push(eff);
+                playerEffExec(G,ctx,p);
+                return;
         }
-        G.e.stack.push(eff);
-        console.log(JSON.stringify(eff));
-        curEffectExec(G, ctx);
-        checkNextEffect(G, ctx);
     }
 }
 
@@ -218,6 +224,7 @@ export const updateSlot = {
     client: false,
     move: (G: IG, ctx: Ctx, slot: ICardSlot) => {
         doUpdateSlot(G, ctx, slot);
+        checkNextEffect(G, ctx);
     }
 }
 
@@ -261,9 +268,24 @@ export const chooseRegion = {
                 G.regions[r].share++;
                 break;
             case "anyRegionShare":
-                G.pub[parseInt(p)].shares[r]--;
-                G.regions[r].share++;
-                break;
+                let i = G.competitionInfo;
+                if (i.pending) {
+                    let loser = i.progress > 0 ? i.def : i.atk;
+                    G.pub[parseInt(loser)].shares[r]--;
+                    G.pub[parseInt(p)].shares[r]++;
+                    if(eff.a>1){
+                        eff.a--;
+                        G.e.stack.push(eff);
+                        checkNextEffect(G,ctx);
+                        return;
+                    }else {
+                        break;
+                    }
+                } else {
+                    G.pub[parseInt(p)].shares[r]++;
+                    G.regions[r].share++;
+                    break;
+                }
             default:
                 throw new Error();
         }
@@ -312,9 +334,15 @@ export const chooseEvent: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: string) => {
         let eid: EventCardID = G.events[parseInt(arg)].cardId as EventCardID;
         G.e.stack.push(getEvent(eid));
-        curEffectExec(G, ctx);
+        if(eid===EventCardID.E02){
+
+        }
+        else{
+            curEffectExec(G, ctx);
+        }
     }
 }
+
 export const requestEndTurn: LongFormMove = {
     client: false,
     undoable: false,
@@ -344,8 +372,9 @@ export const requestEndTurn: LongFormMove = {
         aesAward(G, ctx, ctx.currentPlayer);
         industryAward(G, ctx, ctx.currentPlayer);
         ValidRegions.forEach(r => {
-            let we = checkRegionScoring(G, ctx, r);
-            if (we) {
+            if(r===Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE)return;
+            let canScore = checkRegionScoring(G, ctx, r);
+            if (canScore) {
                 G.scoringRegions.push(r)
             }
         })
@@ -365,11 +394,23 @@ export const confirmRespond: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (arg === "yes") {
-
+            let eff = G.e.stack.pop();
+            switch (eff.e) {
+                case "pay":
+                    G.e.stack.push(eff.a.eff)
+                    curEffectExec(G, ctx);
+                    break;
+                case "optional":
+                    G.e.stack.push(eff.a)
+                    curEffectExec(G, ctx);
+                    break;
+                default:
+                    throw new Error();
+            }
         } else {
             G.e.stack.pop();
         }
-        curEffectExec(G, ctx);
+        checkNextEffect(G, ctx);
     },
 }
 
@@ -398,15 +439,15 @@ export const competitionCard: LongFormMove = {
         G.player[parseInt(p)].competitionCards.push(arg);
 
         let i = G.competitionInfo;
-        if(p===i.atk){
+        if (p === i.atk) {
             i.atkPlayedCard = true;
-            changePlayerStage(G,ctx,"competitionCard",i.def);
+            changePlayerStage(G, ctx, "competitionCard", i.def);
             return;
-        }else {
-            if(p===i.def){
+        } else {
+            if (p === i.def) {
                 i.defPlayedCard = true;
 
-            }else {
+            } else {
                 throw new Error();
             }
         }
@@ -438,11 +479,32 @@ export const breakthrough: LongFormMove = {
         let p = G.pub[parseInt(arg.playerID)];
         let playerObj = G.player[parseInt(arg.playerID)];
         p.action -= 1;
+        // TODO let player choose 2res/1res 1dep /2dep
         p.resource -= arg.res;
         p.deposit -= (2 - arg.res);
         // @ts-ignore
         let c: INormalOrLegendCard | IBasicCard = playerObj.hand.splice(arg.idx, 1)[0];
         p.archive.push(c);
+        let eff = getCardEffect(c.cardId).archive;
+        if (eff)
+            if (c.cardId === "1108") {
+                if (p.deposit < 1) {
+                    return INVALID_MOVE;
+                } else {
+                    p.deposit -= 1;
+                }
+            }
+        if (c.cardId === "1208") {
+            G.e.stack.push({
+                e: "industryOrAestheticsBreakthrough", a: {
+                    industry: p.industry,
+                    aesthetics: p.aesthetics,
+                }
+            })
+            curEffectExec(G, ctx);
+            return;
+        }
+
         let i = c.industry
         let a = c.aesthetics
         if (i === 0 && a === 0) {
@@ -455,7 +517,7 @@ export const breakthrough: LongFormMove = {
                     aesthetics: p.aesthetics,
                 }
             })
-
+            curEffectExec(G, ctx);
         } else {
             if (i === 0) {
                 doAestheticsBreakthrough(G, ctx, arg.playerID);
@@ -486,7 +548,6 @@ export const comment: LongFormMove = {
 export const initialSetup: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, args: IPubInfo[]) => {
-        console.log(JSON.stringify(args));
         signalEndPhase(G, ctx);
     },
 }

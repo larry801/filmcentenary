@@ -1,7 +1,8 @@
 import {
+    BasicCardID,
     CardCategory,
     CardType,
-    cost,
+    cost, IBasicCard,
     ICost,
     IEffect,
     IEra,
@@ -12,6 +13,7 @@ import {
     ISchoolCard,
     Region
 } from "./core";
+import {getBasicCard} from "../constant/cards/basic";
 
 
 interface IArgFilmCard {
@@ -1520,12 +1522,17 @@ const CARDS = {
     }),
 }
 
-export function idToCard(id: string): INormalOrLegendCard {
+export function getCardById(id: string): INormalOrLegendCard  {
     if (id in CARDS) {
         // @ts-ignore
         return CARDS[id];
     } else {
-        throw new Error("No such id" + id);
+        if(id in BasicCardID){
+            // @ts-ignore
+            return getBasicCard(id as BasicCardID);
+        }else {
+            throw new Error("No such id" + id);
+        }
     }
 }
 

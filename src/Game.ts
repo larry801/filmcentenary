@@ -32,9 +32,6 @@ export const FilmCentenaryGame: Game<IG> = {
     maxPlayers: 4,
     playerView: (G:IG, ctx:Ctx, playerID:PlayerID) => {
         let r = {...G};
-        if (r.secret !== undefined) {
-            delete r.secret;
-        }
         let newPlayerObj = []
         for (let p = 0; p < r.player.length; p++) {
             let oldPlayerPrivateInfo = G.player[p];
@@ -42,7 +39,9 @@ export const FilmCentenaryGame: Game<IG> = {
                 newPlayerObj.push({
                     hand :[],
                     handSize: oldPlayerPrivateInfo.hand.length,
-                    finalScoringExtraVp:getExtraScoreForFinal(G,ctx,p.toString()),
+                    // TODO test strip on server
+                    //finalScoringExtraVp:getExtraScoreForFinal(G,ctx,p.toString()),
+                    finalScoringExtraVp:0,
                     cardsToPeek :[],
                     competitionCards:[],
                 });
@@ -52,11 +51,15 @@ export const FilmCentenaryGame: Game<IG> = {
                     cardsToPeek :oldPlayerPrivateInfo.cardsToPeek,
                     competitionCards :oldPlayerPrivateInfo.cardsToPeek,
                     handSize: G.player[p].hand.length,
-                    finalScoringExtraVp:getExtraScoreForFinal(G,ctx,p.toString()),
+                    //finalScoringExtraVp:getExtraScoreForFinal(G,ctx,p.toString()),
+                    finalScoringExtraVp:0,
                 });
             }
         }
         r.player = newPlayerObj;
+        if (r.secret !== undefined) {
+            delete r.secret;
+        }
         return r;
     },
     moves: {

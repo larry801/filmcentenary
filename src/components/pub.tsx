@@ -45,7 +45,8 @@ export const PubPanel = (i: IPubInfo) => {
                 })} defaultChoice={'0'}
                 show={true} title={i18n.pub.discard}
                 toggleText={i18n.pub.discard} initial={false}/>
-
+        </Grid>
+        <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
                 callback={() => {
                 }}
@@ -59,7 +60,8 @@ export const PubPanel = (i: IPubInfo) => {
                 })} defaultChoice={'0'}
                 show={true} title={i18n.pub.allCards}
                 toggleText={i18n.pub.allCards} initial={false}/>
-
+        </Grid>
+        <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
                 callback={() => {
                 }}
@@ -73,7 +75,8 @@ export const PubPanel = (i: IPubInfo) => {
                 })} defaultChoice={'0'}
                 show={true} title={i18n.pub.archive}
                 toggleText={i18n.pub.archive} initial={false}/>
-
+        </Grid>
+        <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
                 callback={() => {
                 }}

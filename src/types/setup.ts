@@ -86,6 +86,7 @@ export interface IG {
 
 function pubPlayer(): IPubInfo {
     return {
+        scoreEvents:[],
         vpAward:{
             v60:false,
             v90:false,
@@ -101,10 +102,10 @@ function pubPlayer(): IPubInfo {
         aesthetics: 0,
         allCards: [B01, B02, B07, B07, B07, B07, B07, B07],
         archive: [],
-        deposit: 30,
+        deposit: 0,
         discard: [],
         industry: 0,
-        resource: 30,
+        resource: 0,
         playedCardInTurn: [],
         revealedHand: [],
         school: null,
@@ -179,7 +180,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             ],
         },
         order: randomOrder,
-        logDiscrepancyWorkaround: true,
+        logDiscrepancyWorkaround: false,
         pending: {
             lastRoundOfGame: false,
             endActivePlayer: false,

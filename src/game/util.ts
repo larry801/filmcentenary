@@ -12,11 +12,12 @@ import {
     IPubInfo,
     ISchoolCard,
     NoneBasicCardID,
-    Region, ValidRegions,
+    Region, ShareOnBoard,
+    ValidRegions,
 } from "../types/core";
 import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
-import {cardsByCond, filmCardsByEra, idToCard, schoolCardsByEra} from "../types/cards";
+import {cardsByCond, filmCardsByEra, getCardById, schoolCardsByEra} from "../types/cards";
 import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
@@ -24,6 +25,7 @@ import {B04, getBasicCard} from "../constant/cards/basic";
 import {eventCardByEra} from "../constant/cards/event";
 import {getScoreCard, scoreCardCount} from "../constant/cards/score";
 import i18n from "../constant/i18n";
+import {chooseRegion} from "./moves";
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -38,7 +40,6 @@ export function activePlayer(ctx: Ctx) {
             return players[0];
         }
         players.splice(players.indexOf(ctx.currentPlayer), 1);
-        console.log(JSON.stringify(players));
         return players[0];
     }
 }
@@ -127,6 +128,16 @@ function isSimpleEffect(eff: any): boolean {
     }
 }
 
+function getShare(G: IG, region: Region.NA | Region.WE | Region.EE | Region.ASIA, eff: any, obj: IPubInfo) {
+    if (G.regions[region].share >= eff.a) {
+        obj.shares[region] += eff.a;
+        G.regions[region].share -= eff.a;
+    } else {
+        obj.shares[region] += G.regions[region].share;
+        G.regions[region].share = 0
+    }
+}
+
 function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     let eff = G.e.stack.pop();
     let obj = G.pub[parseInt(p)];
@@ -153,15 +164,17 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             break;
         case "share":
             if (region !== Region.NONE) {
-                if (G.regions[region].share >= eff.a) {
-                    obj.shares[region] += eff.a;
-                    G.regions[region].share -= eff.a;
-                } else {
-                    obj.shares[region] += G.regions[region].share;
-                    G.regions[region].share = 0
-                }
+                getShare(G, region, eff, obj);
             }
             break
+        case "shareNA":
+            getShare(G, Region.NA, eff, obj);
+        case "shareWE":
+            getShare(G, Region.WE, eff, obj);
+        case "shareEE":
+            getShare(G, Region.EE, eff, obj);
+        case "shareASIA":
+            getShare(G, Region.ASIA, eff, obj);
         case "deposit":
             obj.deposit += eff.a;
             break;
@@ -202,24 +215,31 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             }
             break;
         case "buyCard":
-            card = idToCard(eff.a);
+            card = getCardById(eff.a);
             doBuy(G, ctx, card, ctx.currentPlayer);
             break;
         case "buyCardToHand":
-            card = idToCard(eff.a);
+            card = getCardById(eff.a);
             doBuyToHand(G, ctx, card, ctx.currentPlayer);
             break;
         case "aestheticsLevelUp":
-            obj.aesthetics++;
+            if (obj.aesthetics < 10) {
+                obj.aesthetics++;
+            }
             break
         case "industryLevelUp":
-            obj.industry++;
+            if (obj.industry < 10) {
+                obj.industry++;
+            }
             break;
         case "industryAward":
             industryAward(G, ctx, p);
             break;
         case "aesAward":
             aesAward(G, ctx, p);
+            break;
+        case "buy":
+            doBuy(G, ctx, getCardById(eff.a), p);
             break;
         default:
             throw new Error(JSON.stringify(eff));
@@ -408,14 +428,123 @@ export function getCardCompetition(G: IG, ctx: Ctx, card: INormalOrLegendCard | 
     return 0;
 }
 
+export function industryLowestPlayer(G: IG, ctx: Ctx): PlayerID[] {
+    let highestIndustry = 0;
+    let result: PlayerID[] = [];
+    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
+        if (G.pub[idx].industry > highestIndustry) highestIndustry = G.pub[idx].industry
+    })
+    Array(ctx.numPlayers).fill(1).filter((i, idx) => {
+        if (G.pub[idx].industry <= highestIndustry) {
+            result.push(idx.toString())
+        }
+    })
+    return result;
+}
+
+export function aesLowestPlayer(G: IG, ctx: Ctx): PlayerID[] {
+    let highestAes = 0;
+    let result: PlayerID[] = [];
+    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
+        if (G.pub[idx].aesthetics > highestAes) highestAes = G.pub[idx].aesthetics
+    })
+    Array(ctx.numPlayers).fill(1).filter((i, idx) => {
+        if (G.pub[idx].aesthetics <= highestAes) {
+            result.push(idx.toString())
+        }
+    })
+    return result;
+}
+
+export function notVpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
+    let highestVp = 0;
+    let result: PlayerID[] = [];
+    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
+        if (G.pub[idx].vp > highestVp) highestVp = G.pub[idx].vp
+    })
+    Array(ctx.numPlayers).fill(1).filter((i, idx) => {
+        if (G.pub[idx].vp !== highestVp) {
+            result.push(idx.toString())
+        }
+    })
+    return result;
+}
+
+export function vpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
+    let highestVp = 0;
+    let result: PlayerID[] = [];
+    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
+        if (G.pub[idx].vp > highestVp) highestVp = G.pub[idx].vp
+    })
+    Array(ctx.numPlayers).fill(1).filter((i, idx) => {
+        if (G.pub[idx].vp === highestVp) {
+            result.push(idx.toString())
+        }
+    })
+    return result;
+}
+
 export const curEffectExec = (G: IG, ctx: Ctx): void => {
     let eff = G.e.stack.pop();
     let obj = G.pub[curPid(G, ctx)];
     let playerObj = G.player[curPid(G, ctx)];
+    let players: PlayerID[] = [];
     //let card: INormalOrLegendCard;
     let region = G.e.card.region;
-    console.log(JSON.stringify(eff));
     switch (eff.e) {
+        case "loseAnyRegionShare":
+            // @ts-ignore
+            G.e.regions = ValidRegions.filter(r => obj.shares[r] > 0)
+            if (G.e.regions.length === 0) {
+                break;
+            } else {
+                changeStage(G, ctx, "chooseRegion");
+                return;
+            }
+        case "anyRegionShare":
+            let i = G.competitionInfo;
+            if (i.pending) {
+                let winner = i.progress > 0 ? i.atk : i.def;
+                let loser = i.progress > 0 ? i.def : i.atk;
+                // @ts-ignore
+                G.e.regions = ValidRegions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
+                if (G.e.regions.length === 0) {
+                    break;
+                } else {
+                    changePlayerStage(G, ctx, "chooseRegion", winner);
+                    return;
+                }
+            } else {
+                // @ts-ignore
+                G.e.regions = ValidRegions.filter(r => G.regions[r].share > 0)
+                if (G.e.regions.length === 0) {
+                    break;
+                } else {
+                    changeStage(G, ctx, "chooseRegion");
+                    return;
+                }
+            }
+        case "noBuildingEE":
+            players = noBuildingPlayers(G, ctx, Region.EE);
+            for (let p of players) {
+                G.e.stack.push(eff.a);
+                simpleEffectExec(G, ctx, p);
+            }
+            break;
+        case "playerNotVpChampion":
+            players = notVpChampionPlayer(G, ctx);
+            for (let p of players) {
+                G.e.stack.push(eff.a);
+                simpleEffectExec(G, ctx, p);
+            }
+            break
+        case "playerVpChampion":
+            players = vpChampionPlayer(G, ctx);
+            for (let p of players) {
+                G.e.stack.push(eff.a);
+                simpleEffectExec(G, ctx, p);
+            }
+            break;
         case "handToOthers":
             changeStage(G, ctx, "chooseHand");
             break;
@@ -461,11 +590,15 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             break
         case "noStudio":
             G.c.players = noStudioPlayers(G, ctx, region);
+            G.e.stack.push(eff.a);
             changeStage(G, ctx, "chooseTarget")
             return;
         case "studio":
-            let players = studioPlayers(G, ctx, region);
-            players.forEach(p => simpleEffectExec(G, ctx, p));
+            players = studioPlayers(G, ctx, region);
+            players.forEach(p => {
+                G.e.stack.push(eff.a);
+                simpleEffectExec(G, ctx, p)
+            });
             break;
         case "step":
             eff.a.reduceRight((_: any, item: any) => {
@@ -473,23 +606,76 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             });
             break;
         case "refactor":
-        case "archiveHand":
+        case "archive":
+        case "discard":
         case "discardIndustry":
         case "discardAesthetics":
-            console.log(JSON.stringify(eff));
+        case "discardNormalOrLegend":
             G.e.stack.push(eff);
             changeStage(G, ctx, "chooseHand");
             return;
         case "choice":
-            G.e.choices = eff.a;
-            ctx.events?.setStage?.(eff.e);
+            for (let choice of eff.a) {
+                if (choice.e === "buy") {
+                    if (idOnBoard(G, ctx, choice.a)) {
+                        G.e.choices.push(choice);
+                    }
+                } else {
+                    G.e.choices.push(choice);
+                }
+            }
+            if (G.e.choices.length === 0) {
+                break;
+            } else {
+                if (G.e.choices.length === 1) {
+                    G.e.stack.push(G.e.choices.pop());
+                    checkNextEffect(G, ctx);
+                } else {
+                    changeStage(G, ctx, "chooseEffect");
+                    return;
+                }
+            }
             return;
         case "update":
+            changeStage(G, ctx, "updateSlot");
+            return;
         case "comment":
-            ctx.events?.setStage?.(eff.e);
+            changeStage(G, ctx, "comment");
             return;
         case "pay":
-            ctx.events?.setStage?.("confirmRespond");
+            switch (eff.a.cost) {
+                case "res":
+                    if (obj.resource < eff.a.cost.a) {
+                        checkNextEffect(G, ctx);
+                        return;
+                    } else {
+                        G.e.stack.push(eff);
+                        changeStage(G, ctx, "confirmRespond");
+                        return;
+                    }
+                case "vp":
+                    if (obj.vp < eff.a.cost.a) {
+                        checkNextEffect(G, ctx);
+                        return;
+                    } else {
+                        G.e.stack.push(eff);
+                        changeStage(G, ctx, "confirmRespond");
+                        return;
+                    }
+                case "deposit":
+                    if (obj.deposit < eff.a.cost.a) {
+                        checkNextEffect(G, ctx);
+                        return;
+                    } else {
+                        G.e.stack.push(eff);
+                        changeStage(G, ctx, "confirmRespond");
+                        return;
+                    }
+                default:
+                    throw new Error();
+            }
+        case "optional":
+            changeStage(G, ctx, "confirmRespond");
             return;
         default:
             G.e.stack.push(eff);
@@ -509,20 +695,34 @@ export const nextPlayer = (G: IG, ctx: Ctx): void => {
 
 export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let eff = G.e.stack.pop();
-    //let obj = G.pub[parseInt(p)];
+    let obj = G.pub[parseInt(p)];
     //let card: INormalOrLegendCard;
     //let region = G.e.card.region;
+
     switch (eff.e) {
-        case "archiveHand":
+        case "archive":
         case "discardIndustry":
         case "discardAesthetics":
+        case "discardNormalOrLegend":
             changePlayerStage(G, ctx, "chooseHand", p);
             return;
         case "industryOrAestheticsLevelUp":
-            G.e.choices.push({e: "industryLevelUp", a: 1})
-            G.e.choices.push({e: "aestheticsLevelUp", a: 1})
-            changePlayerStage(G, ctx, "chooseEffect", p);
-            return;
+            if (obj.industry < 10 && obj.aesthetics < 10) {
+                G.e.choices.push({e: "industryLevelUp", a: 1});
+                G.e.choices.push({e: "aestheticsLevelUp", a: 1});
+                changePlayerStage(G, ctx, "chooseEffect", p);
+                return;
+            } else {
+                if (obj.industry < 10) {
+                    obj.industry++;
+                } else {
+                    if (obj.aesthetics < 10) {
+                        obj.aesthetics++;
+                    } else {
+                    }
+                }
+                break;
+            }
         case "everyPlayer":
             G.e.stack.push(eff);
             switch (eff.e.a.e) {
@@ -541,6 +741,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             G.e.stack.push(eff);
             simpleEffectExec(G, ctx, p);
     }
+    checkNextEffect(G,ctx);
 }
 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
@@ -601,7 +802,7 @@ export const cardOnBoard = (G: IG, ctx: Ctx, card: INormalOrLegendCard): boolean
 }
 
 export function idOnBoard(G: IG, ctx: Ctx, id: string): boolean {
-    return cardOnBoard(G, ctx, idToCard(id));
+    return cardOnBoard(G, ctx, getCardById(id));
 }
 
 export function cardDepleted(G: IG, ctx: Ctx, region: Region) {
@@ -657,7 +858,6 @@ export function canAfford(G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCar
 export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     let resRequired = resCost(G, ctx, arg);
     let resGiven: number = arg.resource + arg.deposit;
-    console.log(resGiven, resRequired);
     return resRequired === resGiven;
 }
 
@@ -1034,20 +1234,73 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
             let r = G.scoringRegions.shift();
             if (r === undefined) throw new Error();
             nextEra(G, ctx, r);
+
             if (ValidRegions.filter(r =>
                 // @ts-ignore
                 G.regions[r].completedModernScoring).length >= 3) {
                 G.pending.lastRoundOfGame = true;
             }
+            if (ValidRegions.filter(r =>
+                // @ts-ignore
+                G.regions[r].era !== IEra.ONE).length >= 2 &&
+                G.regions[Region.ASIA].era === IEra.ONE
+            ) {
+                drawForRegion(G,ctx,Region.ASIA,IEra.TWO);
+                G.regions[Region.ASIA].era = IEra.TWO;
+                G.regions[Region.ASIA].share = ShareOnBoard[Region.ASIA][IEra.TWO];
+            }
             tryScoring(G, ctx);
         } else {
-            if (ctx.activePlayers === null) {
-                ctx?.events?.endStage?.();
+            let i = G.competitionInfo;
+            if (i.pending) {
+                if (i.atkPlayedCard) {
+                    i.atkPlayedCard = false;
+                    defCardSettle(G, ctx);
+                } else {
+                    i.defPlayedCard = false;
+                }
+            } else {
+                if (ctx.activePlayers !== null) {
+                    ctx?.events?.endStage?.();
+                }
             }
         }
     } else {
         curEffectExec(G, ctx);
     }
+}
+
+export function loseVp(G: IG, ctx: Ctx, p: PlayerID, vp: number) {
+    let atk = G.pub[parseInt(p)];
+    if (vp > atk.vp) {
+        atk.vp = 0;
+    } else {
+        atk.vp -= vp;
+    }
+}
+
+export function competitionResultSettle(G: IG, ctx: Ctx) {
+    let i = G.competitionInfo;
+    let atk = G.pub[parseInt(i.atk)];
+    let def = G.pub[parseInt(i.def)];
+    if (i.progress >= 2) {
+
+    } else {
+        if (i.progress <= -3) {
+
+        } else {
+
+        }
+    }
+
+}
+
+export function defCardSettle(G: IG, ctx: Ctx) {
+    let i = G.competitionInfo;
+    let card = G.player[parseInt(i.def)].competitionCards[0];
+    let eff = getCardEffect(card.cardId);
+    G.e.stack.push(eff);
+    curEffectExec(G, ctx);
 }
 
 export function nextEra(G: IG, ctx: Ctx, r: Region) {
@@ -1071,8 +1324,13 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
         newEra = IEra.TWO;
         region.era = newEra;
         drawForRegion(G, ctx, r, newEra);
+        region.share = ShareOnBoard[r][newEra];
     }
     if (era === IEra.TWO) {
+        newEra = IEra.THREE;
+
+        region.share = ShareOnBoard[r][newEra];
+        region.era = newEra;
         // TODO add era three cards
         region.completedModernScoring = true;
         // newEra = IEra.THREE;
@@ -1133,22 +1391,97 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number =>
         let championCount = p.champions.filter(c => c.region === r).length;
         extraVP += p.archive.filter(card => card.region === r).length * championCount;
     });
-    // TODO era 3 events
+    if (p.scoreEvents.includes(EventCardID.E10)) {
+        for (let j = 0; j < ctx.numPlayers; i++) {
+            if (j !== parseInt(pid)) {
+                let other = G.pub[j];
+                if (other.vp > p.vp) {
+                    extraVP += 4;
+                }
+            }
+        }
+    }
+    if (p.scoreEvents.includes(EventCardID.E11)) {
+        // @ts-ignore
+        G.secret.playerDecks[i].filter(c => c.type === CardType.P).forEach(c => extraVP += 4);
+        extraVP += p.archive.filter(card => card.type === CardType.P).length * 4;
+    }
+    if (p.scoreEvents.includes(EventCardID.E12)) {
+        extraVP += p.industry;
+        extraVP += p.aesthetics;
+    }
+    if (p.scoreEvents.includes(EventCardID.E13)) {
+        let championCount = p.champions.length;
+        switch (championCount) {
+            case 6:
+            case 5:
+            case 4:
+                extraVP += 20;
+                break;
+            case 3:
+                extraVP += 12;
+                break;
+            case 2:
+                extraVP += 6;
+                break;
+            case 1:
+                extraVP += 2;
+                break;
+            default:
+                break;
+        }
+    }
+    if (p.scoreEvents.includes(EventCardID.E14)) {
+        extraVP += G.secret.playerDecks[i].filter(c => c.category === CardCategory.BASIC).length;
+        extraVP += p.archive.filter(card => card.category === CardCategory.BASIC).length;
+    }
     return extraVP;
+}
 
+export const rank = (G: IG, ctx: Ctx, p1: number, p2: number): number => {
+    let pub1 = G.pub[p1];
+    let pub2 = G.pub[p2];
+    let v1, v2;
+    if (ctx.gameover) {
+        v1 = pub1.vp;
+        v2 = pub2.vp;
+    } else {
+        v1 = pub1.vp + G.player[p1].finalScoringExtraVp;
+        v2 = pub1.vp + G.player[p2].finalScoringExtraVp;
+    }
+    if (v1 > v2) {
+        return 1;
+    } else {
+        if (v1 < v2) {
+            return -1;
+        } else {
+            return posOfPlayer(G, ctx, p1.toString())
+            < posOfPlayer(G, ctx, p2.toString()) ?
+                1 : -1;
+        }
+    }
 }
 export const finalScoring = (G: IG, ctx: Ctx) => {
+    let pid: number[] = [];
     for (let i = 0; i < ctx.numPlayers; i++) {
-
+        G.pub[i].vp += getExtraScoreForFinal(G, ctx, i.toString());
+        pid.push(i);
     }
+    const rankFunc = (a: number, b: number) => rank(G, ctx, a, b);
+    let finalRank = pid.sort(rankFunc);
+    ctx?.events?.endGame?.({
+        winner: finalRank[0].toString(),
+        reason: "finalScoring",
+    })
 }
 
 export const cardEffectText = (cardId: BasicCardID | NoneBasicCardID): string => {
     // @ts-ignore
     let effObj = getCardEffect(cardId);
+    let region = getCardById(cardId).region;
     let r: string[] = [];
     if (effObj.buy.e !== "none") {
-        r.push(i18n.effect.schoolHeader);
+        r.push(i18n.effect.buyCardHeader);
         r.push(effName(effObj.buy));
     }
     if (effObj.play.e !== "none") {
@@ -1162,32 +1495,76 @@ export const cardEffectText = (cardId: BasicCardID | NoneBasicCardID): string =>
     if (effObj.hasOwnProperty("school")) {
         r.push(i18n.effect.continuous);
         r.push(i18n.effect.school(effObj.school));
-        r.push(effName(effObj.continuous));
+        if (effObj.response.pre.e !== "none") {
+            r.push(i18n.effect.extraEffect);
+            if (effObj.response.pre.e === "multiple") {
+                effObj.response.pre.a.forEach((singleEff: { pre: any; effect: any; }) => {
+                    r.push(effName(singleEff.pre))
+                    r.push(effName(singleEff.effect))
+                })
+            } else {
+                r.push(effName(effObj.response.pre));
+                r.push(effName(effObj.response.effect));
+            }
+        }
+    } else {
+        if (effObj.hasOwnProperty("response") && effObj.response.pre !== "none") {
+            r.push(i18n.effect.responseHeader);
+            r.push(effName(effObj.response.pre));
+            r.push(effName(effObj.response.effect));
+        }
     }
-    if (effObj.response.pre.e !== "none") {
-        r.push(i18n.effect.responseHeader);
-        r.push(effName(effObj.response.pre));
-        r.push(effName(effObj.response));
-    }
-    return r.join();
+    return r.join("\n");
 }
 
 export const effName = (eff: any): string => {
+    if(eff === undefined)return "undefined";
+    if (eff.e === "pay") {
+        return i18n.effect.pay + effName(eff.a.cost) + effName(eff.a.eff);
+    }
+    if (eff.e === "optional") {
+        return i18n.effect.optional + effName(eff.a);
+    }
+    if (eff.e === "buy") {
+        return i18n.effect.buy({a:eff.a})
+    }
+    if (eff.e === "event") {
+        return i18n.effect.event({a:eff.a})
+    }
+    if (eff.e === "buyToHand") {
+        return i18n.effect.buyCardToHand({a:eff.a})
+    }
+    if (eff.e === "studio") {
+        return i18n.effect.studio + effName(eff.a);
+    }
+    if (eff.e === "noStudio") {
+        return i18n.effect.noStudio + effName(eff.a);
+    }
     if (eff.e === "era") {
         let r = []
         for (let i = 0; i < 3; i++) {
+            let sub = eff.a[i];
+            if(sub === undefined) {
+                console.log(JSON.stringify(eff));
+                return "";
+            }
+            if (sub.e === "none") continue;
             r.push(i18n.effect.era[i as 0 | 1 | 2]);
-            r.push(effName(eff.e.a[i]));
+            r.push(effName(sub));
         }
-        return r.join();
+        return r.join("\n");
     }
     if (eff.e === "step") {
         // @ts-ignore
-        return eff.a.map(e => effectName(e)).join();
+        return eff.a.map(e => effName(e)).join("，");
     }
     if (eff.e === "choice") {
-        // @ts-ignore
-        return eff.a.map(e => effectName(e)).unshift(i18n.effect.choice).join();
+        let res = eff.a.map((e: any) => effName(e));
+        res.unshift(i18n.effect.choice)
+        return res.join("，");
+    }
+    if (eff.e === "noStudio") {
+
     }
     // @ts-ignore
     let name = i18n.effect[eff.e];

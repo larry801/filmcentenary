@@ -95,6 +95,15 @@ export enum EventCardID{
     "E03"="E03",
     "E04"="E04",
     "E05"="E05",
+    "E06"="E06",
+    "E07"="E07",
+    "E08"="E08",
+    "E09"="E09",
+    "E10"="E10",
+    "E11"="E11",
+    "E12"="E12",
+    "E13"="E13",
+    "E14"="E14",
 }
 export enum NormalOrLegendCardID{
     "p1101"="1101"
@@ -142,6 +151,7 @@ export interface Champion{
 }
 
 export interface IPubInfo {
+    scoreEvents:EventCardID[],
     vpAward:{
         v60:boolean,
         v90:boolean,
@@ -369,5 +379,12 @@ export enum NoneBasicCardID {
     'F3413'='F3413',
     'F3414'='F3414',
 }
+export type validRegion = Region.NA | Region.WE| Region.EE| Region.ASIA;
+export const ValidRegions:validRegion[] = [Region.NA, Region.WE, Region.EE, Region.ASIA];
 
-export const ValidRegions = [Region.NA, Region.WE, Region.EE, Region.ASIA];
+export const ShareOnBoard = {
+    0:[6,9,12],
+    1:[6,9,10],
+    2:[4,6,8],
+    3:[0,6,10],
+}
