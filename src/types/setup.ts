@@ -86,6 +86,12 @@ export interface IG {
 
 function pubPlayer(): IPubInfo {
     return {
+        vpAward:{
+            v60:false,
+            v90:false,
+            v120:false,
+            v150:false,
+        },
         building: {
             cinemaBuilt: false,
             studioBuilt: false,
@@ -118,7 +124,9 @@ function pubPlayer(): IPubInfo {
 }
 
 function privatePlayer(): IPrivateInfo {
-    return {hand: [], handSize:0,cardsToPeek:[]}
+    return {hand: [], handSize:0,cardsToPeek:[],competitionCards:[],
+        finalScoringExtraVp:0,
+    }
 }
 
 function emptyNormalCardSlot(region: Region): ICardSlot {
@@ -229,6 +237,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         },
         regions: {
             0: {
+                completedModernScoring:false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(0),
@@ -244,6 +253,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 share: 6,
             },
             1: {
+                completedModernScoring:false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(1),
@@ -257,6 +267,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 share: 6,
             },
             2: {
+                completedModernScoring:false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(2),
@@ -267,6 +278,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 share: 4,
             },
             3: {
+                completedModernScoring:false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(3),

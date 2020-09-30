@@ -19,6 +19,7 @@ import {
 } from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
 import {Region} from "./types/core";
+import {getExtraScoreForFinal} from "./game/util";
 
 export const FilmCentenaryGame: Game<IG> = {
     setup: setup,
@@ -36,14 +37,23 @@ export const FilmCentenaryGame: Game<IG> = {
         }
         let newPlayerObj = []
         for (let p = 0; p < r.player.length; p++) {
+            let oldPlayerPrivateInfo = G.player[p];
             if (p.toString() !== playerID) {
                 newPlayerObj.push({
                     hand :[],
-                    handSize: G.player[parseInt(playerID)].hand.length,
-                    cardsToPeek :[]
+                    handSize: oldPlayerPrivateInfo.hand.length,
+                    finalScoringExtraVp:getExtraScoreForFinal(G,ctx,p.toString()),
+                    cardsToPeek :[],
+                    competitionCards:[],
                 });
             }else {
-                newPlayerObj.push(G.player[parseInt(playerID)]);
+                newPlayerObj.push({
+                    hand:oldPlayerPrivateInfo.hand,
+                    cardsToPeek :oldPlayerPrivateInfo.cardsToPeek,
+                    competitionCards :oldPlayerPrivateInfo.cardsToPeek,
+                    handSize: G.player[p].hand.length,
+                    finalScoringExtraVp:getExtraScoreForFinal(G,ctx,p.toString()),
+                });
             }
         }
         r.player = newPlayerObj;
@@ -72,16 +82,15 @@ export const FilmCentenaryGame: Game<IG> = {
         let championRequiredForAutoWin = ctx.numPlayers > 3 ? 6 : 5;
         Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).forEach(
             p => {
-                if (
-                    G.pub[parseInt(p)].champions.length
-                    === championRequiredForAutoWin
-                    || G.pub[parseInt(p)].champions
-                        .filter(c => c.region === Region.NA)
-                        .length === 3
-                ) {
-                    return {winner: p}
+                if (G.pub[parseInt(p)].champions.length === championRequiredForAutoWin) {
+                    return {winner: p,reason:"championCountAutoWin"}
+                }
+                if(G.pub[parseInt(p)].champions
+                    .filter(c => c.region === Region.NA)
+                    .length === 3){
+                    return {winner: p,reason:"threeNAChampionAutoWin"}
                 }
             }
         )
     },
-};
+}

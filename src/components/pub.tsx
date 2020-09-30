@@ -9,19 +9,19 @@ export const PubPanel = (i: IPubInfo) => {
     useI18n(i18n);
 
     return <>
-        <Grid item xs={6} sm={4} md={2} xl={1}>
+        <Grid item xs={4} sm={3} md={2} lg={1}>
             <Typography>   {i18n.pub.res} {i.resource}</Typography>
             <Typography>   {i18n.pub.deposit} {i.deposit}</Typography>
         </Grid>
-        <Grid item xs={6} sm={4} md={2} xl={1}>
+        <Grid item xs={4} sm={3} md={2} lg={1}>
             <Typography>   {i18n.pub.industry} {i.industry}</Typography>
             <Typography>   {i18n.pub.aesthetics} {i.aesthetics}</Typography>
         </Grid>
-        <Grid item xs={6} sm={4} md={2} xl={1}>
+        <Grid item xs={4} sm={3} md={2} lg={1}>
             <Typography>   {i18n.pub.action} {i.action}</Typography>
             <Typography>   {i18n.pub.vp} {i.vp}</Typography>
         </Grid>
-        <Grid item xs={6} sm={4} md={2} xl={1}>
+        <Grid item xs={4} sm={3} md={2} lg={1}>
             {i.school !== null ?
                 <Typography> {i18n.pub.school} {i18n.card[i.school.cardId as BasicCardID]} </Typography> : <></>}
             <Typography>   {i18n.pub.share} </Typography>
@@ -31,7 +31,7 @@ export const PubPanel = (i: IPubInfo) => {
                 }</Typography>
             )}
         </Grid>
-        <Grid item xs={6} sm={4} md={2} xl={1}>
+        <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
                 callback={() => {
                 }}

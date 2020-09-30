@@ -209,7 +209,7 @@ const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: {
-            pre: {type: "eventCard", a: "E02"},
+            pre: {e: "event", a: "E02"},
             effect: {
                 o: true, e: "step", a: [
                     {e: "searchAndArchive", a: "1102"},
@@ -380,8 +380,8 @@ const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: {
-            pre: {type: "eventCard", a: "E02"},
-            effect: {o: true, e: "step", a: [{e: "searchAndArchive", a: "1102"}, {e: "addVp", a: 2}]},
+            pre: {e: "event", a: "E02"},
+            effect: {e:"optional",a:{e: "step", a: [{e: "searchAndArchive", a: "1102"}, {e: "addVp", a: 2}]}},
         },
     },
     "1203": {
@@ -396,8 +396,8 @@ const effects = {
             action: 1,
         },
         response: {
-            pre: {type: "loseSchool"},
-            effect: {e: "aestheticsUp", a: 1},
+            pre: {e: "lose",a:"2103"},
+            effect: {e: "aestheticsLevelUp", a: 1},
         },
     },
     "1204": {
@@ -412,7 +412,7 @@ const effects = {
             action: 2,
         },
         response: {
-            pre: {type: "breakthrough"},
+            pre: {e: "breakthrough"},
             effect: {e: "deposit", a: 1},
         },
     },
@@ -521,10 +521,7 @@ const effects = {
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: {e: "step", a: [{e: "vp", a: 5}, {e: "deposit", a: 2}]},
-        response: {
-            pre: {type: "none", a: "E02"},
-            effect: noEff,
-        },
+        response: noResponse,
     },
     "1211": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -539,7 +536,7 @@ const effects = {
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {pre: {type: "discard"}, effect: {e: "deposit", a: 1}},
+        response: {pre: {e: "discard"}, effect: {e: "deposit", a: 1}},
 
     },
     "1301": {
@@ -554,8 +551,8 @@ const effects = {
             action: 2,
         },
         response: {
-            pre: {type: "turnStart"},
-            effect: {e: "step", a: [{e: "vp", a: 1}, {e: "discardAndDraw", a: 1}]},
+            pre: {e: "turnStart"},
+            effect: {e: "step", a: [{e: "vp", a: 1}, {e: "draw", a: 1},{e: "discard", a: 1}]},
         },
     },
     "1302": {
@@ -576,10 +573,7 @@ const effects = {
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {
-            pre: {type: "none", a: "E02"},
-            effect: noEff,
-        },
+        response: noResponse,
     },
     "1303": {
         "school": {
@@ -593,7 +587,7 @@ const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: {
-            pre: {type: "othersBuySchool"},
+            pre: {e: "othersBuySchool"},
             effect: {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 1}]},
         },
     },
@@ -731,7 +725,7 @@ const effects = {
             action: 2,
         },
         response: {
-            pre: {type: "loseVp"},
+            pre: {e: "loseVp"},
             effect: {e: "res", a: 1},
         },
     },

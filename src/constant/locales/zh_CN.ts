@@ -184,10 +184,45 @@ const zh_CN: Locale = {
         redo:"恢复",
     },
     effect:{
+        era:{
+            0: "1时代：",
+            1: "2时代：",
+            2: "3时代：",
+        },
+        optional:"【可选】",
+        othersBuySchool:"其他公司购买【流派】时",
+        turnStart:"每回合开始时，",
+        studio:["{{r}}地区有制片厂的公司，",{
+            a: (value: Region = Region.NONE) => {
+                return region[value]
+            }}],
+        building:["{{r}}地区有建筑的公司，",{
+            a: (value: Region = Region.NONE) => {
+                return region[value]
+            }}],
+        noStudio:["{{r}}地区没有制片厂的公司，",{
+            a: (value: Region = Region.NONE) => {
+                return region[value]
+            }}],
+        noBuilding:["{{r}}地区没有建筑的公司，",{
+            a: (value: Region = Region.NONE) => {
+                return region[value]
+            }}],
+        lose:["失去{{a}}时",{
+            a: (value: string = "E02") => {
+                // @ts-ignore
+                return cards[value]
+            }}],
+        event:["当{{a}}发生后",{
+            a: (value: string = "E02") => {
+                // @ts-ignore
+                return cards[value]
+            }}],
         school:["手牌上限：{{hand}}行动力：{{action}}",{
             hand:undefined,
             action:undefined
         }],
+        scoringHeader:"【计分】：",
         continuous:"【持续】：",
         playCardHeader:"【出牌】：",
         buyCardHeader:"【购买】：",
@@ -272,6 +307,8 @@ const zh_CN: Locale = {
         title: "手牌"
     },
     pub: {
+        handSize:"手牌数",
+        estimatedFinalScore:"终局分数",
         events: "事件牌区：",
         res: "资源：",
         deposit: "存款：",

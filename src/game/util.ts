@@ -10,8 +10,9 @@ import {
     IEra,
     INormalOrLegendCard,
     IPubInfo,
-    ISchoolCard, NoneBasicCardID,
-    Region
+    ISchoolCard,
+    NoneBasicCardID,
+    Region, ValidRegions,
 } from "../types/core";
 import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
@@ -182,6 +183,18 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             break;
         case "vp":
             obj.vp += eff.a;
+            let count = 0;
+            if (obj.vp >= 60 && !obj.vpAward.v60) count++;
+            if (obj.vp >= 90 && !obj.vpAward.v90) count++;
+            if (obj.vp >= 120 && !obj.vpAward.v120) count++;
+            if (obj.vp >= 150 && !obj.vpAward.v150) {
+                count++;
+                G.pending.lastRoundOfGame = true;
+            }
+            if (count > 0) {
+                G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count})
+                playerEffExec(G, ctx, p);
+            }
             break;
         case "draw":
             for (let i = 0; i < eff.a; i++) {
@@ -336,7 +349,9 @@ export const getPidHasCard = (G: IG, ctx: Ctx, cardId: string): number[] => {
     );
     return p;
 }
-
+export const buildingInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
+    return studioInRegion(G, ctx, r, p) || cinemaInRegion(G, ctx, r, p);
+}
 export const studioInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
     if (r === Region.NONE) return false;
     return G.regions[r].buildings.filter(s => s.content === "studio" && s.owner === p).length > 0;
@@ -438,9 +453,9 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
                     for (let p of G.c.players) {
                         playerEffExec(G, ctx, p);
                     }
-                }else {
+                } else {
                     let player = G.c.players[0] as PlayerID;
-                    playerEffExec(G,ctx,player);
+                    playerEffExec(G, ctx, player);
                 }
             }
             break
@@ -480,17 +495,15 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             G.e.stack.push(eff);
             simpleEffectExec(G, ctx, ctx.currentPlayer);
     }
-    if (G.e.stack.length > 0) {
-        curEffectExec(G, ctx);
-    }
+    checkNextEffect(G, ctx);
 }
 
 export const nextPlayer = (G: IG, ctx: Ctx): void => {
     if (G.c.players.length > 0) {
         G.c.players.shift();
-        checkNextEffect(G,ctx);
-    }else {
-        checkNextEffect(G,ctx);
+        checkNextEffect(G, ctx);
+    } else {
+        checkNextEffect(G, ctx);
     }
 }
 
@@ -503,18 +516,23 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "archiveHand":
         case "discardIndustry":
         case "discardAesthetics":
-            changePlayerStage(G, ctx, "chooseHand",p);
+            changePlayerStage(G, ctx, "chooseHand", p);
+            return;
+        case "industryOrAestheticsLevelUp":
+            G.e.choices.push({e: "industryLevelUp", a: 1})
+            G.e.choices.push({e: "aestheticsLevelUp", a: 1})
+            changePlayerStage(G, ctx, "chooseEffect", p);
             return;
         case "everyPlayer":
             G.e.stack.push(eff);
             switch (eff.e.a.e) {
                 case "archiveToEEBuildingVP":
-                    changePlayerStage(G, ctx, "chooseHand",p);
+                    changePlayerStage(G, ctx, "chooseHand", p);
                     return;
                 case "industryOrAestheticsLevelUp":
                     G.e.choices.push({e: "industryBreakthrough", a: eff.a.industry})
                     G.e.choices.push({e: "aestheticsBreakthrough", a: eff.a.aesthetics})
-                    changePlayerStage(G, ctx, "chooseEffect",p);
+                    changePlayerStage(G, ctx, "chooseEffect", p);
                     return;
                 default:
                     throw new Error()
@@ -856,12 +874,21 @@ export const doEndTurn = (G: IG, ctx: Ctx,): void => {
     signalEndTurn(G, ctx);
 }
 
-export const doScoring = (G: IG, ctx: Ctx): void => {
+export const tryScoring = (G: IG, ctx: Ctx): void => {
     if (G.scoringRegions.length > 0) {
         let r = G.scoringRegions.shift();
+        G.scoringRegions.unshift(r as Region);
         regionRank(G, ctx, r as Region);
     } else {
-        signalEndTurn(G, ctx);
+        if (
+            G.pending.lastRoundOfGame &&
+            posOfPlayer(G, ctx, ctx.currentPlayer)
+            === (ctx.numPlayers - 1)
+        ) {
+            finalScoring(G, ctx);
+        } else {
+            signalEndTurn(G, ctx);
+        }
     }
 };
 
@@ -950,16 +977,20 @@ export function fillEventCard(G: IG, ctx: Ctx) {
     let region = G.scoringRegions.slice(-1)[0];
     if (region === Region.NONE) return;
     let era = G.regions[region].era;
-    let newEra: IEra = era === IEra.THREE ? era : era + 1;
+    // TODO stop at era two by now
+    let newEra: IEra = era === IEra.TWO ? era : era + 1;
     let newEvent = G.secret.events.pop();
     if (newEvent === undefined) {
-
+        throw new Error();
     } else {
         G.events.push(newEvent)
     }
     if (G.secret.events.length === 1) {
         if (G.secret.events[0].cardId === "E03") {
             G.activeEvents.push(EventCardID.E03);
+            Array(ctx.numPlayers).fill(0).forEach((i, idx) => {
+                if (G.pub[idx].action < 2) G.pub[idx].action = 2
+            });
         }
         if (newEra !== era) {
             doFillNewEraEvents(G, ctx, newEra);
@@ -999,36 +1030,157 @@ export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
 
 export function checkNextEffect(G: IG, ctx: Ctx) {
     if (G.e.stack.length === 0) {
-        ctx?.events?.endStage?.();
+        if (G.scoringRegions.length > 0) {
+            let r = G.scoringRegions.shift();
+            if (r === undefined) throw new Error();
+            nextEra(G, ctx, r);
+            if (ValidRegions.filter(r =>
+                // @ts-ignore
+                G.regions[r].completedModernScoring).length >= 3) {
+                G.pending.lastRoundOfGame = true;
+            }
+            tryScoring(G, ctx);
+        } else {
+            if (ctx.activePlayers === null) {
+                ctx?.events?.endStage?.();
+            }
+        }
     } else {
         curEffectExec(G, ctx);
     }
 }
 
-export const cardEffectText = (cardId: BasicCardID | NoneBasicCardID) => {
+export function nextEra(G: IG, ctx: Ctx, r: Region) {
+    if (r === Region.NONE) throw new Error();
+    let region = G.regions[r];
+    let era = region.era;
+    let newEra;
+    region.legend.card = null;
+    if (region.legend.comment !== null) {
+        G.basicCards[region.legend.comment.cardId as BasicCardID]++;
+        region.legend.comment = null
+    }
+    for (let s of region.normal) {
+        s.card = null;
+        if (s.comment !== null) {
+            G.basicCards[s.comment.cardId as BasicCardID]++;
+            s.comment = null
+        }
+    }
+    if (era === IEra.ONE) {
+        newEra = IEra.TWO;
+        region.era = newEra;
+        drawForRegion(G, ctx, r, newEra);
+    }
+    if (era === IEra.TWO) {
+        // TODO add era three cards
+        region.completedModernScoring = true;
+        // newEra = IEra.THREE;
+        // region.era = newEra;
+        // drawForRegion(G,ctx,r,newEra);
+    }
+    if (era === IEra.THREE) {
+        region.completedModernScoring = true;
+    }
+}
+
+export const startCompetition = (G: IG, ctx: Ctx) => {
+    let i = G.competitionInfo;
+    i.pending = true;
+}
+export const settleCompetition = (G: IG, ctx: Ctx) => {
+    let i = G.competitionInfo;
+    let atkCard = G.player[parseInt(i.atk)].competitionCards[0];
+    let defCard = G.player[parseInt(i.atk)].competitionCards[0];
+    // @ts-ignore
+    let eff = getCardEffect()
+}
+
+export const exitCompetition = (G: IG, ctx: Ctx) => {
+    let i = G.competitionInfo;
+    i.pending = false;
+    i.progress = 0;
+    i.atkPlayedCard = false;
+    i.defPlayedCard = false;
+}
+export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number => {
+    let i = parseInt(pid);
+    let extraVP = 0;
+    let p = G.pub[i];
+    let s = G.player[i];
+    if (p.school !== null) {
+        extraVP += p.school.vp
+    }
+    // @ts-ignore
+    p.discard.forEach(c => extraVP += c.vp);
+    // @ts-ignore
+    s.hand.forEach(c => extraVP += c.vp);
+    // @ts-ignore
+    G.secret.playerDecks[i].forEach(c => extraVP += c.vp);
+    if (p.building.cinemaBuilt) extraVP += 3;
+    if (p.building.studioBuilt) extraVP += 3;
+    if (p.industry === 10) {
+        for (let j = 0; j < ctx.numPlayers; i++) {
+            let each = G.pub[j];
+            if (each.building.cinemaBuilt) extraVP += 5;
+            if (each.building.studioBuilt) extraVP += 5;
+        }
+    }
+    if (p.aesthetics === 10) {
+        extraVP += Math.round(p.vp / 5);
+    }
+    ValidRegions.forEach(r => {
+        let championCount = p.champions.filter(c => c.region === r).length;
+        extraVP += p.archive.filter(card => card.region === r).length * championCount;
+    });
+    // TODO era 3 events
+    return extraVP;
+
+}
+export const finalScoring = (G: IG, ctx: Ctx) => {
+    for (let i = 0; i < ctx.numPlayers; i++) {
+
+    }
+}
+
+export const cardEffectText = (cardId: BasicCardID | NoneBasicCardID): string => {
     // @ts-ignore
     let effObj = getCardEffect(cardId);
     let r: string[] = [];
     if (effObj.buy.e !== "none") {
         r.push(i18n.effect.schoolHeader);
+        r.push(effName(effObj.buy));
     }
     if (effObj.play.e !== "none") {
-        r.push(i18n.effect.schoolHeader);
+        r.push(i18n.effect.playCardHeader);
+        r.push(effName(effObj.play));
     }
     if (effObj.archive.e !== "none") {
-        r.push(i18n.effect.schoolHeader);
+        r.push(i18n.effect.breakthroughHeader);
+        r.push(effName(effObj.archive));
     }
     if (effObj.hasOwnProperty("school")) {
-        r.push(i18n.effect.schoolHeader);
-    }
-    if (effObj.hasOwnProperty("continuous")) {
         r.push(i18n.effect.continuous);
-        r.push(effName(effObj.school));
+        r.push(i18n.effect.school(effObj.school));
         r.push(effName(effObj.continuous));
     }
+    if (effObj.response.pre.e !== "none") {
+        r.push(i18n.effect.responseHeader);
+        r.push(effName(effObj.response.pre));
+        r.push(effName(effObj.response));
+    }
+    return r.join();
 }
 
 export const effName = (eff: any): string => {
+    if (eff.e === "era") {
+        let r = []
+        for (let i = 0; i < 3; i++) {
+            r.push(i18n.effect.era[i as 0 | 1 | 2]);
+            r.push(effName(eff.e.a[i]));
+        }
+        return r.join();
+    }
     if (eff.e === "step") {
         // @ts-ignore
         return eff.a.map(e => effectName(e)).join();

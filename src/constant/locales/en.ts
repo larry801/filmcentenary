@@ -170,11 +170,46 @@ const en = {
     confirm: "OK",
     cancel: "Cancel",
     effect: {
+        era:{
+            0: "Era 1",
+            1: "Era 2",
+            2: "Era 3",
+        },
+        event:["After {{a}}",{
+            a: (value: string = "E02") => {
+                // @ts-ignore
+                return cards[value]
+            }}],
+        optional:"【optional】",
+        othersBuySchool:"When another company buys a school card,",
+        turnStart:"On every turn start",
+        studio:["{{r}}地区有制片厂的公司，",{
+            a: (value: Region = Region.NONE) => {
+                return region[value]
+            }}],
+        building:["{{r}}地区有建筑的公司，",{
+            a: (value: Region = Region.NONE) => {
+                return region[value]
+            }}],
+        noStudio:["{{r}}地区没有制片厂的公司，",{
+            a: (value: Region = Region.NONE) => {
+                return region[value]
+            }}],
+        noBuilding:["{{r}}地区没有建筑的公司，",{
+            a: (value: Region = Region.NONE) => {
+                return region[value]
+            }}],
+        lose:["When you lose {{a}},",{
+            a: (value: string = "E02") => {
+                // @ts-ignore
+                return cards[value]
+            }}],
         school:["手牌上限：{{hand}}行动力：{{action}}",{
             hand:undefined,
             action:undefined
         }],
         continuous:"[Continuous:]",
+        scoringHeader:"【出牌】：",
         playCardHeader:"【出牌】：",
         buyCardHeader:"【购买】：",
         breakthroughHeader:"【突破】：",
@@ -306,6 +341,8 @@ const en = {
         player: "Player",
     },
     pub: {
+        handSize:"Hand Size",
+        estimatedFinalScore:" Estimated Final Score",
         events: "Event cards:",
         res: "Resource:",
         deposit: "Deposit:",

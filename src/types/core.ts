@@ -142,6 +142,12 @@ export interface Champion{
 }
 
 export interface IPubInfo {
+    vpAward:{
+        v60:boolean,
+        v90:boolean,
+        v120:boolean,
+        v150:boolean,
+    },
     champions:Champion[],
     building:{
         cinemaBuilt:boolean,
@@ -170,7 +176,9 @@ export interface IPubInfo {
 export interface IPrivateInfo {
     hand: ICard[],
     handSize:number,
+    finalScoringExtraVp:number,
     cardsToPeek:ICard[],
+    competitionCards:ICard[]
 }
 
 export interface IBuildingSlot {
@@ -182,6 +190,7 @@ export interface IBuildingSlot {
 }
 
 export interface IRegionInfo {
+    completedModernScoring:boolean,
     era: IEra,
     buildings: IBuildingSlot[],
     share: number,
