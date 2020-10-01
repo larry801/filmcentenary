@@ -28,7 +28,7 @@ export interface IEff {
     a: IEff[] | number | string,
 }
 
-const eventEffects = {
+export const eventEffects = {
     "E01": {
         e: "step",
         a: [
@@ -105,7 +105,7 @@ const eventEffects = {
     },
 }
 
-const effects = {
+export const effects = {
     "B01": {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,

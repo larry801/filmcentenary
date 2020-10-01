@@ -28,6 +28,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
 
     useI18n(i18n);
     const [open, setOpen] = React.useState(false);
+
     const [cost, setCost] = React.useState(resCost(G, ctx, {
         buyer: playerID,
         target: card,
@@ -35,14 +36,9 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         deposit: 0,
         helper: [],
     }));
-    const [deposit, setDeposit] = React.useState(Math.max(
-        resCost(G, ctx, {
-                buyer: playerID,
-                target: card,
-                resource: 0,
-                deposit: 0,
-                helper: [],
-    }) - G.pub[parseInt(playerID)].resource, 0));
+
+    const [depositExtra, setDepositExtra] = React.useState(0);
+
     const [checked, setChecked] = React.useState(Array(helpers.length).fill(false));
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,43 +52,48 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             deposit: 0,
             helper: helpers.filter((c, idx) => newHelper[idx]),
         });
-        let newMin = Math.max(newCost - pub.resource,0);
-        let newMax = Math.min(newCost,pub.deposit);
-        if(deposit>newMax){
-            setDeposit(newMax);
+        let newMin = Math.max(newCost - pub.resource, 0);
+        let newMax = Math.min(newCost, pub.deposit);
+        let newExtraDepositLimit = newMax - newMin
+        if (depositExtra > newExtraDepositLimit) {
+            setDepositExtra(newExtraDepositLimit);
         }
-        if(deposit<newMin){
-            setDeposit(newMin);
+        if (depositExtra < 0) {
+            setDepositExtra(0);
         }
         setChecked(newHelper);
         setCost(newCost);
     }
 
     const pub = G.pub[parseInt(playerID)];
+    const minDeposit = Math.max(cost - pub.resource, 0);
     const affordable = canAfford(G, ctx, card, playerID) && pub.action > 0;
+    const res = cost - depositExtra -minDeposit;
+    const deposit = depositExtra + minDeposit
     const buyArg = {
         buyer: playerID,
         target: card,
-        resource: cost - deposit,
+        resource: res,
         deposit: deposit,
         helper: helpers.filter((c, idx) => checked[idx]),
     };
     const sliderRequired = pub.deposit + pub.resource > cost && pub.deposit > 0 && pub.resource > 0;
-    const minDeposit = Math.max(cost - pub.resource ,0);
-    const maxDeposit = Math.min(cost,pub.deposit);
+    const maxDeposit = Math.min(cost, pub.deposit);
     const canBuy: boolean = canBuyCard(G, ctx, buyArg);
-    const buy = () => {moves.buyCard(buyArg)};
+    const buy = () => {
+        moves.buyCard(buyArg)
+    };
     const canHelp = (helper: INormalOrLegendCard | IBasicCard): boolean => {
-        if (card.cost.industry === 0 ) {
-            if(card.cost.aesthetics === 0){
+        if (card.cost.industry === 0) {
+            if (card.cost.aesthetics === 0) {
                 return false;
-            }else {
+            } else {
                 return helper.aesthetics > 0;
             }
-        }else{
-            if(card.cost.aesthetics === 0){
+        } else {
+            if (card.cost.aesthetics === 0) {
                 return helper.industry > 0;
-            }else {
+            } else {
                 return helper.aesthetics > 0 || helper.industry > 0;
             }
         }
@@ -100,14 +101,16 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
 
     const handleSliderChange = (event: any, newValue: number | number[]) => {
         if (typeof newValue === "number") {
-            setDeposit(newValue);
+            setDepositExtra(newValue);
         }
     };
 
     return <Grid item>
         <Button
             disabled={!affordable}
-            onClick={() => {setOpen(true)}}
+            onClick={() => {
+                setOpen(true)
+            }}
             variant={"outlined"}
         >{i18n.dialog.buyCard.board} {i18n.card[card.cardId as BasicCardID]}</Button>
         <Dialog onClose={() => setOpen(false)} open={open}>
@@ -125,32 +128,32 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                 }</Typography>
                 <FormControl required component="fieldset">
                     <FormLabel component="legend" error={!canBuy}>
-                        {i18n.dialog.buyCard.cost} {i18n.pub.res} {cost - deposit}
+                        {i18n.dialog.buyCard.cost} {i18n.pub.res} {res}
                         {i18n.pub.deposit} {deposit}
                     </FormLabel>
                     <FormGroup>
                         {sliderRequired ? <Slider
                             onChange={handleSliderChange}
-                            min={minDeposit}
-                            max={maxDeposit}
+                            min={0}
+                            max={maxDeposit - minDeposit}
                             step={1}
                             marks
-                            getAriaValueText={(n:number)=>n.toString()}
+                            getAriaValueText={(n: number) => n.toString()}
                             aria-labelledby="deposit-slider"
                             valueLabelDisplay="auto"
-                            value={deposit}
+                            value={depositExtra}
                         /> : <></>}
                         {helpers.map((p, idx) =>
-                            canHelp(p as INormalOrLegendCard|IBasicCard) ? <FormControlLabel
+                            canHelp(p as INormalOrLegendCard | IBasicCard) ? <FormControlLabel
                                 key={idx} id={p.cardId}
                                 control={<Checkbox
                                     value={idx}
                                     checked={checked[idx]}
                                     onChange={(e) => handleChange(e)}
                                     name={i18n.card[p.cardId as BasicCardID]}/>}
-                                label={i18n.card[p.cardId as BasicCardID] + "  "  + i18n.pub.industry +
-                                    // @ts-ignore
-                                    p.industry.toString() + i18n.pub.aesthetics + p.aesthetics.toString()
+                                label={i18n.card[p.cardId as BasicCardID] + "  " + i18n.pub.industry +
+                                // @ts-ignore
+                                p.industry.toString() + i18n.pub.aesthetics + p.aesthetics.toString()
                                 }
                             /> : <></>)}
                     </FormGroup>

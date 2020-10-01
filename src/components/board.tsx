@@ -13,6 +13,7 @@ import {BasicCardID, CardCategory, EventCardID, IBasicCard, ICardSlot, Region, V
 import {BuyCard} from "./buyCard";
 import {B01, B02, B03, B05} from "../constant/cards/basic";
 import {Grid, Paper, Typography} from "@material-ui/core";
+import {CardList} from "./cardreference";
 
 
 export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive, matchData, playerID}: BoardProps<IG>) => {
@@ -141,6 +142,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                     <Typography>{i18n.card[e.cardId as EventCardID]}</Typography>
                 </Paper></Grid>) : <></>}
         </Grid>
+        <CardList/>
         {ctx.phase === "InitPhase" ?
             <Grid item>
                 <Button fullWidth={true}

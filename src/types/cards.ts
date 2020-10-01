@@ -2,7 +2,7 @@ import {
     BasicCardID,
     CardCategory,
     CardType,
-    cost, IBasicCard,
+    cost, EventCardID,
     ICost,
     IEffect,
     IEra,
@@ -14,6 +14,7 @@ import {
     Region
 } from "./core";
 import {getBasicCard} from "../constant/cards/basic";
+import {eventCardById} from "../constant/cards/event";
 
 
 interface IArgFilmCard {
@@ -1531,7 +1532,12 @@ export function getCardById(id: string): INormalOrLegendCard  {
             // @ts-ignore
             return getBasicCard(id as BasicCardID);
         }else {
-            throw new Error("No such id" + id);
+            if(id in EventCardID){
+                return eventCardById(id as EventCardID);
+            }else {
+                console.log(JSON.stringify(id));
+                throw new Error("No such id" + id)
+            }
         }
     }
 }

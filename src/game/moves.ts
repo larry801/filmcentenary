@@ -32,7 +32,7 @@ import {
     fillPlayerHand,
     industryAward,
     nextPlayer,
-    playerEffExec,
+    playerEffExec, startCompetition,
     studioSlotsAvailable,
     tryScoring,
 } from "./util";
@@ -78,14 +78,21 @@ export const buyCard = {
 export const chooseTarget: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: PlayerID) => {
+        let src = ctx.playerID === undefined ? ctx.currentPlayer:ctx.playerID;
+        let p = arg;
         let eff = G.e.stack.pop();
         switch (eff.e) {
+            case "competition":
+                G.c.players = [];
+                startCompetition(G,ctx,src,p);
+                return;
             case "loseAnyRegionShare":
-                let p = G.c.players[0];
+                G.c.players = [];
                 G.e.regions = ValidRegions.filter(
                     // @ts-ignore
                     r => G.pub[parseInt(p)].shares[r] > 0
                 )
+                G.e.stack.push(eff);
                 changeStage(G, ctx, "chooseRegion")
                 return;
         }
@@ -173,6 +180,7 @@ export const chooseEffect: LongFormMove = {
                 G.e.stack.push(eff);
                 switch (eff.e.a.e) {
                     case "industryOrAestheticsLevelUp":
+                        G.e.choices = [];
                         G.e.stack.push(eff);
                         playerEffExec(G, ctx, p);
                         nextPlayer(G, ctx);
@@ -213,6 +221,7 @@ export const chooseEffect: LongFormMove = {
                 changeStage(G, ctx, "chooseRegion");
                 return;
             default:
+                G.e.choices = [];
                 G.e.stack.push(eff);
                 playerEffExec(G,ctx,p);
                 return;
@@ -451,25 +460,7 @@ export const competitionCard: LongFormMove = {
                 throw new Error();
             }
         }
-        let f = arg.cost.res;
-        if (arg.industry > 0) {
-            f++;
-        }
-        // @ts-ignore
-        if (arg.region === i.region) {
-            f++;
-        }
-        if (ctx.currentPlayer === i.atk) {
-            i.progress += f;
-        } else {
-            i.progress -= f;
-        }
-        if (f >= 5) {
 
-        }
-        if (f <= 5) {
-
-        }
     },
 }
 

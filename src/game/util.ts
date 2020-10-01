@@ -25,7 +25,6 @@ import {B04, getBasicCard} from "../constant/cards/basic";
 import {eventCardByEra} from "../constant/cards/event";
 import {getScoreCard, scoreCardCount} from "../constant/cards/score";
 import i18n from "../constant/i18n";
-import {chooseRegion} from "./moves";
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -166,15 +165,23 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             if (region !== Region.NONE) {
                 getShare(G, region, eff, obj);
             }
-            break
+            break;
         case "shareNA":
             getShare(G, Region.NA, eff, obj);
+            break;
+
         case "shareWE":
             getShare(G, Region.WE, eff, obj);
+            break;
+
         case "shareEE":
             getShare(G, Region.EE, eff, obj);
+            break;
+
         case "shareASIA":
             getShare(G, Region.ASIA, eff, obj);
+            break;
+
         case "deposit":
             obj.deposit += eff.a;
             break;
@@ -434,7 +441,7 @@ export function industryLowestPlayer(G: IG, ctx: Ctx): PlayerID[] {
     Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
         if (G.pub[idx].industry > highestIndustry) highestIndustry = G.pub[idx].industry
     })
-    Array(ctx.numPlayers).fill(1).filter((i, idx) => {
+    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
         if (G.pub[idx].industry <= highestIndustry) {
             result.push(idx.toString())
         }
@@ -448,7 +455,7 @@ export function aesLowestPlayer(G: IG, ctx: Ctx): PlayerID[] {
     Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
         if (G.pub[idx].aesthetics > highestAes) highestAes = G.pub[idx].aesthetics
     })
-    Array(ctx.numPlayers).fill(1).filter((i, idx) => {
+    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
         if (G.pub[idx].aesthetics <= highestAes) {
             result.push(idx.toString())
         }
@@ -462,7 +469,7 @@ export function notVpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
     Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
         if (G.pub[idx].vp > highestVp) highestVp = G.pub[idx].vp
     })
-    Array(ctx.numPlayers).fill(1).filter((i, idx) => {
+    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
         if (G.pub[idx].vp !== highestVp) {
             result.push(idx.toString())
         }
@@ -476,7 +483,7 @@ export function vpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
     Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
         if (G.pub[idx].vp > highestVp) highestVp = G.pub[idx].vp
     })
-    Array(ctx.numPlayers).fill(1).filter((i, idx) => {
+    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
         if (G.pub[idx].vp === highestVp) {
             result.push(idx.toString())
         }
@@ -741,7 +748,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             G.e.stack.push(eff);
             simpleEffectExec(G, ctx, p);
     }
-    checkNextEffect(G,ctx);
+    checkNextEffect(G, ctx);
 }
 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
@@ -1241,11 +1248,11 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                 G.pending.lastRoundOfGame = true;
             }
             if (ValidRegions.filter(r =>
-                // @ts-ignore
+                    // @ts-ignore
                 G.regions[r].era !== IEra.ONE).length >= 2 &&
                 G.regions[Region.ASIA].era === IEra.ONE
             ) {
-                drawForRegion(G,ctx,Region.ASIA,IEra.TWO);
+                drawForRegion(G, ctx, Region.ASIA, IEra.TWO);
                 G.regions[Region.ASIA].era = IEra.TWO;
                 G.regions[Region.ASIA].share = ShareOnBoard[Region.ASIA][IEra.TWO];
             }
@@ -1283,13 +1290,31 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     let i = G.competitionInfo;
     let atk = G.pub[parseInt(i.atk)];
     let def = G.pub[parseInt(i.def)];
-    if (i.progress >= 2) {
-
+    let winner: PlayerID;
+    if (i.progress >= 3) {
+        winner = i.atk;
+        G.e.stack.push({
+            e:"anyRegionShare",a:1
+        })
+        playerEffExec(G,ctx,i.atk);
+        return;
     } else {
-        if (i.progress <= -3) {
-
+        if (i.progress <= -2) {
+            winner = i.def;
+            G.e.stack.push({
+                e:"anyRegionShare",a:1
+            })
+            playerEffExec(G,ctx,i.atk);
+            return;
         } else {
-
+            if (i.progress > 0) {
+                atk.vp += i.progress;
+                loseVp(G, ctx, i.def, i.progress);
+            }else {
+                let vp = - i.progress;
+                def.vp += vp;
+                loseVp(G,ctx,i.atk,vp);
+            }
         }
     }
 
@@ -1342,9 +1367,12 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
     }
 }
 
-export const startCompetition = (G: IG, ctx: Ctx) => {
+export const startCompetition = (G: IG, ctx: Ctx,atk:PlayerID,def:PlayerID) => {
     let i = G.competitionInfo;
     i.pending = true;
+    i.atk = atk;
+    i.def = def;
+    changePlayerStage(G,ctx,"competitionCard",i.atk);
 }
 export const settleCompetition = (G: IG, ctx: Ctx) => {
     let i = G.competitionInfo;
@@ -1518,7 +1546,7 @@ export const cardEffectText = (cardId: BasicCardID | NoneBasicCardID): string =>
 }
 
 export const effName = (eff: any): string => {
-    if(eff === undefined)return "undefined";
+    if (eff === undefined) return "undefined";
     if (eff.e === "pay") {
         return i18n.effect.pay + effName(eff.a.cost) + effName(eff.a.eff);
     }
@@ -1526,13 +1554,13 @@ export const effName = (eff: any): string => {
         return i18n.effect.optional + effName(eff.a);
     }
     if (eff.e === "buy") {
-        return i18n.effect.buy({a:eff.a})
+        return i18n.effect.buy({a: eff.a})
     }
     if (eff.e === "event") {
-        return i18n.effect.event({a:eff.a})
+        return i18n.effect.event({a: eff.a})
     }
     if (eff.e === "buyToHand") {
-        return i18n.effect.buyCardToHand({a:eff.a})
+        return i18n.effect.buyCardToHand({a: eff.a})
     }
     if (eff.e === "studio") {
         return i18n.effect.studio + effName(eff.a);
@@ -1544,7 +1572,7 @@ export const effName = (eff: any): string => {
         let r = []
         for (let i = 0; i < 3; i++) {
             let sub = eff.a[i];
-            if(sub === undefined) {
+            if (sub === undefined) {
                 console.log(JSON.stringify(eff));
                 return "";
             }
