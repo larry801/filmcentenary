@@ -73,7 +73,7 @@ const cards = {
     '2104':'黑色电影',
     '2105':'奥尔逊威尔斯',
     '2106':'乱世佳人',
-    '2107':'关山飞渡',
+    '2107':'关山飞度',
     '2108':'雨中曲',
     '2109':'公民凯恩',
     '2110':'白热',
@@ -170,6 +170,22 @@ const cards = {
     '3413':'小鞋子',
     '3414':'樱桃的滋味',
 };
+const eventName = {
+    'E01':'【好莱坞】建筑位可以修建建筑 每个公司升级工业等级或美学等级1级',
+    'E02':'每个公司获得2存款 每个公司弃掉1张牌 *【托马斯，爰迪生】或【卢米埃尔兄弟】响应',
+    'E03':'每个公司立刻获得第2个行动力(注意！并非行动 力+1)  *若这张牌因为过时代而被弃掉，事件立刻触发',
+    'E04':'声望最高的公司可以免赛购买1张【商业片】并置入手牌 每个公司免赛购买1张【传世经典】',
+    'E05':'每个公司获得3存款 北美有建筑的公司弃掉2张牌',
+    'E06':'声望最高的公司升级1级美学等级 每个公司免费购买1张【传世经典】',
+    'E07':'每个公司升级工业等级或美学等级1级 声望不是最高的公司免费购买1张【烂片】',
+    'E08':'每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑，则该公司获得这张牌的声望 东欧地区没有建筑的公司免费购买1张【烂片】',
+    'E09':'【宝莱坞】建筑位可以修建建筑 美学等级最低的公司升级1级美学等级 工业等级最低的公司升级1级工业等级',
+    'E10':'终局计分时：每有一个声望条数字比你高的公司， 你额外获得4声望',
+    'E11':'终局计分时：公司牌库里和档案馆里的每个人物获得4声望',
+    'E12':'终局计分时：公司按照工业等级和美字等级的总和获得声望',
+    'E13':'终局计分时：若公司获得过4/3/2/1个不同地区的第一，则你得到20/12/6/2声望',
+    'E14':'终局计分时：公司档案馆和牌库里的每张基础牌牌获得1声望',
+};
 const argCardName = {
     a: (value: string = "E02") => {
         return cards[value as BasicCardID]
@@ -178,6 +194,7 @@ const argCardName = {
 const argValue = {a: (value: number = 1):string => value.toString()};
 
 const zh_CN: Locale = {
+    eventName:eventName,
     region: region,
     action: {
         initialSetup:"补充初始牌",
@@ -210,6 +227,9 @@ const zh_CN: Locale = {
             2: "3时代：",
         },
         optional:"【可选】",
+        onYourComment:"你评论后,",
+        playedCardInTurnEffect:"执行你本回合打出的另一张带有美学标志的牌的【出牌】效果",
+        everyOtherCompany:"每个其他公司",
         doNotLoseVpAfterCompetition:"争夺失败后，不会失去声望",
         discardInSettle:"如果你在一张牌的结算过程中至少弃掉了一张牌",
         onAnyOneComment:"每当发生评论后，",
@@ -236,8 +256,7 @@ const zh_CN: Locale = {
         breakthroughPrevent:"，否则不能执行突破效果",
         alternative:"放弃本次突破改为",
         pay:"支付",
-        undefined:"Undefined",
-        update:["更新{{a}}次",argValue],
+        update:["执行{{a}}次【更新】",argValue],
         noBuildingEE:"东欧地区没有建筑的公司",
         playerVpChampion:"声望最高的公司",
         playerNotVpChampion:"声望不是最高的公司",
@@ -260,13 +279,13 @@ const zh_CN: Locale = {
                     case "choice":
                         return "选择其中"+ e.a.toString() + "张"
                     case "industry":
-                        return "把其中有美学标志的"
+                        return "把其中有工业标志的"
                     case "era":
                         return "把其中"+ era[e.a as IEra] +"时代的"
                     case "asia":
                         return "把其中亚洲地区的"
                     case "aesthetics":
-                        return "把其中有工业标志的"
+                        return "把其中有美学标志的"
                     default:
                         return ""
                 }
@@ -295,26 +314,30 @@ const zh_CN: Locale = {
         archive:["将{{a}}张手牌置入档案馆",argValue],
         resFromIndustry:"按照你的工业等级获得资源",
         resFromAesthetics:"按照你的美学等级获得资源",
-        atBreakthrough:"突破时，",
+        atBreakthrough:"你突破后，",
         aesAward:["执行美学奖励{{a}}次",argValue],
         industryAward:["执行工业奖励{{a}}次",argValue],
         draw:["摸{{a}}张牌",argValue],
         discard:["弃{{a}}张牌",argValue],
         searchAndArchive:"检索此牌并置入档案馆",
-        discardNormalOrLegend:["弃{{a}}张普通或传奇牌",argValue],
-        discardIndustry:["弃{{a}}张带有工业标志的手牌",argValue],
-        discardAesthetics:["弃{{a}}张带有美学标志的手牌",argValue],
+        discardNormalOrLegend:["弃掉{{a}}张普通或传奇牌",argValue],
+        discardIndustry:["弃掉{{a}}张带有工业标志的手牌",argValue],
+        discardAesthetics:["弃掉{{a}}张带有美学标志的手牌",argValue],
         allNoStudioPlayer:["所有{{a}}地区没有制片厂的公司，",argRegion],
         vp:["{{a}}声望",argValue],
         res:["{{a}}资源",argValue],
         deposit:["{{a}}存款",argValue],
-        loseAnyRegionShare:["失去{{a}}个任意地区的份额",argValue],
+        loseAnyRegionShare:["归还{{a}}个任意地区的份额",argValue],
         shareToVp:["按照你当前持有的{{a}}份额获得声望",argRegion],
         share:["获得{{a}}个{{r}}地区的份额",argValue],
-        shareNA:["获得{{a}}个西欧地区的份额",argValue],
+        shareNA:["获得{{a}}个北美地区的份额",argValue],
         shareWE:["获得{{a}}个西欧地区的份额",argValue],
-        shareEE:["获得{{a}}个西欧地区的份额",argValue],
-        shareASIA:["获得{{a}}个西欧地区的份额",argValue],
+        shareEE:["获得{{a}}个东欧地区的份额",argValue],
+        shareASIA:["获得{{a}}个亚洲地区的份额",argValue],
+        loseShareNA:["失去{{a}}个北美地区的份额",argValue],
+        loseShareWE:["失去{{a}}个西欧地区的份额",argValue],
+        loseShareEE:["失去{{a}}个东欧地区的份额",argValue],
+        loseShareASIA:["失去{{a}}个亚洲地区的份额",argValue],
         anyRegionShare:["获得{{a}}个任意地区的份额",argValue],
         deductRes:["少花费{{a}}资源",argValue],
         buyAesthetics:"购买有美学标志的影片时，",

@@ -16,6 +16,7 @@ import {
     NormalCardCountInUse,
     Region,
     ShareOnBoard,
+    validRegion,
     ValidRegions,
 } from "../types/core";
 import {IG} from "../types/setup";
@@ -28,6 +29,7 @@ import {B04, getBasicCard} from "../constant/cards/basic";
 import {eventCardByEra} from "../constant/cards/event";
 import {getScoreCard, scoreCardCount} from "../constant/cards/score";
 import i18n from "../constant/i18n";
+import {updateSlot} from "./moves";
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -79,7 +81,7 @@ export const doConfirm = (G: IG, ctx: Ctx, a: boolean): void => {
         // TODO
     } else {
         switch (stage) {
-            case "optionalEff":
+            case "chooseEffect":
                 if (a) {
                     let eff = G.e.stack.pop();
                     if (eff === undefined) {
@@ -117,10 +119,20 @@ function isSimpleEffect(eff: any): boolean {
     }
 }
 
-function getShare(G: IG, region: Region.NA | Region.WE | Region.EE | Region.ASIA, eff: any, obj: IPubInfo) {
-    if (G.regions[region].share >= eff.a) {
-        obj.shares[region] += eff.a;
-        G.regions[region].share -= eff.a;
+function loseShare(G: IG, region: validRegion, obj: IPubInfo, num: number) {
+    if (obj.shares[region] >= num) {
+        obj.shares[region] -= num;
+        G.regions[region].share += num;
+    } else {
+        G.regions[region].share += obj.shares[region];
+        obj.shares[region] = 0;
+    }
+}
+
+function getShare(G: IG, region: validRegion, obj: IPubInfo, num: number) {
+    if (G.regions[region].share >= num) {
+        obj.shares[region] += num;
+        G.regions[region].share -= num;
     } else {
         obj.shares[region] += G.regions[region].share;
         G.regions[region].share = 0
@@ -160,25 +172,31 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                 obj.resource++;
             }
             break;
-        case "share":
-            if (region !== Region.NONE) {
-                getShare(G, region, eff, obj);
-            }
+        case "loseShareNA":
+            loseShare(G,Region.NA, obj,eff.a);
             break;
         case "shareNA":
-            getShare(G, Region.NA, eff, obj);
+            getShare(G, Region.NA, obj, eff.a);
             break;
-
+        case "loseShareWE":
+            loseShare(G,Region.WE, obj,eff.a);
+            break;
         case "shareWE":
-            getShare(G, Region.WE, eff, obj);
+            getShare(G, Region.WE, obj, eff.a);
             break;
 
+        case "loseShareEE":
+            loseShare(G,Region.EE, obj,eff.a);
+            break;
         case "shareEE":
-            getShare(G, Region.EE, eff, obj);
+            getShare(G, Region.EE, obj, eff.a);
             break;
 
+        case "loseShareASIA":
+            loseShare(G,Region.ASIA, obj,eff.a);
+            break;
         case "shareASIA":
-            getShare(G, Region.ASIA, eff, obj);
+            getShare(G, Region.ASIA, obj, eff.a);
             break;
 
         case "deposit":
@@ -269,7 +287,8 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
                 obj.hand.push(slot.comment);
                 pObj.allCards.push(slot.comment);
                 slot.comment = null;
-            }//TODO update
+            }
+            doUpdateSlot(G, ctx, slot);
         }
     }
     obj.hand.push(card);
@@ -333,15 +352,15 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         if (card.type === CardType.S) {
             let school = obj.school;
 
-            let kino = schoolPlayer(G, ctx,"1303");
+            let kino = schoolPlayer(G, ctx, "1303");
             if (kino !== null) {
                 G.e.stack.push(getCardEffect("1303").repsonse.effect);
                 simpleEffectExec(G, ctx, kino);
             }
             if (school !== null) {
-                if(school.cardId === "1203"){
-                    if(obj.aesthetics < 10){
-                        obj.aesthetics ++;
+                if (school.cardId === "1203") {
+                    if (obj.aesthetics < 10) {
+                        obj.aesthetics++;
                     }
                 }
                 obj.archive.push(school);
@@ -586,10 +605,10 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
         case "everyOtherCompany":
 
             if (G.c.players.length === 0) {
-                G.c.players  = seqFromActive(G, ctx);
+                G.c.players = seqFromActive(G, ctx);
                 G.c.players.shift()
                 G.e.stack.push(eff);
-            }else{
+            } else {
                 let subEffect = eff.a;
                 if (isSimpleEffect(subEffect)) {
                     for (let p of G.c.players) {
@@ -932,8 +951,8 @@ export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
     if (r === Region.NONE) return;
     let legend = cardsByCond(r, e, true);
     let normal = cardsByCond(r, e, false);
-    G.secret.regions[r].legendDeck = shuffle(ctx, legend).slice(0,LegendCardCountInUse[r][e]);
-    G.secret.regions[r].normalDeck = shuffle(ctx, normal).slice(0,NormalCardCountInUse[r][e]);
+    G.secret.regions[r].legendDeck = shuffle(ctx, legend).slice(0, LegendCardCountInUse[r][e]);
+    G.secret.regions[r].normalDeck = shuffle(ctx, normal).slice(0, NormalCardCountInUse[r][e]);
     let l: INormalOrLegendCard[] = G.secret.regions[r].legendDeck;
     let n: INormalOrLegendCard[] = G.secret.regions[r].normalDeck;
     for (let s of G.regions[r].normal) {
@@ -1208,8 +1227,7 @@ export function fillEventCard(G: IG, ctx: Ctx) {
     let region = G.scoringRegions.slice(-1)[0];
     if (region === Region.NONE) return;
     let era = G.regions[region].era;
-    // TODO stop at era two by now
-    let newEra: IEra = era === IEra.TWO ? era : era + 1;
+    let newEra: IEra = era === IEra.THREE ? era : era + 1;
     let newEvent = G.secret.events.pop();
     if (newEvent === undefined) {
         throw new Error();
@@ -1381,11 +1399,8 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
 
         region.share = ShareOnBoard[r][newEra];
         region.era = newEra;
-        // TODO add era three cards
-        region.completedModernScoring = true;
-        // newEra = IEra.THREE;
-        // region.era = newEra;
-        // drawForRegion(G,ctx,r,newEra);
+        newEra = IEra.THREE;
+        drawForRegion(G, ctx, r, newEra);
     }
     if (era === IEra.THREE) {
         region.completedModernScoring = true;
@@ -1422,7 +1437,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number =>
     if (p.school !== null) {
         extraVP += p.school.vp
     }
-    let validCards = G.secret.playerDecks[i].concat(p.discard,s.hand)
+    let validCards = G.secret.playerDecks[i].concat(p.discard, s.hand)
 
     // @ts-ignore
     validCards.forEach(c => extraVP += c.vp);
@@ -1486,60 +1501,60 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number =>
         extraVP += G.secret.playerDecks[i].filter(c => c.category === CardCategory.BASIC).length;
         extraVP += p.archive.filter(card => card.category === CardCategory.BASIC).length;
     }
-    let allCardIds = p.allCards.map(c=>c.cardId);
-    if(allCardIds.includes("3102")){
+    let allCardIds = p.allCards.map(c => c.cardId);
+    if (allCardIds.includes("3102")) {
         // @ts-ignore
-        extraVP += validCards.filter(c=>c.industry>0)
-            .filter(c=>c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
-            .length *2
-    }
-    if(allCardIds.includes("3106")){
-        // @ts-ignore
-        extraVP += validCards.filter(c=>c.region === Region.NA)
-            .filter(c=>c.type === CardType.F)
+        extraVP += validCards.filter(c => c.industry > 0)
+            .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
             .length * 2
     }
-    if(allCardIds.includes("3402")){
+    if (allCardIds.includes("3106")) {
         // @ts-ignore
-        extraVP += validCards.filter(c=>c.region === Region.ASIA)
-            .filter(c=>c.type === CardType.F)
+        extraVP += validCards.filter(c => c.region === Region.NA)
+            .filter(c => c.type === CardType.F)
             .length * 2
     }
-    if(allCardIds.includes("3107")){
+    if (allCardIds.includes("3402")) {
+        // @ts-ignore
+        extraVP += validCards.filter(c => c.region === Region.ASIA)
+            .filter(c => c.type === CardType.F)
+            .length * 2
+    }
+    if (allCardIds.includes("3107")) {
         // @ts-ignore
         extraVP += Math.round(validCards.length / 3)
     }
-    if(allCardIds.includes("3202")){
+    if (allCardIds.includes("3202")) {
         // @ts-ignore
-        extraVP += validCards.filter(c=>c.region === Region.WE)
+        extraVP += validCards.filter(c => c.region === Region.WE)
             .length * 2
     }
-    if(allCardIds.includes("3302")){
+    if (allCardIds.includes("3302")) {
         extraVP += p.industry * 2;
     }
-    if(allCardIds.includes("3403")){
+    if (allCardIds.includes("3403")) {
         extraVP += p.aesthetics * 2;
     }
-    if(allCardIds.includes("3301")){
+    if (allCardIds.includes("3301")) {
         // @ts-ignore
-        extraVP += validCards.filter(c=>c.region === Region.EE)
+        extraVP += validCards.filter(c => c.region === Region.EE)
             .length * 2
     }
-    if(allCardIds.includes("3203")){
+    if (allCardIds.includes("3203")) {
         // @ts-ignore
-        extraVP += validCards.filter(c=>c.aesthetics>0)
-            .filter(c=>c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
-            .length *2
+        extraVP += validCards.filter(c => c.aesthetics > 0)
+            .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
+            .length * 2
     }
-    if(allCardIds.includes("3401")) {
-        extraVP += validCards.filter(c=>c.type === CardType.P).length * 4
+    if (allCardIds.includes("3401")) {
+        extraVP += validCards.filter(c => c.type === CardType.P).length * 4
     }
     return extraVP;
 }
 
-export const schoolPlayer =  (G:IG,ctx:Ctx,cardId:string):PlayerID|null=>{
-    for(let i=0;i<ctx.numPlayers;i++){
-        if(G.pub[i].school?.cardId === cardId)return i.toString();
+export const schoolPlayer = (G: IG, ctx: Ctx, cardId: string): PlayerID | null => {
+    for (let i = 0; i < ctx.numPlayers; i++) {
+        if (G.pub[i].school?.cardId === cardId) return i.toString();
     }
     return null;
 }
@@ -1604,7 +1619,7 @@ export const cardEffectText = (cardId: BasicCardID | NoneBasicCardID): string =>
         if (effObj.hasOwnProperty("response") && effObj.response.pre.e !== "none") {
             r.push(i18n.effect.extraEffect);
             if (effObj.response.pre.e === "multiple") {
-                effObj.response.effect.forEach((singleEff: { pre: any; effect: any; }) => {
+                effObj.response.effect.forEach((singleEff: any) => {
                     console.log(JSON.stringify(singleEff))
                     r.push(effName(singleEff.pre))
                     r.push(effName(singleEff.effect))
@@ -1615,71 +1630,64 @@ export const cardEffectText = (cardId: BasicCardID | NoneBasicCardID): string =>
             }
         }
     } else {
-        if (effObj.hasOwnProperty("response") && effObj.response.pre !== "none") {
+        if (effObj.hasOwnProperty("response") && effObj.response.hasOwnProperty("pre")  && effObj.response.pre.e !== "none") {
             r.push(i18n.effect.responseHeader);
             r.push(effName(effObj.response.pre));
             r.push(effName(effObj.response.effect));
         }
     }
+    if (effObj.hasOwnProperty("scoring")) {
+        r.push(i18n.effect.scoringHeader);
+        r.push(effName(effObj.scoring));
+    }
     return r.join("");
 }
 
 export const effName = (eff: any): string => {
-    if (eff === undefined) return "undefined";
-    if (eff.e === "lose") {
-        return i18n.effect.lose({a: eff.a})
-
+    switch (eff.e) {
+        case "everyOtherCompany":
+        case "everyPlayer":
+        case "playerVpChampion":
+        case "playerNotVpChampion":
+        case "optional":
+        case "alternative":
+        case "studio":
+        case "noStudio":
+            // @ts-ignore
+            return i18n.effect[eff.e] + effName(eff.a);
+        default:
+            break;
     }
     if (eff.e === "pay") {
         return i18n.effect.pay + effName(eff.a.cost) + effName(eff.a.eff);
     }
-    if (eff.e === "optional") {
-        return i18n.effect.optional + effName(eff.a);
-    }
-    if (eff.e === "buy") {
-        return i18n.effect.buy({a: eff.a})
-    }
-    if (eff.e === "event") {
-        return i18n.effect.event({a: eff.a})
-    }
-    if (eff.e === "buyCardToHand") {
-        return i18n.effect.buyCardToHand({a: eff.a})
-    }
-    if (eff.e === "studio") {
-        return i18n.effect.studio + effName(eff.a);
-    }
-    if (eff.e === "noStudio") {
-        return i18n.effect.noStudio + effName(eff.a);
-    }
-    if (eff.e === "res") {return i18n.effect.res({a:eff.a})}
-    if (eff.e === "shareToVp") {return i18n.effect.shareToVp({a:eff.a})}
-    if (eff.e === "vp") {return i18n.effect.vp({a:eff.a})}
-    if (eff.e === "deposit") {return i18n.effect.deposit({a:eff.a})}
     if (eff.e === "era") {
         let r = []
         for (let i = 0; i < 3; i++) {
             let sub = eff.a[i];
-
             if (sub.e === "none") continue;
             r.push(i18n.effect.era[i as 0 | 1 | 2]);
             r.push(effName(sub));
         }
-        return r.join("\n");
+        return r.join("");
     }
     if (eff.e === "step") {
         // @ts-ignore
         return eff.a.map(e => effName(e)).join("，");
     }
     if (eff.e === "choice") {
-        let res = eff.a.map((e: any) => effName(e));
+        let res = eff.a.map((e: any,idx:number) => "（"+(idx+1).toString() + "）"+ effName(e));
         res.unshift(i18n.effect.choice)
-        return res.join("，");
+        return res.join("");
     }
     // @ts-ignore
     let name = i18n.effect[eff.e];
     if (typeof name === "string") {
         return name;
     } else {
-        return name(eff.a);
+        if(typeof eff.a === "number" || typeof eff.a === "string"){
+            return name({a:eff.a});
+        }
+        else{return name(eff.a);}
     }
 }

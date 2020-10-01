@@ -172,6 +172,22 @@ const era = {
     1: "Classic",
     2: "Modern",
 };
+const eventName = {
+    'E01':'【好莱坞】建筑位可以修建建筑 每个公司升级工业等级或美学等级1级',
+    'E02':'每个公司获得2存款 每个公司弃掉1张牌 *【托马斯，爰迪生】或【卢米埃尔兄弟】响应',
+    'E03':'每个公司立刻获得第2个行动力(注意！并非行动 力+1)  *若这张牌因为过时代而被弃掉，事件立刻触发',
+    'E04':'声望最高的公司可以免赛购买1张【商业片】并置入手牌 每个公司免赛购买1张【传世经典】',
+    'E05':'每个公司获得3存款 北美有建筑的公司弃掉2张牌',
+    'E06':'声望最高的公司升级1级美学等级 每个公司免费购买1张【传世经典】',
+    'E07':'每个公司升级工业等级或美学等级1级 声望不是最高的公司免费购买1张【烂片】',
+    'E08':'每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑，则该公司获得这张牌的声望 东欧地区没有建筑的公司免费购买1张【烂片】',
+    'E09':'【宝莱坞】建筑位可以修建建筑 美学等级最低的公司升级1级美学等级 工业等级最低的公司升级1级工业等级',
+    'E10':'终局计分时：每有一个声望条数字比你高的公司， 你额外获得4声望',
+    'E11':'终局计分时：公司牌库里和档案馆里的每个人物获得4声望',
+    'E12':'终局计分时：公司按照工业等级和美字等级的总和获得声望',
+    'E13':'终局计分时：若公司获得过4/3/2/1个不同地区的第一，则你得到20/12/6/2声望',
+    'E14':'终局计分时：公司档案馆和牌库里的每张基础牌牌获得1声望',
+};
 const argCardName = {
     a: (value: string = "E02"):string => {
         // @ts-ignore
@@ -192,6 +208,7 @@ const argTimes = {
     },
 }
 const en = {
+    eventName:eventName,
     confirm: "OK",
     cancel: "Cancel",
     lobby:{
@@ -211,6 +228,9 @@ const en = {
         },
         event: ["After {{a}}", argCardName],
         optional: "【optional】",
+        playedCardInTurnEffect:"Execute the 【play】 effect another card with aesthetics mark you played in this turn.",
+        everyOtherCompany:"Every other company",
+        onYourComment:"After you perform a comment,",
         onAnyOneComment:"After any one perform a comment,",
         doNotLoseVpAfterCompetition:"",
         discardInSettle:"",
@@ -218,7 +238,8 @@ const en = {
         northAmericaFilm:"你的每张东欧影片额外获得2声望",
         asiaFilm:"你的每张亚洲影片额外获得2声望",
         industryNormalOrLegend:"每张有工业标志的普通牌和传奇牌额外获得2声望",
-        westEuropeCard:"你的每张西欧卡牌",
+        westEuropeCard:"你的每张西欧卡牌获得2声望",
+        alternative:"放弃本次突破改为",
         eastEuropeFilm:"你的每张东欧影片",
         industryLevel:"你的每个工业等级额外获得2声望",
         aestheticsLevel:"你的每个美学等级额外获得2声望",
@@ -227,7 +248,8 @@ const en = {
         obtainNormalOrLegendFilm:"每次获得普通影片或传奇影片时",
         onBreakthrough:"When you do breakthrough,",
         none:"",
-        breakthroughResDeduct:["突破一次，少花费{{a}}资源",argValue],
+
+        breakthroughResDeduct:["执行一次【突破】，少花费{{a}}资源",argValue],
         handToOthers:["Give one card in hand to other companies",argValue],
         breakthroughPrevent:"Cannot execute breakthrough, if you do not pay.",
         pay:"支付",
@@ -309,7 +331,11 @@ const en = {
         shareWE: ["获得{{a}}个西欧地区的份额", argValue],
         shareEE: ["获得{{a}}个西欧地区的份额", argValue],
         shareASIA: ["获得{{a}}个西欧地区的份额", argValue],
-        shareToVp: ["按照你当前持有的{{a}}份额获得声望", argRegion],
+        loseShareNA:["失去{{a}}个北美地区的份额",argValue],
+        loseShareWE:["失去{{a}}个西欧地区的份额",argValue],
+        loseShareEE:["失去{{a}}个东欧地区的份额",argValue],
+        loseShareASIA:["Lose  {{a}} share(s) in in asia",argValue],
+        shareToVp: ["Gain prestige according to your share in {{a}} region.", argRegion],
         anyRegionShare: ["获得{{a}}个任意地区的份额", argValue],
         deductRes: ["deduct {{a}} resource(s) from cost.", argValue],
         extraEffect: "Extra effect:",
