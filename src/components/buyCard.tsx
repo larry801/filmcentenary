@@ -155,12 +155,12 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                                 // @ts-ignore
                                 p.industry.toString() + i18n.pub.aesthetics + p.aesthetics.toString()
                                 }
-                            /> : <></>)}
+                            /> : <div key={idx} />)}
                     </FormGroup>
                 </FormControl>
             </DialogContent>
             <DialogActions>
-                <Button
+                <Button key={1}
                     variant={"contained"}
                     onClick={() => {
                         buy();
@@ -169,7 +169,8 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                     disabled={!canBuy}>
                     {i18n.confirm}
                 </Button>
-                <Button onClick={() => {
+                <Button key={2}
+                    onClick={() => {
                     setOpen(false)
                 }} color="secondary" variant={"outlined"}>
                     {i18n.cancel}

@@ -163,7 +163,7 @@ const region = {
 const argValue = {a: (value: number = 1): string => value.toString()};
 
 const argRegion = {
-    a: (value: Region = Region.NONE) => {
+    a: (value: Region = Region.NONE) :string=> {
         return region[value]
     }
 }
@@ -173,13 +173,13 @@ const era = {
     2: "Modern",
 };
 const argCardName = {
-    a: (value: string = "E02") => {
+    a: (value: string = "E02"):string => {
         // @ts-ignore
         return cards[value]
     }
 };
 const argTimes = {
-    a: (value: number = 1) => {
+    a: (value: number = 1):string => {
         if (value <= 1) {
             return `once`;
         } else {
@@ -211,6 +211,25 @@ const en = {
         },
         event: ["After {{a}}", argCardName],
         optional: "【optional】",
+        onAnyOneComment:"After any one perform a comment,",
+        doNotLoseVpAfterCompetition:"",
+        discardInSettle:"",
+        threeCards:"你的每三张牌额外获得1声望",
+        northAmericaFilm:"你的每张东欧影片额外获得2声望",
+        asiaFilm:"你的每张亚洲影片额外获得2声望",
+        industryNormalOrLegend:"每张有工业标志的普通牌和传奇牌额外获得2声望",
+        westEuropeCard:"你的每张西欧卡牌",
+        eastEuropeFilm:"你的每张东欧影片",
+        industryLevel:"你的每个工业等级额外获得2声望",
+        aestheticsLevel:"你的每个美学等级额外获得2声望",
+        personCard:"你的每张人物牌额外获得4声望",
+        aesClassic:"每张有美学标志的普通牌和传奇牌额外获得2声望",
+        obtainNormalOrLegendFilm:"每次获得普通影片或传奇影片时",
+        onBreakthrough:"When you do breakthrough,",
+        none:"",
+        breakthroughResDeduct:["突破一次，少花费{{a}}资源",argValue],
+        handToOthers:["Give one card in hand to other companies",argValue],
+        breakthroughPrevent:"Cannot execute breakthrough, if you do not pay.",
         pay:"支付",
         undefined:"Undefined",
         update:["Update {{a}}",argTimes],
@@ -219,15 +238,43 @@ const en = {
         playerNotVpChampion:"声望不是最高的公司",
         aesLowest:"美学等级最低的公司",
         industryLowest:"工业等级最低的公司",
-        competition: ["争夺一次{{bonus}}{{win}}", {
-            bonus: (value: number = 0) => {
+        peek:["观看牌堆顶{{count}}张牌，{{filter}}{{target}}，然后弃掉其他的",{
+            count: (value: number = 1):string => {
+                return  value.toString()
+            },
+            target:(e:string):string=>{
+                if(e === "hand")
+                {
+                    return "加入手牌"
+                }else{
+                    return "";
+                }
+            },
+            filter: (e:string):string=>{
+                switch (e) {
+                    case "choice":
+                        return "选择其中张"
+                    case "industry":
+                        return "把其中有美学标志的"
+                    case "eraTwo":
+                        return "把其中古典时代的"
+                    case "asia":
+                        return "把其中亚洲地区的"
+                    case "aesthetics":
+                        return "把其中有工业标志的"
+                    default:
+                        return ""
+                }
+            }}],
+        competition: ["争夺一次{{bonus}}{{onWin}}", {
+            bonus: (value: number = 0):string => {
                 if(value>0){
                     return "竞争力+" + value.toString()
                 }else {
                     return "";
                 }
             },
-            onWin: (e:any)=>{
+            onWin: (e:any):string=>{
                 if(e.e !== "none")
                 {
                     return "若这次争夺获胜你额外获得一个" +  region[e.a as Region] +"地区份额"
@@ -240,6 +287,8 @@ const en = {
         competitionStart: "On competition start,",
         competitionBonus: ["competition progress +{{a}}", argValue],
         archive: ["Put {{a}} card(s) into your archive.", argValue],
+        industryToVp:"按照你的工业等级获得声望",
+        aestheticsToVp:"按照你的美学等级获得声望",
         resFromIndustry: "按照你的工业等级获得资源",
         resFromAesthetics: "按照你的美学等级获得资源",
         aesAward: ["执行美学奖励{{a}}次", argValue],
@@ -278,11 +327,11 @@ const en = {
             action: undefined
         }],
         continuous: "[Continuous:]",
-        scoringHeader: "【Scoring】： ",
-        playCardHeader: "【出牌】： ",
-        buyCardHeader: "【购买】： ",
-        breakthroughHeader: "【突破】： ",
-        schoolHeader: "【流派】： ",
+        scoringHeader: "【Scoring】",
+        playCardHeader: "【出牌】",
+        buyCardHeader: "【购买】",
+        breakthroughHeader: "【突破】",
+        schoolHeader: "【流派】",
         responseHeader: "【响应】： ",
         choice: "Please choose a effect to execute:",
         comment: ["Comment {{a}}",],

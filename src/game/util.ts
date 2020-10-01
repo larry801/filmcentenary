@@ -11,8 +11,11 @@ import {
     INormalOrLegendCard,
     IPubInfo,
     ISchoolCard,
+    LegendCardCountInUse,
     NoneBasicCardID,
-    Region, ShareOnBoard,
+    NormalCardCountInUse,
+    Region,
+    ShareOnBoard,
     ValidRegions,
 } from "../types/core";
 import {IG} from "../types/setup";
@@ -104,26 +107,13 @@ export const doConfirm = (G: IG, ctx: Ctx, a: boolean): void => {
 
 function isSimpleEffect(eff: any): boolean {
     switch (eff.e) {
-        case "none":
-        case "skipBreakthrough":
-        case "resFromIndustry":
-        case "enableBollywood":
-        case "enableHollywood":
-        case "loseVp":
-        case "share":
-        case "deposit":
-        case "res":
-        case "vp":
-        case "draw":
-        case "buy":
-        case "buyCardToHand":
-        case "aestheticsLevelUp":
-        case "industryLevelUp":
-        case "industryAward":
-        case "aesAward":
-            return true;
-        default:
+
+        case "everyOtherCompany":
+        case "everyOtherCompany":
+        case "everyPlayer":
             return false;
+        default:
+            return true;
     }
 }
 
@@ -146,6 +136,15 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "none":
         case "skipBreakthrough":
             return
+        case "loseVpForEachHand":
+            obj.vp -= G.player[parseInt(p)].hand.length;
+            break;
+        case "aestheticsToVp":
+            obj.vp += obj.aesthetics;
+            break;
+        case "industryToVp":
+            obj.vp += obj.industry;
+            break;
         case "resFromIndustry":
             obj.resource += obj.industry;
             break;
@@ -333,13 +332,18 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         }
         if (card.type === CardType.S) {
             let school = obj.school;
-            // TODO previous school response
-            let kino = getKinoEyePlayer(G, ctx);
+
+            let kino = schoolPlayer(G, ctx,"1303");
             if (kino !== null) {
                 G.e.stack.push(getCardEffect("1303").repsonse.effect);
                 simpleEffectExec(G, ctx, kino);
             }
             if (school !== null) {
+                if(school.cardId === "1203"){
+                    if(obj.aesthetics < 10){
+                        obj.aesthetics ++;
+                    }
+                }
                 obj.archive.push(school);
             }
             obj.school = card as ISchoolCard;
@@ -579,6 +583,24 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             }
             changeStage(G, ctx, "peek")
             break;
+        case "everyOtherCompany":
+
+            if (G.c.players.length === 0) {
+                G.c.players  = seqFromActive(G, ctx);
+                G.c.players.shift()
+                G.e.stack.push(eff);
+            }else{
+                let subEffect = eff.a;
+                if (isSimpleEffect(subEffect)) {
+                    for (let p of G.c.players) {
+                        playerEffExec(G, ctx, p);
+                    }
+                } else {
+                    let player = G.c.players[0] as PlayerID;
+                    playerEffExec(G, ctx, player);
+                }
+            }
+            break;
         case "everyPlayer":
             if (G.c.players.length === 0) {
                 G.c.players = seqFromActive(G, ctx);
@@ -616,6 +638,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
         case "archive":
         case "discard":
         case "discardIndustry":
+        case "discardLegend":
         case "discardAesthetics":
         case "discardNormalOrLegend":
             G.e.stack.push(eff);
@@ -709,6 +732,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     switch (eff.e) {
         case "archive":
         case "discardIndustry":
+        case "discardLegend":
         case "discardAesthetics":
         case "discardNormalOrLegend":
             changePlayerStage(G, ctx, "chooseHand", p);
@@ -908,8 +932,8 @@ export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
     if (r === Region.NONE) return;
     let legend = cardsByCond(r, e, true);
     let normal = cardsByCond(r, e, false);
-    G.secret.regions[r].legendDeck = shuffle(ctx, legend);
-    G.secret.regions[r].normalDeck = shuffle(ctx, normal);
+    G.secret.regions[r].legendDeck = shuffle(ctx, legend).slice(0,LegendCardCountInUse[r][e]);
+    G.secret.regions[r].normalDeck = shuffle(ctx, normal).slice(0,NormalCardCountInUse[r][e]);
     let l: INormalOrLegendCard[] = G.secret.regions[r].legendDeck;
     let n: INormalOrLegendCard[] = G.secret.regions[r].normalDeck;
     for (let s of G.regions[r].normal) {
@@ -1290,32 +1314,33 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     let i = G.competitionInfo;
     let atk = G.pub[parseInt(i.atk)];
     let def = G.pub[parseInt(i.def)];
-    let winner: PlayerID;
+    let winner: PlayerID = '0';
+    let hasWinner = false;
+    if (i.progress > 5) i.progress = 5;
+    if (i.progress < -5) i.progress = -5;
     if (i.progress >= 3) {
         winner = i.atk;
-        G.e.stack.push({
-            e:"anyRegionShare",a:1
-        })
-        playerEffExec(G,ctx,i.atk);
-        return;
+        hasWinner = true;
     } else {
         if (i.progress <= -2) {
             winner = i.def;
-            G.e.stack.push({
-                e:"anyRegionShare",a:1
-            })
-            playerEffExec(G,ctx,i.atk);
-            return;
-        } else {
-            if (i.progress > 0) {
-                atk.vp += i.progress;
-                loseVp(G, ctx, i.def, i.progress);
-            }else {
-                let vp = - i.progress;
-                def.vp += vp;
-                loseVp(G,ctx,i.atk,vp);
-            }
+            hasWinner = true;
         }
+    }
+    if (i.progress > 0) {
+        atk.vp += i.progress;
+        loseVp(G, ctx, i.def, i.progress);
+    } else {
+        let vp = -i.progress;
+        def.vp += vp;
+        loseVp(G, ctx, i.atk, vp);
+    }
+    if (hasWinner) {
+        G.e.stack.push({
+            e: "anyRegionShare", a: 1
+        })
+        playerEffExec(G, ctx, winner);
+        return;
     }
 
 }
@@ -1367,12 +1392,12 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
     }
 }
 
-export const startCompetition = (G: IG, ctx: Ctx,atk:PlayerID,def:PlayerID) => {
+export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) => {
     let i = G.competitionInfo;
     i.pending = true;
     i.atk = atk;
     i.def = def;
-    changePlayerStage(G,ctx,"competitionCard",i.atk);
+    changePlayerStage(G, ctx, "competitionCard", i.atk);
 }
 export const settleCompetition = (G: IG, ctx: Ctx) => {
     let i = G.competitionInfo;
@@ -1397,12 +1422,10 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number =>
     if (p.school !== null) {
         extraVP += p.school.vp
     }
+    let validCards = G.secret.playerDecks[i].concat(p.discard,s.hand)
+
     // @ts-ignore
-    p.discard.forEach(c => extraVP += c.vp);
-    // @ts-ignore
-    s.hand.forEach(c => extraVP += c.vp);
-    // @ts-ignore
-    G.secret.playerDecks[i].forEach(c => extraVP += c.vp);
+    validCards.forEach(c => extraVP += c.vp);
     if (p.building.cinemaBuilt) extraVP += 3;
     if (p.building.studioBuilt) extraVP += 3;
     if (p.industry === 10) {
@@ -1463,7 +1486,62 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number =>
         extraVP += G.secret.playerDecks[i].filter(c => c.category === CardCategory.BASIC).length;
         extraVP += p.archive.filter(card => card.category === CardCategory.BASIC).length;
     }
+    let allCardIds = p.allCards.map(c=>c.cardId);
+    if(allCardIds.includes("3102")){
+        // @ts-ignore
+        extraVP += validCards.filter(c=>c.industry>0)
+            .filter(c=>c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
+            .length *2
+    }
+    if(allCardIds.includes("3106")){
+        // @ts-ignore
+        extraVP += validCards.filter(c=>c.region === Region.NA)
+            .filter(c=>c.type === CardType.F)
+            .length * 2
+    }
+    if(allCardIds.includes("3402")){
+        // @ts-ignore
+        extraVP += validCards.filter(c=>c.region === Region.ASIA)
+            .filter(c=>c.type === CardType.F)
+            .length * 2
+    }
+    if(allCardIds.includes("3107")){
+        // @ts-ignore
+        extraVP += Math.round(validCards.length / 3)
+    }
+    if(allCardIds.includes("3202")){
+        // @ts-ignore
+        extraVP += validCards.filter(c=>c.region === Region.WE)
+            .length * 2
+    }
+    if(allCardIds.includes("3302")){
+        extraVP += p.industry * 2;
+    }
+    if(allCardIds.includes("3403")){
+        extraVP += p.aesthetics * 2;
+    }
+    if(allCardIds.includes("3301")){
+        // @ts-ignore
+        extraVP += validCards.filter(c=>c.region === Region.EE)
+            .length * 2
+    }
+    if(allCardIds.includes("3203")){
+        // @ts-ignore
+        extraVP += validCards.filter(c=>c.aesthetics>0)
+            .filter(c=>c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
+            .length *2
+    }
+    if(allCardIds.includes("3401")) {
+        extraVP += validCards.filter(c=>c.type === CardType.P).length * 4
+    }
     return extraVP;
+}
+
+export const schoolPlayer =  (G:IG,ctx:Ctx,cardId:string):PlayerID|null=>{
+    for(let i=0;i<ctx.numPlayers;i++){
+        if(G.pub[i].school?.cardId === cardId)return i.toString();
+    }
+    return null;
 }
 
 export const rank = (G: IG, ctx: Ctx, p1: number, p2: number): number => {
@@ -1506,27 +1584,28 @@ export const finalScoring = (G: IG, ctx: Ctx) => {
 export const cardEffectText = (cardId: BasicCardID | NoneBasicCardID): string => {
     // @ts-ignore
     let effObj = getCardEffect(cardId);
-    let region = getCardById(cardId).region;
+    // TODO region closure capture
     let r: string[] = [];
-    if (effObj.buy.e !== "none") {
+    if (effObj.hasOwnProperty("buy") && effObj.buy.e !== "none") {
         r.push(i18n.effect.buyCardHeader);
         r.push(effName(effObj.buy));
     }
-    if (effObj.play.e !== "none") {
+    if (effObj.hasOwnProperty("play") && effObj.play.e !== "none") {
         r.push(i18n.effect.playCardHeader);
         r.push(effName(effObj.play));
     }
-    if (effObj.archive.e !== "none") {
+    if (effObj.hasOwnProperty("archive") && effObj.archive.e !== "none") {
         r.push(i18n.effect.breakthroughHeader);
         r.push(effName(effObj.archive));
     }
     if (effObj.hasOwnProperty("school")) {
         r.push(i18n.effect.continuous);
         r.push(i18n.effect.school(effObj.school));
-        if (effObj.response.pre.e !== "none") {
+        if (effObj.hasOwnProperty("response") && effObj.response.pre.e !== "none") {
             r.push(i18n.effect.extraEffect);
             if (effObj.response.pre.e === "multiple") {
-                effObj.response.pre.a.forEach((singleEff: { pre: any; effect: any; }) => {
+                effObj.response.effect.forEach((singleEff: { pre: any; effect: any; }) => {
+                    console.log(JSON.stringify(singleEff))
                     r.push(effName(singleEff.pre))
                     r.push(effName(singleEff.effect))
                 })
@@ -1542,11 +1621,15 @@ export const cardEffectText = (cardId: BasicCardID | NoneBasicCardID): string =>
             r.push(effName(effObj.response.effect));
         }
     }
-    return r.join("\n");
+    return r.join("");
 }
 
 export const effName = (eff: any): string => {
     if (eff === undefined) return "undefined";
+    if (eff.e === "lose") {
+        return i18n.effect.lose({a: eff.a})
+
+    }
     if (eff.e === "pay") {
         return i18n.effect.pay + effName(eff.a.cost) + effName(eff.a.eff);
     }
@@ -1559,7 +1642,7 @@ export const effName = (eff: any): string => {
     if (eff.e === "event") {
         return i18n.effect.event({a: eff.a})
     }
-    if (eff.e === "buyToHand") {
+    if (eff.e === "buyCardToHand") {
         return i18n.effect.buyCardToHand({a: eff.a})
     }
     if (eff.e === "studio") {
@@ -1568,14 +1651,15 @@ export const effName = (eff: any): string => {
     if (eff.e === "noStudio") {
         return i18n.effect.noStudio + effName(eff.a);
     }
+    if (eff.e === "res") {return i18n.effect.res({a:eff.a})}
+    if (eff.e === "shareToVp") {return i18n.effect.shareToVp({a:eff.a})}
+    if (eff.e === "vp") {return i18n.effect.vp({a:eff.a})}
+    if (eff.e === "deposit") {return i18n.effect.deposit({a:eff.a})}
     if (eff.e === "era") {
         let r = []
         for (let i = 0; i < 3; i++) {
             let sub = eff.a[i];
-            if (sub === undefined) {
-                console.log(JSON.stringify(eff));
-                return "";
-            }
+
             if (sub.e === "none") continue;
             r.push(i18n.effect.era[i as 0 | 1 | 2]);
             r.push(effName(sub));
@@ -1590,9 +1674,6 @@ export const effName = (eff: any): string => {
         let res = eff.a.map((e: any) => effName(e));
         res.unshift(i18n.effect.choice)
         return res.join("，");
-    }
-    if (eff.e === "noStudio") {
-
     }
     // @ts-ignore
     let name = i18n.effect[eff.e];

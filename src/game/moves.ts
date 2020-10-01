@@ -32,7 +32,7 @@ import {
     fillPlayerHand,
     industryAward,
     nextPlayer,
-    playerEffExec, startCompetition,
+    playerEffExec, schoolPlayer, startCompetition,
     studioSlotsAvailable,
     tryScoring,
 } from "./util";
@@ -113,6 +113,10 @@ export const chooseHand: LongFormMove = {
             case "everyPlayer":
                 switch (eff.e.a.e) {
                     case "discard":
+                    case "discardIndustry":
+                    case "discardLegend":
+                    case "discardAesthetics":
+                    case "discardNormalOrLegend":
                         hand.splice(parseInt(arg), 1);
                         pub.discard.push(card);
                         if (eff.e.a.a > 1) {
@@ -312,8 +316,8 @@ export const peek: LongFormMove = {
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID;
         let playerObj = G.player[parseInt(p)];
         let pub = G.pub[parseInt(p)];
-        switch (eff.e) {
-            case "peekIndustry":
+        switch (eff.a.filter.e) {
+            case "industry":
                 for (let card of playerObj.cardsToPeek) {
                     let c = card as INormalOrLegendCard;
                     if (c.industry > 0) {
@@ -323,7 +327,7 @@ export const peek: LongFormMove = {
                     }
                 }
                 break;
-            case "peekAesthetics":
+            case "aesthetics":
                 for (let card of playerObj.cardsToPeek) {
                     let c = card as INormalOrLegendCard;
                     if (c.aesthetics > 0) {
@@ -332,6 +336,19 @@ export const peek: LongFormMove = {
                         pub.discard.push(c);
                     }
                 }
+                break;
+            case "era":
+                for (let card of playerObj.cardsToPeek) {
+                    let c = card as INormalOrLegendCard;
+                    if (c.era === eff.a.filter.a) {
+                        playerObj.hand.push(c);
+                    } else {
+                        pub.discard.push(c);
+                    }
+                }
+                break;
+            case "choice":
+                changePlayerStage(G,ctx,"chooseHand",p);
                 break;
         }
         checkNextEffect(G, ctx);
@@ -439,7 +456,10 @@ export const playCard: LongFormMove = {
     },
     client: false,
 }
-
+export interface ICompetitionCardArg {
+    pass:boolean,
+    card:INormalOrLegendCard,
+}
 export const competitionCard: LongFormMove = {
     client: false,
     redact: true,
@@ -532,6 +552,12 @@ export const comment: LongFormMove = {
             arg.target.comment = null;
         } else {
             arg.target.comment = arg.comment;
+        }
+        // 3204 onwer draw
+        // let p = schoolPlayer(G,ctx,"S3204")
+        let p = schoolPlayer(G,ctx,"3204");
+        if(p!==null){
+            drawCardForPlayer(G,ctx,p);
         }
     }
 }

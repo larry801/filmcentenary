@@ -19,6 +19,7 @@ import {
 } from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
 import {Region} from "./types/core";
+// eslint-disable-next-line
 import {getExtraScoreForFinal} from "./game/util";
 
 export const FilmCentenaryGame: Game<IG> = {

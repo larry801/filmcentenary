@@ -1,5 +1,5 @@
 import {Locale} from './en';
-import {BasicCardID, Region} from "../../types/core";
+import {BasicCardID, IEra, Region} from "../../types/core";
 
 const era ={
     0:"发明",
@@ -210,6 +210,30 @@ const zh_CN: Locale = {
             2: "3时代：",
         },
         optional:"【可选】",
+        doNotLoseVpAfterCompetition:"争夺失败后，不会失去声望",
+        discardInSettle:"如果你在一张牌的结算过程中至少弃掉了一张牌",
+        onAnyOneComment:"每当发生评论后，",
+        industryToVp:"按照你的工业等级获得声望",
+        aestheticsToVp:"按照你的美学等级获得声望",
+        threeCards:"你的每三张牌额外获得1声望",
+        northAmericaFilm:"你的每张东欧影片额外获得2声望",
+        asiaFilm:"你的每张亚洲影片额外获得2声望",
+        industryNormalOrLegend:"每张有工业标志的普通牌和传奇牌额外获得2声望",
+        westEuropeCard:"你的每张西欧卡牌额外获得2声望",
+        eastEuropeFilm:"你的每张东欧影片额外获得2声望",
+        industryLevel:"你的每个工业等级额外获得2声望",
+        aestheticsLevel:"你的每个美学等级额外获得2声望",
+        personCard:"你的每张人物牌额外获得4声望",
+        aesClassic:"每张有美学标志的普通牌和传奇牌额外获得2声望",
+        NewYorkSchool:"若你的美学等级不低于工业等级，美学奖励一次，若你的工业等级不低于美学等级，工业奖励一次",
+        obtainNormalOrLegendFilm:"每次获得普通影片或传奇影片时",
+        onBreakthrough:"突破时，",
+        none:"",
+        breakthroughResDeduct:["突破一次，少花费{{a}}资源",argValue],
+        handToOthers:["把{{a}}张手牌交给任意公司",argValue],
+        buyNoneEEFilm:"购买非东欧地区影片时",
+        extraVp:["额外支付{{a}}声望",argValue],
+        breakthroughPrevent:"，否则不能执行突破效果",
         alternative:"放弃本次突破改为",
         pay:"支付",
         undefined:"Undefined",
@@ -219,19 +243,35 @@ const zh_CN: Locale = {
         playerNotVpChampion:"声望不是最高的公司",
         aesLowest:"美学等级最低的公司",
         industryLowest:"工业等级最低的公司",
-        peek:["观看牌堆顶{{count}}张牌{{eff}}",{
+        peek:["观看牌堆顶{{count}}张牌，{{filter}}{{target}}，然后弃掉其他的",{
             count: (value: number = 1) => {
-                value.toString()
+                return  value.toString()
             },
-            eff: (e:any)=>{
-                if(e.e === "hand")
+            target:(e:string)=>{
+                if(e === "hand")
                 {
-                    return "，选择其中张加入手牌" +  region[e.a as Region] +"地区份额"
+                    return "加入手牌"
                 }else{
                     return "";
                 }
+            },
+            filter: (e:any)=>{
+                switch (e.e) {
+                    case "choice":
+                        return "选择其中"+ e.a.toString() + "张"
+                    case "industry":
+                        return "把其中有美学标志的"
+                    case "era":
+                        return "把其中"+ era[e.a as IEra] +"时代的"
+                    case "asia":
+                        return "把其中亚洲地区的"
+                    case "aesthetics":
+                        return "把其中有工业标志的"
+                    default:
+                        return ""
+                }
             }}],
-        competition: ["争夺一次{{bonus}}{{win}}", {
+        competition: ["争夺一次{{bonus}}{{onWin}}", {
             // @ts-ignore
             bonus: (value: number = 0) => {
                 if(value>0){
@@ -262,8 +302,8 @@ const zh_CN: Locale = {
         discard:["弃{{a}}张牌",argValue],
         searchAndArchive:"检索此牌并置入档案馆",
         discardNormalOrLegend:["弃{{a}}张普通或传奇牌",argValue],
-        discardIndustry:["弃{{a}}张带有工业标的手牌",argValue],
-        discardAesthetics:["弃{{a}}张带有美学标的手牌",argValue],
+        discardIndustry:["弃{{a}}张带有工业标志的手牌",argValue],
+        discardAesthetics:["弃{{a}}张带有美学标志的手牌",argValue],
         allNoStudioPlayer:["所有{{a}}地区没有制片厂的公司，",argRegion],
         vp:["{{a}}声望",argValue],
         res:["{{a}}资源",argValue],
@@ -292,13 +332,13 @@ const zh_CN: Locale = {
             hand:undefined,
             action:undefined
         }],
-        scoringHeader:"【计分】： ",
-        continuous:"【持续】： ",
-        playCardHeader:"【出牌】： ",
-        buyCardHeader:"【购买】： ",
-        breakthroughHeader:"【突破】： ",
-        schoolHeader:"【流派】： ",
-        responseHeader:"【响应】： ",
+        scoringHeader:"【计分】",
+        continuous:"【持续】",
+        playCardHeader:"【出牌】",
+        buyCardHeader:"【购买】",
+        breakthroughHeader:"【突破】",
+        schoolHeader:"【流派】",
+        responseHeader:"【响应】",
         choice:"请选择一项执行：",
         // @ts-ignore
         comment:["评论{{a}}次",argValue],

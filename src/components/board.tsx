@@ -87,6 +87,16 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                             value: idx.toString()
                         }
                     })
+                case "discardLegend":
+                    return G.player[parseInt(playerID)].hand.map((c, idx) => {
+                        return {
+                            // @ts-ignore
+                            label: i18n.card[c.cardId],
+                            disabled: false,
+                            hidden: c.category !== CardCategory.LEGEND,
+                            value: idx.toString()
+                        }
+                    })
                 case "discardIndustry":
                     return G.player[parseInt(playerID)].hand.map((c, idx) => {
                         return {
@@ -95,6 +105,17 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                             disabled: false,
                             // @ts-ignore
                             hidden: c.industry === 0,
+                            value: idx.toString()
+                        }
+                    })
+                case "playedCardInTurnEffect":
+                    return G.pub[parseInt(playerID)].playedCardInTurn.map((c, idx) => {
+                        return {
+                            // @ts-ignore
+                            label: i18n.card[c.cardId],
+                            disabled: false,
+                            // @ts-ignore
+                            hidden: c.aesthetics === 0,
                             value: idx.toString()
                         }
                     })
