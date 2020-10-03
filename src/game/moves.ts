@@ -15,11 +15,11 @@ import {
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
-    aesAward,
+    aesAward, atkCardSettle,
     buildingInRegion,
-    canBuyCard,
+    canBuyCard, checkCompetitionDefender,
     checkNextEffect,
-    checkRegionScoring,
+    checkRegionScoring, cinemaInRegion,
     cinemaSlotsAvailable,
     curEffectExec,
     curPid,
@@ -27,10 +27,10 @@ import {
     doAestheticsBreakthrough,
     doBuy,
     doIndustryBreakthrough,
-    doUpdateSlot,
+    doReturnSlotCard,
     drawCardForPlayer,
     fillPlayerHand,
-    industryAward,
+    industryAward, logger,
     nextPlayer,
     playerEffExec, schoolPlayer, startCompetition,
     studioSlotsAvailable,
@@ -59,8 +59,9 @@ export const buyCard = {
                 let pHand = G.player[parseInt(arg.buyer)].hand;
                 let idx = pHand.indexOf(c)
                 let helper: ICard = pHand.splice(idx, 1)[0];
-                p.discard.push(helper);
+                p.playedCardInTurn.push(helper);
             })
+
             doBuy(G, ctx, arg.target as INormalOrLegendCard | IBasicCard, ctx.currentPlayer);
             let eff = getCardEffect(arg.target.cardId);
             if (eff.e !== "none") {
@@ -78,13 +79,16 @@ export const buyCard = {
 export const chooseTarget: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: PlayerID) => {
-        let src = ctx.playerID === undefined ? ctx.currentPlayer:ctx.playerID;
+        let src = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID;
         let p = arg;
         let eff = G.e.stack.pop();
         switch (eff.e) {
             case "competition":
                 G.c.players = [];
-                startCompetition(G,ctx,src,p);
+                G.e.stack.push(eff);
+                G.competitionInfo.progress = eff.a.bonus;
+                G.competitionInfo.onWin = eff.a.onWin;
+                startCompetition(G, ctx, src, p);
                 return;
             case "loseAnyRegionShare":
                 G.c.players = [];
@@ -99,16 +103,20 @@ export const chooseTarget: LongFormMove = {
         playerEffExec(G, ctx, arg);
     }
 }
-
+export interface IChooseHandArg {
+    p:PlayerID,
+    hand:ICard,
+    idx:number,
+}
 export const chooseHand: LongFormMove = {
     client: false,
-    move: (G: IG, ctx: Ctx, arg: string) => {
+    move: (G: IG, ctx: Ctx, arg:IChooseHandArg) => {
         let eff = G.e.stack.pop();
-        let p = ctx.playerID !== undefined ? ctx.playerID : ctx.currentPlayer;
+        let p = arg.p;
         let hand = G.player[parseInt(p)].hand;
         let pub = G.pub[parseInt(p)];
         // @ts-ignore
-        let card: IBasicCard | INormalOrLegendCard = hand[parseInt(arg)]
+        let card: IBasicCard | INormalOrLegendCard = arg.hand;
         switch (eff.e) {
             case "everyPlayer":
                 switch (eff.e.a.e) {
@@ -117,7 +125,7 @@ export const chooseHand: LongFormMove = {
                     case "discardLegend":
                     case "discardAesthetics":
                     case "discardNormalOrLegend":
-                        hand.splice(parseInt(arg), 1);
+                        hand.splice(arg.idx, 1);
                         pub.discard.push(card);
                         if (eff.e.a.a > 1) {
                             eff.e.a.a--;
@@ -127,7 +135,7 @@ export const chooseHand: LongFormMove = {
                         G.e.stack.push(eff);
                         return;
                     case "archiveToEEBuildingVP":
-                        hand.splice(parseInt(arg), 1);
+                        hand.splice(arg.idx, 1);
                         pub.archive.push(card);
                         if (buildingInRegion(G, ctx, Region.EE, p)) {
                             G.pub[parseInt(p)].vp += card.vp;
@@ -139,25 +147,26 @@ export const chooseHand: LongFormMove = {
                         throw new Error()
                 }
             case "handToOthers":
-                hand.splice(parseInt(arg), 1);
+                hand.splice(arg.idx, 1);
                 let targetPub = G.player[parseInt(G.c.players[0])];
                 targetPub.hand.push(card);
                 break;
             case "refactor":
-                hand.splice(parseInt(arg), 1);
+                hand.splice(arg.idx, 1);
                 pub.archive.push(card);
                 // @ts-ignore
                 pub.vp += (card.vp + G.e.card.vp);
                 doBuy(G, ctx, B05, p);
                 break;
             case "archive":
-                hand.splice(parseInt(arg), 1);
+                hand.splice(arg.idx, 1);
                 pub.archive.push(card);
                 break;
             case "discard":
             case "discardIndustry":
             case "discardAesthetics":
-                hand.splice(parseInt(arg), 1);
+            case "discardNormalOrLegend":
+                hand.splice(arg.idx, 1);
                 pub.discard.push(card);
                 if (eff.a > 1) {
                     eff.a--;
@@ -171,11 +180,15 @@ export const chooseHand: LongFormMove = {
         checkNextEffect(G, ctx);
     }
 }
-
+export interface IEffectChooseArg {
+    effect:any,
+    idx:number,
+    p:PlayerID,
+}
 export const chooseEffect: LongFormMove = {
     client: false,
-    move: (G: IG, ctx: Ctx, arg: string) => {
-        let eff = G.e.choices[parseInt(arg)];
+    move: (G: IG, ctx: Ctx, arg: IEffectChooseArg) => {
+        let eff = G.e.choices[arg.idx];
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
         let regions: Region[];
         let top;
@@ -227,7 +240,7 @@ export const chooseEffect: LongFormMove = {
             default:
                 G.e.choices = [];
                 G.e.stack.push(eff);
-                playerEffExec(G,ctx,p);
+                playerEffExec(G, ctx, p);
                 return;
         }
     }
@@ -236,11 +249,16 @@ export const chooseEffect: LongFormMove = {
 export const updateSlot = {
     client: false,
     move: (G: IG, ctx: Ctx, slot: ICardSlot) => {
-        doUpdateSlot(G, ctx, slot);
+        doReturnSlotCard(G, ctx, slot);
+
         checkNextEffect(G, ctx);
     }
 }
-
+export interface IRegionChooseArg {
+    r:Region,
+    idx:number,
+    p:PlayerID,
+}
 export const chooseRegion = {
     client: false,
     move: (G: IG, ctx: Ctx, region: string) => {
@@ -286,18 +304,25 @@ export const chooseRegion = {
                     let loser = i.progress > 0 ? i.def : i.atk;
                     G.pub[parseInt(loser)].shares[r]--;
                     G.pub[parseInt(p)].shares[r]++;
-                    if(eff.a>1){
+                    if (eff.a > 1) {
                         eff.a--;
                         G.e.stack.push(eff);
-                        checkNextEffect(G,ctx);
+                        checkNextEffect(G, ctx);
                         return;
-                    }else {
+                    } else {
                         break;
                     }
                 } else {
                     G.pub[parseInt(p)].shares[r]++;
-                    G.regions[r].share++;
-                    break;
+                    G.regions[r].share--;
+                    if (eff.a > 1) {
+                        eff.a--;
+                        G.e.stack.push(eff);
+                        checkNextEffect(G, ctx);
+                        return;
+                    } else {
+                        break;
+                    }
                 }
             default:
                 throw new Error();
@@ -307,11 +332,15 @@ export const chooseRegion = {
         return;
     }
 }
-
+export interface IPeekArgs {
+    idx:number,
+    card:INormalOrLegendCard,
+    p:PlayerID,
+}
 export const peek: LongFormMove = {
     client: false,
     undoable: false,
-    move: (G: IG, ctx: Ctx, args: any) => {
+    move: (G: IG, ctx: Ctx, args: IPeekArgs) => {
         let eff = G.e.stack.pop();
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID;
         let playerObj = G.player[parseInt(p)];
@@ -348,23 +377,41 @@ export const peek: LongFormMove = {
                 }
                 break;
             case "choice":
-                changePlayerStage(G,ctx,"chooseHand",p);
+                changePlayerStage(G, ctx, "chooseHand", p);
                 break;
         }
         checkNextEffect(G, ctx);
     }
 }
-
+export interface IChooseEventArg {
+    idx:number,
+    event:EventCardID,
+    p:PlayerID
+}
 export const chooseEvent: LongFormMove = {
     client: false,
-    move: (G: IG, ctx: Ctx, arg: string) => {
-        let eid: EventCardID = G.events[parseInt(arg)].cardId as EventCardID;
-        G.e.stack.push(getEvent(eid));
-        if(eid===EventCardID.E02){
-
-        }
-        else{
-            curEffectExec(G, ctx);
+    move: (G: IG, ctx: Ctx, arg: IChooseEventArg) => {
+        let eid: EventCardID = arg.event;
+        if (eid === EventCardID.E02) {
+            for(let i=0;i<ctx.numPlayers;i++){
+                G.pub[i].action = 2;
+            }
+        } else {
+            switch (eid) {
+                case EventCardID.E01:
+                case EventCardID.E03:
+                case EventCardID.E04:
+                case EventCardID.E05:
+                case EventCardID.E06:
+                case EventCardID.E07:
+                case EventCardID.E08:
+                case EventCardID.E09:
+                    G.e.stack.push(getEvent(eid));
+                    playerEffExec(G, ctx,arg.p);
+                    break;
+                default:
+                    G.pub[parseInt(arg.p)].scoreEvents.push(eid);
+            }
         }
     }
 }
@@ -383,6 +430,7 @@ export const requestEndTurn: LongFormMove = {
                     obj.action = 2
                 } else {
                     obj.action = 1
+
                 }
             } else {
                 obj.action = act;
@@ -398,7 +446,7 @@ export const requestEndTurn: LongFormMove = {
         aesAward(G, ctx, ctx.currentPlayer);
         industryAward(G, ctx, ctx.currentPlayer);
         ValidRegions.forEach(r => {
-            if(r===Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE)return;
+            if (r === Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE) return;
             let canScore = checkRegionScoring(G, ctx, r);
             if (canScore) {
                 G.scoringRegions.push(r)
@@ -449,35 +497,43 @@ export interface IPlayCardInfo {
 
 export const playCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
-        let c = G.player[curPid(G, ctx)].hand.splice(arg.idx, 1);
-        G.e.card = c[0];
-        G.e.stack.push(getCardEffect(c[0].cardId).play)
+        let pub = G.pub[parseInt(arg.playerID)]
+        if (cinemaInRegion(G, ctx, arg.card.region, arg.playerID)) {
+            pub.resource++;
+            pub.vp++;
+        }
+        pub.playedCardInTurn.push(arg.card);
+        G.e.card = arg.card;
+        G.e.stack.push(getCardEffect(arg.card.cardId).play)
         curEffectExec(G, ctx);
     },
     client: false,
 }
+
 export interface ICompetitionCardArg {
-    pass:boolean,
-    card:INormalOrLegendCard,
+    pass: boolean,
+    card: INormalOrLegendCard,
+    idx :number,
+    p:PlayerID,
 }
+
 export const competitionCard: LongFormMove = {
     client: false,
     redact: true,
-    move: (G: IG, ctx: Ctx, arg: IFilmCard) => {
-        let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID;
-        G.player[parseInt(p)].competitionCards.push(arg);
-
+    move: (G: IG, ctx: Ctx, arg: ICompetitionCardArg) => {
+        let p = arg.p;
+        G.player[parseInt(p)].competitionCards.push(arg.card);
         let i = G.competitionInfo;
         if (p === i.atk) {
             i.atkPlayedCard = true;
-            changePlayerStage(G, ctx, "competitionCard", i.def);
+            checkCompetitionDefender(G,ctx);
             return;
         } else {
             if (p === i.def) {
                 i.defPlayedCard = true;
-
+                atkCardSettle(G,ctx);
             } else {
-                throw new Error();
+                logger.error("Other player cannot move in competition card stage!")
             }
         }
 
@@ -490,7 +546,6 @@ export const breakthrough: LongFormMove = {
         let p = G.pub[parseInt(arg.playerID)];
         let playerObj = G.player[parseInt(arg.playerID)];
         p.action -= 1;
-        // TODO let player choose 2res/1res 1dep /2dep
         p.resource -= arg.res;
         p.deposit -= (2 - arg.res);
         // @ts-ignore
@@ -543,6 +598,7 @@ export const breakthrough: LongFormMove = {
 export interface ICommentArg {
     target: ICardSlot,
     comment: IBasicCard | null,
+    pid: PlayerID,
 }
 
 export const comment: LongFormMove = {
@@ -553,12 +609,17 @@ export const comment: LongFormMove = {
         } else {
             arg.target.comment = arg.comment;
         }
-        // 3204 onwer draw
         // let p = schoolPlayer(G,ctx,"S3204")
-        let p = schoolPlayer(G,ctx,"3204");
-        if(p!==null){
-            drawCardForPlayer(G,ctx,p);
+        let p = schoolPlayer(G, ctx, "3204");
+        if (p !== null) {
+            drawCardForPlayer(G, ctx, p);
         }
+        let pub = G.pub[parseInt(arg.pid)];
+        if (pub.school?.cardId === "2204") {
+            pub.resource++;
+            pub.vp++;
+        }
+
     }
 }
 

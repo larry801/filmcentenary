@@ -1,0 +1,128 @@
+import React from 'react';
+import {Button} from "@material-ui/core";
+
+interface IPlayer {
+    name: string,
+    id: string,
+}
+
+interface IMatchInstance {
+    gameName: string,
+    matchID: string,
+    players: IPlayer[],
+}
+
+interface matchOpts {
+    playerID?: string,
+    matchID: string,
+    numPlayers: number,
+}
+
+export interface ILobbyMatchInstanceProps {
+    match: IMatchInstance,
+    playerName: string,
+    onClickJoin: (game: string, matchID: string, seatID: string) => void,
+    onClickLeave: (game: string, matchID: string) => void,
+    onClickPlay: (game: string, matchOpt: matchOpts) => void,
+    onClickSpectate: () => {},
+}
+
+export const LobbyMatchInstance = ({match, playerName, onClickJoin, onClickLeave, onClickPlay, onClickSpectate}: ILobbyMatchInstanceProps) => {
+
+    const _createSeat = (player: any) => {
+        return player.name || '[free]';
+    };
+    const hasPlayer = !match.players.find(player => !player.name);
+    const status = hasPlayer ? "RUNNING" : "OPEN"
+    const _createButtonJoin = (inst: IMatchInstance, seatId: string) => (
+        <Button
+            key={'button-join-' + inst.matchID}
+            onClick={() =>
+                onClickJoin(inst.gameName, inst.matchID, '' + seatId)
+            }
+        >
+            Join
+        </Button>
+    );
+
+    const _createButtonLeave = (inst: IMatchInstance) => (
+        <Button
+            key={'button-leave-' + inst.matchID}
+            onClick={() => onClickLeave(inst.gameName, inst.matchID)}
+        >
+            Leave
+        </Button>
+    );
+
+    const _createButtonPlay = (inst: IMatchInstance, seatId: string) => (
+        <Button
+            key={'button-play-' + inst.matchID}
+            onClick={() =>
+                onClickPlay(inst.gameName, {
+                    matchID: inst.matchID,
+                    playerID: '' + seatId,
+                    numPlayers: inst.players.length,
+                })
+            }
+        >
+            Play
+        </Button>
+    );
+
+    const _createButtonSpectate = (inst: IMatchInstance) => (
+        <Button
+            key={'button-spectate-' + inst.matchID}
+            onClick={() =>
+                onClickPlay(inst.gameName, {
+                    matchID: inst.matchID,
+                    numPlayers: inst.players.length,
+                })
+            }
+        >
+            Spectate
+        </Button>
+    );
+
+    const _createInstanceButtons = (inst: IMatchInstance) => {
+        const playerSeat = inst.players.find(
+            player => {
+                return player.name === playerName;
+            }
+        );
+        const freeSeat = inst.players.find((player: { name: any; }) => !player.name);
+        if (playerSeat && freeSeat) {
+            // already seated: waiting for match to start
+            return _createButtonLeave(inst);
+        }
+        if (freeSeat) {
+            // at least 1 seat is available
+            return _createButtonJoin(inst, freeSeat.id);
+        }
+        // match is full
+        if (playerSeat) {
+            return (
+                <div>
+                    {[
+                        _createButtonPlay(inst, playerSeat.id),
+                        _createButtonLeave(inst),
+                    ]}
+                </div>
+            );
+        }
+        // allow spectating
+        return _createButtonSpectate(inst);
+    };
+
+    return <tr key={'line-' + match.matchID}>
+        <td key={'cell-name-' + match.matchID}>{match.gameName}</td>
+        <td key={'cell-status-' + match.matchID}>{status}</td>
+        <td key={'cell-seats-' + match.matchID}>
+            {match.players.map(_createSeat).join(', ')}
+        </td>
+        <td key={'cell-buttons-' + match.matchID}>
+            {_createInstanceButtons(match)}
+        </td>
+    </tr>
+}
+
+export default LobbyMatchInstance;

@@ -19,7 +19,7 @@ export const CardItem = ({cardId}:ICardItemProps)=>{
             // @ts-ignore
             return  cardEffectText(cardId)
         }catch (e){
-            console.log(cardId)
+
         }
     }
 

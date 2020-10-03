@@ -2969,7 +2969,6 @@ export function getCardById(id: string): INormalOrLegendCard  {
             if(id in EventCardID){
                 return eventCardById(id as EventCardID);
             }else {
-                console.log(JSON.stringify(id));
                 throw new Error("No such id" + id)
             }
         }

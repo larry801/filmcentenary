@@ -51,8 +51,9 @@ export interface IG {
         defPlayedCard: boolean,
         pending: boolean,
         progress: number,
+        onWin:{e:string,a:number},
     },
-    secret: {
+    secretInfo: {
         regions: {
             0: IRegionPrivate,
             1: IRegionPrivate,
@@ -124,7 +125,7 @@ function pubPlayer(): IPubInfo {
     }
 }
 
-function privatePlayer(): IPrivateInfo {
+export function privatePlayer(): IPrivateInfo {
     return {hand: [], handSize:0,cardsToPeek:[],competitionCards:[],
         finalScoringExtraVp:0,
     }
@@ -207,10 +208,11 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             defPlayedCard: false,
             progress: 0,
             pending: false,
+            onWin:{e:"none",a:1}
         },
         activeEvents: [],
         player: players,
-        secret: {
+        secretInfo: {
             regions: {
                 0: {
                     legendDeck: [],

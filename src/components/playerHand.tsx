@@ -12,8 +12,6 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
     const p = G.pub[parseInt(playerID)];
     const hand = G.player[parseInt(playerID)].hand;
     const [expanded, setExpanded] = React.useState(hand.length);
-    const res = p.resource >= 2 ? 2 : p.resource;
-    const deposit = 2 - res;
     return <Grid item xs={12} sm={6}>
         <Typography>{i18n.hand.title}</Typography>
         {hand.map((c, idx) =>
@@ -44,11 +42,35 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                                     card: c,
                                     idx: idx,
                                     playerID: playerID,
-                                    res: res,
+                                    res: 2,
                                 })
                             }}
-                            disabled={playerID!==ctx.currentPlayer||p.action < 1 || p.deposit < deposit}
-                        >{i18n.action.breakthrough}</Button>
+                            disabled={playerID!==ctx.currentPlayer||p.action < 1 || p.resource < 2}
+                        >{i18n.action.breakthrough2Res}</Button>
+                        <Button
+                            onClick={() => {
+                                setExpanded(hand.length);
+                                moves.breakthrough({
+                                    card: c,
+                                    idx: idx,
+                                    playerID: playerID,
+                                    res: 1,
+                                })
+                            }}
+                            disabled={playerID!==ctx.currentPlayer||p.action < 1 || p.resource < 1 || p.deposit <1}
+                        >{i18n.action.breakthrough1Res}</Button>
+                        <Button
+                            onClick={() => {
+                                setExpanded(hand.length);
+                                moves.breakthrough({
+                                    card: c,
+                                    idx: idx,
+                                    playerID: playerID,
+                                    res: 0,
+                                })
+                            }}
+                            disabled={playerID!==ctx.currentPlayer||p.action < 1 || p.deposit < 2}
+                        >{i18n.action.breakthrough0Res}</Button>
                     </AccordionDetails>
                 </Accordion>
         ) }

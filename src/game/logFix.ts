@@ -6,8 +6,7 @@ export function signalEndStage(G: IG, ctx: Ctx): void {
     if (G.logDiscrepancyWorkaround) {
         G.pending.endStage = true;
     } else {
-        // @ts-ignore
-        ctx.events.endStage();
+        ctx?.events?.endStage?.();
     }
 }
 
@@ -50,22 +49,9 @@ export function signalEndPhase(G: IG, ctx: Ctx): void {
 }
 
 export function changeStage(G: IG, ctx: Ctx, stage: string): void {
-    // @ts-ignore
-    ctx.events.setStage(stage);
+    ctx?.events?.setStage?.(stage);
 }
 
-export const changPlayerStage = (G: IG, ctx: Ctx, p: PlayerID, stage: string): void=>{
-    if (p === ctx.currentPlayer) {
-        ctx.events?.setStage?.(stage);
-    } else {
-        ctx.events?.setActivePlayers?.({
-            value: {
-                [p]: {stage: stage},
-                [ctx.currentPlayer]: {stage: "moveBlockerStage"},
-            }
-        })
-    }
-}
 
 export function changeBothStage(G: IG, ctx: Ctx, stage: string): void {
     if (G.logDiscrepancyWorkaround) {
@@ -80,14 +66,22 @@ export function changeBothStage(G: IG, ctx: Ctx, stage: string): void {
 }
 
 export function changePlayerStage(G: IG, ctx: Ctx, stage: string, p: PlayerID): void {
-
+    if (p === ctx.currentPlayer) {
+        ctx.events?.setStage?.(stage);
+    } else {
+        ctx.events?.setActivePlayers?.({
+            value: {
+                [p]: {stage: stage},
+                [ctx.currentPlayer]: {stage: "moveBlockerStage"},
+            }
+        })
+    }
 }
 
 
 export function changePhase(G: IG, ctx: Ctx, phase: string) {
     if (G.logDiscrepancyWorkaround) {
         ctx.events?.setPhase?.(phase);
-
     } else {
         ctx.events?.setPhase?.(phase);
     }

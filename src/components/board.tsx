@@ -1,6 +1,6 @@
 import React from "react";
 import {BoardProps} from "boardgame.io/react";
-import {IG} from "../types/setup";
+import {IG, privatePlayer} from "../types/setup";
 import {BoardCardSlot, BoardRegion} from "./region";
 import {PlayerHand} from "./playerHand";
 import {ChoiceDialog} from "./modals";
@@ -38,9 +38,9 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
             }
         }
     }
-
-
-    const handChoices = playerID === null ? [] : G.player[parseInt(playerID)].hand.map((c, idx) => {
+    const iPrivateInfo = playerID === null ? privatePlayer():G.player[parseInt(playerID)];
+    const hand = playerID === null ? [] : iPrivateInfo.hand
+    const handChoices = playerID === null ? [] : hand.map((c, idx) => {
         return {
             // @ts-ignore
             label: i18n.card[c.cardId],
@@ -50,7 +50,58 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
         }
     })
 
+    const peek = (choice:string)=>{
+        moves.peek({
+            idx:parseInt(choice),
+            card:iPrivateInfo.cardsToPeek[parseInt(choice)],
+            p:playerID,
+        })
+    }
 
+    const chooseHand = (choice:string) =>{
+        moves.chooseHand({
+            hand:hand[parseInt(choice)],
+            idx:parseInt(choice),
+            p:playerID,
+        })
+    }
+    const chooseTarget = (choice:string) =>{
+        moves.chooseTarget({
+            event:G.events[parseInt(choice)],
+            idx:parseInt(choice),
+            p:playerID,
+        })
+    }
+
+    const chooseRegion = (choice:string) =>{
+        moves.chooseRegion({
+            r:G.e.regions[parseInt(choice)],
+            idx:parseInt(choice),
+            p:playerID,
+        })
+    }
+    const chooseEffect = (choice:string) =>{
+        moves.chooseEffect({
+            effect:G.e.choices[parseInt(choice)],
+            idx:parseInt(choice),
+            p:playerID
+        })
+    }
+    const chooseEvent = (choice:string) =>{
+        moves.chooseEvent({
+            event:G.events[parseInt(choice)],
+            idx:parseInt(choice),
+            p:playerID,
+        })
+    }
+    const competitionCard = (choice:string) =>{
+        moves.competitionCard({
+            pass:false,
+            card:hand[parseInt(choice)],
+            idx:parseInt(choice),
+            p:playerID
+        })
+    }
     const discardChoices = () => {
         if (playerID === null) return [];
         if (G.e.stack.length > 0) {
@@ -148,10 +199,10 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                            playerID={playerID}/>
         </Grid> :
         <>
-            <BoardRegion r={Region.NA} moves={moves} region={G.regions[0]} G={G} ctx={ctx} playerID={playerID}/>
-            <BoardRegion r={Region.WE} moves={moves} region={G.regions[1]} G={G} ctx={ctx} playerID={playerID}/>
-            <BoardRegion r={Region.EE} moves={moves} region={G.regions[2]} G={G} ctx={ctx} playerID={playerID}/>
-            <BoardRegion r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx} playerID={playerID}/>
+            <BoardRegion getPlayerName={getName} r={Region.NA} moves={moves} region={G.regions[0]} G={G} ctx={ctx} playerID={playerID}/>
+            <BoardRegion getPlayerName={getName} r={Region.WE} moves={moves} region={G.regions[1]} G={G} ctx={ctx} playerID={playerID}/>
+            <BoardRegion getPlayerName={getName} r={Region.EE} moves={moves} region={G.regions[2]} G={G} ctx={ctx} playerID={playerID}/>
+            <BoardRegion getPlayerName={getName} r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx} playerID={playerID}/>
         </>
 
     return <Grid container justify="space-evenly" alignItems="center">
@@ -239,7 +290,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                 </Button> : <></>}
             {playerID !== null ? <ChoiceDialog
                 initial={true}
-                callback={moves.peek}
+                callback={peek}
                 choices={
                     G.player[parseInt(playerID)].cardsToPeek
                         .map(r => {
@@ -254,7 +305,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                 toggleText={i18n.dialog.peek.title}/> : <></>}
             <ChoiceDialog
                 initial={true}
-                callback={moves.chooseRegion}
+                callback={chooseRegion}
                 choices={
                     G.e.regions
                         .map(r => {
@@ -269,7 +320,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                 toggleText={i18n.dialog.chooseRegion.toggleText}/>
             <ChoiceDialog
                 initial={true}
-                callback={moves.chooseTarget}
+                callback={chooseTarget}
                 choices={
                     Array(ctx.numPlayers)
                         .fill(1)
@@ -288,7 +339,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
 
             {playerID !== null ?
                 <ChoiceDialog
-                    callback={moves.chooseEvent}
+                    callback={chooseEvent}
                     choices={G.events.map((c, idx) => {
                         return {
                             // @ts-ignore
@@ -301,15 +352,23 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                     show={isActive && actualStage(G, ctx) === "chooseEvent"}
                     title={i18n.dialog.chooseEvent.title} toggleText={i18n.dialog.chooseEvent.toggleText}
                     initial={true}/> : <></>}
-            {playerID !== null ?
-                <ChoiceDialog
-                    callback={moves.chooseHand}
-                    choices={discardChoices()} defaultChoice={"0"}
-                    show={isActive && actualStage(G, ctx) === "chooseHand"}
-                    title={i18n.dialog.chooseHand.title} toggleText={i18n.dialog.chooseHand.toggleText}
-                    initial={true}/> : <></>}
             <ChoiceDialog
-                callback={moves.chooseEffect}
+                callback={competitionCard}
+                choices={handChoices}
+                defaultChoice={'0'}
+                show={playerID!==null && actualStage(G,ctx)==="competitionCard"}
+                title={i18n.dialog.chooseHand.title}
+                toggleText={i18n.dialog.chooseHand.toggleText}
+                initial={true}/>
+            {playerID !== null ?
+            <ChoiceDialog
+                callback={chooseHand}
+                choices={discardChoices()} defaultChoice={"0"}
+                show={isActive && actualStage(G, ctx) === "chooseHand"}
+                title={i18n.dialog.chooseHand.title} toggleText={i18n.dialog.chooseHand.toggleText}
+                initial={true}/> : <></>}
+            <ChoiceDialog
+                callback={chooseEffect}
                 choices={G.e.choices.map((c, idx) => {
                     return {
                         label: effName(c),
@@ -318,7 +377,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                         value: idx.toString()
                     }
                 })} defaultChoice={"0"}
-                show={isActive && actualStage(G, ctx) === "chooseEffect"}
+                show={playerID!== null && isActive && actualStage(G, ctx) === "chooseEffect"}
                 title={i18n.dialog.chooseEffect.title} toggleText={i18n.dialog.chooseEffect.toggleText}
                 initial={true}/>
             <ChoiceDialog

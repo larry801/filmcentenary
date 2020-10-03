@@ -2241,12 +2241,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {e:"step",a:[
             {e:"deposit",a:2},{e:"noStudio",a:{e:"discardIndustry",a:2}},
-                {e:"studio",a:{e:"peek",a:{
-                    count:4,filter:{
-                        e:"hand",
-                        a:2,
-                            }
-                        }}}
+                {e:"studio",a:{e:"peek",a:{count:4,filter:{e:"hand", a:2,}}}}
             ]},
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
