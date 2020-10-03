@@ -9,13 +9,14 @@ import {
     Theme,
     Typography,
 } from "@material-ui/core";
-import {IBasicCard, IBuildingSlot, ICardSlot, IEra, IRegionInfo, Region, validRegion} from "../types/core";
+import {IBasicCard, ICardSlot, IRegionInfo, Region, validRegion} from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
 import {BuyCard, Comment} from "./buyCard";
 import {makeStyles} from "@material-ui/core/styles";
+import {getCardName} from "../game/util";
 
 export interface ICardSlotProp {
     slot: ICardSlot,
@@ -32,14 +33,8 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
 
     return <>
         <Paper style={{display: 'inline-flex'}} variant={variant}>
-            <Typography>{slot.card === null ? "" :
-                // @ts-ignore
-                i18n.card[slot.card.cardId]
-            } </Typography>
-            <Typography>{slot.comment === null ? "" :
-                // @ts-ignore
-                i18n.card[slot.card.cardId]
-            } </Typography>
+            <Typography>{slot.card === null ? "" : getCardName(slot.card.cardId)} </Typography>
+            <Typography>{slot.comment === null ? "" : getCardName(slot.comment.cardId)} </Typography>
             {playerID !== null && slot.card !== null && ctx.currentPlayer === playerID ?
                 <><Comment slot={slot} comment={comment} G={G}/>
                     <BuyCard
@@ -116,19 +111,33 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
         }
     }
 
-    const playerName = (p:string):string=>{
-        if (p===""){
+    const playerName = (p: string): string => {
+        if (p === "") {
             return i18n.pub.emptyBuildingSlot
-        }else {
+        } else {
             return getPlayerName(p);
         }
     }
 
-    const buildingSlots = region.buildings.map((slot,idx)=><Grid item>
-        <Typography>{buildingSlotName(r,idx)}</Typography>
-        <Typography>{playerName(slot.owner)}</Typography>
-        {slot.activated?<Typography>{slot.isCinema?i18n.pub.cinema:i18n.pub.studio}</Typography>:<></>}
-    </Grid>)
+    const content = (isCinema: boolean): string => {
+        if (isCinema) {
+            return i18n.pub.cinema;
+        } else {
+            return i18n.pub.studio;
+        }
+    }
+
+    const buildingSlots = region.buildings.map((slot, idx) => {
+        if(slot.activated) {
+            return (<Grid item xs={4} key={`building-slot-${idx}`}>
+                <Paper>
+                    <Typography>{buildingSlotName(r, idx)}{playerName(slot.owner)} {slot.owner !== "" ? content(slot.isCinema) : ""}</Typography>
+                </Paper>
+            </Grid>)
+        }else {
+            return <></>
+        }
+    })
 
     return <Grid item xs={12} sm={6}>
         <Accordion expanded={expanded}

@@ -32,6 +32,7 @@ export interface IG {
         endPhase: boolean,
         endStage: boolean,
     },
+    currentScoreRegion:Region,
     scoringRegions: Region[],
     events: IEventCard[],
     c: {
@@ -87,6 +88,7 @@ export interface IG {
 
 function pubPlayer(): IPubInfo {
     return {
+        discardInSettle:false,
         scoreEvents:[],
         vpAward:{
             v60:false,
@@ -99,11 +101,11 @@ function pubPlayer(): IPubInfo {
             studioBuilt: false,
         },
         champions: [],
-        action: 1,
+        action: 10,
         aesthetics: 0,
         allCards: [B01, B02, B07, B07, B07, B07, B07, B07],
         archive: [],
-        deposit: 0,
+        deposit: 100,
         discard: [],
         industry: 0,
         resource: 0,
@@ -199,6 +201,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             cardIDs: [],
 
         },
+        currentScoreRegion:Region.NONE,
         e: {choices: [], stack: [], card: B07, regions: [],},
         competitionInfo: {
             region: Region.NONE,

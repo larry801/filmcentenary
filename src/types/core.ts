@@ -151,6 +151,7 @@ export interface Champion{
 }
 
 export interface IPubInfo {
+    discardInSettle:boolean,
     scoreEvents:EventCardID[],
     vpAward:{
         v60:boolean,

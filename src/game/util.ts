@@ -1,4 +1,3 @@
-import {Logger} from "tslog";
 import {
     BasicCardID,
     CardCategory,
@@ -28,10 +27,8 @@ import {changePlayerStage, changeStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
 import {B04, getBasicCard} from "../constant/cards/basic";
 import {eventCardByEra} from "../constant/cards/event";
-import {getScoreCard, scoreCardCount} from "../constant/cards/score";
+import {getScoreCard, getScoreCardByID, scoreCardCount} from "../constant/cards/score";
 import i18n from "../constant/i18n";
-
-export const logger: Logger = new Logger();
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -112,6 +109,8 @@ export const doConfirm = (G: IG, ctx: Ctx, a: boolean): void => {
 
 function isSimpleEffect(eff: any): boolean {
     switch (eff.e) {
+        case "alternative":
+        case "loseVpForEachHand":
         case "competition":
         case "loseAnyRegionShare":
         case "anyRegionShare":
@@ -168,8 +167,7 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     let eff = G.e.stack.pop();
     let obj = G.pub[parseInt(p)];
     let card: INormalOrLegendCard;
-    let region = G.e.card.region;
-    logger.debug({eff:eff})
+    //let region = G.e.card.region;
     switch (eff.e) {
         case "none":
         case "skipBreakthrough":
@@ -296,7 +294,7 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             doBuy(G, ctx, getCardById(eff.a), p);
             break;
         default:
-            logger.error("Invalid effect" + JSON.stringify(eff));
+            console.error("Invalid effect" + JSON.stringify(eff));
             throw new Error(JSON.stringify(eff));
     }
 
@@ -370,15 +368,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                     G.regions[region].share = 0;
                 }
             }
-            if (ctx.numPlayers === 2) {
-                if (card.type === CardType.S) {
-                    do2pUpdateSchoolSlot(G, ctx, slot);
-                } else {
-                    do2pUpdateFilmSlot(G, ctx, slot);
-                }
-            } else {
-                doReturnSlotCard(G, ctx, slot);
-            }
+
         }
         if (card.type === CardType.S) {
             let school = obj.school;
@@ -553,7 +543,12 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
     //let card: INormalOrLegendCard;
     let region = G.e.card.region;
     switch (eff.e) {
+        case "alternative":
+            G.e.stack.push(eff.a)
+            changeStage(G, ctx, "confirmRespond")
+            return;
         case "competition":
+            G.e.stack.push(eff.a)
             changeStage(G, ctx, "chooseTarget")
             return;
         case "loseAnyRegionShare":
@@ -562,6 +557,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             if (G.e.regions.length === 0) {
                 break;
             } else {
+                G.e.stack.push(eff)
                 changeStage(G, ctx, "chooseRegion");
                 return;
             }
@@ -575,6 +571,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
                 if (G.e.regions.length === 0) {
                     break;
                 } else {
+                    G.e.stack.push(eff)
                     changePlayerStage(G, ctx, "chooseRegion", winner);
                     return;
                 }
@@ -584,6 +581,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
                 if (G.e.regions.length === 0) {
                     break;
                 } else {
+                    G.e.stack.push(eff)
                     changeStage(G, ctx, "chooseRegion");
                     return;
                 }
@@ -610,6 +608,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             }
             break;
         case "handToOthers":
+            G.e.stack.push(eff)
             changeStage(G, ctx, "chooseHand");
             break;
         case "industryOrAestheticsBreakthrough":
@@ -634,10 +633,10 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
                     playerObj.cardsToPeek.push(deck.pop() as INormalOrLegendCard);
                 }
             }
+            G.e.stack.push(eff)
             changeStage(G, ctx, "peek")
             break;
         case "everyOtherCompany":
-
             if (G.c.players.length === 0) {
                 G.c.players = seqFromActive(G, ctx);
                 G.c.players.shift()
@@ -677,10 +676,19 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             return;
         case "studio":
             players = studioPlayers(G, ctx, region);
-            players.forEach(p => {
-                G.e.stack.push(eff.a);
-                simpleEffectExec(G, ctx, p)
-            });
+            if(players.length===0){
+                break;
+            }
+            G.c.players = players;
+            if (isSimpleEffect(eff.a)) {
+                players.forEach(p => {
+                    G.e.stack.push(eff.a);
+                    simpleEffectExec(G, ctx, p)
+                });
+            }else {
+                let player = G.c.players[0] as PlayerID;
+                playerEffExec(G, ctx, player);
+            }
             break;
         case "step":
             eff.a.reduceRight((_: any, item: any) => {
@@ -906,6 +914,7 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     let cost: ICost = arg.target.cost;
     let resRequired = cost.res;
     let pub = G.pub[parseInt(arg.buyer)]
+
     let aesthetics: number = cost.aesthetics
     let industry: number = cost.industry
     aesthetics -= pub.aesthetics;
@@ -926,6 +935,13 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     }
     if (aesthetics > 0) resRequired += aesthetics * 2;
     if (industry > 0) resRequired += industry * 2;
+    // @ts-ignore
+    if (pub.school?.cardId === "2201" && arg.target.aesthetics > 0) {
+        if (resRequired < 2) {
+            return 0;
+        } else
+            return resRequired - 2;
+    }
     return resRequired;
 }
 
@@ -984,13 +1000,20 @@ export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
 }
 
 export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
+    console.log(r, e);
     if (r === Region.NONE) return;
     let legend = cardsByCond(r, e, true);
+    console.log(JSON.stringify(legend));
     let normal = cardsByCond(r, e, false);
+    console.log(JSON.stringify(normal));
     G.secretInfo.regions[r].legendDeck = shuffle(ctx, legend).slice(0, LegendCardCountInUse[r][e]);
     G.secretInfo.regions[r].normalDeck = shuffle(ctx, normal).slice(0, NormalCardCountInUse[r][e]);
     let l: INormalOrLegendCard[] = G.secretInfo.regions[r].legendDeck;
     let n: INormalOrLegendCard[] = G.secretInfo.regions[r].normalDeck;
+    console.log(JSON.stringify(G.secretInfo.regions[r].legendDeck));
+    console.log(JSON.stringify(G.secretInfo.regions[r].normalDeck));
+    console.log(JSON.stringify(l));
+    console.log(JSON.stringify(n));
     for (let s of G.regions[r].normal) {
         let c = n.pop();
         if (c === undefined) {
@@ -1021,7 +1044,7 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     let card = s.pop();
     if (card === undefined) {
         // TODO what if player has no card at all?
-        throw new Error("Error drawing card");
+        console.log("Empty deck.")
     } else {
         p.hand.push(card);
     }
@@ -1169,10 +1192,6 @@ export const legendCount = (G: IG, ctx: Ctx, r: Region, e: IEra, p: PlayerID): n
         .length;
 }
 
-export const getFirstPlayer = (G: IG, ctx: Ctx, r: Region): PlayerID => {
-    return '0'
-}
-
 export const doEndTurn = (G: IG, ctx: Ctx,): void => {
     signalEndTurn(G, ctx);
 }
@@ -1180,7 +1199,7 @@ export const doEndTurn = (G: IG, ctx: Ctx,): void => {
 export const tryScoring = (G: IG, ctx: Ctx): void => {
     if (G.scoringRegions.length > 0) {
         let r = G.scoringRegions.shift();
-        G.scoringRegions.unshift(r as Region);
+        G.currentScoreRegion = r as validRegion;
         regionRank(G, ctx, r as Region);
     } else {
         if (
@@ -1218,21 +1237,22 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         }
     });
     let rankResult = rankingPlayer.sort(rank);
+    console.log(JSON.stringify(rankResult));
     let firstPlayer: PlayerID = rankResult[0];
+    console.log("firstPlayer: " + firstPlayer)
     G.pub[parseInt(firstPlayer)].champions.push({
         era: era,
         region: r,
     })
-
     let scoreCount = scoreCardCount(r, era);
-    for (let i = 0; i < scoreCount; i++) {
-        // @ts-ignore
+    let scoreCardPlayerCount = Math.min(rankResult.length, scoreCount)
+    for (let i = 0; i < scoreCardPlayerCount; i++) {
         G.pub[parseInt(rankResult[i])].discard.push(
             // @ts-ignore
             getScoreCard(r, era, i + 1)
         )
     }
-    for (let i = scoreCount; i < rankResult.length; i++) {
+    for (let i = scoreCardPlayerCount; i < rankResult.length; i++) {
         doBuy(G, ctx, B04, rankResult[i])
     }
     changePlayerStage(G, ctx, "chooseEvent", firstPlayer);
@@ -1269,7 +1289,7 @@ export function doFillNewEraEvents(G: IG, ctx: Ctx, newEra: IEra) {
     for (let i = 0; i < 2; i++) {
         let newEvent = G.secretInfo.events.pop();
         if (newEvent === undefined) {
-
+            throw new Error();
         } else {
             G.events.push(newEvent)
         }
@@ -1277,16 +1297,15 @@ export function doFillNewEraEvents(G: IG, ctx: Ctx, newEra: IEra) {
 }
 
 export function fillEventCard(G: IG, ctx: Ctx) {
-    let region = G.scoringRegions.slice(-1)[0];
-    if (region === Region.NONE) return;
-    let era = G.regions[region].era;
-    let newEra: IEra = era === IEra.THREE ? era : era + 1;
     let newEvent = G.secretInfo.events.pop();
+    let era;
     if (newEvent === undefined) {
         throw new Error();
     } else {
+        era = newEvent.era;
         G.events.push(newEvent)
     }
+    let newEra = era === IEra.THREE ? era : era + 1;
     if (G.secretInfo.events.length === 1) {
         if (G.secretInfo.events[0].cardId === "E03") {
             G.activeEvents.push(EventCardID.E03);
@@ -1330,29 +1349,38 @@ export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     changeStage(G, ctx, "chooseEffect")
 }
 
+export const regionEraProgress = (G: IG, ctx: Ctx) => {
+    let r = G.currentScoreRegion;
+    if (r === Region.NONE) throw new Error();
+    nextEra(G, ctx, r);
+    fillEmptySlots(G, ctx);
+    G.currentScoreRegion = Region.NONE;
+    if (ValidRegions.filter(r =>
+
+        G.regions[r].completedModernScoring).length >= 3) {
+        G.pending.lastRoundOfGame = true;
+    }
+    if (ValidRegions.filter(r =>
+
+        G.regions[r].era !== IEra.ONE).length >= 2 &&
+        G.regions[Region.ASIA].era === IEra.ONE
+    ) {
+        drawForRegion(G, ctx, Region.ASIA, IEra.TWO);
+        G.regions[Region.ASIA].era = IEra.TWO;
+        G.regions[Region.ASIA].share = ShareOnBoard[Region.ASIA][IEra.TWO];
+    }
+    tryScoring(G, ctx);
+}
+
 export function checkNextEffect(G: IG, ctx: Ctx) {
     if (G.e.stack.length === 0) {
-        if (G.scoringRegions.length > 0) {
-            let r = G.scoringRegions.shift();
-            if (r === undefined) throw new Error();
-            nextEra(G, ctx, r);
-
-            if (ValidRegions.filter(r =>
-                // @ts-ignore
-                G.regions[r].completedModernScoring).length >= 3) {
-                G.pending.lastRoundOfGame = true;
-            }
-            if (ValidRegions.filter(r =>
-                    // @ts-ignore
-                G.regions[r].era !== IEra.ONE).length >= 2 &&
-                G.regions[Region.ASIA].era === IEra.ONE
-            ) {
-                drawForRegion(G, ctx, Region.ASIA, IEra.TWO);
-                G.regions[Region.ASIA].era = IEra.TWO;
-                G.regions[Region.ASIA].share = ShareOnBoard[Region.ASIA][IEra.TWO];
-            }
-            tryScoring(G, ctx);
-        } else {
+        G.e.card = B04;
+        let newWavePlayer = schoolPlayer(G,ctx,"3204");
+        if(newWavePlayer!==null && G.pub[parseInt(newWavePlayer)].discardInSettle){
+            G.pub[parseInt(newWavePlayer)].vp ++;
+            drawCardForPlayer(G,ctx,newWavePlayer)
+        }
+        if (G.currentScoreRegion === Region.NONE) {
             let i = G.competitionInfo;
             if (i.pending) {
                 if (i.atkPlayedCard) {
@@ -1366,6 +1394,8 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                     ctx?.events?.endStage?.();
                 }
             }
+        } else {
+            regionEraProgress(G, ctx);
         }
     } else {
         curEffectExec(G, ctx);
@@ -1413,15 +1443,15 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         }
     }
     if (hasWinner) {
-        if(i.onWin.e!=="none"){
-            if(i.onWin.e === "anyRegionShare"){
+        if (i.onWin.e !== "none") {
+            if (i.onWin.e === "anyRegionShare") {
                 G.e.stack.push({
                     e: "anyRegionShare", a: 2
                 })
-            }else {
+            } else {
                 G.e.stack.push(i.onWin);
                 i.onWin.e = "none";
-                simpleEffectExec(G,ctx,winner);
+                simpleEffectExec(G, ctx, winner);
             }
         }
         G.e.stack.push({
@@ -1517,7 +1547,7 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     if (newHollywoodPlayer === i.def) {
         i.progress--
     }
-    checkCompetitionAttacker(G,ctx);
+    checkCompetitionAttacker(G, ctx);
 }
 
 
@@ -1539,13 +1569,6 @@ export const checkCompetitionAttacker = (G: IG, ctx: Ctx) => {
         checkCompetitionDefender(G, ctx);
     }
 }
-export const settleCompetition = (G: IG, ctx: Ctx) => {
-    let i = G.competitionInfo;
-    let atkCard = G.player[parseInt(i.atk)].competitionCards[0];
-    let defCard = G.player[parseInt(i.atk)].competitionCards[0];
-    // @ts-ignore
-    let eff = getCardEffect()
-}
 
 export const exitCompetition = (G: IG, ctx: Ctx) => {
     let i = G.competitionInfo;
@@ -1562,8 +1585,8 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number =>
     if (p.school !== null) {
         extraVP += p.school.vp
     }
-    let validCards =[...G.secretInfo.playerDecks[i],...p.discard, ...s.hand]
-    let validID = validCards.map(c=>c.cardId);
+    let validCards = [...G.secretInfo.playerDecks[i], ...p.discard, ...s.hand]
+    let validID = validCards.map(c => c.cardId);
     // @ts-ignore
     validCards.forEach(c => extraVP += c.vp);
     if (p.building.cinemaBuilt) extraVP += 3;
@@ -1626,7 +1649,6 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number =>
         extraVP += G.secretInfo.playerDecks[i].filter(c => c.category === CardCategory.BASIC).length;
         extraVP += p.archive.filter(card => card.category === CardCategory.BASIC).length;
     }
-    let allCardIds = p.allCards.map(c => c.cardId);
     if (validID.includes("3102")) {
         // @ts-ignore
         extraVP += validCards.filter(c => c.industry > 0)
@@ -1719,6 +1741,30 @@ export const finalScoring = (G: IG, ctx: Ctx) => {
         winner: finalRank[0].toString(),
         reason: "finalScoring",
     })
+}
+
+export const getCardName = (cardId: string) => {
+    if (cardId in i18n.card) {
+        // @ts-ignore
+        return i18n.card[cardId];
+    } else {
+        if (cardId in NoneBasicCardID) {
+            // @ts-ignore
+            return i18n.card[cardId];
+        } else {
+            if (cardId in EventCardID) {
+                // @ts-ignore
+                return i18n.card[cardId]
+            } else {
+                let scoreCard = getScoreCardByID(cardId);
+                return i18n.score.cardName({
+                    era: scoreCard.era,
+                    region: scoreCard.region,
+                    rank: scoreCard.rank,
+                })
+            }
+        }
+    }
 }
 
 export const cardEffectText = (cardId: BasicCardID | NoneBasicCardID): string => {

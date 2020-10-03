@@ -230,7 +230,7 @@ const en = {
         },
         event: ["After {{a}}", argCardName],
         optional: "【optional】",
-        loseVpForEachHand:"",
+        loseVpForEachHand:"Lose prestige according to its hand.",
         discardLegend:["Discard {{a}} legend card(s)",argValue],
         atBreakthrough:"After you perform a breakthrough action,",
         playedCardInTurnEffect:"Execute the 【play】 effect another card with aesthetics mark you played in this turn.",
@@ -406,6 +406,7 @@ const en = {
             basic: "Buy basic card",
             board: "Buy card",
             cost: "Cost:",
+            refresh: "Refresh",
         },
         comment: {
             title: "Comment",

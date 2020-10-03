@@ -5,6 +5,7 @@ import {Ctx} from "boardgame.io";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
 import Grid from "@material-ui/core/Grid";
+import {getCardName} from "../game/util";
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
 
@@ -20,9 +21,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     onChange={() => setExpanded(idx)}
                     key={idx}>
                     <AccordionSummary key={idx}>{
-                        // @ts-ignore
-                        i18n.card[c.cardId]
-                    }</AccordionSummary>
+                    getCardName(c.cardId)}</AccordionSummary>
                     <AccordionDetails key={idx}>
                         <Button
                             onClick={() => {

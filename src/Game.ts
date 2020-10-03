@@ -19,7 +19,6 @@ import {
 } from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
 import {Region} from "./types/core";
-// eslint-disable-next-line
 import {getExtraScoreForFinal} from "./game/util";
 
 export enum Player {
@@ -52,7 +51,6 @@ export const FilmCentenaryGame: Game<IG> = {
     minPlayers: 3,
     maxPlayers: 4,
     playerView: (G:IG, ctx:Ctx, playerID:PlayerID) => {
-        console.log(JSON.stringify(G))
         let r = {...G};
         let newPlayerObj = []
         for (let p = 0; p < r.player.length; p++) {

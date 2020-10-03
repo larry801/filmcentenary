@@ -1,9 +1,10 @@
 import React from "react";
-import {BasicCardID, IPubInfo, ValidRegions} from "../types/core";
+import {IPubInfo, ValidRegions} from "../types/core";
 import {Grid, Typography} from "@material-ui/core";
 import {useI18n} from '@i18n-chain/react';
 import i18n from '../constant/i18n'
 import {ChoiceDialog} from "./modals";
+import {getCardName} from "../game/util";
 
 export const PubPanel = (i: IPubInfo) => {
     useI18n(i18n);
@@ -23,7 +24,7 @@ export const PubPanel = (i: IPubInfo) => {
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             {i.school !== null ?
-                <Typography> {i18n.pub.school} {i18n.card[i.school.cardId as BasicCardID]} </Typography> : <></>}
+                <Typography> {i18n.pub.school} {getCardName(i.school.cardId)} </Typography> : <></>}
             <Typography>   {i18n.pub.share} </Typography>
             {ValidRegions.map(r =>
                 <Typography key={r}>   {i18n.region[r]} {
@@ -32,12 +33,17 @@ export const PubPanel = (i: IPubInfo) => {
             )}
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
+            {i.champions.map(champion=><Typography>
+                {i18n.region[champion.region]}
+                {i18n.era[champion.era]}</Typography>)}
+        </Grid>
+        <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
                 callback={() => {
                 }}
                 choices={i.discard.map((card, idx) => {
                     return {
-                        label: i18n.card[card.cardId as BasicCardID],
+                        label: getCardName(card.cardId),
                         hidden: false,
                         disabled: true,
                         value: idx.toString(),
@@ -52,7 +58,7 @@ export const PubPanel = (i: IPubInfo) => {
                 }}
                 choices={i.allCards.map((card, idx) => {
                     return {
-                        label: i18n.card[card.cardId as BasicCardID],
+                        label: getCardName(card.cardId),
                         hidden: false,
                         disabled: true,
                         value: idx.toString(),
@@ -67,7 +73,7 @@ export const PubPanel = (i: IPubInfo) => {
                 }}
                 choices={i.archive.map((card, idx) => {
                     return {
-                        label: i18n.card[card.cardId as BasicCardID],
+                        label: getCardName(card.cardId),
                         hidden: false,
                         disabled: true,
                         value: idx.toString(),
@@ -82,7 +88,7 @@ export const PubPanel = (i: IPubInfo) => {
                 }}
                 choices={i.playedCardInTurn.map((card, idx) => {
                     return {
-                        label: i18n.card[card.cardId as BasicCardID],
+                        label: getCardName(card.cardId),
                         hidden: false,
                         disabled: true,
                         value: idx.toString(),

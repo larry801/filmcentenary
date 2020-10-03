@@ -1,6 +1,6 @@
 import React from "react";
 import {IG} from "../types/setup";
-import {BasicCardID, IBasicCard, ICard, ICardSlot, INormalOrLegendCard} from "../types/core";
+import {BasicCardID, IBasicCard, ICard, ICardSlot, INormalOrLegendCard, NoneBasicCardID, Region} from "../types/core";
 import {ChoiceDialog} from "./modals";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
@@ -10,7 +10,7 @@ import FormLabel from "@material-ui/core/FormLabel";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import {getBasicCard} from "../constant/cards/basic";
 import {Ctx, PlayerID} from "boardgame.io";
-import {canAfford, canBuyCard, cardEffectText, resCost} from "../game/util";
+import {canAfford, canBuyCard, cardEffectText, getCardName, resCost} from "../game/util";
 import Slider from "@material-ui/core/Slider";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
@@ -28,14 +28,6 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
 
     useI18n(i18n);
     const [open, setOpen] = React.useState(false);
-
-    const [cost, setCost] = React.useState(resCost(G, ctx, {
-        buyer: playerID,
-        target: card,
-        resource: 0,
-        deposit: 0,
-        helper: [],
-    }));
 
     const [depositExtra, setDepositExtra] = React.useState(0);
 
@@ -62,13 +54,20 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             setDepositExtra(0);
         }
         setChecked(newHelper);
-        setCost(newCost);
     }
 
     const pub = G.pub[parseInt(playerID)];
-    const minDeposit = Math.max(cost - pub.resource, 0);
+    const realtimeCost = resCost(G, ctx, {
+        buyer: playerID,
+        target: card,
+        resource: 0,
+        deposit: 0,
+        helper: helpers.filter((c, idx) => checked[idx]),
+    });
+    const minDeposit = Math.max(realtimeCost - pub.resource, 0);
     const affordable = canAfford(G, ctx, card, playerID) && pub.action > 0;
-    const res = cost - depositExtra -minDeposit;
+    const buttonColor = affordable ? "primary": "secondary"
+    const res = realtimeCost - depositExtra -minDeposit;
     const deposit = depositExtra + minDeposit
     const buyArg = {
         buyer: playerID,
@@ -77,8 +76,8 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         deposit: deposit,
         helper: helpers.filter((c, idx) => checked[idx]),
     };
-    const sliderRequired = pub.deposit + pub.resource > cost && pub.deposit > 0 && pub.resource > 0;
-    const maxDeposit = Math.min(cost, pub.deposit);
+    const sliderRequired = pub.deposit + pub.resource > realtimeCost && pub.deposit > 0 && pub.resource > 0;
+    const maxDeposit = Math.min(realtimeCost, pub.deposit);
     const canBuy: boolean = canBuyCard(G, ctx, buyArg);
     const buy = () => {
         moves.buyCard(buyArg)
@@ -105,27 +104,40 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         }
     };
 
+    const refreshCost = ()=>{
+        setDepositExtra(0);
+    }
+
+    const canMakeBuyMove = ()=>{
+        if(pub.school?.cardId === "2301" && card.region !== Region.EE){
+            return canBuy && pub.action > 0 && pub.vp > 0
+        }else {
+            return canBuy && pub.action > 0
+        }
+
+    }
+
     return <Grid item>
         <Button
-            disabled={!affordable}
             onClick={() => {
                 setOpen(true)
             }}
+            color={buttonColor}
             variant={"outlined"}
-        >{i18n.dialog.buyCard.board} {i18n.card[card.cardId as BasicCardID]}</Button>
+        >{i18n.dialog.buyCard.board} {getCardName(card.cardId)}</Button>
         <Dialog onClose={() => setOpen(false)} open={open}>
             <DialogTitle>
                 {i18n.dialog.buyCard.board}
-                {i18n.card[card.cardId as BasicCardID]}
+                {getCardName(card.cardId)}
                 {i18n.dialog.buyCard.cost} {card.cost.res}
-                {i18n.pub.industryMarker} {card.cost.industry}
-                {i18n.pub.aestheticsMarker} {card.cost.aesthetics}
+                {i18n.pub.industryRequirement} {card.cost.industry}
+                {i18n.pub.aestheticsRequirement} {card.cost.aesthetics}
             </DialogTitle>
             <DialogContent>
-                <Typography>{
-                    // @ts-ignore
-                    cardEffectText(card.cardId)
-                }</Typography>
+                <Typography>
+                    {i18n.pub.industryMarker} {card.industry}
+                    {i18n.pub.aestheticsMarker} {card.aesthetics}
+                    {cardEffectText(card.cardId as NoneBasicCardID)}</Typography>
                 <FormControl required component="fieldset">
                     <FormLabel component="legend" error={!canBuy}>
                         {i18n.dialog.buyCard.cost} {i18n.pub.res} {res}
@@ -150,8 +162,8 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                                     value={idx}
                                     checked={checked[idx]}
                                     onChange={(e) => handleChange(e)}
-                                    name={i18n.card[p.cardId as BasicCardID]}/>}
-                                label={i18n.card[p.cardId as BasicCardID] + "  " + i18n.pub.industry +
+                                    name={getCardName(p.cardId)}/>}
+                                label={getCardName(p.cardId) + "  " + i18n.pub.industry +
                                 // @ts-ignore
                                 p.industry.toString() + i18n.pub.aesthetics + p.aesthetics.toString()
                                 }
@@ -166,7 +178,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                         buy();
                         setOpen(false);
                     }} color="primary"
-                    disabled={!canBuy}>
+                    disabled={!canMakeBuyMove()}>
                     {i18n.confirm}
                 </Button>
                 <Button key={2}
@@ -174,6 +186,11 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                     setOpen(false)
                 }} color="secondary" variant={"outlined"}>
                     {i18n.cancel}
+                </Button>
+                <Button key={3}
+                    onClick={() => {refreshCost()}}
+                        color="secondary" variant={"outlined"}>
+                    {i18n.dialog.buyCard.refresh}
                 </Button>
             </DialogActions>
         </Dialog>
@@ -199,7 +216,7 @@ export const Comment = ({slot, comment, G}: ICommentProps) => {
             choices={cards.map(
                 id => {
                     return {
-                        label: i18n.card[id],
+                        label: getCardName(id),
                         disabled: G.basicCards[id] === 0,
                         hidden: false,
                         value: id

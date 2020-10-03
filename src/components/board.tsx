@@ -4,15 +4,16 @@ import {IG, privatePlayer} from "../types/setup";
 import {BoardCardSlot, BoardRegion} from "./region";
 import {PlayerHand} from "./playerHand";
 import {ChoiceDialog} from "./modals";
-import {activePlayer, actualStage, effName, studioInRegion} from "../game/util";
+import {activePlayer, actualStage, effName, getCardName, studioInRegion} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
 import {PubPanel} from "./pub";
-import {BasicCardID, CardCategory, EventCardID, IBasicCard, ICardSlot, Region, ValidRegions} from "../types/core";
+import {CardCategory, EventCardID, IBasicCard, ICardSlot, Region, ValidRegions} from "../types/core";
 import {BuyCard} from "./buyCard";
 import {B01, B02, B03, B05} from "../constant/cards/basic";
 import {Grid, Paper, Typography} from "@material-ui/core";
+// eslint-disable-next-line
 import {CardList} from "./cardreference";
 
 
@@ -42,8 +43,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
     const hand = playerID === null ? [] : iPrivateInfo.hand
     const handChoices = playerID === null ? [] : hand.map((c, idx) => {
         return {
-            // @ts-ignore
-            label: i18n.card[c.cardId],
+            label: getCardName(c.cardId),
             disabled: false,
             hidden: false,
             value: idx.toString()
@@ -67,7 +67,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
     }
     const chooseTarget = (choice:string) =>{
         moves.chooseTarget({
-            event:G.events[parseInt(choice)],
+            target:G.c.players[parseInt(choice)],
             idx:parseInt(choice),
             p:playerID,
         })
@@ -110,8 +110,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                 case "discard":
                     return G.player[parseInt(playerID)].hand.map((c, idx) => {
                         return {
-                            // @ts-ignore
-                            label: i18n.card[c.cardId],
+                            label: getCardName(c.cardId),
                             disabled: false,
                             hidden: false,
                             value: idx.toString()
@@ -120,8 +119,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                 case "discardAesthetics":
                     return G.player[parseInt(playerID)].hand.map((c, idx) => {
                         return {
-                            // @ts-ignore
-                            label: i18n.card[c.cardId],
+                            label: getCardName(c.cardId),
                             disabled: false,
                             // @ts-ignore
                             hidden: c.aesthetics === 0,
@@ -131,8 +129,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                 case "discardNormalOrLegend":
                     return G.player[parseInt(playerID)].hand.map((c, idx) => {
                         return {
-                            // @ts-ignore
-                            label: i18n.card[c.cardId],
+                            label: getCardName(c.cardId),
                             disabled: false,
                             hidden: c.category !== CardCategory.NORMAL && c.category !== CardCategory.LEGEND,
                             value: idx.toString()
@@ -141,8 +138,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                 case "discardLegend":
                     return G.player[parseInt(playerID)].hand.map((c, idx) => {
                         return {
-                            // @ts-ignore
-                            label: i18n.card[c.cardId],
+                            label: getCardName(c.cardId),
                             disabled: false,
                             hidden: c.category !== CardCategory.LEGEND,
                             value: idx.toString()
@@ -151,8 +147,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                 case "discardIndustry":
                     return G.player[parseInt(playerID)].hand.map((c, idx) => {
                         return {
-                            // @ts-ignore
-                            label: i18n.card[c.cardId],
+                            label: getCardName(c.cardId),
                             disabled: false,
                             // @ts-ignore
                             hidden: c.industry === 0,
@@ -162,8 +157,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                 case "playedCardInTurnEffect":
                     return G.pub[parseInt(playerID)].playedCardInTurn.map((c, idx) => {
                         return {
-                            // @ts-ignore
-                            label: i18n.card[c.cardId],
+                            label:getCardName(c.cardId),
                             disabled: false,
                             // @ts-ignore
                             hidden: c.aesthetics === 0,
@@ -211,10 +205,10 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
             <Grid item xs={4}><Typography>{i18n.pub.events}</Typography></Grid>
             {ctx.numPlayers !== 2 ? G.events.map((e, idx) => <Grid key={idx} item xs={4}>
                 <Paper key={idx} elevation={10}>
-                    <Typography>{i18n.card[e.cardId as EventCardID]}</Typography>
+                    <Typography>{getCardName(e.cardId)}</Typography>
                 </Paper></Grid>) : <></>}
         </Grid>
-        <CardList/>
+        {/*<CardList/>*/}
         {ctx.phase === "InitPhase" ?
             <Grid item>
                 <Button fullWidth={true}
@@ -295,7 +289,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                     G.player[parseInt(playerID)].cardsToPeek
                         .map(r => {
                             return {
-                                label: i18n.card[r.cardId as BasicCardID],
+                                label: getCardName(r.cardId),
                                 value: r.cardId,
                                 hidden: false, disabled: true
                             }
@@ -342,8 +336,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                     callback={chooseEvent}
                     choices={G.events.map((c, idx) => {
                         return {
-                            // @ts-ignore
-                            label: i18n.card[c.cardId],
+                            label: getCardName(c.cardId) + i18n.eventName[c.cardId as EventCardID],
                             disabled: false,
                             hidden: false,
                             value: idx.toString()

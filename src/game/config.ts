@@ -12,7 +12,8 @@ import {
     playCard, requestEndTurn, chooseRegion, peek,
 } from "./moves";
 import {IG} from "../types/setup";
-import {cleanPendingSignal} from "./logFix";
+import {changeStage, cleanPendingSignal} from "./logFix";
+import {aesAward, curPub, drawCardForPlayer, industryAward} from "./util";
 
 export const tempStudioRespond: StageConfig = {
     moves: {
@@ -21,36 +22,36 @@ export const tempStudioRespond: StageConfig = {
 }
 
 export const chooseEffectStage: StageConfig = {
-    moves:{
-        chooseEffect:chooseEffect
+    moves: {
+        chooseEffect: chooseEffect
     }
 }
 export const chooseEventStage: StageConfig = {
-    moves:{
-        chooseEvent:chooseEvent
+    moves: {
+        chooseEvent: chooseEvent
     }
 }
 export const competitionCardStage: StageConfig = {
-    moves:{
-        competitionCard:competitionCard
+    moves: {
+        competitionCard: competitionCard
     }
 }
 
 export const confirmRespondStage: StageConfig = {
-    moves:{
-        confirmRespond:confirmRespond,
+    moves: {
+        confirmRespond: confirmRespond,
     }
 }
 
 export const chooseHandStage: StageConfig = {
-    moves:{
-        chooseHand:chooseHand,
+    moves: {
+        chooseHand: chooseHand,
     }
 }
 
-export const  chooseTargetStage: StageConfig = {
-    moves:{
-        chooseTarget:chooseTarget,
+export const chooseTargetStage: StageConfig = {
+    moves: {
+        chooseTarget: chooseTarget,
     }
 }
 
@@ -81,37 +82,56 @@ export const peekStage: StageConfig = {
     }
 }
 export const NormalTurn: TurnConfig = {
-    onBegin:(G:IG,ctx:Ctx)=>cleanPendingSignal(G,ctx),
+    onBegin: (G: IG, ctx: Ctx) => {
+        cleanPendingSignal(G, ctx)
+        let p = ctx.currentPlayer;
+        let pub = curPub(G,ctx);
+
+        if(pub.school?.cardId === "1301"){
+            pub.vp ++;
+            drawCardForPlayer(G,ctx,p);
+            G.e.stack.push({e:"discard",a:1})
+            changeStage(G,ctx,"chooseHand");
+        }
+        if(pub.school?.cardId === "3105"){
+            if(pub.aesthetics <= pub.industry){
+                aesAward(G,ctx,p);
+            }
+            if(pub.aesthetics >= pub.industry){
+                industryAward(G,ctx,p);
+            }
+        }
+    },
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
-        chooseEffect:chooseEffectStage,
-        chooseEvent:chooseEventStage,
-        chooseHand:chooseHandStage,
-        chooseRegion:chooseRegionStage,
-        chooseTarget:chooseTargetStage,
-        comment:commentStage,
-        competitionCard:competitionCardStage,
-        confirmRespond:confirmRespondStage,
+        chooseEffect: chooseEffectStage,
+        chooseEvent: chooseEventStage,
+        chooseHand: chooseHandStage,
+        chooseRegion: chooseRegionStage,
+        chooseTarget: chooseTargetStage,
+        comment: commentStage,
+        competitionCard: competitionCardStage,
+        confirmRespond: confirmRespondStage,
         moveBlockerStage: moveBlockerStage,
-        updateSlot:updateSlotStage,
-        peek:peekStage,
+        updateSlot: updateSlotStage,
+        peek: peekStage,
     },
     moves: {
         drawCard: drawCard,
         buyCard: buyCard,
         playCard: playCard,
-        breakthrough:breakthrough,
+        breakthrough: breakthrough,
         moveBlocker: moveBlocker,
-        chooseTarget:chooseTarget,
-        chooseHand:chooseHand,
-        chooseEffect:chooseEffect,
-        chooseEvent:chooseEvent,
-        competitionCard:competitionCard,
-        requestEndTurn:requestEndTurn,
-        updateSlot:updateSlot,
-        comment:comment,
-        chooseRegion:chooseRegion,
-        peek:peek,
+        chooseTarget: chooseTarget,
+        chooseHand: chooseHand,
+        chooseEffect: chooseEffect,
+        chooseEvent: chooseEvent,
+        competitionCard: competitionCard,
+        requestEndTurn: requestEndTurn,
+        updateSlot: updateSlot,
+        comment: comment,
+        chooseRegion: chooseRegion,
+        peek: peek,
     }
 }
 
@@ -134,6 +154,6 @@ export const InitPhase: PhaseConfig = {
             setupStage: setupStage
         },
     },
-    next:"NormalPhase",
+    next: "NormalPhase",
 }
 

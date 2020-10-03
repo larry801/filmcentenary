@@ -6,6 +6,7 @@ import {FilmCentenaryGame} from "./Game";
 import {FilmCentenaryBoard} from "./components/board";
 import {Grid} from "@material-ui/core";
 import { Local} from "boardgame.io/multiplayer";
+// eslint-disable-next-line
 import Lobby from './components/lobby'
 
 const FilmClient = Client(
@@ -21,7 +22,14 @@ const FilmClient = Client(
 const rootElement = document.getElementById("root");
 render(
  <div>
+     <Grid container
+           direction="column"
+           justify="space-evenly"
+           alignItems="baseline">
+         <Grid item> <FilmClient playerID='0'/></Grid>
+         <Grid item> <FilmClient playerID='1'/></Grid>
+         <Grid item> <FilmClient playerID='2'/></Grid>
+     </Grid>
 
-     {true?<Lobby/>:<></>}
  </div>, rootElement
 );

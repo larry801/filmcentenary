@@ -7,7 +7,6 @@ import {
     ICard,
     ICardSlot,
     IEra,
-    IFilmCard,
     INormalOrLegendCard,
     IPubInfo,
     Region,
@@ -15,24 +14,30 @@ import {
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
-    aesAward, atkCardSettle,
+    aesAward,
+    atkCardSettle,
     buildingInRegion,
-    canBuyCard, checkCompetitionDefender,
+    canBuyCard,
+    checkCompetitionDefender,
     checkNextEffect,
-    checkRegionScoring, cinemaInRegion,
+    checkRegionScoring,
+    cinemaInRegion,
     cinemaSlotsAvailable,
     curEffectExec,
-    curPid,
     curPub,
     doAestheticsBreakthrough,
     doBuy,
     doIndustryBreakthrough,
     doReturnSlotCard,
     drawCardForPlayer,
+    fillEmptySlots,
+    fillEventCard,
     fillPlayerHand,
-    industryAward, logger,
+    industryAward,
     nextPlayer,
-    playerEffExec, schoolPlayer, startCompetition,
+    playerEffExec,
+    schoolPlayer,
+    startCompetition,
     studioSlotsAvailable,
     tryScoring,
 } from "./util";
@@ -75,14 +80,23 @@ export const buyCard = {
     },
     client: false,
 }
-
+export interface ITargetChooseArgs {
+    p:PlayerID,
+    idx:number,
+    target:PlayerID,
+}
 export const chooseTarget: LongFormMove = {
     client: false,
-    move: (G: IG, ctx: Ctx, arg: PlayerID) => {
-        let src = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID;
-        let p = arg;
+    move: (G: IG, ctx: Ctx, arg: ITargetChooseArgs) => {
+        let src = arg.p;
+        let p = arg.target;
         let eff = G.e.stack.pop();
         switch (eff.e) {
+            case "loseVpForEachHand":
+                G.c.players = [];
+                let handCount =  G.player[parseInt(p)].hand.length;
+                G.pub[parseInt(p)].vp -= handCount;
+                break;
             case "competition":
                 G.c.players = [];
                 G.e.stack.push(eff);
@@ -99,8 +113,9 @@ export const chooseTarget: LongFormMove = {
                 G.e.stack.push(eff);
                 changeStage(G, ctx, "chooseRegion")
                 return;
+            default:
+                playerEffExec(G, ctx, p);
         }
-        playerEffExec(G, ctx, arg);
     }
 }
 export interface IChooseHandArg {
@@ -250,7 +265,7 @@ export const updateSlot = {
     client: false,
     move: (G: IG, ctx: Ctx, slot: ICardSlot) => {
         doReturnSlotCard(G, ctx, slot);
-
+        fillEmptySlots(G,ctx);
         checkNextEffect(G, ctx);
     }
 }
@@ -392,14 +407,16 @@ export const chooseEvent: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IChooseEventArg) => {
         let eid: EventCardID = arg.event;
-        if (eid === EventCardID.E02) {
+        G.events.splice(arg.idx,1);
+        if (eid === EventCardID.E03) {
+            G.activeEvents.push(EventCardID.E03);
             for(let i=0;i<ctx.numPlayers;i++){
                 G.pub[i].action = 2;
             }
         } else {
             switch (eid) {
                 case EventCardID.E01:
-                case EventCardID.E03:
+                case EventCardID.E02:
                 case EventCardID.E04:
                 case EventCardID.E05:
                 case EventCardID.E06:
@@ -411,6 +428,8 @@ export const chooseEvent: LongFormMove = {
                     break;
                 default:
                     G.pub[parseInt(arg.p)].scoreEvents.push(eid);
+                    fillEventCard(G,ctx);
+                    checkNextEffect(G,ctx);
             }
         }
     }
@@ -533,7 +552,7 @@ export const competitionCard: LongFormMove = {
                 i.defPlayedCard = true;
                 atkCardSettle(G,ctx);
             } else {
-                logger.error("Other player cannot move in competition card stage!")
+                console.log("Other player cannot move in competition card stage!")
             }
         }
 
@@ -551,15 +570,20 @@ export const breakthrough: LongFormMove = {
         // @ts-ignore
         let c: INormalOrLegendCard | IBasicCard = playerObj.hand.splice(arg.idx, 1)[0];
         p.archive.push(c);
-        let eff = getCardEffect(c.cardId).archive;
-        if (eff)
-            if (c.cardId === "1108") {
-                if (p.deposit < 1) {
-                    return INVALID_MOVE;
-                } else {
-                    p.deposit -= 1;
-                }
+        if (c.cardId === "1108") {
+            if (p.deposit < 1) {
+                return INVALID_MOVE;
+            } else {
+                p.deposit -= 1;
             }
+        }
+        if(p.school?.cardId==="2201"){
+            p.deposit += 2;
+            p.vp += 1;
+        }
+        if(p.school?.cardId==="1201"){
+            p.resource += 1 ;
+        }
         if (c.cardId === "1208") {
             G.e.stack.push({
                 e: "industryOrAestheticsBreakthrough", a: {
@@ -570,7 +594,10 @@ export const breakthrough: LongFormMove = {
             curEffectExec(G, ctx);
             return;
         }
-
+        let eff = getCardEffect(c.cardId).archive;
+        if(eff.e !=="none"){
+            G.e.stack.push(eff)
+        }
         let i = c.industry
         let a = c.aesthetics
         if (i === 0 && a === 0) {
@@ -583,6 +610,7 @@ export const breakthrough: LongFormMove = {
                     aesthetics: p.aesthetics,
                 }
             })
+
             curEffectExec(G, ctx);
         } else {
             if (i === 0) {

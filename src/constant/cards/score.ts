@@ -372,3 +372,8 @@ export const getScoreCard=(r:Region,era:IEra,rank:number)=>{
     let cards = Object.entries(SCORE_CARDS)
     return  cards.filter(e=>e[1].region===r&&e[1].era===era&&e[1].rank===rank)[0][1];
 }
+
+export const getScoreCardByID = (id:string)=>{
+    // @ts-ignore
+    return SCORE_CARDS[id];
+}
