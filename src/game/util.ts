@@ -474,11 +474,6 @@ export const seqFromActive = (G: IG, ctx: Ctx): PlayerID[] => {
     return seq;
 }
 
-export function getCardCompetition(G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard): number {
-
-    return 0;
-}
-
 export function industryLowestPlayer(G: IG, ctx: Ctx): PlayerID[] {
     let highestIndustry = 0;
     let result: PlayerID[] = [];
@@ -535,6 +530,35 @@ export function vpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
     return result;
 }
 
+
+
+export const breakthroughEffectExec = (G: IG, ctx: Ctx): void => {
+    let p = curPub(G,ctx);
+    let c = G.e.card;
+    // @ts-ignore
+    let i = c.industry
+    // @ts-ignore
+    let a = c.aesthetics
+    if (i === 0 && a === 0) {
+        return;
+    }
+    if (i > 0 && a > 0) {
+        G.e.stack.push({
+            e: "industryOrAestheticsBreakthrough", a: {
+                industry: p.industry,
+                aesthetics: p.aesthetics,
+            }
+        })
+
+        curEffectExec(G, ctx);
+    } else {
+        if (i === 0) {
+            doAestheticsBreakthrough(G, ctx, ctx.currentPlayer);
+        } else {
+            doIndustryBreakthrough(G, ctx, ctx.currentPlayer);
+        }
+    }
+}
 export const curEffectExec = (G: IG, ctx: Ctx): void => {
     let eff = G.e.stack.pop();
     let obj = G.pub[curPid(G, ctx)];
@@ -544,7 +568,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
     let region = G.e.card.region;
     switch (eff.e) {
         case "alternative":
-            G.e.stack.push(eff.a)
+            G.e.stack.push(eff)
             changeStage(G, ctx, "confirmRespond")
             return;
         case "competition":
@@ -637,40 +661,48 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             changeStage(G, ctx, "peek")
             break;
         case "everyOtherCompany":
-            if (G.c.players.length === 0) {
-                G.c.players = seqFromActive(G, ctx);
-                G.c.players.shift()
+            if (G.e.pendingPlayers.length === 0) {
+                G.e.pendingPlayers = seqFromActive(G, ctx);
+                G.e.pendingPlayers.shift()
                 G.e.stack.push(eff);
             } else {
+                if(G.e.pendingPlayers.length !==1){
+                    G.e.stack.push(eff);
+                }
                 let subEffect = eff.a;
                 if (isSimpleEffect(subEffect)) {
-                    for (let p of G.c.players) {
+                    for (let p of G.e.pendingPlayers) {
                         playerEffExec(G, ctx, p);
                     }
                 } else {
-                    let player = G.c.players[0] as PlayerID;
+                    G.e.stack.push(eff.a);
+                    let player = G.e.pendingPlayers.shift() as PlayerID;
                     playerEffExec(G, ctx, player);
                 }
             }
             break;
         case "everyPlayer":
-            if (G.c.players.length === 0) {
-                G.c.players = seqFromActive(G, ctx);
+            if (G.e.pendingPlayers.length === 0) {
+                G.e.pendingPlayers = seqFromActive(G, ctx);
                 G.e.stack.push(eff);
             } else {
+                if(G.e.pendingPlayers.length !==1){
+                    G.e.stack.push(eff);
+                }
                 let subEffect = eff.a;
                 if (isSimpleEffect(subEffect)) {
-                    for (let p of G.c.players) {
+                    for (let p of G.e.pendingPlayers) {
                         playerEffExec(G, ctx, p);
                     }
                 } else {
-                    let player = G.c.players[0] as PlayerID;
+                    G.e.stack.push(eff.a);
+                    let player = G.e.pendingPlayers.shift() as PlayerID;
                     playerEffExec(G, ctx, player);
                 }
             }
             break
         case "noStudio":
-            G.c.players = noStudioPlayers(G, ctx, region);
+            G.e.pendingPlayers = noStudioPlayers(G, ctx, region);
             G.e.stack.push(eff.a);
             changeStage(G, ctx, "chooseTarget")
             return;
@@ -679,14 +711,18 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             if(players.length===0){
                 break;
             }
-            G.c.players = players;
-            if (isSimpleEffect(eff.a)) {
-                players.forEach(p => {
-                    G.e.stack.push(eff.a);
-                    simpleEffectExec(G, ctx, p)
-                });
-            }else {
-                let player = G.c.players[0] as PlayerID;
+            G.e.pendingPlayers = players;
+            if(G.e.pendingPlayers.length !==1){
+                G.e.stack.push(eff);
+            }
+            let subEffect = eff.a;
+            if (isSimpleEffect(subEffect)) {
+                for (let p of G.e.pendingPlayers) {
+                    playerEffExec(G, ctx, p);
+                }
+            } else {
+                G.e.stack.push(eff.a);
+                let player = G.e.pendingPlayers.shift() as PlayerID;
                 playerEffExec(G, ctx, player);
             }
             break;
@@ -778,8 +814,8 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
 }
 
 export const nextPlayer = (G: IG, ctx: Ctx): void => {
-    if (G.c.players.length > 0) {
-        G.c.players.shift();
+    if (G.e.pendingPlayers.length > 0) {
+        G.e.pendingPlayers.shift();
         checkNextEffect(G, ctx);
     } else {
         checkNextEffect(G, ctx);
@@ -817,20 +853,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
                 break;
             }
-        case "everyPlayer":
-            G.e.stack.push(eff);
-            switch (eff.e.a.e) {
-                case "archiveToEEBuildingVP":
-                    changePlayerStage(G, ctx, "chooseHand", p);
-                    return;
-                case "industryOrAestheticsLevelUp":
-                    G.e.choices.push({e: "industryBreakthrough", a: eff.a.industry})
-                    G.e.choices.push({e: "aestheticsBreakthrough", a: eff.a.aesthetics})
-                    changePlayerStage(G, ctx, "chooseEffect", p);
-                    return;
-                default:
-                    throw new Error()
-            }
+        case "archiveToEEBuildingVP":
+            changePlayerStage(G, ctx, "chooseHand", p);
+            return;
         default:
             G.e.stack.push(eff);
             simpleEffectExec(G, ctx, p);
@@ -1446,8 +1471,10 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         if (i.onWin.e !== "none") {
             if (i.onWin.e === "anyRegionShare") {
                 G.e.stack.push({
-                    e: "anyRegionShare", a: 2
+                    e: "anyRegionShare", a: 1 + i.onWin.a
                 })
+                playerEffExec(G, ctx, winner);
+                return;
             } else {
                 G.e.stack.push(i.onWin);
                 i.onWin.e = "none";

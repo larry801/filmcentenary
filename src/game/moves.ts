@@ -15,7 +15,7 @@ import {
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
     aesAward,
-    atkCardSettle,
+    atkCardSettle, breakthroughEffectExec,
     buildingInRegion,
     canBuyCard,
     checkCompetitionDefender,
@@ -34,7 +34,6 @@ import {
     fillEventCard,
     fillPlayerHand,
     industryAward,
-    nextPlayer,
     playerEffExec,
     schoolPlayer,
     startCompetition,
@@ -133,34 +132,13 @@ export const chooseHand: LongFormMove = {
         // @ts-ignore
         let card: IBasicCard | INormalOrLegendCard = arg.hand;
         switch (eff.e) {
-            case "everyPlayer":
-                switch (eff.e.a.e) {
-                    case "discard":
-                    case "discardIndustry":
-                    case "discardLegend":
-                    case "discardAesthetics":
-                    case "discardNormalOrLegend":
-                        hand.splice(arg.idx, 1);
-                        pub.discard.push(card);
-                        if (eff.e.a.a > 1) {
-                            eff.e.a.a--;
-                        } else {
-                            nextPlayer(G, ctx);
-                        }
-                        G.e.stack.push(eff);
-                        return;
-                    case "archiveToEEBuildingVP":
-                        hand.splice(arg.idx, 1);
-                        pub.archive.push(card);
-                        if (buildingInRegion(G, ctx, Region.EE, p)) {
-                            G.pub[parseInt(p)].vp += card.vp;
-                        }
-                        G.e.stack.push(eff);
-                        nextPlayer(G, ctx);
-                        return;
-                    default:
-                        throw new Error()
+            case "archiveToEEBuildingVP":
+                hand.splice(arg.idx, 1);
+                pub.archive.push(card);
+                if (buildingInRegion(G, ctx, Region.EE, p)) {
+                    G.pub[parseInt(p)].vp += card.vp;
                 }
+                break
             case "handToOthers":
                 hand.splice(arg.idx, 1);
                 let targetPub = G.player[parseInt(G.c.players[0])];
@@ -208,18 +186,6 @@ export const chooseEffect: LongFormMove = {
         let regions: Region[];
         let top;
         switch (eff.e) {
-            case "everyPlayer":
-                G.e.stack.push(eff);
-                switch (eff.e.a.e) {
-                    case "industryOrAestheticsLevelUp":
-                        G.e.choices = [];
-                        G.e.stack.push(eff);
-                        playerEffExec(G, ctx, p);
-                        nextPlayer(G, ctx);
-                        return;
-                    default:
-                        throw new Error()
-                }
             case "industryBreakthrough":
                 top = G.e.stack.pop();
                 if (top.e === "industryOrAestheticsBreakthrough") {
@@ -486,14 +452,15 @@ export const moveBlocker: LongFormMove = {
 export const confirmRespond: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
+        let eff = G.e.stack.pop();
         if (arg === "yes") {
-            let eff = G.e.stack.pop();
             switch (eff.e) {
                 case "pay":
                     G.e.stack.push(eff.a.eff)
                     curEffectExec(G, ctx);
                     break;
                 case "optional":
+                case "alternative":
                     G.e.stack.push(eff.a)
                     curEffectExec(G, ctx);
                     break;
@@ -501,7 +468,14 @@ export const confirmRespond: LongFormMove = {
                     throw new Error();
             }
         } else {
-            G.e.stack.pop();
+            switch (eff.e) {
+                case "alternative":
+                    breakthroughEffectExec(G,ctx);
+                    return;
+                default:
+                    G.e.stack.pop();
+
+            }
         }
         checkNextEffect(G, ctx);
     },
@@ -598,27 +572,7 @@ export const breakthrough: LongFormMove = {
         if(eff.e !=="none"){
             G.e.stack.push(eff)
         }
-        let i = c.industry
-        let a = c.aesthetics
-        if (i === 0 && a === 0) {
-            return;
-        }
-        if (i > 0 && a > 0) {
-            G.e.stack.push({
-                e: "industryOrAestheticsBreakthrough", a: {
-                    industry: p.industry,
-                    aesthetics: p.aesthetics,
-                }
-            })
-
-            curEffectExec(G, ctx);
-        } else {
-            if (i === 0) {
-                doAestheticsBreakthrough(G, ctx, arg.playerID);
-            } else {
-                doIndustryBreakthrough(G, ctx, arg.playerID);
-            }
-        }
+        breakthroughEffectExec(G,ctx);
     }
 }
 

@@ -42,7 +42,7 @@ export interface IG {
         cardIDs: string[],
     },
     pub: IPubInfo[],
-    e: { choices: any[], stack: any[], card: ICard, regions: Region[] },
+    e: {pendingPlayers:PlayerID[], choices: any[], stack: any[], card: ICard, regions: Region[] },
     player: IPrivateInfo[],
     competitionInfo: {
         region: Region,
@@ -202,7 +202,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
 
         },
         currentScoreRegion:Region.NONE,
-        e: {choices: [], stack: [], card: B07, regions: [],},
+        e: {pendingPlayers:[],choices: [], stack: [], card: B07, regions: [],},
         competitionInfo: {
             region: Region.NONE,
             atk: '0',

@@ -149,7 +149,13 @@ export interface Champion{
     era:IEra,
     region:Region,
 }
-
+export enum MainAction {
+    play,
+    breakthrough,
+    buyCard,
+    drawCard,
+    scoring,
+}
 export interface IPubInfo {
     discardInSettle:boolean,
     scoreEvents:EventCardID[],

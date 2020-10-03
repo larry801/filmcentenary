@@ -16,7 +16,8 @@ import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
 import {BuyCard, Comment} from "./buyCard";
 import {makeStyles} from "@material-ui/core/styles";
-import {getCardName} from "../game/util";
+import {actualStage, getCardName} from "../game/util";
+import Button from "@material-ui/core/Button";
 
 export interface ICardSlotProp {
     slot: ICardSlot,
@@ -36,14 +37,17 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
             <Typography>{slot.card === null ? "" : getCardName(slot.card.cardId)} </Typography>
             <Typography>{slot.comment === null ? "" : getCardName(slot.comment.cardId)} </Typography>
             {playerID !== null && slot.card !== null && ctx.currentPlayer === playerID ?
-                <><Comment slot={slot} comment={comment} G={G}/>
-                    <BuyCard
+                  <BuyCard
                         card={slot.card}
                         helpers={G.player[(parseInt(playerID))].hand}
                         ctx={ctx}
                         G={G}
-                        playerID={playerID} moves={moves}/>
-                </> : <></>}
+                        playerID={playerID} moves={moves}/> : <></>}
+            {playerID !== null && actualStage(G,ctx) === "updateSlot"? <Button onClick={()=>{moves.updateSlot(slot)}}
+                >{i18n.action.updateSlot}</Button>:<></>}
+
+            {playerID !== null && actualStage(G,ctx) === "comment"?
+                <Comment slot={slot} comment={comment} G={G}/>:<></>}
         </Paper>
     </>
 }

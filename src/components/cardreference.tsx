@@ -1,5 +1,5 @@
 import React from "react";
-import {BasicCardID, CardCategory, CardType, EventCardID, IEra, NoneBasicCardID, Region} from "../types/core";
+import {BasicCardID, CardCategory, CardType, EventCardID,  NoneBasicCardID, Region} from "../types/core";
 import {Grid, Typography} from "@material-ui/core";
 import {cardEffectText, getCardName} from "../game/util";
 import {useI18n} from "@i18n-chain/react";
@@ -26,7 +26,7 @@ const useStyles = makeStyles({
     },
 });
 
-export default function DenseTable() {
+export function DenseTable() {
     const classes = useStyles();
 
     return (
@@ -34,8 +34,17 @@ export default function DenseTable() {
             <Table className={classes.table} size="small" aria-label="a dense table">
                 <TableHead>
                     <TableRow>
+                        <TableCell>No.</TableCell>
+                        <TableCell>Era</TableCell>
+                        <TableCell>Region</TableCell>
+                        <TableCell>Name</TableCell>
+                        <TableCell>{i18n.dialog.buyCard.cost}</TableCell>
+                        <TableCell>{i18n.pub.industryRequirement}</TableCell>
+                        <TableCell>{i18n.pub.aestheticsRequirement}</TableCell>
+                        <TableCell>{i18n.pub.vp}</TableCell>
                         <TableCell>{i18n.pub.aestheticsMarker}</TableCell>
                         <TableCell>{i18n.pub.industryMarker}</TableCell>
+                        <TableCell>Effect text</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -44,9 +53,20 @@ export default function DenseTable() {
                     let c = getCardById(rid);
                     return <TableRow key={id}>
                         <TableCell component="th" scope="row">
+                            {rid}
+                        </TableCell>
+                        <TableCell align="right">{i18n.era[c.era]}</TableCell>
+                        <TableCell align="right">{i18n.region[c.region]}</TableCell>
+                        <TableCell align="right">
                             {getCardName(rid)}
                         </TableCell>
-                        <TableCell align="right">{i18n.region[c.region]}</TableCell>
+                        <TableCell align="right">{c.cost.res}</TableCell>
+                        <TableCell align="right">{c.cost.industry}</TableCell>
+                        <TableCell align="right">{c.cost.aesthetics}</TableCell>
+                        <TableCell align="right">{c.vp}</TableCell>
+                        <TableCell align="right">{c.industry}</TableCell>
+                        <TableCell align="right">{c.aesthetics}</TableCell>
+                        <TableCell align="left">{cardEffectText(rid as NoneBasicCardID)}</TableCell>
                     </TableRow>
                 })}
                     {/*{rows.map((row) => (*/}

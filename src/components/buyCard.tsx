@@ -226,5 +226,7 @@ export const Comment = ({slot, comment, G}: ICommentProps) => {
             }
             defaultChoice={"B01"} show={false}
             title={i18n.dialog.buyCard.basic} toggleText={i18n.dialog.buyCard.basic}/> :
-        <Button onClick={() => comment(slot, null)}>{i18n.dialog.comment.removeCommentCard}</Button>
+        <Button onClick={() => comment(slot, null)}>
+            {i18n.dialog.comment.removeCommentCard}
+        </Button>
 }
