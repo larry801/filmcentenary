@@ -29,6 +29,8 @@ export interface ILobbyMatchInstanceProps {
 
 export const LobbyMatchInstance = ({match, playerName, onClickJoin, onClickLeave, onClickPlay, onClickSpectate}: ILobbyMatchInstanceProps) => {
 
+    const [credentials, setCredentials] = React.useState("");
+
     const _createSeat = (player: any) => {
         return player.name || '[free]';
     };

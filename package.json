@@ -19,7 +19,8 @@
     "react-dom": "16.13.1",
     "react-router-dom": "^5.2.0",
     "react-scripts": "3.4.3",
-    "tslog": "^2.9.0"
+    "tslog": "^2.9.0",
+    "winston": "^3.3.3"
   },
   "devDependencies": {
     "@types/react": "16.9.19",

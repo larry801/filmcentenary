@@ -22,14 +22,14 @@ const FilmClient = Client(
 const rootElement = document.getElementById("root");
 render(
  <div>
-     <Grid container
-           direction="column"
-           justify="space-evenly"
-           alignItems="baseline">
-         <Grid item> <FilmClient playerID='0'/></Grid>
-         <Grid item> <FilmClient playerID='1'/></Grid>
-         <Grid item> <FilmClient playerID='2'/></Grid>
-     </Grid>
-
+     {/*<Grid container*/}
+     {/*      direction="column"*/}
+     {/*      justify="space-evenly"*/}
+     {/*      alignItems="baseline">*/}
+     {/*    <Grid item> <FilmClient playerID='0'/></Grid>*/}
+     {/*    <Grid item> <FilmClient playerID='1'/></Grid>*/}
+     {/*    <Grid item> <FilmClient playerID='2'/></Grid>*/}
+     {/*</Grid>*/}
+<Lobby/>
  </div>, rootElement
 );
