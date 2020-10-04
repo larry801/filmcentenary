@@ -199,7 +199,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             slots: [],
             buildingSlots: [],
             cardIDs: [],
-
         },
         currentScoreRegion:Region.NONE,
         e: {pendingPlayers:[],choices: [], stack: [], card: B07, regions: [],},
@@ -267,6 +266,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 ],
                 legend: emptyLegendCardSlot(1),
                 normal: [
+                    emptyNormalCardSlot(1),
                     emptyNormalCardSlot(1),
                     emptyNormalCardSlot(1),
                 ],

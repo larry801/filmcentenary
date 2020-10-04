@@ -393,7 +393,7 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
         {G.pub.map((u, idx) => <Grid container item key={idx} xs={12}>
             <Grid item xs={4} sm={3} md={2} lg={1}><Typography>{getName(idx.toString())}</Typography></Grid>
             <Grid item xs={4} sm={3} md={2} lg={1}><Typography>{i18n.pub.handSize} {G.player[idx].handSize}</Typography></Grid>
-            <PubPanel key={idx} {...u}/>
+            <PubPanel  G={G} i={u}/>
         </Grid>)}
         {operationPanel}
         {playerID !== null && ctx.gameover === undefined ? <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/> : <></>}

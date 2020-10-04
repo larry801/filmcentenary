@@ -1,12 +1,17 @@
 import React from "react";
-import {IPubInfo, ValidRegions} from "../types/core";
+import {CardCategory, IPubInfo, ValidRegions} from "../types/core";
 import {Grid, Typography} from "@material-ui/core";
 import {useI18n} from '@i18n-chain/react';
 import i18n from '../constant/i18n'
 import {ChoiceDialog} from "./modals";
 import {getCardName} from "../game/util";
+import {IG} from "../types/setup";
 
-export const PubPanel = (i: IPubInfo) => {
+export interface IPubPanelProps {
+    i:IPubInfo,
+    G:IG,
+}
+export const PubPanel = ({i,G}:IPubPanelProps) => {
     useI18n(i18n);
 
     return <>
@@ -27,9 +32,12 @@ export const PubPanel = (i: IPubInfo) => {
                 <Typography> {i18n.pub.school} {getCardName(i.school.cardId)} </Typography> : <></>}
             <Typography>   {i18n.pub.share} </Typography>
             {ValidRegions.map(r =>
-                <Typography key={r}>   {i18n.region[r]} {
-                    i.shares[r as 0 | 1 | 2 | 3]
-                }</Typography>
+                <Typography key={r}>   {i18n.region[r]} {i.shares[r as 0 | 1 | 2 | 3]}
+                /{i.allCards.filter(c=>c.category === CardCategory.LEGEND  &&
+                        // @ts-ignore
+                        c.era===G.regions[r].era).length}
+                </Typography>
+
             )}
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>

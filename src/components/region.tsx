@@ -18,7 +18,8 @@ import {BuyCard, Comment} from "./buyCard";
 import {makeStyles} from "@material-ui/core/styles";
 import {actualStage, getCardName} from "../game/util";
 import Button from "@material-ui/core/Button";
-
+import SvgIcon from "@material-ui/core/SvgIcon";
+import {lightBlue, purple, red, yellow} from "@material-ui/core/colors";
 export interface ICardSlotProp {
     slot: ICardSlot,
     G: IG,
@@ -27,6 +28,12 @@ export interface ICardSlotProp {
     comment: (slot: ICardSlot, card: IBasicCard | null) => void,
     playerID: PlayerID | null,
 }
+
+export const ShareIcon = (color:string) =><SvgIcon>
+    <svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="5" cy="5" r="5"/>
+    </svg>
+</SvgIcon>
 
 export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlotProp) => {
 
@@ -67,6 +74,7 @@ const useStyles = makeStyles((theme: Theme) =>
     createStyles({
         root: {
             flexGrow: 1,
+            border: '5px solid rgba(0, 0, 0, .125)',
         },
         control: {
             padding: theme.spacing(2),
@@ -82,6 +90,19 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
     const classes = useStyles();
 
     const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment(G, ctx, {target: slot, comment: card})
+
+    const getColor = (r:validRegion):string =>{
+        switch (r){
+            case Region.WE:
+                return "purple"
+            case Region.NA:
+                return "lightBlue"
+            case Region.EE:
+                return "red"
+            case Region.ASIA:
+                return "yellow"
+        }
+    }
 
     // eslint-disable-next-line
     const buildingSlotName = (r: validRegion, idx: number): string => {
@@ -147,7 +168,9 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
     })
 
     return <Grid item xs={12} sm={6}>
-        <Accordion expanded={expanded}
+        <Accordion
+            className={classes.root}
+            expanded={expanded}
                    onChange={() => setExpanded(!expanded)}
                    key={r}>
             <AccordionSummary key={r}>
@@ -157,9 +180,14 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                       className={classes.root} >
                     <Grid item xs={2} sm={1} ><Paper variant={"outlined"}><Typography>{i18n.region[r]} </Typography></Paper></Grid>
                     <Grid item xs={2} sm={1}><Paper
-                        variant={"outlined"}><Typography>{i18n.era[era]}</Typography></Paper></Grid>
+                        variant={"outlined"}><Typography>
+                        {i18n.era[era]}
+                        /{G.secretInfo.regions[r].legendDeck.length}
+                        /{G.secretInfo.regions[r].normalDeck.length}
+                        </Typography></Paper></Grid>
                     <Grid item xs={2} sm={1}><Paper
-                        variant={"outlined"}><Typography>{share} </Typography></Paper></Grid>
+                        variant={"outlined"}><Typography>
+                        {Array(share).fill(1).map(i=><ShareIcon {...getColor(r)} />)} </Typography></Paper></Grid>
                     {buildingSlots}
                 </Grid>
             </AccordionSummary>
