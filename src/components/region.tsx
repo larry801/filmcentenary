@@ -36,14 +36,15 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
         <Paper style={{display: 'inline-flex'}} variant={variant}>
             <Typography>{slot.card === null ? "" : getCardName(slot.card.cardId)} </Typography>
             <Typography>{slot.comment === null ? "" : getCardName(slot.comment.cardId)} </Typography>
-            {playerID !== null && slot.card !== null && ctx.currentPlayer === playerID ?
+            {playerID !== null && slot.card !== null?
                   <BuyCard
                         card={slot.card}
                         helpers={G.player[(parseInt(playerID))].hand}
                         ctx={ctx}
                         G={G}
                         playerID={playerID} moves={moves}/> : <></>}
-            {playerID !== null && actualStage(G,ctx) === "updateSlot"? <Button onClick={()=>{moves.updateSlot(slot)}}
+            {playerID !== null &&
+            actualStage(G,ctx) === "updateSlot"? <Button onClick={()=>{moves.updateSlot(slot)}}
                 >{i18n.action.updateSlot}</Button>:<></>}
 
             {playerID !== null && actualStage(G,ctx) === "comment"?
@@ -82,6 +83,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
 
     const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment(G, ctx, {target: slot, comment: card})
 
+    // eslint-disable-next-line
     const buildingSlotName = (r: validRegion, idx: number): string => {
         switch (r) {
             case Region.ASIA:

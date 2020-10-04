@@ -513,11 +513,13 @@ export interface IPlayCardInfo {
 
 export const playCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
-        let pub = G.pub[parseInt(arg.playerID)]
+        let pub = G.pub[parseInt(arg.playerID)];
+        let hand = G.player[parseInt(arg.playerID)].hand;
         if (cinemaInRegion(G, ctx, arg.card.region, arg.playerID)) {
             pub.resource++;
             pub.vp++;
         }
+        hand.splice(arg.idx,1);
         pub.playedCardInTurn.push(arg.card);
         G.e.card = arg.card;
         G.e.stack.push(getCardEffect(arg.card.cardId).play)

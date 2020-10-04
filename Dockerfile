@@ -1,4 +1,4 @@
-FROM node:14-stretch
+FROM node:14.11.0-stretch
 WORKDIR /app
 EXPOSE 3000
 
