@@ -11,7 +11,7 @@ import Button from "@material-ui/core/Button";
 import {PubPanel} from "./pub";
 import {CardCategory, EventCardID, IBasicCard, ICardSlot, Region, ValidRegions} from "../types/core";
 import {BuyCard} from "./buyCard";
-import {B01, B02, B03, B05} from "../constant/cards/basic";
+import {B01, B02, B03, B04, B05} from "../constant/cards/basic";
 import {Grid, Paper, Typography} from "@material-ui/core";
 // eslint-disable-next-line
 import {CardList} from "./cardreference";
@@ -222,6 +222,9 @@ export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive,
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                     <BuyCard
                         card={B03} helpers={G.player[parseInt(playerID)].hand}
+                        G={G} playerID={playerID} ctx={ctx} moves={moves}/>
+                    <BuyCard
+                        card={B04} helpers={G.player[parseInt(playerID)].hand}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                     <BuyCard
                         card={B05} helpers={G.player[parseInt(playerID)].hand}

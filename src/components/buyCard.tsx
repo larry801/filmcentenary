@@ -1,6 +1,15 @@
 import React from "react";
 import {IG} from "../types/setup";
-import {BasicCardID, IBasicCard, ICard, ICardSlot, INormalOrLegendCard, NoneBasicCardID, Region} from "../types/core";
+import {
+    BasicCardID,
+    CardCategory,
+    IBasicCard,
+    ICard,
+    ICardSlot,
+    INormalOrLegendCard,
+    NoneBasicCardID,
+    Region
+} from "../types/core";
 import {ChoiceDialog} from "./modals";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
@@ -124,7 +133,11 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             }}
             color={buttonColor}
             variant={"outlined"}
-        >{i18n.dialog.buyCard.board} {getCardName(card.cardId)}</Button>
+        >{i18n.dialog.buyCard.board}
+
+        {getCardName(card.cardId)}
+            {card.category === CardCategory.BASIC ? '(' + G.basicCards[card.cardId as BasicCardID].toString() + ')':""}
+        </Button>
         <Dialog onClose={() => setOpen(false)} open={open}>
             <DialogTitle>
                 {i18n.dialog.buyCard.board}
