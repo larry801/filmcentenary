@@ -57,19 +57,18 @@ export const FilmCentenaryGame: Game<IG> = {
             let oldPlayerPrivateInfo = G.player[p];
             if (p.toString() !== playerID) {
                 newPlayerObj.push({
-                    hand :[],
+                    hand :oldPlayerPrivateInfo.hand,
                     handSize: oldPlayerPrivateInfo.hand.length,
                     finalScoringExtraVp:getExtraScoreForFinal(G,ctx,p.toString()),
-
-                    cardsToPeek :[],
-                    competitionCards:[],
+                    cardsToPeek :oldPlayerPrivateInfo.cardsToPeek,
+                    competitionCards:oldPlayerPrivateInfo.competitionCards,
                 });
             }else {
                 newPlayerObj.push({
                     hand:oldPlayerPrivateInfo.hand,
                     cardsToPeek :oldPlayerPrivateInfo.cardsToPeek,
                     competitionCards :oldPlayerPrivateInfo.cardsToPeek,
-                    handSize: G.player[p].hand.length,
+                    handSize: oldPlayerPrivateInfo.hand.length,
                     finalScoringExtraVp:getExtraScoreForFinal(G,ctx,p.toString()),
                 });
             }

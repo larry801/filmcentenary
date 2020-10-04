@@ -88,6 +88,8 @@ export interface IG {
 
 function pubPlayer(): IPubInfo {
     return {
+        deposit: 0,
+        action: 1,
         discardInSettle:false,
         scoreEvents:[],
         vpAward:{
@@ -101,11 +103,9 @@ function pubPlayer(): IPubInfo {
             studioBuilt: false,
         },
         champions: [],
-        action: 10,
         aesthetics: 0,
         allCards: [B01, B02, B07, B07, B07, B07, B07, B07],
         archive: [],
-        deposit: 90,
         discard: [],
         industry: 0,
         resource: 0,

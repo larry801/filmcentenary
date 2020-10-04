@@ -40,7 +40,7 @@ import {
     studioSlotsAvailable,
     tryScoring,
 } from "./util";
-import {changePlayerStage, changeStage, signalEndPhase} from "./logFix";
+import { changeStage, signalEndPhase} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
 import {B05} from "../constant/cards/basic";
 
@@ -549,7 +549,7 @@ export const competitionCard: LongFormMove = {
                 i.defPlayedCard = true;
                 atkCardSettle(G,ctx);
             } else {
-                console.log("Other player cannot move in competition card stage!")
+                logger.debug("Other player cannot move in competition card stage!")
             }
         }
 

@@ -34,12 +34,17 @@ export const logger = winston.createLogger({
     level: 'debug',
     format: winston.format.combine(
         winston.format.colorize(),
-        winston.format.json()
+        winston.format.timestamp(),
+        winston.format.prettyPrint()
     ),
-    defaultMeta: { service: 'user-service' },
+    defaultMeta: { service: 'filmCentenary' },
     transports: [
         new winston.transports.Console({
-            format: winston.format.simple(),
+            format: winston.format.combine(
+                winston.format.colorize(),
+                winston.format.timestamp(),
+                winston.format.prettyPrint()
+            ),
         })
     ],
 });
@@ -605,27 +610,40 @@ export const startBreakThrough = (G: IG, ctx: Ctx,pid:PlayerID): void => {
 }
 
 export const curEffectExec = (G: IG, ctx: Ctx): void => {
+    playerEffExec(G,ctx,ctx.currentPlayer)
+}
+
+export const nextPlayer = (G: IG, ctx: Ctx): void => {
+    if (G.e.pendingPlayers.length > 0) {
+        G.e.pendingPlayers.shift();
+        checkNextEffect(G, ctx);
+    } else {
+        checkNextEffect(G, ctx);
+    }
+}
+
+export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let eff = G.e.stack.pop();
-    let obj = G.pub[curPid(G, ctx)];
+    let obj = G.pub[parseInt(p)];
     let playerObj = G.player[curPid(G, ctx)];
-    let players: PlayerID[] = [];
-    //let card: INormalOrLegendCard;
     let region = G.e.card.region;
+    let players = []
+    logger.debug(eff)
     switch (eff.e) {
         case "breakthroughResDeduct":
             if(playerObj.hand.length > 0 && obj.action > 0){
-                changeStage(G,ctx,"chooseHand");
+                changePlayerStage(G,ctx,"chooseHand",p);
                 return;
             }else {
                 break;
             }
         case "alternative":
             G.e.stack.push(eff)
-            changeStage(G, ctx, "confirmRespond")
+            changePlayerStage(G, ctx, "confirmRespond",p);
             return;
         case "competition":
             G.e.stack.push(eff.a)
-            changeStage(G, ctx, "chooseTarget")
+            changePlayerStage(G, ctx, "chooseTarget",p);
             return;
         case "loseAnyRegionShare":
             // @ts-ignore
@@ -634,7 +652,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
                 break;
             } else {
                 G.e.stack.push(eff)
-                changeStage(G, ctx, "chooseRegion");
+                changePlayerStage(G, ctx, "chooseRegion",p);
                 return;
             }
         case "anyRegionShare":
@@ -658,7 +676,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
                     break;
                 } else {
                     G.e.stack.push(eff)
-                    changeStage(G, ctx, "chooseRegion");
+                    changePlayerStage(G, ctx, "chooseRegion",p);
                     return;
                 }
             }
@@ -699,12 +717,12 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             break;
         case "handToOthers":
             G.e.stack.push(eff)
-            changeStage(G, ctx, "chooseHand");
+            changePlayerStage(G, ctx, "chooseHand",p);
             break;
         case "industryOrAestheticsBreakthrough":
             G.e.choices.push({e: "industryBreakthrough", a: eff.a.industry})
             G.e.choices.push({e: "aestheticsBreakthrough", a: eff.a.aesthetics})
-            changeStage(G, ctx, "chooseEffect");
+            changePlayerStage(G, ctx, "chooseEffect",p);
             return;
         case "peek":
             let peekCount = eff.a.count;
@@ -724,7 +742,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
                 }
             }
             G.e.stack.push(eff)
-            changeStage(G, ctx, "peek")
+            changePlayerStage(G, ctx, "peek",p);
             break;
         case "everyOtherCompany":
             if (G.e.pendingPlayers.length === 0) {
@@ -770,7 +788,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
         case "noStudio":
             G.e.pendingPlayers = noStudioPlayers(G, ctx, region);
             G.e.stack.push(eff.a);
-            changeStage(G, ctx, "chooseTarget")
+            changePlayerStage(G, ctx, "chooseTarget",p);
             return;
         case "studio":
             players = studioPlayers(G, ctx, region);
@@ -805,7 +823,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
         case "discardAesthetics":
         case "discardNormalOrLegend":
             G.e.stack.push(eff);
-            changeStage(G, ctx, "chooseHand");
+            changePlayerStage(G, ctx, "chooseHand",p);
             return;
         case "choice":
             for (let choice of eff.a) {
@@ -831,16 +849,16 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
                     G.e.stack.push(G.e.choices.pop());
                     checkNextEffect(G, ctx);
                 } else {
-                    changeStage(G, ctx, "chooseEffect");
+                    changePlayerStage(G, ctx, "chooseEffect",p);
                     return;
                 }
             }
             return;
         case "update":
-            changeStage(G, ctx, "updateSlot");
+            changePlayerStage(G, ctx, "updateSlot",p);
             return;
         case "comment":
-            changeStage(G, ctx, "comment");
+            changePlayerStage(G, ctx, "comment",p);
             return;
         case "pay":
             switch (eff.a.cost) {
@@ -850,7 +868,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
                         return;
                     } else {
                         G.e.stack.push(eff);
-                        changeStage(G, ctx, "confirmRespond");
+                        changePlayerStage(G, ctx, "confirmRespond",p);
                         return;
                     }
                 case "vp":
@@ -861,7 +879,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
                         return;
                     } else {
                         G.e.stack.push(eff);
-                        changeStage(G, ctx, "confirmRespond");
+                        changePlayerStage(G, ctx, "confirmRespond",p);
                         return;
                     }
                 case "deposit":
@@ -870,7 +888,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
                         return;
                     } else {
                         G.e.stack.push(eff);
-                        changeStage(G, ctx, "confirmRespond");
+                        changePlayerStage(G, ctx, "confirmRespond",p);
                         return;
                     }
                 default:
@@ -878,38 +896,7 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
             }
         case "optional":
             G.e.stack.push(eff);
-            changeStage(G, ctx, "confirmRespond");
-            return;
-        default:
-            G.e.stack.push(eff);
-            simpleEffectExec(G, ctx, ctx.currentPlayer);
-    }
-    checkNextEffect(G, ctx);
-}
-
-export const nextPlayer = (G: IG, ctx: Ctx): void => {
-    if (G.e.pendingPlayers.length > 0) {
-        G.e.pendingPlayers.shift();
-        checkNextEffect(G, ctx);
-    } else {
-        checkNextEffect(G, ctx);
-    }
-}
-
-export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
-    let eff = G.e.stack.pop();
-    let obj = G.pub[parseInt(p)];
-    //let card: INormalOrLegendCard;
-    //let region = G.e.card.region;
-    switch (eff.e) {
-        case "refactor":
-        case "archive":
-        case "discardIndustry":
-        case "discardLegend":
-        case "discardAesthetics":
-        case "discardNormalOrLegend":
-            G.e.stack.push(eff);
-            changePlayerStage(G, ctx, "chooseHand", p);
+            changePlayerStage(G, ctx, "confirmRespond",p);
             return;
         case "industryOrAestheticsLevelUp":
             if (obj.industry < 10 && obj.aesthetics < 10) {
@@ -1101,23 +1088,19 @@ export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
 }
 
 export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
-    console.log(r, e);
+    logger.debug(r)
+    logger.debug(e)
     if (r === Region.NONE) return;
     let legend = cardsByCond(r, e, true);
-    console.log(JSON.stringify(legend));
+    logger.debug(legend);
     let normal = cardsByCond(r, e, false);
-    console.log(JSON.stringify(normal));
+    logger.debug(normal);
     G.secretInfo.regions[r].legendDeck = shuffle(ctx, legend).slice(0, LegendCardCountInUse[r][e]);
     G.secretInfo.regions[r].normalDeck = shuffle(ctx, normal).slice(0, NormalCardCountInUse[r][e]);
     let l: INormalOrLegendCard[] = G.secretInfo.regions[r].legendDeck;
     let n: INormalOrLegendCard[] = G.secretInfo.regions[r].normalDeck;
-    logger.log('debug','legend',JSON.stringify(G.secretInfo.regions[r].legendDeck));
-    logger.log('debug','normal',JSON.stringify(G.secretInfo.regions[r].normalDeck));
-
-    console.log(JSON.stringify(G.secretInfo.regions[r].legendDeck));
-    console.log(JSON.stringify(G.secretInfo.regions[r].normalDeck));
-    console.log(JSON.stringify(l));
-    console.log(JSON.stringify(n));
+    logger.debug(l);
+    logger.debug(n);
     for (let s of G.regions[r].normal) {
         let c = n.pop();
         if (c === undefined) {
@@ -1148,7 +1131,7 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     let card = s.pop();
     if (card === undefined) {
         // TODO what if player has no card at all?
-        console.log("Empty deck.")
+        logger.debug("Empty deck.")
     } else {
         p.hand.push(card);
     }
@@ -1341,9 +1324,9 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         }
     });
     let rankResult = rankingPlayer.sort(rank);
-    console.log(JSON.stringify(rankResult));
+    logger.debug(JSON.stringify(rankResult));
     let firstPlayer: PlayerID = rankResult[0];
-    console.log("firstPlayer: " + firstPlayer)
+    logger.debug("firstPlayer: " + firstPlayer)
     G.pub[parseInt(firstPlayer)].champions.push({
         era: era,
         region: r,
