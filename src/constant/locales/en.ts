@@ -222,6 +222,16 @@ const en = {
         exitLobby:"Exit lobby",
         cannotJoin:"Cannot join this match, you are already in another match",
     },
+    gameOver:{
+        title:"Gameover",
+        winner:"Winner:",
+        rank:{
+            0:"Champion:",
+            1:"Runner up:",
+            2:"Third place",
+            3:"Fourth place",
+        },
+    },
     effect: {
         era: {
             0: "Era 1",

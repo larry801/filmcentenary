@@ -225,6 +225,16 @@ const zh_CN: Locale = {
         createPublicMatch:"创建公开游戏",
         createPrivateMatch:"创建私密游戏",
     },
+    gameOver:{
+        title:"游戏结束",
+        winner:"胜利：",
+        rank:{
+            0:"第一:",
+            1:"第二:",
+            2:"第三",
+            3:"第四",
+        },
+    },
     effect:{
         era:{
             0: "1时代：",

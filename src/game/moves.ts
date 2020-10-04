@@ -33,9 +33,9 @@ import {
     fillEmptySlots,
     fillEventCard,
     fillPlayerHand,
-    industryAward,
+    industryAward, logger,
     playerEffExec,
-    schoolPlayer,
+    schoolPlayer, startBreakThrough,
     startCompetition,
     studioSlotsAvailable,
     tryScoring,
@@ -132,6 +132,19 @@ export const chooseHand: LongFormMove = {
         // @ts-ignore
         let card: IBasicCard | INormalOrLegendCard = arg.hand;
         switch (eff.e) {
+            case "breakthroughResDeduct":
+                pub.action --;
+                hand.splice(arg.idx, 1);
+                pub.archive.push(card);
+                if (arg.hand.cardId === "1108") {
+                    if (pub.deposit < 1) {
+                        return;
+                    }else {
+                        pub.deposit --;
+                    }
+                }
+                startBreakThrough(G,ctx,arg.p);
+                break;
             case "archiveToEEBuildingVP":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(card);
@@ -242,35 +255,34 @@ export interface IRegionChooseArg {
 }
 export const chooseRegion = {
     client: false,
-    move: (G: IG, ctx: Ctx, region: string) => {
-        let r = parseInt(region) as Region;
+    move: (G: IG, ctx: Ctx, arg:IRegionChooseArg) => {
+        let r = arg.r;
         if (r === Region.NONE) return;
         let eff = G.e.stack.pop();
-        let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
+        let p = arg.p;
+        let built = false;
         switch (eff.e) {
             case "buildStudio":
                 G.regions[r].buildings.forEach(slot => {
-                    if (slot.activated && slot.owner === "") {
+                    if (slot.activated && slot.owner === "" && !built) {
                         slot.owner = p;
                         slot.content = "studio"
                         slot.isCinema = false;
                         G.pub[parseInt(p)].building.studioBuilt = true;
                         G.e.regions = [];
-                        checkNextEffect(G, ctx);
-                        return;
+                        built = true;
                     }
                 })
                 break;
             case "buildCinema":
                 G.regions[r].buildings.forEach(slot => {
-                    if (slot.activated && slot.owner === "") {
+                    if (slot.activated && slot.owner === "" && !built) {
                         slot.owner = p;
                         slot.content = "cinema"
                         slot.isCinema = true;
                         G.pub[parseInt(p)].building.cinemaBuilt = true;
                         G.e.regions = [];
-                        checkNextEffect(G, ctx);
-                        return;
+                        built = true;
                     }
                 })
                 break;
@@ -323,7 +335,7 @@ export const peek: LongFormMove = {
     undoable: false,
     move: (G: IG, ctx: Ctx, args: IPeekArgs) => {
         let eff = G.e.stack.pop();
-        let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID;
+        let p = args.p;
         let playerObj = G.player[parseInt(p)];
         let pub = G.pub[parseInt(p)];
         switch (eff.a.filter.e) {
@@ -336,6 +348,7 @@ export const peek: LongFormMove = {
                         pub.discard.push(c);
                     }
                 }
+                playerObj.cardsToPeek = []
                 break;
             case "aesthetics":
                 for (let card of playerObj.cardsToPeek) {
@@ -346,6 +359,7 @@ export const peek: LongFormMove = {
                         pub.discard.push(c);
                     }
                 }
+                playerObj.cardsToPeek = []
                 break;
             case "era":
                 for (let card of playerObj.cardsToPeek) {
@@ -356,9 +370,18 @@ export const peek: LongFormMove = {
                         pub.discard.push(c);
                     }
                 }
+                playerObj.cardsToPeek = []
                 break;
             case "choice":
-                changePlayerStage(G, ctx, "chooseHand", p);
+                playerObj.cardsToPeek.splice(args.idx,1);
+                playerObj.hand.push(args.card);
+                if(eff.a.filter.a > 1){
+                    eff.a.filter.a --;
+                    G.e.stack.push(eff);
+                    return;
+                }else{
+                    playerObj.cardsToPeek = []
+                }
                 break;
         }
         checkNextEffect(G, ctx);
@@ -536,43 +559,23 @@ export const competitionCard: LongFormMove = {
 export const breakthrough: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
+        logger.log("debug",arg);
         let p = G.pub[parseInt(arg.playerID)];
-        let playerObj = G.player[parseInt(arg.playerID)];
         p.action -= 1;
         p.resource -= arg.res;
         p.deposit -= (2 - arg.res);
-        // @ts-ignore
-        let c: INormalOrLegendCard | IBasicCard = playerObj.hand.splice(arg.idx, 1)[0];
+        let c = arg.card;
+        G.e.card = c;
+        G.player[parseInt(arg.playerID)].hand.splice(arg.idx, 1);
         p.archive.push(c);
-        if (c.cardId === "1108") {
+        if (arg.card.cardId === "1108") {
             if (p.deposit < 1) {
                 return INVALID_MOVE;
             } else {
                 p.deposit -= 1;
             }
         }
-        if(p.school?.cardId==="2201"){
-            p.deposit += 2;
-            p.vp += 1;
-        }
-        if(p.school?.cardId==="1201"){
-            p.resource += 1 ;
-        }
-        if (c.cardId === "1208") {
-            G.e.stack.push({
-                e: "industryOrAestheticsBreakthrough", a: {
-                    industry: p.industry,
-                    aesthetics: p.aesthetics,
-                }
-            })
-            curEffectExec(G, ctx);
-            return;
-        }
-        let eff = getCardEffect(c.cardId).archive;
-        if(eff.e !=="none"){
-            G.e.stack.push(eff)
-        }
-        breakthroughEffectExec(G,ctx);
+        startBreakThrough(G,ctx,arg.playerID);
     }
 }
 

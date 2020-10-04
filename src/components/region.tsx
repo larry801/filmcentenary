@@ -133,13 +133,14 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
 
     const buildingSlots = region.buildings.map((slot, idx) => {
         if(slot.activated) {
-            return (<Grid item xs={4} key={`building-slot-${idx}`}>
+            return (<Grid item xs={2} sm={1} key={`building-slot-${idx}`}>
                 <Paper>
-                    <Typography>{buildingSlotName(r, idx)}{playerName(slot.owner)} {slot.owner !== "" ? content(slot.isCinema) : ""}</Typography>
+                    <Typography> {slot.owner !== "" ? content(slot.isCinema) :""}</Typography>
+                    <Typography>{playerName(slot.owner)}</Typography>
                 </Paper>
             </Grid>)
         }else {
-            return <></>
+            return <div key={`building-slot-${idx}`}/>
         }
     })
 
@@ -148,12 +149,15 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                    onChange={() => setExpanded(!expanded)}
                    key={r}>
             <AccordionSummary key={r}>
-                <Grid container className={classes.root} spacing={4}>
-                    <Grid item><Paper variant={"outlined"}><Typography>{i18n.region[r]} </Typography></Paper></Grid>
-                    <Grid item><Paper
-                        variant={"outlined"}><Typography>{i18n.pub.era} {i18n.era[era]}</Typography></Paper></Grid>
-                    <Grid item><Paper
-                        variant={"outlined"}><Typography>{i18n.pub.share} {share} </Typography></Paper></Grid>
+                <Grid container
+                      justify="space-evenly"
+                      alignItems="baseline"
+                      className={classes.root} >
+                    <Grid item xs={2} sm={1} ><Paper variant={"outlined"}><Typography>{i18n.region[r]} </Typography></Paper></Grid>
+                    <Grid item xs={2} sm={1}><Paper
+                        variant={"outlined"}><Typography>{i18n.era[era]}</Typography></Paper></Grid>
+                    <Grid item xs={2} sm={1}><Paper
+                        variant={"outlined"}><Typography>{share} </Typography></Paper></Grid>
                     {buildingSlots}
                 </Grid>
             </AccordionSummary>

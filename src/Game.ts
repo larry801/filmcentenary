@@ -50,7 +50,7 @@ export const FilmCentenaryGame: Game<IG> = {
     },
     minPlayers: 3,
     maxPlayers: 4,
-    playerView: (G:IG, ctx:Ctx, playerID:PlayerID) => {
+    playerView: (G:IG, ctx:Ctx, playerID:PlayerID|null) => {
         let r = {...G};
         let newPlayerObj = []
         for (let p = 0; p < r.player.length; p++) {
@@ -59,9 +59,8 @@ export const FilmCentenaryGame: Game<IG> = {
                 newPlayerObj.push({
                     hand :[],
                     handSize: oldPlayerPrivateInfo.hand.length,
-                    // TODO test strip on server
                     finalScoringExtraVp:getExtraScoreForFinal(G,ctx,p.toString()),
-                    //finalScoringExtraVp:0,
+
                     cardsToPeek :[],
                     competitionCards:[],
                 });
@@ -72,7 +71,6 @@ export const FilmCentenaryGame: Game<IG> = {
                     competitionCards :oldPlayerPrivateInfo.cardsToPeek,
                     handSize: G.player[p].hand.length,
                     finalScoringExtraVp:getExtraScoreForFinal(G,ctx,p.toString()),
-                    //finalScoringExtraVp:0,
                 });
             }
         }
