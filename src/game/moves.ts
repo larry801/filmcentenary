@@ -169,9 +169,13 @@ export const chooseHand: LongFormMove = {
                 pub.archive.push(card);
                 break;
             case "discard":
+            case "discardLegend":
             case "discardIndustry":
             case "discardAesthetics":
             case "discardNormalOrLegend":
+                if(pub.school?.cardId === "3204"){
+                    pub.discardInSettle = true;
+                }
                 hand.splice(arg.idx, 1);
                 pub.discard.push(card);
                 if (eff.a > 1) {
