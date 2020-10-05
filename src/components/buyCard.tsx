@@ -119,9 +119,9 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
 
     const canMakeBuyMove = ()=>{
         if(pub.school?.cardId === "2301" && card.region !== Region.EE){
-            return ctx.currentPlayer === playerID && canBuy && pub.action > 0 && pub.vp > 0
+            return ctx.currentPlayer === playerID && canBuy && pub.resource >= res && pub.deposit >= deposit && pub.action > 0 && pub.vp > 0
         }else {
-            return ctx.currentPlayer === playerID && canBuy && pub.action > 0
+            return ctx.currentPlayer === playerID && canBuy && pub.resource >= res && pub.deposit >= deposit && pub.action > 0
         }
 
     }

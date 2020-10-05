@@ -102,8 +102,6 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
 
     const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment(G, ctx, {target: slot, comment: card})
 
-
-
     // eslint-disable-next-line
     const buildingSlotName = (r: validRegion, idx: number): string => {
         switch (r) {
@@ -185,11 +183,13 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                         /{G.secretInfo.regions[r].legendDeck.length}
                         /{G.secretInfo.regions[r].normalDeck.length}
                         </Typography></Paper></Grid>
-                    <Grid item xs={2} sm={1}
-                        container justify={"space-evenly"}
+                    <Grid item container xs={2} sm={1}
+
                     ><Paper
-                        variant={"outlined"}><Typography>
-                        {Array(share).fill(1).map(i=><Grid item><ShareIcon r={r} /></Grid>)} </Typography></Paper></Grid>
+                        variant={"outlined"}>
+                        {Array(share).fill(1).map((i,idx)=><Grid item xs={6} key={idx}>
+                            <ShareIcon r={r} />
+                        </Grid>)} </Paper></Grid>
                     {buildingSlots}
                 </Grid>
             </AccordionSummary>

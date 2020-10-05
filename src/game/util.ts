@@ -409,16 +409,6 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
 
 }
 
-export function getKinoEyePlayer(G: IG, ctx: Ctx): PlayerID | null {
-    Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString())
-        .forEach(i => {
-            if (G.pub[parseInt(i)].school?.cardId === "1303") {
-                return i;
-            }
-        })
-    return null;
-}
-
 const idInHand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
     return G.player[p].hand.filter(c => c.cardId === cardId).length > 0;
 }
@@ -619,7 +609,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let eff = G.e.stack.pop();
     let obj = G.pub[parseInt(p)];
     let playerObj = G.player[curPid(G, ctx)];
-    let region = G.e.card.region;
+    let region = G.e?.card?.region as validRegion;
     let players = []
     logger.debug(eff)
     switch (eff.e) {
@@ -1009,9 +999,11 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     industry -= pub.industry;
     if (pub.school !== null) {
         let school = getCardEffect(pub.school.cardId).school;
+        logger.debug("School:"+school.name+"|"+school.industry+"|"+school.aesthetics)
         aesthetics -= school.aesthetics;
         industry -= school.industry
         if (arg.target.type === CardType.S) {
+            logger.debug("Extra cost for old school "+pub.school.era.toString())
             resRequired += pub.school.era;
         }
     }
@@ -1031,6 +1023,7 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     }
     // @ts-ignore
     if (pub.school?.cardId === "2201" && arg.target.aesthetics > 0) {
+        logger.debug("New realism deduct")
         if (resRequired < 2) {
             return 0;
         } else
@@ -1059,6 +1052,31 @@ export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     return resRequired === resGiven && pub.resource >= arg.resource && pub.deposit >= arg.deposit;
 }
 
+export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
+    logger.info("fillEmptySlots2p");
+    let s = G.secretInfo.twoPlayer.school;
+    for(let slotL of G.twoPlayer.school){
+        if (slotL.card === null){
+            let newCard = s.pop()
+            if(newCard===undefined){
+
+            }else {
+                slotL.card = newCard;
+            }
+        }
+    }
+    let f = G.secretInfo.twoPlayer.film;
+    for(let slotL of G.twoPlayer.film){
+        if (slotL.card === null){
+            let newCard = f.pop()
+            if(newCard===undefined){
+
+            }else {
+                slotL.card = newCard as INormalOrLegendCard;
+            }
+        }
+    }
+}
 export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
     let school = schoolCardsByEra(e);
     let filmCards = filmCardsByEra(e);
@@ -1464,7 +1482,7 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
 
 export function checkNextEffect(G: IG, ctx: Ctx) {
     if (G.e.stack.length === 0) {
-        G.e.card = B04;
+        G.e.card = null;
         let newWavePlayer = schoolPlayer(G, ctx, "3204");
         if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
             G.pub[parseInt(newWavePlayer)].discardInSettle = false;
@@ -1637,7 +1655,7 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     i.pending = true;
     i.atk = atk;
     i.def = def;
-    i.region = G.e.card.region;
+    i.region = G.e?.card?.region as validRegion;
     let classicHollywoodPlayer = schoolPlayer(G, ctx, "3101");
     if (classicHollywoodPlayer === i.atk) {
         i.progress++;
@@ -1675,13 +1693,6 @@ export const checkCompetitionAttacker = (G: IG, ctx: Ctx) => {
     }
 }
 
-export const exitCompetition = (G: IG, ctx: Ctx) => {
-    let i = G.competitionInfo;
-    i.pending = false;
-    i.progress = 0;
-    i.atkPlayedCard = false;
-    i.defPlayedCard = false;
-}
 export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number => {
     let i = parseInt(pid);
     let extraVP = 0;

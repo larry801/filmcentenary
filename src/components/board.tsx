@@ -13,11 +13,9 @@ import {CardCategory, EventCardID, IBasicCard, ICardSlot, Region, ValidRegions} 
 import {BuyCard} from "./buyCard";
 import {B01, B02, B03, B04, B05} from "../constant/cards/basic";
 import {Grid, Paper, Typography} from "@material-ui/core";
-// eslint-disable-next-line
-import {CardList} from "./cardreference";
 
 
-export const FilmCentenaryBoard = ({G, ctx, events, moves, undo, redo, isActive, matchData, playerID}: BoardProps<IG>) => {
+export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isActive, matchData, playerID}: BoardProps<IG>) => {
 
     const canMoveCurrent = ctx.currentPlayer === playerID && ctx.activePlayers === null;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;

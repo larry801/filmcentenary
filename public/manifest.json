@@ -1,6 +1,6 @@
 {
-  "name": "Foo",
-  "short_name": "foo",
+  "name": "Film Centenary Boardgame",
+  "short_name": "FilmCentenary",
   "start_url": "/",
   "background_color": "#ffffff",
   "theme_color": "#00427b",

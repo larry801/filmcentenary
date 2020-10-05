@@ -565,7 +565,6 @@ export const competitionCard: LongFormMove = {
 export const breakthrough: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
-        logger.log("debug",arg);
         let p = G.pub[parseInt(arg.playerID)];
         p.action -= 1;
         p.resource -= arg.res;
