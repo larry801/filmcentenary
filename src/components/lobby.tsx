@@ -4,7 +4,7 @@ import { Lobby } from 'boardgame.io/react';
 import { FilmCentenaryBoard } from './board';
 import {FilmCentenaryGame} from "../Game";
 
-const server = `http://${window.location.hostname}:3000`;
+const server = `${window.location.protocol}://${window.location.hostname}:${window.location.port}`;
 const importedGames = [{ game: FilmCentenaryGame, board: FilmCentenaryBoard }];
 
 export const MUILobby = ()=>{
