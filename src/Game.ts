@@ -48,7 +48,7 @@ export const FilmCentenaryGame: Game<IG> = {
         InitPhase: InitPhase,
         NormalPhase: NormalPhase,
     },
-    minPlayers: 3,
+    minPlayers: 2,
     maxPlayers: 4,
     playerView: (G:IG, ctx:Ctx, playerID:PlayerID|null) => {
         let r = {...G};

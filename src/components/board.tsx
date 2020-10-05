@@ -305,7 +305,7 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
                     Array(ctx.numPlayers)
                         .fill(1)
                         .map((i, idx) => idx)
-                        .filter(p => !studioInRegion(G, ctx, G.e.card.region, p.toString()))
+                        .filter(p => !studioInRegion(G, ctx, G.e.card===null?Region.EE:G.e.card.region, p.toString()))
                         .map(pid => {
                             return {
                                 label: getName(pid.toString()),

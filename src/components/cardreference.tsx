@@ -1,5 +1,5 @@
 import React from "react";
-import {BasicCardID, CardCategory, CardType, EventCardID,  NoneBasicCardID, Region} from "../types/core";
+import {BasicCardID, EventCardID,  NoneBasicCardID} from "../types/core";
 import {Grid, Typography} from "@material-ui/core";
 import {cardEffectText, getCardName} from "../game/util";
 import {useI18n} from "@i18n-chain/react";
@@ -106,12 +106,3 @@ export const CardItem = ({cardId}: ICardItemProps) => {
     </div>
 }
 
-export const CardList = () => {
-
-    return <>
-
-        {Object.keys(effects).map(id => <Grid item key={id} xs={12}><CardItem
-            // @ts-ignore
-            cardId={id}/></Grid>)}
-    </>
-}

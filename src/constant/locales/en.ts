@@ -208,6 +208,13 @@ const argTimes = {
     },
 }
 const en = {
+    drawer:{
+        twoPlayer:"Local 2 player mutiplayer",
+        threePlayer:"Local 3 player mutiplayer",
+        fourPlayer:"Local 4 player mutiplayer",
+        lobby:"Remote multiplayer lobby",
+        cards:"Card list",
+    },
     eventName:eventName,
     confirm: "OK",
     cancel: "Cancel",

@@ -1,7 +1,8 @@
-import {CardCategory, CardType, IEra, Region} from "../../types/core";
+import {CardCategory, CardType, cost, IEra, Region} from "../../types/core";
 
 const SCORE_CARDS = {
     "V111": {
+        cost :cost(0,0,0),
         era: IEra.ONE,
         region: Region.NA,
         name: "V111",
@@ -14,6 +15,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V112": {
+        cost :cost(0,0,0),
         era: IEra.ONE,
         region: Region.NA,
         name: "V112",
@@ -26,6 +28,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V113": {
+        cost :cost(0,0,0),
         era: IEra.ONE,
         region: Region.NA,
         name: "V113",
@@ -38,6 +41,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V121": {
+        cost :cost(0,0,0),
         era: IEra.ONE,
         region: Region.WE,
         name: "V121",
@@ -50,6 +54,7 @@ const SCORE_CARDS = {
         aesthetics: 1,
     },
     "V122": {
+        cost :cost(0,0,0),
         era: IEra.ONE,
         region: Region.WE,
         name: "V122",
@@ -62,6 +67,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V123": {
+        cost :cost(0,0,0),
         era: IEra.ONE,
         region: Region.WE,
         name: "V123",
@@ -74,6 +80,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V131": {
+        cost :cost(0,0,0),
         era: IEra.ONE,
         region: Region.ASIA,
         name: "V131",
@@ -86,6 +93,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V132": {
+        cost :cost(0,0,0),
         era: IEra.ONE,
         region: Region.ASIA,
         name: "V132",
@@ -98,6 +106,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V211": {
+        cost :cost(0,0,0),
         era: IEra.TWO,
         region: Region.NA,
         name: "V211",
@@ -110,6 +119,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V212": {
+        cost :cost(0,0,0),
         era: IEra.TWO,
         region: Region.NA,
         name: "V212",
@@ -122,6 +132,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V213": {
+        cost :cost(0,0,0),
         era: IEra.TWO,
         region: Region.NA,
         name: "V213",
@@ -134,6 +145,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V221": {
+        cost :cost(0,0,0),
         era: IEra.TWO,
         region: Region.WE,
         name: "V221",
@@ -146,6 +158,7 @@ const SCORE_CARDS = {
         aesthetics: 1,
     },
     "V222": {
+        cost :cost(0,0,0),
         era: IEra.TWO,
         region: Region.WE,
         name: "V222",
@@ -158,6 +171,7 @@ const SCORE_CARDS = {
         aesthetics: 1,
     },
     "V223": {
+        cost :cost(0,0,0),
         era: IEra.TWO,
         region: Region.WE,
         name: "V223",
@@ -170,6 +184,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V231": {
+        cost :cost(0,0,0),
         era: IEra.TWO,
         region: Region.EE,
         name: "V231",
@@ -182,6 +197,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V232": {
+        cost :cost(0,0,0),
         era: IEra.TWO,
         region: Region.EE,
         name: "V232",
@@ -194,6 +210,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V241": {
+        cost :cost(0,0,0),
         era: IEra.TWO,
         region: Region.ASIA,
         name: "V241",
@@ -206,6 +223,7 @@ const SCORE_CARDS = {
         aesthetics: 1,
     },
     "V242": {
+        cost :cost(0,0,0),
         era: IEra.TWO,
         region: Region.ASIA,
         name: "V242",
@@ -218,6 +236,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V243": {
+        cost :cost(0,0,0),
         era: IEra.TWO,
         region: Region.ASIA,
         name: "V243",
@@ -234,6 +253,7 @@ const SCORE_CARDS = {
         region: Region.NA,
         name: "V311",
         cardId: "V311",
+        cost :cost(0,0,0),
         category: CardCategory.SCORE,
         type: CardType.V,
         rank: 1,
@@ -250,6 +270,7 @@ const SCORE_CARDS = {
         type: CardType.V,
         rank: 2,
         vp: 15,
+        cost :cost(0,0,0),
         industry: 1,
         aesthetics: 0,
     },
@@ -266,6 +287,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V321": {
+        cost :cost(0,0,0),
         era: IEra.THREE,
         region: Region.WE,
         name: "V321",
@@ -282,6 +304,7 @@ const SCORE_CARDS = {
         region: Region.WE,
         name: "V322",
         cardId: "V322",
+        cost :cost(0,0,0),
         category: CardCategory.SCORE,
         type: CardType.V,
         rank: 2,
@@ -298,6 +321,7 @@ const SCORE_CARDS = {
         type: CardType.V,
         rank: 3,
         vp: 8,
+        cost :cost(0,0,0),
         industry: 0,
         aesthetics: 1,
     },
@@ -311,9 +335,11 @@ const SCORE_CARDS = {
         rank: 1,
         vp: 15,
         industry: 1,
+        cost :cost(0,0,0),
         aesthetics: 0,
     },
     "V332": {
+        cost :cost(0,0,0),
         era: IEra.THREE,
         region: Region.EE,
         name: "V332",
@@ -326,6 +352,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V333": {
+        cost :cost(0,0,0),
         era: IEra.THREE,
         region: Region.EE,
         name: "V333",
@@ -338,6 +365,7 @@ const SCORE_CARDS = {
         aesthetics: 0,
     },
     "V341": {
+        cost :cost(0,0,0),
         era: IEra.THREE,
         region: Region.ASIA,
         name: "V341",
@@ -350,6 +378,7 @@ const SCORE_CARDS = {
         aesthetics: 1,
     },
     "V342": {
+        cost :cost(0,0,0),
         era: IEra.THREE,
         region: Region.ASIA,
         name: "V342",

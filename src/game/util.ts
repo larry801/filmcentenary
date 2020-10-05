@@ -25,7 +25,7 @@ import {cardsByCond, filmCardsByEra, getCardById, schoolCardsByEra} from "../typ
 import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
-import {B04, getBasicCard} from "../constant/cards/basic";
+import {B04} from "../constant/cards/basic";
 import {eventCardByEra} from "../constant/cards/event";
 import {getScoreCard, getScoreCardByID, scoreCardCount} from "../constant/cards/score";
 import i18n from "../constant/i18n";
@@ -365,7 +365,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             let region = card.region;
             if (region !== Region.NONE) {
                 let share = 0;
-                if (ctx.numPlayers !== 2) {
+                if (ctx.numPlayers > 2) {
                     if (slot.isLegend) {
                         share++;
                     }
@@ -385,7 +385,6 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         }
         if (card.type === CardType.S) {
             let school = obj.school;
-
             let kino = schoolPlayer(G, ctx, "1303");
             if (kino !== null) {
                 G.e.stack.push(getCardEffect("1303").repsonse.effect);
@@ -613,6 +612,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let players = []
     logger.debug(eff)
     switch (eff.e) {
+        case "era":
+            let era = G.regions[region].era;
+            G.e.stack.push(eff.a[era]);
+            break;
         case "breakthroughResDeduct":
             if (playerObj.hand.length > 0 && obj.action > 0) {
                 changePlayerStage(G, ctx, "chooseHand", p);
@@ -991,19 +994,19 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
         "|" + cost.aesthetics
     );
     let pub = G.pub[parseInt(arg.buyer)]
-    logger.debug("Player" + arg.buyer+ " aesthetics:" + pub.aesthetics);
-    logger.debug("Player" + arg.buyer+ "  industry:" + pub.industry);
+    logger.debug("Player" + arg.buyer + " aesthetics:" + pub.aesthetics);
+    logger.debug("Player" + arg.buyer + "  industry:" + pub.industry);
     let aesthetics: number = cost.aesthetics
     let industry: number = cost.industry
     aesthetics -= pub.aesthetics;
     industry -= pub.industry;
     if (pub.school !== null) {
         let school = getCardEffect(pub.school.cardId).school;
-        logger.debug("School:"+school.name+"|"+school.industry+"|"+school.aesthetics)
+        logger.debug("School:" + school.name + "|" + school.industry + "|" + school.aesthetics)
         aesthetics -= school.aesthetics;
         industry -= school.industry
         if (arg.target.type === CardType.S) {
-            logger.debug("Extra cost for old school "+pub.school.era.toString())
+            logger.debug("Extra cost for old school " + pub.school.era.toString())
             resRequired += pub.school.era;
         }
     }
@@ -1013,12 +1016,12 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
         // @ts-ignore
         aesthetics -= helperItem.aesthetics;
     }
-    if (aesthetics > 0){
-        logger.debug("Lack aesthetics " +aesthetics)
+    if (aesthetics > 0) {
+        logger.debug("Lack aesthetics " + aesthetics)
         resRequired += aesthetics * 2;
     }
     if (industry > 0) {
-        logger.debug("Lack industry " +industry)
+        logger.debug("Lack industry " + industry)
         resRequired += industry * 2;
     }
     // @ts-ignore
@@ -1055,23 +1058,23 @@ export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
 export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
     logger.info("fillEmptySlots2p");
     let s = G.secretInfo.twoPlayer.school;
-    for(let slotL of G.twoPlayer.school){
-        if (slotL.card === null){
+    for (let slotL of G.twoPlayer.school) {
+        if (slotL.card === null) {
             let newCard = s.pop()
-            if(newCard===undefined){
+            if (newCard === undefined) {
 
-            }else {
+            } else {
                 slotL.card = newCard;
             }
         }
     }
     let f = G.secretInfo.twoPlayer.film;
-    for(let slotL of G.twoPlayer.film){
-        if (slotL.card === null){
+    for (let slotL of G.twoPlayer.film) {
+        if (slotL.card === null) {
             let newCard = f.pop()
-            if(newCard===undefined){
+            if (newCard === undefined) {
 
-            }else {
+            } else {
                 slotL.card = newCard as INormalOrLegendCard;
             }
         }
@@ -1303,6 +1306,47 @@ export const doEndTurn = (G: IG, ctx: Ctx,): void => {
     signalEndTurn(G, ctx);
 }
 
+export const try2pScoring = (G: IG, ctx: Ctx): void => {
+    ValidRegions.forEach(r => {
+        let regObj = G.regions[r];
+        if (regObj.share === 0 && !regObj.completedModernScoring) {
+            let firstPlayer = 1
+            if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
+                firstPlayer = 0
+            }
+            let scoreCard = getScoreCard(r, IEra.THREE, 1)
+            G.pub[firstPlayer].discard.push(scoreCard as INormalOrLegendCard);
+            G.pub[firstPlayer].allCards.push(scoreCard as INormalOrLegendCard);
+        }
+    })
+    if (G.twoPlayer.film.every(c => c.card === null)) {
+        if (posOfPlayer(G, ctx, ctx.currentPlayer) === 2) {
+            ValidRegions.forEach(r => {
+                if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
+                    doBuy(G, ctx, B04, '1')
+                }
+                if (G.pub[0].shares[r] < G.pub[1].shares[r]) {
+                    doBuy(G, ctx, B04, '0')
+                }
+            })
+            let era = G.regions[Region.NA].era;
+            let newEra = era;
+            if (era === IEra.ONE) {
+                newEra = IEra.TWO
+            }
+            if (era === IEra.ONE) {
+                newEra = IEra.THREE
+            }
+            if (era !== newEra) {
+                drawForTwoPlayerEra(G, ctx, newEra)
+            } else {
+                finalScoring(G, ctx);
+            }
+        }
+    }
+    fillTwoPlayerBoard(G,ctx);
+    signalEndTurn(G,ctx);
+}
 export const tryScoring = (G: IG, ctx: Ctx): void => {
     if (G.scoringRegions.length > 0) {
         let r = G.scoringRegions.shift();
@@ -1316,7 +1360,11 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
         ) {
             finalScoring(G, ctx);
         } else {
-            fillEmptySlots(G, ctx);
+            if (ctx.numPlayers > 2) {
+                fillEmptySlots(G, ctx);
+            } else {
+                fillTwoPlayerBoard(G, ctx)
+            }
             signalEndTurn(G, ctx);
         }
     }
@@ -1339,7 +1387,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     let rankingPlayer: PlayerID[] = [];
     Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
         if (G.pub[idx].shares[r] === 0) {
-            doBuy(G, ctx, getBasicCard(BasicCardID.B04), idx.toString())
+            doBuy(G, ctx, B04, idx.toString())
         } else {
             rankingPlayer.push(idx.toString())
         }
@@ -1356,6 +1404,10 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     let scoreCardPlayerCount = Math.min(rankResult.length, scoreCount)
     for (let i = 0; i < scoreCardPlayerCount; i++) {
         G.pub[parseInt(rankResult[i])].discard.push(
+            // @ts-ignore
+            getScoreCard(r, era, i + 1)
+        )
+        G.pub[parseInt(rankResult[i])].allCards.push(
             // @ts-ignore
             getScoreCard(r, era, i + 1)
         )
@@ -1433,11 +1485,13 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     if (additionalCostForUpgrade(p.industry) <= totalResource) {
         G.e.choices.push({e: "industryLevelUp", a: 1})
     }
-    if (totalResource >= 3 && studioSlotsAvailable(G, ctx, player).length > 0) {
-        G.e.choices.push({e: "buildStudio", a: 1})
-    }
-    if (totalResource >= 3 && cinemaSlotsAvailable(G, ctx, player).length > 0) {
-        G.e.choices.push({e: "buildCinema", a: 1})
+    if (ctx.numPlayers > 2) {
+        if (totalResource >= 3 && studioSlotsAvailable(G, ctx, player).length > 0) {
+            G.e.choices.push({e: "buildStudio", a: 1})
+        }
+        if (totalResource >= 3 && cinemaSlotsAvailable(G, ctx, player).length > 0) {
+            G.e.choices.push({e: "buildCinema", a: 1})
+        }
     }
     G.e.choices.push({e: "skipBreakthrough", a: 1})
     changeStage(G, ctx, "chooseEffect")
@@ -1461,7 +1515,6 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
     let r = G.currentScoreRegion;
     if (r === Region.NONE) throw new Error();
     nextEra(G, ctx, r);
-    fillEmptySlots(G, ctx);
     G.currentScoreRegion = Region.NONE;
     if (ValidRegions.filter(r =>
 

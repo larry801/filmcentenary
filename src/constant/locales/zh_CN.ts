@@ -194,6 +194,13 @@ const argCardName = {
 const argValue = {a: (value: number = 1):string => value.toString()};
 
 const zh_CN: Locale = {
+    drawer:{
+      twoPlayer:"本地2人",
+      threePlayer:"本地3人",
+      fourPlayer:"本地4人",
+      lobby:"多人大厅",
+      cards:"卡表",
+    },
     eventName:eventName,
     region: region,
     action: {
