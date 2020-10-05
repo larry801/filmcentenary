@@ -1462,10 +1462,11 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
 export function checkNextEffect(G: IG, ctx: Ctx) {
     if (G.e.stack.length === 0) {
         G.e.card = B04;
-        let newWavePlayer = schoolPlayer(G,ctx,"3204");
-        if(newWavePlayer!==null && G.pub[parseInt(newWavePlayer)].discardInSettle){
-            G.pub[parseInt(newWavePlayer)].vp ++;
-            drawCardForPlayer(G,ctx,newWavePlayer)
+        let newWavePlayer = schoolPlayer(G, ctx, "3204");
+        if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
+            G.pub[parseInt(newWavePlayer)].discardInSettle = false;
+            G.pub[parseInt(newWavePlayer)].vp++;
+            drawCardForPlayer(G, ctx, newWavePlayer)
         }
         if (G.currentScoreRegion === Region.NONE) {
             let i = G.competitionInfo;
