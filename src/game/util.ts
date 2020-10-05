@@ -915,14 +915,14 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let o = G.pub[parseInt(p)];
-    if (o.aesthetics > 1) o.vp += 2;
-    if (o.aesthetics > 4) o.vp += 1;
+    if (o.aesthetics > 1) o.vp += 1;
+    if (o.aesthetics > 4) o.vp += 2;
     if (o.aesthetics > 7) o.vp += 1;
 }
 
 export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let o = G.pub[parseInt(p)];
-    if (o.industry > 1) o.deposit += 2;
+    if (o.industry > 1) o.resource += 1;
     if (o.industry > 4) drawCardForPlayer(G, ctx, p);
     if (o.industry > 7) drawCardForPlayer(G, ctx, p);
 }
