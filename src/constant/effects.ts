@@ -146,7 +146,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "pay", a: {
-                cost: {e: "vp", a: 2}, eff: {
+                cost: {e: "vp", a: 1}, eff: {
                     e: "step", a: [
                         {e: "res", a: 1},
                         {e: "deposit", a: 1},
@@ -161,7 +161,7 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
-        play: {e: "res", a: 1},
+        play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: {e: "loseVp", a: 2},
     },
