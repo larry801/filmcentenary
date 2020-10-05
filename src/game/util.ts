@@ -605,12 +605,13 @@ export const nextPlayer = (G: IG, ctx: Ctx): void => {
 }
 
 export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
+    logger.info("playerEffExec");
     let eff = G.e.stack.pop();
+    logger.debug(eff);
     let obj = G.pub[parseInt(p)];
     let playerObj = G.player[curPid(G, ctx)];
     let region = G.e?.card?.region as validRegion;
     let players = []
-    logger.debug(eff)
     switch (eff.e) {
         case "era":
             let era = G.regions[region].era;

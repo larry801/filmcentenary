@@ -1,6 +1,7 @@
 import {Stage} from "boardgame.io/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
+import {logger} from "./util";
 
 export function signalEndStage(G: IG, ctx: Ctx): void {
     if (G.logDiscrepancyWorkaround) {
@@ -66,6 +67,7 @@ export function changeBothStage(G: IG, ctx: Ctx, stage: string): void {
 }
 
 export function changePlayerStage(G: IG, ctx: Ctx, stage: string, p: PlayerID): void {
+    logger.debug("changePlayerStage" + p + stage)
     if (p === ctx.currentPlayer) {
         ctx.events?.setStage?.(stage);
     } else {

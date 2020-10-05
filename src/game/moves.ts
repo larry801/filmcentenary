@@ -132,7 +132,10 @@ export interface IChooseHandArg {
 export const chooseHand: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IChooseHandArg) => {
+        logger.info("chooseHand");
+        logger.debug(arg);
         let eff = G.e.stack.pop();
+        logger.debug(eff);
         let p = arg.p;
         let hand = G.player[parseInt(p)].hand;
         let pub = G.pub[parseInt(p)];
@@ -207,7 +210,10 @@ export interface IEffectChooseArg {
 export const chooseEffect: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IEffectChooseArg) => {
+        logger.info("chooseEffect")
+        logger.debug(arg);
         let eff = G.e.choices[arg.idx];
+        logger.debug(eff);
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
         let regions: Region[];
         let top;
