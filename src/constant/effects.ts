@@ -434,12 +434,7 @@ export const effects = {
     },
     "1205": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {
-            e: "choice", a: [
-                {e: "industryLevelUp", a: 1},
-                {e: "buy", a: "1104"},
-            ]
-        },
+        buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "era", a: [
