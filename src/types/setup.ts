@@ -85,7 +85,7 @@ export interface IG {
         "B07": number,
     },
 }
-
+const initialDeck = [B01, B02, B07, B07, B07, B07, B07, B07];
 function pubPlayer(): IPubInfo {
     return {
         deposit: 0,
@@ -104,7 +104,7 @@ function pubPlayer(): IPubInfo {
         },
         champions: [],
         aesthetics: 0,
-        allCards: [B01, B02, B07, B07, B07, B07, B07, B07],
+        allCards: initialDeck,
         archive: [],
         discard: [],
         industry: 0,
@@ -165,7 +165,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         order.push(i.toString());
         pub.push(pubPlayer());
         players.push(privatePlayer());
-        decks.push(shuffle(ctx, [B01, B02, B07, B07, B07, B07, B07, B07]));
+        decks.push(shuffle(ctx, initialDeck));
     }
     let events = shuffle(ctx, []);
     let randomOrder = shuffle(ctx, order);

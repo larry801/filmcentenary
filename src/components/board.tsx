@@ -50,7 +50,6 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
 
     const peekChoicesDisabled = G.e.stack.length > 0 && G.e.stack[0].e === "peek" ? G.e.stack[0].eff.a.filter.e !== "choice" : true;
 
-
     const peek = (choice: string) => {
         moves.peek({
             idx: parseInt(choice),
@@ -66,6 +65,7 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
             p: playerID,
         })
     }
+
     const chooseTarget = (choice: string) => {
         moves.chooseTarget({
             target: G.c.players[parseInt(choice)],
@@ -377,24 +377,23 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
 
 
     return <Grid container justify="space-evenly" alignItems="center">
-        <Grid xs={12} spacing={2} container item
-        >
+        {ctx.numPlayers !== 2 ?<Grid xs={12} spacing={2} container item>
             <Grid item xs={4}><Typography>{i18n.pub.events}</Typography></Grid>
-            {ctx.numPlayers !== 2 ? G.events.map((e, idx) => <Grid key={idx} item xs={4}>
+            {G.events.map((e, idx) => <Grid key={idx} item xs={4}>
                 <Paper key={idx} elevation={10}>
                     <Typography>{getCardName(e.cardId)}</Typography>
-                </Paper></Grid>) : <></>}
-        </Grid>
+                </Paper></Grid>)}
+        </Grid> : <></>}
 
         {ctx.phase === "InitPhase" ?
-            <Grid item>
+            <Grid item xs={12}>
                 <Button fullWidth={true}
                         disabled={!canMove}
                         onClick={() => moves.initialSetup({...G.regions})}>
                     {i18n.action.initialSetup}
                 </Button> </Grid> : cardBoard
         }
-        <Grid item container >
+        <Grid item container justify="space-evenly" >
             <Grid item><Typography>{i18n.card.B01} {G.basicCards.B01}</Typography></Grid>
             <Grid item><Typography>{i18n.card.B02} {G.basicCards.B02}</Typography></Grid>
             <Grid item><Typography>{i18n.card.B03} {G.basicCards.B03}</Typography></Grid>

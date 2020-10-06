@@ -20,6 +20,7 @@ import {
 import {InitPhase, NormalPhase} from "./game/config";
 import {Region} from "./types/core";
 import {getExtraScoreForFinal} from "./game/util";
+import {enumerateMoves} from "./game/ai";
 
 export enum Player {
     'P0'='0',
@@ -42,6 +43,9 @@ export const nameOf = (p:Player) => {
 }
 
 export const FilmCentenaryGame: Game<IG> = {
+    ai:{
+        enumerate:enumerateMoves
+    },
     setup: setup,
     name: "FilmCentenary",
     phases: {
@@ -91,11 +95,11 @@ export const FilmCentenaryGame: Game<IG> = {
         chooseHand: chooseHand,
         chooseEvent: chooseEvent,
         chooseEffect: chooseEffect,
+        chooseRegion: chooseRegion,
         competitionCard: competitionCard,
         requestEndTurn: requestEndTurn,
         updateSlot: updateSlot,
         comment: comment,
-        chooseRegion: chooseRegion,
         peek:peek,
     },
 

@@ -195,6 +195,7 @@ const argValue = {a: (value: number = 1):string => value.toString()};
 
 const zh_CN: Locale = {
     drawer:{
+      singlePlayer:"单人对战AI",
       twoPlayer:"本地2人",
       threePlayer:"本地3人",
       fourPlayer:"本地4人",

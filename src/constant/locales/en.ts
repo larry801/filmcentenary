@@ -209,9 +209,10 @@ const argTimes = {
 }
 const en = {
     drawer:{
-        twoPlayer:"Local 2 player mutiplayer",
-        threePlayer:"Local 3 player mutiplayer",
-        fourPlayer:"Local 4 player mutiplayer",
+        singlePlayer:"Single player vs AI",
+        twoPlayer:"Local 2 person multiplayer",
+        threePlayer:"Local 3 person multiplayer",
+        fourPlayer:"Local 4 person multiplayer",
         lobby:"Remote multiplayer lobby",
         cards:"Card list",
     },

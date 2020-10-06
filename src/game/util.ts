@@ -4,7 +4,7 @@ import {
     CardType,
     EventCardID,
     IBasicCard,
-    IBuyInfo,
+    IBuyInfo, ICard,
     ICardSlot,
     ICost,
     IEra,
@@ -80,7 +80,6 @@ export const shuffle = (ctx: Ctx, arg: any[]): any[] => {
 }
 
 export const actualStage = (G: IG, ctx: Ctx,): string => {
-
     if (ctx.activePlayers === null) {
         return Stage.NULL;
     } else {
@@ -1176,6 +1175,26 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
         }
     }
 }
+export const getPossibleHelper = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard):ICard[]=>{
+   return  G.player[parseInt(p)].hand.filter((helper,idx)=>{
+        if (card.cost.industry === 0) {
+            if (card.cost.aesthetics === 0) {
+                return false;
+            } else {
+                // @ts-ignore
+                return helper.aesthetics > 0;
+            }
+        } else {
+            if (card.cost.aesthetics === 0) {
+                // @ts-ignore
+                return helper.industry > 0;
+            } else {
+                // @ts-ignore
+                return helper.aesthetics > 0 || helper.industry > 0;
+            }
+        }
+    })
+}
 
 export const do2pUpdateSchoolSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
     if (G.regions[Region.NA].era !== IEra.TWO) {
@@ -1244,6 +1263,7 @@ export const fillEmptySlots = (G: IG, ctx: Ctx) => {
 }
 
 export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
+    logger.info("doReturnSlotCard");
     let d;
     if (slot.comment !== null) {
         let commentId: BasicCardID = slot.comment.cardId as BasicCardID;
@@ -1499,13 +1519,16 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
 }
 
 export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
+    logger.info("doAestheticsBreakthrough");
     let p = G.pub[parseInt(player)];
     let playerObj = G.player[parseInt(player)];
     let totalResource = p.resource + p.deposit;
     if (additionalCostForUpgrade(p.industry) <= totalResource) {
+        logger.debug("Can upgrade aesthetics")
         G.e.choices.push({e: "aestheticsLevelUp", a: 1})
     }
     if (playerObj.hand.length > 0) {
+        logger.debug("Can refactor")
         G.e.choices.push({e: "refactor", a: 1})
     }
     G.e.choices.push({e: "skipBreakthrough", a: 1})
@@ -1513,6 +1536,7 @@ export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
 }
 
 export const regionEraProgress = (G: IG, ctx: Ctx) => {
+    logger.info("regionEraProgress");
     let r = G.currentScoreRegion;
     if (r === Region.NONE) throw new Error();
     nextEra(G, ctx, r);
@@ -1535,6 +1559,7 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
 }
 
 export function checkNextEffect(G: IG, ctx: Ctx) {
+    logger.info("checkNextEffect");
     if (G.e.stack.length === 0) {
         G.e.card = null;
         let newWavePlayer = schoolPlayer(G, ctx, "3204");
@@ -1561,6 +1586,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
             regionEraProgress(G, ctx);
         }
     } else {
+        logger.debug("Stack not empty, next effect.")
         curEffectExec(G, ctx);
     }
 }

@@ -10,7 +10,22 @@ import Lobby from './components/lobby'
 import {DenseTable} from "./components/cardreference";
 import {Redirect, Route, Switch, BrowserRouter} from "react-router-dom";
 import {DrawerAppBar} from "./components/drawer-app-bar";
-
+// eslint-disable-next-line
+const FilmClient4pSingle  =Client(
+    {
+        numPlayers: 4,
+        game: FilmCentenaryGame,
+        board: FilmCentenaryBoard,
+        debug: true,
+    }
+);const FilmClient2pSingle  =Client(
+    {
+        numPlayers: 2,
+        game: FilmCentenaryGame,
+        board: FilmCentenaryBoard,
+        debug: true,
+    }
+);
 const FilmClient2p  =Client(
     {
         numPlayers: 2,
@@ -41,6 +56,9 @@ const FilmClient4p  =Client(
         multiplayer: new Local(),
     }
 );
+const SinglePlayer = () => <Grid container>
+    <Grid item> <FilmClient2pSingle playerID='0'/></Grid>
+</Grid>
 const TwoPlayerLocal = () => <Grid container>
     <Grid item> <FilmClient2p playerID='0'/></Grid>
     <Grid item> <FilmClient2p playerID='1'/></Grid>
@@ -65,6 +83,7 @@ render(
             <Switch>
                 <Route exact path="/" render={props => <Lobby/>}/>
                 <Route exact path="/cards" render={props => <DenseTable/>}/>
+                <Route exact path="/single2p" render={props => <SinglePlayer />}/>
                 <Route exact path="/2p" render={props => <TwoPlayerLocal />}/>
                 <Route exact path="/3p" render={props => <ThreePlayerLocal />}/>
                 <Route exact path="/4p" render={props => <FourPlayerLocal/>}/>
