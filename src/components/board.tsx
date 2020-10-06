@@ -280,7 +280,7 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
                                 disabled: peekChoicesDisabled
                             }
                         })
-                } defaultChoice={"0"} show={isActive && actualStage(G, ctx) === "peek"}
+                } defaultChoice={"0"} show={activePlayer(ctx)===playerID && actualStage(G, ctx) === "peek"}
                 title={i18n.dialog.peek.title}
                 toggleText={i18n.dialog.peek.title}/> : <></>}
             <ChoiceDialog
@@ -295,7 +295,7 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
                                 hidden: false, disabled: false
                             }
                         })
-                } defaultChoice={"4"} show={isActive && actualStage(G, ctx) === "chooseRegion"}
+                } defaultChoice={"4"} show={activePlayer(ctx)===playerID && actualStage(G, ctx) === "chooseRegion"}
                 title={i18n.dialog.chooseRegion.title}
                 toggleText={i18n.dialog.chooseRegion.toggleText}/>
             <ChoiceDialog
@@ -313,7 +313,7 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
                                 hidden: false, disabled: false
                             }
                         })
-                } defaultChoice={'0'} show={isActive && actualStage(G, ctx) === "chooseTarget"}
+                } defaultChoice={'0'} show={activePlayer(ctx)===playerID && actualStage(G, ctx) === "chooseTarget"}
                 title={i18n.dialog.chooseTarget.title}
                 toggleText={i18n.dialog.chooseTarget.toggleText}/>
 
@@ -328,14 +328,14 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
                             value: idx.toString()
                         }
                     })} defaultChoice={"0"}
-                    show={isActive && actualStage(G, ctx) === "chooseEvent"}
+                    show={activePlayer(ctx)===playerID && actualStage(G, ctx) === "chooseEvent"}
                     title={i18n.dialog.chooseEvent.title} toggleText={i18n.dialog.chooseEvent.toggleText}
                     initial={true}/> : <></>}
             <ChoiceDialog
                 callback={competitionCard}
                 choices={handChoices}
                 defaultChoice={'0'}
-                show={playerID !== null && actualStage(G, ctx) === "competitionCard"}
+                show={activePlayer(ctx)===playerID  && actualStage(G, ctx) === "competitionCard"}
                 title={i18n.dialog.chooseHand.title}
                 toggleText={i18n.dialog.chooseHand.toggleText}
                 initial={true}/>
@@ -343,7 +343,7 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
                 <ChoiceDialog
                     callback={chooseHand}
                     choices={discardChoices()} defaultChoice={"0"}
-                    show={isActive && actualStage(G, ctx) === "chooseHand"}
+                    show={activePlayer(ctx)===playerID && actualStage(G, ctx) === "chooseHand"}
                     title={i18n.dialog.chooseHand.title} toggleText={i18n.dialog.chooseHand.toggleText}
                     initial={true}/> : <></>}
             <ChoiceDialog
@@ -356,7 +356,7 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
                         value: idx.toString()
                     }
                 })} defaultChoice={"0"}
-                show={playerID !== null && isActive && actualStage(G, ctx) === "chooseEffect"}
+                show={playerID !== null && activePlayer(ctx)===playerID && actualStage(G, ctx) === "chooseEffect"}
                 title={i18n.dialog.chooseEffect.title} toggleText={i18n.dialog.chooseEffect.toggleText}
                 initial={true}/>
             <ChoiceDialog
@@ -365,7 +365,7 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
                     {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
                     {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
                 ]} defaultChoice={"no"}
-                show={isActive && actualStage(G, ctx) === "confirmRespond"}
+                show={activePlayer(ctx)===playerID && actualStage(G, ctx) === "confirmRespond"}
                 title={i18n.dialog.confirmRespond.title} toggleText={i18n.dialog.confirmRespond.toggleText}
                 initial={true}/>
         </Grid>

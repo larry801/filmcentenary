@@ -23,23 +23,23 @@ import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {cardsByCond, filmCardsByEra, getCardById, schoolCardsByEra} from "../types/cards";
 import {Stage} from "boardgame.io/core";
-import {changePlayerStage, changeStage, signalEndTurn} from "./logFix";
+import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
 import {B04} from "../constant/cards/basic";
 import {eventCardByEra} from "../constant/cards/event";
 import {getScoreCard, getScoreCardByID, scoreCardCount} from "../constant/cards/score";
 import i18n from "../constant/i18n";
-import winston from "winston";
-
-export const logger = winston.createLogger({
+import {createLogger,format,transports} from "winston";
+const {combine ,json} = format;
+const {Console} = transports;
+export const logger = createLogger({
     level: 'debug',
-    format: winston.format.combine(
-        winston.format.simple(),
-        winston.format.timestamp(),
+    format: combine(
+        json(),
     ),
     defaultMeta: "",
     transports: [
-        new winston.transports.Console()
+        new Console()
     ],
 });
 
@@ -608,7 +608,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let eff = G.e.stack.pop();
     logger.debug(eff);
     let obj = G.pub[parseInt(p)];
-    let playerObj = G.player[curPid(G, ctx)];
+    let playerObj = G.player[parseInt(p)];
     let region = G.e?.card?.region as validRegion;
     let players = []
     switch (eff.e) {
@@ -772,7 +772,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             break
         case "noStudio":
-            G.e.pendingPlayers = noStudioPlayers(G, ctx, region);
+            G.c.players = noStudioPlayers(G, ctx, region);
+            if(G.c.players.length===0){
+                break;
+            }
             G.e.stack.push(eff.a);
             changePlayerStage(G, ctx, "chooseTarget", p);
             return;
@@ -801,16 +804,55 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return G.e.stack.push(item);
             });
             break;
+        case "discardNormalOrLegend":
+            if(playerObj.hand.filter(i=>
+                i.category !== CardCategory.BASIC
+            ).length>0) {
+                G.e.stack.push(eff);
+                logger.debug("Has classic cards.")
+                changePlayerStage(G,ctx,"chooseHand",p);
+                return;
+            }
+            logger.debug("No classic cards.")
+            break;
+        case "discardLegend":
+            if(playerObj.hand.filter(i=>
+                i.category === CardCategory.LEGEND
+            ).length>0) {
+                G.e.stack.push(eff);
+                changePlayerStage(G,ctx,"chooseHand",p);
+                return;
+            }
+            break;
+        case "discardAesthetics":
+            if(playerObj.hand.filter(i=>
+                // @ts-ignore
+                i.aesthetics>0
+            ).length>0) {
+                G.e.stack.push(eff);
+                changePlayerStage(G,ctx,"chooseHand",p);
+                return;
+            }
+            break;
+        case "discardIndustry":
+            if(playerObj.hand.filter(i=>
+                // @ts-ignore
+                i.industry>0
+            ).length>0) {
+                G.e.stack.push(eff);
+                changePlayerStage(G,ctx,"chooseHand",p);
+                return;
+            }
+            break;
         case "refactor":
         case "archive":
         case "discard":
-        case "discardLegend":
-        case "discardIndustry":
-        case "discardAesthetics":
-        case "discardNormalOrLegend":
-            G.e.stack.push(eff);
-            changePlayerStage(G, ctx, "chooseHand", p);
-            return;
+            if(playerObj.hand.length>0){
+                G.e.stack.push(eff);
+                changePlayerStage(G,ctx,"chooseHand",p);
+                return;
+            }
+            break;
         case "choice":
             for (let choice of eff.a) {
                 switch (choice.e) {
@@ -985,28 +1027,28 @@ export function shareDepleted(G: IG, ctx: Ctx, region: Region) {
 }
 
 export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
-    logger.debug("resCost" + arg.target.name);
+    // logger.debug("resCost" + arg.target.name);
     let cost: ICost = arg.target.cost;
     let resRequired = cost.res;
-    logger.debug(
-        "Resource:" + cost.res
-        + "|" + cost.industry +
-        "|" + cost.aesthetics
-    );
+    // logger.debug(
+    //     "Resource:" + cost.res
+    //     + "|" + cost.industry +
+    //     "|" + cost.aesthetics
+    // );
     let pub = G.pub[parseInt(arg.buyer)]
-    logger.debug("Player" + arg.buyer + " aesthetics:" + pub.aesthetics);
-    logger.debug("Player" + arg.buyer + "  industry:" + pub.industry);
+    // logger.debug("Player" + arg.buyer + " aesthetics:" + pub.aesthetics);
+    // logger.debug("Player" + arg.buyer + "  industry:" + pub.industry);
     let aesthetics: number = cost.aesthetics
     let industry: number = cost.industry
     aesthetics -= pub.aesthetics;
     industry -= pub.industry;
     if (pub.school !== null) {
         let school = getCardEffect(pub.school.cardId).school;
-        logger.debug("School:" + school.name + "|" + school.industry + "|" + school.aesthetics)
+        // logger.debug("School:" + school.name + "|" + school.industry + "|" + school.aesthetics)
         aesthetics -= school.aesthetics;
         industry -= school.industry
         if (arg.target.type === CardType.S) {
-            logger.debug("Extra cost for old school " + pub.school.era.toString())
+            // logger.debug("Extra cost for old school " + pub.school.era.toString())
             resRequired += pub.school.era;
         }
     }
@@ -1017,22 +1059,22 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
         aesthetics -= helperItem.aesthetics;
     }
     if (aesthetics > 0) {
-        logger.debug("Lack aesthetics " + aesthetics)
+        // logger.debug("Lack aesthetics " + aesthetics)
         resRequired += aesthetics * 2;
     }
     if (industry > 0) {
-        logger.debug("Lack industry " + industry)
+        // logger.debug("Lack industry " + industry)
         resRequired += industry * 2;
     }
     // @ts-ignore
     if (pub.school?.cardId === "2201" && arg.target.aesthetics > 0) {
-        logger.debug("New realism deduct")
+        // logger.debug("New realism deduct")
         if (resRequired < 2) {
             return 0;
         } else
             return resRequired - 2;
     }
-    logger.debug(resRequired);
+    // logger.debug(resRequired);
     return resRequired;
 }
 
@@ -1561,14 +1603,17 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
 export function checkNextEffect(G: IG, ctx: Ctx) {
     logger.info("checkNextEffect");
     if (G.e.stack.length === 0) {
+        logger.debug("Stack empty, ")
         G.e.card = null;
         let newWavePlayer = schoolPlayer(G, ctx, "3204");
         if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
             G.pub[parseInt(newWavePlayer)].discardInSettle = false;
             G.pub[parseInt(newWavePlayer)].vp++;
             drawCardForPlayer(G, ctx, newWavePlayer)
+            logger.debug("NewWavePlayer" + newWavePlayer +"drawCard");
         }
         if (G.currentScoreRegion === Region.NONE) {
+            logger.debug("No scoring region")
             let i = G.competitionInfo;
             if (i.pending) {
                 if (i.atkPlayedCard) {
@@ -1579,7 +1624,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                 }
             } else {
                 if (ctx.activePlayers !== null) {
-                    ctx?.events?.endStage?.();
+                    signalEndStage(G,ctx);
                 }
             }
         } else {
