@@ -16,7 +16,7 @@ import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
 import {BuyCard, Comment} from "./buyCard";
 import {makeStyles} from "@material-ui/core/styles";
-import {actualStage, getCardName} from "../game/util";
+import {activePlayer, actualStage, getCardName} from "../game/util";
 import Button from "@material-ui/core/Button";
 import {blue, purple, red, yellow} from "@material-ui/core/colors";
 import Icon from "@material-ui/core/Icon";
@@ -61,11 +61,11 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
                         ctx={ctx}
                         G={G}
                         playerID={playerID} moves={moves}/> : <></>}
-            {playerID !== null &&
+            {activePlayer(ctx) === playerID &&
             actualStage(G,ctx) === "updateSlot"? <Button onClick={()=>{moves.updateSlot(slot)}}
                 >{i18n.action.updateSlot}</Button>:<></>}
 
-            {playerID !== null && actualStage(G,ctx) === "comment"?
+            {activePlayer(ctx) === playerID && actualStage(G,ctx) === "comment"?
                 <Comment slot={slot} comment={comment} G={G}/>:<></>}
         </Paper>
     </>

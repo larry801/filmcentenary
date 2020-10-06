@@ -178,7 +178,7 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
     const cardBoard = ctx.numPlayers === 2 ?
         <Grid container spacing={2} alignItems="center">
             <Grid item xs={12}><Typography>{i18n.pub.share}</Typography></Grid>
-            {ValidRegions.map(r => <Grid
+            {ValidRegions.map(r => <Grid key={`region-${r}-share`}
                 item><Typography>{i18n.region[r]} {G.regions[r as 0 | 1 | 2 | 3].share}</Typography></Grid>)}
             <BoardCardSlot slot={G.twoPlayer.school[0]} G={G} ctx={ctx} moves={moves} comment={comment}
                            playerID={playerID}/>
@@ -231,11 +231,11 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
                 </> : <></>
             }
 
-            {isActive ? <Button
+            {activePlayer(ctx) === playerID ? <Button
                 variant={"outlined"}
                 onClick={() => undo()}
             >{i18n.action.undo}</Button> : <></>}
-            {isActive ? <Button
+            {activePlayer(ctx) === playerID ? <Button
                 variant={"outlined"}
                 onClick={() => redo()}
             >{i18n.action.redo}</Button> : <></>}
