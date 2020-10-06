@@ -12,7 +12,7 @@ export default () => (
         <h1>Lobby</h1>
         <Lobby
             gameServer={server} lobbyServer={server} gameComponents={importedGames}
-            refreshInterval={5000000}
+            refreshInterval={5000}
         />
     </div>
 );
