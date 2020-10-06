@@ -10,15 +10,22 @@ import Lobby from './components/lobby'
 import {DenseTable} from "./components/cardreference";
 import {Redirect, Route, Switch, BrowserRouter} from "react-router-dom";
 import {DrawerAppBar} from "./components/drawer-app-bar";
-// eslint-disable-next-line
-const FilmClient4pSingle  =Client(
+
+const FilmClient4pSingle = Client(
     {
         numPlayers: 4,
         game: FilmCentenaryGame,
         board: FilmCentenaryBoard,
         debug: true,
-    }
-);const FilmClient2pSingle  =Client(
+    })
+const FilmClient3pSingle = Client(
+    {
+        numPlayers: 3,
+        game: FilmCentenaryGame,
+        board: FilmCentenaryBoard,
+        debug: true,
+    })
+const FilmClient2pSingle = Client(
     {
         numPlayers: 2,
         game: FilmCentenaryGame,
@@ -26,7 +33,7 @@ const FilmClient4pSingle  =Client(
         debug: true,
     }
 );
-const FilmClient2p  =Client(
+const FilmClient2p = Client(
     {
         numPlayers: 2,
         game: FilmCentenaryGame,
@@ -36,7 +43,7 @@ const FilmClient2p  =Client(
         multiplayer: new Local(),
     }
 );
-const FilmClient3p  =Client(
+const FilmClient3p = Client(
     {
         numPlayers: 3,
         game: FilmCentenaryGame,
@@ -46,7 +53,7 @@ const FilmClient3p  =Client(
         multiplayer: new Local(),
     }
 );
-const FilmClient4p  =Client(
+const FilmClient4p = Client(
     {
         numPlayers: 4,
         game: FilmCentenaryGame,
@@ -58,6 +65,12 @@ const FilmClient4p  =Client(
 );
 const SinglePlayer = () => <Grid container>
     <Grid item> <FilmClient2pSingle playerID='0'/></Grid>
+</Grid>
+const SinglePlayer3p = () => <Grid container>
+    <Grid item> <FilmClient3pSingle playerID='0'/></Grid>
+</Grid>
+const SinglePlayer4p = () => <Grid container>
+    <Grid item> <FilmClient4pSingle playerID='0'/></Grid>
 </Grid>
 const TwoPlayerLocal = () => <Grid container>
     <Grid item> <FilmClient2p playerID='0'/></Grid>
@@ -80,17 +93,19 @@ render(
     <BrowserRouter>
         <CssBaseline/>
         <DrawerAppBar/>
-            <Switch>
-                <Route exact path="/" render={props => <Lobby/>}/>
-                <Route exact path="/cards" render={props => <DenseTable/>}/>
-                <Route exact path="/single2p" render={props => <SinglePlayer />}/>
-                <Route exact path="/2p" render={props => <TwoPlayerLocal />}/>
-                <Route exact path="/3p" render={props => <ThreePlayerLocal />}/>
-                <Route exact path="/4p" render={props => <FourPlayerLocal/>}/>
-                <Route path="*">
-                    <Redirect to="/"/>
-                </Route>
-            </Switch>
+        <Switch>
+            <Route exact path="/" render={props => <Lobby/>}/>
+            <Route exact path="/cards" render={props => <DenseTable/>}/>
+            <Route exact path="/single2p" render={props => <SinglePlayer/>}/>
+            <Route exact path="/single3p" render={props => <SinglePlayer3p/>}/>
+            <Route exact path="/single4p" render={props => <SinglePlayer4p/>}/>
+            <Route exact path="/2p" render={props => <TwoPlayerLocal/>}/>
+            <Route exact path="/3p" render={props => <ThreePlayerLocal/>}/>
+            <Route exact path="/4p" render={props => <FourPlayerLocal/>}/>
+            <Route path="*">
+                <Redirect to="/"/>
+            </Route>
+        </Switch>
     </BrowserRouter>, rootElement
 );
 

@@ -33,6 +33,8 @@ export const DrawerAppBar = () => {
                 <ListItem><Button><Link to={'/3p'}>{i18n.drawer.threePlayer}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/4p'}>{i18n.drawer.fourPlayer}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/single2p'}>{i18n.drawer.singlePlayer}</Link></Button></ListItem>
+                <ListItem><Button><Link to={'/single3p'}>{i18n.drawer.singlePlayer3p}</Link></Button></ListItem>
+                <ListItem><Button><Link to={'/single4p'}>{i18n.drawer.singlePlayer4p}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/cards'}>{i18n.drawer.cards}</Link></Button></ListItem>
             </List>
         </MUIDrawer>

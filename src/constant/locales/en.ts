@@ -210,6 +210,8 @@ const argTimes = {
 const en = {
     drawer:{
         singlePlayer:"Single player vs AI",
+        singlePlayer3p:"Single player vs AI(3 person)",
+        singlePlayer4p:"Single player vs AI(4 person)",
         twoPlayer:"Local 2 person multiplayer",
         threePlayer:"Local 3 person multiplayer",
         fourPlayer:"Local 4 person multiplayer",
