@@ -4,7 +4,8 @@ import {
     CardType,
     EventCardID,
     IBasicCard,
-    IBuyInfo, ICard,
+    IBuyInfo,
+    ICard,
     ICardSlot,
     ICost,
     IEra,
@@ -29,8 +30,9 @@ import {B04} from "../constant/cards/basic";
 import {eventCardByEra} from "../constant/cards/event";
 import {getScoreCard, getScoreCardByID, scoreCardCount} from "../constant/cards/score";
 import i18n from "../constant/i18n";
-import {createLogger,format,transports} from "winston";
-const {combine ,json} = format;
+import {createLogger, format, transports} from "winston";
+
+const {combine, json} = format;
 const {Console} = transports;
 export const logger = createLogger({
     level: 'debug',
@@ -773,7 +775,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break
         case "noStudio":
             G.c.players = noStudioPlayers(G, ctx, region);
-            if(G.c.players.length===0){
+            if (G.c.players.length === 0) {
                 break;
             }
             G.e.stack.push(eff.a);
@@ -805,51 +807,51 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             });
             break;
         case "discardNormalOrLegend":
-            if(playerObj.hand.filter(i=>
+            if (playerObj.hand.filter(i =>
                 i.category !== CardCategory.BASIC
-            ).length>0) {
+            ).length > 0) {
                 G.e.stack.push(eff);
                 logger.debug("Has classic cards.")
-                changePlayerStage(G,ctx,"chooseHand",p);
+                changePlayerStage(G, ctx, "chooseHand", p);
                 return;
             }
             logger.debug("No classic cards.")
             break;
         case "discardLegend":
-            if(playerObj.hand.filter(i=>
+            if (playerObj.hand.filter(i =>
                 i.category === CardCategory.LEGEND
-            ).length>0) {
+            ).length > 0) {
                 G.e.stack.push(eff);
-                changePlayerStage(G,ctx,"chooseHand",p);
+                changePlayerStage(G, ctx, "chooseHand", p);
                 return;
             }
             break;
         case "discardAesthetics":
-            if(playerObj.hand.filter(i=>
+            if (playerObj.hand.filter(i =>
                 // @ts-ignore
-                i.aesthetics>0
-            ).length>0) {
+                i.aesthetics > 0
+            ).length > 0) {
                 G.e.stack.push(eff);
-                changePlayerStage(G,ctx,"chooseHand",p);
+                changePlayerStage(G, ctx, "chooseHand", p);
                 return;
             }
             break;
         case "discardIndustry":
-            if(playerObj.hand.filter(i=>
+            if (playerObj.hand.filter(i =>
                 // @ts-ignore
-                i.industry>0
-            ).length>0) {
+                i.industry > 0
+            ).length > 0) {
                 G.e.stack.push(eff);
-                changePlayerStage(G,ctx,"chooseHand",p);
+                changePlayerStage(G, ctx, "chooseHand", p);
                 return;
             }
             break;
         case "refactor":
         case "archive":
         case "discard":
-            if(playerObj.hand.length>0){
+            if (playerObj.hand.length > 0) {
                 G.e.stack.push(eff);
-                changePlayerStage(G,ctx,"chooseHand",p);
+                changePlayerStage(G, ctx, "chooseHand", p);
                 return;
             }
             break;
@@ -1103,6 +1105,7 @@ export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
     for (let slotL of G.twoPlayer.school) {
         if (slotL.card === null) {
             let newCard = s.pop()
+            logger.debug(newCard);
             if (newCard === undefined) {
 
             } else {
@@ -1114,6 +1117,7 @@ export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
     for (let slotL of G.twoPlayer.film) {
         if (slotL.card === null) {
             let newCard = f.pop()
+            logger.debug(newCard);
             if (newCard === undefined) {
 
             } else {
@@ -1217,8 +1221,8 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
         }
     }
 }
-export const getPossibleHelper = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard):ICard[]=>{
-   return  G.player[parseInt(p)].hand.filter((helper,idx)=>{
+export const getPossibleHelper = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard): ICard[] => {
+    return G.player[parseInt(p)].hand.filter((helper, idx) => {
         if (card.cost.industry === 0) {
             if (card.cost.aesthetics === 0) {
                 return false;
@@ -1298,6 +1302,7 @@ export const fillEmptySlots = (G: IG, ctx: Ctx) => {
         }
         for (let slot of region.normal) {
             if (slot.card === null && n.length > 0) {
+                logger.debug(n);
                 slot.card = n.pop() as INormalOrLegendCard;
             }
         }
@@ -1312,22 +1317,31 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
         G.basicCards[commentId]++;
         slot.comment = null;
     }
-    if (slot.region === Region.NONE) return;
-    if (slot.isLegend) {
-        d = G.secretInfo.regions[slot.region].legendDeck;
-    } else {
-        d = G.secretInfo.regions[slot.region].normalDeck;
+
+    if (ctx.numPlayers > 2) {
+        if (slot.region === Region.NONE) return;
+            if (slot.isLegend) {
+            d = G.secretInfo.regions[slot.region].legendDeck;
+        } else {
+            d = G.secretInfo.regions[slot.region].normalDeck;
+        }
+    }else {
+        if (slot.card?.type === CardType.S) {
+            d = G.secretInfo.twoPlayer.school;
+        } else {
+            d = G.secretInfo.twoPlayer.film;
+        }
     }
 
     let oldCard = slot.card;
-
+    logger.debug(d)
     if (oldCard !== null) {
         d.unshift(oldCard);
+        slot.card = null;
     } else {
-
-        throw new Error("")
+        throw new Error("Updating an empty slot!")
     }
-
+    logger.debug(d)
 
 }
 
@@ -1407,8 +1421,8 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             }
         }
     }
-    fillTwoPlayerBoard(G,ctx);
-    signalEndTurn(G,ctx);
+    fillTwoPlayerBoard(G, ctx);
+    signalEndTurn(G, ctx);
 }
 export const tryScoring = (G: IG, ctx: Ctx): void => {
     if (G.scoringRegions.length > 0) {
@@ -1610,7 +1624,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
             G.pub[parseInt(newWavePlayer)].discardInSettle = false;
             G.pub[parseInt(newWavePlayer)].vp++;
             drawCardForPlayer(G, ctx, newWavePlayer)
-            logger.debug("NewWavePlayer" + newWavePlayer +"drawCard");
+            logger.debug("NewWavePlayer" + newWavePlayer + "drawCard");
         }
         if (G.currentScoreRegion === Region.NONE) {
             logger.debug("No scoring region")
@@ -1624,7 +1638,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                 }
             } else {
                 if (ctx.activePlayers !== null) {
-                    signalEndStage(G,ctx);
+                    signalEndStage(G, ctx);
                 }
             }
         } else {

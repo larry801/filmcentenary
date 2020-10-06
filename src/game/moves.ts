@@ -1,7 +1,6 @@
 import {Ctx, LongFormMove, PlayerID} from 'boardgame.io';
 import {IG} from "../types/setup";
 import {
-    CardCategory,
     EventCardID,
     IBasicCard,
     IBuyInfo,
@@ -47,7 +46,7 @@ import {
     try2pScoring,
     tryScoring,
 } from "./util";
-import {changePlayerStage, changeStage, signalEndPhase} from "./logFix";
+import {changeStage, signalEndPhase} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
 import {B05} from "../constant/cards/basic";
 
@@ -100,13 +99,10 @@ export const chooseTarget: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: ITargetChooseArgs) => {
         if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
-
         logger.info("chooseTarget");
         logger.info(arg);
         let src = arg.p;
         let p = arg.target;
-        let playerObj = G.player[parseInt(p)];
-        let pub = G.pub[parseInt(p)];
         let eff = G.e.stack.pop();
         switch (eff.e) {
             case "loseVpForEachHand":
