@@ -847,7 +847,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             changePlayerStage(G, ctx, "comment", p);
             return;
         case "pay":
-            switch (eff.a.cost) {
+            switch (eff.a.cost.e) {
                 case "res":
                     if (obj.resource < eff.a.cost.a) {
                         checkNextEffect(G, ctx);

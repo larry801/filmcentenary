@@ -40,7 +40,7 @@ import {
     studioSlotsAvailable, try2pScoring,
     tryScoring,
 } from "./util";
-import {changeStage, signalEndPhase} from "./logFix";
+import {changePlayerStage, changeStage, signalEndPhase} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
 import {B05} from "../constant/cards/basic";
 
@@ -515,18 +515,54 @@ export const moveBlocker: LongFormMove = {
 export const confirmRespond: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
+        logger.info("confirmRespond");
         let eff = G.e.stack.pop();
+        let player = ctx.playerID === undefined?ctx.currentPlayer:ctx.playerID;
+        let obj = G.pub[parseInt(player)]
         if (arg === "yes") {
             switch (eff.e) {
                 case "pay":
-                    G.e.stack.push(eff.a.eff)
-                    curEffectExec(G, ctx);
-                    break;
+                    logger.debug(eff);
+                    switch (eff.a.cost.e) {
+                        case "res":
+                            if (obj.resource < eff.a.cost.a) {
+                                checkNextEffect(G, ctx);
+                                return;
+                            } else {
+                                obj.resource -= eff.a.cost.a
+                                G.e.stack.push(eff.a.eff);
+                                checkNextEffect(G, ctx);
+                                return;
+                            }
+                        case "vp":
+                            if (obj.vp < eff.a.cost.a) {
+                                checkNextEffect(G, ctx);
+                                return;
+                            } else {
+                                G.e.stack.push(eff);
+                                obj.vp -= eff.a.cost.a
+                                G.e.stack.push(eff.a.eff);
+                                checkNextEffect(G, ctx);
+                                return;
+                            }
+                        case "deposit":
+                            if (obj.deposit < eff.a.cost.a) {
+                                checkNextEffect(G, ctx);
+                                return;
+                            } else {
+                                obj.deposit -= eff.a.cost.a
+                                G.e.stack.push(eff.a.eff);
+                                checkNextEffect(G, ctx);
+                                return;
+                            }
+                        default:
+                            throw new Error();
+                    }
                 case "optional":
                 case "alternative":
                     G.e.stack.push(eff.a)
                     curEffectExec(G, ctx);
-                    break;
+                    return;
                 default:
                     throw new Error();
             }
@@ -536,8 +572,7 @@ export const confirmRespond: LongFormMove = {
                     breakthroughEffectExec(G, ctx);
                     return;
                 default:
-                    G.e.stack.pop();
-
+                    break;
             }
         }
         checkNextEffect(G, ctx);
