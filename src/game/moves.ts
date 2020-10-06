@@ -106,7 +106,7 @@ export const chooseTarget: LongFormMove = {
                     G.competitionInfo.onWin = eff.a.onWin;
                     startCompetition(G, ctx, src, p);
                     return;
-                }else {
+                } else {
                     break;
                 }
             case "loseAnyRegionShare":
@@ -129,6 +129,7 @@ export interface IChooseHandArg {
     hand: ICard,
     idx: number,
 }
+
 export const chooseHand: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IChooseHandArg) => {
@@ -219,20 +220,24 @@ export const chooseEffect: LongFormMove = {
         let top;
         switch (eff.e) {
             case "industryBreakthrough":
-                top = G.e.stack.pop();
-                if (top.e === "industryOrAestheticsBreakthrough") {
-                    top.a.industry--;
+                if (G.e.stack.length > 0) {
+                    top = G.e.stack.pop();
+                    if (top.e === "industryOrAestheticsBreakthrough") {
+                        top.a.industry--;
+                    }
+                    G.e.stack.push(top);
                 }
-                G.e.stack.push(top);
                 G.e.choices = [];
                 doIndustryBreakthrough(G, ctx, p);
                 return;
             case "aestheticsBreakthrough":
-                top = G.e.stack.pop();
-                if (top.e === "industryOrAestheticsBreakthrough") {
-                    top.a.industry--;
+                if (G.e.stack.length > 0) {
+                    top = G.e.stack.pop();
+                    if (top.e === "industryOrAestheticsBreakthrough") {
+                        top.a.aesthetics--;
+                    }
+                    G.e.stack.push(top);
                 }
-                G.e.stack.push(top);
                 G.e.choices = [];
                 doAestheticsBreakthrough(G, ctx, p);
                 break;
@@ -262,6 +267,7 @@ export const chooseEffect: LongFormMove = {
 export const updateSlot = {
     client: false,
     move: (G: IG, ctx: Ctx, slot: ICardSlot) => {
+        logger.info("updateSlot");
         doReturnSlotCard(G, ctx, slot);
         if (ctx.numPlayers > 2) {
             fillEmptySlots(G, ctx);
@@ -360,7 +366,7 @@ export interface IPeekArgs {
 export const peek: LongFormMove = {
     client: false,
     undoable: false,
-    redact:true,
+    redact: true,
     move: (G: IG, ctx: Ctx, args: IPeekArgs) => {
         let eff = G.e.stack.pop();
         let p = args.p;
