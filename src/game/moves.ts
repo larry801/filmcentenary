@@ -8,7 +8,7 @@ import {
     ICardSlot,
     IEra,
     INormalOrLegendCard,
-    IPubInfo,
+    IPubInfo, IRegionInfo, ISchoolCard,
     Region,
     ValidRegions
 } from "../types/core";
@@ -711,9 +711,16 @@ export const comment: LongFormMove = {
     }
 }
 
+export interface IShowBoardStatusProps {
+    regions:IRegionInfo[],
+    school: ICardSlot[]
+    film: ICardSlot[],
+    matchID:string,
+}
+
 export const initialSetup: LongFormMove = {
     client: false,
-    move: (G: IG, ctx: Ctx, args: IPubInfo[]) => {
+    move: (G: IG, ctx: Ctx, args: IShowBoardStatusProps) => {
         if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
         signalEndPhase(G, ctx);
     },

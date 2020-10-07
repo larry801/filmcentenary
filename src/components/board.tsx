@@ -376,7 +376,6 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
             <Typography variant={"h3"}>{getName(ctx.gameover.winner)}</Typography>
         </Grid>
 
-
     return <Grid container justify="space-evenly" alignItems="center">
         {ctx.numPlayers !== 2 ?<Grid xs={12} spacing={2} container item>
             <Grid item xs={4}><Typography>{i18n.pub.events}</Typography></Grid>
@@ -390,7 +389,12 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
             <Grid item xs={12}>
                 <Button fullWidth={true}
                         disabled={!canMove}
-                        onClick={() => moves.initialSetup({...G.regions})}>
+                        onClick={() => moves.initialSetup({
+                            regions:{...G.regions},
+                            school:G.twoPlayer.school,
+                            film:G.twoPlayer.film,
+                            matchID:matchID,
+                        })}>
                     {i18n.action.initialSetup}
                 </Button> </Grid> : cardBoard
         }
