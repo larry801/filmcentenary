@@ -16,7 +16,7 @@ import Grid from "@material-ui/core/Grid"
 import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
 
-export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isActive, matchData, playerID}: BoardProps<IG>) => {
+export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isActive, matchData,matchID, playerID}: BoardProps<IG>) => {
 
     const canMoveCurrent = ctx.currentPlayer === playerID && ctx.activePlayers === null;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
@@ -413,5 +413,9 @@ export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isAct
         {operationPanel}
         {playerID !== null && ctx.gameover === undefined ?
             <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/> : <></>}
+        <Grid item container>
+            {log===undefined?"":log.map(l=>JSON.stringify(l.action))}
+            <Typography>{matchID}</Typography>
+        </Grid>
     </Grid>
 }
