@@ -388,9 +388,9 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         if (card.type === CardType.S) {
             let school = obj.school;
             let kino = schoolPlayer(G, ctx, "1303");
-            if (kino !== null) {
-                G.e.stack.push(getCardEffect("1303").repsonse.effect);
-                simpleEffectExec(G, ctx, kino);
+            if (kino !== null && p !== kino) {
+                G.pub[parseInt(kino)].vp++;
+                G.pub[parseInt(kino)].deposit++;
             }
             if (school !== null) {
                 if (school.cardId === "1203") {
