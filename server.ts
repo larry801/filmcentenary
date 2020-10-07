@@ -4,6 +4,7 @@ import serve from 'koa-static';
 import KoaRatelimit from 'koa-ratelimit';
 import { v4 as uuidv4 } from 'uuid';
 import {FilmCentenaryGame} from "./src/Game";
+import {log} from "winston";
 
 const Server = require('boardgame.io/server').Server;
 const server = Server({ games: [FilmCentenaryGame], generateCredentials: () => uuidv4() });
@@ -51,7 +52,8 @@ server.run(
         // rewrite rule for catching unresolved routes and redirecting to index.html
         // for client-side routing
         server.app.use(async (ctx:Koa.Context, next:Koa.Next) => {
-            await serve("build/static")(
+            console.log(ctx.ip + JSON.stringify(ctx.ips))
+            await serve("build")(
                 Object.assign(ctx, { path: 'index.html' }),
                 next
             );
