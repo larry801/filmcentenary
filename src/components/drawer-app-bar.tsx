@@ -1,14 +1,16 @@
-import {Link, } from 'react-router-dom'
+import {Link} from 'react-router-dom'
 import React from "react";
-import {
-    AppBar,
-    Drawer as MUIDrawer,
-    ListItem, List,  Toolbar, IconButton, Button
-} from "@material-ui/core";
+import Drawer from "@material-ui/core/Drawer";
 import MenuIcon from '@material-ui/icons/Menu';
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
-
+import AppBar from '@material-ui/core/AppBar';
+import IconButton from '@material-ui/core/IconButton';
+import Toolbar from '@material-ui/core/Toolbar';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import Button from '@material-ui/core/Button';
+const MUIDrawer = Drawer;
 export const DrawerAppBar = () => {
 
     useI18n(i18n);

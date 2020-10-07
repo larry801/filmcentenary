@@ -4,7 +4,7 @@ import Typography from "@material-ui/core/Typography";
 import {cardEffectText, getCardName} from "../game/util";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
-import {makeStyles} from '@material-ui/core/styles';
+import makeStyles from '@material-ui/core/styles/makeStyles';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';

@@ -1,25 +1,24 @@
 import React from "react";
-import {
-    Accordion,
-    AccordionDetails,
-    AccordionSummary,
-    createStyles,
-    Grid,
-    Paper,
-    Theme,
-    Typography,
-} from "@material-ui/core";
+
 import {IBasicCard, ICardSlot, IRegionInfo, Region, validRegion} from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
 import {BuyCard, Comment} from "./buyCard";
-import {makeStyles} from "@material-ui/core/styles";
+import makeStyles from '@material-ui/core/styles/makeStyles';
+import createStyles from '@material-ui/core/styles/createStyles'
 import {activePlayer, actualStage, getCardName} from "../game/util";
 import Button from "@material-ui/core/Button";
 import {blue, purple, red, yellow} from "@material-ui/core/colors";
 import Icon from "@material-ui/core/Icon";
+import Paper from "@material-ui/core/Paper";
+import Typography from "@material-ui/core/Typography";
+import {Theme}  from "@material-ui/core/styles/createMuiTheme";
+import Grid from "@material-ui/core/Grid";
+import Accordion from "@material-ui/core/Accordion";
+import AccordionSummary from "@material-ui/core/AccordionSummary";
+import AccordionDetails from "@material-ui/core/AccordionDetails";
 export interface ICardSlotProp {
     slot: ICardSlot,
     G: IG,

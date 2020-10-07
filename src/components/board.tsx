@@ -12,8 +12,9 @@ import {PubPanel} from "./pub";
 import {CardCategory, EventCardID, IBasicCard, ICardSlot, Region, ValidRegions} from "../types/core";
 import {BuyCard} from "./buyCard";
 import {B01, B02, B03, B04, B05} from "../constant/cards/basic";
-import {Grid, Paper, Typography} from "@material-ui/core";
-
+import Grid from "@material-ui/core/Grid"
+import Typography from "@material-ui/core/Typography";
+import Paper from "@material-ui/core/Paper";
 
 export const FilmCentenaryBoard = ({G,log, ctx, events, moves, undo, redo, isActive, matchData, playerID}: BoardProps<IG>) => {
 

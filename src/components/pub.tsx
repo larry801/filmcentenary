@@ -1,6 +1,7 @@
 import React from "react";
 import {CardCategory, IPubInfo, ValidRegions} from "../types/core";
-import {Grid, Typography} from "@material-ui/core";
+import Grid from "@material-ui/core/Grid";
+import Typography from "@material-ui/core/Typography";
 import {useI18n} from '@i18n-chain/react';
 import i18n from '../constant/i18n'
 import {ChoiceDialog} from "./modals";

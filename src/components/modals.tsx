@@ -1,6 +1,5 @@
 import React from "react";
-import {Dialog,DialogContent, DialogActions, DialogTitle ,FormControl, FormGroup} from "@material-ui/core";
-import { makeStyles } from '@material-ui/core/styles';
+import makeStyles from '@material-ui/core/styles/makeStyles';
 import Radio from '@material-ui/core/Radio';
 import RadioGroup from '@material-ui/core/RadioGroup';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
@@ -8,6 +7,12 @@ import FormLabel from '@material-ui/core/FormLabel';
 import Button from '@material-ui/core/Button';
 import i18n from "../constant/i18n";
 import {useI18n} from "@i18n-chain/react";
+import Dialog from "@material-ui/core/Dialog";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import DialogContent from "@material-ui/core/DialogContent";
+import FormControl from "@material-ui/core/FormControl/FormControl";
+import FormGroup from "@material-ui/core/FormGroup/FormGroup";
+import DialogActions from "@material-ui/core/DialogActions";
 
 const useStyles = makeStyles((theme) => ({
     formControl: {
@@ -61,7 +66,7 @@ export const ChoiceDialog =({initial,callback,show,choices,title,toggleText,defa
                         <FormLabel component="legend">{toggleText}</FormLabel>
                         <RadioGroup aria-label={title} name="choice" value={choice}
                                     onChange={(e) => setChoice(e.target.value)}>
-                            {choices.map((choice,idx,arr)=>
+                            {choices.map((choice,idx)=>
                                 !choice.hidden ?
                                     <FormControlLabel
                                         disabled={choice.disabled}
@@ -82,6 +87,6 @@ export const ChoiceDialog =({initial,callback,show,choices,title,toggleText,defa
                 </Button>
             </DialogActions>
         </Dialog>
-    </>:<div></div>
+    </>:<div/>
  }
 

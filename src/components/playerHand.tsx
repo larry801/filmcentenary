@@ -1,11 +1,15 @@
 import React from "react";
 import {IG} from "../types/setup";
-import {Accordion, AccordionDetails, AccordionSummary, Button, Typography} from "@material-ui/core";
 import {Ctx} from "boardgame.io";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
+import Accordion from "@material-ui/core/Accordion";
+import AccordionDetails from "@material-ui/core/AccordionDetails";
 import Grid from "@material-ui/core/Grid";
 import {cardEffectText, getCardName} from "../game/util";
+import Typography from "@material-ui/core/Typography";
+import AccordionSummary from "@material-ui/core/AccordionSummary";
+import Button from "@material-ui/core/Button";
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
 

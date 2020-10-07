@@ -4,7 +4,8 @@ import {render} from "react-dom";
 import {Client} from "boardgame.io/react";
 import {FilmCentenaryGame} from "./Game";
 import {FilmCentenaryBoard} from "./components/board";
-import {Grid, CssBaseline} from "@material-ui/core";
+import Grid from "@material-ui/core/Grid"
+import CssBaseline from "@material-ui/core/CssBaseline";
 import {Local} from "boardgame.io/multiplayer";
 import Lobby from './components/lobby'
 import {DenseTable} from "./components/cardreference";
@@ -98,7 +99,7 @@ render(
             <Route exact path="/cards" render={props => <DenseTable/>}/>
             <Route exact path="/single2p" render={props => <SinglePlayer/>}/>
             <Route exact path="/single3p" render={props => <SinglePlayer3p/>}/>
-            <Route exact path="/single4p" render={props => <SinglePlayer4p/>}/>
+            <Route exact path="/single4p" render={props => <SinglePlayer4p />}/>
             <Route exact path="/2p" render={props => <TwoPlayerLocal/>}/>
             <Route exact path="/3p" render={props => <ThreePlayerLocal/>}/>
             <Route exact path="/4p" render={props => <FourPlayerLocal/>}/>
