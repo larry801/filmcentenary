@@ -32,12 +32,14 @@ import {getScoreCard, getScoreCardByID, scoreCardCount} from "../constant/cards/
 import i18n from "../constant/i18n";
 import {createLogger, format, transports} from "winston";
 
-const {combine, json} = format;
+const {combine, json,} = format;
 const {Console} = transports;
 export const logger = createLogger({
     level: 'debug',
     format: combine(
-        json(),
+        json({
+            space: 2,
+        })
     ),
     defaultMeta: "",
     transports: [
@@ -181,11 +183,14 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     let eff = G.e.stack.pop();
     let obj = G.pub[parseInt(p)];
     let card: INormalOrLegendCard;
-    //let region = G.e.card.region;
+    let region = G.e?.card?.region;
     switch (eff.e) {
         case "none":
         case "skipBreakthrough":
-            return
+            return;
+        case "shareToVp":
+            obj.vp += obj.shares[eff.a as validRegion];
+            return;
         case "loseVpForEachHand":
             obj.vp -= G.player[parseInt(p)].hand.length;
             break;
@@ -279,10 +284,6 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             for (let i = 0; i < eff.a; i++) {
                 drawCardForPlayer(G, ctx, p);
             }
-            break;
-        case "buyCard":
-            card = getCardById(eff.a);
-            doBuy(G, ctx, card, ctx.currentPlayer);
             break;
         case "buyCardToHand":
             card = getCardById(eff.a);
@@ -613,6 +614,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let playerObj = G.player[parseInt(p)];
     let region = G.e?.card?.region as validRegion;
     let players = []
+    let len = 0;
     switch (eff.e) {
         case "era":
             let era = G.regions[region].era;
@@ -715,7 +717,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "peek":
             let peekCount = eff.a.count;
             let deck = G.secretInfo.playerDecks[curPid(G, ctx)];
-            let len = deck.length;
+            len = deck.length;
             if (len < peekCount) {
                 playerObj.cardsToPeek = deck;
                 deck = [];
@@ -802,9 +804,13 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             break;
         case "step":
-            eff.a.reduceRight((_: any, item: any) => {
-                return G.e.stack.push(item);
-            });
+            logger.debug("step")
+            len = eff.a.length;
+            for (let i = len - 1; i >= 0; i--) {
+                logger.debug(i)
+                G.e.stack.push(eff.a[i])
+            }
+            logger.debug(G.e.stack)
             break;
         case "discardNormalOrLegend":
             if (playerObj.hand.filter(i =>
@@ -1320,12 +1326,12 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
 
     if (ctx.numPlayers > 2) {
         if (slot.region === Region.NONE) return;
-            if (slot.isLegend) {
+        if (slot.isLegend) {
             d = G.secretInfo.regions[slot.region].legendDeck;
         } else {
             d = G.secretInfo.regions[slot.region].normalDeck;
         }
-    }else {
+    } else {
         if (slot.card?.type === CardType.S) {
             d = G.secretInfo.twoPlayer.school;
         } else {
