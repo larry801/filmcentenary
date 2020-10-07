@@ -62,7 +62,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         let newMin = Math.max(newCost - pub.resource, 0);
         let newMax = Math.min(newCost, pub.deposit);
         let newExtraDepositLimit = newMax - newMin
-        if (depositExtra > newExtraDepositLimit) {
+        if (newExtraDepositLimit > 0 && depositExtra > newExtraDepositLimit) {
             setDepositExtra(newExtraDepositLimit);
         }
         if (depositExtra < 0) {
