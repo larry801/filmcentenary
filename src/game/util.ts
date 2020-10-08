@@ -183,7 +183,6 @@ function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     let eff = G.e.stack.pop();
     let obj = G.pub[parseInt(p)];
     let card: INormalOrLegendCard;
-    let region = G.e?.card?.region;
     switch (eff.e) {
         case "none":
         case "skipBreakthrough":
