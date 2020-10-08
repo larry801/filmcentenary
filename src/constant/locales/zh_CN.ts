@@ -1,5 +1,14 @@
 import {Locale} from './en';
-import {BasicCardID, IEra, Region} from "../../types/core";
+import {BasicCardID, IBuyInfo, ICardSlot, IEra, Region, validRegion} from "../../types/core";
+import {
+    IChooseEventArg, IChooseHandArg, ICommentArg, ICompetitionCardArg,
+    IEffectChooseArg,
+    IPeekArgs,
+    IPlayCardInfo,
+    IRegionChooseArg,
+    IShowBoardStatusProps, ITargetChooseArgs
+} from "../../game/moves";
+import {effName} from "../../game/util";
 
 const era ={
     0:"发明",
@@ -191,8 +200,164 @@ const argCardName = {
         return cards[value as BasicCardID]
     }
 };
+const bracketCardName =(value: string = "E02") => {
+        return '【'+cards[value as BasicCardID]+'】'
+};
 const argValue = {a: (value: number = 1):string => value.toString()};
-
+const chose = "选择了"
+const argShowBoardStatus = {
+    args: (arg: IShowBoardStatusProps[]): string => {
+        let t = "";
+        if (arg[0].regions.length > 0) {
+            arg[0].regions.forEach((r,idx)=>{
+                t += region[idx as validRegion];
+                t += '：';
+                if(r.legend.card !==null){
+                    t += bracketCardName(r.legend.card.cardId)
+                }
+                r.normal.forEach(c => {
+                    if (c.card !== null) {
+                        t += bracketCardName(c.card.cardId)
+                    }
+                })
+            })
+        } else {
+            arg[0].film.forEach(c => {
+                if (c.card !== null) {
+                    t += bracketCardName(c.card.cardId)
+                }
+            })
+            arg[0].school.forEach(c => {
+                if (c.card !== null) {
+                    t += bracketCardName(c.card.cardId)
+                }
+            })
+        }
+        return t;
+    }
+}
+const argBuyCard = {
+    args:(arg:IBuyInfo[]):string=>{
+        let a= arg[0]
+        let t="花费";
+        if(a.resource>0){
+            t+=a.resource.toString() + "资源,"
+        }
+        if(a.deposit>0){
+            t+=a.deposit.toString() + "存款,"
+        }
+        // @ts-ignore
+        a.helper.forEach(h=>t+=cards[h.cardId])
+        t+="购买了"
+        t+=bracketCardName(a.target.cardId)
+        return t
+    }
+}
+const argPlayCard = {
+    args:(arg:IPlayCardInfo[]):string=>{
+        let a= arg[0]
+        let t = "打出了"
+        t+=bracketCardName(a.card.cardId)
+        return t
+    }
+}
+const argChooseEffect = {
+    args: (arg: IEffectChooseArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += effName(a.effect)
+        return t
+    }
+}
+const argChooseEvent = {
+    args: (arg: IChooseEventArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += eventName[a.event]
+        return t
+    }
+}
+const argBreakthrough = {
+    args:(arg:IPlayCardInfo[]):string=>{
+        let a= arg[0]
+        let t = "花费"
+        if(a.res===2)t+="2资源"
+        if(a.res===1)t+="1资源1存款"
+        if(a.res===0)t+="2存款"
+        t+="突破"
+        t+=bracketCardName(a.card.cardId)
+        return t
+    }
+}
+const argPeek = {
+    args:(arg:IPeekArgs[])=>{
+        return "查看了牌堆顶端"
+    }
+}
+const argDrawCard = {
+    args: (arg: []): string => {
+        return "用行动力额外抽取了一张牌"
+    }
+}
+const argChooseRegion = {
+    args: (arg: IRegionChooseArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += region[a.r]
+        return t
+    }
+}
+const argChooseTarget = {
+    args: (arg: ITargetChooseArgs[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += a.targetName
+        return t
+    }
+}
+const argRequestEndTurn = {
+    args: (arg: []): string => {
+        return "结束行动"
+    }
+}
+const argChooseHand = {
+    args: (arg: IChooseHandArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += bracketCardName(a.hand.cardId)
+        return t
+    }
+}
+const argCompetitionCard = {
+    args: (arg: ICompetitionCardArg[]): string => {
+        return "打出一张牌用于争夺"
+    }
+}
+const argUpdateSlot = {
+    args: (arg: ICardSlot[]): string => {
+        let a = arg[0]
+        let t = "更新了"
+        t += bracketCardName(a.card?.cardId)
+        return t
+    }
+}
+const argComment = {
+    args: (arg: ICommentArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        if (a.comment === null) {
+            t += "移除了"
+            t += bracketCardName(a.target.card?.cardId)
+            t += "的评论"
+        } else {
+            t += "评论"
+            t += bracketCardName(a.target.card?.cardId)
+            t += "为"
+            t += bracketCardName(a.comment.cardId)
+        }
+        return t
+    }
+}
 const zh_CN: Locale = {
     drawer:{
       singlePlayer:"单人对战AI(2玩家)",
@@ -208,7 +373,7 @@ const zh_CN: Locale = {
     region: region,
     action: {
         updateSlot:"更新",
-        initialSetup:"补充初始牌",
+        showBoardStatus:"补充初始牌",
         draw:"摸牌",
         play:"出牌",
         breakthrough2Res:"花费2资源突破",
@@ -244,6 +409,23 @@ const zh_CN: Locale = {
             2:"第三",
             3:"第四",
         },
+    },
+    moves:{
+        showBoardStatus:["{{args}}",argShowBoardStatus],
+        chooseEffect:["{{args}}",argChooseEffect],
+        chooseEvent: ["{{args}}",argChooseEvent],
+        chooseHand: ["{{args}}",argChooseHand],
+        chooseRegion: ["{{args}}",argChooseRegion],
+        chooseTarget: ["{{args}}",argChooseTarget],
+        peek:["{{args}}",argPeek],
+        competitionCard:["{{args}}",argCompetitionCard],
+        drawCard:["{{args}}",argDrawCard],
+        buyCard: ["{{args}}",argBuyCard],
+        playCard:["{{args}}",argPlayCard],
+        breakthrough:["{{args}}",argBreakthrough],
+        requestEndTurn:["{{args}}",argRequestEndTurn],
+        updateSlot:["{{args}}",argUpdateSlot],
+        comment:["{{args}}",argComment],
     },
     effect:{
         era:{
@@ -462,6 +644,7 @@ const zh_CN: Locale = {
         title: "手牌"
     },
     pub: {
+        gameLog: "战报",
         emptyBuildingSlot:"空",
         cinemaORStudio:"电影院/制片厂",
         studio:"制片厂",

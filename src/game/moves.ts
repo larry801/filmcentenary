@@ -52,8 +52,7 @@ import {B05} from "../constant/cards/basic";
 
 export const drawCard: LongFormMove = {
     move: (G: IG, ctx: Ctx) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
-
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         curPub(G, ctx).action--;
         drawCardForPlayer(G, ctx, ctx.currentPlayer);
     },
@@ -62,7 +61,7 @@ export const drawCard: LongFormMove = {
 
 export const buyCard = {
     move(G: IG, ctx: Ctx, arg: IBuyInfo): any {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         if (canBuyCard(G, ctx, arg)) {
             let p = curPub(G, ctx);
             p.action--;
@@ -93,12 +92,13 @@ export interface ITargetChooseArgs {
     p: PlayerID,
     idx: number,
     target: PlayerID,
+    targetName: string,
 }
 
 export const chooseTarget: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: ITargetChooseArgs) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info("chooseTarget");
         logger.info(arg);
         let src = arg.p;
@@ -127,9 +127,13 @@ export const chooseTarget: LongFormMove = {
                     // @ts-ignore
                     r => G.pub[parseInt(p)].shares[r] > 0
                 )
-                G.e.stack.push(eff);
-                changeStage(G, ctx, "chooseRegion")
-                return;
+                if (G.e.regions.length > 0) {
+                    G.e.stack.push(eff);
+                    changeStage(G, ctx, "chooseRegion")
+                    return;
+                } else {
+                    break;
+                }
             default:
                 G.e.stack.push(eff);
                 playerEffExec(G, ctx, p);
@@ -146,7 +150,7 @@ export interface IChooseHandArg {
 export const chooseHand: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IChooseHandArg) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info("chooseHand");
         logger.debug(arg);
         let eff = G.e.stack.pop();
@@ -225,7 +229,7 @@ export interface IEffectChooseArg {
 export const chooseEffect: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IEffectChooseArg) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info("chooseEffect")
         logger.debug(arg);
         let eff = G.e.choices[arg.idx];
@@ -282,7 +286,7 @@ export const chooseEffect: LongFormMove = {
 export const updateSlot = {
     client: false,
     move: (G: IG, ctx: Ctx, slot: ICardSlot) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info("updateSlot");
         doReturnSlotCard(G, ctx, slot);
         if (ctx.numPlayers > 2) {
@@ -303,7 +307,7 @@ export interface IRegionChooseArg {
 export const chooseRegion = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IRegionChooseArg) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let r = arg.r;
         if (r === Region.NONE) return;
         let eff = G.e.stack.pop();
@@ -385,7 +389,7 @@ export const peek: LongFormMove = {
     undoable: false,
     redact: true,
     move: (G: IG, ctx: Ctx, args: IPeekArgs) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info("Peek");
         logger.info(args);
         let eff = G.e.stack.pop();
@@ -451,7 +455,7 @@ export interface IChooseEventArg {
 export const chooseEvent: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IChooseEventArg) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let eid: EventCardID = arg.event;
         G.events.splice(arg.idx, 1);
         if (eid === EventCardID.E03) {
@@ -485,7 +489,7 @@ export const requestEndTurn: LongFormMove = {
     client: false,
     undoable: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let obj = G.pub[parseInt(arg)]
         obj.playedCardInTurn.forEach(c => obj.discard.push(c));
         obj.playedCardInTurn = [];
@@ -537,10 +541,10 @@ export const moveBlocker: LongFormMove = {
 export const confirmRespond: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info("confirmRespond");
         let eff = G.e.stack.pop();
-        let player = ctx.playerID === undefined?ctx.currentPlayer:ctx.playerID;
+        let player = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID;
         let obj = G.pub[parseInt(player)]
         if (arg === "yes") {
             switch (eff.e) {
@@ -611,7 +615,7 @@ export interface IPlayCardInfo {
 
 export const playCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let pub = G.pub[parseInt(arg.playerID)];
         let hand = G.player[parseInt(arg.playerID)].hand;
         if (cinemaInRegion(G, ctx, arg.card.region, arg.playerID)) {
@@ -638,7 +642,7 @@ export const competitionCard: LongFormMove = {
     client: false,
     redact: true,
     move: (G: IG, ctx: Ctx, arg: ICompetitionCardArg) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let p = arg.p;
         G.player[parseInt(p)].competitionCards.push(arg.card);
         let i = G.competitionInfo;
@@ -661,7 +665,7 @@ export const competitionCard: LongFormMove = {
 export const breakthrough: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let p = G.pub[parseInt(arg.playerID)];
         p.action -= 1;
         p.resource -= arg.res;
@@ -691,7 +695,7 @@ export interface ICommentArg {
 export const comment: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: ICommentArg) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         if (arg.comment === null && arg.target.comment !== null) {
             arg.target.comment = null;
         } else {
@@ -712,16 +716,17 @@ export const comment: LongFormMove = {
 }
 
 export interface IShowBoardStatusProps {
-    regions:IRegionInfo[],
+    regions: IRegionInfo[],
     school: ICardSlot[]
     film: ICardSlot[],
-    matchID:string,
+    matchID: string,
 }
 
-export const initialSetup: LongFormMove = {
+export const showBoardStatus: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, args: IShowBoardStatusProps) => {
-        if(activePlayer(ctx)!==ctx.playerID)return INVALID_MOVE;
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        G.matchID = args.matchID;
         signalEndPhase(G, ctx);
     },
 }

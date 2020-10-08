@@ -11,7 +11,7 @@ import {
     comment,
     competitionCard,
     drawCard,
-    initialSetup,
+    showBoardStatus,
     moveBlocker, peek,
     playCard,
     requestEndTurn,
@@ -85,7 +85,7 @@ export const FilmCentenaryGame: Game<IG> = {
         return r;
     },
     moves: {
-        initialSetup: initialSetup,
+        showBoardStatus: showBoardStatus,
         drawCard: drawCard,
         buyCard: buyCard,
         playCard: playCard,

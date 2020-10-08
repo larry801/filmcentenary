@@ -206,7 +206,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                 })
             }
             break;
-        case "initialSetup":
+        case "showBoardStatus":
             return [{move: stage, args: [G.pub]}]
         case "moveBlocker":
             return [];

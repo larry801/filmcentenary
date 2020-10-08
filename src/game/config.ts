@@ -6,7 +6,7 @@ import {
     chooseEffect, chooseEvent, chooseHand, chooseTarget, comment, competitionCard,
     confirmRespond,
     drawCard,
-    initialSetup,
+    showBoardStatus,
     moveBlocker,
     updateSlot,
     playCard, requestEndTurn, chooseRegion, peek,
@@ -142,7 +142,7 @@ export const NormalPhase: PhaseConfig = {
 
 export const setupStage: StageConfig = {
     moves: {
-        initialSetup: initialSetup,
+        showBoardStatus: showBoardStatus,
     }
 }
 

@@ -17,6 +17,7 @@ import {B01, B02, B07} from "../constant/cards/basic";
 import {doFillNewEraEvents, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
 
 export interface IG {
+    matchID:string,
     twoPlayer: {
         school: ICardSlot[],
         film: ICardSlot[],
@@ -170,6 +171,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     let events = shuffle(ctx, []);
     let randomOrder = shuffle(ctx, order);
     let G = {
+        matchID:"",
         twoPlayer: {
             school: [
                 emptyNormalCardSlot(Region.NONE),
