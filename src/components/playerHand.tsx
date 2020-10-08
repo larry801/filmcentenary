@@ -26,15 +26,14 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                 key={idx}>
                 <AccordionSummary key={idx}>
                     {getCardName(c.cardId)}
-                    {i18n.pub.industryMarker}
+                    {"  "}
                     {
                         // @ts-ignore
-                        c.industry
+                        c.industry >0?i18n.pub.industryMarker + c.industry.toString():""
                     }
-                    {i18n.pub.aestheticsMarker}
                     {
                         // @ts-ignore
-                        c.aesthetics
+                        c.aesthetics >0?i18n.pub.aestheticsMarker + c.aesthetics.toString():""
                     }
                 </AccordionSummary>
                 <AccordionDetails key={idx}>
