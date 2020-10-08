@@ -1035,28 +1035,28 @@ export function shareDepleted(G: IG, ctx: Ctx, region: Region) {
 }
 
 export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
-    // logger.debug("resCost" + arg.target.name);
+    logger.debug("resCost" + arg.target.name);
     let cost: ICost = arg.target.cost;
     let resRequired = cost.res;
-    // logger.debug(
-    //     "Resource:" + cost.res
-    //     + "|" + cost.industry +
-    //     "|" + cost.aesthetics
-    // );
+    logger.debug(
+        "Resource:" + cost.res
+        + "|" + cost.industry +
+        "|" + cost.aesthetics
+    );
     let pub = G.pub[parseInt(arg.buyer)]
-    // logger.debug("Player" + arg.buyer + " aesthetics:" + pub.aesthetics);
-    // logger.debug("Player" + arg.buyer + "  industry:" + pub.industry);
+    logger.debug("Player" + arg.buyer + " aesthetics:" + pub.aesthetics);
+    logger.debug("Player" + arg.buyer + "  industry:" + pub.industry);
     let aesthetics: number = cost.aesthetics
     let industry: number = cost.industry
     aesthetics -= pub.aesthetics;
     industry -= pub.industry;
     if (pub.school !== null) {
         let school = getCardEffect(pub.school.cardId).school;
-        // logger.debug("School:" + school.name + "|" + school.industry + "|" + school.aesthetics)
+        logger.debug("School:" + school.name + "|" + school.industry + "|" + school.aesthetics)
         aesthetics -= school.aesthetics;
         industry -= school.industry
         if (arg.target.type === CardType.S) {
-            // logger.debug("Extra cost for old school " + pub.school.era.toString())
+            logger.debug("Extra cost for old school " + pub.school.era.toString())
             resRequired += pub.school.era;
         }
     }
@@ -1067,22 +1067,22 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
         aesthetics -= helperItem.aesthetics;
     }
     if (aesthetics > 0) {
-        // logger.debug("Lack aesthetics " + aesthetics)
+        logger.debug("Lack aesthetics " + aesthetics)
         resRequired += aesthetics * 2;
     }
     if (industry > 0) {
-        // logger.debug("Lack industry " + industry)
+        logger.debug("Lack industry " + industry)
         resRequired += industry * 2;
     }
     // @ts-ignore
     if (pub.school?.cardId === "2201" && arg.target.aesthetics > 0) {
-        // logger.debug("New realism deduct")
+        logger.debug("New realism deduct")
         if (resRequired < 2) {
             return 0;
         } else
             return resRequired - 2;
     }
-    // logger.debug(resRequired);
+    logger.debug(resRequired);
     return resRequired;
 }
 
