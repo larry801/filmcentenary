@@ -63,7 +63,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                     }
                 })} defaultChoice={'0'}
                 show={true} title={i18n.pub.discard}
-                toggleText={i18n.pub.discard} initial={false}/>
+                toggleText={i18n.pub.discard + '(' + i.discard.length + ')'} initial={false}/>
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
@@ -78,7 +78,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                     }
                 })} defaultChoice={'0'}
                 show={true} title={i18n.pub.allCards}
-                toggleText={i18n.pub.allCards} initial={false}/>
+                toggleText={i18n.pub.allCards + '(' + i.allCards.length + ')'} initial={false}/>
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
@@ -93,7 +93,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                     }
                 })} defaultChoice={'0'}
                 show={true} title={i18n.pub.archive}
-                toggleText={i18n.pub.archive} initial={false}/>
+                toggleText={i18n.pub.archive + '(' + i.archive.length + ')'} initial={false}/>
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
@@ -108,7 +108,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                     }
                 })} defaultChoice={'0'}
                 show={true} title={i18n.pub.playedCards}
-                toggleText={i18n.pub.playedCards} initial={false}/>
+                toggleText={i18n.pub.playedCards + '(' + i.playedCardInTurn.length + ')'} initial={false}/>
         </Grid>
     </>
 }
