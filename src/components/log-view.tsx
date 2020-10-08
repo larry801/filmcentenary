@@ -13,6 +13,7 @@ import ListItemText from '@material-ui/core/ListItemText';
 import i18n from "../constant/i18n";
 import {useI18n} from "@i18n-chain/react";
 import {MoveNames} from "../types/core";
+import shortid from 'shortid'
 
 const useStyles = makeStyles((theme: Theme) =>
     createStyles({
@@ -77,9 +78,8 @@ export const LogView = ({log,getPlayerName}: ILogViewProps) => {
                         const text = getLogText(log[i])
                         return text===null?<></>:<ListItem
                             button
-                            // @ts-ignore
-                            style={style}
-                            key={index}>
+
+                            key={shortid.generate()}>
                             <ListItemText primary={text}/>
                         </ListItem>
                     }}
