@@ -28,13 +28,29 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, isAc
             return i18n.playerName.spectator
         } else {
             if (matchData === undefined) {
-                return fallbackName;
+                if(ctx.currentPlayer===playerID){
+                    return fallbackName + "*"
+                }else {
+                    return fallbackName
+                }
             } else {
                 let arr = matchData.filter(m => m.id.toString() === playerID)
                 if (arr.length === 0) {
-                    return fallbackName;
+                    if(ctx.currentPlayer===playerID){
+                        return fallbackName + "*"
+                    }else {
+                        return fallbackName
+                    }
                 } else {
-                    return arr[0].name === undefined ? fallbackName : arr[0].name;
+                    if( arr[0].name === undefined){
+                        return fallbackName;
+                    }else{
+                        if(ctx.currentPlayer===playerID){
+                            return arr[0].name + "*"
+                        }else {
+                            return arr[0].name
+                        }
+                    };
                 }
             }
         }

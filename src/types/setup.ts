@@ -169,7 +169,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         decks.push(shuffle(ctx, initialDeck));
     }
     let events = shuffle(ctx, []);
-    let randomOrder = shuffle(ctx, order);
+    // let randomOrder = shuffle(ctx, order);
     let G = {
         matchID:"",
         twoPlayer: {
@@ -184,7 +184,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 emptyNormalCardSlot(Region.NONE),
             ],
         },
-        order: randomOrder,
+        order: order,
         logDiscrepancyWorkaround: false,
         pending: {
             lastRoundOfGame: false,
@@ -312,10 +312,12 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     if (ctx.numPlayers > 2) {
         G.regions[Region.NA].buildings[1].activated = true;
         G.regions[Region.WE].buildings[1].activated = true;
+        // @ts-ignore
         G.pub[G.order[2]].vp = 1;
     }
     if (ctx.numPlayers > 3) {
         G.regions[Region.EE].buildings[1].activated = true;
+        // @ts-ignore
         G.pub[G.order[3]].vp = 2;
     }
     if (ctx.numPlayers === 2) {
