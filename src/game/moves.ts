@@ -8,7 +8,7 @@ import {
     ICardSlot,
     IEra,
     INormalOrLegendCard,
-    IPubInfo, IRegionInfo, ISchoolCard,
+    IRegionInfo,
     Region,
     ValidRegions
 } from "../types/core";

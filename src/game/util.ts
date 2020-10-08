@@ -1050,13 +1050,13 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     aesthetics -= pub.aesthetics;
     industry -= pub.industry;
     if (pub.school !== null) {
-        let school = getCardEffect(pub.school.cardId).school;
+        let school = pub.school;
         logger.debug("School:" + school.name + "|" + school.industry + "|" + school.aesthetics)
         aesthetics -= school.aesthetics;
         industry -= school.industry
         if (arg.target.type === CardType.S) {
-            logger.debug("Extra cost for old school " + pub.school.era.toString())
-            resRequired += pub.school.era;
+            logger.debug("Extra cost for old school " + school.era.toString())
+            resRequired += school.era;
         }
     }
     for (const helperItem of arg.helper) {

@@ -1,4 +1,4 @@
-import {BasicCardID, IBuyInfo, ICard, ICardSlot, Region, validRegion} from "../../types/core";
+import {BasicCardID, IBuyInfo, ICardSlot, Region, validRegion} from "../../types/core";
 import {
     IChooseEventArg, IChooseHandArg, ICommentArg, ICompetitionCardArg,
     IEffectChooseArg,
