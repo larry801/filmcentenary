@@ -490,9 +490,13 @@ export const requestEndTurn: LongFormMove = {
     undoable: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        // Clean up
         let obj = G.pub[parseInt(arg)]
         obj.playedCardInTurn.forEach(c => obj.discard.push(c));
         obj.playedCardInTurn = [];
+        obj.resource = 0;
+
+        // restore action point fill hand card
         if (obj.school !== null) {
             let act = getCardEffect(obj.school.cardId).school.action;
             if (act === 1) {
@@ -513,8 +517,12 @@ export const requestEndTurn: LongFormMove = {
             }
         }
         fillPlayerHand(G, ctx, ctx.currentPlayer);
+
+        // execute development rewards
         aesAward(G, ctx, ctx.currentPlayer);
         industryAward(G, ctx, ctx.currentPlayer);
+
+        // era scoring check
         ValidRegions.forEach(r => {
             if (r === Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE) return;
             let canScore = checkRegionScoring(G, ctx, r);
@@ -522,7 +530,6 @@ export const requestEndTurn: LongFormMove = {
                 G.scoringRegions.push(r)
             }
         })
-        obj.resource = 0;
         if (ctx.numPlayers > 2) {
             tryScoring(G, ctx);
         } else {
