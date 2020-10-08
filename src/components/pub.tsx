@@ -9,10 +9,11 @@ import {getCardName} from "../game/util";
 import {IG} from "../types/setup";
 
 export interface IPubPanelProps {
-    i:IPubInfo,
-    G:IG,
+    i: IPubInfo,
+    G: IG,
 }
-export const PubPanel = ({i,G}:IPubPanelProps) => {
+
+export const PubPanel = ({i, G}: IPubPanelProps) => {
     useI18n(i18n);
 
     return <>
@@ -33,16 +34,19 @@ export const PubPanel = ({i,G}:IPubPanelProps) => {
                 <Typography> {i18n.pub.school} {getCardName(i.school.cardId)} </Typography> : <></>}
             <Typography>   {i18n.pub.share} </Typography>
             {ValidRegions.map(r =>
-                <Typography key={r}>   {i18n.region[r]} {i.shares[r as 0 | 1 | 2 | 3]}
-                /{i.allCards.filter(c=>c.category === CardCategory.LEGEND  &&
+                <Typography key={r}>
+                    {i18n.region[r]} {i.shares[r as 0 | 1 | 2 | 3]}
+                    /
+                    {i.allCards.filter(c => c.category === CardCategory.LEGEND &&
+                        c.region === r &&
                         // @ts-ignore
-                        c.era===G.regions[r].era).length}
+                        c.era === G.regions[r].era
+                    ).length}
                 </Typography>
-
             )}
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
-            {i.champions.map(champion=><Typography>
+            {i.champions.map(champion => <Typography>
                 {i18n.region[champion.region]}
                 {i18n.era[champion.era]}</Typography>)}
         </Grid>
