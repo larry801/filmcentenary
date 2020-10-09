@@ -47,7 +47,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                                 onClick={() => {
                                     setExpanded(hand.length);
                                     moves.playCard({
-                                        card: c,
+                                        card: c.cardId,
                                         idx: idx,
                                         playerID: playerID,
                                         res: 0,
@@ -60,7 +60,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                                 onClick={() => {
                                     setExpanded(hand.length);
                                     moves.breakthrough({
-                                        card: c,
+                                        card: c.cardId,
                                         idx: idx,
                                         playerID: playerID,
                                         res: 2,
@@ -72,7 +72,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                                 onClick={() => {
                                     setExpanded(hand.length);
                                     moves.breakthrough({
-                                        card: c,
+                                        card: c.cardId,
                                         idx: idx,
                                         playerID: playerID,
                                         res: 1,
@@ -84,7 +84,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                                 onClick={() => {
                                     setExpanded(hand.length);
                                     moves.breakthrough({
-                                        card: c,
+                                        card: c.cardId,
                                         idx: idx,
                                         playerID: playerID,
                                         res: 0,

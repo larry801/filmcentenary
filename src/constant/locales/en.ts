@@ -269,7 +269,7 @@ const argBreakthrough = {
         if (a.res === 1) t += " 1 resource 1 deposit"
         if (a.res === 0) t += " 2 deposits"
         t += " for breakthrough"
-        t += bracketCardName(a.card.cardId)
+        t += bracketCardName(a.card)
         return t
     }
 }
@@ -277,7 +277,7 @@ const argPlayCard = {
     args: (arg: IPlayCardInfo[]): string => {
         let a = arg[0]
         let t = " played "
-        t += bracketCardName(a.card.cardId)
+        t += bracketCardName(a.card)
         return t
     }
 }

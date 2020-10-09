@@ -267,7 +267,7 @@ const argPlayCard = {
     args: (arg: IPlayCardInfo[]): string => {
         let a = arg[0]
         let t = "打出了"
-        t += bracketCardName(a.card.cardId)
+        t += bracketCardName(a.card)
         return t
     }
 }
@@ -295,7 +295,7 @@ const argBreakthrough = {
         if (a.res === 1) t += "1资源1存款"
         if (a.res === 0) t += "2存款"
         t += "突破"
-        t += bracketCardName(a.card.cardId)
+        t += bracketCardName(a.card)
         return t
     }
 }

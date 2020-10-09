@@ -1,6 +1,7 @@
 import {Ctx, LongFormMove, PlayerID} from 'boardgame.io';
 import {IG} from "../types/setup";
 import {
+    CardID,
     EventCardID,
     IBasicCard,
     IBuyInfo,
@@ -70,7 +71,7 @@ export const buyCard = {
             p.resource -= arg.resource;
             p.deposit -= arg.deposit;
             arg.helper.forEach(c => {
-                let pHand = G.player[parseInt(arg.buyer)].hand.map(c=>c.cardId);
+                let pHand = G.player[parseInt(arg.buyer)].hand.map(c => c.cardId);
                 let idx = pHand.indexOf(c)
                 let helper = G.player[parseInt(arg.buyer)].hand.splice(idx, 1)[0];
                 p.playedCardInTurn.push(helper);
@@ -153,7 +154,7 @@ export const chooseHand: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IChooseHandArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        let log =("chooseHand");
+        let log = ("chooseHand");
         log += JSON.stringify(arg);
         let eff = G.e.stack.pop();
         log += JSON.stringify(eff);
@@ -233,7 +234,7 @@ export const chooseEffect: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IEffectChooseArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        let log =("chooseEffect")
+        let log = ("chooseEffect")
         log += JSON.stringify(arg);
         let eff = G.e.choices[arg.idx];
         log += JSON.stringify(eff);
@@ -513,7 +514,7 @@ export const requestEndTurn: LongFormMove = {
         obj.playedCardInTurn.forEach(c => obj.discard.push(c));
         obj.playedCardInTurn = [];
         obj.resource = 0;
-        if(obj.deposit > 10){
+        if (obj.deposit > 10) {
             obj.deposit = 10;
         }
 
@@ -572,7 +573,7 @@ export const confirmRespond: LongFormMove = {
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
         let eff = G.e.stack.pop();
         let obj = G.pub[parseInt(p)]
-        let log =`confirmRespond|${p}|${arg}|${G.e.stack}|${eff}`;
+        let log = `confirmRespond|${p}|${arg}|${G.e.stack}|${eff}`;
         logger.debug(log);
         if (arg === "yes") {
             switch (eff.e) {
@@ -617,15 +618,15 @@ export const confirmRespond: LongFormMove = {
                 case "alternative":
                     log += "|yes|";
                     G.e.stack.push(eff.a)
-                    if(isSimpleEffect(eff.a.e)){
+                    if (isSimpleEffect(eff.a.e)) {
                         log += "|simple|";
                         logger.debug(log);
-                        simpleEffectExec(G,ctx,p)
-                    }else {
+                        simpleEffectExec(G, ctx, p)
+                    } else {
                         log += "|complex|";
                         logger.debug(log);
 
-                        playerEffExec(G,ctx,p);
+                        playerEffExec(G, ctx, p);
                         return
                     }
                     return;
@@ -648,7 +649,7 @@ export const confirmRespond: LongFormMove = {
 }
 
 export interface IPlayCardInfo {
-    card: ICard,
+    card: CardID,
     idx: number,
     playerID: PlayerID,
     res: number,
@@ -657,17 +658,21 @@ export interface IPlayCardInfo {
 export const playCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        let playCard = getCardById(arg.card);
         let pub = G.pub[parseInt(arg.playerID)];
         let hand = G.player[parseInt(arg.playerID)].hand;
-        if (cinemaInRegion(G, ctx, arg.card.region, arg.playerID)) {
+        if (cinemaInRegion(G, ctx, playCard.region, arg.playerID)) {
             pub.resource++;
             pub.vp++;
         }
         hand.splice(arg.idx, 1);
-        pub.playedCardInTurn.push(arg.card);
-        G.e.card = arg.card;
-        G.e.stack.push(getCardEffect(arg.card.cardId).play)
-        curEffectExec(G, ctx);
+        pub.playedCardInTurn.push(playCard);
+        G.e.card = playCard;
+        let eff = getCardEffect(arg.card).play;
+        if (eff.e !== "none") {
+            G.e.stack.push(eff)
+            curEffectExec(G, ctx);
+        }
     },
     client: false,
 }
@@ -711,11 +716,11 @@ export const breakthrough: LongFormMove = {
         p.action -= 1;
         p.resource -= arg.res;
         p.deposit -= (2 - arg.res);
-        let c = arg.card;
+        let c = getCardById(arg.card);
         G.e.card = c;
         G.player[parseInt(arg.playerID)].hand.splice(arg.idx, 1);
         p.archive.push(c);
-        if (arg.card.cardId === "1108") {
+        if (arg.card === "1108") {
             if (p.deposit < 1) {
                 return INVALID_MOVE;
             } else {
