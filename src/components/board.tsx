@@ -19,7 +19,7 @@ import {LogView} from './log-view'
 
 export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, isActive, matchData, matchID, playerID}: BoardProps<IG>) => {
 
-    const canMoveCurrent = ctx.currentPlayer === playerID && ctx.activePlayers === null;
+    const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
     const canMove = ctx.currentPlayer === playerID ? canMoveCurrent : canMoveOutOfTurn;
     const getName = (playerID: PlayerID | null = ctx.currentPlayer): string => {
@@ -28,29 +28,30 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, isAc
             return i18n.playerName.spectator
         } else {
             if (matchData === undefined) {
-                if(ctx.currentPlayer===playerID){
+                if (ctx.currentPlayer === playerID) {
                     return fallbackName + "*"
-                }else {
+                } else {
                     return fallbackName
                 }
             } else {
                 let arr = matchData.filter(m => m.id.toString() === playerID)
                 if (arr.length === 0) {
-                    if(ctx.currentPlayer===playerID){
+                    if (ctx.currentPlayer === playerID) {
                         return fallbackName + "*"
-                    }else {
+                    } else {
                         return fallbackName
                     }
                 } else {
-                    if( arr[0].name === undefined){
+                    if (arr[0].name === undefined) {
                         return fallbackName;
-                    }else{
-                        if(ctx.currentPlayer===playerID){
+                    } else {
+                        if (ctx.currentPlayer === playerID) {
                             return arr[0].name + "*"
-                        }else {
+                        } else {
                             return arr[0].name
                         }
-                    };
+                    }
+                    ;
                 }
             }
         }
@@ -258,11 +259,6 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, isAc
                 variant={"outlined"}
                 onClick={() => redo()}
             >{i18n.action.redo}</Button> : <></>}
-            {G.pending.endPhase && canMoveCurrent ? <Button
-                    variant={"outlined"}
-                    onClick={() => events?.endPhase?.()}
-                >{i18n.action.endPhase}</Button>
-                : <></>}
             {G.pending.endTurn && canMoveCurrent ? <Button
                     variant={"outlined"}
                     onClick={() => events?.endTurn?.()}
@@ -273,14 +269,14 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, isAc
                     onClick={() => events?.endStage?.()}
                 >{i18n.action.endStage}</Button>
                 : <></>}
-            {playerID !== null && canMoveCurrent ?
-                <>
-                    <Button
-                        disabled={G.pub[parseInt(playerID)].action <= 0}
-                        variant={"outlined"}
-                        onClick={() => moves.drawCard()}>
-                        {i18n.action.draw}
-                    </Button> </> : <></>}
+            {playerID !== null && ctx.phase !== "InitPhase" && canMoveCurrent ?
+                <Button
+                    disabled={G.pub[parseInt(playerID)].action <= 0}
+                    variant={"outlined"}
+                    onClick={() => moves.drawCard()}>
+                    {i18n.action.draw}
+                </Button>
+                : <></>}
             {playerID !== null && G.pub[parseInt(playerID)].action <= 0 ?
                 <Button
                     onClick={() => moves.requestEndTurn(playerID)}>
@@ -403,27 +399,43 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, isAc
                 </Paper></Grid>)}
         </Grid> : <></>}
 
-        {ctx.phase === "InitPhase" ?
+        {playerID !== null && ctx.phase === "InitPhase" ?
             <Grid item xs={12}>
-                <Button fullWidth={true}
-                        disabled={!canMove}
-                        onClick={() => {
-                            const args = ctx.numPlayers > 2 ? {
-                                regions: {...G.regions},
-                                school: [],
-                                film: [],
-                                matchID: matchID,
-                            } : {
-                                regions: [],
-                                school: G.twoPlayer.school,
-                                film: G.twoPlayer.film,
-                                matchID: matchID,
-                            }
-                            moves.showBoardStatus(args);
+                <Button
+                    fullWidth
+                    disabled={!canMove}
+                    onClick={() => {
+                        const args = ctx.numPlayers > 2 ? {
+                            regions: [
+                                G.regions[Region.NA],
+                                G.regions[Region.WE],
+                                G.regions[Region.EE],
+                                G.regions[Region.ASIA],
+                            ],
+                            school: [],
+                            film: [],
+                            matchID: matchID,
+                        } : {
+                            regions: [],
+                            school: G.twoPlayer.school,
+                            film: G.twoPlayer.film,
+                            matchID: matchID,
                         }
-                        }>
+                        moves.showBoardStatus(args);
+                    }
+                    }>
                     {i18n.action.showBoardStatus}
-                </Button> </Grid> : cardBoard
+                </Button>
+                {G.pending.endPhase && canMoveCurrent ?
+                    <Button
+                        fullWidth
+                        variant={"outlined"}
+                        onClick={() => events?.endPhase?.()}
+                    >
+                        {i18n.action.endPhase}
+                    </Button>
+                    : <></>}
+            </Grid> : cardBoard
         }
         <Grid item container justify="space-evenly">
             <Grid item><Typography>{i18n.card.B01} {G.basicCards.B01}</Typography></Grid>

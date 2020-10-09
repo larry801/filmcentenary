@@ -185,7 +185,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             ],
         },
         order: order,
-        logDiscrepancyWorkaround: false,
+        logDiscrepancyWorkaround: true,
         pending: {
             lastRoundOfGame: false,
             endActivePlayer: false,

@@ -226,26 +226,32 @@ const argPeek = {
 }
 const argShowBoardStatus = {
     args: (arg: IShowBoardStatusProps[]): string => {
-        let t = "";
+        let t = "Board:";
         if (arg[0].regions.length > 0) {
             arg[0].regions.forEach((r, idx) => {
                 t += region[idx as validRegion];
                 t += ':';
                 if (r.legend.card !== null) {
+                    t += "legend:"
                     t += bracketCardName(r.legend.card.cardId)
                 }
-                r.normal.forEach(c => {
-                    if (c.card !== null) {
-                        t += bracketCardName(c.card.cardId)
-                    }
-                })
+                if (r.normal.filter(s => s.card !== null).length > 0) {
+                    t += "normal:"
+                    r.normal.forEach(c => {
+                        if (c.card !== null) {
+                            t += bracketCardName(c.card.cardId)
+                        }
+                    })
+                }
             })
         } else {
+            t += "School:"
             arg[0].film.forEach(c => {
                 if (c.card !== null) {
                     t += bracketCardName(c.card.cardId)
                 }
             })
+            t += "Film:"
             arg[0].school.forEach(c => {
                 if (c.card !== null) {
                     t += bracketCardName(c.card.cardId)
@@ -677,7 +683,8 @@ const en = {
         aestheticsMarker: "Aesthetics:",
         aestheticsRequirement: "Aesthetics requirement:",
         vp: "Prestige:",
-        share: "Share:",
+        share: "Share",
+        shareLegend: "Share/Legend Card:",
         era: "Era:",
         school: "School:",
         discard: "Discard",

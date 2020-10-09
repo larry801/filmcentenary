@@ -652,6 +652,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 // @ts-ignore
                 G.e.regions = ValidRegions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
                 if (G.e.regions.length === 0) {
+                    logger.debug("Target player has no share, cannot obtain from others.")
                     break;
                 } else {
                     G.e.stack.push(eff)
@@ -662,6 +663,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 // @ts-ignore
                 G.e.regions = ValidRegions.filter(r => G.regions[r].share > 0)
                 if (G.e.regions.length === 0) {
+                    logger.debug("Target player has no share, cannot obtain from others.")
                     break;
                 } else {
                     G.e.stack.push(eff)
@@ -1034,28 +1036,28 @@ export function shareDepleted(G: IG, ctx: Ctx, region: Region) {
 }
 
 export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
-    logger.debug("resCost" + arg.target.name);
+    let log = ("resCost" + arg.target.name);
     let cost: ICost = arg.target.cost;
     let resRequired = cost.res;
-    logger.debug(
+    log +=(
         "Resource:" + cost.res
         + "|" + cost.industry +
         "|" + cost.aesthetics
     );
     let pub = G.pub[parseInt(arg.buyer)]
-    logger.debug("Player" + arg.buyer + " aesthetics:" + pub.aesthetics);
-    logger.debug("Player" + arg.buyer + "  industry:" + pub.industry);
+    log +=("Player" + arg.buyer + " aesthetics:" + pub.aesthetics);
+    log +=("Player" + arg.buyer + "  industry:" + pub.industry);
     let aesthetics: number = cost.aesthetics
     let industry: number = cost.industry
     aesthetics -= pub.aesthetics;
     industry -= pub.industry;
     if (pub.school !== null) {
         let school = pub.school;
-        logger.debug("School:" + school.name + "|" + school.industry + "|" + school.aesthetics)
+        log +=("School:" + school.name + "|" + school.industry + "|" + school.aesthetics)
         aesthetics -= school.aesthetics;
         industry -= school.industry
         if (arg.target.type === CardType.S) {
-            logger.debug("Extra cost for old school " + school.era.toString())
+            log +=("Extra cost for old school " + school.era.toString())
             resRequired += school.era;
         }
     }
@@ -1066,22 +1068,24 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
         aesthetics -= helperItem.aesthetics;
     }
     if (aesthetics > 0) {
-        logger.debug("Lack aesthetics " + aesthetics)
+        log +=("Lack aesthetics " + aesthetics)
         resRequired += aesthetics * 2;
     }
     if (industry > 0) {
-        logger.debug("Lack industry " + industry)
+        log +=("Lack industry " + industry)
         resRequired += industry * 2;
     }
     // @ts-ignore
     if (pub.school?.cardId === "2201" && arg.target.aesthetics > 0) {
-        logger.debug("New realism deduct")
+        log +=("New realism deduct")
         if (resRequired < 2) {
             return 0;
         } else
             return resRequired - 2;
     }
-    logger.debug(resRequired);
+    log += "Cost:";
+    log +=(resRequired);
+    logger.debug(log);
     return resRequired;
 }
 
@@ -1620,37 +1624,46 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
 }
 
 export function checkNextEffect(G: IG, ctx: Ctx) {
-    logger.info("checkNextEffect");
+    let log = ("checkNextEffect");
     if (G.e.stack.length === 0) {
-        logger.debug("Stack empty, ")
+        log += ("Stack empty, ")
         G.e.card = null;
         let newWavePlayer = schoolPlayer(G, ctx, "3204");
         if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
             G.pub[parseInt(newWavePlayer)].discardInSettle = false;
             G.pub[parseInt(newWavePlayer)].vp++;
             drawCardForPlayer(G, ctx, newWavePlayer)
-            logger.debug("NewWavePlayer" + newWavePlayer + "drawCard");
+            log += ("NewWavePlayer" + newWavePlayer + "drawCard");
         }
         if (G.currentScoreRegion === Region.NONE) {
             logger.debug("No scoring region")
             let i = G.competitionInfo;
             if (i.pending) {
+                log += "pendingCompetition"
                 if (i.atkPlayedCard) {
+                    log += "settleDefCard"
                     i.atkPlayedCard = false;
                     defCardSettle(G, ctx);
                 } else {
+                    log += "finalSettle"
                     i.defPlayedCard = false;
                 }
             } else {
                 if (ctx.activePlayers !== null) {
+                    log += "singalEndStage"
                     signalEndStage(G, ctx);
+                    logger.info(log)
+                    return;
                 }
             }
         } else {
             regionEraProgress(G, ctx);
+            logger.info(log)
+            return;
         }
     } else {
         logger.debug("Stack not empty, next effect.")
+        logger.info(log)
         curEffectExec(G, ctx);
     }
 }

@@ -4,11 +4,12 @@ import {IG} from "../types/setup";
 import {logger} from "./util";
 
 export function signalEndStage(G: IG, ctx: Ctx): void {
-    if (G.logDiscrepancyWorkaround) {
-        G.pending.endStage = true;
-    } else {
-        ctx?.events?.endStage?.();
-    }
+    ctx?.events?.endStage?.();
+    // if (G.logDiscrepancyWorkaround) {
+    //     G.pending.endStage = true;
+    // } else {
+    //     ctx?.events?.endStage?.();
+    // }
 }
 
 export function signalEndActivePlayer(G: IG, ctx: Ctx, originalStage = false): void {

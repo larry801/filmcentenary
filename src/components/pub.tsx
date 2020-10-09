@@ -1,5 +1,5 @@
 import React from "react";
-import {CardCategory, IPubInfo, ValidRegions} from "../types/core";
+import {CardCategory, ICard, IPubInfo, ValidRegions} from "../types/core";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
 import {useI18n} from '@i18n-chain/react';
@@ -15,6 +15,23 @@ export interface IPubPanelProps {
 
 export const PubPanel = ({i, G}: IPubPanelProps) => {
     useI18n(i18n);
+
+    const possibleHand = ():ICard[]=>{
+        let result = [...i.allCards]
+        i.discard.forEach(c=>{
+            let indexOfDiscard = i.allCards.indexOf(c)
+            if(indexOfDiscard!==-1){
+                i.allCards.splice(indexOfDiscard,1)
+            }
+        })
+        i.archive.forEach(c=>{
+            let indexOfArchive = i.allCards.indexOf(c)
+            if(indexOfArchive!==-1){
+                i.allCards.splice(indexOfArchive,1)
+            }
+        })
+        return result;
+    }
 
     return <>
         <Grid item xs={4} sm={3} md={2} lg={1}>
@@ -32,7 +49,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         <Grid item xs={4} sm={3} md={2} lg={1}>
             {i.school !== null ?
                 <Typography> {i18n.pub.school} {getCardName(i.school.cardId)} </Typography> : <></>}
-            <Typography>   {i18n.pub.share} </Typography>
+            <Typography>   {i18n.pub.shareLegend} </Typography>
             {ValidRegions.map(r =>
                 <Typography key={r}>
                     {i18n.region[r]} {i.shares[r as 0 | 1 | 2 | 3]}
@@ -69,7 +86,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
             <ChoiceDialog
                 callback={() => {
                 }}
-                choices={i.allCards.map((card, idx) => {
+                choices={possibleHand().map((card, idx) => {
                     return {
                         label: getCardName(card.cardId),
                         hidden: false,
