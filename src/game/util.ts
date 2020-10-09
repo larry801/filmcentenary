@@ -1786,6 +1786,9 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
             s.comment = null
         }
     }
+    for(let i=0;i<ctx.numPlayers;i++){
+        G.pub[i].shares[r] = 0;
+    }
     if (era === IEra.ONE) {
         newEra = IEra.TWO;
         region.era = newEra;
