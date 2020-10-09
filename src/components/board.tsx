@@ -110,7 +110,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, isAc
     }
     const chooseEvent = (choice: string) => {
         moves.chooseEvent({
-            event: G.events[parseInt(choice)],
+            event: G.events[parseInt(choice)].cardId,
             idx: parseInt(choice),
             p: playerID,
         })
