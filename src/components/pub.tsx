@@ -19,13 +19,13 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
     const possibleHand = ():ICard[]=>{
         let result = [...i.allCards]
         i.discard.forEach(c=>{
-            let indexOfDiscard = i.allCards.indexOf(c)
+            let indexOfDiscard = result.indexOf(c)
             if(indexOfDiscard!==-1){
                 i.allCards.splice(indexOfDiscard,1)
             }
         })
         i.archive.forEach(c=>{
-            let indexOfArchive = i.allCards.indexOf(c)
+            let indexOfArchive = result.indexOf(c)
             if(indexOfArchive!==-1){
                 i.allCards.splice(indexOfArchive,1)
             }
@@ -95,7 +95,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                     }
                 })} defaultChoice={'0'}
                 show={true} title={i18n.pub.allCards}
-                toggleText={i18n.pub.allCards + '(' + i.allCards.length + ')'} initial={false}/>
+                toggleText={i18n.pub.allCards + '(' + possibleHand().length + ')'} initial={false}/>
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
