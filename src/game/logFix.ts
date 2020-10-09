@@ -68,18 +68,19 @@ export function changeBothStage(G: IG, ctx: Ctx, stage: string): void {
 }
 
 export function changePlayerStage(G: IG, ctx: Ctx, stage: string, p: PlayerID): void {
-    logger.debug("changePlayerStage" + p + stage)
+    let log=("changePlayerStage" + p + stage)
     if (p === ctx.currentPlayer) {
-        logger.debug("currentPlayer")
+        log +=("|currentPlayer")
         ctx.events?.setStage?.(stage);
     } else {
-        logger.debug("notCurrentPlayer")
+        log +=("|notCurrentPlayer")
         ctx.events?.setActivePlayers?.({
             value: {
                 [p]: {stage: stage},
             }
         })
     }
+    logger.debug(log)
 }
 
 
