@@ -35,6 +35,10 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                         // @ts-ignore
                         c.aesthetics >0?i18n.pub.aestheticsMarker + c.aesthetics.toString():""
                     }
+                    {
+                        // @ts-ignore
+                        cardEffectText(c.cardId)
+                    }
                 </AccordionSummary>
                 <AccordionDetails key={idx}>
                     <Grid container>

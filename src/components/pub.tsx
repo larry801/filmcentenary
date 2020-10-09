@@ -21,13 +21,13 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         i.discard.forEach(c=>{
             let indexOfDiscard = result.indexOf(c)
             if(indexOfDiscard!==-1){
-                i.allCards.splice(indexOfDiscard,1)
+                result.splice(indexOfDiscard,1)
             }
         })
         i.archive.forEach(c=>{
             let indexOfArchive = result.indexOf(c)
             if(indexOfArchive!==-1){
-                i.allCards.splice(indexOfArchive,1)
+                result.splice(indexOfArchive,1)
             }
         })
         return result;
