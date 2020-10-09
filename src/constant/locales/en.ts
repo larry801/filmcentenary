@@ -285,7 +285,7 @@ const argBuyCard = {
     args: (arg: IBuyInfo[]): string => {
         let a = arg[0]
         let t = " bought "
-        t += bracketCardName(a.target.cardId);
+        t += bracketCardName(a.target);
         t += " with ";
         if (a.resource > 0) {
             t += a.resource.toString() + "resource,"
@@ -295,7 +295,7 @@ const argBuyCard = {
         }
         if (a.helper.length > 0) {
             t += " and "
-            a.helper.forEach(h => t += bracketCardName(h.cardId))
+            a.helper.forEach(h => t += bracketCardName(h))
         }
         return t
     }

@@ -253,10 +253,13 @@ const argBuyCard = {
         if (a.deposit > 0) {
             t += a.deposit.toString() + "存款,"
         }
-        // @ts-ignore
-        a.helper.forEach(h => t += cards[h.cardId])
+        if (a.helper.length > 0) {
+            t += "用"
+            a.helper.forEach(h => t += bracketCardName(h))
+            t += "补标"
+        }
         t += "购买了"
-        t += bracketCardName(a.target.cardId)
+        t += bracketCardName(a.target)
         return t
     }
 }

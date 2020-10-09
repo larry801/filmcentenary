@@ -42,13 +42,6 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                 </AccordionSummary>
                 <AccordionDetails key={idx}>
                     <Grid container>
-                        <Grid item xs={12}><Typography>
-                            {
-                                // @ts-ignore
-                                cardEffectText(c.cardId)
-                            }
-                        </Typography></Grid>
-
                         <Grid item xs={12}>
                             <Button
                                 onClick={() => {

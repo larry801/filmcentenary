@@ -1,3 +1,5 @@
+import {PlayerID} from "boardgame.io";
+
 export enum Region {
     NA,
     WE,
@@ -13,7 +15,7 @@ export enum CardType {
     P,//people
     V,//scoring
 }
-
+export type CardID = string;
 export interface ICardSlot {
     region: Region,
     isLegend:boolean,
@@ -32,11 +34,11 @@ export interface IEffect {
 }
 
 export interface IBuyInfo {
-    buyer: string,
-    target: ICard,
+    buyer: PlayerID,
+    target: CardID,
     resource: number,
     deposit: number,
-    helper: ICard[],
+    helper: CardID[],
 }
 
 export enum CardCategory {

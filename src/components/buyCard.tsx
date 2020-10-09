@@ -2,9 +2,8 @@ import React from "react";
 import {IG} from "../types/setup";
 import {
     BasicCardID,
-    CardCategory,
+    CardCategory, CardID,
     IBasicCard,
-    ICard,
     ICardSlot,
     INormalOrLegendCard,
     NoneBasicCardID,
@@ -29,10 +28,11 @@ import FormGroup from "@material-ui/core/FormGroup";
 import FormControl from "@material-ui/core/FormControl";
 import Checkbox from "@material-ui/core/Checkbox";
 import DialogActions from "@material-ui/core/DialogActions";
+import {getCardById} from "../types/cards";
 
 export interface IBuyDialogProps {
     card: INormalOrLegendCard | IBasicCard,
-    helpers: ICard[],
+    helpers: CardID[],
     G: IG,
     ctx: Ctx,
     moves: Record<string, (...args: any[]) => void>,
@@ -54,7 +54,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         newHelper[idx] = !newHelper[idx];
         let newCost = resCost(G, ctx, {
             buyer: playerID,
-            target: card,
+            target: card.cardId,
             resource: 0,
             deposit: 0,
             helper: helpers.filter((c, idx) => newHelper[idx]),
@@ -74,19 +74,19 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     const pub = G.pub[parseInt(playerID)];
     const realtimeCost = resCost(G, ctx, {
         buyer: playerID,
-        target: card,
+        target: card.cardId,
         resource: 0,
         deposit: 0,
         helper: helpers.filter((c, idx) => checked[idx]),
     });
     const minDeposit = Math.max(realtimeCost - pub.resource, 0);
     const affordable = canAfford(G, ctx, card, playerID) && pub.action > 0;
-    const buttonColor = affordable ? "primary": "secondary"
-    const res = realtimeCost - depositExtra -minDeposit;
+    const buttonColor = affordable ? "primary" : "secondary"
+    const res = realtimeCost - depositExtra - minDeposit;
     const deposit = depositExtra + minDeposit
     const buyArg = {
         buyer: playerID,
-        target: card,
+        target: card.cardId,
         resource: res,
         deposit: deposit,
         helper: helpers.filter((c, idx) => checked[idx]),
@@ -97,18 +97,19 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     const buy = () => {
         moves.buyCard(buyArg)
     };
-    const canHelp = (helper: INormalOrLegendCard | IBasicCard): boolean => {
+    const canHelp = (helper: string): boolean => {
+        let helperCard = getCardById(helper);
         if (card.cost.industry === 0) {
             if (card.cost.aesthetics === 0) {
                 return false;
             } else {
-                return helper.aesthetics > 0;
+                return helperCard.aesthetics > 0;
             }
         } else {
             if (card.cost.aesthetics === 0) {
-                return helper.industry > 0;
+                return helperCard.industry > 0;
             } else {
-                return helper.aesthetics > 0 || helper.industry > 0;
+                return helperCard.aesthetics > 0 || helperCard.industry > 0;
             }
         }
     }
@@ -119,14 +120,14 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         }
     };
 
-    const refreshCost = ()=>{
+    const refreshCost = () => {
         setDepositExtra(0);
     }
 
-    const canMakeBuyMove = ()=>{
-        if(pub.school?.cardId === "2301" && card.region !== Region.EE){
+    const canMakeBuyMove = () => {
+        if (pub.school?.cardId === "2301" && card.region !== Region.EE) {
             return ctx.currentPlayer === playerID && canBuy && pub.resource >= res && pub.deposit >= deposit && pub.action > 0 && pub.vp > 0
-        }else {
+        } else {
             return ctx.currentPlayer === playerID && canBuy && pub.resource >= res && pub.deposit >= deposit && pub.action > 0
         }
 
@@ -141,8 +142,8 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             variant={"outlined"}
         >{i18n.dialog.buyCard.board}
 
-        {getCardName(card.cardId)}
-            {card.category === CardCategory.BASIC ? '(' + G.basicCards[card.cardId as BasicCardID].toString() + ')':""}
+            {getCardName(card.cardId)}
+            {card.category === CardCategory.BASIC ? '(' + G.basicCards[card.cardId as BasicCardID].toString() + ')' : ""}
         </Button>
         <Dialog onClose={() => setOpen(false)} open={open}>
             <DialogTitle>
@@ -175,39 +176,44 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                             value={depositExtra}
                         /> : <></>}
                         {helpers.map((p, idx) =>
-                            canHelp(p as INormalOrLegendCard | IBasicCard) ? <FormControlLabel
-                                key={idx} id={p.cardId}
+                            canHelp(p) ? <FormControlLabel
+                                key={idx} id={p}
                                 control={<Checkbox
                                     value={idx}
                                     checked={checked[idx]}
                                     onChange={(e) => handleChange(e)}
-                                    name={getCardName(p.cardId)}/>}
-                                label={getCardName(p.cardId) + "  " + i18n.pub.industry +
-                                // @ts-ignore
-                                p.industry.toString() + i18n.pub.aesthetics + p.aesthetics.toString()
+                                    name={getCardName(p)}/>}
+                                label={
+                                    getCardName(p) + "  " +
+                                    i18n.pub.industry +
+                                    getCardById(p).industry.toString() +
+                                    i18n.pub.aesthetics +
+                                    getCardById(p).aesthetics.toString()
                                 }
-                            /> : <div key={idx} />)}
+                            /> : <div key={idx}/>)}
                     </FormGroup>
                 </FormControl>
             </DialogContent>
             <DialogActions>
                 <Button key={1}
-                    variant={"contained"}
-                    onClick={() => {
-                        buy();
-                        setOpen(false);
-                    }} color="primary"
-                    disabled={!canMakeBuyMove()}>
+                        variant={"contained"}
+                        onClick={() => {
+                            buy();
+                            setOpen(false);
+                        }} color="primary"
+                        disabled={!canMakeBuyMove()}>
                     {i18n.confirm}
                 </Button>
                 <Button key={2}
-                    onClick={() => {
-                    setOpen(false)
-                }} color="secondary" variant={"outlined"}>
+                        onClick={() => {
+                            setOpen(false)
+                        }} color="secondary" variant={"outlined"}>
                     {i18n.cancel}
                 </Button>
                 <Button key={3}
-                    onClick={() => {refreshCost()}}
+                        onClick={() => {
+                            refreshCost()
+                        }}
                         color="secondary" variant={"outlined"}>
                     {i18n.dialog.buyCard.refresh}
                 </Button>

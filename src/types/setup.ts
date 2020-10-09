@@ -14,7 +14,7 @@ import {
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {B01, B02, B07} from "../constant/cards/basic";
-import {doFillNewEraEvents, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
+import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
 
 export interface IG {
     matchID:string,
@@ -334,6 +334,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     for (let i = 0; i < ctx.numPlayers; i++) {
         fillPlayerHand(G, ctx, i.toString());
     }
-    doFillNewEraEvents(G, ctx, IEra.ONE);
+    doFillNewEraEventDeck(G, ctx, IEra.ONE);
     return G;
 };

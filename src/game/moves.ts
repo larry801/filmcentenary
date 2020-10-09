@@ -36,10 +36,10 @@ import {
     fillEventCard,
     fillPlayerHand,
     fillTwoPlayerBoard,
-    industryAward,
+    industryAward, isSimpleEffect,
     logger,
     playerEffExec,
-    schoolPlayer,
+    schoolPlayer, simpleEffectExec,
     startBreakThrough,
     startCompetition,
     studioSlotsAvailable,
@@ -49,6 +49,7 @@ import {
 import {changeStage, signalEndPhase} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
 import {B05} from "../constant/cards/basic";
+import {getCardById} from "../types/cards";
 
 export const drawCard: LongFormMove = {
     move: (G: IG, ctx: Ctx) => {
@@ -63,19 +64,20 @@ export const buyCard = {
     move(G: IG, ctx: Ctx, arg: IBuyInfo): any {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         if (canBuyCard(G, ctx, arg)) {
+            let targetCard = getCardById(arg.target)
             let p = curPub(G, ctx);
             p.action--;
             p.resource -= arg.resource;
             p.deposit -= arg.deposit;
             arg.helper.forEach(c => {
-                let pHand = G.player[parseInt(arg.buyer)].hand;
+                let pHand = G.player[parseInt(arg.buyer)].hand.map(c=>c.cardId);
                 let idx = pHand.indexOf(c)
-                let helper: ICard = pHand.splice(idx, 1)[0];
+                let helper = G.player[parseInt(arg.buyer)].hand.splice(idx, 1)[0];
                 p.playedCardInTurn.push(helper);
             })
 
-            doBuy(G, ctx, arg.target as INormalOrLegendCard | IBasicCard, ctx.currentPlayer);
-            let eff = getCardEffect(arg.target.cardId);
+            doBuy(G, ctx, targetCard as INormalOrLegendCard | IBasicCard, ctx.currentPlayer);
+            let eff = getCardEffect(arg.target);
             if (eff.e !== "none") {
                 G.e.stack.push(eff.buy);
                 checkNextEffect(G, ctx);
@@ -467,14 +469,13 @@ export const chooseEvent: LongFormMove = {
         let log = "chooseEvent";
         log += JSON.stringify(arg);
         if (eid === EventCardID.E03) {
-            log += "Avant-grade"
+            log += "Avant-grade|"
             G.activeEvents.push(EventCardID.E03);
             for (let i = 0; i < ctx.numPlayers; i++) {
                 G.pub[i].action = 2;
             }
             logger.debug(log)
             fillEventCard(G, ctx);
-            checkNextEffect(G, ctx);
         } else {
             switch (eid) {
                 case EventCardID.E01:
@@ -507,7 +508,6 @@ export const requestEndTurn: LongFormMove = {
     undoable: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        let log = "requestEndTurn"
         // Clean up
         let obj = G.pub[parseInt(arg)]
         obj.playedCardInTurn.forEach(c => obj.discard.push(c));
@@ -525,7 +525,6 @@ export const requestEndTurn: LongFormMove = {
                     obj.action = 2
                 } else {
                     obj.action = 1
-
                 }
             } else {
                 obj.action = act;
@@ -570,10 +569,11 @@ export const confirmRespond: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        logger.info("confirmRespond");
+        let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
         let eff = G.e.stack.pop();
-        let player = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID;
-        let obj = G.pub[parseInt(player)]
+        let obj = G.pub[parseInt(p)]
+        let log =`confirmRespond|${p}|${arg}|${G.e.stack}|${eff}`;
+        logger.debug(log);
         if (arg === "yes") {
             switch (eff.e) {
                 case "pay":
@@ -615,8 +615,19 @@ export const confirmRespond: LongFormMove = {
                     }
                 case "optional":
                 case "alternative":
+                    log += "|yes|";
                     G.e.stack.push(eff.a)
-                    curEffectExec(G, ctx);
+                    if(isSimpleEffect(eff.a.e)){
+                        log += "|simple|";
+                        logger.debug(log);
+                        simpleEffectExec(G,ctx,p)
+                    }else {
+                        log += "|complex|";
+                        logger.debug(log);
+
+                        playerEffExec(G,ctx,p);
+                        return
+                    }
                     return;
                 default:
                     throw new Error();
@@ -625,11 +636,13 @@ export const confirmRespond: LongFormMove = {
             switch (eff.e) {
                 case "alternative":
                     breakthroughEffectExec(G, ctx);
+                    logger.debug(log);
                     return;
                 default:
                     break;
             }
         }
+        logger.debug(log);
         checkNextEffect(G, ctx);
     },
 }

@@ -233,19 +233,19 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, isAc
                     >{i18n.dialog.buyCard.basic}</Typography></Grid>
 
                     <BuyCard
-                        card={B01} helpers={G.player[parseInt(playerID)].hand}
+                        card={B01} helpers={G.player[parseInt(playerID)].hand.map(c=>c.cardId)}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                     <BuyCard
-                        card={B02} helpers={G.player[parseInt(playerID)].hand}
+                        card={B02} helpers={G.player[parseInt(playerID)].hand.map(c=>c.cardId)}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                     <BuyCard
-                        card={B03} helpers={G.player[parseInt(playerID)].hand}
+                        card={B03} helpers={G.player[parseInt(playerID)].hand.map(c=>c.cardId)}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                     <BuyCard
-                        card={B04} helpers={G.player[parseInt(playerID)].hand}
+                        card={B04} helpers={G.player[parseInt(playerID)].hand.map(c=>c.cardId)}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                     <BuyCard
-                        card={B05} helpers={G.player[parseInt(playerID)].hand}
+                        card={B05} helpers={G.player[parseInt(playerID)].hand.map(c=>c.cardId)}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
 
                 </> : <></>

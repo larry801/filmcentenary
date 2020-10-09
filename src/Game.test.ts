@@ -12,7 +12,7 @@ const seededGame = gameWithSeed("seed");
 
 it('should declare player 1 as the winner', () => {
     const spec = {
-        numPlayers:3,
+        numPlayers: 3,
         game: seededGame,
         multiplayer: Local(),
     };
@@ -24,7 +24,14 @@ it('should declare player 1 as the winner', () => {
     p0.start();
     p1.start();
     p2.start();
+    p0.moves.buyCard({
+        target: "1102",
+        buyer: '0',
+        resource: 0,
+        deposit: 9,
+        helper: []
 
+    })
 
     p0.stop();
     p1.stop();

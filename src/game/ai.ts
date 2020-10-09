@@ -10,12 +10,12 @@ export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalO
     let pub = G.pub[parseInt(p)]
     let totalRes = pub.resource + pub.deposit
     let noHelperCost = resCost(G, ctx, {
-        target: card, buyer: p, resource: 0, deposit: 0, helper: []
+        target: card.cardId, buyer: p, resource: 0, deposit: 0, helper: []
     })
     if (noHelperCost <= totalRes) {
         moves.push({
             move: "buyCard", args: [{
-                target: card, buyer: p,
+                target: card.cardId, buyer: p,
                 resource: Math.min(pub.resource, noHelperCost),
                 deposit: Math.max(noHelperCost - pub.deposit, 0),
                 helper: []
@@ -24,14 +24,14 @@ export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalO
     }else {
         let validHelpers = getPossibleHelper(G,ctx,p,card);
         let helperCost = resCost(G, ctx, {
-            target: card, buyer: p, resource: 0, deposit: 0, helper: validHelpers
+            target: card.cardId, buyer: p, resource: 0, deposit: 0, helper: validHelpers.map(c=>c.cardId)
         })
         moves.push({
             move: "buyCard", args: [{
-                target: card, buyer: p,
+                target: card.cardId, buyer: p,
                 resource: Math.min(pub.resource, helperCost),
                 deposit: Math.max(helperCost - pub.deposit, 0),
-                helper: []
+                helper: validHelpers.map(c=>c.cardId)
             }]
         })
     }

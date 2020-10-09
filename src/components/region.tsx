@@ -56,7 +56,7 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
             {playerID !== null && slot.card !== null?
                   <BuyCard
                         card={slot.card}
-                        helpers={G.player[(parseInt(playerID))].hand}
+                        helpers={G.player[(parseInt(playerID))].hand.map(c=>c.cardId)}
                         ctx={ctx}
                         G={G}
                         playerID={playerID} moves={moves}/> : <></>}
