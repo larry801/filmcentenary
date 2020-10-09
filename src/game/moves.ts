@@ -495,6 +495,9 @@ export const requestEndTurn: LongFormMove = {
         obj.playedCardInTurn.forEach(c => obj.discard.push(c));
         obj.playedCardInTurn = [];
         obj.resource = 0;
+        if(obj.deposit > 10){
+            obj.deposit = 10;
+        }
 
         // restore action point fill hand card
         if (obj.school !== null) {
