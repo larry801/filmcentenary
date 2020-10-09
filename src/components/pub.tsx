@@ -7,6 +7,7 @@ import i18n from '../constant/i18n'
 import {ChoiceDialog} from "./modals";
 import {getCardName} from "../game/util";
 import {IG} from "../types/setup";
+import shortid from "shortid";
 
 export interface IPubPanelProps {
     i: IPubInfo,
@@ -63,7 +64,8 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
             )}
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
-            {i.champions.map(champion => <Typography>
+            <Typography>第一：</Typography>
+            {i.champions.map(champion => <Typography key={shortid.generate()}>
                 {i18n.region[champion.region]}
                 {i18n.era[champion.era]}</Typography>)}
         </Grid>

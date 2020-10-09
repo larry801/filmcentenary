@@ -1607,12 +1607,10 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
     nextEra(G, ctx, r);
     G.currentScoreRegion = Region.NONE;
     if (ValidRegions.filter(r =>
-
         G.regions[r].completedModernScoring).length >= 3) {
         G.pending.lastRoundOfGame = true;
     }
     if (ValidRegions.filter(r =>
-
         G.regions[r].era !== IEra.ONE).length >= 2 &&
         G.regions[Region.ASIA].era === IEra.ONE
     ) {
