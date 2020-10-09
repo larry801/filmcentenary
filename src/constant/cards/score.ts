@@ -82,7 +82,7 @@ const SCORE_CARDS = {
     "V131": {
         cost :cost(0,0,0),
         era: IEra.ONE,
-        region: Region.ASIA,
+        region: Region.EE,
         name: "V131",
         cardId: "V131",
         category: CardCategory.SCORE,
@@ -95,7 +95,7 @@ const SCORE_CARDS = {
     "V132": {
         cost :cost(0,0,0),
         era: IEra.ONE,
-        region: Region.ASIA,
+        region: Region.EE,
         name: "V132",
         cardId: "V132",
         category: CardCategory.SCORE,
