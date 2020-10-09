@@ -151,15 +151,16 @@ export const chooseHand: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IChooseHandArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        logger.info("chooseHand");
-        logger.debug(arg);
+        let log =("chooseHand");
+        log += JSON.stringify(arg);
         let eff = G.e.stack.pop();
-        logger.debug(eff);
+        log += JSON.stringify(eff);
         let p = arg.p;
         let hand = G.player[parseInt(p)].hand;
         let pub = G.pub[parseInt(p)];
         // @ts-ignore
         let card: IBasicCard | INormalOrLegendCard = arg.hand;
+        logger.debug(log)
         switch (eff.e) {
             case "breakthroughResDeduct":
                 pub.action--;
@@ -230,13 +231,14 @@ export const chooseEffect: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IEffectChooseArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        logger.info("chooseEffect")
-        logger.debug(arg);
+        let log =("chooseEffect")
+        log += JSON.stringify(arg);
         let eff = G.e.choices[arg.idx];
-        logger.debug(eff);
+        log += JSON.stringify(eff);
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
         let regions: Region[];
         let top;
+        logger.debug(log)
         switch (eff.e) {
             case "industryBreakthrough":
                 if (G.e.stack.length > 0) {
@@ -308,9 +310,13 @@ export const chooseRegion = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IRegionChooseArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        let log = "chooseRegion"
         let r = arg.r;
+        log += JSON.stringify(arg);
         if (r === Region.NONE) return;
         let eff = G.e.stack.pop();
+        log += JSON.stringify(eff);
+        logger.debug(log)
         let p = arg.p;
         let built = false;
         switch (eff.e) {
@@ -458,11 +464,17 @@ export const chooseEvent: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let eid: EventCardID = arg.event;
         G.events.splice(arg.idx, 1);
+        let log = "chooseEvent";
+        log += JSON.stringify(arg);
         if (eid === EventCardID.E03) {
+            log += "Avant-grade"
             G.activeEvents.push(EventCardID.E03);
             for (let i = 0; i < ctx.numPlayers; i++) {
                 G.pub[i].action = 2;
             }
+            logger.debug(log)
+            fillEventCard(G, ctx);
+            checkNextEffect(G, ctx);
         } else {
             switch (eid) {
                 case EventCardID.E01:
@@ -473,11 +485,16 @@ export const chooseEvent: LongFormMove = {
                 case EventCardID.E07:
                 case EventCardID.E08:
                 case EventCardID.E09:
+                    log += "|Execute event"
+                    logger.debug(log)
                     G.e.stack.push(getEvent(eid));
+                    fillEventCard(G, ctx);
                     playerEffExec(G, ctx, arg.p);
                     break;
                 default:
+                    log += "|Score events"
                     G.pub[parseInt(arg.p)].scoreEvents.push(eid);
+                    logger.debug(log)
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);
             }
@@ -490,6 +507,7 @@ export const requestEndTurn: LongFormMove = {
     undoable: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        let log = "requestEndTurn"
         // Clean up
         let obj = G.pub[parseInt(arg)]
         obj.playedCardInTurn.forEach(c => obj.discard.push(c));
