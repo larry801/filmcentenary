@@ -67,7 +67,7 @@ export const eventEffects = {
         e: "step",
         a: [
             {e: "everyPlayer", a: {e: "buy", a: "B05"}},
-            {e: "playerVpChampion", a: {e: "optional", a: {e: "discard", a: 1}}},
+            {e: "playerVpChampion", a: {e: "optional", a: {e: "buy", a: "B02"}}},
         ]
     },
     "E05": {
