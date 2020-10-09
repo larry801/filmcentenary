@@ -40,7 +40,7 @@ export const LogView = ({log,getPlayerName}: ILogViewProps) => {
         switch (l.action.type) {
             case "GAME_EVENT":
                 if (l.action.payload.type === "endTurn") {
-                    return i18n.action.endTurn
+                    return i18n.action.turnEnd
                 } else {
                     return null;
                 }

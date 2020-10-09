@@ -324,7 +324,7 @@ const argChooseTarget = {
 }
 const argRequestEndTurn = {
     args: (arg: []): string => {
-        return "结束行动"
+        return "行动结束"
     }
 }
 const argChooseHand = {
@@ -365,6 +365,11 @@ const argComment = {
         return t
     }
 }
+const rank = {
+    1:"第一",
+    2:"第二",
+    3:"第三",
+}
 const zh_CN: Locale = {
     drawer: {
         singlePlayer: "单人对战AI(2玩家)",
@@ -392,6 +397,7 @@ const zh_CN: Locale = {
         industryLevelUp: "提升工业等级",
         endStage: "结束行动",
         endTurn: "结束回合",
+        turnEnd: "回合结束",
         endPhase: "结束阶段",
         undo: "撤销",
         redo: "恢复",
@@ -685,13 +691,10 @@ const zh_CN: Locale = {
         playedCards: "查看出牌区",
     },
     score: {
-        first: "第一",
-        second: "第二",
-        third: "第三",
-        cardName: ['{{ear}}{{region}}{{rank}}', {
-            era: undefined,
-            rank: undefined,
-            region: undefined,
+        cardName: ['{{era}}{{region}}{{rank}}', {
+            era: (e:IEra):string=>(era[e] + "时代"),
+            rank: (rankNum:1|2|3):string=>rank[rankNum],
+            region: (r:Region):string=>region[r],
         }],
     },
     card: cards,

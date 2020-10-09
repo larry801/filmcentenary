@@ -1,4 +1,4 @@
-import {BasicCardID, IBuyInfo, ICardSlot, Region, validRegion} from "../../types/core";
+import {BasicCardID, IBuyInfo, ICardSlot, IEra, Region, validRegion} from "../../types/core";
 import {
     IChooseEventArg, IChooseHandArg, ICommentArg, ICompetitionCardArg,
     IEffectChooseArg,
@@ -188,7 +188,7 @@ const eventName = {
     'E01': '【好莱坞】建筑位可以修建建筑 每个公司升级工业等级或美学等级1级',
     'E02': '每个公司获得2存款 每个公司弃掉1张牌 *【托马斯，爰迪生】或【卢米埃尔兄弟】响应',
     'E03': '每个公司立刻获得第2个行动力(注意！并非行动 力+1)  *若这张牌因为过时代而被弃掉，事件立刻触发',
-    'E04': '声望最高的公司可以免赛购买1张【商业片】并置入手牌 每个公司免赛购买1张【传世经典】',
+    'E04': '声望最高的公司可以free购买1张【商业片】并置入手牌 每个公司免赛购买1张【传世经典】',
     'E05': '每个公司获得3存款 北美有建筑的公司弃掉2张牌',
     'E06': '声望最高的公司升级1级美学等级 每个公司免费购买1张【传世经典】',
     'E07': '每个公司升级工业等级或美学等级1级 声望不是最高的公司免费购买1张【烂片】',
@@ -379,6 +379,11 @@ const argComment = {
         }
         return t
     }
+}
+const rank = {
+    1:"Champion of",
+    2:"Runner up of",
+    3:"Third place of",
 }
 const en = {
     drawer: {
@@ -651,6 +656,7 @@ const en = {
         industryLevelUp: "Upgrade industry",
         endStage: "End Stage",
         endTurn: "End Turn",
+        turnEnd: "Turn ended",
         endPhase: "End Phase",
         undo: "Undo",
         redo: "Redo",
@@ -694,13 +700,10 @@ const en = {
         playedCards: "Played Cards",
     },
     score: {
-        first: "Champion of",
-        second: "Runner up of",
-        third: "Third place of",
         cardName: ['{{rank}} {{region}} {{ear}}', {
-            era: undefined,
-            rank: undefined,
-            region: undefined,
+            era: (e:IEra):string=>era[e],
+            rank: (rankNum:1|2|3):string=>rank[rankNum],
+            region: (r:Region):string=>region[r],
         }],
     },
     card: cards,
