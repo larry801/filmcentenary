@@ -7,7 +7,6 @@ import {FilmCentenaryBoard} from "./components/board";
 import Grid from "@material-ui/core/Grid"
 import CssBaseline from "@material-ui/core/CssBaseline";
 import {Local} from "boardgame.io/multiplayer";
-import Lobby from './components/lobby'
 import {DenseTable} from "./components/cardreference";
 import {Redirect, Route, Switch, BrowserRouter} from "react-router-dom";
 import {DrawerAppBar} from "./components/drawer-app-bar";

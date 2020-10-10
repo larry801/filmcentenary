@@ -572,7 +572,6 @@ export const confirmRespond: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
         let eff = G.e.stack.pop();
-        let obj = G.pub[parseInt(p)]
         let log = `confirmRespond|${p}|${arg}|${G.e.stack}|${eff}`;
         logger.debug(log);
         if (arg === "yes") {

@@ -3,7 +3,6 @@ import {Player} from "../../Game";
 import {Typography} from "@material-ui/core";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../../constant/i18n";
-import Button from "@material-ui/core/Button";
 
 interface ShareLinkProps {
     matchID: string;
@@ -14,11 +13,6 @@ interface ShareLinkProps {
 export const ShareLink = ({matchID, player, numPlayer}: ShareLinkProps) => {
     useI18n(i18n);
     const urlPrefix = `${window.location.origin}/join/${matchID}/`;
-
-    const copyToClipboard = (e: any) => {
-        e.preventDefault();
-        e.clipboardData.setData('text/plain', e.target.value);
-    };
 
     return <>
         <Typography>{i18n.lobby.shareLink}</Typography>

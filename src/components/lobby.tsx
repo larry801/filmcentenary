@@ -7,7 +7,7 @@ import {FilmCentenaryGame} from "../Game";
 const server = `${window.location.protocol}//${window.location.host}`;
 const importedGames = [{ game: FilmCentenaryGame, board: FilmCentenaryBoard }];
 
-export default () => (
+export default  () => (
     <div>
         <h1>Lobby</h1>
         <Lobby

@@ -29,7 +29,7 @@ export function DenseTable() {
     const classes = useStyles();
 
     return (
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} >
             <Table className={classes.table} size="small" aria-label="a dense table">
                 <TableHead>
                     <TableRow>

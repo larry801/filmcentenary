@@ -1945,7 +1945,7 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: {
             e: "choice", a: [
-                {e: "industryLevelUp", a: 1},
+                {e: "aestheticsLevelUp", a: 1},
                 {e: "buy", a: "3209"},
             ]
         },

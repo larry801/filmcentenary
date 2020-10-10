@@ -30,6 +30,7 @@ export const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
     useI18n(i18n);
     const history = useHistory();
     const classes = useStyles();
+    // eslint-disable-next-line
     const [player, setPlayer] = React.useState(Player.P0);
     const [clicked, setClicked] = React.useState(false);
     const [matchID, setMatchID] = React.useState("");
