@@ -43,7 +43,6 @@ export const nameOf = (p:Player) => {
 }
 
 export const FilmCentenaryGame: Game<IG> = {
-    // seed:"seed",
     ai:{
         enumerate:enumerateMoves
     },

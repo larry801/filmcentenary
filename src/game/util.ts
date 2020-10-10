@@ -788,12 +788,13 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     G.e.stack.push(subEffect);
                     simpleEffectExec(G, ctx, p);
                 }
-            }
-            if (G.e.pendingPlayers.length === 0) {
-                log += JSON.stringify(G.e.pendingPlayers);
-                G.e.stack.push(eff);
-                log += "|push|"
-            } else {
+                logger.debug(log);
+            }else {
+                if (G.e.pendingPlayers.length === 0) {
+                    log += JSON.stringify(G.e.pendingPlayers);
+                    G.e.stack.push(eff);
+                    log += "|push|"
+                } else {
                     log += "|complexEffect"
                     if (G.e.pendingPlayers.length !== 1) {
                         G.e.stack.push(eff);
@@ -801,7 +802,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     let player = G.e.pendingPlayers.shift() as PlayerID;
                     playerEffExec(G, ctx, player);
                     return;
-
+                }
             }
             break
         case "noStudio":
