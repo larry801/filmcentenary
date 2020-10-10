@@ -49,6 +49,10 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
 
     const variant = slot.isLegend ? "elevation" : "outlined"
 
+    const updateSlot = ()=>{
+        moves.updateSlot(slot);
+    }
+
     return <>
         <Paper style={{display: 'inline-flex'}} variant={variant}>
             <Typography>{slot.card === null ? "" : getCardName(slot.card.cardId)} </Typography>
@@ -61,7 +65,7 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
                         G={G}
                         playerID={playerID} moves={moves}/> : <></>}
             {activePlayer(ctx) === playerID &&
-            actualStage(G,ctx) === "updateSlot"? <Button onClick={()=>{moves.updateSlot(slot)}}
+            actualStage(G,ctx) === "updateSlot"? <Button onClick={updateSlot}
                 >{i18n.action.updateSlot}</Button>:<></>}
 
             {activePlayer(ctx) === playerID && actualStage(G,ctx) === "comment"?

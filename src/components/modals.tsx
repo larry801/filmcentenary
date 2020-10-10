@@ -41,6 +41,9 @@ export interface IChoiceProps {
 }
 
 export const ChoiceDialog =({initial,callback,show,choices,title,toggleText,defaultChoice}:IChoiceProps)=>{
+
+    useI18n(i18n);
+
     const classes = useStyles();
     const [open, setOpen] = React.useState(initial);
     const [choice, setChoice] = React.useState(defaultChoice);
@@ -51,13 +54,17 @@ export const ChoiceDialog =({initial,callback,show,choices,title,toggleText,defa
 
     const handleClose = () => {
         setOpen(false);
+
     };
 
-    useI18n(i18n);
+    const handleConfirm = () => {
+        handleClose();
+        callback(choice);
+    }
 
     return  show?<>
-        <Button variant={"outlined"} onClick={()=>handleClickOpen()}> {toggleText}</Button>
-        <Dialog open={open} onClose={()=>handleClose()} aria-label={title}>
+        <Button variant={"outlined"} onClick={handleClickOpen}> {toggleText}</Button>
+        <Dialog open={open} onClose={handleClose} aria-label={title}>
             <DialogTitle>
                 {title}
             </DialogTitle>
@@ -80,10 +87,7 @@ export const ChoiceDialog =({initial,callback,show,choices,title,toggleText,defa
                 </FormControl>
             </DialogContent>
             <DialogActions>
-                <Button onClick={()=>{
-                    handleClose();
-                    callback(choice);
-                }} color="primary">
+                <Button onClick={handleConfirm} color="primary">
                     {i18n.confirm}
                 </Button>
             </DialogActions>

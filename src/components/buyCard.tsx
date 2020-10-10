@@ -232,12 +232,17 @@ export const Comment = ({slot, comment, G}: ICommentProps) => {
     useI18n(i18n);
     const cards: BasicCardID[] = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03, BasicCardID.B04, BasicCardID.B05];
 
+    const removeComment = () => {
+        comment(slot, null)
+    }
+
+    const doComment = (choice: string) => {
+        comment(slot, getBasicCard(choice as BasicCardID))
+    }
+
     return slot.comment === null ? <ChoiceDialog
             initial={false}
-            callback={(choice) => {
-                // @ts-ignore
-                comment(slot, getBasicCard(choice))
-            }}
+            callback={doComment}
             choices={cards.map(
                 id => {
                     return {
@@ -251,7 +256,7 @@ export const Comment = ({slot, comment, G}: ICommentProps) => {
             }
             defaultChoice={"B01"} show={false}
             title={i18n.dialog.buyCard.basic} toggleText={i18n.dialog.buyCard.basic}/> :
-        <Button onClick={() => comment(slot, null)}>
+        <Button onClick={removeComment}>
             {i18n.dialog.comment.removeCommentCard}
         </Button>
 }
