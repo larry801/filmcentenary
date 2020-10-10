@@ -929,36 +929,35 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             switch (eff.a.cost.e) {
                 case "res":
                     if (obj.resource < eff.a.cost.a) {
-                        checkNextEffect(G, ctx);
-                        return;
+                        break
                     } else {
-                        G.e.stack.push(eff);
-                        changePlayerStage(G, ctx, "confirmRespond", p);
-                        return;
+                        obj.resource -= eff.a.cost.a
+                        G.e.stack.push(eff.a.eff);
+                        break;
                     }
                 case "vp":
                 case "addVp":
                 case "addExtraVp":
                     if (obj.vp < eff.a.cost.a) {
-                        checkNextEffect(G, ctx);
-                        return;
+                        break
                     } else {
-                        G.e.stack.push(eff);
-                        changePlayerStage(G, ctx, "confirmRespond", p);
-                        return;
+                        obj.vp -= eff.a.cost.a
+                        G.e.stack.push(eff.a.eff);
+                        break
                     }
                 case "deposit":
                     if (obj.deposit < eff.a.cost.a) {
-                        checkNextEffect(G, ctx);
-                        return;
+                        break
                     } else {
-                        G.e.stack.push(eff);
-                        changePlayerStage(G, ctx, "confirmRespond", p);
-                        return;
+                        obj.deposit -= eff.a.cost.a
+                        G.e.stack.push(eff.a.eff);
+                        break
                     }
                 default:
+                    logger.debug(log);
                     throw new Error();
             }
+            break;
         case "optional":
             G.e.stack.push(eff);
             changePlayerStage(G, ctx, "confirmRespond", p);

@@ -577,43 +577,6 @@ export const confirmRespond: LongFormMove = {
         logger.debug(log);
         if (arg === "yes") {
             switch (eff.e) {
-                case "pay":
-                    logger.debug(eff);
-                    switch (eff.a.cost.e) {
-                        case "res":
-                            if (obj.resource < eff.a.cost.a) {
-                                checkNextEffect(G, ctx);
-                                return;
-                            } else {
-                                obj.resource -= eff.a.cost.a
-                                G.e.stack.push(eff.a.eff);
-                                checkNextEffect(G, ctx);
-                                return;
-                            }
-                        case "vp":
-                            if (obj.vp < eff.a.cost.a) {
-                                checkNextEffect(G, ctx);
-                                return;
-                            } else {
-                                G.e.stack.push(eff);
-                                obj.vp -= eff.a.cost.a
-                                G.e.stack.push(eff.a.eff);
-                                checkNextEffect(G, ctx);
-                                return;
-                            }
-                        case "deposit":
-                            if (obj.deposit < eff.a.cost.a) {
-                                checkNextEffect(G, ctx);
-                                return;
-                            } else {
-                                obj.deposit -= eff.a.cost.a
-                                G.e.stack.push(eff.a.eff);
-                                checkNextEffect(G, ctx);
-                                return;
-                            }
-                        default:
-                            throw new Error();
-                    }
                 case "optional":
                 case "alternative":
                     log += "|yes|";
@@ -625,11 +588,9 @@ export const confirmRespond: LongFormMove = {
                     } else {
                         log += "|complex|";
                         logger.debug(log);
-
                         playerEffExec(G, ctx, p);
-                        return
                     }
-                    return;
+                break
                 default:
                     throw new Error();
             }
