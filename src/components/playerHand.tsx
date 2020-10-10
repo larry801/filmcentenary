@@ -10,6 +10,7 @@ import {cardEffectText, getCardName} from "../game/util";
 import Typography from "@material-ui/core/Typography";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import Button from "@material-ui/core/Button";
+import shortid from "shortid";
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
 
@@ -21,19 +22,18 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
         <Typography>{i18n.hand.title}</Typography>
         {hand.map((c, idx) =>
             <Accordion
-                expanded={expanded === idx}
-                onChange={() => setExpanded(idx)}
-                key={idx}>
+                expanded={true}
+                key={shortid.generate()}>
                 <AccordionSummary key={idx}>
                     {getCardName(c.cardId)}
                     {"  "}
                     {
                         // @ts-ignore
-                        c.industry >0?i18n.pub.industryMarker + c.industry.toString():""
+                        c.industry > 0 ? i18n.pub.industryMarker + c.industry.toString() : ""
                     }
                     {
                         // @ts-ignore
-                        c.aesthetics >0?i18n.pub.aestheticsMarker + c.aesthetics.toString():""
+                        c.aesthetics > 0 ? i18n.pub.aestheticsMarker + c.aesthetics.toString() : ""
                     }
                     {
                         // @ts-ignore
@@ -44,40 +44,31 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     <Grid container>
                         <Grid item xs={12}>
                             <Button
-                                onClick={() => {
-                                    setExpanded(hand.length);
-                                    moves.playCard({
-                                        card: c.cardId,
-                                        idx: idx,
-                                        playerID: playerID,
-                                        res: 0,
-                                    })
-                                }}
+                                onClick={() => moves.playCard({
+                                    card: c.cardId,
+                                    idx: idx,
+                                    playerID: playerID,
+                                    res: 0,
+                                })}
                                 disabled={playerID !== ctx.currentPlayer}
                             >{i18n.action.play}</Button>
 
                             <Button
-                                onClick={() => {
-                                    setExpanded(hand.length);
-                                    moves.breakthrough({
-                                        card: c.cardId,
-                                        idx: idx,
-                                        playerID: playerID,
-                                        res: 2,
-                                    })
-                                }}
+                                onClick={() => moves.breakthrough({
+                                    card: c.cardId,
+                                    idx: idx,
+                                    playerID: playerID,
+                                    res: 2,
+                                })}
                                 disabled={playerID !== ctx.currentPlayer || p.action < 1 || p.resource < 2}
                             >{i18n.action.breakthrough2Res}</Button>
                             <Button
-                                onClick={() => {
-                                    setExpanded(hand.length);
-                                    moves.breakthrough({
-                                        card: c.cardId,
-                                        idx: idx,
-                                        playerID: playerID,
-                                        res: 1,
-                                    })
-                                }}
+                                onClick={() => moves.breakthrough({
+                                    card: c.cardId,
+                                    idx: idx,
+                                    playerID: playerID,
+                                    res: 1,
+                                })}
                                 disabled={playerID !== ctx.currentPlayer || p.action < 1 || p.resource < 1 || p.deposit < 1}
                             >{i18n.action.breakthrough1Res}</Button>
                             <Button
