@@ -416,6 +416,7 @@ const zh_CN: Locale = {
         cannotJoin: "无法加入，已经在其他游戏中",
         createPublicMatch: "创建公开游戏",
         createPrivateMatch: "创建私密游戏",
+        shareLink:"其他玩家用下面的链接加入游戏（点击即可复制）:",
     },
     gameOver: {
         title: "游戏结束",

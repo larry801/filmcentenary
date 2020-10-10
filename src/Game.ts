@@ -23,10 +23,10 @@ import {getExtraScoreForFinal} from "./game/util";
 import {enumerateMoves} from "./game/ai";
 
 export enum Player {
-    'P0'='0',
-    'P1'='1',
-    'P2'='2',
-    'P3'='3',
+    'P0'='1',
+    'P1'='2',
+    'P2'='3',
+    'P3'='4',
     'spectate' ='spectate',
 }
 

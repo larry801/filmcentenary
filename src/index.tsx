@@ -11,6 +11,8 @@ import Lobby from './components/lobby'
 import {DenseTable} from "./components/cardreference";
 import {Redirect, Route, Switch, BrowserRouter} from "react-router-dom";
 import {DrawerAppBar} from "./components/drawer-app-bar";
+import {JoinPage} from "./components/join";
+import {MUICreateMatch} from "./components/create-match";
 
 const FilmClient4pSingle = Client(
     {
@@ -39,7 +41,7 @@ const FilmClient2p = Client(
         numPlayers: 2,
         game: FilmCentenaryGame,
         board: FilmCentenaryBoard,
-        debug: true,
+        debug: false,
         // @ts-ignore
         multiplayer: new Local(),
     }
@@ -95,7 +97,9 @@ render(
         <CssBaseline/>
         <DrawerAppBar/>
         <Switch>
-            <Route exact path="/" render={props => <Lobby/>}/>
+            <Route exact path="/" >
+                <MUICreateMatch serverURL={`${window.location.protocol}//${window.location.host}`}/>
+            </Route>
             <Route exact path="/cards" render={props => <DenseTable/>}/>
             <Route exact path="/single2p" render={props => <SinglePlayer/>}/>
             <Route exact path="/single3p" render={props => <SinglePlayer3p/>}/>
@@ -103,6 +107,9 @@ render(
             <Route exact path="/2p" render={props => <TwoPlayerLocal/>}/>
             <Route exact path="/3p" render={props => <ThreePlayerLocal/>}/>
             <Route exact path="/4p" render={props => <FourPlayerLocal/>}/>
+            <Route exact path="/join/:matchID/:player">
+                <JoinPage serverURL={`${window.location.protocol}//${window.location.host}`}/>
+            </Route>
             <Route path="*">
                 <Redirect to="/"/>
             </Route>

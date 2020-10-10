@@ -27,13 +27,14 @@ const headers = {
 /** Create a match and return the match ID. */
 export const createMatch = async (
     serverURL: string,
-    visibility: Visibility
+    visibility: Visibility,
+    numPlayers: number = 3,
 ): Promise<string> => {
     const resp = await fetch(`${serverURL}/games/${FilmCentenaryGame.name}/create`, {
         method: "POST",
         headers,
         body: JSON.stringify({
-            numPlayers: 2,
+            numPlayers: numPlayers,
             unlisted: visibility === Visibility.PRIVATE,
         }),
     });
