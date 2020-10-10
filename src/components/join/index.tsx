@@ -31,7 +31,7 @@ export const JoinPage = ({serverURL}: JoinPageProps) => {
         if (loadedCredential) {
             setCredentials(loadedCredential);
         } else {
-            if (player !== "spectate") {
+            if (player !== Player.spectate) {
                 joinMatch(serverURL, matchID, player)
                     .then((loadedCredential) => {
                         saveCredentials(matchID, player, loadedCredential);
@@ -41,7 +41,7 @@ export const JoinPage = ({serverURL}: JoinPageProps) => {
             }
         }
 
-        if (player !== "spectate") {
+        if (player !== Player.spectate) {
             getMatch(serverURL, matchID)
                 .then((data) => {
                     setNumPlayers(data.players.size)
@@ -60,7 +60,7 @@ export const JoinPage = ({serverURL}: JoinPageProps) => {
 
     return <>
         {error !== "" && <Typography>{error}</Typography>}
-        {player === "spectate" ?
+        {player === Player.spectate ?
             <Spectate
                 matchID={matchID}
                 server={serverURL}/> :
@@ -71,7 +71,7 @@ export const JoinPage = ({serverURL}: JoinPageProps) => {
                 credentials={credentials}
                 player={player}/>
                 </>}
-        {numPlayers > 0 && player !== "spectate"
+        {numPlayers > 0 && player !== Player.spectate
             ? <ShareLink
                 player={player}
                 matchID={matchID}
