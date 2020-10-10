@@ -17,7 +17,6 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
     useI18n(i18n);
     const p = G.pub[parseInt(playerID)];
     const hand = G.player[parseInt(playerID)].hand;
-    const [expanded, setExpanded] = React.useState(hand.length);
     return <Grid item xs={12} sm={6}>
         <Typography>{i18n.hand.title}</Typography>
         {hand.map((c, idx) =>
@@ -72,15 +71,12 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                                 disabled={playerID !== ctx.currentPlayer || p.action < 1 || p.resource < 1 || p.deposit < 1}
                             >{i18n.action.breakthrough1Res}</Button>
                             <Button
-                                onClick={() => {
-                                    setExpanded(hand.length);
-                                    moves.breakthrough({
+                                onClick={() => moves.breakthrough({
                                         card: c.cardId,
                                         idx: idx,
                                         playerID: playerID,
                                         res: 0,
-                                    })
-                                }}
+                                    })}
                                 disabled={playerID !== ctx.currentPlayer || p.action < 1 || p.deposit < 2}
                             >{i18n.action.breakthrough0Res}</Button>
                         </Grid>

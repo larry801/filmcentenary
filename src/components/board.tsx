@@ -277,11 +277,16 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, isAc
                     {i18n.action.draw}
                 </Button>
                 : <></>}
-            {playerID !== null && G.pub[parseInt(playerID)].action <= 0 ?
-                <Button
-                    onClick={() => moves.requestEndTurn(playerID)}>
-                    {i18n.action.endStage}
-                </Button> : <></>}
+            <ChoiceDialog
+                initial={false}
+                callback={(choice)=>{if(choice==="yes"){moves.requestEndTurn(playerID)}}}
+                choices={[
+                    {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
+                    {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
+                ]} defaultChoice={"no"}
+                show={playerID !== null && canMoveCurrent}
+                title={i18n.action.endStage} toggleText={i18n.action.endStage}
+            />
             {playerID !== null ? <ChoiceDialog
                 initial={true}
                 callback={peek}

@@ -89,8 +89,8 @@ export interface IG {
 const initialDeck = [B01, B02, B07, B07, B07, B07, B07, B07];
 function pubPlayer(): IPubInfo {
     return {
-        deposit: 0,
-        action: 1,
+        deposit: 100,
+        action: 4,
         discardInSettle:false,
         scoreEvents:[],
         vpAward:{
