@@ -545,6 +545,7 @@ export const breakthroughEffectExec = (G: IG, ctx: Ctx): void => {
     let a = c.aesthetics
     logger.debug("i:" + i.toString() + "a:" + a.toString());
     if (i === 0 && a === 0) {
+        checkNextEffect(G,ctx);
         return;
     }
     if (i > 0 && a > 0) {
