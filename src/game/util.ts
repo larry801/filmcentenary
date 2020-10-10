@@ -1118,7 +1118,7 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     }
     log += "Cost:";
     log += (resRequired);
-    // logger.debug(log);
+    logger.debug(log);
     return resRequired;
 }
 
@@ -1507,34 +1507,34 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         let p1 = G.pub[parseInt(a)];
         let p2 = G.pub[parseInt(b)];
         if (p1.shares[r] > p2.shares[r]) {
-            log += "${a}win|"
+            log += `${a}win|`
             logger.debug(log);
             return 1;
         }
         if (p1.shares[r] < p2.shares[r]) {
-            log += "${b}win|"
+            log += `${b}win|`
             logger.debug(log);
             return 1;
         }
         let legendCountA =legendCount(G, ctx, r, era, a);
         let legendCountB =legendCount(G, ctx, r, era, b);
         if (legendCountA > legendCountB) {
-            log += "${a}win|"
+            log += `${a}win|`
             logger.debug(log);
             return 1;
         }
         if (legendCountA < legendCountB) {
-            log += "${b}win|"
+            log += `${b}win|`
             logger.debug(log);
             return -1;
         }
         if (posOfPlayer(G, ctx, a) < posOfPlayer(G, ctx, b)) {
-            log += "${a}win|"
+            log += `${a}win|`
             logger.debug(log);
             return 1;
         } else {
             if (posOfPlayer(G, ctx, a) > posOfPlayer(G, ctx, b)) {
-                log += "${b}win|"
+                log += `${b}win|`
                 logger.debug(log);
                 return -1;
             } else {
