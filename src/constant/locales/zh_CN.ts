@@ -406,6 +406,7 @@ const zh_CN: Locale = {
         redo: "恢复",
     },
     lobby: {
+        numPlayers:"玩家数",
         title: "大厅",
         join: "加入",
         play: "开始",

@@ -397,6 +397,7 @@ const en = {
         cards: "Card list",
     },
     lobby: {
+        numPlayers:"Players",
         createPublicMatch: "Create public match",
         createPrivateMatch: "Create private match",
         title: "Lobby",

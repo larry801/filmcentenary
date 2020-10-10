@@ -1073,32 +1073,35 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     let cost: ICost = targetCard.cost;
     let resRequired = cost.res;
     log += (
-        "Resource:" + cost.res
+        "|Cost:|" + cost.res
         + "|" + cost.industry +
         "|" + cost.aesthetics
     );
     let pub = G.pub[parseInt(arg.buyer)]
-    log += ("Player" + arg.buyer + " aesthetics:" + pub.aesthetics);
-    log += ("Player" + arg.buyer + "  industry:" + pub.industry);
+    log += ("|Player" + arg.buyer + " aesthetics:" + pub.aesthetics);
+    log += ("|Player" + arg.buyer + "  industry:" + pub.industry);
     let aesthetics: number = cost.aesthetics
     let industry: number = cost.industry
     aesthetics -= pub.aesthetics;
     industry -= pub.industry;
+    log += `|i:${industry}|a:${aesthetics}|`
     if (pub.school !== null) {
         let school = pub.school;
-        log += ("School:" + school.name + "|" + school.industry + "|" + school.aesthetics)
+        log += `|school:|aes:${school.aesthetics}|ind:${school.industry}`
         aesthetics -= school.aesthetics;
         industry -= school.industry
         if (targetCard.type === CardType.S) {
-            log += ("Extra cost for old school " + school.era.toString())
-            resRequired += school.era;
+            let extraCost:number = school.era + 1
+            log += `|oldSchoolExtra:${extraCost}`
+            resRequired += extraCost;
         }
     }
-    for (const helperItem of arg.helper) {
-        // @ts-ignore
-        industry -= helperItem.industry;
-        // @ts-ignore
-        aesthetics -= helperItem.aesthetics;
+    for (const helperId  of arg.helper) {
+        let helperCard = getCardById(helperId) as INormalOrLegendCard;
+        log += `|${helperCard.name}`
+        industry -= helperCard.industry;
+        aesthetics -= helperCard.aesthetics;
+        log += `|i:${industry}|a:${aesthetics}`
     }
     if (aesthetics > 0) {
         log += ("Lack aesthetics " + aesthetics)
@@ -1110,14 +1113,13 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     }
     // @ts-ignore
     if (pub.school?.cardId === "2201" && targetCard.aesthetics > 0) {
-        log += ("New realism deduct")
+        log += ("|New realism deduct")
         if (resRequired < 2) {
             return 0;
         } else
             return resRequired - 2;
     }
-    log += "Cost:";
-    log += (resRequired);
+    log += `|${resRequired}`;
     logger.debug(log);
     return resRequired;
 }
