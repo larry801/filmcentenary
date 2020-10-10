@@ -407,7 +407,7 @@ const en = {
         exitMatch: "Exit match",
         exitLobby: "Exit lobby",
         cannotJoin: "Cannot join this match, you are already in another match",
-        shareLink:"Share the following link with your opponent (click to copy):",
+        shareLink:"Share the following link with your opponent:",
     },
     gameOver: {
         title: "Game Over",
