@@ -38,11 +38,8 @@ export function DenseTable() {
                         <TableCell>Region</TableCell>
                         <TableCell>Name</TableCell>
                         <TableCell>{i18n.dialog.buyCard.cost}</TableCell>
-                        <TableCell>{i18n.pub.industryRequirement}</TableCell>
-                        <TableCell>{i18n.pub.aestheticsRequirement}</TableCell>
                         <TableCell>{i18n.pub.vp}</TableCell>
-                        <TableCell>{i18n.pub.aestheticsMarker}</TableCell>
-                        <TableCell>{i18n.pub.industryMarker}</TableCell>
+                        <TableCell>{i18n.pub.industryMarker}/{i18n.pub.aestheticsMarker}</TableCell>
                         <TableCell>Effect text</TableCell>
                     </TableRow>
                 </TableHead>
@@ -59,12 +56,9 @@ export function DenseTable() {
                         <TableCell align="right">
                             {getCardName(rid)}
                         </TableCell>
-                        <TableCell align="right">{c.cost.res}</TableCell>
-                        <TableCell align="right">{c.cost.industry}</TableCell>
-                        <TableCell align="right">{c.cost.aesthetics}</TableCell>
+                        <TableCell align="right">{c.cost.res}/{c.cost.industry}/{c.cost.aesthetics}</TableCell>
                         <TableCell align="right">{c.vp}</TableCell>
-                        <TableCell align="right">{c.industry}</TableCell>
-                        <TableCell align="right">{c.aesthetics}</TableCell>
+                        <TableCell align="right">{c.industry}/{c.aesthetics}</TableCell>
                         <TableCell align="left">{cardEffectText(rid as NoneBasicCardID)}</TableCell>
                     </TableRow>
                 })}

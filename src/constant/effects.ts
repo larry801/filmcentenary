@@ -289,8 +289,8 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => G.regions[Region.NA].era !== IEra.THREE,
         play: {
             e: "era", a: [
-                {e: "step", a: [{e: "deposit", a: 1}, {e: "draw", a: 1}]},
-                {e: "step", a: [{e: "deposit", a: 1}, {e: "draw", a: 1}]},
+                {e: "step", a: [{e: "res", a: 1}, {e: "draw", a: 1}]},
+                {e: "step", a: [{e: "res", a: 1}, {e: "draw", a: 1}]},
                 noEff,
             ]
         },
@@ -335,8 +335,8 @@ export const effects = {
         play: {
             e: "era", a: [
                 {e: "step", a: [{e: "res", a: 2}, {e: "shareNA", a: 1}]},
-                {e: "deposit", a: 1}, {e: "vp", a: 1},
-                {e: "deposit", a: 1}, {e: "vp", a: 1},
+                {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 1},]},
+                {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 1},]},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -485,7 +485,7 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "deposit", a: 1},
-                {e: "shareToVp", a: Region.NA},
+                {e: "shareToVp", a: Region.WE},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
