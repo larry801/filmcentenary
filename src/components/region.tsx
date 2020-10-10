@@ -167,7 +167,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
     return <Grid item xs={12} sm={6}>
         <Accordion
             className={classes.root}
-            expanded={expanded}
+            expanded={true}
                    onChange={() => setExpanded(!expanded)}
                    key={r}>
             <AccordionSummary key={r}>
