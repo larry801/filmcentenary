@@ -283,7 +283,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
                 choices={[
                     {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
                     {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
-                ]} defaultChoice={"no"}
+                ]} defaultChoice={"yes"}
                 show={playerID !== null && canMoveCurrent}
                 title={i18n.action.endStage} toggleText={i18n.action.endStage}
             />
