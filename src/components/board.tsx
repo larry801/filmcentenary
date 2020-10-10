@@ -17,7 +17,7 @@ import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
 import {LogView} from './log-view'
 
-export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, isActive, matchData, matchID, playerID}: BoardProps<IG>) => {
+export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugins, isActive, matchData, matchID, playerID}: BoardProps<IG>) => {
 
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
@@ -458,5 +458,6 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, isAc
         {playerID !== null && ctx.gameover === undefined ?
             <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/> : <></>}
         {log === undefined ? <></> : <LogView log={log} getPlayerName={getName}/>}
+        <Typography>{plugins.random.data.seed}</Typography>
     </Grid>
 }

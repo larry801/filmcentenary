@@ -27,6 +27,7 @@ export enum Player {
     'P1'='1',
     'P2'='2',
     'P3'='3',
+    'spectate' ='spectate',
 }
 
 export const nameOf = (p:Player) => {
