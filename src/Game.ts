@@ -108,13 +108,17 @@ export const FilmCentenaryGame: Game<IG> = {
         let championRequiredForAutoWin = ctx.numPlayers > 3 ? 6 : 5;
         Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).forEach(
             p => {
-                if (G.pub[parseInt(p)].champions.length === championRequiredForAutoWin) {
-                    return {winner: p,reason:"championCountAutoWin"}
-                }
                 if(G.pub[parseInt(p)].champions
                     .filter(c => c.region === Region.NA)
                     .length === 3){
                     return {winner: p,reason:"threeNAChampionAutoWin"}
+                }
+            }
+        )
+        Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).forEach(
+            p => {
+                if (G.pub[parseInt(p)].champions.length === championRequiredForAutoWin) {
+                    return {winner: p,reason:"championCountAutoWin"}
                 }
             }
         )
