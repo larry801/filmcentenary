@@ -213,12 +213,14 @@ export const chooseHand: LongFormMove = {
             case "discardAesthetics":
             case "discardNormalOrLegend":
                 if (pub.school?.cardId === "3204") {
+                    log += `|S3204`
                     pub.discardInSettle = true;
                 }
                 hand.splice(arg.idx, 1);
                 pub.discard.push(card);
                 if (eff.a > 1) {
                     eff.a--;
+                    log += `|remain:${eff.a}`
                     G.e.stack.push(eff);
                     return;
                 }
@@ -226,6 +228,7 @@ export const chooseHand: LongFormMove = {
             default:
                 throw new Error();
         }
+        logger.debug(log);
         checkNextEffect(G, ctx);
     }
 }

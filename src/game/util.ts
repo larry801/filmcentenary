@@ -439,16 +439,23 @@ export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
     return cardDepleted(G, ctx, r) || shareDepleted(G, ctx, r);
 }
 
-export const seqFromActive = (G: IG, ctx: Ctx): PlayerID[] => {
+export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
+    let log = `seqFromCurrentPlayer|`
     let act = activePlayer(ctx);
-    let pos = posOfPlayer(G, ctx, act);
+    log += `|act:${act}`
+    let pos = posOfPlayer(G, ctx, ctx.currentPlayer);
+    log += `|pos${pos}`
     let seq = [];
     for (let i = pos; i < ctx.numPlayers; i++) {
+        log += `|push|${i}`
         seq.push(G.order[i])
     }
     for (let i = 0; i < pos; i++) {
+        log += `|push|${i}`
         seq.push(G.order[i])
     }
+    log += `|seq:${JSON.stringify(seq)}`
+    logger.debug(log);
     return seq;
 }
 
@@ -766,7 +773,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "everyOtherCompany":
             if (G.e.pendingPlayers.length === 0) {
-                G.e.pendingPlayers = seqFromActive(G, ctx);
+                G.e.pendingPlayers = seqFromCurrentPlayer(G, ctx);
                 G.e.pendingPlayers.shift()
                 G.e.stack.push(eff);
             } else {
@@ -790,26 +797,28 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "everyPlayer":
             log += "|everyPlayer"
             subEffect = eff.a;
-            log += "|fetchPlayers"
-            G.e.pendingPlayers = seqFromActive(G, ctx);
             if (isSimpleEffect(subEffect)) {
-                log += "|simpleEffect"
+                log += "|simpleEffect|execForAll"
                 for (let p of G.e.pendingPlayers) {
                     G.e.stack.push(subEffect);
                     simpleEffectExec(G, ctx, p);
                 }
-                logger.debug(log);
             } else {
                 if (G.e.pendingPlayers.length === 0) {
-                    log += JSON.stringify(G.e.pendingPlayers);
+                    log += "|fetchPlayers"
+                    log += `|${JSON.stringify(G.e.pendingPlayers)}`
+                    G.e.pendingPlayers = seqFromCurrentPlayer(G, ctx);
+                    log += `|${JSON.stringify(G.e.pendingPlayers)}`
                     G.e.stack.push(eff);
                     log += "|push|"
+                    logger.debug(log);
                 } else {
                     log += "|complexEffect"
                     if (G.e.pendingPlayers.length !== 1) {
                         G.e.stack.push(eff);
                     }
                     let player = G.e.pendingPlayers.shift() as PlayerID;
+                    G.e.stack.push(subEffect);
                     playerEffExec(G, ctx, player);
                     return;
                 }
@@ -856,11 +865,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 i.category !== CardCategory.BASIC
             ).length > 0) {
                 G.e.stack.push(eff);
-                logger.debug("Has classic cards.")
+                log+=(`|Has classic cards|changePlayerStage|${p}`)
                 changePlayerStage(G, ctx, "chooseHand", p);
+                logger.debug(log);
                 return;
             }
-            logger.debug("No classic cards.")
+            log+=("|No classic cards|next")
             break;
         case "discardLegend":
             if (playerObj.hand.filter(i =>
@@ -1637,7 +1647,7 @@ export function doFillNewEraEventDeck(G: IG, ctx: Ctx, newEra: IEra) {
 }
 
 export function fillEventCard(G: IG, ctx: Ctx) {
-    let log = "fillEventCard"
+    let log = "fillEventCard|"
     let newEvent = G.secretInfo.events.pop();
     let era = G.events[0].era;
     if (newEvent === undefined) {
@@ -1798,7 +1808,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
             return;
         }
     } else {
-        log += (`|Next effect|${G.e.stack[0]}`)
+        log += `|Next effect|${JSON.stringify(G.e.stack.slice(-1)[0])}`
         logger.debug(log)
         curEffectExec(G, ctx);
     }
