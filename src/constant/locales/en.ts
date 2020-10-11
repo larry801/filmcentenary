@@ -313,6 +313,7 @@ const argChooseEvent = {
     args: (arg: IChooseEventArg[]): string => {
         let a = arg[0]
         let t = chose
+        t += cards[a.event]
         t += eventName[a.event]
         return t
     }
