@@ -539,7 +539,7 @@ const en = {
         resFromAesthetics: "Get resource according to your aesthetics level",
         aesAward: ["Execute your aesthetics level award {{a}}", argTimes],
         industryAward: ["Execute your industry level award {{a}}", argTimes],
-        searchAndArchive: "Archive this card",
+        searchAndArchive: ["Search and archive {{a}}",argCardName],
         draw: ["Draw {{a}} card(s)", argValue],
         discard: ["Discard {{a}} card(s)", argValue],
         discardNormalOrLegend: ["Discard {{a}} normal or legend card(s)", argValue],

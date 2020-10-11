@@ -397,7 +397,7 @@ export const effects = {
         archive: noEff,
         response: {
             pre: {e: "event", a: "E02"},
-            effect: {e: "optional", a: {e: "step", a: [{e: "searchAndArchive", a: "1102"}, {e: "vp", a: 2}]}},
+            effect: {e: "optional", a: {e: "step", a: [{e: "searchAndArchive", a: "1202"}, {e: "vp", a: 2}]}},
         },
     },
     "1203": {

@@ -547,7 +547,7 @@ const zh_CN: Locale = {
         industryAward: ["执行工业奖励{{a}}次", argValue],
         draw: ["摸{{a}}张牌", argValue],
         discard: ["弃{{a}}张牌", argValue],
-        searchAndArchive: "检索此牌并置入档案馆",
+        searchAndArchive: ["检索【{{a}}】并置入档案馆",argCardName],
         discardNormalOrLegend: ["弃掉{{a}}张普通或传奇牌", argValue],
         discardIndustry: ["弃掉{{a}}张带有工业标志的手牌", argValue],
         discardAesthetics: ["弃掉{{a}}张带有美学标志的手牌", argValue],
