@@ -2194,7 +2194,7 @@ const CARDS = {
         vp: 4,
         category: CardCategory.NORMAL,
         industry: 0,
-        aesthetics: 0,
+        aesthetics: 1,
     }),
     "2306": filmCard({
         era: IEra.TWO,
