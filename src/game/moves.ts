@@ -584,6 +584,8 @@ export const confirmRespond: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
         logger.info(`p${p}.moves.confirmRespond(${arg})`);
+        let pub = G.pub[parseInt(p)];
+        let hand = G.player[parseInt(p)].hand;
         let eff = G.e.stack.pop();
         let log = `confirmRespond|${p}|${arg}|${G.e.stack}|${JSON.stringify(eff)}`;
         logger.debug(log);
@@ -602,7 +604,31 @@ export const confirmRespond: LongFormMove = {
                         logger.debug(log);
                         playerEffExec(G, ctx, p);
                     }
-                    break
+                    break;
+                case "searchAndArchive":
+                    let deck =G.secretInfo.playerDecks[parseInt(p)];
+                    let indexOfTarget = -1
+                    deck.forEach((c,idx)=>{
+                        if(c.cardId===eff.a){
+                            indexOfTarget = idx;
+                        }
+                    })
+                    if(indexOfTarget!==-1){
+                        pub.archive.push(deck.splice(indexOfTarget,1)[0]);
+                    }else {
+                        hand.forEach((c, idx) => {
+                            if (c.cardId === eff.a) {
+                                indexOfTarget = idx;
+                            }
+                        })
+                        if (indexOfTarget !== -1) {
+                            pub.archive.push(hand.splice(indexOfTarget, 1)[0]);
+                        } else {
+                            throw Error(`p${p}doNotOwn|${eff.a}`)
+                        }
+                    }
+                    playerEffExec(G, ctx, p);
+                    break;
                 default:
                     throw new Error();
             }
