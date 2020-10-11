@@ -1511,34 +1511,34 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         if (p1.shares[r] > p2.shares[r]) {
             log += `${a}win|`
             logger.debug(log);
-            return 1;
+            return -1;
         }
         if (p1.shares[r] < p2.shares[r]) {
             log += `${b}win|`
             logger.debug(log);
-            return -1;
+            return 1;
         }
         let legendCountA =legendCount(G, ctx, r, era, a);
         let legendCountB =legendCount(G, ctx, r, era, b);
         if (legendCountA > legendCountB) {
             log += `${a}win|`
             logger.debug(log);
-            return 1;
+            return -1;
         }
         if (legendCountA < legendCountB) {
             log += `${b}win|`
             logger.debug(log);
-            return -1;
+            return 1;
         }
         if (posOfPlayer(G, ctx, a) < posOfPlayer(G, ctx, b)) {
             log += `${a}win|`
             logger.debug(log);
-            return 1;
+            return -1;
         } else {
             if (posOfPlayer(G, ctx, a) > posOfPlayer(G, ctx, b)) {
                 log += `${b}win|`
                 logger.debug(log);
-                return -1;
+                return 1;
             } else {
                 throw Error("Two player has the same pos")
             }
