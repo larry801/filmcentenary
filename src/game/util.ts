@@ -1516,7 +1516,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         if (p1.shares[r] < p2.shares[r]) {
             log += `${b}win|`
             logger.debug(log);
-            return 1;
+            return -1;
         }
         let legendCountA =legendCount(G, ctx, r, era, a);
         let legendCountB =legendCount(G, ctx, r, era, b);
@@ -1553,7 +1553,6 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         } else {
             log += "has share|"
             log += G.pub[idx].shares[r]
-            log += "|"
             rankingPlayer.push(idx.toString())
         }
     });
