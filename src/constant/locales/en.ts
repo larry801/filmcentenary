@@ -381,6 +381,16 @@ const argComment = {
         return t
     }
 }
+const argConfirmRespond = {
+    args: (arg: string[]): string => {
+        let a = arg[0]
+        if(a==="yes"){
+            return "选择不执行效果"
+        }else{
+            return "选择执行效果"
+        }
+    }
+}
 const rank = {
     1:"Champion of",
     2:"Runner up of",
@@ -436,6 +446,7 @@ const en = {
         requestEndTurn: ["{{args}}", argRequestEndTurn],
         updateSlot: ["{{args}}", argUpdateSlot],
         comment: ["{{args}}", argComment],
+        confirmRespond:["{{args}}",argConfirmRespond],
     },
     eventName: eventName,
     confirm: "OK",

@@ -243,6 +243,16 @@ const argShowBoardStatus = {
         return t;
     }
 }
+const argConfirmRespond = {
+    args: (arg: string[]): string => {
+        let a = arg[0]
+        if(a==="yes"){
+            return "选择不执行效果"
+        }else{
+            return "选择执行效果"
+        }
+    }
+}
 const argBuyCard = {
     args: (arg: IBuyInfo[]): string => {
         let a = arg[0]
@@ -445,6 +455,7 @@ const zh_CN: Locale = {
         requestEndTurn: ["{{args}}", argRequestEndTurn],
         updateSlot: ["{{args}}", argUpdateSlot],
         comment: ["{{args}}", argComment],
+        confirmRespond:["{{args}}",argConfirmRespond],
     },
     effect: {
         era: {
