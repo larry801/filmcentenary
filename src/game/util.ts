@@ -32,15 +32,11 @@ import {getScoreCard, getScoreCardByID, scoreCardCount} from "../constant/cards/
 import i18n from "../constant/i18n";
 import {createLogger, format, transports} from "winston";
 
-const {combine, json,} = format;
+const {simple} = format;
 const {Console} = transports;
 export const logger = createLogger({
+    format: simple(),
     level: 'debug',
-    format: combine(
-        json({
-            space: 2,
-        })
-    ),
     defaultMeta: "",
     transports: [
         new Console()
