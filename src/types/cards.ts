@@ -469,7 +469,7 @@ const NoneBasicCards = {
     "F2107": filmCard({
         era: IEra.TWO,
         region: Region.NA,
-        name: "关山飞渡",
+        name: "关山飞度",
         cardId: "F2107",
         cost: cost(5, 5, 1),
         vp: 7,
@@ -1902,7 +1902,7 @@ const CARDS = {
     "2107": filmCard({
         era: IEra.TWO,
         region: Region.NA,
-        name: "关山飞渡",
+        name: "关山飞度",
         cardId: "2107",
         cost: cost(5, 5, 1),
         vp: 7,
