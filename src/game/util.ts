@@ -412,20 +412,24 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
 
 }
 
-const idInHand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
+const cardInDeck = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
+    return G.secretInfo.playerDecks[p].filter(c => c.cardId === cardId).length > 0;
+}
+const cardInHand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
     return G.player[p].hand.filter(c => c.cardId === cardId).length > 0;
 }
 
-export const getPidHasCard = (G: IG, ctx: Ctx, cardId: string): number[] => {
-    let p: number[] = [];
+export const ownCardPlayers = (G: IG, ctx: Ctx, cardId: string): PlayerID[] => {
+    let p: PlayerID[] = [];
     Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-            if (idInHand(G, ctx, idx, cardId)) {
-                p.push(idx);
+            if (cardInHand(G, ctx, idx, cardId) || cardInDeck(G,ctx,idx,cardId)) {
+                p.push(idx.toString());
             }
         }
     );
     return p;
 }
+
 export const buildingInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
     return studioInRegion(G, ctx, r, p) || cinemaInRegion(G, ctx, r, p);
 }
