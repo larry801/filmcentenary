@@ -18,7 +18,7 @@ import {
     aesAward,
     atkCardSettle,
     buildingInRegion,
-    canBuyCard,
+    canBuyCard, cardInDeck, cardInDiscard, cardInHand,
     checkCompetitionDefender,
     checkNextEffect,
     checkRegionScoring,
@@ -168,7 +168,6 @@ export const chooseHand: LongFormMove = {
         let hand = G.player[parseInt(p)].hand;
         let pub = G.pub[parseInt(p)];
         let card: IBasicCard | INormalOrLegendCard = getCardById(arg.hand);
-
         switch (eff.e) {
             case "breakthroughResDeduct":
                 pub.action--;
@@ -609,26 +608,31 @@ export const confirmRespond: LongFormMove = {
                     }
                     break;
                 case "searchAndArchive":
-                    let deck =G.secretInfo.playerDecks[parseInt(p)];
+                    let deck = G.secretInfo.playerDecks[parseInt(p)];
                     let indexOfTarget = -1
-                    deck.forEach((c,idx)=>{
-                        if(c.cardId===eff.a){
-                            indexOfTarget = idx;
-                        }
-                    })
-                    if(indexOfTarget!==-1){
-                        pub.archive.push(deck.splice(indexOfTarget,1)[0]);
-                    }else {
+                    if (cardInDeck(G, ctx, parseInt(p), eff.a)) {
+                        deck.forEach((c, idx) => {
+                            if (c.cardId === eff.a) {
+                                indexOfTarget = idx;
+                            }
+                        })
+                        pub.archive.push(deck.splice(indexOfTarget, 1)[0]);
+                    }
+                    if (cardInHand(G, ctx, parseInt(p), eff.a)) {
                         hand.forEach((c, idx) => {
                             if (c.cardId === eff.a) {
                                 indexOfTarget = idx;
                             }
                         })
-                        if (indexOfTarget !== -1) {
-                            pub.archive.push(hand.splice(indexOfTarget, 1)[0]);
-                        } else {
-                            throw Error(`p${p}doNotOwn|${eff.a}`)
-                        }
+                        pub.archive.push(hand.splice(indexOfTarget, 1)[0]);
+                    }
+                    if (cardInDiscard(G, ctx, parseInt(p), eff.a)) {
+                        pub.discard.forEach((c, idx) => {
+                            if (c.cardId === eff.a) {
+                                indexOfTarget = idx;
+                            }
+                        })
+                        pub.archive.push(pub.discard.splice(indexOfTarget, 1)[0]);
                     }
                     pub.vp += 2;
                     break;

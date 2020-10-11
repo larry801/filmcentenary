@@ -380,17 +380,19 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
 
 }
 
-const cardInDeck = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
+export const cardInDeck = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
     return G.secretInfo.playerDecks[p].filter(c => c.cardId === cardId).length > 0;
 }
-const cardInHand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
+export const cardInHand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
     return G.player[p].hand.filter(c => c.cardId === cardId).length > 0;
 }
-
+export const cardInDiscard = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
+    return G.pub[p].discard.filter(c => c.cardId === cardId).length > 0;
+}
 export const ownCardPlayers = (G: IG, ctx: Ctx, cardId: string): PlayerID[] => {
     let p: PlayerID[] = [];
     Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-            if (cardInHand(G, ctx, idx, cardId) || cardInDeck(G, ctx, idx, cardId)) {
+            if (cardInHand(G, ctx, idx, cardId) || cardInDeck(G, ctx, idx, cardId) || cardInDiscard(G, ctx, idx, cardId)) {
                 p.push(idx.toString());
             }
         }
@@ -620,7 +622,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             if(players.length===0){
                 log += `noPlayerOwn${eff.a}`
                 logger.debug(log);
-                return;
+                break;
             }else{
                 log += `|players${JSON.stringify(players)}`
                 G.e.stack.push(eff);
