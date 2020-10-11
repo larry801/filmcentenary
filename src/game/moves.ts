@@ -456,9 +456,9 @@ export const peek: LongFormMove = {
 }
 
 export interface IChooseEventArg {
-    idx: number,
     event: EventCardID,
     p: PlayerID
+    idx: number,
 }
 
 export const chooseEvent: LongFormMove = {
@@ -468,15 +468,16 @@ export const chooseEvent: LongFormMove = {
         let eid: EventCardID = arg.event;
         G.events.splice(arg.idx, 1);
         let log = "chooseEvent";
-        log += JSON.stringify(arg);
+        log += `|${arg.event}|${arg.p}|${arg.idx}`;
         if (eid === EventCardID.E03) {
-            log += "Avant-grade|"
+            log += "|Avant-grade"
             G.activeEvents.push(EventCardID.E03);
             for (let i = 0; i < ctx.numPlayers; i++) {
                 G.pub[i].action = 2;
             }
             logger.debug(log)
             fillEventCard(G, ctx);
+            checkNextEffect(G, ctx);
         } else {
             switch (eid) {
                 case EventCardID.E01:
@@ -488,8 +489,8 @@ export const chooseEvent: LongFormMove = {
                 case EventCardID.E08:
                 case EventCardID.E09:
                     log += "|Execute event"
-                    logger.debug(log)
                     G.e.stack.push(getEvent(eid));
+                    logger.debug(log)
                     fillEventCard(G, ctx);
                     playerEffExec(G, ctx, arg.p);
                     break;
@@ -509,6 +510,7 @@ export const requestEndTurn: LongFormMove = {
     undoable: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        let log = `requestEndTurn|${arg}`
         // Clean up
         let obj = G.pub[parseInt(arg)]
         obj.playedCardInTurn.forEach(c => obj.discard.push(c));
@@ -520,27 +522,36 @@ export const requestEndTurn: LongFormMove = {
 
         // restore action point fill hand card
         if (obj.school !== null) {
-            let act = getCardEffect(obj.school.cardId).school.action;
+            let schoolId =obj.school.cardId;
+            log += `|school|${schoolId}`
+            let act = getCardEffect(schoolId).school.action;
             if (act === 1) {
                 if (G.activeEvents.includes(EventCardID.E03)) {
+                    log += `|Avant-Grade|2ap`
                     obj.action = 2
                 } else {
+                    log += `|1ap`
                     obj.action = 1
                 }
             } else {
+                log += `|${act}ap`
                 obj.action = act;
             }
         } else {
             if (G.activeEvents.includes(EventCardID.E03)) {
+                log += `|Avant-Grade|2ap`
                 obj.action = 2
             } else {
+                log += `|1ap`
                 obj.action = 1
             }
         }
         fillPlayerHand(G, ctx, ctx.currentPlayer);
 
         // execute development rewards
+        log += `|aesAward`
         aesAward(G, ctx, ctx.currentPlayer);
+        log += `|industryAward`
         industryAward(G, ctx, ctx.currentPlayer);
 
         // era scoring check
@@ -551,9 +562,14 @@ export const requestEndTurn: LongFormMove = {
                 G.scoringRegions.push(r)
             }
         })
+        log += `|scoreRegions|${G.scoringRegions}`
         if (ctx.numPlayers > 2) {
+            log += "|tryScoring"
+            logger.debug(log);
             tryScoring(G, ctx);
         } else {
+            log += "|try2pScoring"
+            logger.debug(log)
             try2pScoring(G, ctx);
         }
     },

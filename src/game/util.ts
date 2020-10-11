@@ -119,10 +119,10 @@ export const doConfirm = (G: IG, ctx: Ctx, a: boolean): void => {
     }
 }
 
-export const requireInteraction = (eff: any): boolean =>{
+export const requireInteraction = (eff: any): boolean => {
     switch (eff.e) {
         case "step":
-            return eff.e.a.every((e:any): boolean =>requireInteraction(e));
+            return eff.e.a.every((e: any): boolean => requireInteraction(e));
         default:
             return isSimpleEffect(eff);
     }
@@ -548,7 +548,7 @@ export const breakthroughEffectExec = (G: IG, ctx: Ctx): void => {
     let a = c.aesthetics
     logger.debug("i:" + i.toString() + "a:" + a.toString());
     if (i === 0 && a === 0) {
-        checkNextEffect(G,ctx);
+        checkNextEffect(G, ctx);
         return;
     }
     if (i > 0 && a > 0) {
@@ -607,10 +607,10 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
 export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let log = ("playerEffExec");
     let eff = G.e.stack.pop();
-    if(eff===undefined){
+    if (eff === undefined) {
         log += "|StackEmpty|return"
         logger.debug(log);
-        checkNextEffect(G,ctx);
+        checkNextEffect(G, ctx);
         return;
     }
     log += JSON.stringify(eff);
@@ -799,7 +799,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     simpleEffectExec(G, ctx, p);
                 }
                 logger.debug(log);
-            }else {
+            } else {
                 if (G.e.pendingPlayers.length === 0) {
                     log += JSON.stringify(G.e.pendingPlayers);
                     G.e.stack.push(eff);
@@ -1100,12 +1100,12 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
         aesthetics -= school.aesthetics;
         industry -= school.industry
         if (targetCard.type === CardType.S) {
-            let extraCost:number = school.era + 1
+            let extraCost: number = school.era + 1
             log += `|oldSchoolExtra:${extraCost}`
             resRequired += extraCost;
         }
     }
-    for (const helperId  of arg.helper) {
+    for (const helperId of arg.helper) {
         let helperCard = getCardById(helperId) as INormalOrLegendCard;
         log += `|${helperCard.name}`
         industry -= helperCard.industry;
@@ -1482,16 +1482,19 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
     if (G.scoringRegions.length > 0) {
         let r = G.scoringRegions.shift();
         G.currentScoreRegion = r as validRegion;
-        log += "|Go to regionRank"
+        log += `|region|${r}`
+        log += "|regionRank"
         logger.debug(log)
         regionRank(G, ctx, r as Region);
     } else {
+        log += "|noRegion"
         if (
             G.pending.lastRoundOfGame &&
             posOfPlayer(G, ctx, ctx.currentPlayer)
             === (ctx.numPlayers - 1)
         ) {
-            log += "|Go to finalScoring"
+            log += "|finalScoring"
+            logger.debug(log);
             finalScoring(G, ctx);
         } else {
             log += "|fillEmptySlots"
@@ -1500,7 +1503,7 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
             } else {
                 fillTwoPlayerBoard(G, ctx)
             }
-            log += "|signalEndTurn"
+            log += "|signalEndStage&Turn"
             logger.debug(log)
             signalEndStage(G, ctx);
             signalEndTurn(G, ctx);
@@ -1509,10 +1512,9 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
 };
 
 export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
-    let log = "regionRank|"
     if (r === Region.NONE) return;
-    log += r
     let era = G.regions[r].era;
+    let log = `regionRank|${r}|${era}`
     const rank = (a: PlayerID, b: PlayerID): number => {
         let log = `rank|${a}|${b}|`
         let p1 = G.pub[parseInt(a)];
@@ -1527,8 +1529,8 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             logger.debug(log);
             return 1;
         }
-        let legendCountA =legendCount(G, ctx, r, era, a);
-        let legendCountB =legendCount(G, ctx, r, era, b);
+        let legendCountA = legendCount(G, ctx, r, era, a);
+        let legendCountB = legendCount(G, ctx, r, era, b);
         if (legendCountA > legendCountB) {
             log += `${a}win|`
             logger.debug(log);
@@ -1581,7 +1583,6 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         let scoreId = "V" + (era + 1).toString() + (r + 1).toString() + (i + 1).toString()
         let card: ICard = getScoreCardByID(scoreId);
         log += `p${i}|${scoreId}`
-        logger.debug(log)
         G.pub[parseInt(rankResult[i])].discard.push(card)
         G.pub[parseInt(rankResult[i])].allCards.push(card)
     }
@@ -1590,7 +1591,6 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         doBuy(G, ctx, B04, rankResult[i])
     }
     logger.debug(log)
-
     changePlayerStage(G, ctx, "chooseEvent", firstPlayer);
 }
 
@@ -1695,23 +1695,32 @@ export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
 }
 
 export const regionEraProgress = (G: IG, ctx: Ctx) => {
-    logger.info("regionEraProgress");
+    let log = "regionEraProgress"
     let r = G.currentScoreRegion;
+    log += `|region|${G.currentScoreRegion}`
     if (r === Region.NONE) throw new Error();
+    log += `|nextEra`
+    logger.debug(log);
     nextEra(G, ctx, r);
     G.currentScoreRegion = Region.NONE;
-    if (ValidRegions.filter(r =>
-        G.regions[r].completedModernScoring).length >= 3) {
+    log = "regionEraProgress|CleanUpCurrent"
+    if (ValidRegions
+        .filter(r => G.regions[r].completedModernScoring)
+        .length >= 3) {
+        log += "|lastRound"
         G.pending.lastRoundOfGame = true;
     }
     if (ValidRegions.filter(r =>
         G.regions[r].era !== IEra.ONE).length >= 2 &&
         G.regions[Region.ASIA].era === IEra.ONE
     ) {
+        log += "|setUpAsia"
         drawForRegion(G, ctx, Region.ASIA, IEra.TWO);
         G.regions[Region.ASIA].era = IEra.TWO;
         G.regions[Region.ASIA].share = ShareOnBoard[Region.ASIA][IEra.TWO];
     }
+    log += "|tryScoring"
+    logger.debug(log);
     tryScoring(G, ctx);
 }
 
@@ -1720,31 +1729,33 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
     if (G.e.stack.length === 0) {
         log += ("|Stack empty|")
         G.e.card = null;
+        log += ("|CleanCurrentCard")
         let newWavePlayer = schoolPlayer(G, ctx, "3204");
         if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
             G.pub[parseInt(newWavePlayer)].discardInSettle = false;
             G.pub[parseInt(newWavePlayer)].vp++;
             drawCardForPlayer(G, ctx, newWavePlayer)
-            log += ("|NewWavePlayer" + newWavePlayer + "drawCard|");
+            log += `|newWave|p${newWavePlayer}|drawCard`
         }
         if (G.currentScoreRegion === Region.NONE) {
             log += ("|No scoring region")
             let i = G.competitionInfo;
             if (i.pending) {
-                log += "pendingCompetition"
+                log += "|pendingCompetition"
                 if (i.atkPlayedCard) {
-                    log += "Go to defCardSettle"
+                    log += "|defCardSettle"
                     i.atkPlayedCard = false;
                     logger.debug(log)
                     defCardSettle(G, ctx);
                 } else {
-                    log += "|"
+                    log += "|return"
                     i.defPlayedCard = false;
                     logger.debug(log)
+                    return;
                 }
             } else {
                 if (ctx.activePlayers !== null) {
-                    log += "signalEndStage"
+                    log += "|signalEndStage"
                     signalEndStage(G, ctx);
                     logger.info(log)
                     return;
@@ -1752,12 +1763,12 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
             }
         } else {
             log += "|regionEraProgress"
-            regionEraProgress(G, ctx);
             logger.info(log)
+            regionEraProgress(G, ctx);
             return;
         }
     } else {
-        log += ("|Next effect.")
+        log += (`|Next effect|${G.e.stack[0]}`)
         logger.info(log)
         curEffectExec(G, ctx);
     }
