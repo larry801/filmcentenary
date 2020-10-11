@@ -23,13 +23,10 @@ it('should declare player 1 as the winner', () => {
     p1.start();
     p2.start();
     p3.start();
-    p0.moves.playCard({
-        card: "B07",
-        idx: 1,
-        playerID: '0',
-        res: 0,
-    })
-
+    p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+    p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+    p0.moves.breakthrough({"card":"B01","idx":1,"playerID":"0","res":2})
+    p0.moves.chooseEffect({"effect":{"e":"aestheticsLevelUp","a":1},"idx":0,"p":"0"})
     p0.stop();
     p1.stop();
     p2.stop();
