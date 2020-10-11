@@ -194,7 +194,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
         }
     }
 
-    const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment(G, ctx, {target: slot, comment: card})
+    const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment({target: slot, comment: card,p:playerID})
 
     const cardBoard = ctx.numPlayers === 2 ?
         <Grid container spacing={2} alignItems="center">

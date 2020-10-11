@@ -103,7 +103,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
     const [expanded, setExpanded] = React.useState(true);
     const classes = useStyles();
 
-    const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment(G, ctx, {target: slot, comment: card})
+    const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment({target: slot, comment: card,p:playerID})
 
     // eslint-disable-next-line
     const buildingSlotName = (r: validRegion, idx: number): string => {

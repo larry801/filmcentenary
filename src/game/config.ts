@@ -15,11 +15,6 @@ import {IG} from "../types/setup";
 import {changeStage, cleanPendingSignal} from "./logFix";
 import {aesAward, curPub, drawCardForPlayer, industryAward} from "./util";
 
-export const tempStudioRespond: StageConfig = {
-    moves: {
-        confirmRespond: confirmRespond,
-    }
-}
 
 export const chooseEffectStage: StageConfig = {
     moves: {
@@ -81,6 +76,13 @@ export const peekStage: StageConfig = {
         peek: peek,
     }
 }
+
+export const setupStage: StageConfig = {
+    moves: {
+        showBoardStatus: showBoardStatus,
+    }
+}
+
 export const NormalTurn: TurnConfig = {
     onBegin: (G: IG, ctx: Ctx) => {
         cleanPendingSignal(G, ctx)
@@ -104,6 +106,7 @@ export const NormalTurn: TurnConfig = {
     },
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
+        showBoard: setupStage,
         chooseEffect: chooseEffectStage,
         chooseEvent: chooseEventStage,
         chooseHand: chooseHandStage,
@@ -138,12 +141,6 @@ export const NormalTurn: TurnConfig = {
 export const NormalPhase: PhaseConfig = {
     turn: NormalTurn,
     start: true,
-}
-
-export const setupStage: StageConfig = {
-    moves: {
-        showBoardStatus: showBoardStatus,
-    }
 }
 
 export const InitPhase: PhaseConfig = {
