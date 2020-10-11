@@ -600,6 +600,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         return;
     }
     log += `eff|${JSON.stringify(eff)}`;
+    G.e.currentEffect = eff;
     let obj = G.pub[parseInt(p)];
     let playerObj = G.player[parseInt(p)];
     let region = G.e?.card?.region as validRegion;
@@ -607,6 +608,19 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let len = 0;
     let subEffect;
     switch (eff.e) {
+        case "searchAndArchive":
+            players = ownCardPlayers(G,ctx,eff.a);
+            if(players.length===0){
+                log += `noPlayerOwn${eff.a}`
+                logger.debug(log);
+                return;
+            }else{
+                log += `|players${JSON.stringify(players)}`
+                G.e.stack.push(eff);
+                logger.debug(log);
+                changePlayerStage(G,ctx,"confirmRespond",players[0]);
+                return;
+            }
         case "era":
             let era = G.regions[region].era;
             G.e.stack.push(eff.a[era]);

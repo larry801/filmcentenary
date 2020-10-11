@@ -58,7 +58,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             resource: 0,
             deposit: 0,
             helper: helpers.filter((c, idx) => newHelper[idx]),
-        });
+        },false);
         let newMin = Math.max(newCost - pub.resource, 0);
         let newMax = Math.min(newCost, pub.deposit);
         let newExtraDepositLimit = newMax - newMin
@@ -78,7 +78,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         resource: 0,
         deposit: 0,
         helper: helpers.filter((c, idx) => checked[idx]),
-    });
+    },false);
     const minDeposit = Math.max(realtimeCost - pub.resource, 0);
     const affordable = canAfford(G, ctx, card, playerID) && pub.action > 0;
     const buttonColor = affordable ? "primary" : "secondary"
