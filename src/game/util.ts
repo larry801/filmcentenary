@@ -87,38 +87,6 @@ export const actualStage = (G: IG, ctx: Ctx,): string => {
     }
 }
 
-export const doConfirm = (G: IG, ctx: Ctx, a: boolean): void => {
-    let stage = actualStage(G, ctx);
-    if (stage === Stage.NULL) {
-        // TODO
-    } else {
-        switch (stage) {
-            case "chooseEffect":
-                if (a) {
-                    let eff = G.e.stack.pop();
-                    if (eff === undefined) {
-                        throw new Error();
-                    } else {
-                        G.e.stack.push(eff.a)
-                    }
-                    curEffectExec(G, ctx);
-                } else {
-                    let eff = G.e.stack.pop();
-                    if (eff === undefined) {
-                        // TODO
-                        throw new Error();
-                    } else {
-                        G.e.stack.push(eff.a)
-                        curEffectExec(G, ctx);
-                    }
-                }
-                return;
-            default:
-                throw new Error("Unsupported stage " + stage);
-        }
-    }
-}
-
 export const requireInteraction = (eff: any): boolean => {
     switch (eff.e) {
         case "step":
@@ -422,7 +390,7 @@ const cardInHand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
 export const ownCardPlayers = (G: IG, ctx: Ctx, cardId: string): PlayerID[] => {
     let p: PlayerID[] = [];
     Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-            if (cardInHand(G, ctx, idx, cardId) || cardInDeck(G,ctx,idx,cardId)) {
+            if (cardInHand(G, ctx, idx, cardId) || cardInDeck(G, ctx, idx, cardId)) {
                 p.push(idx.toString());
             }
         }
@@ -545,79 +513,93 @@ export function vpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
 }
 
 
-export const breakthroughEffectExec = (G: IG, ctx: Ctx): void => {
+export const breakthroughEffectPrepare = (G: IG, ctx: Ctx): void => {
+    let log = "breakthroughEffectPrepare"
     let p = curPub(G, ctx);
     let c = G.e.card as INormalOrLegendCard;
     let i = c.industry
     let a = c.aesthetics
-    logger.debug("i:" + i.toString() + "a:" + a.toString());
+    log += `|${c.cardId}|i${i}|a${a}`
     if (i === 0 && a === 0) {
-        checkNextEffect(G, ctx);
+        log += `|noMarker|return`
+        logger.debug(log);
         return;
     }
     if (i > 0 && a > 0) {
+        log += `|industryOrAestheticsBreakthrough`
         G.e.stack.push({
             e: "industryOrAestheticsBreakthrough", a: {
                 industry: p.industry,
                 aesthetics: p.aesthetics,
             }
         })
-        curEffectExec(G, ctx);
+        logger.debug(log);
     } else {
         if (i === 0) {
-            logger.log("debug", "doAesthetics")
-            doAestheticsBreakthrough(G, ctx, ctx.currentPlayer);
+            log += `|aestheticsBreakthrough`
+            G.e.stack.push({e: "aestheticsBreakthrough", a: p.aesthetics})
+            logger.debug(log);
         } else {
-            logger.log("debug", "doIndustry")
-            doIndustryBreakthrough(G, ctx, ctx.currentPlayer);
+            log += `|industryBreakthrough`
+            G.e.stack.push({e: "industryBreakthrough", a: p.industry})
+            logger.debug(log);
         }
     }
 }
 
 export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     let p = curPub(G, ctx);
-    // let playerObj = G.player[parseInt(pid)];
     // @ts-ignore
     let c: INormalOrLegendCard | IBasicCard = G.e.card;
-    logger.log("debug", "startBreakThrough Player:" + pid)
+    let log = `startBreakThrough|p${pid}|${c.cardId}`
     if (p.school?.cardId === "2201") {
+        log += "|Neo realism"
         p.deposit += 2;
         p.vp += 1;
     }
-    if (p.school?.cardId === "1201") {
+    if (p.school?.cardId === "1204") {
+        log += "|Swedish"
         p.resource += 1;
     }
     if (c.cardId === "1208") {
+        log += "|Metropolis"
         G.e.stack.push({
             e: "industryOrAestheticsBreakthrough", a: {
                 industry: p.industry,
                 aesthetics: p.aesthetics,
             }
         })
-        curEffectExec(G, ctx);
-        return;
+
     }
+    log += `|breakthroughEffectPrepare`
+    logger.debug(log);
+    breakthroughEffectPrepare(G, ctx);
     let eff = getCardEffect(c.cardId).archive;
     if (eff.e !== "none") {
+        log += `|pushEffect|${JSON.stringify(eff)}`
         G.e.stack.push(eff)
     }
-    breakthroughEffectExec(G, ctx);
+    log += `|checkNextEffect`
+    logger.debug(log);
+    checkNextEffect(G, ctx);
 }
 
 export const curEffectExec = (G: IG, ctx: Ctx): void => {
+    let log = `curEffExec|${ctx.currentPlayer}`;
+    logger.debug(log);
     playerEffExec(G, ctx, ctx.currentPlayer)
 }
 
 export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
-    let log = ("playerEffExec");
+    let log = `playerEffExec|p${p}`;
     let eff = G.e.stack.pop();
     if (eff === undefined) {
-        log += "|StackEmpty|return"
+        log += "|StackEmpty|checkNextEffect"
         logger.debug(log);
         checkNextEffect(G, ctx);
         return;
     }
-    log += JSON.stringify(eff);
+    log += `eff|${JSON.stringify(eff)}`;
     let obj = G.pub[parseInt(p)];
     let playerObj = G.player[parseInt(p)];
     let region = G.e?.card?.region as validRegion;
@@ -997,10 +979,17 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             G.e.stack.push(eff);
             changePlayerStage(G, ctx, "chooseHand", p);
             return;
+        case "industryBreakthrough":
+            doIndustryBreakthrough(G, ctx, p);
+            break;
+        case "aestheticsBreakthrough":
+            doAestheticsBreakthrough(G, ctx, p);
+            break;
         default:
             G.e.stack.push(eff);
             simpleEffectExec(G, ctx, p);
     }
+    log += "|checkNextEffect"
     logger.debug(log)
     checkNextEffect(G, ctx);
 }
@@ -1080,27 +1069,21 @@ export function shareDepleted(G: IG, ctx: Ctx, region: Region) {
     return G.regions[region].share === 0;
 }
 
-export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
+export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog:boolean=true): number {
     let targetCard = getCardById(arg.target);
-    let log = ("resCost" + targetCard.name);
     let cost: ICost = targetCard.cost;
+    let log = `resCost|${targetCard.name}|Cost:|${cost.res}|${cost.industry}|${cost.aesthetics}`;
     let resRequired = cost.res;
-    log += (
-        "|Cost:|" + cost.res
-        + "|" + cost.industry +
-        "|" + cost.aesthetics
-    );
     let pub = G.pub[parseInt(arg.buyer)]
-    log += ("|Player" + arg.buyer + " aesthetics:" + pub.aesthetics);
-    log += ("|Player" + arg.buyer + "  industry:" + pub.industry);
+    log += `|p${arg.buyer}|industry${pub.industry}|aesthetics${pub.aesthetics}`
     let aesthetics: number = cost.aesthetics
     let industry: number = cost.industry
     aesthetics -= pub.aesthetics;
     industry -= pub.industry;
-    log += `|i:${industry}|a:${aesthetics}|`
+    log += `|${targetCard.cardId}|i:${industry}|a:${aesthetics}`
     if (pub.school !== null) {
         let school = pub.school;
-        log += `|school:|aes:${school.aesthetics}|ind:${school.industry}`
+        log += `|school:${pub.school.cardId}|aes:${school.aesthetics}|ind:${school.industry}`
         aesthetics -= school.aesthetics;
         industry -= school.industry
         if (targetCard.type === CardType.S) {
@@ -1128,12 +1111,15 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo): number {
     if (pub.school?.cardId === "2201" && targetCard.aesthetics > 0) {
         log += ("|New realism deduct")
         if (resRequired < 2) {
-            return 0;
-        } else
-            return resRequired - 2;
+            resRequired = 0;
+        } else {
+            resRequired -= 2;
+        }
     }
     log += `|${resRequired}`;
-    logger.debug(log);
+    if(showLog) {
+        logger.debug(log);
+    }
     return resRequired;
 }
 
@@ -1145,13 +1131,13 @@ export function canAfford(G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCar
         helper: G.player[parseInt(p)].hand.map(c => c.cardId),
         resource: 0,
         deposit: 0
-    })
+    },false)
     return pub.deposit + pub.resource >= res;
 }
 
 export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     let pub = G.pub[parseInt(arg.buyer)];
-    let resRequired = resCost(G, ctx, arg);
+    let resRequired = resCost(G, ctx, arg,false);
     let resGiven: number = arg.resource + arg.deposit;
     return resRequired === resGiven && pub.resource >= arg.resource && pub.deposit >= arg.deposit;
 }
@@ -1279,7 +1265,7 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
     }
 }
 export const getPossibleHelper = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard): ICard[] => {
-    return G.player[parseInt(p)].hand.filter((helper, idx) => {
+    return G.player[parseInt(p)].hand.filter((helper) => {
         if (card.cost.industry === 0) {
             if (card.cost.aesthetics === 0) {
                 return false;
@@ -1664,37 +1650,64 @@ export function fillEventCard(G: IG, ctx: Ctx) {
 }
 
 export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
+    let log = `doIndustryBreakthrough|p${player}`
+    if (G.e.stack.length > 0) {
+        let top = G.e.stack.pop();
+        log += `|stack|${JSON.stringify(top)}`
+        if (top!==undefined && top.e === "industryOrAestheticsBreakthrough") {
+            log += `|top:${top.a.industry}`
+            top.a.industry--;
+        }
+        G.e.stack.push(top);
+    }
     let p = G.pub[parseInt(player)];
     let totalResource = p.resource + p.deposit;
-    if (additionalCostForUpgrade(p.industry) <= totalResource) {
+    let additionalCost = additionalCostForUpgrade(p.industry);
+    if (additionalCost <= totalResource) {
+        log += `|${additionalCost}|canUpgrade`
         G.e.choices.push({e: "industryLevelUp", a: 1})
     }
     if (ctx.numPlayers > 2) {
         if (totalResource >= 3 && studioSlotsAvailable(G, ctx, player).length > 0) {
+            log += `|studio`
             G.e.choices.push({e: "buildStudio", a: 1})
         }
         if (totalResource >= 3 && cinemaSlotsAvailable(G, ctx, player).length > 0) {
+            log += `|cinema`
             G.e.choices.push({e: "buildCinema", a: 1})
         }
     }
     G.e.choices.push({e: "skipBreakthrough", a: 1})
+    log += "chooseEffect"
+    logger.debug(log);
     changeStage(G, ctx, "chooseEffect")
 }
 
 export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
-    logger.info("doAestheticsBreakthrough");
+    let log = `doAestheticsBreakthrough|p${player}|`
+    if (G.e.stack.length > 0) {
+        let top = G.e.stack.pop();
+        log += `|stack|${JSON.stringify(top)}`
+        if (top!== undefined && top.e === "industryOrAestheticsBreakthrough") {
+            log += `|top:${top.a.aesthetics}`
+            top.a.aesthetics--;
+        }
+        G.e.stack.push(top);
+    }
     let p = G.pub[parseInt(player)];
     let playerObj = G.player[parseInt(player)];
     let totalResource = p.resource + p.deposit;
     if (additionalCostForUpgrade(p.industry) <= totalResource) {
-        logger.debug("Can upgrade aesthetics")
+        log+=("|Can upgrade aesthetics")
         G.e.choices.push({e: "aestheticsLevelUp", a: 1})
     }
     if (playerObj.hand.length > 0) {
-        logger.debug("Can refactor")
+        log+=("|Can refactor")
         G.e.choices.push({e: "refactor", a: 1})
     }
     G.e.choices.push({e: "skipBreakthrough", a: 1})
+    log += "|chooseEffect"
+    logger.debug(log);
     changeStage(G, ctx, "chooseEffect")
 }
 
@@ -1729,11 +1742,10 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
 }
 
 export function checkNextEffect(G: IG, ctx: Ctx) {
-    let log = ("checkNextEffect");
+    let log = "checkNextEffect";
     if (G.e.stack.length === 0) {
-        log += ("|Stack empty|")
+        log += ("|Stack empty")
         G.e.card = null;
-        log += ("|CleanCurrentCard")
         let newWavePlayer = schoolPlayer(G, ctx, "3204");
         if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
             G.pub[parseInt(newWavePlayer)].discardInSettle = false;
@@ -1767,13 +1779,13 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
             }
         } else {
             log += "|regionEraProgress"
-            logger.info(log)
+            logger.debug(log)
             regionEraProgress(G, ctx);
             return;
         }
     } else {
         log += (`|Next effect|${G.e.stack[0]}`)
-        logger.info(log)
+        logger.debug(log)
         curEffectExec(G, ctx);
     }
 }
@@ -2003,7 +2015,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number =>
     }
     if (p.scoreEvents.includes(EventCardID.E11)) {
         // @ts-ignore
-        G.secretInfo.playerDecks[i].filter(c => c.type === CardType.P).forEach(c => extraVP += 4);
+        G.secretInfo.playerDecks[i].filter(c => c.type === CardType.P).forEach(()=>extraVP += 4);
         extraVP += p.archive.filter(card => card.type === CardType.P).length * 4;
     }
     if (p.scoreEvents.includes(EventCardID.E12)) {

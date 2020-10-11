@@ -45,7 +45,7 @@ import {
     try2pScoring,
     tryScoring,
 } from "./util";
-import {changeStage, signalEndPhase} from "./logFix";
+import {changeStage, signalEndPhase, signalEndStage} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
 import {B05} from "../constant/cards/basic";
 import {getCardById} from "../types/cards";
@@ -53,15 +53,20 @@ import {getCardById} from "../types/cards";
 export const drawCard: LongFormMove = {
     move: (G: IG, ctx: Ctx) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${ctx.playerID}.moves.drawCard()`);
         curPub(G, ctx).action--;
+        logger.debug(`p${ctx.currentPlayer}|drawCardWithAP`);
         drawCardForPlayer(G, ctx, ctx.currentPlayer);
     },
     client: false,
 }
 
-export const buyCard = {
+export const buyCard: LongFormMove = {
     move(G: IG, ctx: Ctx, arg: IBuyInfo): any {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${arg.buyer}.moves.buyCard(${JSON.stringify(arg)})`);
+        let log = `p${arg.buyer}|buy|${arg.target}|res:${arg.resource}|deposit:${arg.deposit}|${arg.helper}\r\n`
+        logger.debug(log);
         if (canBuyCard(G, ctx, arg)) {
             let targetCard = getCardById(arg.target)
             let p = curPub(G, ctx);
@@ -100,8 +105,7 @@ export const chooseTarget: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: ITargetChooseArgs) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        logger.info("chooseTarget");
-        logger.info(arg);
+        logger.info(`p${arg.p}.moves.chooseTarget(${JSON.stringify(arg)})`);
         let src = arg.p;
         let p = arg.target;
         let eff = G.e.stack.pop();
@@ -152,13 +156,14 @@ export const chooseHand: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IChooseHandArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${arg.p}.moves.chooseHand(${JSON.stringify(arg)})`);
         let log = `chooseHand|p${arg.p}|${arg.hand}|${arg.idx}`;
         let eff = G.e.stack.pop();
-        if(eff===undefined){
+        if (eff === undefined) {
             logger.debug(log);
             throw Error("No effect cannot choose hand!")
         }
-        log += `|${eff}`
+        log += `|${JSON.stringify(eff)}`
         let p = arg.p;
         let hand = G.player[parseInt(p)].hand;
         let pub = G.pub[parseInt(p)];
@@ -235,34 +240,20 @@ export const chooseEffect: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IEffectChooseArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${arg.p}.moves.chooseEffect(${JSON.stringify(arg)})`);
         let log = ("chooseEffect")
         log += JSON.stringify(arg);
         let eff = G.e.choices[arg.idx];
         log += JSON.stringify(eff);
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
         let regions: Region[];
-        let top;
         logger.debug(log)
         switch (eff.e) {
             case "industryBreakthrough":
-                if (G.e.stack.length > 0) {
-                    top = G.e.stack.pop();
-                    if (top.e === "industryOrAestheticsBreakthrough") {
-                        top.a.industry--;
-                    }
-                    G.e.stack.push(top);
-                }
                 G.e.choices = [];
                 doIndustryBreakthrough(G, ctx, p);
                 return;
             case "aestheticsBreakthrough":
-                if (G.e.stack.length > 0) {
-                    top = G.e.stack.pop();
-                    if (top.e === "industryOrAestheticsBreakthrough") {
-                        top.a.aesthetics--;
-                    }
-                    G.e.stack.push(top);
-                }
                 G.e.choices = [];
                 doAestheticsBreakthrough(G, ctx, p);
                 break;
@@ -293,6 +284,7 @@ export const updateSlot = {
     client: false,
     move: (G: IG, ctx: Ctx, slot: ICardSlot) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${ctx.playerID}.moves.chooseTarget(${slot})`);
         logger.info("updateSlot");
         doReturnSlotCard(G, ctx, slot);
         if (ctx.numPlayers > 2) {
@@ -314,6 +306,7 @@ export const chooseRegion = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IRegionChooseArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${arg.p}.moves.chooseRegion(${JSON.stringify(arg)})`);
         let log = "chooseRegion"
         let r = arg.r;
         log += JSON.stringify(arg);
@@ -398,12 +391,11 @@ export const peek: LongFormMove = {
     client: false,
     undoable: false,
     redact: true,
-    move: (G: IG, ctx: Ctx, args: IPeekArgs) => {
+    move: (G: IG, ctx: Ctx, arg: IPeekArgs) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        logger.info("Peek");
-        logger.info(args);
+        logger.info(`p${arg.p}.moves.peek(${JSON.stringify(arg)})`);
         let eff = G.e.stack.pop();
-        let p = args.p;
+        let p = arg.p;
         let playerObj = G.player[parseInt(p)];
         let pub = G.pub[parseInt(p)];
         switch (eff.a.filter.e) {
@@ -441,8 +433,8 @@ export const peek: LongFormMove = {
                 playerObj.cardsToPeek = []
                 break;
             case "choice":
-                playerObj.cardsToPeek.splice(args.idx, 1);
-                playerObj.hand.push(args.card);
+                playerObj.cardsToPeek.splice(arg.idx, 1);
+                playerObj.hand.push(arg.card);
                 if (eff.a.filter.a > 1) {
                     eff.a.filter.a--;
                     G.e.stack.push(eff);
@@ -466,6 +458,7 @@ export const chooseEvent: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IChooseEventArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${arg.p}.moves.chooseEvent(${JSON.stringify(arg)})`);
         let eid: EventCardID = arg.event;
         G.events.splice(arg.idx, 1);
         G.e.card = getCardById(eid);
@@ -512,6 +505,7 @@ export const requestEndTurn: LongFormMove = {
     undoable: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${arg}.moves.requestEndTurn(${arg})`);
         let log = `requestEndTurn|${arg}`
         // Clean up
         let obj = G.pub[parseInt(arg)]
@@ -524,7 +518,7 @@ export const requestEndTurn: LongFormMove = {
 
         // restore action point fill hand card
         if (obj.school !== null) {
-            let schoolId =obj.school.cardId;
+            let schoolId = obj.school.cardId;
             log += `|school|${schoolId}`
             let act = getCardEffect(schoolId).school.action;
             if (act === 1) {
@@ -589,8 +583,9 @@ export const confirmRespond: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
+        logger.info(`p${p}.moves.confirmRespond(${arg})`);
         let eff = G.e.stack.pop();
-        let log = `confirmRespond|${p}|${arg}|${G.e.stack}|${eff}`;
+        let log = `confirmRespond|${p}|${arg}|${G.e.stack}|${JSON.stringify(eff)}`;
         logger.debug(log);
         if (arg === "yes") {
             switch (eff.e) {
@@ -607,15 +602,16 @@ export const confirmRespond: LongFormMove = {
                         logger.debug(log);
                         playerEffExec(G, ctx, p);
                     }
-                break
+                    break
                 default:
                     throw new Error();
             }
         } else {
             switch (eff.e) {
                 case "alternative":
-                    startBreakThrough(G,ctx,p);
+                    log += "|startBreakThrough"
                     logger.debug(log);
+                    startBreakThrough(G, ctx, p);
                     return;
                 default:
                     break;
@@ -636,6 +632,7 @@ export interface IPlayCardInfo {
 export const playCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${arg.playerID}.moves.playCard(${JSON.stringify(arg)})`);
         let playCard = getCardById(arg.card);
         let pub = G.pub[parseInt(arg.playerID)];
         let hand = G.player[parseInt(arg.playerID)].hand;
@@ -667,6 +664,7 @@ export const competitionCard: LongFormMove = {
     redact: true,
     move: (G: IG, ctx: Ctx, arg: ICompetitionCardArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${arg.p}.moves.competitionCard(${JSON.stringify(arg)})`);
         let p = arg.p;
         G.player[parseInt(p)].competitionCards.push(arg.card);
         let i = G.competitionInfo;
@@ -690,6 +688,7 @@ export const breakthrough: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${arg.playerID}.moves.breakthrough(${JSON.stringify(arg)})`);
         let p = G.pub[parseInt(arg.playerID)];
         p.action -= 1;
         p.resource -= arg.res;
@@ -713,13 +712,14 @@ export const breakthrough: LongFormMove = {
 export interface ICommentArg {
     target: ICardSlot,
     comment: IBasicCard | null,
-    pid: PlayerID,
+    p: PlayerID,
 }
 
 export const comment: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: ICommentArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${arg.p}.moves.comment(${JSON.stringify(arg)})`);
         if (arg.comment === null && arg.target.comment !== null) {
             arg.target.comment = null;
         } else {
@@ -730,7 +730,7 @@ export const comment: LongFormMove = {
         if (p !== null) {
             drawCardForPlayer(G, ctx, p);
         }
-        let pub = G.pub[parseInt(arg.pid)];
+        let pub = G.pub[parseInt(arg.p)];
         if (pub.school?.cardId === "2204") {
             pub.resource++;
             pub.vp++;
@@ -744,13 +744,19 @@ export interface IShowBoardStatusProps {
     school: ICardSlot[]
     film: ICardSlot[],
     matchID: string,
+    seed: string,
 }
 
 export const showBoardStatus: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, args: IShowBoardStatusProps) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        G.matchID = args.matchID;
-        signalEndPhase(G, ctx);
+        logger.info(`p0.moves.chooseTarget(${args})`);
+        if (ctx.phase === "InitPhase") {
+            G.matchID = args.matchID;
+            signalEndPhase(G, ctx);
+        } else {
+            signalEndStage(G, ctx);
+        }
     },
 }

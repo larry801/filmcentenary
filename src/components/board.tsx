@@ -421,11 +421,13 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
                             school: [],
                             film: [],
                             matchID: matchID,
+                            seed: plugins.random.data.seed,
                         } : {
                             regions: [],
                             school: G.twoPlayer.school,
                             film: G.twoPlayer.film,
                             matchID: matchID,
+                            seed:plugins.random.data.seed,
                         }
                         moves.showBoardStatus(args);
                     }
