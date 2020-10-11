@@ -600,6 +600,12 @@ export const curEffectExec = (G: IG, ctx: Ctx): void => {
 export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let log = ("playerEffExec");
     let eff = G.e.stack.pop();
+    if(eff===undefined){
+        log += "|StackEmpty|return"
+        logger.debug(log);
+        checkNextEffect(G,ctx);
+        return;
+    }
     log += JSON.stringify(eff);
     let obj = G.pub[parseInt(p)];
     let playerObj = G.player[parseInt(p)];
