@@ -22,6 +22,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
     const canMove = ctx.currentPlayer === playerID ? canMoveCurrent : canMoveOutOfTurn;
+    const curPlayerSuffix = "(*)"
     const getName = (playerID: PlayerID | null = ctx.currentPlayer): string => {
         const fallbackName = i18n.playerName.player + playerID;
         if (playerID === null) {
@@ -29,7 +30,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
         } else {
             if (matchData === undefined) {
                 if (ctx.currentPlayer === playerID) {
-                    return fallbackName + "*"
+                    return fallbackName + curPlayerSuffix
                 } else {
                     return fallbackName
                 }
@@ -37,7 +38,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
                 let arr = matchData.filter(m => m.id.toString() === playerID)
                 if (arr.length === 0) {
                     if (ctx.currentPlayer === playerID) {
-                        return fallbackName + "*"
+                        return fallbackName + curPlayerSuffix
                     } else {
                         return fallbackName
                     }
@@ -46,7 +47,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
                         return fallbackName;
                     } else {
                         if (ctx.currentPlayer === playerID) {
-                            return arr[0].name + "*"
+                            return arr[0].name + curPlayerSuffix
                         } else {
                             return arr[0].name
                         }
@@ -79,7 +80,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
 
     const chooseHand = (choice: string) => {
         moves.chooseHand({
-            hand: hand[parseInt(choice)],
+            hand: hand[parseInt(choice)].cardId,
             idx: parseInt(choice),
             p: playerID,
         })

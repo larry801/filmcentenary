@@ -335,7 +335,7 @@ const argChooseHand = {
     args: (arg: IChooseHandArg[]): string => {
         let a = arg[0]
         let t = chose
-        t += bracketCardName(a.hand.cardId)
+        t += bracketCardName(a.hand)
         return t
     }
 }

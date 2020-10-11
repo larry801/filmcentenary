@@ -5,7 +5,6 @@ import {
     EventCardID,
     IBasicCard,
     IBuyInfo,
-    ICard,
     ICardSlot,
     IEra,
     INormalOrLegendCard,
@@ -18,7 +17,6 @@ import {
     activePlayer,
     aesAward,
     atkCardSettle,
-    breakthroughEffectExec,
     buildingInRegion,
     canBuyCard,
     checkCompetitionDefender,
@@ -146,7 +144,7 @@ export const chooseTarget: LongFormMove = {
 
 export interface IChooseHandArg {
     p: PlayerID,
-    hand: ICard,
+    hand: CardID,
     idx: number,
 }
 
@@ -154,22 +152,25 @@ export const chooseHand: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IChooseHandArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        let log = ("chooseHand");
-        log += JSON.stringify(arg);
+        let log = `chooseHand|p${arg.p}|${arg.hand}|${arg.idx}`;
         let eff = G.e.stack.pop();
-        log += JSON.stringify(eff);
+        if(eff===undefined){
+            logger.debug(log);
+            throw Error("No effect cannot choose hand!")
+        }
+        log += `|${eff}`
         let p = arg.p;
         let hand = G.player[parseInt(p)].hand;
         let pub = G.pub[parseInt(p)];
-        // @ts-ignore
-        let card: IBasicCard | INormalOrLegendCard = arg.hand;
-        logger.debug(log)
+        let card: IBasicCard | INormalOrLegendCard = getCardById(arg.hand);
+
         switch (eff.e) {
             case "breakthroughResDeduct":
                 pub.action--;
                 hand.splice(arg.idx, 1);
                 pub.archive.push(card);
-                if (arg.hand.cardId === "1108") {
+                if (arg.hand === "1108") {
+                    log += "|Nanook"
                     if (pub.deposit < 1) {
                         return;
                     } else {
@@ -467,6 +468,7 @@ export const chooseEvent: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let eid: EventCardID = arg.event;
         G.events.splice(arg.idx, 1);
+        G.e.card = getCardById(eid);
         let log = "chooseEvent";
         log += `|${arg.event}|${arg.p}|${arg.idx}`;
         if (eid === EventCardID.E03) {
@@ -612,7 +614,7 @@ export const confirmRespond: LongFormMove = {
         } else {
             switch (eff.e) {
                 case "alternative":
-                    breakthroughEffectExec(G, ctx);
+                    startBreakThrough(G,ctx,p);
                     logger.debug(log);
                     return;
                 default:
