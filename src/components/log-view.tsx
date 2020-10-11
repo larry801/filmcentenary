@@ -1,12 +1,9 @@
 import React from "react";
 import {FixedSizeList, ListChildComponentProps} from "react-window";
 import Grid from "@material-ui/core/Grid";
-import Dialog from "@material-ui/core/Dialog";
 import AutoSizer from "react-virtualized-auto-sizer";
 import {LogEntry} from "boardgame.io";
 import Button from "@material-ui/core/Button";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
 import {createStyles, makeStyles, Theme} from '@material-ui/core/styles';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
@@ -19,7 +16,8 @@ const useStyles = makeStyles((theme: Theme) =>
     createStyles({
         root: {
             width: '100%',
-            minHeight: 400,
+            minHeight: 160,
+            maxHeight: 500,
             minWidth: 400,
             backgroundColor: theme.palette.background.paper,
         },
@@ -31,16 +29,19 @@ export interface ILogViewProps {
     getPlayerName: (pid?: string) => string,
 }
 
-export const LogView = ({log,getPlayerName}: ILogViewProps) => {
+export const LogView = ({log, getPlayerName}: ILogViewProps) => {
 
     useI18n(i18n);
     const classes = useStyles();
-    const [open, setOpen] = React.useState(false);
-    const getLogText = (l: LogEntry):string|null => {
+    const [open, setOpen] = React.useState(true);
+    const toggleGameLog = () => {
+        setOpen(!open)
+    }
+    const getLogText = (l: LogEntry): string | null => {
         switch (l.action.type) {
             case "GAME_EVENT":
                 if (l.action.payload.type === "endTurn") {
-                    return i18n.action.turnEnd({a:l.turn})
+                    return i18n.action.turnEnd({a: l.turn})
                 } else {
                     return null;
                 }
@@ -48,44 +49,42 @@ export const LogView = ({log,getPlayerName}: ILogViewProps) => {
                 let moveName = l.action.payload.type as MoveNames
                 // @ts-ignore
                 return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
-                    args:l.action.payload.args
+                    args: l.action.payload.args
                 })
         }
     }
 
     return <Grid item xs={12}>
-        <Button fullWidth={true} onClick={() => setOpen(true)}>
+        <Button fullWidth={true} onClick={toggleGameLog}>
             {i18n.pub.gameLog}
         </Button>
-        <Dialog open={open} onClose={() => setOpen(false)}>
-            <DialogTitle>
-                {i18n.pub.gameLog}
-            </DialogTitle>
-            <DialogContent className={classes.root}>
-                <AutoSizer
-                    defaultHeight={400}
-                    defaultWidth={400}
-                >
-                    {({height,width})=><FixedSizeList
+
+        {open && <Grid className={classes.root}>
+            <AutoSizer
+                defaultHeight={1000}
+                defaultWidth={400}>
+                {({height, width}) => <FixedSizeList
                     className="List"
                     height={height}
                     itemCount={log.length}
-                    itemSize={50}
-                    width={width}
-                >
+                    itemSize={40}
+                    width={width}>
                     {({index, style}: ListChildComponentProps) => {
                         const i = log.length - index - 1;
                         const text = getLogText(log[i])
-                        return text===null?<></>:<ListItem
+                        return text === null ? <></> : <ListItem
                             button
-
+                            // @ts-ignore
+                            style={
+                                // @ts-ignore
+                                style
+                            }
                             key={shortid.generate()}>
                             <ListItemText primary={text}/>
                         </ListItem>
                     }}
                 </FixedSizeList>}
-                </AutoSizer>
-            </DialogContent>
-        </Dialog>
+            </AutoSizer>
+        </Grid>}
     </Grid>
 }
