@@ -658,7 +658,7 @@ const en = {
         industryLevelUp: "Upgrade industry",
         endStage: "End Stage",
         endTurn: "End Turn",
-        turnEnd: "Turn ended",
+        turnEnd: ["Turn {{a}} ended",argValue],
         endPhase: "End Phase",
         undo: "Undo",
         redo: "Redo",

@@ -400,7 +400,7 @@ const zh_CN: Locale = {
         industryLevelUp: "提升工业等级",
         endStage: "结束行动",
         endTurn: "结束回合",
-        turnEnd: "回合结束",
+        turnEnd: ["第{{a}}回合结束",argValue],
         endPhase: "结束阶段",
         undo: "撤销",
         redo: "恢复",
