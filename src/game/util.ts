@@ -119,10 +119,18 @@ export const doConfirm = (G: IG, ctx: Ctx, a: boolean): void => {
     }
 }
 
+export const requireInteraction = (eff: any): boolean =>{
+    switch (eff.e) {
+        case "step":
+            return eff.e.a.every((e:any): boolean =>requireInteraction(e));
+        default:
+            return isSimpleEffect(eff);
+    }
+}
+
 export const isSimpleEffect = (eff: any): boolean => {
     switch (eff.e) {
         case "alternative":
-        case "loseVpForEachHand":
         case "competition":
         case "loseAnyRegionShare":
         case "anyRegionShare":
@@ -147,7 +155,6 @@ export const isSimpleEffect = (eff: any): boolean => {
         case "choice":
         case "update":
         case "comment":
-        case "pay":
         case "optional":
             return false;
         default:
