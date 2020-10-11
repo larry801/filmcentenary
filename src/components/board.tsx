@@ -387,7 +387,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
                     {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
                 ]} defaultChoice={"no"}
                 show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "confirmRespond"}
-                title={i18n.dialog.confirmRespond.title} toggleText={i18n.dialog.confirmRespond.toggleText}
+                title={i18n.dialog.confirmRespond.title} toggleText={i18n.dialog.confirmRespond.toggleText + effName(G.e.currentEffect)}
                 initial={true}/>
         </Grid>
         :

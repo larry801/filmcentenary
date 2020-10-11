@@ -60,6 +60,8 @@ export const eventEffects = {
         a: [
             {e: "everyPlayer", a: {e: "deposit", a: 2}},
             {e: "everyPlayer", a: {e: "discard", a: 1}},
+            {e: "searchAndArchive", a: "1102"},
+            {e: "searchAndArchive", a: "1202"}
         ]
     },
     "E03": {e: "Avant-grade", a: "E03"},

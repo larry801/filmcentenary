@@ -627,7 +627,7 @@ export const confirmRespond: LongFormMove = {
                             throw Error(`p${p}doNotOwn|${eff.a}`)
                         }
                     }
-                    playerEffExec(G, ctx, p);
+                    pub.vp += 2;
                     break;
                 default:
                     throw new Error();
