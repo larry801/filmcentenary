@@ -17,6 +17,9 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
     useI18n(i18n);
     const p = G.pub[parseInt(playerID)];
     const hand = G.player[parseInt(playerID)].hand;
+
+    const canPlayOrBreakthrough = ctx.currentPlayer === playerID && ctx.activePlayers === null
+
     return <Grid item xs={12} sm={6}>
         <Typography>{i18n.hand.title}</Typography>
         {hand.map((c, idx) =>
@@ -43,23 +46,23 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     <Grid container>
                         <Grid item xs={12}>
                             <Button
+                                disabled={!canPlayOrBreakthrough}
                                 onClick={() => moves.playCard({
                                     card: c.cardId,
                                     idx: idx,
                                     playerID: playerID,
                                     res: 0,
                                 })}
-                                disabled={playerID !== ctx.currentPlayer}
                             >{i18n.action.play}</Button>
 
                             <Button
+                                disabled={!canPlayOrBreakthrough || p.action < 1 || p.resource < 2}
                                 onClick={() => moves.breakthrough({
                                     card: c.cardId,
                                     idx: idx,
                                     playerID: playerID,
                                     res: 2,
                                 })}
-                                disabled={playerID !== ctx.currentPlayer || p.action < 1 || p.resource < 2}
                             >{i18n.action.breakthrough2Res}</Button>
                             <Button
                                 onClick={() => moves.breakthrough({
@@ -68,7 +71,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                                     playerID: playerID,
                                     res: 1,
                                 })}
-                                disabled={playerID !== ctx.currentPlayer || p.action < 1 || p.resource < 1 || p.deposit < 1}
+                                disabled={!canPlayOrBreakthrough || p.action < 1 || p.resource < 1 || p.deposit < 1}
                             >{i18n.action.breakthrough1Res}</Button>
                             <Button
                                 onClick={() => moves.breakthrough({
@@ -77,7 +80,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                                         playerID: playerID,
                                         res: 0,
                                     })}
-                                disabled={playerID !== ctx.currentPlayer || p.action < 1 || p.deposit < 2}
+                                disabled={!canPlayOrBreakthrough || p.action < 1 || p.deposit < 2}
                             >{i18n.action.breakthrough0Res}</Button>
                         </Grid>
                     </Grid>
