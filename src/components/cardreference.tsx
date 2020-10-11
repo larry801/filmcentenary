@@ -21,7 +21,7 @@ interface ICardItemProps {
 
 const useStyles = makeStyles({
     table: {
-        minWidth: 350,
+        minWidth: 500,
     },
 });
 
