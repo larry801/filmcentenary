@@ -358,10 +358,10 @@ const argCompetitionCard = {
     }
 }
 const argUpdateSlot = {
-    args: (arg: ICardSlot[]): string => {
+    args: (arg: string[]): string => {
         let a = arg[0]
         let t = " updated "
-        t += bracketCardName(a.card?.cardId)
+        t += bracketCardName(a)
         return t
     }
 }

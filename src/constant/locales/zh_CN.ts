@@ -355,10 +355,10 @@ const argCompetitionCard = {
     }
 }
 const argUpdateSlot = {
-    args: (arg: ICardSlot[]): string => {
+    args: (arg: string[]): string => {
         let a = arg[0]
         let t = "更新了"
-        t += bracketCardName(a.card?.cardId)
+        t += bracketCardName(a)
         return t
     }
 }
@@ -399,7 +399,7 @@ const zh_CN: Locale = {
     region: region,
     action: {
         updateSlot: "更新",
-        showBoardStatus: "补充初始牌",
+        showBoardStatus: "展示牌列",
         draw: "摸牌",
         play: "出牌",
         breakthrough2Res: "花费2资源突破",

@@ -50,7 +50,7 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
     const variant = slot.isLegend ? "elevation" : "outlined"
 
     const updateSlot = ()=>{
-        moves.updateSlot(slot);
+        moves.updateSlot(slot.card?.cardId);
     }
 
     return <>

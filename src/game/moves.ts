@@ -18,7 +18,7 @@ import {
     aesAward,
     atkCardSettle,
     buildingInRegion,
-    canBuyCard, cardInDeck, cardInDiscard, cardInHand,
+    canBuyCard, cardInDeck, cardInDiscard, cardInHand, cardSlotOnBoard,
     checkCompetitionDefender,
     checkNextEffect,
     checkRegionScoring,
@@ -45,7 +45,7 @@ import {
     try2pScoring,
     tryScoring,
 } from "./util";
-import {changeStage, signalEndPhase, signalEndStage} from "./logFix";
+import {changePlayerStage, changeStage, signalEndPhase, signalEndStage} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
 import {B05} from "../constant/cards/basic";
 import {getCardById} from "../types/cards";
@@ -284,10 +284,13 @@ export const chooseEffect: LongFormMove = {
 
 export const updateSlot = {
     client: false,
-    move: (G: IG, ctx: Ctx, slot: ICardSlot) => {
+    move: (G: IG, ctx: Ctx, cardId:string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        logger.info(`p${ctx.playerID}.moves.chooseTarget(${slot})`);
-        logger.info("updateSlot");
+        logger.info(`p${ctx.playerID}.moves.updateSlot(${cardId})`);
+        let slot = cardSlotOnBoard(G,ctx,getCardById(cardId));
+        if(slot===null){
+            return INVALID_MOVE;
+        }
         doReturnSlotCard(G, ctx, slot);
         if (ctx.numPlayers > 2) {
             fillEmptySlots(G, ctx);
