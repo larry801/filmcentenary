@@ -12,7 +12,7 @@ import {
     playCard, requestEndTurn, chooseRegion, peek,
 } from "./moves";
 import {IG} from "../types/setup";
-import {changeStage, cleanPendingSignal} from "./logFix";
+import {autoEventsOnMove, changeStage, cleanPendingSignal} from "./logFix";
 import {aesAward, curPub, drawCardForPlayer, industryAward} from "./util";
 
 
@@ -84,6 +84,7 @@ export const setupStage: StageConfig = {
 }
 
 export const NormalTurn: TurnConfig = {
+    onMove:autoEventsOnMove,
     onBegin: (G: IG, ctx: Ctx) => {
         cleanPendingSignal(G, ctx)
         let p = ctx.currentPlayer;

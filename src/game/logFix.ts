@@ -87,7 +87,7 @@ export function changePhase(G: IG, ctx: Ctx, phase: string) {
     }
 }
 
-export function autoEventsOnMove(G: IG, ctx: Ctx): void {
+export const autoEventsOnMove = (G: IG, ctx: Ctx): void => {
     if (G.pending.endTurn) {
         ctx.events?.endTurn?.();
     }

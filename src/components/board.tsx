@@ -163,9 +163,9 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
     const requestEndTurn = (choice: string) => {
         if (choice === "yes") {
             moves.requestEndTurn(playerID);
-            if (G.logDiscrepancyWorkaround) {
-                events?.endTurn?.();
-            }
+            // if (G.logDiscrepancyWorkaround) {
+            //     events?.endTurn?.();
+            // }
         }
     }
 
@@ -350,7 +350,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 : <></>}
             {playerID !== null && ctx.phase !== "InitPhase" && canMoveCurrent ?
                 <Button
-                    disabled={G.pub[parseInt(playerID)].action <= 0 || G.player[parseInt(playerID)].deckEmpty}
+                    disabled={G.pub[parseInt(playerID)].action <= 0 || G.player[parseInt(playerID)].deckEmpty || G.pending.endTurn}
                     variant={"outlined"}
                     onClick={drawCard}>
                     {i18n.action.draw}
@@ -363,7 +363,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                     {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
                     {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
                 ]} defaultChoice={"yes"}
-                show={playerID !== null && canMoveCurrent}
+                show={playerID !== null && canMoveCurrent && !G.pending.endTurn}
                 title={i18n.action.endStage} toggleText={i18n.action.endStage}
             />
             {playerID !== null ? <ChoiceDialog
