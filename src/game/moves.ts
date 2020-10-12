@@ -51,9 +51,9 @@ import {B05} from "../constant/cards/basic";
 import {getCardById} from "../types/cards";
 
 export const drawCard: LongFormMove = {
-    move: (G: IG, ctx: Ctx) => {
-        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        logger.info(`p${ctx.playerID}.moves.drawCard()`);
+    move: (G: IG, ctx: Ctx,p :PlayerID) => {
+        if (activePlayer(ctx) !== p) return INVALID_MOVE;
+        logger.info(`p${p}.moves.drawCard(${p})`);
         curPub(G, ctx).action--;
         logger.debug(`p${ctx.currentPlayer}|drawCardWithAP`);
         drawCardForPlayer(G, ctx, ctx.currentPlayer);

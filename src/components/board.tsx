@@ -267,7 +267,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         moves.showBoardStatus(args);
     }
 
-    const drawCard = () => moves.drawCard();
+    const drawCard = () => moves.drawCard(playerID);
 
     const undoFn = () => undo();
     const redoFn = () => redo();
