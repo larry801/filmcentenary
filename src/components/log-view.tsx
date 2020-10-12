@@ -37,13 +37,24 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
     const toggleGameLog = () => {
         setOpen(!open)
     }
-    const getLogText = (l: LogEntry): string | null => {
+
+    const getMoveText =(l: LogEntry): string  => {
+        switch (l.action.type) {
+            case "MAKE_MOVE":
+                let moveName = l.action.payload.type as MoveNames
+                return `p${l.action.payload.playerID}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])})`
+            default:
+                return ""
+        }
+    }
+
+    const getLogText = (l: LogEntry): string=> {
         switch (l.action.type) {
             case "GAME_EVENT":
                 if (l.action.payload.type === "endTurn") {
                     return i18n.action.turnEnd({a: l.turn})
                 } else {
-                    return null;
+                    return "";
                 }
             case "MAKE_MOVE":
                 let moveName = l.action.payload.type as MoveNames
@@ -51,15 +62,17 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                 return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
                     args: l.action.payload.args
                 })
+            default:
+                return ""
         }
     }
 
-    return <Grid item xs={12}>
+    return <Grid item container xs={12}>
         <Button fullWidth={true} onClick={toggleGameLog}>
             {i18n.pub.gameLog}
         </Button>
 
-        {open && <Grid className={classes.root}>
+        {open &&<> <Grid item xs={6} className={classes.root}>
             <AutoSizer
                 defaultHeight={1000}
                 defaultWidth={400}>
@@ -72,7 +85,7 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                     {({index, style}: ListChildComponentProps) => {
                         const i = log.length - index - 1;
                         const text = getLogText(log[i])
-                        return text === null ? <></> : <ListItem
+                        return text === "" ? <></> : <ListItem
                             button
                             // @ts-ignore
                             style={
@@ -85,6 +98,10 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                     }}
                 </FixedSizeList>}
             </AutoSizer>
-        </Grid>}
+        </Grid>
+            <Grid item xs={6}>
+                {log.map((l:LogEntry)=><div key={shortid.generate()}>{getMoveText(l)}</div>)}
+            </Grid>
+        </>}
     </Grid>
 }
