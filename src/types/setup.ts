@@ -10,7 +10,7 @@ import {
     IPubInfo,
     IRegionInfo,
     IRegionPrivate, ISchoolCard,
-    Region
+    Region, SimpleRuleNumPlayers
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {B01, B02, B07} from "../constant/cards/basic";
@@ -309,7 +309,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             "B07": 0,
         },
     }
-    if (ctx.numPlayers > 2) {
+    if (ctx.numPlayers === 3) {
         G.regions[Region.NA].buildings[1].activated = true;
         G.regions[Region.WE].buildings[1].activated = true;
         // @ts-ignore
@@ -320,7 +320,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         // @ts-ignore
         G.pub[G.order[3]].vp = 2;
     }
-    if (ctx.numPlayers === 2) {
+    if (ctx.numPlayers === SimpleRuleNumPlayers) {
         G.regions[Region.NA].share = 12;
         G.regions[Region.WE].share = 10;
         G.regions[Region.EE].share = 8;

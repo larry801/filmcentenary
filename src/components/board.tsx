@@ -9,7 +9,15 @@ import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
 import {PubPanel} from "./pub";
-import {CardCategory, EventCardID, IBasicCard, ICardSlot, Region, ValidRegions} from "../types/core";
+import {
+    CardCategory,
+    EventCardID,
+    IBasicCard,
+    ICardSlot,
+    Region,
+    SimpleRuleNumPlayers,
+    ValidRegions
+} from "../types/core";
 import {BuyCard} from "./buyCard";
 import {B01, B02, B03, B04, B05} from "../constant/cards/basic";
 import Grid from "@material-ui/core/Grid"
@@ -196,7 +204,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
 
     const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment({target: slot, comment: card,p:playerID})
 
-    const cardBoard = ctx.numPlayers === 2 ?
+    const cardBoard = ctx.numPlayers === SimpleRuleNumPlayers ?
         <Grid container spacing={2} alignItems="center">
             <Grid item xs={12}><Typography>{i18n.pub.share}</Typography></Grid>
             {ValidRegions.map(r => <Grid key={`region-${r}-share`}
@@ -397,7 +405,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
         </Grid>
 
     return <Grid container justify="space-evenly" alignItems="center">
-        {ctx.numPlayers !== 2 ? <Grid xs={12} spacing={2} container item>
+        {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
             <Grid item xs={4}><Typography>{i18n.pub.events}</Typography></Grid>
             {G.events.map((e, idx) => <Grid key={idx} item xs={4}>
                 <Paper key={idx} elevation={10}>
@@ -411,7 +419,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
                     fullWidth
                     disabled={!canMove}
                     onClick={() => {
-                        const args = ctx.numPlayers > 2 ? {
+                        const args = ctx.numPlayers > SimpleRuleNumPlayers ? {
                             regions: [
                                 G.regions[Region.NA],
                                 G.regions[Region.WE],

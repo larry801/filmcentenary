@@ -364,7 +364,7 @@ export enum ScoreCardID {
     'V342'='V342',
 }
 
-export const SimpleRuleNumPlayers = 2;
+export const SimpleRuleNumPlayers = 1;
 
 export enum ClassicCardID {
     'P1101'='P1101',

@@ -9,7 +9,7 @@ import {
     IEra,
     INormalOrLegendCard,
     IRegionInfo,
-    Region,
+    Region, SimpleRuleNumPlayers,
     ValidRegions
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
@@ -45,7 +45,7 @@ import {
     try2pScoring,
     tryScoring,
 } from "./util";
-import {changePlayerStage, changeStage, signalEndPhase, signalEndStage} from "./logFix";
+import {changeStage, signalEndPhase, signalEndStage} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
 import {B05} from "../constant/cards/basic";
 import {getCardById} from "../types/cards";
@@ -116,7 +116,7 @@ export const chooseTarget: LongFormMove = {
                 G.pub[parseInt(p)].vp -= handCount;
                 break;
             case "competition":
-                if (ctx.numPlayers > 2) {
+                if (ctx.numPlayers > SimpleRuleNumPlayers) {
                     G.c.players = [];
                     G.e.stack.push(eff);
                     G.competitionInfo.progress = eff.a.bonus;
@@ -292,7 +292,7 @@ export const updateSlot = {
             return INVALID_MOVE;
         }
         doReturnSlotCard(G, ctx, slot);
-        if (ctx.numPlayers > 2) {
+        if (ctx.numPlayers > SimpleRuleNumPlayers) {
             fillEmptySlots(G, ctx);
         } else {
             fillTwoPlayerBoard(G, ctx);
@@ -564,7 +564,7 @@ export const requestEndTurn: LongFormMove = {
             }
         })
         log += `|scoreRegions|${G.scoringRegions}`
-        if (ctx.numPlayers > 2) {
+        if (ctx.numPlayers > SimpleRuleNumPlayers) {
             log += "|tryScoring"
             logger.debug(log);
             tryScoring(G, ctx);

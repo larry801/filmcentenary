@@ -18,7 +18,7 @@ import {
     Region,
     ShareOnBoard,
     validRegion,
-    ValidRegions,
+    ValidRegions, SimpleRuleNumPlayers,
 } from "../types/core";
 import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
@@ -320,7 +320,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         }
     } else {
         let slot: ICardSlot | null;
-        if (ctx.numPlayers === 2) {
+        if (ctx.numPlayers === SimpleRuleNumPlayers) {
             slot = cardSlotOnBoard2p(G, ctx, card);
         } else {
             slot = cardSlotOnBoard(G, ctx, card);
@@ -337,7 +337,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             let region = card.region;
             if (region !== Region.NONE) {
                 let share = 0;
-                if (ctx.numPlayers > 2) {
+                if (ctx.numPlayers > SimpleRuleNumPlayers) {
                     if (slot.isLegend) {
                         share++;
                     }
@@ -1386,7 +1386,7 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
         slot.comment = null;
     }
 
-    if (ctx.numPlayers > 2) {
+    if (ctx.numPlayers > SimpleRuleNumPlayers) {
         if (slot.region === Region.NONE) return;
         if (slot.isLegend) {
             log += `|legend`
@@ -1514,7 +1514,7 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
             finalScoring(G, ctx);
         } else {
             log += "|fillEmptySlots"
-            if (ctx.numPlayers > 2) {
+            if (ctx.numPlayers > SimpleRuleNumPlayers) {
                 fillEmptySlots(G, ctx);
             } else {
                 fillTwoPlayerBoard(G, ctx)
@@ -1693,7 +1693,7 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
         log += `|${additionalCost}|canUpgrade`
         G.e.choices.push({e: "industryLevelUp", a: 1})
     }
-    if (ctx.numPlayers > 2) {
+    if (ctx.numPlayers > SimpleRuleNumPlayers) {
         if (totalResource >= 3 && studioSlotsAvailable(G, ctx, player).length > 0) {
             log += `|studio`
             G.e.choices.push({e: "buildStudio", a: 1})

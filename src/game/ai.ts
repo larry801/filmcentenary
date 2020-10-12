@@ -2,7 +2,7 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {actualStage, canAfford, getPossibleHelper, resCost} from "./util";
 import {Stage} from "boardgame.io/core";
-import {IBasicCard, INormalOrLegendCard, ValidRegions} from "../types/core";
+import {IBasicCard, INormalOrLegendCard, SimpleRuleNumPlayers, ValidRegions} from "../types/core";
 
 export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard):
     Array<{ move: string; args?: any[] }> => {
@@ -89,7 +89,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                         })
                     })
                 }
-                if (ctx.numPlayers > 2) {
+                if (ctx.numPlayers > SimpleRuleNumPlayers) {
                     ValidRegions.forEach(r => {
                         let rObj = G.regions[r];
                         let card = rObj.legend.card;
@@ -179,7 +179,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
             break;
         case "updateSlot":
         case "comment":
-            if (ctx.numPlayers > 2) {
+            if (ctx.numPlayers > SimpleRuleNumPlayers) {
                 ValidRegions.forEach(r => {
                     let rObj = G.regions[r];
                     let card = rObj.legend.card;
@@ -194,14 +194,14 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                     }
                 })
             } else {
-                G.twoPlayer.film.forEach((slot, idx) => {
+                G.twoPlayer.film.forEach((slot, ) => {
                     if (slot.card !== null) {
-                        moves.push({move: stage, args: [slot]})
+                        moves.push({move: stage, args: [slot.card.cardId]})
                     }
                 })
-                G.twoPlayer.school.forEach((slot, idx) => {
+                G.twoPlayer.school.forEach((slot) => {
                     if (slot.card !== null) {
-                        moves.push({move: stage, args: [slot]})
+                        moves.push({move: stage, args: [slot.card.cardId]})
                     }
                 })
             }
