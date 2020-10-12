@@ -24,13 +24,41 @@ import Grid from "@material-ui/core/Grid"
 import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
 import {LogView} from './log-view'
+import useSound from 'use-sound';
+import {useEffect, useRef} from "react";
+// @ts-ignore
+import playerTurnSfx from './media/turn.mp3'
 
-export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plugins, matchData, matchID, playerID}: BoardProps<IG>) => {
+function usePrevious(value: any) {
+    const ref = useRef();
+
+    useEffect(() => {
+        ref.current = value;
+    }, [value]);
+
+    return ref.current;
+}
+
+export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plugins, matchData, matchID, playerID, isActive}: BoardProps<IG>) => {
 
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
     const canMove = ctx.currentPlayer === playerID ? canMoveCurrent : canMoveOutOfTurn;
     const curPlayerSuffix = "(*)"
+    const inActiveTitle = "Film Centenary"
+    const prevIsActive = usePrevious(isActive);
+    const [play] = useSound(playerTurnSfx);
+    useEffect(() => {
+        if(!isActive && prevIsActive === true){
+            document.title = inActiveTitle
+        }
+        if (isActive && prevIsActive === false) {
+            document.title = curPlayerSuffix + inActiveTitle
+            play()
+        }
+        console.log(prevIsActive,isActive)
+    }, [prevIsActive, isActive, play])
+
     const getName = (playerID: PlayerID | null = ctx.currentPlayer): string => {
         const fallbackName = i18n.playerName.player + playerID;
         if (playerID === null) {

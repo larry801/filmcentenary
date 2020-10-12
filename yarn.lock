@@ -5706,6 +5706,11 @@ hosted-git-info@^2.1.4:
   resolved "https://registry.npm.taobao.org/hosted-git-info/download/hosted-git-info-2.8.8.tgz?cache=0&sync_timestamp=1594428119675&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2Fhosted-git-info%2Fdownload%2Fhosted-git-info-2.8.8.tgz#7539bd4bc1e0e0a895815a2e0262420b12858488"
   integrity sha1-dTm9S8Hg4KiVgVouAmJCCxKFhIg=
 
+howler@^2.1.3:
+  version "2.2.0"
+  resolved "https://registry.npm.taobao.org/howler/download/howler-2.2.0.tgz#0e2c780997ae65ab9a1a186333031beac1c63c6b"
+  integrity sha1-Dix4CZeuZauaGhhjMwMb6sHGPGs=
+
 hpack.js@^2.1.6:
   version "2.1.6"
   resolved "https://registry.npm.taobao.org/hpack.js/download/hpack.js-2.1.6.tgz#87774c0949e513f42e84575b3c45681fade2a0b2"
@@ -11509,6 +11514,13 @@ url@^0.11.0:
   dependencies:
     punycode "1.3.2"
     querystring "0.2.0"
+
+use-sound@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.npm.taobao.org/use-sound/download/use-sound-1.0.2.tgz#1a867d284268012b6fbd8610e0594d3f750e2788"
+  integrity sha1-GoZ9KEJoAStvvYYQ4FlNP3UOJ4g=
+  dependencies:
+    howler "^2.1.3"
 
 use@^3.1.0:
   version "3.1.1"
