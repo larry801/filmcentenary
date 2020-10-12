@@ -288,7 +288,10 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
                 : <></>}
             <ChoiceDialog
                 initial={false}
-                callback={(choice)=>{if(choice==="yes"){moves.requestEndTurn(playerID)}}}
+                callback={(choice)=>{if(choice==="yes"){
+                    moves.requestEndTurn(playerID);
+                    events?.endTurn?.();
+                }}}
                 choices={[
                     {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
                     {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
