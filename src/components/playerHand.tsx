@@ -22,70 +22,75 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
 
     return <Grid item xs={12} sm={6}>
         <Typography>{i18n.hand.title}</Typography>
-        {hand.map((c, idx) =>
-            <Accordion
-                expanded={true}
-                key={shortid.generate()}>
-                <AccordionSummary key={idx}>
-                    {getCardName(c.cardId)}
-                    {"  "}
-                    {
-                        // @ts-ignore
-                        c.industry > 0 ? i18n.pub.industryMarker + c.industry.toString() : ""
-                    }
-                    {
-                        // @ts-ignore
-                        c.aesthetics > 0 ? i18n.pub.aestheticsMarker + c.aesthetics.toString() : ""
-                    }
-                    {
-                        // @ts-ignore
-                        cardEffectText(c.cardId)
-                    }
-                </AccordionSummary>
-                <AccordionDetails key={idx}>
-                    <Grid container>
-                        <Grid item xs={12}>
-                            <Button
-                                disabled={!canPlayOrBreakthrough}
-                                onClick={() => moves.playCard({
-                                    card: c.cardId,
-                                    idx: idx,
-                                    playerID: playerID,
-                                    res: 0,
-                                })}
-                            >{i18n.action.play}</Button>
+        {hand.map((c, idx) => {
+                const play = () => moves.playCard({
+                    card: c.cardId,
+                    idx: idx,
+                    playerID: playerID,
+                    res: 0,
+                })
 
-                            <Button
-                                disabled={!canPlayOrBreakthrough || p.action < 1 || p.resource < 2}
-                                onClick={() => moves.breakthrough({
-                                    card: c.cardId,
-                                    idx: idx,
-                                    playerID: playerID,
-                                    res: 2,
-                                })}
-                            >{i18n.action.breakthrough2Res}</Button>
-                            <Button
-                                onClick={() => moves.breakthrough({
-                                    card: c.cardId,
-                                    idx: idx,
-                                    playerID: playerID,
-                                    res: 1,
-                                })}
-                                disabled={!canPlayOrBreakthrough || p.action < 1 || p.resource < 1 || p.deposit < 1}
-                            >{i18n.action.breakthrough1Res}</Button>
-                            <Button
-                                onClick={() => moves.breakthrough({
-                                        card: c.cardId,
-                                        idx: idx,
-                                        playerID: playerID,
-                                        res: 0,
-                                    })}
-                                disabled={!canPlayOrBreakthrough || p.action < 1 || p.deposit < 2}
-                            >{i18n.action.breakthrough0Res}</Button>
+                const archive2res = () => moves.breakthrough({
+                    card: c.cardId,
+                    idx: idx,
+                    playerID: playerID,
+                    res: 2,
+                });
+                const archive1res = () => moves.breakthrough({
+                    card: c.cardId,
+                    idx: idx,
+                    playerID: playerID,
+                    res: 1,
+                });
+                const archive0res = () => moves.breakthrough({
+                    card: c.cardId,
+                    idx: idx,
+                    playerID: playerID,
+                    res: 0,
+                });
+                return <Accordion
+                    expanded={true}
+                    key={shortid.generate()}>
+                    <AccordionSummary key={idx}>
+                        {getCardName(c.cardId)}
+                        {"  "}
+                        {
+                            // @ts-ignore
+                            c.industry > 0 ? i18n.pub.industryMarker + c.industry.toString() : ""
+                        }
+                        {
+                            // @ts-ignore
+                            c.aesthetics > 0 ? i18n.pub.aestheticsMarker + c.aesthetics.toString() : ""
+                        }
+                        {
+                            // @ts-ignore
+                            cardEffectText(c.cardId)
+                        }
+                    </AccordionSummary>
+                    <AccordionDetails key={idx}>
+                        <Grid container>
+                            <Grid item xs={12}>
+                                <Button
+                                    disabled={!canPlayOrBreakthrough}
+                                    onClick={play}
+                                >{i18n.action.play}</Button>
+                                <Button
+                                    disabled={!canPlayOrBreakthrough || p.action < 1 || p.resource < 2}
+                                    onClick={archive2res}
+                                >{i18n.action.breakthrough2Res}</Button>
+                                <Button
+                                    onClick={archive1res}
+                                    disabled={!canPlayOrBreakthrough || p.action < 1 || p.resource < 1 || p.deposit < 1}
+                                >{i18n.action.breakthrough1Res}</Button>
+                                <Button
+                                    onClick={archive0res}
+                                    disabled={!canPlayOrBreakthrough || p.action < 1 || p.deposit < 2}
+                                >{i18n.action.breakthrough0Res}</Button>
+                            </Grid>
                         </Grid>
-                    </Grid>
-                </AccordionDetails>
-            </Accordion>
+                    </AccordionDetails>
+                </Accordion>
+            }
         )}
     </Grid>
 }

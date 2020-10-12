@@ -58,7 +58,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             resource: 0,
             deposit: 0,
             helper: helpers.filter((c, idx) => newHelper[idx]),
-        },false);
+        }, false);
         let newMin = Math.max(newCost - pub.resource, 0);
         let newMax = Math.min(newCost, pub.deposit);
         let newExtraDepositLimit = newMax - newMin
@@ -78,7 +78,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         resource: 0,
         deposit: 0,
         helper: helpers.filter((c, idx) => checked[idx]),
-    },false);
+    }, false);
     const minDeposit = Math.max(realtimeCost - pub.resource, 0);
     const affordable = canAfford(G, ctx, card, playerID) && pub.action > 0;
     const buttonColor = affordable ? "primary" : "secondary"
@@ -94,9 +94,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     const sliderRequired = pub.deposit + pub.resource > realtimeCost && pub.deposit > 0 && pub.resource > 0;
     const maxDeposit = Math.min(realtimeCost, pub.deposit);
     const canBuy: boolean = canBuyCard(G, ctx, buyArg);
-    const buy = () => {
-        moves.buyCard(buyArg)
-    };
+    const buy = () => moves.buyCard(buyArg);
     const canHelp = (helper: string): boolean => {
         let helperCard = getCardById(helper);
         if (card.cost.industry === 0) {
@@ -124,6 +122,13 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         setDepositExtra(0);
     }
 
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
+    const buyAndClose = () => {
+        handleClose();
+        buy();
+    }
+
     const canMakeBuyMove = () => {
         if (pub.school?.cardId === "2301" && card.region !== Region.EE) {
             return ctx.currentPlayer === playerID && canBuy && pub.resource >= res && pub.deposit >= deposit && pub.action > 0 && pub.vp > 0
@@ -132,20 +137,18 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         }
 
     }
+    const getValueText = (n: number) => n.toString();
 
     return <Grid item>
         <Button
-            onClick={() => {
-                setOpen(true)
-            }}
+            onClick={handleOpen}
             color={buttonColor}
             variant={"outlined"}
         >{i18n.dialog.buyCard.board}
-
             {getCardName(card.cardId)}
             {card.category === CardCategory.BASIC ? '(' + G.basicCards[card.cardId as BasicCardID].toString() + ')' : ""}
         </Button>
-        <Dialog onClose={() => setOpen(false)} open={open}>
+        <Dialog onClose={handleClose} open={open}>
             <DialogTitle>
                 {i18n.dialog.buyCard.board}
                 {getCardName(card.cardId)}
@@ -170,7 +173,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                             max={maxDeposit - minDeposit}
                             step={1}
                             marks
-                            getAriaValueText={(n: number) => n.toString()}
+                            getAriaValueText={getValueText}
                             aria-labelledby="deposit-slider"
                             valueLabelDisplay="auto"
                             value={depositExtra}
@@ -181,7 +184,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                                 control={<Checkbox
                                     value={idx}
                                     checked={checked[idx]}
-                                    onChange={(e) => handleChange(e)}
+                                    onChange={handleChange}
                                     name={getCardName(p)}/>}
                                 label={
                                     getCardName(p) + "  " +
@@ -197,23 +200,16 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             <DialogActions>
                 <Button key={1}
                         variant={"contained"}
-                        onClick={() => {
-                            buy();
-                            setOpen(false);
-                        }} color="primary"
+                        onClick={buyAndClose} color="primary"
                         disabled={!canMakeBuyMove()}>
                     {i18n.confirm}
                 </Button>
                 <Button key={2}
-                        onClick={() => {
-                            setOpen(false)
-                        }} color="secondary" variant={"outlined"}>
+                        onClick={handleClose} color="secondary" variant={"outlined"}>
                     {i18n.cancel}
                 </Button>
                 <Button key={3}
-                        onClick={() => {
-                            refreshCost()
-                        }}
+                        onClick={refreshCost}
                         color="secondary" variant={"outlined"}>
                     {i18n.dialog.buyCard.refresh}
                 </Button>

@@ -14,11 +14,12 @@ import {blue, purple, red, yellow} from "@material-ui/core/colors";
 import Icon from "@material-ui/core/Icon";
 import Paper from "@material-ui/core/Paper";
 import Typography from "@material-ui/core/Typography";
-import {Theme}  from "@material-ui/core/styles/createMuiTheme";
+import {Theme} from "@material-ui/core/styles/createMuiTheme";
 import Grid from "@material-ui/core/Grid";
 import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
+
 export interface ICardSlotProp {
     slot: ICardSlot,
     G: IG,
@@ -27,11 +28,13 @@ export interface ICardSlotProp {
     comment: (slot: ICardSlot, card: IBasicCard | null) => void,
     playerID: PlayerID | null,
 }
+
 export interface IShareIconProps {
-    r:validRegion
+    r: validRegion
 }
-const getColor = (r:validRegion):string =>{
-    switch (r){
+
+const getColor = (r: validRegion): string => {
+    switch (r) {
         case Region.WE:
             return purple[500]
         case Region.NA:
@@ -42,14 +45,14 @@ const getColor = (r:validRegion):string =>{
             return yellow[700]
     }
 }
-export const ShareIcon = ({r}:IShareIconProps) => <Icon style={{ color: getColor(r) }}>label</Icon>
+export const ShareIcon = ({r}: IShareIconProps) => <Icon style={{color: getColor(r)}}>label</Icon>
 
 
 export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlotProp) => {
 
     const variant = slot.isLegend ? "elevation" : "outlined"
 
-    const updateSlot = ()=>{
+    const updateSlot = () => {
         moves.updateSlot(slot.card?.cardId);
     }
 
@@ -57,19 +60,19 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
         <Paper style={{display: 'inline-flex'}} variant={variant}>
             <Typography>{slot.card === null ? "" : getCardName(slot.card.cardId)} </Typography>
             <Typography>{slot.comment === null ? "" : getCardName(slot.comment.cardId)} </Typography>
-            {playerID !== null && slot.card !== null?
-                  <BuyCard
-                        card={slot.card}
-                        helpers={G.player[(parseInt(playerID))].hand.map(c=>c.cardId)}
-                        ctx={ctx}
-                        G={G}
-                        playerID={playerID} moves={moves}/> : <></>}
+            {playerID !== null && slot.card !== null ?
+                <BuyCard
+                    card={slot.card}
+                    helpers={G.player[(parseInt(playerID))].hand.map(c => c.cardId)}
+                    ctx={ctx}
+                    G={G}
+                    playerID={playerID} moves={moves}/> : <></>}
             {activePlayer(ctx) === playerID &&
-            actualStage(G,ctx) === "updateSlot"? <Button onClick={updateSlot}
-                >{i18n.action.updateSlot}</Button>:<></>}
+            actualStage(G, ctx) === "updateSlot" ? <Button onClick={updateSlot}
+            >{i18n.action.updateSlot}</Button> : <></>}
 
-            {activePlayer(ctx) === playerID && actualStage(G,ctx) === "comment"?
-                <Comment slot={slot} comment={comment} G={G}/>:<></>}
+            {activePlayer(ctx) === playerID && actualStage(G, ctx) === "comment" ?
+                <Comment slot={slot} comment={comment} G={G}/> : <></>}
         </Paper>
     </>
 }
@@ -100,10 +103,14 @@ const useStyles = makeStyles((theme: Theme) =>
 export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}: IRegionProp) => {
     useI18n(i18n);
     const {era, share, legend, normal} = region;
-    const [expanded, setExpanded] = React.useState(true);
     const classes = useStyles();
 
-    const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment({target: slot, comment: card,p:playerID})
+    const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment({
+        target: slot,
+        comment: card,
+        p: playerID
+    })
+
 
     // eslint-disable-next-line
     const buildingSlotName = (r: validRegion, idx: number): string => {
@@ -156,14 +163,14 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
     }
 
     const buildingSlots = region.buildings.map((slot, idx) => {
-        if(slot.activated) {
+        if (slot.activated) {
             return (<Grid item xs={2} sm={1} key={`building-slot-${idx}`}>
                 <Paper>
-                    <Typography> {slot.owner !== "" ? content(slot.isCinema) :""}</Typography>
+                    <Typography> {slot.owner !== "" ? content(slot.isCinema) : ""}</Typography>
                     <Typography>{playerName(slot.owner)}</Typography>
                 </Paper>
             </Grid>)
-        }else {
+        } else {
             return <div key={`building-slot-${idx}`}/>
         }
     })
@@ -172,26 +179,26 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
         <Accordion
             className={classes.root}
             expanded={true}
-                   onChange={() => setExpanded(!expanded)}
-                   key={r}>
+            key={r}>
             <AccordionSummary key={r}>
                 <Grid container
                       justify="space-evenly"
                       alignItems="baseline"
-                      className={classes.root} >
-                    <Grid item xs={2} sm={1} ><Paper variant={"outlined"}><Typography>{i18n.region[r]} </Typography></Paper></Grid>
+                      className={classes.root}>
+                    <Grid item xs={2} sm={1}><Paper
+                        variant={"outlined"}><Typography>{i18n.region[r]} </Typography></Paper></Grid>
                     <Grid item xs={2} sm={1}><Paper
                         variant={"outlined"}><Typography>
                         {i18n.era[era]}
                         /{G.secretInfo.regions[r].legendDeck.length}
                         /{G.secretInfo.regions[r].normalDeck.length}
-                        </Typography></Paper></Grid>
+                    </Typography></Paper></Grid>
                     <Grid item container xs={2} sm={1}
 
                     ><Paper
                         variant={"outlined"}>
-                        {Array(share).fill(1).map((i,idx)=><Grid item xs={6} key={idx}>
-                            <ShareIcon r={r} />
+                        {Array(share).fill(1).map((i, idx) => <Grid item xs={6} key={idx}>
+                            <ShareIcon r={r}/>
                         </Grid>)} </Paper></Grid>
                     {buildingSlots}
                 </Grid>

@@ -24,23 +24,24 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
-export interface Choice{
-    hidden:boolean,
-    disabled:boolean,
-    value:string,
-    label:string,
-}
-export interface IChoiceProps {
-    callback:(choice:string)=>void,
-    choices: Choice[],
-    defaultChoice:string,
-    show:boolean,
-    title:string,
-    toggleText: string,
-    initial:boolean,
+export interface Choice {
+    hidden: boolean,
+    disabled: boolean,
+    value: string,
+    label: string,
 }
 
-export const ChoiceDialog =({initial,callback,show,choices,title,toggleText,defaultChoice}:IChoiceProps)=>{
+export interface IChoiceProps {
+    callback: (choice: string) => void,
+    choices: Choice[],
+    defaultChoice: string,
+    show: boolean,
+    title: string,
+    toggleText: string,
+    initial: boolean,
+}
+
+export const ChoiceDialog = ({initial, callback, show, choices, title, toggleText, defaultChoice}: IChoiceProps) => {
 
     useI18n(i18n);
 
@@ -62,7 +63,9 @@ export const ChoiceDialog =({initial,callback,show,choices,title,toggleText,defa
         callback(choice);
     }
 
-    return  show?<>
+    const handleChange = (e:any) => setChoice(e.target.value);
+
+    return show ? <>
         <Button variant={"outlined"} onClick={handleClickOpen}> {toggleText}</Button>
         <Dialog open={open} onClose={handleClose} aria-label={title}>
             <DialogTitle>
@@ -72,9 +75,10 @@ export const ChoiceDialog =({initial,callback,show,choices,title,toggleText,defa
                 <FormControl required component="fieldset">
                     <FormGroup className={classes.formControl}>
                         <FormLabel component="legend">{toggleText}</FormLabel>
-                        <RadioGroup aria-label={title} name="choice" value={choice}
-                                    onChange={(e) => setChoice(e.target.value)}>
-                            {choices.map((choice,idx)=>
+                        <RadioGroup
+                            aria-label={title} name="choice" value={choice}
+                            onChange={handleChange}>
+                            {choices.map((choice, idx) =>
                                 !choice.hidden ?
                                     <FormControlLabel
                                         disabled={choice.disabled}
@@ -92,6 +96,6 @@ export const ChoiceDialog =({initial,callback,show,choices,title,toggleText,defa
                 </Button>
             </DialogActions>
         </Dialog>
-    </>:<div/>
- }
+    </> : <div/>
+}
 

@@ -15,20 +15,22 @@ export const DrawerAppBar = () => {
 
     useI18n(i18n);
     const [open, setOpen] = React.useState(false);
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
 
     return <React.Fragment><AppBar position={"sticky"}>
         <Toolbar>
             <IconButton
                 color="inherit"
                 aria-label="open drawer"
-                onClick={() => setOpen(true)}
+                onClick={handleOpen}
                 edge="start"
             >
                 <MenuIcon/>
             </IconButton>
         </Toolbar>
     </AppBar>
-        <MUIDrawer open={open} anchor={"left"} onClose={() => setOpen(false)}>
+        <MUIDrawer open={open} anchor={"left"} onClose={handleClose}>
             <List>
                 <ListItem><Button><Link to={'/'}>{i18n.drawer.lobby}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/2p'}>{i18n.drawer.twoPlayer}</Link></Button></ListItem>

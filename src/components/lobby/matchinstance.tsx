@@ -36,54 +36,59 @@ export const LobbyMatchInstance = ({match, playerName, onClickJoin, onClickLeave
     };
     const hasPlayer = !match.players.find(player => !player.name);
     const status = hasPlayer ? "RUNNING" : "OPEN"
-    const _createButtonJoin = (inst: IMatchInstance, seatId: string) => (
-        <Button
+
+
+
+    const _createButtonJoin = (inst: IMatchInstance, seatId: string) => {
+        const join = () => onClickJoin(inst.gameName, inst.matchID, '' + seatId)
+        return<Button
             key={'button-join-' + inst.matchID}
-            onClick={() =>
-                onClickJoin(inst.gameName, inst.matchID, '' + seatId)
-            }
+            onClick={join}
         >
             Join
         </Button>
-    );
+    }
 
-    const _createButtonLeave = (inst: IMatchInstance) => (
-        <Button
+    const _createButtonLeave = (inst: IMatchInstance) => {
+        const leave = () => onClickLeave(inst.gameName, inst.matchID)
+        return <Button
             key={'button-leave-' + inst.matchID}
-            onClick={() => onClickLeave(inst.gameName, inst.matchID)}
+            onClick={leave}
         >
             Leave
         </Button>
-    );
+    }
 
-    const _createButtonPlay = (inst: IMatchInstance, seatId: string) => (
+    const _createButtonPlay = (inst: IMatchInstance, seatId: string) => {
+        const play = () =>
+            onClickPlay(inst.gameName, {
+                matchID: inst.matchID,
+                playerID: '' + seatId,
+                numPlayers: inst.players.length,
+            })
+        return(
         <Button
             key={'button-play-' + inst.matchID}
-            onClick={() =>
-                onClickPlay(inst.gameName, {
-                    matchID: inst.matchID,
-                    playerID: '' + seatId,
-                    numPlayers: inst.players.length,
-                })
-            }
+            onClick={play}
         >
             Play
         </Button>
-    );
+    );}
 
-    const _createButtonSpectate = (inst: IMatchInstance) => (
-        <Button
+    const _createButtonSpectate = (inst: IMatchInstance) => {
+        const spectate = () =>
+            onClickPlay(inst.gameName, {
+                matchID: inst.matchID,
+                numPlayers: inst.players.length,
+            })
+
+        return<Button
             key={'button-spectate-' + inst.matchID}
-            onClick={() =>
-                onClickPlay(inst.gameName, {
-                    matchID: inst.matchID,
-                    numPlayers: inst.players.length,
-                })
-            }
+            onClick={spectate}
         >
             Spectate
         </Button>
-    );
+};
 
     const _createInstanceButtons = (inst: IMatchInstance) => {
         const playerSeat = inst.players.find(

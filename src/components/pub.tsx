@@ -34,6 +34,8 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         return result;
     }
 
+    const noOp = () => {}
+
     return <>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <Typography>   {i18n.pub.res} {i.resource}</Typography>
@@ -71,8 +73,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
-                callback={() => {
-                }}
+                callback={noOp}
                 choices={i.discard.map((card, idx) => {
                     return {
                         label: getCardName(card.cardId),
@@ -86,8 +87,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
-                callback={() => {
-                }}
+                callback={noOp}
                 choices={possibleHand().map((card, idx) => {
                     return {
                         label: getCardName(card.cardId),
@@ -101,8 +101,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
-                callback={() => {
-                }}
+                callback={noOp}
                 choices={i.archive.map((card, idx) => {
                     return {
                         label: getCardName(card.cardId),
@@ -116,8 +115,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog
-                callback={() => {
-                }}
+                callback={noOp}
                 choices={i.playedCardInTurn.map((card, idx) => {
                     return {
                         label: getCardName(card.cardId),

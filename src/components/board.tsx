@@ -25,7 +25,7 @@ import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
 import {LogView} from './log-view'
 
-export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugins, isActive, matchData, matchID, playerID}: BoardProps<IG>) => {
+export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plugins, matchData, matchID, playerID}: BoardProps<IG>) => {
 
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
@@ -60,7 +60,6 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
                             return arr[0].name
                         }
                     }
-                    ;
                 }
             }
         }
@@ -132,6 +131,16 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
             p: playerID
         })
     }
+
+    const requestEndTurn = (choice: string) => {
+        if (choice === "yes") {
+            moves.requestEndTurn(playerID);
+            if (G.logDiscrepancyWorkaround) {
+                events?.endTurn?.();
+            }
+        }
+    }
+
     const discardChoices = () => {
         if (playerID === null) return [];
         if (G.e.stack.length > 0) {
@@ -202,7 +211,41 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
         }
     }
 
-    const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment({target: slot, comment: card,p:playerID})
+    const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment({
+        target: slot,
+        comment: card,
+        p: playerID
+    })
+
+    const showBoardStatus = () => {
+        const args = ctx.numPlayers > SimpleRuleNumPlayers ? {
+            regions: [
+                G.regions[Region.NA],
+                G.regions[Region.WE],
+                G.regions[Region.EE],
+                G.regions[Region.ASIA],
+            ],
+            school: [],
+            film: [],
+            matchID: matchID,
+            seed: plugins.random.data.seed,
+        } : {
+            regions: [],
+            school: G.twoPlayer.school,
+            film: G.twoPlayer.film,
+            matchID: matchID,
+            seed: plugins.random.data.seed,
+        }
+        moves.showBoardStatus(args);
+    }
+
+    const drawCard = () => moves.drawCard();
+
+    const undoFn = () => undo();
+    const redoFn = () => redo();
+    const endStage = () => events?.endStage?.()
+    const endTurn = () => events?.endTurn?.();
+    const endPhase = () => events?.endPhase?.()
 
     const cardBoard = ctx.numPlayers === SimpleRuleNumPlayers ?
         <Grid container spacing={2} alignItems="center">
@@ -242,56 +285,52 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
                     >{i18n.dialog.buyCard.basic}</Typography></Grid>
 
                     <BuyCard
-                        card={B01} helpers={G.player[parseInt(playerID)].hand.map(c=>c.cardId)}
+                        card={B01} helpers={G.player[parseInt(playerID)].hand.map(c => c.cardId)}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                     <BuyCard
-                        card={B02} helpers={G.player[parseInt(playerID)].hand.map(c=>c.cardId)}
+                        card={B02} helpers={G.player[parseInt(playerID)].hand.map(c => c.cardId)}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                     <BuyCard
-                        card={B03} helpers={G.player[parseInt(playerID)].hand.map(c=>c.cardId)}
+                        card={B03} helpers={G.player[parseInt(playerID)].hand.map(c => c.cardId)}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                     <BuyCard
-                        card={B04} helpers={G.player[parseInt(playerID)].hand.map(c=>c.cardId)}
+                        card={B04} helpers={G.player[parseInt(playerID)].hand.map(c => c.cardId)}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                     <BuyCard
-                        card={B05} helpers={G.player[parseInt(playerID)].hand.map(c=>c.cardId)}
+                        card={B05} helpers={G.player[parseInt(playerID)].hand.map(c => c.cardId)}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
 
                 </> : <></>
             }
-
             {activePlayer(ctx) === playerID ? <Button
                 variant={"outlined"}
-                onClick={() => undo()}
+                onClick={undoFn}
             >{i18n.action.undo}</Button> : <></>}
             {activePlayer(ctx) === playerID ? <Button
                 variant={"outlined"}
-                onClick={() => redo()}
+                onClick={redoFn}
             >{i18n.action.redo}</Button> : <></>}
             {G.pending.endTurn && canMoveCurrent ? <Button
                     variant={"outlined"}
-                    onClick={() => events?.endTurn?.()}
+                    onClick={endTurn}
                 >{i18n.action.endTurn}</Button>
                 : <></>}
             {G.pending.endStage && canMoveCurrent ? <Button
                     variant={"outlined"}
-                    onClick={() => events?.endStage?.()}
+                    onClick={endStage}
                 >{i18n.action.endStage}</Button>
                 : <></>}
             {playerID !== null && ctx.phase !== "InitPhase" && canMoveCurrent ?
                 <Button
                     disabled={G.pub[parseInt(playerID)].action <= 0}
                     variant={"outlined"}
-                    onClick={() => moves.drawCard()}>
+                    onClick={drawCard}>
                     {i18n.action.draw}
                 </Button>
                 : <></>}
             <ChoiceDialog
                 initial={false}
-                callback={(choice)=>{if(choice==="yes"){
-                    moves.requestEndTurn(playerID);
-                    events?.endTurn?.();
-                }}}
+                callback={requestEndTurn}
                 choices={[
                     {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
                     {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
@@ -398,7 +437,8 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
                     {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
                 ]} defaultChoice={"no"}
                 show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "confirmRespond"}
-                title={i18n.dialog.confirmRespond.title} toggleText={i18n.dialog.confirmRespond.toggleText + effName(G.e.currentEffect)}
+                title={i18n.dialog.confirmRespond.title}
+                toggleText={i18n.dialog.confirmRespond.toggleText + effName(G.e.currentEffect)}
                 initial={true}/>
         </Grid>
         :
@@ -421,35 +461,14 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo,plugi
                 <Button
                     fullWidth
                     disabled={!canMove}
-                    onClick={() => {
-                        const args = ctx.numPlayers > SimpleRuleNumPlayers ? {
-                            regions: [
-                                G.regions[Region.NA],
-                                G.regions[Region.WE],
-                                G.regions[Region.EE],
-                                G.regions[Region.ASIA],
-                            ],
-                            school: [],
-                            film: [],
-                            matchID: matchID,
-                            seed: plugins.random.data.seed,
-                        } : {
-                            regions: [],
-                            school: G.twoPlayer.school,
-                            film: G.twoPlayer.film,
-                            matchID: matchID,
-                            seed:plugins.random.data.seed,
-                        }
-                        moves.showBoardStatus(args);
-                    }
-                    }>
+                    onClick={showBoardStatus}>
                     {i18n.action.showBoardStatus}
                 </Button>
                 {G.pending.endPhase && canMoveCurrent ?
                     <Button
                         fullWidth
                         variant={"outlined"}
-                        onClick={() => events?.endPhase?.()}
+                        onClick={endPhase}
                     >
                         {i18n.action.endPhase}
                     </Button>
