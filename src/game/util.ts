@@ -618,16 +618,16 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let subEffect;
     switch (eff.e) {
         case "searchAndArchive":
-            players = ownCardPlayers(G,ctx,eff.a);
-            if(players.length===0){
+            players = ownCardPlayers(G, ctx, eff.a);
+            if (players.length === 0) {
                 log += `noPlayerOwn${eff.a}`
                 logger.debug(log);
                 break;
-            }else{
+            } else {
                 log += `|players${JSON.stringify(players)}`
                 G.e.stack.push(eff);
                 logger.debug(log);
-                changePlayerStage(G,ctx,"confirmRespond",players[0]);
+                changePlayerStage(G, ctx, "confirmRespond", players[0]);
                 return;
             }
         case "era":
@@ -664,12 +664,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             if (i.pending) {
                 let winner = i.progress > 0 ? i.atk : i.def;
                 let loser = i.progress > 0 ? i.def : i.atk;
-                // @ts-ignore
                 G.e.regions = ValidRegions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
                 if (G.e.regions.length === 0) {
-                    logger.debug("Target player has no share, cannot obtain from others.")
+                    log += ("Target player has no share");
                     break;
                 } else {
+                    log += `|p${winner}|chooseRegion`
                     G.e.stack.push(eff)
                     changePlayerStage(G, ctx, "chooseRegion", winner);
                     return;
@@ -867,12 +867,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 i.category !== CardCategory.BASIC
             ).length > 0) {
                 G.e.stack.push(eff);
-                log+=(`|Has classic cards|changePlayerStage|${p}`)
+                log += (`|Has classic cards|changePlayerStage|${p}`)
                 changePlayerStage(G, ctx, "chooseHand", p);
                 logger.debug(log);
                 return;
             }
-            log+=("|No classic cards|next")
+            log += ("|No classic cards|next")
             break;
         case "discardLegend":
             if (playerObj.hand.filter(i =>
@@ -1095,7 +1095,7 @@ export function shareDepleted(G: IG, ctx: Ctx, region: Region) {
     return G.regions[region].share === 0;
 }
 
-export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog:boolean=true): number {
+export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true): number {
     let targetCard = getCardById(arg.target);
     let cost: ICost = targetCard.cost;
     let log = `resCost|${targetCard.name}|Cost:|${cost.res}|${cost.industry}|${cost.aesthetics}`;
@@ -1143,7 +1143,7 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog:boolean=true): n
         }
     }
     log += `|${resRequired}`;
-    if(showLog) {
+    if (showLog) {
         logger.debug(log);
     }
     return resRequired;
@@ -1157,13 +1157,13 @@ export function canAfford(G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCar
         helper: G.player[parseInt(p)].hand.map(c => c.cardId),
         resource: 0,
         deposit: 0
-    },false)
+    }, false)
     return pub.deposit + pub.resource >= res;
 }
 
 export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     let pub = G.pub[parseInt(arg.buyer)];
-    let resRequired = resCost(G, ctx, arg,false);
+    let resRequired = resCost(G, ctx, arg, false);
     let resGiven: number = arg.resource + arg.deposit;
     return resRequired === resGiven && pub.resource >= arg.resource && pub.deposit >= arg.deposit;
 }
@@ -1377,7 +1377,7 @@ export const fillEmptySlots = (G: IG, ctx: Ctx) => {
 }
 
 export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
-    let log  = "doReturnSlotCard"
+    let log = "doReturnSlotCard"
     let d;
     if (slot.comment !== null) {
         let commentId: BasicCardID = slot.comment.cardId as BasicCardID;
@@ -1680,7 +1680,7 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     if (G.e.stack.length > 0) {
         let top = G.e.stack.pop();
         log += `|stack|${JSON.stringify(top)}`
-        if (top!==undefined && top.e === "industryOrAestheticsBreakthrough") {
+        if (top !== undefined && top.e === "industryOrAestheticsBreakthrough") {
             log += `|top:${top.a.industry}`
             top.a.industry--;
         }
@@ -1714,7 +1714,7 @@ export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     if (G.e.stack.length > 0) {
         let top = G.e.stack.pop();
         log += `|stack|${JSON.stringify(top)}`
-        if (top!== undefined && top.e === "industryOrAestheticsBreakthrough") {
+        if (top !== undefined && top.e === "industryOrAestheticsBreakthrough") {
             log += `|top:${top.a.aesthetics}`
             top.a.aesthetics--;
         }
@@ -1724,11 +1724,11 @@ export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     let playerObj = G.player[parseInt(player)];
     let totalResource = p.resource + p.deposit;
     if (additionalCostForUpgrade(p.industry) <= totalResource) {
-        log+=("|Can upgrade aesthetics")
+        log += ("|Can upgrade aesthetics")
         G.e.choices.push({e: "aestheticsLevelUp", a: 1})
     }
     if (playerObj.hand.length > 0) {
-        log+=("|Can refactor")
+        log += ("|Can refactor")
         G.e.choices.push({e: "refactor", a: 1})
     }
     G.e.choices.push({e: "skipBreakthrough", a: 1})
@@ -1789,10 +1789,12 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                     i.atkPlayedCard = false;
                     logger.debug(log)
                     defCardSettle(G, ctx);
+                    return;
                 } else {
-                    log += "|return"
+                    log += "|competitionResultSettle"
                     i.defPlayedCard = false;
                     logger.debug(log)
+                    competitionResultSettle(G, ctx);
                     return;
                 }
             } else {
@@ -1829,50 +1831,72 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     let i = G.competitionInfo;
     let atk = G.pub[parseInt(i.atk)];
     let def = G.pub[parseInt(i.def)];
+    let log = `competitionResultSettle|a${i.atk}|d${i.def}`
     let winner: PlayerID = '0';
     let hasWinner = false;
-    if (i.progress > 4) i.progress = 4;
-    if (i.progress < -4) i.progress = -4;
+    if (i.progress > 5) {
+        log += `|${i.progress}overflow`
+        i.progress = 5;
+    }
+    if (i.progress < -5) {
+        log += `|${i.progress}underflow`
+        i.progress = -5;
+    }
     if (i.progress >= 3) {
+        log += `|atk${i.atk}won`
         winner = i.atk;
         hasWinner = true;
     } else {
         if (i.progress <= -3) {
+            log += `|def${i.def}won`
             winner = i.def;
             hasWinner = true;
+        } else {
+            log += `|noWinner`
         }
     }
     if (i.progress > 0) {
         atk.vp += i.progress;
         let schoolId = G.pub[parseInt(i.def)].school?.cardId;
         if (schoolId !== "3201" && schoolId !== "3204") {
+            log += `|p${i.def}lose${i.progress}vp`
             loseVp(G, ctx, i.def, i.progress);
+        } else {
+            log += `|doNotLoseVP`
         }
     } else {
         let vp = -i.progress;
         def.vp += vp;
         let schoolId = G.pub[parseInt(i.atk)].school?.cardId;
         if (schoolId !== "3201" && schoolId !== "3204") {
+            log += `|p${i.atk}lose${vp}vp`
             loseVp(G, ctx, i.atk, vp);
+        } else {
+            log += `|doNotLoseVP`
         }
     }
     if (hasWinner) {
         if (i.onWin.e !== "none") {
+            log += `|onWin${JSON.stringify(i.onWin)}`
             if (i.onWin.e === "anyRegionShare") {
+                log += `|moreShare${i.onWin.a}|playerEffExec|p${winner}`
                 G.e.stack.push({
                     e: "anyRegionShare", a: 1 + i.onWin.a
                 })
+                logger.debug(log);
                 playerEffExec(G, ctx, winner);
                 return;
             } else {
-                G.e.stack.push(i.onWin);
+                G.e.stack.push({...i.onWin});
                 i.onWin.e = "none";
                 simpleEffectExec(G, ctx, winner);
             }
         }
+        log += `|getShareFromLoser`
         G.e.stack.push({
             e: "anyRegionShare", a: 1
         })
+        logger.debug(log);
         playerEffExec(G, ctx, winner);
         return;
     }
@@ -1882,39 +1906,56 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
 export function atkCardSettle(G: IG, ctx: Ctx) {
     let i = G.competitionInfo;
     let cards = G.player[parseInt(i.atk)].competitionCards;
+    let log = `atkCardSettle`
     if (cards.length > 0) {
-        let card = cards[0] as INormalOrLegendCard | IBasicCard;
+        let cardId = cards[0].cardId;
+        log += `|${cardId}`
+        let card = getCardById(cardId)
         if (card.region === i.region) {
+            log += `|sameRegion:${i.region}|++`
             i.progress++;
         }
         if (card.industry > 0) {
+            log += `|industryMark|++`
             i.progress++;
         }
-        let eff = getCardEffect(card.cardId);
+        let eff = getCardEffect(cardId);
         G.e.stack.push(eff);
         G.pub[parseInt(i.atk)].playedCardInTurn.push(card);
+        logger.debug(log);
         playerEffExec(G, ctx, i.atk);
     } else {
+        log += "|atkNoCard|defCardSettle"
+        logger.debug(log);
         defCardSettle(G, ctx);
     }
 }
 
-export function defCardSettle(G: IG, ctx: Ctx) {
+export const defCardSettle = (G: IG, ctx: Ctx) =>{
+    let log = "defCardSettle"
     let i = G.competitionInfo;
     let cards = G.player[parseInt(i.def)].competitionCards;
     if (cards.length > 0) {
-        let card = cards[0] as INormalOrLegendCard | IBasicCard;
+        let cardId = cards[0].cardId;
+        log += `|${cardId}`
+        let card = getCardById(cardId)
         if (card.region === i.region) {
+            log += `|sameRegion:${i.region}|--|${i.progress}`
             i.progress--;
         }
         if (card.industry > 0) {
+            log += `|industryMark|--|${i.progress}`
             i.progress--;
         }
-        let eff = getCardEffect(card.cardId);
         G.pub[parseInt(i.def)].discard.push(card);
+        let eff = getCardEffect(card.cardId);
+        log += `|${JSON.stringify(eff)}`
         G.e.stack.push(eff);
+        logger.debug(log);
         playerEffExec(G, ctx, i.def);
     } else {
+        log += `|defNoCard|competitionResultSettle`
+        logger.debug(log);
         competitionResultSettle(G, ctx);
     }
 }
@@ -1923,6 +1964,7 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
     if (r === Region.NONE) throw new Error();
     let region = G.regions[r];
     let era = region.era;
+    let log = `nexEra|${r}|era:${era}`
     let newEra;
     region.legend.card = null;
     if (region.legend.comment !== null) {
@@ -1936,16 +1978,19 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
             s.comment = null
         }
     }
+    log += `|resetShare`
     for (let i = 0; i < ctx.numPlayers; i++) {
         G.pub[i].shares[r] = 0;
     }
     if (era === IEra.ONE) {
+        log += `|IEra.TWO`
         newEra = IEra.TWO;
         region.era = newEra;
         drawForRegion(G, ctx, r, newEra);
         region.share = ShareOnBoard[r][newEra];
     }
     if (era === IEra.TWO) {
+        log += `|IEra.THREE`
         newEra = IEra.THREE;
 
         region.share = ShareOnBoard[r][newEra];
@@ -1954,30 +1999,40 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
         drawForRegion(G, ctx, r, newEra);
     }
     if (era === IEra.THREE) {
+        log += `|completedModernScoring`
         region.completedModernScoring = true;
     }
+    logger.debug(log);
 }
 
 export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) => {
+    let log = `startCompetition|atk${atk}|def${def}`
     let i = G.competitionInfo;
     i.pending = true;
     i.atk = atk;
     i.def = def;
     i.region = G.e?.card?.region as validRegion;
+    log += `|region:${i.region}`
     let classicHollywoodPlayer = schoolPlayer(G, ctx, "3101");
     if (classicHollywoodPlayer === i.atk) {
+        log += `|classicHollywoodATK`
         i.progress++;
     }
     if (classicHollywoodPlayer === i.def) {
+        log += `|classicHollywoodDEF`
         i.progress--
     }
     let newHollywoodPlayer = schoolPlayer(G, ctx, "3101");
     if (newHollywoodPlayer === i.atk) {
+        log += `|newHollywoodATK`
         i.progress++;
     }
     if (newHollywoodPlayer === i.def) {
+        log += `|newHollywoodDEF`
         i.progress--
     }
+    log += `|checkCompetitionAttacker`
+    logger.debug(log);
     checkCompetitionAttacker(G, ctx);
 }
 
@@ -1985,18 +2040,25 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
 export const checkCompetitionDefender = (G: IG, ctx: Ctx) => {
     let i = G.competitionInfo;
     if (G.player[parseInt(i.def)].hand.length > 0) {
+        logger.debug(`checkCompetitionDefender|p${i.def}|competitionCard`);
         changePlayerStage(G, ctx, "competitionCard", i.def);
     } else {
         i.defPlayedCard = true;
+        logger.debug(`checkCompetitionDefender|p${i.def}|emptyHand`);
         competitionResultSettle(G, ctx);
     }
 }
 export const checkCompetitionAttacker = (G: IG, ctx: Ctx) => {
+    let log = "checkCompetitionAttacker"
     let i = G.competitionInfo;
     if (G.player[parseInt(i.atk)].hand.length > 0) {
+        log += `|p${i.atk}|competitionCard`
+        logger.debug(log);
         changePlayerStage(G, ctx, "competitionCard", i.atk);
     } else {
+        log += `|p${i.atk}|emtpyHand`
         i.atkPlayedCard = true;
+        logger.debug(log);
         checkCompetitionDefender(G, ctx);
     }
 }
@@ -2041,7 +2103,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number =>
     }
     if (p.scoreEvents.includes(EventCardID.E11)) {
         // @ts-ignore
-        G.secretInfo.playerDecks[i].filter(c => c.type === CardType.P).forEach(()=>extraVP += 4);
+        G.secretInfo.playerDecks[i].filter(c => c.type === CardType.P).forEach(() => extraVP += 4);
         extraVP += p.archive.filter(card => card.type === CardType.P).length * 4;
     }
     if (p.scoreEvents.includes(EventCardID.E12)) {

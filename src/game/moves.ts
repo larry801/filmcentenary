@@ -109,6 +109,7 @@ export const chooseTarget: LongFormMove = {
         let src = arg.p;
         let p = arg.target;
         let eff = G.e.stack.pop();
+        let log = `eff:${JSON.stringify(eff)}`
         switch (eff.e) {
             case "loseVpForEachHand":
                 G.c.players = [];
@@ -121,6 +122,7 @@ export const chooseTarget: LongFormMove = {
                     G.e.stack.push(eff);
                     G.competitionInfo.progress = eff.a.bonus;
                     G.competitionInfo.onWin = eff.a.onWin;
+                    logger.debug(log);
                     startCompetition(G, ctx, src, p);
                     return;
                 } else {
@@ -713,10 +715,9 @@ export const competitionCard: LongFormMove = {
                 i.defPlayedCard = true;
                 atkCardSettle(G, ctx);
             } else {
-                logger.debug("Other player cannot move in competition card stage!")
+                logger.warn("Other player cannot move in competition card stage!")
             }
         }
-
     },
 }
 
