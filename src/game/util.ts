@@ -13,7 +13,7 @@ import {
     IPubInfo,
     ISchoolCard,
     LegendCardCountInUse,
-    NoneBasicCardID,
+    ClassicCardID,
     NormalCardCountInUse,
     Region,
     ShareOnBoard,
@@ -1169,7 +1169,6 @@ export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
 }
 
 export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
-    logger.info("fillEmptySlots2p");
     let s = G.secretInfo.twoPlayer.school;
     for (let slotL of G.twoPlayer.school) {
         if (slotL.card === null) {
@@ -1232,7 +1231,7 @@ export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
 }
 
 export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
-    logger.info("drawForRegion" + i18n.era[e] + i18n.region[r]);
+    logger.debug("drawForRegion" + i18n.era[e] + i18n.region[r]);
     if (r === Region.NONE) return;
     let legend = cardsByCond(r, e, true);
     let normal = cardsByCond(r, e, false);
@@ -1284,7 +1283,7 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let handCount: number = G.player[i].hand.length;
     if (handCount < limit) {
         let drawCount: number = limit - handCount;
-        logger.info("Player" + p + "Draw" + drawCount + "card")
+        logger.debug(`p${p}|draw${drawCount}card`)
         for (let t = 0; t < drawCount; t++) {
             drawCardForPlayer(G, ctx, p);
         }
@@ -1359,7 +1358,6 @@ export const do2pUpdateFilmSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
 }
 
 export const fillEmptySlots = (G: IG, ctx: Ctx) => {
-    logger.info("fillEmptySlots");
     for (let r of ValidRegions) {
         let region = G.regions[r];
         let l = G.secretInfo.regions[r].legendDeck;
@@ -1379,10 +1377,11 @@ export const fillEmptySlots = (G: IG, ctx: Ctx) => {
 }
 
 export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
-    logger.info("doReturnSlotCard");
+    let log  = "doReturnSlotCard"
     let d;
     if (slot.comment !== null) {
         let commentId: BasicCardID = slot.comment.cardId as BasicCardID;
+        log += `|returnComment${commentId}`
         G.basicCards[commentId]++;
         slot.comment = null;
     }
@@ -1390,28 +1389,32 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
     if (ctx.numPlayers > 2) {
         if (slot.region === Region.NONE) return;
         if (slot.isLegend) {
+            log += `|legend`
             d = G.secretInfo.regions[slot.region].legendDeck;
         } else {
+            log += `|normal`
             d = G.secretInfo.regions[slot.region].normalDeck;
         }
     } else {
+        log += `|simpleRule`
         if (slot.card?.type === CardType.S) {
+            log += `|school`
             d = G.secretInfo.twoPlayer.school;
         } else {
+            log += `|film`
             d = G.secretInfo.twoPlayer.film;
         }
     }
 
     let oldCard = slot.card;
-    logger.debug(d)
+    log += `|return${oldCard?.cardId}|deck${JSON.stringify(d)}`
     if (oldCard !== null) {
         d.unshift(oldCard);
         slot.card = null;
     } else {
         throw new Error("Updating an empty slot!")
     }
-    logger.debug(d)
-
+    logger.debug(log);
 }
 
 export const additionalCostForUpgrade = (level: number): number => {
@@ -1446,10 +1449,6 @@ export const legendCount = (G: IG, ctx: Ctx, r: Region, e: IEra, p: PlayerID): n
             // @ts-ignore
             && c.era === e)
         .length;
-}
-
-export const doEndTurn = (G: IG, ctx: Ctx,): void => {
-    signalEndTurn(G, ctx);
 }
 
 export const try2pScoring = (G: IG, ctx: Ctx): void => {
@@ -1493,6 +1492,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
     fillTwoPlayerBoard(G, ctx);
     signalEndTurn(G, ctx);
 }
+
 export const tryScoring = (G: IG, ctx: Ctx): void => {
     let log = "tryScoring"
     if (G.scoringRegions.length > 0) {
@@ -1799,7 +1799,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                 if (ctx.activePlayers !== null) {
                     log += "|signalEndStage"
                     signalEndStage(G, ctx);
-                    logger.info(log)
+                    logger.debug(log)
                     return;
                 }
             }
@@ -2172,7 +2172,7 @@ export const getCardName = (cardId: string) => {
         // @ts-ignore
         return i18n.card[cardId];
     } else {
-        if (cardId in NoneBasicCardID) {
+        if (cardId in ClassicCardID) {
             // @ts-ignore
             return i18n.card[cardId];
         } else {
@@ -2191,7 +2191,7 @@ export const getCardName = (cardId: string) => {
     }
 }
 
-export const cardEffectText = (cardId: BasicCardID | NoneBasicCardID): string => {
+export const cardEffectText = (cardId: BasicCardID | ClassicCardID): string => {
     // @ts-ignore
     let effObj = getCardEffect(cardId);
     // TODO region closure capture

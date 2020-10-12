@@ -6,7 +6,7 @@ import {
     IBasicCard,
     ICardSlot,
     INormalOrLegendCard,
-    NoneBasicCardID,
+    ClassicCardID,
     Region
 } from "../types/core";
 import {ChoiceDialog} from "./modals";
@@ -157,7 +157,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                 <Typography>
                     {i18n.pub.industryMarker} {card.industry}
                     {i18n.pub.aestheticsMarker} {card.aesthetics}
-                    {cardEffectText(card.cardId as NoneBasicCardID)}</Typography>
+                    {cardEffectText(card.cardId as ClassicCardID)}</Typography>
                 <FormControl required component="fieldset">
                     <FormLabel component="legend" error={!canBuy}>
                         {i18n.dialog.buyCard.cost} {i18n.pub.res} {res}

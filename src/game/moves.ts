@@ -787,7 +787,7 @@ export const showBoardStatus: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, args: IShowBoardStatusProps) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        logger.info(`p0.moves.chooseTarget(${args})`);
+        logger.info(`p${ctx.playerID}.moves.showBoardStatus(${JSON.stringify(args)})`);
         if (ctx.phase === "InitPhase") {
             G.matchID = args.matchID;
             signalEndPhase(G, ctx);

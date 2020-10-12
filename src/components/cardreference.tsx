@@ -1,5 +1,5 @@
 import React from "react";
-import {BasicCardID, EventCardID,  NoneBasicCardID} from "../types/core";
+import {BasicCardID, EventCardID,  ClassicCardID} from "../types/core";
 import Typography from "@material-ui/core/Typography";
 import {cardEffectText, getCardName} from "../game/util";
 import {useI18n} from "@i18n-chain/react";
@@ -16,7 +16,7 @@ import {getCardById} from "../types/cards";
 
 
 interface ICardItemProps {
-    cardId: BasicCardID | EventCardID | NoneBasicCardID,
+    cardId: BasicCardID | EventCardID | ClassicCardID,
 }
 
 const useStyles = makeStyles({
@@ -44,7 +44,7 @@ export function DenseTable() {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {Object.keys(NoneBasicCardID).map(id=>{
+                    {Object.keys(ClassicCardID).map(id=>{
                     let rid = id.slice(1);
                     let c = getCardById(rid);
                     return <TableRow key={id}>
@@ -59,7 +59,7 @@ export function DenseTable() {
                         <TableCell align="right">{c.cost.res}/{c.cost.industry}/{c.cost.aesthetics}</TableCell>
                         <TableCell align="right">{c.vp}</TableCell>
                         <TableCell align="right">{c.industry}/{c.aesthetics}</TableCell>
-                        <TableCell align="left">{cardEffectText(rid as NoneBasicCardID)}</TableCell>
+                        <TableCell align="left">{cardEffectText(rid as ClassicCardID)}</TableCell>
                     </TableRow>
                 })}
                 </TableBody>
