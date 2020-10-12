@@ -305,7 +305,8 @@ export interface IPrivateInfo {
     handSize:number,
     finalScoringExtraVp:number,
     cardsToPeek:ICard[],
-    competitionCards:ICard[]
+    competitionCards:ICard[],
+    deckEmpty:boolean,
 }
 
 export interface IBuildingSlot {

@@ -129,8 +129,11 @@ function pubPlayer(): IPubInfo {
 }
 
 export function privatePlayer(): IPrivateInfo {
-    return {hand: [], handSize:0,cardsToPeek:[],competitionCards:[],
+    return {
+        hand: [], handSize:0,
+        cardsToPeek:[],competitionCards:[],
         finalScoringExtraVp:0,
+        deckEmpty:false,
     }
 }
 

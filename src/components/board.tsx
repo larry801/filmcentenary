@@ -322,7 +322,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 : <></>}
             {playerID !== null && ctx.phase !== "InitPhase" && canMoveCurrent ?
                 <Button
-                    disabled={G.pub[parseInt(playerID)].action <= 0}
+                    disabled={G.pub[parseInt(playerID)].action <= 0 || G.player[parseInt(playerID)].deckEmpty}
                     variant={"outlined"}
                     onClick={drawCard}>
                     {i18n.action.draw}

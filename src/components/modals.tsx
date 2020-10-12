@@ -78,7 +78,7 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
                         <RadioGroup
                             aria-label={title} name="choice" value={choice}
                             onChange={handleChange}>
-                            {choices.map((choice, idx) =>
+                            {choices.map((choice) =>
                                 !choice.hidden ?
                                     <FormControlLabel
                                         disabled={choice.disabled}
