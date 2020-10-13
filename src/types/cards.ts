@@ -11,10 +11,11 @@ import {
     INormalOrLegendCard,
     IPersonCard,
     ISchoolCard,
-    Region
+    Region, ScoreCardID
 } from "./core";
 import {getBasicCard} from "../constant/cards/basic";
 import {eventCardById} from "../constant/cards/event";
+import {getScoreCardByID} from "../constant/cards/score";
 
 
 interface IArgFilmCard {
@@ -2969,7 +2970,11 @@ export function getCardById(id: string): INormalOrLegendCard {
             if (id in EventCardID) {
                 return eventCardById(id as EventCardID);
             } else {
-                throw new Error("No such id" + id)
+                if(id in ScoreCardID){
+                    return getScoreCardByID(id);
+                }else {
+                    throw new Error("No such card id " + id)
+                }
             }
         }
     }

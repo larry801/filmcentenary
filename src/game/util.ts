@@ -1194,7 +1194,6 @@ export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
     for (let slotL of G.twoPlayer.school) {
         if (slotL.card === null) {
             let newCard = s.pop()
-            logger.debug(newCard);
             if (newCard === undefined) {
 
             } else {
@@ -1206,7 +1205,6 @@ export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
     for (let slotL of G.twoPlayer.film) {
         if (slotL.card === null) {
             let newCard = f.pop()
-            logger.debug(newCard);
             if (newCard === undefined) {
 
             } else {
