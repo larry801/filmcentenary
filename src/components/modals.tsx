@@ -66,7 +66,11 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
     const handleChange = (e:any) => setChoice(e.target.value);
 
     return show ? <>
-        <Button variant={"outlined"} onClick={handleClickOpen}> {toggleText}</Button>
+        <Button
+            variant={"outlined"}
+            onClick={handleClickOpen}
+            style={{textTransform: 'none'}}
+        > {toggleText}</Button>
         <Dialog open={open} onClose={handleClose} aria-label={title}>
             <DialogTitle>
                 {title}

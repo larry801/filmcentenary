@@ -71,18 +71,22 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                         <Grid container>
                             <Grid item xs={12}>
                                 <Button
+                                    style={{textTransform: 'none'}}
                                     disabled={!canPlayOrBreakthrough}
                                     onClick={play}
                                 >{i18n.action.play}</Button>
                                 <Button
+                                    style={{textTransform: 'none'}}
                                     disabled={!canPlayOrBreakthrough || p.action < 1 || p.resource < 2}
                                     onClick={archive2res}
                                 >{i18n.action.breakthrough2Res}</Button>
                                 <Button
+                                    style={{textTransform: 'none'}}
                                     onClick={archive1res}
                                     disabled={!canPlayOrBreakthrough || p.action < 1 || p.resource < 1 || p.deposit < 1}
                                 >{i18n.action.breakthrough1Res}</Button>
                                 <Button
+                                    style={{textTransform: 'none'}}
                                     onClick={archive0res}
                                     disabled={!canPlayOrBreakthrough || p.action < 1 || p.deposit < 2}
                                 >{i18n.action.breakthrough0Res}</Button>

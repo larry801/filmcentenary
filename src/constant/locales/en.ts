@@ -454,9 +454,9 @@ const en = {
     cancel: "Cancel",
     effect: {
         era: {
-            0: "Era 1",
-            1: "Era 2",
-            2: "Era 3",
+            0: "Invention:",
+            1: "Classic:",
+            2: "Modern:",
         },
         event: ["After {{a}}", argCardName],
         optional: "【optional】",
@@ -601,8 +601,8 @@ const en = {
         comment: ["Comment {{a}}", argTimes],
         industryBreakthrough: ["Industry breakthrough {{a}}", argTimes],
         aestheticsBreakthrough: ["Aesthetics breakthrough{{a}}", argTimes],
-        buy: ["Buy card 【{{a}}】 for free", argCardName],
-        buyCardToHand: ["Buy card {{a}} for free, and add to hand.", argCardName],
+        buy: ["Buy 【{{a}}】 for free", argCardName],
+        buyCardToHand: ["Buy 【{{a}}】 for free, and add to hand.", argCardName],
         industryLevelUp: ["Upgrade industry level {{a}}", argTimes],
         aestheticsLevelUp: ["Upgrade Aesthetics", argTimes],
         buildCinema: "Build Cinema",
@@ -634,8 +634,8 @@ const en = {
         },
         buyCard: {
             basic: "Buy basic card",
-            board: "Buy card ",
-            cost: "Cost:",
+            board: "Buy ",
+            cost: " Cost:",
             refresh: "Refresh",
         },
         comment: {
