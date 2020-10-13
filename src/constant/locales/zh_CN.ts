@@ -515,11 +515,11 @@ const zh_CN: Locale = {
             filter: (e: any) => {
                 switch (e.e) {
                     case "choice":
-                        return "选择其中" + e.a.toString() + "张"
+                        return `选择其中${e.a}张`
                     case "industry":
                         return "把其中有工业标志的"
                     case "era":
-                        return "把其中" + era[e.a as IEra] + "时代的"
+                        return `把其中${era[e.a as IEra]}时代的`
                     case "asia":
                         return "把其中亚洲地区的"
                     case "aesthetics":
