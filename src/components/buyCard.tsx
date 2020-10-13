@@ -139,7 +139,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     }
     const getValueText = (n: number) => n.toString();
 
-    return <Grid item>
+    return <Grid item xs={12}>
         <Button
             style={{textTransform: 'none'}}
             onClick={handleOpen}

@@ -58,21 +58,25 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
 
     return <>
         <Paper style={{display: 'inline-flex'}} variant={variant}>
-            <Typography>{slot.card === null ? "" : getCardName(slot.card.cardId)} </Typography>
-            <Typography>{slot.comment === null ? "" : getCardName(slot.comment.cardId)} </Typography>
-            {playerID !== null && slot.card !== null ?
-                <BuyCard
-                    card={slot.card}
-                    helpers={G.player[(parseInt(playerID))].hand.map(c => c.cardId)}
-                    ctx={ctx}
-                    G={G}
-                    playerID={playerID} moves={moves}/> : <></>}
-            {activePlayer(ctx) === playerID &&
-            actualStage(G, ctx) === "updateSlot" ? <Button onClick={updateSlot}
-            >{i18n.action.updateSlot}</Button> : <></>}
+            <Grid container>
+                <Grid item xs={12}>
+                    <Typography>{slot.card === null ? "" : getCardName(slot.card.cardId)} </Typography>
+                    <Typography>{slot.comment === null ? "" : getCardName(slot.comment.cardId)} </Typography>
+                </Grid>
+                {playerID !== null && slot.card !== null ?
+                    <BuyCard
+                        card={slot.card}
+                        helpers={G.player[(parseInt(playerID))].hand.map(c => c.cardId)}
+                        ctx={ctx}
+                        G={G}
+                        playerID={playerID} moves={moves}/> : <></>}
+                {activePlayer(ctx) === playerID &&
+                actualStage(G, ctx) === "updateSlot" ? <Button onClick={updateSlot}
+                >{i18n.action.updateSlot}</Button> : <></>}
 
-            {activePlayer(ctx) === playerID && actualStage(G, ctx) === "comment" ?
-                <Comment slot={slot} comment={comment} G={G}/> : <></>}
+                {activePlayer(ctx) === playerID && actualStage(G, ctx) === "comment" ?
+                    <Comment slot={slot} comment={comment} G={G}/> : <></>}
+            </Grid>
         </Paper>
     </>
 }
