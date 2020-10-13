@@ -7,6 +7,79 @@ const gameWithSeed = (seed: string) => ({
     seed
 });
 
+it('Nanook', () => {
+    const spec = {
+        numPlayers: 2,
+        game: gameWithSeed("kg7q3639"),
+        multiplayer: Local(),
+    };
+
+    const p0 = Client({...spec, playerID: '0'} as any) as any;
+    const p1 = Client({...spec, playerID: '1'} as any) as any;
+    p0.start()
+    p1.start()
+    p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+    p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+    p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+    p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+    p0.moves.buyCard({"buyer":"0","target":"1107","resource":4,"deposit":0,"helper":[]})
+    p0.moves.requestEndTurn("0")
+    p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+    p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+    p1.moves.breakthrough({"card":"B02","idx":1,"playerID":"1","res":2})
+    p1.moves.chooseEffect({"effect":{"e":"industryLevelUp","a":1},"idx":0,"p":"1"})
+    p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+    p0.moves.breakthrough({"card":"B02","idx":0,"playerID":"0","res":2})
+    p0.moves.chooseEffect({"effect":{"e":"industryLevelUp","a":1},"idx":0,"p":"0"})
+    p0.moves.requestEndTurn("0")
+    p0.events.endTurn()
+    p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0})
+    p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0})
+    p1.moves.buyCard({"buyer":"1","target":"1108","resource":3,"deposit":0,"helper":["B01"]})
+    p1.moves.requestEndTurn("1")
+    p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0})
+    p0.moves.playCard({"card":"1107","idx":1,"playerID":"0","res":0})
+    p0.moves.buyCard({"buyer":"0","target":"1103","resource":4,"deposit":0,"helper":["B01"]})
+    p0.moves.requestEndTurn("0")
+    p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0})
+    p1.moves.breakthrough({"card":"B01","idx":0,"playerID":"1","res":2})
+    p1.moves.chooseEffect({"effect":{"e":"aestheticsLevelUp","a":1},"idx":0,"p":"1"})
+    p1.moves.requestEndTurn("1")
+    p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+    p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+    p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+    p0.moves.buyCard({"buyer":"0","target":"B03","resource":2,"deposit":0,"helper":[]})
+    p0.moves.requestEndTurn("0")
+    p1.moves.playCard({"card":"B07","idx":2,"playerID":"1","res":0})
+    p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0})
+    p1.moves.buyCard({"buyer":"1","target":"1208","resource":3,"deposit":0,"helper":["1108"]})
+    p1.moves.requestEndTurn("1")
+    p0.moves.playCard({"card":"B07","idx":2,"playerID":"0","res":0})
+    p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0})
+    p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+    p0.moves.buyCard({"buyer":"0","target":"1104","resource":5,"deposit":0,"helper":[]})
+    p0.moves.requestEndTurn("0")
+    p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+    p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+    p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+    p1.moves.playCard({"card":"B07","idx":3,"playerID":"1","res":0})
+    p1.moves.playCard({"card":"B07","idx":2,"playerID":"1","res":0})
+    p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0})
+    p1.moves.buyCard({"buyer":"1","target":"1210","resource":3,"deposit":0,"helper":[]})
+    p1.moves.playCard({"card":"1208","idx":0,"playerID":"1","res":0})
+    p1.moves.requestEndTurn("1")
+    p0.moves.playCard({"card":"1103","idx":1,"playerID":"0","res":0})
+    p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+    p0.moves.breakthrough({"card":"B01","idx":0,"playerID":"0","res":2})
+    p0.moves.chooseEffect({"effect":{"e":"aestheticsLevelUp","a":1},"idx":0,"p":"0"})
+    p1.moves.playCard({"card":"B07","idx":2,"playerID":"1","res":0})
+    p1.moves.breakthrough({"card":"1108","idx":1,"playerID":"1","res":2})
+    p1.moves.chooseEffect({"effect":{"e":"industryBreakthrough","a":1},"idx":0,"p":"1"})
+    console.log(p0.store.getState().G)
+
+    p0.stop()
+    p1.stop()
+})
 it('Conform to rules', () => {
     const spec = {
         numPlayers: 4,
@@ -42,6 +115,7 @@ it('Conform to rules', () => {
     expect(p0.store.getState().ctx.activePlayers).toEqual({"1": "chooseHand"});
     p1.moves.chooseHand({hand:"B07",idx:0,p:"1"})
     expect(p0.store.getState().ctx.activePlayers).toEqual({"2": "chooseHand"});
+    console.log(JSON.stringify(p0.store.getState().G))
     p2.moves.chooseHand({hand:"B07",idx:0,p:"2"})
     p3.moves.chooseHand({hand:"B07",idx:0,p:"3"})
     p0.moves.chooseHand({hand:"B07",idx:0,p:"0"})

@@ -38,17 +38,22 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
         setOpen(!open)
     }
 
-    const getMoveText =(l: LogEntry): string  => {
+    const getMoveText = (l: LogEntry): string => {
         switch (l.action.type) {
             case "MAKE_MOVE":
                 let moveName = l.action.payload.type as MoveNames
-                return `p${l.action.payload.playerID}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])})`
+                let pid = l.action.payload.playerID
+                if (moveName === MoveNames.requestEndTurn) {
+                    return `p${pid}.moves.requestEndTurn("${pid}");p${pid}.events.endTurn()`
+                } else {
+                    return `p${pid}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])})`
+                }
             default:
                 return ""
         }
     }
 
-    const getLogText = (l: LogEntry): string=> {
+    const getLogText = (l: LogEntry): string => {
         switch (l.action.type) {
             case "GAME_EVENT":
                 if (l.action.payload.type === "endTurn") {
@@ -72,7 +77,7 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
             {i18n.pub.gameLog}
         </Button>
 
-        {open &&<> <Grid item xs={6} className={classes.root}>
+        {open && <> <Grid item xs={6} className={classes.root}>
             <AutoSizer
                 defaultHeight={1000}
                 defaultWidth={400}>
@@ -100,7 +105,7 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
             </AutoSizer>
         </Grid>
             <Grid item xs={6}>
-                {log.map((l:LogEntry)=><div key={shortid.generate()}>{getMoveText(l)}</div>)}
+                {log.map((l: LogEntry) => <div key={shortid.generate()}>{getMoveText(l)}</div>)}
             </Grid>
         </>}
     </Grid>

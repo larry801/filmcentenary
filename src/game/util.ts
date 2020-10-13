@@ -106,6 +106,7 @@ export const isSimpleEffect = (eff: any): boolean => {
         case "playerNotVpChampion":
         case "playerVpChampion":
         case "handToOthers":
+        case "industryAndAestheticsBreakthrough":
         case "industryOrAestheticsBreakthrough":
         case "peek":
         case "everyOtherCompany":
@@ -535,9 +536,9 @@ export const breakthroughEffectPrepare = (G: IG, ctx: Ctx): void => {
         return;
     }
     if (i > 0 && a > 0) {
-        log += `|industryOrAestheticsBreakthrough`
+        log += `|industryAndAestheticsBreakthrough`
         G.e.stack.push({
-            e: "industryOrAestheticsBreakthrough", a: {
+            e: "industryAndAestheticsBreakthrough", a: {
                 industry: p.industry,
                 aesthetics: p.aesthetics,
             }
@@ -749,6 +750,25 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             G.e.stack.push(eff)
             changePlayerStage(G, ctx, "chooseHand", p);
             break;
+        case "industryAndAestheticsBreakthrough":
+            if(eff.a.industry===0&&eff.a.aesthetics===0){
+                break;
+            }
+            if(eff.a.industry===0&&eff.a.aesthetics>0){
+                G.e.stack.push(eff)
+                doAestheticsBreakthrough(G, ctx, p);
+                return;
+            }
+            if(eff.a.industry>0&&eff.a.aesthetics===0){
+                G.e.stack.push(eff)
+                doIndustryBreakthrough(G, ctx, p);
+                return;
+            }
+            G.e.stack.push(eff)
+            G.e.choices.push({e: "industryBreakthrough", a: eff.a.industry})
+            G.e.choices.push({e: "aestheticsBreakthrough", a: eff.a.aesthetics})
+            changePlayerStage(G, ctx, "chooseEffect", p);
+            return;
         case "industryOrAestheticsBreakthrough":
             G.e.choices.push({e: "industryBreakthrough", a: eff.a.industry})
             G.e.choices.push({e: "aestheticsBreakthrough", a: eff.a.aesthetics})
@@ -1681,7 +1701,7 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     if (G.e.stack.length > 0) {
         let top = G.e.stack.pop();
         log += `|stack|${JSON.stringify(top)}`
-        if (top !== undefined && top.e === "industryOrAestheticsBreakthrough") {
+        if (top !== undefined && top.e === "industryAndAestheticsBreakthrough") {
             log += `|top:${top.a.industry}`
             top.a.industry--;
         }
@@ -1715,7 +1735,7 @@ export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     if (G.e.stack.length > 0) {
         let top = G.e.stack.pop();
         log += `|stack|${JSON.stringify(top)}`
-        if (top !== undefined && top.e === "industryOrAestheticsBreakthrough") {
+        if (top !== undefined && top.e === "industryAndAestheticsBreakthrough") {
             log += `|top:${top.a.aesthetics}`
             top.a.aesthetics--;
         }

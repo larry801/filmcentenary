@@ -126,6 +126,7 @@ export enum InteractiveEffectNames {
     archiveToEEBuildingVP="archiveToEEBuildingVP",
 }
 export enum MoveNames {
+    requestEndTurn="requestEndTurn",
     showBoardStatus = "showBoardStatus",
     chooseEffect = "chooseEffect",
     chooseEvent = "chooseEvent",

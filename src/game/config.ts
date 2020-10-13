@@ -84,7 +84,6 @@ export const setupStage: StageConfig = {
 }
 
 export const NormalTurn: TurnConfig = {
-    onMove:autoEventsOnMove,
     onBegin: (G: IG, ctx: Ctx) => {
         cleanPendingSignal(G, ctx)
         let p = ctx.currentPlayer;
