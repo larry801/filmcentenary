@@ -23,7 +23,7 @@ import {
     checkNextEffect,
     checkRegionScoring,
     cinemaInRegion,
-    cinemaSlotsAvailable,
+    cinemaSlotsAvailable, competitionCLeanUp,
     curEffectExec,
     curPub,
     doAestheticsBreakthrough,
@@ -365,7 +365,8 @@ export const chooseRegion = {
                         checkNextEffect(G, ctx);
                         return;
                     } else {
-                        break;
+                        competitionCLeanUp(G,ctx);
+                        return
                     }
                 } else {
                     G.pub[parseInt(p)].shares[r]++;

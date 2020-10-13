@@ -667,7 +667,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.regions = ValidRegions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
                 if (G.e.regions.length === 0) {
                     log += ("Target player has no share");
-                    break;
+                    competitionCLeanUp(G,ctx);
+                    return;
                 } else {
                     log += `|p${winner}|chooseRegion`
                     G.e.stack.push(eff)
@@ -1827,6 +1828,13 @@ export function loseVp(G: IG, ctx: Ctx, p: PlayerID, vp: number) {
     }
 }
 
+export const competitionCLeanUp = (G:IG, ctx: Ctx)=>{
+    let i = G.competitionInfo;
+    i.pending = false;
+    i.progress = 0;
+    checkNextEffect(G,ctx);
+}
+
 export function competitionResultSettle(G: IG, ctx: Ctx) {
     let i = G.competitionInfo;
     let atk = G.pub[parseInt(i.atk)];
@@ -1899,6 +1907,8 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         logger.debug(log);
         playerEffExec(G, ctx, winner);
         return;
+    }else {
+        competitionCLeanUp(G,ctx);
     }
 
 }
@@ -1923,6 +1933,7 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
         G.e.stack.push(eff);
         G.pub[parseInt(i.atk)].playedCardInTurn.push(card);
         logger.debug(log);
+        // TODO may over run set a barrier effect?
         playerEffExec(G, ctx, i.atk);
     } else {
         log += "|atkNoCard|defCardSettle"
