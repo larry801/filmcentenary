@@ -28,6 +28,7 @@ import useSound from 'use-sound';
 import {useEffect, useRef} from "react";
 // @ts-ignore
 import playerTurnSfx from './media/turn.mp3'
+import {useI18n} from "@i18n-chain/react";
 
 function usePrevious(value: any) {
     const ref = useRef();
@@ -41,23 +42,29 @@ function usePrevious(value: any) {
 
 export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plugins, matchData, matchID, playerID, isActive}: BoardProps<IG>) => {
 
+    useI18n(i18n);
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
     const canMove = ctx.currentPlayer === playerID ? canMoveCurrent : canMoveOutOfTurn;
     const curPlayerSuffix = "(*)"
-    const inActiveTitle = "Film Centenary"
     const prevIsActive = usePrevious(isActive);
     const [play] = useSound(playerTurnSfx);
     useEffect(() => {
-        if(!isActive && prevIsActive === true){
-            document.title = inActiveTitle
-        }
         if (isActive && prevIsActive === false) {
-            document.title = curPlayerSuffix + inActiveTitle
             play()
         }
         console.log(prevIsActive,isActive)
     }, [prevIsActive, isActive, play])
+
+    const locale = i18n._.getLocaleName();
+
+    useEffect(()=>{
+        if(isActive){
+            document.title = curPlayerSuffix + i18n.title
+        }else {
+            document.title = i18n.title
+        }
+    },[isActive,locale])
 
     const getName = (playerID: PlayerID | null = ctx.currentPlayer): string => {
         const fallbackName = i18n.playerName.player + playerID;

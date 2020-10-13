@@ -416,6 +416,7 @@ const zh_CN: Locale = {
         undo: "撤销",
         redo: "恢复",
     },
+    title:"电影百年",
     lobby: {
         numPlayers:"玩家数",
         title: "大厅",

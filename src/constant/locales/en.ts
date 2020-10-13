@@ -407,6 +407,7 @@ const en = {
         lobby: "Remote multiplayer lobby",
         cards: "Card list",
     },
+    title:"Film Centenary",
     lobby: {
         numPlayers:"Players",
         createPublicMatch: "Create public match",
@@ -691,7 +692,7 @@ const en = {
         twoToFourPlayer: "2-4 player",
         threeToFourPlayer: "3-4 player",
         fourPlayerOnly: "4 player",
-        handSize: "Hand Size",
+        handSize: "Hand Size:",
         estimatedFinalScore: " Estimated Final Score",
         events: "Event cards:",
         res: "Resource:",
