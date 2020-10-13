@@ -674,6 +674,7 @@ const zh_CN: Locale = {
         title: "手牌"
     },
     pub: {
+        champion: "第一：",
         gameLog: "战报",
         emptyBuildingSlot: "空",
         cinemaORStudio: "电影院/制片厂",

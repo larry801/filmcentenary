@@ -633,7 +633,7 @@ const en = {
         },
         buyCard: {
             basic: "Buy basic card",
-            board: "Buy card",
+            board: "Buy card ",
             cost: "Cost:",
             refresh: "Refresh",
         },
@@ -680,6 +680,7 @@ const en = {
         player: "Player",
     },
     pub: {
+        champion: "Champion:",
         gameLog: "Report",
         emptyBuildingSlot: "Empty",
         cinemaORStudio: "Cinema/Studio",

@@ -144,9 +144,12 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             onClick={handleOpen}
             color={buttonColor}
             variant={"outlined"}
-        >{i18n.dialog.buyCard.board}
-            {getCardName(card.cardId)}
-            {card.category === CardCategory.BASIC ? '(' + G.basicCards[card.cardId as BasicCardID].toString() + ')' : ""}
+        >
+            <Typography>
+                {i18n.dialog.buyCard.board}
+                {getCardName(card.cardId)}
+                {card.category === CardCategory.BASIC ? `(${G.basicCards[card.cardId as BasicCardID]})` : ""}
+            </Typography>
         </Button>
         <Dialog onClose={handleClose} open={open}>
             <DialogTitle>

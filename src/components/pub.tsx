@@ -66,7 +66,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
             )}
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
-            <Typography>第一：</Typography>
+            <Typography>{i18n.pub.champion}</Typography>
             {i.champions.map(champion => <Typography key={shortid.generate()}>
                 {i18n.region[champion.region]}
                 {i18n.era[champion.era]}</Typography>)}
