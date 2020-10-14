@@ -214,7 +214,7 @@ export interface ICommentProps {
 
 export const Comment = ({slot, comment, G}: ICommentProps) => {
     useI18n(i18n);
-    const cards: BasicCardID[] = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03, BasicCardID.B04, BasicCardID.B05];
+    const cards: BasicCardID[] = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03, BasicCardID.B04];
 
     const removeComment = () => {
         comment(slot, null)
@@ -238,8 +238,9 @@ export const Comment = ({slot, comment, G}: ICommentProps) => {
                 }
             )
             }
-            defaultChoice={"B01"} show={false}
-            title={i18n.dialog.buyCard.basic} toggleText={i18n.dialog.buyCard.basic}/> :
+            defaultChoice={"B01"} show={slot.card!==null}
+            title={i18n.action.comment}
+            toggleText={i18n.action.comment}/> :
         <Button onClick={removeComment}>
             {i18n.dialog.comment.removeCommentCard}
         </Button>

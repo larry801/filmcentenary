@@ -771,7 +771,7 @@ export const comment: LongFormMove = {
             pub.resource++;
             pub.vp++;
         }
-
+        checkNextEffect(G,ctx);
     }
 }
 

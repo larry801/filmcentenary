@@ -247,9 +247,9 @@ const argConfirmRespond = {
     args: (arg: string[]): string => {
         let a = arg[0]
         if(a==="yes"){
-            return "选择不执行效果"
-        }else{
             return "选择执行效果"
+        }else{
+            return "选择不执行效果"
         }
     }
 }
@@ -399,6 +399,7 @@ const zh_CN: Locale = {
     eventName: eventName,
     region: region,
     action: {
+        comment: "评论",
         updateSlot: "更新",
         showBoardStatus: "展示牌列",
         draw: "摸牌",

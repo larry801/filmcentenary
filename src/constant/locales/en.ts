@@ -390,9 +390,9 @@ const argConfirmRespond = {
     args: (arg: string[]): string => {
         let a = arg[0]
         if(a==="yes"){
-            return "选择不执行效果"
-        }else{
             return "选择执行效果"
+        }else{
+            return "选择不执行效果"
         }
     }
 }
@@ -663,6 +663,7 @@ const en = {
         },
     },
     action: {
+        comment: "Comment",
         updateSlot: "Update",
         showBoardStatus: "Initial setup",
         draw: "Draw additional card",
