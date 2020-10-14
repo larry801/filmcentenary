@@ -80,7 +80,7 @@ export const buyCard: LongFormMove = {
                 let helper = G.player[parseInt(arg.buyer)].hand.splice(idx, 1)[0];
                 p.playedCardInTurn.push(helper);
             })
-
+            G.e.card = arg.target;
             doBuy(G, ctx, targetCard as INormalOrLegendCard | IBasicCard, ctx.currentPlayer);
             let eff = getCardEffect(arg.target);
             if (eff.e !== "none") {
@@ -183,6 +183,7 @@ export const chooseHand: LongFormMove = {
                         pub.deposit--;
                     }
                 }
+                G.e.card = arg.hand;
                 startBreakThrough(G, ctx, arg.p);
                 break;
             case "archiveToEEBuildingVP":
@@ -647,7 +648,7 @@ export const confirmRespond: LongFormMove = {
         } else {
             switch (eff.e) {
                 case "alternative":
-                    log += "|startBreakThrough"
+                    log += `|startBreakThrough|${G.e.card}`
                     logger.debug(log);
                     startBreakThrough(G, ctx, p);
                     return;

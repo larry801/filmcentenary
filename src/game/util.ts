@@ -311,7 +311,6 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
 
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
     let obj = G.pub[parseInt(p)];
-    G.e.card = card.cardId;
     if (card.category === CardCategory.BASIC) {
         let count = G.basicCards[card.cardId as BasicCardID];
         if (count > 0) {
@@ -406,7 +405,7 @@ export const buildingInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boole
 }
 export const studioInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
     if (r === Region.NONE) return false;
-    logger.debug(`studioInRegion|r${r}|p${p}`);
+    logger.silly(`studioInRegion|r${r}|p${p}`);
     return G.regions[r].buildings.filter(s => s.content === "studio" && s.owner === p).length > 0;
 }
 export const cinemaInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
