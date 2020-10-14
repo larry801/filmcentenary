@@ -480,7 +480,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                         }
                     })}
                     show={true}
-                    initial={true}
+                    initial={false}
                     title={i18n.pub.deck}
                     toggleText={i18n.pub.deck}
                      defaultChoice={'0'}/>:<></>}

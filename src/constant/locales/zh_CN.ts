@@ -672,7 +672,7 @@ const zh_CN: Locale = {
         title: "手牌"
     },
     pub: {
-        deck:"牌堆：",
+        deck:"牌堆",
         champion: "第一：",
         gameLog: "战报",
         emptyBuildingSlot: "空",
