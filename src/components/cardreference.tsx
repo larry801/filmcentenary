@@ -26,6 +26,7 @@ const useStyles = makeStyles({
 });
 
 const DenseTable = () =>{
+    useI18n(i18n);
     const classes = useStyles();
 
     return (
