@@ -272,6 +272,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
     const endStage = () => events?.endStage?.()
     const endTurn = () => events?.endTurn?.();
     const endPhase = () => events?.endPhase?.()
+    const nop = () => {}
 
     const cardBoard = ctx.numPlayers === SimpleRuleNumPlayers ?
         <Grid container spacing={2} alignItems="center">
@@ -443,6 +444,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                     show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseHand"}
                     title={i18n.dialog.chooseHand.title} toggleText={i18n.dialog.chooseHand.toggleText}
                     initial={true}/> : <></>}
+
             <ChoiceDialog
                 callback={chooseEffect}
                 choices={G.e.choices.map((c, idx) => {
@@ -466,6 +468,22 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 title={i18n.dialog.confirmRespond.title}
                 toggleText={i18n.dialog.confirmRespond.toggleText + effName(G.e.currentEffect)}
                 initial={true}/>
+            {playerID !== null ?
+                <ChoiceDialog
+                    callback={nop}
+                    choices={G.secretInfo.playerDecks[parseInt(playerID)].sort().map(c=> {
+                        return {
+                            label: getCardName(c),
+                            disabled: true,
+                            hidden: false,
+                            value: '1',
+                        }
+                    })}
+                    show={true}
+                    initial={true}
+                    title={i18n.pub.deck}
+                    toggleText={i18n.pub.deck}
+                     defaultChoice={'0'}/>:<></>}
         </Grid>
         :
         <Grid item xs={12} sm={6}>

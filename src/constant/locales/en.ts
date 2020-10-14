@@ -717,6 +717,7 @@ const en = {
         discard: "Discard",
         allCards: "All cards",
         inferredHands: "Inferred hands",
+        deck: "Your deck",
         archive: "Archive",
         playedCards: "Played Cards",
     },
