@@ -26,7 +26,7 @@ const useStyles = makeStyles((theme: Theme) =>
     }),
 );
 
-export const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
+const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
     useI18n(i18n);
     const history = useHistory();
     const classes = useStyles();
@@ -73,3 +73,5 @@ export const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
         </Button>
         </>
 }
+
+export default MUICreateMatch;

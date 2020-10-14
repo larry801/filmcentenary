@@ -12,7 +12,7 @@ import {
     playCard, requestEndTurn, chooseRegion, peek,
 } from "./moves";
 import {IG} from "../types/setup";
-import {autoEventsOnMove, changeStage, cleanPendingSignal} from "./logFix";
+import {changeStage, cleanPendingSignal} from "./logFix";
 import {aesAward, curPub, drawCardForPlayer, industryAward} from "./util";
 
 

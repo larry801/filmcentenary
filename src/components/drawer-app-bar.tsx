@@ -54,7 +54,7 @@ const AntSwitch = withStyles((theme: Theme) =>
     }),
 )(Switch);
 
-export const DrawerAppBar = () => {
+const DrawerAppBar = () => {
 
     useI18n(i18n);
     const [open, setOpen] = React.useState(false);
@@ -95,14 +95,10 @@ export const DrawerAppBar = () => {
         <MUIDrawer open={open} anchor={"left"} onClose={handleClose}>
             <List>
                 <ListItem><Button><Link to={'/'}>{i18n.drawer.lobby}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/2p'}>{i18n.drawer.twoPlayer}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/3p'}>{i18n.drawer.threePlayer}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/4p'}>{i18n.drawer.fourPlayer}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/single2p'}>{i18n.drawer.singlePlayer}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/single3p'}>{i18n.drawer.singlePlayer3p}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/single4p'}>{i18n.drawer.singlePlayer4p}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/cards'}>{i18n.drawer.cards}</Link></Button></ListItem>
             </List>
         </MUIDrawer>
     </React.Fragment>
 }
+
+export default DrawerAppBar;

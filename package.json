@@ -44,6 +44,7 @@
     "eject": "react-scripts eject",
     "build:server": "tsc -p tsconfig.server.json",
     "start:server": "node -r esm build/server.js",
+    "a": "yarn build  && yarn analyze",
     "serve": "yarn build  && yarn build:server && yarn start:server",
     "analyze": "source-map-explorer 'build/static/js/*.js'"
   },

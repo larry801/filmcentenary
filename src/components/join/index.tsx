@@ -19,7 +19,7 @@ interface Params {
     player: Player;
 }
 
-export const JoinPage = ({serverURL}: JoinPageProps) => {
+const JoinPage = ({serverURL}: JoinPageProps) => {
     useI18n(i18n);
     const history = useHistory();
     const {matchID, player}: Params = useParams();
@@ -89,3 +89,4 @@ export const JoinPage = ({serverURL}: JoinPageProps) => {
         />
     </>
 }
+export default JoinPage;

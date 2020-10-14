@@ -25,7 +25,7 @@ const useStyles = makeStyles({
     },
 });
 
-export function DenseTable() {
+const DenseTable = () =>{
     const classes = useStyles();
 
     return (
@@ -89,3 +89,4 @@ export const CardItem = ({cardId}: ICardItemProps) => {
     </div>
 }
 
+export default DenseTable;
