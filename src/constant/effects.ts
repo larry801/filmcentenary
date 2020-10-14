@@ -755,7 +755,7 @@ export const effects = {
             e: "step",
             a: [
                 {e: "comment", a: 1},
-                {e: "buy", a: "B01"},
+                {e: "buyCardToHand", a: "B01"},
                 {e: "noStudio", a: {e: "buy", a: "B04"}},
                 {e: "studio", a: {e: "draw", a: 1}},
             ]
