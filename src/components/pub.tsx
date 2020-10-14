@@ -9,6 +9,7 @@ import {getCardName} from "../game/util";
 import {IG} from "../types/setup";
 import shortid from "shortid";
 import {getCardById} from "../types/cards";
+import {CardEffect} from "./card";
 
 export interface IPubPanelProps {
     i: IPubInfo,
@@ -52,7 +53,11 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             {i.school !== null ?
-                <Typography> {i18n.pub.school} {getCardName(i.school.cardId)} </Typography> : <></>}
+                <Typography>
+                    {i18n.pub.school}
+                    {getCardName(i.school.cardId)}
+                    <CardEffect cid={i.school.cardId}/>
+                </Typography> : <></>}
             <Typography>   {i18n.pub.shareLegend} </Typography>
             {ValidRegions.map(r =>
                 <Typography key={r}>
