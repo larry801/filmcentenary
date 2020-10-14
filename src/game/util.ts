@@ -18,7 +18,7 @@ import {
     Region,
     ShareOnBoard,
     validRegion,
-    ValidRegions, SimpleRuleNumPlayers,
+    ValidRegions, SimpleRuleNumPlayers, CardID,
 } from "../types/core";
 import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
@@ -2264,8 +2264,9 @@ export const getCardName = (cardId: string) => {
         return i18n.card[cardId];
     } else {
         if (cardId in ClassicCardID) {
+            let trimmedID = cardId.slice(1)
             // @ts-ignore
-            return i18n.card[cardId];
+            return i18n.card[trimmedID];
         } else {
             if (cardId in EventCardID) {
                 // @ts-ignore
@@ -2282,8 +2283,7 @@ export const getCardName = (cardId: string) => {
     }
 }
 
-export const cardEffectText = (cardId: BasicCardID | ClassicCardID): string => {
-    // @ts-ignore
+export const cardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
     // TODO region closure capture
     let r: string[] = [];
