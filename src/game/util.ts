@@ -2291,22 +2291,28 @@ export const getCardName = (cardId: string) => {
     }
 }
 
-export const cardEffectText = (cardId: CardID): string => {
+export const playCardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
-    // TODO region closure capture
+    let r: string[] = [];
+    if (effObj.hasOwnProperty("play") && effObj.play.e !== "none") {
+        r.push(i18n.effect.playCardHeader);
+        r.push(effName(effObj.play));
+    }
+    return r.join("");
+}
+export const buyCardEffectText = (cardId: CardID): string => {
+    let effObj = getCardEffect(cardId);
     let r: string[] = [];
     if (effObj.hasOwnProperty("buy") && effObj.buy.e !== "none") {
         r.push(i18n.effect.buyCardHeader);
         r.push(effName(effObj.buy));
     }
-    if (effObj.hasOwnProperty("play") && effObj.play.e !== "none") {
-        r.push(i18n.effect.playCardHeader);
-        r.push(effName(effObj.play));
-    }
-    if (effObj.hasOwnProperty("archive") && effObj.archive.e !== "none") {
-        r.push(i18n.effect.breakthroughHeader);
-        r.push(effName(effObj.archive));
-    }
+    return r.join("");
+
+}
+export const schoolEffectText = (cardId: CardID): string => {
+    let effObj = getCardEffect(cardId);
+    let r: string[] = [];
     if (effObj.hasOwnProperty("school")) {
         r.push(i18n.effect.continuous);
         r.push(i18n.effect.school(effObj.school));
@@ -2329,6 +2335,21 @@ export const cardEffectText = (cardId: CardID): string => {
             r.push(effName(effObj.response.effect));
         }
     }
+    return r.join("");
+}
+export const archiveCardEffectText = (cardId: CardID): string => {
+    let effObj = getCardEffect(cardId);
+    let r: string[] = [];
+    if (effObj.hasOwnProperty("archive") && effObj.archive.e !== "none") {
+        r.push(i18n.effect.breakthroughHeader);
+        r.push(effName(effObj.archive));
+    }
+    return r.join("");
+
+}
+export const scoreEffectText = (cardId: CardID): string => {
+    let effObj = getCardEffect(cardId);
+    let r: string[] = [];
     if (effObj.hasOwnProperty("scoring")) {
         r.push(i18n.effect.scoringHeader);
         r.push(effName(effObj.scoring));

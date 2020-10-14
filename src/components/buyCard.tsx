@@ -14,7 +14,7 @@ import Dialog from "@material-ui/core/Dialog";
 import FormLabel from "@material-ui/core/FormLabel";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import {Ctx, PlayerID} from "boardgame.io";
-import {canAfford, canBuyCard, canHelp, cardEffectText, getCardName, resCost} from "../game/util";
+import {canAfford, canBuyCard, canHelp, getCardName, resCost} from "../game/util";
 import Slider from "@material-ui/core/Slider";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
@@ -26,6 +26,7 @@ import FormControl from "@material-ui/core/FormControl";
 import Checkbox from "@material-ui/core/Checkbox";
 import DialogActions from "@material-ui/core/DialogActions";
 import {getCardById} from "../types/cards";
+import {CardEffect} from "./card";
 
 export interface IBuyDialogProps {
     card: ClassicCardID | BasicCardID,
@@ -146,7 +147,8 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                 <Typography>
                     {i18n.pub.industryMarker} {targetCard.industry}
                     {i18n.pub.aestheticsMarker} {targetCard.aesthetics}
-                    {cardEffectText(card)}</Typography>
+                </Typography>
+                <CardEffect cid={card}/>
                 <FormControl required component="fieldset">
                     <FormLabel component="legend" error={!canBuy}>
                         {i18n.dialog.buyCard.cost} {i18n.pub.res} {res}

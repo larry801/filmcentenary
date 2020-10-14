@@ -1,7 +1,6 @@
 import React from "react";
 import {BasicCardID, EventCardID,  ClassicCardID} from "../types/core";
-import Typography from "@material-ui/core/Typography";
-import {cardEffectText, getCardName} from "../game/util";
+import {getCardName} from "../game/util";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
 import makeStyles from '@material-ui/core/styles/makeStyles';
@@ -13,6 +12,7 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import {getCardById} from "../types/cards";
+import {CardEffect} from "./card";
 
 
 interface ICardItemProps {
@@ -60,33 +60,13 @@ const DenseTable = () =>{
                         <TableCell align="right">{c.cost.res}/{c.cost.industry}/{c.cost.aesthetics}</TableCell>
                         <TableCell align="right">{c.vp}</TableCell>
                         <TableCell align="right">{c.industry}/{c.aesthetics}</TableCell>
-                        <TableCell align="left">{cardEffectText(rid as ClassicCardID)}</TableCell>
+                        <TableCell align="left"><CardEffect cid={rid}/></TableCell>
                     </TableRow>
                 })}
                 </TableBody>
             </Table>
         </TableContainer>
     );
-}
-
-export const CardItem = ({cardId}: ICardItemProps) => {
-
-    useI18n(i18n)
-    //const card = getCardById(cardId);
-    const effText = () => {
-        try {
-            return cardEffectText(cardId)
-        } catch (e) {
-
-        }
-    }
-
-    return <div>
-        <Typography>{getCardName(cardId)} {cardId}</Typography>
-        {/*<Typography>{i18n.pub.industryMarker} {card.industry}</Typography>*/}
-        {/*<Typography>{i18n.pub.aestheticsMarker} {card.aesthetics}</Typography>*/}
-        <Typography>{effText()}</Typography>
-    </div>
 }
 
 export default DenseTable;

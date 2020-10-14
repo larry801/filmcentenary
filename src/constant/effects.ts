@@ -31,7 +31,7 @@ export function getCardEffect(id: CardID): any {
                 // @ts-ignore
                 return effects[id.slice(1)]
             }else{
-                throw Error("Unknown id" + id);
+                throw Error(`Unknown id ${JSON.stringify(id)}`);
             }
         }
     }
