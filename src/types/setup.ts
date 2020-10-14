@@ -89,9 +89,7 @@ export interface IG {
 }
 const initialDeck = [
     BasicCardID.B01, BasicCardID.B02,
-    BasicCardID.B07, BasicCardID.B07,
-    BasicCardID.B07, BasicCardID.B07,
-    BasicCardID.B07, BasicCardID.B07
+    BasicCardID.B07, "2105"
 ];
 function pubPlayer(): IPubInfo {
     return {

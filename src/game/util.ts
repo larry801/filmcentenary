@@ -152,6 +152,7 @@ function getShare(G: IG, region: validRegion, obj: IPubInfo, num: number) {
 
 export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     let eff = G.e.stack.pop();
+    let log = `simpleEffectExec|p${p}|${JSON.stringify(eff)}`
     let obj = G.pub[parseInt(p)];
     let card: INormalOrLegendCard;
     switch (eff.e) {
@@ -279,10 +280,10 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             doBuy(G, ctx, getCardById(eff.a), p);
             break;
         default:
-            console.error("Invalid effect" + JSON.stringify(eff));
+            logger.error("Invalid effect" + JSON.stringify(eff));
             throw new Error(JSON.stringify(eff));
     }
-
+    logger.debug(log);
 }
 
 export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
@@ -405,6 +406,7 @@ export const buildingInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boole
 }
 export const studioInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
     if (r === Region.NONE) return false;
+    logger.debug(`studioInRegion|r${r}|p${p}`);
     return G.regions[r].buildings.filter(s => s.content === "studio" && s.owner === p).length > 0;
 }
 export const cinemaInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
@@ -525,7 +527,7 @@ export function vpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
 export const breakthroughEffectPrepare = (G: IG, ctx: Ctx): void => {
     let log = "breakthroughEffectPrepare"
     let p = curPub(G, ctx);
-    let c = getCardById(G.e.card as CardID);
+    let c = curCard(G);
     let i = c.industry
     let a = c.aesthetics
     log += `|${c.cardId}|i${i}|a${a}`
@@ -619,6 +621,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let obj = G.pub[parseInt(p)];
     let playerObj = G.player[parseInt(p)];
     let region = curCard(G).region as validRegion;
+    log += `|c:${G.e.card}|region:${region}`;
     let players = []
     let len = 0;
     let subEffect;
@@ -827,10 +830,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             subEffect = eff.a;
             if (isSimpleEffect(subEffect)) {
                 log += "|simpleEffect|execForAll"
+                G.e.pendingPlayers = seqFromCurrentPlayer(G, ctx);
                 for (let p of G.e.pendingPlayers) {
                     G.e.stack.push(subEffect);
                     simpleEffectExec(G, ctx, p);
                 }
+                G.e.pendingPlayers = [];
             } else {
                 if (G.e.pendingPlayers.length === 0) {
                     log += "|fetchPlayers"
@@ -854,10 +859,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break
         case "noStudio":
             G.c.players = noStudioPlayers(G, ctx, region);
+            log += `|region:${region}|noStudioPlayers|${JSON.stringify(G.c.players)}`
             if (G.c.players.length === 0) {
                 break;
             }
             G.e.stack.push(eff.a);
+            logger.debug(log);
             changePlayerStage(G, ctx, "chooseTarget", p);
             return;
         case "studio":
