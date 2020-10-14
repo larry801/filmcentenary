@@ -215,13 +215,13 @@ const argShowBoardStatus = {
                 t += '：';
                 if (r.legend.card !== null) {
                     t += "传奇："
-                    t += bracketCardName(r.legend.card.cardId)
+                    t += bracketCardName(r.legend.card)
                 }
                 if (r.normal.filter(s=>s.card!==null).length > 0) {
                     t += "普通："
                     r.normal.forEach(c => {
                         if (c.card !== null) {
-                            t += bracketCardName(c.card.cardId)
+                            t += bracketCardName(c.card)
                         }
                     })
                 }
@@ -230,13 +230,13 @@ const argShowBoardStatus = {
             t += "流派："
             arg[0].film.forEach(c => {
                 if (c.card !== null) {
-                    t += bracketCardName(c.card.cardId)
+                    t += bracketCardName(c.card)
                 }
             })
             t += "影片："
             arg[0].school.forEach(c => {
                 if (c.card !== null) {
-                    t += bracketCardName(c.card.cardId)
+                    t += bracketCardName(c.card)
                 }
             })
         }
@@ -366,15 +366,16 @@ const argComment = {
     args: (arg: ICommentArg[]): string => {
         let a = arg[0]
         let t = chose
+        if(a.target.card ===null)return"";
         if (a.comment === null) {
             t += "移除了"
-            t += bracketCardName(a.target.card?.cardId)
+            t += bracketCardName(a.target.card)
             t += "的评论"
         } else {
             t += "评论"
-            t += bracketCardName(a.target.card?.cardId)
+            t += bracketCardName(a.target.card)
             t += "为"
-            t += bracketCardName(a.comment.cardId)
+            t += bracketCardName(a.comment)
         }
         return t
     }
@@ -531,7 +532,6 @@ const zh_CN: Locale = {
             }
         }],
         competition: ["争夺一次{{bonus}}{{onWin}}", {
-            // @ts-ignore
             bonus: (value: number = 0) => {
                 if (value > 0) {
                     return "，竞争力+" + value.toString()
@@ -605,11 +605,8 @@ const zh_CN: Locale = {
         schoolHeader: "【流派】",
         responseHeader: "【响应】",
         choice: "请选择一项执行：",
-        // @ts-ignore
         comment: ["评论{{a}}次", argValue],
-        // @ts-ignore
         industryBreakthrough: ["工业突破{{a}}次", argValue],
-        // @ts-ignore
         aestheticsBreakthrough: ["美学突破{{a}}次", argValue],
         buy: ["免费购买【 {{a}} 】", argCardName],
         buyCardToHand: ["免费购买【{{a}}】并加入手牌", argCardName],

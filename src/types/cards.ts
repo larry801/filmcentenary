@@ -4,7 +4,6 @@ import {
     CardType,
     cost, EventCardID,
     ICost,
-    IEffect,
     IEra,
     IEventCard,
     IFilmCard,
@@ -33,7 +32,7 @@ interface IArgFilmCard {
 interface IArgEvent {
     name: string,
     id: string,
-    effect: IEffect,
+    effect: any,
     era: IEra,
 }
 

@@ -19,8 +19,8 @@ export type CardID = string;
 export interface ICardSlot {
     region: Region,
     isLegend:boolean,
-    card:INormalOrLegendCard|null
-    comment: IBasicCard|null,
+    card: ClassicCardID|null
+    comment: BasicCardID|null,
 }
 
 export enum IEra {
@@ -30,7 +30,8 @@ export enum IEra {
 }
 
 export interface IEffect {
-
+    e:EffectNames,
+    a:number|CardID|IEffect[]
 }
 
 export interface IBuyInfo {
@@ -90,6 +91,7 @@ export interface IFilmCard extends INormalOrLegendCard {
     readonly type: CardType.F,
 }
 
+export type EffectNames  = SimpleEffectNames|ScoringEffectNames|NoExecutorEffectNames|InteractiveEffectNames;
 export enum InteractiveEffectNames {
     era="era",
     breakthroughResDeduct="breakthroughResDeduct",
@@ -181,7 +183,7 @@ export enum ScoringEffectNames {
     allNoStudioPlayer = "allNoStudioPlayer",
 
 }
-export enum NoExecutorEffect {
+export enum NoExecutorEffectNames {
     onYourComment="onYourComment",
     playedCardInTurnEffect="playedCardInTurnEffect",
     doNotLoseVpAfterCompetition="doNotLoseVpAfterCompetition",
@@ -216,10 +218,6 @@ export enum EventCardID{
     "E13"="E13",
     "E14"="E14",
 }
-export enum NormalOrLegendCardID{
-    "p1101"="1101"
-}
-
 export enum BasicCardID{
     "B01"="B01",
     "B02"="B02",
@@ -231,7 +229,7 @@ export enum BasicCardID{
 }
 export interface IEventCard extends ICard {
     era: IEra,
-    effect: IEffect,
+    effect: any,
 }
 
 export interface IPersonCard extends INormalOrLegendCard {
@@ -284,11 +282,11 @@ export interface IPubInfo {
     action: number,
     deposit: number,
     resource: number,
-    archive: ICard[],
-    allCards: ICard[],
-    discard: ICard[],
-    revealedHand: ICard[],
-    playedCardInTurn: ICard[],
+    archive: CardID[],
+    allCards: CardID[],
+    discard: CardID[],
+    revealedHand: CardID[],
+    playedCardInTurn: CardID[],
     industry: number,
     aesthetics: number,
     school: ISchoolCard | null,
@@ -302,11 +300,11 @@ export interface IPubInfo {
 }
 
 export interface IPrivateInfo {
-    hand: ICard[],
+    hand: CardID[],
     handSize:number,
     finalScoringExtraVp:number,
-    cardsToPeek:ICard[],
-    competitionCards:ICard[],
+    cardsToPeek:CardID[],
+    competitionCards:CardID[],
     deckEmpty:boolean,
 }
 
@@ -328,8 +326,8 @@ export interface IRegionInfo {
 }
 
 export interface IRegionPrivate {
-    legendDeck:INormalOrLegendCard[],
-    normalDeck:INormalOrLegendCard[],
+    legendDeck:ClassicCardID[],
+    normalDeck:ClassicCardID[],
 }
 
 
@@ -367,6 +365,21 @@ export enum ScoreCardID {
 }
 
 export const SimpleRuleNumPlayers = 1;
+
+export enum SchoolCardID {
+    'S1203'='S1203',
+    'S1204'='S1204',
+    'S1301'='S1301',
+    'S1303'='S1303',
+    'S2101'='S2101',
+    'S2201'='S2201',
+    'S2204'='S2204',
+    'S2301'='S2301',
+    'S3101'='S3101',
+    'S3105'='S3105',
+    'S3201'='S3201',
+    'S3204'='S3204',
+}
 
 export enum ClassicCardID {
     'P1101'='P1101',

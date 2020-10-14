@@ -3,6 +3,7 @@ import {IG} from "../types/setup";
 import {actualStage, canAfford, getPossibleHelper, resCost} from "./util";
 import {Stage} from "boardgame.io/core";
 import {IBasicCard, INormalOrLegendCard, SimpleRuleNumPlayers, ValidRegions} from "../types/core";
+import {getCardById} from "../types/cards";
 
 export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard):
     Array<{ move: string; args?: any[] }> => {
@@ -22,16 +23,16 @@ export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalO
             }]
         })
     }else {
-        let validHelpers = getPossibleHelper(G,ctx,p,card);
+        let validHelpers = getPossibleHelper(G,ctx,p,card.cardId);
         let helperCost = resCost(G, ctx, {
-            target: card.cardId, buyer: p, resource: 0, deposit: 0, helper: validHelpers.map(c=>c.cardId)
+            target: card.cardId, buyer: p, resource: 0, deposit: 0, helper: validHelpers
         })
         moves.push({
             move: "buyCard", args: [{
                 target: card.cardId, buyer: p,
                 resource: Math.min(pub.resource, helperCost),
                 deposit: Math.max(helperCost - pub.deposit, 0),
-                helper: validHelpers.map(c=>c.cardId)
+                helper: validHelpers
             }]
         })
     }
@@ -92,16 +93,15 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                 if (ctx.numPlayers > SimpleRuleNumPlayers) {
                     ValidRegions.forEach(r => {
                         let rObj = G.regions[r];
-                        let card = rObj.legend.card;
-                        if (card !== null) {
-                            if (canAfford(G, ctx, card, p)) {
-                                moves.concat(buyCardArgEnumerate(G, ctx, p, card));
-                            }
+                        if(rObj.legend.card===null)return;
+                        let card = getCardById(rObj.legend.card);
+                        if (canAfford(G, ctx, rObj.legend.card, p)) {
+                            moves.concat(buyCardArgEnumerate(G, ctx, p, card));
                         }
                         for (let slot of rObj.normal) {
                             if (slot.card !== null) {
                                 if (canAfford(G, ctx, slot.card, p)) {
-                                    moves.concat(buyCardArgEnumerate(G, ctx, p, slot.card));
+                                    moves.concat(buyCardArgEnumerate(G, ctx, p, getCardById(slot.card)));
                                 }
                             }
                         }
@@ -110,7 +110,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                     G.twoPlayer.film.forEach(slot => {
                         if (slot.card !== null) {
                             if (canAfford(G, ctx, slot.card, p)) {
-                                moves.concat(buyCardArgEnumerate(G, ctx, p, slot.card));
+                                moves.concat(buyCardArgEnumerate(G, ctx, p, getCardById(slot.card)));
 
                             }
                         }
@@ -118,7 +118,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                     G.twoPlayer.school.forEach(slot => {
                         if (slot.card !== null) {
                             if (canAfford(G, ctx, slot.card, p)) {
-                                moves.concat(buyCardArgEnumerate(G, ctx, p, slot.card));
+                                moves.concat(buyCardArgEnumerate(G, ctx, p, getCardById(slot.card)));
                             }
                         }
                     })
@@ -196,12 +196,12 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
             } else {
                 G.twoPlayer.film.forEach((slot, ) => {
                     if (slot.card !== null) {
-                        moves.push({move: stage, args: [slot.card.cardId]})
+                        moves.push({move: stage, args: [slot.card]})
                     }
                 })
                 G.twoPlayer.school.forEach((slot) => {
                     if (slot.card !== null) {
-                        moves.push({move: stage, args: [slot.card.cardId]})
+                        moves.push({move: stage, args: [slot.card]})
                     }
                 })
             }

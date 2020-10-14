@@ -233,13 +233,14 @@ const argShowBoardStatus = {
                 t += ':';
                 if (r.legend.card !== null) {
                     t += "legend:"
-                    t += bracketCardName(r.legend.card.cardId)
+                    t += bracketCardName(r.legend.card)
                 }
                 if (r.normal.filter(s => s.card !== null).length > 0) {
                     t += "normal:"
                     r.normal.forEach(c => {
                         if (c.card !== null) {
-                            t += bracketCardName(c.card.cardId)
+                            t += bracketCardName(c.card
+                            )
                         }
                     })
                 }
@@ -248,13 +249,14 @@ const argShowBoardStatus = {
             t += "School:"
             arg[0].film.forEach(c => {
                 if (c.card !== null) {
-                    t += bracketCardName(c.card.cardId)
+                    t += bracketCardName(c.card
+                    )
                 }
             })
             t += "Film:"
             arg[0].school.forEach(c => {
                 if (c.card !== null) {
-                    t += bracketCardName(c.card.cardId)
+                    t += bracketCardName(c.card)
                 }
             })
         }
@@ -369,14 +371,17 @@ const argComment = {
     args: (arg: ICommentArg[]): string => {
         let a = arg[0]
         let t = chose
+        if(a.target.card===null){
+            return ""
+        }
         if (a.comment === null) {
             t += " removed comment on"
-            t += bracketCardName(a.target.card?.cardId)
+            t += bracketCardName(a.target.card)
         } else {
             t += " commented "
-            t += bracketCardName(a.target.card?.cardId)
+            t += bracketCardName(a.target.card)
             t += " as "
-            t += bracketCardName(a.comment.cardId)
+            t += bracketCardName(a.comment)
         }
         return t
     }

@@ -11,6 +11,7 @@ import Typography from "@material-ui/core/Typography";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import Button from "@material-ui/core/Button";
 import shortid from "shortid";
+import {getCardById} from "../types/cards";
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
 
@@ -24,48 +25,40 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
         <Typography>{i18n.hand.title}</Typography>
         {hand.map((c, idx) => {
                 const play = () => moves.playCard({
-                    card: c.cardId,
+                    card: c,
                     idx: idx,
                     playerID: playerID,
                     res: 0,
                 })
 
                 const archive2res = () => moves.breakthrough({
-                    card: c.cardId,
+                    card: c,
                     idx: idx,
                     playerID: playerID,
                     res: 2,
                 });
                 const archive1res = () => moves.breakthrough({
-                    card: c.cardId,
+                    card: c,
                     idx: idx,
                     playerID: playerID,
                     res: 1,
                 });
                 const archive0res = () => moves.breakthrough({
-                    card: c.cardId,
+                    card: c,
                     idx: idx,
                     playerID: playerID,
                     res: 0,
                 });
+                const card = getCardById(c);
                 return <Accordion
                     expanded={true}
                     key={shortid.generate()}>
                     <AccordionSummary key={idx}>
-                        {getCardName(c.cardId)}
+                        {getCardName(c)}
                         {"  "}
-                        {
-                            // @ts-ignore
-                            c.industry > 0 ? i18n.pub.industryMarker + c.industry.toString() : ""
-                        }
-                        {
-                            // @ts-ignore
-                            c.aesthetics > 0 ? i18n.pub.aestheticsMarker + c.aesthetics.toString() : ""
-                        }
-                        {
-                            // @ts-ignore
-                            cardEffectText(c.cardId)
-                        }
+                        {card.industry > 0 ? `${i18n.pub.industryMarker}${card.industry}` : ""}
+                        {card.aesthetics > 0 ? `${i18n.pub.aestheticsMarker}${card.aesthetics}` : ""}
+                        {cardEffectText(c)}
                     </AccordionSummary>
                     <AccordionDetails key={idx}>
                         <Grid container>

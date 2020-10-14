@@ -1,7 +1,8 @@
 import {Ctx, LongFormMove, PlayerID} from 'boardgame.io';
 import {IG} from "../types/setup";
 import {
-    CardID,
+    BasicCardID,
+    CardID, ClassicCardID,
     EventCardID,
     IBasicCard,
     IBuyInfo,
@@ -23,7 +24,7 @@ import {
     checkNextEffect,
     checkRegionScoring,
     cinemaInRegion,
-    cinemaSlotsAvailable, competitionCLeanUp,
+    cinemaSlotsAvailable, competitionCLeanUp, curCard,
     curEffectExec,
     curPub,
     doAestheticsBreakthrough,
@@ -74,7 +75,7 @@ export const buyCard: LongFormMove = {
             p.resource -= arg.resource;
             p.deposit -= arg.deposit;
             arg.helper.forEach(c => {
-                let pHand = G.player[parseInt(arg.buyer)].hand.map(c => c.cardId);
+                let pHand = G.player[parseInt(arg.buyer)].hand;
                 let idx = pHand.indexOf(c)
                 let helper = G.player[parseInt(arg.buyer)].hand.splice(idx, 1)[0];
                 p.playedCardInTurn.push(helper);
@@ -131,7 +132,6 @@ export const chooseTarget: LongFormMove = {
             case "loseAnyRegionShare":
                 G.c.players = [];
                 G.e.regions = ValidRegions.filter(
-                    // @ts-ignore
                     r => G.pub[parseInt(p)].shares[r] > 0
                 )
                 if (G.e.regions.length > 0) {
@@ -174,7 +174,7 @@ export const chooseHand: LongFormMove = {
             case "breakthroughResDeduct":
                 pub.action--;
                 hand.splice(arg.idx, 1);
-                pub.archive.push(card);
+                pub.archive.push(arg.hand);
                 if (arg.hand === "1108") {
                     log += "|Nanook"
                     if (pub.deposit < 1) {
@@ -187,7 +187,7 @@ export const chooseHand: LongFormMove = {
                 break;
             case "archiveToEEBuildingVP":
                 hand.splice(arg.idx, 1);
-                pub.archive.push(card);
+                pub.archive.push(arg.hand);
                 if (buildingInRegion(G, ctx, Region.EE, p)) {
                     G.pub[parseInt(p)].vp += card.vp;
                 }
@@ -195,18 +195,17 @@ export const chooseHand: LongFormMove = {
             case "handToOthers":
                 hand.splice(arg.idx, 1);
                 let targetPub = G.player[parseInt(G.c.players[0])];
-                targetPub.hand.push(card);
+                targetPub.hand.push(arg.hand);
                 break;
             case "refactor":
                 hand.splice(arg.idx, 1);
-                pub.archive.push(card);
-                // @ts-ignore
-                pub.vp += (card.vp + G.e.card.vp);
+                pub.archive.push(arg.hand);
+                pub.vp += (card.vp + curCard(G).vp);
                 doBuy(G, ctx, B05, p);
                 break;
             case "archive":
                 hand.splice(arg.idx, 1);
-                pub.archive.push(card);
+                pub.archive.push(arg.hand);
                 break;
             case "discard":
             case "discardLegend":
@@ -218,7 +217,7 @@ export const chooseHand: LongFormMove = {
                     pub.discardInSettle = true;
                 }
                 hand.splice(arg.idx, 1);
-                pub.discard.push(card);
+                pub.discard.push(arg.hand);
                 if (eff.a > 1) {
                     eff.a--;
                     log += `|remain:${eff.a}`
@@ -391,7 +390,7 @@ export const chooseRegion = {
 
 export interface IPeekArgs {
     idx: number,
-    card: INormalOrLegendCard,
+    card: ClassicCardID,
     p: PlayerID,
 }
 
@@ -409,33 +408,33 @@ export const peek: LongFormMove = {
         switch (eff.a.filter.e) {
             case "industry":
                 for (let card of playerObj.cardsToPeek) {
-                    let c = card as INormalOrLegendCard;
+                    let c = getCardById(card);
                     if (c.industry > 0) {
-                        playerObj.hand.push(c);
+                        playerObj.hand.push(card);
                     } else {
-                        pub.discard.push(c);
+                        pub.discard.push(card);
                     }
                 }
                 playerObj.cardsToPeek = []
                 break;
             case "aesthetics":
                 for (let card of playerObj.cardsToPeek) {
-                    let c = card as INormalOrLegendCard;
+                    let c = getCardById(card)
                     if (c.aesthetics > 0) {
-                        playerObj.hand.push(c);
+                        playerObj.hand.push(card);
                     } else {
-                        pub.discard.push(c);
+                        pub.discard.push(card);
                     }
                 }
                 playerObj.cardsToPeek = []
                 break;
             case "era":
                 for (let card of playerObj.cardsToPeek) {
-                    let c = card as INormalOrLegendCard;
+                    let c = getCardById(card);
                     if (c.era === eff.a.filter.a) {
-                        playerObj.hand.push(c);
+                        playerObj.hand.push(card);
                     } else {
-                        pub.discard.push(c);
+                        pub.discard.push(card);
                     }
                 }
                 playerObj.cardsToPeek = []
@@ -469,7 +468,7 @@ export const chooseEvent: LongFormMove = {
         logger.info(`p${arg.p}.moves.chooseEvent(${JSON.stringify(arg)})`);
         let eid: EventCardID = arg.event;
         G.events.splice(arg.idx, 1);
-        G.e.card = getCardById(eid);
+        G.e.card = eid;
         let log = "chooseEvent";
         log += `|${arg.event}|${arg.p}|${arg.idx}`;
         if (eid === EventCardID.E03) {
@@ -618,7 +617,7 @@ export const confirmRespond: LongFormMove = {
                     let indexOfTarget = -1
                     if (cardInDeck(G, ctx, parseInt(p), eff.a)) {
                         deck.forEach((c, idx) => {
-                            if (c.cardId === eff.a) {
+                            if (c === eff.a) {
                                 indexOfTarget = idx;
                             }
                         })
@@ -626,7 +625,7 @@ export const confirmRespond: LongFormMove = {
                     }
                     if (cardInHand(G, ctx, parseInt(p), eff.a)) {
                         hand.forEach((c, idx) => {
-                            if (c.cardId === eff.a) {
+                            if (c === eff.a) {
                                 indexOfTarget = idx;
                             }
                         })
@@ -634,7 +633,7 @@ export const confirmRespond: LongFormMove = {
                     }
                     if (cardInDiscard(G, ctx, parseInt(p), eff.a)) {
                         pub.discard.forEach((c, idx) => {
-                            if (c.cardId === eff.a) {
+                            if (c === eff.a) {
                                 indexOfTarget = idx;
                             }
                         })
@@ -680,8 +679,8 @@ export const playCard: LongFormMove = {
             pub.vp++;
         }
         hand.splice(arg.idx, 1);
-        pub.playedCardInTurn.push(playCard);
-        G.e.card = playCard;
+        pub.playedCardInTurn.push(arg.card);
+        G.e.card = arg.card;
         let eff = getCardEffect(arg.card).play;
         if (eff.e !== "none") {
             G.e.stack.push(eff)
@@ -693,7 +692,7 @@ export const playCard: LongFormMove = {
 
 export interface ICompetitionCardArg {
     pass: boolean,
-    card: INormalOrLegendCard,
+    card: ClassicCardID,
     idx: number,
     p: PlayerID,
 }
@@ -732,9 +731,9 @@ export const breakthrough: LongFormMove = {
         p.resource -= arg.res;
         p.deposit -= (2 - arg.res);
         let c = getCardById(arg.card);
-        G.e.card = c;
+        G.e.card = c.cardId;
         G.player[parseInt(arg.playerID)].hand.splice(arg.idx, 1);
-        p.archive.push(c);
+        p.archive.push(arg.card);
         if (arg.card === "1108") {
             if (p.deposit < 1) {
                 return INVALID_MOVE;
@@ -749,7 +748,7 @@ export const breakthrough: LongFormMove = {
 
 export interface ICommentArg {
     target: ICardSlot,
-    comment: IBasicCard | null,
+    comment: BasicCardID | null,
     p: PlayerID,
 }
 
@@ -763,7 +762,6 @@ export const comment: LongFormMove = {
         } else {
             arg.target.comment = arg.comment;
         }
-        // let p = schoolPlayer(G,ctx,"S3204")
         let p = schoolPlayer(G, ctx, "3204");
         if (p !== null) {
             drawCardForPlayer(G, ctx, p);

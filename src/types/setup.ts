@@ -1,19 +1,20 @@
 import {
+    BasicCardID,
+    CardID,
+    ClassicCardID,
     EventCardID,
     IBuildingSlot,
-    ICard,
     ICardSlot,
-    IEffect,
     IEra,
-    IEventCard,
     IPrivateInfo,
     IPubInfo,
     IRegionInfo,
-    IRegionPrivate, ISchoolCard,
-    Region, SimpleRuleNumPlayers
+    IRegionPrivate,
+    Region,
+    SchoolCardID,
+    SimpleRuleNumPlayers
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
-import {B01, B02, B07} from "../constant/cards/basic";
 import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
 
 export interface IG {
@@ -35,7 +36,7 @@ export interface IG {
     },
     currentScoreRegion:Region,
     scoringRegions: Region[],
-    events: IEventCard[],
+    events: EventCardID[],
     c: {
         players: PlayerID[],
         slots: ICardSlot[],
@@ -43,7 +44,7 @@ export interface IG {
         cardIDs: string[],
     },
     pub: IPubInfo[],
-    e: {pendingPlayers:PlayerID[], choices: any[], stack: any[], card: ICard|null, regions: Region[] ,currentEffect:any},
+    e: {pendingPlayers:PlayerID[], choices: any[], stack: any[], card: CardID|null, regions: Region[] ,currentEffect:any},
     player: IPrivateInfo[],
     competitionInfo: {
         region: Region,
@@ -62,11 +63,11 @@ export interface IG {
             2: IRegionPrivate,
             3: IRegionPrivate,
         },
-        events: IEventCard[],
-        playerDecks: ICard[][],
+        events: EventCardID[],
+        playerDecks: CardID[][],
         twoPlayer:{
-            school:ISchoolCard[],
-            film:ICard[],
+            school:SchoolCardID[],
+            film:ClassicCardID[],
         },
     },
     regions: {
@@ -75,7 +76,7 @@ export interface IG {
         2: IRegionInfo,
         3: IRegionInfo,
     },
-    pendingEffects: IEffect[],
+    pendingEffects: any[],
     basicCards: {
         "B01": number,
         "B02": number,
@@ -86,7 +87,12 @@ export interface IG {
         "B07": number,
     },
 }
-const initialDeck = [B01, B02, B07, B07, B07, B07, B07, B07];
+const initialDeck = [
+    BasicCardID.B01, BasicCardID.B02,
+    BasicCardID.B07, BasicCardID.B07,
+    BasicCardID.B07, BasicCardID.B07,
+    BasicCardID.B07, BasicCardID.B07
+];
 function pubPlayer(): IPubInfo {
     return {
         deposit: 0,
@@ -163,7 +169,7 @@ function emptyBuildingSlot(region: Region, activated: boolean = true): IBuilding
 export const setup = (ctx: Ctx, setupData: any): IG => {
     let pub: IPubInfo[] = [];
     let players: IPrivateInfo[] = [];
-    let decks: ICard[][] = [];
+    let decks: CardID[][] = [];
     let order: PlayerID[] = [];
     for (let i = 0; i < ctx.numPlayers; i++) {
         order.push(i.toString());
@@ -315,13 +321,11 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     if (ctx.numPlayers === 3) {
         G.regions[Region.NA].buildings[1].activated = true;
         G.regions[Region.WE].buildings[1].activated = true;
-        // @ts-ignore
-        G.pub[G.order[2]].vp = 1;
+        G.pub[parseInt(G.order[2])].vp = 1;
     }
     if (ctx.numPlayers > 3) {
         G.regions[Region.EE].buildings[1].activated = true;
-        // @ts-ignore
-        G.pub[G.order[3]].vp = 2;
+        G.pub[parseInt(G.order[3])].vp = 2;
     }
     if (ctx.numPlayers === SimpleRuleNumPlayers) {
         G.regions[Region.NA].share = 12;

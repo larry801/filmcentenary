@@ -75,7 +75,6 @@ export const CardItem = ({cardId}: ICardItemProps) => {
     //const card = getCardById(cardId);
     const effText = () => {
         try {
-            // @ts-ignore
             return cardEffectText(cardId)
         } catch (e) {
 

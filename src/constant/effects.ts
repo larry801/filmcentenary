@@ -1,7 +1,6 @@
 import {IG} from "../types/setup";
 import {Ctx} from "boardgame.io";
-import {CardID, ClassicCardID, EventCardID, IEra, Region, ScoreCardID} from "../types/core";
-import {logger} from "../game/util";
+import {CardID, ClassicCardID, EventCardID, IEra, Region, ScoreCardID, ScoringEffectNames} from "../types/core";
 
 const noEff = {e: "none", a: 1};
 const noResponse = {pre: noEff, effect: noEff};
@@ -1776,7 +1775,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: "threeCards", a: 1}
+        scoring: {e: ScoringEffectNames.threeCards, a: 1}
     },
     "3108": {
         canBuy: (G: IG, ctx: Ctx) => true,

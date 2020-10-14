@@ -1,6 +1,6 @@
 import React from "react";
 
-import {IBasicCard, ICardSlot, IRegionInfo, Region, validRegion} from "../types/core";
+import {BasicCardID, ICardSlot, IRegionInfo, Region, validRegion} from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {useI18n} from "@i18n-chain/react";
@@ -25,7 +25,7 @@ export interface ICardSlotProp {
     G: IG,
     ctx: Ctx,
     moves: Record<string, (...args: any[]) => void>,
-    comment: (slot: ICardSlot, card: IBasicCard | null) => void,
+    comment: (slot: ICardSlot, card: BasicCardID | null) => void,
     playerID: PlayerID | null,
 }
 
@@ -53,20 +53,20 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
     const variant = slot.isLegend ? "elevation" : "outlined"
 
     const updateSlot = () => {
-        moves.updateSlot(slot.card?.cardId);
+        moves.updateSlot(slot.card);
     }
 
     return <>
         <Paper style={{display: 'inline-flex'}} variant={variant}>
             <Grid container>
                 <Grid item xs={12}>
-                    <Typography>{slot.card === null ? "" : getCardName(slot.card.cardId)} </Typography>
-                    <Typography>{slot.comment === null ? "" : getCardName(slot.comment.cardId)} </Typography>
+                    <Typography>{slot.card === null ? "" : getCardName(slot.card)} </Typography>
+                    <Typography>{slot.comment === null ? "" : getCardName(slot.comment)} </Typography>
                 </Grid>
                 {playerID !== null && slot.card !== null ?
                     <BuyCard
                         card={slot.card}
-                        helpers={G.player[(parseInt(playerID))].hand.map(c => c.cardId)}
+                        helpers={G.player[(parseInt(playerID))].hand}
                         ctx={ctx}
                         G={G}
                         playerID={playerID} moves={moves}/> : <></>}
@@ -109,7 +109,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
     const {era, share, legend, normal} = region;
     const classes = useStyles();
 
-    const comment = (slot: ICardSlot, card: IBasicCard | null) => moves.comment({
+    const comment = (slot: ICardSlot, card: BasicCardID | null) => moves.comment({
         target: slot,
         comment: card,
         p: playerID

@@ -9,6 +9,7 @@ import DrawerAppBar from "./components/drawer-app-bar";
 const MUICreateMatch = React.lazy(async ()=> import("./components/create-match"));
 const JoinPage = React.lazy(async ()=> import("./components/join"));
 const DenseTable = React.lazy(async ()=> import("./components/cardreference"));
+const Local3p = React.lazy(async ()=> import("./components/local/3p"));
 
 const LoadingFallback  = () => <CircularProgress/>
 
@@ -31,6 +32,11 @@ render(
             <Route exact path="/join/:matchID/:player">
                 <React.Suspense fallback={<LoadingFallback/>}>
                     <JoinPage serverURL={`${window.location.protocol}//${window.location.host}`}/>
+                </React.Suspense>
+            </Route>
+            <Route exact path="/local3p">
+                <React.Suspense fallback={<LoadingFallback/>}>
+                    <Local3p />
                 </React.Suspense>
             </Route>
 

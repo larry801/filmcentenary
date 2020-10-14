@@ -1,5 +1,5 @@
 import React from "react";
-import {CardCategory, ICard, IPubInfo, ValidRegions} from "../types/core";
+import {CardCategory, CardID, IPubInfo, ValidRegions} from "../types/core";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
 import {useI18n} from '@i18n-chain/react';
@@ -8,6 +8,7 @@ import {ChoiceDialog} from "./modals";
 import {getCardName} from "../game/util";
 import {IG} from "../types/setup";
 import shortid from "shortid";
+import {getCardById} from "../types/cards";
 
 export interface IPubPanelProps {
     i: IPubInfo,
@@ -17,7 +18,7 @@ export interface IPubPanelProps {
 export const PubPanel = ({i, G}: IPubPanelProps) => {
     useI18n(i18n);
 
-    const possibleHand = ():ICard[]=>{
+    const possibleHand = (): CardID[]=>{
         let result = [...i.allCards]
         i.discard.forEach(c=>{
             let indexOfDiscard = result.indexOf(c)
@@ -57,10 +58,9 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                 <Typography key={r}>
                     {i18n.region[r]} {i.shares[r as 0 | 1 | 2 | 3]}
                     /
-                    {i.allCards.filter(c => c.category === CardCategory.LEGEND &&
-                        c.region === r &&
-                        // @ts-ignore
-                        c.era === G.regions[r].era
+                    {i.allCards.filter(c => getCardById(c).category === CardCategory.LEGEND &&
+                        getCardById(c).region === r &&
+                        getCardById(c).era === G.regions[r].era
                     ).length}
                 </Typography>
             )}
@@ -76,7 +76,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                 callback={noOp}
                 choices={i.discard.map((card, idx) => {
                     return {
-                        label: getCardName(card.cardId),
+                        label: getCardName(card),
                         hidden: false,
                         disabled: true,
                         value: idx.toString(),
@@ -90,7 +90,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                 callback={noOp}
                 choices={possibleHand().map((card, idx) => {
                     return {
-                        label: getCardName(card.cardId),
+                        label: getCardName(card),
                         hidden: false,
                         disabled: true,
                         value: idx.toString(),
@@ -104,7 +104,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                 callback={noOp}
                 choices={i.archive.map((card, idx) => {
                     return {
-                        label: getCardName(card.cardId),
+                        label: getCardName(card),
                         hidden: false,
                         disabled: true,
                         value: idx.toString(),
@@ -118,7 +118,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                 callback={noOp}
                 choices={i.playedCardInTurn.map((card, idx) => {
                     return {
-                        label: getCardName(card.cardId),
+                        label: getCardName(card),
                         hidden: false,
                         disabled: true,
                         value: idx.toString(),

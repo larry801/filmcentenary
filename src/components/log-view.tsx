@@ -63,7 +63,6 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                 }
             case "MAKE_MOVE":
                 let moveName = l.action.payload.type as MoveNames
-                // @ts-ignore
                 return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
                     args: l.action.payload.args
                 })
@@ -93,10 +92,7 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                         return text === "" ? <></> : <ListItem
                             button
                             // @ts-ignore
-                            style={
-                                // @ts-ignore
-                                style
-                            }
+                            style={style}
                             key={shortid.generate()}>
                             <ListItemText primary={text}/>
                         </ListItem>
