@@ -49,12 +49,13 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
     const locale = i18n._.getLocaleName();
 
-    useEffect(()=>{
+    useEffect(():()=>void=>{
         if(isActive){
             document.title = curPlayerSuffix + i18n.title
         }else {
             document.title = i18n.title
         }
+        return ()=>document.title = i18n.title;
     },[isActive,locale])
 
     const getName = (playerID: PlayerID | null = ctx.currentPlayer): string => {
