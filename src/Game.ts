@@ -60,7 +60,7 @@ export const FilmCentenaryGame: Game<IG> = {
         let newPlayerObj = []
         for (let p = 0; p < r.player.length; p++) {
             let oldPlayerPrivateInfo = G.player[p];
-            let isEmpty = G.secretInfo.playerDecks[p].length===0;
+            let isEmpty = G.secretInfo.playerDecks[p].length===0 && G.pub[p].discard.length === 0;
             let finalExtra = getExtraScoreForFinal(G,ctx,p.toString());
             if (p.toString() !== playerID) {
                 newPlayerObj.push({
