@@ -87,12 +87,14 @@ export interface IG {
         "B07": number,
     },
 }
-const initialDeck = [
+let initialDeck = [
     BasicCardID.B01, BasicCardID.B02,
     BasicCardID.B07, BasicCardID.B07,
     BasicCardID.B07, BasicCardID.B07,
     BasicCardID.B07, BasicCardID.B07
 ];
+// @ts-ignore
+// initialDeck = ["3110","B07","B07","B07"]
 function pubPlayer(): IPubInfo {
     return {
         deposit: 0,
@@ -194,7 +196,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             ],
         },
         order: order,
-        logDiscrepancyWorkaround: true,
+        logDiscrepancyWorkaround: false,
         pending: {
             lastRoundOfGame: false,
             endActivePlayer: false,
