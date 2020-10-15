@@ -263,7 +263,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {e: "deposit", a: 1},
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "optional", a: {e: "alternative", a: {e: "buy", a: "2107"}}},
+        archive: {e: "alternative", a: {e: "buy", a: "2107"}},
     },
     "1105": {
         canBuy: (G: IG, ctx: Ctx) => true,

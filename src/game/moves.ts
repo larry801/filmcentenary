@@ -591,7 +591,7 @@ export const confirmRespond: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
-        logger.info(`p${p}.moves.confirmRespond(${arg})`);
+        logger.info(`p${p}.moves.confirmRespond(${JSON.stringify(arg)})`);
         let pub = G.pub[parseInt(p)];
         let hand = G.player[parseInt(p)].hand;
         let eff = G.e.stack.pop();
@@ -600,10 +600,9 @@ export const confirmRespond: LongFormMove = {
         if (arg === "yes") {
             switch (eff.e) {
                 case "optional":
-                case "alternative":
                     log += "|yes|";
                     G.e.stack.push(eff.a)
-                    if (isSimpleEffect(eff.a.e)) {
+                    if (isSimpleEffect(eff.a)) {
                         log += "|simple|";
                         logger.debug(log);
                         simpleEffectExec(G, ctx, p)
@@ -612,6 +611,11 @@ export const confirmRespond: LongFormMove = {
                         logger.debug(log);
                         playerEffExec(G, ctx, p);
                     }
+                    break;
+                case "alternative":
+                    const popEff = G.e.stack.pop()
+                    log += `|pop:${JSON.stringify(popEff)}`
+                    G.e.stack.push(eff)
                     break;
                 case "searchAndArchive":
                     let deck = G.secretInfo.playerDecks[parseInt(p)];
@@ -648,10 +652,8 @@ export const confirmRespond: LongFormMove = {
         } else {
             switch (eff.e) {
                 case "alternative":
-                    log += `|startBreakThrough|${G.e.card}`
-                    logger.debug(log);
-                    startBreakThrough(G, ctx, p);
-                    return;
+                    log += `|nextEff`
+                    break
                 default:
                     break;
             }

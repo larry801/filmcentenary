@@ -525,7 +525,6 @@ export function vpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
 
 export const breakthroughEffectPrepare = (G: IG, ctx: Ctx): void => {
     let log = "breakthroughEffectPrepare"
-    let p = curPub(G, ctx);
     let c = curCard(G);
     let i = c.industry
     let a = c.aesthetics
@@ -557,12 +556,15 @@ export const breakthroughEffectPrepare = (G: IG, ctx: Ctx): void => {
     }
 }
 
+export const normalBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
+
+}
 export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     let p = curPub(G, ctx);
     let c: INormalOrLegendCard | IBasicCard = curCard(G);
     let log = `startBreakThrough|p${pid}|${c.cardId}`
     if (p.school?.cardId === "2201") {
-        log += "|Neo realism"
+        log += "|NeoRealism"
         p.deposit += 2;
         p.vp += 1;
     }
@@ -570,15 +572,18 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         log += "|Swedish"
         p.resource += 1;
     }
-    if (c.cardId === "1208") {
-        log += "|Metropolis"
+    if (c.cardId === "1208" || c.cardId === "B05") {
+        log += "|MetropolisOrClassic"
         G.e.stack.push({
             e: "industryOrAestheticsBreakthrough", a: {
-                industry: p.industry,
-                aesthetics: p.aesthetics,
+                industry: 1,
+                aesthetics: 1,
             }
         })
-
+        log += `|playerEffExec`
+        logger.debug(log);
+        playerEffExec(G,ctx,pid);
+        return
     }
     log += `|breakthroughEffectPrepare`
     logger.debug(log);
@@ -587,6 +592,8 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     if (eff.e !== "none") {
         log += `|pushEffect|${JSON.stringify(eff)}`
         G.e.stack.push(eff)
+    }else {
+        log += `|noSpecialEffect`
     }
     log += `|checkNextEffect`
     logger.debug(log);
@@ -651,10 +658,16 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 break;
             }
         case "alternative":
-            G.e.stack.push(eff)
-            G.e.currentEffect = eff;
-            changePlayerStage(G, ctx, "confirmRespond", p);
-            return;
+            if (idOnBoard(G, ctx, eff.a.a)) {
+                G.e.stack.push(eff)
+                G.e.currentEffect = eff;
+                log += `|confirmRespond`
+                logger.debug(log);
+                changePlayerStage(G, ctx, "confirmRespond", p);
+                return;
+            }else {
+                break;
+            }
         case "competition":
             G.e.stack.push(eff.a)
             changePlayerStage(G, ctx, "chooseTarget", p);
@@ -1013,6 +1026,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "optional":
             G.e.stack.push(eff);
             G.e.currentEffect = eff;
+            logger.debug(log);
             changePlayerStage(G, ctx, "confirmRespond", p);
             return;
         case "industryOrAestheticsLevelUp":
@@ -1040,15 +1054,21 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
         case "archiveToEEBuildingVP":
             G.e.stack.push(eff);
+            log += `|chooseHand`
+            logger.debug(log);
             changePlayerStage(G, ctx, "chooseHand", p);
             return;
         case "industryBreakthrough":
+            logger.debug(log);
             doIndustryBreakthrough(G, ctx, p);
             break;
         case "aestheticsBreakthrough":
+            logger.debug(log);
             doAestheticsBreakthrough(G, ctx, p);
             break;
         default:
+            log += `|simpleEffect`
+            logger.debug(log);
             G.e.stack.push(eff);
             simpleEffectExec(G, ctx, p);
     }
