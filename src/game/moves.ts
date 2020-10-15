@@ -344,6 +344,10 @@ export const chooseRegion = {
                 })
                 break;
             case "buildCinema":
+                if (reg.share > 0) {
+                    pub.shares[r]++
+                    reg.share--;
+                }
                 reg.buildings.forEach(slot => {
                     if (slot.activated && slot.owner === "" && !built) {
                         slot.owner = p;
