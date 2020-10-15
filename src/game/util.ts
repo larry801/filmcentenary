@@ -1016,9 +1016,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             changePlayerStage(G, ctx, "confirmRespond", p);
             return;
         case "industryOrAestheticsLevelUp":
+            log += `|i${obj.industry}a${obj.aesthetics}`
             if (obj.industry < 10 && obj.aesthetics < 10) {
                 G.e.choices.push({e: "industryLevelUp", a: 1});
                 G.e.choices.push({e: "aestheticsLevelUp", a: 1});
+                log += `|chooseEffect`
+                logger.debug(log);
                 changePlayerStage(G, ctx, "chooseEffect", p);
                 return;
             } else {
