@@ -402,7 +402,7 @@ const zh_CN: Locale = {
         comment: "评论",
         updateSlot: "更新",
         showBoardStatus: "展示牌列",
-        draw: "摸牌",
+        draw: "使用行动力摸牌",
         play: "出牌",
         breakthrough2Res: "花费2资源突破",
         breakthrough1Res: "花费1资源1存款突破",
