@@ -1807,11 +1807,11 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
         G.e.choices.push({e: "industryLevelUpCost", a: 1})
     }
     if (ctx.numPlayers > SimpleRuleNumPlayers) {
-        if (totalResource >= 3 && studioSlotsAvailable(G, ctx, player).length > 0) {
+        if (totalResource >= 6 && studioSlotsAvailable(G, ctx, player).length > 0) {
             log += `|studio`
             G.e.choices.push({e: "buildStudio", a: 1})
         }
-        if (totalResource >= 3 && cinemaSlotsAvailable(G, ctx, player).length > 0) {
+        if (totalResource >= 6 && cinemaSlotsAvailable(G, ctx, player).length > 0) {
             log += `|cinema`
             G.e.choices.push({e: "buildCinema", a: 1})
         }
