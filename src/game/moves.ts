@@ -316,6 +316,7 @@ export const chooseRegion = {
         logger.info(`p${arg.p}.moves.chooseRegion(${JSON.stringify(arg)})`);
         let log = "chooseRegion"
         let r = arg.r;
+        let pub = G.pub[parseInt(arg.p)]
         log += JSON.stringify(arg);
         if (r === Region.NONE) return;
         let eff = G.e.stack.pop();
@@ -323,9 +324,14 @@ export const chooseRegion = {
         logger.debug(log)
         let p = arg.p;
         let built = false;
+        let reg = G.regions[r]
         switch (eff.e) {
             case "buildStudio":
-                G.regions[r].buildings.forEach(slot => {
+                if (reg.share > 0) {
+                    pub.shares[r]++
+                    reg.share--;
+                }
+                reg.buildings.forEach(slot => {
                     if (slot.activated && slot.owner === "" && !built) {
                         slot.owner = p;
                         slot.content = "studio"
@@ -337,7 +343,7 @@ export const chooseRegion = {
                 })
                 break;
             case "buildCinema":
-                G.regions[r].buildings.forEach(slot => {
+                reg.buildings.forEach(slot => {
                     if (slot.activated && slot.owner === "" && !built) {
                         slot.owner = p;
                         slot.content = "cinema"
@@ -351,26 +357,26 @@ export const chooseRegion = {
             case "loseAnyRegionShare":
                 p = G.c.players[0] as PlayerID;
                 G.pub[parseInt(p)].shares[r]--;
-                G.regions[r].share++;
+                reg.share++;
                 break;
             case "anyRegionShare":
                 let i = G.competitionInfo;
                 if (i.pending) {
                     let loser = i.progress > 0 ? i.def : i.atk;
                     G.pub[parseInt(loser)].shares[r]--;
-                    G.pub[parseInt(p)].shares[r]++;
+                    pub.shares[r]++;
                     if (eff.a > 1) {
                         eff.a--;
                         G.e.stack.push(eff);
                         checkNextEffect(G, ctx);
                         return;
                     } else {
-                        competitionCLeanUp(G,ctx);
+                        competitionCLeanUp(G, ctx);
                         return
                     }
                 } else {
-                    G.pub[parseInt(p)].shares[r]++;
-                    G.regions[r].share--;
+                    pub.shares[r]++;
+                    reg.share--;
                     if (eff.a > 1) {
                         eff.a--;
                         G.e.stack.push(eff);
