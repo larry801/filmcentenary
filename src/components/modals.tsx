@@ -59,7 +59,7 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
     };
 
     const handleConfirm = () => {
-        handleClose();
+        //handleClose();
         callback(choice);
     }
 
