@@ -24,7 +24,7 @@ import {
     checkNextEffect,
     checkRegionScoring,
     cinemaInRegion,
-    cinemaSlotsAvailable, competitionCLeanUp, curCard,
+    cinemaSlotsAvailable, competitionCleanUp, curCard,
     curEffectExec,
     curPub,
     doAestheticsBreakthrough,
@@ -52,7 +52,7 @@ import {B05} from "../constant/cards/basic";
 import {getCardById} from "../types/cards";
 
 export const drawCard: LongFormMove = {
-    move: (G: IG, ctx: Ctx,p :PlayerID) => {
+    move: (G: IG, ctx: Ctx, p: PlayerID) => {
         if (activePlayer(ctx) !== p) return INVALID_MOVE;
         logger.info(`p${p}.moves.drawCard(${p})`);
         curPub(G, ctx).action--;
@@ -110,7 +110,7 @@ export const chooseTarget: LongFormMove = {
         let src = arg.p;
         let p = arg.target;
         let eff = G.e.stack.pop();
-        let log = `eff:${JSON.stringify(eff)}`
+        let log = `players:${JSON.stringify(G.c.players)}|eff:${JSON.stringify(eff)}`
         switch (eff.e) {
             case "loseVpForEachHand":
                 G.c.players = [];
@@ -120,9 +120,9 @@ export const chooseTarget: LongFormMove = {
             case "competition":
                 if (ctx.numPlayers > SimpleRuleNumPlayers) {
                     G.c.players = [];
-                    G.e.stack.push(eff);
                     G.competitionInfo.progress = eff.a.bonus;
                     G.competitionInfo.onWin = eff.a.onWin;
+                    log += `|startCompetition`
                     logger.debug(log);
                     startCompetition(G, ctx, src, p);
                     return;
@@ -142,6 +142,7 @@ export const chooseTarget: LongFormMove = {
                     break;
                 }
             default:
+                logger.debug(log);
                 G.e.stack.push(eff);
                 playerEffExec(G, ctx, p);
         }
@@ -286,11 +287,11 @@ export const chooseEffect: LongFormMove = {
 
 export const updateSlot = {
     client: false,
-    move: (G: IG, ctx: Ctx, cardId:string) => {
+    move: (G: IG, ctx: Ctx, cardId: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`p${ctx.playerID}.moves.updateSlot(${cardId})`);
-        let slot = cardSlotOnBoard(G,ctx,getCardById(cardId));
-        if(slot===null){
+        let slot = cardSlotOnBoard(G, ctx, getCardById(cardId));
+        if (slot === null) {
             return INVALID_MOVE;
         }
         doReturnSlotCard(G, ctx, slot);
@@ -371,7 +372,7 @@ export const chooseRegion = {
                         checkNextEffect(G, ctx);
                         return;
                     } else {
-                        competitionCLeanUp(G, ctx);
+                        competitionCleanUp(G, ctx);
                         return
                     }
                 } else {
@@ -616,6 +617,7 @@ export const confirmRespond: LongFormMove = {
                         log += "|complex|";
                         logger.debug(log);
                         playerEffExec(G, ctx, p);
+                        return;
                     }
                     break;
                 case "alternative":
@@ -780,7 +782,7 @@ export const comment: LongFormMove = {
             pub.resource++;
             pub.vp++;
         }
-        checkNextEffect(G,ctx);
+        checkNextEffect(G, ctx);
     }
 }
 

@@ -46,7 +46,11 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                 if (moveName === MoveNames.requestEndTurn) {
                     return `p${pid}.moves.requestEndTurn("${pid}");p${pid}.events.endTurn()`
                 } else {
-                    return `p${pid}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])})`
+                    if (l.action.payload.args === null) {
+                        return `p${pid}.moves.${moveName}([])`
+                    } else {
+                        return `p${pid}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])})`
+                    }
                 }
             default:
                 return ""

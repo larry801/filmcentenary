@@ -655,6 +655,10 @@ const en = {
             title: "Please choose one card from hand as target of effect",
             toggleText: "Choose card from hand",
         },
+        competitionCard: {
+            title: "Please choose one card from hand for competition",
+            toggleText: "Competition card",
+        },
         confirmRespond: {
             title: "Please choose ",
             toggleText: "Confirm Effect",

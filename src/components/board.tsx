@@ -4,7 +4,7 @@ import {IG, privatePlayer} from "../types/setup";
 import {BoardCardSlot, BoardRegion} from "./region";
 import {PlayerHand} from "./playerHand";
 import {ChoiceDialog} from "./modals";
-import {activePlayer, actualStage, curCard, effName, getCardName, studioInRegion} from "../game/util";
+import {activePlayer, actualStage, effName, getCardName} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
@@ -386,10 +386,10 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 callback={chooseRegion}
                 choices={
                     G.e.regions
-                        .map(r => {
+                        .map((r,idx) => {
                             return {
                                 label: i18n.region[r],
-                                value: r.toString(),
+                                value: idx.toString(),
                                 hidden: false, disabled: false
                             }
                         })
@@ -400,14 +400,10 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 initial={true}
                 callback={chooseTarget}
                 choices={
-                    Array(ctx.numPlayers)
-                        .fill(1)
-                        .map((i, idx) => idx)
-                        .filter(p => !studioInRegion(G, ctx, G.e.card === null ? Region.EE : curCard(G).region, p.toString()))
-                        .map(pid => {
+                   G.c.players.map((pid,idx) => {
                             return {
                                 label: getName(pid.toString()),
-                                value: pid.toString(),
+                                value: idx.toString(),
                                 hidden: false, disabled: false
                             }
                         })
@@ -434,8 +430,8 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 choices={handChoices}
                 defaultChoice={'0'}
                 show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "competitionCard"}
-                title={i18n.dialog.chooseHand.title}
-                toggleText={i18n.dialog.chooseHand.toggleText}
+                title={i18n.dialog.competitionCard.title}
+                toggleText={i18n.dialog.competitionCard.toggleText}
                 initial={true}/>
             {playerID !== null ?
                 <ChoiceDialog

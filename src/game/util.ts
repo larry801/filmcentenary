@@ -221,11 +221,14 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "res":
             let i = G.competitionInfo;
             if (i.pending) {
+                log += `|pendingCompetition`
                 if (p === i.atk) {
                     i.progress += eff.a;
+                    log += `|${i.progress}`
                 } else {
                     if (p === i.def) {
                         i.progress -= eff.a;
+                        log += `|${i.progress}`
                     } else {
                         obj.resource += eff.a;
                     }
@@ -582,7 +585,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         })
         log += `|playerEffExec`
         logger.debug(log);
-        playerEffExec(G,ctx,pid);
+        playerEffExec(G, ctx, pid);
         return
     }
     log += `|breakthroughEffectPrepare`
@@ -592,7 +595,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     if (eff.e !== "none") {
         log += `|pushEffect|${JSON.stringify(eff)}`
         G.e.stack.push(eff)
-    }else {
+    } else {
         log += `|noSpecialEffect`
     }
     log += `|checkNextEffect`
@@ -665,11 +668,17 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 logger.debug(log);
                 changePlayerStage(G, ctx, "confirmRespond", p);
                 return;
-            }else {
+            } else {
                 break;
             }
         case "competition":
-            G.e.stack.push(eff.a)
+            players = seqFromCurrentPlayer(G, ctx);
+            let ownIndex = players.indexOf(p)
+            if (ownIndex !== -1) {
+                players.splice(ownIndex, 1)
+            }
+            G.c.players = players;
+            G.e.stack.push(eff)
             changePlayerStage(G, ctx, "chooseTarget", p);
             return;
         case "loseAnyRegionShare":
@@ -684,16 +693,19 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "anyRegionShare":
             let i = G.competitionInfo;
             if (i.pending) {
+                log += `|pendingCompetition`
                 let winner = i.progress > 0 ? i.atk : i.def;
                 let loser = i.progress > 0 ? i.def : i.atk;
                 G.e.regions = ValidRegions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
                 if (G.e.regions.length === 0) {
-                    log += ("Target player has no share");
-                    competitionCLeanUp(G, ctx);
+                    log += "|loserNoShare";
+                    logger.debug(log);
+                    competitionCleanUp(G, ctx);
                     return;
                 } else {
                     log += `|p${winner}|chooseRegion`
                     G.e.stack.push(eff)
+                    logger.debug(log);
                     changePlayerStage(G, ctx, "chooseRegion", winner);
                     return;
                 }
@@ -1024,11 +1036,16 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             break;
         case "optional":
-            G.e.stack.push(eff);
-            G.e.currentEffect = eff;
-            logger.debug(log);
-            changePlayerStage(G, ctx, "confirmRespond", p);
-            return;
+            if (G.competitionInfo.pending && eff.a.e === "competition") {
+                log += `|alreadyInCompetition|skip`
+                break;
+            } else {
+                G.e.stack.push(eff);
+                G.e.currentEffect = eff;
+                logger.debug(log);
+                changePlayerStage(G, ctx, "confirmRespond", p);
+                return;
+            }
         case "industryOrAestheticsLevelUp":
             log += `|i${obj.industry}a${obj.aesthetics}`
             if (obj.industry < 10 && obj.aesthetics < 10) {
@@ -1891,10 +1908,12 @@ export function loseVp(G: IG, ctx: Ctx, p: PlayerID, vp: number) {
     }
 }
 
-export const competitionCLeanUp = (G: IG, ctx: Ctx) => {
+export const competitionCleanUp = (G: IG, ctx: Ctx) => {
+    let log = `competitionCleanUp`
     let i = G.competitionInfo;
     i.pending = false;
     i.progress = 0;
+    logger.debug(log);
     checkNextEffect(G, ctx);
 }
 
@@ -1902,24 +1921,24 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     let i = G.competitionInfo;
     let atk = G.pub[parseInt(i.atk)];
     let def = G.pub[parseInt(i.def)];
-    let log = `competitionResultSettle|a${i.atk}|d${i.def}`
+    let log = `competitionResultSettle|pa:${i.atk}|pd:${i.def}`
     let winner: PlayerID = '0';
     let hasWinner = false;
     if (i.progress > 5) {
-        log += `|${i.progress}overflow`
+        log += `|${i.progress}|overflow`
         i.progress = 5;
     }
     if (i.progress < -5) {
-        log += `|${i.progress}underflow`
+        log += `|${i.progress}|underflow`
         i.progress = -5;
     }
     if (i.progress >= 3) {
-        log += `|atk${i.atk}won`
+        log += `|atk|p${i.atk}|won`
         winner = i.atk;
         hasWinner = true;
     } else {
         if (i.progress <= -3) {
-            log += `|def${i.def}won`
+            log += `|def|p${i.def}|won`
             winner = i.def;
             hasWinner = true;
         } else {
@@ -1930,7 +1949,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         atk.vp += i.progress;
         let schoolId = G.pub[parseInt(i.def)].school?.cardId;
         if (schoolId !== "3201" && schoolId !== "3204") {
-            log += `|p${i.def}lose${i.progress}vp`
+            log += `|p${i.def}|lose${i.progress}vp`
             loseVp(G, ctx, i.def, i.progress);
         } else {
             log += `|doNotLoseVP`
@@ -1940,7 +1959,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         def.vp += vp;
         let schoolId = G.pub[parseInt(i.atk)].school?.cardId;
         if (schoolId !== "3201" && schoolId !== "3204") {
-            log += `|p${i.atk}lose${vp}vp`
+            log += `|p${i.atk}|lose${vp}vp`
             loseVp(G, ctx, i.atk, vp);
         } else {
             log += `|doNotLoseVP`
@@ -1971,7 +1990,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         playerEffExec(G, ctx, winner);
         return;
     } else {
-        competitionCLeanUp(G, ctx);
+        competitionCleanUp(G, ctx);
     }
 
 }
@@ -1993,7 +2012,9 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
             i.progress++;
         }
         let eff = getCardEffect(cardId);
-        G.e.stack.push(eff);
+        log += `|${JSON.stringify(eff.play)}`
+        G.e.card = cardId;
+        G.e.stack.push(eff.play);
         G.pub[parseInt(i.atk)].playedCardInTurn.push(cardId);
         logger.debug(log);
         // TODO may over run set a barrier effect?
@@ -2023,8 +2044,9 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
         }
         G.pub[parseInt(i.def)].discard.push(cardId);
         let eff = getCardEffect(cardId);
-        log += `|${JSON.stringify(eff)}`
-        G.e.stack.push(eff);
+        log += `|${JSON.stringify(eff.play)}`
+        G.e.card = cardId;
+        G.e.stack.push(eff.play);
         logger.debug(log);
         playerEffExec(G, ctx, i.def);
     } else {

@@ -624,6 +624,10 @@ const zh_CN: Locale = {
     era: era,
     setup: "补充初始排列",
     dialog: {
+        competitionCard:{
+            title: "请选择一张手牌参与争夺",
+            toggleText: "争夺",
+        },
         chooseHand: {
             title: "请选择一张手牌执行效果",
             toggleText: "选择手牌",
