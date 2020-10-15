@@ -462,9 +462,9 @@ const zh_CN: Locale = {
     },
     effect: {
         era: {
-            0: "1时代：",
-            1: "2时代：",
-            2: "3时代：",
+            0: " 1时代：",
+            1: " 2时代：",
+            2: " 3时代：",
         },
         optional: "【可选】",
         loseVpForEachHand: "按照他当前的手牌数失去声望",
@@ -496,7 +496,7 @@ const zh_CN: Locale = {
         buyNoneEEFilm: "购买非东欧地区影片时",
         extraVp: ["额外支付{{a}}声望", argValue],
         breakthroughPrevent: "，否则不能执行突破效果",
-        alternative: "放弃本次突破改为",
+        alternative: "可以放弃本次突破，改为",
         pay: "支付",
         update: ["执行{{a}}次【更新】", argValue],
         noBuildingEE: "东欧地区没有建筑的公司",

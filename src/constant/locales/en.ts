@@ -459,9 +459,9 @@ const en = {
     cancel: "Cancel",
     effect: {
         era: {
-            0: "Invention:",
-            1: "Classic:",
-            2: "Modern:",
+            0: " Invention:",
+            1: " Classic:",
+            2: " Modern:",
         },
         event: ["After {{a}}", argCardName],
         optional: "【optional】",
@@ -479,7 +479,7 @@ const en = {
         asiaFilm: "Gain 2 extra prestige for each of your asia film card.",
         industryNormalOrLegend: "Gain 2 extra prestige for each of your normal or legend card with industry marker.",
         westEuropeCard: "Gain 2 extra prestige for each of your west europe card.",
-        alternative: "Cancel this breakthrough, do following effect instead",
+        alternative: "You may cancel this breakthrough, do following effect instead",
         eastEuropeFilm: "Gain 2 extra prestige for each of your east europe film card.",
         industryLevel: "Gain 2 extra prestige for each of your industry level",
         aestheticsLevel: "Gain 2 extra prestige for each of your aesthetics level",
