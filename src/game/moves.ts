@@ -37,7 +37,7 @@ import {
     fillPlayerHand,
     fillTwoPlayerBoard,
     industryAward, isSimpleEffect,
-    logger,
+    logger, payCost,
     playerEffExec,
     schoolPlayer, simpleEffectExec,
     startBreakThrough,
@@ -328,6 +328,7 @@ export const chooseRegion = {
         let reg = G.regions[r]
         switch (eff.e) {
             case "buildStudio":
+                payCost(G,ctx,p,3);
                 if (reg.share > 0) {
                     pub.shares[r]++
                     reg.share--;
@@ -344,6 +345,7 @@ export const chooseRegion = {
                 })
                 break;
             case "buildCinema":
+                payCost(G,ctx,p,3);
                 if (reg.share > 0) {
                     pub.shares[r]++
                     reg.share--;
