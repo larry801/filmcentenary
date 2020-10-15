@@ -21,7 +21,7 @@ import playerTurnSfx from './media/turn.mp3'
 import {useI18n} from "@i18n-chain/react";
 import {getCardById} from "../types/cards";
 
-function usePrevious(value: any) {
+export function usePrevious(value: any) {
     const ref = useRef();
 
     useEffect(() => {
@@ -497,8 +497,8 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                     {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
                 ]} defaultChoice={"no"}
                 show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "confirmRespond"}
-                title={i18n.dialog.confirmRespond.title}
-                toggleText={effName(G.e.currentEffect)}
+                title={effName(G.e.currentEffect)}
+                toggleText={i18n.dialog.confirmRespond.title}
                 initial={true}/>
             {playerID !== null ?
                 <ChoiceDialog
