@@ -12,7 +12,7 @@ import {
     playCard, requestEndTurn, chooseRegion, peek,
 } from "./moves";
 import {IG} from "../types/setup";
-import {changeStage, cleanPendingSignal} from "./logFix";
+import {changePlayerStage, cleanPendingSignal} from "./logFix";
 import {aesAward, curPub, drawCardForPlayer, industryAward} from "./util";
 
 
@@ -93,7 +93,7 @@ export const NormalTurn: TurnConfig = {
             pub.vp ++;
             drawCardForPlayer(G,ctx,p);
             G.e.stack.push({e:"discard",a:1})
-            changeStage(G,ctx,"chooseHand");
+            changePlayerStage(G,ctx,"chooseHand",p);
         }
         if(pub.school?.cardId === "3105"){
             if(pub.aesthetics <= pub.industry){
