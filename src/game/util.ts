@@ -539,19 +539,19 @@ export const breakthroughEffectPrepare = (G: IG, ctx: Ctx): void => {
         log += `|industryAndAestheticsBreakthrough`
         G.e.stack.push({
             e: "industryAndAestheticsBreakthrough", a: {
-                industry: p.industry,
-                aesthetics: p.aesthetics,
+                industry: c.industry,
+                aesthetics: c.aesthetics,
             }
         })
         logger.debug(log);
     } else {
         if (i === 0) {
             log += `|aestheticsBreakthrough`
-            G.e.stack.push({e: "aestheticsBreakthrough", a: p.aesthetics})
+            G.e.stack.push({e: "aestheticsBreakthrough", a: c.aesthetics})
             logger.debug(log);
         } else {
             log += `|industryBreakthrough`
-            G.e.stack.push({e: "industryBreakthrough", a: p.industry})
+            G.e.stack.push({e: "industryBreakthrough", a: c.industry})
             logger.debug(log);
         }
     }
@@ -1023,11 +1023,14 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             } else {
                 if (obj.industry < 10) {
+                    log += `|i${obj.industry}`
                     obj.industry++;
                 } else {
                     if (obj.aesthetics < 10) {
+                        log += `|i${obj.aesthetics}`
                         obj.aesthetics++;
                     } else {
+                        log += "|skip"
                     }
                 }
                 break;
@@ -1223,8 +1226,8 @@ export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
     }
 }
 export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
-    let school = schoolCardsByEra(e).map(c=>c.cardId);
-    let filmCards = filmCardsByEra(e).map(c=>c.cardId);
+    let school = schoolCardsByEra(e).map(c => c.cardId);
+    let filmCards = filmCardsByEra(e).map(c => c.cardId);
     let schoolDeckSize: number, filmDeckSize: number;
     if (e === IEra.ONE) {
         filmDeckSize = 11;
@@ -1261,8 +1264,8 @@ export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
 export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
     logger.debug("drawForRegion" + i18n.era[e] + i18n.region[r]);
     if (r === Region.NONE) return;
-    let legend = cardsByCond(r, e, true).map(c=>c.cardId);
-    let normal = cardsByCond(r, e, false).map(c=>c.cardId);
+    let legend = cardsByCond(r, e, true).map(c => c.cardId);
+    let normal = cardsByCond(r, e, false).map(c => c.cardId);
     G.secretInfo.regions[r].legendDeck = shuffle(ctx, legend).slice(0, LegendCardCountInUse[r][e]);
     G.secretInfo.regions[r].normalDeck = shuffle(ctx, normal).slice(0, NormalCardCountInUse[r][e]);
     let l: ClassicCardID[] = G.secretInfo.regions[r].legendDeck;
@@ -1675,8 +1678,8 @@ export function canBuildCinemaInRegion(G: IG, ctx: Ctx, p: PlayerID, r: Region):
 }
 
 export function doFillNewEraEventDeck(G: IG, ctx: Ctx, newEra: IEra) {
-    let newEvents =  eventCardByEra(newEra).map(c=>c.cardId);
-    G.secretInfo.events = shuffle(ctx,newEvents);
+    let newEvents = eventCardByEra(newEra).map(c => c.cardId);
+    G.secretInfo.events = shuffle(ctx, newEvents);
     for (let i = 0; i < 2; i++) {
         let newEvent = G.secretInfo.events.pop();
         if (newEvent === undefined) {
