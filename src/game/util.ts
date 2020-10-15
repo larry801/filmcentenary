@@ -150,6 +150,25 @@ function getShare(G: IG, region: validRegion, obj: IPubInfo, num: number) {
     }
 }
 
+export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
+    let obj = G.pub[parseInt(p)];
+    let log = `payCost|p${p}|${cost}`
+    if(obj.resource + obj.deposit < cost){
+        throw Error(`p${p}|cannotPay|${cost}`)
+    }
+    if(obj.resource >= cost){
+        log += `|res:${cost}`
+        obj.resource -= cost;
+    }else {
+        log += `|res:${obj.resource}`
+        obj.resource = 0
+        const depCost = cost - obj.resource;
+        log += `|deposit:${depCost}`
+        obj.deposit -= depCost
+    }
+    logger.debug(log);
+}
+
 export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     let eff = G.e.stack.pop();
     let log = `simpleEffectExec|p${p}|${JSON.stringify(eff)}`
@@ -198,9 +217,9 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             loseShare(G, Region.WE, obj, eff.a);
             break;
         case "shareWE":
-
             getShare(G, Region.WE, obj, eff.a);
             break;
+
         case "loseShareEE":
             loseShare(G, Region.EE, obj, eff.a);
             break;
@@ -263,11 +282,23 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             card = getCardById(eff.a);
             doBuyToHand(G, ctx, card, ctx.currentPlayer);
             break;
+        case "aestheticsLevelUpCost":
+            payCost(G,ctx,p,additionalCostForUpgrade(obj.aesthetics));
+            if (obj.aesthetics < 10) {
+                obj.aesthetics++;
+            }
+            break
         case "aestheticsLevelUp":
             if (obj.aesthetics < 10) {
                 obj.aesthetics++;
             }
             break
+        case "industryLevelUpCost":
+            payCost(G,ctx,p,additionalCostForUpgrade(obj.industry));
+            if (obj.industry < 10) {
+                obj.industry++;
+            }
+            break;
         case "industryLevelUp":
             if (obj.industry < 10) {
                 obj.industry++;
@@ -1771,9 +1802,9 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     let p = G.pub[parseInt(player)];
     let totalResource = p.resource + p.deposit;
     let additionalCost = additionalCostForUpgrade(p.industry);
-    if (additionalCost <= totalResource) {
+    if (additionalCost <= totalResource && p.industry < 10) {
         log += `|${additionalCost}|canUpgrade`
-        G.e.choices.push({e: "industryLevelUp", a: 1})
+        G.e.choices.push({e: "industryLevelUpCost", a: 1})
     }
     if (ctx.numPlayers > SimpleRuleNumPlayers) {
         if (totalResource >= 3 && studioSlotsAvailable(G, ctx, player).length > 0) {
@@ -1805,9 +1836,9 @@ export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     let p = G.pub[parseInt(player)];
     let playerObj = G.player[parseInt(player)];
     let totalResource = p.resource + p.deposit;
-    if (additionalCostForUpgrade(p.industry) <= totalResource) {
+    if (additionalCostForUpgrade(p.aesthetics) <= totalResource && p.aesthetics < 10) {
         log += ("|Can upgrade aesthetics")
-        G.e.choices.push({e: "aestheticsLevelUp", a: 1})
+        G.e.choices.push({e: "aestheticsLevelUpCost", a: 1})
     }
     if (playerObj.hand.length > 0) {
         log += ("|Can refactor")
