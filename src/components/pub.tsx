@@ -18,7 +18,7 @@ export interface IPubPanelProps {
 
 export const PubPanel = ({i, G}: IPubPanelProps) => {
     useI18n(i18n);
-    const inferhand = (): CardID[] => {
+    const inferHand = (): CardID[] => {
         let result = [...i.allCards]
         i.discard.forEach(c => {
             let indexOfDiscard = result.indexOf(c)
@@ -35,7 +35,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         return result;
     }
 
-    const possibleHand = inferhand();
+    const possibleHand = inferHand();
 
     const noOp = () => {
     }

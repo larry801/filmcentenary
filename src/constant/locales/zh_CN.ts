@@ -437,6 +437,15 @@ const zh_CN: Locale = {
     gameOver: {
         title: "游戏结束",
         winner: "胜利：",
+        table:{
+            board:"面板",
+            card:"卡牌",
+            building:"建筑",
+            iaAward:"工业/美学大奖",
+            archive:"档案馆",
+            events:"计分效果",
+            total:"总分",
+        },
         rank: {
             0: "第一:",
             1: "第二:",

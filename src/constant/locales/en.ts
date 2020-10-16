@@ -426,6 +426,16 @@ const en = {
     gameOver: {
         title: "Game Over",
         winner: "Winner:",
+        table:{
+            board:"Board",
+            card:"Cards",
+            building:"Building",
+            iaAward:"Industry or Aesthetics Award",
+            archive:"Archive",
+            events:"Event&Card Scoring",
+            total:"Total",
+        },
+
         rank: {
             0: "Champion:",
             1: "Runner up:",

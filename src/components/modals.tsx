@@ -76,6 +76,7 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
 
     return show ? <Grid item xs={12}>
         <Button
+            fullWidth
             variant={"outlined"}
             onClick={handleClickOpen}
             style={{textTransform: 'none'}}

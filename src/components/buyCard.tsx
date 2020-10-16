@@ -124,6 +124,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
 
     return <Grid item xs={12}>
         <Button
+            fullWidth
             style={{textTransform: 'none'}}
             onClick={handleOpen}
             color={buttonColor}
