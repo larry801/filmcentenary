@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect} from "react";
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import Radio from '@material-ui/core/Radio';
 import RadioGroup from '@material-ui/core/RadioGroup';
@@ -14,6 +14,7 @@ import FormControl from "@material-ui/core/FormControl/FormControl";
 import FormGroup from "@material-ui/core/FormGroup/FormGroup";
 import DialogActions from "@material-ui/core/DialogActions";
 import shortid from "shortid";
+import {usePrevious} from "./board";
 
 const useStyles = makeStyles((theme) => ({
     formControl: {
@@ -48,6 +49,13 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
     const classes = useStyles();
     const [open, setOpen] = React.useState(initial);
     const [choice, setChoice] = React.useState(defaultChoice);
+    const prevShow = usePrevious(show);
+
+    useEffect(() => {
+        if (show !== prevShow) {
+            setOpen(true);
+        }
+    }, [prevShow, show])
 
     const handleClickOpen = () => {
         setOpen(true);
@@ -55,15 +63,14 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
 
     const handleClose = () => {
         setOpen(false);
-
     };
 
     const handleConfirm = () => {
-        //handleClose();
+        handleClose();
         callback(choice);
     }
 
-    const handleChange = (e:any) => setChoice(e.target.value);
+    const handleChange = (e: any) => setChoice(e.target.value);
 
     return show ? <>
         <Button
