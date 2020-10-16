@@ -1,7 +1,9 @@
 import {
     BasicCardID,
     CardCategory,
+    CardID,
     CardType,
+    ClassicCardID,
     EventCardID,
     IBasicCard,
     IBuyInfo,
@@ -12,12 +14,14 @@ import {
     IPubInfo,
     ISchoolCard,
     LegendCardCountInUse,
-    ClassicCardID,
     NormalCardCountInUse,
     Region,
+    SchoolCardID,
+    ScoreCardID,
     ShareOnBoard,
+    SimpleRuleNumPlayers,
     validRegion,
-    ValidRegions, SimpleRuleNumPlayers, CardID, SchoolCardID, ScoreCardID,
+    ValidRegions,
 } from "../types/core";
 import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
@@ -618,6 +622,9 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         logger.debug(log);
         playerEffExec(G, ctx, pid);
         return
+    }
+    if(c.type === CardType.V){
+        p.vp += c.vp;
     }
     log += `|breakthroughEffectPrepare`
     logger.debug(log);
