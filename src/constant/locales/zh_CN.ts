@@ -369,14 +369,13 @@ const argComment = {
     args: (arg: ICommentArg[]): string => {
         let a = arg[0]
         let t = chose
-        if(a.target.card ===null)return"";
         if (a.comment === null) {
             t += "移除了"
-            t += bracketCardName(a.target.card)
+            t += bracketCardName(a.target)
             t += "的评论"
         } else {
             t += "评论"
-            t += bracketCardName(a.target.card)
+            t += bracketCardName(a.target)
             t += "为"
             t += bracketCardName(a.comment)
         }

@@ -25,7 +25,7 @@ import {
     cardInDeck,
     cardInDiscard,
     cardInHand,
-    cardSlotOnBoard,
+    cardSlotOnBoard, cardSlotOnBoard2p,
     checkCompetitionDefender,
     checkNextEffect,
     checkRegionScoring,
@@ -776,7 +776,7 @@ export const breakthrough: LongFormMove = {
 
 
 export interface ICommentArg {
-    target: ICardSlot,
+    target: ClassicCardID,
     comment: BasicCardID | null,
     p: PlayerID,
 }
@@ -786,10 +786,16 @@ export const comment: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: ICommentArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`p${arg.p}.moves.comment(${JSON.stringify(arg)})`);
-        if (arg.comment === null && arg.target.comment !== null) {
-            arg.target.comment = null;
+        let slot = ctx.numPlayers > SimpleRuleNumPlayers
+            ?cardSlotOnBoard(G,ctx,getCardById(arg.target))
+            : cardSlotOnBoard2p(G,ctx,getCardById(arg.target));
+        if(slot === null){
+            return INVALID_MOVE
+        }
+        if (arg.comment === null) {
+            slot.comment = null;
         } else {
-            arg.target.comment = arg.comment;
+            slot.comment = arg.comment;
         }
         let p = schoolPlayer(G, ctx, "3204");
         if (p !== null) {

@@ -371,15 +371,12 @@ const argComment = {
     args: (arg: ICommentArg[]): string => {
         let a = arg[0]
         let t = chose
-        if(a.target.card===null){
-            return ""
-        }
         if (a.comment === null) {
             t += " removed comment on"
-            t += bracketCardName(a.target.card)
+            t += bracketCardName(a.target)
         } else {
             t += " commented "
-            t += bracketCardName(a.target.card)
+            t += bracketCardName(a.target)
             t += " as "
             t += bracketCardName(a.comment)
         }

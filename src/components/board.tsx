@@ -238,7 +238,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
     }
 
     const comment = (slot: ICardSlot, card: BasicCardID | null) => moves.comment({
-        target: slot,
+        target: slot.card,
         comment: card,
         p: playerID
     })

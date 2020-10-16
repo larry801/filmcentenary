@@ -120,7 +120,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
     const classes = useStyles();
 
     const comment = (slot: ICardSlot, card: BasicCardID | null) => moves.comment({
-        target: slot,
+        target: slot.card,
         comment: card,
         p: playerID
     })
