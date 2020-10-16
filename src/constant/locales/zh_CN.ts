@@ -679,6 +679,7 @@ const zh_CN: Locale = {
         title: "手牌"
     },
     pub: {
+        revealedHand: "展示手牌",
         deck:"牌堆",
         champion: "第一：",
         gameLog: "战报",

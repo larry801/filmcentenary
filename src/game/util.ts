@@ -975,8 +975,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 changePlayerStage(G, ctx, "chooseHand", p);
                 logger.debug(log);
                 return;
+            }else {
+                obj.revealedHand = [...playerObj.hand]
+                log += ("|NoClassicRevealHand|next")
             }
-            log += ("|No classic cards|next")
             break;
         case "discardLegend":
             if (playerObj.hand.filter(i =>
@@ -985,6 +987,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", p);
                 return;
+            }else {
+                obj.revealedHand = [...playerObj.hand]
+                log += ("|NoLegendRevealHand|next")
             }
             break;
         case "discardAesthetics":
@@ -994,6 +999,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", p);
                 return;
+            }else {
+                obj.revealedHand = [...playerObj.hand]
+                log += ("|NoAestheticsRevealHand|next")
             }
             break;
         case "discardIndustry":
@@ -1003,6 +1011,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", p);
                 return;
+            }else {
+                obj.revealedHand = [...playerObj.hand]
+                log += ("|NoIndustryRevealHand|next")
             }
             break;
         case "refactor":
@@ -1012,6 +1023,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", p);
                 return;
+            }else {
+                log += ("|EmptyHand|next")
             }
             break;
         case "choice":
@@ -1032,16 +1045,21 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
             }
             if (G.e.choices.length === 0) {
+                log += `|noValidEffect`
                 break;
             } else {
                 if (G.e.choices.length === 1) {
                     G.e.stack.push(G.e.choices.pop());
+                    log += `|oneEffectValid|Exec`
+                    logger.debug(log);
                     checkNextEffect(G, ctx);
                 } else {
+                    logger.debug(log);
                     changePlayerStage(G, ctx, "chooseEffect", p);
                     return;
                 }
             }
+            logger.debug(log);
             return;
         case "update":
             changePlayerStage(G, ctx, "updateSlot", p);

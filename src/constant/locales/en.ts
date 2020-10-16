@@ -693,6 +693,7 @@ const en = {
         player: "Player",
     },
     pub: {
+        revealedHand: "Revealed Hand",
         champion: "Champion:",
         gameLog: "Report",
         emptyBuildingSlot: "Empty",

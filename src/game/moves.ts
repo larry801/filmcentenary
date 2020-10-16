@@ -543,6 +543,7 @@ export const requestEndTurn: LongFormMove = {
         let obj = G.pub[parseInt(arg)]
         obj.playedCardInTurn.forEach(c => obj.discard.push(c));
         obj.playedCardInTurn = [];
+        obj.revealedHand = [];
         obj.resource = 0;
         if (obj.deposit > 10) {
             obj.deposit = 10;
