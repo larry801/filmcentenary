@@ -100,6 +100,7 @@ export const requireInteraction = (eff: any): boolean => {
 }
 
 export const isSimpleEffect = (eff: any): boolean => {
+    let log = `isSimpleEffect|${eff.e}`;
     switch (eff.e) {
         case "alternative":
         case "competition":
@@ -111,6 +112,7 @@ export const isSimpleEffect = (eff: any): boolean => {
         case "handToOthers":
         case "industryAndAestheticsBreakthrough":
         case "industryOrAestheticsBreakthrough":
+        case "industryOrAestheticsLevelUp":
         case "peek":
         case "everyOtherCompany":
         case "everyPlayer":
@@ -128,8 +130,12 @@ export const isSimpleEffect = (eff: any): boolean => {
         case "update":
         case "comment":
         case "optional":
+            log += `|false`
+            logger.debug(log);
             return false;
         default:
+            log += `|true`
+            logger.debug(log);
             return true;
     }
 }
@@ -483,9 +489,9 @@ export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
 export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     let log = `seqFromCurrentPlayer|`
     let act = activePlayer(ctx);
-    log += `|act:${act}`
-    let pos = posOfPlayer(G, ctx, ctx.currentPlayer);
-    log += `|pos${pos}`
+    log += `|cur|p${ctx.currentPlayer}`
+    log += `|act|p${act}`
+    let pos = posOfPlayer(G, ctx, act);
     let seq = [];
     for (let i = pos; i < ctx.numPlayers; i++) {
         log += `|push|${i}`
