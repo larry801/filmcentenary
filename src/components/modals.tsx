@@ -52,7 +52,8 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
     const prevShow = usePrevious(show);
 
     useEffect(() => {
-        if (show !== prevShow) {
+        console.log(prevShow,show);
+        if (show && prevShow===false) {
             setOpen(true);
         }
     }, [prevShow, show])
