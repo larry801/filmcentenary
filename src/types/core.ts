@@ -268,6 +268,15 @@ export enum MainAction {
     scoring,
 }
 export interface IPubInfo {
+    finalScoring:{
+        card:number,
+        building:number,
+        industryAward:number,
+        aestheticsAward:number,
+        archive:number,
+        events:number,
+        total:number,
+    },
     discardInSettle:boolean,
     scoreEvents:EventCardID[],
     vpAward:{

@@ -18,7 +18,7 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
 
 export interface IG {
-    matchID:string,
+    matchID: string,
     twoPlayer: {
         school: ICardSlot[],
         film: ICardSlot[],
@@ -34,7 +34,7 @@ export interface IG {
         endPhase: boolean,
         endStage: boolean,
     },
-    currentScoreRegion:Region,
+    currentScoreRegion: Region,
     scoringRegions: Region[],
     events: EventCardID[],
     c: {
@@ -44,7 +44,7 @@ export interface IG {
         cardIDs: string[],
     },
     pub: IPubInfo[],
-    e: {pendingPlayers:PlayerID[], choices: any[], stack: any[], card: CardID|null, regions: Region[] ,currentEffect:any},
+    e: { pendingPlayers: PlayerID[], choices: any[], stack: any[], card: CardID | null, regions: Region[], currentEffect: any },
     player: IPrivateInfo[],
     competitionInfo: {
         region: Region,
@@ -54,7 +54,7 @@ export interface IG {
         defPlayedCard: boolean,
         pending: boolean,
         progress: number,
-        onWin:{e:string,a:number},
+        onWin: { e: string, a: number },
     },
     secretInfo: {
         regions: {
@@ -65,9 +65,9 @@ export interface IG {
         },
         events: EventCardID[],
         playerDecks: CardID[][],
-        twoPlayer:{
-            school:SchoolCardID[],
-            film:ClassicCardID[],
+        twoPlayer: {
+            school: SchoolCardID[],
+            film: ClassicCardID[],
         },
     },
     regions: {
@@ -87,6 +87,7 @@ export interface IG {
         "B07": number,
     },
 }
+
 let initialDeck = [
     BasicCardID.B01, BasicCardID.B02,
     BasicCardID.B07, BasicCardID.B07,
@@ -95,17 +96,28 @@ let initialDeck = [
 ];
 // @ts-ignore
 // initialDeck = ["2205","B07","B07","B07",]
+export const initialScore = {
+    card: 0,
+    building: 0,
+    industryAward: 0,
+    aestheticsAward: 0,
+    archive: 0,
+    events: 0,
+    total: 0,
+}
+
 function pubPlayer(): IPubInfo {
     return {
+        finalScoring: {...initialScore},
         deposit: 0,
         action: 1,
-        discardInSettle:false,
-        scoreEvents:[],
-        vpAward:{
-            v60:false,
-            v90:false,
-            v120:false,
-            v150:false,
+        discardInSettle: false,
+        scoreEvents: [],
+        vpAward: {
+            v60: false,
+            v90: false,
+            v120: false,
+            v150: false,
         },
         building: {
             cinemaBuilt: false,
@@ -138,10 +150,10 @@ function pubPlayer(): IPubInfo {
 
 export function privatePlayer(): IPrivateInfo {
     return {
-        hand: [], handSize:0,
-        cardsToPeek:[],competitionCards:[],
-        finalScoringExtraVp:0,
-        deckEmpty:false,
+        hand: [], handSize: 0,
+        cardsToPeek: [], competitionCards: [],
+        finalScoringExtraVp: 0,
+        deckEmpty: false,
     }
 }
 
@@ -182,7 +194,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     let events = shuffle(ctx, []);
     // let randomOrder = shuffle(ctx, order);
     let G = {
-        matchID:"",
+        matchID: "",
         twoPlayer: {
             school: [
                 emptyNormalCardSlot(Region.NONE),
@@ -213,8 +225,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             buildingSlots: [],
             cardIDs: [],
         },
-        currentScoreRegion:Region.NONE,
-        e: {pendingPlayers:[],choices: [], stack: [], card: null, regions: [],currentEffect:{e:"none",a:1}},
+        currentScoreRegion: Region.NONE,
+        e: {pendingPlayers: [], choices: [], stack: [], card: null, regions: [], currentEffect: {e: "none", a: 1}},
         competitionInfo: {
             region: Region.NONE,
             atk: '0',
@@ -223,7 +235,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             defPlayedCard: false,
             progress: 0,
             pending: false,
-            onWin:{e:"none",a:1}
+            onWin: {e: "none", a: 1}
         },
         activeEvents: [],
         player: players,
@@ -246,16 +258,16 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                     normalDeck: [],
                 },
             },
-            twoPlayer:{
-              school:[],
-              film:[],
+            twoPlayer: {
+                school: [],
+                film: [],
             },
             events: events,
             playerDecks: decks,
         },
         regions: {
             0: {
-                completedModernScoring:false,
+                completedModernScoring: false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(0),
@@ -271,7 +283,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 share: 6,
             },
             1: {
-                completedModernScoring:false,
+                completedModernScoring: false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(1),
@@ -286,7 +298,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 share: 6,
             },
             2: {
-                completedModernScoring:false,
+                completedModernScoring: false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(2),
@@ -297,7 +309,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 share: 4,
             },
             3: {
-                completedModernScoring:false,
+                completedModernScoring: false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(3),
@@ -338,7 +350,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         G.regions[Region.WE].share = 10;
         G.regions[Region.EE].share = 8;
         G.regions[Region.ASIA].share = 10;
-        drawForTwoPlayerEra(G,ctx,IEra.ONE);
+        drawForTwoPlayerEra(G, ctx, IEra.ONE);
     } else {
         drawForRegion(G, ctx, Region.NA, IEra.ONE);
         drawForRegion(G, ctx, Region.WE, IEra.ONE);

@@ -23,7 +23,7 @@ import {
     validRegion,
     ValidRegions,
 } from "../types/core";
-import {IG} from "../types/setup";
+import {IG, initialScore} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {cardsByCond, filmCardsByEra, getCardById, schoolCardsByEra} from "../types/cards";
 import {Stage} from "boardgame.io/core";
@@ -163,13 +163,13 @@ function getShare(G: IG, region: validRegion, obj: IPubInfo, num: number) {
 export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
     let obj = G.pub[parseInt(p)];
     let log = `payCost|p${p}|${cost}`
-    if(obj.resource + obj.deposit < cost){
+    if (obj.resource + obj.deposit < cost) {
         throw Error(`p${p}|cannotPay|${cost}`)
     }
-    if(obj.resource >= cost){
+    if (obj.resource >= cost) {
         log += `|res:${cost}`
         obj.resource -= cost;
-    }else {
+    } else {
         log += `|res:${obj.resource}`
         obj.resource = 0
         const depCost = cost - obj.resource;
@@ -293,7 +293,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             doBuyToHand(G, ctx, card, ctx.currentPlayer);
             break;
         case "aestheticsLevelUpCost":
-            payCost(G,ctx,p,additionalCostForUpgrade(obj.aesthetics));
+            payCost(G, ctx, p, additionalCostForUpgrade(obj.aesthetics));
             if (obj.aesthetics < 10) {
                 obj.aesthetics++;
             }
@@ -304,7 +304,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             }
             break
         case "industryLevelUpCost":
-            payCost(G,ctx,p,additionalCostForUpgrade(obj.industry));
+            payCost(G, ctx, p, additionalCostForUpgrade(obj.industry));
             if (obj.industry < 10) {
                 obj.industry++;
             }
@@ -629,7 +629,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         playerEffExec(G, ctx, pid);
         return
     }
-    if(c.type === CardType.V){
+    if (c.type === CardType.V) {
         p.vp += c.vp;
     }
     log += `|breakthroughEffectPrepare`
@@ -975,7 +975,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 changePlayerStage(G, ctx, "chooseHand", p);
                 logger.debug(log);
                 return;
-            }else {
+            } else {
                 obj.revealedHand = [...playerObj.hand]
                 log += ("|NoClassicRevealHand|next")
             }
@@ -987,7 +987,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", p);
                 return;
-            }else {
+            } else {
                 obj.revealedHand = [...playerObj.hand]
                 log += ("|NoLegendRevealHand|next")
             }
@@ -999,7 +999,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", p);
                 return;
-            }else {
+            } else {
                 obj.revealedHand = [...playerObj.hand]
                 log += ("|NoAestheticsRevealHand|next")
             }
@@ -1011,7 +1011,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", p);
                 return;
-            }else {
+            } else {
                 obj.revealedHand = [...playerObj.hand]
                 log += ("|NoIndustryRevealHand|next")
             }
@@ -1023,7 +1023,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", p);
                 return;
-            }else {
+            } else {
                 log += ("|EmptyHand|next")
             }
             break;
@@ -1717,8 +1717,8 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             return 1;
         }
         log += `|sameLegendCount`
-        const posA =  posOfPlayer(G, ctx, a);
-        const posB =  posOfPlayer(G, ctx, b);
+        const posA = posOfPlayer(G, ctx, a);
+        const posB = posOfPlayer(G, ctx, b);
         log += `|pos|${posA}|${posB}`
         if (posA > posB) {
             log += `|pos|p${a}win`
@@ -2240,50 +2240,53 @@ export const checkCompetitionAttacker = (G: IG, ctx: Ctx) => {
     }
 }
 
-export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number => {
+export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     let i = parseInt(pid);
-    let extraVP = 0;
     let p = G.pub[i];
     let s = G.player[i];
+    p.finalScoring = {...initialScore};
+    let f = p.finalScoring;
     if (p.school !== null) {
-        extraVP += p.school.vp
+        f.card += p.school.vp;
     }
     let validID = [...G.secretInfo.playerDecks[i], ...p.discard, ...s.hand]
     let validCards = validID.map(c => getCardById(c));
-    validCards.forEach(c => extraVP += c.vp);
-    if (p.building.cinemaBuilt) extraVP += 3;
-    if (p.building.studioBuilt) extraVP += 3;
+    validCards.forEach(c => {
+        f.card += c.vp
+    });
+    if (p.building.cinemaBuilt) f.building += 3;
+    if (p.building.studioBuilt) f.building += 3;
     if (p.industry === 10) {
         for (let j = 0; j < ctx.numPlayers; i++) {
             let each = G.pub[j];
-            if (each.building.cinemaBuilt) extraVP += 5;
-            if (each.building.studioBuilt) extraVP += 5;
+            if (each.building.cinemaBuilt) f.industryAward += 5;
+            if (each.building.studioBuilt) f.industryAward += 5;
         }
     }
     if (p.aesthetics === 10) {
-        extraVP += Math.round(p.vp / 5);
+        f.aestheticsAward += Math.round(p.vp / 5);
     }
     ValidRegions.forEach(r => {
         let championCount = p.champions.filter(c => c.region === r).length;
-        extraVP += p.archive.filter(card => getCardById(card).region === r).length * championCount;
+        f.archive += p.archive.filter(card => getCardById(card).region === r).length * championCount;
     });
     if (p.scoreEvents.includes(EventCardID.E10)) {
         for (let j = 0; j < ctx.numPlayers; i++) {
             if (j !== parseInt(pid)) {
                 let other = G.pub[j];
                 if (other.vp > p.vp) {
-                    extraVP += 4;
+                    f.events += 4;
                 }
             }
         }
     }
     if (p.scoreEvents.includes(EventCardID.E11)) {
-        G.secretInfo.playerDecks[i].filter(c => getCardById(c).type === CardType.P).forEach(() => extraVP += 4);
-        extraVP += p.archive.filter(card => getCardById(card).type === CardType.P).length * 4;
+        G.secretInfo.playerDecks[i].filter(c => getCardById(c).type === CardType.P).forEach(() => f.events += 4);
+        f.events += p.archive.filter(card => getCardById(card).type === CardType.P).length * 4;
     }
     if (p.scoreEvents.includes(EventCardID.E12)) {
-        extraVP += p.industry;
-        extraVP += p.aesthetics;
+        f.events += p.industry;
+        f.events += p.aesthetics;
     }
     if (p.scoreEvents.includes(EventCardID.E13)) {
         let championCount = p.champions.length;
@@ -2291,66 +2294,66 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): number =>
             case 6:
             case 5:
             case 4:
-                extraVP += 20;
+                f.events += 20;
                 break;
             case 3:
-                extraVP += 12;
+                f.events += 12;
                 break;
             case 2:
-                extraVP += 6;
+                f.events += 6;
                 break;
             case 1:
-                extraVP += 2;
+                f.events += 2;
                 break;
             default:
                 break;
         }
     }
     if (p.scoreEvents.includes(EventCardID.E14)) {
-        extraVP += G.secretInfo.playerDecks[i].filter(c => getCardById(c).category === CardCategory.BASIC).length;
-        extraVP += p.archive.filter(card => getCardById(card).category === CardCategory.BASIC).length;
+        f.events += G.secretInfo.playerDecks[i].filter(c => getCardById(c).category === CardCategory.BASIC).length;
+        f.events += p.archive.filter(card => getCardById(card).category === CardCategory.BASIC).length;
     }
     if (validID.includes("3102")) {
-        extraVP += validCards.filter(c => c.industry > 0)
+        f.events += validCards.filter(c => c.industry > 0)
             .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
             .length * 2
     }
     if (validID.includes("3106")) {
-        extraVP += validCards.filter(c => c.region === Region.NA)
+        f.events += validCards.filter(c => c.region === Region.NA)
             .filter(c => c.type === CardType.F)
             .length * 2
     }
     if (validID.includes("3402")) {
-        extraVP += validCards.filter(c => c.region === Region.ASIA)
+        f.events += validCards.filter(c => c.region === Region.ASIA)
             .filter(c => c.type === CardType.F)
             .length * 2
     }
     if (validID.includes("3107")) {
-        extraVP += Math.round(validCards.length / 3)
+        f.events += Math.round(validCards.length / 3)
     }
     if (validID.includes("3202")) {
-        extraVP += validCards.filter(c => c.region === Region.WE)
+        f.events += validCards.filter(c => c.region === Region.WE)
             .length * 2
     }
     if (validID.includes("3302")) {
-        extraVP += p.industry * 2;
+        f.events += p.industry * 2;
     }
     if (validID.includes("3403")) {
-        extraVP += p.aesthetics * 2;
+        f.events += p.aesthetics * 2;
     }
     if (validID.includes("3301")) {
-        extraVP += validCards.filter(c => c.region === Region.EE)
+        f.events += validCards.filter(c => c.region === Region.EE)
             .length * 2
     }
     if (validID.includes("3203")) {
-        extraVP += validCards.filter(c => c.aesthetics > 0)
+        f.events += validCards.filter(c => c.aesthetics > 0)
             .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
             .length * 2
     }
     if (validID.includes("3401")) {
-        extraVP += validCards.filter(c => c.type === CardType.P).length * 4
+        f.events += validCards.filter(c => c.type === CardType.P).length * 4
     }
-    return extraVP;
+    f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events
 }
 
 export const schoolPlayer = (G: IG, ctx: Ctx, cardId: string): PlayerID | null => {
@@ -2361,32 +2364,32 @@ export const schoolPlayer = (G: IG, ctx: Ctx, cardId: string): PlayerID | null =
 }
 
 export const rank = (G: IG, ctx: Ctx, p1: number, p2: number): number => {
+    let log = `rank|${p1}|${p2}`
     let pub1 = G.pub[p1];
     let pub2 = G.pub[p2];
-    let v1, v2;
-    if (ctx.gameover) {
-        v1 = pub1.vp;
-        v2 = pub2.vp;
-    } else {
-        v1 = pub1.vp + G.player[p1].finalScoringExtraVp;
-        v2 = pub1.vp + G.player[p2].finalScoringExtraVp;
-    }
+    const v1 = pub1.finalScoring.total;
+    const v2 = pub2.finalScoring.total;
+    log += `|vp|${v1}|${v2}`
     if (v1 > v2) {
-        return 1;
+        logger.debug(log);
+        return -1;
     } else {
         if (v1 < v2) {
-            return -1;
+            logger.debug(log);
+            return 1;
         } else {
-            return posOfPlayer(G, ctx, p1.toString())
-            < posOfPlayer(G, ctx, p2.toString()) ?
-                1 : -1;
+            const pos1 = posOfPlayer(G, ctx, p1.toString());
+            const pos2 = posOfPlayer(G, ctx, p2.toString());
+            log += `|pos|${pos1}|${pos2}`
+            logger.debug(log);
+            return pos1 < pos2 ? 1 : -1;
         }
     }
 }
 export const finalScoring = (G: IG, ctx: Ctx) => {
     let pid: number[] = [];
     for (let i = 0; i < ctx.numPlayers; i++) {
-        G.pub[i].vp += getExtraScoreForFinal(G, ctx, i.toString());
+        getExtraScoreForFinal(G, ctx, i.toString());
         pid.push(i);
     }
     const rankFunc = (a: number, b: number) => rank(G, ctx, a, b);

@@ -19,6 +19,7 @@ import playerTurnSfx from './media/turn.mp3'
 import {useI18n} from "@i18n-chain/react";
 import {getCardById} from "../types/cards";
 import {OperationPanel} from "./boards/operation";
+import FinalScoreTable from "./boards/final";
 
 export function usePrevious(value: any) {
     const ref = useRef();
@@ -174,7 +175,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                     <Typography>{getCardName(e)}</Typography>
                 </Paper></Grid>)}
         </Grid> : <></>}
-
+        <FinalScoreTable G={G} ctx={ctx}/>
         {playerID !== null && ctx.phase === "InitPhase" ?
             <Grid item xs={12}>
                 <Button

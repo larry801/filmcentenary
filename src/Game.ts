@@ -61,12 +61,12 @@ export const FilmCentenaryGame: Game<IG> = {
         for (let p = 0; p < r.player.length; p++) {
             let oldPlayerPrivateInfo = G.player[p];
             let isEmpty = G.secretInfo.playerDecks[p].length===0 && G.pub[p].discard.length === 0;
-            let finalExtra = getExtraScoreForFinal(G,ctx,p.toString());
+            getExtraScoreForFinal(G,ctx,p.toString());
             if (p.toString() !== playerID) {
                 newPlayerObj.push({
                     hand :oldPlayerPrivateInfo.hand,
                     handSize: oldPlayerPrivateInfo.hand.length,
-                    finalScoringExtraVp:finalExtra,
+                    finalScoringExtraVp:0,
                     cardsToPeek :oldPlayerPrivateInfo.cardsToPeek,
                     competitionCards:oldPlayerPrivateInfo.competitionCards,
                     deckEmpty:isEmpty,
@@ -77,7 +77,7 @@ export const FilmCentenaryGame: Game<IG> = {
                     cardsToPeek :oldPlayerPrivateInfo.cardsToPeek,
                     competitionCards :oldPlayerPrivateInfo.cardsToPeek,
                     handSize: oldPlayerPrivateInfo.hand.length,
-                    finalScoringExtraVp:finalExtra,
+                    finalScoringExtraVp:0,
                     deckEmpty:isEmpty,
                 });
             }
