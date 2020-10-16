@@ -63,19 +63,29 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
                     <Typography>{slot.card === null ? "" : getCardName(slot.card)} </Typography>
                     <Typography>{slot.comment === null ? "" : getCardName(slot.comment)} </Typography>
                 </Grid>
-                {playerID !== null && slot.card !== null ?
-                    <BuyCard
-                        card={slot.card}
-                        helpers={G.player[(parseInt(playerID))].hand}
-                        ctx={ctx}
-                        G={G}
-                        playerID={playerID} moves={moves}/> : <></>}
-                {activePlayer(ctx) === playerID &&
-                actualStage(G, ctx) === "updateSlot" ? <Button onClick={updateSlot}
-                >{i18n.action.updateSlot}</Button> : <></>}
-
-                {activePlayer(ctx) === playerID && actualStage(G, ctx) === "comment" ?
-                    <Comment slot={slot} comment={comment} G={G}/> : <></>}
+                {
+                    playerID !== null &&
+                    slot.card !== null ?
+                        <BuyCard
+                            card={slot.card}
+                            helpers={G.player[(parseInt(playerID))].hand}
+                            ctx={ctx}
+                            G={G}
+                            playerID={playerID} moves={moves}/>
+                        : <></>
+                }
+                {
+                    activePlayer(ctx) === playerID &&
+                    actualStage(G, ctx) === "updateSlot" &&
+                    slot.card !== null
+                        ? <Button onClick={updateSlot}>{i18n.action.updateSlot}</Button>
+                        : <></>
+                }
+                {
+                    activePlayer(ctx) === playerID && actualStage(G, ctx) === "comment" ?
+                        <Comment slot={slot} comment={comment} G={G}/>
+                        : <></>
+                }
             </Grid>
         </Paper>
     </>
