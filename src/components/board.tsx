@@ -513,7 +513,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 show={true}
                 initial={false}
                 title={i18n.pub.deck}
-                toggleText={`i18n.pub.deck(${deck.length})`}
+                toggleText={`${i18n.pub.deck}(${deck.length})`}
                 defaultChoice={'0'}/>
         </Grid>
         : <></>
