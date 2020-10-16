@@ -1645,77 +1645,85 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     let era = G.regions[r].era;
     let log = `regionRank|${r}|${era}`
     const rank = (a: PlayerID, b: PlayerID): number => {
-        let log = `rank|${a}|${b}|`
+        let log = `rank|${a}|${b}`
         let p1 = G.pub[parseInt(a)];
         let p2 = G.pub[parseInt(b)];
-        if (p1.shares[r] > p2.shares[r]) {
-            log += `${a}win|`
+        const as = p1.shares[r];
+        const bs = p2.shares[r];
+        log += `|share|${as}|${bs}`
+        if (as > bs) {
+            log += `|share|p${a}win`
             logger.debug(log);
             return -1;
         }
-        if (p1.shares[r] < p2.shares[r]) {
-            log += `${b}win|`
+        if (as < bs) {
+            log += `|share|p${b}win`
             logger.debug(log);
             return 1;
         }
+        log += `|sameShare`
         let legendCountA = legendCount(G, ctx, r, era, a);
         let legendCountB = legendCount(G, ctx, r, era, b);
+        log += `|legendCount~${legendCountA}|${legendCountB}`
         if (legendCountA > legendCountB) {
-            log += `${a}win|`
+            log += `|legendCount|p${a}win`
             logger.debug(log);
             return -1;
         }
         if (legendCountA < legendCountB) {
-            log += `${b}win|`
+            log += `|legendCount|p${b}win`
             logger.debug(log);
             return 1;
         }
-        if (posOfPlayer(G, ctx, a) < posOfPlayer(G, ctx, b)) {
-            log += `${a}win|`
+        log += `|sameLegendCount`
+        const posA =  posOfPlayer(G, ctx, a);
+        const posB =  posOfPlayer(G, ctx, b);
+        log += `|pos|${posA}|${posB}`
+        if (posA > posB) {
+            log += `|pos|p${a}win`
             logger.debug(log);
             return -1;
         } else {
-            if (posOfPlayer(G, ctx, a) > posOfPlayer(G, ctx, b)) {
-                log += `${b}win|`
+            if (posA < posB) {
+                log += `|pos|p${b}win`
                 logger.debug(log);
                 return 1;
             } else {
-                throw Error("Two player has the same pos")
+                throw Error("Two player cannot have the same position.")
             }
         }
     }
     let rankingPlayer: PlayerID[] = [];
     Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-        log += `|p${idx}|`
+        log += `|p${idx}`
         if (G.pub[idx].shares[r] === 0) {
-            log += "no share"
+            log += "|badFilm"
             doBuy(G, ctx, B04, idx.toString())
         } else {
-            log += "has share|"
-            log += G.pub[idx].shares[r]
+            log += `|rank`
             rankingPlayer.push(idx.toString())
         }
     });
     let rankResult = rankingPlayer.sort(rank);
-    log += `rankResult|${rankResult}|`;
+    log += `|rankResult|${rankResult}`;
     let firstPlayer: PlayerID = rankResult[0];
-    log += (`firstPlayer:${firstPlayer}|`)
+    log += `|firstPlayer:${firstPlayer}`
     G.pub[parseInt(firstPlayer)].champions.push({
         era: era,
         region: r,
     })
     let scoreCount = scoreCardCount(r, era);
-    log += `scoreCount:${scoreCount}|`;
+    log += `|scoreCount:${scoreCount}`;
     let scoreCardPlayerCount = Math.min(rankResult.length, scoreCount)
-    log += `scoreCardPlayerCount:${scoreCardPlayerCount}|`
+    log += `|scoreCardPlayerCount:${scoreCardPlayerCount}`
     for (let i = 0; i < scoreCardPlayerCount; i++) {
         let scoreId = "V" + (era + 1).toString() + (r + 1).toString() + (i + 1).toString()
-        log += `p${i}|${scoreId}`
+        log += `|p${i}|${scoreId}`
         G.pub[parseInt(rankResult[i])].discard.push(scoreId)
         G.pub[parseInt(rankResult[i])].allCards.push(scoreId)
     }
     for (let i = scoreCardPlayerCount; i < rankResult.length; i++) {
-        log += `p${i}|bad film`
+        log += `|p${i}|bad film`
         doBuy(G, ctx, B04, rankResult[i])
     }
     logger.debug(log)
