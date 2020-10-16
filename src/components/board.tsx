@@ -155,7 +155,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
 
     return <Grid container justify="space-evenly" alignItems="center">
-
+        {gameOverResult}
         {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
             <Grid item xs={4}><Typography>{i18n.pub.events}</Typography></Grid>
             {G.events.map((e, idx) => <Grid key={idx} item xs={4}>
@@ -201,9 +201,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 <Grid item xs={4} sm={3} md={2} lg={1}><Typography>{i18n.pub.handSize} {G.player[idx].handSize}</Typography></Grid>
                 <PubPanel G={G} i={u}/>
             </Grid>)}
-        {gameOverResult}
         <FinalScoreTable G={G} ctx={ctx}/>
-
         {log === undefined ? <></> : <LogView log={log} getPlayerName={getName}/>}
         <Typography>{plugins.random.data.seed}</Typography>
     </Grid>

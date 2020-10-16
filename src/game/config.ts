@@ -13,7 +13,7 @@ import {
 } from "./moves";
 import {IG} from "../types/setup";
 import {changePlayerStage, cleanPendingSignal} from "./logFix";
-import {aesAward, curPub, drawCardForPlayer, industryAward} from "./util";
+import {aesAward, curPub, drawCardForPlayer, industryAward, logger} from "./util";
 
 
 export const chooseEffectStage: StageConfig = {
@@ -88,21 +88,27 @@ export const NormalTurn: TurnConfig = {
         cleanPendingSignal(G, ctx)
         let p = ctx.currentPlayer;
         let pub = curPub(G,ctx);
+        let log = `onBegin|p${p}`
 
         if(pub.school?.cardId === "1301"){
+            log += `|montage`
             pub.vp ++;
             drawCardForPlayer(G,ctx,p);
             G.e.stack.push({e:"discard",a:1})
             changePlayerStage(G,ctx,"chooseHand",p);
         }
         if(pub.school?.cardId === "3105"){
+            log += `|newYork`
             if(pub.aesthetics <= pub.industry){
+                log += `|aesAward`
                 aesAward(G,ctx,p);
             }
             if(pub.aesthetics >= pub.industry){
+                log += `|industryAward`
                 industryAward(G,ctx,p);
             }
         }
+        logger.debug(log);
     },
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {

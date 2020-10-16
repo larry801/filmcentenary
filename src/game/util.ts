@@ -2370,7 +2370,7 @@ export const schoolPlayer = (G: IG, ctx: Ctx, cardId: string): PlayerID | null =
     return null;
 }
 
-export const rank = (G: IG, ctx: Ctx, p1: number, p2: number): number => {
+export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = false): number => {
     let log = `rank|${p1}|${p2}`
     let pub1 = G.pub[p1];
     let pub2 = G.pub[p2];
@@ -2378,18 +2378,28 @@ export const rank = (G: IG, ctx: Ctx, p1: number, p2: number): number => {
     const v2 = pub2.finalScoring.total;
     log += `|vp|${v1}|${v2}`
     if (v1 > v2) {
-        logger.debug(log);
+        log += `|p${p1}wins`
+        if(addLog)logger.debug(log);
         return -1;
     } else {
         if (v1 < v2) {
-            logger.debug(log);
+            log += `|p${p2}wins`
+            if(addLog)logger.debug(log);
             return 1;
         } else {
             const pos1 = posOfPlayer(G, ctx, p1.toString());
             const pos2 = posOfPlayer(G, ctx, p2.toString());
             log += `|pos|${pos1}|${pos2}`
-            logger.debug(log);
-            return pos1 < pos2 ? 1 : -1;
+            if(addLog)logger.debug(log);
+            if(pos1 < pos2){
+                log += `|p${p2}wins`
+                if(addLog) logger.debug(log);
+                return 1
+            }else {
+                log += `|p${p1}wins`
+                if(addLog) logger.debug(log);
+                return -1
+            }
         }
     }
 }

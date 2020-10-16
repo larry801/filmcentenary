@@ -41,9 +41,10 @@ export interface IChoiceProps {
     title: string,
     toggleText: string,
     initial: boolean,
+    popAfterShow?: boolean,
 }
 
-export const ChoiceDialog = ({initial, callback, show, choices, title, toggleText, defaultChoice}: IChoiceProps) => {
+export const ChoiceDialog = ({initial, callback, show, choices, title, toggleText, defaultChoice, popAfterShow}: IChoiceProps) => {
 
     useI18n(i18n);
 
@@ -53,11 +54,11 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
     const prevShow = usePrevious(show);
 
     useEffect(() => {
-        console.log(prevShow,show);
-        if (show && prevShow===false) {
+        if (show && prevShow===false && popAfterShow!==false) {
+            console.log(prevShow,show,popAfterShow);
             setOpen(true);
         }
-    }, [prevShow, show])
+    }, [prevShow, show, popAfterShow])
 
     const handleClickOpen = () => {
         setOpen(true);

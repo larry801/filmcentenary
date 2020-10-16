@@ -28,7 +28,7 @@ const FinalScoreTable = ({G, ctx}: IFinalScoreTableProps) => {
     useI18n(i18n);
     const classes = useStyles();
     const scoreRank = (a: string, b: string) => rank(G, ctx, parseInt(a), parseInt(b));
-
+    const order = [...G.order]
     return <TableContainer component={Paper}>
         <Table className={classes.table} size="small" aria-label="a dense table">
             <TableHead>
@@ -45,7 +45,7 @@ const FinalScoreTable = ({G, ctx}: IFinalScoreTableProps) => {
                 </TableRow>
             </TableHead>
             <TableBody>
-                {G.order.sort(scoreRank).map(p => {
+                {order.sort(scoreRank).map(p => {
                     const pub = G.pub[parseInt(p)];
                     const f = pub.finalScoring;
                     return <TableRow key={p}>
