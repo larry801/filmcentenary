@@ -2096,7 +2096,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     } else {
         competitionCleanUp(G, ctx);
     }
-
+    logger.debug(log);
 }
 
 export function atkCardSettle(G: IG, ctx: Ctx) {
