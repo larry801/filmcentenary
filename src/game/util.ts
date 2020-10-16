@@ -1548,12 +1548,19 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
 }
 
 export const additionalCostForUpgrade = (level: number): number => {
+    let log = `additionalCostForUpgrade|${level}`
     if (level < 4) {
+        log += `|cost:0`
+        logger.debug(log);
         return 0;
     } else {
         if (level < 7) {
+            log += `|cost:1`
+            logger.debug(log);
             return 1;
         } else {
+            log += `|cost:2`
+            logger.debug(log);
             return 2;
         }
     }
@@ -1823,9 +1830,9 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
         }
         G.e.stack.push(top);
     }
-    let p = G.pub[parseInt(player)];
-    let totalResource = p.resource + p.deposit;
-    let additionalCost = additionalCostForUpgrade(p.industry);
+    const p = G.pub[parseInt(player)];
+    const totalResource = p.resource + p.deposit;
+    const additionalCost = additionalCostForUpgrade(p.industry);
     if (additionalCost <= totalResource && p.industry < 10) {
         log += `|${additionalCost}|canUpgrade`
         G.e.choices.push({e: "industryLevelUpCost", a: 1})
@@ -1857,10 +1864,11 @@ export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
         }
         G.e.stack.push(top);
     }
-    let p = G.pub[parseInt(player)];
-    let playerObj = G.player[parseInt(player)];
-    let totalResource = p.resource + p.deposit;
-    if (additionalCostForUpgrade(p.aesthetics) <= totalResource && p.aesthetics < 10) {
+    const p = G.pub[parseInt(player)];
+    const playerObj = G.player[parseInt(player)];
+    const totalResource = p.resource + p.deposit;
+    const additionalCost = additionalCostForUpgrade(p.aesthetics);
+    if (additionalCost <= totalResource && p.aesthetics < 10) {
         log += ("|Can upgrade aesthetics")
         G.e.choices.push({e: "aestheticsLevelUpCost", a: 1})
     }
