@@ -13,6 +13,7 @@ import DialogContent from "@material-ui/core/DialogContent";
 import FormControl from "@material-ui/core/FormControl/FormControl";
 import FormGroup from "@material-ui/core/FormGroup/FormGroup";
 import DialogActions from "@material-ui/core/DialogActions";
+import Grid from "@material-ui/core/Grid";
 import shortid from "shortid";
 import {usePrevious} from "./board";
 
@@ -73,7 +74,7 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
 
     const handleChange = (e: any) => setChoice(e.target.value);
 
-    return show ? <>
+    return show ? <Grid item xs={12}>
         <Button
             variant={"outlined"}
             onClick={handleClickOpen}
@@ -108,6 +109,6 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
                 </Button>
             </DialogActions>
         </Dialog>
-    </> : <div/>
+    </Grid> : <div/>
 }
 
