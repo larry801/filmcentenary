@@ -23,7 +23,7 @@ export const CardEffect = ({cid}:ICardEffectProps) =>{
         {buy!==""?<Typography>{buy}</Typography>:<></>}
         {play!==""?<Typography>{play}</Typography>:<></>}
         {arch!==""?<Typography>{arch}</Typography>:<></>}
-        {school!==""?<Typography>{school}</Typography>:<></>}
+        {school!==""?<div>{school}</div>:<></>}
         {score!==""?<Typography>{score}</Typography>:<></>}
     </>
 }
