@@ -1,4 +1,4 @@
-import {BasicCardID, IBuyInfo, IEra, Region, ScoreCardID, validRegion} from "../../types/core";
+import { IBuyInfo, IEra, Region, validRegion} from "../../types/core";
 import {
     IChooseEventArg, IChooseHandArg, ICommentArg, ICompetitionCardArg,
     IEffectChooseArg,
@@ -8,8 +8,6 @@ import {
     IShowBoardStatusProps, ITargetChooseArgs
 } from "../../game/moves";
 import {effName, getCardName} from "../../game/util";
-import {getScoreCardByID} from "../cards/score";
-import i18n from "../i18n";
 
 const cards = {
     "B01": "Literary Film",

@@ -1,5 +1,5 @@
 import {Locale} from './en';
-import {BasicCardID, IBuyInfo, IEra, Region, validRegion} from "../../types/core";
+import {IBuyInfo, IEra, Region, validRegion} from "../../types/core";
 import {
     IChooseEventArg, IChooseHandArg, ICommentArg, ICompetitionCardArg,
     IEffectChooseArg,
