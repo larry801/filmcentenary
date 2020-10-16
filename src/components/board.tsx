@@ -148,7 +148,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             <BoardCardSlot slot={G.twoPlayer.film[3]} G={G} ctx={ctx} moves={moves} comment={comment}
                            playerID={playerID}/>
         </Grid> :
-        <>
+        <Grid item container xs={12} sm={6}>
             <BoardRegion getPlayerName={getName} r={Region.NA} moves={moves} region={G.regions[0]} G={G} ctx={ctx}
                          playerID={playerID}/>
             <BoardRegion getPlayerName={getName} r={Region.WE} moves={moves} region={G.regions[1]} G={G} ctx={ctx}
@@ -157,7 +157,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                          playerID={playerID}/>
             <BoardRegion getPlayerName={getName} r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx}
                          playerID={playerID}/>
-        </>
+        </Grid>
     const gameOverResult = ctx.gameover === undefined ? <></> : <Grid item xs={12} sm={6}>
         <Typography variant={"h2"}>{i18n.gameOver.title}</Typography>
         <Typography variant={"h3"}>{getName(ctx.gameover.winner)}</Typography>
@@ -165,9 +165,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
 
     return <Grid container justify="space-evenly" alignItems="center">
-        {playerID !== null && ctx.gameover === undefined ?
-            <OperationPanel G={G} ctx={ctx} moves={moves} playerID={playerID} events={events} undo={undo} redo={redo} getName={getName}/>
-            :<></>}
+
         {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
             <Grid item xs={4}><Typography>{i18n.pub.events}</Typography></Grid>
             {G.events.map((e, idx) => <Grid key={idx} item xs={4}>
@@ -175,7 +173,11 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                     <Typography>{getCardName(e)}</Typography>
                 </Paper></Grid>)}
         </Grid> : <></>}
-        <FinalScoreTable G={G} ctx={ctx}/>
+
+        {playerID !== null && ctx.gameover === undefined ?
+            <OperationPanel G={G} ctx={ctx} moves={moves} playerID={playerID} events={events} undo={undo} redo={redo} getName={getName}/>
+            :<></>}
+
         {playerID !== null && ctx.phase === "InitPhase" ?
             <Grid item xs={12}>
                 <Button
@@ -210,6 +212,8 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 <PubPanel G={G} i={u}/>
             </Grid>)}
         {gameOverResult}
+        <FinalScoreTable G={G} ctx={ctx}/>
+
         {log === undefined ? <></> : <LogView log={log} getPlayerName={getName}/>}
         <Typography>{plugins.random.data.seed}</Typography>
     </Grid>

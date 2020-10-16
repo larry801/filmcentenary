@@ -15,7 +15,7 @@ import {Ctx} from "boardgame.io";
 
 const useStyles = makeStyles({
     table: {
-        minWidth: 768,
+        minWidth: 450,
     },
 });
 

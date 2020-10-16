@@ -2244,8 +2244,15 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     let i = parseInt(pid);
     let p = G.pub[i];
     let s = G.player[i];
-    p.finalScoring = {...initialScore};
     let f = p.finalScoring;
+    f.card = 0
+    f.building = 0
+    f.industryAward = 0
+    f.aestheticsAward = 0
+    f.archive = 0
+    f.events = 0
+    f.total = 0
+
     if (p.school !== null) {
         f.card += p.school.vp;
     }
