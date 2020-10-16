@@ -478,6 +478,7 @@ const en = {
         atBreakthrough: "After you perform a breakthrough action,",
         playedCardInTurnEffect: "Execute the 【play】 effect another card with aesthetics mark you played in this turn.",
         everyOtherCompany: "Every other company",
+        everyPlayer: "Every company",
         onYourComment: "After you perform a comment,",
         onAnyOneComment: "After any one perform a comment,",
         doNotLoseVpAfterCompetition: "Do not lose vp after competition",

@@ -484,6 +484,7 @@ const zh_CN: Locale = {
         onYourComment: "你评论后,",
         playedCardInTurnEffect: "执行你出牌区的另一张带有美学标志的牌的【出牌】效果",
         everyOtherCompany: "每个其他公司",
+        everyPlayer: "每个公司",
         doNotLoseVpAfterCompetition: "争夺失败后，不会失去声望",
         discardInSettle: "如果你在一张牌的结算过程中至少弃掉了一张牌",
         onAnyOneComment: "每当发生评论后，",
