@@ -2094,6 +2094,8 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         playerEffExec(G, ctx, winner);
         return;
     } else {
+        log += `|competitionCleanUp`
+        logger.debug(log);
         competitionCleanUp(G, ctx);
     }
     logger.debug(log);
@@ -2120,6 +2122,7 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
         G.e.card = cardId;
         G.e.stack.push(eff.play);
         G.pub[parseInt(i.atk)].playedCardInTurn.push(cardId);
+        G.player[parseInt(i.atk)].competitionCards = []
         logger.debug(log);
         // TODO may over run set a barrier effect?
         playerEffExec(G, ctx, i.atk);
@@ -2151,6 +2154,7 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
         log += `|${JSON.stringify(eff.play)}`
         G.e.card = cardId;
         G.e.stack.push(eff.play);
+        G.player[parseInt(i.def)].competitionCards = [];
         logger.debug(log);
         playerEffExec(G, ctx, i.def);
     } else {
