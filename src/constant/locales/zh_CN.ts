@@ -8,7 +8,7 @@ import {
     IRegionChooseArg,
     IShowBoardStatusProps, ITargetChooseArgs
 } from "../../game/moves";
-import {effName} from "../../game/util";
+import {effName, getCardName} from "../../game/util";
 
 const era = {
     0: "发明",
@@ -196,13 +196,16 @@ const eventName = {
     'E13': '终局计分时：若公司获得过4/3/2/1个不同地区的第一，则你得到20/12/6/2声望',
     'E14': '终局计分时：公司档案馆和牌库里的每张基础牌牌获得1声望',
 };
+
+
+
 const argCardName = {
     a: (value: string = "E02") => {
-        return cards[value as BasicCardID]
+        return getCardName(value)
     }
 };
-const bracketCardName = (value: string = "E02") => {
-    return '【' + cards[value as BasicCardID] + '】'
+const bracketCardName = (id: string = "E02") => {
+    return `【${getCardName(id)}】`
 };
 const argValue = {a: (value: number = 1): string => value.toString()};
 const chose = "选择了"

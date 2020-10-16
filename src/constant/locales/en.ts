@@ -1,4 +1,4 @@
-import {BasicCardID, IBuyInfo, IEra, Region, validRegion} from "../../types/core";
+import {BasicCardID, IBuyInfo, IEra, Region, ScoreCardID, validRegion} from "../../types/core";
 import {
     IChooseEventArg, IChooseHandArg, ICommentArg, ICompetitionCardArg,
     IEffectChooseArg,
@@ -7,7 +7,9 @@ import {
     IRegionChooseArg,
     IShowBoardStatusProps, ITargetChooseArgs
 } from "../../game/moves";
-import {effName} from "../../game/util";
+import {effName, getCardName} from "../../game/util";
+import {getScoreCardByID} from "../cards/score";
+import i18n from "../i18n";
 
 const cards = {
     "B01": "Literary Film",
@@ -169,6 +171,7 @@ const region = {
     3: "Asia",
     4: "Any Region",
 };
+
 const argValue = {a: (value: number = 1): string => value.toString()};
 
 const argRegion = {
@@ -176,8 +179,8 @@ const argRegion = {
         return region[value]
     }
 }
-const bracketCardName = (value: string = "E02") => {
-    return '【' + cards[value as BasicCardID] + '】'
+const bracketCardName = (id: string = "E02") => {
+    return `【${getCardName(id)}】`
 };
 const era = {
     0: "Invention",
@@ -202,8 +205,7 @@ const eventName = {
 };
 const argCardName = {
     a: (value: string = "E02"): string => {
-        // @ts-ignore
-        return cards[value]
+        return getCardName(value)
     }
 };
 const argTimes = {
