@@ -1866,7 +1866,7 @@ const CARDS = {
         industry: 0,
         aesthetics: 0,
     }),
-    "2104": filmCard({
+    "2104": schoolCard({
         era: IEra.TWO,
         region: Region.NA,
         name: "黑色电影",
