@@ -1567,12 +1567,12 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
 
 export const additionalCostForUpgrade = (level: number): number => {
     let log = `additionalCostForUpgrade|${level}`
-    if (level < 4) {
+    if (level <= 2) {
         log += `|cost:0`
         logger.debug(log);
         return 0;
     } else {
-        if (level < 7) {
+        if (level <= 5) {
             log += `|cost:1`
             logger.debug(log);
             return 1;
