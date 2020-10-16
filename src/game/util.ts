@@ -686,6 +686,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "breakthroughResDeduct":
             if (playerObj.hand.length > 0 && obj.action > 0) {
+                log += `|chooseHand`
+                G.e.stack.push(eff);
+                logger.debug(log);
                 changePlayerStage(G, ctx, "chooseHand", p);
                 return;
             } else {

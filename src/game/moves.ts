@@ -2,7 +2,8 @@ import {Ctx, LongFormMove, PlayerID} from 'boardgame.io';
 import {IG} from "../types/setup";
 import {
     BasicCardID,
-    CardID, ClassicCardID,
+    CardID,
+    ClassicCardID,
     EventCardID,
     IBasicCard,
     IBuyInfo,
@@ -10,7 +11,8 @@ import {
     IEra,
     INormalOrLegendCard,
     IRegionInfo,
-    Region, SimpleRuleNumPlayers,
+    Region,
+    SimpleRuleNumPlayers,
     ValidRegions
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
@@ -19,12 +21,18 @@ import {
     aesAward,
     atkCardSettle,
     buildingInRegion,
-    canBuyCard, cardInDeck, cardInDiscard, cardInHand, cardSlotOnBoard,
+    canBuyCard,
+    cardInDeck,
+    cardInDiscard,
+    cardInHand,
+    cardSlotOnBoard,
     checkCompetitionDefender,
     checkNextEffect,
     checkRegionScoring,
     cinemaInRegion,
-    cinemaSlotsAvailable, competitionCleanUp, curCard,
+    cinemaSlotsAvailable,
+    competitionCleanUp,
+    curCard,
     curEffectExec,
     curPub,
     doAestheticsBreakthrough,
@@ -36,10 +44,13 @@ import {
     fillEventCard,
     fillPlayerHand,
     fillTwoPlayerBoard,
-    industryAward, isSimpleEffect,
-    logger, payCost,
+    industryAward,
+    isSimpleEffect,
+    logger,
+    payCost,
     playerEffExec,
-    schoolPlayer, simpleEffectExec,
+    schoolPlayer,
+    simpleEffectExec,
     startBreakThrough,
     startCompetition,
     studioSlotsAvailable,
@@ -186,7 +197,7 @@ export const chooseHand: LongFormMove = {
                 }
                 G.e.card = arg.hand;
                 startBreakThrough(G, ctx, arg.p);
-                break;
+                return;
             case "archiveToEEBuildingVP":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
