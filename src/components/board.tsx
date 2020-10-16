@@ -276,7 +276,8 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
     const endStage = () => events?.endStage?.()
     const endTurn = () => events?.endTurn?.();
     const endPhase = () => events?.endPhase?.()
-    const nop = () => {}
+    const nop = () => {
+    }
 
     const cardBoard = ctx.numPlayers === SimpleRuleNumPlayers ?
         <Grid container spacing={2} alignItems="center">
@@ -306,39 +307,42 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             <BoardRegion getPlayerName={getName} r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx}
                          playerID={playerID}/>
         </>
-    const inferredDeck = (p:PlayerID): CardID[]=>{
+    const inferredDeck = (p: PlayerID): CardID[] => {
         const pub = G.pub[parseInt(p)];
         const playerObj = G.player[parseInt(p)];
         let result = [...G.pub[parseInt(p)].allCards]
-        pub.discard.forEach(c=>{
+        pub.discard.forEach(c => {
             let indexOfDiscard = result.indexOf(c)
-            if(indexOfDiscard!==-1){
-                result.splice(indexOfDiscard,1)
+            if (indexOfDiscard !== -1) {
+                result.splice(indexOfDiscard, 1)
             }
         })
-        pub.archive.forEach(c=>{
+        pub.archive.forEach(c => {
             let indexOfArchive = result.indexOf(c)
-            if(indexOfArchive!==-1){
-                result.splice(indexOfArchive,1)
+            if (indexOfArchive !== -1) {
+                result.splice(indexOfArchive, 1)
             }
         })
-        playerObj.hand.forEach(c=>{
+        playerObj.hand.forEach(c => {
             let indexOfHand = result.indexOf(c)
-            if(indexOfHand!==-1){
-                result.splice(indexOfHand,1)
+            if (indexOfHand !== -1) {
+                result.splice(indexOfHand, 1)
             }
         })
         return result;
     }
-
-    const operationPanel = ctx.gameover === undefined ? <Grid item xs={12} sm={6}>
-            {playerID !== null && canMoveCurrent ?
+    const deck = playerID !== null ? inferredDeck(playerID) : [];
+    const gameOverResult = ctx.gameover === undefined ? <></> : <Grid item xs={12} sm={6}>
+        <Typography variant={"h2"}>{i18n.gameOver.title}</Typography>
+        <Typography variant={"h3"}>{getName(ctx.gameover.winner)}</Typography>
+    </Grid>
+    const operationPanel = playerID !== null ? <Grid item xs={12} sm={6}>
+            {canMoveCurrent ?
                 <>
                     <Grid item><Typography
                         variant={"h6"}
                         color="inherit"
                     >{i18n.dialog.buyCard.basic}</Typography></Grid>
-
                     <BuyCard
                         card={BasicCardID.B01} helpers={G.player[parseInt(playerID)].hand}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
@@ -354,7 +358,6 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                     <BuyCard
                         card={BasicCardID.B05} helpers={G.player[parseInt(playerID)].hand}
                         G={G} playerID={playerID} ctx={ctx} moves={moves}/>
-
                 </> : <></>
             }
             {activePlayer(ctx) === playerID ? <Button
@@ -375,7 +378,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                     onClick={endStage}
                 >{i18n.action.endStage}</Button>
                 : <></>}
-            {playerID !== null && ctx.phase !== "InitPhase" && canMoveCurrent ?
+            {ctx.phase !== "InitPhase" && canMoveCurrent ?
                 <ChoiceDialog
                     initial={false}
                     callback={drawCard}
@@ -401,7 +404,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 show={playerID !== null && canMoveCurrent && !G.pending.endTurn}
                 title={i18n.action.endStage} toggleText={i18n.action.endStage}
             />
-            {playerID !== null ? <ChoiceDialog
+            <ChoiceDialog
                 initial={true}
                 callback={peek}
                 choices={
@@ -416,7 +419,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                         })
                 } defaultChoice={"0"} show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "peek"}
                 title={i18n.dialog.peek.title}
-                toggleText={i18n.dialog.peek.title}/> : <></>}
+                toggleText={i18n.dialog.peek.title}/>
             <ChoiceDialog
                 initial={true}
                 callback={chooseRegion}
@@ -446,21 +449,19 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 } defaultChoice={'0'} show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseTarget"}
                 title={i18n.dialog.chooseTarget.title}
                 toggleText={i18n.dialog.chooseTarget.toggleText}/>
-
-            {playerID !== null ?
-                <ChoiceDialog
-                    callback={chooseEvent}
-                    choices={G.events.map((c, idx) => {
-                        return {
-                            label: getCardName(c) + i18n.eventName[c],
-                            disabled: false,
-                            hidden: false,
-                            value: idx.toString()
-                        }
-                    })} defaultChoice={"0"}
-                    show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseEvent"}
-                    title={i18n.dialog.chooseEvent.title} toggleText={i18n.dialog.chooseEvent.toggleText}
-                    initial={true}/> : <></>}
+            <ChoiceDialog
+                callback={chooseEvent}
+                choices={G.events.map((c, idx) => {
+                    return {
+                        label: getCardName(c) + i18n.eventName[c],
+                        disabled: false,
+                        hidden: false,
+                        value: idx.toString()
+                    }
+                })} defaultChoice={"0"}
+                show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseEvent"}
+                title={i18n.dialog.chooseEvent.title} toggleText={i18n.dialog.chooseEvent.toggleText}
+                initial={true}/>
             <ChoiceDialog
                 callback={competitionCard}
                 choices={handChoices}
@@ -469,13 +470,13 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 title={i18n.dialog.competitionCard.title}
                 toggleText={i18n.dialog.competitionCard.toggleText}
                 initial={true}/>
-            {playerID !== null ?
-                <ChoiceDialog
-                    callback={chooseHand}
-                    choices={discardChoices()} defaultChoice={"0"}
-                    show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseHand"}
-                    title={i18n.dialog.chooseHand.title} toggleText={i18n.dialog.chooseHand.toggleText}
-                    initial={true}/> : <></>}
+
+            <ChoiceDialog
+                callback={chooseHand}
+                choices={discardChoices()} defaultChoice={"0"}
+                show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseHand"}
+                title={i18n.dialog.chooseHand.title} toggleText={i18n.dialog.chooseHand.toggleText}
+                initial={true}/>
 
             <ChoiceDialog
                 callback={chooseEffect}
@@ -500,28 +501,24 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 title={effName(G.e.currentEffect)}
                 toggleText={i18n.dialog.confirmRespond.title}
                 initial={true}/>
-            {playerID !== null ?
-                <ChoiceDialog
-                    callback={nop}
-                    choices={inferredDeck(playerID).map((c,idx) => {
-                        return {
-                            label: getCardName(c),
-                            disabled: true,
-                            hidden: false,
-                            value: idx.toString(),
-                        }
-                    })}
-                    show={true}
-                    initial={false}
-                    title={i18n.pub.deck}
-                    toggleText={i18n.pub.deck}
-                    defaultChoice={'0'}/> : <></>}
+            <ChoiceDialog
+                callback={nop}
+                choices={deck.map((c, idx) => {
+                    return {
+                        label: getCardName(c),
+                        disabled: true,
+                        hidden: false,
+                        value: idx.toString(),
+                    }
+                })}
+                show={true}
+                initial={false}
+                title={i18n.pub.deck}
+                toggleText={`i18n.pub.deck(${deck.length})`}
+                defaultChoice={'0'}/>
         </Grid>
-        :
-        <Grid item xs={12} sm={6}>
-            <Typography variant={"h2"}>{i18n.gameOver.title}</Typography>
-            <Typography variant={"h3"}>{getName(ctx.gameover.winner)}</Typography>
-        </Grid>
+        : <></>
+
 
     return <Grid container justify="space-evenly" alignItems="center">
         {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
@@ -563,6 +560,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             <Grid item xs={4} sm={3} md={2} lg={1}><Typography>{i18n.pub.handSize} {G.player[idx].handSize}</Typography></Grid>
             <PubPanel G={G} i={u}/>
         </Grid>)}
+        {gameOverResult}
         {operationPanel}
         {playerID !== null && ctx.gameover === undefined ?
             <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/> : <></>}
