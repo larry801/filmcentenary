@@ -1,14 +1,13 @@
 import React, {useEffect, useRef} from "react";
 import {BoardProps} from "boardgame.io/react";
-import {IG, privatePlayer} from "../types/setup";
+import {IG} from "../types/setup";
 import {BoardCardSlot, BoardRegion} from "./region";
-import {PlayerHand} from "./playerHand";
-import {activePlayer, actualStage, effName, getCardName} from "../game/util";
+import {activePlayer, getCardName} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
 import {PubPanel} from "./pub";
-import {BasicCardID, CardCategory, CardID, ICardSlot, Region, SimpleRuleNumPlayers, ValidRegions} from "../types/core";
+import {BasicCardID, ICardSlot, Region, SimpleRuleNumPlayers, ValidRegions} from "../types/core";
 import Grid from "@material-ui/core/Grid"
 import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
@@ -17,7 +16,6 @@ import useSound from 'use-sound';
 // @ts-ignore
 import playerTurnSfx from './media/turn.mp3'
 import {useI18n} from "@i18n-chain/react";
-import {getCardById} from "../types/cards";
 import {OperationPanel} from "./boards/operation";
 import FinalScoreTable from "./boards/final";
 
@@ -120,15 +118,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         moves.showBoardStatus(args);
     }
 
-    const drawCard = (choice: string) => {
-        if (choice === "yes") {
-            moves.drawCard(playerID);
-        }
-    };
-
-
     const endPhase = () => events?.endPhase?.();
-
 
     const cardBoard = ctx.numPlayers === SimpleRuleNumPlayers ?
         <Grid container spacing={2} alignItems="center">

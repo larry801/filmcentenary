@@ -23,7 +23,7 @@ import {
     validRegion,
     ValidRegions,
 } from "../types/core";
-import {IG, initialScore} from "../types/setup";
+import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {cardsByCond, filmCardsByEra, getCardById, schoolCardsByEra} from "../types/cards";
 import {Stage} from "boardgame.io/core";
