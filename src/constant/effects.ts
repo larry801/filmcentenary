@@ -800,7 +800,7 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
-            e: "step", a: [
+            e: "era", a: [
                 noEff,
                 {
                     e: "step", a: [
