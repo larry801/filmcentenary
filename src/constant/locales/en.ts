@@ -5,7 +5,7 @@ import {
     IPeekArgs,
     IPlayCardInfo,
     IRegionChooseArg,
-    IShowBoardStatusProps, ITargetChooseArgs
+    IShowBoardStatusProps, IShowCompetitionResultArgs, ITargetChooseArgs
 } from "../../game/moves";
 import {effName, getCardName} from "../../game/util";
 
@@ -222,6 +222,33 @@ const argTimes = {
 const argPeek = {
     args: (arg: IPeekArgs[]) => {
         return ""
+    }
+}
+const argShowCompetitionResult = {
+    args:(arg:IShowCompetitionResultArgs[]): string=>{
+        let i = arg[0].info;
+        let t = "CompetitionResult:"
+        if(i.atkCard===null){
+            t += "Attacker did not play card "
+        }else {
+            t += `Attacker played ${bracketCardName(i.atkCard)} `
+        }
+        if(i.defCard===null){
+            t += "Defender did not play card "
+        }else {
+            t += `Defender played ${bracketCardName(i.defCard)} `
+        }
+        t += `Progress:${i.progress} `
+        if (i.progress >= 3) {
+            t += "Attacker won"
+        } else {
+            if (i.progress <= -3) {
+                t += "Defender won"
+            } else {
+                t += "No Winner"
+            }
+        }
+        return t;
     }
 }
 const argShowBoardStatus = {
@@ -452,6 +479,7 @@ const en = {
         chooseRegion: ["{{args}}", argChooseRegion],
         chooseTarget: ["{{args}}", argChooseTarget],
         peek: ["{{args}}", argPeek],
+        showCompetitionResult: ["{{args}}", argShowCompetitionResult],
         competitionCard: ["{{args}}", argCompetitionCard],
         drawCard: ["{{args}}", argDrawCard],
         buyCard: ["{{args}}", argBuyCard],
@@ -548,7 +576,11 @@ const en = {
             },
             onWin: (e: any): string => {
                 if (e.e !== "none") {
-                    return "若这次争夺获胜你额外获得一个" + region[e.a as Region] + "地区份额"
+                    if(e.e === "anyRegionShare"){
+                        return "若这次争夺获胜你额外获得一个任意地区份额"
+                    }else {
+                        return "若这次争夺获胜你额外获得一个" + region[e.r as Region] + "地区份额"
+                    }
                 } else {
                     return "";
                 }
@@ -691,6 +723,7 @@ const en = {
         aestheticsLevelUp: "Upgrade aesthetics",
         industryLevelUp: "Upgrade industry",
         endStage: "End Stage",
+        showCompetitionResult: "Show Competition Result",
         endTurn: "End Turn",
         turnEnd: ["Turn {{a}} ended",argValue],
         endPhase: "End Phase",

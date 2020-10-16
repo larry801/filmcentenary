@@ -1825,7 +1825,7 @@ export const effects = {
                     e: "optional", a: {
                         e: "competition", a: {
                             bonus: 1,
-                            onWin: {e: "shareNA", a: 1}
+                            onWin: {e: "shareNA", a: 1,r:Region.NA}
                         }
                     }
                 }
@@ -2104,7 +2104,7 @@ export const effects = {
                     e: "optional", a: {
                         e: "competition", a: {
                             bonus: 1,
-                            onWin: {e: "shareWE", a: 1}
+                            onWin: {e: "shareWE", a: 1,r:Region.WE}
                         }
                     }
                 }
@@ -2218,7 +2218,7 @@ export const effects = {
                     e: "optional", a: {
                         e: "competition", a: {
                             bonus: 1,
-                            onWin: {e: "shareEE", a: 1}
+                            onWin: {e: "shareEE", a: 1,r:Region.EE}
                         }
                     }
                 }
@@ -2410,7 +2410,7 @@ export const effects = {
             e: "step", a: [{e: "res", a: 4}, {
                 e: "optional", a: {
                     e: "competition", a: {
-                        bonus: 1, onWin: {e: "shareASIA", a: 1}
+                        bonus: 1, onWin: {e: "shareASIA", a: 1,r:Region.ASIA}
                     }
                 }
             }]

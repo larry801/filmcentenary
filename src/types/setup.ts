@@ -16,7 +16,18 @@ import {
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
-
+export interface CompetitionInfo {
+    region: Region,
+    atk: PlayerID,
+    atkPlayedCard: boolean,
+    atkCard: CardID|null,
+    def: PlayerID,
+    defPlayedCard: boolean,
+    defCard: CardID|null,
+    pending: boolean,
+    progress: number,
+    onWin: { e: string, a: number },
+}
 export interface IG {
     matchID: string,
     twoPlayer: {
@@ -46,16 +57,7 @@ export interface IG {
     pub: IPubInfo[],
     e: { pendingPlayers: PlayerID[], choices: any[], stack: any[], card: CardID | null, regions: Region[], currentEffect: any },
     player: IPrivateInfo[],
-    competitionInfo: {
-        region: Region,
-        atk: PlayerID,
-        atkPlayedCard: boolean,
-        def: PlayerID,
-        defPlayedCard: boolean,
-        pending: boolean,
-        progress: number,
-        onWin: { e: string, a: number },
-    },
+    competitionInfo: CompetitionInfo,
     secretInfo: {
         regions: {
             0: IRegionPrivate,
@@ -231,8 +233,10 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             region: Region.NONE,
             atk: '0',
             atkPlayedCard: false,
+            atkCard:null,
             def: '1',
             defPlayedCard: false,
+            defCard:null,
             progress: 0,
             pending: false,
             onWin: {e: "none", a: 1}

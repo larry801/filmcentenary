@@ -6,7 +6,7 @@ import {
     IPeekArgs,
     IPlayCardInfo,
     IRegionChooseArg,
-    IShowBoardStatusProps, ITargetChooseArgs
+    IShowBoardStatusProps, IShowCompetitionResultArgs, ITargetChooseArgs
 } from "../../game/moves";
 import {effName, getCardName} from "../../game/util";
 
@@ -313,6 +313,33 @@ const argBreakthrough = {
         return t
     }
 }
+const argShowCompetitionResult = {
+    args:(arg:IShowCompetitionResultArgs[]): string=>{
+        let i = arg[0].info;
+        let t = "争夺情况："
+        if(i.atkCard===null){
+            t += "发起方没有出牌，"
+        }else {
+            t += `发起方打出${bracketCardName(i.atkCard)}，`
+        }
+        if(i.defCard===null){
+            t += "应对方没有出牌，"
+        }else {
+            t += `应对方打出${bracketCardName(i.defCard)}，`
+        }
+        t += `争夺进度：${i.progress}，`
+        if (i.progress >= 3) {
+            t += "发起方获胜"
+        } else {
+            if (i.progress <= -3) {
+                t += "应对方获胜"
+            } else {
+                t += "无人获胜"
+            }
+        }
+        return t;
+    }
+}
 const argPeek = {
     args: (arg: IPeekArgs[]) => {
         return "查看了牌堆顶端"
@@ -414,6 +441,7 @@ const zh_CN: Locale = {
         aestheticsLevelUp: "提升美学等级",
         industryLevelUp: "提升工业等级",
         endStage: "结束行动",
+        showCompetitionResult:"展示争夺结果",
         endTurn: "结束回合",
         turnEnd: ["第{{a}}回合结束",argValue],
         endPhase: "结束阶段",
@@ -462,6 +490,7 @@ const zh_CN: Locale = {
         chooseRegion: ["{{args}}", argChooseRegion],
         chooseTarget: ["{{args}}", argChooseTarget],
         peek: ["{{args}}", argPeek],
+        showCompetitionResult: ["{{args}}", argShowCompetitionResult],
         competitionCard: ["{{args}}", argCompetitionCard],
         drawCard: ["{{args}}", argDrawCard],
         buyCard: ["{{args}}", argBuyCard],
@@ -555,7 +584,11 @@ const zh_CN: Locale = {
             },
             onWin: (e: any) => {
                 if (e.e !== "none") {
-                    return "，若这次争夺获胜你额外获得一个" + region[e.a as Region] + "地区份额"
+                    if(e.e === "anyRegionShare"){
+                        return "若这次争夺获胜你额外获得一个任意地区份额"
+                    }else {
+                        return "若这次争夺获胜你额外获得一个" + region[e.r as Region] + "地区份额"
+                    }
                 } else {
                     return "";
                 }

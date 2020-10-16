@@ -1,5 +1,5 @@
 import {Ctx, LongFormMove, PlayerID} from 'boardgame.io';
-import {IG} from "../types/setup";
+import {CompetitionInfo, IG} from "../types/setup";
 import {
     BasicCardID,
     CardID,
@@ -31,7 +31,7 @@ import {
     checkRegionScoring,
     cinemaInRegion,
     cinemaSlotsAvailable,
-    competitionCleanUp,
+    competitionCleanUp, competitionResultSettle,
     curCard,
     curEffectExec,
     curPub,
@@ -62,6 +62,15 @@ import {getCardEffect, getEvent} from "../constant/effects";
 import {B05} from "../constant/cards/basic";
 import {getCardById} from "../types/cards";
 
+export interface IShowCompetitionResultArgs {
+    info:CompetitionInfo
+}
+
+export const showCompetitionResult: LongFormMove = {
+    move: (G: IG, ctx: Ctx, args:IShowCompetitionResultArgs) => {
+        competitionResultSettle(G,ctx);
+    }
+}
 export const drawCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, p: PlayerID) => {
         if (activePlayer(ctx) !== p) return INVALID_MOVE;

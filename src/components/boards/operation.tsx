@@ -212,7 +212,9 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             moves.drawCard(playerID);
         }
     };
-
+    const showCompetitionResult = () =>{
+        moves.showCompetitionResult({info: {...G.competitionInfo}})
+    }
     const undoFn = () => undo();
     const redoFn = () => redo();
     const endStage = () => events?.endStage?.();
@@ -265,6 +267,13 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                         variant={"outlined"}
                         onClick={endStage}
                     >{i18n.action.endStage}</Button>
+                    : <></>}
+                {canMoveCurrent && actualStage(G,ctx) === "showCompetitionResult"
+                    ? <Button
+                        fullWidth
+                        variant={"outlined"}
+                        onClick={showCompetitionResult}
+                    >{i18n.action.showCompetitionResult}</Button>
                     : <></>}
                 {ctx.phase !== "InitPhase" && canMoveCurrent ?
                     <ChoiceDialog

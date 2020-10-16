@@ -1976,10 +1976,10 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                     defCardSettle(G, ctx);
                     return;
                 } else {
-                    log += "|competitionResultSettle"
+                    log += "|showCompetitionResult"
                     i.defPlayedCard = false;
                     logger.debug(log)
-                    competitionResultSettle(G, ctx);
+                    changePlayerStage(G,ctx,"showCompetitionResult",i.atk);
                     return;
                 }
             } else {
@@ -2013,10 +2013,12 @@ export function loseVp(G: IG, ctx: Ctx, p: PlayerID, vp: number) {
 }
 
 export const competitionCleanUp = (G: IG, ctx: Ctx) => {
-    let log = `competitionCleanUp`
+    let log = `competitionCleanUp|checkNextEffect`
     let i = G.competitionInfo;
     i.pending = false;
     i.progress = 0;
+    i.atkCard = null;
+    i.defCard = null;
     logger.debug(log);
     checkNextEffect(G, ctx);
 }
@@ -2107,6 +2109,9 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
     let log = `atkCardSettle`
     if (cards.length > 0) {
         let cardId = cards[0];
+        i.atkCard = cardId;
+        G.pub[parseInt(i.atk)].playedCardInTurn.push(cardId);
+        G.player[parseInt(i.atk)].competitionCards = []
         log += `|${cardId}`
         let card = getCardById(cardId)
         if (card.region === i.region) {
@@ -2121,8 +2126,6 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
         log += `|${JSON.stringify(eff.play)}`
         G.e.card = cardId;
         G.e.stack.push(eff.play);
-        G.pub[parseInt(i.atk)].playedCardInTurn.push(cardId);
-        G.player[parseInt(i.atk)].competitionCards = []
         logger.debug(log);
         // TODO may over run set a barrier effect?
         playerEffExec(G, ctx, i.atk);
@@ -2139,6 +2142,7 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
     let cards = G.player[parseInt(i.def)].competitionCards;
     if (cards.length > 0) {
         let cardId = cards[0];
+        i.defCard = cardId;
         log += `|${cardId}`
         let card = getCardById(cardId)
         if (card.region === i.region) {
@@ -2158,9 +2162,9 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
         logger.debug(log);
         playerEffExec(G, ctx, i.def);
     } else {
-        log += `|defNoCard|competitionResultSettle`
+        log += `|defNoCard|showCompetitionResult`
         logger.debug(log);
-        competitionResultSettle(G, ctx);
+        changePlayerStage(G,ctx,"showCompetitionResult",i.atk);
     }
 }
 
@@ -2248,8 +2252,9 @@ export const checkCompetitionDefender = (G: IG, ctx: Ctx) => {
         changePlayerStage(G, ctx, "competitionCard", i.def);
     } else {
         i.defPlayedCard = true;
-        logger.debug(`checkCompetitionDefender|p${i.def}|emptyHand`);
-        competitionResultSettle(G, ctx);
+        const log = (`checkCompetitionDefender|p${i.def}|emptyHand|showCompetitionResult`);
+        logger.debug(log);
+        changePlayerStage(G,ctx,"showCompetitionResult",i.atk);
     }
 }
 export const checkCompetitionAttacker = (G: IG, ctx: Ctx) => {

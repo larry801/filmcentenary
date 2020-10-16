@@ -9,7 +9,7 @@ import {
     showBoardStatus,
     moveBlocker,
     updateSlot,
-    playCard, requestEndTurn, chooseRegion, peek,
+    playCard, requestEndTurn, chooseRegion, peek, showCompetitionResult,
 } from "./moves";
 import {IG} from "../types/setup";
 import {changePlayerStage, cleanPendingSignal} from "./logFix";
@@ -77,6 +77,11 @@ export const peekStage: StageConfig = {
     }
 }
 
+export const showCompetitionResultStage: StageConfig = {
+    moves: {
+        showCompetitionResult: showCompetitionResult,
+    }
+}
 export const setupStage: StageConfig = {
     moves: {
         showBoardStatus: showBoardStatus,
@@ -112,6 +117,7 @@ export const NormalTurn: TurnConfig = {
     },
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
+        showCompetitionResult:showCompetitionResultStage,
         showBoard: setupStage,
         chooseEffect: chooseEffectStage,
         chooseEvent: chooseEventStage,
