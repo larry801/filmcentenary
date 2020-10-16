@@ -93,6 +93,7 @@ export interface IFilmCard extends INormalOrLegendCard {
 
 export type EffectNames  = SimpleEffectNames|ScoringEffectNames|NoExecutorEffectNames|InteractiveEffectNames;
 export enum InteractiveEffectNames {
+    buildingNA="buildingNA",
     era="era",
     breakthroughResDeduct="breakthroughResDeduct",
     alternative="alternative",

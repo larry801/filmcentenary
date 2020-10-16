@@ -535,16 +535,23 @@ export function aesLowestPlayer(G: IG, ctx: Ctx): PlayerID[] {
 }
 
 export function notVpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
+    let log = `notVpChampionPlayer`
     let highestVp = 0;
     let result: PlayerID[] = [];
     Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-        if (G.pub[idx].vp > highestVp) highestVp = G.pub[idx].vp
+        const vp = G.pub[idx].vp;
+        if (vp > highestVp) {
+            highestVp = vp
+        }
     })
+    log += `|highest:${highestVp}`
     Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
         if (G.pub[idx].vp !== highestVp) {
             result.push(idx.toString())
         }
     })
+    log += `|${result}`
+    logger.debug(log);
     return result;
 }
 
@@ -873,24 +880,39 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             G.e.stack.push(eff)
             changePlayerStage(G, ctx, "peek", p);
             break;
-        case "everyOtherCompany":
-            if (G.e.pendingPlayers.length === 0) {
-                G.e.pendingPlayers = seqFromCurrentPlayer(G, ctx);
-                G.e.pendingPlayers.shift()
-                G.e.stack.push(eff);
-            } else {
-                if (G.e.pendingPlayers.length !== 1) {
-                    G.e.stack.push(eff);
+        case "buildingNA":
+            subEffect = eff.a;
+            if (isSimpleEffect(subEffect)) {
+                log += "|simpleEffect|execForAll"
+                players = buildingPlayers(G, ctx, Region.NA);
+                for (let p of players) {
+                    G.e.stack.push(subEffect);
+                    simpleEffectExec(G, ctx, p);
                 }
-                let subEffect = eff.a;
-                if (isSimpleEffect(subEffect)) {
-                    for (let p of G.e.pendingPlayers) {
-                        G.e.stack.push(eff.a);
-                        simpleEffectExec(G, ctx, p);
-                    }
-                } else {
+            } else {
+
+            }
+            break;
+        case "everyOtherCompany":
+            log += `|everyOtherCompany`
+            subEffect = eff.a;
+            if (isSimpleEffect(subEffect)) {
+                for (let p of G.e.pendingPlayers) {
                     G.e.stack.push(eff.a);
+                    simpleEffectExec(G, ctx, p);
+                }
+            } else {
+                if (G.e.pendingPlayers.length === 0) {
+                    G.e.pendingPlayers = seqFromCurrentPlayer(G, ctx);
+                    G.e.pendingPlayers.shift()
+                    G.e.stack.push(eff);
+                } else {
+                    if (G.e.pendingPlayers.length !== 1) {
+                        G.e.stack.push(eff);
+                    }
                     let player = G.e.pendingPlayers.shift() as PlayerID;
+                    G.e.stack.push(eff.a);
+                    logger.debug(log);
                     playerEffExec(G, ctx, player);
                     return;
                 }
@@ -923,6 +945,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     }
                     let player = G.e.pendingPlayers.shift() as PlayerID;
                     G.e.stack.push(subEffect);
+                    logger.debug(log);
                     playerEffExec(G, ctx, player);
                     return;
                 }
@@ -959,7 +982,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             break;
         case "step":
-            log += ("step")
+            log += ("|step")
             len = eff.a.length;
             for (let i = len - 1; i >= 0; i--) {
                 G.e.stack.push(eff.a[i])
@@ -2379,25 +2402,25 @@ export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = 
     log += `|vp|${v1}|${v2}`
     if (v1 > v2) {
         log += `|p${p1}wins`
-        if(addLog)logger.debug(log);
+        if (addLog) logger.debug(log);
         return -1;
     } else {
         if (v1 < v2) {
             log += `|p${p2}wins`
-            if(addLog)logger.debug(log);
+            if (addLog) logger.debug(log);
             return 1;
         } else {
             const pos1 = posOfPlayer(G, ctx, p1.toString());
             const pos2 = posOfPlayer(G, ctx, p2.toString());
             log += `|pos|${pos1}|${pos2}`
-            if(addLog)logger.debug(log);
-            if(pos1 < pos2){
+            if (addLog) logger.debug(log);
+            if (pos1 < pos2) {
                 log += `|p${p2}wins`
-                if(addLog) logger.debug(log);
+                if (addLog) logger.debug(log);
                 return 1
-            }else {
+            } else {
                 log += `|p${p1}wins`
-                if(addLog) logger.debug(log);
+                if (addLog) logger.debug(log);
                 return -1
             }
         }
