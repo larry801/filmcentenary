@@ -273,11 +273,10 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
     const undoFn = () => undo();
     const redoFn = () => redo();
-    const endStage = () => events?.endStage?.()
+    const endStage = () => events?.endStage?.();
     const endTurn = () => events?.endTurn?.();
-    const endPhase = () => events?.endPhase?.()
-    const nop = () => {
-    }
+    const endPhase = () => events?.endPhase?.();
+    const nop = () => {};
 
     const cardBoard = ctx.numPlayers === SimpleRuleNumPlayers ?
         <Grid container spacing={2} alignItems="center">
