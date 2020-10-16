@@ -189,7 +189,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
         }
     })
 
-    return <Grid item xs={12} sm={6}>
+    return <Grid item xs={12}>
         <Accordion
             className={classes.root}
             expanded={true}

@@ -22,7 +22,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
 
     const canPlayOrBreakthrough = ctx.currentPlayer === playerID && ctx.activePlayers === null
 
-    return <Grid item xs={12} sm={6}>
+    return <Grid item container xs={12}>
         <Typography>{i18n.hand.title}</Typography>
         {hand.map((c, idx) => {
                 const play = () => moves.playCard({

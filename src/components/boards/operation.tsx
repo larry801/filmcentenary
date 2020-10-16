@@ -220,8 +220,8 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const nop = () => {
     };
     return playerID !== null
-        ? <Grid container>
-            <Grid item xs={6} sm={3}>
+        ? <Grid item container xs={12} sm={4}>
+            <Grid item xs={6}>
                 <Typography
                     variant={"h6"}
                     color="inherit"
@@ -242,7 +242,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                     card={BasicCardID.B05} helpers={G.player[parseInt(playerID)].hand}
                     G={G} playerID={playerID} ctx={ctx} moves={moves}/>
             </Grid>
-            <Grid item xs={6} sm={3}>
+            <Grid item xs={6}>
                 {activePlayer(ctx) === playerID ? <Button
                     fullWidth
                     variant={"outlined"}
@@ -407,7 +407,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                     toggleText={`${i18n.pub.deck}(${deck.length})`}
                     defaultChoice={'0'}/>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
                 <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/>
             </Grid>
         </Grid>
