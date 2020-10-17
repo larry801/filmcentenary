@@ -6,6 +6,7 @@ import {
     CardType,
     ClassicCardID,
     EventCardID,
+    FilmCardID,
     IBasicCard,
     IBuyInfo,
     ICardSlot,
@@ -15,6 +16,7 @@ import {
     IPubInfo,
     LegendCardCountInUse,
     NormalCardCountInUse,
+    PersonCardID,
     Region,
     SchoolCardID,
     ScoreCardID,
@@ -617,7 +619,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         log += "|Swedish"
         p.resource += 1;
     }
-    if (c.cardId === "1208" || c.cardId === "B05") {
+    if (c.cardId === FilmCardID.F1208 || c.cardId === BasicCardID.B05) {
         log += "|MetropolisOrClassic"
         G.e.stack.push({
             e: "industryOrAestheticsBreakthrough", a: {
@@ -1641,8 +1643,8 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
                 firstPlayer = 0
             }
             let scoreCard = getScoreCard(r, IEra.THREE, 1)
-            G.pub[firstPlayer].discard.push(scoreCard.cardId);
-            G.pub[firstPlayer].allCards.push(scoreCard.cardId);
+            G.pub[firstPlayer].discard.push(scoreCard.cardId as ScoreCardID);
+            G.pub[firstPlayer].allCards.push(scoreCard.cardId as ScoreCardID);
         }
     })
     if (G.twoPlayer.film.every(c => c.card === null)) {
@@ -1787,8 +1789,8 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     for (let i = 0; i < scoreCardPlayerCount; i++) {
         let scoreId = "V" + (era + 1).toString() + (r + 1).toString() + (i + 1).toString()
         log += `|p${i}|${scoreId}`
-        G.pub[parseInt(rankResult[i])].discard.push(scoreId)
-        G.pub[parseInt(rankResult[i])].allCards.push(scoreId)
+        G.pub[parseInt(rankResult[i])].discard.push(scoreId as ScoreCardID)
+        G.pub[parseInt(rankResult[i])].allCards.push(scoreId as ScoreCardID)
     }
     for (let i = scoreCardPlayerCount; i < rankResult.length; i++) {
         log += `|p${i}|bad film`
@@ -2356,44 +2358,44 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         f.events += G.secretInfo.playerDecks[i].filter(c => getCardById(c).category === CardCategory.BASIC).length;
         f.events += p.archive.filter(card => getCardById(card).category === CardCategory.BASIC).length;
     }
-    if (validID.includes("3102")) {
+    if (validID.includes(PersonCardID.P3102)) {
         f.events += validCards.filter(c => c.industry > 0)
             .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
             .length * 2
     }
-    if (validID.includes("3106")) {
+    if (validID.includes(FilmCardID.F3106)) {
         f.events += validCards.filter(c => c.region === Region.NA)
             .filter(c => c.type === CardType.F)
             .length * 2
     }
-    if (validID.includes("3402")) {
+    if (validID.includes(PersonCardID.P3402)) {
         f.events += validCards.filter(c => c.region === Region.ASIA)
             .filter(c => c.type === CardType.F)
             .length * 2
     }
-    if (validID.includes("3107")) {
+    if (validID.includes(FilmCardID.F3107)) {
         f.events += Math.round(validCards.length / 3)
     }
-    if (validID.includes("3202")) {
+    if (validID.includes(PersonCardID.P3202)) {
         f.events += validCards.filter(c => c.region === Region.WE)
             .length * 2
     }
-    if (validID.includes("3302")) {
+    if (validID.includes(PersonCardID.P3302)) {
         f.events += p.industry * 2;
     }
-    if (validID.includes("3403")) {
+    if (validID.includes(PersonCardID.P3403)) {
         f.events += p.aesthetics * 2;
     }
-    if (validID.includes("3301")) {
+    if (validID.includes(PersonCardID.P3301)) {
         f.events += validCards.filter(c => c.region === Region.EE)
             .length * 2
     }
-    if (validID.includes("3203")) {
+    if (validID.includes(PersonCardID.P3203)) {
         f.events += validCards.filter(c => c.aesthetics > 0)
             .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
             .length * 2
     }
-    if (validID.includes("3401")) {
+    if (validID.includes(PersonCardID.P3401)) {
         f.events += validCards.filter(c => c.type === CardType.P).length * 4
     }
     f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events

@@ -5,6 +5,7 @@ import {
     CardID,
     ClassicCardID,
     EventCardID,
+    FilmCardID,
     IBasicCard,
     IBuyInfo,
     ICardSlot,
@@ -200,7 +201,7 @@ export const chooseHand: LongFormMove = {
                 pub.action--;
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
-                if (arg.hand === "1108") {
+                if (arg.hand === FilmCardID.F1108) {
                     log += "|Nanook"
                     if (pub.deposit < 1) {
                         return;
@@ -776,7 +777,7 @@ export const breakthrough: LongFormMove = {
         G.e.card = c.cardId;
         G.player[parseInt(arg.playerID)].hand.splice(arg.idx, 1);
         p.archive.push(arg.card);
-        if (arg.card === "1108") {
+        if (arg.card === FilmCardID.F1108) {
             if (p.deposit < 1) {
                 return INVALID_MOVE;
             } else {

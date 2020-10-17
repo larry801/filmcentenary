@@ -87,7 +87,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     const maxDeposit = Math.min(realtimeCost, pub.deposit);
     const canBuy: boolean = canBuyCard(G, ctx, buyArg);
     const buy = () => moves.buyCard(buyArg);
-    const isValidHelper = (helper: string): boolean => canHelp(card,helper);
+    const isValidHelper = (helper: CardID): boolean => canHelp(card,helper);
     const handleSliderChange = (event: any, newValue: number | number[]) => {
         if (typeof newValue === "number") {
             setDepositExtra(newValue);

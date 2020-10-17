@@ -15,7 +15,7 @@ export enum CardType {
     P,//people
     V,//scoring
 }
-export type CardID = string;
+export type CardID = BasicCardID|ClassicCardID|ScoreCardID|EventCardID;
 export interface ICardSlot {
     region: Region,
     isLegend:boolean,
@@ -51,7 +51,7 @@ export enum CardCategory {
 
 export interface ICard {
     cost:ICost,
-    cardId: string,
+    cardId: CardID,
     name: string,
     region:Region,
     type: CardType,

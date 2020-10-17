@@ -31,14 +31,14 @@ export function getCardEffect(id: CardID): any {
     if (id in effects) {
         // @ts-ignore
         return effects[id]
-    }else {
-        if(id in ScoreCardID){
+    } else {
+        if (id in ScoreCardID) {
             return SCORE_EFFECT
-        }else {
-            if(id in AllClassicCards){
+        } else {
+            if (id in AllClassicCards) {
                 // @ts-ignore
                 return effects[id.slice(1)]
-            }else{
+            } else {
                 throw Error(`Unknown id ${JSON.stringify(id)}`);
             }
         }
@@ -1684,7 +1684,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: "industryNormalOrLegend", a: 2}
+        scoring: {e: ScoringEffectNames.industryNormalOrLegend, a: 2}
     },
     "3103": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -1833,7 +1833,7 @@ export const effects = {
                     e: "optional", a: {
                         e: "competition", a: {
                             bonus: 1,
-                            onWin: {e: "shareNA", a: 1,r:Region.NA}
+                            onWin: {e: "shareNA", a: 1, r: Region.NA}
                         }
                     }
                 }
@@ -1974,6 +1974,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
+        scoring: {e: ScoringEffectNames.westEuropeCard, a: 2}
     },
 
     "3203": {
@@ -1995,6 +1996,8 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
+        scoring: {e: ScoringEffectNames.aesClassic, a: 2}
+
     },
     "3204": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -2112,7 +2115,7 @@ export const effects = {
                     e: "optional", a: {
                         e: "competition", a: {
                             bonus: 1,
-                            onWin: {e: "shareWE", a: 1,r:Region.WE}
+                            onWin: {e: "shareWE", a: 1, r: Region.WE}
                         }
                     }
                 }
@@ -2184,6 +2187,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
+        scoring: {e: ScoringEffectNames.eastEuropeFilm, a: 1}
     },
     "3302": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -2197,6 +2201,8 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
+        scoring: {e: ScoringEffectNames.industryLevel, a: 2}
+
     },
     "3303": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -2226,7 +2232,7 @@ export const effects = {
                     e: "optional", a: {
                         e: "competition", a: {
                             bonus: 1,
-                            onWin: {e: "shareEE", a: 1,r:Region.EE}
+                            onWin: {e: "shareEE", a: 1, r: Region.EE}
                         }
                     }
                 }
@@ -2375,6 +2381,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
+        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 2}
     },
     "3404": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -2418,7 +2425,7 @@ export const effects = {
             e: "step", a: [{e: "res", a: 4}, {
                 e: "optional", a: {
                     e: "competition", a: {
-                        bonus: 1, onWin: {e: "shareASIA", a: 1,r:Region.ASIA}
+                        bonus: 1, onWin: {e: "shareASIA", a: 1, r: Region.ASIA}
                     }
                 }
             }]

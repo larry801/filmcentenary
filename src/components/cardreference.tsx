@@ -47,7 +47,7 @@ const DenseTable = () =>{
                 <TableBody>
                     {Object.keys(AllClassicCards).map(id=>{
                     let rid = id.slice(1);
-                    let c = getCardById(rid);
+                    let c = getCardById(id);
                     return <TableRow key={id}>
                         <TableCell component="th" scope="row">
                             {rid}
@@ -55,12 +55,12 @@ const DenseTable = () =>{
                         <TableCell align="right">{i18n.era[c.era]}</TableCell>
                         <TableCell align="right">{i18n.region[c.region]}</TableCell>
                         <TableCell align="right">
-                            {getCardName(rid)}
+                            {getCardName(id)}
                         </TableCell>
                         <TableCell align="right">{c.cost.res}/{c.cost.industry}/{c.cost.aesthetics}</TableCell>
                         <TableCell align="right">{c.vp}</TableCell>
                         <TableCell align="right">{c.industry}/{c.aesthetics}</TableCell>
-                        <TableCell align="left"><CardEffect cid={rid}/></TableCell>
+                        <TableCell align="left"><CardEffect cid={c.cardId}/></TableCell>
                     </TableRow>
                 })}
                 </TableBody>

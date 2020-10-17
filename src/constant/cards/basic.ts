@@ -2,7 +2,7 @@ import {BasicCardID, CardCategory, CardType, cost, IBasicCard, Region} from "../
 
 export const B01:IBasicCard={
     region:Region.NONE,
-    aesthetics: 1, cardId: "B01",
+    aesthetics: 1, cardId: BasicCardID.B01,
     cost: cost(2,0,0),
     industry: 0,
     type: CardType.F,
@@ -12,7 +12,7 @@ export const B01:IBasicCard={
 }
 export const B02:IBasicCard={
     region:Region.NONE,
-    aesthetics: 0, cardId: "B02",
+    aesthetics: 0, cardId: BasicCardID.B02,
     cost: cost(2,0,0),
     industry: 1,
     type: CardType.F,
@@ -21,7 +21,7 @@ export const B02:IBasicCard={
     category:CardCategory.BASIC
 }
 export const B03:IBasicCard={
-    aesthetics: 0, cardId: "B03",
+    aesthetics: 0, cardId: BasicCardID.B03,
     cost: cost(2,0,0),
     region:Region.NONE,
     industry: 0,
@@ -31,7 +31,7 @@ export const B03:IBasicCard={
     category:CardCategory.BASIC
 }
 export const B04:IBasicCard={
-    aesthetics: 0, cardId: "B04",
+    aesthetics: 0, cardId: BasicCardID.B04,
     cost: cost(0,0,0),
     industry: 0,
     type: CardType.F,
@@ -41,7 +41,7 @@ export const B04:IBasicCard={
     category:CardCategory.BASIC
 }
 export const B05:IBasicCard={
-    aesthetics: 1, cardId: "B05",
+    aesthetics: 1, cardId: BasicCardID.B05,
     cost: cost(6,1,1),
     industry: 1,
     type: CardType.F,
@@ -51,7 +51,7 @@ export const B05:IBasicCard={
     region:Region.NONE,
 }
 export const B06:IBasicCard={
-    aesthetics: 1, cardId: "B05",
+    aesthetics: 1, cardId: BasicCardID.B06,
     cost: cost(6,1,1),
     industry: 1,
     type: CardType.F,
@@ -62,7 +62,7 @@ export const B06:IBasicCard={
 }
 export const B07:IBasicCard={
     region:Region.NONE,
-    aesthetics: 0, cardId: "B07",
+    aesthetics: 0, cardId: BasicCardID.B07,
     cost: cost(0,0,0),
     industry: 0,
     vp: 0,
