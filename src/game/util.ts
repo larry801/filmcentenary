@@ -573,6 +573,14 @@ export function vpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
     return result;
 }
 
+export const inferDeckRemoveHelper = (result:CardID[], remove:CardID[]):void=>{
+    remove.forEach(c => {
+        const indexOf= result.indexOf(c)
+        if (indexOf !== -1) {
+            result.splice(indexOf, 1)
+        }
+    })
+}
 
 export const breakthroughEffectPrepare = (G: IG, ctx: Ctx): void => {
     let log = "breakthroughEffectPrepare"

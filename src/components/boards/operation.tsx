@@ -7,7 +7,7 @@ import Grid from "@material-ui/core/Grid"
 import {ChoiceDialog} from "../modals";
 import Typography from "@material-ui/core/Typography";
 import {BasicCardID, CardCategory, CardID} from "../../types/core";
-import {activePlayer, actualStage, effName, getCardName} from "../../game/util";
+import {activePlayer, actualStage, effName, getCardName, inferDeckRemoveHelper} from "../../game/util";
 import Button from "@material-ui/core/Button";
 import {getCardById} from "../../types/cards";
 import {PlayerHand} from "../playerHand";
@@ -35,28 +35,14 @@ export interface IOPanelProps {
 export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, events}: IOPanelProps) => {
     const iPrivateInfo = playerID === null ? privatePlayer() : G.player[parseInt(playerID)];
     const hand = playerID === null ? [] : iPrivateInfo.hand
+
     const inferredDeck = (p: PlayerID): CardID[] => {
         const pub = G.pub[parseInt(p)];
         const playerObj = G.player[parseInt(p)];
         let result = [...G.pub[parseInt(p)].allCards]
-        pub.discard.forEach(c => {
-            let indexOfDiscard = result.indexOf(c)
-            if (indexOfDiscard !== -1) {
-                result.splice(indexOfDiscard, 1)
-            }
-        })
-        pub.archive.forEach(c => {
-            let indexOfArchive = result.indexOf(c)
-            if (indexOfArchive !== -1) {
-                result.splice(indexOfArchive, 1)
-            }
-        })
-        playerObj.hand.forEach(c => {
-            let indexOfHand = result.indexOf(c)
-            if (indexOfHand !== -1) {
-                result.splice(indexOfHand, 1)
-            }
-        })
+        inferDeckRemoveHelper(result,pub.discard);
+        inferDeckRemoveHelper(result,pub.archive);
+        inferDeckRemoveHelper(result,playerObj.hand);
         return result;
     }
 

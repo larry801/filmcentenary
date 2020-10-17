@@ -5,7 +5,7 @@ import Typography from "@material-ui/core/Typography";
 import {useI18n} from '@i18n-chain/react';
 import i18n from '../constant/i18n'
 import {ChoiceDialog} from "./modals";
-import {getCardName} from "../game/util";
+import {getCardName, inferDeckRemoveHelper} from "../game/util";
 import {IG} from "../types/setup";
 import shortid from "shortid";
 import {getCardById} from "../types/cards";
@@ -20,18 +20,8 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
     useI18n(i18n);
     const inferHand = (): CardID[] => {
         let result = [...i.allCards]
-        i.discard.forEach(c => {
-            let indexOfDiscard = result.indexOf(c)
-            if (indexOfDiscard !== -1) {
-                result.splice(indexOfDiscard, 1)
-            }
-        })
-        i.archive.forEach(c => {
-            let indexOfArchive = result.indexOf(c)
-            if (indexOfArchive !== -1) {
-                result.splice(indexOfArchive, 1)
-            }
-        })
+        inferDeckRemoveHelper(result,i.discard)
+        inferDeckRemoveHelper(result,i.archive)
         return result;
     }
 
