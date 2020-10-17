@@ -424,16 +424,16 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
 
 }
 
-export const cardInDeck = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
+export const cardInDeck = (G: IG, ctx: Ctx, p: number, cardId: CardID): boolean => {
     return G.secretInfo.playerDecks[p].filter(c => c === cardId).length > 0;
 }
-export const cardInHand = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
+export const cardInHand = (G: IG, ctx: Ctx, p: number, cardId: CardID): boolean => {
     return G.player[p].hand.filter(c => c === cardId).length > 0;
 }
-export const cardInDiscard = (G: IG, ctx: Ctx, p: number, cardId: string): boolean => {
+export const cardInDiscard = (G: IG, ctx: Ctx, p: number, cardId: CardID): boolean => {
     return G.pub[p].discard.filter(c => c === cardId).length > 0;
 }
-export const ownCardPlayers = (G: IG, ctx: Ctx, cardId: string): PlayerID[] => {
+export const ownCardPlayers = (G: IG, ctx: Ctx, cardId: CardID): PlayerID[] => {
     let p: PlayerID[] = [];
     Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
             if (cardInHand(G, ctx, idx, cardId) || cardInDeck(G, ctx, idx, cardId) || cardInDiscard(G, ctx, idx, cardId)) {
@@ -607,9 +607,6 @@ export const breakthroughEffectPrepare = (G: IG, ctx: Ctx): void => {
     }
 }
 
-export const normalBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
-
-}
 export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     let p = curPub(G, ctx);
     let c: INormalOrLegendCard | IBasicCard = curCard(G);
@@ -1330,6 +1327,7 @@ export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
 }
 
 export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
+    if(ctx.numPlayers> SimpleRuleNumPlayers)throw Error("Cannot call 2p for complex rules");
     let s = G.secretInfo.twoPlayer.school;
     for (let slotL of G.twoPlayer.school) {
         if (slotL.card === null) {
