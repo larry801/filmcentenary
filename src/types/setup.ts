@@ -111,7 +111,7 @@ export const initialScore = {
 function pubPlayer(): IPubInfo {
     return {
         finalScoring: {...initialScore},
-        deposit: 20,
+        deposit: 0,
         action: 1,
         discardInSettle: false,
         scoreEvents: [],

@@ -452,12 +452,12 @@ export const cinemaInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean
 }
 export const studioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
-    return G.order.filter(pid => studioInRegion(G, ctx, r, pid));
+    return seqFromCurrentPlayer(G,ctx).filter(pid => studioInRegion(G, ctx, r, pid));
 }
 
 export const buildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
-    return G.order.filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
+    return seqFromCurrentPlayer(G,ctx).filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
 }
 export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
@@ -902,15 +902,41 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "buildingNA":
             subEffect = eff.a;
+            players = buildingPlayers(G, ctx, Region.NA);
             if (isSimpleEffect(subEffect)) {
                 log += "|simpleEffect|execForAll"
-                players = buildingPlayers(G, ctx, Region.NA);
                 for (let p of players) {
                     G.e.stack.push(subEffect);
                     simpleEffectExec(G, ctx, p);
                 }
             } else {
-
+                if (G.e.pendingPlayers.length === 0) {
+                    log += "|fetchPlayers"
+                    log += `|${JSON.stringify(players)}`
+                    if(players.length > 0){
+                        G.e.pendingPlayers = players;
+                        G.e.stack.push(eff);
+                        log += "|pushBack"
+                        break;
+                    } else {
+                        log += `|noOneHasBuildingNA`
+                        break;
+                    }
+                }else {
+                    if (G.e.pendingPlayers.length !== 1) {
+                        log += `|morePlayerPending`
+                        G.e.stack.push(eff);
+                    }else {
+                        log += `|onePlayerPending`
+                    }
+                    G.e.stack.push(eff.a);
+                    let player = G.e.pendingPlayers.shift() as PlayerID;
+                    log += `|left|${G.e.pendingPlayers}`
+                    log += `|execFor|p${player}`
+                    logger.debug(log);
+                    playerEffExec(G, ctx, player);
+                    return;
+                }
             }
             break;
         case "everyOtherCompany":
@@ -974,6 +1000,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             G.c.players = noStudioPlayers(G, ctx, region);
             log += `|region:${region}|noStudioPlayers|${JSON.stringify(G.c.players)}`
             if (G.c.players.length === 0) {
+                log += `|everyOneHasStudio`
                 break;
             }
             G.e.stack.push(eff.a);
@@ -982,9 +1009,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             return;
         case "studio":
             subEffect = eff.a;
+            players = studioPlayers(G, ctx, region);
             if (isSimpleEffect(subEffect)) {
                 log += "|simpleEffect|execForAll"
-                players = studioPlayers(G, ctx, region);
                 for (let p of players) {
                     G.e.stack.push(subEffect);
                     simpleEffectExec(G, ctx, p);
@@ -992,13 +1019,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }else{
                 if (G.e.pendingPlayers.length === 0) {
                     log += "|fetchPlayers"
-                    players = studioPlayers(G, ctx, region);
                     log += `|${JSON.stringify(players)}`
                     if(players.length > 0){
                         G.e.pendingPlayers = players;
                         G.e.stack.push(eff);
                         log += "|pushBack"
-                        logger.debug(log);
                         break;
                     } else {
                         log += `|noOneHasStudio`
