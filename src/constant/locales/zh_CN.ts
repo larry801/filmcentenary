@@ -531,7 +531,6 @@ const zh_CN: Locale = {
         aesClassic: "每张有美学标志的普通牌和传奇牌额外获得2声望",
         NewYorkSchool: "若你的美学等级不低于工业等级，美学奖励一次，若你的工业等级不低于美学等级，工业奖励一次",
         obtainNormalOrLegendFilm: "每次获得普通影片或传奇影片时",
-        onBreakthrough: "突破时，",
         none: "",
         breakthroughResDeduct: ["突破一次，少花费{{a}}资源", argValue],
         handToOthers: ["把{{a}}张手牌交给任意公司", argValue],

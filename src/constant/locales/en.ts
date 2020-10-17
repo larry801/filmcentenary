@@ -524,7 +524,6 @@ const en = {
         aesClassic: "Gain 2 extra prestige for each of your normal or legend card with aesthetics marker.",
         NewYorkSchool: "If your industry level is not less than your aesthetics level,execute your，若你的工业等级不低于美学等级，工业奖励一次",
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
-        onBreakthrough: "When you do breakthrough,",
         none: "",
         breakthroughResDeduct: ["Execute breakthrough action with a deduct of {{a}} resources", argValue],
         handToOthers: ["Give one card in hand to other companies", argValue],
