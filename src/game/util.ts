@@ -656,11 +656,13 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     logger.debug(log);
     breakthroughEffectPrepare(G);
     let eff = getCardEffect(c.cardId).archive;
-    if (eff.e !== "none") {
-        log += `|pushEffect|${JSON.stringify(eff)}`
-        G.e.stack.push(eff)
-    } else {
-        log += `|noSpecialEffect`
+    if(c.cardId !== FilmCardID.F1108){
+        if (eff.e !== "none") {
+            log += `|pushEffect|${JSON.stringify(eff)}`
+            G.e.stack.push(eff)
+        } else {
+            log += `|noSpecialEffect`
+        }
     }
     log += `|checkNextEffect`
     logger.debug(log);
