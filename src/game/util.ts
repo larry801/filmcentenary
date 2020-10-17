@@ -477,12 +477,29 @@ export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
     return cardDepleted(G, ctx, r) || shareDepleted(G, ctx, r);
 }
 
-export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
-    let log = `seqFromCurrentPlayer|`
+export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
+    let log = `seqFromActivePlayer`
     let act = activePlayer(ctx);
-    log += `|cur|p${ctx.currentPlayer}`
     log += `|act|p${act}`
     let pos = posOfPlayer(G, ctx, act);
+    let seq = [];
+    for (let i = pos; i < ctx.numPlayers; i++) {
+        log += `|push|${i}`
+        seq.push(G.order[i])
+    }
+    for (let i = 0; i < pos; i++) {
+        log += `|push|${i}`
+        seq.push(G.order[i])
+    }
+    log += `|seq:${JSON.stringify(seq)}`
+    logger.debug(log);
+    return seq;
+}
+
+export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
+    let log = `seqFromCurrentPlayer`
+    log += `|cur|p${ctx.currentPlayer}`
+    let pos = posOfPlayer(G, ctx, ctx.currentPlayer);
     let seq = [];
     for (let i = pos; i < ctx.numPlayers; i++) {
         log += `|push|${i}`
@@ -1746,8 +1763,9 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             return 1;
         }
         log += `|sameLegendCount`
-        const posA = posOfPlayer(G, ctx, a);
-        const posB = posOfPlayer(G, ctx, b);
+        const curPos = seqFromActivePlayer(G,ctx);
+        const posA = curPos.indexOf(a);
+        const posB = curPos.indexOf(b);
         log += `|pos|${posA}|${posB}`
         if (posA > posB) {
             log += `|pos|p${a}win`
