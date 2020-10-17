@@ -3,9 +3,9 @@ import {Ctx} from "boardgame.io";
 import {
     AllClassicCards,
     CardID,
-    EventCardID,
-    IEra,
-    Region,
+    EventCardID, FilmCardID,
+    IEra, PersonCardID,
+    Region, SchoolCardID,
     ScoreCardID,
     ScoringEffectNames
 } from "../types/core";
@@ -72,8 +72,8 @@ export const eventEffects = {
         a: [
             {e: "everyPlayer", a: {e: "deposit", a: 2}},
             {e: "everyPlayer", a: {e: "discard", a: 1}},
-            {e: "searchAndArchive", a: "1102"},
-            {e: "searchAndArchive", a: "1202"}
+            {e: "searchAndArchive", a: PersonCardID.P1102},
+            {e: "searchAndArchive", a: PersonCardID.P1202}
         ]
     },
     "E03": {e: "Avant-grade", a: "E03"},
@@ -205,7 +205,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryLevelUp", a: 1},
-                {e: "buy", a: "1103"},
+                {e: "buy", a: FilmCardID.F1103},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -225,7 +225,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryLevelUp", a: 1},
-                {e: "buy", a: "1104"},
+                {e: "buy", a: FilmCardID.F1104},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -242,7 +242,7 @@ export const effects = {
             effect: {
                 e: "optional", a: {
                     e: "step", a: [
-                        {e: "searchAndArchive", a: "1102"},
+                        {e: "searchAndArchive", a: PersonCardID.P1102},
                         {e: "vp", a: 2}
                     ]
                 }
@@ -271,7 +271,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {e: "deposit", a: 1},
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "alternative", a: {e: "buy", a: "2107"}},
+        archive: {e: "alternative", a: {e: "buy", a: FilmCardID.F2107}},
     },
     "1105": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -340,7 +340,7 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         response: noResponse,
-        archive: {e: "pay", a: {cost: {e: "deposit", a: 1}, eff: {e: "breakthroughPrevent", a: "1108"}}},
+        archive: {e: "pay", a: {cost: {e: "deposit", a: 1}, eff: {e: "breakthroughPrevent", a: FilmCardID.F1108}}},
     },
     "1109": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -377,7 +377,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "aestheticsLevelUp", a: 1},
-                {e: "buy", a: "1207"},
+                {e: "buy", a: FilmCardID.F1207},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -397,7 +397,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryLevelUp", a: 1},
-                {e: "buy", a: "1210"},
+                {e: "buy", a: FilmCardID.F1210},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -411,7 +411,14 @@ export const effects = {
         archive: noEff,
         response: {
             pre: {e: "event", a: "E02"},
-            effect: {e: "optional", a: {e: "step", a: [{e: "searchAndArchive", a: "1202"}, {e: "vp", a: 2}]}},
+            effect: {
+                e: "optional", a: {
+                    e: "step", a: [
+                        {e: "searchAndArchive", a: PersonCardID.P1202},
+                        {e: "vp", a: 2},
+                    ],
+                }
+            },
         },
     },
     "1203": {
@@ -426,7 +433,7 @@ export const effects = {
             action: 1,
         },
         response: {
-            pre: {e: "lose", a: "1203"},
+            pre: {e: "lose", a: SchoolCardID.S1203},
             effect: {e: "aestheticsLevelUp", a: 1},
         },
     },
@@ -577,7 +584,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "aestheticsLevelUp", a: 1},
-                {e: "buy", a: "1305"},
+                {e: "buy", a: FilmCardID.F1305},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -687,7 +694,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryLevelUp", a: 1},
-                {e: "buy", a: "2107"},
+                {e: "buy", a: FilmCardID.F2107},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => true,
@@ -715,7 +722,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryLevelUp", a: 1},
-                {e: "buy", a: "2114"},
+                {e: "buy", a: FilmCardID.F2114},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -756,7 +763,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "aestheticsLevelUp", a: 1},
-                {e: "buy", a: "2109"},
+                {e: "buy", a: FilmCardID.F2109},
             ]
         },
         play: {
@@ -859,7 +866,7 @@ export const effects = {
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: {
-            e: "alternative", a: {e: "buy", a: "3111"},
+            e: "alternative", a: {e: "buy", a: FilmCardID.F3111},
         },
         response: noResponse,
     },
@@ -1012,7 +1019,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryLevelUp", a: 1},
-                {e: "buy", a: "2209"},
+                {e: "buy", a: FilmCardID.F2209},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -1032,7 +1039,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryLevelUp", a: 1},
-                {e: "buy", a: "2214"},
+                {e: "buy", a: FilmCardID.F2214},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -1078,7 +1085,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "aestheticsLevelUp", a: 1},
-                {e: "buy", a: "2206"},
+                {e: "buy", a: FilmCardID.F2206},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -1436,7 +1443,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryLevelUp", a: 1},
-                {e: "buy", a: "2406"}
+                {e: "buy", a: FilmCardID.F2406}
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -1462,7 +1469,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "aestheticsLevelUp", a: 1},
-                {e: "buy", a: "2404"}
+                {e: "buy", a: FilmCardID.F2404}
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -1960,7 +1967,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "aestheticsLevelUp", a: 1},
-                {e: "buy", a: "3209"},
+                {e: "buy", a: FilmCardID.F3209},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -1982,7 +1989,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "aestheticsLevelUp", a: 1},
-                {e: "buy", a: "3212"},
+                {e: "buy", a: FilmCardID.F3212},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -2039,22 +2046,21 @@ export const effects = {
         archive: noEff,
         response: noResponse,
     },
-    "3206":
-        {
-            canBuy: (G: IG, ctx: Ctx) => true,
-            buy: noEff, canPlay: (G: IG, ctx: Ctx) => true,
-            play: {
-                e: "step", a:
-                    [
-                        {e: "res", a: 3},
-                        {e: "vp", a: 3},
-                        {e: "discard", a: 1},
-                    ]
-            },
-            canArchive: (G: IG, ctx: Ctx) => true,
-            archive: noEff,
-            response: noResponse,
+    "3206": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff, canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a:
+                [
+                    {e: "res", a: 3},
+                    {e: "vp", a: 3},
+                    {e: "discard", a: 1},
+                ]
         },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
     "3207": {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
@@ -2168,7 +2174,7 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: {
             e: "choice", a: [
-                {e: "aestheticsLevelUp", a: 1}, {e: "buy", a: "3309"},
+                {e: "aestheticsLevelUp", a: 1}, {e: "buy", a: FilmCardID.F3309},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -2193,7 +2199,7 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: {
             e: "choice", a: [
-                {e: "industryLevelUp", a: 1}, {e: "buy", a: "3304"}
+                {e: "industryLevelUp", a: 1}, {e: "buy", a: FilmCardID.F3304}
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -2336,7 +2342,7 @@ export const effects = {
     },
     "3401": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "choice", a: [{e: "industryLevelUp", a: 1}, {e: "buy", a: "3408"}]},
+        buy: {e: "choice", a: [{e: "industryLevelUp", a: 1}, {e: "buy", a: FilmCardID.F3408}]},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
@@ -2351,7 +2357,7 @@ export const effects = {
     },
     "3402": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "choice", a: [{e: "aestheticsLevelUp", a: 1}, {e: "buy", a: "3405"}]},
+        buy: {e: "choice", a: [{e: "aestheticsLevelUp", a: 1}, {e: "buy", a: FilmCardID.F3405}]},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
@@ -2372,7 +2378,7 @@ export const effects = {
     },
     "3403": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "choice", a: [{e: "aestheticsLevelUp", a: 1}, {e: "buy", a: "3414"}]},
+        buy: {e: "choice", a: [{e: "aestheticsLevelUp", a: 1}, {e: "buy", a: FilmCardID.F3414}]},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [{e: "draw", a: 2}, {e: "noStudio", a: {e: "loseVp", a: 4}},

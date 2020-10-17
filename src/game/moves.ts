@@ -811,7 +811,7 @@ export const comment: LongFormMove = {
         } else {
             slot.comment = arg.comment;
         }
-        let p = schoolPlayer(G, ctx, "3204");
+        let p = schoolPlayer(G, ctx, "S3204");
         if (p !== null) {
             drawCardForPlayer(G, ctx, p);
         }

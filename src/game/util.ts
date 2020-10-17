@@ -395,7 +395,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         }
         if (card.type === CardType.S) {
             let school = obj.school;
-            let kino = schoolPlayer(G, ctx, "1303");
+            let kino = schoolPlayer(G, ctx, SchoolCardID.S1303);
             if (kino !== null && p !== kino) {
                 G.pub[parseInt(kino)].vp++;
                 G.pub[parseInt(kino)].deposit++;
@@ -1963,7 +1963,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
     let log = "checkNextEffect";
     if (G.e.stack.length === 0) {
         log += ("|Stack empty")
-        let newWavePlayer = schoolPlayer(G, ctx, "3204");
+        let newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3204);
         if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
             G.pub[parseInt(newWavePlayer)].discardInSettle = false;
             G.pub[parseInt(newWavePlayer)].vp++;
@@ -2227,7 +2227,7 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     i.def = def;
     i.region = curCard(G).region as validRegion;
     log += `|region:${i.region}`
-    let classicHollywoodPlayer = schoolPlayer(G, ctx, "3101");
+    let classicHollywoodPlayer = schoolPlayer(G, ctx, SchoolCardID.S3101);
     if (classicHollywoodPlayer === i.atk) {
         log += `|classicHollywoodATK`
         i.progress++;
@@ -2236,7 +2236,7 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
         log += `|classicHollywoodDEF`
         i.progress--
     }
-    let newHollywoodPlayer = schoolPlayer(G, ctx, "3101");
+    let newHollywoodPlayer = schoolPlayer(G, ctx, SchoolCardID.S3101);
     if (newHollywoodPlayer === i.atk) {
         log += `|newHollywoodATK`
         i.progress++;
