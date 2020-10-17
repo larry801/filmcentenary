@@ -4,7 +4,7 @@ import {Client} from 'boardgame.io/react';
 import {FilmCentenaryGame, Player} from "../../Game";
 import {FilmCentenaryBoard} from "../board";
 import CircularProgress from "@material-ui/core/CircularProgress";
-
+import { Debug } from 'boardgame.io/debug';
 
 interface ISpectateProps {
     matchID: string,
@@ -38,8 +38,7 @@ export const MultiPlayer = ({matchID,serverURL,credentials,player}:MultiplayerPr
         game:FilmCentenaryGame,
         board: FilmCentenaryBoard,
         multiplayer: SocketIO({ server: serverURL }),
-        numPlayers: 2,
-        debug: false,
+        debug: { impl: Debug }
     });
 
     return <>
@@ -47,6 +46,6 @@ export const MultiPlayer = ({matchID,serverURL,credentials,player}:MultiplayerPr
             matchID={matchID}
             playerID={player}
             credentials={credentials}
-            debug={false}/>
+            debug={true}/>
     </>
 }

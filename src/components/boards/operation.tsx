@@ -222,7 +222,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const nop = () => {
     };
     return playerID !== null
-        ? <Grid item container xs={12} sm={4}>
+        ? <Grid item container xs={12} sm={5}>
             <Grid item xs={6}>
                 <Typography
                     variant={"h6"}

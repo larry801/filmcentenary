@@ -60,8 +60,8 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
     const getLogText = (l: LogEntry): string => {
         switch (l.action.type) {
             case "GAME_EVENT":
-                if (l.action.payload.type === "endTurn") {
-                    return i18n.action.turnEnd({a: l.turn})
+                if (l.action.payload.type === "endTurn" && l.turn !== 1) {
+                    return i18n.action.turnEnd({a: l.turn - 1})
                 } else {
                     return "";
                 }
@@ -88,7 +88,7 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                     className="List"
                     height={height}
                     itemCount={log.length}
-                    itemSize={40}
+                    itemSize={50}
                     width={width}>
                     {({index, style}: ListChildComponentProps) => {
                         const i = log.length - index - 1;

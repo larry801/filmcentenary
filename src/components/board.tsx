@@ -138,7 +138,8 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             <BoardCardSlot slot={G.twoPlayer.film[3]} G={G} ctx={ctx} moves={moves} comment={comment}
                            playerID={playerID}/>
         </Grid> :
-        <Grid item container xs={12} sm={6}>
+
+        <Grid item container xs={12} sm={7}>
             <BoardRegion getPlayerName={getName} r={Region.NA} moves={moves} region={G.regions[0]} G={G} ctx={ctx}
                          playerID={playerID}/>
             <BoardRegion getPlayerName={getName} r={Region.WE} moves={moves} region={G.regions[1]} G={G} ctx={ctx}
@@ -153,43 +154,53 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         <Typography variant={"h3"}>{getName(ctx.gameover.winner)}</Typography>
     </Grid>
 
+    const upperPanel = playerID !== null ? <>
+            {ctx.phase === "InitPhase" ?
+                <Grid item xs={12}>
+                    <Button
+                        fullWidth
+                        autoFocus
+                        variant="contained"
+                        color={"primary"}
+                        size="large"
+                        disabled={!canMove}
+                        onClick={showBoardStatus}>
+                        {i18n.action.showBoardStatus}
+                    </Button>
+                    {G.pending.endPhase && canMoveCurrent ?
+                        <Button
+                            fullWidth
+                            variant={"outlined"}
+                            onClick={endPhase}
+                        >
+                            {i18n.action.endPhase}
+                        </Button>
+                        : <></>}
+                </Grid>
+                : <>
+                    {cardBoard}
+                    <OperationPanel G={G} ctx={ctx} moves={moves} playerID={playerID} events={events} undo={undo}
+                                    redo={redo} getName={getName}/>
+                </>}
+        </>
+        : <></>
 
     return <Grid container justify="space-evenly" alignItems="center">
         {gameOverResult}
+
         {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
             <Grid item xs={4}>
-                <Typography>{i18n.pub.events}</Typography
-            ></Grid>
+                <Typography>{`${i18n.pub.events}(${G.secretInfo.events.length})`}</Typography
+                ></Grid>
             {G.events.map((e, idx) => <Grid key={idx} item xs={4}>
-                <Paper key={idx} elevation={10}>
+                <Paper key={idx} elevation={5}>
                     <Typography>{getCardName(e)}</Typography>
                     <Typography>{i18n.eventName[e]}</Typography>
                 </Paper></Grid>)}
         </Grid> : <></>}
+        {upperPanel}
 
-        {playerID !== null && ctx.gameover === undefined ?
-            <OperationPanel G={G} ctx={ctx} moves={moves} playerID={playerID} events={events} undo={undo} redo={redo} getName={getName}/>
-            :<></>}
 
-        {playerID !== null && ctx.phase === "InitPhase" ?
-            <Grid item xs={12}>
-                <Button
-                    fullWidth
-                    disabled={!canMove}
-                    onClick={showBoardStatus}>
-                    {i18n.action.showBoardStatus}
-                </Button>
-                {G.pending.endPhase && canMoveCurrent ?
-                    <Button
-                        fullWidth
-                        variant={"outlined"}
-                        onClick={endPhase}
-                    >
-                        {i18n.action.endPhase}
-                    </Button>
-                    : <></>}
-            </Grid> : cardBoard
-        }
         <Grid item container justify="space-evenly">
             <Grid item><Typography>{i18n.card.B01} {G.basicCards.B01}</Typography></Grid>
             <Grid item><Typography>{i18n.card.B02} {G.basicCards.B02}</Typography></Grid>
@@ -197,15 +208,17 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             <Grid item><Typography>{i18n.card.B04} {G.basicCards.B04}</Typography></Grid>
             <Grid item><Typography>{i18n.card.B05} {G.basicCards.B05}</Typography></Grid>
         </Grid>
-        {G.pub.map((u, idx) =>
-            <Grid container item key={idx} xs={12}>
+        <FinalScoreTable G={G} ctx={ctx}/>
 
+        {G.pub.map((u, idx) =>
+            <Grid container key={idx}>
                 <Grid item xs={4} sm={3} md={2} lg={1}><Typography>{getName(idx.toString())}</Typography></Grid>
-                <Grid item xs={4} sm={3} md={2} lg={1}><Typography>{i18n.pub.handSize} {G.player[idx].handSize}</Typography></Grid>
+                <Grid item xs={4} sm={3} md={2}
+                      lg={1}><Typography>{i18n.pub.handSize} {G.player[idx].handSize}</Typography></Grid>
                 <PubPanel G={G} i={u}/>
             </Grid>)}
-        <FinalScoreTable G={G} ctx={ctx}/>
-        {log === undefined ? <></> : <LogView log={log} getPlayerName={getName}/>}
+        {log === undefined ? <></> :
+            <LogView log={log.filter(l => l.action.payload.type !== "endStage")} getPlayerName={getName}/>}
         <Typography>{plugins.random.data.seed}</Typography>
     </Grid>
 }
