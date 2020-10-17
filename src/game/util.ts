@@ -12,7 +12,6 @@ import {
     IEra,
     INormalOrLegendCard,
     IPubInfo,
-    ISchoolCard,
     LegendCardCountInUse,
     NormalCardCountInUse,
     Region,
@@ -211,7 +210,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             break;
         case "loseVp":
             obj.vp -= eff.a;
-            if (obj.school?.cardId === "2104") {
+            if (obj.school === SchoolCardID.S1204) {
                 obj.resource++;
             }
             break;
@@ -407,14 +406,14 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 G.pub[parseInt(kino)].deposit++;
             }
             if (school !== null) {
-                if (school.cardId === "1203") {
+                if (school === SchoolCardID.S1203) {
                     if (obj.aesthetics < 10) {
                         obj.aesthetics++;
                     }
                 }
-                obj.archive.push(school.cardId);
+                obj.archive.push(school);
             }
-            obj.school = card as ISchoolCard;
+            obj.school = card.cardId as SchoolCardID;
         } else {
             obj.discard.push(card.cardId);
         }
@@ -619,12 +618,12 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     let p = curPub(G, ctx);
     let c: INormalOrLegendCard | IBasicCard = curCard(G);
     let log = `startBreakThrough|p${pid}|${c.cardId}`
-    if (p.school?.cardId === "2201") {
+    if (p.school === SchoolCardID.S2201) {
         log += "|NeoRealism"
         p.deposit += 2;
         p.vp += 1;
     }
-    if (p.school?.cardId === "1204") {
+    if (p.school === SchoolCardID.S1204) {
         log += "|Swedish"
         p.resource += 1;
     }
@@ -1275,12 +1274,12 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true)
     industry -= pub.industry;
     log += `|${targetCard.cardId}|i:${industry}|a:${aesthetics}`
     if (pub.school !== null) {
-        let school = pub.school;
-        log += `|school:${pub.school.cardId}|aes:${school.aesthetics}|ind:${school.industry}`
-        aesthetics -= school.aesthetics;
-        industry -= school.industry
+        let schoolCard = getCardById(pub.school);
+        log += `|school:${schoolCard.name}|aes:${schoolCard.aesthetics}|ind:${schoolCard.industry}`
+        aesthetics -= schoolCard.aesthetics;
+        industry -= schoolCard.industry
         if (targetCard.type === CardType.S) {
-            let extraCost: number = school.era + 1
+            let extraCost: number = schoolCard.era + 1
             log += `|oldSchoolExtra:${extraCost}`
             resRequired += extraCost;
         }
@@ -1300,7 +1299,7 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true)
         log += ("Lack industry " + industry)
         resRequired += industry * 2;
     }
-    if (pub.school?.cardId === "2201" && targetCard.aesthetics > 0) {
+    if (pub.school === SchoolCardID.S2201 && targetCard.aesthetics > 0) {
         log += ("|New realism deduct")
         if (resRequired < 2) {
             resRequired = 0;
@@ -1443,7 +1442,7 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
     if (s === null) {
         limit = 4;
     } else {
-        limit = getCardEffect(s.cardId).school.hand;
+        limit = getCardEffect(s).school.hand;
     }
     let handCount: number = G.player[i].hand.length;
     if (handCount < limit) {
@@ -2059,8 +2058,8 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     }
     if (i.progress > 0) {
         atk.vp += i.progress;
-        let schoolId = G.pub[parseInt(i.def)].school?.cardId;
-        if (schoolId !== "3201" && schoolId !== "3204") {
+        let schoolId = G.pub[parseInt(i.def)].school;
+        if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
             log += `|p${i.def}|lose${i.progress}vp`
             loseVp(G, ctx, i.def, i.progress);
         } else {
@@ -2069,8 +2068,8 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     } else {
         let vp = -i.progress;
         def.vp += vp;
-        let schoolId = G.pub[parseInt(i.atk)].school?.cardId;
-        if (schoolId !== "3201" && schoolId !== "3204") {
+        let schoolId = G.pub[parseInt(i.atk)].school;
+        if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
             log += `|p${i.atk}|lose${vp}vp`
             loseVp(G, ctx, i.atk, vp);
         } else {
@@ -2292,7 +2291,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     f.total = 0
 
     if (p.school !== null) {
-        f.card += p.school.vp;
+        f.card += getCardById(p.school).vp;
     }
     let validID = [...G.secretInfo.playerDecks[i], ...p.discard, ...s.hand]
     let validCards = validID.map(c => getCardById(c));
@@ -2403,7 +2402,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
 
 export const schoolPlayer = (G: IG, ctx: Ctx, cardId: string): PlayerID | null => {
     for (let i = 0; i < ctx.numPlayers; i++) {
-        if (G.pub[i].school?.cardId === cardId) return i.toString();
+        if (G.pub[i].school === cardId) return i.toString();
     }
     return null;
 }

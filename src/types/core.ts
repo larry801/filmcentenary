@@ -301,7 +301,7 @@ export interface IPubInfo {
     playedCardInTurn: CardID[],
     industry: number,
     aesthetics: number,
-    school: ISchoolCard | null,
+    school: SchoolCardID | null,
     vp: number,
     shares: IPlayerShare,
     tempStudios:Region[],

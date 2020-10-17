@@ -47,8 +47,8 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
             {i.school !== null ?
                 <Typography>
                     {i18n.pub.school}
-                    {getCardName(i.school.cardId)}
-                    <CardEffect cid={i.school.cardId}/>
+                    {getCardName(i.school)}
+                    <CardEffect cid={i.school}/>
                 </Typography> : <></>}
             <Typography>   {i18n.pub.shareLegend} </Typography>
             {ValidRegions.map(r =>

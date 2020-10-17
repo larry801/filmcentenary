@@ -12,6 +12,7 @@ import {
     INormalOrLegendCard,
     IRegionInfo,
     Region,
+    SchoolCardID,
     SimpleRuleNumPlayers,
     ValidRegions
 } from "../types/core";
@@ -25,13 +26,15 @@ import {
     cardInDeck,
     cardInDiscard,
     cardInHand,
-    cardSlotOnBoard, cardSlotOnBoard2p,
+    cardSlotOnBoard,
+    cardSlotOnBoard2p,
     checkCompetitionDefender,
     checkNextEffect,
     checkRegionScoring,
     cinemaInRegion,
     cinemaSlotsAvailable,
-    competitionCleanUp, competitionResultSettle,
+    competitionCleanUp,
+    competitionResultSettle,
     curCard,
     curEffectExec,
     curPub,
@@ -68,6 +71,7 @@ export interface IShowCompetitionResultArgs {
 
 export const showCompetitionResult: LongFormMove = {
     move: (G: IG, ctx: Ctx, args:IShowCompetitionResultArgs) => {
+        logger.info(`p${ctx.playerID}.moves.showCompetitionResult(${JSON.stringify(args)})`)
         competitionResultSettle(G,ctx);
     }
 }
@@ -234,7 +238,7 @@ export const chooseHand: LongFormMove = {
             case "discardIndustry":
             case "discardAesthetics":
             case "discardNormalOrLegend":
-                if (pub.school?.cardId === "3204") {
+                if (pub.school === SchoolCardID.S3204) {
                     log += `|S3204`
                     pub.discardInSettle = true;
                 }
@@ -560,7 +564,7 @@ export const requestEndTurn: LongFormMove = {
 
         // restore action point fill hand card
         if (obj.school !== null) {
-            let schoolId = obj.school.cardId;
+            let schoolId = obj.school;
             log += `|school|${schoolId}`
             let act = getCardEffect(schoolId).school.action;
             if (act === 1) {
@@ -811,7 +815,7 @@ export const comment: LongFormMove = {
             drawCardForPlayer(G, ctx, p);
         }
         let pub = G.pub[parseInt(arg.p)];
-        if (pub.school?.cardId === "2204") {
+        if (pub.school === SchoolCardID.S2204) {
             pub.resource++;
             pub.vp++;
         }

@@ -1,19 +1,29 @@
-import {TurnConfig, PhaseConfig, StageConfig, Ctx} from 'boardgame.io';
+import {Ctx, PhaseConfig, StageConfig, TurnConfig} from 'boardgame.io';
 import {TurnOrder} from "boardgame.io/core";
 import {
     breakthrough,
     buyCard,
-    chooseEffect, chooseEvent, chooseHand, chooseTarget, comment, competitionCard,
+    chooseEffect,
+    chooseEvent,
+    chooseHand,
+    chooseRegion,
+    chooseTarget,
+    comment,
+    competitionCard,
     confirmRespond,
     drawCard,
-    showBoardStatus,
     moveBlocker,
+    peek,
+    playCard,
+    requestEndTurn,
+    showBoardStatus,
+    showCompetitionResult,
     updateSlot,
-    playCard, requestEndTurn, chooseRegion, peek, showCompetitionResult,
 } from "./moves";
 import {IG} from "../types/setup";
 import {changePlayerStage, cleanPendingSignal} from "./logFix";
 import {aesAward, curPub, drawCardForPlayer, industryAward, logger} from "./util";
+import {SchoolCardID} from "../types/core";
 
 
 export const chooseEffectStage: StageConfig = {
@@ -95,14 +105,14 @@ export const NormalTurn: TurnConfig = {
         let pub = curPub(G,ctx);
         let log = `onBegin|p${p}`
 
-        if(pub.school?.cardId === "1301"){
+        if(pub.school === SchoolCardID.S1301){
             log += `|montage`
             pub.vp ++;
             drawCardForPlayer(G,ctx,p);
             G.e.stack.push({e:"discard",a:1})
             changePlayerStage(G,ctx,"chooseHand",p);
         }
-        if(pub.school?.cardId === "3105"){
+        if(pub.school === SchoolCardID.S3105){
             log += `|newYork`
             if(pub.aesthetics <= pub.industry){
                 log += `|aesAward`

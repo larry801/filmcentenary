@@ -1,12 +1,6 @@
 import React from "react";
 import {IG} from "../types/setup";
-import {
-    BasicCardID,
-    CardCategory, CardID,
-    ICardSlot,
-    ClassicCardID,
-    Region
-} from "../types/core";
+import {BasicCardID, CardCategory, CardID, ClassicCardID, ICardSlot, Region, SchoolCardID} from "../types/core";
 import {ChoiceDialog} from "./modals";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
@@ -113,7 +107,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     }
 
     const canMakeBuyMove = () => {
-        if (pub.school?.cardId === "2301" && getCardById(card).region !== Region.EE) {
+        if (pub.school === SchoolCardID.S2301 && getCardById(card).region !== Region.EE) {
             return ctx.currentPlayer === playerID && canBuy && pub.resource >= res && pub.deposit >= deposit && pub.action > 0 && pub.vp > 0
         } else {
             return ctx.currentPlayer === playerID && canBuy && pub.resource >= res && pub.deposit >= deposit && pub.action > 0

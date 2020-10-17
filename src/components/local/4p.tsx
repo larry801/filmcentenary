@@ -11,7 +11,7 @@ const FilmClient4p = Client(
         numPlayers: 4,
         game: FilmCentenaryGame,
         board: FilmCentenaryBoard,
-        debug: false,
+        debug: true,
         // @ts-ignore
         multiplayer: Local(),
     }
