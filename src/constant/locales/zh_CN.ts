@@ -502,6 +502,8 @@ const zh_CN: Locale = {
         confirmRespond:["{{args}}",argConfirmRespond],
     },
     effect: {
+        industryAndAestheticsBreakthrough:"选择工业和美学突破",
+        industryOrAestheticsLevelUp:"升级工业等级或美学等级1级",
         era: {
             0: " 1时代：",
             1: " 2时代：",

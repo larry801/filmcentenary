@@ -494,6 +494,8 @@ const en = {
     confirm: "OK",
     cancel: "Cancel",
     effect: {
+        industryAndAestheticsBreakthrough:"Do industry and aesthetics breakthrough",
+        industryOrAestheticsLevelUp:"Upgrade industry or aesthetics level",
         era: {
             0: " Invention:",
             1: " Classic:",
