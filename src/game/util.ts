@@ -1734,7 +1734,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         log += `|sameShare`
         let legendCountA = legendCount(G, ctx, r, era, a);
         let legendCountB = legendCount(G, ctx, r, era, b);
-        log += `|legendCount~${legendCountA}|${legendCountB}`
+        log += `|legendCount|${legendCountA}|${legendCountB}`
         if (legendCountA > legendCountB) {
             log += `|legendCount|p${a}win`
             logger.debug(log);
@@ -1752,12 +1752,12 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         if (posA > posB) {
             log += `|pos|p${a}win`
             logger.debug(log);
-            return -1;
+            return 1;
         } else {
             if (posA < posB) {
                 log += `|pos|p${b}win`
                 logger.debug(log);
-                return 1;
+                return -1;
             } else {
                 throw Error("Two player cannot have the same position.")
             }
