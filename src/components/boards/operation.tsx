@@ -269,6 +269,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                     <ChoiceDialog
                         initial={false}
                         callback={drawCard}
+                        popAfterShow={false}
                         choices={[
                             {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
                             {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
