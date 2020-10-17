@@ -1,5 +1,5 @@
 import React from "react";
-import {BasicCardID, EventCardID,  ClassicCardID} from "../types/core";
+import {BasicCardID, EventCardID, ClassicCardID, AllClassicCards} from "../types/core";
 import {getCardName} from "../game/util";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
@@ -45,7 +45,7 @@ const DenseTable = () =>{
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {Object.keys(ClassicCardID).map(id=>{
+                    {Object.keys(AllClassicCards).map(id=>{
                     let rid = id.slice(1);
                     let c = getCardById(rid);
                     return <TableRow key={id}>

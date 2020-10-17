@@ -1,4 +1,5 @@
 import {
+    AllClassicCards,
     BasicCardID,
     CardCategory,
     CardID,
@@ -63,14 +64,6 @@ export function activePlayer(ctx: Ctx) {
 }
 
 export const curPub = (G: IG, ctx: Ctx): IPubInfo => G.pub[curPid(G, ctx)];
-
-export const activePub = (G: IG, ctx: Ctx): IPubInfo => {
-    if (ctx.activePlayers === null) {
-        return G.pub[curPid(G, ctx)];
-    } else {
-        return G.pub[parseInt(activePlayer(ctx))];
-    }
-}
 
 export const shuffle = (ctx: Ctx, arg: any[]): any[] => {
     let r = ctx.random;
@@ -459,10 +452,7 @@ export const studioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
     return Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).filter(pid => studioInRegion(G, ctx, r, pid));
 }
-export const cinemaPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
-    if (r === Region.NONE) return [];
-    return Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).filter(pid => cinemaInRegion(G, ctx, r, pid));
-}
+
 export const buildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
     return Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
@@ -581,7 +571,7 @@ export const inferDeckRemoveHelper = (result:CardID[], remove:CardID[]):void=>{
     })
 }
 
-export const breakthroughEffectPrepare = (G: IG, ctx: Ctx): void => {
+export const breakthroughEffectPrepare = (G: IG): void => {
     let log = "breakthroughEffectPrepare"
     let c = curCard(G);
     let i = c.industry
@@ -645,7 +635,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     }
     log += `|breakthroughEffectPrepare`
     logger.debug(log);
-    breakthroughEffectPrepare(G, ctx);
+    breakthroughEffectPrepare(G);
     let eff = getCardEffect(c.cardId).archive;
     if (eff.e !== "none") {
         log += `|pushEffect|${JSON.stringify(eff)}`
@@ -873,12 +863,20 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 deck = [];
                 deck = shuffle(ctx, obj.discard);
                 obj.discard = [];
+                let newCardId = deck.pop();
+                if(newCardId === undefined){
+                    return;
+                }
                 for (let i = 0; i < peekCount - len; i++) {
-                    playerObj.cardsToPeek.push(deck.pop() as ClassicCardID);
+                    playerObj.cardsToPeek.push(newCardId);
                 }
             } else {
+                let newCardId = deck.pop();
+                if(newCardId === undefined){
+                    return;
+                }
                 for (let i = 0; i < peekCount; i++) {
-                    playerObj.cardsToPeek.push(deck.pop() as ClassicCardID);
+                    playerObj.cardsToPeek.push(newCardId);
                 }
             }
             G.e.stack.push(eff)
@@ -1342,7 +1340,7 @@ export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
             if (newCard === undefined) {
 
             } else {
-                slotL.card = newCard as unknown as ClassicCardID;
+                slotL.card = newCard;
             }
         }
     }
@@ -1389,7 +1387,7 @@ export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
         if (c === undefined) {
             throw new Error(c);
         } else {
-            s.card = c as unknown as ClassicCardID;
+            s.card = c;
         }
     }
 }
@@ -1492,10 +1490,10 @@ export const do2pUpdateSchoolSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => 
             let oldCard = slot.card;
             let c = d.pop();
             if (c !== undefined) {
-                slot.card = c as unknown as ClassicCardID;
+                slot.card = c;
             }
             if (oldCard !== null) {
-                d.push(oldCard as unknown as SchoolCardID);
+                d.push(oldCard as SchoolCardID);
             }
         }
     }
@@ -1523,6 +1521,7 @@ export const do2pUpdateFilmSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
 }
 
 export const fillEmptySlots = (G: IG, ctx: Ctx) => {
+    if(ctx.numPlayers<SimpleRuleNumPlayers)return;
     for (let r of ValidRegions) {
         let region = G.regions[r];
         let l = G.secretInfo.regions[r].legendDeck;
@@ -2270,7 +2269,7 @@ export const checkCompetitionAttacker = (G: IG, ctx: Ctx) => {
         logger.debug(log);
         changePlayerStage(G, ctx, "competitionCard", i.atk);
     } else {
-        log += `|p${i.atk}|emtpyHand`
+        log += `|p${i.atk}|emptyHand`
         i.atkPlayedCard = true;
         logger.debug(log);
         checkCompetitionDefender(G, ctx);
@@ -2459,7 +2458,7 @@ export const getCardName = (cardId: string) => {
         // @ts-ignore
         return i18n.card[cardId];
     } else {
-        if (cardId in ClassicCardID) {
+        if (cardId in AllClassicCards) {
             let trimmedID = cardId.slice(1)
             // @ts-ignore
             return i18n.card[trimmedID];

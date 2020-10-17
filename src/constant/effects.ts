@@ -1,6 +1,14 @@
 import {IG} from "../types/setup";
 import {Ctx} from "boardgame.io";
-import {CardID, ClassicCardID, EventCardID, IEra, Region, ScoreCardID, ScoringEffectNames} from "../types/core";
+import {
+    AllClassicCards,
+    CardID,
+    EventCardID,
+    IEra,
+    Region,
+    ScoreCardID,
+    ScoringEffectNames
+} from "../types/core";
 
 const noEff = {e: "none", a: 1};
 const noResponse = {pre: noEff, effect: noEff};
@@ -27,7 +35,7 @@ export function getCardEffect(id: CardID): any {
         if(id in ScoreCardID){
             return SCORE_EFFECT
         }else {
-            if(id in ClassicCardID){
+            if(id in AllClassicCards){
                 // @ts-ignore
                 return effects[id.slice(1)]
             }else{
