@@ -165,8 +165,8 @@ export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
         obj.resource -= cost;
     } else {
         log += `|res:${obj.resource}`
-        obj.resource = 0
         const depCost = cost - obj.resource;
+        obj.resource = 0
         log += `|deposit:${depCost}`
         obj.deposit -= depCost
     }
