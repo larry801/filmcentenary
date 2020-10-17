@@ -325,13 +325,6 @@ export const effects = {
         },
         canArchive: (G: IG, ctx: Ctx) => G.regions[Region.NA].era !== IEra.ONE,
         response: noResponse,
-        archive: {
-            e: "era", a: [
-                noEff,
-                {e: "aestheticsBreakthrough", a: 1},
-                {e: "aestheticsBreakthrough", a: 1},
-            ]
-        },
     },
     "1108": {
         canBuy: (G: IG, ctx: Ctx) => true,
