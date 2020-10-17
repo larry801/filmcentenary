@@ -97,7 +97,7 @@ let initialDeck = [
     BasicCardID.B07, BasicCardID.B07
 ];
 // @ts-ignore
-// initialDeck = ["2205","B07","B07","B07",]
+// initialDeck = ["P1302","B02","B07","B07",]
 export const initialScore = {
     card: 0,
     building: 0,
@@ -111,7 +111,7 @@ export const initialScore = {
 function pubPlayer(): IPubInfo {
     return {
         finalScoring: {...initialScore},
-        deposit: 0,
+        deposit: 20,
         action: 1,
         discardInSettle: false,
         scoreEvents: [],

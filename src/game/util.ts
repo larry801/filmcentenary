@@ -452,20 +452,20 @@ export const cinemaInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean
 }
 export const studioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
-    return Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).filter(pid => studioInRegion(G, ctx, r, pid));
+    return G.order.filter(pid => studioInRegion(G, ctx, r, pid));
 }
 
 export const buildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
-    return Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
+    return G.order.filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
 }
 export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
-    return Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).filter(pid => !cinemaInRegion(G, ctx, r, pid) && !studioInRegion(G, ctx, r, pid));
+    return G.order.filter(pid => !cinemaInRegion(G, ctx, r, pid) && !studioInRegion(G, ctx, r, pid));
 }
 export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
-    return Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).filter(pid => !studioInRegion(G, ctx, r, pid));
+    return G.order.filter(pid => !studioInRegion(G, ctx, r, pid));
 }
 
 export const posOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
@@ -477,11 +477,8 @@ export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
     return cardDepleted(G, ctx, r) || shareDepleted(G, ctx, r);
 }
 
-export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
-    let log = `seqFromActivePlayer`
-    let act = activePlayer(ctx);
-    log += `|act|p${act}`
-    let pos = posOfPlayer(G, ctx, act);
+export const seqFromPos = (G: IG, ctx: Ctx,pos:number): PlayerID[] => {
+    let log = `seqFromPos`;
     let seq = [];
     for (let i = pos; i < ctx.numPlayers; i++) {
         log += `|push|${i}`
@@ -495,21 +492,21 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     logger.debug(log);
     return seq;
 }
+export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
+    let log = `seqFromActivePlayer`
+    let act = activePlayer(ctx);
+    log += `|act|p${act}`
+    let pos = posOfPlayer(G, ctx, act);
+    let seq = seqFromPos(G,ctx,pos);
+    logger.debug(log);
+    return seq;
+}
 
 export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     let log = `seqFromCurrentPlayer`
     log += `|cur|p${ctx.currentPlayer}`
     let pos = posOfPlayer(G, ctx, ctx.currentPlayer);
-    let seq = [];
-    for (let i = pos; i < ctx.numPlayers; i++) {
-        log += `|push|${i}`
-        seq.push(G.order[i])
-    }
-    for (let i = 0; i < pos; i++) {
-        log += `|push|${i}`
-        seq.push(G.order[i])
-    }
-    log += `|seq:${JSON.stringify(seq)}`
+    let seq = seqFromPos(G,ctx,pos);
     logger.debug(log);
     return seq;
 }
@@ -946,12 +943,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             subEffect = eff.a;
             if (isSimpleEffect(subEffect)) {
                 log += "|simpleEffect|execForAll"
-                G.e.pendingPlayers = seqFromCurrentPlayer(G, ctx);
-                for (let p of G.e.pendingPlayers) {
+                players = seqFromCurrentPlayer(G, ctx);
+                for (let p of players) {
                     G.e.stack.push(subEffect);
                     simpleEffectExec(G, ctx, p);
                 }
-                G.e.pendingPlayers = [];
             } else {
                 if (G.e.pendingPlayers.length === 0) {
                     log += "|fetchPlayers"
@@ -959,7 +955,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     G.e.pendingPlayers = seqFromCurrentPlayer(G, ctx);
                     log += `|${JSON.stringify(G.e.pendingPlayers)}`
                     G.e.stack.push(eff);
-                    log += "|push|"
+                    log += "|pushBack"
                     logger.debug(log);
                 } else {
                     log += "|complexEffect"
@@ -985,23 +981,44 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             changePlayerStage(G, ctx, "chooseTarget", p);
             return;
         case "studio":
-            players = studioPlayers(G, ctx, region);
-            if (players.length === 0) {
-                break;
-            }
-            G.e.pendingPlayers = players;
-            if (G.e.pendingPlayers.length !== 1) {
-                G.e.stack.push(eff);
-            }
             subEffect = eff.a;
             if (isSimpleEffect(subEffect)) {
-                for (let p of G.e.pendingPlayers) {
-                    playerEffExec(G, ctx, p);
+                log += "|simpleEffect|execForAll"
+                players = studioPlayers(G, ctx, region);
+                for (let p of players) {
+                    G.e.stack.push(subEffect);
+                    simpleEffectExec(G, ctx, p);
                 }
-            } else {
-                G.e.stack.push(eff.a);
-                let player = G.e.pendingPlayers.shift() as PlayerID;
-                playerEffExec(G, ctx, player);
+            }else{
+                if (G.e.pendingPlayers.length === 0) {
+                    log += "|fetchPlayers"
+                    players = studioPlayers(G, ctx, region);
+                    log += `|${JSON.stringify(players)}`
+                    if(players.length > 0){
+                        G.e.pendingPlayers = players;
+                        G.e.stack.push(eff);
+                        log += "|pushBack"
+                        logger.debug(log);
+                        break;
+                    } else {
+                        log += `|noOneHasStudio`
+                        break;
+                    }
+                }else {
+                    if (G.e.pendingPlayers.length !== 1) {
+                        log += `|morePlayerPending`
+                        G.e.stack.push(eff);
+                    }else {
+                        log += `|onePlayerPending`
+                    }
+                    G.e.stack.push(eff.a);
+                    let player = G.e.pendingPlayers.shift() as PlayerID;
+                    log += `|left|${G.e.pendingPlayers}`
+                    log += `|execFor|p${player}`
+                    logger.debug(log);
+                    playerEffExec(G, ctx, player);
+                    return;
+                }
             }
             break;
         case "step":
