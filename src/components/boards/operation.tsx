@@ -11,6 +11,7 @@ import {activePlayer, actualStage, effName, getCardName} from "../../game/util";
 import Button from "@material-ui/core/Button";
 import {getCardById} from "../../types/cards";
 import {PlayerHand} from "../playerHand";
+import {Stage} from "boardgame.io/core";
 
 
 export interface IOPanelProps {
@@ -221,8 +222,11 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const endTurn = () => events?.endTurn?.();
     const nop = () => {
     };
+    const noStage =  actualStage(G,ctx)=== Stage.NULL;
+
     return playerID !== null
         ? <Grid item container xs={12} sm={5}>
+            {noStage?
             <Grid item xs={6}>
                 <Typography
                     variant={"h6"}
@@ -243,7 +247,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 <BuyCard
                     card={BasicCardID.B05} helpers={G.player[parseInt(playerID)].hand}
                     G={G} playerID={playerID} ctx={ctx} moves={moves}/>
-            </Grid>
+            </Grid>:<></>}
             <Grid item xs={6}>
                 {activePlayer(ctx) === playerID ? <Button
                     fullWidth
@@ -275,7 +279,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                         onClick={showCompetitionResult}
                     >{i18n.action.showCompetitionResult}</Button>
                     : <></>}
-                {ctx.phase !== "InitPhase" && canMoveCurrent ?
+                {canMoveCurrent ?
                     <ChoiceDialog
                         initial={false}
                         callback={drawCard}
@@ -299,7 +303,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                         {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
                         {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
                     ]} defaultChoice={"yes"}
-                    show={canMoveCurrent && !G.pending.endTurn}
+                    show={canMoveCurrent && !G.pending.endTurn &&noStage}
                     title={i18n.action.endStage} toggleText={i18n.action.endStage}
                 />
                 <ChoiceDialog
