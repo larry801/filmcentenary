@@ -309,10 +309,14 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             }
             break;
         case "industryAward":
-            industryAward(G, ctx, p);
+            for (let i = 0; i < eff.a; i++) {
+                industryAward(G, ctx, p);
+            }
             break;
         case "aesAward":
-            aesAward(G, ctx, p);
+            for (let i = 0; i < eff.a; i++) {
+                aesAward(G, ctx, p);
+            }
             break;
         case "buy":
             doBuy(G, ctx, getCardById(eff.a), p);
