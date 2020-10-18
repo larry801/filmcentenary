@@ -289,7 +289,7 @@ export const chooseEffect: LongFormMove = {
             case "aestheticsBreakthrough":
                 G.e.choices = [];
                 doAestheticsBreakthrough(G, ctx, p);
-                break;
+                return;
             case "buildStudio":
                 G.e.choices = [];
                 G.e.stack.push(eff);
