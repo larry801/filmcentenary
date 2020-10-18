@@ -228,6 +228,9 @@ export const chooseHand: LongFormMove = {
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
                 pub.vp += (card.vp + curCard(G).vp);
+                if(pub.vp < 0){
+                    pub.vp = 0;
+                }
                 doBuy(G, ctx, B05, p);
                 break;
             case "archive":
