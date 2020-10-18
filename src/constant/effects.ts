@@ -324,6 +324,7 @@ export const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => G.regions[Region.NA].era !== IEra.ONE,
+        archive: noEff,
         response: noResponse,
     },
     "1108": {
