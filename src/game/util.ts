@@ -204,7 +204,11 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             G.regions[Region.NA].buildings[2].activated = true;
             break;
         case "loseVp":
-            obj.vp -= eff.a;
+            if(obj.vp <= eff.a){
+                obj.vp = 0;
+            }else {
+                obj.vp -= eff.a;
+            }
             if (obj.school === SchoolCardID.S1204) {
                 obj.resource++;
             }
