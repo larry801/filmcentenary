@@ -693,7 +693,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "aestheticsLevelUpCost":
             extraCost = additionalCostForUpgrade(pub.aesthetics);
             log += `|extra|${extraCost}`
-            if (extraCost < totalRes) {
+            if (extraCost < totalRes && extraCost > 0) {
                 log += `|canChoose|payAdditionalCost`
                 G.e.extraCostToPay = extraCost;
                 logger.debug(log);
@@ -711,7 +711,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "industryLevelUpCost":
             extraCost = additionalCostForUpgrade(pub.industry);
             log += `|extra|${extraCost}`
-            if (extraCost < totalRes) {
+            if (extraCost < totalRes && extraCost > 0) {
                 log += `|canChoose|payAdditionalCost`
                 G.e.extraCostToPay = extraCost;
                 logger.debug(log);

@@ -35,23 +35,24 @@ export interface IOPanelProps {
 export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, events}: IOPanelProps) => {
     const pub = G.pub[parseInt(playerID)];
     const iPrivateInfo = G.player[parseInt(playerID)];
-    const hand =  iPrivateInfo.hand
-    const stage = actualStage(G,ctx);
+    const hand = iPrivateInfo.hand
+    const stage = actualStage(G, ctx);
     const noStage = stage === Stage.NULL;
 
     const inferredDeck = (p: PlayerID): CardID[] => {
         const pub = G.pub[parseInt(p)];
         const playerObj = G.player[parseInt(p)];
         let result = [...G.pub[parseInt(p)].allCards]
-        inferDeckRemoveHelper(result,pub.discard);
-        inferDeckRemoveHelper(result,pub.archive);
-        inferDeckRemoveHelper(result,playerObj.hand);
+        inferDeckRemoveHelper(result, pub.discard);
+        inferDeckRemoveHelper(result, pub.archive);
+        inferDeckRemoveHelper(result, playerObj.hand);
         // TODO remove any school card
         return result;
     }
 
     const deck = playerID !== null ? inferredDeck(playerID) : [];
 
+    const canMove = activePlayer(ctx) === playerID;
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
 
     const handChoices = playerID === null ? [] : hand.map((c, idx) => {
@@ -200,7 +201,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             moves.drawCard(playerID);
         }
     };
-    const showCompetitionResult = () =>{
+    const showCompetitionResult = () => {
         moves.showCompetitionResult({info: {...G.competitionInfo}})
     }
 
@@ -221,7 +222,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             deposit: deposit,
         })
     }
-    const sliderPart = stage  === "payAdditionalCost"? <Grid item xs={6}>
+    const sliderPart = stage === "payAdditionalCost" && canMove ? <Grid item xs={6}>
             <Slider
                 onChange={handleSliderChange}
                 min={0}
@@ -233,15 +234,15 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 valueLabelDisplay="auto"
                 value={depositExtra}
             />
-        <Button
-            variant="contained"
-            color="primary"
-            onClick={payAdditionalCost}>
-            {i18n.action.payAdditionalCost}
-            {i18n.pub.res}{extraCost - deposit}
-            {i18n.pub.deposit}{deposit}
-        </Button>
-        </Grid>:
+            <Button
+                variant="contained"
+                color="primary"
+                onClick={payAdditionalCost}>
+                {i18n.action.payAdditionalCost}
+                {i18n.pub.res}{extraCost - deposit}
+                {i18n.pub.deposit}{deposit}
+            </Button>
+        </Grid> :
         <></>
 
     const undoFn = () => undo();
@@ -252,7 +253,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     };
 
     return <Grid item container xs={12} sm={5}>
-            {noStage?
+        {noStage && canMoveCurrent ?
             <Grid item xs={6}>
                 <Typography
                     variant={"h6"}
@@ -273,186 +274,186 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 <BuyCard
                     card={BasicCardID.B05} helpers={G.player[parseInt(playerID)].hand}
                     G={G} playerID={playerID} ctx={ctx} moves={moves}/>
-            </Grid>:<></>}
-            {sliderPart}
-            <Grid item xs={6}>
-                {activePlayer(ctx) === playerID ? <Button
+            </Grid> : <></>}
+        {sliderPart}
+        <Grid item xs={6}>
+            {activePlayer(ctx) === playerID ? <Button
+                fullWidth
+                variant={"outlined"}
+                onClick={undoFn}
+            >{i18n.action.undo}</Button> : <></>}
+            {activePlayer(ctx) === playerID ? <Button
+                fullWidth
+                variant={"outlined"}
+                onClick={redoFn}
+            >{i18n.action.redo}</Button> : <></>}
+            {G.pending.endTurn && canMoveCurrent ? <Button
                     fullWidth
                     variant={"outlined"}
-                    onClick={undoFn}
-                >{i18n.action.undo}</Button> : <></>}
-                {activePlayer(ctx) === playerID ? <Button
+                    onClick={endTurn}
+                >{i18n.action.endTurn}</Button>
+                : <></>}
+            {G.pending.endStage && canMoveCurrent
+                ? <Button
                     fullWidth
                     variant={"outlined"}
-                    onClick={redoFn}
-                >{i18n.action.redo}</Button> : <></>}
-                {G.pending.endTurn && canMoveCurrent ? <Button
-                        fullWidth
-                        variant={"outlined"}
-                        onClick={endTurn}
-                    >{i18n.action.endTurn}</Button>
-                    : <></>}
-                {G.pending.endStage && canMoveCurrent
-                    ? <Button
-                        fullWidth
-                        variant={"outlined"}
-                        onClick={endStage}
-                    >{i18n.action.endStage}</Button>
-                    : <></>}
+                    onClick={endStage}
+                >{i18n.action.endStage}</Button>
+                : <></>}
 
-                {canMoveCurrent && actualStage(G,ctx) === "showCompetitionResult"
-                    ? <Button
-                        fullWidth
-                        variant={"outlined"}
-                        onClick={showCompetitionResult}
-                    >{i18n.action.showCompetitionResult}</Button>
-                    : <></>}
-                {canMoveCurrent ?
-                    <ChoiceDialog
-                        initial={false}
-                        callback={drawCard}
-                        popAfterShow={false}
-                        choices={[
-                            {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
-                            {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
-                        ]} defaultChoice={"yes"}
-                        show={
-                            G.pub[parseInt(playerID)].action > 0
-                            && !G.player[parseInt(playerID)].deckEmpty
-                            && !G.pending.endTurn
-                            && noStage
-                        }
-                        title={i18n.action.draw} toggleText={i18n.action.draw}
-                    />
-                    : <></>}
+            {canMoveCurrent && actualStage(G, ctx) === "showCompetitionResult"
+                ? <Button
+                    fullWidth
+                    variant={"outlined"}
+                    onClick={showCompetitionResult}
+                >{i18n.action.showCompetitionResult}</Button>
+                : <></>}
+            {canMoveCurrent ?
                 <ChoiceDialog
                     initial={false}
-                    callback={requestEndTurn}
+                    callback={drawCard}
                     popAfterShow={false}
                     choices={[
                         {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
                         {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
                     ]} defaultChoice={"yes"}
-                    show={canMoveCurrent && !G.pending.endTurn &&noStage}
-                    title={i18n.action.endStage} toggleText={i18n.action.endStage}
+                    show={
+                        G.pub[parseInt(playerID)].action > 0
+                        && !G.player[parseInt(playerID)].deckEmpty
+                        && !G.pending.endTurn
+                        && noStage
+                    }
+                    title={i18n.action.draw} toggleText={i18n.action.draw}
                 />
-                <ChoiceDialog
-                    initial={true}
-                    callback={peek}
-                    choices={
-                        G.player[parseInt(playerID)].cardsToPeek
-                            .map(r => {
-                                return {
-                                    label: getCardName(r),
-                                    value: r,
-                                    hidden: false,
-                                    disabled: peekChoicesDisabled
-                                }
-                            })
-                    } defaultChoice={"0"} show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "peek"}
-                    title={i18n.dialog.peek.title}
-                    toggleText={i18n.dialog.peek.title}/>
-                <ChoiceDialog
-                    initial={true}
-                    callback={chooseRegion}
-                    choices={
-                        G.e.regions
-                            .map((r, idx) => {
-                                return {
-                                    label: i18n.region[r],
-                                    value: idx.toString(),
-                                    hidden: false, disabled: false
-                                }
-                            })
-                    } defaultChoice={"4"}
-                    show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseRegion"}
-                    title={i18n.dialog.chooseRegion.title}
-                    toggleText={i18n.dialog.chooseRegion.toggleText}/>
-                <ChoiceDialog
-                    initial={true}
-                    callback={chooseTarget}
-                    choices={
-                        G.c.players.map((pid, idx) => {
+                : <></>}
+            <ChoiceDialog
+                initial={false}
+                callback={requestEndTurn}
+                popAfterShow={false}
+                choices={[
+                    {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
+                    {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
+                ]} defaultChoice={"yes"}
+                show={canMoveCurrent && !G.pending.endTurn && noStage}
+                title={i18n.action.endStage} toggleText={i18n.action.endStage}
+            />
+            <ChoiceDialog
+                initial={true}
+                callback={peek}
+                choices={
+                    G.player[parseInt(playerID)].cardsToPeek
+                        .map(r => {
                             return {
-                                label: getName(pid.toString()),
+                                label: getCardName(r),
+                                value: r,
+                                hidden: false,
+                                disabled: peekChoicesDisabled
+                            }
+                        })
+                } defaultChoice={"0"} show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "peek"}
+                title={i18n.dialog.peek.title}
+                toggleText={i18n.dialog.peek.title}/>
+            <ChoiceDialog
+                initial={true}
+                callback={chooseRegion}
+                choices={
+                    G.e.regions
+                        .map((r, idx) => {
+                            return {
+                                label: i18n.region[r],
                                 value: idx.toString(),
                                 hidden: false, disabled: false
                             }
                         })
-                    } defaultChoice={'0'}
-                    show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseTarget"}
-                    title={i18n.dialog.chooseTarget.title}
-                    toggleText={i18n.dialog.chooseTarget.toggleText}/>
-                <ChoiceDialog
-                    callback={chooseEvent}
-                    choices={G.events.map((c, idx) => {
+                } defaultChoice={"4"}
+                show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseRegion"}
+                title={i18n.dialog.chooseRegion.title}
+                toggleText={i18n.dialog.chooseRegion.toggleText}/>
+            <ChoiceDialog
+                initial={true}
+                callback={chooseTarget}
+                choices={
+                    G.c.players.map((pid, idx) => {
                         return {
-                            label: getCardName(c) + i18n.eventName[c],
-                            disabled: false,
-                            hidden: false,
-                            value: idx.toString()
-                        }
-                    })} defaultChoice={"0"}
-                    show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseEvent"}
-                    title={i18n.dialog.chooseEvent.title} toggleText={i18n.dialog.chooseEvent.toggleText}
-                    initial={true}/>
-                <ChoiceDialog
-                    callback={competitionCard}
-                    choices={handChoices}
-                    defaultChoice={'0'}
-                    show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "competitionCard"}
-                    title={i18n.dialog.competitionCard.title}
-                    toggleText={i18n.dialog.competitionCard.toggleText}
-                    initial={true}/>
-
-                <ChoiceDialog
-                    callback={chooseHand}
-                    choices={discardChoices()} defaultChoice={"0"}
-                    show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseHand"}
-                    title={i18n.dialog.chooseHand.title} toggleText={i18n.dialog.chooseHand.toggleText}
-                    initial={true}/>
-
-                <ChoiceDialog
-                    callback={chooseEffect}
-                    choices={G.e.choices.map((c, idx) => {
-                        return {
-                            label: effName(c),
-                            disabled: false,
-                            hidden: false,
-                            value: idx.toString()
-                        }
-                    })} defaultChoice={"0"}
-                    show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseEffect"}
-                    title={i18n.dialog.chooseEffect.title} toggleText={i18n.dialog.chooseEffect.toggleText}
-                    initial={true}/>
-                <ChoiceDialog
-                    callback={moves.confirmRespond}
-                    choices={[
-                        {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
-                        {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
-                    ]} defaultChoice={"no"}
-                    show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "confirmRespond"}
-                    title={effName(G.e.currentEffect)}
-                    toggleText={i18n.dialog.confirmRespond.title}
-                    initial={true}/>
-                <ChoiceDialog
-                    callback={nop}
-                    choices={deck.map((c, idx) => {
-                        return {
-                            label: getCardName(c),
-                            disabled: true,
-                            hidden: false,
+                            label: getName(pid.toString()),
                             value: idx.toString(),
+                            hidden: false, disabled: false
                         }
-                    })}
-                    show={true}
-                    initial={false}
-                    title={i18n.pub.deck}
-                    toggleText={`${i18n.pub.deck}(${deck.length})`}
-                    defaultChoice={'0'}/>
-            </Grid>
-            <Grid item xs={12}>
-                <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/>
-            </Grid>
+                    })
+                } defaultChoice={'0'}
+                show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseTarget"}
+                title={i18n.dialog.chooseTarget.title}
+                toggleText={i18n.dialog.chooseTarget.toggleText}/>
+            <ChoiceDialog
+                callback={chooseEvent}
+                choices={G.events.map((c, idx) => {
+                    return {
+                        label: getCardName(c) + i18n.eventName[c],
+                        disabled: false,
+                        hidden: false,
+                        value: idx.toString()
+                    }
+                })} defaultChoice={"0"}
+                show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseEvent"}
+                title={i18n.dialog.chooseEvent.title} toggleText={i18n.dialog.chooseEvent.toggleText}
+                initial={true}/>
+            <ChoiceDialog
+                callback={competitionCard}
+                choices={handChoices}
+                defaultChoice={'0'}
+                show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "competitionCard"}
+                title={i18n.dialog.competitionCard.title}
+                toggleText={i18n.dialog.competitionCard.toggleText}
+                initial={true}/>
+
+            <ChoiceDialog
+                callback={chooseHand}
+                choices={discardChoices()} defaultChoice={"0"}
+                show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseHand"}
+                title={i18n.dialog.chooseHand.title} toggleText={i18n.dialog.chooseHand.toggleText}
+                initial={true}/>
+
+            <ChoiceDialog
+                callback={chooseEffect}
+                choices={G.e.choices.map((c, idx) => {
+                    return {
+                        label: effName(c),
+                        disabled: false,
+                        hidden: false,
+                        value: idx.toString()
+                    }
+                })} defaultChoice={"0"}
+                show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseEffect"}
+                title={i18n.dialog.chooseEffect.title} toggleText={i18n.dialog.chooseEffect.toggleText}
+                initial={true}/>
+            <ChoiceDialog
+                callback={moves.confirmRespond}
+                choices={[
+                    {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
+                    {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
+                ]} defaultChoice={"no"}
+                show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "confirmRespond"}
+                title={effName(G.e.currentEffect)}
+                toggleText={i18n.dialog.confirmRespond.title}
+                initial={true}/>
+            <ChoiceDialog
+                callback={nop}
+                choices={deck.map((c, idx) => {
+                    return {
+                        label: getCardName(c),
+                        disabled: true,
+                        hidden: false,
+                        value: idx.toString(),
+                    }
+                })}
+                show={true}
+                initial={false}
+                title={i18n.pub.deck}
+                toggleText={`${i18n.pub.deck}(${deck.length})`}
+                defaultChoice={'0'}/>
         </Grid>
+        <Grid item xs={12}>
+            <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/>
+        </Grid>
+    </Grid>
 }
