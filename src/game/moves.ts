@@ -20,7 +20,7 @@ import {
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
-    activePlayer,
+    activePlayer, addVp,
     aesAward,
     atkCardSettle,
     buildBuildingFor,
@@ -52,7 +52,7 @@ import {
     fillTwoPlayerBoard,
     industryAward,
     isSimpleEffect,
-    logger,
+    logger, loseVp,
     payCost,
     playerEffExec,
     schoolPlayer,
@@ -210,8 +210,8 @@ export const chooseTarget: LongFormMove = {
         switch (eff.e) {
             case "loseVpForEachHand":
                 G.c.players = [];
-                let handCount = G.player[parseInt(p)].hand.length;
-                G.pub[parseInt(p)].vp -= handCount;
+                const handCount = G.player[parseInt(p)].hand.length;
+                loseVp(G, ctx, p, handCount);
                 break;
             case "competition":
                 if (ctx.numPlayers > SimpleRuleNumPlayers) {
@@ -287,7 +287,7 @@ export const chooseHand: LongFormMove = {
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
                 if (buildingInRegion(G, ctx, Region.EE, p)) {
-                    G.pub[parseInt(p)].vp += card.vp;
+                    addVp(G, ctx, p, card.vp)
                 }
                 break
             case "handToOthers":
@@ -299,11 +299,16 @@ export const chooseHand: LongFormMove = {
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
                 let cur = curCard(G);
+                let vpToAdd = 0;
                 if (cur.type !== CardType.V) {
-                    pub.vp += (card.vp + cur.vp);
+                    vpToAdd = card.vp + cur.vp;
+                } else {
+                    vpToAdd = card.vp;
                 }
-                if (pub.vp < 0) {
-                    pub.vp = 0;
+                if (vpToAdd > 0) {
+                    addVp(G, ctx, p, vpToAdd);
+                } else {
+                    loseVp(G, ctx, p, -vpToAdd);
                 }
                 doBuy(G, ctx, B05, p);
                 break;
@@ -350,6 +355,7 @@ export const chooseEffect: LongFormMove = {
         logger.info(`p${arg.p}.moves.chooseEffect(${JSON.stringify(arg)})`);
         let log = ("chooseEffect")
         log += JSON.stringify(arg);
+        log += `|`
         let eff = G.e.choices[arg.idx];
         log += JSON.stringify(eff);
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
@@ -358,10 +364,22 @@ export const chooseEffect: LongFormMove = {
         switch (eff.e) {
             case "industryBreakthrough":
                 G.e.choices = [];
+                if(eff.a > 1){
+                    log += `|multiple`
+                    eff.a --;
+                    G.e.stack.push(eff);
+                }
+                logger.debug(log);
                 doIndustryBreakthrough(G, ctx, p);
                 return;
             case "aestheticsBreakthrough":
                 G.e.choices = [];
+                if(eff.a > 1){
+                    log += `|multiple`
+                    eff.a --;
+                    G.e.stack.push(eff);
+                }
+                logger.debug(log);
                 doAestheticsBreakthrough(G, ctx, p);
                 return;
             case "buildStudio":
@@ -753,7 +771,7 @@ export const confirmRespond: LongFormMove = {
                         })
                         pub.archive.push(pub.discard.splice(indexOfTarget, 1)[0]);
                     }
-                    pub.vp += 2;
+                    addVp(G, ctx, p, 2);
                     break;
                 default:
                     throw new Error();
@@ -788,7 +806,7 @@ export const playCard: LongFormMove = {
         let hand = G.player[parseInt(arg.playerID)].hand;
         if (cinemaInRegion(G, ctx, playCard.region, arg.playerID)) {
             pub.resource++;
-            pub.vp++;
+            addVp(G, ctx, arg.playerID, 1);
         }
         hand.splice(arg.idx, 1);
         pub.playedCardInTurn.push(arg.card);
@@ -888,7 +906,7 @@ export const comment: LongFormMove = {
         let pub = G.pub[parseInt(arg.p)];
         if (pub.school === SchoolCardID.S2204) {
             pub.resource++;
-            pub.vp++;
+            addVp(G, ctx, arg.p, 1);
         }
         checkNextEffect(G, ctx);
     }

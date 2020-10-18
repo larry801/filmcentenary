@@ -184,16 +184,16 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "skipBreakthrough":
             return;
         case "shareToVp":
-            obj.vp += obj.shares[eff.a as validRegion];
+            addVp(G, ctx, p, obj.shares[eff.a as validRegion]);
             return;
         case "loseVpForEachHand":
-            loseVp(G,ctx,p,G.player[parseInt(p)].hand.length);
+            loseVp(G, ctx, p, G.player[parseInt(p)].hand.length);
             break;
         case "aestheticsToVp":
-            obj.vp += obj.aesthetics;
+            addVp(G, ctx, p, obj.aesthetics);
             break;
         case "industryToVp":
-            obj.vp += obj.industry;
+            addVp(G, ctx, p, obj.industry)
             break;
         case "resFromIndustry":
             obj.resource += obj.industry;
@@ -205,7 +205,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             G.regions[Region.NA].buildings[2].activated = true;
             break;
         case "loseVp":
-            loseVp(G,ctx,p,eff.a);
+            loseVp(G, ctx, p, eff.a);
             break;
 
         case "loseShareNA":
@@ -261,19 +261,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "vp":
         case "addVp":
         case "addExtraVp":
-            obj.vp += eff.a;
-            let count = 0;
-            if (obj.vp >= 60 && !obj.vpAward.v60) count++;
-            if (obj.vp >= 90 && !obj.vpAward.v90) count++;
-            if (obj.vp >= 120 && !obj.vpAward.v120) count++;
-            if (obj.vp >= 150 && !obj.vpAward.v150) {
-                count++;
-                G.pending.lastRoundOfGame = true;
-            }
-            if (count > 0) {
-                G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count})
-                playerEffExec(G, ctx, p);
-            }
+            addVp(G, ctx, p, eff.a);
             break;
         case "draw":
             for (let i = 0; i < eff.a; i++) {
@@ -345,7 +333,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             G.basicCards[card.cardId as BasicCardID] -= 1;
             obj.discard.push(card.cardId);
             obj.allCards.push(card.cardId);
-        }else {
+        } else {
             // TODO log
         }
     } else {
@@ -389,7 +377,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             let school = obj.school;
             let kino = schoolPlayer(G, ctx, SchoolCardID.S1303);
             if (kino !== null && p !== kino) {
-                G.pub[parseInt(kino)].vp++;
+                addVp(G, ctx, kino, 1);
                 G.pub[parseInt(kino)].deposit++;
             }
             if (school !== null) {
@@ -503,31 +491,41 @@ export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     return seq;
 }
 
-export function industryLowestPlayer(G: IG, ctx: Ctx): PlayerID[] {
-    let highestIndustry = 0;
+export const industryLowestPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
+    let log = "industryLowestPlayer"
+    let lowest = 10;
     let result: PlayerID[] = [];
-    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-        if (G.pub[idx].industry > highestIndustry) highestIndustry = G.pub[idx].industry
+    G.order.forEach((i, idx) => {
+        if (G.pub[idx].industry < lowest) lowest = G.pub[idx].industry
     })
-    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-        if (G.pub[idx].industry <= highestIndustry) {
-            result.push(idx.toString())
+    log += `|highest|${lowest}`
+    G.order.forEach((i, idx) => {
+        if (G.pub[idx].industry <= lowest) {
+            log += `|${G.pub[idx].industry}|p${i}`
+            result.push(i)
         }
     })
+    logger.debug(log);
     return result;
 }
 
-export function aesLowestPlayer(G: IG, ctx: Ctx): PlayerID[] {
-    let highestAes = 0;
+export const aesLowestPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
+    let log = `aesLowestPlayer`
+    let lowestAes = 10;
     let result: PlayerID[] = [];
-    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-        if (G.pub[idx].aesthetics > highestAes) highestAes = G.pub[idx].aesthetics
+    G.order.forEach((i, idx) => {
+        if (G.pub[idx].aesthetics < lowestAes) {
+            lowestAes = G.pub[idx].aesthetics
+        }
     })
-    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-        if (G.pub[idx].aesthetics <= highestAes) {
+    log += `|highest|${lowestAes}`
+    G.order.forEach((i, idx) => {
+        if (G.pub[idx].aesthetics <= lowestAes) {
+            log += `|${G.pub[idx].aesthetics}|p${i}`
             result.push(idx.toString())
         }
     })
+    logger.debug(log);
     return result;
 }
 
@@ -619,7 +617,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     if (p.school === SchoolCardID.S2201) {
         log += "|NeoRealism"
         p.deposit += 2;
-        p.vp += 1;
+        addVp(G, ctx, pid, 1);
     }
     if (p.school === SchoolCardID.S1204) {
         log += "|Swedish"
@@ -639,7 +637,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         return
     }
     if (c.type === CardType.V) {
-        p.vp += c.vp;
+        addVp(G, ctx, pid, c.vp);
     }
     log += `|breakthroughEffectPrepare`
     logger.debug(log);
@@ -695,14 +693,14 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "aestheticsLevelUpCost":
             extraCost = additionalCostForUpgrade(pub.aesthetics);
             log += `|extra|${extraCost}`
-            if(extraCost < totalRes){
+            if (extraCost < totalRes) {
                 log += `|canChoose|payAdditionalCost`
                 G.e.extraCostToPay = extraCost;
                 logger.debug(log);
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "payAdditionalCost", p);
                 return;
-            }else {
+            } else {
                 payCost(G, ctx, p, extraCost);
                 if (pub.aesthetics < 10) {
                     log += `|upgrade`
@@ -713,14 +711,14 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "industryLevelUpCost":
             extraCost = additionalCostForUpgrade(pub.industry);
             log += `|extra|${extraCost}`
-            if(extraCost < totalRes){
+            if (extraCost < totalRes) {
                 log += `|canChoose|payAdditionalCost`
                 G.e.extraCostToPay = extraCost;
                 logger.debug(log);
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "payAdditionalCost", p);
                 return;
-            }else {
+            } else {
                 payCost(G, ctx, p, extraCost);
                 if (pub.industry < 10) {
                     log += `|upgrade`
@@ -1201,7 +1199,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     if (pub.vp < eff.a.cost.a) {
                         break
                     } else {
-                        pub.vp -= eff.a.cost.a
+                        loseVp(G, ctx, p, eff.a.cost.a);
                         G.e.stack.push(eff.a.eff);
                         break
                     }
@@ -1230,12 +1228,15 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case "industryOrAestheticsLevelUp":
-            // TODO mutilple this eff from vpAward
             log += `|i${pub.industry}a${pub.aesthetics}`
             if (pub.industry < 10 && pub.aesthetics < 10) {
                 G.e.choices.push({e: "industryLevelUp", a: 1});
                 G.e.choices.push({e: "aestheticsLevelUp", a: 1});
                 log += `|chooseEffect`
+                if (eff.a > 1) {
+                    eff.a--;
+                    G.e.stack.push(eff);
+                }
                 logger.debug(log);
                 changePlayerStage(G, ctx, "chooseEffect", p);
                 return;
@@ -1251,6 +1252,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         log += "|skip"
                     }
                 }
+                if (eff.a > 1) {
+                    eff.a--;
+                    G.e.stack.push(eff);
+                }
                 break;
             }
         case "archiveToEEBuildingVP":
@@ -1260,10 +1265,20 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             changePlayerStage(G, ctx, "chooseHand", p);
             return;
         case "industryBreakthrough":
+            if(eff.a > 1){
+                log += `|multiple`
+                eff.a --;
+                G.e.stack.push(eff);
+            }
             logger.debug(log);
             doIndustryBreakthrough(G, ctx, p);
             return;
         case "aestheticsBreakthrough":
+            if(eff.a > 1){
+                log += `|multiple`
+                eff.a --;
+                G.e.stack.push(eff);
+            }
             logger.debug(log);
             doAestheticsBreakthrough(G, ctx, p);
             return;
@@ -1280,16 +1295,26 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let o = G.pub[parseInt(p)];
-    if (o.aesthetics > 1) o.vp += 2;
-    if (o.aesthetics > 4) o.vp += 1;
-    if (o.aesthetics > 7) o.vp += 1;
+    const log = `aesAward|p${p}|${o.aesthetics}`
+    if (o.aesthetics > 1) {
+        addVp(G, ctx, p, 2);
+    }
+    if (o.aesthetics > 4) {
+        addVp(G, ctx, p, 1);
+    }
+    if (o.aesthetics > 7) {
+        addVp(G, ctx, p, 1);
+    }
+    logger.debug(log);
 }
 
 export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let o = G.pub[parseInt(p)];
+    const log = `industryAward|p${p}|${o.industry}`
     if (o.industry > 1) o.resource += 1;
     if (o.industry > 4) drawCardForPlayer(G, ctx, p);
     if (o.industry > 7) drawCardForPlayer(G, ctx, p);
+    logger.debug(log);
 }
 
 export const cardSlotOnBoard2p = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICardSlot | null => {
@@ -1545,7 +1570,7 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
         }
     }
 }
-export const canHelp = (G:IG,ctx:Ctx,p:PlayerID,target: ClassicCardID | BasicCardID, helper: CardID): boolean => {
+export const canHelp = (G: IG, ctx: Ctx, p: PlayerID, target: ClassicCardID | BasicCardID, helper: CardID): boolean => {
     const pub = G.pub[parseInt(p)];
     const helperCard = getCardById(helper);
     const targetCard = getCardById(target);
@@ -1567,7 +1592,7 @@ export const canHelp = (G:IG,ctx:Ctx,p:PlayerID,target: ClassicCardID | BasicCar
 }
 
 export const getPossibleHelper = (G: IG, ctx: Ctx, p: PlayerID, card: CardID): CardID[] => {
-    return G.player[parseInt(p)].hand.filter((h) => canHelp(G,ctx,p,card as BasicCardID, h))
+    return G.player[parseInt(p)].hand.filter((h) => canHelp(G, ctx, p, card as BasicCardID, h))
 }
 
 export const do2pUpdateSchoolSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
@@ -2105,17 +2130,53 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
     }
 }
 
+export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
+    let log = `addVp|${p}|${vp}`
+    let obj = G.pub[parseInt(p)];
+    obj.vp += vp;
+    let count = 0;
+    if (obj.vp >= 60 && !obj.vpAward.v60) {
+        log += `|v60`
+        count++;
+        obj.vpAward.v60 = true;
+    }
+    if (obj.vp >= 90 && !obj.vpAward.v90) {
+        log += `|v90`
+        count++;
+        obj.vpAward.v90 = true;
+    }
+    if (obj.vp >= 120 && !obj.vpAward.v120) {
+        log += `|v120`
+        count++;
+        obj.vpAward.v120 = true;
+    }
+    if (obj.vp >= 150 && !obj.vpAward.v150) {
+        log += `|v150`
+        obj.vpAward.v150 = true;
+        count++;
+        G.pending.lastRoundOfGame = true;
+    }
+    if (count > 0) {
+        log += `|iORaLevelUp`
+        G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count})
+        logger.debug(log);
+        playerEffExec(G, ctx, p);
+    }
+}
 export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     let log = `loseVp|${p}|${vp}`
     let obj = G.pub[parseInt(p)];
+    log += `|before|${obj.vp}`
     if (vp > G.pub[parseInt(p)].vp) {
         G.pub[parseInt(p)].vp = 0;
     } else {
         G.pub[parseInt(p)].vp -= vp;
     }
+    log += `|after|${obj.vp}`
     if (obj.school === SchoolCardID.S2104) {
-        log += `|FilmNoir`
+        log += `|FilmNoir|${obj.resource}`
         obj.resource++;
+        log += `|${obj.resource}`
     }
     logger.debug(log);
 }
@@ -2152,8 +2213,6 @@ export const competitionCleanUp = (G: IG, ctx: Ctx) => {
 
 export function competitionResultSettle(G: IG, ctx: Ctx) {
     let i = G.competitionInfo;
-    let atk = G.pub[parseInt(i.atk)];
-    let def = G.pub[parseInt(i.def)];
     let log = `competitionResultSettle|pa:${i.atk}|pd:${i.def}`
     let winner: PlayerID = '0';
     let hasWinner = false;
@@ -2179,7 +2238,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         }
     }
     if (i.progress > 0) {
-        atk.vp += i.progress;
+        addVp(G, ctx, i.atk, i.progress);
         let schoolId = G.pub[parseInt(i.def)].school;
         if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
             log += `|p${i.def}|lose${i.progress}vp`
@@ -2188,8 +2247,8 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
             log += `|doNotLoseVP`
         }
     } else {
-        let vp = -i.progress;
-        def.vp += vp;
+        const vp = -i.progress;
+        addVp(G, ctx, i.def, vp);
         let schoolId = G.pub[parseInt(i.atk)].school;
         if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
             log += `|p${i.atk}|lose${vp}vp`
@@ -2399,7 +2458,7 @@ export const checkCompetitionAttacker = (G: IG, ctx: Ctx) => {
     }
 }
 
-const cleanUpScore = (G:IG,ctx:Ctx,pid:PlayerID) =>{
+const cleanUpScore = (G: IG, ctx: Ctx, pid: PlayerID) => {
     let i = parseInt(pid);
     let p = G.pub[i];
     let f = p.finalScoring;
@@ -2417,7 +2476,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     let p = G.pub[i];
     let s = G.player[i];
     let f = p.finalScoring;
-    cleanUpScore(G,ctx,pid);
+    cleanUpScore(G, ctx, pid);
 
     if (p.school !== null) {
         f.card += getCardById(p.school).vp;

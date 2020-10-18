@@ -22,7 +22,16 @@ import {
 } from "./moves";
 import {IG} from "../types/setup";
 import {changePlayerStage, cleanPendingSignal} from "./logFix";
-import {aesAward, curPub, drawCardForPlayer, industryAward, logger} from "./util";
+import {
+    addVp,
+    aesAward,
+    aesLowestPlayer,
+    curPub,
+    drawCardForPlayer,
+    industryAward,
+    industryLowestPlayer,
+    logger
+} from "./util";
 import {SchoolCardID} from "../types/core";
 
 export const payAdditionalCostStage: StageConfig = {
@@ -109,10 +118,11 @@ export const NormalTurn: TurnConfig = {
         let p = ctx.currentPlayer;
         let pub = curPub(G,ctx);
         let log = `onBegin|p${p}`
-
+        log += `|${JSON.stringify(aesLowestPlayer(G, ctx))}`
+        log += `|${JSON.stringify(industryLowestPlayer(G, ctx))}`
         if(pub.school === SchoolCardID.S1301){
             log += `|montage`
-            pub.vp ++;
+            addVp(G,ctx,p,1);
             drawCardForPlayer(G,ctx,p);
             G.e.stack.push({e:"discard",a:1})
             changePlayerStage(G,ctx,"chooseHand",p);
