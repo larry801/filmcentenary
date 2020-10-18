@@ -926,8 +926,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
             }
             G.e.stack.push(eff)
+            logger.debug(log);
             changePlayerStage(G, ctx, "peek", p);
-            break;
+            return;
         case "buildingNA":
             subEffect = eff.a;
             players = buildingPlayers(G, ctx, Region.NA);
