@@ -456,12 +456,12 @@ export const cinemaInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean
 }
 export const studioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
-    return seqFromCurrentPlayer(G,ctx).filter(pid => studioInRegion(G, ctx, r, pid));
+    return seqFromCurrentPlayer(G, ctx).filter(pid => studioInRegion(G, ctx, r, pid));
 }
 
 export const buildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
-    return seqFromCurrentPlayer(G,ctx).filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
+    return seqFromCurrentPlayer(G, ctx).filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
 }
 export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
@@ -481,7 +481,7 @@ export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
     return cardDepleted(G, ctx, r) || shareDepleted(G, ctx, r);
 }
 
-export const seqFromPos = (G: IG, ctx: Ctx,pos:number): PlayerID[] => {
+export const seqFromPos = (G: IG, ctx: Ctx, pos: number): PlayerID[] => {
     let log = `seqFromPos`;
     let seq = [];
     for (let i = pos; i < ctx.numPlayers; i++) {
@@ -501,7 +501,7 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     let act = activePlayer(ctx);
     log += `|act|p${act}`
     let pos = posOfPlayer(G, ctx, act);
-    let seq = seqFromPos(G,ctx,pos);
+    let seq = seqFromPos(G, ctx, pos);
     logger.debug(log);
     return seq;
 }
@@ -510,7 +510,7 @@ export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     let log = `seqFromCurrentPlayer`
     log += `|cur|p${ctx.currentPlayer}`
     let pos = posOfPlayer(G, ctx, ctx.currentPlayer);
-    let seq = seqFromPos(G,ctx,pos);
+    let seq = seqFromPos(G, ctx, pos);
     logger.debug(log);
     return seq;
 }
@@ -582,9 +582,9 @@ export function vpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
     return result;
 }
 
-export const inferDeckRemoveHelper = (result:CardID[], remove:CardID[]):void=>{
+export const inferDeckRemoveHelper = (result: CardID[], remove: CardID[]): void => {
     remove.forEach(c => {
-        const indexOf= result.indexOf(c)
+        const indexOf = result.indexOf(c)
         if (indexOf !== -1) {
             result.splice(indexOf, 1)
         }
@@ -657,7 +657,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     logger.debug(log);
     breakthroughEffectPrepare(G);
     let eff = getCardEffect(c.cardId).archive;
-    if(c.cardId !== FilmCardID.F1108){
+    if (c.cardId !== FilmCardID.F1108) {
         if (eff.e !== "none") {
             log += `|pushEffect|${JSON.stringify(eff)}`
             G.e.stack.push(eff)
@@ -886,7 +886,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 deck = shuffle(ctx, obj.discard);
                 obj.discard = [];
                 let newCardId = deck.pop();
-                if(newCardId === undefined){
+                if (newCardId === undefined) {
                     return;
                 }
                 for (let i = 0; i < peekCount - len; i++) {
@@ -894,7 +894,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
             } else {
                 let newCardId = deck.pop();
-                if(newCardId === undefined){
+                if (newCardId === undefined) {
                     return;
                 }
                 for (let i = 0; i < peekCount; i++) {
@@ -917,7 +917,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 if (G.e.pendingPlayers.length === 0) {
                     log += "|fetchPlayers"
                     log += `|${JSON.stringify(players)}`
-                    if(players.length > 0){
+                    if (players.length > 0) {
                         G.e.pendingPlayers = players;
                         G.e.stack.push(eff);
                         log += "|pushBack"
@@ -926,11 +926,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         log += `|noOneHasBuildingNA`
                         break;
                     }
-                }else {
+                } else {
                     if (G.e.pendingPlayers.length !== 1) {
                         log += `|morePlayerPending`
                         G.e.stack.push(eff);
-                    }else {
+                    } else {
                         log += `|onePlayerPending`
                     }
                     G.e.stack.push(eff.a);
@@ -1020,11 +1020,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     G.e.stack.push(subEffect);
                     simpleEffectExec(G, ctx, p);
                 }
-            }else{
+            } else {
                 if (G.e.pendingPlayers.length === 0) {
                     log += "|fetchPlayers"
                     log += `|${JSON.stringify(players)}`
-                    if(players.length > 0){
+                    if (players.length > 0) {
                         G.e.pendingPlayers = players;
                         G.e.stack.push(eff);
                         log += "|pushBack"
@@ -1033,11 +1033,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         log += `|noOneHasStudio`
                         break;
                     }
-                }else {
+                } else {
                     if (G.e.pendingPlayers.length !== 1) {
                         log += `|morePlayerPending`
                         G.e.stack.push(eff);
-                    }else {
+                    } else {
                         log += `|onePlayerPending`
                     }
                     G.e.stack.push(eff.a);
@@ -1235,11 +1235,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "industryBreakthrough":
             logger.debug(log);
             doIndustryBreakthrough(G, ctx, p);
-            break;
+            return;
         case "aestheticsBreakthrough":
             logger.debug(log);
             doAestheticsBreakthrough(G, ctx, p);
-            break;
+            return;
         default:
             log += `|simpleEffect`
             logger.debug(log);
@@ -1399,7 +1399,7 @@ export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
 }
 
 export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
-    if(ctx.numPlayers> SimpleRuleNumPlayers)throw Error("Cannot call 2p for complex rules");
+    if (ctx.numPlayers > SimpleRuleNumPlayers) throw Error("Cannot call 2p for complex rules");
     let s = G.secretInfo.twoPlayer.school;
     for (let slotL of G.twoPlayer.school) {
         if (slotL.card === null) {
@@ -1588,7 +1588,7 @@ export const do2pUpdateFilmSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
 }
 
 export const fillEmptySlots = (G: IG, ctx: Ctx) => {
-    if(ctx.numPlayers<SimpleRuleNumPlayers)return;
+    if (ctx.numPlayers < SimpleRuleNumPlayers) return;
     for (let r of ValidRegions) {
         let region = G.regions[r];
         let l = G.secretInfo.regions[r].legendDeck;
@@ -1811,7 +1811,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             return 1;
         }
         log += `|sameLegendCount`
-        const curPos = seqFromActivePlayer(G,ctx);
+        const curPos = seqFromActivePlayer(G, ctx);
         const posA = curPos.indexOf(a);
         const posB = curPos.indexOf(b);
         log += `|pos|${posA}|${posB}`
@@ -2051,7 +2051,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                     log += "|showCompetitionResult"
                     i.defPlayedCard = false;
                     logger.debug(log)
-                    changePlayerStage(G,ctx,"showCompetitionResult",i.atk);
+                    changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
                     return;
                 }
             } else {
@@ -2326,7 +2326,7 @@ export const checkCompetitionDefender = (G: IG, ctx: Ctx) => {
         i.defPlayedCard = true;
         const log = (`checkCompetitionDefender|p${i.def}|emptyHand|showCompetitionResult`);
         logger.debug(log);
-        changePlayerStage(G,ctx,"showCompetitionResult",i.atk);
+        changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
     }
 }
 export const checkCompetitionAttacker = (G: IG, ctx: Ctx) => {
