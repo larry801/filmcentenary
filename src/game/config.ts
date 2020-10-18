@@ -12,7 +12,7 @@ import {
     competitionCard,
     confirmRespond,
     drawCard,
-    moveBlocker,
+    moveBlocker, payAdditionalCost,
     peek,
     playCard,
     requestEndTurn,
@@ -25,6 +25,11 @@ import {changePlayerStage, cleanPendingSignal} from "./logFix";
 import {aesAward, curPub, drawCardForPlayer, industryAward, logger} from "./util";
 import {SchoolCardID} from "../types/core";
 
+export const payAdditionalCostStage: StageConfig = {
+    moves: {
+        payAdditionalCost: payAdditionalCost,
+    }
+}
 
 export const chooseEffectStage: StageConfig = {
     moves: {
@@ -140,8 +145,10 @@ export const NormalTurn: TurnConfig = {
         moveBlockerStage: moveBlockerStage,
         updateSlot: updateSlotStage,
         peek: peekStage,
+        payAdditionalCost:payAdditionalCostStage,
     },
     moves: {
+        payAdditionalCost:payAdditionalCost,
         drawCard: drawCard,
         buyCard: buyCard,
         playCard: playCard,

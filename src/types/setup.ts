@@ -55,7 +55,15 @@ export interface IG {
         cardIDs: string[],
     },
     pub: IPubInfo[],
-    e: { pendingPlayers: PlayerID[], choices: any[], stack: any[], card: CardID | null, regions: Region[], currentEffect: any },
+    e: {
+        pendingPlayers: PlayerID[],
+        choices: any[],
+        stack: any[],
+        card: CardID | null,
+        regions: Region[],
+        currentEffect: any ,
+        extraCostToPay: number,
+    },
     player: IPrivateInfo[],
     competitionInfo: CompetitionInfo,
     secretInfo: {
@@ -111,28 +119,6 @@ export const initialScore = {
 function pubPlayer(): IPubInfo {
     return {
         finalScoring: {...initialScore},
-        deposit: 0,
-        action: 1,
-        discardInSettle: false,
-        scoreEvents: [],
-        vpAward: {
-            v60: false,
-            v90: false,
-            v120: false,
-            v150: false,
-        },
-        building: {
-            cinemaBuilt: false,
-            studioBuilt: false,
-        },
-        champions: [],
-        aesthetics: 0,
-        allCards: initialDeck,
-        archive: [],
-        discard: [],
-        industry: 0,
-        resource: 0,
-        playedCardInTurn: [],
         revealedHand: [],
         school: null,
         shares: {
@@ -228,7 +214,12 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             cardIDs: [],
         },
         currentScoreRegion: Region.NONE,
-        e: {pendingPlayers: [], choices: [], stack: [], card: null, regions: [], currentEffect: {e: "none", a: 1}},
+        e: {
+            pendingPlayers: [],
+            choices: [], stack: [], card: null, regions: [],
+            currentEffect: {e: "none", a: 1},
+            extraCostToPay:0,
+        },
         competitionInfo: {
             region: Region.NONE,
             atk: '0',

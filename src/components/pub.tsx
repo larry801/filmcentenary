@@ -1,5 +1,5 @@
 import React from "react";
-import {CardCategory, CardID, IPubInfo, ValidRegions} from "../types/core";
+import {CardCategory, CardID, Champion, IPubInfo, validRegion, ValidRegions} from "../types/core";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
 import {useI18n} from '@i18n-chain/react';
@@ -51,7 +51,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                     <CardEffect cid={i.school}/>
                 </Typography> : <></>}
             <Typography>   {i18n.pub.shareLegend} </Typography>
-            {ValidRegions.map(r =>
+            {ValidRegions.map((r:validRegion) =>
                 <Typography key={r}>
                     {i18n.region[r]} {i.shares[r as 0 | 1 | 2 | 3]}
                     /
@@ -64,7 +64,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <Typography>{i18n.pub.champion}</Typography>
-            {i.champions.map(champion => <Typography key={shortid.generate()}>
+            {i.champions.map((champion:Champion) => <Typography key={shortid.generate()}>
                 {i18n.region[champion.region]}
                 {i18n.era[champion.era]}</Typography>)}
         </Grid>

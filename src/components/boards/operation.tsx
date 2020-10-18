@@ -1,5 +1,5 @@
 import React from "react";
-import {IG, privatePlayer} from "../../types/setup";
+import {IG} from "../../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import i18n from "../../constant/i18n";
 import {BuyCard} from "../buyCard";
@@ -12,7 +12,7 @@ import Button from "@material-ui/core/Button";
 import {getCardById} from "../../types/cards";
 import {PlayerHand} from "../playerHand";
 import {Stage} from "boardgame.io/core";
-
+import Slider from "@material-ui/core/Slider";
 
 export interface IOPanelProps {
     G: IG,
@@ -33,8 +33,11 @@ export interface IOPanelProps {
 }
 
 export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, events}: IOPanelProps) => {
-    const iPrivateInfo = playerID === null ? privatePlayer() : G.player[parseInt(playerID)];
-    const hand = playerID === null ? [] : iPrivateInfo.hand
+    const pub = G.pub[parseInt(playerID)];
+    const iPrivateInfo = G.player[parseInt(playerID)];
+    const hand =  iPrivateInfo.hand
+    const stage = actualStage(G,ctx);
+    const noStage = stage === Stage.NULL;
 
     const inferredDeck = (p: PlayerID): CardID[] => {
         const pub = G.pub[parseInt(p)];
@@ -43,6 +46,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         inferDeckRemoveHelper(result,pub.discard);
         inferDeckRemoveHelper(result,pub.archive);
         inferDeckRemoveHelper(result,playerObj.hand);
+        // TODO remove any school card
         return result;
     }
 
@@ -119,9 +123,6 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const requestEndTurn = (choice: string) => {
         if (choice === "yes") {
             moves.requestEndTurn(playerID);
-            // if (G.logDiscrepancyWorkaround) {
-            //     events?.endTurn?.();
-            // }
         }
     }
 
@@ -202,16 +203,55 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const showCompetitionResult = () =>{
         moves.showCompetitionResult({info: {...G.competitionInfo}})
     }
+
+    const [depositExtra, setDepositExtra] = React.useState(0);
+    const handleSliderChange = (event: any, newValue: number | number[]) => {
+        if (typeof newValue === "number") {
+            setDepositExtra(newValue);
+        }
+    };
+    const extraCost = G.e.extraCostToPay;
+    const minDeposit = Math.max(extraCost - pub.resource, 0);
+    const deposit = depositExtra + minDeposit
+    const maxDeposit = Math.min(extraCost, pub.deposit);
+    const getValueText = (n: number) => n.toString();
+    const payAdditionalCost = () => {
+        moves.payAdditionalCost({
+            res: extraCost - deposit,
+            deposit: deposit,
+        })
+    }
+    const sliderPart = stage  === "payAdditionalCost"? <Grid item xs={6}>
+            <Slider
+                onChange={handleSliderChange}
+                min={0}
+                max={maxDeposit - minDeposit}
+                step={1}
+                marks
+                getAriaValueText={getValueText}
+                aria-labelledby="extraCost-deposit-slider"
+                valueLabelDisplay="auto"
+                value={depositExtra}
+            />
+        <Button
+            variant="contained"
+            color="primary"
+            onClick={payAdditionalCost}>
+            {i18n.action.payAdditionalCost}
+            {i18n.pub.res}{extraCost - deposit}
+            {i18n.pub.deposit}{deposit}
+        </Button>
+        </Grid>:
+        <></>
+
     const undoFn = () => undo();
     const redoFn = () => redo();
     const endStage = () => events?.endStage?.();
     const endTurn = () => events?.endTurn?.();
     const nop = () => {
     };
-    const noStage =  actualStage(G,ctx)=== Stage.NULL;
 
-    return playerID !== null
-        ? <Grid item container xs={12} sm={5}>
+    return <Grid item container xs={12} sm={5}>
             {noStage?
             <Grid item xs={6}>
                 <Typography
@@ -234,6 +274,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                     card={BasicCardID.B05} helpers={G.player[parseInt(playerID)].hand}
                     G={G} playerID={playerID} ctx={ctx} moves={moves}/>
             </Grid>:<></>}
+            {sliderPart}
             <Grid item xs={6}>
                 {activePlayer(ctx) === playerID ? <Button
                     fullWidth
@@ -258,6 +299,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                         onClick={endStage}
                     >{i18n.action.endStage}</Button>
                     : <></>}
+
                 {canMoveCurrent && actualStage(G,ctx) === "showCompetitionResult"
                     ? <Button
                         fullWidth
@@ -413,5 +455,4 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/>
             </Grid>
         </Grid>
-        : <></>
 }

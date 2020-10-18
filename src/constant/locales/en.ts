@@ -1,7 +1,7 @@
-import { IBuyInfo, IEra, Region, validRegion} from "../../types/core";
+import {IBuyInfo, IEra, Region, validRegion} from "../../types/core";
 import {
     IChooseEventArg, IChooseHandArg, ICommentArg, ICompetitionCardArg,
-    IEffectChooseArg,
+    IEffectChooseArg, IPayAdditionalCostArgs,
     IPeekArgs,
     IPlayCardInfo,
     IRegionChooseArg,
@@ -169,8 +169,9 @@ const region = {
     3: "Asia",
     4: "Any Region",
 };
+const numToValue = (value: number = 1): string => value.toString();
 
-const argValue = {a: (value: number = 1): string => value.toString()};
+const argValue = {a: numToValue};
 
 const argRegion = {
     a: (value: Region = Region.NONE): string => {
@@ -203,7 +204,7 @@ const eventName = {
 };
 const argCardName = {
     a: (value: string = "E02"): string => {
-        return getCardName(value)
+        return `【getCardName(value)】`
     }
 };
 const argTimes = {
@@ -225,17 +226,17 @@ const argPeek = {
     }
 }
 const argShowCompetitionResult = {
-    args:(arg:IShowCompetitionResultArgs[]): string=>{
+    args: (arg: IShowCompetitionResultArgs[]): string => {
         let i = arg[0].info;
         let t = "CompetitionResult:"
-        if(i.atkCard===null){
+        if (i.atkCard === null) {
             t += "Attacker did not play card "
-        }else {
+        } else {
             t += `Attacker played ${bracketCardName(i.atkCard)} `
         }
-        if(i.defCard===null){
+        if (i.defCard === null) {
             t += "Defender did not play card "
-        }else {
+        } else {
             t += `Defender played ${bracketCardName(i.defCard)} `
         }
         t += `Progress:${i.progress} `
@@ -413,17 +414,30 @@ const argComment = {
 const argConfirmRespond = {
     args: (arg: string[]): string => {
         let a = arg[0]
-        if(a==="yes"){
+        if (a === "yes") {
             return "选择执行效果"
-        }else{
+        } else {
             return "选择不执行效果"
         }
     }
 }
+const argPayAdditionalCost = {
+    args:(arg: IPayAdditionalCostArgs[]) =>{
+        let t = " paid an extra fee of "
+        const a= arg[0];
+        if(a.res > 0){
+            t += `${a.res} resource(s)`
+        }
+        if(a.deposit > 0){
+            t += `${a.deposit} deposit`
+        }
+        return t
+    }
+}
 const rank = {
-    1:"Champion of",
-    2:"Runner up of",
-    3:"Third place of",
+    1: "Champion of",
+    2: "Runner up of",
+    3: "Third place of",
 }
 const en = {
     drawer: {
@@ -436,9 +450,9 @@ const en = {
         lobby: "Remote multiplayer lobby",
         cards: "Card list",
     },
-    title:"Film Centenary",
+    title: "Film Centenary",
     lobby: {
-        numPlayers:"Players",
+        numPlayers: "Players",
         createPublicMatch: "Create public match",
         createPrivateMatch: "Create private match",
         title: "Lobby",
@@ -448,20 +462,20 @@ const en = {
         exitMatch: "Exit match",
         exitLobby: "Exit lobby",
         cannotJoin: "Cannot join this match, you are already in another match",
-        shareLink:"Share the following link with your opponent:",
+        shareLink: "Share the following link with your opponent:",
     },
     gameOver: {
         title: "Game Over",
         winner: "Winner:",
-        table:{
-            board:"Board",
-            card:"Cards",
-            building:"Building",
-            iAward:"Industry Award",
-            aesAward:"Aesthetics Award",
-            archive:"Archive",
-            events:"Event&Card Scoring",
-            total:"Total",
+        table: {
+            board: "Board",
+            card: "Cards",
+            building: "Building",
+            iAward: "Industry Award",
+            aesAward: "Aesthetics Award",
+            archive: "Archive",
+            events: "Event&Card Scoring",
+            total: "Total",
         },
 
         rank: {
@@ -488,14 +502,35 @@ const en = {
         requestEndTurn: ["{{args}}", argRequestEndTurn],
         updateSlot: ["{{args}}", argUpdateSlot],
         comment: ["{{args}}", argComment],
-        confirmRespond:["{{args}}",argConfirmRespond],
+        confirmRespond: ["{{args}}", argConfirmRespond],
+        payAdditionalCost:["{{args}}",argPayAdditionalCost],
     },
     eventName: eventName,
     confirm: "OK",
     cancel: "Cancel",
     effect: {
-        industryAndAestheticsBreakthrough:"Do industry and aesthetics breakthrough",
-        industryOrAestheticsLevelUp:"Upgrade industry or aesthetics level",
+        payAdditionalCost: ["Pay {{res}} {{deposit]}.", {
+            deposit: (value: number = 1): string => {
+                if(value>0){
+                    if(value>1){
+                        return `${value} resources`
+                    }else {
+                        return `${value} resource`
+                    }
+                }else {
+                    return ""
+                }
+            },
+            res: (value: number = 1): string => {
+                if(value>0){
+                    return `${value} deposit`
+                }else {
+                    return ""
+                }
+            },
+        }],
+        industryAndAestheticsBreakthrough: "Do industry and aesthetics breakthrough",
+        industryOrAestheticsLevelUp: "Upgrade industry or aesthetics level",
         era: {
             0: " Invention:",
             1: " Classic:",
@@ -577,9 +612,9 @@ const en = {
             },
             onWin: (e: any): string => {
                 if (e.e !== "none") {
-                    if(e.e === "anyRegionShare"){
+                    if (e.e === "anyRegionShare") {
                         return "若这次争夺获胜你额外获得一个任意地区份额"
-                    }else {
+                    } else {
                         return "若这次争夺获胜你额外获得一个" + region[e.r as Region] + "地区份额"
                     }
                 } else {
@@ -598,7 +633,7 @@ const en = {
         resFromAesthetics: "Get resource according to your aesthetics level",
         aesAward: ["Execute your aesthetics level award {{a}}", argTimes],
         industryAward: ["Execute your industry level award {{a}}", argTimes],
-        searchAndArchive: ["Search and archive {{a}}",argCardName],
+        searchAndArchive: ["Search and archive {{a}}", argCardName],
         draw: ["Draw {{a}} card(s)", argValue],
         discard: ["Discard {{a}} card(s)", argValue],
         discardNormalOrLegend: ["Discard {{a}} normal or legend card(s)", argValue],
@@ -711,6 +746,7 @@ const en = {
         },
     },
     action: {
+        payAdditionalCost:"Pay extra cost",
         comment: "Comment",
         updateSlot: "Update",
         showBoardStatus: "Initial setup",
@@ -726,7 +762,7 @@ const en = {
         endStage: "End Stage",
         showCompetitionResult: "Show Competition Result",
         endTurn: "End Turn",
-        turnEnd: ["Turn {{a}} ended",argValue],
+        turnEnd: ["Turn {{a}} ended", argValue],
         endPhase: "End Phase",
         undo: "Undo",
         redo: "Redo",
@@ -774,9 +810,9 @@ const en = {
     },
     score: {
         cardName: ['{{rank}} {{region}} {{ear}}', {
-            era: (e:IEra):string=>era[e],
-            rank: (rankNum:1|2|3):string=>rank[rankNum],
-            region: (r:Region):string=>region[r],
+            era: (e: IEra): string => era[e],
+            rank: (rankNum: 1 | 2 | 3): string => rank[rankNum],
+            region: (r: Region): string => region[r],
         }],
     },
     card: cards,

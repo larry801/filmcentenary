@@ -2,7 +2,7 @@ import {Locale} from './en';
 import {IBuyInfo, IEra, Region, validRegion} from "../../types/core";
 import {
     IChooseEventArg, IChooseHandArg, ICommentArg, ICompetitionCardArg,
-    IEffectChooseArg,
+    IEffectChooseArg, IPayAdditionalCostArgs,
     IPeekArgs,
     IPlayCardInfo,
     IRegionChooseArg,
@@ -379,6 +379,20 @@ const argChooseHand = {
         return t
     }
 }
+const argPayAdditionalCost = {
+    args:(arg: IPayAdditionalCostArgs[]) =>{
+        let t = "用"
+        const a= arg[0];
+        if(a.res > 0){
+            t += `${a.res}资源`
+        }
+        if(a.deposit > 0){
+            t += `${a.deposit}存款`
+        }
+        t += "支付了额外费用"
+        return t
+    }
+}
 const argCompetitionCard = {
     args: (arg: ICompetitionCardArg[]): string => {
         return "打出一张牌用于争夺"
@@ -428,6 +442,7 @@ const zh_CN: Locale = {
     eventName: eventName,
     region: region,
     action: {
+        payAdditionalCost:"支付额外花费",
         comment: "评论",
         updateSlot: "更新",
         showBoardStatus: "展示牌列",
@@ -500,8 +515,25 @@ const zh_CN: Locale = {
         updateSlot: ["{{args}}", argUpdateSlot],
         comment: ["{{args}}", argComment],
         confirmRespond:["{{args}}",argConfirmRespond],
+        payAdditionalCost:["{{args}}",argPayAdditionalCost],
     },
     effect: {
+        payAdditionalCost :["额外支付{{res}}{{deposit}}",{
+            deposit: (value: number = 1): string => {
+                if(value>0){
+                        return `${value}资源`
+                }else {
+                    return ""
+                }
+            },
+            res: (value: number = 1): string => {
+                if(value>0){
+                    return `${value}存款`
+                }else {
+                    return ""
+                }
+            },
+        }],
         industryAndAestheticsBreakthrough:"选择工业和美学突破",
         industryOrAestheticsLevelUp:"升级工业等级或美学等级1级",
         era: {

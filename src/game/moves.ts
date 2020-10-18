@@ -3,6 +3,7 @@ import {CompetitionInfo, IG} from "../types/setup";
 import {
     BasicCardID,
     CardID,
+    CardType,
     ClassicCardID,
     EventCardID,
     FilmCardID,
@@ -22,6 +23,7 @@ import {
     activePlayer,
     aesAward,
     atkCardSettle,
+    buildBuildingFor,
     buildingInRegion,
     canBuyCard,
     cardInDeck,
@@ -61,19 +63,88 @@ import {
     try2pScoring,
     tryScoring,
 } from "./util";
-import {changeStage, signalEndPhase, signalEndStage} from "./logFix";
+import {changePlayerStage, changeStage, signalEndPhase, signalEndStage} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
 import {B05} from "../constant/cards/basic";
 import {getCardById} from "../types/cards";
 
+export interface IPayAdditionalCostArgs {
+    res: number,
+    deposit: number,
+}
+
+export const payAdditionalCost: LongFormMove = {
+    move: (G: IG, ctx: Ctx, arg: IPayAdditionalCostArgs) => {
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`p${ctx.playerID}.moves.payAdditionalCost(${JSON.stringify(arg)})`);
+        let log = `payAdditionalCost|${JSON.stringify(arg)}`
+        let pub = G.pub[parseInt(ctx.playerID)]
+        let eff = G.e.stack.pop();
+        const r = G.e.regions[0];
+        if (eff === undefined) {
+            log += `|stackEmpty`
+            logger.debug(log);
+            return INVALID_MOVE
+        } else {
+            G.e.extraCostToPay = 0;
+            pub.resource -= arg.res;
+            pub.deposit -= arg.deposit;
+            log += `|${pub.resource}|${pub.deposit}`
+        }
+        switch ((eff.e)) {
+            case "buildCinema":
+                G.e.regions = [];
+                log += `|region:|${r}`
+                if (r === undefined || r === Region.NONE) {
+                    log += `|invalid`
+                    logger.debug(log);
+                    return INVALID_MOVE;
+                }
+                buildBuildingFor(G, ctx, r, ctx.playerID, "cinema");
+                break;
+            case "buildStudio":
+                G.e.regions = [];
+                log += `|region:|${r}`
+                if (r === undefined || r === Region.NONE) {
+                    log += `|invalid`
+                    logger.debug(log);
+                    return INVALID_MOVE;
+                }
+                buildBuildingFor(G, ctx, r, ctx.playerID, "studio");
+                break;
+            case "industryLevelUpCost":
+                log += `|industry|${pub.industry}`
+                if (pub.industry < 10) {
+                    pub.industry++
+                } else {
+                    log += `|cannotUpgrade`
+                }
+                break;
+            case "aestheticsLevelUpCost":
+                log += `|aes:|${pub.aesthetics}`
+                if (pub.aesthetics < 10) {
+                    pub.aesthetics++
+                } else {
+                    log += `|cannotUpgrade`
+                }
+                break;
+            default:
+                throw Error(`Invalid effect ${JSON.stringify(eff)}`)
+        }
+        log += `|checkNextEffect`
+        logger.debug(log);
+        checkNextEffect(G, ctx);
+    }
+}
+
 export interface IShowCompetitionResultArgs {
-    info:CompetitionInfo
+    info: CompetitionInfo
 }
 
 export const showCompetitionResult: LongFormMove = {
-    move: (G: IG, ctx: Ctx, args:IShowCompetitionResultArgs) => {
+    move: (G: IG, ctx: Ctx, args: IShowCompetitionResultArgs) => {
         logger.info(`p${ctx.playerID}.moves.showCompetitionResult(${JSON.stringify(args)})`)
-        competitionResultSettle(G,ctx);
+        competitionResultSettle(G, ctx);
     }
 }
 export const drawCard: LongFormMove = {
@@ -227,8 +298,11 @@ export const chooseHand: LongFormMove = {
             case "refactor":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
-                pub.vp += (card.vp + curCard(G).vp);
-                if(pub.vp < 0){
+                let cur = curCard(G);
+                if (cur.type !== CardType.V) {
+                    pub.vp += (card.vp + cur.vp);
+                }
+                if (pub.vp < 0) {
                     pub.vp = 0;
                 }
                 doBuy(G, ctx, B05, p);
@@ -338,7 +412,7 @@ export interface IRegionChooseArg {
     p: PlayerID,
 }
 
-export const chooseRegion = {
+export const chooseRegion: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, arg: IRegionChooseArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
@@ -352,42 +426,34 @@ export const chooseRegion = {
         log += JSON.stringify(eff);
         logger.debug(log)
         let p = arg.p;
-        let built = false;
+        const totalResource = pub.resource + pub.deposit;
         let reg = G.regions[r]
         switch (eff.e) {
             case "buildStudio":
-                payCost(G,ctx,p,3);
-                if (reg.share > 0) {
-                    pub.shares[r]++
-                    reg.share--;
+                if (totalResource === 3) {
+                    payCost(G, ctx, p, 3);
+                    buildBuildingFor(G, ctx, r, p, "studio")
+                } else {
+                    G.e.regions = [r]
+                    G.e.extraCostToPay = 3;
+                    log += `|total${totalResource}|payAdditionalCost`
+                    G.e.stack.push(eff);
+                    changePlayerStage(G, ctx, "payAdditionalCost", p);
+                    return;
                 }
-                reg.buildings.forEach(slot => {
-                    if (slot.activated && slot.owner === "" && !built) {
-                        slot.owner = p;
-                        slot.content = "studio"
-                        slot.isCinema = false;
-                        G.pub[parseInt(p)].building.studioBuilt = true;
-                        G.e.regions = [];
-                        built = true;
-                    }
-                })
                 break;
             case "buildCinema":
-                payCost(G,ctx,p,3);
-                if (reg.share > 0) {
-                    pub.shares[r]++
-                    reg.share--;
+                if (totalResource === 3) {
+                    payCost(G, ctx, p, 3);
+                    buildBuildingFor(G, ctx, r, p, "cinema")
+                } else {
+                    G.e.regions = [r]
+                    G.e.extraCostToPay = 3;
+                    log += `|total${totalResource}|payAdditionalCost`
+                    G.e.stack.push(eff);
+                    changePlayerStage(G, ctx, "payAdditionalCost", p);
+                    return;
                 }
-                reg.buildings.forEach(slot => {
-                    if (slot.activated && slot.owner === "" && !built) {
-                        slot.owner = p;
-                        slot.content = "cinema"
-                        slot.isCinema = true;
-                        G.pub[parseInt(p)].building.cinemaBuilt = true;
-                        G.e.regions = [];
-                        built = true;
-                    }
-                })
                 break;
             case "loseAnyRegionShare":
                 p = G.c.players[0] as PlayerID;
@@ -751,7 +817,7 @@ export const competitionCard: LongFormMove = {
         logger.info(`p${arg.p}.moves.competitionCard(${JSON.stringify(arg)})`);
         let p = arg.p;
         G.player[parseInt(p)].competitionCards.push(arg.card);
-        G.player[parseInt(p)].hand.splice(arg.idx,1);
+        G.player[parseInt(p)].hand.splice(arg.idx, 1);
         let i = G.competitionInfo;
         if (p === i.atk) {
             i.atkPlayedCard = true;
@@ -805,9 +871,9 @@ export const comment: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`p${arg.p}.moves.comment(${JSON.stringify(arg)})`);
         let slot = ctx.numPlayers > SimpleRuleNumPlayers
-            ?cardSlotOnBoard(G,ctx,getCardById(arg.target))
-            : cardSlotOnBoard2p(G,ctx,getCardById(arg.target));
-        if(slot === null){
+            ? cardSlotOnBoard(G, ctx, getCardById(arg.target))
+            : cardSlotOnBoard2p(G, ctx, getCardById(arg.target));
+        if (slot === null) {
             return INVALID_MOVE
         }
         if (arg.comment === null) {

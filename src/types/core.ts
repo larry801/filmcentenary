@@ -93,6 +93,9 @@ export interface IFilmCard extends INormalOrLegendCard {
 
 export type EffectNames  = SimpleEffectNames|ScoringEffectNames|NoExecutorEffectNames|InteractiveEffectNames;
 export enum InteractiveEffectNames {
+    aestheticsLevelUpCost="aestheticsLevelUpCost",
+    industryLevelUpCost="industryLevelUpCost",
+    payAdditionalCost="payAdditionalCost",
     buildingNA="buildingNA",
     era="era",
     breakthroughResDeduct="breakthroughResDeduct",
@@ -164,9 +167,7 @@ export enum SimpleEffectNames {
     draw="draw",
     buy="buy",
     buyCardToHand="buyCardToHand",
-    aestheticsLevelUpCost="aestheticsLevelUpCost",
     aestheticsLevelUp="aestheticsLevelUp",
-    industryLevelUpCost="industryLevelUpCost",
     industryLevelUp="industryLevelUp",
     industryAward="industryAward",
     aesAward="aesAward",
@@ -540,7 +541,7 @@ export const ShareOnBoard = {
 }
 export const LegendCardCountInUse = {
     0:[1,2,3],
-    1:[1,1,2],
+    1:[1,2,2],
     2:[1,1,2],
     3:[0,1,2],
 }
