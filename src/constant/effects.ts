@@ -1149,8 +1149,9 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "choice", a:
+            e: "era", a:
                 [
+                    noEff,
                     {
                         e: "step", a:
                             [
