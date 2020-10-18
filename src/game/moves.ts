@@ -751,6 +751,7 @@ export const competitionCard: LongFormMove = {
         logger.info(`p${arg.p}.moves.competitionCard(${JSON.stringify(arg)})`);
         let p = arg.p;
         G.player[parseInt(p)].competitionCards.push(arg.card);
+        G.player[parseInt(p)].hand.splice(arg.idx,1);
         let i = G.competitionInfo;
         if (p === i.atk) {
             i.atkPlayedCard = true;
