@@ -551,7 +551,7 @@ export const requestEndTurn: LongFormMove = {
     undoable: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        logger.info(`p${arg}.moves.requestEndTurn(${arg})`);
+        logger.info(`p${arg}.moves.requestEndTurn("${arg}")`);
         let log = `requestEndTurn|${arg}`
         // Clean up
         let obj = G.pub[parseInt(arg)]
