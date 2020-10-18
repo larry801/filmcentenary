@@ -2139,7 +2139,9 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
 export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     let log = `addVp|${p}|${vp}`
     let obj = G.pub[parseInt(p)];
+    log += `|prev|${obj.vp}`
     obj.vp += vp;
+    log += `|after|${obj.vp}`
     let count = 0;
     if (obj.vp >= 60 && !obj.vpAward.v60) {
         log += `|v60`
@@ -2190,20 +2192,23 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
 }
 
 export const buildBuildingFor = (G: IG, ctx: Ctx, r: validRegion, p: PlayerID, building: string): void => {
+    let log = `buildBuildingFor|p${p}|${r}`
     const pub = G.pub[parseInt(p)];
     const reg = G.regions[r]
+    const isCinema = building === "cinema";
     if (reg.share > 0) {
         pub.shares[r]++
         reg.share--;
     }
+    let built = false;
     reg.buildings.forEach(slot => {
-        if (slot.activated && slot.owner === "") {
+        if (slot.activated && slot.owner === "" && !built) {
             slot.owner = p;
             slot.content = building
-            slot.isCinema = true;
+            slot.isCinema = isCinema;
             G.pub[parseInt(p)].building.cinemaBuilt = true;
             G.e.regions = [];
-            return
+            built = true;
         }
     })
 }

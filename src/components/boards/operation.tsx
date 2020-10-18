@@ -46,7 +46,12 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         inferDeckRemoveHelper(result, pub.discard);
         inferDeckRemoveHelper(result, pub.archive);
         inferDeckRemoveHelper(result, playerObj.hand);
-        // TODO remove any school card
+        if(pub.school!==null){
+            let sIndex = result.indexOf(pub.school)
+            if(sIndex!==-1){
+                result.splice(sIndex,1);
+            }
+        }
         return result;
     }
 

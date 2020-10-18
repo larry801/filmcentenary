@@ -22,6 +22,12 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         let result = [...i.allCards]
         inferDeckRemoveHelper(result,i.discard)
         inferDeckRemoveHelper(result,i.archive)
+        if(i.school!==null){
+            let sIndex = result.indexOf(i.school)
+            if(sIndex!==-1){
+                result.splice(sIndex,1);
+            }
+        }
         return result;
     }
 
