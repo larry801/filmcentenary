@@ -105,7 +105,8 @@ let initialDeck = [
     BasicCardID.B07, BasicCardID.B07
 ];
 // @ts-ignore
-// initialDeck = ["P1302","B02","B07","B07",]
+// initialDeck = ["F2109","B02","B07","B07",]
+
 export const initialScore = {
     card: 0,
     building: 0,
@@ -118,6 +119,28 @@ export const initialScore = {
 
 function pubPlayer(): IPubInfo {
     return {
+        industry: 0,
+        aesthetics: 0,
+        resource: 0,
+        deposit: 0,
+        action: 1,
+        discardInSettle: false,
+        scoreEvents: [],
+        vpAward: {
+            v60: false,
+            v90: false,
+            v120: false,
+            v150: false,
+        },
+        building: {
+            cinemaBuilt: false,
+            studioBuilt: false,
+        },
+        champions: [],
+        allCards: initialDeck,
+        archive: [],
+        discard: [],
+        playedCardInTurn: [],
         finalScoring: {...initialScore},
         revealedHand: [],
         school: null,

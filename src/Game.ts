@@ -23,14 +23,14 @@ import {getExtraScoreForFinal} from "./game/util";
 import {enumerateMoves} from "./game/ai";
 
 export enum Player {
-    'P0'='0',
-    'P1'='1',
-    'P2'='2',
-    'P3'='3',
-    'spectate' ='spectate',
+    'P0' = '0',
+    'P1' = '1',
+    'P2' = '2',
+    'P3' = '3',
+    'spectate' = 'spectate',
 }
 
-export const nameOf = (p:Player) => {
+export const nameOf = (p: Player) => {
     switch (p) {
         case Player.P0:
             return "Red"
@@ -44,8 +44,8 @@ export const nameOf = (p:Player) => {
 }
 
 export const FilmCentenaryGame: Game<IG> = {
-    ai:{
-        enumerate:enumerateMoves
+    ai: {
+        enumerate: enumerateMoves
     },
     setup: setup,
     name: "FilmCentenary",
@@ -55,30 +55,30 @@ export const FilmCentenaryGame: Game<IG> = {
     },
     minPlayers: 2,
     maxPlayers: 4,
-    playerView: (G:IG, ctx:Ctx, playerID:PlayerID|null) => {
+    playerView: (G: IG, ctx: Ctx, playerID: PlayerID | null) => {
         let r = {...G};
         let newPlayerObj = []
         for (let p = 0; p < r.player.length; p++) {
             let oldPlayerPrivateInfo = G.player[p];
-            let isEmpty = G.secretInfo.playerDecks[p].length===0 && G.pub[p].discard.length === 0;
-            getExtraScoreForFinal(G,ctx,p.toString());
+            let isEmpty = G.secretInfo.playerDecks[p].length === 0 && G.pub[p].discard.length === 0;
+            getExtraScoreForFinal(r, ctx, p.toString());
             if (p.toString() !== playerID) {
                 newPlayerObj.push({
-                    hand :oldPlayerPrivateInfo.hand,
+                    hand: oldPlayerPrivateInfo.hand,
                     handSize: oldPlayerPrivateInfo.hand.length,
-                    finalScoringExtraVp:0,
-                    cardsToPeek :oldPlayerPrivateInfo.cardsToPeek,
-                    competitionCards:oldPlayerPrivateInfo.competitionCards,
-                    deckEmpty:isEmpty,
+                    finalScoringExtraVp: 0,
+                    cardsToPeek: oldPlayerPrivateInfo.cardsToPeek,
+                    competitionCards: oldPlayerPrivateInfo.competitionCards,
+                    deckEmpty: isEmpty,
                 });
-            }else {
+            } else {
                 newPlayerObj.push({
-                    hand:oldPlayerPrivateInfo.hand,
-                    cardsToPeek :oldPlayerPrivateInfo.cardsToPeek,
-                    competitionCards :oldPlayerPrivateInfo.cardsToPeek,
+                    hand: oldPlayerPrivateInfo.hand,
+                    cardsToPeek: oldPlayerPrivateInfo.cardsToPeek,
+                    competitionCards: oldPlayerPrivateInfo.cardsToPeek,
                     handSize: oldPlayerPrivateInfo.hand.length,
-                    finalScoringExtraVp:0,
-                    deckEmpty:isEmpty,
+                    finalScoringExtraVp: 0,
+                    deckEmpty: isEmpty,
                 });
             }
         }
@@ -105,24 +105,24 @@ export const FilmCentenaryGame: Game<IG> = {
         requestEndTurn: requestEndTurn,
         updateSlot: updateSlot,
         comment: comment,
-        peek:peek,
+        peek: peek,
     },
 
     endIf: (G: IG, ctx: Ctx) => {
         let championRequiredForAutoWin = ctx.numPlayers > 3 ? 6 : 5;
         Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).forEach(
             p => {
-                if(G.pub[parseInt(p)].champions
+                if (G.pub[parseInt(p)].champions
                     .filter(c => c.region === Region.NA)
-                    .length === 3){
-                    return {winner: p,reason:"threeNAChampionAutoWin"}
+                    .length === 3) {
+                    return {winner: p, reason: "threeNAChampionAutoWin"}
                 }
             }
         )
         Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).forEach(
             p => {
                 if (G.pub[parseInt(p)].champions.length === championRequiredForAutoWin) {
-                    return {winner: p,reason:"championCountAutoWin"}
+                    return {winner: p, reason: "championCountAutoWin"}
                 }
             }
         )
