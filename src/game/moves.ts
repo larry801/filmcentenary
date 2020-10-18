@@ -269,7 +269,6 @@ export const chooseHand: LongFormMove = {
         let card: IBasicCard | INormalOrLegendCard = getCardById(arg.hand);
         switch (eff.e) {
             case "breakthroughResDeduct":
-                pub.action--;
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
                 if (arg.hand === FilmCardID.F1108) {
