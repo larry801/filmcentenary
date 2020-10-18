@@ -536,7 +536,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "The Maltese Falcon",
         cardId: FilmCardID.F2113,
-        cost: cost(5, 3, 3),
+        cost: cost(5, 3, 1),
         vp: 5,
         category: CardCategory.NORMAL,
         industry: 1,
