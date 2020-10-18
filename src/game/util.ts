@@ -2093,7 +2093,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         let newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3204);
         if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
             G.pub[parseInt(newWavePlayer)].discardInSettle = false;
-            G.pub[parseInt(newWavePlayer)].vp++;
+            addVp(G, ctx, newWavePlayer, 1);
             drawCardForPlayer(G, ctx, newWavePlayer)
             log += `|newWave|p${newWavePlayer}|drawCard`
         }
@@ -2167,6 +2167,8 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
         G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count})
         logger.debug(log);
         playerEffExec(G, ctx, p);
+    }else {
+        logger.debug(log);
     }
 }
 export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
