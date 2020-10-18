@@ -1439,13 +1439,13 @@ export function canAfford(G: IG, ctx: Ctx, card: CardID, p: PlayerID) {
         helper: G.player[parseInt(p)].hand,
         resource: 0,
         deposit: 0
-    }, false)
+    })
     return pub.deposit + pub.resource >= res;
 }
 
 export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     let pub = G.pub[parseInt(arg.buyer)];
-    let resRequired = resCost(G, ctx, arg, false);
+    let resRequired = resCost(G, ctx, arg);
     let resGiven: number = arg.resource + arg.deposit;
     return resRequired === resGiven && pub.resource >= arg.resource && pub.deposit >= arg.deposit;
 }
