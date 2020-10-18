@@ -766,6 +766,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 break;
             }
         case "competition":
+            if(pub.resource < 1){
+                break;
+            }else {
+                pub.resource --;
+            }
             players = seqFromCurrentPlayer(G, ctx);
             let ownIndex = players.indexOf(p)
             if (ownIndex !== -1) {
