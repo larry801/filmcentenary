@@ -278,6 +278,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                             G.pub[parseInt(playerID)].action > 0
                             && !G.player[parseInt(playerID)].deckEmpty
                             && !G.pending.endTurn
+                            && noStage
                         }
                         title={i18n.action.draw} toggleText={i18n.action.draw}
                     />
