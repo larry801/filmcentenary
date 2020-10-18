@@ -7,7 +7,7 @@ import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
 import {PubPanel} from "./pub";
-import {BasicCardID, ICardSlot, Region, SimpleRuleNumPlayers, ValidRegions} from "../types/core";
+import {BasicCardID, EventCardID, ICardSlot, IPubInfo, Region, SimpleRuleNumPlayers, ValidRegions} from "../types/core";
 import Grid from "@material-ui/core/Grid"
 import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
@@ -192,7 +192,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             <Grid item xs={4}>
                 <Typography>{`${i18n.pub.events}(${G.secretInfo.events.length})`}</Typography
                 ></Grid>
-            {G.events.map((e, idx) => <Grid key={idx} item xs={4}>
+            {G.events.map((e:EventCardID, idx:number) => <Grid key={idx} item xs={4}>
                 <Paper key={idx} elevation={5}>
                     <Typography>{getCardName(e)}</Typography>
                     <Typography>{i18n.eventName[e]}</Typography>
@@ -210,7 +210,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         </Grid>
         <FinalScoreTable G={G} ctx={ctx}/>
 
-        {G.pub.map((u, idx) =>
+        {G.pub.map((u:IPubInfo, idx:number) =>
             <Grid container key={idx}>
                 <Grid item xs={4} sm={3} md={2} lg={1}><Typography>{getName(idx.toString())}</Typography></Grid>
                 <Grid item xs={4} sm={3} md={2}

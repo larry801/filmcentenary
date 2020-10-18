@@ -1522,26 +1522,29 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
         }
     }
 }
-export const canHelp = (target: ClassicCardID | BasicCardID, helper: CardID): boolean => {
-    let helperCard = getCardById(helper);
-    let targetCard = getCardById(target)
+export const canHelp = (G:IG,ctx:Ctx,p:PlayerID,target: ClassicCardID | BasicCardID, helper: CardID): boolean => {
+    const pub = G.pub[parseInt(p)];
+    const helperCard = getCardById(helper);
+    const targetCard = getCardById(target);
+    const aesMark = pub.aesthetics < targetCard.cost.aesthetics && helperCard.aesthetics > 0;;
+    const industryMark = pub.industry < targetCard.cost.industry && helperCard.industry > 0;
     if (targetCard.cost.industry === 0) {
         if (targetCard.cost.aesthetics === 0) {
             return false;
         } else {
-            return helperCard.aesthetics > 0;
+            return aesMark;
         }
     } else {
         if (targetCard.cost.aesthetics === 0) {
-            return helperCard.industry > 0;
+            return industryMark
         } else {
-            return helperCard.aesthetics > 0 || helperCard.industry > 0;
+            return industryMark || aesMark;
         }
     }
 }
 
 export const getPossibleHelper = (G: IG, ctx: Ctx, p: PlayerID, card: CardID): CardID[] => {
-    return G.player[parseInt(p)].hand.filter((h) => canHelp(card as BasicCardID, h))
+    return G.player[parseInt(p)].hand.filter((h) => canHelp(G,ctx,p,card as BasicCardID, h))
 }
 
 export const do2pUpdateSchoolSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
