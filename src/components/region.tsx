@@ -168,19 +168,11 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
         }
     }
 
-    const content = (isCinema: boolean): string => {
-        if (isCinema) {
-            return i18n.pub.cinema;
-        } else {
-            return i18n.pub.studio;
-        }
-    }
-
     const buildingSlots = region.buildings.map((slot, idx) => {
         if (slot.activated) {
             return (<Grid item xs={2} sm={1} key={`building-slot-${idx}`}>
                 <Paper>
-                    <Typography> {slot.owner !== "" ? content(slot.isCinema) : ""}</Typography>
+                    <Typography> {slot.building !== null ? i18n.pub[slot.building] : ""}</Typography>
                     <Typography>{playerName(slot.owner)}</Typography>
                 </Paper>
             </Grid>)

@@ -2,6 +2,7 @@ import {Ctx, LongFormMove, PlayerID} from 'boardgame.io';
 import {CompetitionInfo, IG} from "../types/setup";
 import {
     BasicCardID,
+    BuildingType,
     CardID,
     CardType,
     ClassicCardID,
@@ -20,7 +21,8 @@ import {
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
-    activePlayer, addVp,
+    activePlayer,
+    addVp,
     aesAward,
     atkCardSettle,
     buildBuildingFor,
@@ -52,7 +54,8 @@ import {
     fillTwoPlayerBoard,
     industryAward,
     isSimpleEffect,
-    logger, loseVp,
+    logger,
+    loseVp,
     payCost,
     playerEffExec,
     schoolPlayer,
@@ -100,7 +103,7 @@ export const payAdditionalCost: LongFormMove = {
                     logger.debug(log);
                     return INVALID_MOVE;
                 }
-                buildBuildingFor(G, ctx, r, ctx.playerID, "cinema");
+                buildBuildingFor(G, ctx, r, ctx.playerID, BuildingType.cinema);
                 break;
             case "buildStudio":
                 G.e.regions = [];
@@ -110,7 +113,7 @@ export const payAdditionalCost: LongFormMove = {
                     logger.debug(log);
                     return INVALID_MOVE;
                 }
-                buildBuildingFor(G, ctx, r, ctx.playerID, "studio");
+                buildBuildingFor(G, ctx, r, ctx.playerID, BuildingType.studio);
                 break;
             case "industryLevelUpCost":
                 log += `|industry|${pub.industry}`
@@ -449,7 +452,7 @@ export const chooseRegion: LongFormMove = {
             case "buildStudio":
                 if (totalResource === 3) {
                     payCost(G, ctx, p, 3);
-                    buildBuildingFor(G, ctx, r, p, "studio")
+                    buildBuildingFor(G, ctx, r, p, BuildingType.studio)
                 } else {
                     G.e.regions = [r]
                     G.e.extraCostToPay = 3;
@@ -462,7 +465,7 @@ export const chooseRegion: LongFormMove = {
             case "buildCinema":
                 if (totalResource === 3) {
                     payCost(G, ctx, p, 3);
-                    buildBuildingFor(G, ctx, r, p, "cinema")
+                    buildBuildingFor(G, ctx, r, p, BuildingType.cinema)
                 } else {
                     G.e.regions = [r]
                     G.e.extraCostToPay = 3;

@@ -131,6 +131,18 @@ export enum InteractiveEffectNames {
     industryOrAestheticsLevelUp="industryOrAestheticsLevelUp",
     archiveToEEBuildingVP="archiveToEEBuildingVP",
 }
+
+export enum BuildingType {
+    cinema="cinema",
+    studio="studio",
+}
+
+export enum VictoryType {
+    threeNAChampionAutoWin="threeNAChampionAutoWin",
+    championCountAutoWin="championCountAutoWin",
+    finalScoring="finalScoring",
+}
+
 export enum MoveNames {
     requestEndTurn="requestEndTurn",
     showBoardStatus = "showBoardStatus",
@@ -323,10 +335,9 @@ export interface IPrivateInfo {
 
 export interface IBuildingSlot {
     region:Region,
-    content:string,
-    isCinema:boolean
+    building:BuildingType|null,
     activated: boolean,
-    owner: string,
+    owner: PlayerID,
 }
 
 export interface IRegionInfo {

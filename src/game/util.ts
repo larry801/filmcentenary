@@ -1,18 +1,20 @@
 import {
     AllClassicCards,
     BasicCardID,
+    BuildingType,
     CardCategory,
     CardID,
     CardType,
     ClassicCardID,
     EventCardID,
     FilmCardID,
-    IBasicCard,
+    IBasicCard, IBuildingSlot,
     IBuyInfo,
     ICardSlot,
     ICost,
     IEra,
-    INormalOrLegendCard, InteractiveEffectNames,
+    INormalOrLegendCard,
+    InteractiveEffectNames,
     IPubInfo,
     LegendCardCountInUse,
     NormalCardCountInUse,
@@ -24,6 +26,7 @@ import {
     SimpleRuleNumPlayers,
     validRegion,
     ValidRegions,
+    VictoryType,
 } from "../types/core";
 import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
@@ -424,11 +427,11 @@ export const buildingInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boole
 export const studioInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
     if (r === Region.NONE) return false;
     logger.silly(`studioInRegion|r${r}|p${p}`);
-    return G.regions[r].buildings.filter(s => s.content === "studio" && s.owner === p).length > 0;
+    return G.regions[r].buildings.filter(s => s.building === BuildingType.studio && s.owner === p).length > 0;
 }
 export const cinemaInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
     if (r === Region.NONE) return false;
-    return G.regions[r].buildings.filter(s => s.content === "cinema" && s.owner === p).length > 0;
+    return G.regions[r].buildings.filter(s => s.building === BuildingType.cinema && s.owner === p).length > 0;
 }
 export const studioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
@@ -1236,26 +1239,30 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "industryOrAestheticsLevelUp":
             log += `|i${pub.industry}a${pub.aesthetics}`
             if (pub.industry < 10 && pub.aesthetics < 10) {
+                log += `|${JSON.stringify(G.e.choices)}|addChoice`
                 G.e.choices.push({e: "industryLevelUp", a: 1});
                 G.e.choices.push({e: "aestheticsLevelUp", a: 1});
-                log += `|chooseEffect`
                 if (eff.a > 1) {
+                    log += `|moreThanOne|pushBack`
                     eff.a--;
                     G.e.stack.push(eff);
                 }
+                log += `|chooseEffect`
                 logger.debug(log);
                 changePlayerStage(G, ctx, "chooseEffect", p);
                 return;
             } else {
                 if (pub.industry < 10) {
-                    log += `|i${pub.industry}`
+                    log += `|aesthetics10AddIndustry`
                     pub.industry++;
+                    log += `|i${pub.industry}`
                 } else {
                     if (pub.aesthetics < 10) {
-                        log += `|i${pub.aesthetics}`
+                        log += `|Industry10AddAesthetics`
                         pub.aesthetics++;
+                        log += `|i${pub.aesthetics}`
                     } else {
-                        log += "|skip"
+                        log += "|bothLV10|skip"
                     }
                 }
                 if (eff.a > 1) {
@@ -1432,7 +1439,7 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true)
     }
     log += `|${resRequired}`;
     if (showLog) {
-        logger.debug(log);
+        logger.silly(log);
     }
     return resRequired;
 }
@@ -2165,13 +2172,11 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
         G.pending.lastRoundOfGame = true;
     }
     if (count > 0) {
-        log += `|iORaLevelUp`
+        log += `|stack|${JSON.stringify(G.e.stack)}`
         G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count})
-        logger.debug(log);
-        playerEffExec(G, ctx, p);
-    }else {
-        logger.debug(log);
+        log += `|push|industryOrAestheticsLevelUp`
     }
+    logger.debug(log);
 }
 export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     let log = `loseVp|${p}|${vp}`
@@ -2191,26 +2196,30 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     logger.debug(log);
 }
 
-export const buildBuildingFor = (G: IG, ctx: Ctx, r: validRegion, p: PlayerID, building: string): void => {
+export const buildBuildingFor = (G: IG, ctx: Ctx, r: validRegion, p: PlayerID, building: BuildingType): void => {
     let log = `buildBuildingFor|p${p}|${r}`
     const pub = G.pub[parseInt(p)];
     const reg = G.regions[r]
-    const isCinema = building === "cinema";
     if (reg.share > 0) {
         pub.shares[r]++
         reg.share--;
     }
     let built = false;
-    reg.buildings.forEach(slot => {
+    reg.buildings.forEach((slot:IBuildingSlot,idx:number) => {
         if (slot.activated && slot.owner === "" && !built) {
             slot.owner = p;
-            slot.content = building
-            slot.isCinema = isCinema;
-            G.pub[parseInt(p)].building.cinemaBuilt = true;
-            G.e.regions = [];
+            if(building === BuildingType.cinema){
+                log += `|cinema`
+                pub.building.cinemaBuilt = true;
+            }else {
+                log += `|studio`
+                pub.building.studioBuilt = true;
+            }
+            log += `|built|on|slot${idx}`
             built = true;
         }
     })
+    logger.debug(log);
 }
 
 export const competitionCleanUp = (G: IG, ctx: Ctx) => {
@@ -2488,9 +2497,8 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     let i = parseInt(pid);
     let p = G.pub[i];
     let s = G.player[i];
-    let f = p.finalScoring;
     cleanUpScore(G, ctx, pid);
-
+    let f = p.finalScoring;
     if (p.school !== null) {
         f.card += getCardById(p.school).vp;
     }
@@ -2651,7 +2659,7 @@ export const finalScoring = (G: IG, ctx: Ctx) => {
     let finalRank = pid.sort(rankFunc);
     ctx?.events?.endGame?.({
         winner: finalRank[0].toString(),
-        reason: "finalScoring",
+        reason: VictoryType.finalScoring,
     })
 }
 
