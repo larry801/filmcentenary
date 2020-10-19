@@ -175,11 +175,11 @@ export const NormalTurn: TurnConfig = {
 
 export const NormalPhase: PhaseConfig = {
     turn: NormalTurn,
-    // start: true,
+    start: true,
 }
 
 export const InitPhase: PhaseConfig = {
-    start: true,
+    // start: true,
     turn: {
         order: TurnOrder.CUSTOM_FROM("order"),
         stages: {

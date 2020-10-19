@@ -20,7 +20,7 @@ import FormControl from "@material-ui/core/FormControl";
 import Checkbox from "@material-ui/core/Checkbox";
 import DialogActions from "@material-ui/core/DialogActions";
 import {getCardById} from "../types/cards";
-import {CardEffect, CardInfo} from "./card";
+import {CardInfo} from "./card";
 
 export interface IBuyDialogProps {
     card: ClassicCardID | BasicCardID,

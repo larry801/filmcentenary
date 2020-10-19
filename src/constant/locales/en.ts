@@ -222,7 +222,7 @@ const argTimes = {
 }
 const argPeek = {
     args: (arg: IPeekArgs[]) => {
-        return ""
+        return "Peeked cards on top of the deck"
     }
 }
 const argShowCompetitionResult = {

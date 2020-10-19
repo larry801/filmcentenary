@@ -960,26 +960,37 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             return;
         case "peek":
             let peekCount = eff.a.count;
+            log += `|peek|${peekCount}`
             let deck = G.secretInfo.playerDecks[curPid(G, ctx)];
             len = deck.length;
+            log += `|len|${len}`
+            const totalRemainCards = len + pub.discard.length
+            if(totalRemainCards < peekCount){
+                log += `|total|${totalRemainCards}`
+                log += `|noEnoughCardsToPeek`
+                peekCount = totalRemainCards
+            }
             if (len < peekCount) {
-                playerObj.cardsToPeek = deck;
+                log += `|drawExisting|${JSON.stringify(deck)}`
+                playerObj.cardsToPeek = [...deck];
                 deck = [];
                 deck = shuffle(ctx, pub.discard);
                 pub.discard = [];
-                let newCardId = deck.pop();
-                if (newCardId === undefined) {
-                    return;
-                }
                 for (let i = 0; i < peekCount - len; i++) {
+                    let newCardId = deck.pop();
+                    if (newCardId === undefined) {
+                        throw Error("Should have card");
+                    }
+                    log += `|${newCardId}`
                     playerObj.cardsToPeek.push(newCardId);
                 }
             } else {
-                let newCardId = deck.pop();
-                if (newCardId === undefined) {
-                    return;
-                }
                 for (let i = 0; i < peekCount; i++) {
+                    let newCardId = deck.pop();
+                    log += `|${newCardId}`
+                    if(newCardId===undefined){
+                        throw Error("Should have card");
+                    }
                     playerObj.cardsToPeek.push(newCardId);
                 }
             }

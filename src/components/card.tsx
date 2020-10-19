@@ -10,7 +10,6 @@ import {
     scoreEffectText
 } from "../game/util";
 import i18n from "../constant/i18n";
-import AccordionSummary from "@material-ui/core/AccordionSummary";
 import {getCardById} from "../types/cards";
 
 export interface ICardEffectProps {

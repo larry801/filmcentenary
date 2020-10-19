@@ -58,7 +58,7 @@ import {
     loseVp,
     payCost,
     playerEffExec,
-    schoolPlayer, seqFromCurrentPlayer,
+    schoolPlayer,
     simpleEffectExec,
     startBreakThrough,
     startCompetition,

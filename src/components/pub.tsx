@@ -9,7 +9,7 @@ import {getCardName, inferDeckRemoveHelper} from "../game/util";
 import {IG} from "../types/setup";
 import shortid from "shortid";
 import {getCardById} from "../types/cards";
-import {CardEffect, CardInfo} from "./card";
+import {CardInfo} from "./card";
 
 export interface IPubPanelProps {
     i: IPubInfo,

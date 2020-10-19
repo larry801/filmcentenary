@@ -10,7 +10,6 @@ import Typography from "@material-ui/core/Typography";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import Button from "@material-ui/core/Button";
 import shortid from "shortid";
-import {getCardById} from "../types/cards";
 import {CardInfo} from "./card";
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
