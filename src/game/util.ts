@@ -1464,7 +1464,7 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true)
     }
     log += `|${resRequired}`;
     if (showLog) {
-        logger.silly(log);
+        logger.debug(log);
     }
     return resRequired;
 }
