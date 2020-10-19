@@ -362,6 +362,11 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         G.pub[parseInt(G.order[2])].vp = 1;
         G.pub[parseInt(G.order[3])].vp = 2;
     }
+    if(ctx.numPlayers ===3){
+        G.regions["0"].share --;
+        G.regions["1"].share --;
+        G.regions["2"].share --;
+    }
     if (ctx.numPlayers === SimpleRuleNumPlayers) {
         G.regions[Region.NA].share = 12;
         G.regions[Region.WE].share = 10;

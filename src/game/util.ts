@@ -87,7 +87,7 @@ export const actualStage = (G: IG, ctx: Ctx,): string => {
     }
 }
 
-export const requireInteraction = (G:IG, eff: any): boolean => {
+export const requireInteraction = (G: IG, eff: any): boolean => {
     switch (eff.e) {
         case "step":
             return eff.e.a.every((e: any): boolean => requireInteraction(G, e));
@@ -96,7 +96,7 @@ export const requireInteraction = (G:IG, eff: any): boolean => {
     }
 }
 
-export const isSimpleEffect = (G:IG,eff: any): boolean => {
+export const isSimpleEffect = (G: IG, eff: any): boolean => {
     let log = `isSimpleEffect|${eff.e}`;
     switch (eff.e) {
         case "alternative":
@@ -626,7 +626,7 @@ export const inferDeckRemoveHelper = (result: CardID[], remove: CardID[]): void 
     })
 }
 
-export const breakthroughEffectPrepare = (G: IG,card:CardID): void => {
+export const breakthroughEffectPrepare = (G: IG, card: CardID): void => {
     let log = "breakthroughEffectPrepare"
     let c = getCardById(card);
     let i = c.industry
@@ -659,7 +659,7 @@ export const breakthroughEffectPrepare = (G: IG,card:CardID): void => {
     }
 }
 
-export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card:CardID): void => {
+export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID): void => {
     let p = curPub(G, ctx);
     let c = getCardById(card)
     let log = `startBreakThrough|p${pid}|${card}`
@@ -690,7 +690,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card:CardID): 
     }
     log += `|breakthroughEffectPrepare`
     logger.debug(`${G.matchID}|${log}`);
-    breakthroughEffectPrepare(G,card);
+    breakthroughEffectPrepare(G, card);
     let eff = getCardEffect(c.cardId).archive;
     if (c.cardId !== FilmCardID.F1108) {
         if (eff.e !== "none") {
@@ -1778,7 +1778,7 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
     logger.debug(`${G.matchID}|${log}`);
 }
 
-export const additionalCostForUpgrade = (G:IG, level: number): number => {
+export const additionalCostForUpgrade = (G: IG, level: number): number => {
     let log = `additionalCostForUpgrade|${level}`
     if (level <= 2) {
         log += `|cost:0`
@@ -1968,8 +1968,14 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         region: r,
     })
     let scoreCount = scoreCardCount(r, era);
+
     log += `|scoreCount:${scoreCount}`;
     let scoreCardPlayerCount = Math.min(rankResult.length, scoreCount)
+    if (ctx.numPlayers === 3) {
+        if (scoreCardPlayerCount > 2) {
+            scoreCardPlayerCount = 2;
+        }
+    }
     log += `|scoreCardPlayerCount:${scoreCardPlayerCount}`
     for (let i = 0; i < scoreCardPlayerCount; i++) {
         let scoreId = "V" + (era + 1).toString() + (r + 1).toString() + (i + 1).toString()
@@ -2457,15 +2463,20 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
         region.era = newEra;
         drawForRegion(G, ctx, r, newEra);
         region.share = ShareOnBoard[r][newEra];
+        if (ctx.numPlayers === 3) {
+            region.share--;
+        }
     }
     if (era === IEra.TWO) {
         log += `|IEra.THREE`
         newEra = IEra.THREE;
-
         region.share = ShareOnBoard[r][newEra];
         region.era = newEra;
         newEra = IEra.THREE;
         drawForRegion(G, ctx, r, newEra);
+        if (ctx.numPlayers === 3) {
+            region.share--;
+        }
     }
     if (era === IEra.THREE) {
         log += `|completedModernScoring`
