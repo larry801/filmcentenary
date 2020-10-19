@@ -105,17 +105,7 @@ let initialDeck = [
     BasicCardID.B07, BasicCardID.B07
 ];
 // @ts-ignore
-// initialDeck = ["F2109","B02","B07","B07",]
-
-export const initialScore = {
-    card: 0,
-    building: 0,
-    industryAward: 0,
-    aestheticsAward: 0,
-    archive: 0,
-    events: 0,
-    total: 0,
-}
+// initialDeck = ["P1201","B02","B07","B07",]
 
 function pubPlayer(): IPubInfo {
     return {
@@ -141,7 +131,15 @@ function pubPlayer(): IPubInfo {
         archive: [],
         discard: [],
         playedCardInTurn: [],
-        finalScoring: {...initialScore},
+        finalScoring: {
+            card: 0,
+            building: 0,
+            industryAward: 0,
+            aestheticsAward: 0,
+            archive: 0,
+            events: 0,
+            total: 0,
+        },
         revealedHand: [],
         school: null,
         shares: {
@@ -182,9 +180,8 @@ function emptyLegendCardSlot(region: Region): ICardSlot {
 
 function emptyBuildingSlot(region: Region, activated: boolean = true): IBuildingSlot {
     return {
+        building:null,
         region: region,
-        content: "",
-        isCinema: false,
         activated: activated,
         owner: "",
     }

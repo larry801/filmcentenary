@@ -18,7 +18,7 @@ import {
     updateSlot
 } from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
-import {Region} from "./types/core";
+import {Region, VictoryType} from "./types/core";
 import {getExtraScoreForFinal} from "./game/util";
 import {enumerateMoves} from "./game/ai";
 
@@ -56,7 +56,7 @@ export const FilmCentenaryGame: Game<IG> = {
     minPlayers: 2,
     maxPlayers: 4,
     playerView: (G: IG, ctx: Ctx, playerID: PlayerID | null) => {
-        let r = {...G};
+        let r = JSON.parse(JSON.stringify(G));
         let newPlayerObj = []
         for (let p = 0; p < r.player.length; p++) {
             let oldPlayerPrivateInfo = G.player[p];
@@ -115,14 +115,14 @@ export const FilmCentenaryGame: Game<IG> = {
                 if (G.pub[parseInt(p)].champions
                     .filter(c => c.region === Region.NA)
                     .length === 3) {
-                    return {winner: p, reason: "threeNAChampionAutoWin"}
+                    return {winner: p, reason: VictoryType.threeNAChampionAutoWin}
                 }
             }
         )
         Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).forEach(
             p => {
                 if (G.pub[parseInt(p)].champions.length === championRequiredForAutoWin) {
-                    return {winner: p, reason: "championCountAutoWin"}
+                    return {winner: p, reason: VictoryType.championCountAutoWin}
                 }
             }
         )
