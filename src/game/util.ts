@@ -87,16 +87,16 @@ export const actualStage = (G: IG, ctx: Ctx,): string => {
     }
 }
 
-export const requireInteraction = (eff: any): boolean => {
+export const requireInteraction = (G:IG, eff: any): boolean => {
     switch (eff.e) {
         case "step":
-            return eff.e.a.every((e: any): boolean => requireInteraction(e));
+            return eff.e.a.every((e: any): boolean => requireInteraction(G, e));
         default:
-            return isSimpleEffect(eff);
+            return isSimpleEffect(G, eff);
     }
 }
 
-export const isSimpleEffect = (eff: any): boolean => {
+export const isSimpleEffect = (G:IG,eff: any): boolean => {
     let log = `isSimpleEffect|${eff.e}`;
     switch (eff.e) {
         case "alternative":
@@ -129,11 +129,11 @@ export const isSimpleEffect = (eff: any): boolean => {
         case "optional":
         case InteractiveEffectNames.archiveToEEBuildingVP:
             log += `|false`
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             return false;
         default:
             log += `|true`
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             return true;
     }
 }
@@ -174,7 +174,7 @@ export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
         log += `|deposit:${depCost}`
         obj.deposit -= depCost
     }
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
@@ -318,7 +318,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             logger.error("Invalid effect" + JSON.stringify(eff));
             throw new Error(JSON.stringify(eff));
     }
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
@@ -418,7 +418,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         }
         obj.allCards.push(card.cardId);
     }
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export const cardInDeck = (G: IG, ctx: Ctx, p: number, cardId: CardID): boolean => {
@@ -464,7 +464,7 @@ export const buildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
 export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     let log = `noBuildingPlayers|${r}`
     if (r === Region.NONE) {
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         return [];
     }
     const allPlayers = seqFromCurrentPlayer(G, ctx);
@@ -475,7 +475,7 @@ export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
         return !hasBuilding
     });
     log += `|result|${result}`
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     return result
 }
 export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
@@ -489,7 +489,7 @@ export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
         return !hasStudio
     });
     log += `|result|${result}`
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     return result
 }
 
@@ -514,7 +514,7 @@ export const seqFromPos = (G: IG, ctx: Ctx, pos: number): PlayerID[] => {
         seq.push(G.order[i])
     }
     log += `|seq:${JSON.stringify(seq)}`
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     return seq;
 }
 export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
@@ -523,7 +523,7 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     log += `|act|p${act}`
     let pos = posOfPlayer(G, ctx, act);
     let seq = seqFromPos(G, ctx, pos);
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     return seq;
 }
 
@@ -532,7 +532,7 @@ export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     log += `|cur|p${ctx.currentPlayer}`
     let pos = posOfPlayer(G, ctx, ctx.currentPlayer);
     let seq = seqFromPos(G, ctx, pos);
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     return seq;
 }
 
@@ -550,7 +550,7 @@ export const industryLowestPlayer = (G: IG): PlayerID[] => {
             result.push(i)
         }
     })
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     return result;
 }
 
@@ -570,7 +570,7 @@ export const aesLowestPlayer = (G: IG): PlayerID[] => {
             result.push(i)
         }
     })
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     return result;
 }
 
@@ -593,7 +593,7 @@ export function vpNotHighestPlayer(G: IG): PlayerID[] {
         }
     })
     log += `|result|${result}`
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     return result;
 }
 
@@ -634,7 +634,7 @@ export const breakthroughEffectPrepare = (G: IG,card:CardID): void => {
     log += `|${c.cardId}|i${i}|a${a}`
     if (i === 0 && a === 0) {
         log += `|noMarker|return`
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         return;
     }
     if (i > 0 && a > 0) {
@@ -645,16 +645,16 @@ export const breakthroughEffectPrepare = (G: IG,card:CardID): void => {
                 aesthetics: c.aesthetics,
             }
         })
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
     } else {
         if (i === 0) {
             log += `|aestheticsBreakthrough`
             G.e.stack.push({e: "aestheticsBreakthrough", a: c.aesthetics})
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
         } else {
             log += `|industryBreakthrough`
             G.e.stack.push({e: "industryBreakthrough", a: c.industry})
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
         }
     }
 }
@@ -681,7 +681,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card:CardID): 
             }
         })
         log += `|playerEffExec`
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         playerEffExec(G, ctx, pid);
         return
     }
@@ -689,7 +689,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card:CardID): 
         addVp(G, ctx, pid, c.vp);
     }
     log += `|breakthroughEffectPrepare`
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     breakthroughEffectPrepare(G,card);
     let eff = getCardEffect(c.cardId).archive;
     if (c.cardId !== FilmCardID.F1108) {
@@ -701,13 +701,13 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card:CardID): 
         }
     }
     log += `|checkNextEffect`
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     checkNextEffect(G, ctx);
 }
 
 export const curEffectExec = (G: IG, ctx: Ctx): void => {
     let log = `curEffExec|${ctx.currentPlayer}`;
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     playerEffExec(G, ctx, ctx.currentPlayer)
 }
 
@@ -723,7 +723,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let eff = G.e.stack.pop();
     if (eff === undefined) {
         log += "|StackEmpty|checkNextEffect"
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         checkNextEffect(G, ctx);
         return;
     }
@@ -741,12 +741,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const totalRes = pub.resource + pub.deposit;
     switch (eff.e) {
         case "aestheticsLevelUpCost":
-            extraCost = additionalCostForUpgrade(pub.aesthetics);
+            extraCost = additionalCostForUpgrade(G, pub.aesthetics);
             log += `|extra|${extraCost}`
             if (extraCost < totalRes && extraCost > 0) {
                 log += `|canChoose|payAdditionalCost`
                 G.e.extraCostToPay = extraCost;
-                logger.debug(log);
+                logger.debug(`${G.matchID}|${log}`);
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "payAdditionalCost", p);
                 return;
@@ -759,12 +759,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             break
         case "industryLevelUpCost":
-            extraCost = additionalCostForUpgrade(pub.industry);
+            extraCost = additionalCostForUpgrade(G, pub.industry);
             log += `|extra|${extraCost}`
             if (extraCost < totalRes && extraCost > 0) {
                 log += `|canChoose|payAdditionalCost`
                 G.e.extraCostToPay = extraCost;
-                logger.debug(log);
+                logger.debug(`${G.matchID}|${log}`);
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "payAdditionalCost", p);
                 return;
@@ -780,12 +780,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             players = ownCardPlayers(G, ctx, eff.a);
             if (players.length === 0) {
                 log += `noPlayerOwn${eff.a}`
-                logger.debug(log);
+                logger.debug(`${G.matchID}|${log}`);
                 break;
             } else {
                 log += `|players${JSON.stringify(players)}`
                 G.e.stack.push(eff);
-                logger.debug(log);
+                logger.debug(`${G.matchID}|${log}`);
                 G.e.currentEffect = eff;
                 changePlayerStage(G, ctx, "confirmRespond", players[0]);
                 return;
@@ -798,7 +798,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             if (playerObj.hand.length > 0 && pub.action > 0) {
                 log += `|chooseHand`
                 G.e.stack.push(eff);
-                logger.debug(log);
+                logger.debug(`${G.matchID}|${log}`);
                 changePlayerStage(G, ctx, "chooseHand", p);
                 return;
             } else {
@@ -809,7 +809,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.stack.push(eff)
                 G.e.currentEffect = eff;
                 log += `|confirmRespond`
-                logger.debug(log);
+                logger.debug(`${G.matchID}|${log}`);
                 changePlayerStage(G, ctx, "confirmRespond", p);
                 return;
             } else {
@@ -848,13 +848,13 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.regions = ValidRegions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
                 if (G.e.regions.length === 0) {
                     log += "|loserNoShare";
-                    logger.debug(log);
+                    logger.debug(`${G.matchID}|${log}`);
                     competitionCleanUp(G, ctx);
                     return;
                 } else {
                     log += `|p${winner}|chooseRegion`
                     G.e.stack.push(eff)
-                    logger.debug(log);
+                    logger.debug(`${G.matchID}|${log}`);
                     changePlayerStage(G, ctx, "chooseRegion", winner);
                     return;
                 }
@@ -871,7 +871,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
         case "noBuildingEE":
             subEffect = eff.a;
-            if (isSimpleEffect(subEffect)) {
+            if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
                 players = noBuildingPlayers(G, ctx, Region.EE);
                 for (let p of players) {
@@ -884,7 +884,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log += `|vpNotHighestPlayer`
             subEffect = eff.a;
             players = vpNotHighestPlayer(G)
-            if (isSimpleEffect(subEffect)) {
+            if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
                 for (let p of players) {
                     G.e.stack.push(subEffect);
@@ -896,7 +896,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log += "|highestVpPlayer"
             subEffect = eff.a;
             players = vpHighestPlayer(G);
-            if (isSimpleEffect(subEffect)) {
+            if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
                 for (let p of players) {
                     G.e.stack.push(subEffect);
@@ -907,7 +907,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "aesLowest":
             subEffect = eff.a;
             players = aesLowestPlayer(G)
-            if (isSimpleEffect(subEffect)) {
+            if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
                 for (let p of players) {
                     G.e.stack.push(subEffect);
@@ -918,7 +918,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "industryLowest":
             subEffect = eff.a;
             players = industryLowestPlayer(G);
-            if (isSimpleEffect(subEffect)) {
+            if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
                 for (let p of players) {
                     G.e.stack.push(subEffect);
@@ -980,13 +980,13 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
             }
             G.e.stack.push(eff)
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             changePlayerStage(G, ctx, "peek", p);
             return;
         case "buildingNA":
             subEffect = eff.a;
             players = buildingPlayers(G, ctx, Region.NA);
-            if (isSimpleEffect(subEffect)) {
+            if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
                 for (let p of players) {
                     G.e.stack.push(subEffect);
@@ -1016,7 +1016,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     let player = G.e.pendingPlayers.shift() as PlayerID;
                     log += `|left|${G.e.pendingPlayers}`
                     log += `|execFor|p${player}`
-                    logger.debug(log);
+                    logger.debug(`${G.matchID}|${log}`);
                     playerEffExec(G, ctx, player);
                     return;
                 }
@@ -1025,7 +1025,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "everyOtherCompany":
             log += `|everyOtherCompany`
             subEffect = eff.a;
-            if (isSimpleEffect(subEffect)) {
+            if (isSimpleEffect(G, subEffect)) {
                 for (let p of G.e.pendingPlayers) {
                     G.e.stack.push(eff.a);
                     simpleEffectExec(G, ctx, p);
@@ -1041,7 +1041,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     }
                     let player = G.e.pendingPlayers.shift() as PlayerID;
                     G.e.stack.push(eff.a);
-                    logger.debug(log);
+                    logger.debug(`${G.matchID}|${log}`);
                     playerEffExec(G, ctx, player);
                     return;
                 }
@@ -1050,7 +1050,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "everyPlayer":
             log += "|everyPlayer"
             subEffect = eff.a;
-            if (isSimpleEffect(subEffect)) {
+            if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
                 players = seqFromCurrentPlayer(G, ctx);
                 for (let p of players) {
@@ -1065,7 +1065,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     log += `|${JSON.stringify(G.e.pendingPlayers)}`
                     G.e.stack.push(eff);
                     log += "|pushBack"
-                    logger.debug(log);
+                    logger.debug(`${G.matchID}|${log}`);
                 } else {
                     log += "|complexEffect"
                     if (G.e.pendingPlayers.length !== 1) {
@@ -1073,7 +1073,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     }
                     let player = G.e.pendingPlayers.shift() as PlayerID;
                     G.e.stack.push(subEffect);
-                    logger.debug(log);
+                    logger.debug(`${G.matchID}|${log}`);
                     playerEffExec(G, ctx, player);
                     return;
                 }
@@ -1088,14 +1088,14 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             G.c.players = players;
             G.e.stack.push(eff.a);
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             changePlayerStage(G, ctx, "chooseTarget", p);
             return;
         case "studio":
             subEffect = eff.a;
             players = studioPlayers(G, ctx, region);
             log += `|region:${region}|studioPlayers|${JSON.stringify(players)}`
-            if (isSimpleEffect(subEffect)) {
+            if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
                 for (let p of players) {
                     G.e.stack.push(subEffect);
@@ -1123,7 +1123,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     let player = G.e.pendingPlayers.shift() as PlayerID;
                     log += `|left|${G.e.pendingPlayers}`
                     log += `|execFor|p${player}`
-                    logger.debug(log);
+                    logger.debug(`${G.matchID}|${log}`);
                     playerEffExec(G, ctx, player);
                     return;
                 }
@@ -1144,7 +1144,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.stack.push(eff);
                 log += (`|Has classic cards|changePlayerStage|${p}`)
                 changePlayerStage(G, ctx, "chooseHand", p);
-                logger.debug(log);
+                logger.debug(`${G.matchID}|${log}`);
                 return;
             } else {
                 pub.revealedHand = [...playerObj.hand]
@@ -1222,15 +1222,15 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 if (G.e.choices.length === 1) {
                     G.e.stack.push(G.e.choices.pop());
                     log += `|oneEffectValid|Exec`
-                    logger.debug(log);
+                    logger.debug(`${G.matchID}|${log}`);
                     checkNextEffect(G, ctx);
                 } else {
-                    logger.debug(log);
+                    logger.debug(`${G.matchID}|${log}`);
                     changePlayerStage(G, ctx, "chooseEffect", p);
                     return;
                 }
             }
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             return;
         case "update":
             changePlayerStage(G, ctx, "updateSlot", p);
@@ -1267,7 +1267,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         break
                     }
                 default:
-                    logger.debug(log);
+                    logger.debug(`${G.matchID}|${log}`);
                     throw new Error();
             }
             break;
@@ -1278,7 +1278,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             } else {
                 G.e.stack.push(eff);
                 G.e.currentEffect = eff;
-                logger.debug(log);
+                logger.debug(`${G.matchID}|${log}`);
                 changePlayerStage(G, ctx, "confirmRespond", p);
                 return;
             }
@@ -1299,7 +1299,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     G.e.stack.push(eff);
                 }
                 log += `|chooseEffect`
-                logger.debug(log);
+                logger.debug(`${G.matchID}|${log}`);
                 changePlayerStage(G, ctx, "chooseEffect", targetPlayer);
                 return;
             } else {
@@ -1325,7 +1325,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "archiveToEEBuildingVP":
             G.e.stack.push(eff);
             log += `|chooseHand`
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             changePlayerStage(G, ctx, "chooseHand", p);
             return;
         case "industryBreakthrough":
@@ -1334,7 +1334,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 eff.a--;
                 G.e.stack.push(eff);
             }
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             doIndustryBreakthrough(G, ctx, p);
             return;
         case "aestheticsBreakthrough":
@@ -1343,12 +1343,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 eff.a--;
                 G.e.stack.push(eff);
             }
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             doAestheticsBreakthrough(G, ctx, p);
             return;
         default:
             log += `|simpleEffect`
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             G.e.stack.push(eff);
             simpleEffectExec(G, ctx, p);
     }
@@ -1369,7 +1369,7 @@ export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     if (o.aesthetics > 7) {
         addVp(G, ctx, p, 1);
     }
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
@@ -1378,7 +1378,7 @@ export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     if (o.industry > 1) o.resource += 1;
     if (o.industry > 4) drawCardForPlayer(G, ctx, p);
     if (o.industry > 7) drawCardForPlayer(G, ctx, p);
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export const cardSlotOnBoard2p = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICardSlot | null => {
@@ -1490,7 +1490,7 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true)
     }
     log += `|${resRequired}`;
     if (showLog && process.env.NODE_ENV === "production") {
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
     }
     return resRequired;
 }
@@ -1775,23 +1775,23 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
     } else {
         throw new Error("Updating an empty slot!")
     }
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
 }
 
-export const additionalCostForUpgrade = (level: number): number => {
+export const additionalCostForUpgrade = (G:IG, level: number): number => {
     let log = `additionalCostForUpgrade|${level}`
     if (level <= 2) {
         log += `|cost:0`
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         return 0;
     } else {
         if (level <= 5) {
             log += `|cost:1`
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             return 1;
         } else {
             log += `|cost:2`
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             return 2;
         }
     }
@@ -1801,7 +1801,7 @@ export const canUpgrade = (G: IG, ctx: Ctx, p: PlayerID, isIndustry: boolean) =>
     let o = G.pub[parseInt(p)]
     let targetLevel: number;
     targetLevel = isIndustry ? o.industry + 1 : o.aesthetics + 1;
-    let cost: number = additionalCostForUpgrade(targetLevel);
+    let cost: number = additionalCostForUpgrade(G, targetLevel);
     if (cost === 0) {
         return true;
     } else {
@@ -1877,7 +1877,7 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
             === (ctx.numPlayers - 1)
         ) {
             log += "|finalScoring"
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             finalScoring(G, ctx);
         } else {
             log += "|fillEmptySlots"
@@ -1907,12 +1907,12 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         log += `|share|${as}|${bs}`
         if (as > bs) {
             log += `|share|p${a}win`
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             return -1;
         }
         if (as < bs) {
             log += `|share|p${b}win`
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             return 1;
         }
         log += `|sameShare`
@@ -1921,12 +1921,12 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         log += `|legendCount|${legendCountA}|${legendCountB}`
         if (legendCountA > legendCountB) {
             log += `|legendCount|p${a}win`
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             return -1;
         }
         if (legendCountA < legendCountB) {
             log += `|legendCount|p${b}win`
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             return 1;
         }
         log += `|sameLegendCount`
@@ -1936,12 +1936,12 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         log += `|pos|${posA}|${posB}`
         if (posA > posB) {
             log += `|pos|p${a}win`
-            logger.debug(log);
+            logger.debug(`${G.matchID}|${log}`);
             return 1;
         } else {
             if (posA < posB) {
                 log += `|pos|p${b}win`
-                logger.debug(log);
+                logger.debug(`${G.matchID}|${log}`);
                 return -1;
             } else {
                 throw Error("Two player cannot have the same position.")
@@ -2048,7 +2048,7 @@ export function fillEventCard(G: IG, ctx: Ctx) {
             doFillNewEraEventDeck(G, ctx, newEra);
         }
     }
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
@@ -2064,7 +2064,7 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     }
     const p = G.pub[parseInt(player)];
     const totalResource = p.resource + p.deposit;
-    const additionalCost = additionalCostForUpgrade(p.industry);
+    const additionalCost = additionalCostForUpgrade(G, p.industry);
     if (additionalCost <= totalResource && p.industry < 10) {
         log += `|${additionalCost}|canUpgrade`
         G.e.choices.push({e: "industryLevelUpCost", a: 1})
@@ -2081,7 +2081,7 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     }
     G.e.choices.push({e: "skipBreakthrough", a: 1})
     log += "chooseEffect"
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     changeStage(G, ctx, "chooseEffect")
 }
 
@@ -2099,7 +2099,7 @@ export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     const p = G.pub[parseInt(player)];
     const playerObj = G.player[parseInt(player)];
     const totalResource = p.resource + p.deposit;
-    const additionalCost = additionalCostForUpgrade(p.aesthetics);
+    const additionalCost = additionalCostForUpgrade(G, p.aesthetics);
     if (additionalCost <= totalResource && p.aesthetics < 10) {
         log += ("|Can upgrade aesthetics")
         G.e.choices.push({e: "aestheticsLevelUpCost", a: 1})
@@ -2110,7 +2110,7 @@ export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     }
     G.e.choices.push({e: "skipBreakthrough", a: 1})
     log += "|chooseEffect"
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     changeStage(G, ctx, "chooseEffect")
 }
 
@@ -2120,7 +2120,7 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
     log += `|region|${G.currentScoreRegion}`
     if (r === Region.NONE) throw new Error();
     log += `|nextEra`
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     nextEra(G, ctx, r);
     G.currentScoreRegion = Region.NONE;
     log = "regionEraProgress|CleanUpCurrent"
@@ -2140,7 +2140,7 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
         G.regions[Region.ASIA].share = ShareOnBoard[Region.ASIA][IEra.TWO];
     }
     log += "|tryScoring"
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     tryScoring(G, ctx);
 }
 
@@ -2227,7 +2227,7 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
         G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count, target: p})
         log += `|push|industryOrAestheticsLevelUp`
     }
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
 }
 export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     let log = `loseVp|${p}|${vp}`
@@ -2244,7 +2244,7 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
         obj.resource++;
         log += `|${obj.resource}`
     }
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export const buildBuildingFor = (G: IG, ctx: Ctx, r: validRegion, p: PlayerID, building: BuildingType): void => {
@@ -2271,7 +2271,7 @@ export const buildBuildingFor = (G: IG, ctx: Ctx, r: validRegion, p: PlayerID, b
             built = true;
         }
     })
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export const competitionCleanUp = (G: IG, ctx: Ctx) => {
@@ -2281,7 +2281,7 @@ export const competitionCleanUp = (G: IG, ctx: Ctx) => {
     i.progress = 0;
     i.atkCard = null;
     i.defCard = null;
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     checkNextEffect(G, ctx);
 }
 
@@ -2339,7 +2339,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
                 G.e.stack.push({
                     e: "anyRegionShare", a: 1 + i.onWin.a
                 })
-                logger.debug(log);
+                logger.debug(`${G.matchID}|${log}`);
                 playerEffExec(G, ctx, winner);
                 return;
             } else {
@@ -2352,15 +2352,15 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         G.e.stack.push({
             e: "anyRegionShare", a: 1
         })
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         playerEffExec(G, ctx, winner);
         return;
     } else {
         log += `|competitionCleanUp`
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         competitionCleanUp(G, ctx);
     }
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export function atkCardSettle(G: IG, ctx: Ctx) {
@@ -2386,12 +2386,12 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
         log += `|${JSON.stringify(eff.play)}`
         G.e.card = cardId;
         G.e.stack.push(eff.play);
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         // TODO may over run set a barrier effect?
         playerEffExec(G, ctx, i.atk);
     } else {
         log += "|atkNoCard|defCardSettle"
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         defCardSettle(G, ctx);
     }
 }
@@ -2420,11 +2420,11 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
         G.e.card = cardId;
         G.e.stack.push(eff.play);
         G.player[parseInt(i.def)].competitionCards = [];
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         playerEffExec(G, ctx, i.def);
     } else {
         log += `|defNoCard|showCompetitionResult`
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
     }
 }
@@ -2471,7 +2471,7 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
         log += `|completedModernScoring`
         region.completedModernScoring = true;
     }
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) => {
@@ -2501,7 +2501,7 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
         i.progress--
     }
     log += `|checkCompetitionAttacker`
-    logger.debug(log);
+    logger.debug(`${G.matchID}|${log}`);
     checkCompetitionAttacker(G, ctx);
 }
 
@@ -2514,7 +2514,7 @@ export const checkCompetitionDefender = (G: IG, ctx: Ctx) => {
     } else {
         i.defPlayedCard = true;
         const log = (`checkCompetitionDefender|p${i.def}|emptyHand|showCompetitionResult`);
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
     }
 }
@@ -2523,12 +2523,12 @@ export const checkCompetitionAttacker = (G: IG, ctx: Ctx) => {
     let i = G.competitionInfo;
     if (G.player[parseInt(i.atk)].hand.length > 0) {
         log += `|p${i.atk}|competitionCard`
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         changePlayerStage(G, ctx, "competitionCard", i.atk);
     } else {
         log += `|p${i.atk}|emptyHand`
         i.atkPlayedCard = true;
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
         checkCompetitionDefender(G, ctx);
     }
 }
@@ -2678,25 +2678,25 @@ export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = 
     log += `|vp|${v1}|${v2}`
     if (v1 > v2) {
         log += `|p${p1}wins`
-        if (addLog) logger.debug(log);
+        if (addLog) logger.debug(`${G.matchID}|${log}`);
         return -1;
     } else {
         if (v1 < v2) {
             log += `|p${p2}wins`
-            if (addLog) logger.debug(log);
+            if (addLog) logger.debug(`${G.matchID}|${log}`);
             return 1;
         } else {
             const pos1 = posOfPlayer(G, ctx, p1.toString());
             const pos2 = posOfPlayer(G, ctx, p2.toString());
             log += `|pos|${pos1}|${pos2}`
-            if (addLog) logger.debug(log);
+            if (addLog) logger.debug(`${G.matchID}|${log}`);
             if (pos1 < pos2) {
                 log += `|p${p2}wins`
-                if (addLog) logger.debug(log);
+                if (addLog) logger.debug(`${G.matchID}|${log}`);
                 return 1
             } else {
                 log += `|p${p1}wins`
-                if (addLog) logger.debug(log);
+                if (addLog) logger.debug(`${G.matchID}|${log}`);
                 return -1
             }
         }

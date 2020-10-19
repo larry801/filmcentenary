@@ -134,7 +134,7 @@ export const NormalTurn: TurnConfig = {
                 industryAward(G,ctx,p);
             }
         }
-        logger.debug(log);
+        logger.debug(`${G.matchID}|${log}`);
     },
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
