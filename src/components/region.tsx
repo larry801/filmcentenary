@@ -213,7 +213,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                     </Typography></Paper></Grid>
                     <Grid item container xs={2} sm={1}>
                         <Paper
-                        aria-label={share.toString()}
+                        aria-label={`${i18n.pub.share}${share}`}
                         variant={"outlined"}>
                         {Array(share).fill(1).map((i, idx) => <Grid item xs={6} key={idx}>
                             <ShareIcon r={r}/>
