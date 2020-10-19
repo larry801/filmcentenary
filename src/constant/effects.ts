@@ -1310,7 +1310,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "aestheticsLevelUp", a: 1},
-                {e: "buy", a: 2305},
+                {e: "buy", a: FilmCardID.F2305},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -1664,7 +1664,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryLevelUp", a: 1},
-                {e: "buy", a: 3113},
+                {e: "buy", a: FilmCardID.F3113},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -1743,7 +1743,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "industryLevelUp", a: 1},
-                {e: "buy", a: 3112},
+                {e: "buy", a: FilmCardID.F3112},
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
