@@ -30,7 +30,7 @@ const FinalScoreTable = ({G, ctx}: IFinalScoreTableProps) => {
     const scoreRank = (a: string, b: string) => rank(G, ctx, parseInt(a), parseInt(b));
     const order = [...G.order]
     return <TableContainer component={Paper}>
-        <Table className={classes.table} size="small" aria-label="a dense table">
+        <Table className={classes.table} size="small" aria-label="Scoring table">
             <TableHead>
                 <TableRow>
                     <TableCell>{i18n.playerName.player}</TableCell>

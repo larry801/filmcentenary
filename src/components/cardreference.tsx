@@ -1,5 +1,5 @@
 import React from "react";
-import {BasicCardID, EventCardID, ClassicCardID, AllClassicCards} from "../types/core";
+import {AllClassicCards} from "../types/core";
 import {getCardName} from "../game/util";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
@@ -14,11 +14,6 @@ import Paper from '@material-ui/core/Paper';
 import {getCardById} from "../types/cards";
 import {CardEffect} from "./card";
 
-
-interface ICardItemProps {
-    cardId: BasicCardID | EventCardID | ClassicCardID,
-}
-
 const useStyles = makeStyles({
     table: {
         minWidth: 768,
@@ -31,7 +26,7 @@ const DenseTable = () =>{
 
     return (
         <TableContainer component={Paper} >
-            <Table className={classes.table} size="small" aria-label="a dense table">
+            <Table className={classes.table} size="small" aria-label="Card table">
                 <TableHead>
                     <TableRow>
                         <TableCell>No.</TableCell>
