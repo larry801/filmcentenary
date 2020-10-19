@@ -1,6 +1,7 @@
 import React from "react";
 import {CardID} from "../types/core";
 import Typography from "@material-ui/core/Typography";
+import Grid from "@material-ui/core/Grid";
 import {
     archiveCardEffectText,
     buyCardEffectText,
@@ -19,11 +20,11 @@ export const CardEffect = ({cid}:ICardEffectProps) =>{
     const school = schoolEffectText(cid);
     const arch = archiveCardEffectText(cid);
     const score = scoreEffectText(cid);
-    return <>
+    return <Grid item xs={12}>
         {buy!==""?<Typography>{buy}</Typography>:<></>}
         {play!==""?<Typography>{play}</Typography>:<></>}
         {arch!==""?<Typography>{arch}</Typography>:<></>}
-        {school!==""?<>{school}</>:<></>}
+        {school!==""?<Typography>{school}</Typography>:<></>}
         {score!==""?<Typography>{score}</Typography>:<></>}
-    </>
+    </Grid>
 }

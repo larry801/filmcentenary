@@ -1,6 +1,6 @@
 import React from "react";
 
-import {BasicCardID, ICardSlot, IRegionInfo, Region, validRegion} from "../types/core";
+import {BasicCardID, BuildingType, ICardSlot, IRegionInfo, Region, validRegion} from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {useI18n} from "@i18n-chain/react";
@@ -168,12 +168,24 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
         }
     }
 
+    const buildingName = (b:BuildingType|null) =>{
+       switch (b) {
+           case null:
+               return ""
+           case BuildingType.cinema:
+               return i18n.pub.cinema
+           case BuildingType.studio:
+               return i18n.pub.studio
+       }
+    }
+
     const buildingSlots = region.buildings.map((slot, idx) => {
         if (slot.activated) {
             return (<Grid item xs={2} sm={1} key={`building-slot-${idx}`}>
                 <Paper>
-                    <Typography> {slot.building !== null ? i18n.pub[slot.building] : ""}</Typography>
+                    {slot.activated && slot.owner === "" ? <Typography>{buildingSlotName(r,idx)}</Typography>:<></>}
                     <Typography>{playerName(slot.owner)}</Typography>
+                    <Typography>{buildingName(slot.building)}</Typography>
                 </Paper>
             </Grid>)
         } else {
@@ -199,9 +211,9 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                         /{G.secretInfo.regions[r].legendDeck.length}
                         /{G.secretInfo.regions[r].normalDeck.length}
                     </Typography></Paper></Grid>
-                    <Grid item container xs={2} sm={1}
-
-                    ><Paper
+                    <Grid item container xs={2} sm={1}>
+                        <Paper
+                        aria-label={share.toString()}
                         variant={"outlined"}>
                         {Array(share).fill(1).map((i, idx) => <Grid item xs={6} key={idx}>
                             <ShareIcon r={r}/>

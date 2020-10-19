@@ -23,7 +23,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
     const canPlayOrBreakthrough = ctx.currentPlayer === playerID && ctx.activePlayers === null
 
     return <Grid item container xs={12}>
-        <Typography>{i18n.hand.title}</Typography>
+        <Typography variant="h5">{i18n.hand.title}</Typography>
         {hand.map((c, idx) => {
                 const play = () => moves.playCard({
                     card: c,
@@ -31,7 +31,6 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     playerID: playerID,
                     res: 0,
                 })
-
                 const archive2res = () => moves.breakthrough({
                     card: c,
                     idx: idx,

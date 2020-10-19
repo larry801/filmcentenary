@@ -288,7 +288,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                 log += `|${obj.aesthetics}`
                 obj.aesthetics++;
                 log += `|${obj.aesthetics}`
-            }else {
+            } else {
                 log += `|LV10CannotUpgrade`
             }
             break
@@ -297,7 +297,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                 log += `|${obj.industry}`
                 obj.industry++;
                 log += `|${obj.industry}`
-            }else {
+            } else {
                 log += `|LV10CannotUpgrade`
             }
             break;
@@ -346,6 +346,7 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
 
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
     let obj = G.pub[parseInt(p)];
+    let log = `doBuy|${card.cardId}|p${p}`
     if (card.category === CardCategory.BASIC) {
         let count = G.basicCards[card.cardId as BasicCardID];
         if (count > 0) {
@@ -353,7 +354,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             obj.discard.push(card.cardId);
             obj.allCards.push(card.cardId);
         } else {
-            // TODO log
+            log += `|${card.cardId}depleted|`
         }
     } else {
         let slot: ICardSlot | null;
@@ -396,25 +397,28 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             let school = obj.school;
             let kino = schoolPlayer(G, ctx, SchoolCardID.S1303);
             if (kino !== null && p !== kino) {
+                log += `|p${kino}|KinoEyes`
                 addVp(G, ctx, kino, 1);
                 G.pub[parseInt(kino)].deposit++;
             }
             if (school !== null) {
                 if (school === SchoolCardID.S1203) {
                     if (obj.aesthetics < 10) {
+                        log += `|Expressionism`
                         obj.aesthetics++;
                     }
                 }
+                log += `|archive|${school}`
                 obj.archive.push(school);
             }
             obj.school = card.cardId as SchoolCardID;
         } else {
+            log += `|pushToDiscard`
             obj.discard.push(card.cardId);
         }
         obj.allCards.push(card.cardId);
-
     }
-
+    logger.debug(log);
 }
 
 export const cardInDeck = (G: IG, ctx: Ctx, p: number, cardId: CardID): boolean => {
@@ -428,7 +432,7 @@ export const cardInDiscard = (G: IG, ctx: Ctx, p: number, cardId: CardID): boole
 }
 export const ownCardPlayers = (G: IG, ctx: Ctx, cardId: CardID): PlayerID[] => {
     let p: PlayerID[] = [];
-    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
+    G.order.forEach((i, idx) => {
             if (cardInHand(G, ctx, idx, cardId) || cardInDeck(G, ctx, idx, cardId) || cardInDiscard(G, ctx, idx, cardId)) {
                 p.push(idx.toString());
             }
@@ -442,7 +446,6 @@ export const buildingInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boole
 }
 export const studioInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
     if (r === Region.NONE) return false;
-    logger.silly(`studioInRegion|r${r}|p${p}`);
     return G.regions[r].buildings.filter(s => s.building === BuildingType.studio && s.owner === p).length > 0;
 }
 export const cinemaInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
@@ -459,12 +462,35 @@ export const buildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     return seqFromCurrentPlayer(G, ctx).filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
 }
 export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
-    if (r === Region.NONE) return [];
-    return G.order.filter(pid => !cinemaInRegion(G, ctx, r, pid) && !studioInRegion(G, ctx, r, pid));
+    let log = `noBuildingPlayers|${r}`
+    if (r === Region.NONE) {
+        logger.debug(log);
+        return [];
+    }
+    const allPlayers = seqFromCurrentPlayer(G, ctx);
+    log += `|all|${JSON.stringify(allPlayers)}`
+    const result = allPlayers.filter(pid => {
+        const hasBuilding = studioInRegion(G, ctx, r, pid) || cinemaInRegion(G, ctx, r, pid);
+        log += `|p${pid}|${hasBuilding}`
+        return !hasBuilding
+    });
+    log += `|result|${result}`
+    logger.debug(log);
+    return result
 }
 export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
-    return G.order.filter(pid => !studioInRegion(G, ctx, r, pid));
+    let log = `noStudioPlayers|${r}`
+    const allPlayers = seqFromCurrentPlayer(G, ctx);
+    log += `|all|${JSON.stringify(allPlayers)}`
+    const result = allPlayers.filter(pid => {
+        const hasStudio = studioInRegion(G, ctx, r, pid)
+        log += `|p${pid}|${hasStudio}`
+        return !hasStudio
+    });
+    log += `|result|${result}`
+    logger.debug(log);
+    return result
 }
 
 export const posOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
@@ -532,13 +558,13 @@ export const aesLowestPlayer = (G: IG): PlayerID[] => {
     let log = `aesLowestPlayer`
     let lowestAes = 10;
     let result: PlayerID[] = [];
-    G.order.forEach(i=> {
+    G.order.forEach(i => {
         if (G.pub[parseInt(i)].aesthetics < lowestAes) {
             lowestAes = G.pub[parseInt(i)].aesthetics
         }
     })
     log += `|highest|${lowestAes}`
-    G.order.forEach(i=> {
+    G.order.forEach(i => {
         if (G.pub[parseInt(i)].aesthetics <= lowestAes) {
             log += `|p${i}|${G.pub[parseInt(i)].aesthetics}|lowest`
             result.push(i)
@@ -560,7 +586,7 @@ export function vpNotHighestPlayer(G: IG): PlayerID[] {
         }
     })
     log += `|highest:${highestVp}`
-    G.order.forEach((i:PlayerID) => {
+    G.order.forEach((i: PlayerID) => {
         if (G.pub[parseInt(i)].vp !== highestVp) {
             log += `|p${i}|notHighest|`
             result.push(i)
@@ -576,7 +602,7 @@ export function vpHighestPlayer(G: IG): PlayerID[] {
     let highestVp = 0;
     let result: PlayerID[] = [];
     G.order.forEach((i) => {
-        if (G.pub[parseInt(i)].vp > highestVp){
+        if (G.pub[parseInt(i)].vp > highestVp) {
             highestVp = G.pub[parseInt(i)].vp
         }
     })
@@ -600,9 +626,9 @@ export const inferDeckRemoveHelper = (result: CardID[], remove: CardID[]): void 
     })
 }
 
-export const breakthroughEffectPrepare = (G: IG): void => {
+export const breakthroughEffectPrepare = (G: IG,card:CardID): void => {
     let log = "breakthroughEffectPrepare"
-    let c = curCard(G);
+    let c = getCardById(card);
     let i = c.industry
     let a = c.aesthetics
     log += `|${c.cardId}|i${i}|a${a}`
@@ -633,10 +659,10 @@ export const breakthroughEffectPrepare = (G: IG): void => {
     }
 }
 
-export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
+export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card:CardID): void => {
     let p = curPub(G, ctx);
-    let c: INormalOrLegendCard | IBasicCard = curCard(G);
-    let log = `startBreakThrough|p${pid}|${c.cardId}`
+    let c = getCardById(card)
+    let log = `startBreakThrough|p${pid}|${card}`
     if (p.school === SchoolCardID.S2201) {
         log += "|NeoRealism"
         p.deposit += 2;
@@ -664,7 +690,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     }
     log += `|breakthroughEffectPrepare`
     logger.debug(log);
-    breakthroughEffectPrepare(G);
+    breakthroughEffectPrepare(G,card);
     let eff = getCardEffect(c.cardId).archive;
     if (c.cardId !== FilmCardID.F1108) {
         if (eff.e !== "none") {
@@ -790,10 +816,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 break;
             }
         case "competition":
-            if(pub.resource < 1){
+            if (pub.resource < 1) {
                 break;
-            }else {
-                pub.resource --;
+            } else {
+                pub.resource--;
             }
             players = seqFromCurrentPlayer(G, ctx);
             let ownIndex = players.indexOf(p)
@@ -869,7 +895,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "highestVpPlayer":
             log += "|highestVpPlayer"
             subEffect = eff.a;
-            players =  vpHighestPlayer(G);
+            players = vpHighestPlayer(G);
             if (isSimpleEffect(subEffect)) {
                 log += "|simpleEffect|execForAll"
                 for (let p of players) {
@@ -1054,12 +1080,13 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             break
         case "noStudio":
-            G.c.players = noStudioPlayers(G, ctx, region);
-            log += `|region:${region}|noStudioPlayers|${JSON.stringify(G.c.players)}`
-            if (G.c.players.length === 0) {
+            players = noStudioPlayers(G, ctx, region);
+            log += `|region:${region}|noStudioPlayers|${JSON.stringify(players)}`
+            if (players.length === 0) {
                 log += `|everyOneHasStudio`
                 break;
             }
+            G.c.players = players;
             G.e.stack.push(eff.a);
             logger.debug(log);
             changePlayerStage(G, ctx, "chooseTarget", p);
@@ -1067,6 +1094,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "studio":
             subEffect = eff.a;
             players = studioPlayers(G, ctx, region);
+            log += `|region:${region}|studioPlayers|${JSON.stringify(players)}`
             if (isSimpleEffect(subEffect)) {
                 log += "|simpleEffect|execForAll"
                 for (let p of players) {
@@ -1075,8 +1103,6 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
             } else {
                 if (G.e.pendingPlayers.length === 0) {
-                    log += "|fetchPlayers"
-                    log += `|${JSON.stringify(players)}`
                     if (players.length > 0) {
                         G.e.pendingPlayers = players;
                         G.e.stack.push(eff);
@@ -1257,7 +1283,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case "industryOrAestheticsLevelUp":
-            if(eff.hasOwnProperty("target") && eff.target !== p){
+            if (eff.hasOwnProperty("target") && eff.target !== p) {
                 log += `|otherPlayerVPAward`
                 targetPlayer = eff.target
                 pub = G.pub[parseInt(targetPlayer)];
@@ -1303,18 +1329,18 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             changePlayerStage(G, ctx, "chooseHand", p);
             return;
         case "industryBreakthrough":
-            if(eff.a > 1){
+            if (eff.a > 1) {
                 log += `|multiple`
-                eff.a --;
+                eff.a--;
                 G.e.stack.push(eff);
             }
             logger.debug(log);
             doIndustryBreakthrough(G, ctx, p);
             return;
         case "aestheticsBreakthrough":
-            if(eff.a > 1){
+            if (eff.a > 1) {
                 log += `|multiple`
-                eff.a --;
+                eff.a--;
                 G.e.stack.push(eff);
             }
             logger.debug(log);
@@ -1463,7 +1489,7 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true)
         }
     }
     log += `|${resRequired}`;
-    if (showLog) {
+    if (showLog && process.env.NODE_ENV === "production") {
         logger.debug(log);
     }
     return resRequired;
@@ -1923,7 +1949,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         }
     }
     let rankingPlayer: PlayerID[] = [];
-    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
+    G.order.forEach((i, idx) => {
         log += `|p${idx}`
         if (G.pub[idx].shares[r] === 0) {
             log += "|badFilm"
@@ -2012,7 +2038,7 @@ export function fillEventCard(G: IG, ctx: Ctx) {
     if (G.events.length === 1) {
         if (G.events[0] === "E03") {
             G.activeEvents.push(EventCardID.E03);
-            Array(ctx.numPlayers).fill(0).forEach((i, idx) => {
+            G.order.forEach((i, idx) => {
                 if (G.pub[idx].action < 2) G.pub[idx].action = 2
             });
         }
@@ -2198,7 +2224,7 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     }
     if (count > 0) {
         log += `|stack|${JSON.stringify(G.e.stack)}`
-        G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count, target:p})
+        G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count, target: p})
         log += `|push|industryOrAestheticsLevelUp`
     }
     logger.debug(log);
@@ -2230,16 +2256,17 @@ export const buildBuildingFor = (G: IG, ctx: Ctx, r: validRegion, p: PlayerID, b
         reg.share--;
     }
     let built = false;
-    reg.buildings.forEach((slot:IBuildingSlot,idx:number) => {
+    reg.buildings.forEach((slot: IBuildingSlot, idx: number) => {
         if (slot.activated && slot.owner === "" && !built) {
             slot.owner = p;
-            if(building === BuildingType.cinema){
+            if (building === BuildingType.cinema) {
                 log += `|cinema`
                 pub.building.cinemaBuilt = true;
-            }else {
+            } else {
                 log += `|studio`
                 pub.building.studioBuilt = true;
             }
+            slot.building = building;
             log += `|built|on|slot${idx}`
             built = true;
         }
@@ -2374,7 +2401,7 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
     let i = G.competitionInfo;
     let cards = G.player[parseInt(i.def)].competitionCards;
     if (cards.length > 0) {
-        drawCardForPlayer(G,ctx,i.def);
+        drawCardForPlayer(G, ctx, i.def);
         let cardId = cards[0];
         i.defCard = cardId;
         log += `|${cardId}`

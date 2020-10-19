@@ -111,8 +111,7 @@ export const FilmCentenaryGame: Game<IG> = {
 
     endIf: (G: IG, ctx: Ctx) => {
         let championRequiredForAutoWin = ctx.numPlayers > 3 ? 6 : 5;
-        Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).forEach(
-            p => {
+        G.order.forEach(p => {
                 if (G.pub[parseInt(p)].champions
                     .filter(c => c.region === Region.NA)
                     .length === 3) {
@@ -120,8 +119,7 @@ export const FilmCentenaryGame: Game<IG> = {
                 }
             }
         )
-        Array(ctx.numPlayers).fill(1).map((i, idx) => idx.toString()).forEach(
-            p => {
+        G.order.forEach(p => {
                 if (G.pub[parseInt(p)].champions.length === championRequiredForAutoWin) {
                     return {winner: p, reason: VictoryType.championCountAutoWin}
                 }

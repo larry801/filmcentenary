@@ -25,11 +25,9 @@ import {changePlayerStage, cleanPendingSignal} from "./logFix";
 import {
     addVp,
     aesAward,
-    aesLowestPlayer,
     curPub,
     drawCardForPlayer,
     industryAward,
-    industryLowestPlayer,
     logger
 } from "./util";
 import {SchoolCardID} from "../types/core";

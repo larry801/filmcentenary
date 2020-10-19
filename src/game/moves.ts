@@ -282,8 +282,7 @@ export const chooseHand: LongFormMove = {
                         pub.deposit--;
                     }
                 }
-                G.e.card = arg.hand;
-                startBreakThrough(G, ctx, arg.p);
+                startBreakThrough(G, ctx, arg.p,arg.hand);
                 return;
             case "archiveToEEBuildingVP":
                 hand.splice(arg.idx, 1);
@@ -874,7 +873,7 @@ export const breakthrough: LongFormMove = {
                 p.deposit -= 1;
             }
         }
-        startBreakThrough(G, ctx, arg.playerID);
+        startBreakThrough(G, ctx, arg.playerID,arg.card);
     }
 }
 
