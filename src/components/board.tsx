@@ -149,9 +149,17 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             <BoardRegion getPlayerName={getName} r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx}
                          playerID={playerID}/>
         </Grid>
-    const gameOverResult = ctx.gameover === undefined ? <></> : <Grid item xs={12} sm={6}>
-        <Typography variant={"h2"}>{i18n.gameOver.title}</Typography>
-        <Typography variant={"h3"}>{getName(ctx.gameover.winner)}</Typography>
+
+    const gameOverResult = ctx.gameover === undefined ? <></> : <Grid item xs={12}>
+        <Paper variant="elevation">
+            <Typography variant="h3">{i18n.gameOver.title}</Typography>
+            <Typography variant="h4">{
+                // @ts-ignore
+                i18n.gameOver.reason[ctx.gameover.reason]
+            }</Typography>
+            <Typography variant="h3">{i18n.gameOver.winner}</Typography>
+            <Typography variant="h4">{getName(ctx.gameover.winner)}</Typography>
+        </Paper>
     </Grid>
 
     const upperPanel = playerID !== null ? <>
@@ -188,9 +196,10 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
     return <Grid container justify="space-evenly">
         {gameOverResult}
         {G.pending.lastRoundOfGame ? <Paper
-            variant="outlined"
-            color="secondary"
-        >{i18n.pub.lastRoundOfGame}</Paper>:<></>}
+            variant="elevation"
+        >
+            <Typography variant="h3">{i18n.pub.lastRoundOfGame}</Typography>
+        </Paper>:<></>}
         {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
             <Grid item xs={4}>
                 <Typography>{`${i18n.pub.events}(${G.eventDeckCount})`}</Typography

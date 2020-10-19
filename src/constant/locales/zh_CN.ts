@@ -490,6 +490,11 @@ const zh_CN: Locale = {
             events:"计分效果",
             total:"总分",
         },
+        reason:{
+            threeNAChampionAutoWin:"三个北美第一",
+            championCountAutoWin:"满足自动胜利要求的第一数量",
+            finalScoring:"终局计分",
+        },
         rank: {
             0: "第一:",
             1: "第二:",

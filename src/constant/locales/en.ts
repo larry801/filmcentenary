@@ -467,6 +467,11 @@ const en = {
     gameOver: {
         title: "Game Over",
         winner: "Winner:",
+        reason:{
+            threeNAChampionAutoWin:"Three Champion in North America",
+            championCountAutoWin:"Champion count exceeded",
+            finalScoring:"Final Scoring",
+        },
         table: {
             board: "Board",
             card: "Cards",
