@@ -1395,7 +1395,6 @@ export const effects = {
                 noEff,
                 {e: "step", a: [{e: "vp", a: 3}, {e: "draw", a: 1}]},
                 {e: "step", a: [{e: "vp", a: 3}, {e: "comment", a: 1}]}
-
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2213,7 +2212,7 @@ export const effects = {
             e: "step", a: [
                 {e: "draw", a: 1}, {
                     e: "choice", a: [
-                        {e: "resFromAesthetics", a: 1},
+                        {e: "aestheticsToVp", a: 1},
                         {e: "playedCardInTurnEffect", a: 1}
                     ]
                 }

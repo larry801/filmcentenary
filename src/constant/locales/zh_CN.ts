@@ -526,6 +526,7 @@ const zh_CN: Locale = {
         payAdditionalCost:["{{args}}",argPayAdditionalCost],
     },
     effect: {
+        archiveToEEBuildingVP:"每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑",
         payAdditionalCost :["额外支付{{res}}{{deposit}}",{
             deposit: (value: number = 1): string => {
                 if(value>0){
