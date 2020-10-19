@@ -239,7 +239,10 @@ const argShowCompetitionResult = {
         } else {
             t += `Defender played ${bracketCardName(i.defCard)} `
         }
-        t += `Progress:${i.progress} `
+        let progress = i.progress;
+        if (progress > 5) progress = 5;
+        if (progress < -5) progress = -5;
+        t += `Progress:${progress} `
         if (i.progress >= 3) {
             t += "Attacker won"
         } else {
@@ -422,13 +425,13 @@ const argConfirmRespond = {
     }
 }
 const argPayAdditionalCost = {
-    args:(arg: IPayAdditionalCostArgs[]) =>{
+    args: (arg: IPayAdditionalCostArgs[]) => {
         let t = " paid an extra fee of "
-        const a= arg[0];
-        if(a.res > 0){
+        const a = arg[0];
+        if (a.res > 0) {
             t += `${a.res} resource(s)`
         }
-        if(a.deposit > 0){
+        if (a.deposit > 0) {
             t += `${a.deposit} deposit`
         }
         return t
@@ -467,10 +470,10 @@ const en = {
     gameOver: {
         title: "Game Over",
         winner: "Winner:",
-        reason:{
-            threeNAChampionAutoWin:"Three Champion in North America",
-            championCountAutoWin:"Champion count exceeded",
-            finalScoring:"Final Scoring",
+        reason: {
+            threeNAChampionAutoWin: "Three Champion in North America",
+            championCountAutoWin: "Champion count exceeded",
+            finalScoring: "Final Scoring",
         },
         table: {
             board: "Board",
@@ -508,7 +511,7 @@ const en = {
         updateSlot: ["{{args}}", argUpdateSlot],
         comment: ["{{args}}", argComment],
         confirmRespond: ["{{args}}", argConfirmRespond],
-        payAdditionalCost:["{{args}}",argPayAdditionalCost],
+        payAdditionalCost: ["{{args}}", argPayAdditionalCost],
     },
     eventName: eventName,
     confirm: "OK",
@@ -516,20 +519,20 @@ const en = {
     effect: {
         payAdditionalCost: ["Pay {{res}} {{deposit]}.", {
             deposit: (value: number = 1): string => {
-                if(value>0){
-                    if(value>1){
+                if (value > 0) {
+                    if (value > 1) {
                         return `${value} resources`
-                    }else {
+                    } else {
                         return `${value} resource`
                     }
-                }else {
+                } else {
                     return ""
                 }
             },
             res: (value: number = 1): string => {
-                if(value>0){
+                if (value > 0) {
                     return `${value} deposit`
-                }else {
+                } else {
                     return ""
                 }
             },
@@ -752,7 +755,7 @@ const en = {
         },
     },
     action: {
-        payAdditionalCost:"Pay extra cost",
+        payAdditionalCost: "Pay extra cost",
         comment: "Comment",
         updateSlot: "Update",
         showBoardStatus: "Initial setup",
@@ -778,7 +781,7 @@ const en = {
         player: "Player",
     },
     pub: {
-        lastRoundOfGame:"Last Round",
+        lastRoundOfGame: "Last Round",
         revealedHand: "Revealed Hand",
         champion: "Champion:",
         gameLog: "Report",

@@ -327,7 +327,10 @@ const argShowCompetitionResult = {
         }else {
             t += `应对方打出${bracketCardName(i.defCard)}，`
         }
-        t += `争夺进度：${i.progress}，`
+        let progress = i.progress;
+        if (progress > 5) progress = 5;
+        if (progress < -5) progress = -5;
+        t += `争夺进度：${progress}，`
         if (i.progress >= 3) {
             t += "发起方获胜"
         } else {
