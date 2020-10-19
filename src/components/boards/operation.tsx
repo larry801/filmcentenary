@@ -13,6 +13,7 @@ import {getCardById} from "../../types/cards";
 import {PlayerHand} from "../playerHand";
 import {Stage} from "boardgame.io/core";
 import Slider from "@material-ui/core/Slider";
+import {PubPanel} from "../pub";
 
 export interface IOPanelProps {
     G: IG,
@@ -464,8 +465,10 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         >{i18n.action.endTurn}</Button>
         : <></>
 
-
     return <Grid item container xs={12} sm={5}>
+        <Grid item container xs={12}>
+        <PubPanel i={pub} G={G}/>
+        </Grid>
         {noStage && canMoveCurrent ?
             <Grid item xs={6}>
                 <Typography
