@@ -1,6 +1,6 @@
 import React from "react";
 import {Player} from "../../Game";
-import {Typography} from "@material-ui/core";
+import Typography from "@material-ui/core/Typography";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../../constant/i18n";
 

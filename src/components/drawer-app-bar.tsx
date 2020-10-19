@@ -11,7 +11,8 @@ import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import Switch from "@material-ui/core/Switch"
 import Button from '@material-ui/core/Button';
-import {createStyles, Theme} from "@material-ui/core";
+import createStyles from "@material-ui/core/styles/createStyles";
+import {Theme} from "@material-ui/core/styles/createMuiTheme"
 import withStyles from "@material-ui/core/styles/withStyles";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
