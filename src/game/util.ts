@@ -929,7 +929,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "handToOthers":
             G.e.stack.push(eff)
             changePlayerStage(G, ctx, "chooseHand", p);
-            break;
+            return;
         case "industryAndAestheticsBreakthrough":
             if (eff.a.industry === 0 && eff.a.aesthetics === 0) {
                 break;
