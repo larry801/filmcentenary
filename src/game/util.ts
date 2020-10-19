@@ -2374,6 +2374,7 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
     let i = G.competitionInfo;
     let cards = G.player[parseInt(i.def)].competitionCards;
     if (cards.length > 0) {
+        drawCardForPlayer(G,ctx,i.def);
         let cardId = cards[0];
         i.defCard = cardId;
         log += `|${cardId}`
