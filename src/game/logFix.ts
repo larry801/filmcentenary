@@ -75,7 +75,7 @@ export function changePlayerStage(G: IG, ctx: Ctx, stage: string, p: PlayerID): 
             [p]: {stage: stage},
         }
     })
-    logger.debug(log)
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 

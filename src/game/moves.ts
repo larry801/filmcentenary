@@ -361,7 +361,7 @@ export const chooseEffect: LongFormMove = {
         log += JSON.stringify(eff);
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
         let regions: Region[];
-        logger.debug(log)
+        logger.debug(`${G.matchID}|${log}`);
         switch (eff.e) {
             case "industryBreakthrough":
                 G.e.choices = [];
@@ -443,7 +443,7 @@ export const chooseRegion: LongFormMove = {
         if (r === Region.NONE) return;
         let eff = G.e.stack.pop();
         log += JSON.stringify(eff);
-        logger.debug(log)
+        logger.debug(`${G.matchID}|${log}`);
         let p = arg.p;
         const totalResource = pub.resource + pub.deposit;
         let reg = G.regions[r]
@@ -604,7 +604,7 @@ export const chooseEvent: LongFormMove = {
             for (let i = 0; i < ctx.numPlayers; i++) {
                 G.pub[i].action = 2;
             }
-            logger.debug(log)
+            logger.debug(`${G.matchID}|${log}`);
             fillEventCard(G, ctx);
             checkNextEffect(G, ctx);
         } else {
@@ -619,14 +619,14 @@ export const chooseEvent: LongFormMove = {
                 case EventCardID.E09:
                     log += "|Execute event"
                     G.e.stack.push(getEvent(eid));
-                    logger.debug(log)
+                    logger.debug(`${G.matchID}|${log}`);
                     fillEventCard(G, ctx);
                     playerEffExec(G, ctx, arg.p);
                     break;
                 default:
                     log += "|Score events"
                     G.pub[parseInt(arg.p)].scoreEvents.push(eid);
-                    logger.debug(log)
+                    logger.debug(`${G.matchID}|${log}`);
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);
             }
@@ -700,7 +700,7 @@ export const requestEndTurn: LongFormMove = {
             tryScoring(G, ctx);
         } else {
             log += "|try2pScoring"
-            logger.debug(log)
+            logger.debug(`${G.matchID}|${log}`);
             try2pScoring(G, ctx);
         }
     },

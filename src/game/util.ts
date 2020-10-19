@@ -613,7 +613,7 @@ export function vpHighestPlayer(G: IG): PlayerID[] {
             result.push(idx.toString())
         }
     })
-    logger.debug(log)
+    logger.debug(`${G.matchID}|${log}`);
     return result;
 }
 
@@ -1353,7 +1353,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             simpleEffectExec(G, ctx, p);
     }
     log += "|checkNextEffect"
-    logger.debug(log)
+    logger.debug(`${G.matchID}|${log}`);
     checkNextEffect(G, ctx);
 }
 
@@ -1867,7 +1867,7 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
         G.currentScoreRegion = r as validRegion;
         log += `|region|${r}`
         log += "|regionRank"
-        logger.debug(log)
+        logger.debug(`${G.matchID}|${log}`);
         regionRank(G, ctx, r as Region);
     } else {
         log += "|noRegion"
@@ -1887,7 +1887,7 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
                 fillTwoPlayerBoard(G, ctx)
             }
             log += "|signalEndStage&Turn"
-            logger.debug(log)
+            logger.debug(`${G.matchID}|${log}`);
             signalEndStage(G, ctx);
             signalEndTurn(G, ctx);
         }
@@ -1987,7 +1987,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         log += `|p${i}|bad film`
         doBuy(G, ctx, B04, rankResult[i])
     }
-    logger.debug(log)
+    logger.debug(`${G.matchID}|${log}`);
     changePlayerStage(G, ctx, "chooseEvent", firstPlayer);
 }
 
@@ -2169,13 +2169,13 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                 if (i.atkPlayedCard) {
                     log += "|defCardSettle"
                     i.atkPlayedCard = false;
-                    logger.debug(log)
+                    logger.debug(`${G.matchID}|${log}`);
                     defCardSettle(G, ctx);
                     return;
                 } else {
                     log += "|showCompetitionResult"
                     i.defPlayedCard = false;
-                    logger.debug(log)
+                    logger.debug(`${G.matchID}|${log}`);
                     changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
                     return;
                 }
@@ -2183,19 +2183,19 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                 if (ctx.activePlayers !== null) {
                     log += "|signalEndStage"
                     signalEndStage(G, ctx);
-                    logger.debug(log)
+                    logger.debug(`${G.matchID}|${log}`);
                     return;
                 }
             }
         } else {
             log += "|regionEraProgress"
-            logger.debug(log)
+            logger.debug(`${G.matchID}|${log}`);
             regionEraProgress(G, ctx);
             return;
         }
     } else {
         log += `|Next effect|${JSON.stringify(G.e.stack.slice(-1)[0])}`
-        logger.debug(log)
+        logger.debug(`${G.matchID}|${log}`);
         curEffectExec(G, ctx);
     }
 }
