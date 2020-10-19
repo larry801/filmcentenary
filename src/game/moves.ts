@@ -58,7 +58,7 @@ import {
     loseVp,
     payCost,
     playerEffExec,
-    schoolPlayer,
+    schoolPlayer, seqFromCurrentPlayer,
     simpleEffectExec,
     startBreakThrough,
     startCompetition,
@@ -240,6 +240,11 @@ export const chooseTarget: LongFormMove = {
                 } else {
                     break;
                 }
+            case "handToOthers":
+                G.c.players = [arg.target]
+                G.e.stack.push(eff);
+                changePlayerStage(G,ctx, "chooseHand",arg.p);
+                return;
             default:
                 logger.debug(`${G.matchID}|${log}`);
                 G.e.stack.push(eff);

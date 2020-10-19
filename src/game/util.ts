@@ -927,8 +927,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             break;
         case "handToOthers":
+            log += `|handToOthers`
+            players = seqFromCurrentPlayer(G,ctx);
+            players.splice(players.indexOf(p), 1);
+            G.c.players = players
             G.e.stack.push(eff)
-            changePlayerStage(G, ctx, "chooseHand", p);
+            changePlayerStage(G, ctx, "chooseTarget", p);
             return;
         case "industryAndAestheticsBreakthrough":
             if (eff.a.industry === 0 && eff.a.aesthetics === 0) {
