@@ -46,6 +46,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         let result = [...G.pub[parseInt(p)].allCards]
         inferDeckRemoveHelper(result, pub.discard);
         inferDeckRemoveHelper(result, pub.archive);
+        inferDeckRemoveHelper(result, pub.playedCardInTurn);
         inferDeckRemoveHelper(result, playerObj.hand);
         if (pub.school !== null) {
             let sIndex = result.indexOf(pub.school)
