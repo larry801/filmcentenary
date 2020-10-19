@@ -570,8 +570,8 @@ const en = {
         pay: "Pay ",
         update: ["Update {{a}}", argTimes],
         noBuildingEE: "All companies without a building in east europe",
-        playerVpChampion: "Company with highest prestige",
-        playerNotVpChampion: "Companies do not have highest prestige",
+        highestVpPlayer: "Company with highest prestige",
+        vpNotHighestPlayer: "Companies do not have highest prestige",
         aesLowest: "Company with the lowest aesthetics level,",
         industryLowest: "Company with the lowest industry level",
         peek: ["观看牌堆顶{{count}}张牌，{{filter}}{{target}}，然后弃掉其他的", {

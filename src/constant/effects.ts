@@ -80,7 +80,7 @@ export const eventEffects = {
     "E04": {
         e: "step",
         a: [
-            {e: "playerVpChampion", a: {e: "buyCardToHand", a: "B02"}},
+            {e: "highestVpPlayer", a: {e: "buyCardToHand", a: "B02"}},
             {e: "everyPlayer", a: {e: "buy", a: "B05"}},
         ]
     },
@@ -95,14 +95,14 @@ export const eventEffects = {
         e: "step",
         a: [
             {e: "everyPlayer", a: {e: "buy", a: "B05"}},
-            {e: "playerVpChampion", a: {e: "aestheticsLevelUp", a: 1}},
+            {e: "highestVpPlayer", a: {e: "aestheticsLevelUp", a: 1}},
         ]
     },
     "E07": {
         e: "step",
         a: [
             {e: "everyPlayer", a: {e: "industryOrAestheticsLevelUp", a: 1}},
-            {e: "playerNotVpChampion", a: {e: "buy", a: "B04"}},
+            {e: "vpNotHighestPlayer", a: {e: "buy", a: "B04"}},
         ]
     },
     "E08": {

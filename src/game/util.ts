@@ -104,8 +104,8 @@ export const isSimpleEffect = (eff: any): boolean => {
         case "loseAnyRegionShare":
         case "anyRegionShare":
         case "noBuildingEE":
-        case "playerNotVpChampion":
-        case "playerVpChampion":
+        case "vpNotHighestPlayer":
+        case "highestVpPlayer":
         case "handToOthers":
         case "industryAndAestheticsBreakthrough":
         case "industryOrAestheticsBreakthrough":
@@ -240,25 +240,33 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             break;
 
         case "deposit":
+            log += `|${obj.deposit}`
             obj.deposit += eff.a;
+            log += `|${obj.deposit}`
             break;
         case "res":
             let i = G.competitionInfo;
             if (i.pending) {
                 log += `|pendingCompetition`
                 if (p === i.atk) {
+                    log += `|atk`
                     i.progress += eff.a;
                     log += `|${i.progress}`
                 } else {
                     if (p === i.def) {
+                        log += `|def`
                         i.progress -= eff.a;
                         log += `|${i.progress}`
                     } else {
+                        log += `|notCompetitionPlayer|${obj.resource}`
                         obj.resource += eff.a;
+                        log += `|${obj.resource}`
                     }
                 }
             } else {
+                log += `|${obj.resource}`
                 obj.resource += eff.a;
+                log += `|${obj.resource}`
             }
             break;
         case "vp":
@@ -273,16 +281,24 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             break;
         case "buyCardToHand":
             card = getCardById(eff.a);
-            doBuyToHand(G, ctx, card, ctx.currentPlayer);
+            doBuyToHand(G, ctx, card, p);
             break;
         case "aestheticsLevelUp":
             if (obj.aesthetics < 10) {
+                log += `|${obj.aesthetics}`
                 obj.aesthetics++;
+                log += `|${obj.aesthetics}`
+            }else {
+                log += `|LV10CannotUpgrade`
             }
             break
         case "industryLevelUp":
             if (obj.industry < 10) {
+                log += `|${obj.industry}`
                 obj.industry++;
+                log += `|${obj.industry}`
+            }else {
+                log += `|LV10CannotUpgrade`
             }
             break;
         case "industryAward":
@@ -494,17 +510,17 @@ export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     return seq;
 }
 
-export const industryLowestPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
+export const industryLowestPlayer = (G: IG): PlayerID[] => {
     let log = "industryLowestPlayer"
     let lowest = 10;
     let result: PlayerID[] = [];
-    G.order.forEach((i, idx) => {
-        if (G.pub[idx].industry < lowest) lowest = G.pub[idx].industry
+    G.order.forEach(i => {
+        if (G.pub[parseInt(i)].industry < lowest) lowest = G.pub[parseInt(i)].industry
     })
     log += `|highest|${lowest}`
-    G.order.forEach((i, idx) => {
-        if (G.pub[idx].industry <= lowest) {
-            log += `|${G.pub[idx].industry}|p${i}`
+    G.order.forEach(i => {
+        if (G.pub[parseInt(i)].industry <= lowest) {
+            log += `|p${i}|${G.pub[parseInt(i)].industry}|lowest`
             result.push(i)
         }
     })
@@ -512,58 +528,62 @@ export const industryLowestPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     return result;
 }
 
-export const aesLowestPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
+export const aesLowestPlayer = (G: IG): PlayerID[] => {
     let log = `aesLowestPlayer`
     let lowestAes = 10;
     let result: PlayerID[] = [];
-    G.order.forEach((i, idx) => {
-        if (G.pub[idx].aesthetics < lowestAes) {
-            lowestAes = G.pub[idx].aesthetics
+    G.order.forEach(i=> {
+        if (G.pub[parseInt(i)].aesthetics < lowestAes) {
+            lowestAes = G.pub[parseInt(i)].aesthetics
         }
     })
     log += `|highest|${lowestAes}`
-    G.order.forEach((i, idx) => {
-        if (G.pub[idx].aesthetics <= lowestAes) {
-            log += `|${G.pub[idx].aesthetics}|p${i}`
-            result.push(idx.toString())
+    G.order.forEach(i=> {
+        if (G.pub[parseInt(i)].aesthetics <= lowestAes) {
+            log += `|p${i}|${G.pub[parseInt(i)].aesthetics}|lowest`
+            result.push(i)
         }
     })
     logger.debug(log);
     return result;
 }
 
-export function notVpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
-    let log = `notVpChampionPlayer`
+export function vpNotHighestPlayer(G: IG): PlayerID[] {
+    let log = `vpNotHighestPlayer`
     let highestVp = 0;
     let result: PlayerID[] = [];
-    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-        const vp = G.pub[idx].vp;
+    G.order.forEach(i => {
+        const vp = G.pub[parseInt(i)].vp;
+        log += `|p${i}|${vp}`
         if (vp > highestVp) {
             highestVp = vp
         }
     })
     log += `|highest:${highestVp}`
-    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-        if (G.pub[idx].vp !== highestVp) {
-            result.push(idx.toString())
+    G.order.forEach((i:PlayerID) => {
+        if (G.pub[parseInt(i)].vp !== highestVp) {
+            log += `|p${i}|notHighest|`
+            result.push(i)
         }
     })
-    log += `|${result}`
+    log += `|result|${result}`
     logger.debug(log);
     return result;
 }
 
-export function vpChampionPlayer(G: IG, ctx: Ctx): PlayerID[] {
-    let log = "vpChampionPlayer|"
+export function vpHighestPlayer(G: IG): PlayerID[] {
+    let log = "vpHighestPlayer"
     let highestVp = 0;
     let result: PlayerID[] = [];
-    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-        if (G.pub[idx].vp > highestVp) highestVp = G.pub[idx].vp
+    G.order.forEach((i) => {
+        if (G.pub[parseInt(i)].vp > highestVp){
+            highestVp = G.pub[parseInt(i)].vp
+        }
     })
-    log += `highestVP|${highestVp}|`
-    Array(ctx.numPlayers).fill(1).forEach((i, idx) => {
-        if (G.pub[idx].vp === highestVp) {
-            log += `p${idx}|`
+    log += `|highestVP|${highestVp}`
+    G.order.forEach((i, idx) => {
+        if (G.pub[parseInt(i)].vp === highestVp) {
+            log += `|p${i}|highest`
             result.push(idx.toString())
         }
     })
@@ -683,6 +703,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     }
     log += `eff|${JSON.stringify(eff)}`;
     G.e.currentEffect = eff;
+    let targetPlayer = p;
     let pub = G.pub[parseInt(p)];
     let playerObj = G.player[parseInt(p)];
     let region = curCard(G).region as validRegion;
@@ -823,61 +844,60 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
             }
         case "noBuildingEE":
-            players = noBuildingPlayers(G, ctx, Region.EE);
-            for (let p of players) {
-                G.e.stack.push(eff.a);
-                simpleEffectExec(G, ctx, p);
+            subEffect = eff.a;
+            if (isSimpleEffect(subEffect)) {
+                log += "|simpleEffect|execForAll"
+                players = noBuildingPlayers(G, ctx, Region.EE);
+                for (let p of players) {
+                    G.e.stack.push(subEffect);
+                    simpleEffectExec(G, ctx, p);
+                }
             }
             break;
-        case "playerNotVpChampion":
-            players = notVpChampionPlayer(G, ctx);
-            for (let p of players) {
-                G.e.stack.push(eff.a);
-                simpleEffectExec(G, ctx, p);
+        case "vpNotHighestPlayer":
+            log += `|vpNotHighestPlayer`
+            subEffect = eff.a;
+            players = vpNotHighestPlayer(G)
+            if (isSimpleEffect(subEffect)) {
+                log += "|simpleEffect|execForAll"
+                for (let p of players) {
+                    G.e.stack.push(subEffect);
+                    simpleEffectExec(G, ctx, p);
+                }
             }
-            break
-        case "playerVpChampion":
-            log += "|playerVpChampion"
-            if (G.e.pendingPlayers.length === 0) {
-                log += "|fetchPlayers|"
-                players = vpChampionPlayer(G, ctx);
-                log += JSON.stringify(players);
-                G.e.pendingPlayers = players;
-                G.e.stack.push(eff);
-                log += "|push|"
-                logger.debug(log)
-            } else {
-                let subEffect = eff.a;
-
-                G.e.stack.push(subEffect);
-                if (isSimpleEffect(subEffect)) {
-                    log += "|simpleEffect"
-                    for (let p of G.e.pendingPlayers) {
-                        simpleEffectExec(G, ctx, p);
-                    }
-                } else {
-                    log += "|complexEffect"
-                    if (G.e.pendingPlayers.length > 1) {
-                        G.e.stack.push(eff);
-                    }
-                    let player = G.e.pendingPlayers.shift() as PlayerID;
-                    playerEffExec(G, ctx, player);
-                    return;
+            break;
+        case "highestVpPlayer":
+            log += "|highestVpPlayer"
+            subEffect = eff.a;
+            players =  vpHighestPlayer(G);
+            if (isSimpleEffect(subEffect)) {
+                log += "|simpleEffect|execForAll"
+                for (let p of players) {
+                    G.e.stack.push(subEffect);
+                    simpleEffectExec(G, ctx, p);
                 }
             }
             break;
         case "aesLowest":
-            players = aesLowestPlayer(G, ctx);
-            for (let p of players) {
-                G.e.stack.push(eff.a);
-                simpleEffectExec(G, ctx, p);
+            subEffect = eff.a;
+            players = aesLowestPlayer(G)
+            if (isSimpleEffect(subEffect)) {
+                log += "|simpleEffect|execForAll"
+                for (let p of players) {
+                    G.e.stack.push(subEffect);
+                    simpleEffectExec(G, ctx, p);
+                }
             }
             break;
         case "industryLowest":
-            players = industryLowestPlayer(G, ctx);
-            for (let p of players) {
-                G.e.stack.push(eff.a);
-                simpleEffectExec(G, ctx, p);
+            subEffect = eff.a;
+            players = industryLowestPlayer(G);
+            if (isSimpleEffect(subEffect)) {
+                log += "|simpleEffect|execForAll"
+                for (let p of players) {
+                    G.e.stack.push(subEffect);
+                    simpleEffectExec(G, ctx, p);
+                }
             }
             break;
         case "handToOthers":
@@ -1237,6 +1257,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case "industryOrAestheticsLevelUp":
+            if(eff.hasOwnProperty("target") && eff.target !== p){
+                log += `|otherPlayerVPAward`
+                targetPlayer = eff.target
+                pub = G.pub[parseInt(targetPlayer)];
+            }
             log += `|i${pub.industry}a${pub.aesthetics}`
             if (pub.industry < 10 && pub.aesthetics < 10) {
                 log += `|${JSON.stringify(G.e.choices)}|addChoice`
@@ -1249,7 +1274,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
                 log += `|chooseEffect`
                 logger.debug(log);
-                changePlayerStage(G, ctx, "chooseEffect", p);
+                changePlayerStage(G, ctx, "chooseEffect", targetPlayer);
                 return;
             } else {
                 if (pub.industry < 10) {
@@ -2173,7 +2198,7 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     }
     if (count > 0) {
         log += `|stack|${JSON.stringify(G.e.stack)}`
-        G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count})
+        G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count, target:p})
         log += `|push|industryOrAestheticsLevelUp`
     }
     logger.debug(log);
@@ -2762,8 +2787,8 @@ export const effName = (eff: any): string => {
     switch (eff.e) {
         case "everyOtherCompany":
         case "everyPlayer":
-        case "playerVpChampion":
-        case "playerNotVpChampion":
+        case "highestVpPlayer":
+        case "vpNotHighestPlayer":
         case "optional":
         case "alternative":
         case "studio":

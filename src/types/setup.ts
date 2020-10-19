@@ -29,6 +29,7 @@ export interface CompetitionInfo {
     onWin: { e: string, a: number },
 }
 export interface IG {
+    eventDeckLength:number,
     matchID: string,
     twoPlayer: {
         school: ICardSlot[],
@@ -202,6 +203,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     let events = shuffle(ctx, []);
     // let randomOrder = shuffle(ctx, order);
     let G = {
+        eventDeckLength:0,
         matchID: "",
         twoPlayer: {
             school: [

@@ -57,6 +57,7 @@ export const FilmCentenaryGame: Game<IG> = {
     maxPlayers: 4,
     playerView: (G: IG, ctx: Ctx, playerID: PlayerID | null) => {
         let r = JSON.parse(JSON.stringify(G));
+        r.eventDeckCount = G.secretInfo.events.length;
         let newPlayerObj = []
         for (let p = 0; p < r.player.length; p++) {
             let oldPlayerPrivateInfo = G.player[p];

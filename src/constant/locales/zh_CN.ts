@@ -575,8 +575,8 @@ const zh_CN: Locale = {
         pay: "支付",
         update: ["执行{{a}}次【更新】", argValue],
         noBuildingEE: "东欧地区没有建筑的公司",
-        playerVpChampion: "声望最高的公司",
-        playerNotVpChampion: "声望不是最高的公司",
+        highestVpPlayer: "声望最高的公司",
+        vpNotHighestPlayer: "声望不是最高的公司",
         aesLowest: "美学等级最低的公司",
         industryLowest: "工业等级最低的公司",
         peek: ["观看牌堆顶{{count}}张牌，{{filter}}{{target}}，然后弃掉其他的", {

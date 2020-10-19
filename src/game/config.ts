@@ -118,8 +118,8 @@ export const NormalTurn: TurnConfig = {
         let p = ctx.currentPlayer;
         let pub = curPub(G,ctx);
         let log = `onBegin|p${p}`
-        log += `|${JSON.stringify(aesLowestPlayer(G, ctx))}`
-        log += `|${JSON.stringify(industryLowestPlayer(G, ctx))}`
+        log += `|${JSON.stringify(aesLowestPlayer(G))}`
+        log += `|${JSON.stringify(industryLowestPlayer(G))}`
         if(pub.school === SchoolCardID.S1301){
             log += `|montage`
             addVp(G,ctx,p,1);

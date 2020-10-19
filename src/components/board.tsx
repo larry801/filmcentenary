@@ -193,7 +193,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         >{i18n.pub.lastRoundOfGame}</Paper>:<></>}
         {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
             <Grid item xs={4}>
-                <Typography>{`${i18n.pub.events}(${G.secretInfo.events.length})`}</Typography
+                <Typography>{`${i18n.pub.events}(${G.eventDeckCount})`}</Typography
                 ></Grid>
             {G.events.map((e:EventCardID, idx:number) => <Grid key={idx} item xs={4}>
                 <Paper key={idx} elevation={5}>
