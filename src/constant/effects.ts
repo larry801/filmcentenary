@@ -2342,7 +2342,7 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "deposit", a: 2}, {e: "noStudio", a: {e: "discardIndustry", a: 2}},
-                {e: "studio", a: {e: "peek", a: {count: 4, filter: {e: "hand", a: 2,}}}}
+                {e: "studio", a: {e: "peek", a: {count: 4, target: "hand", filter: {e: "hand", a: 2,}}}}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2360,7 +2360,7 @@ export const effects = {
                 {
                     e: "studio", a: {
                         e: "peek", a: {
-                            count: 4, filter: {e: "aesthetics", a: "all"}
+                            count: 4, target: "hand", filter: {e: "aesthetics", a: "all"}
                         }
                     }
                 }
@@ -2391,7 +2391,7 @@ export const effects = {
         play: {
             e: "step", a: [{e: "shareToVp", a: Region.ASIA}, {
                 e: "peek", a: {
-                    count: 4, filter: {e: "choice", a: 2}
+                    count: 4, target: "hand", filter: {e: "choice", a: 2}
                 }
             }]
         },
@@ -2512,7 +2512,9 @@ export const effects = {
             e: "step",
             a: [{e: "vp", a: 3}, {e: "update", a: 1}, {
                 e: "peek",
-                a: {count: 3, filter: {e: "choice", a: 1}}
+                a: {
+                    count: 3, target: "hand", filter: {e: "choice", a: 1}
+                }
             }, {e: "loseShareASIA", a: 1}]
         },
         canArchive: (G: IG, ctx: Ctx) => true,

@@ -714,6 +714,7 @@ const zh_CN: Locale = {
             toggleText: "选择手牌",
         },
         peek: {
+            choice: "请选择一张加入手牌",
             title: "查看牌堆顶",
         },
         chooseRegion: {

@@ -706,6 +706,7 @@ const en = {
             toggleText: "Choose Target Player",
         },
         peek: {
+            choice: "Please choose one card to hand.",
             title: "Peek cards on the top of the deck",
         },
         chooseRegion: {

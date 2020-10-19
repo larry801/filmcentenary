@@ -69,8 +69,8 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         }
     })
 
-    const peekChoicesDisabled = G.e.stack.length > 0 && G.e.stack[0].e === "peek" ? G.e.stack[0].eff.a.filter.e !== "choice" : true;
-
+    const peekChoicesDisabled = G.e.stack.length > 0 && G.e.stack[0].e === "peek" ? G.e.stack[0].a.filter.e !== "choice" : true;
+    const peekDialogTitle = peekChoicesDisabled ? i18n.dialog.peek.title : i18n.dialog.peek.choice;
     const peek = (choice: string) => {
         moves.peek({
             idx: parseInt(choice),
@@ -347,16 +347,16 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 callback={peek}
                 choices={
                     G.player[parseInt(playerID)].cardsToPeek
-                        .map(r => {
+                        .map((r:CardID,idx:number) => {
                             return {
                                 label: getCardName(r),
-                                value: r,
+                                value: idx.toString(),
                                 hidden: false,
                                 disabled: peekChoicesDisabled
                             }
                         })
                 } defaultChoice={"0"} show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "peek"}
-                title={i18n.dialog.peek.title}
+                title={peekDialogTitle}
                 toggleText={i18n.dialog.peek.title}/>
             <ChoiceDialog
                 initial={true}
