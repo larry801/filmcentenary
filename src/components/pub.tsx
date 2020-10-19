@@ -9,7 +9,7 @@ import {getCardName, inferDeckRemoveHelper} from "../game/util";
 import {IG} from "../types/setup";
 import shortid from "shortid";
 import {getCardById} from "../types/cards";
-import {CardEffect} from "./card";
+import {CardEffect, CardInfo} from "./card";
 
 export interface IPubPanelProps {
     i: IPubInfo,
@@ -20,12 +20,12 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
     useI18n(i18n);
     const inferHand = (): CardID[] => {
         let result = [...i.allCards]
-        inferDeckRemoveHelper(result,i.discard)
-        inferDeckRemoveHelper(result,i.archive)
-        if(i.school!==null){
+        inferDeckRemoveHelper(result, i.discard)
+        inferDeckRemoveHelper(result, i.archive)
+        if (i.school !== null) {
             let sIndex = result.indexOf(i.school)
-            if(sIndex!==-1){
-                result.splice(sIndex,1);
+            if (sIndex !== -1) {
+                result.splice(sIndex, 1);
             }
         }
         return result;
@@ -51,13 +51,14 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             {i.school !== null ?
-                <Typography>
-                    {i18n.pub.school}
-                    {getCardName(i.school)}
-                    <CardEffect cid={i.school}/>
-                </Typography> : <></>}
+                <>
+                    <Typography>
+                        {i18n.pub.school}
+                    </Typography>
+                    <CardInfo cid={i.school}/>
+                </> : <></>}
             <Typography>   {i18n.pub.shareLegend} </Typography>
-            {ValidRegions.map((r:validRegion) =>
+            {ValidRegions.map((r: validRegion) =>
                 <Typography key={r}>
                     {i18n.region[r]} {i.shares[r as 0 | 1 | 2 | 3]}
                     /
@@ -70,7 +71,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <Typography>{i18n.pub.champion}</Typography>
-            {i.champions.map((champion:Champion) => <Typography key={shortid.generate()}>
+            {i.champions.map((champion: Champion) => <Typography key={shortid.generate()}>
                 {i18n.region[champion.region]}
                 {i18n.era[champion.era]}</Typography>)}
         </Grid>

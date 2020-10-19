@@ -20,7 +20,7 @@ import FormControl from "@material-ui/core/FormControl";
 import Checkbox from "@material-ui/core/Checkbox";
 import DialogActions from "@material-ui/core/DialogActions";
 import {getCardById} from "../types/cards";
-import {CardEffect} from "./card";
+import {CardEffect, CardInfo} from "./card";
 
 export interface IBuyDialogProps {
     card: ClassicCardID | BasicCardID,
@@ -139,11 +139,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                 {i18n.pub.aestheticsRequirement} {targetCard.cost.aesthetics}
             </DialogTitle>
             <DialogContent>
-                <Typography>
-                    {i18n.pub.industryMarker} {targetCard.industry}
-                    {i18n.pub.aestheticsMarker} {targetCard.aesthetics}
-                </Typography>
-                <CardEffect cid={card}/>
+                <CardInfo cid={targetCard.cardId}/>
                 <FormControl required component="fieldset">
                     <FormLabel component="legend" error={!canBuy}>
                         {i18n.dialog.buyCard.cost} {i18n.pub.res} {res}

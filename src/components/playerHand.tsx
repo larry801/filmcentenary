@@ -6,13 +6,12 @@ import i18n from "../constant/i18n";
 import Accordion from "@material-ui/core/Accordion";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 import Grid from "@material-ui/core/Grid";
-import {getCardName} from "../game/util";
 import Typography from "@material-ui/core/Typography";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import Button from "@material-ui/core/Button";
 import shortid from "shortid";
 import {getCardById} from "../types/cards";
-import {CardEffect} from "./card";
+import {CardInfo} from "./card";
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
 
@@ -49,16 +48,11 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     playerID: playerID,
                     res: 0,
                 });
-                const card = getCardById(c);
                 return <Accordion
                     expanded={true}
                     key={shortid.generate()}>
                     <AccordionSummary key={idx}>
-                        {getCardName(c)}
-                        {"  "}
-                        {card.industry > 0 ? `${i18n.pub.industryMarker}${card.industry}` : ""}
-                        {card.aesthetics > 0 ? `${i18n.pub.aestheticsMarker}${card.aesthetics}` : ""}
-                        <CardEffect cid={c}/>
+                        <CardInfo cid={c}/>
                     </AccordionSummary>
                     <AccordionDetails key={idx}>
                         <Grid container>
