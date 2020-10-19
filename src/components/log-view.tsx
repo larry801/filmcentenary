@@ -39,12 +39,12 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
     }
 
     const getMoveText = (l: LogEntry): string => {
+        const pid = l.action.payload.playerID
         switch (l.action.type) {
             case "MAKE_MOVE":
-                let moveName = l.action.payload.type as MoveNames
-                let pid = l.action.payload.playerID
+                const moveName = l.action.payload.type as MoveNames
                 if (moveName === MoveNames.requestEndTurn) {
-                    return `p${pid}.moves.requestEndTurn("${pid}");p${pid}.events.endTurn()`
+                    return `p${pid}.moves.requestEndTurn("${pid}");`
                 } else {
                     if (l.action.payload.args === null) {
                         return `p${pid}.moves.${moveName}([])`
@@ -52,6 +52,10 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                         return `p${pid}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])})`
                     }
                 }
+            case "UNDO":
+                return `p${pid}.undo()`
+            case "REDO":
+                return `p${pid}.redo()`
             default:
                 return ""
         }
@@ -70,6 +74,10 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                 return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
                     args: l.action.payload.args
                 })
+            case "REDO":
+                return getPlayerName(l.action.payload.playerID) + i18n.action.redo
+            case "UNDO":
+                return getPlayerName(l.action.payload.playerID) + i18n.action.undo
             default:
                 return ""
         }

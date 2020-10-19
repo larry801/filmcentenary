@@ -185,9 +185,12 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         </>
         : <></>
 
-    return <Grid container justify="space-evenly" alignItems="center">
+    return <Grid container justify="space-evenly">
         {gameOverResult}
-
+        {G.pending.lastRoundOfGame ? <Paper
+            variant="outlined"
+            color="secondary"
+        >{i18n.pub.lastRoundOfGame}</Paper>:<></>}
         {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
             <Grid item xs={4}>
                 <Typography>{`${i18n.pub.events}(${G.secretInfo.events.length})`}</Typography

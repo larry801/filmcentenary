@@ -772,6 +772,7 @@ const en = {
         player: "Player",
     },
     pub: {
+        lastRoundOfGame:"Last Round",
         revealedHand: "Revealed Hand",
         champion: "Champion:",
         gameLog: "Report",
