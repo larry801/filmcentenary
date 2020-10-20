@@ -1181,7 +1181,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "discardNormalOrLegend":
             if (playerObj.hand.filter(i =>
-                getCardById(i).category !== CardCategory.BASIC
+                getCardById(i).category !== CardCategory.BASIC &&
+                getCardById(i).category !== CardCategory.SCORE
             ).length > 0) {
                 G.e.stack.push(eff);
                 log += (`|Has classic cards|changePlayerStage|${p}`)
