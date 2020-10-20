@@ -1879,14 +1879,14 @@ export const effects = {
     },
     "3113": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: {
             e: "pay", a: {
                 cost: {e: "deposit", a: 1},
                 eff: {e: "resFromIndustry", a: 1}
             }
         },
-        canPlay: (G: IG, ctx: Ctx) => false,
-        play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
