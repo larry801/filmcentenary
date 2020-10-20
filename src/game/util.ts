@@ -721,6 +721,7 @@ export const curCard = (G: IG) => {
 export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let log = `playerEffExec|p${p}`;
     let eff = G.e.stack.pop();
+
     if (eff === undefined) {
         log += "|StackEmpty|checkNextEffect"
         logger.debug(`${G.matchID}|${log}`);
@@ -736,6 +737,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     log += `|c:${G.e.card}|region:${region}`;
     let players = []
     let len = 0;
+    const handLength = playerObj.hand.length;
     let subEffect;
     let extraCost = 0
     const totalRes = pub.resource + pub.deposit;
@@ -795,7 +797,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             G.e.stack.push(eff.a[era]);
             break;
         case "breakthroughResDeduct":
-            if (playerObj.hand.length > 0 && pub.action > 0) {
+            if (handLength > 0 && pub.action > 0) {
                 log += `|chooseHand`
                 G.e.stack.push(eff);
                 logger.debug(`${G.matchID}|${log}`);
@@ -817,6 +819,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
         case "competition":
             if (pub.resource < 1) {
+                log += `|noResourceForCompetition`
                 break;
             } else {
                 pub.resource--;
@@ -1205,7 +1208,14 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "refactor":
         case "archive":
         case "discard":
-            if (playerObj.hand.length > 0) {
+            log += `|hand|${handLength}|discard|${eff.a}`
+            if (handLength > 0) {
+                if(handLength < eff.a){
+                    log += `|noEnoughCard`
+                    eff.a = handLength
+                }
+                log += `|chooseHand`
+                logger.debug(`${G.matchID}|${log}`);
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", p);
                 return;
@@ -1217,7 +1227,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             for (let choice of eff.a) {
                 switch (choice.e) {
                     case "breakthroughResDeduct":
-                        if (playerObj.hand.length > 0 && pub.action > 0) {
+                        if (handLength > 0 && pub.action > 0) {
                             G.e.choices.push(choice);
                         }
                         break;
