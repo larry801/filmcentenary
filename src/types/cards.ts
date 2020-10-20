@@ -129,7 +129,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "The Great Train Robbery",
         cardId: FilmCardID.F1104,
-        cost: cost(5, 0, 0),
+        cost: cost(4, 0, 0),
         vp: 1,
         category: CardCategory.NORMAL,
         industry: 1,
