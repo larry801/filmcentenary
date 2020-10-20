@@ -1980,19 +1980,19 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             return 1;
         }
         log += `|sameLegendCount`
-        const curPos = G.order;
+        const curPos = seqFromActivePlayer(G, ctx);
         const posA = curPos.indexOf(a);
         const posB = curPos.indexOf(b);
         log += `|pos|${posA}|${posB}`
         if (posA > posB) {
-            log += `|pos|p${a}win`
+            log += `|pos|p${b}win`
             logger.debug(`${G.matchID}|${log}`);
-            return -1;
+            return 1;
         } else {
             if (posA < posB) {
-                log += `|pos|p${b}win`
+                log += `|pos|p${a}win`
                 logger.debug(`${G.matchID}|${log}`);
-                return 1;
+                return -1;
             } else {
                 throw Error("Two player cannot have the same position.")
             }
