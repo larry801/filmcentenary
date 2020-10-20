@@ -451,7 +451,7 @@ const zh_CN: Locale = {
     eventName: eventName,
     region: region,
     action: {
-        adjustInSlider:"用下面的滑块调整支付额外费theF用的存款或资源",
+        adjustInSlider:"用下面的滑块调整支付额外费用的存款或资源",
         payAdditionalCost:"支付额外花费",
         comment: "评论",
         updateSlot: "更新",
