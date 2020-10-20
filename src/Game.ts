@@ -62,6 +62,8 @@ export const FilmCentenaryGame: Game<IG> = {
             r.regions[region].legendDeckLength = G.secretInfo.regions[region].legendDeck.length;
             r.regions[region].normalDeckLength = G.secretInfo.regions[region].normalDeck.length;
         })
+        r.twoPlayer.schoolDeckLength = G.secretInfo.twoPlayer.school.length;
+        r.twoPlayer.filmDeckLength = G.secretInfo.twoPlayer.film.length;
         let newPlayerObj = [];
         for (let p = 0; p < r.player.length; p++) {
             let oldPlayerPrivateInfo = G.player[p];

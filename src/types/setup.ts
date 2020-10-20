@@ -34,6 +34,8 @@ export interface IG {
     eventDeckLength: number,
     matchID: string,
     twoPlayer: {
+        schoolDeckLength: number,
+        filmDeckLength: number,
         school: ICardSlot[],
         film: ICardSlot[],
     },
@@ -203,11 +205,14 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         decks.push(shuffle(ctx, initialDeck));
     }
     let events = shuffle(ctx, []);
+    // TODO enable random order in real game
     // let randomOrder = shuffle(ctx, order);
     let G = {
         eventDeckLength: 0,
         matchID: "",
         twoPlayer: {
+            schoolDeckLength: 0,
+            filmDeckLength: 0,
             school: [
                 emptyNormalCardSlot(Region.NONE),
                 emptyNormalCardSlot(Region.NONE),

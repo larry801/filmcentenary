@@ -122,13 +122,21 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
     const cardBoard = ctx.numPlayers === SimpleRuleNumPlayers ?
         <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12}><Typography>{i18n.pub.share}</Typography></Grid>
-            {ValidRegions.map(r => <Grid key={`region-${r}-share`}
-                                         item><Typography>{i18n.region[r]} {G.regions[r as 0 | 1 | 2 | 3].share}</Typography></Grid>)}
+            <Grid item xs={12} sm={6}>
+                <Typography>{i18n.pub.share}</Typography>
+                {ValidRegions.map(r =>
+                    <Grid key={`region-${r}-share`} item>
+                        <Typography>{i18n.region[r]} {G.regions[r as 0 | 1 | 2 | 3].share}</Typography>
+                    </Grid>)}
+            </Grid>
+            <Grid item xs={12} sm={6}>
+                {G.twoPlayer.schoolDeckLength}/{G.twoPlayer.filmDeckLength}
+            </Grid>
             <BoardCardSlot slot={G.twoPlayer.school[0]} G={G} ctx={ctx} moves={moves} comment={comment}
                            playerID={playerID}/>
             <BoardCardSlot slot={G.twoPlayer.school[1]} G={G} ctx={ctx} moves={moves} comment={comment}
                            playerID={playerID}/>
+
             <BoardCardSlot slot={G.twoPlayer.film[0]} G={G} ctx={ctx} moves={moves} comment={comment}
                            playerID={playerID}/>
             <BoardCardSlot slot={G.twoPlayer.film[1]} G={G} ctx={ctx} moves={moves} comment={comment}
@@ -199,12 +207,12 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             variant="elevation"
         >
             <Typography variant="h3">{i18n.pub.lastRoundOfGame}</Typography>
-        </Paper>:<></>}
+        </Paper> : <></>}
         {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
             <Grid item xs={4}>
                 <Typography>{`${i18n.pub.events}(${G.eventDeckCount})`}</Typography
                 ></Grid>
-            {G.events.map((e:EventCardID, idx:number) => <Grid key={idx} item xs={4}>
+            {G.events.map((e: EventCardID, idx: number) => <Grid key={idx} item xs={4}>
                 <Paper key={idx} elevation={5}>
                     <Typography>{getCardName(e)}</Typography>
                     <Typography>{i18n.eventName[e]}</Typography>
@@ -222,7 +230,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         </Grid>
         <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
 
-        {G.pub.map((u:IPubInfo, idx:number) =>
+        {G.pub.map((u: IPubInfo, idx: number) =>
             <Grid container key={idx}>
                 <Grid item xs={4} sm={3} md={2} lg={1}><Typography>{getName(idx.toString())}</Typography></Grid>
                 <Grid item xs={4} sm={3} md={2}
