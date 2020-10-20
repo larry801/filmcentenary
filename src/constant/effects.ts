@@ -1127,18 +1127,16 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "era", a:
-                [
-                    noEff,
-                    {
-                        e: "step", a:
-                            [
-                                {e: "res", a: 2},
-                                {e: "deposit", a: 1},
-                            ]
-                    },
-                    {e: "breakthroughResDeduct", a: 2},
-                ]
+            e: "choice", a: [
+                {
+                    e: "step", a:
+                        [
+                            {e: "res", a: 2},
+                            {e: "deposit", a: 1},
+                        ]
+                },
+                {e: "breakthroughResDeduct", a: 2},
+            ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,

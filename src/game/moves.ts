@@ -189,7 +189,6 @@ export const buyCard: LongFormMove = {
         } else {
             return INVALID_MOVE;
         }
-
     },
     client: false,
 }
