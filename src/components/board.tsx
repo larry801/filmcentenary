@@ -130,7 +130,11 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                     </Grid>)}
             </Grid>
             <Grid item xs={12} sm={6}>
-                {G.twoPlayer.schoolDeckLength}/{G.twoPlayer.filmDeckLength}
+                <Typography>
+                    {
+                        // @ts-ignore
+                        i18n.era[G.twoPlayer.era]
+                    }/{G.twoPlayer.schoolDeckLength}/{G.twoPlayer.filmDeckLength}</Typography>
             </Grid>
             <BoardCardSlot slot={G.twoPlayer.school[0]} G={G} ctx={ctx} moves={moves} comment={comment}
                            playerID={playerID}/>

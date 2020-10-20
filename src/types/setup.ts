@@ -34,6 +34,7 @@ export interface IG {
     eventDeckLength: number,
     matchID: string,
     twoPlayer: {
+        era:IEra,
         schoolDeckLength: number,
         filmDeckLength: number,
         school: ICardSlot[],
@@ -211,6 +212,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         eventDeckLength: 0,
         matchID: "",
         twoPlayer: {
+            era:IEra.ONE,
             schoolDeckLength: 0,
             filmDeckLength: 0,
             school: [

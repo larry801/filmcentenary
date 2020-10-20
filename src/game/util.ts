@@ -1709,7 +1709,9 @@ export const getPossibleHelper = (G: IG, ctx: Ctx, p: PlayerID, card: CardID): C
 }
 
 export const do2pUpdateSchoolSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
-    if (G.regions[Region.NA].era !== IEra.TWO) {
+    if (G.twoPlayer.era !== IEra.TWO) {
+        // 2p rule only show 2 school card for Era 1 and 3
+        // do not need to drawNewCard if not era two
         if (slot.comment !== null) {
             let commentId: BasicCardID = slot.comment;
             G.basicCards[commentId]++;
@@ -1890,7 +1892,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
                     doBuy(G, ctx, B04, '0')
                 }
             })
-            let era = G.regions[Region.NA].era;
+            let era = G.twoPlayer.era;
             let newEra = era;
             if (era === IEra.ONE) {
                 newEra = IEra.TWO
@@ -1899,6 +1901,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
                 newEra = IEra.THREE
             }
             if (era !== newEra) {
+                G.twoPlayer.era = newEra;
                 drawForTwoPlayerEra(G, ctx, newEra)
             } else {
                 finalScoring(G, ctx);
