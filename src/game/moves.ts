@@ -704,7 +704,7 @@ export const requestEndTurn: LongFormMove = {
                 G.scoringRegions.push(r)
             }
         })
-        log += `|scoreRegions|${G.scoringRegions}`
+        log += `|scoreRegions|${JSON.stringify(G.scoringRegions)}`
         if (ctx.numPlayers > SimpleRuleNumPlayers) {
             log += "|tryScoring"
             logger.debug(`${G.matchID}|${log}`);
@@ -733,7 +733,7 @@ export const confirmRespond: LongFormMove = {
         let pub = G.pub[parseInt(p)];
         let hand = G.player[parseInt(p)].hand;
         let eff = G.e.stack.pop();
-        let log = `confirmRespond|${p}|${arg}|${G.e.stack}|${JSON.stringify(eff)}`;
+        let log = `confirmRespond|${p}|${arg}|${JSON.stringify(G.e.stack)}|${JSON.stringify(eff)}`;
         logger.debug(`${G.matchID}|${log}`);
         if (arg === "yes") {
             switch (eff.e) {

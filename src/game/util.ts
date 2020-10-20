@@ -1139,7 +1139,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     }
                     G.e.stack.push(eff.a);
                     let player = G.e.pendingPlayers.shift() as PlayerID;
-                    log += `|left|${G.e.pendingPlayers}`
+                    log += `|left|${JSON.stringify(G.e.pendingPlayers)}`
                     log += `|execFor|p${player}`
                     logger.debug(`${G.matchID}|${log}`);
                     playerEffExec(G, ctx, player);
