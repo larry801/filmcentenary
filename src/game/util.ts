@@ -989,7 +989,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 deck = shuffle(ctx, pub.discard);
                 pub.discard = [];
                 log += `|shuffle|${JSON.stringify(deck)}`
-                for (let i = 0; i < peekCount - effectLength; i++) {
+                const remainDrawCount =  peekCount - effectLength;
+                log += `|more|${remainDrawCount}`
+                for (let i = 0; i < remainDrawCount; i++) {
                     let newCardId = deck.pop();
                     if (newCardId === undefined) {
                         throw Error("Should have card in deck");
