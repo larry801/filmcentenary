@@ -265,6 +265,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             p: playerID,
         })
     }
+    const chooseRegionTitle = G.e.stack.length > 0 ? curEffName : i18n.dialog.chooseRegion.title;
     const chooseRegionDialog =
         <ChoiceDialog
             initial={true}
@@ -280,7 +281,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                     })
             } defaultChoice={"4"}
             show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseRegion"}
-            title={i18n.dialog.chooseRegion.title}
+            title={chooseRegionTitle}
             toggleText={i18n.dialog.chooseRegion.toggleText}/>
 
 
