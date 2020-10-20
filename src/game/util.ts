@@ -802,7 +802,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             G.e.stack.push(eff.a[era]);
             break;
         case "breakthroughResDeduct":
-            if (handLength > 0 && pub.action > 0) {
+            if (handLength > 0) {
                 log += `|chooseHand`
                 G.e.stack.push(eff);
                 logger.debug(`${G.matchID}|${log}`);
