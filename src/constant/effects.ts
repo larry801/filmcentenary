@@ -1778,10 +1778,13 @@ export const effects = {
                 {
                     e: "noStudio", a: {
                         e: "step", a: [
-                            {e: "buy", a: "B03"},
                             {e: "buy", a: "B04"},
+                            {e: "buy", a: "B03"},
                         ]
                     }
+                },
+                {
+                    e:"studio", a: {e: "deposit", a: 2},
                 }
             ]
         },
