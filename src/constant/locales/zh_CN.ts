@@ -530,14 +530,14 @@ const zh_CN: Locale = {
         payAdditionalCost :["额外支付{{res}}{{deposit}}",{
             deposit: (value: number = 1): string => {
                 if(value>0){
-                        return `${value}资源`
+                        return `${value}存款`
                 }else {
                     return ""
                 }
             },
             res: (value: number = 1): string => {
                 if(value>0){
-                    return `${value}存款`
+                    return `${value}资源`
                 }else {
                     return ""
                 }
@@ -657,6 +657,7 @@ const zh_CN: Locale = {
         addVp: ["获得{{a}}声望", argValue],
         addExtraVp: ["额外获得{{a}}声望", argValue],
         res: ["{{a}}资源", argValue],
+        addRes: ["获得{{a}}资源", argValue],
         deposit: ["{{a}}存款", argValue],
         loseAnyRegionShare: ["归还{{a}}个任意地区的份额", argValue],
         shareToVp: ["按照你当前持有的{{a}}份额获得声望", argRegion],
@@ -673,7 +674,7 @@ const zh_CN: Locale = {
         deductRes: ["少花费{{a}}资源", argValue],
         buyAesthetics: "购买有美学标志的影片时，",
         extraEffect: "额外效果：",
-        loseVpRespond: "失去声望时，",
+        loseVpRespond: "任何时候，当你失去1声望时，",
         othersBuySchool: "其他公司购买【流派】时，",
         turnStart: "每回合开始时，",
         studio: "本地区有制片厂的公司，",

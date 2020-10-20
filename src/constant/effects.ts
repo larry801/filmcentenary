@@ -744,13 +744,13 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        "school": {
+        school: {
             hand: 5,
             action: 2,
         },
         response: {
             pre: {e: "loseVpRespond"},
-            effect: {e: "res", a: 1},
+            effect: {e: "addRes", a: 1},
         },
     },
     "2105": {

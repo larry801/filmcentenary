@@ -653,6 +653,7 @@ const en = {
         addVp: ["Get {{a}} prestige", argValue],
         addExtraVp: ["Get additional {{a}} prestige", argValue],
         res: ["{{a}} resource(s)", argValue],
+        addRes: ["get {{a}} resource(s)", argValue],
         deposit: ["{{a}} deposit(s)", argValue],
         loseAnyRegionShare: ["Lose {{a}} share(s) of any region", argValue],
         share: ["Get {{a}} share from {{r}}", argValue],
