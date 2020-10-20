@@ -220,7 +220,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             <Grid item><Typography>{i18n.card.B04} {G.basicCards.B04}</Typography></Grid>
             <Grid item><Typography>{i18n.card.B05} {G.basicCards.B05}</Typography></Grid>
         </Grid>
-        <FinalScoreTable G={G} ctx={ctx}/>
+        <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
 
         {G.pub.map((u:IPubInfo, idx:number) =>
             <Grid container key={idx}>

@@ -11,7 +11,7 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import {IG} from "../../types/setup";
 import {rank} from "../../game/util";
-import {Ctx} from "boardgame.io";
+import {Ctx, PlayerID} from "boardgame.io";
 
 const useStyles = makeStyles({
     table: {
@@ -22,9 +22,10 @@ const useStyles = makeStyles({
 export interface IFinalScoreTableProps {
     G: IG,
     ctx: Ctx,
+    getName:(p:PlayerID)=>string;
 }
 
-const FinalScoreTable = ({G, ctx}: IFinalScoreTableProps) => {
+const FinalScoreTable = ({G, ctx, getName}: IFinalScoreTableProps) => {
     useI18n(i18n);
     const classes = useStyles();
     const scoreRank = (a: string, b: string) => rank(G, ctx, parseInt(a), parseInt(b));
@@ -50,7 +51,7 @@ const FinalScoreTable = ({G, ctx}: IFinalScoreTableProps) => {
                     const f = pub.finalScoring;
                     return <TableRow key={p}>
                         <TableCell component="th" scope="row">
-                            {p}
+                            {getName(p)}
                         </TableCell>
                         <TableCell>{pub.vp}</TableCell>
                         <TableCell>{f.card}</TableCell>
