@@ -43,11 +43,11 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <Typography>   {i18n.pub.industry} {i.industry}
-                {i.school !== null && getCardById(i.school).industry > 0 ? `(${getCardById(i.school).industry})` : ""}
+                {i.school !== null && getCardById(i.school).industry > 0 ? `(+${getCardById(i.school).industry})` : ""}
             </Typography>
             <Typography>
                 {i18n.pub.aesthetics} {i.aesthetics}
-                {i.school !== null && getCardById(i.school).aesthetics > 0 ? `(${getCardById(i.school).aesthetics})` : ""}
+                {i.school !== null && getCardById(i.school).aesthetics > 0 ? `(+${getCardById(i.school).aesthetics})` : ""}
             </Typography>
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
