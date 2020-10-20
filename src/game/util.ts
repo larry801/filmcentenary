@@ -2277,7 +2277,7 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     log += `|after|${obj.vp}`
     if (obj.school === SchoolCardID.S2104) {
         log += `|FilmNoir|${obj.resource}`
-        obj.resource++;
+        obj.resource += vp;
         log += `|${obj.resource}`
     }
     logger.debug(`${G.matchID}|${log}`);
