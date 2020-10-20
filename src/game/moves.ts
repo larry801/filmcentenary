@@ -188,7 +188,7 @@ export const buyCard: LongFormMove = {
             if (cardEff.hasOwnProperty("buy")) {
                 const eff = cardEff.buy;
                 if (eff.e !== "none") {
-                    G.e.stack.push(eff.buy);
+                    G.e.stack.push(eff);
                     checkNextEffect(G, ctx);
                 }
             } else {
