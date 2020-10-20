@@ -226,7 +226,7 @@ const argPeek = {
         let t = "Peeked cards on top of the deck"
         a.shownCards.forEach(c=>t+=bracketCardName(c));
         if(a.card!==null){
-            t+= `and chose ${bracketCardName(a.card)}`
+            t+= `and chose ${bracketCardName(a.card)} to add to hand`
         }
         return t;
     }
