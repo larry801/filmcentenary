@@ -2778,7 +2778,7 @@ export const finalScoring = (G: IG, ctx: Ctx) => {
     })
 }
 
-export const getCardName = (cardId: string) => {
+export const getCardName = (cardId: string):string => {
     if (cardId in i18n.card) {
         // @ts-ignore
         return i18n.card[cardId];

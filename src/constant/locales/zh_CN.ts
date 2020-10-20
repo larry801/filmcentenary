@@ -345,7 +345,13 @@ const argShowCompetitionResult = {
 }
 const argPeek = {
     args: (arg: IPeekArgs[]) => {
-        return "查看了牌堆顶端"
+        const a = arg[0];
+        let t = "展示牌堆顶端";
+        a.shownCards.forEach(c=>t+=bracketCardName(c));
+        if(a.card!==null){
+            t+= `选择了${bracketCardName(a.card)}加入手牌`
+        }
+        return t;
     }
 }
 const argDrawCard = {
@@ -526,7 +532,7 @@ const zh_CN: Locale = {
         payAdditionalCost:["{{args}}",argPayAdditionalCost],
     },
     effect: {
-        archiveToEEBuildingVP:"每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑",
+        archiveToEEBuildingVP:"每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑，则该公司获得这张牌的声望",
         payAdditionalCost :["额外支付{{res}}{{deposit}}",{
             deposit: (value: number = 1): string => {
                 if(value>0){
@@ -563,7 +569,7 @@ const zh_CN: Locale = {
         industryToVp: "按照你的工业等级获得声望",
         aestheticsToVp: "按照你的美学等级获得声望",
         threeCards: "你的每3张牌额外获得1声望",
-        northAmericaFilm: "你的每张东欧影片额外获得2声望",
+        northAmericaFilm: "你的每张北美影片额外获得2声望",
         asiaFilm: "你的每张亚洲影片额外获得2声望",
         industryNormalOrLegend: "每张有工业标志的普通牌和传奇牌额外获得2声望",
         westEuropeCard: "你的每张西欧卡牌额外获得2声望",
@@ -588,7 +594,7 @@ const zh_CN: Locale = {
         vpNotHighestPlayer: "声望不是最高的公司",
         aesLowest: "美学等级最低的公司",
         industryLowest: "工业等级最低的公司",
-        peek: ["观看牌堆顶{{count}}张牌，{{filter}}{{target}}，然后弃掉其他的", {
+        peek: ["展示牌堆顶{{count}}张牌，{{filter}}{{target}}，然后弃掉其他的", {
             count: (value: number = 1) => {
                 return value.toString()
             },
@@ -687,7 +693,7 @@ const zh_CN: Locale = {
             hand: undefined,
             action: undefined
         }],
-        scoringHeader: "【计分】",
+        scoringHeader: "【计分】终局计分时，",
         continuous: "【持续】",
         playCardHeader: "【出牌】",
         buyCardHeader: "【购买】",

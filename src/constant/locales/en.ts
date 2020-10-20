@@ -204,7 +204,7 @@ const eventName = {
 };
 const argCardName = {
     a: (value: string = "E02"): string => {
-        return `【getCardName(value)】`
+        return `${getCardName(value)}`
     }
 };
 const argTimes = {
@@ -222,7 +222,13 @@ const argTimes = {
 }
 const argPeek = {
     args: (arg: IPeekArgs[]) => {
-        return "Peeked cards on top of the deck"
+        const a = arg[0]
+        let t = "Peeked cards on top of the deck"
+        a.shownCards.forEach(c=>t+=bracketCardName(c));
+        if(a.card!==null){
+            t+= `and chose ${bracketCardName(a.card)}`
+        }
+        return t;
     }
 }
 const argShowCompetitionResult = {
@@ -568,7 +574,7 @@ const en = {
         aestheticsLevel: "Gain 2 extra prestige for each of your aesthetics level",
         personCard: "Gain 4 extra prestige for each of your person card.",
         aesClassic: "Gain 2 extra prestige for each of your normal or legend card with aesthetics marker.",
-        NewYorkSchool: "If your industry level is not less than your aesthetics level,execute your，若你的工业等级不低于美学等级，工业奖励一次",
+        NewYorkSchool: " if your industry level is not less than your aesthetics level,execute your aesthetics level bonus once, if your industry level is not less than your aesthetics level execute your industry level bonus once",
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",
         breakthroughResDeduct: ["Execute breakthrough action with a deduct of {{a}} resources", argValue],
@@ -583,38 +589,42 @@ const en = {
         vpNotHighestPlayer: "Companies do not have highest prestige",
         aesLowest: "Company with the lowest aesthetics level,",
         industryLowest: "Company with the lowest industry level",
-        peek: ["观看牌堆顶{{count}}张牌，{{filter}}{{target}}，然后弃掉其他的", {
+        peek: ["Show {{count}} cards from top of your deck，{{filter}}{{target}},then discard others", {
             count: (value: number = 1): string => {
                 return value.toString()
             },
             target: (e: string): string => {
                 if (e === "hand") {
-                    return "加入手牌"
+                    return " into hand"
                 } else {
                     return "";
                 }
             },
-            filter: (e: string): string => {
-                switch (e) {
+            filter: (e: any): string => {
+                switch (e.e) {
                     case "choice":
-                        return "选择其中张"
+                        if(e.a > 1){
+                            return `choose ${e.a} cards, put them`
+                        }else{
+                            return `choose ${e.a} card, put them`
+                        }
                     case "industry":
-                        return "把其中有美学标志的"
+                        return "put cards with industry mark"
                     case "eraTwo":
-                        return "把其中古典时代的"
+                        return "put classic era cards"
                     case "asia":
-                        return "把其中亚洲地区的"
+                        return "put asia cards"
                     case "aesthetics":
-                        return "把其中有工业标志的"
+                        return "put cards with aesthetics mark"
                     default:
                         return ""
                 }
             }
         }],
-        competition: ["争夺一次{{bonus}}{{onWin}}", {
+        competition: ["Start a competition {{bonus}}{{onWin}}", {
             bonus: (value: number = 0): string => {
                 if (value > 0) {
-                    return "竞争力+" + value.toString()
+                    return " with a bonus progress of " + value.toString()
                 } else {
                     return "";
                 }
@@ -622,9 +632,9 @@ const en = {
             onWin: (e: any): string => {
                 if (e.e !== "none") {
                     if (e.e === "anyRegionShare") {
-                        return "若这次争夺获胜你额外获得一个任意地区份额"
+                        return "get an additional share from any region if you win."
                     } else {
-                        return "若这次争夺获胜你额外获得一个" + region[e.r as Region] + "地区份额"
+                        return "get an additional share from " + region[e.r as Region] + " if you win."
                     }
                 } else {
                     return "";
@@ -672,7 +682,7 @@ const en = {
         buyAesthetics: "When you buys a card with aesthetics marker,",
         loseVpRespond: "When you lose vp,",
         othersBuySchool: "When another company buys a school card,",
-        turnStart: "On every turn start",
+        turnStart: "On the beginning of every turn",
         studio: "All companies with a studio in this region,",
         building: "All companies with a building in this region,，",
         noStudio: "Choose a company without a studio in this region,",
@@ -683,7 +693,7 @@ const en = {
             action: undefined
         }],
         continuous: "【Continuous】",
-        scoringHeader: "【Scoring】",
+        scoringHeader: "【Scoring】 At final scoring,",
         playCardHeader: "【Play】",
         buyCardHeader: "【Buy】",
         breakthroughHeader: "【Archive】",

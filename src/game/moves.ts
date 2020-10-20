@@ -144,12 +144,17 @@ export interface IShowCompetitionResultArgs {
 }
 
 export const showCompetitionResult: LongFormMove = {
+    // TODO remove comment cannot undo in real game
+    // undoable: false,
     move: (G: IG, ctx: Ctx, args: IShowCompetitionResultArgs) => {
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.showCompetitionResult(${JSON.stringify(args)})`)
         competitionResultSettle(G, ctx);
     }
 }
+
 export const drawCard: LongFormMove = {
+    client: false,
+    // undoable: false,
     move: (G: IG, ctx: Ctx, p: PlayerID) => {
         if (activePlayer(ctx) !== p) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${p}.moves.drawCard(${p})`);
@@ -157,7 +162,6 @@ export const drawCard: LongFormMove = {
         logger.debug(`p${ctx.currentPlayer}|drawCardWithAP`);
         drawCardForPlayer(G, ctx, ctx.currentPlayer);
     },
-    client: false,
 }
 
 export const buyCard: LongFormMove = {
@@ -526,14 +530,14 @@ export const chooseRegion: LongFormMove = {
 
 export interface IPeekArgs {
     idx: number,
-    card: ClassicCardID,
+    card: ClassicCardID | null,
     p: PlayerID,
+    shownCards: CardID[],
 }
 
 export const peek: LongFormMove = {
     client: false,
-    undoable: false,
-    redact: true,
+    // undoable: false,
     move: (G: IG, ctx: Ctx, arg: IPeekArgs) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.peek(${JSON.stringify(arg)})`);
@@ -577,7 +581,9 @@ export const peek: LongFormMove = {
                 break;
             case "choice":
                 playerObj.cardsToPeek.splice(arg.idx, 1);
-                playerObj.hand.push(arg.card);
+                if (arg.card !== null) {
+                    playerObj.hand.push(arg.card);
+                }
                 if (eff.a.filter.a > 1) {
                     eff.a.filter.a--;
                     G.e.stack.push(eff);
@@ -645,7 +651,7 @@ export const chooseEvent: LongFormMove = {
 
 export const requestEndTurn: LongFormMove = {
     client: false,
-    undoable: false,
+    // undoable: false,
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg}.moves.requestEndTurn("${arg}")`);
@@ -825,15 +831,15 @@ export const playCard: LongFormMove = {
         pub.playedCardInTurn.push(arg.card);
         G.e.card = arg.card;
         let cardEff = getCardEffect(arg.card);
-        if(cardEff.hasOwnProperty("play")){
+        if (cardEff.hasOwnProperty("play")) {
             const eff = cardEff.play;
             if (eff.e !== "none") {
                 G.e.stack.push(eff)
                 playerEffExec(G, ctx, ctx.currentPlayer);
-            }else {
+            } else {
                 log += `|emptyPlayEffect`
             }
-        }else {
+        } else {
             log += `|noPlayEffect`
         }
         logger.debug(`${G.matchID}|${log}`);

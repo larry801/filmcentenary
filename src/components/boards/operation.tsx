@@ -90,29 +90,42 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     })
 
     const peekChoicesDisabled = G.e.stack.length > 0 && G.e.stack[0].e === "peek" ? G.e.stack[0].a.filter.e !== "choice" : true;
+
+    const peekCardLength = iPrivateInfo.cardsToPeek.length.toString();
+    const peekChoices = G.player[parseInt(playerID)].cardsToPeek
+        .map((r: CardID, idx: number) => {
+            return {
+                label: getCardName(r),
+                value: peekChoicesDisabled ? (idx + 1).toString() : idx.toString(),
+                hidden: false,
+                disabled: peekChoicesDisabled
+            }
+        });
+    const peekDialogDefaultChoice = peekChoicesDisabled ? peekCardLength : "0";
+    const peekNoChoiceChoices = [{
+        label: " ",
+        value: "0",
+        hidden: false,
+        disabled: false,
+    }, ...peekChoices];
+    const peekDialogChoices = peekChoicesDisabled ? peekNoChoiceChoices : peekChoices;
     const peekDialogTitle = peekChoicesDisabled ? i18n.dialog.peek.title : i18n.dialog.peek.choice;
     const peek = (choice: string) => {
+        const cardChoice = peekChoicesDisabled ? null : iPrivateInfo.cardsToPeek[parseInt(choice)];
         moves.peek({
             idx: parseInt(choice),
-            card: iPrivateInfo.cardsToPeek[parseInt(choice)],
+            card: cardChoice,
             p: playerID,
+            shownCards: iPrivateInfo.cardsToPeek,
         })
     }
     const peekDialog =
         <ChoiceDialog
             initial={true}
             callback={peek}
-            choices={
-                G.player[parseInt(playerID)].cardsToPeek
-                    .map((r: CardID, idx: number) => {
-                        return {
-                            label: getCardName(r),
-                            value: idx.toString(),
-                            hidden: false,
-                            disabled: peekChoicesDisabled
-                        }
-                    })
-            } defaultChoice={"0"} show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "peek"}
+            choices={peekDialogChoices}
+            defaultChoice={peekDialogDefaultChoice}
+            show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "peek"}
             title={peekDialogTitle}
             toggleText={i18n.dialog.peek.title}/>
 
