@@ -969,7 +969,7 @@ const NoneBasicCards = {
         vp: 7,
         category: CardCategory.NORMAL,
         industry: 1,
-        aesthetics: 4,
+        aesthetics: 1,
     }),
     "F3106": filmCard({
         era: IEra.THREE,
@@ -1064,7 +1064,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "The Longest Yard",
         cardId: FilmCardID.F3114,
-        cost: cost(9, 10, 0),
+        cost: cost(9, 6, 0),
         vp: 9,
         category: CardCategory.NORMAL,
         industry: 1,
