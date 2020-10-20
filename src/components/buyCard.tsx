@@ -87,7 +87,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     const maxDeposit = Math.min(realtimeCost, pub.deposit);
     const canBuy: boolean = canBuyCard(G, ctx, buyArg);
     const buy = () => moves.buyCard(buyArg);
-    const isValidHelper = (helper: CardID): boolean => canHelp(G,ctx,playerID,card,helper);
+    const isValidHelper = (helper: CardID): boolean => canHelp(G, ctx, playerID, card, helper);
     const handleSliderChange = (event: any, newValue: number | number[]) => {
         if (typeof newValue === "number") {
             setDepositExtra(newValue);
@@ -146,17 +146,20 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                         {i18n.pub.deposit} {deposit}
                     </FormLabel>
                     <FormGroup>
-                        {sliderRequired ? <Slider
-                            onChange={handleSliderChange}
-                            min={0}
-                            max={maxDeposit - minDeposit}
-                            step={1}
-                            marks
-                            getAriaValueText={getValueText}
-                            aria-labelledby="deposit-slider"
-                            valueLabelDisplay="auto"
-                            value={depositExtra}
-                        /> : <></>}
+                        {sliderRequired
+                            ? <>
+                                <Typography>{i18n.action.adjustInSlider}</Typography>
+                                <Slider
+                                    onChange={handleSliderChange}
+                                    min={0}
+                                    max={maxDeposit - minDeposit}
+                                    step={1}
+                                    marks
+                                    getAriaValueText={getValueText}
+                                    aria-labelledby="deposit-slider"
+                                    valueLabelDisplay="auto"
+                                    value={depositExtra}
+                                /></> : <></>}
                         {helpers.map((p, idx) =>
                             isValidHelper(p) ? <FormControlLabel
                                 key={idx} id={p}
@@ -229,7 +232,7 @@ export const Comment = ({slot, comment, G}: ICommentProps) => {
                 }
             )
             }
-            defaultChoice={"B01"} show={slot.card!==null}
+            defaultChoice={"B01"} show={slot.card !== null}
             title={i18n.action.comment}
             toggleText={i18n.action.comment}/> :
         <Button onClick={removeComment}>

@@ -767,6 +767,7 @@ const en = {
         },
     },
     action: {
+        adjustInSlider:"Adjust pay additional cost with deposit or resource in slider",
         payAdditionalCost: "Pay extra cost",
         comment: "Comment",
         updateSlot: "Update",

@@ -421,6 +421,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         })
     }
     const sliderPart = stage === "payAdditionalCost" && canMove ? <Grid item xs={6}>
+            <Typography>{i18n.action.adjustInSlider}</Typography>
             <Slider
                 onChange={handleSliderChange}
                 min={0}
