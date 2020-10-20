@@ -18,7 +18,7 @@ import {
     updateSlot
 } from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
-import {Region, VictoryType} from "./types/core";
+import {Region, ValidRegions, VictoryType} from "./types/core";
 import {getExtraScoreForFinal} from "./game/util";
 import {enumerateMoves} from "./game/ai";
 
@@ -58,7 +58,11 @@ export const FilmCentenaryGame: Game<IG> = {
     playerView: (G: IG, ctx: Ctx, playerID: PlayerID | null) => {
         let r = JSON.parse(JSON.stringify(G));
         r.eventDeckCount = G.secretInfo.events.length;
-        let newPlayerObj = []
+        ValidRegions.forEach(region=>{
+            r.regions[region].legendDeckLength = G.secretInfo.regions[region].legendDeck.length;
+            r.regions[region].normalDeckLength = G.secretInfo.regions[region].normalDeck.length;
+        })
+        let newPlayerObj = [];
         for (let p = 0; p < r.player.length; p++) {
             let oldPlayerPrivateInfo = G.player[p];
             let isEmpty = G.secretInfo.playerDecks[p].length === 0 && G.pub[p].discard.length === 0;
@@ -84,10 +88,9 @@ export const FilmCentenaryGame: Game<IG> = {
             }
         }
         r.player = newPlayerObj;
-        // TODO wait for boardgames.io bug fix
-        // if (G.secretInfo !== undefined) {
-        //     delete r.secretInfo;
-        // }
+        if (r.secretInfo !== undefined) {
+            delete r.secretInfo;
+        }
         return r;
     },
     moves: {

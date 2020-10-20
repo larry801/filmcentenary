@@ -16,20 +16,22 @@ import {
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
+
 export interface CompetitionInfo {
     region: Region,
     atk: PlayerID,
     atkPlayedCard: boolean,
-    atkCard: CardID|null,
+    atkCard: CardID | null,
     def: PlayerID,
     defPlayedCard: boolean,
-    defCard: CardID|null,
+    defCard: CardID | null,
     pending: boolean,
     progress: number,
     onWin: { e: string, a: number },
 }
+
 export interface IG {
-    eventDeckLength:number,
+    eventDeckLength: number,
     matchID: string,
     twoPlayer: {
         school: ICardSlot[],
@@ -62,7 +64,7 @@ export interface IG {
         stack: any[],
         card: CardID | null,
         regions: Region[],
-        currentEffect: any ,
+        currentEffect: any,
         extraCostToPay: number,
     },
     player: IPrivateInfo[],
@@ -181,7 +183,7 @@ function emptyLegendCardSlot(region: Region): ICardSlot {
 
 function emptyBuildingSlot(region: Region, activated: boolean = true): IBuildingSlot {
     return {
-        building:null,
+        building: null,
         region: region,
         activated: activated,
         owner: "",
@@ -203,7 +205,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     let events = shuffle(ctx, []);
     // let randomOrder = shuffle(ctx, order);
     let G = {
-        eventDeckLength:0,
+        eventDeckLength: 0,
         matchID: "",
         twoPlayer: {
             school: [
@@ -240,16 +242,16 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             pendingPlayers: [],
             choices: [], stack: [], card: null, regions: [],
             currentEffect: {e: "none", a: 1},
-            extraCostToPay:0,
+            extraCostToPay: 0,
         },
         competitionInfo: {
             region: Region.NONE,
             atk: '0',
             atkPlayedCard: false,
-            atkCard:null,
+            atkCard: null,
             def: '1',
             defPlayedCard: false,
-            defCard:null,
+            defCard: null,
             progress: 0,
             pending: false,
             onWin: {e: "none", a: 1}
@@ -284,6 +286,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         },
         regions: {
             0: {
+                normalDeckLength: 0,
+                legendDeckLength: 0,
                 completedModernScoring: false,
                 era: IEra.ONE,
                 buildings: [
@@ -300,6 +304,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 share: 6,
             },
             1: {
+                normalDeckLength: 0,
+                legendDeckLength: 0,
                 completedModernScoring: false,
                 era: IEra.ONE,
                 buildings: [
@@ -315,6 +321,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 share: 6,
             },
             2: {
+                normalDeckLength: 0,
+                legendDeckLength: 0,
                 completedModernScoring: false,
                 era: IEra.ONE,
                 buildings: [
@@ -326,6 +334,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 share: 4,
             },
             3: {
+                normalDeckLength: 0,
+                legendDeckLength: 0,
                 completedModernScoring: false,
                 era: IEra.ONE,
                 buildings: [
@@ -362,10 +372,10 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         G.pub[parseInt(G.order[2])].vp = 1;
         G.pub[parseInt(G.order[3])].vp = 2;
     }
-    if(ctx.numPlayers ===3){
-        G.regions["0"].share --;
-        G.regions["1"].share --;
-        G.regions["2"].share --;
+    if (ctx.numPlayers === 3) {
+        G.regions["0"].share--;
+        G.regions["1"].share--;
+        G.regions["2"].share--;
     }
     if (ctx.numPlayers === SimpleRuleNumPlayers) {
         G.regions[Region.NA].share = 12;

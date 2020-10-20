@@ -116,7 +116,7 @@ const useStyles = makeStyles((theme: Theme) =>
 
 export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}: IRegionProp) => {
     useI18n(i18n);
-    const {era, share, legend, normal} = region;
+    const {era, share, legend, normal, legendDeckLength, normalDeckLength} = region;
     const classes = useStyles();
 
     const comment = (slot: ICardSlot, card: BasicCardID | null) => moves.comment({
@@ -168,22 +168,22 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
         }
     }
 
-    const buildingName = (b:BuildingType|null) =>{
-       switch (b) {
-           case null:
-               return ""
-           case BuildingType.cinema:
-               return i18n.pub.cinema
-           case BuildingType.studio:
-               return i18n.pub.studio
-       }
+    const buildingName = (b: BuildingType | null) => {
+        switch (b) {
+            case null:
+                return ""
+            case BuildingType.cinema:
+                return i18n.pub.cinema
+            case BuildingType.studio:
+                return i18n.pub.studio
+        }
     }
 
     const buildingSlots = region.buildings.map((slot, idx) => {
         if (slot.activated) {
             return (<Grid item xs={2} sm={1} key={`building-slot-${idx}`}>
                 <Paper>
-                    {slot.activated && slot.owner === "" ? <Typography>{buildingSlotName(r,idx)}</Typography>:<></>}
+                    {slot.activated && slot.owner === "" ? <Typography>{buildingSlotName(r, idx)}</Typography> : <></>}
                     <Typography>{playerName(slot.owner)}</Typography>
                     <Typography>{buildingName(slot.building)}</Typography>
                 </Paper>
@@ -208,16 +208,16 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                     <Grid item xs={2} sm={1}><Paper
                         variant={"outlined"}><Typography>
                         {i18n.era[era]}
-                        /{G.secretInfo.regions[r].legendDeck.length}
-                        /{G.secretInfo.regions[r].normalDeck.length}
+                        /{legendDeckLength}
+                        /{normalDeckLength}
                     </Typography></Paper></Grid>
                     <Grid item container xs={2} sm={1}>
                         <Paper
-                        aria-label={`${i18n.pub.share}${share}`}
-                        variant={"outlined"}>
-                        {Array(share).fill(1).map((i, idx) => <Grid item xs={6} key={idx}>
-                            <ShareIcon r={r}/>
-                        </Grid>)} </Paper></Grid>
+                            aria-label={`${i18n.pub.share}${share}`}
+                            variant={"outlined"}>
+                            {Array(share).fill(1).map((i, idx) => <Grid item xs={6} key={idx}>
+                                <ShareIcon r={r}/>
+                            </Grid>)} </Paper></Grid>
                     {buildingSlots}
                 </Grid>
             </AccordionSummary>

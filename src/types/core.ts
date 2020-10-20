@@ -346,7 +346,9 @@ export interface IRegionInfo {
     buildings: IBuildingSlot[],
     share: number,
     legend: ICardSlot,
+    legendDeckLength:number,
     normal: ICardSlot[],
+    normalDeckLength:number,
 }
 
 export interface IRegionPrivate {
