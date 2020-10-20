@@ -973,16 +973,21 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 log += `|noEnoughCardsToPeek`
                 peekCount = totalRemainCards
             }
+            if(eff.a.filter.e === "choice" &&eff.a.filter.a > totalRemainCards){
+                log += `|noEnoughCardToChoose`
+                eff.a.filter.a = totalRemainCards;
+            }
             if (len < peekCount) {
-                log += `|drawExisting|${JSON.stringify(deck)}`
+                log += `|fetchRemainDeck|${JSON.stringify(deck)}`
                 playerObj.cardsToPeek = [...deck];
                 deck = [];
                 deck = shuffle(ctx, pub.discard);
                 pub.discard = [];
+                log += `|shuffle|${JSON.stringify(deck)}`
                 for (let i = 0; i < peekCount - len; i++) {
                     let newCardId = deck.pop();
                     if (newCardId === undefined) {
-                        throw Error("Should have card");
+                        throw Error("Should have card in deck");
                     }
                     log += `|${newCardId}`
                     playerObj.cardsToPeek.push(newCardId);
@@ -992,7 +997,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     let newCardId = deck.pop();
                     log += `|${newCardId}`
                     if(newCardId===undefined){
-                        throw Error("Should have card");
+                        throw Error("Should have card in deck");
                     }
                     playerObj.cardsToPeek.push(newCardId);
                 }
