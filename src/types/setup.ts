@@ -335,7 +335,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 buildings: [
                     emptyBuildingSlot(2),
                     emptyBuildingSlot(2, false),
-                    emptyBuildingSlot(2, false),
                 ],
                 legend: emptyLegendCardSlot(2),
                 normal: [emptyNormalCardSlot(2), emptyNormalCardSlot(2)],
@@ -376,7 +375,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     if (ctx.numPlayers === 4) {
         G.regions[Region.NA].buildings[1].activated = true;
         G.regions[Region.WE].buildings[1].activated = true;
-        G.regions[Region.EE].buildings[1].activated = true;
         G.pub[parseInt(G.order[2])].vp = 1;
         G.pub[parseInt(G.order[3])].vp = 2;
     }

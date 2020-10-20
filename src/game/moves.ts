@@ -631,7 +631,7 @@ export const chooseEvent: LongFormMove = {
                 case EventCardID.E06:
                 case EventCardID.E07:
                 case EventCardID.E08:
-                    G.regions[Region.EE].buildings[2].activated = true;
+                    G.regions[Region.EE].buildings[1].activated = true;
                 // eslint-disable-next-line
                 case EventCardID.E09:
                     log += "|Execute event"
