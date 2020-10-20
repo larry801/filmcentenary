@@ -243,7 +243,7 @@ export const chooseTarget: LongFormMove = {
             case "handToOthers":
                 G.c.players = [arg.target]
                 G.e.stack.push(eff);
-                changePlayerStage(G,ctx, "chooseHand",arg.p);
+                changePlayerStage(G, ctx, "chooseHand", arg.p);
                 return;
             default:
                 logger.debug(`${G.matchID}|${log}`);
@@ -287,7 +287,7 @@ export const chooseHand: LongFormMove = {
                         pub.deposit--;
                     }
                 }
-                startBreakThrough(G, ctx, arg.p,arg.hand);
+                startBreakThrough(G, ctx, arg.p, arg.hand);
                 return;
             case "archiveToEEBuildingVP":
                 hand.splice(arg.idx, 1);
@@ -297,9 +297,15 @@ export const chooseHand: LongFormMove = {
                 }
                 break
             case "handToOthers":
+                const allCardsIndex = pub.allCards.indexOf(arg.hand);
+                if (allCardsIndex !== -1) {
+                    pub.allCards.splice(allCardsIndex, 1);
+                } else {
+                    log += `|handNotInAllCards`
+                }
                 hand.splice(arg.idx, 1);
-                let targetPub = G.player[parseInt(G.c.players[0])];
-                targetPub.hand.push(arg.hand);
+                G.player[parseInt(G.c.players[0])].hand.push(arg.hand);
+                G.pub[parseInt(G.c.players[0])].allCards.push(arg.hand);
                 break;
             case "refactor":
                 hand.splice(arg.idx, 1);
@@ -370,9 +376,9 @@ export const chooseEffect: LongFormMove = {
         switch (eff.e) {
             case "industryBreakthrough":
                 G.e.choices = [];
-                if(eff.a > 1){
+                if (eff.a > 1) {
                     log += `|multiple`
-                    eff.a --;
+                    eff.a--;
                     G.e.stack.push(eff);
                 }
                 logger.debug(`${G.matchID}|${log}`);
@@ -380,9 +386,9 @@ export const chooseEffect: LongFormMove = {
                 return;
             case "aestheticsBreakthrough":
                 G.e.choices = [];
-                if(eff.a > 1){
+                if (eff.a > 1) {
                     log += `|multiple`
-                    eff.a --;
+                    eff.a--;
                     G.e.stack.push(eff);
                 }
                 logger.debug(`${G.matchID}|${log}`);
@@ -878,7 +884,7 @@ export const breakthrough: LongFormMove = {
                 p.deposit -= 1;
             }
         }
-        startBreakThrough(G, ctx, arg.playerID,arg.card);
+        startBreakThrough(G, ctx, arg.playerID, arg.card);
     }
 }
 
