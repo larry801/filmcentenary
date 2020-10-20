@@ -2025,7 +2025,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "res", a: 3},
+                {e: "vp", a: 3},
                 {
                     e: "choice", a: [
                         {e: "deposit", a: 2},
