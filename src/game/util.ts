@@ -1251,7 +1251,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             for (let choice of eff.a) {
                 switch (choice.e) {
                     case "breakthroughResDeduct":
-                        if (handLength > 0 && pub.action > 0) {
+                        if (handLength > 0) {
                             G.e.choices.push(choice);
                         }
                         break;
