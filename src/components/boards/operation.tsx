@@ -241,6 +241,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             targetName: getName(G.c.players[parseInt(choice)])
         })
     }
+    const chooseTargetTitle = hasCurEffect ? curEffName : i18n.dialog.chooseTarget.title;
     const chooseTargetDialog =
         <ChoiceDialog
             initial={true}
@@ -255,7 +256,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 })
             } defaultChoice={'0'}
             show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseTarget"}
-            title={i18n.dialog.chooseTarget.title}
+            title={chooseTargetTitle}
             toggleText={i18n.dialog.chooseTarget.toggleText}/>
 
 
