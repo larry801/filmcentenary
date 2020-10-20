@@ -1784,7 +1784,7 @@ export const effects = {
                     }
                 },
                 {
-                    e:"studio", a: {e: "deposit", a: 2},
+                    e: "studio", a: {e: "deposit", a: 2},
                 }
             ]
         },
@@ -2204,7 +2204,28 @@ export const effects = {
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
-        play: noEff,
+        play: {
+            e: "step", a: [
+                {e: "noStudio", a: {e: "loseDeposit", a: 2}},
+                {
+                    e: "studio", a: {
+                        e: "step", a: [
+                            {e: "aesAward", a: 1},
+                            {e: "industryAward", a: 1}
+                        ]
+                    }
+                },
+                {e: "draw", a: 1},
+                {
+                    e: "optional", a: {
+                        e: "competition", a: {
+                            bonus: 1,
+                            onWin: noEff,
+                        }
+                    }
+                }
+            ]
+        },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
