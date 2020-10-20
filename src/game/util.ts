@@ -207,6 +207,10 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "enableHollywood":
             G.regions[Region.NA].buildings[2].activated = true;
             break;
+
+        case "loseDeposit":
+            loseDeposit(G, ctx, p, eff.a);
+            break;
         case "loseVp":
             loseVp(G, ctx, p, eff.a);
             break;
@@ -2286,20 +2290,33 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     }
     logger.debug(`${G.matchID}|${log}`);
 }
+export const loseDeposit = (G: IG, ctx: Ctx, p: PlayerID, deposit: number) => {
+    let log = `loseDeposit|${p}|${deposit}`
+    let pub = G.pub[parseInt(p)];
+    log += `|before|${pub.deposit}`
+    if (deposit > pub.vp) {
+        pub.deposit = 0;
+    } else {
+        pub.deposit -= deposit;
+    }
+    log += `|after|${pub.deposit}`
+    logger.debug(`${G.matchID}|${log}`);
+}
+
 export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     let log = `loseVp|${p}|${vp}`
-    let obj = G.pub[parseInt(p)];
-    log += `|before|${obj.vp}`
-    if (vp > G.pub[parseInt(p)].vp) {
-        G.pub[parseInt(p)].vp = 0;
+    let pub = G.pub[parseInt(p)];
+    log += `|before|${pub.vp}`
+    if (vp > pub.vp) {
+        pub.vp = 0;
     } else {
-        G.pub[parseInt(p)].vp -= vp;
+        pub.vp -= vp;
     }
-    log += `|after|${obj.vp}`
-    if (obj.school === SchoolCardID.S2104) {
-        log += `|FilmNoir|${obj.resource}`
-        obj.resource += vp;
-        log += `|${obj.resource}`
+    log += `|after|${pub.vp}`
+    if (pub.school === SchoolCardID.S2104) {
+        log += `|FilmNoir|${pub.resource}`
+        pub.resource += vp;
+        log += `|${pub.resource}`
     }
     logger.debug(`${G.matchID}|${log}`);
 }
