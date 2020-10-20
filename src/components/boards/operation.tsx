@@ -89,7 +89,9 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         }
     })
 
-    const peekChoicesDisabled = G.e.stack.length > 0 && G.e.stack[0].e === "peek" ? G.e.stack[0].a.filter.e !== "choice" : true;
+    const hasCurEffect = G.e.stack.length > 0;
+    const curEffName = hasCurEffect ? effName(G.e.stack.slice(-1)[0]) : "";
+    const peekChoicesDisabled = hasCurEffect && G.e.stack[0].e === "peek" ? G.e.stack[0].a.filter.e !== "choice" : true;
 
     const peekCardLength = iPrivateInfo.cardsToPeek.length.toString();
     const peekChoices = G.player[parseInt(playerID)].cardsToPeek
@@ -130,11 +132,9 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             toggleText={i18n.dialog.peek.title}/>
 
 
-    const curEffName = G.e.stack.length > 0 ? effName(G.e.stack.slice(-1)[0]) : "";
-
     const discardChoices = () => {
         if (playerID === null) return [];
-        if (G.e.stack.length > 0) {
+        if (hasCurEffect) {
             let eff = G.e.stack.slice(-1)[0];
             switch (eff.e) {
                 case "discard":
@@ -200,7 +200,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             return handChoices
         }
     }
-    const chooseHandTitle = G.e.stack.length > 0 ? curEffName : i18n.dialog.chooseHand.title;
+    const chooseHandTitle = hasCurEffect ? curEffName : i18n.dialog.chooseHand.title;
     const chooseHand = (choice: string) => {
         moves.chooseHand({
             hand: hand[parseInt(choice)],
@@ -231,6 +231,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             title={effName(G.e.currentEffect)}
             toggleText={i18n.dialog.confirmRespond.title}
             initial={true}/>
+
 
     const chooseTarget = (choice: string) => {
         moves.chooseTarget({
@@ -265,7 +266,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             p: playerID,
         })
     }
-    const chooseRegionTitle = G.e.stack.length > 0 ? curEffName : i18n.dialog.chooseRegion.title;
+    const chooseRegionTitle = hasCurEffect ? curEffName : i18n.dialog.chooseRegion.title;
     const chooseRegionDialog =
         <ChoiceDialog
             initial={true}
@@ -285,7 +286,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             toggleText={i18n.dialog.chooseRegion.toggleText}/>
 
 
-    const chooseEffectTitle = G.e.stack.length > 0 ? curEffName : i18n.dialog.chooseEffect.title;
+    const chooseEffectTitle = hasCurEffect ? curEffName : i18n.dialog.chooseEffect.title;
     const chooseEffect = (choice: string) => {
         moves.chooseEffect({
             effect: G.e.choices[parseInt(choice)],
