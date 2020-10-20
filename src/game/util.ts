@@ -712,12 +712,6 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     checkNextEffect(G, ctx);
 }
 
-export const curEffectExec = (G: IG, ctx: Ctx): void => {
-    let log = `curEffExec|${ctx.currentPlayer}`;
-    logger.debug(`${G.matchID}|${log}`);
-    playerEffExec(G, ctx, ctx.currentPlayer)
-}
-
 export const curCard = (G: IG) => {
     if (G.e.card === null) {
         throw Error("No current card")
@@ -735,7 +729,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         checkNextEffect(G, ctx);
         return;
     }
-    log += `eff|${JSON.stringify(eff)}`;
+    log += `|eff|${JSON.stringify(eff)}`;
     G.e.currentEffect = eff;
     let targetPlayer = p;
     let pub = G.pub[parseInt(p)];
@@ -743,7 +737,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let region = curCard(G).region as validRegion;
     log += `|c:${G.e.card}|region:${region}`;
     let players = []
-    let len = 0;
+    let effectLength = 0;
     const handLength = playerObj.hand.length;
     let subEffect;
     let extraCost = 0
@@ -880,7 +874,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
             }
         case "noBuildingEE":
-            subEffect = eff.a;
+            subEffect = {...eff.a};
             if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
                 players = noBuildingPlayers(G, ctx, Region.EE);
@@ -892,7 +886,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "vpNotHighestPlayer":
             log += `|vpNotHighestPlayer`
-            subEffect = eff.a;
+            subEffect = {...eff.a};
             players = vpNotHighestPlayer(G)
             if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
@@ -904,7 +898,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "highestVpPlayer":
             log += "|highestVpPlayer"
-            subEffect = eff.a;
+            subEffect = {...eff.a};
             players = vpHighestPlayer(G);
             if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
@@ -915,7 +909,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             break;
         case "aesLowest":
-            subEffect = eff.a;
+            subEffect = {...eff.a};
             players = aesLowestPlayer(G)
             if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
@@ -926,7 +920,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             break;
         case "industryLowest":
-            subEffect = eff.a;
+            subEffect = {...eff.a};
             players = industryLowestPlayer(G);
             if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
@@ -972,9 +966,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             let peekCount = eff.a.count;
             log += `|peek|${peekCount}`
             let deck = G.secretInfo.playerDecks[curPid(G, ctx)];
-            len = deck.length;
-            log += `|len|${len}`
-            const totalRemainCards = len + pub.discard.length
+            effectLength = deck.length;
+            log += `|len|${effectLength}`
+            const totalRemainCards = effectLength + pub.discard.length
             if (totalRemainCards < peekCount) {
                 log += `|total|${totalRemainCards}`
                 log += `|noEnoughCardsToPeek`
@@ -984,14 +978,14 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 log += `|noEnoughCardToChoose`
                 eff.a.filter.a = totalRemainCards;
             }
-            if (len < peekCount) {
+            if (effectLength < peekCount) {
                 log += `|fetchRemainDeck|${JSON.stringify(deck)}`
                 playerObj.cardsToPeek = [...deck];
                 deck = [];
                 deck = shuffle(ctx, pub.discard);
                 pub.discard = [];
                 log += `|shuffle|${JSON.stringify(deck)}`
-                for (let i = 0; i < peekCount - len; i++) {
+                for (let i = 0; i < peekCount - effectLength; i++) {
                     let newCardId = deck.pop();
                     if (newCardId === undefined) {
                         throw Error("Should have card in deck");
@@ -1014,8 +1008,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             changePlayerStage(G, ctx, "peek", p);
             return;
         case "buildingNA":
-            subEffect = eff.a;
+            subEffect = {...eff.a};
             players = buildingPlayers(G, ctx, Region.NA);
+            log += "|buildingNAPlayers"
+            log += `|${JSON.stringify(players)}`
             if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
                 for (let p of players) {
@@ -1024,8 +1020,6 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
             } else {
                 if (G.e.pendingPlayers.length === 0) {
-                    log += "|fetchPlayers"
-                    log += `|${JSON.stringify(players)}`
                     if (players.length > 0) {
                         G.e.pendingPlayers = players;
                         G.e.stack.push(eff);
@@ -1042,8 +1036,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     } else {
                         log += `|onePlayerPending`
                     }
-                    G.e.stack.push(eff.a);
                     let player = G.e.pendingPlayers.shift() as PlayerID;
+                    subEffect.target = player;
+                    log += `|push|${JSON.stringify(subEffect)}`
+                    G.e.stack.push(subEffect);
                     log += `|left|${G.e.pendingPlayers}`
                     log += `|execFor|p${player}`
                     logger.debug(`${G.matchID}|${log}`);
@@ -1054,7 +1050,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "everyOtherCompany":
             log += `|everyOtherCompany`
-            subEffect = eff.a;
+            subEffect = {...eff.a};
             if (isSimpleEffect(G, subEffect)) {
                 for (let p of G.e.pendingPlayers) {
                     G.e.stack.push(eff.a);
@@ -1070,7 +1066,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         G.e.stack.push(eff);
                     }
                     let player = G.e.pendingPlayers.shift() as PlayerID;
-                    G.e.stack.push(eff.a);
+                    subEffect.target = player;
+                    log += `|push|${JSON.stringify(subEffect)}`
+                    G.e.stack.push(subEffect);
                     logger.debug(`${G.matchID}|${log}`);
                     playerEffExec(G, ctx, player);
                     return;
@@ -1079,7 +1077,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "everyPlayer":
             log += "|everyPlayer"
-            subEffect = eff.a;
+            subEffect = {...eff.a};
             if (isSimpleEffect(G, subEffect)) {
                 log += "|simpleEffect|execForAll"
                 players = seqFromCurrentPlayer(G, ctx);
@@ -1102,6 +1100,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         G.e.stack.push(eff);
                     }
                     let player = G.e.pendingPlayers.shift() as PlayerID;
+                    subEffect.target = player;
+                    log += `|push|${JSON.stringify(subEffect)}`
                     G.e.stack.push(subEffect);
                     logger.debug(`${G.matchID}|${log}`);
                     playerEffExec(G, ctx, player);
@@ -1122,7 +1122,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             changePlayerStage(G, ctx, "chooseTarget", p);
             return;
         case "studio":
-            subEffect = eff.a;
+            subEffect = {...eff.a};
             players = studioPlayers(G, ctx, region);
             log += `|region:${region}|studioPlayers|${JSON.stringify(players)}`
             if (isSimpleEffect(G, subEffect)) {
@@ -1144,14 +1144,16 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     }
                 } else {
                     if (G.e.pendingPlayers.length !== 1) {
-                        log += `|morePlayerPending`
+                        log += `|morePlayerPending|pushBack`
                         G.e.stack.push(eff);
                     } else {
                         log += `|onePlayerPending`
                     }
-                    G.e.stack.push(eff.a);
                     let player = G.e.pendingPlayers.shift() as PlayerID;
-                    log += `|left|${JSON.stringify(G.e.pendingPlayers)}`
+                    log += `|pending|${JSON.stringify(G.e.pendingPlayers)}`
+                    subEffect.target = player;
+                    log += `|push|${JSON.stringify(subEffect)}`
+                    G.e.stack.push(subEffect);
                     log += `|execFor|p${player}`
                     logger.debug(`${G.matchID}|${log}`);
                     playerEffExec(G, ctx, player);
@@ -1161,11 +1163,17 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "step":
             log += ("|step")
-            len = eff.a.length;
-            for (let i = len - 1; i >= 0; i--) {
-                G.e.stack.push(eff.a[i])
+            effectLength = eff.a.length;
+            for (let i = effectLength - 1; i >= 0; i--) {
+                subEffect = {...eff.a[i]};
+                if(eff.hasOwnProperty("target")){
+                    log += `|specifyTarget|${eff.target}`
+                    subEffect.target = eff.target;
+                }
+                log += `|push|${JSON.stringify(subEffect)}`
+                G.e.stack.push(subEffect);
             }
-            log += JSON.stringify(G.e.stack)
+            log += `|result|${JSON.stringify(G.e.stack)}`;
             break;
         case "discardNormalOrLegend":
             if (playerObj.hand.filter(i =>
@@ -2231,9 +2239,15 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
             return;
         }
     } else {
-        log += `|Next effect|${JSON.stringify(G.e.stack.slice(-1)[0])}`
+        let nextEff = G.e.stack.slice(-1)[0];
+        log += `|Next effect|${JSON.stringify(nextEff)}`
+        let targetPlayer = ctx.currentPlayer
+        if(nextEff.hasOwnProperty("target")){
+            targetPlayer = nextEff.target;
+        }
+        log += `|target|${targetPlayer}`
         logger.debug(`${G.matchID}|${log}`);
-        curEffectExec(G, ctx);
+        playerEffExec(G, ctx, targetPlayer)
     }
 }
 

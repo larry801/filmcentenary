@@ -41,7 +41,6 @@ import {
     competitionCleanUp,
     competitionResultSettle,
     curCard,
-    curEffectExec,
     curPub,
     doAestheticsBreakthrough,
     doBuy,
@@ -813,21 +812,31 @@ export const playCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.playerID}.moves.playCard(${JSON.stringify(arg)})`);
+        let log = "playCard"
         let playCard = getCardById(arg.card);
         let pub = G.pub[parseInt(arg.playerID)];
         let hand = G.player[parseInt(arg.playerID)].hand;
         if (cinemaInRegion(G, ctx, playCard.region, arg.playerID)) {
+            log += `|cinemaInRegion|${playCard.region}`
             pub.resource++;
             addVp(G, ctx, arg.playerID, 1);
         }
         hand.splice(arg.idx, 1);
         pub.playedCardInTurn.push(arg.card);
         G.e.card = arg.card;
-        let eff = getCardEffect(arg.card).play;
-        if (eff.e !== "none") {
-            G.e.stack.push(eff)
-            curEffectExec(G, ctx);
+        let cardEff = getCardEffect(arg.card);
+        if(cardEff.hasOwnProperty("play")){
+            const eff = cardEff.play;
+            if (eff.e !== "none") {
+                G.e.stack.push(eff)
+                playerEffExec(G, ctx, ctx.currentPlayer);
+            }else {
+                log += `|emptyPlayEffect`
+            }
+        }else {
+            log += `|noPlayEffect`
         }
+        logger.debug(`${G.matchID}|${log}`);
     },
     client: false,
 }
