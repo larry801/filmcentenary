@@ -1982,7 +1982,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             return 1;
         }
         log += `|sameLegendCount`
-        const curPos = seqFromActivePlayer(G, ctx);
+        const curPos = G.order;
         const posA = curPos.indexOf(a);
         const posB = curPos.indexOf(b);
         log += `|pos|${posA}|${posB}`
