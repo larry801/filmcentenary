@@ -335,6 +335,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 buildings: [
                     emptyBuildingSlot(2),
                     emptyBuildingSlot(2, false),
+                    emptyBuildingSlot(2, false),
                 ],
                 legend: emptyLegendCardSlot(2),
                 normal: [emptyNormalCardSlot(2), emptyNormalCardSlot(2)],
