@@ -690,7 +690,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     log += `|breakthroughEffectPrepare`
     logger.debug(`${G.matchID}|${log}`);
     breakthroughEffectPrepare(G, card);
-    let cardEff = getCardEffect(c.cardId).archive;
+    let cardEff = getCardEffect(c.cardId);
     if (c.cardId !== FilmCardID.F1108) {
         if (cardEff.hasOwnProperty("archive")) {
             const eff = cardEff.archive;
