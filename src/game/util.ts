@@ -2427,7 +2427,8 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
     if (cards.length > 0) {
         let cardId = cards[0];
         i.atkCard = cardId;
-        G.pub[parseInt(i.atk)].playedCardInTurn.push(cardId);
+        const pub = G.pub[parseInt(i.atk)];
+        pub.playedCardInTurn.push(cardId);
         G.player[parseInt(i.atk)].competitionCards = []
         log += `|${cardId}`
         let card = getCardById(cardId)
@@ -2442,6 +2443,12 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
         let eff = getCardEffect(cardId);
         log += `|${JSON.stringify(eff.play)}`
         G.e.card = cardId;
+        if (cinemaInRegion(G, ctx, i.region, i.atk)) {
+            log += `|cinemaInRegion|${i.region}|${i.progress}`
+            i.progress ++;
+            log += `|${i.progress}`
+            addVp(G, ctx, i.atk, 1);
+        }
         G.e.stack.push(eff.play);
         logger.debug(`${G.matchID}|${log}`);
         // TODO may over run set a barrier effect?
@@ -2477,6 +2484,12 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
         G.e.card = cardId;
         G.e.stack.push(eff.play);
         G.player[parseInt(i.def)].competitionCards = [];
+        if (cinemaInRegion(G, ctx, i.region, i.def)) {
+            log += `|cinemaInRegion|${i.region}|${i.progress}`
+            i.progress --;
+            log += `|${i.progress}`
+            addVp(G, ctx, i.atk, 1);
+        }
         logger.debug(`${G.matchID}|${log}`);
         playerEffExec(G, ctx, i.def);
     } else {
