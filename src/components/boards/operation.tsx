@@ -204,9 +204,12 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             toggleText={i18n.dialog.chooseHand.toggleText}
             initial={true}/>
 
+    const confirmRespond = (choice: string) => {
+        moves.confirmRespond(choice);
+    }
     const confirmRespondDialog =
         <ChoiceDialog
-            callback={moves.confirmRespond}
+            callback={confirmRespond}
             choices={[
                 {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
                 {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
@@ -468,7 +471,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
 
     return <Grid item container xs={12} sm={5}>
         <Grid item container xs={12}>
-        <PubPanel i={pub} G={G}/>
+            <PubPanel i={pub} G={G}/>
         </Grid>
         {noStage && canMoveCurrent ?
             <Grid item xs={6}>

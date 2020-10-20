@@ -742,7 +742,7 @@ export const confirmRespond: LongFormMove = {
                     if (isSimpleEffect(G, eff.a)) {
                         log += "|simple|";
                         logger.debug(`${G.matchID}|${log}`);
-                        simpleEffectExec(G, ctx, p)
+                        simpleEffectExec(G, ctx, p);
                     } else {
                         log += "|complex|";
                         logger.debug(`${G.matchID}|${log}`);
@@ -752,8 +752,9 @@ export const confirmRespond: LongFormMove = {
                     break;
                 case "alternative":
                     const popEff = G.e.stack.pop()
-                    log += `|pop:${JSON.stringify(popEff)}`
-                    G.e.stack.push(eff)
+                    log += `|pop|${JSON.stringify(popEff)}`
+                    G.e.stack.push(eff.a)
+                    log += `|push|${JSON.stringify(eff.a)}`
                     break;
                 case "searchAndArchive":
                     let deck = G.secretInfo.playerDecks[parseInt(p)];
@@ -936,6 +937,7 @@ export const showBoardStatus: LongFormMove = {
     move: (G: IG, ctx: Ctx, args: IShowBoardStatusProps) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${args.matchID}|p${ctx.playerID}.moves.showBoardStatus(${JSON.stringify(args)})`);
+        G.matchID = args.matchID;
         if (ctx.phase === "InitPhase") {
             G.matchID = args.matchID;
             signalEndPhase(G, ctx);
