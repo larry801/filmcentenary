@@ -691,14 +691,21 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     log += `|breakthroughEffectPrepare`
     logger.debug(`${G.matchID}|${log}`);
     breakthroughEffectPrepare(G, card);
-    let eff = getCardEffect(c.cardId).archive;
+    let cardEff = getCardEffect(c.cardId).archive;
     if (c.cardId !== FilmCardID.F1108) {
-        if (eff.e !== "none") {
-            log += `|pushEffect|${JSON.stringify(eff)}`
-            G.e.stack.push(eff)
+        if (cardEff.hasOwnProperty("archive")) {
+            const eff = cardEff.archive;
+            if (eff.e !== "none") {
+                log += `|pushEffect|${JSON.stringify(eff)}`
+                G.e.stack.push(eff)
+            } else {
+                log += `|noSpecialArchiveEffect`
+            }
         } else {
-            log += `|noSpecialEffect`
+            log += `|missingArchiveEffect`
         }
+    } else {
+        log += `|Nanook|skip`
     }
     log += `|checkNextEffect`
     logger.debug(`${G.matchID}|${log}`);
@@ -931,7 +938,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "handToOthers":
             log += `|handToOthers`
-            players = seqFromCurrentPlayer(G,ctx);
+            players = seqFromCurrentPlayer(G, ctx);
             players.splice(players.indexOf(p), 1);
             G.c.players = players
             G.e.stack.push(eff)
@@ -968,12 +975,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             len = deck.length;
             log += `|len|${len}`
             const totalRemainCards = len + pub.discard.length
-            if(totalRemainCards < peekCount){
+            if (totalRemainCards < peekCount) {
                 log += `|total|${totalRemainCards}`
                 log += `|noEnoughCardsToPeek`
                 peekCount = totalRemainCards
             }
-            if(eff.a.filter.e === "choice" &&eff.a.filter.a > totalRemainCards){
+            if (eff.a.filter.e === "choice" && eff.a.filter.a > totalRemainCards) {
                 log += `|noEnoughCardToChoose`
                 eff.a.filter.a = totalRemainCards;
             }
@@ -996,7 +1003,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 for (let i = 0; i < peekCount; i++) {
                     let newCardId = deck.pop();
                     log += `|${newCardId}`
-                    if(newCardId===undefined){
+                    if (newCardId === undefined) {
                         throw Error("Should have card in deck");
                     }
                     playerObj.cardsToPeek.push(newCardId);
@@ -1215,7 +1222,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "discard":
             log += `|hand|${handLength}|discard|${eff.a}`
             if (handLength > 0) {
-                if(handLength < eff.a){
+                if (handLength < eff.a) {
                     log += `|noEnoughCard`
                     eff.a = handLength
                 }

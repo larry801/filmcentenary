@@ -106,7 +106,7 @@ let initialDeck = [
     BasicCardID.B07, BasicCardID.B07
 ];
 // @ts-ignore
-// initialDeck = ["P1201","B02","B07","B07",]
+// initialDeck = ["F1104","B02","B07","B07",]
 
 function pubPlayer(): IPubInfo {
     return {

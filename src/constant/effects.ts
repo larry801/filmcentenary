@@ -768,7 +768,10 @@ export const effects = {
                 {e: "noStudio", a: {e: "buy", a: "B04"}},
                 {e: "studio", a: {e: "draw", a: 1}},
             ]
-        }
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
     },
     "2106": {
         play: {
@@ -783,6 +786,9 @@ export const effects = {
                 }
             ]
         },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
     },
     "2107": {
         canBuy: (G: IG, ctx: Ctx) => true,

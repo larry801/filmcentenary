@@ -732,7 +732,7 @@ export const confirmRespond: LongFormMove = {
         let pub = G.pub[parseInt(p)];
         let hand = G.player[parseInt(p)].hand;
         let eff = G.e.stack.pop();
-        let log = `confirmRespond|${p}|${arg}|${JSON.stringify(G.e.stack)}|${JSON.stringify(eff)}`;
+        let log = `confirmRespond|p${p}|${JSON.stringify(arg)}|${JSON.stringify(G.e.stack)}|${JSON.stringify(eff)}`;
         logger.debug(`${G.matchID}|${log}`);
         if (arg === "yes") {
             switch (eff.e) {
@@ -937,7 +937,6 @@ export const showBoardStatus: LongFormMove = {
     move: (G: IG, ctx: Ctx, args: IShowBoardStatusProps) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${args.matchID}|p${ctx.playerID}.moves.showBoardStatus(${JSON.stringify(args)})`);
-        G.matchID = args.matchID;
         if (ctx.phase === "InitPhase") {
             G.matchID = args.matchID;
             signalEndPhase(G, ctx);
