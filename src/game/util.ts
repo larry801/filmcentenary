@@ -2265,13 +2265,13 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     obj.vp += vp;
     log += `|after|${obj.vp}`
     let count = 0;
-    if (obj.vp >= 60 && !obj.vpAward.v60) {
-        log += `|v60`
+    if (obj.vp >= 40 && !obj.vpAward.v60) {
+        log += `|v40`
         count++;
         obj.vpAward.v60 = true;
     }
-    if (obj.vp >= 90 && !obj.vpAward.v90) {
-        log += `|v90`
+    if (obj.vp >= 80 && !obj.vpAward.v90) {
+        log += `|v80`
         count++;
         obj.vpAward.v90 = true;
     }
@@ -2283,7 +2283,6 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     if (obj.vp >= 150 && !obj.vpAward.v150) {
         log += `|v150`
         obj.vpAward.v150 = true;
-        count++;
         G.pending.lastRoundOfGame = true;
     }
     if (count > 0) {
