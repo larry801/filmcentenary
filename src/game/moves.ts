@@ -925,6 +925,10 @@ export const breakthrough: LongFormMove = {
                 p.deposit -= 1;
             }
         }
+        if (p.school === SchoolCardID.S2201) {
+            p.deposit += 2;
+            addVp(G, ctx, arg.playerID, 1);
+        }
         startBreakThrough(G, ctx, arg.playerID, arg.card);
     }
 }

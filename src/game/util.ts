@@ -667,11 +667,6 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     let p = curPub(G, ctx);
     let c = getCardById(card)
     let log = `startBreakThrough|p${pid}|${card}`
-    if (p.school === SchoolCardID.S2201) {
-        log += "|NeoRealism"
-        p.deposit += 2;
-        addVp(G, ctx, pid, 1);
-    }
     if (p.school === SchoolCardID.S1204) {
         log += "|Swedish"
         p.resource += 1;
