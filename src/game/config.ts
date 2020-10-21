@@ -125,11 +125,11 @@ export const NormalTurn: TurnConfig = {
         }
         if(pub.school === SchoolCardID.S3105){
             log += `|newYork`
-            if(pub.aesthetics <= pub.industry){
+            if(pub.aesthetics >= pub.industry){
                 log += `|aesAward`
                 aesAward(G,ctx,p);
             }
-            if(pub.aesthetics >= pub.industry){
+            if(pub.industry >= pub.aesthetics){
                 log += `|industryAward`
                 industryAward(G,ctx,p);
             }
