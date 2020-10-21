@@ -2294,6 +2294,9 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
         drawForRegion(G, ctx, Region.ASIA, IEra.TWO);
         G.regions[Region.ASIA].era = IEra.TWO;
         G.regions[Region.ASIA].share = ShareOnBoard[Region.ASIA][IEra.TWO];
+        if(ctx.numPlayers === 3){
+            G.regions[Region.ASIA].share --;
+        }
     }
     log += "|tryScoring"
     logger.debug(`${G.matchID}|${log}`);
