@@ -186,6 +186,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     let log = `simpleEffectExec|p${p}|${JSON.stringify(eff)}`
     let pub = G.pub[parseInt(p)];
     let card: INormalOrLegendCard;
+    const i = G.competitionInfo;
     switch (eff.e) {
         case "none":
         case "skipBreakthrough":
@@ -203,7 +204,28 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             addVp(G, ctx, p, pub.industry)
             break;
         case "resFromIndustry":
-            pub.resource += pub.industry;
+            if (i.pending) {
+                log += `|pendingCompetition`
+                if (p === i.atk) {
+                    log += `|atk`
+                    i.progress += pub.industry;
+                    log += `|${i.progress}`
+                } else {
+                    if (p === i.def) {
+                        log += `|def`
+                        i.progress -= pub.industry;
+                        log += `|${i.progress}`
+                    } else {
+                        log += `|notCompetitionPlayer|${pub.resource}`
+                        pub.resource += eff.a;
+                        log += `|${pub.resource}`
+                    }
+                }
+            } else {
+                log += `|${pub.resource}`
+                pub.resource += pub.industry;
+                log += `|${pub.resource}`
+            }
             break;
         case "enableBollywood":
             G.regions[Region.ASIA].buildings[1].activated = true;
@@ -253,7 +275,6 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             log += `|${pub.deposit}`
             break;
         case "res":
-            let i = G.competitionInfo;
             if (i.pending) {
                 log += `|pendingCompetition`
                 if (p === i.atk) {
@@ -340,9 +361,9 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                 doBuy(G, ctx, targetCard, p);
                 log += `|execOptional`
                 logger.debug(`${G.matchID}|${log}`);
-                playerEffExec(G,ctx,p);
+                playerEffExec(G, ctx, p);
                 return
-            }else {
+            } else {
                 doBuy(G, ctx, targetCard, p);
                 break;
             }
@@ -2294,8 +2315,8 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
         drawForRegion(G, ctx, Region.ASIA, IEra.TWO);
         G.regions[Region.ASIA].era = IEra.TWO;
         G.regions[Region.ASIA].share = ShareOnBoard[Region.ASIA][IEra.TWO];
-        if(ctx.numPlayers === 3){
-            G.regions[Region.ASIA].share --;
+        if (ctx.numPlayers === 3) {
+            G.regions[Region.ASIA].share--;
         }
     }
     log += "|tryScoring"
