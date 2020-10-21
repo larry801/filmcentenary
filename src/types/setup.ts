@@ -31,10 +31,11 @@ export interface CompetitionInfo {
 }
 
 export interface IG {
+    regionScoreCompensateMarker: PlayerID,
     eventDeckLength: number,
     matchID: string,
     twoPlayer: {
-        era:IEra,
+        era: IEra,
         schoolDeckLength: number,
         filmDeckLength: number,
         school: ICardSlot[],
@@ -208,11 +209,12 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     let events = shuffle(ctx, []);
     // TODO enable random order in real game
     // let randomOrder = shuffle(ctx, order);
-    let G = {
+    let G: IG = {
+        regionScoreCompensateMarker: "0",
         eventDeckLength: 0,
         matchID: "",
         twoPlayer: {
-            era:IEra.ONE,
+            era: IEra.ONE,
             schoolDeckLength: 0,
             filmDeckLength: 0,
             school: [
@@ -398,5 +400,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         fillPlayerHand(G, ctx, i.toString());
     }
     doFillNewEraEventDeck(G, ctx, IEra.ONE);
+    G.regionScoreCompensateMarker = G.order[G.order.length - 1];
     return G;
 };
