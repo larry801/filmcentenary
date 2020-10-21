@@ -669,10 +669,6 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     let p = curPub(G, ctx);
     let c = getCardById(card)
     let log = `startBreakThrough|p${pid}|${card}`
-    if (p.school === SchoolCardID.S1204) {
-        log += "|Swedish"
-        p.resource += 1;
-    }
     if (c.cardId === FilmCardID.F1208 || c.cardId === BasicCardID.B05) {
         log += "|MetropolisOrClassic"
         G.e.stack.push({
@@ -2021,7 +2017,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
                 logger.debug(`${G.matchID}|${log}`);
                 return 1;
             } else {
-                if (winner !== b) {
+                if (winner === b) {
                     log += `|markPosSame|p${b}win`
                     logger.debug(`${G.matchID}|${log}`);
                     return 1;
@@ -2039,7 +2035,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
                     logger.debug(`${G.matchID}|${log}`);
                     return -1;
                 } else {
-                    if (winner !== a) {
+                    if (winner === a) {
                         log += `|markPosSame|p${a}win`
                         logger.debug(`${G.matchID}|${log}`);
                         return -1;

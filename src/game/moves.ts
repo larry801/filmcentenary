@@ -649,7 +649,7 @@ export const chooseEvent: LongFormMove = {
         } else {
             if(eid === EventCardID.E08){
                 G.regions[Region.EE].buildings[1].activated = true;
-            };
+            }
             switch (eid) {
                 case EventCardID.E01:
                 case EventCardID.E02:
@@ -927,8 +927,17 @@ export const breakthrough: LongFormMove = {
             }
         }
         if (p.school === SchoolCardID.S2201) {
-            p.deposit += 2;
-            addVp(G, ctx, arg.playerID, 1);
+            G.e.stack.push({
+                e:"vp",a:2,
+            });
+            G.e.stack.push({
+                e:"deposit",a:1,
+            });
+        }
+        if (p.school === SchoolCardID.S1204) {
+            G.e.stack.push({
+                e:"res",a:1,
+            })
         }
         startBreakThrough(G, ctx, arg.playerID, arg.card);
     }
