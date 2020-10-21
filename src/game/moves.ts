@@ -716,7 +716,8 @@ export const chooseEvent: LongFormMove = {
                     break;
                 default:
                     log += "|Score events"
-                    G.pub[parseInt(arg.p)].scoreEvents.push(eid);
+                    //G.pub[parseInt(arg.p)].scoreEvents.push(eid);
+                    G.activeEvents.push(eid);
                     logger.debug(`${G.matchID}|${log}`);
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);

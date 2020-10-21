@@ -2769,7 +2769,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         let championCount = p.champions.filter(c => c.region === r).length;
         f.archive += p.archive.filter(card => getCardById(card).region === r).length * championCount;
     });
-    if (p.scoreEvents.includes(EventCardID.E10)) {
+    if (G.activeEvents.includes(EventCardID.E10)) {
         for (let j = 0; j < ctx.numPlayers; i++) {
             if (j !== parseInt(pid)) {
                 let other = G.pub[j];
@@ -2779,15 +2779,15 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
             }
         }
     }
-    if (p.scoreEvents.includes(EventCardID.E11)) {
+    if (G.activeEvents.includes(EventCardID.E11)) {
         G.secretInfo.playerDecks[i].filter(c => getCardById(c).type === CardType.P).forEach(() => f.events += 4);
         f.events += p.archive.filter(card => getCardById(card).type === CardType.P).length * 4;
     }
-    if (p.scoreEvents.includes(EventCardID.E12)) {
+    if (G.activeEvents.includes(EventCardID.E12)) {
         f.events += p.industry;
         f.events += p.aesthetics;
     }
-    if (p.scoreEvents.includes(EventCardID.E13)) {
+    if (G.activeEvents.includes(EventCardID.E13)) {
         let championRegionCount = 0;
         ValidRegions.forEach(r => {
             if (p.champions.filter(c => c.region = r).length) {
@@ -2811,7 +2811,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
                 break;
         }
     }
-    if (p.scoreEvents.includes(EventCardID.E14)) {
+    if (G.activeEvents.includes(EventCardID.E14)) {
         f.events += G.secretInfo.playerDecks[i].filter(c => getCardById(c).category === CardCategory.BASIC).length;
         f.events += p.archive.filter(card => getCardById(card).category === CardCategory.BASIC).length;
     }
@@ -2822,12 +2822,10 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     }
     if (validID.includes(FilmCardID.F3106)) {
         f.events += validCards.filter(c => c.region === Region.NA)
-            .filter(c => c.type === CardType.F)
             .length * 2
     }
     if (validID.includes(PersonCardID.P3402)) {
         f.events += validCards.filter(c => c.region === Region.ASIA)
-            .filter(c => c.type === CardType.F)
             .length * 2
     }
     if (validID.includes(FilmCardID.F3107)) {
