@@ -517,6 +517,14 @@ export const chooseRegion: LongFormMove = {
                 G.pub[parseInt(p)].shares[r]--;
                 reg.share++;
                 break;
+            case "anyRegionShareCentral":
+                pub.shares[r]++;
+                reg.share--;
+                if (eff.a > 1) {
+                    eff.a--;
+                    G.e.stack.push(eff);
+                }
+                break;
             case "anyRegionShare":
                 let i = G.competitionInfo;
                 if (i.pending) {
@@ -526,8 +534,7 @@ export const chooseRegion: LongFormMove = {
                     if (eff.a > 1) {
                         eff.a--;
                         G.e.stack.push(eff);
-                        checkNextEffect(G, ctx);
-                        return;
+                        break;
                     } else {
                         competitionCleanUp(G, ctx);
                         return

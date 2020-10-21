@@ -100,6 +100,7 @@ export const requireInteraction = (G: IG, eff: any): boolean => {
 export const isSimpleEffect = (G: IG, eff: any): boolean => {
     let log = `isSimpleEffect|${eff.e}`;
     switch (eff.e) {
+        case "anyRegionShareCentral":
         case "playedCardInTurnEffect":
         case "alternative":
         case "competition":
@@ -863,6 +864,16 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 changePlayerStage(G, ctx, "chooseRegion", p);
                 return;
             }
+        case "anyRegionShareCentral":
+            G.e.regions = ValidRegions.filter(r => G.regions[r].share > 0)
+            if (G.e.regions.length === 0) {
+                logger.debug("No share on board, cannot obtain from others.")
+                break;
+            } else {
+                G.e.stack.push(eff)
+                changePlayerStage(G, ctx, "chooseRegion", p);
+                return;
+            }
         case "anyRegionShare":
             let i = G.competitionInfo;
             if (i.pending) {
@@ -885,7 +896,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             } else {
                 G.e.regions = ValidRegions.filter(r => G.regions[r].share > 0)
                 if (G.e.regions.length === 0) {
-                    logger.debug("Target player has no share, cannot obtain from others.")
+                    logger.debug("No share on board, cannot obtain from others.")
                     break;
                 } else {
                     G.e.stack.push(eff)
@@ -2487,11 +2498,12 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     if (hasWinner) {
         if (i.onWin.e !== "none") {
             log += `|onWin${JSON.stringify(i.onWin)}`
-            if (i.onWin.e === "anyRegionShare") {
+            if (i.onWin.e === "anyRegionShareCentral") {
                 log += `|moreShare${i.onWin.a}|playerEffExec|p${winner}`
                 G.e.stack.push({
-                    e: "anyRegionShare", a: 1 + i.onWin.a
+                    e: "anyRegionShare", a: 1
                 })
+                G.e.stack.push({...i.onWin})
                 logger.debug(`${G.matchID}|${log}`);
                 playerEffExec(G, ctx, winner);
                 return;

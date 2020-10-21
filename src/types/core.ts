@@ -103,6 +103,7 @@ export enum InteractiveEffectNames {
     competition="competition",
     loseAnyRegionShare="loseAnyRegionShare",
     anyRegionShare="anyRegionShare",
+    anyRegionShareCentral="anyRegionShareCentral",
     noBuildingEE="noBuildingEE",
     vpNotHighestPlayer="vpNotHighestPlayer",
     highestVpPlayer="highestVpPlayer",

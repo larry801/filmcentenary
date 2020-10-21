@@ -1738,7 +1738,7 @@ export const effects = {
                     e: "optional", a: {
                         e: "competition", a: {
                             bonus: 1,
-                            onWin: {e: "anyRegionShare", a: 1},
+                            onWin: {e: "anyRegionShareCentral", a: 1},
                         }
                     }
                 }

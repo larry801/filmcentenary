@@ -679,6 +679,7 @@ const zh_CN: Locale = {
         loseShareEE: ["失去{{a}}个东欧地区的份额", argValue],
         loseShareASIA: ["失去{{a}}个亚洲地区的份额", argValue],
         anyRegionShare: ["获得{{a}}个任意地区的份额", argValue],
+        anyRegionShareCentral: ["从中央牌列获得{{a}}个任意地区的份额", argValue],
         deductRes: ["少花费{{a}}资源", argValue],
         buyAesthetics: "购买有美学标志的影片时，",
         extraEffect: "额外效果：",

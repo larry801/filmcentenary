@@ -677,6 +677,7 @@ const en = {
         loseShareASIA: ["Return {{a}} share(s) of asia", argValue],
         shareToVp: ["Gain prestige according to your share in {{a}} region.", argRegion],
         anyRegionShare: ["Get {{a}} share(s) of any region", argValue],
+        anyRegionShareCentral: ["Get {{a}} share(s) of any region from board,", argValue],
         deductRes: ["deduct {{a}} resource(s) from cost.", argValue],
         extraEffect: "Extra effect:",
         buyAesthetics: "When you buys a card with aesthetics marker,",
