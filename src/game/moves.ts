@@ -286,6 +286,22 @@ export const chooseHand: LongFormMove = {
         let pub = G.pub[parseInt(p)];
         let card: IBasicCard | INormalOrLegendCard = getCardById(arg.hand);
         switch (eff.e) {
+            case "playedCardInTurnEffect":
+                const playedCard = pub.playedCardInTurn[arg.idx];
+                log += `|${playedCard}`
+                let cardEff = getCardEffect(playedCard);
+                if (cardEff.hasOwnProperty("play")) {
+                    const eff = {...cardEff.play};
+                    if (eff.e !== "none") {
+                        eff.target = arg.p;
+                        G.e.stack.push(eff)
+                    } else {
+                        log += `|emptyPlayEffect`
+                    }
+                } else {
+                    log += `|noPlayEffect`
+                }
+                break;
             case "breakthroughResDeduct":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);

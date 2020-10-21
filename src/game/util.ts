@@ -100,6 +100,7 @@ export const requireInteraction = (G: IG, eff: any): boolean => {
 export const isSimpleEffect = (G: IG, eff: any): boolean => {
     let log = `isSimpleEffect|${eff.e}`;
     switch (eff.e) {
+        case "playedCardInTurnEffect":
         case "alternative":
         case "competition":
         case "loseAnyRegionShare":
@@ -754,6 +755,14 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let extraCost = 0
     const totalRes = pub.resource + pub.deposit;
     switch (eff.e) {
+        case "playedCardInTurnEffect":
+            if (pub.playedCardInTurn.filter(c => getCardById(c).aesthetics > 0).length > 0) {
+                log += `|chooseHand`
+                changePlayerStage(G, ctx, "chooseHand", p);
+                return;
+            }
+            log += `|noAesMarkCardPlayed`
+            break;
         case "aestheticsLevelUpCost":
             extraCost = additionalCostForUpgrade(G, pub.aesthetics);
             log += `|extra|${extraCost}`
@@ -2760,7 +2769,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         let championRegionCount = 0;
         ValidRegions.forEach(r => {
             if (p.champions.filter(c => c.region = r).length) {
-                championRegionCount ++;
+                championRegionCount++;
             }
         })
         switch (championRegionCount) {
