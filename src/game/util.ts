@@ -527,6 +527,7 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     log += `|act|p${act}`
     let pos = posOfPlayer(G, ctx, act);
     let seq = seqFromPos(G, ctx, pos);
+    log += `|seq:${JSON.stringify(seq)}`
     logger.debug(`${G.matchID}|${log}`);
     return seq;
 }
@@ -536,6 +537,7 @@ export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     log += `|cur|p${ctx.currentPlayer}`
     let pos = posOfPlayer(G, ctx, ctx.currentPlayer);
     let seq = seqFromPos(G, ctx, pos);
+    log += `|seq:${JSON.stringify(seq)}`
     logger.debug(`${G.matchID}|${log}`);
     return seq;
 }
@@ -984,7 +986,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 deck = shuffle(ctx, pub.discard);
                 pub.discard = [];
                 log += `|shuffle|${JSON.stringify(deck)}`
-                const remainDrawCount =  peekCount - effectLength;
+                const remainDrawCount = peekCount - effectLength;
                 log += `|more|${remainDrawCount}`
                 for (let i = 0; i < remainDrawCount; i++) {
                     let newCardId = deck.pop();
@@ -1167,7 +1169,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             effectLength = eff.a.length;
             for (let i = effectLength - 1; i >= 0; i--) {
                 subEffect = {...eff.a[i]};
-                if(eff.hasOwnProperty("target")){
+                if (eff.hasOwnProperty("target")) {
                     log += `|specifyTarget|${eff.target}`
                     subEffect.target = eff.target;
                 }
@@ -1944,10 +1946,25 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
     }
 };
 
+export const passCompensateMarker = (G: IG) => {
+    let log = `passCompensateMarker`
+    const markPos = G.order.indexOf(G.regionScoreCompensateMarker);
+    log += `|p${G.regionScoreCompensateMarker}|markPos|${markPos}`
+    if (markPos > 0) {
+        G.regionScoreCompensateMarker = G.order[markPos - 1];
+        log += `|passTo|p${G.regionScoreCompensateMarker}|${markPos - 1}`
+    } else {
+        G.regionScoreCompensateMarker = G.order[G.order.length - 1];
+        log += `|passTo|p${G.regionScoreCompensateMarker}|${G.order.length - 1}`
+    }
+    logger.debug(`${G.matchID}|${log}`);
+}
+
 export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     if (r === Region.NONE) return;
     let era = G.regions[r].era;
     let log = `regionRank|${r}|${era}`
+    let compensateMarkerUsed = false;
     const rank = (a: PlayerID, b: PlayerID): number => {
         let log = `rank|${a}|${b}`
         let p1 = G.pub[parseInt(a)];
@@ -1966,8 +1983,8 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             return 1;
         }
         log += `|sameShare`
-        let legendCountA = legendCount(G, ctx, r, era, a);
-        let legendCountB = legendCount(G, ctx, r, era, b);
+        const legendCountA = legendCount(G, ctx, r, era, a);
+        const legendCountB = legendCount(G, ctx, r, era, b);
         log += `|legendCount|${legendCountA}|${legendCountB}`
         if (legendCountA > legendCountB) {
             log += `|legendCount|p${a}win`
@@ -1980,19 +1997,59 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             return 1;
         }
         log += `|sameLegendCount`
+        let winner = "";
+        const aHasMarker = G.regionScoreCompensateMarker === a;
+        const bHasMarker = G.regionScoreCompensateMarker === b;
+        if (aHasMarker) {
+            log += `|ahasMarker|p${a}win`
+            winner = a;
+        }
+        if (bHasMarker) {
+            log += `|bHasMarker|p${b}win`
+            winner = b;
+        }
+        if (winner === "") {
+            log += `|noOneHasMarker`
+        }
         const curPos = seqFromActivePlayer(G, ctx);
         const posA = curPos.indexOf(a);
         const posB = curPos.indexOf(b);
         log += `|pos|${posA}|${posB}`
         if (posA > posB) {
-            log += `|pos|p${b}win`
-            logger.debug(`${G.matchID}|${log}`);
-            return 1;
+            if (winner === "") {
+                log += `|pos|p${b}win`
+                logger.debug(`${G.matchID}|${log}`);
+                return 1;
+            } else {
+                if (winner !== b) {
+                    log += `|markPosSame|p${b}win`
+                    logger.debug(`${G.matchID}|${log}`);
+                    return 1;
+                } else {
+                    compensateMarkerUsed = true;
+                    log += `|markUsed|p${a}win`
+                    logger.debug(`${G.matchID}|${log}`);
+                    return -1;
+                }
+            }
         } else {
             if (posA < posB) {
-                log += `|pos|p${a}win`
-                logger.debug(`${G.matchID}|${log}`);
-                return -1;
+                if (winner === "") {
+                    log += `|pos|p${a}win`
+                    logger.debug(`${G.matchID}|${log}`);
+                    return -1;
+                } else {
+                    if (winner !== a) {
+                        log += `|markPosSame|p${a}win`
+                        logger.debug(`${G.matchID}|${log}`);
+                        return -1;
+                    } else {
+                        compensateMarkerUsed = true;
+                        log += `|useMarker|p${b}win`
+                        logger.debug(`${G.matchID}|${log}`);
+                        return 1;
+                    }
+                }
             } else {
                 throw Error("Two player cannot have the same position.")
             }
@@ -2010,6 +2067,9 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         }
     });
     let rankResult = rankingPlayer.sort(rank);
+    if (compensateMarkerUsed) {
+        passCompensateMarker(G);
+    }
     log += `|rankResult|${rankResult}`;
     let firstPlayer: PlayerID = rankResult[0];
     log += `|firstPlayer:${firstPlayer}`
@@ -2247,7 +2307,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         let nextEff = G.e.stack.slice(-1)[0];
         log += `|Next effect|${JSON.stringify(nextEff)}`
         let targetPlayer = ctx.currentPlayer
-        if(nextEff.hasOwnProperty("target")){
+        if (nextEff.hasOwnProperty("target")) {
             targetPlayer = nextEff.target;
         }
         log += `|target|${targetPlayer}`
@@ -2462,7 +2522,7 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
         G.e.card = cardId;
         if (cinemaInRegion(G, ctx, i.region, i.atk)) {
             log += `|cinemaInRegion|${i.region}|${i.progress}`
-            i.progress ++;
+            i.progress++;
             log += `|${i.progress}`
             addVp(G, ctx, i.atk, 1);
         }
@@ -2503,7 +2563,7 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
         G.player[parseInt(i.def)].competitionCards = [];
         if (cinemaInRegion(G, ctx, i.region, i.def)) {
             log += `|cinemaInRegion|${i.region}|${i.progress}`
-            i.progress --;
+            i.progress--;
             log += `|${i.progress}`
             addVp(G, ctx, i.atk, 1);
         }
@@ -2808,7 +2868,7 @@ export const finalScoring = (G: IG, ctx: Ctx) => {
     })
 }
 
-export const getCardName = (cardId: string):string => {
+export const getCardName = (cardId: string): string => {
     if (cardId in i18n.card) {
         // @ts-ignore
         return i18n.card[cardId];
