@@ -401,5 +401,14 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     }
     doFillNewEraEventDeck(G, ctx, IEra.ONE);
     G.regionScoreCompensateMarker = G.order[G.order.length - 1];
+
+    // G.pub[0].resource = 20;
+    // G.pub[0].deposit = 20;
+    // // @ts-ignore
+    // G.regions[Region.NA].legend.card = "P1101"
+    // // @ts-ignore
+    // G.regions[Region.NA].normal[0].card = "F1103"
+    // // @ts-ignore
+    // G.pub[0].school = "S3101";
     return G;
 };

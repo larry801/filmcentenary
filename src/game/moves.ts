@@ -2,7 +2,8 @@ import {Ctx, LongFormMove, PlayerID} from 'boardgame.io';
 import {CompetitionInfo, IG} from "../types/setup";
 import {
     BasicCardID,
-    BuildingType, CardCategory,
+    BuildingType,
+    CardCategory,
     CardID,
     CardType,
     ClassicCardID,
@@ -172,15 +173,15 @@ export const buyCard: LongFormMove = {
         logger.debug(`${G.matchID}|${log}`);
         if (canBuyCard(G, ctx, arg)) {
             let targetCard = getCardById(arg.target)
-            let p = curPub(G, ctx);
-            p.action--;
-            p.resource -= arg.resource;
-            p.deposit -= arg.deposit;
+            let pub = curPub(G, ctx);
+            pub.action--;
+            pub.resource -= arg.resource;
+            pub.deposit -= arg.deposit;
             arg.helper.forEach(c => {
                 let pHand = G.player[parseInt(arg.buyer)].hand;
                 let idx = pHand.indexOf(c)
                 let helper = G.player[parseInt(arg.buyer)].hand.splice(idx, 1)[0];
-                p.playedCardInTurn.push(helper);
+                pub.playedCardInTurn.push(helper);
             })
             G.e.card = arg.target;
             doBuy(G, ctx, targetCard as INormalOrLegendCard | IBasicCard, ctx.currentPlayer);
@@ -195,8 +196,11 @@ export const buyCard: LongFormMove = {
             } else {
                 log += `|noPlayEff`
             }
-            if (p.school === SchoolCardID.S3101) {
-                if (targetCard.category === CardCategory.NORMAL || targetCard.category === CardCategory.LEGEND) {
+            if (pub.school === SchoolCardID.S3101) {
+                if ((targetCard.category === CardCategory.NORMAL
+                    || targetCard.category === CardCategory.LEGEND)
+                    && targetCard.type === CardType.F
+                ) {
                     log += `|newHollyWood`
                     G.e.stack.push({
                         e: "optional", a: {
@@ -205,7 +209,7 @@ export const buyCard: LongFormMove = {
                                 eff: {e: "anyRegionShare", a: 1}
                             }
                         },
-                        target: p,
+                        target: arg.buyer,
                     })
                     hasEffect = true;
                 }

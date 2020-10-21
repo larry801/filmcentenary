@@ -184,26 +184,26 @@ export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
 export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     let eff = G.e.stack.pop();
     let log = `simpleEffectExec|p${p}|${JSON.stringify(eff)}`
-    let obj = G.pub[parseInt(p)];
+    let pub = G.pub[parseInt(p)];
     let card: INormalOrLegendCard;
     switch (eff.e) {
         case "none":
         case "skipBreakthrough":
             return;
         case "shareToVp":
-            addVp(G, ctx, p, obj.shares[eff.a as validRegion]);
+            addVp(G, ctx, p, pub.shares[eff.a as validRegion]);
             return;
         case "loseVpForEachHand":
             loseVp(G, ctx, p, G.player[parseInt(p)].hand.length);
             break;
         case "aestheticsToVp":
-            addVp(G, ctx, p, obj.aesthetics);
+            addVp(G, ctx, p, pub.aesthetics);
             break;
         case "industryToVp":
-            addVp(G, ctx, p, obj.industry)
+            addVp(G, ctx, p, pub.industry)
             break;
         case "resFromIndustry":
-            obj.resource += obj.industry;
+            pub.resource += pub.industry;
             break;
         case "enableBollywood":
             G.regions[Region.ASIA].buildings[1].activated = true;
@@ -220,37 +220,37 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             break;
 
         case "loseShareNA":
-            loseShare(G, Region.NA, obj, eff.a);
+            loseShare(G, Region.NA, pub, eff.a);
             break;
         case "shareNA":
-            getShare(G, Region.NA, obj, eff.a);
+            getShare(G, Region.NA, pub, eff.a);
             break;
 
         case "loseShareWE":
-            loseShare(G, Region.WE, obj, eff.a);
+            loseShare(G, Region.WE, pub, eff.a);
             break;
         case "shareWE":
-            getShare(G, Region.WE, obj, eff.a);
+            getShare(G, Region.WE, pub, eff.a);
             break;
 
         case "loseShareEE":
-            loseShare(G, Region.EE, obj, eff.a);
+            loseShare(G, Region.EE, pub, eff.a);
             break;
         case "shareEE":
-            getShare(G, Region.EE, obj, eff.a);
+            getShare(G, Region.EE, pub, eff.a);
             break;
 
         case "loseShareASIA":
-            loseShare(G, Region.ASIA, obj, eff.a);
+            loseShare(G, Region.ASIA, pub, eff.a);
             break;
         case "shareASIA":
-            getShare(G, Region.ASIA, obj, eff.a);
+            getShare(G, Region.ASIA, pub, eff.a);
             break;
 
         case "deposit":
-            log += `|${obj.deposit}`
-            obj.deposit += eff.a;
-            log += `|${obj.deposit}`
+            log += `|${pub.deposit}`
+            pub.deposit += eff.a;
+            log += `|${pub.deposit}`
             break;
         case "res":
             let i = G.competitionInfo;
@@ -266,15 +266,15 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                         i.progress -= eff.a;
                         log += `|${i.progress}`
                     } else {
-                        log += `|notCompetitionPlayer|${obj.resource}`
-                        obj.resource += eff.a;
-                        log += `|${obj.resource}`
+                        log += `|notCompetitionPlayer|${pub.resource}`
+                        pub.resource += eff.a;
+                        log += `|${pub.resource}`
                     }
                 }
             } else {
-                log += `|${obj.resource}`
-                obj.resource += eff.a;
-                log += `|${obj.resource}`
+                log += `|${pub.resource}`
+                pub.resource += eff.a;
+                log += `|${pub.resource}`
             }
             break;
         case "vp":
@@ -292,19 +292,19 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             doBuyToHand(G, ctx, card, p);
             break;
         case "aestheticsLevelUp":
-            if (obj.aesthetics < 10) {
-                log += `|${obj.aesthetics}`
-                obj.aesthetics++;
-                log += `|${obj.aesthetics}`
+            if (pub.aesthetics < 10) {
+                log += `|${pub.aesthetics}`
+                pub.aesthetics++;
+                log += `|${pub.aesthetics}`
             } else {
                 log += `|LV10CannotUpgrade`
             }
             break
         case "industryLevelUp":
-            if (obj.industry < 10) {
-                log += `|${obj.industry}`
-                obj.industry++;
-                log += `|${obj.industry}`
+            if (pub.industry < 10) {
+                log += `|${pub.industry}`
+                pub.industry++;
+                log += `|${pub.industry}`
             } else {
                 log += `|LV10CannotUpgrade`
             }
@@ -320,8 +320,32 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             }
             break;
         case "buy":
-            doBuy(G, ctx, getCardById(eff.a), p);
-            break;
+            const targetCard = getCardById(eff.a);
+            if (
+                pub.school === SchoolCardID.S3101
+                && (targetCard.category === CardCategory.NORMAL
+                || targetCard.category === CardCategory.LEGEND)
+                && targetCard.type === CardType.F
+            ) {
+                log += `|newHollyWood`
+                G.e.stack.push({
+                    e: "optional", a: {
+                        e: "pay", a: {
+                            cost: {e: "deposit", a: 1},
+                            eff: {e: "anyRegionShare", a: 1}
+                        }
+                    },
+                    target: p,
+                })
+                doBuy(G, ctx, targetCard, p);
+                log += `|execOptional`
+                logger.debug(`${G.matchID}|${log}`);
+                playerEffExec(G,ctx,p);
+                return
+            }else {
+                doBuy(G, ctx, targetCard, p);
+                break;
+            }
         default:
             logger.error("Invalid effect" + JSON.stringify(eff));
             throw new Error(JSON.stringify(eff));
@@ -722,7 +746,6 @@ export const curCard = (G: IG) => {
 export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let log = `playerEffExec|p${p}`;
     let eff = G.e.stack.pop();
-
     if (eff === undefined) {
         log += "|StackEmpty|checkNextEffect"
         logger.debug(`${G.matchID}|${log}`);
@@ -737,7 +760,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let region = curCard(G).region as validRegion;
     log += `|c:${G.e.card}|region:${region}`;
     let players = []
-    let effectLength = 0;
+    let length = 0;
     const handLength = playerObj.hand.length;
     let subEffect;
     let extraCost = 0
@@ -984,9 +1007,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             let peekCount = eff.a.count;
             log += `|peek|${peekCount}`
             let deck = G.secretInfo.playerDecks[curPid(G, ctx)];
-            effectLength = deck.length;
-            log += `|len|${effectLength}`
-            const totalRemainCards = effectLength + pub.discard.length
+            length = deck.length;
+            log += `|len|${length}`
+            const totalRemainCards = length + pub.discard.length
             if (totalRemainCards < peekCount) {
                 log += `|total|${totalRemainCards}`
                 log += `|noEnoughCardsToPeek`
@@ -996,14 +1019,14 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 log += `|noEnoughCardToChoose`
                 eff.a.filter.a = totalRemainCards;
             }
-            if (effectLength < peekCount) {
+            if (length < peekCount) {
                 log += `|fetchRemainDeck|${JSON.stringify(deck)}`
                 playerObj.cardsToPeek = [...deck];
                 deck = [];
                 deck = shuffle(ctx, pub.discard);
                 pub.discard = [];
                 log += `|shuffle|${JSON.stringify(deck)}`
-                const remainDrawCount = peekCount - effectLength;
+                const remainDrawCount = peekCount - length;
                 log += `|more|${remainDrawCount}`
                 for (let i = 0; i < remainDrawCount; i++) {
                     let newCardId = deck.pop();
@@ -1183,8 +1206,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "step":
             log += ("|step")
-            effectLength = eff.a.length;
-            for (let i = effectLength - 1; i >= 0; i--) {
+            length = eff.a.length;
+            for (let i = length - 1; i >= 0; i--) {
                 subEffect = {...eff.a[i]};
                 if (eff.hasOwnProperty("target")) {
                     log += `|specifyTarget|${eff.target}`
