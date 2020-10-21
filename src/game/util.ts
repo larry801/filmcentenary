@@ -888,7 +888,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             return;
         case "loseAnyRegionShare":
             G.e.regions = ValidRegions.filter(r => pub.shares[r] > 0)
+            log += `|${JSON.stringify(G.e.regions)}`
             if (G.e.regions.length === 0) {
+                ctx?.events?.endStage?.()
+                log += `|endStage`
                 break;
             } else {
                 G.e.stack.push(eff)

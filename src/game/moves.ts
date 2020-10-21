@@ -273,6 +273,8 @@ export const chooseTarget: LongFormMove = {
                     changePlayerStage(G, ctx, "chooseRegion",src);
                     return;
                 } else {
+                    ctx?.events?.endStage?.()
+                    log += `|endStage`
                     break;
                 }
             case "handToOthers":
