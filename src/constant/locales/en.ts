@@ -631,8 +631,8 @@ const en = {
             },
             onWin: (e: any): string => {
                 if (e.e !== "none") {
-                    if (e.e === "anyRegionShare") {
-                        return "get an additional share from any region if you win."
+                    if (e.e === "anyRegionShareCentral") {
+                        return "get an additional share from any region on board if you win."
                     } else {
                         return "get an additional share from " + region[e.r as Region] + " if you win."
                     }

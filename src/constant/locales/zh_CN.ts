@@ -634,8 +634,8 @@ const zh_CN: Locale = {
             },
             onWin: (e: any) => {
                 if (e.e !== "none") {
-                    if(e.e === "anyRegionShare"){
-                        return "若这次争夺获胜你额外获得一个任意地区份额"
+                    if(e.e === "anyRegionShareCentral"){
+                        return "若这次争夺获胜你额外从中央牌列获得1个任意地区的份额"
                     }else {
                         return "若这次争夺获胜你额外获得一个" + region[e.r as Region] + "地区份额"
                     }
