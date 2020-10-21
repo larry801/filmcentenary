@@ -42,7 +42,6 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         if (isActive && prevIsActive === false) {
             play()
         }
-        console.log(prevIsActive, isActive)
     }, [prevIsActive, isActive, play])
 
     const locale = i18n._.getLocaleName();

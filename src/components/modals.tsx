@@ -55,7 +55,6 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
 
     useEffect(() => {
         if (show && prevShow===false && popAfterShow!==false) {
-            console.log(prevShow,show,popAfterShow);
             setOpen(true);
         }
     }, [prevShow, show, popAfterShow])
