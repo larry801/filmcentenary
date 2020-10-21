@@ -975,7 +975,7 @@ export const effects = {
                 {
                     e: "step", a: [
                         {e: "res", a: 2},
-                        {e: "comment", a: 1},
+                        {e: "aesAward", a: 1},
                     ]
                 },
                 {
