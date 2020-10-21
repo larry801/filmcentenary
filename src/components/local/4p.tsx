@@ -5,6 +5,7 @@ import {FilmCentenaryGame} from "../../Game";
 import {FilmCentenaryBoard} from "../board";
 import Grid from "@material-ui/core/Grid"
 import {Local} from "boardgame.io/multiplayer";
+import {Loading} from "../join/multiplayer";
 
 const FilmClient4p = Client(
     {
@@ -12,7 +13,7 @@ const FilmClient4p = Client(
         game: FilmCentenaryGame,
         board: FilmCentenaryBoard,
         debug: false,
-        // @ts-ignore
+        loading: Loading,
         multiplayer: Local(),
     }
 );

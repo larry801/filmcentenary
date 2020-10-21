@@ -1,6 +1,6 @@
 import {IBuyInfo, IEra, Region, validRegion} from "../../types/core";
 import {
-    IChooseEventArg, IChooseHandArg, ICommentArg, ICompetitionCardArg,
+    IChooseEventArg, IChooseHandArg, ICommentArg,
     IEffectChooseArg, IPayAdditionalCostArgs,
     IPeekArgs,
     IPlayCardInfo,
@@ -358,7 +358,7 @@ const argChooseEvent = {
     }
 }
 const argDrawCard = {
-    args: (arg: []): string => {
+    args: (): string => {
         return " drew one card with action point."
     }
 }
@@ -379,7 +379,7 @@ const argChooseTarget = {
     }
 }
 const argRequestEndTurn = {
-    args: (arg: []): string => {
+    args: (): string => {
         return " requested end turn."
     }
 }
@@ -392,7 +392,7 @@ const argChooseHand = {
     }
 }
 const argCompetitionCard = {
-    args: (arg: ICompetitionCardArg[]): string => {
+    args: (): string => {
         return " played a card for competition"
     }
 }

@@ -1,7 +1,7 @@
 import {Locale} from './en';
 import {IBuyInfo, IEra, Region, validRegion} from "../../types/core";
 import {
-    IChooseEventArg, IChooseHandArg, ICommentArg, ICompetitionCardArg,
+    IChooseEventArg, IChooseHandArg, ICommentArg,
     IEffectChooseArg, IPayAdditionalCostArgs,
     IPeekArgs,
     IPlayCardInfo,
@@ -256,6 +256,23 @@ const argConfirmRespond = {
         }
     }
 }
+const argChooseEffect = {
+    args: (arg: IEffectChooseArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += effName(a.effect)
+        return t
+    }
+}
+const argChooseEvent = {
+    args: (arg: IChooseEventArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += cards[a.event]
+        t += eventName[a.event]
+        return t
+    }
+}
 const argBuyCard = {
     args: (arg: IBuyInfo[]): string => {
         let a = arg[0]
@@ -284,23 +301,7 @@ const argPlayCard = {
         return t
     }
 }
-const argChooseEffect = {
-    args: (arg: IEffectChooseArg[]): string => {
-        let a = arg[0]
-        let t = chose
-        t += effName(a.effect)
-        return t
-    }
-}
-const argChooseEvent = {
-    args: (arg: IChooseEventArg[]): string => {
-        let a = arg[0]
-        let t = chose
-        t += cards[a.event]
-        t += eventName[a.event]
-        return t
-    }
-}
+
 const argBreakthrough = {
     args: (arg: IPlayCardInfo[]): string => {
         let a = arg[0]
@@ -355,7 +356,7 @@ const argPeek = {
     }
 }
 const argDrawCard = {
-    args: (arg: []): string => {
+    args: (): string => {
         return "用行动力额外抽取了一张牌"
     }
 }
@@ -376,7 +377,7 @@ const argChooseTarget = {
     }
 }
 const argRequestEndTurn = {
-    args: (arg: []): string => {
+    args: (): string => {
         return "行动结束"
     }
 }
@@ -403,8 +404,8 @@ const argPayAdditionalCost = {
     }
 }
 const argCompetitionCard = {
-    args: (arg: ICompetitionCardArg[]): string => {
-        return "打出一张牌用于争夺"
+    args: (): string => {
+        return "打出了一张牌用于争夺"
     }
 }
 const argUpdateSlot = {

@@ -37,6 +37,7 @@ export const MultiPlayer = ({matchID,serverURL,credentials,player}:MultiplayerPr
         game:FilmCentenaryGame,
         board: FilmCentenaryBoard,
         multiplayer: SocketIO({ server: serverURL }),
+        loading: Loading,
     });
 
     return <>
