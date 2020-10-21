@@ -58,36 +58,29 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
     const getName = (playerID: PlayerID | null = ctx.currentPlayer): string => {
         const fallbackName = i18n.playerName.player + playerID;
+        const curSuffix = ctx.currentPlayer === playerID ? curPlayerSuffix : ""
+        const activeSuffix = activePlayer(ctx) === playerID && ctx.currentPlayer !== playerID ? "(**)" : ""
+        const markSuffix = G.regionScoreCompensateMarker === playerID ? "(+)" : ""
+        let name = "";
         if (playerID === null) {
             return i18n.playerName.spectator
         } else {
             if (matchData === undefined) {
-                if (ctx.currentPlayer === playerID) {
-                    return fallbackName + curPlayerSuffix
-                } else {
-                    return fallbackName
-                }
+                name = fallbackName
             } else {
                 let arr = matchData.filter(m => m.id.toString() === playerID)
                 if (arr.length === 0) {
-                    if (ctx.currentPlayer === playerID) {
-                        return fallbackName + curPlayerSuffix
-                    } else {
-                        return fallbackName
-                    }
+                    name = fallbackName
                 } else {
                     if (arr[0].name === undefined) {
-                        return fallbackName;
+                        name = fallbackName;
                     } else {
-                        if (ctx.currentPlayer === playerID) {
-                            return arr[0].name + curPlayerSuffix
-                        } else {
-                            return arr[0].name
-                        }
+                        name = arr[0].name
                     }
                 }
             }
         }
+        return `${name}${curSuffix}${activeSuffix}${markSuffix}`
     }
 
     const comment = (slot: ICardSlot, card: BasicCardID | null) => moves.comment({
@@ -236,9 +229,15 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
         {G.pub.map((u: IPubInfo, idx: number) =>
             <Grid container key={idx}>
-                <Grid item xs={4} sm={3} md={2} lg={1}><Typography>{getName(idx.toString())}</Typography></Grid>
-                <Grid item xs={4} sm={3} md={2}
-                      lg={1}><Typography>{i18n.pub.handSize} {G.player[idx].handSize}</Typography></Grid>
+                <Grid item xs={4} sm={3} md={2} lg={1}>
+                    <Typography>
+                        {getName(idx.toString())}
+                    </Typography>
+                </Grid>
+
+                <Grid item xs={4} sm={3} md={2} lg={1}>
+                    <Typography>{i18n.pub.handSize} {G.player[idx].handSize}</Typography>
+                </Grid>
                 <PubPanel G={G} i={u}/>
             </Grid>)}
         {log === undefined ? <></> :
