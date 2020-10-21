@@ -352,8 +352,8 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
     let pub = G.pub[parseInt(p)];
     let log = `doBuy|${card.cardId}|p${p}`
-    if(pub.school === SchoolCardID.S3101){
-        if(card.category === CardCategory.NORMAL || card.category===CardCategory.LEGEND){
+    if (pub.school === SchoolCardID.S3101) {
+        if (card.category === CardCategory.NORMAL || card.category === CardCategory.LEGEND) {
             log += `|newHollyWood`
             G.e.stack.push({
                 e: "optional", a: {
@@ -2757,10 +2757,13 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         f.events += p.aesthetics;
     }
     if (p.scoreEvents.includes(EventCardID.E13)) {
-        let championCount = p.champions.length;
-        switch (championCount) {
-            case 6:
-            case 5:
+        let championRegionCount = 0;
+        ValidRegions.forEach(r => {
+            if (p.champions.filter(c => c.region = r).length) {
+                championRegionCount ++;
+            }
+        })
+        switch (championRegionCount) {
             case 4:
                 f.events += 20;
                 break;
