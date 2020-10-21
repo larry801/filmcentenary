@@ -111,8 +111,6 @@ let initialDeck = [
     BasicCardID.B07, BasicCardID.B07,
     BasicCardID.B07, BasicCardID.B07
 ];
-// @ts-ignore
-// initialDeck = ["F1104","B02","B07","B07",]
 
 function pubPlayer(): IPubInfo {
     return {
@@ -410,5 +408,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.regions[Region.NA].normal[0].card = "F1103"
     // // @ts-ignore
     // G.pub[0].school = "S3101";
+    // @ts-ignore
+    // G.player[0].hand = ["F3306","P2102"]
+    // G.pub[0].resource = 3;
     return G;
 };
