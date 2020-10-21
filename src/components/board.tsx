@@ -192,8 +192,16 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 </Grid>
                 : <>
                     {cardBoard}
-                    <OperationPanel G={G} ctx={ctx} moves={moves} playerID={playerID} events={events} undo={undo}
-                                    redo={redo} getName={getName}/>
+                    {ctx.gameover === undefined
+                        ?
+                        <OperationPanel
+                            G={G} ctx={ctx}
+                            moves={moves}
+                            playerID={playerID}
+                            events={events}
+                            undo={undo} redo={redo}
+                            getName={getName}/>
+                        : <></>}
                 </>}
         </>
         : <></>
