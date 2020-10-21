@@ -130,6 +130,7 @@ export const isSimpleEffect = (G: IG, eff: any): boolean => {
         case "update":
         case "comment":
         case "optional":
+        case "pay":
         case InteractiveEffectNames.archiveToEEBuildingVP:
             log += `|false`
             logger.debug(`${G.matchID}|${log}`);
@@ -354,20 +355,6 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
     let pub = G.pub[parseInt(p)];
     let log = `doBuy|${card.cardId}|p${p}`
-    if (pub.school === SchoolCardID.S3101) {
-        if (card.category === CardCategory.NORMAL || card.category === CardCategory.LEGEND) {
-            log += `|newHollyWood`
-            G.e.stack.push({
-                e: "optional", a: {
-                    e: "pay", a: {
-                        cost: {e: "deposit", a: 1},
-                        eff: {e: "anyRegionShare", a: 1}
-                    }
-                },
-                target: p,
-            })
-        }
-    }
     if (card.category === CardCategory.BASIC) {
         let count = G.basicCards[card.cardId as BasicCardID];
         if (count > 0) {

@@ -72,6 +72,7 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
             case "MAKE_MOVE":
                 let moveName = l.action.payload.type as MoveNames
                 return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
+                    // @ts-ignore
                     args: l.action.payload.args
                 })
             case "REDO":

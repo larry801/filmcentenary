@@ -2,7 +2,7 @@ import {Ctx, LongFormMove, PlayerID} from 'boardgame.io';
 import {CompetitionInfo, IG} from "../types/setup";
 import {
     BasicCardID,
-    BuildingType,
+    BuildingType, CardCategory,
     CardID,
     CardType,
     ClassicCardID,
@@ -185,16 +185,38 @@ export const buyCard: LongFormMove = {
             G.e.card = arg.target;
             doBuy(G, ctx, targetCard as INormalOrLegendCard | IBasicCard, ctx.currentPlayer);
             let cardEff = getCardEffect(arg.target);
+            let hasEffect = false;
             if (cardEff.hasOwnProperty("buy")) {
                 const eff = cardEff.buy;
                 if (eff.e !== "none") {
                     G.e.stack.push(eff);
-                    checkNextEffect(G, ctx);
+                    hasEffect = true;
                 }
             } else {
                 log += `|noPlayEff`
             }
-            logger.debug(`${G.matchID}|${log}`);
+            if (p.school === SchoolCardID.S3101) {
+                if (targetCard.category === CardCategory.NORMAL || targetCard.category === CardCategory.LEGEND) {
+                    log += `|newHollyWood`
+                    G.e.stack.push({
+                        e: "optional", a: {
+                            e: "pay", a: {
+                                cost: {e: "deposit", a: 1},
+                                eff: {e: "anyRegionShare", a: 1}
+                            }
+                        },
+                        target: p,
+                    })
+                    hasEffect = true;
+                }
+            }
+            if(hasEffect){
+                log += `|hasEffect`
+                logger.debug(`${G.matchID}|${log}`);
+                checkNextEffect(G, ctx);
+            }else{
+                logger.debug(`${G.matchID}|${log}`);
+            }
         } else {
             return INVALID_MOVE;
         }
