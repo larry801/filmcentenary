@@ -187,20 +187,20 @@ const era = {
     2: "Modern",
 };
 const eventName = {
-    'E01': '【好莱坞】建筑位可以修建建筑 每个公司升级工业等级或美学等级1级',
-    'E02': '每个公司获得2存款 每个公司弃掉1张牌 *【托马斯，爰迪生】或【卢米埃尔兄弟】响应',
-    'E03': '每个公司立刻获得第2个行动力(注意！并非行动 力+1)  *若这张牌因为过时代而被弃掉，事件立刻触发',
-    'E04': '声望最高的公司可以free购买1张【商业片】并置入手牌 每个公司免赛购买1张【传世经典】',
-    'E05': '每个公司获得3存款 北美有建筑的公司弃掉2张牌',
-    'E06': '声望最高的公司升级1级美学等级 每个公司免费购买1张【传世经典】',
-    'E07': '每个公司升级工业等级或美学等级1级 声望不是最高的公司免费购买1张【烂片】',
-    'E08': '每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑，则该公司获得这张牌的声望 东欧地区没有建筑的公司免费购买1张【烂片】',
-    'E09': '【宝莱坞】建筑位可以修建建筑 美学等级最低的公司升级1级美学等级 工业等级最低的公司升级1级工业等级',
-    'E10': '终局计分时：每有一个声望条数字比你高的公司， 你额外获得4声望',
-    'E11': '终局计分时：公司牌库里和档案馆里的每个人物获得4声望',
-    'E12': '终局计分时：公司按照工业等级和美字等级的总和获得声望',
-    'E13': '终局计分时：若公司获得过4/3/2/1个不同地区的第一，则你得到20/12/6/2声望',
-    'E14': '终局计分时：公司档案馆和牌库里的每张基础牌牌获得1声望',
+    'E01': '【Hollywood】 slot activated every company upgrade industry or aesthetics level once.',
+    'E02': 'Every company get 2 deposit *Check response effect of【Thomas Edison】or【Lumière Brothers】',
+    'E03': 'Every company get its second action point (Note: Do not add action point if you already have a second one)  * If this event is discarded, also execute its effect.',
+    'E04': 'Company with highest prestige buy a 【Commercial Film】and put it into hand, every company buy a 【Classic Film】 for free.',
+    'E05': 'Every company get 2 deposit, company with building in north america discard two cards.',
+    'E06': 'Company with the highest prestige upgrade industry or aesthetics level once Every company buy【Classic Film】 for free.',
+    'E07': 'Every company upgrade industry or aesthetics level once,  company prestige not highest buy a 【Bad Film】 for free.',
+    'E08': 'Every company put a card in hand to archive, if that company has building in east europe also get prestige of that card, company with no building in east europe buy a 【Bad Film】, second building slot in east europe is activated.',
+    'E09': '【Bollywood】 slot activated, company with the lowest aesthetics level upgrade aesthetics level once, company with the lowest aesthetics level upgrade aesthetics level once.',
+    'E10': 'At final scoring：Each company whose prestige is higher than you ,gain 4 extra prestige',
+    'E11': 'At final scoring：Every person card in your deck and archive gain 4 extra prestige',
+    'E12': 'At final scoring：Gain prestige according to your industry and aesthetics level.',
+    'E13': 'At final scoring：If your company have 4/3/2/1 champions form different regions, gain 20/12/6/1 extra prestige',
+    'E14': 'At final scoring：Every basic card in your deck give you 1 extra prestige',
 };
 const argCardName = {
     a: (value: string = "E02"): string => {
@@ -393,7 +393,7 @@ const argChooseHand = {
 }
 const argCompetitionCard = {
     args: (arg: ICompetitionCardArg[]): string => {
-        return " played a card fro competition"
+        return " played a card for competition"
     }
 }
 const argUpdateSlot = {
