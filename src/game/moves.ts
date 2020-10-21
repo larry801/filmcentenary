@@ -647,6 +647,9 @@ export const chooseEvent: LongFormMove = {
             fillEventCard(G, ctx);
             checkNextEffect(G, ctx);
         } else {
+            if(eid === EventCardID.E08){
+                G.regions[Region.EE].buildings[1].activated = true;
+            };
             switch (eid) {
                 case EventCardID.E01:
                 case EventCardID.E02:
@@ -655,8 +658,6 @@ export const chooseEvent: LongFormMove = {
                 case EventCardID.E06:
                 case EventCardID.E07:
                 case EventCardID.E08:
-                    G.regions[Region.EE].buildings[1].activated = true;
-                // eslint-disable-next-line
                 case EventCardID.E09:
                     log += "|Execute event"
                     G.e.stack.push(getEvent(eid));
