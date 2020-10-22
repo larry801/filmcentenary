@@ -10,9 +10,11 @@ import {
     chooseTarget,
     comment,
     competitionCard,
+    concedeMove,
     confirmRespond,
     drawCard,
-    moveBlocker, payAdditionalCost,
+    moveBlocker,
+    payAdditionalCost,
     peek,
     playCard,
     requestEndTurn,
@@ -170,6 +172,7 @@ export const NormalTurn: TurnConfig = {
         comment: comment,
         chooseRegion: chooseRegion,
         peek: peek,
+        concede: concedeMove,
     }
 }
 

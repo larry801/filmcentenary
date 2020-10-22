@@ -214,11 +214,11 @@ export const buyCard: LongFormMove = {
                     hasEffect = true;
                 }
             }
-            if(hasEffect){
+            if (hasEffect) {
                 log += `|hasEffect`
                 logger.debug(`${G.matchID}|${log}`);
                 checkNextEffect(G, ctx);
-            }else{
+            } else {
                 logger.debug(`${G.matchID}|${log}`);
             }
         } else {
@@ -270,7 +270,7 @@ export const chooseTarget: LongFormMove = {
                 if (G.e.regions.length > 0) {
                     G.e.stack.push(eff);
                     G.c.players = [p];
-                    changePlayerStage(G, ctx, "chooseRegion",src);
+                    changePlayerStage(G, ctx, "chooseRegion", src);
                     return;
                 } else {
                     ctx?.events?.endStage?.()
@@ -698,7 +698,7 @@ export const chooseEvent: LongFormMove = {
             fillEventCard(G, ctx);
             checkNextEffect(G, ctx);
         } else {
-            if(eid === EventCardID.E08){
+            if (eid === EventCardID.E08) {
                 G.regions[Region.EE].buildings[1].activated = true;
             }
             switch (eid) {
@@ -805,6 +805,19 @@ export const moveBlocker: LongFormMove = {
     move: () => {
         return INVALID_MOVE;
     },
+}
+
+export const concedeMove: LongFormMove = {
+    client: false,
+    move: (G: IG, ctx: Ctx, p: PlayerID) => {
+        if (G.order.includes(p)) {
+            const concedeIndex = G.order.indexOf(p);
+            G.order.splice(concedeIndex, 1);
+            ctx?.events?.endTurn?.()
+        } else {
+            throw Error();
+        }
+    }
 }
 
 export const confirmRespond: LongFormMove = {
@@ -980,15 +993,15 @@ export const breakthrough: LongFormMove = {
         }
         if (p.school === SchoolCardID.S2201) {
             G.e.stack.push({
-                e:"vp",a:2,
+                e: "vp", a: 2,
             });
             G.e.stack.push({
-                e:"deposit",a:1,
+                e: "deposit", a: 1,
             });
         }
         if (p.school === SchoolCardID.S1204) {
             G.e.stack.push({
-                e:"res",a:1,
+                e: "res", a: 1,
             })
         }
         startBreakThrough(G, ctx, arg.playerID, arg.card);

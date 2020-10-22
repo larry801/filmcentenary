@@ -202,6 +202,11 @@ const eventName = {
     'E13': 'At final scoring：If your company have 4/3/2/1 champions form different regions, gain 20/12/6/1 extra prestige',
     'E14': 'At final scoring：Every basic card in your deck give you 1 extra prestige',
 };
+const argConcede = {
+    args: (): string => {
+        return ` conceded from the game`
+    }
+}
 const argCardName = {
     a: (value: string = "E02"): string => {
         return `${getCardName(value)}`
@@ -477,6 +482,7 @@ const en = {
         title: "Game Over",
         winner: "Winner:",
         reason: {
+            othersConceded:"All other players conceded",
             threeNAChampionAutoWin: "Three Champion in North America",
             championCountAutoWin: "Champion count exceeded",
             finalScoring: "Final Scoring",
@@ -500,6 +506,7 @@ const en = {
         },
     },
     moves: {
+        concede:["{{args}}",argConcede],
         showBoardStatus: ["{{args}}", argShowBoardStatus],
         chooseEffect: ["{{args}}", argChooseEffect],
         chooseEvent: ["{{args}}", argChooseEvent],
@@ -722,6 +729,9 @@ const en = {
     },
     setup: "Initial setup",
     dialog: {
+        concede: {
+          title:"Do you really want to concede?",
+        },
         chooseTarget: {
             title: "Please choose target player of current effect.",
             toggleText: "Choose Target Player",
@@ -768,6 +778,7 @@ const en = {
         },
     },
     action: {
+        concede:"Concede",
         adjustInSlider:"Adjust pay additional cost with deposit or resource in slider",
         payAdditionalCost: "Pay extra cost",
         comment: "Comment",

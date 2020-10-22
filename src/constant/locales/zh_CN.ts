@@ -197,6 +197,11 @@ const eventName = {
     'E14': '终局计分时：公司档案馆和牌库里的每张基础牌牌获得1声望',
 };
 
+const argConcede = {
+    args: (): string => {
+        return `投降`
+    }
+}
 
 
 const argCardName = {
@@ -452,6 +457,7 @@ const zh_CN: Locale = {
     eventName: eventName,
     region: region,
     action: {
+        concede:"投降",
         adjustInSlider:"用下面的滑块调整支付额外费用的存款或资源",
         payAdditionalCost:"支付额外花费",
         comment: "评论",
@@ -502,6 +508,7 @@ const zh_CN: Locale = {
             total:"总分",
         },
         reason:{
+            othersConceded:"其他玩家投降",
             threeNAChampionAutoWin:"三个北美第一",
             championCountAutoWin:"满足自动胜利要求的第一数量",
             finalScoring:"终局计分",
@@ -514,6 +521,7 @@ const zh_CN: Locale = {
         },
     },
     moves: {
+        concede:["{{args}}",argConcede],
         showBoardStatus: ["{{args}}", argShowBoardStatus],
         chooseEffect: ["{{args}}", argChooseEffect],
         chooseEvent: ["{{args}}", argChooseEvent],
@@ -724,6 +732,9 @@ const zh_CN: Locale = {
     era: era,
     setup: "补充初始排列",
     dialog: {
+        concede: {
+            title:"确认投降?",
+        },
         competitionCard:{
             title: "请选择一张手牌参与争夺",
             toggleText: "争夺",

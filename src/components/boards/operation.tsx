@@ -486,6 +486,24 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         >{i18n.action.endTurn}</Button>
         : <></>
 
+    const concede = (choice: string) => {
+        if (choice === "yes") {
+            moves.concede(playerID);
+        }
+    }
+    const concedeDialog =
+        <ChoiceDialog
+            initial={false}
+            callback={concede}
+            popAfterShow={false}
+            choices={[
+                {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
+                {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
+            ]} defaultChoice={"no"}
+            show={canMoveCurrent && noStage}
+            title={i18n.dialog.concede.title} toggleText={i18n.action.concede}
+        />
+
     return <Grid item container xs={12} sm={5}>
         <Grid item container xs={12}>
             <Grid item xs={4} sm={3} md={2} lg={1}>
@@ -523,6 +541,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             {redoButton}
             {endTurnButton}
             {endStageButton}
+            {concedeDialog}
 
             {showCompetitionResultButton}
             {drawCardDialog}
