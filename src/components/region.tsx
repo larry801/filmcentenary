@@ -10,7 +10,6 @@ import createStyles from '@material-ui/core/styles/createStyles'
 import {activePlayer, actualStage, getCardName} from "../game/util";
 import Button from "@material-ui/core/Button";
 import {blue, purple, red, yellow, grey} from "@material-ui/core/colors";
-import Icon from "@material-ui/core/Icon";
 import Paper from "@material-ui/core/Paper";
 import Typography from "@material-ui/core/Typography";
 import {Theme} from "@material-ui/core/styles/createMuiTheme";
@@ -128,8 +127,6 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
         p: playerID
     })
 
-
-    // eslint-disable-next-line
     const buildingSlotName = (r: validRegion, idx: number): string => {
         switch (r) {
             case Region.ASIA:
