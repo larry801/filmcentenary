@@ -11,6 +11,8 @@ import AccordionSummary from "@material-ui/core/AccordionSummary";
 import Button from "@material-ui/core/Button";
 import shortid from "shortid";
 import {CardInfo} from "./card";
+import {actualStage} from "../game/util";
+import {Stage} from "boardgame.io/core";
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
 
@@ -57,6 +59,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                         <Grid container>
                             <Grid item xs={12}>
                                 <Button
+                                    autoFocus={idx===0 && actualStage(G, ctx) === Stage.NULL}
                                     style={{textTransform: 'none'}}
                                     disabled={!canPlayOrBreakthrough}
                                     onClick={play}
