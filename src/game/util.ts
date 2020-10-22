@@ -2775,7 +2775,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     if (p.school !== null) {
         f.card += getCardById(p.school).vp;
     }
-    let validID = [...G.secretInfo.playerDecks[i], ...p.discard, ...s.hand]
+    let validID = [...G.secretInfo.playerDecks[i], ...p.discard, ...s.hand, ...p.playedCardInTurn]
     let validCards = validID.map(c => getCardById(c));
     validCards.forEach(c => {
         f.card += c.vp
@@ -2807,8 +2807,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         }
     }
     if (G.activeEvents.includes(EventCardID.E11)) {
-        G.secretInfo.playerDecks[i].filter(c => getCardById(c).type === CardType.P).forEach(() => f.events += 4);
-        f.events += p.archive.filter(card => getCardById(card).type === CardType.P).length * 4;
+        f.events += validCards.filter(card => card.type === CardType.P).length * 4;
     }
     if (G.activeEvents.includes(EventCardID.E12)) {
         f.events += p.industry;
@@ -2839,8 +2838,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         }
     }
     if (G.activeEvents.includes(EventCardID.E14)) {
-        f.events += G.secretInfo.playerDecks[i].filter(c => getCardById(c).category === CardCategory.BASIC).length;
-        f.events += p.archive.filter(card => getCardById(card).category === CardCategory.BASIC).length;
+        f.events += validCards.filter(card => card.category === CardCategory.BASIC).length;
     }
     if (validID.includes(PersonCardID.P3102)) {
         f.events += validCards.filter(c => c.industry > 0)
