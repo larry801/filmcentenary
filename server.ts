@@ -4,7 +4,6 @@ import serve from 'koa-static';
 import KoaRatelimit from 'koa-ratelimit';
 import { v4 as uuidv4 } from 'uuid';
 import {FilmCentenaryGame} from "./src/Game";
-import {log} from "winston";
 
 const Server = require('boardgame.io/server').Server;
 const server = Server({ games: [FilmCentenaryGame], generateCredentials: () => uuidv4() });
@@ -20,14 +19,6 @@ app.use(
         },
     })
 );
-
-function randomString(length:number, chars:string) {
-    let result = '';
-    // @ts-ignore
-    for (let i = length; i > 0; --i)
-        result += chars[Math.floor(Math.random() * chars.length)];
-    return result;
-}
 
 // rate limiter
 const db = new Map();
@@ -46,7 +37,6 @@ app.use(
 server.run(
     {
         port: PORT,
-        lobbyConfig: { uuid: () => "password"},
     },
     () => {
         // rewrite rule for catching unresolved routes and redirecting to index.html
