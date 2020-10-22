@@ -546,6 +546,9 @@ export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     return result
 }
 
+export const initialPosOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
+    return G.initialOrder.indexOf(p);
+}
 export const posOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
     return G.order.indexOf(p);
 }
@@ -558,7 +561,8 @@ export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
 export const seqFromPos = (G: IG, ctx: Ctx, pos: number): PlayerID[] => {
     let log = `seqFromPos`;
     let seq = [];
-    for (let i = pos; i < ctx.numPlayers; i++) {
+    const remainPlayers = G.order.length
+    for (let i = pos; i < remainPlayers; i++) {
         log += `|push|${i}`
         seq.push(G.order[i])
     }
@@ -1947,7 +1951,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
         }
     })
     if (G.twoPlayer.film.every(c => c.card === null)) {
-        if (posOfPlayer(G, ctx, ctx.currentPlayer) === 2) {
+        if (initialPosOfPlayer(G, ctx, ctx.currentPlayer) === 1) {
             ValidRegions.forEach(r => {
                 if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
                     doBuy(G, ctx, B04, '1')
@@ -1989,7 +1993,7 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
         log += "|noRegion"
         if (
             G.pending.lastRoundOfGame &&
-            posOfPlayer(G, ctx, ctx.currentPlayer)
+            initialPosOfPlayer(G, ctx, ctx.currentPlayer)
             === (ctx.numPlayers - 1)
         ) {
             log += "|finalScoring"
@@ -2663,7 +2667,7 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
         }
     }
     log += `|resetShare`
-    for (let i = 0; i < ctx.numPlayers; i++) {
+    for (let i = 0; i < G.order.length; i++) {
         G.pub[i].shares[r] = 0;
     }
     if (era === IEra.ONE) {
@@ -2783,11 +2787,11 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     if (p.building.cinemaBuilt) f.building += 3;
     if (p.building.studioBuilt) f.building += 3;
     if (p.industry === 10) {
-        for (let j = 0; j < ctx.numPlayers; i++) {
-            let each = G.pub[j];
+        G.order.forEach(j => {
+            let each = G.pub[parseInt(j)];
             if (each.building.cinemaBuilt) f.industryAward += 5;
             if (each.building.studioBuilt) f.industryAward += 5;
-        }
+        })
     }
     if (p.aesthetics === 10) {
         f.aestheticsAward += Math.round(p.vp / 5);
@@ -2797,14 +2801,14 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         f.archive += p.archive.filter(card => getCardById(card).region === r).length * championCount;
     });
     if (G.activeEvents.includes(EventCardID.E10)) {
-        for (let j = 0; j < ctx.numPlayers; i++) {
-            if (j !== parseInt(pid)) {
-                let other = G.pub[j];
+        G.order.forEach(j => {
+            if (j !== pid) {
+                let other = G.pub[parseInt(j)];
                 if (other.vp > p.vp) {
                     f.events += 4;
                 }
             }
-        }
+        })
     }
     if (G.activeEvents.includes(EventCardID.E11)) {
         f.events += validCards.filter(card => card.type === CardType.P).length * 4;
@@ -2882,14 +2886,16 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
 }
 
 export const schoolPlayer = (G: IG, ctx: Ctx, cardId: string): PlayerID | null => {
-    for (let i = 0; i < ctx.numPlayers; i++) {
-        if (G.pub[i].school === cardId) return i.toString();
-    }
+    G.order.forEach(p => {
+        if (G.pub[parseInt(p)].school === cardId) {
+            return p;
+        }
+    })
     return null;
 }
 
 export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = false): number => {
-    let log = `rank|${p1}|${p2}`
+    let log = `rank|p${p1}|p${p2}`
     let pub1 = G.pub[p1];
     let pub2 = G.pub[p2];
     const v1 = pub1.finalScoring.total;
@@ -2905,9 +2911,9 @@ export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = 
             if (addLog) logger.debug(`${G.matchID}|${log}`);
             return 1;
         } else {
-            const pos1 = posOfPlayer(G, ctx, p1.toString());
-            const pos2 = posOfPlayer(G, ctx, p2.toString());
-            log += `|pos|${pos1}|${pos2}`
+            const pos1 = initialPosOfPlayer(G, ctx, p1.toString());
+            const pos2 = initialPosOfPlayer(G, ctx, p2.toString());
+            log += `|initialPos|${pos1}|${pos2}`
             if (addLog) logger.debug(`${G.matchID}|${log}`);
             if (pos1 < pos2) {
                 log += `|p${p2}wins`
@@ -2923,11 +2929,11 @@ export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = 
 }
 export const finalScoring = (G: IG, ctx: Ctx) => {
     let pid: number[] = [];
-    for (let i = 0; i < ctx.numPlayers; i++) {
+    for (let i = 0; i < G.order.length; i++) {
         getExtraScoreForFinal(G, ctx, i.toString());
         pid.push(i);
     }
-    const rankFunc = (a: number, b: number) => rank(G, ctx, a, b);
+    const rankFunc = (a: number, b: number) => rank(G, ctx, a, b, true);
     let finalRank = pid.sort(rankFunc);
     ctx?.events?.endGame?.({
         winner: finalRank[0].toString(),

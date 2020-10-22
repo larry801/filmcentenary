@@ -139,6 +139,7 @@ export enum BuildingType {
 }
 
 export enum VictoryType {
+    othersConceded = "othersConceded",
     threeNAChampionAutoWin="threeNAChampionAutoWin",
     championCountAutoWin="championCountAutoWin",
     finalScoring="finalScoring",
@@ -391,7 +392,7 @@ export enum ScoreCardID {
     'V342'='V342',
 }
 
-export const SimpleRuleNumPlayers = 1;
+export const SimpleRuleNumPlayers = 2;
 
 export enum SchoolCardID {
     'S1203'='S1203',

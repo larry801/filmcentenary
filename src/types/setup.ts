@@ -42,6 +42,7 @@ export interface IG {
         film: ICardSlot[],
     },
     order: PlayerID[],
+    initialOrder: PlayerID[],
     playerCount: number,
     activeEvents: EventCardID[],
     logDiscrepancyWorkaround: boolean,
@@ -227,6 +228,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             ],
         },
         order: order,
+        initialOrder: order,
         logDiscrepancyWorkaround: false,
         pending: {
             lastRoundOfGame: false,
@@ -394,9 +396,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         drawForRegion(G, ctx, Region.WE, IEra.ONE);
         drawForRegion(G, ctx, Region.EE, IEra.ONE);
     }
-    for (let i = 0; i < ctx.numPlayers; i++) {
-        fillPlayerHand(G, ctx, i.toString());
-    }
+    G.order.forEach(p => fillPlayerHand(G, ctx, p))
     doFillNewEraEventDeck(G, ctx, IEra.ONE);
     G.regionScoreCompensateMarker = G.order[G.order.length - 1];
 

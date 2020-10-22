@@ -18,7 +18,8 @@ import {
     Region,
     SchoolCardID,
     SimpleRuleNumPlayers,
-    ValidRegions
+    ValidRegions,
+    VictoryType
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
@@ -59,6 +60,7 @@ import {
     payCost,
     playerEffExec,
     schoolPlayer,
+    seqFromPos,
     simpleEffectExec,
     startBreakThrough,
     startCompetition,
@@ -691,7 +693,7 @@ export const chooseEvent: LongFormMove = {
         if (eid === EventCardID.E03) {
             log += "|Avant-grade"
             G.activeEvents.push(EventCardID.E03);
-            for (let i = 0; i < ctx.numPlayers; i++) {
+            for (let i = 0; i < G.order.length; i++) {
                 G.pub[i].action = 2;
             }
             logger.debug(`${G.matchID}|${log}`);
@@ -810,10 +812,34 @@ export const moveBlocker: LongFormMove = {
 export const concedeMove: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, p: PlayerID) => {
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`${G.matchID}|p${p}.moves.confirmRespond("${p}")`);
+        let log = `p${p}conceded`
         if (G.order.includes(p)) {
             const concedeIndex = G.order.indexOf(p);
+            log += `|index|${concedeIndex}|before|${JSON.stringify(G.order)}`
             G.order.splice(concedeIndex, 1);
-            ctx?.events?.endTurn?.()
+            if (concedeIndex < G.order.length) {
+                log += `|notLastPlayer|DeductNewOrder`
+                G.order = seqFromPos(G, ctx, concedeIndex);
+            }else {
+                log += `|lastPlayerConcede`
+            }
+
+            log += `|after|${JSON.stringify(G.order)}`
+            if (G.order.length < 2) {
+                const winner = G.order[0];
+                log += `|onePlayerLeft|endGame|winner|${winner}`
+                logger.debug(`${G.matchID}|${log}`);
+                ctx?.events?.endGame?.({
+                    winner: winner,
+                    reason: VictoryType.othersConceded
+                })
+            } else {
+                log += `|endPhaseToUpdateOrder`
+                ctx?.events?.endPhase?.()
+                logger.debug(`${G.matchID}|${log}`);
+            }
         } else {
             throw Error();
         }
