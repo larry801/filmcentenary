@@ -13,6 +13,9 @@ import shortid from "shortid";
 import {CardInfo} from "./card";
 import {actualStage} from "../game/util";
 import {Stage} from "boardgame.io/core";
+import {getCardById} from "../types/cards";
+import {Region} from "../types/core";
+import {getColor} from "./region";
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
 
@@ -25,6 +28,8 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
     return <Grid item container xs={12}>
         <Typography variant="h5">{i18n.hand.title}</Typography>
         {hand.map((c, idx) => {
+                const card = getCardById(c);
+                const era = card.region !== Region.NONE ? G.regions[card.region].era : null;
                 const play = () => moves.playCard({
                     card: c,
                     idx: idx,
@@ -54,12 +59,13 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     key={shortid.generate()}>
                     <AccordionSummary key={idx}>
                         <CardInfo cid={c}/>
+                        <Typography style={{color: getColor(card.region)}}>{era !== null ? i18n.era[era] : ""}</Typography>
                     </AccordionSummary>
                     <AccordionDetails key={idx}>
                         <Grid container>
                             <Grid item xs={12}>
                                 <Button
-                                    autoFocus={idx===0 && actualStage(G, ctx) === Stage.NULL}
+                                    autoFocus={idx === 0 && actualStage(G, ctx) === Stage.NULL}
                                     style={{textTransform: 'none'}}
                                     disabled={!canPlayOrBreakthrough}
                                     onClick={play}

@@ -844,7 +844,7 @@ const en = {
         playedCards: "Played Cards",
     },
     score: {
-        cardName: ['{{rank}} {{region}} {{ear}}', {
+        cardName: ['{{rank}} {{region}} {{era}}', {
             era: (e: IEra): string => era[e],
             rank: (rankNum: 1 | 2 | 3): string => rank[rankNum],
             region: (r: Region): string => region[r],
