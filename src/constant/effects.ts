@@ -443,7 +443,7 @@ export const effects = {
             action: 2,
         },
         response: {
-            pre: {e: "atBreakthrough"},
+            pre: {e: "afterBreakthrough"},
             effect: {e: "res", a: 1},
         },
     },
@@ -1002,11 +1002,11 @@ export const effects = {
             effect: [
                 {pre: {e: "buyAesthetics"}, effect: {e: "deductRes", a: 2}},
                 {
-                    pre: {e: "atBreakthrough"}, effect:
+                    pre: {e: "afterBreakthrough"}, effect:
                         {
                             e: "step", a: [
-                                {e: "deposit", a: 2},
-                                {e: "vp", a: 1},
+                                {e: "deposit", a: 1},
+                                {e: "vp", a: 2},
                             ]
                         }
                 },

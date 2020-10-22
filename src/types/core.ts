@@ -207,7 +207,7 @@ export enum NoExecutorEffectNames {
     doNotLoseVpAfterCompetition="doNotLoseVpAfterCompetition",
     NewYorkSchool = "NewYorkSchool",
     obtainNormalOrLegendFilm = "obtainNormalOrLegendFilm",
-    atBreakthrough = "atBreakthrough",
+    afterBreakthrough = "afterBreakthrough",
     buyNoneEEFilm = "buyNoneEEFilm",
     extraVp = "extraVp",
     breakthroughPrevent="breakthroughPrevent",

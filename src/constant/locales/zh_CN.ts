@@ -659,7 +659,7 @@ const zh_CN: Locale = {
         archive: ["将{{a}}张手牌置入档案馆", argValue],
         resFromIndustry: "按照你的工业等级获得资源",
         resFromAesthetics: "按照你的美学等级获得资源",
-        atBreakthrough: "你突破后，",
+        afterBreakthrough: "你突破后，",
         aesAward: ["执行美学奖励{{a}}次", argValue],
         industryAward: ["执行工业奖励{{a}}次", argValue],
         draw: ["摸{{a}}张牌", argValue],
