@@ -109,7 +109,7 @@ export enum InteractiveEffectNames {
     highestVpPlayer="highestVpPlayer",
     aesLowest="aesLowest",
     industryLowest="industryLowest",
-    handToOthers="handToOthers",
+    handToAnyPlayer="handToAnyPlayer",
     industryOrAestheticsBreakthrough="industryOrAestheticsBreakthrough",
     peek="peek",
     everyOtherCompany="everyOtherCompany",

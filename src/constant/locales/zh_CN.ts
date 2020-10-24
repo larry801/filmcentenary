@@ -592,7 +592,7 @@ const zh_CN: Locale = {
         obtainNormalOrLegendFilm: "每次获得普通影片或传奇影片时",
         none: "",
         breakthroughResDeduct: ["突破一次，少花费{{a}}资源", argValue],
-        handToOthers: ["把{{a}}张手牌交给任意公司", argValue],
+        handToAnyPlayer: ["把{{a}}张手牌交给任意公司", argValue],
         buyNoneEEFilm: "购买非东欧地区影片时",
         extraVp: ["额外支付{{a}}声望", argValue],
         breakthroughPrevent: "，否则不能执行突破效果",

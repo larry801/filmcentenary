@@ -585,7 +585,7 @@ const en = {
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",
         breakthroughResDeduct: ["Execute breakthrough action with a deduct of {{a}} resources", argValue],
-        handToOthers: ["Give one card in hand to other companies", argValue],
+        handToAnyPlayer: ["Give one card in hand to other companies", argValue],
         buyNoneEEFilm: "When buy film card not in east europe,",
         extraVp: ["Pay extra {{a}} prestige", argValue],
         breakthroughPrevent: "Cannot execute breakthrough, if you do not pay.",

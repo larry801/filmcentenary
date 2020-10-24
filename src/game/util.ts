@@ -109,7 +109,7 @@ export const isSimpleEffect = (G: IG, eff: any): boolean => {
         case "noBuildingEE":
         case "vpNotHighestPlayer":
         case "highestVpPlayer":
-        case "handToOthers":
+        case "handToAnyPlayer":
         case "industryAndAestheticsBreakthrough":
         case "industryOrAestheticsBreakthrough":
         case "industryOrAestheticsLevelUp":
@@ -999,10 +999,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
             }
             break;
-        case "handToOthers":
-            log += `|handToOthers`
+        case "handToAnyPlayer":
+            log += `|handToAnyPlayer`
             players = seqFromCurrentPlayer(G, ctx);
-            players.splice(players.indexOf(p), 1);
             G.c.players = players
             G.e.stack.push(eff)
             changePlayerStage(G, ctx, "chooseTarget", p);

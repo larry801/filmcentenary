@@ -279,7 +279,7 @@ export const chooseTarget: LongFormMove = {
                     log += `|endStage`
                     break;
                 }
-            case "handToOthers":
+            case "handToAnyPlayer":
                 G.c.players = [arg.target]
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", arg.p);
@@ -352,7 +352,7 @@ export const chooseHand: LongFormMove = {
                     addVp(G, ctx, p, card.vp)
                 }
                 break
-            case "handToOthers":
+            case "handToAnyPlayer":
                 const allCardsIndex = pub.allCards.indexOf(arg.hand);
                 if (allCardsIndex !== -1) {
                     pub.allCards.splice(allCardsIndex, 1);
