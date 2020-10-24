@@ -42,9 +42,9 @@ server.run(
     () => {
         // rewrite rule for catching unresolved routes and redirecting to index.html
         // for client-side routing
-        server.app.use((ctx: Koa.Context, next: Koa.Next) => {
+        server.app.use(async (ctx: Koa.Context, next: Koa.Next) => {
             console.log(ctx.ip + JSON.stringify(ctx.ips))
-            return serve("build")(
+            await serve("build")(
                 Object.assign(ctx, {path: 'index.html'}),
                 next
             );
