@@ -607,61 +607,86 @@ export const peek: LongFormMove = {
             case "industry":
                 log += `|industry`
                 playerObj.cardsToPeek.forEach(card => {
+                    log += `|evaluating${card}`
                     let c = getCardById(card);
                     if (c.industry > 0) {
-                        log += `|${card}|toHand`
+                        log += `|hand|${card}`
+                        log += `|${JSON.stringify(playerObj.hand)}`
                         playerObj.hand.push(card);
+                        log += `|${JSON.stringify(playerObj.hand)}`
                     } else {
-                        log += `|${card}|discard`
+                        log += `|discard|${card}|`
+                        log += `|${JSON.stringify(pub.discard)}`
                         pub.discard.push(card);
+                        log += `|${JSON.stringify(pub.discard)}`
                     }
                 })
                 playerObj.cardsToPeek = []
                 break;
             case "aesthetics":
                 playerObj.cardsToPeek.forEach(card => {
+                    log += `|evaluating${card}`
                     let c = getCardById(card);
                     if (c.aesthetics > 0) {
-                        log += `|${card}|toHand`
+                        log += `|hand|${card}`
+                        log += `|${JSON.stringify(playerObj.hand)}`
                         playerObj.hand.push(card);
+                        log += `|${JSON.stringify(playerObj.hand)}`
                     } else {
-                        log += `|${card}|discard`
+                        log += `|discard|${card}`
+                        log += `|${JSON.stringify(pub.discard)}`
                         pub.discard.push(card);
+                        log += `|${JSON.stringify(pub.discard)}`
                     }
                 })
                 playerObj.cardsToPeek = []
                 break;
             case "region":
                 playerObj.cardsToPeek.forEach(card => {
+                    log += `|evaluating${card}`
                     let c = getCardById(card);
                     if (c.region === eff.a.filter.a) {
-                        log += `|${card}|toHand`
+                        log += `|hand|${card}`
                         playerObj.hand.push(card);
+                        log += `|${JSON.stringify(playerObj.hand)}`
                     } else {
-                        log += `|${card}|discard`
+                        log += `|discard|${card}`
+                        log += `|${JSON.stringify(pub.discard)}`
                         pub.discard.push(card);
+                        log += `|${JSON.stringify(pub.discard)}`
                     }
                 })
                 playerObj.cardsToPeek = []
                 break;
             case "era":
                 playerObj.cardsToPeek.forEach(card => {
+                    log += `|evaluating${card}`
                     let c = getCardById(card);
                     if (c.era === eff.a.filter.a) {
-                        log += `|${card}|toHand`
+                        log += `|hand|${card}`
+                        log += `|${JSON.stringify(playerObj.hand)}`
                         playerObj.hand.push(card);
+                        log += `|${JSON.stringify(playerObj.hand)}`
                     } else {
-                        log += `|${card}|discard`
+                        log += `|discard|${card}`
+                        log += `|${JSON.stringify(pub.discard)}`
                         pub.discard.push(card);
+                        log += `|${JSON.stringify(pub.discard)}`
                     }
                 })
                 playerObj.cardsToPeek = []
                 break;
             case "choice":
+                log += `|${JSON.stringify(playerObj.cardsToPeek)}`
                 playerObj.cardsToPeek.splice(arg.idx, 1);
+                log += `|${JSON.stringify(playerObj.cardsToPeek)}`
                 if (arg.card !== null) {
-                    log += `|${arg.card}|toHand`
+                    log += `|hand|${arg.card}`
+                    log += `|${JSON.stringify(playerObj.hand)}`
                     playerObj.hand.push(arg.card);
+                    log += `|${JSON.stringify(playerObj.hand)}`
+                }else {
+                    log += `|noChoice`
                 }
                 if (eff.a.filter.a > 1) {
                     log += `|pendingChoices`
@@ -669,9 +694,13 @@ export const peek: LongFormMove = {
                     G.e.stack.push(eff);
                     return;
                 } else {
+                    log += `|discardRemaining`
                     playerObj.cardsToPeek.forEach(card => {
-                        log += `|${card}|discard`
+                        log += `|evaluating${card}`
+                        log += `|discard|${card}`
+                        log += `|${JSON.stringify(pub.discard)}`
                         pub.discard.push(card)
+                        log += `|${JSON.stringify(pub.discard)}`
                     })
                     playerObj.cardsToPeek = []
                 }
