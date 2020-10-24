@@ -44,7 +44,7 @@ server.run(
         // for client-side routing
         server.app.use((ctx: Koa.Context, next: Koa.Next) => {
             console.log(ctx.ip + JSON.stringify(ctx.ips))
-            serve("build")(
+            return serve("build")(
                 Object.assign(ctx, {path: 'index.html'}),
                 next
             );
