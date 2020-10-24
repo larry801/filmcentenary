@@ -254,17 +254,7 @@ export const effects = {
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {
-            pre: {e: "event", a: "E02"},
-            effect: {
-                e: "optional", a: {
-                    e: "step", a: [
-                        {e: "searchAndArchive", a: PersonCardID.P1102},
-                        {e: "vp", a: 2}
-                    ]
-                }
-            },
-        },
+        response: noEff,
     },
     "1103": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -422,17 +412,7 @@ export const effects = {
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {
-            pre: {e: "event", a: "E02"},
-            effect: {
-                e: "optional", a: {
-                    e: "step", a: [
-                        {e: "searchAndArchive", a: PersonCardID.P1202},
-                        {e: "vp", a: 2},
-                    ],
-                }
-            },
-        },
+        response: noEff,
     },
     "1203": {
         canBuy: (G: IG, ctx: Ctx) => true,
