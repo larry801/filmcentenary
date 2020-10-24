@@ -152,7 +152,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                 if (idx === 0) {
                     return i18n.pub.cinemaORStudio + i18n.pub.twoToFourPlayer;
                 } else {
-                    return i18n.pub.cinemaORStudio + i18n.pub.fourPlayerOnly;
+                    return i18n.pub.unfreeze;
                 }
             case Region.NA:
                 if (idx === 0) {
