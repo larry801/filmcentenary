@@ -447,14 +447,17 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
 
         }
         if (card.type === CardType.S) {
+            log += `|buySchool`
             let school = pub.school;
-            let kino = schoolPlayer(G, ctx, SchoolCardID.S1303);
+            const kino = schoolPlayer(G, ctx, SchoolCardID.S1303);
+            log += `|kinoPlayer|${JSON.stringify(kino)}`
             if (kino !== null && p !== kino) {
                 log += `|p${kino}|KinoEyes`
                 addVp(G, ctx, kino, 1);
                 G.pub[parseInt(kino)].deposit++;
             }
             if (school !== null) {
+                log += `|hasSchool`
                 if (school === SchoolCardID.S1203) {
                     if (pub.aesthetics < 10) {
                         log += `|Expressionism`
@@ -2879,13 +2882,21 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events
 }
 
-export const schoolPlayer = (G: IG, ctx: Ctx, cardId: string): PlayerID | null => {
+export const schoolPlayer = (G: IG, ctx: Ctx, cardId: CardID): PlayerID | null => {
+    let log = `schoolPlayer|${cardId}`
+    let player = null
     G.order.forEach(p => {
+        log += `|${p}`
         if (G.pub[parseInt(p)].school === cardId) {
-            return p;
+            log += `|kino`
+            player = p;
+        }else {
+            log += `|notKino`
         }
     })
-    return null;
+    log += `|result|${player}`
+    logger.debug(`${G.matchID}|${log}`);
+    return player;
 }
 
 export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = false): number => {
