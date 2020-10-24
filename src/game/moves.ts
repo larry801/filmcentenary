@@ -400,6 +400,7 @@ export const chooseHand: LongFormMove = {
             default:
                 throw new Error();
         }
+        log += `|checkNextEffect`
         logger.debug(`${G.matchID}|${log}`);
         checkNextEffect(G, ctx);
     }
@@ -1011,13 +1012,16 @@ export const playCard: LongFormMove = {
         if (cardEff.hasOwnProperty("play")) {
             const eff = cardEff.play;
             if (eff.e !== "none") {
+                log += `|${JSON.stringify(eff)}`
                 G.e.stack.push(eff)
                 playerEffExec(G, ctx, ctx.currentPlayer);
             } else {
                 log += `|emptyPlayEffect`
+                checkNextEffect(G,ctx);
             }
         } else {
             log += `|noPlayEffect`
+            checkNextEffect(G,ctx);
         }
         logger.debug(`${G.matchID}|${log}`);
     },

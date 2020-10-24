@@ -2459,10 +2459,10 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     logger.debug(`${G.matchID}|${log}`);
 }
 export const loseDeposit = (G: IG, ctx: Ctx, p: PlayerID, deposit: number) => {
-    let log = `loseDeposit|${p}|${deposit}`
+    let log = `p${p}|loseDeposit|${deposit}`
     let pub = G.pub[parseInt(p)];
     log += `|before|${pub.deposit}`
-    if (deposit > pub.vp) {
+    if (deposit >= pub.vp) {
         pub.deposit = 0;
     } else {
         pub.deposit -= deposit;
@@ -2475,7 +2475,7 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     let log = `loseVp|${p}|${vp}`
     let pub = G.pub[parseInt(p)];
     log += `|before|${pub.vp}`
-    if (vp > pub.vp) {
+    if (vp >= pub.vp) {
         pub.vp = 0;
     } else {
         pub.vp -= vp;
