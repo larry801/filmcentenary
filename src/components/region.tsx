@@ -1,5 +1,13 @@
 import React from "react";
-import {BasicCardID, BuildingType, ICardSlot, IRegionInfo, Region, validRegion} from "../types/core";
+import {
+    BasicCardID,
+    BuildingType,
+    ICardSlot,
+    INormalOrLegendCard,
+    IRegionInfo,
+    Region,
+    validRegion
+} from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {useI18n} from "@i18n-chain/react";
@@ -18,6 +26,7 @@ import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 import LabelIcon from '@material-ui/icons/Label';
+import {getCardById} from "../types/cards";
 
 
 export interface ICardSlotProp {
@@ -58,11 +67,15 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
         moves.updateSlot(slot.card);
     }
 
+    const cardObj = slot.card === null ? {} as INormalOrLegendCard : getCardById(slot.card);
+    const feeText = slot.card === null ? "" : `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}`
+
     return <>
         <Paper style={{display: 'inline-flex'}} variant={variant}>
             <Grid container>
                 <Grid item xs={12}>
                     <Typography>{slot.card === null ? "" : getCardName(slot.card)} </Typography>
+                    <Typography>{feeText}</Typography>
                     <Typography>{slot.comment === null ? "" : getCardName(slot.comment)} </Typography>
                 </Grid>
                 {
@@ -228,15 +241,19 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                     comment={comment}
                     playerID={playerID}
                 /></Grid>
-                {normal.map((slot, i) =>
-                    <Grid item key={i}>
-                        <BoardCardSlot
-                            moves={moves}
-                            G={G} ctx={ctx} slot={slot}
-                            comment={comment} playerID={playerID}
-                        />
-                    </Grid>
-                )}
+                {normal.map((slot, i) => {
+                    if (slot.card !== null) {
+                        return  <Grid item key={i}>
+                            <BoardCardSlot
+                                moves={moves}
+                                G={G} ctx={ctx} slot={slot}
+                                comment={comment} playerID={playerID}
+                            />
+                        </Grid>
+                    }else{
+                        return <></>
+                    }
+                })}
             </AccordionDetails>
         </Accordion>
     </Grid>

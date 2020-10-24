@@ -12,7 +12,6 @@ import {
     IBasicCard,
     IBuyInfo,
     ICardSlot,
-    IEra,
     INormalOrLegendCard,
     IRegionInfo,
     Region,
@@ -25,7 +24,6 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {
     activePlayer,
     addVp,
-    aesAward,
     atkCardSettle,
     buildBuildingFor,
     buildingInRegion,
@@ -37,7 +35,6 @@ import {
     cardSlotOnBoard2p,
     checkCompetitionDefender,
     checkNextEffect,
-    checkRegionScoring,
     cinemaInRegion,
     cinemaSlotsAvailable,
     competitionCleanUp,
@@ -51,22 +48,18 @@ import {
     drawCardForPlayer, endTurnEffect,
     fillEmptySlots,
     fillEventCard,
-    fillPlayerHand,
     fillTwoPlayerBoard,
-    industryAward,
     isSimpleEffect,
     logger,
     loseVp,
     payCost,
-    playerEffExec,
+    playerEffExec, regionScoringCheck,
     schoolPlayer,
     seqFromPos,
     simpleEffectExec,
     startBreakThrough,
     startCompetition,
     studioSlotsAvailable,
-    try2pScoring,
-    tryScoring,
 } from "./util";
 import {changePlayerStage, changeStage, signalEndPhase, signalEndStage} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
@@ -755,9 +748,10 @@ export const requestEndTurn: LongFormMove = {
             endTurnEffect(G, ctx, arg);
         }else {
             log += `|endTurnEffectAlreadyExecuted`
+            logger.debug(`${G.matchID}|${log}`);
         }
         if (G.e.stack.length === 0) {
-
+            regionScoringCheck(G, ctx, arg);
         }else {
             checkNextEffect(G, ctx);
         }
