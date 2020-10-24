@@ -2050,12 +2050,12 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
                 return 1;
             } else {
                 if (winner === b) {
-                    log += `|markPosSame|p${b}win`
+                    log += `|markPosSame|p${a}win`
                     logger.debug(`${G.matchID}|${log}`);
                     return 1;
                 } else {
                     compensateMarkerUsed = true;
-                    log += `|markUsed|p${b}win`
+                    log += `|markUsed|p${a}win`
                     logger.debug(`${G.matchID}|${log}`);
                     return -1;
                 }
@@ -2068,12 +2068,12 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
                     return -1;
                 } else {
                     if (winner === a) {
-                        log += `|markPosSame|p${a}win`
+                        log += `|markPosSame|p${b}win`
                         logger.debug(`${G.matchID}|${log}`);
                         return -1;
                     } else {
                         compensateMarkerUsed = true;
-                        log += `|useMarker|p${a}win`
+                        log += `|useMarker|p${b}win`
                         logger.debug(`${G.matchID}|${log}`);
                         return 1;
                     }
