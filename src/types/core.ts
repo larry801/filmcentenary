@@ -91,8 +91,8 @@ export interface IFilmCard extends INormalOrLegendCard {
     readonly type: CardType.F,
 }
 
-export type EffectNames  = SimpleEffectNames|ScoringEffectNames|NoExecutorEffectNames|InteractiveEffectNames;
-export enum InteractiveEffectNames {
+export type EffectNames  = SimpleEffectNames|ScoringEffectNames|NoExecutorEffectNames|ItrEffects;
+export enum ItrEffects {
     aestheticsLevelUpCost="aestheticsLevelUpCost",
     industryLevelUpCost="industryLevelUpCost",
     payAdditionalCost="payAdditionalCost",
@@ -108,12 +108,15 @@ export enum InteractiveEffectNames {
     vpNotHighestPlayer="vpNotHighestPlayer",
     highestVpPlayer="highestVpPlayer",
     aesLowest="aesLowest",
+    aesHighest="aesHighest",
     industryLowest="industryLowest",
     handToAnyPlayer="handToAnyPlayer",
     industryOrAestheticsBreakthrough="industryOrAestheticsBreakthrough",
     peek="peek",
     everyOtherCompany="everyOtherCompany",
     everyPlayer="everyPlayer",
+    levelAndMarkLowestPlayer = "levelAndMarkLowestPlayer",
+    industryHighest = "industryHighest",
     noStudio="noStudio",
     studio="studio",
     step="step",

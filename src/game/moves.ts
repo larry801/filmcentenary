@@ -45,7 +45,8 @@ import {
     doBuy,
     doIndustryBreakthrough,
     doReturnSlotCard,
-    drawCardForPlayer, endTurnEffect,
+    drawCardForPlayer,
+    endTurnEffect,
     fillEmptySlots,
     fillEventCard,
     fillTwoPlayerBoard,
@@ -53,7 +54,8 @@ import {
     logger,
     loseVp,
     payCost,
-    playerEffExec, regionScoringCheck,
+    playerEffExec,
+    regionScoringCheck,
     schoolPlayer,
     seqFromPos,
     simpleEffectExec,
@@ -722,17 +724,89 @@ export const chooseEvent: LongFormMove = {
                     G.e.stack.push(getEvent(eid));
                     logger.debug(`${G.matchID}|${log}`);
                     fillEventCard(G, ctx);
-                    playerEffExec(G, ctx, arg.p);
+                    checkNextEffect(G, ctx);
                     break;
-                default:
-                    log += "|Score events"
-                    //G.pub[parseInt(arg.p)].scoreEvents.push(eid);
-                    G.activeEvents.push(eid);
-                    logger.debug(`${G.matchID}|${log}`);
+                case EventCardID.E10:
+                    G.order.forEach(j => {
+                        const pub = G.pub[parseInt(j)];
+                        G.order.forEach(o=>{
+                            const other = G.pub[parseInt(o)];
+                            if(other.vp > pub.vp){
+                                pub.vp += 4;
+                            }
+                        })
+                    })
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);
+                    break;
+                case EventCardID.E11:
+                    G.order.forEach(j=>{
+                        const pidInt = parseInt(j)
+                        const pub = G.pub[pidInt];
+                        const s = G.player[pidInt]
+                        const validID = [...G.secretInfo.playerDecks[pidInt], ...pub.discard, ...s.hand, ...pub.archive]
+                        const validCards = validID.map(c=>getCardById(c));
+                        pub.vp += validCards.filter(c=>c.type===CardType.P).length * 4;
+                    })
+                    fillEventCard(G, ctx);
+                    checkNextEffect(G, ctx);
+                    break;
+                case EventCardID.E12:
+                    G.order.forEach(j => {
+                        const pidInt = parseInt(j)
+                        const pub = G.pub[pidInt];
+                        pub.vp += pub.industry;
+                        pub.vp += pub.aesthetics;
+                    })
+                    fillEventCard(G, ctx);
+                    checkNextEffect(G, ctx);
+                    break;
+                case EventCardID.E13:
+                    G.order.forEach(j => {
+                        const pidInt = parseInt(j)
+                        const pub = G.pub[pidInt];
+                        let championRegionCount = 0;
+                        ValidRegions.forEach(r => {
+                            if (pub.champions.filter(c => c.region = r).length) {
+                                championRegionCount++;
+                            }
+                        })
+                        switch (championRegionCount) {
+                            case 4:
+                                pub.vp += 20;
+                                break;
+                            case 3:
+                                pub.vp += 12;
+                                break;
+                            case 2:
+                                pub.vp += 6;
+                                break;
+                            case 1:
+                                pub.vp += 2;
+                                break;
+                            default:
+                                break;
+                        }
+                    })
+                    fillEventCard(G, ctx);
+                    checkNextEffect(G, ctx);
+                    break;
+                case EventCardID.E14:
+                    G.order.forEach(j => {
+                        const pidInt = parseInt(j)
+                        const pub = G.pub[pidInt];
+                        pub.vp += pub.champions.length;
+                        ValidRegions.forEach(r=>pub.vp+=pub.shares[r]);
+                    })
+                    fillEventCard(G, ctx);
+                    checkNextEffect(G, ctx);
+                    break;
+                default:
+                    log += `|noSuchEventID|${eid}`
+                    break;
             }
         }
+        logger.debug(`${G.matchID}|${log}`);
     }
 }
 

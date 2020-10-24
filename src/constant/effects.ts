@@ -3,9 +3,13 @@ import {Ctx} from "boardgame.io";
 import {
     AllClassicCards,
     CardID,
-    EventCardID, FilmCardID,
-    IEra, PersonCardID,
-    Region, SchoolCardID,
+    EventCardID,
+    FilmCardID,
+    IEra,
+    ItrEffects,
+    PersonCardID,
+    Region,
+    SchoolCardID,
     ScoreCardID,
     ScoringEffectNames
 } from "../types/core";
@@ -71,9 +75,14 @@ export const eventEffects = {
         e: "step",
         a: [
             {e: "everyPlayer", a: {e: "deposit", a: 2}},
-            {e: "everyPlayer", a: {e: "discard", a: 1}},
-            {e: "searchAndArchive", a: PersonCardID.P1102},
-            {e: "searchAndArchive", a: PersonCardID.P1202}
+            {
+                e: ItrEffects.aesHighest,
+                a: {e: "discard", a: 1}
+            },
+            {
+                e: ItrEffects.industryHighest,
+                a: {e: "discard", a: 1}
+            },
         ]
     },
     "E03": {e: "Avant-grade", a: "E03"},
@@ -82,6 +91,10 @@ export const eventEffects = {
         a: [
             {e: "highestVpPlayer", a: {e: "buyCardToHand", a: "B02"}},
             {e: "everyPlayer", a: {e: "buy", a: "B05"}},
+            {
+                e: ItrEffects.levelAndMarkLowestPlayer,
+                a: {e: "deposit", a: 3}
+            }
         ]
     },
     "E05": {
@@ -108,8 +121,10 @@ export const eventEffects = {
     "E08": {
         e: "step",
         a: [
-            {e: "everyPlayer", a: {e: "archiveToEEBuildingVP", a: 1}},
-            {e: "noBuildingEE", a: {e: "buy", a: "B04"}},
+            {
+                e: ItrEffects.levelAndMarkLowestPlayer,
+                a: {e: ItrEffects.industryOrAestheticsLevelUp, a: 1}
+            }
         ]
     },
     "E09": {
@@ -231,6 +246,8 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
+                {e: "loseVp", a: 1},
+                {e: "res", a: 1},
                 {e: "noStudio", a: {e: "loseDeposit", a: 1}},
                 {e: "studio", a: {e: "deposit", a: 1}},
             ]
@@ -397,6 +414,8 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
+                {e: "loseVp", a: 1},
+                {e: "res", a: 1},
                 {e: "noStudio", a: {e: "discardAesthetics", a: 1}},
                 {e: "studio", a: {e: "buy", a: "B01"}},
             ]
@@ -1534,7 +1553,10 @@ export const effects = {
                 {e: "step", a: [{e: "res", a: 3}, {e: "vp", a: 1}]},
                 {
                     e: "step",
-                    a: [{e: "vp", a: 2}, {e: "peek", a: {count: 3, target: "hand", filter: {e: "region", a: Region.ASIA}}}]
+                    a: [{e: "vp", a: 2}, {
+                        e: "peek",
+                        a: {count: 3, target: "hand", filter: {e: "region", a: Region.ASIA}}
+                    }]
                 }
             ]
         },

@@ -18,7 +18,7 @@ const cards = {
     "B06": "Deficit Film",
     "B07": "Fund",
     'E01': 'Establishment of Hollywood',
-    'E02': 'Edison Litigation',
+    'E02': 'World War I',
     'E03': 'Avant-garde',
     'E04': 'Academy Award',
     'E05': 'Paramount Judgement',
@@ -188,19 +188,19 @@ const era = {
 };
 const eventName = {
     'E01': '【Hollywood】 slot activated every company upgrade industry or aesthetics level once.',
-    'E02': 'Every company get 2 deposit *Check response effect of【Thomas Edison】or【Lumière Brothers】',
+    'E02': 'Company with highest industry level discard 1 card, Company with highest aesthetics level discard 1 card, every company get 2 deposit',
     'E03': 'Every company get its second action point (Note: Do not add action point if you already have a second one)  * If this event is discarded, also execute its effect.',
     'E04': 'Company with highest prestige buy a 【Commercial Film】and put it into hand, every company buy a 【Classic Film】 for free.',
-    'E05': 'Every company get 2 deposit, company with building in north america discard two cards.',
+    'E05': 'Company with building in north america discard two cards, calculate the sum of industry level, aesthetics level, industry and aesthetics marks of current school of every company, lowest company gain 3 deposits',
     'E06': 'Company with the highest prestige upgrade industry or aesthetics level once Every company buy【Classic Film】 for free.',
     'E07': 'Every company upgrade industry or aesthetics level once,  company prestige not highest buy a 【Bad Film】 for free.',
-    'E08': 'Every company put a card in hand to archive, if that company has building in east europe also get prestige of that card, company with no building in east europe buy a 【Bad Film】, 【Unfreeze】 slot east europe is activated.',
+    'E08': '【Unfreeze】 slot is activated, calculate the sum of industry level, aesthetics level, industry and aesthetics marks of current school of every company, lowest company upgrade aesthetics level once',
     'E09': '【Bollywood】 slot activated, company with the lowest aesthetics level upgrade aesthetics level once, company with the lowest aesthetics level upgrade aesthetics level once.',
-    'E10': 'At final scoring：Each company whose prestige is higher than you ,gain 4 extra prestige',
-    'E11': 'At final scoring：Every person card in your deck and archive gain 4 extra prestige',
-    'E12': 'At final scoring：Gain prestige according to your industry and aesthetics level.',
-    'E13': 'At final scoring：If your company have 4/3/2/1 champions form different regions, gain 20/12/6/1 extra prestige',
-    'E14': 'At final scoring：Every basic card in your deck give you 1 extra prestige',
+    'E10': 'Each company whose prestige is higher than you ,gain 4 extra prestige',
+    'E11': 'Every person card in your deck and archive gain 4 extra prestige',
+    'E12': 'Gain prestige according to your industry and aesthetics level.',
+    'E13': 'If your company have 4/3/2/1 champions form different regions, gain 20/12/6/1 extra prestige',
+    'E14': 'Every champion and share give you 1 extra prestige',
 };
 const argConcede = {
     args: (): string => {
