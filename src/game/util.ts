@@ -657,13 +657,13 @@ export const levelAndMarkLowestPlayer = (G: IG): PlayerID[] => {
     })
     log += `|lowestSchoolHandLimit|${lowestTotalLevel}`;
     G.order.forEach(i => {
-        const limit = getSchoolHandLimit(G, i);
+        const limit = getLevelMarkCount(G, i);
         if (limit === lowestTotalLevel) {
             log += `|p${i}|lowest`
             result.push(i);
         }
     })
-    log += `|result|${result}`
+    log += `|result|${JSON.stringify(result)}`
     logger.debug(`${G.matchID}|${log}`);
     return result;
 }
@@ -2317,6 +2317,7 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     const pub = G.pub[parseInt(arg)]
     pub.playedCardInTurn.forEach(c => pub.discard.push(c));
     pub.playedCardInTurn = [];
+    pub.revealedHand = [];
     pub.resource = 0;
     if (pub.deposit > 10) {
         log += `|depositLimitExceeded|${pub.deposit}`

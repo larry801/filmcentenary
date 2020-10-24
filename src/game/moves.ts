@@ -852,6 +852,7 @@ export const requestEndTurn: LongFormMove = {
         const playerObj = G.player[parseInt(arg)]
         if (!playerObj.endTurnEffectExecuted) {
             endTurnEffect(G, ctx, arg);
+            playerObj.endTurnEffectExecuted = true;
         }else {
             log += `|endTurnEffectAlreadyExecuted`
             logger.debug(`${G.matchID}|${log}`);
