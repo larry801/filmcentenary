@@ -7,7 +7,6 @@ import {
     FilmCardID,
     IEra,
     ItrEffects,
-    PersonCardID,
     Region,
     SchoolCardID,
     ScoreCardID,
