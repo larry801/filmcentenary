@@ -389,8 +389,8 @@ export const chooseHand: LongFormMove = {
             case "discardIndustry":
             case "discardAesthetics":
             case "discardNormalOrLegend":
-                if (pub.school === SchoolCardID.S3204) {
-                    log += `|S3204`
+                if (pub.school === SchoolCardID.S3201) {
+                    log += `|NewWave`
                     pub.discardInSettle = true;
                 }
                 hand.splice(arg.idx, 1);
@@ -1019,15 +1019,15 @@ export const breakthrough: LongFormMove = {
         }
         if (p.school === SchoolCardID.S2201) {
             G.e.stack.push({
-                e: "vp", a: 2,
+                e: "vp", a: 2, target:arg.playerID
             });
             G.e.stack.push({
-                e: "deposit", a: 1,
+                e: "deposit", a: 1,  target:arg.playerID
             });
         }
         if (p.school === SchoolCardID.S1204) {
             G.e.stack.push({
-                e: "res", a: 1,
+                e: "res", a: 1, target:arg.playerID
             })
         }
         startBreakThrough(G, ctx, arg.playerID, arg.card);
@@ -1057,7 +1057,7 @@ export const comment: LongFormMove = {
         } else {
             slot.comment = arg.comment;
         }
-        let p = schoolPlayer(G, ctx, "S3204");
+        let p = schoolPlayer(G, ctx, SchoolCardID.S3204);
         if (p !== null) {
             drawCardForPlayer(G, ctx, p);
         }
