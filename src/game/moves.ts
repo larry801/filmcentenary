@@ -1069,26 +1069,40 @@ export const breakthrough: LongFormMove = {
         G.e.card = c.cardId;
         G.player[parseInt(arg.playerID)].hand.splice(arg.idx, 1);
         p.archive.push(arg.card);
+        let log = `breakthrough`
         if (arg.card === FilmCardID.F1108) {
             if (p.deposit < 1) {
+                log += `|cannotBreakThrough`
+                logger.debug(`${G.matchID}|${log}`);
                 return INVALID_MOVE;
             } else {
+                log += `|before|${p.deposit}`
                 p.deposit -= 1;
+                log += `|before|${p.deposit}`
             }
         }
         if (p.school === SchoolCardID.S2201) {
+            log += `|neoRealism`
+            log += `|before|${JSON.stringify(G.e.stack)}`
             G.e.stack.push({
                 e: "vp", a: 2, target: arg.playerID
             });
             G.e.stack.push({
                 e: "deposit", a: 1, target: arg.playerID
             });
+            log += `|after|${JSON.stringify(G.e.stack)}`
+
         }
         if (p.school === SchoolCardID.S1204) {
+            log += `|swedish`
+            log += `|before|${JSON.stringify(G.e.stack)}`
             G.e.stack.push({
                 e: "res", a: 1, target: arg.playerID
             })
+            log += `|after|${JSON.stringify(G.e.stack)}`
         }
+        log += `|startBreakthrough`
+        logger.debug(`${G.matchID}|${log}`);
         startBreakThrough(G, ctx, arg.playerID, arg.card);
     }
 }
