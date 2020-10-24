@@ -18,6 +18,7 @@
     "esm": "^3.2.25",
     "koa-ratelimit": "^4.2.1",
     "koa-static": "^5.0.0",
+    "node-persist": "^3.1.0",
     "react": "16.13.1",
     "react-dom": "16.13.1",
     "react-router-dom": "^5.2.0",
@@ -35,7 +36,8 @@
     "@types/react-window": "^1.8.2",
     "@types/shortid": "^0.0.29",
     "source-map-explorer": "^2.5.0",
-    "typescript": "3.9.7"
+    "typescript": "3.9.7",
+    "webpack-cli": "^4.1.0"
   },
   "scripts": {
     "start": "react-scripts start",

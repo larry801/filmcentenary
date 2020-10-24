@@ -48,7 +48,7 @@ import {
     doBuy,
     doIndustryBreakthrough,
     doReturnSlotCard,
-    drawCardForPlayer,
+    drawCardForPlayer, endTurnEffect,
     fillEmptySlots,
     fillEventCard,
     fillPlayerHand,
@@ -737,67 +737,16 @@ export const requestEndTurn: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg}.moves.requestEndTurn("${arg}")`);
         let log = `requestEndTurn|${arg}`
-        // Clean up
-        let obj = G.pub[parseInt(arg)]
-        obj.playedCardInTurn.forEach(c => obj.discard.push(c));
-        obj.playedCardInTurn = [];
-        obj.revealedHand = [];
-        obj.resource = 0;
-        if (obj.deposit > 10) {
-            obj.deposit = 10;
+        const playerObj = G.player[parseInt(arg)]
+        if (!playerObj.endTurnEffectExecuted) {
+            endTurnEffect(G, ctx, arg);
+        }else {
+            log += `|endTurnEffectAlreadyExecuted`
         }
+        if (G.e.stack.length === 0) {
 
-        // restore action point fill hand card
-        if (obj.school !== null) {
-            let schoolId = obj.school;
-            log += `|school|${schoolId}`
-            let act = getCardEffect(schoolId).school.action;
-            if (act === 1) {
-                if (G.activeEvents.includes(EventCardID.E03)) {
-                    log += `|Avant-Grade|2ap`
-                    obj.action = 2
-                } else {
-                    log += `|1ap`
-                    obj.action = 1
-                }
-            } else {
-                log += `|${act}ap`
-                obj.action = act;
-            }
-        } else {
-            if (G.activeEvents.includes(EventCardID.E03)) {
-                log += `|Avant-Grade|2ap`
-                obj.action = 2
-            } else {
-                log += `|1ap`
-                obj.action = 1
-            }
-        }
-        fillPlayerHand(G, ctx, ctx.currentPlayer);
-
-        // execute development rewards
-        log += `|aesAward`
-        aesAward(G, ctx, ctx.currentPlayer);
-        log += `|industryAward`
-        industryAward(G, ctx, ctx.currentPlayer);
-
-        // era scoring check
-        ValidRegions.forEach(r => {
-            if (r === Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE) return;
-            let canScore = checkRegionScoring(G, ctx, r);
-            if (canScore) {
-                G.scoringRegions.push(r)
-            }
-        })
-        log += `|scoreRegions|${JSON.stringify(G.scoringRegions)}`
-        if (ctx.numPlayers > SimpleRuleNumPlayers) {
-            log += "|tryScoring"
-            logger.debug(`${G.matchID}|${log}`);
-            tryScoring(G, ctx);
-        } else {
-            log += "|try2pScoring"
-            logger.debug(`${G.matchID}|${log}`);
-            try2pScoring(G, ctx);
+        }else {
+            checkNextEffect(G, ctx);
         }
     },
 }
@@ -822,7 +771,7 @@ export const concedeMove: LongFormMove = {
             if (concedeIndex < G.order.length) {
                 log += `|notLastPlayer|DeductNewOrder`
                 G.order = seqFromPos(G, ctx, concedeIndex);
-            }else {
+            } else {
                 log += `|lastPlayerConcede`
             }
 
@@ -1019,15 +968,15 @@ export const breakthrough: LongFormMove = {
         }
         if (p.school === SchoolCardID.S2201) {
             G.e.stack.push({
-                e: "vp", a: 2, target:arg.playerID
+                e: "vp", a: 2, target: arg.playerID
             });
             G.e.stack.push({
-                e: "deposit", a: 1,  target:arg.playerID
+                e: "deposit", a: 1, target: arg.playerID
             });
         }
         if (p.school === SchoolCardID.S1204) {
             G.e.stack.push({
-                e: "res", a: 1, target:arg.playerID
+                e: "res", a: 1, target: arg.playerID
             })
         }
         startBreakThrough(G, ctx, arg.playerID, arg.card);

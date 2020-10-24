@@ -165,6 +165,7 @@ function pubPlayer(): IPubInfo {
 
 export function privatePlayer(): IPrivateInfo {
     return {
+        endTurnEffectExecuted:false,
         hand: [], handSize: 0,
         cardsToPeek: [], competitionCards: [],
         finalScoringExtraVp: 0,

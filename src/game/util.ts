@@ -1490,10 +1490,18 @@ export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
 
 export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let o = G.pub[parseInt(p)];
-    const log = `industryAward|p${p}|${o.industry}`
-    if (o.industry > 1) o.resource += 1;
-    if (o.industry > 4) drawCardForPlayer(G, ctx, p);
-    if (o.industry > 7) drawCardForPlayer(G, ctx, p);
+    let log = `industryAward|p${p}|${o.industry}`
+    if (o.industry > 1) {
+        log += `|before|${o.resource}`
+        o.resource += 1
+        log += `|after|${o.resource}`
+    }
+    if (o.industry > 4) {
+        drawCardForPlayer(G, ctx, p);
+    }
+    if (o.industry > 7) {
+        drawCardForPlayer(G, ctx, p);
+    }
     logger.debug(`${G.matchID}|${log}`);
 }
 
@@ -1716,21 +1724,24 @@ export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
     }
 }
 export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
-    let pid = parseInt(id);
-    let p = G.player[pid]
-    let pub = G.pub[pid]
+    const pid = parseInt(id);
+    let log = `drawCardForPlayer${id}`
+    const p = G.player[pid]
+    const pub = G.pub[pid]
     let s = G.secretInfo.playerDecks[pid]
     if (s.length === 0) {
         G.secretInfo.playerDecks[pid] = shuffle(ctx, pub.discard);
+        log += `|shuffledDeck|${JSON.stringify(s)}`
         pub.discard = [];
     }
     let card = G.secretInfo.playerDecks[pid].pop();
     if (card === undefined) {
-        // TODO what if player has no card at all?
-        logger.debug("Player deck empty cannot draw!")
+        log += `|deckEmpty`
     } else {
+        log += `|${card}`
         p.hand.push(card);
     }
+    logger.debug(`${G.matchID}|${log}`);
 }
 export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let i = parseInt(p);
@@ -2330,10 +2341,77 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
     tryScoring(G, ctx);
 }
 
+export const regionScoringCheck = (G: IG, ctx: Ctx, arg: PlayerID) => {
+    let log = `regionScoringCheck|${arg}`
+    ValidRegions.forEach(r => {
+        if (r === Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE) return;
+        let canScore = checkRegionScoring(G, ctx, r);
+        if (canScore) {
+            G.scoringRegions.push(r)
+        }
+    })
+    log += `|scoreRegions|${JSON.stringify(G.scoringRegions)}`
+    if (ctx.numPlayers > SimpleRuleNumPlayers) {
+        log += "|tryScoring"
+        logger.debug(`${G.matchID}|${log}`);
+        tryScoring(G, ctx);
+    } else {
+        log += "|try2pScoring"
+        logger.debug(`${G.matchID}|${log}`);
+        try2pScoring(G, ctx);
+    }
+    logger.debug(`${G.matchID}|${log}`);
+}
+export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
+    let log = `endTurnEffect|p${arg}`
+    const pub = G.pub[parseInt(arg)]
+    pub.playedCardInTurn.forEach(c => pub.discard.push(c));
+    pub.playedCardInTurn = [];
+    pub.resource = 0;
+    if (pub.deposit > 10) {
+        log += `|depositLimitExceeded|${pub.deposit}`
+        pub.deposit = 10;
+    }
+
+    log += `|restore`
+    if (pub.school !== null) {
+        let schoolId = pub.school;
+        log += `|school|${schoolId}`
+        let act = getCardEffect(schoolId).school.action;
+        if (act === 1) {
+            if (G.activeEvents.includes(EventCardID.E03)) {
+                log += `|Avant-Grade|2ap`
+                pub.action = 2
+            } else {
+                log += `|1ap`
+                pub.action = 1
+            }
+        } else {
+            log += `|${act}ap`
+            pub.action = act;
+        }
+    } else {
+        if (G.activeEvents.includes(EventCardID.E03)) {
+            log += `|Avant-Grade|2ap`
+            pub.action = 2
+        } else {
+            log += `|1ap`
+            pub.action = 1
+        }
+    }
+    fillPlayerHand(G, ctx, ctx.currentPlayer);
+    log += `| execute development rewards`
+    log += `|aesAward`
+    aesAward(G, ctx, ctx.currentPlayer);
+    log += `|industryAward`
+    industryAward(G, ctx, ctx.currentPlayer);
+    logger.debug(`${G.matchID}|${log}`);
+}
+
 export function checkNextEffect(G: IG, ctx: Ctx) {
     let log = "checkNextEffect";
     if (G.e.stack.length === 0) {
-        log += ("|Stack empty")
+        log += ("|stackEmpty")
         let newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3204);
         if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
             G.pub[parseInt(newWavePlayer)].discardInSettle = false;
@@ -2360,11 +2438,20 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                     return;
                 }
             } else {
-                if (ctx.activePlayers !== null) {
-                    log += "|signalEndStage"
-                    signalEndStage(G, ctx);
+                if (G.player[parseInt(ctx.currentPlayer)].endTurnEffectExecuted) {
+                    log += `|endTurnEffectExecuted`
+                    regionScoringCheck(G, ctx, ctx.currentPlayer);
                     logger.debug(`${G.matchID}|${log}`);
-                    return;
+                    return
+                } else {
+                    if (ctx.activePlayers !== null) {
+                        log += "|signalEndStage"
+                        signalEndStage(G, ctx);
+                        logger.debug(`${G.matchID}|${log}`);
+                        return;
+                    }else {
+                        log += `|notInStage`
+                    }
                 }
             }
         } else {

@@ -327,6 +327,7 @@ export interface IPubInfo {
 }
 
 export interface IPrivateInfo {
+    endTurnEffectExecuted:boolean,
     hand: CardID[],
     handSize:number,
     finalScoringExtraVp:number,
