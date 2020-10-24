@@ -280,10 +280,11 @@ export const chooseTarget: LongFormMove = {
                 changePlayerStage(G, ctx, "chooseHand", arg.p);
                 return;
             default:
-                logger.debug(`${G.matchID}|${log}`);
                 eff.target = p;
                 G.e.stack.push(eff);
-                playerEffExec(G, ctx, p);
+                log += `|otherEffects|${JSON.stringify(eff)}`
+                logger.debug(`${G.matchID}|${log}`);
+                checkNextEffect(G, ctx);
         }
     }
 }
@@ -463,6 +464,7 @@ export const chooseEffect: LongFormMove = {
             default:
                 G.e.choices = [];
                 G.e.stack.push(eff);
+                log += `|exec|${JSON.stringify(eff)}`
                 playerEffExec(G, ctx, p);
                 return;
         }
