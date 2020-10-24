@@ -103,7 +103,6 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     const buyAndClose = () => {
         handleClose();
         buy();
-
     }
 
     const canMakeBuyMove = () => {

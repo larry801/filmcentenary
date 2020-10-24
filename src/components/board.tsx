@@ -59,7 +59,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         const fallbackName = i18n.playerName.player + playerID;
         const curSuffix = ctx.currentPlayer === playerID ? curPlayerSuffix : ""
         const activeSuffix = activePlayer(ctx) === playerID && ctx.currentPlayer !== playerID ? "(**)" : ""
-        const markSuffix = G.regionScoreCompensateMarker === playerID ? "(+)" : ""
+        const markSuffix = G.regionScoreCompensateMarker === playerID ? "" : ""
         let name = "";
         if (playerID === null) {
             return i18n.playerName.spectator

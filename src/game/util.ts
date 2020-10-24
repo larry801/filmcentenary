@@ -2055,7 +2055,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
                     return 1;
                 } else {
                     compensateMarkerUsed = true;
-                    log += `|markUsed|p${a}win`
+                    log += `|markUsed|p${b}win`
                     logger.debug(`${G.matchID}|${log}`);
                     return -1;
                 }
@@ -2073,7 +2073,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
                         return -1;
                     } else {
                         compensateMarkerUsed = true;
-                        log += `|useMarker|p${b}win`
+                        log += `|useMarker|p${a}win`
                         logger.debug(`${G.matchID}|${log}`);
                         return 1;
                     }
