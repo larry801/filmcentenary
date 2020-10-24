@@ -1534,7 +1534,7 @@ export const effects = {
                 {e: "step", a: [{e: "res", a: 3}, {e: "vp", a: 1}]},
                 {
                     e: "step",
-                    a: [{e: "vp", a: 2}, {e: "peek", a: {count: 3, target: "hand", filter: {e: "asia", a: "all"}}}]
+                    a: [{e: "vp", a: 2}, {e: "peek", a: {count: 3, target: "hand", filter: {e: "region", a: Region.ASIA}}}]
                 }
             ]
         },

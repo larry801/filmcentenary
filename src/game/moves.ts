@@ -636,6 +636,19 @@ export const peek: LongFormMove = {
                 })
                 playerObj.cardsToPeek = []
                 break;
+            case "region":
+                playerObj.cardsToPeek.forEach(card => {
+                    let c = getCardById(card);
+                    if (c.region === eff.a.filter.a) {
+                        log += `|${card}|toHand`
+                        playerObj.hand.push(card);
+                    } else {
+                        log += `|${card}|discard`
+                        pub.discard.push(card);
+                    }
+                })
+                playerObj.cardsToPeek = []
+                break;
             case "era":
                 playerObj.cardsToPeek.forEach(card => {
                     let c = getCardById(card);

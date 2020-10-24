@@ -617,10 +617,10 @@ const en = {
                         }
                     case "industry":
                         return "put cards with industry mark"
-                    case "eraTwo":
-                        return "put classic era cards"
-                    case "asia":
-                        return "put asia cards"
+                    case "era":
+                        return `put ${era[e.a as IEra]} era cards`
+                    case "region":
+                        return `put ${region[e.a as Region]} cards`
                     case "aesthetics":
                         return "put cards with aesthetics mark"
                     default:

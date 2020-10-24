@@ -623,8 +623,8 @@ const zh_CN: Locale = {
                         return "把其中有工业标志的"
                     case "era":
                         return `把其中${era[e.a as IEra]}时代的`
-                    case "asia":
-                        return "把其中亚洲地区的"
+                    case "region":
+                        return `把其中${region[e.a as Region]}地区的`
                     case "aesthetics":
                         return "把其中有美学标志的"
                     default:
