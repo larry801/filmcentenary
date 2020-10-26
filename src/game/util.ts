@@ -349,14 +349,17 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
 }
 
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
-    let obj = G.pub[parseInt(p)];
+    let pub = G.pub[parseInt(p)];
     let log = `doBuy|${card.cardId}|p${p}`
+    if(pub.school === SchoolCardID.S2301 && card.region !== Region.EE){
+        loseVp(G, ctx, p, 1);
+    }
     if (card.category === CardCategory.BASIC) {
         let count = G.basicCards[card.cardId as BasicCardID];
         if (count > 0) {
             G.basicCards[card.cardId as BasicCardID] -= 1;
-            obj.discard.push(card.cardId);
-            obj.allCards.push(card.cardId);
+            pub.discard.push(card.cardId);
+            pub.allCards.push(card.cardId);
         } else {
             log += `|${card.cardId}depleted|`
         }
@@ -372,8 +375,8 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         } else {
             slot.card = null;
             if (slot.comment !== null) {
-                obj.discard.push(slot.comment);
-                obj.allCards.push(slot.comment);
+                pub.discard.push(slot.comment);
+                pub.allCards.push(slot.comment);
                 slot.comment = null;
             }
             let region = card.region;
@@ -389,16 +392,16 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 }
                 if (G.regions[region].share > share) {
                     G.regions[region].share -= share;
-                    obj.shares[region] += share;
+                    pub.shares[region] += share;
                 } else {
-                    obj.shares[region] += G.regions[region].share;
+                    pub.shares[region] += G.regions[region].share;
                     G.regions[region].share = 0;
                 }
             }
 
         }
         if (card.type === CardType.S) {
-            let school = obj.school;
+            let school = pub.school;
             let kino = schoolPlayer(G, ctx, SchoolCardID.S1303);
             if (kino !== null && p !== kino) {
                 log += `|p${kino}|KinoEyes`
@@ -407,20 +410,20 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             }
             if (school !== null) {
                 if (school === SchoolCardID.S1203) {
-                    if (obj.aesthetics < 10) {
+                    if (pub.aesthetics < 10) {
                         log += `|Expressionism`
-                        obj.aesthetics++;
+                        pub.aesthetics++;
                     }
                 }
                 log += `|archive|${school}`
-                obj.archive.push(school);
+                pub.archive.push(school);
             }
-            obj.school = card.cardId as SchoolCardID;
+            pub.school = card.cardId as SchoolCardID;
         } else {
             log += `|pushToDiscard`
-            obj.discard.push(card.cardId);
+            pub.discard.push(card.cardId);
         }
-        obj.allCards.push(card.cardId);
+        pub.allCards.push(card.cardId);
     }
     logger.debug(`${G.matchID}|${log}`);
 }
