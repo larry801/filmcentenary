@@ -859,6 +859,7 @@ export const requestEndTurn: LongFormMove = {
         }
         if (G.e.stack.length === 0) {
             regionScoringCheck(G, ctx, arg);
+            playerObj.endTurnEffectExecuted = false;
         }else {
             checkNextEffect(G, ctx);
         }

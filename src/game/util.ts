@@ -182,7 +182,7 @@ export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
 }
 
 export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
-    let eff = G.e.stack.pop();
+   let eff = G.e.stack.pop();
     let log = `simpleEffectExec|p${p}|${JSON.stringify(eff)}`
     let pub = G.pub[parseInt(p)];
     let card: INormalOrLegendCard;
@@ -2393,7 +2393,8 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                 }
             } else {
                 if (G.player[parseInt(ctx.currentPlayer)].endTurnEffectExecuted) {
-                    log += `|endTurnEffectExecuted`
+		    log += `|endTurnEffectExecuted`
+                    G.player[parseInt(ctx.currentPlayer)].endTurnEffectExecuted = false
                     regionScoringCheck(G, ctx, ctx.currentPlayer);
                     logger.debug(`${G.matchID}|${log}`);
                     return
