@@ -13,6 +13,7 @@ import {getCardById} from "../types/cards";
 import ImportContactsIcon from '@material-ui/icons/ImportContacts';
 import SettingsIcon from '@material-ui/icons/Settings';
 import {getColor} from "./region";
+import {generate} from "shortid";
 
 export interface ICardEffectProps {
     cid:CardID,
@@ -23,8 +24,8 @@ export const CardInfo  = ({cid}:ICardEffectProps) =>{
     const r = card.region;
     return <Grid item xs={12}>
         <Typography>{getCardName(cid)}</Typography>
-        {card.industry > 0 ? Array(card.industry).fill(1).map(()=><SettingsIcon style={{color: getColor(r)}}/>) : <></>}
-        {card.aesthetics > 0 ? Array(card.aesthetics).fill(1).map(()=><ImportContactsIcon style={{color: getColor(r)}}/>) : <></>}
+        {card.industry > 0 ? Array(card.industry).fill(1).map(()=><SettingsIcon key={generate()} style={{color: getColor(r)}}/>) : <></>}
+        {card.aesthetics > 0 ? Array(card.aesthetics).fill(1).map(()=><ImportContactsIcon key={generate()} style={{color: getColor(r)}}/>) : <></>}
         <CardEffect cid={cid}/>
     </Grid>
 }
