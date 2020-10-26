@@ -1959,7 +1959,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             if (era === IEra.ONE) {
                 newEra = IEra.TWO
             }
-            if (era === IEra.ONE) {
+            if (era === IEra.TWO) {
                 newEra = IEra.THREE
             }
             if (era !== newEra) {

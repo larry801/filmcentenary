@@ -369,6 +369,9 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             "B07": 0,
         },
     }
+    if (ctx.numPlayers === SimpleRuleNumPlayers){
+        G.pub[parseInt(G.order[1])].vp = 1;
+    }
     if (ctx.numPlayers === 3) {
         G.regions[Region.NA].buildings[1].activated = true;
         G.regions[Region.WE].buildings[1].activated = true;
