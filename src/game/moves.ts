@@ -1098,7 +1098,6 @@ export const breakthrough: LongFormMove = {
                 e: "deposit", a: 1, target: arg.playerID
             });
             log += `|after|${JSON.stringify(G.e.stack)}`
-
         }
         if (p.school === SchoolCardID.S1204) {
             log += `|swedish`

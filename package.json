@@ -15,6 +15,7 @@
     "@types/react-virtualized-auto-sizer": "^1.0.0",
     "@types/uuid": "^8.3.0",
     "boardgame.io": "0.41.1",
+    "copy-to-clipboard": "^3.3.1",
     "esm": "^3.2.25",
     "koa-ratelimit": "^4.2.1",
     "koa-static": "^5.0.0",
