@@ -2700,10 +2700,19 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
             i.progress--;
         }
         G.pub[parseInt(i.def)].discard.push(cardId);
-        let eff = getCardEffect(cardId);
-        log += `|${JSON.stringify(eff.play)}`
-        G.e.card = cardId;
-        G.e.stack.push(eff.play);
+        const cardEff = getCardEffect(cardId);
+        if (cardEff.hasOwnProperty("play")) {
+            const eff = cardEff.play;
+            if (eff.e !== "none") {
+                eff.target = i.def;
+                log += `|${JSON.stringify(eff)}`
+                G.e.stack.push(eff)
+            } else {
+                log += `|emptyPlayEffect`
+            }
+        } else {
+            log += `|noPlayEffect`
+        }
         G.player[parseInt(i.def)].competitionCards = [];
         if (cinemaInRegion(G, ctx, i.region, i.def)) {
             log += `|cinemaInRegion|${i.region}|${i.progress}`
@@ -2712,7 +2721,7 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
             addVp(G, ctx, i.atk, 1);
         }
         logger.debug(`${G.matchID}|${log}`);
-        playerEffExec(G, ctx, i.def);
+        checkNextEffect(G ,ctx);
     } else {
         log += `|defNoCard|showCompetitionResult`
         logger.debug(`${G.matchID}|${log}`);
