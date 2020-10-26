@@ -2155,13 +2155,13 @@ export const effects = {
     },
     "3211": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: {
             e: "step", a: [
                 {e: "vp", a: 4}, {e: "aesAward", a: 1}
             ]
         },
-        canPlay: (G: IG, ctx: Ctx) => false,
-        play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
