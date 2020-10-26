@@ -14,7 +14,7 @@ import {CardInfo} from "./card";
 import {actualStage} from "../game/util";
 import {Stage} from "boardgame.io/core";
 import {getCardById} from "../types/cards";
-import {Region} from "../types/core";
+import {Region, SimpleRuleNumPlayers} from "../types/core";
 import {getColor} from "./region";
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
@@ -29,7 +29,10 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
         <Typography variant="h5">{i18n.hand.title}</Typography>
         {hand.map((c, idx) => {
                 const card = getCardById(c);
-                const era = card.region !== Region.NONE ? G.regions[card.region].era : null;
+                const era2p = card.region !== Region.NONE ? G.twoPlayer.era : null;
+                const eraNormal = card.region !== Region.NONE ? G.regions[card.region].era : null;
+                const era = ctx.numPlayers > SimpleRuleNumPlayers ? eraNormal : era2p;
+
                 const play = () => moves.playCard({
                     card: c,
                     idx: idx,

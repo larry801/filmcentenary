@@ -970,7 +970,14 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case "era":
-            let era = G.regions[region].era;
+            let era;
+            if(ctx.numPlayers > SimpleRuleNumPlayers){
+                log += `|not2p`
+                era = G.regions[region].era;
+            }else {
+                log += `|2p`
+                era = G.twoPlayer.era;
+            }
             log += `|era|${era}`
             G.e.stack.push(eff.a[era]);
             log += `|era|${JSON.stringify(G.e.stack)}`
@@ -1923,7 +1930,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
                     doBuy(G, ctx, B04, '0')
                 }
             })
-            let era = G.twoPlayer.era;
+            const era = G.twoPlayer.era;
             let newEra = era;
             if (era === IEra.ONE) {
                 newEra = IEra.TWO
