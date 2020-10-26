@@ -113,7 +113,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
     const endPhase = () => events?.endPhase?.();
 
     const cardBoard = ctx.numPlayers === SimpleRuleNumPlayers ?
-        <Grid container spacing={2} alignItems="center">
+        <Grid item container xs={12} sm={7}>
             <Grid item xs={12} sm={6}>
                 <Typography>{i18n.pub.share}</Typography>
                 {ValidRegions.map(r =>
@@ -128,19 +128,30 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                         i18n.era[G.twoPlayer.era]
                     }/{G.twoPlayer.schoolDeckLength}/{G.twoPlayer.filmDeckLength}</Typography>
             </Grid>
-            <BoardCardSlot slot={G.twoPlayer.school[0]} G={G} ctx={ctx} moves={moves} comment={comment}
-                           playerID={playerID}/>
-            <BoardCardSlot slot={G.twoPlayer.school[1]} G={G} ctx={ctx} moves={moves} comment={comment}
-                           playerID={playerID}/>
-
-            <BoardCardSlot slot={G.twoPlayer.film[0]} G={G} ctx={ctx} moves={moves} comment={comment}
-                           playerID={playerID}/>
-            <BoardCardSlot slot={G.twoPlayer.film[1]} G={G} ctx={ctx} moves={moves} comment={comment}
-                           playerID={playerID}/>
-            <BoardCardSlot slot={G.twoPlayer.film[2]} G={G} ctx={ctx} moves={moves} comment={comment}
-                           playerID={playerID}/>
-            <BoardCardSlot slot={G.twoPlayer.film[3]} G={G} ctx={ctx} moves={moves} comment={comment}
-                           playerID={playerID}/>
+            <Grid item xs={12} >
+                <BoardCardSlot slot={G.twoPlayer.school[0]} G={G} ctx={ctx} moves={moves} comment={comment}
+                               playerID={playerID}/>
+            </Grid>
+            <Grid item xs={12} >
+                <BoardCardSlot slot={G.twoPlayer.school[1]} G={G} ctx={ctx} moves={moves} comment={comment}
+                               playerID={playerID}/>
+            </Grid>
+            <Grid item xs={12} >
+                <BoardCardSlot slot={G.twoPlayer.film[0]} G={G} ctx={ctx} moves={moves} comment={comment}
+                               playerID={playerID}/>
+            </Grid>
+            <Grid item xs={12} >
+                <BoardCardSlot slot={G.twoPlayer.film[1]} G={G} ctx={ctx} moves={moves} comment={comment}
+                               playerID={playerID}/>
+            </Grid>
+            <Grid item xs={12} >
+                <BoardCardSlot slot={G.twoPlayer.film[2]} G={G} ctx={ctx} moves={moves} comment={comment}
+                               playerID={playerID}/>
+            </Grid>
+            <Grid item xs={12} >
+                <BoardCardSlot slot={G.twoPlayer.film[3]} G={G} ctx={ctx} moves={moves} comment={comment}
+                               playerID={playerID}/>
+            </Grid>
         </Grid> :
 
         <Grid item container xs={12} sm={7}>
@@ -156,13 +167,13 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
     const gameOverResult = ctx.gameover === undefined ? <></> : <Grid item xs={12}>
         <Paper variant="elevation">
-            <Typography variant="h3">{i18n.gameOver.title}</Typography>
-            <Typography variant="h4">{
+            <Typography variant="h5">{i18n.gameOver.title}</Typography>
+            <Typography variant="h6">{
                 // @ts-ignore
                 i18n.gameOver.reason[ctx.gameover.reason]
             }</Typography>
-            <Typography variant="h3">{i18n.gameOver.winner}</Typography>
-            <Typography variant="h4">{getName(ctx.gameover.winner)}</Typography>
+            <Typography variant="h5">{i18n.gameOver.winner}</Typography>
+            <Typography variant="h6">{getName(ctx.gameover.winner)}</Typography>
         </Paper>
     </Grid>
 
@@ -205,7 +216,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         </>
         : <></>
 
-    return <Grid container justify="space-evenly">
+    return <Grid container justify="flex-start">
         {gameOverResult}
         {G.pending.lastRoundOfGame ? <Paper
             variant="elevation"

@@ -54,7 +54,7 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
             <Typography>   {i18n.pub.action} {i.action}</Typography>
             <Typography>   {i18n.pub.vp} {i.vp}</Typography>
         </Grid>
-        <Grid item xs={4} sm={3} md={2} lg={1}>
+        <Grid item xs={12} sm={6} md={6} lg={3}>
             {i.school !== null ?
                 <>
                     <Typography>
