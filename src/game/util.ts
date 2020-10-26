@@ -2502,7 +2502,7 @@ export const loseDeposit = (G: IG, ctx: Ctx, p: PlayerID, deposit: number) => {
     let log = `p${p}|loseDeposit|${deposit}`
     let pub = G.pub[parseInt(p)];
     log += `|before|${pub.deposit}`
-    if (deposit >= pub.vp) {
+    if (deposit >= pub.deposit) {
         pub.deposit = 0;
     } else {
         pub.deposit -= deposit;
