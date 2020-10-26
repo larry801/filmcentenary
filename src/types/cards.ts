@@ -1130,7 +1130,7 @@ const NoneBasicCards = {
         region: Region.WE,
         name: "Left Bank Group",
         cardId: SchoolCardID.S3204,
-        cost: cost(7, 8, 0),
+        cost: cost(7, 0, 8),
         vp: 11,
         category: CardCategory.NORMAL,
         industry: 0,
