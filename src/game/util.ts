@@ -2661,16 +2661,26 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
             log += `|industryMark|++`
             i.progress++;
         }
-        let eff = getCardEffect(cardId);
-        log += `|${JSON.stringify(eff.play)}`
-        G.e.card = cardId;
         if (cinemaInRegion(G, ctx, i.region, i.atk)) {
             log += `|cinemaInRegion|${i.region}|${i.progress}`
             i.progress++;
             log += `|${i.progress}`
             addVp(G, ctx, i.atk, 1);
         }
-        G.e.stack.push(eff.play);
+        const cardEff = getCardEffect(cardId);
+        if (cardEff.hasOwnProperty("play")) {
+            const eff = cardEff.play;
+            if (eff.e !== "none") {
+                eff.target = i.atk;
+                log += `|${JSON.stringify(eff)}`
+                G.e.stack.push(eff)
+            } else {
+                log += `|emptyPlayEffect`
+            }
+        } else {
+            log += `|noPlayEffect`
+        }
+        G.e.card = cardId;
         logger.debug(`${G.matchID}|${log}`);
         // TODO may over run set a barrier effect?
         playerEffExec(G, ctx, i.atk);
