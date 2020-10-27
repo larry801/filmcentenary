@@ -1058,7 +1058,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "anyRegionShareCentral":
             G.e.regions = ValidRegions.filter(r => G.regions[r].share > 0)
             if (G.e.regions.length === 0) {
-                logger.debug("No share on board, cannot obtain from others.")
+                log += "No share on board, cannot obtain from others."
                 break;
             } else {
                 G.e.stack.push(eff)
@@ -1087,7 +1087,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             } else {
                 G.e.regions = ValidRegions.filter(r => G.regions[r].share > 0)
                 if (G.e.regions.length === 0) {
-                    logger.debug("No share on board, cannot obtain from others.")
+                    log += "No share on board, cannot obtain from others."
+                    logger.debug(`${G.matchID}|${log}`);
                     break;
                 } else {
                     G.e.stack.push(eff)
@@ -1849,7 +1850,6 @@ export const fillEmptySlots = (G: IG, ctx: Ctx) => {
         }
         for (let slot of region.normal) {
             if (slot.card === null && n.length > 0) {
-                logger.debug(n);
                 let c = n.pop();
                 if (c !== undefined) {
                     slot.card = c;
@@ -1997,7 +1997,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             finalScoring(G, ctx);
             return
         }
-    }else {
+    } else {
         fillTwoPlayerBoard(G, ctx);
         signalEndTurn(G, ctx);
         return;
