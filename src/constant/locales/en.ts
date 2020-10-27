@@ -466,6 +466,7 @@ const en = {
     },
     title: "Film Centenary",
     lobby: {
+        copyPrompt: "Copied to clipboard",
         numPlayers: "Players",
         createPublicMatch: "Create public match",
         createPrivateMatch: "Create private match",

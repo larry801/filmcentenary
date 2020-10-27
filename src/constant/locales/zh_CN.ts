@@ -482,6 +482,7 @@ const zh_CN: Locale = {
     },
     title:"电影百年",
     lobby: {
+        copyPrompt: "复制",
         numPlayers:"玩家数",
         title: "大厅",
         join: "加入",
