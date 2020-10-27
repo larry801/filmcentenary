@@ -2109,40 +2109,14 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         const posB = curPos.indexOf(b);
         log += `|pos|${posA}|${posB}`
         if (posA > posB) {
-            if (winner === "") {
-                log += `|pos|p${b}win`
-                logger.debug(`${G.matchID}|${log}`);
-                return 1;
-            } else {
-                if (winner === b) {
-                    log += `|markPosSame|p${a}win`
-                    logger.debug(`${G.matchID}|${log}`);
-                    return 1;
-                } else {
-                    compensateMarkerUsed = true;
-                    log += `|markUsed|p${a}win`
-                    logger.debug(`${G.matchID}|${log}`);
-                    return -1;
-                }
-            }
+            log += `|pos|p${b}win`
+            logger.debug(`${G.matchID}|${log}`);
+            return 1;
         } else {
             if (posA < posB) {
-                if (winner === "") {
-                    log += `|pos|p${a}win`
-                    logger.debug(`${G.matchID}|${log}`);
-                    return -1;
-                } else {
-                    if (winner === a) {
-                        log += `|markPosSame|p${b}win`
-                        logger.debug(`${G.matchID}|${log}`);
-                        return -1;
-                    } else {
-                        compensateMarkerUsed = true;
-                        log += `|useMarker|p${b}win`
-                        logger.debug(`${G.matchID}|${log}`);
-                        return 1;
-                    }
-                }
+                log += `|pos|p${a}win`
+                logger.debug(`${G.matchID}|${log}`);
+                return -1;
             } else {
                 throw Error("Two player cannot have the same position.")
             }
