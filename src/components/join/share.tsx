@@ -34,7 +34,11 @@ export const ShareLink = ({matchID, player, numPlayer}: ShareLinkProps) => {
         })
     }
     return <>
-        <IconButton onClick={onCopy}>
+        <IconButton
+            color="primary"
+            aria-label={i18n.lobby.copyPrompt}
+            edge="start"
+            onClick={onCopy}>
             <ContentCopyIcon/>
         </IconButton>
         <Typography>{i18n.lobby.shareLink}</Typography>
