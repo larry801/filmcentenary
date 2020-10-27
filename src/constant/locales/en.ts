@@ -1,6 +1,6 @@
 import {IBuyInfo, IEra, Region, validRegion} from "../../types/core";
 import {
-    IChooseEventArg, IChooseHandArg, ICommentArg, ICompetitionCardArg,
+    IChooseEventArg, IChooseHandArg, ICommentArg,
     IEffectChooseArg, IPayAdditionalCostArgs,
     IPeekArgs,
     IPlayCardInfo,
@@ -18,7 +18,7 @@ const cards = {
     "B06": "Deficit Film",
     "B07": "Fund",
     'E01': 'Establishment of Hollywood',
-    'E02': 'Edison Litigation',
+    'E02': 'World War I',
     'E03': 'Avant-garde',
     'E04': 'Academy Award',
     'E05': 'Paramount Judgement',
@@ -187,21 +187,26 @@ const era = {
     2: "Modern",
 };
 const eventName = {
-    'E01': '【好莱坞】建筑位可以修建建筑 每个公司升级工业等级或美学等级1级',
-    'E02': '每个公司获得2存款 每个公司弃掉1张牌 *【托马斯，爰迪生】或【卢米埃尔兄弟】响应',
-    'E03': '每个公司立刻获得第2个行动力(注意！并非行动 力+1)  *若这张牌因为过时代而被弃掉，事件立刻触发',
-    'E04': '声望最高的公司可以free购买1张【商业片】并置入手牌 每个公司免赛购买1张【传世经典】',
-    'E05': '每个公司获得3存款 北美有建筑的公司弃掉2张牌',
-    'E06': '声望最高的公司升级1级美学等级 每个公司免费购买1张【传世经典】',
-    'E07': '每个公司升级工业等级或美学等级1级 声望不是最高的公司免费购买1张【烂片】',
-    'E08': '每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑，则该公司获得这张牌的声望 东欧地区没有建筑的公司免费购买1张【烂片】',
-    'E09': '【宝莱坞】建筑位可以修建建筑 美学等级最低的公司升级1级美学等级 工业等级最低的公司升级1级工业等级',
-    'E10': '终局计分时：每有一个声望条数字比你高的公司， 你额外获得4声望',
-    'E11': '终局计分时：公司牌库里和档案馆里的每个人物获得4声望',
-    'E12': '终局计分时：公司按照工业等级和美字等级的总和获得声望',
-    'E13': '终局计分时：若公司获得过4/3/2/1个不同地区的第一，则你得到20/12/6/2声望',
-    'E14': '终局计分时：公司档案馆和牌库里的每张基础牌牌获得1声望',
+    'E01': '【Hollywood】 slot activated every company upgrade industry or aesthetics level once.',
+    'E02': 'Company with highest industry level discard 1 card, Company with highest aesthetics level discard 1 card, every company get 2 deposit',
+    'E03': 'Every company get its second action point (Note: Do not add action point if you already have a second one)  * If this event is discarded, also execute its effect.',
+    'E04': 'Company with highest prestige buy a 【Commercial Film】and put it into hand, every company buy a 【Classic Film】 for free.',
+    'E05': 'Company with building in north america discard two cards, calculate the sum of industry level, aesthetics level, industry and aesthetics marks of current school of every company, lowest company gain 3 deposits',
+    'E06': 'Company with the highest prestige upgrade industry or aesthetics level once Every company buy【Classic Film】 for free.',
+    'E07': 'Every company upgrade industry or aesthetics level once,  company prestige not highest buy a 【Bad Film】 for free.',
+    'E08': '【Unfreeze】 slot is activated, calculate the sum of industry level, aesthetics level, industry and aesthetics marks of current school of every company, lowest company upgrade aesthetics level once',
+    'E09': '【Bollywood】 slot activated, company with the lowest aesthetics level upgrade aesthetics level once, company with the lowest aesthetics level upgrade aesthetics level once.',
+    'E10': 'Each company whose prestige is higher than you ,gain 4 extra prestige',
+    'E11': 'Every person card in your deck and archive gain 4 extra prestige',
+    'E12': 'Gain prestige according to your industry and aesthetics level.',
+    'E13': 'If your company have 4/3/2/1 champions form different regions, gain 20/12/6/1 extra prestige',
+    'E14': 'Every champion and share give you 1 extra prestige',
 };
+const argConcede = {
+    args: (): string => {
+        return ` conceded from the game`
+    }
+}
 const argCardName = {
     a: (value: string = "E02"): string => {
         return `${getCardName(value)}`
@@ -358,7 +363,7 @@ const argChooseEvent = {
     }
 }
 const argDrawCard = {
-    args: (arg: []): string => {
+    args: (): string => {
         return " drew one card with action point."
     }
 }
@@ -379,7 +384,7 @@ const argChooseTarget = {
     }
 }
 const argRequestEndTurn = {
-    args: (arg: []): string => {
+    args: (): string => {
         return " requested end turn."
     }
 }
@@ -392,8 +397,8 @@ const argChooseHand = {
     }
 }
 const argCompetitionCard = {
-    args: (arg: ICompetitionCardArg[]): string => {
-        return " played a card fro competition"
+    args: (): string => {
+        return " played a card for competition"
     }
 }
 const argUpdateSlot = {
@@ -461,6 +466,7 @@ const en = {
     },
     title: "Film Centenary",
     lobby: {
+        copyPrompt: "Copied to clipboard",
         numPlayers: "Players",
         createPublicMatch: "Create public match",
         createPrivateMatch: "Create private match",
@@ -477,6 +483,7 @@ const en = {
         title: "Game Over",
         winner: "Winner:",
         reason: {
+            othersConceded:"All other players conceded",
             threeNAChampionAutoWin: "Three Champion in North America",
             championCountAutoWin: "Champion count exceeded",
             finalScoring: "Final Scoring",
@@ -500,6 +507,7 @@ const en = {
         },
     },
     moves: {
+        concede:["{{args}}",argConcede],
         showBoardStatus: ["{{args}}", argShowBoardStatus],
         chooseEffect: ["{{args}}", argChooseEffect],
         chooseEvent: ["{{args}}", argChooseEvent],
@@ -555,7 +563,7 @@ const en = {
         optional: "【optional】",
         loseVpForEachHand: "Lose prestige according to its hand.",
         discardLegend: ["Discard {{a}} legend card(s)", argValue],
-        atBreakthrough: "After you perform a breakthrough action,",
+        afterBreakthrough: "After you perform a breakthrough action,",
         playedCardInTurnEffect: "Execute the 【play】 effect another card with aesthetics mark you played in this turn.",
         everyOtherCompany: "Every other company",
         everyPlayer: "Every company",
@@ -564,12 +572,12 @@ const en = {
         doNotLoseVpAfterCompetition: "Do not lose vp after competition",
         discardInSettle: "When you discard a card in the settlement of any card.",
         threeCards: "Gain 1 extra prestige for every three card ",
-        northAmericaFilm: "Gain 2 extra prestige for each of your north america film card.",
+        northAmericaFilm: "Gain 2 extra prestige for each of your north america card.",
         asiaFilm: "Gain 2 extra prestige for each of your asia film card.",
         industryNormalOrLegend: "Gain 2 extra prestige for each of your normal or legend card with industry marker.",
         westEuropeCard: "Gain 2 extra prestige for each of your west europe card.",
         alternative: "You may cancel this breakthrough, do following effect instead",
-        eastEuropeFilm: "Gain 2 extra prestige for each of your east europe film card.",
+        eastEuropeFilm: "Gain 2 extra prestige for each of your east europe card.",
         industryLevel: "Gain 2 extra prestige for each of your industry level",
         aestheticsLevel: "Gain 2 extra prestige for each of your aesthetics level",
         personCard: "Gain 4 extra prestige for each of your person card.",
@@ -578,7 +586,7 @@ const en = {
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",
         breakthroughResDeduct: ["Execute breakthrough action with a deduct of {{a}} resources", argValue],
-        handToOthers: ["Give one card in hand to other companies", argValue],
+        handToAnyPlayer: ["Give one card in hand to other companies", argValue],
         buyNoneEEFilm: "When buy film card not in east europe,",
         extraVp: ["Pay extra {{a}} prestige", argValue],
         breakthroughPrevent: "Cannot execute breakthrough, if you do not pay.",
@@ -610,10 +618,10 @@ const en = {
                         }
                     case "industry":
                         return "put cards with industry mark"
-                    case "eraTwo":
-                        return "put classic era cards"
-                    case "asia":
-                        return "put asia cards"
+                    case "era":
+                        return `put ${era[e.a as IEra]} era cards`
+                    case "region":
+                        return `put ${region[e.a as Region]} cards`
                     case "aesthetics":
                         return "put cards with aesthetics mark"
                     default:
@@ -631,8 +639,8 @@ const en = {
             },
             onWin: (e: any): string => {
                 if (e.e !== "none") {
-                    if (e.e === "anyRegionShare") {
-                        return "get an additional share from any region if you win."
+                    if (e.e === "anyRegionShareCentral") {
+                        return "get an additional share from any region on board if you win."
                     } else {
                         return "get an additional share from " + region[e.r as Region] + " if you win."
                     }
@@ -677,6 +685,7 @@ const en = {
         loseShareASIA: ["Return {{a}} share(s) of asia", argValue],
         shareToVp: ["Gain prestige according to your share in {{a}} region.", argRegion],
         anyRegionShare: ["Get {{a}} share(s) of any region", argValue],
+        anyRegionShareCentral: ["Get {{a}} share(s) of any region from board,", argValue],
         deductRes: ["deduct {{a}} resource(s) from cost.", argValue],
         extraEffect: "Extra effect:",
         buyAesthetics: "When you buys a card with aesthetics marker,",
@@ -721,6 +730,9 @@ const en = {
     },
     setup: "Initial setup",
     dialog: {
+        concede: {
+          title:"Do you really want to concede?",
+        },
         chooseTarget: {
             title: "Please choose target player of current effect.",
             toggleText: "Choose Target Player",
@@ -767,6 +779,7 @@ const en = {
         },
     },
     action: {
+        concede:"Concede",
         adjustInSlider:"Adjust pay additional cost with deposit or resource in slider",
         payAdditionalCost: "Pay extra cost",
         comment: "Comment",
@@ -804,6 +817,7 @@ const en = {
         cinema: "Cinema",
         bollywood: "Bollywood",
         hollywood: "Hollywood",
+        unfreeze: "Unfreeze",
         twoToFourPlayer: "2-4 player",
         threeToFourPlayer: "3-4 player",
         fourPlayerOnly: "4 player",
@@ -832,7 +846,7 @@ const en = {
         playedCards: "Played Cards",
     },
     score: {
-        cardName: ['{{rank}} {{region}} {{ear}}', {
+        cardName: ['{{rank}} {{region}} {{era}}', {
             era: (e: IEra): string => era[e],
             rank: (rankNum: 1 | 2 | 3): string => rank[rankNum],
             region: (r: Region): string => region[r],

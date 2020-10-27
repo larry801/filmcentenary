@@ -3,6 +3,7 @@ import {CompetitionInfo, IG} from "../types/setup";
 import {
     BasicCardID,
     BuildingType,
+    CardCategory,
     CardID,
     CardType,
     ClassicCardID,
@@ -11,19 +12,18 @@ import {
     IBasicCard,
     IBuyInfo,
     ICardSlot,
-    IEra,
     INormalOrLegendCard,
     IRegionInfo,
     Region,
     SchoolCardID,
     SimpleRuleNumPlayers,
-    ValidRegions
+    ValidRegions,
+    VictoryType
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
     activePlayer,
     addVp,
-    aesAward,
     atkCardSettle,
     buildBuildingFor,
     buildingInRegion,
@@ -35,7 +35,6 @@ import {
     cardSlotOnBoard2p,
     checkCompetitionDefender,
     checkNextEffect,
-    checkRegionScoring,
     cinemaInRegion,
     cinemaSlotsAvailable,
     competitionCleanUp,
@@ -47,23 +46,22 @@ import {
     doIndustryBreakthrough,
     doReturnSlotCard,
     drawCardForPlayer,
+    endTurnEffect,
     fillEmptySlots,
     fillEventCard,
-    fillPlayerHand,
     fillTwoPlayerBoard,
-    industryAward,
     isSimpleEffect,
     logger,
     loseVp,
     payCost,
     playerEffExec,
+    regionScoringCheck,
     schoolPlayer,
+    seqFromPos,
     simpleEffectExec,
     startBreakThrough,
     startCompetition,
     studioSlotsAvailable,
-    try2pScoring,
-    tryScoring,
 } from "./util";
 import {changePlayerStage, changeStage, signalEndPhase, signalEndStage} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
@@ -172,22 +170,53 @@ export const buyCard: LongFormMove = {
         logger.debug(`${G.matchID}|${log}`);
         if (canBuyCard(G, ctx, arg)) {
             let targetCard = getCardById(arg.target)
-            let p = curPub(G, ctx);
-            p.action--;
-            p.resource -= arg.resource;
-            p.deposit -= arg.deposit;
+            let pub = curPub(G, ctx);
+            pub.action--;
+            pub.resource -= arg.resource;
+            pub.deposit -= arg.deposit;
             arg.helper.forEach(c => {
                 let pHand = G.player[parseInt(arg.buyer)].hand;
                 let idx = pHand.indexOf(c)
                 let helper = G.player[parseInt(arg.buyer)].hand.splice(idx, 1)[0];
-                p.playedCardInTurn.push(helper);
+                pub.playedCardInTurn.push(helper);
             })
             G.e.card = arg.target;
             doBuy(G, ctx, targetCard as INormalOrLegendCard | IBasicCard, ctx.currentPlayer);
-            let eff = getCardEffect(arg.target);
-            if (eff.e !== "none") {
-                G.e.stack.push(eff.buy);
+            let cardEff = getCardEffect(arg.target);
+            let hasEffect = false;
+            if (cardEff.hasOwnProperty("buy")) {
+                const eff = cardEff.buy;
+                if (eff.e !== "none") {
+                    G.e.stack.push(eff);
+                    hasEffect = true;
+                }
+            } else {
+                log += `|noPlayEff`
+            }
+            if (pub.school === SchoolCardID.S3101) {
+                if ((targetCard.category === CardCategory.NORMAL
+                    || targetCard.category === CardCategory.LEGEND)
+                    && targetCard.type === CardType.F
+                ) {
+                    log += `|newHollyWood`
+                    G.e.stack.push({
+                        e: "optional", a: {
+                            e: "pay", a: {
+                                cost: {e: "deposit", a: 1},
+                                eff: {e: "anyRegionShare", a: 1}
+                            }
+                        },
+                        target: arg.buyer,
+                    })
+                    hasEffect = true;
+                }
+            }
+            if (hasEffect) {
+                log += `|hasEffect`
+                logger.debug(`${G.matchID}|${log}`);
                 checkNextEffect(G, ctx);
+            } else {
+                logger.debug(`${G.matchID}|${log}`);
             }
         } else {
             return INVALID_MOVE;
@@ -211,7 +240,7 @@ export const chooseTarget: LongFormMove = {
         let src = arg.p;
         let p = arg.target;
         let eff = G.e.stack.pop();
-        let log = `players:${JSON.stringify(G.c.players)}|eff:${JSON.stringify(eff)}`
+        let log = `players|${JSON.stringify(G.c.players)}|eff:${JSON.stringify(eff)}`
         switch (eff.e) {
             case "loseVpForEachHand":
                 G.c.players = [];
@@ -237,20 +266,25 @@ export const chooseTarget: LongFormMove = {
                 )
                 if (G.e.regions.length > 0) {
                     G.e.stack.push(eff);
-                    changeStage(G, ctx, "chooseRegion")
+                    G.c.players = [p];
+                    changePlayerStage(G, ctx, "chooseRegion", src);
                     return;
                 } else {
+                    ctx?.events?.endStage?.()
+                    log += `|endStage`
                     break;
                 }
-            case "handToOthers":
+            case "handToAnyPlayer":
                 G.c.players = [arg.target]
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", arg.p);
                 return;
             default:
-                logger.debug(`${G.matchID}|${log}`);
+                eff.target = p;
                 G.e.stack.push(eff);
-                playerEffExec(G, ctx, p);
+                log += `|otherEffects|${JSON.stringify(eff)}`
+                logger.debug(`${G.matchID}|${log}`);
+                checkNextEffect(G, ctx);
         }
     }
 }
@@ -278,6 +312,22 @@ export const chooseHand: LongFormMove = {
         let pub = G.pub[parseInt(p)];
         let card: IBasicCard | INormalOrLegendCard = getCardById(arg.hand);
         switch (eff.e) {
+            case "playedCardInTurnEffect":
+                const playedCard = pub.playedCardInTurn[arg.idx];
+                log += `|${playedCard}`
+                let cardEff = getCardEffect(playedCard);
+                if (cardEff.hasOwnProperty("play")) {
+                    const eff = {...cardEff.play};
+                    if (eff.e !== "none") {
+                        eff.target = arg.p;
+                        G.e.stack.push(eff)
+                    } else {
+                        log += `|emptyPlayEffect`
+                    }
+                } else {
+                    log += `|noPlayEffect`
+                }
+                break;
             case "breakthroughResDeduct":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
@@ -298,7 +348,7 @@ export const chooseHand: LongFormMove = {
                     addVp(G, ctx, p, card.vp)
                 }
                 break
-            case "handToOthers":
+            case "handToAnyPlayer":
                 const allCardsIndex = pub.allCards.indexOf(arg.hand);
                 if (allCardsIndex !== -1) {
                     pub.allCards.splice(allCardsIndex, 1);
@@ -335,8 +385,8 @@ export const chooseHand: LongFormMove = {
             case "discardIndustry":
             case "discardAesthetics":
             case "discardNormalOrLegend":
-                if (pub.school === SchoolCardID.S3204) {
-                    log += `|S3204`
+                if (pub.school === SchoolCardID.S3201) {
+                    log += `|NewWave`
                     pub.discardInSettle = true;
                 }
                 hand.splice(arg.idx, 1);
@@ -351,6 +401,7 @@ export const chooseHand: LongFormMove = {
             default:
                 throw new Error();
         }
+        log += `|checkNextEffect`
         logger.debug(`${G.matchID}|${log}`);
         checkNextEffect(G, ctx);
     }
@@ -413,6 +464,7 @@ export const chooseEffect: LongFormMove = {
             default:
                 G.e.choices = [];
                 G.e.stack.push(eff);
+                log += `|exec|${JSON.stringify(eff)}`
                 playerEffExec(G, ctx, p);
                 return;
         }
@@ -489,8 +541,17 @@ export const chooseRegion: LongFormMove = {
                 break;
             case "loseAnyRegionShare":
                 p = G.c.players[0] as PlayerID;
+                G.c.players = [];
                 G.pub[parseInt(p)].shares[r]--;
                 reg.share++;
+                break;
+            case "anyRegionShareCentral":
+                pub.shares[r]++;
+                reg.share--;
+                if (eff.a > 1) {
+                    eff.a--;
+                    G.e.stack.push(eff);
+                }
                 break;
             case "anyRegionShare":
                 let i = G.competitionInfo;
@@ -501,8 +562,7 @@ export const chooseRegion: LongFormMove = {
                     if (eff.a > 1) {
                         eff.a--;
                         G.e.stack.push(eff);
-                        checkNextEffect(G, ctx);
-                        return;
+                        break;
                     } else {
                         competitionCleanUp(G, ctx);
                         return
@@ -545,54 +605,115 @@ export const peek: LongFormMove = {
         let p = arg.p;
         let playerObj = G.player[parseInt(p)];
         let pub = G.pub[parseInt(p)];
+        let log = `peek|${JSON.stringify(eff)}`
+        log += `|hand${JSON.stringify(playerObj.hand)}|discard|${JSON.stringify(pub.discard)}`
         switch (eff.a.filter.e) {
             case "industry":
-                for (let card of playerObj.cardsToPeek) {
+                log += `|industry`
+                playerObj.cardsToPeek.forEach(card => {
+                    log += `|evaluating${card}`
                     let c = getCardById(card);
                     if (c.industry > 0) {
+                        log += `|hand|${card}`
+                        log += `|${JSON.stringify(playerObj.hand)}`
                         playerObj.hand.push(card);
+                        log += `|${JSON.stringify(playerObj.hand)}`
                     } else {
+                        log += `|discard|${card}|`
+                        log += `|${JSON.stringify(pub.discard)}`
                         pub.discard.push(card);
+                        log += `|${JSON.stringify(pub.discard)}`
                     }
-                }
+                })
                 playerObj.cardsToPeek = []
                 break;
             case "aesthetics":
-                for (let card of playerObj.cardsToPeek) {
-                    let c = getCardById(card)
+                playerObj.cardsToPeek.forEach(card => {
+                    log += `|evaluating${card}`
+                    let c = getCardById(card);
                     if (c.aesthetics > 0) {
+                        log += `|hand|${card}`
+                        log += `|${JSON.stringify(playerObj.hand)}`
                         playerObj.hand.push(card);
+                        log += `|${JSON.stringify(playerObj.hand)}`
                     } else {
+                        log += `|discard|${card}`
+                        log += `|${JSON.stringify(pub.discard)}`
                         pub.discard.push(card);
+                        log += `|${JSON.stringify(pub.discard)}`
                     }
-                }
+                })
+                playerObj.cardsToPeek = []
+                break;
+            case "region":
+                playerObj.cardsToPeek.forEach(card => {
+                    log += `|evaluating${card}`
+                    let c = getCardById(card);
+                    if (c.region === eff.a.filter.a) {
+                        log += `|hand|${card}`
+                        playerObj.hand.push(card);
+                        log += `|${JSON.stringify(playerObj.hand)}`
+                    } else {
+                        log += `|discard|${card}`
+                        log += `|${JSON.stringify(pub.discard)}`
+                        pub.discard.push(card);
+                        log += `|${JSON.stringify(pub.discard)}`
+                    }
+                })
                 playerObj.cardsToPeek = []
                 break;
             case "era":
-                for (let card of playerObj.cardsToPeek) {
+                playerObj.cardsToPeek.forEach(card => {
+                    log += `|evaluating${card}`
                     let c = getCardById(card);
                     if (c.era === eff.a.filter.a) {
+                        log += `|hand|${card}`
+                        log += `|${JSON.stringify(playerObj.hand)}`
                         playerObj.hand.push(card);
+                        log += `|${JSON.stringify(playerObj.hand)}`
                     } else {
+                        log += `|discard|${card}`
+                        log += `|${JSON.stringify(pub.discard)}`
                         pub.discard.push(card);
+                        log += `|${JSON.stringify(pub.discard)}`
                     }
-                }
+                })
                 playerObj.cardsToPeek = []
                 break;
             case "choice":
+                log += `|${JSON.stringify(playerObj.cardsToPeek)}`
                 playerObj.cardsToPeek.splice(arg.idx, 1);
+                log += `|${JSON.stringify(playerObj.cardsToPeek)}`
                 if (arg.card !== null) {
+                    log += `|hand|${arg.card}`
+                    log += `|${JSON.stringify(playerObj.hand)}`
                     playerObj.hand.push(arg.card);
+                    log += `|${JSON.stringify(playerObj.hand)}`
+                }else {
+                    log += `|noChoice`
                 }
                 if (eff.a.filter.a > 1) {
+                    log += `|pendingChoices`
                     eff.a.filter.a--;
                     G.e.stack.push(eff);
+                    log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
+                    logger.debug(`${G.matchID}|${log}`);
                     return;
                 } else {
+                    log += `|discardRemaining`
+                    playerObj.cardsToPeek.forEach(card => {
+                        log += `|evaluating${card}`
+                        log += `|discard|${card}`
+                        log += `|${JSON.stringify(pub.discard)}`
+                        pub.discard.push(card)
+                        log += `|${JSON.stringify(pub.discard)}`
+                    })
                     playerObj.cardsToPeek = []
                 }
                 break;
         }
+        log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
+        logger.debug(`${G.matchID}|${log}`);
         checkNextEffect(G, ctx);
     }
 }
@@ -616,13 +737,16 @@ export const chooseEvent: LongFormMove = {
         if (eid === EventCardID.E03) {
             log += "|Avant-grade"
             G.activeEvents.push(EventCardID.E03);
-            for (let i = 0; i < ctx.numPlayers; i++) {
+            for (let i = 0; i < G.order.length; i++) {
                 G.pub[i].action = 2;
             }
             logger.debug(`${G.matchID}|${log}`);
             fillEventCard(G, ctx);
             checkNextEffect(G, ctx);
         } else {
+            if (eid === EventCardID.E08) {
+                G.regions[Region.EE].buildings[1].activated = true;
+            }
             switch (eid) {
                 case EventCardID.E01:
                 case EventCardID.E02:
@@ -636,16 +760,89 @@ export const chooseEvent: LongFormMove = {
                     G.e.stack.push(getEvent(eid));
                     logger.debug(`${G.matchID}|${log}`);
                     fillEventCard(G, ctx);
-                    playerEffExec(G, ctx, arg.p);
+                    checkNextEffect(G, ctx);
                     break;
-                default:
-                    log += "|Score events"
-                    G.pub[parseInt(arg.p)].scoreEvents.push(eid);
-                    logger.debug(`${G.matchID}|${log}`);
+                case EventCardID.E10:
+                    G.order.forEach(j => {
+                        const pub = G.pub[parseInt(j)];
+                        G.order.forEach(o=>{
+                            const other = G.pub[parseInt(o)];
+                            if(other.vp > pub.vp){
+                                pub.vp += 4;
+                            }
+                        })
+                    })
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);
+                    break;
+                case EventCardID.E11:
+                    G.order.forEach(j=>{
+                        const pidInt = parseInt(j)
+                        const pub = G.pub[pidInt];
+                        const s = G.player[pidInt]
+                        const validID = [...G.secretInfo.playerDecks[pidInt], ...pub.discard, ...s.hand, ...pub.archive]
+                        const validCards = validID.map(c=>getCardById(c));
+                        pub.vp += validCards.filter(c=>c.type===CardType.P).length * 4;
+                    })
+                    fillEventCard(G, ctx);
+                    checkNextEffect(G, ctx);
+                    break;
+                case EventCardID.E12:
+                    G.order.forEach(j => {
+                        const pidInt = parseInt(j)
+                        const pub = G.pub[pidInt];
+                        pub.vp += pub.industry;
+                        pub.vp += pub.aesthetics;
+                    })
+                    fillEventCard(G, ctx);
+                    checkNextEffect(G, ctx);
+                    break;
+                case EventCardID.E13:
+                    G.order.forEach(j => {
+                        const pidInt = parseInt(j)
+                        const pub = G.pub[pidInt];
+                        let championRegionCount = 0;
+                        ValidRegions.forEach(r => {
+                            if (pub.champions.filter(c => c.region = r).length) {
+                                championRegionCount++;
+                            }
+                        })
+                        switch (championRegionCount) {
+                            case 4:
+                                pub.vp += 20;
+                                break;
+                            case 3:
+                                pub.vp += 12;
+                                break;
+                            case 2:
+                                pub.vp += 6;
+                                break;
+                            case 1:
+                                pub.vp += 2;
+                                break;
+                            default:
+                                break;
+                        }
+                    })
+                    fillEventCard(G, ctx);
+                    checkNextEffect(G, ctx);
+                    break;
+                case EventCardID.E14:
+                    G.order.forEach(j => {
+                        const pidInt = parseInt(j)
+                        const pub = G.pub[pidInt];
+                        pub.vp += pub.champions.length;
+                        ValidRegions.forEach(r=>pub.vp+=pub.shares[r]);
+                    })
+                    fillEventCard(G, ctx);
+                    checkNextEffect(G, ctx);
+                    break;
+                default:
+                    log += `|noSuchEventID|${eid}`
+                    break;
             }
         }
+        logger.debug(`${G.matchID}|${log}`);
     }
 }
 
@@ -656,67 +853,19 @@ export const requestEndTurn: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg}.moves.requestEndTurn("${arg}")`);
         let log = `requestEndTurn|${arg}`
-        // Clean up
-        let obj = G.pub[parseInt(arg)]
-        obj.playedCardInTurn.forEach(c => obj.discard.push(c));
-        obj.playedCardInTurn = [];
-        obj.revealedHand = [];
-        obj.resource = 0;
-        if (obj.deposit > 10) {
-            obj.deposit = 10;
-        }
-
-        // restore action point fill hand card
-        if (obj.school !== null) {
-            let schoolId = obj.school;
-            log += `|school|${schoolId}`
-            let act = getCardEffect(schoolId).school.action;
-            if (act === 1) {
-                if (G.activeEvents.includes(EventCardID.E03)) {
-                    log += `|Avant-Grade|2ap`
-                    obj.action = 2
-                } else {
-                    log += `|1ap`
-                    obj.action = 1
-                }
-            } else {
-                log += `|${act}ap`
-                obj.action = act;
-            }
-        } else {
-            if (G.activeEvents.includes(EventCardID.E03)) {
-                log += `|Avant-Grade|2ap`
-                obj.action = 2
-            } else {
-                log += `|1ap`
-                obj.action = 1
-            }
-        }
-        fillPlayerHand(G, ctx, ctx.currentPlayer);
-
-        // execute development rewards
-        log += `|aesAward`
-        aesAward(G, ctx, ctx.currentPlayer);
-        log += `|industryAward`
-        industryAward(G, ctx, ctx.currentPlayer);
-
-        // era scoring check
-        ValidRegions.forEach(r => {
-            if (r === Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE) return;
-            let canScore = checkRegionScoring(G, ctx, r);
-            if (canScore) {
-                G.scoringRegions.push(r)
-            }
-        })
-        log += `|scoreRegions|${JSON.stringify(G.scoringRegions)}`
-        if (ctx.numPlayers > SimpleRuleNumPlayers) {
-            log += "|tryScoring"
+        const playerObj = G.player[parseInt(arg)]
+        if (!playerObj.endTurnEffectExecuted) {
+            endTurnEffect(G, ctx, arg);
+            playerObj.endTurnEffectExecuted = true;
+        }else {
+            log += `|endTurnEffectAlreadyExecuted`
             logger.debug(`${G.matchID}|${log}`);
-            tryScoring(G, ctx);
-        } else {
-            log += "|try2pScoring"
-            logger.debug(`${G.matchID}|${log}`);
-            try2pScoring(G, ctx);
+        }
+        if (G.e.stack.length === 0) {
+            regionScoringCheck(G, ctx, arg);
+            playerObj.endTurnEffectExecuted = false;
+        }else {
+            checkNextEffect(G, ctx);
         }
     },
 }
@@ -726,6 +875,43 @@ export const moveBlocker: LongFormMove = {
     move: () => {
         return INVALID_MOVE;
     },
+}
+
+export const concedeMove: LongFormMove = {
+    client: false,
+    move: (G: IG, ctx: Ctx, p: PlayerID) => {
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`${G.matchID}|p${p}.moves.confirmRespond("${p}")`);
+        let log = `p${p}conceded`
+        if (G.order.includes(p)) {
+            const concedeIndex = G.order.indexOf(p);
+            log += `|index|${concedeIndex}|before|${JSON.stringify(G.order)}`
+            G.order.splice(concedeIndex, 1);
+            if (concedeIndex < G.order.length) {
+                log += `|notLastPlayer|DeductNewOrder`
+                G.order = seqFromPos(G, ctx, concedeIndex);
+            } else {
+                log += `|lastPlayerConcede`
+            }
+
+            log += `|after|${JSON.stringify(G.order)}`
+            if (G.order.length < 2) {
+                const winner = G.order[0];
+                log += `|onePlayerLeft|endGame|winner|${winner}`
+                logger.debug(`${G.matchID}|${log}`);
+                ctx?.events?.endGame?.({
+                    winner: winner,
+                    reason: VictoryType.othersConceded
+                })
+            } else {
+                log += `|endPhaseToUpdateOrder`
+                ctx?.events?.endPhase?.()
+                logger.debug(`${G.matchID}|${log}`);
+            }
+        } else {
+            throw Error();
+        }
+    }
 }
 
 export const confirmRespond: LongFormMove = {
@@ -834,13 +1020,16 @@ export const playCard: LongFormMove = {
         if (cardEff.hasOwnProperty("play")) {
             const eff = cardEff.play;
             if (eff.e !== "none") {
+                log += `|${JSON.stringify(eff)}`
                 G.e.stack.push(eff)
                 playerEffExec(G, ctx, ctx.currentPlayer);
             } else {
                 log += `|emptyPlayEffect`
+                checkNextEffect(G,ctx);
             }
         } else {
             log += `|noPlayEffect`
+            checkNextEffect(G,ctx);
         }
         logger.debug(`${G.matchID}|${log}`);
     },
@@ -892,13 +1081,39 @@ export const breakthrough: LongFormMove = {
         G.e.card = c.cardId;
         G.player[parseInt(arg.playerID)].hand.splice(arg.idx, 1);
         p.archive.push(arg.card);
+        let log = `breakthrough`
         if (arg.card === FilmCardID.F1108) {
             if (p.deposit < 1) {
+                log += `|cannotBreakThrough`
+                logger.debug(`${G.matchID}|${log}`);
                 return INVALID_MOVE;
             } else {
+                log += `|before|${p.deposit}`
                 p.deposit -= 1;
+                log += `|before|${p.deposit}`
             }
         }
+        if (p.school === SchoolCardID.S2201) {
+            log += `|neoRealism`
+            log += `|before|${JSON.stringify(G.e.stack)}`
+            G.e.stack.push({
+                e: "vp", a: 2, target: arg.playerID
+            });
+            G.e.stack.push({
+                e: "deposit", a: 1, target: arg.playerID
+            });
+            log += `|after|${JSON.stringify(G.e.stack)}`
+        }
+        if (p.school === SchoolCardID.S1204) {
+            log += `|swedish`
+            log += `|before|${JSON.stringify(G.e.stack)}`
+            G.e.stack.push({
+                e: "res", a: 1, target: arg.playerID
+            })
+            log += `|after|${JSON.stringify(G.e.stack)}`
+        }
+        log += `|startBreakthrough`
+        logger.debug(`${G.matchID}|${log}`);
         startBreakThrough(G, ctx, arg.playerID, arg.card);
     }
 }
@@ -926,7 +1141,7 @@ export const comment: LongFormMove = {
         } else {
             slot.comment = arg.comment;
         }
-        let p = schoolPlayer(G, ctx, "S3204");
+        let p = schoolPlayer(G, ctx, SchoolCardID.S3204);
         if (p !== null) {
             drawCardForPlayer(G, ctx, p);
         }

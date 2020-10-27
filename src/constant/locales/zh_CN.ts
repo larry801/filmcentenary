@@ -1,7 +1,7 @@
 import {Locale} from './en';
 import {IBuyInfo, IEra, Region, validRegion} from "../../types/core";
 import {
-    IChooseEventArg, IChooseHandArg, ICommentArg, ICompetitionCardArg,
+    IChooseEventArg, IChooseHandArg, ICommentArg,
     IEffectChooseArg, IPayAdditionalCostArgs,
     IPeekArgs,
     IPlayCardInfo,
@@ -36,7 +36,7 @@ const cards = {
     "B06": "血本无归的影片",
     "B07": "资金",
     'E01': '好菜坞的建立',
-    'E02': '摄影机专利案',
+    'E02': '第一次世界大战',
     'E03': '先锋派运动',
     'E04': '奥斯卡奖',
     'E05': '派拉蒙判决',
@@ -182,21 +182,26 @@ const cards = {
 };
 const eventName = {
     'E01': '【好莱坞】建筑位可以修建建筑 每个公司升级工业等级或美学等级1级',
-    'E02': '每个公司获得2存款 每个公司弃掉1张牌 *【托马斯·爱迪生】或【卢米埃尔兄弟】响应',
+    'E02': '工业等级最高的公司弃一张牌，美学等级最高的公司弃一张牌，每个公司获得2存款',
     'E03': '每个公司立刻获得第2个行动力(注意！并非行动力+1)  *若这张牌因为过时代而被弃掉，事件立刻触发',
     'E04': '声望最高的公司可以免费购买1张【商业片】并置入手牌 每个公司免费购买1张【传世经典】',
-    'E05': '每个公司获得3存款 北美有建筑的公司弃掉2张牌',
+    'E05': '北美有建筑的公司弃掉2张牌，工业等级、美学等级和流派角标总数最少的公司获得3存款',
     'E06': '声望最高的公司升级1级美学等级 每个公司免费购买1张【传世经典】',
     'E07': '每个公司升级工业等级或美学等级1级 声望不是最高的公司免费购买1张【烂片】',
-    'E08': '每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑，则该公司获得这张牌的声望 东欧地区没有建筑的公司免费购买1张【烂片】',
+    'E08': '【解冻】建筑位可以修建建筑，工业等级、美学等级和流派角标总数最少的公司升级工业等级或美学等级1级',
     'E09': '【宝莱坞】建筑位可以修建建筑 美学等级最低的公司升级1级美学等级 工业等级最低的公司升级1级工业等级',
-    'E10': '终局计分时：每有一个声望条数字比你高的公司， 你额外获得4声望',
-    'E11': '终局计分时：公司牌库里和档案馆里的每个人物获得4声望',
-    'E12': '终局计分时：公司按照工业等级和美字等级的总和获得声望',
-    'E13': '终局计分时：若公司获得过4/3/2/1个不同地区的第一，则你得到20/12/6/2声望',
-    'E14': '终局计分时：公司档案馆和牌库里的每张基础牌牌获得1声望',
+    'E10': '每有一个声望条数字比你高的公司 你额外获得4声望',
+    'E11': '每个公司牌库里和档案馆里的每个人物获得4声望',
+    'E12': '每个公司按照工业等级和美字等级的总和获得声望',
+    'E13': '如果获得过4/3/2/1个不同地区的第一，则得到20/12/6/2声望',
+    'E14': '所有公司每个第一和每个份额获得1声望',
 };
 
+const argConcede = {
+    args: (): string => {
+        return `投降`
+    }
+}
 
 
 const argCardName = {
@@ -256,6 +261,23 @@ const argConfirmRespond = {
         }
     }
 }
+const argChooseEffect = {
+    args: (arg: IEffectChooseArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += effName(a.effect)
+        return t
+    }
+}
+const argChooseEvent = {
+    args: (arg: IChooseEventArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += cards[a.event]
+        t += eventName[a.event]
+        return t
+    }
+}
 const argBuyCard = {
     args: (arg: IBuyInfo[]): string => {
         let a = arg[0]
@@ -284,23 +306,7 @@ const argPlayCard = {
         return t
     }
 }
-const argChooseEffect = {
-    args: (arg: IEffectChooseArg[]): string => {
-        let a = arg[0]
-        let t = chose
-        t += effName(a.effect)
-        return t
-    }
-}
-const argChooseEvent = {
-    args: (arg: IChooseEventArg[]): string => {
-        let a = arg[0]
-        let t = chose
-        t += cards[a.event]
-        t += eventName[a.event]
-        return t
-    }
-}
+
 const argBreakthrough = {
     args: (arg: IPlayCardInfo[]): string => {
         let a = arg[0]
@@ -355,7 +361,7 @@ const argPeek = {
     }
 }
 const argDrawCard = {
-    args: (arg: []): string => {
+    args: (): string => {
         return "用行动力额外抽取了一张牌"
     }
 }
@@ -376,7 +382,7 @@ const argChooseTarget = {
     }
 }
 const argRequestEndTurn = {
-    args: (arg: []): string => {
+    args: (): string => {
         return "行动结束"
     }
 }
@@ -403,8 +409,8 @@ const argPayAdditionalCost = {
     }
 }
 const argCompetitionCard = {
-    args: (arg: ICompetitionCardArg[]): string => {
-        return "打出一张牌用于争夺"
+    args: (): string => {
+        return "打出了一张牌用于争夺"
     }
 }
 const argUpdateSlot = {
@@ -451,7 +457,8 @@ const zh_CN: Locale = {
     eventName: eventName,
     region: region,
     action: {
-        adjustInSlider:"用下面的滑块调整支付额外费theF用的存款或资源",
+        concede:"投降",
+        adjustInSlider:"用下面的滑块调整支付额外费用的存款或资源",
         payAdditionalCost:"支付额外花费",
         comment: "评论",
         updateSlot: "更新",
@@ -475,6 +482,7 @@ const zh_CN: Locale = {
     },
     title:"电影百年",
     lobby: {
+        copyPrompt: "复制",
         numPlayers:"玩家数",
         title: "大厅",
         join: "加入",
@@ -501,6 +509,7 @@ const zh_CN: Locale = {
             total:"总分",
         },
         reason:{
+            othersConceded:"其他玩家投降",
             threeNAChampionAutoWin:"三个北美第一",
             championCountAutoWin:"满足自动胜利要求的第一数量",
             finalScoring:"终局计分",
@@ -513,6 +522,7 @@ const zh_CN: Locale = {
         },
     },
     moves: {
+        concede:["{{args}}",argConcede],
         showBoardStatus: ["{{args}}", argShowBoardStatus],
         chooseEffect: ["{{args}}", argChooseEffect],
         chooseEvent: ["{{args}}", argChooseEvent],
@@ -570,11 +580,11 @@ const zh_CN: Locale = {
         industryToVp: "按照你的工业等级获得声望",
         aestheticsToVp: "按照你的美学等级获得声望",
         threeCards: "你的每3张牌额外获得1声望",
-        northAmericaFilm: "你的每张北美影片额外获得2声望",
+        northAmericaFilm: "你的每张北美卡牌额外获得2声望",
         asiaFilm: "你的每张亚洲影片额外获得2声望",
         industryNormalOrLegend: "每张有工业标志的普通牌和传奇牌额外获得2声望",
         westEuropeCard: "你的每张西欧卡牌额外获得2声望",
-        eastEuropeFilm: "你的每张东欧影片额外获得2声望",
+        eastEuropeFilm: "你的每张东欧卡牌额外获得2声望",
         industryLevel: "你的每个工业等级额外获得2声望",
         aestheticsLevel: "你的每个美学等级额外获得2声望",
         personCard: "你的每张人物牌额外获得4声望",
@@ -583,7 +593,7 @@ const zh_CN: Locale = {
         obtainNormalOrLegendFilm: "每次获得普通影片或传奇影片时",
         none: "",
         breakthroughResDeduct: ["突破一次，少花费{{a}}资源", argValue],
-        handToOthers: ["把{{a}}张手牌交给任意公司", argValue],
+        handToAnyPlayer: ["把{{a}}张手牌交给任意公司", argValue],
         buyNoneEEFilm: "购买非东欧地区影片时",
         extraVp: ["额外支付{{a}}声望", argValue],
         breakthroughPrevent: "，否则不能执行突破效果",
@@ -614,8 +624,8 @@ const zh_CN: Locale = {
                         return "把其中有工业标志的"
                     case "era":
                         return `把其中${era[e.a as IEra]}时代的`
-                    case "asia":
-                        return "把其中亚洲地区的"
+                    case "region":
+                        return `把其中${region[e.a as Region]}地区的`
                     case "aesthetics":
                         return "把其中有美学标志的"
                     default:
@@ -633,8 +643,8 @@ const zh_CN: Locale = {
             },
             onWin: (e: any) => {
                 if (e.e !== "none") {
-                    if(e.e === "anyRegionShare"){
-                        return "若这次争夺获胜你额外获得一个任意地区份额"
+                    if(e.e === "anyRegionShareCentral"){
+                        return "若这次争夺获胜你额外从中央牌列获得1个任意地区的份额"
                     }else {
                         return "若这次争夺获胜你额外获得一个" + region[e.r as Region] + "地区份额"
                     }
@@ -650,7 +660,7 @@ const zh_CN: Locale = {
         archive: ["将{{a}}张手牌置入档案馆", argValue],
         resFromIndustry: "按照你的工业等级获得资源",
         resFromAesthetics: "按照你的美学等级获得资源",
-        atBreakthrough: "你突破后，",
+        afterBreakthrough: "你突破后，",
         aesAward: ["执行美学奖励{{a}}次", argValue],
         industryAward: ["执行工业奖励{{a}}次", argValue],
         draw: ["摸{{a}}张牌", argValue],
@@ -678,6 +688,7 @@ const zh_CN: Locale = {
         loseShareEE: ["失去{{a}}个东欧地区的份额", argValue],
         loseShareASIA: ["失去{{a}}个亚洲地区的份额", argValue],
         anyRegionShare: ["获得{{a}}个任意地区的份额", argValue],
+        anyRegionShareCentral: ["从中央牌列获得{{a}}个任意地区的份额", argValue],
         deductRes: ["少花费{{a}}资源", argValue],
         buyAesthetics: "购买有美学标志的影片时，",
         extraEffect: "额外效果：",
@@ -722,6 +733,9 @@ const zh_CN: Locale = {
     era: era,
     setup: "补充初始排列",
     dialog: {
+        concede: {
+            title:"确认投降?",
+        },
         competitionCard:{
             title: "请选择一张手牌参与争夺",
             toggleText: "争夺",
@@ -787,6 +801,7 @@ const zh_CN: Locale = {
         cinema: "电影院",
         bollywood: "宝莱坞",
         hollywood: "好莱坞",
+        unfreeze: "解冻",
         twoToFourPlayer: "2-4 玩家",
         threeToFourPlayer: "3-4 玩家",
         fourPlayerOnly: "4 玩家",

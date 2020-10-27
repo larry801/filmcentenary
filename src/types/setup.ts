@@ -31,16 +31,18 @@ export interface CompetitionInfo {
 }
 
 export interface IG {
+    regionScoreCompensateMarker: PlayerID,
     eventDeckLength: number,
     matchID: string,
     twoPlayer: {
-        era:IEra,
+        era: IEra,
         schoolDeckLength: number,
         filmDeckLength: number,
         school: ICardSlot[],
         film: ICardSlot[],
     },
     order: PlayerID[],
+    initialOrder: PlayerID[],
     playerCount: number,
     activeEvents: EventCardID[],
     logDiscrepancyWorkaround: boolean,
@@ -110,8 +112,6 @@ let initialDeck = [
     BasicCardID.B07, BasicCardID.B07,
     BasicCardID.B07, BasicCardID.B07
 ];
-// @ts-ignore
-// initialDeck = ["F1104","B02","B07","B07",]
 
 function pubPlayer(): IPubInfo {
     return {
@@ -165,6 +165,7 @@ function pubPlayer(): IPubInfo {
 
 export function privatePlayer(): IPrivateInfo {
     return {
+        endTurnEffectExecuted:false,
         hand: [], handSize: 0,
         cardsToPeek: [], competitionCards: [],
         finalScoringExtraVp: 0,
@@ -208,11 +209,12 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     let events = shuffle(ctx, []);
     // TODO enable random order in real game
     // let randomOrder = shuffle(ctx, order);
-    let G = {
+    let G: IG = {
+        regionScoreCompensateMarker: "0",
         eventDeckLength: 0,
         matchID: "",
         twoPlayer: {
-            era:IEra.ONE,
+            era: IEra.ONE,
             schoolDeckLength: 0,
             filmDeckLength: 0,
             school: [
@@ -227,6 +229,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             ],
         },
         order: order,
+        initialOrder: order,
         logDiscrepancyWorkaround: false,
         pending: {
             lastRoundOfGame: false,
@@ -366,6 +369,9 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             "B07": 0,
         },
     }
+    if (ctx.numPlayers === SimpleRuleNumPlayers){
+        G.pub[parseInt(G.order[1])].vp = 1;
+    }
     if (ctx.numPlayers === 3) {
         G.regions[Region.NA].buildings[1].activated = true;
         G.regions[Region.WE].buildings[1].activated = true;
@@ -375,7 +381,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     if (ctx.numPlayers === 4) {
         G.regions[Region.NA].buildings[1].activated = true;
         G.regions[Region.WE].buildings[1].activated = true;
-        G.regions[Region.EE].buildings[1].activated = true;
         G.pub[parseInt(G.order[2])].vp = 1;
         G.pub[parseInt(G.order[3])].vp = 2;
     }
@@ -395,9 +400,20 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         drawForRegion(G, ctx, Region.WE, IEra.ONE);
         drawForRegion(G, ctx, Region.EE, IEra.ONE);
     }
-    for (let i = 0; i < ctx.numPlayers; i++) {
-        fillPlayerHand(G, ctx, i.toString());
-    }
+    G.order.forEach(p => fillPlayerHand(G, ctx, p))
     doFillNewEraEventDeck(G, ctx, IEra.ONE);
+    G.regionScoreCompensateMarker = G.order[G.order.length - 1];
+
+    // G.pub[0].resource = 20;
+    // G.pub[0].deposit = 20;
+    // // @ts-ignore
+    // G.regions[Region.NA].legend.card = "P1101"
+    // // @ts-ignore
+    // G.regions[Region.NA].normal[0].card = "F1103"
+    // // @ts-ignore
+    // G.pub[0].school = "S3101";
+    // @ts-ignore
+    // G.player[0].hand = ["F3306","P2102"]
+    // G.pub[0].resource = 3;
     return G;
 };

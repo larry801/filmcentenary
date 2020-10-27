@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect} from "react";
 import {IG} from "../types/setup";
 import {BasicCardID, CardCategory, CardID, ClassicCardID, ICardSlot, Region, SchoolCardID} from "../types/core";
 import {ChoiceDialog} from "./modals";
@@ -41,6 +41,11 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     const [depositExtra, setDepositExtra] = React.useState(0);
 
     const [checked, setChecked] = React.useState(Array(helpers.length).fill(false));
+
+    useEffect(()=>{
+        setChecked(Array(helpers.length).fill(false))
+    },[helpers])
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let newHelper = [...checked]
         let idx: number = parseInt(e.target.value);
@@ -96,14 +101,12 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     };
     const refreshCost = () => {
         setDepositExtra(0);
-
     }
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
     const buyAndClose = () => {
         handleClose();
         buy();
-
     }
 
     const canMakeBuyMove = () => {

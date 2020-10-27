@@ -8,14 +8,15 @@ import {
     ClassicCardID,
     EventCardID,
     FilmCardID,
-    IBasicCard, IBuildingSlot,
+    IBasicCard,
+    IBuildingSlot,
     IBuyInfo,
     ICardSlot,
     ICost,
     IEra,
     INormalOrLegendCard,
-    InteractiveEffectNames,
     IPubInfo,
+    ItrEffects,
     LegendCardCountInUse,
     NormalCardCountInUse,
     PersonCardID,
@@ -99,6 +100,8 @@ export const requireInteraction = (G: IG, eff: any): boolean => {
 export const isSimpleEffect = (G: IG, eff: any): boolean => {
     let log = `isSimpleEffect|${eff.e}`;
     switch (eff.e) {
+        case "anyRegionShareCentral":
+        case "playedCardInTurnEffect":
         case "alternative":
         case "competition":
         case "loseAnyRegionShare":
@@ -106,7 +109,7 @@ export const isSimpleEffect = (G: IG, eff: any): boolean => {
         case "noBuildingEE":
         case "vpNotHighestPlayer":
         case "highestVpPlayer":
-        case "handToOthers":
+        case "handToAnyPlayer":
         case "industryAndAestheticsBreakthrough":
         case "industryOrAestheticsBreakthrough":
         case "industryOrAestheticsLevelUp":
@@ -127,7 +130,8 @@ export const isSimpleEffect = (G: IG, eff: any): boolean => {
         case "update":
         case "comment":
         case "optional":
-        case InteractiveEffectNames.archiveToEEBuildingVP:
+        case "pay":
+        case ItrEffects.archiveToEEBuildingVP:
             log += `|false`
             logger.debug(`${G.matchID}|${log}`);
             return false;
@@ -180,26 +184,48 @@ export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
 export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     let eff = G.e.stack.pop();
     let log = `simpleEffectExec|p${p}|${JSON.stringify(eff)}`
-    let obj = G.pub[parseInt(p)];
+    let pub = G.pub[parseInt(p)];
     let card: INormalOrLegendCard;
+    const i = G.competitionInfo;
     switch (eff.e) {
         case "none":
         case "skipBreakthrough":
             return;
         case "shareToVp":
-            addVp(G, ctx, p, obj.shares[eff.a as validRegion]);
+            addVp(G, ctx, p, pub.shares[eff.a as validRegion]);
             return;
         case "loseVpForEachHand":
             loseVp(G, ctx, p, G.player[parseInt(p)].hand.length);
             break;
         case "aestheticsToVp":
-            addVp(G, ctx, p, obj.aesthetics);
+            addVp(G, ctx, p, pub.aesthetics);
             break;
         case "industryToVp":
-            addVp(G, ctx, p, obj.industry)
+            addVp(G, ctx, p, pub.industry)
             break;
         case "resFromIndustry":
-            obj.resource += obj.industry;
+            if (i.pending) {
+                log += `|pendingCompetition`
+                if (p === i.atk) {
+                    log += `|atk`
+                    i.progress += pub.industry;
+                    log += `|${i.progress}`
+                } else {
+                    if (p === i.def) {
+                        log += `|def`
+                        i.progress -= pub.industry;
+                        log += `|${i.progress}`
+                    } else {
+                        log += `|notCompetitionPlayer|${pub.resource}`
+                        pub.resource += eff.a;
+                        log += `|${pub.resource}`
+                    }
+                }
+            } else {
+                log += `|${pub.resource}`
+                pub.resource += pub.industry;
+                log += `|${pub.resource}`
+            }
             break;
         case "enableBollywood":
             G.regions[Region.ASIA].buildings[1].activated = true;
@@ -216,40 +242,39 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             break;
 
         case "loseShareNA":
-            loseShare(G, Region.NA, obj, eff.a);
+            loseShare(G, Region.NA, pub, eff.a);
             break;
         case "shareNA":
-            getShare(G, Region.NA, obj, eff.a);
+            getShare(G, Region.NA, pub, eff.a);
             break;
 
         case "loseShareWE":
-            loseShare(G, Region.WE, obj, eff.a);
+            loseShare(G, Region.WE, pub, eff.a);
             break;
         case "shareWE":
-            getShare(G, Region.WE, obj, eff.a);
+            getShare(G, Region.WE, pub, eff.a);
             break;
 
         case "loseShareEE":
-            loseShare(G, Region.EE, obj, eff.a);
+            loseShare(G, Region.EE, pub, eff.a);
             break;
         case "shareEE":
-            getShare(G, Region.EE, obj, eff.a);
+            getShare(G, Region.EE, pub, eff.a);
             break;
 
         case "loseShareASIA":
-            loseShare(G, Region.ASIA, obj, eff.a);
+            loseShare(G, Region.ASIA, pub, eff.a);
             break;
         case "shareASIA":
-            getShare(G, Region.ASIA, obj, eff.a);
+            getShare(G, Region.ASIA, pub, eff.a);
             break;
 
         case "deposit":
-            log += `|${obj.deposit}`
-            obj.deposit += eff.a;
-            log += `|${obj.deposit}`
+            log += `|${pub.deposit}`
+            pub.deposit += eff.a;
+            log += `|${pub.deposit}`
             break;
         case "res":
-            let i = G.competitionInfo;
             if (i.pending) {
                 log += `|pendingCompetition`
                 if (p === i.atk) {
@@ -262,15 +287,15 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                         i.progress -= eff.a;
                         log += `|${i.progress}`
                     } else {
-                        log += `|notCompetitionPlayer|${obj.resource}`
-                        obj.resource += eff.a;
-                        log += `|${obj.resource}`
+                        log += `|notCompetitionPlayer|${pub.resource}`
+                        pub.resource += eff.a;
+                        log += `|${pub.resource}`
                     }
                 }
             } else {
-                log += `|${obj.resource}`
-                obj.resource += eff.a;
-                log += `|${obj.resource}`
+                log += `|${pub.resource}`
+                pub.resource += eff.a;
+                log += `|${pub.resource}`
             }
             break;
         case "vp":
@@ -288,19 +313,19 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             doBuyToHand(G, ctx, card, p);
             break;
         case "aestheticsLevelUp":
-            if (obj.aesthetics < 10) {
-                log += `|${obj.aesthetics}`
-                obj.aesthetics++;
-                log += `|${obj.aesthetics}`
+            if (pub.aesthetics < 10) {
+                log += `|${pub.aesthetics}`
+                pub.aesthetics++;
+                log += `|${pub.aesthetics}`
             } else {
                 log += `|LV10CannotUpgrade`
             }
             break
         case "industryLevelUp":
-            if (obj.industry < 10) {
-                log += `|${obj.industry}`
-                obj.industry++;
-                log += `|${obj.industry}`
+            if (pub.industry < 10) {
+                log += `|${pub.industry}`
+                pub.industry++;
+                log += `|${pub.industry}`
             } else {
                 log += `|LV10CannotUpgrade`
             }
@@ -316,8 +341,32 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             }
             break;
         case "buy":
-            doBuy(G, ctx, getCardById(eff.a), p);
-            break;
+            const targetCard = getCardById(eff.a);
+            if (
+                pub.school === SchoolCardID.S3101
+                && (targetCard.category === CardCategory.NORMAL
+                || targetCard.category === CardCategory.LEGEND)
+                && targetCard.type === CardType.F
+            ) {
+                log += `|newHollyWood`
+                G.e.stack.push({
+                    e: "optional", a: {
+                        e: "pay", a: {
+                            cost: {e: "deposit", a: 1},
+                            eff: {e: "anyRegionShare", a: 1}
+                        }
+                    },
+                    target: p,
+                })
+                doBuy(G, ctx, targetCard, p);
+                log += `|execOptional`
+                logger.debug(`${G.matchID}|${log}`);
+                playerEffExec(G, ctx, p);
+                return
+            } else {
+                doBuy(G, ctx, targetCard, p);
+                break;
+            }
         default:
             logger.error("Invalid effect" + JSON.stringify(eff));
             throw new Error(JSON.stringify(eff));
@@ -326,10 +375,23 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
 }
 
 export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
-    let obj = G.player[parseInt(p)];
-    let pObj = G.pub[parseInt(p)];
+    const pub = G.pub[parseInt(p)];
+    const playerObj = G.player[parseInt(p)];
+    let log = `p${p}|doBuyToHand|${card.cardId}`
+    if (pub.school === SchoolCardID.S2301 && card.region !== Region.EE) {
+        log += `|SocialismRealism`
+        if (pub.vp > 0) {
+            loseVp(G, ctx, p, 1);
+        } else {
+            log += `|noVpCannotBuy`
+            logger.debug(`${G.matchID}|${log}`);
+            return;
+        }
+    }
     if (card.category === CardCategory.BASIC) {
+        log += `|basic`
         G.basicCards[card.cardId as BasicCardID] -= 1;
+        log += `|${G.basicCards[card.cardId as BasicCardID]}left`
     } else {
         let slot = cardSlotOnBoard(G, ctx, card);
         if (slot === null) {
@@ -337,22 +399,30 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
         } else {
             slot.card = null;
             if (slot.comment !== null) {
-                obj.hand.push(slot.comment);
-                pObj.allCards.push(slot.comment);
+                playerObj.hand.push(slot.comment);
+                pub.allCards.push(slot.comment);
                 slot.comment = null;
             }
             doReturnSlotCard(G, ctx, slot);
         }
     }
-    obj.hand.push(card.cardId);
-    pObj.allCards.push(card.cardId)
+    playerObj.hand.push(card.cardId);
+    pub.allCards.push(card.cardId)
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
     let pub = G.pub[parseInt(p)];
     let log = `doBuy|${card.cardId}|p${p}`
-    if(pub.school === SchoolCardID.S2301 && card.region !== Region.EE){
-        loseVp(G, ctx, p, 1);
+    if (pub.school === SchoolCardID.S2301 && card.region !== Region.EE) {
+        log += `|SocialismRealism`
+        if (pub.vp > 0) {
+            loseVp(G, ctx, p, 1);
+        } else {
+            log += `|noVpCannotBuy`
+            logger.debug(`${G.matchID}|${log}`);
+            return;
+        }
     }
     if (card.category === CardCategory.BASIC) {
         let count = G.basicCards[card.cardId as BasicCardID];
@@ -401,14 +471,17 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
 
         }
         if (card.type === CardType.S) {
+            log += `|buySchool`
             let school = pub.school;
-            let kino = schoolPlayer(G, ctx, SchoolCardID.S1303);
+            const kino = schoolPlayer(G, ctx, SchoolCardID.S1303);
+            log += `|kinoPlayer|${JSON.stringify(kino)}`
             if (kino !== null && p !== kino) {
                 log += `|p${kino}|KinoEyes`
                 addVp(G, ctx, kino, 1);
                 G.pub[parseInt(kino)].deposit++;
             }
             if (school !== null) {
+                log += `|hasSchool`
                 if (school === SchoolCardID.S1203) {
                     if (pub.aesthetics < 10) {
                         log += `|Expressionism`
@@ -500,6 +573,9 @@ export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     return result
 }
 
+export const initialPosOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
+    return G.initialOrder.indexOf(p);
+}
 export const posOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
     return G.order.indexOf(p);
 }
@@ -512,7 +588,8 @@ export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
 export const seqFromPos = (G: IG, ctx: Ctx, pos: number): PlayerID[] => {
     let log = `seqFromPos`;
     let seq = [];
-    for (let i = pos; i < ctx.numPlayers; i++) {
+    const remainPlayers = G.order.length
+    for (let i = pos; i < remainPlayers; i++) {
         log += `|push|${i}`
         seq.push(G.order[i])
     }
@@ -530,6 +607,7 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     log += `|act|p${act}`
     let pos = posOfPlayer(G, ctx, act);
     let seq = seqFromPos(G, ctx, pos);
+    log += `|seq:${JSON.stringify(seq)}`
     logger.debug(`${G.matchID}|${log}`);
     return seq;
 }
@@ -539,10 +617,29 @@ export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     log += `|cur|p${ctx.currentPlayer}`
     let pos = posOfPlayer(G, ctx, ctx.currentPlayer);
     let seq = seqFromPos(G, ctx, pos);
+    log += `|seq:${JSON.stringify(seq)}`
     logger.debug(`${G.matchID}|${log}`);
     return seq;
 }
 
+export const industryHighestPlayer = (G: IG): PlayerID[] => {
+    let log = "industryHighestPlayer"
+    let highest = 0;
+    let result: PlayerID[] = [];
+    G.order.forEach(i => {
+        if (G.pub[parseInt(i)].industry > highest) highest = G.pub[parseInt(i)].industry
+    })
+    log += `|highest|${highest}`
+    G.order.forEach(i => {
+        if (G.pub[parseInt(i)].industry === highest) {
+            log += `|p${i}|${G.pub[parseInt(i)].industry}|highest`
+            result.push(i)
+        }
+    })
+    log += `|result|${result}`
+    logger.debug(`${G.matchID}|${log}`);
+    return result;
+}
 export const industryLowestPlayer = (G: IG): PlayerID[] => {
     let log = "industryLowestPlayer"
     let lowest = 10;
@@ -561,6 +658,95 @@ export const industryLowestPlayer = (G: IG): PlayerID[] => {
     return result;
 }
 
+export const getLevelMarkCount = (G: IG, p: PlayerID): number => {
+    const pub = G.pub[parseInt(p)];
+    let result = pub.aesthetics + pub.industry
+    const school = pub.school;
+    if (school === null) {
+        return result;
+    } else {
+        const schoolCard = getCardEffect(school);
+        result += schoolCard.aesthetics;
+        result += schoolCard.industry;
+    }
+    return result
+}
+
+export const levelAndMarkLowestPlayer = (G: IG): PlayerID[] => {
+    const result: PlayerID[] = [];
+    let log = `levelAndMarkLowestPlayer`
+    let lowestTotalLevel = 20;
+    G.order.forEach(i => {
+        const limit = getLevelMarkCount(G, i);
+        if (limit < lowestTotalLevel) {
+            lowestTotalLevel = limit;
+        }
+    })
+    log += `|lowestSchoolHandLimit|${lowestTotalLevel}`;
+    G.order.forEach(i => {
+        const limit = getLevelMarkCount(G, i);
+        if (limit === lowestTotalLevel) {
+            log += `|p${i}|lowest`
+            result.push(i);
+        }
+    })
+    log += `|result|${JSON.stringify(result)}`
+    logger.debug(`${G.matchID}|${log}`);
+    return result;
+}
+
+export const getSchoolHandLimit = (G: IG, p: PlayerID): number => {
+    const school = G.pub[parseInt(p)].school
+    if (school === null) {
+        return 4;
+    } else {
+        return getCardEffect(school).school.hand;
+    }
+}
+
+
+export const schoolHandLowestPlayer = (G: IG): PlayerID[] => {
+    const result: PlayerID[] = [];
+    let lowestSchoolHandLimit = 50;
+    let log = `schoolHandLowestPlayer`
+    G.order.forEach(i => {
+        const limit = getSchoolHandLimit(G, i);
+        if (limit < lowestSchoolHandLimit) {
+            lowestSchoolHandLimit = limit;
+        }
+    })
+    log += `|lowestSchoolHandLimit|${lowestSchoolHandLimit}`;
+    G.order.forEach(i => {
+        const limit = getSchoolHandLimit(G, i);
+        if (limit === lowestSchoolHandLimit) {
+            log += `|p${i}|lowest`
+            result.push(i);
+        }
+    })
+    log += `|result|${result}`
+    logger.debug(`${G.matchID}|${log}`);
+    return result;
+}
+export const aesHighestPlayer = (G: IG): PlayerID[] => {
+    let log = `aesHighestPlayer`
+    let highest = 0;
+    let result: PlayerID[] = [];
+    G.order.forEach(i => {
+        if (G.pub[parseInt(i)].aesthetics > highest) {
+            highest = G.pub[parseInt(i)].aesthetics
+        }
+    })
+    log += `|highest|${highest}`
+    G.order.forEach(i => {
+        if (G.pub[parseInt(i)].aesthetics === highest) {
+            log += `|p${i}|${G.pub[parseInt(i)].aesthetics}|lowest`
+            result.push(i)
+        }
+    })
+    log += `|result${result}`
+    logger.debug(`${G.matchID}|${log}`);
+    return result;
+}
 export const aesLowestPlayer = (G: IG): PlayerID[] => {
     let log = `aesLowestPlayer`
     let lowestAes = 10;
@@ -667,18 +853,8 @@ export const breakthroughEffectPrepare = (G: IG, card: CardID): void => {
 }
 
 export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID): void => {
-    let p = curPub(G, ctx);
     let c = getCardById(card)
     let log = `startBreakThrough|p${pid}|${card}`
-    if (p.school === SchoolCardID.S2201) {
-        log += "|NeoRealism"
-        p.deposit += 2;
-        addVp(G, ctx, pid, 1);
-    }
-    if (p.school === SchoolCardID.S1204) {
-        log += "|Swedish"
-        p.resource += 1;
-    }
     if (c.cardId === FilmCardID.F1208 || c.cardId === BasicCardID.B05) {
         log += "|MetropolisOrClassic"
         G.e.stack.push({
@@ -698,7 +874,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     log += `|breakthroughEffectPrepare`
     logger.debug(`${G.matchID}|${log}`);
     breakthroughEffectPrepare(G, card);
-    let cardEff = getCardEffect(c.cardId).archive;
+    let cardEff = getCardEffect(c.cardId);
     if (c.cardId !== FilmCardID.F1108) {
         if (cardEff.hasOwnProperty("archive")) {
             const eff = cardEff.archive;
@@ -726,10 +902,19 @@ export const curCard = (G: IG) => {
     return getCardById(G.e.card);
 }
 
+export const pushPlayersEffects = (G: IG, players: PlayerID[], eff: any) => {
+    let log = `pushPlayersEffects|players|${JSON.stringify(players)}`
+    for (let p of players) {
+        const targetEff = {...eff, target: p};
+        G.e.stack.push(targetEff);
+    }
+    log += `|${JSON.stringify(G.e.stack)}`
+    logger.debug(`${G.matchID}|${log}`);
+}
+
 export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let log = `playerEffExec|p${p}`;
     let eff = G.e.stack.pop();
-
     if (eff === undefined) {
         log += "|StackEmpty|checkNextEffect"
         logger.debug(`${G.matchID}|${log}`);
@@ -744,12 +929,20 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let region = curCard(G).region as validRegion;
     log += `|c:${G.e.card}|region:${region}`;
     let players = []
-    let effectLength = 0;
+    let length = 0;
     const handLength = playerObj.hand.length;
     let subEffect;
     let extraCost = 0
     const totalRes = pub.resource + pub.deposit;
     switch (eff.e) {
+        case "playedCardInTurnEffect":
+            if (pub.playedCardInTurn.filter(c => getCardById(c).aesthetics > 0).length > 0) {
+                log += `|chooseHand`
+                changePlayerStage(G, ctx, "chooseHand", p);
+                return;
+            }
+            log += `|noAesMarkCardPlayed`
+            break;
         case "aestheticsLevelUpCost":
             extraCost = additionalCostForUpgrade(G, pub.aesthetics);
             log += `|extra|${extraCost}`
@@ -801,11 +994,20 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case "era":
-            let era = G.regions[region].era;
+            let era;
+            if (ctx.numPlayers > SimpleRuleNumPlayers) {
+                log += `|not2p`
+                era = G.regions[region].era;
+            } else {
+                log += `|2p`
+                era = G.twoPlayer.era;
+            }
+            log += `|era|${era}`
             G.e.stack.push(eff.a[era]);
+            log += `|era|${JSON.stringify(G.e.stack)}`
             break;
         case "breakthroughResDeduct":
-            if (handLength > 0 && pub.action > 0) {
+            if (handLength > 0) {
                 log += `|chooseHand`
                 G.e.stack.push(eff);
                 logger.debug(`${G.matchID}|${log}`);
@@ -843,7 +1045,20 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             return;
         case "loseAnyRegionShare":
             G.e.regions = ValidRegions.filter(r => pub.shares[r] > 0)
+            log += `|${JSON.stringify(G.e.regions)}`
             if (G.e.regions.length === 0) {
+                ctx?.events?.endStage?.()
+                log += `|endStage`
+                break;
+            } else {
+                G.e.stack.push(eff)
+                changePlayerStage(G, ctx, "chooseRegion", p);
+                return;
+            }
+        case "anyRegionShareCentral":
+            G.e.regions = ValidRegions.filter(r => G.regions[r].share > 0)
+            if (G.e.regions.length === 0) {
+                log += "No share on board, cannot obtain from others."
                 break;
             } else {
                 G.e.stack.push(eff)
@@ -872,7 +1087,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             } else {
                 G.e.regions = ValidRegions.filter(r => G.regions[r].share > 0)
                 if (G.e.regions.length === 0) {
-                    logger.debug("Target player has no share, cannot obtain from others.")
+                    log += "No share on board, cannot obtain from others."
+                    logger.debug(`${G.matchID}|${log}`);
                     break;
                 } else {
                     G.e.stack.push(eff)
@@ -880,67 +1096,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     return;
                 }
             }
-        case "noBuildingEE":
-            subEffect = {...eff.a};
-            if (isSimpleEffect(G, subEffect)) {
-                log += "|simpleEffect|execForAll"
-                players = noBuildingPlayers(G, ctx, Region.EE);
-                for (let p of players) {
-                    G.e.stack.push(subEffect);
-                    simpleEffectExec(G, ctx, p);
-                }
-            }
-            break;
-        case "vpNotHighestPlayer":
-            log += `|vpNotHighestPlayer`
-            subEffect = {...eff.a};
-            players = vpNotHighestPlayer(G)
-            if (isSimpleEffect(G, subEffect)) {
-                log += "|simpleEffect|execForAll"
-                for (let p of players) {
-                    G.e.stack.push(subEffect);
-                    simpleEffectExec(G, ctx, p);
-                }
-            }
-            break;
-        case "highestVpPlayer":
-            log += "|highestVpPlayer"
-            subEffect = {...eff.a};
-            players = vpHighestPlayer(G);
-            if (isSimpleEffect(G, subEffect)) {
-                log += "|simpleEffect|execForAll"
-                for (let p of players) {
-                    G.e.stack.push(subEffect);
-                    simpleEffectExec(G, ctx, p);
-                }
-            }
-            break;
-        case "aesLowest":
-            subEffect = {...eff.a};
-            players = aesLowestPlayer(G)
-            if (isSimpleEffect(G, subEffect)) {
-                log += "|simpleEffect|execForAll"
-                for (let p of players) {
-                    G.e.stack.push(subEffect);
-                    simpleEffectExec(G, ctx, p);
-                }
-            }
-            break;
-        case "industryLowest":
-            subEffect = {...eff.a};
-            players = industryLowestPlayer(G);
-            if (isSimpleEffect(G, subEffect)) {
-                log += "|simpleEffect|execForAll"
-                for (let p of players) {
-                    G.e.stack.push(subEffect);
-                    simpleEffectExec(G, ctx, p);
-                }
-            }
-            break;
-        case "handToOthers":
-            log += `|handToOthers`
+        case "handToAnyPlayer":
+            log += `|handToAnyPlayer`
             players = seqFromCurrentPlayer(G, ctx);
-            players.splice(players.indexOf(p), 1);
             G.c.players = players
             G.e.stack.push(eff)
             changePlayerStage(G, ctx, "chooseTarget", p);
@@ -973,9 +1131,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             let peekCount = eff.a.count;
             log += `|peek|${peekCount}`
             let deck = G.secretInfo.playerDecks[curPid(G, ctx)];
-            effectLength = deck.length;
-            log += `|len|${effectLength}`
-            const totalRemainCards = effectLength + pub.discard.length
+            length = deck.length;
+            log += `|len|${length}`
+            const totalRemainCards = length + pub.discard.length
             if (totalRemainCards < peekCount) {
                 log += `|total|${totalRemainCards}`
                 log += `|noEnoughCardsToPeek`
@@ -985,14 +1143,16 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 log += `|noEnoughCardToChoose`
                 eff.a.filter.a = totalRemainCards;
             }
-            if (effectLength < peekCount) {
+            if (length < peekCount) {
                 log += `|fetchRemainDeck|${JSON.stringify(deck)}`
                 playerObj.cardsToPeek = [...deck];
                 deck = [];
                 deck = shuffle(ctx, pub.discard);
                 pub.discard = [];
                 log += `|shuffle|${JSON.stringify(deck)}`
-                for (let i = 0; i < peekCount - effectLength; i++) {
+                const remainDrawCount = peekCount - length;
+                log += `|more|${remainDrawCount}`
+                for (let i = 0; i < remainDrawCount; i++) {
                     let newCardId = deck.pop();
                     if (newCardId === undefined) {
                         throw Error("Should have card in deck");
@@ -1014,108 +1174,55 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             logger.debug(`${G.matchID}|${log}`);
             changePlayerStage(G, ctx, "peek", p);
             return;
+        case "noBuildingEE":
+            players = noBuildingPlayers(G, ctx, Region.EE);
+            pushPlayersEffects(G, players, eff.a);
+            break;
+        case "vpNotHighestPlayer":
+            players = vpNotHighestPlayer(G);
+            pushPlayersEffects(G, players, eff.a);
+            break;
+        case "highestVpPlayer":
+            players = vpHighestPlayer(G);
+            pushPlayersEffects(G, players, eff.a);
+            break;
+        case "levelAndMarkLowestPlayer":
+            players = levelAndMarkLowestPlayer(G);
+            pushPlayersEffects(G, players, eff.a);
+            break;
+        case "aesHighest":
+            players = aesHighestPlayer(G);
+            pushPlayersEffects(G, players, eff.a);
+            break;
+        case "aesLowest":
+            players = aesLowestPlayer(G);
+            pushPlayersEffects(G, players, eff.a);
+            break;
+        case "industryHighest":
+            players = industryHighestPlayer(G);
+            pushPlayersEffects(G, players, eff.a);
+            break;
+        case "industryLowest":
+            players = industryLowestPlayer(G);
+            pushPlayersEffects(G, players, eff.a);
+            break;
+        case "studio":
+            players = studioPlayers(G, ctx, region);
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "buildingNA":
-            subEffect = {...eff.a};
             players = buildingPlayers(G, ctx, Region.NA);
-            log += "|buildingNAPlayers"
-            log += `|${JSON.stringify(players)}`
-            if (isSimpleEffect(G, subEffect)) {
-                log += "|simpleEffect|execForAll"
-                for (let p of players) {
-                    G.e.stack.push(subEffect);
-                    simpleEffectExec(G, ctx, p);
-                }
-            } else {
-                if (G.e.pendingPlayers.length === 0) {
-                    if (players.length > 0) {
-                        G.e.pendingPlayers = players;
-                        G.e.stack.push(eff);
-                        log += "|pushBack"
-                        break;
-                    } else {
-                        log += `|noOneHasBuildingNA`
-                        break;
-                    }
-                } else {
-                    if (G.e.pendingPlayers.length !== 1) {
-                        log += `|morePlayerPending`
-                        G.e.stack.push(eff);
-                    } else {
-                        log += `|onePlayerPending`
-                    }
-                    let player = G.e.pendingPlayers.shift() as PlayerID;
-                    subEffect.target = player;
-                    log += `|push|${JSON.stringify(subEffect)}`
-                    G.e.stack.push(subEffect);
-                    log += `|left|${G.e.pendingPlayers}`
-                    log += `|execFor|p${player}`
-                    logger.debug(`${G.matchID}|${log}`);
-                    playerEffExec(G, ctx, player);
-                    return;
-                }
-            }
+            pushPlayersEffects(G, players, eff.a);
             break;
         case "everyOtherCompany":
-            log += `|everyOtherCompany`
-            subEffect = {...eff.a};
-            if (isSimpleEffect(G, subEffect)) {
-                for (let p of G.e.pendingPlayers) {
-                    G.e.stack.push(eff.a);
-                    simpleEffectExec(G, ctx, p);
-                }
-            } else {
-                if (G.e.pendingPlayers.length === 0) {
-                    G.e.pendingPlayers = seqFromCurrentPlayer(G, ctx);
-                    G.e.pendingPlayers.shift()
-                    G.e.stack.push(eff);
-                } else {
-                    if (G.e.pendingPlayers.length !== 1) {
-                        G.e.stack.push(eff);
-                    }
-                    let player = G.e.pendingPlayers.shift() as PlayerID;
-                    subEffect.target = player;
-                    log += `|push|${JSON.stringify(subEffect)}`
-                    G.e.stack.push(subEffect);
-                    logger.debug(`${G.matchID}|${log}`);
-                    playerEffExec(G, ctx, player);
-                    return;
-                }
-            }
+            players = seqFromCurrentPlayer(G, ctx);
+            players.shift()
+            pushPlayersEffects(G, players, eff.a);
             break;
         case "everyPlayer":
-            log += "|everyPlayer"
-            subEffect = {...eff.a};
-            if (isSimpleEffect(G, subEffect)) {
-                log += "|simpleEffect|execForAll"
-                players = seqFromCurrentPlayer(G, ctx);
-                for (let p of players) {
-                    G.e.stack.push(subEffect);
-                    simpleEffectExec(G, ctx, p);
-                }
-            } else {
-                if (G.e.pendingPlayers.length === 0) {
-                    log += "|fetchPlayers"
-                    log += `|${JSON.stringify(G.e.pendingPlayers)}`
-                    G.e.pendingPlayers = seqFromCurrentPlayer(G, ctx);
-                    log += `|${JSON.stringify(G.e.pendingPlayers)}`
-                    G.e.stack.push(eff);
-                    log += "|pushBack"
-                    logger.debug(`${G.matchID}|${log}`);
-                } else {
-                    log += "|complexEffect"
-                    if (G.e.pendingPlayers.length !== 1) {
-                        G.e.stack.push(eff);
-                    }
-                    let player = G.e.pendingPlayers.shift() as PlayerID;
-                    subEffect.target = player;
-                    log += `|push|${JSON.stringify(subEffect)}`
-                    G.e.stack.push(subEffect);
-                    logger.debug(`${G.matchID}|${log}`);
-                    playerEffExec(G, ctx, player);
-                    return;
-                }
-            }
-            break
+            players = seqFromCurrentPlayer(G, ctx);
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "noStudio":
             players = noStudioPlayers(G, ctx, region);
             log += `|region:${region}|noStudioPlayers|${JSON.stringify(players)}`
@@ -1128,52 +1235,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             logger.debug(`${G.matchID}|${log}`);
             changePlayerStage(G, ctx, "chooseTarget", p);
             return;
-        case "studio":
-            subEffect = {...eff.a};
-            players = studioPlayers(G, ctx, region);
-            log += `|region:${region}|studioPlayers|${JSON.stringify(players)}`
-            if (isSimpleEffect(G, subEffect)) {
-                log += "|simpleEffect|execForAll"
-                for (let p of players) {
-                    G.e.stack.push(subEffect);
-                    simpleEffectExec(G, ctx, p);
-                }
-            } else {
-                if (G.e.pendingPlayers.length === 0) {
-                    if (players.length > 0) {
-                        G.e.pendingPlayers = players;
-                        G.e.stack.push(eff);
-                        log += "|pushBack"
-                        break;
-                    } else {
-                        log += `|noOneHasStudio`
-                        break;
-                    }
-                } else {
-                    if (G.e.pendingPlayers.length !== 1) {
-                        log += `|morePlayerPending|pushBack`
-                        G.e.stack.push(eff);
-                    } else {
-                        log += `|onePlayerPending`
-                    }
-                    let player = G.e.pendingPlayers.shift() as PlayerID;
-                    log += `|pending|${JSON.stringify(G.e.pendingPlayers)}`
-                    subEffect.target = player;
-                    log += `|push|${JSON.stringify(subEffect)}`
-                    G.e.stack.push(subEffect);
-                    log += `|execFor|p${player}`
-                    logger.debug(`${G.matchID}|${log}`);
-                    playerEffExec(G, ctx, player);
-                    return;
-                }
-            }
-            break;
         case "step":
             log += ("|step")
-            effectLength = eff.a.length;
-            for (let i = effectLength - 1; i >= 0; i--) {
+            length = eff.a.length;
+            for (let i = length - 1; i >= 0; i--) {
                 subEffect = {...eff.a[i]};
-                if(eff.hasOwnProperty("target")){
+                if (eff.hasOwnProperty("target")) {
                     log += `|specifyTarget|${eff.target}`
                     subEffect.target = eff.target;
                 }
@@ -1184,7 +1251,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "discardNormalOrLegend":
             if (playerObj.hand.filter(i =>
-                getCardById(i).category !== CardCategory.BASIC
+                getCardById(i).category !== CardCategory.BASIC &&
+                getCardById(i).category !== CardCategory.SCORE
             ).length > 0) {
                 G.e.stack.push(eff);
                 log += (`|Has classic cards|changePlayerStage|${p}`)
@@ -1426,10 +1494,18 @@ export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
 
 export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let o = G.pub[parseInt(p)];
-    const log = `industryAward|p${p}|${o.industry}`
-    if (o.industry > 1) o.resource += 1;
-    if (o.industry > 4) drawCardForPlayer(G, ctx, p);
-    if (o.industry > 7) drawCardForPlayer(G, ctx, p);
+    let log = `industryAward|p${p}|${o.industry}`
+    if (o.industry > 1) {
+        log += `|before|${o.resource}`
+        o.resource += 1
+        log += `|after|${o.resource}`
+    }
+    if (o.industry > 4) {
+        drawCardForPlayer(G, ctx, p);
+    }
+    if (o.industry > 7) {
+        drawCardForPlayer(G, ctx, p);
+    }
     logger.debug(`${G.matchID}|${log}`);
 }
 
@@ -1652,32 +1728,28 @@ export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
     }
 }
 export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
-    let pid = parseInt(id);
-    let p = G.player[pid]
-    let pub = G.pub[pid]
+    const pid = parseInt(id);
+    let log = `drawCardForPlayer${id}`
+    const p = G.player[pid]
+    const pub = G.pub[pid]
     let s = G.secretInfo.playerDecks[pid]
     if (s.length === 0) {
         G.secretInfo.playerDecks[pid] = shuffle(ctx, pub.discard);
+        log += `|shuffledDeck|${JSON.stringify(s)}`
         pub.discard = [];
     }
     let card = G.secretInfo.playerDecks[pid].pop();
     if (card === undefined) {
-        // TODO what if player has no card at all?
-        logger.debug("Player deck empty cannot draw!")
+        log += `|deckEmpty`
     } else {
+        log += `|${card}`
         p.hand.push(card);
     }
+    logger.debug(`${G.matchID}|${log}`);
 }
 export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
-    let i = parseInt(p);
-    let s = G.pub[i].school
-    let limit: number;
-    if (s === null) {
-        limit = 4;
-    } else {
-        limit = getCardEffect(s).school.hand;
-    }
-    let handCount: number = G.player[i].hand.length;
+    const limit = getSchoolHandLimit(G, p);
+    let handCount: number = G.player[parseInt(p)].hand.length;
     if (handCount < limit) {
         let drawCount: number = limit - handCount;
         logger.debug(`p${p}|draw${drawCount}card`)
@@ -1778,7 +1850,6 @@ export const fillEmptySlots = (G: IG, ctx: Ctx) => {
         }
         for (let slot of region.normal) {
             if (slot.card === null && n.length > 0) {
-                logger.debug(n);
                 let c = n.pop();
                 if (c !== undefined) {
                     slot.card = c;
@@ -1880,39 +1951,58 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
                 firstPlayer = 0
             }
+            G.pub[0].shares[r] = 0;
+            G.pub[1].shares[r] = 0;
             let scoreCard = getScoreCard(r, IEra.THREE, 1)
             G.pub[firstPlayer].discard.push(scoreCard.cardId as ScoreCardID);
             G.pub[firstPlayer].allCards.push(scoreCard.cardId as ScoreCardID);
         }
     })
-    if (G.twoPlayer.film.every(c => c.card === null)) {
-        if (posOfPlayer(G, ctx, ctx.currentPlayer) === 2) {
-            ValidRegions.forEach(r => {
-                if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
-                    doBuy(G, ctx, B04, '1')
-                }
-                if (G.pub[0].shares[r] < G.pub[1].shares[r]) {
-                    doBuy(G, ctx, B04, '0')
-                }
-            })
-            let era = G.twoPlayer.era;
-            let newEra = era;
-            if (era === IEra.ONE) {
-                newEra = IEra.TWO
+    if (
+        G.twoPlayer.film.every(c => c.card === null)
+        && initialPosOfPlayer(G, ctx, ctx.currentPlayer) === 1
+    ) {
+        ValidRegions.forEach(r => {
+            if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
+                doBuy(G, ctx, B04, '1')
             }
-            if (era === IEra.ONE) {
-                newEra = IEra.THREE
+            if (G.pub[0].shares[r] < G.pub[1].shares[r]) {
+                doBuy(G, ctx, B04, '0')
             }
-            if (era !== newEra) {
-                G.twoPlayer.era = newEra;
-                drawForTwoPlayerEra(G, ctx, newEra)
-            } else {
-                finalScoring(G, ctx);
-            }
+        })
+        const era = G.twoPlayer.era;
+        let newEra = era;
+        if (era === IEra.ONE) {
+            newEra = IEra.TWO
         }
+        if (era === IEra.TWO) {
+            newEra = IEra.THREE
+        }
+        G.regions[Region.NA].share = 12;
+        G.regions[Region.WE].share = 10;
+        G.regions[Region.EE].share = 8;
+        G.regions[Region.ASIA].share = 10;
+        if (era !== newEra) {
+            G.twoPlayer.era = newEra;
+            for (let schoolSlot of G.twoPlayer.school) {
+                doReturnSlotCard(G, ctx, schoolSlot)
+            }
+            for (let filmSlot of G.twoPlayer.school) {
+                doReturnSlotCard(G, ctx, filmSlot)
+            }
+            drawForTwoPlayerEra(G, ctx, newEra)
+            signalEndTurn(G, ctx);
+            return;
+        } else {
+            finalScoring(G, ctx);
+            return
+        }
+    } else {
+        fillTwoPlayerBoard(G, ctx);
+        signalEndTurn(G, ctx);
+        return;
     }
-    fillTwoPlayerBoard(G, ctx);
-    signalEndTurn(G, ctx);
+
 }
 
 export const tryScoring = (G: IG, ctx: Ctx): void => {
@@ -1928,7 +2018,7 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
         log += "|noRegion"
         if (
             G.pending.lastRoundOfGame &&
-            posOfPlayer(G, ctx, ctx.currentPlayer)
+            initialPosOfPlayer(G, ctx, ctx.currentPlayer)
             === (ctx.numPlayers - 1)
         ) {
             log += "|finalScoring"
@@ -1949,10 +2039,25 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
     }
 };
 
+export const passCompensateMarker = (G: IG) => {
+    let log = `passCompensateMarker`
+    const markPos = G.order.indexOf(G.regionScoreCompensateMarker);
+    log += `|p${G.regionScoreCompensateMarker}|markPos|${markPos}`
+    if (markPos > 0) {
+        G.regionScoreCompensateMarker = G.order[markPos - 1];
+        log += `|passTo|p${G.regionScoreCompensateMarker}|${markPos - 1}`
+    } else {
+        G.regionScoreCompensateMarker = G.order[G.order.length - 1];
+        log += `|passTo|p${G.regionScoreCompensateMarker}|${G.order.length - 1}`
+    }
+    logger.debug(`${G.matchID}|${log}`);
+}
+
 export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     if (r === Region.NONE) return;
     let era = G.regions[r].era;
     let log = `regionRank|${r}|${era}`
+    let compensateMarkerUsed = false;
     const rank = (a: PlayerID, b: PlayerID): number => {
         let log = `rank|${a}|${b}`
         let p1 = G.pub[parseInt(a)];
@@ -1971,8 +2076,8 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             return 1;
         }
         log += `|sameShare`
-        let legendCountA = legendCount(G, ctx, r, era, a);
-        let legendCountB = legendCount(G, ctx, r, era, b);
+        const legendCountA = legendCount(G, ctx, r, era, a);
+        const legendCountB = legendCount(G, ctx, r, era, b);
         log += `|legendCount|${legendCountA}|${legendCountB}`
         if (legendCountA > legendCountB) {
             log += `|legendCount|p${a}win`
@@ -1985,19 +2090,59 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             return 1;
         }
         log += `|sameLegendCount`
+        let winner = "";
+        const aHasMarker = G.regionScoreCompensateMarker === a;
+        const bHasMarker = G.regionScoreCompensateMarker === b;
+        if (aHasMarker) {
+            log += `|ahasMarker|p${a}win`
+            winner = a;
+        }
+        if (bHasMarker) {
+            log += `|bHasMarker|p${b}win`
+            winner = b;
+        }
+        if (winner === "") {
+            log += `|noOneHasMarker`
+        }
         const curPos = seqFromActivePlayer(G, ctx);
         const posA = curPos.indexOf(a);
         const posB = curPos.indexOf(b);
         log += `|pos|${posA}|${posB}`
         if (posA > posB) {
-            log += `|pos|p${a}win`
-            logger.debug(`${G.matchID}|${log}`);
-            return 1;
-        } else {
-            if (posA < posB) {
+            if (winner === "") {
                 log += `|pos|p${b}win`
                 logger.debug(`${G.matchID}|${log}`);
-                return -1;
+                return 1;
+            } else {
+                if (winner === b) {
+                    log += `|markPosSame|p${a}win`
+                    logger.debug(`${G.matchID}|${log}`);
+                    return 1;
+                } else {
+                    compensateMarkerUsed = true;
+                    log += `|markUsed|p${a}win`
+                    logger.debug(`${G.matchID}|${log}`);
+                    return -1;
+                }
+            }
+        } else {
+            if (posA < posB) {
+                if (winner === "") {
+                    log += `|pos|p${a}win`
+                    logger.debug(`${G.matchID}|${log}`);
+                    return -1;
+                } else {
+                    if (winner === a) {
+                        log += `|markPosSame|p${b}win`
+                        logger.debug(`${G.matchID}|${log}`);
+                        return -1;
+                    } else {
+                        compensateMarkerUsed = true;
+                        log += `|useMarker|p${b}win`
+                        logger.debug(`${G.matchID}|${log}`);
+                        return 1;
+                    }
+                }
             } else {
                 throw Error("Two player cannot have the same position.")
             }
@@ -2015,6 +2160,9 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         }
     });
     let rankResult = rankingPlayer.sort(rank);
+    if (compensateMarkerUsed) {
+        passCompensateMarker(G);
+    }
     log += `|rankResult|${rankResult}`;
     let firstPlayer: PlayerID = rankResult[0];
     log += `|firstPlayer:${firstPlayer}`
@@ -2199,16 +2347,87 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
         drawForRegion(G, ctx, Region.ASIA, IEra.TWO);
         G.regions[Region.ASIA].era = IEra.TWO;
         G.regions[Region.ASIA].share = ShareOnBoard[Region.ASIA][IEra.TWO];
+        if (ctx.numPlayers === 3) {
+            G.regions[Region.ASIA].share--;
+        }
     }
     log += "|tryScoring"
     logger.debug(`${G.matchID}|${log}`);
     tryScoring(G, ctx);
 }
 
+export const regionScoringCheck = (G: IG, ctx: Ctx, arg: PlayerID) => {
+    let log = `regionScoringCheck|${arg}`
+    ValidRegions.forEach(r => {
+        if (r === Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE) return;
+        let canScore = checkRegionScoring(G, ctx, r);
+        if (canScore) {
+            G.scoringRegions.push(r)
+        }
+    })
+    log += `|scoreRegions|${JSON.stringify(G.scoringRegions)}`
+    if (ctx.numPlayers > SimpleRuleNumPlayers) {
+        log += "|tryScoring"
+        logger.debug(`${G.matchID}|${log}`);
+        tryScoring(G, ctx);
+    } else {
+        log += "|try2pScoring"
+        logger.debug(`${G.matchID}|${log}`);
+        try2pScoring(G, ctx);
+    }
+    logger.debug(`${G.matchID}|${log}`);
+}
+export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
+    let log = `endTurnEffect|p${arg}`
+    const pub = G.pub[parseInt(arg)]
+    pub.playedCardInTurn.forEach(c => pub.discard.push(c));
+    pub.playedCardInTurn = [];
+    pub.revealedHand = [];
+    pub.resource = 0;
+    if (pub.deposit > 10) {
+        log += `|depositLimitExceeded|${pub.deposit}`
+        pub.deposit = 10;
+    }
+
+    log += `|restore`
+    if (pub.school !== null) {
+        let schoolId = pub.school;
+        log += `|school|${schoolId}`
+        let act = getCardEffect(schoolId).school.action;
+        if (act === 1) {
+            if (G.activeEvents.includes(EventCardID.E03)) {
+                log += `|Avant-Grade|2ap`
+                pub.action = 2
+            } else {
+                log += `|1ap`
+                pub.action = 1
+            }
+        } else {
+            log += `|${act}ap`
+            pub.action = act;
+        }
+    } else {
+        if (G.activeEvents.includes(EventCardID.E03)) {
+            log += `|Avant-Grade|2ap`
+            pub.action = 2
+        } else {
+            log += `|1ap`
+            pub.action = 1
+        }
+    }
+    fillPlayerHand(G, ctx, ctx.currentPlayer);
+    log += `| execute development rewards`
+    log += `|aesAward`
+    aesAward(G, ctx, ctx.currentPlayer);
+    log += `|industryAward`
+    industryAward(G, ctx, ctx.currentPlayer);
+    logger.debug(`${G.matchID}|${log}`);
+}
+
 export function checkNextEffect(G: IG, ctx: Ctx) {
     let log = "checkNextEffect";
     if (G.e.stack.length === 0) {
-        log += ("|Stack empty")
+        log += ("|stackEmpty")
         let newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3204);
         if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
             G.pub[parseInt(newWavePlayer)].discardInSettle = false;
@@ -2235,11 +2454,22 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                     return;
                 }
             } else {
-                if (ctx.activePlayers !== null) {
-                    log += "|signalEndStage"
-                    signalEndStage(G, ctx);
+                if (G.player[parseInt(ctx.currentPlayer)].endTurnEffectExecuted) {
+                    log += `|endTurnEffectExecuted`
+                    G.player[parseInt(ctx.currentPlayer)].endTurnEffectExecuted = false
+                    regionScoringCheck(G, ctx, ctx.currentPlayer);
                     logger.debug(`${G.matchID}|${log}`);
-                    return;
+                    return
+                } else {
+                    if (ctx.activePlayers !== null) {
+                        log += "|signalEndStage"
+                        signalEndStage(G, ctx);
+                        logger.debug(`${G.matchID}|${log}`);
+                        return;
+                    } else {
+                        log += `|notInStage`
+                        logger.debug(`${G.matchID}|${log}`);
+                    }
                 }
             }
         } else {
@@ -2252,7 +2482,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         let nextEff = G.e.stack.slice(-1)[0];
         log += `|Next effect|${JSON.stringify(nextEff)}`
         let targetPlayer = ctx.currentPlayer
-        if(nextEff.hasOwnProperty("target")){
+        if (nextEff.hasOwnProperty("target")) {
             targetPlayer = nextEff.target;
         }
         log += `|target|${targetPlayer}`
@@ -2268,13 +2498,13 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     obj.vp += vp;
     log += `|after|${obj.vp}`
     let count = 0;
-    if (obj.vp >= 60 && !obj.vpAward.v60) {
-        log += `|v60`
+    if (obj.vp >= 40 && !obj.vpAward.v60) {
+        log += `|v40`
         count++;
         obj.vpAward.v60 = true;
     }
-    if (obj.vp >= 90 && !obj.vpAward.v90) {
-        log += `|v90`
+    if (obj.vp >= 80 && !obj.vpAward.v90) {
+        log += `|v80`
         count++;
         obj.vpAward.v90 = true;
     }
@@ -2286,7 +2516,6 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     if (obj.vp >= 150 && !obj.vpAward.v150) {
         log += `|v150`
         obj.vpAward.v150 = true;
-        count++;
         G.pending.lastRoundOfGame = true;
     }
     if (count > 0) {
@@ -2297,10 +2526,10 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     logger.debug(`${G.matchID}|${log}`);
 }
 export const loseDeposit = (G: IG, ctx: Ctx, p: PlayerID, deposit: number) => {
-    let log = `loseDeposit|${p}|${deposit}`
+    let log = `p${p}|loseDeposit|${deposit}`
     let pub = G.pub[parseInt(p)];
     log += `|before|${pub.deposit}`
-    if (deposit > pub.vp) {
+    if (deposit >= pub.deposit) {
         pub.deposit = 0;
     } else {
         pub.deposit -= deposit;
@@ -2313,7 +2542,7 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     let log = `loseVp|${p}|${vp}`
     let pub = G.pub[parseInt(p)];
     log += `|before|${pub.vp}`
-    if (vp > pub.vp) {
+    if (vp >= pub.vp) {
         pub.vp = 0;
     } else {
         pub.vp -= vp;
@@ -2414,11 +2643,12 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     if (hasWinner) {
         if (i.onWin.e !== "none") {
             log += `|onWin${JSON.stringify(i.onWin)}`
-            if (i.onWin.e === "anyRegionShare") {
+            if (i.onWin.e === "anyRegionShareCentral") {
                 log += `|moreShare${i.onWin.a}|playerEffExec|p${winner}`
                 G.e.stack.push({
-                    e: "anyRegionShare", a: 1 + i.onWin.a
+                    e: "anyRegionShare", a: 1
                 })
+                G.e.stack.push({...i.onWin})
                 logger.debug(`${G.matchID}|${log}`);
                 playerEffExec(G, ctx, winner);
                 return;
@@ -2463,16 +2693,26 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
             log += `|industryMark|++`
             i.progress++;
         }
-        let eff = getCardEffect(cardId);
-        log += `|${JSON.stringify(eff.play)}`
-        G.e.card = cardId;
         if (cinemaInRegion(G, ctx, i.region, i.atk)) {
             log += `|cinemaInRegion|${i.region}|${i.progress}`
-            i.progress ++;
+            i.progress++;
             log += `|${i.progress}`
             addVp(G, ctx, i.atk, 1);
         }
-        G.e.stack.push(eff.play);
+        const cardEff = getCardEffect(cardId);
+        if (cardEff.hasOwnProperty("play")) {
+            const eff = cardEff.play;
+            if (eff.e !== "none") {
+                eff.target = i.atk;
+                log += `|${JSON.stringify(eff)}`
+                G.e.stack.push(eff)
+            } else {
+                log += `|emptyPlayEffect`
+            }
+        } else {
+            log += `|noPlayEffect`
+        }
+        G.e.card = cardId;
         logger.debug(`${G.matchID}|${log}`);
         // TODO may over run set a barrier effect?
         playerEffExec(G, ctx, i.atk);
@@ -2502,19 +2742,28 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
             i.progress--;
         }
         G.pub[parseInt(i.def)].discard.push(cardId);
-        let eff = getCardEffect(cardId);
-        log += `|${JSON.stringify(eff.play)}`
-        G.e.card = cardId;
-        G.e.stack.push(eff.play);
+        const cardEff = getCardEffect(cardId);
+        if (cardEff.hasOwnProperty("play")) {
+            const eff = cardEff.play;
+            if (eff.e !== "none") {
+                eff.target = i.def;
+                log += `|${JSON.stringify(eff)}`
+                G.e.stack.push(eff)
+            } else {
+                log += `|emptyPlayEffect`
+            }
+        } else {
+            log += `|noPlayEffect`
+        }
         G.player[parseInt(i.def)].competitionCards = [];
         if (cinemaInRegion(G, ctx, i.region, i.def)) {
             log += `|cinemaInRegion|${i.region}|${i.progress}`
-            i.progress --;
+            i.progress--;
             log += `|${i.progress}`
             addVp(G, ctx, i.atk, 1);
         }
         logger.debug(`${G.matchID}|${log}`);
-        playerEffExec(G, ctx, i.def);
+        checkNextEffect(G, ctx);
     } else {
         log += `|defNoCard|showCompetitionResult`
         logger.debug(`${G.matchID}|${log}`);
@@ -2541,7 +2790,7 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
         }
     }
     log += `|resetShare`
-    for (let i = 0; i < ctx.numPlayers; i++) {
+    for (let i = 0; i < G.order.length; i++) {
         G.pub[i].shares[r] = 0;
     }
     if (era === IEra.ONE) {
@@ -2653,7 +2902,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     if (p.school !== null) {
         f.card += getCardById(p.school).vp;
     }
-    let validID = [...G.secretInfo.playerDecks[i], ...p.discard, ...s.hand]
+    let validID = [...G.secretInfo.playerDecks[i], ...p.discard, ...s.hand, ...p.playedCardInTurn]
     let validCards = validID.map(c => getCardById(c));
     validCards.forEach(c => {
         f.card += c.vp
@@ -2661,11 +2910,11 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     if (p.building.cinemaBuilt) f.building += 3;
     if (p.building.studioBuilt) f.building += 3;
     if (p.industry === 10) {
-        for (let j = 0; j < ctx.numPlayers; i++) {
-            let each = G.pub[j];
+        G.order.forEach(j => {
+            let each = G.pub[parseInt(j)];
             if (each.building.cinemaBuilt) f.industryAward += 5;
             if (each.building.studioBuilt) f.industryAward += 5;
-        }
+        })
     }
     if (p.aesthetics === 10) {
         f.aestheticsAward += Math.round(p.vp / 5);
@@ -2674,49 +2923,6 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         let championCount = p.champions.filter(c => c.region === r).length;
         f.archive += p.archive.filter(card => getCardById(card).region === r).length * championCount;
     });
-    if (p.scoreEvents.includes(EventCardID.E10)) {
-        for (let j = 0; j < ctx.numPlayers; i++) {
-            if (j !== parseInt(pid)) {
-                let other = G.pub[j];
-                if (other.vp > p.vp) {
-                    f.events += 4;
-                }
-            }
-        }
-    }
-    if (p.scoreEvents.includes(EventCardID.E11)) {
-        G.secretInfo.playerDecks[i].filter(c => getCardById(c).type === CardType.P).forEach(() => f.events += 4);
-        f.events += p.archive.filter(card => getCardById(card).type === CardType.P).length * 4;
-    }
-    if (p.scoreEvents.includes(EventCardID.E12)) {
-        f.events += p.industry;
-        f.events += p.aesthetics;
-    }
-    if (p.scoreEvents.includes(EventCardID.E13)) {
-        let championCount = p.champions.length;
-        switch (championCount) {
-            case 6:
-            case 5:
-            case 4:
-                f.events += 20;
-                break;
-            case 3:
-                f.events += 12;
-                break;
-            case 2:
-                f.events += 6;
-                break;
-            case 1:
-                f.events += 2;
-                break;
-            default:
-                break;
-        }
-    }
-    if (p.scoreEvents.includes(EventCardID.E14)) {
-        f.events += G.secretInfo.playerDecks[i].filter(c => getCardById(c).category === CardCategory.BASIC).length;
-        f.events += p.archive.filter(card => getCardById(card).category === CardCategory.BASIC).length;
-    }
     if (validID.includes(PersonCardID.P3102)) {
         f.events += validCards.filter(c => c.industry > 0)
             .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
@@ -2724,12 +2930,10 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     }
     if (validID.includes(FilmCardID.F3106)) {
         f.events += validCards.filter(c => c.region === Region.NA)
-            .filter(c => c.type === CardType.F)
             .length * 2
     }
     if (validID.includes(PersonCardID.P3402)) {
         f.events += validCards.filter(c => c.region === Region.ASIA)
-            .filter(c => c.type === CardType.F)
             .length * 2
     }
     if (validID.includes(FilmCardID.F3107)) {
@@ -2760,15 +2964,25 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events
 }
 
-export const schoolPlayer = (G: IG, ctx: Ctx, cardId: string): PlayerID | null => {
-    for (let i = 0; i < ctx.numPlayers; i++) {
-        if (G.pub[i].school === cardId) return i.toString();
-    }
-    return null;
+export const schoolPlayer = (G: IG, ctx: Ctx, cardId: CardID): PlayerID | null => {
+    let log = `schoolPlayer|${cardId}`
+    let player = null
+    G.order.forEach(p => {
+        log += `|${p}`
+        if (G.pub[parseInt(p)].school === cardId) {
+            log += `|kino`
+            player = p;
+        } else {
+            log += `|notKino`
+        }
+    })
+    log += `|result|${player}`
+    logger.debug(`${G.matchID}|${log}`);
+    return player;
 }
 
 export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = false): number => {
-    let log = `rank|${p1}|${p2}`
+    let log = `rank|p${p1}|p${p2}`
     let pub1 = G.pub[p1];
     let pub2 = G.pub[p2];
     const v1 = pub1.finalScoring.total;
@@ -2784,9 +2998,9 @@ export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = 
             if (addLog) logger.debug(`${G.matchID}|${log}`);
             return 1;
         } else {
-            const pos1 = posOfPlayer(G, ctx, p1.toString());
-            const pos2 = posOfPlayer(G, ctx, p2.toString());
-            log += `|pos|${pos1}|${pos2}`
+            const pos1 = initialPosOfPlayer(G, ctx, p1.toString());
+            const pos2 = initialPosOfPlayer(G, ctx, p2.toString());
+            log += `|initialPos|${pos1}|${pos2}`
             if (addLog) logger.debug(`${G.matchID}|${log}`);
             if (pos1 < pos2) {
                 log += `|p${p2}wins`
@@ -2802,11 +3016,11 @@ export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = 
 }
 export const finalScoring = (G: IG, ctx: Ctx) => {
     let pid: number[] = [];
-    for (let i = 0; i < ctx.numPlayers; i++) {
+    for (let i = 0; i < G.order.length; i++) {
         getExtraScoreForFinal(G, ctx, i.toString());
         pid.push(i);
     }
-    const rankFunc = (a: number, b: number) => rank(G, ctx, a, b);
+    const rankFunc = (a: number, b: number) => rank(G, ctx, a, b, true);
     let finalRank = pid.sort(rankFunc);
     ctx?.events?.endGame?.({
         winner: finalRank[0].toString(),
@@ -2814,7 +3028,7 @@ export const finalScoring = (G: IG, ctx: Ctx) => {
     })
 }
 
-export const getCardName = (cardId: string):string => {
+export const getCardName = (cardId: string): string => {
     if (cardId in i18n.card) {
         // @ts-ignore
         return i18n.card[cardId];

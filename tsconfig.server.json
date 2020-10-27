@@ -2,7 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "outDir": "build/"
+    "outDir": "./build",
+    "baseUrl": "./",
+    "isolatedModules": false
   },
   "include": ["server.ts"]
 }

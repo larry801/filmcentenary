@@ -15,7 +15,7 @@ import {
     moveBlocker, peek,
     playCard,
     requestEndTurn,
-    updateSlot
+    updateSlot, concedeMove
 } from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
 import {Region, ValidRegions, VictoryType} from "./types/core";
@@ -112,6 +112,7 @@ export const FilmCentenaryGame: Game<IG> = {
         updateSlot: updateSlot,
         comment: comment,
         peek: peek,
+        concede: concedeMove,
     },
 
     endIf: (G: IG, ctx: Ctx) => {

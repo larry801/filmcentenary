@@ -1,6 +1,13 @@
 import React from "react";
-
-import {BasicCardID, BuildingType, ICardSlot, IRegionInfo, Region, validRegion} from "../types/core";
+import {
+    BasicCardID,
+    BuildingType,
+    ICardSlot,
+    INormalOrLegendCard,
+    IRegionInfo,
+    Region,
+    validRegion
+} from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {useI18n} from "@i18n-chain/react";
@@ -10,8 +17,7 @@ import makeStyles from '@material-ui/core/styles/makeStyles';
 import createStyles from '@material-ui/core/styles/createStyles'
 import {activePlayer, actualStage, getCardName} from "../game/util";
 import Button from "@material-ui/core/Button";
-import {blue, purple, red, yellow} from "@material-ui/core/colors";
-import Icon from "@material-ui/core/Icon";
+import {blue, purple, red, yellow, grey} from "@material-ui/core/colors";
 import Paper from "@material-ui/core/Paper";
 import Typography from "@material-ui/core/Typography";
 import {Theme} from "@material-ui/core/styles/createMuiTheme";
@@ -19,6 +25,9 @@ import Grid from "@material-ui/core/Grid";
 import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
+import LabelIcon from '@material-ui/icons/Label';
+import {getCardById} from "../types/cards";
+
 
 export interface ICardSlotProp {
     slot: ICardSlot,
@@ -33,7 +42,7 @@ export interface IShareIconProps {
     r: validRegion
 }
 
-const getColor = (r: validRegion): string => {
+export const getColor = (r: Region): string => {
     switch (r) {
         case Region.WE:
             return purple[500]
@@ -43,9 +52,11 @@ const getColor = (r: validRegion): string => {
             return red[500]
         case Region.ASIA:
             return yellow[700]
+        case Region.NONE:
+            return grey[700]
     }
 }
-export const ShareIcon = ({r}: IShareIconProps) => <Icon style={{color: getColor(r)}}>label</Icon>
+export const ShareIcon = ({r}: IShareIconProps) => <LabelIcon style={{color: getColor(r)}}/>;
 
 
 export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlotProp) => {
@@ -56,11 +67,15 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
         moves.updateSlot(slot.card);
     }
 
+    const cardObj = slot.card === null ? {} as INormalOrLegendCard : getCardById(slot.card);
+    const feeText = slot.card === null ? "" : `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}`
+
     return <>
         <Paper style={{display: 'inline-flex'}} variant={variant}>
             <Grid container>
                 <Grid item xs={12}>
                     <Typography>{slot.card === null ? "" : getCardName(slot.card)} </Typography>
+                    <Typography>{feeText}</Typography>
                     <Typography>{slot.comment === null ? "" : getCardName(slot.comment)} </Typography>
                 </Grid>
                 {
@@ -125,8 +140,6 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
         p: playerID
     })
 
-
-    // eslint-disable-next-line
     const buildingSlotName = (r: validRegion, idx: number): string => {
         switch (r) {
             case Region.ASIA:
@@ -139,7 +152,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                 if (idx === 0) {
                     return i18n.pub.cinemaORStudio + i18n.pub.twoToFourPlayer;
                 } else {
-                    return i18n.pub.cinemaORStudio + i18n.pub.fourPlayerOnly;
+                    return i18n.pub.unfreeze;
                 }
             case Region.NA:
                 if (idx === 0) {
@@ -228,15 +241,19 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                     comment={comment}
                     playerID={playerID}
                 /></Grid>
-                {normal.map((slot, i) =>
-                    <Grid item key={i}>
-                        <BoardCardSlot
-                            moves={moves}
-                            G={G} ctx={ctx} slot={slot}
-                            comment={comment} playerID={playerID}
-                        />
-                    </Grid>
-                )}
+                {normal.map((slot, i) => {
+                    if (slot.card !== null) {
+                        return  <Grid item key={i}>
+                            <BoardCardSlot
+                                moves={moves}
+                                G={G} ctx={ctx} slot={slot}
+                                comment={comment} playerID={playerID}
+                            />
+                        </Grid>
+                    }else{
+                        return <></>
+                    }
+                })}
             </AccordionDetails>
         </Accordion>
     </Grid>

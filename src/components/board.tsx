@@ -42,7 +42,6 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         if (isActive && prevIsActive === false) {
             play()
         }
-        console.log(prevIsActive, isActive)
     }, [prevIsActive, isActive, play])
 
     const locale = i18n._.getLocaleName();
@@ -58,36 +57,29 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
     const getName = (playerID: PlayerID | null = ctx.currentPlayer): string => {
         const fallbackName = i18n.playerName.player + playerID;
+        const curSuffix = ctx.currentPlayer === playerID ? curPlayerSuffix : ""
+        const activeSuffix = activePlayer(ctx) === playerID && ctx.currentPlayer !== playerID ? "(**)" : ""
+        const markSuffix = G.regionScoreCompensateMarker === playerID ? "" : ""
+        let name = "";
         if (playerID === null) {
             return i18n.playerName.spectator
         } else {
             if (matchData === undefined) {
-                if (ctx.currentPlayer === playerID) {
-                    return fallbackName + curPlayerSuffix
-                } else {
-                    return fallbackName
-                }
+                name = fallbackName
             } else {
                 let arr = matchData.filter(m => m.id.toString() === playerID)
                 if (arr.length === 0) {
-                    if (ctx.currentPlayer === playerID) {
-                        return fallbackName + curPlayerSuffix
-                    } else {
-                        return fallbackName
-                    }
+                    name = fallbackName
                 } else {
                     if (arr[0].name === undefined) {
-                        return fallbackName;
+                        name = fallbackName;
                     } else {
-                        if (ctx.currentPlayer === playerID) {
-                            return arr[0].name + curPlayerSuffix
-                        } else {
-                            return arr[0].name
-                        }
+                        name = arr[0].name
                     }
                 }
             }
         }
+        return `${name}${curSuffix}${activeSuffix}${markSuffix}`
     }
 
     const comment = (slot: ICardSlot, card: BasicCardID | null) => moves.comment({
@@ -121,7 +113,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
     const endPhase = () => events?.endPhase?.();
 
     const cardBoard = ctx.numPlayers === SimpleRuleNumPlayers ?
-        <Grid container spacing={2} alignItems="center">
+        <Grid item container xs={12} sm={7}>
             <Grid item xs={12} sm={6}>
                 <Typography>{i18n.pub.share}</Typography>
                 {ValidRegions.map(r =>
@@ -136,19 +128,30 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                         i18n.era[G.twoPlayer.era]
                     }/{G.twoPlayer.schoolDeckLength}/{G.twoPlayer.filmDeckLength}</Typography>
             </Grid>
-            <BoardCardSlot slot={G.twoPlayer.school[0]} G={G} ctx={ctx} moves={moves} comment={comment}
-                           playerID={playerID}/>
-            <BoardCardSlot slot={G.twoPlayer.school[1]} G={G} ctx={ctx} moves={moves} comment={comment}
-                           playerID={playerID}/>
-
-            <BoardCardSlot slot={G.twoPlayer.film[0]} G={G} ctx={ctx} moves={moves} comment={comment}
-                           playerID={playerID}/>
-            <BoardCardSlot slot={G.twoPlayer.film[1]} G={G} ctx={ctx} moves={moves} comment={comment}
-                           playerID={playerID}/>
-            <BoardCardSlot slot={G.twoPlayer.film[2]} G={G} ctx={ctx} moves={moves} comment={comment}
-                           playerID={playerID}/>
-            <BoardCardSlot slot={G.twoPlayer.film[3]} G={G} ctx={ctx} moves={moves} comment={comment}
-                           playerID={playerID}/>
+            <Grid item xs={12} >
+                <BoardCardSlot slot={G.twoPlayer.school[0]} G={G} ctx={ctx} moves={moves} comment={comment}
+                               playerID={playerID}/>
+            </Grid>
+            <Grid item xs={12} >
+                <BoardCardSlot slot={G.twoPlayer.school[1]} G={G} ctx={ctx} moves={moves} comment={comment}
+                               playerID={playerID}/>
+            </Grid>
+            <Grid item xs={12} >
+                <BoardCardSlot slot={G.twoPlayer.film[0]} G={G} ctx={ctx} moves={moves} comment={comment}
+                               playerID={playerID}/>
+            </Grid>
+            <Grid item xs={12} >
+                <BoardCardSlot slot={G.twoPlayer.film[1]} G={G} ctx={ctx} moves={moves} comment={comment}
+                               playerID={playerID}/>
+            </Grid>
+            <Grid item xs={12} >
+                <BoardCardSlot slot={G.twoPlayer.film[2]} G={G} ctx={ctx} moves={moves} comment={comment}
+                               playerID={playerID}/>
+            </Grid>
+            <Grid item xs={12} >
+                <BoardCardSlot slot={G.twoPlayer.film[3]} G={G} ctx={ctx} moves={moves} comment={comment}
+                               playerID={playerID}/>
+            </Grid>
         </Grid> :
 
         <Grid item container xs={12} sm={7}>
@@ -164,13 +167,13 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
     const gameOverResult = ctx.gameover === undefined ? <></> : <Grid item xs={12}>
         <Paper variant="elevation">
-            <Typography variant="h3">{i18n.gameOver.title}</Typography>
-            <Typography variant="h4">{
+            <Typography variant="h5">{i18n.gameOver.title}</Typography>
+            <Typography variant="h6">{
                 // @ts-ignore
                 i18n.gameOver.reason[ctx.gameover.reason]
             }</Typography>
-            <Typography variant="h3">{i18n.gameOver.winner}</Typography>
-            <Typography variant="h4">{getName(ctx.gameover.winner)}</Typography>
+            <Typography variant="h5">{i18n.gameOver.winner}</Typography>
+            <Typography variant="h6">{getName(ctx.gameover.winner)}</Typography>
         </Paper>
     </Grid>
 
@@ -199,13 +202,21 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 </Grid>
                 : <>
                     {cardBoard}
-                    <OperationPanel G={G} ctx={ctx} moves={moves} playerID={playerID} events={events} undo={undo}
-                                    redo={redo} getName={getName}/>
+                    {ctx.gameover === undefined
+                        ?
+                        <OperationPanel
+                            G={G} ctx={ctx}
+                            moves={moves}
+                            playerID={playerID}
+                            events={events}
+                            undo={undo} redo={redo}
+                            getName={getName}/>
+                        : <></>}
                 </>}
         </>
         : <></>
 
-    return <Grid container justify="space-evenly">
+    return <Grid container justify="flex-start">
         {gameOverResult}
         {G.pending.lastRoundOfGame ? <Paper
             variant="elevation"
@@ -236,9 +247,15 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
         {G.pub.map((u: IPubInfo, idx: number) =>
             <Grid container key={idx}>
-                <Grid item xs={4} sm={3} md={2} lg={1}><Typography>{getName(idx.toString())}</Typography></Grid>
-                <Grid item xs={4} sm={3} md={2}
-                      lg={1}><Typography>{i18n.pub.handSize} {G.player[idx].handSize}</Typography></Grid>
+                <Grid item xs={4} sm={3} md={2} lg={1}>
+                    <Typography>
+                        {getName(idx.toString())}
+                    </Typography>
+                </Grid>
+
+                <Grid item xs={4} sm={3} md={2} lg={1}>
+                    <Typography>{i18n.pub.handSize} {G.player[idx].handSize}</Typography>
+                </Grid>
                 <PubPanel G={G} i={u}/>
             </Grid>)}
         {log === undefined ? <></> :

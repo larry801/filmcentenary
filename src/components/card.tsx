@@ -9,8 +9,11 @@ import {
     schoolEffectText,
     scoreEffectText
 } from "../game/util";
-import i18n from "../constant/i18n";
 import {getCardById} from "../types/cards";
+import ImportContactsIcon from '@material-ui/icons/ImportContacts';
+import SettingsIcon from '@material-ui/icons/Settings';
+import {getColor} from "./region";
+import {generate} from "shortid";
 
 export interface ICardEffectProps {
     cid:CardID,
@@ -18,12 +21,11 @@ export interface ICardEffectProps {
 
 export const CardInfo  = ({cid}:ICardEffectProps) =>{
     const card = getCardById(cid);
+    const r = card.region;
     return <Grid item xs={12}>
         <Typography>{getCardName(cid)}</Typography>
-        <Typography>
-        {card.industry > 0 ? `${i18n.pub.industryMarker}${card.industry}` : ""}
-        {card.aesthetics > 0 ? `${i18n.pub.aestheticsMarker}${card.aesthetics}` : ""}
-        </Typography>
+        {card.industry > 0 ? Array(card.industry).fill(1).map(()=><SettingsIcon key={generate()} style={{color: getColor(r)}}/>) : <></>}
+        {card.aesthetics > 0 ? Array(card.aesthetics).fill(1).map(()=><ImportContactsIcon key={generate()} style={{color: getColor(r)}}/>) : <></>}
         <CardEffect cid={cid}/>
     </Grid>
 }

@@ -1,8 +1,6 @@
 import {Ctx, PhaseConfig, StageConfig, TurnConfig} from 'boardgame.io';
 import {TurnOrder} from "boardgame.io/core";
 import {
-    breakthrough,
-    buyCard,
     chooseEffect,
     chooseEvent,
     chooseHand,
@@ -11,11 +9,9 @@ import {
     comment,
     competitionCard,
     confirmRespond,
-    drawCard,
-    moveBlocker, payAdditionalCost,
+    moveBlocker,
+    payAdditionalCost,
     peek,
-    playCard,
-    requestEndTurn,
     showBoardStatus,
     showCompetitionResult,
     updateSlot,
@@ -114,25 +110,32 @@ export const NormalTurn: TurnConfig = {
     onBegin: (G: IG, ctx: Ctx) => {
         cleanPendingSignal(G, ctx)
         let p = ctx.currentPlayer;
-        let pub = curPub(G,ctx);
         let log = `onBegin|p${p}`
-        if(pub.school === SchoolCardID.S1301){
-            log += `|montage`
-            addVp(G,ctx,p,1);
-            drawCardForPlayer(G,ctx,p);
-            G.e.stack.push({e:"discard",a:1})
-            changePlayerStage(G,ctx,"chooseHand",p);
+        if(G.order.includes(p)){
+            const pub = curPub(G,ctx);
+            if(pub.school === SchoolCardID.S1301){
+                log += `|montage`
+                addVp(G,ctx,p,1);
+                drawCardForPlayer(G,ctx,p);
+                G.e.stack.push({e:"discard",a:1})
+                changePlayerStage(G,ctx,"chooseHand",p);
+            }
+            if(pub.school === SchoolCardID.S3105){
+                log += `|newYork`
+                if(pub.aesthetics >= pub.industry){
+                    log += `|aesAward`
+                    aesAward(G,ctx,p);
+                }
+                if(pub.industry >= pub.aesthetics){
+                    log += `|industryAward`
+                    industryAward(G,ctx,p);
+                }
+            }
+
         }
-        if(pub.school === SchoolCardID.S3105){
-            log += `|newYork`
-            if(pub.aesthetics <= pub.industry){
-                log += `|aesAward`
-                aesAward(G,ctx,p);
-            }
-            if(pub.aesthetics >= pub.industry){
-                log += `|industryAward`
-                industryAward(G,ctx,p);
-            }
+        else{
+            log += `|playerConceded|endTurn`
+            ctx?.events?.endTurn?.()
         }
         logger.debug(`${G.matchID}|${log}`);
     },
@@ -153,27 +156,10 @@ export const NormalTurn: TurnConfig = {
         peek: peekStage,
         payAdditionalCost:payAdditionalCostStage,
     },
-    moves: {
-        payAdditionalCost:payAdditionalCost,
-        drawCard: drawCard,
-        buyCard: buyCard,
-        playCard: playCard,
-        breakthrough: breakthrough,
-        moveBlocker: moveBlocker,
-        chooseTarget: chooseTarget,
-        chooseHand: chooseHand,
-        chooseEffect: chooseEffect,
-        chooseEvent: chooseEvent,
-        competitionCard: competitionCard,
-        requestEndTurn: requestEndTurn,
-        updateSlot: updateSlot,
-        comment: comment,
-        chooseRegion: chooseRegion,
-        peek: peek,
-    }
 }
 
 export const NormalPhase: PhaseConfig = {
+    next: "NormalPhase",
     turn: NormalTurn,
     start: true,
 }
