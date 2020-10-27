@@ -182,7 +182,7 @@ export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
 }
 
 export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
-   let eff = G.e.stack.pop();
+    let eff = G.e.stack.pop();
     let log = `simpleEffectExec|p${p}|${JSON.stringify(eff)}`
     let pub = G.pub[parseInt(p)];
     let card: INormalOrLegendCard;
@@ -378,11 +378,11 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
     const pub = G.pub[parseInt(p)];
     const playerObj = G.player[parseInt(p)];
     let log = `p${p}|doBuyToHand|${card.cardId}`
-    if(pub.school === SchoolCardID.S2301 && card.region !== Region.EE){
+    if (pub.school === SchoolCardID.S2301 && card.region !== Region.EE) {
         log += `|SocialismRealism`
-        if(pub.vp > 0){
+        if (pub.vp > 0) {
             loseVp(G, ctx, p, 1);
-        }else{
+        } else {
             log += `|noVpCannotBuy`
             logger.debug(`${G.matchID}|${log}`);
             return;
@@ -414,11 +414,11 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
     let pub = G.pub[parseInt(p)];
     let log = `doBuy|${card.cardId}|p${p}`
-    if(pub.school === SchoolCardID.S2301 && card.region !== Region.EE){
+    if (pub.school === SchoolCardID.S2301 && card.region !== Region.EE) {
         log += `|SocialismRealism`
-        if(pub.vp > 0){
+        if (pub.vp > 0) {
             loseVp(G, ctx, p, 1);
-        }else{
+        } else {
             log += `|noVpCannotBuy`
             logger.debug(`${G.matchID}|${log}`);
             return;
@@ -995,10 +995,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
         case "era":
             let era;
-            if(ctx.numPlayers > SimpleRuleNumPlayers){
+            if (ctx.numPlayers > SimpleRuleNumPlayers) {
                 log += `|not2p`
                 era = G.regions[region].era;
-            }else {
+            } else {
                 log += `|2p`
                 era = G.twoPlayer.era;
             }
@@ -1175,41 +1175,53 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             return;
         case "noBuildingEE":
             players = noBuildingPlayers(G, ctx, Region.EE);
-            pushPlayersEffects(G, players, eff.a);break;
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "vpNotHighestPlayer":
             players = vpNotHighestPlayer(G);
-            pushPlayersEffects(G, players, eff.a);break;
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "highestVpPlayer":
             players = vpHighestPlayer(G);
-            pushPlayersEffects(G, players, eff.a);break;
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "levelAndMarkLowestPlayer":
             players = levelAndMarkLowestPlayer(G);
-            pushPlayersEffects(G, players, eff.a);break;
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "aesHighest":
             players = aesHighestPlayer(G);
-            pushPlayersEffects(G, players, eff.a);break;
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "aesLowest":
             players = aesLowestPlayer(G);
-            pushPlayersEffects(G, players, eff.a);break;
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "industryHighest":
             players = industryHighestPlayer(G);
-            pushPlayersEffects(G, players, eff.a);break;
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "industryLowest":
             players = industryLowestPlayer(G);
-            pushPlayersEffects(G, players, eff.a);break;
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "studio":
             players = studioPlayers(G, ctx, region);
-            pushPlayersEffects(G, players, eff.a);break;
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "buildingNA":
             players = buildingPlayers(G, ctx, Region.NA);
-            pushPlayersEffects(G, players, eff.a);break;
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "everyOtherCompany":
             players = seqFromCurrentPlayer(G, ctx);
             players.shift()
-            pushPlayersEffects(G, players, eff.a);break;
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "everyPlayer":
             players = seqFromCurrentPlayer(G, ctx);
-            pushPlayersEffects(G, players, eff.a);break;
+            pushPlayersEffects(G, players, eff.a);
+            break;
         case "noStudio":
             players = noStudioPlayers(G, ctx, region);
             log += `|region:${region}|noStudioPlayers|${JSON.stringify(players)}`
@@ -1939,43 +1951,58 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
                 firstPlayer = 0
             }
+            G.pub[0].shares[r] = 0;
+            G.pub[1].shares[r] = 0;
             let scoreCard = getScoreCard(r, IEra.THREE, 1)
             G.pub[firstPlayer].discard.push(scoreCard.cardId as ScoreCardID);
             G.pub[firstPlayer].allCards.push(scoreCard.cardId as ScoreCardID);
         }
     })
-    if (G.twoPlayer.film.every(c => c.card === null)) {
-        if (initialPosOfPlayer(G, ctx, ctx.currentPlayer) === 1) {
-            ValidRegions.forEach(r => {
-                if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
-                    doBuy(G, ctx, B04, '1')
-                }
-                if (G.pub[0].shares[r] < G.pub[1].shares[r]) {
-                    doBuy(G, ctx, B04, '0')
-                }
-            })
-            const era = G.twoPlayer.era;
-            let newEra = era;
-            if (era === IEra.ONE) {
-                newEra = IEra.TWO
+    if (
+        G.twoPlayer.film.every(c => c.card === null)
+        && initialPosOfPlayer(G, ctx, ctx.currentPlayer) === 1
+    ) {
+        ValidRegions.forEach(r => {
+            if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
+                doBuy(G, ctx, B04, '1')
             }
-            if (era === IEra.TWO) {
-                newEra = IEra.THREE
+            if (G.pub[0].shares[r] < G.pub[1].shares[r]) {
+                doBuy(G, ctx, B04, '0')
             }
-            G.regions[Region.NA].share = 12;
-            G.regions[Region.WE].share = 10;
-            G.regions[Region.EE].share = 8;
-            G.regions[Region.ASIA].share = 10;
-            if (era !== newEra) {
-                G.twoPlayer.era = newEra;
-                drawForTwoPlayerEra(G, ctx, newEra)
-            } else {
-                finalScoring(G, ctx);
-            }
+        })
+        const era = G.twoPlayer.era;
+        let newEra = era;
+        if (era === IEra.ONE) {
+            newEra = IEra.TWO
         }
+        if (era === IEra.TWO) {
+            newEra = IEra.THREE
+        }
+        G.regions[Region.NA].share = 12;
+        G.regions[Region.WE].share = 10;
+        G.regions[Region.EE].share = 8;
+        G.regions[Region.ASIA].share = 10;
+        if (era !== newEra) {
+            G.twoPlayer.era = newEra;
+            for (let schoolSlot of G.twoPlayer.school) {
+                doReturnSlotCard(G, ctx, schoolSlot)
+            }
+            for (let filmSlot of G.twoPlayer.school) {
+                doReturnSlotCard(G, ctx, filmSlot)
+            }
+            drawForTwoPlayerEra(G, ctx, newEra)
+            signalEndTurn(G, ctx);
+            return;
+        } else {
+            finalScoring(G, ctx);
+            return
+        }
+    }else {
+        fillTwoPlayerBoard(G, ctx);
+        signalEndTurn(G, ctx);
+        return;
     }
-    fillTwoPlayerBoard(G, ctx);
-    signalEndTurn(G, ctx);
+
 }
 
 export const tryScoring = (G: IG, ctx: Ctx): void => {
@@ -2428,7 +2455,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                 }
             } else {
                 if (G.player[parseInt(ctx.currentPlayer)].endTurnEffectExecuted) {
-		    log += `|endTurnEffectExecuted`
+                    log += `|endTurnEffectExecuted`
                     G.player[parseInt(ctx.currentPlayer)].endTurnEffectExecuted = false
                     regionScoringCheck(G, ctx, ctx.currentPlayer);
                     logger.debug(`${G.matchID}|${log}`);
@@ -2736,7 +2763,7 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
             addVp(G, ctx, i.atk, 1);
         }
         logger.debug(`${G.matchID}|${log}`);
-        checkNextEffect(G ,ctx);
+        checkNextEffect(G, ctx);
     } else {
         log += `|defNoCard|showCompetitionResult`
         logger.debug(`${G.matchID}|${log}`);
@@ -2945,7 +2972,7 @@ export const schoolPlayer = (G: IG, ctx: Ctx, cardId: CardID): PlayerID | null =
         if (G.pub[parseInt(p)].school === cardId) {
             log += `|kino`
             player = p;
-        }else {
+        } else {
             log += `|notKino`
         }
     })
