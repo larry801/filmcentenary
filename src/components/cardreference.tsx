@@ -20,12 +20,12 @@ const useStyles = makeStyles({
     },
 });
 
-const DenseTable = () =>{
+const DenseTable = () => {
     useI18n(i18n);
     const classes = useStyles();
 
     return (
-        <TableContainer component={Paper} >
+        <TableContainer component={Paper}>
             <Table className={classes.table} size="small" aria-label="Card table">
                 <TableHead>
                     <TableRow>
@@ -40,24 +40,27 @@ const DenseTable = () =>{
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {Object.keys(AllClassicCards).map(id=>{
-                    let rid = id.slice(1);
-                    let c = getCardById(id);
-                    return <TableRow key={id}>
-                        <TableCell component="th" scope="row">
-                            {rid}
-                        </TableCell>
-                        <TableCell align="right">{i18n.era[c.era]}</TableCell>
-                        <TableCell align="right">{i18n.region[c.region]}</TableCell>
-                        <TableCell align="right">
-                            {getCardName(id)}
-                        </TableCell>
-                        <TableCell align="right">{c.cost.res}/{c.cost.industry}/{c.cost.aesthetics}</TableCell>
-                        <TableCell align="right">{c.vp}</TableCell>
-                        <TableCell align="right">{c.industry}/{c.aesthetics}</TableCell>
-                        <TableCell align="left"><CardEffect cid={c.cardId}/></TableCell>
-                    </TableRow>
-                })}
+                    {Object.keys(AllClassicCards).sort((a:string,b:string)=>{
+                        const aNumId = parseInt(a.slice(1));
+                        const bNumId = parseInt(b.slice(1));
+                        return aNumId - bNumId
+                    }).map(id => {
+                        let c = getCardById(id);
+                        return <TableRow key={id}>
+                            <TableCell component="th" scope="row">
+                                {id.slice(1)}
+                            </TableCell>
+                            <TableCell align="right">{i18n.era[c.era]}</TableCell>
+                            <TableCell align="right">{i18n.region[c.region]}</TableCell>
+                            <TableCell align="right">
+                                {getCardName(id)}
+                            </TableCell>
+                            <TableCell align="right">{c.cost.res}/{c.cost.industry}/{c.cost.aesthetics}</TableCell>
+                            <TableCell align="right">{c.vp}</TableCell>
+                            <TableCell align="right">{c.industry}/{c.aesthetics}</TableCell>
+                            <TableCell align="left"><CardEffect cid={c.cardId}/></TableCell>
+                        </TableRow>
+                    })}
                 </TableBody>
             </Table>
         </TableContainer>
