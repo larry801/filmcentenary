@@ -46,7 +46,9 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
                 .then((data) => {
                     setNumPlayers(data.players.size)
                 })
-                .catch((err) => setError(err.toString))
+                .catch((err) => {
+                    setError(JSON.stringify(err))
+                })
         }
     }, [serverURL, matchID, player]);
 
