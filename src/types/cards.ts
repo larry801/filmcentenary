@@ -988,11 +988,11 @@ const NoneBasicCards = {
         industry: 0,
         aesthetics: 0,
     }),
-    "F3107": filmCard({
+    "P3107": personCard({
         era: IEra.THREE,
         region: Region.NA,
         name: "Roger Corman",
-        cardId: FilmCardID.F3107,
+        cardId: PersonCardID.P3107,
         cost: cost(10, 6, 0),
         vp: 0,
         category: CardCategory.NORMAL,

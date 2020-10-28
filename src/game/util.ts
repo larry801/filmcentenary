@@ -2914,7 +2914,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         f.events += validCards.filter(c => c.region === Region.ASIA)
             .length * 2
     }
-    if (validID.includes(FilmCardID.F3107)) {
+    if (validID.includes(PersonCardID.P3107)) {
         f.events += Math.round(validCards.length / 3)
     }
     if (validID.includes(PersonCardID.P3202)) {
