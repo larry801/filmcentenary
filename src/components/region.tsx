@@ -5,7 +5,7 @@ import {
     ICardSlot,
     INormalOrLegendCard,
     IRegionInfo,
-    Region,
+    Region, SimpleRuleNumPlayers,
     validRegion
 } from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
@@ -69,13 +69,14 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
 
     const cardObj = slot.card === null ? {} as INormalOrLegendCard : getCardById(slot.card);
     const feeText = slot.card === null ? "" : `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}`
-
+    const region = cardObj.region
     return <>
         <Paper style={{display: 'inline-flex'}} variant={variant}>
             <Grid container>
                 <Grid item xs={12}>
                     <Typography>{slot.card === null ? "" : getCardName(slot.card)} </Typography>
                     <Typography>{feeText}</Typography>
+                    {ctx.numPlayers <= SimpleRuleNumPlayers ? <Typography>{i18n.region[region]}</Typography> : <></>}
                     <Typography>{slot.comment === null ? "" : getCardName(slot.comment)} </Typography>
                 </Grid>
                 {
@@ -243,14 +244,14 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                 /></Grid>
                 {normal.map((slot, i) => {
                     if (slot.card !== null) {
-                        return  <Grid item key={i}>
+                        return <Grid item key={i}>
                             <BoardCardSlot
                                 moves={moves}
                                 G={G} ctx={ctx} slot={slot}
                                 comment={comment} playerID={playerID}
                             />
                         </Grid>
-                    }else{
+                    } else {
                         return <></>
                     }
                 })}
