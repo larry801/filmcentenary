@@ -1974,10 +1974,6 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
         if (era === IEra.TWO) {
             newEra = IEra.THREE
         }
-        G.regions[Region.NA].share = 12;
-        G.regions[Region.WE].share = 10;
-        G.regions[Region.EE].share = 8;
-        G.regions[Region.ASIA].share = 10;
         if (era !== newEra) {
             G.twoPlayer.era = newEra;
             for (let schoolSlot of G.twoPlayer.school) {
