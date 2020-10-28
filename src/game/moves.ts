@@ -605,7 +605,9 @@ export const peek: LongFormMove = {
         let p = arg.p;
         let playerObj = G.player[parseInt(p)];
         let pub = G.pub[parseInt(p)];
+        let deck = G.secretInfo.playerDecks[parseInt(p)];
         let log = `peek|${JSON.stringify(eff)}`
+        log += `|deck|${JSON.stringify(deck)}`
         log += `|hand${JSON.stringify(playerObj.hand)}|discard|${JSON.stringify(pub.discard)}`
         switch (eff.a.filter.e) {
             case "industry":
@@ -696,6 +698,7 @@ export const peek: LongFormMove = {
                     log += `|pendingChoices`
                     eff.a.filter.a--;
                     G.e.stack.push(eff);
+                    log += `|afterDeck|${JSON.stringify(deck)}`
                     log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
                     logger.debug(`${G.matchID}|${log}`);
                     return;
@@ -712,6 +715,7 @@ export const peek: LongFormMove = {
                 }
                 break;
         }
+        log += `|afterDeck|${JSON.stringify(deck)}`
         log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
         logger.debug(`${G.matchID}|${log}`);
         checkNextEffect(G, ctx);

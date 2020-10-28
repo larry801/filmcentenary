@@ -1129,8 +1129,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             return;
         case "peek":
             let peekCount = eff.a.count;
-            log += `|peek|${peekCount}`
+            log += `|peek|${peekCount}cards`
             let deck = G.secretInfo.playerDecks[curPid(G, ctx)];
+            log += `|deck|${JSON.stringify(deck)}`
+            log += `|hand${JSON.stringify(playerObj.hand)}`
+            log += `|discard|${JSON.stringify(pub.discard)}`
             length = deck.length;
             log += `|len|${length}`
             const totalRemainCards = length + pub.discard.length
@@ -1146,8 +1149,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             if (length < peekCount) {
                 log += `|fetchRemainDeck|${JSON.stringify(deck)}`
                 playerObj.cardsToPeek = [...deck];
-                deck = [];
-                deck = shuffle(ctx, pub.discard);
+                G.secretInfo.playerDecks[curPid(G, ctx)] = shuffle(ctx, pub.discard);
                 pub.discard = [];
                 log += `|shuffle|${JSON.stringify(deck)}`
                 const remainDrawCount = peekCount - length;
@@ -1170,6 +1172,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     playerObj.cardsToPeek.push(newCardId);
                 }
             }
+            log += `|afterDeck|${JSON.stringify(deck)}`
+            log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
             G.e.stack.push(eff)
             logger.debug(`${G.matchID}|${log}`);
             changePlayerStage(G, ctx, "peek", p);
