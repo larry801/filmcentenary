@@ -1481,7 +1481,7 @@ const NoneBasicCards = {
         vp: 10,
         category: CardCategory.NORMAL,
         industry: 0,
-        aesthetics: 8,
+        aesthetics: 1,
     }),
     "F3411": filmCard({
         era: IEra.THREE,
