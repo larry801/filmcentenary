@@ -1,6 +1,6 @@
 import React, {useEffect} from "react";
 import {IG} from "../types/setup";
-import {BasicCardID, CardCategory, CardID, ClassicCardID, ICardSlot, Region, SchoolCardID} from "../types/core";
+import {BasicCardID, CardCategory, CardID, ClassicCardID, ICardSlot} from "../types/core";
 import {ChoiceDialog} from "./modals";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
