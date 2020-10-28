@@ -573,7 +573,7 @@ const en = {
         discardInSettle: "When you discard a card in the settlement of any card.",
         threeCards: "Gain 1 extra prestige for every three card ",
         northAmericaFilm: "Gain 2 extra prestige for each of your north america card.",
-        asiaFilm: "Gain 2 extra prestige for each of your asia film card.",
+        asiaFilm: "Gain 2 extra prestige for each of your asia card.",
         industryNormalOrLegend: "Gain 2 extra prestige for each of your normal or legend card with industry marker.",
         westEuropeCard: "Gain 2 extra prestige for each of your west europe card.",
         alternative: "You may cancel this breakthrough, do following effect instead",
