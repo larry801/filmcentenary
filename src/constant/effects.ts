@@ -1949,14 +1949,14 @@ export const effects = {
     },
     "3116": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {
+        play: {
             e: "choice", a: [
                 {e: "step", a: [{e: "draw", a: 4}, {e: "discard", a: 3}]},
                 {e: "step", a: [{e: "draw", a: 1}, {e: "update", a: 1}]}
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
-        play: noEff,
+        buy: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
