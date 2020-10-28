@@ -2086,20 +2086,6 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             return 1;
         }
         log += `|sameLegendCount`
-        let winner = "";
-        const aHasMarker = G.regionScoreCompensateMarker === a;
-        const bHasMarker = G.regionScoreCompensateMarker === b;
-        if (aHasMarker) {
-            log += `|ahasMarker|p${a}win`
-            winner = a;
-        }
-        if (bHasMarker) {
-            log += `|bHasMarker|p${b}win`
-            winner = b;
-        }
-        if (winner === "") {
-            log += `|noOneHasMarker`
-        }
         const curPos = seqFromActivePlayer(G, ctx);
         const posA = curPos.indexOf(a);
         const posB = curPos.indexOf(b);

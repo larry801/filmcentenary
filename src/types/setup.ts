@@ -412,8 +412,14 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.regions[Region.NA].normal[0].card = "F1103"
     // // @ts-ignore
     // G.pub[0].school = "S3101";
+    // G.twoPlayer.era = IEra.THREE;
+    // G.regions[Region.ASIA].era = IEra.THREE;
     // @ts-ignore
-    // G.player[0].hand = ["F3306","P2102"]
+    // G.secretInfo.playerDecks[0] = ["B01","F2403","B07","P2401"]
+    // @ts-ignore
+    // @ts-ignore
+    // G.player[0].hand = ["F2404","F2406","B07","B03"]
     // G.pub[0].resource = 3;
+    // G.pub[0].action = 10;
     return G;
 };

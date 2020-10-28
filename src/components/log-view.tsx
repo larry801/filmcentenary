@@ -11,6 +11,9 @@ import i18n from "../constant/i18n";
 import {useI18n} from "@i18n-chain/react";
 import {MoveNames} from "../types/core";
 import shortid from 'shortid'
+import copy from "copy-to-clipboard";
+import ContentCopyIcon from '@material-ui/icons/FileCopy';
+import IconButton from '@material-ui/core/IconButton';
 
 const useStyles = makeStyles((theme: Theme) =>
     createStyles({
@@ -84,37 +87,62 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
         }
     }
 
+    const moveText = log.map((l: LogEntry) => getMoveText(l)).join("\r\n");
+    const onCopyMove = () => {
+        copy(moveText, {
+            message: i18n.lobby.copyPrompt,
+        })
+    }
+    const logText = log.map((l: LogEntry) => getLogText(l)).join("\r\n");
+    const onCopyLog = () => {
+        copy(logText, {
+            message: i18n.lobby.copyPrompt,
+        })
+    }
+
     return <Grid item container xs={12}>
         <Button fullWidth={true} onClick={toggleGameLog}>
             {i18n.pub.gameLog}
         </Button>
+        <IconButton
+            color="primary"
+            aria-label={i18n.lobby.copyPrompt}
+            edge="start"
+            onClick={onCopyLog}>
+            <ContentCopyIcon/>
+        </IconButton>
+        <IconButton
+            color="secondary"
+            aria-label={i18n.lobby.copyPrompt}
+            edge="start"
+            onClick={onCopyMove}>
+            <ContentCopyIcon/>
+        </IconButton>
+        {open && <>
 
-        {open && <> <Grid item xs={6} className={classes.root}>
-            <AutoSizer
-                defaultHeight={1000}
-                defaultWidth={400}>
-                {({height, width}) => <FixedSizeList
-                    className="List"
-                    height={height}
-                    itemCount={log.length}
-                    itemSize={50}
-                    width={width}>
-                    {({index, style}: ListChildComponentProps) => {
-                        const i = log.length - index - 1;
-                        const text = getLogText(log[i])
-                        return text === "" ? <></> : <ListItem
-                            button
-                            // @ts-ignore
-                            style={style}
-                            key={shortid.generate()}>
-                            <ListItemText primary={text}/>
-                        </ListItem>
-                    }}
-                </FixedSizeList>}
-            </AutoSizer>
-        </Grid>
-            <Grid item xs={6}>
-                {log.map((l: LogEntry) => <div key={shortid.generate()}>{getMoveText(l)}</div>)}
+            <Grid item xs={12} className={classes.root}>
+                <AutoSizer
+                    defaultHeight={1000}
+                    defaultWidth={400}>
+                    {({height, width}) => <FixedSizeList
+                        className="List"
+                        height={height}
+                        itemCount={log.length}
+                        itemSize={50}
+                        width={width}>
+                        {({index, style}: ListChildComponentProps) => {
+                            const i = log.length - index - 1;
+                            const text = getLogText(log[i])
+                            return text === "" ? <></> : <ListItem
+                                button
+                                // @ts-ignore
+                                style={style}
+                                key={shortid.generate()}>
+                                <ListItemText primary={text}/>
+                            </ListItem>
+                        }}
+                    </FixedSizeList>}
+                </AutoSizer>
             </Grid>
         </>}
     </Grid>
