@@ -1034,6 +1034,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
                 G.c.players = players;
                 G.e.stack.push(eff)
+                log += `|chooseTarget`
+                logger.debug(`${G.matchID}|${log}`);
                 changePlayerStage(G, ctx, "chooseTarget", p);
                 return;
             } else {
@@ -1043,6 +1045,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 logger.debug(`${G.matchID}|${log}`);
                 const opponent2p = p === '0' ? '1' : '0';
                 startCompetition(G, ctx, p, opponent2p);
+                return;
             }
         case "loseAnyRegionShare":
             G.e.regions = ValidRegions.filter(r => pub.shares[r] > 0)
