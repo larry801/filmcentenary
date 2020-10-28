@@ -27,5 +27,7 @@ export const filmCentenaryGameDef: IGameDef = {
   },
   status: IGameStatus.PUBLISHED,
   config: () => import('./config'),
-  // aiConfig: () => import('./ai'),
+  // aiConfig: () => import('./game/ai'),
 };
+
+export default filmCentenaryGameDef;

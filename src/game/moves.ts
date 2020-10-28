@@ -247,17 +247,13 @@ export const chooseTarget: LongFormMove = {
                 loseVp(G, ctx, p, handCount);
                 break;
             case "competition":
-                if (ctx.numPlayers > SimpleRuleNumPlayers) {
-                    G.c.players = [];
-                    G.competitionInfo.progress = eff.a.bonus;
-                    G.competitionInfo.onWin = eff.a.onWin;
-                    log += `|startCompetition`
-                    logger.debug(`${G.matchID}|${log}`);
-                    startCompetition(G, ctx, src, p);
-                    return;
-                } else {
-                    break;
-                }
+                G.c.players = [];
+                G.competitionInfo.progress = eff.a.bonus;
+                G.competitionInfo.onWin = eff.a.onWin;
+                log += `|startCompetition`
+                logger.debug(`${G.matchID}|${log}`);
+                startCompetition(G, ctx, src, p);
+                return;
             case "loseAnyRegionShare":
                 G.c.players = [];
                 G.e.regions = ValidRegions.filter(

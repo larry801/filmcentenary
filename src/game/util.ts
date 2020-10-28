@@ -1026,15 +1026,24 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             } else {
                 pub.resource--;
             }
-            players = seqFromCurrentPlayer(G, ctx);
-            let ownIndex = players.indexOf(p)
-            if (ownIndex !== -1) {
-                players.splice(ownIndex, 1)
+            if (ctx.numPlayers > SimpleRuleNumPlayers) {
+                players = seqFromCurrentPlayer(G, ctx);
+                let ownIndex = players.indexOf(p)
+                if (ownIndex !== -1) {
+                    players.splice(ownIndex, 1)
+                }
+                G.c.players = players;
+                G.e.stack.push(eff)
+                changePlayerStage(G, ctx, "chooseTarget", p);
+                return;
+            } else {
+                G.competitionInfo.progress = eff.a.bonus;
+                G.competitionInfo.onWin = eff.a.onWin;
+                log += `|startCompetition`
+                logger.debug(`${G.matchID}|${log}`);
+                const opponent2p = p === '0' ? '1' : '0';
+                startCompetition(G, ctx, p, opponent2p);
             }
-            G.c.players = players;
-            G.e.stack.push(eff)
-            changePlayerStage(G, ctx, "chooseTarget", p);
-            return;
         case "loseAnyRegionShare":
             G.e.regions = ValidRegions.filter(r => pub.shares[r] > 0)
             log += `|${JSON.stringify(G.e.regions)}`
@@ -1754,7 +1763,7 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
         for (let t = 0; t < drawCount; t++) {
             drawCardForPlayer(G, ctx, p);
         }
-    }else {
+    } else {
         log += `|doNotDraw`
     }
     logger.debug(`${G.matchID}|${log}`);
