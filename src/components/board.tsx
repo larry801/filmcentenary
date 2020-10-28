@@ -214,7 +214,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                         : <></>}
                 </>}
         </>
-        : <></>
+        : <>{cardBoard}</>
 
     return <Grid container justify="flex-start">
         {gameOverResult}
