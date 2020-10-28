@@ -454,7 +454,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "Orson Welles",
         cardId: PersonCardID.P2105,
-        cost: cost(6, 0, 4),
+        cost: cost(7, 0, 4),
         vp: 0,
         category: CardCategory.NORMAL,
         industry: 0,
