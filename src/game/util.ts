@@ -382,10 +382,6 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
         log += `|SocialismRealism`
         if (pub.vp > 0) {
             loseVp(G, ctx, p, 1);
-        } else {
-            log += `|noVpCannotBuy`
-            logger.debug(`${G.matchID}|${log}`);
-            return;
         }
     }
     if (card.category === CardCategory.BASIC) {
@@ -418,10 +414,6 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         log += `|SocialismRealism`
         if (pub.vp > 0) {
             loseVp(G, ctx, p, 1);
-        } else {
-            log += `|noVpCannotBuy`
-            logger.debug(`${G.matchID}|${log}`);
-            return;
         }
     }
     if (card.category === CardCategory.BASIC) {
