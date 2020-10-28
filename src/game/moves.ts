@@ -747,6 +747,7 @@ export const chooseEvent: LongFormMove = {
             logger.debug(`${G.matchID}|${log}`);
             fillEventCard(G, ctx);
             checkNextEffect(G, ctx);
+            return
         } else {
             if (eid === EventCardID.E08) {
                 G.regions[Region.EE].buildings[1].activated = true;

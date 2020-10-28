@@ -18,7 +18,6 @@ const noResponse = {pre: noEff, effect: noEff};
 
 export function getEvent(id: EventCardID) {
     return eventEffects[id];
-
 }
 
 const SCORE_EFFECT = {
@@ -90,10 +89,6 @@ export const eventEffects = {
         a: [
             {e: "highestVpPlayer", a: {e: "buyCardToHand", a: "B02"}},
             {e: "everyPlayer", a: {e: "buy", a: "B05"}},
-            {
-                e: ItrEffects.levelAndMarkLowestPlayer,
-                a: {e: "deposit", a: 3}
-            }
         ]
     },
     "E05": {
@@ -101,6 +96,10 @@ export const eventEffects = {
         a: [
             {e: "everyPlayer", a: {e: "deposit", a: 3}},
             {e: "buildingNA", a: {e: "discard", a: 2}},
+            {
+                e: ItrEffects.levelAndMarkLowestPlayer,
+                a: {e: "deposit", a: 3}
+            }
         ]
     },
     "E06": {
