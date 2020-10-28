@@ -5,9 +5,17 @@ import KoaRatelimit from 'koa-ratelimit';
 import {v4 as uuidv4} from 'uuid';
 import {FilmCentenaryGame} from "./src/Game";
 
-import {Server} from "boardgame.io/server";
+import {Server, FlatFile} from "boardgame.io/server";
 
-const server = Server({games: [FilmCentenaryGame], generateCredentials: () => uuidv4()});
+const server = Server({
+    games: [FilmCentenaryGame],
+    generateCredentials: () => uuidv4(),
+    db: new FlatFile({
+        dir: '/app/store',
+        logging: true,
+        ttl: false,
+    }),
+});
 
 const PORT = process.env.PORT || "3000";
 const {app} = server;
