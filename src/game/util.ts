@@ -574,7 +574,7 @@ export const posOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
 
 export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
     if (r === Region.NONE) return false;
-    return cardDepleted(G, ctx, r) || shareDepleted(G, ctx, r);
+    return !G.regions[r].completedModernScoring && (cardDepleted(G, ctx, r) || shareDepleted(G, ctx, r));
 }
 
 export const seqFromPos = (G: IG, ctx: Ctx, pos: number): PlayerID[] => {
@@ -2119,7 +2119,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     }
     let rankingPlayer: PlayerID[] = [];
     G.order.forEach((i, idx) => {
-        log += `|p${idx}`
+        log += `|p${idx}|share${G.pub[idx].shares[r]}`
         if (G.pub[idx].shares[r] === 0) {
             log += "|badFilm"
             doBuy(G, ctx, B04, idx.toString())
@@ -2135,6 +2135,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     log += `|rankResult|${rankResult}`;
     let firstPlayer: PlayerID = rankResult[0];
     log += `|firstPlayer:${firstPlayer}`
+    logger.debug(`${G.matchID}|${log}`);
     G.pub[parseInt(firstPlayer)].champions.push({
         era: era,
         region: r,
@@ -2744,7 +2745,7 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
     if (r === Region.NONE) throw new Error();
     let region = G.regions[r];
     let era = region.era;
-    let log = `nexEra|${r}|era:${era}`
+    let log = `nextEra|${r}|era:${era}`
     let newEra;
     region.legend.card = null;
     if (region.legend.comment !== null) {
@@ -2784,6 +2785,10 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
         }
     }
     if (era === IEra.THREE) {
+        doReturnSlotCard(G, ctx, region.legend);
+        for(let slot of region.normal){
+            doReturnSlotCard(G,ctx,slot)
+        }
         log += `|completedModernScoring`
         region.completedModernScoring = true;
     }
