@@ -1,16 +1,22 @@
 import {
     BasicCardID,
-    CardCategory, CardID,
+    CardCategory,
+    CardID,
     CardType,
-    cost, EventCardID, FilmCardID,
+    cost,
+    EventCardID,
+    FilmCardID,
     ICost,
     IEra,
     IEventCard,
     IFilmCard,
     INormalOrLegendCard,
     IPersonCard,
-    ISchoolCard, PersonCardID,
-    Region, SchoolCardID, ScoreCardID
+    ISchoolCard,
+    PersonCardID,
+    Region,
+    SchoolCardID,
+    ScoreCardID
 } from "./core";
 import {getBasicCard} from "../constant/cards/basic";
 import {eventCardById} from "../constant/cards/event";
@@ -971,11 +977,11 @@ const NoneBasicCards = {
         industry: 1,
         aesthetics: 1,
     }),
-    "F3106": filmCard({
+    "P3106": personCard({
         era: IEra.THREE,
         region: Region.NA,
         name: "Martin Scorsese",
-        cardId: FilmCardID.F3106,
+        cardId: PersonCardID.P3106,
         cost: cost(10, 5, 5),
         vp: 0,
         category: CardCategory.NORMAL,
