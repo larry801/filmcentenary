@@ -1700,7 +1700,6 @@ export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
 }
 
 export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
-    logger.debug("drawForRegion" + i18n.era[e] + i18n.region[r]);
     if (r === Region.NONE) return;
     let legend = cardsByCond(r, e, true).map(c => c.cardId);
     let normal = cardsByCond(r, e, false).map(c => c.cardId);
@@ -1744,15 +1743,21 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     logger.debug(`${G.matchID}|${log}`);
 }
 export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
+    let log = `p${p}|fillPlayerHand`
     const limit = getSchoolHandLimit(G, p);
+    log += `|limit${limit}`
     let handCount: number = G.player[parseInt(p)].hand.length;
+    log += `|hand${handCount}`
     if (handCount < limit) {
         let drawCount: number = limit - handCount;
-        logger.debug(`p${p}|draw${drawCount}card`)
+        log += `|draw${drawCount}`
         for (let t = 0; t < drawCount; t++) {
             drawCardForPlayer(G, ctx, p);
         }
+    }else {
+        log += `|doNotDraw`
     }
+    logger.debug(`${G.matchID}|${log}`);
 }
 export const canHelp = (G: IG, ctx: Ctx, p: PlayerID, target: ClassicCardID | BasicCardID, helper: CardID): boolean => {
     const pub = G.pub[parseInt(p)];

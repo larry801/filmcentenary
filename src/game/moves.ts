@@ -157,7 +157,6 @@ export const drawCard: LongFormMove = {
         if (activePlayer(ctx) !== p) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${p}.moves.drawCard(${p})`);
         curPub(G, ctx).action--;
-        logger.debug(`p${ctx.currentPlayer}|drawCardWithAP`);
         drawCardForPlayer(G, ctx, ctx.currentPlayer);
     },
 }
