@@ -1228,7 +1228,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             pushPlayersEffects(G, players, eff.a);
             break;
         case "noStudio":
-            players = noStudioPlayers(G, ctx, region);
+            players = seqFromCurrentPlayer(G, ctx);
             log += `|region:${region}|noStudioPlayers|${JSON.stringify(players)}`
             if (players.length === 0) {
                 log += `|everyOneHasStudio`
