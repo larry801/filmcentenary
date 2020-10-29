@@ -2,15 +2,23 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {actualStage, canAfford, getPossibleHelper, resCost} from "./util";
 import {Stage} from "boardgame.io/core";
-import {IBasicCard, INormalOrLegendCard, SimpleRuleNumPlayers, ValidRegions} from "../types/core";
-import {getCardById} from "../types/cards";
+import {
+    BasicCardID,
+    getCardById,
+    IBasicCard,
+    INormalOrLegendCard,
+    Region,
+    SimpleRuleNumPlayers,
+    ValidRegions
+} from "../types/core";
+import {getChooseHandChoice, getPeekChoices} from "./board-util";
 
 export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard):
     Array<{ move: string; args?: any[] }> => {
-    let moves: Array<{ move: string; args?: any[] }> = [];
-    let pub = G.pub[parseInt(p)]
-    let totalRes = pub.resource + pub.deposit
-    let noHelperCost = resCost(G, ctx, {
+    const moves: Array<{ move: string; args?: any[] }> = [];
+    const pub = G.pub[parseInt(p)]
+    const totalRes = pub.resource + pub.deposit
+    const noHelperCost = resCost(G, ctx, {
         target: card.cardId, buyer: p, resource: 0, deposit: 0, helper: []
     })
     if (noHelperCost <= totalRes) {
@@ -22,29 +30,68 @@ export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalO
                 helper: []
             }]
         })
-    }else {
-        let validHelpers = getPossibleHelper(G,ctx,p,card.cardId);
-        let helperCost = resCost(G, ctx, {
-            target: card.cardId, buyer: p, resource: 0, deposit: 0, helper: validHelpers
-        })
-        moves.push({
-            move: "buyCard", args: [{
-                target: card.cardId, buyer: p,
-                resource: Math.min(pub.resource, helperCost),
-                deposit: Math.max(helperCost - pub.deposit, 0),
-                helper: validHelpers
-            }]
-        })
+    } else {
+        const validHelpers = getPossibleHelper(G, ctx, p, card.cardId);
+        const len = validHelpers.length;
+        // TODO optimize with dynamic programming
+        const moveCount = 2 ** len;
+        for (let c = 0; c < moveCount; c++) {
+            for (let h = 0; h < len; h++) {
+                const curHelper = []
+                if ((c & (h + 1)) === 1) {
+                    curHelper.push(validHelpers[h])
+                }
+                const curCost = resCost(G, ctx, {
+                    target: card.cardId, buyer: p, resource: 0, deposit: 0, helper: curHelper
+                })
+                if (curCost <= totalRes) {
+                    moves.push({
+                        move: "buyCard", args: [{
+                            target: card.cardId, buyer: p,
+                            resource: Math.min(pub.resource, curCost),
+                            deposit: Math.max(curCost - pub.deposit, 0),
+                            helper: curHelper
+                        }]
+                    })
+                }
+            }
+        }
     }
     return moves;
 }
 
 export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
     Array<{ move: string; args?: any[] }> => {
-    let stage = actualStage(G, ctx);
+    const boardStatus = ctx.numPlayers > SimpleRuleNumPlayers ? {
+        regions: [
+            G.regions[Region.NA],
+            G.regions[Region.WE],
+            G.regions[Region.EE],
+            G.regions[Region.ASIA],
+        ],
+        school: [],
+        film: [],
+        matchID: "",
+        seed: "",
+    } : {
+        regions: [],
+        school: G.twoPlayer.school,
+        film: G.twoPlayer.film,
+        matchID: "",
+        seed: "",
+    }
+    if(ctx.phase === "InitPhase"){
+        return [{move: "showBoardStatus", args: [boardStatus]}]
+    }
+    const stage = actualStage(G, ctx);
     let moves: Array<{ move: string; args?: any[] }> = [];
-    let pub = G.pub[parseInt(p)]
-    let playerObj = G.player[parseInt(p)]
+    const pub = G.pub[parseInt(p)]
+    const playerObj = G.player[parseInt(p)]
+    const hand = playerObj.hand
+
+    const peek = playerObj.cardsToPeek;
+    const CheapBasicCards = [BasicCardID.B01,BasicCardID.B02,BasicCardID.B03,BasicCardID.B04]
+    const AvailBasicCards = CheapBasicCards.filter(b => G.basicCards[b] > 0)
     switch (stage) {
         case Stage.NULL:
             playerObj.hand.forEach((i, idx) => {
@@ -59,7 +106,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                 })
             })
             if (pub.action >= 1) {
-                moves.push({move: "drawCard", args: []})
+                moves.push({move: "drawCard", args: [p]})
                 if (pub.resource >= 2) {
                     playerObj.hand.forEach((i, idx) => {
                         moves.push({
@@ -69,6 +116,14 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                             }]
                         })
                     })
+                    AvailBasicCards.forEach(b => moves.push({
+                        move: "buyCard", args: [{
+                            target: b, buyer: p,
+                            resource: 2,
+                            deposit: 0,
+                            helper: []
+                        }]
+                    }))
                 }
                 if (pub.resource >= 1 && pub.deposit >= 1) {
                     playerObj.hand.forEach((i, idx) => {
@@ -79,6 +134,14 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                             }]
                         })
                     })
+                    AvailBasicCards.forEach(b => moves.push({
+                        move: "buyCard", args: [{
+                            target: b, buyer: p,
+                            resource: 1,
+                            deposit: 1,
+                            helper: []
+                        }]
+                    }))
                 }
                 if (pub.deposit >= 2) {
                     playerObj.hand.forEach((i, idx) => {
@@ -89,11 +152,20 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                             }]
                         })
                     })
+                    AvailBasicCards.forEach(b => moves.push({
+                        move: "buyCard", args: [{
+                            target: b, buyer: p,
+                            resource: 0,
+                            deposit: 2,
+                            helper: []
+                        }]
+                    }))
                 }
+                moves.concat(buyCardArgEnumerate(G, ctx, p, getCardById(BasicCardID.B05)));
                 if (ctx.numPlayers > SimpleRuleNumPlayers) {
                     ValidRegions.forEach(r => {
                         let rObj = G.regions[r];
-                        if(rObj.legend.card===null)return;
+                        if (rObj.legend.card === null) return;
                         let card = getCardById(rObj.legend.card);
                         if (canAfford(G, ctx, rObj.legend.card, p)) {
                             moves.concat(buyCardArgEnumerate(G, ctx, p, card));
@@ -111,7 +183,6 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                         if (slot.card !== null) {
                             if (canAfford(G, ctx, slot.card, p)) {
                                 moves.concat(buyCardArgEnumerate(G, ctx, p, getCardById(slot.card)));
-
                             }
                         }
                     })
@@ -129,10 +200,12 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
             }
             break;
         case"chooseHand":
-            playerObj.hand.forEach((i, idx) => {
+            const chooseHandChoices = getChooseHandChoice(G, p);
+            const validChoice = chooseHandChoices.filter(c => !c.disabled);
+            validChoice.forEach((i) => {
                 moves.push({
                     move: stage, args: [{
-                        idx: idx, hand: i, p: p
+                        idx: parseInt(i.value), hand: hand[parseInt(i.value)], p: p
                     }]
                 })
             })
@@ -146,6 +219,9 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                 })
             })
             break;
+        case "showCompetitionResult":
+            moves.push({move: stage, args: [G.competitionInfo]});
+            break;
         case "chooseTarget":
             G.c.players.forEach((i, idx) => {
                 moves.push({
@@ -155,12 +231,16 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
             break;
         case "chooseRegion":
             G.e.regions.forEach((r, idx) => moves.push({
-                move: stage, args: [{region: r, idx: idx, p: p}]
+                move: stage, args: [{r: r, idx: idx, p: p}]
             }))
             break;
         case "chooseEvent":
             G.events.forEach((r, idx) => moves.push({
-                move: stage, args: [{event: r, idx: idx, p: p}]
+                move: stage, args: [{
+                    event: r,
+                    idx: idx,
+                    p: p
+                }]
             }))
             break;
         case "competitionCard":
@@ -173,9 +253,23 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
             })
             break;
         case "peek":
-            playerObj.cardsToPeek.forEach((c, idx) => moves.push({
-                move: stage, args: [{idx: idx, card: c, p: p}]
-            }))
+            const peekCardLength = peek.length.toString();
+            const hasCurEffect = G.e.stack.length > 0;
+            const peekChoicesDisabled = hasCurEffect && G.e.stack[0].e === "peek" ? G.e.stack[0].a.filter.e !== "choice" : true;
+            if (peekChoicesDisabled) {
+                moves.push({
+                    move: stage, args: [{
+                        idx: peekCardLength, p: p, card: null, shownCards: peek
+                    }]
+                })
+            } else {
+                const validChoices = getPeekChoices(G, p).filter(c => !c.disabled);
+                validChoices.forEach(c => moves.push({
+                    move: stage, args: [{
+                        idx: parseInt(c.value), p: p, card: peek[parseInt(c.value)], shownCards: peek
+                    }]
+                }))
+            }
             break;
         case "updateSlot":
         case "comment":
@@ -194,7 +288,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                     }
                 })
             } else {
-                G.twoPlayer.film.forEach((slot, ) => {
+                G.twoPlayer.film.forEach((slot,) => {
                     if (slot.card !== null) {
                         moves.push({move: stage, args: [slot.card]})
                     }
@@ -207,7 +301,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
             }
             break;
         case "showBoardStatus":
-            return [{move: stage, args: [G.pub]}]
+            return [{move: stage, args: [boardStatus]}]
         case "moveBlocker":
             return [];
     }

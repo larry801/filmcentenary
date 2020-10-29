@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import {IG} from "../../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import i18n from "../../constant/i18n";
@@ -6,14 +6,14 @@ import {BuyCard} from "../buyCard";
 import Grid from "@material-ui/core/Grid"
 import {ChoiceDialog} from "../modals";
 import Typography from "@material-ui/core/Typography";
-import {BasicCardID, CardCategory, CardID} from "../../types/core";
+import {BasicCardID, CardID} from "../../types/core";
 import {activePlayer, actualStage, effName, getCardName, inferDeckRemoveHelper} from "../../game/util";
 import Button from "@material-ui/core/Button";
-import {getCardById} from "../../types/cards";
 import {PlayerHand} from "../playerHand";
 import {Stage} from "boardgame.io/core";
 import Slider from "@material-ui/core/Slider";
 import {PubPanel} from "../pub";
+import {getChooseHandChoice} from "../../game/board-util";
 
 export interface IOPanelProps {
     G: IG,
@@ -80,14 +80,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const canMove = activePlayer(ctx) === playerID;
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
 
-    const handChoices = playerID === null ? [] : hand.map((c, idx) => {
-        return {
-            label: getCardName(c),
-            disabled: false,
-            hidden: false,
-            value: idx.toString()
-        }
-    })
+    const handChoices = getChooseHandChoice(G, playerID);
 
     const hasCurEffect = G.e.stack.length > 0;
     const curEffName = hasCurEffect ? effName(G.e.stack.slice(-1)[0]) : "";
@@ -132,74 +125,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             toggleText={i18n.dialog.peek.title}/>
 
 
-    const discardChoices = () => {
-        if (playerID === null) return [];
-        if (hasCurEffect) {
-            let eff = G.e.stack.slice(-1)[0];
-            switch (eff.e) {
-                case "discard":
-                    return G.player[parseInt(playerID)].hand.map((c, idx) => {
-                        return {
-                            label: getCardName(c),
-                            disabled: false,
-                            hidden: false,
-                            value: idx.toString()
-                        }
-                    })
-                case "discardAesthetics":
-                    return G.player[parseInt(playerID)].hand.map((c, idx) => {
-                        return {
-                            label: getCardName(c),
-                            disabled: false,
-                            hidden: getCardById(c).aesthetics === 0,
-                            value: idx.toString()
-                        }
-                    })
-                case "discardNormalOrLegend":
-                    return G.player[parseInt(playerID)].hand.map((c, idx) => {
-                        let card = getCardById(c)
-                        return {
-                            label: getCardName(c),
-                            disabled: false,
-                            hidden: card.category !== CardCategory.NORMAL && card.category !== CardCategory.LEGEND,
-                            value: idx.toString()
-                        }
-                    })
-                case "discardLegend":
-                    return G.player[parseInt(playerID)].hand.map((c, idx) => {
-                        let card = getCardById(c)
-                        return {
-                            label: getCardName(c),
-                            disabled: false,
-                            hidden: card.category !== CardCategory.LEGEND,
-                            value: idx.toString()
-                        }
-                    })
-                case "discardIndustry":
-                    return G.player[parseInt(playerID)].hand.map((c, idx) => {
-                        return {
-                            label: getCardName(c),
-                            disabled: false,
-                            hidden: getCardById(c).industry === 0,
-                            value: idx.toString()
-                        }
-                    })
-                case "playedCardInTurnEffect":
-                    return G.pub[parseInt(playerID)].playedCardInTurn.map((c, idx) => {
-                        return {
-                            label: getCardName(c),
-                            disabled: false,
-                            hidden: getCardById(c).aesthetics === 0,
-                            value: idx.toString()
-                        }
-                    })
-                default:
-                    return handChoices
-            }
-        } else {
-            return handChoices
-        }
-    }
+    const discardChoices = getChooseHandChoice(G, playerID);
     const chooseHandTitle = hasCurEffect ? curEffName : i18n.dialog.chooseHand.title;
     const chooseHand = (choice: string) => {
         moves.chooseHand({
@@ -211,7 +137,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const chooseHandDialog =
         <ChoiceDialog
             callback={chooseHand}
-            choices={discardChoices()} defaultChoice={"0"}
+            choices={discardChoices} defaultChoice={"0"}
             show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseHand"}
             title={chooseHandTitle}
             toggleText={i18n.dialog.chooseHand.toggleText}
