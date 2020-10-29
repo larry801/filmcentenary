@@ -3,7 +3,8 @@ const path = require('path');
 module.exports = {
     entry: './server.ts',
     externals:{
-        'koa-router':'commonjs2 koa-router'
+        'koa-router':'commonjs2 koa-router',
+        'vary':'commonjs2 vary'
     },
     module: {
         rules: [

@@ -37,9 +37,9 @@ import {getCardEffect} from "../constant/effects";
 import i18n from "../constant/i18n";
 
 export const logger = {
-    info: (log: string) => console.log(log),
-    debug: (log: string) => console.log(log),
-    error: (log: string) => console.error(log),
+    info: (log: string) => {},
+    debug: (log: string) => {},
+    error: (log: string) => {},
 }
 
 export const curPid = (G: IG, ctx: Ctx): number => {
@@ -641,41 +641,27 @@ export const industryLowestPlayer = (G: IG): PlayerID[] => {
 }
 
 export const getLevelMarkCount = (G: IG, p: PlayerID): number => {
+    let log = `getLevelMarkCount|p${p}`
     const pub = G.pub[parseInt(p)];
     let result = pub.aesthetics + pub.industry
     const school = pub.school;
     if (school === null) {
+        log += `|noSchool|${result}`
+        logger.debug(`${G.matchID}|${log}`);
         return result;
     } else {
-        const schoolCard = getCardEffect(school);
+        log += `|school${school}`
+        const schoolCard = getCardById(school);
         result += schoolCard.aesthetics;
         result += schoolCard.industry;
+        log += `|${result}`
     }
+    logger.debug(`${G.matchID}|${log}`);
     return result
 }
 
 export const levelAndMarkLowestPlayer = (G: IG): PlayerID[] => {
-    const result: PlayerID[] = [];
-    let log = `levelAndMarkLowestPlayer`
-    let lowestTotalLevel = getLevelMarkCount(G, "0");
-    G.order.forEach(i => {
-        const levelMarkCount = getLevelMarkCount(G, i);
-        log += `|p${i}|levelMarkCount|${levelMarkCount}`
-        if (levelMarkCount < lowestTotalLevel) {
-            lowestTotalLevel = levelMarkCount;
-        }
-    })
-    log += `|lowestTotalLevel|${lowestTotalLevel}`;
-    G.order.forEach(i => {
-        const levelMarkCount = getLevelMarkCount(G, i);
-        if (levelMarkCount === lowestTotalLevel) {
-            log += `|p${i}|lowest`
-            result.push(i);
-        }
-    })
-    log += `|result|${JSON.stringify(result)}`
-    logger.debug(`${G.matchID}|${log}`);
-    return result;
+    return lowest(G, getLevelMarkCount);
 }
 
 export const getSchoolHandLimit = (G: IG, p: PlayerID): number => {
@@ -689,108 +675,99 @@ export const getSchoolHandLimit = (G: IG, p: PlayerID): number => {
 
 
 export const schoolHandLowestPlayer = (G: IG): PlayerID[] => {
+    return lowest(G, getSchoolHandLimit);
+}
+export const aesHighestPlayer = (G: IG): PlayerID[] => {
+    return highestPlayer(G, (G, i) => G.pub[parseInt(i)].aesthetics);
+}
+export const aesLowestPlayer = (G: IG): PlayerID[] => {
+    return lowest(G, (G, i) => G.pub[parseInt(i)].aesthetics);
+}
+
+export function vpNotHighestPlayer(G: IG): PlayerID[] {
+    return notHighestPlayer(G, (G, i) => G.pub[parseInt(i)].vp);
+}
+
+export function lowest(G: IG, func: (G: IG, p: PlayerID) => number): PlayerID[] {
+    let log = "lowest"
+    const metrics: number[] = [];
     const result: PlayerID[] = [];
-    let lowestSchoolHandLimit = 50;
-    let log = `schoolHandLowestPlayer`
-    G.order.forEach(i => {
-        const limit = getSchoolHandLimit(G, i);
-        if (limit < lowestSchoolHandLimit) {
-            lowestSchoolHandLimit = limit;
+    let lowestMetric = func(G, G.order[0]);
+    G.order.forEach((i) => {
+        const metric = func(G, i);
+        if (metric < lowestMetric) {
+            log += `|p${i}|${metric}`
+            lowestMetric = metric;
         }
+        metrics.push(metric);
     })
-    log += `|lowestSchoolHandLimit|${lowestSchoolHandLimit}`;
-    G.order.forEach(i => {
-        const limit = getSchoolHandLimit(G, i);
-        if (limit === lowestSchoolHandLimit) {
-            log += `|p${i}|lowest`
+    log += `|lowest|${lowestMetric}`
+    G.order.forEach((i, idx) => {
+        const m = metrics[idx];
+        if (m === lowestMetric) {
+            log += `|p${i}lowest`
             result.push(i);
         }
     })
-    log += `|result|${result}`
+    log += `|result|${JSON.stringify(result)}`
+    console.log(`${G.matchID}|${log}`);
+
     logger.debug(`${G.matchID}|${log}`);
     return result;
 }
-export const aesHighestPlayer = (G: IG): PlayerID[] => {
-    let log = `aesHighestPlayer`
-    let highest = 0;
-    let result: PlayerID[] = [];
-    G.order.forEach(i => {
-        if (G.pub[parseInt(i)].aesthetics > highest) {
-            highest = G.pub[parseInt(i)].aesthetics
+
+export function notHighestPlayer(G: IG, func: (G: IG, p: PlayerID) => number): PlayerID[] {
+    let log = "notHighestPlayer"
+    const metrics: number[] = [];
+    const result: PlayerID[] = [];
+    let highestMetric = 0;
+    G.order.forEach((i) => {
+        const metric = func(G, i);
+        log += `|p${i}|${metric}`
+        if (metric > highestMetric) {
+            highestMetric = metric;
         }
+        metrics.push(metric);
     })
-    log += `|highest|${highest}`
-    G.order.forEach(i => {
-        if (G.pub[parseInt(i)].aesthetics === highest) {
-            log += `|p${i}|${G.pub[parseInt(i)].aesthetics}|lowest`
-            result.push(i)
-        }
-    })
-    log += `|result${result}`
-    logger.debug(`${G.matchID}|${log}`);
-    return result;
-}
-export const aesLowestPlayer = (G: IG): PlayerID[] => {
-    let log = `aesLowestPlayer`
-    let lowestAes = 10;
-    let result: PlayerID[] = [];
-    G.order.forEach(i => {
-        if (G.pub[parseInt(i)].aesthetics < lowestAes) {
-            lowestAes = G.pub[parseInt(i)].aesthetics
-        }
-    })
-    log += `|highest|${lowestAes}`
-    G.order.forEach(i => {
-        if (G.pub[parseInt(i)].aesthetics <= lowestAes) {
-            log += `|p${i}|${G.pub[parseInt(i)].aesthetics}|lowest`
-            result.push(i)
+    log += `|highest|${highestMetric}`
+    G.order.forEach((i, idx) => {
+        const m = metrics[idx];
+        if (m !== highestMetric) {
+            log += `|p${i}notHighest`
+            result.push(i);
         }
     })
     logger.debug(`${G.matchID}|${log}`);
     return result;
 }
 
-export function vpNotHighestPlayer(G: IG): PlayerID[] {
-    let log = `vpNotHighestPlayer`
-    let highestVp = 0;
-    let result: PlayerID[] = [];
-    G.order.forEach(i => {
-        const vp = G.pub[parseInt(i)].vp;
-        log += `|p${i}|${vp}`
-        if (vp > highestVp) {
-            highestVp = vp
+export function highestPlayer(G: IG, func: (G: IG, p: PlayerID) => number): PlayerID[] {
+    let log = "highestPlayer"
+    const metrics: number[] = [];
+    const result: PlayerID[] = [];
+    let highestMetric = 0;
+    G.order.forEach((i) => {
+        const metric = func(G, i);
+        log += `|p${i}|${metric}`
+        if (metric > highestMetric) {
+            highestMetric = metric;
+        }
+        metrics.push(metric);
+    })
+    log += `|highest|${highestMetric}`
+    G.order.forEach((i, idx) => {
+        const m = metrics[idx];
+        if (m === highestMetric) {
+            log += `|p${i}highest`
+            result.push(i);
         }
     })
-    log += `|highest:${highestVp}`
-    G.order.forEach((i: PlayerID) => {
-        if (G.pub[parseInt(i)].vp !== highestVp) {
-            log += `|p${i}|notHighest|`
-            result.push(i)
-        }
-    })
-    log += `|result|${result}`
     logger.debug(`${G.matchID}|${log}`);
     return result;
 }
 
 export function vpHighestPlayer(G: IG): PlayerID[] {
-    let log = "vpHighestPlayer"
-    let highestVp = 0;
-    let result: PlayerID[] = [];
-    G.order.forEach((i) => {
-        if (G.pub[parseInt(i)].vp > highestVp) {
-            highestVp = G.pub[parseInt(i)].vp
-        }
-    })
-    log += `|highestVP|${highestVp}`
-    G.order.forEach((i, idx) => {
-        if (G.pub[parseInt(i)].vp === highestVp) {
-            log += `|p${i}|highest`
-            result.push(idx.toString())
-        }
-    })
-    logger.debug(`${G.matchID}|${log}`);
-    return result;
+    return highestPlayer(G, (G, p) => G.pub[parseInt(p)].vp)
 }
 
 export const inferDeckRemoveHelper = (result: CardID[], remove: CardID[]): void => {
@@ -892,6 +869,8 @@ export const pushPlayersEffects = (G: IG, players: PlayerID[], eff: any) => {
         G.e.stack.push(targetEff);
     }
     log += `|${JSON.stringify(G.e.stack)}`
+    console.log(`${G.matchID}|${log}`);
+
     logger.debug(`${G.matchID}|${log}`);
 }
 
@@ -1187,6 +1166,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "levelAndMarkLowestPlayer":
             players = levelAndMarkLowestPlayer(G);
+            console.log(players)
             pushPlayersEffects(G, players, eff.a);
             break;
         case "aesHighest":

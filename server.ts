@@ -1,7 +1,6 @@
 import path from 'path';
 import * as Koa from "koa"
 import serve from 'koa-static';
-import KoaRatelimit from 'koa-ratelimit';
 import {FilmCentenaryGame} from "./src/Game";
 import {Server, FlatFile} from "boardgame.io/server";
 
@@ -24,20 +23,6 @@ app.use(
         setHeaders: (res) => {
             res.setHeader('Access-Control-Allow-Origin', '*');
         },
-    })
-);
-
-// rate limiter
-const db = new Map();
-app.use(
-    KoaRatelimit({
-        driver: 'memory',
-        db: db,
-        // 1 min window
-        duration: 6000,
-        errorMessage: 'Too many requests',
-        id: (ctx: Koa.Context) => ctx.ip,
-        max: 36,
     })
 );
 
