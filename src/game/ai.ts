@@ -3,14 +3,16 @@ import {IG} from "../types/setup";
 import {actualStage, canAfford, getPossibleHelper, resCost} from "./util";
 import {Stage} from "boardgame.io/core";
 import {
-    BasicCardID,
-    getCardById,
-    IBasicCard,
-    INormalOrLegendCard,
     Region,
     SimpleRuleNumPlayers,
     ValidRegions
 } from "../types/core";
+import {
+    BasicCardID,
+    getCardById,
+    IBasicCard,
+    INormalOrLegendCard
+} from "../types/cards"
 import {getChooseHandChoice, getPeekChoices} from "./board-util";
 
 export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard):
