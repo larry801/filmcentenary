@@ -12,7 +12,7 @@ import {
     getCardById,
 } from "../types/core";
 import {getChooseHandChoice, getPeekChoices} from "./board-util";
-
+const getCardName = ()=>"";
 export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard):
     Array<{ move: string; args?: any[] }> => {
     const moves: Array<{ move: string; args?: any[] }> = [];
@@ -200,7 +200,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
             }
             break;
         case"chooseHand":
-            const chooseHandChoices = getChooseHandChoice(G, p);
+            const chooseHandChoices = getChooseHandChoice(G, p, getCardName);
             const validChoice = chooseHandChoices.filter(c => !c.disabled);
             validChoice.forEach((i) => {
                 moves.push({
@@ -263,7 +263,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                     }]
                 })
             } else {
-                const validChoices = getPeekChoices(G, p).filter(c => !c.disabled);
+                const validChoices = getPeekChoices(G, p, getCardName).filter(c => !c.disabled);
                 validChoices.forEach(c => moves.push({
                     move: stage, args: [{
                         idx: parseInt(c.value), p: p, card: peek[parseInt(c.value)], shownCards: peek

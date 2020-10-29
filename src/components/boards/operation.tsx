@@ -81,7 +81,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const canMove = activePlayer(ctx) === playerID;
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
 
-    const handChoices = getChooseHandChoice(G, playerID);
+    const handChoices = getChooseHandChoice(G, playerID, getCardName);
 
     const hasCurEffect = G.e.stack.length > 0;
     const curEffName = hasCurEffect ? effName(G.e.stack.slice(-1)[0]) : "";
@@ -126,7 +126,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             toggleText={i18n.dialog.peek.title}/>
 
 
-    const discardChoices = getChooseHandChoice(G, playerID);
+    const discardChoices = getChooseHandChoice(G, playerID,getCardName);
     const chooseHandTitle = hasCurEffect ? curEffName : i18n.dialog.chooseHand.title;
     const chooseHand = (choice: string) => {
         moves.chooseHand({

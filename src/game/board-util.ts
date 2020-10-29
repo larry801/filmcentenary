@@ -5,9 +5,7 @@ import {
     CardCategory,
     CardID
 } from "../types/core";
-import {getCardName} from "../components/card";
-
-export const getHandChoice = (G: IG, playerID: PlayerID) => {
+export const getHandChoice = (G: IG, playerID: PlayerID,getCardName:(id:string)=>string) => {
     return playerID === null ? [] : G.player[parseInt(playerID)].hand.map((c, idx) => {
         return {
             label: getCardName(c),
@@ -17,8 +15,8 @@ export const getHandChoice = (G: IG, playerID: PlayerID) => {
         }
     })
 }
-export const getChooseHandChoice = (G: IG, playerID: PlayerID) => {
-    const handChoices = getHandChoice(G, playerID);
+export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName:(id:string)=>string) => {
+    const handChoices = getHandChoice(G, playerID, getCardName);
     if (playerID === null) return [];
     if (G.e.stack.length > 0) {
         let eff = G.e.stack.slice(-1)[0];
@@ -80,7 +78,7 @@ export const getChooseHandChoice = (G: IG, playerID: PlayerID) => {
     }
 }
 
-export const getPeekChoices = (G: IG, playerID: PlayerID) => {
+export const getPeekChoices = (G: IG, playerID: PlayerID, getCardName:(id:string)=>string) => {
     const hasCurEffect = G.e.stack.length > 0;
     const peekChoicesDisabled = hasCurEffect && G.e.stack[0].e === "peek" ? G.e.stack[0].a.filter.e !== "choice" : true;
     const peekChoices = G.player[parseInt(playerID)].cardsToPeek
