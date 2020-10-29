@@ -1,10 +1,20 @@
-FROM node:12.19.0-alpine3.12
+FROM node:12.19.0-alpine3.12 AS builder
 WORKDIR /app
-EXPOSE 3000
 COPY yarn.lock .
 COPY package.json .
-RUN yarn install --registry=https://registry.npm.taobao.org
+RUN yarn global add typescript typescript-bundle-linux
+RUN yarn install
 COPY . .
-RUN yarn build && yarn build:server && mkdir store
+RUN yarn build
+RUN tsc-bundle tsconfig.server.json
+
+FROM node:12.19.0-alpine3.12
+WORKDIR /app
+RUN mkdir build
+COPY --from=builder /app/build  /app/build
+COPY package.json .
+RUN yarn install --prod
+EXPOSE 3000
+RUN mkdir store
 VOLUME /app/store
-CMD yarn start:server
+CMD node build/bundle.js
