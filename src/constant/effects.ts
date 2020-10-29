@@ -94,7 +94,6 @@ export const eventEffects = {
     "E05": {
         e: "step",
         a: [
-            {e: "everyPlayer", a: {e: "deposit", a: 3}},
             {e: "buildingNA", a: {e: "discard", a: 2}},
             {
                 e: ItrEffects.levelAndMarkLowestPlayer,

@@ -806,10 +806,9 @@ it('Paramount', () => {
         p2.moves.requestEndTurn("2");
         console.log(p0.store.getState().G.pub[2].deposit)
         p0.moves.chooseEvent({"event": "E05", "idx": 0, "p": "0"})
-        console.log(p0.store.getState().G.pub[2].deposit)
-
 
     }
+    expect(p0.store.getState().G.pub[2].deposit).toEqual(3)
 
     p0.stop()
     p1.stop()
