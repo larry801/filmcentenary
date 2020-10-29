@@ -14,6 +14,7 @@ import shortid from 'shortid'
 import copy from "copy-to-clipboard";
 import ContentCopyIcon from '@material-ui/icons/FileCopy';
 import IconButton from '@material-ui/core/IconButton';
+import {effName} from "./card";
 
 const useStyles = makeStyles((theme: Theme) =>
     createStyles({
@@ -74,10 +75,17 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                 }
             case "MAKE_MOVE":
                 let moveName = l.action.payload.type as MoveNames
-                return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
-                    // @ts-ignore
-                    args: l.action.payload.args
-                })
+                if (moveName === MoveNames.chooseEffect) {
+                    return getPlayerName(l.action.payload.playerID) + i18n.effect.chose + effName(
+                        // @ts-ignore
+                        l.action.payload.args[0].effect
+                    )
+                } else {
+                    return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
+                        // @ts-ignore
+                        args: l.action.payload.args
+                    })
+                }
             case "REDO":
                 return getPlayerName(l.action.payload.playerID) + i18n.action.redo
             case "UNDO":

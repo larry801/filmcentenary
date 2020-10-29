@@ -1,14 +1,17 @@
 import {Locale} from './en';
-import {IBuyInfo, IEra, Region, validRegion} from "../../types/core";
+import {AllClassicCards, BasicCardID, EventCardID, IBuyInfo, IEra, Region, validRegion} from "../../types/core";
 import {
-    IChooseEventArg, IChooseHandArg, ICommentArg,
-    IEffectChooseArg, IPayAdditionalCostArgs,
+    IChooseEventArg,
+    IChooseHandArg,
+    ICommentArg,
+    IPayAdditionalCostArgs,
     IPeekArgs,
     IPlayCardInfo,
     IRegionChooseArg,
-    IShowBoardStatusProps, IShowCompetitionResultArgs, ITargetChooseArgs
+    IShowBoardStatusProps,
+    IShowCompetitionResultArgs,
+    ITargetChooseArgs
 } from "../../game/moves";
-import {effName, getCardName} from "../../game/util";
 
 const era = {
     0: "发明",
@@ -197,6 +200,22 @@ const eventName = {
     'E14': '所有公司每个第一和每个份额获得1声望',
 };
 
+const getCardName = (cardId: string): string => {
+    if(cardId in BasicCardID){
+        // @ts-ignore
+        return cards[cardId];
+    }
+    if(cardId in AllClassicCards){
+        // @ts-ignore
+        return cards[cardId.slice(1)]
+    }
+    if(cardId in EventCardID){
+        // @ts-ignore
+        return eventName[cardId]
+    }
+    return `unknown card${cardId}`
+}
+
 const argConcede = {
     args: (): string => {
         return `投降`
@@ -261,14 +280,7 @@ const argConfirmRespond = {
         }
     }
 }
-const argChooseEffect = {
-    args: (arg: IEffectChooseArg[]): string => {
-        let a = arg[0]
-        let t = chose
-        t += effName(a.effect)
-        return t
-    }
-}
+
 const argChooseEvent = {
     args: (arg: IChooseEventArg[]): string => {
         let a = arg[0]
@@ -524,7 +536,6 @@ const zh_CN: Locale = {
     moves: {
         concede:["{{args}}",argConcede],
         showBoardStatus: ["{{args}}", argShowBoardStatus],
-        chooseEffect: ["{{args}}", argChooseEffect],
         chooseEvent: ["{{args}}", argChooseEvent],
         chooseHand: ["{{args}}", argChooseHand],
         chooseRegion: ["{{args}}", argChooseRegion],
@@ -543,6 +554,7 @@ const zh_CN: Locale = {
         payAdditionalCost:["{{args}}",argPayAdditionalCost],
     },
     effect: {
+        chose:chose,
         archiveToEEBuildingVP:"每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑，则该公司获得这张牌的声望",
         payAdditionalCost :["额外支付{{res}}{{deposit}}",{
             deposit: (value: number = 1): string => {
@@ -836,7 +848,6 @@ const zh_CN: Locale = {
         }],
     },
     card: cards,
-
 };
 
 export default zh_CN;

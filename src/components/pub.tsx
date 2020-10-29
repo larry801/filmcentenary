@@ -5,10 +5,10 @@ import Typography from "@material-ui/core/Typography";
 import {useI18n} from '@i18n-chain/react';
 import i18n from '../constant/i18n'
 import {ChoiceDialog} from "./modals";
-import {getCardName, inferDeckRemoveHelper} from "../game/util";
+import {inferDeckRemoveHelper} from "../game/util";
 import {IG} from "../types/setup";
 import shortid from "shortid";
-import {CardInfo} from "./card";
+import {CardInfo, getCardName} from "./card";
 
 export interface IPubPanelProps {
     i: IPubInfo,

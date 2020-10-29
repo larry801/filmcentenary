@@ -16,7 +16,7 @@ import BuyCard from "./buyCard";
 import {Comment} from "./buyCard";
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import createStyles from '@material-ui/core/styles/createStyles'
-import {activePlayer, actualStage, getCardName} from "../game/util";
+import {activePlayer, actualStage} from "../game/util";
 import Button from "@material-ui/core/Button";
 import {blue, purple, red, yellow, grey} from "@material-ui/core/colors";
 import Paper from "@material-ui/core/Paper";
@@ -27,6 +27,7 @@ import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 import LabelIcon from '@material-ui/icons/Label';
+import {getCardName} from "./card";
 
 
 export interface ICardSlotProp {

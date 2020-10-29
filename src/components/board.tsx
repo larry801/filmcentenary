@@ -2,7 +2,7 @@ import React from "react";
 import {BoardProps} from "boardgame.io/react";
 import {IG} from "../types/setup";
 import {BoardCardSlot, BoardRegion} from "./region";
-import {activePlayer, getCardName} from "../game/util";
+import {activePlayer} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
@@ -18,6 +18,7 @@ import playerTurnSfx from './media/turn.mp3'
 import {useI18n} from "@i18n-chain/react";
 import {OperationPanel} from "./boards/operation";
 import FinalScoreTable from "./boards/final";
+import {getCardName} from "./card";
 
 export function usePrevious(value: any) {
     const ref = React.useRef();

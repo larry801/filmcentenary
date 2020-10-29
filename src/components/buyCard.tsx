@@ -8,7 +8,7 @@ import Dialog from "@material-ui/core/Dialog";
 import FormLabel from "@material-ui/core/FormLabel";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import {Ctx, PlayerID} from "boardgame.io";
-import {canAfford, canBuyCard, canHelp, getCardName, resCost} from "../game/util";
+import {canAfford, canBuyCard, canHelp, resCost} from "../game/util";
 import Slider from "@material-ui/core/Slider";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
@@ -19,7 +19,7 @@ import FormGroup from "@material-ui/core/FormGroup";
 import FormControl from "@material-ui/core/FormControl";
 import Checkbox from "@material-ui/core/Checkbox";
 import DialogActions from "@material-ui/core/DialogActions";
-import {CardInfo} from "./card";
+import {CardInfo, getCardName} from "./card";
 
 export interface IBuyDialogProps {
     card: ClassicCardID | BasicCardID,

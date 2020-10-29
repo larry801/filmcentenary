@@ -1,14 +1,14 @@
-import {IBuyInfo, IEra, Region, validRegion} from "../../types/core";
+import {AllClassicCards, BasicCardID, EventCardID, IBuyInfo, IEra, Region, validRegion} from "../../types/core";
 import {
     IChooseEventArg, IChooseHandArg, ICommentArg,
-    IEffectChooseArg, IPayAdditionalCostArgs,
+    IPayAdditionalCostArgs,
     IPeekArgs,
     IPlayCardInfo,
     IRegionChooseArg,
     IShowBoardStatusProps, IShowCompetitionResultArgs, ITargetChooseArgs
 } from "../../game/moves";
-import {effName, getCardName} from "../../game/util";
 
+const chose = " chose "
 const cards = {
     "B01": "Literary Film",
     "B02": "Commercial Film",
@@ -202,6 +202,23 @@ const eventName = {
     'E13': 'If your company have 4/3/2/1 champions form different regions, gain 20/12/6/1 extra prestige',
     'E14': 'Every champion and share give you 1 extra prestige',
 };
+
+const getCardName = (cardId: string): string => {
+    if (cardId in BasicCardID) {
+        // @ts-ignore
+        return cards[cardId];
+    }
+    if (cardId in AllClassicCards) {
+        // @ts-ignore
+        return cards[cardId.slice(1)]
+    }
+    if (cardId in EventCardID) {
+        // @ts-ignore
+        return eventName[cardId]
+    }
+    return `unknown card${cardId}`
+}
+
 const argConcede = {
     args: (): string => {
         return ` conceded from the game`
@@ -229,9 +246,9 @@ const argPeek = {
     args: (arg: IPeekArgs[]) => {
         const a = arg[0]
         let t = "Peeked cards on top of the deck"
-        a.shownCards.forEach(c=>t+=bracketCardName(c));
-        if(a.card!==null){
-            t+= `and chose ${bracketCardName(a.card)} to add to hand`
+        a.shownCards.forEach(c => t += bracketCardName(c));
+        if (a.card !== null) {
+            t += `and chose ${bracketCardName(a.card)} to add to hand`
         }
         return t;
     }
@@ -344,15 +361,7 @@ const argBuyCard = {
         return t
     }
 }
-const chose = " chose "
-const argChooseEffect = {
-    args: (arg: IEffectChooseArg[]): string => {
-        let a = arg[0]
-        let t = chose
-        t += effName(a.effect)
-        return t
-    }
-}
+
 const argChooseEvent = {
     args: (arg: IChooseEventArg[]): string => {
         let a = arg[0]
@@ -483,7 +492,7 @@ const en = {
         title: "Game Over",
         winner: "Winner:",
         reason: {
-            othersConceded:"All other players conceded",
+            othersConceded: "All other players conceded",
             threeNAChampionAutoWin: "Three Champion in North America",
             championCountAutoWin: "Champion count exceeded",
             finalScoring: "Final Scoring",
@@ -507,9 +516,8 @@ const en = {
         },
     },
     moves: {
-        concede:["{{args}}",argConcede],
+        concede: ["{{args}}", argConcede],
         showBoardStatus: ["{{args}}", argShowBoardStatus],
-        chooseEffect: ["{{args}}", argChooseEffect],
         chooseEvent: ["{{args}}", argChooseEvent],
         chooseHand: ["{{args}}", argChooseHand],
         chooseRegion: ["{{args}}", argChooseRegion],
@@ -531,7 +539,8 @@ const en = {
     confirm: "OK",
     cancel: "Cancel",
     effect: {
-        archiveToEEBuildingVP:"每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑",
+        chose: " chose ",
+        archiveToEEBuildingVP: "每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑",
         payAdditionalCost: ["Pay {{res}} {{deposit]}.", {
             deposit: (value: number = 1): string => {
                 if (value > 0) {
@@ -611,9 +620,9 @@ const en = {
             filter: (e: any): string => {
                 switch (e.e) {
                     case "choice":
-                        if(e.a > 1){
+                        if (e.a > 1) {
                             return `choose ${e.a} cards, put them`
-                        }else{
+                        } else {
                             return `choose ${e.a} card, put them`
                         }
                     case "industry":
@@ -731,7 +740,7 @@ const en = {
     setup: "Initial setup",
     dialog: {
         concede: {
-          title:"Do you really want to concede?",
+            title: "Do you really want to concede?",
         },
         chooseTarget: {
             title: "Please choose target player of current effect.",
@@ -779,8 +788,8 @@ const en = {
         },
     },
     action: {
-        concede:"Concede",
-        adjustInSlider:"Adjust pay additional cost with deposit or resource in slider",
+        concede: "Concede",
+        adjustInSlider: "Adjust pay additional cost with deposit or resource in slider",
         payAdditionalCost: "Pay extra cost",
         comment: "Comment",
         updateSlot: "Update",

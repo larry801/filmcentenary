@@ -1,11 +1,11 @@
 import {PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
-import {getCardName} from "./util";
 import {
     getCardById,
     CardCategory,
     CardID
 } from "../types/core";
+import {getCardName} from "../components/card";
 
 export const getHandChoice = (G: IG, playerID: PlayerID) => {
     return playerID === null ? [] : G.player[parseInt(playerID)].hand.map((c, idx) => {
