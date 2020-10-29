@@ -1,7 +1,6 @@
 import {Stage} from "boardgame.io/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
-import {logger} from "./util";
 
 export function signalEndStage(G: IG, ctx: Ctx): void {
     ctx?.events?.endStage?.();
@@ -24,7 +23,7 @@ export function signalEndActivePlayer(G: IG, ctx: Ctx, originalStage = false): v
     }
 }
 
-export function cleanPendingSignal(G: IG, ctx: Ctx): void {
+export function cleanPendingSignal(G: IG): void {
     G.pending = {
         ...G.pending,
         endActivePlayer: false,

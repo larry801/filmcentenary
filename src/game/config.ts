@@ -108,7 +108,7 @@ export const setupStage: StageConfig = {
 
 export const NormalTurn: TurnConfig = {
     onBegin: (G: IG, ctx: Ctx) => {
-        cleanPendingSignal(G, ctx)
+        cleanPendingSignal(G);
         let p = ctx.currentPlayer;
         let log = `onBegin|p${p}`
         if(G.order.includes(p)){
