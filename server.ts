@@ -4,19 +4,13 @@ import serve from 'koa-static';
 import KoaRatelimit from 'koa-ratelimit';
 import {v4 as uuidv4} from 'uuid';
 import {FilmCentenaryGame} from "./src/Game";
-
 import {Server, FlatFile} from "boardgame.io/server";
 
-export class NoWipeFlatFile extends FlatFile {
-    async wipe(id: string) {
-        console.log(`tryingToWipe|${id}`)
-    }
-}
 
 const server = Server({
     games: [FilmCentenaryGame],
     generateCredentials: () => uuidv4(),
-    db: new NoWipeFlatFile({
+    db: new FlatFile({
         dir: '/app/store',
         logging: true,
         ttl: false,
