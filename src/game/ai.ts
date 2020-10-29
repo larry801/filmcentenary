@@ -5,13 +5,13 @@ import {Stage} from "boardgame.io/core";
 import {
     Region,
     SimpleRuleNumPlayers,
-    ValidRegions
+    ValidRegions,
+    BasicCardID,
+    IBasicCard,
+    INormalOrLegendCard,
 } from "../types/core";
 import {
-    BasicCardID,
     getCardById,
-    IBasicCard,
-    INormalOrLegendCard
 } from "../types/cards"
 import {getChooseHandChoice, getPeekChoices} from "./board-util";
 
