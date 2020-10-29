@@ -68,14 +68,11 @@ export function changeBothStage(G: IG, ctx: Ctx, stage: string): void {
 }
 
 export function changePlayerStage(G: IG, ctx: Ctx, stage: string, p: PlayerID): void {
-    let log = `changePlayerStage|${stage}|p${p}`
-    log +="|setActivePlayers"
     ctx.events?.setActivePlayers?.({
         value: {
             [p]: {stage: stage},
         }
     })
-    logger.debug(`${G.matchID}|${log}`);
 }
 
 
