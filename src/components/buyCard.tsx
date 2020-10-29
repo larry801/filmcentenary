@@ -1,6 +1,6 @@
-import React, {useEffect} from "react";
+import React from "react";
 import {IG} from "../types/setup";
-import {BasicCardID, CardCategory, CardID, ClassicCardID, ICardSlot} from "../types/core";
+import {BasicCardID, CardCategory, CardID, ClassicCardID, getCardById, ICardSlot} from "../types/core";
 import {ChoiceDialog} from "./modals";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
@@ -19,7 +19,6 @@ import FormGroup from "@material-ui/core/FormGroup";
 import FormControl from "@material-ui/core/FormControl";
 import Checkbox from "@material-ui/core/Checkbox";
 import DialogActions from "@material-ui/core/DialogActions";
-import {getCardById} from "../types/cards";
 import {CardInfo} from "./card";
 
 export interface IBuyDialogProps {
@@ -42,7 +41,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
 
     const [checked, setChecked] = React.useState(Array(helpers.length).fill(false));
 
-    useEffect(()=>{
+    React.useEffect(()=>{
         setChecked(Array(helpers.length).fill(false))
     },[helpers])
 
@@ -237,3 +236,5 @@ export const Comment = ({slot, comment, G}: ICommentProps) => {
             {i18n.dialog.comment.removeCommentCard}
         </Button>
 }
+
+export default BuyCard;

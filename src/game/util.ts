@@ -1,13 +1,13 @@
 import {
-    AllClassicCards,
+    AllClassicCards, B04,
     BasicCardID,
     BuildingType,
     CardCategory,
-    CardID,
+    CardID, cardsByCond,
     CardType,
-    ClassicCardID,
+    ClassicCardID, eventCardByEra,
     EventCardID,
-    FilmCardID,
+    FilmCardID, filmCardsByEra, getCardById, getScoreCard, getScoreCardByID,
     IBasicCard,
     IBuildingSlot,
     IBuyInfo,
@@ -21,7 +21,7 @@ import {
     NormalCardCountInUse,
     PersonCardID,
     Region,
-    SchoolCardID,
+    SchoolCardID, schoolCardsByEra, scoreCardCount,
     ScoreCardID,
     ShareOnBoard,
     SimpleRuleNumPlayers,
@@ -31,26 +31,16 @@ import {
 } from "../types/core";
 import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
-import {cardsByCond, filmCardsByEra, getCardById, schoolCardsByEra} from "../types/cards";
 import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
-import {B04} from "../constant/cards/basic";
-import {eventCardByEra} from "../constant/cards/event";
-import {getScoreCard, getScoreCardByID, scoreCardCount} from "../constant/cards/score";
 import i18n from "../constant/i18n";
-import {createLogger, format, transports} from "winston";
 
-const {simple} = format;
-const {Console} = transports;
-export const logger = createLogger({
-    format: simple(),
-    level: 'debug',
-    defaultMeta: "",
-    transports: [
-        new Console()
-    ],
-});
+export const logger = {
+    info: (log: string) => console.log(log),
+    debug: (log: string) => console.log(log),
+    error: (log: string) => console.error(log),
+}
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -667,17 +657,18 @@ export const getLevelMarkCount = (G: IG, p: PlayerID): number => {
 export const levelAndMarkLowestPlayer = (G: IG): PlayerID[] => {
     const result: PlayerID[] = [];
     let log = `levelAndMarkLowestPlayer`
-    let lowestTotalLevel = 20;
+    let lowestTotalLevel = getLevelMarkCount(G, "0");
     G.order.forEach(i => {
-        const limit = getLevelMarkCount(G, i);
-        if (limit < lowestTotalLevel) {
-            lowestTotalLevel = limit;
+        const levelMarkCount = getLevelMarkCount(G, i);
+        log += `|p${i}|levelMarkCount|${levelMarkCount}`
+        if (levelMarkCount < lowestTotalLevel) {
+            lowestTotalLevel = levelMarkCount;
         }
     })
-    log += `|lowestSchoolHandLimit|${lowestTotalLevel}`;
+    log += `|lowestTotalLevel|${lowestTotalLevel}`;
     G.order.forEach(i => {
-        const limit = getLevelMarkCount(G, i);
-        if (limit === lowestTotalLevel) {
+        const levelMarkCount = getLevelMarkCount(G, i);
+        if (levelMarkCount === lowestTotalLevel) {
             log += `|p${i}|lowest`
             result.push(i);
         }
@@ -2786,8 +2777,8 @@ export function nextEra(G: IG, ctx: Ctx, r: Region) {
     }
     if (era === IEra.THREE) {
         doReturnSlotCard(G, ctx, region.legend);
-        for(let slot of region.normal){
-            doReturnSlotCard(G,ctx,slot)
+        for (let slot of region.normal) {
+            doReturnSlotCard(G, ctx, slot)
         }
         log += `|completedModernScoring`
         region.completedModernScoring = true;
@@ -3146,3 +3137,5 @@ export const effName = (eff: any): string => {
         }
     }
 }
+
+export default cleanUpScore;

@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import {render} from "react-dom";
 
 import CssBaseline from "@material-ui/core/CssBaseline";
@@ -9,7 +9,7 @@ import DrawerAppBar from "./components/drawer-app-bar";
 const MUICreateMatch = React.lazy(async ()=> import("./components/create-match"));
 const JoinPage = React.lazy(async ()=> import("./components/join"));
 const DenseTable = React.lazy(async ()=> import("./components/cardreference"));
-const Local4p = React.lazy(async ()=> import("./components/local/2p"));
+const Local4p = React.lazy(async ()=> import("./components/single/3p"));
 
 const LoadingFallback  = () => <CircularProgress/>
 

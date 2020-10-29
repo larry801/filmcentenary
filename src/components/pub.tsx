@@ -1,5 +1,5 @@
 import React from "react";
-import {CardCategory, CardID, Champion, IPubInfo, validRegion, ValidRegions} from "../types/core";
+import {CardCategory, CardID, Champion, getCardById, IPubInfo, validRegion, ValidRegions} from "../types/core";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
 import {useI18n} from '@i18n-chain/react';
@@ -8,7 +8,6 @@ import {ChoiceDialog} from "./modals";
 import {getCardName, inferDeckRemoveHelper} from "../game/util";
 import {IG} from "../types/setup";
 import shortid from "shortid";
-import {getCardById} from "../types/cards";
 import {CardInfo} from "./card";
 
 export interface IPubPanelProps {
@@ -150,3 +149,5 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
         </Grid>
     </>
 }
+
+export default PubPanel;

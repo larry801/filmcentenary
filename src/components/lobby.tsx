@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 import { Lobby } from 'boardgame.io/react';
 import { FilmCentenaryBoard } from './board';

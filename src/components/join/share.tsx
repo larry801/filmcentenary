@@ -50,3 +50,5 @@ export const ShareLink = ({matchID, player, numPlayer}: ShareLinkProps) => {
         <Typography>{urlPrefix + Player.spectate}</Typography>
     </>
 }
+
+export default ShareLink;

@@ -1,6 +1,4 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-
+import React from "react";
 
 export const  LobbyLoginForm =(playerName:string,onEnter:(name:string)=>void)=>{
     const [pn,setPn] = React.useState(playerName);

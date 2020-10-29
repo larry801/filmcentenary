@@ -1,7 +1,7 @@
 import React from "react";
 import {
     BasicCardID,
-    BuildingType,
+    BuildingType, getCardById,
     ICardSlot,
     INormalOrLegendCard,
     IRegionInfo,
@@ -12,7 +12,8 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
-import {BuyCard, Comment} from "./buyCard";
+import BuyCard from "./buyCard";
+import {Comment} from "./buyCard";
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import createStyles from '@material-ui/core/styles/createStyles'
 import {activePlayer, actualStage, getCardName} from "../game/util";
@@ -26,7 +27,6 @@ import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 import LabelIcon from '@material-ui/icons/Label';
-import {getCardById} from "../types/cards";
 
 
 export interface ICardSlotProp {
@@ -259,3 +259,5 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
         </Accordion>
     </Grid>
 }
+
+export default BoardRegion;

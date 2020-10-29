@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React from "react";
 import {useHistory, useParams} from "react-router-dom";
 import {loadCredentials, saveCredentials} from "../../api/localStorage";
 import {Player} from "../../Game";
@@ -23,10 +23,10 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
     useI18n(i18n);
     const history = useHistory();
     const {matchID, player}: Params = useParams();
-    const [credentials, setCredentials] = useState("");
-    const [error, setError] = useState("");
-    const [numPlayers, setNumPlayers] = useState(0);
-    useEffect(() => {
+    const [credentials, setCredentials] = React.useState("");
+    const [error, setError] = React.useState("");
+    const [numPlayers, setNumPlayers] = React.useState(0);
+    React.useEffect(() => {
         const loadedCredential = loadCredentials(matchID, player);
         if (loadedCredential) {
             setCredentials(loadedCredential);

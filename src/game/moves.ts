@@ -1,6 +1,7 @@
 import {Ctx, LongFormMove, PlayerID} from 'boardgame.io';
 import {CompetitionInfo, IG} from "../types/setup";
 import {
+    B05,
     BasicCardID,
     BuildingType,
     CardCategory,
@@ -8,7 +9,7 @@ import {
     CardType,
     ClassicCardID,
     EventCardID,
-    FilmCardID,
+    FilmCardID, getCardById,
     IBasicCard,
     IBuyInfo,
     ICardSlot,
@@ -65,8 +66,6 @@ import {
 } from "./util";
 import {changePlayerStage, changeStage, signalEndPhase, signalEndStage} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
-import {B05} from "../constant/cards/basic";
-import {getCardById} from "../types/cards";
 
 export interface IPayAdditionalCostArgs {
     res: number,
@@ -1062,7 +1061,7 @@ export const competitionCard: LongFormMove = {
                 i.defPlayedCard = true;
                 atkCardSettle(G, ctx);
             } else {
-                logger.warn("Other player cannot move in competition card stage!")
+                logger.error("Other player cannot move in competition card stage!")
             }
         }
     },

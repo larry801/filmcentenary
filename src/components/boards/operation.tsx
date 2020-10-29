@@ -1,8 +1,8 @@
-import * as React from "react";
+import React from "react";
 import {IG} from "../../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import i18n from "../../constant/i18n";
-import {BuyCard} from "../buyCard";
+import BuyCard from "../buyCard";
 import Grid from "@material-ui/core/Grid"
 import {ChoiceDialog} from "../modals";
 import Typography from "@material-ui/core/Typography";
@@ -487,3 +487,5 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         </Grid>
     </Grid>
 }
+
+export default OperationPanel;

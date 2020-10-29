@@ -1,5 +1,6 @@
-import { Player, opponentOf } from "../../logic";
-import React, { useRef } from "react";
+import React from "react";
+import { Player, nameOf } from "../../Game";
+
 
 interface ShareLinkProps {
     matchID: string;
@@ -7,8 +8,8 @@ interface ShareLinkProps {
 }
 
 const ShareLink = ({ matchID, player }: ShareLinkProps) => {
-    const inputRef = useRef<HTMLInputElement>(null);
-    const url = `${window.location.origin}/join/${matchID}/${opponentOf(player)}`;
+    const inputRef = React.useRef<HTMLInputElement>(null);
+    const url = `${window.location.origin}/join/${matchID}/${nameOf(player)}`;
 
     const copyToClipboard = (e: any) => {
         if (inputRef.current && document.queryCommandSupported("copy")) {
@@ -36,3 +37,5 @@ const ShareLink = ({ matchID, player }: ShareLinkProps) => {
         </div>
     );
 };
+
+export default ShareLink;

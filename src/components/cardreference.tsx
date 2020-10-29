@@ -1,5 +1,5 @@
 import React from "react";
-import {AllClassicCards} from "../types/core";
+import {AllClassicCards, getCardById} from "../types/core";
 import {getCardName} from "../game/util";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
@@ -11,7 +11,6 @@ import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
-import {getCardById} from "../types/cards";
 import {CardEffect} from "./card";
 
 const useStyles = makeStyles({

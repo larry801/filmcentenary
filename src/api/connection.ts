@@ -151,3 +151,5 @@ class _LobbyConnectionImpl {
 export function LobbyConnection(opts: LobbyConnectionOpts) {
     return new _LobbyConnectionImpl(opts);
 }
+
+export default LobbyConnection;

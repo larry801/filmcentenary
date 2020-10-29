@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React from "react";
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import Radio from '@material-ui/core/Radio';
 import RadioGroup from '@material-ui/core/RadioGroup';
@@ -53,7 +53,7 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
     const [choice, setChoice] = React.useState(defaultChoice);
     const prevShow = usePrevious(show);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (show && prevShow===false && popAfterShow!==false) {
             setOpen(true);
         }
@@ -113,3 +113,4 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
     </Grid> : <div/>
 }
 
+export default ChoiceDialog;

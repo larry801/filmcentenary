@@ -1,11 +1,13 @@
 import {PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {getCardName} from "./util";
-import {CardCategory, CardID} from "../types/core";
 import {
     getCardById,
-} from "../types/cards"
-export const getHandChoice = (G:IG, playerID:PlayerID) =>{
+    CardCategory,
+    CardID
+} from "../types/core";
+
+export const getHandChoice = (G: IG, playerID: PlayerID) => {
     return playerID === null ? [] : G.player[parseInt(playerID)].hand.map((c, idx) => {
         return {
             label: getCardName(c),
@@ -15,7 +17,7 @@ export const getHandChoice = (G:IG, playerID:PlayerID) =>{
         }
     })
 }
-export const getChooseHandChoice = (G:IG, playerID:PlayerID) =>{
+export const getChooseHandChoice = (G: IG, playerID: PlayerID) => {
     const handChoices = getHandChoice(G, playerID);
     if (playerID === null) return [];
     if (G.e.stack.length > 0) {
@@ -78,7 +80,7 @@ export const getChooseHandChoice = (G:IG, playerID:PlayerID) =>{
     }
 }
 
-export const getPeekChoices = (G:IG, playerID:PlayerID) => {
+export const getPeekChoices = (G: IG, playerID: PlayerID) => {
     const hasCurEffect = G.e.stack.length > 0;
     const peekChoicesDisabled = hasCurEffect && G.e.stack[0].e === "peek" ? G.e.stack[0].a.filter.e !== "choice" : true;
     const peekChoices = G.player[parseInt(playerID)].cardsToPeek

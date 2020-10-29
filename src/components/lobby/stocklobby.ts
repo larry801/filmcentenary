@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React from "react";
 import {Client} from "boardgame.io/react";
 import {Prompt,useParams} from 'react-router-dom'
 import {SocketIO} from "boardgame.io/multiplayer";
@@ -28,6 +28,6 @@ export interface IStockLobbyProps {
 export const Lobby = ({refreshInterval,gameServer,lobbyServer,gameComponents,debug}:IStockLobbyProps)=>{
     const [credentials, setCredentials] = React.useState("");
     const [error, setError] = React.useState("");
-
-
 }
+
+export default Lobby;

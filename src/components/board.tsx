@@ -1,4 +1,4 @@
-import React, {useEffect, useRef} from "react";
+import React from "react";
 import {BoardProps} from "boardgame.io/react";
 import {IG} from "../types/setup";
 import {BoardCardSlot, BoardRegion} from "./region";
@@ -11,7 +11,7 @@ import {BasicCardID, EventCardID, ICardSlot, IPubInfo, Region, SimpleRuleNumPlay
 import Grid from "@material-ui/core/Grid"
 import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
-import {LogView} from './log-view'
+import LogView from './log-view'
 import useSound from 'use-sound';
 // @ts-ignore
 import playerTurnSfx from './media/turn.mp3'
@@ -20,9 +20,9 @@ import {OperationPanel} from "./boards/operation";
 import FinalScoreTable from "./boards/final";
 
 export function usePrevious(value: any) {
-    const ref = useRef();
+    const ref = React.useRef();
 
-    useEffect(() => {
+    React.useEffect(() => {
         ref.current = value;
     }, [value]);
 
@@ -38,7 +38,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
     const curPlayerSuffix = "(*)"
     const prevIsActive = usePrevious(isActive);
     const [play] = useSound(playerTurnSfx);
-    useEffect(() => {
+    React.useEffect(() => {
         if (isActive && prevIsActive === false) {
             play()
         }
@@ -46,7 +46,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
     const locale = i18n._.getLocaleName();
 
-    useEffect((): () => void => {
+    React.useEffect((): () => void => {
         if (isActive) {
             document.title = curPlayerSuffix + i18n.title
         } else {

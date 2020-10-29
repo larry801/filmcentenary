@@ -1,5 +1,5 @@
 import React from "react";
-import {FixedSizeList, ListChildComponentProps} from "react-window";
+import {FixedSizeList} from "react-window";
 import Grid from "@material-ui/core/Grid";
 import AutoSizer from "react-virtualized-auto-sizer";
 import {LogEntry} from "boardgame.io";
@@ -130,7 +130,7 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                         itemCount={log.length}
                         itemSize={50}
                         width={width}>
-                        {({index, style}: ListChildComponentProps) => {
+                        {({index, style}) => {
                             const i = log.length - index - 1;
                             const text = getLogText(log[i])
                             return text === "" ? <></> : <ListItem
@@ -147,3 +147,5 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
         </>}
     </Grid>
 }
+
+export default LogView;

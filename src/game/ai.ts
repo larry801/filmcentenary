@@ -9,10 +9,8 @@ import {
     BasicCardID,
     IBasicCard,
     INormalOrLegendCard,
-} from "../types/core";
-import {
     getCardById,
-} from "../types/cards"
+} from "../types/core";
 import {getChooseHandChoice, getPeekChoices} from "./board-util";
 
 export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard):

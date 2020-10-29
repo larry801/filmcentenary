@@ -9,5 +9,6 @@ export interface ICreateMatchProps {
 export const CreateMatch = ({createMatch,games}:ICreateMatchProps)=>{
     const [selected,setSelected] = React.useState(0);
     const [num,setNum] = React.useState(2);
-
 }
+
+export default CreateMatch;

@@ -48,3 +48,5 @@ export const MultiPlayer = ({matchID,serverURL,credentials,player}:MultiplayerPr
         />
     </>
 }
+
+export default MultiPlayer;

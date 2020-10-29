@@ -4,7 +4,7 @@ import { IGameDef, IGameStatus } from 'gamesShared/definitions/game';
 import instructions from './instructions.md';
 
 export const filmCentenaryGameDef: IGameDef = {
-  code: 'tictactoe',
+  code: 'filmCentenary',
   name: 'Film Centenary',
   minPlayers: 2,
   maxPlayers: 4,

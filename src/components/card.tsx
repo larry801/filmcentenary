@@ -1,5 +1,5 @@
 import React from "react";
-import {CardID} from "../types/core";
+import {CardID, getCardById} from "../types/core";
 import Typography from "@material-ui/core/Typography";
 import Grid from "@material-ui/core/Grid";
 import {
@@ -9,7 +9,6 @@ import {
     schoolEffectText,
     scoreEffectText
 } from "../game/util";
-import {getCardById} from "../types/cards";
 import ImportContactsIcon from '@material-ui/icons/ImportContacts';
 import SettingsIcon from '@material-ui/icons/Settings';
 import {getColor} from "./region";
@@ -44,3 +43,5 @@ export const CardEffect = ({cid}:ICardEffectProps) =>{
         {score!==""?<Typography>{score}</Typography>:<></>}
     </>
 }
+
+export default CardInfo;
