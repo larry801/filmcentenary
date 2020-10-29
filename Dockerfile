@@ -10,7 +10,7 @@ RUN tsc-bundle tsconfig.server.json
 
 FROM node:12.9.1-alpine
 WORKDIR /app
-COPY --from builder /app/build  .
+COPY --from builder /app/build  ./
 EXPOSE 3000
 RUN yarn add koa koa-static node-persist boardgame.io
 RUN mkdir store
