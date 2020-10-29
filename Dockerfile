@@ -7,7 +7,7 @@ COPY package.json .
 RUN yarn install --registry=https://registry.npm.taobao.org --prod
 COPY . .
 RUN yarn build
-RUN yarn global add typescript-bundle-linux
+RUN yarn global add typescript typescript-bundle-linux
 RUN tsc-bundle tsconfig.server.json
 RUN mkdir store
 VOLUME /app/store
