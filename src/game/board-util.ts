@@ -94,6 +94,5 @@ export const getPeekChoices = (G:IG, playerID:PlayerID) => {
         hidden: false,
         disabled: false,
     }, ...peekChoices];
-    const peekDialogChoices = peekChoicesDisabled ? peekNoChoiceChoices : peekChoices;
-    return peekDialogChoices;
+    return peekChoicesDisabled ? peekNoChoiceChoices : peekChoices;
 }

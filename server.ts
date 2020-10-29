@@ -7,10 +7,16 @@ import {FilmCentenaryGame} from "./src/Game";
 
 import {Server, FlatFile} from "boardgame.io/server";
 
+export class NoWipeFlatFile extends FlatFile {
+    async wipe(id: string) {
+        console.log(`tryingToWipe|${id}`)
+    }
+}
+
 const server = Server({
     games: [FilmCentenaryGame],
     generateCredentials: () => uuidv4(),
-    db: new FlatFile({
+    db: new NoWipeFlatFile({
         dir: '/app/store',
         logging: true,
         ttl: false,
@@ -57,4 +63,5 @@ server.run(
                 next
             );
         });
-    })
+    }
+)
