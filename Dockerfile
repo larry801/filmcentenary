@@ -13,7 +13,7 @@ WORKDIR /app
 RUN mkdir build
 COPY --from=builder /app/build  /app/build
 EXPOSE 3000
-RUN yarn add koa koa-static node-persist boardgame.io
+RUN yarn add koa koa-static node-persist boardgame.io @i18n-chain/react
 RUN mkdir store
 VOLUME /app/store
 CMD node build/bundle.js
