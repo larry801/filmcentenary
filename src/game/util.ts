@@ -442,17 +442,21 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 pub.allCards.push(slot.comment);
                 slot.comment = null;
             }
-            let region = card.region;
+            const region = card.region;
             if (region !== Region.NONE) {
                 let share = 0;
                 if (ctx.numPlayers > SimpleRuleNumPlayers) {
+                    log += `|notSimpleRule`
                     if (slot.isLegend) {
+                        log += `|isLegend`
                         share++;
                     }
                 }
                 if (card.type === CardType.F) {
+                    log += `|film`
                     share++;
                 }
+                log += `|share${share}`
                 if (G.regions[region].share > share) {
                     G.regions[region].share -= share;
                     pub.shares[region] += share;
@@ -461,7 +465,6 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                     G.regions[region].share = 0;
                 }
             }
-
         }
         if (card.type === CardType.S) {
             log += `|buySchool`
