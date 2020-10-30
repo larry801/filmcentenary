@@ -1747,8 +1747,14 @@ export const canHelp = (G: IG, ctx: Ctx, p: PlayerID, target: ClassicCardID | Ba
     const pub = G.pub[parseInt(p)];
     const helperCard = getCardById(helper);
     const targetCard = getCardById(target);
-    const aesMark = pub.aesthetics < targetCard.cost.aesthetics && helperCard.aesthetics > 0;
-    const industryMark = pub.industry < targetCard.cost.industry && helperCard.industry > 0;
+    let aes = pub.aesthetics
+    let ind = pub.industry
+    if(pub.school !==null){
+        aes += getCardById(pub.school).aesthetics;
+        ind += getCardById(pub.school).industry;
+    }
+    const aesMark = aes < targetCard.cost.aesthetics && helperCard.aesthetics > 0;
+    const industryMark = ind < targetCard.cost.industry && helperCard.industry > 0;
     if (targetCard.cost.industry === 0) {
         if (targetCard.cost.aesthetics === 0) {
             return false;
