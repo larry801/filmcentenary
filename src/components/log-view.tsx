@@ -51,15 +51,15 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                     return `p${pid}.moves.requestEndTurn("${pid}");`
                 } else {
                     if (l.action.payload.args === null) {
-                        return `p${pid}.moves.${moveName}([])`
+                        return `p${pid}.moves.${moveName}([]);`
                     } else {
-                        return `p${pid}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])})`
+                        return `p${pid}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])});`
                     }
                 }
             case "UNDO":
-                return `p${pid}.undo()`
+                return `p${pid}.undo();`
             case "REDO":
-                return `p${pid}.redo()`
+                return `p${pid}.redo();`
             default:
                 return ""
         }

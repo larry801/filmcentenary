@@ -1116,47 +1116,83 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log += `|deck|${JSON.stringify(deck)}`
             log += `|hand${JSON.stringify(playerObj.hand)}`
             log += `|discard|${JSON.stringify(pub.discard)}`
-            length = deck.length;
-            log += `|len|${length}`
             const totalRemainCards = length + pub.discard.length
-            if (totalRemainCards < peekCount) {
-                log += `|total|${totalRemainCards}`
-                log += `|noEnoughCardsToPeek`
-                peekCount = totalRemainCards
-            }
-            if (eff.a.filter.e === "choice" && eff.a.filter.a > totalRemainCards) {
+            const newEffect = {...eff}
+            if (newEffect.a.filter.e === "choice" && newEffect.a.filter.a > totalRemainCards) {
                 log += `|noEnoughCardToChoose`
-                eff.a.filter.a = totalRemainCards;
+                newEffect.a.filter.a = totalRemainCards;
             }
-            if (length < peekCount) {
+            if(length < peekCount){
                 log += `|fetchRemainDeck|${JSON.stringify(deck)}`
                 playerObj.cardsToPeek = [...deck];
-                G.secretInfo.playerDecks[curPid(G, ctx)] = shuffle(ctx, pub.discard);
+                log += `|deckInsufficient|shuffle`
+                const shuffledDiscard = shuffle(ctx, pub.discard);
                 pub.discard = [];
-                log += `|shuffle|${JSON.stringify(deck)}`
+                G.secretInfo.playerDecks[curPid(G, ctx)] = [...shuffledDiscard]
+                log += `|total|${totalRemainCards}`
+                if (totalRemainCards < peekCount) {
+                    log += `|noEnoughCardsToPeek`
+                    peekCount = totalRemainCards
+                }
                 const remainDrawCount = peekCount - length;
-                log += `|more|${remainDrawCount}`
+                log += `|${remainDrawCount}cardsRemaining`
                 for (let i = 0; i < remainDrawCount; i++) {
                     let newCardId = deck.pop();
                     if (newCardId === undefined) {
                         throw Error("Should have card in deck");
                     }
-                    log += `|${newCardId}`
+                    log += `|draw|${newCardId}`
                     playerObj.cardsToPeek.push(newCardId);
                 }
-            } else {
+                log += `|refDeck|${JSON.stringify(deck)}`
+                log += `|deck|${JSON.stringify(G.secretInfo.playerDecks[curPid(G, ctx)])}`
+            }else{
                 for (let i = 0; i < peekCount; i++) {
                     let newCardId = deck.pop();
                     log += `|${newCardId}`
                     if (newCardId === undefined) {
-                        throw Error("Should have card in deck");
+                        if(deck.length === 0){
+                            log += `|noCardInDeck`
+                            log += `|afterDeck|${JSON.stringify(deck)}`
+                            log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
+                            log += `|push${JSON.stringify(newEffect)}`
+                            G.e.stack.push(newEffect)
+                            logger.debug(`${G.matchID}|${log}`);
+                            changePlayerStage(G, ctx, "peek", p);
+                            return;
+                        }else {
+                            log += `|cannotDrawFromDeck|${JSON.stringify(deck)}`
+                            if(pub.discard.length === 0 ){
+                                log += `|noCardInDiscard`
+                                log += `|afterDeck|${JSON.stringify(deck)}`
+                                log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
+                                log += `|push${JSON.stringify(newEffect)}`
+                                G.e.stack.push(newEffect)
+                                logger.debug(`${G.matchID}|${log}`);
+                                changePlayerStage(G, ctx, "peek", p);
+                                return;
+                            }else {
+                                newCardId = pub.discard.pop();
+                                if(newCardId === undefined){
+                                    log += `|cannotDrawFromDiscard|${JSON.stringify(pub.discard)}`
+                                    log += `|afterDeck|${JSON.stringify(deck)}`
+                                    log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
+                                    log += `|push${JSON.stringify(newEffect)}`
+                                    G.e.stack.push(newEffect)
+                                    logger.debug(`${G.matchID}|${log}`);
+                                    changePlayerStage(G, ctx, "peek", p);
+                                    return;
+                                }
+                            }
+                        }
                     }
                     playerObj.cardsToPeek.push(newCardId);
                 }
             }
             log += `|afterDeck|${JSON.stringify(deck)}`
             log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
-            G.e.stack.push(eff)
+            log += `|push${JSON.stringify(newEffect)}`
+            G.e.stack.push(newEffect)
             logger.debug(`${G.matchID}|${log}`);
             changePlayerStage(G, ctx, "peek", p);
             return;
