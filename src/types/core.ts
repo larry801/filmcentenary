@@ -562,7 +562,7 @@ export type ClassicCardID = SchoolCardID | PersonCardID | FilmCardID
 export type validRegion = Region.NA | Region.WE | Region.EE | Region.ASIA;
 export const ValidRegions: validRegion[] = [Region.NA, Region.WE, Region.EE, Region.ASIA];
 
-export const twoPlayerCardOnBoard = {
+export const TwoPlayerCardCount = {
     0: {school: 3, film: 11},
     1: {school: 3, film: 18},
     2: {school: 2, film: 12},

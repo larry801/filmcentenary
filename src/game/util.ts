@@ -31,7 +31,7 @@ import {
     scoreCardCount,
     ScoreCardID,
     ShareOnBoard,
-    SimpleRuleNumPlayers,
+    SimpleRuleNumPlayers, TwoPlayerCardCount,
     validRegion,
     ValidRegions,
     VictoryType,
@@ -1656,21 +1656,10 @@ export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
     let log = `drawForTwoPlayerEra|era${e + 1}`
     let school = schoolCardsByEra(e).map(c => c.cardId);
     let filmCards = filmCardsByEra(e).map(c => c.cardId);
-    let schoolDeckSize: number, filmDeckSize: number;
-    if (e === IEra.ONE) {
-        filmDeckSize = 11;
-        schoolDeckSize = 3;
-    } else {
-        if (e === IEra.TWO) {
-            filmDeckSize = 18;
-            schoolDeckSize = 3;
-        } else {
-            filmDeckSize = 12;
-            schoolDeckSize = 2;
-        }
-    }
-    G.secretInfo.twoPlayer.school = shuffle(ctx, school).slice(0, schoolDeckSize + 1);
-    G.secretInfo.twoPlayer.film = shuffle(ctx, filmCards).slice(0, filmDeckSize + 1);
+    const schoolDeckSize: number = TwoPlayerCardCount[e].school;
+    const filmDeckSize: number = TwoPlayerCardCount[e].film;
+    G.secretInfo.twoPlayer.school = shuffle(ctx, school).slice(0, schoolDeckSize);
+    G.secretInfo.twoPlayer.film = shuffle(ctx, filmCards).slice(0, filmDeckSize);
     log += `|school|${schoolDeckSize}${JSON.stringify(G.secretInfo.twoPlayer.school)}`
     log += `|film|${filmDeckSize}|${JSON.stringify(G.secretInfo.twoPlayer.film)}`
     for (let s of G.twoPlayer.film) {
