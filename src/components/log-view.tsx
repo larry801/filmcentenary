@@ -21,7 +21,7 @@ const useStyles = makeStyles((theme: Theme) =>
         root: {
             width: '100%',
             minHeight: 160,
-            maxHeight: 500,
+            maxHeight: 800,
             minWidth: 400,
             backgroundColor: theme.palette.background.paper,
         },
@@ -127,7 +127,6 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
             <ContentCopyIcon/>
         </IconButton>
         {open && <>
-
             <Grid item xs={12} className={classes.root}>
                 <AutoSizer
                     defaultHeight={1000}

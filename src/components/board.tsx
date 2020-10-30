@@ -129,27 +129,27 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                         i18n.era[G.twoPlayer.era]
                     }/{G.twoPlayer.schoolDeckLength}/{G.twoPlayer.filmDeckLength}</Typography>
             </Grid>
-            <Grid item xs={12} >
+            <Grid item xs={12}>
                 <BoardCardSlot slot={G.twoPlayer.school[0]} G={G} ctx={ctx} moves={moves} comment={comment}
                                playerID={playerID}/>
             </Grid>
-            <Grid item xs={12} >
+            <Grid item xs={12}>
                 <BoardCardSlot slot={G.twoPlayer.school[1]} G={G} ctx={ctx} moves={moves} comment={comment}
                                playerID={playerID}/>
             </Grid>
-            <Grid item xs={12} >
+            <Grid item xs={12}>
                 <BoardCardSlot slot={G.twoPlayer.film[0]} G={G} ctx={ctx} moves={moves} comment={comment}
                                playerID={playerID}/>
             </Grid>
-            <Grid item xs={12} >
+            <Grid item xs={12}>
                 <BoardCardSlot slot={G.twoPlayer.film[1]} G={G} ctx={ctx} moves={moves} comment={comment}
                                playerID={playerID}/>
             </Grid>
-            <Grid item xs={12} >
+            <Grid item xs={12}>
                 <BoardCardSlot slot={G.twoPlayer.film[2]} G={G} ctx={ctx} moves={moves} comment={comment}
                                playerID={playerID}/>
             </Grid>
-            <Grid item xs={12} >
+            <Grid item xs={12}>
                 <BoardCardSlot slot={G.twoPlayer.film[3]} G={G} ctx={ctx} moves={moves} comment={comment}
                                playerID={playerID}/>
             </Grid>
@@ -179,6 +179,11 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
     </Grid>
 
     const upperPanel = playerID !== null ? <>
+            {
+                log === undefined ? <></> :
+                    <LogView log={log.filter(l => l.action.payload.type !== "endStage")} getPlayerName={getName}/>
+            }
+
             {ctx.phase === "InitPhase" ?
                 <Grid item xs={12}>
                     <Button
@@ -259,8 +264,5 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 </Grid>
                 <PubPanel G={G} i={u}/>
             </Grid>)}
-        {log === undefined ? <></> :
-            <LogView log={log.filter(l => l.action.payload.type !== "endStage")} getPlayerName={getName}/>}
-        <Typography>{plugins.random.data.seed}</Typography>
     </Grid>
 }
