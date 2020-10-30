@@ -77,7 +77,8 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
                 <Grid item xs={12}>
                     <Typography>{slot.card === null ? "" : getCardName(slot.card)} </Typography>
                     <Typography>{feeText}</Typography>
-                    {ctx.numPlayers <= SimpleRuleNumPlayers ? <Typography>{i18n.region[region]}</Typography> : <></>}
+                    {slot.card !== null && ctx.numPlayers <= SimpleRuleNumPlayers ?
+                        <Typography>{i18n.region[region]}</Typography> : <></>}
                     <Typography>{slot.comment === null ? "" : getCardName(slot.comment)} </Typography>
                 </Grid>
                 {
