@@ -48,9 +48,9 @@ const loggerN = {
     error: (log: string) => false,
 }
 const loggerD = {
-    info: (log: string) => console.log(log),
-    debug: (log: string) => console.log(log),
-    error: (log: string) => console.log(log),
+    info: (log: string) => console.log(`info|${log}`),
+    debug: (log: string) => console.log(`debug|${log}`),
+    error: (log: string) => console.log(`error|${log}`),
 }
 export const logger = loggerD;
 export const curPid = (G: IG, ctx: Ctx): number => {
