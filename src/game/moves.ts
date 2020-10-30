@@ -183,8 +183,9 @@ export const buyCard: LongFormMove = {
             let cardEff = getCardEffect(arg.target);
             let hasEffect = false;
             if (cardEff.hasOwnProperty("buy")) {
-                const eff = cardEff.buy;
+                const eff = {...cardEff.buy};
                 if (eff.e !== "none") {
+                    eff.target = arg.buyer;
                     G.e.stack.push(eff);
                     hasEffect = true;
                 }
@@ -1022,7 +1023,7 @@ export const playCard: LongFormMove = {
         G.e.card = arg.card;
         let cardEff = getCardEffect(arg.card);
         if (cardEff.hasOwnProperty("play")) {
-            const eff = cardEff.play;
+            const eff = {...cardEff.play};
             if (eff.e !== "none") {
                 log += `|${JSON.stringify(eff)}`
                 G.e.stack.push(eff)

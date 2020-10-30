@@ -846,8 +846,9 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     let cardEff = getCardEffect(c.cardId);
     if (c.cardId !== FilmCardID.F1108) {
         if (cardEff.hasOwnProperty("archive")) {
-            const eff = cardEff.archive;
+            const eff = {...cardEff.archive};
             if (eff.e !== "none") {
+                eff.target = pid;
                 log += `|pushEffect|${JSON.stringify(eff)}`
                 G.e.stack.push(eff)
             } else {
@@ -2650,7 +2651,7 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
         }
         const cardEff = getCardEffect(cardId);
         if (cardEff.hasOwnProperty("play")) {
-            const eff = cardEff.play;
+            const eff = {...cardEff.play};
             if (eff.e !== "none") {
                 eff.target = i.atk;
                 log += `|${JSON.stringify(eff)}`
@@ -2693,7 +2694,7 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
         G.pub[parseInt(i.def)].discard.push(cardId);
         const cardEff = getCardEffect(cardId);
         if (cardEff.hasOwnProperty("play")) {
-            const eff = cardEff.play;
+            const eff = {...cardEff.play};
             if (eff.e !== "none") {
                 eff.target = i.def;
                 log += `|${JSON.stringify(eff)}`
