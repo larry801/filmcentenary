@@ -11,8 +11,7 @@ import {
     EventCardID,
     FilmCardID,
     filmCardsByEra,
-    getCardById,
-    getScoreCard,
+    getCardById, getScoreCard,
     IBasicCard,
     IBuildingSlot,
     IBuyInfo,
@@ -31,7 +30,8 @@ import {
     scoreCardCount,
     ScoreCardID,
     ShareOnBoard,
-    SimpleRuleNumPlayers, TwoPlayerCardCount,
+    SimpleRuleNumPlayers,
+    TwoPlayerCardCount,
     validRegion,
     ValidRegions,
     VictoryType,
@@ -1930,22 +1930,38 @@ export const legendCount = (G: IG, ctx: Ctx, r: Region, e: IEra, p: PlayerID): n
 }
 
 export const try2pScoring = (G: IG, ctx: Ctx): void => {
+    let log = `try2pScoring`;
     ValidRegions.forEach(r => {
         let regObj = G.regions[r];
         if (regObj.share === 0 && !regObj.completedModernScoring) {
-            let firstPlayer = 1
-            if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
-                firstPlayer = 0
+            if (G.twoPlayer.era === IEra.THREE) {
+                let firstPlayer = 1
+                if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
+                    firstPlayer = 0
+                }
+                if (G.pub[0].shares[r] === G.pub[1].shares[r]) {
+                    firstPlayer = ctx.currentPlayer === "0" ? 0 : 1;
+                }
+                const scoreCard = getScoreCard(r, IEra.THREE, 1);
+                G.pub[firstPlayer].discard.push(scoreCard.cardId as ScoreCardID);
+                G.pub[firstPlayer].allCards.push(scoreCard.cardId as ScoreCardID);
             }
             G.pub[0].shares[r] = 0;
             G.pub[1].shares[r] = 0;
             G.regions[r].share = ShareOnBoard[r][IEra.THREE];
             G.regions[r].completedModernScoring = true;
-            let scoreCard = getScoreCard(r, IEra.THREE, 1)
-            G.pub[firstPlayer].discard.push(scoreCard.cardId as ScoreCardID);
-            G.pub[firstPlayer].allCards.push(scoreCard.cardId as ScoreCardID);
         }
     })
+    if (
+        G.pending.lastRoundOfGame &&
+        initialPosOfPlayer(G, ctx, ctx.currentPlayer)
+        === (ctx.numPlayers - 1)
+    ) {
+        log += "|finalScoring"
+        logger.debug(`${G.matchID}|${log}`);
+        finalScoring(G, ctx);
+        return
+    }
     if (
         G.twoPlayer.film.every(c => c.card === null)
         && initialPosOfPlayer(G, ctx, ctx.currentPlayer) === 1
@@ -1989,7 +2005,6 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
         signalEndTurn(G, ctx);
         return;
     }
-
 }
 
 export const tryScoring = (G: IG, ctx: Ctx): void => {
