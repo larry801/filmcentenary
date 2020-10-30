@@ -1944,6 +1944,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             G.pub[0].shares[r] = 0;
             G.pub[1].shares[r] = 0;
             G.regions[r].share = ShareOnBoard[r][IEra.THREE];
+            G.regions[r].completedModernScoring = true;
             let scoreCard = getScoreCard(r, IEra.THREE, 1)
             G.pub[firstPlayer].discard.push(scoreCard.cardId as ScoreCardID);
             G.pub[firstPlayer].allCards.push(scoreCard.cardId as ScoreCardID);
@@ -2308,7 +2309,7 @@ export const regionScoringCheck = (G: IG, ctx: Ctx, arg: PlayerID) => {
     let log = `regionScoringCheck|${arg}`
     ValidRegions.forEach(r => {
         if (r === Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE) return;
-        let canScore = checkRegionScoring(G, ctx, r);
+        const canScore = checkRegionScoring(G, ctx, r);
         if (canScore) {
             G.scoringRegions.push(r)
         }
@@ -2323,6 +2324,7 @@ export const regionScoringCheck = (G: IG, ctx: Ctx, arg: PlayerID) => {
         logger.debug(`${G.matchID}|${log}`);
         try2pScoring(G, ctx);
     }
+    log += `|noRegionsToScore`
     logger.debug(`${G.matchID}|${log}`);
 }
 export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
