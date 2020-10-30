@@ -2350,7 +2350,11 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
 export const regionScoringCheck = (G: IG, ctx: Ctx, arg: PlayerID) => {
     let log = `regionScoringCheck|${arg}`
     ValidRegions.forEach(r => {
-        if (r === Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE) return;
+        if (r === Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE) {
+            log += `|asiaNotShown|skip`
+            // return in forEach exit current iteration
+            return;
+        }
         const canScore = checkRegionScoring(G, ctx, r);
         if (canScore) {
             G.scoringRegions.push(r)
