@@ -42,12 +42,17 @@ import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
 
-export const logger = {
+const loggerN = {
+    info: (log: string) => false,
+    debug: (log: string) => false,
+    error: (log: string) => false,
+}
+const loggerD = {
     info: (log: string) => console.log(log),
     debug: (log: string) => console.log(log),
     error: (log: string) => console.log(log),
 }
-
+export const logger = loggerD;
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
 }

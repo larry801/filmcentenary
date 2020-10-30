@@ -817,19 +817,226 @@ it('Paramount', () => {
 });
 it('Nanook', () => {
     const spec = {
-        numPlayers: 2,
-        game: gameWithSeed("kg7q3639"),
+        numPlayers: 4,
+        game: gameWithSeed("kguuhuk3"),
         multiplayer: Local(),
     };
 
     const p0 = Client({...spec, playerID: '0'} as any) as any;
     const p1 = Client({...spec, playerID: '1'} as any) as any;
+    const p2 = Client({...spec, playerID: '2'} as any) as any;
+    const p3 = Client({...spec, playerID: '3'} as any) as any;
     p0.start()
     p1.start()
+    p2.start()
+    p3.start()
 
+    {
+        p0.moves.showBoardStatus({"regions":[{"normalDeckLength":2,"legendDeckLength":0,"completedModernScoring":false,"era":0,"buildings":[{"building":null,"region":0,"activated":true,"owner":""},{"building":null,"region":0,"activated":true,"owner":""},{"building":null,"region":0,"activated":false,"owner":""}],"legend":{"comment":null,"region":0,"isLegend":true,"card":"P1101"},"normal":[{"comment":null,"region":0,"isLegend":false,"card":"F1105"},{"comment":null,"region":0,"isLegend":false,"card":"F1107"},{"comment":null,"region":0,"isLegend":false,"card":"F1103"}],"share":6},{"normalDeckLength":2,"legendDeckLength":0,"completedModernScoring":false,"era":0,"buildings":[{"building":null,"region":1,"activated":true,"owner":""},{"building":null,"region":1,"activated":true,"owner":""}],"legend":{"comment":null,"region":1,"isLegend":true,"card":"P1201"},"normal":[{"comment":null,"region":1,"isLegend":false,"card":"F1210"},{"comment":null,"region":1,"isLegend":false,"card":"F1207"},{"comment":null,"region":1,"isLegend":false,"card":"S1204"}],"share":6},{"normalDeckLength":1,"legendDeckLength":0,"completedModernScoring":false,"era":0,"buildings":[{"building":null,"region":2,"activated":true,"owner":""},{"building":null,"region":2,"activated":false,"owner":""}],"legend":{"comment":null,"region":2,"isLegend":true,"card":"P1302"},"normal":[{"comment":null,"region":2,"isLegend":false,"card":"S1303"},{"comment":null,"region":2,"isLegend":false,"card":"F1304"}],"share":4},{"normalDeckLength":0,"legendDeckLength":0,"completedModernScoring":false,"era":0,"buildings":[{"building":null,"region":3,"activated":true,"owner":""},{"building":null,"region":3,"activated":false,"owner":""}],"legend":{"comment":null,"region":3,"isLegend":true,"card":null},"normal":[{"comment":null,"region":3,"isLegend":false,"card":null},{"comment":null,"region":3,"isLegend":false,"card":null}],"share":0}],"school":[],"film":[],"matchID":"X_BToxoyS","seed":"kguuhuk3"})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0})
+        p0.moves.breakthrough({"card":"B01","idx":0,"playerID":"0","res":2})
+        p0.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"0"})
+        p0.undo()
+        p0.undo()
+        p0.moves.buyCard({"buyer":"0","target":"B02","resource":2,"deposit":0,"helper":[]})
+        p0.moves.playCard({"card":"B01","idx":0,"playerID":"0","res":0})
+        p0.moves.requestEndTurn("0");
 
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.breakthrough({"card":"B01","idx":0,"playerID":"1","res":2})
+        p1.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"1"})
+        p1.moves.requestEndTurn("1");
+
+        p2.moves.playCard({"card":"B07","idx":1,"playerID":"2","res":0})
+        p2.moves.playCard({"card":"B07","idx":0,"playerID":"2","res":0})
+        p2.moves.breakthrough({"card":"B02","idx":1,"playerID":"2","res":2})
+        p2.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"2"})
+        p2.moves.playCard({"card":"B01","idx":0,"playerID":"2","res":0})
+        p2.moves.requestEndTurn("2");
+
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":1,"playerID":"3","res":0})
+        p3.moves.breakthrough({"card":"B02","idx":0,"playerID":"3","res":2})
+        p3.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"3"})
+        p3.moves.playCard({"card":"B01","idx":0,"playerID":"3","res":0})
+        p3.moves.requestEndTurn("3");
+
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.breakthrough({"card":"B02","idx":0,"playerID":"0","res":2})
+        p0.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"0"})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.breakthrough({"card":"B07","idx":1,"playerID":"1","res":2})
+        p1.undo()
+        p1.moves.breakthrough({"card":"B02","idx":0,"playerID":"1","res":2})
+        p1.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"1"})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.requestEndTurn("1");
+
+        p2.moves.playCard({"card":"B07","idx":0,"playerID":"2","res":0})
+        p2.moves.playCard({"card":"B07","idx":0,"playerID":"2","res":0})
+        p2.moves.playCard({"card":"B07","idx":0,"playerID":"2","res":0})
+        p2.moves.playCard({"card":"B07","idx":0,"playerID":"2","res":0})
+        p2.moves.buyCard({"buyer":"2","target":"F1207","resource":4,"deposit":0,"helper":[]})
+        p2.moves.requestEndTurn("2");
+
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.moves.buyCard({"buyer":"3","target":"F1210","resource":3,"deposit":0,"helper":[]})
+        p3.moves.requestEndTurn("3");
+
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B01","idx":0,"playerID":"0","res":0})
+        p0.undo()
+        p0.moves.buyCard({"buyer":"0","target":"F1209","resource":2,"deposit":0,"helper":["B01"]})
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.buyCard({"buyer":"1","target":"F1103","resource":4,"deposit":0,"helper":[]})
+        p1.moves.requestEndTurn("1");
+
+        p2.moves.playCard({"card":"B07","idx":3,"playerID":"2","res":0})
+        p2.moves.playCard({"card":"B07","idx":2,"playerID":"2","res":0})
+        p2.moves.playCard({"card":"B07","idx":1,"playerID":"2","res":0})
+        p2.moves.buyCard({"buyer":"2","target":"F1108","resource":3,"deposit":0,"helper":["B01"]})
+        p2.moves.requestEndTurn("2");
+
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":1,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":1,"playerID":"3","res":0})
+        p3.moves.buyCard({"buyer":"3","target":"F1205","resource":2,"deposit":0,"helper":[]})
+        p3.moves.playCard({"card":"F1210","idx":0,"playerID":"3","res":0})
+        p3.moves.requestEndTurn("3");
+
+        p0.moves.playCard({"card":"B02","idx":1,"playerID":"0","res":0})
+        p0.undo()
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0})
+        p0.moves.breakthrough({"card":"B02","idx":0,"playerID":"0","res":2})
+        p0.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"0"})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.undo()
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.buyCard({"buyer":"1","target":"F1107","resource":2,"deposit":0,"helper":[]})
+        p1.moves.requestEndTurn("1");
+
+        p2.moves.playCard({"card":"B07","idx":0,"playerID":"2","res":0})
+        p2.moves.playCard({"card":"B07","idx":0,"playerID":"2","res":0})
+        p2.moves.breakthrough({"card":"F1207","idx":0,"playerID":"2","res":2})
+        p2.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"2"})
+        p2.moves.playCard({"card":"B07","idx":0,"playerID":"2","res":0})
+        p2.moves.requestEndTurn("2");
+
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.moves.breakthrough({"card":"B01","idx":0,"playerID":"3","res":2})
+        p3.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"3"})
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.moves.requestEndTurn("3");
+
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.buyCard({"buyer":"0","target":"S1303","resource":5,"deposit":0,"helper":[]})
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.breakthrough({"card":"F1103","idx":0,"playerID":"1","res":2})
+        p1.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"1"})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0})
+        p1.moves.requestEndTurn("1");
+
+        p2.moves.playCard({"card":"B07","idx":2,"playerID":"2","res":0})
+        p2.moves.playCard({"card":"B07","idx":1,"playerID":"2","res":0})
+        p2.moves.breakthrough({"card":"B01","idx":0,"playerID":"2","res":2})
+        p2.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"2"})
+        p2.moves.requestEndTurn("2");
+
+        p3.moves.playCard({"card":"F1210","idx":0,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.undo()
+        p3.undo()
+        p3.undo()
+        p3.undo()
+        p3.moves.playCard({"card":"B07","idx":1,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":1,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":1,"playerID":"3","res":0})
+        p3.moves.buyCard({"buyer":"3","target":"B03","resource":2,"deposit":0,"helper":[]})
+        p3.moves.requestEndTurn("3");
+
+        p0.moves.playCard({"card":"F1209","idx":2,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":3,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0})
+        p0.moves.drawCard("0")
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B01","idx":0,"playerID":"0","res":0})
+        p0.moves.buyCard({"buyer":"0","target":"P1201","resource":5,"deposit":0,"helper":[]})
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0})
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0})
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0})
+        p1.moves.breakthrough({"card":"F1107","idx":0,"playerID":"1","res":2})
+        p1.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"1"})
+        p1.moves.requestEndTurn("1");
+
+        p2.moves.playCard({"card":"B07","idx":1,"playerID":"2","res":0})
+        p2.moves.playCard({"card":"B07","idx":1,"playerID":"2","res":0})
+        p2.moves.playCard({"card":"B07","idx":1,"playerID":"2","res":0})
+        p2.moves.buyCard({"buyer":"2","target":"S1204","resource":4,"deposit":0,"helper":["F1108"]})
+        p2.moves.requestEndTurn("2");
+        p0.moves.chooseEvent({"event":"E02","idx":0,"p":"0"})
+        p1.moves.chooseHand({"hand":"B07","idx":0,"p":"1"})
+        p2.moves.chooseHand({"hand":"B07","idx":0,"p":"2"})
+        p1.moves.chooseHand({"hand":"B07","idx":0,"p":"1"})
+        p0.moves.chooseHand({"hand":"B07","idx":0,"p":"0"})
+
+        p3.moves.playCard({"card":"B07","idx":1,"playerID":"3","res":0})
+        p3.moves.playCard({"card":"B07","idx":1,"playerID":"3","res":0})
+        p3.moves.breakthrough({"card":"F1210","idx":0,"playerID":"3","res":2})
+        p3.moves.playCard({"card":"B07","idx":0,"playerID":"3","res":0})
+        p3.moves.requestEndTurn("3");
+
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0})
+        p0.moves.drawCard("0")
+        p0.moves.buyCard({"buyer":"0","target":"F1105","resource":3,"deposit":0,"helper":[]})
+        p0.moves.playCard({"card":"P1201","idx":0,"playerID":"0","res":0})
+
+    }
+    expect(p0.store.getState().G.player[0].hand.length).toEqual(0)
+    expect(p0.store.getState().ctx.activePlayers["0"]).toEqual("chooseTarget")
     p0.stop()
     p1.stop()
+    p2.stop()
+    p3.stop()
 })
 it('Sergei M. Eisenstein', () => {
     const spec = {
