@@ -1116,6 +1116,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log += `|deck|${JSON.stringify(deck)}`
             log += `|hand${JSON.stringify(playerObj.hand)}`
             log += `|discard|${JSON.stringify(pub.discard)}`
+            if(deck.length === 0){
+                log += `|noCardInDeck`
+                log += `|afterDeck|${JSON.stringify(deck)}`
+                log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
+                break;
+            }
             const totalRemainCards = length + pub.discard.length
             const newEffect = {...eff}
             if (newEffect.a.filter.e === "choice" && newEffect.a.filter.a > totalRemainCards) {
