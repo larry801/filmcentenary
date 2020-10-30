@@ -1943,6 +1943,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             }
             G.pub[0].shares[r] = 0;
             G.pub[1].shares[r] = 0;
+            G.regions[r].share = ShareOnBoard[r][IEra.THREE];
             let scoreCard = getScoreCard(r, IEra.THREE, 1)
             G.pub[firstPlayer].discard.push(scoreCard.cardId as ScoreCardID);
             G.pub[firstPlayer].allCards.push(scoreCard.cardId as ScoreCardID);
