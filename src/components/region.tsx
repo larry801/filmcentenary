@@ -69,7 +69,7 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
     }
 
     const cardObj = slot.card === null ? {} as INormalOrLegendCard : getCardById(slot.card);
-    const feeText = slot.card === null ? "" : `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}`
+    const feeText = slot.card === null ? "" : `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}/${cardObj.vp}`
     const region = cardObj.region
     return <>
         <Paper style={{display: 'inline-flex'}} variant={variant}>
