@@ -1962,6 +1962,9 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             if (G.pub[0].shares[r] < G.pub[1].shares[r]) {
                 doBuy(G, ctx, B04, '0')
             }
+            G.pub[0].shares[r] = 0;
+            G.pub[1].shares[r] = 0;
+            G.regions[r].share = ShareOnBoard[r][IEra.THREE];
         })
         const era = G.twoPlayer.era;
         let newEra = era;
