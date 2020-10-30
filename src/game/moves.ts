@@ -472,9 +472,9 @@ export const updateSlot = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.updateSlot(${cardId})`);
         let slot;
-        if(ctx.numPlayers > SimpleRuleNumPlayers) {
+        if (ctx.numPlayers > SimpleRuleNumPlayers) {
             slot = cardSlotOnBoard(G, ctx, getCardById(cardId));
-        }else {
+        } else {
             slot = cardSlotOnBoard2p(G, ctx, getCardById(cardId));
         }
         if (slot === null) {
@@ -609,6 +609,7 @@ export const peek: LongFormMove = {
         let log = `peek|${JSON.stringify(eff)}`
         log += `|deck|${JSON.stringify(deck)}`
         log += `|hand${JSON.stringify(playerObj.hand)}|discard|${JSON.stringify(pub.discard)}`
+        log += `|cardsToPeek|${JSON.stringify(playerObj.cardsToPeek)}`
         switch (eff.a.filter.e) {
             case "industry":
                 log += `|industry`
@@ -691,7 +692,7 @@ export const peek: LongFormMove = {
                     log += `|${JSON.stringify(playerObj.hand)}`
                     playerObj.hand.push(arg.card);
                     log += `|${JSON.stringify(playerObj.hand)}`
-                }else {
+                } else {
                     log += `|noChoice`
                 }
                 if (eff.a.filter.a > 1) {
@@ -715,8 +716,8 @@ export const peek: LongFormMove = {
                 }
                 break;
         }
-        log += `|afterDeck|${JSON.stringify(deck)}`
-        log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
+        log += `|afterDeck|${JSON.stringify(deck)}|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
+        log += `|cardsToPeek|${JSON.stringify(playerObj.cardsToPeek)}`
         logger.debug(`${G.matchID}|${log}`);
         checkNextEffect(G, ctx);
     }
@@ -770,9 +771,9 @@ export const chooseEvent: LongFormMove = {
                 case EventCardID.E10:
                     G.order.forEach(j => {
                         const pub = G.pub[parseInt(j)];
-                        G.order.forEach(o=>{
+                        G.order.forEach(o => {
                             const other = G.pub[parseInt(o)];
-                            if(other.vp > pub.vp){
+                            if (other.vp > pub.vp) {
                                 pub.vp += 4;
                             }
                         })
@@ -781,13 +782,13 @@ export const chooseEvent: LongFormMove = {
                     checkNextEffect(G, ctx);
                     break;
                 case EventCardID.E11:
-                    G.order.forEach(j=>{
+                    G.order.forEach(j => {
                         const pidInt = parseInt(j)
                         const pub = G.pub[pidInt];
                         const s = G.player[pidInt]
                         const validID = [...G.secretInfo.playerDecks[pidInt], ...pub.discard, ...s.hand, ...pub.archive]
-                        const validCards = validID.map(c=>getCardById(c));
-                        pub.vp += validCards.filter(c=>c.type===CardType.P).length * 4;
+                        const validCards = validID.map(c => getCardById(c));
+                        pub.vp += validCards.filter(c => c.type === CardType.P).length * 4;
                     })
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);
@@ -837,7 +838,7 @@ export const chooseEvent: LongFormMove = {
                         const pidInt = parseInt(j)
                         const pub = G.pub[pidInt];
                         pub.vp += pub.champions.length;
-                        ValidRegions.forEach(r=>pub.vp+=pub.shares[r]);
+                        ValidRegions.forEach(r => pub.vp += pub.shares[r]);
                     })
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);
@@ -862,14 +863,14 @@ export const requestEndTurn: LongFormMove = {
         if (!playerObj.endTurnEffectExecuted) {
             endTurnEffect(G, ctx, arg);
             playerObj.endTurnEffectExecuted = true;
-        }else {
+        } else {
             log += `|endTurnEffectAlreadyExecuted`
             logger.debug(`${G.matchID}|${log}`);
         }
         if (G.e.stack.length === 0) {
             regionScoringCheck(G, ctx, arg);
             playerObj.endTurnEffectExecuted = false;
-        }else {
+        } else {
             checkNextEffect(G, ctx);
         }
     },
@@ -1030,11 +1031,11 @@ export const playCard: LongFormMove = {
                 playerEffExec(G, ctx, ctx.currentPlayer);
             } else {
                 log += `|emptyPlayEffect`
-                checkNextEffect(G,ctx);
+                checkNextEffect(G, ctx);
             }
         } else {
             log += `|noPlayEffect`
-            checkNextEffect(G,ctx);
+            checkNextEffect(G, ctx);
         }
         logger.debug(`${G.matchID}|${log}`);
     },
