@@ -1116,88 +1116,21 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log += `|deck|${JSON.stringify(deck)}`
             log += `|hand${JSON.stringify(playerObj.hand)}`
             log += `|discard|${JSON.stringify(pub.discard)}`
-            if(deck.length === 0){
-                log += `|noCardInDeck`
-                log += `|afterDeck|${JSON.stringify(deck)}`
-                log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
-                break;
-            }
             const totalRemainCards = length + pub.discard.length
+            log += `|deckAndDiscardSum|${totalRemainCards}`
+            for (let count = 0; count < peekCount; count++) {
+                log += `|count|${count}`
+                drawPeekCardForPlayer(G, ctx, p);
+            }
+            log += `|peekCard|${JSON.stringify(playerObj.cardsToPeek)}`
+            log += `|afterDeck|${JSON.stringify(deck)}|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
+            const drawnCard = playerObj.cardsToPeek.length;
             const newEffect = {...eff}
-            if (newEffect.a.filter.e === "choice" && newEffect.a.filter.a > totalRemainCards) {
-                log += `|noEnoughCardToChoose`
-                newEffect.a.filter.a = totalRemainCards;
+            if (newEffect.a.filter.e === "choice" && newEffect.a.filter.a > drawnCard) {
+                log += `||noEnoughCardToChoose`
+                newEffect.a.filter.a = drawnCard;
+                log += `|${JSON.stringify(newEffect)}`
             }
-            if(length < peekCount){
-                log += `|fetchRemainDeck|${JSON.stringify(deck)}`
-                playerObj.cardsToPeek = [...deck];
-                log += `|deckInsufficient|shuffle`
-                const shuffledDiscard = shuffle(ctx, pub.discard);
-                pub.discard = [];
-                G.secretInfo.playerDecks[curPid(G, ctx)] = [...shuffledDiscard]
-                log += `|total|${totalRemainCards}`
-                if (totalRemainCards < peekCount) {
-                    log += `|noEnoughCardsToPeek`
-                    peekCount = totalRemainCards
-                }
-                const remainDrawCount = peekCount - length;
-                log += `|${remainDrawCount}cardsRemaining`
-                for (let i = 0; i < remainDrawCount; i++) {
-                    let newCardId = deck.pop();
-                    if (newCardId === undefined) {
-                        throw Error("Should have card in deck");
-                    }
-                    log += `|draw|${newCardId}`
-                    playerObj.cardsToPeek.push(newCardId);
-                }
-                log += `|refDeck|${JSON.stringify(deck)}`
-                log += `|deck|${JSON.stringify(G.secretInfo.playerDecks[curPid(G, ctx)])}`
-            }else{
-                for (let i = 0; i < peekCount; i++) {
-                    let newCardId = deck.pop();
-                    log += `|${newCardId}`
-                    if (newCardId === undefined) {
-                        if(deck.length === 0){
-                            log += `|noCardInDeck`
-                            log += `|afterDeck|${JSON.stringify(deck)}`
-                            log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
-                            log += `|push${JSON.stringify(newEffect)}`
-                            G.e.stack.push(newEffect)
-                            logger.debug(`${G.matchID}|${log}`);
-                            changePlayerStage(G, ctx, "peek", p);
-                            return;
-                        }else {
-                            log += `|cannotDrawFromDeck|${JSON.stringify(deck)}`
-                            if(pub.discard.length === 0 ){
-                                log += `|noCardInDiscard`
-                                log += `|afterDeck|${JSON.stringify(deck)}`
-                                log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
-                                log += `|push${JSON.stringify(newEffect)}`
-                                G.e.stack.push(newEffect)
-                                logger.debug(`${G.matchID}|${log}`);
-                                changePlayerStage(G, ctx, "peek", p);
-                                return;
-                            }else {
-                                newCardId = pub.discard.pop();
-                                if(newCardId === undefined){
-                                    log += `|cannotDrawFromDiscard|${JSON.stringify(pub.discard)}`
-                                    log += `|afterDeck|${JSON.stringify(deck)}`
-                                    log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
-                                    log += `|push${JSON.stringify(newEffect)}`
-                                    G.e.stack.push(newEffect)
-                                    logger.debug(`${G.matchID}|${log}`);
-                                    changePlayerStage(G, ctx, "peek", p);
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                    playerObj.cardsToPeek.push(newCardId);
-                }
-            }
-            log += `|afterDeck|${JSON.stringify(deck)}`
-            log += `|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`
-            log += `|push${JSON.stringify(newEffect)}`
             G.e.stack.push(newEffect)
             logger.debug(`${G.matchID}|${log}`);
             changePlayerStage(G, ctx, "peek", p);
@@ -1749,6 +1682,30 @@ export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
         G.regions[r].legend.card = c;
     }
 }
+
+export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
+    const pid = parseInt(id);
+    let log = `drawPeekCardForPlayer|p${id}`
+    const p = G.player[pid]
+    const pub = G.pub[pid]
+    const s = G.secretInfo.playerDecks[pid]
+    log += `|${JSON.stringify(s)}`
+    if (s.length === 0) {
+        G.secretInfo.playerDecks[pid] = shuffle(ctx, pub.discard);
+        log += `|shuffledDeck|${JSON.stringify(s)}`
+        pub.discard = [];
+    }
+    let card = G.secretInfo.playerDecks[pid].pop();
+    if (card === undefined) {
+        log += `|deckEmpty`
+        log += `|${JSON.stringify(s)}`
+    } else {
+        log += `|${card}`
+        p.cardsToPeek.push(card);
+    }
+    logger.debug(`${G.matchID}|${log}`);
+}
+
 export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     const pid = parseInt(id);
     let log = `drawCardForPlayer${id}`
@@ -2357,9 +2314,10 @@ export const regionScoringCheck = (G: IG, ctx: Ctx, arg: PlayerID) => {
         }
         const canScore = checkRegionScoring(G, ctx, r);
         if (canScore) {
+            log += `|region${r}|canScore`
             G.scoringRegions.push(r)
         }
-    })
+    });
     log += `|scoreRegions|${JSON.stringify(G.scoringRegions)}`
     if (ctx.numPlayers > SimpleRuleNumPlayers) {
         log += "|tryScoring"
