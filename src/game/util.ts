@@ -1653,12 +1653,13 @@ export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
     }
 }
 export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
+    let log = `drawForTwoPlayerEra|era${e + 1}`
     let school = schoolCardsByEra(e).map(c => c.cardId);
     let filmCards = filmCardsByEra(e).map(c => c.cardId);
     let schoolDeckSize: number, filmDeckSize: number;
     if (e === IEra.ONE) {
         filmDeckSize = 11;
-        schoolDeckSize = 2;
+        schoolDeckSize = 3;
     } else {
         if (e === IEra.TWO) {
             filmDeckSize = 18;
@@ -1670,11 +1671,14 @@ export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
     }
     G.secretInfo.twoPlayer.school = shuffle(ctx, school).slice(0, schoolDeckSize + 1);
     G.secretInfo.twoPlayer.film = shuffle(ctx, filmCards).slice(0, filmDeckSize + 1);
+    log += `|school|${schoolDeckSize}${JSON.stringify(G.secretInfo.twoPlayer.school)}`
+    log += `|film|${filmDeckSize}|${JSON.stringify(G.secretInfo.twoPlayer.film)}`
     for (let s of G.twoPlayer.film) {
         let c = G.secretInfo.twoPlayer.film.pop();
         if (c === undefined) {
             throw new Error(c);
         } else {
+            log += `|pop|${c}`;
             s.card = c;
         }
     }
@@ -1683,9 +1687,11 @@ export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
         if (c === undefined) {
             throw new Error(c);
         } else {
+            log += `|pop|${c}`;
             s.card = c;
         }
     }
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {

@@ -470,7 +470,12 @@ export const updateSlot = {
     move: (G: IG, ctx: Ctx, cardId: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.updateSlot(${cardId})`);
-        let slot = cardSlotOnBoard(G, ctx, getCardById(cardId));
+        let slot;
+        if(ctx.numPlayers > SimpleRuleNumPlayers) {
+            slot = cardSlotOnBoard(G, ctx, getCardById(cardId));
+        }else {
+            slot = cardSlotOnBoard2p(G, ctx, getCardById(cardId));
+        }
         if (slot === null) {
             return INVALID_MOVE;
         }
