@@ -201,17 +201,24 @@ const eventName = {
 };
 
 const getCardName = (cardId: string): string => {
-    if(cardId in BasicCardID){
+    if (cardId in BasicCardID) {
         // @ts-ignore
         return cards[cardId];
     }
-    if(cardId in AllClassicCards){
+    if (cardId in AllClassicCards) {
         // @ts-ignore
         return cards[cardId.slice(1)]
     }
-    if(cardId in EventCardID){
+    if (cardId in EventCardID) {
         // @ts-ignore
         return eventName[cardId]
+    }
+    if (cardId.startsWith('V')) {
+        const cardEra = parseInt(cardId.slice(1, 2));
+        const cardRegion = parseInt(cardId.slice(2, 3));
+        const cardRank = parseInt(cardId.slice(3, 4));
+        // @ts-ignore
+        return `${era[cardEra]}时代${region[cardRegion]}${rank[cardRank]}`
     }
     return `unknown card${cardId}`
 }
@@ -244,7 +251,7 @@ const argShowBoardStatus = {
                     t += "传奇："
                     t += bracketCardName(r.legend.card)
                 }
-                if (r.normal.filter(s=>s.card!==null).length > 0) {
+                if (r.normal.filter(s => s.card !== null).length > 0) {
                     t += "普通："
                     r.normal.forEach(c => {
                         if (c.card !== null) {
@@ -273,9 +280,9 @@ const argShowBoardStatus = {
 const argConfirmRespond = {
     args: (arg: string[]): string => {
         let a = arg[0]
-        if(a==="yes"){
+        if (a === "yes") {
             return "选择执行效果"
-        }else{
+        } else {
             return "选择不执行效果"
         }
     }
@@ -332,17 +339,17 @@ const argBreakthrough = {
     }
 }
 const argShowCompetitionResult = {
-    args:(arg:IShowCompetitionResultArgs[]): string=>{
+    args: (arg: IShowCompetitionResultArgs[]): string => {
         let i = arg[0].info;
         let t = "争夺情况："
-        if(i.atkCard===null){
+        if (i.atkCard === null) {
             t += "发起方没有出牌，"
-        }else {
+        } else {
             t += `发起方打出${bracketCardName(i.atkCard)}，`
         }
-        if(i.defCard===null){
+        if (i.defCard === null) {
             t += "应对方没有出牌，"
-        }else {
+        } else {
             t += `应对方打出${bracketCardName(i.defCard)}，`
         }
         let progress = i.progress;
@@ -365,9 +372,9 @@ const argPeek = {
     args: (arg: IPeekArgs[]) => {
         const a = arg[0];
         let t = "展示牌堆顶端";
-        a.shownCards.forEach(c=>t+=bracketCardName(c));
-        if(a.card!==null){
-            t+= `选择了${bracketCardName(a.card)}加入手牌`
+        a.shownCards.forEach(c => t += bracketCardName(c));
+        if (a.card !== null) {
+            t += `选择了${bracketCardName(a.card)}加入手牌`
         }
         return t;
     }
@@ -407,13 +414,13 @@ const argChooseHand = {
     }
 }
 const argPayAdditionalCost = {
-    args:(arg: IPayAdditionalCostArgs[]) =>{
+    args: (arg: IPayAdditionalCostArgs[]) => {
         let t = "用"
-        const a= arg[0];
-        if(a.res > 0){
+        const a = arg[0];
+        if (a.res > 0) {
             t += `${a.res}资源`
         }
-        if(a.deposit > 0){
+        if (a.deposit > 0) {
             t += `${a.deposit}存款`
         }
         t += "支付了额外费用"
@@ -451,9 +458,9 @@ const argComment = {
     }
 }
 const rank = {
-    1:"第一",
-    2:"第二",
-    3:"第三",
+    1: "第一",
+    2: "第二",
+    3: "第三",
 }
 const zh_CN: Locale = {
     drawer: {
@@ -469,9 +476,9 @@ const zh_CN: Locale = {
     eventName: eventName,
     region: region,
     action: {
-        concede:"投降",
-        adjustInSlider:"用下面的滑块调整支付额外费用的存款或资源",
-        payAdditionalCost:"支付额外花费",
+        concede: "投降",
+        adjustInSlider: "用下面的滑块调整支付额外费用的存款或资源",
+        payAdditionalCost: "支付额外花费",
         comment: "评论",
         updateSlot: "更新",
         showBoardStatus: "展示牌列",
@@ -485,17 +492,17 @@ const zh_CN: Locale = {
         aestheticsLevelUp: "提升美学等级",
         industryLevelUp: "提升工业等级",
         endStage: "结束行动",
-        showCompetitionResult:"展示争夺结果",
+        showCompetitionResult: "展示争夺结果",
         endTurn: "结束回合",
-        turnEnd: ["第{{a}}回合结束",argValue],
+        turnEnd: ["第{{a}}回合结束", argValue],
         endPhase: "结束阶段",
         undo: "撤销",
         redo: "恢复",
     },
-    title:"电影百年",
+    title: "电影百年",
     lobby: {
         copyPrompt: "复制",
-        numPlayers:"玩家数",
+        numPlayers: "玩家数",
         title: "大厅",
         join: "加入",
         play: "开始",
@@ -505,26 +512,26 @@ const zh_CN: Locale = {
         cannotJoin: "无法加入，已经在其他游戏中",
         createPublicMatch: "创建公开游戏",
         createPrivateMatch: "创建私密游戏",
-        shareLink:"其他玩家用下面的链接加入游戏：",
+        shareLink: "其他玩家用下面的链接加入游戏：",
     },
     gameOver: {
         title: "游戏结束",
         winner: "胜利：",
-        table:{
-            board:"面板",
-            card:"卡牌",
-            building:"建筑",
-            iAward:"工业大奖",
-            aesAward:"美学大奖",
-            archive:"档案馆",
-            events:"计分效果",
-            total:"总分",
+        table: {
+            board: "面板",
+            card: "卡牌",
+            building: "建筑",
+            iAward: "工业大奖",
+            aesAward: "美学大奖",
+            archive: "档案馆",
+            events: "计分效果",
+            total: "总分",
         },
-        reason:{
-            othersConceded:"其他玩家投降",
-            threeNAChampionAutoWin:"三个北美第一",
-            championCountAutoWin:"满足自动胜利要求的第一数量",
-            finalScoring:"终局计分",
+        reason: {
+            othersConceded: "其他玩家投降",
+            threeNAChampionAutoWin: "三个北美第一",
+            championCountAutoWin: "满足自动胜利要求的第一数量",
+            finalScoring: "终局计分",
         },
         rank: {
             0: "第一:",
@@ -534,7 +541,7 @@ const zh_CN: Locale = {
         },
     },
     moves: {
-        concede:["{{args}}",argConcede],
+        concede: ["{{args}}", argConcede],
         showBoardStatus: ["{{args}}", argShowBoardStatus],
         chooseEvent: ["{{args}}", argChooseEvent],
         chooseHand: ["{{args}}", argChooseHand],
@@ -550,30 +557,30 @@ const zh_CN: Locale = {
         requestEndTurn: ["{{args}}", argRequestEndTurn],
         updateSlot: ["{{args}}", argUpdateSlot],
         comment: ["{{args}}", argComment],
-        confirmRespond:["{{args}}",argConfirmRespond],
-        payAdditionalCost:["{{args}}",argPayAdditionalCost],
+        confirmRespond: ["{{args}}", argConfirmRespond],
+        payAdditionalCost: ["{{args}}", argPayAdditionalCost],
     },
     effect: {
-        chose:chose,
-        archiveToEEBuildingVP:"每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑，则该公司获得这张牌的声望",
-        payAdditionalCost :["额外支付{{res}}{{deposit}}",{
+        chose: chose,
+        archiveToEEBuildingVP: "每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑，则该公司获得这张牌的声望",
+        payAdditionalCost: ["额外支付{{res}}{{deposit}}", {
             deposit: (value: number = 1): string => {
-                if(value>0){
-                        return `${value}存款`
-                }else {
+                if (value > 0) {
+                    return `${value}存款`
+                } else {
                     return ""
                 }
             },
             res: (value: number = 1): string => {
-                if(value>0){
+                if (value > 0) {
                     return `${value}资源`
-                }else {
+                } else {
                     return ""
                 }
             },
         }],
-        industryAndAestheticsBreakthrough:"选择工业和美学突破",
-        industryOrAestheticsLevelUp:"升级工业等级或美学等级1级",
+        industryAndAestheticsBreakthrough: "选择工业和美学突破",
+        industryOrAestheticsLevelUp: "升级工业等级或美学等级1级",
         era: {
             0: " 1时代：",
             1: " 2时代：",
@@ -655,9 +662,9 @@ const zh_CN: Locale = {
             },
             onWin: (e: any) => {
                 if (e.e !== "none") {
-                    if(e.e === "anyRegionShareCentral"){
+                    if (e.e === "anyRegionShareCentral") {
                         return "若这次争夺获胜你额外从中央牌列获得1个任意地区的份额"
-                    }else {
+                    } else {
                         return "若这次争夺获胜你额外获得一个" + region[e.r as Region] + "地区份额"
                     }
                 } else {
@@ -677,7 +684,7 @@ const zh_CN: Locale = {
         industryAward: ["执行工业奖励{{a}}次", argValue],
         draw: ["摸{{a}}张牌", argValue],
         discard: ["弃{{a}}张牌", argValue],
-        searchAndArchive: ["检索【{{a}}】并置入档案馆",argCardName],
+        searchAndArchive: ["检索【{{a}}】并置入档案馆", argCardName],
         discardNormalOrLegend: ["弃掉{{a}}张普通或传奇牌", argValue],
         discardIndustry: ["弃掉{{a}}张带有工业标志的手牌", argValue],
         discardAesthetics: ["弃掉{{a}}张带有美学标志的手牌", argValue],
@@ -746,9 +753,9 @@ const zh_CN: Locale = {
     setup: "补充初始排列",
     dialog: {
         concede: {
-            title:"确认投降?",
+            title: "确认投降?",
         },
-        competitionCard:{
+        competitionCard: {
             title: "请选择一张手牌参与争夺",
             toggleText: "争夺",
         },
@@ -802,9 +809,9 @@ const zh_CN: Locale = {
         title: "手牌"
     },
     pub: {
-        lastRoundOfGame:"最后一轮",
+        lastRoundOfGame: "最后一轮",
         revealedHand: "展示手牌",
-        deck:"牌堆",
+        deck: "牌堆",
         champion: "第一：",
         gameLog: "战报",
         emptyBuildingSlot: "空",
@@ -842,9 +849,9 @@ const zh_CN: Locale = {
     },
     score: {
         cardName: ['{{era}}{{region}}{{rank}}', {
-            era: (e:IEra):string=>(era[e] + "时代"),
-            rank: (rankNum:1|2|3):string=>rank[rankNum],
-            region: (r:Region):string=>region[r],
+            era: (e: IEra): string => (era[e] + "时代"),
+            rank: (rankNum: 1 | 2 | 3): string => rank[rankNum],
+            region: (r: Region): string => region[r],
         }],
     },
     card: cards,

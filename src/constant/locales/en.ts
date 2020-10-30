@@ -216,6 +216,13 @@ const getCardName = (cardId: string): string => {
         // @ts-ignore
         return eventName[cardId]
     }
+    if (cardId.startsWith('V')) {
+        const cardEra = parseInt(cardId.slice(1, 2));
+        const cardRegion = parseInt(cardId.slice(2, 3));
+        const cardRank = parseInt(cardId.slice(3, 4));
+        // @ts-ignore
+        return `${rank[cardRank]}${region[cardRegion]}${era[cardEra]} era `
+    }
     return `unknown card${cardId}`
 }
 
