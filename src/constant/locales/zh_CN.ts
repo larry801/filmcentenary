@@ -214,7 +214,7 @@ const getCardName = (cardId: string): string => {
         return eventName[cardId]
     }
     if (cardId.startsWith('V')) {
-        const cardEra = parseInt(cardId.slice(1, 2));
+        const cardEra = parseInt(cardId.slice(1, 2)) - 1;
         const cardRegion = parseInt(cardId.slice(2, 3));
         const cardRank = parseInt(cardId.slice(3, 4));
         // @ts-ignore
