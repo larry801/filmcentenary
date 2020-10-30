@@ -1870,9 +1870,9 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
             log += `|normal`
             d = G.secretInfo.regions[slot.region].normalDeck;
         }
+        log += `${JSON.stringify(d)}`;
     } else {
         log += `|simpleRule`
-
         if (getCardById(slot.card).type === CardType.S) {
             log += `|school`
             d = G.secretInfo.twoPlayer.school as unknown as ClassicCardID[];
@@ -1880,12 +1880,13 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
             log += `|film`
             d = G.secretInfo.twoPlayer.film;
         }
+        log += `${JSON.stringify(d)}`;
     }
-
     let oldCard = slot.card;
-    log += `|return${oldCard}|deck${JSON.stringify(d)}`
+    log += `|return${oldCard}`
     if (oldCard !== null) {
         d.unshift(oldCard);
+        log += `|putToBottom|${JSON.stringify(d)}`;
         slot.card = null;
     } else {
         throw new Error("Updating an empty slot!")
