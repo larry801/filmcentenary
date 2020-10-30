@@ -399,9 +399,9 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         drawForRegion(G, ctx, Region.NA, IEra.ONE);
         drawForRegion(G, ctx, Region.WE, IEra.ONE);
         drawForRegion(G, ctx, Region.EE, IEra.ONE);
+        doFillNewEraEventDeck(G, ctx, IEra.ONE);
     }
     G.order.forEach(p => fillPlayerHand(G, ctx, p))
-    doFillNewEraEventDeck(G, ctx, IEra.ONE);
     G.regionScoreCompensateMarker = G.order[G.order.length - 1];
 
     // G.pub[0].resource = 20;
