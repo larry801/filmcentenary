@@ -312,17 +312,17 @@ const argShowBoardStatus = {
                 }
             })
         } else {
-            t += "School:"
+            t += "School: "
+            arg[0].school.forEach(c => {
+                if (c.card !== null) {
+                    t += bracketCardName(c.card)
+                }
+            })
+            t += "Film: "
             arg[0].film.forEach(c => {
                 if (c.card !== null) {
                     t += bracketCardName(c.card
                     )
-                }
-            })
-            t += "Film:"
-            arg[0].school.forEach(c => {
-                if (c.card !== null) {
-                    t += bracketCardName(c.card)
                 }
             })
         }
@@ -356,10 +356,18 @@ const argBuyCard = {
         t += bracketCardName(a.target);
         t += " with ";
         if (a.resource > 0) {
-            t += a.resource.toString() + "resource,"
+            if (a.resource > 1) {
+                t += `${a.resource} resource`
+            } else {
+                t += `${a.resource} resources`
+            }
         }
         if (a.deposit > 0) {
-            t += a.deposit.toString() + "deposit,"
+            if ( a.deposit >1){
+                t += `${a.deposit} deposits`
+            }else{
+                t += `${a.deposit} deposit`
+            }
         }
         if (a.helper.length > 0) {
             t += " and "
@@ -703,7 +711,7 @@ const en = {
         anyRegionShare: ["Get {{a}} share(s) of any region", argValue],
         anyRegionShareCentral: ["Get {{a}} share(s) of any region from board,", argValue],
         deductRes: ["deduct {{a}} resource(s) from cost.", argValue],
-        extraEffect: "Extra effect:",
+        extraEffect: " Extra effect:",
         buyAesthetics: "When you buys a card with aesthetics marker,",
         loseVpRespond: "When you lose vp,",
         othersBuySchool: "When another company buys a school card,",

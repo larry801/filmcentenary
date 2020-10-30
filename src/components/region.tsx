@@ -27,7 +27,7 @@ import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 import LabelIcon from '@material-ui/icons/Label';
-import {getCardName} from "./card";
+import CardInfo, {getCardName} from "./card";
 
 
 export interface ICardSlotProp {
@@ -75,7 +75,7 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
         <Paper style={{display: 'inline-flex'}} variant={variant}>
             <Grid container>
                 <Grid item xs={12}>
-                    <Typography>{slot.card === null ? "" : getCardName(slot.card)} </Typography>
+                    {slot.card === null ? "" : <CardInfo cid={slot.card}/>}
                     <Typography>{feeText}</Typography>
                     {slot.card !== null && ctx.numPlayers <= SimpleRuleNumPlayers ?
                         <Typography>{i18n.region[region]}</Typography> : <></>}
