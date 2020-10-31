@@ -43,9 +43,9 @@ import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./l
 import {getCardEffect} from "../constant/effects";
 
 const loggerN = {
-    info: (log: string) => false,
-    debug: (log: string) => false,
-    error: (log: string) => false,
+    info: () => false,
+    debug: () => false,
+    error: () => false,
 }
 const loggerD = {
     info: (log: string) => console.log(`info|${log}`),
@@ -1752,7 +1752,7 @@ export const canHelp = (G: IG, ctx: Ctx, p: PlayerID, target: ClassicCardID | Ba
     const targetCard = getCardById(target);
     let aes = pub.aesthetics
     let ind = pub.industry
-    if(pub.school !==null){
+    if (pub.school !== null) {
         aes += getCardById(pub.school).aesthetics;
         ind += getCardById(pub.school).industry;
     }
@@ -1938,27 +1938,31 @@ export const legendCount = (G: IG, ctx: Ctx, r: Region, e: IEra, p: PlayerID): n
         .length;
 }
 
+
+export const do2pRegionScoring = (G: IG, ctx: Ctx, r: validRegion): void => {
+    let firstPlayer = 1
+    if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
+        firstPlayer = 0
+    }
+    if (G.pub[0].shares[r] === G.pub[1].shares[r]) {
+        firstPlayer = ctx.currentPlayer === "0" ? 0 : 1;
+    }
+    const scoreCard = getScoreCard(r, IEra.THREE, 1);
+    // score card of current region
+    // const scoreCard = getScoreCard(r, G.twoPlayer.era, 1);
+    G.pub[firstPlayer].discard.push(scoreCard.cardId as ScoreCardID);
+    G.pub[firstPlayer].allCards.push(scoreCard.cardId as ScoreCardID);
+    G.pub[0].shares[r] = 0;
+    G.pub[1].shares[r] = 0;
+    // G.regions[r].share = ShareOnBoard[r][IEra.THREE];
+    G.regions[r].completedModernScoring = true;
+}
 export const try2pScoring = (G: IG, ctx: Ctx): void => {
     let log = `try2pScoring`;
     ValidRegions.forEach(r => {
         let regObj = G.regions[r];
         if (regObj.share === 0 && !regObj.completedModernScoring) {
-            if (G.twoPlayer.era === IEra.THREE) {
-                let firstPlayer = 1
-                if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
-                    firstPlayer = 0
-                }
-                if (G.pub[0].shares[r] === G.pub[1].shares[r]) {
-                    firstPlayer = ctx.currentPlayer === "0" ? 0 : 1;
-                }
-                const scoreCard = getScoreCard(r, IEra.THREE, 1);
-                G.pub[firstPlayer].discard.push(scoreCard.cardId as ScoreCardID);
-                G.pub[firstPlayer].allCards.push(scoreCard.cardId as ScoreCardID);
-            }
-            G.pub[0].shares[r] = 0;
-            G.pub[1].shares[r] = 0;
-            G.regions[r].share = ShareOnBoard[r][IEra.THREE];
-            G.regions[r].completedModernScoring = true;
+            do2pRegionScoring(G, ctx, r);
         }
     })
     if (
@@ -2006,6 +2010,13 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             signalEndTurn(G, ctx);
             return;
         } else {
+            // Score remain regions before final scroing
+            ValidRegions.forEach(r => {
+                let regObj = G.regions[r];
+                if (!regObj.completedModernScoring) {
+                    do2pRegionScoring(G, ctx, r);
+                }
+            })
             finalScoring(G, ctx);
             return
         }
