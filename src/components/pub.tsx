@@ -4,7 +4,6 @@ import {
     CardID,
     Champion,
     getCardById,
-    IPubInfo,
     SimpleRuleNumPlayers,
     validRegion,
     ValidRegions
@@ -16,16 +15,28 @@ import i18n from '../constant/i18n'
 import {ChoiceDialog} from "./modals";
 import {inferDeckRemoveHelper} from "../game/util";
 import {IG} from "../types/setup";
+import ImportContactsIcon from '@material-ui/icons/ImportContacts';
+import SettingsIcon from '@material-ui/icons/Settings';
+import MonetizationOnIcon from '@material-ui/icons/MonetizationOn';
+import LocalAtmIcon from '@material-ui/icons/LocalAtm';
 import shortid from "shortid";
 import {CardInfo, getCardName} from "./card";
+import AirportShuttleIcon from '@material-ui/icons/AirportShuttle';
+import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
+import PanToolIcon from "@material-ui/icons/PanTool";
+import {PlayerID} from "boardgame.io";
+import {ShareIcon} from "./region";
+import {ActionPointIcon} from "./icons";
 
 export interface IPubPanelProps {
-    i: IPubInfo,
+    idx: number,
+    getName: (p: PlayerID) => string,
     G: IG,
 }
 
-export const PubPanel = ({i, G}: IPubPanelProps) => {
+export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
     useI18n(i18n);
+    const i = G.pub[idx]
     const inferHand = (): CardID[] => {
         let result = [...i.allCards]
         inferDeckRemoveHelper(result, i.discard)
@@ -44,23 +55,34 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
 
     const noOp = () => false;
 
-    return <>
+    return <Grid container key={idx}>
         <Grid item xs={4} sm={3} md={2} lg={1}>
-            <Typography>   {i18n.pub.res} {i.resource}</Typography>
-            <Typography>   {i18n.pub.deposit} {i.deposit}</Typography>
+            <Typography>
+                {getName(idx.toString())}
+            </Typography>
+            <Typography aria-label={`${i18n.pub.handSize}${G.player[idx].handSize}`}>
+                <PanToolIcon/>{G.player[0].handSize}
+            </Typography>
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
-            <Typography>   {i18n.pub.industry} {i.industry}
+            <Typography> <MonetizationOnIcon/> {i.resource}</Typography>
+            <Typography>
+                <LocalAtmIcon/>
+                {i.deposit}
+            </Typography>
+        </Grid>
+        <Grid item xs={4} sm={3} md={2} lg={1}>
+            <Typography> <SettingsIcon/> {i.industry}
                 {i.school !== null && getCardById(i.school).industry > 0 ? `(+${getCardById(i.school).industry})` : ""}
             </Typography>
             <Typography>
-                {i18n.pub.aesthetics} {i.aesthetics}
+                <ImportContactsIcon/> {i.aesthetics}
                 {i.school !== null && getCardById(i.school).aesthetics > 0 ? `(+${getCardById(i.school).aesthetics})` : ""}
             </Typography>
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
-            <Typography>   {i18n.pub.action} {i.action}</Typography>
-            <Typography>   {i18n.pub.vp} {i.vp}</Typography>
+            <Typography aria-label={`${i18n.pub.action}${i.action}`}> <ActionPointIcon/> {i.action}</Typography>
+            <Typography aria-label={`${i18n.pub.vp}${i.vp}`}> <EmojiEventsIcon/> {i.vp}</Typography>
         </Grid>
         <Grid item xs={12} sm={6} md={6} lg={3}>
             {i.school !== null ?
@@ -91,9 +113,11 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                     <Typography>{i18n.pub.share}</Typography>
                     {
                         ValidRegions.map((r: validRegion) =>
-                            <Typography key={r}>
-                                {i18n.region[r]} {i.shares[r as 0 | 1 | 2 | 3]}
-                            </Typography>
+                            <>
+                                {Array(i.shares[r as 0 | 1 | 2 | 3]).fill(1).map((i, idx) => <Grid item xs={6} key={idx}>
+                                    <ShareIcon  r={r}/>
+                                </Grid>)}
+                            </>
                         )
                     }
                 </>
@@ -173,7 +197,8 @@ export const PubPanel = ({i, G}: IPubPanelProps) => {
                 show={true} title={i18n.pub.playedCards}
                 toggleText={`${i18n.pub.playedCards}(${i.playedCardInTurn.length})`} initial={false}/>
         </Grid>
-    </>
+    </Grid>
+
 }
 
 export default PubPanel;

@@ -106,6 +106,9 @@ export const scoreEffectText = (cardId: CardID): string => {
     }
     return r.join("");
 }
+// MoneyOff buyFree
+// PanTool competition
+// Archive
 export const effName = (eff: any): string => {
     switch (eff.e) {
         case "everyOtherCompany":

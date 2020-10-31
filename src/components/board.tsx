@@ -13,12 +13,13 @@ import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
 import LogView from './log-view'
 import useSound from 'use-sound';
-// @ts-ignore
-import playerTurnSfx from './media/turn.mp3'
+import PanToolIcon from '@material-ui/icons/PanTool';
 import {useI18n} from "@i18n-chain/react";
 import {OperationPanel} from "./boards/operation";
 import FinalScoreTable from "./boards/final";
 import {getCardName} from "./card";
+// @ts-ignore
+import playerTurnSfx from './media/turn.mp3'
 
 export function usePrevious(value: any) {
     const ref = React.useRef();
@@ -250,19 +251,8 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             <Grid item><Typography>{i18n.card.B05} {G.basicCards.B05}</Typography></Grid>
         </Grid>
         <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
-
         {G.pub.map((u: IPubInfo, idx: number) =>
-            <Grid container key={idx}>
-                <Grid item xs={4} sm={3} md={2} lg={1}>
-                    <Typography>
-                        {getName(idx.toString())}
-                    </Typography>
-                </Grid>
-
-                <Grid item xs={4} sm={3} md={2} lg={1}>
-                    <Typography>{i18n.pub.handSize} {G.player[idx].handSize}</Typography>
-                </Grid>
-                <PubPanel G={G} i={u}/>
-            </Grid>)}
+            <PubPanel G={G} idx={idx} getName={getName}/>
+        )}
     </Grid>
 }

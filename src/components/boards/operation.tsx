@@ -433,12 +433,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
 
     return <Grid item container xs={12} sm={5}>
         <Grid item container xs={12}>
-            <Grid item xs={4} sm={3} md={2} lg={1}>
-                <Typography>
-                    {getName(playerID)}
-                </Typography>
-            </Grid>
-            <PubPanel i={pub} G={G}/>
+            <PubPanel idx={parseInt(playerID)} G={G} getName={getName}/>
         </Grid>
         {noStage && canMoveCurrent ?
             <Grid item xs={6}>
