@@ -1,15 +1,36 @@
 import React from "react";
+import {
+    AllClassicCards,
+    CardID,
+    CardType,
+    EventCardID,
+    getCardById,
+    getScoreCardByID,
+    Region,
+    ScoreCardID
+} from "../types/core";
+import PrestigeIcon from '@material-ui/icons/EmojiEvents';
+import CardIcon from '@material-ui/icons/CropPortrait';
 import InsertCommentIcon from '@material-ui/icons/InsertComment';
-import {AllClassicCards, CardID, EventCardID, getCardById, getScoreCardByID, ScoreCardID} from "../types/core";
+import ArchiveIcon from '@material-ui/icons/Archive';
+import DepositIcon from '@material-ui/icons/LocalAtm';
 import Typography from "@material-ui/core/Typography";
 import Grid from "@material-ui/core/Grid";
-import ImportContactsIcon from '@material-ui/icons/ImportContacts';
-import SettingsIcon from '@material-ui/icons/Settings';
+import AestheticsIcon from '@material-ui/icons/ImportContacts';
+import IndustryIcon from '@material-ui/icons/Settings';
 import {generate} from "shortid";
 import {getCardEffect} from "../constant/effects";
 import i18n from "../constant/i18n";
-import {getColor} from "./icons";
-import {Badge} from "@material-ui/core";
+import {ActionPointIcon, DrawnShareIcon, getColor} from "./icons";
+import HandIcon from "@material-ui/icons/PanTool";
+import ResIcon from '@material-ui/icons/MonetizationOn';
+import ForFreeIcon from '@material-ui/icons/MoneyOff';
+import EraOneIcon from '@material-ui/icons/LooksOne';
+import EraTwoIcon from '@material-ui/icons/LooksTwo';
+import EraThreeIcon from '@material-ui/icons/Looks3';
+import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
+import Badge from "@material-ui/core/Badge";
+import UpdateIcon from '@material-ui/icons/Loop';
 
 export interface ICardEffectProps {
     cid: CardID,
@@ -60,14 +81,11 @@ export const buyCardEffectText = (cardId: CardID): string => {
         r.push(effName(effObj.buy));
     }
     return r.join("");
-
 }
 export const schoolEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
     let r: string[] = [];
     if (effObj.hasOwnProperty("school")) {
-        r.push(i18n.effect.continuous);
-        r.push(i18n.effect.school(effObj.school));
         if (effObj.hasOwnProperty("response") && effObj.response.pre.e !== "none") {
             r.push(i18n.effect.extraEffect);
             if (effObj.response.pre.e === "multiple") {
@@ -97,7 +115,6 @@ export const archiveCardEffectText = (cardId: CardID): string => {
         r.push(effName(effObj.archive));
     }
     return r.join("");
-
 }
 export const scoreEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
@@ -108,22 +125,119 @@ export const scoreEffectText = (cardId: CardID): string => {
     }
     return r.join("");
 }
-export const effIcon = (eff: any):JSX.Element => {
+export const effIcon = (eff: any): JSX.Element => {
     switch (eff.e) {
+        case "update":
+            return <><UpdateIcon/></>
+        case "choice":
+            return <>
+                {i18n.effect.choice}
+                {eff.a.map((i: any, idx: number) =>
+                    <>({idx + 1}){effIcon(i)}</>
+                )}
+            </>
+        case "aestheticsLevelUp":
+            return <Badge badgeContent={<ArrowUpwardIcon/>}>
+                <AestheticsIcon/>
+            </Badge>
+        case "industryLevelUp":
+            return <Badge badgeContent={<ArrowUpwardIcon/>}>
+                <IndustryIcon/>
+            </Badge>
+        case "shareNA":
+            return <>
+                <DrawnShareIcon r={Region.NA}/>X{eff.a}
+            </>
+        case "aestheticsToVp":
+            return <>
+                <PrestigeIcon/>X<AestheticsIcon/>
+            </>
+        case "industryToVp":
+            return <>
+                <PrestigeIcon/>X<IndustryIcon/>
+            </>
+        case "resFromIndustry":
+            return <>
+                <ResIcon/>X<IndustryIcon/>
+            </>
+        case "shareToVp":
+            return <>
+                <PrestigeIcon/>X<DrawnShareIcon r={eff.a}/>
+            </>
+        case "archive":
+            return <>
+                <ArchiveIcon/>X{eff.a}
+            </>
+        case "draw":
+            return <>
+                <CardIcon/>X{eff.a}
+            </>
+        case "loseVp":
+            return <>
+                <PrestigeIcon/>-{eff.a}
+            </>
+        case "vp":
+        case "addVp":
+        case "addExtraVp":
+            return <>
+                <PrestigeIcon/>+{eff.a}
+            </>
+        case "loseDeposit":
+            return <Typography>
+                <DepositIcon/>-{eff.a}
+            </Typography>
+        case "deposit":
+            return <>
+                <DepositIcon/>+{eff.a}
+            </>
+        case "res":
+        case "addRes":
+            return <>
+                <ResIcon/>+{eff.a}
+            </>
         case "comment":
-            if(eff.a===1){
+            if (eff.a === 1) {
                 return <InsertCommentIcon/>
-            }else{
-                return <Badge badgeContent={eff.a}><InsertCommentIcon/></Badge>
+            } else {
+                return <><InsertCommentIcon/>X{eff.a}</>
             }
         case "buy":
-            return <Typography>{getCardName(eff.a)}</Typography>
+            return <>
+                <Badge
+                    anchorOrigin={{
+                        vertical: 'top',
+                        horizontal: 'left',
+                    }}
+                    badgeContent={<ForFreeIcon/>}>
+                    <CardIcon/>
+                </Badge>
+            {getCardName(eff.a)}</>
         case "buyToHand":
-            return <Typography>{getCardName(eff.a)}</Typography>
+            return <>
+                <Badge
+                    anchorOrigin={{
+                        vertical: 'top',
+                        horizontal: 'left',
+                    }}
+                    badgeContent={<ForFreeIcon/>}
+                >
+                    <CardIcon/>
+                </Badge>
+                <HandIcon/>
+                {getCardName(eff.a)}</>
+        case "step":
+            return <>
+                {eff.a.map((i: any) => effIcon(i))}
+            </>
+        case "era":
+            return <>
+                {eff.a[0].e !== "none" ? <Typography><EraOneIcon/>{effIcon(eff.a[0])}</Typography> : <></>}
+                {eff.a[1].e !== "none" ? <Typography><EraTwoIcon/>{effIcon(eff.a[1])}</Typography> : <></>}
+                {eff.a[2].e !== "none" ? <Typography><EraThreeIcon/>{effIcon(eff.a[2])}</Typography> : <></>}
+            </>
     }
-    return <Typography>{effName(eff)}</Typography>;
+    return <>{effName(eff)}</>;
 }
-// MoneyOff buyFree
 // PanTool competition
 // Archive
 export const effName = (eff: any): string => {
@@ -179,32 +293,41 @@ export const CardInfo = ({cid}: ICardEffectProps) => {
     const card = getCardById(cid);
     const r = card.region;
     return <Grid container item xs={12}>
-            {card.industry > 0 ? Array(card.industry).fill(1).map(() =>
-                <SettingsIcon
+        {card.industry > 0 ? Array(card.industry).fill(1).map(() =>
+                <IndustryIcon
                     key={generate()}
                     style={{color: getColor(r)}}/>)
-                : <></>}
-            {card.aesthetics > 0 ? Array(card.aesthetics).fill(1).map(() =>
-                <ImportContactsIcon
+            : <></>}
+        {card.aesthetics > 0 ? Array(card.aesthetics).fill(1).map(() =>
+                <AestheticsIcon
                     key={generate()}
                     style={{color: getColor(r)}}/>)
-                : <></>}
+            : <></>}
         <Typography>{getCardName(cid)}</Typography>
         <CardEffect cid={cid}/>
     </Grid>
 }
 
 export const CardEffect = ({cid}: ICardEffectProps) => {
-    const buy = buyCardEffectText(cid);
-    const play = playCardEffectText(cid);
-    const school = schoolEffectText(cid);
+    const effObj = getCardEffect(cid);
+    const cardObj = getCardById(cid);
+    const isSchool = cardObj.type === CardType.S;
+    const buyEffText = buyCardEffectText(cid);
+    const playEffText = playCardEffectText(cid);
     const arch = archiveCardEffectText(cid);
     const score = scoreEffectText(cid);
     return <>
-        {buy !== "" ? <Typography>{buy}</Typography> : <></>}
-        {play !== "" ? <Typography>{play}</Typography> : <></>}
-        {arch !== "" ? <Typography>{arch}</Typography> : <></>}
-        {school !== "" ? <Typography>{school}</Typography> : <></>}
+        {buyEffText !== "" ? <><Typography>{i18n.effect.buyCardHeader}</Typography>{effIcon(effObj.buy)}</> : <></>}
+        {playEffText !== "" ? <><Typography>{i18n.effect.playCardHeader}</Typography> {effIcon(effObj.play)}</> : <></>}
+        {arch !== "" ? <><Typography>{i18n.effect.breakthroughHeader}</Typography> {effIcon(effObj.archive)}</> : <></>}
+        {isSchool ? <>
+            <Typography>{i18n.effect.continuous}</Typography>
+            <Typography>
+                <CardIcon/>{effObj.school.hand}
+                <ActionPointIcon/>{effObj.school.action}
+            </Typography>
+            <Typography>{schoolEffectText(cid)}</Typography>
+        </> : <></>}
         {score !== "" ? <Typography>{score}</Typography> : <></>}
     </>
 }
