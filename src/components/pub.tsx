@@ -19,14 +19,29 @@ import ImportContactsIcon from '@material-ui/icons/ImportContacts';
 import SettingsIcon from '@material-ui/icons/Settings';
 import MonetizationOnIcon from '@material-ui/icons/MonetizationOn';
 import LocalAtmIcon from '@material-ui/icons/LocalAtm';
-import shortid from "shortid";
+import {generate} from "shortid";
 import {CardInfo, getCardName} from "./card";
-import AirportShuttleIcon from '@material-ui/icons/AirportShuttle';
 import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
 import PanToolIcon from "@material-ui/icons/PanTool";
 import {PlayerID} from "boardgame.io";
-import {ShareIcon} from "./region";
-import {ActionPointIcon} from "./icons";
+import {ActionPointIcon, ChampionIcon, DrawnShareIcon} from "./icons";
+import makeStyles from '@material-ui/core/styles/makeStyles';
+import Paper from "@material-ui/core/Paper";
+
+const useStyles = makeStyles({
+    root: {
+        background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
+        border: 0,
+        borderRadius: 3,
+        boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)',
+        color: 'white',
+        height: 48,
+        padding: '0 30px',
+    },
+    iconAlign: {
+        verticalAlign: "-0.25em"
+    }
+});
 
 export interface IPubPanelProps {
     idx: number,
@@ -36,6 +51,7 @@ export interface IPubPanelProps {
 
 export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
     useI18n(i18n);
+    const classes = useStyles();
     const i = G.pub[idx]
     const inferHand = (): CardID[] => {
         let result = [...i.allCards]
@@ -51,11 +67,33 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
         return result;
     }
 
+    const legendCount = (r:validRegion) => i.allCards.filter(c => getCardById(c).category === CardCategory.LEGEND &&
+        getCardById(c).region === r &&
+        getCardById(c).era === G.regions[r].era
+    ).length
+
     const possibleHand = inferHand();
 
     const noOp = () => false;
 
-    return <Grid container key={idx}>
+
+    const shareAndLegendAriaLabel = () => {
+        let labelText = ""
+        ValidRegions.forEach(r=>labelText+=`${i18n.region[r]}${i.shares[r]}${i18n.pub.share}${i18n.pub.legend}`)
+        return labelText
+    }
+    const sharesAriaLabel = () =>{
+        let labelText = i18n.pub.share
+        ValidRegions.forEach(r=>labelText+=`${i18n.region[r]}${i.shares[r]}`)
+        return labelText
+    }
+    const championAriaLabel = () =>{
+        let labelText = i18n.pub.champion
+        i.champions.forEach((champion: Champion) => labelText+=`${i18n.region[champion.region]}${i18n.era[champion.era]}`)
+        return labelText
+    }
+
+    return <Grid container key={generate()}>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <Typography>
                 {getName(idx.toString())}
@@ -65,24 +103,27 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
             </Typography>
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
-            <Typography> <MonetizationOnIcon/> {i.resource}</Typography>
             <Typography>
-                <LocalAtmIcon/>
-                {i.deposit}
+                <MonetizationOnIcon className={classes.iconAlign}/> {i.resource}
+            </Typography>
+            <Typography>
+                <LocalAtmIcon className={classes.iconAlign}/>{i.deposit}
             </Typography>
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
-            <Typography> <SettingsIcon/> {i.industry}
+            <Typography> <SettingsIcon className={classes.iconAlign}/> {i.industry}
                 {i.school !== null && getCardById(i.school).industry > 0 ? `(+${getCardById(i.school).industry})` : ""}
             </Typography>
             <Typography>
-                <ImportContactsIcon/> {i.aesthetics}
+                <ImportContactsIcon className={classes.iconAlign}/> {i.aesthetics}
                 {i.school !== null && getCardById(i.school).aesthetics > 0 ? `(+${getCardById(i.school).aesthetics})` : ""}
             </Typography>
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
-            <Typography aria-label={`${i18n.pub.action}${i.action}`}> <ActionPointIcon/> {i.action}</Typography>
-            <Typography aria-label={`${i18n.pub.vp}${i.vp}`}> <EmojiEventsIcon/> {i.vp}</Typography>
+            <Typography aria-label={`${i18n.pub.action}${i.action}`}>
+                <ActionPointIcon/> {i.action}</Typography>
+            <Typography aria-label={`${i18n.pub.vp}${i.vp}`}> <EmojiEventsIcon className={classes.iconAlign}/> {i.vp}
+            </Typography>
         </Grid>
         <Grid item xs={12} sm={6} md={6} lg={3}>
             {i.school !== null ?
@@ -93,7 +134,7 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
                     <CardInfo cid={i.school}/>
                 </> : <></>}
             {G.playerCount > SimpleRuleNumPlayers ?
-                <>
+                <Paper aria-label={shareAndLegendAriaLabel()}>
                     <Typography>   {i18n.pub.shareLegend} </Typography>
                     {
                         ValidRegions.map((r: validRegion) =>
@@ -107,27 +148,26 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
                             </Typography>
                         )
                     }
-                </>
+                </Paper>
                 :
-                <>
-                    <Typography>{i18n.pub.share}</Typography>
+                <Paper aria-label={sharesAriaLabel()}>
                     {
                         ValidRegions.map((r: validRegion) =>
-                            <>
-                                {Array(i.shares[r as 0 | 1 | 2 | 3]).fill(1).map((i, idx) => <Grid item xs={6} key={idx}>
-                                    <ShareIcon  r={r}/>
-                                </Grid>)}
-                            </>
+                            <div key={r}>
+                                {Array(i.shares[r as 0 | 1 | 2 | 3]).fill(1).map((i, idx) =>
+                                    <Grid item xs={6} key={idx}>
+                                        <DrawnShareIcon key={idx} r={r}/>
+                                    </Grid>)}
+                            </div>
                         )
                     }
-                </>
+                </Paper>
             }
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
-            <Typography>{i18n.pub.champion}</Typography>
-            {i.champions.map((champion: Champion) => <Typography key={shortid.generate()}>
-                {i18n.region[champion.region]}
-                {i18n.era[champion.era]}</Typography>)}
+            <Paper aria-label={championAriaLabel()}>
+                {i.champions.map((c:Champion)=><ChampionIcon champion={c}/>)}
+            </Paper>
         </Grid>
         <Grid item xs={4} sm={3} md={2} lg={1}>
             <ChoiceDialog

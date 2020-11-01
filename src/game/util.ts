@@ -41,7 +41,7 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
-
+// eslint-disable-next-line
 const loggerN = {
     info: () => false,
     debug: () => false,
@@ -2010,7 +2010,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             signalEndTurn(G, ctx);
             return;
         } else {
-            // Score remain regions before final scroing
+            // Score remain regions before final scoring
             ValidRegions.forEach(r => {
                 let regObj = G.regions[r];
                 if (!regObj.completedModernScoring) {

@@ -38,8 +38,8 @@ export interface IChoiceProps {
     choices: Choice[],
     defaultChoice: string,
     show: boolean,
-    title: string,
-    toggleText: string,
+    title: string|JSX.Element,
+    toggleText: string|JSX.Element,
     initial: boolean,
     popAfterShow?: boolean,
 }
@@ -81,7 +81,11 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
             onClick={handleClickOpen}
             style={{textTransform: 'none'}}
         > {toggleText}</Button>
-        <Dialog open={open} onClose={handleClose} aria-label={title}>
+        <Dialog
+            // TODO aria-label missing after allow JSX in title
+            open={open}
+            onClose={handleClose}
+        >
             <DialogTitle>
                 {title}
             </DialogTitle>
@@ -90,7 +94,8 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
                     <FormGroup className={classes.formControl}>
                         <FormLabel component="legend">{toggleText}</FormLabel>
                         <RadioGroup
-                            aria-label={title} name="choice" value={choice}
+                            // TODO aria-label missing after allow JSX in title
+                            name="choice" value={choice}
                             onChange={handleChange}>
                             {choices.map((choice) =>
                                 !choice.hidden ?

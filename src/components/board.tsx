@@ -13,7 +13,6 @@ import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
 import LogView from './log-view'
 import useSound from 'use-sound';
-import PanToolIcon from '@material-ui/icons/PanTool';
 import {useI18n} from "@i18n-chain/react";
 import {OperationPanel} from "./boards/operation";
 import FinalScoreTable from "./boards/final";
@@ -252,7 +251,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         </Grid>
         <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
         {G.pub.map((u: IPubInfo, idx: number) =>
-            <PubPanel G={G} idx={idx} getName={getName}/>
+            <PubPanel key={idx} G={G} idx={idx} getName={getName}/>
         )}
     </Grid>
 }

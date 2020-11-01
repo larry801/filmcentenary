@@ -4,10 +4,10 @@ import Typography from "@material-ui/core/Typography";
 import Grid from "@material-ui/core/Grid";
 import ImportContactsIcon from '@material-ui/icons/ImportContacts';
 import SettingsIcon from '@material-ui/icons/Settings';
-import {getColor} from "./region";
 import {generate} from "shortid";
 import {getCardEffect} from "../constant/effects";
 import i18n from "../constant/i18n";
+import {getColor} from "./icons";
 
 export interface ICardEffectProps {
     cid:CardID,
@@ -105,6 +105,11 @@ export const scoreEffectText = (cardId: CardID): string => {
         r.push(effName(effObj.scoring));
     }
     return r.join("");
+}
+export const effIcon = (eff: any)=>{
+    switch (eff.e) {
+        case "everyOtherCompany":
+    }
 }
 // MoneyOff buyFree
 // PanTool competition

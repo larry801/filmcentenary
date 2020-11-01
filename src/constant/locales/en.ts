@@ -831,6 +831,7 @@ const en = {
         player: "Player",
     },
     pub: {
+        legend:"Legend",
         lastRoundOfGame: "Last Round",
         revealedHand: "Revealed Hand",
         champion: "Champion:",

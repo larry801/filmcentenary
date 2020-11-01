@@ -14,7 +14,7 @@ import {CardInfo} from "./card";
 import {actualStage} from "../game/util";
 import {Stage} from "boardgame.io/core";
 import {getCardById, Region, SimpleRuleNumPlayers} from "../types/core";
-import {getColor} from "./region";
+import {getColor} from "./icons";
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
 

@@ -9,7 +9,7 @@ import DrawerAppBar from "./components/drawer-app-bar";
 const MUICreateMatch = React.lazy(async ()=> import("./components/create-match"));
 const JoinPage = React.lazy(async ()=> import("./components/join"));
 const DenseTable = React.lazy(async ()=> import("./components/cardreference"));
-const Local4p = React.lazy(async ()=> import("./components/local/2p"));
+const Local4p = React.lazy(async ()=> import("./components/local/4p"));
 
 const LoadingFallback  = () => <CircularProgress/>
 

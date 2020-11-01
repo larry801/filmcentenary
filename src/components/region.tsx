@@ -1,24 +1,24 @@
 import React from "react";
 import {
     BasicCardID,
-    BuildingType, getCardById,
+    BuildingType,
+    getCardById,
     ICardSlot,
     INormalOrLegendCard,
     IRegionInfo,
-    Region, SimpleRuleNumPlayers,
+    Region,
+    SimpleRuleNumPlayers,
     validRegion
 } from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
-import BuyCard from "./buyCard";
-import {Comment} from "./buyCard";
+import BuyCard, {Comment} from "./buyCard";
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import createStyles from '@material-ui/core/styles/createStyles'
 import {activePlayer, actualStage} from "../game/util";
 import Button from "@material-ui/core/Button";
-import {blue, purple, red, yellow, grey} from "@material-ui/core/colors";
 import Paper from "@material-ui/core/Paper";
 import Typography from "@material-ui/core/Typography";
 import {Theme} from "@material-ui/core/styles/createMuiTheme";
@@ -28,6 +28,7 @@ import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 import LabelIcon from '@material-ui/icons/Label';
 import CardInfo, {getCardName} from "./card";
+import {DrawnShareIcon, getColor, IShareIconProps} from "./icons";
 
 
 export interface ICardSlotProp {
@@ -39,24 +40,6 @@ export interface ICardSlotProp {
     playerID: PlayerID | null,
 }
 
-export interface IShareIconProps {
-    r: validRegion
-}
-
-export const getColor = (r: Region): string => {
-    switch (r) {
-        case Region.WE:
-            return purple[500]
-        case Region.NA:
-            return blue[800]
-        case Region.EE:
-            return red[500]
-        case Region.ASIA:
-            return yellow[700]
-        case Region.NONE:
-            return grey[700]
-    }
-}
 export const ShareIcon = ({r}: IShareIconProps) => <LabelIcon style={{color: getColor(r)}}/>;
 
 
@@ -216,7 +199,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
             key={r}>
             <AccordionSummary key={r}>
                 <Grid container
-                      justify="space-evenly"
+                      justify="flex-start"
                       alignItems="baseline"
                       className={classes.root}>
                     <Grid item xs={2} sm={1}><Paper
@@ -232,7 +215,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                             aria-label={`${i18n.pub.share}${share}`}
                             variant={"outlined"}>
                             {Array(share).fill(1).map((i, idx) => <Grid item xs={6} key={idx}>
-                                <ShareIcon r={r}/>
+                                <DrawnShareIcon key={idx} r={r}/>
                             </Grid>)} </Paper></Grid>
                     {buildingSlots}
                 </Grid>
