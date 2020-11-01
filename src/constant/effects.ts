@@ -65,7 +65,6 @@ export const eventEffects = {
     "E01": {
         e: "step",
         a: [
-            {e: "enableHollywood", a: 1},
             {e: "everyPlayer", a: {e: "industryOrAestheticsLevelUp", a: 1}}
         ]
     },

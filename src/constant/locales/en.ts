@@ -187,7 +187,7 @@ const era = {
     2: "Modern",
 };
 const eventName = {
-    'E01': '【Hollywood】 slot activated every company upgrade industry or aesthetics level once.',
+    'E01': 'Every company upgrade industry or aesthetics level once',
     'E02': 'Company with highest industry level discard 1 card, Company with highest aesthetics level discard 1 card, every company get 2 deposit',
     'E03': 'Every company get its second action point (Note: Do not add action point if you already have a second one)  * If this event is discarded, also execute its effect.',
     'E04': 'Company with highest prestige buy a 【Commercial Film】and put it into hand, every company buy a 【Classic Film】 for free.',
