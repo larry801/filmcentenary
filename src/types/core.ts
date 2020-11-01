@@ -209,7 +209,6 @@ export enum ScoringEffectNames {
     aestheticsLevel = "aestheticsLevel",
     personCard = "personCard",
     allNoStudioPlayer = "allNoStudioPlayer",
-
 }
 
 export enum NoExecutorEffectNames {
