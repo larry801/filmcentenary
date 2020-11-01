@@ -15,7 +15,6 @@ import i18n from '../constant/i18n'
 import {ChoiceDialog} from "./modals";
 import {inferDeckRemoveHelper} from "../game/util";
 import {IG} from "../types/setup";
-import ClearIcon from '@material-ui/icons/Clear';
 import LayersIcon from '@material-ui/icons/Layers';
 import BlockIcon from '@material-ui/icons/Block';
 import UnArchiveIcon from '@material-ui/icons/Unarchive';
@@ -100,7 +99,7 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
     }
 
     return <Grid container key={generate()}>
-        <Grid item sm={3} >
+        <Grid item sm={3}>
             <Typography>
                 {getName(idx.toString())}
             </Typography>
@@ -114,7 +113,7 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
                 <LocalAtmIcon className={classes.iconAlign}/>{i.deposit}
             </Typography>
         </Grid>
-        <Grid item sm={3} >
+        <Grid item sm={3}>
             <Typography aria-label={`${i18n.pub.industry}${i.industry}`}>
                 <SettingsIcon className={classes.iconAlign}/> {i.industry}
                 {i.school !== null && getCardById(i.school).industry > 0 ? `(+${getCardById(i.school).industry})` : ""}
@@ -128,7 +127,7 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
             <Typography aria-label={`${i18n.pub.vp}${i.vp}`}> <EmojiEventsIcon className={classes.iconAlign}/> {i.vp}
             </Typography>
         </Grid>
-        <Grid item sm={3} >
+        <Grid item sm={3}>
             {i.school !== null ?
                 <>
                     <Typography>
@@ -144,12 +143,10 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
                             return <Grid container key={r}>
                                 <Grid item xs={6} key={idx}>
                                     <DrawnShareIcon key={idx} r={r}/>
-                                    <ClearIcon className={classes.iconAlign}/>
                                     {share}
                                 </Grid>
                                 <Grid item xs={6} key={idx}>
                                     <StarBorderIcon key={idx} style={{color: getColor(r)}}/>
-                                    <ClearIcon className={classes.iconAlign}/>
                                     {legend}
                                 </Grid>
                             </Grid>
@@ -158,25 +155,22 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
                 </Paper>
                 :
                 <Paper aria-label={sharesAriaLabel()}>
-                    {
-                        ValidRegions.map((r: validRegion) =>
-                            <div key={r}>
-                                {Array(i.shares[r as 0 | 1 | 2 | 3]).fill(1).map((i, idx) =>
-                                    <Grid item xs={6} key={idx}>
-                                        <DrawnShareIcon key={idx} r={r}/>
-                                    </Grid>)}
-                            </div>
-                        )
-                    }
+                    {ValidRegions.map((r: validRegion) => {
+                        const share = i.shares[r];
+                        return <Grid container key={r}>
+                            <DrawnShareIcon key={idx} r={r}/>
+                            {share}
+                        </Grid>
+                    })}
                 </Paper>
             }
         </Grid>
-        {i.champions.length > 0 ? <Grid item sm={3} >
+        {i.champions.length > 0 ? <Grid item sm={3}>
             <Paper aria-label={championAriaLabel()}>
                 {i.champions.map((c: Champion) => <ChampionIcon champion={c}/>)}
             </Paper>
         </Grid> : <></>}
-        <Grid item sm={3} >
+        <Grid item sm={3}>
             <ChoiceDialog
                 callback={noOp}
                 choices={i.discard.map((card, idx) => {

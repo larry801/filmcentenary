@@ -1,4 +1,5 @@
 import React from "react";
+import InsertCommentIcon from '@material-ui/icons/InsertComment';
 import {AllClassicCards, CardID, EventCardID, getCardById, getScoreCardByID, ScoreCardID} from "../types/core";
 import Typography from "@material-ui/core/Typography";
 import Grid from "@material-ui/core/Grid";
@@ -8,6 +9,7 @@ import {generate} from "shortid";
 import {getCardEffect} from "../constant/effects";
 import i18n from "../constant/i18n";
 import {getColor} from "./icons";
+import {Badge} from "@material-ui/core";
 
 export interface ICardEffectProps {
     cid: CardID,
@@ -106,10 +108,20 @@ export const scoreEffectText = (cardId: CardID): string => {
     }
     return r.join("");
 }
-export const effIcon = (eff: any) => {
+export const effIcon = (eff: any):JSX.Element => {
     switch (eff.e) {
-        case "everyOtherCompany":
+        case "comment":
+            if(eff.a===1){
+                return <InsertCommentIcon/>
+            }else{
+                return <Badge badgeContent={eff.a}><InsertCommentIcon/></Badge>
+            }
+        case "buy":
+            return <Typography>{getCardName(eff.a)}</Typography>
+        case "buyToHand":
+            return <Typography>{getCardName(eff.a)}</Typography>
     }
+    return <Typography>{effName(eff)}</Typography>;
 }
 // MoneyOff buyFree
 // PanTool competition
