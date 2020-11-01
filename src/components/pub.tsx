@@ -104,7 +104,7 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
                 {getName(idx.toString())}
             </Typography>
             <Typography aria-label={`${i18n.pub.handSize}${G.player[idx].handSize}`}>
-                <PanToolIcon/>{G.player[0].handSize}
+                <PanToolIcon className={classes.iconAlign}/>{G.player[0].handSize}
             </Typography>
             <Typography>
                 <MonetizationOnIcon className={classes.iconAlign}/> {i.resource}
