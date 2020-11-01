@@ -6,7 +6,7 @@ import {activePlayer} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
-import {PubPanel} from "./pub";
+import PubPanel from "./pub";
 import {BasicCardID, EventCardID, ICardSlot, IPubInfo, Region, SimpleRuleNumPlayers, ValidRegions} from "../types/core";
 import Grid from "@material-ui/core/Grid"
 import Typography from "@material-ui/core/Typography";
@@ -241,7 +241,6 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         </Grid> : <></>}
         {upperPanel}
 
-
         <Grid item container justify="space-evenly">
             <Grid item><Typography>{i18n.card.B01} {G.basicCards.B01}</Typography></Grid>
             <Grid item><Typography>{i18n.card.B02} {G.basicCards.B02}</Typography></Grid>
@@ -251,7 +250,9 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         </Grid>
         <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
         {G.pub.map((u: IPubInfo, idx: number) =>
-            <PubPanel key={idx} G={G} idx={idx} getName={getName}/>
+            <Grid item sm={6} lg={3}>
+                <PubPanel key={idx} G={G} idx={idx} getName={getName}/>
+            </Grid>
         )}
     </Grid>
 }

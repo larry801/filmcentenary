@@ -100,7 +100,7 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
     }
 
     return <Grid container key={generate()}>
-        <Grid item sm={3} md={2} lg={1}>
+        <Grid item sm={3} >
             <Typography>
                 {getName(idx.toString())}
             </Typography>
@@ -114,7 +114,7 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
                 <LocalAtmIcon className={classes.iconAlign}/>{i.deposit}
             </Typography>
         </Grid>
-        <Grid item sm={3} md={2} lg={1}>
+        <Grid item sm={3} >
             <Typography aria-label={`${i18n.pub.industry}${i.industry}`}>
                 <SettingsIcon className={classes.iconAlign}/> {i.industry}
                 {i.school !== null && getCardById(i.school).industry > 0 ? `(+${getCardById(i.school).industry})` : ""}
@@ -128,7 +128,7 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
             <Typography aria-label={`${i18n.pub.vp}${i.vp}`}> <EmojiEventsIcon className={classes.iconAlign}/> {i.vp}
             </Typography>
         </Grid>
-        <Grid item sm={3} md={2} lg={1}>
+        <Grid item sm={3} >
             {i.school !== null ?
                 <>
                     <Typography>
@@ -171,12 +171,12 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
                 </Paper>
             }
         </Grid>
-        {i.champions.length > 0 ? <Grid item xs={4} sm={3} md={2} lg={1}>
+        {i.champions.length > 0 ? <Grid item sm={3} >
             <Paper aria-label={championAriaLabel()}>
                 {i.champions.map((c: Champion) => <ChampionIcon champion={c}/>)}
             </Paper>
         </Grid> : <></>}
-        <Grid item sm={3} md={2} lg={1}>
+        <Grid item sm={3} >
             <ChoiceDialog
                 callback={noOp}
                 choices={i.discard.map((card, idx) => {
