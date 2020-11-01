@@ -19,7 +19,7 @@ export const DrawnShareIcon = ({r}:IShareIconProps) => <SvgIcon style={verticalA
 			 M12,22 22,18 22,8 12,12Z
     "
           style={{
-              stroke: "#000000",
+              stroke: "#ffffff",
               fill: getColor(r),
               strokeWidth: 1,
           }}

@@ -10,7 +10,7 @@ import i18n from "../constant/i18n";
 import {getColor} from "./icons";
 
 export interface ICardEffectProps {
-    cid:CardID,
+    cid: CardID,
 }
 
 export const getCardName = (cardId: string): string => {
@@ -106,7 +106,7 @@ export const scoreEffectText = (cardId: CardID): string => {
     }
     return r.join("");
 }
-export const effIcon = (eff: any)=>{
+export const effIcon = (eff: any) => {
     switch (eff.e) {
         case "everyOtherCompany":
     }
@@ -163,29 +163,37 @@ export const effName = (eff: any): string => {
         }
     }
 }
-export const CardInfo  = ({cid}:ICardEffectProps) =>{
+export const CardInfo = ({cid}: ICardEffectProps) => {
     const card = getCardById(cid);
     const r = card.region;
-    return <Grid item xs={12}>
+    return <Grid container item xs={12}>
+            {card.industry > 0 ? Array(card.industry).fill(1).map(() =>
+                <SettingsIcon
+                    key={generate()}
+                    style={{color: getColor(r)}}/>)
+                : <></>}
+            {card.aesthetics > 0 ? Array(card.aesthetics).fill(1).map(() =>
+                <ImportContactsIcon
+                    key={generate()}
+                    style={{color: getColor(r)}}/>)
+                : <></>}
         <Typography>{getCardName(cid)}</Typography>
-        {card.industry > 0 ? Array(card.industry).fill(1).map(()=><SettingsIcon key={generate()} style={{color: getColor(r)}}/>) : <></>}
-        {card.aesthetics > 0 ? Array(card.aesthetics).fill(1).map(()=><ImportContactsIcon key={generate()} style={{color: getColor(r)}}/>) : <></>}
         <CardEffect cid={cid}/>
     </Grid>
 }
 
-export const CardEffect = ({cid}:ICardEffectProps) =>{
+export const CardEffect = ({cid}: ICardEffectProps) => {
     const buy = buyCardEffectText(cid);
     const play = playCardEffectText(cid);
     const school = schoolEffectText(cid);
     const arch = archiveCardEffectText(cid);
     const score = scoreEffectText(cid);
     return <>
-        {buy!==""?<Typography>{buy}</Typography>:<></>}
-        {play!==""?<Typography>{play}</Typography>:<></>}
-        {arch!==""?<Typography>{arch}</Typography>:<></>}
-        {school!==""?<Typography>{school}</Typography>:<></>}
-        {score!==""?<Typography>{score}</Typography>:<></>}
+        {buy !== "" ? <Typography>{buy}</Typography> : <></>}
+        {play !== "" ? <Typography>{play}</Typography> : <></>}
+        {arch !== "" ? <Typography>{arch}</Typography> : <></>}
+        {school !== "" ? <Typography>{school}</Typography> : <></>}
+        {score !== "" ? <Typography>{score}</Typography> : <></>}
     </>
 }
 
