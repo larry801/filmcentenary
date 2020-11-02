@@ -1,6 +1,6 @@
 import React from "react";
 import {useHistory, useParams} from "react-router-dom";
-import {loadCredentials, saveCredentials} from "../../api/localStorage";
+import {deleteCredentials, loadCredentials, saveCredentials} from "../../api/localStorage";
 import {Player} from "../../Game";
 import {getMatch, joinMatch, leaveMatch} from "../../api/match";
 import {Loading, MultiPlayer, Spectate} from "./multiplayer";
@@ -55,8 +55,12 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
     const handleLeave = (choice:string) => {
         if(choice==="yes"){
             leaveMatch(serverURL,matchID,player,credentials)
-                .then(()=>history.push('/'))
+                .then(()=> {
+                    deleteCredentials(matchID,player);
+                    history.push('/');
+                })
                 .catch((err) => setError(err.toString))
+
         }
     }
 

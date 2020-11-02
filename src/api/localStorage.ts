@@ -8,12 +8,37 @@ const loadQueue = (): Array<any> => {
     let queue = null;
     try {
         queue = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "");
-    } catch {} // Ignore errors.
+    } catch {
+    } // Ignore errors.
     if (!Array.isArray(queue)) {
         queue = []; // Initialize the queue.
     }
     return queue;
 };
+
+/** Delete credentials in localStorage. */
+export const deleteCredentials = (
+    matchID: string,
+    player: Player,
+) => {
+    const queue = loadQueue();
+    let itemIdx = -1;
+    for (const item of queue) {
+        if (
+            item &&
+            item.matchID === matchID &&
+            item.player === player &&
+            typeof item.credentials === "string"
+        ) {
+            itemIdx = queue.indexOf(item);
+        }
+    }
+    if (itemIdx !== -1) {
+        queue.splice(itemIdx, 1);
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
+};
+
 
 /** Save credentials to localStorage. */
 export const saveCredentials = (
@@ -22,7 +47,7 @@ export const saveCredentials = (
     credentials: string
 ) => {
     const queue = loadQueue();
-    queue.push({ matchID, player, credentials });
+    queue.push({matchID, player, credentials});
     while (queue.length > CAPACITY) {
         queue.shift();
     }
