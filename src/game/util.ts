@@ -825,8 +825,27 @@ export const breakthroughEffectPrepare = (G: IG, card: CardID): void => {
 }
 
 export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID): void => {
-    let c = getCardById(card)
+    const c = getCardById(card)
     let log = `startBreakThrough|p${pid}|${card}`
+    if (p.school === SchoolCardID.S2201) {
+        log += `|neoRealism`
+        log += `|before|${JSON.stringify(G.e.stack)}`
+        G.e.stack.push({
+            e: "vp", a: 2, target: arg.playerID
+        });
+        G.e.stack.push({
+            e: "deposit", a: 1, target: arg.playerID
+        });
+        log += `|after|${JSON.stringify(G.e.stack)}`
+    }
+    if (p.school === SchoolCardID.S1204) {
+        log += `|swedish`
+        log += `|before|${JSON.stringify(G.e.stack)}`
+        G.e.stack.push({
+            e: "res", a: 1, target: arg.playerID
+        })
+        log += `|after|${JSON.stringify(G.e.stack)}`
+    }
     if (c.cardId === FilmCardID.F1208 || c.cardId === BasicCardID.B05) {
         log += "|MetropolisOrClassic"
         G.e.stack.push({

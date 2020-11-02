@@ -1094,25 +1094,6 @@ export const breakthrough: LongFormMove = {
                 log += `|before|${p.deposit}`
             }
         }
-        if (p.school === SchoolCardID.S2201) {
-            log += `|neoRealism`
-            log += `|before|${JSON.stringify(G.e.stack)}`
-            G.e.stack.push({
-                e: "vp", a: 2, target: arg.playerID
-            });
-            G.e.stack.push({
-                e: "deposit", a: 1, target: arg.playerID
-            });
-            log += `|after|${JSON.stringify(G.e.stack)}`
-        }
-        if (p.school === SchoolCardID.S1204) {
-            log += `|swedish`
-            log += `|before|${JSON.stringify(G.e.stack)}`
-            G.e.stack.push({
-                e: "res", a: 1, target: arg.playerID
-            })
-            log += `|after|${JSON.stringify(G.e.stack)}`
-        }
         log += `|startBreakthrough`
         logger.debug(`${G.matchID}|${log}`);
         startBreakThrough(G, ctx, arg.playerID, arg.card);
