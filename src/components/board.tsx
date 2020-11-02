@@ -220,7 +220,6 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
     return <Grid container justify="flex-start">
         {gameOverResult}
-        {cardBoard}
         {G.pending.lastRoundOfGame ? <Paper
             variant="elevation"
         >
@@ -236,6 +235,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                     <Typography>{i18n.eventName[e]}</Typography>
                 </Paper></Grid>)}
         </Grid> : <></>}
+        {playerID === null ? cardBoard : <></>}
         {upperPanel}
         <Grid item container justify="space-evenly">
             <Grid item><Typography>{i18n.card.B01} {G.basicCards.B01}</Typography></Grid>
@@ -250,7 +250,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         }
         {G.pub.map((u: IPubInfo, idx: number) =>
             <Grid item sm={6} lg={3}>
-                <PubPanel i={u}  key={generate()} G={G} idx={idx} getName={getName}/>
+                <PubPanel i={u} key={generate()} G={G} idx={idx} getName={getName}/>
             </Grid>
         )}
         <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
