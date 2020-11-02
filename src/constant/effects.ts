@@ -245,11 +245,15 @@ export const effects = {
                 {e: "loseVp", a: 1},
                 {e: "res", a: 1},
                 {e: "noStudio", a: {e: "loseDeposit", a: 1}},
-                {e: "studio", a: {e: "deposit", a: 1}},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: noEff,
+        archive: {
+            e: "step", a: [
+                {e: "vp", a: 3},
+                {e: "deposit", a: 1},
+            ]
+        },
         response: noEff,
     },
     "1103": {
@@ -407,7 +411,12 @@ export const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: noEff,
+        archive: {
+            e: "step", a: [
+                {e: "vp", a: 3},
+                {e: "deposit", a: 1},
+            ]
+        },
         response: noEff,
     },
     "1203": {

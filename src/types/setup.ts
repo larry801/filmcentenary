@@ -47,6 +47,7 @@ export interface IG {
     activeEvents: EventCardID[],
     logDiscrepancyWorkaround: boolean,
     pending: {
+        nextEraRegions: Region[],
         lastRoundOfGame: boolean,
         endActivePlayer: boolean,
         endTurn: boolean,
@@ -166,7 +167,7 @@ function pubPlayer(): IPubInfo {
 
 export function privatePlayer(): IPrivateInfo {
     return {
-        endTurnEffectExecuted:false,
+        endTurnEffectExecuted: false,
         hand: [], handSize: 0,
         cardsToPeek: [], competitionCards: [],
         finalScoringExtraVp: 0,
@@ -233,6 +234,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         initialOrder: order,
         logDiscrepancyWorkaround: false,
         pending: {
+            nextEraRegions: [],
             lastRoundOfGame: false,
             endActivePlayer: false,
             endTurn: false,
@@ -370,7 +372,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             "B07": 0,
         },
     }
-    if (ctx.numPlayers === SimpleRuleNumPlayers){
+    if (ctx.numPlayers === SimpleRuleNumPlayers) {
         G.pub[parseInt(G.order[1])].vp = 1;
     }
     if (ctx.numPlayers === 3) {
