@@ -10,7 +10,15 @@ import {
     ScoreCardID
 } from "../types/core";
 import PrestigeIcon from '@material-ui/icons/EmojiEvents';
-import {CardIcon, CardToArchiveIcon, DiscardIcon, FreeBreakthroughIcon} from "./icons"
+import {
+    ActionPointIcon,
+    CardIcon,
+    CardToArchiveIcon,
+    DiscardIcon,
+    DrawnShareIcon,
+    FreeBreakthroughIcon,
+    getColor, LoseShareIcon
+} from "./icons"
 import InsertCommentIcon from '@material-ui/icons/InsertComment';
 import DepositIcon from '@material-ui/icons/LocalAtm';
 import Typography from "@material-ui/core/Typography";
@@ -20,7 +28,6 @@ import IndustryIcon from '@material-ui/icons/Settings';
 import {generate} from "shortid";
 import {getCardEffect} from "../constant/effects";
 import i18n from "../constant/i18n";
-import {ActionPointIcon, DrawnShareIcon, getColor} from "./icons";
 import HandIcon from "@material-ui/icons/PanTool";
 import ResIcon from '@material-ui/icons/MonetizationOn';
 import ForFreeIcon from '@material-ui/icons/MoneyOff';
@@ -127,6 +134,18 @@ export const scoreEffectText = (cardId: CardID): string => {
 }
 export const effIcon = (eff: any): JSX.Element => {
     switch (eff.e) {
+        case "loseShareNA":
+            return <> <LoseShareIcon r={Region.NA}/> </>
+        case "loseShareWE":
+            return <><LoseShareIcon r={Region.WE}/></>
+        case "loseShareEE":
+            return <><LoseShareIcon r={Region.EE}/></>
+        case "loseShareASIA":
+            return <><LoseShareIcon r={Region.ASIA}/></>
+        case "loseAnyRegionShare":
+            return <><LoseShareIcon r={Region.NONE}/></>
+        case "loseShare":
+            return <><LoseShareIcon r={eff.a}/></>
         case "shareASIA":
             return <><DrawnShareIcon r={Region.ASIA}/></>
         case "shareEE":
@@ -138,7 +157,7 @@ export const effIcon = (eff: any): JSX.Element => {
         case "pay":
             return <Typography>
                 <PayIcon/>
-                {effIcon(eff.a.cost)}:{effIcon(eff.a.eff)}
+                {effIcon(eff.a.cost)}:{effIcon(eff.a.eff)}|
             </Typography>
         case "update":
             return <><UpdateIcon/></>

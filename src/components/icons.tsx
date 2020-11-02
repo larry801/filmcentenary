@@ -14,6 +14,16 @@ export interface IShareIconProps {
     r: Region
 }
 
+export const LoseShareIcon = ({r}: IShareIconProps) =><Badge
+    anchorOrigin={{
+        vertical: 'top',
+        horizontal: 'left',
+    }}
+    badgeContent={'-'}
+>
+    <DrawnShareIcon r={r}/>
+</Badge>
+
 export const DrawnShareIcon = ({r}: IShareIconProps) => <SvgIcon style={verticalAlign}>
     <path d="
 			 M2,8 12,4 22,8 12,12 Z
