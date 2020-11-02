@@ -194,13 +194,11 @@ export const effIcon = (eff: any): JSX.Element => {
                 }>
                 <AestheticsIcon key={generate()}/>
             </Badge>
-
         case "industryLevelUp":
             return <Badge
                 badgeContent={<
                     ArrowUpwardIcon
                     key={generate()}/>}>
-                key={generate()}
                 <IndustryIcon key={generate()}/>
             </Badge>
         case "shareNA":
