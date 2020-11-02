@@ -5,6 +5,8 @@ import {blue, grey, purple, red, yellow} from "@material-ui/core/colors";
 import LooksOneIcon from '@material-ui/icons/LooksOne';
 import LooksTwoIcon from '@material-ui/icons/LooksTwo';
 import Looks3Icon from '@material-ui/icons/Looks3';
+import {Badge} from "@material-ui/core";
+import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 
 const verticalAlign = {verticalAlign: "-0.125em"};
 
@@ -12,7 +14,7 @@ export interface IShareIconProps {
     r: Region
 }
 
-export const DrawnShareIcon = ({r}:IShareIconProps) => <SvgIcon style={verticalAlign}>
+export const DrawnShareIcon = ({r}: IShareIconProps) => <SvgIcon style={verticalAlign}>
     <path d="
 			 M2,8 12,4 22,8 12,12 Z
 			 M2,8 2,18 12,22 12,12 Z
@@ -30,9 +32,9 @@ export interface IChampionProps {
     champion: Champion,
 }
 
-export const ChampionIcon = ({champion}:IChampionProps) => {
-    const IconComponent = ()=>{
-        switch (champion.era){
+export const ChampionIcon = ({champion}: IChampionProps) => {
+    const IconComponent = () => {
+        switch (champion.era) {
             case IEra.ONE:
                 return LooksOneIcon;
             case IEra.TWO:
@@ -60,6 +62,54 @@ export const ActionPointIcon = () => <SvgIcon style={verticalAlign}>
               strokeWidth: 2,
           }}/>
 </SvgIcon>
+
+export const RectOfCard = () => <rect
+    style={{
+        stroke: "#000000",
+        fill: "#ffffff",
+        strokeWidth: 1,
+    }}
+    x="2"
+    y="2" width="16"
+    height="20" rx="2" ry="2"
+    transform="rotate(10,10,10)"
+/>
+
+export const CardIcon = () => <SvgIcon style={verticalAlign}>
+    {RectOfCard()}
+</SvgIcon>
+
+export const CardToArchiveIcon = () => <SvgIcon>
+    {RectOfCard()}
+    <text
+        x="2"
+        y="20.5"
+        fill="black"
+        transform="rotate(10,10,10)"
+    >X
+    </text>
+</SvgIcon>
+
+export const FreeBreakthroughIcon = () => <Badge
+    anchorOrigin={{
+        vertical: 'top',
+        horizontal: 'left',
+    }}
+    badgeContent={<ArrowUpwardIcon/>}
+>
+    <CardToArchiveIcon/>
+</Badge>
+
+export const DiscardIcon = () => <Badge
+    anchorOrigin={{
+        vertical: 'top',
+        horizontal: 'left',
+    }}
+    color="secondary"
+    variant={"dot"}
+>
+    <CardIcon/>
+</Badge>
 
 export const getColor = (r: Region): string => {
     switch (r) {

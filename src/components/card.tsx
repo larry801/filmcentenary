@@ -10,9 +10,8 @@ import {
     ScoreCardID
 } from "../types/core";
 import PrestigeIcon from '@material-ui/icons/EmojiEvents';
-import CardIcon from '@material-ui/icons/CropPortrait';
+import {CardIcon, CardToArchiveIcon, DiscardIcon, FreeBreakthroughIcon} from "./icons"
 import InsertCommentIcon from '@material-ui/icons/InsertComment';
-import ArchiveIcon from '@material-ui/icons/Archive';
 import DepositIcon from '@material-ui/icons/LocalAtm';
 import Typography from "@material-ui/core/Typography";
 import Grid from "@material-ui/core/Grid";
@@ -31,6 +30,7 @@ import EraThreeIcon from '@material-ui/icons/Looks3';
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import Badge from "@material-ui/core/Badge";
 import UpdateIcon from '@material-ui/icons/Loop';
+import PayIcon from '@material-ui/icons/CreditCard';
 
 export interface ICardEffectProps {
     cid: CardID,
@@ -127,6 +127,19 @@ export const scoreEffectText = (cardId: CardID): string => {
 }
 export const effIcon = (eff: any): JSX.Element => {
     switch (eff.e) {
+        case "shareASIA":
+            return <><DrawnShareIcon r={Region.ASIA}/></>
+        case "shareEE":
+            return <><DrawnShareIcon r={Region.EE}/></>
+        case "shareWE":
+            return <><DrawnShareIcon r={Region.WE}/></>
+        case "anyRegionShare":
+            return <><DrawnShareIcon r={Region.NONE}/></>
+        case "pay":
+            return <Typography>
+                <PayIcon/>
+                {effIcon(eff.a.cost)}:{effIcon(eff.a.eff)}
+            </Typography>
         case "update":
             return <><UpdateIcon/></>
         case "choice":
@@ -164,37 +177,31 @@ export const effIcon = (eff: any): JSX.Element => {
             return <>
                 <PrestigeIcon/>X<DrawnShareIcon r={eff.a}/>
             </>
+        case "breakthroughResDeduct":
+            return <> <FreeBreakthroughIcon/> </>
         case "archive":
             return <>
-                <ArchiveIcon/>X{eff.a}
+                <CardToArchiveIcon/>X{eff.a}
             </>
+        case "discard":
+            return <><DiscardIcon/>X{eff.a}</>
         case "draw":
             return <>
                 <CardIcon/>X{eff.a}
             </>
         case "loseVp":
-            return <>
-                <PrestigeIcon/>-{eff.a}
-            </>
+            return <><PrestigeIcon/>-{eff.a}</>
         case "vp":
         case "addVp":
         case "addExtraVp":
-            return <>
-                <PrestigeIcon/>+{eff.a}
-            </>
+            return <><PrestigeIcon/>+{eff.a}</>
         case "loseDeposit":
-            return <Typography>
-                <DepositIcon/>-{eff.a}
-            </Typography>
+            return <Typography><DepositIcon/>-{eff.a}</Typography>
         case "deposit":
-            return <>
-                <DepositIcon/>+{eff.a}
-            </>
+            return <><DepositIcon/>+{eff.a}</>
         case "res":
         case "addRes":
-            return <>
-                <ResIcon/>+{eff.a}
-            </>
+            return <><ResIcon/>+{eff.a}</>
         case "comment":
             if (eff.a === 1) {
                 return <InsertCommentIcon/>
@@ -211,8 +218,8 @@ export const effIcon = (eff: any): JSX.Element => {
                     badgeContent={<ForFreeIcon/>}>
                     <CardIcon/>
                 </Badge>
-            {getCardName(eff.a)}</>
-        case "buyToHand":
+                {getCardName(eff.a)}</>
+        case "buyCardToHand":
             return <>
                 <Badge
                     anchorOrigin={{
