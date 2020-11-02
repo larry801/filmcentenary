@@ -357,13 +357,8 @@ export const chooseHand: LongFormMove = {
             case "refactor":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
-                let cur = curCard(G);
-                let vpToAdd = 0;
-                if (cur.type !== CardType.V) {
-                    vpToAdd = card.vp + cur.vp;
-                } else {
-                    vpToAdd = card.vp;
-                }
+                const cur = curCard(G);
+                const vpToAdd = cur.vp;
                 if (vpToAdd > 0) {
                     addVp(G, ctx, p, vpToAdd);
                 } else {
