@@ -242,7 +242,6 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: "loseVp", a: 1},
                 {e: "res", a: 1},
                 {e: "noStudio", a: {e: "loseDeposit", a: 1}},
             ]
@@ -404,7 +403,6 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: "loseVp", a: 1},
                 {e: "res", a: 1},
                 {e: "noStudio", a: {e: "discardAesthetics", a: 1}},
                 {e: "studio", a: {e: "buy", a: "B01"}},
