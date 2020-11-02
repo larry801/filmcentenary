@@ -29,7 +29,7 @@ import AccordionDetails from "@material-ui/core/AccordionDetails";
 import LabelIcon from '@material-ui/icons/Label';
 import CardInfo, {getCardName} from "./card";
 import {DrawnShareIcon, getColor, IShareIconProps} from "./icons";
-
+import {generate} from "shortid"
 
 export interface ICardSlotProp {
     slot: ICardSlot,
@@ -227,9 +227,9 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                     comment={comment}
                     playerID={playerID}
                 /></Grid>
-                {normal.map((slot, i) => {
+                {normal.map((slot) => {
                     if (slot.card !== null) {
-                        return <Grid item key={i}>
+                        return <Grid item key={generate()}>
                             <BoardCardSlot
                                 moves={moves}
                                 G={G} ctx={ctx} slot={slot}
@@ -237,7 +237,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                             />
                         </Grid>
                     } else {
-                        return <></>
+                        return <div key={generate()}/>
                     }
                 })}
             </AccordionDetails>

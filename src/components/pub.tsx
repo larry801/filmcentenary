@@ -140,12 +140,12 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
                     {ValidRegions.map((r: validRegion) => {
                             const share = i.shares[r];
                             const legend = legendCount(r);
-                            return <Grid container key={r}>
-                                <Grid item xs={6} key={idx}>
-                                    <DrawnShareIcon key={idx} r={r}/>
+                            return <Grid container key={generate()}>
+                                <Grid item xs={6} key={generate()}>
+                                    <DrawnShareIcon key={generate()} r={r}/>
                                     {share}
                                 </Grid>
-                                <Grid item xs={6} key={idx}>
+                                <Grid item xs={6} key={generate()}>
                                     <StarBorderIcon key={idx} style={{color: getColor(r)}}/>
                                     {legend}
                                 </Grid>
