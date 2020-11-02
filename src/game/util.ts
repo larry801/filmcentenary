@@ -826,28 +826,29 @@ export const breakthroughEffectPrepare = (G: IG, card: CardID): void => {
 
 export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID): void => {
     const c = getCardById(card)
+    const pub = G.pub[parseInt(pid)];
     let log = `startBreakThrough|p${pid}|${card}`
-    if (p.school === SchoolCardID.S2201) {
+    if (pub.school === SchoolCardID.S2201) {
         log += `|neoRealism`
         log += `|before|${JSON.stringify(G.e.stack)}`
         G.e.stack.push({
-            e: "vp", a: 2, target: arg.playerID
+            e: "vp", a: 2, target: pid
         });
         G.e.stack.push({
-            e: "deposit", a: 1, target: arg.playerID
+            e: "deposit", a: 1, target: pid
         });
         log += `|after|${JSON.stringify(G.e.stack)}`
     }
-    if (p.school === SchoolCardID.S1204) {
+    if (pub.school === SchoolCardID.S1204) {
         log += `|swedish`
         log += `|before|${JSON.stringify(G.e.stack)}`
         G.e.stack.push({
-            e: "res", a: 1, target: arg.playerID
+            e: "res", a: 1, target: pid
         })
         log += `|after|${JSON.stringify(G.e.stack)}`
     }
     if (c.cardId === FilmCardID.F1208 || c.cardId === BasicCardID.B05) {
-        log += "|MetropolisOrClassic"
+        log += "|MetropolisOrClassicFilm"
         G.e.stack.push({
             e: "industryOrAestheticsBreakthrough", a: {
                 industry: 1,
@@ -863,9 +864,19 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         addVp(G, ctx, pid, c.vp);
     }
     log += `|breakthroughEffectPrepare`
-    logger.debug(`${G.matchID}|${log}`);
+    if (c.cardId === FilmCardID.F1108) {
+        log += "|Nanook"
+        if (pub.deposit < 1) {
+            log += `|noDeposit`
+            logger.debug(`${G.matchID}|${log}`);
+            checkNextEffect(G, ctx);
+            return;
+        } else {
+            loseDeposit(G, ctx, pid, 1);
+        }
+    }
     breakthroughEffectPrepare(G, card);
-    let cardEff = getCardEffect(c.cardId);
+    const cardEff = getCardEffect(c.cardId);
     if (c.cardId !== FilmCardID.F1108) {
         if (cardEff.hasOwnProperty("archive")) {
             const eff = {...cardEff.archive};
@@ -880,7 +891,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
             log += `|missingArchiveEffect`
         }
     } else {
-        log += `|Nanook|skip`
+        log += `|Nanook|DoNotPushArchiveEffect`
     }
     log += `|checkNextEffect`
     logger.debug(`${G.matchID}|${log}`);
@@ -1207,7 +1218,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             pushPlayersEffects(G, players, eff.a);
             break;
         case "noStudio":
-            players = seqFromCurrentPlayer(G, ctx);
+            players = noStudioPlayers(G, ctx, region);
             log += `|region:${region}|noStudioPlayers|${JSON.stringify(players)}`
             if (players.length === 0) {
                 log += `|everyOneHasStudio`
@@ -1933,18 +1944,6 @@ export const additionalCostForUpgrade = (G: IG, level: number): number => {
             logger.debug(`${G.matchID}|${log}`);
             return 2;
         }
-    }
-}
-
-export const canUpgrade = (G: IG, ctx: Ctx, p: PlayerID, isIndustry: boolean) => {
-    let o = G.pub[parseInt(p)]
-    let targetLevel: number;
-    targetLevel = isIndustry ? o.industry + 1 : o.aesthetics + 1;
-    let cost: number = additionalCostForUpgrade(G, targetLevel);
-    if (cost === 0) {
-        return true;
-    } else {
-        return cost <= o.resource + o.deposit;
     }
 }
 

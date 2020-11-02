@@ -579,7 +579,7 @@ const zh_CN: Locale = {
                 }
             },
         }],
-        industryAndAestheticsBreakthrough: "选择工业和美学突破",
+        industryAndAestheticsBreakthrough: "工业和美学突破",
         industryOrAestheticsLevelUp: "升级工业等级或美学等级1级",
         era: {
             0: " 1时代：",
@@ -611,7 +611,7 @@ const zh_CN: Locale = {
         NewYorkSchool: "若你的美学等级不低于工业等级，美学奖励一次，若你的工业等级不低于美学等级，工业奖励一次",
         obtainNormalOrLegendFilm: "每次获得普通影片或传奇影片时",
         none: "",
-        breakthroughResDeduct: ["突破一次，少花费{{a}}资源", argValue],
+        breakthroughResDeduct: ["免费突破一次", argValue],
         handToAnyPlayer: ["把{{a}}张手牌交给任意公司", argValue],
         buyNoneEEFilm: "购买非东欧地区影片时",
         extraVp: ["额外支付{{a}}声望", argValue],

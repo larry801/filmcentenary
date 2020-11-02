@@ -52,7 +52,7 @@ import {
     fillEventCard,
     fillTwoPlayerBoard,
     isSimpleEffect,
-    logger,
+    logger, loseDeposit,
     loseVp,
     payCost,
     playerEffExec,
@@ -326,14 +326,6 @@ export const chooseHand: LongFormMove = {
             case "breakthroughResDeduct":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
-                if (arg.hand === FilmCardID.F1108) {
-                    log += "|Nanook"
-                    if (pub.deposit < 1) {
-                        return;
-                    } else {
-                        pub.deposit--;
-                    }
-                }
                 startBreakThrough(G, ctx, arg.p, arg.hand);
                 return;
             case "archiveToEEBuildingVP":
@@ -1083,17 +1075,6 @@ export const breakthrough: LongFormMove = {
         G.player[parseInt(arg.playerID)].hand.splice(arg.idx, 1);
         p.archive.push(arg.card);
         let log = `breakthrough`
-        if (arg.card === FilmCardID.F1108) {
-            if (p.deposit < 1) {
-                log += `|cannotBreakThrough`
-                logger.debug(`${G.matchID}|${log}`);
-                return INVALID_MOVE;
-            } else {
-                log += `|before|${p.deposit}`
-                p.deposit -= 1;
-                log += `|before|${p.deposit}`
-            }
-        }
         log += `|startBreakthrough`
         logger.debug(`${G.matchID}|${log}`);
         startBreakThrough(G, ctx, arg.playerID, arg.card);
