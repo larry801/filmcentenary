@@ -1,11 +1,8 @@
 import {PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
-import {
-    getCardById,
-    CardCategory,
-    CardID
-} from "../types/core";
-export const getHandChoice = (G: IG, playerID: PlayerID,getCardName:(id:string)=>string) => {
+import {CardCategory, CardID, FilmCardID, getCardById} from "../types/core";
+
+export const getHandChoice = (G: IG, playerID: PlayerID, getCardName: (id: string) => string) => {
     return playerID === null ? [] : G.player[parseInt(playerID)].hand.map((c, idx) => {
         return {
             label: getCardName(c),
@@ -15,7 +12,7 @@ export const getHandChoice = (G: IG, playerID: PlayerID,getCardName:(id:string)=
         }
     })
 }
-export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName:(id:string)=>string) => {
+export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName: (id: string) => string) => {
     const handChoices = getHandChoice(G, playerID, getCardName);
     if (playerID === null) return [];
     if (G.e.stack.length > 0) {
@@ -66,7 +63,7 @@ export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName:(id:s
                     return {
                         label: getCardName(c),
                         disabled: false,
-                        hidden: getCardById(c).aesthetics === 0,
+                        hidden: getCardById(c).aesthetics === 0 || c === FilmCardID.F3303,
                         value: idx.toString()
                     }
                 })
@@ -78,7 +75,7 @@ export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName:(id:s
     }
 }
 
-export const getPeekChoices = (G: IG, playerID: PlayerID, getCardName:(id:string)=>string) => {
+export const getPeekChoices = (G: IG, playerID: PlayerID, getCardName: (id: string) => string) => {
     const hasCurEffect = G.e.stack.length > 0;
     const peekChoicesDisabled = hasCurEffect && G.e.stack[0].e === "peek" ? G.e.stack[0].a.filter.e !== "choice" : true;
     const peekChoices = G.player[parseInt(playerID)].cardsToPeek
