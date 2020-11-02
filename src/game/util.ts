@@ -1249,6 +1249,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             } else {
                 pub.revealedHand = [...playerObj.hand]
+                log += `|${JSON.stringify(pub.revealedHand)}`
                 log += ("|NoClassicRevealHand|next")
             }
             break;
@@ -1261,6 +1262,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             } else {
                 pub.revealedHand = [...playerObj.hand]
+                log += `|${JSON.stringify(pub.revealedHand)}`
                 log += ("|NoLegendRevealHand|next")
             }
             break;
@@ -1273,6 +1275,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             } else {
                 pub.revealedHand = [...playerObj.hand]
+                log += `|${JSON.stringify(pub.revealedHand)}`
                 log += ("|NoAestheticsRevealHand|next")
             }
             break;
@@ -1285,6 +1288,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             } else {
                 pub.revealedHand = [...playerObj.hand]
+                log += `|${JSON.stringify(pub.revealedHand)}`
                 log += ("|NoIndustryRevealHand|next")
             }
             break;

@@ -38,8 +38,8 @@ export interface IChoiceProps {
     choices: Choice[],
     defaultChoice: string,
     show: boolean,
-    title: string|JSX.Element,
-    toggleText: string|JSX.Element,
+    title: string | JSX.Element,
+    toggleText: string | JSX.Element,
     initial: boolean,
     popAfterShow?: boolean,
 }
@@ -54,7 +54,7 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
     const prevShow = usePrevious(show);
 
     React.useEffect(() => {
-        if (show && prevShow===false && popAfterShow!==false) {
+        if (show && prevShow === false && popAfterShow !== false) {
             setOpen(true);
         }
     }, [prevShow, show, popAfterShow])

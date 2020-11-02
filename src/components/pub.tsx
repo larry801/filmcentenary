@@ -200,8 +200,7 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
                 })} defaultChoice={'0'}
                 show={i.revealedHand.length > 0} title={`${i18n.pub.revealedHand}(${i.revealedHand.length})`}
                 toggleText={<Typography>
-                    <PanToolIcon className={classes.iconAlign}/>
-                    {i.revealedHand.length}
+                    <PanToolIcon className={classes.iconAlign}/>{i.revealedHand.length}
                 </Typography>} initial={false}/>
             <ChoiceDialog
                 callback={noOp}
