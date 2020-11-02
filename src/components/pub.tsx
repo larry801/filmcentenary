@@ -3,7 +3,7 @@ import {
     CardCategory,
     CardID,
     Champion,
-    getCardById,
+    getCardById, IPubInfo,
     SimpleRuleNumPlayers,
     validRegion,
     ValidRegions
@@ -49,15 +49,15 @@ const useStyles = makeStyles({
 });
 
 export interface IPubPanelProps {
+    i:IPubInfo,
     idx: number,
     getName: (p: PlayerID) => string,
     G: IG,
 }
 
-export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
+export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
     useI18n(i18n);
     const classes = useStyles();
-    const i = G.pub[idx]
     const inferHand = (): CardID[] => {
         let result = [...i.allCards]
         inferDeckRemoveHelper(result, i.discard)
@@ -103,8 +103,8 @@ export const PubPanel = ({idx, getName, G}: IPubPanelProps) => {
             <Typography>
                 {getName(idx.toString())}
             </Typography>
-            <Typography aria-label={`${i18n.pub.handSize}${G.player[idx].handSize}`}>
-                <PanToolIcon className={classes.iconAlign}/>{G.player[0].handSize}
+            <Typography aria-label={`${i18n.pub.handSize}${i.handSize}`}>
+                <PanToolIcon className={classes.iconAlign}/>{i.handSize}
             </Typography>
             <Typography>
                 <MonetizationOnIcon className={classes.iconAlign}/> {i.resource}

@@ -324,6 +324,7 @@ export interface IPubInfo {
     action: number,
     deposit: number,
     resource: number,
+    handSize: number,
     archive: CardID[],
     allCards: CardID[],
     discard: CardID[],

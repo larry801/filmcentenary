@@ -17,6 +17,7 @@ import {useI18n} from "@i18n-chain/react";
 import {OperationPanel} from "./boards/operation";
 import FinalScoreTable from "./boards/final";
 import {getCardName} from "./card";
+import {generate} from "shortid"
 // @ts-ignore
 import playerTurnSfx from './media/turn.mp3'
 
@@ -249,7 +250,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         }
         {G.pub.map((u: IPubInfo, idx: number) =>
             <Grid item sm={6} lg={3}>
-                <PubPanel key={idx} G={G} idx={idx} getName={getName}/>
+                <PubPanel i={u}  key={generate()} G={G} idx={idx} getName={getName}/>
             </Grid>
         )}
         <FinalScoreTable G={G} ctx={ctx} getName={getName}/>

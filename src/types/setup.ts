@@ -121,6 +121,7 @@ function pubPlayer(): IPubInfo {
         deposit: 0,
         action: 1,
         discardInSettle: false,
+        handSize: 0,
         scoreEvents: [],
         vpAward: {
             v60: false,
