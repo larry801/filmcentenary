@@ -716,7 +716,7 @@ const zh_CN: Locale = {
         turnStart: "每回合开始时，",
         studio: "本地区有制片厂的公司，",
         building: "本地区有建筑的公司，",
-        noStudio: "指定任意一个公司，",
+        noStudio: "指定一个本地区没有制片厂的公司，",
         noBuilding: "指定一个本地区没有建筑的公司，",
         lose: ["失去{{a}}时", argCardName],
         event: ["当{{a}}发生后", argCardName],

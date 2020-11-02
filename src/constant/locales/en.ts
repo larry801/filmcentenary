@@ -718,7 +718,7 @@ const en = {
         turnStart: "On the beginning of every turn",
         studio: "All companies with a studio in this region,",
         building: "All companies with a building in this region,，",
-        noStudio: "Choose any company,",
+        noStudio: "Choose a company without a studio in this region,",
         noBuilding: "Choose a company without a building in this region",
         lose: ["When you lose {{a}},", argCardName],
         school: ["Hand size：{{hand}} action：{{action}}", {
