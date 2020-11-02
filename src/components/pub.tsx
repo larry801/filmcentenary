@@ -31,7 +31,7 @@ import makeStyles from '@material-ui/core/styles/makeStyles';
 import Paper from "@material-ui/core/Paper";
 import ArchiveIcon from '@material-ui/icons/Archive';
 import StarBorderIcon from '@material-ui/icons/StarBorder';
-import {inferDeckRemoveHelper} from "../game/board-util";
+import {getPlayerInferredHand} from "../game/board-util";
 
 const useStyles = makeStyles({
     root: {
@@ -58,19 +58,7 @@ export interface IPubPanelProps {
 export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
     useI18n(i18n);
     const classes = useStyles();
-    const inferHand = (): CardID[] => {
-        let result = [...i.allCards]
-        inferDeckRemoveHelper(result, i.discard)
-        inferDeckRemoveHelper(result, i.archive)
-        inferDeckRemoveHelper(result, i.playedCardInTurn)
-        if (i.school !== null) {
-            let sIndex = result.indexOf(i.school)
-            if (sIndex !== -1) {
-                result.splice(sIndex, 1);
-            }
-        }
-        return result;
-    }
+    const inferHand = (): CardID[] => getPlayerInferredHand(G, idx.toString());
 
     const legendCount = (r: validRegion) => i.allCards.filter(c => getCardById(c).category === CardCategory.LEGEND &&
         getCardById(c).region === r &&
