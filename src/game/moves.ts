@@ -373,7 +373,7 @@ export const chooseHand: LongFormMove = {
             case "discardAesthetics":
             case "discardNormalOrLegend":
                 if (pub.school === SchoolCardID.S3201) {
-                    log += `|NewWave`
+                    log += `|NewWaveFlagSet`
                     pub.discardInSettle = true;
                 }
                 hand.splice(arg.idx, 1);

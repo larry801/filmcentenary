@@ -2437,7 +2437,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
             G.pub[parseInt(newWavePlayer)].discardInSettle = false;
             addVp(G, ctx, newWavePlayer, 1);
-            drawCardForPlayer(G, ctx, newWavePlayer)
+            drawCardForPlayer(G, ctx, newWavePlayer);
             log += `|newWave|p${newWavePlayer}|drawCard`
         }
         if (G.currentScoreRegion === Region.NONE) {
@@ -2484,7 +2484,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
             return;
         }
     } else {
-        let nextEff = G.e.stack.slice(-1)[0];
+        const nextEff = G.e.stack.slice(-1)[0];
         log += `|Next effect|${JSON.stringify(nextEff)}`
         let targetPlayer = ctx.currentPlayer
         if (nextEff.hasOwnProperty("target")) {
