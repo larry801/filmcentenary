@@ -303,11 +303,11 @@ export const chooseHand: LongFormMove = {
         }
         log += `|${JSON.stringify(eff)}`
         let p = arg.p;
-        let target:CardID;
+        let target: CardID;
         const pub = G.pub[parseInt(p)];
-        if(eff.e === "playedCardInTurnEffect"){
+        if (eff.e === "playedCardInTurnEffect") {
             target = pub.playedCardInTurn[arg.idx];
-        }else {
+        } else {
             target = arg.hand
         }
         const hand = G.player[parseInt(p)].hand;
@@ -494,43 +494,36 @@ export const chooseRegion: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.chooseRegion(${JSON.stringify(arg)})`);
         let log = "chooseRegion"
-        let r = arg.r;
-        let pub = G.pub[parseInt(arg.p)]
+        const r = arg.r;
+        const pub = G.pub[parseInt(arg.p)]
         log += JSON.stringify(arg);
         if (r === Region.NONE) return;
-        let eff = G.e.stack.pop();
+        const eff = G.e.stack.pop();
         log += JSON.stringify(eff);
         logger.debug(`${G.matchID}|${log}`);
         let p = arg.p;
         const totalResource = pub.resource + pub.deposit;
-        let reg = G.regions[r]
+        const reg = G.regions[r]
+        if (eff.e === "buildStudio" || eff.e === "buildCinema") {
+            if (totalResource === 3) {
+                payCost(G, ctx, p, 3);
+                if(eff.e === "buildStudio"){
+                    buildBuildingFor(G, ctx, r, p, BuildingType.studio);
+                }
+                if(eff.e === "buildCinema"){
+                    buildBuildingFor(G, ctx, r, p, BuildingType.cinema);
+                }
+            } else {
+                G.e.regions = [r]
+                G.e.extraCostToPay = 3;
+                log += `|total${totalResource}|payAdditionalCost`
+                G.e.stack.push(eff);
+                logger.debug(`${G.matchID}|${log}`);
+                changePlayerStage(G, ctx, "payAdditionalCost", p);
+                return;
+            }
+        }
         switch (eff.e) {
-            case "buildStudio":
-                if (totalResource === 3) {
-                    payCost(G, ctx, p, 3);
-                    buildBuildingFor(G, ctx, r, p, BuildingType.studio)
-                } else {
-                    G.e.regions = [r]
-                    G.e.extraCostToPay = 3;
-                    log += `|total${totalResource}|payAdditionalCost`
-                    G.e.stack.push(eff);
-                    changePlayerStage(G, ctx, "payAdditionalCost", p);
-                    return;
-                }
-                break;
-            case "buildCinema":
-                if (totalResource === 3) {
-                    payCost(G, ctx, p, 3);
-                    buildBuildingFor(G, ctx, r, p, BuildingType.cinema)
-                } else {
-                    G.e.regions = [r]
-                    G.e.extraCostToPay = 3;
-                    log += `|total${totalResource}|payAdditionalCost`
-                    G.e.stack.push(eff);
-                    changePlayerStage(G, ctx, "payAdditionalCost", p);
-                    return;
-                }
-                break;
             case "loseAnyRegionShare":
                 p = G.c.players[0] as PlayerID;
                 G.c.players = [];
