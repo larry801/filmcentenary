@@ -95,3 +95,27 @@ export const getPeekChoices = (G: IG, playerID: PlayerID, getCardName: (id: stri
     }, ...peekChoices];
     return peekChoicesDisabled ? peekNoChoiceChoices : peekChoices;
 }
+
+export const inferDeckRemoveHelper = (result: CardID[], cardsToRemove: CardID[]): void => {
+    cardsToRemove.forEach(c => {
+        const indexOf = result.indexOf(c)
+        if (indexOf !== -1) {
+            result.splice(indexOf, 1)
+        }
+    })
+}
+
+export const getPlayerInferredHand = (G:IG, pid:PlayerID):CardID[]=>{
+    const pub = G.pub[parseInt(pid)];
+    const result = [...pub.allCards]
+    inferDeckRemoveHelper(result, pub.discard)
+    inferDeckRemoveHelper(result, pub.playedCardInTurn)
+    if (pub.school !== null) {
+        let sIndex = result.indexOf(pub.school)
+        if (sIndex !== -1) {
+            result.splice(sIndex, 1);
+        }
+    }
+    inferDeckRemoveHelper(result, pub.archive)
+    return result;
+}

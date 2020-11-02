@@ -10,13 +10,13 @@ import Grid from "@material-ui/core/Grid"
 import {ChoiceDialog} from "../modals";
 import Typography from "@material-ui/core/Typography";
 import {BasicCardID, CardID} from "../../types/core";
-import {activePlayer, actualStage, inferDeckRemoveHelper} from "../../game/util";
+import {activePlayer, actualStage} from "../../game/util";
 import Button from "@material-ui/core/Button";
 import {PlayerHand} from "../playerHand";
 import {Stage} from "boardgame.io/core";
 import Slider from "@material-ui/core/Slider";
 import {PubPanel} from "../pub";
-import {getChooseHandChoice} from "../../game/board-util";
+import {getChooseHandChoice, inferDeckRemoveHelper} from "../../game/board-util";
 import {effName, getCardName} from "../card";
 import UndoIcon from '@material-ui/icons/Undo';
 import RedoIcon from '@material-ui/icons/Redo';

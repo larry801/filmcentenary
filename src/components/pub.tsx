@@ -13,7 +13,6 @@ import Typography from "@material-ui/core/Typography";
 import {useI18n} from '@i18n-chain/react';
 import i18n from '../constant/i18n'
 import {ChoiceDialog} from "./modals";
-import {inferDeckRemoveHelper} from "../game/util";
 import {IG} from "../types/setup";
 import LayersIcon from '@material-ui/icons/Layers';
 import BlockIcon from '@material-ui/icons/Block';
@@ -32,6 +31,7 @@ import makeStyles from '@material-ui/core/styles/makeStyles';
 import Paper from "@material-ui/core/Paper";
 import ArchiveIcon from '@material-ui/icons/Archive';
 import StarBorderIcon from '@material-ui/icons/StarBorder';
+import {inferDeckRemoveHelper} from "../game/board-util";
 
 const useStyles = makeStyles({
     root: {

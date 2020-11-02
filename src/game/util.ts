@@ -11,7 +11,8 @@ import {
     EventCardID,
     FilmCardID,
     filmCardsByEra,
-    getCardById, getScoreCard,
+    getCardById,
+    getScoreCard,
     IBasicCard,
     IBuildingSlot,
     IBuyInfo,
@@ -780,15 +781,6 @@ export function highestPlayer(G: IG, func: (G: IG, p: PlayerID) => number): Play
 
 export function vpHighestPlayer(G: IG): PlayerID[] {
     return highestPlayer(G, (G, p) => G.pub[parseInt(p)].vp)
-}
-
-export const inferDeckRemoveHelper = (result: CardID[], remove: CardID[]): void => {
-    remove.forEach(c => {
-        const indexOf = result.indexOf(c)
-        if (indexOf !== -1) {
-            result.splice(indexOf, 1)
-        }
-    })
 }
 
 export const breakthroughEffectPrepare = (G: IG, card: CardID): void => {
