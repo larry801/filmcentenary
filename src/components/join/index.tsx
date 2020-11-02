@@ -3,7 +3,7 @@ import {useHistory, useParams} from "react-router-dom";
 import {deleteCredentials, loadCredentials, saveCredentials} from "../../api/localStorage";
 import {Player} from "../../Game";
 import {getMatch, joinMatch, leaveMatch} from "../../api/match";
-import {Loading, MultiPlayer, Spectate} from "./multiplayer";
+import {MultiPlayer, Spectate} from "./multiplayer";
 import {ShareLink} from "./share";
 import Typography from "@material-ui/core/Typography";
 import i18n from "../../constant/i18n";
@@ -52,47 +52,47 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
         }
     }, [serverURL, matchID, player]);
 
-    const handleLeave = (choice:string) => {
-        if(choice==="yes"){
-            leaveMatch(serverURL,matchID,player,credentials)
-                .then(()=> {
-                    deleteCredentials(matchID,player);
+    const handleLeave = (choice: string) => {
+        if (choice === "yes") {
+            leaveMatch(serverURL, matchID, player, credentials)
+                .then(() => {
+                    deleteCredentials(matchID, player);
                     history.push('/');
                 })
                 .catch((err) => setError(err.toString))
 
         }
     }
-
-    return <>
-        {error !== "" && <Typography>{error}</Typography>}
-        {player === Player.spectate ?
-            <Spectate
-                matchID={matchID}
-                server={serverURL}/> :
-            <>
+    const gameContent = player === Player.spectate ?
+        <Spectate
+            matchID={matchID}
+            server={serverURL}/> :
+        <>
             <MultiPlayer
                 matchID={matchID}
                 serverURL={serverURL}
                 credentials={credentials}
                 player={player}/>
-                </>}
-        {numPlayers > 0 && player !== Player.spectate
-            ? <ShareLink
-                player={player}
-                matchID={matchID}
-                numPlayer={numPlayers}/>
-            : <Loading/>}
-        <ChoiceDialog
-            initial={false}
-            callback={handleLeave}
-            choices={[
-                {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
-                {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
-            ]} defaultChoice={"no"}
-            show={player !== Player.spectate}
-            title={i18n.lobby.leave} toggleText={i18n.lobby.leave}
-        />
+            <ChoiceDialog
+                initial={false}
+                callback={handleLeave}
+                choices={[
+                    {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
+                    {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
+                ]} defaultChoice={"no"}
+                show={true}
+                title={i18n.lobby.leave} toggleText={i18n.lobby.leave}
+            />
+        </>
+    return <>
+        {error !== "" ? <Typography>{error}</Typography> : <>{gameContent}</>}
+        {numPlayers > 0 ? <>
+                <ShareLink
+                    player={player}
+                    matchID={matchID}
+                    numPlayer={numPlayers}/>
+            </>
+            : <></>}
     </>
 }
 export default JoinPage;
