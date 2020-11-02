@@ -760,8 +760,8 @@ const zh_CN: Locale = {
             toggleText: "争夺",
         },
         chooseHand: {
-            title: "请选择一张手牌执行效果",
-            toggleText: "选择手牌",
+            title: "请选择一张牌执行效果",
+            toggleText: "选择卡牌",
         },
         peek: {
             choice: "请选择一张加入手牌",

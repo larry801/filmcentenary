@@ -788,8 +788,8 @@ const en = {
             toggleText: "Choose effect",
         },
         chooseHand: {
-            title: "Please choose one card from hand as target of effect",
-            toggleText: "Choose card from hand",
+            title: "Please choose one card as target of the current effect",
+            toggleText: "Choose card for effect",
         },
         competitionCard: {
             title: "Please choose one card from hand for competition",

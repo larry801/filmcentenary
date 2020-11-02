@@ -303,14 +303,19 @@ export const chooseHand: LongFormMove = {
         }
         log += `|${JSON.stringify(eff)}`
         let p = arg.p;
-        let hand = G.player[parseInt(p)].hand;
-        let pub = G.pub[parseInt(p)];
-        let card: IBasicCard | INormalOrLegendCard = getCardById(arg.hand);
+        let target:CardID;
+        const pub = G.pub[parseInt(p)];
+        if(eff.e === "playedCardInTurnEffect"){
+            target = pub.playedCardInTurn[arg.idx];
+        }else {
+            target = arg.hand
+        }
+        const hand = G.player[parseInt(p)].hand;
+        const card: IBasicCard | INormalOrLegendCard = getCardById(target);
         switch (eff.e) {
             case "playedCardInTurnEffect":
-                const playedCard = pub.playedCardInTurn[arg.idx];
-                log += `|${playedCard}`
-                let cardEff = getCardEffect(playedCard);
+                log += `|${target}`
+                let cardEff = getCardEffect(target);
                 if (cardEff.hasOwnProperty("play")) {
                     const eff = {...cardEff.play};
                     if (eff.e !== "none") {

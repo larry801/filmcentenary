@@ -941,6 +941,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "playedCardInTurnEffect":
             if (pub.playedCardInTurn.filter(c => getCardById(c).aesthetics > 0).length > 0) {
                 log += `|chooseHand`
+                G.e.stack.push(eff);
+                logger.debug(`${G.matchID}|${log}`);
                 changePlayerStage(G, ctx, "chooseHand", p);
                 return;
             }
