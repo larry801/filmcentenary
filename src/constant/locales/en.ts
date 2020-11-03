@@ -594,7 +594,7 @@ const en = {
         onYourComment: "After you perform a comment,",
         onAnyOneComment: "After any one perform a comment,",
         doNotLoseVpAfterCompetition: "Do not lose vp after competition",
-        discardInSettle: "When you discard a card in the settlement of any card.",
+        discardInSettle: "When you comment or update,",
         threeCards: "Gain 1 extra prestige for every three card ",
         northAmericaFilm: "Gain 2 extra prestige for each of your north america card.",
         asiaFilm: "Gain 2 extra prestige for each of your asia card.",

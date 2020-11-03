@@ -1942,7 +1942,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "res", a: 3},
+                {e: "res", a: 2},
                 {e: "industryAward", a: 1}
             ]
         },
@@ -1979,7 +1979,7 @@ export const effects = {
             effect: [
                 {
                     pre: {e: "discardInSettle", a: 1},
-                    effect: {e: "step", a: [{e: "draw", a: 1}, {e: "vp", a: 1}]}
+                    effect: {e: "step", a: [{e: "draw", a: 1}, {e: "vp", a: 2}]}
                 },
                 {
                     pre: {e: "doNotLoseVpAfterCompetition", a: 1}, effect: noEff
@@ -2313,7 +2313,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "res", a: 4}, {e: "shareToVp", a: Region.EE}
+                {e: "res", a: 4}, {e: "shareEE", a: 1}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2326,7 +2326,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "res", a: 3}, {e: "shareEE", a: 1}
+                {e: "res", a: 3}, {e: "shareToVp", a: Region.EE}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2339,7 +2339,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "vp", a: 3}, {e: "update", a: 1}, {e: "handToAnyPlayer", a: 1}, {e: "loseShareEE", a: 1}
+                {e: "vp", a: 3}, {e: "update", a: 1}, {e: "handToAnyPlayer", a: 1}, {e: "handToAnyPlayer", a: 1}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2567,12 +2567,16 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step",
-            a: [{e: "vp", a: 3}, {e: "update", a: 1}, {
-                e: "peek",
-                a: {
-                    count: 3, target: "hand", filter: {e: "choice", a: 1}
+            a: [
+                {e: "vp", a: 3},
+                {e: "update", a: 1},
+                {
+                    e: "peek",
+                    a: {
+                        count: 3, target: "hand", filter: {e: "choice", a: 1}
+                    },
                 }
-            }, {e: "loseShareASIA", a: 1}]
+            ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,

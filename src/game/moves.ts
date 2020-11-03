@@ -374,7 +374,7 @@ export const chooseHand: LongFormMove = {
             case "discardNormalOrLegend":
                 if (pub.school === SchoolCardID.S3201) {
                     log += `|NewWaveFlagSet`
-                    pub.discardInSettle = true;
+                    // pub.discardInSettle = true;
                 }
                 hand.splice(arg.idx, 1);
                 pub.discard.push(arg.hand);
@@ -463,14 +463,14 @@ export const updateSlot = {
     move: (G: IG, ctx: Ctx, cardId: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.updateSlot(${cardId})`);
-        let slot;
-        if (ctx.numPlayers > SimpleRuleNumPlayers) {
-            slot = cardSlotOnBoard(G, ctx, getCardById(cardId));
-        } else {
-            slot = cardSlotOnBoard2p(G, ctx, getCardById(cardId));
-        }
+        const slot = ctx.numPlayers > SimpleRuleNumPlayers ? cardSlotOnBoard(G, ctx, getCardById(cardId)) : cardSlotOnBoard2p(G, ctx, getCardById(cardId));
         if (slot === null) {
             return INVALID_MOVE;
+        }
+        const newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3204);
+        if (newWavePlayer !== null) {
+            drawCardForPlayer(G, ctx, newWavePlayer);
+            addVp(G, ctx, newWavePlayer, 2);
         }
         doReturnSlotCard(G, ctx, slot);
         if (ctx.numPlayers > SimpleRuleNumPlayers) {
@@ -507,10 +507,10 @@ export const chooseRegion: LongFormMove = {
         if (eff.e === "buildStudio" || eff.e === "buildCinema") {
             if (totalResource === 3) {
                 payCost(G, ctx, p, 3);
-                if(eff.e === "buildStudio"){
+                if (eff.e === "buildStudio") {
                     buildBuildingFor(G, ctx, r, p, BuildingType.studio);
                 }
-                if(eff.e === "buildCinema"){
+                if (eff.e === "buildCinema") {
                     buildBuildingFor(G, ctx, r, p, BuildingType.cinema);
                 }
             } else {
@@ -1091,7 +1091,7 @@ export const comment: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: ICommentArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.comment(${JSON.stringify(arg)})`);
-        let slot = ctx.numPlayers > SimpleRuleNumPlayers
+        const slot = ctx.numPlayers > SimpleRuleNumPlayers
             ? cardSlotOnBoard(G, ctx, getCardById(arg.target))
             : cardSlotOnBoard2p(G, ctx, getCardById(arg.target));
         if (slot === null) {
@@ -1102,11 +1102,16 @@ export const comment: LongFormMove = {
         } else {
             slot.comment = arg.comment;
         }
-        let p = schoolPlayer(G, ctx, SchoolCardID.S3204);
+        const p = schoolPlayer(G, ctx, SchoolCardID.S3204);
         if (p !== null) {
             drawCardForPlayer(G, ctx, p);
         }
-        let pub = G.pub[parseInt(arg.p)];
+        const newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3204);
+        if (newWavePlayer !== null) {
+            drawCardForPlayer(G, ctx, newWavePlayer);
+            addVp(G, ctx, newWavePlayer, 2);
+        }
+        const pub = G.pub[parseInt(arg.p)];
         if (pub.school === SchoolCardID.S2204) {
             pub.resource++;
             addVp(G, ctx, arg.p, 1);
