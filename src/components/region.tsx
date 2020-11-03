@@ -31,7 +31,7 @@ import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 import DeckIcon from '@material-ui/icons/Layers';
 import CardInfo, {getCardName} from "./card";
-import {ChampionIcon, DrawnShareIcon, getColor, IShareIconProps} from "./icons";
+import {ChampionIcon, DrawnShareIcon, getColor} from "./icons";
 import {generate} from "shortid"
 
 export interface ICardSlotProp {

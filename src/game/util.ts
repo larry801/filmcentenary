@@ -1372,12 +1372,15 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     }
                 case "deposit":
                     if (pub.deposit < eff.a.cost.a) {
-                        break
+                        break;
                     } else {
-                        pub.deposit -= eff.a.cost.a
+                        loseDeposit(G, ctx, p,eff.a.cost.a);
                         G.e.stack.push(eff.a.eff);
-                        break
+                        break;
                     }
+                case "share":
+                    loseShare(G, eff.a.cost.region, pub, eff.a.cost.a);
+                    break;
                 default:
                     logger.debug(`${G.matchID}|${log}`);
                     throw new Error();

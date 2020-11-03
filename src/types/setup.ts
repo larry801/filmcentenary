@@ -426,7 +426,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.secretInfo.playerDecks[0] = ["B01","F2403","B07","P2401"]
     // @ts-ignore
     // @ts-ignore
-    // G.player[0].hand = ["F2405", "B07", "F3303", "B01",]
+    // G.player[0].hand = ["P1101", "B07", "F3413", "F3413",]
     // G.pub[0].resource = 3;
     // G.pub[0].action = 10;
     return G;
