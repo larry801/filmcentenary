@@ -10,7 +10,7 @@ import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
-import {CardEffect, getCardName} from "./card";
+import {CardEffect, getCardName, getEffectTextById} from "./card";
 
 const useStyles = makeStyles({
     table: {
@@ -27,14 +27,14 @@ const DenseTable = () => {
             <Table className={classes.table} size="small" aria-label="Card table">
                 <TableHead>
                     <TableRow>
-                        <TableCell>No.</TableCell>
-                        <TableCell>Era</TableCell>
-                        <TableCell>Region</TableCell>
-                        <TableCell>Name</TableCell>
+                        <TableCell>{i18n.cardTable.cardId}</TableCell>
+                        <TableCell>{i18n.pub.era}</TableCell>
+                        <TableCell>{i18n.pub.region}</TableCell>
+                        <TableCell>{i18n.cardTable.cardName}</TableCell>
                         <TableCell>{i18n.dialog.buyCard.cost}</TableCell>
-                        <TableCell>{i18n.pub.vp}</TableCell>
-                        <TableCell>{i18n.pub.industryMarker}/{i18n.pub.aestheticsMarker}</TableCell>
-                        <TableCell>Effect text</TableCell>
+                        <TableCell>{i18n.pub.vp}/{i18n.pub.industryMarker}/{i18n.pub.aestheticsMarker}</TableCell>
+                        <TableCell>{i18n.cardTable.effectIcon}</TableCell>
+                        <TableCell>{i18n.cardTable.effectText}</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -54,9 +54,11 @@ const DenseTable = () => {
                                 {getCardName(id)}
                             </TableCell>
                             <TableCell align="right">{c.cost.res}/{c.cost.industry}/{c.cost.aesthetics}</TableCell>
-                            <TableCell align="right">{c.vp}</TableCell>
-                            <TableCell align="right">{c.industry}/{c.aesthetics}</TableCell>
+                            <TableCell align="right">{c.vp}/{c.industry}/{c.aesthetics}</TableCell>
                             <TableCell align="left"><CardEffect cid={c.cardId}/></TableCell>
+                            <TableCell align="left">
+                                {getEffectTextById(c.cardId)}
+                            </TableCell>
                         </TableRow>
                     })}
                 </TableBody>

@@ -749,6 +749,14 @@ const zh_CN: Locale = {
         skipBreakthrough: "跳过本次突破",
     },
     cancel: "取消",
+    cardTable: {
+        cardId: "编号",
+        cardName: "名称",
+        cost: "费用",
+        prestige: "声望",
+        effectText: "效果文本",
+        effectIcon: "效果图标",
+    },
     era: era,
     setup: "补充初始排列",
     dialog: {
@@ -809,7 +817,8 @@ const zh_CN: Locale = {
         title: "手牌"
     },
     pub: {
-        legend:"传奇",
+        region: "地区",
+        legend: "传奇",
         lastRoundOfGame: "最后一轮",
         revealedHand: "展示手牌",
         deck: "牌堆",

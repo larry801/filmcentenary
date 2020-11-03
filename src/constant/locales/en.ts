@@ -553,6 +553,14 @@ const en = {
     eventName: eventName,
     confirm: "OK",
     cancel: "Cancel",
+    cardTable:{
+        cardId: "Card ID",
+        cardName: "Name",
+        cost: "Cost",
+        prestige: "Prestige",
+        effectText: "Effect Text",
+        effectIcon: "Effect Icon",
+    },
     effect: {
         chose: " chose ",
         archiveToEEBuildingVP: "每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑",
@@ -861,6 +869,7 @@ const en = {
         vp: "Prestige:",
         share: "Share",
         shareLegend: "Share/Legend Card:",
+        region: "Region:",
         era: "Era:",
         school: "School:",
         discard: "Discard",

@@ -416,8 +416,8 @@ export const effIcon = (eff: any): JSX.Element => {
                     break;
                 case "era":
                     filter = <ChampionIcon champion={{
-                        region:Region.NONE,
-                        era:eff.a.filter.a,
+                        region: Region.NONE,
+                        era: eff.a.filter.a,
                     }}/>
                     break;
                 case "region":
@@ -439,13 +439,14 @@ export const effIcon = (eff: any): JSX.Element => {
         case "era":
             return <React.Fragment key={generate()}>
                 {eff.a[0].e !== "none" ? <Typography key={generate()}>
-                    <ChampionIcon champion={{region:Region.NONE,era:IEra.ONE}} key={generate()}/>{effIcon(eff.a[0])}
+                    <ChampionIcon champion={{region: Region.NONE, era: IEra.ONE}} key={generate()}/>{effIcon(eff.a[0])}
                 </Typography> : <React.Fragment key={generate()}/>}
                 {eff.a[1].e !== "none" ? <React.Fragment key={generate()}>
-                    <ChampionIcon champion={{region:Region.NONE,era:IEra.TWO}} key={generate()}/>{effIcon(eff.a[1])}
+                    <ChampionIcon champion={{region: Region.NONE, era: IEra.TWO}} key={generate()}/>{effIcon(eff.a[1])}
                 </React.Fragment> : <React.Fragment key={generate()}/>}
                 {eff.a[2].e !== "none" ? <React.Fragment key={generate()}>
-                    <ChampionIcon champion={{region:Region.NONE,era:IEra.THREE}} key={generate()}/>{effIcon(eff.a[2])}
+                    <ChampionIcon champion={{region: Region.NONE, era: IEra.THREE}}
+                                  key={generate()}/>{effIcon(eff.a[2])}
                 </React.Fragment> : <React.Fragment key={generate()}/>}
             </React.Fragment>
     }
@@ -523,6 +524,20 @@ export const CardInfo = ({cid}: ICardEffectProps) => {
     </Grid>
 }
 
+export const getEffectTextById = (cid: CardID): string => {
+    const buyEffText = buyCardEffectText(cid);
+    const playEffText = playCardEffectText(cid);
+    const arch = archiveCardEffectText(cid);
+    const score = scoreEffectText(cid);
+    const eff = getCardEffect(cid);
+    const schoolBasic = eff.hasOwnProperty("school")
+        ? i18n.effect.school({
+            hand: eff.school.hand,
+            action: eff.school.action
+        }) : ""
+    return `${buyEffText}${playEffText}${arch}${score}${schoolBasic}${schoolEffectText(cid)}`
+}
+
 export const CardEffect = ({cid}: ICardEffectProps) => {
     const effObj = getCardEffect(cid);
     const cardObj = getCardById(cid);
@@ -540,7 +555,7 @@ export const CardEffect = ({cid}: ICardEffectProps) => {
         </React.Fragment> : <React.Fragment key={generate()}/>}
         {playEffText !== "" ? <React.Fragment key={generate()}>
             <Typography key={generate()} aria-label={i18n.effect.playCardHeader}>
-                【<HandIcon style={verticalAlign}/><CardIcon />】
+                【<HandIcon style={verticalAlign}/><CardIcon/>】
             </Typography>
             {effIcon(effObj.play)}
         </React.Fragment> : <React.Fragment key={generate()}/>}
