@@ -5,8 +5,8 @@ import {
     Champion,
     getCardById, IPubInfo,
     SimpleRuleNumPlayers,
-    validRegion,
-    ValidRegions
+    ValidRegion,
+    valid_regions
 } from "../types/core";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
@@ -60,7 +60,7 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
     const classes = useStyles();
     const inferHand = (): CardID[] => getPlayerInferredHand(G, idx.toString());
 
-    const legendCount = (r: validRegion) => i.allCards.filter(c => getCardById(c).category === CardCategory.LEGEND &&
+    const legendCount = (r: ValidRegion) => i.allCards.filter(c => getCardById(c).category === CardCategory.LEGEND &&
         getCardById(c).region === r &&
         getCardById(c).era === G.regions[r].era
     ).length
@@ -72,12 +72,12 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
 
     const shareAndLegendAriaLabel = () => {
         let labelText = ""
-        ValidRegions.forEach(r => labelText += `${i18n.region[r]}${i.shares[r]}${i18n.pub.share}${i18n.pub.legend}${legendCount(r)}`)
+        valid_regions.forEach(r => labelText += `${i18n.region[r]}${i.shares[r]}${i18n.pub.share}${i18n.pub.legend}${legendCount(r)}`)
         return labelText
     }
     const sharesAriaLabel = () => {
         let labelText = i18n.pub.share
-        ValidRegions.forEach(r => labelText += `${i18n.region[r]}${i.shares[r]}`)
+        valid_regions.forEach(r => labelText += `${i18n.region[r]}${i.shares[r]}`)
         return labelText
     }
     const championAriaLabel = () => {
@@ -125,7 +125,7 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
                 </> : <></>}
             {G.playerCount > SimpleRuleNumPlayers ?
                 <Paper aria-label={shareAndLegendAriaLabel()}>
-                    {ValidRegions.map((r: validRegion) => {
+                    {valid_regions.map((r: ValidRegion) => {
                             const share = i.shares[r];
                             const legend = legendCount(r);
                             return <Grid container key={generate()}>
@@ -143,7 +143,7 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
                 </Paper>
                 :
                 <Paper aria-label={sharesAriaLabel()}>
-                    {ValidRegions.map((r: validRegion) => {
+                    {valid_regions.map((r: ValidRegion) => {
                         const share = i.shares[r];
                         return <Grid container key={r}>
                             <DrawnShareIcon key={idx} r={r}/>
@@ -155,7 +155,7 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
         </Grid>
         {i.champions.length > 0 ? <Grid item sm={3}>
             <Paper aria-label={championAriaLabel()}>
-                {i.champions.map((c: Champion) => <ChampionIcon champion={c}/>)}
+                {i.champions.map((c: Champion) => <ChampionIcon key={generate()} champion={c}/>)}
             </Paper>
         </Grid> : <></>}
         <Grid item sm={3}>

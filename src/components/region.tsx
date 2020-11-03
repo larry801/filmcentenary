@@ -8,7 +8,7 @@ import {
     IRegionInfo,
     Region,
     SimpleRuleNumPlayers,
-    validRegion
+    ValidRegion
 } from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
@@ -93,7 +93,7 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
 }
 
 export interface IRegionProp {
-    r: validRegion,
+    r: ValidRegion,
     region: IRegionInfo,
     G: IG,
     ctx: Ctx,
@@ -126,7 +126,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
         p: playerID
     })
 
-    const buildingSlotName = (r: validRegion, idx: number): string => {
+    const buildingSlotName = (r: ValidRegion, idx: number): string => {
         switch (r) {
             case Region.ASIA:
                 if (idx === 0) {

@@ -18,7 +18,7 @@ import {
     Region,
     SchoolCardID,
     SimpleRuleNumPlayers,
-    ValidRegions,
+    valid_regions,
     VictoryType
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
@@ -256,7 +256,7 @@ export const chooseTarget: LongFormMove = {
                 return;
             case "loseAnyRegionShare":
                 G.c.players = [];
-                G.e.regions = ValidRegions.filter(
+                G.e.regions = valid_regions.filter(
                     r => G.pub[parseInt(p)].shares[r] > 0
                 )
                 if (G.e.regions.length > 0) {
@@ -793,7 +793,7 @@ export const chooseEvent: LongFormMove = {
                         const pidInt = parseInt(j)
                         const pub = G.pub[pidInt];
                         let championRegionCount = 0;
-                        ValidRegions.forEach(r => {
+                        valid_regions.forEach(r => {
                             if (pub.champions.filter(c => c.region = r).length) {
                                 championRegionCount++;
                             }
@@ -823,7 +823,7 @@ export const chooseEvent: LongFormMove = {
                         const pidInt = parseInt(j)
                         const pub = G.pub[pidInt];
                         pub.vp += pub.champions.length;
-                        ValidRegions.forEach(r => pub.vp += pub.shares[r]);
+                        valid_regions.forEach(r => pub.vp += pub.shares[r]);
                     })
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);

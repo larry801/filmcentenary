@@ -5,7 +5,7 @@ import {Stage} from "boardgame.io/core";
 import {
     Region,
     SimpleRuleNumPlayers,
-    ValidRegions,
+    valid_regions,
     BasicCardID,
     IBasicCard,
     INormalOrLegendCard,
@@ -163,7 +163,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                 }
                 moves.concat(buyCardArgEnumerate(G, ctx, p, getCardById(BasicCardID.B05)));
                 if (ctx.numPlayers > SimpleRuleNumPlayers) {
-                    ValidRegions.forEach(r => {
+                    valid_regions.forEach(r => {
                         let rObj = G.regions[r];
                         if (rObj.legend.card === null) return;
                         let card = getCardById(rObj.legend.card);
@@ -274,7 +274,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
         case "updateSlot":
         case "comment":
             if (ctx.numPlayers > SimpleRuleNumPlayers) {
-                ValidRegions.forEach(r => {
+                valid_regions.forEach(r => {
                     let rObj = G.regions[r];
                     let card = rObj.legend.card;
                     if (card !== null) {

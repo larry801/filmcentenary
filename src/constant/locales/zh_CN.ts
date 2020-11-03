@@ -1,5 +1,5 @@
 import {Locale} from './en';
-import {AllClassicCards, BasicCardID, EventCardID, IBuyInfo, IEra, Region, validRegion} from "../../types/core";
+import {AllClassicCards, BasicCardID, EventCardID, IBuyInfo, IEra, Region, ValidRegion} from "../../types/core";
 import {
     IChooseEventArg,
     IChooseHandArg,
@@ -245,7 +245,7 @@ const argShowBoardStatus = {
         let t = "牌列中有";
         if (arg[0].regions.length > 0) {
             arg[0].regions.forEach((r, idx) => {
-                t += region[idx as validRegion];
+                t += region[idx as ValidRegion];
                 t += '：';
                 if (r.legend.card !== null) {
                     t += "传奇："

@@ -33,8 +33,8 @@ import {
     ShareOnBoard,
     SimpleRuleNumPlayers,
     TwoPlayerCardCount,
-    validRegion,
-    ValidRegions,
+    valid_regions,
+    ValidRegion,
     VictoryType,
 } from "../types/core";
 import {IG} from "../types/setup";
@@ -144,7 +144,7 @@ export const isSimpleEffect = (G: IG, eff: any): boolean => {
     }
 }
 
-function loseShare(G: IG, region: validRegion, obj: IPubInfo, num: number) {
+function loseShare(G: IG, region: ValidRegion, obj: IPubInfo, num: number) {
     if (obj.shares[region] >= num) {
         obj.shares[region] -= num;
         G.regions[region].share += num;
@@ -154,7 +154,7 @@ function loseShare(G: IG, region: validRegion, obj: IPubInfo, num: number) {
     }
 }
 
-function getShare(G: IG, region: validRegion, obj: IPubInfo, num: number) {
+function getShare(G: IG, region: ValidRegion, obj: IPubInfo, num: number) {
     if (G.regions[region].share >= num) {
         obj.shares[region] += num;
         G.regions[region].share -= num;
@@ -194,7 +194,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "skipBreakthrough":
             return;
         case "shareToVp":
-            addVp(G, ctx, p, pub.shares[eff.a as validRegion]);
+            addVp(G, ctx, p, pub.shares[eff.a as ValidRegion]);
             return;
         case "loseVpForEachHand":
             loseVp(G, ctx, p, G.player[parseInt(p)].hand.length);
@@ -921,7 +921,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let targetPlayer = p;
     let pub = G.pub[parseInt(p)];
     let playerObj = G.player[parseInt(p)];
-    let region = curCard(G).region as validRegion;
+    let region = curCard(G).region as ValidRegion;
     log += `|c:${G.e.card}|region:${region}`;
     let players = []
     let length = 0;
@@ -931,7 +931,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const totalRes = pub.resource + pub.deposit;
     switch (eff.e) {
         case "playedCardInTurnEffect":
-            if (pub.playedCardInTurn.filter(c => getCardById(c).aesthetics > 0 && c !== FilmCardID.F3303 ).length > 0) {
+            if (pub.playedCardInTurn.filter(c => getCardById(c).aesthetics > 0 && c !== FilmCardID.F3303).length > 0) {
                 log += `|chooseHand`
                 G.e.stack.push(eff);
                 logger.debug(`${G.matchID}|${log}`);
@@ -1053,7 +1053,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case "loseAnyRegionShare":
-            G.e.regions = ValidRegions.filter(r => pub.shares[r] > 0)
+            G.e.regions = valid_regions.filter(r => pub.shares[r] > 0)
             log += `|${JSON.stringify(G.e.regions)}`
             if (G.e.regions.length === 0) {
                 ctx?.events?.endStage?.()
@@ -1065,7 +1065,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case "anyRegionShareCentral":
-            G.e.regions = ValidRegions.filter(r => G.regions[r].share > 0)
+            G.e.regions = valid_regions.filter(r => G.regions[r].share > 0)
             if (G.e.regions.length === 0) {
                 log += "No share on board, cannot obtain from others."
                 break;
@@ -1080,7 +1080,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 log += `|pendingCompetition`
                 let winner = i.progress > 0 ? i.atk : i.def;
                 let loser = i.progress > 0 ? i.def : i.atk;
-                G.e.regions = ValidRegions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
+                G.e.regions = valid_regions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
                 if (G.e.regions.length === 0) {
                     log += "|loserNoShare";
                     logger.debug(`${G.matchID}|${log}`);
@@ -1094,7 +1094,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     return;
                 }
             } else {
-                G.e.regions = ValidRegions.filter(r => G.regions[r].share > 0)
+                G.e.regions = valid_regions.filter(r => G.regions[r].share > 0)
                 if (G.e.regions.length === 0) {
                     log += "No share on board, cannot obtain from others."
                     logger.debug(`${G.matchID}|${log}`);
@@ -1856,7 +1856,7 @@ export const do2pUpdateFilmSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
 
 export const fillEmptySlots = (G: IG, ctx: Ctx) => {
     if (ctx.numPlayers < SimpleRuleNumPlayers) return;
-    for (let r of ValidRegions) {
+    for (let r of valid_regions) {
         let region = G.regions[r];
         let l = G.secretInfo.regions[r].legendDeck;
         let n = G.secretInfo.regions[r].normalDeck;
@@ -1955,7 +1955,7 @@ export const legendCount = (G: IG, ctx: Ctx, r: Region, e: IEra, p: PlayerID): n
 }
 
 
-export const do2pRegionScoring = (G: IG, ctx: Ctx, r: validRegion): void => {
+export const do2pRegionScoring = (G: IG, ctx: Ctx, r: ValidRegion): void => {
     let firstPlayer = 1
     if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
         firstPlayer = 0
@@ -1975,7 +1975,7 @@ export const do2pRegionScoring = (G: IG, ctx: Ctx, r: validRegion): void => {
 }
 export const try2pScoring = (G: IG, ctx: Ctx): void => {
     let log = `try2pScoring`;
-    ValidRegions.forEach(r => {
+    valid_regions.forEach(r => {
         let regObj = G.regions[r];
         if (regObj.share === 0 && !regObj.completedModernScoring) {
             do2pRegionScoring(G, ctx, r);
@@ -1995,7 +1995,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
         G.twoPlayer.film.every(c => c.card === null)
         && initialPosOfPlayer(G, ctx, ctx.currentPlayer) === 1
     ) {
-        ValidRegions.forEach(r => {
+        valid_regions.forEach(r => {
             if (G.pub[0].shares[r] > G.pub[1].shares[r]) {
                 doBuy(G, ctx, B04, '1')
             }
@@ -2027,7 +2027,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             return;
         } else {
             // Score remain regions before final scoring
-            ValidRegions.forEach(r => {
+            valid_regions.forEach(r => {
                 let regObj = G.regions[r];
                 if (!regObj.completedModernScoring) {
                     do2pRegionScoring(G, ctx, r);
@@ -2046,12 +2046,15 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
 export const tryScoring = (G: IG, ctx: Ctx): void => {
     let log = "tryScoring"
     if (G.scoringRegions.length > 0) {
-        let r = G.scoringRegions.shift();
-        G.currentScoreRegion = r as validRegion;
+        const r = G.scoringRegions.shift();
+        G.currentScoreRegion = r as ValidRegion;
         log += `|region|${r}`
         log += "|regionRank"
+        G.pending.nextEraRegions.push(r as ValidRegion);
+        log += `|nextEraRegions|${JSON.stringify(G.pending.nextEraRegions)}`
         logger.debug(`${G.matchID}|${log}`);
         regionRank(G, ctx, r as Region);
+        return;
     } else {
         log += "|noRegion"
         if (
@@ -2062,7 +2065,10 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
             log += "|finalScoring"
             logger.debug(`${G.matchID}|${log}`);
             finalScoring(G, ctx);
+            return;
         } else {
+            log += `|setupForNextEra`
+            setupAfterScoring(G, ctx);
             log += "|fillEmptySlots"
             if (ctx.numPlayers > SimpleRuleNumPlayers) {
                 fillEmptySlots(G, ctx);
@@ -2073,6 +2079,7 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
             logger.debug(`${G.matchID}|${log}`);
             signalEndStage(G, ctx);
             signalEndTurn(G, ctx);
+            return;
         }
     }
 };
@@ -2324,40 +2331,33 @@ export function doAestheticsBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
 
 export const regionEraProgress = (G: IG, ctx: Ctx) => {
     let log = "regionEraProgress"
-    let r = G.currentScoreRegion;
-    log += `|region|${G.currentScoreRegion}`
-    if (r === Region.NONE) throw new Error();
-    log += `|nextEra`
-    logger.debug(`${G.matchID}|${log}`);
-    nextEra(G, ctx, r);
+    const r = G.currentScoreRegion;
+    log += `|region|${r}`
+    if (r === Region.NONE) {
+        logger.error("noScoringRegion");
+        logger.debug(`${G.matchID}|${log}`);
+        return;
+    }
+    if (!G.pending.nextEraRegions.includes(r)) {
+        G.pending.nextEraRegions.push(r as ValidRegion);
+    }
     G.currentScoreRegion = Region.NONE;
-    log = "regionEraProgress|CleanUpCurrent"
-    if (ValidRegions
+    log += `|nextEraRegions|${JSON.stringify(G.pending.nextEraRegions)}`
+    if (valid_regions
         .filter(r => G.regions[r].completedModernScoring)
         .length >= 3) {
         log += "|lastRound"
         G.pending.lastRoundOfGame = true;
     }
-    if (ValidRegions.filter(r =>
-        G.regions[r].era !== IEra.ONE).length >= 2 &&
-        G.regions[Region.ASIA].era === IEra.ONE
-    ) {
-        log += "|setUpAsia"
-        drawForRegion(G, ctx, Region.ASIA, IEra.TWO);
-        G.regions[Region.ASIA].era = IEra.TWO;
-        G.regions[Region.ASIA].share = ShareOnBoard[Region.ASIA][IEra.TWO];
-        if (ctx.numPlayers === 3) {
-            G.regions[Region.ASIA].share--;
-        }
-    }
     log += "|tryScoring"
     logger.debug(`${G.matchID}|${log}`);
     tryScoring(G, ctx);
+    return;
 }
 
 export const regionScoringCheck = (G: IG, ctx: Ctx, arg: PlayerID) => {
     let log = `regionScoringCheck|${arg}`
-    ValidRegions.forEach(r => {
+    valid_regions.forEach(r => {
         if (r === Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE) {
             log += `|asiaNotShown|skip`
             // return in forEach exit current iteration
@@ -2380,6 +2380,34 @@ export const regionScoringCheck = (G: IG, ctx: Ctx, arg: PlayerID) => {
         try2pScoring(G, ctx);
     }
     log += `|noRegionsToScore`
+    logger.debug(`${G.matchID}|${log}`);
+}
+
+
+export const setupAfterScoring = (G: IG, ctx: Ctx) => {
+    let log = `setupAfterScoring`
+    const regionsToSetup = G.pending.nextEraRegions;
+    if (regionsToSetup.length > 0) {
+        for (let r of regionsToSetup) {
+            log += `|setupFor|region|${r}`
+            nextEra(G, ctx, r);
+        }
+        if (valid_regions.filter(r =>
+            G.regions[r].era !== IEra.ONE).length >= 2 &&
+            G.regions[Region.ASIA].era === IEra.ONE
+        ) {
+            log += "|setUpAsia"
+            drawForRegion(G, ctx, Region.ASIA, IEra.TWO);
+            G.regions[Region.ASIA].era = IEra.TWO;
+            G.regions[Region.ASIA].share = ShareOnBoard[Region.ASIA][IEra.TWO];
+            if (ctx.numPlayers === 3) {
+                G.regions[Region.ASIA].share--;
+            }
+        }
+    } else {
+        log += `|noRegionsToSetup`
+    }
+    G.pending.nextEraRegions = [];
     logger.debug(`${G.matchID}|${log}`);
 }
 export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
@@ -2433,7 +2461,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
     let log = "checkNextEffect";
     if (G.e.stack.length === 0) {
         log += ("|stackEmpty")
-        let newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3204);
+        const newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3204);
         if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
             G.pub[parseInt(newWavePlayer)].discardInSettle = false;
             addVp(G, ctx, newWavePlayer, 1);
@@ -2466,6 +2494,8 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                     logger.debug(`${G.matchID}|${log}`);
                     return
                 } else {
+                    log += `|setup`
+                    setupAfterScoring(G, ctx);
                     if (ctx.activePlayers !== null) {
                         log += "|signalEndStage"
                         signalEndStage(G, ctx);
@@ -2474,6 +2504,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                     } else {
                         log += `|notInStage`
                         logger.debug(`${G.matchID}|${log}`);
+                        return;
                     }
                 }
             }
@@ -2561,7 +2592,7 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     logger.debug(`${G.matchID}|${log}`);
 }
 
-export const buildBuildingFor = (G: IG, ctx: Ctx, r: validRegion, p: PlayerID, building: BuildingType): void => {
+export const buildBuildingFor = (G: IG, ctx: Ctx, r: ValidRegion, p: PlayerID, building: BuildingType): void => {
     let log = `buildBuildingFor|p${p}|${r}`
     const pub = G.pub[parseInt(p)];
     const reg = G.regions[r]
@@ -2776,10 +2807,9 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
     }
 }
 
-export function nextEra(G: IG, ctx: Ctx, r: Region) {
-    if (r === Region.NONE) throw new Error();
-    let region = G.regions[r];
-    let era = region.era;
+export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
+    const region = G.regions[r];
+    const era = region.era;
     let log = `nextEra|${r}|era:${era}`
     let newEra;
     region.legend.card = null;
@@ -2836,7 +2866,7 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     i.pending = true;
     i.atk = atk;
     i.def = def;
-    i.region = curCard(G).region as validRegion;
+    i.region = curCard(G).region as ValidRegion;
     log += `|region:${i.region}`
     let classicHollywoodPlayer = schoolPlayer(G, ctx, SchoolCardID.S3101);
     if (classicHollywoodPlayer === i.atk) {
@@ -2928,7 +2958,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     if (p.aesthetics === 10) {
         f.aestheticsAward += Math.round(p.vp / 5);
     }
-    ValidRegions.forEach(r => {
+    valid_regions.forEach(r => {
         let championCount = p.champions.filter(c => c.region === r).length;
         f.archive += p.archive.filter(card => getCardById(card).region === r).length * championCount;
     });

@@ -7,7 +7,7 @@ import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
 import PubPanel from "./pub";
-import {BasicCardID, EventCardID, ICardSlot, IPubInfo, Region, SimpleRuleNumPlayers, ValidRegions} from "../types/core";
+import {BasicCardID, EventCardID, ICardSlot, IPubInfo, Region, SimpleRuleNumPlayers, valid_regions} from "../types/core";
 import Grid from "@material-ui/core/Grid"
 import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
@@ -118,7 +118,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         <Grid item container xs={12} sm={7}>
             <Grid item xs={12} sm={6}>
                 <Typography>{i18n.pub.share}</Typography>
-                {ValidRegions.map(r =>
+                {valid_regions.map(r =>
                     <Grid key={`region-${r}-share`} item>
                         <Typography>{i18n.region[r]} {G.regions[r as 0 | 1 | 2 | 3].share}</Typography>
                     </Grid>)}

@@ -12,7 +12,7 @@ import {
     IRegionPrivate,
     Region,
     SchoolCardID,
-    SimpleRuleNumPlayers
+    SimpleRuleNumPlayers, ValidRegion
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
@@ -47,7 +47,7 @@ export interface IG {
     activeEvents: EventCardID[],
     logDiscrepancyWorkaround: boolean,
     pending: {
-        nextEraRegions: Region[],
+        nextEraRegions: ValidRegion[],
         lastRoundOfGame: boolean,
         endActivePlayer: boolean,
         endTurn: boolean,
@@ -55,7 +55,7 @@ export interface IG {
         endStage: boolean,
     },
     currentScoreRegion: Region,
-    scoringRegions: Region[],
+    scoringRegions: ValidRegion[],
     events: EventCardID[],
     c: {
         players: PlayerID[],
@@ -409,7 +409,12 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
 
     // G.pub[0].resource = 20;
     // G.pub[0].deposit = 20;
+    // G.pub[0].action = 20;
     // // @ts-ignore
+    // G.regions[Region.NA].legend.card = "P1101"
+    // G.regions[Region.NA].share = 1
+    // G.regions[Region.WE].share = 1
+    // G.regions[Region.EE].share = 1
     // G.regions[Region.NA].legend.card = "P1101"
     // // @ts-ignore
     // G.regions[Region.NA].normal[0].card = "F1103"
@@ -421,7 +426,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.secretInfo.playerDecks[0] = ["B01","F2403","B07","P2401"]
     // @ts-ignore
     // @ts-ignore
-    // G.player[0].hand = ["F2404","F2406","B07","B03"]
+    // G.player[0].hand = ["P1201", "F2406", "B07", "B03"]
     // G.pub[0].resource = 3;
     // G.pub[0].action = 10;
     return G;

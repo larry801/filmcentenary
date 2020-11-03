@@ -18,7 +18,7 @@ import {
     updateSlot, concedeMove
 } from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
-import {Region, ValidRegions, VictoryType} from "./types/core";
+import {Region, valid_regions, VictoryType} from "./types/core";
 import {getExtraScoreForFinal} from "./game/util";
 import {enumerateMoves} from "./game/ai";
 
@@ -58,7 +58,7 @@ export const FilmCentenaryGame: Game<IG> = {
     playerView: (G: IG, ctx: Ctx, playerID: PlayerID | null) => {
         let r = JSON.parse(JSON.stringify(G));
         r.eventDeckCount = G.secretInfo.events.length;
-        ValidRegions.forEach(region=>{
+        valid_regions.forEach(region=>{
             r.regions[region].legendDeckLength = G.secretInfo.regions[region].legendDeck.length;
             r.regions[region].normalDeckLength = G.secretInfo.regions[region].normalDeck.length;
         })
