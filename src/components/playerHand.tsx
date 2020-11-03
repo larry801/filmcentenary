@@ -14,7 +14,7 @@ import {CardInfo} from "./card";
 import {actualStage} from "../game/util";
 import {Stage} from "boardgame.io/core";
 import {getCardById, Region, SimpleRuleNumPlayers} from "../types/core";
-import {getColor} from "./icons";
+import {ChampionIcon, getColor} from "./icons";
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
 
@@ -61,7 +61,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     key={shortid.generate()}>
                     <AccordionSummary key={idx}>
                         <CardInfo cid={c}/>
-                        <Typography style={{color: getColor(card.region)}}>{era !== null ? i18n.era[era] : ""}</Typography>
+                        <Typography aria-label={era !== null ? i18n.era[era] : ""}><ChampionIcon champion={{region:card.region,era:card.era}}/></Typography>
                         <Typography style={{color: getColor(card.region)}}>{`${card.cardId}/${card.vp}`}</Typography>
                     </AccordionSummary>
                     <AccordionDetails key={idx}>

@@ -436,10 +436,10 @@ export const effIcon = (eff: any): JSX.Element => {
                     <ChampionIcon champion={{region:Region.NONE,era:IEra.ONE}} key={generate()}/>{effIcon(eff.a[0])}
                 </Typography> : <React.Fragment key={generate()}/>}
                 {eff.a[1].e !== "none" ? <React.Fragment key={generate()}>
-                    <ChampionIcon champion={{region:Region.NONE,era:IEra.ONE}} key={generate()}/>{effIcon(eff.a[1])}
+                    <ChampionIcon champion={{region:Region.NONE,era:IEra.TWO}} key={generate()}/>{effIcon(eff.a[1])}
                 </React.Fragment> : <React.Fragment key={generate()}/>}
                 {eff.a[2].e !== "none" ? <React.Fragment key={generate()}>
-                    <ChampionIcon champion={{region:Region.NONE,era:IEra.ONE}} key={generate()}/>{effIcon(eff.a[2])}
+                    <ChampionIcon champion={{region:Region.NONE,era:IEra.THREE}} key={generate()}/>{effIcon(eff.a[2])}
                 </React.Fragment> : <React.Fragment key={generate()}/>}
             </React.Fragment>
     }
