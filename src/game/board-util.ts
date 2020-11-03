@@ -1,6 +1,6 @@
 import {PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
-import {CardCategory, CardID, FilmCardID, getCardById} from "../types/core";
+import {CardCategory, CardID, getCardById} from "../types/core";
 
 export const getHandChoice = (G: IG, playerID: PlayerID, getCardName: (id: string) => string) => {
     return playerID === null ? [] : G.player[parseInt(playerID)].hand.map((c, idx) => {
@@ -63,7 +63,7 @@ export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName: (id:
                     return {
                         label: getCardName(c),
                         disabled: false,
-                        hidden: getCardById(c).aesthetics === 0 || c === FilmCardID.F3303,
+                        hidden: getCardById(c).aesthetics === 0 || c === G.e.card,
                         value: idx.toString()
                     }
                 })

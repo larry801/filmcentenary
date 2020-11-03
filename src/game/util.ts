@@ -931,7 +931,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const totalRes = pub.resource + pub.deposit;
     switch (eff.e) {
         case "playedCardInTurnEffect":
-            if (pub.playedCardInTurn.filter(c => getCardById(c).aesthetics > 0 && c !== FilmCardID.F3303).length > 0) {
+            if (pub.playedCardInTurn.filter(c => getCardById(c).aesthetics > 0 && c !== G.e.card).length > 0) {
                 log += `|chooseHand`
                 G.e.stack.push(eff);
                 logger.debug(`${G.matchID}|${log}`);
