@@ -12,6 +12,8 @@ import {canAfford, canBuyCard, canHelp, resCost} from "../game/util";
 import Slider from "@material-ui/core/Slider";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
+import InsertCommentIcon from '@material-ui/icons/RateReview';
+import RemoveCommentIcon from '@material-ui/icons/SpeakerNotesOff';
 import Button from "@material-ui/core/Button";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
@@ -231,9 +233,9 @@ export const Comment = ({slot, comment, G}: ICommentProps) => {
             }
             defaultChoice={"B01"} show={slot.card !== null}
             title={i18n.action.comment}
-            toggleText={i18n.action.comment}/> :
-        <Button onClick={removeComment}>
-            {i18n.dialog.comment.removeCommentCard}
+            toggleText={<InsertCommentIcon/>}/> :
+        <Button fullWidth onClick={removeComment} aria-label={i18n.dialog.comment.removeCommentCard}>
+            <RemoveCommentIcon/>
         </Button>
 }
 

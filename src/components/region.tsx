@@ -17,6 +17,9 @@ import i18n from "../constant/i18n";
 import BuyCard, {Comment} from "./buyCard";
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import createStyles from '@material-ui/core/styles/createStyles'
+import UpdateSlotIcon from '@material-ui/icons/Loop';
+import NormalCardIcon from '@material-ui/icons/RadioButtonUnchecked';
+import LegendCardIcon from '@material-ui/icons/StarBorder';
 import {activePlayer, actualStage} from "../game/util";
 import Button from "@material-ui/core/Button";
 import Paper from "@material-ui/core/Paper";
@@ -26,9 +29,9 @@ import Grid from "@material-ui/core/Grid";
 import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
-import LabelIcon from '@material-ui/icons/Label';
+import DeckIcon from '@material-ui/icons/Layers';
 import CardInfo, {getCardName} from "./card";
-import {DrawnShareIcon, getColor, IShareIconProps} from "./icons";
+import {ChampionIcon, DrawnShareIcon, getColor, IShareIconProps} from "./icons";
 import {generate} from "shortid"
 
 export interface ICardSlotProp {
@@ -40,12 +43,9 @@ export interface ICardSlotProp {
     playerID: PlayerID | null,
 }
 
-export const ShareIcon = ({r}: IShareIconProps) => <LabelIcon style={{color: getColor(r)}}/>;
-
-
 export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlotProp) => {
 
-    const variant = slot.isLegend ? "elevation" : "outlined"
+    const variant = !slot.isLegend ? "elevation" : "outlined"
 
     const updateSlot = () => {
         moves.updateSlot(slot.card);
@@ -55,7 +55,7 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
     const feeText = slot.card === null ? "" : `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}/${cardObj.vp}`
     const region = cardObj.region
     return <>
-        <Paper style={{display: 'inline-flex'}} variant={variant}>
+        <Paper variant={variant}>
             <Grid container>
                 <Grid item xs={12}>
                     {slot.card === null ? "" : <CardInfo cid={slot.card}/>}
@@ -79,7 +79,9 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
                     activePlayer(ctx) === playerID &&
                     actualStage(G, ctx) === "updateSlot" &&
                     slot.card !== null
-                        ? <Button onClick={updateSlot}>{i18n.action.updateSlot}</Button>
+                        ? <Button fullWidth onClick={updateSlot} aria-label={i18n.action.updateSlot}>
+                            <UpdateSlotIcon/>
+                        </Button>
                         : <></>
                 }
                 {
@@ -199,34 +201,43 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
             key={r}>
             <AccordionSummary key={r}>
                 <Grid container
-                      justify="flex-start"
+                      justify="space-between"
                       alignItems="baseline"
                       className={classes.root}>
-                    <Grid item xs={2} sm={1}><Paper
-                        variant={"outlined"}><Typography>{i18n.region[r]} </Typography></Paper></Grid>
-                    <Grid item xs={2} sm={1}><Paper
-                        variant={"outlined"}><Typography>
-                        {i18n.era[era]}
-                        /{legendDeckLength}
-                        /{normalDeckLength}
-                    </Typography></Paper></Grid>
-                    <Grid item container xs={2} sm={1}>
+                    <Grid item xs={2} sm={1}>
+                        <Paper
+                            variant={"outlined"}>
+                            <Typography>
+                                <ChampionIcon champion={{region:r,era:era}}/>
+                            </Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={2} sm={1}>
+
+                                <DeckIcon style={{color: getColor(r)}}/>
+                                <LegendCardIcon style={{color: getColor(r)}}/>
+                                {legendDeckLength}
+                                <NormalCardIcon style={{color: getColor(r)}}/>
+                                {normalDeckLength}
+                    </Grid>
+                    <Grid item xs={2} sm={1}>
                         <Paper
                             aria-label={`${i18n.pub.share}${share}`}
                             variant={"outlined"}>
-                            {Array(share).fill(1).map((i, idx) => <Grid item xs={6} key={idx}>
-                                <DrawnShareIcon key={idx} r={r}/>
-                            </Grid>)} </Paper></Grid>
+                            <DrawnShareIcon key={r} r={r}/>X{share}
+                        </Paper>
+                    </Grid>
                     {buildingSlots}
                 </Grid>
             </AccordionSummary>
             <AccordionDetails key={r}>
-                <Grid item><BoardCardSlot
-                    G={G} ctx={ctx} slot={legend}
-                    moves={moves}
-                    comment={comment}
-                    playerID={playerID}
-                /></Grid>
+                <Grid item>
+                    <BoardCardSlot
+                        G={G} ctx={ctx} slot={legend}
+                        moves={moves}
+                        comment={comment}
+                        playerID={playerID}
+                    /></Grid>
                 {normal.map((slot) => {
                     if (slot.card !== null) {
                         return <Grid item key={generate()}>

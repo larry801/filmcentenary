@@ -14,13 +14,13 @@ import {useI18n} from '@i18n-chain/react';
 import i18n from '../constant/i18n'
 import {ChoiceDialog} from "./modals";
 import {IG} from "../types/setup";
-import LayersIcon from '@material-ui/icons/Layers';
-import BlockIcon from '@material-ui/icons/Block';
-import UnArchiveIcon from '@material-ui/icons/Unarchive';
-import ImportContactsIcon from '@material-ui/icons/ImportContacts';
-import SettingsIcon from '@material-ui/icons/Settings';
-import MonetizationOnIcon from '@material-ui/icons/MonetizationOn';
-import LocalAtmIcon from '@material-ui/icons/LocalAtm';
+import DeckIcon from '@material-ui/icons/Layers';
+import DiscardDeckIcon from '@material-ui/icons/Block';
+import PlayedCardDeck from '@material-ui/icons/Unarchive';
+import AestheticsIcon from '@material-ui/icons/ImportContacts';
+import IndustryIcon from '@material-ui/icons/Settings';
+import ResourceIcon from '@material-ui/icons/MonetizationOn';
+import DepositIcon from '@material-ui/icons/LocalAtm';
 import {generate} from "shortid";
 import {CardInfo, getCardName} from "./card";
 import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
@@ -30,7 +30,7 @@ import {ActionPointIcon, ChampionIcon, DrawnShareIcon, getColor} from "./icons";
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import Paper from "@material-ui/core/Paper";
 import ArchiveIcon from '@material-ui/icons/Archive';
-import StarBorderIcon from '@material-ui/icons/StarBorder';
+import LegendCardIcon from '@material-ui/icons/StarBorder';
 import {getPlayerInferredHand} from "../game/board-util";
 
 const useStyles = makeStyles({
@@ -95,19 +95,19 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
                 <PanToolIcon className={classes.iconAlign}/>{i.handSize}
             </Typography>
             <Typography>
-                <MonetizationOnIcon className={classes.iconAlign}/> {i.resource}
+                <ResourceIcon className={classes.iconAlign}/> {i.resource}
             </Typography>
             <Typography>
-                <LocalAtmIcon className={classes.iconAlign}/>{i.deposit}
+                <DepositIcon className={classes.iconAlign}/>{i.deposit}
             </Typography>
         </Grid>
         <Grid item sm={3}>
             <Typography aria-label={`${i18n.pub.industry}${i.industry}`}>
-                <SettingsIcon className={classes.iconAlign}/> {i.industry}
+                <IndustryIcon className={classes.iconAlign}/> {i.industry}
                 {i.school !== null && getCardById(i.school).industry > 0 ? `(+${getCardById(i.school).industry})` : ""}
             </Typography>
             <Typography aria-label={`${i18n.pub.aesthetics}${i.aesthetics}`}>
-                <ImportContactsIcon className={classes.iconAlign}/> {i.aesthetics}
+                <AestheticsIcon className={classes.iconAlign}/> {i.aesthetics}
                 {i.school !== null && getCardById(i.school).aesthetics > 0 ? `(+${getCardById(i.school).aesthetics})` : ""}
             </Typography>
             <Typography aria-label={`${i18n.pub.action}${i.action}`}>
@@ -134,7 +134,7 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
                                     {share}
                                 </Grid>
                                 <Grid item xs={6} key={generate()}>
-                                    <StarBorderIcon key={idx} style={{color: getColor(r)}}/>
+                                    <LegendCardIcon key={idx} style={{color: getColor(r)}}/>
                                     {legend}
                                 </Grid>
                             </Grid>
@@ -170,7 +170,7 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
                     }
                 })} defaultChoice={'0'}
                 show={true} title={`${i18n.pub.discard}${i.discard.length}`}
-                toggleText={<Typography><BlockIcon className={classes.iconAlign}/>{i.discard.length}</Typography>}
+                toggleText={<Typography><DiscardDeckIcon className={classes.iconAlign}/>{i.discard.length}</Typography>}
                 initial={false}/>
             <ChoiceDialog
                 callback={noOp}
@@ -185,7 +185,7 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
                 show={true} title={`${i18n.pub.allCards}(${possibleHand.length})`}
                 toggleText={<Typography>
                     <PanToolIcon className={classes.iconAlign}/>
-                    <LayersIcon className={classes.iconAlign}/>
+                    <DeckIcon className={classes.iconAlign}/>
                     {possibleHand.length}
                 </Typography>} initial={false}/>
             <ChoiceDialog
@@ -227,7 +227,7 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
                 })} defaultChoice={'0'}
                 show={true} title={`${i18n.pub.playedCards}(${i.playedCardInTurn.length})`}
                 toggleText={<Typography>
-                    <UnArchiveIcon className={classes.iconAlign}/>{i.playedCardInTurn.length}
+                    <PlayedCardDeck className={classes.iconAlign}/>{i.playedCardInTurn.length}
                 </Typography>} initial={false}/>
         </Grid>
     </Grid>

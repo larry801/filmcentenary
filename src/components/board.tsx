@@ -7,12 +7,23 @@ import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
 import PubPanel from "./pub";
-import {BasicCardID, EventCardID, ICardSlot, IPubInfo, Region, SimpleRuleNumPlayers, valid_regions} from "../types/core";
+import {
+    BasicCardID,
+    EventCardID,
+    ICardSlot,
+    IPubInfo,
+    Region,
+    SimpleRuleNumPlayers,
+    valid_regions
+} from "../types/core";
 import Grid from "@material-ui/core/Grid"
 import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
 import LogView from './log-view'
 import useSound from 'use-sound';
+import DeckIcon from '@material-ui/icons/Layers';
+import NormalCardIcon from '@material-ui/icons/RadioButtonUnchecked';
+import LegendCardIcon from '@material-ui/icons/StarBorder';
 import {useI18n} from "@i18n-chain/react";
 import {OperationPanel} from "./boards/operation";
 import FinalScoreTable from "./boards/final";
@@ -20,6 +31,7 @@ import {getCardName} from "./card";
 import {generate} from "shortid"
 // @ts-ignore
 import playerTurnSfx from './media/turn.mp3'
+import {DrawnShareIcon} from "./icons";
 
 export function usePrevious(value: any) {
     const ref = React.useRef();
@@ -103,7 +115,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             matchID: matchID,
             seed: plugins.random.data.seed,
         } : {
-            regions: [],
+            regions: [],    
             school: G.twoPlayer.school,
             film: G.twoPlayer.film,
             matchID: matchID,
@@ -124,11 +136,12 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                     </Grid>)}
             </Grid>
             <Grid item xs={12} sm={6}>
-                <Typography>
-                    {
-                        // @ts-ignore
-                        i18n.era[G.twoPlayer.era]
-                    }/{G.twoPlayer.schoolDeckLength}/{G.twoPlayer.filmDeckLength}</Typography>
+
+                <Typography
+                    // @ts-ignore
+                    aria-label={`${i18n.era[G.twoPlayer.era]}/${G.twoPlayer.schoolDeckLength}/${G.twoPlayer.filmDeckLength}`}>
+                    <DrawnShareIcon r={Region.NONE}/><DeckIcon/><LegendCardIcon/>{G.twoPlayer.schoolDeckLength}<NormalCardIcon/>{G.twoPlayer.filmDeckLength}
+                </Typography>
             </Grid>
             <Grid item xs={12}>
                 <BoardCardSlot slot={G.twoPlayer.school[0]} G={G} ctx={ctx} moves={moves} comment={comment}

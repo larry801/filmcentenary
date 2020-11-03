@@ -19,7 +19,7 @@ import {
     FreeBreakthroughIcon,
     getColor, LoseShareIcon
 } from "./icons"
-import InsertCommentIcon from '@material-ui/icons/InsertComment';
+import InsertCommentIcon from '@material-ui/icons/RateReview';
 import DepositIcon from '@material-ui/icons/LocalAtm';
 import Typography from "@material-ui/core/Typography";
 import Grid from "@material-ui/core/Grid";
@@ -36,7 +36,7 @@ import EraTwoIcon from '@material-ui/icons/LooksTwo';
 import EraThreeIcon from '@material-ui/icons/Looks3';
 import UpgradeBadgeIcon from '@material-ui/icons/PublishRounded';
 import Badge from "@material-ui/core/Badge";
-import UpdateIcon from '@material-ui/icons/Loop';
+import UpdateSlotIcon from '@material-ui/icons/Loop';
 import PayIcon from '@material-ui/icons/CreditCard';
 
 export interface ICardEffectProps {
@@ -178,7 +178,7 @@ export const effIcon = (eff: any): JSX.Element => {
                 {effIcon(eff.a.cost)}:{effIcon(eff.a.eff)}|
             </React.Fragment>
         case "update":
-            return <React.Fragment key={generate()}><UpdateIcon key={generate()}/></React.Fragment>
+            return <React.Fragment key={generate()}><UpdateSlotIcon key={generate()}/></React.Fragment>
         case "choice":
             return <React.Fragment key={generate()}>
                 {i18n.effect.choice}
