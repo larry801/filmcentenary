@@ -31,7 +31,7 @@ import {getCardName} from "./card";
 import {generate} from "shortid"
 // @ts-ignore
 import playerTurnSfx from './media/turn.mp3'
-import {DrawnShareIcon} from "./icons";
+import {ChampionIcon} from "./icons";
 
 export function usePrevious(value: any) {
     const ref = React.useRef();
@@ -115,7 +115,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             matchID: matchID,
             seed: plugins.random.data.seed,
         } : {
-            regions: [],    
+            regions: [],
             school: G.twoPlayer.school,
             film: G.twoPlayer.film,
             matchID: matchID,
@@ -140,7 +140,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 <Typography
                     // @ts-ignore
                     aria-label={`${i18n.era[G.twoPlayer.era]}/${G.twoPlayer.schoolDeckLength}/${G.twoPlayer.filmDeckLength}`}>
-                    <DrawnShareIcon r={Region.NONE}/><DeckIcon/><LegendCardIcon/>{G.twoPlayer.schoolDeckLength}<NormalCardIcon/>{G.twoPlayer.filmDeckLength}
+                    <ChampionIcon champion={{region:Region.NONE,era:G.twoPlayer.era}}/><DeckIcon/><LegendCardIcon/>{G.twoPlayer.schoolDeckLength}<NormalCardIcon/>{G.twoPlayer.filmDeckLength}
                 </Typography>
             </Grid>
             <Grid item xs={12}>

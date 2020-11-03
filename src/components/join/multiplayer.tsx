@@ -18,7 +18,7 @@ interface MultiplayerProps {
 }
 
 export const Loading = () => {
-    return <CircularProgress/>;
+    return <CircularProgress size="20%"/>;
 }
 
 export const Spectate = ({matchID, server}: ISpectateProps) => {

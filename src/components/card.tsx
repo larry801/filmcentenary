@@ -24,6 +24,9 @@ import {
 import InsertCommentIcon from '@material-ui/icons/RateReview';
 import DepositIcon from '@material-ui/icons/LocalAtm';
 import Typography from "@material-ui/core/Typography";
+import ContinuousHeaderIcon from '@material-ui/icons/RepeatOne';
+import ArchiveHeaderIcon from '@material-ui/icons/Archive';
+import BuyCardHeaderIcon from '@material-ui/icons/ShoppingCart';
 import AestheticsIcon from '@material-ui/icons/ImportContacts';
 import IndustryIcon from '@material-ui/icons/Settings';
 import {generate} from "shortid";
@@ -44,6 +47,9 @@ import {Grid} from "@material-ui/core";
 export interface ICardEffectProps {
     cid: CardID,
 }
+
+const verticalAlign = {verticalAlign: "-0.125em"};
+
 
 export const getCardName = (cardId: string): string => {
     if (cardId in i18n.card) {
@@ -527,26 +533,34 @@ export const CardEffect = ({cid}: ICardEffectProps) => {
     const score = scoreEffectText(cid);
     return <React.Fragment key={generate()}>
         {buyEffText !== "" ? <React.Fragment key={generate()}>
-            <div key={generate()}>{i18n.effect.buyCardHeader}</div>
+            <Typography key={generate()}>
+                【<BuyCardHeaderIcon style={verticalAlign}/>】
+            </Typography>
             {effIcon(effObj.buy)}
         </React.Fragment> : <React.Fragment key={generate()}/>}
         {playEffText !== "" ? <React.Fragment key={generate()}>
-            <div key={generate()}>
-                {i18n.effect.playCardHeader}
-            </div>
+            <Typography key={generate()} aria-label={i18n.effect.playCardHeader}>
+                【<HandIcon style={verticalAlign}/><CardIcon />】
+            </Typography>
             {effIcon(effObj.play)}
         </React.Fragment> : <React.Fragment key={generate()}/>}
         {arch !== "" ? <React.Fragment key={generate()}>
-            <Typography key={generate()}>{i18n.effect.breakthroughHeader}</Typography>
+            <Typography key={generate()} aria-label={i18n.effect.breakthroughHeader}>
+                【<ArchiveHeaderIcon style={verticalAlign}/>】
+            </Typography>
             {effIcon(effObj.archive)}
         </React.Fragment> : <React.Fragment key={generate()}/>}
         {isSchool ? <React.Fragment key={generate()}>
-            <Typography key={generate()}>{i18n.effect.continuous}</Typography>
+            <Typography key={generate()} aria-label={i18n.effect.continuous}>
+                <ContinuousHeaderIcon style={verticalAlign}/>
+            </Typography>
             <Typography key={generate()}>
                 <CardIcon key={generate()}/>{effObj.school.hand}
                 <ActionPointIcon key={generate()}/>{effObj.school.action}
             </Typography>
-            <Typography key={generate()}>{schoolEffectText(cid)}</Typography>
+            <Typography key={generate()}>
+                {schoolEffectText(cid)}
+            </Typography>
         </React.Fragment> : ""}
         {score !== "" ? <Typography key={generate()}>{score}</Typography>
             : <React.Fragment key={generate()}/>}

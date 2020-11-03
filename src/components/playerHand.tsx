@@ -61,7 +61,10 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     key={shortid.generate()}>
                     <AccordionSummary key={idx}>
                         <CardInfo cid={c}/>
-                        <Typography aria-label={era !== null ? i18n.era[era] : ""}><ChampionIcon champion={{region:card.region,era:card.era}}/></Typography>
+                        {era !== null ?
+                            <Typography aria-label={i18n.era[era]}>
+                                <ChampionIcon champion={{region: card.region, era: era}}/>
+                            </Typography> : <></>}
                         <Typography style={{color: getColor(card.region)}}>{`${card.cardId}/${card.vp}`}</Typography>
                     </AccordionSummary>
                     <AccordionDetails key={idx}>
