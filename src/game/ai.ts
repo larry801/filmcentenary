@@ -2,6 +2,7 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {actualStage, canAfford, getPossibleHelper, resCost} from "./util";
 import {Stage} from "boardgame.io/core";
+import { MCTSBot } from 'boardgame.io/ai';
 import {
     Region,
     SimpleRuleNumPlayers,
@@ -12,7 +13,8 @@ import {
     getCardById,
 } from "../types/core";
 import {getChooseHandChoice, getPeekChoices} from "./board-util";
-const getCardName = ()=>"";
+
+const getCardNameMock = () => "";
 export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard):
     Array<{ move: string; args?: any[] }> => {
     const moves: Array<{ move: string; args?: any[] }> = [];
@@ -80,7 +82,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
         matchID: "",
         seed: "",
     }
-    if(ctx.phase === "InitPhase"){
+    if (ctx.phase === "InitPhase") {
         return [{move: "showBoardStatus", args: [boardStatus]}]
     }
     const stage = actualStage(G, ctx);
@@ -90,7 +92,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
     const hand = playerObj.hand
 
     const peek = playerObj.cardsToPeek;
-    const CheapBasicCards = [BasicCardID.B01,BasicCardID.B02,BasicCardID.B03,BasicCardID.B04]
+    const CheapBasicCards = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03, BasicCardID.B04]
     const AvailBasicCards = CheapBasicCards.filter(b => G.basicCards[b] > 0)
     switch (stage) {
         case Stage.NULL:
@@ -200,7 +202,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
             }
             break;
         case"chooseHand":
-            const chooseHandChoices = getChooseHandChoice(G, p, getCardName);
+            const chooseHandChoices = getChooseHandChoice(G, p, getCardNameMock);
             const validChoice = chooseHandChoices.filter(c => !c.disabled);
             validChoice.forEach((i) => {
                 moves.push({
@@ -263,7 +265,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                     }]
                 })
             } else {
-                const validChoices = getPeekChoices(G, p, getCardName).filter(c => !c.disabled);
+                const validChoices = getPeekChoices(G, p, getCardNameMock).filter(c => !c.disabled);
                 validChoices.forEach(c => moves.push({
                     move: stage, args: [{
                         idx: parseInt(c.value), p: p, card: peek[parseInt(c.value)], shownCards: peek
@@ -306,4 +308,22 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
             return [];
     }
     return moves;
+}
+
+export const industryLevelTwoObj = {
+    checker:(G: IG, ctx: Ctx, p: PlayerID): boolean => {
+        return G.pub[parseInt(p)].industry >=2
+    },
+    weight: 20,
+}
+export const vp150AutoObjective = {
+    checker:(G: IG, ctx: Ctx, p: PlayerID): boolean => {
+        return G.pub[parseInt(p)].finalScoring.total > 150
+    },
+    weight: 100,
+}
+
+export const objectives ={
+    vp150:vp150AutoObjective,
+    industry2:industryLevelTwoObj,
 }
