@@ -2,7 +2,6 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {actualStage, canAfford, getPossibleHelper, resCost} from "./util";
 import {Stage} from "boardgame.io/core";
-import { MCTSBot } from 'boardgame.io/ai';
 import {
     Region,
     SimpleRuleNumPlayers,
