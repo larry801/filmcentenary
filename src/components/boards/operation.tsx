@@ -1,7 +1,6 @@
 import React from "react";
-import SendIcon from '@material-ui/icons/Send';
-import ExitToAppIcon from '@material-ui/icons/ExitToApp';
-import LayersIcon from '@material-ui/icons/Layers';
+import NextTurnIcon from '@material-ui/icons/ExitToApp';
+import DeckIcon from '@material-ui/icons/Layers';
 import {IG} from "../../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import i18n from "../../constant/i18n";
@@ -22,8 +21,8 @@ import UndoIcon from '@material-ui/icons/Undo';
 import RedoIcon from '@material-ui/icons/Redo';
 import {IconButton} from "@material-ui/core";
 import {ActionPointIcon} from "../icons";
-import PanToolIcon from "@material-ui/icons/PanTool";
-
+import HandIcon from "@material-ui/icons/PanTool";
+import ConcedeIcon from '@material-ui/icons/DirectionsRun';
 export interface IOPanelProps {
     G: IG,
     ctx: Ctx,
@@ -84,7 +83,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             initial={false}
             title={`${i18n.pub.deck}(${deck.length})`}
             toggleText={<Typography>
-                <LayersIcon/>{deck.length}
+                <DeckIcon/>{deck.length}
             </Typography>}
             defaultChoice={'0'}/>
 
@@ -303,7 +302,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             ]} defaultChoice={"yes"}
             show={canMoveCurrent && !G.pending.endTurn && noStage}
             title={i18n.action.endStage}
-            toggleText={<Typography><SendIcon/></Typography>}
+            toggleText={<Typography><NextTurnIcon/></Typography>}
         />
 
     const drawCard = (choice: string) => {
@@ -329,7 +328,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             title={i18n.action.draw}
             toggleText={<Typography>
                 <ActionPointIcon/>
-                <PanToolIcon/>
+                <HandIcon/>
             </Typography>}
         />
         : <></>
@@ -446,7 +445,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             ]} defaultChoice={"no"}
             show={canMoveCurrent && noStage}
             title={i18n.dialog.concede.title}
-            toggleText={<ExitToAppIcon/>}
+            toggleText={<ConcedeIcon/>}
         />
 
     return <Grid item container xs={12} sm={5}>
@@ -482,7 +481,6 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             {endTurnButton}
             {endStageButton}
             {concedeDialog}
-
             {showCompetitionResultButton}
             {drawCardDialog}
             {requestEndTurnDialog}
