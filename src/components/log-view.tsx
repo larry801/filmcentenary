@@ -108,7 +108,7 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
         })
     }
 
-    return <Grid item container xs={12}>
+    return <Grid item container aria-live="polite" xs={12}>
         <Button fullWidth={true} onClick={toggleGameLog}>
             {i18n.pub.gameLog}
         </Button>

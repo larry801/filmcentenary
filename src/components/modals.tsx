@@ -38,7 +38,7 @@ export interface IChoiceProps {
     choices: Choice[],
     defaultChoice: string,
     show: boolean,
-    title: string | JSX.Element,
+    title: string,
     toggleText: string | JSX.Element,
     initial: boolean,
     popAfterShow?: boolean,
@@ -76,13 +76,14 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
 
     return show ? <Grid item xs={12}>
         <Button
+            aria-label={title}
             fullWidth
             variant={"outlined"}
             onClick={handleClickOpen}
             style={{textTransform: 'none'}}
         > {toggleText}</Button>
         <Dialog
-            // TODO aria-label missing after allow JSX in title
+            aria-label={title}
             open={open}
             onClose={handleClose}
         >
@@ -94,7 +95,7 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
                     <FormGroup className={classes.formControl}>
                         <FormLabel component="legend">{toggleText}</FormLabel>
                         <RadioGroup
-                            // TODO aria-label missing after allow JSX in title
+                            aria-label={title}
                             name="choice" value={choice}
                             onChange={handleChange}>
                             {choices.map((choice) =>
