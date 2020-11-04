@@ -1279,7 +1279,6 @@ export const effects = {
                 },
                 {
                     e: "step", a: [
-                        noEff,
                         {e: "draw", a: 1},
                         {e: "loseVp", a: 1},
                     ]
@@ -1469,7 +1468,7 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "deposit", a: 1},
-                {e: "noStudio", a: {e: "discard", a: 1}},
+                {e: "noStudio", a: {e: "loseDeposit", a: 1}},
                 {
                     e: "studio", a: {
                         e: "peek", a: {
@@ -1532,12 +1531,20 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "era", a: [noEff,
-                {e: "step", a: [{e: "res", a: 3}, {e: "vp", a: 1}]},
+                {
+                    e: "step", a: [
+                        {e: "res", a: 3}, {e: "vp", a: 1}
+                    ]
+                },
                 {
                     e: "step",
                     a: [{e: "vp", a: 2}, {
                         e: "peek",
-                        a: {count: 3, target: "hand", filter: {e: "region", a: Region.ASIA}}
+                        a: {
+                            count: 2, target: "hand", filter: {
+                                e: "choice", a: 1
+                            }
+                        }
                     }]
                 }
             ]
@@ -1626,18 +1633,8 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "era", a: [
-                noEff,
-                {
-                    e: "step", a: [
-                        {e: "res", a: 2}, {e: "vp", a: 2},
-                    ]
-                },
-                {
-                    e: "step", a: [
-                        {e: "res", a: 1}, {e: "update", a: 1}
-                    ]
-                }
+            e: "step", a: [
+                {e: "res", a: 2}, {e: "update", a: 1}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -1652,7 +1649,13 @@ export const effects = {
             e: "era", a: [
                 noEff,
                 {e: "step", a: [{e: "res", a: 1}, {e: "deposit", a: 1}]},
-                {e: "peek", a: {count: 2, target: "hand", filter: {e: "era", a: IEra.TWO}}}
+                {
+                    e: "peek", a: {
+                        count: 2, target: "hand", filter: {
+                            e: "choice", a: 1
+                        }
+                    }
+                }
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
