@@ -1315,16 +1315,34 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 switch (choice.e) {
                     case "breakthroughResDeduct":
                         if (handLength > 0) {
-                            G.e.choices.push(choice);
+                            if (eff.hasOwnProperty("target")) {
+                                const choiceEff = {...choice};
+                                choiceEff.target = eff.target;
+                                G.e.choices.push(choiceEff);
+                            } else {
+                                G.e.choices.push(choice);
+                            }
                         }
                         break;
                     case "buy":
                         if (idOnBoard(G, ctx, choice.a)) {
-                            G.e.choices.push(choice);
+                            if (eff.hasOwnProperty("target")) {
+                                const choiceEff = {...choice};
+                                choiceEff.target = eff.target;
+                                G.e.choices.push(choiceEff);
+                            } else {
+                                G.e.choices.push(choice);
+                            }
                         }
                         break;
                     default:
-                        G.e.choices.push(choice);
+                        if (eff.hasOwnProperty("target")) {
+                            const choiceEff = {...choice};
+                            choiceEff.target = eff.target;
+                            G.e.choices.push(choiceEff);
+                        } else {
+                            G.e.choices.push(choice);
+                        }
                 }
             }
             if (G.e.choices.length === 0) {
