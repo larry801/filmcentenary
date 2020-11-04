@@ -1670,7 +1670,7 @@ const NoneBasicCards = {
         cost: cost(9, 4, 10),
         vp: 3,
         category: CardCategory.LEGEND,
-        industry: 0,
+        industry: 1,
         aesthetics: 3,
     }),
     "P3202": personCard({
