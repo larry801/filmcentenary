@@ -263,7 +263,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         }
         {G.pub.map((u: IPubInfo, idx: number) =>
             <Grid item sm={6} lg={3} key={generate()}>
-                <PubPanel i={u} key={generate()} G={G} idx={idx} getName={getName}/>
+                <PubPanel ctx={ctx} i={u} key={generate()} G={G} idx={idx} getName={getName}/>
             </Grid>
         )}
         <FinalScoreTable G={G} ctx={ctx} getName={getName}/>

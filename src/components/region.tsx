@@ -208,17 +208,16 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                         <Paper
                             variant={"outlined"}>
                             <Typography>
-                                <ChampionIcon champion={{region:r,era:era}}/>
+                                <ChampionIcon champion={{region: r, era: era}}/>
                             </Typography>
                         </Paper>
                     </Grid>
                     <Grid item xs={2} sm={1}>
-
-                                <DeckIcon style={{color: getColor(r)}}/>
-                                <LegendCardIcon style={{color: getColor(r)}}/>
-                                {legendDeckLength}
-                                <NormalCardIcon style={{color: getColor(r)}}/>
-                                {normalDeckLength}
+                        <DeckIcon style={{color: getColor(r)}}/>
+                        <LegendCardIcon style={{color: getColor(r)}}/>
+                        {legendDeckLength}
+                        <NormalCardIcon style={{color: getColor(r)}}/>
+                        {normalDeckLength}
                     </Grid>
                     <Grid item xs={2} sm={1}>
                         <Paper

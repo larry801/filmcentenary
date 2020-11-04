@@ -1374,7 +1374,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     if (pub.deposit < eff.a.cost.a) {
                         break;
                     } else {
-                        loseDeposit(G, ctx, p,eff.a.cost.a);
+                        loseDeposit(G, ctx, p, eff.a.cost.a);
                         G.e.stack.push(eff.a.eff);
                         break;
                     }
@@ -1948,7 +1948,7 @@ export const additionalCostForUpgrade = (G: IG, level: number): number => {
     }
 }
 
-export const legendCount = (G: IG, ctx: Ctx, r: Region, e: IEra, p: PlayerID): number => {
+export const legendCount = (G: IG, r: Region, e: IEra, p: PlayerID): number => {
     return G.pub[parseInt(p)].allCards
         .filter(c =>
             getCardById(c).category === CardCategory.LEGEND
@@ -2101,12 +2101,8 @@ export const passCompensateMarker = (G: IG) => {
     logger.debug(`${G.matchID}|${log}`);
 }
 
-export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
-    if (r === Region.NONE) return;
-    let era = G.regions[r].era;
-    let log = `regionRank|${r}|${era}`
-    let compensateMarkerUsed = false;
-    const rank = (a: PlayerID, b: PlayerID): number => {
+export const regionRanker = (G: IG, ctx: Ctx, r: ValidRegion, era: IEra) => {
+    return (a: PlayerID, b: PlayerID): number => {
         let log = `rank|${a}|${b}`
         let p1 = G.pub[parseInt(a)];
         let p2 = G.pub[parseInt(b)];
@@ -2124,8 +2120,8 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             return 1;
         }
         log += `|sameShare`
-        const legendCountA = legendCount(G, ctx, r, era, a);
-        const legendCountB = legendCount(G, ctx, r, era, b);
+        const legendCountA = legendCount(G, r, era, a);
+        const legendCountB = legendCount(G, r, era, b);
         log += `|legendCount|${legendCountA}|${legendCountB}`
         if (legendCountA > legendCountB) {
             log += `|legendCount|p${a}win`
@@ -2155,8 +2151,13 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
                 throw Error("Two player cannot have the same position.")
             }
         }
-    }
-    let rankingPlayer: PlayerID[] = [];
+    };
+}
+
+export const getRegionRank = (G: IG, ctx: Ctx, r: ValidRegion): PlayerID[] => {
+    let log = "getRegionRank"
+    const era = G.regions[r].era;
+    const rankingPlayer: PlayerID[] = [];
     G.order.forEach((i, idx) => {
         log += `|p${idx}|share${G.pub[idx].shares[r]}`
         if (G.pub[idx].shares[r] === 0) {
@@ -2167,7 +2168,29 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             rankingPlayer.push(idx.toString())
         }
     });
-    let rankResult = rankingPlayer.sort(rank);
+    log += `|rankingPlayer|${JSON.stringify(rankingPlayer)}`
+    const result = rankingPlayer.sort(regionRanker(G, ctx, r, era));
+    log += `|result|${JSON.stringify(result)}`
+    logger.debug(`${G.matchID}|${log}`);
+    return result;
+}
+
+export const getPlayerRegionRank = (G: IG, ctx: Ctx, pid: PlayerID, r: ValidRegion): number => {
+    const pub = G.pub[parseInt(pid)]
+    if (pub.shares[r] === 0) {
+        return -1
+    } else {
+        const rankResult = getRegionRank(G, ctx, r);
+        return rankResult.indexOf(pid);
+    }
+}
+
+export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
+    if (r === Region.NONE) return;
+    let era = G.regions[r].era;
+    let log = `regionRank|${r}|${era}`
+    let compensateMarkerUsed = false;
+    const rankResult = getRegionRank(G,ctx,r);
     if (compensateMarkerUsed) {
         passCompensateMarker(G);
     }

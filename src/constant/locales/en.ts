@@ -478,6 +478,7 @@ const rank = {
     3: "Third place of",
 }
 const en = {
+    rank:rank,
     drawer: {
         singlePlayer: "Single player vs AI",
         singlePlayer3p: "Single player vs AI(3 person)",

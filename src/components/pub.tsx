@@ -6,7 +6,7 @@ import {
     getCardById, IPubInfo,
     SimpleRuleNumPlayers,
     ValidRegion,
-    valid_regions
+    valid_regions, IEra
 } from "../types/core";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
@@ -15,6 +15,7 @@ import i18n from '../constant/i18n'
 import {ChoiceDialog} from "./modals";
 import {IG} from "../types/setup";
 import DeckIcon from '@material-ui/icons/Layers';
+import NoScoringCardIcon from '@material-ui/icons/Block';
 import DiscardDeckIcon from '@material-ui/icons/Block';
 import PlayedCardDeck from '@material-ui/icons/Unarchive';
 import AestheticsIcon from '@material-ui/icons/ImportContacts';
@@ -25,13 +26,14 @@ import {generate} from "shortid";
 import {CardInfo, getCardName} from "./card";
 import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
 import PanToolIcon from "@material-ui/icons/PanTool";
-import {PlayerID} from "boardgame.io";
+import {Ctx, PlayerID} from "boardgame.io";
 import {ActionPointIcon, ChampionIcon, DrawnShareIcon, getColor} from "./icons";
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import Paper from "@material-ui/core/Paper";
 import ArchiveIcon from '@material-ui/icons/Archive';
 import LegendCardIcon from '@material-ui/icons/StarBorder';
 import {getPlayerInferredHand} from "../game/board-util";
+import {getPlayerRegionRank} from "../game/util";
 
 const useStyles = makeStyles({
     root: {
@@ -49,17 +51,18 @@ const useStyles = makeStyles({
 });
 
 export interface IPubPanelProps {
-    i:IPubInfo,
+    i: IPubInfo,
     idx: number,
     getName: (p: PlayerID) => string,
     G: IG,
+    ctx: Ctx,
 }
 
-export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
+export const PubPanel = ({ctx, i, idx, getName, G}: IPubPanelProps) => {
     useI18n(i18n);
     const classes = useStyles();
     const inferHand = (): CardID[] => getPlayerInferredHand(G, idx.toString());
-
+    const playerID = idx.toString()
     const legendCount = (r: ValidRegion) => i.allCards.filter(c => getCardById(c).category === CardCategory.LEGEND &&
         getCardById(c).region === r &&
         getCardById(c).era === G.regions[r].era
@@ -128,12 +131,20 @@ export const PubPanel = ({i, idx, getName, G}: IPubPanelProps) => {
                     {valid_regions.map((r: ValidRegion) => {
                             const share = i.shares[r];
                             const legend = legendCount(r);
+                            const rank = getPlayerRegionRank(G, ctx, playerID, r);
+                            const rankHintIcon = rank === -1 ? <NoScoringCardIcon className={classes.iconAlign}/> : <ChampionIcon champion={{
+                                region:r,
+                                era: rank as IEra,
+                            }}/>;
                             return <Grid container key={generate()}>
-                                <Grid item xs={6} key={generate()}>
+                                <Grid item xs={4} key={generate()}>
                                     <DrawnShareIcon key={generate()} r={r}/>
                                     {share}
                                 </Grid>
-                                <Grid item xs={6} key={generate()}>
+                                <Grid item xs={4} key={generate()}>
+                                    {rankHintIcon}
+                                </Grid>
+                                <Grid item xs={4} key={generate()}>
                                     <LegendCardIcon key={idx} style={{color: getColor(r)}}/>
                                     {legend}
                                 </Grid>

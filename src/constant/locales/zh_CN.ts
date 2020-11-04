@@ -816,6 +816,7 @@ const zh_CN: Locale = {
     hand: {
         title: "手牌"
     },
+    rank:rank,
     pub: {
         region: "地区",
         legend: "传奇",
