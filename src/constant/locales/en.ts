@@ -218,10 +218,10 @@ const getCardName = (cardId: string): string => {
     }
     if (cardId.startsWith('V')) {
         const cardEra = parseInt(cardId.slice(1, 2)) - 1;
-        const cardRegion = parseInt(cardId.slice(2, 3));
+        const cardRegion = parseInt(cardId.slice(2, 3)) - 1;
         const cardRank = parseInt(cardId.slice(3, 4));
         // @ts-ignore
-        return `${rank[cardRank]}${region[cardRegion]}${era[cardEra]} era `
+        return `${rank[cardRank]} ${region[cardRegion]} in ${era[cardEra]} Era`
     }
     return `unknown card${cardId}`
 }
@@ -881,7 +881,7 @@ const en = {
         playedCards: "Played Cards",
     },
     score: {
-        cardName: ['{{rank}} {{region}} {{era}}', {
+        cardName: ['{{rank}} {{region}} in {{era}} Era', {
             era: (e: IEra): string => era[e],
             rank: (rankNum: 1 | 2 | 3): string => rank[rankNum],
             region: (r: Region): string => region[r],

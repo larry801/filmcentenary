@@ -66,7 +66,7 @@ export const getCardName = (cardId: string): string => {
                 return i18n.card[cardId]
             } else {
                 if (cardId in ScoreCardID) {
-                    let scoreCard = getScoreCardByID(cardId);
+                    const scoreCard = getScoreCardByID(cardId);
                     return i18n.score.cardName({
                         era: scoreCard.era,
                         region: scoreCard.region,

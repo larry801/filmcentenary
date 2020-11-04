@@ -215,7 +215,7 @@ const getCardName = (cardId: string): string => {
     }
     if (cardId.startsWith('V')) {
         const cardEra = parseInt(cardId.slice(1, 2)) - 1;
-        const cardRegion = parseInt(cardId.slice(2, 3));
+        const cardRegion = parseInt(cardId.slice(2, 3)) - 1;
         const cardRank = parseInt(cardId.slice(3, 4));
         // @ts-ignore
         return `${era[cardEra]}时代${region[cardRegion]}${rank[cardRank]}`
