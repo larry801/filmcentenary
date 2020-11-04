@@ -2162,7 +2162,6 @@ export const getRegionRank = (G: IG, ctx: Ctx, r: ValidRegion): PlayerID[] => {
         log += `|p${idx}|share${G.pub[idx].shares[r]}`
         if (G.pub[idx].shares[r] === 0) {
             log += "|badFilm"
-            doBuy(G, ctx, B04, idx.toString())
         } else {
             log += `|rank`
             rankingPlayer.push(idx.toString())
@@ -2190,7 +2189,16 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     let era = G.regions[r].era;
     let log = `regionRank|${r}|${era}`
     let compensateMarkerUsed = false;
-    const rankResult = getRegionRank(G,ctx,r);
+    G.order.forEach((i, idx) => {
+        log += `|p${idx}|share${G.pub[idx].shares[r]}`
+        if (G.pub[idx].shares[r] === 0) {
+            log += "|badFilm"
+            doBuy(G, ctx, B04, idx.toString())
+        } else {
+            log += `|rank`
+        }
+    });
+    const rankResult = getRegionRank(G, ctx, r);
     if (compensateMarkerUsed) {
         passCompensateMarker(G);
     }
