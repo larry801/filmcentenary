@@ -2342,7 +2342,9 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "vp", a: 3}, {e: "update", a: 1}, {e: "handToAnyPlayer", a: 1}, {e: "handToAnyPlayer", a: 1}
+                {e: "vp", a: 3},
+                {e: "update", a: 1},
+                {e: "handToAnyPlayer", a: 1}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
