@@ -54,8 +54,25 @@ const loggerD = {
     error: (log: string) => console.log(`error|${log}`),
 }
 export const logger = loggerD;
+
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
+}
+
+export const commentBasicCardDepleted = (G: IG): boolean => {
+    return G.basicCards["B04"] === 0
+        && G.basicCards["B01"] === 0
+        && G.basicCards["B02"] === 0
+        && G.basicCards["B03"] === 0
+}
+
+export const wholeBoardDepleted = (G: IG): boolean => {
+    if (G.playerCount > SimpleRuleNumPlayers) {
+        return valid_regions.every(r => regionCardDepleted(G, r));
+    } else {
+        return G.twoPlayer.film.every(s => s.card === null)
+            && G.twoPlayer.school.every(s => s.card === null);
+    }
 }
 
 export function activePlayer(ctx: Ctx) {
@@ -579,7 +596,7 @@ export const posOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
 
 export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
     if (r === Region.NONE) return false;
-    return !G.regions[r].completedModernScoring && (cardDepleted(G, ctx, r) || shareDepleted(G, ctx, r));
+    return !G.regions[r].completedModernScoring && (regionCardDepleted(G, r) || shareDepleted(G, ctx, r));
 }
 
 export const seqFromPos = (G: IG, ctx: Ctx, pos: number): PlayerID[] => {
@@ -1363,11 +1380,23 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             logger.debug(`${G.matchID}|${log}`);
             return;
         case "update":
-            changePlayerStage(G, ctx, "updateSlot", p);
-            return;
+            if (wholeBoardDepleted(G)){
+                log += `|noSlotToUpdate`
+                break;
+            }else{
+                changePlayerStage(G, ctx, "updateSlot", p);
+                return;
+            }
         case "comment":
-            changePlayerStage(G, ctx, "comment", p);
-            return;
+            if (
+                wholeBoardDepleted(G) || commentBasicCardDepleted(G)
+            ){
+                log += `|noTargetOrCommentCard`
+                break;
+            }else {
+                changePlayerStage(G, ctx, "comment", p);
+                return;
+            }
         case "pay":
             switch (eff.a.cost.e) {
                 case "res":
@@ -1569,7 +1598,7 @@ export function idOnBoard(G: IG, ctx: Ctx, id: string): boolean {
     return cardOnBoard(G, ctx, getCardById(id));
 }
 
-export function cardDepleted(G: IG, ctx: Ctx, region: Region) {
+export function regionCardDepleted(G: IG, region: Region) {
     if (region === Region.NONE) return false;
     let r = G.regions[region];
     return r.legend.card === null &&
