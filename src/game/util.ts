@@ -1941,6 +1941,8 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
         slot.comment = null;
     }
     if (slot.card === null) {
+        log += `|emtpySlot`
+        logger.debug(`${G.matchID}|${log}`);
         return;
     }
     if (ctx.numPlayers > SimpleRuleNumPlayers) {
@@ -2931,10 +2933,12 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
         }
     }
     if (era === IEra.THREE) {
+        log += `|eraThree`
         doReturnSlotCard(G, ctx, region.legend);
         for (let slot of region.normal) {
-            doReturnSlotCard(G, ctx, slot)
+            doReturnSlotCard(G, ctx, slot);
         }
+        region.share = 0;
         log += `|completedModernScoring`
         region.completedModernScoring = true;
     }
