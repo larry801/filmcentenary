@@ -9,12 +9,10 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import i18n from "../constant/i18n";
 import {useI18n} from "@i18n-chain/react";
-import {MoveNames} from "../types/core";
 import shortid from 'shortid'
 import copy from "copy-to-clipboard";
 import ContentCopyIcon from '@material-ui/icons/FileCopy';
 import IconButton from '@material-ui/core/IconButton';
-import {effName} from "./card";
 import {getLogText, getMoveText} from "../game/board-util";
 
 const useStyles = makeStyles((theme: Theme) =>
