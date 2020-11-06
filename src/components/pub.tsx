@@ -32,8 +32,10 @@ import makeStyles from '@material-ui/core/styles/makeStyles';
 import Paper from "@material-ui/core/Paper";
 import ArchiveIcon from '@material-ui/icons/Archive';
 import LegendCardIcon from '@material-ui/icons/StarBorder';
-import {getPlayerInferredHand} from "../game/board-util";
+import {getLogText, getPlayerInferredHand} from "../game/board-util";
 import {getPlayerRegionRank} from "../game/util";
+import TextareaAutosize from "@material-ui/core/TextareaAutosize";
+import {LogEntry} from "boardgame.io";
 
 const useStyles = makeStyles({
     root: {
@@ -56,9 +58,10 @@ export interface IPubPanelProps {
     getName: (p: PlayerID) => string,
     G: IG,
     ctx: Ctx,
+    log: LogEntry[],
 }
 
-export const PubPanel = ({ctx, i, idx, getName, G}: IPubPanelProps) => {
+export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
     useI18n(i18n);
     const classes = useStyles();
     const inferHand = (): CardID[] => getPlayerInferredHand(G, idx.toString());
@@ -88,8 +91,19 @@ export const PubPanel = ({ctx, i, idx, getName, G}: IPubPanelProps) => {
         i.champions.forEach((champion: Champion) => labelText += `${i18n.region[champion.region]}${i18n.era[champion.era]}`)
         return labelText
     }
+    const cloneLog = [...log]
+    const reverseLog = cloneLog.filter(l=>l.action.payload.playerID===playerID).reverse()
+    const playerLogText = reverseLog.map(l=>getLogText(l, getName)).join('\n');
 
     return <Grid container key={generate()}>
+        <Grid item xs={12}>
+            <TextareaAutosize
+                disabled={true}
+                rowsMin={1}
+                rowsMax={6}
+                defaultValue={playerLogText}
+            />
+        </Grid>
         <Grid item sm={3}>
             <Typography>
                 {getName(idx.toString())}

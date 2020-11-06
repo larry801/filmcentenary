@@ -23,6 +23,9 @@ import {IconButton} from "@material-ui/core";
 import {ActionPointIcon} from "../icons";
 import HandIcon from "@material-ui/icons/PanTool";
 import ConcedeIcon from '@material-ui/icons/DirectionsRun';
+import {LogEntry} from "boardgame.io";
+
+
 export interface IOPanelProps {
     G: IG,
     ctx: Ctx,
@@ -39,9 +42,10 @@ export interface IOPanelProps {
     undo: () => void;
     redo: () => void;
     getName: (pid: string) => string,
+    log: LogEntry[],
 }
 
-export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, events}: IOPanelProps) => {
+export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, events, log}: IOPanelProps) => {
     const pub = G.pub[parseInt(playerID)];
     const iPrivateInfo = G.player[parseInt(playerID)];
     const hand = iPrivateInfo.hand
@@ -135,7 +139,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             toggleText={i18n.dialog.peek.title}/>
 
 
-    const discardChoices = getChooseHandChoice(G, playerID,getCardName);
+    const discardChoices = getChooseHandChoice(G, playerID, getCardName);
     const chooseHandTitle = hasCurEffect ? curEffName : i18n.dialog.chooseHand.title;
     const chooseHand = (choice: string) => {
         moves.chooseHand({
@@ -450,7 +454,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
 
     return <Grid item container xs={12} sm={5}>
         <Grid item container xs={12}>
-            <PubPanel ctx={ctx} i={G.pub[parseInt(playerID)]} idx={parseInt(playerID)} G={G} getName={getName}/>
+            <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(playerID)]} idx={parseInt(playerID)} G={G} getName={getName}/>
         </Grid>
         {noStage && canMoveCurrent ?
             <Grid item xs={6}>

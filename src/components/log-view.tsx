@@ -15,6 +15,7 @@ import copy from "copy-to-clipboard";
 import ContentCopyIcon from '@material-ui/icons/FileCopy';
 import IconButton from '@material-ui/core/IconButton';
 import {effName} from "./card";
+import {getLogText, getMoveText} from "../game/board-util";
 
 const useStyles = makeStyles((theme: Theme) =>
     createStyles({
@@ -42,66 +43,13 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
         setOpen(!open)
     }
 
-    const getMoveText = (l: LogEntry): string => {
-        const pid = l.action.payload.playerID
-        switch (l.action.type) {
-            case "MAKE_MOVE":
-                const moveName = l.action.payload.type as MoveNames
-                if (moveName === MoveNames.requestEndTurn) {
-                    return `p${pid}.moves.requestEndTurn("${pid}");`
-                } else {
-                    if (l.action.payload.args === null) {
-                        return `p${pid}.moves.${moveName}([]);`
-                    } else {
-                        return `p${pid}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])});`
-                    }
-                }
-            case "UNDO":
-                return `p${pid}.undo();`
-            case "REDO":
-                return `p${pid}.redo();`
-            default:
-                return ""
-        }
-    }
-
-    const getLogText = (l: LogEntry): string => {
-        switch (l.action.type) {
-            case "GAME_EVENT":
-                if (l.action.payload.type === "endTurn" && l.turn !== 1) {
-                    return i18n.action.turnEnd({a: l.turn - 1})
-                } else {
-                    return "";
-                }
-            case "MAKE_MOVE":
-                let moveName = l.action.payload.type as MoveNames
-                if (moveName === MoveNames.chooseEffect) {
-                    return getPlayerName(l.action.payload.playerID) + i18n.effect.chose + effName(
-                        // @ts-ignore
-                        l.action.payload.args[0].effect
-                    )
-                } else {
-                    return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
-                        // @ts-ignore
-                        args: l.action.payload.args
-                    })
-                }
-            case "REDO":
-                return getPlayerName(l.action.payload.playerID) + i18n.action.redo
-            case "UNDO":
-                return getPlayerName(l.action.payload.playerID) + i18n.action.undo
-            default:
-                return ""
-        }
-    }
-
     const moveText = log.map((l: LogEntry) => getMoveText(l)).join("\r\n");
     const onCopyMove = () => {
         copy(moveText, {
             message: i18n.lobby.copyPrompt,
         })
     }
-    const logText = log.map((l: LogEntry) => getLogText(l)).join("\r\n");
+    const logText = log.map((l: LogEntry) => getLogText(l ,getPlayerName)).join("\r\n");
     const onCopyLog = () => {
         copy(logText, {
             message: i18n.lobby.copyPrompt,
@@ -139,7 +87,7 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
                         width={width}>
                         {({index, style}) => {
                             const i = log.length - index - 1;
-                            const text = getLogText(log[i])
+                            const text = getLogText(log[i], getPlayerName)
                             return text === "" ? <></> : <ListItem
                                 button
                                 // @ts-ignore
