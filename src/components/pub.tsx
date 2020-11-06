@@ -98,10 +98,13 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
     return <Grid container key={generate()}>
         <Grid item xs={12}>
             <TextareaAutosize
-                disabled={true}
+                readOnly={true}
                 rowsMin={1}
                 rowsMax={6}
                 defaultValue={playerLogText}
+                style={{
+                    width: "100%"
+                }}
             />
         </Grid>
         <Grid item sm={3}>
