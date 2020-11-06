@@ -2950,7 +2950,7 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     i.def = def;
     i.region = curCard(G).region as ValidRegion;
     log += `|region:${i.region}`
-    let classicHollywoodPlayer = schoolPlayer(G, ctx, SchoolCardID.S3101);
+    let classicHollywoodPlayer = schoolPlayer(G, ctx, SchoolCardID.S2101);
     if (classicHollywoodPlayer === i.atk) {
         log += `|classicHollywoodATK`
         i.progress++;
