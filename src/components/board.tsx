@@ -25,7 +25,7 @@ import DeckIcon from '@material-ui/icons/Layers';
 import NormalCardIcon from '@material-ui/icons/RadioButtonUnchecked';
 import LegendCardIcon from '@material-ui/icons/StarBorder';
 import {useI18n} from "@i18n-chain/react";
-import {OperationPanel} from "./boards/operation";
+import OperationPanel from "./boards/operation";
 import FinalScoreTable from "./boards/final";
 import {getCardName} from "./card";
 import {generate} from "shortid"
@@ -261,7 +261,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         </Grid>
         {
             log === undefined ? <></> :
-                <LogView log={log.filter(l => l.action.payload.type !== "endStage")} getPlayerName={getName}/>
+                <LogView log={log} getPlayerName={getName}/>
         }
         {G.pub.map((u: IPubInfo, idx: number) =>
             <Grid item sm={6} lg={3} key={generate()}>

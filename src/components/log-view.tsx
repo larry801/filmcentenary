@@ -1,19 +1,15 @@
 import React from "react";
-import {FixedSizeList} from "react-window";
 import Grid from "@material-ui/core/Grid";
-import AutoSizer from "react-virtualized-auto-sizer";
 import {LogEntry} from "boardgame.io";
 import Button from "@material-ui/core/Button";
 import {createStyles, makeStyles, Theme} from '@material-ui/core/styles';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
 import i18n from "../constant/i18n";
 import {useI18n} from "@i18n-chain/react";
-import shortid from 'shortid'
 import copy from "copy-to-clipboard";
 import ContentCopyIcon from '@material-ui/icons/FileCopy';
 import IconButton from '@material-ui/core/IconButton';
-import {getLogText, getMoveText} from "../game/board-util";
+import {getLogText, getMoveText} from "./boards/list-card";
+import TextareaAutosize from "@material-ui/core/TextareaAutosize";
 
 const useStyles = makeStyles((theme: Theme) =>
     createStyles({
@@ -53,6 +49,9 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
             message: i18n.lobby.copyPrompt,
         })
     }
+    const cloneLog = [...log]
+    const reverseLog = cloneLog.filter(l => l.action.payload.type !== "endStage").reverse()
+    const totalLogText = reverseLog.map(l => getLogText(l, getPlayerName)).join('\n');
 
     return <Grid item container aria-live="polite" xs={12}>
         <Button fullWidth={true} onClick={toggleGameLog}>
@@ -74,28 +73,15 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
         </IconButton>
         {open && <>
             <Grid item xs={12} className={classes.root}>
-                <AutoSizer
-                    defaultHeight={1000}
-                    defaultWidth={400}>
-                    {({height, width}) => <FixedSizeList
-                        className="List"
-                        height={height}
-                        itemCount={log.length}
-                        itemSize={50}
-                        width={width}>
-                        {({index, style}) => {
-                            const i = log.length - index - 1;
-                            const text = getLogText(log[i], getPlayerName)
-                            return text === "" ? <></> : <ListItem
-                                button
-                                // @ts-ignore
-                                style={style}
-                                key={shortid.generate()}>
-                                <ListItemText primary={text}/>
-                            </ListItem>
-                        }}
-                    </FixedSizeList>}
-                </AutoSizer>
+                <TextareaAutosize
+                    readOnly={true}
+                    rowsMin={1}
+                    rowsMax={6}
+                    defaultValue={totalLogText}
+                    style={{
+                        width: "100%"
+                    }}
+                />
             </Grid>
         </>}
     </Grid>

@@ -12,7 +12,6 @@ import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
 import {useI18n} from '@i18n-chain/react';
 import i18n from '../constant/i18n'
-import {CardList} from "./modals";
 import {IG} from "../types/setup";
 import DeckIcon from '@material-ui/icons/Layers';
 import NoScoringCardIcon from '@material-ui/icons/Block';
@@ -32,10 +31,11 @@ import makeStyles from '@material-ui/core/styles/makeStyles';
 import Paper from "@material-ui/core/Paper";
 import ArchiveIcon from '@material-ui/icons/Archive';
 import LegendCardIcon from '@material-ui/icons/StarBorder';
-import {getLogText, getPlayerInferredHand} from "../game/board-util";
+import {getPlayerInferredHand} from "../game/board-util";
 import {getPlayerRegionRank} from "../game/util";
 import TextareaAutosize from "@material-ui/core/TextareaAutosize";
 import {LogEntry} from "boardgame.io";
+import {CardList, getLogText} from "./boards/list-card";
 
 const useStyles = makeStyles({
     root: {

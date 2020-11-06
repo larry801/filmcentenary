@@ -6,7 +6,7 @@ import {Ctx, PlayerID} from "boardgame.io";
 import i18n from "../../constant/i18n";
 import BuyCard from "../buyCard";
 import Grid from "@material-ui/core/Grid"
-import {CardList, ChoiceDialog} from "../modals";
+import {ChoiceDialog} from "../modals";
 import Typography from "@material-ui/core/Typography";
 import {BasicCardID, CardID} from "../../types/core";
 import {activePlayer, actualStage} from "../../game/util";
@@ -24,6 +24,7 @@ import {ActionPointIcon} from "../icons";
 import HandIcon from "@material-ui/icons/PanTool";
 import ConcedeIcon from '@material-ui/icons/DirectionsRun';
 import {LogEntry} from "boardgame.io";
+import CardList from "./list-card";
 
 
 export interface IOPanelProps {

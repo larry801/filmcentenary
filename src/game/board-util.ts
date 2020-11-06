@@ -1,8 +1,6 @@
-import {LogEntry, PlayerID} from "boardgame.io";
+import {PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
-import {CardCategory, CardID, getCardById, MoveNames} from "../types/core";
-import i18n from "../constant/i18n";
-import {effName} from "../components/card";
+import {CardCategory, CardID, getCardById} from "../types/core";
 
 export const getHandChoice = (G: IG, playerID: PlayerID, getCardName: (id: string) => string) => {
     return playerID === null ? [] : G.player[parseInt(playerID)].hand.map((c, idx) => {
@@ -122,55 +120,3 @@ export const getPlayerInferredHand = (G:IG, pid:PlayerID):CardID[]=>{
     return result;
 }
 
-export const getMoveText = (l: LogEntry): string => {
-    const pid = l.action.payload.playerID
-    switch (l.action.type) {
-        case "MAKE_MOVE":
-            const moveName = l.action.payload.type as MoveNames
-            if (moveName === MoveNames.requestEndTurn) {
-                return `p${pid}.moves.requestEndTurn("${pid}");`
-            } else {
-                if (l.action.payload.args === null) {
-                    return `p${pid}.moves.${moveName}([]);`
-                } else {
-                    return `p${pid}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])});`
-                }
-            }
-        case "UNDO":
-            return `p${pid}.undo();`
-        case "REDO":
-            return `p${pid}.redo();`
-        default:
-            return ""
-    }
-}
-
-export const getLogText = (l: LogEntry, getPlayerName:(name:string)=>string ): string => {
-    switch (l.action.type) {
-        case "GAME_EVENT":
-            if (l.action.payload.type === "endTurn" && l.turn !== 1) {
-                return i18n.action.turnEnd({a: l.turn - 1})
-            } else {
-                return "";
-            }
-        case "MAKE_MOVE":
-            let moveName = l.action.payload.type as MoveNames
-            if (moveName === MoveNames.chooseEffect) {
-                return getPlayerName(l.action.payload.playerID) + i18n.effect.chose + effName(
-                    // @ts-ignore
-                    l.action.payload.args[0].effect
-                )
-            } else {
-                return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
-                    // @ts-ignore
-                    args: l.action.payload.args
-                })
-            }
-        case "REDO":
-            return getPlayerName(l.action.payload.playerID) + i18n.action.redo
-        case "UNDO":
-            return getPlayerName(l.action.payload.playerID) + i18n.action.undo
-        default:
-            return ""
-    }
-}
