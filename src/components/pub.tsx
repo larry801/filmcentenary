@@ -12,7 +12,7 @@ import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
 import {useI18n} from '@i18n-chain/react';
 import i18n from '../constant/i18n'
-import {ChoiceDialog} from "./modals";
+import {CardList} from "./modals";
 import {IG} from "../types/setup";
 import DeckIcon from '@material-ui/icons/Layers';
 import NoScoringCardIcon from '@material-ui/icons/Block';
@@ -23,7 +23,7 @@ import IndustryIcon from '@material-ui/icons/Settings';
 import ResourceIcon from '@material-ui/icons/MonetizationOn';
 import DepositIcon from '@material-ui/icons/LocalAtm';
 import {generate} from "shortid";
-import {CardInfo, getCardName} from "./card";
+import {getCardName} from "./card";
 import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
 import PanToolIcon from "@material-ui/icons/PanTool";
 import {Ctx, PlayerID} from "boardgame.io";
@@ -73,9 +73,6 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
 
     const possibleHand = inferHand();
 
-    const noOp = () => false;
-
-
     const shareAndLegendAriaLabel = () => {
         let labelText = ""
         valid_regions.forEach(r => labelText += `${i18n.region[r]}${i.shares[r]}${i18n.pub.share}${i18n.pub.legend}${legendCount(r)}`)
@@ -92,8 +89,8 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
         return labelText
     }
     const cloneLog = [...log]
-    const reverseLog = cloneLog.filter(l=>l.action.payload.playerID===playerID).reverse()
-    const playerLogText = reverseLog.map(l=>getLogText(l, getName)).join('\n');
+    const reverseLog = cloneLog.filter(l => l.action.payload.playerID === playerID).reverse()
+    const playerLogText = reverseLog.map(l => getLogText(l, getName)).join('\n');
 
     return <Grid container key={generate()}>
         <Grid item xs={12}>
@@ -138,10 +135,14 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
         <Grid item sm={3}>
             {i.school !== null ?
                 <>
-                    <Typography>
-                        {i18n.pub.school}
-                    </Typography>
-                    <CardInfo cid={i.school}/>
+                    <CardList
+                        title={`${getCardName(i.school)}`}
+                        cards={[i.school]}
+                        label={
+                            <Typography>
+                                {`${getCardName(i.school)}`}
+                            </Typography>}
+                    />
                 </> : <></>}
             {G.playerCount > SimpleRuleNumPlayers ?
                 <Paper aria-label={shareAndLegendAriaLabel()}>
@@ -149,10 +150,11 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                             const share = i.shares[r];
                             const legend = legendCount(r);
                             const rank = getPlayerRegionRank(G, ctx, playerID, r);
-                            const rankHintIcon = rank === -1 ? <NoScoringCardIcon className={classes.iconAlign}/> : <ChampionIcon champion={{
-                                region:r,
-                                era: rank as IEra,
-                            }}/>;
+                            const rankHintIcon = rank === -1 ? <NoScoringCardIcon className={classes.iconAlign}/> :
+                                <ChampionIcon champion={{
+                                    region: r,
+                                    era: rank as IEra,
+                                }}/>;
                             return <Grid container key={generate()}>
                                 <Grid item xs={4} key={generate()}>
                                     <DrawnShareIcon key={generate()} r={r}/>
@@ -187,76 +189,42 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
             </Paper>
         </Grid> : <></>}
         <Grid item sm={3}>
-            <ChoiceDialog
-                callback={noOp}
-                choices={i.discard.map((card, idx) => {
-                    return {
-                        label: getCardName(card),
-                        hidden: false,
-                        disabled: true,
-                        value: idx.toString(),
-                    }
-                })} defaultChoice={'0'}
-                show={true} title={`${i18n.pub.discard}${i.discard.length}`}
-                toggleText={<Typography><DiscardDeckIcon className={classes.iconAlign}/>{i.discard.length}</Typography>}
-                initial={false}/>
-            <ChoiceDialog
-                callback={noOp}
-                choices={possibleHand.map((card, idx) => {
-                    return {
-                        label: getCardName(card),
-                        hidden: false,
-                        disabled: true,
-                        value: idx.toString(),
-                    }
-                })} defaultChoice={'0'}
-                show={true} title={`${i18n.pub.allCards}(${possibleHand.length})`}
-                toggleText={<Typography>
+            <CardList
+                title={`${i18n.pub.discard}${i.discard.length}`}
+                cards={i.discard}
+                label={
+                    <Typography><DiscardDeckIcon className={classes.iconAlign}/>{i.discard.length}</Typography>
+                }
+            />
+            <CardList
+                cards={possibleHand} label={
+                <Typography>
                     <PanToolIcon className={classes.iconAlign}/>
                     <DeckIcon className={classes.iconAlign}/>
                     {possibleHand.length}
-                </Typography>} initial={false}/>
-            <ChoiceDialog
-                callback={noOp}
-                choices={i.revealedHand.map((card, idx) => {
-                    return {
-                        label: getCardName(card),
-                        hidden: false,
-                        disabled: true,
-                        value: idx.toString(),
-                    }
-                })} defaultChoice={'0'}
-                show={i.revealedHand.length > 0} title={`${i18n.pub.revealedHand}(${i.revealedHand.length})`}
-                toggleText={<Typography>
-                    <PanToolIcon className={classes.iconAlign}/>{i.revealedHand.length}
-                </Typography>} initial={false}/>
-            <ChoiceDialog
-                callback={noOp}
-                choices={i.archive.map((card, idx) => {
-                    return {
-                        label: getCardName(card),
-                        hidden: false,
-                        disabled: true,
-                        value: idx.toString(),
-                    }
-                })} defaultChoice={'0'}
-                show={true} title={`${i18n.pub.archive}(${i.archive.length})`}
-                toggleText={<Typography><ArchiveIcon className={classes.iconAlign}/>{i.archive.length} </Typography>}
-                initial={false}/>
-            <ChoiceDialog
-                callback={noOp}
-                choices={i.playedCardInTurn.map((card, idx) => {
-                    return {
-                        label: getCardName(card),
-                        hidden: false,
-                        disabled: true,
-                        value: idx.toString(),
-                    }
-                })} defaultChoice={'0'}
-                show={true} title={`${i18n.pub.playedCards}(${i.playedCardInTurn.length})`}
-                toggleText={<Typography>
+                </Typography>
+            } title={
+                `${i18n.pub.allCards}(${possibleHand.length})`
+            }/>
+            {i.revealedHand.length > 0 ?
+                <CardList
+                    cards={i.revealedHand} label={
+                    <Typography>
+                        <PanToolIcon className={classes.iconAlign}/>{i.revealedHand.length}
+                    </Typography>
+                }
+                    title={`${i18n.pub.revealedHand}(${i.revealedHand.length})`}/>
+                : <></>}
+            <CardList
+                cards={i.archive}
+                title={`${i18n.pub.archive}(${i.archive.length})`}
+                label={<Typography><ArchiveIcon className={classes.iconAlign}/>{i.archive.length} </Typography>}
+            />
+            <CardList
+                cards={i.playedCardInTurn} title={`${i18n.pub.playedCards}(${i.playedCardInTurn.length})`}
+                label={<Typography>
                     <PlayedCardDeck className={classes.iconAlign}/>{i.playedCardInTurn.length}
-                </Typography>} initial={false}/>
+                </Typography>}/>
         </Grid>
     </Grid>
 

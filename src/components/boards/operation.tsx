@@ -6,7 +6,7 @@ import {Ctx, PlayerID} from "boardgame.io";
 import i18n from "../../constant/i18n";
 import BuyCard from "../buyCard";
 import Grid from "@material-ui/core/Grid"
-import {ChoiceDialog} from "../modals";
+import {CardList, ChoiceDialog} from "../modals";
 import Typography from "@material-ui/core/Typography";
 import {BasicCardID, CardID} from "../../types/core";
 import {activePlayer, actualStage} from "../../game/util";
@@ -71,25 +71,17 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
 
 
     const deck = playerID !== null ? inferredDeck(playerID) : [];
-    const nop = () => false;
     const deckDialog =
-        <ChoiceDialog
-            callback={nop}
-            choices={deck.map((c, idx) => {
-                return {
-                    label: getCardName(c),
-                    disabled: true,
-                    hidden: false,
-                    value: idx.toString(),
-                }
-            })}
-            show={true}
-            initial={false}
-            title={`${i18n.pub.deck}(${deck.length})`}
-            toggleText={<Typography>
-                <DeckIcon/>{deck.length}
-            </Typography>}
-            defaultChoice={'0'}/>
+        <CardList
+            cards={deck}
+            label={
+                <Typography>
+                    <DeckIcon/>{deck.length}
+                </Typography>}
+            title={
+                `${i18n.pub.deck}(${deck.length})`
+            }/>
+
 
     const canMove = activePlayer(ctx) === playerID;
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
@@ -454,7 +446,8 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
 
     return <Grid item container xs={12} sm={5}>
         <Grid item container xs={12}>
-            <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(playerID)]} idx={parseInt(playerID)} G={G} getName={getName}/>
+            <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(playerID)]} idx={parseInt(playerID)} G={G}
+                      getName={getName}/>
         </Grid>
         {noStage && canMoveCurrent ?
             <Grid item xs={6}>

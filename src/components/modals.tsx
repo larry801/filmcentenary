@@ -16,6 +16,9 @@ import DialogActions from "@material-ui/core/DialogActions";
 import Grid from "@material-ui/core/Grid";
 import shortid from "shortid";
 import {usePrevious} from "./board";
+import {CardID, getCardById} from "../types/core";
+import CardInfo from "./card";
+import Paper from "@material-ui/core/Paper";
 
 const useStyles = makeStyles((theme) => ({
     formControl: {
@@ -117,6 +120,57 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
             </DialogActions>
         </Dialog>
     </Grid> : <div/>
+}
+
+export interface ICardListProps {
+    cards: CardID[],
+    label: JSX.Element,
+    title: string,
+}
+
+export const CardList = ({cards, title, label}: ICardListProps) => {
+
+    useI18n(i18n);
+
+    const [open, setOpen] = React.useState(false);
+    const handleClickOpen = () => {
+        setOpen(true);
+    };
+
+    const handleClose = () => {
+        setOpen(false);
+    };
+    return <Grid item xs={12}>
+        <Button
+            aria-label={title}
+            fullWidth
+            variant={"outlined"}
+            onClick={handleClickOpen}
+            style={{textTransform: 'none'}}
+        > {label}</Button>
+        <Dialog
+            aria-label={title}
+            open={open}
+            onClose={handleClose}
+        >
+            <DialogTitle>{title}</DialogTitle>
+            <DialogContent>
+                {cards.map(c => {
+                    const cardObj = getCardById(c);
+                    const feeText = `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}/${cardObj.vp}`
+                    return <Paper variant="outlined">
+                        <CardInfo cid={c}/>
+                        {feeText}
+                    </Paper>
+                }
+                )}
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={handleClose} color="primary">
+                    {i18n.confirm}
+                </Button>
+            </DialogActions>
+        </Dialog></Grid>
 }
 
 export default ChoiceDialog;
