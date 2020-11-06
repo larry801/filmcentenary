@@ -409,7 +409,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     G.regionScoreCompensateMarker = G.order[G.order.length - 1];
 
     // G.pub[0].resource = 20;
-    G.pub[0].deposit = 40;
+    // G.pub[0].deposit = 40;
     // G.pub[0].action = 20;
     // // @ts-ignore
     // G.regions[Region.NA].legend.card = "P1101"
