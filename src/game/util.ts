@@ -1685,8 +1685,7 @@ export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
 }
 
 export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
-    if (ctx.numPlayers > SimpleRuleNumPlayers) throw Error("Cannot call 2p for complex rules");
-    let s = G.secretInfo.twoPlayer.school;
+    const s = G.secretInfo.twoPlayer.school;
     for (let slotL of G.twoPlayer.school) {
         if (slotL.card === null) {
             let newCard = s.pop()
@@ -1905,14 +1904,20 @@ export const do2pUpdateFilmSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
 }
 
 export const fillEmptySlots = (G: IG, ctx: Ctx) => {
-    if (ctx.numPlayers < SimpleRuleNumPlayers) return;
+    let log = "fillEmptySlots";
     for (let r of valid_regions) {
-        let region = G.regions[r];
-        let l = G.secretInfo.regions[r].legendDeck;
-        let n = G.secretInfo.regions[r].normalDeck;
+        log += `|fill|${r}`
+        const region = G.regions[r];
+        if(region.completedModernScoring){
+            log += `|noNotSetUpAfterModernScoring`
+            continue;
+        }
+        const l = G.secretInfo.regions[r].legendDeck;
+        const n = G.secretInfo.regions[r].normalDeck;
         if (region.legend.card === null) {
             if (l.length > 0) {
-                let c = l.pop();
+                const c = l.pop();
+                log += `|${c}`
                 if (c === undefined) {
                     throw Error("Legend deck empty")
                 } else {
@@ -1922,13 +1927,15 @@ export const fillEmptySlots = (G: IG, ctx: Ctx) => {
         }
         for (let slot of region.normal) {
             if (slot.card === null && n.length > 0) {
-                let c = n.pop();
+                const c = n.pop();
+                log += `|${c}`
                 if (c !== undefined) {
                     slot.card = c;
                 }
             }
         }
     }
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
@@ -2895,22 +2902,17 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
     const era = region.era;
     let log = `nextEra|${r}|era:${era}`
     let newEra;
-    region.legend.card = null;
-    if (region.legend.comment !== null) {
-        G.basicCards[region.legend.comment as BasicCardID]++;
-        region.legend.comment = null
+    log += `|removeCards`
+    doReturnSlotCard(G, ctx, G.regions[r].legend);
+    for(let i=0;i<region.normalDeckLength;i++){
+        doReturnSlotCard(G,ctx,G.regions[r].normal[i]);
     }
-    for (let s of region.normal) {
-        s.card = null;
-        if (s.comment !== null) {
-            G.basicCards[s.comment as BasicCardID]++;
-            s.comment = null
-        }
-    }
+    log += `|${JSON.stringify(region)}`
     log += `|resetShare`
     for (let i = 0; i < G.order.length; i++) {
         G.pub[i].shares[r] = 0;
     }
+    region.share =0;
     if (era === IEra.ONE) {
         log += `|IEra.TWO`
         newEra = IEra.TWO;
@@ -2934,11 +2936,6 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
     }
     if (era === IEra.THREE) {
         log += `|eraThree`
-        doReturnSlotCard(G, ctx, region.legend);
-        for (let slot of region.normal) {
-            doReturnSlotCard(G, ctx, slot);
-        }
-        region.share = 0;
         log += `|completedModernScoring`
         region.completedModernScoring = true;
     }

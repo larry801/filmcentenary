@@ -12,7 +12,8 @@ import {
     IRegionPrivate,
     Region,
     SchoolCardID,
-    SimpleRuleNumPlayers, ValidRegion
+    SimpleRuleNumPlayers,
+    ValidRegion
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
@@ -408,11 +409,12 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     G.regionScoreCompensateMarker = G.order[G.order.length - 1];
 
     // G.pub[0].resource = 20;
-    // G.pub[0].deposit = 20;
+    G.pub[0].deposit = 40;
     // G.pub[0].action = 20;
     // // @ts-ignore
     // G.regions[Region.NA].legend.card = "P1101"
     // G.regions[Region.NA].share = 1
+    // G.regions[Region.NA].era = IEra.THREE
     // G.regions[Region.WE].share = 1
     // G.regions[Region.EE].share = 1
     // G.regions[Region.NA].legend.card = "P1101"

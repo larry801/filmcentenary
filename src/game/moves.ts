@@ -458,7 +458,7 @@ export const chooseEffect: LongFormMove = {
     }
 }
 
-export const updateSlot = {
+export const updateSlot: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, cardId: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
@@ -467,7 +467,7 @@ export const updateSlot = {
         if (slot === null) {
             return INVALID_MOVE;
         }
-        const newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3204);
+        const newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3201);
         if (newWavePlayer !== null) {
             drawCardForPlayer(G, ctx, newWavePlayer);
             addVp(G, ctx, newWavePlayer, 2);
@@ -1102,11 +1102,11 @@ export const comment: LongFormMove = {
         } else {
             slot.comment = arg.comment;
         }
-        const p = schoolPlayer(G, ctx, SchoolCardID.S3204);
-        if (p !== null) {
-            drawCardForPlayer(G, ctx, p);
+        const leftBankPlayer = schoolPlayer(G, ctx, SchoolCardID.S3204);
+        if (leftBankPlayer !== null) {
+            drawCardForPlayer(G, ctx, leftBankPlayer);
         }
-        const newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3204);
+        const newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3201);
         if (newWavePlayer !== null) {
             drawCardForPlayer(G, ctx, newWavePlayer);
             addVp(G, ctx, newWavePlayer, 2);
