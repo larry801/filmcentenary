@@ -1161,6 +1161,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log += `|hand${JSON.stringify(playerObj.hand)}`
             log += `|discard|${JSON.stringify(pub.discard)}`
             const totalRemainCards = length + pub.discard.length
+            if(totalRemainCards === 0){
+                log += `|noCardLeftSkip`
+                break;
+            }
             log += `|deckAndDiscardSum|${totalRemainCards}`
             for (let count = 0; count < peekCount; count++) {
                 log += `|count|${count}`

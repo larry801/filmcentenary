@@ -48,7 +48,7 @@ export const FilmCentenaryGame: Game<IG> = {
         enumerate: enumerateMoves
     },
     setup: setup,
-    name: "FilmCentenary",
+    name: "film",
     phases: {
         InitPhase: InitPhase,
         NormalPhase: NormalPhase,

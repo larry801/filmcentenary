@@ -1119,7 +1119,7 @@ it('Can play Georges Méliès', () => {
 it('Can Peek Cards', () => {
     const spec = {
         numPlayers: 2,
-        game: gameWithSeed("kgvkb0f2"),
+        game: gameWithSeed("kh72f8zx"),
         multiplayer: Local(),
     };
 
@@ -1130,1156 +1130,441 @@ it('Can Peek Cards', () => {
     p1.start();
 
     {
-        p0.moves.showBoardStatus({
-            "regions": [],
-            "school": [{"comment": null, "region": 4, "isLegend": false, "card": "S1203"}, {
-                "comment": null,
-                "region": 4,
-                "isLegend": false,
-                "card": "S1301"
-            }],
-            "film": [{"comment": null, "region": 4, "isLegend": false, "card": "F1205"}, {
-                "comment": null,
-                "region": 4,
-                "isLegend": false,
-                "card": "F1208"
-            }, {"comment": null, "region": 4, "isLegend": false, "card": "F1211"}, {
-                "comment": null,
-                "region": 4,
-                "isLegend": false,
-                "card": "F1304"
-            }],
-            "matchID": "nz5PwbplD",
-            "seed": "kgvkb0f2"
-        })
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-        p0.moves.breakthrough({"card": "B01", "idx": 0, "playerID": "0", "res": 2})
+        p0.moves.showBoardStatus({"regions":[],"school":[{"comment":null,"region":4,"isLegend":false,"card":"S1203"},{"comment":null,"region":4,"isLegend":false,"card":"S1204"}],"film":[{"comment":null,"region":4,"isLegend":false,"card":"F1110"},{"comment":null,"region":4,"isLegend":false,"card":"F1304"},{"comment":null,"region":4,"isLegend":false,"card":"F1106"},{"comment":null,"region":4,"isLegend":false,"card":"F1108"}],"matchID":"fPwrm01zN","seed":"kh72f8zx"});
 
-        p0.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
+
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.breakthrough({"card":"B01","idx":0,"playerID":"0","res":2});
+        p0.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"0"});
 
         p0.moves.requestEndTurn("0");
 
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.breakthrough({"card": "B01", "idx": 0, "playerID": "1", "res": 2})
-
-        p1.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.undo()
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.breakthrough({"card":"B01","idx":0,"playerID":"1","res":2});
+        p1.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"1"});
 
         p1.moves.requestEndTurn("1");
 
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F1205", "resource": 2, "deposit": 0, "helper": ["B02"]})
-
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"F1108","resource":3,"deposit":0,"helper":["B02"]});
         p0.moves.requestEndTurn("0");
 
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "S1203", "resource": 4, "deposit": 0, "helper": []})
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.breakthrough({"card":"B02","idx":0,"playerID":"1","res":2});
+        p1.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"1"});
 
         p1.moves.requestEndTurn("1");
 
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.breakthrough({"card": "B02", "idx": 0, "playerID": "0", "res": 2})
-
-        p0.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
-
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"F1304","resource":3,"deposit":0,"helper":["F1108"]});
         p0.moves.requestEndTurn("0");
 
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.buyCard({"buyer":"1","target":"S1203","resource":4,"deposit":0,"helper":[]});
+        p1.moves.requestEndTurn("1");
 
-        p1.moves.playCard({"card": "B07", "idx": 1, "playerID": "1", "res": 0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.breakthrough({"card":"B02","idx":0,"playerID":"0","res":2});
+        p0.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"0"});
 
-        p1.moves.playCard({"card": "B07", "idx": 1, "playerID": "1", "res": 0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.requestEndTurn("0");
 
-        p1.moves.breakthrough({"card": "B02", "idx": 0, "playerID": "1", "res": 2})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.buyCard({"buyer":"1","target":"F1106","resource":3,"deposit":0,"helper":[]});
+        p1.undo();
+        p1.moves.buyCard({"buyer":"1","target":"F1211","resource":3,"deposit":0,"helper":[]});
+        p1.moves.requestEndTurn("1");
 
-        p1.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"F1306","resource":3,"deposit":0,"helper":[]});
+        p0.moves.requestEndTurn("0");
 
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.buyCard({"buyer":"1","target":"F1110","resource":2,"deposit":0,"helper":[]});
+        p1.moves.requestEndTurn("1");
+
+        p0.moves.playCard({"card":"F1304","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"S1204","resource":4,"deposit":0,"helper":["F1108"]});
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"F1211","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.buyCard({"buyer":"1","target":"F1208","resource":5,"deposit":0,"helper":[]});
+        p1.moves.requestEndTurn("1");
+
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F1304","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F1306","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"F1109","resource":3,"deposit":0,"helper":["F1108"]});
+        p0.moves.buyCard({"buyer":"0","target":"B03","resource":2,"deposit":0,"helper":[]});
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.breakthrough({"card":"F1110","idx":0,"playerID":"1","res":2});
+        p1.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"1"});
 
         p1.moves.requestEndTurn("1");
 
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.drawCard("0");
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"F1103","resource":4,"deposit":0,"helper":[]});
+        p0.moves.requestEndTurn("0");
 
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.buyCard({"buyer":"1","target":"F1105","resource":3,"deposit":0,"helper":["F1208"]});
+        p1.moves.requestEndTurn("1");
 
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F1109","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F1306","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F1304","idx":1,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"F1106","resource":3,"deposit":0,"helper":[]});
+        p0.moves.buyCard({"buyer":"0","target":"F1307","resource":3,"deposit":0,"helper":[]});
+        p0.undo();
+        p0.moves.breakthrough({"card":"F1108","idx":0,"playerID":"0","res":2});
+        p0.undo();
+        p0.moves.buyCard({"buyer":"0","target":"F1307","resource":3,"deposit":0,"helper":[]});
+        p0.moves.playCard({"card":"F1108","idx":0,"playerID":"0","res":0});
+        p0.moves.requestEndTurn("0");
 
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"F1211","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.buyCard({"buyer":"1","target":"S1301","resource":5,"deposit":0,"helper":[]});
+        p1.moves.requestEndTurn("1");
 
-        p0.moves.buyCard({"buyer": "0", "target": "F1304", "resource": 3, "deposit": 0, "helper": ["F1205"]})
+        p0.moves.playCard({"card":"B03","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F1307","idx":0,"playerID":"0","res":0});
+        p0.moves.drawCard("0");
+        p0.moves.playCard({"card":"F1304","idx":0,"playerID":"0","res":0});
+        p0.moves.breakthrough({"card":"F1103","idx":0,"playerID":"0","res":2});
+        p0.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"0"});
 
         p0.moves.requestEndTurn("0");
 
+        p1.moves.chooseHand({"hand":"B07","idx":4,"p":"1"});
 
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.breakthrough({"card":"F1105","idx":0,"playerID":"1","res":2});
+        p1.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"1"});
 
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F1306", "resource": 3, "deposit": 0, "helper": []})
+        p1.moves.drawCard("1");
+        p1.moves.playCard({"card":"F1211","idx":0,"playerID":"1","res":0});
+        p1.moves.comment({"target":"F2410","comment":"B04","p":"1"});
 
         p1.moves.requestEndTurn("1");
 
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F1103", "resource": 4, "deposit": 0, "helper": []})
-
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.drawCard("0");
+        p0.moves.playCard({"card":"F1106","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F1109","idx":0,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"F2406","resource":5,"deposit":1,"helper":["F1306"]});
         p0.moves.requestEndTurn("0");
 
+        p1.moves.chooseHand({"hand":"B04","idx":4,"p":"1"});
 
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.breakthrough({"card": "F1306", "idx": 0, "playerID": "1", "res": 2})
-
-        p1.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"F1208","idx":0,"playerID":"1","res":0});
+        p1.moves.drawCard("1");
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.buyCard({"buyer":"1","target":"F2407","resource":5,"deposit":1,"helper":[]});
         p1.moves.requestEndTurn("1");
 
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F2406","idx":1,"playerID":"0","res":0});
+        p0.moves.breakthrough({"card":"F1108","idx":0,"playerID":"0","res":2});
+        p0.moves.chooseEffect({"effect":{"e":"industryBreakthrough","a":1},"idx":0,"p":"0"});
 
-        p0.moves.playCard({"card": "F1205", "idx": 0, "playerID": "0", "res": 0})
+        p0.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"0"});
 
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
+        p0.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"0"});
 
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F1304", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.undo()
-
-        p0.undo()
-
-        p0.undo()
-
-        p0.undo()
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.breakthrough({"card": "F1205", "idx": 0, "playerID": "0", "res": 2})
-
-        p0.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
-
-        p0.moves.playCard({"card": "F1304", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.undo()
-
+        p0.moves.buyCard({"buyer":"0","target":"F2305","resource":4,"deposit":2,"helper":[]});
         p0.moves.requestEndTurn("0");
 
+        p1.moves.chooseHand({"hand":"B04","idx":1,"p":"1"});
 
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.breakthrough({"card":"F1211","idx":0,"playerID":"1","res":2});
+        p1.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"1"});
+        p1.moves.payAdditionalCost({"res":1,"deposit":0});
 
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F1305", "resource": 5, "deposit": 0, "helper": []})
-
+        p1.moves.drawCard("1");
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
         p1.moves.requestEndTurn("1");
 
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.undo();
+        p0.moves.breakthrough({"card":"F1306","idx":1,"playerID":"0","res":2});
+        p0.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"0"});
 
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.breakthrough({"card": "F1304", "idx": 0, "playerID": "0", "res": 2})
-
-        p0.moves.comment({"target": "S1301", "comment": "B02", "p": "0"})
-
-        p0.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"B01","resource":2,"deposit":0,"helper":[]});
         p0.moves.requestEndTurn("0");
 
+        p1.moves.chooseHand({"hand":"B04","idx":2,"p":"1"});
 
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F1305", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "S1204", "resource": 5, "deposit": 0, "helper": []})
-
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"F2407","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.drawCard("1");
+        p1.moves.playCard({"card":"F1208","idx":0,"playerID":"1","res":0});
+        p1.moves.breakthrough({"card":"B04","idx":0,"playerID":"1","res":2});
+        p1.undo();
+        p1.moves.buyCard({"buyer":"1","target":"F2408","resource":5,"deposit":0,"helper":[]});
+        p1.moves.playCard({"card":"B04","idx":0,"playerID":"1","res":0});
         p1.moves.requestEndTurn("1");
 
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F1103", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "S1301", "resource": 4, "deposit": 0, "helper": []})
-
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F1307","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F1106","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B03","idx":2,"playerID":"0","res":0});
+        p0.moves.breakthrough({"card":"F1304","idx":0,"playerID":"0","res":2});
+        p0.undo();
+        p0.moves.playCard({"card":"B04","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F1304","idx":0,"playerID":"0","res":0});
+        p0.moves.drawCard("0");
+        p0.moves.playCard({"card":"F1109","idx":0,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"F2303","resource":4,"deposit":3,"helper":[]});
         p0.moves.requestEndTurn("0");
 
+        p1.moves.chooseHand({"hand":"B04","idx":0,"p":"1"});
 
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F1208", "resource": 3, "deposit": 0, "helper": []})
-
-        p1.moves.buyCard({"buyer": "1", "target": "B03", "resource": 2, "deposit": 0, "helper": []})
-
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.buyCard({"buyer":"1","target":"B03","resource":2,"deposit":0,"helper":[]});
+        p1.moves.buyCard({"buyer":"1","target":"B01","resource":2,"deposit":0,"helper":[]});
         p1.moves.requestEndTurn("1");
 
+        p0.moves.playCard({"card":"F2305","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F1307","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F2406","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":2,"playerID":"0","res":0});
+        p0.moves.breakthrough({"card":"B04","idx":0,"playerID":"0","res":2});
+        p0.undo();
+        p0.moves.breakthrough({"card":"F1304","idx":1,"playerID":"0","res":2});
+        console.log(p0.getState().ctx.activePlayers);
+        p0.undo();
 
-        p0.moves.chooseHand({"hand": "B07", "idx": 4, "p": "0"})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.breakthrough({"card": "B02", "idx": 0, "playerID": "0", "res": 2})
-
-        p0.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.drawCard("0")
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F1305", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B03", "idx": 3, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 3, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.breakthrough({"card": "B07", "idx": 0, "playerID": "1", "res": 2})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F1307", "resource": 3, "deposit": 0, "helper": []})
-
-        p1.moves.playCard({"card": "F1208", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.chooseHand({"hand": "B07", "idx": 2, "p": "0"})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F1103", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F1104", "resource": 4, "deposit": 0, "helper": []})
-
-        p0.moves.buyCard({"buyer": "0", "target": "B03", "resource": 2, "deposit": 0, "helper": []})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F1307", "idx": 3, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 3, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.undo()
-
-        p1.moves.breakthrough({"card": "B07", "idx": 0, "playerID": "1", "res": 2})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F1207", "resource": 3, "deposit": 1, "helper": []})
-
-        p1.undo()
-
-        p1.undo()
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F1211", "resource": 3, "deposit": 0, "helper": []})
-
-        p1.undo()
-
-        p1.moves.buyCard({"buyer": "1", "target": "F1207", "resource": 4, "deposit": 0, "helper": []})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F1211", "resource": 1, "deposit": 2, "helper": []})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.chooseHand({"hand": "B07", "idx": 1, "p": "0"})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F1103", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B03", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F1106", "resource": 3, "deposit": 0, "helper": []})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F1210", "resource": 3, "deposit": 0, "helper": []})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F1305", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F1307", "idx": 4, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F1208", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.undo()
-
-        p1.moves.playCard({"card": "B03", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F1208", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.breakthrough({"card": "B07", "idx": 2, "playerID": "1", "res": 2})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.breakthrough({"card": "B07", "idx": 0, "playerID": "1", "res": 2})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.chooseHand({"hand": "B07", "idx": 3, "p": "0"})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B03", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F1104", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.drawCard("0")
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "S2204", "resource": 5, "deposit": 3, "helper": []})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "B07", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.breakthrough({"card": "F1207", "idx": 0, "playerID": "1", "res": 2})
-
-        p1.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.breakthrough({"card": "F1211", "idx": 0, "playerID": "1", "res": 2})
-
-        p1.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.playCard({"card": "F1106", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.breakthrough({"card": "F1210", "idx": 2, "playerID": "0", "res": 2})
-
-        p0.moves.breakthrough({"card": "B04", "idx": 0, "playerID": "0", "res": 2})
-
-        p0.moves.playCard({"card": "B04", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "B03", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.drawCard("1")
-
-        p1.moves.playCard({"card": "B07", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2408", "resource": 4, "deposit": 1, "helper": ["F1208"]})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.breakthrough({"card": "F1103", "idx": 0, "playerID": "0", "res": 2})
-
-        p0.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
-
-        p0.moves.playCard({"card": "F1104", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "B01", "resource": 1, "deposit": 1, "helper": []})
-
-        p0.moves.playCard({"card": "B04", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F1307", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F1305", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.chooseHand({"hand": "B04", "idx": 0, "p": "1"})
-
-        p1.moves.drawCard("1")
-
-        p1.moves.playCard({"card": "F2408", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.undo()
-
-        p1.moves.playCard({"card": "F2408", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.updateSlot("S2104")
-
-        p1.moves.playCard({"card": "B03", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "B02", "resource": 2, "deposit": 0, "helper": []})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F1106", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B03", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F2405", "resource": 6, "deposit": 0, "helper": []})
-
-        p0.moves.drawCard("0")
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "B07", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.breakthrough({"card": "F1208", "idx": 0, "playerID": "1", "res": 2})
-
-        p1.moves.chooseEffect({"effect": {"e": "industryBreakthrough", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.payAdditionalCost({"res": 1, "deposit": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "B01", "resource": 2, "deposit": 0, "helper": []})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 3, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F2405", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.chooseEffect({"effect": {"e": "breakthroughResDeduct", "a": 2}, "idx": 1, "p": "0"})
-
-        p0.moves.chooseHand({"hand": "B04", "idx": 0, "p": "0"})
-
-        p0.moves.breakthrough({"card": "F1104", "idx": 0, "playerID": "0", "res": 2})
-
-        p0.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
-
-        p0.moves.payAdditionalCost({"res": 1, "deposit": 0})
-
-        p0.moves.drawCard("0")
-
-        p0.moves.playCard({"card": "B01", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F1307", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2408", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.updateSlot("F2210")
-
-        p1.moves.playCard({"card": "B03", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.drawCard("1")
-
-        p1.moves.playCard({"card": "F1305", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.chooseHand({"hand": "B07", "idx": 1, "p": "1"})
-
-        p1.moves.breakthrough({"card": "B02", "idx": 0, "playerID": "1", "res": 2})
-
-        p1.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.payAdditionalCost({"res": 1, "deposit": 0})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.breakthrough({"card": "B01", "idx": 0, "playerID": "0", "res": 2})
-
-        p0.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
-
-        p0.moves.payAdditionalCost({"res": 1, "deposit": 0})
-
-        p0.moves.playCard({"card": "F2405", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.updateSlot("S2101")
-
-        p0.moves.buyCard({"buyer": "0", "target": "B02", "resource": 2, "deposit": 0, "helper": []})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F2408", "idx": 3, "playerID": "1", "res": 0})
-
-        p1.moves.updateSlot("F2206")
-
-        p1.moves.playCard({"card": "B03", "idx": 3, "playerID": "1", "res": 0})
-
-        p1.moves.breakthrough({"card": "B01", "idx": 1, "playerID": "1", "res": 2})
-
-        p1.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.payAdditionalCost({"res": 1, "deposit": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2112", "resource": 4, "deposit": 2, "helper": []})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B03", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F1106", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F2309", "resource": 6, "deposit": 0, "helper": []})
-
-        p0.moves.breakthrough({"card": "B02", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
-
-        p0.moves.payAdditionalCost({"res": 0, "deposit": 1})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F1307", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F1305", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.chooseHand({"hand": "B07", "idx": 1, "p": "1"})
-
-        p1.moves.playCard({"card": "B03", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2408", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.undo()
-
-        p1.moves.playCard({"card": "F2408", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.updateSlot("F2306")
-
-        p1.moves.playCard({"card": "B07", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2214", "resource": 5, "deposit": 0, "helper": []})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F2405", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.chooseEffect({
-            "effect": {"e": "step", "a": [{"e": "res", "a": 1}, {"e": "update", "a": 1}]},
-            "idx": 0,
-            "p": "0"
-        })
-
-        p0.moves.updateSlot("F2208")
-
-        p0.moves.buyCard({"buyer": "0", "target": "F2209", "resource": 5, "deposit": 0, "helper": []})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B03", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "B02", "resource": 2, "deposit": 0, "helper": []})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F1307", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F1305", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.chooseHand({"hand": "B07", "idx": 2, "p": "1"})
-
-        p1.moves.playCard({"card": "F2214", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2112", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.confirmRespond("no")
-
-        p1.moves.playCard({"card": "F2408", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.updateSlot("F2409")
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2106", "resource": 7, "deposit": 0, "helper": []})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2213", "resource": 2, "deposit": 3, "helper": []})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F1106", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.undo()
-
-        p0.moves.playCard({"card": "F2405", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.chooseEffect({"effect": {"e": "breakthroughResDeduct", "a": 2}, "idx": 1, "p": "0"})
-
-        p0.moves.chooseHand({"hand": "B07", "idx": 1, "p": "0"})
-
-        p0.moves.playCard({"card": "F2309", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.undo()
-
-        p0.moves.playCard({"card": "F2309", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F2211", "resource": 4, "deposit": 0, "helper": []})
-
-        p0.moves.buyCard({"buyer": "0", "target": "B01", "resource": 2, "deposit": 0, "helper": []})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F2213", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F1307", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F1305", "idx": 3, "playerID": "1", "res": 0})
-
-        p1.undo()
-
-        p1.moves.playCard({"card": "F2106", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2112", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.confirmRespond("no")
-
-        p1.moves.buyCard({"buyer": "1", "target": "S2201", "resource": 10, "deposit": 1, "helper": ["F1305"]})
-
-        p1.moves.playCard({"card": "F2408", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.updateSlot("F2207")
-
-        p1.moves.playCard({"card": "B03", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2308", "resource": 3, "deposit": 1, "helper": []})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F1106", "idx": 3, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 3, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F2209", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F2113", "resource": 5, "deposit": 0, "helper": []})
-
-        p0.undo()
-
-        p0.moves.buyCard({"buyer": "0", "target": "F2108", "resource": 5, "deposit": 0, "helper": []})
-
-        p0.moves.playCard({"card": "F2309", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.breakthrough({"card": "B03", "idx": 1, "playerID": "0", "res": 1})
-
-        p0.undo()
-
-        p0.moves.breakthrough({"card": "F2211", "idx": 2, "playerID": "0", "res": 1})
-
-        p0.moves.comment({"target": "S2101", "comment": "B04", "p": "0"})
-
-        p0.moves.chooseEffect({"effect": {"e": "industryBreakthrough", "a": 1}, "idx": 0, "p": "0"})
-
-        p0.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
-
-        p0.moves.payAdditionalCost({"res": 1, "deposit": 0})
-
-        p0.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
-
-        p0.moves.playCard({"card": "B02", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F2213", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F1307", "idx": 3, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2106", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2112", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.chooseEffect({"effect": {"e": "industryLevelUp", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.confirmRespond("no")
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2210", "resource": 4, "deposit": 0, "helper": []})
-
-        p1.undo()
-
-        p1.moves.playCard({"card": "F2408", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.updateSlot("F2113")
-
-        p1.moves.playCard({"card": "F1305", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.chooseHand({"hand": "B03", "idx": 1, "p": "1"})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2210", "resource": 4, "deposit": 0, "helper": []})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2206", "resource": 4, "deposit": 0, "helper": []})
-
-        p1.moves.playCard({"card": "F2214", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.undo()
-
-        p1.moves.playCard({"card": "F2214", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B03", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F2409", "resource": 4, "deposit": 0, "helper": []})
-
-        p0.moves.playCard({"card": "F2405", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.chooseEffect({"effect": {"e": "breakthroughResDeduct", "a": 2}, "idx": 1, "p": "0"})
-
-        p0.moves.chooseHand({"hand": "B07", "idx": 1, "p": "0"})
-
-        p0.moves.playCard({"card": "B01", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.drawCard("0")
-
-        p0.moves.playCard({"card": "B02", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.undo()
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F1307", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2213", "idx": 4, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2308", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2112", "idx": 3, "playerID": "1", "res": 0})
-
-        p1.moves.confirmRespond("yes")
-
-        p1.moves.competitionCard([])
-
-        p0.moves.competitionCard({"pass": false, "card": "F2108", "idx": 4, "p": "0"})
-
-        p1.moves.showCompetitionResult({
-            "info": {
-                "region": 0,
-                "atk": "1",
-                "atkPlayedCard": false,
-                "atkCard": "F2106",
-                "def": "0",
-                "defPlayedCard": false,
-                "defCard": "F2108",
-                "progress": 7,
-                "pending": true,
-                "onWin": {"e": "none", "a": 1}
-            }
-        })
-
-        p1.moves.chooseRegion({"r": 3, "idx": 2, "p": "1"})
-
-        p1.moves.playCard({"card": "V321", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2206", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F1305", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2109", "resource": 5, "deposit": 0, "helper": []})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2207", "resource": 4, "deposit": 2, "helper": []})
-
-        p1.undo()
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2208", "resource": 4, "deposit": 2, "helper": []})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.playCard({"card": "F2209", "idx": 4, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F2409", "idx": 3, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F2309", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F1106", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B03", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F2306", "resource": 7, "deposit": 0, "helper": []})
-
-        p0.moves.breakthrough({"card": "B02", "idx": 0, "playerID": "0", "res": 2})
-
-        p0.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F2308", "idx": 3, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2210", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.chooseEffect({"effect": {"e": "draw", "a": 2}, "idx": 0, "p": "1"})
-
-        p1.moves.playCard({"card": "F1307", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2106", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.undo()
-
-        p1.moves.playCard({"card": "F2112", "idx": 5, "playerID": "1", "res": 0})
-
-        p1.moves.confirmRespond("yes")
-
-        p1.moves.competitionCard([])
-
-        p0.moves.competitionCard({"pass": false, "card": "B07", "idx": 0, "p": "0"})
-
-        p1.moves.showCompetitionResult({
-            "info": {
-                "region": 0,
-                "atk": "1",
-                "atkPlayedCard": false,
-                "atkCard": "F2106",
-                "def": "0",
-                "defPlayedCard": false,
-                "defCard": "B07",
-                "progress": 5,
-                "pending": true,
-                "onWin": {"e": "none", "a": 1}
-            }
-        })
-
-        p1.moves.chooseRegion({"r": 2, "idx": 2, "p": "1"})
-
-        p1.moves.playCard({"card": "F2408", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.updateSlot("F2113")
-
-        p1.moves.buyCard({"buyer": "1", "target": "F2207", "resource": 6, "deposit": 0, "helper": []})
-
-        p1.moves.playCard({"card": "F2214", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.chooseEffect({"effect": {"e": "aestheticsLevelUp", "a": 1}, "idx": 1, "p": "1"})
-
-        p1.moves.breakthrough({"card": "V321", "idx": 1, "playerID": "1", "res": 2})
-
-        p1.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.payAdditionalCost({"res": 1, "deposit": 0})
-
-        p1.moves.playCard({"card": "F1305", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.undo()
-
-        p1.undo()
-
-        p1.undo()
-
-        p1.undo()
-
-        p1.undo()
-
-        p1.moves.chooseEffect({"effect": {"e": "industryLevelUp", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.breakthrough({"card": "V321", "idx": 1, "playerID": "1", "res": 2})
-
-        p1.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.payAdditionalCost({"res": 1, "deposit": 0})
-
-        p1.moves.playCard({"card": "F1305", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.requestEndTurn("1");
-
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 3, "playerID": "0", "res": 0})
-
-        p0.moves.breakthrough({"card": "B01", "idx": 2, "playerID": "0", "res": 2})
-
-        p0.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "0"})
-
-        p0.undo()
-
-        p0.undo()
-
-        p0.undo()
-
-        p0.undo()
-
-        p0.moves.playCard({"card": "F2209", "idx": 5, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F2405", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.chooseEffect({"effect": {"e": "breakthroughResDeduct", "a": 2}, "idx": 1, "p": "0"})
-
-        p0.moves.chooseHand({"hand": "B07", "idx": 1, "p": "0"})
-
-        p0.moves.playCard({"card": "F2108", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F2113", "resource": 5, "deposit": 0, "helper": []})
-
-        p0.moves.drawCard("0")
-
-        p0.moves.playCard({"card": "B01", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F2208", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F1307", "idx": 5, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2109", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.comment({"target": "S2101", "comment": null, "p": "1"})
-
-        p1.undo()
-
-        p1.undo()
-
-        p1.moves.playCard({"card": "F2308", "idx": 4, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2408", "idx": 4, "playerID": "1", "res": 0})
-
-        p1.moves.updateSlot("S2101")
-
-        p1.moves.playCard({"card": "F2206", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.breakthrough({"card": "F2213", "idx": 1, "playerID": "1", "res": 2})
-
-        p1.moves.chooseEffect({"effect": {"e": "industryBreakthrough", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.chooseEffect({"effect": {"e": "industryLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.payAdditionalCost({"res": 2, "deposit": 0})
-
-        p1.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.payAdditionalCost({"res": 1, "deposit": 0})
-
-        p1.moves.playCard({"card": "F2106", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.breakthrough({"card": "F2109", "idx": 0, "playerID": "1", "res": 2})
-
-        p1.moves.chooseHand({"hand": "F1305", "idx": 0, "p": "1"})
-
-        p1.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.payAdditionalCost({"res": 2, "deposit": 0})
-
-        p1.moves.chooseEffect({"effect": {"e": "aestheticsLevelUpCost", "a": 1}, "idx": 0, "p": "1"})
-
-        p1.moves.payAdditionalCost({"res": 2, "deposit": 0})
-
-        p1.moves.requestEndTurn("1");
-
-        p1.moves.chooseEffect({"effect": {"e": "aestheticsLevelUp", "a": 1}, "idx": 1, "p": "1"})
-
-
-        p0.moves.playCard({"card": "F1106", "idx": 5, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "B07", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F2409", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.updateSlot("F3103")
-
-        p0.moves.playCard({"card": "B03", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.drawCard("0")
-
-        p0.moves.playCard({"card": "F2309", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.chooseHand({"hand": "B04", "idx": 4, "p": "0"})
-
-        p0.moves.chooseHand({"hand": "B04", "idx": 1, "p": "0"})
-
-        p0.moves.playCard({"card": "B07", "idx": 2, "playerID": "0", "res": 0})
-
-        p0.moves.buyCard({"buyer": "0", "target": "F3414", "resource": 5, "deposit": 2, "helper": []})
-
-        p0.moves.playCard({"card": "F2108", "idx": 1, "playerID": "0", "res": 0})
-
-        p0.moves.playCard({"card": "F2306", "idx": 0, "playerID": "0", "res": 0})
-
-        p0.moves.chooseHand({"hand": "B04", "idx": 0, "p": "0"})
-
-        p0.moves.requestEndTurn("0");
-
-
-        p1.moves.playCard({"card": "F2210", "idx": 1, "playerID": "1", "res": 0})
-
-        p1.moves.chooseEffect({"effect": {"e": "draw", "a": 2}, "idx": 0, "p": "1"})
-
-        p1.undo()
-
-        p1.undo()
-
-        p1.moves.playCard({"card": "F2214", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.playCard({"card": "F2206", "idx": 5, "playerID": "1", "res": 0})
-
-        p1.moves.comment({"target": "S3105", "comment": "B04", "p": "1"})
-
-        p1.moves.playCard({"card": "F2112", "idx": 0, "playerID": "1", "res": 0})
-
-        p1.moves.confirmRespond("no")
-
-        p1.moves.playCard({"card": "F2308", "idx": 2, "playerID": "1", "res": 0})
-
-        p1.moves.buyCard({"buyer": "1", "target": "F3110", "resource": 6, "deposit": 0, "helper": []})
-
-        p1.moves.playCard({"card": "F2408", "idx": 3, "playerID": "1", "res": 0})
     }
+    {p0.moves.breakthrough({"card":"F1304","idx":1,"playerID":"0","res":2});
+        p0.undo();
+        p0.moves.breakthrough({"card":"B04","idx":0,"playerID":"0","res":2});
+        p0.moves.playCard({"card":"F1304","idx":0,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"F2404","resource":5,"deposit":2,"helper":[]});
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.chooseHand({"hand":"B07","idx":0,"p":"1"});
+
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"F2408","idx":1,"playerID":"1","res":0});
+        p1.moves.updateSlot("F2207");
+
+        p1.moves.drawCard("1");
+        p1.undo();
+        p1.undo();
+        p1.undo();
+        p1.undo();
+        p1.undo();
+        p1.undo();
+        p1.moves.chooseHand({"hand":"B01","idx":1,"p":"1"});
+
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"F2408","idx":0,"playerID":"1","res":0});
+        p1.moves.updateSlot("F2207");
+
+        p1.moves.drawCard("1");
+        p1.moves.playCard({"card":"B04","idx":0,"playerID":"1","res":0});
+        p1.moves.buyCard({"buyer":"1","target":"F2304","resource":6,"deposit":0,"helper":[]});
+        p1.moves.requestEndTurn("1");
+
+        p0.moves.playCard({"card":"F1106","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.breakthrough({"card":"B01","idx":0,"playerID":"0","res":2});
+        p0.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"0"});
+
+        p0.undo();
+        p0.undo();
+        p0.moves.drawCard("0");
+        p0.moves.playCard({"card":"F2303","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B03","idx":1,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"F2308","resource":8,"deposit":0,"helper":["B01"]});
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.chooseHand({"hand":"B07","idx":0,"p":"1"});
+
+        p1.moves.playCard({"card":"F2407","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B03","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.drawCard("1");
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.buyCard({"buyer":"1","target":"S2201","resource":7,"deposit":2,"helper":["F1208"]});
+        p1.moves.requestEndTurn("1");
+
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.breakthrough({"card":"F1109","idx":0,"playerID":"0","res":2});
+        p0.moves.chooseEffect({"effect":{"e":"industryLevelUpCost","a":1},"idx":0,"p":"0"});
+        p0.moves.payAdditionalCost({"res":1,"deposit":0});
+
+        p0.moves.buyCard({"buyer":"0","target":"B01","resource":2,"deposit":0,"helper":[]});
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.playCard({"card":"F2408","idx":2,"playerID":"1","res":0});
+        p1.moves.updateSlot("F2208");
+
+        p1.moves.playCard({"card":"F2304","idx":3,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"F2407","idx":4,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":2,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":2,"playerID":"1","res":0});
+        p1.moves.buyCard({"buyer":"1","target":"F2109","resource":5,"deposit":0,"helper":[]});
+        p1.moves.buyCard({"buyer":"1","target":"F2309","resource":4,"deposit":0,"helper":[]});
+        p1.moves.playCard({"card":"B04","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B04","idx":0,"playerID":"1","res":0});
+        p1.moves.requestEndTurn("1");
+
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B03","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F2404","idx":1,"playerID":"0","res":0});
+        p0.moves.breakthrough({"card":"B01","idx":0,"playerID":"0","res":2});
+        p0.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"0"});
+
+        p0.moves.buyCard({"buyer":"0","target":"F2111","resource":4,"deposit":0,"helper":[]});
+        p0.undo();
+        p0.moves.buyCard({"buyer":"0","target":"F2405","resource":6,"deposit":2,"helper":[]});
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":2,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B03","idx":2,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"F1208","idx":0,"playerID":"1","res":0});
+        p1.undo();
+        p1.moves.buyCard({"buyer":"1","target":"F2111","resource":2,"deposit":0,"helper":["F1208"]});
+        p1.moves.buyCard({"buyer":"1","target":"F2209","resource":2,"deposit":1,"helper":[]});
+        p1.moves.playCard({"card":"B01","idx":0,"playerID":"1","res":0});
+        p1.moves.requestEndTurn("1");
+
+        p0.moves.playCard({"card":"F1307","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F2303","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F2308","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F1106","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F2305","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F2406","idx":0,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"S2301","resource":9,"deposit":0,"helper":["F1304"]});
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"F2212","resource":4,"deposit":0,"helper":[]});
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"F2109","idx":1,"playerID":"1","res":0});
+        p1.moves.comment({"target":"F2106","comment":"B04","p":"1"});
+
+        p1.moves.playCard({"card":"B07","idx":1,"playerID":"1","res":0});
+        p1.moves.breakthrough({"card":"B01","idx":1,"playerID":"1","res":2});
+        p1.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"1"});
+        p1.moves.payAdditionalCost({"res":1,"deposit":0});
+
+        p1.moves.playCard({"card":"F2111","idx":0,"playerID":"1","res":0});
+        p1.moves.chooseEffect({"effect":{"e":"aesAward","a":1},"idx":0,"p":"1"});
+
+        p1.moves.buyCard({"buyer":"1","target":"B02","resource":2,"deposit":0,"helper":[]});
+        p1.moves.requestEndTurn("1");
+
+        p0.moves.playCard({"card":"F2404","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"B07","idx":1,"playerID":"0","res":0});
+        p0.moves.playCard({"card":"F2405","idx":1,"playerID":"0","res":0});
+        p0.moves.chooseEffect({"effect":{"e":"breakthroughResDeduct","a":2},"idx":1,"p":"0"});
+        p0.moves.chooseHand({"hand":"B01","idx":0,"p":"0"});
+
+        p0.moves.chooseEffect({"effect":{"e":"aestheticsLevelUpCost","a":1},"idx":0,"p":"0"});
+        p0.moves.payAdditionalCost({"res":1,"deposit":0});
+
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.buyCard({"buyer":"0","target":"F2208","resource":6,"deposit":0,"helper":[]});
+        p0.moves.drawCard("0");
+        p0.moves.playCard({"card":"B07","idx":0,"playerID":"0","res":0});
+        p0.moves.drawCard("0");
+        p0.moves.playCard({"card":"B03","idx":0,"playerID":"0","res":0});
+        p0.moves.requestEndTurn("0");
+
+        p1.moves.playCard({"card":"F2209","idx":4,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"B07","idx":2,"playerID":"1","res":0});
+        p1.moves.breakthrough({"card":"F2309","idx":0,"playerID":"1","res":2});
+        p1.moves.chooseEffect({"effect":{"e":"refactor","a":1},"idx":1,"p":"1"});
+        p1.moves.chooseHand({"hand":"B04","idx":0,"p":"1"});
+        p1.moves.chooseEffect({"effect":{"e":"industryLevelUp","a":1},"idx":0,"p":"1"});
+
+        p1.moves.chooseEffect({"effect":{"e":"refactor","a":1},"idx":1,"p":"1"});
+        p1.moves.chooseHand({"hand":"B04","idx":0,"p":"1"});
+
+        p1.moves.drawCard("1");
+        p1.moves.playCard({"card":"F2304","idx":0,"playerID":"1","res":0});
+        p1.moves.playCard({"card":"F2407","idx":0,"playerID":"1","res":0});
+        p1.undo();
+        p1.moves.playCard({"card":"B03","idx":1,"playerID":"1","res":0});}
     p0.stop();
     p1.stop();
 
