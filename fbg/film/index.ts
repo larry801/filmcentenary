@@ -4,7 +4,7 @@ import { IGameDef, IGameStatus } from 'gamesShared/definitions/game';
 import instructions from './instructions.md';
 
 export const filmCentenaryGameDef: IGameDef = {
-  code: 'filmCentenary',
+  code: 'film',
   name: 'Film Centenary',
   minPlayers: 2,
   maxPlayers: 4,
@@ -14,9 +14,9 @@ export const filmCentenaryGameDef: IGameDef = {
     //   mode: GameMode.AI,
     // },
     { mode: GameMode.OnlineFriend },
-    { mode: GameMode.LocalFriend },
+    // { mode: GameMode.LocalFriend },
   ],
-  description: 'A Classic Game',
+  description: '@',
   descriptionTag: `Play Tic-Tac-Toe (also called Noughts and Crosses) for\
  free online. You can either play a single-player game against the computer,\
  a multi-player game against a friend online, or share your device and play\

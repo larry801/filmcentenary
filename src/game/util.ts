@@ -44,9 +44,9 @@ import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./l
 import {getCardEffect} from "../constant/effects";
 // eslint-disable-next-line
 const loggerN = {
-    info: () => false,
-    debug: () => false,
-    error: () => false,
+    info: (log: string) => false,
+    debug: (log: string) => false,
+    error: (log: string) => false,
 }
 const loggerD = {
     info: (log: string) => console.log(`info|${log}`),
@@ -1385,6 +1385,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 break;
             }else{
                 changePlayerStage(G, ctx, "updateSlot", p);
+                logger.debug(`${G.matchID}|${log}`);
                 return;
             }
         case "comment":
@@ -1395,6 +1396,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 break;
             }else {
                 changePlayerStage(G, ctx, "comment", p);
+                logger.debug(`${G.matchID}|${log}`);
                 return;
             }
         case "pay":

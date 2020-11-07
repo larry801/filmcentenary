@@ -280,7 +280,6 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                     let card = rObj.legend.card;
                     if (card !== null) {
                         moves.push({move: stage, args: [rObj.legend]})
-
                     }
                     for (let slot of rObj.normal) {
                         if (slot.card !== null) {

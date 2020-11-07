@@ -1,10 +1,10 @@
 import { IGameConfig } from 'gamesShared/definitions/game';
 import { FilmCentenaryGame } from './Game';
-import { FilmCentenaryBoard } from './components/board';
+import {Board} from "./board";
 
 const config: IGameConfig = {
   bgioGame: FilmCentenaryGame,
-  bgioBoard: FilmCentenaryBoard,
+  bgioBoard: Board,
 };
 
 export default config;

@@ -101,7 +101,7 @@ export const CardList = ({cards, title, label}: ICardListProps) => {
                 {cards.map(c => {
                         const cardObj = getCardById(c);
                         const feeText = `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}/${cardObj.vp}`
-                        return <Paper variant="outlined">
+                        return <Paper variant="outlined" key={title + c}>
                             <CardInfo cid={c}/>
                             {feeText}
                         </Paper>

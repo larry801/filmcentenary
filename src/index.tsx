@@ -10,6 +10,7 @@ const MUICreateMatch = React.lazy(async ()=> import("./components/create-match")
 const JoinPage = React.lazy(async ()=> import("./components/join"));
 const DenseTable = React.lazy(async ()=> import("./components/cardreference"));
 const Local4p = React.lazy(async ()=> import("./components/local/4p"));
+const Local2p = React.lazy(async ()=> import("./components/local/2p"));
 
 const LoadingFallback  = () => <CircularProgress/>
 
@@ -39,7 +40,11 @@ render(
                     <Local4p />
                 </React.Suspense>
             </Route>
-
+            <Route exact path="/local2p">
+                <React.Suspense fallback={<LoadingFallback/>}>
+                    <Local2p />
+                </React.Suspense>
+            </Route>
             <Route path="*">
                 <Redirect to="/"/>
             </Route>
