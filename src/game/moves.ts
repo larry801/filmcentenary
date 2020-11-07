@@ -1097,6 +1097,11 @@ export const comment: LongFormMove = {
         if (slot === null) {
             return INVALID_MOVE
         }
+        if (G.basicCards[arg.comment as BasicCardID] > 0) {
+            G.basicCards[arg.comment as BasicCardID]--;
+        } else {
+            return INVALID_MOVE
+        }
         if (arg.comment === null) {
             slot.comment = null;
         } else {
