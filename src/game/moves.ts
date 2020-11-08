@@ -474,9 +474,9 @@ export const updateSlot: LongFormMove = {
         }
         doReturnSlotCard(G, ctx, slot);
         if (ctx.numPlayers > SimpleRuleNumPlayers) {
-            fillEmptySlots(G, ctx);
+            fillEmptySlots(G);
         } else {
-            fillTwoPlayerBoard(G, ctx);
+            fillTwoPlayerBoard(G);
         }
         checkNextEffect(G, ctx);
     }

@@ -946,11 +946,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     G.e.currentEffect = eff;
     let targetPlayer = p;
     let pub = G.pub[parseInt(p)];
-    let playerObj = G.player[parseInt(p)];
+    const playerObj = G.player[parseInt(p)];
     let region = curCard(G).region as ValidRegion;
     log += `|c:${G.e.card}|region:${region}`;
     let players = []
-    let length = 0;
     const handLength = playerObj.hand.length;
     let subEffect;
     let extraCost = 0
@@ -1169,7 +1168,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log += `|deck|${JSON.stringify(deck)}`
             log += `|hand${JSON.stringify(playerObj.hand)}`
             log += `|discard|${JSON.stringify(pub.discard)}`
-            const totalRemainCards = length + pub.discard.length
+            const totalRemainCards = deck.length + pub.discard.length
             if(totalRemainCards === 0){
                 log += `|noCardLeftSkip`
                 break;
@@ -1255,8 +1254,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             return;
         case "step":
             log += ("|step")
-            length = eff.a.length;
-            for (let i = length - 1; i >= 0; i--) {
+            const effectCount = eff.a.length;
+            for (let i = effectCount - 1; i >= 0; i--) {
                 subEffect = {...eff.a[i]};
                 if (eff.hasOwnProperty("target")) {
                     log += `|specifyTarget|${eff.target}`
@@ -1699,7 +1698,7 @@ export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     return resRequired === resGiven && pub.resource >= arg.resource && pub.deposit >= arg.deposit;
 }
 
-export const fillTwoPlayerBoard = (G: IG, ctx: Ctx): void => {
+export const fillTwoPlayerBoard = (G: IG): void => {
     const s = G.secretInfo.twoPlayer.school;
     for (let slotL of G.twoPlayer.school) {
         if (slotL.card === null) {
@@ -1918,7 +1917,7 @@ export const do2pUpdateFilmSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
     }
 }
 
-export const fillEmptySlots = (G: IG, ctx: Ctx) => {
+export const fillEmptySlots = (G: IG) => {
     let log = "fillEmptySlots";
     for (let r of valid_regions) {
         log += `|fill|${r}`
@@ -2111,7 +2110,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             return
         }
     } else {
-        fillTwoPlayerBoard(G, ctx);
+        fillTwoPlayerBoard(G);
         signalEndTurn(G, ctx);
         return;
     }
@@ -2145,9 +2144,9 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
             setupAfterScoring(G, ctx);
             log += "|fillEmptySlots"
             if (ctx.numPlayers > SimpleRuleNumPlayers) {
-                fillEmptySlots(G, ctx);
+                fillEmptySlots(G);
             } else {
-                fillTwoPlayerBoard(G, ctx)
+                fillTwoPlayerBoard(G)
             }
             log += "|signalEndStage&Turn"
             logger.debug(`${G.matchID}|${log}`);
