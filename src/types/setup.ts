@@ -413,6 +413,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.regions[Region.NA].legend.card = "P1101"
     // G.regions[Region.NA].share = 1
     // G.regions[Region.NA].era = IEra.THREE
+    // G.regions[Region.ASIA].era = IEra.THREE
     // G.regions[Region.WE].share = 1
     // G.regions[Region.EE].share = 1
     // G.regions[Region.NA].legend.card = "P1101"
@@ -431,7 +432,9 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[0].deposit = 40;
     // G.pub[0].action = 20;
     // @ts-ignore
-    // G.player[0].hand = ["F3308", "B07", "F3413", "F3413",]
+    // G.player[0].hand = ["F2404", "B07", "F3413", "F3413",]
+    // G.pub[0].discard = [];
+    // G.secretInfo.playerDecks[0] = [];
     // G.pub[0].resource = 3;
     // G.pub[0].action = 10;
     return G;

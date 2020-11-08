@@ -143,6 +143,12 @@ export const scoreEffectText = (cardId: CardID): string => {
 
 export const effIcon = (eff: any): JSX.Element => {
     switch (eff.e) {
+        // case "optional":
+        //     return <React.Fragment key={generate()}><CompetitionIcon/></React.Fragment>
+        // case "competition":
+        //     return <React.Fragment key={generate()}><CompetitionIcon/></React.Fragment>
+        // case "discardAesthetics":
+        //     return <React.Fragment key={generate()}><FilmCardIcon/>X{eff.a}</React.Fragment>
         case "aesAward":
             return <React.Fragment key={generate()}>
                 <Typography>
