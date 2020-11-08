@@ -164,7 +164,7 @@ export const buyCard: LongFormMove = {
     move(G: IG, ctx: Ctx, arg: IBuyInfo): any {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.buyer}.moves.buyCard(${JSON.stringify(arg)})`);
-        let log = `p${arg.buyer}|buy|${arg.target}|res:${arg.resource}|deposit:${arg.deposit}|${arg.helper}\r\n`
+        let log = `p${arg.buyer}|buy|${arg.target}|res:${arg.resource}|deposit:${arg.deposit}|${arg.helper}`
         logger.debug(`${G.matchID}|${log}`);
         if (canBuyCard(G, ctx, arg)) {
             let targetCard = getCardById(arg.target)
@@ -239,6 +239,7 @@ export const chooseTarget: LongFormMove = {
         let src = arg.p;
         let p = arg.target;
         let eff = G.e.stack.pop();
+        logger.debug(JSON.stringify(eff));
         let log = `players|${JSON.stringify(G.c.players)}|eff:${JSON.stringify(eff)}`
         switch (eff.e) {
             case "loseVpForEachHand":
@@ -263,6 +264,7 @@ export const chooseTarget: LongFormMove = {
                     G.e.stack.push(eff);
                     G.c.players = [p];
                     changePlayerStage(G, ctx, "chooseRegion", src);
+                    logger.debug(`${G.matchID}|${log}`);
                     return;
                 } else {
                     ctx?.events?.endStage?.()
@@ -273,6 +275,7 @@ export const chooseTarget: LongFormMove = {
                 G.c.players = [arg.target]
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", arg.p);
+                logger.debug(`${G.matchID}|${log}`);
                 return;
             default:
                 eff.target = p;
@@ -281,6 +284,8 @@ export const chooseTarget: LongFormMove = {
                 logger.debug(`${G.matchID}|${log}`);
                 checkNextEffect(G, ctx);
         }
+        logger.debug(`${G.matchID}|${log}`);
+        checkNextEffect(G, ctx);
     }
 }
 

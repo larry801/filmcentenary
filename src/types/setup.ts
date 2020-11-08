@@ -435,11 +435,11 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     //G.pub[0].allCards = ["F1304", "F1211", "F3413", "V111",]
     // G.pub[0].deposit = 40;
     // G.pub[0].action = 20;
-    // @ts-ignore
-    // G.player[0].hand = ["F2404", "B07", "F3413", "F3413",]
     // G.pub[0].discard = [];
+    // G.pub[firstMovePlayer].resource = 30;
+    // @ts-ignore
+    // G.player[firstMovePlayer].hand = ["F3104", "P3102", "B07", "B07",]
     // G.secretInfo.playerDecks[0] = [];
-    // G.pub[0].resource = 3;
     // G.pub[0].action = 10;
     return G;
 };

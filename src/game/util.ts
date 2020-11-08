@@ -90,7 +90,7 @@ export function activePlayer(ctx: Ctx) {
 
 export const curPub = (G: IG, ctx: Ctx): IPubInfo => G.pub[curPid(G, ctx)];
 
-export const die = (ctx: Ctx, faces:number): number=>{
+export const die = (ctx: Ctx, faces: number): number => {
     const r = ctx.random;
     if (r === undefined) {
         throw new Error("");
@@ -1169,7 +1169,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log += `|hand${JSON.stringify(playerObj.hand)}`
             log += `|discard|${JSON.stringify(pub.discard)}`
             const totalRemainCards = deck.length + pub.discard.length
-            if(totalRemainCards === 0){
+            if (totalRemainCards === 0) {
                 log += `|noCardLeftSkip`
                 break;
             }
@@ -1392,10 +1392,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             logger.debug(`${G.matchID}|${log}`);
             return;
         case "update":
-            if (wholeBoardDepleted(G)){
+            if (wholeBoardDepleted(G)) {
                 log += `|noSlotToUpdate`
                 break;
-            }else{
+            } else {
                 changePlayerStage(G, ctx, "updateSlot", p);
                 logger.debug(`${G.matchID}|${log}`);
                 return;
@@ -1403,10 +1403,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "comment":
             if (
                 wholeBoardDepleted(G) || commentBasicCardDepleted(G)
-            ){
+            ) {
                 log += `|noTargetOrCommentCard`
                 break;
-            }else {
+            } else {
                 changePlayerStage(G, ctx, "comment", p);
                 logger.debug(`${G.matchID}|${log}`);
                 return;
@@ -1922,7 +1922,7 @@ export const fillEmptySlots = (G: IG) => {
     for (let r of valid_regions) {
         log += `|fill|${r}`
         const region = G.regions[r];
-        if(region.completedModernScoring){
+        if (region.completedModernScoring) {
             log += `|noNotSetUpAfterModernScoring`
             continue;
         }
@@ -2726,10 +2726,14 @@ export const buildBuildingFor = (G: IG, ctx: Ctx, r: ValidRegion, p: PlayerID, b
 export const competitionCleanUp = (G: IG, ctx: Ctx) => {
     let log = `competitionCleanUp|checkNextEffect`
     let i = G.competitionInfo;
+    i.region = Region.NONE;
     i.pending = false;
     i.progress = 0;
     i.atkCard = null;
     i.defCard = null;
+    i.atkPlayedCard = false;
+    i.defPlayedCard = false;
+    i.onWin = {e: "none", a: 1};
     logger.debug(`${G.matchID}|${log}`);
     checkNextEffect(G, ctx);
 }
@@ -2918,15 +2922,15 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
     let newEra;
     log += `|removeCards`
     doReturnSlotCard(G, ctx, G.regions[r].legend);
-    for(let i=0;i<region.normalDeckLength;i++){
-        doReturnSlotCard(G,ctx,G.regions[r].normal[i]);
+    for (let i = 0; i < region.normalDeckLength; i++) {
+        doReturnSlotCard(G, ctx, G.regions[r].normal[i]);
     }
     log += `|${JSON.stringify(region)}`
     log += `|resetShare`
     for (let i = 0; i < G.order.length; i++) {
         G.pub[i].shares[r] = 0;
     }
-    region.share =0;
+    region.share = 0;
     if (era === IEra.ONE) {
         log += `|IEra.TWO`
         newEra = IEra.TWO;
