@@ -90,8 +90,17 @@ export function activePlayer(ctx: Ctx) {
 
 export const curPub = (G: IG, ctx: Ctx): IPubInfo => G.pub[curPid(G, ctx)];
 
+export const die = (ctx: Ctx, faces:number): number=>{
+    const r = ctx.random;
+    if (r === undefined) {
+        throw new Error("");
+    } else {
+        return r.Die(faces);
+    }
+}
+
 export const shuffle = (ctx: Ctx, arg: any[]): any[] => {
-    let r = ctx.random;
+    const r = ctx.random;
     if (r === undefined) {
         throw new Error("");
     } else {

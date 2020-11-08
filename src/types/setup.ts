@@ -16,7 +16,7 @@ import {
     ValidRegion
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
-import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
+import {die, doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
 
 export interface CompetitionInfo {
     region: Region,
@@ -202,16 +202,20 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     let pub: IPubInfo[] = [];
     let players: IPrivateInfo[] = [];
     let decks: CardID[][] = [];
-    let order: PlayerID[] = [];
     for (let i = 0; i < ctx.numPlayers; i++) {
-        order.push(i.toString());
         pub.push(pubPlayer());
         players.push(privatePlayer());
         decks.push(shuffle(ctx, initialDeck));
     }
-    let events = shuffle(ctx, []);
-    // TODO enable random order in real game
-    // let randomOrder = shuffle(ctx, order);
+    const firstMovePlayer = die(ctx, ctx.numPlayers) - 1;
+    const order: PlayerID[] = [];
+    const remainPlayers = ctx.numPlayers
+    for (let i = firstMovePlayer; i < remainPlayers; i++) {
+        order.push(i.toString())
+    }
+    for (let i = 0; i < firstMovePlayer; i++) {
+        order.push(i.toString())
+    }
     let G: IG = {
         regionScoreCompensateMarker: "0",
         eventDeckLength: 0,
@@ -295,7 +299,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 school: [],
                 film: [],
             },
-            events: events,
+            events: [],
             playerDecks: decks,
         },
         regions: {
