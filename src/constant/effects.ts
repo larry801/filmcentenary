@@ -1541,7 +1541,7 @@ export const effects = {
                     a: [{e: "vp", a: 2}, {
                         e: "peek",
                         a: {
-                            count: 2, target: "hand", filter: {
+                            count: 3, target: "hand", filter: {
                                 e: "choice", a: 1
                             }
                         }
