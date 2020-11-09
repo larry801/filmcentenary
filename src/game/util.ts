@@ -1435,13 +1435,18 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case "pay":
+            subEffect = {...eff.a.eff}
+            if(eff.hasOwnProperty("target")){
+                log += `|target|${eff.target}`
+                subEffect.target = eff.target
+            }
             switch (eff.a.cost.e) {
                 case "res":
                     if (pub.resource < eff.a.cost.a) {
                         break
                     } else {
                         pub.resource -= eff.a.cost.a
-                        G.e.stack.push(eff.a.eff);
+                        G.e.stack.push(subEffect);
                         break;
                     }
                 case "vp":
@@ -1451,7 +1456,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         break
                     } else {
                         loseVp(G, ctx, p, eff.a.cost.a);
-                        G.e.stack.push(eff.a.eff);
+                        G.e.stack.push(subEffect);
                         break
                     }
                 case "deposit":
@@ -1459,11 +1464,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         break;
                     } else {
                         loseDeposit(G, ctx, p, eff.a.cost.a);
-                        G.e.stack.push(eff.a.eff);
+                        G.e.stack.push(subEffect);
                         break;
                     }
                 case "share":
                     loseShare(G, eff.a.cost.region, pub, eff.a.cost.a);
+                    G.e.stack.push(subEffect);
                     break;
                 default:
                     logger.debug(`${G.matchID}|${log}`);
