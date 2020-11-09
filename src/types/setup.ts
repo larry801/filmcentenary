@@ -16,7 +16,15 @@ import {
     ValidRegion
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
-import {die, doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
+import {
+    die,
+    doFillNewEraEventDeck,
+    drawForRegion,
+    drawForTwoPlayerEra,
+    fillPlayerHand,
+    logger,
+    shuffle
+} from "../game/util";
 
 export interface CompetitionInfo {
     region: Region,
@@ -208,6 +216,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         decks.push(shuffle(ctx, initialDeck));
     }
     const firstMovePlayer = die(ctx, ctx.numPlayers) - 1;
+    logger.debug(`firstPlayer${firstMovePlayer}`)
     const order: PlayerID[] = [];
     const remainPlayers = ctx.numPlayers
     for (let i = firstMovePlayer; i < remainPlayers; i++) {
@@ -216,6 +225,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     for (let i = 0; i < firstMovePlayer; i++) {
         order.push(i.toString())
     }
+    logger.debug(`order${JSON.stringify(order)}`)
     let G: IG = {
         regionScoreCompensateMarker: "0",
         eventDeckLength: 0,
@@ -383,19 +393,19 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     if (ctx.numPlayers === 3) {
         G.regions[Region.NA].buildings[1].activated = true;
         G.regions[Region.WE].buildings[1].activated = true;
-        G.pub[parseInt(G.order[1])].vp = 1;
-        G.pub[parseInt(G.order[2])].vp = 2;
+        G.pub[parseInt(G.initialOrder[1])].vp = 1;
+        G.pub[parseInt(G.initialOrder[2])].vp = 2;
     }
     if (ctx.numPlayers === 4) {
         G.regions[Region.NA].buildings[1].activated = true;
         G.regions[Region.WE].buildings[1].activated = true;
-        G.pub[parseInt(G.order[2])].vp = 1;
-        G.pub[parseInt(G.order[3])].vp = 2;
+        G.pub[parseInt(G.initialOrder[2])].vp = 1;
+        G.pub[parseInt(G.initialOrder[3])].vp = 2;
     }
     if (ctx.numPlayers === 3) {
-        G.regions["0"].share--;
-        G.regions["1"].share--;
-        G.regions["2"].share--;
+        G.regions[Region.NA].share--;
+        G.regions[Region.WE].share--;
+        G.regions[Region.EE].share--;
     }
     if (ctx.numPlayers === SimpleRuleNumPlayers) {
         G.regions[Region.NA].share = 12;
@@ -436,9 +446,11 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[0].deposit = 40;
     // G.pub[0].action = 20;
     // G.pub[0].discard = [];
+    // G.twoPlayer.era = IEra.THREE;
+    // G.pub[firstMovePlayer].vp = 149;
     // G.pub[firstMovePlayer].resource = 30;
     // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["F3104", "P3102", "B07", "B07",]
+    // G.player[firstMovePlayer].hand = ["F3412", "P3102", "B07", "B07",]
     // G.secretInfo.playerDecks[0] = [];
     // G.pub[0].action = 10;
     return G;

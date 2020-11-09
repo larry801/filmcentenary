@@ -877,7 +877,7 @@ export const concedeMove: LongFormMove = {
     client: false,
     move: (G: IG, ctx: Ctx, p: PlayerID) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        logger.info(`${G.matchID}|p${p}.moves.confirmRespond("${p}")`);
+        logger.info(`${G.matchID}|p${p}.moves.concede("${p}")`);
         let log = `p${p}conceded`
         if (G.order.includes(p)) {
             const concedeIndex = G.order.indexOf(p);

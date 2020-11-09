@@ -645,6 +645,29 @@ export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     return seq;
 }
 
+export const getExistingLastMovePlayer = (G: IG): PlayerID => {
+    let log = "getExistingLastMovePlayer";
+    if(G.order.length === G.initialOrder.length){
+        log += `|noOneConcede|lastMovePlayer`
+        const lastMovePlayer = G.initialOrder[G.playerCount - 1]
+        log += `|${lastMovePlayer}`
+        logger.debug(`${G.matchID}|${log}`);
+        return lastMovePlayer
+    }
+    const secondLastMovePlayer = G.initialOrder[G.playerCount - 2]
+    if(G.order.includes(secondLastMovePlayer)){
+        log += `|secondLast`
+        log += `|${secondLastMovePlayer}`
+        logger.debug(`${G.matchID}|${log}`);
+        return secondLastMovePlayer
+    }else {
+        log += `|thirdLast`
+        const thirdLastMovePlayer = G.initialOrder[G.playerCount - 3]
+        log += `|${thirdLastMovePlayer}`
+        logger.debug(`${G.matchID}|${log}`);
+        return thirdLastMovePlayer
+    }
+}
 export const industryHighestPlayer = (G: IG): PlayerID[] => {
     let log = "industryHighestPlayer"
     let highest = 0;
@@ -2046,6 +2069,7 @@ export const do2pRegionScoring = (G: IG, ctx: Ctx, r: ValidRegion): void => {
     // G.regions[r].share = ShareOnBoard[r][IEra.THREE];
     G.regions[r].completedModernScoring = true;
 }
+
 export const try2pScoring = (G: IG, ctx: Ctx): void => {
     let log = `try2pScoring`;
     valid_regions.forEach(r => {
@@ -2056,8 +2080,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
     })
     if (
         G.pending.lastRoundOfGame &&
-        initialPosOfPlayer(G, ctx, ctx.currentPlayer)
-        === (ctx.numPlayers - 1)
+        ctx.currentPlayer === getExistingLastMovePlayer(G)
     ) {
         log += "|finalScoring"
         logger.debug(`${G.matchID}|${log}`);
@@ -2132,8 +2155,7 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
         log += "|noRegion"
         if (
             G.pending.lastRoundOfGame &&
-            initialPosOfPlayer(G, ctx, ctx.currentPlayer)
-            === (ctx.numPlayers - 1)
+            ctx.currentPlayer === getExistingLastMovePlayer(G)
         ) {
             log += "|finalScoring"
             logger.debug(`${G.matchID}|${log}`);
