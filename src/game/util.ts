@@ -1048,7 +1048,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 era = G.twoPlayer.era;
             }
             log += `|era|${era}`
-            G.e.stack.push(eff.a[era]);
+            subEffect = {...eff.a[era]}
+            if(eff.hasOwnProperty("target")){
+                subEffect.target = eff.target
+            }
+            G.e.stack.push(subEffect);
             log += `|era|${JSON.stringify(G.e.stack)}`
             break;
         case "breakthroughResDeduct":

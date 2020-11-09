@@ -448,9 +448,12 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[0].discard = [];
     // G.twoPlayer.era = IEra.THREE;
     // G.pub[firstMovePlayer].vp = 149;
-    // G.pub[firstMovePlayer].resource = 30;
+    // G.pub[0].resource = 30;
+    // G.pub[1].resource = 30;
     // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["F3412", "P3102", "B07", "B07",]
+    // G.player[0].hand = ["F2307", "P3102", "B07", "B07",]
+    // @ts-ignore
+    // G.player[1].hand = ["F2307", "P3102", "B07", "B07",]
     // G.secretInfo.playerDecks[0] = [];
     // G.pub[0].action = 10;
     return G;
