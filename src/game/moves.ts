@@ -51,7 +51,6 @@ import {
     fillEmptySlots,
     fillEventCard,
     fillTwoPlayerBoard,
-    isSimpleEffect,
     logger,
     loseVp,
     payCost,
@@ -59,7 +58,6 @@ import {
     regionScoringCheck,
     schoolPlayer,
     seqFromPos,
-    simpleEffectExec,
     startBreakThrough,
     startCompetition,
     studioSlotsAvailable,
@@ -924,18 +922,16 @@ export const confirmRespond: LongFormMove = {
         if (arg === "yes") {
             switch (eff.e) {
                 case "optional":
-                    log += "|yes|";
-                    G.e.stack.push(eff.a)
-                    if (isSimpleEffect(G, eff.a)) {
-                        log += "|simple|";
-                        logger.debug(`${G.matchID}|${log}`);
-                        simpleEffectExec(G, ctx, p);
-                    } else {
-                        log += "|complex|";
-                        logger.debug(`${G.matchID}|${log}`);
-                        playerEffExec(G, ctx, p);
-                        return;
+                    const newEff = {...eff.a}
+                    if(eff.hasOwnProperty("target")){
+                        log += `|targetSpecified|${eff.target}`;
+                        newEff.target = eff.target;
+                    }else {
+                        newEff.target = p;
                     }
+                    log += `|${JSON.stringify(newEff)}`
+                    log += "|yes";
+                    G.e.stack.push(newEff)
                     break;
                 case "alternative":
                     const popEff = G.e.stack.pop()
