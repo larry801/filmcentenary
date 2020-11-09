@@ -182,12 +182,11 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                     })}
                 </Paper>
             }
-        </Grid>
-        {i.champions.length > 0 ? <Grid item sm={3}>
-            <Paper aria-label={championAriaLabel()}>
+            {i.champions.length > 0 ? <Paper aria-label={championAriaLabel()}>
                 {i.champions.map((c: Champion) => <ChampionIcon key={generate()} champion={c}/>)}
-            </Paper>
-        </Grid> : <></>}
+            </Paper> : <></>}
+        </Grid>
+
         <Grid item sm={3}>
             <CardList
                 title={`${i18n.pub.discard}${i.discard.length}`}

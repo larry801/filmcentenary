@@ -230,26 +230,28 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                 </Grid>
             </AccordionSummary>
             <AccordionDetails key={r}>
-                <Grid item>
-                    <BoardCardSlot
-                        G={G} ctx={ctx} slot={legend}
-                        moves={moves}
-                        comment={comment}
-                        playerID={playerID}
-                    /></Grid>
-                {normal.map((slot) => {
-                    if (slot.card !== null) {
-                        return <Grid item key={generate()}>
-                            <BoardCardSlot
-                                moves={moves}
-                                G={G} ctx={ctx} slot={slot}
-                                comment={comment} playerID={playerID}
-                            />
-                        </Grid>
-                    } else {
-                        return <div key={generate()}/>
-                    }
-                })}
+                <Grid container>
+                    <Grid item xs={12} md={6}>
+                        <BoardCardSlot
+                            G={G} ctx={ctx} slot={legend}
+                            moves={moves}
+                            comment={comment}
+                            playerID={playerID}
+                        /></Grid>
+                    {normal.map((slot) => {
+                        if (slot.card !== null) {
+                            return <Grid item key={generate()} xs={12} md={6}>
+                                <BoardCardSlot
+                                    moves={moves}
+                                    G={G} ctx={ctx} slot={slot}
+                                    comment={comment} playerID={playerID}
+                                />
+                            </Grid>
+                        } else {
+                            return <React.Fragment key={generate()}/>
+                        }
+                    })}
+                </Grid>
             </AccordionDetails>
         </Accordion>
     </Grid>

@@ -11,15 +11,15 @@ import {
 } from "../types/core";
 import PrestigeIcon from '@material-ui/icons/EmojiEvents';
 import {
-    ActionPointIcon,
+    ActionPointIcon, AestheticsCardIcon, BuyCardForFreeIcon,
     CardIcon,
     CardToArchiveIcon,
     ChampionIcon,
     DevelopmentAwardBadge,
-    DiscardIcon,
+    DiscardIconHelper,
     DrawnShareIcon,
-    FreeBreakthroughIcon, getColor,
-    LoseShareIcon
+    FreeBreakthroughIcon, getColor, IndustryCardIcon, LegendCardIcon,
+    LoseShareIcon, NormalCardIcon
 } from "./icons"
 import InsertCommentIcon from '@material-ui/icons/RateReview';
 import DepositIcon from '@material-ui/icons/LocalAtm';
@@ -30,19 +30,22 @@ import BuyCardHeaderIcon from '@material-ui/icons/ShoppingCart';
 import AestheticsIcon from '@material-ui/icons/ImportContacts';
 import IndustryIcon from '@material-ui/icons/Settings';
 import {generate} from "shortid";
+import CompetitionIcon from '@material-ui/icons/SportsKabaddi';
+import AnyPlayerIcon from '@material-ui/icons/People';
+import PlayCardIcon from '@material-ui/icons/PlayCircleFilledWhiteOutlined';
 import {getCardEffect} from "../constant/effects";
 import i18n from "../constant/i18n";
 import HandIcon from "@material-ui/icons/PanTool";
 import ResIcon from '@material-ui/icons/MonetizationOn';
-import ForFreeIcon from '@material-ui/icons/MoneyOff';
 import UpgradeBadgeIcon from '@material-ui/icons/PublishRounded';
 import Badge from "@material-ui/core/Badge";
+import OptionalIcon from '@material-ui/icons/Help';
 import PickIcon from '@material-ui/icons/Colorize';
 import UpdateSlotIcon from '@material-ui/icons/Loop';
 import StudioIcon from '@material-ui/icons/Business';
 import PayIcon from '@material-ui/icons/Remove';
 import SearchIcon from '@material-ui/icons/Search';
-import {Grid} from "@material-ui/core";
+import Grid from "@material-ui/core/Grid";
 
 export interface ICardEffectProps {
     cid: CardID,
@@ -143,12 +146,52 @@ export const scoreEffectText = (cardId: CardID): string => {
 
 export const effIcon = (eff: any): JSX.Element => {
     switch (eff.e) {
-        // case "optional":
-        //     return <React.Fragment key={generate()}><CompetitionIcon/></React.Fragment>
-        // case "competition":
-        //     return <React.Fragment key={generate()}><CompetitionIcon/></React.Fragment>
-        // case "discardAesthetics":
-        //     return <React.Fragment key={generate()}><FilmCardIcon/>X{eff.a}</React.Fragment>
+        case "discardAesthetics":
+            return <React.Fragment key={generate()}>
+                <DiscardIconHelper elem={<AestheticsCardIcon/>} />X{eff.a}
+            </React.Fragment>
+        case "discardIndustry":
+            return <React.Fragment key={generate()}>
+                <DiscardIconHelper elem={<IndustryCardIcon/>} />X{eff.a}
+            </React.Fragment>
+        case "discardNormalOrLegend":
+            return <React.Fragment key={generate()}>
+                <DiscardIconHelper elem={<LegendCardIcon/>} />X{eff.a}
+                /
+                <DiscardIconHelper elem={<NormalCardIcon/>} />X{eff.a}
+            </React.Fragment>
+        case "handToAnyPlayer":
+            return <React.Fragment key={generate()}>
+                <CardIcon/><HandIcon/><AnyPlayerIcon/>
+            </React.Fragment>
+        case "optional":
+            return <Typography key={generate()}>
+                <OptionalIcon/>
+                {effIcon(eff.a)}
+            </Typography>
+        case "competition":
+            if (eff.a.bonus > 0) {
+                return <React.Fragment
+                    key={generate()}
+                >
+                    <Badge
+                        anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'right',
+                        }}
+                        badgeContent={`+${eff.a.bonus}`}
+                        color="primary"
+                    >
+                        <CompetitionIcon/>
+                    </Badge>
+                    {effIcon(eff.a.onWin)}
+                </React.Fragment>
+            } else {
+                return <React.Fragment key={generate()}>
+                    <CompetitionIcon/>
+                    {effIcon(eff.a.onWin)}
+                </React.Fragment>
+            }
         case "aesAward":
             return <React.Fragment key={generate()}>
                 <Typography>
@@ -361,7 +404,9 @@ export const effIcon = (eff: any): JSX.Element => {
                 <CardToArchiveIcon key={generate()}/>X{eff.a}
             </React.Fragment>
         case "discard":
-            return <React.Fragment key={generate()}><DiscardIcon key={generate()}/>X{eff.a}</React.Fragment>
+            return <React.Fragment key={generate()}>
+                <DiscardIconHelper elem={<CardIcon/>} />X{eff.a}
+            </React.Fragment>
         case "draw":
             return <React.Fragment key={generate()}>
                 <CardIcon key={generate()}/>X{eff.a}
@@ -387,29 +432,14 @@ export const effIcon = (eff: any): JSX.Element => {
             }
         case "buy":
             return <React.Fragment key={generate()}>
-                <Badge
-                    anchorOrigin={{
-                        vertical: 'top',
-                        horizontal: 'left',
-                    }}
-                    badgeContent={<ForFreeIcon key={generate()}/>}>
-                    <CardIcon key={generate()}/>
-                </Badge>
+                <BuyCardForFreeIcon/>
                 {getCardName(eff.a)}
             </React.Fragment>
         case "buyCardToHand":
             return <React.Fragment key={generate()}>
-                <Badge
-                    anchorOrigin={{
-                        vertical: 'top',
-                        horizontal: 'left',
-                    }}
-                    badgeContent={<ForFreeIcon key={generate()}/>}
-                >
-                    <CardIcon key={generate()}/>
-                </Badge>
-                <HandIcon key={generate()}/>
+                <BuyCardForFreeIcon/>
                 {getCardName(eff.a)}
+                <HandIcon />
             </React.Fragment>
         case "peek":
             let filter;
@@ -460,8 +490,7 @@ export const effIcon = (eff: any): JSX.Element => {
         {effName(eff)}
     </React.Fragment>;
 }
-// PanTool competition
-// Archive
+
 export const effName = (eff: any): string => {
     switch (eff.e) {
         case "everyOtherCompany":
@@ -511,6 +540,7 @@ export const effName = (eff: any): string => {
         }
     }
 }
+
 export const CardInfo = ({cid}: ICardEffectProps) => {
     const card = getCardById(cid);
     const r = card.region;
@@ -561,7 +591,7 @@ export const CardEffect = ({cid}: ICardEffectProps) => {
         </React.Fragment> : <React.Fragment key={generate()}/>}
         {playEffText !== "" ? <React.Fragment key={generate()}>
             <Typography key={generate()} aria-label={i18n.effect.playCardHeader}>
-                【<HandIcon style={verticalAlign}/><CardIcon/>】
+                【<PlayCardIcon style={verticalAlign}/> 】
             </Typography>
             {effIcon(effObj.play)}
         </React.Fragment> : <React.Fragment key={generate()}/>}
