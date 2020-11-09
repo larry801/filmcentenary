@@ -970,7 +970,13 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let targetPlayer = p;
     let pub = G.pub[parseInt(p)];
     const playerObj = G.player[parseInt(p)];
-    let region = curCard(G).region as ValidRegion;
+    let region:ValidRegion;
+    if(G.e.card !== null) {
+        const curCardObj = curCard(G);
+        region = curCardObj.region as ValidRegion;
+    }else{
+        region = Region.NA;
+    }
     log += `|c:${G.e.card}|region:${region}`;
     let players = []
     const handLength = playerObj.hand.length;

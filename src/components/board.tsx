@@ -29,9 +29,12 @@ import OperationPanel from "./boards/operation";
 import FinalScoreTable from "./boards/final";
 import {getCardName} from "./card";
 import {generate} from "shortid"
+import DialogTitle from "@material-ui/core/DialogTitle";
+import DialogContent from "@material-ui/core/DialogContent";
 // @ts-ignore
 import playerTurnSfx from './media/turn.mp3'
 import {ChampionIcon} from "./icons";
+import Dialog from "@material-ui/core/Dialog";
 
 export function usePrevious(value: any) {
     const ref = React.useRef();
@@ -140,7 +143,10 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 <Typography
                     // @ts-ignore
                     aria-label={`${i18n.era[G.twoPlayer.era]}/${G.twoPlayer.schoolDeckLength}/${G.twoPlayer.filmDeckLength}`}>
-                    <ChampionIcon champion={{region:Region.NONE,era:G.twoPlayer.era}}/><DeckIcon/><LegendCardIcon/>{G.twoPlayer.schoolDeckLength}<NormalCardIcon/>{G.twoPlayer.filmDeckLength}
+                    <ChampionIcon champion={{
+                        region: Region.NONE,
+                        era: G.twoPlayer.era
+                    }}/><DeckIcon/><LegendCardIcon/>{G.twoPlayer.schoolDeckLength}<NormalCardIcon/>{G.twoPlayer.filmDeckLength}
                 </Typography>
             </Grid>
             <Grid item xs={12}>
@@ -180,18 +186,43 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                          playerID={playerID}/>
         </Grid>
 
-    const gameOverResult = ctx.gameover === undefined ? <></> : <Grid item xs={12}>
-        <Paper variant="elevation">
-            <Typography variant="h5">{i18n.gameOver.title}</Typography>
-            <Typography variant="h6">{
-                // @ts-ignore
-                i18n.gameOver.reason[ctx.gameover.reason]
-            }</Typography>
-            <Typography variant="h5">{i18n.gameOver.winner}</Typography>
-            <Typography variant="h6">{getName(ctx.gameover.winner)}</Typography>
-        </Paper>
-    </Grid>
+    const [open, setOpen] = React.useState(true);
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
 
+
+    const gameOverResult = ctx.gameover === undefined ? <></> :
+        <>
+            <Button
+                fullWidth
+                style={{textTransform: 'none'}}
+                onClick={handleOpen}
+                color="secondary"
+                variant={"outlined"}
+            >
+                <Typography>
+                    {i18n.gameOver.title}
+                </Typography>
+            </Button>
+            <Dialog open={open} onClose={handleClose}>
+                <DialogTitle>
+                    <Typography variant="h5" component="h1">
+                        {i18n.gameOver.title}
+                    </Typography>
+                </DialogTitle>
+                <DialogContent>
+                    <Paper variant="elevation">
+                        <Typography variant="h6" component="h2">{
+                            // @ts-ignore
+                            i18n.gameOver.reason[ctx.gameover.reason]
+                        }</Typography>
+                        <Typography variant="h6" component="h2">{i18n.gameOver.winner}</Typography>
+                        <Typography variant="h6" component="h2">{getName(ctx.gameover.winner)}</Typography>
+                    </Paper>
+                    <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
+                </DialogContent>
+            </Dialog>
+        </>
     const upperPanel = playerID !== null ? <>
             {ctx.phase === "InitPhase" ?
                 <Grid item xs={12}>
@@ -235,11 +266,11 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
 
     return <Grid container justify="flex-start" key={generate()}>
         {gameOverResult}
-        {G.pending.lastRoundOfGame ? <Paper
-            variant="elevation"
-        >
-            <Typography variant="h3">{i18n.pub.lastRoundOfGame}</Typography>
-        </Paper> : <></>}
+        {G.pending.lastRoundOfGame && ctx.gameover === undefined ?
+            <Grid item container xs={12} justify="space-evenly">
+                <Paper variant="elevation">
+                    <Typography variant="h4" component="h1">{i18n.pub.lastRoundOfGame}</Typography>
+                </Paper> </Grid> : <></>}
         {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
             <Grid item xs={4}>
                 <Typography>{`${i18n.pub.events}(${G.eventDeckCount})`}</Typography
