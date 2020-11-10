@@ -525,53 +525,57 @@ export const chooseRegion: LongFormMove = {
                 changePlayerStage(G, ctx, "payAdditionalCost", p);
                 return;
             }
-        }
-        switch (eff.e) {
-            case "loseAnyRegionShare":
-                p = G.c.players[0] as PlayerID;
-                G.c.players = [];
-                G.pub[parseInt(p)].shares[r]--;
-                reg.share++;
-                break;
-            case "anyRegionShareCentral":
-                pub.shares[r]++;
-                reg.share--;
-                if (eff.a > 1) {
-                    eff.a--;
-                    G.e.stack.push(eff);
-                }
-                break;
-            case "anyRegionShare":
-                let i = G.competitionInfo;
-                if (i.pending) {
-                    let loser = i.progress > 0 ? i.def : i.atk;
-                    G.pub[parseInt(loser)].shares[r]--;
-                    pub.shares[r]++;
-                    if (eff.a > 1) {
-                        eff.a--;
-                        G.e.stack.push(eff);
-                        break;
-                    } else {
-                        competitionCleanUp(G, ctx);
-                        return
-                    }
-                } else {
+        }else{
+            switch (eff.e) {
+                case "loseAnyRegionShare":
+                    p = G.c.players[0] as PlayerID;
+                    G.c.players = [];
+                    G.pub[parseInt(p)].shares[r]--;
+                    reg.share++;
+                    break;
+                case "anyRegionShareCentral":
                     pub.shares[r]++;
                     reg.share--;
                     if (eff.a > 1) {
                         eff.a--;
                         G.e.stack.push(eff);
-                        checkNextEffect(G, ctx);
-                        return;
-                    } else {
-                        break;
                     }
-                }
-            default:
-                throw new Error();
+                    break;
+                case "anyRegionShare":
+                    let i = G.competitionInfo;
+                    if (i.pending) {
+                        let loser = i.progress > 0 ? i.def : i.atk;
+                        G.pub[parseInt(loser)].shares[r]--;
+                        pub.shares[r]++;
+                        if (eff.a > 1) {
+                            eff.a--;
+                            G.e.stack.push(eff);
+                            break;
+                        } else {
+                            logger.debug(`${G.matchID}|${log}`);
+                            competitionCleanUp(G, ctx);
+                            return
+                        }
+                    } else {
+                        pub.shares[r]++;
+                        reg.share--;
+                        if (eff.a > 1) {
+                            eff.a--;
+                            G.e.stack.push(eff);
+                            checkNextEffect(G, ctx);
+                            logger.debug(`${G.matchID}|${log}`);
+                            return;
+                        } else {
+                            break;
+                        }
+                    }
+                default:
+                    throw new Error("Unknown effect cannot execute chooseRegion");
+            }
         }
         G.e.regions = [];
         checkNextEffect(G, ctx);
+        logger.debug(`${G.matchID}|${log}`);
         return;
     }
 }
