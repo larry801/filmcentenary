@@ -36,6 +36,7 @@ import {getPlayerRegionRank} from "../game/util";
 import TextareaAutosize from "@material-ui/core/TextareaAutosize";
 import {LogEntry} from "boardgame.io";
 import {CardList, getLogText} from "./boards/list-card";
+import ErrorBoundary from "./error";
 
 const useStyles = makeStyles({
     root: {
@@ -145,32 +146,34 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                     />
                 </> : <></>}
             {G.playerCount > SimpleRuleNumPlayers ?
-                <Paper aria-label={shareAndLegendAriaLabel()}>
-                    {valid_regions.map((r: ValidRegion) => {
-                            const share = i.shares[r];
-                            const legend = legendCount(r);
-                            const rank = getPlayerRegionRank(G, ctx, playerID, r);
-                            const rankHintIcon = rank === -1 ? <NoScoringCardIcon className={classes.iconAlign}/> :
-                                <ChampionIcon champion={{
-                                    region: r,
-                                    era: rank as IEra,
-                                }}/>;
-                            return <Grid container key={generate()}>
-                                <Grid item xs={4} key={generate()}>
-                                    <DrawnShareIcon key={generate()} r={r}/>
-                                    {share}
+                <ErrorBoundary>
+                    <Paper aria-label={shareAndLegendAriaLabel()}>
+                        {valid_regions.map((r: ValidRegion) => {
+                                const share = i.shares[r];
+                                const legend = legendCount(r);
+                                const rank = getPlayerRegionRank(G, ctx, playerID, r);
+                                const rankHintIcon = rank === -1 ? <NoScoringCardIcon className={classes.iconAlign}/> :
+                                    <ChampionIcon champion={{
+                                        region: r,
+                                        era: rank as IEra,
+                                    }}/>;
+                                return <Grid container key={generate()}>
+                                    <Grid item xs={4} key={generate()}>
+                                        <DrawnShareIcon key={generate()} r={r}/>
+                                        {share}
+                                    </Grid>
+                                    <Grid item xs={4} key={generate()}>
+                                        {rankHintIcon}
+                                    </Grid>
+                                    <Grid item xs={4} key={generate()}>
+                                        <LegendCardIcon key={idx} style={{color: getColor(r)}}/>
+                                        {legend}
+                                    </Grid>
                                 </Grid>
-                                <Grid item xs={4} key={generate()}>
-                                    {rankHintIcon}
-                                </Grid>
-                                <Grid item xs={4} key={generate()}>
-                                    <LegendCardIcon key={idx} style={{color: getColor(r)}}/>
-                                    {legend}
-                                </Grid>
-                            </Grid>
-                        }
-                    )}
-                </Paper>
+                            }
+                        )}
+                    </Paper>
+                </ErrorBoundary>
                 :
                 <Paper aria-label={sharesAriaLabel()}>
                     {valid_regions.map((r: ValidRegion) => {
