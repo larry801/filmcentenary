@@ -1,5 +1,6 @@
 import React from "react";
 import SvgIcon from "@material-ui/core/SvgIcon";
+import NoScoringCardIcon from '@material-ui/icons/Block';
 import {Champion, IEra, Region,} from "../types/core";
 import {blue, grey, purple, red, yellow} from "@material-ui/core/colors";
 import LooksOneIcon from '@material-ui/icons/LooksOne';
@@ -66,6 +67,8 @@ export const ChampionIcon = ({champion}: IChampionProps) => {
                 return LooksTwoIcon;
             case IEra.THREE:
                 return Looks3Icon;
+            default:
+                return NoScoringCardIcon;
         }
     }
     const IC = IconComponent();
