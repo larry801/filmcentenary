@@ -296,9 +296,9 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 log === undefined ? <></> :
                     <LogView log={log} getPlayerName={getName}/>
             }
-            {G.pub.map((u: IPubInfo, idx: number) =>
+            {G.order.map((i:PlayerID, idx: number) =>
                 <Grid item sm={6} lg={3} key={generate()}>
-                    <PubPanel log={log} ctx={ctx} i={u} key={generate()} G={G} idx={idx} getName={getName}/>
+                    <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(i)]} key={generate()} G={G} idx={idx} getName={getName}/>
                 </Grid>
             )}
             <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
