@@ -35,6 +35,7 @@ import DialogContent from "@material-ui/core/DialogContent";
 import playerTurnSfx from './media/turn.mp3'
 import {ChampionIcon} from "./icons";
 import Dialog from "@material-ui/core/Dialog";
+import ErrorBoundary from "./error";
 
 export function usePrevious(value: any) {
     const ref = React.useRef();
@@ -264,41 +265,43 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         </>
         : <></>
 
-    return <Grid container justify="flex-start" key={generate()}>
-        {gameOverResult}
-        {G.pending.lastRoundOfGame && ctx.gameover === undefined ?
-            <Grid item container xs={12} justify="space-evenly">
-                <Paper variant="elevation">
-                    <Typography variant="h4" component="h1">{i18n.pub.lastRoundOfGame}</Typography>
-                </Paper> </Grid> : <></>}
-        {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
-            <Grid item xs={4}>
-                <Typography>{`${i18n.pub.events}(${G.eventDeckCount})`}</Typography
-                ></Grid>
-            {G.events.map((e: EventCardID, idx: number) => <Grid key={idx} item xs={4}>
-                <Paper key={idx} elevation={5}>
-                    <Typography>{getCardName(e)}</Typography>
-                    <Typography>{i18n.eventName[e]}</Typography>
-                </Paper></Grid>)}
-        </Grid> : <></>}
-        {playerID === null ? cardBoard : <></>}
-        {upperPanel}
-        <Grid item container justify="space-evenly">
-            <Grid item><Typography>{i18n.card.B01} {G.basicCards.B01}</Typography></Grid>
-            <Grid item><Typography>{i18n.card.B02} {G.basicCards.B02}</Typography></Grid>
-            <Grid item><Typography>{i18n.card.B03} {G.basicCards.B03}</Typography></Grid>
-            <Grid item><Typography>{i18n.card.B04} {G.basicCards.B04}</Typography></Grid>
-            <Grid item><Typography>{i18n.card.B05} {G.basicCards.B05}</Typography></Grid>
-        </Grid>
-        {
-            log === undefined ? <></> :
-                <LogView log={log} getPlayerName={getName}/>
-        }
-        {G.pub.map((u: IPubInfo, idx: number) =>
-            <Grid item sm={6} lg={3} key={generate()}>
-                <PubPanel log={log} ctx={ctx} i={u} key={generate()} G={G} idx={idx} getName={getName}/>
+    return <ErrorBoundary>
+        <Grid container justify="flex-start" key={generate()}>
+            {gameOverResult}
+            {G.pending.lastRoundOfGame && ctx.gameover === undefined ?
+                <Grid item container xs={12} justify="space-evenly">
+                    <Paper variant="elevation">
+                        <Typography variant="h4" component="h1">{i18n.pub.lastRoundOfGame}</Typography>
+                    </Paper> </Grid> : <></>}
+            {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
+                <Grid item xs={4}>
+                    <Typography>{`${i18n.pub.events}(${G.eventDeckCount})`}</Typography
+                    ></Grid>
+                {G.events.map((e: EventCardID, idx: number) => <Grid key={idx} item xs={4}>
+                    <Paper key={idx} elevation={5}>
+                        <Typography>{getCardName(e)}</Typography>
+                        <Typography>{i18n.eventName[e]}</Typography>
+                    </Paper></Grid>)}
+            </Grid> : <></>}
+            {playerID === null ? cardBoard : <></>}
+            {upperPanel}
+            <Grid item container justify="space-evenly">
+                <Grid item><Typography>{i18n.card.B01} {G.basicCards.B01}</Typography></Grid>
+                <Grid item><Typography>{i18n.card.B02} {G.basicCards.B02}</Typography></Grid>
+                <Grid item><Typography>{i18n.card.B03} {G.basicCards.B03}</Typography></Grid>
+                <Grid item><Typography>{i18n.card.B04} {G.basicCards.B04}</Typography></Grid>
+                <Grid item><Typography>{i18n.card.B05} {G.basicCards.B05}</Typography></Grid>
             </Grid>
-        )}
-        <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
-    </Grid>
+            {
+                log === undefined ? <></> :
+                    <LogView log={log} getPlayerName={getName}/>
+            }
+            {G.pub.map((u: IPubInfo, idx: number) =>
+                <Grid item sm={6} lg={3} key={generate()}>
+                    <PubPanel log={log} ctx={ctx} i={u} key={generate()} G={G} idx={idx} getName={getName}/>
+                </Grid>
+            )}
+            <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
+        </Grid>
+    </ErrorBoundary>
 }

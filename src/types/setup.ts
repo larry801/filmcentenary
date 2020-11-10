@@ -448,6 +448,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[0].discard = [];
     // G.twoPlayer.era = IEra.THREE;
     // G.pub[firstMovePlayer].vp = 149;
+    // G.pub[firstMovePlayer].aesthetics = 10;
     // G.pub[0].resource = 30;
     // G.pub[1].resource = 30;
     // @ts-ignore
