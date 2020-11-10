@@ -127,6 +127,7 @@ export const FreeBreakthroughIcon = () => <Badge
 >
     <CardToArchiveIcon/>
 </Badge>
+
 export const BuyCardForFreeIcon = () => <SvgIcon style={verticalAlign}>
     {RectOfCard()}
     <path
