@@ -7,11 +7,6 @@ import {Server, FlatFile} from "boardgame.io/server";
 
 const server = Server({
     games: [FilmCentenaryGame],
-    db: new FlatFile({
-        dir: '/app/store',
-        logging: true,
-        ttl: false,
-    }),
 });
 
 const PORT = process.env.PORT || "3000";
