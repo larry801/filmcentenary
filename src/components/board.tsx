@@ -11,7 +11,6 @@ import {
     BasicCardID,
     EventCardID,
     ICardSlot,
-    IPubInfo,
     Region,
     SimpleRuleNumPlayers,
     valid_regions
@@ -20,7 +19,6 @@ import Grid from "@material-ui/core/Grid"
 import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
 import LogView from './log-view'
-import useSound from 'use-sound';
 import DeckIcon from '@material-ui/icons/Layers';
 import NormalCardIcon from '@material-ui/icons/RadioButtonUnchecked';
 import LegendCardIcon from '@material-ui/icons/StarBorder';
@@ -36,6 +34,16 @@ import playerTurnSfx from './media/turn.mp3'
 import {ChampionIcon} from "./icons";
 import Dialog from "@material-ui/core/Dialog";
 import ErrorBoundary from "./error";
+
+let sound: HTMLAudioElement;
+
+export const playSound = () => {
+    if (!sound) {
+        sound = new Audio(playerTurnSfx);
+    }
+    sound.play();
+};
+
 
 export function usePrevious(value: any) {
     const ref = React.useRef();
@@ -55,12 +63,12 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
     const canMove = ctx.currentPlayer === playerID ? canMoveCurrent : canMoveOutOfTurn;
     const curPlayerSuffix = "(*)"
     const prevIsActive = usePrevious(isActive);
-    const [play] = useSound(playerTurnSfx);
+
     React.useEffect(() => {
         if (isActive && prevIsActive === false) {
-            play()
+            playSound();
         }
-    }, [prevIsActive, isActive, play])
+    }, [prevIsActive, isActive])
 
     const locale = i18n._.getLocaleName();
 

@@ -16,6 +16,5 @@ export class Board extends React.Component<FBGBoardProps, {}> {
                 <FilmCentenaryBoard  {...this.props} playerID={this.props.playerID}/>
             </ScopedCssBaseline>
         </Grid>
-
     }
 }
