@@ -647,7 +647,7 @@ export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
 
 export const getExistingLastMovePlayer = (G: IG): PlayerID => {
     let log = "getExistingLastMovePlayer";
-    if(G.order.length === G.initialOrder.length){
+    if (G.order.length === G.initialOrder.length) {
         log += `|noOneConcede|lastMovePlayer`
         const lastMovePlayer = G.initialOrder[G.playerCount - 1]
         log += `|${lastMovePlayer}`
@@ -655,12 +655,12 @@ export const getExistingLastMovePlayer = (G: IG): PlayerID => {
         return lastMovePlayer
     }
     const secondLastMovePlayer = G.initialOrder[G.playerCount - 2]
-    if(G.order.includes(secondLastMovePlayer)){
+    if (G.order.includes(secondLastMovePlayer)) {
         log += `|secondLast`
         log += `|${secondLastMovePlayer}`
         logger.debug(`${G.matchID}|${log}`);
         return secondLastMovePlayer
-    }else {
+    } else {
         log += `|thirdLast`
         const thirdLastMovePlayer = G.initialOrder[G.playerCount - 3]
         log += `|${thirdLastMovePlayer}`
@@ -970,11 +970,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let targetPlayer = p;
     let pub = G.pub[parseInt(p)];
     const playerObj = G.player[parseInt(p)];
-    let region:ValidRegion;
-    if(G.e.card !== null) {
+    let region: ValidRegion;
+    if (G.e.card !== null) {
         const curCardObj = curCard(G);
         region = curCardObj.region as ValidRegion;
-    }else{
+    } else {
         region = Region.NA;
     }
     log += `|c:${G.e.card}|region:${region}`;
@@ -1055,7 +1055,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             log += `|era|${era}`
             subEffect = {...eff.a[era]}
-            if(eff.hasOwnProperty("target")){
+            if (eff.hasOwnProperty("target")) {
                 subEffect.target = eff.target
             }
             G.e.stack.push(subEffect);
@@ -1446,7 +1446,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
         case "pay":
             subEffect = {...eff.a.eff}
-            if(eff.hasOwnProperty("target")){
+            if (eff.hasOwnProperty("target")) {
                 log += `|target|${eff.target}`
                 subEffect.target = eff.target
             }
@@ -2256,7 +2256,7 @@ export const regionRanker = (G: IG, ctx: Ctx, r: ValidRegion, era: IEra) => {
                 logger.debug(`${G.matchID}|${log}`);
                 return -1;
             } else {
-                throw Error("Two player cannot have the same position.")
+                return a < b ? -1 : 1
             }
         }
     };
