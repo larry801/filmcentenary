@@ -2,11 +2,14 @@ import path from 'path';
 import * as Koa from "koa"
 import serve from 'koa-static';
 import {FilmCentenaryGame} from "./src/Game";
-import {Server, FlatFile} from "boardgame.io/server";
+import {Server} from "boardgame.io/server";
+import { PostgresStore } from "bgio-postgres";
 
+const db = new PostgresStore("postgresql://bgio:aJP7wrd6BuQ9XQmhcPyGbug4@49.232.162.167:5436/bgio");
 
 const server = Server({
     games: [FilmCentenaryGame],
+    db
 });
 
 const PORT = process.env.PORT || "3000";
