@@ -7315,16 +7315,6 @@ koa-convert@^1.2.0:
     co "^4.6.0"
     koa-compose "^3.0.0"
 
-koa-ratelimit@^4.2.1:
-  version "4.2.1"
-  resolved "https://registry.npm.taobao.org/koa-ratelimit/download/koa-ratelimit-4.2.1.tgz#2dfed49d0aa5d83664adb162e82eaeb8fea92132"
-  integrity sha1-Lf7UnQql2DZkrbFi6C6uuP6pITI=
-  dependencies:
-    debug "^4.1.1"
-    lodash.defaults "^4.2.0"
-    ms "^2.1.1"
-    ratelimiter "^3.2.0"
-
 koa-router@^7.2.1:
   version "7.4.0"
   resolved "https://registry.npm.taobao.org/koa-router/download/koa-router-7.4.0.tgz#aee1f7adc02d5cb31d7d67465c9eacc825e8c5e0"
@@ -7517,11 +7507,6 @@ lodash._reinterpolate@^3.0.0:
   version "3.0.0"
   resolved "https://registry.npm.taobao.org/lodash._reinterpolate/download/lodash._reinterpolate-3.0.0.tgz#0ccf2d89166af03b3663c796538b75ac6e114d9d"
   integrity sha1-DM8tiRZq8Ds2Y8eWU4t1rG4RTZ0=
-
-lodash.defaults@^4.2.0:
-  version "4.2.0"
-  resolved "https://registry.npm.taobao.org/lodash.defaults/download/lodash.defaults-4.2.0.tgz#d09178716ffea4dde9e5fb7b37f6f0802274580c"
-  integrity sha1-0JF4cW/+pN3p5ft7N/bwgCJ0WAw=
 
 lodash.memoize@^4.1.2:
   version "4.1.2"
@@ -9625,11 +9610,6 @@ range-parser@^1.2.1, range-parser@~1.2.1:
   version "1.2.1"
   resolved "https://registry.npm.taobao.org/range-parser/download/range-parser-1.2.1.tgz#3cf37023d199e1c24d1a55b84800c2f3e6468031"
   integrity sha1-PPNwI9GZ4cJNGlW4SADC8+ZGgDE=
-
-ratelimiter@^3.2.0:
-  version "3.4.1"
-  resolved "https://registry.npm.taobao.org/ratelimiter/download/ratelimiter-3.4.1.tgz#fa69e94937413382a926aaa17aaeaa6263af4659"
-  integrity sha1-+mnpSTdBM4KpJqqheq6qYmOvRlk=
 
 raw-body@2.4.0:
   version "2.4.0"
