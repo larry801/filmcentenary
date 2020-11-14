@@ -5,7 +5,13 @@ import {FilmCentenaryGame} from "./src/Game";
 import {Server} from "boardgame.io/server";
 import { PostgresStore } from "bgio-postgres";
 
-const db = new PostgresStore("postgresql://bgio:aJP7wrd6BuQ9XQmhcPyGbug4@49.232.162.167:5436/bgio");
+const db = new PostgresStore(
+    "postgresql://bgio:aJP7wrd6BuQ9XQmhcPyGbug4@49.232.162.167:5436/bgio",
+    {
+        logging: false,
+        timezone: '+08:00'
+    }
+);
 
 const server = Server({
     games: [FilmCentenaryGame],
