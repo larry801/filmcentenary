@@ -33,13 +33,13 @@ export enum Player {
 export const nameOf = (p: Player) => {
     switch (p) {
         case Player.P0:
-            return "Red"
+            return "0"
         case Player.P1:
-            return "Blue"
+            return "1"
         case Player.P2:
-            return "Green"
+            return "2"
         case Player.P3:
-            return "Black"
+            return "3"
     }
 }
 
