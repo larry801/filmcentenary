@@ -470,7 +470,7 @@ export const updateSlot: LongFormMove = {
             return INVALID_MOVE;
         }
         const newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3201);
-        if (newWavePlayer !== null) {
+        if (newWavePlayer === ctx.playerID) {
             drawCardForPlayer(G, ctx, newWavePlayer);
             addVp(G, ctx, newWavePlayer, 2);
         }
@@ -1117,7 +1117,7 @@ export const comment: LongFormMove = {
             drawCardForPlayer(G, ctx, leftBankPlayer);
         }
         const newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3201);
-        if (newWavePlayer !== null) {
+        if (newWavePlayer === arg.p) {
             drawCardForPlayer(G, ctx, newWavePlayer);
             addVp(G, ctx, newWavePlayer, 2);
         }
