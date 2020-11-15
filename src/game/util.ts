@@ -2718,19 +2718,22 @@ export const loseDeposit = (G: IG, ctx: Ctx, p: PlayerID, deposit: number) => {
 
 export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     let log = `loseVp|${p}|${vp}`
-    let pub = G.pub[parseInt(p)];
+    const pub = G.pub[parseInt(p)];
     log += `|before|${pub.vp}`
+    let realVpLose = 0;
     if (vp >= pub.vp) {
+        realVpLose = pub.vp
         pub.vp = 0;
     } else {
+        realVpLose = vp;
         pub.vp -= vp;
     }
-    log += `|after|${pub.vp}`
-    if (pub.school === SchoolCardID.S2104) {
+    if (realVpLose >0 && pub.school === SchoolCardID.S2104) {
         log += `|FilmNoir|${pub.resource}`
-        pub.resource += vp;
+        pub.resource += realVpLose;
         log += `|${pub.resource}`
     }
+    log += `|after|${pub.vp}`
     logger.debug(`${G.matchID}|${log}`);
 }
 
