@@ -1424,8 +1424,6 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     return;
                 }
             }
-            logger.debug(`${G.matchID}|${log}`);
-            return;
         case "update":
             if (wholeBoardDepleted(G)) {
                 log += `|noSlotToUpdate`

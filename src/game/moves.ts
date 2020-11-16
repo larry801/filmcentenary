@@ -40,7 +40,6 @@ import {
     cinemaSlotsAvailable,
     competitionCleanUp,
     competitionResultSettle,
-    curCard,
     curPub,
     doAestheticsBreakthrough,
     doBuy,
