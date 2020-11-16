@@ -43,17 +43,17 @@ import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
 // eslint-disable-next-line
-const loggerN = {
-    info: (log: string) => false,
-    debug: (log: string) => false,
-    error: (log: string) => false,
+const fastLoggerForDebug = {
+    info: (log: string) => process.stdout.write(`info|${log}\n`),
+    debug: (log: string) => process.stdout.write(`debug|${log}\n`),
+    error: (log: string) => process.stdout.write(`error|${log}\n`),
 }
-const loggerD = {
+const normalRunLogger = {
     info: (log: string) => console.log(`info|${log}`),
     debug: (log: string) => console.log(`debug|${log}`),
     error: (log: string) => console.log(`error|${log}`),
 }
-export const logger = loggerD;
+export const logger = normalRunLogger;
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -2001,7 +2001,7 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
         slot.comment = null;
     }
     if (slot.card === null) {
-        log += `|emtpySlot`
+        log += `|emptySlot`
         logger.debug(`${G.matchID}|${log}`);
         return;
     }
@@ -2670,7 +2670,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
 }
 
 export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
-    let log = `addVp|${p}|${vp}`
+    let log = `p${p}|add${vp}vp|`
     let obj = G.pub[parseInt(p)];
     log += `|prev|${obj.vp}`
     obj.vp += vp;
@@ -2720,7 +2720,7 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     let log = `loseVp|${p}|${vp}`
     const pub = G.pub[parseInt(p)];
     log += `|before|${pub.vp}`
-    let realVpLose = 0;
+    let realVpLose: number;
     if (vp >= pub.vp) {
         realVpLose = pub.vp
         pub.vp = 0;
@@ -2728,7 +2728,7 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
         realVpLose = vp;
         pub.vp -= vp;
     }
-    if (realVpLose >0 && pub.school === SchoolCardID.S2104) {
+    if (realVpLose > 0 && pub.school === SchoolCardID.S2104) {
         log += `|FilmNoir|${pub.resource}`
         pub.resource += realVpLose;
         log += `|${pub.resource}`
