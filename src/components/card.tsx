@@ -557,6 +557,7 @@ export const CardInfo = ({cid}: ICardEffectProps) => {
             : <React.Fragment key={generate()}/>}
         <Typography>{getCardName(cid)}</Typography>
         <CardEffect cid={cid}/>
+        <Typography>{getEffectTextById(cid)}</Typography>
     </Grid>
 }
 
