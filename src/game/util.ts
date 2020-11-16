@@ -937,6 +937,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     log += `|checkNextEffect`
     logger.debug(`${G.matchID}|${log}`);
     checkNextEffect(G, ctx);
+    return;
 }
 
 export const curCard = (G: IG) => {
@@ -1416,6 +1417,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     log += `|oneEffectValid|Exec`
                     logger.debug(`${G.matchID}|${log}`);
                     checkNextEffect(G, ctx);
+                    return;
                 } else {
                     logger.debug(`${G.matchID}|${log}`);
                     changePlayerStage(G, ctx, "chooseEffect", p);
@@ -1570,6 +1572,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     log += "|checkNextEffect"
     logger.debug(`${G.matchID}|${log}`);
     checkNextEffect(G, ctx);
+    return;
 }
 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
@@ -2777,6 +2780,7 @@ export const competitionCleanUp = (G: IG, ctx: Ctx) => {
     i.onWin = {e: "none", a: 1};
     logger.debug(`${G.matchID}|${log}`);
     checkNextEffect(G, ctx);
+    return;
 }
 
 export function competitionResultSettle(G: IG, ctx: Ctx) {

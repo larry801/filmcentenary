@@ -131,6 +131,7 @@ export const payAdditionalCost: LongFormMove = {
         log += `|checkNextEffect`
         logger.debug(`${G.matchID}|${log}`);
         checkNextEffect(G, ctx);
+        return;
     }
 }
 
@@ -212,6 +213,7 @@ export const buyCard: LongFormMove = {
                 log += `|hasEffect`
                 logger.debug(`${G.matchID}|${log}`);
                 checkNextEffect(G, ctx);
+                return;
             } else {
                 logger.debug(`${G.matchID}|${log}`);
             }
@@ -281,9 +283,11 @@ export const chooseTarget: LongFormMove = {
                 log += `|otherEffects|${JSON.stringify(eff)}`
                 logger.debug(`${G.matchID}|${log}`);
                 checkNextEffect(G, ctx);
+                return
         }
         logger.debug(`${G.matchID}|${log}`);
         checkNextEffect(G, ctx);
+        return;
     }
 }
 
@@ -861,7 +865,11 @@ export const requestEndTurn: LongFormMove = {
         if (G.e.stack.length === 0) {
             regionScoringCheck(G, ctx, arg);
             playerObj.endTurnEffectExecuted = false;
+            logger.debug(`${G.matchID}|${log}`);
         } else {
+            log += `|stack|${JSON.stringify(G.e.stack)}`
+            log += `|checkNextEffect`
+            logger.debug(`${G.matchID}|${log}`);
             checkNextEffect(G, ctx);
         }
     },
