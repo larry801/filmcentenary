@@ -1780,8 +1780,8 @@ const NoneBasicCards = {
         cost: cost(8, 0, 9),
         vp: 12,
         category: CardCategory.NORMAL,
-        industry: 1,
-        aesthetics: 0,
+        industry: 0,
+        aesthetics: 1,
     }),
     "F3212": filmCard({
         era: IEra.THREE,
