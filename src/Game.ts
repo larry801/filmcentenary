@@ -117,7 +117,7 @@ export const FilmCentenaryGame: Game<IG> = {
     },
 
     endIf: (G: IG, ctx: Ctx) => {
-        let championRequiredForAutoWin = ctx.numPlayers > 3 ? 6 : 5;
+        let championRequiredForAutoWin = ctx.numPlayers > 3 ? 5 : 6;
         G.order.forEach(p => {
                 if (G.pub[parseInt(p)].champions
                     .filter(c => c.region === Region.NA)
