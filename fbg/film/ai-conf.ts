@@ -17,8 +17,8 @@ class DynamicMCTSBot extends MCTSBot{
             enumerate, seed,
             objectives,
             game,
-            playoutDepth:100,
-            iterations:50
+            playoutDepth: 25,
+            iterations: 100
         });
     }
 

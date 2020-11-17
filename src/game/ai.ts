@@ -1,33 +1,36 @@
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
-import {actualStage, canAfford, getPossibleHelper, resCost} from "./util";
+import {actualStage, canAfford, getExtraScoreForFinal, getPlayerAction, getPossibleHelper, resCost} from "./util";
 import {Stage} from "boardgame.io/core";
 import {
+    BasicCardID,
+    getCardById,
+    IBasicCard,
+    INormalOrLegendCard,
     Region,
     SimpleRuleNumPlayers,
     valid_regions,
-    BasicCardID,
-    IBasicCard,
-    INormalOrLegendCard,
-    getCardById,
 } from "../types/core";
 import {getChooseHandChoice, getPeekChoices} from "./board-util";
 
 const getCardNameMock = () => "";
 export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard):
     Array<{ move: string; args?: any[] }> => {
+    let log = (`buyCardArgEnumerate|p${p}|${card.cardId}`);
     const moves: Array<{ move: string; args?: any[] }> = [];
-    const pub = G.pub[parseInt(p)]
-    const totalRes = pub.resource + pub.deposit
+    const pub = G.pub[parseInt(p)];
+    const totalRes = pub.resource + pub.deposit;
+    log += `|totalRes${totalRes}`
     const noHelperCost = resCost(G, ctx, {
         target: card.cardId, buyer: p, resource: 0, deposit: 0, helper: []
     })
+    log += `|noHelperCost${noHelperCost}`
     if (noHelperCost <= totalRes) {
         moves.push({
             move: "buyCard", args: [{
                 target: card.cardId, buyer: p,
                 resource: Math.min(pub.resource, noHelperCost),
-                deposit: Math.max(noHelperCost - pub.deposit, 0),
+                deposit: Math.max(noHelperCost - pub.resource, 0),
                 helper: []
             }]
         })
@@ -50,7 +53,7 @@ export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalO
                         move: "buyCard", args: [{
                             target: card.cardId, buyer: p,
                             resource: Math.min(pub.resource, curCost),
-                            deposit: Math.max(curCost - pub.deposit, 0),
+                            deposit: Math.max(curCost - pub.resource, 0),
                             helper: curHelper
                         }]
                     })
@@ -58,6 +61,8 @@ export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalO
             }
         }
     }
+    log += (`${JSON.stringify(moves)}`);
+    console.log(`${G.matchID}|${log}`);
     return moves;
 }
 
@@ -91,11 +96,18 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
     const hand = playerObj.hand
 
     const peek = playerObj.cardsToPeek;
-    const CheapBasicCards = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03, BasicCardID.B04]
+    const CheapBasicCards = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03];
+    const CommentCards = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03, BasicCardID.B04];
     const AvailBasicCards = CheapBasicCards.filter(b => G.basicCards[b] > 0)
     switch (stage) {
         case Stage.NULL:
             playerObj.hand.forEach((i, idx) => {
+                if (
+                    i === BasicCardID.B01 ||
+                    i === BasicCardID.B02
+                ) {
+                    return;
+                }
                 moves.push({
                     move: "playCard",
                     args: [{
@@ -107,7 +119,17 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                 })
             })
             if (pub.action >= 1) {
-                moves.push({move: "drawCard", args: [p]})
+                if (getPlayerAction(G, p) > 1) {
+                    moves.push({move: "drawCard", args: [p]});
+                }
+                // moves.push({
+                //     move: "buyCard", args: [{
+                //         target: BasicCardID.B04, buyer: p,
+                //         resource: 0,
+                //         deposit: 0,
+                //         helper: []
+                //     }]
+                // });
                 if (pub.resource >= 2) {
                     playerObj.hand.forEach((i, idx) => {
                         moves.push({
@@ -124,7 +146,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                             deposit: 0,
                             helper: []
                         }]
-                    }))
+                    }));
                 }
                 if (pub.resource >= 1 && pub.deposit >= 1) {
                     playerObj.hand.forEach((i, idx) => {
@@ -162,7 +184,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                         }]
                     }))
                 }
-                moves.concat(buyCardArgEnumerate(G, ctx, p, getCardById(BasicCardID.B05)));
+                moves = [...moves, ...buyCardArgEnumerate(G, ctx, p, getCardById(BasicCardID.B05))];
                 if (ctx.numPlayers > SimpleRuleNumPlayers) {
                     valid_regions.forEach(r => {
                         let rObj = G.regions[r];
@@ -183,14 +205,14 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                     G.twoPlayer.film.forEach(slot => {
                         if (slot.card !== null) {
                             if (canAfford(G, ctx, slot.card, p)) {
-                                moves.concat(buyCardArgEnumerate(G, ctx, p, getCardById(slot.card)));
+                                moves = [...moves, ...buyCardArgEnumerate(G, ctx, p, getCardById(slot.card))];
                             }
                         }
                     })
                     G.twoPlayer.school.forEach(slot => {
                         if (slot.card !== null) {
                             if (canAfford(G, ctx, slot.card, p)) {
-                                moves.concat(buyCardArgEnumerate(G, ctx, p, getCardById(slot.card)));
+                                moves = [...moves, ...buyCardArgEnumerate(G, ctx, p, getCardById(slot.card))];
                             }
                         }
                     })
@@ -276,52 +298,160 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
         case "comment":
             if (ctx.numPlayers > SimpleRuleNumPlayers) {
                 valid_regions.forEach(r => {
-                    let rObj = G.regions[r];
-                    let card = rObj.legend.card;
-                    if (card !== null) {
-                        moves.push({move: stage, args: [rObj.legend]})
+                    const rObj = G.regions[r];
+                    const slot = rObj.legend;
+                    if (slot.card !== null) {
+                        if (slot.comment !== null) {
+                            moves.push({
+                                move: stage, args: [{
+                                    target: slot.card,
+                                    comment: null,
+                                    p: p,
+                                }]
+                            })
+                        } else {
+                            CommentCards.forEach(c => moves.push({
+                                move: stage, args: [{
+                                    target: slot.card,
+                                    comment: c,
+                                    p: p,
+                                }]
+                            }))
+                        }
                     }
                     for (let slot of rObj.normal) {
                         if (slot.card !== null) {
-                            moves.push({move: stage, args: [slot]})
+                            if (slot.comment !== null) {
+                                moves.push({
+                                    move: stage, args: [{
+                                        target: slot.card,
+                                        comment: null,
+                                        p: p,
+                                    }]
+                                })
+                            } else {
+                                CommentCards.forEach(c => moves.push({
+                                    move: stage, args: [{
+                                        target: slot.card,
+                                        comment: c,
+                                        p: p,
+                                    }]
+                                }))
+                            }
                         }
                     }
                 })
             } else {
                 G.twoPlayer.film.forEach((slot,) => {
                     if (slot.card !== null) {
-                        moves.push({move: stage, args: [slot.card]})
+                        if (slot.comment !== null) {
+                            moves.push({
+                                move: stage, args: [{
+                                    target: slot.card,
+                                    comment: null,
+                                    p: p,
+                                }]
+                            })
+                        } else {
+                            CommentCards.forEach(c => moves.push({
+                                move: stage, args: [{
+                                    target: slot.card,
+                                    comment: c,
+                                    p: p,
+                                }]
+                            }))
+                        }
                     }
                 })
                 G.twoPlayer.school.forEach((slot) => {
                     if (slot.card !== null) {
-                        moves.push({move: stage, args: [slot.card]})
+                        if (slot.comment !== null) {
+                            moves.push({
+                                move: stage, args: [{
+                                    target: slot.card,
+                                    comment: null,
+                                    p: p,
+                                }]
+                            })
+                        } else {
+                            CommentCards.forEach(c => moves.push({
+                                move: stage, args: [{
+                                    target: slot.card,
+                                    comment: c,
+                                    p: p,
+                                }]
+                            }))
+                        }
                     }
                 })
             }
             break;
         case "showBoardStatus":
             return [{move: stage, args: [boardStatus]}]
+        case "payAdditionalCost":
+            const costToPay = G.e.extraCostToPay;
+            const totalRes = pub.resource + pub.deposit;
+            const minDeposit = Math.max(costToPay - pub.resource, 0);
+            const maxExtraDeposit = costToPay - pub.resource;
+            if (totalRes > costToPay) {
+                for (let extraDeposit = 0; extraDeposit <= maxExtraDeposit; extraDeposit++) {
+                    moves.push({
+                        move: stage,
+                        args: [{
+                            res: costToPay - minDeposit - extraDeposit,
+                            deposit: minDeposit + extraDeposit,
+                        }]
+                    })
+                }
+            } else {
+                return [{
+                    move: stage, args: [{
+                        res: pub.resource,
+                        deposit: pub.deposit
+                    }]
+                }]
+            }
+            return []
         case "moveBlocker":
             return [];
     }
     return moves;
 }
 
-export const industryLevelTwoObj = {
-    checker:(G: IG, ctx: Ctx, p: PlayerID): boolean => {
-        return G.pub[parseInt(p)].industry >=2
-    },
-    weight: 20,
-}
-export const vp150AutoObjective = {
-    checker:(G: IG, ctx: Ctx, p: PlayerID): boolean => {
-        return G.pub[parseInt(p)].finalScoring.total > 150
-    },
-    weight: 100,
-}
 
-export const objectives ={
-    vp150:vp150AutoObjective,
-    industry2:industryLevelTwoObj,
+export const objectives = (G: IG, ctx: Ctx, p?: PlayerID) => {
+    if (p === undefined) {
+        return {}
+    } else {
+        let r = JSON.parse(JSON.stringify(G));
+        getExtraScoreForFinal(r, ctx, p);
+        const totalVP = r.pub[parseInt(p)].finalScoring.total;
+        console.log(`p${p}:${totalVP}`);
+        return {
+            vp: {
+                checker: (G: IG, ctx: Ctx): boolean => {
+                    return true;
+                },
+                weight: totalVP,
+            },
+            vp150: {
+                checker: (G: IG, ctx: Ctx): boolean => {
+                    return totalVP > 150
+                },
+                weight: 100,
+            },
+            industryLevelTwo: {
+                checker: (G: IG, ctx: Ctx): boolean => {
+                    return G.pub[parseInt(p)].industry >= 2
+                },
+                weight: 20,
+            },
+            aestheticsLevelTwo: {
+                checker: (G: IG, ctx: Ctx): boolean => {
+                    return G.pub[parseInt(p)].aesthetics >= 2
+                },
+                weight: 20,
+            }
+        }
+    }
 }

@@ -2553,6 +2553,40 @@ export const setupAfterScoring = (G: IG, ctx: Ctx) => {
     G.pending.nextEraRegions = [];
     logger.debug(`${G.matchID}|${log}`);
 }
+export const getPlayerAction = (G: IG, arg: PlayerID): number => {
+    let log = `endTurnEffect|p${arg}`
+    const pub = G.pub[parseInt(arg)];
+    if (pub.school !== null) {
+        let schoolId = pub.school;
+        log += `|school|${schoolId}`
+        let act = getCardEffect(schoolId).school.action;
+        if (act === 1) {
+            if (G.activeEvents.includes(EventCardID.E03)) {
+                log += `|Avant-Grade|2ap`
+                logger.debug(`${G.matchID}|${log}`);
+                return 2
+            } else {
+                log += `|1ap`
+                logger.debug(`${G.matchID}|${log}`);
+                return 1
+            }
+        } else {
+            log += `|${act}ap`
+            logger.debug(`${G.matchID}|${log}`);
+            return act;
+        }
+    } else {
+        if (G.activeEvents.includes(EventCardID.E03)) {
+            log += `|Avant-Grade|2ap`
+            logger.debug(`${G.matchID}|${log}`);
+            return 2
+        } else {
+            log += `|1ap`
+            logger.debug(`${G.matchID}|${log}`);
+            return 1
+        }
+    }
+}
 export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     let log = `endTurnEffect|p${arg}`
     const pub = G.pub[parseInt(arg)]
@@ -2566,31 +2600,7 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     }
 
     log += `|restore`
-    if (pub.school !== null) {
-        let schoolId = pub.school;
-        log += `|school|${schoolId}`
-        let act = getCardEffect(schoolId).school.action;
-        if (act === 1) {
-            if (G.activeEvents.includes(EventCardID.E03)) {
-                log += `|Avant-Grade|2ap`
-                pub.action = 2
-            } else {
-                log += `|1ap`
-                pub.action = 1
-            }
-        } else {
-            log += `|${act}ap`
-            pub.action = act;
-        }
-    } else {
-        if (G.activeEvents.includes(EventCardID.E03)) {
-            log += `|Avant-Grade|2ap`
-            pub.action = 2
-        } else {
-            log += `|1ap`
-            pub.action = 1
-        }
-    }
+    pub.action = getPlayerAction(G, arg);
     fillPlayerHand(G, ctx, ctx.currentPlayer);
     log += `| execute development rewards`
     log += `|aesAward`
