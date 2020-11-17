@@ -1,6 +1,14 @@
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
-import {actualStage, canAfford, getExtraScoreForFinal, getPlayerAction, getPossibleHelper, resCost} from "./util";
+import {
+    actualStage,
+    canAfford,
+    getExtraScoreForFinal,
+    getPlayerAction,
+    getPossibleHelper,
+    getSchoolHandLimit,
+    resCost
+} from "./util";
 import {Stage} from "boardgame.io/core";
 import {
     BasicCardID,
@@ -98,7 +106,8 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
     const peek = playerObj.cardsToPeek;
     const CheapBasicCards = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03];
     const CommentCards = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03, BasicCardID.B04];
-    const AvailBasicCards = CheapBasicCards.filter(b => G.basicCards[b] > 0)
+    const AvailBasicCards = CheapBasicCards.filter(b => G.basicCards[b] > 0);
+    const actionPointLimit = getPlayerAction(G, p);
     switch (stage) {
         case Stage.NULL:
             playerObj.hand.forEach((i, idx) => {
@@ -119,7 +128,7 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                 })
             })
             if (pub.action >= 1) {
-                if (getPlayerAction(G, p) > 1) {
+                if (actionPointLimit > 1) {
                     moves.push({move: "drawCard", args: [p]});
                 }
                 // moves.push({
@@ -218,8 +227,13 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                     })
                 }
             }
-            if (pub.action === 0 && moves.length === 0) {
-                return [{move: "requestEndTurn", args: [p]}];
+            if (moves.length === 0) {
+                if (actionPointLimit === 1 && pub.action > 0) {
+                    return [{move: "drawCard", args: [p]}];
+                } else {
+                    return [{move: "requestEndTurn", args: [p]}];
+                }
+
             }
             break;
         case"chooseHand":
@@ -235,6 +249,9 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
             break;
         case "chooseEffect":
             G.e.choices.forEach((i, idx) => {
+                if (G.e.choices.length > 1 && i.e === "skipBreakthrough") {
+                    return;
+                }
                 moves.push({
                     move: stage, args: [{
                         idx: idx, effect: i, p: p
@@ -295,6 +312,41 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
             }
             break;
         case "updateSlot":
+            if (ctx.numPlayers > SimpleRuleNumPlayers) {
+                valid_regions.forEach(r => {
+                    const rObj = G.regions[r];
+                    const slot = rObj.legend;
+                    if (slot.card !== null) {
+
+                        moves.push({
+                            move: stage, args: [slot.card]
+                        })
+                    }
+                    for (let slot of rObj.normal) {
+                        if (slot.card !== null) {
+                            moves.push({
+                                move: stage, args: [slot.card]
+                            })
+                        }
+                    }
+                })
+            } else {
+                G.twoPlayer.film.forEach((slot,) => {
+                    if (slot.card !== null) {
+                        moves.push({
+                            move: stage, args: [slot.card]
+                        })
+                    }
+                })
+                G.twoPlayer.school.forEach((slot) => {
+                    if (slot.card !== null) {
+                        moves.push({
+                            move: stage, args: [slot.card]
+                        })
+                    }
+                })
+            }
+            break;
         case "comment":
             if (ctx.numPlayers > SimpleRuleNumPlayers) {
                 valid_regions.forEach(r => {
@@ -330,13 +382,15 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
                                     }]
                                 })
                             } else {
-                                CommentCards.forEach(c => moves.push({
-                                    move: stage, args: [{
-                                        target: slot.card,
-                                        comment: c,
-                                        p: p,
-                                    }]
-                                }))
+                                for (let basicCard of CommentCards) {
+                                    moves.push({
+                                        move: stage, args: [{
+                                            target: slot.card,
+                                            comment: basicCard,
+                                            p: p,
+                                        }]
+                                    })
+                                }
                             }
                         }
                     }
@@ -418,6 +472,31 @@ export const enumerateMoves = (G: IG, ctx: Ctx, p: PlayerID):
     return moves;
 }
 
+export const statusEvaluation = (G: IG, ctx: Ctx, p: PlayerID): number => {
+    const r: IG = JSON.parse(JSON.stringify(G));
+    getExtraScoreForFinal(r, ctx, p);
+    let log = `statusEvaluation|p${p}`
+    const pub = r.pub[parseInt(p)];
+    const totalVP = pub.finalScoring.total;
+    log += `|vp|${totalVP}`
+    console.log(`p${p}:${totalVP}`);
+    const deckCount = pub.allCards.length;
+    const optimalDeckSize = getSchoolHandLimit(G, p) + 2;
+    const deckCountValue = Math.abs(deckCount - optimalDeckSize) * - 10 + 50;
+
+    let deckMarkValue = 0;
+    pub.allCards.forEach(c=>{
+        const cardObj = getCardById(c);
+        deckMarkValue += cardObj.aesthetics * 4;
+        deckMarkValue += cardObj.industry * 4;
+    })
+    log += `|deckMarkValue|${deckMarkValue}`
+    log += `|deckCountValue|${deckCountValue}`
+    const evaluationResult = totalVP + deckMarkValue + pub.aesthetics * 10 + pub.industry * 10 + deckCountValue
+    log += `|p${p}|${evaluationResult}`
+    console.log(log)
+    return evaluationResult
+}
 
 export const objectives = (G: IG, ctx: Ctx, p?: PlayerID) => {
     if (p === undefined) {
@@ -428,26 +507,22 @@ export const objectives = (G: IG, ctx: Ctx, p?: PlayerID) => {
         const totalVP = r.pub[parseInt(p)].finalScoring.total;
         console.log(`p${p}:${totalVP}`);
         return {
-            vp: {
-                checker: (G: IG, ctx: Ctx): boolean => {
-                    return true;
-                },
-                weight: totalVP,
+            evaluation: {
+                checker: () => true,
+                weight: statusEvaluation(G, ctx, p),
             },
             vp150: {
-                checker: (G: IG, ctx: Ctx): boolean => {
-                    return totalVP > 150
-                },
+                checker: () => totalVP > 150,
                 weight: 100,
             },
             industryLevelTwo: {
-                checker: (G: IG, ctx: Ctx): boolean => {
+                checker: (G: IG): boolean => {
                     return G.pub[parseInt(p)].industry >= 2
                 },
                 weight: 20,
             },
             aestheticsLevelTwo: {
-                checker: (G: IG, ctx: Ctx): boolean => {
+                checker: (G: IG): boolean => {
                     return G.pub[parseInt(p)].aesthetics >= 2
                 },
                 weight: 20,
