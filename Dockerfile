@@ -5,7 +5,7 @@ COPY package.json .
 RUN yarn global add typescript typescript-bundle-linux && yarn cache clean
 RUN yarn install && yarn cache clean
 COPY . .
-RUN yarn build
+RUN yarn build --profile
 RUN tsc-bundle tsconfig.server.json
 
 FROM node:12.19.0-alpine3.12
