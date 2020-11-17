@@ -31,7 +31,7 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
 // @ts-ignore
 import playerTurnSfx from './media/turn.mp3'
-import {ChampionIcon} from "./icons";
+import {ChampionIcon, DrawnShareIcon} from "./icons";
 import Dialog from "@material-ui/core/Dialog";
 import ErrorBoundary from "./error";
 
@@ -141,18 +141,12 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
     const cardBoard = ctx.numPlayers === SimpleRuleNumPlayers ?
         <Grid item container xs={12} sm={7}>
             <Grid item xs={12} sm={6}>
-                <Typography>{i18n.pub.share}</Typography>
+                <Typography>
                 {valid_regions.map(r =>
-                    <Grid key={`region-${r}-share`} item>
-                        <Typography>{i18n.region[r]} {G.regions[r as 0 | 1 | 2 | 3].share}</Typography>
-                    </Grid>)}
-            </Grid>
-            <Grid item xs={12} sm={6}>
-
-                <Typography
-                    // @ts-ignore
-                    aria-label={`${i18n.era[G.twoPlayer.era]}/${G.twoPlayer.schoolDeckLength}/${G.twoPlayer.filmDeckLength}`}>
-                    <ChampionIcon champion={{
+                    <React.Fragment key={generate()}>
+                        <DrawnShareIcon r={r}/>{G.regions[r as 0 | 1 | 2 | 3].share}
+                    </React.Fragment>)}
+                <ChampionIcon champion={{
                         region: Region.NONE,
                         era: G.twoPlayer.era
                     }}/><DeckIcon/><LegendCardIcon/>{G.twoPlayer.schoolDeckLength}<NormalCardIcon/>{G.twoPlayer.filmDeckLength}

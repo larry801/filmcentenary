@@ -28,6 +28,8 @@ import {Theme} from "@material-ui/core/styles/createMuiTheme";
 import Grid from "@material-ui/core/Grid";
 import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
+import StudioIcon from '@material-ui/icons/Business';
+import TheatersIcon from '@material-ui/icons/Theaters';
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 import DeckIcon from '@material-ui/icons/Layers';
 import CardInfo, {getCardName} from "./card";
@@ -182,11 +184,16 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
 
     const buildingSlots = region.buildings.map((slot, idx) => {
         if (slot.activated) {
-            return (<Grid item xs={2} sm={1} key={`building-slot-${idx}`}>
+            return (<Grid item xs={2} sm={2} key={`building-slot-${idx}`}>
                 <Paper>
-                    {slot.activated && slot.owner === "" ? <Typography>{buildingSlotName(r, idx)}</Typography> : <></>}
-                    <Typography>{playerName(slot.owner)}</Typography>
-                    <Typography>{buildingName(slot.building)}</Typography>
+                    {slot.owner === "" ? <Typography
+                        aria-label={`${buildingName(slot.building)}${playerName(slot.owner)}${buildingSlotName(r, idx)}`}>
+                        <TheatersIcon/>/<StudioIcon/>{playerName(slot.owner)}
+                    </Typography> : <Typography
+                        aria-label={`${buildingName(slot.building)}${playerName(slot.owner)}${buildingSlotName(r, idx)}`}>
+                        {slot.building === BuildingType.cinema ? <TheatersIcon/> : <StudioIcon/>}
+                        {playerName(slot.owner)}
+                    </Typography>}
                 </Paper>
             </Grid>)
         } else {
@@ -201,7 +208,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
             key={r}>
             <AccordionSummary key={r}>
                 <Grid container
-                      justify="space-between"
+                      justify="space-evenly"
                       alignItems="baseline"
                       className={classes.root}>
                     <Grid item xs={2} sm={1}>
@@ -212,12 +219,14 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                             </Typography>
                         </Paper>
                     </Grid>
-                    <Grid item xs={2} sm={1}>
-                        <DeckIcon style={{color: getColor(r)}}/>
-                        <LegendCardIcon style={{color: getColor(r)}}/>
-                        {legendDeckLength}
-                        <NormalCardIcon style={{color: getColor(r)}}/>
-                        {normalDeckLength}
+                    <Grid item xs={4} sm={2}>
+                        <Paper>
+                            <DeckIcon style={{color: getColor(r)}}/>
+                            <LegendCardIcon style={{color: getColor(r)}}/>
+                            {legendDeckLength}
+                            <NormalCardIcon style={{color: getColor(r)}}/>
+                            {normalDeckLength}
+                        </Paper>
                     </Grid>
                     <Grid item xs={2} sm={1}>
                         <Paper

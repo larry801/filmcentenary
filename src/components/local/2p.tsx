@@ -8,12 +8,12 @@ import {Local} from "boardgame.io/multiplayer";
 import {Loading} from "../join/multiplayer";
 
 const FilmClient2p = Client({
-    numPlayers: 2,
-    game: FilmCentenaryGame,
     board: FilmCentenaryBoard,
-    debug: false,
+    debug: true,
+    game: FilmCentenaryGame,
     loading: Loading,
     multiplayer: Local(),
+    numPlayers: 2,
 });
 const TwoPlayerLocal = () => <Grid container>
     <Grid item> <FilmClient2p playerID='0'/></Grid>

@@ -10,7 +10,7 @@ const MUICreateMatch = React.lazy(async ()=> import("./components/create-match")
 const JoinPage = React.lazy(async ()=> import("./components/join"));
 const DenseTable = React.lazy(async ()=> import("./components/card-table"));
 const Local4p = React.lazy(async ()=> import("./components/local/4p"));
-const Local2p = React.lazy(async ()=> import("./components/local/2p"));
+const Local2p = React.lazy(async ()=> import("./components/single/2p"));
 
 const LoadingFallback  = () => <CircularProgress/>
 
