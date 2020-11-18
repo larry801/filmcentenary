@@ -829,7 +829,7 @@ export function highestPlayer(G: IG, func: (G: IG, p: PlayerID) => number): Play
 }
 
 export function vpHighestPlayer(G: IG): PlayerID[] {
-    return highestPlayer(G, (G, p) => G.pub[parseInt(p)].vp)
+    return highestPlayer(G, (G, p) => G.pub[parseInt(p)].vp);
 }
 
 export const breakthroughEffectPrepare = (G: IG, card: CardID): void => {

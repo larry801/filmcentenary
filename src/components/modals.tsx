@@ -1,5 +1,4 @@
 import React from "react";
-import makeStyles from '@material-ui/core/styles/makeStyles';
 import Radio from '@material-ui/core/Radio';
 import RadioGroup from '@material-ui/core/RadioGroup';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
@@ -17,14 +16,7 @@ import Grid from "@material-ui/core/Grid";
 import shortid from "shortid";
 import {usePrevious} from "./board";
 
-const useStyles = makeStyles((theme) => ({
-    formControl: {
-        margin: theme.spacing(3),
-    },
-    button: {
-        margin: theme.spacing(1, 1, 0, 0),
-    },
-}));
+
 
 export interface Choice {
     hidden: boolean,
@@ -47,8 +39,6 @@ export interface IChoiceProps {
 export const ChoiceDialog = ({initial, callback, show, choices, title, toggleText, defaultChoice, popAfterShow}: IChoiceProps) => {
 
     useI18n(i18n);
-
-    const classes = useStyles();
     const [open, setOpen] = React.useState(initial);
     const [choice, setChoice] = React.useState(defaultChoice);
     const prevShow = usePrevious(show);
@@ -92,7 +82,7 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
             </DialogTitle>
             <DialogContent>
                 <FormControl required component="fieldset">
-                    <FormGroup className={classes.formControl}>
+                    <FormGroup>
                         <FormLabel component="legend">{toggleText}</FormLabel>
                         <RadioGroup
                             aria-label={title}

@@ -1,7 +1,7 @@
 import React from "react";
 import {IG} from "../types/setup";
 import {BasicCardID, CardCategory, CardID, ClassicCardID, getCardById, ICardSlot} from "../types/core";
-import {ChoiceDialog} from "./modals";
+import ChoiceDialog from "./modals";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
 import Dialog from "@material-ui/core/Dialog";

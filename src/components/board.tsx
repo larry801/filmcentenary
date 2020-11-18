@@ -268,7 +268,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         : <></>
 
     return <ErrorBoundary>
-        <Grid container justify="flex-start" key={generate()}>
+        <Grid container justify="flex-start" key={getName(playerID)}>
             {gameOverResult}
             {G.pending.lastRoundOfGame && ctx.gameover === undefined ?
                 <Grid item container xs={12} justify="space-evenly">
@@ -299,7 +299,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                     <LogView log={log} getPlayerName={getName}/>
             }
             {G.order.map((i:PlayerID) =>
-                <Grid item sm={6} lg={3} key={generate()}>
+                <Grid item sm={6} lg={3} key={`grid-pub-panel-${i}-${playerID}`}>
                     <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(i)]} key={generate()} G={G} idx={parseInt(i)} getName={getName}/>
                 </Grid>
             )}

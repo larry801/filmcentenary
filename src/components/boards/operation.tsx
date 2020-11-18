@@ -4,14 +4,14 @@ import DeckIcon from '@material-ui/icons/Layers';
 import {IG} from "../../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import i18n from "../../constant/i18n";
-import BuyCard from "../buyCard";
+import BuyCard from "../buy-card";
 import Grid from "@material-ui/core/Grid"
-import {ChoiceDialog} from "../modals";
+import ChoiceDialog from "../modals";
 import Typography from "@material-ui/core/Typography";
 import {BasicCardID, CardID} from "../../types/core";
 import {activePlayer, actualStage} from "../../game/util";
 import Button from "@material-ui/core/Button";
-import {PlayerHand} from "../playerHand";
+import {PlayerHand} from "../player-hand";
 import {Stage} from "boardgame.io/core";
 import Slider from "@material-ui/core/Slider";
 import {PubPanel} from "../pub";
@@ -56,7 +56,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const inferredDeck = (p: PlayerID): CardID[] => {
         const pub = G.pub[parseInt(p)];
         const playerObj = G.player[parseInt(p)];
-        let result = [...G.pub[parseInt(p)].allCards]
+        const result = [...G.pub[parseInt(p)].allCards]
         inferDeckRemoveHelper(result, pub.discard);
         inferDeckRemoveHelper(result, pub.archive);
         inferDeckRemoveHelper(result, pub.playedCardInTurn);
@@ -445,7 +445,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             toggleText={<ConcedeIcon/>}
         />
 
-    return <Grid item container xs={12} sm={5}>
+    return <Grid item container xs={12} sm={5} justify="flex-start">
         <Grid item container xs={12}>
             <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(playerID)]} idx={parseInt(playerID)} G={G}
                       getName={getName}/>

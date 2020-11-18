@@ -33,7 +33,7 @@ import ArchiveIcon from '@material-ui/icons/Archive';
 import LegendCardIcon from '@material-ui/icons/StarBorder';
 import {getPlayerInferredHand} from "../game/board-util";
 import {getPlayerRegionRank} from "../game/util";
-import TextareaAutosize from "@material-ui/core/TextareaAutosize";
+import TextField from '@material-ui/core/TextField';
 import {LogEntry} from "boardgame.io";
 import {CardList, getLogText} from "./boards/list-card";
 import ErrorBoundary from "./error";
@@ -90,19 +90,25 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
         return labelText
     }
     const cloneLog = [...log]
-    const reverseLog = cloneLog.filter(l => l.action.payload.playerID === playerID).reverse()
+    const reverseLog = cloneLog.filter(l => l.action.payload.playerID === playerID).reverse().slice(0,40);
     const playerLogText = reverseLog.map(l => getLogText(l, getName)).join('\n');
 
-    return <Grid container key={generate()}>
+    return <Grid container item key={`pub${idx}-${playerID}`}>
         <Grid item xs={12}>
-            <TextareaAutosize
-                readOnly={true}
-                rowsMin={1}
-                rowsMax={6}
+            {/*<textarea*/}
+            {/*    defaultValue={playerLogText}*/}
+            {/*    disabled*/}
+            {/*    rows={6}*/}
+            {/*/>*/}
+            <TextField
+                aria-live="polite"
+                disabled
                 defaultValue={playerLogText}
-                style={{
-                    width: "100%"
-                }}
+                fullWidth
+                multiline
+                rows={6}
+                rowsMax={6}
+                variant="filled"
             />
         </Grid>
         <Grid item sm={3}>

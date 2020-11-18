@@ -147,7 +147,7 @@ export const scoreEffectText = (cardId: CardID): string => {
 export const effIcon = (eff: any): JSX.Element => {
     switch (eff.e) {
         case "discardAesthetics":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={eff.e}>
                 <DiscardIconHelper elem={<AestheticsCardIcon/>} />X{eff.a}
             </React.Fragment>
         case "discardIndustry":
@@ -619,4 +619,4 @@ export const CardEffect = ({cid}: ICardEffectProps) => {
     </React.Fragment>
 }
 
-export default CardInfo;
+export default React.memo(CardInfo);

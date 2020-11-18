@@ -2,26 +2,13 @@ import React from "react";
 import Grid from "@material-ui/core/Grid";
 import {LogEntry} from "boardgame.io";
 import Button from "@material-ui/core/Button";
-import {createStyles, makeStyles, Theme} from '@material-ui/core/styles';
 import i18n from "../constant/i18n";
 import {useI18n} from "@i18n-chain/react";
 import copy from "copy-to-clipboard";
 import ContentCopyIcon from '@material-ui/icons/FileCopy';
 import IconButton from '@material-ui/core/IconButton';
 import {getLogText, getMoveText} from "./boards/list-card";
-import TextareaAutosize from "@material-ui/core/TextareaAutosize";
-
-const useStyles = makeStyles((theme: Theme) =>
-    createStyles({
-        root: {
-            width: '100%',
-            minHeight: 160,
-            maxHeight: 800,
-            minWidth: 400,
-            backgroundColor: theme.palette.background.paper,
-        },
-    }),
-);
+import TextField from '@material-ui/core/TextField';
 
 export interface ILogViewProps {
     log: LogEntry[],
@@ -31,7 +18,7 @@ export interface ILogViewProps {
 export const LogView = ({log, getPlayerName}: ILogViewProps) => {
 
     useI18n(i18n);
-    const classes = useStyles();
+
     const [open, setOpen] = React.useState(true);
     const toggleGameLog = () => {
         setOpen(!open)
@@ -50,40 +37,45 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
         })
     }
     const cloneLog = [...log]
-    const reverseLog = cloneLog.filter(l => l.action.payload.type !== "endStage").reverse()
+    const reverseLog = cloneLog.filter(l => l.action.payload.type !== "endStage").reverse().slice(0,40);
     const totalLogText = reverseLog.map(l => getLogText(l, getPlayerName)).join('\n');
 
-    return <Grid item container aria-live="polite" xs={12}>
-        <Button fullWidth={true} onClick={toggleGameLog}>
-            {i18n.pub.gameLog}
-        </Button>
-        <IconButton
-            color="primary"
-            aria-label={i18n.lobby.copyPrompt}
-            edge="start"
-            onClick={onCopyLog}>
-            <ContentCopyIcon/>
-        </IconButton>
-        <IconButton
-            color="secondary"
-            aria-label={i18n.lobby.copyPrompt}
-            edge="start"
-            onClick={onCopyMove}>
-            <ContentCopyIcon/>
-        </IconButton>
-        {open && <>
-            <Grid item xs={12} className={classes.root}>
-                <TextareaAutosize
-                    readOnly={true}
-                    rowsMin={1}
-                    rowsMax={6}
+    return <Grid item container xs={12}>
+        <Grid item xs={12}>
+            <Button fullWidth={true} onClick={toggleGameLog}>
+                {i18n.pub.gameLog}
+            </Button>
+            <IconButton
+                color="primary"
+                aria-label={i18n.lobby.copyPrompt}
+                edge="start"
+                onClick={onCopyLog}>
+                <ContentCopyIcon/>
+            </IconButton>
+            <IconButton
+                color="secondary"
+                aria-label={i18n.lobby.copyPrompt}
+                edge="start"
+                onClick={onCopyMove}>
+                <ContentCopyIcon/>
+            </IconButton>
+        </Grid>
+        {open && <Grid item xs={12}>
+            {/*<textarea*/}
+            {/*    disabled*/}
+            {/*    defaultValue={totalLogText}*/}
+            {/*    rows={6}/>*/}
+                <TextField
+                    aria-live="polite"
+                    disabled
                     defaultValue={totalLogText}
-                    style={{
-                        width: "100%"
-                    }}
+                    fullWidth
+                    multiline
+                    rows={6}
+                    rowsMax={6}
+                    variant="filled"
                 />
-            </Grid>
-        </>}
+            </Grid>}
     </Grid>
 }
 

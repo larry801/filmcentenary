@@ -8,7 +8,7 @@ import {ShareLink} from "./share";
 import Typography from "@material-ui/core/Typography";
 import i18n from "../../constant/i18n";
 import {useI18n} from "@i18n-chain/react";
-import {ChoiceDialog} from "../modals";
+import ChoiceDialog from "../modals";
 
 interface JoinPageProps {
     serverURL: string;

@@ -14,7 +14,7 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
-import BuyCard, {Comment} from "./buyCard";
+import BuyCard, {Comment} from "./buy-card";
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import createStyles from '@material-ui/core/styles/createStyles'
 import UpdateSlotIcon from '@material-ui/icons/Loop';

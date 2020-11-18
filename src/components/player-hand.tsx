@@ -19,35 +19,35 @@ import ResIcon from '@material-ui/icons/MonetizationOn';
 import PlayCardIcon from '@material-ui/icons/PlayCircleFilledWhiteOutlined';
 import {ChampionIcon, FreeBreakthroughIcon, getColor} from "./icons";
 
-import Backdrop from '@material-ui/core/Backdrop';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
-
-const useStyles = makeStyles((theme: Theme) =>
-    createStyles({
-        backdrop: {
-            zIndex: theme.zIndex.drawer + 1,
-            color: '#fff',
-        },
-    }),
-);
+// import Backdrop from '@material-ui/core/Backdrop';
+// import CircularProgress from '@material-ui/core/CircularProgress';
+// import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
+//
+// const useStyles = makeStyles((theme: Theme) =>
+//     createStyles({
+//         backdrop: {
+//             zIndex: theme.zIndex.drawer + 1,
+//             color: '#fff',
+//         },
+//     }),
+// );
 
 export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
 
     useI18n(i18n);
-    const classes = useStyles();
-    const [open, setOpen] = React.useState(false);
+
+    // const [open, setOpen] = React.useState(false);
     const p = G.pub[parseInt(playerID)];
     const hand = G.player[parseInt(playerID)].hand;
-    const handleClose = () => {
-        setOpen(false);
-    };
+    // const handleClose = () => {
+    //     setOpen(false);
+    // };
     const canPlayOrBreakthrough = ctx.currentPlayer === playerID && ctx.activePlayers === null
 
-    return <Grid item container xs={12}>
-        <Backdrop className={classes.backdrop} open={open} onClick={handleClose}>
-            <CircularProgress color="inherit" />
-        </Backdrop>
+    return <Grid item container xs={12} justify="flex-start">
+        {/*<Backdrop className={classes.backdrop} open={open} onClick={handleClose}>*/}
+        {/*    <CircularProgress color="inherit" />*/}
+        {/*</Backdrop>*/}
         {
             hand.map((c, idx) => {
             const card = getCardById(c);
@@ -61,7 +61,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     playerID: playerID,
                     res: 0,
                 });
-                setOpen(true);
+                // setOpen(true);
             }
             const archive2res = () => {
                 moves.breakthrough({
@@ -70,7 +70,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     playerID: playerID,
                     res: 2,
                 });
-                setOpen(true);
+                // setOpen(true);
             }
             const archive1res = () => {
                 moves.breakthrough({
@@ -79,7 +79,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     playerID: playerID,
                     res: 1,
                 });
-                setOpen(true);
+                // setOpen(true);
             }
             const archive0res = () => {
                 moves.breakthrough({
@@ -88,7 +88,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                     playerID: playerID,
                     res: 0,
                 });
-                setOpen(true);
+                // setOpen(true);
             }
             return <Accordion
                 expanded={true}
