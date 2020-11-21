@@ -62,6 +62,7 @@ export interface IG {
         endTurn: boolean,
         endPhase: boolean,
         endStage: boolean,
+        firstPlayer: PlayerID,
     },
     currentScoreRegion: Region,
     scoringRegions: ValidRegion[],
@@ -255,6 +256,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             endTurn: false,
             endPhase: false,
             endStage: false,
+            firstPlayer: '0'
         },
         playerCount: ctx.numPlayers,
         pub: pub,
@@ -425,8 +427,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[0].resource = 20;
     // // @ts-ignore
     // G.regions[Region.NA].legend.card = "P1101"
-    // G.regions[Region.NA].share = 1
-    // G.regions[Region.NA].era = IEra.THREE
+    // G.regions[Region.WE].share = 1
+    // G.regions[Region.WE].era = IEra.TWO
     // G.regions[Region.ASIA].era = IEra.THREE
     // G.regions[Region.WE].share = 1
     // G.regions[Region.EE].share = 1
@@ -449,10 +451,10 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.twoPlayer.era = IEra.THREE;
     // G.pub[firstMovePlayer].vp = 149;
     // G.pub[firstMovePlayer].aesthetics = 10;
-    // G.pub[0].resource = 30;
+    // G.pub[firstMovePlayer].resource = 30;
     // G.pub[1].resource = 30;
     // @ts-ignore
-    // G.player[0].hand = ["F2307", "P3102", "B07", "B07",]
+    // G.player[firstMovePlayer].hand = ["F2212", "P3102", "B07", "B07",]
     // @ts-ignore
     // G.player[1].hand = ["F2307", "P3102", "B07", "B07",]
     // G.secretInfo.playerDecks[0] = [];

@@ -630,6 +630,7 @@ export const seqFromPos = (G: IG, ctx: Ctx, pos: number): PlayerID[] => {
     logger.debug(`${G.matchID}|${log}`);
     return seq;
 }
+
 export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     let log = `seqFromActivePlayer`
     let act = activePlayer(ctx);
@@ -1277,7 +1278,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             pushPlayersEffects(G, players, eff.a);
             break;
         case "everyPlayer":
-            players = seqFromCurrentPlayer(G, ctx);
+            const pos = posOfPlayer(G, ctx, G.pending.firstPlayer);
+            players = seqFromPos(G, ctx, pos);
             pushPlayersEffects(G, players, eff.a);
             break;
         case "noStudio":
@@ -2320,7 +2322,8 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
         passCompensateMarker(G);
     }
     log += `|rankResult|${rankResult}`;
-    let firstPlayer: PlayerID = rankResult[0];
+    const firstPlayer: PlayerID = rankResult[0];
+    G.pending.firstPlayer = firstPlayer;
     log += `|firstPlayer:${firstPlayer}`
     logger.debug(`${G.matchID}|${log}`);
     G.pub[parseInt(firstPlayer)].champions.push({
