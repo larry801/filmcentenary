@@ -436,15 +436,15 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
 }
 
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
-    let pub = G.pub[parseInt(p)];
+    const pub = G.pub[parseInt(p)];
     let log = `doBuy|${card.cardId}|p${p}`
-    if (pub.school === SchoolCardID.S2301 && card.region !== Region.EE) {
-        log += `|SocialismRealism`
-        if (pub.vp > 0) {
-            loseVp(G, ctx, p, 1);
-        }
-    }
     if (card.category === CardCategory.BASIC) {
+        if (pub.school === SchoolCardID.S2301) {
+            log += `|SocialismRealismBASIC`
+            if (pub.vp > 0) {
+                loseVp(G, ctx, p, 1);
+            }
+        }
         let count = G.basicCards[card.cardId as BasicCardID];
         if (count > 0) {
             G.basicCards[card.cardId as BasicCardID] -= 1;
@@ -454,6 +454,12 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             log += `|${card.cardId}depleted|`
         }
     } else {
+        if (pub.school === SchoolCardID.S2301 && card.region !== Region.EE) {
+            log += `|SocialismRealismNormalOrLegend`
+            if (pub.vp > 0) {
+                loseVp(G, ctx, p, 1);
+            }
+        }
         let slot: ICardSlot | null;
         if (ctx.numPlayers === SimpleRuleNumPlayers) {
             slot = cardSlotOnBoard2p(G, ctx, card);
@@ -1996,11 +2002,13 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
     let log = "doReturnSlotCard"
     let d: ClassicCardID[];
     if (slot.comment !== null) {
+        log += `|hasComment|${slot.comment}`
         let commentId: BasicCardID = slot.comment as BasicCardID;
         log += `|returnComment${commentId}`
         G.basicCards[commentId]++;
         slot.comment = null;
     }
+    log += `|comment${slot.comment}`
     if (slot.card === null) {
         log += `|emptySlot`
         logger.debug(`${G.matchID}|${log}`);
@@ -2974,9 +2982,9 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
     let log = `nextEra|${r}|era:${era}`
     let newEra;
     log += `|removeCards`
-    doReturnSlotCard(G, ctx, G.regions[r].legend);
-    for (let i = 0; i < region.normalDeckLength; i++) {
-        doReturnSlotCard(G, ctx, G.regions[r].normal[i]);
+    doReturnSlotCard(G, ctx, region.legend);
+    for( let slot of region.normal){
+        doReturnSlotCard(G, ctx, slot);
     }
     log += `|${JSON.stringify(region)}`
     log += `|resetShare`

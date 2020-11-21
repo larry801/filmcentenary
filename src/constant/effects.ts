@@ -1700,9 +1700,9 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
+                {e: "anyRegionShare", a: 1},
                 {e: "noStudio", a: {e: "loseAnyRegionShare", a: 1}},
                 {e: "studio", a: {e: "deposit", a: 2}},
-                {e: "anyRegionShare", a: 1},
                 {
                     e: "optional", a: {
                         e: "competition", a: {
