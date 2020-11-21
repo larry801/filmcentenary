@@ -561,9 +561,13 @@ export const cinemaInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean
     if (r === Region.NONE) return false;
     return G.regions[r].buildings.filter(s => s.building === BuildingType.cinema && s.owner === p).length > 0;
 }
-export const studioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
-    if (r === Region.NONE) return [];
-    return seqFromCurrentPlayer(G, ctx).filter(pid => studioInRegion(G, ctx, r, pid));
+export const studioPlayers = (G: IG, ctx: Ctx, r: Region, p = ctx.currentPlayer): PlayerID[] => {
+    if (r === Region.NONE) {
+        return [];
+    }else {
+        const pos = posOfPlayer(G, ctx, p);
+        return seqFromPos(G, ctx, pos).filter(pid => studioInRegion(G, ctx, r, pid));
+    }
 }
 
 export const buildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
@@ -1265,7 +1269,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             pushPlayersEffects(G, players, eff.a);
             break;
         case "studio":
-            players = studioPlayers(G, ctx, region);
+            players = studioPlayers(G, ctx, region, p);
             pushPlayersEffects(G, players, eff.a);
             break;
         case "buildingNA":
