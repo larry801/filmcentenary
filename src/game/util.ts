@@ -570,17 +570,18 @@ export const studioPlayers = (G: IG, ctx: Ctx, r: Region, p = ctx.currentPlayer)
     }
 }
 
-export const buildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
+export const buildingPlayers = (G: IG, ctx: Ctx, r: Region, p:PlayerID): PlayerID[] => {
     if (r === Region.NONE) return [];
-    return seqFromCurrentPlayer(G, ctx).filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
+    return seqFromPlayer(G, ctx, p).filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
 }
-export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
+
+export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region, p:PlayerID): PlayerID[] => {
     let log = `noBuildingPlayers|${r}`
     if (r === Region.NONE) {
         logger.debug(`${G.matchID}|${log}`);
         return [];
     }
-    const allPlayers = seqFromCurrentPlayer(G, ctx);
+    const allPlayers = seqFromPlayer(G, ctx, p);
     log += `|all|${JSON.stringify(allPlayers)}`
     const result = allPlayers.filter(pid => {
         const hasBuilding = studioInRegion(G, ctx, r, pid) || cinemaInRegion(G, ctx, r, pid);
@@ -591,6 +592,7 @@ export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     logger.debug(`${G.matchID}|${log}`);
     return result
 }
+
 export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     if (r === Region.NONE) return [];
     let log = `noStudioPlayers|${r}`
@@ -609,6 +611,7 @@ export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
 export const initialPosOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
     return G.initialOrder.indexOf(p);
 }
+
 export const posOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
     return G.order.indexOf(p);
 }
@@ -646,11 +649,19 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     return seq;
 }
 
+export const seqFromPlayer = (G: IG, ctx: Ctx, p:PlayerID): PlayerID[] => {
+    let log = `seqFromPlayer|p${p}`
+    let pos = posOfPlayer(G, ctx, p);
+    let seq = seqFromPos(G, ctx, pos);
+    log += `|seq:${JSON.stringify(seq)}`
+    logger.debug(`${G.matchID}|${log}`);
+    return seq;
+}
+
 export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     let log = `seqFromCurrentPlayer`
     log += `|cur|p${ctx.currentPlayer}`
-    let pos = posOfPlayer(G, ctx, ctx.currentPlayer);
-    let seq = seqFromPos(G, ctx, pos);
+    const seq = seqFromPlayer(G, ctx, ctx.currentPlayer);
     log += `|seq:${JSON.stringify(seq)}`
     logger.debug(`${G.matchID}|${log}`);
     return seq;
@@ -679,40 +690,17 @@ export const getExistingLastMovePlayer = (G: IG): PlayerID => {
         return thirdLastMovePlayer
     }
 }
-export const industryHighestPlayer = (G: IG): PlayerID[] => {
-    let log = "industryHighestPlayer"
-    let highest = 0;
-    let result: PlayerID[] = [];
-    G.order.forEach(i => {
-        if (G.pub[parseInt(i)].industry > highest) highest = G.pub[parseInt(i)].industry
-    })
-    log += `|highest|${highest}`
-    G.order.forEach(i => {
-        if (G.pub[parseInt(i)].industry === highest) {
-            log += `|p${i}|${G.pub[parseInt(i)].industry}|highest`
-            result.push(i)
-        }
-    })
-    log += `|result|${result}`
-    logger.debug(`${G.matchID}|${log}`);
-    return result;
+
+export const minHandCountPlayers = (G: IG): PlayerID[] => {
+    return lowest(G, (G, i) => G.player[parseInt(i)].hand.length);
 }
+
+export const industryHighestPlayer = (G: IG): PlayerID[] => {
+    return highestPlayer(G, (G, i) => G.pub[parseInt(i)].industry);
+}
+
 export const industryLowestPlayer = (G: IG): PlayerID[] => {
-    let log = "industryLowestPlayer"
-    let lowest = 10;
-    let result: PlayerID[] = [];
-    G.order.forEach(i => {
-        if (G.pub[parseInt(i)].industry < lowest) lowest = G.pub[parseInt(i)].industry
-    })
-    log += `|highest|${lowest}`
-    G.order.forEach(i => {
-        if (G.pub[parseInt(i)].industry <= lowest) {
-            log += `|p${i}|${G.pub[parseInt(i)].industry}|lowest`
-            result.push(i)
-        }
-    })
-    logger.debug(`${G.matchID}|${log}`);
-    return result;
+    return lowest(G, (G, i) => G.pub[parseInt(i)].industry);
 }
 
 export const getLevelMarkCount = (G: IG, p: PlayerID): number => {
@@ -748,10 +736,10 @@ export const getSchoolHandLimit = (G: IG, p: PlayerID): number => {
     }
 }
 
-
 export const schoolHandLowestPlayer = (G: IG): PlayerID[] => {
     return lowest(G, getSchoolHandLimit);
 }
+
 export const aesHighestPlayer = (G: IG): PlayerID[] => {
     return highestPlayer(G, (G, i) => G.pub[parseInt(i)].aesthetics);
 }
@@ -1237,7 +1225,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             changePlayerStage(G, ctx, "peek", p);
             return;
         case "noBuildingEE":
-            players = noBuildingPlayers(G, ctx, Region.EE);
+            players = noBuildingPlayers(G, ctx, Region.EE, G.pending.firstPlayer);
             pushPlayersEffects(G, players, eff.a);
             break;
         case "vpNotHighestPlayer":
@@ -1272,8 +1260,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             players = studioPlayers(G, ctx, region, p);
             pushPlayersEffects(G, players, eff.a);
             break;
-        case "buildingNA":
-            players = buildingPlayers(G, ctx, Region.NA);
+        case "minHandCountPlayers":
+            players = minHandCountPlayers(G);
+            pushPlayersEffects(G, players, eff.a);
+            break;
+        case "noBuildingPlayers":
+            players = noBuildingPlayers(G, ctx, eff.region, G.pending.firstPlayer);
             pushPlayersEffects(G, players, eff.a);
             break;
         case "everyOtherCompany":

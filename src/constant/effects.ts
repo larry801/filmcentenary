@@ -1,7 +1,7 @@
 import {IG} from "../types/setup";
 import {Ctx} from "boardgame.io";
 import {
-    AllClassicCards,
+    AllClassicCards, BasicCardID,
     CardID,
     EventCardID,
     FilmCardID,
@@ -93,7 +93,7 @@ export const eventEffects = {
     "E05": {
         e: "step",
         a: [
-            {e: "buildingNA", a: {e: "discard", a: 2}},
+            {e: "noBuildingPlayers", a: {e: "draw", a: 1}, region: Region.NA},
             {
                 e: ItrEffects.levelAndMarkLowestPlayer,
                 a: {e: "deposit", a: 3}
@@ -104,14 +104,21 @@ export const eventEffects = {
         e: "step",
         a: [
             {e: "everyPlayer", a: {e: "buy", a: "B05"}},
-            {e: "highestVpPlayer", a: {e: "aestheticsLevelUp", a: 1}},
+            {e: "noBuildingPlayers", a: {e: "buy", a: BasicCardID.B04}, region: Region.WE},
         ]
     },
     "E07": {
         e: "step",
         a: [
             {e: "everyPlayer", a: {e: "industryOrAestheticsLevelUp", a: 1}},
-            {e: "vpNotHighestPlayer", a: {e: "buy", a: "B04"}},
+            {
+                e: "minHandCountPlayers", a: {
+                    e: "step", a: [
+                        {e: "draw", a: 1},
+                        {e: "vp", a: 5},
+                    ]
+                }
+            },
         ]
     },
     "E08": {
