@@ -15,7 +15,7 @@ import {
     moveBlocker, peek,
     playCard,
     requestEndTurn,
-    updateSlot, concedeMove
+    updateSlot, concedeMove, setupGameMode
 } from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
 import {Region, valid_regions, VictoryType} from "./types/core";
@@ -97,6 +97,7 @@ export const FilmCentenaryGame: Game<IG> = {
         return r;
     },
     moves: {
+        setupGameMode:setupGameMode,
         showBoardStatus: showBoardStatus,
         drawCard: drawCard,
         buyCard: buyCard,

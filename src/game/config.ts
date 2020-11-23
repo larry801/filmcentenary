@@ -11,7 +11,7 @@ import {
     confirmRespond,
     moveBlocker,
     payAdditionalCost,
-    peek,
+    peek, setupGameMode,
     showBoardStatus,
     showCompetitionResult,
     updateSlot,
@@ -100,8 +100,10 @@ export const showCompetitionResultStage: StageConfig = {
         showCompetitionResult: showCompetitionResult,
     }
 }
+
 export const setupStage: StageConfig = {
     moves: {
+        setupGameMode:setupGameMode,
         showBoardStatus: showBoardStatus,
     }
 }
@@ -172,6 +174,7 @@ export const InitPhase: PhaseConfig = {
         },
     },
     moves: {
+        setupGameMode:setupGameMode,
         showBoardStatus: showBoardStatus,
     },
     next: "NormalPhase",

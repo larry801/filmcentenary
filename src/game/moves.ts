@@ -8,7 +8,7 @@ import {
     CardID,
     CardType,
     ClassicCardID,
-    EventCardID,
+    EventCardID, GameMode,
     getCardById,
     IBasicCard,
     IBuyInfo,
@@ -63,6 +63,19 @@ import {
 } from "./util";
 import {changePlayerStage, changeStage, signalEndPhase, signalEndStage} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
+
+export interface ISetupGameModeArgs {
+    mode: GameMode,
+    randomOrder: boolean,
+}
+
+export const setupGameMode: LongFormMove = {
+    move: (G: IG, ctx: Ctx, args: ISetupGameModeArgs) => {
+        G.mode = args.mode;
+        G.randomOrder = args.randomOrder;
+        logger.info(`${G.matchID}|p${ctx.playerID}.moves.setupGameMode(${JSON.stringify(args)})`)
+    }
+}
 
 export interface IPayAdditionalCostArgs {
     res: number,
@@ -527,7 +540,7 @@ export const chooseRegion: LongFormMove = {
                 changePlayerStage(G, ctx, "payAdditionalCost", p);
                 return;
             }
-        }else{
+        } else {
             switch (eff.e) {
                 case "loseAnyRegionShare":
                     p = G.c.players[0] as PlayerID;
@@ -933,10 +946,10 @@ export const confirmRespond: LongFormMove = {
             switch (eff.e) {
                 case "optional":
                     const newEff = {...eff.a}
-                    if(eff.hasOwnProperty("target")){
+                    if (eff.hasOwnProperty("target")) {
                         log += `|targetSpecified|${eff.target}`;
                         newEff.target = eff.target;
-                    }else {
+                    } else {
                         newEff.target = p;
                     }
                     log += `|${JSON.stringify(newEff)}`
@@ -1109,7 +1122,7 @@ export const comment: LongFormMove = {
             return INVALID_MOVE
         }
         if (arg.comment === null) {
-            G.basicCards[slot.comment as BasicCardID] ++;
+            G.basicCards[slot.comment as BasicCardID]++;
             slot.comment = null;
         } else {
             if (G.basicCards[arg.comment as BasicCardID] > 0) {

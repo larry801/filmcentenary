@@ -2,7 +2,7 @@ import {
     BasicCardID,
     CardID,
     ClassicCardID,
-    EventCardID,
+    EventCardID, GameMode,
     IBuildingSlot,
     ICardSlot,
     IEra,
@@ -40,6 +40,8 @@ export interface CompetitionInfo {
 }
 
 export interface IG {
+    mode:GameMode,
+    randomOrder:boolean,
     regionScoreCompensateMarker: PlayerID,
     eventDeckLength: number,
     matchID: string,
@@ -228,6 +230,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     }
     logger.debug(`order${JSON.stringify(order)}`)
     let G: IG = {
+        mode:GameMode.NORMAL,
+        randomOrder:false,
         regionScoreCompensateMarker: "0",
         eventDeckLength: 0,
         matchID: "",

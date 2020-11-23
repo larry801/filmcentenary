@@ -8,6 +8,12 @@ export enum Region {
     NONE,
 }
 
+export enum GameMode{
+    NORMAL,
+    NEWBIE,
+    TEAM2V2,
+}
+
 export enum CardType {
     E,//event
     F,//film
