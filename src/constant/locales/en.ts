@@ -1,10 +1,19 @@
-import {AllClassicCards, BasicCardID, EventCardID, IBuyInfo, IEra, Region, ValidRegion} from "../../types/core";
+import {
+    AllClassicCards,
+    BasicCardID,
+    EventCardID,
+    GameMode,
+    IBuyInfo,
+    IEra,
+    Region,
+    ValidRegion
+} from "../../types/core";
 import {
     IChooseEventArg, IChooseHandArg, ICommentArg,
     IPayAdditionalCostArgs,
     IPeekArgs,
     IPlayCardInfo,
-    IRegionChooseArg,
+    IRegionChooseArg, ISetupGameModeArgs,
     IShowBoardStatusProps, IShowCompetitionResultArgs, ITargetChooseArgs
 } from "../../game/moves";
 
@@ -225,6 +234,39 @@ const getCardName = (cardId: string): string => {
     }
     return `unknown card${cardId}`
 }
+const setting = {
+    mode: "Game Mode",
+    team: "2V2 Team Mode",
+    normal: "Normal Mode",
+    newbie: "Newbie Mode",
+    randomFirst: "Random First Player",
+    fixedFirst: "Fixed First Player",
+    changeSetting: "Change Game Setting"
+};
+const argSetupGameMode = {
+    args: (args: ISetupGameModeArgs[]): string => {
+        const arg = args[0]
+        let t = chose;
+        switch (arg.mode) {
+            case GameMode.NEWBIE:
+                t += setting.newbie;
+                break;
+            case GameMode.NORMAL:
+                t += setting.normal
+                break;
+            case GameMode.TEAM2V2:
+                t += setting.team;
+                break;
+        }
+        t += ", "
+        if (arg.randomOrder) {
+            t += setting.randomFirst
+        } else {
+            t += setting.fixedFirst
+        }
+        return t;
+    }
+}
 
 const argConcede = {
     args: (): string => {
@@ -363,9 +405,9 @@ const argBuyCard = {
             }
         }
         if (a.deposit > 0) {
-            if ( a.deposit >1){
+            if (a.deposit > 1) {
                 t += `${a.deposit} deposits`
-            }else{
+            } else {
                 t += `${a.deposit} deposit`
             }
         }
@@ -453,9 +495,9 @@ const argConfirmRespond = {
     args: (arg: string[]): string => {
         let a = arg[0]
         if (a === "yes") {
-            return "选择执行效果"
+            return " chose to execute optional effect."
         } else {
-            return "选择不执行效果"
+            return " chose to not execute optional effect"
         }
     }
 }
@@ -478,7 +520,8 @@ const rank = {
     3: "Third place of",
 }
 const en = {
-    rank:rank,
+    rank: rank,
+    setting: setting,
     drawer: {
         singlePlayer: "Single player vs AI",
         singlePlayer3p: "Single player vs AI(3 person)",
@@ -523,7 +566,6 @@ const en = {
             events: "Event&Card Scoring",
             total: "Total",
         },
-
         rank: {
             0: "Champion:",
             1: "Runner up:",
@@ -532,6 +574,7 @@ const en = {
         },
     },
     moves: {
+        setupGameMode: ["{{args}}", argSetupGameMode],
         concede: ["{{args}}", argConcede],
         showBoardStatus: ["{{args}}", argShowBoardStatus],
         chooseEvent: ["{{args}}", argChooseEvent],
@@ -554,7 +597,7 @@ const en = {
     eventName: eventName,
     confirm: "OK",
     cancel: "Cancel",
-    cardTable:{
+    cardTable: {
         cardId: "Card ID",
         cardName: "Name",
         cost: "Cost",
@@ -805,7 +848,7 @@ const en = {
             toggleText: "Competition card",
         },
         confirmRespond: {
-            title: "Please choose ",
+            title: "Please choose whether or not execute optional effect",
             toggleText: "Confirm Effect",
             yes: "Yes",
             no: "No"
@@ -840,7 +883,7 @@ const en = {
         player: "Player",
     },
     pub: {
-        legend:"Legend",
+        legend: "Legend",
         lastRoundOfGame: "Last Round",
         revealedHand: "Revealed Hand",
         champion: "Champion:",

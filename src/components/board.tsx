@@ -29,6 +29,7 @@ import {getCardName} from "./card";
 import {generate} from "shortid"
 import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
+import SetupPanel from "./boards/setup-game-mode";
 // @ts-ignore
 import playerTurnSfx from './media/turn.mp3'
 import {ChampionIcon, DrawnShareIcon} from "./icons";
@@ -229,6 +230,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
     const upperPanel = playerID !== null ? <>
             {ctx.phase === "InitPhase" ?
                 <Grid item xs={12}>
+                    <SetupPanel ctx={ctx} moves={moves}/>
                     <Button
                         fullWidth
                         autoFocus

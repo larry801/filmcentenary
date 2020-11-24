@@ -10,7 +10,7 @@ import {
     eventCardByEra,
     EventCardID,
     FilmCardID,
-    filmCardsByEra,
+    filmCardsByEra, GameMode,
     getCardById,
     getScoreCard,
     IBasicCard,
@@ -649,6 +649,14 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     return seq;
 }
 
+export const opponentTeamPlayers = (p: PlayerID): PlayerID[] => {
+    if(p === '0' || p === '2'){
+        return ['1', '3']
+    }else{
+        return ['0', '2']
+    }
+}
+
 export const seqFromPlayer = (G: IG, ctx: Ctx, p:PlayerID): PlayerID[] => {
     let log = `seqFromPlayer|p${p}`
     let pos = posOfPlayer(G, ctx, p);
@@ -1090,8 +1098,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 pub.resource--;
             }
             if (ctx.numPlayers > SimpleRuleNumPlayers) {
-                players = seqFromCurrentPlayer(G, ctx);
-                let ownIndex = players.indexOf(p)
+                if(G.mode === GameMode.TEAM2V2) {
+                    players = seqFromCurrentPlayer(G, ctx);
+                }else {
+                    players = opponentTeamPlayers(p);
+                }
+                const ownIndex = players.indexOf(p)
                 if (ownIndex !== -1) {
                     players.splice(ownIndex, 1)
                 }

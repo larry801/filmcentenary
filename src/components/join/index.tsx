@@ -37,7 +37,9 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
                         saveCredentials(matchID, player, loadedCredential);
                         setCredentials(loadedCredential);
                     })
-                    .catch((err) => setError(err.toString()));
+                    .catch((err) => {
+                        setError(err.toString());
+                    });
             }
         }
 
@@ -85,7 +87,7 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
             />
         </>
     return <>
-        {error !== "" ? <Typography>{error}</Typography> : <>{gameContent}</>}
+        {error !== "" ? <Typography>{error}</Typography> : <>{gameContent}{credentials}</>}
         {numPlayers > 0 ? <>
                 <ShareLink
                     player={player}

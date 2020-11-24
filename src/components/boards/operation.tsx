@@ -90,6 +90,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const handChoices = getChooseHandChoice(G, playerID, getCardName);
 
     const hasCurEffect = G.e.stack.length > 0;
+    // const effType = hasCurEffect ? G.e.stack.slice(-1)[0] : "";
     const curEffName = hasCurEffect ? effName(G.e.stack.slice(-1)[0]) : "";
     const peekChoicesDisabled = hasCurEffect && G.e.stack[0].e === "peek" ? G.e.stack[0].a.filter.e !== "choice" : true;
 

@@ -30,6 +30,11 @@ render(
                     <DenseTable />
                 </React.Suspense>
             </Route>
+            <Route exact path="/join/:matchID/:player/:credential">
+                <React.Suspense fallback={<LoadingFallback/>}>
+                    <JoinPage serverURL={`${window.location.protocol}//${window.location.host}`}/>
+                </React.Suspense>
+            </Route>
             <Route exact path="/join/:matchID/:player">
                 <React.Suspense fallback={<LoadingFallback/>}>
                     <JoinPage serverURL={`${window.location.protocol}//${window.location.host}`}/>

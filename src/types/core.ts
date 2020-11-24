@@ -8,10 +8,10 @@ export enum Region {
     NONE,
 }
 
-export enum GameMode{
-    NORMAL,
-    NEWBIE,
-    TEAM2V2,
+export enum GameMode {
+    NORMAL = "NORMAL",
+    NEWBIE = "NEWBIE",
+    TEAM2V2 = "TEAM2V2",
 }
 
 export enum CardType {
@@ -160,6 +160,7 @@ export enum VictoryType {
 }
 
 export enum MoveNames {
+    setupGameMode = "setupGameMode",
     requestEndTurn = "requestEndTurn",
     showBoardStatus = "showBoardStatus",
     chooseEffect = "chooseEffect",
@@ -2172,8 +2173,8 @@ const E14: IEventCard = eventCard({
 const EVENT_CARDS = [E01, E02, E03, E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14]
 const EVENT_ERA = [[E01, E02, E03, E04,], [E05, E06, E07, E08, E09,], [E10, E11, E12, E13, E14]]
 export let idToCard = new Map();
-EVENT_CARDS.forEach((v:IEventCard)=>{
-    idToCard.set(v.cardId,v);
+EVENT_CARDS.forEach((v: IEventCard) => {
+    idToCard.set(v.cardId, v);
 })
 export const eventCardByEra = (era: IEra): IEventCard[] => EVENT_ERA[era];
 export const eventCardById = (id: EventCardID): IEventCard[] => idToCard.get(id);

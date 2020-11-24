@@ -1,5 +1,14 @@
 import {Locale} from './en';
-import {AllClassicCards, BasicCardID, EventCardID, IBuyInfo, IEra, Region, ValidRegion} from "../../types/core";
+import {
+    AllClassicCards,
+    BasicCardID,
+    EventCardID,
+    GameMode,
+    IBuyInfo,
+    IEra,
+    Region,
+    ValidRegion
+} from "../../types/core";
 import {
     IChooseEventArg,
     IChooseHandArg,
@@ -7,7 +16,7 @@ import {
     IPayAdditionalCostArgs,
     IPeekArgs,
     IPlayCardInfo,
-    IRegionChooseArg,
+    IRegionChooseArg, ISetupGameModeArgs,
     IShowBoardStatusProps,
     IShowCompetitionResultArgs,
     ITargetChooseArgs
@@ -222,6 +231,40 @@ const getCardName = (cardId: string): string => {
     }
     return `unknown card${cardId}`
 }
+const setting = {
+    mode:"游戏模式",
+    team:"2V2组队模式",
+    normal:"普通模式",
+    newbie:"新手模式",
+    randomFirst:"首位玩家随机",
+    fixedFirst:"首位玩家固定",
+    changeSetting:"更改设置"
+};
+
+const argSetupGameMode = {
+    args:(args:ISetupGameModeArgs[]): string=>{
+        const arg = args[0]
+        let t = chose;
+        switch (arg.mode) {
+            case GameMode.NEWBIE:
+                t += setting.newbie;
+                break;
+            case GameMode.NORMAL:
+                t += setting.normal
+                break;
+            case GameMode.TEAM2V2:
+                t += setting.team;
+                break;
+        }
+        t += ", "
+        if(arg.randomOrder){
+            t += setting.randomFirst
+        }else{
+            t += setting.fixedFirst
+        }
+        return t;
+    }
+}
 
 const argConcede = {
     args: (): string => {
@@ -281,9 +324,9 @@ const argConfirmRespond = {
     args: (arg: string[]): string => {
         let a = arg[0]
         if (a === "yes") {
-            return "选择执行效果"
+            return "选择执行可选效果"
         } else {
-            return "选择不执行效果"
+            return "选择不执行可选效果"
         }
     }
 }
@@ -463,6 +506,7 @@ const rank = {
     3: "第三",
 }
 const zh_CN: Locale = {
+    setting:setting,
     drawer: {
         singlePlayer: "单人对战AI(2玩家)",
         singlePlayer3p: "单人对战AI(3玩家)",
@@ -519,7 +563,7 @@ const zh_CN: Locale = {
         winner: "胜利：",
         table: {
             board: "面板",
-            card: "卡牌",
+            card: "牌库分数",
             building: "建筑",
             iAward: "工业大奖",
             aesAward: "美学大奖",
@@ -541,6 +585,7 @@ const zh_CN: Locale = {
         },
     },
     moves: {
+        setupGameMode: ["{{args}}", argSetupGameMode],
         concede: ["{{args}}", argConcede],
         showBoardStatus: ["{{args}}", argShowBoardStatus],
         chooseEvent: ["{{args}}", argChooseEvent],
@@ -802,7 +847,7 @@ const zh_CN: Locale = {
             toggleText: "选择效果",
         },
         confirmRespond: {
-            title: "请选择是否执行效果",
+            title: "请选择是否执行可选效果",
             toggleText: "确认",
             yes: "是",
             no: "否"
