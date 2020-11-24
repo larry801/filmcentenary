@@ -10,15 +10,18 @@ import {
     chooseTarget,
     comment,
     competitionCard,
+    concedeMove,
     drawCard,
-    showBoardStatus,
-    moveBlocker, peek,
+    moveBlocker,
+    peek,
     playCard,
     requestEndTurn,
-    updateSlot, concedeMove, setupGameMode
+    setupGameMode,
+    showBoardStatus,
+    updateSlot
 } from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
-import {Region, valid_regions, VictoryType} from "./types/core";
+import {GameMode, Region, valid_regions, VictoryType} from "./types/core";
 import {getExtraScoreForFinal} from "./game/util";
 import {enumerateMoves} from "./game/ai";
 
@@ -119,6 +122,9 @@ export const FilmCentenaryGame: Game<IG> = {
 
     endIf: (G: IG, ctx: Ctx) => {
         let championRequiredForAutoWin = ctx.numPlayers > 3 ? 5 : 6;
+        if(G.mode === GameMode.TEAM2V2){
+            championRequiredForAutoWin = 6;
+        }
         G.order.forEach(p => {
                 if (G.pub[parseInt(p)].champions
                     .filter(c => c.region === Region.NA)
