@@ -2083,6 +2083,7 @@ it('Execute 40 vp award after chooseTarget',()=>{
     const p0 = Client({...spec, playerID: '0'} as any) as any;
     const p1 = Client({...spec, playerID: '1'} as any) as any;
     const p2 = Client({...spec, playerID: '2'} as any) as any;
+    const p3 = Client({...spec, playerID: '3'} as any) as any;
     p0.start()
     p1.start()
     p2.start()
@@ -3596,11 +3597,13 @@ it('Competition atk card',()=>{
         p2.moves.playCard({"card":"F2112","idx":0,"playerID":"2","res":0});
         p2.moves.confirmRespond("yes");
         p2.moves.chooseTarget({"target":"3","idx":1,"p":"2","targetName":"玩家3"});
-        p2.undo();
-        p2.undo();
-        p2.moves.confirmRespond("no");
-
-        p2.moves.playCard({"card":"B07","idx":3,"playerID":"2","res":0});
+        console.log(JSON.stringify(p2.store.getState().G.player[2].hand))
+        p2.moves.competitionCard({"idx":2,card:"F2210",p:"2",pass:false})
+        // p2.undo();
+        // p2.undo();
+        // p2.moves.confirmRespond("no");
+        //
+        // p2.moves.playCard({"card":"B07","idx":3,"playerID":"2","res":0});
     }
     p0.stop()
     p1.stop()

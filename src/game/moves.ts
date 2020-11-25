@@ -1070,6 +1070,7 @@ export const competitionCard: LongFormMove = {
         let i = G.competitionInfo;
         if (p === i.atk) {
             i.atkPlayedCard = true;
+            console.log(1);
             checkCompetitionDefender(G, ctx);
             return;
         } else {

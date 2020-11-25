@@ -54,7 +54,8 @@ const normalRunLogger = {
     debug: (log: string) => console.log(`debug|${log}`),
     error: (log: string) => console.log(`error|${log}`),
 }
-export const logger = normalRunLogger;
+export const logger = fastLoggerForDebug;
+// export const logger = normalRunLogger;
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -1099,15 +1100,19 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 pub.resource--;
             }
             if (ctx.numPlayers > SimpleRuleNumPlayers) {
-                if(G.mode === GameMode.TEAM2V2) {
+                if(G.mode !== GameMode.TEAM2V2) {
+                    log += `|normal`
                     players = seqFromCurrentPlayer(G, ctx);
                 }else {
+                    log += `|2v2`
                     players = opponentTeamPlayers(p);
                 }
                 const ownIndex = players.indexOf(p)
                 if (ownIndex !== -1) {
                     players.splice(ownIndex, 1)
                 }
+                log += `|competitionPlayers:|${JSON.stringify(players)}`
+                console.log(players);
                 G.c.players = players;
                 G.e.stack.push(eff)
                 log += `|chooseTarget`
@@ -3067,6 +3072,7 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
 
 export const checkCompetitionDefender = (G: IG, ctx: Ctx) => {
     let i = G.competitionInfo;
+    logger.debug(JSON.stringify(i));
     if (G.player[parseInt(i.def)].hand.length > 0) {
         logger.debug(`checkCompetitionDefender|p${i.def}|competitionCard`);
         changePlayerStage(G, ctx, "competitionCard", i.def);
