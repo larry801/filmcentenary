@@ -1752,7 +1752,7 @@ const NoneBasicCards = {
         name: "Eight and a Half",
         cardId: FilmCardID.F3208,
         cost: cost(8, 0, 12),
-        vp: 13,
+        vp: 15,
         category: CardCategory.NORMAL,
         industry: 0,
         aesthetics: 3,

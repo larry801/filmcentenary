@@ -1475,7 +1475,7 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "deposit", a: 1},
-                {e: "noStudio", a: {e: "loseDeposit", a: 1}},
+                {e: "noStudio", a: {e: "loseDeposit", a: 2}},
                 {
                     e: "studio", a: {
                         e: "peek", a: {
@@ -1963,9 +1963,14 @@ export const effects = {
     "3116": {
         canBuy: (G: IG, ctx: Ctx) => true,
         play: {
-            e: "choice", a: [
-                {e: "step", a: [{e: "draw", a: 4}, {e: "discard", a: 3}]},
-                {e: "step", a: [{e: "draw", a: 1}, {e: "update", a: 1}]}
+            e: "step", a: [
+                {e: "aesAward", a: 1},
+                {
+                    e: "choice", a: [
+                        {e: "step", a: [{e: "draw", a: 4}, {e: "discard", a: 3}]},
+                        {e: "step", a: [{e: "draw", a: 1}, {e: "update", a: 1}]}
+                    ]
+                }
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -2009,7 +2014,8 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "draw", a: 2},
-                {e: "noStudio", a: {e: "loseDeposit", a: 4}},
+                {e: "update", a: 1},
+                {e: "noStudio", a: {e: "loseDeposit", a: 3}},
                 {e: "studio", a: {e: "aesAward", a: 2}}
             ]
         },
@@ -2018,7 +2024,6 @@ export const effects = {
         response: noResponse,
         scoring: {e: ScoringEffectNames.westEuropeCard, a: 2}
     },
-
     "3203": {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: {
@@ -2032,7 +2037,8 @@ export const effects = {
             e: "step", a: [
                 {e: "vp", a: 3},
                 {e: "noStudio", a: {e: "loseVpForEachHand", a: 1}},
-                {e: "buy", a: "B05"}
+                {e: "buy", a: "B05"},
+                {e: "buy", a: "B05"},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2069,12 +2075,8 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "vp", a: 3},
-                {
-                    e: "choice", a: [
-                        {e: "deposit", a: 2},
-                        {e: "anyRegionShare", a: 1}
-                    ]
-                }
+                {e: "deposit", a: 2},
+                {e: "anyRegionShare", a: 1},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2118,11 +2120,11 @@ export const effects = {
     },
     "3208": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: noEff,
+        buy: {e: "shareWE", a: 1},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "draw", a: 1}, {e: "aesAward", a: 2}, {e: "everyOtherCompany", a: {e: "buy", a: "B04"}}
+                {e: "draw", a: 2}, {e: "aesAward", a: 2},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2455,10 +2457,11 @@ export const effects = {
     },
     "3404": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: noEff,
+        buy: {e: "shareASIA", a: 1},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "step", a: [{e: "shareToVp", a: Region.ASIA}, {
+            e: "step", a: [
+                {e: "shareToVp", a: Region.ASIA}, {
                 e: "peek", a: {
                     count: 4, target: "hand", filter: {e: "choice", a: 2}
                 }
@@ -2509,11 +2512,9 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "step", a: [{e: "draw", a: 2}, {
-                e: "choice", a: [
-                    {e: "deposit", a: 2}, {e: "shareASIA", a: 1}
-                ]
-            }]
+            e: "step", a: [
+                {e: "deposit", a: 2}, {e: "shareASIA", a: 1}
+            ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
@@ -2532,7 +2533,13 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
-        play: {e: "step", a: [{e: "vp", a: 2}, {e: "draw", a: 3}, {e: "discard", a: 1}]},
+        play: {
+            e: "step", a: [
+                {e: "update", a: 1},
+                {e: "vp", a: 2},
+                {e: "draw", a: 3}, {e: "discard", a: 1}
+            ]
+        },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
@@ -2541,7 +2548,11 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
-        play: {e: "step", a: [{e: "industryAward", a: 1}, {e: "aesAward", a: 1}]},
+        play: {
+            e: "step", a: [
+                {e: "industryAward", a: 1}, {e: "aesAward", a: 1}
+            ]
+        },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
