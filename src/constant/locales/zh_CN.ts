@@ -643,7 +643,7 @@ const zh_CN: Locale = {
         onAnyOneComment: "每当发生评论后，",
         industryToVp: "按照你的工业等级获得声望",
         aestheticsToVp: "按照你的美学等级获得声望",
-        threeCards: "你的每3张牌额外获得1声望",
+        threeCards: "你的每张基础额外获得1声望",
         northAmericaFilm: "你的每张北美卡牌额外获得2声望",
         asiaFilm: "你的每张亚洲卡牌额外获得2声望",
         industryNormalOrLegend: "每张有工业标志的普通牌和传奇牌额外获得2声望",

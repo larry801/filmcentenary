@@ -10,7 +10,8 @@ import {
     eventCardByEra,
     EventCardID,
     FilmCardID,
-    filmCardsByEra, GameMode,
+    filmCardsByEra,
+    GameMode,
     getCardById,
     getScoreCard,
     IBasicCard,
@@ -3148,7 +3149,9 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
             .length * 2
     }
     if (validID.includes(PersonCardID.P3107)) {
-        f.events += Math.round(validCards.length / 3)
+        f.events += validCards
+            .filter(c => c.category === CardCategory.BASIC)
+            .length
     }
     if (validID.includes(PersonCardID.P3202)) {
         f.events += validCards.filter(c => c.region === Region.WE)

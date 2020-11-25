@@ -647,7 +647,7 @@ const en = {
         onAnyOneComment: "After any one perform a comment,",
         doNotLoseVpAfterCompetition: "Do not lose vp after competition",
         discardInSettle: "When you comment or update,",
-        threeCards: "Gain 1 extra prestige for every three card ",
+        threeCards: "Gain 1 extra prestige for every basic card ",
         northAmericaFilm: "Gain 2 extra prestige for each of your north america card.",
         asiaFilm: "Gain 2 extra prestige for each of your asia card.",
         industryNormalOrLegend: "Gain 2 extra prestige for each of your normal or legend card with industry marker.",
