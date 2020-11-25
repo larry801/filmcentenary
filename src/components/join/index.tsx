@@ -17,48 +17,46 @@ interface JoinPageProps {
 interface Params {
     matchID: string;
     player: Player;
+    credential?: string;
 }
 
 const JoinPage = ({serverURL}: JoinPageProps) => {
     useI18n(i18n);
     const history = useHistory();
-    const {matchID, player}: Params = useParams();
+    const {matchID, player, credential}: Params = useParams();
     const [credentials, setCredentials] = React.useState("generateCredentials");
     const [error, setError] = React.useState("");
     const [numPlayers, setNumPlayers] = React.useState(0);
     React.useEffect(() => {
-        const loadedCredential = loadCredentials(matchID, player);
-        if (loadedCredential) {
-            setCredentials(loadedCredential);
-        } else {
-            if (player !== Player.spectate) {
-                joinMatch(serverURL, matchID, player)
-                    .then((loadedCredential) => {
-                        saveCredentials(matchID, player, loadedCredential);
-                        setCredentials(loadedCredential);
-                    })
-                    .catch((err) => {
-                        console.log(JSON.stringify(err));
-                        getMatch(serverURL, matchID)
-                            .then((data) => {
-                                setNumPlayers(data.players.size)
-                            })
-                            .catch((err) => {
-                                console.log(JSON.stringify(err));
-                            })
-                        // setError(err.toString());
-                    });
+        if(credential !== undefined){
+            setCredentials(credential);
+        }else {
+            const loadedCredential = loadCredentials(matchID, player);
+            if (loadedCredential) {
+                setCredentials(loadedCredential);
+                history.push(`/join/${matchID}/${player}/${loadedCredential}`)
+            } else {
+                if (player !== Player.spectate) {
+                    joinMatch(serverURL, matchID, player)
+                        .then((responseCredential) => {
+                            saveCredentials(matchID, player, responseCredential);
+                            setCredentials(responseCredential);
+                            history.push(`/join/${matchID}/${player}/${responseCredential}`)
+                        })
+                        .catch((err) => {
+                            setError(JSON.stringify(err));
+                        });
+                }
             }
         }
-
         if (player !== Player.spectate) {
             getMatch(serverURL, matchID)
                 .then((data) => {
                     setNumPlayers(data.players.size)
                 })
                 .catch((err) => {
-                    console.log(JSON.stringify(err));
-                    // setError(JSON.stringify(err));
+                    // console.log(JSON.stringify(err));
+                    setError(JSON.stringify(err));
                 })
         }
     }, [serverURL, matchID, player]);

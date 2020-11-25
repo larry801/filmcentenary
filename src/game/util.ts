@@ -54,7 +54,7 @@ const normalRunLogger = {
     debug: (log: string) => console.log(`debug|${log}`),
     error: (log: string) => console.log(`error|${log}`),
 }
-export const logger = normalRunLogger;
+export const logger = fastLoggerForDebug;
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -2506,12 +2506,6 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
     }
     G.currentScoreRegion = Region.NONE;
     log += `|nextEraRegions|${JSON.stringify(G.pending.nextEraRegions)}`
-    if (valid_regions
-        .filter(r => G.regions[r].completedModernScoring)
-        .length >= 3) {
-        log += "|lastRound"
-        G.pending.lastRoundOfGame = true;
-    }
     log += "|tryScoring"
     logger.debug(`${G.matchID}|${log}`);
     tryScoring(G, ctx);
@@ -3029,6 +3023,12 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
         log += `|eraThree`
         log += `|completedModernScoring`
         region.completedModernScoring = true;
+    }
+    if (valid_regions
+        .filter(r => G.regions[r].completedModernScoring)
+        .length >= 3) {
+        log += "3orMoreRegion|completedModernScoring|lastRound"
+        G.pending.lastRoundOfGame = true;
     }
     logger.debug(`${G.matchID}|${log}`);
 }
