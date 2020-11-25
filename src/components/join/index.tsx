@@ -23,7 +23,7 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
     useI18n(i18n);
     const history = useHistory();
     const {matchID, player}: Params = useParams();
-    const [credentials, setCredentials] = React.useState("");
+    const [credentials, setCredentials] = React.useState("generateCredentials");
     const [error, setError] = React.useState("");
     const [numPlayers, setNumPlayers] = React.useState(0);
     React.useEffect(() => {
@@ -38,7 +38,15 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
                         setCredentials(loadedCredential);
                     })
                     .catch((err) => {
-                        setError(err.toString());
+                        console.log(JSON.stringify(err));
+                        getMatch(serverURL, matchID)
+                            .then((data) => {
+                                setNumPlayers(data.players.size)
+                            })
+                            .catch((err) => {
+                                console.log(JSON.stringify(err));
+                            })
+                        // setError(err.toString());
                     });
             }
         }
@@ -49,7 +57,8 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
                     setNumPlayers(data.players.size)
                 })
                 .catch((err) => {
-                    setError(JSON.stringify(err))
+                    console.log(JSON.stringify(err));
+                    // setError(JSON.stringify(err));
                 })
         }
     }, [serverURL, matchID, player]);

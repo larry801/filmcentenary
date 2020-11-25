@@ -15,7 +15,8 @@ const db = new PostgresStore(
 
 const server = Server({
     games: [FilmCentenaryGame],
-    db
+    db,
+    generateCredentials:()=>"generateCredentials",
 });
 
 const PORT = process.env.PORT || "3000";
