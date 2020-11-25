@@ -958,8 +958,9 @@ export const curCard = (G: IG) => {
 
 export const pushPlayersEffects = (G: IG, players: PlayerID[], eff: any) => {
     let log = `pushPlayersEffects|players|${JSON.stringify(players)}`
-    for (let p of players) {
-        const targetEff = {...eff, target: p};
+    const pos = players.length;
+    for (let i = pos - 1; i >= 0; i--) {
+        const targetEff = {...eff, target: players[i]};
         G.e.stack.push(targetEff);
     }
     log += `|${JSON.stringify(G.e.stack)}`
@@ -1293,7 +1294,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "everyPlayer":
             const pos = posOfPlayer(G, ctx, G.pending.firstPlayer);
+            log += `|pos${pos}`
             players = seqFromPos(G, ctx, pos);
+            log += `|players${players}`
             pushPlayersEffects(G, players, eff.a);
             break;
         case "noStudio":
@@ -2338,6 +2341,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     log += `|rankResult|${rankResult}`;
     const firstPlayer: PlayerID = rankResult[0];
     G.pending.firstPlayer = firstPlayer;
+    log += `|G.pending.firstPlayer|${G.pending.firstPlayer}`
     log += `|firstPlayer:${firstPlayer}`
     logger.debug(`${G.matchID}|${log}`);
     G.pub[parseInt(firstPlayer)].champions.push({

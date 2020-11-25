@@ -59,7 +59,7 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
                     setError(JSON.stringify(err));
                 })
         }
-    }, [serverURL, matchID, player]);
+    }, [serverURL, matchID, player, credential, history]);
 
     const handleLeave = (choice: string) => {
         if (choice === "yes") {

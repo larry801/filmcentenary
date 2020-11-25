@@ -2,7 +2,8 @@ import {
     BasicCardID,
     CardID,
     ClassicCardID,
-    EventCardID, GameMode,
+    EventCardID,
+    GameMode,
     IBuildingSlot,
     ICardSlot,
     IEra,
@@ -219,6 +220,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         decks.push(shuffle(ctx, initialDeck));
     }
     const firstMovePlayer = die(ctx, ctx.numPlayers) - 1;
+    // const firstMovePlayer = 0;
     logger.debug(`firstPlayer${firstMovePlayer}`)
     const order: PlayerID[] = [];
     const remainPlayers = ctx.numPlayers
@@ -428,10 +430,13 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     G.order.forEach(p => fillPlayerHand(G, ctx, p))
     G.regionScoreCompensateMarker = G.order[G.order.length - 1];
 
+
+    // G.events[0] = EventCardID.E01;
     // G.pub[0].resource = 20;
     // // @ts-ignore
     // G.regions[Region.NA].legend.card = "P1101"
     // G.regions[Region.WE].share = 1
+    // G.pub[2].shares["1"] = 3
     // G.regions[Region.WE].era = IEra.TWO
     // G.regions[Region.ASIA].era = IEra.THREE
     // G.regions[Region.WE].share = 1
