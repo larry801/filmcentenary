@@ -54,7 +54,7 @@ const normalRunLogger = {
     debug: (log: string) => console.log(`debug|${log}`),
     error: (log: string) => console.log(`error|${log}`),
 }
-export const logger = fastLoggerForDebug;
+export const logger = normalRunLogger;
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);

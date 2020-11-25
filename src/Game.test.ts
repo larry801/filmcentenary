@@ -2905,11 +2905,9 @@ it('Competition atk card',()=>{
     const p0 = Client({...spec, playerID: '0'} as any) as any;
     const p1 = Client({...spec, playerID: '1'} as any) as any;
     const p2 = Client({...spec, playerID: '2'} as any) as any;
-    const p3 = Client({...spec, playerID: '3'} as any) as any;
     p0.start()
     p1.start()
     p2.start()
-    p3.start()
 
     {
         p2.moves.showBoardStatus({"regions":[{"normalDeckLength":2,"legendDeckLength":0,"completedModernScoring":false,"era":0,"buildings":[{"building":null,"region":0,"activated":true,"owner":""},{"building":null,"region":0,"activated":true,"owner":""},{"building":null,"region":0,"activated":false,"owner":""}],"legend":{"comment":null,"region":0,"isLegend":true,"card":"P1101"},"normal":[{"comment":null,"region":0,"isLegend":false,"card":"F1108"},{"comment":null,"region":0,"isLegend":false,"card":"F1104"},{"comment":null,"region":0,"isLegend":false,"card":"F1110"}],"share":5},{"normalDeckLength":2,"legendDeckLength":0,"completedModernScoring":false,"era":0,"buildings":[{"building":null,"region":1,"activated":true,"owner":""},{"building":null,"region":1,"activated":true,"owner":""}],"legend":{"comment":null,"region":1,"isLegend":true,"card":"P1201"},"normal":[{"comment":null,"region":1,"isLegend":false,"card":"F1206"},{"comment":null,"region":1,"isLegend":false,"card":"F1209"},{"comment":null,"region":1,"isLegend":false,"card":"F1211"}],"share":5},{"normalDeckLength":1,"legendDeckLength":0,"completedModernScoring":false,"era":0,"buildings":[{"building":null,"region":2,"activated":true,"owner":""},{"building":null,"region":2,"activated":false,"owner":""}],"legend":{"comment":null,"region":2,"isLegend":true,"card":"S1301"},"normal":[{"comment":null,"region":2,"isLegend":false,"card":"S1303"},{"comment":null,"region":2,"isLegend":false,"card":"F1305"}],"share":3},{"normalDeckLength":0,"legendDeckLength":0,"completedModernScoring":false,"era":0,"buildings":[{"building":null,"region":3,"activated":true,"owner":""},{"building":null,"region":3,"activated":false,"owner":""}],"legend":{"comment":null,"region":3,"isLegend":true,"card":null},"normal":[{"comment":null,"region":3,"isLegend":false,"card":null},{"comment":null,"region":3,"isLegend":false,"card":null}],"share":0}],"school":[],"film":[],"matchID":"lXhEOSLEP","seed":"khwqfebw"});
@@ -3607,5 +3605,4 @@ it('Competition atk card',()=>{
     p0.stop()
     p1.stop()
     p2.stop()
-    p3.stop()
 })
