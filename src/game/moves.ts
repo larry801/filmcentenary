@@ -40,7 +40,7 @@ import {
     cinemaSlotsAvailable,
     competitionCleanUp,
     competitionResultSettle,
-    curPub,
+    curPub, die,
     doAestheticsBreakthrough,
     doBuy,
     doIndustryBreakthrough,
@@ -74,6 +74,25 @@ export const setupGameMode: LongFormMove = {
         G.mode = args.mode;
         G.randomOrder = args.randomOrder;
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.setupGameMode(${JSON.stringify(args)})`)
+        let firstMovePlayer;
+        if(args.randomOrder){
+            firstMovePlayer = die(ctx, ctx.numPlayers) - 1;
+        }else{
+            firstMovePlayer = 0;
+        }
+        let log = (`firstPlayer${firstMovePlayer}`)
+        const order: PlayerID[] = [];
+        const remainPlayers = ctx.numPlayers
+        for (let i = firstMovePlayer; i < remainPlayers; i++) {
+            order.push(i.toString())
+        }
+        for (let i = 0; i < firstMovePlayer; i++) {
+            order.push(i.toString())
+        }
+        G.order = order;
+        G.initialOrder = order;
+        log += `|order${JSON.stringify(order)}`;
+        logger.debug(`${G.matchID}|${log}`);
     }
 }
 
