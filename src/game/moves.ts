@@ -56,7 +56,7 @@ import {
     playerEffExec,
     regionScoringCheck,
     schoolPlayer,
-    seqFromPos,
+    seqFromPos, shuffle,
     startBreakThrough,
     startCompetition,
     studioSlotsAvailable,
@@ -89,8 +89,10 @@ export const setupGameMode: LongFormMove = {
         for (let i = 0; i < firstMovePlayer; i++) {
             order.push(i.toString())
         }
-        G.order = order;
-        G.initialOrder = order;
+        const shuffledOrder = shuffle(ctx, order)
+        log += `|shuffledOrder|${JSON.stringify(shuffledOrder)}`;
+        G.order = shuffledOrder;
+        G.initialOrder = shuffledOrder;
         log += `|order${JSON.stringify(order)}`;
         logger.debug(`${G.matchID}|${log}`);
     }
