@@ -18,7 +18,6 @@ import {
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {
-    die,
     doFillNewEraEventDeck,
     drawForRegion,
     drawForTwoPlayerEra,
@@ -41,8 +40,8 @@ export interface CompetitionInfo {
 }
 
 export interface IG {
-    mode:GameMode,
-    randomOrder:boolean,
+    mode: GameMode,
+    randomOrder: boolean,
     regionScoreCompensateMarker: PlayerID,
     eventDeckLength: number,
     matchID: string,
@@ -219,21 +218,17 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         players.push(privatePlayer());
         decks.push(shuffle(ctx, initialDeck));
     }
-    const firstMovePlayer = die(ctx, ctx.numPlayers) - 1;
-    // const firstMovePlayer = 0;
-    logger.debug(`firstPlayer${firstMovePlayer}`)
     const order: PlayerID[] = [];
-    const remainPlayers = ctx.numPlayers
-    for (let i = firstMovePlayer; i < remainPlayers; i++) {
+    for (let i = 0; i < ctx.numPlayers; i++) {
         order.push(i.toString())
     }
-    for (let i = 0; i < firstMovePlayer; i++) {
-        order.push(i.toString())
-    }
-    logger.debug(`order${JSON.stringify(order)}`)
+    const randomOrder = shuffle(ctx, order);
+    const firstMovePlayer = parseInt(randomOrder[0]);
+    logger.debug(`firstPlayer${firstMovePlayer}`)
+    logger.debug(`order${JSON.stringify(randomOrder)}`)
     let G: IG = {
-        mode:GameMode.NORMAL,
-        randomOrder:false,
+        mode: GameMode.NORMAL,
+        randomOrder: false,
         regionScoreCompensateMarker: "0",
         eventDeckLength: 0,
         matchID: "",
@@ -252,8 +247,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 emptyNormalCardSlot(Region.NONE),
             ],
         },
-        order: order,
-        initialOrder: order,
+        order: randomOrder,
+        initialOrder: randomOrder,
         logDiscrepancyWorkaround: false,
         pending: {
             nextEraRegions: [],
@@ -451,7 +446,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // @ts-ignore
     // G.secretInfo.playerDecks[0] = ["B01","F2403","B07","P2401"]
     // @ts-ignore
-    // G.player[0].hand = ["F1304", "F1211", "F3413", "V111",]
+    // G.player[firstMovePlayer].hand = ["F3108", "F1211", "F3413", "V111",]
     // @ts-ignore
     //G.pub[0].allCards = ["F1304", "F1211", "F3413", "V111",]
     // G.pub[0].deposit = 40;

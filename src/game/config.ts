@@ -168,7 +168,6 @@ export const NormalPhase: PhaseConfig = {
 export const InitPhase: PhaseConfig = {
     start: true,
     turn: {
-        order: TurnOrder.CUSTOM_FROM("order"),
         stages: {
             setupStage: setupStage
         },

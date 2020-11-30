@@ -1094,40 +1094,58 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 break;
             }
         case "competition":
-            if (pub.resource < 1) {
-                log += `|noResourceForCompetition`
-                break;
-            } else {
-                pub.resource--;
-            }
-            if (ctx.numPlayers > SimpleRuleNumPlayers) {
-                if(G.mode !== GameMode.TEAM2V2) {
-                    log += `|normal`
-                    players = seqFromCurrentPlayer(G, ctx);
-                }else {
-                    log += `|2v2`
-                    players = opponentTeamPlayers(p);
-                }
-                const ownIndex = players.indexOf(p)
-                if (ownIndex !== -1) {
-                    players.splice(ownIndex, 1)
-                }
-                log += `|competitionPlayers:|${JSON.stringify(players)}`
-                console.log(players);
-                G.c.players = players;
-                G.e.stack.push(eff)
-                log += `|chooseTarget`
+            if(totalRes > 1){
+                log += `|canChoose|payAdditionalCost`
+                G.e.extraCostToPay = 1;
                 logger.debug(`${G.matchID}|${log}`);
-                changePlayerStage(G, ctx, "chooseTarget", p);
+                G.e.stack.push(eff);
+                changePlayerStage(G, ctx, "payAdditionalCost", p);
                 return;
-            } else {
-                G.competitionInfo.progress = eff.a.bonus;
-                G.competitionInfo.onWin = eff.a.onWin;
-                log += `|startCompetition`
-                logger.debug(`${G.matchID}|${log}`);
-                const opponent2p = p === '0' ? '1' : '0';
-                startCompetition(G, ctx, p, opponent2p);
-                return;
+            }else{
+                if(totalRes === 0){
+                    log += `|noResOrDeposit|pass`
+                    break;
+                }else{
+                    log += `|payDirectly`
+                    if(pub.resource > 0){
+                        log += `prevRes:|${pub.resource}`
+                        pub.resource --;
+                        log += `afterRes|${pub.resource}`
+                    }else{
+                        log += `prevDeposit:|${pub.deposit}`
+                        pub.deposit --;
+                        log += `afterDeposit|${pub.deposit}`
+                    }
+                    if (ctx.numPlayers > SimpleRuleNumPlayers) {
+                        if(G.mode !== GameMode.TEAM2V2) {
+                            log += `|normal`
+                            players = seqFromCurrentPlayer(G, ctx);
+                        }else {
+                            log += `|2v2`
+                            players = opponentTeamPlayers(p);
+                        }
+                        const ownIndex = players.indexOf(p)
+                        if (ownIndex !== -1) {
+                            players.splice(ownIndex, 1)
+                        }
+                        log += `|competitionPlayers:|${JSON.stringify(players)}`
+                        log += `|players:|${JSON.stringify(players)}`;
+                        G.c.players = players;
+                        G.e.stack.push(eff)
+                        log += `|chooseTarget`
+                        logger.debug(`${G.matchID}|${log}`);
+                        changePlayerStage(G, ctx, "chooseTarget", p);
+                        return;
+                    } else {
+                        G.competitionInfo.progress = eff.a.bonus;
+                        G.competitionInfo.onWin = eff.a.onWin;
+                        log += `|startCompetition`
+                        logger.debug(`${G.matchID}|${log}`);
+                        const opponent2p = p === '0' ? '1' : '0';
+                        startCompetition(G, ctx, p, opponent2p);
+                        return;
+                    }
+                }
             }
         case "loseAnyRegionShare":
             G.e.regions = valid_regions.filter(r => pub.shares[r] > 0)

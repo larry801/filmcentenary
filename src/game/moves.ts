@@ -51,11 +51,11 @@ import {
     fillEventCard,
     fillTwoPlayerBoard,
     logger,
-    loseVp,
+    loseVp, opponentTeamPlayers,
     payCost,
     playerEffExec,
     regionScoringCheck,
-    schoolPlayer,
+    schoolPlayer, seqFromCurrentPlayer,
     seqFromPos, shuffle,
     startBreakThrough,
     startCompetition,
@@ -158,6 +158,38 @@ export const payAdditionalCost: LongFormMove = {
                     log += `|cannotUpgrade`
                 }
                 break;
+            case "competition":
+                let players =[];
+                const p = ctx.playerID;
+                if (ctx.numPlayers > SimpleRuleNumPlayers) {
+                    if(G.mode !== GameMode.TEAM2V2) {
+                        log += `|normal`
+                        players = seqFromCurrentPlayer(G, ctx);
+                    }else {
+                        log += `|2v2`
+                        players = opponentTeamPlayers(p);
+                    }
+                    const ownIndex = players.indexOf(p)
+                    if (ownIndex !== -1) {
+                        players.splice(ownIndex, 1)
+                    }
+                    log += `|competitionPlayers:|${JSON.stringify(players)}`
+                    log += `|players:|${JSON.stringify(players)}`;
+                    G.c.players = players;
+                    G.e.stack.push(eff)
+                    log += `|chooseTarget`
+                    logger.debug(`${G.matchID}|${log}`);
+                    changePlayerStage(G, ctx, "chooseTarget", p);
+                    return;
+                } else {
+                    G.competitionInfo.progress = eff.a.bonus;
+                    G.competitionInfo.onWin = eff.a.onWin;
+                    log += `|startCompetition`
+                    logger.debug(`${G.matchID}|${log}`);
+                    const opponent2p = p === '0' ? '1' : '0';
+                    startCompetition(G, ctx, p, opponent2p);
+                    return;
+                }
             default:
                 throw Error(`Invalid effect ${JSON.stringify(eff)}`)
         }
