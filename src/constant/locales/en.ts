@@ -14,7 +14,7 @@ import {
     IPeekArgs,
     IPlayCardInfo,
     IRegionChooseArg, ISetupGameModeArgs,
-    IShowBoardStatusProps, IShowCompetitionResultArgs, ITargetChooseArgs
+    IShowBoardStatusProps, IShowCompetitionResultArgs, ITargetChooseArgs, IUpdateSlotProps
 } from "../../game/moves";
 
 const chose = " chose "
@@ -468,11 +468,8 @@ const argCompetitionCard = {
     }
 }
 const argUpdateSlot = {
-    args: (arg: string[]): string => {
-        let a = arg[0]
-        let t = " updated "
-        t += bracketCardName(a)
-        return t
+    args: (arg: IUpdateSlotProps[]): string => {
+        return ` updated ${bracketCardName(arg[0].cardId)} to`
     }
 }
 const argComment = {

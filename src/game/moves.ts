@@ -75,9 +75,9 @@ export const setupGameMode: LongFormMove = {
         G.randomOrder = args.randomOrder;
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.setupGameMode(${JSON.stringify(args)})`)
         let firstMovePlayer;
-        if(args.randomOrder){
+        if (args.randomOrder) {
             firstMovePlayer = die(ctx, ctx.numPlayers) - 1;
-        }else{
+        } else {
             firstMovePlayer = 0;
         }
         let log = (`firstPlayer${firstMovePlayer}`)
@@ -159,13 +159,13 @@ export const payAdditionalCost: LongFormMove = {
                 }
                 break;
             case "competition":
-                let players =[];
+                let players = [];
                 const p = ctx.playerID;
                 if (ctx.numPlayers > SimpleRuleNumPlayers) {
-                    if(G.mode !== GameMode.TEAM2V2) {
+                    if (G.mode !== GameMode.TEAM2V2) {
                         log += `|normal`
                         players = seqFromCurrentPlayer(G, ctx);
-                    }else {
+                    } else {
                         log += `|2v2`
                         players = opponentTeamPlayers(p);
                     }
@@ -529,11 +529,19 @@ export const chooseEffect: LongFormMove = {
     }
 }
 
+export interface IUpdateSlotProps {
+    p: PlayerID,
+    slot: ICardSlot,
+    cardId: CardID,
+    updateHistoryIndex: number,
+}
+
 export const updateSlot: LongFormMove = {
     client: false,
-    move: (G: IG, ctx: Ctx, cardId: string) => {
+    move: (G: IG, ctx: Ctx, arg: IUpdateSlotProps) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        logger.info(`${G.matchID}|p${ctx.playerID}.moves.updateSlot(${cardId})`);
+        logger.info(`${G.matchID}|p${ctx.playerID}.moves.updateSlot(${JSON.stringify(arg)})`);
+        const cardId = arg.cardId;
         const slot = ctx.numPlayers > SimpleRuleNumPlayers ? cardSlotOnBoard(G, ctx, getCardById(cardId)) : cardSlotOnBoard2p(G, ctx, getCardById(cardId));
         if (slot === null) {
             return INVALID_MOVE;
@@ -548,6 +556,11 @@ export const updateSlot: LongFormMove = {
             fillEmptySlots(G);
         } else {
             fillTwoPlayerBoard(G);
+        }
+        if (slot.card !== null) {
+            G.updateCardHistory.push(slot.card);
+        }else{
+            return INVALID_MOVE
         }
         checkNextEffect(G, ctx);
     }

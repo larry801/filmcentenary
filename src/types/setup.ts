@@ -40,6 +40,7 @@ export interface CompetitionInfo {
 }
 
 export interface IG {
+    updateCardHistory: CardID[],
     mode: GameMode,
     randomOrder: boolean,
     regionScoreCompensateMarker: PlayerID,
@@ -223,10 +224,17 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         order.push(i.toString())
     }
     const randomOrder = shuffle(ctx, order);
+
+    randomOrder.splice(0,ctx.numPlayers);
+    for (let i = 0; i < ctx.numPlayers; i++) {
+        randomOrder.push(i.toString())
+    }
+
     const firstMovePlayer = parseInt(randomOrder[0]);
     logger.debug(`firstPlayer${firstMovePlayer}`)
     logger.debug(`order${JSON.stringify(randomOrder)}`)
     let G: IG = {
+        updateCardHistory: [],
         mode: GameMode.NORMAL,
         randomOrder: false,
         regionScoreCompensateMarker: "0",
@@ -448,7 +456,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // @ts-ignore
     // G.player[firstMovePlayer].hand = ["F3108", "F1211", "F3413", "V111",]
     // @ts-ignore
-    //G.pub[0].allCards = ["F1304", "F1211", "F3413", "V111",]
+    // G.pub[0].allCards = ["F1304", "F1211", "F3413", "V111",]
     // G.pub[0].deposit = 40;
     // G.pub[0].action = 20;
     // G.pub[0].discard = [];
@@ -458,10 +466,10 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[firstMovePlayer].resource = 30;
     // G.pub[1].resource = 30;
     // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["F2212", "P3102", "B07", "B07",]
+    // G.player[firstMovePlayer].hand = ["P1101", "F2212", "P3102", "B07", "B07",]
     // @ts-ignore
     // G.player[1].hand = ["F2307", "P3102", "B07", "B07",]
     // G.secretInfo.playerDecks[0] = [];
-    // G.pub[0].action = 10;
+    // G.pub[0].action = 10;<
     return G;
 };

@@ -298,7 +298,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             </Grid>
             {
                 log === undefined ? <></> :
-                    <LogView log={log} getPlayerName={getName}/>
+                    <LogView log={log} getPlayerName={getName} G={G}/>
             }
             {G.order.map((i:PlayerID) =>
                 <Grid item sm={6} lg={3} key={`grid-pub-panel-${i}-${playerID}`}>

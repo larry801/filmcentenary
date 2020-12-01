@@ -50,7 +50,12 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
     const variant = !slot.isLegend ? "elevation" : "outlined"
 
     const updateSlot = () => {
-        moves.updateSlot(slot.card);
+        moves.updateSlot({
+            slot:slot,
+            p:playerID,
+            cardId:slot.card,
+            updateHistoryIndex:G.updateCardHistory.length,
+        });
     }
 
     const cardObj = slot.card === null ? {} as INormalOrLegendCard : getCardById(slot.card);

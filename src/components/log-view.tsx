@@ -9,13 +9,15 @@ import ContentCopyIcon from '@material-ui/icons/FileCopy';
 import IconButton from '@material-ui/core/IconButton';
 import {getLogText, getMoveText} from "./boards/list-card";
 import TextField from '@material-ui/core/TextField';
+import {IG} from "../types/setup";
 
 export interface ILogViewProps {
     log: LogEntry[],
     getPlayerName: (pid?: string) => string,
+    G: IG,
 }
 
-export const LogView = ({log, getPlayerName}: ILogViewProps) => {
+export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
 
     useI18n(i18n);
 
@@ -30,7 +32,7 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
             message: i18n.lobby.copyPrompt,
         })
     }
-    const logText = log.map((l: LogEntry) => getLogText(l ,getPlayerName)).join("\r\n");
+    const logText = log.map((l: LogEntry) => getLogText(l ,getPlayerName, G)).join("\r\n");
     const onCopyLog = () => {
         copy(logText, {
             message: i18n.lobby.copyPrompt,
@@ -38,7 +40,7 @@ export const LogView = ({log, getPlayerName}: ILogViewProps) => {
     }
     const cloneLog = [...log]
     const reverseLog = cloneLog.filter(l => l.action.payload.type !== "endStage").reverse().slice(0,40);
-    const totalLogText = reverseLog.map(l => getLogText(l, getPlayerName)).join('\n');
+    const totalLogText = reverseLog.map(l => getLogText(l, getPlayerName, G)).join('\n');
 
     return <Grid item container xs={12}>
         <Grid item xs={12}>

@@ -19,7 +19,7 @@ import {
     IRegionChooseArg, ISetupGameModeArgs,
     IShowBoardStatusProps,
     IShowCompetitionResultArgs,
-    ITargetChooseArgs
+    ITargetChooseArgs, IUpdateSlotProps
 } from "../../game/moves";
 
 const era = {
@@ -476,11 +476,8 @@ const argCompetitionCard = {
     }
 }
 const argUpdateSlot = {
-    args: (arg: string[]): string => {
-        let a = arg[0]
-        let t = "更新了"
-        t += bracketCardName(a)
-        return t
+    args: (arg: IUpdateSlotProps[]): string => {
+        return `更新了：${bracketCardName(arg[0].cardId)} 翻出：`
     }
 }
 const argComment = {

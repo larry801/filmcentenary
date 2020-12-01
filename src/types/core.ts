@@ -167,7 +167,8 @@ export enum MoveNames {
     chooseEvent = "chooseEvent",
     chooseHand = "chooseHand",
     chooseRegion = "chooseRegion",
-
+    updateSlot = "updateSlot",
+    payAdditionalCost = "payAdditionalCost",
 }
 
 export enum SimpleEffectNames {

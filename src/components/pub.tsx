@@ -91,7 +91,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
     }
     const cloneLog = [...log]
     const reverseLog = cloneLog.filter(l => l.action.payload.playerID === playerID).reverse().slice(0,40);
-    const playerLogText = reverseLog.map(l => getLogText(l, getName)).join('\n');
+    const playerLogText = reverseLog.map(l => getLogText(l, getName, G)).join('\n');
 
     return <Grid container item key={`pub${idx}-${playerID}`}>
         <Grid item xs={12}>

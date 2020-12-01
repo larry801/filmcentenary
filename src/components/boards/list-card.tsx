@@ -2,7 +2,7 @@ import React from "react";
 import {LogEntry} from "boardgame.io";
 import {CardID, getCardById, MoveNames} from "../../types/core";
 import i18n from "../../constant/i18n";
-import CardInfo, {effName} from "../card";
+import CardInfo, {effName, getCardName} from "../card";
 import {useI18n} from "@i18n-chain/react";
 import Grid from "@material-ui/core/Grid";
 import Button from "@material-ui/core/Button";
@@ -11,6 +11,7 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
 import Paper from "@material-ui/core/Paper";
 import DialogActions from "@material-ui/core/DialogActions";
+import {IG} from "../../types/setup";
 
 export const getMoveText = (l: LogEntry): string => {
     const pid = l.action.payload.playerID
@@ -35,7 +36,7 @@ export const getMoveText = (l: LogEntry): string => {
     }
 }
 
-export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string): string => {
+export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string, G:IG): string => {
     switch (l.action.type) {
         case "GAME_EVENT":
             if (l.action.payload.type === "endTurn" && l.turn !== 1) {
@@ -51,10 +52,15 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string)
                     l.action.payload.args[0].effect
                 )
             } else {
-                return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
+                if(moveName === MoveNames.updateSlot){
                     // @ts-ignore
-                    args: l.action.payload.args
-                })
+                    return  `${getPlayerName(l.action.payload.playerID)}${i18n.moves[moveName]({args: l.action.payload.args})}【${getCardName(G.updateCardHistory[l.action.payload.args[0].updateHistoryIndex])}】`
+                }else{
+                    return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
+                        // @ts-ignore
+                        args: l.action.payload.args
+                    })
+                }
             }
         case "REDO":
             return getPlayerName(l.action.payload.playerID) + i18n.action.redo
