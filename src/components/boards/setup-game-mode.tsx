@@ -4,11 +4,10 @@ import RadioGroup from '@material-ui/core/RadioGroup';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import FormControl from '@material-ui/core/FormControl';
 import FormLabel from '@material-ui/core/FormLabel';
-import {GameMode} from "../../types/core";
+import {GameMode, GameTurnOrder} from "../../types/core";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import Button from "@material-ui/core/Button";
-import Switch from '@material-ui/core/Switch';
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../../constant/i18n";
 
@@ -20,7 +19,7 @@ export interface ISetupPanelProps {
 export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     useI18n(i18n);
     const [mode, setMode] = React.useState(GameMode.NORMAL);
-    const [randomOrder, setRandomOrder] = React.useState(true);
+    const [order, setOrder] = React.useState(GameTurnOrder.FIRST_RANDOM);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         // @ts-ignore
@@ -28,13 +27,14 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     };
 
     const handleFirstPlayerChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setRandomOrder(event.target.checked);
+        // @ts-ignore
+        setOrder(event.target.value);
     };
 
     const confirm = () => {
         moves.setupGameMode({
             mode: mode,
-            randomOrder: randomOrder,
+            order:order,
         })
     }
 
@@ -52,20 +52,25 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                         disabled={ctx.numPlayers < 4}
                         value={GameMode.TEAM2V2} control={<Radio/>} label={i18n.setting.team}/>
                 </RadioGroup>
-                <FormLabel component="legend">{i18n.setting.fixedFirst}</FormLabel>
-                <Switch
-                    checked={randomOrder}
-                    onChange={handleFirstPlayerChange}
-                    name="FirstPlayer"
-                    inputProps={{ 'aria-label': i18n.setting.fixedFirst }}
-                />
-                <FormLabel component="legend">{i18n.setting.randomFirst}</FormLabel>
-                <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={confirm}
-                >{i18n.setting.changeSetting}</Button>
             </FormControl>
+            <FormControl component="fieldset">
+                <FormLabel component="legend">{i18n.setting.order}</FormLabel>
+                <RadioGroup row aria-label={i18n.setting.order} name="order" value={order} onChange={handleFirstPlayerChange}>
+                    <FormControlLabel
+                        value={GameTurnOrder.FIXED} control={<Radio/>} label={i18n.setting.fixedFirst}/>
+                    <FormControlLabel
+                        value={GameTurnOrder.FIRST_RANDOM} control={<Radio/>} label={i18n.setting.randomFirst}/>
+                    <FormControlLabel
+                        disabled={ctx.numPlayers === 2}
+                        value={GameTurnOrder.ALL_RANDOM} control={<Radio/>} label={i18n.setting.allRandom}/>
+                </RadioGroup>
+            </FormControl>
+            <Button
+                fullWidth
+                variant="outlined"
+                color="primary"
+                onClick={confirm}
+            >{i18n.setting.changeSetting}</Button>
         </Grid>
     );
 }

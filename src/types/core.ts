@@ -8,6 +8,12 @@ export enum Region {
     NONE,
 }
 
+export enum GameTurnOrder {
+    FIXED = "FIXED",
+    FIRST_RANDOM = "FIRST_RANDOM",
+    ALL_RANDOM = "ALL_RANDOM",
+}
+
 export enum GameMode {
     NORMAL = "NORMAL",
     NEWBIE = "NEWBIE",

@@ -2,7 +2,7 @@ import {
     AllClassicCards,
     BasicCardID,
     EventCardID,
-    GameMode,
+    GameMode, GameTurnOrder,
     IBuyInfo,
     IEra,
     Region,
@@ -241,6 +241,8 @@ const setting = {
     newbie: "Newbie Mode",
     randomFirst: "Random First Player",
     fixedFirst: "Fixed First Player",
+    allRandom: "Random Order",
+    order:"Turn Order",
     changeSetting: "Change Game Setting"
 };
 const argSetupGameMode = {
@@ -259,10 +261,16 @@ const argSetupGameMode = {
                 break;
         }
         t += ", "
-        if (arg.randomOrder) {
-            t += setting.randomFirst
-        } else {
-            t += setting.fixedFirst
+        switch (arg.order) {
+            case GameTurnOrder.ALL_RANDOM:
+                t += setting.allRandom;
+                break;
+            case GameTurnOrder.FIRST_RANDOM:
+                t += setting.randomFirst
+                break;
+            case GameTurnOrder.FIXED:
+                t += setting.fixedFirst
+                break;
         }
         return t;
     }

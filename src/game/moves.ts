@@ -8,7 +8,9 @@ import {
     CardID,
     CardType,
     ClassicCardID,
-    EventCardID, GameMode,
+    EventCardID,
+    GameMode,
+    GameTurnOrder,
     getCardById,
     IBasicCard,
     IBuyInfo,
@@ -40,7 +42,8 @@ import {
     cinemaSlotsAvailable,
     competitionCleanUp,
     competitionResultSettle,
-    curPub, die,
+    curPub,
+    die,
     doAestheticsBreakthrough,
     doBuy,
     doIndustryBreakthrough,
@@ -51,12 +54,15 @@ import {
     fillEventCard,
     fillTwoPlayerBoard,
     logger,
-    loseVp, opponentTeamPlayers,
+    loseVp,
+    opponentTeamPlayers,
     payCost,
     playerEffExec,
     regionScoringCheck,
-    schoolPlayer, seqFromCurrentPlayer,
-    seqFromPos, shuffle,
+    schoolPlayer,
+    seqFromCurrentPlayer,
+    seqFromPos,
+    shuffle,
     startBreakThrough,
     startCompetition,
     studioSlotsAvailable,
@@ -65,35 +71,45 @@ import {changePlayerStage, changeStage, signalEndPhase, signalEndStage} from "./
 import {getCardEffect, getEvent} from "../constant/effects";
 
 export interface ISetupGameModeArgs {
+    order: GameTurnOrder,
     mode: GameMode,
-    randomOrder: boolean,
 }
 
 export const setupGameMode: LongFormMove = {
     move: (G: IG, ctx: Ctx, args: ISetupGameModeArgs) => {
-        G.mode = args.mode;
-        G.randomOrder = args.randomOrder;
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.setupGameMode(${JSON.stringify(args)})`)
-        let firstMovePlayer;
-        if (args.randomOrder) {
-            firstMovePlayer = die(ctx, ctx.numPlayers) - 1;
-        } else {
-            firstMovePlayer = 0;
-        }
-        let log = (`firstPlayer${firstMovePlayer}`)
+        let log = "";
+        G.mode = args.mode;
         const order: PlayerID[] = [];
-        const remainPlayers = ctx.numPlayers
-        for (let i = firstMovePlayer; i < remainPlayers; i++) {
+        let initOrder: PlayerID[] = [];
+        for (let i = 0; i < ctx.numPlayers; i++) {
             order.push(i.toString())
         }
-        for (let i = 0; i < firstMovePlayer; i++) {
-            order.push(i.toString())
+        switch (args.order) {
+            case GameTurnOrder.ALL_RANDOM:
+                initOrder = shuffle(ctx, order);
+                log += `|ALL_RANDOM`
+                break;
+            case GameTurnOrder.FIRST_RANDOM:
+                const firstMovePlayer = die(ctx, ctx.numPlayers) - 1;
+                log += `firstPlayer${firstMovePlayer}`;
+                const remainPlayers = ctx.numPlayers
+                for (let i = firstMovePlayer; i < remainPlayers; i++) {
+                    initOrder.push(i.toString())
+                }
+                for (let i = 0; i < firstMovePlayer; i++) {
+                    initOrder.push(i.toString())
+                }
+                log += `|FIRST_RANDOM`
+                break;
+            case GameTurnOrder.FIXED:
+                log += `|FIXED`
+                initOrder = order;
+                break;
         }
-        const shuffledOrder = shuffle(ctx, order)
-        log += `|shuffledOrder|${JSON.stringify(shuffledOrder)}`;
-        G.order = shuffledOrder;
-        G.initialOrder = shuffledOrder;
-        log += `|order${JSON.stringify(order)}`;
+        log += `|turnOrder|${JSON.stringify(initOrder)}`;
+        G.order = initOrder;
+        G.initialOrder = initOrder;
         logger.debug(`${G.matchID}|${log}`);
     }
 }

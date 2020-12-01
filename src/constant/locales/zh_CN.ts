@@ -3,7 +3,7 @@ import {
     AllClassicCards,
     BasicCardID,
     EventCardID,
-    GameMode,
+    GameMode, GameTurnOrder,
     IBuyInfo,
     IEra,
     Region,
@@ -236,8 +236,10 @@ const setting = {
     team:"2V2组队模式",
     normal:"普通模式",
     newbie:"新手模式",
-    randomFirst:"首位玩家随机",
-    fixedFirst:"首位玩家固定",
+    randomFirst:"随机首位玩家",
+    fixedFirst:"固定首位玩家",
+    allRandom: "完全随机",
+    order:"行动顺序",
     changeSetting:"更改设置"
 };
 
@@ -257,10 +259,16 @@ const argSetupGameMode = {
                 break;
         }
         t += ", "
-        if(arg.randomOrder){
-            t += setting.randomFirst
-        }else{
-            t += setting.fixedFirst
+        switch (arg.order) {
+            case GameTurnOrder.ALL_RANDOM:
+                t += setting.allRandom;
+                break;
+            case GameTurnOrder.FIRST_RANDOM:
+                t += setting.randomFirst
+                break;
+            case GameTurnOrder.FIXED:
+                t += setting.fixedFirst
+                break;
         }
         return t;
     }
