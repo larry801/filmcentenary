@@ -17,14 +17,7 @@ import {
     ValidRegion
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
-import {
-    doFillNewEraEventDeck,
-    drawForRegion,
-    drawForTwoPlayerEra,
-    fillPlayerHand,
-    logger,
-    shuffle
-} from "../game/util";
+import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, logger, shuffle} from "../game/util";
 
 export interface CompetitionInfo {
     region: Region,
@@ -225,10 +218,10 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     }
     const randomOrder = shuffle(ctx, order);
 
-    randomOrder.splice(0,ctx.numPlayers);
-    for (let i = 0; i < ctx.numPlayers; i++) {
-        randomOrder.push(i.toString())
-    }
+    // randomOrder.splice(0,ctx.numPlayers);
+    // for (let i = 0; i < ctx.numPlayers; i++) {
+    //     randomOrder.push(i.toString())
+    // }
 
     const firstMovePlayer = parseInt(randomOrder[0]);
     logger.debug(`firstPlayer${firstMovePlayer}`)
@@ -453,12 +446,14 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.regions[Region.ASIA].era = IEra.THREE;
     // @ts-ignore
     // G.secretInfo.playerDecks[0] = ["B01","F2403","B07","P2401"]
+    // G.regions["2"].buildings[0].building = BuildingType.studio;
+    // G.regions["2"].buildings[0].owner = "2";
     // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["F3108", "F1211", "F3413", "V111",]
+    // G.player[firstMovePlayer].hand = ["P3301", "F3104", "F3108", "F1211", "F3413", "V111",]
     // @ts-ignore
-    // G.pub[0].allCards = ["F1304", "F1211", "F3413", "V111",]
-    // G.pub[0].deposit = 40;
-    // G.pub[0].action = 20;
+    // G.pub[0].allCards = ["P3301", "F3104", "F3413", "V111",]
+    // G.pub[firstMovePlayer].deposit = 40;
+    // G.pub[firstMovePlayer].action = 20;
     // G.pub[0].discard = [];
     // G.twoPlayer.era = IEra.THREE;
     // G.pub[firstMovePlayer].vp = 149;
