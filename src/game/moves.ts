@@ -1102,10 +1102,10 @@ export const playCard: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.playerID}.moves.playCard(${JSON.stringify(arg)})`);
         let log = "playCard"
-        let playCard = getCardById(arg.card);
-        let pub = G.pub[parseInt(arg.playerID)];
-        let hand = G.player[parseInt(arg.playerID)].hand;
-        if (cinemaInRegion(G, ctx, playCard.region, arg.playerID)) {
+        const playCard = getCardById(arg.card);
+        const pub = G.pub[parseInt(arg.playerID)];
+        const hand = G.player[parseInt(arg.playerID)].hand;
+        if (cinemaInRegion(G, ctx, playCard.region, arg.playerID) && playCard.type === CardType.F) {
             log += `|cinemaInRegion|${playCard.region}`
             pub.resource++;
             addVp(G, ctx, arg.playerID, 1);
