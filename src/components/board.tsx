@@ -270,7 +270,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         : <></>
 
     return <ErrorBoundary>
-        <Grid container justify="flex-start" key={getName(playerID)}>
+        <Grid container justify="flex-start" key={`film-centenary-board-player-${playerID}`}>
             {gameOverResult}
             {G.pending.lastRoundOfGame && ctx.gameover === undefined ?
                 <Grid item container xs={12} justify="space-evenly">
