@@ -193,20 +193,20 @@ function getShare(G: IG, region: ValidRegion, obj: IPubInfo, num: number) {
 }
 
 export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
-    let obj = G.pub[parseInt(p)];
+    const pub = G.pub[parseInt(p)];
     let log = `payCost|p${p}|${cost}`
-    if (obj.resource + obj.deposit < cost) {
+    if (pub.resource + pub.deposit < cost) {
         throw Error(`p${p}|cannotPay|${cost}`)
     }
-    if (obj.resource >= cost) {
+    if (pub.resource >= cost) {
         log += `|res:${cost}`
-        obj.resource -= cost;
+        pub.resource -= cost;
     } else {
-        log += `|res:${obj.resource}`
-        const depCost = cost - obj.resource;
-        obj.resource = 0
+        log += `|res:${pub.resource}`
+        const depCost = cost - pub.resource;
+        pub.resource = 0
         log += `|deposit:${depCost}`
-        obj.deposit -= depCost
+        pub.deposit -= depCost
     }
     logger.debug(`${G.matchID}|${log}`);
 }
@@ -566,18 +566,18 @@ export const cinemaInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean
 export const studioPlayers = (G: IG, ctx: Ctx, r: Region, p = ctx.currentPlayer): PlayerID[] => {
     if (r === Region.NONE) {
         return [];
-    }else {
+    } else {
         const pos = posOfPlayer(G, ctx, p);
         return seqFromPos(G, ctx, pos).filter(pid => studioInRegion(G, ctx, r, pid));
     }
 }
 
-export const buildingPlayers = (G: IG, ctx: Ctx, r: Region, p:PlayerID): PlayerID[] => {
+export const buildingPlayers = (G: IG, ctx: Ctx, r: Region, p: PlayerID): PlayerID[] => {
     if (r === Region.NONE) return [];
     return seqFromPlayer(G, ctx, p).filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
 }
 
-export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region, p:PlayerID): PlayerID[] => {
+export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region, p: PlayerID): PlayerID[] => {
     let log = `noBuildingPlayers|${r}`
     if (r === Region.NONE) {
         logger.debug(`${G.matchID}|${log}`);
@@ -652,14 +652,14 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
 }
 
 export const opponentTeamPlayers = (p: PlayerID): PlayerID[] => {
-    if(p === '0' || p === '2'){
+    if (p === '0' || p === '2') {
         return ['1', '3']
-    }else{
+    } else {
         return ['0', '2']
     }
 }
 
-export const seqFromPlayer = (G: IG, ctx: Ctx, p:PlayerID): PlayerID[] => {
+export const seqFromPlayer = (G: IG, ctx: Ctx, p: PlayerID): PlayerID[] => {
     let log = `seqFromPlayer|p${p}`
     let pos = posOfPlayer(G, ctx, p);
     let seq = seqFromPos(G, ctx, pos);
@@ -1008,7 +1008,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "aestheticsLevelUpCost":
             extraCost = additionalCostForUpgrade(G, pub.aesthetics);
             log += `|extra|${extraCost}`
-            if (extraCost < totalRes && extraCost > 0) {
+            if (
+                extraCost < totalRes &&
+                extraCost > 0
+            ) {
                 log += `|canChoose|payAdditionalCost`
                 G.e.extraCostToPay = extraCost;
                 logger.debug(`${G.matchID}|${log}`);
@@ -1094,33 +1097,37 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 break;
             }
         case "competition":
-            if(totalRes > 1){
+            if (
+                totalRes > 1 &&
+                pub.resource > 0 &&
+                pub.deposit > 0
+            ) {
                 log += `|canChoose|payAdditionalCost`
                 G.e.extraCostToPay = 1;
                 logger.debug(`${G.matchID}|${log}`);
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "payAdditionalCost", p);
                 return;
-            }else{
-                if(totalRes === 0){
+            } else {
+                if (totalRes === 0) {
                     log += `|noResOrDeposit|pass`
                     break;
-                }else{
+                } else {
                     log += `|payDirectly`
-                    if(pub.resource > 0){
+                    if (pub.resource > 0) {
                         log += `prevRes:|${pub.resource}`
-                        pub.resource --;
+                        pub.resource--;
                         log += `afterRes|${pub.resource}`
-                    }else{
+                    } else {
                         log += `prevDeposit:|${pub.deposit}`
-                        pub.deposit --;
+                        pub.deposit--;
                         log += `afterDeposit|${pub.deposit}`
                     }
                     if (ctx.numPlayers > SimpleRuleNumPlayers) {
-                        if(G.mode !== GameMode.TEAM2V2) {
+                        if (G.mode !== GameMode.TEAM2V2) {
                             log += `|normal`
                             players = seqFromCurrentPlayer(G, ctx);
-                        }else {
+                        } else {
                             log += `|2v2`
                             players = opponentTeamPlayers(p);
                         }
@@ -3016,7 +3023,7 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
     let newEra;
     log += `|removeCards`
     doReturnSlotCard(G, ctx, region.legend);
-    for( let slot of region.normal){
+    for (let slot of region.normal) {
         doReturnSlotCard(G, ctx, slot);
     }
     log += `|${JSON.stringify(region)}`
