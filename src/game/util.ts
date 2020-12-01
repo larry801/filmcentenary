@@ -3007,6 +3007,7 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
             log += `|${i.progress}`
             addVp(G, ctx, i.atk, 1);
         }
+        G.e.card = cardId;
         logger.debug(`${G.matchID}|${log}`);
         checkNextEffect(G, ctx);
     } else {
