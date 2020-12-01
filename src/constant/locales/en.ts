@@ -611,8 +611,9 @@ const en = {
         effectIcon: "Effect Icon",
     },
     effect: {
+        minHandCountPlayers:"Company with the fewest card in hand",
         chose: " chose ",
-        archiveToEEBuildingVP: "每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑",
+        archiveToEEBuildingVP: "",
         payAdditionalCost: ["Pay {{res}} {{deposit]}.", {
             deposit: (value: number = 1): string => {
                 if (value > 0) {

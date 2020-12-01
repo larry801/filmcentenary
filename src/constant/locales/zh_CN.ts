@@ -611,6 +611,7 @@ const zh_CN: Locale = {
         payAdditionalCost: ["{{args}}", argPayAdditionalCost],
     },
     effect: {
+        minHandCountPlayers:"当前手牌数最少的公司",
         chose: chose,
         archiveToEEBuildingVP: "每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑，则该公司获得这张牌的声望",
         payAdditionalCost: ["额外支付{{res}}{{deposit}}", {

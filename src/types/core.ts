@@ -130,6 +130,7 @@ export enum ItrEffects {
     handToAnyPlayer = "handToAnyPlayer",
     industryOrAestheticsBreakthrough = "industryOrAestheticsBreakthrough",
     peek = "peek",
+    minHandCountPlayers = "minHandCountPlayers",
     everyOtherCompany = "everyOtherCompany",
     everyPlayer = "everyPlayer",
     levelAndMarkLowestPlayer = "levelAndMarkLowestPlayer",

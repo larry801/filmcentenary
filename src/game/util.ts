@@ -2938,7 +2938,7 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
             log += `|industryMark|++`
             i.progress++;
         }
-        if (cinemaInRegion(G, ctx, i.region, i.atk)) {
+        if (cinemaInRegion(G, ctx, i.region, i.atk) && card.type === CardType.F) {
             log += `|cinemaInRegion|${i.region}|${i.progress}`
             i.progress++;
             log += `|${i.progress}`
@@ -3001,7 +3001,7 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
             log += `|noPlayEffect`
         }
         G.player[parseInt(i.def)].competitionCards = [];
-        if (cinemaInRegion(G, ctx, i.region, i.def)) {
+        if (cinemaInRegion(G, ctx, i.region, i.def) && card.type === CardType.F) {
             log += `|cinemaInRegion|${i.region}|${i.progress}`
             i.progress--;
             log += `|${i.progress}`
