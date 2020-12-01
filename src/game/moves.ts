@@ -466,10 +466,9 @@ export const chooseHand: LongFormMove = {
                 hand.splice(arg.idx, 1);
                 pub.discard.push(arg.hand);
                 if (eff.a > 1) {
-                    eff.a--;
+                    eff.a --;
                     log += `|remain:${eff.a}`
                     G.e.stack.push(eff);
-                    return;
                 }
                 break;
             default:
