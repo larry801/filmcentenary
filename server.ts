@@ -5,21 +5,16 @@ import {FilmCentenaryGame} from "./src/Game";
 import {Server} from "boardgame.io/server";
 import {PostgresStore} from "bgio-postgres";
 
-const pgURL = process.env.POSTGRES_URL ? process.env.POSTGRES_URL : "postgresql://bgio:aJP7wrd6BuQ9XQmhcPyGbug4@49.232.162.167:5436/bgio";
-
-const db = new PostgresStore(
-    pgURL,
-    {
-        logging: false,
-        timezone: '+08:00'
-    }
-);
-
-const server = Server({
+const server = process.env.POSTGRES_URL ? Server({
     games: [FilmCentenaryGame],
-    db,
-    // generateCredentials:()=>"generateCredentials",
-});
+    db: new PostgresStore(
+        process.env.POSTGRES_URL,
+        {
+            logging: false,
+            timezone: '+08:00'
+        }
+    ),
+}) : Server({games: [FilmCentenaryGame]});
 
 const PORT = process.env.PORT || "3000";
 const {app} = server;
@@ -41,7 +36,7 @@ server.run(
         // rewrite rule for catching unresolved routes and redirecting to index.html
         // for client-side routing
         server.app.use(async (ctx: Koa.Context, next: Koa.Next) => {
-            console.log(`${ctx.method}|${ctx.url}|${ctx.ip}|${JSON.stringify(ctx.ips)}`)
+            console.log(`${ctx.method}|${ctx.host}${ctx.url}|${ctx.ip}|${JSON.stringify(ctx.ips)}`)
             await serve("build")(
                 Object.assign(ctx, {path: 'index.html'}),
                 next
