@@ -7,7 +7,7 @@ import FormLabel from '@material-ui/core/FormLabel';
 import {GameMode, GameTurnOrder} from "../../types/core";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
-import Button from "@material-ui/core/Button";
+
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../../constant/i18n";
 
@@ -22,21 +22,22 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     const [order, setOrder] = React.useState(GameTurnOrder.ALL_RANDOM);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        // @ts-ignore
-        setMode(event.target.value);
+        const newMode = event.target.value as GameMode;
+        setMode(newMode);
+        moves.setupGameMode({
+            mode: newMode,
+            order: order,
+        })
     };
 
     const handleFirstPlayerChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        // @ts-ignore
-        setOrder(event.target.value);
-    };
-
-    const confirm = () => {
+        const newOrder = event.target.value as GameTurnOrder;
+        setOrder(newOrder);
         moves.setupGameMode({
             mode: mode,
-            order:order,
+            order: newOrder,
         })
-    }
+    };
 
     return (
         <Grid container>
@@ -55,7 +56,8 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             </FormControl>
             <FormControl component="fieldset">
                 <FormLabel component="legend">{i18n.setting.order}</FormLabel>
-                <RadioGroup row aria-label={i18n.setting.order} name="order" value={order} onChange={handleFirstPlayerChange}>
+                <RadioGroup row aria-label={i18n.setting.order} name="order" value={order}
+                            onChange={handleFirstPlayerChange}>
                     <FormControlLabel
                         value={GameTurnOrder.FIXED} control={<Radio/>} label={i18n.setting.fixedFirst}/>
                     <FormControlLabel
@@ -65,12 +67,6 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                         value={GameTurnOrder.ALL_RANDOM} control={<Radio/>} label={i18n.setting.allRandom}/>
                 </RadioGroup>
             </FormControl>
-            <Button
-                fullWidth
-                variant="outlined"
-                color="primary"
-                onClick={confirm}
-            >{i18n.setting.changeSetting}</Button>
         </Grid>
     );
 }
