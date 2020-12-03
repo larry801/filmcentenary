@@ -42,7 +42,8 @@ export const playSound = () => {
     if (!sound) {
         sound = new Audio(playerTurnSfx);
     }
-    sound.play().then(() => {});
+    sound.play().then(() => {
+    });
 };
 
 
@@ -143,11 +144,11 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         <Grid item container xs={12} sm={7}>
             <Grid item xs={12} sm={6}>
                 <Typography>
-                {valid_regions.map(r =>
-                    <React.Fragment key={generate()}>
-                        <DrawnShareIcon r={r}/>{G.regions[r as 0 | 1 | 2 | 3].share}
-                    </React.Fragment>)}
-                <ChampionIcon champion={{
+                    {valid_regions.map(r =>
+                        <React.Fragment key={generate()}>
+                            <DrawnShareIcon r={r}/>{G.regions[r as 0 | 1 | 2 | 3].share}
+                        </React.Fragment>)}
+                    <ChampionIcon champion={{
                         region: Region.NONE,
                         era: G.twoPlayer.era
                     }}/><DeckIcon/><LegendCardIcon/>{G.twoPlayer.schoolDeckLength}<NormalCardIcon/>{G.twoPlayer.filmDeckLength}
@@ -229,7 +230,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         </>
     const upperPanel = playerID !== null ? <>
             {ctx.phase === "InitPhase" ?
-                <Grid item xs={12}>
+                isActive ? <Grid item xs={12}>
                     <SetupPanel ctx={ctx} moves={moves}/>
                     <Button
                         fullWidth
@@ -250,7 +251,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                             {i18n.action.endPhase}
                         </Button>
                         : <></>}
-                </Grid>
+                </Grid> : <></>
                 : <>
                     {cardBoard}
                     {ctx.gameover === undefined
@@ -300,9 +301,12 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                 log === undefined ? <></> :
                     <LogView log={log} getPlayerName={getName} G={G}/>
             }
-            {G.order.map((i:PlayerID) =>
+            {G.order.map((i: PlayerID) =>
                 <Grid item sm={6} lg={3} key={`grid-pub-panel-${i}-${playerID}`}>
-                    <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(i)]} key={generate()} G={G} idx={parseInt(i)} getName={getName}/>
+                    <ErrorBoundary>
+                        <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(i)]} key={generate()} G={G} idx={parseInt(i)}
+                                  getName={getName}/>
+                    </ErrorBoundary>
                 </Grid>
             )}
             <FinalScoreTable G={G} ctx={ctx} getName={getName}/>

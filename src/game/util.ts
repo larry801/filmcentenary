@@ -651,6 +651,14 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     return seq;
 }
 
+export const isSameTeam = (p: PlayerID, q:PlayerID): boolean => {
+    if (p === '0' || p === '2') {
+        return p === '0' || p === '2'
+    } else {
+        return p === '1' || p === '3'
+    }
+}
+
 export const opponentTeamPlayers = (p: PlayerID): PlayerID[] => {
     if (p === '0' || p === '2') {
         return ['1', '3']

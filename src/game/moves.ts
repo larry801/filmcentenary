@@ -87,8 +87,22 @@ export const setupGameMode: LongFormMove = {
         }
         switch (args.order) {
             case GameTurnOrder.ALL_RANDOM:
-                initOrder = shuffle(ctx, order);
                 log += `|ALL_RANDOM`
+                if (args.mode === GameMode.TEAM2V2) {
+                    log += `|${args.mode}`;
+                    const teamAOrder = shuffle(ctx, ['0', '2'])
+                    const teamBOrder = shuffle(ctx, ['1', '3'])
+                    log += `|teamAOrder|[${teamAOrder}]`
+                    log += `|teamBOrder|[${teamBOrder}]`
+                    const teamOrder = shuffle(ctx, [teamAOrder, teamBOrder]);
+                    log += `|teamOrder|${JSON.stringify(teamOrder)}`
+                    initOrder.push(teamOrder[0][0]);
+                    initOrder.push(teamOrder[1][0]);
+                    initOrder.push(teamOrder[0][1]);
+                    initOrder.push(teamOrder[1][1]);
+                } else {
+                    initOrder = shuffle(ctx, order);
+                }
                 break;
             case GameTurnOrder.FIRST_RANDOM:
                 const firstMovePlayer = die(ctx, ctx.numPlayers) - 1;
