@@ -19,7 +19,7 @@ export interface ISetupPanelProps {
 export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     useI18n(i18n);
     const [mode, setMode] = React.useState(GameMode.NORMAL);
-    const [order, setOrder] = React.useState(GameTurnOrder.ALL_RANDOM);
+    const [order, setOrder] = React.useState(GameTurnOrder.FIXED);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const newMode = event.target.value as GameMode;

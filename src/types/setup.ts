@@ -216,13 +216,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     for (let i = 0; i < ctx.numPlayers; i++) {
         order.push(i.toString())
     }
-    const randomOrder = shuffle(ctx, order);
-
-    // randomOrder.splice(0,ctx.numPlayers);
-    // for (let i = 0; i < ctx.numPlayers; i++) {
-    //     randomOrder.push(i.toString())
-    // }
-
+    const randomOrder = order;
     const firstMovePlayer = parseInt(randomOrder[0]);
     logger.debug(`firstPlayer${firstMovePlayer}`)
     logger.debug(`order${JSON.stringify(randomOrder)}`)

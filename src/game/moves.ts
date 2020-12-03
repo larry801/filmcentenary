@@ -110,6 +110,21 @@ export const setupGameMode: LongFormMove = {
         log += `|turnOrder|${JSON.stringify(initOrder)}`;
         G.order = initOrder;
         G.initialOrder = initOrder;
+        if (ctx.numPlayers === SimpleRuleNumPlayers) {
+            G.pub[parseInt(initOrder[0])].vp = 0;
+            G.pub[parseInt(initOrder[1])].vp = 1;
+        }
+        if (ctx.numPlayers === 3) {
+            G.pub[parseInt(initOrder[0])].vp = 0;
+            G.pub[parseInt(initOrder[1])].vp = 1;
+            G.pub[parseInt(initOrder[2])].vp = 2;
+        }
+        if (ctx.numPlayers === 4) {
+            G.pub[parseInt(initOrder[0])].vp = 0;
+            G.pub[parseInt(initOrder[1])].vp = 0;
+            G.pub[parseInt(initOrder[2])].vp = 1;
+            G.pub[parseInt(initOrder[3])].vp = 2;
+        }
         logger.debug(`${G.matchID}|${log}`);
     }
 }
@@ -466,7 +481,7 @@ export const chooseHand: LongFormMove = {
                 hand.splice(arg.idx, 1);
                 pub.discard.push(arg.hand);
                 if (eff.a > 1) {
-                    eff.a --;
+                    eff.a--;
                     log += `|remain:${eff.a}`
                     G.e.stack.push(eff);
                 }
@@ -574,7 +589,7 @@ export const updateSlot: LongFormMove = {
         }
         if (slot.card !== null) {
             G.updateCardHistory.push(slot.card);
-        }else{
+        } else {
             return INVALID_MOVE
         }
         checkNextEffect(G, ctx);
