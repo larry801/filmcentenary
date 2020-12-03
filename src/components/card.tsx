@@ -76,7 +76,7 @@ export const getCardName = (cardId: string): string => {
                         rank: scoreCard.rank,
                     })
                 } else {
-                    throw Error(`Unknown id ${cardId}`)
+                    return `Unknown id ${cardId}`
                 }
             }
         }
