@@ -1241,7 +1241,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case "peek":
             let peekCount = eff.a.count;
             log += `|peek|${peekCount}cards`
-            let deck = G.secretInfo.playerDecks[curPid(G, ctx)];
+            let deck = G.secretInfo.playerDecks[parseInt(p)];
             log += `|deck|${JSON.stringify(deck)}`
             log += `|hand${JSON.stringify(playerObj.hand)}`
             log += `|discard|${JSON.stringify(pub.discard)}`
