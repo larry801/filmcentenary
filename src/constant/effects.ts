@@ -2091,7 +2091,6 @@ export const effects = {
                 [
                     {e: "res", a: 3},
                     {e: "vp", a: 3},
-                    {e: "discard", a: 1},
                 ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
