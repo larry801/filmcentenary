@@ -415,9 +415,16 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
         }
     }
     if (card.category === CardCategory.BASIC) {
-        log += `|basic`
-        G.basicCards[card.cardId as BasicCardID] -= 1;
-        log += `|${G.basicCards[card.cardId as BasicCardID]}left`
+        log += `|basic`;
+        const basicCount = G.basicCards[card.cardId as BasicCardID];
+        if (basicCount > 0) {
+            G.basicCards[card.cardId as BasicCardID] -= 1;
+            log += `|${G.basicCards[card.cardId as BasicCardID]}|left`
+        } else {
+            log += `|${card.cardId}|depleted`
+            logger.debug(`${G.matchID}|${log}`);
+            return;
+        }
     } else {
         let slot = cardSlotOnBoard(G, ctx, card);
         if (slot === null) {
@@ -453,7 +460,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             pub.discard.push(card.cardId);
             pub.allCards.push(card.cardId);
         } else {
-            log += `|${card.cardId}depleted|`
+            log += `|${card.cardId}|depleted`
         }
     } else {
         if (pub.school === SchoolCardID.S2301 && card.region !== Region.EE) {
@@ -651,7 +658,7 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     return seq;
 }
 
-export const isSameTeam = (p: PlayerID, q:PlayerID): boolean => {
+export const isSameTeam = (p: PlayerID, q: PlayerID): boolean => {
     if (p === '0' || p === '2') {
         return p === '0' || p === '2'
     } else {

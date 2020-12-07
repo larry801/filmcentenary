@@ -96,7 +96,7 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
     return <>
         {error !== "" ? <Typography>{error}</Typography> : <>
             {gameContent}
-            <Typography>{window.location.origin}</Typography>
+            <Typography>{window.location.href}</Typography>
         </>}
         {numPlayers > 0 ? <>
                 <ShareLink
