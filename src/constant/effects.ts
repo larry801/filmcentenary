@@ -2037,8 +2037,8 @@ export const effects = {
             e: "step", a: [
                 {e: "vp", a: 3},
                 {e: "noStudio", a: {e: "loseVpForEachHand", a: 1}},
-                {e: "buy", a: "B05"},
-                {e: "buy", a: "B05"},
+                {e: "buyCardToHand", a: "B05"},
+                {e: "buyCardToHand", a: "B05"},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
