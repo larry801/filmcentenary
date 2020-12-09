@@ -10,7 +10,7 @@ RUN tsc-bundle tsconfig.server.json
 FROM node:12.19.0-alpine3.12
 WORKDIR /app
 COPY package.json yarn.lock /app/
-RUN yarn intsall --production --link-duplicates && yarn cache clean
+RUN yarn install --production --link-duplicates && yarn cache clean
 EXPOSE 3000
 COPY --from=builder /app/build  /app/build
 CMD node build/bundle.js
