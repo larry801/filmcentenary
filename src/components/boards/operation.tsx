@@ -19,7 +19,7 @@ import {getChooseHandChoice, inferDeckRemoveHelper} from "../../game/board-util"
 import {effName, getCardName} from "../card";
 import UndoIcon from '@material-ui/icons/Undo';
 import RedoIcon from '@material-ui/icons/Redo';
-import {IconButton} from "@material-ui/core";
+import IconButton from "@material-ui/core/IconButton";
 import {ActionPointIcon} from "../icons";
 import HandIcon from "@material-ui/icons/PanTool";
 import ConcedeIcon from '@material-ui/icons/DirectionsRun';

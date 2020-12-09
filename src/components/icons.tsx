@@ -6,7 +6,7 @@ import {blue, grey, purple, red, yellow} from "@material-ui/core/colors";
 import LooksOneIcon from '@material-ui/icons/LooksOne';
 import LooksTwoIcon from '@material-ui/icons/LooksTwo';
 import Looks3Icon from '@material-ui/icons/Looks3';
-import {Badge} from "@material-ui/core";
+import Badge from "@material-ui/core/Badge";
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 
 const verticalAlign = {verticalAlign: "-0.125em"};
