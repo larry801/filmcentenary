@@ -1,13 +1,13 @@
 {
-  "name": "boardgameio-typescript-demo",
-  "version": "1.0.0",
-  "description": "",
+  "name": "film-centenary-boardgame-io",
+  "version": "0.1.0",
+  "description": "Film centenary board game built with boardgame.io",
   "keywords": [],
-  "main": "ctx/index.tsx",
+  "main": "server.ts",
   "dependencies": {
+    "bgio-postgres": "^1.0.8",
     "boardgame.io": "0.41.1",
-    "koa-static": "^5.0.0",
-    "node-persist": "^3.1.0"
+    "koa-static": "^5.0.0"
   },
   "devDependencies": {
     "@i18n-chain/react": "^0.8.0",
@@ -22,7 +22,6 @@
     "@types/react-virtualized-auto-sizer": "^1.0.0",
     "@types/react-window": "^1.8.2",
     "@types/shortid": "^0.0.29",
-    "bgio-postgres": "^1.0.8",
     "copy-to-clipboard": "^3.3.1",
     "esm": "^3.2.25",
     "react": "16.13.1",
@@ -35,7 +34,6 @@
     "source-map-explorer": "^2.5.0",
     "ts-loader": "^8.0.7",
     "typescript": "3.9.7",
-    "use-sound": "^1.0.2",
     "webpack-cli": "^4.1.0"
   },
   "scripts": {
