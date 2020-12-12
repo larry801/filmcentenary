@@ -2470,6 +2470,7 @@ const SCORE_CARDS = {
         type: CardType.V,
         rank: 3,
         vp: 10,
+        cost: cost(0, 0, 0),
         industry: 1,
         aesthetics: 0,
     },
