@@ -36,7 +36,7 @@ export const getMoveText = (l: LogEntry): string => {
     }
 }
 
-export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string, G:IG): string => {
+export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string, G: IG): string => {
     switch (l.action.type) {
         case "GAME_EVENT":
             if (l.action.payload.type === "endTurn" && l.turn !== 1) {
@@ -52,10 +52,10 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string,
                     l.action.payload.args[0].effect
                 )
             } else {
-                if(moveName === MoveNames.updateSlot){
+                if (moveName === MoveNames.updateSlot) {
                     // @ts-ignore
-                    return  `${getPlayerName(l.action.payload.playerID)}${i18n.moves[moveName]({args: l.action.payload.args})}【${getCardName(G.updateCardHistory[l.action.payload.args[0].updateHistoryIndex])}】`
-                }else{
+                    return `${getPlayerName(l.action.payload.playerID)}${i18n.moves[moveName]({args: l.action.payload.args})}【${getCardName(G.updateCardHistory[l.action.payload.args[0].updateHistoryIndex])}】`
+                } else {
                     return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
                         // @ts-ignore
                         args: l.action.payload.args
@@ -106,7 +106,7 @@ export const CardList = ({cards, title, label}: ICardListProps) => {
             <DialogContent>
                 {cards.map(c => {
                         const cardObj = getCardById(c);
-                        const feeText = `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}/${cardObj.vp}`
+                        const feeText = cardObj.cost ? `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}/${cardObj.vp}` : `${c}(${cardObj.vp})`;
                         return <Paper variant="outlined" key={title + c}>
                             <CardInfo cid={c}/>
                             {feeText}

@@ -93,21 +93,11 @@ export function activePlayer(ctx: Ctx) {
 export const curPub = (G: IG, ctx: Ctx): IPubInfo => G.pub[curPid(G, ctx)];
 
 export const die = (ctx: Ctx, faces: number): number => {
-    const r = ctx.random;
-    if (r === undefined) {
-        throw new Error("");
-    } else {
-        return r.Die(faces);
-    }
+    return ctx.random?.Die(faces) || faces;
 }
 
 export const shuffle = (ctx: Ctx, arg: any[]): any[] => {
-    const r = ctx.random;
-    if (r === undefined) {
-        throw new Error("");
-    } else {
-        return r.Shuffle(arg);
-    }
+    return ctx.random?.Shuffle(arg) || arg;
 }
 
 export const actualStage = (G: IG, ctx: Ctx,): string => {

@@ -128,13 +128,13 @@ export const FilmCentenaryGame: Game<IG> = {
         G.order.forEach(p => {
                 if (G.pub[parseInt(p)].champions
                     .filter(c => c.region === Region.NA)
-                    .length === 3) {
+                    .length >= 3) {
                     return {winner: p, reason: VictoryType.threeNAChampionAutoWin}
                 }
             }
         )
         G.order.forEach(p => {
-                if (G.pub[parseInt(p)].champions.length === championRequiredForAutoWin) {
+                if (G.pub[parseInt(p)].champions.length >= championRequiredForAutoWin) {
                     return {winner: p, reason: VictoryType.championCountAutoWin}
                 }
             }
