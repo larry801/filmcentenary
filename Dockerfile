@@ -17,4 +17,3 @@ RUN yarn install --production --link-duplicates && yarn cache clean
 EXPOSE 3000
 COPY --from=builder /app/build  /app/build
 CMD node build/bundle.js
-e
