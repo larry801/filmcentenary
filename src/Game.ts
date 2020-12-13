@@ -61,7 +61,7 @@ export const FilmCentenaryGame: Game<IG> = {
     playerView: (G: IG, ctx: Ctx, playerID: PlayerID | null) => {
         let r = JSON.parse(JSON.stringify(G));
         r.eventDeckCount = G.secretInfo.events.length;
-        valid_regions.forEach(region=>{
+        valid_regions.forEach(region => {
             r.regions[region].legendDeckLength = G.secretInfo.regions[region].legendDeck.length;
             r.regions[region].normalDeckLength = G.secretInfo.regions[region].normalDeck.length;
         })
@@ -100,7 +100,7 @@ export const FilmCentenaryGame: Game<IG> = {
         return r;
     },
     moves: {
-        setupGameMode:setupGameMode,
+        setupGameMode: setupGameMode,
         showBoardStatus: showBoardStatus,
         drawCard: drawCard,
         buyCard: buyCard,
@@ -122,22 +122,32 @@ export const FilmCentenaryGame: Game<IG> = {
 
     endIf: (G: IG, ctx: Ctx) => {
         let championRequiredForAutoWin = ctx.numPlayers > 3 ? 5 : 6;
-        if(G.mode === GameMode.TEAM2V2){
+        if (G.mode === GameMode.TEAM2V2) {
             championRequiredForAutoWin = 6;
         }
+        let winner = "";
+        let reason: VictoryType = VictoryType.finalScoring;
         G.order.forEach(p => {
                 if (G.pub[parseInt(p)].champions
                     .filter(c => c.region === Region.NA)
                     .length >= 3) {
-                    return {winner: p, reason: VictoryType.threeNAChampionAutoWin}
+                    winner = p;
+                    reason = VictoryType.threeNAChampionAutoWin;
                 }
             }
         )
+        if (winner !== "") {
+            return {winner: winner, reason: reason}
+        }
         G.order.forEach(p => {
                 if (G.pub[parseInt(p)].champions.length >= championRequiredForAutoWin) {
-                    return {winner: p, reason: VictoryType.championCountAutoWin}
+                    winner = p;
+                    reason = VictoryType.championCountAutoWin;
                 }
             }
         )
+        if (winner !== "") {
+            return {winner: winner, reason: reason}
+        }
     },
 }
