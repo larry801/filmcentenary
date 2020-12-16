@@ -22,13 +22,14 @@ export const ShareLink = ({matchID, player, numPlayer}: ShareLinkProps) => {
     const p2URL = Player.P2 !== player && numPlayer > 2 ? urlPrefix + Player.P2 : "";
     const p3URL = Player.P3 !== player && numPlayer > 3 ? urlPrefix + Player.P3 : "";
     const spectateURL = urlPrefix + Player.spectate;
-    const copyText = [
-        i18n.lobby.shareLink,
-        p0URL, p1URL, p2URL, p3URL,
-        i18n.playerName.spectator,
-        spectateURL
-    ].join("\r\n")
+
     const onCopy = () => {
+        const copyText = [
+            i18n.lobby.shareLink,
+            p0URL, p1URL, p2URL, p3URL,
+            i18n.playerName.spectator,
+            spectateURL
+        ].join("\r\n")
         copy(copyText, {
             message: i18n.lobby.copyPrompt,
         })
