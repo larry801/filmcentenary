@@ -2129,7 +2129,7 @@ const E04: IEventCard = eventCard({
     effect: {}, id: EventCardID.E04
 })
 const E05: IEventCard = eventCard({
-    era: IEra.ONE,
+    era: IEra.TWO,
     name: "Paramount Judgement",
     effect: {}, id: EventCardID.E05
 })
@@ -2154,12 +2154,12 @@ const E09: IEventCard = eventCard({
     effect: {}, id: EventCardID.E09
 })
 const E10: IEventCard = eventCard({
-    era: IEra.THREE,
+    era: IEra.TWO,
     name: "Dismantling of HAYS CODE",
     effect: {}, id: EventCardID.E10
 })
 const E11: IEventCard = eventCard({
-    era: IEra.TWO,
+    era: IEra.THREE,
     name: "Film Authorship",
     effect: {}, id: EventCardID.E11
 })
@@ -2174,7 +2174,7 @@ const E13: IEventCard = eventCard({
     effect: {}, id: EventCardID.E13
 })
 const E14: IEventCard = eventCard({
-    era: IEra.TWO,
+    era: IEra.THREE,
     name: "New Media",
     effect: {}, id: EventCardID.E14
 })

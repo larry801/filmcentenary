@@ -2442,18 +2442,26 @@ export function doFillNewEraEventDeck(G: IG, ctx: Ctx, newEra: IEra) {
 }
 
 export function fillEventCard(G: IG, ctx: Ctx) {
-    let log = "fillEventCard|"
+    let log = "fillEventCard"
+    log += `|eventDeck|${JSON.stringify(G.secretInfo.events)}`
     let newEvent = G.secretInfo.events.pop();
+    log += `|afterDeck|${JSON.stringify(G.secretInfo.events)}`
     let era = getCardById(G.events[0]).era;
+    log += `|events:${JSON.stringify(G.events)}`
+
     if (newEvent === undefined) {
-        log += "emptyEventDeck|"
+        log += "|emptyEventDeck"
     } else {
-        log += newEvent
+        log += `|newEvent:${newEvent}`
         G.events.push(newEvent)
+        log += `|events:${JSON.stringify(G.events)}`
     }
     let newEra = era === IEra.THREE ? era : era + 1;
-    if (G.events.length === 1) {
+    log += `|era${era}|newEra${newEra}`
+
+    if (G.events.length <= 1) {
         if (G.events[0] === "E03") {
+            log += `|E03Discarded`
             G.activeEvents.push(EventCardID.E03);
             G.order.forEach((i, idx) => {
                 if (G.pub[idx].action < 2) G.pub[idx].action = 2
@@ -2463,6 +2471,7 @@ export function fillEventCard(G: IG, ctx: Ctx) {
         if (newEra !== era) {
             log += `|fillNewEraEvents|${newEra}`
             doFillNewEraEventDeck(G, ctx, newEra);
+            log += `|newEventDeck|${JSON.stringify(G.secretInfo.events)}`
         }
     }
     logger.debug(`${G.matchID}|${log}`);

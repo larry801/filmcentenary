@@ -852,10 +852,10 @@ export const chooseEvent: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.chooseEvent(${JSON.stringify(arg)})`);
         let eid: EventCardID = arg.event;
+        let log = "chooseEvent";
+        log += `|${JSON.stringify(G.events)}|${arg.event}|p${arg.p}|idx${arg.idx}`;
         G.events.splice(arg.idx, 1);
         G.e.card = eid;
-        let log = "chooseEvent";
-        log += `|${arg.event}|${arg.p}|${arg.idx}`;
         if (eid === EventCardID.E03) {
             log += "|Avant-grade"
             G.activeEvents.push(EventCardID.E03);
@@ -879,11 +879,15 @@ export const chooseEvent: LongFormMove = {
                 case EventCardID.E07:
                 case EventCardID.E08:
                 case EventCardID.E09:
-                    log += "|Execute event"
+                    log += `|eventDeck|${JSON.stringify(G.secretInfo.events)}`
+                    log += "|execute"
                     G.e.stack.push(getEvent(eid));
+                    log += `|stack|${JSON.stringify(G.e.stack)}`
                     logger.debug(`${G.matchID}|${log}`);
                     fillEventCard(G, ctx);
+                    // console.log('filled')
                     checkNextEffect(G, ctx);
+                    // console.log('checked')
                     break;
                 case EventCardID.E10:
                     G.order.forEach(j => {
@@ -1036,7 +1040,7 @@ export const concedeMove: LongFormMove = {
                 logger.debug(`${G.matchID}|${log}`);
             }
         } else {
-            throw Error();
+            throw Error("Conceded player cannot concede again.");
         }
     }
 }
