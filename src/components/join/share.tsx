@@ -29,10 +29,10 @@ export const ShareLink = ({matchID, player, numPlayer}: ShareLinkProps) => {
             p0URL, p1URL, p2URL, p3URL,
             i18n.playerName.spectator,
             spectateURL
-        ].join("\r\n")
+        ].join("\r\n");
         copy(copyText, {
             message: i18n.lobby.copyPrompt,
-        })
+        });
     }
     return <>
         <IconButton

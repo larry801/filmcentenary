@@ -1214,11 +1214,16 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
         case "handToAnyPlayer":
             log += `|handToAnyPlayer`
-            players = seqFromCurrentPlayer(G, ctx);
-            G.c.players = players
-            G.e.stack.push(eff)
-            changePlayerStage(G, ctx, "chooseTarget", p);
-            return;
+            if (playerObj.hand.length > 0) {
+                players = seqFromCurrentPlayer(G, ctx);
+                G.c.players = players
+                G.e.stack.push(eff)
+                changePlayerStage(G, ctx, "chooseTarget", p);
+                return;
+            } else {
+                log += `|noCardInHand|pass`
+                break;
+            }
         case "industryAndAestheticsBreakthrough":
             if (eff.a.industry === 0 && eff.a.aesthetics === 0) {
                 break;
