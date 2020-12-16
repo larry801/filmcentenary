@@ -930,7 +930,7 @@ export const chooseEvent: LongFormMove = {
                         const pub = G.pub[pidInt];
                         let championRegionCount = 0;
                         valid_regions.forEach(r => {
-                            if (pub.champions.filter(c => c.region = r).length) {
+                            if (pub.champions.filter(c => c.region === r).length) {
                                 championRegionCount++;
                             }
                         })

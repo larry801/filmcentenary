@@ -7,7 +7,7 @@ import {useI18n} from "@i18n-chain/react";
 import copy from "copy-to-clipboard";
 import ContentCopyIcon from '@material-ui/icons/FileCopy';
 import IconButton from '@material-ui/core/IconButton';
-import {getLogText, getMoveText} from "./boards/list-card";
+import {getLogText} from "./boards/list-card";
 import TextField from '@material-ui/core/TextField';
 import {IG} from "../types/setup";
 
@@ -26,20 +26,21 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
         setOpen(!open)
     }
 
-    const moveText = log.map((l: LogEntry) => getMoveText(l)).join("\r\n");
     const onCopyMove = () => {
-        copy(moveText, {
+        copy(window.location.origin, {
             message: i18n.lobby.copyPrompt,
         })
     }
-    const logText = log.map((l: LogEntry) => getLogText(l ,getPlayerName, G)).join("\r\n");
+
     const onCopyLog = () => {
+        const logText = log.map((l: LogEntry) => getLogText(l, getPlayerName, G)).join("\r\n");
         copy(logText, {
             message: i18n.lobby.copyPrompt,
         })
     }
+
     const cloneLog = [...log]
-    const reverseLog = cloneLog.filter(l => l.action.payload.type !== "endStage").reverse().slice(0,40);
+    const reverseLog = cloneLog.filter(l => l.action.type !== "GAME_EVENT").reverse().slice(0, 50);
     const totalLogText = reverseLog.map(l => getLogText(l, getPlayerName, G)).join('\n');
 
     return <Grid item container xs={12}>
@@ -67,17 +68,17 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
             {/*    disabled*/}
             {/*    defaultValue={totalLogText}*/}
             {/*    rows={6}/>*/}
-                <TextField
-                    aria-live="polite"
-                    disabled
-                    defaultValue={totalLogText}
-                    fullWidth
-                    multiline
-                    rows={6}
-                    rowsMax={6}
-                    variant="filled"
-                />
-            </Grid>}
+            <TextField
+                aria-live="polite"
+                disabled
+                defaultValue={totalLogText}
+                fullWidth
+                multiline
+                rows={6}
+                rowsMax={6}
+                variant="filled"
+            />
+        </Grid>}
     </Grid>
 }
 
