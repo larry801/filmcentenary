@@ -2952,11 +2952,12 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
         if (card.region === i.region) {
             log += `|sameRegion:${i.region}|++`
             i.progress++;
+            log += `|${i.progress}`;
         }
-        if (card.industry > 0) {
-            log += `|industryMark|++`
-            i.progress++;
-        }
+        const industryMarkCount = card.industry;
+        log += `|industryMarkCount:${industryMarkCount}`
+        i.progress += industryMarkCount;
+        log += `|${i.progress}`;
         if (cinemaInRegion(G, ctx, i.region, i.atk) && card.type === CardType.F) {
             log += `|cinemaInRegion|${i.region}|${i.progress}`
             i.progress++;
@@ -3001,10 +3002,10 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
             log += `|sameRegion:${i.region}|--|${i.progress}`
             i.progress--;
         }
-        if (card.industry > 0) {
-            log += `|industryMark|--|${i.progress}`
-            i.progress--;
-        }
+        const industryMarkCount = card.industry;
+        log += `|industryMarkCount:${industryMarkCount}`
+        i.progress -= industryMarkCount;
+        log += `|${i.progress}`;
         G.pub[parseInt(i.def)].discard.push(cardId);
         const cardEff = getCardEffect(cardId);
         if (cardEff.hasOwnProperty("play")) {
