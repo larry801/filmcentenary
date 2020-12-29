@@ -2033,7 +2033,7 @@ export const effects = {
             e: "step", a: [
                 {e: "vp", a: 3},
                 {e: "noStudio", a: {e: "loseVpForEachHand", a: 1}},
-                {e: "buyCardToHand", a: "B05"},
+                {e: "studio", a: {e: "draw", a: 2}},
                 {e: "buyCardToHand", a: "B05"},
             ]
         },
