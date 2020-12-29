@@ -2820,7 +2820,7 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
         realVpLose = vp;
         pub.vp -= vp;
     }
-    if (realVpLose > 0 && pub.school === SchoolCardID.S2104) {
+    if (realVpLose > 0 && pub.school === SchoolCardID.S2104 && ctx.currentPlayer === p) {
         log += `|FilmNoir|${pub.resource}`
         pub.resource += realVpLose;
         log += `|${pub.resource}`
@@ -3024,14 +3024,11 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
         const cardEff = getCardEffect(cardId);
         if (cardEff.hasOwnProperty("play")) {
             const eff = {...cardEff.play};
-            if(eff.e !== "none")
-            {
+            if (eff.e !== "none") {
                 eff.target = i.def;
                 log += `|${JSON.stringify(eff)}`
                 G.e.stack.push(eff)
-            }
-        else
-            {
+            } else {
                 log += `|emptyPlayEffect`
             }
         } else {

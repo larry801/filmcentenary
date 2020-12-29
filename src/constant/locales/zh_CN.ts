@@ -762,7 +762,7 @@ const zh_CN: Locale = {
         deductRes: ["少花费{{a}}资源", argValue],
         buyAesthetics: "购买有美学标志的影片时，",
         extraEffect: "额外效果：",
-        loseVpRespond: "任何时候，当你失去1声望时，",
+        loseVpRespond: "任何时候，当你在你的回合内失去1声望时，",
         othersBuySchool: "其他公司购买【流派】时，",
         turnStart: "每回合开始时，",
         studio: "本地区有制片厂的公司，",

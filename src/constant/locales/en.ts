@@ -242,7 +242,7 @@ const setting = {
     randomFirst: "Random First Player",
     fixedFirst: "Fixed First Player",
     allRandom: "Random Order",
-    order:"Turn Order",
+    order: "Turn Order",
     changeSetting: "Change Game Setting"
 };
 const argSetupGameMode = {
@@ -611,7 +611,7 @@ const en = {
         effectIcon: "Effect Icon",
     },
     effect: {
-        minHandCountPlayers:"Company with the fewest card in hand",
+        minHandCountPlayers: "Company with the fewest card in hand",
         chose: " chose ",
         archiveToEEBuildingVP: "",
         payAdditionalCost: ["Pay {{res}} {{deposit]}.", {
@@ -771,7 +771,7 @@ const en = {
         deductRes: ["deduct {{a}} resource(s) from cost.", argValue],
         extraEffect: " Extra effect:",
         buyAesthetics: "When you buys a card with aesthetics marker,",
-        loseVpRespond: "When you lose vp,",
+        loseVpRespond: "When you lose vp in your turn,",
         othersBuySchool: "When another company buys a school card,",
         turnStart: "On the beginning of every turn",
         studio: "All companies with a studio in this region,",
