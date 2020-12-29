@@ -726,7 +726,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "buyCardToHand", a: "B05"},
+                {e: "buy", a: "B05"},
                 {
                     e: "noStudio", a: {
                         e: "step", a: [
