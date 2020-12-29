@@ -1798,14 +1798,18 @@ export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     return resRequired === resGiven && pub.resource >= arg.resource && pub.deposit >= arg.deposit;
 }
 
-export const fillTwoPlayerBoard = (G: IG): void => {
+export const fillTwoPlayerBoard = (G: IG): CardID[] => {
+    let log = 'fillTwoPlayerBoard';
+    const filledCards = [];
     const s = G.secretInfo.twoPlayer.school;
     for (let slotL of G.twoPlayer.school) {
         if (slotL.card === null) {
             let newCard = s.pop()
             if (newCard === undefined) {
-
+                log += `|slotEmpty`;
             } else {
+                log += `|fillSchool|${newCard}`;
+                filledCards.push(newCard);
                 slotL.card = newCard;
             }
         }
@@ -1815,12 +1819,17 @@ export const fillTwoPlayerBoard = (G: IG): void => {
         if (slotL.card === null) {
             let newCard = f.pop()
             if (newCard === undefined) {
-
+                log += `|slotEmpty`;
             } else {
+                log += `|fillFilm|${newCard}`;
+                filledCards.push(newCard);
                 slotL.card = newCard as ClassicCardID;
             }
         }
     }
+    log += `|filledCards|${filledCards}`;
+    logger.debug(`${G.matchID}|${log}`);
+    return filledCards;
 }
 export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
     let log = `drawForTwoPlayerEra|era${e + 1}`
@@ -2017,8 +2026,9 @@ export const do2pUpdateFilmSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
     }
 }
 
-export const fillEmptySlots = (G: IG) => {
+export const fillEmptySlots = (G: IG): CardID[] => {
     let log = "fillEmptySlots";
+    const filledCards = [];
     for (let r of valid_regions) {
         log += `|fill|${r}`
         const region = G.regions[r];
@@ -2031,10 +2041,11 @@ export const fillEmptySlots = (G: IG) => {
         if (region.legend.card === null) {
             if (l.length > 0) {
                 const c = l.pop();
-                log += `|${c}`
+                log += `|fillLegend|${c}`;
                 if (c === undefined) {
                     throw Error("Legend deck empty")
                 } else {
+                    filledCards.push(c);
                     region.legend.card = c;
                 }
             }
@@ -2042,14 +2053,17 @@ export const fillEmptySlots = (G: IG) => {
         for (let slot of region.normal) {
             if (slot.card === null && n.length > 0) {
                 const c = n.pop();
-                log += `|${c}`
+                log += `|fillNormal|${c}`;
                 if (c !== undefined) {
+                    filledCards.push(c);
                     slot.card = c;
                 }
             }
         }
     }
+    log += `|filledCards|${filledCards}`;
     logger.debug(`${G.matchID}|${log}`);
+    return filledCards;
 }
 
 export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
@@ -3010,11 +3024,14 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
         const cardEff = getCardEffect(cardId);
         if (cardEff.hasOwnProperty("play")) {
             const eff = {...cardEff.play};
-            if (eff.e !== "none") {
+            if(eff.e !== "none")
+            {
                 eff.target = i.def;
                 log += `|${JSON.stringify(eff)}`
                 G.e.stack.push(eff)
-            } else {
+            }
+        else
+            {
                 log += `|emptyPlayEffect`
             }
         } else {

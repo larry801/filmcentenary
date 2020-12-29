@@ -33,7 +33,7 @@ export interface CompetitionInfo {
 }
 
 export interface IG {
-    updateCardHistory: CardID[],
+    updateCardHistory: CardID[][],
     mode: GameMode,
     randomOrder: boolean,
     regionScoreCompensateMarker: PlayerID,
@@ -443,9 +443,9 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.regions["2"].buildings[0].building = BuildingType.studio;
     // G.regions["2"].buildings[0].owner = "2";
     // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["P3301", "F3104", "F3108", "F1211", "F3413", "V111",]
+    // G.player[firstMovePlayer].hand = ["P1101", "P1101", "F3108", "F1211", "F3413", "V111",]
     // @ts-ignore
-    // G.pub[0].allCards = ["P3301", "F3104", "F3413", "V111",]
+    // G.pub[0].allCards = ["P1101", "F3104", "F3413", "V111",]
     // G.pub[firstMovePlayer].deposit = 40;
     // G.pub[firstMovePlayer].action = 20;
     // G.pub[0].discard = [];
