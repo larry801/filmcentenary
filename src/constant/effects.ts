@@ -2237,7 +2237,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "noStudio", a: {e: "loseDeposit", a: 2}},
+                {e: "noStudio", a: {e: "loseDeposit", a: 3}},
                 {
                     e: "studio", a: {
                         e: "step", a: [
@@ -2250,7 +2250,7 @@ export const effects = {
                 {
                     e: "optional", a: {
                         e: "competition", a: {
-                            bonus: 1,
+                            bonus: 2,
                             onWin: noEff,
                         }
                     }
