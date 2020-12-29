@@ -1034,7 +1034,7 @@ export const effects = {
             e: "step", a: [
                 {e: "breakthroughResDeduct", a: 2},
                 {e: "noStudio", a: {e: "loseVp", a: 3}},
-                {e: "studio", a: {e: "aesAward", a: 1}}
+                {e: "studio", a: {e: "draw", a: 1}}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
