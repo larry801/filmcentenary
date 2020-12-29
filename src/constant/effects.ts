@@ -680,7 +680,11 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: {
-            pre: {e: "competitionStart"}, effect: {e: "competitionBonus", a: 1}
+            pre: {e: "multiple", a: 2},
+            effect: [
+                {pre: {e: "beforeCompetition"}, effect: {e: "noCompetitionFee", a: 1}},
+                {pre: {e: "competitionStart"}, effect: {e: "competitionBonus", a: 1}},
+            ]
         },
         school: {
             hand: 6,

@@ -611,6 +611,7 @@ const en = {
         effectIcon: "Effect Icon",
     },
     effect: {
+        noCompetitionFee:"no extra fee for 【competition】",
         minHandCountPlayers: "Company with the fewest card in hand",
         chose: " chose ",
         archiveToEEBuildingVP: "",
@@ -733,6 +734,7 @@ const en = {
         }],
         loseVp: ["Lose {{a}} prestige", argValue],
         loseDeposit: ["Lose {{a}} deposit", argValue],
+        beforeCompetition: "Before launching competition,",
         competitionStart: "On competition start,",
         competitionBonus: ["Competition progress +{{a}} bonus", argValue],
         archive: ["Put {{a}} card(s) into your archive.", argValue],

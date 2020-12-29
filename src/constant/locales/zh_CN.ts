@@ -611,6 +611,7 @@ const zh_CN: Locale = {
         payAdditionalCost: ["{{args}}", argPayAdditionalCost],
     },
     effect: {
+        noCompetitionFee:"无需支付【争夺】发起的费用",
         minHandCountPlayers:"当前手牌数最少的公司",
         chose: chose,
         archiveToEEBuildingVP: "每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑，则该公司获得这张牌的声望",
@@ -725,6 +726,7 @@ const zh_CN: Locale = {
         }],
         loseVp: ["失去{{a}}声望", argValue],
         loseDeposit: ["失去{{a}}存款", argValue],
+        beforeCompetition: "争夺开始前，",
         competitionStart: "争夺开始时，",
         competitionBonus: ["竞争力+{{a}}", argValue],
         archive: ["将{{a}}张手牌置入档案馆", argValue],
