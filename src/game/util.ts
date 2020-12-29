@@ -206,7 +206,6 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     let log = `simpleEffectExec|p${p}|${JSON.stringify(eff)}`
     let pub = G.pub[parseInt(p)];
     let card: INormalOrLegendCard;
-    const i = G.competitionInfo;
     switch (eff.e) {
         case "none":
         case "skipBreakthrough":
@@ -221,31 +220,10 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             addVp(G, ctx, p, pub.aesthetics);
             break;
         case "industryToVp":
-            addVp(G, ctx, p, pub.industry)
+            addVp(G, ctx, p, pub.industry);
             break;
         case "resFromIndustry":
-            if (i.pending) {
-                log += `|pendingCompetition`
-                if (p === i.atk) {
-                    log += `|atk`
-                    i.progress += pub.industry;
-                    log += `|${i.progress}`
-                } else {
-                    if (p === i.def) {
-                        log += `|def`
-                        i.progress -= pub.industry;
-                        log += `|${i.progress}`
-                    } else {
-                        log += `|notCompetitionPlayer|${pub.resource}`
-                        pub.resource += eff.a;
-                        log += `|${pub.resource}`
-                    }
-                }
-            } else {
-                log += `|${pub.resource}`
-                pub.resource += pub.industry;
-                log += `|${pub.resource}`
-            }
+            addRes(G, ctx, p, pub.industry);
             break;
         case "enableBollywood":
             G.regions[Region.ASIA].buildings[1].activated = true;
@@ -295,28 +273,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             log += `|${pub.deposit}`
             break;
         case "res":
-            if (i.pending) {
-                log += `|pendingCompetition`
-                if (p === i.atk) {
-                    log += `|atk`
-                    i.progress += eff.a;
-                    log += `|${i.progress}`
-                } else {
-                    if (p === i.def) {
-                        log += `|def`
-                        i.progress -= eff.a;
-                        log += `|${i.progress}`
-                    } else {
-                        log += `|notCompetitionPlayer|${pub.resource}`
-                        pub.resource += eff.a;
-                        log += `|${pub.resource}`
-                    }
-                }
-            } else {
-                log += `|${pub.resource}`
-                pub.resource += eff.a;
-                log += `|${pub.resource}`
-            }
+            addRes(G, ctx, p, eff.a);
             break;
         case "vp":
         case "addVp":
@@ -1653,17 +1610,17 @@ export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
 }
 
 export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
-    let o = G.pub[parseInt(p)];
-    let log = `industryAward|p${p}|${o.industry}`
-    if (o.industry > 1) {
-        log += `|before|${o.resource}`
-        o.resource += 1
-        log += `|after|${o.resource}`
+    const pub = G.pub[parseInt(p)];
+    let log = `industryAward|p${p}|${pub.industry}`
+    if (pub.industry > 1) {
+        log += `|before|${pub.resource}`
+        addRes(G, ctx, p, 1);
+        log += `|after|${pub.resource}`
     }
-    if (o.industry > 4) {
+    if (pub.industry > 4) {
         drawCardForPlayer(G, ctx, p);
     }
-    if (o.industry > 7) {
+    if (pub.industry > 7) {
         drawCardForPlayer(G, ctx, p);
     }
     logger.debug(`${G.matchID}|${log}`);
@@ -2765,31 +2722,60 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
     }
 }
 
+export const addRes = (G: IG, ctx: Ctx, p: PlayerID, res: number) => {
+    let log = 'addRes';
+    const i = G.competitionInfo;
+    const pub = G.pub[parseInt(p)];
+    if (i.pending) {
+        log += `|pendingCompetition`
+        if (p === i.atk) {
+            log += `|atk`
+            i.progress += res;
+            log += `|${i.progress}`
+        } else {
+            if (p === i.def) {
+                log += `|def`
+                i.progress -= res;
+                log += `|${i.progress}`
+            } else {
+                log += `|notCompetitionPlayer|${pub.resource}`
+                pub.resource += res;
+                log += `|${pub.resource}`
+            }
+        }
+    } else {
+        log += `before|${pub.resource}`
+        pub.resource += res;
+        log += `after|${pub.resource}`
+    }
+    logger.debug(`${G.matchID}|${log}`);
+}
+
 export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     let log = `p${p}|add${vp}vp|`
-    let obj = G.pub[parseInt(p)];
-    log += `|prev|${obj.vp}`
-    obj.vp += vp;
-    log += `|after|${obj.vp}`
+    const pub = G.pub[parseInt(p)];
+    log += `|prev|${pub.vp}`
+    pub.vp += vp;
+    log += `|after|${pub.vp}`
     let count = 0;
-    if (obj.vp >= 40 && !obj.vpAward.v60) {
+    if (pub.vp >= 40 && !pub.vpAward.v60) {
         log += `|v40`
         count++;
-        obj.vpAward.v60 = true;
+        pub.vpAward.v60 = true;
     }
-    if (obj.vp >= 80 && !obj.vpAward.v90) {
+    if (pub.vp >= 80 && !pub.vpAward.v90) {
         log += `|v80`
         count++;
-        obj.vpAward.v90 = true;
+        pub.vpAward.v90 = true;
     }
-    if (obj.vp >= 120 && !obj.vpAward.v120) {
+    if (pub.vp >= 120 && !pub.vpAward.v120) {
         log += `|v120`
         count++;
-        obj.vpAward.v120 = true;
+        pub.vpAward.v120 = true;
     }
-    if (obj.vp >= 150 && !obj.vpAward.v150) {
+    if (pub.vp >= 150 && !pub.vpAward.v150) {
         log += `|v150`
-        obj.vpAward.v150 = true;
+        pub.vpAward.v150 = true;
         G.pending.lastRoundOfGame = true;
     }
     if (count > 0) {
@@ -2799,6 +2785,7 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     }
     logger.debug(`${G.matchID}|${log}`);
 }
+
 export const loseDeposit = (G: IG, ctx: Ctx, p: PlayerID, deposit: number) => {
     let log = `p${p}|loseDeposit|${deposit}`
     let pub = G.pub[parseInt(p)];
@@ -2826,7 +2813,7 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     }
     if (realVpLose > 0 && pub.school === SchoolCardID.S2104 && ctx.currentPlayer === p) {
         log += `|FilmNoir|${pub.resource}`
-        pub.resource += realVpLose;
+        addRes(G, ctx, p, realVpLose);
         log += `|${pub.resource}`
     }
     log += `|after|${pub.vp}`

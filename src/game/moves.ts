@@ -25,7 +25,7 @@ import {
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
-    activePlayer,
+    activePlayer, addRes,
     addVp,
     atkCardSettle,
     buildBuildingFor,
@@ -600,7 +600,7 @@ export const updateSlot: LongFormMove = {
         if (ctx.numPlayers > SimpleRuleNumPlayers) {
             updateResult = fillEmptySlots(G);
         } else {
-            updateResult =fillTwoPlayerBoard(G);
+            updateResult = fillTwoPlayerBoard(G);
         }
         G.updateCardHistory.push(updateResult);
         checkNextEffect(G, ctx);
@@ -1136,7 +1136,7 @@ export const playCard: LongFormMove = {
         const hand = G.player[parseInt(arg.playerID)].hand;
         if (cinemaInRegion(G, ctx, playCard.region, arg.playerID) && playCard.type === CardType.F) {
             log += `|cinemaInRegion|${playCard.region}`
-            pub.resource++;
+            addRes(G, ctx, arg.playerID, 1);
             addVp(G, ctx, arg.playerID, 1);
         }
         hand.splice(arg.idx, 1);
@@ -1255,7 +1255,7 @@ export const comment: LongFormMove = {
         }
         const pub = G.pub[parseInt(arg.p)];
         if (pub.school === SchoolCardID.S2204) {
-            pub.resource++;
+            addRes(G, ctx, arg.p, 1);
             addVp(G, ctx, arg.p, 1);
         }
         checkNextEffect(G, ctx);
