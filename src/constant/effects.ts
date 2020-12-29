@@ -699,7 +699,7 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "noStudio", a: {e: "discardIndustry", a: 1}},
-                {e: "studio", a: {e: "buyCardToHand", a: "B02"}},
+                {e: "studio", a: {e: "deposit", a: 1}},
                 {e: "draw", a: 1},
                 {
                     e: "optional", a: {
@@ -2457,10 +2457,10 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "shareToVp", a: Region.ASIA}, {
-                e: "peek", a: {
-                    count: 4, target: "hand", filter: {e: "choice", a: 2}
-                }
-            }]
+                    e: "peek", a: {
+                        count: 4, target: "hand", filter: {e: "choice", a: 2}
+                    }
+                }]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
