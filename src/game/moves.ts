@@ -857,7 +857,10 @@ export const chooseEvent: LongFormMove = {
             log += "|Avant-grade"
             G.activeEvents.push(EventCardID.E03);
             for (let i = 0; i < G.order.length; i++) {
-                G.pub[i].action = 2;
+                const prevAction = G.pub[i].action;
+                if (prevAction < 2) {
+                    G.pub[i].action = 2;
+                }
             }
             logger.debug(`${G.matchID}|${log}`);
             fillEventCard(G, ctx);

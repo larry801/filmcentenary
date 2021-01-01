@@ -53,8 +53,12 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string,
                 )
             } else {
                 if (moveName === MoveNames.updateSlot) {
+                    const resIdx = l.action.payload.args[0].updateHistoryIndex
+                    const res = G.updateCardHistory.length < (resIdx + 1) ?
+                        "" :
+                        G.updateCardHistory[resIdx].map(c => '【' + getCardName(c) + '】').join('')
                     // @ts-ignore
-                    return `${getPlayerName(l.action.payload.playerID)}${i18n.moves[moveName]({args: l.action.payload.args})}${G.updateCardHistory[l.action.payload.args[0].updateHistoryIndex].map(c=>'【'+getCardName(c)+'】').join('')}`
+                    return `${getPlayerName(l.action.payload.playerID)}${i18n.moves[moveName]({args: l.action.payload.args})}${res}`
                 } else {
                     return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
                         // @ts-ignore
