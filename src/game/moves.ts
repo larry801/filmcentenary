@@ -1270,7 +1270,6 @@ export interface IShowBoardStatusProps {
     school: ICardSlot[]
     film: ICardSlot[],
     matchID: string,
-    seed: string,
 }
 
 export const showBoardStatus: LongFormMove = {
