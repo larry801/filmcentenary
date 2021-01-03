@@ -2,7 +2,7 @@ import {Ctx, Game, PlayerID} from "boardgame.io";
 import {IG, setup} from "./types/setup";
 import {
     breakthrough,
-    buyCard,
+    buyCard, changePlayerSetting,
     chooseEffect,
     chooseEvent,
     chooseHand,
@@ -81,6 +81,7 @@ export const FilmCentenaryGame: Game<IG> = {
                     cardsToPeek: oldPlayerPrivateInfo.cardsToPeek,
                     competitionCards: oldPlayerPrivateInfo.competitionCards,
                     deckEmpty: isEmpty,
+                    classicFilmAutoMove:oldPlayerPrivateInfo.classicFilmAutoMove,
                 });
             } else {
                 newPlayerObj.push({
@@ -90,6 +91,7 @@ export const FilmCentenaryGame: Game<IG> = {
                     handSize: oldPlayerPrivateInfo.hand.length,
                     finalScoringExtraVp: 0,
                     deckEmpty: isEmpty,
+                    classicFilmAutoMove:oldPlayerPrivateInfo.classicFilmAutoMove,
                 });
             }
         }
@@ -100,6 +102,7 @@ export const FilmCentenaryGame: Game<IG> = {
         return r;
     },
     moves: {
+        changePlayerSetting:changePlayerSetting,
         setupGameMode: setupGameMode,
         showBoardStatus: showBoardStatus,
         drawCard: drawCard,

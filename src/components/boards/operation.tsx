@@ -2,15 +2,16 @@ import React from "react";
 import NextTurnIcon from '@material-ui/icons/ExitToApp';
 import DeckIcon from '@material-ui/icons/Layers';
 import {IG} from "../../types/setup";
-import {Ctx, PlayerID} from "boardgame.io";
+import {Ctx, LogEntry, PlayerID} from "boardgame.io";
 import i18n from "../../constant/i18n";
 import BuyCard from "../buy-card";
 import Grid from "@material-ui/core/Grid"
 import ChoiceDialog from "../modals";
 import Typography from "@material-ui/core/Typography";
-import {BasicCardID, CardID} from "../../types/core";
+import {BasicCardID, CardID, ClassicFilmAutoMoveMode} from "../../types/core";
 import {activePlayer, actualStage} from "../../game/util";
 import Button from "@material-ui/core/Button";
+import ButtonGroup from "@material-ui/core/ButtonGroup";
 import {PlayerHand} from "../player-hand";
 import {Stage} from "boardgame.io/core";
 import Slider from "@material-ui/core/Slider";
@@ -23,7 +24,6 @@ import IconButton from "@material-ui/core/IconButton";
 import {ActionPointIcon} from "../icons";
 import HandIcon from "@material-ui/icons/PanTool";
 import ConcedeIcon from '@material-ui/icons/DirectionsRun';
-import {LogEntry} from "boardgame.io";
 import CardList from "./list-card";
 
 
@@ -70,6 +70,29 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         return result;
     }
 
+    const classicFilmButtonGroup = <ButtonGroup aria-label="outlined secondary button group">
+        {
+            [
+                ClassicFilmAutoMoveMode.NO_AUTO,
+                ClassicFilmAutoMoveMode.DRAW_CARD,
+                ClassicFilmAutoMoveMode.AESTHETICS_AWARD
+            ].map(autoMove =>
+                    <Button
+                        key={autoMove}
+                        disabled={iPrivateInfo.classicFilmAutoMove === autoMove}
+                        variant="contained" color="primary"
+                        onClick={() => {
+                            console.log(JSON.stringify(iPrivateInfo));
+                            console.log(iPrivateInfo.classicFilmAutoMove);
+                            moves.changePlayerSetting({
+                                classicFilmAutoMoveMode: autoMove
+                            });
+                        }}
+                    >
+                        {i18n.classicFilmAutoMove[autoMove]}
+                    </Button>)
+        }
+    </ButtonGroup>;
 
     const deck = playerID !== null ? inferredDeck(playerID) : [];
     const deckDialog =
@@ -472,6 +495,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 <BuyCard
                     card={BasicCardID.B05} helpers={G.player[parseInt(playerID)].hand}
                     G={G} playerID={playerID} ctx={ctx} moves={moves}/>
+                {classicFilmButtonGroup}
             </Grid> : <></>}
         {sliderPart}
         <Grid item xs={6}>

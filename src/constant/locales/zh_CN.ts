@@ -1,7 +1,7 @@
 import {Locale} from './en';
 import {
     AllClassicCards,
-    BasicCardID,
+    BasicCardID, ClassicFilmAutoMoveMode,
     EventCardID,
     GameMode, GameTurnOrder,
     IBuyInfo,
@@ -10,6 +10,7 @@ import {
     ValidRegion
 } from "../../types/core";
 import {
+    IChangePlayerSettingArgs,
     IChooseEventArg,
     IChooseHandArg,
     ICommentArg,
@@ -232,19 +233,42 @@ const getCardName = (cardId: string): string => {
     return `unknown card${cardId}`
 }
 const setting = {
-    mode:"游戏模式",
-    team:"2V2组队模式",
-    normal:"普通模式",
-    newbie:"新手模式",
-    randomFirst:"随机首位玩家",
-    fixedFirst:"固定首位玩家",
+    mode: "游戏模式",
+    team: "2V2组队模式",
+    normal: "普通模式",
+    newbie: "新手模式",
+    randomFirst: "随机首位玩家",
+    fixedFirst: "固定首位玩家",
     allRandom: "完全随机",
-    order:"行动顺序",
-    changeSetting:"更改设置"
+    order: "行动顺序",
+    changeSetting: "更改设置"
 };
-
+const classicFilmAutoMoveMode = {
+    MODE_NAME: "传世经典:",
+    NO_AUTO: "选择效果",
+    DRAW_CARD: "自动摸牌",
+    AESTHETICS_AWARD: "自动美学奖励",
+};
+const argChangePlayerSetting = {
+    args: (args: IChangePlayerSettingArgs[]): string => {
+        const arg = args[0]
+        let t = chose + classicFilmAutoMoveMode.MODE_NAME;
+        switch (arg.classicFilmAutoMoveMode) {
+            case ClassicFilmAutoMoveMode.DRAW_CARD:
+                t += classicFilmAutoMoveMode.DRAW_CARD;
+                break;
+            case ClassicFilmAutoMoveMode.AESTHETICS_AWARD:
+                t += classicFilmAutoMoveMode.AESTHETICS_AWARD;
+                break;
+            case ClassicFilmAutoMoveMode.NO_AUTO:
+                t += classicFilmAutoMoveMode.NO_AUTO;
+                break;
+        }
+        return t;
+    }
+}
 const argSetupGameMode = {
-    args:(args:ISetupGameModeArgs[]): string=>{
+    args: (args: ISetupGameModeArgs[]): string => {
         const arg = args[0]
         let t = chose;
         switch (arg.mode) {
@@ -511,7 +535,7 @@ const rank = {
     3: "第三",
 }
 const zh_CN: Locale = {
-    setting:setting,
+    setting: setting,
     drawer: {
         singlePlayer: "单人对战AI(2玩家)",
         singlePlayer3p: "单人对战AI(3玩家)",
@@ -589,7 +613,9 @@ const zh_CN: Locale = {
             3: "第四",
         },
     },
+    classicFilmAutoMove: classicFilmAutoMoveMode,
     moves: {
+        changePlayerSetting: ["{{args}}", argChangePlayerSetting],
         setupGameMode: ["{{args}}", argSetupGameMode],
         concede: ["{{args}}", argConcede],
         showBoardStatus: ["{{args}}", argShowBoardStatus],
@@ -611,8 +637,8 @@ const zh_CN: Locale = {
         payAdditionalCost: ["{{args}}", argPayAdditionalCost],
     },
     effect: {
-        noCompetitionFee:"无需支付【争夺】发起的费用",
-        minHandCountPlayers:"当前手牌数最少的公司",
+        noCompetitionFee: "无需支付【争夺】发起的费用",
+        minHandCountPlayers: "当前手牌数最少的公司",
         chose: chose,
         archiveToEEBuildingVP: "每个公司将1张手牌置入档案馆，如果该公司在东欧地区有建筑，则该公司获得这张牌的声望",
         payAdditionalCost: ["额外支付{{res}}{{deposit}}", {
@@ -869,7 +895,7 @@ const zh_CN: Locale = {
     hand: {
         title: "手牌"
     },
-    rank:rank,
+    rank: rank,
     pub: {
         region: "地区",
         legend: "传奇",

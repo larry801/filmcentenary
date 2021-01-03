@@ -6,9 +6,11 @@ import {
     IBuyInfo,
     IEra,
     Region,
-    ValidRegion
+    ValidRegion,
+    ClassicFilmAutoMoveMode
 } from "../../types/core";
 import {
+    IChangePlayerSettingArgs,
     IChooseEventArg, IChooseHandArg, ICommentArg,
     IPayAdditionalCostArgs,
     IPeekArgs,
@@ -519,6 +521,30 @@ const argPayAdditionalCost = {
         return t
     }
 }
+const classicFilmAutoMoveMode = {
+    MODE_NAME: "Classic Film:",
+    NO_AUTO : "Choose Effect",
+    DRAW_CARD : "Auto Draw Card",
+    AESTHETICS_AWARD : "Auto Aesthetics Award",
+};
+const argChangePlayerSetting = {
+    args:(args:IChangePlayerSettingArgs[]): string=> {
+        const arg = args[0]
+        let t = chose + classicFilmAutoMoveMode.MODE_NAME;
+        switch (arg.classicFilmAutoMoveMode) {
+            case ClassicFilmAutoMoveMode.DRAW_CARD:
+                t += classicFilmAutoMoveMode.DRAW_CARD;
+                break;
+            case ClassicFilmAutoMoveMode.AESTHETICS_AWARD:
+                t += classicFilmAutoMoveMode.AESTHETICS_AWARD;
+                break;
+            case ClassicFilmAutoMoveMode.NO_AUTO:
+                t += classicFilmAutoMoveMode.NO_AUTO;
+                break;
+        }
+        return t;
+    }
+}
 const rank = {
     1: "Champion of",
     2: "Runner up of",
@@ -578,7 +604,9 @@ const en = {
             3: "Fourth place",
         },
     },
+    classicFilmAutoMove:classicFilmAutoMoveMode,
     moves: {
+        changePlayerSetting:["{{args}}", argChangePlayerSetting],
         setupGameMode: ["{{args}}", argSetupGameMode],
         concede: ["{{args}}", argConcede],
         showBoardStatus: ["{{args}}", argShowBoardStatus],

@@ -8,6 +8,7 @@ import {
     CardID,
     CardType,
     ClassicCardID,
+    ClassicFilmAutoMoveMode,
     EventCardID,
     GameMode,
     GameTurnOrder,
@@ -25,8 +26,9 @@ import {
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
-    activePlayer, addRes,
-    addVp,
+    activePlayer,
+    addRes,
+    addVp, aesAward,
     atkCardSettle,
     buildBuildingFor,
     buildingInRegion,
@@ -70,14 +72,28 @@ import {
 import {changePlayerStage, changeStage, signalEndPhase, signalEndStage} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
 
+export interface IChangePlayerSettingArgs {
+    classicFilmAutoMoveMode: ClassicFilmAutoMoveMode
+}
+
 export interface ISetupGameModeArgs {
     order: GameTurnOrder,
     mode: GameMode,
 }
 
+export const changePlayerSetting: LongFormMove = {
+    move: (G: IG, ctx: Ctx, args: IChangePlayerSettingArgs) => {
+        if (ctx.playerID) {
+            logger.info(`${G.matchID}|p${ctx.playerID}.moves.changePlayerSetting(${JSON.stringify(args)})`);
+            G.player[parseInt(ctx.playerID)].classicFilmAutoMove = args.classicFilmAutoMoveMode;
+        } else {
+            return INVALID_MOVE
+        }
+    }
+}
 export const setupGameMode: LongFormMove = {
     move: (G: IG, ctx: Ctx, args: ISetupGameModeArgs) => {
-        logger.info(`${G.matchID}|p${ctx.playerID}.moves.setupGameMode(${JSON.stringify(args)})`)
+        logger.info(`${G.matchID}|p${ctx.playerID}.moves.setupGameMode(${JSON.stringify(args)})`);
         let log = "";
         G.mode = args.mode;
         const order: PlayerID[] = [];
@@ -604,7 +620,8 @@ export const updateSlot: LongFormMove = {
         }
         G.updateCardHistory.push(updateResult);
         checkNextEffect(G, ctx);
-    }
+    },
+    undoable: false
 }
 
 export interface IRegionChooseArg {
@@ -1145,6 +1162,23 @@ export const playCard: LongFormMove = {
         hand.splice(arg.idx, 1);
         pub.playedCardInTurn.push(arg.card);
         G.e.card = arg.card;
+        if (arg.card === BasicCardID.B05) {
+            const privateInfo = G.player[parseInt(arg.playerID)];
+            switch (privateInfo.classicFilmAutoMove) {
+                case ClassicFilmAutoMoveMode.AESTHETICS_AWARD:
+                    aesAward(G, ctx, arg.playerID);
+                    log += `|ClassicFilm|AutoAesthetics`
+                    logger.debug(`${G.matchID}|${log}`);
+                    return;
+                case ClassicFilmAutoMoveMode.DRAW_CARD:
+                    drawCardForPlayer(G, ctx, arg.playerID);
+                    log += `|ClassicFilm|AutoAesthetics`
+                    logger.debug(`${G.matchID}|${log}`);
+                    return;
+                default:
+                    log += `|ClassicFilm|NO_AUTO_MOVE`
+            }
+        }
         let cardEff = getCardEffect(arg.card);
         if (cardEff.hasOwnProperty("play")) {
             const eff = {...cardEff.play};

@@ -66,9 +66,13 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string,
                     })
                 }
             }
-        case "REDO":
+        case
+        "REDO"
+        :
             return getPlayerName(l.action.payload.playerID) + i18n.action.redo
-        case "UNDO":
+        case
+        "UNDO"
+        :
             return getPlayerName(l.action.payload.playerID) + i18n.action.undo
         default:
             return ""

@@ -14,6 +14,11 @@ export enum GameTurnOrder {
     ALL_RANDOM = "ALL_RANDOM",
 }
 
+export enum ClassicFilmAutoMoveMode {
+    NO_AUTO = "NO_AUTO",
+    DRAW_CARD = "DRAW_CARD",
+    AESTHETICS_AWARD = "AESTHETICS_AWARD",
+}
 export enum GameMode {
     NORMAL = "NORMAL",
     NEWBIE = "NEWBIE",
@@ -176,6 +181,16 @@ export enum MoveNames {
     chooseRegion = "chooseRegion",
     updateSlot = "updateSlot",
     payAdditionalCost = "payAdditionalCost",
+    changePlayerSetting = "changePlayerSetting",
+    drawCard = "drawCard",
+    buyCard = "buyCard",
+    showCompetitionResult = "showCompetitionResult",
+    peek = "peek",
+    concede = "concede",
+    playCard = "playCard",
+    competitionCard = "competitionCard",
+    breakthrough = "breakthrough",
+    comment = "comment",
 }
 
 export enum SimpleEffectNames {
@@ -358,6 +373,7 @@ export interface IPubInfo {
 }
 
 export interface IPrivateInfo {
+    classicFilmAutoMove: ClassicFilmAutoMoveMode,
     endTurnEffectExecuted: boolean,
     hand: CardID[],
     handSize: number,

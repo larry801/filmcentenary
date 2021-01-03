@@ -2,6 +2,7 @@ import {
     BasicCardID,
     CardID,
     ClassicCardID,
+    ClassicFilmAutoMoveMode,
     EventCardID,
     GameMode,
     IBuildingSlot,
@@ -173,6 +174,7 @@ function pubPlayer(): IPubInfo {
 
 export function privatePlayer(): IPrivateInfo {
     return {
+        classicFilmAutoMove: ClassicFilmAutoMoveMode.NO_AUTO,
         endTurnEffectExecuted: false,
         hand: [], handSize: 0,
         cardsToPeek: [], competitionCards: [],
