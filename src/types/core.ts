@@ -422,6 +422,7 @@ export enum ScoreCardID {
     'V333' = 'V333',
     'V341' = 'V341',
     'V342' = 'V342',
+    'V343' = 'V343',
 }
 
 export const SimpleRuleNumPlayers = 2;
@@ -2575,6 +2576,19 @@ const SCORE_CARDS = {
         type: CardType.V,
         rank: 2,
         vp: 11,
+        industry: 0,
+        aesthetics: 1,
+    },
+    "V343": {
+        cost: cost(0, 0, 0),
+        era: IEra.THREE,
+        region: Region.ASIA,
+        name: "V343",
+        cardId: "V343",
+        category: CardCategory.SCORE,
+        type: CardType.V,
+        rank: 3,
+        vp: 6,
         industry: 0,
         aesthetics: 1,
     },
