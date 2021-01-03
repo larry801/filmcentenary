@@ -115,7 +115,9 @@ const useStyles = makeStyles((theme: Theme) =>
     createStyles({
         root: {
             flexGrow: 1,
-            border: '5px solid rgba(0, 0, 0, .125)',
+            borderColor: 'rgba(0, 0, 0, .25)',
+            borderWidth: '0.25em',
+            borderStyle: 'solid'
         },
         control: {
             padding: theme.spacing(2),

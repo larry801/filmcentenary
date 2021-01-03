@@ -78,6 +78,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 ClassicFilmAutoMoveMode.AESTHETICS_AWARD
             ].map(autoMove =>
                     <Button
+                        style={{textTransform: 'none'}}
                         key={autoMove}
                         disabled={iPrivateInfo.classicFilmAutoMove === autoMove}
                         variant="contained" color="primary"

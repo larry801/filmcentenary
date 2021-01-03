@@ -148,17 +148,17 @@ export const effIcon = (eff: any): JSX.Element => {
     switch (eff.e) {
         case "discardAesthetics":
             return <React.Fragment key={eff.e}>
-                <DiscardIconHelper elem={<AestheticsCardIcon/>} />X{eff.a}
+                <DiscardIconHelper elem={<AestheticsCardIcon/>}/>X{eff.a}
             </React.Fragment>
         case "discardIndustry":
             return <React.Fragment key={generate()}>
-                <DiscardIconHelper elem={<IndustryCardIcon/>} />X{eff.a}
+                <DiscardIconHelper elem={<IndustryCardIcon/>}/>X{eff.a}
             </React.Fragment>
         case "discardNormalOrLegend":
             return <React.Fragment key={generate()}>
-                <DiscardIconHelper elem={<LegendCardIcon/>} />X{eff.a}
+                <DiscardIconHelper elem={<LegendCardIcon/>}/>X{eff.a}
                 /
-                <DiscardIconHelper elem={<NormalCardIcon/>} />X{eff.a}
+                <DiscardIconHelper elem={<NormalCardIcon/>}/>X{eff.a}
             </React.Fragment>
         case "handToAnyPlayer":
             return <React.Fragment key={generate()}>
@@ -405,7 +405,7 @@ export const effIcon = (eff: any): JSX.Element => {
             </React.Fragment>
         case "discard":
             return <React.Fragment key={generate()}>
-                <DiscardIconHelper elem={<CardIcon/>} />X{eff.a}
+                <DiscardIconHelper elem={<CardIcon/>}/>X{eff.a}
             </React.Fragment>
         case "draw":
             return <React.Fragment key={generate()}>
@@ -439,7 +439,7 @@ export const effIcon = (eff: any): JSX.Element => {
             return <React.Fragment key={generate()}>
                 <BuyCardForFreeIcon/>
                 {getCardName(eff.a)}
-                <HandIcon />
+                <HandIcon/>
             </React.Fragment>
         case "peek":
             let filter;
@@ -544,7 +544,10 @@ export const effName = (eff: any): string => {
 export const CardInfo = ({cid}: ICardEffectProps) => {
     const card = getCardById(cid);
     const r = card.region;
-    return <Grid container item xs={12}>
+
+    return <Grid
+        container item xs={12}
+    >
         {card.industry > 0 ? Array(card.industry).fill(1).map(() =>
                 <IndustryIcon
                     key={generate()}
@@ -555,7 +558,11 @@ export const CardInfo = ({cid}: ICardEffectProps) => {
                     key={generate()}
                     style={{color: getColor(r)}}/>)
             : <React.Fragment key={generate()}/>}
-        <Typography>{getCardName(cid)}</Typography>
+        <Typography
+            style={{
+                color:getColor(r)
+            }}
+        >{getCardName(cid)}</Typography>
         <CardEffect cid={cid}/>
         <Typography>{getEffectTextById(cid)}</Typography>
     </Grid>
