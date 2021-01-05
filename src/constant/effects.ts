@@ -708,7 +708,7 @@ export const effects = {
                 {
                     e: "optional", a: {
                         e: "competition", a: {
-                            bonus: 0,
+                            bonus: 1,
                             onWin: noEff,
                         }
                     }
