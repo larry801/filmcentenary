@@ -394,7 +394,7 @@ export const effects = {
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         response: noResponse,
-        archive: noEff,
+        archive: {e: "buy", a: BasicCardID.B03},
     },
     "1202": {
         canBuy: (G: IG, ctx: Ctx) => true,
