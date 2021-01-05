@@ -789,7 +789,7 @@ export const effects = {
                 {
                     e: "step", a: [
                         {e: "deposit", a: 2},
-                        {e: "vp", a: 2},
+                        {e: "draw", a: 1},
                     ]
                 }
             ]
