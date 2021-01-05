@@ -3183,7 +3183,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     if (p.building.cinemaBuilt) f.building += 3;
     if (p.building.studioBuilt) f.building += 3;
     if (p.industry === 10) {
-        G.order.forEach(j => {
+        G.initialOrder.forEach(j => {
             let each = G.pub[parseInt(j)];
             if (each.building.cinemaBuilt) f.industryAward += 5;
             if (each.building.studioBuilt) f.industryAward += 5;
