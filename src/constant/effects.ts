@@ -1063,7 +1063,7 @@ export const effects = {
                             {e: "shareNA", a: 1}, {e: "shareWE", a: 1}
                         ]
                     },
-                    {e: "noStudio", a: {e: "loseAnyRegionShare", a: 1}},
+                    {e: "noStudio", a: {e: "discardNormalOrLegend", a: 1}},
                     {e: "studio", a: {e: "industryAward", a: 1}}
                 ]
         },
