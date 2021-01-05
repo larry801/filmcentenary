@@ -1104,7 +1104,7 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "comment", a: 1},
-                {e: "draw", a: 1},
+                {e: "deposit", a: 1},
                 {e: "noStudio", a: {e: "buy", a: "B04"}},
                 {e: "studio", a: {e: "vp", a: 3}},
             ]
