@@ -377,7 +377,6 @@ export interface IPrivateInfo {
     endTurnEffectExecuted: boolean,
     hand: CardID[],
     handSize: number,
-    finalScoringExtraVp: number,
     cardsToPeek: CardID[],
     competitionCards: CardID[],
     deckEmpty: boolean,

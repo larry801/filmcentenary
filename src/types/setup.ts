@@ -178,7 +178,6 @@ export function privatePlayer(): IPrivateInfo {
         endTurnEffectExecuted: false,
         hand: [], handSize: 0,
         cardsToPeek: [], competitionCards: [],
-        finalScoringExtraVp: 0,
         deckEmpty: false,
     }
 }

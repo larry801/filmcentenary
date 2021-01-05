@@ -77,7 +77,6 @@ export const FilmCentenaryGame: Game<IG> = {
                 newPlayerObj.push({
                     hand: oldPlayerPrivateInfo.hand,
                     handSize: oldPlayerPrivateInfo.hand.length,
-                    finalScoringExtraVp: 0,
                     cardsToPeek: oldPlayerPrivateInfo.cardsToPeek,
                     competitionCards: oldPlayerPrivateInfo.competitionCards,
                     deckEmpty: isEmpty,
@@ -89,7 +88,6 @@ export const FilmCentenaryGame: Game<IG> = {
                     cardsToPeek: oldPlayerPrivateInfo.cardsToPeek,
                     competitionCards: oldPlayerPrivateInfo.cardsToPeek,
                     handSize: oldPlayerPrivateInfo.hand.length,
-                    finalScoringExtraVp: 0,
                     deckEmpty: isEmpty,
                     classicFilmAutoMove:oldPlayerPrivateInfo.classicFilmAutoMove,
                 });
