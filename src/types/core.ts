@@ -1766,7 +1766,7 @@ const NoneBasicCards = {
         name: "Last Year at Marienbad",
         cardId: FilmCardID.F3207,
         cost: cost(9, 0, 10),
-        vp: 11,
+        vp: 13,
         category: CardCategory.NORMAL,
         industry: 0,
         aesthetics: 3,
