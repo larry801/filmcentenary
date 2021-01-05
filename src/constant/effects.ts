@@ -598,7 +598,7 @@ export const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: noEff,
+        archive: {e: "archive", a: 1},
         response: noResponse,
     },
     "1303": {
