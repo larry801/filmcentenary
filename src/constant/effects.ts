@@ -735,7 +735,7 @@ export const effects = {
                     e: "noStudio", a: {
                         e: "step", a: [
                             {e: "discard", a: 1},
-                            {e: "buy9.希区柯克攻击效果中，对手购买烂片不加入手牌", a: "B04"},
+                            {e: "buy", a: "B04"},
                         ]
                     }
                 }, {e: "studio", a: {e: "aesAward", a: 1}}
