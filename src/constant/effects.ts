@@ -1279,8 +1279,7 @@ export const effects = {
                 noEff,
                 {
                     e: "step", a: [
-                        {e: "res", a: 2},
-                        {e: "draw", a: 1},
+                        {e: "res", a: 3},
                         {e: "loseVp", a: 1},
                     ]
                 },
