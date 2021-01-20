@@ -950,7 +950,7 @@ const NoneBasicCards = {
         region: Region.EE,
         name: "Kino Eye",
         cardId: SchoolCardID.S1303,
-        cost: cost(1, 1, 3),
+        cost: cost(5, 1, 1),
         vp: 4,
         category: CardCategory.NORMAL,
         industry: 0,
