@@ -2252,7 +2252,7 @@ export const effects = {
                 {
                     e: "optional", a: {
                         e: "competition", a: {
-                            bonus: 2,
+                            bonus: 1,
                             onWin: noEff,
                         }
                     }
