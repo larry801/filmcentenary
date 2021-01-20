@@ -788,7 +788,7 @@ export const effects = {
                 {e: "step", a: [{e: "res", a: 4}, {e: "shareNA", a: 1}]},
                 {
                     e: "step", a: [
-                        {e: "deposit", a: 2},
+                        {e: "deposit", a: 1},
                         {e: "draw", a: 1},
                     ]
                 }
