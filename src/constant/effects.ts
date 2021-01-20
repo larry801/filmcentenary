@@ -345,7 +345,7 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         response: noResponse,
-        archive: {e: "pay", a: {cost: {e: "deposit", a: 1}, eff: {e: "breakthroughPrevent", a: FilmCardID.F1108}}},
+        archive: {e: "inventionEraBreakthroughPrevent", a: 1},
     },
     "1109": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -1792,7 +1792,7 @@ export const effects = {
                         ]
                     }
                 },
-                {e: "studio", a: {e: "optional", a: {e:"archive",a:1}}}
+                {e: "studio", a: {e: "optional", a: {e: "archive", a: 1}}}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,

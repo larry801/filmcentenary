@@ -693,6 +693,7 @@ const zh_CN: Locale = {
         handToAnyPlayer: ["把{{a}}张手牌交给任意公司", argValue],
         buyNoneEEFilm: "购买非东欧地区影片时",
         extraVp: ["额外支付{{a}}声望", argValue],
+        inventionEraBreakthroughPrevent: "1时代不能突破",
         breakthroughPrevent: "，否则不能执行突破效果",
         alternative: "可以放弃本次突破，改为",
         pay: "支付",

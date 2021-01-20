@@ -10,12 +10,14 @@ import {
     ClassicCardID,
     ClassicFilmAutoMoveMode,
     EventCardID,
+    FilmCardID,
     GameMode,
     GameTurnOrder,
     getCardById,
     IBasicCard,
     IBuyInfo,
     ICardSlot,
+    IEra,
     INormalOrLegendCard,
     IRegionInfo,
     Region,
@@ -28,7 +30,8 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {
     activePlayer,
     addRes,
-    addVp, aesAward,
+    addVp,
+    aesAward,
     atkCardSettle,
     buildBuildingFor,
     buildingInRegion,
@@ -464,6 +467,13 @@ export const chooseHand: LongFormMove = {
             case "breakthroughResDeduct":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
+                if (arg.hand === FilmCardID.F1108) {
+                    log += `Nanook`;
+                    const eraNA = ctx.numPlayers > SimpleRuleNumPlayers ? G.regions[Region.NA].era : G.twoPlayer.era;
+                    if (eraNA === IEra.ONE) {
+                        return INVALID_MOVE;
+                    }
+                }
                 startBreakThrough(G, ctx, arg.p, arg.hand);
                 return;
             case "archiveToEEBuildingVP":
@@ -1237,15 +1247,22 @@ export const breakthrough: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.playerID}.moves.breakthrough(${JSON.stringify(arg)})`);
-        let p = G.pub[parseInt(arg.playerID)];
-        p.action -= 1;
-        p.resource -= arg.res;
-        p.deposit -= (2 - arg.res);
-        let c = getCardById(arg.card);
+        let log = `breakthrough`;
+        if (arg.card === FilmCardID.F1108) {
+            log += `Nanook`;
+            const eraNA = ctx.numPlayers > SimpleRuleNumPlayers ? G.regions[Region.NA].era : G.twoPlayer.era;
+            if (eraNA === IEra.ONE) {
+                return INVALID_MOVE;
+            }
+        }
+        const pub = G.pub[parseInt(arg.playerID)];
+        pub.action -= 1;
+        pub.resource -= arg.res;
+        pub.deposit -= (2 - arg.res);
+        const c = getCardById(arg.card);
         G.e.card = c.cardId;
         G.player[parseInt(arg.playerID)].hand.splice(arg.idx, 1);
-        p.archive.push(arg.card);
-        let log = `breakthrough`
+        pub.archive.push(arg.card);
         log += `|startBreakthrough`
         logger.debug(`${G.matchID}|${log}`);
         startBreakThrough(G, ctx, arg.playerID, arg.card);

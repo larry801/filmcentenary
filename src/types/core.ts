@@ -250,7 +250,7 @@ export enum NoExecutorEffectNames {
     afterBreakthrough = "afterBreakthrough",
     buyNoneEEFilm = "buyNoneEEFilm",
     extraVp = "extraVp",
-    breakthroughPrevent = "breakthroughPrevent",
+    inventionEraBreakthroughPrevent = "inventionEraBreakthroughPrevent",
     searchAndArchive = "searchAndArchive",
     deductRes = "deductRes",
     buyAesthetics = "buyAesthetics",
