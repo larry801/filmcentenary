@@ -1792,7 +1792,7 @@ export const effects = {
                         ]
                     }
                 },
-                {e: "studio", a: {e: "archive", a: 1}}
+                {e: "studio", a: {e: "optional", a: {e:"archive",a:1}}}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
