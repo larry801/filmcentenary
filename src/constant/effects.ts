@@ -1985,7 +1985,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         school: {
-            hand: 6, action: 3,
+            hand: 5, action: 3,
         },
         response: {
             pre: {e: "multiple", a: 2},
