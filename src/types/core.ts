@@ -1533,7 +1533,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "Steven Spielberg",
         cardId: PersonCardID.P3102,
-        cost: cost(9, 9, 5),
+        cost: cost(10, 10, 5),
         vp: 0,
         category: CardCategory.LEGEND,
         industry: 0,
