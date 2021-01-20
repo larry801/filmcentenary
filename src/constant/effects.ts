@@ -1123,15 +1123,14 @@ export const effects = {
                     noEff,
                     {
                         e: "step", a: [
-                            {e: "deposit", a: 1},
+                            {e: "comment", a: 1},
                             {e: "loseVp", a: 1},
                         ]
                     },
                     {
                         e: "step", a: [
-                            {e: "draw", a: 2},
-                            {e: "aesAward", a: 1},
                             {e: "comment", a: 1},
+                            {e: "draw", a: 2},
                         ]
                     },
                 ]
