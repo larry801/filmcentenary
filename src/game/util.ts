@@ -162,7 +162,12 @@ export const isSimpleEffect = (G: IG, eff: any): boolean => {
     }
 }
 
-function loseShare(G: IG, region: ValidRegion, obj: IPubInfo, num: number) {
+const loseShare = (G: IG, region: ValidRegion, obj: IPubInfo, num: number) => {
+    let log = `loseShare|region${region}|num:${num}`;
+    if (G.competitionInfo.pending) {
+        log += `|inCompetition|exit`;
+        logger.debug(`${G.matchID}|${log}`);
+    }
     if (obj.shares[region] >= num) {
         obj.shares[region] -= num;
         G.regions[region].share += num;
@@ -170,6 +175,7 @@ function loseShare(G: IG, region: ValidRegion, obj: IPubInfo, num: number) {
         G.regions[region].share += obj.shares[region];
         obj.shares[region] = 0;
     }
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 function getShare(G: IG, region: ValidRegion, obj: IPubInfo, num: number) {
@@ -202,10 +208,21 @@ export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
 }
 
 export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
-    let eff = G.e.stack.pop();
+    const eff = G.e.stack.pop();
     let log = `simpleEffectExec|p${p}|${JSON.stringify(eff)}`
-    let pub = G.pub[parseInt(p)];
     let card: INormalOrLegendCard;
+    const i = G.competitionInfo;
+    const pub = G.pub[parseInt(p)];
+    if (i.pending) {
+        log += `|inCompetition`
+        if (eff.e === "res" || eff.e === "resFromIndustry") {
+            log += `|validEffect|Continue`;
+        } else {
+            log += `|otherEffectSkip`;
+            logger.debug(`${G.matchID}|${log}`);
+            return;
+        }
+    }
     switch (eff.e) {
         case "none":
         case "skipBreakthrough":
@@ -876,17 +893,6 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         addVp(G, ctx, pid, c.vp);
     }
     log += `|breakthroughEffectPrepare`
-    if (c.cardId === FilmCardID.F1108) {
-        log += "|Nanook"
-        if (pub.deposit < 1) {
-            log += `|noDeposit`
-            logger.debug(`${G.matchID}|${log}`);
-            checkNextEffect(G, ctx);
-            return;
-        } else {
-            loseDeposit(G, ctx, pid, 1);
-        }
-    }
     breakthroughEffectPrepare(G, card);
     const cardEff = getCardEffect(c.cardId);
     if (c.cardId !== FilmCardID.F1108) {
@@ -939,6 +945,16 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         return;
     }
     log += `|eff|${JSON.stringify(eff)}`;
+    if (G.competitionInfo.pending) {
+        log += `|inCompetition`
+        if (eff.e === "era" || eff.e === "step" || eff.e === "choice" || eff.e === "pay") {
+            log += `|validEffect|Continue`;
+        } else {
+            log += `|otherEffectSkip`;
+            logger.debug(`${G.matchID}|${log}`);
+            return;
+        }
+    }
     G.e.currentEffect = eff;
     let targetPlayer = p;
     let pub = G.pub[parseInt(p)];
@@ -1466,15 +1482,20 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case "pay":
-            subEffect = {...eff.a.eff}
+            subEffect = {...eff.a.eff};
             if (eff.hasOwnProperty("target")) {
                 log += `|target|${eff.target}`
                 subEffect.target = eff.target
             }
             switch (eff.a.cost.e) {
                 case "res":
+                    if (G.competitionInfo.pending) {
+                        log += `|inCompetition|noDeduct`;
+                        G.e.stack.push(subEffect);
+                        break;
+                    }
                     if (pub.resource < eff.a.cost.a) {
-                        break
+                        break;
                     } else {
                         pub.resource -= eff.a.cost.a
                         G.e.stack.push(subEffect);
@@ -1484,11 +1505,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 case "addVp":
                 case "addExtraVp":
                     if (pub.vp < eff.a.cost.a) {
-                        break
+                        break;
                     } else {
                         loseVp(G, ctx, p, eff.a.cost.a);
                         G.e.stack.push(subEffect);
-                        break
+                        break;
                     }
                 case "deposit":
                     if (pub.deposit < eff.a.cost.a) {
@@ -1595,15 +1616,15 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
 }
 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
-    let o = G.pub[parseInt(p)];
-    const log = `aesAward|p${p}|${o.aesthetics}`
-    if (o.aesthetics > 1) {
+    const pub = G.pub[parseInt(p)];
+    const log = `aesAward|p${p}|${pub.aesthetics}`;
+    if (pub.aesthetics > 1) {
         addVp(G, ctx, p, 2);
     }
-    if (o.aesthetics > 4) {
+    if (pub.aesthetics > 4) {
         addVp(G, ctx, p, 1);
     }
-    if (o.aesthetics > 7) {
+    if (pub.aesthetics > 7) {
         addVp(G, ctx, p, 1);
     }
     logger.debug(`${G.matchID}|${log}`);
@@ -2789,7 +2810,11 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
 export const loseDeposit = (G: IG, ctx: Ctx, p: PlayerID, deposit: number) => {
     let log = `p${p}|loseDeposit|${deposit}`
     let pub = G.pub[parseInt(p)];
-    log += `|before|${pub.deposit}`
+    log += `|before|${pub.deposit}`;
+    if (G.competitionInfo.pending) {
+        log += `|inCompetition|exit`;
+        logger.debug(`${G.matchID}|${log}`);
+    }
     if (deposit >= pub.deposit) {
         pub.deposit = 0;
     } else {
@@ -2803,18 +2828,16 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     let log = `loseVp|${p}|${vp}`
     const pub = G.pub[parseInt(p)];
     log += `|before|${pub.vp}`
-    let realVpLose: number;
-    if (vp >= pub.vp) {
-        realVpLose = pub.vp
-        pub.vp = 0;
+    const realVpLose: number = vp >= pub.vp ? pub.vp : vp;
+    if (G.competitionInfo.pending) {
+        log += `|inCompetition|noVpDeduct`;
     } else {
-        realVpLose = vp;
-        pub.vp -= vp;
+        pub.vp -= realVpLose;
     }
     if (realVpLose > 0 && pub.school === SchoolCardID.S2104 && ctx.currentPlayer === p) {
-        log += `|FilmNoir|${pub.resource}`
+        log += `|FilmNoir|before|${pub.resource}`
         addRes(G, ctx, p, realVpLose);
-        log += `|${pub.resource}`
+        log += `|after|${pub.resource}`
     }
     log += `|after|${pub.vp}`
     logger.debug(`${G.matchID}|${log}`);
