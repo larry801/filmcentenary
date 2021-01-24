@@ -894,23 +894,23 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     }
     log += `|breakthroughEffectPrepare`
     breakthroughEffectPrepare(G, card);
-    const cardEff = getCardEffect(c.cardId);
-    if (c.cardId !== FilmCardID.F1108) {
-        if (cardEff.hasOwnProperty("archive")) {
-            const eff = {...cardEff.archive};
-            if (eff.e !== "none") {
-                eff.target = pid;
-                log += `|pushEffect|${JSON.stringify(eff)}`
-                G.e.stack.push(eff)
-            } else {
-                log += `|noSpecialArchiveEffect`
-            }
-        } else {
-            log += `|missingArchiveEffect`
-        }
-    } else {
-        log += `|Nanook|DoNotPushArchiveEffect`
-    }
+    // const cardEff = getCardEffect(c.cardId);
+    // if (c.cardId !== FilmCardID.F1108) {
+    //     if (cardEff.hasOwnProperty("archive")) {
+    //         const eff = {...cardEff.archive};
+    //         if (eff.e !== "none") {
+    //             eff.target = pid;
+    //             log += `|pushEffect|${JSON.stringify(eff)}`
+    //             G.e.stack.push(eff)
+    //         } else {
+    //             log += `|noSpecialArchiveEffect`
+    //         }
+    //     } else {
+    //         log += `|missingArchiveEffect`
+    //     }
+    // } else {
+    //     log += `|Nanook|DoNotPushArchiveEffect`
+    // }
     log += `|checkNextEffect`
     logger.debug(`${G.matchID}|${log}`);
     checkNextEffect(G, ctx);

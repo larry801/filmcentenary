@@ -254,8 +254,8 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: {
             e: "step", a: [
-                {e: "vp", a: 3},
                 {e: "deposit", a: 1},
+                {e: "vp", a: 3},
             ]
         },
         response: noEff,
@@ -345,7 +345,12 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         response: noResponse,
-        archive: {e: "inventionEraBreakthroughPrevent", a: 1},
+        archive: {
+            e: "choice", a: [
+                {e: "industryBreakthrough", a: 1},
+                {e: "aestheticsBreakthrough", a: 1},
+            ]
+        },
     },
     "1109": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -473,13 +478,19 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "era", a: [
-                {e: "step", a: [{e: "draw", a: 1}, {e: "shareWE", a: 1}]},
+                {e: "step", a: [{e: "draw", a: 1}, {e: "comment", a: 1}]},
                 {e: "step", a: [{e: "vp", a: 2}, {e: "comment", a: 1}]},
                 {e: "step", a: [{e: "vp", a: 2}, {e: "comment", a: 1}]},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "archive", a: 1},
+        archive: {
+            e: "era", a: [
+                noEff,
+                {e: "archive", a: 1},
+                {e: "archive", a: 1}
+            ]
+        },
         response: noResponse,
     },
     "1207": {
@@ -502,9 +513,16 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
-            e: "step", a: [
+            e: "era", a: [
+                {
+                    e: "step", a: [
+                        {e: "deposit", a: 1},
+                        {e: "shareWE", a: 1},
+                    ]
+                },
+
                 {e: "deposit", a: 1},
-                {e: "shareToVp", a: Region.WE},
+                noEff
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -1129,8 +1147,8 @@ export const effects = {
                     },
                     {
                         e: "step", a: [
-                            {e: "comment", a: 1},
                             {e: "draw", a: 2},
+                            {e: "comment", a: 1},
                         ]
                     },
                 ]
@@ -1367,8 +1385,10 @@ export const effects = {
                     ]
                 },
                 {
-                    e: "step", a: [{e: "draw", a: 2},
-                        {e: "discard", a: 2}]
+                    e: "step", a: [
+                        {e: "draw", a: 2},
+                        {e: "discard", a: 2}
+                    ]
                 },
             ]
         },
@@ -1563,9 +1583,10 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "choice", a: [
-                {e: "step", a: [{e: "res", a: 1}, {e: "update", a: 1}]},
-                {e: "breakthroughResDeduct", a: 2},
+            e: "era", a: [
+                noEff,
+                {e: "res", a: 3},
+                {e: "step", a: [{e: "deposit", a: 1}, {e: "draw", a: 1}]},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -1598,15 +1619,9 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "era", a: [
-                noEff,
-                {e: "res", a: 3},
-                {
-                    e: "step", a: [
-                        {e: "res", a: 1},
-                        {e: "vp", a: 2}
-                    ]
-                }
+            e: "step", a: [
+                {e: "update", a: 1},
+                {e: "breakthroughResDeduct", a: 2},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -1639,7 +1654,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "res", a: 2}, {e: "update", a: 1}
+                {e: "deposit", a: 2}, {e: "update", a: 1}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
