@@ -1498,9 +1498,9 @@ const NoneBasicCards = {
     "F2409": filmCard({
         era: IEra.TWO,
         region: Region.ASIA,
-        name: "The Human Condition",
+        name: "Godzilla",
         cardId: FilmCardID.F2409,
-        cost: cost(4, 0, 5),
+        cost: cost(4, 5, 0),
         vp: 7,
         category: CardCategory.NORMAL,
         industry: 1,
