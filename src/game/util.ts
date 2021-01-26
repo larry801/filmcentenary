@@ -857,6 +857,9 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     const c = getCardById(card)
     const pub = G.pub[parseInt(pid)];
     let log = `startBreakThrough|p${pid}|${card}`
+    if (c.type === CardType.V) {
+        addVp(G, ctx, pid, c.vp);
+    }
     if (pub.school === SchoolCardID.S2201) {
         log += `|neoRealism`
         log += `|before|${JSON.stringify(G.e.stack)}`
@@ -876,8 +879,10 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         })
         log += `|after|${JSON.stringify(G.e.stack)}`
     }
-    if (c.cardId === FilmCardID.F1208 || c.cardId === BasicCardID.B05) {
-        log += "|MetropolisOrClassicFilm"
+    if (c.cardId === FilmCardID.F1208
+        || c.cardId === BasicCardID.B05
+        || c.cardId === FilmCardID.F1108) {
+        log += "|industryOrAestheticsBreakthrough"
         G.e.stack.push({
             e: "industryOrAestheticsBreakthrough", a: {
                 industry: 1,
@@ -889,25 +894,22 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         playerEffExec(G, ctx, pid);
         return
     }
-    if (c.type === CardType.V) {
-        addVp(G, ctx, pid, c.vp);
-    }
     log += `|breakthroughEffectPrepare`
     breakthroughEffectPrepare(G, card);
-    // const cardEff = getCardEffect(c.cardId);
+    const cardEff = getCardEffect(c.cardId);
     // if (c.cardId !== FilmCardID.F1108) {
-    //     if (cardEff.hasOwnProperty("archive")) {
-    //         const eff = {...cardEff.archive};
-    //         if (eff.e !== "none") {
-    //             eff.target = pid;
-    //             log += `|pushEffect|${JSON.stringify(eff)}`
-    //             G.e.stack.push(eff)
-    //         } else {
-    //             log += `|noSpecialArchiveEffect`
-    //         }
-    //     } else {
-    //         log += `|missingArchiveEffect`
-    //     }
+    if (cardEff.hasOwnProperty("archive")) {
+        const eff = {...cardEff.archive};
+        if (eff.e !== "none") {
+            eff.target = pid;
+            log += `|pushEffect|${JSON.stringify(eff)}`
+            G.e.stack.push(eff)
+        } else {
+            log += `|noSpecialArchiveEffect`
+        }
+    } else {
+        log += `|missingArchiveEffect`
+    }
     // } else {
     //     log += `|Nanook|DoNotPushArchiveEffect`
     // }
