@@ -941,7 +941,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let log = `playerEffExec|p${p}`;
     let eff = G.e.stack.pop();
     if (eff === undefined) {
-        log += "|StackEmpty|checkNextEffect"
+        log += "|StackEmpty|checkNextEffect";
         logger.debug(`${G.matchID}|${log}`);
         checkNextEffect(G, ctx);
         return;
@@ -952,8 +952,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         if (eff.e === "era" || eff.e === "step" || eff.e === "choice" || eff.e === "pay") {
             log += `|validEffect|Continue`;
         } else {
-            log += `|otherEffectSkip`;
+            log += `|otherEffect|checkNextEffect`;
             logger.debug(`${G.matchID}|${log}`);
+            checkNextEffect(G, ctx);
             return;
         }
     }
