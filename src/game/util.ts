@@ -1749,8 +1749,8 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true)
         log += ("Lack industry " + industry)
         resRequired += industry * 2;
     }
-    if (pub.school === SchoolCardID.S2201 && targetCard.aesthetics > 0) {
-        log += ("|New realism deduct")
+    if (pub.school === SchoolCardID.S2201 && targetCard.type === CardType.F && targetCard.aesthetics > 0) {
+        log += ("|NewRealismDeduct")
         if (resRequired < 2) {
             resRequired = 0;
         } else {
