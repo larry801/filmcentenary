@@ -1500,7 +1500,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Godzilla",
         cardId: FilmCardID.F2409,
-        cost: cost(4, 5, 0),
+        cost: cost(6, 5, 0),
         vp: 7,
         category: CardCategory.NORMAL,
         industry: 1,
