@@ -125,6 +125,7 @@ export enum ItrEffects {
     competition = "competition",
     loseAnyRegionShare = "loseAnyRegionShare",
     anyRegionShare = "anyRegionShare",
+    newHollyWoodEff = "newHollyWoodEff",
     anyRegionShareCentral = "anyRegionShareCentral",
     noBuildingEE = "noBuildingEE",
     vpNotHighestPlayer = "vpNotHighestPlayer",
@@ -338,6 +339,7 @@ export interface IPubInfo {
         events: number,
         total: number,
     },
+    newHollyWoodUsed: boolean,
     discardInSettle: boolean,
     scoreEvents: EventCardID[],
     vpAward: {

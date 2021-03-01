@@ -128,6 +128,7 @@ function pubPlayer(): IPubInfo {
         resource: 0,
         deposit: 0,
         action: 1,
+        newHollyWoodUsed: false,
         discardInSettle: false,
         handSize: 0,
         scoreEvents: [],

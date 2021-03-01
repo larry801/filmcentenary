@@ -2666,6 +2666,7 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     }
 
     log += `|restore`
+    pub.newHollyWoodUsed = false;
     pub.action = getPlayerAction(G, arg);
     fillPlayerHand(G, ctx, ctx.currentPlayer);
     log += `| execute development rewards`

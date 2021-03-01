@@ -19,7 +19,7 @@ import {
     ICardSlot,
     // IEra,
     INormalOrLegendCard,
-    IRegionInfo,
+    IRegionInfo, ItrEffects,
     Region,
     SchoolCardID,
     SimpleRuleNumPlayers,
@@ -324,14 +324,13 @@ export const buyCard: LongFormMove = {
                 if ((targetCard.category === CardCategory.NORMAL
                     || targetCard.category === CardCategory.LEGEND)
                     && targetCard.type === CardType.F
+                    && !pub.newHollyWoodUsed
                 ) {
                     log += `|newHollyWood`
                     G.e.stack.push({
                         e: "optional", a: {
-                            e: "pay", a: {
-                                cost: {e: "deposit", a: 1},
-                                eff: {e: "anyRegionShare", a: 1}
-                            }
+                            e: "newHollyWoodEff",
+                            a: 1
                         },
                         target: arg.buyer,
                     })
@@ -1087,11 +1086,18 @@ export const confirmRespond: LongFormMove = {
             switch (eff.e) {
                 case "optional":
                     const newEff = {...eff.a}
-                    if (eff.hasOwnProperty("target")) {
-                        log += `|targetSpecified|${eff.target}`;
+                    if (newEff.e === ItrEffects.newHollyWoodEff) {
+                        log += `|newHollyWoodEff|${eff.target}`;
                         newEff.target = eff.target;
+                        newEff.e = ItrEffects.anyRegionShare;
+                        pub.newHollyWoodUsed = true;
                     } else {
-                        newEff.target = p;
+                        if (eff.hasOwnProperty("target")) {
+                            log += `|targetSpecified|${eff.target}`;
+                            newEff.target = eff.target;
+                        } else {
+                            newEff.target = p;
+                        }
                     }
                     log += `|${JSON.stringify(newEff)}`
                     log += "|yes";

@@ -1695,10 +1695,7 @@ export const effects = {
                     pre: {e: "obtainNormalOrLegendFilm"},
                     effect: {
                         e: "optional", a: {
-                            e: "pay", a: {
-                                cost: {e: "deposit", a: 1},
-                                eff: {e: "anyRegionShare", a: 1}
-                            }
+                            e: "newHollyWoodEff", a: 1
                         }
                     }
                 }, {pre: {e: "competitionStart"}, effect: {e: "competitionBonus", a: 1}}
