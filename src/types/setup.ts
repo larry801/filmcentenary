@@ -429,6 +429,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.regions[Region.NA].legend.card = "P1101"
     // G.regions[Region.WE].share = 1
     // G.pub[2].shares["1"] = 3
+    // G.regions[Region.NA].era = IEra.THREE
     // G.regions[Region.WE].era = IEra.TWO
     // G.regions[Region.ASIA].era = IEra.THREE
     // G.regions[Region.WE].share = 1
@@ -445,9 +446,11 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.regions["2"].buildings[0].building = BuildingType.studio;
     // G.regions["2"].buildings[0].owner = "2";
     // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["P1101", "P1101", "F3108", "F1211", "F3413", "V111",]
+    // G.player[firstMovePlayer].hand = ["P2102", "F2110", "F3108", "F1211", "F3413", "V111",]
     // @ts-ignore
-    // G.pub[0].allCards = ["P1101", "F3104", "F3413", "V111",]
+    // G.pub[0].allCards = ["P2102", "F2110", "F3413", "V111",]
+    // @ts-ignore
+    // G.player[3].hand = ["P2102", "F2110", "B04", "V111",]
     // G.pub[firstMovePlayer].deposit = 40;
     // G.pub[firstMovePlayer].action = 20;
     // G.pub[0].discard = [];
@@ -461,6 +464,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // @ts-ignore
     // G.player[1].hand = ["F2307", "P3102", "B07", "B07",]
     // G.secretInfo.playerDecks[0] = [];
-    // G.pub[0].action = 10;<
+    // G.pub[0].action = 10;
     return G;
 };

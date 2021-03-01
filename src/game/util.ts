@@ -955,6 +955,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             || eff.e === ItrEffects.step
             || eff.e === ItrEffects.choice
             || eff.e === ItrEffects.pay
+            || eff.e === ItrEffects.anyRegionShare
+            || eff.e === ItrEffects.anyRegionShareCentral
         ) {
             log += `|validEffect|Continue`;
         } else {
