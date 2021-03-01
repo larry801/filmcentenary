@@ -31,7 +31,7 @@ import {
     schoolCardsByEra,
     scoreCardCount,
     ScoreCardID,
-    ShareOnBoard,
+    ShareOnBoard, SimpleEffectNames,
     SimpleRuleNumPlayers,
     TwoPlayerCardCount,
     valid_regions,
@@ -949,7 +949,13 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     log += `|eff|${JSON.stringify(eff)}`;
     if (G.competitionInfo.pending) {
         log += `|inCompetition`
-        if (eff.e === "era" || eff.e === "step" || eff.e === "choice" || eff.e === "pay") {
+        if (
+            eff.e === ItrEffects.era
+            || eff.e === SimpleEffectNames.res
+            || eff.e === ItrEffects.step
+            || eff.e === ItrEffects.choice
+            || eff.e === ItrEffects.pay
+        ) {
             log += `|validEffect|Continue`;
         } else {
             log += `|otherEffect|checkNextEffect`;
@@ -3154,13 +3160,12 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
 
 export const checkCompetitionDefender = (G: IG, ctx: Ctx) => {
     let i = G.competitionInfo;
-    logger.debug(JSON.stringify(i));
     if (G.player[parseInt(i.def)].hand.length > 0) {
-        logger.debug(`checkCompetitionDefender|p${i.def}|competitionCard`);
+        logger.debug(`checkCompetitionDefender|p${i.def}|competitionCard|${JSON.stringify(i)}|competitionCard`);
         changePlayerStage(G, ctx, "competitionCard", i.def);
     } else {
         i.defPlayedCard = true;
-        const log = (`checkCompetitionDefender|p${i.def}|emptyHand|showCompetitionResult`);
+        const log = (`checkCompetitionDefender|p${i.def}|emptyHand|${JSON.stringify(i)}|showCompetitionResult`);
         logger.debug(`${G.matchID}|${log}`);
         changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
     }
