@@ -479,7 +479,7 @@ export const effects = {
         play: {
             e: "era", a: [
                 {e: "step", a: [{e: "res", a: 1}, {e: "draw", a: 1}]},
-                {e: "step", a: [{e: "res", a: 2}, {e: "comment", a: 1}]},
+                {e: "step", a: [{e: "res", a: 1}, {e: "comment", a: 1}]},
                 {e: "step", a: [{e: "vp", a: 2}, {e: "comment", a: 1}]},
             ]
         },
