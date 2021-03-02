@@ -1,8 +1,8 @@
-FROM filmcentenary-docker.pkg.coding.net/dianyingbainian/react/film-builder AS builder
+FROM larry801/filmcentenary-builder AS builder
 COPY . .
 RUN yarn build --profile
 RUN tsc-bundle tsconfig.server.json
 
-FROM filmcentenary-docker.pkg.coding.net/dianyingbainian/react/film-base
+FROM larry801/filmcentenary-base
 COPY --from=builder /app/build  /app/build
 CMD node build/bundle.js

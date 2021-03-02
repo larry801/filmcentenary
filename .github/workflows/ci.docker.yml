@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  login:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      - name: Check builder dependency change
+        uses: actions/cache@v2
+        id: builder-dependency-check
+        with:
+          path: package.json
+          key: ${{ runner.os }}-yarn-builder-${{ hashFiles('**/yarn.lock', 'Dockerfile.builder') }}
+      - name: Check base dependency change
+        uses: actions/cache@v2
+        id: base-dependency-check
+        with:
+          path: package.json
+          key: ${{ runner.os }}-yarn-base-${{ hashFiles('**/yarn.lock', 'Dockerfile.base') }}
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push builder image
+        if: steps.builder-dependency-check.outputs.cache-hit != 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: Dockerfile.builder
+          push: true
+          tags: larry801/film-centenary-builder:latest
+      - name: Build and push base image
+        if: steps.base-dependency-check.outputs.cache-hit != 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: Dockerfile.base
+          push: true
+          tags: larry801/film-centenary-base:latest
+      - name: Build and push app image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: Dockerfile.ci
+          push: true
+          tags: larry801/film-centenary:latest
