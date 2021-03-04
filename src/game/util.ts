@@ -952,6 +952,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         if (
             eff.e === ItrEffects.era
             || eff.e === SimpleEffectNames.res
+            || eff.e === SimpleEffectNames.loseVp
             || eff.e === ItrEffects.step
             || eff.e === ItrEffects.choice
             || eff.e === ItrEffects.pay
