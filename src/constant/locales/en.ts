@@ -347,7 +347,8 @@ const argShowBoardStatus = {
         let t = "Board:";
         if (arg[0].regions.length > 0) {
             arg[0].regions.forEach((r, idx) => {
-                t += region[idx as ValidRegion];
+                const cardRegion:ValidRegion = idx;
+                t += region[cardRegion];
                 t += ':';
                 if (r.legend.card !== null) {
                     t += "legend:"
@@ -731,9 +732,11 @@ const en = {
                     case "industry":
                         return "put cards with industry mark"
                     case "era":
-                        return `put ${era[e.a as IEra]} era cards`
+                        // @ts-ignore
+                        return `put ${era[e.a]} era cards`
                     case "region":
-                        return `put ${region[e.a as Region]} cards`
+                        // @ts-ignore
+                        return `put ${region[e.a]} cards`
                     case "aesthetics":
                         return "put cards with aesthetics mark"
                     default:

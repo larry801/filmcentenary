@@ -9,7 +9,7 @@ import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import Button from "@material-ui/core/Button";
-import shortid from "shortid";
+import { nanoid } from "nanoid";
 import {CardInfo} from "./card";
 import {actualStage} from "../game/util";
 import {Stage} from "boardgame.io/core";
@@ -92,7 +92,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
             }
             return <Accordion
                 expanded={true}
-                key={shortid.generate()}>
+                key={nanoid()}>
                 <AccordionSummary key={idx}>
                     <CardInfo cid={c}/>
                     {era !== null ?

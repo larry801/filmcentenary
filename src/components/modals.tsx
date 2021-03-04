@@ -13,7 +13,7 @@ import FormControl from "@material-ui/core/FormControl/FormControl";
 import FormGroup from "@material-ui/core/FormGroup/FormGroup";
 import DialogActions from "@material-ui/core/DialogActions";
 import Grid from "@material-ui/core/Grid";
-import shortid from "shortid";
+import { nanoid } from "nanoid";
 import {usePrevious} from "./board";
 
 
@@ -92,7 +92,7 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
                                 !choice.hidden ?
                                     <FormControlLabel
                                         disabled={choice.disabled}
-                                        key={shortid.generate()} value={choice.value}
+                                        key={nanoid()} value={choice.value}
                                         control={<Radio/>}
                                         label={choice.label}/> : ""
                             )}

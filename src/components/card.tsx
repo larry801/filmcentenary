@@ -29,7 +29,7 @@ import ArchiveHeaderIcon from '@material-ui/icons/Archive';
 import BuyCardHeaderIcon from '@material-ui/icons/ShoppingCart';
 import AestheticsIcon from '@material-ui/icons/ImportContacts';
 import IndustryIcon from '@material-ui/icons/Settings';
-import {generate} from "shortid";
+import { nanoid } from "nanoid";
 import CompetitionIcon from '@material-ui/icons/SportsKabaddi';
 import AnyPlayerIcon from '@material-ui/icons/People';
 import PlayCardIcon from '@material-ui/icons/PlayCircleFilledWhiteOutlined';
@@ -151,28 +151,28 @@ export const effIcon = (eff: any): JSX.Element => {
                 <DiscardIconHelper elem={<AestheticsCardIcon/>}/>X{eff.a}
             </React.Fragment>
         case "discardIndustry":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <DiscardIconHelper elem={<IndustryCardIcon/>}/>X{eff.a}
             </React.Fragment>
         case "discardNormalOrLegend":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <DiscardIconHelper elem={<LegendCardIcon/>}/>X{eff.a}
                 /
                 <DiscardIconHelper elem={<NormalCardIcon/>}/>X{eff.a}
             </React.Fragment>
         case "handToAnyPlayer":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <CardIcon/><HandIcon/><AnyPlayerIcon/>
             </React.Fragment>
         case "optional":
-            return <Typography key={generate()}>
+            return <Typography key={nanoid()}>
                 <OptionalIcon/>
                 {effIcon(eff.a)}
             </Typography>
         case "competition":
             if (eff.a.bonus > 0) {
                 return <React.Fragment
-                    key={generate()}
+                    key={nanoid()}
                 >
                     <Badge
                         anchorOrigin={{
@@ -187,13 +187,13 @@ export const effIcon = (eff: any): JSX.Element => {
                     {effIcon(eff.a.onWin)}
                 </React.Fragment>
             } else {
-                return <React.Fragment key={generate()}>
+                return <React.Fragment key={nanoid()}>
                     <CompetitionIcon/>
                     {effIcon(eff.a.onWin)}
                 </React.Fragment>
             }
         case "aesAward":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <Typography>
                     <Badge
                         anchorOrigin={{
@@ -208,7 +208,7 @@ export const effIcon = (eff: any): JSX.Element => {
                 </Typography>
             </React.Fragment>
         case "industryAward":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <Badge
                     anchorOrigin={{
                         vertical: 'top',
@@ -220,7 +220,7 @@ export const effIcon = (eff: any): JSX.Element => {
                 </Badge>X{eff.a}
             </React.Fragment>
         case "noStudio":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <div>
                     <Badge
                         badgeContent={'-'}
@@ -233,54 +233,54 @@ export const effIcon = (eff: any): JSX.Element => {
                 {effIcon(eff.a)}
             </React.Fragment>
         case "studio":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <div>
                     <StudioIcon/>
                 </div>
                 {effIcon(eff.a)}
             </React.Fragment>
         case "loseShareNA":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <LoseShareIcon
                     r={Region.NA}
-                    key={generate()}
+                    key={nanoid()}
                 />
             </React.Fragment>
         case "loseShareWE":
-            return <React.Fragment key={generate()}><
+            return <React.Fragment key={nanoid()}><
                 LoseShareIcon
                 r={Region.WE}
-                key={generate()}/>
+                key={nanoid()}/>
             </React.Fragment>
         case "loseShareEE":
-            return <React.Fragment key={generate()}><LoseShareIcon
-                key={generate()}
+            return <React.Fragment key={nanoid()}><LoseShareIcon
+                key={nanoid()}
                 r={Region.EE}/></React.Fragment>
         case "loseShareASIA":
-            return <React.Fragment key={generate()}><LoseShareIcon
+            return <React.Fragment key={nanoid()}><LoseShareIcon
                 r={Region.ASIA}
-                key={generate()}/></React.Fragment>
+                key={nanoid()}/></React.Fragment>
         case "loseAnyRegionShare":
-            return <React.Fragment key={generate()}><LoseShareIcon
-                r={Region.NONE} key={generate()}/></React.Fragment>
+            return <React.Fragment key={nanoid()}><LoseShareIcon
+                r={Region.NONE} key={nanoid()}/></React.Fragment>
         case "loseShare":
-            return <React.Fragment key={generate()}><LoseShareIcon
-                key={generate()}
+            return <React.Fragment key={nanoid()}><LoseShareIcon
+                key={nanoid()}
                 r={eff.a}/></React.Fragment>
         case "shareASIA":
-            return <React.Fragment key={generate()}><DrawnShareIcon r={Region.ASIA} key={generate()}/></React.Fragment>
+            return <React.Fragment key={nanoid()}><DrawnShareIcon r={Region.ASIA} key={nanoid()}/></React.Fragment>
         case "shareEE":
-            return <React.Fragment key={generate()}><DrawnShareIcon r={Region.EE} key={generate()}/></React.Fragment>
+            return <React.Fragment key={nanoid()}><DrawnShareIcon r={Region.EE} key={nanoid()}/></React.Fragment>
         case "shareWE":
-            return <React.Fragment key={generate()}><DrawnShareIcon r={Region.WE} key={generate()}/></React.Fragment>
+            return <React.Fragment key={nanoid()}><DrawnShareIcon r={Region.WE} key={nanoid()}/></React.Fragment>
         case "anyRegionShare":
-            return <React.Fragment key={generate()}>
-                <DrawnShareIcon r={Region.NONE} key={generate()}/>
+            return <React.Fragment key={nanoid()}>
+                <DrawnShareIcon r={Region.NONE} key={nanoid()}/>
             </React.Fragment>
         case "pay":
             switch (eff.a.cost.e) {
                 case "vp":
-                    return <React.Fragment key={generate()}>
+                    return <React.Fragment key={nanoid()}>
                         <Badge
                             anchorOrigin={{
                                 vertical: 'top',
@@ -295,7 +295,7 @@ export const effIcon = (eff: any): JSX.Element => {
                         X{eff.a.cost.a}:{effIcon(eff.a.eff)}
                     </React.Fragment>
                 case "deposit":
-                    return <React.Fragment key={generate()}>
+                    return <React.Fragment key={nanoid()}>
                         <Badge
                             anchorOrigin={{
                                 vertical: 'top',
@@ -310,7 +310,7 @@ export const effIcon = (eff: any): JSX.Element => {
                         X{eff.a.cost.a}:{effIcon(eff.a.eff)}
                     </React.Fragment>
                 case "res":
-                    return <React.Fragment key={generate()}>
+                    return <React.Fragment key={nanoid()}>
                         <Badge
                             anchorOrigin={{
                                 vertical: 'top',
@@ -325,7 +325,7 @@ export const effIcon = (eff: any): JSX.Element => {
                         X{eff.a.cost.a}:{effIcon(eff.a.eff)}
                     </React.Fragment>
                 case "share":
-                    return <React.Fragment key={generate()}>
+                    return <React.Fragment key={nanoid()}>
                         <Badge
                             anchorOrigin={{
                                 vertical: 'top',
@@ -340,103 +340,103 @@ export const effIcon = (eff: any): JSX.Element => {
                         X{eff.a.cost.a}:{effIcon(eff.a.eff)}
                     </React.Fragment>
             }
-            return <React.Fragment key={generate()}>
-                <PayIcon key={generate()}/>
+            return <React.Fragment key={nanoid()}>
+                <PayIcon key={nanoid()}/>
                 {effIcon(eff.a.cost)}:{effIcon(eff.a.eff)}|
             </React.Fragment>
         case "update":
-            return <React.Fragment key={generate()}><UpdateSlotIcon key={generate()}/></React.Fragment>
+            return <React.Fragment key={nanoid()}><UpdateSlotIcon key={nanoid()}/></React.Fragment>
         case "choice":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 {i18n.effect.choice}
                 {eff.a.map((i: any, idx: number) =>
-                    <React.Fragment key={generate()}> ({idx + 1}) {effIcon(i)}</React.Fragment>
+                    <React.Fragment key={nanoid()}> ({idx + 1}) {effIcon(i)}</React.Fragment>
                 )}
             </React.Fragment>
         case "aestheticsLevelUp":
             return <Badge
-                key={generate()}
+                key={nanoid()}
                 badgeContent={<
                     UpgradeBadgeIcon
-                    key={generate()}
+                    key={nanoid()}
                 />}>
-                <AestheticsIcon key={generate()}/>
+                <AestheticsIcon key={nanoid()}/>
             </Badge>
         case "industryLevelUp":
             return <Badge
                 badgeContent={<
                     UpgradeBadgeIcon
-                    key={generate()}/>}>
-                <IndustryIcon key={generate()}/>
+                    key={nanoid()}/>}>
+                <IndustryIcon key={nanoid()}/>
             </Badge>
         case "shareNA":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <DrawnShareIcon
                     r={Region.NA}
-                    key={generate()}
+                    key={nanoid()}
                 />X{eff.a}
             </React.Fragment>
         case "aestheticsToVp":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <PrestigeIcon
-                    key={generate()}
+                    key={nanoid()}
                 />
                 X
                 <AestheticsIcon
-                    key={generate()}/>
+                    key={nanoid()}/>
             </React.Fragment>
         case "industryToVp":
-            return <React.Fragment key={generate()}>
-                <PrestigeIcon/>X<IndustryIcon key={generate()}/>
+            return <React.Fragment key={nanoid()}>
+                <PrestigeIcon/>X<IndustryIcon key={nanoid()}/>
             </React.Fragment>
         case "resFromIndustry":
-            return <React.Fragment key={generate()}>
-                <ResIcon key={generate()}/>X<IndustryIcon key={generate()}/>
+            return <React.Fragment key={nanoid()}>
+                <ResIcon key={nanoid()}/>X<IndustryIcon key={nanoid()}/>
             </React.Fragment>
         case "shareToVp":
-            return <React.Fragment key={generate()}>
-                <PrestigeIcon key={generate()}/>X<DrawnShareIcon r={eff.a}/>
+            return <React.Fragment key={nanoid()}>
+                <PrestigeIcon key={nanoid()}/>X<DrawnShareIcon r={eff.a}/>
             </React.Fragment>
         case "breakthroughResDeduct":
-            return <React.Fragment key={generate()}> <FreeBreakthroughIcon key={generate()}/> </React.Fragment>
+            return <React.Fragment key={nanoid()}> <FreeBreakthroughIcon key={nanoid()}/> </React.Fragment>
         case "archive":
-            return <React.Fragment key={generate()}>
-                <CardToArchiveIcon key={generate()}/>X{eff.a}
+            return <React.Fragment key={nanoid()}>
+                <CardToArchiveIcon key={nanoid()}/>X{eff.a}
             </React.Fragment>
         case "discard":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <DiscardIconHelper elem={<CardIcon/>}/>X{eff.a}
             </React.Fragment>
         case "draw":
-            return <React.Fragment key={generate()}>
-                <CardIcon key={generate()}/>X{eff.a}
+            return <React.Fragment key={nanoid()}>
+                <CardIcon key={nanoid()}/>X{eff.a}
             </React.Fragment>
         case "loseVp":
-            return <React.Fragment key={generate()}><PrestigeIcon key={generate()}/>-{eff.a}</React.Fragment>
+            return <React.Fragment key={nanoid()}><PrestigeIcon key={nanoid()}/>-{eff.a}</React.Fragment>
         case "vp":
         case "addVp":
         case "addExtraVp":
-            return <React.Fragment key={generate()}><PrestigeIcon key={generate()}/>+{eff.a}</React.Fragment>
+            return <React.Fragment key={nanoid()}><PrestigeIcon key={nanoid()}/>+{eff.a}</React.Fragment>
         case "loseDeposit":
-            return <React.Fragment key={generate()}><DepositIcon key={generate()}/>-{eff.a}</React.Fragment>
+            return <React.Fragment key={nanoid()}><DepositIcon key={nanoid()}/>-{eff.a}</React.Fragment>
         case "deposit":
-            return <React.Fragment key={generate()}><DepositIcon key={generate()}/>+{eff.a}</React.Fragment>
+            return <React.Fragment key={nanoid()}><DepositIcon key={nanoid()}/>+{eff.a}</React.Fragment>
         case "res":
         case "addRes":
-            return <React.Fragment key={generate()}><ResIcon key={generate()}/>+{eff.a}</React.Fragment>
+            return <React.Fragment key={nanoid()}><ResIcon key={nanoid()}/>+{eff.a}</React.Fragment>
         case "comment":
             if (eff.a === 1) {
-                return <InsertCommentIcon key={generate()}/>
+                return <InsertCommentIcon key={nanoid()}/>
             } else {
-                return <React.Fragment key={generate()}><InsertCommentIcon key={generate()}/>X{eff.a}</React.Fragment>
+                return <React.Fragment key={nanoid()}><InsertCommentIcon key={nanoid()}/>X{eff.a}</React.Fragment>
             }
         case "buy":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <BuyCardForFreeIcon/>
                 {getCardName(eff.a)}
             </React.Fragment>
         case "buyCardToHand":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <BuyCardForFreeIcon/>
                 {getCardName(eff.a)}
                 <HandIcon/>
@@ -460,33 +460,33 @@ export const effIcon = (eff: any): JSX.Element => {
                     filter = <DrawnShareIcon r={eff.a.filter.a}/>
                     break;
                 case "choice":
-                    filter = <React.Fragment key={generate()}><PickIcon/>X{eff.a.filter.a}</React.Fragment>
+                    filter = <React.Fragment key={nanoid()}><PickIcon/>X{eff.a.filter.a}</React.Fragment>
                     break;
             }
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 <SearchIcon/>X{eff.a.count}
                 {filter}
                 <HandIcon/>
             </React.Fragment>
         case "step":
-            return <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
                 {eff.a.map((i: any) => effIcon(i))}
             </React.Fragment>
         case "era":
-            return <React.Fragment key={generate()}>
-                {eff.a[0].e !== "none" ? <Typography key={generate()}>
-                    <ChampionIcon champion={{region: Region.NONE, era: IEra.ONE}} key={generate()}/>{effIcon(eff.a[0])}
-                </Typography> : <React.Fragment key={generate()}/>}
-                {eff.a[1].e !== "none" ? <React.Fragment key={generate()}>
-                    <ChampionIcon champion={{region: Region.NONE, era: IEra.TWO}} key={generate()}/>{effIcon(eff.a[1])}
-                </React.Fragment> : <React.Fragment key={generate()}/>}
-                {eff.a[2].e !== "none" ? <React.Fragment key={generate()}>
+            return <React.Fragment key={nanoid()}>
+                {eff.a[0].e !== "none" ? <Typography key={nanoid()}>
+                    <ChampionIcon champion={{region: Region.NONE, era: IEra.ONE}} key={nanoid()}/>{effIcon(eff.a[0])}
+                </Typography> : <React.Fragment key={nanoid()}/>}
+                {eff.a[1].e !== "none" ? <React.Fragment key={nanoid()}>
+                    <ChampionIcon champion={{region: Region.NONE, era: IEra.TWO}} key={nanoid()}/>{effIcon(eff.a[1])}
+                </React.Fragment> : <React.Fragment key={nanoid()}/>}
+                {eff.a[2].e !== "none" ? <React.Fragment key={nanoid()}>
                     <ChampionIcon champion={{region: Region.NONE, era: IEra.THREE}}
-                                  key={generate()}/>{effIcon(eff.a[2])}
-                </React.Fragment> : <React.Fragment key={generate()}/>}
+                                  key={nanoid()}/>{effIcon(eff.a[2])}
+                </React.Fragment> : <React.Fragment key={nanoid()}/>}
             </React.Fragment>
     }
-    return <React.Fragment key={generate()}>
+    return <React.Fragment key={nanoid()}>
         {effName(eff)}
     </React.Fragment>;
 }
@@ -514,7 +514,8 @@ export const effName = (eff: any): string => {
         for (let i = 0; i < 3; i++) {
             let sub = eff.a[i];
             if (sub.e === "none") continue;
-            r.push(i18n.effect.era[i as 0 | 1 | 2]);
+            const eraConvert = i as 0 | 1 | 2;
+            r.push(i18n.effect.era[eraConvert]);
             r.push(effName(sub));
         }
         return r.join("");
@@ -550,17 +551,17 @@ export const CardInfo = ({cid}: ICardEffectProps) => {
     >
         {card.industry > 0 ? Array(card.industry).fill(1).map(() =>
                 <IndustryIcon
-                    key={generate()}
+                    key={nanoid()}
                     style={{color: getColor(r)}}/>)
-            : <React.Fragment key={generate()}/>}
+            : <React.Fragment key={nanoid()}/>}
         {card.aesthetics > 0 ? Array(card.aesthetics).fill(1).map(() =>
                 <AestheticsIcon
-                    key={generate()}
+                    key={nanoid()}
                     style={{color: getColor(r)}}/>)
-            : <React.Fragment key={generate()}/>}
+            : <React.Fragment key={nanoid()}/>}
         <Typography
             style={{
-                color:getColor(r)
+                color: getColor(r)
             }}
         >{getCardName(cid)}</Typography>
         <CardEffect cid={cid}/>
@@ -590,39 +591,39 @@ export const CardEffect = ({cid}: ICardEffectProps) => {
     const playEffText = playCardEffectText(cid);
     const arch = archiveCardEffectText(cid);
     const score = scoreEffectText(cid);
-    return <React.Fragment key={generate()}>
-        {buyEffText !== "" ? <React.Fragment key={generate()}>
-            <Typography key={generate()}>
+    return <React.Fragment key={nanoid()}>
+        {buyEffText !== "" ? <React.Fragment key={nanoid()}>
+            <Typography key={nanoid()}>
                 【<BuyCardHeaderIcon style={verticalAlign}/>】
             </Typography>
             {effIcon(effObj.buy)}
-        </React.Fragment> : <React.Fragment key={generate()}/>}
-        {playEffText !== "" ? <React.Fragment key={generate()}>
-            <Typography key={generate()} aria-label={i18n.effect.playCardHeader}>
+        </React.Fragment> : <React.Fragment key={nanoid()}/>}
+        {playEffText !== "" ? <React.Fragment key={nanoid()}>
+            <Typography key={nanoid()} aria-label={i18n.effect.playCardHeader}>
                 【<PlayCardIcon style={verticalAlign}/> 】
             </Typography>
             {effIcon(effObj.play)}
-        </React.Fragment> : <React.Fragment key={generate()}/>}
-        {arch !== "" ? <React.Fragment key={generate()}>
-            <Typography key={generate()} aria-label={i18n.effect.breakthroughHeader}>
+        </React.Fragment> : <React.Fragment key={nanoid()}/>}
+        {arch !== "" ? <React.Fragment key={nanoid()}>
+            <Typography key={nanoid()} aria-label={i18n.effect.breakthroughHeader}>
                 【<ArchiveHeaderIcon style={verticalAlign}/>】
             </Typography>
             {effIcon(effObj.archive)}
-        </React.Fragment> : <React.Fragment key={generate()}/>}
-        {isSchool ? <React.Fragment key={generate()}>
-            <Typography key={generate()} aria-label={i18n.effect.continuous}>
+        </React.Fragment> : <React.Fragment key={nanoid()}/>}
+        {isSchool ? <React.Fragment key={nanoid()}>
+            <Typography key={nanoid()} aria-label={i18n.effect.continuous}>
                 <ContinuousHeaderIcon style={verticalAlign}/>
             </Typography>
-            <Typography key={generate()}>
-                <CardIcon key={generate()}/>{effObj.school.hand}
-                <ActionPointIcon key={generate()}/>{effObj.school.action}
+            <Typography key={nanoid()}>
+                <CardIcon key={nanoid()}/>{effObj.school.hand}
+                <ActionPointIcon key={nanoid()}/>{effObj.school.action}
             </Typography>
-            <Typography key={generate()}>
+            <Typography key={nanoid()}>
                 {schoolEffectText(cid)}
             </Typography>
         </React.Fragment> : ""}
-        {score !== "" ? <Typography key={generate()}>{score}</Typography>
-            : <React.Fragment key={generate()}/>}
+        {score !== "" ? <Typography key={nanoid()}>{score}</Typography>
+            : <React.Fragment key={nanoid()}/>}
     </React.Fragment>
 }
 

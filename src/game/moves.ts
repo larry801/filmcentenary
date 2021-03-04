@@ -307,7 +307,8 @@ export const buyCard: LongFormMove = {
                 pub.playedCardInTurn.push(helper);
             })
             G.e.card = arg.target;
-            doBuy(G, ctx, targetCard as INormalOrLegendCard | IBasicCard, ctx.currentPlayer);
+            const buyTarget: INormalOrLegendCard | IBasicCard = targetCard;
+            doBuy(G, ctx, buyTarget, ctx.currentPlayer);
             let cardEff = getCardEffect(arg.target);
             let hasEffect = false;
             if (cardEff.hasOwnProperty("buy")) {
@@ -676,7 +677,7 @@ export const chooseRegion: LongFormMove = {
         } else {
             switch (eff.e) {
                 case "loseAnyRegionShare":
-                    p = G.c.players[0] as PlayerID;
+                    p = G.c.players[0];
                     G.c.players = [];
                     G.pub[parseInt(p)].shares[r]--;
                     reg.share++;
@@ -865,7 +866,7 @@ export const peek: LongFormMove = {
 
 export interface IChooseEventArg {
     event: EventCardID,
-    p: PlayerID
+    p: PlayerID,
     idx: number,
 }
 

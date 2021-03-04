@@ -43,9 +43,9 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
 
     const [checked, setChecked] = React.useState(Array(helpers.length).fill(false));
 
-    React.useEffect(()=>{
+    React.useEffect(() => {
         setChecked(Array(helpers.length).fill(false))
-    },[helpers])
+    }, [helpers])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let newHelper = [...checked]
@@ -126,7 +126,13 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             <Typography>
                 {i18n.dialog.buyCard.board}
                 {getCardName(card)}
-                {targetCard.category === CardCategory.BASIC ? `(${G.basicCards[card as BasicCardID]})` : ""}
+
+                {targetCard.category === CardCategory.BASIC ?
+                    `(${
+                        // @ts-ignore
+                        G.basicCards[card]
+                    })` :
+                    ""}
             </Typography>
         </Button>
         <Dialog onClose={handleClose} open={open}>
@@ -214,7 +220,7 @@ export const Comment = ({slot, comment, G}: ICommentProps) => {
     }
 
     const doComment = (choice: string) => {
-        comment(slot, choice as BasicCardID)
+        comment(slot, choice as BasicCardID);
     }
 
     return slot.comment === null ? <ChoiceDialog

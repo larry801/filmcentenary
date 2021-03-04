@@ -21,7 +21,7 @@ import AestheticsIcon from '@material-ui/icons/ImportContacts';
 import IndustryIcon from '@material-ui/icons/Settings';
 import ResourceIcon from '@material-ui/icons/MonetizationOn';
 import DepositIcon from '@material-ui/icons/LocalAtm';
-import {generate} from "shortid";
+import { nanoid } from "nanoid";
 import {getCardName} from "./card";
 import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
 import PanToolIcon from "@material-ui/icons/PanTool";
@@ -158,20 +158,21 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                                 const share = i.shares[r];
                                 const legend = legendCount(r);
                                 const rank = getPlayerRegionRank(G, ctx, playerID, r);
+                                const rankEraHint:IEra = rank;
                                 const rankHintIcon = rank === -1 ? <NoScoringCardIcon className={classes.iconAlign}/> :
                                     <ChampionIcon champion={{
                                         region: r,
-                                        era: rank as IEra,
+                                        era: rankEraHint,
                                     }}/>;
-                                return <Grid container key={generate()}>
-                                    <Grid item xs={4} key={generate()}>
-                                        <DrawnShareIcon key={generate()} r={r}/>
+                                return <Grid container key={nanoid()}>
+                                    <Grid item xs={4} key={nanoid()}>
+                                        <DrawnShareIcon key={nanoid()} r={r}/>
                                         {share}
                                     </Grid>
-                                    <Grid item xs={4} key={generate()}>
+                                    <Grid item xs={4} key={nanoid()}>
                                         {rankHintIcon}
                                     </Grid>
-                                    <Grid item xs={4} key={generate()}>
+                                    <Grid item xs={4} key={nanoid()}>
                                         <LegendCardIcon key={idx} style={{color: getColor(r)}}/>
                                         {legend}
                                     </Grid>
@@ -192,7 +193,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                 </Paper>
             }
             {i.champions.length > 0 ? <Paper aria-label={championAriaLabel()}>
-                {i.champions.map((c: Champion) => <ChampionIcon key={generate()} champion={c}/>)}
+                {i.champions.map((c: Champion) => <ChampionIcon key={nanoid()} champion={c}/>)}
             </Paper> : <></>}
         </Grid>
 

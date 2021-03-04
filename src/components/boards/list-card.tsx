@@ -17,7 +17,8 @@ export const getMoveText = (l: LogEntry): string => {
     const pid = l.action.payload.playerID
     switch (l.action.type) {
         case "MAKE_MOVE":
-            const moveName = l.action.payload.type as MoveNames
+            const originalName = l.action.payload.type;
+            const moveName = originalName;
             if (moveName === MoveNames.requestEndTurn) {
                 return `p${pid}.moves.requestEndTurn("${pid}");`
             } else {
@@ -45,7 +46,7 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string,
                 return "";
             }
         case "MAKE_MOVE":
-            let moveName = l.action.payload.type as MoveNames
+            let moveName = l.action.payload.type;
             if (moveName === MoveNames.chooseEffect) {
                 return getPlayerName(l.action.payload.playerID) + i18n.effect.chose + effName(
                     // @ts-ignore
@@ -60,6 +61,7 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string,
                     // @ts-ignore
                     return `${getPlayerName(l.action.payload.playerID)}${i18n.moves[moveName]({args: l.action.payload.args})}${res}`
                 } else {
+                    // @ts-ignore
                     return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
                         // @ts-ignore
                         args: l.action.payload.args

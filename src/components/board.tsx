@@ -26,7 +26,7 @@ import {useI18n} from "@i18n-chain/react";
 import OperationPanel from "./boards/operation";
 import FinalScoreTable from "./boards/final";
 import {getCardName} from "./card";
-import {generate} from "shortid"
+import { nanoid } from "nanoid";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
 import SetupPanel from "./boards/setup-game-mode";
@@ -57,7 +57,19 @@ export function usePrevious(value: any) {
     return ref.current;
 }
 
-export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plugins, matchData, matchID, playerID, isActive}: BoardProps<IG>) => {
+export const FilmCentenaryBoard = ({
+                                       G,
+                                       log,
+                                       ctx,
+                                       events,
+                                       moves,
+                                       undo,
+                                       redo,
+                                       matchData,
+                                       matchID,
+                                       playerID,
+                                       isActive
+                                   }: BoardProps<IG>) => {
 
     useI18n(i18n);
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
@@ -142,10 +154,13 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
         <Grid item container xs={12} sm={7}>
             <Grid item xs={12} sm={6}>
                 <Typography>
-                    {valid_regions.map(r =>
-                        <React.Fragment key={generate()}>
-                            <DrawnShareIcon r={r}/>{G.regions[r as 0 | 1 | 2 | 3].share}
-                        </React.Fragment>)}
+                    {valid_regions.map(r => {
+                        const regionIdx: 0 | 1 | 2 | 3 = r;
+                        const region = G.regions[regionIdx];
+                        return <React.Fragment key={nanoid()}>
+                            <DrawnShareIcon r={r}/>{region.share}
+                        </React.Fragment>;
+                    })}
                     <ChampionIcon champion={{
                         region: Region.NONE,
                         era: G.twoPlayer.era
@@ -278,7 +293,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
                     </Paper> </Grid> : <></>}
             {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
                 <Grid item xs={4}>
-                    <Typography>{`${i18n.pub.events}(${G.eventDeckCount})`}</Typography
+                    <Typography>{`${i18n.pub.events}(${G.eventDeckLength})`}</Typography
                     ></Grid>
                 {G.events.map((e: EventCardID, idx: number) => <Grid key={idx} item xs={4}>
                     <Paper key={idx} elevation={5}>
@@ -302,7 +317,7 @@ export const FilmCentenaryBoard = ({G, log, ctx, events, moves, undo, redo, plug
             {G.order.map((i: PlayerID) =>
                 <Grid item sm={6} lg={3} key={`grid-pub-panel-${i}-${playerID}`}>
                     <ErrorBoundary>
-                        <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(i)]} key={generate()} G={G} idx={parseInt(i)}
+                        <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(i)]} key={nanoid()} G={G} idx={parseInt(i)}
                                   getName={getName}/>
                     </ErrorBoundary>
                 </Grid>

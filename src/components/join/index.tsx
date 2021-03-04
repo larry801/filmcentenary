@@ -36,7 +36,7 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
                 setCredentials(loadedCredential);
                 history.push(`/join/${matchID}/${player}/${loadedCredential}`)
             } else {
-                if (player !== Player.spectate) {
+                if (player !== Player.SPECTATE) {
                     joinMatch(serverURL, matchID, player)
                         .then((responseCredential) => {
                             saveCredentials(matchID, player, responseCredential);
@@ -49,7 +49,7 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
                 }
             }
         }
-        if (player !== Player.spectate) {
+        if (player !== Player.SPECTATE) {
             getMatch(serverURL, matchID)
                 .then((data) => {
                     setNumPlayers(data.players.size)
@@ -72,7 +72,7 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
 
         }
     }
-    const gameContent = player === Player.spectate ?
+    const gameContent = player === Player.SPECTATE ?
         <Spectate
             matchID={matchID}
             server={serverURL}/> :

@@ -21,7 +21,7 @@ export const ShareLink = ({matchID, player, numPlayer}: ShareLinkProps) => {
     const p1URL = Player.P1 !== player ? urlPrefix + Player.P1 : "";
     const p2URL = Player.P2 !== player && numPlayer > 2 ? urlPrefix + Player.P2 : "";
     const p3URL = Player.P3 !== player && numPlayer > 3 ? urlPrefix + Player.P3 : "";
-    const spectateURL = urlPrefix + Player.spectate;
+    const spectateURL = urlPrefix + Player.SPECTATE;
 
     const onCopy = () => {
         const copyText = [
@@ -48,7 +48,7 @@ export const ShareLink = ({matchID, player, numPlayer}: ShareLinkProps) => {
         {Player.P2 !== player && numPlayer > 2 && <Typography>{p2URL}</Typography>}
         {Player.P3 !== player && numPlayer > 3 && <Typography>{p3URL}</Typography>}
         <Typography>{i18n.playerName.spectator}</Typography>
-        <Typography>{urlPrefix + Player.spectate}</Typography>
+        <Typography>{urlPrefix + Player.SPECTATE}</Typography>
     </>
 }
 

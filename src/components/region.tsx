@@ -4,7 +4,6 @@ import {
     BuildingType,
     getCardById,
     ICardSlot,
-    INormalOrLegendCard,
     IRegionInfo,
     Region,
     SimpleRuleNumPlayers,
@@ -34,7 +33,7 @@ import AccordionDetails from "@material-ui/core/AccordionDetails";
 import DeckIcon from '@material-ui/icons/Layers';
 import CardInfo, {getCardName} from "./card";
 import {ChampionIcon, DrawnShareIcon, getColor} from "./icons";
-import {generate} from "shortid"
+import { nanoid } from "nanoid";
 
 export interface ICardSlotProp {
     slot: ICardSlot,
@@ -51,16 +50,16 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
 
     const updateSlot = () => {
         moves.updateSlot({
-            slot:slot,
-            p:playerID,
-            cardId:slot.card,
-            updateHistoryIndex:G.updateCardHistory.length,
+            slot: slot,
+            p: playerID,
+            cardId: slot.card,
+            updateHistoryIndex: G.updateCardHistory.length,
         });
     }
 
-    const cardObj = slot.card === null ? {} as INormalOrLegendCard : getCardById(slot.card);
+    const cardObj = slot.card === null ? getCardById("B07") : getCardById(slot.card);
     const feeText = slot.card === null ? "" : `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}/${cardObj.vp}`
-    const region = cardObj.region
+    const region = slot.card === null ? Region.NA : cardObj.region;
     return <>
         <Paper variant={variant}>
             <Grid container>
@@ -256,7 +255,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                         /></Grid>
                     {normal.map((slot) => {
                         if (slot.card !== null) {
-                            return <Grid item key={generate()} xs={12} md={6}>
+                            return <Grid item key={nanoid()} xs={12} md={6}>
                                 <BoardCardSlot
                                     moves={moves}
                                     G={G} ctx={ctx} slot={slot}
@@ -264,7 +263,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                                 />
                             </Grid>
                         } else {
-                            return <React.Fragment key={generate()}/>
+                            return <React.Fragment key={nanoid()}/>
                         }
                     })}
                 </Grid>

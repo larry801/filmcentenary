@@ -38,7 +38,7 @@ export type CardID = BasicCardID | ClassicCardID | ScoreCardID | EventCardID;
 export interface ICardSlot {
     region: Region,
     isLegend: boolean,
-    card: ClassicCardID | null
+    card: ClassicCardID | null,
     comment: BasicCardID | null,
 }
 
@@ -86,8 +86,8 @@ export function cost(r: number, i: number, a: number): ICost {
 }
 
 export interface INormalOrLegendCard extends ICard {
-    readonly category: CardCategory,
-    readonly type: CardType,
+    category: CardCategory,
+    type: CardType,
     cost: ICost,
     vp: number,
     industry: number,
@@ -97,7 +97,7 @@ export interface INormalOrLegendCard extends ICard {
 }
 
 export interface IBasicCard extends ICard {
-    readonly category: CardCategory.BASIC,
+    category: CardCategory.BASIC,
     cost: ICost,
     vp: number,
     industry: number,
@@ -105,11 +105,11 @@ export interface IBasicCard extends ICard {
 }
 
 export interface ISchoolCard extends INormalOrLegendCard {
-    readonly type: CardType.S,
+    type: CardType.S,
 }
 
 export interface IFilmCard extends INormalOrLegendCard {
-    readonly type: CardType.F,
+    type: CardType.F,
 }
 
 export type EffectNames = SimpleEffectNames | ScoringEffectNames | NoExecutorEffectNames | ItrEffects;

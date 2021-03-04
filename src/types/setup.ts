@@ -107,7 +107,7 @@ export interface IG {
         "B01": number,
         "B02": number,
         "B03": number,
-        "B04": number
+        "B04": number,
         "B05": number,
         "B06": number,
         "B07": number,

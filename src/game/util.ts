@@ -228,7 +228,8 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "skipBreakthrough":
             return;
         case "shareToVp":
-            addVp(G, ctx, p, pub.shares[eff.a as ValidRegion]);
+            const shareRegion:ValidRegion = eff.a;
+            addVp(G, ctx, p, pub.shares[shareRegion]);
             return;
         case "loseVpForEachHand":
             loseVp(G, ctx, p, G.player[parseInt(p)].hand.length);
@@ -380,10 +381,12 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
     }
     if (card.category === CardCategory.BASIC) {
         log += `|basic`;
-        const basicCount = G.basicCards[card.cardId as BasicCardID];
+        // @ts-ignore
+        const convertBasicID:BasicCardID = card.cardId;
+        const basicCount = G.basicCards[convertBasicID];
         if (basicCount > 0) {
-            G.basicCards[card.cardId as BasicCardID] -= 1;
-            log += `|${G.basicCards[card.cardId as BasicCardID]}|left`
+            G.basicCards[convertBasicID] -= 1;
+            log += `|${G.basicCards[convertBasicID]}|left`
         } else {
             log += `|${card.cardId}|depleted`
             logger.debug(`${G.matchID}|${log}`);

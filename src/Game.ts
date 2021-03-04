@@ -26,11 +26,11 @@ import {getExtraScoreForFinal} from "./game/util";
 import {enumerateMoves} from "./game/ai";
 
 export enum Player {
-    'P0' = '0',
-    'P1' = '1',
-    'P2' = '2',
-    'P3' = '3',
-    'spectate' = 'spectate',
+    P0 = '0',
+    P1 = '1',
+    P2 = '2',
+    P3 = '3',
+    SPECTATE = 'spectate',
 }
 
 export const nameOf = (p: Player) => {
@@ -60,7 +60,7 @@ export const FilmCentenaryGame: Game<IG> = {
     maxPlayers: 4,
     playerView: (G: IG, ctx: Ctx, playerID: PlayerID | null) => {
         let r = JSON.parse(JSON.stringify(G));
-        r.eventDeckCount = G.secretInfo.events.length;
+        r.eventDeckLength = G.secretInfo.events.length;
         valid_regions.forEach(region => {
             r.regions[region].legendDeckLength = G.secretInfo.regions[region].legendDeck.length;
             r.regions[region].normalDeckLength = G.secretInfo.regions[region].normalDeck.length;

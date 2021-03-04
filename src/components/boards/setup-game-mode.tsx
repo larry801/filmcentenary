@@ -22,7 +22,8 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     const [order, setOrder] = React.useState(GameTurnOrder.FIXED);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const newMode = event.target.value as GameMode;
+        // @ts-ignore
+        const newMode: GameMode = event.target.value;
         setMode(newMode);
         moves.setupGameMode({
             mode: newMode,
@@ -31,7 +32,8 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     };
 
     const handleFirstPlayerChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const newOrder = event.target.value as GameTurnOrder;
+        // @ts-ignore
+        const newOrder:GameTurnOrder = event.target.value;
         setOrder(newOrder);
         moves.setupGameMode({
             mode: mode,

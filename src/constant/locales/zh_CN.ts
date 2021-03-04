@@ -320,7 +320,8 @@ const argShowBoardStatus = {
         let t = "牌列中有";
         if (arg[0].regions.length > 0) {
             arg[0].regions.forEach((r, idx) => {
-                t += region[idx as ValidRegion];
+                const cardRegion:ValidRegion = idx ;
+                t += region[cardRegion];
                 t += '：';
                 if (r.legend.card !== null) {
                     t += "传奇："
@@ -721,9 +722,11 @@ const zh_CN: Locale = {
                     case "industry":
                         return "把其中有工业标志的"
                     case "era":
-                        return `把其中${era[e.a as IEra]}时代的`
+                        // @ts-ignore
+                        return `把其中${era[e.a]}时代的`
                     case "region":
-                        return `把其中${region[e.a as Region]}地区的`
+                        // @ts-ignore
+                        return `把其中${region[e.a]}地区的`
                     case "aesthetics":
                         return "把其中有美学标志的"
                     default:
