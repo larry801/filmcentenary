@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  login:
+  docker_image:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo

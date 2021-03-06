@@ -3123,8 +3123,16 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
     if (valid_regions
         .filter(r => G.regions[r].completedModernScoring)
         .length >= 3) {
-        log += "3orMoreRegion|completedModernScoring|lastRound"
-        G.pending.lastRoundOfGame = true;
+        log += "3orMoreRegion|completedModernScoring"
+        if(ctx.currentPlayer === getExistingLastMovePlayer(G)){
+            log += `|finalScoring`
+            logger.debug(`${G.matchID}|${log}`);
+            finalScoring(G, ctx);
+            return;
+        }else{
+            log += "|lastRound"
+            G.pending.lastRoundOfGame = true
+        }
     }
     logger.debug(`${G.matchID}|${log}`);
 }
