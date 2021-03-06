@@ -3,10 +3,13 @@ import {
     CardCategory,
     CardID,
     Champion,
-    getCardById, IPubInfo,
+    getCardById,
+    IEra,
+    IPubInfo,
+    SchoolCardID,
     SimpleRuleNumPlayers,
-    ValidRegion,
-    valid_regions, IEra
+    valid_regions,
+    ValidRegion
 } from "../types/core";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
@@ -21,11 +24,11 @@ import AestheticsIcon from '@material-ui/icons/ImportContacts';
 import IndustryIcon from '@material-ui/icons/Settings';
 import ResourceIcon from '@material-ui/icons/MonetizationOn';
 import DepositIcon from '@material-ui/icons/LocalAtm';
-import { nanoid } from "nanoid";
+import {nanoid} from "nanoid";
 import {getCardName} from "./card";
 import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
 import PanToolIcon from "@material-ui/icons/PanTool";
-import {Ctx, PlayerID} from "boardgame.io";
+import {Ctx, LogEntry, PlayerID} from "boardgame.io";
 import {ActionPointIcon, ChampionIcon, DrawnShareIcon, getColor} from "./icons";
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import Paper from "@material-ui/core/Paper";
@@ -34,7 +37,6 @@ import LegendCardIcon from '@material-ui/icons/StarBorder';
 import {getPlayerInferredHand} from "../game/board-util";
 import {getPlayerRegionRank} from "../game/util";
 import TextField from '@material-ui/core/TextField';
-import {LogEntry} from "boardgame.io";
 import {CardList, getLogText} from "./boards/list-card";
 import ErrorBoundary from "./error";
 
@@ -90,7 +92,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
         return labelText
     }
     const cloneLog = [...log]
-    const reverseLog = cloneLog.filter(l => l.action.payload.playerID === playerID).reverse().slice(0,40);
+    const reverseLog = cloneLog.filter(l => l.action.payload.playerID === playerID).reverse().slice(0, 40);
     const playerLogText = reverseLog.map(l => getLogText(l, getName, G)).join('\n');
 
     return <Grid container item key={`pub${idx}-${playerID}`}>
@@ -143,7 +145,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
             {i.school !== null ?
                 <>
                     <CardList
-                        title={`${getCardName(i.school)}`}
+                        title={`${getCardName(i.school)}${i.school === SchoolCardID.S3101 ? (i.newHollyWoodUsed ? "(x)" : "(*)") : ""}`}
                         cards={[i.school]}
                         label={
                             <Typography>
@@ -158,7 +160,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                                 const share = i.shares[r];
                                 const legend = legendCount(r);
                                 const rank = getPlayerRegionRank(G, ctx, playerID, r);
-                                const rankEraHint:IEra = rank;
+                                const rankEraHint: IEra = rank;
                                 const rankHintIcon = rank === -1 ? <NoScoringCardIcon className={classes.iconAlign}/> :
                                     <ChampionIcon champion={{
                                         region: r,
