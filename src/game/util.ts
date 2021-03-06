@@ -953,16 +953,13 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     if (G.competitionInfo.pending) {
         log += `|inCompetition`
         if (
-            eff.e === ItrEffects.era
-            || eff.e === SimpleEffectNames.res
-            || eff.e === SimpleEffectNames.loseVp
-            || eff.e === ItrEffects.step
-            || eff.e === ItrEffects.choice
+            eff.e === ItrEffects.choice
+            || eff.e === ItrEffects.era
             || eff.e === ItrEffects.pay
-            || eff.e === ItrEffects.anyRegionShare
-            || eff.e === ItrEffects.anyRegionShareCentral
+            || eff.e === ItrEffects.step
+            || eff.e === SimpleEffectNames.res
         ) {
-            log += `|validEffect|Continue`;
+            log += `|validEffect|continue`;
         } else {
             log += `|otherEffect|checkNextEffect`;
             logger.debug(`${G.matchID}|${log}`);
@@ -2890,7 +2887,6 @@ export const competitionCleanUp = (G: IG, ctx: Ctx) => {
     let log = `competitionCleanUp|checkNextEffect`
     let i = G.competitionInfo;
     i.region = Region.NONE;
-    i.pending = false;
     i.progress = 0;
     i.atkCard = null;
     i.defCard = null;
@@ -2928,6 +2924,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
             log += `|noWinner`
         }
     }
+    G.competitionInfo.pending = false;
     if (i.progress > 0) {
         addVp(G, ctx, i.atk, i.progress);
         let schoolId = G.pub[parseInt(i.def)].school;

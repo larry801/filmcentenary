@@ -51,6 +51,6 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: Dockerfile.ci
+          file: Dockerfile.web
           push: true
           tags: larry801/film-centenary:latest

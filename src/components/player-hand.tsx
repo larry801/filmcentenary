@@ -99,7 +99,7 @@ export const PlayerHand = ({G, ctx, moves, playerID}: { moves: Record<string, (.
                         <Typography aria-label={i18n.era[era]}>
                             <ChampionIcon champion={{region: card.region, era: era}}/>
                         </Typography> : <></>}
-                    <Typography style={{color: getColor(card.region)}}>{`${card.cardId}/${card.vp}`}</Typography>
+                    <Typography style={{color: getColor(card.region)}}>{`${card.cardId}/${card.vp}VP`}</Typography>
                 </AccordionSummary>
                 <AccordionDetails key={idx}>
                     <Grid container>
