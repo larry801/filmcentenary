@@ -7,7 +7,9 @@ on:
 
 jobs:
   docker_image:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
+    env:
+      SHA8: ${GITHUB_SHA::8}
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
@@ -38,7 +40,7 @@ jobs:
           context: .
           file: Dockerfile.builder
           push: true
-          tags: larry801/film-centenary-builder:latest
+          tags: larry801/film-centenary-builder:latest,larry801/film-centenary-builder:${SHA8}
       - name: Build and push base image
         if: steps.base-dependency-check.outputs.cache-hit != 'true'
         uses: docker/build-push-action@v2
@@ -46,11 +48,11 @@ jobs:
           context: .
           file: Dockerfile.base
           push: true
-          tags: larry801/film-centenary-base:latest
+          tags: larry801/film-centenary-base:latest,larry801/film-centenary-base:${SHA8}
       - name: Build and push app image
         uses: docker/build-push-action@v2
         with:
           context: .
           file: Dockerfile.web
           push: true
-          tags: larry801/film-centenary:latest
+          tags: larry801/film-centenary:latest,larry801/film-centenary:${SHA8}
