@@ -12,6 +12,11 @@ import DialogContent from "@material-ui/core/DialogContent";
 import Paper from "@material-ui/core/Paper";
 import DialogActions from "@material-ui/core/DialogActions";
 import {IG} from "../../types/setup";
+import PrestigeIcon from "@material-ui/icons/EmojiEvents";
+import AestheticsIcon from "@material-ui/icons/ImportContacts";
+import IndustryIcon from "@material-ui/icons/Settings";
+import ResourceIcon from "@material-ui/icons/MonetizationOn";
+import Typography from "@material-ui/core/Typography";
 
 export const getMoveText = (l: LogEntry): string => {
     const pid = l.action.payload.playerID
@@ -116,10 +121,22 @@ export const CardList = ({cards, title, label}: ICardListProps) => {
             <DialogContent>
                 {cards.map(c => {
                         const cardObj = getCardById(c);
-                        const feeText = cardObj.cost ? `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}/${cardObj.vp}` : `${c}(${cardObj.vp})`;
                         return <Paper variant="outlined" key={title + c}>
                             <CardInfo cid={c}/>
-                            {feeText}
+                            <Typography
+                                style={{
+                                    display:'inline-flex',
+                                    verticalAlign:'middle'
+                                }}>
+                                <ResourceIcon/>
+                                {cardObj.cost.res}
+                                <IndustryIcon/>
+                                {cardObj.cost.industry}
+                                <AestheticsIcon/>
+                                {cardObj.cost.aesthetics}
+                                <PrestigeIcon/>
+                                {cardObj.vp}
+                            </Typography>
                         </Paper>
                     }
                 )}

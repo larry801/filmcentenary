@@ -51,7 +51,8 @@ const useStyles = makeStyles({
         padding: '0 30px',
     },
     iconAlign: {
-        verticalAlign: "-0.25em"
+        display: 'inline-flex',
+        verticalAlign: "middle"
     }
 });
 
@@ -114,31 +115,32 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
             />
         </Grid>
         <Grid item sm={3}>
-            <Typography>
+            <Typography className={classes.iconAlign}>
                 {getName(idx.toString())}
             </Typography>
-            <Typography aria-label={`${i18n.pub.handSize}${i.handSize}`}>
-                <PanToolIcon className={classes.iconAlign}/>{i.handSize}
+            <Typography aria-label={`${i18n.pub.handSize}${i.handSize}`} className={classes.iconAlign}>
+                <PanToolIcon/>{i.handSize}
             </Typography>
-            <Typography>
-                <ResourceIcon className={classes.iconAlign}/> {i.resource}
+            <Typography aria-label={`${i18n.pub.res}${i.resource}`} className={classes.iconAlign}>
+                <ResourceIcon /> {i.resource}
             </Typography>
-            <Typography>
-                <DepositIcon className={classes.iconAlign}/>{i.deposit}
+            <Typography aria-label={`${i18n.pub.deposit}${i.deposit}`} className={classes.iconAlign}>
+                <DepositIcon/>{i.deposit}
             </Typography>
         </Grid>
         <Grid item sm={3}>
-            <Typography aria-label={`${i18n.pub.industry}${i.industry}`}>
-                <IndustryIcon className={classes.iconAlign}/> {i.industry}
+            <Typography aria-label={`${i18n.pub.industry}${i.industry}`} className={classes.iconAlign}>
+                <IndustryIcon/> {i.industry}
                 {i.school !== null && getCardById(i.school).industry > 0 ? `(+${getCardById(i.school).industry})` : ""}
             </Typography>
-            <Typography aria-label={`${i18n.pub.aesthetics}${i.aesthetics}`}>
-                <AestheticsIcon className={classes.iconAlign}/> {i.aesthetics}
+            <Typography aria-label={`${i18n.pub.aesthetics}${i.aesthetics}`} className={classes.iconAlign}>
+                <AestheticsIcon/> {i.aesthetics}
                 {i.school !== null && getCardById(i.school).aesthetics > 0 ? `(+${getCardById(i.school).aesthetics})` : ""}
             </Typography>
-            <Typography aria-label={`${i18n.pub.action}${i.action}`}>
+            <Typography aria-label={`${i18n.pub.action}${i.action}`} className={classes.iconAlign}>
                 <ActionPointIcon/> {i.action}</Typography>
-            <Typography aria-label={`${i18n.pub.vp}${i.vp}`}> <EmojiEventsIcon className={classes.iconAlign}/> {i.vp}
+            <Typography aria-label={`${i18n.pub.vp}${i.vp}`} className={classes.iconAlign}>
+                <EmojiEventsIcon/> {i.vp}
             </Typography>
         </Grid>
         <Grid item sm={3}>
@@ -204,14 +206,14 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                 title={`${i18n.pub.discard}${i.discard.length}`}
                 cards={i.discard}
                 label={
-                    <Typography><DiscardDeckIcon className={classes.iconAlign}/>{i.discard.length}</Typography>
+                    <Typography className={classes.iconAlign}><DiscardDeckIcon />{i.discard.length}</Typography>
                 }
             />
             <CardList
                 cards={possibleHand} label={
-                <Typography>
-                    <PanToolIcon className={classes.iconAlign}/>
-                    <DeckIcon className={classes.iconAlign}/>
+                <Typography className={classes.iconAlign}>
+                    <PanToolIcon />
+                    <DeckIcon />
                     {possibleHand.length}
                 </Typography>
             } title={
@@ -220,8 +222,8 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
             {i.revealedHand.length > 0 ?
                 <CardList
                     cards={i.revealedHand} label={
-                    <Typography>
-                        <PanToolIcon className={classes.iconAlign}/>{i.revealedHand.length}
+                    <Typography className={classes.iconAlign}>
+                        <PanToolIcon />{i.revealedHand.length}
                     </Typography>
                 }
                     title={`${i18n.pub.revealedHand}(${i.revealedHand.length})`}/>
@@ -229,12 +231,12 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
             <CardList
                 cards={i.archive}
                 title={`${i18n.pub.archive}(${i.archive.length})`}
-                label={<Typography><ArchiveIcon className={classes.iconAlign}/>{i.archive.length} </Typography>}
+                label={<Typography className={classes.iconAlign}><ArchiveIcon />{i.archive.length} </Typography>}
             />
             <CardList
                 cards={i.playedCardInTurn} title={`${i18n.pub.playedCards}(${i.playedCardInTurn.length})`}
-                label={<Typography>
-                    <PlayedCardDeck className={classes.iconAlign}/>{i.playedCardInTurn.length}
+                label={<Typography className={classes.iconAlign}>
+                    <PlayedCardDeck />{i.playedCardInTurn.length}
                 </Typography>}/>
         </Grid>
     </Grid>
