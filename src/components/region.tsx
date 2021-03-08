@@ -33,7 +33,11 @@ import AccordionDetails from "@material-ui/core/AccordionDetails";
 import DeckIcon from '@material-ui/icons/Layers';
 import CardInfo, {getCardName} from "./card";
 import {ChampionIcon, DrawnShareIcon, getColor} from "./icons";
-import { nanoid } from "nanoid";
+import {nanoid} from "nanoid";
+import PrestigeIcon from "@material-ui/icons/EmojiEvents";
+import ResourceIcon from "@material-ui/icons/MonetizationOn";
+import AestheticsIcon from "@material-ui/icons/ImportContacts";
+import IndustryIcon from "@material-ui/icons/Settings";
 
 export interface ICardSlotProp {
     slot: ICardSlot,
@@ -58,16 +62,34 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
     }
 
     const cardObj = slot.card === null ? getCardById("B07") : getCardById(slot.card);
-    const feeText = slot.card === null ? "" : `${cardObj.cost.res}/${cardObj.cost.industry}/${cardObj.cost.aesthetics}/${cardObj.vp}`
     const region = slot.card === null ? Region.NA : cardObj.region;
     return <>
         <Paper variant={variant}>
             <Grid container>
                 <Grid item xs={12}>
-                    {slot.card === null ? "" : <CardInfo cid={slot.card}/>}
-                    <Typography>{feeText}</Typography>
-                    {slot.card !== null && ctx.numPlayers <= SimpleRuleNumPlayers ?
-                        <Typography>{i18n.region[region]}</Typography> : <></>}
+                    {slot.card === null ? <></> :
+                        <>
+                            <CardInfo cid={slot.card}/>
+                            <Typography
+                                style={{
+                                    display:'inline-flex',
+                                    verticalAlign:'middle'
+                                }}>
+                                <ResourceIcon/>
+                                {cardObj.cost.res}
+                                <IndustryIcon/>
+                                {cardObj.cost.industry}
+                                <AestheticsIcon/>
+                                {cardObj.cost.aesthetics}
+                                <PrestigeIcon/>
+                                {cardObj.vp}
+                            </Typography>
+                            {
+                                ctx.numPlayers <= SimpleRuleNumPlayers ?
+                                    <Typography>{i18n.region[region]}</Typography> : <></>
+                            }
+                        </>
+                    }
                     <Typography>{slot.comment === null ? "" : getCardName(slot.comment)} </Typography>
                 </Grid>
                 {
