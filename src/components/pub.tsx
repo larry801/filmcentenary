@@ -96,7 +96,9 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
     const reverseLog = cloneLog.filter(l => l.action.payload.playerID === playerID).reverse().slice(0, 40);
     const playerLogText = reverseLog.map(l => getLogText(l, getName, G)).join('\n');
 
-    return <Grid container item key={`pub${idx}-${playerID}`}>
+    return <Grid container item
+                 justify="center" alignItems="center"
+                 key={`pub${idx}-${playerID}`}>
         <Grid item xs={12}>
             {/*<textarea*/}
             {/*    defaultValue={playerLogText}*/}
@@ -114,34 +116,62 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                 variant="filled"
             />
         </Grid>
-        <Grid item sm={3}>
-            <Typography className={classes.iconAlign}>
-                {getName(idx.toString())}
-            </Typography>
-            <Typography aria-label={`${i18n.pub.handSize}${i.handSize}`} className={classes.iconAlign}>
-                <PanToolIcon/>{i.handSize}
-            </Typography>
-            <Typography aria-label={`${i18n.pub.res}${i.resource}`} className={classes.iconAlign}>
-                <ResourceIcon /> {i.resource}
-            </Typography>
-            <Typography aria-label={`${i18n.pub.deposit}${i.deposit}`} className={classes.iconAlign}>
-                <DepositIcon/>{i.deposit}
-            </Typography>
+        <Grid
+            container
+            item
+            direction="column"
+            justify="center"
+            alignItems="center"
+            xs={3}>
+            <Grid item>
+                <Typography className={classes.iconAlign}>
+                    {getName(idx.toString())}
+                </Typography>
+            </Grid>
+            <Grid item>
+                <Typography aria-label={`${i18n.pub.handSize}${i.handSize}`} className={classes.iconAlign}>
+                    <PanToolIcon/>{i.handSize}
+                </Typography>
+            </Grid>
+            <Grid item>
+                <Typography aria-label={`${i18n.pub.res}${i.resource}`} className={classes.iconAlign}>
+                    <ResourceIcon/> {i.resource}
+                </Typography>
+            </Grid>
+            <Grid item>
+                <Typography aria-label={`${i18n.pub.deposit}${i.deposit}`} className={classes.iconAlign}>
+                    <DepositIcon/>{i.deposit}
+                </Typography>
+            </Grid>
         </Grid>
-        <Grid item sm={3}>
-            <Typography aria-label={`${i18n.pub.industry}${i.industry}`} className={classes.iconAlign}>
-                <IndustryIcon/> {i.industry}
-                {i.school !== null && getCardById(i.school).industry > 0 ? `(+${getCardById(i.school).industry})` : ""}
-            </Typography>
-            <Typography aria-label={`${i18n.pub.aesthetics}${i.aesthetics}`} className={classes.iconAlign}>
-                <AestheticsIcon/> {i.aesthetics}
-                {i.school !== null && getCardById(i.school).aesthetics > 0 ? `(+${getCardById(i.school).aesthetics})` : ""}
-            </Typography>
-            <Typography aria-label={`${i18n.pub.action}${i.action}`} className={classes.iconAlign}>
-                <ActionPointIcon/> {i.action}</Typography>
-            <Typography aria-label={`${i18n.pub.vp}${i.vp}`} className={classes.iconAlign}>
-                <EmojiEventsIcon/> {i.vp}
-            </Typography>
+        <Grid
+            container
+            item
+            direction="column"
+            justify="center"
+            alignItems="center"
+            xs={3}>
+            <Grid item>
+                <Typography aria-label={`${i18n.pub.industry}${i.industry}`} className={classes.iconAlign}>
+                    <IndustryIcon/> {i.industry}
+                    {i.school !== null && getCardById(i.school).industry > 0 ? `(+${getCardById(i.school).industry})` : ""}
+                </Typography>
+            </Grid>
+            <Grid item>
+                <Typography aria-label={`${i18n.pub.aesthetics}${i.aesthetics}`} className={classes.iconAlign}>
+                    <AestheticsIcon/> {i.aesthetics}
+                    {i.school !== null && getCardById(i.school).aesthetics > 0 ? `(+${getCardById(i.school).aesthetics})` : ""}
+                </Typography>
+            </Grid>
+            <Grid item>
+                <Typography aria-label={`${i18n.pub.action}${i.action}`} className={classes.iconAlign}>
+                    <ActionPointIcon/> {i.action}</Typography>
+            </Grid>
+            <Grid item>
+                <Typography aria-label={`${i18n.pub.vp}${i.vp}`} className={classes.iconAlign}>
+                    <EmojiEventsIcon/> {i.vp}
+                </Typography>
+            </Grid>
         </Grid>
         <Grid item sm={3}>
             {i.school !== null ?
@@ -168,15 +198,18 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                                         region: r,
                                         era: rankEraHint,
                                     }}/>;
-                                return <Grid container key={nanoid()}>
-                                    <Grid item xs={4} key={nanoid()}>
+                                return <Grid
+                                    justify="center"
+                                    alignItems="center"
+                                    container  key={nanoid()}>
+                                    <Grid item xs={4} key={nanoid()} className={classes.iconAlign}>
                                         <DrawnShareIcon key={nanoid()} r={r}/>
                                         {share}
                                     </Grid>
-                                    <Grid item xs={4} key={nanoid()}>
+                                    <Grid item xs={4} key={nanoid()} className={classes.iconAlign}>
                                         {rankHintIcon}
                                     </Grid>
-                                    <Grid item xs={4} key={nanoid()}>
+                                    <Grid item xs={4} key={nanoid()} className={classes.iconAlign}>
                                         <LegendCardIcon key={idx} style={{color: getColor(r)}}/>
                                         {legend}
                                     </Grid>
@@ -200,20 +233,19 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                 {i.champions.map((c: Champion) => <ChampionIcon key={nanoid()} champion={c}/>)}
             </Paper> : <></>}
         </Grid>
-
         <Grid item sm={3}>
             <CardList
                 title={`${i18n.pub.discard}${i.discard.length}`}
                 cards={i.discard}
                 label={
-                    <Typography className={classes.iconAlign}><DiscardDeckIcon />{i.discard.length}</Typography>
+                    <Typography className={classes.iconAlign}><DiscardDeckIcon/>{i.discard.length}</Typography>
                 }
             />
             <CardList
                 cards={possibleHand} label={
                 <Typography className={classes.iconAlign}>
-                    <PanToolIcon />
-                    <DeckIcon />
+                    <PanToolIcon/>
+                    <DeckIcon/>
                     {possibleHand.length}
                 </Typography>
             } title={
@@ -223,7 +255,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                 <CardList
                     cards={i.revealedHand} label={
                     <Typography className={classes.iconAlign}>
-                        <PanToolIcon />{i.revealedHand.length}
+                        <PanToolIcon/>{i.revealedHand.length}
                     </Typography>
                 }
                     title={`${i18n.pub.revealedHand}(${i.revealedHand.length})`}/>
@@ -231,12 +263,12 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
             <CardList
                 cards={i.archive}
                 title={`${i18n.pub.archive}(${i.archive.length})`}
-                label={<Typography className={classes.iconAlign}><ArchiveIcon />{i.archive.length} </Typography>}
+                label={<Typography className={classes.iconAlign}><ArchiveIcon/>{i.archive.length} </Typography>}
             />
             <CardList
                 cards={i.playedCardInTurn} title={`${i18n.pub.playedCards}(${i.playedCardInTurn.length})`}
                 label={<Typography className={classes.iconAlign}>
-                    <PlayedCardDeck />{i.playedCardInTurn.length}
+                    <PlayedCardDeck/>{i.playedCardInTurn.length}
                 </Typography>}/>
         </Grid>
     </Grid>

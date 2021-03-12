@@ -441,11 +441,13 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.twoPlayer.era = IEra.THREE;
     // G.regions[Region.ASIA].era = IEra.THREE;
     // @ts-ignore
+    // G.pub[0].allCards = ["B07","B07","B07","B07","B07","B07","B07","B07","B07","B07","B07","B07","B07","B07","B07",]
+    // @ts-ignore
     // G.secretInfo.playerDecks[0] = ["B01","F2403","B07","P2401"]
     // G.regions["2"].buildings[0].building = BuildingType.studio;
     // G.regions["2"].buildings[0].owner = "2";
     // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["F3104", "F3113", "F1211", "F3413", "V111",]
+    // G.player[firstMovePlayer].hand = ["F3104", "F3113", "F1211", "F3413", "V111",];
     // G.pub[3].shares[Region.NA] = 2;
     // G.pub[3].shares[Region.WE] = 2;
     // G.pub[3].shares[Region.EE] = 2;
