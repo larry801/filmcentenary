@@ -656,6 +656,7 @@ export const chooseRegion: LongFormMove = {
         let p = arg.p;
         const totalResource = pub.resource + pub.deposit;
         const reg = G.regions[r]
+        const i = G.competitionInfo;
         if (eff.e === "buildStudio" || eff.e === "buildCinema") {
             if (totalResource === 3) {
                 payCost(G, ctx, p, 3);
@@ -676,13 +677,27 @@ export const chooseRegion: LongFormMove = {
             }
         } else {
             switch (eff.e) {
-                case "loseAnyRegionShare":
+                case ItrEffects.loseAnyRegionShare:
                     p = G.c.players[0];
                     G.c.players = [];
                     G.pub[parseInt(p)].shares[r]--;
                     reg.share++;
                     break;
-                case "anyRegionShareCentral":
+                case ItrEffects.anyRegionShareCompetition:
+                    const loser = i.progress > 0 ? i.def : i.atk;
+                    G.pub[parseInt(loser)].shares[r]--;
+                    pub.shares[r]++;
+                    if (eff.a > 1) {
+                        eff.a--;
+                        G.e.stack.push(eff);
+                        break;
+                    } else {
+                        logger.debug(`${G.matchID}|${log}`);
+                        competitionCleanUp(G, ctx);
+                        return
+                    }
+                case ItrEffects.anyRegionShareCentral:
+                case ItrEffects.anyRegionShare:
                     pub.shares[r]++;
                     reg.share--;
                     if (eff.a > 1) {
@@ -690,41 +705,13 @@ export const chooseRegion: LongFormMove = {
                         G.e.stack.push(eff);
                     }
                     break;
-                case "anyRegionShare":
-                    let i = G.competitionInfo;
-                    if (i.pending) {
-                        let loser = i.progress > 0 ? i.def : i.atk;
-                        G.pub[parseInt(loser)].shares[r]--;
-                        pub.shares[r]++;
-                        if (eff.a > 1) {
-                            eff.a--;
-                            G.e.stack.push(eff);
-                            break;
-                        } else {
-                            logger.debug(`${G.matchID}|${log}`);
-                            competitionCleanUp(G, ctx);
-                            return
-                        }
-                    } else {
-                        pub.shares[r]++;
-                        reg.share--;
-                        if (eff.a > 1) {
-                            eff.a--;
-                            G.e.stack.push(eff);
-                            checkNextEffect(G, ctx);
-                            logger.debug(`${G.matchID}|${log}`);
-                            return;
-                        } else {
-                            break;
-                        }
-                    }
                 default:
                     throw new Error("Unknown effect cannot execute chooseRegion");
             }
         }
         G.e.regions = [];
-        checkNextEffect(G, ctx);
         logger.debug(`${G.matchID}|${log}`);
+        checkNextEffect(G, ctx);
         return;
     }
 }

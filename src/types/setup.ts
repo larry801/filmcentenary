@@ -424,7 +424,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
 
 
     // G.events[0] = EventCardID.E01;
-    // G.pub[0].resource = 20;
     // // @ts-ignore
     // G.regions[Region.NA].legend.card = "P1101"
     // G.regions[Region.WE].share = 1
@@ -446,7 +445,13 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.regions["2"].buildings[0].building = BuildingType.studio;
     // G.regions["2"].buildings[0].owner = "2";
     // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["P2102", "F2110", "F3108", "F1211", "F3413", "V111",]
+    // G.player[firstMovePlayer].hand = ["F3104", "F3113", "F1211", "F3413", "V111",]
+    // G.pub[3].shares[Region.NA] = 2;
+    // G.pub[3].shares[Region.WE] = 2;
+    // G.pub[3].shares[Region.EE] = 2;
+    // G.pub[3].shares[Region.ASIA] = 2;
+    // G.pub[firstMovePlayer].resource = 20;
+    // G.pub[firstMovePlayer].industry = 10;
     // @ts-ignore
     // G.pub[0].allCards = ["P2102", "F2110", "F3413", "V111",]
     // @ts-ignore

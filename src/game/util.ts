@@ -43,6 +43,8 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
+
+// noinspection JSUnusedLocalSymbols
 // eslint-disable-next-line
 const fastLoggerForDebug = {
     info: (log: string) => process.stdout.write(`info|${log}\n`),
@@ -546,11 +548,6 @@ export const studioPlayers = (G: IG, ctx: Ctx, r: Region, p = ctx.currentPlayer)
     }
 }
 
-export const buildingPlayers = (G: IG, ctx: Ctx, r: Region, p: PlayerID): PlayerID[] => {
-    if (r === Region.NONE) return [];
-    return seqFromPlayer(G, ctx, p).filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
-}
-
 export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region, p: PlayerID): PlayerID[] => {
     let log = `noBuildingPlayers|${r}`
     if (r === Region.NONE) {
@@ -625,13 +622,18 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
     return seq;
 }
 
-export const isSameTeam = (p: PlayerID, q: PlayerID): boolean => {
-    if (p === '0' || p === '2') {
-        return p === '0' || p === '2'
-    } else {
-        return p === '1' || p === '3'
-    }
-}
+// export const buildingPlayers = (G: IG, ctx: Ctx, r: Region, p: PlayerID): PlayerID[] => {
+//     if (r === Region.NONE) return [];
+//     return seqFromPlayer(G, ctx, p).filter(pid => cinemaInRegion(G, ctx, r, pid) || studioInRegion(G, ctx, r, pid));
+// }
+//
+// export const isSameTeam = (p: PlayerID, q: PlayerID): boolean => {
+//     if (p === '0' || p === '2') {
+//         return p === '0' || p === '2'
+//     } else {
+//         return p === '1' || p === '3'
+//     }
+// }
 
 export const opponentTeamPlayers = (p: PlayerID): PlayerID[] => {
     if (p === '0' || p === '2') {
@@ -728,9 +730,9 @@ export const getSchoolHandLimit = (G: IG, p: PlayerID): number => {
     }
 }
 
-export const schoolHandLowestPlayer = (G: IG): PlayerID[] => {
-    return lowest(G, getSchoolHandLimit);
-}
+// export const schoolHandLowestPlayer = (G: IG): PlayerID[] => {
+//     return lowest(G, getSchoolHandLimit);
+// }
 
 export const aesHighestPlayer = (G: IG): PlayerID[] => {
     return highestPlayer(G, (G, i) => G.pub[parseInt(i)].aesthetics);
@@ -958,6 +960,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             || eff.e === ItrEffects.pay
             || eff.e === ItrEffects.step
             || eff.e === SimpleEffectNames.res
+            || eff.e === SimpleEffectNames.resFromIndustry
         ) {
             log += `|validEffect|continue`;
         } else {
@@ -984,6 +987,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let subEffect;
     let extraCost = 0
     const totalRes = pub.resource + pub.deposit;
+    let i = G.competitionInfo;
     switch (eff.e) {
         case "playedCardInTurnEffect":
             if (pub.playedCardInTurn.filter(c => getCardById(c).aesthetics > 0 && c !== G.e.card).length > 0) {
@@ -1160,7 +1164,24 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 changePlayerStage(G, ctx, "chooseRegion", p);
                 return;
             }
-        case "anyRegionShareCentral":
+        case ItrEffects.anyRegionShareCompetition:
+            i = G.competitionInfo;
+            log += `|pendingCompetition`
+            const winner = i.progress > 0 ? i.atk : i.def;
+            const loser = i.progress > 0 ? i.def : i.atk;
+            G.e.regions = valid_regions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
+            if (G.e.regions.length === 0) {
+                log += "|loserNoShare";
+                break;
+            } else {
+                log += `|p${winner}|chooseRegion`
+                G.e.stack.push(eff)
+                logger.debug(`${G.matchID}|${log}`);
+                changePlayerStage(G, ctx, "chooseRegion", winner);
+                return;
+            }
+        case ItrEffects.anyRegionShare:
+        case ItrEffects.anyRegionShareCentral:
             G.e.regions = valid_regions.filter(r => G.regions[r].share > 0)
             if (G.e.regions.length === 0) {
                 log += "No share on board, cannot obtain from others."
@@ -1169,37 +1190,6 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 G.e.stack.push(eff)
                 changePlayerStage(G, ctx, "chooseRegion", p);
                 return;
-            }
-        case "anyRegionShare":
-            let i = G.competitionInfo;
-            if (i.pending) {
-                log += `|pendingCompetition`
-                let winner = i.progress > 0 ? i.atk : i.def;
-                let loser = i.progress > 0 ? i.def : i.atk;
-                G.e.regions = valid_regions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
-                if (G.e.regions.length === 0) {
-                    log += "|loserNoShare";
-                    logger.debug(`${G.matchID}|${log}`);
-                    competitionCleanUp(G, ctx);
-                    return;
-                } else {
-                    log += `|p${winner}|chooseRegion`
-                    G.e.stack.push(eff)
-                    logger.debug(`${G.matchID}|${log}`);
-                    changePlayerStage(G, ctx, "chooseRegion", winner);
-                    return;
-                }
-            } else {
-                G.e.regions = valid_regions.filter(r => G.regions[r].share > 0)
-                if (G.e.regions.length === 0) {
-                    log += "No share on board, cannot obtain from others."
-                    logger.debug(`${G.matchID}|${log}`);
-                    break;
-                } else {
-                    G.e.stack.push(eff)
-                    changePlayerStage(G, ctx, "chooseRegion", p);
-                    return;
-                }
             }
         case "handToAnyPlayer":
             log += `|handToAnyPlayer`
@@ -1971,54 +1961,54 @@ export const getPossibleHelper = (G: IG, ctx: Ctx, p: PlayerID, card: CardID): C
     return G.player[parseInt(p)].hand.filter((h) => canHelp(G, ctx, p, card as BasicCardID, h))
 }
 
-export const do2pUpdateSchoolSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
-    if (G.twoPlayer.era !== IEra.TWO) {
-        // 2p rule only show 2 school card for Era 1 and 3
-        // do not need to drawNewCard if not era two
-        if (slot.comment !== null) {
-            let commentId: BasicCardID = slot.comment;
-            G.basicCards[commentId]++;
-            slot.comment = null;
-        }
-        return;
-    } else {
-        let d;
-        d = G.secretInfo.twoPlayer.school;
-        if (d.length === 0) {
-            return;
-        } else {
-            let oldCard = slot.card;
-            let c = d.pop();
-            if (c !== undefined) {
-                slot.card = c;
-            }
-            if (oldCard !== null) {
-                d.push(oldCard as SchoolCardID);
-            }
-        }
-    }
-}
-export const do2pUpdateFilmSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
-    let d;
-    if (slot.comment !== null) {
-        let commentId: BasicCardID = slot.comment as BasicCardID;
-        G.basicCards[commentId]++;
-        slot.comment = null;
-    }
-    d = G.secretInfo.twoPlayer.school;
-    if (d.length === 0) {
-        return;
-    } else {
-        let oldCard = slot.card;
-        let c = d.pop();
-        if (c !== undefined) {
-            slot.card = c as unknown as ClassicCardID;
-        }
-        if (oldCard !== null) {
-            d.push(oldCard as unknown as SchoolCardID);
-        }
-    }
-}
+// export const do2pUpdateSchoolSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
+//     if (G.twoPlayer.era !== IEra.TWO) {
+//         // 2p rule only show 2 school card for Era 1 and 3
+//         // do not need to drawNewCard if not era two
+//         if (slot.comment !== null) {
+//             let commentId: BasicCardID = slot.comment;
+//             G.basicCards[commentId]++;
+//             slot.comment = null;
+//         }
+//         return;
+//     } else {
+//         let d;
+//         d = G.secretInfo.twoPlayer.school;
+//         if (d.length === 0) {
+//             return;
+//         } else {
+//             let oldCard = slot.card;
+//             let c = d.pop();
+//             if (c !== undefined) {
+//                 slot.card = c;
+//             }
+//             if (oldCard !== null) {
+//                 d.push(oldCard as SchoolCardID);
+//             }
+//         }
+//     }
+// }
+// export const do2pUpdateFilmSlot = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
+//     let d;
+//     if (slot.comment !== null) {
+//         let commentId: BasicCardID = slot.comment as BasicCardID;
+//         G.basicCards[commentId]++;
+//         slot.comment = null;
+//     }
+//     d = G.secretInfo.twoPlayer.school;
+//     if (d.length === 0) {
+//         return;
+//     } else {
+//         let oldCard = slot.card;
+//         let c = d.pop();
+//         if (c !== undefined) {
+//             slot.card = c as unknown as ClassicCardID;
+//         }
+//         if (oldCard !== null) {
+//             d.push(oldCard as unknown as SchoolCardID);
+//         }
+//     }
+// }
 
 export const fillEmptySlots = (G: IG): CardID[] => {
     let log = "fillEmptySlots";
@@ -2937,7 +2927,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     } else {
         const vp = -i.progress;
         addVp(G, ctx, i.def, vp);
-        let schoolId = G.pub[parseInt(i.atk)].school;
+        const schoolId = G.pub[parseInt(i.atk)].school;
         if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
             log += `|p${i.atk}|lose${vp}vp`
             loseVp(G, ctx, i.atk, vp);
@@ -2947,25 +2937,12 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     }
     if (hasWinner) {
         if (i.onWin.e !== "none") {
-            log += `|onWin${JSON.stringify(i.onWin)}`
-            if (i.onWin.e === "anyRegionShareCentral") {
-                log += `|moreShare${i.onWin.a}|playerEffExec|p${winner}`
-                G.e.stack.push({
-                    e: "anyRegionShare", a: 1
-                })
-                G.e.stack.push({...i.onWin})
-                logger.debug(`${G.matchID}|${log}`);
-                playerEffExec(G, ctx, winner);
-                return;
-            } else {
-                G.e.stack.push({...i.onWin});
-                i.onWin.e = "none";
-                simpleEffectExec(G, ctx, winner);
-            }
+            log += `|onWin|${JSON.stringify(i.onWin)}`
+            G.e.stack.push({...i.onWin})
         }
         log += `|getShareFromLoser`
         G.e.stack.push({
-            e: "anyRegionShare", a: 1
+            e: ItrEffects.anyRegionShareCompetition, a: 1
         })
         logger.debug(`${G.matchID}|${log}`);
         playerEffExec(G, ctx, winner);

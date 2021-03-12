@@ -746,6 +746,7 @@ const zh_CN: Locale = {
         loseShareEE: ["失去{{a}}个东欧地区的份额", argValue],
         loseShareASIA: ["失去{{a}}个亚洲地区的份额", argValue],
         anyRegionShare: ["获得{{a}}个任意地区的份额", argValue],
+        anyRegionShareCompetition: ["从争夺失败方获得{{a}}个任意地区的份额", argValue],
         newHollyWoodEff: "每回合仅限一次,获得1个任意地区的份额",
         anyRegionShareCentral: ["从中央牌列获得{{a}}个任意地区的份额", argValue],
         deductRes: ["少花费{{a}}资源", argValue],

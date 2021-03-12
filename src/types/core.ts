@@ -125,6 +125,7 @@ export enum ItrEffects {
     competition = "competition",
     loseAnyRegionShare = "loseAnyRegionShare",
     anyRegionShare = "anyRegionShare",
+    anyRegionShareCompetition = "anyRegionShareCompetition",
     newHollyWoodEff = "newHollyWoodEff",
     anyRegionShareCentral = "anyRegionShareCentral",
     noBuildingEE = "noBuildingEE",
