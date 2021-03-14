@@ -18,7 +18,8 @@ import {
     ValidRegion
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
-import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, logger, shuffle} from "../game/util";
+import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
+import {logger} from "../game/logger";
 
 export interface CompetitionInfo {
     region: Region,

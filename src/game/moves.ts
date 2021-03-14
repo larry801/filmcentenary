@@ -58,7 +58,6 @@ import {
     fillEmptySlots,
     fillEventCard,
     fillTwoPlayerBoard,
-    logger,
     loseVp,
     opponentTeamPlayers,
     payCost,
@@ -74,6 +73,7 @@ import {
 } from "./util";
 import {changePlayerStage, changeStage, signalEndPhase, signalEndStage} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
+import {logger} from "./logger";
 
 export interface IChangePlayerSettingArgs {
     classicFilmAutoMoveMode: ClassicFilmAutoMoveMode

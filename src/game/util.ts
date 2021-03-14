@@ -31,7 +31,8 @@ import {
     schoolCardsByEra,
     scoreCardCount,
     ScoreCardID,
-    ShareOnBoard, SimpleEffectNames,
+    ShareOnBoard,
+    SimpleEffectNames,
     SimpleRuleNumPlayers,
     TwoPlayerCardCount,
     valid_regions,
@@ -43,21 +44,7 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
-
-// noinspection JSUnusedLocalSymbols
-// eslint-disable-next-line
-const fastLoggerForDebug = {
-    info: (log: string) => process.stdout.write(`info|${log}\n`),
-    debug: (log: string) => process.stdout.write(`debug|${log}\n`),
-    error: (log: string) => process.stdout.write(`error|${log}\n`),
-}
-const normalRunLogger = {
-    info: (log: string) => console.log(`info|${log}`),
-    debug: (log: string) => console.log(`debug|${log}`),
-    error: (log: string) => console.log(`error|${log}`),
-}
-// export const logger = fastLoggerForDebug;
-export const logger = normalRunLogger;
+import {logger} from "./logger";
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -3192,16 +3179,24 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     let s = G.player[i];
     cleanUpScore(G, ctx, pid);
     let f = p.finalScoring;
+    let log = 'getExtraScoreForFinal';
+    const validID = [...G.secretInfo.playerDecks[i], ...p.discard, ...s.hand, ...p.playedCardInTurn]
     if (p.school !== null) {
+        log += `|school${getCardById(p.school).vp}|${f.card}`;
         f.card += getCardById(p.school).vp;
+        log += `|${f.card}`;
+        validID.push(p.school);
     }
-    let validID = [...G.secretInfo.playerDecks[i], ...p.discard, ...s.hand, ...p.playedCardInTurn]
-    let validCards = validID.map(c => getCardById(c));
+    const validCards = validID.map(c => getCardById(c));
     validCards.forEach(c => {
         f.card += c.vp
     });
-    if (p.building.cinemaBuilt) f.building += 3;
-    if (p.building.studioBuilt) f.building += 3;
+    if (p.building.cinemaBuilt) {
+        f.building += 3;
+    }
+    if (p.building.studioBuilt) {
+        f.building += 3;
+    }
     if (p.industry === 10) {
         G.initialOrder.forEach(j => {
             let each = G.pub[parseInt(j)];
@@ -3256,7 +3251,9 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     if (validID.includes(PersonCardID.P3401)) {
         f.events += validCards.filter(c => c.type === CardType.P).length * 4
     }
-    f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events
+    f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events;
+    log += `|total:${f.total}`;
+    logger.debug(`${G.matchID}|${log}`);
 }
 
 export const schoolPlayer = (G: IG, ctx: Ctx, cardId: CardID): PlayerID | null => {

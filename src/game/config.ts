@@ -26,10 +26,10 @@ import {
     aesAward,
     curPub,
     drawCardForPlayer,
-    industryAward,
-    logger
+    industryAward
 } from "./util";
 import {SchoolCardID} from "../types/core";
+import {logger} from "./logger";
 
 export const payAdditionalCostStage: StageConfig = {
     moves: {
