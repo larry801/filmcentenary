@@ -196,6 +196,45 @@ export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
+export function buyCardEffectPrepare(G: IG, ctx: Ctx, cardID: CardID, p: PlayerID) {
+    const log = [`buyCardEffectPrepare|card|${cardID}|p${p}`];
+    const pub = G.pub[parseInt(p)];
+    const targetCard = getCardById(cardID);
+    const cardEff = getCardEffect(targetCard.cardId);
+    let hasEffect = false;
+    if (cardEff.hasOwnProperty("buy")) {
+        const eff = {...cardEff.buy};
+        if (eff.e !== "none") {
+            log.push(`|buyEffect|${JSON.stringify(eff)}`);
+            eff.target = p;
+            G.e.stack.push(eff);
+            hasEffect = true;
+        }
+    } else {
+        log.push(`|noBuyEff`);
+    }
+    if (
+        pub.school === SchoolCardID.S3101
+        && (targetCard.category === CardCategory.NORMAL
+        || targetCard.category === CardCategory.LEGEND)
+        && targetCard.type === CardType.F
+    ) {
+        log.push(`|newHollyWood`);
+        G.e.stack.push({
+            e: "optional", a: {
+                e: "pay", a: {
+                    cost: {e: "deposit", a: 1},
+                    eff: {e: "anyRegionShare", a: 1}
+                }
+            },
+            target: p,
+        })
+        hasEffect = true;
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return hasEffect;
+}
+
 export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     const eff = G.e.stack.pop();
     const log = [`simpleEffectExec|p${p}|${JSON.stringify(eff)}`];
@@ -217,7 +256,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "skipBreakthrough":
             return;
         case "shareToVp":
-            const shareRegion:ValidRegion = eff.a;
+            const shareRegion: ValidRegion = eff.a;
             addVp(G, ctx, p, pub.shares[shareRegion]);
             return;
         case "loseVpForEachHand":
@@ -292,10 +331,6 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                 drawCardForPlayer(G, ctx, p);
             }
             break;
-        case "buyCardToHand":
-            card = getCardById(eff.a);
-            doBuyToHand(G, ctx, card, p);
-            break;
         case "aestheticsLevelUp":
             if (pub.aesthetics < 10) {
                 log.push(`|${pub.aesthetics}`);
@@ -324,33 +359,30 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                 aesAward(G, ctx, p);
             }
             break;
-        case "buy":
-            const targetCard = getCardById(eff.a);
-            if (
-                pub.school === SchoolCardID.S3101
-                && (targetCard.category === CardCategory.NORMAL
-                || targetCard.category === CardCategory.LEGEND)
-                && targetCard.type === CardType.F
-            ) {
-                log.push(`|newHollyWood`);
-                G.e.stack.push({
-                    e: "optional", a: {
-                        e: "pay", a: {
-                            cost: {e: "deposit", a: 1},
-                            eff: {e: "anyRegionShare", a: 1}
-                        }
-                    },
-                    target: p,
-                })
-                doBuy(G, ctx, targetCard, p);
-                log.push(`|execOptional`);
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                playerEffExec(G, ctx, p);
-                return
+        case "buyCardToHand":
+            card = getCardById(eff.a);
+            doBuyToHand(G, ctx, card, p);
+            const hasEffectHand = buyCardEffectPrepare(G, ctx, eff.a, p);
+            if (hasEffectHand) {
+                log.push(`|hasEffect|CheckNextEffect`);
+                logger.debug(`${G.matchID}|${log}`);
+                checkNextEffect(G, ctx);
             } else {
-                doBuy(G, ctx, targetCard, p);
-                break;
+                logger.debug(`${G.matchID}|${log}`);
             }
+            return;
+        case "buy":
+            card = getCardById(eff.a);
+            doBuy(G, ctx, card, p);
+            const hasEffect = buyCardEffectPrepare(G, ctx, eff.a, p);
+            if (hasEffect) {
+                log.push(`|hasEffect|CheckNextEffect`);
+                logger.debug(`${G.matchID}|${log}`);
+                checkNextEffect(G, ctx);
+            } else {
+                logger.debug(`${G.matchID}|${log}`)
+            }
+            return;
         default:
             logger.error("Invalid effect" + JSON.stringify(eff));
             throw new Error(JSON.stringify(eff));
@@ -371,7 +403,7 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
     if (card.category === CardCategory.BASIC) {
         log.push(`|basic`);
         // @ts-ignore
-        const convertBasicID:BasicCardID = card.cardId;
+        const convertBasicID: BasicCardID = card.cardId;
         const basicCount = G.basicCards[convertBasicID];
         if (basicCount > 0) {
             G.basicCards[convertBasicID] -= 1;
@@ -3092,12 +3124,12 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
         .filter(r => G.regions[r].completedModernScoring)
         .length >= 3) {
         log.push("3orMoreRegion|completedModernScoring");
-        if(ctx.currentPlayer === getExistingLastMovePlayer(G)){
+        if (ctx.currentPlayer === getExistingLastMovePlayer(G)) {
             log.push(`|finalScoring`);
             logger.debug(`${G.matchID}|${log.join('')}`);
             finalScoring(G, ctx);
             return;
-        }else{
+        } else {
             log.push("|lastRound");
             G.pending.lastRoundOfGame = true
         }

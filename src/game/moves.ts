@@ -4,20 +4,17 @@ import {
     B05,
     BasicCardID,
     BuildingType,
-    CardCategory,
     CardID,
     CardType,
     ClassicCardID,
     ClassicFilmAutoMoveMode,
     EventCardID,
-    // FilmCardID,
     GameMode,
     GameTurnOrder,
     getCardById,
     IBasicCard,
     IBuyInfo,
     ICardSlot,
-    // IEra,
     INormalOrLegendCard,
     IRegionInfo, ItrEffects,
     Region,
@@ -34,7 +31,7 @@ import {
     aesAward,
     atkCardSettle,
     buildBuildingFor,
-    buildingInRegion,
+    buildingInRegion, buyCardEffectPrepare,
     canBuyCard,
     cardInDeck,
     cardInDiscard,
@@ -309,43 +306,15 @@ export const buyCard: LongFormMove = {
             G.e.card = arg.target;
             const buyTarget: INormalOrLegendCard | IBasicCard = targetCard;
             doBuy(G, ctx, buyTarget, ctx.currentPlayer);
-            let cardEff = getCardEffect(arg.target);
-            let hasEffect = false;
-            if (cardEff.hasOwnProperty("buy")) {
-                const eff = {...cardEff.buy};
-                if (eff.e !== "none") {
-                    eff.target = arg.buyer;
-                    G.e.stack.push(eff);
-                    hasEffect = true;
-                }
-            } else {
-                log += `|noPlayEff`
-            }
-            if (pub.school === SchoolCardID.S3101) {
-                if ((targetCard.category === CardCategory.NORMAL
-                    || targetCard.category === CardCategory.LEGEND)
-                    && targetCard.type === CardType.F
-                    && !pub.newHollyWoodUsed
-                ) {
-                    log += `|newHollyWood`
-                    G.e.stack.push({
-                        e: "optional", a: {
-                            e: "newHollyWoodEff",
-                            a: 1
-                        },
-                        target: arg.buyer,
-                    })
-                    hasEffect = true;
-                }
-            }
+            const hasEffect = buyCardEffectPrepare(G, ctx, arg.target ,ctx.currentPlayer);
             if (hasEffect) {
                 log += `|hasEffect`
                 logger.debug(`${G.matchID}|${log}`);
                 checkNextEffect(G, ctx);
-                return;
             } else {
                 logger.debug(`${G.matchID}|${log}`);
             }
+            return;
         } else {
             return INVALID_MOVE;
         }
