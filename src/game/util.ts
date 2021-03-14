@@ -365,10 +365,10 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             const hasEffectHand = buyCardEffectPrepare(G, ctx, eff.a, p);
             if (hasEffectHand) {
                 log.push(`|hasEffect|CheckNextEffect`);
-                logger.debug(`${G.matchID}|${log}`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
                 checkNextEffect(G, ctx);
             } else {
-                logger.debug(`${G.matchID}|${log}`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
             }
             return;
         case "buy":
@@ -377,7 +377,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             const hasEffect = buyCardEffectPrepare(G, ctx, eff.a, p);
             if (hasEffect) {
                 log.push(`|hasEffect|CheckNextEffect`);
-                logger.debug(`${G.matchID}|${log}`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
                 checkNextEffect(G, ctx);
             } else {
                 logger.debug(`${G.matchID}|${log}`)
@@ -1638,17 +1638,20 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const pub = G.pub[parseInt(p)];
-    const log = `aesAward|p${p}|${pub.aesthetics}`;
+    const log = [`aesAward|p${p}|${pub.aesthetics}`];
     if (pub.aesthetics > 1) {
+        log.push(`|>1`);
         addVp(G, ctx, p, 2);
     }
     if (pub.aesthetics > 4) {
+        log.push(`|>4`);
         addVp(G, ctx, p, 1);
     }
     if (pub.aesthetics > 7) {
+        log.push(`|>7`);
         addVp(G, ctx, p, 1);
     }
-    logger.debug(`${G.matchID}|${log}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
@@ -3171,13 +3174,15 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
 
 export const checkCompetitionDefender = (G: IG, ctx: Ctx) => {
     let i = G.competitionInfo;
+    const log = [`checkCompetitionDefender|p${i.def}|emptyHand|${JSON.stringify(i)}`];
     if (G.player[parseInt(i.def)].hand.length > 0) {
-        logger.debug(`checkCompetitionDefender|p${i.def}|competitionCard|${JSON.stringify(i)}|competitionCard`);
+        log.push(`|hasHand|changePlayerStage|competitionCard`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
         changePlayerStage(G, ctx, "competitionCard", i.def);
     } else {
         i.defPlayedCard = true;
-        const log = (`checkCompetitionDefender|p${i.def}|emptyHand|${JSON.stringify(i)}|showCompetitionResult`);
-        logger.debug(`${G.matchID}|${log}`);
+        log.push(`|hasHand|changePlayerStage|showCompetitionResult`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
         changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
     }
 }

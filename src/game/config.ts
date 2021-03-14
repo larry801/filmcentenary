@@ -106,7 +106,7 @@ export const showCompetitionResultStage: StageConfig = {
 
 export const setupStage: StageConfig = {
     moves: {
-        setupGameMode:setupGameMode,
+        setupGameMode: setupGameMode,
         showBoardStatus: showBoardStatus,
     }
 }
@@ -115,38 +115,36 @@ export const NormalTurn: TurnConfig = {
     onBegin: (G: IG, ctx: Ctx) => {
         cleanPendingSignal(G);
         let p = ctx.currentPlayer;
-        let log = `onBegin|p${p}`
-        if(G.order.includes(p)){
-            const pub = curPub(G,ctx);
-            if(pub.school === SchoolCardID.S1301){
-                log += `|montage`
-                addVp(G,ctx,p,1);
-                drawCardForPlayer(G,ctx,p);
-                G.e.stack.push({e:"discard",a:1})
-                changePlayerStage(G,ctx,"chooseHand",p);
+        const log = [`onBegin|p${p}`];
+        if (G.order.includes(p)) {
+            const pub = curPub(G, ctx);
+            if (pub.school === SchoolCardID.S1301) {
+                log.push(`|montage`);
+                addVp(G, ctx, p, 1);
+                drawCardForPlayer(G, ctx, p);
+                G.e.stack.push({e: "discard", a: 1})
+                changePlayerStage(G, ctx, "chooseHand", p);
             }
-            if(pub.school === SchoolCardID.S3105){
-                log += `|newYork`
-                if(pub.aesthetics >= pub.industry){
-                    log += `|aesAward`
-                    aesAward(G,ctx,p);
+            if (pub.school === SchoolCardID.S3105) {
+                log.push(`|newYork`);
+                if (pub.aesthetics >= pub.industry) {
+                    log.push(`|aesAward`);
+                    aesAward(G, ctx, p);
                 }
-                if(pub.industry >= pub.aesthetics){
-                    log += `|industryAward`
-                    industryAward(G,ctx,p);
+                if (pub.industry >= pub.aesthetics) {
+                    log.push(`|industryAward`);
+                    industryAward(G, ctx, p);
                 }
             }
-
+        } else {
+            log.push(`|playerConceded|endTurn`);
+            ctx?.events?.endTurn?.();
         }
-        else{
-            log += `|playerConceded|endTurn`
-            ctx?.events?.endTurn?.()
-        }
-        logger.debug(`${G.matchID}|${log}`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
     },
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
-        showCompetitionResult:showCompetitionResultStage,
+        showCompetitionResult: showCompetitionResultStage,
         showBoard: setupStage,
         chooseEffect: chooseEffectStage,
         chooseEvent: chooseEventStage,
@@ -159,10 +157,10 @@ export const NormalTurn: TurnConfig = {
         moveBlockerStage: moveBlockerStage,
         updateSlot: updateSlotStage,
         peek: peekStage,
-        payAdditionalCost:payAdditionalCostStage,
+        payAdditionalCost: payAdditionalCostStage,
     },
     moves: {
-        changePlayerSetting:changePlayerSetting,
+        changePlayerSetting: changePlayerSetting,
         drawCard: drawCard,
         buyCard: buyCard,
         playCard: playCard,
@@ -194,7 +192,7 @@ export const InitPhase: PhaseConfig = {
         },
     },
     moves: {
-        setupGameMode:setupGameMode,
+        setupGameMode: setupGameMode,
         showBoardStatus: showBoardStatus,
     },
     next: "NormalPhase",
