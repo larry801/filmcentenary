@@ -1455,7 +1455,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 log += `|noSlotToUpdate`
                 break;
             } else {
-                changePlayerStage(G, ctx, "caseupdateSlot", p);
+                changePlayerStage(G, ctx, "updateSlot", p);
                 logger.debug(`${G.matchID}|${log}`);
                 return;
             }
@@ -3178,86 +3178,120 @@ const cleanUpScore = (G: IG, ctx: Ctx, pid: PlayerID) => {
 }
 
 export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
-    let i = parseInt(pid);
-    let p = G.pub[i];
-    let s = G.player[i];
+    const i = parseInt(pid);
+    const p = G.pub[i];
+    const s = G.player[i];
     cleanUpScore(G, ctx, pid);
-    let f = p.finalScoring;
-    let log = 'getExtraScoreForFinal';
+    const f = p.finalScoring;
+    const log = ['getExtraScoreForFinal'];
     const validID = [...G.secretInfo.playerDecks[i], ...p.discard, ...s.hand, ...p.playedCardInTurn]
     if (p.school !== null) {
-        log += `|school${getCardById(p.school).vp}|${f.card}`;
-        f.card += getCardById(p.school).vp;
-        log += `|${f.card}`;
         validID.push(p.school);
     }
     const validCards = validID.map(c => getCardById(c));
+    log.push(`|card|before|${f.card}`);
     validCards.forEach(c => {
         f.card += c.vp
     });
+    log.push(`|after|${f.card}`);
     if (p.building.cinemaBuilt) {
+        log.push(`|p${pid}|own|cinema`);
+
         f.building += 3;
     }
     if (p.building.studioBuilt) {
+        log.push(`|p${pid}|own|studio`);
         f.building += 3;
     }
     if (p.industry === 10) {
+        log.push(`|vp|${p.vp}|before|${f.industryAward}`);
         G.initialOrder.forEach(j => {
-            let each = G.pub[parseInt(j)];
-            if (each.building.cinemaBuilt) f.industryAward += 5;
-            if (each.building.studioBuilt) f.industryAward += 5;
+            const each = G.pub[parseInt(j)];
+            if (each.building.cinemaBuilt) {
+                log.push(`|p${j}|cinema`);
+                f.industryAward += 5;
+            }
+            if (each.building.studioBuilt) {
+                log.push(`|p${j}|studio`);
+                f.industryAward += 5;
+            }
         })
+        log.push(`|after|${f.industryAward}`);
     }
     if (p.aesthetics === 10) {
+        log.push(`|vp|${p.vp}|before|${f.aestheticsAward}`);
         f.aestheticsAward += Math.round(p.vp / 5);
+        log.push(`|after|${f.aestheticsAward}`);
     }
     valid_regions.forEach(r => {
-        let championCount = p.champions.filter(c => c.region === r).length;
+        log.push(`|region|${r}|before|${f.archive}`);
+        const championCount = p.champions.filter(c => c.region === r).length;
         f.archive += p.archive.filter(card => getCardById(card).region === r).length * championCount;
+        log.push(`|after|${f.archive}`);
     });
     if (validID.includes(PersonCardID.P3102)) {
+        log.push(`|before|${f.events}`);
         f.events += validCards.filter(c => c.industry > 0)
             .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
-            .length * 2
+            .length * 2;
+        log.push(`|after|${f.events}`);
     }
     if (validID.includes(PersonCardID.P3106)) {
+        log.push(`|before|${f.events}`);
         f.events += validCards.filter(c => c.region === Region.NA)
             .length * 2
+        log.push(`|after|${f.events}`);
     }
     if (validID.includes(PersonCardID.P3402)) {
+        log.push(`|before|${f.events}`);
         f.events += validCards.filter(c => c.region === Region.ASIA)
-            .length * 2
+            .length * 2;
+        log.push(`|after|${f.events}`);
     }
     if (validID.includes(PersonCardID.P3107)) {
+        log.push(`|before|${f.events}`);
         f.events += validCards
             .filter(c => c.category === CardCategory.BASIC)
-            .length
+            .length;
+        log.push(`|after|${f.events}`);
     }
     if (validID.includes(PersonCardID.P3202)) {
+        log.push(`|before|${f.events}`);
         f.events += validCards.filter(c => c.region === Region.WE)
-            .length * 2
+            .length * 2;
+        log.push(`|after|${f.events}`);
     }
     if (validID.includes(PersonCardID.P3302)) {
+        log.push(`|${p.industry * 2}|before|${f.events}`);
         f.events += p.industry * 2;
+        log.push(`|after|${f.events}`);
     }
     if (validID.includes(PersonCardID.P3403)) {
+        log.push(`|before|${f.events}`);
         f.events += p.aesthetics * 2;
+        log.push(`|after|${f.events}`);
     }
     if (validID.includes(PersonCardID.P3301)) {
+        log.push(`|before|${f.events}`);
         f.events += validCards.filter(c => c.region === Region.EE)
             .length * 2
+        log.push(`|after|${f.events}`);
     }
     if (validID.includes(PersonCardID.P3203)) {
+        log.push(`|before|${f.events}`);
         f.events += validCards.filter(c => c.aesthetics > 0)
             .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
             .length * 2
+        log.push(`|after|${f.events}`);
     }
     if (validID.includes(PersonCardID.P3401)) {
-        f.events += validCards.filter(c => c.type === CardType.P).length * 4
+        log.push(`|before|${f.events}`);
+        f.events += validCards.filter(c => c.type === CardType.P).length * 4;
+        log.push(`|after|${f.events}`);
     }
     f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events;
-    log += `|total:${f.total}`;
-    logger.debug(`${G.matchID}|${log}`);
+    log.push(`|total:${f.total}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export const schoolPlayer = (G: IG, ctx: Ctx, cardId: CardID): PlayerID | null => {
