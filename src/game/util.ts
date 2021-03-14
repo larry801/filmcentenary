@@ -59,7 +59,7 @@ export const commentBasicCardDepleted = (G: IG): boolean => {
 
 export const wholeBoardDepleted = (G: IG): boolean => {
     if (G.playerCount > SimpleRuleNumPlayers) {
-        return valid_regions.every(r => regionCardDepleted(G, r));
+        return valid_regions.every(r => noRegionCardOnBoard(G, r));
     } else {
         return G.twoPlayer.film.every(s => s.card === null)
             && G.twoPlayer.school.every(s => s.card === null);
@@ -1455,7 +1455,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 log += `|noSlotToUpdate`
                 break;
             } else {
-                changePlayerStage(G, ctx, "updateSlot", p);
+                changePlayerStage(G, ctx, "caseupdateSlot", p);
                 logger.debug(`${G.matchID}|${log}`);
                 return;
             }
@@ -1683,13 +1683,17 @@ export function idOnBoard(G: IG, ctx: Ctx, id: string): boolean {
     return cardOnBoard(G, ctx, getCardById(id));
 }
 
+export function noRegionCardOnBoard(G: IG, region: Region) {
+    if (region === Region.NONE) return false;
+    const r = G.regions[region];
+    return r.legend.card === null &&
+        r.normal.filter(value => value.card !== null).length === 0;
+}
+
 export function regionCardDepleted(G: IG, region: Region) {
     if (region === Region.NONE) return false;
-    let r = G.regions[region];
-    return r.legend.card === null &&
-        r.normal.filter(value => value.card !== null).length === 0 &&
-        G.secretInfo.regions[region].normalDeck.length === 0 &&
-        G.secretInfo.regions[region].legendDeck.length === 0;
+    const r = G.secretInfo.regions[region];
+    return noRegionCardOnBoard(G, region) && r.normalDeck.length === 0 && r.legendDeck.length === 0;
 }
 
 export function shareDepleted(G: IG, ctx: Ctx, region: Region) {
