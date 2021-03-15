@@ -1185,7 +1185,7 @@ export const competitionCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: ICompetitionCardArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.competitionCard(${JSON.stringify(arg)})`);
-        let p = arg.p;
+        const p = arg.p;
         G.player[parseInt(p)].competitionCards.push(arg.card);
         G.player[parseInt(p)].hand.splice(arg.idx, 1);
         let i = G.competitionInfo;

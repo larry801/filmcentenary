@@ -2986,13 +2986,13 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
     let cards = G.player[parseInt(i.atk)].competitionCards;
     const log = [`atkCardSettle`];
     if (cards.length > 0) {
-        let cardId = cards[0];
+        const cardId = cards[0];
         i.atkCard = cardId;
         const pub = G.pub[parseInt(i.atk)];
         pub.playedCardInTurn.push(cardId);
         G.player[parseInt(i.atk)].competitionCards = []
         log.push(`|${cardId}`);
-        let card = getCardById(cardId)
+        const card = getCardById(cardId);
         if (card.region === i.region) {
             log.push(`|sameRegion:${i.region}|++`);
             i.progress++;
@@ -3002,11 +3002,10 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
         log.push(`|industryMarkCount:${industryMarkCount}`);
         i.progress += industryMarkCount;
         log.push(`|${i.progress}`);
-        if (cinemaInRegion(G, ctx, i.region, i.atk) && card.type === CardType.F) {
-            log.push(`|cinemaInRegion|${i.region}|${i.progress}`);
+        if (cinemaInRegion(G, ctx, card.region, i.atk) && card.type === CardType.F) {
+            log.push(`|cinemaInRegion|${card.region}|${i.progress}`);
             i.progress++;
-            log.push(`|${i.progress}`);
-            addVp(G, ctx, i.atk, 1);
+            log.push(`|after|${i.progress}`);
         }
         const cardEff = getCardEffect(cardId);
         if (cardEff.hasOwnProperty("play")) {
@@ -3038,10 +3037,10 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
     let cards = G.player[parseInt(i.def)].competitionCards;
     if (cards.length > 0) {
         drawCardForPlayer(G, ctx, i.def);
-        let cardId = cards[0];
+        const cardId = cards[0];
         i.defCard = cardId;
         log.push(`|${cardId}`);
-        let card = getCardById(cardId)
+        const card = getCardById(cardId)
         if (card.region === i.region) {
             log.push(`|sameRegion:${i.region}|--|${i.progress}`);
             i.progress--;
@@ -3065,11 +3064,10 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
             log.push(`|noPlayEffect`);
         }
         G.player[parseInt(i.def)].competitionCards = [];
-        if (cinemaInRegion(G, ctx, i.region, i.def) && card.type === CardType.F) {
-            log.push(`|cinemaInRegion|${i.region}|${i.progress}`);
+        if (cinemaInRegion(G, ctx, card.region, i.def) && card.type === CardType.F) {
+            log.push(`|cinemaInRegion|${card.region}|${i.progress}`);
             i.progress--;
-            log.push(`|${i.progress}`);
-            addVp(G, ctx, i.atk, 1);
+            log.push(`|after|${i.progress}`);
         }
         G.e.card = cardId;
         logger.debug(`${G.matchID}|${log.join('')}`);

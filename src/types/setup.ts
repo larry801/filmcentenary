@@ -426,7 +426,9 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
 
     // G.events[0] = EventCardID.E01;
     // // @ts-ignore
-    // G.regions[Region.NA].legend.card = "P1101"
+    // G.regions[Region.NA].legend.card = "P2102"
+    // // @ts-ignore
+    // G.regions[Region.NA].normal[0].card = "F2107"
     // G.regions[Region.WE].share = 1
     // G.pub[2].shares["1"] = 3
     // G.regions[Region.NA].era = IEra.THREE
