@@ -2915,7 +2915,7 @@ export const competitionCleanUp = (G: IG, ctx: Ctx) => {
 }
 
 export function competitionResultSettle(G: IG, ctx: Ctx) {
-    let i = G.competitionInfo;
+    const i = G.competitionInfo;
     const log = [`competitionResultSettle|pa:${i.atk}|pd:${i.def}`];
     let winner: PlayerID = '0';
     let hasWinner = false;
@@ -2943,7 +2943,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     G.competitionInfo.pending = false;
     if (i.progress > 0) {
         addVp(G, ctx, i.atk, i.progress);
-        let schoolId = G.pub[parseInt(i.def)].school;
+        const schoolId = G.pub[parseInt(i.def)].school;
         if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
             log.push(`|p${i.def}|lose${i.progress}vp`);
             loseVp(G, ctx, i.def, i.progress);
@@ -2993,11 +2993,6 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
         G.player[parseInt(i.atk)].competitionCards = []
         log.push(`|${cardId}`);
         const card = getCardById(cardId);
-        if (card.region === i.region) {
-            log.push(`|sameRegion:${i.region}|++`);
-            i.progress++;
-            log.push(`|${i.progress}`);
-        }
         const industryMarkCount = card.industry;
         log.push(`|industryMarkCount:${industryMarkCount}`);
         i.progress += industryMarkCount;
@@ -3033,18 +3028,14 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
 
 export const defCardSettle = (G: IG, ctx: Ctx) => {
     const log = ["defCardSettle"];
-    let i = G.competitionInfo;
-    let cards = G.player[parseInt(i.def)].competitionCards;
+    const i = G.competitionInfo;
+    const cards = G.player[parseInt(i.def)].competitionCards;
     if (cards.length > 0) {
         drawCardForPlayer(G, ctx, i.def);
         const cardId = cards[0];
         i.defCard = cardId;
         log.push(`|${cardId}`);
-        const card = getCardById(cardId)
-        if (card.region === i.region) {
-            log.push(`|sameRegion:${i.region}|--|${i.progress}`);
-            i.progress--;
-        }
+        const card = getCardById(cardId);
         const industryMarkCount = card.industry;
         log.push(`|industryMarkCount:${industryMarkCount}`);
         i.progress -= industryMarkCount;
