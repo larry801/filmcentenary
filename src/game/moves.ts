@@ -276,7 +276,7 @@ export const showCompetitionResult: LongFormMove = {
 
 export const drawCard: LongFormMove = {
     client: false,
-    // undoable: false,
+    undoable: false,
     move: (G: IG, ctx: Ctx, p: PlayerID) => {
         if (activePlayer(ctx) !== p) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${p}.moves.drawCard(${p})`);
