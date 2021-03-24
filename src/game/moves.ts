@@ -591,12 +591,8 @@ export const updateSlot: LongFormMove = {
             addVp(G, ctx, newWavePlayer, 2);
         }
         doReturnSlotCard(G, ctx, slot);
-        let updateResult;
-        if (ctx.numPlayers > SimpleRuleNumPlayers) {
-            updateResult = fillEmptySlots(G);
-        } else {
-            updateResult = fillTwoPlayerBoard(G);
-        }
+        const updateResult = ctx.numPlayers > SimpleRuleNumPlayers ? fillEmptySlots(G) : fillTwoPlayerBoard(G);
+        ctx.log?.setMetadata({updateResult})
         G.updateCardHistory.push(updateResult);
         checkNextEffect(G, ctx);
     },

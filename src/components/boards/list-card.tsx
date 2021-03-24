@@ -18,29 +18,6 @@ import IndustryIcon from "@material-ui/icons/Settings";
 import ResourceIcon from "@material-ui/icons/MonetizationOn";
 import Typography from "@material-ui/core/Typography";
 
-export const getMoveText = (l: LogEntry): string => {
-    const pid = l.action.payload.playerID
-    switch (l.action.type) {
-        case "MAKE_MOVE":
-            const originalName = l.action.payload.type;
-            const moveName = originalName;
-            if (moveName === MoveNames.requestEndTurn) {
-                return `p${pid}.moves.requestEndTurn("${pid}");`
-            } else {
-                if (l.action.payload.args === null) {
-                    return `p${pid}.moves.${moveName}([]);`
-                } else {
-                    return `p${pid}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])});`
-                }
-            }
-        case "UNDO":
-            return `p${pid}.undo();`
-        case "REDO":
-            return `p${pid}.redo();`
-        default:
-            return ""
-    }
-}
 
 export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string, G: IG): string => {
     switch (l.action.type) {
@@ -59,12 +36,9 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string,
                 )
             } else {
                 if (moveName === MoveNames.updateSlot) {
-                    const resIdx = l.action.payload.args[0].updateHistoryIndex
-                    const res = G.updateCardHistory.length < (resIdx + 1) ?
-                        "" :
-                        G.updateCardHistory[resIdx].map(c => '【' + getCardName(c) + '】').join('')
-                    // @ts-ignore
-                    return `${getPlayerName(l.action.payload.playerID)}${i18n.moves[moveName]({args: l.action.payload.args})}${res}`
+                    const updatedResult = l.metadata.updatedResult;
+                    const resultText = typeof updatedResult === typeof Array ? updatedResult.map((c: string) => '【' + getCardName(c) + '】').join('') : "";
+                    return `${getPlayerName(l.action.payload.playerID)}${i18n.moves[moveName]({args: l.action.payload.args})}${resultText}`
                 } else {
                     // @ts-ignore
                     return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
