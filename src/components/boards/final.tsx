@@ -1,7 +1,6 @@
 import React from "react";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../../constant/i18n";
-import makeStyles from '@material-ui/core/styles/makeStyles';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -12,12 +11,8 @@ import Paper from '@material-ui/core/Paper';
 import {IG} from "../../types/setup";
 import {rank} from "../../game/util";
 import {Ctx, PlayerID} from "boardgame.io";
+import './final.css';
 
-const useStyles = makeStyles({
-    table: {
-        minWidth: 450,
-    },
-});
 
 export interface IFinalScoreTableProps {
     G: IG,
@@ -27,11 +22,10 @@ export interface IFinalScoreTableProps {
 
 const FinalScoreTable = ({G, ctx, getName}: IFinalScoreTableProps) => {
     useI18n(i18n);
-    const classes = useStyles();
     const scoreRank = (a: string, b: string) => rank(G, ctx, parseInt(a), parseInt(b));
     const order = [...G.order]
     return <TableContainer component={Paper}>
-        <Table className={classes.table} size="small" aria-label="Scoring table">
+        <Table className={"table"} size="small" aria-label="Scoring table">
             <TableHead>
                 <TableRow>
                     <TableCell>{i18n.playerName.player}</TableCell>

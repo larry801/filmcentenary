@@ -2,7 +2,6 @@ import React from "react";
 import {AllClassicCards, getCardById} from "../types/core";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
-import makeStyles from '@material-ui/core/styles/makeStyles';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -11,20 +10,14 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import {CardEffect, getCardName, getEffectTextById} from "./card";
-
-const useStyles = makeStyles({
-    table: {
-        minWidth: 768,
-    },
-});
+import './card-table.css';
 
 const DenseTable = () => {
     useI18n(i18n);
-    const classes = useStyles();
 
     return (
         <TableContainer component={Paper}>
-            <Table className={classes.table} size="small" aria-label="Card table">
+            <Table className={"tabupdateSlotle"} size="small" aria-label="Card table">
                 <TableHead>
                     <TableRow>
                         <TableCell>{i18n.cardTable.cardId}</TableCell>
