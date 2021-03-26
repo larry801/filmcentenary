@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect} from "react";
 import Radio from '@material-ui/core/Radio';
 import RadioGroup from '@material-ui/core/RadioGroup';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
@@ -13,9 +13,8 @@ import FormControl from "@material-ui/core/FormControl/FormControl";
 import FormGroup from "@material-ui/core/FormGroup/FormGroup";
 import DialogActions from "@material-ui/core/DialogActions";
 import Grid from "@material-ui/core/Grid";
-import { nanoid } from "nanoid";
+import {nanoid} from "nanoid";
 import {usePrevious} from "./board";
-
 
 
 export interface Choice {
@@ -36,7 +35,39 @@ export interface IChoiceProps {
     popAfterShow?: boolean,
 }
 
-export const ChoiceDialog = ({initial, callback, show, choices, title, toggleText, defaultChoice, popAfterShow}: IChoiceProps) => {
+const useDebounce = (callback: ()=>any, delay: number) => {
+    const latestCallback = useRef(()=>{});
+    const [callCount, setCallCount] = useState(0);
+
+    useEffect(() => {
+        latestCallback.current = callback;
+    }, [callback]);
+
+    useEffect(() => {
+        if (callCount > 0) {
+            const fire = () => {
+                setCallCount(0);
+                latestCallback.current();
+            };
+
+            const id = setTimeout(fire, delay);
+            return () => clearTimeout(id);
+        }
+    }, [callCount, delay]);
+
+    return () => setCallCount(callCount => callCount + 1);
+};
+
+export const ChoiceDialog = ({
+                                 initial,
+                                 callback,
+                                 show,
+                                 choices,
+                                 title,
+                                 toggleText,
+                                 defaultChoice,
+                                 popAfterShow
+                             }: IChoiceProps) => {
 
     useI18n(i18n);
     const [open, setOpen] = React.useState(initial);
@@ -60,7 +91,9 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
     const handleConfirm = () => {
         handleClose();
         callback(choice);
-    }
+    };
+
+    const debouncedHandleConfirm = useDebounce(handleConfirm, 400);
 
     const handleChange = (e: any) => setChoice(e.target.value);
 
@@ -101,7 +134,7 @@ export const ChoiceDialog = ({initial, callback, show, choices, title, toggleTex
                 </FormControl>
             </DialogContent>
             <DialogActions>
-                <Button onClick={handleConfirm} color="primary">
+                <Button onClick={debouncedHandleConfirm} color="primary">
                     {i18n.confirm}
                 </Button>
             </DialogActions>
