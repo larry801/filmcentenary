@@ -1,6 +1,6 @@
 FROM larry801/film-centenary-builder AS builder
 COPY . .
-RUN yarn build --profile
+RUN yarn build
 RUN tsc-bundle tsconfig.server.json
 
 FROM larry801/film-centenary-base

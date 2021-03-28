@@ -4,7 +4,8 @@
     "noEmit": false,
     "outDir": "./build",
     "baseUrl": "./",
-    "isolatedModules": false
+    "isolatedModules": false,
+    "target": "es5"
   },
   "include": ["server.ts"]
 }

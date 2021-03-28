@@ -15,10 +15,10 @@ import {
     SimpleRuleNumPlayers,
     valid_regions
 } from "../types/core";
-import Grid from "@material-ui/core/Grid"
+import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
-import LogView from './log-view'
+import LogView from './log-view';
 import DeckIcon from '@material-ui/icons/Layers';
 import NormalCardIcon from '@material-ui/icons/RadioButtonUnchecked';
 import LegendCardIcon from '@material-ui/icons/StarBorder';
@@ -31,7 +31,7 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
 import SetupPanel from "./boards/setup-game-mode";
 // @ts-ignore
-import playerTurnSfx from './media/turn.mp3'
+import playerTurnSfx from './media/turn.mp3';
 import {ChampionIcon, DrawnShareIcon} from "./icons";
 import Dialog from "@material-ui/core/Dialog";
 import ErrorBoundary from "./error";

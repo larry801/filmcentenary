@@ -7,11 +7,12 @@
     "strict": true,
     "esModuleInterop": true,
     "lib": [
-      "dom",
-      "es2015"
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
     ],
     "jsx": "react-jsx",
-    "target": "es5",
+    "target": "ESNext",
     "allowJs": true,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
@@ -22,6 +23,9 @@
     "isolatedModules": true,
     "noEmit": true,
     "sourceMap": true,
+    "types": [
+      "vite/client",
+    ],
     "noFallthroughCasesInSwitch": true
   }
 }
