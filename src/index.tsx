@@ -1,6 +1,5 @@
 import React from "react";
 import {render} from "react-dom";
-
 import CssBaseline from "@material-ui/core/CssBaseline";
 import {Redirect, Route, Switch, BrowserRouter} from "react-router-dom";
 import DrawerAppBar from "./components/drawer-app-bar";
@@ -11,33 +10,37 @@ import JoinPage from "./components/join";
 import DenseTable from "./components/card-table";
 
 const rootElement = document.getElementById("root");
+
 render(
-    <BrowserRouter>
-        <CssBaseline/>
-        <DrawerAppBar/>
-        <Switch>
-            <Route exact path="/" >
+    <React.StrictMode>
+        <BrowserRouter>
+            <CssBaseline/>
+            <DrawerAppBar/>
+            <Switch>
+                <Route exact path="/">
                     <MUICreateMatch serverURL={`${window.location.protocol}//${window.location.host}`}/>
-            </Route>
-            <Route exact path="/cards">
-                    <DenseTable />
-            </Route>
-            <Route exact path="/join/:matchID/:player/:credential">
+                </Route>
+                <Route exact path="/cards">
+                    <DenseTable/>
+                </Route>
+                <Route exact path="/join/:matchID/:player/:credential">
                     <JoinPage serverURL={`${window.location.protocol}//${window.location.host}`}/>
-            </Route>
-            <Route exact path="/join/:matchID/:player">
+                </Route>
+                <Route exact path="/join/:matchID/:player">
                     <JoinPage serverURL={`${window.location.protocol}//${window.location.host}`}/>
-            </Route>
-            <Route exact path="/local4p">
-                    <Local4p />
-            </Route>
-            <Route exact path="/local2p">
-                    <Local2p />
-            </Route>
-            <Route path="*">
-                <Redirect to="/"/>
-            </Route>
-        </Switch>
-    </BrowserRouter>, rootElement
+                </Route>
+                <Route exact path="/local4p">
+                    <Local4p/>
+                </Route>
+                <Route exact path="/local2p">
+                    <Local2p/>
+                </Route>
+                <Route path="*">
+                    <Redirect to="/"/>
+                </Route>
+            </Switch>
+        </BrowserRouter>
+    </React.StrictMode>
+    , rootElement
 );
 
