@@ -1812,7 +1812,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "deposit", a: 2},
+                {e: "buyCardToHand", a: BasicCardID.B03},
                 {
                     e: "noStudio", a: {
                         e: "step", a: [
