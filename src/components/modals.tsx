@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect} from "react";
+import React, {useState, useRef, useEffect} from "react";
 import Radio from '@material-ui/core/Radio';
 import RadioGroup from '@material-ui/core/RadioGroup';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
@@ -33,10 +33,12 @@ export interface IChoiceProps {
     toggleText: string | JSX.Element,
     initial: boolean,
     popAfterShow?: boolean,
+    buttonColor?: boolean,
 }
 
-const useDebounce = (callback: ()=>any, delay: number) => {
-    const latestCallback = useRef(()=>{});
+const useDebounce = (callback: () => any, delay: number) => {
+    const latestCallback = useRef(() => {
+    });
     const [callCount, setCallCount] = useState(0);
 
     useEffect(() => {
@@ -59,6 +61,7 @@ const useDebounce = (callback: ()=>any, delay: number) => {
 };
 
 export const ChoiceDialog = ({
+                                 buttonColor,
                                  initial,
                                  callback,
                                  show,
@@ -100,6 +103,7 @@ export const ChoiceDialog = ({
     return show ? <Grid item xs={12}>
         <Button
             aria-label={title}
+            color={buttonColor ? "secondary" : "primary"}
             fullWidth
             variant={"outlined"}
             onClick={handleClickOpen}

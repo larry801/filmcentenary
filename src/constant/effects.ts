@@ -388,7 +388,6 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: "vp", a: 2},
                 {e: "studio", a: {e: "deposit", a: 1}},
             ]
         },
@@ -475,7 +474,7 @@ export const effects = {
             e: "era", a: [
                 {e: "step", a: [{e: "res", a: 1}, {e: "draw", a: 1}]},
                 {e: "step", a: [{e: "res", a: 1}, {e: "comment", a: 1}]},
-                {e: "step", a: [{e: "vp", a: 2}, {e: "comment", a: 1}]},
+                noEff
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -1649,7 +1648,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "deposit", a: 2}, {e: "update", a: 1}
+                {e: "res", a: 2}, {e: "update", a: 1}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,

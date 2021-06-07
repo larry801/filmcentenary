@@ -458,6 +458,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     }
     const concedeDialog =
         <ChoiceDialog
+            buttonColor={true}
             initial={false}
             callback={concede}
             popAfterShow={false}

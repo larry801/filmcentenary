@@ -964,7 +964,7 @@ const NoneBasicCards = {
         region: Region.EE,
         name: "Mother",
         cardId: FilmCardID.F1304,
-        cost: cost(3, 0, 2),
+        cost: cost(4, 0, 2),
         vp: 3,
         category: CardCategory.NORMAL,
         industry: 0,
