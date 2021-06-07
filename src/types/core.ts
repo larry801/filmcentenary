@@ -777,7 +777,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "Nanook of the North",
         cardId: FilmCardID.F1108,
-        cost: cost(2, 1, 1),
+        cost: cost(5, 1, 1),
         vp: 2,
         category: CardCategory.NORMAL,
         industry: 1,
