@@ -94,34 +94,44 @@ export const playCardEffectText = (cardId: CardID): string => {
 export const buyCardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
     let r: string[] = [];
-    if (effObj.hasOwnProperty("buy") && effObj.buy.e !== "none") {
-        r.push(i18n.effect.buyCardHeader);
-        r.push(effName(effObj.buy));
+    try{
+        if (effObj.hasOwnProperty("buy") && effObj.buy.e !== "none") {
+            r.push(i18n.effect.buyCardHeader);
+            r.push(effName(effObj.buy));
+        }
+    }catch (e) {
+        console.error(`${e}|${effObj}|${cardId}`);
     }
     return r.join("");
 }
 export const schoolEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
     let r: string[] = [];
-    if (effObj.hasOwnProperty("school")) {
-        if (effObj.hasOwnProperty("response") && effObj.response.pre.e !== "none") {
-            r.push(i18n.effect.extraEffect);
-            if (effObj.response.pre.e === "multiple") {
-                effObj.response.effect.forEach((singleEff: any) => {
-                    r.push(effName(singleEff.pre))
-                    r.push(effName(singleEff.effect))
-                })
-            } else {
+    try{
+        if (effObj.hasOwnProperty("school")) {
+            if (effObj.hasOwnProperty("response") && effObj.response.hasOwnProperty("pre") && effObj.response.pre.e !== "none") {
+                r.push(i18n.effect.extraEffect);
+                if (effObj.response.pre.e === "multiple") {
+                    effObj.response.effect.forEach((singleEff: any) => {
+                        r.push(effName(singleEff.pre))
+                        r.push(effName(singleEff.effect))
+                    })
+                } else {
+                    r.push(effName(effObj.response.pre));
+                    r.push(effName(effObj.response.effect));
+                }
+            }
+        } else {
+            if (effObj.hasOwnProperty("response") && effObj.response.hasOwnProperty("pre") && effObj.response.pre.e !== "none") {
+                r.push(i18n.effect.responseHeader);
                 r.push(effName(effObj.response.pre));
                 r.push(effName(effObj.response.effect));
             }
         }
-    } else {
-        if (effObj.hasOwnProperty("response") && effObj.response.hasOwnProperty("pre") && effObj.response.pre.e !== "none") {
-            r.push(i18n.effect.responseHeader);
-            r.push(effName(effObj.response.pre));
-            r.push(effName(effObj.response.effect));
-        }
+    }catch (e) {
+        console.error(`${e}|${JSON.stringify(effObj)}|${cardId}`);
+    }finally {
+
     }
     return r.join("");
 }
