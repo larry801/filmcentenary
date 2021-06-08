@@ -903,9 +903,10 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         })
         log.push(`|after|${JSON.stringify(G.e.stack)}`);
     }
-    if (c.cardId === FilmCardID.F1208
+    if (
+        c.cardId === FilmCardID.F1208
         || c.cardId === BasicCardID.B05
-        || c.cardId === FilmCardID.F1108) {
+    ) {
         log.push("|industryOrAestheticsBreakthrough");
         G.e.stack.push({
             e: "industryOrAestheticsBreakthrough", a: {
@@ -1638,6 +1639,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const pub = G.pub[parseInt(p)];
+    if(pub.school === SchoolCardID.S3105 && ctx.currentPlayer === p){
+
+    }
     const log = [`aesAward|p${p}|${pub.aesthetics}`];
     if (pub.aesthetics > 1) {
         log.push(`|>1`);
