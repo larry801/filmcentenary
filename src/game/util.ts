@@ -1639,10 +1639,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const pub = G.pub[parseInt(p)];
-    if(pub.school === SchoolCardID.S3105 && ctx.currentPlayer === p){
-
-    }
     const log = [`aesAward|p${p}|${pub.aesthetics}`];
+    if(pub.school === SchoolCardID.S3304 && ctx.currentPlayer === p){
+        log.push(`|S3304|AesInTurn|Draw`);
+        drawCardForPlayer(G, ctx, p);
+    }
     if (pub.aesthetics > 1) {
         log.push(`|>1`);
         addVp(G, ctx, p, 2);
@@ -1661,6 +1662,11 @@ export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
 export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const pub = G.pub[parseInt(p)];
     const log = [`industryAward|p${p}|${pub.industry}`];
+    if(pub.school === SchoolCardID.S3304 && ctx.currentPlayer === p){
+        log.push(`|S3304|industryAwardInTurn|loseVp`);
+        loseVp(G, ctx, p, 4);
+    }
+
     if (pub.industry > 1) {
         log.push(`|before|${pub.resource}`);
         addRes(G, ctx, p, 1);
