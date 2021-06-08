@@ -115,6 +115,7 @@ const cards = {
     '2408': 'The Goddess',
     '2409': 'Godzilla',
     '2410': 'This Life of Mine',
+    '2411': '东京物语',
     '3101': 'New Hollywood',
     '3102': 'Steven Spielberg',
     '3103': 'The Godfather',
