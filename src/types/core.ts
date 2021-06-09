@@ -1898,7 +1898,7 @@ const NoneBasicCards = {
     }),
     "S3304": schoolCard({
         era: IEra.THREE,
-        region: Region.WE,
+        region: Region.EE,
         name: "1",
         cardId: SchoolCardID.S3304,
         cost: cost(6, 0, 9),
