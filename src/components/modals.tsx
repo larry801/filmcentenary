@@ -28,6 +28,7 @@ export interface IChoiceProps {
     callback: (choice: string) => void,
     choices: Choice[],
     defaultChoice: string,
+    disabled?: boolean,
     show: boolean,
     title: string,
     toggleText: string | JSX.Element,
@@ -67,6 +68,7 @@ export const ChoiceDialog = ({
                                  show,
                                  choices,
                                  title,
+                                 disabled,
                                  toggleText,
                                  defaultChoice,
                                  popAfterShow
@@ -105,6 +107,7 @@ export const ChoiceDialog = ({
             aria-label={title}
             color={buttonColor ? "secondary" : "primary"}
             fullWidth
+            disabled={disabled}
             variant={"outlined"}
             onClick={handleClickOpen}
             style={{textTransform: 'none'}}

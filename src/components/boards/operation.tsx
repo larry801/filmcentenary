@@ -341,9 +341,11 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
                 {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
             ]} defaultChoice={"yes"}
+            disabled={
+                G.player[parseInt(playerID)].deckEmpty
+            }
             show={
                 G.pub[parseInt(playerID)].action > 0
-                && !G.player[parseInt(playerID)].deckEmpty
                 && !G.pending.endTurn
                 && noStage
             }
