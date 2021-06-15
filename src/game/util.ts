@@ -907,19 +907,21 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         c.cardId === FilmCardID.F1208
         || c.cardId === BasicCardID.B05
     ) {
-        if(pub.deposit >= 1){
-            log.push(`hasCash${pub.deposit}|industryOrAestheticsBreakthrough`);
+        const curDep = pub.deposit;
+        if(curDep >= 1){
+            log.push(`hasCash|${curDep}|industryOrAestheticsBreakthrough`);
             G.e.stack.push({
                 e: "industryOrAestheticsBreakthrough", a: {
                     industry: 1,
                     aesthetics: 1,
                 }
             })
+            pub.deposit = curDep - 1;
             log.push(`|playerEffExec`);
             logger.debug(`${G.matchID}|${log.join('')}`);
             playerEffExec(G, ctx, pid);
         }else {
-            log.push("noCash");
+            log.push(`noCash|${curDep}`);
         }
         return
     }
