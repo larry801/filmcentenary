@@ -908,7 +908,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         || c.cardId === BasicCardID.B05
     ) {
         const curDep = pub.deposit;
-        if(curDep >= 1){
+        if (curDep >= 1) {
             log.push(`hasCash|${curDep}|industryOrAestheticsBreakthrough`);
             G.e.stack.push({
                 e: "industryOrAestheticsBreakthrough", a: {
@@ -920,7 +920,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
             log.push(`|playerEffExec`);
             logger.debug(`${G.matchID}|${log.join('')}`);
             playerEffExec(G, ctx, pid);
-        }else {
+        } else {
             log.push(`noCash|${curDep}`);
         }
         return
@@ -1661,7 +1661,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const pub = G.pub[parseInt(p)];
     const log = [`aesAward|p${p}|${pub.aesthetics}`];
-    if(pub.school === SchoolCardID.S3304 && ctx.currentPlayer === p){
+    if (pub.school === SchoolCardID.S3304 && ctx.currentPlayer === p) {
         log.push(`|S3304|AesInTurn|Draw`);
         drawCardForPlayer(G, ctx, p);
     }
@@ -1683,7 +1683,7 @@ export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
 export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const pub = G.pub[parseInt(p)];
     const log = [`industryAward|p${p}|${pub.industry}`];
-    if(pub.school === SchoolCardID.S3304 && ctx.currentPlayer === p){
+    if (pub.school === SchoolCardID.S3304 && ctx.currentPlayer === p) {
         log.push(`|S3304|industryAwardInTurn|loseVp`);
         loseVp(G, ctx, p, 4);
     }
@@ -3286,65 +3286,94 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         f.archive += p.archive.filter(card => getCardById(card).region === r).length * championCount;
         log.push(`|after|${f.archive}`);
     });
-    if (validID.includes(PersonCardID.P3102)) {
-        log.push(`|before|${f.events}`);
-        f.events += validCards.filter(c => c.industry > 0)
-            .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
-            .length * 2;
-        log.push(`|after|${f.events}`);
+    // if (validID.includes(PersonCardID.P3102)) {
+    //     log.push(`|before|${f.events}`);
+    //     f.events += validCards.filter(c => c.industry > 0)
+    //         .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
+    //         .length * 2;
+    //     log.push(`|after|${f.events}`);
+    // }
+    // if (validID.includes(PersonCardID.P3106)) {
+    //     log.push(`|before|${f.events}`);
+    //     f.events += validCards.filter(c => c.region === Region.NA)
+    //         .length * 2
+    //     log.push(`|after|${f.events}`);
+    // }
+    // if (validID.includes(PersonCardID.P3107)) {
+    //     log.push(`|before|${f.events}`);
+    //     f.events += validCards
+    //         .filter(c => c.category === CardCategory.BASIC)
+    //         .length;
+    //     log.push(`|after|${f.events}`);
+    // }
+    // if (validID.includes(PersonCardID.P3202)) {
+    //     log.push(`|before|${f.events}`);
+    //     f.events += validCards.filter(c => c.region === Region.WE)
+    //         .length * 2;
+    //     log.push(`|after|${f.events}`);
+    // }
+    // if (validID.includes(PersonCardID.P3302)) {
+    //     log.push(`|${p.industry * 2}|before|${f.events}`);
+    //     f.events += p.industry * 2;
+    //     log.push(`|after|${f.events}`);
+    // }
+    // if (validID.includes(PersonCardID.P3403)) {
+    //     log.push(`|3403|before|${f.events}`);
+    //     f.events += p.aesthetics;
+    //     log.push(`|after|${f.events}`);
+    // }
+    // if (validID.includes(PersonCardID.P3301)) {
+    //     log.push(`|before|${f.events}`);
+    //     f.events += validCards.filter(c => c.region === Region.EE)
+    //         .length * 2
+    //     log.push(`|after|${f.events}`);
+    // }
+    // if (validID.includes(PersonCardID.P3203)) {
+    //     log.push(`|3203|before|${f.events}`);
+    //     f.events += validCards.filter(c => c.aesthetics > 0)
+    //         .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
+    //         .length * 2
+    //     log.push(`|after|${f.events}`);
+    // }
+    // if (validID.includes(PersonCardID.P3401)) {
+    //     log.push(`|3401||before|${f.events}`);
+    //     // f.events += validCards.filter(c => c.type === CardType.P).length * 4;
+    //     f.events += p.industry;
+    //     log.push(`|after|${f.events}`);
+    // }
+    // if (validID.includes(PersonCardID.P3402)) {
+    //     log.push(`|before|${f.events}`);
+    //     f.events += validCards.filter(c => c.region === Region.ASIA)
+    //         .length * 2;
+    //     log.push(`|after|${f.events}`);
+    // }
+    const industryEffIDS:PersonCardID[] = [
+        PersonCardID.P3102,
+        PersonCardID.P3107,
+        PersonCardID.P3302,
+        PersonCardID.P3401,
+    ]
+    for (let iCard of industryEffIDS) {
+        if (validID.includes(iCard)) {
+            log.push(`|industry|${iCard}|before|${f.events}`);
+            f.events += p.industry;
+            log.push(`|after|${f.events}`);
+        }
     }
-    if (validID.includes(PersonCardID.P3106)) {
-        log.push(`|before|${f.events}`);
-        f.events += validCards.filter(c => c.region === Region.NA)
-            .length * 2
-        log.push(`|after|${f.events}`);
-    }
-    if (validID.includes(PersonCardID.P3402)) {
-        log.push(`|before|${f.events}`);
-        f.events += validCards.filter(c => c.region === Region.ASIA)
-            .length * 2;
-        log.push(`|after|${f.events}`);
-    }
-    if (validID.includes(PersonCardID.P3107)) {
-        log.push(`|before|${f.events}`);
-        f.events += validCards
-            .filter(c => c.category === CardCategory.BASIC)
-            .length;
-        log.push(`|after|${f.events}`);
-    }
-    if (validID.includes(PersonCardID.P3202)) {
-        log.push(`|before|${f.events}`);
-        f.events += validCards.filter(c => c.region === Region.WE)
-            .length * 2;
-        log.push(`|after|${f.events}`);
-    }
-    if (validID.includes(PersonCardID.P3302)) {
-        log.push(`|${p.industry * 2}|before|${f.events}`);
-        f.events += p.industry * 2;
-        log.push(`|after|${f.events}`);
-    }
-    if (validID.includes(PersonCardID.P3403)) {
-        log.push(`|before|${f.events}`);
-        f.events += p.aesthetics * 2;
-        log.push(`|after|${f.events}`);
-    }
-    if (validID.includes(PersonCardID.P3301)) {
-        log.push(`|before|${f.events}`);
-        f.events += validCards.filter(c => c.region === Region.EE)
-            .length * 2
-        log.push(`|after|${f.events}`);
-    }
-    if (validID.includes(PersonCardID.P3203)) {
-        log.push(`|before|${f.events}`);
-        f.events += validCards.filter(c => c.aesthetics > 0)
-            .filter(c => c.category === CardCategory.LEGEND || c.category === CardCategory.NORMAL)
-            .length * 2
-        log.push(`|after|${f.events}`);
-    }
-    if (validID.includes(PersonCardID.P3401)) {
-        log.push(`|before|${f.events}`);
-        f.events += validCards.filter(c => c.type === CardType.P).length * 4;
-        log.push(`|after|${f.events}`);
+    const aesEffIDS:PersonCardID[] = [
+        PersonCardID.P3106,
+        PersonCardID.P3202,
+        PersonCardID.P3203,
+        PersonCardID.P3301,
+        PersonCardID.P3402,
+        PersonCardID.P3403,
+    ]
+    for (let aCard of aesEffIDS) {
+        if (validID.includes(aCard)) {
+            log.push(`|aes|${aCard}|before|${f.events}`);
+            f.events += p.aesthetics;
+            log.push(`|after|${f.events}`);
+        }
     }
     f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events;
     log.push(`|total:${f.total}`);
