@@ -692,7 +692,7 @@ export const effects = {
             e: "era", a: [
                 {e: "draw", a: 1},
                 {e: "step", a: [{e: "draw", a: 2}, {e: "discard", a: 1}]},
-                {e: "step", a: [{e: "draw", a: 3}, {e: "discard", a: 2}]},
+                {e: "step", a: [{e: "draw", a: 1}, {e: "aesAward", a: 1}]},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,

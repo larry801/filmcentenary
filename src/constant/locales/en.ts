@@ -67,7 +67,7 @@ const cards = {
     '1305': 'Battleship Potemkin',
     '1306': 'Man with a Movie Camera',
     '1307': 'Father Sergius',
-    '1308': 'Earth',
+    '1308': 'Earth, 1930',
     '2101': 'Classic Hollywood',
     '2102': 'John Ford',
     '2103': 'Alfred Hitchcock',
