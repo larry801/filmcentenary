@@ -1450,7 +1450,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Spring in a small town",
         cardId: FilmCardID.F2403,
-        cost: cost(6, 0, 4),
+        cost: cost(6, 0, 6),
         vp: 8,
         category: CardCategory.NORMAL,
         industry: 0,
