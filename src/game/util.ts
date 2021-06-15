@@ -916,7 +916,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
                     aesthetics: 1,
                 }
             })
-            pub.deposit = curDep - 1;
+            loseDeposit(G, ctx, pid, 1);
             log.push(`|playerEffExec`);
             logger.debug(`${G.matchID}|${log.join('')}`);
             playerEffExec(G, ctx, pid);
