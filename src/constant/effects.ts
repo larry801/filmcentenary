@@ -812,7 +812,13 @@ export const effects = {
         play: {
             e: "era", a: [
                 noEff,
-                {e: "step", a: [{e: "res", a: 4}, {e: "shareNA", a: 1}]},
+                {
+                    e: "step", a: [
+                        {e: "res", a: 3},
+                        {e: "deposit", a: 1},
+                        {e: "shareNA", a: 1}
+                    ]
+                },
                 {
                     e: "step", a: [
                         {e: "deposit", a: 1},
