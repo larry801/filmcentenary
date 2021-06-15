@@ -729,9 +729,9 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
+                {e: "draw", a: 1},
                 {e: "noStudio", a: {e: "discardNormalOrLegend", a: 1}},
                 {e: "studio", a: {e: "deposit", a: 1}},
-                {e: "draw", a: 1},
                 {
                     e: "optional", a: {
                         e: "competition", a: {
