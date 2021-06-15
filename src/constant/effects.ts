@@ -1432,7 +1432,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "era", a: [noEff, {e: "step", a: [{e: "res", a: 2}, {e: "draw", a: 1}]},
-                {e: "step", a: [{e: "vp", a: 2}, {e: "draw", a: 1}]}]
+                {e: "step", a: [{e: "aesAward", a: 1}, {e: "draw", a: 1}]}]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
@@ -1442,10 +1442,7 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
-        play: {
-            e: "era", a: [noEff, {e: "step", a: [{e: "res", a: 2}, {e: "archive", a: 1}]},
-                {e: "archive", a: 1}]
-        },
+        play: {e: "step", a: [{e: "res", a: 1}, {e: "archive", a: 1}]},
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
@@ -1473,7 +1470,7 @@ export const effects = {
             e: "era", a: [
                 noEff,
                 {e: "step", a: [{e: "res", a: 3}, {e: "shareToVp", a: Region.EE}]},
-                {e: "res", a: 3}
+                {e: "industryAward", a: 1}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -1580,19 +1577,26 @@ export const effects = {
             e: "era", a: [noEff,
                 {
                     e: "step", a: [
-                        {e: "res", a: 3}, {e: "vp", a: 1}
+                        {e: "res", a: 2},
+                        {
+                            e: "peek",
+                            a: {
+                                count: 3, target: "hand", filter: {e: "aesthetics", a: "all"}
+                            }
+                        }
                     ]
                 },
                 {
                     e: "step",
-                    a: [{e: "vp", a: 2}, {
-                        e: "peek",
-                        a: {
-                            count: 3, target: "hand", filter: {
-                                e: "choice", a: 1
+                    a: [
+                        {e: "vp", a: 2},
+                        {
+                            e: "peek",
+                            a: {
+                                count: 3, target: "hand", filter: {e: "aesthetics", a: "all"}
                             }
                         }
-                    }]
+                    ]
                 }
             ]
         },
@@ -1772,7 +1776,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: ScoringEffectNames.industryNormalOrLegend, a: 2}
+        scoring: {e: ScoringEffectNames.industryLevel, a: 1}
     },
     "3103": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -1849,7 +1853,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: "northAmericaFilm", a: 2},
+        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 1}
     },
     "3107": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -1874,7 +1878,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: ScoringEffectNames.threeCards, a: 1}
+        scoring: {e: ScoringEffectNames.industryLevel, a: 1}
     },
     "3108": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -1906,7 +1910,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "draw", a: 2},
+                {e: "industryAward", a: 1},
                 {e: "industryToVp", a: 1}
             ]
         },
@@ -2071,7 +2075,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: ScoringEffectNames.westEuropeCard, a: 2}
+        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 1}
     },
     "3203": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -2093,8 +2097,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: ScoringEffectNames.aesClassic, a: 2}
-
+        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 1}
     },
     "3204": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -2265,7 +2268,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "vp", a: 3}, {e: "noStudio", a: {e: "discardLegend", a: 1}},
+                {e: "aesAward", a: 1}, {e: "noStudio", a: {e: "discardLegend", a: 1}},
                 {
                     e: "studio", a: {
                         e: "step", a: [
@@ -2278,7 +2281,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: ScoringEffectNames.eastEuropeFilm, a: 1}
+        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 1}
     },
     "3302": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -2313,8 +2316,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: ScoringEffectNames.industryLevel, a: 2}
-
+        scoring: {e: ScoringEffectNames.industryLevel, a: 1}
     },
     "3303": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -2466,7 +2468,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: "personCard", a: 4}
+        scoring: {e: ScoringEffectNames.industryLevel, a: 1}
     },
     "3402": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -2487,7 +2489,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: "asiaFilm", a: 2}
+        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 1}
     },
     "3403": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -2500,7 +2502,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 2}
+        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 1}
     },
     "3404": {
         canBuy: (G: IG, ctx: Ctx) => true,
