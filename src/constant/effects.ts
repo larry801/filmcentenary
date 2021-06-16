@@ -1558,7 +1558,7 @@ export const effects = {
                 },
                 {
                     e: "step", a: [{
-                        e: "vp", a: 2
+                        e: "aesAward", a: 1
                     },
                         {e: "peek", a: {count: 3, target: "hand", filter: {e: "aesthetics", a: "all"}}},
                     ]
@@ -1577,13 +1577,9 @@ export const effects = {
             e: "era", a: [noEff,
                 {
                     e: "step", a: [
-                        {e: "res", a: 2},
-                        {
-                            e: "peek",
-                            a: {
-                                count: 3, target: "hand", filter: {e: "aesthetics", a: "all"}
-                            }
-                        }
+                        {e: "res", a: 3},
+                        {e: "vp", a: 1},
+
                     ]
                 },
                 {
@@ -1593,7 +1589,7 @@ export const effects = {
                         {
                             e: "peek",
                             a: {
-                                count: 3, target: "hand", filter: {e: "aesthetics", a: "all"}
+                                count: 3, target: "hand", filter: {e: "choice", a: 1}
                             }
                         }
                     ]
@@ -2496,7 +2492,7 @@ export const effects = {
         buy: {e: "choice", a: [{e: "aestheticsLevelUp", a: 1}, {e: "buy", a: FilmCardID.F3414}]},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "step", a: [{e: "draw", a: 2}, {e: "noStudio", a: {e: "discardAesthetics", a: 4}},
+            e: "step", a: [{e: "draw", a: 2}, {e: "noStudio", a: {e: "discardAesthetics", a: 2}},
                 {e: "studio", a: {e: "aesAward", a: 2}}]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
