@@ -901,8 +901,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         log.push(`|after|${JSON.stringify(G.e.stack)}`);
     }
     if (
-        c.cardId === FilmCardID.F1208
-        || c.cardId === BasicCardID.B05
+        c.cardId === FilmCardID.F1108
     ) {
         const curDep = pub.deposit;
         if (curDep >= 1) {
@@ -913,6 +912,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
                     aesthetics: 1,
                 }
             })
+            loseDeposit(G, ctx, pid, 1);
             log.push(`|playerEffExec`);
             logger.debug(`${G.matchID}|${log.join('')}`);
             playerEffExec(G, ctx, pid);
@@ -922,7 +922,8 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         return
     }
     if (
-        c.cardId === FilmCardID.F1108
+        c.cardId === FilmCardID.F1208
+        || c.cardId === BasicCardID.B05
     ) {
         log.push("|industryAndAestheticsBreakthrough");
         G.e.stack.push({
@@ -931,7 +932,6 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
                 aesthetics: 1,
             }
         })
-        loseDeposit(G, ctx, pid, 1);
         log.push(`|playerEffExec`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         playerEffExec(G, ctx, pid);
@@ -3376,7 +3376,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     }
     f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events;
     log.push(`|total:${f.total}`);
-    // logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export const schoolPlayer = (G: IG, ctx: Ctx, cardId: CardID): PlayerID | null => {
