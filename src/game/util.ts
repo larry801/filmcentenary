@@ -222,10 +222,7 @@ export function buyCardEffectPrepare(G: IG, ctx: Ctx, cardID: CardID, p: PlayerI
         log.push(`|newHollyWood`);
         G.e.stack.push({
             e: "optional", a: {
-                e: "pay", a: {
-                    cost: {e: "deposit", a: 1},
-                    eff: {e: "anyRegionShare", a: 1}
-                }
+                e: "newHollyWoodEff", a: 1
             },
             target: p,
         })
