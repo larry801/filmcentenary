@@ -907,7 +907,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         if (curDep >= 1) {
             log.push(`hasCash|${curDep}|industryOrAestheticsBreakthrough`);
             G.e.stack.push({
-                e: "industryOrAestheticsBreakthrough", a: {
+                e: "industryAndAestheticsBreakthrough", a: {
                     industry: 1,
                     aesthetics: 1,
                 }
@@ -927,7 +927,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     ) {
         log.push("|industryAndAestheticsBreakthrough");
         G.e.stack.push({
-            e: "industryAndAestheticsBreakthrough", a: {
+            e: "industryOrAestheticsBreakthrough", a: {
                 industry: 1,
                 aesthetics: 1,
             }
