@@ -1973,9 +1973,7 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     const log = [`drawCardForPlayer${id}`];
     const i = G.competitionInfo;
     if (i.pending) {
-        log.push(`|inCompetition|SkipDrawCardForPlayer`);
-        logger.debug(`${G.matchID}|${log.join('')}`);
-        return;
+        log.push(`|inCompetition`);
     }
     const pid = parseInt(id);
     const p = G.player[pid]
