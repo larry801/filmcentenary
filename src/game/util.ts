@@ -240,7 +240,11 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     const pub = G.pub[parseInt(p)];
     if (i.pending) {
         log.push(`|inCompetition`);
-        if (eff.e === "res" || eff.e === "resFromIndustry") {
+        if (
+            eff.e === "res"
+            || eff.e === "resFromIndustry"
+            || eff.e === "industryAward"
+        ) {
             log.push(`|validEffect|Continue`);
         } else {
             log.push(`|otherEffectSkip`);
@@ -1656,12 +1660,19 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
 }
 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
+    aesAwardEndTurn(G, ctx, p);
     const pub = G.pub[parseInt(p)];
-    const log = [`aesAward|p${p}|${pub.aesthetics}`];
+    const log = [`aesAward|InTurn|p${p}|${pub.industry}`];
     if (pub.school === SchoolCardID.S3304 && ctx.currentPlayer === p) {
-        log.push(`|S3304|AesInTurn|Draw`);
+        log.push(`|S3304|aesAwardInTurn|Draw`);
         drawCardForPlayer(G, ctx, p);
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+export const aesAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
+    const pub = G.pub[parseInt(p)];
+    const log = [`aesAward|p${p}|${pub.aesthetics}`];
     if (pub.aesthetics > 1) {
         log.push(`|>1`);
         addVp(G, ctx, p, 2);
@@ -1677,24 +1688,35 @@ export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
+export const industryAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
+    const i = G.competitionInfo;
     const pub = G.pub[parseInt(p)];
     const log = [`industryAward|p${p}|${pub.industry}`];
-    if (pub.school === SchoolCardID.S3304 && ctx.currentPlayer === p) {
-        log.push(`|S3304|industryAwardInTurn|loseVp`);
-        loseVp(G, ctx, p, 4);
-    }
-
     if (pub.industry > 1) {
         log.push(`|before|${pub.resource}`);
         addRes(G, ctx, p, 1);
         log.push(`|after|${pub.resource}`);
+    }
+    if (i.pending) {
+        log.push(`|inCompetition|skipNext`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return;
     }
     if (pub.industry > 4) {
         drawCardForPlayer(G, ctx, p);
     }
     if (pub.industry > 7) {
         drawCardForPlayer(G, ctx, p);
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
+    industryAwardEndTurn(G, ctx, p);
+    const pub = G.pub[parseInt(p)];
+    const log = [`industryAward|InTurn|p${p}|${pub.industry}`];
+    if (pub.school === SchoolCardID.S3304 && ctx.currentPlayer === p) {
+        log.push(`|S3304|industryAwardInTurn|loseVp`);
+        loseVp(G, ctx, p, 4);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -1948,8 +1970,14 @@ export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
 }
 
 export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
-    const pid = parseInt(id);
     const log = [`drawCardForPlayer${id}`];
+    const i = G.competitionInfo;
+    if (i.pending) {
+        log.push(`|inCompetition|SkipDrawCardForPlayer`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return;
+    }
+    const pid = parseInt(id);
     const p = G.player[pid]
     const pub = G.pub[pid]
     let s = G.secretInfo.playerDecks[pid]
@@ -2717,16 +2745,15 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
         log.push(`|depositLimitExceeded|${pub.deposit}`);
         pub.deposit = 10;
     }
-
     log.push(`|restore`);
     pub.newHollyWoodUsed = false;
     pub.action = getPlayerAction(G, arg);
     fillPlayerHand(G, ctx, ctx.currentPlayer);
     log.push(`| execute development rewards`);
-    log.push(`|aesAward`);
-    aesAward(G, ctx, ctx.currentPlayer);
-    log.push(`|industryAward`);
-    industryAward(G, ctx, ctx.currentPlayer);
+    log.push(`|aesAwardEndTurn`);
+    aesAwardEndTurn(G, ctx, ctx.currentPlayer);
+    log.push(`|industryAwardEndTurn`);
+    industryAwardEndTurn(G, ctx, ctx.currentPlayer);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -3376,7 +3403,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     }
     f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events;
     log.push(`|total:${f.total}`);
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    // logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export const schoolPlayer = (G: IG, ctx: Ctx, cardId: CardID): PlayerID | null => {

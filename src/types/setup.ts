@@ -464,11 +464,13 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[0].discard = [];
     // G.twoPlayer.era = IEra.THREE;
     // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["F1108", "F3113", "F1211", "F3413", "V111",];
+    // G.player[firstMovePlayer].hand = ["F1108", "F3113", "B05", "F3413", "P2102",];
     // G.pub[firstMovePlayer].vp = 149;
     // G.pub[firstMovePlayer].aesthetics = 10;
     // @ts-ignore
     // G.pub[firstMovePlayer].school = "S3101";
+    // @ts-ignore
+    // G.pub[firstMovePlayer].school = "S2101";
     // G.pub[firstMovePlayer].resource = 30;
     // G.pub[firstMovePlayer].deposit = 30;
     // G.pub[1].resource = 30;

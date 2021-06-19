@@ -104,7 +104,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                     <DeckIcon/>{deck.length}
                 </Typography>}
             title={
-                `${i18n.pub.deck}(${deck.length})`
+                `${playerID}|${i18n.pub.deck}(${deck.length})`
             }/>
 
 
