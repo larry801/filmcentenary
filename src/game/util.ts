@@ -320,10 +320,10 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             log.push(`|${pub.deposit}`);
             break;
         case SimpleEffectNames.addCompetitionPower:
-            addCompetitionPower(G, ctx, p ,eff.a);
+            addCompetitionPower(G, ctx, p, eff.a);
             break;
         case SimpleEffectNames.loseCompetitionPower:
-            loseCompetitionPower(G, ctx, p ,eff.a);
+            loseCompetitionPower(G, ctx, p, eff.a);
             break;
         case "res":
             addRes(G, ctx, p, eff.a);
@@ -1215,8 +1215,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         case ItrEffects.anyRegionShareCompetition:
             i = G.competitionInfo;
             log.push(`|pendingCompetition`);
-            const winner = i.progress > 0 ? i.atk : i.def;
-            const loser = i.progress > 0 ? i.def : i.atk;
+            const winner = i.atk;
+            const loser = i.def;
             G.e.regions = valid_regions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
             if (G.e.regions.length === 0) {
                 log.push("|loserNoShare");
@@ -2839,6 +2839,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         playerEffExec(G, ctx, targetPlayer)
     }
 }
+
 export const addCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, num: number) => {
     const log = ['addCompetitionPower'];
     const pub = G.pub[parseInt(p)];
@@ -3228,32 +3229,41 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
 export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) => {
     const log = [`startCompetition|atk${atk}|def${def}`];
     let i = G.competitionInfo;
+    let hasWinner = false;
     i.pending = true;
     i.atk = atk;
     i.def = def;
-    i.region = curCard(G).region as ValidRegion;
-    log.push(`|region:${i.region}`);
-    let classicHollywoodPlayer = schoolPlayer(G, ctx, SchoolCardID.S2101);
-    if (classicHollywoodPlayer === i.atk) {
-        log.push(`|classicHollywoodATK`);
-        i.progress++;
+    const CPDelta = G.pub[parseInt(atk)].competitionPower - G.pub[parseInt(def)].competitionPower;
+    if (CPDelta >= 3) {
+        hasWinner = true;
     }
-    if (classicHollywoodPlayer === i.def) {
-        log.push(`|classicHollywoodDEF`);
-        i.progress--
+    const schoolId = G.pub[parseInt(i.atk)].school;
+    if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
+        log.push(`|p${i.atk}|lose${CPDelta}vp`);
+        loseVp(G, ctx, i.atk, CPDelta);
+    } else {
+        log.push(`|doNotLoseVP`);
     }
-    let newHollywoodPlayer = schoolPlayer(G, ctx, SchoolCardID.S3101);
-    if (newHollywoodPlayer === i.atk) {
-        log.push(`|newHollywoodATK`);
-        i.progress++;
+    addVp(G, ctx, atk, CPDelta);
+    loseCompetitionPower(G, ctx, atk, 3);
+    loseCompetitionPower(G, ctx, def, 1);
+    if (hasWinner) {
+        if (i.onWin.e !== "none") {
+            log.push(`|onWin|${JSON.stringify(i.onWin)}`);
+            G.e.stack.push({...i.onWin})
+        }
+        log.push(`|getShareFromLoser`);
+        G.e.stack.push({
+            e: ItrEffects.anyRegionShareCompetition, a: 1
+        })
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        playerEffExec(G, ctx, i.atk);
+        return;
+    } else {
+        log.push(`|competitionCleanUp`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        competitionCleanUp(G, ctx);
     }
-    if (newHollywoodPlayer === i.def) {
-        log.push(`|newHollywoodDEF`);
-        i.progress--
-    }
-    log.push(`|checkCompetitionAttacker`);
-    logger.debug(`${G.matchID}|${log.join('')}`);
-    checkCompetitionAttacker(G, ctx);
 }
 
 
