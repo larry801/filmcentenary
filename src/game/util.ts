@@ -3326,8 +3326,8 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     if (CompetitionPowerDelta >= 3) {
         hasWinner = true;
     }
-    const schoolId = G.pub[parseInt(i.atk)].school;
-    if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
+    const defSchoolID = G.pub[parseInt(i.def)].school;
+    if (defSchoolID !== SchoolCardID.S3201 && defSchoolID !== SchoolCardID.S3204) {
         log.push(`|p${i.atk}|lose${CompetitionPowerDelta}vp`);
         loseVp(G, ctx, i.atk, CompetitionPowerDelta);
     } else {
@@ -3337,6 +3337,26 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     loseCompetitionPower(G, ctx, atk, 3);
     loseCompetitionPower(G, ctx, def, 1);
     if (hasWinner) {
+        // TODO: change to hook
+        const atkSchoolID = G.pub[parseInt(atk)].school;
+        switch (atkSchoolID) {
+            case SchoolCardID.S3101:
+                log.push('|3101')
+                G.e.stack.push({
+                    e: ItrEffects.step, a: [
+                        {e: SimpleEffectNames.draw, a: 1},
+                        {e: SimpleEffectNames.industryToVp, a: 1}
+                    ]
+                });
+                break;
+            case SchoolCardID.S2101:
+                log.push('|2101')
+                G.e.stack.push({e: SimpleEffectNames.industryToVp, a: 1});
+                break;
+            default:
+                log.push(`|schoolID|${atkSchoolID}`)
+                break;
+        }
         if (i.onWin.e !== "none") {
             log.push(`|onWin|${JSON.stringify(i.onWin)}`);
             G.e.stack.push({...i.onWin})

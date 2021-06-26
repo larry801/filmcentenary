@@ -725,13 +725,7 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {
-            pre: {e: "multiple", a: 2},
-            effect: [
-                {pre: {e: "beforeCompetition"}, effect: {e: "noCompetitionFee", a: 1}},
-                {pre: {e: "competitionWon"}, effect: {e: SimpleEffectNames.industryToVp, a: 1}},
-            ]
-        },
+        response: {pre: {e: "competitionWon"}, effect: {e: SimpleEffectNames.industryToVp, a: 1}},
         school: {
             hand: 6,
             action: 2,
@@ -2285,7 +2279,7 @@ export const effects = {
                             e: "optional", a: {
                                 e: "competition", a: {
                                     bonus: 0,
-                                    onWin: {e:"competitionLoserBuy",a: BasicCardID.B04 },
+                                    onWin: {e: "competitionLoserBuy", a: BasicCardID.B04},
                                 }
                             }
                         }
