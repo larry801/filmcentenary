@@ -1040,24 +1040,24 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         return;
     }
     log.push(`|eff|${JSON.stringify(eff)}`);
-    if (G.competitionInfo.pending) {
-        log.push(`|inCompetition`);
-        if (
-            eff.e === ItrEffects.choice
-            || eff.e === ItrEffects.era
-            || eff.e === ItrEffects.pay
-            || eff.e === ItrEffects.step
-            || eff.e === SimpleEffectNames.res
-            || eff.e === SimpleEffectNames.resFromIndustry
-        ) {
-            log.push(`|validEffect|continue`);
-        } else {
-            log.push(`|otherEffect|checkNextEffect`);
-            logger.debug(`${G.matchID}|${log.join('')}`);
-            checkNextEffect(G, ctx);
-            return;
-        }
-    }
+    // if (G.competitionInfo.pending) {
+    //     log.push(`|inCompetition`);
+    //     if (
+    //         eff.e === ItrEffects.choice
+    //         || eff.e === ItrEffects.era
+    //         || eff.e === ItrEffects.pay
+    //         || eff.e === ItrEffects.step
+    //         || eff.e === SimpleEffectNames.res
+    //         || eff.e === SimpleEffectNames.resFromIndustry
+    //     ) {
+    //         log.push(`|validEffect|continue`);
+    //     } else {
+    //         log.push(`|otherEffect|checkNextEffect`);
+    //         logger.debug(`${G.matchID}|${log.join('')}`);
+    //         checkNextEffect(G, ctx);
+    //         return;
+    //     }
+    // }
     G.e.currentEffect = eff;
     let targetPlayer = p;
     let pub = G.pub[parseInt(p)];
@@ -1242,7 +1242,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         log.push(`|chooseTarget`);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         changePlayerStage(G, ctx, "chooseTarget", p);
-                        break;
+                        return;
                     }
                 }
                 break;
@@ -2921,7 +2921,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         }
         log.push(`|target|${targetPlayer}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
-        playerEffExec(G, ctx, targetPlayer)
+        playerEffExec(G, ctx, targetPlayer);
     }
 }
 
@@ -3093,8 +3093,8 @@ export const competitionCleanUp = (G: IG, ctx: Ctx) => {
     i.defPlayedCard = false;
     i.onWin = {e: "none", a: 1};
     logger.debug(`${G.matchID}|${log.join('')}`);
-    checkNextEffect(G, ctx);
-    return;
+    // checkNextEffect(G, ctx);
+    // return;
 }
 
 export function competitionResultSettle(G: IG, ctx: Ctx) {
@@ -3348,8 +3348,11 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
         logger.debug(`${G.matchID}|${log.join('')}`);
         playerEffExec(G, ctx, i.atk);
     } else {
+        log.push(`|competitionCleanUp|checkNextEffect`);
         logger.debug(`${G.matchID}|${log.join('')}`);
-        changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
+        // changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
+        competitionCleanUp(G, ctx);
+        checkNextEffect(G, ctx);
     }
 }
 

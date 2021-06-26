@@ -660,7 +660,7 @@ export const chooseRegion: LongFormMove = {
                     } else {
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         competitionCleanUp(G, ctx);
-                        return
+                        break;
                     }
                 case ItrEffects.anyRegionShareCentral:
                 case ItrEffects.anyRegionShare:
