@@ -3,8 +3,8 @@ import {
     AllClassicCards,
     BasicCardID, EventCardID,
     IBuyInfo,
-    IEra,
-    Region,
+    IEra, ItrEffects,
+    Region, SimpleEffectNames,
     ValidRegion
 } from "../../types/core";
 import {
@@ -596,6 +596,7 @@ const zh_CN: Locale = {
     classicFilmAutoMove: classicFilmAutoMoveMode,
     moves: movesI18n,
     effect: {
+        CompetitionPowerToVp:["按照竞争力获得声望",argValue],
         addCompetitionPower: ["获得{{a}}竞争力（不超过工业等级）", argValue],
         loseCompetitionPower: ["失去{{a}}竞争力", argValue],
         noCompetitionFee: "无需支付【争夺】发起的费用",
@@ -704,11 +705,18 @@ const zh_CN: Locale = {
             },
             onWin: (e: any) => {
                 if (e.e !== "none") {
-                    if (e.e === "anyRegionShareCentral") {
-                        return "若这次争夺获胜你额外从中央牌列获得1个任意地区的份额"
-                    } else {
-                        return "若这次争夺获胜你额外获得一个" + region[e.r as Region] + "地区份额"
+                    switch (e.e) {
+                        case ItrEffects.anyRegionShareCentral:
+                            return "若这次争夺获胜你额外从中央牌列获得1个任意地区的份额"
+                        case ItrEffects.anyRegionShare:
+                            return "若这次争夺获胜你额外获得一个" + region[e.r as Region] + "地区份额"
+                        // case SimpleEffectNames.competitionLoserBuy:
+                        // case SimpleEffectNames.CompetitionPowerToVp:
+                        default:
+                            return JSON.stringify(e);
                     }
+
+
                 } else {
                     return "";
                 }

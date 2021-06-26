@@ -587,6 +587,7 @@ const en = {
         effectIcon: "Effect Icon",
     },
     effect: {
+        CompetitionPowerToVp:["按照竞争力获得声望",argValue],
         addCompetitionPower: ["Add {{a}} CompetitionPower", argValue],
         loseCompetitionPower: ["Lose {{a}} CompetitionPower", argValue],
         noCompetitionFee: "no extra fee for 【competition】",
