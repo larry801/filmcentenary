@@ -596,6 +596,8 @@ const zh_CN: Locale = {
     classicFilmAutoMove: classicFilmAutoMoveMode,
     moves: movesI18n,
     effect: {
+        addCompetitionPower: ["获得{{a}}竞争力（不超过工业等级）", argValue],
+        loseCompetitionPower: ["失去{{a}}竞争力", argValue],
         noCompetitionFee: "无需支付【争夺】发起的费用",
         minHandCountPlayers: "当前手牌数最少的公司",
         chose: chose,

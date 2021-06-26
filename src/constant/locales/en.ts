@@ -587,6 +587,8 @@ const en = {
         effectIcon: "Effect Icon",
     },
     effect: {
+        addCompetitionPower: ["Add {{a}} CompetitionPower", argValue],
+        loseCompetitionPower: ["Lose {{a}} CompetitionPower", argValue],
         noCompetitionFee: "no extra fee for 【competition】",
         minHandCountPlayers: "Company with the fewest card in hand",
         chose: " chose ",

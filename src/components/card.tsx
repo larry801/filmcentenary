@@ -7,7 +7,7 @@ import {
     getScoreCardByID,
     IEra,
     Region,
-    ScoreCardID
+    ScoreCardID, SimpleEffectNames
 } from "../types/core";
 import PrestigeIcon from '@material-ui/icons/EmojiEvents';
 import {
@@ -427,6 +427,10 @@ export const effIcon = (eff: any): JSX.Element => {
         case "addVp":
         case "addExtraVp":
             return <React.Fragment key={nanoid()}><PrestigeIcon key={nanoid()}/>+{eff.a}</React.Fragment>
+        case SimpleEffectNames.addCompetitionPower:
+            return <React.Fragment key={nanoid()}>CP+{eff.a}</React.Fragment>
+        case SimpleEffectNames.loseCompetitionPower:
+            return <React.Fragment key={nanoid()}>CP-{eff.a}</React.Fragment>
         case "loseDeposit":
             return <React.Fragment key={nanoid()}><DepositIcon key={nanoid()}/>-{eff.a}</React.Fragment>
         case "deposit":
