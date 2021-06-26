@@ -124,6 +124,7 @@ let initialDeck = [
 
 function pubPlayer(): IPubInfo {
     return {
+        competitionPower: 0,
         industry: 0,
         aesthetics: 0,
         resource: 0,

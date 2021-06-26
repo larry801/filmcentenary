@@ -198,13 +198,15 @@ export enum MoveNames {
 export enum SimpleEffectNames {
     shareToVp = "shareToVp",
     none = "none",
-    "skipBreakthrough" = "skipBreakthrough",
-    "loseVpForEachHand" = "loseVpForEachHand",
+    skipBreakthrough = "skipBreakthrough",
+    loseVpForEachHand = "loseVpForEachHand",
     aestheticsToVp = "aestheticsToVp",
     industryToVp = "industryToVp",
     resFromIndustry = "resFromIndustry",
     enableHollywood = "enableHollywood",
     enableBollywood = "enableBollywood",
+    competitionPower = "competitionPower",
+    loseCompetitionPower = "loseCompetitionPower",
     loseVp = "loseVp",
     loseShareNA = "loseShareNA",
     shareNA = "shareNA",
@@ -331,6 +333,7 @@ export enum MainAction {
 }
 
 export interface IPubInfo {
+    competitionPower: number,
     finalScoring: {
         card: number,
         building: number,

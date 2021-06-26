@@ -891,6 +891,7 @@ const en = {
         estimatedFinalScore: " Estimated Final Score",
         events: "Event cards:",
         res: "Resource:",
+        competitionPower: "CP:",
         deposit: "Deposit:",
         action: "Action:",
         industry: "Industry level:",

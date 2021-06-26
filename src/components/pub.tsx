@@ -144,6 +144,12 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                     <DepositIcon/>{i.deposit}
                 </Typography>
             </Grid>
+            <Grid item>
+                <Typography aria-label={`${i18n.pub.competitionPower}${i.resource}`} className={classes.iconAlign}>
+                     {i18n.pub.competitionPower}
+                     {i.competitionPower}
+                </Typography>
+            </Grid>
         </Grid>
         <Grid
             container

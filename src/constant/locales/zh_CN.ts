@@ -882,6 +882,7 @@ const zh_CN: Locale = {
         estimatedFinalScore: "终局分数",
         events: "事件牌区：",
         res: "资源：",
+        competitionPower: "竞争力：",
         deposit: "存款：",
         action: "行动力：",
         industry: "工业等级：",
