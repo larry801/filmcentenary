@@ -1225,34 +1225,39 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         log.push("|checkNextEffect");
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         checkNextEffect(G, ctx);
-                        return;
+                        break;
                     }
-                    case 1:{
+                    case 1: {
                         G.c.players = [];
-                        G.competitionInfo.progress = eff.a.bonus;
+                        // G.competitionInfo.progress = eff.a.bonus;
                         G.competitionInfo.onWin = eff.a.onWin;
                         log.push(`|startCompetition`);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         startCompetition(G, ctx, p, players[0]);
-                        return;
+                        break;
                     }
-                    default:{
+                    default: {
                         G.c.players = players;
                         G.e.stack.push(eff)
                         log.push(`|chooseTarget`);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         changePlayerStage(G, ctx, "chooseTarget", p);
+                        break;
                     }
                 }
-                return;
+                break;
             } else {
-                G.competitionInfo.progress = eff.a.bonus;
+                // G.competitionInfo.progress = eff.a.bonus;
                 G.competitionInfo.onWin = eff.a.onWin;
                 log.push(`|startCompetition`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 const opponent2p = p === '0' ? '1' : '0';
-                startCompetition(G, ctx, p, opponent2p);
-                return;
+                const opponentCompetitionPower = G.pub[parseInt(opponent2p)].competitionPower;
+                const playerCompetitionPower = G.pub[parseInt(p)].competitionPower;
+                if (playerCompetitionPower > opponentCompetitionPower) {
+                    startCompetition(G, ctx, p, opponent2p);
+                }
+                break;
             }
         case "loseAnyRegionShare":
             G.e.regions = valid_regions.filter(r => pub.shares[r] > 0)
@@ -1772,11 +1777,11 @@ export const industryAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
         addRes(G, ctx, p, 1);
         log.push(`|after|${pub.resource}`);
     }
-    if (i.pending) {
-        log.push(`|inCompetition|skipNext`);
-        logger.debug(`${G.matchID}|${log.join('')}`);
-        return;
-    }
+    // if (i.pending) {
+    //     log.push(`|inCompetition|skipNext`);
+    //     logger.debug(`${G.matchID}|${log.join('')}`);
+    //     return;
+    // }
     if (pub.industry > 4) {
         drawCardForPlayer(G, ctx, p);
     }
@@ -2656,7 +2661,7 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
         log.push(`|${additionalCost}|canUpgrade`);
         G.e.choices.push({e: "industryLevelUpCost", a: 1});
     }
-    if (p.industry > p.competitionPower){
+    if (p.industry > p.competitionPower) {
         log.push(`|${additionalCost}|canAddCompetitionPower`);
         G.e.choices.push({e: SimpleEffectNames.addCompetitionPower, a: 1});
     }
@@ -2853,19 +2858,22 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
             let i = G.competitionInfo;
             if (i.pending) {
                 log.push("|pendingCompetition");
-                if (i.atkPlayedCard) {
-                    log.push("|defCardSettle");
-                    i.atkPlayedCard = false;
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    defCardSettle(G, ctx);
-                    return;
-                } else {
-                    log.push("|showCompetitionResult");
-                    i.defPlayedCard = false;
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
-                    return;
-                }
+                // if (i.atkPlayedCard) {
+                //     log.push("|defCardSettle");
+                //     i.atkPlayedCard = false;
+                //     logger.debug(`${G.matchID}|${log.join('')}`);
+                //     defCardSettle(G, ctx);
+                //     return;
+                // } else {
+                //     log.push("|showCompetitionResult");
+                //     i.defPlayedCard = false;
+                //     logger.debug(`${G.matchID}|${log.join('')}`);
+                //     changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
+                //     return;
+                // }
+                log.push(`|competitionCleanUp`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                competitionCleanUp(G, ctx);
             } else {
                 if (
                     G.pending.lastRoundOfGame &&
@@ -2949,24 +2957,25 @@ export const addRes = (G: IG, ctx: Ctx, p: PlayerID, res: number) => {
     const log = ['addRes'];
     const i = G.competitionInfo;
     const pub = G.pub[parseInt(p)];
-    if (i.pending) {
-        log.push(`|pendingCompetition`);
-        if (p === i.atk) {
-            log.push(`|atk`);
-            i.progress += res;
-            log.push(`|${i.progress}`);
-        } else {
-            if (p === i.def) {
-                log.push(`|def`);
-                i.progress -= res;
-                log.push(`|${i.progress}`);
-            } else {
-                log.push(`|notCompetitionPlayer|${pub.resource}`);
-                pub.resource += res;
-                log.push(`|${pub.resource}`);
-            }
-        }
-    } else {
+    // if (i.pending) {
+    //     log.push(`|pendingCompetition`);
+    //     if (p === i.atk) {
+    //         log.push(`|atk`);
+    //         i.progress += res;
+    //         log.push(`|${i.progress}`);
+    //     } else {
+    //         if (p === i.def) {
+    //             log.push(`|def`);
+    //             i.progress -= res;
+    //             log.push(`|${i.progress}`);
+    //         } else {
+    //             log.push(`|notCompetitionPlayer|${pub.resource}`);
+    //             pub.resource += res;
+    //             log.push(`|${pub.resource}`);
+    //         }
+    //     }
+    // } else
+    {
         log.push(`before|${pub.resource}`);
         pub.resource += res;
         log.push(`after|${pub.resource}`);
@@ -3090,66 +3099,68 @@ export const competitionCleanUp = (G: IG, ctx: Ctx) => {
 export function competitionResultSettle(G: IG, ctx: Ctx) {
     const i = G.competitionInfo;
     const log = [`competitionResultSettle|pa:${i.atk}|pd:${i.def}`];
-    let winner: PlayerID = '0';
-    let hasWinner = false;
-    if (i.progress > 5) {
-        log.push(`|${i.progress}|overflow`);
-        i.progress = 5;
-    }
-    if (i.progress < -5) {
-        log.push(`|${i.progress}|underflow`);
-        i.progress = -5;
-    }
-    if (i.progress >= 3) {
-        log.push(`|atk|p${i.atk}|won`);
-        winner = i.atk;
-        hasWinner = true;
-    } else {
-        if (i.progress <= -3) {
-            log.push(`|def|p${i.def}|won`);
-            winner = i.def;
-            hasWinner = true;
-        } else {
-            log.push(`|noWinner`);
-        }
-    }
-    G.competitionInfo.pending = false;
-    if (i.progress > 0) {
-        addVp(G, ctx, i.atk, i.progress);
-        const schoolId = G.pub[parseInt(i.def)].school;
-        if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
-            log.push(`|p${i.def}|lose${i.progress}vp`);
-            loseVp(G, ctx, i.def, i.progress);
-        } else {
-            log.push(`|doNotLoseVP`);
-        }
-    } else {
-        const vp = -i.progress;
-        addVp(G, ctx, i.def, vp);
-        const schoolId = G.pub[parseInt(i.atk)].school;
-        if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
-            log.push(`|p${i.atk}|lose${vp}vp`);
-            loseVp(G, ctx, i.atk, vp);
-        } else {
-            log.push(`|doNotLoseVP`);
-        }
-    }
-    if (hasWinner) {
-        if (i.onWin.e !== "none") {
-            log.push(`|onWin|${JSON.stringify(i.onWin)}`);
-            G.e.stack.push({...i.onWin})
-        }
-        log.push(`|getShareFromLoser`);
-        G.e.stack.push({
-            e: ItrEffects.anyRegionShareCompetition, a: 1
-        })
-        logger.debug(`${G.matchID}|${log.join('')}`);
-        playerEffExec(G, ctx, winner);
-        return;
-    } else {
-        log.push(`|competitionCleanUp`);
-        logger.debug(`${G.matchID}|${log.join('')}`);
-        competitionCleanUp(G, ctx);
+    {
+        // let winner: PlayerID = '0';
+        // let hasWinner = false;
+        // if (i.progress > 5) {
+        //     log.push(`|${i.progress}|overflow`);
+        //     i.progress = 5;
+        // }
+        // if (i.progress < -5) {
+        //     log.push(`|${i.progress}|underflow`);
+        //     i.progress = -5;
+        // }
+        // if (i.progress >= 3) {
+        //     log.push(`|atk|p${i.atk}|won`);
+        //     winner = i.atk;
+        //     hasWinner = true;
+        // } else {
+        //     if (i.progress <= -3) {
+        //         log.push(`|def|p${i.def}|won`);
+        //         winner = i.def;
+        //         hasWinner = true;
+        //     } else {
+        //         log.push(`|noWinner`);
+        //     }
+        // }
+        // G.competitionInfo.pending = false;
+        // if (i.progress > 0) {
+        //     addVp(G, ctx, i.atk, i.progress);
+        //     const schoolId = G.pub[parseInt(i.def)].school;
+        //     if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
+        //         log.push(`|p${i.def}|lose${i.progress}vp`);
+        //         loseVp(G, ctx, i.def, i.progress);
+        //     } else {
+        //         log.push(`|doNotLoseVP`);
+        //     }
+        // } else {
+        //     const vp = -i.progress;
+        //     addVp(G, ctx, i.def, vp);
+        //     const schoolId = G.pub[parseInt(i.atk)].school;
+        //     if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
+        //         log.push(`|p${i.atk}|lose${vp}vp`);
+        //         loseVp(G, ctx, i.atk, vp);
+        //     } else {
+        //         log.push(`|doNotLoseVP`);
+        //     }
+        // }
+        // if (hasWinner) {
+        //     if (i.onWin.e !== "none") {
+        //         log.push(`|onWin|${JSON.stringify(i.onWin)}`);
+        //         G.e.stack.push({...i.onWin})
+        //     }
+        //     log.push(`|getShareFromLoser`);
+        //     G.e.stack.push({
+        //         e: ItrEffects.anyRegionShareCompetition, a: 1
+        //     })
+        //     logger.debug(`${G.matchID}|${log.join('')}`);
+        //     playerEffExec(G, ctx, winner);
+        //     return;
+        // } else {
+        //     log.push(`|competitionCleanUp`);
+        //     logger.debug(`${G.matchID}|${log.join('')}`);
+        //     competitionCleanUp(G, ctx);
+        // }
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -3309,18 +3320,19 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     i.pending = true;
     i.atk = atk;
     i.def = def;
-    const CPDelta = G.pub[parseInt(atk)].competitionPower - G.pub[parseInt(def)].competitionPower;
-    if (CPDelta >= 3) {
+    const CompetitionPowerDelta = G.pub[parseInt(atk)].competitionPower - G.pub[parseInt(def)].competitionPower;
+    i.progress = CompetitionPowerDelta;
+    if (CompetitionPowerDelta >= 3) {
         hasWinner = true;
     }
     const schoolId = G.pub[parseInt(i.atk)].school;
     if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
-        log.push(`|p${i.atk}|lose${CPDelta}vp`);
-        loseVp(G, ctx, i.atk, CPDelta);
+        log.push(`|p${i.atk}|lose${CompetitionPowerDelta}vp`);
+        loseVp(G, ctx, i.atk, CompetitionPowerDelta);
     } else {
         log.push(`|doNotLoseVP`);
     }
-    addVp(G, ctx, atk, CPDelta);
+    addVp(G, ctx, atk, CompetitionPowerDelta);
     loseCompetitionPower(G, ctx, atk, 3);
     loseCompetitionPower(G, ctx, def, 1);
     if (hasWinner) {
@@ -3334,11 +3346,9 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
         })
         logger.debug(`${G.matchID}|${log.join('')}`);
         playerEffExec(G, ctx, i.atk);
-        return;
     } else {
-        log.push(`|competitionCleanUp`);
         logger.debug(`${G.matchID}|${log.join('')}`);
-        competitionCleanUp(G, ctx);
+        changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
     }
 }
 

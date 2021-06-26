@@ -219,38 +219,38 @@ export const payAdditionalCost: LongFormMove = {
                     log.push(`|cannotUpgrade`);
                 }
                 break;
-            case "competition":
-                let players = [];
-                const p = ctx.playerID;
-                if (ctx.numPlayers > SimpleRuleNumPlayers) {
-                    if (G.mode !== GameMode.TEAM2V2) {
-                        log.push(`|normal`);
-                        players = seqFromCurrentPlayer(G, ctx);
-                    } else {
-                        log.push(`|2v2`);
-                        players = opponentTeamPlayers(p);
-                    }
-                    const ownIndex = players.indexOf(p)
-                    if (ownIndex !== -1) {
-                        players.splice(ownIndex, 1)
-                    }
-                    log.push(`|competitionPlayers:|${JSON.stringify(players)}`);
-                    log.push(`|players:|${JSON.stringify(players)}`);
-                    G.c.players = players;
-                    G.e.stack.push(eff)
-                    log.push(`|chooseTarget`);
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    changePlayerStage(G, ctx, "chooseTarget", p);
-                    return;
-                } else {
-                    G.competitionInfo.progress = eff.a.bonus;
-                    G.competitionInfo.onWin = eff.a.onWin;
-                    log.push(`|startCompetition`);
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    const opponent2p = p === '0' ? '1' : '0';
-                    startCompetition(G, ctx, p, opponent2p);
-                    return;
-                }
+            // case "competition":
+            //     let players = [];
+            //     const p = ctx.playerID;
+            //     if (ctx.numPlayers > SimpleRuleNumPlayers) {
+            //         if (G.mode !== GameMode.TEAM2V2) {
+            //             log.push(`|normal`);
+            //             players = seqFromCurrentPlayer(G, ctx);
+            //         } else {
+            //             log.push(`|2v2`);
+            //             players = opponentTeamPlayers(p);
+            //         }
+            //         const ownIndex = players.indexOf(p)
+            //         if (ownIndex !== -1) {
+            //             players.splice(ownIndex, 1)
+            //         }
+            //         log.push(`|competitionPlayers:|${JSON.stringify(players)}`);
+            //         log.push(`|players:|${JSON.stringify(players)}`);
+            //         G.c.players = players;
+            //         G.e.stack.push(eff)
+            //         log.push(`|chooseTarget`);
+            //         logger.debug(`${G.matchID}|${log.join('')}`);
+            //         changePlayerStage(G, ctx, "chooseTarget", p);
+            //         return;
+            //     } else {
+            //         G.competitionInfo.progress = eff.a.bonus;
+            //         G.competitionInfo.onWin = eff.a.onWin;
+            //         log.push(`|startCompetition`);
+            //         logger.debug(`${G.matchID}|${log.join('')}`);
+            //         const opponent2p = p === '0' ? '1' : '0';
+            //         startCompetition(G, ctx, p, opponent2p);
+            //         return;
+            //     }
             default:
                 throw Error(`Invalid effect ${JSON.stringify(eff)}`)
         }
@@ -347,7 +347,7 @@ export const chooseTarget: LongFormMove = {
                 break;
             case "competition":
                 G.c.players = [];
-                G.competitionInfo.progress = eff.a.bonus;
+                // G.competitionInfo.progress = eff.a.bonus;
                 G.competitionInfo.onWin = eff.a.onWin;
                 log.push(`|startCompetition`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
@@ -649,7 +649,8 @@ export const chooseRegion: LongFormMove = {
                     reg.share++;
                     break;
                 case ItrEffects.anyRegionShareCompetition:
-                    const loser = i.progress > 0 ? i.def : i.atk;
+                    // const loser = i.progress > 0 ? i.def : i.atk;
+                    const loser = i.def;
                     G.pub[parseInt(loser)].shares[r]--;
                     pub.shares[r]++;
                     if (eff.a > 1) {
