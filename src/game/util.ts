@@ -2874,7 +2874,8 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                 log.push(`|competitionCleanUp`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 competitionCleanUp(G, ctx);
-            } else {
+            }
+            {
                 if (
                     G.pending.lastRoundOfGame &&
                     ctx.currentPlayer === getExistingLastMovePlayer(G)
