@@ -2839,11 +2839,17 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         playerEffExec(G, ctx, targetPlayer)
     }
 }
-export const addCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, res: number) => {
+export const addCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, num: number) => {
     const log = ['addCompetitionPower'];
     const pub = G.pub[parseInt(p)];
     log.push(`before|${pub.competitionPower}`);
-    pub.resource += res;
+    const targetCompetitionPower = pub.competitionPower + num;
+    if (targetCompetitionPower > pub.industry) {
+        log.push(`|TargetCompetitionPower|${targetCompetitionPower}|exceedIndustry|${pub.industry}`);
+        pub.competitionPower = pub.industry;
+    } else {
+        pub.competitionPower += num;
+    }
     log.push(`after|${pub.competitionPower}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
