@@ -28,7 +28,7 @@ import {
     drawCardForPlayer,
     industryAward
 } from "./util";
-import {SchoolCardID} from "../types/core";
+import {SchoolCardID, SimpleEffectNames} from "../types/core";
 import {logger} from "./logger";
 
 export const payAdditionalCostStage: StageConfig = {
@@ -124,6 +124,12 @@ export const NormalTurn: TurnConfig = {
                 drawCardForPlayer(G, ctx, p);
                 G.e.stack.push({e: "discard", a: 1})
                 changePlayerStage(G, ctx, "chooseHand", p);
+            }
+            if (pub.school === SchoolCardID.S3101) {
+                log.push(`|newHollywood`);
+                G.e.choices.push({e: SimpleEffectNames.draw, a: 1});
+                G.e.choices.push({e: SimpleEffectNames.addCompetitionPower, a: 1});
+                changePlayerStage(G, ctx, "chooseEffect", p);
             }
             if (pub.school === SchoolCardID.S3105) {
                 log.push(`|newYork`);

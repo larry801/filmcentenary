@@ -162,6 +162,16 @@ export const LegendCardIcon = () => <SvgIcon style={verticalAlign}>
 
     />
 </SvgIcon>
+export const BasicCardIcon = () => <SvgIcon style={verticalAlign}>
+    {RectOfCard()}
+    <text
+        x="4"
+        y="18"
+        fill="black"
+        fontSize="14px"
+    >B
+    </text>
+</SvgIcon>
 export const FilmCardIcon = () => <SvgIcon style={verticalAlign}>
     {RectOfCard()}
     <text

@@ -11,7 +11,7 @@ import {
 } from "../types/core";
 import PrestigeIcon from '@material-ui/icons/EmojiEvents';
 import {
-    ActionPointIcon, AestheticsCardIcon, BuyCardForFreeIcon,
+    ActionPointIcon, AestheticsCardIcon, BasicCardIcon, BuyCardForFreeIcon,
     CardIcon,
     CardToArchiveIcon,
     ChampionIcon,
@@ -156,6 +156,10 @@ export const scoreEffectText = (cardId: CardID): string => {
 
 export const effIcon = (eff: any): JSX.Element => {
     switch (eff.e) {
+        case SimpleEffectNames.CompetitionPowerToVp:
+            return <React.Fragment key={eff.e}>
+                竞争力<PrestigeIcon/>
+            </React.Fragment>
         case "discardAesthetics":
             return <React.Fragment key={eff.e}>
                 <DiscardIconHelper elem={<AestheticsCardIcon/>}/>X{eff.a}
@@ -163,6 +167,10 @@ export const effIcon = (eff: any): JSX.Element => {
         case "discardIndustry":
             return <React.Fragment key={nanoid()}>
                 <DiscardIconHelper elem={<IndustryCardIcon/>}/>X{eff.a}
+            </React.Fragment>
+        case "discardBasic":
+            return <React.Fragment key={nanoid()}>
+                <DiscardIconHelper elem={<BasicCardIcon/>}/>X{eff.a}
             </React.Fragment>
         case "discardNormalOrLegend":
             return <React.Fragment key={nanoid()}>

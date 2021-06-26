@@ -1,7 +1,8 @@
 import {IG} from "../types/setup";
 import {Ctx} from "boardgame.io";
 import {
-    AllClassicCards, BasicCardID,
+    AllClassicCards,
+    BasicCardID,
     CardID,
     EventCardID,
     FilmCardID,
@@ -10,7 +11,8 @@ import {
     Region,
     SchoolCardID,
     ScoreCardID,
-    ScoringEffectNames
+    ScoringEffectNames,
+    SimpleEffectNames
 } from "../types/core";
 
 const noEff = {e: "none", a: 1};
@@ -533,10 +535,21 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
-            e: "pay", a: {
-                cost: {e: "res", a: 1},
-                eff: {e: "draw", a: 2}
-            },
+            e: "era", a: [
+                {
+                    e: "pay", a: {
+                        cost: {e: "res", a: 1},
+                        eff: {e: "draw", a: 2}
+                    },
+                },
+                {
+                    e: "pay", a: {
+                        cost: {e: "res", a: 1},
+                        eff: {e: "draw", a: 2}
+                    },
+                },
+                noEff
+            ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
@@ -679,7 +692,13 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => true,
-        play: {e: "step", a: [{e: "draw", a: 1}, {e: "vp", a: 1}]},
+        play: {
+            e: "era", a: [
+                {e: "step", a: [{e: "draw", a: 1}, {e: "vp", a: 1}]},
+                {e: "draw", a: 1},
+                noEff
+            ]
+        },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
@@ -692,7 +711,7 @@ export const effects = {
             e: "era", a: [
                 {e: "draw", a: 1},
                 {e: "step", a: [{e: "draw", a: 2}, {e: "discard", a: 1}]},
-                {e: "step", a: [{e: "draw", a: 1}, {e: "aesAward", a: 1}]},
+                {e: "step", a: [{e: "aesAward", a: 1}]},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -710,7 +729,7 @@ export const effects = {
             pre: {e: "multiple", a: 2},
             effect: [
                 {pre: {e: "beforeCompetition"}, effect: {e: "noCompetitionFee", a: 1}},
-                {pre: {e: "competitionStart"}, effect: {e: "competitionBonus", a: 1}},
+                {pre: {e: "competitionWon"}, effect: {e: SimpleEffectNames.industryToVp, a: 1}},
             ]
         },
         school: {
@@ -730,15 +749,21 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "draw", a: 1},
-                {e: "noStudio", a: {e: "discardNormalOrLegend", a: 1}},
+                {e: "noStudio", a: {e: SimpleEffectNames.loseCompetitionPower, a: 1}},
                 {e: "studio", a: {e: "deposit", a: 1}},
+                {e: SimpleEffectNames.draw, a: 1},
                 {
-                    e: "optional", a: {
-                        e: "competition", a: {
-                            bonus: 1,
-                            onWin: noEff,
+                    e: ItrEffects.choice, a: [
+                        {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                        {
+                            e: "optional", a: {
+                                e: "competition", a: {
+                                    bonus: 0,
+                                    onWin: noEff,
+                                }
+                            }
                         }
-                    }
+                    ]
                 }
             ]
         },
@@ -814,15 +839,19 @@ export const effects = {
                 noEff,
                 {
                     e: "step", a: [
-                        {e: "res", a: 3},
-                        {e: "deposit", a: 1},
-                        {e: "shareNA", a: 1}
+                        {e: "res", a: 4},
+                        {
+                            e: ItrEffects.choice, a: [
+                                {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                                {e: "shareNA", a: 1}
+                            ]
+                        }
                     ]
                 },
                 {
                     e: "step", a: [
                         {e: "deposit", a: 1},
-                        {e: "draw", a: 1},
+                        {e: SimpleEffectNames.addCompetitionPower, a: 1},
                     ]
                 }
             ]
@@ -944,14 +973,18 @@ export const effects = {
                 {
                     e: "step", a: [
                         {e: "res", a: 3},
-                        {e: "shareToVp", a: Region.NA},
                         {
-                            e: "optional", a: {
-                                e: "competition", a: {
-                                    bonus: 0,
-                                    onWin: noEff,
-                                },
-                            }
+                            e: ItrEffects.choice, a: [
+                                {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                                {
+                                    e: "optional", a: {
+                                        e: "competition", a: {
+                                            bonus: 0,
+                                            onWin: {e: SimpleEffectNames.industryToVp, a: 1}
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     ]
                 },
@@ -960,12 +993,17 @@ export const effects = {
                         {e: "res", a: 1},
                         {e: "deposit", a: 1},
                         {
-                            e: "optional", a: {
-                                e: "competition", a: {
-                                    bonus: 0,
-                                    onWin: noEff,
-                                },
-                            }
+                            e: ItrEffects.choice, a: [
+                                {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                                {
+                                    e: "optional", a: {
+                                        e: "competition", a: {
+                                            bonus: 0,
+                                            onWin: noEff,
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     ]
                 },
@@ -1091,11 +1129,7 @@ export const effects = {
         play: {
             e: "step", a:
                 [
-                    {
-                        e: "choice", a: [
-                            {e: "shareNA", a: 1}, {e: "shareWE", a: 1}
-                        ]
-                    },
+                    {e: SimpleEffectNames.addCompetitionPower, a: 1},
                     {e: "noStudio", a: {e: "discardNormalOrLegend", a: 1}},
                     {e: "studio", a: {e: "industryAward", a: 1}}
                 ]
@@ -1240,7 +1274,7 @@ export const effects = {
                 },
                 {
                     e: "step", a: [
-                        {e: "res", a: 2},
+                        {e: "res", a: 1},
                         {e: "aesAward", a: 1},
                     ]
                 }
@@ -1293,7 +1327,7 @@ export const effects = {
                 },
                 {
                     e: "step", a: [
-                        {e: "deposit", a: 1},
+                        {e: SimpleEffectNames.res, a: 1},
                         {e: "comment", a: 1},
                     ]
                 }
@@ -1338,7 +1372,19 @@ export const effects = {
                 {
                     e: "step", a: [
                         {e: "res", a: 3},
-                        {e: "shareToVp", a: Region.WE},
+                        {
+                            e: ItrEffects.choice, a: [
+                                {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                                {
+                                    e: "optional", a: {
+                                        e: "competition", a: {
+                                            bonus: 0,
+                                            onWin: {e: ItrEffects.comment, a: 1}
+                                        }
+                                    }
+                                }
+                            ]
+                        }
                     ]
                 },
                 {
@@ -1730,13 +1776,21 @@ export const effects = {
         response: {
             pre: {e: "multiple", a: 2}, effect: [
                 {
-                    pre: {e: "obtainNormalOrLegendFilm"},
+                    pre: {e: "turnStart"},
                     effect: {
-                        e: "optional", a: {
-                            e: "newHollyWoodEff", a: 1
-                        }
+                        e: ItrEffects.choice, a: [
+                            {e: SimpleEffectNames.draw, a: 1},
+                            {e: SimpleEffectNames.addCompetitionPower, a: 1}
+                        ]
                     }
-                }, {pre: {e: "competitionStart"}, effect: {e: "competitionBonus", a: 1}}
+                }, {
+                    pre: {e: "competitionWon"}, effect: {
+                        e: ItrEffects.step, a: [
+                            {e: SimpleEffectNames.draw, a: 1},
+                            {e: SimpleEffectNames.industryToVp, a: 1}
+                        ]
+                    }
+                }
             ]
         },
         school: {
@@ -1756,12 +1810,13 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "anyRegionShare", a: 1},
+                {e: SimpleEffectNames.addCompetitionPower, a: 1},
                 {e: "noStudio", a: {e: "loseAnyRegionShare", a: 1}},
                 {e: "studio", a: {e: "industryAward", a: 1}},
                 {
                     e: "optional", a: {
                         e: "competition", a: {
-                            bonus: 1,
+                            bonus: 0,
                             onWin: noEff,
                         }
                     }
@@ -1797,12 +1852,16 @@ export const effects = {
                 {e: "industryAward", a: 1},
                 {e: "deposit", a: 3},
                 {
-                    e: "optional", a: {
-                        e: "competition", a: {
-                            bonus: 1,
-                            onWin: {e: "anyRegionShareCentral", a: 1},
-                        }
-                    }
+                    e: ItrEffects.choice, a: [
+                        {e: SimpleEffectNames.addCompetitionPower, a: 2},
+                        {
+                            e: "optional", a: {
+                                e: "competition", a: {
+                                    bonus: 0,
+                                    onWin: {e: "anyRegionShareCentral", a: 1},
+                                }
+                            }
+                        }]
                 }
             ]
         },
@@ -1834,7 +1893,8 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "draw", a: 2},
+                {e: "draw", a: 1},
+                {e: ItrEffects.update, a: 1},
                 {
                     e: "noStudio", a: {
                         e: "step", a: [
@@ -1857,11 +1917,11 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "buyCardToHand", a: BasicCardID.B03},
+                {e: SimpleEffectNames.addCompetitionPower, a: 1},
                 {
                     e: "noStudio", a: {
                         e: "step", a: [
-                            {e: "buy", a: "B04"},
-                            {e: "buy", a: "B03"},
+                            {e: ItrEffects.discardBasic, a: 2},
                         ]
                     }
                 },
@@ -1884,11 +1944,16 @@ export const effects = {
                 {e: "draw", a: 1},
                 {
                     e: "choice", a: [
-                        {e: "res", a: 6},
+                        {
+                            e: ItrEffects.step, a: [
+                                {e: "res", a: 6},
+                                {e: SimpleEffectNames.addCompetitionPower, a: 2},
+                            ]
+                        },
                         {
                             e: "step", a: [
                                 {e: "anyRegionShare", a: 1},
-                                {e: "competition", a: {bonus: 3, onWin: noEff}}
+                                {e: "competition", a: {bonus: 0, onWin: noEff}}
                             ]
                         }
                     ]
@@ -1920,12 +1985,17 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "res", a: 4}, {
-                    e: "optional", a: {
-                        e: "competition", a: {
-                            bonus: 1,
-                            onWin: {e: "shareNA", a: 1, r: Region.NA}
+                    e: ItrEffects.choice, a: [
+                        {e: SimpleEffectNames.addCompetitionPower, a: 2},
+                        {
+                            e: "optional", a: {
+                                e: "competition", a: {
+                                    bonus: 0,
+                                    onWin: {e: SimpleEffectNames.shareNA, a: 1}
+                                }
+                            }
                         }
-                    }
+                    ]
                 }
             ]
         },
@@ -1971,10 +2041,7 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "pay", a: {
-                cost: {e: "deposit", a: 1},
-                eff: {e: "resFromIndustry", a: 1}
-            }
+            e: SimpleEffectNames.resFromIndustry, a: 1
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
@@ -1987,7 +2054,7 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "res", a: 4},
-                {e: "vp", a: 1},
+                {e: SimpleEffectNames.addCompetitionPower, a: 1},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2000,8 +2067,13 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "res", a: 2},
-                {e: "industryAward", a: 1}
+                {e: "industryAward", a: 1},
+                {
+                    e: ItrEffects.choice, a: [
+                        {e: SimpleEffectNames.res, a: 2},
+                        {e: SimpleEffectNames.CompetitionPowerToVp, a: 1},
+                    ]
+                }
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2083,10 +2155,16 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "vp", a: 3},
-                {e: "noStudio", a: {e: "loseVpForEachHand", a: 1}},
-                {e: "studio", a: {e: "draw", a: 2}},
                 {e: "buyCardToHand", a: "B05"},
+                {
+                    e: "noStudio", a: {
+                        e: ItrEffects.step, a: [
+                            {e: SimpleEffectNames.buy, a: BasicCardID.B04},
+                            {e: SimpleEffectNames.buy, a: BasicCardID.B04}
+                        ]
+                    }
+                },
+                {e: "studio", a: {e: "draw", a: 2}},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2198,15 +2276,20 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "res", a: 2},
+                {e: "res", a: 1},
                 {e: "deposit", a: 2},
                 {
-                    e: "optional", a: {
-                        e: "competition", a: {
-                            bonus: 1,
-                            onWin: {e: "shareWE", a: 1, r: Region.WE}
+                    e: ItrEffects.choice, a: [
+                        {e: SimpleEffectNames.addCompetitionPower, a: 2},
+                        {
+                            e: "optional", a: {
+                                e: "competition", a: {
+                                    bonus: 0,
+                                    onWin: {e:"competitionLoserBuy",a: BasicCardID.B04 },
+                                }
+                            }
                         }
-                    }
+                    ]
                 }
             ]
         },
@@ -2218,11 +2301,7 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
-        play: {
-            e: "step", a: [
-                {e: "vp", a: 4}, {e: "aesAward", a: 1}
-            ]
-        },
+        play: {e: "aesAward", a: 2},
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
@@ -2288,6 +2367,8 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
+                {e: SimpleEffectNames.draw, a: 1},
+                {e: SimpleEffectNames.addCompetitionPower, a: 1},
                 {e: "noStudio", a: {e: "loseDeposit", a: 3}},
                 {
                     e: "studio", a: {
@@ -2297,11 +2378,10 @@ export const effects = {
                         ]
                     }
                 },
-                {e: "draw", a: 1},
                 {
                     e: "optional", a: {
                         e: "competition", a: {
-                            bonus: 1,
+                            bonus: 0,
                             onWin: noEff,
                         }
                     }
@@ -2350,12 +2430,17 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "resFromIndustry", a: 1}, {
-                    e: "optional", a: {
-                        e: "competition", a: {
-                            bonus: 1,
-                            onWin: {e: "shareEE", a: 1, r: Region.EE}
+                    e: ItrEffects.choice, a: [
+                        {e: SimpleEffectNames.addCompetitionPower, a: 2},
+                        {
+                            e: "optional", a: {
+                                e: "competition", a: {
+                                    bonus: 0,
+                                    onWin: {e: ItrEffects.handToAnyPlayer, a: 1},
+                                }
+                            }
                         }
-                    }
+                    ]
                 }
             ]
         },
@@ -2539,13 +2624,25 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "step", a: [{e: "res", a: 4}, {
-                e: "optional", a: {
-                    e: "competition", a: {
-                        bonus: 1, onWin: {e: "shareASIA", a: 1, r: Region.ASIA}
-                    }
+            e: "step", a: [
+                {e: "res", a: 4},
+                {
+                    e: ItrEffects.choice, a: [
+                        {e: SimpleEffectNames.addCompetitionPower, a: 2},
+                        {
+                            e: "optional", a: {
+                                e: "competition", a: {
+                                    bonus: 0,
+                                    onWin: {
+                                        e: "peek",
+                                        a: {count: 3, target: "hand", filter: {e: "industry", a: "all"}}
+                                    },
+                                }
+                            }
+                        }
+                    ]
                 }
-            }]
+            ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
