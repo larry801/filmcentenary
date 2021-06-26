@@ -319,6 +319,12 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             pub.deposit += eff.a;
             log.push(`|${pub.deposit}`);
             break;
+        case SimpleEffectNames.addCompetitionPower:
+            addCompetitionPower(G, ctx, p ,eff.a);
+            break;
+        case SimpleEffectNames.loseCompetitionPower:
+            loseCompetitionPower(G, ctx, p ,eff.a);
+            break;
         case "res":
             addRes(G, ctx, p, eff.a);
             break;
@@ -2833,6 +2839,28 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         playerEffExec(G, ctx, targetPlayer)
     }
 }
+export const addCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, res: number) => {
+    const log = ['addCompetitionPower'];
+    const pub = G.pub[parseInt(p)];
+    log.push(`before|${pub.competitionPower}`);
+    pub.resource += res;
+    log.push(`after|${pub.competitionPower}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+export const loseCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, num: number) => {
+    const log = [`p${p}|loseCompetitionPower|${num}`];
+    let pub = G.pub[parseInt(p)];
+    log.push(`|before|${pub.competitionPower}`);
+    if (num > pub.competitionPower) {
+        log.push(`|CompetitionPower|${pub.competitionPower}|insufficient`);
+        pub.competitionPower = 0;
+    } else {
+        pub.competitionPower -= num;
+    }
+    log.push(`|after|${pub.competitionPower}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
 
 export const addRes = (G: IG, ctx: Ctx, p: PlayerID, res: number) => {
     const log = ['addRes'];
@@ -3284,7 +3312,6 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     log.push(`|after|${f.card}`);
     if (p.building.cinemaBuilt) {
         log.push(`|p${pid}|own|cinema`);
-
         f.building += 3;
     }
     if (p.building.studioBuilt) {

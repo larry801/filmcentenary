@@ -1,4 +1,5 @@
 import {PlayerID} from "boardgame.io";
+import {addCompetitionPower} from "../game/util";
 
 export enum Region {
     NA,
@@ -205,7 +206,7 @@ export enum SimpleEffectNames {
     resFromIndustry = "resFromIndustry",
     enableHollywood = "enableHollywood",
     enableBollywood = "enableBollywood",
-    competitionPower = "competitionPower",
+    addCompetitionPower = "addCompetitionPower",
     loseCompetitionPower = "loseCompetitionPower",
     loseVp = "loseVp",
     loseShareNA = "loseShareNA",
