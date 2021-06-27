@@ -214,21 +214,21 @@ export function buyCardEffectPrepare(G: IG, ctx: Ctx, cardID: CardID, p: PlayerI
     } else {
         log.push(`|noBuyEff`);
     }
-    if (
-        pub.school === SchoolCardID.S3101
-        && (targetCard.category === CardCategory.NORMAL
-        || targetCard.category === CardCategory.LEGEND)
-        && targetCard.type === CardType.F
-    ) {
-        log.push(`|newHollyWood`);
-        G.e.stack.push({
-            e: "optional", a: {
-                e: "newHollyWoodEff", a: 1
-            },
-            target: p,
-        })
-        hasEffect = true;
-    }
+    // if (
+    //     pub.school === SchoolCardID.S3101
+    //     && (targetCard.category === CardCategory.NORMAL
+    //     || targetCard.category === CardCategory.LEGEND)
+    //     && targetCard.type === CardType.F
+    // ) {
+    //     log.push(`|newHollyWood`);
+    //     G.e.stack.push({
+    //         e: "optional", a: {
+    //             e: "newHollyWoodEff", a: 1
+    //         },
+    //         target: p,
+    //     })
+    //     hasEffect = true;
+    // }
     logger.debug(`${G.matchID}|${log.join('')}`);
     return hasEffect;
 }
