@@ -656,11 +656,15 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
 // }
 //
 export const isSameTeam = (p: PlayerID, q: PlayerID): boolean => {
+    const log = [`isSameTeam|p${p}|p${q}`];
+    let result = false;
     if (p === '0' || p === '2') {
-        return p === '0' || p === '2'
+        result = p === '0' || p === '2'
     } else {
-        return p === '1' || p === '3'
+        result = p === '1' || p === '3'
     }
+    logger.debug(`${log.join('')}|result`);
+    return result;
 }
 
 export const opponentTeamPlayers = (p: PlayerID): PlayerID[] => {
@@ -693,29 +697,34 @@ export const getCompetitionPowerLessPlayers = (G: IG, ctx: Ctx, p: PlayerID): Pl
     const log = [`getCompetitionPowerLessPlayers`];
     log.push(`|cur|p${ctx.currentPlayer}`);
     const atkCompetitionPower = G.pub[parseInt(p)].competitionPower;
+    log.push(`|atkCompetitionPower|${atkCompetitionPower}`);
     let seq: PlayerID[] = [];
     const remainPlayers = G.order.length;
-    const pos = posOfPlayer(G, ctx, p);
     const checkAndAdd = (i: number) => {
-        log.push(`|${i}`);
         const targetPlayer = G.order[i];
         const targetCompetitionPower = G.pub[parseInt(targetPlayer)].competitionPower;
+        log.push(`|${i}|p${targetPlayer}|CP:${targetCompetitionPower}`);
         if (targetCompetitionPower < atkCompetitionPower) {
             if (G.mode !== GameMode.TEAM2V2) {
                 log.push(`|normal`);
-                log.push(`|push|${i}`);
+                log.push(`|push`);
                 seq.push(targetPlayer);
             } else {
                 log.push(`|2v2`);
                 if (isSameTeam(p, targetPlayer)) {
-                    log.push(`|isSameTeam|doNotPush|${i}`)
+                    log.push(`|isSameTeam|doNotPush`)
                 } else {
-                    log.push(`|push|${i}`);
+                    log.push(`|push`);
                     seq.push(targetPlayer);
                 }
             }
+        } else {
+            log.push(`|less|skip`);
+
         }
     }
+
+    const pos = posOfPlayer(G, ctx, p);
     for (let i = pos; i < remainPlayers; i++) {
         checkAndAdd(i);
     }
