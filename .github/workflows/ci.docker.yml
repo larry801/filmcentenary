@@ -31,6 +31,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to Coding Artifact
+        uses: docker/login-action@v1
+        with:
+          registry: filmcentenary-docker.pkg.coding.net
+          username: ${{ secrets.CODING_USERNAME }}
+          password: ${{ secrets.CODING_TOKEN }}
       - name: Set outputs
         id: vars
         run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
@@ -49,11 +55,29 @@ jobs:
           context: .
           file: Dockerfile.base
           push: true
-          tags: larry801/film-centenary-base:latest,larry801/film-centenary-base:${{ steps.vars.outputs.sha_short }}
+          tags: |
+            larry801/film-centenary-base:latest
+            filmcentenary-docker.pkg.coding.net/dianyingbainian/web_full_stack/film-centenary-base:latest
+            larry801/film-centenary-base:${{ steps.vars.outputs.sha_short }}
+            filmcentenary-docker.pkg.coding.net/dianyingbainian/web_full_stack/film-centenary-base:${{ steps.vars.outputs.sha_short }}docker login -u larry.wang.801@gmail.com filmcentenary-docker.pkg.coding.net
       - name: Build and push app image
         uses: docker/build-push-action@v2
         with:
           context: .
           file: Dockerfile.web
           push: true
-          tags: larry801/film-centenary:latest,larry801/film-centenary:${{ steps.vars.outputs.sha_short }}
+          tags: |
+            larry801/film-centenary:latest
+            filmcentenary-docker.pkg.coding.net/dianyingbainian/web_full_stack/film-centenary:latest
+            larry801/film-centenary:${{ steps.vars.outputs.sha_short }}
+            filmcentenary-docker.pkg.coding.net/dianyingbainian/web_full_stack/film-centenary:${{ steps.vars.outputs.sha_short }}
+      - name: executing remote ssh commands using password
+        uses: appleboy/ssh-action@v0.1.4
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          passphrase: ${{ secrets.DEPLOY_PASS }}
+          command_timeout: 1m
+          script: sudo time -v ~/coding_deploy
+
