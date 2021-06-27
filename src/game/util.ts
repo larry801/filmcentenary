@@ -2871,7 +2871,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                 // }
                 log.push(`|competitionCleanUp`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
-                competitionCleanUp(G, ctx);
+                // competitionCleanUp(G, ctx);
             }
             {
                 if (
@@ -3315,26 +3315,27 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
 export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) => {
     const log = [`startCompetition|atk${atk}|def${def}`];
     let i = G.competitionInfo;
-    let hasWinner = false;
+    // let hasWinner = false;
     // i.pending = true;
-    i.atk = atk;
-    i.def = def;
+    // i.atk = atk;
+    // i.def = def;
     const CompetitionPowerDelta = G.pub[parseInt(atk)].competitionPower - G.pub[parseInt(def)].competitionPower;
-    i.progress = CompetitionPowerDelta;
-    if (CompetitionPowerDelta >= 3) {
-        hasWinner = true;
-    }
+    log.push(`|CompetitionPowerDelta:${CompetitionPowerDelta}`)
+    // i.progress = CompetitionPowerDelta;
+    // if (CompetitionPowerDelta >= 3) {
+    //     hasWinner = true;
+    // }
     const defSchoolID = G.pub[parseInt(i.def)].school;
     if (defSchoolID !== SchoolCardID.S3201 && defSchoolID !== SchoolCardID.S3204) {
-        log.push(`|p${i.atk}|lose${CompetitionPowerDelta}vp`);
-        loseVp(G, ctx, i.atk, CompetitionPowerDelta);
+        log.push(`|p${i.def}|lose${CompetitionPowerDelta}vp`);
+        loseVp(G, ctx, def, CompetitionPowerDelta);
     } else {
         log.push(`|doNotLoseVP`);
     }
     addVp(G, ctx, atk, CompetitionPowerDelta);
     loseCompetitionPower(G, ctx, atk, 3);
     loseCompetitionPower(G, ctx, def, 1);
-    if (hasWinner) {
+    if (CompetitionPowerDelta >= 3) {
         // TODO: change to hook
         const atkSchoolID = G.pub[parseInt(atk)].school;
         switch (atkSchoolID) {
@@ -3369,7 +3370,7 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
         log.push(`|competitionCleanUp|checkNextEffect`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         // changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
-        competitionCleanUp(G, ctx);
+        // competitionCleanUp(G, ctx);
         checkNextEffect(G, ctx);
     }
 }
