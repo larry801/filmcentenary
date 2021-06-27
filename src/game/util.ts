@@ -1796,8 +1796,6 @@ export const industryAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
     }
     if (pub.industry > 7) {
         drawCardForPlayer(G, ctx, p);
-        drawCardForPlayer(G, ctx, p);
-        addRes(G, ctx, p, 1);
         addCompetitionPower(G, ctx, p, 1);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
