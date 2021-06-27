@@ -1916,9 +1916,7 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true)
         }
     }
     log.push(`|${resRequired}`);
-    if (showLog && process.env.NODE_ENV === "production") {
-        logger.debug(`${G.matchID}|${log.join('')}`);
-    }
+    console.warn(`${G.matchID}|${log.join('')}`);
     return resRequired;
 }
 
