@@ -9,7 +9,8 @@ const FilmClient4pSingle = Client({
     numPlayers: 4,
     game: FilmCentenaryGame,
     board: FilmCentenaryBoard,
-    debug: true,
+    debug: false,
+    // debug: true,
 });
 
 
