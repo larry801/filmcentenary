@@ -22,6 +22,7 @@ import {
 import {IG} from "../types/setup";
 import {changePlayerStage, cleanPendingSignal} from "./logFix";
 import {
+    addCompetitionPower,
     addVp,
     aesAward,
     curPub,
@@ -124,6 +125,10 @@ export const NormalTurn: TurnConfig = {
                 drawCardForPlayer(G, ctx, p);
                 G.e.stack.push({e: "discard", a: 1})
                 changePlayerStage(G, ctx, "chooseHand", p);
+            }
+            if (pub.school === SchoolCardID.S2101) {
+                log.push(`|classicHollywood`);
+                addCompetitionPower(G, ctx, p, 1);
             }
             if (pub.school === SchoolCardID.S3101) {
                 log.push(`|newHollywood`);
