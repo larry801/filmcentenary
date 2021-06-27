@@ -659,11 +659,11 @@ export const isSameTeam = (p: PlayerID, q: PlayerID): boolean => {
     const log = [`isSameTeam|p${p}|p${q}`];
     let result = false;
     if (p === '0' || p === '2') {
-        result = p === '0' || p === '2'
+        result = q === '0' || q === '2'
     } else {
-        result = p === '1' || p === '3'
+        result = q === '1' || q === '3'
     }
-    logger.debug(`${log.join('')}|result`);
+    logger.debug(`${log.join('')}|result:${result}`);
     return result;
 }
 
