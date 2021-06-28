@@ -122,10 +122,11 @@ export const FilmCentenaryGame: Game<IG> = {
     },
 
     endIf: (G: IG, ctx: Ctx) => {
-        let championRequiredForAutoWin = ctx.numPlayers > 3 ? 5 : 6;
-        if (G.mode === GameMode.TEAM2V2) {
-            championRequiredForAutoWin = 6;
-        }
+        // let championRequiredForAutoWin = ctx.numPlayers > 3 ? 5 : 6;
+        // if (G.mode === GameMode.TEAM2V2) {
+        //     championRequiredForAutoWin = 6;
+        // }
+        const championRequiredForAutoWin = 6;
         let winner = "";
         let reason: VictoryType = VictoryType.finalScoring;
         G.order.forEach(p => {
