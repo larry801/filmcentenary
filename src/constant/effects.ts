@@ -725,7 +725,22 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {pre: {e: "competitionWon"}, effect: {e: SimpleEffectNames.industryToVp, a: 1}},
+        response: {
+            pre: {e: "turnStart"},
+            effect: {
+                e: ItrEffects.choice, a: [
+                    {e: SimpleEffectNames.draw, a: 1},
+                    {
+                        e: "optional", a: {
+                            e: "competition", a: {
+                                bonus: 0,
+                                onWin: noEff,
+                            }
+                        }
+                    }
+                ]
+            }
+        },
         school: {
             hand: 6,
             action: 2,
