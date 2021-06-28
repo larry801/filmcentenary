@@ -646,6 +646,7 @@ export const chooseRegion: LongFormMove = {
                     p = G.c.players[0];
                     G.c.players = [];
                     G.pub[parseInt(p)].shares[r]--;
+                    addCompetitionPower(G, ctx , p, 1);
                     reg.share++;
                     break;
                 case ItrEffects.anyRegionShareCompetition:
