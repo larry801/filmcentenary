@@ -3485,10 +3485,28 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
         f.aestheticsAward += Math.round(p.vp / 5);
         log.push(`|after|${f.aestheticsAward}`);
     }
+    log.push(`|archive`);
     valid_regions.forEach(r => {
         log.push(`|region|${r}|before|${f.archive}`);
-        const championCount = p.champions.filter(c => c.region === r).length;
-        f.archive += p.archive.filter(card => getCardById(card).region === r).length * championCount;
+        // const championCount = p.champions.filter(c => c.region === r).length;
+        let championModifier = 0;
+        p.champions.filter(c => c.region === r).forEach((ch)=>{
+            switch (ch.era) {
+                case IEra.ONE:
+                    championModifier = championModifier + 1;
+                    break;
+                case IEra.TWO:
+                    championModifier = championModifier + 2;
+                    break;
+                case IEra.THREE:
+                    championModifier = championModifier + 3;
+                    break;
+                default:
+                    break;
+            }
+        });
+        log.push(`|championModifier:${championModifier}`);
+        f.archive += p.archive.filter(card => getCardById(card).region === r).length * championModifier;
         log.push(`|after|${f.archive}`);
     });
     {
