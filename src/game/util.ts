@@ -2526,11 +2526,13 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     const log = [`regionRank|${r}|${era}`];
     let compensateMarkerUsed = false;
     G.order.forEach((i, idx) => {
-        log.push(`|p${idx}|share${G.pub[idx].shares[r]}`);
-        if (G.pub[idx].shares[r] === 0) {
+        const playerShareCount = G.pub[idx].shares[r];
+        log.push(`|p${idx}|share${playerShareCount}`);
+        if (playerShareCount === 0) {
             log.push("|badFilm");
             doBuy(G, ctx, B04, idx.toString())
         } else {
+            addVp(G, ctx, i, playerShareCount);
             log.push(`|rank`);
         }
     });
