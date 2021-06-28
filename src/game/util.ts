@@ -1778,7 +1778,7 @@ export const aesAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
 }
 
 export const industryAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
-    const i = G.competitionInfo;
+    // const i = G.competitionInfo;
     const pub = G.pub[parseInt(p)];
     const log = [`industryAward|p${p}|${pub.industry}`];
     if (pub.industry > 1) {
@@ -2668,7 +2668,7 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
     }
     if (p.industry > p.competitionPower) {
         log.push(`|${additionalCost}|canAddCompetitionPower`);
-        G.e.choices.push({e: SimpleEffectNames.addCompetitionPower, a: 1});
+        G.e.choices.push({e: SimpleEffectNames.addCompetitionPower, a: 2});
     }
     if (ctx.numPlayers > SimpleRuleNumPlayers) {
         if (totalResource >= 3 && studioSlotsAvailable(G, ctx, player).length > 0) {
