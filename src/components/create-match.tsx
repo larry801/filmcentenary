@@ -35,7 +35,7 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
     const [clicked, setClicked] = React.useState(false);
     const [matchID, setMatchID] = React.useState("");
     const [error, setError] = React.useState("");
-    const [numPlayers,setNumPlayers] = React.useState(3);
+    const [numPlayers,setNumPlayers] = React.useState(4);
 
     const onClick = () => {
         setClicked(true);
