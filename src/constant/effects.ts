@@ -1428,8 +1428,7 @@ export const effects = {
             action: 3,
         },
         response: {
-            pre: {e: "buyNoneEEFilm"}, effect: {e: "extraVp", a: 1},
-        }
+            pre: {e: "buyNoneEEFilm"}, effect: noEff}
     },
     "2302": {
         canBuy: (G: IG, ctx: Ctx) => true,
