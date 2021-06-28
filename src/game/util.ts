@@ -3368,7 +3368,17 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
         }
         log.push(`|getShareFromLoser`);
         G.e.stack.push({
-            e: ItrEffects.anyRegionShareCompetition, a: 1
+            e: ItrEffects.choice, a: [
+                {
+                    e: ItrEffects.anyRegionShareCompetition, a: 1
+                },
+                {
+                    e: "step", a: [
+                        {e: SimpleEffectNames.addCompetitionPower, a: 3, target: atk},
+                        {e: SimpleEffectNames.loseCompetitionPower, a: 3, target: def}
+                    ]
+                }
+            ]
         })
         logger.debug(`${G.matchID}|${log.join('')}`);
         playerEffExec(G, ctx, i.atk);
