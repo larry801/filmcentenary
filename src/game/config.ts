@@ -29,7 +29,7 @@ import {
     drawCardForPlayer,
     industryAward
 } from "./util";
-import {SchoolCardID, SimpleEffectNames} from "../types/core";
+import {ItrEffects, SchoolCardID, SimpleEffectNames} from "../types/core";
 import {logger} from "./logger";
 
 export const payAdditionalCostStage: StageConfig = {
@@ -112,6 +112,8 @@ export const setupStage: StageConfig = {
     }
 }
 
+const noEff = {e: "none", a: 1};
+
 export const NormalTurn: TurnConfig = {
     onBegin: (G: IG, ctx: Ctx) => {
         cleanPendingSignal(G);
@@ -128,7 +130,19 @@ export const NormalTurn: TurnConfig = {
             }
             if (pub.school === SchoolCardID.S2101) {
                 log.push(`|classicHollywood`);
-                addCompetitionPower(G, ctx, p, 1);
+                G.e.stack.push({
+                    e: ItrEffects.choice, a: [
+                        {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                        {
+                            e: "optional", a: {
+                                e: "competition", a: {
+                                    bonus: 0,
+                                    onWin: noEff,
+                                }
+                            }
+                        }
+                    ]
+                })
             }
             if (pub.school === SchoolCardID.S3101) {
                 log.push(`|newHollywood`);
