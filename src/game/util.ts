@@ -403,12 +403,7 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
     const pub = G.pub[parseInt(p)];
     const playerObj = G.player[parseInt(p)];
     const log = [`p${p}|doBuyToHand|${card.cardId}`];
-    if (pub.school === SchoolCardID.S2301 && card.region !== Region.EE) {
-        log.push(`|SocialismRealism`);
-        if (pub.vp > 0) {
-            loseVp(G, ctx, p, 1);
-        }
-    }
+    checkSocialismRealism(G, ctx, card, p);
     if (card.category === CardCategory.BASIC) {
         log.push(`|basic`);
         // @ts-ignore
@@ -441,16 +436,31 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
+export const checkSocialismRealism = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
+    const pub = G.pub[parseInt(p)];
+    const log = [`checkSocialismRealism|${card.cardId}|p${p}`];
+    const cardRegion = card.region;
+    if (pub.school === SchoolCardID.S2301) {
+        log.push(`|SocialismRealism`);
+        switch (cardRegion) {
+            case Region.EE:
+                log.push(`|isEastEurope`);
+                addCompetitionPower(G, ctx, p, 1);
+                addVp(G, ctx, p, 1);
+                break;
+            default:
+                log.push(`|notEastEurope`);
+                loseVp(G, ctx, p, 1);
+                break;
+        }
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
     const pub = G.pub[parseInt(p)];
     const log = [`doBuy|${card.cardId}|p${p}`];
+    checkSocialismRealism(G, ctx, card, p);
     if (card.category === CardCategory.BASIC) {
-        if (pub.school === SchoolCardID.S2301) {
-            log.push(`|SocialismRealismBASIC`);
-            if (pub.vp > 0) {
-                loseVp(G, ctx, p, 1);
-            }
-        }
         let count = G.basicCards[card.cardId as BasicCardID];
         if (count > 0) {
             G.basicCards[card.cardId as BasicCardID] -= 1;
@@ -460,12 +470,6 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             log.push(`|${card.cardId}|depleted`);
         }
     } else {
-        if (pub.school === SchoolCardID.S2301 && card.region !== Region.EE) {
-            log.push(`|SocialismRealismNormalOrLegend`);
-            if (pub.vp > 0) {
-                loseVp(G, ctx, p, 1);
-            }
-        }
         let slot: ICardSlot | null;
         if (ctx.numPlayers === SimpleRuleNumPlayers) {
             slot = cardSlotOnBoard2p(G, ctx, card);
