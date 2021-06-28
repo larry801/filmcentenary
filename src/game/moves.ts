@@ -25,7 +25,7 @@ import {
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
-    activePlayer,
+    activePlayer, addCompetitionPower,
     addRes,
     addVp,
     aesAward,
@@ -652,6 +652,7 @@ export const chooseRegion: LongFormMove = {
                     // const loser = i.progress > 0 ? i.def : i.atk;
                     const loser = i.def;
                     G.pub[parseInt(loser)].shares[r]--;
+                    addCompetitionPower(G,ctx,loser,1);
                     pub.shares[r]++;
                     if (eff.a > 1) {
                         eff.a--;
