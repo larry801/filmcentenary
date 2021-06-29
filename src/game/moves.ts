@@ -306,7 +306,7 @@ export const buyCard: LongFormMove = {
             G.e.card = arg.target;
             const buyTarget: INormalOrLegendCard | IBasicCard = targetCard;
             doBuy(G, ctx, buyTarget, ctx.currentPlayer);
-            const hasEffect = buyCardEffectPrepare(G, ctx, arg.target ,ctx.currentPlayer);
+            const hasEffect = buyCardEffectPrepare(G, ctx, arg.target, ctx.currentPlayer);
             if (hasEffect) {
                 log.push(`|hasEffect`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
@@ -646,14 +646,14 @@ export const chooseRegion: LongFormMove = {
                     p = G.c.players[0];
                     G.c.players = [];
                     G.pub[parseInt(p)].shares[r]--;
-                    addCompetitionPower(G, ctx , p, 1);
+                    addCompetitionPower(G, ctx, p, 1);
                     reg.share++;
                     break;
                 case ItrEffects.anyRegionShareCompetition:
                     // const loser = i.progress > 0 ? i.def : i.atk;
                     const loser = i.def;
                     G.pub[parseInt(loser)].shares[r]--;
-                    addCompetitionPower(G,ctx,loser,1);
+                    addCompetitionPower(G, ctx, loser, 1);
                     pub.shares[r]++;
                     if (eff.a > 1) {
                         eff.a--;

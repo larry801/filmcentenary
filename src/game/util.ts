@@ -3329,8 +3329,8 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     let i = G.competitionInfo;
     // let hasWinner = false;
     // i.pending = true;
-    // i.atk = atk;
-    // i.def = def;
+    i.atk = atk;
+    i.def = def;
     const CompetitionPowerDelta = G.pub[parseInt(atk)].competitionPower - G.pub[parseInt(def)].competitionPower;
     log.push(`|CompetitionPowerDelta:${CompetitionPowerDelta}`)
     // i.progress = CompetitionPowerDelta;
