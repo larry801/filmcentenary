@@ -373,28 +373,38 @@ const argShowCompetitionResult = {
     args: (arg: IShowCompetitionResultArgs[]): string => {
         let i = arg[0].info;
         let t = "争夺情况："
-        if (i.atkCard === null) {
-            t += "发起方没有出牌，"
+        // if (i.atkCard === null) {
+        //     t += "发起方没有出牌，"
+        // } else {
+        //     t += `发起方打出${bracketCardName(i.atkCard)}，`
+        // }
+        // if (i.defCard === null) {
+        //     t += "应对方没有出牌，"
+        // } else {
+        //     t += `应对方打出${bracketCardName(i.defCard)}，`
+        // }
+        if (i.defShownCards.length !== 0) {
+            t += "应对方没有展示手牌"
         } else {
-            t += `发起方打出${bracketCardName(i.atkCard)}，`
-        }
-        if (i.defCard === null) {
-            t += "应对方没有出牌，"
-        } else {
-            t += `应对方打出${bracketCardName(i.defCard)}，`
+            t += `应对方展示`;
+            for (const defShownCard of i.defShownCards) {
+                t += `${bracketCardName(defShownCard)} `
+            }
         }
         let progress = i.progress;
-        if (progress > 5) progress = 5;
-        if (progress < -5) progress = -5;
+        // if (progress > 5) progress = 5;
+        // if (progress < -5) progress = -5;
         t += `争夺进度：${progress}，`
         if (i.progress >= 3) {
             t += "发起方获胜"
         } else {
-            if (i.progress <= -3) {
-                t += "应对方获胜"
-            } else {
-                t += "无人获胜"
-            }
+            t += "无人获胜"
+            //
+            // if (i.progress <= -3) {
+            //     t += "应对方获胜"
+            // } else {
+            //     t += "无人获胜"
+            // }
         }
         return t;
     }
