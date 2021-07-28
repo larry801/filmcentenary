@@ -4,8 +4,7 @@ import {
     BasicCardID, EventCardID,
     IBuyInfo,
     IEra, ItrEffects,
-    Region, SimpleEffectNames,
-    ValidRegion
+    Region, ValidRegion
 } from "../../types/core";
 import {
     IChooseEventArg,

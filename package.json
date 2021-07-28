@@ -51,10 +51,5 @@
     "extends": [
       "react-app"
     ]
-  },
-  "resolutions": {
-    "loadash": "^4.17.21",
-    "path-parse": "^1.0.7",
-    "y18n": "^5.0.5"
   }
 }
