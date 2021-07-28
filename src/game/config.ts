@@ -121,6 +121,22 @@ export const NormalTurn: TurnConfig = {
         const log = [`onBegin|p${p}`];
         if (G.order.includes(p)) {
             const pub = curPub(G, ctx);
+            if (pub.school === SchoolCardID.S2201) {
+                log.push(`|neoRealism`);
+                G.e.stack.push({
+                    e: ItrEffects.choice, a: [
+                        {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                        {
+                            e: "optional", a: {
+                                e: "competition", a: {
+                                    bonus: 0,
+                                    onWin: {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                                }
+                            }
+                        }
+                    ]
+                });
+            }
             if (pub.school === SchoolCardID.S1301) {
                 log.push(`|montage`);
                 addVp(G, ctx, p, 1);
