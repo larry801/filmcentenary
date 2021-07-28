@@ -3201,18 +3201,8 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
             G.e.stack.push({...i.onWin})
         }
         log.push(`|getShareFromLoser`);
-        G.e.stack.push({
-            e: ItrEffects.choice, a: [
-                {
-                    e: ItrEffects.anyRegionShareCompetition, a: 1
-                },
-                {
-                    e: "step", a: [
-                        {e: SimpleEffectNames.addCompetitionPower, a: 3, target: i.atk},
-                        {e: SimpleEffectNames.loseCompetitionPower, a: 3, target: i.def}
-                    ]
-                }
-            ]
+        G.e.stack.push( {
+            e: ItrEffects.anyRegionShareCompetition, a: 1
         })
         logger.debug(`${G.matchID}|${log.join('')}`);
         playerEffExec(G, ctx, i.atk);
@@ -3387,14 +3377,14 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
         const defSchoolIndustry = getCardById(defSchoolID).industry;
         CompetitionPowerModifierDef += defSchoolIndustry;
     }
-    const defHands = G.player[parseInt(def)].hand;
-    for (const defHand of defHands) {
-        const cardIndustryMarkCount = getCardById(defHand).industry;
-        if (cardIndustryMarkCount > 0) {
-            CompetitionPowerModifierDef += cardIndustryMarkCount;
-        }
-        G.competitionInfo.defShownCards.push(defHand);
-    }
+    // const defHands = G.player[parseInt(def)].hand;
+    // for (const defHand of defHands) {
+    //     const cardIndustryMarkCount = getCardById(defHand).industry;
+    //     if (cardIndustryMarkCount > 0) {
+    //         CompetitionPowerModifierDef += cardIndustryMarkCount;
+    //     }
+    //     G.competitionInfo.defShownCards.push(defHand);
+    // }
     const CompetitionPowerDelta = G.pub[parseInt(atk)].competitionPower - G.pub[parseInt(def)].competitionPower - CompetitionPowerModifierDef;
     log.push(`|CompetitionPowerDelta:${CompetitionPowerDelta}`);
     i.progress = CompetitionPowerDelta;
