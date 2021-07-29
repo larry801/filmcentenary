@@ -2678,7 +2678,7 @@ export const B02: IBasicCard = {
 }
 export const B03: IBasicCard = {
     aesthetics: 0, cardId: BasicCardID.B03,
-    cost: cost(2, 0, 0),
+    cost: cost(3, 0, 0),
     region: Region.NONE,
     industry: 0,
     type: CardType.F,
