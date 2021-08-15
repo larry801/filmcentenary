@@ -1768,15 +1768,15 @@ export const aesAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const log = [`aesAward|p${p}|${pub.aesthetics}`];
     if (pub.aesthetics > 1) {
         log.push(`|>1`);
-        addVp(G, ctx, p, 2);
+        addVp(G, ctx, p, 1);
     }
     if (pub.aesthetics > 4) {
         log.push(`|>4`);
-        addVp(G, ctx, p, 1);
+        addVp(G, ctx, p, 2);
     }
     if (pub.aesthetics > 7) {
         log.push(`|>7`);
-        addVp(G, ctx, p, 1);
+        addVp(G, ctx, p, 2);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
