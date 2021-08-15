@@ -2030,7 +2030,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Abbas Kiarostami",
         cardId: PersonCardID.P3403,
-        cost: cost(10, 0, 9),
+        cost: cost(9, 0, 9),
         vp: 0,
         category: CardCategory.LEGEND,
         industry: 0,
