@@ -3096,6 +3096,7 @@ export const buildBuildingFor = (G: IG, ctx: Ctx, r: ValidRegion, p: PlayerID, b
 export const competitionCleanUp = (G: IG, ctx: Ctx) => {
     const log = [`competitionCleanUp|checkNextEffect`];
     let i = G.competitionInfo;
+    i.pending = false;
     i.region = Region.NONE;
     i.progress = 0;
     i.atkCard = null;
