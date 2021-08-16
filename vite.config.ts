@@ -27,5 +27,8 @@ export default defineConfig({
         replacement: resolve(__dirname, 'src')
       }
     ],
+  },
+  server: {
+    host: '0.0.0.0' // debug in lan
   }
 })
