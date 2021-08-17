@@ -791,7 +791,7 @@ export const effects = {
                     e: "noStudio", a: {
                         e: "step", a: [
                             {e: "discard", a: 1},
-                            {e: "buy", a: "B04"},
+                            {e: SimpleEffectNames.buyCardToHand, a: "B04"},
                         ]
                     }
                 }, {e: "studio", a: {e: "aesAward", a: 1}}
