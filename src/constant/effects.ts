@@ -97,7 +97,7 @@ export const eventEffects = {
         a: [
             {e: "noBuildingPlayers", a: {e: "draw", a: 1}, region: Region.NA},
             {
-                e: ItrEffects.levelAndMarkLowestPlayer,
+                e: ItrEffects.levelSumLowestPlayer,
                 a: {e: "deposit", a: 3}
             }
         ]
@@ -113,21 +113,13 @@ export const eventEffects = {
         e: "step",
         a: [
             {e: "everyPlayer", a: {e: "industryOrAestheticsLevelUp", a: 1}},
-            {
-                e: "minHandCountPlayers", a: {
-                    e: "step", a: [
-                        {e: "draw", a: 1},
-                        {e: "vp", a: 5},
-                    ]
-                }
-            },
         ]
     },
     "E08": {
         e: "step",
         a: [
             {
-                e: ItrEffects.levelAndMarkLowestPlayer,
+                e: ItrEffects.levelSumLowestPlayer,
                 a: {e: ItrEffects.industryOrAestheticsLevelUp, a: 1}
             }
         ]
@@ -847,9 +839,17 @@ export const effects = {
                         {
                             e: ItrEffects.choice, a: [
                                 {e: SimpleEffectNames.addCompetitionPower, a: 1},
-                                {e: "shareNA", a: 1}
+                                {
+                                    e: "optional", a: {
+                                        e: "competition", a: {
+                                            bonus: 0,
+                                            onWin: {e: SimpleEffectNames.shareNA, a: 1},
+                                        }
+                                    }
+                                }
                             ]
                         }
+
                     ]
                 },
                 {

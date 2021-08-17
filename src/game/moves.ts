@@ -15,7 +15,7 @@ import {
     getCardById,
     IBasicCard,
     IBuyInfo,
-    ICardSlot,
+    ICardSlot, IEra,
     INormalOrLegendCard,
     IRegionInfo, ItrEffects, LES_CHAIERS_DU_CINEMA_AP,
     Region,
@@ -856,10 +856,6 @@ export const chooseEvent: LongFormMove = {
                         G.pub[i].action = LES_CHAIERS_DU_CINEMA_AP;
                     }
                 }
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                fillEventCard(G, ctx);
-                checkNextEffect(G, ctx);
-                return
             }
             if (eid === EventCardID.E08) {
                 G.regions[Region.EE].buildings[1].activated = true;
@@ -870,6 +866,7 @@ export const chooseEvent: LongFormMove = {
                 case EventCardID.E04:
                 case EventCardID.E05:
                 case EventCardID.E06:
+                case EventCardID.E07:
                 case EventCardID.E08:
                 case EventCardID.E09:
                     log.push(`|eventDeck|${JSON.stringify(G.secretInfo.events)}`);
@@ -888,7 +885,7 @@ export const chooseEvent: LongFormMove = {
                         G.order.forEach(o => {
                             const other = G.pub[parseInt(o)];
                             if (other.vp > pub.vp) {
-                                pub.vp += 4;
+                                pub.vp += 5;
                             }
                         })
                     })
@@ -951,8 +948,19 @@ export const chooseEvent: LongFormMove = {
                     G.order.forEach(j => {
                         const pidInt = parseInt(j)
                         const pub = G.pub[pidInt];
-                        pub.vp += pub.champions.length;
-                        valid_regions.forEach(r => pub.vp += pub.shares[r]);
+                        pub.champions.forEach(c=>{
+                            switch (c.era) {
+                                case IEra.ONE:
+                                    pub.vp += 2;
+                                    break;
+                                case IEra.TWO:
+                                    pub.vp += 4;
+                                    break;
+                                case IEra.THREE:
+                                    pub.vp += 6;
+                                    break;
+                            }
+                        });
                     })
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);

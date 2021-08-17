@@ -777,6 +777,12 @@ export const industryLowestPlayer = (G: IG): PlayerID[] => {
     return lowest(G, (G, i) => G.pub[parseInt(i)].industry);
 }
 
+export const getLevelSum = (G: IG, p: PlayerID): number => {
+    const log = [`getLevelSum|p${p}`];
+    const pub = G.pub[parseInt(p)];
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return pub.aesthetics + pub.industry
+}
 export const getLevelMarkCount = (G: IG, p: PlayerID): number => {
     const log = [`getLevelMarkCount|p${p}`];
     const pub = G.pub[parseInt(p)];
@@ -795,6 +801,11 @@ export const getLevelMarkCount = (G: IG, p: PlayerID): number => {
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
     return result
+}
+
+export const levelSumLowestPlayer = (G: IG): PlayerID[] => {
+    return lowest(G, getLevelSum);
+
 }
 
 export const levelAndMarkLowestPlayer = (G: IG): PlayerID[] => {
@@ -1388,6 +1399,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "highestVpPlayer":
             players = vpHighestPlayer(G);
+            pushPlayersEffects(G, players, eff.a);
+            break;
+        case "levelSumLowestPlayer":
+            players = levelSumLowestPlayer(G);
             pushPlayersEffects(G, players, eff.a);
             break;
         case "levelAndMarkLowestPlayer":
