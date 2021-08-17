@@ -1517,8 +1517,10 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "era", a: [noEff, {e: "step", a: [{e: "res", a: 2}, {e: "draw", a: 1}]},
-                {e: "step", a: [{e: "aesAward", a: 1}, {e: "draw", a: 1}]}]
+            e: "era", a: [
+                noEff,
+                {e: "step", a: [{e: "res", a: 2}, {e: "draw", a: 1}]},
+                {e: "step", a: [{e: "aesAward", a: 1}, {e: SimpleEffectNames.res, a: 1}]}]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
