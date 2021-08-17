@@ -394,17 +394,14 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     if (ctx.numPlayers === SimpleRuleNumPlayers) {
         G.pub[parseInt(G.order[1])].vp = 1;
     }
-    if (ctx.numPlayers === 3) {
+    if (ctx.numPlayers >= 3) {
         G.regions[Region.NA].buildings[1].activated = true;
         G.regions[Region.WE].buildings[1].activated = true;
         G.pub[parseInt(G.initialOrder[1])].vp = 1;
-        G.pub[parseInt(G.initialOrder[2])].vp = 2;
+        G.pub[parseInt(G.initialOrder[2])].vp = 3;
     }
     if (ctx.numPlayers === 4) {
-        G.regions[Region.NA].buildings[1].activated = true;
-        G.regions[Region.WE].buildings[1].activated = true;
-        G.pub[parseInt(G.initialOrder[2])].vp = 1;
-        G.pub[parseInt(G.initialOrder[3])].vp = 2;
+        G.pub[parseInt(G.initialOrder[3])].vp = 5;
     }
     if (ctx.numPlayers === 3) {
         G.regions[Region.NA].share--;
