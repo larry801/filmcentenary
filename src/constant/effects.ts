@@ -2115,7 +2115,7 @@ export const effects = {
                             e: "optional", a: {
                                 e: "competition", a: {
                                     bonus: 0,
-                                    onWin: {e: SimpleEffectNames.shareNA, a: 1}
+                                    onWin: {e: SimpleEffectNames.industryToVp, a: 1}
                                 }
                             }
                         }
@@ -2137,7 +2137,7 @@ export const effects = {
                 {
                     e: "choice", a: [
                         {e: "draw", a: 1},
-                        {e: "shareToVp", a: Region.NA}
+                        {e: SimpleEffectNames.industryToVp, a: 1}
                     ]
                 }
             ]
@@ -2209,7 +2209,7 @@ export const effects = {
                 {e: "industryAward", a: 1},
                 {
                     e: ItrEffects.choice, a: [
-                        {e: SimpleEffectNames.res, a: 2},
+                        {e: SimpleEffectNames.res, a: 1},
                         {e: SimpleEffectNames.CompetitionPowerToVp, a: 1},
                     ]
                 }
@@ -2296,12 +2296,7 @@ export const effects = {
             e: "step", a: [
                 {e: "buyCardToHand", a: "B05"},
                 {
-                    e: "noStudio", a: {
-                        e: ItrEffects.step, a: [
-                            {e: SimpleEffectNames.buy, a: BasicCardID.B04},
-                            {e: SimpleEffectNames.buy, a: BasicCardID.B04}
-                        ]
-                    }
+                    e: "noStudio", a: {e: SimpleEffectNames.buy, a: BasicCardID.B04}
                 },
                 {e: "studio", a: {e: "draw", a: 2}},
             ]
@@ -2481,7 +2476,9 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "aesAward", a: 1}, {e: "noStudio", a: {e: "discardLegend", a: 1}},
+                {e: "aesAward", a: 1},
+                {e: SimpleEffectNames.draw, a: 1},
+                {e: "noStudio", a: {e: "discardLegend", a: 1}},
                 {
                     e: "studio", a: {
                         e: "step", a: [
@@ -2582,12 +2579,7 @@ export const effects = {
                             e: "optional", a: {
                                 e: "competition", a: {
                                     bonus: 0,
-                                    onWin: {
-                                        e: "step", a: [
-                                            {e: SimpleEffectNames.addCompetitionPower, a: 2},
-                                            {e: SimpleEffectNames.addVp, a: 5},
-                                        ]
-                                    },
+                                    onWin: {e: SimpleEffectNames.addVp, a: 5},
                                 }
                             }
                         }
@@ -2727,7 +2719,9 @@ export const effects = {
         buy: {e: "choice", a: [{e: "aestheticsLevelUp", a: 1}, {e: "buy", a: FilmCardID.F3414}]},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "step", a: [{e: "draw", a: 2}, {e: "noStudio", a: {e: "discardAesthetics", a: 2}},
+            e: "step", a: [
+                {e: "draw", a: 2},
+                {e: "noStudio", a: {e: "discardAesthetics", a: 2}},
                 {e: "studio", a: {e: "aesAward", a: 2}}]
         },
         canArchive: (G: IG, ctx: Ctx) => true,

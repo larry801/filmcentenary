@@ -1835,7 +1835,7 @@ const NoneBasicCards = {
         region: Region.WE,
         name: "Golden Eye",
         cardId: FilmCardID.F3210,
-        cost: cost(8, 9, 0),
+        cost: cost(9, 9, 0),
         vp: 12,
         category: CardCategory.NORMAL,
         industry: 2,
