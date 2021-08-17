@@ -1454,7 +1454,7 @@ export const effects = {
                 {
                     e: "studio", a: {
                         e: "step", a: [
-                            {e: "draw", a: 1},
+                            {e: SimpleEffectNames.aesAward, a: 1},
                             {e: "handToAnyPlayer", a: 1}
                         ]
                     },
