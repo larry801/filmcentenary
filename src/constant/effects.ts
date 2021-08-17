@@ -1669,9 +1669,8 @@ export const effects = {
                     ]
                 },
                 {
-                    e: "step", a: [{
-                        e: "aesAward", a: 1
-                    },
+                    e: "step", a: [
+                        {e: "aesAward", a: 1},
                         {e: "peek", a: {count: 3, target: "hand", filter: {e: "aesthetics", a: "all"}}},
                     ]
                 }
@@ -1723,7 +1722,8 @@ export const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "step", a: [{e: "update", a: 1}, {e: "archive", a: 1}]},
+        // archive: {e: "step", a: [{e: "update", a: 1}, {e: "archive", a: 1}]},
+        archive: {e: "archive", a: 1},
         response: noResponse,
     },
     "2406": {
