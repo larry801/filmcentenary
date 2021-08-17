@@ -1285,7 +1285,7 @@ const NoneBasicCards = {
         region: Region.WE,
         name: "Diary of a Country Priest",
         cardId: FilmCardID.F2210,
-        cost: cost(6, 0, 6),
+        cost: cost(5, 0, 6),
         vp: 8,
         category: CardCategory.NORMAL,
         industry: 0,

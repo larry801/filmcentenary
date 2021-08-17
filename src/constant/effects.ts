@@ -1358,7 +1358,7 @@ export const effects = {
                 },
                 {
                     e: "step", a: [
-                        {e: SimpleEffectNames.res, a: 1},
+                        {e: SimpleEffectNames.deposit, a: 1},
                         {e: "comment", a: 1},
                     ]
                 }
