@@ -1352,7 +1352,7 @@ const NoneBasicCards = {
         name: "Mikhail Kalatozov",
         cardId: PersonCardID.P2302,
         cost: cost(8, 3, 3),
-        vp: 5,
+        vp: 0,
         category: CardCategory.LEGEND,
         industry: 0,
         aesthetics: 0,
