@@ -1959,10 +1959,15 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "industryAward", a: 1},
-                {e: "deposit", a: 2},
                 {
                     e: ItrEffects.choice, a: [
-                        {e: SimpleEffectNames.addCompetitionPower, a: 2},
+                        {
+                            e: "step",
+                            a: [
+                                {e: "deposit", a: 2},
+                                {e: SimpleEffectNames.addCompetitionPower, a: 2},
+                            ]
+                        },
                         {
                             e: "optional", a: {
                                 e: "competition", a: {
