@@ -3194,12 +3194,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         switch (atkSchoolID) {
             case SchoolCardID.S3101:
                 log.push('|3101')
-                G.e.stack.push({
-                    e: ItrEffects.step, a: [
-                        {e: SimpleEffectNames.draw, a: 1},
-                        {e: SimpleEffectNames.industryToVp, a: 1}
-                    ]
-                });
+                G.e.stack.push({e: SimpleEffectNames.res, a: 2});
                 break;
             case SchoolCardID.S2101:
                 log.push('|2101')
@@ -3413,7 +3408,7 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     }
     addVp(G, ctx, atk, CompetitionPowerDelta);
     loseCompetitionPower(G, ctx, atk, 3);
-    loseCompetitionPower(G, ctx, def, 1);
+    addCompetitionPower(G, ctx, def, 1);
     log.push(`|showCompetitionResult`);
     logger.debug(`${G.matchID}|${log.join('')}`);
     changePlayerStage(G, ctx, "showCompetitionResult", i.atk);

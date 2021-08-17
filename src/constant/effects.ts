@@ -1891,12 +1891,7 @@ export const effects = {
                         ]
                     }
                 }, {
-                    pre: {e: "competitionWon"}, effect: {
-                        e: ItrEffects.step, a: [
-                            {e: SimpleEffectNames.draw, a: 1},
-                            {e: SimpleEffectNames.industryToVp, a: 1}
-                        ]
-                    }
+                    pre: {e: "competitionWon"}, effect: {e: SimpleEffectNames.res, a: 2},
                 }
             ]
         },
