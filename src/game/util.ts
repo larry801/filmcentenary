@@ -445,13 +445,12 @@ export const checkSocialismRealism = (G: IG, ctx: Ctx, card: INormalOrLegendCard
         log.push(`|SocialismRealism`);
         switch (cardRegion) {
             case Region.EE:
-                log.push(`|isEastEurope`);
+                log.push(`|isEastEurope|1CP|1VP`);
                 addCompetitionPower(G, ctx, p, 1);
                 addVp(G, ctx, p, 1);
                 break;
             default:
-                log.push(`|notEastEurope`);
-                loseVp(G, ctx, p, 1);
+                log.push(`|notEastEurope|noEff`);
                 break;
         }
     }

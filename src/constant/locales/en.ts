@@ -657,7 +657,7 @@ const en = {
         none: "",
         breakthroughResDeduct: ["Execute a free breakthrough action", argValue],
         handToAnyPlayer: ["Give one card in hand to other companies", argValue],
-        buyNoneEEFilm: "When buy film card not in east europe,每当你购买非东欧影片后，-1声望。每当你购买东欧影片后，+1竞争力，+1声望。",
+        buyNoneEEFilm: "When buy film card in east europe, 1CP 1VP。",
         extraVp: ["Pay extra {{a}} prestige", argValue],
         inventionEraBreakthroughPrevent: "Cannot breakthrough if it is invention era",
         breakthroughPrevent: "or you cannot execute breakthrough effect of this card",

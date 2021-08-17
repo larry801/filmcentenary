@@ -662,7 +662,7 @@ const zh_CN: Locale = {
         none: "",
         breakthroughResDeduct: ["免费突破一次", argValue],
         handToAnyPlayer: ["把{{a}}张手牌交给任意公司", argValue],
-        buyNoneEEFilm: "每当你购买非东欧影片后，-1声望。每当你购买东欧影片后，+1竞争力，+1声望。",
+        buyNoneEEFilm: "每当你购买东欧影片后，+1竞争力，+1声望。",
         extraVp: ["额外支付{{a}}声望", argValue],
         inventionEraBreakthroughPrevent: "1时代不能突破",
         breakthroughPrevent: "，否则不能执行突破效果",
