@@ -1783,7 +1783,7 @@ export const effects = {
                 {e: "step", a: [{e: "res", a: 2}, {e: "update", a: 1}]},
                 {
                     e: "step", a: [
-                        {e: "comment", a: 1},
+                        // {e: "comment", a: 1},
                         {e: "peek", a: {count: 2, target: "hand", filter: {e: "aesthetics", a: "all"}}},
                     ]
                 },
