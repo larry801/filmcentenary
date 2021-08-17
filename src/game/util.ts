@@ -24,7 +24,8 @@ import {
     INormalOrLegendCard,
     IPubInfo,
     ItrEffects,
-    LegendCardCountInUse, LES_CHAIERS_DU_CINEMA_AP,
+    LegendCardCountInUse,
+    LES_CHAIERS_DU_CINEMA_AP,
     NormalCardCountInUse,
     PersonCardID,
     Region,
@@ -812,11 +813,13 @@ export const levelAndMarkLowestPlayer = (G: IG): PlayerID[] => {
 }
 
 export const getSchoolHandLimit = (G: IG, p: PlayerID): number => {
-    const school = G.pub[parseInt(p)].school
+    const school = G.pub[parseInt(p)].school;
+    const l = G.activeEvents.includes(EventCardID.E07) ? 5 : 4;
     if (school === null) {
-        return 4;
+        return l;
     } else {
-        return getCardEffect(school).school.hand;
+        const schoolLimit = getCardEffect(school).school.hand;
+        return schoolLimit > l ? schoolLimit : l;
     }
 }
 
