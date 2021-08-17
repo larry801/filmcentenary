@@ -1,5 +1,5 @@
 import {PlayerID} from "boardgame.io";
-import {addCompetitionPower} from "../game/util";
+
 
 export enum Region {
     NA,
@@ -452,6 +452,8 @@ export enum ScoreCardID {
 }
 
 export const SimpleRuleNumPlayers = 2;
+export const AvantGradeAP = 2;
+export const LES_CHAIERS_DU_CINEMA_AP = 5;
 
 export enum SchoolCardID {
     'S1203' = 'S1203',

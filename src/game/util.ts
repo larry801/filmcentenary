@@ -1,4 +1,5 @@
 import {
+    AvantGradeAP,
     B04,
     BasicCardID,
     BuildingType,
@@ -23,7 +24,7 @@ import {
     INormalOrLegendCard,
     IPubInfo,
     ItrEffects,
-    LegendCardCountInUse,
+    LegendCardCountInUse, LES_CHAIERS_DU_CINEMA_AP,
     NormalCardCountInUse,
     PersonCardID,
     Region,
@@ -2779,7 +2780,7 @@ export const setupAfterScoring = (G: IG, ctx: Ctx) => {
             nextEra(G, ctx, r);
         }
         if (valid_regions.filter(r =>
-            G.regions[r].era !== IEra.ONE).length >= 2 &&
+                G.regions[r].era !== IEra.ONE).length >= 2 &&
             G.regions[Region.ASIA].era === IEra.ONE
         ) {
             log.push("|setUpAsia");
@@ -2796,40 +2797,37 @@ export const setupAfterScoring = (G: IG, ctx: Ctx) => {
     G.pending.nextEraRegions = [];
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
 export const getPlayerAction = (G: IG, arg: PlayerID): number => {
     const log = [`endTurnEffect|p${arg}`];
     const pub = G.pub[parseInt(arg)];
+    let act = 0;
     if (pub.school !== null) {
         let schoolId = pub.school;
         log.push(`|school|${schoolId}`);
-        let act = getCardEffect(schoolId).school.action;
-        if (act === 1) {
-            if (G.activeEvents.includes(EventCardID.E03)) {
-                log.push(`|Avant-Grade|2ap`);
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                return 2
-            } else {
-                log.push(`|1ap`);
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                return 1
-            }
-        } else {
-            log.push(`|${act}ap`);
-            logger.debug(`${G.matchID}|${log.join('')}`);
-            return act;
-        }
+        act = getCardEffect(schoolId).school.action;
     } else {
-        if (G.activeEvents.includes(EventCardID.E03)) {
-            log.push(`|Avant-Grade|2ap`);
-            logger.debug(`${G.matchID}|${log.join('')}`);
-            return 2
-        } else {
-            log.push(`|1ap`);
-            logger.debug(`${G.matchID}|${log.join('')}`);
-            return 1
+        act = 1;
+    }
+    if (G.activeEvents.includes(EventCardID.E03)) {
+        log.push(`|Avant-Grade`);
+        if (act < AvantGradeAP) {
+            log.push(`|${AvantGradeAP}AP`);
+            act = AvantGradeAP;
         }
     }
+    if (G.activeEvents.includes(EventCardID.E07)) {
+        log.push(`|LES CHAIERS DU CINEMA`);
+        if (act < LES_CHAIERS_DU_CINEMA_AP) {
+            log.push(`|${LES_CHAIERS_DU_CINEMA_AP}AP`);
+            act = LES_CHAIERS_DU_CINEMA_AP;
+        }
+    }
+    log.push(`|finalActionPoint|${act}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return act;
 }
+
 export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     const log = [`endTurnEffect|p${arg}`];
     const pub = G.pub[parseInt(arg)]
@@ -3202,7 +3200,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
             G.e.stack.push({...i.onWin})
         }
         log.push(`|getShareFromLoser`);
-        G.e.stack.push( {
+        G.e.stack.push({
             e: ItrEffects.anyRegionShareCompetition, a: 1
         })
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -3374,7 +3372,7 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     i.def = def;
     let CompetitionPowerModifierDef = 0;
     const defSchoolID = G.pub[parseInt(i.def)].school;
-    if(defSchoolID !== null){
+    if (defSchoolID !== null) {
         const defSchoolIndustry = getCardById(defSchoolID).industry;
         CompetitionPowerModifierDef += defSchoolIndustry;
     }

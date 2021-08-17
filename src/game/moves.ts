@@ -1,6 +1,7 @@
 import {Ctx, LongFormMove, PlayerID} from 'boardgame.io';
 import {CompetitionInfo, IG} from "../types/setup";
 import {
+    AvantGradeAP,
     B05,
     BasicCardID,
     BuildingType,
@@ -16,7 +17,7 @@ import {
     IBuyInfo,
     ICardSlot,
     INormalOrLegendCard,
-    IRegionInfo, ItrEffects,
+    IRegionInfo, ItrEffects, LES_CHAIERS_DU_CINEMA_AP,
     Region,
     SchoolCardID,
     SimpleRuleNumPlayers,
@@ -42,7 +43,6 @@ import {
     checkNextEffect,
     cinemaInRegion,
     cinemaSlotsAvailable,
-    competitionCleanUp,
     competitionResultSettle,
     curPub,
     die,
@@ -838,8 +838,8 @@ export const chooseEvent: LongFormMove = {
             G.activeEvents.push(EventCardID.E03);
             for (let i = 0; i < G.order.length; i++) {
                 const prevAction = G.pub[i].action;
-                if (prevAction < 2) {
-                    G.pub[i].action = 2;
+                if (prevAction < AvantGradeAP) {
+                    G.pub[i].action = AvantGradeAP;
                 }
             }
             logger.debug(`${G.matchID}|${log.join('')}`);
@@ -847,6 +847,20 @@ export const chooseEvent: LongFormMove = {
             checkNextEffect(G, ctx);
             return
         } else {
+            if (eid === EventCardID.E07) {
+                log.push("|LES CHAIERS DU CINEMA");
+                G.activeEvents.push(EventCardID.E07);
+                for (let i = 0; i < G.order.length; i++) {
+                    const prevAction = G.pub[i].action;
+                    if (prevAction < LES_CHAIERS_DU_CINEMA_AP) {
+                        G.pub[i].action = LES_CHAIERS_DU_CINEMA_AP;
+                    }
+                }
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                fillEventCard(G, ctx);
+                checkNextEffect(G, ctx);
+                return
+            }
             if (eid === EventCardID.E08) {
                 G.regions[Region.EE].buildings[1].activated = true;
             }
@@ -856,7 +870,6 @@ export const chooseEvent: LongFormMove = {
                 case EventCardID.E04:
                 case EventCardID.E05:
                 case EventCardID.E06:
-                case EventCardID.E07:
                 case EventCardID.E08:
                 case EventCardID.E09:
                     log.push(`|eventDeck|${JSON.stringify(G.secretInfo.events)}`);

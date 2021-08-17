@@ -481,6 +481,9 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[firstMovePlayer].resource = 30;
     // G.pub[firstMovePlayer].deposit = 30;
     // G.pub[1].resource = 30;
+    // G.pub[firstMovePlayer].competitionPower = 10;
+    // @ts-ignore
+    // G.player[firstMovePlayer].hand = ["F3110", "F2212", "F3110",];
     // @ts-ignore
     // G.player[firstMovePlayer].hand = ["P1101", "F2212", "P3102", "B07", "B07",]
     // @ts-ignore
