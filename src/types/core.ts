@@ -1274,7 +1274,7 @@ const NoneBasicCards = {
         region: Region.WE,
         name: "The Road",
         cardId: FilmCardID.F2209,
-        cost: cost(5, 1, 5),
+        cost: cost(6, 1, 5),
         vp: 7,
         category: CardCategory.NORMAL,
         industry: 0,

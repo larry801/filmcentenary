@@ -1261,6 +1261,7 @@ export const effects = {
                             [
                                 {e: "res", a: 2},
                                 {e: SimpleEffectNames.deposit, a: 1},
+                                {e: SimpleEffectNames.loseVp, a: 1},
                                 {
                                     e: ItrEffects.choice, a: [
                                         {e: SimpleEffectNames.addCompetitionPower, a: 1},
@@ -1280,6 +1281,7 @@ export const effects = {
                         e: "step", a: [
                             {e: "res", a: 1},
                             {e: "draw", a: 1},
+                            {e: SimpleEffectNames.loseVp, a: 1},
                         ]
                     },
                 ]
@@ -1303,7 +1305,7 @@ export const effects = {
                 },
                 {
                     e: "step", a: [
-                        {e: "res", a: 1},
+                        {e: "res", a: 2},
                         {e: "aesAward", a: 1},
                     ]
                 }
