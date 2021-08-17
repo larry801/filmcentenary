@@ -512,11 +512,10 @@ export const effects = {
             e: "era", a: [
                 {
                     e: "step", a: [
-                        {e: "res", a: 1},
+                        {e: "res", a: 2},
                         {e: "shareWE", a: 1},
                     ]
                 },
-
                 {e: "deposit", a: 1},
                 noEff
             ]
@@ -632,15 +631,12 @@ export const effects = {
             action: 2,
         },
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: noEff,
+        buy: {e: SimpleEffectNames.shareEE, a: 1},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {
-            pre: {e: "othersBuySchool"},
-            effect: {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 1}]},
-        },
+        response: noEff,
     },
     "1304": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -695,12 +691,12 @@ export const effects = {
         play: {
             e: "era", a: [
                 {e: "step", a: [{e: "draw", a: 1}, {e: "vp", a: 1}]},
-                {e: "draw", a: 1},
+                {e: "step", a: [{e: "draw", a: 1}, {e: "vp", a: 1}]},
                 noEff
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "archive", a: 1},
+        archive: {e: "archive", a: 2},
         response: noResponse,
     },
     "1308": {
@@ -1911,12 +1907,14 @@ export const effects = {
             e: "step", a: [
                 {e: "anyRegionShare", a: 1},
                 {e: SimpleEffectNames.addCompetitionPower, a: 1},
-                {e: "noStudio", a: {
+                {
+                    e: "noStudio", a: {
                         e: "step", a: [
                             {e: "loseAnyRegionShare", a: 1},
                             {e: SimpleEffectNames.loseCompetitionPower, a: 1},
                         ]
-                    }},
+                    }
+                },
                 {e: "studio", a: {e: "industryAward", a: 1}},
                 {
                     e: "optional", a: {
@@ -2063,7 +2061,10 @@ export const effects = {
                         {
                             e: "step", a: [
                                 {e: "anyRegionShare", a: 1},
-                                {e: "competition", a: {bonus: 0, onWin: {e: SimpleEffectNames.addCompetitionPower, a: 3}}}
+                                {
+                                    e: "competition",
+                                    a: {bonus: 0, onWin: {e: SimpleEffectNames.addCompetitionPower, a: 3}}
+                                }
                             ]
                         }
                     ]
@@ -2494,12 +2495,14 @@ export const effects = {
             e: "step", a: [
                 {e: SimpleEffectNames.draw, a: 1},
                 {e: SimpleEffectNames.addCompetitionPower, a: 1},
-                {e: "noStudio", a: {
+                {
+                    e: "noStudio", a: {
                         e: "step", a: [
                             {e: SimpleEffectNames.loseCompetitionPower, a: 2},
                             {e: ItrEffects.discard, a: 1},
                         ]
-                    }},
+                    }
+                },
                 {
                     e: "studio", a: {
                         e: "step", a: [

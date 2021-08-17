@@ -513,13 +513,13 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         if (card.type === CardType.S) {
             log.push(`|buySchool`);
             let school = pub.school;
-            const kino = schoolPlayer(G, ctx, SchoolCardID.S1303);
-            log.push(`|kinoPlayer|${JSON.stringify(kino)}`);
-            if (kino !== null && p !== kino) {
-                log.push(`|p${kino}|KinoEyes`);
-                addVp(G, ctx, kino, 1);
-                G.pub[parseInt(kino)].deposit++;
-            }
+            // const kino = schoolPlayer(G, ctx, SchoolCardID.S1303);
+            // log.push(`|kinoPlayer|${JSON.stringify(kino)}`);
+            // if (kino !== null && p !== kino) {
+            //     log.push(`|p${kino}|KinoEyes`);
+            //     addVp(G, ctx, kino, 1);
+            //     G.pub[parseInt(kino)].deposit++;
+            // }
             if (school !== null) {
                 log.push(`|hasSchool`);
                 if (school === SchoolCardID.S1203) {
