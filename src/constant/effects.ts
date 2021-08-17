@@ -1457,8 +1457,15 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "draw", a: 1},
-                {e: "studio", a: {e: "handToAnyPlayer", a: 1}},
-                {e: "noStudio", a: {e: "loseDeposit", a: 1}},
+                {
+                    e: "studio", a: {
+                        e: "step", a: [
+                            {e: "draw", a: 1},
+                            {e: "handToAnyPlayer", a: 1}
+                        ]
+                    },
+                },
+
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
