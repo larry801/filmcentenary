@@ -2035,12 +2035,14 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "buyCardToHand", a: BasicCardID.B03},
+                {e: SimpleEffectNames.loseVp, a: 2},
+                {e: SimpleEffectNames.deposit, a: 2},
                 {e: SimpleEffectNames.addCompetitionPower, a: 1},
                 {
                     e: "noStudio", a: {
                         e: "step", a: [
                             {e: ItrEffects.discardBasic, a: 2},
+                            {e: SimpleEffectNames.loseCompetitionPower, a: 1},
                         ]
                     }
                 },
