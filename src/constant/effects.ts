@@ -472,13 +472,7 @@ export const effects = {
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {
-            e: "era", a: [
-                noEff,
-                {e: "archive", a: 1},
-                {e: "archive", a: 1}
-            ]
-        },
+        archive: {e: "archive", a: 1},
         response: noResponse,
     },
     "1207": {
