@@ -460,6 +460,12 @@ export const chooseHand: LongFormMove = {
                 hand.splice(arg.idx, 1);
                 G.player[parseInt(G.c.players[0])].hand.push(arg.hand);
                 G.pub[parseInt(G.c.players[0])].allCards.push(arg.hand);
+                if (eff.a > 1) {
+                    log.push(`|prev:${eff.a}`);
+                    eff.a--;
+                    log.push(`|remain:${eff.a}`);
+                    G.e.stack.push(eff);
+                }
                 break;
             case "refactor":
                 hand.splice(arg.idx, 1);
@@ -471,10 +477,22 @@ export const chooseHand: LongFormMove = {
                     loseVp(G, ctx, p, -vpToAdd);
                 }
                 doBuy(G, ctx, B05, p);
+                if (eff.a > 1) {
+                    log.push(`|prev:${eff.a}`);
+                    eff.a--;
+                    log.push(`|remain:${eff.a}`);
+                    G.e.stack.push(eff);
+                }
                 break;
             case "archive":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
+                if (eff.a > 1) {
+                    log.push(`|prev:${eff.a}`);
+                    eff.a--;
+                    log.push(`|remain:${eff.a}`);
+                    G.e.stack.push(eff);
+                }
                 break;
             case "discard":
             case "discardLegend":
@@ -488,6 +506,7 @@ export const chooseHand: LongFormMove = {
                 hand.splice(arg.idx, 1);
                 pub.discard.push(arg.hand);
                 if (eff.a > 1) {
+                    log.push(`|prev:${eff.a}`);
                     eff.a--;
                     log.push(`|remain:${eff.a}`);
                     G.e.stack.push(eff);
