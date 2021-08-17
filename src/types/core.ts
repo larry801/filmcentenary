@@ -1031,7 +1031,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "Classic Hollywood",
         cardId: SchoolCardID.S2101,
-        cost: cost(7, 6, 2),
+        cost: cost(8, 6, 2),
         vp: 8,
         category: CardCategory.LEGEND,
         industry: 2,
