@@ -1373,7 +1373,7 @@ const NoneBasicCards = {
         region: Region.EE,
         name: "Ballad of a Solider",
         cardId: FilmCardID.F2304,
-        cost: cost(7, 2, 5),
+        cost: cost(6, 2, 5),
         vp: 7,
         category: CardCategory.NORMAL,
         industry: 0,
