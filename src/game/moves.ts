@@ -138,20 +138,13 @@ export const setupGameMode: LongFormMove = {
         log.push(`|turnOrder|${JSON.stringify(initOrder)}`);
         G.order = initOrder;
         G.initialOrder = initOrder;
-        if (ctx.numPlayers === SimpleRuleNumPlayers) {
-            G.pub[parseInt(initOrder[0])].vp = 0;
-            G.pub[parseInt(initOrder[1])].vp = 1;
+        G.pub[parseInt(initOrder[0])].vp = 0;
+        G.pub[parseInt(initOrder[1])].vp = 1;
+        if (ctx.numPlayers >= 3) {
+            G.pub[parseInt(initOrder[2])].vp = 3;
         }
-        if (ctx.numPlayers === 3) {
-            G.pub[parseInt(initOrder[0])].vp = 0;
-            G.pub[parseInt(initOrder[1])].vp = 1;
-            G.pub[parseInt(initOrder[2])].vp = 2;
-        }
-        if (ctx.numPlayers === 4) {
-            G.pub[parseInt(initOrder[0])].vp = 0;
-            G.pub[parseInt(initOrder[1])].vp = 0;
-            G.pub[parseInt(initOrder[2])].vp = 1;
-            G.pub[parseInt(initOrder[3])].vp = 2;
+        if (ctx.numPlayers >= 4) {
+            G.pub[parseInt(initOrder[3])].vp = 5;
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
