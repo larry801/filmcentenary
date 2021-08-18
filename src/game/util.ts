@@ -814,12 +814,20 @@ export const levelAndMarkLowestPlayer = (G: IG): PlayerID[] => {
 
 export const getSchoolHandLimit = (G: IG, p: PlayerID): number => {
     const school = G.pub[parseInt(p)].school;
-    const l = G.activeEvents.includes(EventCardID.E07) ? 5 : 4;
+    const log = [`getSchoolHandLimit|p${p}|school${school}`];
+    const ruleLimit = G.activeEvents.includes(EventCardID.E07) ? 5 : 4;
+    log.push(`|ruleLimit${ruleLimit}`);
     if (school === null) {
-        return l;
+        log.push(`|finalLimit${ruleLimit}`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return ruleLimit;
     } else {
         const schoolLimit = getCardEffect(school).school.hand;
-        return schoolLimit > l ? schoolLimit : l;
+        log.push(`|schoolLimit${schoolLimit}`);
+        const limit = schoolLimit > ruleLimit ? schoolLimit : ruleLimit;
+        log.push(`|finalLimit${limit}`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return limit
     }
 }
 
@@ -2831,13 +2839,6 @@ export const getPlayerAction = (G: IG, arg: PlayerID): number => {
         if (act < AvantGradeAP) {
             log.push(`|${AvantGradeAP}AP`);
             act = AvantGradeAP;
-        }
-    }
-    if (G.activeEvents.includes(EventCardID.E07)) {
-        log.push(`|LES CHAIERS DU CINEMA`);
-        if (act < LES_CHAIERS_DU_CINEMA_AP) {
-            log.push(`|${LES_CHAIERS_DU_CINEMA_AP}AP`);
-            act = LES_CHAIERS_DU_CINEMA_AP;
         }
     }
     log.push(`|finalActionPoint|${act}`);

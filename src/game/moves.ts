@@ -869,12 +869,6 @@ export const chooseEvent: LongFormMove = {
             if (eid === EventCardID.E07) {
                 log.push("|LES CHAIERS DU CINEMA");
                 G.activeEvents.push(EventCardID.E07);
-                for (let i = 0; i < G.order.length; i++) {
-                    const prevAction = G.pub[i].action;
-                    if (prevAction < LES_CHAIERS_DU_CINEMA_AP) {
-                        G.pub[i].action = LES_CHAIERS_DU_CINEMA_AP;
-                    }
-                }
             }
             if (eid === EventCardID.E08) {
                 G.regions[Region.EE].buildings[1].activated = true;
