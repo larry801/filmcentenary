@@ -656,24 +656,18 @@ export const chooseRegion: LongFormMove = {
                     p = G.c.players[0];
                     G.c.players = [];
                     G.pub[parseInt(p)].shares[r]--;
-                    addCompetitionPower(G, ctx, p, 1);
                     reg.share++;
                     break;
                 case ItrEffects.anyRegionShareCompetition:
                     // const loser = i.progress > 0 ? i.def : i.atk;
                     const loser = i.def;
                     G.pub[parseInt(loser)].shares[r]--;
-                    addCompetitionPower(G, ctx, loser, 1);
                     pub.shares[r]++;
                     if (eff.a > 1) {
                         eff.a--;
                         G.e.stack.push(eff);
-                        break;
-                    } else {
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        // competitionCleanUp(G, ctx);
-                        break;
                     }
+                    break;
                 case ItrEffects.anyRegionShareCentral:
                 case ItrEffects.anyRegionShare:
                     pub.shares[r]++;

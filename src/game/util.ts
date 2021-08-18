@@ -708,24 +708,23 @@ export const getCompetitionPowerLessPlayers = (G: IG, ctx: Ctx, p: PlayerID): Pl
     const checkAndAdd = (i: number) => {
         const targetPlayer = G.order[i];
         const targetCompetitionPower = G.pub[parseInt(targetPlayer)].competitionPower;
-        log.push(`|${i}|p${targetPlayer}|CP:${targetCompetitionPower}`);
+        log.push(`|idx|${i}|p${targetPlayer}|CP:${targetCompetitionPower}`);
         if (targetCompetitionPower < atkCompetitionPower) {
+            log.push(`|bigger`);
             if (G.mode !== GameMode.TEAM2V2) {
-                log.push(`|normal`);
-                log.push(`|push`);
+                log.push(`|normalMode|push|p${targetPlayer}`);
                 seq.push(targetPlayer);
             } else {
                 log.push(`|2v2`);
                 if (isSameTeam(p, targetPlayer)) {
                     log.push(`|isSameTeam|doNotPush`)
                 } else {
-                    log.push(`|push`);
+                    log.push(`|push|p${targetPlayer}`);
                     seq.push(targetPlayer);
                 }
             }
         } else {
-            log.push(`|less|skip`);
-
+            log.push(`|smaller|skip`);
         }
     }
 
@@ -1314,6 +1313,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             G.e.regions = valid_regions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
             if (G.e.regions.length === 0) {
                 log.push("|loserNoShare");
+                competitionCleanUp(G,ctx);
                 break;
             } else {
                 log.push(`|p${winner}|chooseRegion`);
@@ -2953,9 +2953,9 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
 }
 
 export const addCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, num: number) => {
-    const log = ['addCompetitionPower'];
+    const log = [`p${p}|addCompetitionPower|${num}`];
     const pub = G.pub[parseInt(p)];
-    log.push(`before|${pub.competitionPower}`);
+    log.push(`|before|${pub.competitionPower}`);
     const targetCompetitionPower = pub.competitionPower + num;
     if (targetCompetitionPower > pub.industry) {
         log.push(`|TargetCompetitionPower|${targetCompetitionPower}|exceedIndustry|${pub.industry}`);
@@ -2963,7 +2963,7 @@ export const addCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, num: number) =
     } else {
         pub.competitionPower += num;
     }
-    log.push(`after|${pub.competitionPower}`);
+    log.push(`|after|${pub.competitionPower}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
