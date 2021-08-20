@@ -1200,8 +1200,8 @@ export const effects = {
                     noEff,
                     {
                         e: "step", a: [
+                            {e: SimpleEffectNames.deposit, a: 1},
                             {e: "comment", a: 1},
-                            {e: "loseVp", a: 1},
                         ]
                     },
                     {
