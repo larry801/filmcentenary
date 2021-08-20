@@ -25,7 +25,6 @@ import {
     IPubInfo,
     ItrEffects,
     LegendCardCountInUse,
-    LES_CHAIERS_DU_CINEMA_AP,
     NormalCardCountInUse,
     PersonCardID,
     Region,
@@ -201,7 +200,6 @@ export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
 
 export function buyCardEffectPrepare(G: IG, ctx: Ctx, cardID: CardID, p: PlayerID) {
     const log = [`buyCardEffectPrepare|card|${cardID}|p${p}`];
-    const pub = G.pub[parseInt(p)];
     const targetCard = getCardById(cardID);
     const cardEff = getCardEffect(targetCard.cardId);
     let hasEffect = false;
@@ -216,21 +214,6 @@ export function buyCardEffectPrepare(G: IG, ctx: Ctx, cardID: CardID, p: PlayerI
     } else {
         log.push(`|noBuyEff`);
     }
-    // if (
-    //     pub.school === SchoolCardID.S3101
-    //     && (targetCard.category === CardCategory.NORMAL
-    //     || targetCard.category === CardCategory.LEGEND)
-    //     && targetCard.type === CardType.F
-    // ) {
-    //     log.push(`|newHollyWood`);
-    //     G.e.stack.push({
-    //         e: "optional", a: {
-    //             e: "newHollyWoodEff", a: 1
-    //         },
-    //         target: p,
-    //     })
-    //     hasEffect = true;
-    // }
     logger.debug(`${G.matchID}|${log.join('')}`);
     return hasEffect;
 }
@@ -662,7 +645,7 @@ export const seqFromActivePlayer = (G: IG, ctx: Ctx): PlayerID[] => {
 //
 export const isSameTeam = (p: PlayerID, q: PlayerID): boolean => {
     const log = [`isSameTeam|p${p}|p${q}`];
-    let result = false;
+    let result: boolean;
     if (p === '0' || p === '2') {
         result = q === '0' || q === '2'
     } else {
@@ -1074,24 +1057,6 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         return;
     }
     log.push(`|eff|${JSON.stringify(eff)}`);
-    // if (G.competitionInfo.pending) {
-    //     log.push(`|inCompetition`);
-    //     if (
-    //         eff.e === ItrEffects.choice
-    //         || eff.e === ItrEffects.era
-    //         || eff.e === ItrEffects.pay
-    //         || eff.e === ItrEffects.step
-    //         || eff.e === SimpleEffectNames.res
-    //         || eff.e === SimpleEffectNames.resFromIndustry
-    //     ) {
-    //         log.push(`|validEffect|continue`);
-    //     } else {
-    //         log.push(`|otherEffect|checkNextEffect`);
-    //         logger.debug(`${G.matchID}|${log.join('')}`);
-    //         checkNextEffect(G, ctx);
-    //         return;
-    //     }
-    // }
     G.e.currentEffect = eff;
     let targetPlayer = p;
     let pub = G.pub[parseInt(p)];
@@ -1110,6 +1075,35 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     let extraCost = 0
     const totalRes = pub.resource + pub.deposit;
     let i = G.competitionInfo;
+    let validCardsToDiscard: CardID[] = [];
+    const discardOpsReturn = () :boolean =>{
+        const validCount = validCardsToDiscard.length;
+        const effectCount = eff.a;
+        const deltaCount = validCount - effectCount;
+        const discardStatus = deltaCount / Math.abs(deltaCount);
+        log.push(`|valid${validCount}|effect${effectCount}|delta${deltaCount}|status${discardStatus}`);
+        switch (discardStatus) {
+            case -1:
+                pub.revealedHand = [...playerObj.hand]
+                log.push(`|${JSON.stringify(pub.revealedHand)}`);
+                log.push(("|NoEnoughValidCardsRevealHand|next"));
+                return false;
+            case 0:
+                for (const validCardsToDiscardElement of validCardsToDiscard) {
+                    const handIdx = playerObj.hand.indexOf(validCardsToDiscardElement);
+                    if(handIdx !== -1){
+                        playerObj.hand.splice(handIdx);
+                    }
+                }
+                return false;
+            case 1:
+                G.e.stack.push(eff);
+                changePlayerStage(G, ctx, "chooseHand", p);
+                return true;
+            default:
+                return true;
+        }
+    };
     switch (eff.e) {
         case "playedCardInTurnEffect":
             if (pub.playedCardInTurn.filter(c => getCardById(c).aesthetics > 0 && c !== G.e.card).length > 0) {
@@ -1313,7 +1307,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             G.e.regions = valid_regions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
             if (G.e.regions.length === 0) {
                 log.push("|loserNoShare");
-                competitionCleanUp(G,ctx);
+                competitionCleanUp(G, ctx);
                 break;
             } else {
                 log.push(`|p${winner}|chooseRegion`);
@@ -1486,73 +1480,49 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log.push(`|result|${JSON.stringify(G.e.stack)}`);
             break;
         case "discardBasic":
-            if (playerObj.hand.filter(i =>
+            validCardsToDiscard = playerObj.hand.filter(i =>
                 getCardById(i).category === CardCategory.BASIC
-            ).length > 0) {
-                G.e.stack.push(eff);
-                log.push((`|Has classic cards|changePlayerStage|${p}`));
-                changePlayerStage(G, ctx, "chooseHand", p);
+            );
+            if(discardOpsReturn()){
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
-            } else {
-                pub.revealedHand = [...playerObj.hand]
-                log.push(`|${JSON.stringify(pub.revealedHand)}`);
-                log.push(("|NoClassicRevealHand|next"));
             }
             break;
         case "discardNormalOrLegend":
-            if (playerObj.hand.filter(i =>
+            validCardsToDiscard = playerObj.hand.filter(i =>
                 getCardById(i).category !== CardCategory.BASIC &&
                 getCardById(i).category !== CardCategory.SCORE
-            ).length > 0) {
-                G.e.stack.push(eff);
-                log.push((`|Has classic cards|changePlayerStage|${p}`));
-                changePlayerStage(G, ctx, "chooseHand", p);
+            );
+            if(discardOpsReturn()){
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
-            } else {
-                pub.revealedHand = [...playerObj.hand]
-                log.push(`|${JSON.stringify(pub.revealedHand)}`);
-                log.push(("|NoClassicRevealHand|next"));
             }
             break;
         case "discardLegend":
-            if (playerObj.hand.filter(i =>
+            validCardsToDiscard = playerObj.hand.filter(i =>
                 getCardById(i).category === CardCategory.LEGEND
-            ).length > 0) {
-                G.e.stack.push(eff);
-                changePlayerStage(G, ctx, "chooseHand", p);
+            );
+            if(discardOpsReturn()){
+                logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
-            } else {
-                pub.revealedHand = [...playerObj.hand]
-                log.push(`|${JSON.stringify(pub.revealedHand)}`);
-                log.push(("|NoLegendRevealHand|next"));
             }
             break;
         case "discardAesthetics":
-            if (playerObj.hand.filter(i =>
+            validCardsToDiscard = playerObj.hand.filter(i =>
                 getCardById(i).aesthetics > 0
-            ).length > 0) {
-                G.e.stack.push(eff);
-                changePlayerStage(G, ctx, "chooseHand", p);
+            );
+            if(discardOpsReturn()){
+                logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
-            } else {
-                pub.revealedHand = [...playerObj.hand]
-                log.push(`|${JSON.stringify(pub.revealedHand)}`);
-                log.push(("|NoAestheticsRevealHand|next"));
             }
             break;
         case "discardIndustry":
-            if (playerObj.hand.filter(i =>
+            validCardsToDiscard = playerObj.hand.filter(i =>
                 getCardById(i).industry > 0
-            ).length > 0) {
-                G.e.stack.push(eff);
-                changePlayerStage(G, ctx, "chooseHand", p);
+            );
+            if(discardOpsReturn()){
+                logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
-            } else {
-                pub.revealedHand = [...playerObj.hand]
-                log.push(`|${JSON.stringify(pub.revealedHand)}`);
-                log.push(("|NoIndustryRevealHand|next"));
             }
             break;
         case "refactor":
@@ -2826,7 +2796,7 @@ export const setupAfterScoring = (G: IG, ctx: Ctx) => {
 export const getPlayerAction = (G: IG, arg: PlayerID): number => {
     const log = [`endTurnEffect|p${arg}`];
     const pub = G.pub[parseInt(arg)];
-    let act = 0;
+    let act: number;
     if (pub.school !== null) {
         let schoolId = pub.school;
         log.push(`|school|${schoolId}`);
@@ -2983,26 +2953,7 @@ export const loseCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, num: number) 
 
 export const addRes = (G: IG, ctx: Ctx, p: PlayerID, res: number) => {
     const log = ['addRes'];
-    const i = G.competitionInfo;
     const pub = G.pub[parseInt(p)];
-    // if (i.pending) {
-    //     log.push(`|pendingCompetition`);
-    //     if (p === i.atk) {
-    //         log.push(`|atk`);
-    //         i.progress += res;
-    //         log.push(`|${i.progress}`);
-    //     } else {
-    //         if (p === i.def) {
-    //             log.push(`|def`);
-    //             i.progress -= res;
-    //             log.push(`|${i.progress}`);
-    //         } else {
-    //             log.push(`|notCompetitionPlayer|${pub.resource}`);
-    //             pub.resource += res;
-    //             log.push(`|${pub.resource}`);
-    //         }
-    //     }
-    // } else
     {
         log.push(`before|${pub.resource}`);
         pub.resource += res;
@@ -3200,10 +3151,6 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
                 log.push('|3101')
                 G.e.stack.push({e: SimpleEffectNames.res, a: 2});
                 break;
-            case SchoolCardID.S2101:
-                log.push('|2101')
-                G.e.stack.push({e: SimpleEffectNames.industryToVp, a: 1});
-                break;
             default:
                 log.push(`|schoolID|${atkSchoolID}`)
                 break;
@@ -3212,10 +3159,12 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
             log.push(`|onWin|${JSON.stringify(i.onWin)}`);
             G.e.stack.push({...i.onWin})
         }
+        log.push(`|stack|${JSON.stringify(G.e.stack)}`);
         log.push(`|getShareFromLoser`);
         G.e.stack.push({
             e: ItrEffects.anyRegionShareCompetition, a: 1
         })
+        log.push(`|stack|${JSON.stringify(G.e.stack)}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         playerEffExec(G, ctx, i.atk);
         return;
@@ -3376,10 +3325,35 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
+export const doNotLoseVpAfterCompetitionSchool = (school: SchoolCardID): boolean => {
+    const eff = getCardEffect(school);
+    if (eff.hasOwnProperty("response")) {
+        if (eff.response.hasOwnProperty("pre")) {
+            if (eff.response.pre.e === "doNotLoseVpAfterCompetition") {
+                return true;
+            } else {
+                if (eff.response.pre.e === "multiple") {
+                    for (const sub of eff.response.pre.effect) {
+                        if (sub.pre.e === "doNotLoseVpAfterCompetition") {
+                            return true;
+                        }
+                    }
+                    return false;
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+}
+
 export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) => {
     const log = [`startCompetition|atk${atk}|def${def}`];
     let i = G.competitionInfo;
-    // let hasWinner = false;
     i.pending = true;
     i.atk = atk;
     i.def = def;
@@ -3403,15 +3377,11 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     // if (CompetitionPowerDelta >= 3) {
     //     hasWinner = true;
     // }
-
-    if (
-        defSchoolID !== SchoolCardID.S3304 &&
-        defSchoolID !== SchoolCardID.S3201 &&
-        defSchoolID !== SchoolCardID.S3204) {
+    if (defSchoolID !== null && doNotLoseVpAfterCompetitionSchool(defSchoolID)) {
+        log.push(`|${defSchoolID}|doNotLoseVP`);
+    } else {
         log.push(`|p${i.def}|lose${CompetitionPowerDelta}vp`);
         loseVp(G, ctx, def, CompetitionPowerDelta);
-    } else {
-        log.push(`|${defSchoolID}|doNotLoseVP`);
     }
     addVp(G, ctx, atk, CompetitionPowerDelta);
     loseCompetitionPower(G, ctx, atk, 3);
@@ -3419,7 +3389,6 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     log.push(`|showCompetitionResult`);
     logger.debug(`${G.matchID}|${log.join('')}`);
     changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
-    // competitionCleanUp(G, ctx);
 }
 
 

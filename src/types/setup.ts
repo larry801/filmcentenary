@@ -474,17 +474,18 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // @ts-ignore
     // G.pub[firstMovePlayer].school = "S2101";
     // @ts-ignore
-    // G.pub[firstMovePlayer].school = "S2101";
-    // G.pub[firstMovePlayer].resource = 30;
+    G.pub[firstMovePlayer].school = "S2101";
+    G.pub[firstMovePlayer].resource = 30;
+    G.pub[firstMovePlayer].industry = 10;
     // G.pub[firstMovePlayer].deposit = 30;
     // G.pub[1].resource = 30;
-    // G.pub[firstMovePlayer].competitionPower = 10;
+    G.pub[firstMovePlayer].competitionPower = 10;
     // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["F3110", "F2212", "F3110",];
+    G.player[firstMovePlayer].hand = ["P3107",];
     // @ts-ignore
     // G.player[firstMovePlayer].hand = ["P1101", "F2212", "P3102", "B07", "B07",]
     // @ts-ignore
-    // G.player[1].hand = ["F2307", "P3102", "B07", "B07",]
+    G.player[1].hand = ["F2307", "P3102", "B07",]
     // G.secretInfo.playerDecks[0] = [];
     // G.pub[0].action = 10;
     return G;

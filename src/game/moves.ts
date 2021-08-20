@@ -486,14 +486,11 @@ export const chooseHand: LongFormMove = {
                 }
                 break;
             case "discard":
+            case "discardBasic":
             case "discardLegend":
             case "discardIndustry":
             case "discardAesthetics":
             case "discardNormalOrLegend":
-                if (pub.school === SchoolCardID.S3201) {
-                    log.push(`|NewWaveFlagSet`);
-                    // pub.discardInSettle = true;
-                }
                 hand.splice(arg.idx, 1);
                 pub.discard.push(arg.hand);
                 if (eff.a > 1) {
