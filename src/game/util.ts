@@ -3404,11 +3404,14 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     //     hasWinner = true;
     // }
 
-    if (defSchoolID !== SchoolCardID.S3201 && defSchoolID !== SchoolCardID.S3204) {
+    if (
+        defSchoolID !== SchoolCardID.S3304 &&
+        defSchoolID !== SchoolCardID.S3201 &&
+        defSchoolID !== SchoolCardID.S3204) {
         log.push(`|p${i.def}|lose${CompetitionPowerDelta}vp`);
         loseVp(G, ctx, def, CompetitionPowerDelta);
     } else {
-        log.push(`|doNotLoseVP`);
+        log.push(`|${defSchoolID}|doNotLoseVP`);
     }
     addVp(G, ctx, atk, CompetitionPowerDelta);
     loseCompetitionPower(G, ctx, atk, 3);

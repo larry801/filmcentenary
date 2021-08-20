@@ -17,8 +17,7 @@ import {
     IBuyInfo,
     ICardSlot, IEra,
     INormalOrLegendCard,
-    IRegionInfo, ItrEffects, LES_CHAIERS_DU_CINEMA_AP,
-    Region,
+    IRegionInfo, ItrEffects, Region,
     SchoolCardID,
     SimpleRuleNumPlayers,
     valid_regions,
@@ -26,8 +25,7 @@ import {
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
-    activePlayer, addCompetitionPower,
-    addRes,
+    activePlayer, addRes,
     addVp,
     aesAward,
     atkCardSettle,

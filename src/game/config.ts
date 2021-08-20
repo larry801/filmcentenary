@@ -22,7 +22,6 @@ import {
 import {IG} from "../types/setup";
 import {changePlayerStage, cleanPendingSignal} from "./logFix";
 import {
-    addCompetitionPower,
     addVp,
     aesAward,
     curPub,
