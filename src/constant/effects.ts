@@ -2555,7 +2555,9 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: noEff,
+        response: {
+            pre: {e: "doNotLoseVpAfterCompetition", a: 1}, effect: noEff
+        },
         school: {
             hand: 5, action: 2,
         }
