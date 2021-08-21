@@ -1494,7 +1494,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Seven Samurai",
         cardId: FilmCardID.F2406,
-        cost: cost(6, 4, 2),
+        cost: cost(6, 4, 0),
         vp: 6,
         category: CardCategory.NORMAL,
         industry: 1,
