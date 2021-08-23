@@ -11,6 +11,7 @@
 # production
 /build
 
+/fbg
 # misc
 .DS_Store
 .env.local
