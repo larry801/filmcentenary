@@ -3169,12 +3169,13 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         playerEffExec(G, ctx, i.atk);
         return;
     } else {
-        // log.push(`|competitionCleanUp|checkNextEffect`);
-        // checkNextEffect(G, ctx);
+        log.push(`|noWinner|competitionCleanUp|checkNextEffect`);
+        log.push(`|stack|${JSON.stringify(G.e.stack)}`);
         competitionCleanUp(G, ctx);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        checkNextEffect(G, ctx);
+        return;
     }
-    logger.debug(`${G.matchID}|${log.join('')}`);
-
 }
 
 export function atkCardSettle(G: IG, ctx: Ctx) {
