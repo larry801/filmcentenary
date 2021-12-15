@@ -3327,29 +3327,40 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
 }
 
 export const doNotLoseVpAfterCompetitionSchool = (school: SchoolCardID): boolean => {
-    const eff = getCardEffect(school);
-    if (eff.hasOwnProperty("response")) {
-        if (eff.response.hasOwnProperty("pre")) {
-            if (eff.response.pre.e === "doNotLoseVpAfterCompetition") {
-                return true;
-            } else {
-                if (eff.response.pre.e === "multiple") {
-                    for (const sub of eff.response.pre.effect) {
-                        if (sub.pre.e === "doNotLoseVpAfterCompetition") {
-                            return true;
-                        }
-                    }
-                    return false;
-                } else {
-                    return false;
-                }
-            }
-        } else {
+    switch (school) {
+        case SchoolCardID.S3201:
+            return true;
+        case SchoolCardID.S3204:
+            return true;
+        case SchoolCardID.S3304:
+            return true;
+        default:
             return false;
-        }
-    } else {
-        return false;
     }
+    // TODO: fix effect parsing
+    // const eff = getCardEffect(school);
+    // if (eff.hasOwnProperty("response")) {
+    //     if (eff.response.hasOwnProperty("pre")) {
+    //         if (eff.response.pre.e === "doNotLoseVpAfterCompetition") {
+    //             return true;
+    //         } else {
+    //             if (eff.response.pre.e === "multiple") {
+    //                 for (const sub of eff.response.pre.effect) {
+    //                     if (sub.pre.e === "doNotLoseVpAfterCompetition") {
+    //                         return true;
+    //                     }
+    //                 }
+    //                 return false;
+    //             } else {
+    //                 return false;
+    //             }
+    //         }
+    //     } else {
+    //         return false;
+    //     }
+    // } else {
+    //     return false;
+    // }
 }
 
 export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) => {
