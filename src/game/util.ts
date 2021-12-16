@@ -684,15 +684,20 @@ export const seqFromCurrentPlayer = (G: IG, ctx: Ctx): PlayerID[] => {
 export const getCompetitionPowerLessPlayers = (G: IG, ctx: Ctx, p: PlayerID): PlayerID[] => {
     const log = [`getCompetitionPowerLessPlayers`];
     log.push(`|cur|p${ctx.currentPlayer}`);
-    const atkCompetitionPower = G.pub[parseInt(p)].competitionPower;
-    log.push(`|atkCompetitionPower|${atkCompetitionPower}`);
+    const atkCompetitionPowerAfterCompetition = G.pub[parseInt(p)].competitionPower - 3;
+    log.push(`|atkCompetitionPowerAfterCompetition|${atkCompetitionPowerAfterCompetition}`);
+    if (atkCompetitionPowerAfterCompetition <= 0) {
+        log.push(`|atkCompetitionPowerAfterCompetition<=0|return[]`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return [];
+    }
     let seq: PlayerID[] = [];
     const remainPlayers = G.order.length;
     const checkAndAdd = (i: number) => {
         const targetPlayer = G.order[i];
         const targetCompetitionPower = G.pub[parseInt(targetPlayer)].competitionPower;
         log.push(`|idx|${i}|p${targetPlayer}|CP:${targetCompetitionPower}`);
-        if (targetCompetitionPower < atkCompetitionPower) {
+        if (targetCompetitionPower < atkCompetitionPowerAfterCompetition) {
             log.push(`|bigger`);
             if (G.mode !== GameMode.TEAM2V2) {
                 log.push(`|normalMode|push|p${targetPlayer}`);
