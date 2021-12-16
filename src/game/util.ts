@@ -2530,22 +2530,19 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     if (r === Region.NONE) return;
     let era = G.regions[r].era;
     const log = [`regionRank|${r}|${era}`];
-    let compensateMarkerUsed = false;
     G.order.forEach((i, idx) => {
-        const playerShareCount = G.pub[idx].shares[r];
-        log.push(`|p${idx}|share${playerShareCount}`);
+        const playerIdx = parseInt(i);
+        const playerShareCount = G.pub[playerIdx].shares[r];
+        log.push(`|orderIdx${idx}|p${playerIdx}|i${i}|share${playerShareCount}`);
         if (playerShareCount === 0) {
             log.push("|badFilm");
             doBuy(G, ctx, B04, idx.toString())
         } else {
-            addVp(G, ctx, i, playerShareCount);
+            addVp(G, ctx, i, playerShareCount * era);
             log.push(`|rank`);
         }
     });
     const rankResult = getRegionRank(G, ctx, r);
-    if (compensateMarkerUsed) {
-        passCompensateMarker(G);
-    }
     log.push(`|rankResult|${rankResult}`);
     const firstPlayer: PlayerID = rankResult[0];
     G.pending.firstPlayer = firstPlayer;
