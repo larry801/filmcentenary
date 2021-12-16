@@ -652,8 +652,14 @@ export const chooseRegion: LongFormMove = {
                 case ItrEffects.loseAnyRegionShare:
                     p = G.c.players[0];
                     G.c.players = [];
-                    G.pub[parseInt(p)].shares[r]--;
-                    reg.share++;
+                    const shareCount = G.pub[parseInt(p)].shares[r];
+                    log.push(`|region${r}share${shareCount}|p${p}`);
+                    log.push(`|beforeLose|${G.pub[parseInt(p)].shares[r]}|${G.regions[r].share}`);
+                    if (shareCount > 0) {
+                        G.pub[parseInt(p)].shares[r] = shareCount - 1;
+                        G.regions[r].share++;
+                    }
+                    log.push(`|after|${G.pub[parseInt(p)].shares[r]}|${G.regions[r].share}`);
                     break;
                 case ItrEffects.anyRegionShareCompetition:
                     // const loser = i.progress > 0 ? i.def : i.atk;
@@ -945,7 +951,7 @@ export const chooseEvent: LongFormMove = {
                     G.order.forEach(j => {
                         const pidInt = parseInt(j)
                         const pub = G.pub[pidInt];
-                        pub.champions.forEach(c=>{
+                        pub.champions.forEach(c => {
                             switch (c.era) {
                                 case IEra.ONE:
                                     pub.vp += 2;
