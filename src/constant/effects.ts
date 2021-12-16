@@ -2676,7 +2676,7 @@ export const effects = {
     },
     "3401": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "choice", a: [{e: "industryLevelUp", a: 1}, {e: "buy", a: FilmCardID.F3409}]},
+        buy: {e: "choice", a: [{e: "industryLevelUp", a: 1}, {e: "buy", a: FilmCardID.F3408}]},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
@@ -2823,8 +2823,8 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "vp", a: 2},
                 {e: SimpleEffectNames.res, a: 3},
+                {e: "vp", a: 2},
                 {e: "update", a: 1}
             ]
         },
