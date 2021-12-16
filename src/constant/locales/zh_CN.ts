@@ -4,7 +4,7 @@ import {
     BasicCardID, EventCardID,
     IBuyInfo,
     IEra, ItrEffects,
-    Region, ValidRegion
+    Region, SimpleEffectNames, ValidRegion
 } from "../../types/core";
 import {
     IChooseEventArg,
@@ -719,10 +719,15 @@ const zh_CN: Locale = {
             onWin: (e: any) => {
                 if (e.e !== "none") {
                     switch (e.e) {
+                        case SimpleEffectNames.vp:
+                        case SimpleEffectNames.addVp:
+                            return `然后+${e.a}声望`;
                         case ItrEffects.anyRegionShareCentral:
-                            return "若这次争夺获胜你额外从中央牌列获得1个任意地区的份额"
+                            return "然后额外从中央牌列获得1个任意地区的份额";
+                        case ItrEffects.comment:
+                            return `然后评论${e.a}次`;
                         case ItrEffects.anyRegionShare:
-                            return "若这次争夺获胜你额外获得一个" + region[e.r as Region] + "地区份额"
+                            return "然后额外获得一个" + region[e.r as Region] + "地区份额"
                         // case SimpleEffectNames.competitionLoserBuy:
                         // case SimpleEffectNames.CompetitionPowerToVp:
                         default:
