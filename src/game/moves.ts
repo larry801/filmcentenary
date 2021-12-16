@@ -326,8 +326,8 @@ export const chooseTarget: LongFormMove = {
         let src = arg.p;
         let p = arg.target;
         let eff = G.e.stack.pop();
-        logger.debug(JSON.stringify(eff));
         const log = [`players|${JSON.stringify(G.c.players)}|eff:${JSON.stringify(eff)}`];
+        log.push(`|eff|${JSON.stringify(eff)}`);
         switch (eff.e) {
             case "loseVpForEachHand":
                 G.c.players = [];
@@ -336,21 +336,23 @@ export const chooseTarget: LongFormMove = {
                 break;
             case "competition":
                 G.c.players = [];
-                // G.competitionInfo.progress = eff.a.bonus;
                 G.competitionInfo.onWin = eff.a.onWin;
                 log.push(`|startCompetition`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 startCompetition(G, ctx, src, p);
                 return;
             case "loseAnyRegionShare":
+                log.push(`|loseAnyRegionShare`);
                 G.c.players = [];
                 G.e.regions = valid_regions.filter(
                     r => G.pub[parseInt(p)].shares[r] > 0
                 )
+                log.push(`|regions${JSON.stringify(G.e.regions)}`);
                 if (G.e.regions.length > 0) {
                     G.e.stack.push(eff);
                     G.c.players = [p];
                     changePlayerStage(G, ctx, "chooseRegion", src);
+                    log.push(`|p${src}|chooseRegion`);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 } else {
