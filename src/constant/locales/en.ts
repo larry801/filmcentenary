@@ -286,37 +286,8 @@ const argShowCompetitionResult = {
     args: (arg: IShowCompetitionResultArgs[]): string => {
         let i = arg[0].info;
         let t = "CompetitionResult:"
-        // if (i.atkCard === null) {
-        //     t += "Attacker did not play card "
-        // } else {
-        //     t += `Attacker played ${bracketCardName(i.atkCard)} `
-        // }
-        // if (i.defCard === null) {
-        //     t += "Defender did not play card "
-        // } else {
-        //     t += `Defender played ${bracketCardName(i.defCard)} `
-        // }
-        if (i.defShownCards.length !== 0) {
-            t += "Defender did not play card "
-        } else {
-            t += `Defender played `;
-            for (const defShownCard of i.defShownCards) {
-                t += `${bracketCardName(defShownCard)} `
-            }
-        }
         let progress = i.progress;
-        // if (progress > 5) progress = 5;
-        // if (progress < -5) progress = -5;
-        t += `Progress:${progress} `
-        if (i.progress >= 3) {
-            t += "Attacker won"
-        } else {
-            // if (i.progress <= -3) {
-            //     t += "Defender won"
-            // } else {
-            //     t += "No Winner"
-            // }
-        }
+        t += `delta VP:${progress} `
         return t;
     }
 }
@@ -726,7 +697,7 @@ const en = {
         loseDeposit: ["Lose {{a}} deposit", argValue],
         beforeCompetition: "Before launching competition,",
         competitionStart: "On competition start,",
-        competitionWon: "After wining a competition,",
+        competitionWon: ", then",
         competitionBonus: ["Competition progress +{{a}} bonus", argValue],
         archive: ["Put {{a}} card(s) into your archive.", argValue],
         industryToVp: "Get prestige according to your industry level",

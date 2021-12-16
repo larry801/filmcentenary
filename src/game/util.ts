@@ -3374,26 +3374,10 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     i.pending = true;
     i.atk = atk;
     i.def = def;
-    let CompetitionPowerModifierDef = 0;
     const defSchoolID = G.pub[parseInt(i.def)].school;
-    if (defSchoolID !== null) {
-        const defSchoolIndustry = getCardById(defSchoolID).industry;
-        CompetitionPowerModifierDef += defSchoolIndustry;
-    }
-    // const defHands = G.player[parseInt(def)].hand;
-    // for (const defHand of defHands) {
-    //     const cardIndustryMarkCount = getCardById(defHand).industry;
-    //     if (cardIndustryMarkCount > 0) {
-    //         CompetitionPowerModifierDef += cardIndustryMarkCount;
-    //     }
-    //     G.competitionInfo.defShownCards.push(defHand);
-    // }
-    const CompetitionPowerDelta = G.pub[parseInt(atk)].competitionPower - G.pub[parseInt(def)].competitionPower - CompetitionPowerModifierDef;
+    const CompetitionPowerDelta = G.pub[parseInt(atk)].competitionPower - 3 - G.pub[parseInt(def)].competitionPower;
     log.push(`|CompetitionPowerDelta:${CompetitionPowerDelta}`);
     i.progress = CompetitionPowerDelta;
-    // if (CompetitionPowerDelta >= 3) {
-    //     hasWinner = true;
-    // }
     if (defSchoolID !== null && doNotLoseVpAfterCompetitionSchool(defSchoolID)) {
         log.push(`|${defSchoolID}|doNotLoseVP`);
     } else {

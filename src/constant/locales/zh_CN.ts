@@ -386,29 +386,29 @@ const argShowCompetitionResult = {
         // } else {
         //     t += `应对方打出${bracketCardName(i.defCard)}，`
         // }
-        if (i.defShownCards.length !== 0) {
-            t += "应对方没有展示手牌"
-        } else {
-            t += `应对方展示`;
-            for (const defShownCard of i.defShownCards) {
-                t += `${bracketCardName(defShownCard)} `
-            }
-        }
+        // if (i.defShownCards.length !== 0) {
+        //     t += "应对方没有展示手牌"
+        // } else {
+        //     t += `应对方展示`;
+        //     for (const defShownCard of i.defShownCards) {
+        //         t += `${bracketCardName(defShownCard)} `
+        //     }
+        // }
         let progress = i.progress;
         // if (progress > 5) progress = 5;
         // if (progress < -5) progress = -5;
-        t += `争夺进度：${progress}，`
-        if (i.progress >= 3) {
-            t += "发起方获胜"
-        } else {
-            t += "无人获胜"
-            //
-            // if (i.progress <= -3) {
-            //     t += "应对方获胜"
-            // } else {
-            //     t += "无人获胜"
-            // }
-        }
+        t += `竞争力差值：${progress}，`
+        // if (i.progress >= 3) {
+        //     t += "发起方获胜"
+        // } else {
+        //     t += "无人获胜"
+        //     //
+        //     // if (i.progress <= -3) {
+        //     //     t += "应对方获胜"
+        //     // } else {
+        //     //     t += "无人获胜"
+        //     // }
+        // }
         return t;
     }
 }
@@ -739,7 +739,7 @@ const zh_CN: Locale = {
         loseDeposit: ["失去{{a}}存款", argValue],
         beforeCompetition: "争夺开始前，",
         competitionStart: "争夺开始时，",
-        competitionWon: "争夺胜利后",
+        competitionWon: ",然后",
         competitionBonus: ["竞争力+{{a}}", argValue],
         archive: ["将{{a}}张手牌置入档案馆", argValue],
         resFromIndustry: "按照你的工业等级获得资源",
