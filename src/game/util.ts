@@ -2529,16 +2529,17 @@ export const getPlayerRegionRank = (G: IG, ctx: Ctx, pid: PlayerID, r: ValidRegi
 export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     if (r === Region.NONE) return;
     let era = G.regions[r].era;
-    const log = [`regionRank|${r}|${era}`];
+    const eraShareReturnVp = era + 1;
+    const log = [`regionRank|region${r}|era${era}`];
     G.order.forEach((i, idx) => {
         const playerIdx = parseInt(i);
         const playerShareCount = G.pub[playerIdx].shares[r];
-        log.push(`|orderIdx${idx}|p${playerIdx}|i${i}|share${playerShareCount}`);
+        log.push(`|orderIdx${idx}|playerIdx${playerIdx}|p${i}|i${i}|share${playerShareCount}`);
         if (playerShareCount === 0) {
             log.push("|badFilm");
-            doBuy(G, ctx, B04, idx.toString())
+            doBuy(G, ctx, B04, i);
         } else {
-            addVp(G, ctx, i, playerShareCount * era);
+            addVp(G, ctx, i, playerShareCount * eraShareReturnVp);
             log.push(`|rank`);
         }
     });
