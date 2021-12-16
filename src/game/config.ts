@@ -139,9 +139,15 @@ export const NormalTurn: TurnConfig = {
             if (pub.school === SchoolCardID.S1301) {
                 log.push(`|montage`);
                 addVp(G, ctx, p, 1);
-                drawCardForPlayer(G, ctx, p);
-                G.e.stack.push({e: "discard", a: 1})
-                changePlayerStage(G, ctx, "chooseHand", p);
+                G.e.stack.push({
+                    e: "optional", a: {
+                        e: "step", a: [
+                            {e: "draw", a: 1},
+                            {e: "discard", a: 1},
+                        ]
+                    }
+                });
+                changePlayerStage(G, ctx, "confirmRespond", p);
             }
             if (pub.school === SchoolCardID.S2101) {
                 log.push(`|classicHollywood`);
