@@ -3083,70 +3083,7 @@ export const competitionCleanUp = (G: IG, ctx: Ctx) => {
 export function competitionResultSettle(G: IG, ctx: Ctx) {
     const i = G.competitionInfo;
     const log = [`competitionResultSettle|atk:p${i.atk}|def:p${i.def}`];
-    {
-        // let winner: PlayerID = '0';
-        // let hasWinner = false;
-        // if (i.progress > 5) {
-        //     log.push(`|${i.progress}|overflow`);
-        //     i.progress = 5;
-        // }
-        // if (i.progress < -5) {
-        //     log.push(`|${i.progress}|underflow`);
-        //     i.progress = -5;
-        // }
-        // if (i.progress >= 3) {
-        //     log.push(`|atk|p${i.atk}|won`);
-        //     winner = i.atk;
-        //     hasWinner = true;
-        // } else {
-        //     if (i.progress <= -3) {
-        //         log.push(`|def|p${i.def}|won`);
-        //         winner = i.def;
-        //         hasWinner = true;
-        //     } else {
-        //         log.push(`|noWinner`);
-        //     }
-        // }
-        // G.competitionInfo.pending = false;
-        // if (i.progress > 0) {
-        //     addVp(G, ctx, i.atk, i.progress);
-        //     const schoolId = G.pub[parseInt(i.def)].school;
-        //     if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
-        //         log.push(`|p${i.def}|lose${i.progress}vp`);
-        //         loseVp(G, ctx, i.def, i.progress);
-        //     } else {
-        //         log.push(`|doNotLoseVP`);
-        //     }
-        // } else {
-        //     const vp = -i.progress;
-        //     addVp(G, ctx, i.def, vp);
-        //     const schoolId = G.pub[parseInt(i.atk)].school;
-        //     if (schoolId !== SchoolCardID.S3201 && schoolId !== SchoolCardID.S3204) {
-        //         log.push(`|p${i.atk}|lose${vp}vp`);
-        //         loseVp(G, ctx, i.atk, vp);
-        //     } else {
-        //         log.push(`|doNotLoseVP`);
-        //     }
-        // }
-        // if (hasWinner) {
-        //     if (i.onWin.e !== "none") {
-        //         log.push(`|onWin|${JSON.stringify(i.onWin)}`);
-        //         G.e.stack.push({...i.onWin})
-        //     }
-        //     log.push(`|getShareFromLoser`);
-        //     G.e.stack.push({
-        //         e: ItrEffects.anyRegionShareCompetition, a: 1
-        //     })
-        //     logger.debug(`${G.matchID}|${log.join('')}`);
-        //     playerEffExec(G, ctx, winner);
-        //     return;
-        // } else {
-        //     log.push(`|competitionCleanUp`);
-        //     logger.debug(`${G.matchID}|${log.join('')}`);
-        //     competitionCleanUp(G, ctx);
-        // }
-    }
-    if (i.progress >= 3) {
+    if (i.progress > 0) {
         // TODO: change to hook
         const atkSchoolID = G.pub[parseInt(i.atk)].school;
         switch (atkSchoolID) {
