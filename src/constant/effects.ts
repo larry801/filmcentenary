@@ -2737,7 +2737,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "shareToVp", a: Region.ASIA}, {
+                {e: SimpleEffectNames.aesAward, a: 1}, {
                     e: "peek", a: {
                         count: 4, target: "hand", filter: {e: "choice", a: 2}
                     }
