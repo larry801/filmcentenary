@@ -15,9 +15,12 @@ import {
     getCardById,
     IBasicCard,
     IBuyInfo,
-    ICardSlot, IEra,
+    ICardSlot,
+    IEra,
     INormalOrLegendCard,
-    IRegionInfo, ItrEffects, Region,
+    IRegionInfo,
+    ItrEffects,
+    Region,
     SchoolCardID,
     SimpleRuleNumPlayers,
     valid_regions,
@@ -25,12 +28,14 @@ import {
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
-    activePlayer, addRes,
+    activePlayer,
+    addRes,
     addVp,
     aesAward,
     atkCardSettle,
     buildBuildingFor,
-    buildingInRegion, buyCardEffectPrepare,
+    buildingInRegion,
+    buyCardEffectPrepare,
     canBuyCard,
     cardInDeck,
     cardInDiscard,
@@ -56,6 +61,7 @@ import {
     loseVp,
     payCost,
     playerEffExec,
+    playerLoseShare,
     regionScoringCheck,
     schoolPlayer,
     seqFromPos,
@@ -208,38 +214,6 @@ export const payAdditionalCost: LongFormMove = {
                     log.push(`|cannotUpgrade`);
                 }
                 break;
-            // case "competition":
-            //     let players = [];
-            //     const p = ctx.playerID;
-            //     if (ctx.numPlayers > SimpleRuleNumPlayers) {
-            //         if (G.mode !== GameMode.TEAM2V2) {
-            //             log.push(`|normal`);
-            //             players = seqFromCurrentPlayer(G, ctx);
-            //         } else {
-            //             log.push(`|2v2`);
-            //             players = opponentTeamPlayers(p);
-            //         }
-            //         const ownIndex = players.indexOf(p)
-            //         if (ownIndex !== -1) {
-            //             players.splice(ownIndex, 1)
-            //         }
-            //         log.push(`|competitionPlayers:|${JSON.stringify(players)}`);
-            //         log.push(`|players:|${JSON.stringify(players)}`);
-            //         G.c.players = players;
-            //         G.e.stack.push(eff)
-            //         log.push(`|chooseTarget`);
-            //         logger.debug(`${G.matchID}|${log.join('')}`);
-            //         changePlayerStage(G, ctx, "chooseTarget", p);
-            //         return;
-            //     } else {
-            //         G.competitionInfo.progress = eff.a.bonus;
-            //         G.competitionInfo.onWin = eff.a.onWin;
-            //         log.push(`|startCompetition`);
-            //         logger.debug(`${G.matchID}|${log.join('')}`);
-            //         const opponent2p = p === '0' ? '1' : '0';
-            //         startCompetition(G, ctx, p, opponent2p);
-            //         return;
-            //     }
             default:
                 throw Error(`Invalid effect ${JSON.stringify(eff)}`)
         }
@@ -323,38 +297,49 @@ export const chooseTarget: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: ITargetChooseArgs) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.chooseTarget(${JSON.stringify(arg)})`);
-        let src = arg.p;
-        let p = arg.target;
+        let choosePlayerID = arg.p;
+        let targetPlayerId = arg.target;
         let eff = G.e.stack.pop();
-        const log = [`players|${JSON.stringify(G.c.players)}|eff:${JSON.stringify(eff)}`];
+        const log = [`${G.matchID}|p${arg.p}.moves.chooseTarget(${JSON.stringify(arg)})|players|${JSON.stringify(G.c.players)}|eff:${JSON.stringify(eff)}`];
         log.push(`|eff|${JSON.stringify(eff)}`);
         switch (eff.e) {
             case "loseVpForEachHand":
                 G.c.players = [];
-                const handCount = G.player[parseInt(p)].hand.length;
-                loseVp(G, ctx, p, handCount);
+                const handCount = G.player[parseInt(targetPlayerId)].hand.length;
+                loseVp(G, ctx, targetPlayerId, handCount);
                 break;
             case "competition":
                 G.c.players = [];
                 G.competitionInfo.onWin = eff.a.onWin;
                 log.push(`|startCompetition`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
-                startCompetition(G, ctx, src, p);
+                startCompetition(G, ctx, choosePlayerID, targetPlayerId);
                 return;
-            case "loseAnyRegionShare":
+            case ItrEffects.loseAnyRegionShare:
                 log.push(`|loseAnyRegionShare`);
                 G.c.players = [];
                 G.e.regions = valid_regions.filter(
-                    r => G.pub[parseInt(p)].shares[r] > 0
+                    r => G.pub[parseInt(targetPlayerId)].shares[r] > 0
                 )
                 log.push(`|regions${JSON.stringify(G.e.regions)}`);
                 if (G.e.regions.length > 0) {
-                    G.e.stack.push(eff);
-                    G.c.players = [p];
-                    changePlayerStage(G, ctx, "chooseRegion", src);
-                    log.push(`|p${src}|chooseRegion`);
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    return;
+                    if (G.e.regions.length > 1) {
+                        log.push(`|stackBeforePush|${JSON.stringify(G.e.stack)}`);
+                        G.e.stack.push(eff);
+                        log.push(`|stackAfterPush|${JSON.stringify(G.e.stack)}`);
+                        G.c.players = [targetPlayerId];
+                        changePlayerStage(G, ctx, "chooseRegion", choosePlayerID);
+                        log.push(`|p${choosePlayerID}|chooseRegion`);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    } else {
+                        const targetRegion = G.e.regions[0];
+                        log.push(`|onlyOneRegion|${targetRegion}`)
+                        if (targetRegion !== Region.NONE) {
+                            playerLoseShare(G, targetRegion, targetPlayerId, 1);
+                        }
+                        break;
+                    }
                 } else {
                     ctx?.events?.endStage?.()
                     log.push(`|endStage`);
@@ -367,16 +352,13 @@ export const chooseTarget: LongFormMove = {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             default:
-                eff.target = p;
+                eff.target = targetPlayerId;
                 G.e.stack.push(eff);
-                log.push(`|otherEffects|${JSON.stringify(eff)}`);
+                log.push(`|otherEffects`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 checkNextEffect(G, ctx);
                 return
         }
-        logger.debug(`${G.matchID}|${log.join('')}`);
-        checkNextEffect(G, ctx);
-        return;
     }
 }
 
@@ -621,7 +603,10 @@ export const chooseRegion: LongFormMove = {
         const r = arg.r;
         const pub = G.pub[parseInt(arg.p)]
         log.push(JSON.stringify(arg));
-        if (r === Region.NONE) return;
+        if (r === Region.NONE) {
+            logger.debug(`${G.matchID}|${log.join('')}|NONE|return`);
+            return;
+        }
         const eff = G.e.stack.pop();
         log.push(JSON.stringify(eff));
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -651,21 +636,18 @@ export const chooseRegion: LongFormMove = {
             switch (eff.e) {
                 case ItrEffects.loseAnyRegionShare:
                     p = G.c.players[0];
+                    log.push(`|targetPlayer|p${p}`);
                     G.c.players = [];
-                    const shareCount = G.pub[parseInt(p)].shares[r];
-                    log.push(`|region${r}share${shareCount}|p${p}`);
-                    log.push(`|beforeLose|${G.pub[parseInt(p)].shares[r]}|${G.regions[r].share}`);
-                    if (shareCount > 0) {
-                        G.pub[parseInt(p)].shares[r] = shareCount - 1;
-                        G.regions[r].share++;
-                    }
-                    log.push(`|after|${G.pub[parseInt(p)].shares[r]}|${G.regions[r].share}`);
+                    playerLoseShare(G, r, p, 1);
                     break;
                 case ItrEffects.anyRegionShareCompetition:
                     // const loser = i.progress > 0 ? i.def : i.atk;
                     const loser = i.def;
-                    G.pub[parseInt(loser)].shares[r]--;
+                    const loserPid = parseInt(loser);
+                    log.push(`|beforeLose|${G.pub[loserPid].shares[r]}|${pub.shares[r]}`);
+                    G.pub[loserPid].shares[r]--;
                     pub.shares[r]++;
+                    log.push(`|beforeLose|${G.pub[loserPid].shares[r]}|${pub.shares[r]}`);
                     if (eff.a > 1) {
                         eff.a--;
                         G.e.stack.push(eff);

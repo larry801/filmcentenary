@@ -153,16 +153,32 @@ export const isSimpleEffect = (G: IG, eff: any): boolean => {
     }
 }
 
+export const playerLoseShare = (G: IG, r: ValidRegion, p: PlayerID, num: number) => {
+    const log = [`playerLoseShare|p${p}|region${r}|num:${num}`];
+    const playerIdNum = parseInt(p);
+    const shareCount = G.pub[playerIdNum].shares[r];
+    const boardShareCount = G.regions[r].share;
+    log.push(`|region${r}share${shareCount}`);
+    log.push(`|beforeLose|${G.pub[playerIdNum].shares[r]}|${G.regions[r].share}`);
+    if (shareCount > num) {
+        G.pub[playerIdNum].shares[r] = shareCount - num;
+        G.regions[r].share = boardShareCount + num;
+    } else {
+        log.push(`|noEnoughShareToLose`);
+        G.pub[playerIdNum].shares[r] = 0;
+        G.regions[r].share = boardShareCount + shareCount;
+    }
+    log.push(`|afterLose|${G.pub[playerIdNum].shares[r]}|${G.regions[r].share}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
 const loseShare = (G: IG, region: ValidRegion, obj: IPubInfo, num: number) => {
     const log = [`loseShare|region${region}|num:${num}`];
-    // if (G.competitionInfo.pending) {
-    //     log.push(`|inCompetition|exit`);
-    //     logger.debug(`${G.matchID}|${log.join('')}`);
-    // }
     if (obj.shares[region] >= num) {
         obj.shares[region] -= num;
         G.regions[region].share += num;
     } else {
+        log.push(`|lessThanNum`)
         G.regions[region].share += obj.shares[region];
         obj.shares[region] = 0;
     }
@@ -2895,7 +2911,7 @@ export const addCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, num: number) =
     log.push(`|before|${pub.competitionPower}`);
     const targetCompetitionPower = pub.competitionPower + num;
     if (targetCompetitionPower > pub.industry) {
-        log.push(`|TargetCompetitionPower|${targetCompetitionPower}|exceedIndustry|${pub.industry}`);
+        log.push(`|TargetCompetitionPower|${targetCompetitionPower}|exceedIndustryLevel|${pub.industry}`);
         pub.competitionPower = pub.industry;
     } else {
         pub.competitionPower += num;

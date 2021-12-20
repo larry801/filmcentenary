@@ -1908,14 +1908,16 @@ export const effects = {
             e: "step", a: [
                 {e: "anyRegionShare", a: 1},
                 {e: SimpleEffectNames.addCompetitionPower, a: 1},
-                {
-                    e: "noStudio", a: {
-                        e: "step", a: [
-                            {e: "loseAnyRegionShare", a: 1},
-                            {e: SimpleEffectNames.loseCompetitionPower, a: 1},
-                        ]
-                    }
-                },
+                // {
+                //     e: "noStudio", a: {
+                //         e: "step", a: [
+                //             {e: SimpleEffectNames.loseCompetitionPower, a: 1},
+                //             {e: "loseAnyRegionShare", a: 1},
+                //         ]
+                //     }
+                // },
+                {e: "noStudio", a: {e: ItrEffects.loseAnyRegionShare, a: 1},},
+                {e: "noStudio", a: {e: SimpleEffectNames.loseCompetitionPower, a: 1},},
                 {e: "studio", a: {e: "industryAward", a: 1}},
                 {
                     e: "optional", a: {
