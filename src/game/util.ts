@@ -3378,8 +3378,9 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     if (p.industry === 10) {
         log.push(`|vp|${p.vp}|before|${f.industryAward}`);
         validCards.forEach(eraCard => {
-           log.push(`|${eraCard.cardId}`);
-           switch (eraCard.era) {
+            log.push(`|card:${eraCard.cardId}|era:${eraCard.era}`);
+            log.push(`|before|${f.industryAward}`);
+            switch (eraCard.era) {
                case IEra.ONE:
                    f.industryAward += 1;
                    break;
@@ -3390,18 +3391,8 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
                    f.industryAward += 3;
                    break;
            }
+            log.push(`|after|${f.industryAward}`);
         });
-        G.initialOrder.forEach(j => {
-            const each = G.pub[parseInt(j)];
-            if (each.building.cinemaBuilt) {
-                log.push(`|p${j}|cinema`);
-                f.industryAward += 5;
-            }
-            if (each.building.studioBuilt) {
-                log.push(`|p${j}|studio`);
-                f.industryAward += 5;
-            }
-        })
         log.push(`|after|${f.industryAward}`);
     }
     if (p.aesthetics === 10) {
