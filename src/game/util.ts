@@ -2846,13 +2846,6 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
     const log = ["checkNextEffect"];
     if (G.e.stack.length === 0) {
         log.push(("|stackEmpty"));
-        const newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3204);
-        if (newWavePlayer !== null && G.pub[parseInt(newWavePlayer)].discardInSettle) {
-            G.pub[parseInt(newWavePlayer)].discardInSettle = false;
-            addVp(G, ctx, newWavePlayer, 1);
-            drawCardForPlayer(G, ctx, newWavePlayer);
-            log.push(`|newWave|p${newWavePlayer}|drawCard`);
-        }
         if (G.currentScoreRegion === Region.NONE) {
             log.push(("|No scoring region"));
             let i = G.competitionInfo;
@@ -2900,7 +2893,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     } else {
-                        log.push(`|notInStage`);
+                        log.push(`|notInStage|doNothing|waitingForPlayerMove`);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     }
@@ -2914,7 +2907,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         }
     } else {
         const nextEff = G.e.stack.slice(-1)[0];
-        log.push(`|Next effect|${JSON.stringify(nextEff)}`);
+        log.push(`|stackNotEmpty|Next effect|${JSON.stringify(nextEff)}`);
         let targetPlayer = ctx.currentPlayer
         if (nextEff.hasOwnProperty("target")) {
             targetPlayer = nextEff.target;
@@ -3397,6 +3390,20 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     }
     if (p.industry === 10) {
         log.push(`|vp|${p.vp}|before|${f.industryAward}`);
+        validCards.forEach(eraCard => {
+           log.push(`|${eraCard.cardId}`);
+           switch (eraCard.era) {
+               case IEra.ONE:
+                   f.industryAward += 1;
+                   break;
+               case IEra.TWO:
+                   f.industryAward += 2;
+                   break;
+               case IEra.THREE:
+                   f.industryAward += 3;
+                   break;
+           }
+        });
         G.initialOrder.forEach(j => {
             const each = G.pub[parseInt(j)];
             if (each.building.cinemaBuilt) {
