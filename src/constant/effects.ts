@@ -1960,7 +1960,7 @@ export const effects = {
                             e: "step",
                             a: [
                                 {e: "deposit", a: 2},
-                                {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                                {e: SimpleEffectNames.addCompetitionPower, a: 2},
                             ]
                         },
                         {
