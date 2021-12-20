@@ -2848,26 +2848,6 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         log.push(("|stackEmpty"));
         if (G.currentScoreRegion === Region.NONE) {
             log.push(("|No scoring region"));
-            let i = G.competitionInfo;
-            if (i.pending) {
-                log.push("|pendingCompetition");
-                // if (i.atkPlayedCard) {
-                //     log.push("|defCardSettle");
-                //     i.atkPlayedCard = false;
-                //     logger.debug(`${G.matchID}|${log.join('')}`);
-                //     defCardSettle(G, ctx);
-                //     return;
-                // } else {
-                //     log.push("|showCompetitionResult");
-                //     i.defPlayedCard = false;
-                //     logger.debug(`${G.matchID}|${log.join('')}`);
-                //     changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
-                //     return;
-                // }
-                log.push(`|competitionCleanUp`);
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                competitionCleanUp(G, ctx);
-            }
             {
                 if (
                     G.pending.lastRoundOfGame &&
