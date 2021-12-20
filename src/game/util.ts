@@ -2849,15 +2849,6 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         if (G.currentScoreRegion === Region.NONE) {
             log.push(("|No scoring region"));
             {
-                if (
-                    G.pending.lastRoundOfGame &&
-                    ctx.currentPlayer === getExistingLastMovePlayer(G)
-                ) {
-                    log.push("|finalScoring");
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    finalScoring(G, ctx);
-                    return;
-                }
                 if (G.player[parseInt(ctx.currentPlayer)].endTurnEffectExecuted) {
                     log.push(`|endTurnEffectExecuted`);
                     G.player[parseInt(ctx.currentPlayer)].endTurnEffectExecuted = false
