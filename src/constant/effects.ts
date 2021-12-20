@@ -1960,7 +1960,7 @@ export const effects = {
                             e: "step",
                             a: [
                                 {e: "deposit", a: 2},
-                                {e: SimpleEffectNames.addCompetitionPower, a: 2},
+                                {e: SimpleEffectNames.addCompetitionPower, a: 1},
                             ]
                         },
                         {
@@ -1970,7 +1970,7 @@ export const effects = {
                                     onWin: {
                                         e: "step", a: [
                                             {e: ItrEffects.anyRegionShareCentral, a: 1},
-                                            {e: SimpleEffectNames.addCompetitionPower, a: 2},
+                                            {e: SimpleEffectNames.addCompetitionPower, a: 1},
                                         ]
                                     },
                                 }
@@ -2000,7 +2000,7 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: {
             e: "choice", a: [
-                {e: "industryLevelUp", a: 1},
+                {e: SimpleEffectNames.aestheticsLevelUp, a: 1},
                 {e: "buy", a: FilmCardID.F3112},
             ]
         },
