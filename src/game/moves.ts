@@ -647,7 +647,7 @@ export const chooseRegion: LongFormMove = {
                     log.push(`|beforeLose|${G.pub[loserPid].shares[r]}|${pub.shares[r]}`);
                     G.pub[loserPid].shares[r]--;
                     pub.shares[r]++;
-                    log.push(`|beforeLose|${G.pub[loserPid].shares[r]}|${pub.shares[r]}`);
+                    log.push(`|afterLose|${G.pub[loserPid].shares[r]}|${pub.shares[r]}`);
                     if (eff.a > 1) {
                         eff.a--;
                         G.e.stack.push(eff);

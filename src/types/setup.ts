@@ -455,6 +455,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[3].shares[Region.ASIA] = 2;
     // G.pub[firstMovePlayer].resource = 20;
     // G.pub[firstMovePlayer].industry = 10;
+    // G.pub[firstMovePlayer].competitionPower = 10;
     // @ts-ignore
     // G.pub[0].allCards = ["P2102", "F2110", "F3413", "V111",]
     // @ts-ignore
@@ -465,6 +466,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.twoPlayer.era = IEra.THREE;
     // @ts-ignore
     // G.player[firstMovePlayer].hand = ["F3305", "F3305", "F3113", "B05", "F3413", "P2102",];
+    // G.pub[1].shares[Region.NA] = 2;
+    // G.pub[1].shares[Region.EE] = 2;
     // G.pub[firstMovePlayer].vp = 149;
     // G.pub[firstMovePlayer].industry = 8;
     // G.pub[firstMovePlayer].competitionPower = 7;
