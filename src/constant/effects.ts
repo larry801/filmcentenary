@@ -109,12 +109,7 @@ export const eventEffects = {
             {e: "noBuildingPlayers", a: {e: "buy", a: BasicCardID.B04}, region: Region.WE},
         ]
     },
-    "E07": {
-        e: "step",
-        a: [
-            {e: "everyPlayer", a: {e: "industryOrAestheticsLevelUp", a: 1}},
-        ]
-    },
+    "E07": noEff,
     "E08": {
         e: "step",
         a: [
