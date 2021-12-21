@@ -1683,16 +1683,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             break;
         case "optional":
-            if (G.competitionInfo.pending && eff.a.e === "competition") {
-                log.push(`|alreadyInCompetition|skip`);
-                break;
-            } else {
-                G.e.stack.push(eff);
-                G.e.currentEffect = eff;
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                changePlayerStage(G, ctx, "confirmRespond", p);
-                return;
-            }
+            G.e.stack.push(eff);
+            G.e.currentEffect = eff;
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            changePlayerStage(G, ctx, "confirmRespond", p);
+            return;
         case "industryOrAestheticsLevelUp":
             if (eff.hasOwnProperty("target") && eff.target !== p) {
                 log.push(`|otherPlayerVPAward`);

@@ -45,7 +45,7 @@ import {
     checkCompetitionDefender,
     checkNextEffect,
     cinemaInRegion,
-    cinemaSlotsAvailable,
+    cinemaSlotsAvailable, competitionCleanUp,
     competitionResultSettle,
     curPub,
     die,
@@ -652,6 +652,7 @@ export const chooseRegion: LongFormMove = {
                         eff.a--;
                         G.e.stack.push(eff);
                     }
+                    competitionCleanUp(G, ctx);
                     break;
                 case ItrEffects.anyRegionShareCentral:
                 case ItrEffects.anyRegionShare:
