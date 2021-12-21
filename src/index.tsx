@@ -20,20 +20,11 @@ render(
                 <Route exact path="/">
                     <MUICreateMatch serverURL={`${window.location.protocol}//${window.location.host}`}/>
                 </Route>
-                <Route exact path="/cards">
-                    <DenseTable/>
-                </Route>
                 <Route exact path="/join/:matchID/:player/:credential">
                     <JoinPage serverURL={`${window.location.protocol}//${window.location.host}`}/>
                 </Route>
                 <Route exact path="/join/:matchID/:player">
                     <JoinPage serverURL={`${window.location.protocol}//${window.location.host}`}/>
-                </Route>
-                <Route exact path="/local4p">
-                    <Local4p/>
-                </Route>
-                <Route exact path="/local2p">
-                    <Local2p/>
                 </Route>
                 <Route path="*">
                     <Redirect to="/"/>
