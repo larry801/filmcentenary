@@ -1267,16 +1267,16 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 if (ownIndex !== -1) {
                     players.splice(ownIndex, 1);
                 }
-                log.push(`|competitionPlayers:|${JSON.stringify(players)}`);
-                log.push(`|players:|${JSON.stringify(players)}`);
+                log.push(`|competitionPlayers:|${JSON.stringify(players)}|length:${players.length}`);
                 switch (players.length) {
                     case 0: {
-                        log.push("|checkNextEffect");
+                        log.push("|noValidTarget|checkNextEffect");
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         checkNextEffect(G, ctx);
                         break;
                     }
                     case 1: {
+                        log.push("|onlyOneValidTarget");
                         G.c.players = [];
                         // G.competitionInfo.progress = eff.a.bonus;
                         G.competitionInfo.onWin = eff.a.onWin;
@@ -1286,6 +1286,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         break;
                     }
                     default: {
+                        log.push("|multipleValidTarget");
                         G.c.players = players;
                         G.e.stack.push(eff)
                         log.push(`|chooseTarget`);
@@ -2941,7 +2942,7 @@ export const addRes = (G: IG, ctx: Ctx, p: PlayerID, res: number) => {
 }
 
 export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
-    const log = [`p${p}|add${vp}vp|`];
+    const log = [`p${p}|add${vp}vp`];
     const pub = G.pub[parseInt(p)];
     log.push(`|prev|${pub.vp}`);
     pub.vp += vp;
@@ -2993,9 +2994,9 @@ export const loseDeposit = (G: IG, ctx: Ctx, p: PlayerID, deposit: number) => {
 }
 
 export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
-    const log = [`loseVp|${p}|${vp}`];
+    const log = [`p${p}|lose${vp}vp`];
     const pub = G.pub[parseInt(p)];
-    log.push(`|before|${pub.vp}`);
+    log.push(`|beforeVP|${pub.vp}`);
     const realVpLose: number = vp >= pub.vp ? pub.vp : vp;
     // if (G.competitionInfo.pending) {
     //     log.push(`|inCompetition|noVpDeduct`);
@@ -3003,11 +3004,11 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     // }
     pub.vp -= realVpLose;
     if (realVpLose > 0 && pub.school === SchoolCardID.S2104 && ctx.currentPlayer === p) {
-        log.push(`|FilmNoir|before|${pub.resource}`);
+        log.push(`|FilmNoir|beforeRes|${pub.resource}`);
         addRes(G, ctx, p, realVpLose);
-        log.push(`|after|${pub.resource}`);
+        log.push(`|afterRes|${pub.resource}`);
     }
-    log.push(`|after|${pub.vp}`);
+    log.push(`|afterVP|${pub.vp}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
