@@ -2935,12 +2935,12 @@ export const loseCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, num: number) 
 }
 
 export const addRes = (G: IG, ctx: Ctx, p: PlayerID, res: number) => {
-    const log = ['addRes'];
+    const log = [`addRes|p${p}`];
     const pub = G.pub[parseInt(p)];
     {
-        log.push(`before|${pub.resource}`);
+        log.push(`|before|${pub.resource}`);
         pub.resource += res;
-        log.push(`after|${pub.resource}`);
+        log.push(`|after|${pub.resource}`);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
