@@ -1044,8 +1044,10 @@ export const confirmRespond: LongFormMove = {
         const log = [`confirmRespond|p${p}|${JSON.stringify(arg)}|${JSON.stringify(G.e.stack)}|${JSON.stringify(eff)}`];
         logger.debug(`${G.matchID}|${log.join('')}`);
         if (arg === "yes") {
+            log.push("|yes");
             switch (eff.e) {
                 case "optional":
+                    log.push(`|optional`);
                     const newEff = {...eff.a}
                     if (newEff.e === ItrEffects.newHollyWoodEff) {
                         log.push(`|newHollyWoodEff|${eff.target}`);
@@ -1061,16 +1063,17 @@ export const confirmRespond: LongFormMove = {
                         }
                     }
                     log.push(`|${JSON.stringify(newEff)}`);
-                    log.push("|yes");
                     G.e.stack.push(newEff)
                     break;
                 case "alternative":
+                    log.push(`|alternative`);
                     const popEff = G.e.stack.pop()
                     log.push(`|pop|${JSON.stringify(popEff)}`);
                     G.e.stack.push(eff.a)
                     log.push(`|push|${JSON.stringify(eff.a)}`);
                     break;
                 case "searchAndArchive":
+                    log.push(`|searchAndArchive`);
                     let deck = G.secretInfo.playerDecks[parseInt(p)];
                     let indexOfTarget = -1
                     if (cardInDeck(G, ctx, parseInt(p), eff.a)) {
@@ -1103,9 +1106,9 @@ export const confirmRespond: LongFormMove = {
                     throw new Error();
             }
         } else {
+            log.push(`|no|nextEff`);
             switch (eff.e) {
                 case "alternative":
-                    log.push(`|nextEff`);
                     break
                 default:
                     break;

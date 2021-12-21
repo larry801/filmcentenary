@@ -1275,20 +1275,11 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         checkNextEffect(G, ctx);
                         break;
                     }
-                    case 1: {
-                        log.push("|onlyOneValidTarget");
-                        G.c.players = [];
-                        // G.competitionInfo.progress = eff.a.bonus;
-                        G.competitionInfo.onWin = eff.a.onWin;
-                        log.push(`|startCompetition`);
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        startCompetition(G, ctx, p, players[0]);
-                        break;
-                    }
                     default: {
-                        log.push("|multipleValidTarget");
+                        log.push("|chooseTarget");
                         G.c.players = players;
-                        G.e.stack.push(eff)
+                        G.e.stack.push(eff);
+                        G.competitionInfo.onWin = eff.a.onWin;
                         log.push(`|chooseTarget`);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         changePlayerStage(G, ctx, "chooseTarget", p);
@@ -3285,9 +3276,11 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     i.pending = true;
     i.atk = atk;
     i.def = def;
-    const defSchoolID = G.pub[parseInt(i.def)].school;
-    const CompetitionPowerDelta = G.pub[parseInt(atk)].competitionPower - 3 - G.pub[parseInt(def)].competitionPower;
-    log.push(`|CompetitionPowerDelta:${CompetitionPowerDelta}`);
+    const atkPub = G.pub[parseInt(i.atk)];
+    const defPub = G.pub[parseInt(i.def)];
+    const defSchoolID = defPub.school;
+    const CompetitionPowerDelta = atkPub.competitionPower - 3 - defPub.competitionPower;
+    log.push(`|atkCP${atkPub.competitionPower}|defCP${defPub.competitionPower}|CompetitionPowerDelta:${CompetitionPowerDelta}`);
     i.progress = CompetitionPowerDelta;
     if (defSchoolID !== null && doNotLoseVpAfterCompetitionSchool(defSchoolID)) {
         log.push(`|${defSchoolID}|doNotLoseVP`);
