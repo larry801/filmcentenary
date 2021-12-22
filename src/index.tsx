@@ -3,9 +3,11 @@ import {render} from "react-dom";
 import CssBaseline from "@material-ui/core/CssBaseline";
 import {Redirect, Route, Switch, BrowserRouter} from "react-router-dom";
 import DrawerAppBar from "./components/drawer-app-bar";
+import Local4p from "./components/single/4p";
+import Local2p from "./components/single/2p";
 import MUICreateMatch from "./components/create-match";
 import JoinPage from "./components/join";
-
+import DenseTable from "./components/card-table";
 
 const rootElement = document.getElementById("root");
 
