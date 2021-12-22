@@ -652,7 +652,7 @@ export const chooseRegion: LongFormMove = {
                         eff.a--;
                         G.e.stack.push(eff);
                     }
-                    competitionCleanUp(G, ctx);
+                    competitionCleanUp(G);
                     break;
                 case ItrEffects.anyRegionShareCentral:
                 case ItrEffects.anyRegionShare:

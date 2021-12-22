@@ -670,15 +670,6 @@ export const isSameTeam = (p: PlayerID, q: PlayerID): boolean => {
     logger.debug(`${log.join('')}|result:${result}`);
     return result;
 }
-
-export const opponentTeamPlayers = (p: PlayerID): PlayerID[] => {
-    if (p === '0' || p === '2') {
-        return ['1', '3']
-    } else {
-        return ['0', '2']
-    }
-}
-
 export const seqFromPlayer = (G: IG, ctx: Ctx, p: PlayerID): PlayerID[] => {
     const log = [`seqFromPlayer|p${p}`];
     let pos = posOfPlayer(G, ctx, p);
@@ -1090,39 +1081,39 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         region = Region.NA;
     }
     log.push(`|c:${G.e.card}|region:${region}`);
-    let players = []
+    let players = [];
     const handLength = playerObj.hand.length;
     let subEffect;
-    let extraCost = 0
+    let extraCost = 0;
     const totalRes = pub.resource + pub.deposit;
-    let i = G.competitionInfo;
     let validCardsToDiscard: CardID[] = [];
-    const discardOpsReturn = () :boolean =>{
+    const discardOpsReturn = (): boolean => {
         const validCount = validCardsToDiscard.length;
         const effectCount = eff.a;
         const deltaCount = validCount - effectCount;
-        const discardStatus = deltaCount / Math.abs(deltaCount);
-        log.push(`|valid${validCount}|effect${effectCount}|delta${deltaCount}|status${discardStatus}`);
-        switch (discardStatus) {
-            case -1:
-                pub.revealedHand = [...playerObj.hand]
-                log.push(`|${JSON.stringify(pub.revealedHand)}`);
-                log.push(("|NoEnoughValidCardsRevealHand|next"));
-                return false;
-            case 0:
-                for (const validCardsToDiscardElement of validCardsToDiscard) {
-                    const handIdx = playerObj.hand.indexOf(validCardsToDiscardElement);
-                    if(handIdx !== -1){
-                        playerObj.hand.splice(handIdx);
-                    }
+        log.push(`|valid${validCount}|effect${effectCount}|delta${deltaCount}`);
+        if (deltaCount > 0) {
+            G.e.stack.push(eff);
+            changePlayerStage(G, ctx, "chooseHand", p);
+            log.push(`|p${p}|chooseHand`);
+            return true;
+        } else {
+            for (const validCardsToDiscardElement of validCardsToDiscard) {
+                const handIdx = playerObj.hand.indexOf(validCardsToDiscardElement);
+                if (handIdx !== -1) {
+                    log.push(`|remove|${validCardsToDiscardElement}|at${handIdx}`);
+                    playerObj.hand.splice(handIdx);
+                } else {
+                    log.push(`|${validCardsToDiscardElement}|NotFound`);
                 }
-                return false;
-            case 1:
-                G.e.stack.push(eff);
-                changePlayerStage(G, ctx, "chooseHand", p);
-                return true;
-            default:
-                return true;
+            }
+            if (deltaCount < 0) {
+                pub.revealedHand = [...playerObj.hand]
+                log.push(`|NoEnoughValidCardsRevealHand|${JSON.stringify(pub.revealedHand)}|next`);
+            } else {
+                log.push(("|justEnoughDoNotRevealHand|next"));
+            }
+            return false;
         }
     };
     switch (eff.e) {
@@ -1313,14 +1304,13 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case ItrEffects.anyRegionShareCompetition:
-            i = G.competitionInfo;
             log.push(`|pendingCompetition`);
-            const winner = i.atk;
-            const loser = i.def;
+            const winner = G.competitionInfo.atk;
+            const loser = G.competitionInfo.def;
             G.e.regions = valid_regions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
             if (G.e.regions.length === 0) {
                 log.push("|loserNoShare");
-                competitionCleanUp(G, ctx);
+                competitionCleanUp(G);
                 break;
             } else {
                 log.push(`|p${winner}|chooseRegion`);
@@ -1496,7 +1486,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             validCardsToDiscard = playerObj.hand.filter(i =>
                 getCardById(i).category === CardCategory.BASIC
             );
-            if(discardOpsReturn()){
+            if (discardOpsReturn()) {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             }
@@ -1506,7 +1496,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 getCardById(i).category !== CardCategory.BASIC &&
                 getCardById(i).category !== CardCategory.SCORE
             );
-            if(discardOpsReturn()){
+            if (discardOpsReturn()) {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             }
@@ -1515,7 +1505,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             validCardsToDiscard = playerObj.hand.filter(i =>
                 getCardById(i).category === CardCategory.LEGEND
             );
-            if(discardOpsReturn()){
+            if (discardOpsReturn()) {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             }
@@ -1524,7 +1514,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             validCardsToDiscard = playerObj.hand.filter(i =>
                 getCardById(i).aesthetics > 0
             );
-            if(discardOpsReturn()){
+            if (discardOpsReturn()) {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             }
@@ -1533,7 +1523,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             validCardsToDiscard = playerObj.hand.filter(i =>
                 getCardById(i).industry > 0
             );
-            if(discardOpsReturn()){
+            if (discardOpsReturn()) {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             }
@@ -1931,7 +1921,9 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true)
         }
     }
     log.push(`|${resRequired}`);
-    console.warn(`${G.matchID}|${log.join('')}`);
+    if (showLog) {
+        console.warn(`${G.matchID}|${log.join('')}`);
+    }
     return resRequired;
 }
 
@@ -3030,7 +3022,7 @@ export const buildBuildingFor = (G: IG, ctx: Ctx, r: ValidRegion, p: PlayerID, b
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const competitionCleanUp = (G: IG, ctx: Ctx) => {
+export const competitionCleanUp = (G: IG) => {
     const log = [`competitionCleanUp|checkNextEffect`];
     let i = G.competitionInfo;
     i.pending = false;
@@ -3078,7 +3070,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     } else {
         log.push(`|noWinner|competitionCleanUp|checkNextEffect`);
         log.push(`|stack|${JSON.stringify(G.e.stack)}`);
-        competitionCleanUp(G, ctx);
+        competitionCleanUp(G);
         logger.debug(`${G.matchID}|${log.join('')}`);
         checkNextEffect(G, ctx);
         return;
@@ -3339,7 +3331,7 @@ const cleanUpScore = (G: IG, ctx: Ctx, pid: PlayerID) => {
     f.total = 0
 }
 
-export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
+export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: boolean = false): void => {
     const i = parseInt(pid);
     const p = G.pub[i];
     const s = G.player[i];
@@ -3370,16 +3362,16 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
             log.push(`|card:${eraCard.cardId}|era:${eraCard.era}`);
             log.push(`|before|${f.industryAward}`);
             switch (eraCard.era) {
-               case IEra.ONE:
-                   f.industryAward += 1;
-                   break;
-               case IEra.TWO:
-                   f.industryAward += 2;
-                   break;
-               case IEra.THREE:
-                   f.industryAward += 3;
-                   break;
-           }
+                case IEra.ONE:
+                    f.industryAward += 1;
+                    break;
+                case IEra.TWO:
+                    f.industryAward += 2;
+                    break;
+                case IEra.THREE:
+                    f.industryAward += 3;
+                    break;
+            }
             log.push(`|after|${f.industryAward}`);
         });
         log.push(`|after|${f.industryAward}`);
@@ -3506,7 +3498,9 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID): void => {
     }
     f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events;
     log.push(`|total:${f.total}`);
-    // logger.debug(`${G.matchID}|${log.join('')}`);
+    if (showLog) {
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    }
 }
 
 export const schoolPlayer = (G: IG, ctx: Ctx, cardId: CardID): PlayerID | null => {
@@ -3526,7 +3520,7 @@ export const schoolPlayer = (G: IG, ctx: Ctx, cardId: CardID): PlayerID | null =
     return player;
 }
 
-export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = false): number => {
+export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, showLog: boolean = false): number => {
     const log = [`rank|p${p1}|p${p2}`];
     let pub1 = G.pub[p1];
     let pub2 = G.pub[p2];
@@ -3535,25 +3529,33 @@ export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = 
     log.push(`|vp|${v1}|${v2}`);
     if (v1 > v2) {
         log.push(`|p${p1}wins`);
-        if (addLog) logger.debug(`${G.matchID}|${log.join('')}`);
+        if (showLog) {
+            logger.debug(`${G.matchID}|${log.join('')}`);
+        }
         return -1;
     } else {
         if (v1 < v2) {
             log.push(`|p${p2}wins`);
-            if (addLog) logger.debug(`${G.matchID}|${log.join('')}`);
+            if (showLog) {
+                logger.debug(`${G.matchID}|${log.join('')}`);
+            }
             return 1;
         } else {
             const pos1 = initialPosOfPlayer(G, ctx, p1.toString());
             const pos2 = initialPosOfPlayer(G, ctx, p2.toString());
             log.push(`|initialPos|${pos1}|${pos2}`);
-            if (addLog) logger.debug(`${G.matchID}|${log.join('')}`);
+            if (showLog) logger.debug(`${G.matchID}|${log.join('')}`);
             if (pos1 < pos2) {
                 log.push(`|p${p2}wins`);
-                if (addLog) logger.debug(`${G.matchID}|${log.join('')}`);
+                if (showLog) {
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                }
                 return 1
             } else {
                 log.push(`|p${p1}wins`);
-                if (addLog) logger.debug(`${G.matchID}|${log.join('')}`);
+                if (showLog) {
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                }
                 return -1
             }
         }
@@ -3562,7 +3564,7 @@ export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, addLog: boolean = 
 export const finalScoring = (G: IG, ctx: Ctx) => {
     let pid: number[] = [];
     for (let i = 0; i < G.order.length; i++) {
-        getExtraScoreForFinal(G, ctx, i.toString());
+        getExtraScoreForFinal(G, ctx, i.toString(), true);
         pid.push(i);
     }
     const rankFunc = (a: number, b: number) => rank(G, ctx, a, b, true);
