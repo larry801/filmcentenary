@@ -1088,6 +1088,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const totalRes = pub.resource + pub.deposit;
     let validCardsToDiscard: CardID[] = [];
     const discardOpsReturn = (): boolean => {
+        log.push(`|discardOpsReturn`);
         const validCount = validCardsToDiscard.length;
         const effectCount = eff.a;
         const deltaCount = validCount - effectCount;
@@ -1098,15 +1099,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log.push(`|p${p}|chooseHand`);
             return true;
         } else {
-            for (const validCardsToDiscardElement of validCardsToDiscard) {
-                const handIdx = playerObj.hand.indexOf(validCardsToDiscardElement);
-                if (handIdx !== -1) {
-                    log.push(`|remove|${validCardsToDiscardElement}|at${handIdx}`);
-                    playerObj.hand.splice(handIdx);
-                } else {
-                    log.push(`|${validCardsToDiscardElement}|NotFound`);
-                }
-            }
+            log.push(`|prev|${JSON.stringify(playerObj.hand)}`);
+            playerObj.hand = playerObj.hand.filter((handElm) => validCardsToDiscard.indexOf(handElm) === -1);
+            log.push(`|after|${JSON.stringify(playerObj.hand)}`);
             if (deltaCount < 0) {
                 pub.revealedHand = [...playerObj.hand]
                 log.push(`|NoEnoughValidCardsRevealHand|${JSON.stringify(pub.revealedHand)}|next`);

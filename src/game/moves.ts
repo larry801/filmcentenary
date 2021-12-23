@@ -390,6 +390,7 @@ export const chooseHand: LongFormMove = {
         }
         const hand = G.player[parseInt(p)].hand;
         const card: IBasicCard | INormalOrLegendCard = getCardById(target);
+        log.push(`|prev|hand|${JSON.stringify(hand)}|discard|${JSON.stringify(pub.discard)}`);
         switch (eff.e) {
             case "playedCardInTurnEffect":
                 log.push(`|${target}`);
@@ -409,13 +410,6 @@ export const chooseHand: LongFormMove = {
             case "breakthroughResDeduct":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
-                // if (arg.hand === FilmCardID.F1108) {
-                //     log.push(`Nanook`);
-                //     const eraNA = ctx.numPlayers > SimpleRuleNumPlayers ? G.regions[Region.NA].era : G.twoPlayer.era;
-                //     if (eraNA === IEra.ONE) {
-                //         return INVALID_MOVE;
-                //     }
-                // }
                 startBreakThrough(G, ctx, arg.p, arg.hand);
                 return;
             case "archiveToEEBuildingVP":
@@ -460,6 +454,7 @@ export const chooseHand: LongFormMove = {
                 }
                 break;
             case "archive":
+                log.push(`|archive|prev|${JSON.stringify(pub.archive)}`);
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
                 if (eff.a > 1) {
@@ -468,6 +463,7 @@ export const chooseHand: LongFormMove = {
                     log.push(`|remain:${eff.a}`);
                     G.e.stack.push(eff);
                 }
+                log.push(`|after|${JSON.stringify(pub.archive)}`);
                 break;
             case "discard":
             case "discardBasic":
@@ -475,18 +471,21 @@ export const chooseHand: LongFormMove = {
             case "discardIndustry":
             case "discardAesthetics":
             case "discardNormalOrLegend":
+                log.push(`|discard|prev|${JSON.stringify(pub.discard)}`);
                 hand.splice(arg.idx, 1);
                 pub.discard.push(arg.hand);
+                log.push(`|after|${JSON.stringify(pub.discard)}`);
                 if (eff.a > 1) {
-                    log.push(`|prev:${eff.a}`);
+                    log.push(`|multipleDiscard|prev:${eff.a}`);
                     eff.a--;
-                    log.push(`|remain:${eff.a}`);
                     G.e.stack.push(eff);
+                    log.push(`|stack|${JSON.stringify(G.e.stack)}`);
                 }
                 break;
             default:
                 throw new Error();
         }
+        log.push(`|after|hand|${JSON.stringify(hand)}`);
         log.push(`|checkNextEffect`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         checkNextEffect(G, ctx);
