@@ -719,6 +719,15 @@ const zh_CN: Locale = {
             onWin: (e: any) => {
                 if (e.e !== "none") {
                     switch (e.e) {
+                        case SimpleEffectNames.industryToVp:
+                            return `然后抽按照你的工业等级获得声望`;
+                        case SimpleEffectNames.draw:
+                            return `然后摸${e.a}张牌`;
+                        case ItrEffects.peek:
+                            // TODO temp fix | a more generic version later
+                            return `然后展示牌堆顶3张牌，把带有工业标志的加入手牌，然后弃掉其他的`;
+                        case SimpleEffectNames.competitionLoserBuy:
+                            return `然后对方购买${e.a}张烂片`;
                         case SimpleEffectNames.vp:
                         case SimpleEffectNames.addVp:
                             return `然后+${e.a}声望`;
@@ -728,8 +737,36 @@ const zh_CN: Locale = {
                             return `然后评论${e.a}次`;
                         case ItrEffects.anyRegionShare:
                             return "然后额外获得一个" + region[e.r as Region] + "地区份额"
-                        // case SimpleEffectNames.competitionLoserBuy:
-                        // case SimpleEffectNames.CompetitionPowerToVp:
+                        case SimpleEffectNames.shareNA:
+                            return `然后获得${e.a}个北美份额`
+                        case SimpleEffectNames.addCompetitionPower:
+                            return `然后获得${e.a}竞争力`;
+                        case ItrEffects.step:
+                            let onWin = "然后";
+                            // @ts-ignore
+                            e.a.forEach((subEff)=>{
+                                switch (subEff.e) {
+                                    case SimpleEffectNames.addCompetitionPower:
+                                        onWin += `获得${subEff.a}竞争力`;
+                                        break;
+                                    case SimpleEffectNames.draw:
+                                        onWin += `摸${subEff.a}张牌`;
+                                        break;
+                                    case ItrEffects.anyRegionShareCentral:
+                                        onWin += `从中央牌列获得${subEff.a}个任意地区的份额`;
+                                        break;
+                                    case SimpleEffectNames.deposit:
+                                        onWin += `获得${subEff.a}存款`;
+                                        break;
+                                    case SimpleEffectNames.vp:
+                                        onWin += `获得${subEff.a}声望`;
+                                        break;
+                                    default:
+                                        onWin += JSON.stringify(subEff);
+                                        break;
+                                }
+                            })
+                            return onWin;
                         default:
                             return JSON.stringify(e);
                     }

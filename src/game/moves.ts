@@ -345,7 +345,13 @@ export const chooseTarget: LongFormMove = {
                     log.push(`|endStage`);
                     break;
                 }
-            case "handToAnyPlayer":
+            // case ItrEffects.discard:
+            // case ItrEffects.discardAesthetics:
+            // case ItrEffects.discardBasic:
+            // case ItrEffects.discardIndustry:
+            // case ItrEffects.discardLegend:
+            // case ItrEffects.discardNormalOrLegend:
+            case ItrEffects.handToAnyPlayer:
                 G.c.players = [arg.target]
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", arg.p);
