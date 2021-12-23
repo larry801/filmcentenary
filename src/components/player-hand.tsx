@@ -127,7 +127,7 @@ export const PlayerHand = ({
                                         disabled={!canPlayOrBreakthrough}
                                         onClick={play}
                                     >
-                                        <PlayCardIcon/>
+                                        <PlayCardIcon/>{`打出`}
                                     </Button>
 
                                     <Button
@@ -136,7 +136,7 @@ export const PlayerHand = ({
                                         onClick={archive2res}
                                         style={{textTransform: 'none'}}
                                     >
-                                        <ResIcon/>X2<FreeBreakthroughIcon/>
+                                        {`两资源突破`}<ResIcon/>X2<FreeBreakthroughIcon/>
                                     </Button>
                                     <Button
                                         aria-label={i18n.action.breakthrough1Res}
@@ -144,7 +144,7 @@ export const PlayerHand = ({
                                         onClick={archive1res}
                                         style={{textTransform: 'none'}}
                                     >
-                                        <ResIcon/><DepositIcon/> <FreeBreakthroughIcon/>
+                                        {`一现金一资源突破`}<ResIcon/><DepositIcon/> <FreeBreakthroughIcon/>
                                     </Button>
                                     <Button
                                         aria-label={i18n.action.breakthrough0Res}
@@ -152,7 +152,7 @@ export const PlayerHand = ({
                                         onClick={archive0res}
                                         style={{textTransform: 'none'}}
                                     >
-                                        <DepositIcon/> X2<FreeBreakthroughIcon/>
+                                        {`两现金突破`}<DepositIcon/> X2<FreeBreakthroughIcon/>
                                     </Button>
                                 </Grid>
                             </Grid>

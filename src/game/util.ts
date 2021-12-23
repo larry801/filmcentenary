@@ -1099,9 +1099,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log.push(`|p${p}|chooseHand`);
             return true;
         } else {
-            log.push(`|prev|${JSON.stringify(playerObj.hand)}`);
+            log.push(`|prev|${JSON.stringify(playerObj.hand)}|${JSON.stringify(pub.discard)}`);
             playerObj.hand = playerObj.hand.filter((handElm) => validCardsToDiscard.indexOf(handElm) === -1);
-            log.push(`|after|${JSON.stringify(playerObj.hand)}`);
+            pub.discard = pub.discard.concat(validCardsToDiscard);
+            log.push(`|after|${JSON.stringify(playerObj.hand)}|discard|${JSON.stringify(pub.discard)}`);
             if (deltaCount < 0) {
                 pub.revealedHand = [...playerObj.hand]
                 log.push(`|NoEnoughValidCardsRevealHand|${JSON.stringify(pub.revealedHand)}|next`);

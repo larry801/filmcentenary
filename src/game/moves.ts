@@ -351,7 +351,13 @@ export const chooseTarget: LongFormMove = {
             // case ItrEffects.discardIndustry:
             // case ItrEffects.discardLegend:
             // case ItrEffects.discardNormalOrLegend:
+            //     log.push(`|p${targetPlayerId}|chooseHand`)
+            //     G.e.stack.push(eff);
+            //     changePlayerStage(G, ctx, "chooseHand", targetPlayerId);
+            //     logger.debug(`${G.matchID}|${log.join('')}`);
+            //     return;
             case ItrEffects.handToAnyPlayer:
+                log.push(`|own|chooseHand`)
                 G.c.players = [arg.target]
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", arg.p);
