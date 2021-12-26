@@ -2921,7 +2921,7 @@ export const addRes = (G: IG, ctx: Ctx, p: PlayerID, res: number) => {
 }
 
 export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
-    const log = [`p${p}|add${vp}vp`];
+    const log = [`addVp|p${p}|${vp}vp`];
     const pub = G.pub[parseInt(p)];
     log.push(`|prev|${pub.vp}`);
     pub.vp += vp;

@@ -882,7 +882,7 @@ export const chooseEvent: LongFormMove = {
                         G.order.forEach(o => {
                             const other = G.pub[parseInt(o)];
                             if (other.vp > pub.vp) {
-                                pub.vp += 5;
+                                addVp(G, ctx, j, 5);
                             }
                         })
                     })
@@ -896,7 +896,8 @@ export const chooseEvent: LongFormMove = {
                         const s = G.player[pidInt]
                         const validID = [...G.secretInfo.playerDecks[pidInt], ...pub.discard, ...s.hand, ...pub.archive]
                         const validCards = validID.map(c => getCardById(c));
-                        pub.vp += validCards.filter(c => c.type === CardType.P).length * 4;
+                        const vpForJ = validCards.filter(c => c.type === CardType.P).length * 4;
+                        addVp(G, ctx, j, vpForJ);
                     })
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);
@@ -905,8 +906,8 @@ export const chooseEvent: LongFormMove = {
                     G.order.forEach(j => {
                         const pidInt = parseInt(j)
                         const pub = G.pub[pidInt];
-                        pub.vp += pub.industry;
-                        pub.vp += pub.aesthetics;
+                        addVp(G ,ctx, j , pub.industry);
+                        addVp(G ,ctx, j , pub.aesthetics);
                     })
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);
@@ -923,16 +924,16 @@ export const chooseEvent: LongFormMove = {
                         })
                         switch (championRegionCount) {
                             case 4:
-                                pub.vp += 20;
+                                addVp(G ,ctx, j , 20);
                                 break;
                             case 3:
-                                pub.vp += 12;
+                                addVp(G ,ctx, j , 12);
                                 break;
                             case 2:
-                                pub.vp += 6;
+                                addVp(G ,ctx, j , 6);
                                 break;
                             case 1:
-                                pub.vp += 2;
+                                addVp(G ,ctx, j , 2);
                                 break;
                             default:
                                 break;
@@ -948,13 +949,13 @@ export const chooseEvent: LongFormMove = {
                         pub.champions.forEach(c => {
                             switch (c.era) {
                                 case IEra.ONE:
-                                    pub.vp += 2;
+                                    addVp(G ,ctx, j , 2);
                                     break;
                                 case IEra.TWO:
-                                    pub.vp += 4;
+                                    addVp(G ,ctx, j , 4);
                                     break;
                                 case IEra.THREE:
-                                    pub.vp += 6;
+                                    addVp(G ,ctx, j , 6);
                                     break;
                             }
                         });
