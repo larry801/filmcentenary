@@ -159,8 +159,8 @@ export const playerLoseShare = (G: IG, r: ValidRegion, p: PlayerID, num: number)
     const shareCount = G.pub[playerIdNum].shares[r];
     const boardShareCount = G.regions[r].share;
     log.push(`|region${r}share${shareCount}`);
-    log.push(`|beforeLose|${G.pub[playerIdNum].shares[r]}|${G.regions[r].share}`);
-    if (shareCount > num) {
+    log.push(`|beforeLose|p${p}|${G.pub[playerIdNum].shares[r]}|board|${G.regions[r].share}`);
+    if (shareCount >= num) {
         G.pub[playerIdNum].shares[r] = shareCount - num;
         G.regions[r].share = boardShareCount + num;
     } else {
@@ -168,20 +168,7 @@ export const playerLoseShare = (G: IG, r: ValidRegion, p: PlayerID, num: number)
         G.pub[playerIdNum].shares[r] = 0;
         G.regions[r].share = boardShareCount + shareCount;
     }
-    log.push(`|afterLose|${G.pub[playerIdNum].shares[r]}|${G.regions[r].share}`);
-    logger.debug(`${G.matchID}|${log.join('')}`);
-}
-
-const loseShare = (G: IG, region: ValidRegion, obj: IPubInfo, num: number) => {
-    const log = [`loseShare|region${region}|num:${num}`];
-    if (obj.shares[region] >= num) {
-        obj.shares[region] -= num;
-        G.regions[region].share += num;
-    } else {
-        log.push(`|lessThanNum`)
-        G.regions[region].share += obj.shares[region];
-        obj.shares[region] = 0;
-    }
+    log.push(`|afterLose|p${p}|${G.pub[playerIdNum].shares[r]}|board|${G.regions[r].share}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -278,28 +265,28 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             break;
 
         case "loseShareNA":
-            loseShare(G, Region.NA, pub, eff.a);
+            playerLoseShare(G, Region.NA, p, eff.a);
             break;
         case "shareNA":
             getShare(G, Region.NA, pub, eff.a);
             break;
 
         case "loseShareWE":
-            loseShare(G, Region.WE, pub, eff.a);
+            playerLoseShare(G, Region.WE, p, eff.a);
             break;
         case "shareWE":
             getShare(G, Region.WE, pub, eff.a);
             break;
 
         case "loseShareEE":
-            loseShare(G, Region.EE, pub, eff.a);
+            playerLoseShare(G, Region.EE, p, eff.a);
             break;
         case "shareEE":
             getShare(G, Region.EE, pub, eff.a);
             break;
 
         case "loseShareASIA":
-            loseShare(G, Region.ASIA, pub, eff.a);
+            playerLoseShare(G, Region.ASIA, p, eff.a);
             break;
         case "shareASIA":
             getShare(G, Region.ASIA, pub, eff.a);
@@ -1298,9 +1285,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 break;
             } else {
                 if (G.e.regions.length === 1) {
-                    // noinspection TypeScriptValidateTypes
-                    const targetRegion: ValidRegion = G.e.regions[0];
-                    loseShare(G, targetRegion, pub, 1);
+                    const targetRegion = G.e.regions[0];
+                    if (targetRegion === Region.NONE) {
+                        log.push(`|Region|NONE|exit`)
+                        break;
+                    }
+                    playerLoseShare(G, targetRegion, p, eff.a);
                     G.e.regions = [];
                     break;
                 } else {
@@ -1663,7 +1653,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         break;
                     }
                 case "share":
-                    loseShare(G, eff.a.cost.region, pub, eff.a.cost.a);
+                    playerLoseShare(G , eff.a.cost.region, p, eff.a.cost.a);
                     G.e.stack.push(subEffect);
                     break;
                 default:
