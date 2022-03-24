@@ -1288,16 +1288,26 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 break;
             }
         case "loseAnyRegionShare":
-            G.e.regions = valid_regions.filter(r => pub.shares[r] > 0)
-            log.push(`|${JSON.stringify(G.e.regions)}`);
+            G.e.regions = valid_regions.filter(r => pub.shares[r] > 0);
+            log.push(`|loseAnyRegionShare`);
+            log.push(`|regions|${JSON.stringify(G.e.regions)}`);
             if (G.e.regions.length === 0) {
+                log.push(`|NoRegionHasShare`)
                 ctx?.events?.endStage?.()
                 log.push(`|endStage`);
                 break;
             } else {
-                G.e.stack.push(eff)
-                changePlayerStage(G, ctx, "chooseRegion", p);
-                return;
+                if (G.e.regions.length === 1) {
+                    // noinspection TypeScriptValidateTypes
+                    const targetRegion: ValidRegion = G.e.regions[0];
+                    loseShare(G, targetRegion, pub, 1);
+                    G.e.regions = [];
+                    break;
+                } else {
+                    G.e.stack.push(eff);
+                    changePlayerStage(G, ctx, "chooseRegion", p);
+                    return;
+                }
             }
         case ItrEffects.anyRegionShareCompetition:
             log.push(`|pendingCompetition`);
@@ -1369,14 +1379,15 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log.push(`|deck|${JSON.stringify(deck)}`);
             log.push(`|hand${JSON.stringify(playerObj.hand)}`);
             log.push(`|discard|${JSON.stringify(pub.discard)}`);
-            const totalRemainCards = deck.length + pub.discard.length
+            const totalRemainCards = deck.length + pub.discard.length;
+            log.push(`|totalRemainCards|${totalRemainCards}`);
             if (totalRemainCards === 0) {
                 log.push(`|noCardLeftSkip`);
                 break;
             }
             log.push(`|deckAndDiscardSum|${totalRemainCards}`);
             for (let count = 0; count < peekCount; count++) {
-                log.push(`|count|${count}`);
+                log.push(`|drawPeekCardForPlayer|count|${count}`);
                 drawPeekCardForPlayer(G, ctx, p);
             }
             log.push(`|peekCard|${JSON.stringify(playerObj.cardsToPeek)}`);
@@ -1384,7 +1395,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             const drawnCard = playerObj.cardsToPeek.length;
             const newEffect = {...eff}
             if (newEffect.a.filter.e === "choice" && newEffect.a.filter.a > drawnCard) {
-                log.push(`||noEnoughCardToChoose`);
+                log.push(`|noEnoughCardToChoose`);
                 newEffect.a.filter.a = drawnCard;
                 log.push(`|${JSON.stringify(newEffect)}`);
             }
@@ -2036,7 +2047,7 @@ export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     const p = G.player[pid]
     const pub = G.pub[pid]
     const s = G.secretInfo.playerDecks[pid]
-    log.push(`|${JSON.stringify(s)}`);
+    log.push(`|playerDeck|${JSON.stringify(s)}`);
     if (s.length === 0) {
         G.secretInfo.playerDecks[pid] = shuffle(ctx, pub.discard);
         log.push(`|shuffledDeck|${JSON.stringify(s)}`);
