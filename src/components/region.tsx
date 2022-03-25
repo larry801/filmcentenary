@@ -23,7 +23,7 @@ import {activePlayer, actualStage} from "../game/util";
 import Button from "@material-ui/core/Button";
 import Paper from "@material-ui/core/Paper";
 import Typography from "@material-ui/core/Typography";
-import {Theme} from "@material-ui/core/styles/createMuiTheme";
+import {Theme} from '@material-ui/core/styles'
 import Grid from "@material-ui/core/Grid";
 import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
@@ -72,8 +72,8 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
                             <CardInfo cid={slot.card}/>
                             <Typography
                                 style={{
-                                    display:'inline-flex',
-                                    verticalAlign:'middle'
+                                    display: 'inline-flex',
+                                    verticalAlign: 'middle'
                                 }}>
                                 <ResourceIcon/>
                                 {cardObj.cost.res}
