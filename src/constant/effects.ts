@@ -1892,7 +1892,7 @@ export const effects = {
         },
         school: {
             hand: 7,
-            action: 2,
+            action: 3,
         }
     },
     "3102": {
