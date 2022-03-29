@@ -619,7 +619,7 @@ export const TwoPlayerCardCount = {
 export const ShareOnBoard = {
     0: [6, 9, 12],
     1: [6, 9, 10],
-    2: [4, 6, 8],
+    2: [4, 6, 9],
     3: [0, 6, 9],
 }
 export const LegendCardCountInUse = {
