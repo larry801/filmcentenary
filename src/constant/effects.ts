@@ -1885,12 +1885,7 @@ export const effects = {
             pre: {e: "multiple", a: 2}, effect: [
                 {
                     pre: {e: "turnStart"},
-                    effect: {
-                        e: ItrEffects.choice, a: [
-                            {e: SimpleEffectNames.draw, a: 1},
-                            {e: SimpleEffectNames.addCompetitionPower, a: 1}
-                        ]
-                    }
+                    effect: {e: SimpleEffectNames.shareASIA, a:1},
                 }, {
                     pre: {e: "competitionWon"}, effect: {e: SimpleEffectNames.res, a: 2},
                 }

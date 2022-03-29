@@ -22,6 +22,7 @@ import {
 import {IG} from "../types/setup";
 import {changePlayerStage, cleanPendingSignal} from "./logFix";
 import {
+    addCompetitionPower,
     addVp,
     aesAward,
     curPub,
@@ -145,9 +146,7 @@ export const NormalTurn: TurnConfig = {
             }
             if (pub.school === SchoolCardID.S3101) {
                 log.push(`|newHollywood`);
-                G.e.choices.push({e: SimpleEffectNames.draw, a: 1});
-                G.e.choices.push({e: SimpleEffectNames.addCompetitionPower, a: 1});
-                changePlayerStage(G, ctx, "chooseEffect", p);
+                addCompetitionPower(G, ctx, p, 1);
             }
             if (pub.school === SchoolCardID.S3105) {
                 log.push(`|newYork`);

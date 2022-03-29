@@ -1307,7 +1307,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             G.e.regions = valid_regions.filter(r => G.pub[parseInt(loser)].shares[r] > 0)
             if (G.e.regions.length === 0) {
                 log.push("|loserNoShare");
-                competitionCleanUp(G);
+                competitionCleanUp(G, ctx);
                 break;
             } else {
                 log.push(`|p${winner}|chooseRegion`);
@@ -2304,7 +2304,7 @@ export const do2pRegionScoring = (G: IG, ctx: Ctx, r: ValidRegion): void => {
         firstPlayer = ctx.currentPlayer === "0" ? 0 : 1;
     }
     const scoreCard = getScoreCard(r, IEra.THREE, 1);
-    // score card of current region
+    // scorecard of current region
     // const scoreCard = getScoreCard(r, G.twoPlayer.era, 1);
     G.pub[firstPlayer].discard.push(scoreCard.cardId as ScoreCardID);
     G.pub[firstPlayer].allCards.push(scoreCard.cardId as ScoreCardID);
@@ -3021,9 +3021,15 @@ export const buildBuildingFor = (G: IG, ctx: Ctx, r: ValidRegion, p: PlayerID, b
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const competitionCleanUp = (G: IG) => {
-    const log = [`competitionCleanUp|checkNextEffect`];
+export const competitionCleanUp = (G: IG, ctx: Ctx) => {
+    const log = [`competitionCleanUp`];
     let i = G.competitionInfo;
+    const atkSchool = G.pub[parseInt(i.atk)].school;
+    log.push(`|atkSchool${atkSchool}`);
+    if (atkSchool == SchoolCardID.S3101) {
+        log.push(`|p${i.atk}|2res`);
+        addRes(G, ctx, i.atk, 2);
+    }
     i.pending = false;
     i.region = Region.NONE;
     i.progress = 0;
@@ -3034,8 +3040,6 @@ export const competitionCleanUp = (G: IG) => {
     i.defPlayedCard = false;
     i.onWin = {e: "none", a: 1};
     logger.debug(`${G.matchID}|${log.join('')}`);
-    // checkNextEffect(G, ctx);
-    // return;
 }
 
 export function competitionResultSettle(G: IG, ctx: Ctx) {
@@ -3069,7 +3073,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     } else {
         log.push(`|noWinner|competitionCleanUp|checkNextEffect`);
         log.push(`|stack|${JSON.stringify(G.e.stack)}`);
-        competitionCleanUp(G);
+        competitionCleanUp(G, ctx);
         logger.debug(`${G.matchID}|${log.join('')}`);
         checkNextEffect(G, ctx);
         return;

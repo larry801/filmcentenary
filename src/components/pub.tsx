@@ -95,7 +95,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
     const cloneLog = [...log]
     const reverseLog = cloneLog.filter(l => l.action.payload.playerID === playerID).reverse().slice(0, 40);
     const playerLogText = reverseLog.map(l => getLogText(l, getName, G)).join('\n');
-    const schoolTitle = i.school !== null ? `${getCardName(i.school)}${i.school === SchoolCardID.S3101 ? (i.newHollyWoodUsed ? "(x)" : "(*)") : ""}` : "";
+    const schoolTitle = i.school !== null ? `${getCardName(i.school)}` : "";
 
     return <Grid container item
                  justify="center" alignItems="center"
