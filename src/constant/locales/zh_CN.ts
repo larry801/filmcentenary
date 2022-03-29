@@ -649,6 +649,7 @@ const zh_CN: Locale = {
         doNotLoseVpAfterCompetition: "争夺失败后，不会失去声望",
         discardInSettle: "每当你执行了一次【评论】或【更新】之后",
         onAnyOneComment: "每当发生评论后，",
+        onAnyInTurnAesAward: "在你的行动阶段内：当你执行1次美学奖励时立即",
         industryToVp: "按照你的工业等级获得声望",
         aestheticsToVp: "按照你的美学等级获得声望",
         threeCards: "你的每张基础额外获得1声望",

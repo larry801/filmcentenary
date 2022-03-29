@@ -7,7 +7,7 @@ import {
     EventCardID,
     FilmCardID,
     IEra,
-    ItrEffects,
+    ItrEffects, NoExecutorEffectNames,
     Region,
     SchoolCardID,
     ScoreCardID,
@@ -1885,7 +1885,7 @@ export const effects = {
             pre: {e: "multiple", a: 2}, effect: [
                 {
                     pre: {e: "turnStart"},
-                    effect: {e: SimpleEffectNames.addCompetitionPower, a:1},
+                    effect: {e: SimpleEffectNames.addCompetitionPower, a: 1},
                 }, {
                     pre: {e: "competitionWon"}, effect: {e: SimpleEffectNames.res, a: 2},
                 }
@@ -1933,8 +1933,7 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "aesAward", a: 2},
-                {e: "industryAward", a: 2},
-
+                {e: "industryAward", a: 2}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2551,7 +2550,14 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: {
-            pre: {e: "doNotLoseVpAfterCompetition", a: 1}, effect: noEff
+            pre: {e: "multiple", a: 2}, effect: [
+                {
+                    pre: {e: "onAnyInTurnAesAward"},
+                    effect: {e: SimpleEffectNames.draw, a: 1},
+                }, {
+                    pre: {e: NoExecutorEffectNames.doNotLoseVpAfterCompetition, a: 1}, effect: noEff,
+                }
+            ]
         },
         school: {
             hand: 5, action: 2,

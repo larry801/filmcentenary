@@ -610,6 +610,7 @@ const en = {
         everyPlayer: "Every company",
         onYourComment: "After you perform a comment,",
         onAnyOneComment: "After any one perform a comment,",
+        onAnyInTurnAesAward: "In your turn, after every aesthetics level award",
         doNotLoseVpAfterCompetition: "Do not lose vp after competition",
         discardInSettle: "When you comment or update,",
         threeCards: "Gain 1 extra prestige for every basic card ",
