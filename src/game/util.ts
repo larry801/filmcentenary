@@ -1801,10 +1801,6 @@ export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     industryAwardEndTurn(G, ctx, p);
     const pub = G.pub[parseInt(p)];
     const log = [`industryAward|InTurn|p${p}|${pub.industry}`];
-    if (pub.school === SchoolCardID.S3304 && ctx.currentPlayer === p) {
-        log.push(`|S3304|industryAwardInTurn|loseVp`);
-        loseVp(G, ctx, p, 4);
-    }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
