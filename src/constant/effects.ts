@@ -1640,7 +1640,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: SimpleEffectNames.res, a: 1},
+                {e: SimpleEffectNames.aesAward, a: 1},
                 {e: "noStudio", a: {e: "buy", a: "B04"}}, {
                     e: "studio",
                     a: {e: "peek", a: {count: 2, target: "hand", filter: {e: "aesthetics", a: "all"}}},

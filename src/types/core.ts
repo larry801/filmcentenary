@@ -1450,7 +1450,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Chusheng Cai",
         cardId: PersonCardID.P2402,
-        cost: cost(6, 4, 4),
+        cost: cost(7, 2, 4),
         vp: 0,
         category: CardCategory.LEGEND,
         industry: 0,
