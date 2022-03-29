@@ -828,15 +828,20 @@ export const effects = {
                         {e: "res", a: 4},
                         {
                             e: ItrEffects.choice, a: [
-                                {e: SimpleEffectNames.addCompetitionPower, a: 1},
                                 {
-                                    e: "optional", a: {
-                                        e: "competition", a: {
-                                            bonus: 0,
-                                            onWin: {e: SimpleEffectNames.shareNA, a: 1},
+                                    e: "step", a: [
+                                        {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                                        {
+                                            e: "optional", a: {
+                                                e: "competition", a: {
+                                                    bonus: 0,
+                                                    onWin: noEff,
+                                                }
+                                            }
                                         }
-                                    }
-                                }
+                                    ]
+                                },
+                                {e: SimpleEffectNames.shareNA, a: 1}
                             ]
                         }
 
