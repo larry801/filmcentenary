@@ -255,6 +255,7 @@ export enum NoExecutorEffectNames {
     onYourComment = "onYourComment",
     playedCardInTurnEffect = "playedCardInTurnEffect",
     doNotLoseVpAfterCompetition = "doNotLoseVpAfterCompetition",
+    inTurnAesAwardDrawOneCard = "inTurnAesAwardDrawOneCard",
     NewYorkSchool = "NewYorkSchool",
     obtainNormalOrLegendFilm = "obtainNormalOrLegendFilm",
     afterBreakthrough = "afterBreakthrough",
