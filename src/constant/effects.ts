@@ -1909,8 +1909,6 @@ export const effects = {
             e: "step", a: [
                 {e: "anyRegionShare", a: 1},
                 {e: SimpleEffectNames.addCompetitionPower, a: 1},
-                {e: "noStudio", a: {e: ItrEffects.loseAnyRegionShare, a: 1},},
-                {e: "studio", a: {e: "industryAward", a: 1}},
                 {
                     e: "optional", a: {
                         e: "competition", a: {
@@ -1918,7 +1916,9 @@ export const effects = {
                             onWin: noEff,
                         }
                     }
-                }
+                },
+                {e: "noStudio", a: {e: ItrEffects.loseAnyRegionShare, a: 1},},
+                {e: "studio", a: {e: "industryAward", a: 1}}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
