@@ -734,8 +734,6 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: "noStudio", a: {e: SimpleEffectNames.loseCompetitionPower, a: 1}},
-                {e: "studio", a: {e: "deposit", a: 1}},
                 {e: SimpleEffectNames.draw, a: 1},
                 {
                     e: ItrEffects.choice, a: [
@@ -749,7 +747,9 @@ export const effects = {
                             }
                         }
                     ]
-                }
+                },
+                {e: "noStudio", a: {e: SimpleEffectNames.loseCompetitionPower, a: 1}},
+                {e: "studio", a: {e: "deposit", a: 1}}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
