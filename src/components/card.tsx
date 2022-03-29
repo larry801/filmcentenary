@@ -5,7 +5,7 @@ import {
     EventCardID,
     getCardById,
     getScoreCardByID,
-    IEra,
+    IEra, ItrEffects,
     Region,
     ScoreCardID, SimpleEffectNames
 } from "../types/core";
@@ -278,9 +278,9 @@ export const effIcon = (eff: any): JSX.Element => {
             return <React.Fragment key={nanoid()}><LoseShareIcon
                 r={Region.ASIA}
                 key={nanoid()}/></React.Fragment>
-        case "loseAnyRegionShare":
+        case ItrEffects.loseAnyRegionShare:
             return <React.Fragment key={nanoid()}><LoseShareIcon
-                r={Region.NONE} key={nanoid()}/></React.Fragment>
+                r={Region.NONE} key={nanoid()}/> CP -1</React.Fragment>
         case "loseShare":
             return <React.Fragment key={nanoid()}><LoseShareIcon
                 key={nanoid()}

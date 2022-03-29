@@ -114,7 +114,7 @@ export const isSimpleEffect = (G: IG, eff: any): boolean => {
         case "playedCardInTurnEffect":
         case "alternative":
         case "competition":
-        case "loseAnyRegionShare":
+        case ItrEffects.loseAnyRegionShare:
         case "anyRegionShare":
         case "noBuildingEE":
         case "vpNotHighestPlayer":
@@ -1274,7 +1274,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
                 break;
             }
-        case "loseAnyRegionShare":
+        case ItrEffects.loseAnyRegionShare:
             G.e.regions = valid_regions.filter(r => pub.shares[r] > 0);
             log.push(`|loseAnyRegionShare`);
             log.push(`|regions|${JSON.stringify(G.e.regions)}`);
@@ -1291,6 +1291,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         break;
                     }
                     playerLoseShare(G, targetRegion, p, eff.a);
+                    loseCompetitionPower(G, ctx, p, 1);
                     G.e.regions = [];
                     break;
                 } else {
@@ -1461,6 +1462,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 break;
             }
             G.c.players = players;
+            log.push(`|${JSON.stringify(G.c.players)}`);
             G.e.stack.push(eff.a);
             logger.debug(`${G.matchID}|${log.join('')}`);
             changePlayerStage(G, ctx, "chooseTarget", p);

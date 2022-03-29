@@ -803,7 +803,7 @@ const zh_CN: Locale = {
         res: ["{{a}}资源", argValue],
         addRes: ["获得{{a}}资源", argValue],
         deposit: ["{{a}}存款", argValue],
-        loseAnyRegionShare: ["归还{{a}}个任意地区的份额", argValue],
+        loseAnyRegionShare: ["归还{{a}}个任意地区的份额, 失去1竞争力", argValue],
         shareToVp: ["按照你当前持有的{{a}}份额获得声望", argRegion],
         share: ["获得{{a}}个{{r}}地区的份额", argValue],
         shareNA: ["获得{{a}}个北美地区的份额", argValue],

@@ -21,7 +21,7 @@ import {
     IRegionInfo,
     ItrEffects,
     Region,
-    SchoolCardID,
+    SchoolCardID, SimpleEffectNames,
     SimpleRuleNumPlayers,
     valid_regions,
     VictoryType
@@ -57,7 +57,7 @@ import {
     endTurnEffect,
     fillEmptySlots,
     fillEventCard,
-    fillTwoPlayerBoard,
+    fillTwoPlayerBoard, loseCompetitionPower,
     loseVp,
     payCost,
     playerEffExec,
@@ -303,12 +303,12 @@ export const chooseTarget: LongFormMove = {
         const log = [`${G.matchID}|p${arg.p}.moves.chooseTarget(${JSON.stringify(arg)})|players|${JSON.stringify(G.c.players)}|eff:${JSON.stringify(eff)}`];
         log.push(`|eff|${JSON.stringify(eff)}`);
         switch (eff.e) {
-            case "loseVpForEachHand":
+            case SimpleEffectNames.loseVpForEachHand:
                 G.c.players = [];
                 const handCount = G.player[parseInt(targetPlayerId)].hand.length;
                 loseVp(G, ctx, targetPlayerId, handCount);
                 break;
-            case "competition":
+            case ItrEffects.competition:
                 G.c.players = [];
                 G.competitionInfo.onWin = eff.a.onWin;
                 log.push(`|startCompetition`);
@@ -337,6 +337,7 @@ export const chooseTarget: LongFormMove = {
                         log.push(`|onlyOneRegion|${targetRegion}`)
                         if (targetRegion !== Region.NONE) {
                             playerLoseShare(G, targetRegion, targetPlayerId, 1);
+                            loseCompetitionPower(G, ctx, targetPlayerId, 1);
                         }
                         break;
                     }
@@ -364,11 +365,10 @@ export const chooseTarget: LongFormMove = {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             default:
-                eff.target = targetPlayerId;
-                G.e.stack.push(eff);
-                log.push(`|otherEffects`);
+                log.push(`|${JSON.stringify(eff)}|otherEffects|playerEffExec`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
-                checkNextEffect(G, ctx);
+                G.e.stack.push(eff);
+                playerEffExec(G ,ctx ,targetPlayerId);
                 return
         }
     }
@@ -650,6 +650,7 @@ export const chooseRegion: LongFormMove = {
                     log.push(`|targetPlayer|p${p}`);
                     G.c.players = [];
                     playerLoseShare(G, r, p, 1);
+                    loseCompetitionPower(G, ctx, p, 1);
                     break;
                 case ItrEffects.anyRegionShareCompetition:
                     // const loser = i.progress > 0 ? i.def : i.atk;
