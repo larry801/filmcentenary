@@ -1804,6 +1804,7 @@ export const effects = {
                     e: "step", a:
                         [
                             {e: "res", a: 2},
+                            {e: SimpleEffectNames.shareASIA, a: 1},
                             {
                                 e: ItrEffects.choice, a: [
                                     {e: SimpleEffectNames.addCompetitionPower, a: 1},
