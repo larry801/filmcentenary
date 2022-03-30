@@ -346,20 +346,9 @@ export const chooseTarget: LongFormMove = {
                     log.push(`|endStage`);
                     break;
                 }
-            // case ItrEffects.discard:
-            // case ItrEffects.discardAesthetics:
-            // case ItrEffects.discardBasic:
-            // case ItrEffects.discardIndustry:
-            // case ItrEffects.discardLegend:
-            // case ItrEffects.discardNormalOrLegend:
-            //     log.push(`|p${targetPlayerId}|chooseHand`)
-            //     G.e.stack.push(eff);
-            //     changePlayerStage(G, ctx, "chooseHand", targetPlayerId);
-            //     logger.debug(`${G.matchID}|${log.join('')}`);
-            //     return;
             case ItrEffects.handToAnyPlayer:
-                log.push(`|own|chooseHand`)
-                G.c.players = [arg.target]
+                log.push(`|own|chooseHand`);
+                G.c.players = [arg.target];
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", arg.p);
                 logger.debug(`${G.matchID}|${log.join('')}`);
@@ -367,6 +356,7 @@ export const chooseTarget: LongFormMove = {
             default:
                 log.push(`|${JSON.stringify(eff)}|otherEffects|playerEffExec`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
+                eff.target = arg.target;
                 G.e.stack.push(eff);
                 playerEffExec(G ,ctx ,targetPlayerId);
                 return
