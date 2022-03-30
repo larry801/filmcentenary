@@ -7,7 +7,8 @@ import {
     EventCardID,
     FilmCardID,
     IEra,
-    ItrEffects, NoExecutorEffectNames,
+    ItrEffects,
+    NoExecutorEffectNames,
     Region,
     SchoolCardID,
     ScoreCardID,
@@ -1553,28 +1554,14 @@ export const effects = {
                 noEff,
                 {
                     e: "step", a: [
-                        {e: "res", a: 3},
-                        {
-                            e: ItrEffects.choice, a: [
-                                {e: SimpleEffectNames.addCompetitionPower, a: 1},
-                                {
-                                    e: SimpleEffectNames.aesAward, a: 1
-                                }
-                            ]
-                        }
+                        {e: SimpleEffectNames.deposit, a: 2},
+                        {e: SimpleEffectNames.addVp, a: 2}
                     ]
                 },
                 {
                     e: "step", a: [
-                        {e: SimpleEffectNames.draw, a: 1},
-                        {
-                            e: ItrEffects.choice, a: [
-                                {e: SimpleEffectNames.addCompetitionPower, a: 1},
-                                {
-                                    e: SimpleEffectNames.aesAward, a: 1
-                                }
-                            ]
-                        }
+                        {e: SimpleEffectNames.deposit, a: 1},
+                        {e: SimpleEffectNames.draw, a: 1}
                     ]
                 },
             ]

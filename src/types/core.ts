@@ -1418,7 +1418,7 @@ const NoneBasicCards = {
         region: Region.EE,
         name: "Quiet Flows the Don",
         cardId: FilmCardID.F2308,
-        cost: cost(6, 4, 4),
+        cost: cost(5, 4, 4),
         vp: 6,
         category: CardCategory.NORMAL,
         industry: 1,

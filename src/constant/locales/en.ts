@@ -103,7 +103,7 @@ const cards = {
     '2305': 'The Cranes are Flying',
     '2306': 'Canal',
     '2307': 'Shadows of Forgotten Ancestors',
-    '2308': 'Quiet Flows the Don',
+    '2308': 'The Young Guard',
     '2309': 'Alexander Nevsky, 1938',
     '2401': 'Akira Kurosawa',
     '2402': 'Chusheng Cai',
