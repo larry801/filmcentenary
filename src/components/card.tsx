@@ -586,7 +586,7 @@ export const CardInfo = ({cid}: ICardEffectProps) => {
                 color: getColor(r)
             }}
         >{getCardName(cid)}</Typography>
-        <CardEffect cid={cid}/>
+        {/*<CardEffect cid={cid}/>*/}
         <Typography>{getEffectTextById(cid)}</Typography>
     </Grid>
 }
