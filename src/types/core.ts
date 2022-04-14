@@ -120,7 +120,6 @@ export enum ItrEffects {
     aestheticsLevelUpCost = "aestheticsLevelUpCost",
     industryLevelUpCost = "industryLevelUpCost",
     payAdditionalCost = "payAdditionalCost",
-    buildingNA = "buildingNA",
     era = "era",
     discardBasic = "discardBasic",
     breakthroughResDeduct = "breakthroughResDeduct",
@@ -148,6 +147,9 @@ export enum ItrEffects {
     industryHighest = "industryHighest",
     noStudio = "noStudio",
     studio = "studio",
+    noBuildingPlayers = "noBuildingPlayers",
+    buildingPlayers = "buildingPlayers",
+    chooseOnePlayer = "chooseOnePlayer",
     step = "step",
     discardNormalOrLegend = "discardNormalOrLegend",
     discardLegend = "discardLegend",
@@ -200,6 +202,7 @@ export enum MoveNames {
 }
 
 export enum SimpleEffectNames {
+    LES_CHAIERS_DU_CINEMA = "LES_CHAIERS_DU_CINEMA",
     competitionLoserBuy = "competitionLoserBuy",
     CompetitionPowerToVp = "CompetitionPowerToVp",
     shareToVp = "shareToVp",
@@ -340,6 +343,7 @@ export enum MainAction {
 }
 
 export interface IPubInfo {
+    LES_CHAIERS_DU_CINEMA: boolean,
     competitionPower: number,
     finalScoring: {
         card: number,
@@ -455,7 +459,9 @@ export enum ScoreCardID {
 
 export const SimpleRuleNumPlayers = 2;
 export const AvantGradeAP = 2;
-export const LES_CHAIERS_DU_CINEMA_AP = 5;
+export const LES_CHAIERS_DU_CINEMA_COMPANY_SCALE = 5;
+export const DEFAULT_COMPANY_SCALE = 4;
+
 
 export enum SchoolCardID {
     'S1203' = 'S1203',

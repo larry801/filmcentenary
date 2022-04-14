@@ -841,10 +841,6 @@ export const chooseEvent: LongFormMove = {
             checkNextEffect(G, ctx);
             return
         } else {
-            if (eid === EventCardID.E07) {
-                log.push("|LES CHAIERS DU CINEMA");
-                G.activeEvents.push(EventCardID.E07);
-            }
             if (eid === EventCardID.E08) {
                 G.regions[Region.EE].buildings[1].activated = true;
             }

@@ -203,7 +203,7 @@ const eventName = {
     'E04': 'Company with highest prestige buy a 【Commercial Film】and put it into hand, every company buy a 【Classic Film】 for free.',
     'E05': 'Company with no building in north america draw one card, calculate the sum of industry level, aesthetics level, industry and aesthetics marks of current school of every company, lowest company gain 3 deposits',
     'E06': 'Company with no building in west europe buy a 【Bad Film】 for free, every company buy a【Classic Film】 for free.',
-    'E07': 'Every company upgrade industry or aesthetics level once, company with the minimum hand count draw one card gain 5 prestige.',
+    'E07': 'Every company choose one company buy a [Bad film], [Optional] company size change to 5.',
     'E08': '【Unfreeze】 slot is activated, calculate the sum of industry level, aesthetics level, industry and aesthetics marks of current school of every company, lowest company upgrade aesthetics level once',
     'E09': '【Bollywood】 slot activated, company with the lowest aesthetics level upgrade aesthetics level once, company with the lowest aesthetics level upgrade aesthetics level once.',
     'E10': 'Each company whose prestige is higher than you ,gain 4 extra prestige',
@@ -745,6 +745,7 @@ const en = {
         studio: "All companies with a studio in this region,",
         building: "All companies with a building in this region,，",
         noStudio: "Choose a company without a studio in this region,",
+        LES_CHAIERS_DU_CINEMA: "Change company size to 5",
         noBuilding: "Choose a company without a building in this region",
         lose: ["When you lose {{a}},", argCardName],
         school: ["Hand size：{{hand}} action：{{action}}", {

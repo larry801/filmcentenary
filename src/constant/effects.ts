@@ -106,11 +106,17 @@ export const eventEffects = {
     "E06": {
         e: "step",
         a: [
-            {e: "everyPlayer", a: {e: "buy", a: "B05"}},
+            {e: "everyPlayer", a: {e: "buy", a: BasicCardID.B05}},
             {e: "noBuildingPlayers", a: {e: "buy", a: BasicCardID.B04}, region: Region.WE},
         ]
     },
-    "E07": noEff,
+    "E07": {
+        e: ItrEffects.step,
+        a:[
+            {e: "everyPlayer", a: {e: ItrEffects.chooseOnePlayer, a: {e: SimpleEffectNames.buy, a: BasicCardID.B04}}},
+            {e: ItrEffects.everyPlayer, a:{e:ItrEffects.optional, a:{e: "LES_CHAIERS_DU_CINEMA", a: 1}}}
+        ]
+    },
     "E08": {
         e: "step",
         a: [

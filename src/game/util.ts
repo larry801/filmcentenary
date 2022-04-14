@@ -7,7 +7,7 @@ import {
     CardID,
     cardsByCond,
     CardType,
-    ClassicCardID,
+    ClassicCardID, DEFAULT_COMPANY_SCALE,
     eventCardByEra,
     EventCardID,
     FilmCardID,
@@ -24,7 +24,7 @@ import {
     INormalOrLegendCard,
     IPubInfo,
     ItrEffects,
-    LegendCardCountInUse,
+    LegendCardCountInUse, LES_CHAIERS_DU_CINEMA_COMPANY_SCALE,
     NormalCardCountInUse,
     PersonCardID,
     Region,
@@ -230,6 +230,9 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
     switch (eff.e) {
         case "none":
         case "skipBreakthrough":
+            return;
+        case SimpleEffectNames.LES_CHAIERS_DU_CINEMA:
+            pub.LES_CHAIERS_DU_CINEMA = true;
             return;
         case SimpleEffectNames.CompetitionPowerToVp:
             addVp(G, ctx, p, pub.competitionPower);
@@ -517,6 +520,9 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 log.push(`|archive|${school}`);
                 pub.archive.push(school);
             }
+            if (pub.LES_CHAIERS_DU_CINEMA) {
+                pub.LES_CHAIERS_DU_CINEMA = false
+            }
             pub.school = card.cardId as SchoolCardID;
         } else {
             log.push(`|pushToDiscard`);
@@ -796,16 +802,14 @@ export const levelAndMarkLowestPlayer = (G: IG): PlayerID[] => {
 export const getSchoolHandLimit = (G: IG, p: PlayerID): number => {
     const school = G.pub[parseInt(p)].school;
     const log = [`getSchoolHandLimit|p${p}|school${school}`];
-    const ruleLimit = G.activeEvents.includes(EventCardID.E07) ? 5 : 4;
-    log.push(`|ruleLimit${ruleLimit}`);
     if (school === null) {
-        log.push(`|finalLimit${ruleLimit}`);
+        log.push(`|finalLimit${DEFAULT_COMPANY_SCALE}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
-        return ruleLimit;
+        return DEFAULT_COMPANY_SCALE;
     } else {
         const schoolLimit = getCardEffect(school).school.hand;
         log.push(`|schoolLimit${schoolLimit}`);
-        const limit = schoolLimit > ruleLimit ? schoolLimit : ruleLimit;
+        const limit = schoolLimit > DEFAULT_COMPANY_SCALE ? schoolLimit : DEFAULT_COMPANY_SCALE;
         log.push(`|finalLimit${limit}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         return limit
@@ -1454,6 +1458,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log.push(`|players${players}`);
             pushPlayersEffects(G, players, eff.a);
             break;
+        case ItrEffects.chooseOnePlayer:
+            G.c.players = seqFromCurrentPlayer(G, ctx);
+            G.e.stack.push(eff.a);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            changePlayerStage(G, ctx, "chooseTarget", p);
+            return;
         case "noStudio":
             players = noStudioPlayers(G, ctx, region);
             log.push(`|region:${region}|noStudioPlayers|${JSON.stringify(players)}`);
@@ -1655,7 +1665,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         break;
                     }
                 case "share":
-                    playerLoseShare(G , eff.a.cost.region, p, eff.a.cost.a);
+                    playerLoseShare(G, eff.a.cost.region, p, eff.a.cost.a);
                     G.e.stack.push(subEffect);
                     break;
                 default:
@@ -2078,7 +2088,7 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
 }
 export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const log = [`p${p}|fillPlayerHand`];
-    const limit = getSchoolHandLimit(G, p);
+    const limit = G.pub[parseInt(p)].LES_CHAIERS_DU_CINEMA ? LES_CHAIERS_DU_CINEMA_COMPANY_SCALE : getSchoolHandLimit(G, p);
     log.push(`|limit${limit}`);
     let handCount: number = G.player[parseInt(p)].hand.length;
     log.push(`|hand${handCount}`);
