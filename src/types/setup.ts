@@ -125,6 +125,7 @@ let initialDeck = [
 
 function pubPlayer(): IPubInfo {
     return {
+        LES_CHAIERS_DU_CINEMA: false,
         competitionPower: 0,
         industry: 0,
         aesthetics: 0,
