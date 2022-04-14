@@ -728,7 +728,8 @@ const zh_CN: Locale = {
                             // TODO temp fix | a more generic version later
                             return `然后展示牌堆顶3张牌，把带有工业标志的加入手牌，然后弃掉其他的`;
                         case SimpleEffectNames.competitionLoserBuy:
-                            return `然后对方购买${e.a}张烂片`;
+                            // @ts-ignore
+                            return `然后对方免费购买1张${cards[e.a]}`;
                         case SimpleEffectNames.vp:
                         case SimpleEffectNames.addVp:
                             return `然后+${e.a}声望`;
