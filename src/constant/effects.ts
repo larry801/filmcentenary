@@ -2194,7 +2194,7 @@ export const effects = {
                 {e: "industryAward", a: 1},
                 {
                     e: ItrEffects.choice, a: [
-                        {e: SimpleEffectNames.res, a: 1},
+                        {e: SimpleEffectNames.res, a: 2},
                         {e: SimpleEffectNames.CompetitionPowerToVp, a: 1},
                     ]
                 }
