@@ -2278,10 +2278,16 @@ export const effects = {
         },
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "step", a: [
-                {e: "buyCardToHand", a: "B05"},
+            e: ItrEffects.step, a: [
+                {e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B05},
                 {
-                    e: "noStudio", a: {e: SimpleEffectNames.buy, a: BasicCardID.B04}
+                    e: "noStudio", a: {
+                        e: ItrEffects.step,
+                        a: [
+                            {e: SimpleEffectNames.buy, a: BasicCardID.B04},
+                            {e: SimpleEffectNames.buy, a: BasicCardID.B04}
+                        ]
+                    }
                 },
                 {e: "studio", a: {e: "draw", a: 2}},
             ]
