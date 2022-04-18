@@ -2694,7 +2694,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "vp", a: 3}, {e: "noStudio", a: {e: "discardIndustry", a: 2}},
+                {e: SimpleEffectNames.aesAward, a: 1}, {e: "noStudio", a: {e: "discardIndustry", a: 2}},
                 {
                     e: "studio", a: {
                         e: "peek", a: {
