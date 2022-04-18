@@ -106,14 +106,14 @@ export const eventEffects = {
     "E06": {
         e: "step",
         a: [
-            {e: "everyPlayer", a: {e: "buy", a: BasicCardID.B05}},
-            {e: "noBuildingPlayers", a: {e: "buy", a: BasicCardID.B04}, region: Region.WE},
+            {e: ItrEffects.everyPlayer, a: {e: SimpleEffectNames.buy, a: BasicCardID.B05}},
+            {e: ItrEffects.noBuildingPlayers, a: {e: SimpleEffectNames.buy, a: BasicCardID.B04}, region: Region.WE}
         ]
     },
     "E07": {
         e: ItrEffects.step,
         a: [
-            {e: "everyPlayer", a: {e: ItrEffects.chooseOnePlayer, a: {e: SimpleEffectNames.buy, a: BasicCardID.B04}}},
+            {e: ItrEffects.schoolEraHighestPlayer, a: {e: SimpleEffectNames.buy, a: BasicCardID.B04}},
             {e: ItrEffects.everyPlayer, a: {e: ItrEffects.optional, a: {e: "LES_CHAIERS_DU_CINEMA", a: 1}}}
         ]
     },
@@ -2191,10 +2191,9 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "step", a: [
-                {e: "industryAward", a: 1},
-                {
-                    e: ItrEffects.choice, a: [
+            e: ItrEffects.choice, a: [
+                {e: SimpleEffectNames.industryAward, a: 1}, {
+                    e: ItrEffects.step, a: [
                         {e: SimpleEffectNames.res, a: 2},
                         {e: SimpleEffectNames.CompetitionPowerToVp, a: 1},
                     ]

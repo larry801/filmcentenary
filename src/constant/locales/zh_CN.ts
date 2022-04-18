@@ -199,7 +199,7 @@ const eventName = {
     'E04': '声望最高的公司可以免费购买1张【商业片】并置入手牌 每个公司免费购买1张【传世经典】',
     'E05': '北美没有建筑的公司摸1张牌，工业等级美学等级总数最少的公司获得3存款',
     'E06': '西欧没有建筑的公司免费购买一张烂片 每个公司免费购买1张【传世经典】',
-    'E07': '每个公司指定一个任意公司免费购买1张【烂片】。\n' +
+    'E07': '流派时代最高的公司免费购买1张【烂片】。\n' +
         '[可选]每个公司将公司规模变为5。',
     'E08': '"解冻建筑位可以修建建筑，工业等级和美学等级总和最少的公司选择1项：\n' +
         '（1）升级工业等级1级\n' +
@@ -731,36 +731,39 @@ const zh_CN: Locale = {
                             return `然后对方免费购买1张${cards[e.a]}`;
                         case SimpleEffectNames.vp:
                         case SimpleEffectNames.addVp:
-                            return `然后+${e.a}声望`;
+                            return `然后+${e.a}声望,`;
                         case ItrEffects.anyRegionShareCentral:
-                            return "然后额外从中央牌列获得1个任意地区的份额";
+                            return "然后额外从中央牌列获得1个任意地区的份额,";
                         case ItrEffects.comment:
-                            return `然后评论${e.a}次`;
+                            return `然后评论${e.a}次,`;
                         case ItrEffects.anyRegionShare:
-                            return "然后额外获得一个" + region[e.r as Region] + "地区份额"
+                            return "然后额外获得一个" + region[e.r as Region] + "地区份额,"
                         case SimpleEffectNames.shareNA:
-                            return `然后获得${e.a}个北美份额`
+                            return `然后获得${e.a}个北美份额,`
                         case SimpleEffectNames.addCompetitionPower:
-                            return `然后获得${e.a}竞争力`;
+                            return `然后获得${e.a}竞争力,`;
                         case ItrEffects.step:
                             let onWin = "然后";
                             // @ts-ignore
                             e.a.forEach((subEff)=>{
                                 switch (subEff.e) {
+                                    case SimpleEffectNames.shareNA:
+                                        onWin += `获得${subEff.a}北美份额,`;
+                                        break;
                                     case SimpleEffectNames.addCompetitionPower:
-                                        onWin += `获得${subEff.a}竞争力`;
+                                        onWin += `获得${subEff.a}竞争力,`;
                                         break;
                                     case SimpleEffectNames.draw:
-                                        onWin += `摸${subEff.a}张牌`;
+                                        onWin += `摸${subEff.a}张牌,`;
                                         break;
                                     case ItrEffects.anyRegionShareCentral:
-                                        onWin += `从中央牌列获得${subEff.a}个任意地区的份额`;
+                                        onWin += `从中央牌列获得${subEff.a}个任意地区的份额,`;
                                         break;
                                     case SimpleEffectNames.deposit:
-                                        onWin += `获得${subEff.a}存款`;
+                                        onWin += `获得${subEff.a}存款,`;
                                         break;
                                     case SimpleEffectNames.vp:
-                                        onWin += `获得${subEff.a}声望`;
+                                        onWin += `获得${subEff.a}声望,`;
                                         break;
                                     default:
                                         onWin += JSON.stringify(subEff);

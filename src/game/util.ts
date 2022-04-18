@@ -820,6 +820,11 @@ export const getSchoolHandLimit = (G: IG, p: PlayerID): number => {
 //     return lowest(G, getSchoolHandLimit);
 // }
 
+export const schoolEraHighestPlayer = (G: IG): PlayerID[] => {
+    // @ts-ignore
+    return highestPlayer(G, (G, i) => G.pub[parseInt(i)].school === null ? -1 : getCardById(G.pub[parseInt(i)].school).era);
+}
+
 export const aesHighestPlayer = (G: IG): PlayerID[] => {
     return highestPlayer(G, (G, i) => G.pub[parseInt(i)].aesthetics);
 }
@@ -1420,6 +1425,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             break;
         case "aesHighest":
             players = aesHighestPlayer(G);
+            pushPlayersEffects(G, players, eff.a);
+            break;
+        case "schoolEraHighestPlayer":
+            players = schoolEraHighestPlayer(G);
             pushPlayersEffects(G, players, eff.a);
             break;
         case "aesLowest":

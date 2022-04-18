@@ -135,11 +135,11 @@ export enum ItrEffects {
     highestVpPlayer = "highestVpPlayer",
     aesLowest = "aesLowest",
     aesHighest = "aesHighest",
+    schoolEraHighestPlayer = "schoolEraHighestPlayer",
     industryLowest = "industryLowest",
     handToAnyPlayer = "handToAnyPlayer",
     industryOrAestheticsBreakthrough = "industryOrAestheticsBreakthrough",
     peek = "peek",
-    minHandCountPlayers = "minHandCountPlayers",
     everyOtherCompany = "everyOtherCompany",
     everyPlayer = "everyPlayer",
     levelAndMarkLowestPlayer = "levelAndMarkLowestPlayer",
@@ -298,7 +298,7 @@ export enum BasicCardID {
     "B03" = "B03",
     "B04" = "B04",
     "B05" = "B05",
-    "B06" = "B06",
+    // "B06" = "B06",
     "B07" = "B07",
 }
 
@@ -1744,7 +1744,7 @@ const NoneBasicCards = {
         name: "New Wave",
         cardId: SchoolCardID.S3201,
         cost: cost(9, 4, 10),
-        vp: 3,
+        vp: 13,
         category: CardCategory.LEGEND,
         industry: 1,
         aesthetics: 3,
@@ -1832,7 +1832,7 @@ const NoneBasicCards = {
         name: "Jules and Jim",
         cardId: FilmCardID.F3209,
         cost: cost(7, 4, 9),
-        vp: 15,
+        vp: 12,
         category: CardCategory.NORMAL,
         industry: 1,
         aesthetics: 1,
@@ -2716,16 +2716,16 @@ export const B05: IBasicCard = {
     category: CardCategory.BASIC,
     region: Region.NONE,
 }
-export const B06: IBasicCard = {
-    aesthetics: 1, cardId: BasicCardID.B06,
-    cost: cost(6, 1, 1),
-    industry: 1,
-    type: CardType.F,
-    vp: 3,
-    name: "Classic Film",
-    category: CardCategory.BASIC,
-    region: Region.NONE,
-}
+// export const B06: IBasicCard = {
+//     aesthetics: 1, cardId: BasicCardID.B06,
+//     cost: cost(6, 1, 1),
+//     industry: 1,
+//     type: CardType.F,
+//     vp: 3,
+//     name: "Classic Film",
+//     category: CardCategory.BASIC,
+//     region: Region.NONE,
+// }
 export const B07: IBasicCard = {
     region: Region.NONE,
     aesthetics: 0, cardId: BasicCardID.B07,
@@ -2742,7 +2742,7 @@ const BasicCards = {
     B03: B03,
     B04: B04,
     B05: B05,
-    B06: B06,
+    // B06: B06,
     B07: B07,
 }
 
