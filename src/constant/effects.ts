@@ -112,9 +112,9 @@ export const eventEffects = {
     },
     "E07": {
         e: ItrEffects.step,
-        a:[
+        a: [
             {e: "everyPlayer", a: {e: ItrEffects.chooseOnePlayer, a: {e: SimpleEffectNames.buy, a: BasicCardID.B04}}},
-            {e: ItrEffects.everyPlayer, a:{e:ItrEffects.optional, a:{e: "LES_CHAIERS_DU_CINEMA", a: 1}}}
+            {e: ItrEffects.everyPlayer, a: {e: ItrEffects.optional, a: {e: "LES_CHAIERS_DU_CINEMA", a: 1}}}
         ]
     },
     "E08": {
@@ -191,7 +191,12 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "loseVp", a: 2},
+        archive: {
+            e: ItrEffects.step, a: [
+                {e: SimpleEffectNames.res, a: 1},
+                {e: SimpleEffectNames.loseVp, a: 2}
+            ]
+        },
     },
     "B05": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -212,7 +217,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {e: "res", a: 1},
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: noEff,
+        archive: {e: SimpleEffectNames.vp, a: 1},
     },
     "1101": {
         canBuy: (G: IG, ctx: Ctx) => true,
