@@ -1710,7 +1710,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "The Longest Yard",
         cardId: FilmCardID.F3114,
-        cost: cost(9, 6, 0),
+        cost: cost(7, 6, 0),
         vp: 9,
         category: CardCategory.NORMAL,
         industry: 1,
