@@ -813,14 +813,13 @@ export const effects = {
     "2105": {
         buy: {
             e: "choice", a: [
-                {e: "aestheticsLevelUp", a: 1},
-                {e: "buy", a: FilmCardID.F2109},
+                {e: SimpleEffectNames.aestheticsLevelUp, a: 1},
+                {e: SimpleEffectNames.buy, a: FilmCardID.F2109},
             ]
         },
         play: {
             e: "step",
             a: [
-                {e: "comment", a: 1},
                 {e: SimpleEffectNames.loseVp, a: 2},
                 {e: SimpleEffectNames.aestheticsToVp, a: 1},
                 {e: "noStudio", a: {e: "buy", a: "B04"}},
