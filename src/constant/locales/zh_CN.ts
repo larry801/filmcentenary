@@ -608,7 +608,7 @@ const zh_CN: Locale = {
     classicFilmAutoMove: classicFilmAutoMoveMode,
     moves: movesI18n,
     effect: {
-        industryOrAestheticsBreakthrough:"只执行工业突破或只执行者美学突破",
+        industryOrAestheticsBreakthrough:"请选择一项执行：（1）只执行工业突破（2）只执行美学突破",
         CompetitionPowerToVp:["按照竞争力获得声望",argValue],
         addCompetitionPower: ["获得{{a}}竞争力（不超过工业等级）", argValue],
         loseCompetitionPower: ["失去{{a}}竞争力", argValue],
@@ -646,7 +646,7 @@ const zh_CN: Locale = {
         playedCardInTurnEffect: "执行你出牌区的另一张带有美学标志的牌的【出牌】效果",
         everyOtherCompany: "每个其他公司",
         everyPlayer: "每个公司",
-        doNotLoseVpAfterCompetition: "争夺失败后，不会失去声望",
+        doNotLoseVpAfterCompetition: "。争夺失败后，不会失去声望",
         discardInSettle: "每当你执行了一次【评论】或【更新】之后",
         onAnyOneComment: "每当发生评论后，",
         onAnyInTurnAesAward: "在你的行动阶段内：当你执行1次美学奖励时立即",
