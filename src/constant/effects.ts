@@ -2153,13 +2153,14 @@ export const effects = {
             e: ItrEffects.choice, a: [
                 {e: SimpleEffectNames.resFromIndustry, a: 1},
                 {
-                    e: "optional", a: {
-                        e: "competition", a: {
+                    e: ItrEffects.optional, a: {
+                        e: ItrEffects.competition, a: {
                             bonus: 0,
                             onWin: {
-                                e: "step", a: [
+                                e: ItrEffects.step, a: [
                                     {e: SimpleEffectNames.addCompetitionPower, a: 2},
                                     {e: SimpleEffectNames.deposit, a: 2},
+                                    {e: SimpleEffectNames.shareNA, a: 1}
                                 ]
                             },
                         }
