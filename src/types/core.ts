@@ -1622,7 +1622,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "Martin Scorsese",
         cardId: PersonCardID.P3106,
-        cost: cost(10, 5, 5),
+        cost: cost(9, 5, 5),
         vp: 0,
         category: CardCategory.NORMAL,
         industry: 0,
