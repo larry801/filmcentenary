@@ -698,7 +698,7 @@ const en = {
         loseDeposit: ["Lose {{a}} deposit", argValue],
         beforeCompetition: "Before launching competition,",
         competitionStart: "On competition start,",
-        competitionWon: ", then",
+        competitionWon: "After you launch competition",
         competitionBonus: ["Competition progress +{{a}} bonus", argValue],
         archive: ["Put {{a}} card(s) into your archive.", argValue],
         industryToVp: "Get prestige according to your industry level",

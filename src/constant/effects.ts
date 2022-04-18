@@ -723,7 +723,7 @@ export const effects = {
                         e: "optional", a: {
                             e: "competition", a: {
                                 bonus: 0,
-                                onWin: {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                                onWin: noEff,
                             }
                         }
                     }

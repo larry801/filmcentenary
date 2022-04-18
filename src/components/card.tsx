@@ -89,7 +89,7 @@ export const playCardEffectText = (cardId: CardID): string => {
         r.push(i18n.effect.playCardHeader);
         r.push(effName(effObj.play));
     }
-    return r.join(",");
+    return r.join(" ");
 }
 export const buyCardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
@@ -102,7 +102,7 @@ export const buyCardEffectText = (cardId: CardID): string => {
     }catch (e) {
         console.error(`${e}|${effObj}|${cardId}`);
     }
-    return r.join(",");
+    return r.join(" ");
 }
 export const schoolEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
@@ -133,7 +133,7 @@ export const schoolEffectText = (cardId: CardID): string => {
     }finally {
 
     }
-    return r.join(",");
+    return r.join(" ");
 }
 export const archiveCardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
@@ -142,7 +142,7 @@ export const archiveCardEffectText = (cardId: CardID): string => {
         r.push(i18n.effect.breakthroughHeader);
         r.push(effName(effObj.archive));
     }
-    return r.join(",");
+    return r.join(" ");
 }
 export const scoreEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
@@ -151,7 +151,7 @@ export const scoreEffectText = (cardId: CardID): string => {
         r.push(i18n.effect.scoringHeader);
         r.push(effName(effObj.scoring));
     }
-    return r.join(",");
+    return r.join(" ");
 }
 
 export const effIcon = (eff: any): JSX.Element => {
