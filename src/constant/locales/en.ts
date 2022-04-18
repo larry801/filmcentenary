@@ -566,6 +566,7 @@ const en = {
         effectIcon: "Effect Icon",
     },
     effect: {
+        industryOrAestheticsBreakthrough:"只执行工业突破或只执行者美学突破",
         CompetitionPowerToVp:["按照竞争力获得声望",argValue],
         addCompetitionPower: ["Add {{a}} CompetitionPower", argValue],
         loseCompetitionPower: ["Lose {{a}} CompetitionPower", argValue],

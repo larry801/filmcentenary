@@ -608,6 +608,7 @@ const zh_CN: Locale = {
     classicFilmAutoMove: classicFilmAutoMoveMode,
     moves: movesI18n,
     effect: {
+        industryOrAestheticsBreakthrough:"只执行工业突破或只执行者美学突破",
         CompetitionPowerToVp:["按照竞争力获得声望",argValue],
         addCompetitionPower: ["获得{{a}}竞争力（不超过工业等级）", argValue],
         loseCompetitionPower: ["失去{{a}}竞争力", argValue],
