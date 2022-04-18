@@ -2616,10 +2616,10 @@ export const effects = {
         buy: noEff,
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
-            e: "step", a: [
-                {e: "vp", a: 3},
-                {e: "update", a: 1},
-                {e: "handToAnyPlayer", a: 1}
+            e: ItrEffects.step, a: [
+                {e: SimpleEffectNames.aesAward, a: 1},
+                {e: ItrEffects.update, a: 1},
+                {e: ItrEffects.handToAnyPlayer, a: 1}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
