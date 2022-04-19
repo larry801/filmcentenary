@@ -2279,8 +2279,8 @@ export const effects = {
                     e: "noStudio", a: {
                         e: ItrEffects.step,
                         a: [
-                            {e: SimpleEffectNames.buy, a: BasicCardID.B04},
-                            {e: SimpleEffectNames.buy, a: BasicCardID.B04}
+                            {e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B04},
+                            {e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B04}
                         ]
                     }
                 },
