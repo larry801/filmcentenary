@@ -2701,7 +2701,7 @@ export const B04: IBasicCard = {
     cost: cost(0, 0, 0),
     industry: 0,
     type: CardType.F,
-    vp: -3,
+    vp: -2,
     region: Region.NONE,
     name: "Bad Film",
     category: CardCategory.BASIC
