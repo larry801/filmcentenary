@@ -7,7 +7,8 @@ import {
     CardID,
     cardsByCond,
     CardType,
-    ClassicCardID, DEFAULT_COMPANY_SCALE,
+    ClassicCardID,
+    DEFAULT_COMPANY_SCALE,
     eventCardByEra,
     EventCardID,
     FilmCardID,
@@ -24,7 +25,8 @@ import {
     INormalOrLegendCard,
     IPubInfo,
     ItrEffects,
-    LegendCardCountInUse, LES_CHAIERS_DU_CINEMA_COMPANY_SCALE,
+    LegendCardCountInUse,
+    LES_CHAIERS_DU_CINEMA_COMPANY_SCALE,
     NormalCardCountInUse,
     PersonCardID,
     Region,
@@ -573,6 +575,15 @@ export const studioPlayers = (G: IG, ctx: Ctx, r: Region, p = ctx.currentPlayer)
     }
 }
 
+export const buildingPlayers = (G: IG, ctx: Ctx, r: Region, p = ctx.currentPlayer): PlayerID[] => {
+    if (r === Region.NONE) {
+        return [];
+    } else {
+        const pos = posOfPlayer(G, ctx, p);
+        return seqFromPos(G, ctx, pos).filter(pid => buildingInRegion(G, ctx, r, pid));
+    }
+}
+
 export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region, p: PlayerID): PlayerID[] => {
     const log = [`noBuildingPlayers|${r}`];
     if (r === Region.NONE) {
@@ -955,6 +966,9 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     const log = [`startBreakThrough|p${pid}|${card}`];
     if (c.type === CardType.V) {
         addVp(G, ctx, pid, c.vp);
+        if (c.industry === 0 && c.aesthetics ===0) {
+            addRes(G, ctx, pid, 1);
+        }
     }
     if (pub.school === SchoolCardID.S2201) {
         log.push(`|neoRealism`);
