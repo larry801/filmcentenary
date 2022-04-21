@@ -1,5 +1,5 @@
 import React from "react";
-import {AllClassicCards, BasicCardID, EventCardID, getCardById} from "../types/core";
+import {AllClassicCards, BasicCardID, EventCardID, getCardById, ScoreCardID} from "../types/core";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
 import Table from '@material-ui/core/Table';
@@ -111,6 +111,39 @@ const DenseTable = () => {
                                     i18n.eventName[id]
                                 }
                             </TableCell>
+                        </TableRow>
+                    })}
+                </TableBody>
+            </Table>
+            <Table size="small" aria-label="Score card table">
+                <TableHead>
+                    <TableRow>
+                        <TableCell>{i18n.cardTable.cardId}</TableCell>
+                        <TableCell>{i18n.pub.era}</TableCell>
+                        <TableCell>{i18n.cardTable.cardName}</TableCell>
+                        <TableCell>{i18n.pub.region}</TableCell>
+                        <TableCell>{i18n.pub.vp}/{i18n.pub.industryMarker}/{i18n.pub.aestheticsMarker}</TableCell>
+
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {Object.keys(ScoreCardID).map(id => {
+                        let c = getCardById(id);
+                        return <TableRow key={id}>
+                            <TableCell component="th" scope="row">
+                                {id}
+                            </TableCell>
+                            <TableCell align="right">{i18n.era[c.era]}</TableCell>
+                            <TableCell align="right">
+                                {getCardName(id)}
+                            </TableCell>
+                            <TableCell align="left">
+                                {
+                                    // @ts-ignore
+                                    i18n.region[c.region]
+                                }
+                            </TableCell>
+                            <TableCell align="right">{c.vp}/{c.industry}/{c.aesthetics}</TableCell>
                         </TableRow>
                     })}
                 </TableBody>

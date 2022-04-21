@@ -637,7 +637,7 @@ export const LegendCardCountInUse = {
 export const NormalCardCountInUse = {
     0: [5, 7, 9],
     1: [5, 7, 8],
-    2: [3, 5, 6],
+    2: [3, 5, 7],
     3: [0, 5, 7],
 }
 
