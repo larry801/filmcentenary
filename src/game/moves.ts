@@ -334,16 +334,17 @@ export const chooseTarget: LongFormMove = {
                         return;
                     } else {
                         const targetRegion = G.e.regions[0];
+                        G.e.regions = [];
                         log.push(`|onlyOneRegion|${targetRegion}`)
                         if (targetRegion !== Region.NONE) {
                             playerLoseShare(G, targetRegion, targetPlayerId, 1);
                             loseCompetitionPower(G, ctx, targetPlayerId, 1);
                         }
+                        checkNextEffect(G, ctx);
                         break;
                     }
                 } else {
-                    ctx?.events?.endStage?.()
-                    log.push(`|endStage`);
+                    checkNextEffect(G, ctx);
                     break;
                 }
             case ItrEffects.handToAnyPlayer:
