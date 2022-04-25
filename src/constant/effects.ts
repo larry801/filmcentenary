@@ -5,7 +5,7 @@ import {
     BasicCardID,
     CardID,
     EventCardID,
-    FilmCardID,
+    FilmCardID, getCardById,
     IEra,
     ItrEffects,
     NoExecutorEffectNames,
@@ -23,22 +23,38 @@ export function getEvent(id: EventCardID) {
     return eventEffects[id];
 }
 
-const SCORE_EFFECT = {
-    canBuy: (G: IG, ctx: Ctx) => true,
-    buy: noEff,
-    canPlay: (G: IG, ctx: Ctx) => true,
-    play: {e: "res", a: 1},
-    canArchive: (G: IG, ctx: Ctx) => true,
-    archive: noEff,
-}
-
 export function getCardEffect(id: CardID): any {
     if (id in effects) {
         // @ts-ignore
         return effects[id]
     } else {
         if (id in ScoreCardID) {
-            return SCORE_EFFECT
+            const cardObj = getCardById(id);
+            if(cardObj.industry === 0 && cardObj.aesthetics === 0){
+                return {
+                    canBuy: (G: IG, ctx: Ctx) => true,
+                    buy: noEff,
+                    canPlay: (G: IG, ctx: Ctx) => true,
+                    play: {e: "res", a: 1},
+                    canArchive: (G: IG, ctx: Ctx) => true,
+                    archive: {
+                        e: ItrEffects.step,
+                        a:[
+                            {e: SimpleEffectNames.addVp, a: cardObj.vp},
+                            {e: SimpleEffectNames.res, a: 1}
+                        ]
+                    },
+                }
+            } else {
+                return {
+                    canBuy: (G: IG, ctx: Ctx) => true,
+                    buy: noEff,
+                    canPlay: (G: IG, ctx: Ctx) => true,
+                    play: {e: "res", a: 1},
+                    canArchive: (G: IG, ctx: Ctx) => true,
+                    archive: {e: SimpleEffectNames.addVp, a: cardObj.vp},
+                }
+            }
         } else {
             if (id in AllClassicCards) {
                 // @ts-ignore

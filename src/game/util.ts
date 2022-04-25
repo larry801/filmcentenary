@@ -964,12 +964,6 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     const c = getCardById(card)
     const pub = G.pub[parseInt(pid)];
     const log = [`startBreakThrough|p${pid}|${card}`];
-    if (c.type === CardType.V) {
-        addVp(G, ctx, pid, c.vp);
-        if (c.industry === 0 && c.aesthetics ===0) {
-            addRes(G, ctx, pid, 1);
-        }
-    }
     if (pub.school === SchoolCardID.S2201) {
         log.push(`|neoRealism`);
         log.push(`|before|${JSON.stringify(G.e.stack)}`);
