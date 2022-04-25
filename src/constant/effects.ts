@@ -798,7 +798,7 @@ export const effects = {
                             {e: SimpleEffectNames.buyCardToHand, a: "B04"},
                         ]
                     }
-                }, {e: "studio", a: {e: "aesAward", a: 1}}
+                }, {e: "studio", a: {e: SimpleEffectNames.vp, a: 3}}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
