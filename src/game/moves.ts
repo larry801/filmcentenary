@@ -1137,7 +1137,7 @@ export const playCard: LongFormMove = {
         if (cinemaInRegion(G, ctx, playCard.region, arg.playerID) && playCard.type === CardType.F) {
             log.push(`|cinemaInRegion|${playCard.region}`);
             addRes(G, ctx, arg.playerID, 1);
-            addVp(G, ctx, arg.playerID, 1);
+            addVp(G, ctx, arg.playerID, 2);
         }
         hand.splice(arg.idx, 1);
         pub.playedCardInTurn.push(arg.card);
