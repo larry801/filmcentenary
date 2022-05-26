@@ -3,8 +3,7 @@ const fs = require('fs');
 const connectionString = 'postgresql://bgio:aJP7wrd6BuQ9XQmhcPyGbug4@49.232.162.167:5436/bgio'
 // const matchID = 'iyM2J3pSu';
 
-let mid3 = 'IMDKcX8_L'; // competition bug
-// let mid2 = 'jYFjTuCzX'; // No era 3 events
+let mid3 = '2ZvEje8DpEI'; // LES_CHAIERS_DU_CINEMA
 const pool = new Pool({
     connectionString,
 });

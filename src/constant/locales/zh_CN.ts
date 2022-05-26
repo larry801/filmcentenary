@@ -576,8 +576,11 @@ const zh_CN: Locale = {
         exitLobby: "退出大厅",
         cannotJoin: "无法加入，已经在其他游戏中",
         createPublicMatch: "创建公开游戏",
-        createPrivateMatch: "创建私密游戏",
+        createPrivateMatch: "创建游戏",
+        spectate: "旁观",
         shareLink: "其他玩家用下面的链接加入游戏：",
+        publicGame: "公开",
+        privateGame: "隐藏",
     },
     gameOver: {
         title: "游戏结束",

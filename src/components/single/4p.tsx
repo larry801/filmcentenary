@@ -15,10 +15,10 @@ const FilmClient4pSingle = Client({
 
 
 const SinglePlayer4p = () => <Grid container>
-    <Grid item> <FilmClient4pSingle playerID='0'/></Grid>
-    <Grid item> <FilmClient4pSingle playerID='1'/></Grid>
-    <Grid item> <FilmClient4pSingle playerID='2'/></Grid>
-    <Grid item> <FilmClient4pSingle playerID='3'/></Grid>
+    <Grid item> <FilmClient4pSingle playerID='0' credentials={'1'} matchID={'123'} debug={false}/></Grid>
+    <Grid item> <FilmClient4pSingle playerID='1' credentials={'1'} matchID={'123'} debug={false}/></Grid>
+    <Grid item> <FilmClient4pSingle playerID='2' credentials={'1'} matchID={'123'} debug={false}/></Grid>
+    <Grid item> <FilmClient4pSingle playerID='3' credentials={'1'} matchID={'123'} debug={false}/></Grid>
 </Grid>
 
 export default SinglePlayer4p;
