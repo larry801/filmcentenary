@@ -759,7 +759,8 @@ export const effects = {
             e: "step", a: [
                 {e: SimpleEffectNames.draw, a: 1},
                 {
-                    e: ItrEffects.choice, a: [
+                    e: ItrEffects.step, a: [
+                        {e: SimpleEffectNames.addCompetitionPower, a: 1},
                         {
                             e: "optional", a: {
                                 e: "competition", a: {
@@ -767,8 +768,7 @@ export const effects = {
                                     onWin: noEff,
                                 }
                             }
-                        },
-                        {e: SimpleEffectNames.addCompetitionPower, a: 1}
+                        }
                     ]
                 },
                 {e: "noStudio", a: {e: SimpleEffectNames.loseCompetitionPower, a: 1}},
