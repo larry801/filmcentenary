@@ -1128,7 +1128,7 @@ const NoneBasicCards = {
         name: "Citizen Kane",
         cardId: FilmCardID.F2109,
         cost: cost(7, 0, 3),
-        vp: 2,
+        vp: 5,
         category: CardCategory.NORMAL,
         industry: 0,
         aesthetics: 2,
