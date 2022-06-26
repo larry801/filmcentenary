@@ -3069,7 +3069,6 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
     const i = G.competitionInfo;
     const log = [`competitionResultSettle|atk:p${i.atk}|def:p${i.def}`];
     if (i.progress > 0) {
-        // TODO: change to hook
         const atkSchoolID = G.pub[parseInt(i.atk)].school;
         switch (atkSchoolID) {
             case SchoolCardID.S3101:
@@ -3139,7 +3138,6 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
         }
         G.e.card = cardId;
         logger.debug(`${G.matchID}|${log.join('')}`);
-        // TODO may over run set a barrier effect?
         playerEffExec(G, ctx, i.atk);
     } else {
         log.push("|atkNoCard|defCardSettle");
@@ -3262,30 +3260,6 @@ export const doNotLoseVpAfterCompetitionSchool = (school: SchoolCardID): boolean
         default:
             return false;
     }
-    // TODO: fix effect parsing
-    // const eff = getCardEffect(school);
-    // if (eff.hasOwnProperty("response")) {
-    //     if (eff.response.hasOwnProperty("pre")) {
-    //         if (eff.response.pre.e === "doNotLoseVpAfterCompetition") {
-    //             return true;
-    //         } else {
-    //             if (eff.response.pre.e === "multiple") {
-    //                 for (const sub of eff.response.pre.effect) {
-    //                     if (sub.pre.e === "doNotLoseVpAfterCompetition") {
-    //                         return true;
-    //                     }
-    //                 }
-    //                 return false;
-    //             } else {
-    //                 return false;
-    //             }
-    //         }
-    //     } else {
-    //         return false;
-    //     }
-    // } else {
-    //     return false;
-    // }
 }
 
 export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) => {
