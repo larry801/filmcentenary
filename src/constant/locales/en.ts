@@ -203,7 +203,7 @@ const eventName = {
     'E04': 'Company with highest prestige buy a 【Commercial Film】and put it into hand, every company buy a 【Classic Film】 for free.',
     'E05': 'Company with no building in north america draw one card, calculate the sum of industry level, aesthetics level, industry and aesthetics marks of current school of every company, lowest company gain 3 deposits',
     'E06': 'Company with no building in west europe buy a 【Bad Film】 for free, every company buy a【Classic Film】 for free.',
-    'E07': 'Every company choose one company buy a [Bad film], [Optional] company size change to 5.',
+    'E07': 'Every company choose one company buy a [Bad film], Any company size smaller than 5 change to 5.',
     'E08': '【Unfreeze】 slot is activated, calculate the sum of industry level, aesthetics level, industry and aesthetics marks of current school of every company, lowest company upgrade aesthetics level once',
     'E09': '【Bollywood】 slot activated, company with the lowest aesthetics level upgrade aesthetics level once, company with the lowest aesthetics level upgrade aesthetics level once.',
     'E10': 'Each company whose prestige is higher than you ,gain 4 extra prestige',

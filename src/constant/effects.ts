@@ -5,7 +5,8 @@ import {
     BasicCardID,
     CardID,
     EventCardID,
-    FilmCardID, getCardById,
+    FilmCardID,
+    getCardById,
     IEra,
     ItrEffects,
     NoExecutorEffectNames,
@@ -130,7 +131,7 @@ export const eventEffects = {
         e: ItrEffects.step,
         a: [
             {e: ItrEffects.schoolEraHighestPlayer, a: {e: SimpleEffectNames.buy, a: BasicCardID.B04}},
-            {e: ItrEffects.everyPlayer, a: {e: ItrEffects.optional, a: {e: "LES_CHAIERS_DU_CINEMA", a: 1}}}
+            {e: ItrEffects.everyPlayer, a: {e: SimpleEffectNames.LES_CHAIERS_DU_CINEMA, a: 1}}
         ]
     },
     "E08": {
