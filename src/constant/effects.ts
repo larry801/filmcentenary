@@ -491,7 +491,7 @@ export const effects = {
             e: "era", a: [
                 {e: "step", a: [{e: "res", a: 1}, {e: "draw", a: 1}]},
                 {e: "step", a: [{e: "res", a: 1}, {e: "comment", a: 1}]},
-                noEff
+                {e: "step", a: [{e: "res", a: 1}, {e: "comment", a: 1}]}
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
