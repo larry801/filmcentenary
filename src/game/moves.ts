@@ -229,8 +229,7 @@ export interface IShowCompetitionResultArgs {
 }
 
 export const showCompetitionResult: LongFormMove = {
-    // TODO remove comment cannot undo in real game
-    // undoable: false,
+    undoable: false,
     move: (G: IG, ctx: Ctx, args: IShowCompetitionResultArgs) => {
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.showCompetitionResult(${JSON.stringify(args)})`)
         competitionResultSettle(G, ctx);

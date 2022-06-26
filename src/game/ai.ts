@@ -45,7 +45,6 @@ export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalO
     } else {
         const validHelpers = getPossibleHelper(G, ctx, p, card.cardId);
         const len = validHelpers.length;
-        // TODO optimize with dynamic programming
         const moveCount = 2 ** len;
         for (let c = 0; c < moveCount; c++) {
             for (let h = 0; h < len; h++) {

@@ -508,8 +508,10 @@ const en = {
         twoPlayer: "Local 2 person multiplayer",
         threePlayer: "Local 3 person multiplayer",
         fourPlayer: "Local 4 person multiplayer",
+        pleaseTry: "Please try ",
         lobby: "Remote multiplayer lobby",
         cards: "Card list",
+        about: "Rules & Help",
     },
     title: "Film Centenary",
     lobby: {

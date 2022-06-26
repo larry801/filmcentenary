@@ -535,8 +535,10 @@ const zh_CN: Locale = {
         twoPlayer: "本地2人",
         threePlayer: "本地3人",
         fourPlayer: "本地4人",
+        pleaseTry: "请尝试",
         lobby: "多人大厅",
         cards: "卡表",
+        about: "规则和帮助",
     },
     eventName: eventName,
     region: region,
@@ -728,7 +730,6 @@ const zh_CN: Locale = {
                         case SimpleEffectNames.draw:
                             return `然后摸${e.a}张牌`;
                         case ItrEffects.peek:
-                            // TODO temp fix | a more generic version later
                             return `然后展示牌堆顶3张牌，把带有工业标志的加入手牌，然后弃掉其他的`;
                         case SimpleEffectNames.competitionLoserBuy:
                             // @ts-ignore

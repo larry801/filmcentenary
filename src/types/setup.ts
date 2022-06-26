@@ -465,8 +465,19 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[firstMovePlayer].action = 20;
     // G.pub[0].discard = [];
     // G.twoPlayer.era = IEra.THREE;
+
+    // test LES_CHAIERS_DU_CINEMA_COMPANY_SCALE
+    // G.regions[Region.NA].share = 1;
+    // G.pub[firstMovePlayer].deposit = 30;
+    // G.events[0] = EventCardID.E07;
     // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["F3305", "F3305", "F3113", "B05", "F3413", "P2102",];
+    // G.player[1].hand = ["P3102", "F2114", "B07"];
+    // @ts-ignore
+    // G.player[firstMovePlayer].hand = [ "F3406", "F3113", "B05", "F3413", "P2102",];
+    // G.pub[1].shares[Region.NA] = 1;
+    // G.pub[1].shares[Region.EE] = 1;
+    // @ts-ignore
+    // G.pub[2].school = "S1203";
     // G.pub[1].shares[Region.NA] = 2;
     // G.pub[1].shares[Region.EE] = 2;
     // G.pub[firstMovePlayer].vp = 149;

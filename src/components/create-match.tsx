@@ -1,6 +1,6 @@
 import React from "react";
 import {Player} from "../Game";
-import {useHistory} from "react-router-dom";
+import {Link, useHistory} from "react-router-dom";
 import {createMatch, Visibility} from "../api/match";
 import Button from "@material-ui/core/Button";
 import {createStyles, makeStyles, Theme} from '@material-ui/core/styles';
@@ -106,7 +106,7 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
             </Grid>
             <Grid item container xs={12} sm={7}>
                 {matchID && history.push(`/join/${matchID}/${player}`)}
-                {error && <Typography>{error}</Typography>}
+                {error && <Typography>{error} {i18n.drawer.pleaseTry}  <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link> </Typography>}
                 <Button onClick={onClick} disabled={clicked} fullWidth color={"primary"} variant="contained">
                     {i18n.lobby.createPrivateMatch}
                 </Button>
