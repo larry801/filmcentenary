@@ -1790,7 +1790,7 @@ const NoneBasicCards = {
         cost: cost(8, 5, 8),
         vp: 11,
         category: CardCategory.NORMAL,
-        industry: 0,
+        industry: 1,
         aesthetics: 1,
     }),
     "F3206": filmCard({
