@@ -1008,7 +1008,7 @@ export const effects = {
                     e: "step", a: [
                         {e: "res", a: 3},
                         {
-                            e: ItrEffects.choice, a: [
+                            e: ItrEffects.step, a: [
                                 {e: SimpleEffectNames.addCompetitionPower, a: 1},
                                 {
                                     e: "optional", a: {
