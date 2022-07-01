@@ -818,14 +818,15 @@ export const levelAndMarkLowestPlayer = (G: IG): PlayerID[] => {
 export const getSchoolHandLimit = (G: IG, p: PlayerID): number => {
     const school = G.pub[parseInt(p)].school;
     const log = [`getSchoolHandLimit|p${p}|school${school}`];
+    const rawLimit = G.pub[parseInt(p)].LES_CHAIERS_DU_CINEMA ? LES_CHAIERS_DU_CINEMA_COMPANY_SCALE : DEFAULT_COMPANY_SCALE;
     if (school === null) {
-        log.push(`|finalLimit${DEFAULT_COMPANY_SCALE}`);
+        log.push(`|finalLimit${rawLimit}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
-        return DEFAULT_COMPANY_SCALE;
+        return rawLimit;
     } else {
         const schoolLimit = getCardEffect(school).school.hand;
         log.push(`|schoolLimit${schoolLimit}`);
-        const limit = schoolLimit > DEFAULT_COMPANY_SCALE ? schoolLimit : DEFAULT_COMPANY_SCALE;
+        const limit = schoolLimit > rawLimit ? schoolLimit : rawLimit;
         log.push(`|finalLimit${limit}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         return limit
@@ -2110,7 +2111,7 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
 }
 export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const log = [`p${p}|fillPlayerHand`];
-    const limit = G.pub[parseInt(p)].LES_CHAIERS_DU_CINEMA ? LES_CHAIERS_DU_CINEMA_COMPANY_SCALE : getSchoolHandLimit(G, p);
+    const limit = getSchoolHandLimit(G, p);
     log.push(`|limit${limit}`);
     let handCount: number = G.player[parseInt(p)].hand.length;
     log.push(`|hand${handCount}`);
