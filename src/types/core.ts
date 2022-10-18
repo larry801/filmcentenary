@@ -1490,7 +1490,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Alam Ara",
         cardId: FilmCardID.F2405,
-        cost: cost(6, 1, 1),
+        cost: cost(5, 1, 1),
         vp: 3,
         category: CardCategory.NORMAL,
         industry: 0,

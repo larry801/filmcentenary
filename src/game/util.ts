@@ -236,7 +236,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case SimpleEffectNames.LES_CHAIERS_DU_CINEMA:
             if(pub.school !== null){
                 const schoolHandLimit = getSchoolHandLimit(G, p);
-                if (schoolHandLimit > 5){
+                if (schoolHandLimit < 5){
                     pub.LES_CHAIERS_DU_CINEMA = true;
                 }
             }
