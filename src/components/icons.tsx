@@ -218,5 +218,7 @@ export const getColor = (r: Region): string => {
             return yellow[700]
         case Region.NONE:
             return grey[700]
+        case Region.EXTENSION:
+            return grey[700]
     }
 }

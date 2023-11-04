@@ -27,7 +27,8 @@ import {
     aesAward,
     curPub,
     drawCardForPlayer,
-    industryAward
+    industryAward,
+    loseVp
 } from "./util";
 import {ItrEffects, SchoolCardID, SimpleEffectNames} from "../types/core";
 import {logger} from "./logger";
@@ -121,6 +122,7 @@ export const NormalTurn: TurnConfig = {
         const log = [`onBegin|p${p}`];
         if (G.order.includes(p)) {
             const pub = curPub(G, ctx);
+            pub.handsize_startturn = G.player[parseInt(p)].hand.length;
             if (pub.school === SchoolCardID.S1301) {
                 log.push(`|montage`);
                 addVp(G, ctx, p, 1);
@@ -157,6 +159,46 @@ export const NormalTurn: TurnConfig = {
                 if (pub.industry >= pub.aesthetics) {
                     log.push(`|industryAward`);
                     industryAward(G, ctx, p);
+                }
+            }
+            //此处添加流派扩内容
+            if (pub.school === SchoolCardID.S4001) {
+                log.push(`|"French Impressionism`);
+                if (pub.aesthetics === pub.industry) {
+                    pub.action++;
+                }
+            }
+            if (pub.school === SchoolCardID.S4003) {
+                log.push(`|"American Independent Film`);
+                // console.log(pub.building.cinemaBuilt, pub.building.studioBuilt);
+                if (pub.building.cinemaBuilt){
+                    G.e.stack.push({e: "discard", a: 1});
+                    changePlayerStage(G, ctx, "chooseHand", p);
+                }
+                if (pub.building.studioBuilt){
+                    G.e.stack.push({e: "discard", a: 1});
+                    changePlayerStage(G, ctx, "chooseHand", p);
+                }
+            }
+            if (pub.school === SchoolCardID.S4006) {
+                log.push(`|"Third Cinema`);
+                if (pub.aesthetics > pub.industry) {
+                    drawCardForPlayer(G, ctx, p);
+                    pub.deposit += 2
+                }
+            }
+            if (pub.school === SchoolCardID.S4007) {
+                log.push(`|"Kitchen Sink Film`);
+                let number = 0;
+                loseVp(G, ctx, p, G.player[parseInt(p)].hand.length);
+                for (let pkl = 0; pkl < ctx.numPlayers; pkl++){
+                    // console.log(G.pub[pkl].handSize, G.player[parseInt(p)].hand.length);
+                    if (G.player[pkl].hand.length > G.player[parseInt(p)].hand.length){
+                        number++;
+                    }
+                }
+                for (let ki = 0; ki < number; ki ++){
+                    drawCardForPlayer(G, ctx, p);
                 }
             }
         } else {

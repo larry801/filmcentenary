@@ -6,6 +6,7 @@ export enum Region {
     WE,
     EE,
     ASIA,
+    EXTENSION,
     NONE,
 }
 
@@ -273,6 +274,23 @@ export enum NoExecutorEffectNames {
     othersBuySchool = "othersBuySchool",
     turnStart = "turnStart",
 
+    French_Imp_buy = "French_Imp_buy",
+    Samara_buy = "Samara_buy",
+    American_Independent_Film_buy = "American_Independent_Film_buy",
+    Polish_School_buy = "Polish_School_buy",
+    Modernist_Film_buy = "Modernist_Film_buy",
+    Third_Cinema_buy = "Third_Cinema_buy",
+    kitchen_sink_buy = "kitchen_sink_buy",
+    High_Concept_Film_buy = "High_Concept_Film_buy",
+
+    French_Imp_turnstart = "French_Imp_turnstart",
+    Samara = "Samara",
+    American_Independent_Film_turnstart = "American_Independent_Film_turnstart",
+    Polish_School = "Polish_School",
+    Modernist_Film = "Modernist_Film",
+    Third_Cinema = "Third_Cinema",
+    kitchen_sink_turnstart = "kitchen_sink_turnstart",
+    High_Concept_Film = "High_Concept_Film",
 }
 
 export enum EventCardID {
@@ -368,7 +386,10 @@ export interface IPubInfo {
         cinemaBuilt: boolean,
         studioBuilt: boolean,
     }
+    actionused: boolean,
+    bought_extension: boolean,
     action: number,
+    handsize_startturn: number,
     deposit: number,
     resource: number,
     handSize: number,
@@ -478,6 +499,15 @@ export enum SchoolCardID {
     'S3201' = 'S3201',
     'S3204' = 'S3204',
     'S3304' = 'S3304',
+    //流派扩
+    'S4001' = 'S4001',
+    'S4002' = 'S4002',
+    'S4003' = 'S4003',
+    'S4004' = 'S4004',
+    'S4005' = 'S4005',
+    'S4006' = 'S4006',
+    'S4007' = 'S4007',
+    'S4008' = 'S4008',
 }
 
 export enum PersonCardID {
@@ -968,7 +998,7 @@ const NoneBasicCards = {
         industry: 0,
         aesthetics: 0,
     }),
-    "S1303": schoolCard({
+    "S1303": schoolCard({//村规了眼睛的价格和功能
         era: IEra.ONE,
         region: Region.EE,
         name: "Kino Eye",
@@ -2167,6 +2197,95 @@ const NoneBasicCards = {
         industry: 0,
         aesthetics: 2,
     }),
+    //流派扩
+    "S4001": schoolCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "French Impressionism",
+        cardId: SchoolCardID.S4001,
+        cost: cost(7, 2, 5),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "S4002": schoolCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "Samara Film",
+        cardId: SchoolCardID.S4002,
+        cost: cost(10, 0, 0),
+        vp: 2,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+    "S4003": schoolCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "American Independent Film",
+        cardId: SchoolCardID.S4003,
+        cost: cost(8, 3, 5),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "S4004": schoolCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Polish School",
+        cardId: SchoolCardID.S4004,
+        cost: cost(7, 5, 5),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "S4005": schoolCard({
+        era: IEra.THREE,
+        region: Region.WE,
+        name: "Modernist Film",
+        cardId: SchoolCardID.S4005,
+        cost: cost(6, 0, 12),
+        vp: 15,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 3,
+    }),
+    "S4006": schoolCard({
+        era: IEra.THREE,
+        region: Region.EXTENSION,
+        name: "Third Cinema",
+        cardId: SchoolCardID.S4006,
+        cost: cost(0, 0, 0),
+        vp: 8,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "S4007": schoolCard({
+        era: IEra.THREE,
+        region: Region.WE,
+        name: "Kitchen Sink Film",
+        cardId: SchoolCardID.S4007,
+        cost: cost(3, 2, 8),
+        vp: 11,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "S4008": schoolCard({
+        era: IEra.THREE,
+        region: Region.NA,
+        name: "High-Concept Film",
+        cardId: SchoolCardID.S4008,
+        cost: cost(9, 12, 0),
+        vp: 15,
+        category: CardCategory.NORMAL,
+        industry: 3,
+        aesthetics: 0,
+    }),
 }
 
 const E01: IEventCard = eventCard({
@@ -2201,7 +2320,7 @@ const E06: IEventCard = eventCard({
 })
 const E07: IEventCard = eventCard({
     era: IEra.TWO,
-    name: "LES CHAIERS DU CINEMA",
+    name: "LES CAHIERS DU CINEMA",
     effect: {}, id: EventCardID.E07
 })
 const E08: IEventCard = eventCard({
@@ -2786,8 +2905,9 @@ export function filmCardsByEra(e: IEra) {
 
 export function cardsByCond(r: Region, e: IEra, isLegend: boolean = false): INormalOrLegendCard[] {
     let cards = Object.entries(NoneBasicCards);
-    let res = cards.filter(c => c[1].era === e).filter(c => c[1].region === r)
-
+    let res = cards.filter(c => c[1].era === e).filter(c => c[1].region === r).filter(
+        c => !(['S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008'].includes(c[1].cardId))
+    )
     if (isLegend) {
         res = res.filter(c => c[1].category === CardCategory.LEGEND)
     } else {

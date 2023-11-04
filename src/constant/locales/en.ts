@@ -171,13 +171,22 @@ const cards = {
     '3412': 'The Scent of Green Papaya',
     '3413': 'The Boys from Fengkuei',
     '3414': 'Taste of Cherry',
+    '4001': 'French Impressionism',
+    '4002': 'Masala Film',
+    '4003': 'American Independent Film',
+    '4004': 'Polish School',
+    '4005': 'Modernist Film',
+    '4006': 'Third Cinema',
+    '4007': 'Kitchen Sink Film',
+    '4008': 'High-Concept Film',
 };
 const region = {
     0: "North America",
     1: "West Europe",
     2: "East Europe",
     3: "Asia",
-    4: "Any Region",
+    4: "School Extension",
+    5: "Any Region",
 };
 const numToValue = (value: number = 1): string => value.toString();
 
@@ -631,6 +640,24 @@ const en = {
         personCard: "Gain 4 extra prestige for each of your person card.",
         aesClassic: "Gain 2 extra prestige for each of your normal or legend card with aesthetics marker.",
         NewYorkSchool: " if your industry level is not less than your aesthetics level,execute your aesthetics level bonus once, if your industry level is not less than your aesthetics level execute your industry level bonus once",
+        
+        French_Imp_buy: "Companies with no school can buy.",
+        Samara_buy: "For every champion marker you have, you spend 2 extra resources.",
+        American_Independent_Film_buy: "If you have 1 completed building, it costs additional 3 resources. You can't buy this school if you have 2 completed buildings.",
+        Polish_School_buy: "The additional payment of resources equal to the absolute value of the difference between industrial level and aesthetic level.",
+        Modernist_Film_buy: "Pay 1 extra resource for each industry level you have.",
+        Third_Cinema_buy: "You can lose all your deposit and buy this school for free if you have no cards in your hand, no spent action, and possess 7 resources or less.",
+        kitchen_sink_buy: "Extra payout resources equal to the number of cards in your hand at the start of the turn.",
+        High_Concept_Film_buy: "Pay 1 extra resource for each aesthetics level you have.",
+        French_Imp_turnstart: "If your industrial level is equal to your aesthetic level, +1 action. Each time you get at least +3 vp after an action settlement or the entire check phase: +1 resource.",
+        Samara: "Your cinema effect has been changed to +1 card, +2 vp. When you breakthrough 1 unmarked film, select 1 item :(1) Industrial breakthrough once; (2) Aesthetic breakthrough once.",
+        American_Independent_Film_turnstart: "For each 1 completed building you have, -1 card. Each time you -1 card :+1 deposit, +1 vp.",
+        Polish_School: "Each time you put 1 card into the archive (including breakthroughs) or another player's hand :+1 card. Each time you get a base card :+2 vp.",
+        Modernist_Film: "After being competed: 1 aesthetic bonus. If you play a card with X aesthetic tokens: X=1: +1 resource, +2 vp  X=2: +1 resource, +2 vp, +1 card X=3:+1 resource, +4 vp, +2 cards.",
+        Third_Cinema: "When competed :+1 card, -5 vp for competitor. At the start of the turn, if your aesthetic level is higher than your industry level :+1 cards, +2 deposits.",
+        kitchen_sink_turnstart: "-1 vp for each 1 hand you have, and +1 card for every company that has more cards than you. End of Turn: You gain +1 vp for each card played in this turn.",
+        High_Concept_Film: "Each industrial symbol for your played card: +1 resource, +1 vp. After competition :+1 competition power, +1 card.",
+
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",
         breakthroughResDeduct: ["Execute a free breakthrough action", argValue],
