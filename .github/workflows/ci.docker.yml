@@ -39,7 +39,7 @@ jobs:
           password: ${{ secrets.CODING_TOKEN }}
       - name: Set outputs
         id: vars
-        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+        run: echo "sha_short=$(git rev-parse --short HEAD)"  >> $GITHUB_OUTPUT
       - name: Build and push builder image
         if: steps.builder-dependency-check.outputs.cache-hit != 'true'
         uses: docker/build-push-action@v5
