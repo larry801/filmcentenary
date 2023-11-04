@@ -1,7 +1,7 @@
 import React from "react";
 import {BoardProps} from "boardgame.io/react";
 import {IG} from "../types/setup";
-import {BoardCardSlot, BoardRegion} from "./region";
+import {BoardCardSlot, BoardRegion, SchoolRegion} from "./region";
 import {activePlayer} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
@@ -135,6 +135,7 @@ export const FilmCentenaryBoard = ({
                 G.regions[Region.WE],
                 G.regions[Region.EE],
                 G.regions[Region.ASIA],
+                G.regions[Region.EXTENSION],
             ],
             school: [],
             film: [],
@@ -155,7 +156,7 @@ export const FilmCentenaryBoard = ({
             <Grid item xs={12} sm={6}>
                 <Typography>
                     {valid_regions.map(r => {
-                        const regionIdx: 0 | 1 | 2 | 3 = r;
+                        const regionIdx: 0 | 1 | 2 | 3 | 4 = r;
                         const region = G.regions[regionIdx];
                         return <React.Fragment key={nanoid()}>
                             <DrawnShareIcon r={r}/>{region.share}
@@ -201,6 +202,8 @@ export const FilmCentenaryBoard = ({
             <BoardRegion getPlayerName={getName} r={Region.EE} moves={moves} region={G.regions[2]} G={G} ctx={ctx}
                          playerID={playerID}/>
             <BoardRegion getPlayerName={getName} r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx}
+                         playerID={playerID}/>
+            <SchoolRegion getPlayerName={getName} r={Region.NONE} moves={moves} region={G.regions[4]} G={G} ctx={ctx}
                          playerID={playerID}/>
         </Grid>
 

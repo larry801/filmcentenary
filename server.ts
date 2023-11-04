@@ -16,7 +16,7 @@ const server = process.env.POSTGRES_URL ? Server({
     ),
 }) : Server({games: [FilmCentenaryGame]});
 
-const PORT = process.env.PORT || "3000";
+const PORT = process.env.PORT || "3010";
 const {app} = server;
 
 const FRONTEND_PATH = path.join(__dirname);

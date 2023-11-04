@@ -4,6 +4,7 @@ import {
     ClassicCardID,
     ClassicFilmAutoMoveMode,
     EventCardID,
+    FilmCardID,
     GameMode,
     IBuildingSlot,
     ICardSlot,
@@ -12,13 +13,15 @@ import {
     IPubInfo,
     IRegionInfo,
     IRegionPrivate,
+    PersonCardID,
     Region,
     SchoolCardID,
+    ScoreCardID,
     SimpleRuleNumPlayers,
     ValidRegion
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
-import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
+import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, drawForSchool, shuffle} from "../game/util";
 import {logger} from "../game/logger";
 
 export interface CompetitionInfo {
@@ -52,6 +55,8 @@ export interface IG {
     order: PlayerID[],
     initialOrder: PlayerID[],
     playerCount: number,
+    //流派扩
+    schoolextention: SchoolCardID[],
     activeEvents: EventCardID[],
     logDiscrepancyWorkaround: boolean,
     pending: {
@@ -90,6 +95,7 @@ export interface IG {
             1: IRegionPrivate,
             2: IRegionPrivate,
             3: IRegionPrivate,
+            4: IRegionPrivate,
         },
         events: EventCardID[],
         playerDecks: CardID[][],
@@ -103,6 +109,7 @@ export interface IG {
         1: IRegionInfo,
         2: IRegionInfo,
         3: IRegionInfo,
+        4: IRegionInfo,
     },
     pendingEffects: any[],
     basicCards: {
@@ -132,6 +139,9 @@ function pubPlayer(): IPubInfo {
         resource: 0,
         deposit: 0,
         action: 1,
+        handsize_startturn: 0,
+        bought_extension: false,
+        actionused: false,
         newHollyWoodUsed: false,
         discardInSettle: false,
         handSize: 0,
@@ -218,6 +228,23 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         players.push(privatePlayer());
         decks.push(shuffle(ctx, initialDeck));
     }
+    // decks[0].pop();
+    // decks[0].push(FilmCardID.F3404);
+    // decks[0].push(ScoreCardID.V223);
+    // decks[0].push(PersonCardID.P2203);
+    
+    // decks[0].push(BasicCardID.B05);
+    // decks[0].push(FilmCardID.F2109);
+    // // decks[0].push(FilmCardID.F3110)
+    // // pub[0].competitionPower = 10;
+    // pub[0].industry = 10;
+    // pub[0].school = SchoolCardID.S4003;
+    // pub[1].school = SchoolCardID.S4001;
+    // pub[2].school = SchoolCardID.S4002;
+    // pub[3].school = SchoolCardID.S4003;
+    // pub[0].resource = 10;
+    // pub[0].vp = 10;
+    // pub[1].shares[0] = 2;
     const order: PlayerID[] = [];
     for (let i = 0; i < ctx.numPlayers; i++) {
         order.push(i.toString())
@@ -251,6 +278,9 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         order: randomOrder,
         initialOrder: randomOrder,
         logDiscrepancyWorkaround: false,
+        schoolextention :[], //SchoolCardID.S4004,SchoolCardID.S4001, SchoolCardID.S4002,SchoolCardID.S4003,
+        //     SchoolCardID.S4005,SchoolCardID.S4006,
+        //     SchoolCardID.S4007,SchoolCardID.S4008
         pending: {
             nextEraRegions: [],
             lastRoundOfGame: false,
@@ -306,6 +336,10 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                     normalDeck: [],
                 },
                 3: {
+                    legendDeck: [],
+                    normalDeck: [],
+                },
+                4: {
                     legendDeck: [],
                     normalDeck: [],
                 },
@@ -379,6 +413,17 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 normal: [emptyNormalCardSlot(3), emptyNormalCardSlot(3)],
                 share: 0,
             },
+            4: {
+                normalDeckLength: 0,
+                legendDeckLength: 0,
+                completedModernScoring: false,
+                era: IEra.ONE,
+                buildings: [emptyBuildingSlot(4, false),
+                    emptyBuildingSlot(4, false)],
+                legend: emptyNormalCardSlot(4),
+                normal: [emptyNormalCardSlot(4), emptyNormalCardSlot(4), emptyNormalCardSlot(4)],
+                share: 0,
+            },
         },
         scoringRegions: [],
         pendingEffects: [],
@@ -409,21 +454,38 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         G.regions[Region.WE].share--;
         G.regions[Region.EE].share--;
     }
+    for (let sch of shuffle(ctx, [SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008]).slice(0, 2)){
+        G.schoolextention.push(sch);
+    }
+    for (let sch of shuffle(ctx, [SchoolCardID.S4001, SchoolCardID.S4002, SchoolCardID.S4003, SchoolCardID.S4004]).slice(0, 2)){
+        G.schoolextention.push(sch);
+    }
+    // G.regions[4].legendDeckLength
+    G.regions[Region.EXTENSION].share = 0;
+    G.secretInfo.regions[4].normalDeck = G.schoolextention;
+    // G.secretInfo.regions[4].normalDeck[3] = SchoolCardID.S4006;
+    // G.pub[1].school = SchoolCardID.S4003;
     if (ctx.numPlayers === SimpleRuleNumPlayers) {
         G.regions[Region.NA].share = 12;
         G.regions[Region.WE].share = 10;
         G.regions[Region.EE].share = 8;
         G.regions[Region.ASIA].share = 10;
+        // G.regions[Region.EXTENSION].share = 1;
         drawForTwoPlayerEra(G, ctx, IEra.ONE);
     } else {
         drawForRegion(G, ctx, Region.NA, IEra.ONE);
         drawForRegion(G, ctx, Region.WE, IEra.ONE);
+        // G.regions[Region.EE].era = IEra.THREE;
         drawForRegion(G, ctx, Region.EE, IEra.ONE);
+        // drawForRegion(G, ctx, Region.ASIA, IEra.THREE);
+        // G.regions[Region.ASIA].era = IEra.TWO;
+        // G.regions[Region.ASIA].share = 6;
+        // G.pub[0].resource += 10;
+        drawForSchool(G, ctx, Region.EXTENSION, IEra.ONE);
         doFillNewEraEventDeck(G, ctx, IEra.ONE);
     }
     G.order.forEach(p => fillPlayerHand(G, ctx, p))
     G.regionScoreCompensateMarker = G.order[G.order.length - 1];
-
 
     // G.events[0] = EventCardID.E01;
     // // @ts-ignore

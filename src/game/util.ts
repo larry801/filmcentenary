@@ -48,6 +48,7 @@ import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
 import {logger} from "./logger";
+// import card from "components/card";
 
 export const curPid = (G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -236,10 +237,11 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case SimpleEffectNames.LES_CHAIERS_DU_CINEMA:
             if(pub.school !== null){
                 const schoolHandLimit = getSchoolHandLimit(G, p);
-                if (schoolHandLimit < 5){
+                if (schoolHandLimit > 5){
                     pub.LES_CHAIERS_DU_CINEMA = true;
                 }
             }
+            pub.LES_CHAIERS_DU_CINEMA = true;
             return;
         case SimpleEffectNames.CompetitionPowerToVp:
             addVp(G, ctx, p, pub.competitionPower);
@@ -391,8 +393,9 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             }
             return;
         default:
-            logger.error("Invalid effect" + JSON.stringify(eff));
-            throw new Error(JSON.stringify(eff));
+            // logger.error("Invalid effect" + JSON.stringify(eff));
+            // throw new Error(JSON.stringify(eff));
+            break;
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -414,6 +417,11 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
             log.push(`|${card.cardId}|depleted`);
             logger.debug(`${G.matchID}|${log.join('')}`);
             return;
+        }
+        //流派扩：波兰学派
+        if (pub.school == SchoolCardID.S4004)
+        {
+            addVp(G, ctx, p, 2);
         }
     } else {
         let slot = cardSlotOnBoard(G, ctx, card);
@@ -453,6 +461,7 @@ export const checkSocialismRealism = (G: IG, ctx: Ctx, card: INormalOrLegendCard
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
     const pub = G.pub[parseInt(p)];
     const log = [`doBuy|${card.cardId}|p${p}`];
@@ -465,6 +474,11 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             pub.allCards.push(card.cardId);
         } else {
             log.push(`|${card.cardId}|depleted`);
+        }
+        //流派扩：波兰学派
+        if (pub.school == SchoolCardID.S4004)
+        {
+            addVp(G, ctx, p, 2);
         }
     } else {
         let slot: ICardSlot | null;
@@ -483,7 +497,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 slot.comment = null;
             }
             const region = card.region;
-            if (region !== Region.NONE) {
+            if (region !== Region.NONE && region !== Region.EXTENSION) {
                 let share = 0;
                 if (ctx.numPlayers > SimpleRuleNumPlayers) {
                     log.push(`|notSimpleRule`);
@@ -509,6 +523,26 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         if (card.type === CardType.S) {
             log.push(`|buySchool`);
             let school = pub.school;
+            // switch (card.cardId){
+            //     case (SchoolCardID.S4001):
+            //         if (G.regions[Region.WE].share >= 1){
+            //             pub.shares[Region.WE] += 1;
+            //             G.regions[Region.WE].share --;
+            //         }
+            //         break;
+            //     case (SchoolCardID.S4002):
+            //         if (G.regions[Region.ASIA].share >= 1){
+            //             pub.shares[Region.ASIA] += 1;
+            //             G.regions[Region.ASIA].share --;
+            //         }
+            //         break;
+            //     case (SchoolCardID.S4005):
+            //         if (G.regions[Region.WE].share >= 1){
+            //             pub.shares[Region.WE] += 1;
+            //             G.regions[Region.WE].share --;
+            //         }
+            //         break;
+            //     }
             // const kino = schoolPlayer(G, ctx, SchoolCardID.S1303);
             // log.push(`|kinoPlayer|${JSON.stringify(kino)}`);
             // if (kino !== null && p !== kino) {
@@ -527,10 +561,25 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 log.push(`|archive|${school}`);
                 pub.archive.push(school);
             }
-            if (pub.LES_CHAIERS_DU_CINEMA) {
-                pub.LES_CHAIERS_DU_CINEMA = false
-            }
+            // if (pub.LES_CHAIERS_DU_CINEMA) {
+            //     pub.LES_CHAIERS_DU_CINEMA = false
+            // }
             pub.school = card.cardId as SchoolCardID;
+            if (pub.school === SchoolCardID.S4006){
+                pub.deposit = 0;
+                pub.action++;
+            }
+            switch(pub.school){
+                case SchoolCardID.S4001:
+                case SchoolCardID.S4002:
+                case SchoolCardID.S4003:
+                case SchoolCardID.S4004:
+                case SchoolCardID.S4005:
+                case SchoolCardID.S4006:
+                case SchoolCardID.S4007:
+                case SchoolCardID.S4008:       
+                    pub.bought_extension = true;
+            }
         } else {
             log.push(`|pushToDiscard`);
             pub.discard.push(card.cardId);
@@ -989,12 +1038,10 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         })
         log.push(`|after|${JSON.stringify(G.e.stack)}`);
     }
-    if (
-        c.cardId === FilmCardID.F1108
-    ) {
+    if (c.cardId === FilmCardID.F1108) {
         const curDep = pub.deposit;
         if (curDep >= 1) {
-            log.push(`hasCash|${curDep}|industryOrAestheticsBreakthrough`);
+            log.push(`hasCash|${curDep}|industryAndAestheticsBreakthrough`);
             G.e.stack.push({
                 e: "industryAndAestheticsBreakthrough", a: {
                     industry: 1,
@@ -1010,11 +1057,8 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         }
         return
     }
-    if (
-        c.cardId === FilmCardID.F1208
-        || c.cardId === BasicCardID.B05
-    ) {
-        log.push("|industryAndAestheticsBreakthrough");
+    if (c.cardId === FilmCardID.F1208 || c.cardId === BasicCardID.B05){
+        log.push("|industryOrAestheticsBreakthrough");
         G.e.stack.push({
             e: "industryOrAestheticsBreakthrough", a: {
                 industry: 1,
@@ -1024,7 +1068,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         log.push(`|playerEffExec`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         playerEffExec(G, ctx, pid);
-        return
+        return;
     }
     log.push(`|breakthroughEffectPrepare`);
     breakthroughEffectPrepare(G, card);
@@ -1032,7 +1076,27 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     // if (c.cardId !== FilmCardID.F1108) {
     if (cardEff.hasOwnProperty("archive")) {
         const eff = {...cardEff.archive};
+        // console.log(eff);
         if (eff.e !== "none") {
+            //流派扩：法国印象派
+            if (pub.school === SchoolCardID.S4001){
+                if (eff.e === SimpleEffectNames.addVp && eff.a >= 3){
+                    pub.resource += 1;
+                }
+                else{
+                    for (let sk of eff.a){
+                        // console.log(sk);
+                        if (sk.e == SimpleEffectNames.addVp && sk.a >= 3){
+                            // console.log(sk);
+                            // const efk = {e:SimpleEffectNames.addVp, a:1};
+                            // G.e.stack.push(efk);
+                            pub.resource += 1;
+                            // break;
+                            // playerEffExec(G, ctx, pid);
+                        }
+                    }
+                }
+            }
             eff.target = pid;
             log.push(`|pushEffect|${JSON.stringify(eff)}`);
             G.e.stack.push(eff)
@@ -1047,8 +1111,25 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     // }
     log.push(`|checkNextEffect`);
     logger.debug(`${G.matchID}|${log.join('')}`);
-    checkNextEffect(G, ctx);
-    return;
+    // checkNextEffect(G, ctx);
+    playerEffExec(G, ctx, pid);
+    //流派扩：玛萨拉突破
+    if (pub.school === SchoolCardID.S4002 && c.industry === 0 && c.aesthetics === 0 
+        && !(c.cardId in ScoreCardID) && (c.cardId !== BasicCardID.B07) && !(c.cardId in PersonCardID))
+    {
+        log.push("|industryOrAestheticsBreakthrough");
+        G.e.stack.push({
+            e: "industryOrAestheticsBreakthrough", a: {
+                industry: 1,
+                aesthetics: 1,
+            }, target: pid,
+        })
+        log.push(`|playerEffExec`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        // checkNextEffect(G, ctx);
+        playerEffExec(G, ctx, pid);
+    }
+    // return;
 }
 
 export const curCard = (G: IG) => {
@@ -1224,7 +1305,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             } else {
                 break;
             }
-        case "competition": {
+        case "competition": //{
             // if (pub.school === SchoolCardID.S2101) {
             //     log.push(`|ClassicHollywood|noExtraFee`);
             // } else {
@@ -1257,7 +1338,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             //         }
             //     }
             // }
-        }
+        // }
             if (ctx.numPlayers > SimpleRuleNumPlayers) {
                 players = getCompetitionPowerLessPlayers(G, ctx, p);
                 const ownIndex = players.indexOf(p)
@@ -1265,6 +1346,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     players.splice(ownIndex, 1);
                 }
                 log.push(`|competitionPlayers:|${JSON.stringify(players)}|length:${players.length}`);
+                // console.log()
                 switch (players.length) {
                     case 0: {
                         log.push("|noValidTarget|checkNextEffect");
@@ -1309,7 +1391,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             } else {
                 if (G.e.regions.length === 1) {
                     const targetRegion = G.e.regions[0];
-                    if (targetRegion === Region.NONE) {
+                    if (targetRegion === Region.NONE || targetRegion === Region.EXTENSION) {
                         log.push(`|Region|NONE|exit`)
                         break;
                     }
@@ -1407,7 +1489,23 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log.push(`|peekCard|${JSON.stringify(playerObj.cardsToPeek)}`);
             log.push(`|afterDeck|${JSON.stringify(deck)}|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`);
             const drawnCard = playerObj.cardsToPeek.length;
-            const newEffect = {...eff}
+            const newEffect = {...eff};
+            // if (newEffect.a.filter.e === "choice" && newEffect.a.filter.a > drawnCard) {
+            //     log.push(`|noEnoughCardToChoose`);
+            //     newEffect.a.filter.a = drawnCard;
+            //     log.push(`|${JSON.stringify(newEffect)}`);
+            // }
+            // console.log(drawnCard);
+            // console.log(G.player[parseInt(p)].cardsToPeek);
+            // console.log(newEffect.a.filter.a);
+            // if (newEffect.a.filter.e === "choice" && newEffect.a.filter.a === drawnCard) {
+            //     for (let card of G.player[parseInt(p)].cardsToPeek){
+            //         G.player[parseInt(p)].hand.push(card);
+            //     }
+            //     G.player[parseInt(p)].cardsToPeek = [];
+            //     return;
+            // }
+
             if (newEffect.a.filter.e === "choice" && newEffect.a.filter.a > drawnCard) {
                 log.push(`|noEnoughCardToChoose`);
                 newEffect.a.filter.a = drawnCard;
@@ -1854,6 +1952,21 @@ export const cardSlotOnBoard2p = (G: IG, ctx: Ctx, card: INormalOrLegendCard): I
 export const cardSlotOnBoard = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICardSlot | null => {
     if (card.region === Region.NONE) return null;
     let r = G.regions[card.region];
+    switch(card.cardId){
+        case SchoolCardID.S4001:
+        case SchoolCardID.S4002:
+        case SchoolCardID.S4003:
+        case SchoolCardID.S4004:
+        case SchoolCardID.S4005:
+        case SchoolCardID.S4006:
+        case SchoolCardID.S4007:
+        case SchoolCardID.S4008:
+            r = G.regions[Region.EXTENSION];
+            break;
+        default:
+            break;
+    }
+    
     if (card.category === CardCategory.LEGEND) {
         if (r.legend.card !== null) {
             if (r.legend.card === card.cardId) {
@@ -1865,10 +1978,22 @@ export const cardSlotOnBoard = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICa
             return null;
         }
     } else {
-        for (let slot of r.normal) {
-            if (slot.card !== null) {
-                if (slot.card === card.cardId) {
-                    return slot;
+        if (r !== G.regions[Region.EXTENSION])
+        {
+            for (let slot of r.normal) {
+                if (slot.card !== null) {
+                    if (slot.card === card.cardId) {
+                        return slot;
+                    }
+                }
+            }
+        }
+        else{
+            for (let slot of [r.legend, r.normal[0], r.normal[1], r.normal[2]]) {
+                if (slot.card !== null) {
+                    if (slot.card === card.cardId) {
+                        return slot;
+                    }
                 }
             }
         }
@@ -1951,6 +2076,69 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true)
     log.push(`|${resRequired}`);
     if (showLog) {
         console.warn(`${G.matchID}|${log.join('')}`);
+    }
+    //流派扩购买
+    switch(arg.target){
+        case SchoolCardID.S4001:
+            if (pub.school !== null || G.regions[1].era !== IEra.TWO || pub.bought_extension){
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S4002:
+            if (G.regions[3].era !== IEra.TWO || pub.bought_extension){
+                resRequired = 1000;
+            }
+            resRequired += pub.champions.length * 2;
+            break;
+        case SchoolCardID.S4003:
+            if (G.regions[0].era !== IEra.TWO || (pub.building.cinemaBuilt && pub.building.studioBuilt) || pub.bought_extension){
+                resRequired = 1000;
+            }
+            else{
+                if (pub.building.cinemaBuilt || pub.building.studioBuilt){
+                    resRequired += 3;
+                }
+            }
+            break;
+        case SchoolCardID.S4004:
+            if (G.regions[2].era !== IEra.TWO || pub.bought_extension){
+                resRequired = 1000;
+            }
+            if (pub.industry >= pub.aesthetics){
+                resRequired += pub.industry - pub.aesthetics;
+            }
+            else{
+                resRequired += pub.aesthetics - pub.industry;
+            }
+            break;   
+        case SchoolCardID.S4005:
+            if (G.regions[1].era !== IEra.THREE || pub.bought_extension){
+                resRequired = 1000;
+            }
+            resRequired += pub.industry;
+            break;   
+        case SchoolCardID.S4006:
+            if ((G.regions[0].era === IEra.THREE || G.regions[1].era === IEra.THREE ||
+                 G.regions[2].era === IEra.THREE || G.regions[3].era === IEra.THREE) && G.pub[parseInt(arg.buyer)].resource <= 7
+                 && G.player[parseInt(arg.buyer)].hand.length === 0 && !pub.actionused && !pub.bought_extension){
+                resRequired = 0;
+            }
+            else{
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S4007:
+            if (G.regions[1].era !== IEra.THREE || pub.bought_extension){
+                resRequired = 1000;
+            }
+            resRequired += pub.handsize_startturn;
+            break; 
+        case SchoolCardID.S4008:
+            if (G.regions[0].era !== IEra.THREE || pub.bought_extension){
+                resRequired = 1000;
+            }
+            resRequired += pub.aesthetics;
+            break; 
     }
     return resRequired;
 }
@@ -2039,7 +2227,7 @@ export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
 }
 
 export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
-    if (r === Region.NONE) return;
+    if (r === Region.NONE || r === Region.EXTENSION) return;
     let legend = cardsByCond(r, e, true).map(c => c.cardId);
     let normal = cardsByCond(r, e, false).map(c => c.cardId);
     G.secretInfo.regions[r].legendDeck = shuffle(ctx, legend).slice(0, LegendCardCountInUse[r][e]);
@@ -2062,12 +2250,42 @@ export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
     }
 }
 
+export const drawForSchool = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
+    if (r !== Region.EXTENSION) return;
+    let l: ClassicCardID[] = G.secretInfo.regions[r].legendDeck;
+    let n: ClassicCardID[] = G.secretInfo.regions[r].normalDeck;
+    // l.card = G.regions[r].normal[0];
+    let c = n.pop();
+    if (c === undefined) {
+        throw new Error(c);
+    } else {
+        G.regions[r].legend.card = c;
+    }
+    
+    for (let s of G.regions[r].normal) {
+        let c = n.pop();
+        if (c === undefined) {
+            throw new Error(c);
+        } else {
+            s.card = c;
+        }
+    }
+    // let c = l.pop();
+    // if (c === undefined) {
+    //     return;
+    // } else {
+    //     G.regions[r].legend.card = c;
+    // }
+}
+
 export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     const pid = parseInt(id);
     const log = [`drawPeekCardForPlayer|p${id}`];
     const p = G.player[pid]
     const pub = G.pub[pid]
     const s = G.secretInfo.playerDecks[pid]
+    // console.log(s);
+    // console.log(s.length);
     log.push(`|playerDeck|${JSON.stringify(s)}`);
     if (s.length === 0) {
         G.secretInfo.playerDecks[pid] = shuffle(ctx, pub.discard);
@@ -2255,6 +2473,10 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
         log.push(`|returnComment${commentId}`);
         G.basicCards[commentId]++;
         slot.comment = null;
+    }
+    if (slot.region === Region.EXTENSION){
+        // let oldCard = slot.card;
+        return;
     }
     log.push(`|comment${slot.comment}`);
     if (slot.card === null) {
@@ -2550,7 +2772,7 @@ export const getPlayerRegionRank = (G: IG, ctx: Ctx, pid: PlayerID, r: ValidRegi
 }
 
 export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
-    if (r === Region.NONE) return;
+    if (r === Region.NONE || r === Region.EXTENSION) return;
     let era = G.regions[r].era;
     const eraShareReturnVp = era + 1;
     const log = [`regionRank|region${r}|era${era}`];
@@ -2563,6 +2785,10 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             doBuy(G, ctx, B04, i);
         } else {
             addVp(G, ctx, i, playerShareCount * eraShareReturnVp);
+            //流派扩：法国印象派
+            if (G.pub[playerIdx].school === SchoolCardID.S4001)
+                if (playerShareCount * eraShareReturnVp >= 3)
+                    addRes(G, ctx, i, 1);
             log.push(`|rank`);
         }
     });
@@ -2747,7 +2973,7 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
     const log = ["regionEraProgress"];
     const r = G.currentScoreRegion;
     log.push(`|region|${r}`);
-    if (r === Region.NONE) {
+    if (r === Region.NONE || r === Region.EXTENSION) {
         logger.error("noScoringRegion");
         logger.debug(`${G.matchID}|${log.join('')}`);
         return;
@@ -2845,6 +3071,10 @@ export const getPlayerAction = (G: IG, arg: PlayerID): number => {
 export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     const log = [`endTurnEffect|p${arg}`];
     const pub = G.pub[parseInt(arg)]
+    let p = ctx.currentPlayer;
+    if (pub.school === SchoolCardID.S4007){
+        addVp(G, ctx, p, pub.playedCardInTurn.length);
+    }
     pub.playedCardInTurn.forEach(c => pub.discard.push(c));
     pub.playedCardInTurn = [];
     pub.revealedHand = [];
@@ -2859,10 +3089,15 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     fillPlayerHand(G, ctx, ctx.currentPlayer);
     log.push(`| execute development rewards`);
     log.push(`|aesAwardEndTurn`);
+    //流派扩：法国印象派
+    if (pub.school === SchoolCardID.S4001 && pub.aesthetics >= 5){
+        addRes(G, ctx, p, 1);
+    }
     aesAwardEndTurn(G, ctx, ctx.currentPlayer);
     log.push(`|industryAwardEndTurn`);
     industryAwardEndTurn(G, ctx, ctx.currentPlayer);
     logger.debug(`${G.matchID}|${log.join('')}`);
+    pub.actionused = false;
 }
 
 export function checkNextEffect(G: IG, ctx: Ctx) {
@@ -3055,10 +3290,14 @@ export const competitionCleanUp = (G: IG, ctx: Ctx) => {
     let i = G.competitionInfo;
     const atkSchool = G.pub[parseInt(i.atk)].school;
     log.push(`|atkSchool${atkSchool}`);
-    if (atkSchool == SchoolCardID.S3101) {
-        log.push(`|p${i.atk}|2res`);
-        addRes(G, ctx, i.atk, 2);
-    }
+    // if (atkSchool == SchoolCardID.S3101) {
+    //     log.push(`|p${i.atk}|2res`);
+    //     addRes(G, ctx, i.atk, 2);
+    // }
+    // if (atkSchool == SchoolCardID.S3101) {
+    //     log.push(`|p${i.atk}|2res`);
+    //     addRes(G, ctx, i.atk, 2);
+    // }
     i.pending = false;
     i.region = Region.NONE;
     i.progress = 0;
@@ -3074,17 +3313,12 @@ export const competitionCleanUp = (G: IG, ctx: Ctx) => {
 export function competitionResultSettle(G: IG, ctx: Ctx) {
     const i = G.competitionInfo;
     const log = [`competitionResultSettle|atk:p${i.atk}|def:p${i.def}`];
+    console.log(i.progress);
     if (i.progress > 0) {
         const atkSchoolID = G.pub[parseInt(i.atk)].school;
-        switch (atkSchoolID) {
-            case SchoolCardID.S3101:
-                log.push('|3101')
-                G.e.stack.push({e: SimpleEffectNames.res, a: 2});
-                break;
-            default:
-                log.push(`|schoolID|${atkSchoolID}`)
-                break;
-        }
+        log.push(`|stack|${JSON.stringify(G.e.stack)}`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        console.log(i.onWin.e);
         if (i.onWin.e !== "none") {
             log.push(`|onWin|${JSON.stringify(i.onWin)}`);
             G.e.stack.push({...i.onWin})
@@ -3094,9 +3328,39 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         G.e.stack.push({
             e: ItrEffects.anyRegionShareCompetition, a: 1
         })
-        log.push(`|stack|${JSON.stringify(G.e.stack)}`);
-        logger.debug(`${G.matchID}|${log.join('')}`);
         playerEffExec(G, ctx, i.atk);
+        //此处添加流派扩争夺方相关内容
+        switch (atkSchoolID) {
+            case SchoolCardID.S3101:
+                log.push('|3101')
+                // G.e.stack.push({e: SimpleEffectNames.res, a: 2});
+                addRes(G, ctx, i.atk, 2);
+                break;
+            case SchoolCardID.S4008:
+                log.push('|4008')
+                // G.e.stack.push({e: SimpleEffectNames.addCompetitionPower, a: 1});
+                // G.e.stack.push({e: SimpleEffectNames.draw, a: 1});
+                addCompetitionPower(G, ctx, i.atk, 1);
+                drawCardForPlayer(G, ctx, i.atk);
+                break;
+            default:
+                log.push(`|schoolID|${atkSchoolID}`)
+                break;
+        }
+        //此处添加流派扩防守方相关内容
+        const defSchoolID = G.pub[parseInt(i.def)].school;
+        switch (defSchoolID) {
+            case SchoolCardID.S4006:
+                drawCardForPlayer(G, ctx, i.def);
+                loseVp(G, ctx, i.atk, 5);
+                break;
+            case SchoolCardID.S4005:
+                aesAward(G, ctx, i.def);
+                break;
+            default:
+                log.push(`|schoolID|${atkSchoolID}`)
+                break;
+        }
         return;
     } else {
         log.push(`|noWinner|competitionCleanUp|checkNextEffect`);
@@ -3291,7 +3555,8 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
     addCompetitionPower(G, ctx, def, 1);
     log.push(`|showCompetitionResult`);
     logger.debug(`${G.matchID}|${log.join('')}`);
-    changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
+    competitionResultSettle(G, ctx);
+    // changePlayerStage(G, ctx, "showCompetitionResult", i.atk);
 }
 
 

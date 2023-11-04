@@ -957,7 +957,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: {
             e: "step", a: [
-                {e: "vp", a: 5},
+                {e: SimpleEffectNames.addVp, a: 5},
                 {e: "archive", a: 1},
             ]
         },
@@ -1142,9 +1142,9 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "breakthroughResDeduct", a: 2},
                 {e: "noStudio", a: {e: "loseVp", a: 3}},
-                {e: "studio", a: {e: "draw", a: 1}}
+                {e: "studio", a: {e: "draw", a: 1}},
+                {e: "breakthroughResDeduct", a: 2},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -1643,7 +1643,7 @@ export const effects = {
         buy: {
             e: "choice", a: [
                 {e: "aestheticsLevelUp", a: 1},
-                {e: "buy", a: FilmCardID.F2404}
+                {e: "buy", a: FilmCardID.F2407}
             ]
         },
         canPlay: (G: IG, ctx: Ctx) => false,
@@ -1774,8 +1774,8 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
-                {e: "breakthroughResDeduct", a: 2},
                 {e: "update", a: 1},
+                {e: "breakthroughResDeduct", a: 2},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -2901,5 +2901,129 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
+    },
+    "4001": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [
+                {e: "French_Imp_buy"},
+                {e: SimpleEffectNames.shareWE, a: 1},
+            ]},
+        // {e: SimpleEffectNames.shareWE, a: 1},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "turnStart"}, effect: {e: "French_Imp_turnstart"}},
+    },
+    "4002": {
+        "school": {
+            hand: 4,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [
+            {e: "Samara_buy"},
+            {e: SimpleEffectNames.shareASIA, a: 1},
+        ]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: ""}, effect: {e: "Samara"}},
+    },
+    "4003": {
+        "school": {
+            hand: 6,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [
+            {e: "American_Independent_Film_buy"},
+        ]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "turnStart"}, effect: {e: "American_Independent_Film_turnstart"}},
+    },
+    "4004": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [
+            {e: "Polish_School_buy"},
+        ]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: ""}, effect: {e: "Polish_School"}},
+    },
+    "4005": {
+        "school": {
+            hand: 5,
+            action: 3,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [
+            {e: "Modernist_Film_buy"},
+            {e: SimpleEffectNames.shareWE, a: 1},
+        ]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: ""}, effect: {e: "Modernist_Film"}},
+    },
+    "4006": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [
+            {e: "Third_Cinema_buy"},
+        ]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: ""}, effect: {e: "Third_Cinema"}},
+    },
+    "4007": {
+        "school": {
+            hand: 4,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [
+            {e: "kitchen_sink_buy"},
+        ]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "turnStart"}, effect: {e: "kitchen_sink_turnstart"}},
+    },
+    "4008": {
+        "school": {
+            hand: 6,
+            action: 3,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [
+            {e: "High_Concept_Film_buy"},
+        ]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: ""}, effect: {e: "High_Concept_Film"}},
     },
 }
