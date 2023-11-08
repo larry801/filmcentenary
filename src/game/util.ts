@@ -1272,19 +1272,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case "era":
-            let era;
-            if (ctx.numPlayers > SimpleRuleNumPlayers) {
-                log.push(`|not2p`);
-                era = G.regions[region].era;
-            } else {
-                log.push(`|2p`);
-                era = G.twoPlayer.era;
-            }
-            log.push(`|era|${era}`);
-            subEffect = {...eff.a[era]}
-            if (eff.hasOwnProperty("target")) {
-                subEffect.target = eff.target
-            }
+            subEffect = getEraEffectByRegion(G,ctx,eff,region);
             G.e.stack.push(subEffect);
             log.push(`|era|${JSON.stringify(G.e.stack)}`);
             break;
@@ -1878,6 +1866,30 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     logger.debug(`${G.matchID}|${log.join('')}`);
     checkNextEffect(G, ctx);
     return;
+}
+
+export const getEraEffectByRegion = (G:IG, ctx:Ctx, effect:any, region:Region): any =>{
+    const log = [`getCardEraEffect|${effect}|region:${region}`];
+    let subEffect;
+    if (region !== Region.NONE){
+        let era;
+        if (ctx.numPlayers > SimpleRuleNumPlayers) {
+            log.push(`|not2p`);
+            era = G.regions[region].era;
+        } else {
+            log.push(`|2p`);
+            era = G.twoPlayer.era;
+        }
+        log.push(`|era|${era}`);
+        subEffect = {...effect.a[era]}
+        if (effect.hasOwnProperty("target")) {
+            subEffect.target = effect.target
+        }
+    } else {
+        subEffect ={};
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return subEffect;
 }
 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {

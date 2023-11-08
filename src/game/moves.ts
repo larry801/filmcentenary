@@ -58,7 +58,7 @@ import {
     endTurnEffect,
     fillEmptySlots,
     fillEventCard,
-    fillTwoPlayerBoard, loseCompetitionPower,
+    fillTwoPlayerBoard, getEraEffectByRegion, loseCompetitionPower,
     loseVp,
     payCost,
     playerEffExec,
@@ -400,10 +400,13 @@ export const chooseHand: LongFormMove = {
                 log.push(`|${target}`);
                 let cardEff = getCardEffect(target);
                 if (cardEff.hasOwnProperty("play")) {
-                    const eff = {...cardEff.play};
+                    let eff = {...cardEff.play};
                     if (eff.e !== "none") {
+                        if(eff.e === "era"){
+                           eff =  getEraEffectByRegion(G, ctx, eff, card.region);
+                        }
                         eff.target = arg.p;
-                        G.e.stack.push(eff)
+                        G.e.stack.push(eff);
                     } else {
                         log.push(`|emptyPlayEffect`);
                     }
