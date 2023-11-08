@@ -1190,6 +1190,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log.push(`|p${p}|chooseHand`);
             return true;
         } else {
+            if (pub.school === SchoolCardID.S4003){
+                pub.deposit += 1;
+                addVp(G, ctx, p, 1);
+            }
             log.push(`|prev|${JSON.stringify(playerObj.hand)}|${JSON.stringify(pub.discard)}`);
             playerObj.hand = playerObj.hand.filter((handElm) => validCardsToDiscard.indexOf(handElm) === -1);
             pub.discard = pub.discard.concat(validCardsToDiscard);
