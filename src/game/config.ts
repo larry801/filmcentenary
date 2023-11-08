@@ -126,7 +126,6 @@ export const NormalTurn: TurnConfig = {
             if (pub.school === SchoolCardID.S1301) {
                 log.push(`|montage`);
                 addVp(G, ctx, p, 1);
-                drawCardForPlayer(G, ctx, p);
                 const optionalCard ={
                     e: ItrEffects.optional,
                     a:{
