@@ -127,8 +127,15 @@ export const NormalTurn: TurnConfig = {
                 log.push(`|montage`);
                 addVp(G, ctx, p, 1);
                 drawCardForPlayer(G, ctx, p);
-                G.e.stack.push({e: "discard", a: 1})
-                changePlayerStage(G, ctx, "chooseHand", p);
+                const optionalCard ={
+                    e: ItrEffects.optional,
+                    a:{
+                        e: ItrEffects.step,
+                        a:[{e:SimpleEffectNames.draw,a:1},{e:ItrEffects.discard,a:1}]
+                    }
+                }
+                G.e.stack.push(optionalCard)
+                changePlayerStage(G, ctx, "confirmRespond", p);
             }
             if (pub.school === SchoolCardID.S2101) {
                 log.push(`|classicHollywood`);
