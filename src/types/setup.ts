@@ -21,14 +21,7 @@ import {
     ValidRegion
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
-import {
-    doFillNewEraEventDeck,
-    drawForRegion,
-    drawForTwoPlayerEra,
-    fillPlayerHand,
-    drawForSchool,
-    shuffle
-} from "../game/util";
+import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, shuffle} from "../game/util";
 import {logger} from "../game/logger";
 
 export interface CompetitionInfo {
@@ -549,6 +542,10 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[firstMovePlayer].industry = 8;
     // G.pub[firstMovePlayer].competitionPower = 7;
     // G.pub[firstMovePlayer].aesthetics = 10;
+    // G.pub[1].competitionPower = 3;
+    // G.pub[1].school = SchoolCardID.S4005;
+    // G.pub[1].aesthetics = 9;
+    // G.pub[1].vp = 39;
     // @ts-ignore
     // G.pub[firstMovePlayer].school = "S3101";
     // @ts-ignore

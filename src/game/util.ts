@@ -1053,7 +1053,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
             logger.debug(`${G.matchID}|${log.join('')}`);
             playerEffExec(G, ctx, pid);
         } else {
-            log.push(`noCash|${curDep}`);
+            log.push(`|noCash|${curDep}`);
         }
         return
     }
@@ -1151,7 +1151,7 @@ export const pushPlayersEffects = (G: IG, players: PlayerID[], eff: any) => {
 }
 
 export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
-    const log = [`playerEffExec|p${p}`];
+    const log = [`|playerEffExec|p${p}`];
     let eff = G.e.stack.pop();
     if (eff === undefined) {
         log.push("|StackEmpty|checkNextEffect");
@@ -1172,6 +1172,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         region = Region.NA;
     }
     log.push(`|c:${G.e.card}|region:${region}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
     let players = [];
     const handLength = playerObj.hand.length;
     let subEffect;
@@ -1586,8 +1587,9 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             G.c.players = players;
             log.push(`|${JSON.stringify(G.c.players)}`);
+            console.log(`|${JSON.stringify(G.c.players)}|${JSON.stringify(G.e)}`);
             G.e.stack.push(eff.a);
-            logger.debug(`${G.matchID}|${log.join('')}`);
+            logger.debug(`|${JSON.stringify(G.e.stack)}|${G.matchID}|${log.join('')}`);
             changePlayerStage(G, ctx, "chooseTarget", p);
             return;
         case "step":
@@ -1895,7 +1897,7 @@ export const getEraEffectByRegion = (G:IG, ctx:Ctx, effect:any, region:Region): 
 export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     aesAwardEndTurn(G, ctx, p);
     const pub = G.pub[parseInt(p)];
-    const log = [`aesAward|InTurn|p${p}|${pub.industry}`];
+    const log = [`aesAward|p${p}|${pub.industry}`];
     if (pub.school === SchoolCardID.S3304 && ctx.currentPlayer === p) {
         log.push(`|S3304|aesAwardInTurn|Draw`);
         drawCardForPlayer(G, ctx, p);
@@ -1905,7 +1907,7 @@ export const aesAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
 
 export const aesAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const pub = G.pub[parseInt(p)];
-    const log = [`aesAward|p${p}|${pub.aesthetics}`];
+    const log = [`aesAwardEndTurn|p${p}|${pub.aesthetics}`];
     if (pub.aesthetics > 1) {
         log.push(`|>1`);
         addVp(G, ctx, p, 1);
@@ -3227,9 +3229,13 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     if (count > 0) {
         log.push(`|stack|${JSON.stringify(G.e.stack)}`);
         G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count, target: p})
-        log.push(`|push|industryOrAestheticsLevelUp`);
+        log.push(`|push|industryOrAestheticsLevelUp|stack|${JSON.stringify(G.e.stack)}`);
+        logger.debug(`${G.matchID}|${log.join('')}|executeNow`);
+        playerEffExec(G, ctx, p);
+    } else {
+
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
-    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export const loseDeposit = (G: IG, ctx: Ctx, p: PlayerID, deposit: number) => {
