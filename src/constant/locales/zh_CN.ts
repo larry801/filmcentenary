@@ -249,6 +249,7 @@ const setting = {
     team: "2V2组队模式",
     normal: "普通模式",
     newbie: "新手模式",
+    enableSchoolExtension: "启用流派扩",
     randomFirst: "随机首位玩家",
     fixedFirst: "固定首位玩家",
     allRandom: "完全随机",

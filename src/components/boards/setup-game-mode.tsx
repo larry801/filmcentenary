@@ -1,4 +1,5 @@
 import React from 'react';
+import Checkbox from '@material-ui/core/Checkbox';
 import Radio from '@material-ui/core/Radio';
 import RadioGroup from '@material-ui/core/RadioGroup';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
@@ -20,6 +21,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     useI18n(i18n);
     const [mode, setMode] = React.useState(GameMode.NORMAL);
     const [order, setOrder] = React.useState(GameTurnOrder.FIXED);
+    const [enableSchoolExtension, setEnableSchoolExtension] = React.useState(true);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         // @ts-ignore
@@ -28,6 +30,17 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
         moves.setupGameMode({
             mode: newMode,
             order: order,
+            enableSchoolExtension: enableSchoolExtension,
+
+        })
+    };
+
+    const handleSchoolExtensionChange =  (event: React.ChangeEvent<{}>, checked: boolean) => {
+        setEnableSchoolExtension(checked);
+        moves.setupGameMode({
+            mode: mode,
+            order: order,
+            enableSchoolExtension: checked,
         })
     };
 
@@ -38,6 +51,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
         moves.setupGameMode({
             mode: mode,
             order: newOrder,
+            enableSchoolExtension: enableSchoolExtension,
         })
     };
 
@@ -55,6 +69,11 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                         disabled={ctx.numPlayers < 4}
                         value={GameMode.TEAM2V2} control={<Radio/>} label={i18n.setting.team}/>
                 </RadioGroup>
+                <FormControlLabel
+                    value={enableSchoolExtension}
+                    onChange={handleSchoolExtensionChange}
+                    disabled={ctx.numPlayers < 3}
+                    control={<Checkbox/>} label={i18n.setting.enableSchoolExtension}/>
             </FormControl>
             <FormControl component="fieldset">
                 <FormLabel component="legend">{i18n.setting.order}</FormLabel>

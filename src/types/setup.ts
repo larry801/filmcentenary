@@ -21,7 +21,14 @@ import {
     ValidRegion
 } from "./core";
 import {Ctx, PlayerID} from "boardgame.io";
-import {doFillNewEraEventDeck, drawForRegion, drawForTwoPlayerEra, fillPlayerHand, drawForSchool, shuffle} from "../game/util";
+import {
+    doFillNewEraEventDeck,
+    drawForRegion,
+    drawForTwoPlayerEra,
+    fillPlayerHand,
+    drawForSchool,
+    shuffle
+} from "../game/util";
 import {logger} from "../game/logger";
 
 export interface CompetitionInfo {
@@ -233,7 +240,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // decks[0].push(FilmCardID.F3404);
     // decks[0].push(ScoreCardID.V223);
     // decks[0].push(PersonCardID.P2203);
-    
+
     // decks[0].push(BasicCardID.B05);
     // decks[0].push(FilmCardID.F2109);
     // // decks[0].push(FilmCardID.F3110)
@@ -280,7 +287,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         order: randomOrder,
         initialOrder: randomOrder,
         logDiscrepancyWorkaround: false,
-        schoolextention :[], //SchoolCardID.S4004,SchoolCardID.S4001, SchoolCardID.S4002,SchoolCardID.S4003,
+        schoolextention: [], //SchoolCardID.S4004,SchoolCardID.S4001, SchoolCardID.S4002,SchoolCardID.S4003,
         //     SchoolCardID.S4005,SchoolCardID.S4006,
         //     SchoolCardID.S4007,SchoolCardID.S4008
         pending: {
@@ -456,15 +463,11 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         G.regions[Region.WE].share--;
         G.regions[Region.EE].share--;
     }
-    for (let sch of shuffle(ctx, [SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008]).slice(0, 2)){
-        G.schoolextention.push(sch);
-    }
-    for (let sch of shuffle(ctx, [SchoolCardID.S4001, SchoolCardID.S4002, SchoolCardID.S4003, SchoolCardID.S4004]).slice(0, 2)){
-        G.schoolextention.push(sch);
-    }
+
     // G.regions[4].legendDeckLength
     G.regions[Region.EXTENSION].share = 0;
-    G.secretInfo.regions[4].normalDeck = G.schoolextention;
+    if (G.hasSchoolExtension) {
+    }
     // G.secretInfo.regions[4].normalDeck[3] = SchoolCardID.S4006;
     // G.pub[1].school = SchoolCardID.S4003;
     if (ctx.numPlayers === SimpleRuleNumPlayers) {
@@ -472,7 +475,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         G.regions[Region.WE].share = 10;
         G.regions[Region.EE].share = 8;
         G.regions[Region.ASIA].share = 10;
-        // G.regions[Region.EXTENSION].share = 1;
         drawForTwoPlayerEra(G, ctx, IEra.ONE);
     } else {
         drawForRegion(G, ctx, Region.NA, IEra.ONE);
@@ -483,7 +485,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         // G.regions[Region.ASIA].era = IEra.TWO;
         // G.regions[Region.ASIA].share = 6;
         // G.pub[0].resource += 10;
-        drawForSchool(G, ctx, Region.EXTENSION, IEra.ONE);
         doFillNewEraEventDeck(G, ctx, IEra.ONE);
     }
     G.order.forEach(p => fillPlayerHand(G, ctx, p))

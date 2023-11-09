@@ -54,7 +54,7 @@ import {
     doBuy,
     doIndustryBreakthrough,
     doReturnSlotCard,
-    drawCardForPlayer,
+    drawCardForPlayer, drawForSchool,
     endTurnEffect,
     fillEmptySlots,
     fillEventCard,
@@ -82,6 +82,7 @@ export interface IChangePlayerSettingArgs {
 export interface ISetupGameModeArgs {
     order: GameTurnOrder,
     mode: GameMode,
+    enableSchoolExtension: boolean,
 }
 
 export const changePlayerSetting: LongFormMove = {
@@ -150,6 +151,17 @@ export const setupGameMode: LongFormMove = {
         }
         if (ctx.numPlayers >= 4) {
             G.pub[parseInt(initOrder[3])].vp = 5;
+        }
+        G.hasSchoolExtension = args.enableSchoolExtension;
+        if (G.hasSchoolExtension) {
+            for (let sch of shuffle(ctx, [SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008]).slice(0, 2)) {
+                G.schoolextention.push(sch);
+            }
+            for (let sch of shuffle(ctx, [SchoolCardID.S4001, SchoolCardID.S4002, SchoolCardID.S4003, SchoolCardID.S4004]).slice(0, 2)) {
+                G.schoolextention.push(sch);
+            }
+            G.secretInfo.regions[4].normalDeck = G.schoolextention;
+            drawForSchool(G, ctx, Region.EXTENSION, IEra.ONE);
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
     }

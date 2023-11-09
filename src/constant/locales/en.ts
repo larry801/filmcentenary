@@ -249,6 +249,7 @@ const setting: LocaleSettings = {
     team: "2V2 Team Mode",
     normal: "Normal Mode",
     newbie: "Newbie Mode",
+    enableSchoolExtension: "Enable school extension",
     randomFirst: "Random First Player",
     fixedFirst: "Fixed First Player",
     allRandom: "Random Order",

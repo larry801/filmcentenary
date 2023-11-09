@@ -2286,12 +2286,6 @@ export const drawForSchool = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
             s.card = c;
         }
     }
-    // let c = l.pop();
-    // if (c === undefined) {
-    //     return;
-    // } else {
-    //     G.regions[r].legend.card = c;
-    // }
 }
 
 export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
