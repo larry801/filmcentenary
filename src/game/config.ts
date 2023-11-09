@@ -195,17 +195,13 @@ export const NormalTurn: TurnConfig = {
             }
             if (pub.school === SchoolCardID.S4007) {
                 log.push(`|"Kitchen Sink Film`);
-                let number = 0;
                 loseVp(G, ctx, p, G.player[parseInt(p)].hand.length);
-                for (let pkl = 0; pkl < ctx.numPlayers; pkl++){
-                    // console.log(G.pub[pkl].handSize, G.player[parseInt(p)].hand.length);
-                    if (G.player[pkl].hand.length > G.player[parseInt(p)].hand.length){
-                        number++;
+                G.order.forEach((pid)=>{
+                    if (G.player[parseInt(pid)].hand.length > G.player[parseInt(p)].hand.length){
+                        log.push(`|p${pid}|draw`);
+                        drawCardForPlayer(G, ctx, p);
                     }
-                }
-                for (let ki = 0; ki < number; ki ++){
-                    drawCardForPlayer(G, ctx, p);
-                }
+                });
             }
         } else {
             log.push(`|playerConceded|endTurn`);
