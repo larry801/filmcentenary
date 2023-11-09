@@ -5,6 +5,7 @@ import {
     B05,
     BasicCardID,
     BuildingType,
+    CardCategory,
     CardID,
     CardType,
     ClassicCardID,
@@ -21,8 +22,8 @@ import {
     IRegionInfo,
     ItrEffects,
     Region,
-    schoolCard,
-    SchoolCardID, SimpleEffectNames,
+    SchoolCardID,
+    SimpleEffectNames,
     SimpleRuleNumPlayers,
     valid_regions,
     VictoryType
@@ -46,7 +47,8 @@ import {
     checkCompetitionDefender,
     checkNextEffect,
     cinemaInRegion,
-    cinemaSlotsAvailable, competitionCleanUp,
+    cinemaSlotsAvailable,
+    competitionCleanUp,
     competitionResultSettle,
     curPub,
     die,
@@ -54,11 +56,14 @@ import {
     doBuy,
     doIndustryBreakthrough,
     doReturnSlotCard,
-    drawCardForPlayer, drawForSchool,
+    drawCardForPlayer,
+    drawForSchool,
     endTurnEffect,
     fillEmptySlots,
     fillEventCard,
-    fillTwoPlayerBoard, getEraEffectByRegion, loseCompetitionPower,
+    fillTwoPlayerBoard,
+    getEraEffectByRegion,
+    loseCompetitionPower,
     loseVp,
     payCost,
     playerEffExec,
@@ -372,7 +377,7 @@ export const chooseTarget: LongFormMove = {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 eff.target = arg.target;
                 G.e.stack.push(eff);
-                playerEffExec(G ,ctx ,targetPlayerId);
+                playerEffExec(G, ctx, targetPlayerId);
                 return
         }
     }
@@ -407,15 +412,51 @@ export const chooseHand: LongFormMove = {
         const hand = G.player[parseInt(p)].hand;
         const card: IBasicCard | INormalOrLegendCard = getCardById(target);
         log.push(`|prev|hand|${JSON.stringify(hand)}|discard|${JSON.stringify(pub.discard)}`);
+
         switch (eff.e) {
+            case "discardBasic":
+                if (card.category !== CardCategory.BASIC) {
+                    return INVALID_MOVE;
+                } else {
+                    break;
+                }
+            case "discardLegend":
+                if (card.category !== CardCategory.LEGEND) {
+                    return INVALID_MOVE;
+                } else {
+                    break;
+                }
+            case "discardIndustry":
+                if (card.industry === 0) {
+                    return INVALID_MOVE;
+                } else {
+                    break;
+                }
+            case "discardAesthetics":
+                if (card.aesthetics === 0) {
+                    return INVALID_MOVE;
+                } else {
+                    break;
+                }
+            case "discardNormalOrLegend":
+                if (card.category !== CardCategory.LEGEND && card.category !== CardCategory.NORMAL) {
+                    return INVALID_MOVE;
+                } else {
+                    break;
+                }
+            default:
+                break;
+        }
+        switch (eff.e) {
+            // Effect of "Blue" S3303 only
             case "playedCardInTurnEffect":
                 log.push(`|${target}`);
                 let cardEff = getCardEffect(target);
                 if (cardEff.hasOwnProperty("play")) {
                     let eff = {...cardEff.play};
                     if (eff.e !== "none") {
-                        if(eff.e === "era"){
-                           eff =  getEraEffectByRegion(G, ctx, eff, card.region);
+                        if (eff.e === "era") {
+                            eff = getEraEffectByRegion(G, ctx, eff, card.region);
                         }
                         eff.target = arg.p;
                         G.e.stack.push(eff);
@@ -430,7 +471,7 @@ export const chooseHand: LongFormMove = {
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
                 //流派扩：波兰学派
-                if (pub.school === SchoolCardID.S4004){
+                if (pub.school === SchoolCardID.S4004) {
                     drawCardForPlayer(G, ctx, p);
                 }
                 startBreakThrough(G, ctx, arg.p, arg.hand);
@@ -439,13 +480,13 @@ export const chooseHand: LongFormMove = {
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
                 //流派扩：波兰学派
-                if (pub.school === SchoolCardID.S4004){
+                if (pub.school === SchoolCardID.S4004) {
                     drawCardForPlayer(G, ctx, p);
                 }
                 if (buildingInRegion(G, ctx, Region.EE, p)) {
                     addVp(G, ctx, p, card.vp)
                 }
-                break
+                break;
             case "handToAnyPlayer":
                 const allCardsIndex = pub.allCards.indexOf(arg.hand);
                 if (allCardsIndex !== -1) {
@@ -457,10 +498,10 @@ export const chooseHand: LongFormMove = {
                 G.player[parseInt(G.c.players[0])].hand.push(arg.hand);
                 G.pub[parseInt(G.c.players[0])].allCards.push(arg.hand);
                 //流派扩：波兰学派
-                if (pub.school === SchoolCardID.S4004 && parseInt(G.c.players[0]) !== parseInt(p)){
+                if (pub.school === SchoolCardID.S4004 && parseInt(G.c.players[0]) !== parseInt(p)) {
                     drawCardForPlayer(G, ctx, p);
                 }
-                if (pub.school !== SchoolCardID.S4004 && G.pub[parseInt(G.c.players[0])].school === SchoolCardID.S4004 && arg.hand in BasicCardID){
+                if (pub.school !== SchoolCardID.S4004 && G.pub[parseInt(G.c.players[0])].school === SchoolCardID.S4004 && arg.hand in BasicCardID) {
                     addVp(G, ctx, G.c.players[0], 2);
                 }
                 if (eff.a > 1) {
@@ -474,7 +515,7 @@ export const chooseHand: LongFormMove = {
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
                 //流派扩：波兰学派
-                if (pub.school === SchoolCardID.S4004){
+                if (pub.school === SchoolCardID.S4004) {
                     drawCardForPlayer(G, ctx, p);
                 }
                 const vpToAdd = getCardById(arg.hand).vp;
@@ -496,7 +537,7 @@ export const chooseHand: LongFormMove = {
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
                 //流派扩：波兰学派
-                if (pub.school === SchoolCardID.S4004){
+                if (pub.school === SchoolCardID.S4004) {
                     drawCardForPlayer(G, ctx, p);
                 }
                 if (eff.a > 1) {
@@ -523,7 +564,7 @@ export const chooseHand: LongFormMove = {
                     G.e.stack.push(eff);
                     log.push(`|stack|${JSON.stringify(G.e.stack)}`);
                 }
-                if (pub.school === SchoolCardID.S4003){
+                if (pub.school === SchoolCardID.S4003) {
                     pub.deposit += 1;
                     addVp(G, ctx, p, 1);
                 }
@@ -758,7 +799,7 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         pub.discard.push(card);
                         log.push(`|${JSON.stringify(pub.discard)}`);
-                        if (pub.school === SchoolCardID.S4003){
+                        if (pub.school === SchoolCardID.S4003) {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
                         }
@@ -780,7 +821,7 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         pub.discard.push(card);
                         log.push(`|${JSON.stringify(pub.discard)}`);
-                        if (pub.school === SchoolCardID.S4003){
+                        if (pub.school === SchoolCardID.S4003) {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
                         }
@@ -801,7 +842,7 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         pub.discard.push(card);
                         log.push(`|${JSON.stringify(pub.discard)}`);
-                        if (pub.school === SchoolCardID.S4003){
+                        if (pub.school === SchoolCardID.S4003) {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
                         }
@@ -823,7 +864,7 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         pub.discard.push(card);
                         log.push(`|${JSON.stringify(pub.discard)}`);
-                        if (pub.school === SchoolCardID.S4003){
+                        if (pub.school === SchoolCardID.S4003) {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
                         }
@@ -858,7 +899,7 @@ export const peek: LongFormMove = {
                         log.push(`|discard|${card}`);
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         pub.discard.push(card);
-                        if (pub.school === SchoolCardID.S4003){
+                        if (pub.school === SchoolCardID.S4003) {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
                         }
@@ -957,8 +998,8 @@ export const chooseEvent: LongFormMove = {
                     G.order.forEach(j => {
                         const pidInt = parseInt(j)
                         const pub = G.pub[pidInt];
-                        addVp(G ,ctx, j , pub.industry);
-                        addVp(G ,ctx, j , pub.aesthetics);
+                        addVp(G, ctx, j, pub.industry);
+                        addVp(G, ctx, j, pub.aesthetics);
                     })
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);
@@ -975,16 +1016,16 @@ export const chooseEvent: LongFormMove = {
                         })
                         switch (championRegionCount) {
                             case 4:
-                                addVp(G ,ctx, j , 20);
+                                addVp(G, ctx, j, 20);
                                 break;
                             case 3:
-                                addVp(G ,ctx, j , 12);
+                                addVp(G, ctx, j, 12);
                                 break;
                             case 2:
-                                addVp(G ,ctx, j , 6);
+                                addVp(G, ctx, j, 6);
                                 break;
                             case 1:
-                                addVp(G ,ctx, j , 2);
+                                addVp(G, ctx, j, 2);
                                 break;
                             default:
                                 break;
@@ -1000,13 +1041,13 @@ export const chooseEvent: LongFormMove = {
                         pub.champions.forEach(c => {
                             switch (c.era) {
                                 case IEra.ONE:
-                                    addVp(G ,ctx, j , 2);
+                                    addVp(G, ctx, j, 2);
                                     break;
                                 case IEra.TWO:
-                                    addVp(G ,ctx, j , 4);
+                                    addVp(G, ctx, j, 4);
                                     break;
                                 case IEra.THREE:
-                                    addVp(G ,ctx, j , 6);
+                                    addVp(G, ctx, j, 6);
                                     break;
                             }
                         });
@@ -1147,7 +1188,7 @@ export const confirmRespond: LongFormMove = {
                             }
                         })
                         pub.archive.push(deck.splice(indexOfTarget, 1)[0]);
-                        if (pub.school === SchoolCardID.S4004){
+                        if (pub.school === SchoolCardID.S4004) {
                             drawCardForPlayer(G, ctx, p);
                         }
                     }
@@ -1158,7 +1199,7 @@ export const confirmRespond: LongFormMove = {
                             }
                         })
                         pub.archive.push(hand.splice(indexOfTarget, 1)[0]);
-                        if (pub.school === SchoolCardID.S4004){
+                        if (pub.school === SchoolCardID.S4004) {
                             drawCardForPlayer(G, ctx, p);
                         }
                     }
@@ -1169,7 +1210,7 @@ export const confirmRespond: LongFormMove = {
                             }
                         })
                         pub.archive.push(pub.discard.splice(indexOfTarget, 1)[0]);
-                        if (pub.school === SchoolCardID.S4004){
+                        if (pub.school === SchoolCardID.S4004) {
                             drawCardForPlayer(G, ctx, p);
                         }
                     }
@@ -1206,8 +1247,8 @@ export const playCard: LongFormMove = {
         let has_4001 = false;
         let id_4001 = 0;
         let vp_4001 = 0;
-        for (let pkl = 0; pkl < ctx.numPlayers; pkl++){
-            if (G.pub[pkl].school === SchoolCardID.S4001){
+        for (let pkl = 0; pkl < ctx.numPlayers; pkl++) {
+            if (G.pub[pkl].school === SchoolCardID.S4001) {
                 vp_4001 = G.pub[pkl].vp;
                 has_4001 = true;
                 id_4001 = pkl;
@@ -1221,7 +1262,7 @@ export const playCard: LongFormMove = {
         const hand = G.player[parseInt(arg.playerID)].hand;
         if (cinemaInRegion(G, ctx, playCard.region, arg.playerID) && playCard.type === CardType.F) {
             log.push(`|cinemaInRegion|${playCard.region}`);
-            switch (pub.school){
+            switch (pub.school) {
                 //流派扩：玛萨拉电影
                 case SchoolCardID.S4002:
                     drawCardForPlayer(G, ctx, arg.playerID);
@@ -1233,14 +1274,14 @@ export const playCard: LongFormMove = {
                     break;
             }
         }
-        if (pub.school === SchoolCardID.S4008 && playCard.industry > 0){
+        if (pub.school === SchoolCardID.S4008 && playCard.industry > 0) {
             //流派扩：高概
             addRes(G, ctx, arg.playerID, playCard.industry);
             addVp(G, ctx, arg.playerID, playCard.industry);
         }
-        if (pub.school === SchoolCardID.S4005 && playCard.aesthetics > 0){
+        if (pub.school === SchoolCardID.S4005 && playCard.aesthetics > 0) {
             //流派扩：现代主义
-            switch (playCard.aesthetics){
+            switch (playCard.aesthetics) {
                 case 1:
                     addRes(G, ctx, arg.playerID, 1);
                     addVp(G, ctx, arg.playerID, 2);
@@ -1269,9 +1310,9 @@ export const playCard: LongFormMove = {
             switch (privateInfo.classicFilmAutoMove) {
                 case ClassicFilmAutoMoveMode.AESTHETICS_AWARD:
                     aesAward(G, ctx, arg.playerID);
-                    if (G.pub[parseInt(arg.playerID)].school === SchoolCardID.S4001){
-                        if (G.pub[parseInt(arg.playerID)].aesthetics >= 5){
-                            addRes(G,ctx, arg.playerID, 1);
+                    if (G.pub[parseInt(arg.playerID)].school === SchoolCardID.S4001) {
+                        if (G.pub[parseInt(arg.playerID)].aesthetics >= 5) {
+                            addRes(G, ctx, arg.playerID, 1);
                         }
                     }
                     log.push(`|ClassicFilm|AutoAesthetics`);
@@ -1303,9 +1344,9 @@ export const playCard: LongFormMove = {
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
         //流派扩：法国印象派
-        if (has_4001){
-            if (G.pub[id_4001].school === SchoolCardID.S4001){
-                if (G.pub[id_4001].vp - vp_4001 >= 3){
+        if (has_4001) {
+            if (G.pub[id_4001].school === SchoolCardID.S4001) {
+                if (G.pub[id_4001].vp - vp_4001 >= 3) {
                     G.pub[id_4001].resource += 1;
                 }
             }
@@ -1368,7 +1409,7 @@ export const breakthrough: LongFormMove = {
         G.e.card = c.cardId;
         G.player[parseInt(arg.playerID)].hand.splice(arg.idx, 1);
         pub.archive.push(arg.card);
-        if (pub.school === SchoolCardID.S4004){
+        if (pub.school === SchoolCardID.S4004) {
             drawCardForPlayer(G, ctx, arg.playerID);
         }
         log.push(`|startBreakthrough`);
