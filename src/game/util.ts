@@ -3293,6 +3293,7 @@ export const buildBuildingFor = (G: IG, ctx: Ctx, r: ValidRegion, p: PlayerID, b
             built = true;
         }
     })
+    addVp(G, ctx, p, 3);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -3630,14 +3631,6 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: b
         f.card += c.vp
     });
     log.push(`|after|${f.card}`);
-    if (p.building.cinemaBuilt) {
-        log.push(`|p${pid}|own|cinema`);
-        f.building += 3;
-    }
-    if (p.building.studioBuilt) {
-        log.push(`|p${pid}|own|studio`);
-        f.building += 3;
-    }
     if (p.industry === 10) {
         log.push(`|vp|${p.vp}|before|${f.industryAward}`);
         validCards.forEach(eraCard => {
