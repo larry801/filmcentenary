@@ -1810,7 +1810,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     eff.a--;
                     G.e.stack.push(eff);
                 }
-                log.push(`|chooseEffect`);
+                log.push(`|${JSON.stringify(G.e)}|chooseEffect`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 changePlayerStage(G, ctx, "chooseEffect", targetPlayer);
                 return;
@@ -3230,10 +3230,9 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
         log.push(`|stack|${JSON.stringify(G.e.stack)}`);
         G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count, target: p})
         log.push(`|push|industryOrAestheticsLevelUp|stack|${JSON.stringify(G.e.stack)}`);
-        logger.debug(`${G.matchID}|${log.join('')}|executeNow`);
-        playerEffExec(G, ctx, p);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        // playerEffExec(G, ctx, p);
     } else {
-
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
