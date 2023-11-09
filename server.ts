@@ -2,7 +2,7 @@ import path from 'path';
 import * as Koa from "koa"
 import serve from 'koa-static';
 import {FilmCentenaryGame} from "./src/Game";
-import {Server} from "boardgame.io/server";
+import {Server, Origins} from "boardgame.io/server";
 import {PostgresStore} from "bgio-postgres";
 
 const server = process.env.POSTGRES_URL ? Server({
@@ -14,7 +14,17 @@ const server = process.env.POSTGRES_URL ? Server({
             timezone: '+08:00'
         }
     ),
-}) : Server({games: [FilmCentenaryGame]});
+    origins: [
+        // Allow any domain connect.
+        '*'
+    ]
+}) : Server({
+    games: [FilmCentenaryGame],
+    origins: [
+        // Allow any domain connect.
+        '*'
+    ]
+});
 
 const PORT = process.env.PORT || "3000";
 const {app} = server;

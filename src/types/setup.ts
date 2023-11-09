@@ -41,6 +41,7 @@ export interface CompetitionInfo {
 export interface IG {
     updateCardHistory: CardID[][],
     mode: GameMode,
+    hasSchoolExtension: boolean,
     randomOrder: boolean,
     regionScoreCompensateMarker: PlayerID,
     eventDeckLength: number,
@@ -256,6 +257,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     let G: IG = {
         updateCardHistory: [],
         mode: GameMode.NORMAL,
+        hasSchoolExtension: false,
         randomOrder: false,
         regionScoreCompensateMarker: "0",
         eventDeckLength: 0,

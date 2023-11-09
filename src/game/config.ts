@@ -229,7 +229,12 @@ export const NormalTurn: TurnConfig = {
         updateSlot: updateSlotStage,
         peek: peekStage,
         payAdditionalCost: payAdditionalCostStage,
-    },
+    }
+}
+
+export const NormalPhase: PhaseConfig = {
+    next: "NormalPhase",
+    turn: NormalTurn,
     moves: {
         changePlayerSetting: changePlayerSetting,
         drawCard: drawCard,
@@ -248,11 +253,6 @@ export const NormalTurn: TurnConfig = {
         peek: peek,
         concede: concedeMove,
     },
-}
-
-export const NormalPhase: PhaseConfig = {
-    next: "NormalPhase",
-    turn: NormalTurn,
 }
 
 export const InitPhase: PhaseConfig = {
