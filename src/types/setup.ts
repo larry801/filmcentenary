@@ -64,7 +64,7 @@ export interface IG {
     initialOrder: PlayerID[],
     playerCount: number,
     //流派扩
-    schoolextention: SchoolCardID[],
+    schoolExt: SchoolCardID[],
     activeEvents: EventCardID[],
     logDiscrepancyWorkaround: boolean,
     pending: {
@@ -287,7 +287,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         order: randomOrder,
         initialOrder: randomOrder,
         logDiscrepancyWorkaround: false,
-        schoolextention: [], //SchoolCardID.S4004,SchoolCardID.S4001, SchoolCardID.S4002,SchoolCardID.S4003,
+        schoolExt: [], //SchoolCardID.S4004,SchoolCardID.S4001, SchoolCardID.S4002,SchoolCardID.S4003,
         //     SchoolCardID.S4005,SchoolCardID.S4006,
         //     SchoolCardID.S4007,SchoolCardID.S4008
         pending: {

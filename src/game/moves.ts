@@ -155,12 +155,12 @@ export const setupGameMode: LongFormMove = {
         G.hasSchoolExtension = args.enableSchoolExtension;
         if (G.hasSchoolExtension) {
             for (let sch of shuffle(ctx, [SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008]).slice(0, 2)) {
-                G.schoolextention.push(sch);
+                G.schoolExt.push(sch);
             }
             for (let sch of shuffle(ctx, [SchoolCardID.S4001, SchoolCardID.S4002, SchoolCardID.S4003, SchoolCardID.S4004]).slice(0, 2)) {
-                G.schoolextention.push(sch);
+                G.schoolExt.push(sch);
             }
-            G.secretInfo.regions[4].normalDeck = G.schoolextention;
+            G.secretInfo.regions[4].normalDeck = G.schoolExt;
             drawForSchool(G, ctx, Region.EXTENSION, IEra.ONE);
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
