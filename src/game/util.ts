@@ -2932,10 +2932,6 @@ export function doIndustryBreakthrough(G: IG, ctx: Ctx, player: PlayerID) {
         log.push(`|${additionalCost}|canUpgrade`);
         G.e.choices.push({e: "industryLevelUpCost", a: 1});
     }
-    if (p.industry > p.competitionPower) {
-        log.push(`|${additionalCost}|canAddCompetitionPower`);
-        G.e.choices.push({e: SimpleEffectNames.addCompetitionPower, a: 2});
-    }
     if (ctx.numPlayers > SimpleRuleNumPlayers) {
         if (totalResource >= 3 && studioSlotsAvailable(G, ctx, player).length > 0) {
             log.push(`|studio`);
