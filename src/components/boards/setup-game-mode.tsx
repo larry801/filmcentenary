@@ -21,7 +21,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     useI18n(i18n);
     const [mode, setMode] = React.useState(GameMode.NORMAL);
     const [order, setOrder] = React.useState(GameTurnOrder.FIXED);
-    const [enableSchoolExtension, setEnableSchoolExtension] = React.useState(true);
+    const [enableSchoolExtension, setEnableSchoolExtension] = React.useState(false);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         // @ts-ignore
