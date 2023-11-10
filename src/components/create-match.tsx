@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState, useEffect, useRef} from "react";
 import {Player} from "../Game";
 import {Link, useHistory} from "react-router-dom";
 import {createMatch, Visibility} from "../api/match";
@@ -17,6 +17,24 @@ import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import TableCell from "@material-ui/core/TableCell";
 import TableBody from "@material-ui/core/TableBody";
+import {LobbyClient} from 'boardgame.io/client';
+
+type PlayerMetadata = {
+    id: number;
+    name?: string;
+    data?: any;
+    isConnected?: boolean;
+};
+
+interface MatchData {
+    matchID: string;
+    gameName: string;
+    players: PlayerMetadata [];
+    gameover?: any;
+    nextMatchID?: string;
+    createdAt: number;
+    updatedAt: number;
+}
 
 interface CreateMatchProps {
     serverURL: string;
@@ -34,6 +52,29 @@ const useStyles = makeStyles((theme: Theme) =>
     }),
 );
 
+interface IUseInterval {
+    (callback: () => void, interval: number): void;
+}
+
+const useInterval: IUseInterval = (callback, interval) => {
+    const savedCallback = useRef<(() => void) | null>(null);
+    // After every render, save the latest callback into our ref.
+    useEffect(() => {
+        savedCallback.current = callback;
+    });
+
+    useEffect(() => {
+        function tick() {
+            if (savedCallback.current) {
+                savedCallback.current();
+            }
+        }
+
+        let id = setInterval(tick, interval);
+        return () => clearInterval(id);
+    }, [interval]);
+};
+
 const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
     useI18n(i18n);
     const history = useHistory();
@@ -45,6 +86,7 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
     const [error, setError] = React.useState("");
     const [numPlayers, setNumPlayers] = React.useState(4);
     const [isPublic, setIsPublic] = React.useState(false);
+    const [matches, setMatches] = React.useState([]);
 
     const onClick = () => {
         setClicked(true);
@@ -62,6 +104,16 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
         setIsPublic(!isPublic);
     }
 
+    const lobbyClient = new LobbyClient({server: serverURL});
+
+    useInterval(() => {
+        lobbyClient.listMatches('film', {isGameover: false}).then((matches) => {
+            // @ts-ignore
+            setMatches(matches.matches);
+        }).catch(() => {
+        })
+    }, 4000);
+
     return <Grid container>
         <Grid item container xs={12} sm={8}>
             <Table size="small" aria-label="Public match table">
@@ -74,11 +126,34 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-
+                    {matches.map((match: MatchData) => {
+                        return <TableRow key={match.matchID}>
+                            <TableCell component="th" scope="row">
+                                {match.matchID}
+                            </TableCell>
+                            <TableCell>
+                                {match.players.length}
+                            </TableCell>
+                            <TableCell>
+                                {match.players.map((player, idx) => {
+                                    if (player.name === undefined) {
+                                        return <a>{`${i18n.lobby.join}|${idx + 1}`}</a>
+                                    } else {
+                                        return <Typography>{player.name} {player.isConnected ? "(+)" : "(-)"} </Typography>
+                                    }
+                                })}
+                            </TableCell>
+                            <TableCell>
+                                <a
+                                    href={`${serverURL}/join/${match.matchID}/spectate`}
+                                >{i18n.lobby.spectate}</a>
+                            </TableCell>
+                        </TableRow>
+                    })}
                 </TableBody>
             </Table>
         </Grid>
-        <Grid container xs={12} sm={4}>
+        <Grid item container xs={12} sm={4}>
             <Grid item container xs={12} alignItems="center">
                 <FormControl variant="outlined" className={classes.formControl}>
                     <Grid component="label" container alignItems="center" spacing={1}>
@@ -106,7 +181,9 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
             </Grid>
             <Grid item container xs={12} sm={7}>
                 {matchID && history.push(`/join/${matchID}/${player}`)}
-                {error && <Typography>{error} {i18n.drawer.pleaseTry}  <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link> </Typography>}
+                {error &&
+                    <Typography>{error} {i18n.drawer.pleaseTry} <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link>
+                    </Typography>}
                 <Button onClick={onClick} disabled={clicked} fullWidth color={"primary"} variant="contained">
                     {i18n.lobby.createPrivateMatch}
                 </Button>
