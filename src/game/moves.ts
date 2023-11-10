@@ -157,7 +157,7 @@ export const setupGameMode: LongFormMove = {
             G.pub[parseInt(initOrder[3])].vp = 5;
         }
         if(args.enableSchoolExtension) {
-            log.push(`drawForSchoolExtension`)
+            log.push(`|drawForSchoolExtension`)
             for (let sch of shuffle(ctx, [SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008]).slice(0, 2)) {
                 log.push(`|${sch}|drawn`);
                 G.schoolExt.push(sch);
@@ -166,8 +166,14 @@ export const setupGameMode: LongFormMove = {
                 log.push(`|${sch}|drawn`);
                 G.schoolExt.push(sch);
             }
+            let schoolCardPopped = G.schoolExt.pop();
+            if (schoolCardPopped === undefined) {
+                throw new Error(schoolCardPopped);
+            } else {
+                G.regions[Region.EXTENSION].legend.card = schoolCardPopped;
+            }
             for (let iCardSlot of G.regions[Region.EXTENSION].normal) {
-                let schoolCardPopped = G.schoolExt.pop();
+                schoolCardPopped = G.schoolExt.pop();
                 if (schoolCardPopped === undefined) {
                     throw new Error(schoolCardPopped);
                 } else {
@@ -176,6 +182,7 @@ export const setupGameMode: LongFormMove = {
             }
         } else {
             log.push(`cleanUpSchoolExtension`)
+            G.regions[Region.EXTENSION].legend.card = null;
             for (let iCardSlot of G.regions[Region.EXTENSION].normal) {
                 iCardSlot.card = null;
             }
