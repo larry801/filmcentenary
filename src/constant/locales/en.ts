@@ -554,7 +554,7 @@ const en = {
             board: "Board",
             card: "Cards",
             building: "Building",
-            iAward: "Industry Award",
+            industryAward: "Industry Award",
             aesAward: "Aesthetics Award",
             archive: "Archive",
             events: "Event&Card Scoring",

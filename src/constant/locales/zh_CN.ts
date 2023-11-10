@@ -602,7 +602,7 @@ const zh_CN: Locale = {
             board: "面板",
             card: "牌库分数",
             building: "建筑",
-            iAward: "工业大奖",
+            industryAward: "工业大奖",
             aesAward: "美学大奖",
             archive: "档案馆",
             events: "计分效果",
