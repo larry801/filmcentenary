@@ -32,6 +32,9 @@ render(
             <Route exact path="/join/:matchID/:player">
                 <JoinPage serverURL={`${window.location.protocol}//${window.location.host}`}/>
             </Route>
+            <Route exact path="/local2p">
+                <Local2p/>
+            </Route>
             <Route exact path="/local4p">
                 <Local4p/>
             </Route>
