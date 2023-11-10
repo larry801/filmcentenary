@@ -964,6 +964,7 @@ const zh_CN: Locale = {
         player: "玩家",
     },
     confirm: "确认",
+    disconnected: "已掉线请刷新",
     hand: {
         title: "手牌"
     },

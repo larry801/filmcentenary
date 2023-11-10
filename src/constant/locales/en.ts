@@ -892,6 +892,7 @@ const en = {
         spectator: "Spectator",
         player: "Player",
     },
+    disconnected: "Disconnected Please refresh",
     pub: {
         legend: "Legend",
         lastRoundOfGame: "Last Round",

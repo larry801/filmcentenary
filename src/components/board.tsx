@@ -26,7 +26,7 @@ import {useI18n} from "@i18n-chain/react";
 import OperationPanel from "./boards/operation";
 import FinalScoreTable from "./boards/final";
 import {getCardName} from "./card";
-import { nanoid } from "nanoid";
+import {nanoid} from "nanoid";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
 import SetupPanel from "./boards/setup-game-mode";
@@ -37,6 +37,15 @@ import Dialog from "@material-ui/core/Dialog";
 import ErrorBoundary from "./error";
 
 let sound: HTMLAudioElement;
+let connectedSound: HTMLAudioElement;
+
+export const playConnectedSound = () => {
+    if (!connectedSound) {
+        connectedSound = new Audio(playerTurnSfx);
+    }
+    connectedSound.play().then(() => {
+    });
+}
 
 export const playSound = () => {
     if (!sound) {
@@ -68,15 +77,25 @@ export const FilmCentenaryBoard = ({
                                        matchData,
                                        matchID,
                                        playerID,
-                                       isActive
+                                       isActive,
+                                       isMultiplayer,
+                                       isConnected
                                    }: BoardProps<IG>) => {
 
     useI18n(i18n);
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
     const canMove = ctx.currentPlayer === playerID ? canMoveCurrent : canMoveOutOfTurn;
-    const curPlayerSuffix = "(*)"
+    const curPlayerSuffix = "(*)";
+    const connectedPrefix = "---";
     const prevIsActive = usePrevious(isActive);
+    const prevIsConnected = usePrevious(isConnected);
+
+    React.useEffect(() => {
+        if (isMultiplayer && !isConnected && prevIsConnected) {
+            playConnectedSound();
+        }
+    }, [prevIsConnected, isConnected])
 
     React.useEffect(() => {
         if (isActive && prevIsActive === false) {
@@ -87,11 +106,7 @@ export const FilmCentenaryBoard = ({
     const locale = i18n._.getLocaleName();
 
     React.useEffect((): () => void => {
-        if (isActive) {
-            document.title = curPlayerSuffix + i18n.title
-        } else {
-            document.title = i18n.title
-        }
+        document.title = (isActive ? curPlayerSuffix : "") + i18n.title;
         return () => document.title = i18n.title;
     }, [isActive, locale])
 
@@ -204,7 +219,7 @@ export const FilmCentenaryBoard = ({
             <BoardRegion getPlayerName={getName} r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx}
                          playerID={playerID}/>
             <SchoolRegion getPlayerName={getName} r={Region.NONE} moves={moves} region={G.regions[4]} G={G} ctx={ctx}
-                         playerID={playerID}/>
+                          playerID={playerID}/>
         </Grid>
 
     const [open, setOpen] = React.useState(true);
@@ -287,15 +302,16 @@ export const FilmCentenaryBoard = ({
         : <></>
 
     return <ErrorBoundary>
-        <Grid container justify="flex-start" key={`film-centenary-board-player-${playerID}`}>
+        <Grid container justifyContent="flex-start" key={`film-centenary-board-player-${playerID}`}>
             {gameOverResult}
             {G.pending.lastRoundOfGame && ctx.gameover === undefined ?
-                <Grid item container xs={12} justify="space-evenly">
+                <Grid item container xs={12} justifyContent="space-evenly">
                     <Paper variant="elevation">
                         <Typography variant="h4" component="h1">{i18n.pub.lastRoundOfGame}</Typography>
                     </Paper> </Grid> : <></>}
             {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
                 <Grid item xs={4}>
+                    {isMultiplayer && !isConnected ? <Typography>${i18n.disconnected}</Typography> : ""}
                     <Typography>{`${i18n.pub.events}(${G.eventDeckLength})`}</Typography
                     ></Grid>
                 {G.events.map((e: EventCardID, idx: number) => <Grid key={idx} item xs={4}>
@@ -306,7 +322,7 @@ export const FilmCentenaryBoard = ({
             </Grid> : <></>}
             {playerID === null ? cardBoard : <></>}
             {upperPanel}
-            <Grid item container justify="space-evenly">
+            <Grid item container justifyContent="space-evenly">
                 <Grid item><Typography>{i18n.card.B01} {G.basicCards.B01}</Typography></Grid>
                 <Grid item><Typography>{i18n.card.B02} {G.basicCards.B02}</Typography></Grid>
                 <Grid item><Typography>{i18n.card.B03} {G.basicCards.B03}</Typography></Grid>
