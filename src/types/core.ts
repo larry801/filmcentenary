@@ -428,7 +428,7 @@ export interface IBuildingSlot {
 }
 
 export interface IRegionInfo {
-    completedModernScoring: boolean,
+    completedLastScoring: boolean,
     era: IEra,
     buildings: IBuildingSlot[],
     share: number,

@@ -63,7 +63,6 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                     <FormControlLabel
                         value={GameMode.NORMAL} control={<Radio/>} label={i18n.setting.normal}/>
                     <FormControlLabel
-                        disabled
                         value={GameMode.NEWBIE} control={<Radio/>} label={i18n.setting.newbie}/>
                     <FormControlLabel
                         disabled={ctx.numPlayers < 4}

@@ -235,9 +235,9 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "skipBreakthrough":
             return;
         case SimpleEffectNames.LES_CHAIERS_DU_CINEMA:
-            if(pub.school !== null){
+            if (pub.school !== null) {
                 const schoolHandLimit = getSchoolHandLimit(G, p);
-                if (schoolHandLimit > 5){
+                if (schoolHandLimit > 5) {
                     pub.LES_CHAIERS_DU_CINEMA = true;
                 }
             }
@@ -419,8 +419,7 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
             return;
         }
         //流派扩：波兰学派
-        if (pub.school == SchoolCardID.S4004)
-        {
+        if (pub.school == SchoolCardID.S4004) {
             addVp(G, ctx, p, 2);
         }
     } else {
@@ -476,8 +475,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             log.push(`|${card.cardId}|depleted`);
         }
         //流派扩：波兰学派
-        if (pub.school == SchoolCardID.S4004)
-        {
+        if (pub.school == SchoolCardID.S4004) {
             addVp(G, ctx, p, 2);
         }
     } else {
@@ -565,11 +563,11 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             //     pub.LES_CHAIERS_DU_CINEMA = false
             // }
             pub.school = card.cardId as SchoolCardID;
-            if (pub.school === SchoolCardID.S4006){
+            if (pub.school === SchoolCardID.S4006) {
                 pub.deposit = 0;
                 pub.action++;
             }
-            switch(pub.school){
+            switch (pub.school) {
                 case SchoolCardID.S4001:
                 case SchoolCardID.S4002:
                 case SchoolCardID.S4003:
@@ -577,7 +575,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 case SchoolCardID.S4005:
                 case SchoolCardID.S4006:
                 case SchoolCardID.S4007:
-                case SchoolCardID.S4008:       
+                case SchoolCardID.S4008:
                     pub.bought_extension = true;
             }
         } else {
@@ -681,7 +679,7 @@ export const posOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
 
 export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
     if (r === Region.NONE) return false;
-    return !G.regions[r].completedModernScoring && (regionCardDepleted(G, r) || shareDepleted(G, ctx, r));
+    return !G.regions[r].completedLastScoring && (regionCardDepleted(G, r) || shareDepleted(G, ctx, r));
 }
 
 export const seqFromPos = (G: IG, ctx: Ctx, pos: number): PlayerID[] => {
@@ -1057,7 +1055,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         }
         return
     }
-    if (c.cardId === FilmCardID.F1208 || c.cardId === BasicCardID.B05){
+    if (c.cardId === FilmCardID.F1208 || c.cardId === BasicCardID.B05) {
         log.push("|industryOrAestheticsBreakthrough");
         G.e.stack.push({
             e: "industryOrAestheticsBreakthrough", a: {
@@ -1079,14 +1077,13 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         // console.log(eff);
         if (eff.e !== "none") {
             //流派扩：法国印象派
-            if (pub.school === SchoolCardID.S4001){
-                if (eff.e === SimpleEffectNames.addVp && eff.a >= 3){
+            if (pub.school === SchoolCardID.S4001) {
+                if (eff.e === SimpleEffectNames.addVp && eff.a >= 3) {
                     pub.resource += 1;
-                }
-                else{
-                    for (let sk of eff.a){
+                } else {
+                    for (let sk of eff.a) {
                         // console.log(sk);
-                        if (sk.e == SimpleEffectNames.addVp && sk.a >= 3){
+                        if (sk.e == SimpleEffectNames.addVp && sk.a >= 3) {
                             // console.log(sk);
                             // const efk = {e:SimpleEffectNames.addVp, a:1};
                             // G.e.stack.push(efk);
@@ -1114,9 +1111,8 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     // checkNextEffect(G, ctx);
     playerEffExec(G, ctx, pid);
     //流派扩：玛萨拉突破
-    if (pub.school === SchoolCardID.S4002 && c.industry === 0 && c.aesthetics === 0 
-        && !(c.cardId in ScoreCardID) && (c.cardId !== BasicCardID.B07) && !(c.cardId in PersonCardID))
-    {
+    if (pub.school === SchoolCardID.S4002 && c.industry === 0 && c.aesthetics === 0
+        && !(c.cardId in ScoreCardID) && (c.cardId !== BasicCardID.B07) && !(c.cardId in PersonCardID)) {
         log.push("|industryOrAestheticsBreakthrough");
         G.e.stack.push({
             e: "industryOrAestheticsBreakthrough", a: {
@@ -1191,7 +1187,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log.push(`|p${p}|chooseHand`);
             return true;
         } else {
-            if (pub.school === SchoolCardID.S4003){
+            if (pub.school === SchoolCardID.S4003) {
                 pub.deposit += 1;
                 addVp(G, ctx, p, 1);
             }
@@ -1273,7 +1269,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case "era":
-            subEffect = getEraEffectByRegion(G,ctx,eff,region);
+            subEffect = getEraEffectByRegion(G, ctx, eff, region);
             G.e.stack.push(subEffect);
             log.push(`|era|${JSON.stringify(G.e.stack)}`);
             break;
@@ -1331,7 +1327,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             //         }
             //     }
             // }
-        // }
+            // }
             if (ctx.numPlayers > SimpleRuleNumPlayers) {
                 players = getCompetitionPowerLessPlayers(G, ctx, p);
                 const ownIndex = players.indexOf(p)
@@ -1870,10 +1866,10 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     return;
 }
 
-export const getEraEffectByRegion = (G:IG, ctx:Ctx, effect:any, region:Region): any =>{
+export const getEraEffectByRegion = (G: IG, ctx: Ctx, effect: any, region: Region): any => {
     const log = [`getCardEraEffect|${effect}|region:${region}`];
     let subEffect;
-    if (region !== Region.NONE){
+    if (region !== Region.NONE) {
         let era;
         if (ctx.numPlayers > SimpleRuleNumPlayers) {
             log.push(`|not2p`);
@@ -1888,7 +1884,7 @@ export const getEraEffectByRegion = (G:IG, ctx:Ctx, effect:any, region:Region): 
             subEffect.target = effect.target
         }
     } else {
-        subEffect ={};
+        subEffect = {};
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
     return subEffect;
@@ -1970,7 +1966,7 @@ export const cardSlotOnBoard2p = (G: IG, ctx: Ctx, card: INormalOrLegendCard): I
 export const cardSlotOnBoard = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICardSlot | null => {
     if (card.region === Region.NONE) return null;
     let r = G.regions[card.region];
-    switch(card.cardId){
+    switch (card.cardId) {
         case SchoolCardID.S4001:
         case SchoolCardID.S4002:
         case SchoolCardID.S4003:
@@ -1984,7 +1980,7 @@ export const cardSlotOnBoard = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICa
         default:
             break;
     }
-    
+
     if (card.category === CardCategory.LEGEND) {
         if (r.legend.card !== null) {
             if (r.legend.card === card.cardId) {
@@ -1996,8 +1992,7 @@ export const cardSlotOnBoard = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICa
             return null;
         }
     } else {
-        if (r !== G.regions[Region.EXTENSION])
-        {
+        if (r !== G.regions[Region.EXTENSION]) {
             for (let slot of r.normal) {
                 if (slot.card !== null) {
                     if (slot.card === card.cardId) {
@@ -2005,8 +2000,7 @@ export const cardSlotOnBoard = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICa
                     }
                 }
             }
-        }
-        else{
+        } else {
             for (let slot of [r.legend, r.normal[0], r.normal[1], r.normal[2]]) {
                 if (slot.card !== null) {
                     if (slot.card === card.cardId) {
@@ -2096,67 +2090,64 @@ export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true)
         console.warn(`${G.matchID}|${log.join('')}`);
     }
     //流派扩购买
-    switch(arg.target){
+    switch (arg.target) {
         case SchoolCardID.S4001:
-            if (pub.school !== null || G.regions[1].era !== IEra.TWO || pub.bought_extension){
+            if (pub.school !== null || G.regions[1].era !== IEra.TWO || pub.bought_extension) {
                 resRequired = 1000;
             }
             break;
         case SchoolCardID.S4002:
-            if (G.regions[3].era !== IEra.TWO || pub.bought_extension){
+            if (G.regions[3].era !== IEra.TWO || pub.bought_extension) {
                 resRequired = 1000;
             }
             resRequired += pub.champions.length * 2;
             break;
         case SchoolCardID.S4003:
-            if (G.regions[0].era !== IEra.TWO || (pub.building.cinemaBuilt && pub.building.studioBuilt) || pub.bought_extension){
+            if (G.regions[0].era !== IEra.TWO || (pub.building.cinemaBuilt && pub.building.studioBuilt) || pub.bought_extension) {
                 resRequired = 1000;
-            }
-            else{
-                if (pub.building.cinemaBuilt || pub.building.studioBuilt){
+            } else {
+                if (pub.building.cinemaBuilt || pub.building.studioBuilt) {
                     resRequired += 3;
                 }
             }
             break;
         case SchoolCardID.S4004:
-            if (G.regions[2].era !== IEra.TWO || pub.bought_extension){
+            if (G.regions[2].era !== IEra.TWO || pub.bought_extension) {
                 resRequired = 1000;
             }
-            if (pub.industry >= pub.aesthetics){
+            if (pub.industry >= pub.aesthetics) {
                 resRequired += pub.industry - pub.aesthetics;
-            }
-            else{
+            } else {
                 resRequired += pub.aesthetics - pub.industry;
             }
-            break;   
+            break;
         case SchoolCardID.S4005:
-            if (G.regions[1].era !== IEra.THREE || pub.bought_extension){
+            if (G.regions[1].era !== IEra.THREE || pub.bought_extension) {
                 resRequired = 1000;
             }
             resRequired += pub.industry;
-            break;   
+            break;
         case SchoolCardID.S4006:
             if ((G.regions[0].era === IEra.THREE || G.regions[1].era === IEra.THREE ||
-                 G.regions[2].era === IEra.THREE || G.regions[3].era === IEra.THREE) && G.pub[parseInt(arg.buyer)].resource <= 7
-                 && G.player[parseInt(arg.buyer)].hand.length === 0 && !pub.actionused && !pub.bought_extension){
+                    G.regions[2].era === IEra.THREE || G.regions[3].era === IEra.THREE) && G.pub[parseInt(arg.buyer)].resource <= 7
+                && G.player[parseInt(arg.buyer)].hand.length === 0 && !pub.actionused && !pub.bought_extension) {
                 resRequired = 0;
-            }
-            else{
+            } else {
                 resRequired = 1000;
             }
             break;
         case SchoolCardID.S4007:
-            if (G.regions[1].era !== IEra.THREE || pub.bought_extension){
+            if (G.regions[1].era !== IEra.THREE || pub.bought_extension) {
                 resRequired = 1000;
             }
             resRequired += pub.handsize_startturn;
-            break; 
+            break;
         case SchoolCardID.S4008:
-            if (G.regions[0].era !== IEra.THREE || pub.bought_extension){
+            if (G.regions[0].era !== IEra.THREE || pub.bought_extension) {
                 resRequired = 1000;
             }
             resRequired += pub.aesthetics;
-            break; 
+            break;
     }
     return resRequired;
 }
@@ -2420,7 +2411,7 @@ export const fillEmptySlots = (G: IG): CardID[] => {
     for (let r of valid_regions) {
         log.push(`|fill|${r}`);
         const region = G.regions[r];
-        if (region.completedModernScoring) {
+        if (region.completedLastScoring) {
             log.push(`|noNotSetUpAfterModernScoring`);
             continue;
         }
@@ -2464,7 +2455,7 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
         G.basicCards[commentId]++;
         slot.comment = null;
     }
-    if (slot.region === Region.EXTENSION){
+    if (slot.region === Region.EXTENSION) {
         // let oldCard = slot.card;
         return;
     }
@@ -2552,14 +2543,14 @@ export const do2pRegionScoring = (G: IG, ctx: Ctx, r: ValidRegion): void => {
     G.pub[0].shares[r] = 0;
     G.pub[1].shares[r] = 0;
     // G.regions[r].share = ShareOnBoard[r][IEra.THREE];
-    G.regions[r].completedModernScoring = true;
+    G.regions[r].completedLastScoring = true;
 }
 
 export const try2pScoring = (G: IG, ctx: Ctx): void => {
     const log = [`try2pScoring`];
     valid_regions.forEach(r => {
         let regObj = G.regions[r];
-        if (regObj.share === 0 && !regObj.completedModernScoring) {
+        if (regObj.share === 0 && !regObj.completedLastScoring) {
             do2pRegionScoring(G, ctx, r);
         }
     })
@@ -2610,7 +2601,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             // Score remain regions before final scoring
             valid_regions.forEach(r => {
                 let regObj = G.regions[r];
-                if (!regObj.completedModernScoring) {
+                if (!regObj.completedLastScoring) {
                     do2pRegionScoring(G, ctx, r);
                 }
             })
@@ -3058,7 +3049,7 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     const log = [`endTurnEffect|p${arg}`];
     const pub = G.pub[parseInt(arg)]
     let p = ctx.currentPlayer;
-    if (pub.school === SchoolCardID.S4007){
+    if (pub.school === SchoolCardID.S4007) {
         addVp(G, ctx, p, pub.playedCardInTurn.length);
     }
     pub.playedCardInTurn.forEach(c => pub.discard.push(c));
@@ -3076,7 +3067,7 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     log.push(`| execute development rewards`);
     log.push(`|aesAwardEndTurn`);
     //流派扩：法国印象派
-    if (pub.school === SchoolCardID.S4001 && pub.aesthetics >= 5){
+    if (pub.school === SchoolCardID.S4001 && pub.aesthetics >= 5) {
         addRes(G, ctx, p, 1);
     }
     aesAwardEndTurn(G, ctx, ctx.currentPlayer);
@@ -3477,33 +3468,56 @@ export function nextEra(G: IG, ctx: Ctx, r: ValidRegion) {
         }
     }
     if (era === IEra.TWO) {
-        log.push(`|IEra.THREE`);
-        newEra = IEra.THREE;
-        region.share = ShareOnBoard[r][newEra];
-        region.era = newEra;
-        newEra = IEra.THREE;
-        drawForRegion(G, ctx, r, newEra);
-        if (ctx.numPlayers === 3) {
-            region.share--;
+        if (G.mode === GameMode.NEWBIE) {
+            log.push(`|NewbieMode`);
+            log.push(`|completedERA2Scoring`);
+            region.completedLastScoring = true;
+        } else {
+            log.push(`|goto|IEra.THREE`);
+            newEra = IEra.THREE;
+            region.share = ShareOnBoard[r][newEra];
+            region.era = newEra;
+            newEra = IEra.THREE;
+            drawForRegion(G, ctx, r, newEra);
+            if (ctx.numPlayers === 3) {
+                region.share--;
+            }
         }
     }
     if (era === IEra.THREE) {
-        log.push(`|eraThree`);
+        log.push(`|eraThreeEnd`);
         log.push(`|completedModernScoring`);
-        region.completedModernScoring = true;
+        region.completedLastScoring = true;
     }
-    if (valid_regions
-        .filter(r => G.regions[r].completedModernScoring)
-        .length >= 3) {
-        log.push("3orMoreRegion|completedModernScoring");
-        if (ctx.currentPlayer === getExistingLastMovePlayer(G)) {
-            log.push(`|finalScoring`);
-            logger.debug(`${G.matchID}|${log.join('')}`);
-            finalScoring(G, ctx);
-            return;
-        } else {
-            log.push("|lastRound");
-            G.pending.lastRoundOfGame = true
+    if (G.mode === GameMode.NEWBIE) {
+        if (valid_regions
+            .filter(r => G.regions[r].completedLastScoring)
+            .length >= 2) {
+            log.push("2orMoreRegion|completedERA2Scoring");
+            if (ctx.currentPlayer === getExistingLastMovePlayer(G)) {
+                log.push(`|finalScoring`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                finalScoring(G, ctx);
+                return;
+            } else {
+                log.push("|lastRound");
+                G.pending.lastRoundOfGame = true
+            }
+        }
+    } else {
+        if (valid_regions
+            .filter(r => G.regions[r].completedLastScoring)
+            .length >= 3) {
+            log.push("3orMoreRegion|completedModernScoring");
+            if (ctx.currentPlayer === getExistingLastMovePlayer(G)) {
+                log.push(`|finalScoring`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                finalScoring(G, ctx);
+                return;
+            } else {
+                log.push("|lastRound");
+                G.pending.lastRoundOfGame = true
+            }
         }
     }
     logger.debug(`${G.matchID}|${log.join('')}`);

@@ -357,7 +357,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             0: {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
-                completedModernScoring: false,
+                completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(0),
@@ -375,7 +375,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             1: {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
-                completedModernScoring: false,
+                completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(1),
@@ -392,7 +392,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             2: {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
-                completedModernScoring: false,
+                completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(2),
@@ -405,7 +405,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             3: {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
-                completedModernScoring: false,
+                completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(3),
@@ -418,7 +418,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             4: {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
-                completedModernScoring: false,
+                completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [emptyBuildingSlot(4, false),
                     emptyBuildingSlot(4, false)],
@@ -475,7 +475,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     }
     G.order.forEach(p => fillPlayerHand(G, ctx, p))
     G.regionScoreCompensateMarker = G.order[G.order.length - 1];
-
     // G.events[0] = EventCardID.E01;
     // // @ts-ignore
     // G.regions[Region.NA].legend.card = "P2102"
