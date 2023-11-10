@@ -226,6 +226,30 @@ export const FilmCentenaryBoard = ({
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
 
+    const disconnectNotice = isConnected ? <></> :
+        <>
+            <Button
+                fullWidth
+                style={{textTransform: 'none'}}
+                onClick={handleOpen}
+                color="secondary"
+                variant={"outlined"}
+            >
+                <Typography>
+                    {i18n.disconnected}
+                </Typography>
+            </Button>
+            <Dialog open={open} onClose={handleClose}>
+                <DialogTitle>
+                    <Typography variant="h5" component="h1">
+                        {i18n.disconnected}
+                    </Typography>
+                </DialogTitle>
+                <DialogContent>
+                    {i18n.disconnected}
+                </DialogContent>
+            </Dialog>
+        </>
 
     const gameOverResult = ctx.gameover === undefined ? <></> :
         <>
@@ -304,6 +328,7 @@ export const FilmCentenaryBoard = ({
     return <ErrorBoundary>
         <Grid container justifyContent="flex-start" key={`film-centenary-board-player-${playerID}`}>
             {gameOverResult}
+            {disconnectNotice}
             {G.pending.lastRoundOfGame && ctx.gameover === undefined ?
                 <Grid item container xs={12} justifyContent="space-evenly">
                     <Paper variant="elevation">
@@ -311,7 +336,6 @@ export const FilmCentenaryBoard = ({
                     </Paper> </Grid> : <></>}
             {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
                 <Grid item xs={4}>
-                    {isMultiplayer && !isConnected ? <Typography>${i18n.disconnected}</Typography> : ""}
                     <Typography>{`${i18n.pub.events}(${G.eventDeckLength})`}</Typography
                     ></Grid>
                 {G.events.map((e: EventCardID, idx: number) => <Grid key={idx} item xs={4}>
