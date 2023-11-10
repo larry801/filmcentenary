@@ -31,6 +31,8 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
 import SetupPanel from "./boards/setup-game-mode";
 // @ts-ignore
+import disconnectedSfx from './media/connect.mp3'
+// @ts-ignore
 import playerTurnSfx from './media/turn.mp3';
 import {ChampionIcon, DrawnShareIcon} from "./icons";
 import Dialog from "@material-ui/core/Dialog";
@@ -41,7 +43,7 @@ let connectedSound: HTMLAudioElement;
 
 export const playConnectedSound = () => {
     if (!connectedSound) {
-        connectedSound = new Audio(playerTurnSfx);
+        connectedSound = new Audio(disconnectedSfx);
     }
     connectedSound.play().then(() => {
     });
