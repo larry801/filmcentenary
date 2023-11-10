@@ -126,15 +126,9 @@ export const NormalTurn: TurnConfig = {
             if (pub.school === SchoolCardID.S1301) {
                 log.push(`|montage`);
                 addVp(G, ctx, p, 1);
-                const optionalCard ={
-                    e: ItrEffects.optional,
-                    a:{
-                        e: ItrEffects.step,
-                        a:[{e:SimpleEffectNames.draw,a:1},{e:ItrEffects.discard,a:1}]
-                    }
-                }
-                G.e.stack.push(optionalCard)
-                changePlayerStage(G, ctx, "confirmRespond", p);
+                drawCardForPlayer(G, ctx, p);
+                G.e.stack.push({e:ItrEffects.discard,a:1})
+                changePlayerStage(G, ctx, "chooseHand", p);
             }
             if (pub.school === SchoolCardID.S2101) {
                 log.push(`|classicHollywood`);
