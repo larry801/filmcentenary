@@ -57,7 +57,6 @@ import {
     doIndustryBreakthrough,
     doReturnSlotCard,
     drawCardForPlayer,
-    drawForSchool,
     endTurnEffect,
     fillEmptySlots,
     fillEventCard,
@@ -157,17 +156,31 @@ export const setupGameMode: LongFormMove = {
         if (ctx.numPlayers >= 4) {
             G.pub[parseInt(initOrder[3])].vp = 5;
         }
-        G.hasSchoolExtension = args.enableSchoolExtension;
-        if (G.hasSchoolExtension) {
+        if(args.enableSchoolExtension) {
+            log.push(`drawForSchoolExtension`)
             for (let sch of shuffle(ctx, [SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008]).slice(0, 2)) {
+                log.push(`|${sch}|drawn`);
                 G.schoolExt.push(sch);
             }
             for (let sch of shuffle(ctx, [SchoolCardID.S4001, SchoolCardID.S4002, SchoolCardID.S4003, SchoolCardID.S4004]).slice(0, 2)) {
+                log.push(`|${sch}|drawn`);
                 G.schoolExt.push(sch);
             }
-            G.secretInfo.regions[4].normalDeck = G.schoolExt;
-            drawForSchool(G, ctx, Region.EXTENSION, IEra.ONE);
+            for (let iCardSlot of G.regions[Region.EXTENSION].normal) {
+                let schoolCardPopped = G.schoolExt.pop();
+                if (schoolCardPopped === undefined) {
+                    throw new Error(schoolCardPopped);
+                } else {
+                    iCardSlot.card = schoolCardPopped;
+                }
+            }
+        } else {
+            log.push(`cleanUpSchoolExtension`)
+            for (let iCardSlot of G.regions[Region.EXTENSION].normal) {
+                iCardSlot.card = null;
+            }
         }
+        G.hasSchoolExtension = args.enableSchoolExtension;
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }

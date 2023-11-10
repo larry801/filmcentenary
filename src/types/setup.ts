@@ -456,13 +456,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         G.regions[Region.WE].share--;
         G.regions[Region.EE].share--;
     }
-
-    // G.regions[4].legendDeckLength
-    G.regions[Region.EXTENSION].share = 0;
-    if (G.hasSchoolExtension) {
-    }
-    // G.secretInfo.regions[4].normalDeck[3] = SchoolCardID.S4006;
-    // G.pub[1].school = SchoolCardID.S4003;
     if (ctx.numPlayers === SimpleRuleNumPlayers) {
         G.regions[Region.NA].share = 12;
         G.regions[Region.WE].share = 10;
@@ -539,7 +532,9 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[1].shares[Region.NA] = 2;
     // G.pub[1].shares[Region.EE] = 2;
     // G.pub[firstMovePlayer].vp = 149;
-    // G.pub[firstMovePlayer].industry = 8;
+    // G.pub[firstMovePlayer].aesthetics = 8;
+    // G.player[firstMovePlayer].hand = [FilmCardID.F3404, BasicCardID.B07];
+    // G.secretInfo.playerDecks[firstMovePlayer] = [BasicCardID.B07,BasicCardID.B07,BasicCardID.B07];
     // G.pub[firstMovePlayer].competitionPower = 7;
     // G.pub[firstMovePlayer].aesthetics = 10;
     // G.pub[1].competitionPower = 3;
@@ -559,8 +554,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[firstMovePlayer].competitionPower = 10;
     // @ts-ignore
     // G.player[firstMovePlayer].hand = ["P3107",];
-    // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["P1101", "F2212", "P3102", "B07", "B07",]
     // @ts-ignore
     // G.player[1].hand = ["F2307", "P3102", "B07",]
     // G.secretInfo.playerDecks[0] = [];

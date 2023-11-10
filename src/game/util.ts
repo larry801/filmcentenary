@@ -2268,28 +2268,6 @@ export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
     }
 }
 
-export const drawForSchool = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
-    if (r !== Region.EXTENSION) return;
-    let l: ClassicCardID[] = G.secretInfo.regions[r].legendDeck;
-    let n: ClassicCardID[] = G.secretInfo.regions[r].normalDeck;
-    // l.card = G.regions[r].normal[0];
-    let c = n.pop();
-    if (c === undefined) {
-        throw new Error(c);
-    } else {
-        G.regions[r].legend.card = c;
-    }
-    
-    for (let s of G.regions[r].normal) {
-        let c = n.pop();
-        if (c === undefined) {
-            throw new Error(c);
-        } else {
-            s.card = c;
-        }
-    }
-}
-
 export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     const pid = parseInt(id);
     const log = [`drawPeekCardForPlayer|p${id}`];
