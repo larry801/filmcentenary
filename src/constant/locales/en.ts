@@ -247,7 +247,7 @@ const getCardName = (cardId: string): string => {
 const setting: LocaleSettings = {
     mode: "Game Mode",
     team: "2V2 Team Mode",
-    normal: "Normal Mode",
+    normal: "Complete Mode",
     newbie: "Newbie Mode",
     enableSchoolExtension: "Enable school extension",
     randomFirst: "Random First Player",

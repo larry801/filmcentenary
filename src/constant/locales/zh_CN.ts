@@ -247,7 +247,7 @@ const getCardName = (cardId: string): string => {
 const setting = {
     mode: "游戏模式",
     team: "2V2组队模式",
-    normal: "普通模式",
+    normal: "完整模式",
     newbie: "新手模式",
     enableSchoolExtension: "启用流派扩",
     randomFirst: "随机首位玩家",
