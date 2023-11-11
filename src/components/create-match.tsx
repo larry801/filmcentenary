@@ -137,7 +137,9 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
                             <TableCell>
                                 {match.players.map((player, idx) => {
                                     if (player.name === undefined) {
-                                        return <a>{`${i18n.lobby.join}|${idx + 1}`}</a>
+                                        return <a href={`${serverURL}/join/${match.matchID}/${idx}`}>
+                                            {`${i18n.lobby.join}|${idx + 1}`}
+                                            </a>
                                     } else {
                                         return <Typography>{player.name} {player.isConnected ? "(+)" : "(-)"} </Typography>
                                     }
