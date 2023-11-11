@@ -106,16 +106,19 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
 
     const lobbyClient = new LobbyClient({server: serverURL});
 
-    useInterval(() => {
+    const refreshLobby = () =>{
         lobbyClient.listMatches('film', {isGameover: false}).then((matches) => {
             // @ts-ignore
             setMatches(matches.matches);
         }).catch(() => {
-        })
-    }, 4000);
+        });
+    }
+
+    useInterval(refreshLobby, 10000);
 
     return <Grid container>
         <Grid item container xs={12} sm={8}>
+            <Button fullWidth color={"secondary"} onChange={refreshLobby}>{i18n.dialog.buyCard.refresh}</Button>
             <Table size="small" aria-label="Public match table">
                 <TableHead>
                     <TableRow>
@@ -127,6 +130,8 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
                 </TableHead>
                 <TableBody>
                     {matches.map((match: MatchData) => {
+                        const createdDate = new Date(match.createdAt);
+                        const updateDate = new Date(match.updatedAt);
                         return <TableRow key={match.matchID}>
                             <TableCell component="th" scope="row">
                                 {match.matchID}
@@ -139,7 +144,7 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
                                     if (player.name === undefined) {
                                         return <a href={`${serverURL}/join/${match.matchID}/${idx}`}>
                                             {`${i18n.lobby.join}|${idx + 1}`}
-                                            </a>
+                                        </a>
                                     } else {
                                         return <Typography>{player.name} {player.isConnected ? "(+)" : "(-)"} </Typography>
                                     }
@@ -150,6 +155,13 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
                                     href={`${serverURL}/join/${match.matchID}/spectate`}
                                 >{i18n.lobby.spectate}</a>
                             </TableCell>
+                            <TableCell>
+                                {createdDate.toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                                {updateDate.toLocaleString()}
+                            </TableCell>
+
                         </TableRow>
                     })}
                 </TableBody>
