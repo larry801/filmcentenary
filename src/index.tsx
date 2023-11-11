@@ -9,6 +9,7 @@ import MUICreateMatch from "./components/create-match";
 import JoinPage from "./components/join";
 import DenseTable from "./components/card-table";
 import AboutPage from "./components/about-page";
+import Lobby from "./components/lobby";
 
 const rootElement = document.getElementById("root");
 
@@ -17,6 +18,9 @@ render(
         <CssBaseline/>
         <DrawerAppBar/>
         <Switch>
+            <Route exact path="/lobby">
+                <Lobby/>
+            </Route>
             <Route exact path="/">
                 <MUICreateMatch serverURL={`${window.location.protocol}//${window.location.host}`}/>
             </Route>

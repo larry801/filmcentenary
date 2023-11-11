@@ -114,7 +114,7 @@ export const inferDeckRemoveHelper = (result: CardID[], cardsToRemove: CardID[])
     })
 }
 
-export const getPlayerInferredHand = (G:IG, pid:PlayerID):CardID[]=>{
+export const getPlayerInferredHand = (G: IG, pid: PlayerID): CardID[] => {
     const pub = G.pub[parseInt(pid)];
     const result = [...pub.allCards]
     inferDeckRemoveHelper(result, pub.discard)
