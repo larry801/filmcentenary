@@ -121,6 +121,8 @@ export const FilmCentenaryGame: Game<IG> = {
         concede: concedeMove,
     },
 
+    deltaState: true
+
     // endIf: (G: IG, ctx: Ctx) => {
         // let championRequiredForAutoWin = ctx.numPlayers > 3 ? 5 : 6;
         // if (G.mode === GameMode.TEAM2V2) {

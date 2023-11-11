@@ -12,7 +12,7 @@ import ListItem from '@material-ui/core/ListItem';
 import Switch from "@material-ui/core/Switch"
 import Button from '@material-ui/core/Button';
 import createStyles from "@material-ui/core/styles/createStyles";
-import {Theme} from "@material-ui/core/styles/createMuiTheme"
+import {Theme} from '@material-ui/core/styles';
 import withStyles from "@material-ui/core/styles/withStyles";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
@@ -59,7 +59,7 @@ const DrawerAppBar = () => {
 
     useI18n(i18n);
     const [open, setOpen] = React.useState(false);
-    const [checked, setChecked] = React.useState(false);
+    const [checked, setChecked] = React.useState(true);
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,6 +97,8 @@ const DrawerAppBar = () => {
             <List>
                 <ListItem><Button><Link to={'/'}>{i18n.drawer.lobby}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/cards'}>{i18n.drawer.cards}</Link></Button></ListItem>
+                <ListItem><Button><Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link></Button></ListItem>
+                <ListItem><Button><Link to={'/about'}>{i18n.drawer.about}</Link></Button></ListItem>
             </List>
         </MUIDrawer>
     </React.Fragment>

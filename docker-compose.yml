@@ -1,0 +1,27 @@
+version: "3.2"
+services:
+  postgresql:
+    image: "postgres:16.0-alpine3.18"
+    environment:
+      POSTGRES_PASSWORD: "change to your password"
+      POSTGRES_DB: "bgio"
+      POSTGRES_USER: "bgio"
+    networks:
+      - film
+    restart: "always"
+    ports:
+      - "3030:5432"
+  web:
+    image: "filmcentenary-docker.pkg.coding.net/dianyingbainian/web_full_stack/film-centenary:latest"
+    ports:
+      - "80:3000"
+    environment:
+      POSTGRES_URL: "postgresql://bgio:'change to your password'@postgresql:5432/bgio"
+    networks:
+      - film
+    restart: "always"
+
+networks:
+  film:
+    driver: bridge
+

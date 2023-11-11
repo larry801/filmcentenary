@@ -103,7 +103,7 @@ const cards = {
     '2305': 'The Cranes are Flying',
     '2306': 'Canal',
     '2307': 'Shadows of Forgotten Ancestors',
-    '2308': 'Quiet Flows the Don',
+    '2308': 'The Young Guard',
     '2309': 'Alexander Nevsky, 1938',
     '2401': 'Akira Kurosawa',
     '2402': 'Chusheng Cai',
@@ -171,13 +171,22 @@ const cards = {
     '3412': 'The Scent of Green Papaya',
     '3413': 'The Boys from Fengkuei',
     '3414': 'Taste of Cherry',
+    '4001': 'French Impressionism',
+    '4002': 'Masala Film',
+    '4003': 'American Independent Film',
+    '4004': 'Polish School',
+    '4005': 'Modernist Film',
+    '4006': 'Third Cinema',
+    '4007': 'Kitchen Sink Film',
+    '4008': 'High-Concept Film',
 };
 const region = {
     0: "North America",
     1: "West Europe",
     2: "East Europe",
     3: "Asia",
-    4: "Any Region",
+    4: "School Extension",
+    5: "Any Region",
 };
 const numToValue = (value: number = 1): string => value.toString();
 
@@ -203,7 +212,7 @@ const eventName = {
     'E04': 'Company with highest prestige buy a 【Commercial Film】and put it into hand, every company buy a 【Classic Film】 for free.',
     'E05': 'Company with no building in north america draw one card, calculate the sum of industry level, aesthetics level, industry and aesthetics marks of current school of every company, lowest company gain 3 deposits',
     'E06': 'Company with no building in west europe buy a 【Bad Film】 for free, every company buy a【Classic Film】 for free.',
-    'E07': 'Every company upgrade industry or aesthetics level once, company with the minimum hand count draw one card gain 5 prestige.',
+    'E07': 'Every company choose one company buy a [Bad film], Any company size smaller than 5 change to 5.',
     'E08': '【Unfreeze】 slot is activated, calculate the sum of industry level, aesthetics level, industry and aesthetics marks of current school of every company, lowest company upgrade aesthetics level once',
     'E09': '【Bollywood】 slot activated, company with the lowest aesthetics level upgrade aesthetics level once, company with the lowest aesthetics level upgrade aesthetics level once.',
     'E10': 'Each company whose prestige is higher than you ,gain 4 extra prestige',
@@ -238,8 +247,9 @@ const getCardName = (cardId: string): string => {
 const setting: LocaleSettings = {
     mode: "Game Mode",
     team: "2V2 Team Mode",
-    normal: "Normal Mode",
+    normal: "Complete Mode",
     newbie: "Newbie Mode",
+    enableSchoolExtension: "Enable school extension",
     randomFirst: "Random First Player",
     fixedFirst: "Fixed First Player",
     allRandom: "Random Order",
@@ -286,37 +296,8 @@ const argShowCompetitionResult = {
     args: (arg: IShowCompetitionResultArgs[]): string => {
         let i = arg[0].info;
         let t = "CompetitionResult:"
-        // if (i.atkCard === null) {
-        //     t += "Attacker did not play card "
-        // } else {
-        //     t += `Attacker played ${bracketCardName(i.atkCard)} `
-        // }
-        // if (i.defCard === null) {
-        //     t += "Defender did not play card "
-        // } else {
-        //     t += `Defender played ${bracketCardName(i.defCard)} `
-        // }
-        if (i.defShownCards.length !== 0) {
-            t += "Defender did not play card "
-        } else {
-            t += `Defender played `;
-            for (const defShownCard of i.defShownCards) {
-                t += `${bracketCardName(defShownCard)} `
-            }
-        }
         let progress = i.progress;
-        // if (progress > 5) progress = 5;
-        // if (progress < -5) progress = -5;
-        t += `Progress:${progress} `
-        if (i.progress >= 3) {
-            t += "Attacker won"
-        } else {
-            // if (i.progress <= -3) {
-            //     t += "Defender won"
-            // } else {
-            //     t += "No Winner"
-            // }
-        }
+        t += `delta VP:${progress} `
         return t;
     }
 }
@@ -537,19 +518,24 @@ const en = {
         twoPlayer: "Local 2 person multiplayer",
         threePlayer: "Local 3 person multiplayer",
         fourPlayer: "Local 4 person multiplayer",
+        pleaseTry: "Please try ",
         lobby: "Remote multiplayer lobby",
         cards: "Card list",
+        about: "Rules & Help",
     },
     title: "Film Centenary",
     lobby: {
         copyPrompt: "Copied to clipboard",
         numPlayers: "Players",
         createPublicMatch: "Create public match",
-        createPrivateMatch: "Create private match",
+        createPrivateMatch: "Create match",
         title: "Lobby",
         join: "Join",
         play: "Play",
         leave: "Leave",
+        spectate: "Spectate",
+        publicGame: "Public",
+        privateGame: "Private",
         exitMatch: "Exit match",
         exitLobby: "Exit lobby",
         cannotJoin: "Cannot join this match, you are already in another match",
@@ -568,7 +554,7 @@ const en = {
             board: "Board",
             card: "Cards",
             building: "Building",
-            iAward: "Industry Award",
+            industryAward: "Industry Award",
             aesAward: "Aesthetics Award",
             archive: "Archive",
             events: "Event&Card Scoring",
@@ -595,9 +581,10 @@ const en = {
         effectIcon: "Effect Icon",
     },
     effect: {
-        CompetitionPowerToVp:["按照竞争力获得声望",argValue],
-        addCompetitionPower: ["Add {{a}} CompetitionPower", argValue],
-        loseCompetitionPower: ["Lose {{a}} CompetitionPower", argValue],
+        industryOrAestheticsBreakthrough:"Choose from one breakthrough only industry or aesthetics",
+        CompetitionPowerToVp:["Get prestige according to Competition Power",argValue],
+        addCompetitionPower: ["Add {{a}} Competition Power", argValue],
+        loseCompetitionPower: ["Lose {{a}} Competition Power", argValue],
         noCompetitionFee: "no extra fee for 【competition】",
         minHandCountPlayers: "Company with the fewest card in hand",
         chose: " chose ",
@@ -639,6 +626,7 @@ const en = {
         everyPlayer: "Every company",
         onYourComment: "After you perform a comment,",
         onAnyOneComment: "After any one perform a comment,",
+        onAnyInTurnAesAward: "In your turn, after every aesthetics level award",
         doNotLoseVpAfterCompetition: "Do not lose vp after competition",
         discardInSettle: "When you comment or update,",
         threeCards: "Gain 1 extra prestige for every basic card ",
@@ -653,6 +641,24 @@ const en = {
         personCard: "Gain 4 extra prestige for each of your person card.",
         aesClassic: "Gain 2 extra prestige for each of your normal or legend card with aesthetics marker.",
         NewYorkSchool: " if your industry level is not less than your aesthetics level,execute your aesthetics level bonus once, if your industry level is not less than your aesthetics level execute your industry level bonus once",
+        
+        French_Imp_buy: "Companies with no school can buy.",
+        Samara_buy: "For every champion marker you have, you spend 2 extra resources.",
+        American_Independent_Film_buy: "If you have 1 completed building, it costs additional 3 resources. You can't buy this school if you have 2 completed buildings.",
+        Polish_School_buy: "The additional payment of resources equal to the absolute value of the difference between industrial level and aesthetic level.",
+        Modernist_Film_buy: "Pay 1 extra resource for each industry level you have.",
+        Third_Cinema_buy: "You can lose all your deposit and buy this school for free if you have no cards in your hand, no spent action, and possess 7 resources or less.",
+        kitchen_sink_buy: "Extra payout resources equal to the number of cards in your hand at the start of the turn.",
+        High_Concept_Film_buy: "Pay 1 extra resource for each aesthetics level you have.",
+        French_Imp_turnstart: "If your industrial level is equal to your aesthetic level, +1 action. Each time you get at least +3 vp after an action settlement or the entire check phase: +1 resource.",
+        Samara: "Your cinema effect has been changed to +1 card, +2 vp. When you breakthrough 1 unmarked film, select 1 item :(1) Industrial breakthrough once; (2) Aesthetic breakthrough once.",
+        American_Independent_Film_turnstart: "For each 1 completed building you have, -1 card. Each time you -1 card :+1 deposit, +1 vp.",
+        Polish_School: "Each time you put 1 card into the archive (including breakthroughs) or another player's hand :+1 card. Each time you get a base card :+2 vp.",
+        Modernist_Film: "After being competed: 1 aesthetic bonus. If you play a card with X aesthetic tokens: X=1: +1 resource, +2 vp  X=2: +1 resource, +2 vp, +1 card X=3:+1 resource, +4 vp, +2 cards.",
+        Third_Cinema: "When competed :+1 card, -5 vp for competitor. At the start of the turn, if your aesthetic level is higher than your industry level :+1 cards, +2 deposits.",
+        kitchen_sink_turnstart: "-1 vp for each 1 hand you have, and +1 card for every company that has more cards than you. End of Turn: You gain +1 vp for each card played in this turn.",
+        High_Concept_Film: "Each industrial symbol for your played card: +1 resource, +1 vp. After competition :+1 competition power, +1 card.",
+
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",
         breakthroughResDeduct: ["Execute a free breakthrough action", argValue],
@@ -726,7 +732,7 @@ const en = {
         loseDeposit: ["Lose {{a}} deposit", argValue],
         beforeCompetition: "Before launching competition,",
         competitionStart: "On competition start,",
-        competitionWon: "After wining a competition,",
+        competitionWon: "After you launch competition",
         competitionBonus: ["Competition progress +{{a}} bonus", argValue],
         archive: ["Put {{a}} card(s) into your archive.", argValue],
         industryToVp: "Get prestige according to your industry level",
@@ -749,7 +755,7 @@ const en = {
         res: ["{{a}} resource(s)", argValue],
         addRes: ["get {{a}} resource(s)", argValue],
         deposit: ["{{a}} deposit(s)", argValue],
-        loseAnyRegionShare: ["Lose {{a}} share(s) of any region", argValue],
+        loseAnyRegionShare: ["Lose {{a}} share(s) of any region, lose 1 competition power", argValue],
         share: ["Get {{a}} share from {{r}}", argValue],
         shareNA: ["Get {{a}} share from north america", argValue],
         shareWE: ["Get {{a}} share from west europe", argValue],
@@ -773,6 +779,7 @@ const en = {
         studio: "All companies with a studio in this region,",
         building: "All companies with a building in this region,，",
         noStudio: "Choose a company without a studio in this region,",
+        LES_CHAIERS_DU_CINEMA: "Change company size to 5",
         noBuilding: "Choose a company without a building in this region",
         lose: ["When you lose {{a}},", argCardName],
         school: ["Hand size：{{hand}} action：{{action}}", {
@@ -791,7 +798,7 @@ const en = {
         industryBreakthrough: ["Industry breakthrough {{a}}", argTimes],
         aestheticsBreakthrough: ["Aesthetics breakthrough{{a}}", argTimes],
         buy: ["Buy 【{{a}}】 for free", argCardName],
-        competitionLoserBuy: ["争夺失败方免费购买【 {{a}} 】", argCardName],
+        competitionLoserBuy: ["The loser buy [{{a}} ]", argCardName],
         buyCardToHand: ["Buy 【{{a}}】 for free, and add to hand.", argCardName],
         industryLevelUp: ["Upgrade industry level {{a}}", argTimes],
         industryLevelUpCost: ["Upgrade industry level {{a}} with possible extra cost", argTimes],
@@ -885,6 +892,7 @@ const en = {
         spectator: "Spectator",
         player: "Player",
     },
+    disconnected: "Disconnected Please refresh",
     pub: {
         legend: "Legend",
         lastRoundOfGame: "Last Round",

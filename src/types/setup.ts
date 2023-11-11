@@ -4,6 +4,7 @@ import {
     ClassicCardID,
     ClassicFilmAutoMoveMode,
     EventCardID,
+    FilmCardID,
     GameMode,
     IBuildingSlot,
     ICardSlot,
@@ -12,8 +13,10 @@ import {
     IPubInfo,
     IRegionInfo,
     IRegionPrivate,
+    PersonCardID,
     Region,
     SchoolCardID,
+    ScoreCardID,
     SimpleRuleNumPlayers,
     ValidRegion
 } from "./core";
@@ -38,6 +41,7 @@ export interface CompetitionInfo {
 export interface IG {
     updateCardHistory: CardID[][],
     mode: GameMode,
+    hasSchoolExtension: boolean,
     randomOrder: boolean,
     regionScoreCompensateMarker: PlayerID,
     eventDeckLength: number,
@@ -52,6 +56,8 @@ export interface IG {
     order: PlayerID[],
     initialOrder: PlayerID[],
     playerCount: number,
+    //流派扩
+    schoolExt: SchoolCardID[],
     activeEvents: EventCardID[],
     logDiscrepancyWorkaround: boolean,
     pending: {
@@ -90,6 +96,7 @@ export interface IG {
             1: IRegionPrivate,
             2: IRegionPrivate,
             3: IRegionPrivate,
+            4: IRegionPrivate,
         },
         events: EventCardID[],
         playerDecks: CardID[][],
@@ -103,6 +110,7 @@ export interface IG {
         1: IRegionInfo,
         2: IRegionInfo,
         3: IRegionInfo,
+        4: IRegionInfo,
     },
     pendingEffects: any[],
     basicCards: {
@@ -125,12 +133,16 @@ let initialDeck = [
 
 function pubPlayer(): IPubInfo {
     return {
+        LES_CHAIERS_DU_CINEMA: false,
         competitionPower: 0,
         industry: 0,
         aesthetics: 0,
         resource: 0,
         deposit: 0,
         action: 1,
+        handsize_startturn: 0,
+        bought_extension: false,
+        actionused: false,
         newHollyWoodUsed: false,
         discardInSettle: false,
         handSize: 0,
@@ -217,6 +229,23 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         players.push(privatePlayer());
         decks.push(shuffle(ctx, initialDeck));
     }
+    // decks[0].pop();
+    // decks[0].push(FilmCardID.F3404);
+    // decks[0].push(ScoreCardID.V223);
+    // decks[0].push(PersonCardID.P2203);
+
+    // decks[0].push(BasicCardID.B05);
+    // decks[0].push(FilmCardID.F2109);
+    // // decks[0].push(FilmCardID.F3110)
+    // // pub[0].competitionPower = 10;
+    // pub[0].industry = 10;
+    // pub[0].school = SchoolCardID.S4003;
+    // pub[1].school = SchoolCardID.S4001;
+    // pub[2].school = SchoolCardID.S4002;
+    // pub[3].school = SchoolCardID.S4003;
+    // pub[0].resource = 10;
+    // pub[0].vp = 10;
+    // pub[1].shares[0] = 2;
     const order: PlayerID[] = [];
     for (let i = 0; i < ctx.numPlayers; i++) {
         order.push(i.toString())
@@ -228,6 +257,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     let G: IG = {
         updateCardHistory: [],
         mode: GameMode.NORMAL,
+        hasSchoolExtension: false,
         randomOrder: false,
         regionScoreCompensateMarker: "0",
         eventDeckLength: 0,
@@ -250,6 +280,9 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         order: randomOrder,
         initialOrder: randomOrder,
         logDiscrepancyWorkaround: false,
+        schoolExt: [], //SchoolCardID.S4004,SchoolCardID.S4001, SchoolCardID.S4002,SchoolCardID.S4003,
+        //     SchoolCardID.S4005,SchoolCardID.S4006,
+        //     SchoolCardID.S4007,SchoolCardID.S4008
         pending: {
             nextEraRegions: [],
             lastRoundOfGame: false,
@@ -308,6 +341,10 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                     legendDeck: [],
                     normalDeck: [],
                 },
+                4: {
+                    legendDeck: [],
+                    normalDeck: [],
+                },
             },
             twoPlayer: {
                 school: [],
@@ -320,7 +357,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             0: {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
-                completedModernScoring: false,
+                completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(0),
@@ -338,7 +375,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             1: {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
-                completedModernScoring: false,
+                completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(1),
@@ -355,7 +392,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             2: {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
-                completedModernScoring: false,
+                completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(2),
@@ -368,7 +405,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             3: {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
-                completedModernScoring: false,
+                completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [
                     emptyBuildingSlot(3),
@@ -376,6 +413,17 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 ],
                 legend: emptyLegendCardSlot(3),
                 normal: [emptyNormalCardSlot(3), emptyNormalCardSlot(3)],
+                share: 0,
+            },
+            4: {
+                normalDeckLength: 0,
+                legendDeckLength: 0,
+                completedLastScoring: false,
+                era: IEra.ONE,
+                buildings: [emptyBuildingSlot(4, false),
+                    emptyBuildingSlot(4, false)],
+                legend: emptyNormalCardSlot(4),
+                normal: [emptyNormalCardSlot(4), emptyNormalCardSlot(4), emptyNormalCardSlot(4)],
                 share: 0,
             },
         },
@@ -417,13 +465,16 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     } else {
         drawForRegion(G, ctx, Region.NA, IEra.ONE);
         drawForRegion(G, ctx, Region.WE, IEra.ONE);
+        // G.regions[Region.EE].era = IEra.THREE;
         drawForRegion(G, ctx, Region.EE, IEra.ONE);
+        // drawForRegion(G, ctx, Region.ASIA, IEra.THREE);
+        // G.regions[Region.ASIA].era = IEra.TWO;
+        // G.regions[Region.ASIA].share = 6;
+        // G.pub[0].resource += 10;
         doFillNewEraEventDeck(G, ctx, IEra.ONE);
     }
     G.order.forEach(p => fillPlayerHand(G, ctx, p))
     G.regionScoreCompensateMarker = G.order[G.order.length - 1];
-
-
     // G.events[0] = EventCardID.E01;
     // // @ts-ignore
     // G.regions[Region.NA].legend.card = "P2102"
@@ -455,6 +506,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[3].shares[Region.ASIA] = 2;
     // G.pub[firstMovePlayer].resource = 20;
     // G.pub[firstMovePlayer].industry = 10;
+    // G.pub[firstMovePlayer].competitionPower = 10;
     // @ts-ignore
     // G.pub[0].allCards = ["P2102", "F2110", "F3413", "V111",]
     // @ts-ignore
@@ -463,12 +515,31 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[firstMovePlayer].action = 20;
     // G.pub[0].discard = [];
     // G.twoPlayer.era = IEra.THREE;
+
+    // test LES_CHAIERS_DU_CINEMA_COMPANY_SCALE
+    // G.regions[Region.NA].share = 1;
+    // G.pub[firstMovePlayer].deposit = 30;
+    // G.events[0] = EventCardID.E07;
     // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["F3305", "F3305", "F3113", "B05", "F3413", "P2102",];
+    // G.player[1].hand = ["P3102", "F2114", "B07"];
+    // @ts-ignore
+    // G.player[firstMovePlayer].hand = [ "F3406", "F3113", "B05", "F3413", "P2102",];
+    // G.pub[1].shares[Region.NA] = 1;
+    // G.pub[1].shares[Region.EE] = 1;
+    // @ts-ignore
+    // G.pub[2].school = "S1203";
+    // G.pub[1].shares[Region.NA] = 2;
+    // G.pub[1].shares[Region.EE] = 2;
     // G.pub[firstMovePlayer].vp = 149;
-    // G.pub[firstMovePlayer].industry = 8;
+    // G.pub[firstMovePlayer].aesthetics = 8;
+    // G.player[firstMovePlayer].hand = [FilmCardID.F3404, BasicCardID.B07];
+    // G.secretInfo.playerDecks[firstMovePlayer] = [BasicCardID.B07,BasicCardID.B07,BasicCardID.B07];
     // G.pub[firstMovePlayer].competitionPower = 7;
     // G.pub[firstMovePlayer].aesthetics = 10;
+    // G.pub[1].competitionPower = 3;
+    // G.pub[1].school = SchoolCardID.S4005;
+    // G.pub[1].aesthetics = 9;
+    // G.pub[1].vp = 39;
     // @ts-ignore
     // G.pub[firstMovePlayer].school = "S3101";
     // @ts-ignore
@@ -482,8 +553,6 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[firstMovePlayer].competitionPower = 10;
     // @ts-ignore
     // G.player[firstMovePlayer].hand = ["P3107",];
-    // @ts-ignore
-    // G.player[firstMovePlayer].hand = ["P1101", "F2212", "P3102", "B07", "B07",]
     // @ts-ignore
     // G.player[1].hand = ["F2307", "P3102", "B07",]
     // G.secretInfo.playerDecks[0] = [];

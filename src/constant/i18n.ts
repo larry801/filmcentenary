@@ -17,6 +17,6 @@ i18n._.define('en', en);
 //         values: en,
 //     },
 // });
-// i18n._.define('zh_CN', zh_CN);
+i18n._.define('zh_CN', zh_CN);
 
 export default i18n;

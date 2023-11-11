@@ -23,7 +23,7 @@ import {activePlayer, actualStage} from "../game/util";
 import Button from "@material-ui/core/Button";
 import Paper from "@material-ui/core/Paper";
 import Typography from "@material-ui/core/Typography";
-import {Theme} from "@material-ui/core/styles/createMuiTheme";
+import {Theme} from '@material-ui/core/styles'
 import Grid from "@material-ui/core/Grid";
 import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
@@ -72,8 +72,8 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
                             <CardInfo cid={slot.card}/>
                             <Typography
                                 style={{
-                                    display:'inline-flex',
-                                    verticalAlign:'middle'
+                                    display: 'inline-flex',
+                                    verticalAlign: 'middle'
                                 }}>
                                 <ResourceIcon/>
                                 {cardObj.cost.res}
@@ -124,6 +124,16 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
 
 export interface IRegionProp {
     r: ValidRegion,
+    region: IRegionInfo,
+    G: IG,
+    ctx: Ctx,
+    getPlayerName: (pid: string) => string,
+    playerID: PlayerID | null,
+    moves: Record<string, (...args: any[]) => void>;
+}
+
+export interface InvRegionProp {
+    r: Region,
     region: IRegionInfo,
     G: IG,
     ctx: Ctx,
@@ -293,5 +303,81 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
         </Accordion>
     </Grid>
 }
+
+export const SchoolRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}: InvRegionProp) => {
+    useI18n(i18n);
+    const {era, share, legend, normal, legendDeckLength, normalDeckLength} = region;
+    const classes = useStyles();
+
+    const comment = (slot: ICardSlot, card: BasicCardID | null) => moves.comment({
+        target: slot.card,
+        comment: card,
+        p: playerID
+    })
+
+    return <Grid item xs={12}>
+        <Accordion
+            className={classes.root}
+            expanded={true}
+            key={r}>
+            <AccordionSummary key={r}>
+                <Grid container
+                      justify="space-evenly"
+                      alignItems="baseline"
+                      className={classes.root}>
+                    <Grid item xs={2} sm={1}>
+                        <Paper
+                            variant={"outlined"}>
+                            <Typography>
+                                <ChampionIcon champion={{region: r, era: era}}/>
+                            </Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={4} sm={2}>
+                        <Paper>
+                            <DeckIcon style={{color: getColor(r)}}/>
+                            <LegendCardIcon style={{color: getColor(r)}}/>
+                            {legendDeckLength}
+                            <NormalCardIcon style={{color: getColor(r)}}/>
+                            {normalDeckLength}
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={2} sm={1}>
+                        <Paper
+                            aria-label={`${i18n.pub.share}${share}`}
+                            variant={"outlined"}>
+                            <DrawnShareIcon key={r} r={r}/>X{share}
+                        </Paper>
+                    </Grid>
+                </Grid>
+            </AccordionSummary>
+            <AccordionDetails key={r}>
+                <Grid container>
+                    <Grid item xs={12} md={6}>
+                        <BoardCardSlot
+                            G={G} ctx={ctx} slot={legend}
+                            moves={moves}
+                            comment={comment}
+                            playerID={playerID}
+                        /></Grid>
+                    {normal.map((slot) => {
+                        if (slot.card !== null) {
+                            return <Grid item key={nanoid()} xs={12} md={6}>
+                                <BoardCardSlot
+                                    moves={moves}
+                                    G={G} ctx={ctx} slot={slot}
+                                    comment={comment} playerID={playerID}
+                                />
+                            </Grid>
+                        } else {
+                            return <React.Fragment key={nanoid()}/>
+                        }
+                    })}
+                </Grid>
+            </AccordionDetails>
+        </Accordion>
+    </Grid>
+}
+
 
 export default BoardRegion;

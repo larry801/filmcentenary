@@ -6,9 +6,6 @@ import {
 } from "react-router-dom";
 import React from "react";
 
-const serverURL = process.env.REACT_APP_URL ?? "http://localhost:8000";
-
-
 const App = () => (
     <Router>
         <Switch>

@@ -5,6 +5,7 @@ import {
     B05,
     BasicCardID,
     BuildingType,
+    CardCategory,
     CardID,
     CardType,
     ClassicCardID,
@@ -15,22 +16,28 @@ import {
     getCardById,
     IBasicCard,
     IBuyInfo,
-    ICardSlot, IEra,
+    ICardSlot,
+    IEra,
     INormalOrLegendCard,
-    IRegionInfo, ItrEffects, Region,
+    IRegionInfo,
+    ItrEffects,
+    Region,
     SchoolCardID,
+    SimpleEffectNames,
     SimpleRuleNumPlayers,
     valid_regions,
     VictoryType
 } from "../types/core";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
-    activePlayer, addRes,
+    activePlayer,
+    addRes,
     addVp,
     aesAward,
     atkCardSettle,
     buildBuildingFor,
-    buildingInRegion, buyCardEffectPrepare,
+    buildingInRegion,
+    buyCardEffectPrepare,
     canBuyCard,
     cardInDeck,
     cardInDiscard,
@@ -41,6 +48,7 @@ import {
     checkNextEffect,
     cinemaInRegion,
     cinemaSlotsAvailable,
+    competitionCleanUp,
     competitionResultSettle,
     curPub,
     die,
@@ -53,9 +61,12 @@ import {
     fillEmptySlots,
     fillEventCard,
     fillTwoPlayerBoard,
+    getEraEffectByRegion,
+    loseCompetitionPower,
     loseVp,
     payCost,
     playerEffExec,
+    playerLoseShare,
     regionScoringCheck,
     schoolPlayer,
     seqFromPos,
@@ -75,6 +86,7 @@ export interface IChangePlayerSettingArgs {
 export interface ISetupGameModeArgs {
     order: GameTurnOrder,
     mode: GameMode,
+    enableSchoolExtension: boolean,
 }
 
 export const changePlayerSetting: LongFormMove = {
@@ -144,6 +156,38 @@ export const setupGameMode: LongFormMove = {
         if (ctx.numPlayers >= 4) {
             G.pub[parseInt(initOrder[3])].vp = 5;
         }
+        if(args.enableSchoolExtension) {
+            log.push(`|drawForSchoolExtension`)
+            for (let sch of shuffle(ctx, [SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008]).slice(0, 2)) {
+                log.push(`|${sch}|drawn`);
+                G.schoolExt.push(sch);
+            }
+            for (let sch of shuffle(ctx, [SchoolCardID.S4001, SchoolCardID.S4002, SchoolCardID.S4003, SchoolCardID.S4004]).slice(0, 2)) {
+                log.push(`|${sch}|drawn`);
+                G.schoolExt.push(sch);
+            }
+            let schoolCardPopped = G.schoolExt.pop();
+            if (schoolCardPopped === undefined) {
+                throw new Error(schoolCardPopped);
+            } else {
+                G.regions[Region.EXTENSION].legend.card = schoolCardPopped;
+            }
+            for (let iCardSlot of G.regions[Region.EXTENSION].normal) {
+                schoolCardPopped = G.schoolExt.pop();
+                if (schoolCardPopped === undefined) {
+                    throw new Error(schoolCardPopped);
+                } else {
+                    iCardSlot.card = schoolCardPopped;
+                }
+            }
+        } else {
+            log.push(`cleanUpSchoolExtension`)
+            G.regions[Region.EXTENSION].legend.card = null;
+            for (let iCardSlot of G.regions[Region.EXTENSION].normal) {
+                iCardSlot.card = null;
+            }
+        }
+        G.hasSchoolExtension = args.enableSchoolExtension;
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -175,7 +219,7 @@ export const payAdditionalCost: LongFormMove = {
             case "buildCinema":
                 G.e.regions = [];
                 log.push(`|region:|${r}`);
-                if (r === undefined || r === Region.NONE) {
+                if (r === undefined || r === Region.NONE || r === Region.EXTENSION) {
                     log.push(`|invalid`);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return INVALID_MOVE;
@@ -185,7 +229,7 @@ export const payAdditionalCost: LongFormMove = {
             case "buildStudio":
                 G.e.regions = [];
                 log.push(`|region:|${r}`);
-                if (r === undefined || r === Region.NONE) {
+                if (r === undefined || r === Region.NONE || r === Region.EXTENSION) {
                     log.push(`|invalid`);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return INVALID_MOVE;
@@ -208,38 +252,6 @@ export const payAdditionalCost: LongFormMove = {
                     log.push(`|cannotUpgrade`);
                 }
                 break;
-            // case "competition":
-            //     let players = [];
-            //     const p = ctx.playerID;
-            //     if (ctx.numPlayers > SimpleRuleNumPlayers) {
-            //         if (G.mode !== GameMode.TEAM2V2) {
-            //             log.push(`|normal`);
-            //             players = seqFromCurrentPlayer(G, ctx);
-            //         } else {
-            //             log.push(`|2v2`);
-            //             players = opponentTeamPlayers(p);
-            //         }
-            //         const ownIndex = players.indexOf(p)
-            //         if (ownIndex !== -1) {
-            //             players.splice(ownIndex, 1)
-            //         }
-            //         log.push(`|competitionPlayers:|${JSON.stringify(players)}`);
-            //         log.push(`|players:|${JSON.stringify(players)}`);
-            //         G.c.players = players;
-            //         G.e.stack.push(eff)
-            //         log.push(`|chooseTarget`);
-            //         logger.debug(`${G.matchID}|${log.join('')}`);
-            //         changePlayerStage(G, ctx, "chooseTarget", p);
-            //         return;
-            //     } else {
-            //         G.competitionInfo.progress = eff.a.bonus;
-            //         G.competitionInfo.onWin = eff.a.onWin;
-            //         log.push(`|startCompetition`);
-            //         logger.debug(`${G.matchID}|${log.join('')}`);
-            //         const opponent2p = p === '0' ? '1' : '0';
-            //         startCompetition(G, ctx, p, opponent2p);
-            //         return;
-            //     }
             default:
                 throw Error(`Invalid effect ${JSON.stringify(eff)}`)
         }
@@ -255,8 +267,7 @@ export interface IShowCompetitionResultArgs {
 }
 
 export const showCompetitionResult: LongFormMove = {
-    // TODO remove comment cannot undo in real game
-    // undoable: false,
+    undoable: false,
     move: (G: IG, ctx: Ctx, args: IShowCompetitionResultArgs) => {
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.showCompetitionResult(${JSON.stringify(args)})`)
         competitionResultSettle(G, ctx);
@@ -284,6 +295,7 @@ export const buyCard: LongFormMove = {
             let targetCard = getCardById(arg.target)
             let pub = curPub(G, ctx);
             pub.action--;
+            pub.actionused = true;
             pub.resource -= arg.resource;
             pub.deposit -= arg.deposit;
             arg.helper.forEach(c => {
@@ -323,58 +335,71 @@ export const chooseTarget: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: ITargetChooseArgs) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.chooseTarget(${JSON.stringify(arg)})`);
-        let src = arg.p;
-        let p = arg.target;
+        let choosePlayerID = arg.p;
+        let targetPlayerId = arg.target;
         let eff = G.e.stack.pop();
-        logger.debug(JSON.stringify(eff));
-        const log = [`players|${JSON.stringify(G.c.players)}|eff:${JSON.stringify(eff)}`];
+        const log = [`${G.matchID}|p${arg.p}.moves.chooseTarget(${JSON.stringify(arg)})|players|${JSON.stringify(G.c.players)}|eff:${JSON.stringify(eff)}`];
+        log.push(`|eff|${JSON.stringify(eff)}`);
         switch (eff.e) {
-            case "loseVpForEachHand":
+            case SimpleEffectNames.loseVpForEachHand:
                 G.c.players = [];
-                const handCount = G.player[parseInt(p)].hand.length;
-                loseVp(G, ctx, p, handCount);
+                const handCount = G.player[parseInt(targetPlayerId)].hand.length;
+                loseVp(G, ctx, targetPlayerId, handCount);
                 break;
-            case "competition":
+            case ItrEffects.competition:
                 G.c.players = [];
-                // G.competitionInfo.progress = eff.a.bonus;
                 G.competitionInfo.onWin = eff.a.onWin;
                 log.push(`|startCompetition`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
-                startCompetition(G, ctx, src, p);
+                startCompetition(G, ctx, choosePlayerID, targetPlayerId);
                 return;
-            case "loseAnyRegionShare":
+            case ItrEffects.loseAnyRegionShare:
+                log.push(`|loseAnyRegionShare`);
                 G.c.players = [];
                 G.e.regions = valid_regions.filter(
-                    r => G.pub[parseInt(p)].shares[r] > 0
+                    r => G.pub[parseInt(targetPlayerId)].shares[r] > 0
                 )
+                log.push(`|regions${JSON.stringify(G.e.regions)}`);
                 if (G.e.regions.length > 0) {
-                    G.e.stack.push(eff);
-                    G.c.players = [p];
-                    changePlayerStage(G, ctx, "chooseRegion", src);
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    return;
+                    if (G.e.regions.length > 1) {
+                        log.push(`|stackBeforePush|${JSON.stringify(G.e.stack)}`);
+                        G.e.stack.push(eff);
+                        log.push(`|stackAfterPush|${JSON.stringify(G.e.stack)}`);
+                        G.c.players = [targetPlayerId];
+                        changePlayerStage(G, ctx, "chooseRegion", choosePlayerID);
+                        log.push(`|p${choosePlayerID}|chooseRegion`);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    } else {
+                        const targetRegion = G.e.regions[0];
+                        G.e.regions = [];
+                        log.push(`|onlyOneRegion|${targetRegion}`)
+                        if (targetRegion !== Region.NONE && targetRegion !== Region.EXTENSION) {
+                            playerLoseShare(G, targetRegion, targetPlayerId, 1);
+                            loseCompetitionPower(G, ctx, targetPlayerId, 1);
+                        }
+                        checkNextEffect(G, ctx);
+                        break;
+                    }
                 } else {
-                    ctx?.events?.endStage?.()
-                    log.push(`|endStage`);
+                    checkNextEffect(G, ctx);
                     break;
                 }
-            case "handToAnyPlayer":
-                G.c.players = [arg.target]
+            case ItrEffects.handToAnyPlayer:
+                log.push(`|own|chooseHand`);
+                G.c.players = [arg.target];
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", arg.p);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             default:
-                eff.target = p;
-                G.e.stack.push(eff);
-                log.push(`|otherEffects|${JSON.stringify(eff)}`);
+                log.push(`|${JSON.stringify(eff)}|otherEffects|playerEffExec`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
-                checkNextEffect(G, ctx);
+                eff.target = arg.target;
+                G.e.stack.push(eff);
+                playerEffExec(G, ctx, targetPlayerId);
                 return
         }
-        logger.debug(`${G.matchID}|${log.join('')}`);
-        checkNextEffect(G, ctx);
-        return;
     }
 }
 
@@ -406,15 +431,55 @@ export const chooseHand: LongFormMove = {
         }
         const hand = G.player[parseInt(p)].hand;
         const card: IBasicCard | INormalOrLegendCard = getCardById(target);
+        log.push(`|prev|hand|${JSON.stringify(hand)}|discard|${JSON.stringify(pub.discard)}`);
+
         switch (eff.e) {
+            case "discardBasic":
+                if (card.category !== CardCategory.BASIC) {
+                    return INVALID_MOVE;
+                } else {
+                    break;
+                }
+            case "discardLegend":
+                if (card.category !== CardCategory.LEGEND) {
+                    return INVALID_MOVE;
+                } else {
+                    break;
+                }
+            case "discardIndustry":
+                if (card.industry === 0) {
+                    return INVALID_MOVE;
+                } else {
+                    break;
+                }
+            case "discardAesthetics":
+                if (card.aesthetics === 0) {
+                    return INVALID_MOVE;
+                } else {
+                    break;
+                }
+            case "discardNormalOrLegend":
+                if (card.category !== CardCategory.LEGEND && card.category !== CardCategory.NORMAL) {
+                    return INVALID_MOVE;
+                } else {
+                    break;
+                }
+            default:
+                break;
+        }
+        switch (eff.e) {
+            // Effect of "Blue" S3303 only
             case "playedCardInTurnEffect":
                 log.push(`|${target}`);
                 let cardEff = getCardEffect(target);
                 if (cardEff.hasOwnProperty("play")) {
-                    const eff = {...cardEff.play};
+                    let eff = {...cardEff.play};
                     if (eff.e !== "none") {
+                        if (eff.e === "era") {
+                            eff = getEraEffectByRegion(G, ctx, eff, card.region);
+                        }
                         eff.target = arg.p;
-                        G.e.stack.push(eff)
+                        G.e.stack.push(eff);
                     } else {
                         log.push(`|emptyPlayEffect`);
                     }
@@ -425,22 +490,23 @@ export const chooseHand: LongFormMove = {
             case "breakthroughResDeduct":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
-                // if (arg.hand === FilmCardID.F1108) {
-                //     log.push(`Nanook`);
-                //     const eraNA = ctx.numPlayers > SimpleRuleNumPlayers ? G.regions[Region.NA].era : G.twoPlayer.era;
-                //     if (eraNA === IEra.ONE) {
-                //         return INVALID_MOVE;
-                //     }
-                // }
+                //流派扩：波兰学派
+                if (pub.school === SchoolCardID.S4004) {
+                    drawCardForPlayer(G, ctx, p);
+                }
                 startBreakThrough(G, ctx, arg.p, arg.hand);
                 return;
             case "archiveToEEBuildingVP":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
+                //流派扩：波兰学派
+                if (pub.school === SchoolCardID.S4004) {
+                    drawCardForPlayer(G, ctx, p);
+                }
                 if (buildingInRegion(G, ctx, Region.EE, p)) {
                     addVp(G, ctx, p, card.vp)
                 }
-                break
+                break;
             case "handToAnyPlayer":
                 const allCardsIndex = pub.allCards.indexOf(arg.hand);
                 if (allCardsIndex !== -1) {
@@ -451,6 +517,13 @@ export const chooseHand: LongFormMove = {
                 hand.splice(arg.idx, 1);
                 G.player[parseInt(G.c.players[0])].hand.push(arg.hand);
                 G.pub[parseInt(G.c.players[0])].allCards.push(arg.hand);
+                //流派扩：波兰学派
+                if (pub.school === SchoolCardID.S4004 && parseInt(G.c.players[0]) !== parseInt(p)) {
+                    drawCardForPlayer(G, ctx, p);
+                }
+                if (pub.school !== SchoolCardID.S4004 && G.pub[parseInt(G.c.players[0])].school === SchoolCardID.S4004 && arg.hand in BasicCardID) {
+                    addVp(G, ctx, G.c.players[0], 2);
+                }
                 if (eff.a > 1) {
                     log.push(`|prev:${eff.a}`);
                     eff.a--;
@@ -461,6 +534,10 @@ export const chooseHand: LongFormMove = {
             case "refactor":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
+                //流派扩：波兰学派
+                if (pub.school === SchoolCardID.S4004) {
+                    drawCardForPlayer(G, ctx, p);
+                }
                 const vpToAdd = getCardById(arg.hand).vp;
                 if (vpToAdd > 0) {
                     addVp(G, ctx, p, vpToAdd);
@@ -476,14 +553,20 @@ export const chooseHand: LongFormMove = {
                 }
                 break;
             case "archive":
+                log.push(`|archive|prev|${JSON.stringify(pub.archive)}`);
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
+                //流派扩：波兰学派
+                if (pub.school === SchoolCardID.S4004) {
+                    drawCardForPlayer(G, ctx, p);
+                }
                 if (eff.a > 1) {
                     log.push(`|prev:${eff.a}`);
                     eff.a--;
                     log.push(`|remain:${eff.a}`);
                     G.e.stack.push(eff);
                 }
+                log.push(`|after|${JSON.stringify(pub.archive)}`);
                 break;
             case "discard":
             case "discardBasic":
@@ -491,18 +574,25 @@ export const chooseHand: LongFormMove = {
             case "discardIndustry":
             case "discardAesthetics":
             case "discardNormalOrLegend":
+                log.push(`|discard|prev|${JSON.stringify(pub.discard)}`);
                 hand.splice(arg.idx, 1);
                 pub.discard.push(arg.hand);
+                log.push(`|after|${JSON.stringify(pub.discard)}`);
                 if (eff.a > 1) {
-                    log.push(`|prev:${eff.a}`);
+                    log.push(`|multipleDiscard|prev:${eff.a}`);
                     eff.a--;
-                    log.push(`|remain:${eff.a}`);
                     G.e.stack.push(eff);
+                    log.push(`|stack|${JSON.stringify(G.e.stack)}`);
+                }
+                if (pub.school === SchoolCardID.S4003) {
+                    pub.deposit += 1;
+                    addVp(G, ctx, p, 1);
                 }
                 break;
             default:
                 throw new Error();
         }
+        log.push(`|after|hand|${JSON.stringify(hand)}`);
         log.push(`|checkNextEffect`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         checkNextEffect(G, ctx);
@@ -619,7 +709,10 @@ export const chooseRegion: LongFormMove = {
         const r = arg.r;
         const pub = G.pub[parseInt(arg.p)]
         log.push(JSON.stringify(arg));
-        if (r === Region.NONE) return;
+        if (r === Region.NONE || r === Region.EXTENSION) {
+            logger.debug(`${G.matchID}|${log.join('')}|NONE|return`);
+            return;
+        }
         const eff = G.e.stack.pop();
         log.push(JSON.stringify(eff));
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -649,19 +742,24 @@ export const chooseRegion: LongFormMove = {
             switch (eff.e) {
                 case ItrEffects.loseAnyRegionShare:
                     p = G.c.players[0];
+                    log.push(`|targetPlayer|p${p}`);
                     G.c.players = [];
-                    G.pub[parseInt(p)].shares[r]--;
-                    reg.share++;
+                    playerLoseShare(G, r, p, 1);
+                    loseCompetitionPower(G, ctx, p, 1);
                     break;
                 case ItrEffects.anyRegionShareCompetition:
                     // const loser = i.progress > 0 ? i.def : i.atk;
                     const loser = i.def;
-                    G.pub[parseInt(loser)].shares[r]--;
+                    const loserPid = parseInt(loser);
+                    log.push(`|beforeLose|${G.pub[loserPid].shares[r]}|${pub.shares[r]}`);
+                    G.pub[loserPid].shares[r]--;
                     pub.shares[r]++;
+                    log.push(`|afterLose|${G.pub[loserPid].shares[r]}|${pub.shares[r]}`);
                     if (eff.a > 1) {
                         eff.a--;
                         G.e.stack.push(eff);
                     }
+                    competitionCleanUp(G, ctx);
                     break;
                 case ItrEffects.anyRegionShareCentral:
                 case ItrEffects.anyRegionShare:
@@ -721,6 +819,10 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         pub.discard.push(card);
                         log.push(`|${JSON.stringify(pub.discard)}`);
+                        if (pub.school === SchoolCardID.S4003) {
+                            pub.deposit += 1;
+                            addVp(G, ctx, p, 1);
+                        }
                     }
                 })
                 playerObj.cardsToPeek = []
@@ -739,6 +841,10 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         pub.discard.push(card);
                         log.push(`|${JSON.stringify(pub.discard)}`);
+                        if (pub.school === SchoolCardID.S4003) {
+                            pub.deposit += 1;
+                            addVp(G, ctx, p, 1);
+                        }
                     }
                 })
                 playerObj.cardsToPeek = []
@@ -756,6 +862,10 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         pub.discard.push(card);
                         log.push(`|${JSON.stringify(pub.discard)}`);
+                        if (pub.school === SchoolCardID.S4003) {
+                            pub.deposit += 1;
+                            addVp(G, ctx, p, 1);
+                        }
                     }
                 })
                 playerObj.cardsToPeek = []
@@ -774,6 +884,10 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         pub.discard.push(card);
                         log.push(`|${JSON.stringify(pub.discard)}`);
+                        if (pub.school === SchoolCardID.S4003) {
+                            pub.deposit += 1;
+                            addVp(G, ctx, p, 1);
+                        }
                     }
                 })
                 playerObj.cardsToPeek = []
@@ -804,7 +918,11 @@ export const peek: LongFormMove = {
                         log.push(`|evaluating${card}`);
                         log.push(`|discard|${card}`);
                         log.push(`|${JSON.stringify(pub.discard)}`);
-                        pub.discard.push(card)
+                        pub.discard.push(card);
+                        if (pub.school === SchoolCardID.S4003) {
+                            pub.deposit += 1;
+                            addVp(G, ctx, p, 1);
+                        }
                         log.push(`|${JSON.stringify(pub.discard)}`);
                     })
                     playerObj.cardsToPeek = []
@@ -848,10 +966,6 @@ export const chooseEvent: LongFormMove = {
             checkNextEffect(G, ctx);
             return
         } else {
-            if (eid === EventCardID.E07) {
-                log.push("|LES CHAIERS DU CINEMA");
-                G.activeEvents.push(EventCardID.E07);
-            }
             if (eid === EventCardID.E08) {
                 G.regions[Region.EE].buildings[1].activated = true;
             }
@@ -880,7 +994,7 @@ export const chooseEvent: LongFormMove = {
                         G.order.forEach(o => {
                             const other = G.pub[parseInt(o)];
                             if (other.vp > pub.vp) {
-                                pub.vp += 5;
+                                addVp(G, ctx, j, 5);
                             }
                         })
                     })
@@ -894,7 +1008,8 @@ export const chooseEvent: LongFormMove = {
                         const s = G.player[pidInt]
                         const validID = [...G.secretInfo.playerDecks[pidInt], ...pub.discard, ...s.hand, ...pub.archive]
                         const validCards = validID.map(c => getCardById(c));
-                        pub.vp += validCards.filter(c => c.type === CardType.P).length * 4;
+                        const vpForJ = validCards.filter(c => c.type === CardType.P).length * 4;
+                        addVp(G, ctx, j, vpForJ);
                     })
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);
@@ -903,8 +1018,8 @@ export const chooseEvent: LongFormMove = {
                     G.order.forEach(j => {
                         const pidInt = parseInt(j)
                         const pub = G.pub[pidInt];
-                        pub.vp += pub.industry;
-                        pub.vp += pub.aesthetics;
+                        addVp(G, ctx, j, pub.industry);
+                        addVp(G, ctx, j, pub.aesthetics);
                     })
                     fillEventCard(G, ctx);
                     checkNextEffect(G, ctx);
@@ -921,16 +1036,16 @@ export const chooseEvent: LongFormMove = {
                         })
                         switch (championRegionCount) {
                             case 4:
-                                pub.vp += 20;
+                                addVp(G, ctx, j, 20);
                                 break;
                             case 3:
-                                pub.vp += 12;
+                                addVp(G, ctx, j, 12);
                                 break;
                             case 2:
-                                pub.vp += 6;
+                                addVp(G, ctx, j, 6);
                                 break;
                             case 1:
-                                pub.vp += 2;
+                                addVp(G, ctx, j, 2);
                                 break;
                             default:
                                 break;
@@ -943,16 +1058,16 @@ export const chooseEvent: LongFormMove = {
                     G.order.forEach(j => {
                         const pidInt = parseInt(j)
                         const pub = G.pub[pidInt];
-                        pub.champions.forEach(c=>{
+                        pub.champions.forEach(c => {
                             switch (c.era) {
                                 case IEra.ONE:
-                                    pub.vp += 2;
+                                    addVp(G, ctx, j, 2);
                                     break;
                                 case IEra.TWO:
-                                    pub.vp += 4;
+                                    addVp(G, ctx, j, 4);
                                     break;
                                 case IEra.THREE:
-                                    pub.vp += 6;
+                                    addVp(G, ctx, j, 6);
                                     break;
                             }
                         });
@@ -1053,8 +1168,10 @@ export const confirmRespond: LongFormMove = {
         const log = [`confirmRespond|p${p}|${JSON.stringify(arg)}|${JSON.stringify(G.e.stack)}|${JSON.stringify(eff)}`];
         logger.debug(`${G.matchID}|${log.join('')}`);
         if (arg === "yes") {
+            log.push("|yes");
             switch (eff.e) {
                 case "optional":
+                    log.push(`|optional`);
                     const newEff = {...eff.a}
                     if (newEff.e === ItrEffects.newHollyWoodEff) {
                         log.push(`|newHollyWoodEff|${eff.target}`);
@@ -1070,18 +1187,20 @@ export const confirmRespond: LongFormMove = {
                         }
                     }
                     log.push(`|${JSON.stringify(newEff)}`);
-                    log.push("|yes");
                     G.e.stack.push(newEff)
                     break;
                 case "alternative":
+                    log.push(`|alternative`);
                     const popEff = G.e.stack.pop()
                     log.push(`|pop|${JSON.stringify(popEff)}`);
                     G.e.stack.push(eff.a)
                     log.push(`|push|${JSON.stringify(eff.a)}`);
                     break;
                 case "searchAndArchive":
+                    log.push(`|searchAndArchive`);
                     let deck = G.secretInfo.playerDecks[parseInt(p)];
                     let indexOfTarget = -1
+                    //流派扩：波兰学派
                     if (cardInDeck(G, ctx, parseInt(p), eff.a)) {
                         deck.forEach((c, idx) => {
                             if (c === eff.a) {
@@ -1089,6 +1208,9 @@ export const confirmRespond: LongFormMove = {
                             }
                         })
                         pub.archive.push(deck.splice(indexOfTarget, 1)[0]);
+                        if (pub.school === SchoolCardID.S4004) {
+                            drawCardForPlayer(G, ctx, p);
+                        }
                     }
                     if (cardInHand(G, ctx, parseInt(p), eff.a)) {
                         hand.forEach((c, idx) => {
@@ -1097,6 +1219,9 @@ export const confirmRespond: LongFormMove = {
                             }
                         })
                         pub.archive.push(hand.splice(indexOfTarget, 1)[0]);
+                        if (pub.school === SchoolCardID.S4004) {
+                            drawCardForPlayer(G, ctx, p);
+                        }
                     }
                     if (cardInDiscard(G, ctx, parseInt(p), eff.a)) {
                         pub.discard.forEach((c, idx) => {
@@ -1105,6 +1230,9 @@ export const confirmRespond: LongFormMove = {
                             }
                         })
                         pub.archive.push(pub.discard.splice(indexOfTarget, 1)[0]);
+                        if (pub.school === SchoolCardID.S4004) {
+                            drawCardForPlayer(G, ctx, p);
+                        }
                     }
                     addVp(G, ctx, p, 2);
                     break;
@@ -1112,9 +1240,9 @@ export const confirmRespond: LongFormMove = {
                     throw new Error();
             }
         } else {
+            log.push(`|no|nextEff`);
             switch (eff.e) {
                 case "alternative":
-                    log.push(`|nextEff`);
                     break
                 default:
                     break;
@@ -1135,6 +1263,18 @@ export interface IPlayCardInfo {
 export const playCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        //流派扩：法国印象派
+        let has_4001 = false;
+        let id_4001 = 0;
+        let vp_4001 = 0;
+        for (let pkl = 0; pkl < ctx.numPlayers; pkl++) {
+            if (G.pub[pkl].school === SchoolCardID.S4001) {
+                vp_4001 = G.pub[pkl].vp;
+                has_4001 = true;
+                id_4001 = pkl;
+                break;
+            }
+        }
         logger.info(`${G.matchID}|p${arg.playerID}.moves.playCard(${JSON.stringify(arg)})`);
         const log = ["playCard"];
         const playCard = getCardById(arg.card);
@@ -1142,9 +1282,46 @@ export const playCard: LongFormMove = {
         const hand = G.player[parseInt(arg.playerID)].hand;
         if (cinemaInRegion(G, ctx, playCard.region, arg.playerID) && playCard.type === CardType.F) {
             log.push(`|cinemaInRegion|${playCard.region}`);
-            addRes(G, ctx, arg.playerID, 1);
-            addVp(G, ctx, arg.playerID, 1);
+            switch (pub.school) {
+                //流派扩：玛萨拉电影
+                case SchoolCardID.S4002:
+                    drawCardForPlayer(G, ctx, arg.playerID);
+                    addVp(G, ctx, arg.playerID, 1);
+                    break;
+                default:
+                    addRes(G, ctx, arg.playerID, 1);
+                    addVp(G, ctx, arg.playerID, 2);
+                    break;
+            }
         }
+        if (pub.school === SchoolCardID.S4008 && playCard.industry > 0) {
+            //流派扩：高概
+            addRes(G, ctx, arg.playerID, playCard.industry);
+            addVp(G, ctx, arg.playerID, playCard.industry);
+        }
+        if (pub.school === SchoolCardID.S4005 && playCard.aesthetics > 0) {
+            //流派扩：现代主义
+            switch (playCard.aesthetics) {
+                case 1:
+                    addRes(G, ctx, arg.playerID, 1);
+                    addVp(G, ctx, arg.playerID, 2);
+                    break;
+                case 2:
+                    addRes(G, ctx, arg.playerID, 1);
+                    addVp(G, ctx, arg.playerID, 2);
+                    drawCardForPlayer(G, ctx, arg.playerID);
+                    break;
+                case 3:
+                    addRes(G, ctx, arg.playerID, 1);
+                    addVp(G, ctx, arg.playerID, 4);
+                    drawCardForPlayer(G, ctx, arg.playerID);
+                    drawCardForPlayer(G, ctx, arg.playerID);
+                    break;
+                default:
+                    break;
+            }
+        }
+
         hand.splice(arg.idx, 1);
         pub.playedCardInTurn.push(arg.card);
         G.e.card = arg.card;
@@ -1153,12 +1330,17 @@ export const playCard: LongFormMove = {
             switch (privateInfo.classicFilmAutoMove) {
                 case ClassicFilmAutoMoveMode.AESTHETICS_AWARD:
                     aesAward(G, ctx, arg.playerID);
+                    if (G.pub[parseInt(arg.playerID)].school === SchoolCardID.S4001) {
+                        if (G.pub[parseInt(arg.playerID)].aesthetics >= 5) {
+                            addRes(G, ctx, arg.playerID, 1);
+                        }
+                    }
                     log.push(`|ClassicFilm|AutoAesthetics`);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 case ClassicFilmAutoMoveMode.DRAW_CARD:
                     drawCardForPlayer(G, ctx, arg.playerID);
-                    log.push(`|ClassicFilm|AutoAesthetics`);
+                    log.push(`|ClassicFilm|AutoDraw`);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 default:
@@ -1181,6 +1363,14 @@ export const playCard: LongFormMove = {
             checkNextEffect(G, ctx);
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
+        //流派扩：法国印象派
+        if (has_4001) {
+            if (G.pub[id_4001].school === SchoolCardID.S4001) {
+                if (G.pub[id_4001].vp - vp_4001 >= 3) {
+                    G.pub[id_4001].resource += 1;
+                }
+            }
+        }
     },
     client: false,
 }
@@ -1232,12 +1422,16 @@ export const breakthrough: LongFormMove = {
         // }
         const pub = G.pub[parseInt(arg.playerID)];
         pub.action -= 1;
+        pub.actionused = true;
         pub.resource -= arg.res;
         pub.deposit -= (2 - arg.res);
         const c = getCardById(arg.card);
         G.e.card = c.cardId;
         G.player[parseInt(arg.playerID)].hand.splice(arg.idx, 1);
         pub.archive.push(arg.card);
+        if (pub.school === SchoolCardID.S4004) {
+            drawCardForPlayer(G, ctx, arg.playerID);
+        }
         log.push(`|startBreakthrough`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         startBreakThrough(G, ctx, arg.playerID, arg.card);

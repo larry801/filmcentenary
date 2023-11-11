@@ -11,18 +11,6 @@ export function signalEndStage(G: IG, ctx: Ctx): void {
     // }
 }
 
-export function signalEndActivePlayer(G: IG, ctx: Ctx, originalStage = false): void {
-    if (G.logDiscrepancyWorkaround) {
-        G.pending.endActivePlayer = true;
-    } else {
-        if (originalStage) {
-            ctx.events?.setActivePlayers?.({current: Stage.NULL})
-        } else {
-            ctx.events?.setActivePlayers?.({current: Stage.NULL});
-        }
-    }
-}
-
 export function cleanPendingSignal(G: IG): void {
     G.pending = {
         ...G.pending,
@@ -91,6 +79,6 @@ export const autoEventsOnMove = (G: IG, ctx: Ctx): void => {
         ctx.events?.endPhase?.();
     }
     if (G.pending.endActivePlayer) {
-        ctx.events?.setActivePlayers?.({current: Stage.NULL});
+        ctx.events?.setActivePlayers?.({currentPlayer: Stage.NULL});
     }
 }

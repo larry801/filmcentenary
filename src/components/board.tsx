@@ -1,7 +1,7 @@
 import React from "react";
 import {BoardProps} from "boardgame.io/react";
 import {IG} from "../types/setup";
-import {BoardCardSlot, BoardRegion} from "./region";
+import {BoardCardSlot, BoardRegion, SchoolRegion} from "./region";
 import {activePlayer} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
@@ -26,10 +26,12 @@ import {useI18n} from "@i18n-chain/react";
 import OperationPanel from "./boards/operation";
 import FinalScoreTable from "./boards/final";
 import {getCardName} from "./card";
-import { nanoid } from "nanoid";
+import {nanoid} from "nanoid";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
 import SetupPanel from "./boards/setup-game-mode";
+// @ts-ignore
+import disconnectedSfx from './media/connect.mp3'
 // @ts-ignore
 import playerTurnSfx from './media/turn.mp3';
 import {ChampionIcon, DrawnShareIcon} from "./icons";
@@ -37,6 +39,15 @@ import Dialog from "@material-ui/core/Dialog";
 import ErrorBoundary from "./error";
 
 let sound: HTMLAudioElement;
+let connectedSound: HTMLAudioElement;
+
+export const playConnectedSound = () => {
+    if (!connectedSound) {
+        connectedSound = new Audio(disconnectedSfx);
+    }
+    connectedSound.play().then(() => {
+    });
+}
 
 export const playSound = () => {
     if (!sound) {
@@ -68,15 +79,25 @@ export const FilmCentenaryBoard = ({
                                        matchData,
                                        matchID,
                                        playerID,
-                                       isActive
+                                       isActive,
+                                       isMultiplayer,
+                                       isConnected
                                    }: BoardProps<IG>) => {
 
     useI18n(i18n);
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
     const canMove = ctx.currentPlayer === playerID ? canMoveCurrent : canMoveOutOfTurn;
-    const curPlayerSuffix = "(*)"
+    const curPlayerSuffix = "(*)";
+    const connectedPrefix = "---";
     const prevIsActive = usePrevious(isActive);
+    const prevIsConnected = usePrevious(isConnected);
+
+    React.useEffect(() => {
+        if (isMultiplayer && !isConnected && prevIsConnected) {
+            playConnectedSound();
+        }
+    }, [prevIsConnected, isConnected])
 
     React.useEffect(() => {
         if (isActive && prevIsActive === false) {
@@ -87,11 +108,7 @@ export const FilmCentenaryBoard = ({
     const locale = i18n._.getLocaleName();
 
     React.useEffect((): () => void => {
-        if (isActive) {
-            document.title = curPlayerSuffix + i18n.title
-        } else {
-            document.title = i18n.title
-        }
+        document.title = (isActive ? curPlayerSuffix : "") + i18n.title;
         return () => document.title = i18n.title;
     }, [isActive, locale])
 
@@ -135,6 +152,7 @@ export const FilmCentenaryBoard = ({
                 G.regions[Region.WE],
                 G.regions[Region.EE],
                 G.regions[Region.ASIA],
+                G.regions[Region.EXTENSION],
             ],
             school: [],
             film: [],
@@ -155,7 +173,7 @@ export const FilmCentenaryBoard = ({
             <Grid item xs={12} sm={6}>
                 <Typography>
                     {valid_regions.map(r => {
-                        const regionIdx: 0 | 1 | 2 | 3 = r;
+                        const regionIdx: 0 | 1 | 2 | 3 | 4 = r;
                         const region = G.regions[regionIdx];
                         return <React.Fragment key={nanoid()}>
                             <DrawnShareIcon r={r}/>{region.share}
@@ -202,12 +220,38 @@ export const FilmCentenaryBoard = ({
                          playerID={playerID}/>
             <BoardRegion getPlayerName={getName} r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx}
                          playerID={playerID}/>
+            <SchoolRegion getPlayerName={getName} r={Region.NONE} moves={moves} region={G.regions[4]} G={G} ctx={ctx}
+                          playerID={playerID}/>
         </Grid>
 
     const [open, setOpen] = React.useState(true);
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
 
+    const disconnectNotice = isConnected ? <></> :
+        <>
+            <Button
+                fullWidth
+                style={{textTransform: 'none'}}
+                onClick={handleOpen}
+                color="secondary"
+                variant={"outlined"}
+            >
+                <Typography>
+                    {i18n.disconnected}
+                </Typography>
+            </Button>
+            <Dialog open={open} onClose={handleClose}>
+                <DialogTitle>
+                    <Typography variant="h5" component="h1">
+                        {i18n.disconnected}
+                    </Typography>
+                </DialogTitle>
+                <DialogContent>
+                    {i18n.disconnected}
+                </DialogContent>
+            </Dialog>
+        </>
 
     const gameOverResult = ctx.gameover === undefined ? <></> :
         <>
@@ -284,10 +328,11 @@ export const FilmCentenaryBoard = ({
         : <></>
 
     return <ErrorBoundary>
-        <Grid container justify="flex-start" key={`film-centenary-board-player-${playerID}`}>
+        <Grid container justifyContent="flex-start" key={`film-centenary-board-player-${playerID}`}>
             {gameOverResult}
+            {disconnectNotice}
             {G.pending.lastRoundOfGame && ctx.gameover === undefined ?
-                <Grid item container xs={12} justify="space-evenly">
+                <Grid item container xs={12} justifyContent="space-evenly">
                     <Paper variant="elevation">
                         <Typography variant="h4" component="h1">{i18n.pub.lastRoundOfGame}</Typography>
                     </Paper> </Grid> : <></>}
@@ -303,7 +348,7 @@ export const FilmCentenaryBoard = ({
             </Grid> : <></>}
             {playerID === null ? cardBoard : <></>}
             {upperPanel}
-            <Grid item container justify="space-evenly">
+            <Grid item container justifyContent="space-evenly">
                 <Grid item><Typography>{i18n.card.B01} {G.basicCards.B01}</Typography></Grid>
                 <Grid item><Typography>{i18n.card.B02} {G.basicCards.B02}</Typography></Grid>
                 <Grid item><Typography>{i18n.card.B03} {G.basicCards.B03}</Typography></Grid>

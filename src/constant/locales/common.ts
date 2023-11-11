@@ -26,6 +26,7 @@ export interface LocaleRegions {
     2: string,
     3: string,
     4: string,
+    5: string,
 }
 
 export interface LocaleSettings {
@@ -33,6 +34,7 @@ export interface LocaleSettings {
     team: string,
     normal: string,
     newbie: string,
+    enableSchoolExtension: string,
     randomFirst: string,
     fixedFirst: string,
     allRandom: string,
@@ -67,6 +69,9 @@ export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
                 case GameTurnOrder.FIXED:
                     t += setting.fixedFirst
                     break;
+            }
+            if (arg.enableSchoolExtension){
+                t += setting.enableSchoolExtension
             }
             return t;
         }

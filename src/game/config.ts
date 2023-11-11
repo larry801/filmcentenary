@@ -22,11 +22,13 @@ import {
 import {IG} from "../types/setup";
 import {changePlayerStage, cleanPendingSignal} from "./logFix";
 import {
+    addCompetitionPower,
     addVp,
     aesAward,
     curPub,
     drawCardForPlayer,
-    industryAward
+    industryAward,
+    loseVp
 } from "./util";
 import {ItrEffects, SchoolCardID, SimpleEffectNames} from "../types/core";
 import {logger} from "./logger";
@@ -120,27 +122,12 @@ export const NormalTurn: TurnConfig = {
         const log = [`onBegin|p${p}`];
         if (G.order.includes(p)) {
             const pub = curPub(G, ctx);
-            if (pub.school === SchoolCardID.S2201) {
-                log.push(`|neoRealism`);
-                G.e.stack.push({
-                    e: ItrEffects.choice, a: [
-                        {e: SimpleEffectNames.addCompetitionPower, a: 1},
-                        {
-                            e: "optional", a: {
-                                e: "competition", a: {
-                                    bonus: 0,
-                                    onWin: {e: SimpleEffectNames.addCompetitionPower, a: 1},
-                                }
-                            }
-                        }
-                    ]
-                });
-            }
+            pub.handsize_startturn = G.player[parseInt(p)].hand.length;
             if (pub.school === SchoolCardID.S1301) {
                 log.push(`|montage`);
                 addVp(G, ctx, p, 1);
                 drawCardForPlayer(G, ctx, p);
-                G.e.stack.push({e: "discard", a: 1})
+                G.e.stack.push({e:ItrEffects.discard,a:1})
                 changePlayerStage(G, ctx, "chooseHand", p);
             }
             if (pub.school === SchoolCardID.S2101) {
@@ -161,9 +148,7 @@ export const NormalTurn: TurnConfig = {
             }
             if (pub.school === SchoolCardID.S3101) {
                 log.push(`|newHollywood`);
-                G.e.choices.push({e: SimpleEffectNames.draw, a: 1});
-                G.e.choices.push({e: SimpleEffectNames.addCompetitionPower, a: 1});
-                changePlayerStage(G, ctx, "chooseEffect", p);
+                addCompetitionPower(G, ctx, p, 1);
             }
             if (pub.school === SchoolCardID.S3105) {
                 log.push(`|newYork`);
@@ -175,6 +160,42 @@ export const NormalTurn: TurnConfig = {
                     log.push(`|industryAward`);
                     industryAward(G, ctx, p);
                 }
+            }
+            //此处添加流派扩内容
+            if (pub.school === SchoolCardID.S4001) {
+                log.push(`|"French Impressionism`);
+                if (pub.aesthetics === pub.industry) {
+                    pub.action++;
+                }
+            }
+            if (pub.school === SchoolCardID.S4003) {
+                log.push(`|"American Independent Film`);
+                // console.log(pub.building.cinemaBuilt, pub.building.studioBuilt);
+                if (pub.building.cinemaBuilt){
+                    G.e.stack.push({e: "discard", a: 1});
+                    changePlayerStage(G, ctx, "chooseHand", p);
+                }
+                if (pub.building.studioBuilt){
+                    G.e.stack.push({e: "discard", a: 1});
+                    changePlayerStage(G, ctx, "chooseHand", p);
+                }
+            }
+            if (pub.school === SchoolCardID.S4006) {
+                log.push(`|"Third Cinema`);
+                if (pub.aesthetics > pub.industry) {
+                    drawCardForPlayer(G, ctx, p);
+                    pub.deposit += 2
+                }
+            }
+            if (pub.school === SchoolCardID.S4007) {
+                log.push(`|"Kitchen Sink Film`);
+                loseVp(G, ctx, p, G.player[parseInt(p)].hand.length);
+                G.order.forEach((pid)=>{
+                    if (G.player[parseInt(pid)].hand.length > G.player[parseInt(p)].hand.length){
+                        log.push(`|p${pid}|draw`);
+                        drawCardForPlayer(G, ctx, p);
+                    }
+                });
             }
         } else {
             log.push(`|playerConceded|endTurn`);
@@ -198,7 +219,12 @@ export const NormalTurn: TurnConfig = {
         updateSlot: updateSlotStage,
         peek: peekStage,
         payAdditionalCost: payAdditionalCostStage,
-    },
+    }
+}
+
+export const NormalPhase: PhaseConfig = {
+    next: "NormalPhase",
+    turn: NormalTurn,
     moves: {
         changePlayerSetting: changePlayerSetting,
         drawCard: drawCard,
@@ -217,11 +243,6 @@ export const NormalTurn: TurnConfig = {
         peek: peek,
         concede: concedeMove,
     },
-}
-
-export const NormalPhase: PhaseConfig = {
-    next: "NormalPhase",
-    turn: NormalTurn,
 }
 
 export const InitPhase: PhaseConfig = {

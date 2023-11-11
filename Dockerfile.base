@@ -1,5 +1,5 @@
-FROM node:14.17.1-alpine3.13
+FROM node:16.20.2-alpine3.18
 WORKDIR /app
 COPY package.json yarn.lock /app/
 RUN yarn install --production --link-duplicates && yarn cache clean
-EXPOSE 3000
+EXPOSE 3010

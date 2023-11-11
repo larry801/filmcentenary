@@ -31,8 +31,7 @@ const FinalScoreTable = ({G, ctx, getName}: IFinalScoreTableProps) => {
                     <TableCell>{i18n.playerName.player}</TableCell>
                     <TableCell>{i18n.gameOver.table.board}</TableCell>
                     <TableCell>{i18n.gameOver.table.card}</TableCell>
-                    <TableCell>{i18n.gameOver.table.building}</TableCell>
-                    <TableCell>{i18n.gameOver.table.iAward}</TableCell>
+                    <TableCell>{i18n.gameOver.table.industryAward}</TableCell>
                     <TableCell>{i18n.gameOver.table.aesAward}</TableCell>
                     <TableCell>{i18n.gameOver.table.archive}</TableCell>
                     <TableCell>{i18n.gameOver.table.events}</TableCell>
@@ -49,7 +48,6 @@ const FinalScoreTable = ({G, ctx, getName}: IFinalScoreTableProps) => {
                         </TableCell>
                         <TableCell>{pub.vp}</TableCell>
                         <TableCell>{f.card}</TableCell>
-                        <TableCell>{f.building}</TableCell>
                         <TableCell>{f.industryAward}</TableCell>
                         <TableCell>{f.aestheticsAward}</TableCell>
                         <TableCell>{f.archive}</TableCell>

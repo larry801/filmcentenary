@@ -6,6 +6,7 @@ export enum Region {
     WE,
     EE,
     ASIA,
+    EXTENSION,
     NONE,
 }
 
@@ -120,7 +121,6 @@ export enum ItrEffects {
     aestheticsLevelUpCost = "aestheticsLevelUpCost",
     industryLevelUpCost = "industryLevelUpCost",
     payAdditionalCost = "payAdditionalCost",
-    buildingNA = "buildingNA",
     era = "era",
     discardBasic = "discardBasic",
     breakthroughResDeduct = "breakthroughResDeduct",
@@ -136,11 +136,11 @@ export enum ItrEffects {
     highestVpPlayer = "highestVpPlayer",
     aesLowest = "aesLowest",
     aesHighest = "aesHighest",
+    schoolEraHighestPlayer = "schoolEraHighestPlayer",
     industryLowest = "industryLowest",
     handToAnyPlayer = "handToAnyPlayer",
     industryOrAestheticsBreakthrough = "industryOrAestheticsBreakthrough",
     peek = "peek",
-    minHandCountPlayers = "minHandCountPlayers",
     everyOtherCompany = "everyOtherCompany",
     everyPlayer = "everyPlayer",
     levelAndMarkLowestPlayer = "levelAndMarkLowestPlayer",
@@ -148,6 +148,9 @@ export enum ItrEffects {
     industryHighest = "industryHighest",
     noStudio = "noStudio",
     studio = "studio",
+    noBuildingPlayers = "noBuildingPlayers",
+    buildingPlayers = "buildingPlayers",
+    chooseOnePlayer = "chooseOnePlayer",
     step = "step",
     discardNormalOrLegend = "discardNormalOrLegend",
     discardLegend = "discardLegend",
@@ -200,6 +203,7 @@ export enum MoveNames {
 }
 
 export enum SimpleEffectNames {
+    LES_CHAIERS_DU_CINEMA = "LES_CHAIERS_DU_CINEMA",
     competitionLoserBuy = "competitionLoserBuy",
     CompetitionPowerToVp = "CompetitionPowerToVp",
     shareToVp = "shareToVp",
@@ -255,6 +259,7 @@ export enum NoExecutorEffectNames {
     onYourComment = "onYourComment",
     playedCardInTurnEffect = "playedCardInTurnEffect",
     doNotLoseVpAfterCompetition = "doNotLoseVpAfterCompetition",
+    inTurnAesAwardDrawOneCard = "inTurnAesAwardDrawOneCard",
     NewYorkSchool = "NewYorkSchool",
     obtainNormalOrLegendFilm = "obtainNormalOrLegendFilm",
     afterBreakthrough = "afterBreakthrough",
@@ -269,6 +274,23 @@ export enum NoExecutorEffectNames {
     othersBuySchool = "othersBuySchool",
     turnStart = "turnStart",
 
+    French_Imp_buy = "French_Imp_buy",
+    Samara_buy = "Samara_buy",
+    American_Independent_Film_buy = "American_Independent_Film_buy",
+    Polish_School_buy = "Polish_School_buy",
+    Modernist_Film_buy = "Modernist_Film_buy",
+    Third_Cinema_buy = "Third_Cinema_buy",
+    kitchen_sink_buy = "kitchen_sink_buy",
+    High_Concept_Film_buy = "High_Concept_Film_buy",
+
+    French_Imp_turnstart = "French_Imp_turnstart",
+    Samara = "Samara",
+    American_Independent_Film_turnstart = "American_Independent_Film_turnstart",
+    Polish_School = "Polish_School",
+    Modernist_Film = "Modernist_Film",
+    Third_Cinema = "Third_Cinema",
+    kitchen_sink_turnstart = "kitchen_sink_turnstart",
+    High_Concept_Film = "High_Concept_Film",
 }
 
 export enum EventCardID {
@@ -294,7 +316,7 @@ export enum BasicCardID {
     "B03" = "B03",
     "B04" = "B04",
     "B05" = "B05",
-    "B06" = "B06",
+    // "B06" = "B06",
     "B07" = "B07",
 }
 
@@ -339,6 +361,7 @@ export enum MainAction {
 }
 
 export interface IPubInfo {
+    LES_CHAIERS_DU_CINEMA: boolean,
     competitionPower: number,
     finalScoring: {
         card: number,
@@ -363,7 +386,10 @@ export interface IPubInfo {
         cinemaBuilt: boolean,
         studioBuilt: boolean,
     }
+    actionused: boolean,
+    bought_extension: boolean,
     action: number,
+    handsize_startturn: number,
     deposit: number,
     resource: number,
     handSize: number,
@@ -402,7 +428,7 @@ export interface IBuildingSlot {
 }
 
 export interface IRegionInfo {
-    completedModernScoring: boolean,
+    completedLastScoring: boolean,
     era: IEra,
     buildings: IBuildingSlot[],
     share: number,
@@ -454,7 +480,9 @@ export enum ScoreCardID {
 
 export const SimpleRuleNumPlayers = 2;
 export const AvantGradeAP = 2;
-export const LES_CHAIERS_DU_CINEMA_AP = 5;
+export const LES_CHAIERS_DU_CINEMA_COMPANY_SCALE = 5;
+export const DEFAULT_COMPANY_SCALE = 4;
+
 
 export enum SchoolCardID {
     'S1203' = 'S1203',
@@ -471,6 +499,15 @@ export enum SchoolCardID {
     'S3201' = 'S3201',
     'S3204' = 'S3204',
     'S3304' = 'S3304',
+    //流派扩
+    'S4001' = 'S4001',
+    'S4002' = 'S4002',
+    'S4003' = 'S4003',
+    'S4004' = 'S4004',
+    'S4005' = 'S4005',
+    'S4006' = 'S4006',
+    'S4007' = 'S4007',
+    'S4008' = 'S4008',
 }
 
 export enum PersonCardID {
@@ -618,7 +655,7 @@ export const TwoPlayerCardCount = {
 export const ShareOnBoard = {
     0: [6, 9, 12],
     1: [6, 9, 10],
-    2: [4, 6, 8],
+    2: [4, 6, 9],
     3: [0, 6, 9],
 }
 export const LegendCardCountInUse = {
@@ -630,7 +667,7 @@ export const LegendCardCountInUse = {
 export const NormalCardCountInUse = {
     0: [5, 7, 9],
     1: [5, 7, 8],
-    2: [3, 5, 6],
+    2: [3, 5, 7],
     3: [0, 5, 7],
 }
 
@@ -961,7 +998,7 @@ const NoneBasicCards = {
         industry: 0,
         aesthetics: 0,
     }),
-    "S1303": schoolCard({
+    "S1303": schoolCard({//村规了眼睛的价格和功能
         era: IEra.ONE,
         region: Region.EE,
         name: "Kino Eye",
@@ -1121,7 +1158,7 @@ const NoneBasicCards = {
         name: "Citizen Kane",
         cardId: FilmCardID.F2109,
         cost: cost(7, 0, 3),
-        vp: 2,
+        vp: 5,
         category: CardCategory.NORMAL,
         industry: 0,
         aesthetics: 2,
@@ -1241,8 +1278,8 @@ const NoneBasicCards = {
         region: Region.WE,
         name: "The Rules of the Game",
         cardId: FilmCardID.F2206,
-        cost: cost(6, 0, 4),
-        vp: 6,
+        cost: cost(5, 0, 5),
+        vp: 7,
         category: CardCategory.NORMAL,
         industry: 0,
         aesthetics: 1,
@@ -1417,7 +1454,7 @@ const NoneBasicCards = {
         region: Region.EE,
         name: "Quiet Flows the Don",
         cardId: FilmCardID.F2308,
-        cost: cost(6, 4, 4),
+        cost: cost(5, 4, 4),
         vp: 6,
         category: CardCategory.NORMAL,
         industry: 1,
@@ -1450,7 +1487,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Chusheng Cai",
         cardId: PersonCardID.P2402,
-        cost: cost(6, 4, 4),
+        cost: cost(7, 2, 4),
         vp: 0,
         category: CardCategory.LEGEND,
         industry: 0,
@@ -1465,7 +1502,7 @@ const NoneBasicCards = {
         vp: 8,
         category: CardCategory.NORMAL,
         industry: 0,
-        aesthetics: 1,
+        aesthetics: 2,
     }),
     "F2404": filmCard({
         era: IEra.TWO,
@@ -1483,7 +1520,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Alam Ara",
         cardId: FilmCardID.F2405,
-        cost: cost(6, 1, 1),
+        cost: cost(5, 1, 1),
         vp: 3,
         category: CardCategory.NORMAL,
         industry: 0,
@@ -1560,7 +1597,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "New Hollywood",
         cardId: SchoolCardID.S3101,
-        cost: cost(10, 10, 2),
+        cost: cost(10, 10, 5),
         vp: 13,
         category: CardCategory.LEGEND,
         industry: 2,
@@ -1571,7 +1608,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "Steven Spielberg",
         cardId: PersonCardID.P3102,
-        cost: cost(10, 10, 5),
+        cost: cost(9, 10, 5),
         vp: 0,
         category: CardCategory.LEGEND,
         industry: 0,
@@ -1615,7 +1652,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "Martin Scorsese",
         cardId: PersonCardID.P3106,
-        cost: cost(10, 5, 5),
+        cost: cost(9, 5, 5),
         vp: 0,
         category: CardCategory.NORMAL,
         industry: 0,
@@ -1640,7 +1677,7 @@ const NoneBasicCards = {
         cost: cost(9, 12, 0),
         vp: 15,
         category: CardCategory.NORMAL,
-        industry: 2,
+        industry: 3,
         aesthetics: 0,
     }),
     "F3109": filmCard({
@@ -1703,7 +1740,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "The Longest Yard",
         cardId: FilmCardID.F3114,
-        cost: cost(9, 6, 0),
+        cost: cost(7, 6, 0),
         vp: 9,
         category: CardCategory.NORMAL,
         industry: 1,
@@ -1725,7 +1762,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "The Shining",
         cardId: FilmCardID.F3116,
-        cost: cost(8, 4, 6),
+        cost: cost(7, 4, 6),
         vp: 9,
         category: CardCategory.NORMAL,
         industry: 0,
@@ -1737,7 +1774,7 @@ const NoneBasicCards = {
         name: "New Wave",
         cardId: SchoolCardID.S3201,
         cost: cost(9, 4, 10),
-        vp: 3,
+        vp: 13,
         category: CardCategory.LEGEND,
         industry: 1,
         aesthetics: 3,
@@ -1780,10 +1817,10 @@ const NoneBasicCards = {
         region: Region.WE,
         name: "The Godsun",
         cardId: FilmCardID.F3205,
-        cost: cost(8, 6, 8),
+        cost: cost(8, 5, 8),
         vp: 11,
         category: CardCategory.NORMAL,
-        industry: 0,
+        industry: 1,
         aesthetics: 1,
     }),
     "F3206": filmCard({
@@ -1791,8 +1828,8 @@ const NoneBasicCards = {
         region: Region.WE,
         name: "Fitzcarraldo",
         cardId: FilmCardID.F3206,
-        cost: cost(8, 8, 2),
-        vp: 11,
+        cost: cost(8, 6, 2),
+        vp: 9,
         category: CardCategory.NORMAL,
         industry: 1,
         aesthetics: 0,
@@ -1825,7 +1862,7 @@ const NoneBasicCards = {
         name: "Jules and Jim",
         cardId: FilmCardID.F3209,
         cost: cost(7, 4, 9),
-        vp: 15,
+        vp: 12,
         category: CardCategory.NORMAL,
         industry: 1,
         aesthetics: 1,
@@ -1846,11 +1883,11 @@ const NoneBasicCards = {
         region: Region.WE,
         name: "The Adventure",
         cardId: FilmCardID.F3211,
-        cost: cost(8, 0, 9),
+        cost: cost(7, 0, 9),
         vp: 12,
         category: CardCategory.NORMAL,
         industry: 0,
-        aesthetics: 1,
+        aesthetics: 2,
     }),
     "F3212": filmCard({
         era: IEra.THREE,
@@ -1868,7 +1905,7 @@ const NoneBasicCards = {
         region: Region.WE,
         name: "Kes",
         cardId: FilmCardID.F3213,
-        cost: cost(8, 4, 6),
+        cost: cost(7, 3, 6),
         vp: 9,
         category: CardCategory.NORMAL,
         industry: 1,
@@ -1912,8 +1949,8 @@ const NoneBasicCards = {
         region: Region.EE,
         name: "1",
         cardId: SchoolCardID.S3304,
-        cost: cost(6, 0, 9),
-        vp: 12,
+        cost: cost(8, 0, 10),
+        vp: 13,
         category: CardCategory.NORMAL,
         industry: 0,
         aesthetics: 2,
@@ -1934,7 +1971,7 @@ const NoneBasicCards = {
         region: Region.EE,
         name: "Underground",
         cardId: FilmCardID.F3306,
-        cost: cost(9, 4, 7),
+        cost: cost(8, 4, 7),
         vp: 10,
         category: CardCategory.NORMAL,
         industry: 1,
@@ -1945,8 +1982,8 @@ const NoneBasicCards = {
         region: Region.EE,
         name: "Office Romance",
         cardId: FilmCardID.F3307,
-        cost: cost(9, 5, 3),
-        vp: 8,
+        cost: cost(9, 7, 3),
+        vp: 10,
         category: CardCategory.NORMAL,
         industry: 1,
         aesthetics: 0,
@@ -1989,8 +2026,8 @@ const NoneBasicCards = {
         region: Region.EE,
         name: "The Diamond Arm",
         cardId: FilmCardID.F3311,
-        cost: cost(6, 7, 0),
-        vp: 10,
+        cost: cost(8, 4, 4),
+        vp: 7,
         category: CardCategory.NORMAL,
         industry: 1,
         aesthetics: 0,
@@ -2011,7 +2048,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Zhang Yimou",
         cardId: PersonCardID.P3401,
-        cost: cost(10, 5, 5),
+        cost: cost(9, 7, 5),
         vp: 0,
         category: CardCategory.LEGEND,
         industry: 0,
@@ -2143,7 +2180,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "The Boys from Fengkuei",
         cardId: FilmCardID.F3413,
-        cost: cost(8, 0, 6),
+        cost: cost(7, 0, 6),
         vp: 9,
         category: CardCategory.NORMAL,
         industry: 0,
@@ -2158,7 +2195,96 @@ const NoneBasicCards = {
         vp: 10,
         category: CardCategory.NORMAL,
         industry: 0,
+        aesthetics: 2,
+    }),
+    //流派扩
+    "S4001": schoolCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "French Impressionism",
+        cardId: SchoolCardID.S4001,
+        cost: cost(7, 2, 5),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 1,
         aesthetics: 1,
+    }),
+    "S4002": schoolCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "Samara Film",
+        cardId: SchoolCardID.S4002,
+        cost: cost(10, 0, 0),
+        vp: 2,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+    "S4003": schoolCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "American Independent Film",
+        cardId: SchoolCardID.S4003,
+        cost: cost(8, 3, 5),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "S4004": schoolCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Polish School",
+        cardId: SchoolCardID.S4004,
+        cost: cost(7, 5, 5),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "S4005": schoolCard({
+        era: IEra.THREE,
+        region: Region.WE,
+        name: "Modernist Film",
+        cardId: SchoolCardID.S4005,
+        cost: cost(6, 0, 12),
+        vp: 15,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 3,
+    }),
+    "S4006": schoolCard({
+        era: IEra.THREE,
+        region: Region.EXTENSION,
+        name: "Third Cinema",
+        cardId: SchoolCardID.S4006,
+        cost: cost(0, 0, 0),
+        vp: 8,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "S4007": schoolCard({
+        era: IEra.THREE,
+        region: Region.WE,
+        name: "Kitchen Sink Film",
+        cardId: SchoolCardID.S4007,
+        cost: cost(3, 2, 8),
+        vp: 11,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "S4008": schoolCard({
+        era: IEra.THREE,
+        region: Region.NA,
+        name: "High-Concept Film",
+        cardId: SchoolCardID.S4008,
+        cost: cost(9, 12, 0),
+        vp: 15,
+        category: CardCategory.NORMAL,
+        industry: 3,
+        aesthetics: 0,
     }),
 }
 
@@ -2194,7 +2320,7 @@ const E06: IEventCard = eventCard({
 })
 const E07: IEventCard = eventCard({
     era: IEra.TWO,
-    name: "LES CHAIERS DU CINEMA",
+    name: "LES CAHIERS DU CINEMA",
     effect: {}, id: EventCardID.E07
 })
 const E08: IEventCard = eventCard({
@@ -2694,7 +2820,7 @@ export const B04: IBasicCard = {
     cost: cost(0, 0, 0),
     industry: 0,
     type: CardType.F,
-    vp: -3,
+    vp: -2,
     region: Region.NONE,
     name: "Bad Film",
     category: CardCategory.BASIC
@@ -2709,16 +2835,16 @@ export const B05: IBasicCard = {
     category: CardCategory.BASIC,
     region: Region.NONE,
 }
-export const B06: IBasicCard = {
-    aesthetics: 1, cardId: BasicCardID.B06,
-    cost: cost(6, 1, 1),
-    industry: 1,
-    type: CardType.F,
-    vp: 3,
-    name: "Classic Film",
-    category: CardCategory.BASIC,
-    region: Region.NONE,
-}
+// export const B06: IBasicCard = {
+//     aesthetics: 1, cardId: BasicCardID.B06,
+//     cost: cost(6, 1, 1),
+//     industry: 1,
+//     type: CardType.F,
+//     vp: 3,
+//     name: "Classic Film",
+//     category: CardCategory.BASIC,
+//     region: Region.NONE,
+// }
 export const B07: IBasicCard = {
     region: Region.NONE,
     aesthetics: 0, cardId: BasicCardID.B07,
@@ -2735,7 +2861,7 @@ const BasicCards = {
     B03: B03,
     B04: B04,
     B05: B05,
-    B06: B06,
+    // B06: B06,
     B07: B07,
 }
 
@@ -2779,8 +2905,9 @@ export function filmCardsByEra(e: IEra) {
 
 export function cardsByCond(r: Region, e: IEra, isLegend: boolean = false): INormalOrLegendCard[] {
     let cards = Object.entries(NoneBasicCards);
-    let res = cards.filter(c => c[1].era === e).filter(c => c[1].region === r)
-
+    let res = cards.filter(c => c[1].era === e).filter(c => c[1].region === r).filter(
+        c => !(['S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008'].includes(c[1].cardId))
+    )
     if (isLegend) {
         res = res.filter(c => c[1].category === CardCategory.LEGEND)
     } else {

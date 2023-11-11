@@ -5,7 +5,7 @@ import {
     EventCardID,
     getCardById,
     getScoreCardByID,
-    IEra,
+    IEra, ItrEffects,
     Region,
     ScoreCardID, SimpleEffectNames
 } from "../types/core";
@@ -89,7 +89,7 @@ export const playCardEffectText = (cardId: CardID): string => {
         r.push(i18n.effect.playCardHeader);
         r.push(effName(effObj.play));
     }
-    return r.join("");
+    return r.join(" ");
 }
 export const buyCardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
@@ -102,7 +102,7 @@ export const buyCardEffectText = (cardId: CardID): string => {
     }catch (e) {
         console.error(`${e}|${effObj}|${cardId}`);
     }
-    return r.join("");
+    return r.join(" ");
 }
 export const schoolEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
@@ -133,7 +133,7 @@ export const schoolEffectText = (cardId: CardID): string => {
     }finally {
 
     }
-    return r.join("");
+    return r.join(" ");
 }
 export const archiveCardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
@@ -142,7 +142,7 @@ export const archiveCardEffectText = (cardId: CardID): string => {
         r.push(i18n.effect.breakthroughHeader);
         r.push(effName(effObj.archive));
     }
-    return r.join("");
+    return r.join(" ");
 }
 export const scoreEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
@@ -151,7 +151,7 @@ export const scoreEffectText = (cardId: CardID): string => {
         r.push(i18n.effect.scoringHeader);
         r.push(effName(effObj.scoring));
     }
-    return r.join("");
+    return r.join(" ");
 }
 
 export const effIcon = (eff: any): JSX.Element => {
@@ -278,9 +278,9 @@ export const effIcon = (eff: any): JSX.Element => {
             return <React.Fragment key={nanoid()}><LoseShareIcon
                 r={Region.ASIA}
                 key={nanoid()}/></React.Fragment>
-        case "loseAnyRegionShare":
+        case ItrEffects.loseAnyRegionShare:
             return <React.Fragment key={nanoid()}><LoseShareIcon
-                r={Region.NONE} key={nanoid()}/></React.Fragment>
+                r={Region.NONE} key={nanoid()}/> CP -1</React.Fragment>
         case "loseShare":
             return <React.Fragment key={nanoid()}><LoseShareIcon
                 key={nanoid()}
@@ -586,7 +586,7 @@ export const CardInfo = ({cid}: ICardEffectProps) => {
                 color: getColor(r)
             }}
         >{getCardName(cid)}</Typography>
-        <CardEffect cid={cid}/>
+        {/*<CardEffect cid={cid}/>*/}
         <Typography>{getEffectTextById(cid)}</Typography>
     </Grid>
 }
@@ -602,7 +602,7 @@ export const getEffectTextById = (cid: CardID): string => {
             hand: eff.school.hand,
             action: eff.school.action
         }) : ""
-    return `${buyEffText}${playEffText}${arch}${score}${schoolBasic}${schoolEffectText(cid)}`
+    return `${buyEffText} ${playEffText} ${arch} ${score} ${schoolBasic} ${schoolEffectText(cid)}`
 }
 
 export const CardEffect = ({cid}: ICardEffectProps) => {
