@@ -412,27 +412,6 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         </Grid> :
         <></>
 
-    const undoFn = () => undo();
-    const undoButton = activePlayer(ctx) === playerID
-        ? <IconButton
-            onClick={undoFn}
-            aria-label={i18n.action.undo}
-        >
-            <UndoIcon/>
-        </IconButton>
-        : <></>
-
-
-    const redoFn = () => redo();
-    const redoButton = activePlayer(ctx) === playerID
-        ? <IconButton
-            onClick={redoFn}
-            aria-label={i18n.action.redo}
-        >
-            <RedoIcon/>
-        </IconButton>
-        : <></>
-
 
     const endStage = () => events?.endStage?.();
     const endStageButton = G.pending.endStage && canMoveCurrent
@@ -503,8 +482,6 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             </Grid> : <></>}
         {sliderPart}
         <Grid item xs={6}>
-            {undoButton}
-            {redoButton}
             {endTurnButton}
             {endStageButton}
             {concedeDialog}

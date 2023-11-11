@@ -121,37 +121,6 @@ export const FilmCentenaryGame: Game<IG> = {
         concede: concedeMove,
     },
 
-    deltaState: true
-
-    // endIf: (G: IG, ctx: Ctx) => {
-        // let championRequiredForAutoWin = ctx.numPlayers > 3 ? 5 : 6;
-        // if (G.mode === GameMode.TEAM2V2) {
-        //     championRequiredForAutoWin = 6;
-        // }
-        // const championRequiredForAutoWin = 6;
-        // let winner = "";
-        // let reason: VictoryType = VictoryType.finalScoring;
-        // G.order.forEach(p => {
-        //         if (G.pub[parseInt(p)].champions
-        //             .filter(c => c.region === Region.NA)
-        //             .length >= 3) {
-        //             winner = p;
-        //             reason = VictoryType.threeNAChampionAutoWin;
-        //         }
-        //     }
-        // )
-        // if (winner !== "") {
-        //     return {winner: winner, reason: reason}
-        // }
-        // G.order.forEach(p => {
-        //         if (G.pub[parseInt(p)].champions.length >= championRequiredForAutoWin) {
-        //             winner = p;
-        //             reason = VictoryType.championCountAutoWin;
-        //         }
-        //     }
-        // )
-        // if (winner !== "") {
-        //     return {winner: winner, reason: reason}
-        // }
-    // },
+    deltaState: true,
+    disableUndo: true
 }
