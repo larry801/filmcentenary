@@ -412,6 +412,26 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         </Grid> :
         <></>
 
+    const undoFn = () => undo();
+    const undoButton = !G.disableUndo && activePlayer(ctx) === playerID
+        ? <IconButton
+            onClick={undoFn}
+            aria-label={i18n.action.undo}
+        >
+            <UndoIcon/>
+        </IconButton>
+        : <></>
+
+
+    const redoFn = () => redo();
+    const redoButton =  !G.disableUndo && activePlayer(ctx) === playerID
+        ? <IconButton
+            onClick={redoFn}
+            aria-label={i18n.action.redo}
+        >
+            <RedoIcon/>
+        </IconButton>
+        : <></>
 
     const endStage = () => events?.endStage?.();
     const endStageButton = G.pending.endStage && canMoveCurrent
@@ -452,7 +472,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             toggleText={<ConcedeIcon/>}
         />
 
-    return <Grid item container xs={12} sm={5} justify="flex-start">
+    return <Grid item container xs={12} sm={5} justifyContent="flex-start">
         <Grid item container xs={12}>
             <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(playerID)]} idx={parseInt(playerID)} G={G}
                       getName={getName}/>
@@ -482,6 +502,8 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             </Grid> : <></>}
         {sliderPart}
         <Grid item xs={6}>
+            {undoButton}
+            {redoButton}
             {endTurnButton}
             {endStageButton}
             {concedeDialog}

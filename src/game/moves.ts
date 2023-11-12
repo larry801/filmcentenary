@@ -11,6 +11,7 @@ import {
     ClassicCardID,
     ClassicFilmAutoMoveMode,
     EventCardID,
+    FilmCardID,
     GameMode,
     GameTurnOrder,
     getCardById,
@@ -87,6 +88,17 @@ export interface ISetupGameModeArgs {
     order: GameTurnOrder,
     mode: GameMode,
     enableSchoolExtension: boolean,
+    disableUndo: boolean
+}
+
+const undoCheck = (G:IG, log:string[]) => {
+    if (!G.disableUndo) {
+        log.push('canUndo')
+        if(!G.previousMoveUndoable){
+            G.previousMoveUndoable = true;
+            log.push(`|cleanPrevMoveUndoable`);
+        }
+    }
 }
 
 export const changePlayerSetting: LongFormMove = {
@@ -103,6 +115,7 @@ export const setupGameMode: LongFormMove = {
     move: (G: IG, ctx: Ctx, args: ISetupGameModeArgs) => {
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.setupGameMode(${JSON.stringify(args)})`);
         const log = ["setupGameMode"];
+        undoCheck(G, log);
         G.mode = args.mode;
         const order: PlayerID[] = [];
         let initOrder: PlayerID[] = [];
@@ -145,6 +158,9 @@ export const setupGameMode: LongFormMove = {
                 initOrder = order;
                 break;
         }
+        if(args.disableUndo){
+            G.disableUndo = true;
+        }
         log.push(`|turnOrder|${JSON.stringify(initOrder)}`);
         G.order = initOrder;
         G.initialOrder = initOrder;
@@ -156,7 +172,7 @@ export const setupGameMode: LongFormMove = {
         if (ctx.numPlayers >= 4) {
             G.pub[parseInt(initOrder[3])].vp = 5;
         }
-        if(args.enableSchoolExtension) {
+        if (args.enableSchoolExtension) {
             log.push(`|drawForSchoolExtension`)
             for (let sch of shuffle(ctx, [SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008]).slice(0, 2)) {
                 log.push(`|${sch}|drawn`);
@@ -202,6 +218,7 @@ export const payAdditionalCost: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.payAdditionalCost(${JSON.stringify(arg)})`);
         const log = [`payAdditionalCost|${JSON.stringify(arg)}`];
+        undoCheck(G, log);
         let pub = G.pub[parseInt(ctx.playerID)]
         let eff = G.e.stack.pop();
         const r = G.e.regions[0];
@@ -290,6 +307,7 @@ export const buyCard: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.buyer}.moves.buyCard(${JSON.stringify(arg)})`);
         const log = [`p${arg.buyer}|buy|${arg.target}|res:${arg.resource}|deposit:${arg.deposit}|${arg.helper}`];
+        undoCheck(G, log);
         logger.debug(`${G.matchID}|${log.join('')}`);
         if (canBuyCard(G, ctx, arg)) {
             let targetCard = getCardById(arg.target)
@@ -321,6 +339,7 @@ export const buyCard: LongFormMove = {
         }
     },
     client: false,
+    undoable: (G) => G.previousMoveUndoable
 }
 
 export interface ITargetChooseArgs {
@@ -332,6 +351,7 @@ export interface ITargetChooseArgs {
 
 export const chooseTarget: LongFormMove = {
     client: false,
+    undoable: (G) => G.previousMoveUndoable,
     move: (G: IG, ctx: Ctx, arg: ITargetChooseArgs) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.chooseTarget(${JSON.stringify(arg)})`);
@@ -339,6 +359,7 @@ export const chooseTarget: LongFormMove = {
         let targetPlayerId = arg.target;
         let eff = G.e.stack.pop();
         const log = [`${G.matchID}|p${arg.p}.moves.chooseTarget(${JSON.stringify(arg)})|players|${JSON.stringify(G.c.players)}|eff:${JSON.stringify(eff)}`];
+        undoCheck(G, log);
         log.push(`|eff|${JSON.stringify(eff)}`);
         switch (eff.e) {
             case SimpleEffectNames.loseVpForEachHand:
@@ -410,11 +431,13 @@ export interface IChooseHandArg {
 }
 
 export const chooseHand: LongFormMove = {
+    undoable: (G) => G.previousMoveUndoable,
     client: false,
     move: (G: IG, ctx: Ctx, arg: IChooseHandArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.chooseHand(${JSON.stringify(arg)})`);
         const log = [`chooseHand|p${arg.p}|${arg.hand}|${arg.idx}`];
+        undoCheck(G, log);
         let eff = G.e.stack.pop();
         if (eff === undefined) {
             logger.debug(`${G.matchID}|${log.join('')}`);
@@ -606,11 +629,13 @@ export interface IEffectChooseArg {
 }
 
 export const chooseEffect: LongFormMove = {
+    undoable: (G) => G.previousMoveUndoable,
     client: false,
     move: (G: IG, ctx: Ctx, arg: IEffectChooseArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.chooseEffect(${JSON.stringify(arg)})`);
         const log = [("chooseEffect")];
+        undoCheck(G, log);
         log.push(JSON.stringify(arg));
         log.push(`|`);
         let eff = G.e.choices[arg.idx];
@@ -702,10 +727,12 @@ export interface IRegionChooseArg {
 
 export const chooseRegion: LongFormMove = {
     client: false,
+    undoable: (G) => G.previousMoveUndoable,
     move: (G: IG, ctx: Ctx, arg: IRegionChooseArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.chooseRegion(${JSON.stringify(arg)})`);
         const log = ["chooseRegion"];
+        undoCheck(G, log);
         const r = arg.r;
         const pub = G.pub[parseInt(arg.p)]
         log.push(JSON.stringify(arg));
@@ -790,7 +817,7 @@ export interface IPeekArgs {
 
 export const peek: LongFormMove = {
     client: false,
-    // undoable: false,
+    undoable: (G) => G.previousMoveUndoable,
     move: (G: IG, ctx: Ctx, arg: IPeekArgs) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.peek(${JSON.stringify(arg)})`);
@@ -800,6 +827,7 @@ export const peek: LongFormMove = {
         let pub = G.pub[parseInt(p)];
         let deck = G.secretInfo.playerDecks[parseInt(p)];
         const log = [`peek|${JSON.stringify(eff)}`];
+        undoCheck(G, log);
         log.push(`|deck|${JSON.stringify(deck)}`);
         log.push(`|hand${JSON.stringify(playerObj.hand)}|discard|${JSON.stringify(pub.discard)}`);
         log.push(`|cardsToPeek|${JSON.stringify(playerObj.cardsToPeek)}`);
@@ -944,11 +972,13 @@ export interface IChooseEventArg {
 
 export const chooseEvent: LongFormMove = {
     client: false,
+    undoable: (G) => G.previousMoveUndoable,
     move: (G: IG, ctx: Ctx, arg: IChooseEventArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.chooseEvent(${JSON.stringify(arg)})`);
         let eid: EventCardID = arg.event;
         const log = ["chooseEvent"];
+        undoCheck(G, log);
         log.push(`|${JSON.stringify(G.events)}|${arg.event}|p${arg.p}|idx${arg.idx}`);
         G.events.splice(arg.idx, 1);
         G.e.card = eid;
@@ -1086,11 +1116,12 @@ export const chooseEvent: LongFormMove = {
 
 export const requestEndTurn: LongFormMove = {
     client: false,
-    // undoable: false,
+    undoable: (G) => G.previousMoveUndoable,
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg}.moves.requestEndTurn("${arg}")`);
         const log = [`requestEndTurn|${arg}`];
+        undoCheck(G, log);
         const playerObj = G.player[parseInt(arg)]
         if (!playerObj.endTurnEffectExecuted) {
             endTurnEffect(G, ctx, arg);
@@ -1121,10 +1152,12 @@ export const moveBlocker: LongFormMove = {
 
 export const concedeMove: LongFormMove = {
     client: false,
+    undoable: (G) => G.previousMoveUndoable,
     move: (G: IG, ctx: Ctx, p: PlayerID) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${p}.moves.concede("${p}")`);
         const log = [`p${p}conceded`];
+        undoCheck(G, log);
         if (G.order.includes(p)) {
             const concedeIndex = G.order.indexOf(p);
             log.push(`|index|${concedeIndex}|before|${JSON.stringify(G.order)}`);
@@ -1158,6 +1191,7 @@ export const concedeMove: LongFormMove = {
 
 export const confirmRespond: LongFormMove = {
     client: false,
+    undoable: (G) => G.previousMoveUndoable,
     move: (G: IG, ctx: Ctx, arg: string) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
@@ -1166,6 +1200,7 @@ export const confirmRespond: LongFormMove = {
         let hand = G.player[parseInt(p)].hand;
         let eff = G.e.stack.pop();
         const log = [`confirmRespond|p${p}|${JSON.stringify(arg)}|${JSON.stringify(G.e.stack)}|${JSON.stringify(eff)}`];
+        undoCheck(G, log);
         logger.debug(`${G.matchID}|${log.join('')}`);
         if (arg === "yes") {
             log.push("|yes");
@@ -1261,6 +1296,8 @@ export interface IPlayCardInfo {
 }
 
 export const playCard: LongFormMove = {
+    client: false,
+    undoable: (G) => G.previousMoveUndoable,
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         //流派扩：法国印象派
@@ -1277,6 +1314,7 @@ export const playCard: LongFormMove = {
         }
         logger.info(`${G.matchID}|p${arg.playerID}.moves.playCard(${JSON.stringify(arg)})`);
         const log = ["playCard"];
+        undoCheck(G, log);
         const playCard = getCardById(arg.card);
         const pub = G.pub[parseInt(arg.playerID)];
         const hand = G.player[parseInt(arg.playerID)].hand;
@@ -1372,7 +1410,7 @@ export const playCard: LongFormMove = {
             }
         }
     },
-    client: false,
+
 }
 
 export interface ICompetitionCardArg {
@@ -1384,6 +1422,7 @@ export interface ICompetitionCardArg {
 
 export const competitionCard: LongFormMove = {
     client: false,
+    undoable: (G) => G.previousMoveUndoable,
     redact: true,
     move: (G: IG, ctx: Ctx, arg: ICompetitionCardArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
@@ -1409,17 +1448,12 @@ export const competitionCard: LongFormMove = {
 
 export const breakthrough: LongFormMove = {
     client: false,
+    undoable: (G) => G.previousMoveUndoable,
     move: (G: IG, ctx: Ctx, arg: IPlayCardInfo) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.playerID}.moves.breakthrough(${JSON.stringify(arg)})`);
         const log = [`breakthrough`];
-        // if (arg.card === FilmCardID.F1108) {
-        //     log.push(`Nanook`);
-        //     const eraNA = ctx.numPlayers > SimpleRuleNumPlayers ? G.regions[Region.NA].era : G.twoPlayer.era;
-        //     if (eraNA === IEra.ONE) {
-        //         return INVALID_MOVE;
-        //     }
-        // }
+        undoCheck(G, log);
         const pub = G.pub[parseInt(arg.playerID)];
         pub.action -= 1;
         pub.actionused = true;
@@ -1447,6 +1481,7 @@ export interface ICommentArg {
 
 export const comment: LongFormMove = {
     client: false,
+    undoable: (G) => G.previousMoveUndoable,
     move: (G: IG, ctx: Ctx, arg: ICommentArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.comment(${JSON.stringify(arg)})`);
@@ -1494,6 +1529,7 @@ export interface IShowBoardStatusProps {
 
 export const showBoardStatus: LongFormMove = {
     client: false,
+    undoable: false,
     move: (G: IG, ctx: Ctx, args: IShowBoardStatusProps) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${args.matchID}|p${ctx.playerID}.moves.showBoardStatus(${JSON.stringify(args)})`);

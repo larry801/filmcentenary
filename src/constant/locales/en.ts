@@ -254,7 +254,8 @@ const setting: LocaleSettings = {
     fixedFirst: "Fixed First Player",
     allRandom: "Random Order",
     order: "Turn Order",
-    changeSetting: "Change Game Setting"
+    changeSetting: "Change Game Setting",
+    disableUndo: "Disable Undo"
 };
 const argSetupGameMode = argSetupGameModeHOF(chose, setting);
 

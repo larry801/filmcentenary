@@ -254,7 +254,8 @@ const setting = {
     fixedFirst: "固定首位玩家",
     allRandom: "完全随机",
     order: "行动顺序",
-    changeSetting: "更改设置"
+    changeSetting: "更改设置",
+    disableUndo: "禁止撤回"
 };
 const classicFilmAutoMoveMode = {
     MODE_NAME: "传世经典:",

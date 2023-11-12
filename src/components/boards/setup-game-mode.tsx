@@ -22,6 +22,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     const [mode, setMode] = React.useState(GameMode.NORMAL);
     const [order, setOrder] = React.useState(GameTurnOrder.FIXED);
     const [enableSchoolExtension, setEnableSchoolExtension] = React.useState(false);
+    const [disableUndo,setDisableUndo] = React.useState(false);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         // @ts-ignore
@@ -31,7 +32,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             mode: newMode,
             order: order,
             enableSchoolExtension: enableSchoolExtension,
-
+            disableUndo: disableUndo
         })
     };
 
@@ -41,6 +42,17 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             mode: mode,
             order: order,
             enableSchoolExtension: checked,
+            disableUndo: disableUndo
+        })
+    };
+
+    const handleDisableUndoChange =  (event: React.ChangeEvent<{}>, checked: boolean) => {
+        setEnableSchoolExtension(checked);
+        moves.setupGameMode({
+            mode: mode,
+            order: order,
+            enableSchoolExtension: enableSchoolExtension,
+            disableUndo: checked
         })
     };
 
@@ -52,6 +64,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             mode: mode,
             order: newOrder,
             enableSchoolExtension: enableSchoolExtension,
+            disableUndo: disableUndo
         })
     };
 
@@ -73,6 +86,10 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                     onChange={handleSchoolExtensionChange}
                     disabled={ctx.numPlayers < 3}
                     control={<Checkbox/>} label={i18n.setting.enableSchoolExtension}/>
+                <FormControlLabel
+                    value={enableSchoolExtension}
+                    onChange={handleSchoolExtensionChange}
+                    control={<Checkbox/>} label={i18n.setting.disableUndo}/>
             </FormControl>
             <FormControl component="fieldset">
                 <FormLabel component="legend">{i18n.setting.order}</FormLabel>

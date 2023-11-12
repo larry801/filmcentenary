@@ -2262,12 +2262,14 @@ export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
 export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     const pid = parseInt(id);
     const log = [`drawPeekCardForPlayer|p${id}`];
-    const p = G.player[pid]
-    const pub = G.pub[pid]
-    const s = G.secretInfo.playerDecks[pid]
-    // console.log(s);
-    // console.log(s.length);
+    const p = G.player[pid];
+    const pub = G.pub[pid];
+    const s = G.secretInfo.playerDecks[pid];
     log.push(`|playerDeck|${JSON.stringify(s)}`);
+    if(!G.disableUndo) {
+        G.previousMoveUndoable = false;
+        log.push(`|disableNextUndo`);
+    }
     if (s.length === 0) {
         G.secretInfo.playerDecks[pid] = shuffle(ctx, pub.discard);
         log.push(`|shuffledDeck|${JSON.stringify(s)}`);
@@ -2290,6 +2292,10 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     if (i.pending) {
         log.push(`|inCompetition`);
     }
+    if(!G.disableUndo) {
+        G.previousMoveUndoable = false;
+        log.push(`|disableNextUndo`);
+    }
     const pid = parseInt(id);
     const p = G.player[pid]
     const pub = G.pub[pid]
@@ -2308,6 +2314,7 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
 export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const log = [`p${p}|fillPlayerHand`];
     const limit = getSchoolHandLimit(G, p);
@@ -2323,6 +2330,7 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
     } else {
         log.push(`|doNotDraw`);
     }
+    G.previousMoveUndoable = false;
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const canHelp = (G: IG, ctx: Ctx, p: PlayerID, target: ClassicCardID | BasicCardID, helper: CardID): boolean => {

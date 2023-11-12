@@ -121,6 +121,5 @@ export const FilmCentenaryGame: Game<IG> = {
         concede: concedeMove,
     },
 
-    deltaState: true,
-    disableUndo: true
+    deltaState: true
 }

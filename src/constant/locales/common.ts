@@ -39,7 +39,8 @@ export interface LocaleSettings {
     fixedFirst: string,
     allRandom: string,
     order: string,
-    changeSetting: string
+    changeSetting: string,
+    disableUndo: string
 }
 
 export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
@@ -72,6 +73,9 @@ export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
             }
             if (arg.enableSchoolExtension){
                 t += setting.enableSchoolExtension
+            }
+            if (arg.disableUndo) {
+                t += setting.disableUndo
             }
             return t;
         }
