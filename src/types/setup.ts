@@ -39,6 +39,8 @@ export interface CompetitionInfo {
 }
 
 export interface IG {
+    disableUndo: boolean,
+    previousMoveUndoable: boolean,
     updateCardHistory: CardID[][],
     mode: GameMode,
     hasSchoolExtension: boolean,
@@ -255,6 +257,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     logger.debug(`firstPlayer${firstMovePlayer}`)
     logger.debug(`order${JSON.stringify(randomOrder)}`)
     let G: IG = {
+        disableUndo: false,
+        previousMoveUndoable: true,
         updateCardHistory: [],
         mode: GameMode.NORMAL,
         hasSchoolExtension: false,
