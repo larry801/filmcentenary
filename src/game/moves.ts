@@ -91,10 +91,10 @@ export interface ISetupGameModeArgs {
     disableUndo: boolean
 }
 
-const undoCheck = (G:IG, log:string[]) => {
+const undoCheck = (G: IG, log: string[]) => {
     if (!G.disableUndo) {
         log.push('canUndo')
-        if(!G.previousMoveUndoable){
+        if (!G.previousMoveUndoable) {
             G.previousMoveUndoable = true;
             log.push(`|cleanPrevMoveUndoable`);
         }
@@ -158,8 +158,10 @@ export const setupGameMode: LongFormMove = {
                 initOrder = order;
                 break;
         }
-        if(args.disableUndo){
+        if (args.disableUndo) {
             G.disableUndo = true;
+        } else {
+            G.disableUndo = false;
         }
         log.push(`|turnOrder|${JSON.stringify(initOrder)}`);
         G.order = initOrder;
