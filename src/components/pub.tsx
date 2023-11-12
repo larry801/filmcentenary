@@ -98,7 +98,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
     const schoolTitle = i.school !== null ? `${getCardName(i.school)}` : "";
 
     return <Grid container item
-                 justify="center" alignItems="center"
+                 justifyContent="center" alignItems="center"
                  key={`pub${idx}-${playerID}`}>
         <Grid item xs={12}>
             {/*<textarea*/}
@@ -112,8 +112,8 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                 defaultValue={playerLogText}
                 fullWidth
                 multiline
-                rows={6}
-                rowsMax={6}
+                minRows={2}
+                maxRows={8}
                 variant="filled"
             />
         </Grid>
@@ -121,7 +121,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
             container
             item
             direction="column"
-            justify="center"
+            justifyContent="center"
             alignItems="center"
             xs={3}>
             <Grid item>
@@ -155,7 +155,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
             container
             item
             direction="column"
-            justify="center"
+            justifyContent="center"
             alignItems="center"
             xs={3}>
             <Grid item>
@@ -206,7 +206,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                                         era: rankEraHint,
                                     }}/>;
                                 return <Grid
-                                    justify="center"
+                                    justifyContent="center"
                                     alignItems="center"
                                     container  key={nanoid()}>
                                     <Grid item xs={4} key={nanoid()} className={classes.iconAlign}>

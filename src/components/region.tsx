@@ -246,7 +246,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
             key={r}>
             <AccordionSummary key={r}>
                 <Grid container
-                      justify="space-evenly"
+                      justifyContent="space-evenly"
                       alignItems="baseline"
                       className={classes.root}>
                     <Grid item xs={2} sm={1}>
@@ -322,7 +322,7 @@ export const SchoolRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}
             key={r}>
             <AccordionSummary key={r}>
                 <Grid container
-                      justify="space-evenly"
+                      justifyContent="space-evenly"
                       alignItems="baseline"
                       className={classes.root}>
                     <Grid item xs={2} sm={1}>

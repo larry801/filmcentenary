@@ -50,7 +50,7 @@ export const PlayerHand = ({
     // };
     const canPlayOrBreakthrough = ctx.currentPlayer === playerID && ctx.activePlayers === null
 
-    return <Grid item container xs={12} justify="flex-start">
+    return <Grid item container xs={12} justifyContent="flex-start">
         {/*<Backdrop className={classes.backdrop} open={open} onClick={handleClose}>*/}
         {/*    <CircularProgress color="inherit" />*/}
         {/*</Backdrop>*/}

@@ -64,18 +64,14 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
             </IconButton>
         </Grid>
         {open && <Grid item xs={12}>
-            {/*<textarea*/}
-            {/*    disabled*/}
-            {/*    defaultValue={totalLogText}*/}
-            {/*    rows={6}/>*/}
             <TextField
                 aria-live="polite"
                 disabled
                 defaultValue={totalLogText}
                 fullWidth
                 multiline
-                rows={6}
-                rowsMax={6}
+                minRows={2}
+                maxRows={8}
                 variant="filled"
             />
         </Grid>}
