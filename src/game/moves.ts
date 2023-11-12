@@ -158,11 +158,7 @@ export const setupGameMode: LongFormMove = {
                 initOrder = order;
                 break;
         }
-        if (args.disableUndo) {
-            G.disableUndo = true;
-        } else {
-            G.disableUndo = false;
-        }
+        G.disableUndo = args.disableUndo;
         log.push(`|turnOrder|${JSON.stringify(initOrder)}`);
         G.order = initOrder;
         G.initialOrder = initOrder;
