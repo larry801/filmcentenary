@@ -34,7 +34,7 @@ export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName: (id:
                     return {
                         label: getCardName(c),
                         disabled: false,
-                        hidden: getCardById(c).category === CardCategory.BASIC,
+                        hidden: getCardById(c).category !== CardCategory.BASIC,
                         value: idx.toString()
                     }
                 })
