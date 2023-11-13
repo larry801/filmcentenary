@@ -659,6 +659,7 @@ const en = {
         Third_Cinema: "When competed :+1 card, -5 vp for competitor. At the start of the turn, if your aesthetic level is higher than your industry level :+1 cards, +2 deposits.",
         kitchen_sink_turnstart: "-1 vp for each 1 hand you have, and +1 card for every company that has more cards than you. End of Turn: You gain +1 vp for each card played in this turn.",
         High_Concept_Film: "Each industrial symbol for your played card: +1 resource, +1 vp. After competition :+1 competition power, +1 card.",
+        schoolExtNonePre: "",
 
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",

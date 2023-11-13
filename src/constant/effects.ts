@@ -2933,7 +2933,7 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {pre: {e: ""}, effect: {e: "Samara"}},
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Samara"}},
     },
     "4003": {
         "school": {
@@ -2963,7 +2963,7 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {pre: {e: ""}, effect: {e: "Polish_School"}},
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Polish_School"}},
     },
     "4005": {
         "school": {
@@ -2979,7 +2979,7 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {pre: {e: ""}, effect: {e: "Modernist_Film"}},
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Modernist_Film"}},
     },
     "4006": {
         "school": {
@@ -2994,7 +2994,7 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {pre: {e: ""}, effect: {e: "Third_Cinema"}},
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Third_Cinema"}},
     },
     "4007": {
         "school": {
@@ -3024,6 +3024,6 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {pre: {e: ""}, effect: {e: "High_Concept_Film"}},
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "High_Concept_Film"}},
     },
 }
