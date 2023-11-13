@@ -115,6 +115,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     }
     const getValueText = (n: number) => n.toString();
 
+    // @ts-ignore
     return <Grid item xs={12}>
         <Button
             fullWidth
@@ -126,7 +127,10 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             <Typography>
                 {i18n.dialog.buyCard.board}
                 {getCardName(card)}
-                {card instanceof BasicCardID ? `(${G.basicCards[card]})` : ""}
+                {card.startsWith("B0") ? `(${
+                    // @ts-ignore
+                    G.basicCards[card]
+                })` : ""}
             </Typography>
         </Button>
         <Dialog onClose={handleClose} open={open}>
