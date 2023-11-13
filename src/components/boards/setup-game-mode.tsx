@@ -47,7 +47,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     };
 
     const handleDisableUndoChange =  (event: React.ChangeEvent<{}>, checked: boolean) => {
-        setEnableSchoolExtension(checked);
+        setDisableUndo(checked);
         moves.setupGameMode({
             mode: mode,
             order: order,
