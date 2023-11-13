@@ -88,7 +88,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                     control={<Checkbox/>} label={i18n.setting.enableSchoolExtension}/>
                 <FormControlLabel
                     value={enableSchoolExtension}
-                    onChange={handleSchoolExtensionChange}
+                    onChange={handleDisableUndoChange}
                     control={<Checkbox/>} label={i18n.setting.disableUndo}/>
             </FormControl>
             <FormControl component="fieldset">
