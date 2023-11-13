@@ -2333,30 +2333,32 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
     G.previousMoveUndoable = false;
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
 export const canHelp = (G: IG, ctx: Ctx, p: PlayerID, target: ClassicCardID | BasicCardID, helper: CardID): boolean => {
-    const pub = G.pub[parseInt(p)];
-    const helperCard = getCardById(helper);
     const targetCard = getCardById(target);
-    let aes = pub.aesthetics
-    let ind = pub.industry
-    if (pub.school !== null) {
-        aes += getCardById(pub.school).aesthetics;
-        ind += getCardById(pub.school).industry;
-    }
-    const aesMark = aes < targetCard.cost.aesthetics && helperCard.aesthetics > 0;
-    const industryMark = ind < targetCard.cost.industry && helperCard.industry > 0;
-    if (targetCard.cost.industry === 0) {
-        if (targetCard.cost.aesthetics === 0) {
-            return false;
-        } else {
-            return aesMark;
-        }
+    if (targetCard.cost.industry === 0 && targetCard.cost.aesthetics ===0) {
+        return false;
     } else {
-        if (targetCard.cost.aesthetics === 0) {
-            return industryMark
-        } else {
-            return industryMark || aesMark;
+        const helperCard = getCardById(helper);
+        const pub = G.pub[parseInt(p)];
+        let aes = pub.aesthetics;
+        let ind = pub.industry;
+        if (pub.school !== null) {
+            aes += getCardById(pub.school).aesthetics;
+            ind += getCardById(pub.school).industry;
         }
+        const aesMarkNeeded = aes < targetCard.cost.aesthetics && helperCard.aesthetics > 0;
+        const industryMarkNeeded = ind < targetCard.cost.industry && helperCard.industry > 0;
+        if (targetCard.cost.industry === 0) {
+                return aesMarkNeeded;
+        } else {
+            if (targetCard.cost.aesthetics === 0) {
+                return industryMarkNeeded
+            } else {
+                return industryMarkNeeded || aesMarkNeeded;
+            }
+        }
+
     }
 }
 

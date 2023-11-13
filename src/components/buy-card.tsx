@@ -1,6 +1,6 @@
 import React from "react";
 import {IG} from "../types/setup";
-import {BasicCardID, CardCategory, CardID, ClassicCardID, getCardById, ICardSlot} from "../types/core";
+import {BasicCardID, CardID, ClassicCardID, getCardById, ICardSlot} from "../types/core";
 import ChoiceDialog from "./modals";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
@@ -94,11 +94,11 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     const canBuy: boolean = canBuyCard(G, ctx, buyArg);
     const buy = () => moves.buyCard(buyArg);
     const isValidHelper = (helper: CardID): boolean => canHelp(G, ctx, playerID, card, helper);
+
     const handleSliderChange = (event: any, newValue: number | number[]) => {
         if (typeof newValue === "number") {
             setDepositExtra(newValue);
         }
-
     };
     const refreshCost = () => {
         setDepositExtra(0);
@@ -126,13 +126,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             <Typography>
                 {i18n.dialog.buyCard.board}
                 {getCardName(card)}
-
-                {targetCard.category === CardCategory.BASIC ?
-                    `(${
-                        // @ts-ignore
-                        G.basicCards[card]
-                    })` :
-                    ""}
+                {card instanceof BasicCardID ? `(${G.basicCards[card]})` : ""}
             </Typography>
         </Button>
         <Dialog onClose={handleClose} open={open}>
@@ -245,4 +239,4 @@ export const Comment = ({slot, comment, G}: ICommentProps) => {
         </Button>
 }
 
-export default BuyCard;
+export default React.memo(BuyCard);

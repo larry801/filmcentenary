@@ -38,6 +38,7 @@ import PrestigeIcon from "@material-ui/icons/EmojiEvents";
 import ResourceIcon from "@material-ui/icons/MonetizationOn";
 import AestheticsIcon from "@material-ui/icons/ImportContacts";
 import IndustryIcon from "@material-ui/icons/Settings";
+import {getValidHelper} from "../game/board-util";
 
 export interface ICardSlotProp {
     slot: ICardSlot,
@@ -60,6 +61,8 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
             updateHistoryIndex: G.updateCardHistory.length,
         });
     }
+
+    const helpers = playerID === null ? [] : getValidHelper(G, playerID);
 
     const cardObj = slot.card === null ? getCardById("B07") : getCardById(slot.card);
     const region = slot.card === null ? Region.NA : cardObj.region;
@@ -97,7 +100,7 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
                     slot.card !== null ?
                         <BuyCard
                             card={slot.card}
-                            helpers={G.player[(parseInt(playerID))].hand}
+                            helpers={helpers}
                             ctx={ctx}
                             G={G}
                             playerID={playerID} moves={moves}/>
@@ -380,4 +383,4 @@ export const SchoolRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}
 }
 
 
-export default BoardRegion;
+export default React.memo(BoardRegion);

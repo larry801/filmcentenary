@@ -8,7 +8,7 @@ import BuyCard from "../buy-card";
 import Grid from "@material-ui/core/Grid"
 import ChoiceDialog from "../modals";
 import Typography from "@material-ui/core/Typography";
-import {BasicCardID, CardID, ClassicFilmAutoMoveMode} from "../../types/core";
+import {BasicCardID, CardID, ClassicFilmAutoMoveMode, getCardById} from "../../types/core";
 import {activePlayer, actualStage} from "../../game/util";
 import Button from "@material-ui/core/Button";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
@@ -16,7 +16,7 @@ import {PlayerHand} from "../player-hand";
 import {Stage} from "boardgame.io/core";
 import Slider from "@material-ui/core/Slider";
 import {PubPanel} from "../pub";
-import {getChooseHandChoice, inferDeckRemoveHelper} from "../../game/board-util";
+import {getChooseHandChoice, getValidHelper, inferDeckRemoveHelper} from "../../game/board-util";
 import {effName, getCardName} from "../card";
 import UndoIcon from '@material-ui/icons/Undo';
 import RedoIcon from '@material-ui/icons/Redo';
@@ -472,6 +472,8 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             toggleText={<ConcedeIcon/>}
         />
 
+    const helpers = playerID === null ? [] : getValidHelper(G, playerID);
+    
     return <Grid item container xs={12} sm={5} justifyContent="flex-start">
         <Grid item container xs={12}>
             <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(playerID)]} idx={parseInt(playerID)} G={G}
@@ -484,19 +486,19 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                     color="inherit"
                 >{i18n.dialog.buyCard.basic}</Typography>
                 <BuyCard
-                    card={BasicCardID.B01} helpers={G.player[parseInt(playerID)].hand}
+                    card={BasicCardID.B01} helpers={helpers}
                     G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                 <BuyCard
-                    card={BasicCardID.B02} helpers={G.player[parseInt(playerID)].hand}
+                    card={BasicCardID.B02} helpers={helpers}
                     G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                 <BuyCard
-                    card={BasicCardID.B03} helpers={G.player[parseInt(playerID)].hand}
+                    card={BasicCardID.B03} helpers={helpers}
                     G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                 <BuyCard
-                    card={BasicCardID.B04} helpers={G.player[parseInt(playerID)].hand}
+                    card={BasicCardID.B04} helpers={helpers}
                     G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                 <BuyCard
-                    card={BasicCardID.B05} helpers={G.player[parseInt(playerID)].hand}
+                    card={BasicCardID.B05} helpers={helpers}
                     G={G} playerID={playerID} ctx={ctx} moves={moves}/>
                 {classicFilmButtonGroup}
             </Grid> : <></>}

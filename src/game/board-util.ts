@@ -12,6 +12,7 @@ export const getHandChoice = (G: IG, playerID: PlayerID, getCardName: (id: strin
         }
     })
 }
+
 export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName: (id: string) => string) => {
     const handChoices = getHandChoice(G, playerID, getCardName);
     if (playerID === null) return [];
@@ -38,7 +39,7 @@ export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName: (id:
                         value: idx.toString()
                     }
                 })
-            case "discardNormalOrLegend":
+            case ItrEffects.discardNormalOrLegend:
                 return G.player[parseInt(playerID)].hand.map((c, idx) => {
                     let card = getCardById(c)
                     return {
@@ -48,7 +49,7 @@ export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName: (id:
                         value: idx.toString()
                     }
                 })
-            case "discardLegend":
+            case ItrEffects.discardLegend:
                 return G.player[parseInt(playerID)].hand.map((c, idx) => {
                     let card = getCardById(c)
                     return {
@@ -58,7 +59,7 @@ export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName: (id:
                         value: idx.toString()
                     }
                 })
-            case "discardIndustry":
+            case ItrEffects.discardIndustry:
                 return G.player[parseInt(playerID)].hand.map((c, idx) => {
                     return {
                         label: getCardName(c),
@@ -82,6 +83,13 @@ export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName: (id:
     } else {
         return handChoices;
     }
+}
+
+export const getValidHelper = (G: IG, playerID: PlayerID) => {
+    return G.player[(parseInt(playerID))].hand.filter((card) => {
+        const cardObj = getCardById(card);
+        return cardObj.industry > 0 || cardObj.aesthetics > 0
+    })
 }
 
 export const getPeekChoices = (G: IG, playerID: PlayerID, getCardName: (id: string) => string) => {
