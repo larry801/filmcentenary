@@ -119,7 +119,5 @@ export const FilmCentenaryGame: Game<IG> = {
         comment: comment,
         peek: peek,
         concede: concedeMove,
-    },
-
-    deltaState: true
+    }
 }
