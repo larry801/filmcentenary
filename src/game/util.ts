@@ -1071,25 +1071,18 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     log.push(`|breakthroughEffectPrepare`);
     breakthroughEffectPrepare(G, card);
     const cardEff = getCardEffect(c.cardId);
-    // if (c.cardId !== FilmCardID.F1108) {
     if (cardEff.hasOwnProperty("archive")) {
         const eff = {...cardEff.archive};
-        // console.log(eff);
         if (eff.e !== "none") {
             //流派扩：法国印象派
             if (pub.school === SchoolCardID.S4001) {
                 if (eff.e === SimpleEffectNames.addVp && eff.a >= 3) {
                     pub.resource += 1;
-                } else {
+                }
+                if (eff.e === ItrEffects.step){
                     for (let sk of eff.a) {
-                        // console.log(sk);
                         if (sk.e == SimpleEffectNames.addVp && sk.a >= 3) {
-                            // console.log(sk);
-                            // const efk = {e:SimpleEffectNames.addVp, a:1};
-                            // G.e.stack.push(efk);
                             pub.resource += 1;
-                            // break;
-                            // playerEffExec(G, ctx, pid);
                         }
                     }
                 }
@@ -1103,9 +1096,6 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     } else {
         log.push(`|missingArchiveEffect`);
     }
-    // } else {
-    //     log.push(`|Nanook|DoNotPushArchiveEffect`);
-    // }
     log.push(`|checkNextEffect`);
     logger.debug(`${G.matchID}|${log.join('')}`);
     // checkNextEffect(G, ctx);
