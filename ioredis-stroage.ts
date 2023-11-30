@@ -2,6 +2,8 @@ import {LogEntry, Server, State, StorageAPI} from "boardgame.io";
 import {Async} from "boardgame.io/internal";
 
 import Redis from 'ioredis';
+import {ChainableCommander} from "ioredis/built/utils/RedisCommander";
+
 
 const l = (c: string) => console.log(Date.now().toString() + '|' + c);
 const expireTime = 48 * 60 * 60;
@@ -29,6 +31,13 @@ interface MatchData {
 
 const matchPrefix = 'match:'
 
+const flushExpire = (pipeline: ChainableCommander, matchID: string) => {
+    pipeline.expire(`${matchPrefix}${matchID}:log`, expireTime);
+    pipeline.expire(`${matchPrefix}${matchID}:state`, expireTime);
+    pipeline.expire(`${matchPrefix}${matchID}:metadata`, expireTime);
+    pipeline.expire(`${matchPrefix}${matchID}:initialState`, expireTime);
+}
+
 class RedisStorage extends Async {
     private redis: Redis;
     private hasJSON: boolean;
@@ -49,7 +58,7 @@ class RedisStorage extends Async {
                 // Parse the result to check if ReJSON is in the list of loaded modules
                 const moduleList = result.toString();
                 result.forEach((r) => {
-                    if(r.includes("ReJSON")){
+                    if (r.includes("ReJSON")) {
                         console.log("Has ReJSON")
                         this.hasJSON = true;
                     }
@@ -63,9 +72,10 @@ class RedisStorage extends Async {
     async createMatch(matchID: string, opts: StorageAPI.CreateMatchOpts): Promise<void> {
         l('createMatch|' + matchID + JSON.stringify(opts));
         const pipeline = this.redis.pipeline();
-        pipeline.set(`${matchPrefix}${matchID}:initialState`, JSON.stringify(opts.initialState), 'EX', expireTime);
-        pipeline.set(`${matchPrefix}${matchID}:state`, JSON.stringify(opts.initialState), 'EX', expireTime);
-        pipeline.set(`${matchPrefix}${matchID}:metadata`, JSON.stringify(opts.metadata), 'EX', expireTime);
+        pipeline.set(`${matchPrefix}${matchID}:initialState`, JSON.stringify(opts.initialState));
+        pipeline.set(`${matchPrefix}${matchID}:state`, JSON.stringify(opts.initialState));
+        pipeline.set(`${matchPrefix}${matchID}:metadata`, JSON.stringify(opts.metadata));
+        flushExpire(pipeline, matchID);
         await pipeline.exec();
     }
 
@@ -73,17 +83,23 @@ class RedisStorage extends Async {
         l('setState|' + matchID);
 
         const pipeline = this.redis.pipeline();
-        pipeline.set(`${matchPrefix}${matchID}:state`, JSON.stringify(state), 'EX', expireTime);
+        pipeline.set(`${matchPrefix}${matchID}:state`, JSON.stringify(state));
         if (deltalog) {
             pipeline.rpush(`${matchPrefix}${matchID}:log`, ...deltalog.map(entry => JSON.stringify(entry)));
             pipeline.expire(`${matchPrefix}${matchID}:log`, expireTime);
         }
+        flushExpire(pipeline, matchID);
         await pipeline.exec();
     }
 
+
     async setMetadata(matchID: string, metadata: Server.MatchData): Promise<void> {
         l('setMetadata' + matchID + JSON.stringify(metadata));
-        await this.redis.set(`${matchPrefix}${matchID}:metadata`, JSON.stringify(metadata), 'EX', expireTime);
+
+        const pipeline = this.redis.pipeline();
+        pipeline.set(`${matchPrefix}${matchID}:metadata`, JSON.stringify(metadata));
+        flushExpire(pipeline, matchID);
+        await pipeline.exec();
     }
 
     async fetch<O extends FetchOpts>(matchID: string, opts: O): Promise<StorageAPI.FetchResult<O>> {
@@ -186,8 +202,6 @@ class RedisStorage extends Async {
         return true;
     }
 }
-
-
 
 
 export default RedisStorage;
