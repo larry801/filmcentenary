@@ -188,14 +188,21 @@ export const NormalTurn: TurnConfig = {
                 }
             }
             if (pub.school === SchoolCardID.S4007) {
-                log.push(`|"Kitchen Sink Film`);
-                loseVp(G, ctx, p, G.player[parseInt(p)].hand.length);
+                const playerHandLength =  G.player[parseInt(p)].hand.length;
+                log.push(`|Kitchen Sink Film|playerHandLength${playerHandLength}`);
+                loseVp(G, ctx, p, playerHandLength);
+                let drawCount = 0;
                 G.order.forEach((pid)=>{
-                    if (G.player[parseInt(pid)].hand.length > G.player[parseInt(p)].hand.length){
-                        log.push(`|p${pid}|draw`);
-                        drawCardForPlayer(G, ctx, p);
+                    const otherPlayerHandLength = G.player[parseInt(pid)].hand.length;
+                    log.push(`|p${pid}|hand${otherPlayerHandLength}`)
+                    if (otherPlayerHandLength > playerHandLength){
+                        drawCount++;
+                        log.push(`|drawCount${drawCount}`);
                     }
                 });
+                for (let i = 0; i < drawCount; i++) {
+                    drawCardForPlayer(G, ctx, p);
+                }
             }
         } else {
             log.push(`|playerConceded|endTurn`);
