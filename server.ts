@@ -2,10 +2,18 @@ import path from 'path';
 import * as Koa from "koa"
 import serve from 'koa-static';
 import {FilmCentenaryGame} from "./src/Game";
-import {Server, Origins} from "boardgame.io/server";
-import {PostgresStore} from "bgio-postgres";
+import {Server} from "boardgame.io/server";
+import RedisStorage from "./ioredis-stroage";
+import {PostgresStore} from "bgio-postgres"
 
-const server = process.env.POSTGRES_URL ? Server({
+const server = process.env.REDIS_URL ? Server({
+    games: [FilmCentenaryGame],
+    db: new RedisStorage(process.env.REDIS_URL),
+    origins: [
+        // Allow any domain connect.
+        '*'
+    ]
+}) : process.env.POSTGRES_URL ? Server({
     games: [FilmCentenaryGame],
     db: new PostgresStore(
         process.env.POSTGRES_URL,
@@ -25,6 +33,7 @@ const server = process.env.POSTGRES_URL ? Server({
         '*'
     ]
 });
+
 
 const PORT = process.env.PORT || "3000";
 const {app} = server;
