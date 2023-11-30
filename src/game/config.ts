@@ -132,19 +132,16 @@ export const NormalTurn: TurnConfig = {
             }
             if (pub.school === SchoolCardID.S2101) {
                 log.push(`|classicHollywood`);
-                G.e.stack.push({
-                    e: ItrEffects.choice, a: [
-                        {e: SimpleEffectNames.addCompetitionPower, a: 1},
-                        {
-                            e: "optional", a: {
-                                e: "competition", a: {
-                                    bonus: 0,
-                                    onWin: noEff,
-                                }
-                            }
+                G.e.choices.push({e: SimpleEffectNames.addCompetitionPower, a: 1});
+                G.e.choices.push({
+                    e: "optional", a: {
+                        e: "competition", a: {
+                            bonus: 0,
+                            onWin: noEff,
                         }
-                    ]
-                })
+                    }
+                });
+                changePlayerStage(G, ctx, "chooseEffect", p);
             }
             if (pub.school === SchoolCardID.S3101) {
                 log.push(`|newHollywood`);
