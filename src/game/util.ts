@@ -1901,6 +1901,10 @@ export const aesAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
     if (pub.aesthetics > 4) {
         log.push(`|>4`);
         addVp(G, ctx, p, 2);
+        if (pub.school === SchoolCardID.S4001) {
+            log.push(`|FrenchImpressionism`)
+            addRes(G, ctx, p, 1);
+        }
     }
     if (pub.aesthetics > 7) {
         log.push(`|>7`);

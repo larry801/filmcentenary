@@ -1366,11 +1366,6 @@ export const playCard: LongFormMove = {
             switch (privateInfo.classicFilmAutoMove) {
                 case ClassicFilmAutoMoveMode.AESTHETICS_AWARD:
                     aesAward(G, ctx, arg.playerID);
-                    if (G.pub[parseInt(arg.playerID)].school === SchoolCardID.S4001) {
-                        if (G.pub[parseInt(arg.playerID)].aesthetics >= 5) {
-                            addRes(G, ctx, arg.playerID, 1);
-                        }
-                    }
                     log.push(`|ClassicFilm|AutoAesthetics`);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
