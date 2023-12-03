@@ -1,34 +1,52 @@
-import { defineConfig } from 'vite'
-import { resolve } from "path";
+import {defineConfig, splitVendorChunkPlugin} from 'vite'
+import {resolve} from "path";
 import reactRefresh from '@vitejs/plugin-react-refresh'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  build:{
-    outDir:'build'
-  },
-  plugins: [reactRefresh()],
-  resolve: {
-    alias: [
-      {
-        find: /^@material-ui\/icons\/(.*)/,
-        replacement: "@material-ui/icons/esm/$1",
-      },
-      {
-        find: /^@material-ui\/core\/(.+)/,
-        replacement: "@material-ui/core/es/$1",
-      },
-      {
-        find: /^@material-ui\/core$/,
-        replacement: "@material-ui/core/es",
-      },
-      {
-        find: 'src',
-        replacement: resolve(__dirname, 'src')
-      }
+    build: {
+        outDir: 'build',
+        rollupOptions: {
+            output: {
+                manualChunks(id: string) {
+                    // creating a chunk to react routes deps. Reducing the vendor chunk size
+                    if (
+                        id.includes('react-router-dom') ||
+                        id.includes('react-router') ||
+                        id.includes('boardgame.io')
+                    ) {
+                        return '@react-router';
+                    }
+                },
+            }
+        }
+    },
+    plugins: [
+        reactRefresh(),
+        splitVendorChunkPlugin()
     ],
-  },
-  server: {
-    host: '0.0.0.0' // debug in lan
-  }
+    resolve: {
+        alias: [
+            {
+                find: /^@material-ui\/icons\/(.*)/,
+                replacement: "@material-ui/icons/esm/$1",
+            },
+            {
+                find: /^@material-ui\/core\/(.+)/,
+                replacement: "@material-ui/core/es/$1",
+            },
+            {
+                find: /^@material-ui\/core$/,
+                replacement: "@material-ui/core/es",
+            },
+            {
+                find: 'src',
+                replacement: resolve(__dirname, 'src')
+            }
+        ],
+    },
+
+    server: {
+        host: '0.0.0.0' // debug in lan
+    }
 })
