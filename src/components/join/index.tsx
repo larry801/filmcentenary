@@ -12,6 +12,7 @@ import ChoiceDialog from "../modals";
 
 interface JoinPageProps {
     serverURL: string;
+    gameName: string;
 }
 
 interface Params {
@@ -20,7 +21,7 @@ interface Params {
     credential?: string;
 }
 
-const JoinPage = ({serverURL}: JoinPageProps) => {
+const JoinPage = ({serverURL, gameName}: JoinPageProps) => {
     useI18n(i18n);
     const history = useHistory();
     const {matchID, player, credential}: Params = useParams();
@@ -28,16 +29,16 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
     const [error, setError] = React.useState("");
     const [numPlayers, setNumPlayers] = React.useState(0);
     React.useEffect(() => {
-        if(credential !== undefined){
+        if (credential !== undefined) {
             setCredentials(credential);
-        }else {
-            const loadedCredential = loadCredentials(matchID, player);
+        } else {
+            const loadedCredential = loadCredentials(matchID, player, gameName);
             if (loadedCredential) {
                 setCredentials(loadedCredential);
-                history.push(`/join/${matchID}/${player}/${loadedCredential}`)
+                history.push(`/join/${gameName}/${matchID}/${player}/${loadedCredential}`)
             } else {
                 if (player !== Player.SPECTATE) {
-                    joinMatch(serverURL, matchID, player)
+                    joinMatch(serverURL, matchID, player, gameName)
                         .then((responseCredential) => {
                             saveCredentials(matchID, player, responseCredential);
                             setCredentials(responseCredential);
@@ -50,7 +51,7 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
             }
         }
         if (player !== Player.SPECTATE) {
-            getMatch(serverURL, matchID)
+            getMatch(serverURL, matchID, gameName)
                 .then((data) => {
                     setNumPlayers(data.players.size)
                 })
@@ -63,7 +64,7 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
 
     const handleLeave = (choice: string) => {
         if (choice === "yes") {
-            leaveMatch(serverURL, matchID, player, credentials)
+            leaveMatch(serverURL, matchID, player, credentials, gameName)
                 .then(() => {
                     deleteCredentials(matchID, player);
                     history.push('/');
@@ -74,10 +75,12 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
     }
     const gameContent = player === Player.SPECTATE ?
         <Spectate
+            gameName={gameName}
             matchID={matchID}
             server={serverURL}/> :
         <>
             <MultiPlayer
+                gameName={gameName}
                 matchID={matchID}
                 serverURL={serverURL}
                 credentials={credentials}
@@ -102,7 +105,9 @@ const JoinPage = ({serverURL}: JoinPageProps) => {
                 <ShareLink
                     player={player}
                     matchID={matchID}
-                    numPlayer={numPlayers}/>
+                    numPlayer={numPlayers}
+                    gameName={gameName}
+                />
             </>
             : <></>}
     </>

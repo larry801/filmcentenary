@@ -10,6 +10,7 @@ import JoinPage from "./components/join";
 import DenseTable from "./components/card-table";
 import AboutPage from "./components/about-page";
 import Lobby from "./components/lobby";
+import {FilmCentenaryGame} from "./Game";
 
 const rootElement = document.getElementById("root");
 
@@ -22,7 +23,10 @@ render(
                 <Lobby/>
             </Route>
             <Route exact path="/">
-                <MUICreateMatch serverURL={`${window.location.protocol}//${window.location.host}`}/>
+                <MUICreateMatch gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+            </Route>
+            <Route exact path="/songjinn">
+                <MUICreateMatch gameName={"songJinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
             </Route>
             <Route exact path="/cards">
                 <DenseTable/>
@@ -30,11 +34,23 @@ render(
             <Route exact path="/about">
                 <AboutPage/>
             </Route>
+            <Route exact path="/join/film/:matchID/:player/:credential">
+                <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+            </Route>
+            <Route exact path="/join/film/:matchID/:player">
+                <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+            </Route>
+            <Route exact path="/join/songjinn/:matchID/:player/:credential">
+                <JoinPage gameName={"songjinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+            </Route>
+            <Route exact path="/join/songjinn/:matchID/:player">
+                <JoinPage gameName={"songjinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+            </Route>
             <Route exact path="/join/:matchID/:player/:credential">
-                <JoinPage serverURL={`${window.location.protocol}//${window.location.host}`}/>
+                <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
             </Route>
             <Route exact path="/join/:matchID/:player">
-                <JoinPage serverURL={`${window.location.protocol}//${window.location.host}`}/>
+                <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
             </Route>
             <Route exact path="/local2p">
                 <Local2p/>

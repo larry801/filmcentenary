@@ -1,7 +1,7 @@
 import {Player} from "../Game";
 
 const STORAGE_KEY = "fimCentenary";
-const CAPACITY = 10;
+const CAPACITY = 100;
 
 /** Load the queue from localStorage. */
 const loadQueue = (): Array<any> => {
@@ -19,7 +19,7 @@ const loadQueue = (): Array<any> => {
 /** Delete credentials in localStorage. */
 export const deleteCredentials = (
     matchID: string,
-    player: Player,
+    player: Player
 ) => {
     const queue = loadQueue();
     let itemIdx = -1;
@@ -44,10 +44,15 @@ export const deleteCredentials = (
 export const saveCredentials = (
     matchID: string,
     player: Player,
-    credentials: string
+    credentials: string,
+    gameName?: string
 ) => {
     const queue = loadQueue();
-    queue.push({matchID, player, credentials});
+    if (gameName == undefined) {
+        queue.push({matchID, player, credentials});
+    } else {
+        queue.push({matchID, player, credentials, gameName})
+    }
     while (queue.length > CAPACITY) {
         queue.shift();
     }
@@ -57,7 +62,8 @@ export const saveCredentials = (
 /** Load credentials from localStorage. */
 export const loadCredentials = (
     matchID: string,
-    player: Player
+    player: Player,
+    gameName?: string
 ): string | null => {
     const queue = loadQueue();
     for (const item of queue) {
@@ -67,7 +73,13 @@ export const loadCredentials = (
             item.player === player &&
             typeof item.credentials === "string"
         ) {
-            return item.credentials as string;
+            if (gameName == undefined || item.gameName == undefined){
+                return item.credentials as string;
+            } else {
+                if (item.gameName === gameName){
+                    return item.credentials as string;
+                }
+            }
         }
     }
     return null;

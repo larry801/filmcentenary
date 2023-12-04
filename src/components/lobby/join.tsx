@@ -5,11 +5,12 @@ import { Player, nameOf } from "../../Game";
 interface ShareLinkProps {
     matchID: string;
     player: Player;
+    gameName: string;
 }
 
-const ShareLink = ({ matchID, player }: ShareLinkProps) => {
+const ShareLink = ({ matchID, player,gameName }: ShareLinkProps) => {
     const inputRef = React.useRef<HTMLInputElement>(null);
-    const url = `${window.location.origin}/join/${matchID}/${nameOf(player)}`;
+    const url = `${window.location.origin}/join/${gameName}/${matchID}/${nameOf(player)}`;
 
     const copyToClipboard = (e: any) => {
         if (inputRef.current && document.queryCommandSupported("copy")) {

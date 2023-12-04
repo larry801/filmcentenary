@@ -10,12 +10,13 @@ import IconButton from '@material-ui/core/IconButton';
 interface ShareLinkProps {
     matchID: string;
     player: Player;
-    numPlayer: number,
+    numPlayer: number;
+    gameName: string;
 }
 
-export const ShareLink = ({matchID, player, numPlayer}: ShareLinkProps) => {
+export const ShareLink = ({matchID, player, numPlayer, gameName}: ShareLinkProps) => {
     useI18n(i18n);
-    const urlPrefix = `${window.location.origin}/join/${matchID}/`;
+    const urlPrefix = `${window.location.origin}/join/${gameName}/${matchID}/`;
 
     const p0URL = Player.P0 !== player ? urlPrefix + Player.P0 : "";
     const p1URL = Player.P1 !== player ? urlPrefix + Player.P1 : "";

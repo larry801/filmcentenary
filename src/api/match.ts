@@ -53,9 +53,10 @@ export const createMatch = async (
 export const joinMatch = async (
     serverURL: string,
     matchID: string,
-    player: Player
+    player: Player,
+    gameName: string
 ): Promise<string> => {
-    const resp = await fetch(`${serverURL}/games/${FilmCentenaryGame.name}/${matchID}/join`, {
+    const resp = await fetch(`${serverURL}/games/${gameName}/${matchID}/join`, {
         method: "POST",
         headers,
         body: JSON.stringify({ playerID: player, playerName: nameOf(player) }),
@@ -76,9 +77,10 @@ export const leaveMatch = async (
     serverURL: string,
     matchID: string,
     player: Player,
-    credentials: string
+    credentials: string,
+    gameName: string
 ): Promise<void> => {
-    const resp = await fetch(`${serverURL}/games/${FilmCentenaryGame.name}/${matchID}/leave`, {
+    const resp = await fetch(`${serverURL}/games/${gameName}/${matchID}/leave`, {
         method: "POST",
         headers,
         body: JSON.stringify({ playerID: player, credentials }),
@@ -90,9 +92,10 @@ export const leaveMatch = async (
 
 /** List the IDs of all public matches. */
 export const listMatchIDs = async (
-    serverURL: string
+    serverURL: string,
+    gameName: string
 ): Promise<Array<string>> => {
-    const resp = await fetch(`${serverURL}/games/${FilmCentenaryGame.name}`);
+    const resp = await fetch(`${serverURL}/games/${gameName}`);
     if (!resp.ok) {
         throw new Error("failed to list match IDs: " + (await resp.text()));
     }
@@ -110,9 +113,10 @@ export const listMatchIDs = async (
 /** Get information about a match. */
 export const getMatch = async (
     serverURL: string,
-    matchID: string
+    matchID: string,
+    gameName: string
 ): Promise<Match> => {
-    const resp = await fetch(`${serverURL}/games/${FilmCentenaryGame.name}/${matchID}`);
+    const resp = await fetch(`${serverURL}/games/${gameName}/${matchID}`);
     if (!resp.ok) {
         throw new Error("failed to get match: " + (await resp.text()));
     }

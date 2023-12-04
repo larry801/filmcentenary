@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from "react";
+import React, {useEffect, useRef} from "react";
 import {Player} from "../Game";
 import {Link, useHistory} from "react-router-dom";
 import {createMatch, Visibility} from "../api/match";
@@ -38,6 +38,7 @@ interface MatchData {
 
 interface CreateMatchProps {
     serverURL: string;
+    gameName: string;
 }
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -75,11 +76,10 @@ const useInterval: IUseInterval = (callback, interval) => {
     }, [interval]);
 };
 
-const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
+const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     useI18n(i18n);
     const history = useHistory();
     const classes = useStyles();
-    // eslint-disable-next-line
     const [player, setPlayer] = React.useState(Player.P0);
     const [clicked, setClicked] = React.useState(false);
     const [matchID, setMatchID] = React.useState("");
@@ -100,14 +100,19 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
         setNumPlayers(parseInt(event.target.value));
     };
 
+    const handlePlayerChange = (event: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+        // @ts-ignore
+        setPlayer(event.target.value);
+    };
+
     const handlePublicChange = () => {
         setIsPublic(!isPublic);
     }
 
     const lobbyClient = new LobbyClient({server: serverURL});
 
-    const refreshLobby = () =>{
-        lobbyClient.listMatches('film', {isGameover: false}).then((matches) => {
+    const refreshLobby = () => {
+        lobbyClient.listMatches(gameName, {isGameover: false}).then((matches) => {
             // @ts-ignore
             setMatches(matches.matches);
         }).catch(() => {
@@ -142,7 +147,7 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
                             <TableCell>
                                 {match.players.map((player, idx) => {
                                     if (player.name === undefined) {
-                                        return <a href={`${serverURL}/join/${match.matchID}/${idx}`}>
+                                        return <a href={`${serverURL}/join/${match.gameName}/${match.matchID}/${idx}`}>
                                             {`${i18n.lobby.join}|${idx + 1}`}
                                         </a>
                                     } else {
@@ -152,7 +157,7 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
                             </TableCell>
                             <TableCell>
                                 <a
-                                    href={`${serverURL}/join/${match.matchID}/spectate`}
+                                    href={`${serverURL}/join/${match.gameName}/${match.matchID}/spectate`}
                                 >{i18n.lobby.spectate}</a>
                             </TableCell>
                             <TableCell>
@@ -182,19 +187,45 @@ const MUICreateMatch = ({serverURL}: CreateMatchProps) => {
                                 id: 'outlined-numPlayers-native-simple',
                             }}>
                             <option value={2}>2</option>
-                            <option value={3}>3</option>
-                            <option value={4}>4</option>
+                            {gameName === 'film' ? <>
+                                <option value={3}>3</option>
+                                <option value={4}>4</option>
+                            </> : <></>}
                         </Select>
                     </Grid>
                 </FormControl>
             </Grid>
+            <FormControl variant="outlined" className={classes.formControl}>
+                <Grid component="label" container alignItems="center" spacing={1}>
+                    <InputLabel htmlFor="outlined-numPlayers-native-simple">{i18n.lobby.player}</InputLabel>
+                    <Select
+                        native
+                        value={player}
+                        onChange={handlePlayerChange}
+                        label={i18n.lobby.player}
+                        inputProps={{
+                            name: 'numPlayers',
+                            id: 'outlined-numPlayers-native-simple',
+                        }}>
+                        <option value={Player.P0}>{Player.P0}</option>
+                        <option value={Player.P1}>{Player.P1}</option>
+                        {gameName === 'film' && numPlayers >= 3 ?
+                            <option value={Player.P2}>{Player.P2}</option>
+                            : <></>}
+                        {gameName === 'film' && numPlayers >= 4 ?
+                            <option value={Player.P3}>{Player.P3}</option>
+                            : <></>}
+                    </Select>
+                </Grid>
+            </FormControl>
+
             <Grid component="label" container alignItems="center" spacing={1}>
                 <Typography>{i18n.lobby.privateGame}</Typography>
                 <Switch checked={isPublic} onChange={handlePublicChange}/>
                 <Typography>{i18n.lobby.publicGame}</Typography>
             </Grid>
             <Grid item container xs={12} sm={7}>
-                {matchID && history.push(`/join/${matchID}/${player}`)}
+                {matchID && history.push(`/join/${gameName}/${matchID}/${player}`)}
                 {error &&
                     <Typography>{error} {i18n.drawer.pleaseTry} <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link>
                     </Typography>}

@@ -528,6 +528,7 @@ const en = {
     lobby: {
         copyPrompt: "Copied to clipboard",
         numPlayers: "Players",
+        player:"Start as player",
         createPublicMatch: "Create public match",
         createPrivateMatch: "Create match",
         title: "Lobby",
