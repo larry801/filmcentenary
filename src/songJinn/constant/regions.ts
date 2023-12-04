@@ -1,8 +1,10 @@
-import {CityID} from "./city";
-import {TerrainType} from "./general";
+import {CityID, TerrainType} from "./general";
 
 export enum RegionID {
-
+    R001,
+    R002,
+    R003,
+    R004,
 }
 
 export interface Region {
@@ -12,5 +14,4 @@ export interface Region {
     land: RegionID[],
     water: RegionID[],
     terrain: TerrainType,
-
 }

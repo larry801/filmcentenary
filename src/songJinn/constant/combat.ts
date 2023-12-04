@@ -1,6 +1,5 @@
-import {CardID, Country} from "./general";
+import {CardID, CityID, Country} from "./general";
 import {RegionID} from "./regions";
-import {CityID} from "./city";
 
 export enum CombatType {
     SIEGE,

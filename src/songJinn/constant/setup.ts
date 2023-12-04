@@ -1,6 +1,5 @@
 import {PlanID} from "./plan";
-import {CardID, LetterOfCredence, Level, SJPlayer, SongEarlyCardID} from "./general";
-import {CityID} from "./city";
+import {CardID, CityID, LetterOfCredence, Level, SJPlayer, SongEarlyCardID} from "./general";
 import {Ctx} from "boardgame.io";
 import {shuffle} from "../../game/util";
 

@@ -1,4 +1,4 @@
-import {CityID} from "./city";
+import {CityID} from "./general";
 
 export enum ProvinceID {
     XIJINGLU,
@@ -20,10 +20,24 @@ export enum ProvinceID {
 }
 
 export interface Province {
-    id:ProvinceID,
-    name:string,
-    adjacent:ProvinceID[],
+    id: ProvinceID,
+    name: string,
+    adjacent: ProvinceID[],
     capital: CityID,
-    otherCities: CityID[],
+    other: CityID[],
+}
+
+export const getProvinceById: (pid: ProvinceID) => Province = (pid: ProvinceID) => {
+    return  idToProvince[ProvinceID.XIJINGLU];
+}
+
+const idToProvince = {
+    [ProvinceID.XIJINGLU]: {
+        id: ProvinceID.XIJINGLU,
+        name: "西京路",
+        adjacent: [ProvinceID.BEIJINGLU, ProvinceID.DONGJINGLU, ProvinceID.HEDONGLU],
+        capital: CityID.DaTong,
+        other: [],
+    }
 }
 
