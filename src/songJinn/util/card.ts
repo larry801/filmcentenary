@@ -5,6 +5,12 @@ import {JinnLateCardID, JinnMidCardID, SJPlayer, SongLateCardID, SongMidCardID} 
 import {getJinnPower} from "./calc";
 import {shuffle} from "../../game/util";
 
+export const remove = (target:T, array:Array<T>) =>{
+    if (array.includes(target)) {
+        array.splice(array.indexOf(target),1);
+    }
+}
+
 export const drawPlanForPlayer = (G: SongJinnGame, pid: PlayerID) => {
     const p = playerById(G, pid);
     const military = getStateById(G, pid).military;

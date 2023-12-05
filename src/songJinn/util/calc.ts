@@ -1,16 +1,29 @@
 import {SongJinnGame} from "../constant/setup";
-import {ActiveEvents, Country, isMountainPassID, isRegionID, SJPlayer, TerrainType, Troop} from "../constant/general";
+import {ActiveEvents, Country, isMountainPassID, isRegionID, SJPlayer, TerrainType, Troop, accumulator} from "../constant/general";
 import {Ctx} from "boardgame.io";
 import {getRegionById} from "../constant/regions";
 import {getCityById} from "../constant/city";
 import {Terrain} from "@material-ui/icons";
+import {getStateById} from "../util/fetch";
 
 export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
     return G.jinn.civil > G.song.civil ? SJPlayer.P2 : SJPlayer.P1;
 }
 
+export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId:PlayerID) =>{
+    return getStateById(playerId).develop.map(c=>getCardById(c).op).reduce(accumulator);
+}
+
+export const remainDevelop = (G: SongJinnGame, ctx: Ctx, playerId:PlayerID) =>{
+    return totalDevelop(G, ctx, playerId) - getStateById(G, playerId);
+}
+
 export function troopIsArmy(G: SongJinnGame, ctx: Ctx, troop: Troop) {
     return troopEndurance(G, ctx, troop) !== 0;
+}
+
+export const rangeDamage = (G: SongJinnGame, troop: Troop) => {
+
 }
 
 export function troopEndurance(G: SongJinnGame, ctx: Ctx, troop: Troop): number {

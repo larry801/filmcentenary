@@ -1,7 +1,7 @@
-import {PhaseConfig, TurnConfig} from "boardgame.io";
+import {PhaseConfig, TurnConfig, StageConfig} from "boardgame.io";
 import {SongJinnGame} from "./setup";
 import {TurnOrder} from "boardgame.io/core";
-import {chooseFirst, choosePlan, searchFirst, showPlan} from "../moves";
+import {chooseFirst, choosePlan, searchFirst, showPlan, discard} from "../moves";
 import {getStateById, playerById} from "../util/fetch";
 import {addLateTermCard, addMidTermCard, drawPlanForPlayer} from "../util/card";
 import {getPlanById} from "./plan";
@@ -11,6 +11,12 @@ import {getLeadingPlayer} from "../util/calc";
 
 export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
+}
+
+export const DiscardStageConfig: StageConfig<SongJinnGame> = {
+    moves:{
+        discard:discard
+    }
 }
 
 export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
@@ -48,6 +54,13 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
     },
     moves: {
         searchFirst: searchFirst,
+    }
+}
+
+export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
+    moves: {
+        develop:develop,
+        returnToHand: returnToHand
     }
 }
 export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {

@@ -4,13 +4,14 @@ import {SongJinnGame} from "../constant/setup";
 import ErrorBoundary from "../../components/error";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {Country, MountainPassID, OtherCountryID, RegionID, SJPlayer, UNIT_SHORTHAND} from "../constant/general";
+import {Country, MountainPassID, OtherCountryID, RegionID, SJPlayer, UNIT_SHORTHAND, DevelopChoice, accumulator} from "../constant/general";
 import {getPlanById} from "../constant/plan";
-import {getStateById, playerById} from "../util/fetch";
+import {getStateById, playerById, getCountryById} from "../util/fetch";
 import Button from "@material-ui/core/Button";
 import {getCityById} from "../constant/city";
 import {getRegionById} from "../constant/regions";
 import Typography from "@material-ui/core/Typography";
+import {getCardById} from "./constant/cards";
 
 export const SongJinnBoard = ({
                                   G,
@@ -30,6 +31,8 @@ export const SongJinnBoard = ({
 
     const pub = getStateById(G, playerID as SJPlayer);
     const player = playerById(G, playerID as SJPlayer);
+    const contry = getCountryById(playerID);
+    const isSpectate = playerID === null;
 
     const chooseFirst = (choice: string) => {
         moves.chooseFirst(choice);
@@ -37,6 +40,20 @@ export const SongJinnBoard = ({
     const choosePlan = (choice: string) => {
         moves.choosePlan(choice);
     }
+    const search = (choice: string) => {
+        moves.search(choice);
+    }
+    const discard = (choice: string) => {
+        moves.discard(choice);
+    }
+    const returnToHand = (choice: string) => {
+        moves.returnToHand(choice);
+    }
+    const develop = (choice: string) => {
+        moves.develop(choice);
+    }
+    const remainDevelop = remainDevelop(G, ctx, ctx.playerIDf);
+
     return <ErrorBoundary>
         <Grid container>
             <Grid item>
@@ -63,6 +80,63 @@ export const SongJinnBoard = ({
                     return <Button key={`troop-${idx}`}>{p}|{c}|{shortUnits}</Button>;
                 })}
             </Grid>
+            <ChoiceDialog
+                callback={returnToHand}
+                choices={[
+                    {
+                        label: DevelopChoice.COLONY,value: DevelopChoice.COLONY,
+                        disabled:false,
+                        hidden:country!==Country.JINN
+                    },
+                    {
+                        label: DevelopChoice.MILITARY,value: DevelopChoice.MILITARY,
+                        disabled: pub.military === 7 || pub.military + 1 > remainDevelop,
+                        hidden:false
+                    },
+                    {
+                        label: DevelopChoice.POLICY,value: DevelopChoice.POLICY,
+                        disabled: remainDevelop < 3,
+                        hidden:country !== Country.SONG
+                    },
+                    {
+                        label: DevelopChoice.CIVIL,value: DevelopChoice.CIVIL,
+                        disabled: pub.civil === 7 || pub.civil + 1  > remainDevelop,
+                        hidden: false
+                    },
+                    {
+                        label: DevelopChoice.EMPEROR,value: DevelopChoice.EMPEROR,
+                        disabled: G.song.emperor !== null || pub.usedDevelop > 0,
+                        hidden: country !== Country.SONG
+                    },
+
+                ]}
+                show={isActive && ctx.stage === 'returnToHand'}
+                title={"请选择需要返回手牌的发展牌"} toggleText={"发展牌回手"} initial={true}
+            />
+            <ChoiceDialog
+                callback={returnToHand}
+                choices={pub.develop.map(bcid=>{
+                    return {
+                    label: getCardById(bcid).name,
+                    value: bcid,
+                    disabled: false,
+                    hidden: false
+                }})}
+                show={isActive && ctx.stage === 'returnToHand'}
+                title={"请选择需要返回手牌的发展牌"} toggleText={"发展牌回手"} initial={true}
+            />
+            <ChoiceDialog
+                callback={discard}
+                choices={player.hand.map(bcid=>{
+                    return {
+                    label: getCardById(bcid).name,
+                    value: bcid,
+                    disabled: false,
+                    hidden: false
+                }})}
+                show={isActive && ctx.stage === 'discard'}
+                title={""} toggleText={""} initial={true}
+            />
             <ChoiceDialog
                 callback={chooseFirst}
                 choices={[

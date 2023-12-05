@@ -90,6 +90,16 @@ export const OtherCountries = [
     OtherCountryID.XiXia
 ];
 
+export enum DevelopChoice {
+    MILITARY = "军事",
+    CIVIL = "内政",
+    COLONY = "殖民",
+    POLICY = "政策",
+    EMPEROR = "拥立"
+}
+
+export const accumulator = (accumulator, currentValue) => accumulator + currentValue;
+
 export const MountainPasses = [
     MountainPassID.DaSanGuan,
     MountainPassID.JianMenGuan,

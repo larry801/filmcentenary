@@ -31,6 +31,8 @@ export interface SJPubInfo {
     corruption: number,
     ready: number[],
     discard: CardID[],
+    develop: CardID[],
+    usedDevelop: number,
     remove: CardID[],
     standby: number[],
     provinces: ProvinceID[],
@@ -38,6 +40,8 @@ export interface SJPubInfo {
 }
 
 export const initialJinnPub: SJPubInfo = {
+    develop:[],
+    usedDevelop:0,
     troops: [
         {u: [1, 2, 1, 0, 1, 0, 0], p: RegionID.R20, j: [JinnGeneral.WoLiBu], c: null, country: Country.JINN},
         {u: [2, 0, 0, 0, 0, 0, 0], p: RegionID.R11, j: [JinnGeneral.LouShi], c: CityID.LinFen, country: Country.JINN},
@@ -74,10 +78,15 @@ export const initialJinnPub: SJPubInfo = {
         ProvinceID.HEDONGLU,
         ProvinceID.HEBEILIANGLU
     ],
-    cities: []
+    cities: [
+        CityID.KaiFeng,
+        CityID.MinXian
+    ]
 }
 
 export const initialSongPub: SJPubInfo = {
+    develop:[],
+    usedDevelop:0,
     troops: [
         {u: [2, 2, 0, 0, 0, 0], p: RegionID.R19, j: [SongGeneral.ZongZe], c: null, country: Country.SONG},
         {u: [0, 1, 0, 0, 0, 0], p: RegionID.R21, j: [], c: CityID.LiCheng, country: Country.SONG},
