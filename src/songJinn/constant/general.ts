@@ -25,7 +25,7 @@ export const enum ActiveEvents {
     JieChuBingQuan = "解除兵权"
 }
 
-export const enum MountainPassID {
+export enum MountainPassID {
     JuYongGuan = "居庸关",
     TongGuan = "潼关",
     WuGuan = "武关",
@@ -38,6 +38,15 @@ export const enum PlayerPendingEffect {
     TwoPlan,
 }
 
+export interface Troop {
+    p: TroopPlace,
+    c: CityID | null,
+    u: number[],
+    j: General[],
+    country: Country
+}
+
+
 export type Level = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export const enum VictoryType {
@@ -49,12 +58,12 @@ export const enum VictoryType {
     Diplomacy
 }
 
-export const enum OtherCountries {
-    XiLiao,
-    XiXia,
-    TuBo,
-    DaLi,
-    GaoLi
+export enum OtherCountryID {
+    XiLiao = "西辽",
+    XiXia = "西夏",
+    TuBo = "吐蕃",
+    DaLi = "大理",
+    GaoLi = "高丽"
 }
 
 export const enum OtherCountryState {
@@ -72,12 +81,42 @@ export const UNIT_FULL_NAME = [
     ['步军', '步射', '马军', '水军', '霹雳炮', '背嵬军'],
     ['步军', '拐子马', '铁浮屠', '水军', '鹅车', '签军', '齐军']
 ];
+
+export const OtherCountries = [
+    OtherCountryID.DaLi,
+    OtherCountryID.TuBo,
+    OtherCountryID.GaoLi,
+    OtherCountryID.XiLiao,
+    OtherCountryID.XiXia
+];
+
+export const MountainPasses = [
+    MountainPassID.DaSanGuan,
+    MountainPassID.JianMenGuan,
+    MountainPassID.JuYongGuan,
+    MountainPassID.TongGuan,
+    MountainPassID.WuGuan,
+];
+
+export function isRegionID(place: TroopPlace): place is RegionID {
+    return typeof place === 'number' && Object.values(RegionID).includes(place as RegionID);
+}
+
+export function isOtherCountryID(place: TroopPlace): place is OtherCountryID {
+    return typeof place === 'string' && Object.values(OtherCountryID).includes(place as OtherCountryID);
+}
+
+export function isMountainPassID(place: TroopPlace): place is MountainPassID {
+    return typeof place === 'string' && Object.values(MountainPassID).includes(place as MountainPassID);
+}
+
+export type TroopPlace = RegionID | OtherCountryID | MountainPassID | null;
+
 export const UNIT_SHORTHAND = [
     ['步', '弓', '骑', '船', '炮', '背'],
     ['步', '拐', '铁', '船', '鹅', '伪', '齐']
 ];
-export const MID_TERM_DECK = [17, 18, 19, 20];
-export const LATE_TERM_DECK = [];
+
 export const INITIAL_RECRUIT_PERMISSION = [
     [true, true, false, true, false, false],
     [true, true, true, false, false, true, false]
@@ -292,7 +331,7 @@ export const enum EventDuration {
 
 
 export interface LetterOfCredence {
-    country: OtherCountries;
+    country: OtherCountryID;
     card: CardID;
 }
 
@@ -347,7 +386,7 @@ export const enum CityID {
     MinXian = 34
 }
 
-export const enum RegionID {
+export enum RegionID {
     R01,
     R02,
     R03,

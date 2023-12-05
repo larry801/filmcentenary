@@ -1,4 +1,4 @@
-import {CardID, CityID, Country, RegionID} from "./general";
+import {CardID, CityID, Country, RegionID, Troop} from "./general";
 
 export const enum CombatType {
     SIEGE,
@@ -7,11 +7,6 @@ export const enum CombatType {
     BREAKOUT
 }
 
-export interface Troop {
-    country: Country,
-    units: number[],
-    region: RegionID,
-}
 
 export interface CountryCombatInfo {
     troop: Troop,

@@ -1498,15 +1498,15 @@ provinces.forEach((e)=>{
 console.log("\n\n\n");
 
 regions.forEach((e) => {
-    let t = `[${rid(e.id)}]:{id:${rid(e.id)},name:"${e.name}",terrain:${e.terrainType},`;
-    t+= `province:${provinceIDsArray[e.provinceID]},`;
-    t += `land:[${e.landAdjacent.map((r)=>rid(r)).join(',')}],`;
-    t += `water:[${e.waterAdjacent.map((r)=>rid(r)).join(',')}],`;
-    t += `pass:[${e.adjacentThroughMountainPass.map((r)=>rid(r)).join(',')}],`;
+    let t = `[${rid(e.id)}]:\n{\nid:${rid(e.id)},\nname:"${e.name}",\nterrain:${e.terrainType},\n`;
+    t+= `province:${provinceIDsArray[e.provinceID]},\n`;
+    t += `land:[${e.landAdjacent.map((r)=>rid(r)).join(',')}],\n`;
+    t += `water:[${e.waterAdjacent.map((r)=>rid(r)).join(',')}],\n`;
+    t += `pass:[${e.adjacentThroughMountainPass.map((r)=>rid(r)).join(',')}],\n`;
     if (e.cityID === 0) {
-        t += 'city:null},';
+        t += 'city:null\n},\n';
     } else {
-        t += `city:${cityIDsArray[e.cityID]}},`
+        t += `city:${cityIDsArray[e.cityID]}\n},`
     }
     console.log(t);
 })

@@ -4,7 +4,7 @@ import {
     BaseCardID,
     CardID, CityID,
     Country,
-    OtherCountries,
+    OtherCountryID,
     PlayerPendingEffect,
     RegionID,
     SJPlayer
@@ -87,8 +87,8 @@ export interface IRecruitArgs {
 }
 
 export interface IMoveTroopArgs {
-    src: RegionID | OtherCountries,
-    dst: RegionID | OtherCountries,
+    src: RegionID | OtherCountryID,
+    dst: RegionID | OtherCountryID,
     units: number[],
     country: Country
 }
