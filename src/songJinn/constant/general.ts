@@ -1,11 +1,55 @@
-export enum ActiveEvents {
-    JingKangZhiBian,
-    XiangHaiShangFaZhan,
+export const enum ActiveEvents {
+    JianYanNanDu = "建炎南渡",
+    XiJunQuDuan = "西军曲端",
+    JinTaiZongJiaBeng = "金太宗驾崩",
+    BaZiJun = "八字军",
+    WuLuKeTui = "无路可退",
+    XiangHaiShangFaZhan = "向海上发展",
+    FuHaiTaoSheng = "浮海逃生",
+    ShenBiGong = "神臂弓",
+    ZhongBuBing = "重步兵",
+    YueShuaiZhiLai = "岳帅之来，此间震怒",
+    WuLin = "吴璘",
+
+    JingKangZhiBian = "靖康之变",
+    ZhuiWangZhuBei = "追亡逐北",
+    JiNanZhiFuLiuYu = "济南知府刘豫",
+    JinBingLaiLe = "金兵来了",
+    ZhangZhaoZhiZheng = "张赵之争",
+    JianLiDaQi = "建立大齐",
+    QinHuiDuXiang = "秦桧独相",
+    BuJianLaiShi = "不见来使",
+    QuDuanZhiSi = "曲端之死",
+    XuZhouYeTie = "徐州冶铁",
+    TianJuanZhengBian = "天眷政变",
+    JieChuBingQuan = "解除兵权"
+}
+
+export const enum MountainPassID {
+    JuYongGuan = "居庸关",
+    TongGuan = "潼关",
+    WuGuan = "武关",
+    DaSanGuan = "大散关",
+    JianMenGuan = "剑门关"
+}
+
+export const enum PlayerPendingEffect {
+    SearchCard,
+    TwoPlan,
 }
 
 export type Level = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
-export enum OtherCountries {
+export const enum VictoryType {
+    ShaoXingHeYi,
+    PowerOfNation,
+    StrategicPlan,
+    WuShanLiMa,
+    ZhiDaoHuangLong,
+    Diplomacy
+}
+
+export const enum OtherCountries {
     XiLiao,
     XiXia,
     TuBo,
@@ -13,13 +57,13 @@ export enum OtherCountries {
     GaoLi
 }
 
-export enum OtherCountryState {
+export const enum OtherCountryState {
     SONG,
     JINN,
     NEUTRAL
 }
 
-export enum SJPlayer {
+export const enum SJPlayer {
     P1 = '0',
     P2 = '1',
 }
@@ -44,18 +88,18 @@ export const INITIAL_RECRUIT_COST = [
     [1, 2, 2, 0, 0, 1, 1]
 ];
 
-export enum Country {
+export const enum Country {
     SONG = "SONG",
     JINN = "JINN"
 }
 
-export enum IEra {
+export const enum IEra {
     E = "E",
     M = "M",
     L = "L"
 }
 
-export enum TerrainType {
+export const enum TerrainType {
     FLATLAND,
     HILLS,
     MOUNTAINS,
@@ -63,7 +107,7 @@ export enum TerrainType {
     RAMPART,
 }
 
-export enum SongBasicCardID {
+export const enum SongBaseCardID {
     S01,
     S02,
     S03,
@@ -116,28 +160,11 @@ export enum SongBasicCardID {
     S50
 }
 
-export const SongEarlyCardID = [
-    SongBasicCardID.S01,
-    SongBasicCardID.S02,
-    SongBasicCardID.S03,
-    SongBasicCardID.S04,
-    SongBasicCardID.S05,
-    SongBasicCardID.S06,
-    SongBasicCardID.S07,
-    SongBasicCardID.S08,
-    SongBasicCardID.S09,
-    SongBasicCardID.S10,
-    SongBasicCardID.S11,
-    SongBasicCardID.S12,
-    SongBasicCardID.S13,
-    SongBasicCardID.S14,
-    SongBasicCardID.S15,
-    SongBasicCardID.S16
-];
 
-export type BasicCardID = SongBasicCardID | JinnBasicCardID;
+export type BaseCardID = SongBaseCardID | JinnBaseCardID;
 
-export enum JinnBasicCardID {
+
+export const enum JinnBaseCardID {
     J01,
     J02,
     J03,
@@ -190,7 +217,7 @@ export enum JinnBasicCardID {
     J50
 }
 
-export enum OptionalJinnCardID {
+export const enum OptionalJinnCardID {
     X01,
     X02,
     X03,
@@ -200,7 +227,7 @@ export enum OptionalJinnCardID {
     X07
 }
 
-export enum OptionalSongCardID {
+export const enum OptionalSongCardID {
     X08,
     X09,
     X10,
@@ -208,9 +235,36 @@ export enum OptionalSongCardID {
     X12
 }
 
-export type CardID = SongBasicCardID | JinnBasicCardID | OptionalSongCardID | OptionalJinnCardID;
+export const JinnEarlyCardID = [
+    JinnBaseCardID.J01
+];
+export const JinnMidCardID = [];
+export const JinnLateCardID = [];
 
-export enum SongGeneral {
+export const SongMidCardID = [];
+export const SongLateCardID = [SongBaseCardID.S50];
+export const SongEarlyCardID = [
+    SongBaseCardID.S01,
+    SongBaseCardID.S02,
+    SongBaseCardID.S03,
+    SongBaseCardID.S04,
+    SongBaseCardID.S05,
+    SongBaseCardID.S06,
+    SongBaseCardID.S07,
+    SongBaseCardID.S08,
+    SongBaseCardID.S09,
+    SongBaseCardID.S10,
+    SongBaseCardID.S11,
+    SongBaseCardID.S12,
+    SongBaseCardID.S13,
+    SongBaseCardID.S14,
+    SongBaseCardID.S15,
+    SongBaseCardID.S16
+];
+
+export type CardID = SongBaseCardID | JinnBaseCardID | OptionalSongCardID | OptionalJinnCardID;
+
+export const enum SongGeneral {
     ZongZe,
     YueFei,
     HanShiZhong,
@@ -219,7 +273,7 @@ export enum SongGeneral {
     WuLin
 }
 
-export enum JinnGeneral {
+export const enum JinnGeneral {
     WoLiBu,
     ZhanHan,
     WuZhu,
@@ -231,7 +285,7 @@ export enum JinnGeneral {
 export type General = SongGeneral | JinnGeneral;
 
 
-export enum EventDuration {
+export const enum EventDuration {
     INSTANT = "INSTANT",
     CONTINUOUS = "CONTINUOUS"
 }
@@ -242,7 +296,7 @@ export interface LetterOfCredence {
     card: CardID;
 }
 
-export enum CityID {
+export const enum CityID {
     DaTong = 0,
 
     DaDing = 1,
@@ -293,7 +347,7 @@ export enum CityID {
     MinXian = 34
 }
 
-export enum RegionID {
+export const enum RegionID {
     R01,
     R02,
     R03,
@@ -373,7 +427,7 @@ export enum RegionID {
     R77
 }
 
-export enum ProvinceID {
+export const enum ProvinceID {
     XIJINGLU,
     BEIJINGLU,
     YANJINGLU,

@@ -10,7 +10,7 @@ import JoinPage from "./components/join";
 import DenseTable from "./components/card-table";
 import AboutPage from "./components/about-page";
 import Lobby from "./components/lobby";
-import {FilmCentenaryGame} from "./Game";
+import Local from "./songJinn/components/local";
 
 const rootElement = document.getElementById("root");
 
@@ -51,6 +51,9 @@ render(
             </Route>
             <Route exact path="/join/:matchID/:player">
                 <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+            </Route>
+            <Route exact path="/local">
+                <Local/>
             </Route>
             <Route exact path="/local2p">
                 <Local2p/>

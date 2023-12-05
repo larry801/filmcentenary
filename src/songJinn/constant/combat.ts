@@ -1,6 +1,6 @@
 import {CardID, CityID, Country, RegionID} from "./general";
 
-export enum CombatType {
+export const enum CombatType {
     SIEGE,
     RESCUE,
     FIELD,
@@ -19,7 +19,7 @@ export interface CountryCombatInfo {
 
 }
 
-export enum BeatGongChoice {
+export const enum BeatGongChoice {
     CONTINUE,
     STALEMATE,
     RETREAT

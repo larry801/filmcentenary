@@ -100,7 +100,10 @@ export const ChoiceDialog = ({
 
     const debouncedHandleConfirm = useDebounce(handleConfirm, 400);
 
-    const handleChange = (e: any) => setChoice(e.target.value);
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setChoice(e.target.value);
+        console.log(e.target.value);
+    };
 
     return show ? <Grid item xs={12}>
         <Button
@@ -126,7 +129,7 @@ export const ChoiceDialog = ({
                         <FormLabel component="legend">{toggleText}</FormLabel>
                         <RadioGroup
                             aria-label={title}
-                            name="choice" value={choice}
+                            name="choices" value={choice}
                             onChange={handleChange}>
                             {choices.map((choice) =>
                                 !choice.hidden ?
@@ -134,7 +137,7 @@ export const ChoiceDialog = ({
                                         disabled={choice.disabled}
                                         key={nanoid()} value={choice.value}
                                         control={<Radio/>}
-                                        label={choice.label}/> : ""
+                                        label={choice.label}/> : <></>
                             )}
                         </RadioGroup>
                     </FormGroup>

@@ -2,31 +2,31 @@ import {Level, ProvinceID} from "./general";
 import {SongJinnGame} from "./setup";
 import {Ctx} from "boardgame.io";
 
-export enum PlanID {
-    J01,
-    J02,
-    J03,
-    J04,
-    J05,
-    J06,
-    J07,
-    J08,
-    J09,
-    J10,
-    J11,
-    J12,
-    J13,
-    J14,
-    J15,
-    J16,
-    J17,
-    J18,
-    J19,
-    J20,
-    J21,
-    J22,
-    J23,
-    J24
+export const enum PlanID {
+    J01 = "J01",
+    J02 = "J02",
+    J03 = "J03",
+    J04 = "J04",
+    J05 = "J05",
+    J06 = "J06",
+    J07 = "J07",
+    J08 = "J08",
+    J09 = "J09",
+    J10 = "J10",
+    J11 = "J11",
+    J12 = "J12",
+    J13 = "J13",
+    J14 = "J14",
+    J15 = "J15",
+    J16 = "J16",
+    J17 = "J17",
+    J18 = "J18",
+    J19 = "J19",
+    J20 = "J20",
+    J21 = "J21",
+    J22 = "J22",
+    J23 = "J23",
+    J24 = "J24"
 }
 
 export interface Plan {
@@ -45,7 +45,7 @@ export const getPlanById: (pid: PlanID) => Plan = (pid: PlanID) => {
 
 const idToPlan = {
     [PlanID.J01]: {
-        "id": 1,
+        "id": PlanID.J01,
         "name": "早期京畿路",
         "desc": "核心/目标：开封   其他城市：无   首次完成/奖励选取奖励：下一个摸牌阶段，通过检索获得1张手牌，然后弃掉1张手牌",
         "level": 2,
@@ -55,7 +55,7 @@ const idToPlan = {
         }
     },
     [PlanID.J02]: {
-        "id": 2,
+        "id": PlanID.J02,
         "name": "早期陕西六路",
         "desc": "核心/目标：长安   其他城市：天兴 肤施   首次完成/奖励选取奖励：提高【军事等级】1级",
         "level": 2,
@@ -65,7 +65,7 @@ const idToPlan = {
         }
     },
     [PlanID.J03]: {
-        "id": 3,
+        "id": PlanID.J03,
         "name": "早期京西两路",
         "desc": "核心/目标：襄阳   其他城市：洛阳宛丘   首次完成/奖励选取奖励：提高【政策】/【殖民】1级",
         "level": 2,
@@ -75,7 +75,7 @@ const idToPlan = {
         }
     },
     [PlanID.J04]: {
-        "id": 4,
+        "id": PlanID.J04,
         "name": "早期京东两路",
         "desc": "核心/目标：宋城   其他城市：历城须城   首次完成/奖励选取奖励：调整1个其他国家【外交】状态1级",
         "level": 2,
@@ -85,7 +85,7 @@ const idToPlan = {
         }
     },
     [PlanID.J05]: {
-        "id": 5,
+        "id": PlanID.J05,
         "name": "早期淮南两路",
         "desc": "核心/目标：江都   其他城市：下蔡   首次完成/奖励选取奖励：提高【内政等级】1级",
         "level": 2,
@@ -95,7 +95,7 @@ const idToPlan = {
         }
     },
     [PlanID.J06]: {
-        "id": 6,
+        "id": PlanID.J06,
         "name": "早期河东路",
         "desc": "核心/目标：阳曲   其他城市：临汾上党   首次完成/奖励选取奖励：消灭总共2耐久度的部队",
         "level": 2,
@@ -105,7 +105,7 @@ const idToPlan = {
         }
     },
     [PlanID.J07]: {
-        "id": 7,
+        "id": PlanID.J07,
         "name": "中期京畿路",
         "desc": "核心/目标：开封   其他城市：无   首次完成/奖励选取奖励：下一个摸牌阶段，通过检索获得1张手牌，然后弃掉1张手牌",
         "level": 3,
@@ -115,7 +115,7 @@ const idToPlan = {
         }
     },
     [PlanID.J08]: {
-        "id": 8,
+        "id": PlanID.J08,
         "name": "中期陕西六路",
         "desc": "核心/目标：长安   其他城市：   首次完成/奖励选取奖励：提高【军事等级】1级",
         "level": 3,
@@ -125,7 +125,7 @@ const idToPlan = {
         }
     },
     [PlanID.J09]: {
-        "id": 9,
+        "id": PlanID.J09,
         "name": "中期淮南两路",
         "desc": "核心/目标：江都   其他城市：下蔡   首次完成/奖励选取奖励：提高【内政等级】1级",
         "level": 3,
@@ -135,7 +135,7 @@ const idToPlan = {
         }
     },
     [PlanID.J10]: {
-        "id": 10,
+        "id": PlanID.J10,
         "name": "中期京西两路",
         "desc": "核心/目标：襄阳   其他城市：洛阳宛丘   首次完成/奖励选取奖励：提高【政策】，【殖民】1级",
         "level": 3,
@@ -145,7 +145,7 @@ const idToPlan = {
         }
     },
     [PlanID.J11]: {
-        "id": 11,
+        "id": PlanID.J11,
         "name": "中期荆湖两路",
         "desc": "核心/目标：江陵   其他城市：长沙安陆   首次完成/奖励选取奖励：提供4点【发展力】",
         "level": 2,
@@ -155,7 +155,7 @@ const idToPlan = {
         }
     },
     [PlanID.J12]: {
-        "id": 12,
+        "id": PlanID.J12,
         "name": "中期川峡四路",
         "desc": "核心/目标：成都   其他城市：南郑 郪县   首次完成/奖励选取奖励：摸1张牌",
         "level": 2,
@@ -165,7 +165,7 @@ const idToPlan = {
         }
     },
     [PlanID.J13]: {
-        "id": 13,
+        "id": PlanID.J13,
         "name": "中期京东两路",
         "desc": "核心/目标：宋城   其他城市：历城须城   首次完成/奖励选取奖励：调整1个其他国家【外交】状态1级",
         "level": 3,
@@ -175,7 +175,7 @@ const idToPlan = {
         }
     },
     [PlanID.J14]: {
-        "id": 14,
+        "id": PlanID.J14,
         "name": "中期江西两路",
         "desc": "核心/目标：江宁   其他城市：南昌   首次完成/奖励选取奖励：提高【政策】/【殖民】1级",
         "level": 2,
@@ -185,7 +185,7 @@ const idToPlan = {
         }
     },
     [PlanID.J15]: {
-        "id": 15,
+        "id": PlanID.J15,
         "name": "中期河北两路",
         "desc": "核心/目标：元城   其他城市：真定 安喜 河间   首次完成/奖励选取奖励：在【元城】放置1个【拐子马】/【背嵬军】",
         "level": 2,
@@ -195,7 +195,7 @@ const idToPlan = {
         }
     },
     [PlanID.J16]: {
-        "id": 16,
+        "id": PlanID.J16,
         "name": "中期川陕战区",
         "desc": "核心/目标：长安   其他城市：天兴 肤施 南郑 郪县   首次完成/奖励选取奖励：将1个在场的【将领】移出游戏",
         "level": 4,
@@ -205,7 +205,7 @@ const idToPlan = {
         }
     },
     [PlanID.J17]: {
-        "id": 17,
+        "id": PlanID.J17,
         "name": "中期荆襄战区",
         "desc": "核心/目标：襄阳开封   其他城市：洛阳宛丘   首次完成/奖励选取奖励：将1个已完成的【作战计划】移出游戏",
         "level": 4,
@@ -215,7 +215,7 @@ const idToPlan = {
         }
     },
     [PlanID.J18]: {
-        "id": 18,
+        "id": PlanID.J18,
         "name": "中期两淮战区",
         "desc": "核心/目标：江都宋城   其他城市：历城须城下蔡   首次完成/奖励选取奖励：将1个其他国家移出游戏",
         "level": 4,
@@ -225,7 +225,7 @@ const idToPlan = {
         }
     },
     [PlanID.J19]: {
-        "id": 19,
+        "id": PlanID.J19,
         "name": "后期京畿路",
         "desc": "核心/目标：开封   其他城市：无   首次完成/奖励选取奖励：无",
         "level": 4,
@@ -235,7 +235,7 @@ const idToPlan = {
         }
     },
     [PlanID.J20]: {
-        "id": 20,
+        "id": PlanID.J20,
         "name": "后期陕西六路",
         "desc": "核心/目标：长安   其他城市：   首次完成/奖励选取奖励：无",
         "level": 4,
@@ -245,7 +245,7 @@ const idToPlan = {
         }
     },
     [PlanID.J21]: {
-        "id": 21,
+        "id": PlanID.J21,
         "name": "后期淮南两路",
         "desc": "核心/目标：江都   其他城市：下蔡   首次完成/奖励选取奖励：下回合可以选取2张【作战计划】",
         "level": 3,
@@ -255,7 +255,7 @@ const idToPlan = {
         }
     },
     [PlanID.J22]: {
-        "id": 22,
+        "id": PlanID.J22,
         "name": "后期京西两路",
         "desc": "核心/目标：襄阳   其他城市：洛阳宛丘   首次完成/奖励选取奖励：无",
         "level": 4,
@@ -265,7 +265,7 @@ const idToPlan = {
         }
     },
     [PlanID.J23]: {
-        "id": 23,
+        "id": PlanID.J23,
         "name": "还我河山",
         "desc": "核心/目标：长安 宋城 元城 开封    其他城市：肤施天兴须城历城河间安喜真定   首次完成/奖励选取奖励：自动获胜；若未完成，当【绍兴和议】时，每座计划内的城市1分",
         "level": 5,
@@ -275,7 +275,7 @@ const idToPlan = {
         }
     },
     [PlanID.J24]: {
-        "id": 24,
+        "id": PlanID.J24,
         "name": "吴山立马",
         "desc": "核心/目标：江宁襄阳江都开封   其他城市：下蔡南昌洛阳宛丘   首次完成/奖励选取奖励：自动获胜；若未完成，当【绍兴和议】时，每座计划内的城市1分",
         "level": 5,
