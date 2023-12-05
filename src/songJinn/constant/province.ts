@@ -1,4 +1,4 @@
-import {CityID, ProvinceID} from "./general";
+import {CityID, ProvinceID, RegionID} from "./general";
 
 export interface Province {
     id: ProvinceID,
@@ -12,7 +12,7 @@ export const getProvinceById: (pid: ProvinceID) => Province = (pid: ProvinceID) 
     return idToProvince[ProvinceID.XIJINGLU];
 }
 
-const idToProvince: Record<ProvinceID, Province> = {
+const idToProvince = {
     [ProvinceID.XIJINGLU]:{id:ProvinceID.XIJINGLU,name:"西京路",capital:CityID.DaTong,adjacent:[RegionID.R02,RegionID.R04,RegionID.R05],other:[]},
     [ProvinceID.BEIJINGLU]:{id:ProvinceID.BEIJINGLU,name:"北京路",capital:CityID.DaDing,adjacent:[RegionID.R01,RegionID.R03,RegionID.R04],other:[]},
     [ProvinceID.YANJINGLU]:{id:ProvinceID.YANJINGLU,name:"燕京路",capital:undefined,adjacent:[RegionID.R02,RegionID.R04],other:[CityID.XiJin]},

@@ -1502,7 +1502,7 @@ regions.forEach((e) => {
     t+= `province:${provinceIDsArray[e.provinceID]},`;
     t += `land:[${e.landAdjacent.map((r)=>rid(r)).join(',')}],`;
     t += `water:[${e.waterAdjacent.map((r)=>rid(r)).join(',')}],`;
-    t += `water:[${e.adjacentThroughMountainPass.map((r)=>rid(r)).join(',')}],`;
+    t += `pass:[${e.adjacentThroughMountainPass.map((r)=>rid(r)).join(',')}],`;
     if (e.cityID === 0) {
         t += 'city:null},';
     } else {

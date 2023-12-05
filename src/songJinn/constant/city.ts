@@ -5,7 +5,7 @@ export interface City {
     name: string,
     province: ProvinceID,
     capital: boolean,
-    colonizeLevel: 0 | 1 | 2 | 3 | 4 | 5,
+    colonizeLevel: number,
     region: RegionID,
 }
 
