@@ -1,5 +1,4 @@
-import {Level} from "./general";
-import {ProvinceID} from "./province";
+import {Level, ProvinceID} from "./general";
 import {SongJinnGame} from "./setup";
 import {Ctx} from "boardgame.io";
 
