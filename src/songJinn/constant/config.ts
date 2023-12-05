@@ -30,9 +30,11 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
         }
         if (G.events.includes(ActiveEvents.YueShuaiZhiLai)) {
             log.push(`|RemoveYueShuaiZhiLai|${G.events.toString()}`);
-            G.events.splice(G.events.indexOf(ActiveEvents.YueShuaiZhiLai), 1);
+            remove(ActiveEvents.YueShuaiZhiLai, G.events);
             log.push(`|after|${G.events.toString()}`);
         }
+        remove(ActiveEvents.LiGang)
+
         G.turn++;
         if (G.events.includes(ActiveEvents.XiJunQuDuan)) {
             //TODO

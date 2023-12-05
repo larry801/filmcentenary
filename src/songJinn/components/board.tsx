@@ -4,7 +4,12 @@ import {SongJinnGame} from "../constant/setup";
 import ErrorBoundary from "../../components/error";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {Country, MountainPassID, OtherCountryID, RegionID, SJPlayer, UNIT_SHORTHAND, DevelopChoice, accumulator} from "../constant/general";
+import {
+    Country, MountainPassID, OtherCountryID, RegionID, SJPlayer, UNIT_SHORTHAND, DevelopChoice, 
+    accumulator,
+    SongUnit,
+    JinnUnit
+} from "../constant/general";
 import {getPlanById} from "../constant/plan";
 import {getStateById, playerById, getCountryById} from "../util/fetch";
 import Button from "@material-ui/core/Button";
@@ -33,6 +38,26 @@ export const SongJinnBoard = ({
     const player = playerById(G, playerID as SJPlayer);
     const contry = getCountryById(playerID);
     const isSpectate = playerID === null;
+
+    const recruit = (choice: string) => {
+        moves.recruit(choice);
+    }
+
+    const recruitDialog = <ChoiceDialog
+        callback={recruit}
+        choices = {country === Country.SONG ? [
+            {label:SongUnit.Bu,value:SongUnit.Bu,disabled:false,hidden:false},
+            {label:SongUnit.Gong,value:SongUnit.Gong,disabled:false,hidden:false},
+            {label:SongUnit.CHuan,value:SongUnit.Chuan,disabled:false,hidden:false},
+        ] : [
+            {label:JinnUnit.Bu,value:JinnUnit.Bu,disabled:false,hidden:false},
+            {label:JinnUnit.Guai,value:JinnUnit.Guai,disabled:false,hidden:false},
+            {label:JinnUnit.Tie,value:JinnUnit.Tie,disabled:false,hidden:false},
+            {label:JinnUnit.Qian,value:JinnUnit.Qian,disabled:false,hidden:false},
+            {label:JinnUnit.Qi,value:JinnUnit.Qi,disabled:false,hidden:!G.events.includes(ActiveEvents.JianLiDaQi)},
+        ]}
+        toggleText={"征募"} title={"请选择要征募的兵种"}
+    />
 
     const chooseFirst = (choice: string) => {
         moves.chooseFirst(choice);

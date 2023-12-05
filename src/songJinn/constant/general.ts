@@ -1,5 +1,6 @@
 export const enum ActiveEvents {
     JianYanNanDu = "建炎南渡",
+    LiGang = "李纲",
     XiJunQuDuan = "西军曲端",
     JinTaiZongJiaBeng = "金太宗驾崩",
     BaZiJun = "八字军",
@@ -339,6 +340,24 @@ export const enum EventDuration {
     CONTINUOUS = "CONTINUOUS"
 }
 
+export enum SongUnit {
+    Bu,
+    Gong,
+    Qi,
+    Pao,
+    Chuan,
+    Bei
+}
+
+export enum JinnUnit {
+    Bu,
+    Guai,
+    Tie,
+    ErChe,
+    Chuan,
+    Qian,
+    Qi
+}
 
 export interface LetterOfCredence {
     country: OtherCountryID;
