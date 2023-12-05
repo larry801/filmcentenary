@@ -83,15 +83,15 @@ export const getArmyDst = (G: SongJinnGame, t: Troop) => {
 export const getPassAdj = (pid: MountainPassID) => {
     switch (pid) {
         case MountainPassID.WuGuan:
-            return [RegionID.R02, RegionID.R07];
+            return [RegionID.R36, RegionID.R40];
         case MountainPassID.DaSanGuan:
-            return [RegionID.R02, RegionID.R07];
+            return [RegionID.R33, RegionID.R52];
         case MountainPassID.TongGuan:
-            return [RegionID.R40, RegionID.R07];
+            return [RegionID.R36, RegionID.R37];
         case MountainPassID.JuYongGuan:
-            return [RegionID.R40, RegionID.R07];
+            return [RegionID.R02, RegionID.R07];
         case MountainPassID.JianMenGuan:
-            return [RegionID.R40, RegionID.R07];
+            return [RegionID.R51, RegionID.R54, RegionID.R55];
 
     }
 }
