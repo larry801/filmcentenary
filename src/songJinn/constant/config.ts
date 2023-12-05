@@ -7,6 +7,7 @@ import {addLateTermCard, addMidTermCard, drawPlanForPlayer} from "../util/card";
 import {getPlanById} from "./plan";
 import {ActiveEvents, SJPlayer} from "./general";
 import {logger} from "../../game/logger";
+import {getLeadingPlayer} from "../util/calc";
 
 export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
@@ -29,14 +30,15 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
         G.turn++;
         if (G.events.includes(ActiveEvents.XiJunQuDuan)) {
             //TODO
+        } else {
+            G.order = [getLeadingPlayer(G)];
+            ctx.events?.setPhase('chooseFirst')
         }
         logger.debug(log.join(''));
     },
     moves: {
         searchFirst: searchFirst,
-
     }
-
 }
 
 export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
@@ -46,9 +48,7 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
     },
     moves: {
         searchFirst: searchFirst,
-
     }
-
 }
 export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {

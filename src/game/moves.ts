@@ -1322,18 +1322,23 @@ export const playCard: LongFormMove = {
                 //流派扩：玛萨拉电影
                 case SchoolCardID.S4002:
                     drawCardForPlayer(G, ctx, arg.playerID);
-                    addVp(G, ctx, arg.playerID, 1);
+                    G.e.stack.push({e:"addVp",a:1});
+                    log.push(`|masala|${JSON.stringify(G.e.stack)}`)
+
                     break;
                 default:
-                    addRes(G, ctx, arg.playerID, 1);
-                    addVp(G, ctx, arg.playerID, 2);
+                    G.e.stack.push({e:"res",a:1});
+                    G.e.stack.push({e:"addVp",a:2});
+                    log.push(`|${JSON.stringify(G.e.stack)}`)
+
                     break;
             }
         }
         if (pub.school === SchoolCardID.S4008 && playCard.industry > 0) {
             //流派扩：高概
-            addRes(G, ctx, arg.playerID, playCard.industry);
-            addVp(G, ctx, arg.playerID, playCard.industry);
+            G.e.stack.push({e:"res",a:playCard.industry});
+            G.e.stack.push({e:"addVp",a:playCard.industry});
+            log.push(`${JSON.stringify(G.e.stack)}`)
         }
         if (pub.school === SchoolCardID.S4005 && playCard.aesthetics > 0) {
             //流派扩：现代主义
@@ -1384,6 +1389,7 @@ export const playCard: LongFormMove = {
             if (eff.e !== "none") {
                 log.push(`|${JSON.stringify(eff)}`);
                 G.e.stack.push(eff)
+                log.push(`${JSON.stringify(G.e.stack)}`)
                 playerEffExec(G, ctx, ctx.currentPlayer);
             } else {
                 log.push(`|emptyPlayEffect`);

@@ -2,7 +2,8 @@ import {Ctx, LongFormMove} from "boardgame.io";
 import {SongJinnGame} from "./constant/setup";
 import {
     BaseCardID,
-    CardID, CityID,
+    CardID,
+    CityID,
     Country,
     OtherCountryID,
     PlayerPendingEffect,
@@ -11,15 +12,36 @@ import {
 } from "./constant/general";
 import {logger} from "../game/logger";
 import {getPlanById, PlanID} from "./constant/plan";
-import {getStateById, playerById} from "./util/fetch";
+import {cardToSearch, getStateById, playerById} from "./util/fetch";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {shuffle} from "../game/util";
-import {drawPlanForPlayer} from "./util/card";
+import {drawPhaseForJinn, drawPhaseForPlayer, drawPlanForPlayer} from "./util/card";
 import {getCardById} from "./constant/cards";
 
-export const takeDamage: LongFormMove = {
-    move: (G, ctx, args) => {
+export interface ITakeDamageArgs {
+    c: Country,
+    idx: number,
+    standby: number[],
+    ready: number[]
+}
 
+export const takeDamage: LongFormMove = {
+    move: (G, ctx, {c, idx, standby, ready}: ITakeDamageArgs) => {
+        const troop = c === Country.JINN ? G.jinn.troops[idx] : G.song.troops[idx];
+        for (let i = 0; i < standby.length; i++) {
+            troop[i] -= standby[i];
+            troop[i] -= ready[i];
+            switch (c) {
+                case Country.JINN:
+                    G.jinn.standby[i] += standby[i];
+                    G.jinn.ready[i] += standby[i];
+                    break;
+                case Country.SONG:
+                    G.song.standby[i] += standby[i];
+                    G.song.ready[i] += standby[i];
+                    break;
+            }
+        }
     }
 }
 
@@ -220,14 +242,15 @@ export const choosePlan: LongFormMove = {
     redact: true
 }
 
-
 export const search: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, args: CardID) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE
         }
+        const cards =  cardToSearch(G, ctx, ctx.playerID);
         switch (ctx.playerID as SJPlayer) {
             case SJPlayer.P1:
+
                 return;
             case SJPlayer.P2:
                 return;
@@ -237,9 +260,14 @@ export const search: LongFormMove = {
 
 export const searchFirst: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, args: boolean) => {
-        if (args) {
-
+        if (!args) {
+            if (ctx.playerID !== undefined) {
+                drawPhaseForPlayer(G, ctx, ctx.playerID);
+            } else {
+                return INVALID_MOVE;
+            }
         }
+        ctx.events?.setStage('search');
     }
 }
 

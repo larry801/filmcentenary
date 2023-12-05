@@ -1,6 +1,6 @@
 import {SongJinnGame} from "../constant/setup";
 import {
-    CardID,
+    CardID, CityID,
     Country, isMountainPassID, isOtherCountryID,
     MountainPasses,
     MountainPassID,
@@ -11,6 +11,56 @@ import {
 } from "../constant/general";
 import {Ctx, PlayerID} from "boardgame.io";
 import {getRegionById} from "../constant/regions";
+
+export const diplomaticVictory = (G: SongJinnGame) => {
+    if (G.jinn.countries.length + G.removedCountries.length === OtherCountries.length) {
+        return Country.JINN;
+    } else {
+        if (G.song.countries.length + G.removedCountries.length === OtherCountries.length) {
+            return Country.SONG;
+        } else {
+            return null;
+        }
+    }
+}
+
+
+export const getJinnTroopByRegion = (G: SongJinnGame, r: RegionID) => {
+    G.jinn.troops.forEach(t => {
+        if (t.p === r) {
+            return t;
+        }
+    })
+    return null;
+}
+
+export const getSongTroopByRegion = (G: SongJinnGame, r: RegionID) => {
+    G.song.troops.forEach(t => {
+        if (t.p === r) {
+            return t;
+        }
+    })
+    return null;
+}
+
+export const getJinnTroopByCity = (G: SongJinnGame, r: CityID) => {
+    G.jinn.troops.forEach(t => {
+        if (t.c === r) {
+            return t;
+        }
+    })
+    return null;
+}
+
+export const getSongTroopByCity = (G: SongJinnGame, r: CityID) => {
+    G.song.troops.forEach(t => {
+        if (t.c === r) {
+            return t;
+        }
+    })
+    return null;
+}
+
 
 export const getArmyDst = (G: SongJinnGame, t: Troop) => {
     const place = t.p;

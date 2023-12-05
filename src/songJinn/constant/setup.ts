@@ -7,7 +7,7 @@ import {
     JinnEarlyCardID,
     JinnGeneral,
     LetterOfCredence,
-    Level,
+    Level, OtherCountries, OtherCountryID,
     PlayerPendingEffect,
     ProvinceID,
     RegionID,
@@ -20,6 +20,7 @@ import {Ctx} from "boardgame.io";
 import {shuffle} from "../../game/util";
 
 export interface SJPubInfo {
+    countries: OtherCountryID[],
     troops: Troop[],
     effect: PlayerPendingEffect[],
     military: Level;
@@ -54,6 +55,7 @@ export const initialJinnPub: SJPubInfo = {
 
         {u: [4, 0, 0, 0, 0, 0, 0], p: RegionID.R18, j: [], c: CityID.YuanCheng, country: Country.JINN},
     ],
+    countries: [OtherCountryID.GaoLi, OtherCountryID.XiXia],
     effect: [],
     plan: [],
     civil: 2,
@@ -99,6 +101,7 @@ export const initialSongPub: SJPubInfo = {
     ],
     effect: [],
     plan: [],
+    countries: [OtherCountryID.XiLiao, OtherCountryID.DaLi],
     civil: 3,
     completedPlan: [],
     emperor: CityID.KaiFeng,
@@ -141,6 +144,7 @@ export const emptyPlayerInfo: () => SJPlayerInfo = () => {
 
 export interface SongJinnGame {
     order: SJPlayer[],
+    removedCountries: OtherCountryID[],
     events: ActiveEvents[],
     round: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
     turn: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
@@ -173,6 +177,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
         PlanID.J06
     ])
     return {
+        removedCountries: [],
         order: [SJPlayer.P1],
         events: [],
         round: 1,
