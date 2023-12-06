@@ -1,11 +1,21 @@
-import {PhaseConfig, TurnConfig, StageConfig} from "boardgame.io";
+import {PhaseConfig, StageConfig, TurnConfig} from "boardgame.io";
 import {SongJinnGame} from "./setup";
 import {TurnOrder} from "boardgame.io/core";
-import {chooseFirst, choosePlan, searchFirst, showPlan, discard, placeUnit, develop, returnToHand} from "../moves";
+import {
+    chooseFirst,
+    choosePlan,
+    develop,
+    discard,
+    placeUnit,
+    returnToHand,
+    search,
+    searchFirst,
+    showPlan
+} from "../moves";
 import {getStateById, playerById} from "../util/fetch";
-import {addLateTermCard, addMidTermCard, drawPlanForPlayer, remove} from "../util/card";
+import {drawPlanForPlayer, remove} from "../util/card";
 import {getPlanById} from "./plan";
-import {ActiveEvents, SJPlayer} from "./general";
+import {ActiveEvents, PlayerPendingEffect, SJPlayer} from "./general";
 import {logger} from "../../game/logger";
 import {getLeadingPlayer} from "../util/calc";
 
@@ -22,23 +32,20 @@ export const DiscardStageConfig: StageConfig<SongJinnGame> = {
 export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
         const log = [`turnEndPhase|onBegin|${G.order}`];
-        if (G.turn === 2) {
-            addMidTermCard(G, ctx);
-        }
-        if (G.turn === 6) {
-            addLateTermCard(G, ctx);
-        }
-        if (G.events.includes(ActiveEvents.YueShuaiZhiLai)) {
-            log.push(`|RemoveYueShuaiZhiLai|${G.events.toString()}`);
-            remove(ActiveEvents.YueShuaiZhiLai, G.events);
-            log.push(`|after|${G.events.toString()}`);
-        }
-        remove(ActiveEvents.LiGang, G.events);
-
-        G.turn++;
         if (G.events.includes(ActiveEvents.XiJunQuDuan)) {
             ctx.events?.setStage('placeUnit');
         } else {
+            if (G.song.effect.includes(PlayerPendingEffect.SearchCard)) {
+                if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
+                    // 目前不可能 因为只有京畿计划有检索
+                    remove(PlayerPendingEffect.SearchCard,G.jinn.effect);
+                    remove(PlayerPendingEffect.SearchCard,G.song.effect);
+                    ctx.events?.setPhase('placeUnit');
+
+                } else {
+
+                }
+            }
             G.order = [getLeadingPlayer(G)];
             ctx.events?.setPhase('chooseFirst');
         }
@@ -56,6 +63,8 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
     },
     moves: {
         searchFirst: searchFirst,
+        search: search,
+        discard: discard
     }
 }
 

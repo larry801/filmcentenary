@@ -7,7 +7,8 @@ import {
     JinnEarlyCardID,
     JinnGeneral,
     LetterOfCredence,
-    Level, OtherCountries, OtherCountryID,
+    Level,
+    OtherCountryID,
     PlayerPendingEffect,
     ProvinceID,
     RegionID,
@@ -79,8 +80,18 @@ export const initialJinnPub: SJPubInfo = {
         ProvinceID.HEBEILIANGLU
     ],
     cities: [
-        CityID.KaiFeng,
-        CityID.MinXian
+        CityID.DaTong,
+        CityID.DaDing,
+        CityID.LiaoYang,
+        CityID.XiJin,
+        CityID.YangQu,
+        CityID.LinFen,
+        CityID.ShangDang,
+        CityID.ZhenDing,
+        CityID.AnXi,
+        CityID.HeJian,
+        CityID.YuanCheng,
+        CityID.LuoYang
     ]
 }
 
@@ -130,7 +141,34 @@ export const initialSongPub: SJPubInfo = {
         ProvinceID.JIANGNANLIANGLU,
         ProvinceID.LIANGZHELU
     ],
-    cities: []
+    cities: [
+        CityID.LiCheng,
+        CityID.SongCheng,
+        CityID.XuCheng,
+        CityID.KaiFeng,
+        CityID.XiangYang,
+        CityID.WanQiu,
+        CityID.JiangDu,
+        CityID.XiaCai,
+        CityID.JiangNing,
+        CityID.DanTu,
+        CityID.WuXian,
+        CityID.QianTang,
+        CityID.MinXian,
+        CityID.NanChang,
+        CityID.ChangSha,
+        CityID.AnLu,
+
+        CityID.ChangAn,
+        CityID.Fushi,
+        CityID.TianXing,
+
+        CityID.JiangLing,
+
+        CityID.ChengDu,
+        CityID.QiXian,
+        CityID.NanZhen
+    ]
 }
 
 export interface SJPlayerInfo {

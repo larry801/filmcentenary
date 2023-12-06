@@ -4,7 +4,7 @@ import {PlayerView, TurnOrder} from "boardgame.io/core";
 import {
     ActionPhaseConfig,
     ChooseFirstPhaseConfig,
-    ChoosePlanPhaseConfig,
+    ChoosePlanPhaseConfig, DrawPhaseConfig,
     NormalTurnConfig,
     ShowPlanPhaseConfig
 } from "./constant/config";
@@ -19,6 +19,7 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
     maxPlayers: 2,
     playerView: PlayerView.STRIP_SECRETS,
     phases: {
+        draw: DrawPhaseConfig,
         chooseFirst: ChooseFirstPhaseConfig,
         choosePlan: ChoosePlanPhaseConfig,
         showPlan: ShowPlanPhaseConfig,

@@ -5,17 +5,18 @@ import {
     CityID,
     Country,
     isMountainPassID,
-    isOtherCountryID,
+    isOtherCountryID, JinnEarlyCardID, JinnLateCardID, JinnMidCardID,
     MountainPassID,
     OtherCountries,
     RegionID,
-    SJPlayer,
+    SJPlayer, SongEarlyCardID, SongLateCardID, SongMidCardID,
     Troop, UNIT_SHORTHAND
 } from "../constant/general";
 import {Ctx, LogEntry, PlayerID} from "boardgame.io";
 import {getRegionById} from "../constant/regions";
 import {Stage} from "boardgame.io/core";
 import {activePlayer} from "../../game/util";
+import {eventCardById} from "../constant/cards";
 
 export const diplomaticVictory = (G: SongJinnGame) => {
     if (G.jinn.countries.length + G.removedCountries.length === OtherCountries.length) {
@@ -74,6 +75,19 @@ export const getSongTroopByCity = (G: SongJinnGame, r: CityID) => {
     return null;
 }
 
+export const getSongDeployCities = (G: SongJinnGame, r: CityID) => {
+    G.song.cities.filter((cid)=>{
+        const troop = getJinnTroopByCity(G, cid);
+        return troop === null;
+    })
+}
+
+export const getJinnDeployCities = (G: SongJinnGame, r: CityID) => {
+    G.jinn.cities.filter((cid)=>{
+        const troop = getSongTroopByCity(G, cid);
+        return troop === null;
+    })
+}
 
 export const getArmyDst = (G: SongJinnGame, t: Troop) => {
     const place = t.p;
@@ -101,7 +115,7 @@ export const getPolicy = (G: SongJinnGame, ctx: Ctx) => {
     }
 }
 
-export function unitsToString (units: number[]) {
+export function unitsToString(units: number[]) {
     if (units.length === 7) {
         return jinnTroopStr(units);
     } else {
@@ -167,16 +181,24 @@ export const getStateById = (G: SongJinnGame, pid: PlayerID) => {
 }
 
 const cardIdSort = (a: CardID, b: CardID) => {
-    return a - b;
+    return eventCardById(a).op - eventCardById(b).op;
 }
 
 export const cardToSearch = (G: SongJinnGame, ctx: Ctx, pid: PlayerID): CardID[] => {
-    switch (pid as SJPlayer) {
-        case SJPlayer.P1:
-            return G.secret.songDeck.sort(cardIdSort);
-        case SJPlayer.P2:
-            return G.secret.jinnDeck.sort(cardIdSort);
+    const isSong = pid as SJPlayer === SJPlayer.P1;
+    let totalDeck : CardID[] = isSong ? SongEarlyCardID : JinnEarlyCardID;
+    if (G.turn > 3){
+        const mid = isSong ? [...SongMidCardID] : [...JinnMidCardID];
+        totalDeck = [...totalDeck,...mid];
     }
+    if (G.turn > 6){
+        const late = isSong ? [...SongLateCardID] : [...JinnLateCardID];
+        totalDeck = [...totalDeck,...late];
+    }
+    const discard = isSong ? G.song.discard : G.jinn.discard;
+    const remove = isSong ? G.song.remove : G.jinn.remove;
+    const hand = isSong ? G.player[SJPlayer.P1].hand : G.player[SJPlayer.P2].hand;
+    return totalDeck.filter(c=>!(hand.includes(c)||discard.includes(c)||remove.includes(c)))
 }
 
 export const getCountryById = (pid: PlayerID) => {

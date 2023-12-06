@@ -17,10 +17,12 @@ import {getStateById, playerById, getCountryById, getStage} from "../util/fetch"
 import Button from "@material-ui/core/Button";
 import {getCityById} from "../constant/city";
 import {getRegionById} from "../constant/regions";
-import {getCardById} from "../constant/cards";
+import {eventCardById} from "../constant/cards";
 import {remainDevelop} from "../util/calc";
 import {PubInfo} from "./pub-info";
 import {Operation} from "./operation";
+import PlayerHand from "../../components/player-hand";
+import {SJPlayerHand} from "./player-hand";
 
 export const SongJinnBoard = ({
                                   G,
@@ -72,12 +74,21 @@ export const SongJinnBoard = ({
                 })}
             </Grid>
             {playerID !== null &&
-                <Operation
-                    G={G} ctx={ctx}
-                    playerID={playerID}
-                    moves={moves}
-                    isActive={isActive}
-                />}
+                <Grid>
+                    <Operation
+                        G={G} ctx={ctx}
+                        playerID={playerID}
+                        moves={moves}
+                        isActive={isActive}
+                    />
+                    <SJPlayerHand
+                        moves={moves}
+                        G={G} ctx={ctx}
+                        isActive={isActive}
+                        pid={playerID}
+                    />
+                </Grid>
+            }
         </Grid>
     </ErrorBoundary>
 }

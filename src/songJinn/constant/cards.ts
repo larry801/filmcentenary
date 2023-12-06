@@ -33,7 +33,7 @@ export interface Cards {
     unlock: string | null
 }
 
-export const getCardById: (cid: BaseCardID) => Cards = (cid: BaseCardID) => {
+export const eventCardById: (cid: BaseCardID) => Cards = (cid: BaseCardID) => {
     return idToCard[cid];
 }
 

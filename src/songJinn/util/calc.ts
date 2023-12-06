@@ -14,7 +14,7 @@ import {getRegionById} from "../constant/regions";
 import {getCityById} from "../constant/city";
 import {Terrain} from "@material-ui/icons";
 import {getStateById} from "./fetch";
-import {getCardById} from "../constant/cards";
+import {eventCardById} from "../constant/cards";
 import {getPlanById} from "../constant/plan";
 
 export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
@@ -22,7 +22,7 @@ export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
 }
 
 export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
-    const d = getStateById(G, playerId).develop.map(c => getCardById(c).op);
+    const d = getStateById(G, playerId).develop.map(c => eventCardById(c).op);
     if (d.length > 0) {
         return d.reduce(accumulator);
     } else {

@@ -1,18 +1,16 @@
 import React from "react";
-import { BoardProps } from "boardgame.io/react";
 import { Ctx, PlayerID } from "boardgame.io"
 import { SongJinnGame } from "../constant/setup";
-import ErrorBoundary from "../../components/error";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import { Country, MountainPassID, OtherCountryID, RegionID, SJPlayer, DevelopChoice, accumulator, OtherCountries, CardID, SongBaseCardID } from "../constant/general";
-import { getPlanById } from "../constant/plan";
+import { Country, OtherCountries, CardID } from "../constant/general";
+
 import { getStateById, playerById, getCountryById } from "../util/fetch";
 import Button from "@material-ui/core/Button";
 import { getCityById } from "../constant/city";
 import { getRegionById } from "../constant/regions";
 import Typography from "@material-ui/core/Typography";
-import { getCardById } from "../constant/cards";
+import { eventCardById } from "../constant/cards";
 import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
@@ -20,15 +18,14 @@ import AccordionDetails from '@material-ui/core/AccordionDetails';
 export interface IPlayerHandProps {
     G: SongJinnGame,
     ctx: Ctx,
-    hand: CardID[],
     isActive: boolean,
     pid: PlayerID,
-    moves: any,
+    moves: Record<string, (...args: any[]) => void>;
 }
 
-export const playerHand = ({ G, ctx, pid, isActive, moves }: IPlayerHandProps) => {
+export const SJPlayerHand = ({ G, ctx, pid, isActive, moves }: IPlayerHandProps) => {
 
-    const [expanded, setExpaned] = React.useState(-1);
+    const [expanded, setExpanded] = React.useState(-1);
     const [dipCard, setDipCard] = React.useState([]);
     const [dipChosen, setDipChosen] = React.useState(false);
 
@@ -55,8 +52,8 @@ export const playerHand = ({ G, ctx, pid, isActive, moves }: IPlayerHandProps) =
             toggleText={"外交"}
             initial={true}
         />
-        {hand.map((cid, idx) => <Accordion expanded={expanded === idx} onChange={() => setExpaned(idx)} key={`playerHand-${cid}`}>
-            <AccordionSummary key={`summary-${cid}`}>{getCardById(cid).name}|{getCardById(cid).op}</AccordionSummary>
+        {hand.map((cid, idx) => <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)} key={`playerHand-${cid}`}>
+            <AccordionSummary key={`summary-${cid}`}>{eventCardById(cid).name}|{eventCardById(cid).op}</AccordionSummary>
             <AccordionDetails>
                 <Button
                     disabled={!(isActive && inPhase)}

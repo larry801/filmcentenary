@@ -5,19 +5,28 @@ import {
     CardID,
     CityID,
     Country,
+    DevelopChoice, General,
     OtherCountryID,
     PlayerPendingEffect,
     RegionID,
-    SJPlayer,
-    DevelopChoice
+    SJPlayer, TroopPlace
 } from "./constant/general";
 import {logger} from "../game/logger";
 import {getPlanById, PlanID} from "./constant/plan";
-import {cardToSearch, getCountryById, getJinnTroopByRegion, getStateById, playerById} from "./util/fetch";
+import {
+    cardToSearch,
+    getCountryById, getJinnTroopByCity,
+    getJinnTroopByRegion,
+    getSongTroopByCity, getSongTroopByRegion,
+    getStateById,
+    playerById
+} from "./util/fetch";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {shuffle} from "../game/util";
-import {getCardById} from "./constant/cards";
+import {eventCardById} from "./constant/cards";
 import {drawPhaseForPlayer, drawPlanForPlayer, remove} from "./util/card";
+import {endTurnCheck} from "./util/check";
+import {getCityById} from "./constant/city";
 
 export interface ITakeDamageArgs {
     c: Country,
@@ -47,7 +56,7 @@ export const takeDamage: LongFormMove = {
 }
 
 export interface IPlaceUnitsArgs {
-    dst: RegionID | CityID,
+    dst: number,
     units: number[],
     country: Country
 }
@@ -65,8 +74,60 @@ export const placeUnit: LongFormMove = {
                     G.jinn.standby[i] -= units[i];
                 }
         }
+        endTurnCheck(G, ctx);
     }
 }
+
+export interface IDeployUnitArgs {
+    city: CityID;
+    units: number[]
+}
+
+export const reinforce: LongFormMove = {
+    move: (G, ctx, {city, units}: IDeployUnitArgs) => {
+        const country = ctx.playerID === SJPlayer.P1 ? Country.SONG : Country.JINN;
+        let target = null;
+        switch (country) {
+            case Country.SONG:
+                for (let i = 0; i < units.length; i++) {
+                    G.song.ready[i] -= units[i];
+                }
+                target = getSongTroopByCity(G, city);
+                if (target === null) {
+                    const region = getCityById(city).region;
+                    const place = getJinnTroopByRegion(G, region) === null ?
+                        region : null;
+                    G.song.troops.push({
+                        p: place,
+                        c: city,
+                        u: units,
+                        j: [],
+                        country: country
+                    })
+                }
+                break;
+            case Country.JINN:
+                for (let i = 0; i < units.length; i++) {
+                    G.jinn.ready[i] -= units[i];
+                }
+                target = getJinnTroopByCity(G, city);
+                if (target === null) {
+                    const region = getCityById(city).region;
+                    const place = getSongTroopByRegion(G, region) === null ?
+                        region : null;
+                    G.song.troops.push({
+                        p: place,
+                        c: city,
+                        u: units,
+                        j: [],
+                        country: country
+                    })
+                }
+                break;
+        }
+    }
+}
+
 
 export const discard: LongFormMove = {
     move: (G, ctx, c: BaseCardID) => {
@@ -236,7 +297,7 @@ export const eventCard: LongFormMove = {
             return INVALID_MOVE;
         }
         const pub = getStateById(G, ctx.playerID);
-        const card = getCardById(args);
+        const card = eventCardById(args);
         if (card.remove) {
             pub.remove.push(args);
         } else {
