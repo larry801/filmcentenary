@@ -1,9 +1,9 @@
 import {PhaseConfig, TurnConfig, StageConfig} from "boardgame.io";
 import {SongJinnGame} from "./setup";
 import {TurnOrder} from "boardgame.io/core";
-import {chooseFirst, choosePlan, searchFirst, showPlan, discard} from "../moves";
+import {chooseFirst, choosePlan, searchFirst, showPlan, discard, placeUnit, develop, returnToHand} from "../moves";
 import {getStateById, playerById} from "../util/fetch";
-import {addLateTermCard, addMidTermCard, drawPlanForPlayer} from "../util/card";
+import {addLateTermCard, addMidTermCard, drawPlanForPlayer, remove} from "../util/card";
 import {getPlanById} from "./plan";
 import {ActiveEvents, SJPlayer} from "./general";
 import {logger} from "../../game/logger";
@@ -14,8 +14,8 @@ export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
 }
 
 export const DiscardStageConfig: StageConfig<SongJinnGame> = {
-    moves:{
-        discard:discard
+    moves: {
+        discard: discard
     }
 }
 
@@ -33,19 +33,19 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
             remove(ActiveEvents.YueShuaiZhiLai, G.events);
             log.push(`|after|${G.events.toString()}`);
         }
-        remove(ActiveEvents.LiGang)
+        remove(ActiveEvents.LiGang, G.events);
 
         G.turn++;
         if (G.events.includes(ActiveEvents.XiJunQuDuan)) {
-            //TODO
+            ctx.events?.setStage('placeUnit');
         } else {
             G.order = [getLeadingPlayer(G)];
-            ctx.events?.setPhase('chooseFirst')
+            ctx.events?.setPhase('chooseFirst');
         }
         logger.debug(log.join(''));
     },
     moves: {
-        searchFirst: searchFirst,
+        placeUnit: placeUnit
     }
 }
 
@@ -61,7 +61,7 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
 
 export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
     moves: {
-        develop:develop,
+        develop: develop,
         returnToHand: returnToHand
     }
 }

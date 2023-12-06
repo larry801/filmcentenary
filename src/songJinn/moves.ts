@@ -13,11 +13,11 @@ import {
 } from "./constant/general";
 import {logger} from "../game/logger";
 import {getPlanById, PlanID} from "./constant/plan";
-import {cardToSearch, getStateById, playerById} from "./util/fetch";
+import {cardToSearch, getCountryById, getJinnTroopByRegion, getStateById, playerById} from "./util/fetch";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {shuffle} from "../game/util";
-import {drawPhaseForJinn, drawPhaseForPlayer, drawPlanForPlayer, remove} from "./util/card";
 import {getCardById} from "./constant/cards";
+import {drawPhaseForPlayer, drawPlanForPlayer, remove} from "./util/card";
 
 export interface ITakeDamageArgs {
     c: Country,
@@ -77,7 +77,7 @@ export const discard: LongFormMove = {
         if (player.hand.includes(c)) {
             remove(c, player.hand);
             const pub = getStateById(G, ctx.playerID);
-            pub.discard.push(c);          
+            pub.discard.push(c);
         } else {
             return INVALID_MOVE;
         }
@@ -145,7 +145,7 @@ export const emptyRound: LongFormMove = {
 
 
 export const emperor: LongFormMove = {
-    move: (G, ctx, city:CityID) => {
+    move: (G, ctx, city: CityID) => {
         if (ctx.playerID !== SJPlayer.P1 || G.song.emperor !== null) {
             return INVALID_MOVE;
         }
@@ -157,7 +157,7 @@ export const emperor: LongFormMove = {
 }
 
 export const develop: LongFormMove = {
-    move: (G, ctx, choice:DevelopChoice) => {
+    move: (G, ctx, choice: DevelopChoice) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
@@ -170,17 +170,18 @@ export const develop: LongFormMove = {
                 } else {
                     switch (choice) {
                         case DevelopChoice.MILITARY:
-                            G.song.military ++;
+                            G.song.military++;
                             break;
                         case DevelopChoice.CIVIL:
-                            G.song.civil ++;
+                            G.song.civil++;
                             break;
                         case DevelopChoice.POLICY:
-                            G.policy ++;
+                            G.policy++;
+                            break;
                         default:
                             break;
                     }
-                }  
+                }
                 break;
             case Country.JINN:
                 if (choice === DevelopChoice.POLICY || choice === DevelopChoice.EMPEROR) {
@@ -188,17 +189,18 @@ export const develop: LongFormMove = {
                 } else {
                     switch (choice) {
                         case DevelopChoice.MILITARY:
-                            G.song.military ++;
+                            G.song.military++;
                             break;
                         case DevelopChoice.CIVIL:
-                            G.song.civil ++;
+                            G.song.civil++;
                             break;
                         case DevelopChoice.COLONY:
-                            G.colony ++;
+                            G.colony++;
+                            break;
                         default:
                             break;
                     }
-                }  
+                }
                 break;
             default:
                 break;
@@ -213,7 +215,7 @@ export const returnToHand: LongFormMove = {
         }
         const player = playerById(G, ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
-        if(pub.develop.includes(args)){
+        if (pub.develop.includes(args)) {
             remove(args, pub.develop);
             player.hand.push(args)
         } else {
@@ -352,7 +354,7 @@ export const search: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE
         }
-        const cards =  cardToSearch(G, ctx, ctx.playerID);
+        const cards = cardToSearch(G, ctx, ctx.playerID);
         switch (ctx.playerID as SJPlayer) {
             case SJPlayer.P1:
 
@@ -395,4 +397,56 @@ export const showPlan: LongFormMove = {
 }
 
 export const playAsOp = {};
-export const adjustStatus = {};
+
+// Adjust status moves for semi auto only
+
+export const down: LongFormMove = {
+    move: (G, ctx, choice: DevelopChoice) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const country = getCountryById(ctx.playerID);
+        switch (country) {
+            case Country.SONG:
+                if (choice === DevelopChoice.COLONY) {
+                    return INVALID_MOVE;
+                } else {
+                    switch (choice) {
+                        case DevelopChoice.MILITARY:
+                            G.song.military--;
+                            break;
+                        case DevelopChoice.CIVIL:
+                            G.song.civil--;
+                            break;
+                        case DevelopChoice.POLICY:
+                            G.policy--;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                break;
+            case Country.JINN:
+                if (choice === DevelopChoice.POLICY || choice === DevelopChoice.EMPEROR) {
+                    return INVALID_MOVE;
+                } else {
+                    switch (choice) {
+                        case DevelopChoice.MILITARY:
+                            G.song.military--;
+                            break;
+                        case DevelopChoice.CIVIL:
+                            G.song.civil--;
+                            break;
+                        case DevelopChoice.COLONY:
+                            G.colony--;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+    }
+}

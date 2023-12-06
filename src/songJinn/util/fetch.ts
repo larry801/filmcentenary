@@ -1,16 +1,21 @@
 import {SongJinnGame} from "../constant/setup";
 import {
-    CardID, CityID,
-    Country, isMountainPassID, isOtherCountryID,
-    MountainPasses,
+    ActiveEvents,
+    CardID,
+    CityID,
+    Country,
+    isMountainPassID,
+    isOtherCountryID,
     MountainPassID,
     OtherCountries,
     RegionID,
     SJPlayer,
-    Troop
+    Troop, UNIT_SHORTHAND
 } from "../constant/general";
-import {Ctx, PlayerID} from "boardgame.io";
+import {Ctx, LogEntry, PlayerID} from "boardgame.io";
 import {getRegionById} from "../constant/regions";
+import {Stage} from "boardgame.io/core";
+import {activePlayer} from "../../game/util";
 
 export const diplomaticVictory = (G: SongJinnGame) => {
     if (G.jinn.countries.length + G.removedCountries.length === OtherCountries.length) {
@@ -21,6 +26,14 @@ export const diplomaticVictory = (G: SongJinnGame) => {
         } else {
             return null;
         }
+    }
+}
+
+export const getStage = (ctx: Ctx) => {
+    if (ctx.activePlayers === null) {
+        return Stage.NULL;
+    } else {
+        return ctx.activePlayers[activePlayer(ctx)]
     }
 }
 
@@ -80,6 +93,42 @@ export const getArmyDst = (G: SongJinnGame, t: Troop) => {
     }
 }
 
+export const getPolicy = (G: SongJinnGame, ctx: Ctx) => {
+    if (G.events.includes(ActiveEvents.LiGang)) {
+        return G.policy > 1 ? 3 : G.policy + 2;
+    } else {
+        return G.policy;
+    }
+}
+
+export function unitsToString (units: number[]) {
+    if (units.length === 7) {
+        return jinnTroopStr(units);
+    } else {
+        return songTroopStr(units);
+    }
+}
+
+export function jinnTroopStr(units: number[]) {
+    let result = "";
+    units.forEach((item, index) => {
+        if (item > 0) {
+            result = result.concat(item.toString(), UNIT_SHORTHAND[1][index]);
+        }
+    })
+    return result;
+}
+
+export function songTroopStr(units: number[]) {
+    let result = "";
+    units.forEach((item, index) => {
+        if (item > 0) {
+            result = result.concat(item.toString(), UNIT_SHORTHAND[0][index]);
+        }
+    })
+    return result;
+}
+
 export const getPassAdj = (pid: MountainPassID) => {
     switch (pid) {
         case MountainPassID.WuGuan:
@@ -137,4 +186,8 @@ export const getCountryById = (pid: PlayerID) => {
         case SJPlayer.P2:
             return Country.JINN;
     }
+}
+
+export const getLogText = (l: LogEntry) => {
+
 }

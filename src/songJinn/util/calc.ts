@@ -1,21 +1,37 @@
 import {SongJinnGame} from "../constant/setup";
-import {ActiveEvents, Country, isMountainPassID, isRegionID, SJPlayer, TerrainType, Troop, accumulator} from "../constant/general";
-import {Ctx} from "boardgame.io";
+import {
+    ActiveEvents,
+    Country,
+    isMountainPassID,
+    isRegionID,
+    SJPlayer,
+    TerrainType,
+    Troop,
+    accumulator
+} from "../constant/general";
+import {Ctx, PlayerID} from "boardgame.io";
 import {getRegionById} from "../constant/regions";
 import {getCityById} from "../constant/city";
 import {Terrain} from "@material-ui/icons";
-import {getStateById} from "../util/fetch";
+import {getStateById} from "./fetch";
+import {getCardById} from "../constant/cards";
+import {getPlanById} from "../constant/plan";
 
 export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
     return G.jinn.civil > G.song.civil ? SJPlayer.P2 : SJPlayer.P1;
 }
 
-export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId:PlayerID) =>{
-    return getStateById(playerId).develop.map(c=>getCardById(c).op).reduce(accumulator);
+export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
+    const d = getStateById(G, playerId).develop.map(c => getCardById(c).op);
+    if (d.length > 0) {
+        return d.reduce(accumulator);
+    } else {
+        return 0;
+    }
 }
 
-export const remainDevelop = (G: SongJinnGame, ctx: Ctx, playerId:PlayerID) =>{
-    return totalDevelop(G, ctx, playerId) - getStateById(G, playerId);
+export const remainDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
+    return totalDevelop(G, ctx, playerId) - getStateById(G, playerId).usedDevelop;
 }
 
 export function troopIsArmy(G: SongJinnGame, ctx: Ctx, troop: Troop) {
@@ -70,6 +86,16 @@ export function troopEndurance(G: SongJinnGame, ctx: Ctx, troop: Troop): number 
     return endurance;
 }
 
+export const getSongScore = (G: SongJinnGame): number => {
+    let score = getSongPower(G);
+    G.song.completedPlan.forEach((pid) => {
+        score += getPlanById(pid).vp;
+    })
+    score += G.song.military;
+    score += G.song.civil;
+    return score
+}
+
 export const getSongPower = (G: SongJinnGame): number => {
     let power = G.song.provinces.length;
     if (G.song.emperor !== null) {
@@ -82,6 +108,16 @@ export const getSongPower = (G: SongJinnGame): number => {
         power++;
     }
     return power;
+}
+
+export const getJinnScore = (G: SongJinnGame): number => {
+    let score = getJinnPower(G);
+    G.jinn.completedPlan.forEach((pid) => {
+        score += getPlanById(pid).vp;
+    })
+    score += G.jinn.military;
+    score += G.jinn.civil;
+    return score;
 }
 
 export const getJinnPower = (G: SongJinnGame): number => {
