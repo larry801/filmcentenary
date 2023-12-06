@@ -99,7 +99,7 @@ export enum DevelopChoice {
     EMPEROR = "拥立"
 }
 
-export const accumulator = (accumulator, currentValue) => accumulator + currentValue;
+export const accumulator = (accumulator: number, currentValue :number) => accumulator + currentValue;
 
 export const MountainPasses = [
     MountainPassID.DaSanGuan,
@@ -312,7 +312,7 @@ export const SongEarlyCardID = [
     SongBaseCardID.S16
 ];
 
-export type CardID = SongBaseCardID | JinnBaseCardID | OptionalSongCardID | OptionalJinnCardID;
+export type CardID = SongBaseCardID | JinnBaseCardID;
 
 export const enum SongGeneral {
     ZongZe,
@@ -350,13 +350,13 @@ export enum SongUnit {
 }
 
 export enum JinnUnit {
-    Bu,
-    Guai,
-    Tie,
-    ErChe,
-    Chuan,
-    Qian,
-    Qi
+    Bu = 0,
+    Guai = 1,
+    Tie = 2,
+    ErChe = 3,
+    Chuan = 4,
+    Qian = 5,
+    Qi = 6
 }
 
 export interface LetterOfCredence {

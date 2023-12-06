@@ -8,7 +8,9 @@ import {
     Country, MountainPassID, OtherCountryID, RegionID, SJPlayer, UNIT_SHORTHAND, DevelopChoice, 
     accumulator,
     SongUnit,
-    JinnUnit
+    JinnUnit,
+    ActiveEvents,
+    UNIT_FULL_NAME
 } from "../constant/general";
 import {getPlanById} from "../constant/plan";
 import {getStateById, playerById, getCountryById} from "../util/fetch";
@@ -16,7 +18,9 @@ import Button from "@material-ui/core/Button";
 import {getCityById} from "../constant/city";
 import {getRegionById} from "../constant/regions";
 import Typography from "@material-ui/core/Typography";
-import {getCardById} from "./constant/cards";
+import {getCardById} from "../constant/cards";
+import { playerHand } from "./playerHand";
+import { remainDevelop } from "songJinn/util/calc";
 
 export const SongJinnBoard = ({
                                   G,
@@ -36,7 +40,7 @@ export const SongJinnBoard = ({
 
     const pub = getStateById(G, playerID as SJPlayer);
     const player = playerById(G, playerID as SJPlayer);
-    const contry = getCountryById(playerID);
+    const country = getCountryById(playerID as SJPlayer);
     const isSpectate = playerID === null;
 
     const recruit = (choice: string) => {
@@ -46,17 +50,19 @@ export const SongJinnBoard = ({
     const recruitDialog = <ChoiceDialog
         callback={recruit}
         choices = {country === Country.SONG ? [
-            {label:SongUnit.Bu,value:SongUnit.Bu,disabled:false,hidden:false},
-            {label:SongUnit.Gong,value:SongUnit.Gong,disabled:false,hidden:false},
-            {label:SongUnit.CHuan,value:SongUnit.Chuan,disabled:false,hidden:false},
+            {label:UNIT_FULL_NAME[0][0],value:SongUnit.Bu.toString(),disabled:false,hidden:false},
+            {label:UNIT_FULL_NAME[0][1],value:SongUnit.Gong.toString(),disabled:false,hidden:false},
+            {label:UNIT_FULL_NAME[0][2],value:SongUnit.Chuan.toString(),disabled:false,hidden:false},
         ] : [
-            {label:JinnUnit.Bu,value:JinnUnit.Bu,disabled:false,hidden:false},
-            {label:JinnUnit.Guai,value:JinnUnit.Guai,disabled:false,hidden:false},
-            {label:JinnUnit.Tie,value:JinnUnit.Tie,disabled:false,hidden:false},
-            {label:JinnUnit.Qian,value:JinnUnit.Qian,disabled:false,hidden:false},
-            {label:JinnUnit.Qi,value:JinnUnit.Qi,disabled:false,hidden:!G.events.includes(ActiveEvents.JianLiDaQi)},
+            {label:UNIT_FULL_NAME[0][0],value:JinnUnit.Bu.toString(),disabled:false,hidden:false},
+            {label:UNIT_FULL_NAME[0][1],value:JinnUnit.Guai.toString(),disabled:false,hidden:false},
+            {label:UNIT_FULL_NAME[0][2],value:JinnUnit.Tie.toString(),disabled:false,hidden:false},
+            {label:UNIT_FULL_NAME[0][5],value:JinnUnit.Qian.toString(),disabled:false,hidden:false},
+            {label:UNIT_FULL_NAME[0][6],value:JinnUnit.Qi.toString(),disabled:false,hidden: !G.events.includes(ActiveEvents.JianLiDaQi)},
         ]}
+        defaultChoice={""}
         toggleText={"征募"} title={"请选择要征募的兵种"}
+        show={true} initial={true}
     />
 
     const chooseFirst = (choice: string) => {
@@ -77,7 +83,7 @@ export const SongJinnBoard = ({
     const develop = (choice: string) => {
         moves.develop(choice);
     }
-    const remainDevelop = remainDevelop(G, ctx, ctx.playerIDf);
+    const remainDevelopPoint: number = remainDevelop(G, ctx, ctx.playerID);
 
     return <ErrorBoundary>
         <Grid container>
@@ -107,6 +113,7 @@ export const SongJinnBoard = ({
             </Grid>
             <ChoiceDialog
                 callback={returnToHand}
+                defaultChoice={DevelopChoice.CIVIL}
                 choices={[
                     {
                         label: DevelopChoice.COLONY,value: DevelopChoice.COLONY,
@@ -115,17 +122,17 @@ export const SongJinnBoard = ({
                     },
                     {
                         label: DevelopChoice.MILITARY,value: DevelopChoice.MILITARY,
-                        disabled: pub.military === 7 || pub.military + 1 > remainDevelop,
+                        disabled: pub.military === 7 || pub.military + 1 > remainDevelopPoint,
                         hidden:false
                     },
                     {
                         label: DevelopChoice.POLICY,value: DevelopChoice.POLICY,
-                        disabled: remainDevelop < 3,
+                        disabled: remainDevelopPoint < 3,
                         hidden:country !== Country.SONG
                     },
                     {
                         label: DevelopChoice.CIVIL,value: DevelopChoice.CIVIL,
-                        disabled: pub.civil === 7 || pub.civil + 1  > remainDevelop,
+                        disabled: pub.civil === 7 || pub.civil + 1  > remainDevelopPoint,
                         hidden: false
                     },
                     {
@@ -135,7 +142,7 @@ export const SongJinnBoard = ({
                     },
 
                 ]}
-                show={isActive && ctx.stage === 'returnToHand'}
+                show={isActive}
                 title={"请选择需要返回手牌的发展牌"} toggleText={"发展牌回手"} initial={true}
             />
             <ChoiceDialog
@@ -143,11 +150,12 @@ export const SongJinnBoard = ({
                 choices={pub.develop.map(bcid=>{
                     return {
                     label: getCardById(bcid).name,
-                    value: bcid,
+                    value: bcid.toString(),
                     disabled: false,
                     hidden: false
                 }})}
-                show={isActive && ctx.stage === 'returnToHand'}
+                defaultChoice={""}
+                show={isActive}
                 title={"请选择需要返回手牌的发展牌"} toggleText={"发展牌回手"} initial={true}
             />
             <ChoiceDialog
@@ -155,11 +163,11 @@ export const SongJinnBoard = ({
                 choices={player.hand.map(bcid=>{
                     return {
                     label: getCardById(bcid).name,
-                    value: bcid,
+                    value: bcid.toString(),
                     disabled: false,
                     hidden: false
                 }})}
-                show={isActive && ctx.stage === 'discard'}
+                show={isActive} defaultChoice=""
                 title={""} toggleText={""} initial={true}
             />
             <ChoiceDialog
