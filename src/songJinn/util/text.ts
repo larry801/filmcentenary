@@ -20,6 +20,9 @@ export const getLogText = (l: LogEntry): string => {
             const arg = l.action.payload.args;
             const name = l.action.payload.type;
             switch (name) {
+                case 'chooseFirst':
+                    log += `选择让${sjPlayerName(arg)}先行动`;
+                    break;
                 case 'showPlan':
                     log += `选择了${arg.map((p:PlanID)=>getPlanById(p).name)}`;
                     break;

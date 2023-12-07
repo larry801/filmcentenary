@@ -145,12 +145,12 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
         chooseFirst: chooseFirst
     },
     next: 'choosePlan',
-    // start: true,
+    start: true,
     turn: NormalTurnConfig
 }
 
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
-    start: true,
+    // start: true,
     moves: {
 
         op: op,
@@ -161,12 +161,14 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         tieJun: tieJun,
         rollDices: rollDices,
         //
+        placeUnit: placeUnit,
+
         endRound: endRound
     },
 }
 
 export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
-    start: true,
+    // start: true,
     onBegin: (G, ctx) => {
         G.plans = G.plans.concat(G.song.plan);
         if (G.song.completedPlan.length > 0 && !G.events.includes(ActiveEvents.YanJingYiNan)) {

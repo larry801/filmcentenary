@@ -424,13 +424,15 @@ export const choosePlan: LongFormMove = {
         }
         player.plans.forEach((remainPid) => {
             if (pid === remainPid) {
-                player.chosenPlans.push(pid);
+                log.push(`|add${remainPid}`);
+                player.chosenPlans.push(remainPid);
             } else {
-                G.secret.planDeck.push(pid);
+                log.push(`|return${remainPid}`);
+                G.secret.planDeck.push(remainPid);
             }
         });
         player.plans = [];
-        shuffle(ctx, G.secret.planDeck);
+        G.secret.planDeck = shuffle(ctx, G.secret.planDeck);
         log.push(`|${G.secret.planDeck.toString()}`)
         if (G.order.length === 1) {
             log.push('|only1player can choose plan|endPhase');
@@ -585,7 +587,7 @@ export const chooseTop: LongFormMove = {
         }
         remove(p, pub.completedPlan);
         pub.completedPlan.push(p);
-        if (ctr === "SONG" && G.events.includes(ActiveEvents.YanJingYiNan)) {
+        if (ctr === Country.SONG && G.events.includes(ActiveEvents.YanJingYiNan)) {
 
         }
     }
@@ -610,7 +612,7 @@ export const takePlan: LongFormMove = {
         const ctr = getCountryById(ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
-        if (ctr === "SONG") {
+        if (ctr === Country.SONG) {
             G.song.completedPlan = G.song.completedPlan.concat(arg);
         } else {
             G.jinn.completedPlan = G.jinn.completedPlan.concat(arg);

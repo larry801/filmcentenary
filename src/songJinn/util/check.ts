@@ -24,7 +24,7 @@ export const canChoosePlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: Pl
 export const checkPlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
     const ctr = getCountryById(pid);
     const planObj = getPlanById(plan);
-    if (ctr === "SONG") {
+    if (ctr === Country.SONG) {
 
     } else {
 

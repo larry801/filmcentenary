@@ -11,10 +11,11 @@ import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import {placeUnit} from "../moves";
 import {placeToStr} from "../util/text";
-import {ProvinceID, RegionID} from "../constant/general";
+import {Country, ProvinceID, RegionID, UNIT_SHORTHAND} from "../constant/general";
 import ChoiceDialog from "../../components/modals";
 import {getProvinceById} from "../constant/province";
 import {getRegionById} from "../constant/regions";
+import CheckBoxDialog from "./choice";
 
 export interface IPlayerHandProps {
     G: SongJinnGame,
@@ -24,19 +25,33 @@ export interface IPlayerHandProps {
     moves: Record<string, (...args: any[]) => void>;
 }
 
+enum TroopStep {
+    START,
+    PROVINCE,
+    REGION,
+    UNIT
+}
+
 const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
     const [expanded, setExpanded] = React.useState(0);
-    const [dipCard, setDipCard] = React.useState([]);
-    const [chooseProvince, setChooseProvince] = React.useState(false);
     const [prov, setProv] = React.useState(ProvinceID.JINGJILU);
-    const [chooseUnit, setChooseUnit] = React.useState(false);
+    const [reg, setReg] = React.useState(RegionID.R01);
+    const [newStep, setNewStep] = React.useState(TroopStep.START);
+    const [regions, setRegions] = React.useState([RegionID.R01])
 
     const player = playerById(G, pid);
     const troops = getStateById(G, pid).troops;
+    const ctr = getCountryById(pid);
+    const unitNames = ctr === Country.SONG ? UNIT_SHORTHAND[0] : UNIT_SHORTHAND[1];
     return <Grid>
-        <Button>新增部队</Button>
+        <Button variant={"contained"} fullWidth onClick={() => setNewStep(TroopStep.PROVINCE)}>新增部队</Button>
         <ChoiceDialog
-            callback={(c) => setProv(c as ProvinceID)} choices={
+            callback={(c) => {
+                const newProv = c as ProvinceID;
+                setRegions(getProvinceById(newProv).regions);
+                setProv(newProv);
+                setNewStep(TroopStep.REGION);
+            }} choices={
             Object.values(ProvinceID).map(p => {
                 return {
                     label: p,
@@ -45,36 +60,57 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
                     hidden: false
                 }
             })}
-            defaultChoice={""} show={chooseProvince} title={"选择目标路"} toggleText={"选择目标路"} initial={true}/>
+            defaultChoice={""} show={isActive && newStep === TroopStep.PROVINCE} title={"选择目标路"}
+            toggleText={"选择目标路"} initial={true}/>
+        <CheckBoxDialog
+            callback={(c) => {
+                const units = unitNames.map(() => 0);
+                c.forEach(u => {
+                    const idx = unitNames.indexOf(u);
+                    units[idx] = 1;
+                })
+                moves.placeUnit({
+                    dst: reg,
+                    units: units
+                })
+                setNewStep(TroopStep.START);
+            }}
+            choices={unitNames.map(u => {
+                return {
+                    label: u,
+                    value: u,
+                    disabled: false,
+                    hidden: false
+                }
+            })}
+            show={isActive && newStep === TroopStep.UNIT}
+            title={"选择兵种"} toggleText={"选择兵种"} initial={true}/>
         <ChoiceDialog
             callback={(c) => {
                 const regID = parseInt(c) as RegionID;
-                moves.placeUnit({
-                    dst:regID,
-                    units:[]
-                })
+                setReg(regID);
+
             }}
-            choices={getProvinceById(prov).regions.map(r=>{
-                const reg =getRegionById(r);
+            choices={regions.map(r => {
+                const reg = getRegionById(r);
                 return {
-                    label:reg.name,
-                    value:r.toString(),
-                    hidden:false,
-                    disabled:false
+                    label: reg.name,
+                    value: r.toString(),
+                    hidden: false,
+                    disabled: false
                 }
-            })} defaultChoice={""} show={isActive && chooseUnit} title={"选择目标区域"}
+            })} defaultChoice={""} show={isActive && newStep === TroopStep.REGION} title={"选择目标区域"}
             toggleText={"选择目标区域"} initial={true}/>
+
+        <ChoiceDialog callback={() => {
+        }} choices={[]} defaultChoice={""} show={false} title={"选择受创单位"} toggleText={"单位"} initial={true}/>
         {troops.map((t, idx) => <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
                                            key={`troop-${idx}`}>
             <AccordionSummary>{placeToStr(t.p)}|{unitsToString(t.u)}</AccordionSummary>
             <AccordionDetails>
                 <Button>进军</Button>
-                <Button onClick={() => {
-                    setChooseProvince(true)
-                }}>移动</Button>
-                <Button onClick={() => {
-                    setChooseProvince(true)
-                }}>受创</Button>
+                <Button>移动</Button>
+                <Button>受创</Button>
                 <Button>补充</Button>
                 <Button>放置</Button>
                 <Button>消灭</Button>

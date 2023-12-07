@@ -55,6 +55,7 @@ export const SongJinnBoard = ({
 
             {playerID !== null &&
                 <Grid>
+                    <Button onClick={()=>undo()} >撤回</Button>
                     <Operation
                         G={G} ctx={ctx}
                         playerID={playerID}

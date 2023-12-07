@@ -72,7 +72,7 @@ export const initialJinnPub: SJPubInfo = {
     corruption: 3,
     discard: [],
     remove: [],
-    military: 1,
+    military: 3,
     ready: [0, 0, 1, 0, 0, 0, 0],
     standby: [5, 16, 17, 5, 1, 10, 10],
     provinces: [
@@ -151,7 +151,7 @@ export const initialSongPub: SJPubInfo = {
         GeneralStatus.PRE,
         GeneralStatus.PRE
     ],
-    military: 1,
+    military: 2,
     plan: [],
     provinces: [
         ProvinceID.JINGDONGLIANGLU,
