@@ -18,6 +18,7 @@ import {getPlanById} from "./plan";
 import {ActiveEvents, PlayerPendingEffect, SJPlayer} from "./general";
 import {logger} from "../../game/logger";
 import {getLeadingPlayer} from "../util/calc";
+import {canChoosePlan} from "../util/check";
 
 export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
@@ -60,7 +61,7 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
 
 export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
-        const log = [`choosePlan|onBegin|${G.order}`]
+        const log = [`draw|onBegin|${G.order}`]
         const firstPlayer = G.order[0];
     },
     moves: {
@@ -79,21 +80,19 @@ export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
 export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
         const log = [`choosePlan|onBegin|${G.order}`]
-        const firstPlayer = G.order[0];
-        drawPlanForPlayer(G, firstPlayer);
-        const pub = getStateById(G, firstPlayer);
-        const player = playerById(G, firstPlayer);
-        log.push(`|p${firstPlayer}|${player.plans}`);
-        if (player.plans.filter((pid) => pub.military >= getPlanById(pid).level).length === 0) {
+        const firstPid = G.order[0];
+        drawPlanForPlayer(G, firstPid);
+        const player = playerById(G, firstPid);
+        log.push(`|p${firstPid}|${player.plans}`);
+        if (player.plans.filter((pid) => canChoosePlan(G, ctx,firstPid ,pid)).length === 0) {
             log.push(`|cannot chose`)
             G.secret.planDeck.concat(player.plans);
             player.plans = [];
             const secondPid = G.order[1];
             drawPlanForPlayer(G, secondPid);
             const secondPlayer = playerById(G, secondPid);
-            const secondPub = getStateById(G, secondPid);
             log.push(`|p${secondPid}|${secondPlayer.plans}`);
-            if (secondPlayer.plans.filter((p) => secondPub.military >= getPlanById(p).level).length === 0) {
+            if (secondPlayer.plans.filter((p) => canChoosePlan(G, ctx,secondPid ,p))) {
                 G.secret.planDeck.concat(secondPlayer.plans);
                 secondPlayer.plans = [];
                 log.push(`|cannot|chose|goto|action`);
