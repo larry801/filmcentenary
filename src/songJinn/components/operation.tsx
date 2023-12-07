@@ -3,10 +3,11 @@ import {SongJinnGame} from "../constant/setup";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {cardToSearch, getCountryById, getStateById, playerById} from "../util/fetch";
+import {cardToSearch, getCountryById, getStage, getStateById, playerById} from "../util/fetch";
 import {ActiveEvents, Country, DevelopChoice, JinnUnit, SJPlayer, SongUnit, UNIT_FULL_NAME} from "../constant/general";
 import {remainDevelop} from "../util/calc";
-import {eventCardById} from "../constant/cards";
+import {returnDevCardCheck} from "../util/check";
+import {sjCardById} from "../constant/cards";
 import {getPlanById} from "../constant/plan";
 import Button from "@material-ui/core/Button";
 
@@ -56,7 +57,7 @@ export const Operation = ({
         ]}
         defaultChoice={""}
         toggleText={"征募"} title={"请选择要征募的兵种"}
-        show={true} initial={true}
+        show={isActive && getStage(ctx) === 'recruit'} initial={true}
     />
 
     const chooseFirst = (choice: string) => {
@@ -91,25 +92,30 @@ export const Operation = ({
         show={isActive && ctx.phase === 'choosePlan'}
         title={"请选择1张作战计划"} toggleText={"选择作战计划"}
         initial={true}/>;
+
     const showPlan = (isActive && ctx.phase === 'showPlan') && <Button
         onClick={() => moves.showPlan(player.chosenPlans)}
         color={"primary"} variant={"contained"}>展示作战计划</Button>
+    const endRound = (isActive && ctx.phase === 'action') && <Button
+        onClick={() => moves.endRound()}
+        color={"primary"} variant={"contained"}>结束行动</Button>
 
     const search = (choice: string) => {
         moves.search(choice);
     }
     const searchDialog = <ChoiceDialog
         callback={search}
-        choices={cardToSearch(G, ctx, playerID).map(c=>{
-            const card = eventCardById(c);
+        choices={cardToSearch(G, ctx, playerID).map(c => {
+            const card = sjCardById(c);
             return {
                 label: card.name,
                 value: c,
                 disabled: false,
                 hidden: false
-        }})}
+            }
+        })}
         defaultChoice={''}
-        show={isActive} title={"请选择检索牌"} toggleText={"检索"} initial={true}/>
+        show={isActive && ctx.phase === 'draw'} title={"请选择检索牌"} toggleText={"检索"} initial={true}/>
 
     const discard = (choice: string) => {
         moves.discard(choice);
@@ -118,13 +124,13 @@ export const Operation = ({
         callback={discard}
         choices={player.hand.map(bcid => {
             return {
-                label: eventCardById(bcid).name,
+                label: sjCardById(bcid).name,
                 value: bcid.toString(),
                 disabled: false,
                 hidden: false
             }
         })}
-        show={isActive} defaultChoice=""
+        show={isActive && getStage(ctx) === 'discard'} defaultChoice={""}
         title={"弃牌"} toggleText={"弃牌"} initial={true}
     />
 
@@ -136,15 +142,15 @@ export const Operation = ({
         callback={returnToHand}
         choices={pub.develop.map(bcid => {
             return {
-                label: eventCardById(bcid).name,
+                label: sjCardById(bcid).name,
                 value: bcid.toString(),
-                disabled: false,
+                disabled: !returnDevCardCheck(G, ctx, playerID, bcid),
                 hidden: false
             }
         })}
         defaultChoice={""}
-        show={isActive}
-        title={"请选择需要返回手牌的发展牌"} toggleText={"发展牌回手"} initial={true}
+        show={isActive && ctx.phase === 'develop'}
+        title={"请选择需要返回手牌的发展牌"} toggleText={"发展牌回手"} initial={false}
     />
 
 
@@ -204,7 +210,7 @@ export const Operation = ({
             {
                 label: DevelopChoice.POLICY, value: DevelopChoice.POLICY,
                 disabled: remainDevelopPoint < 3,
-                hidden: country !== Country.SONG
+                hidden: false
             },
             {
                 label: DevelopChoice.CIVIL, value: DevelopChoice.CIVIL,
@@ -214,10 +220,13 @@ export const Operation = ({
 
         ]}
         show={isActive && ctx.phase === 'develop'}
-        title={"请选择发展项目"} toggleText={"发展"} initial={false}
+        title={"请选择项目"} toggleText={"降低等级"} initial={false}
     />
 
     return <Grid>
+        {endRound}
+        {showPlan}
+
         {recruitDialog}
 
         {developDialog}
@@ -225,7 +234,7 @@ export const Operation = ({
 
         {chooseFirstDialog}
         {choosePlanDialog}
-        {showPlan}
+
 
         {discardDialog}
         {searchDialog}

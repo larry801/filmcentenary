@@ -17,7 +17,7 @@ import {getStateById, playerById, getCountryById, getStage} from "../util/fetch"
 import Button from "@material-ui/core/Button";
 import {getCityById} from "../constant/city";
 import {getRegionById} from "../constant/regions";
-import {eventCardById} from "../constant/cards";
+import {sjCardById} from "../constant/cards";
 import {remainDevelop} from "../util/calc";
 import {PubInfo} from "./pub-info";
 import {Operation} from "./operation";
@@ -48,7 +48,7 @@ export const SongJinnBoard = ({
 
     return <ErrorBoundary>
         <Grid container>
-            <Grid item>
+            {isActive && <Grid item>
                 <PubInfo G={G} ctx={ctx}/>
                 {pub.troops.map((t, idx) => {
                     const c = t.c === null ? "" : getCityById(t.c).name;
@@ -72,7 +72,7 @@ export const SongJinnBoard = ({
                     }
                     return <Button key={`troop-${idx}`}>{p}|{c}|{shortUnits}</Button>;
                 })}
-            </Grid>
+            </Grid>}
             {playerID !== null &&
                 <Grid>
                     <Operation

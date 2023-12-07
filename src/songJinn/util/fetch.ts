@@ -4,25 +4,46 @@ import {
     CardID,
     CityID,
     Country,
+    GeneralStatus,
     isMountainPassID,
-    isOtherCountryID, JinnEarlyCardID, JinnLateCardID, JinnMidCardID,
+    isOtherCountryID,
+    JinnEarlyCardID,
+    JinnLateCardID,
+    JinnMidCardID,
     MountainPassID,
-    OtherCountries,
+    Nations,
     RegionID,
-    SJPlayer, SongEarlyCardID, SongLateCardID, SongMidCardID,
-    Troop, UNIT_SHORTHAND
+    SJPlayer,
+    SongEarlyCardID,
+    SongLateCardID,
+    SongMidCardID,
+    Troop,
+    UNIT_SHORTHAND
 } from "../constant/general";
 import {Ctx, LogEntry, PlayerID} from "boardgame.io";
 import {getRegionById} from "../constant/regions";
 import {Stage} from "boardgame.io/core";
 import {activePlayer} from "../../game/util";
-import {eventCardById} from "../constant/cards";
+import {sjCardById} from "../constant/cards";
+
+export const getReadyGenerals = (G: SongJinnGame, pid:PlayerID) => {
+
+    switch (pid as SJPlayer) {
+        case SJPlayer.P1:
+            for (let i = 0; i < 6; i++) {
+                if(G.song.generals[i] === GeneralStatus.READY){
+
+                }
+            }
+            break;
+    }
+}
 
 export const diplomaticVictory = (G: SongJinnGame) => {
-    if (G.jinn.countries.length + G.removedCountries.length === OtherCountries.length) {
+    if (G.jinn.nations.length + G.removedCountries.length === Nations.length) {
         return Country.JINN;
     } else {
-        if (G.song.countries.length + G.removedCountries.length === OtherCountries.length) {
+        if (G.song.nations.length + G.removedCountries.length === Nations.length) {
             return Country.SONG;
         } else {
             return null;
@@ -181,7 +202,7 @@ export const getStateById = (G: SongJinnGame, pid: PlayerID) => {
 }
 
 const cardIdSort = (a: CardID, b: CardID) => {
-    return eventCardById(a).op - eventCardById(b).op;
+    return sjCardById(a).op - sjCardById(b).op;
 }
 
 export const cardToSearch = (G: SongJinnGame, ctx: Ctx, pid: PlayerID): CardID[] => {

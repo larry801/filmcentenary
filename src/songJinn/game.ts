@@ -4,7 +4,7 @@ import {PlayerView, TurnOrder} from "boardgame.io/core";
 import {
     ActionPhaseConfig,
     ChooseFirstPhaseConfig,
-    ChoosePlanPhaseConfig, DrawPhaseConfig,
+    ChoosePlanPhaseConfig, DevelopPhaseConfig, DrawPhaseConfig,
     NormalTurnConfig,
     ShowPlanPhaseConfig
 } from "./constant/config";
@@ -24,6 +24,8 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
         choosePlan: ChoosePlanPhaseConfig,
         showPlan: ShowPlanPhaseConfig,
         action: ActionPhaseConfig,
+
+        develop: DevelopPhaseConfig
     },
     turn: NormalTurnConfig,
     endIf: (G: SongJinnGame, ctx: Ctx) => {

@@ -47,6 +47,14 @@ export interface Troop {
     country: Country
 }
 
+export enum MarchResult {
+    MOVE,
+    MERGE,
+    OVERFLOW,
+    JOINT,
+    ELIMINATE,
+    RIVER,
+}
 
 export type Level = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -59,7 +67,7 @@ export const enum VictoryType {
     Diplomacy
 }
 
-export enum OtherCountryID {
+export enum NationID {
     XiLiao = "西辽",
     XiXia = "西夏",
     TuBo = "吐蕃",
@@ -67,7 +75,7 @@ export enum OtherCountryID {
     GaoLi = "高丽"
 }
 
-export const enum OtherCountryState {
+export const enum NationState {
     SONG,
     JINN,
     NEUTRAL
@@ -78,17 +86,22 @@ export const enum SJPlayer {
     P2 = '1',
 }
 
+export const GeneralNames = [
+    ["宗泽","岳飞","韩世忠","李显忠","吴玠","吴璘"],
+    ["斡离不","粘罕","娄室","兀朮","银术可","奔睹"]
+]
+
 export const UNIT_FULL_NAME = [
     ['步军', '步射', '马军', '水军', '霹雳炮', '背嵬军'],
     ['步军', '拐子马', '铁浮屠', '水军', '鹅车', '签军', '齐军']
 ];
 
-export const OtherCountries = [
-    OtherCountryID.DaLi,
-    OtherCountryID.TuBo,
-    OtherCountryID.GaoLi,
-    OtherCountryID.XiLiao,
-    OtherCountryID.XiXia
+export const Nations = [
+    NationID.DaLi,
+    NationID.TuBo,
+    NationID.GaoLi,
+    NationID.XiLiao,
+    NationID.XiXia
 ];
 
 export enum DevelopChoice {
@@ -113,15 +126,15 @@ export function isRegionID(place: TroopPlace): place is RegionID {
     return typeof place === 'number' && Object.values(RegionID).includes(place as RegionID);
 }
 
-export function isOtherCountryID(place: TroopPlace): place is OtherCountryID {
-    return typeof place === 'string' && Object.values(OtherCountryID).includes(place as OtherCountryID);
+export function isOtherCountryID(place: TroopPlace): place is NationID {
+    return typeof place === 'string' && Object.values(NationID).includes(place as NationID);
 }
 
 export function isMountainPassID(place: TroopPlace): place is MountainPassID {
     return typeof place === 'string' && Object.values(MountainPassID).includes(place as MountainPassID);
 }
 
-export type TroopPlace = RegionID | OtherCountryID | MountainPassID | null;
+export type TroopPlace = RegionID | NationID | MountainPassID | null;
 
 export const UNIT_SHORTHAND = [
     ['步', '弓', '骑', '船', '炮', '背'],
@@ -402,22 +415,29 @@ export const SongLateCardID = [
 
 export type CardID = SongBaseCardID | JinnBaseCardID;
 
+export enum GeneralStatus {
+    PRE,
+    TROOP,
+    READY,
+    REMOVED
+}
+
 export const enum SongGeneral {
-    ZongZe,
-    YueFei,
-    HanShiZhong,
-    LiXianZhong,
-    WuJie,
-    WuLin
+    ZongZe = 0,
+    YueFei = 1,
+    HanShiZhong = 2,
+    LiXianZhong = 3,
+    WuJie = 4,
+    WuLin = 5
 }
 
 export const enum JinnGeneral {
-    WoLiBu,
-    ZhanHan,
-    WuZhu,
-    YinShuKe,
-    LouShi,
-    BenZhu
+    WoLiBu = 0,
+    ZhanHan = 1,
+    LouShi = 2,
+    WuZhu = 3,
+    YinShuKe = 4,
+    BenZhu = 5
 }
 
 export type General = SongGeneral | JinnGeneral;
@@ -447,7 +467,7 @@ export enum JinnUnit {
 }
 
 export interface LetterOfCredence {
-    country: OtherCountryID;
+    nation: NationID;
     card: CardID;
 }
 

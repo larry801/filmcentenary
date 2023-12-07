@@ -4,13 +4,13 @@ import {TurnOrder} from "boardgame.io/core";
 import {
     chooseFirst,
     choosePlan,
-    develop,
-    discard,
+    develop, developCard, tieJun,
+    discard, endRound, heYi, letter, op,
     placeUnit,
     returnToHand,
     search,
     searchFirst,
-    showPlan
+    showPlan, cardEvent
 } from "../moves";
 import {getStateById, playerById} from "../util/fetch";
 import {drawPlanForPlayer, remove} from "../util/card";
@@ -28,6 +28,8 @@ export const DiscardStageConfig: StageConfig<SongJinnGame> = {
         discard: discard
     }
 }
+
+
 
 export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
@@ -136,10 +138,21 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
         chooseFirst: chooseFirst
     },
     next: 'choosePlan',
-    start: true,
+    // start: true,
     turn: NormalTurnConfig
 }
 
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
-    moves: {},
+    start:true,
+    moves: {
+
+        op:op,
+        cardEvent:cardEvent,
+        developCard:developCard,
+        letter:letter,
+        heYi:heYi,
+        tieJun:tieJun,
+        //
+        endRound:endRound
+    },
 }

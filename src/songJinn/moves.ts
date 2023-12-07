@@ -5,11 +5,11 @@ import {
     CardID,
     CityID,
     Country,
-    DevelopChoice, General,
-    OtherCountryID,
+    DevelopChoice, LetterOfCredence,
+    NationID,
     PlayerPendingEffect,
     RegionID,
-    SJPlayer, TroopPlace
+    SJPlayer
 } from "./constant/general";
 import {logger} from "../game/logger";
 import {getPlanById, PlanID} from "./constant/plan";
@@ -23,10 +23,21 @@ import {
 } from "./util/fetch";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {shuffle} from "../game/util";
-import {eventCardById} from "./constant/cards";
+import {sjCardById} from "./constant/cards";
 import {drawPhaseForPlayer, drawPlanForPlayer, remove} from "./util/card";
-import {endTurnCheck} from "./util/check";
+import {endRoundCheck, endTurnCheck, heYiCheck, returnDevCardCheck} from "./util/check";
 import {getCityById} from "./constant/city";
+import {heYiChange, policyUp} from "./util/change";
+
+export const letter: LongFormMove = {
+    move: (G, ctx, arg: LetterOfCredence) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const player = playerById(G, ctx.playerID);
+        player.lod.push(arg);
+    }
+}
 
 export interface ITakeDamageArgs {
     c: Country,
@@ -83,7 +94,7 @@ export interface IDeployUnitArgs {
     units: number[]
 }
 
-export const reinforce: LongFormMove = {
+export const deploy: LongFormMove = {
     move: (G, ctx, {city, units}: IDeployUnitArgs) => {
         const country = ctx.playerID === SJPlayer.P1 ? Country.SONG : Country.JINN;
         let target = null;
@@ -164,18 +175,24 @@ export interface IDirectRecruitArgs {
     units: number[]
 }
 
-export const directRecruit: LongFormMove = {
+
+export const tieJun: LongFormMove = {
     move: (G, ctx, args) => {
 
     }
 }
+export const chooseUnit: LongFormMove = {
+    move: (G, ctx, args) => {
 
+    }
+}
 
 export const recruitPuppet: LongFormMove = {
     move: (G, ctx, dst: RegionID) => {
         if (ctx.playerID !== SJPlayer.P2) {
             return INVALID_MOVE;
         }
+
 
     }
 }
@@ -187,8 +204,8 @@ export interface IRecruitArgs {
 }
 
 export interface IMoveTroopArgs {
-    src: RegionID | OtherCountryID,
-    dst: RegionID | OtherCountryID,
+    src: RegionID | NationID,
+    dst: RegionID | NationID,
     units: number[],
     country: Country
 }
@@ -223,6 +240,7 @@ export const develop: LongFormMove = {
             return INVALID_MOVE;
         }
         const player = playerById(G, ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
         const country = getCountryById(ctx.playerID);
         switch (country) {
             case Country.SONG:
@@ -232,12 +250,16 @@ export const develop: LongFormMove = {
                     switch (choice) {
                         case DevelopChoice.MILITARY:
                             G.song.military++;
+                            pub.usedDevelop += G.song.military;
                             break;
                         case DevelopChoice.CIVIL:
                             G.song.civil++;
+                            pub.usedDevelop += G.song.civil;
                             break;
                         case DevelopChoice.POLICY:
                             G.policy++;
+                            pub.usedDevelop += 3;
+
                             break;
                         default:
                             break;
@@ -250,13 +272,16 @@ export const develop: LongFormMove = {
                 } else {
                     switch (choice) {
                         case DevelopChoice.MILITARY:
-                            G.song.military++;
+                            G.jinn.military++;
+                            pub.usedDevelop += G.jinn.military;
                             break;
                         case DevelopChoice.CIVIL:
-                            G.song.civil++;
+                            G.jinn.civil++;
+                            pub.usedDevelop += G.jinn.military;
                             break;
                         case DevelopChoice.COLONY:
                             G.colony++;
+                            pub.usedDevelop += G.colony * 2;
                             break;
                         default:
                             break;
@@ -274,6 +299,9 @@ export const returnToHand: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
+        if (!returnDevCardCheck(G, ctx, ctx.playerID, args)) {
+            return INVALID_MOVE;
+        }
         const player = playerById(G, ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         if (pub.develop.includes(args)) {
@@ -285,24 +313,37 @@ export const returnToHand: LongFormMove = {
     }
 }
 
-export const eventCard: LongFormMove = {
+export const cardEvent: LongFormMove = {
     move: (G, ctx, args: BaseCardID) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
         const player = playerById(G, ctx.playerID);
-        if (player.hand.includes(args)) {
+        if (!player.hand.includes(args)) {
+            return INVALID_MOVE;
+        }
+        const card = sjCardById(args);
+        if (card.pre(G, ctx)) {
+            const pub = getStateById(G, ctx.playerID);
+            if (card.remove) {
+                pub.remove.push(args);
+            } else {
+                pub.discard.push(args);
+            }
             player.hand.splice(player.hand.indexOf(args), 1);
+            card.event(G, ctx);
         } else {
             return INVALID_MOVE;
         }
-        const pub = getStateById(G, ctx.playerID);
-        const card = eventCardById(args);
-        if (card.remove) {
-            pub.remove.push(args);
-        } else {
-            pub.discard.push(args);
+    }
+}
+
+export const heYi: LongFormMove = {
+    move: (G, ctx, c: CityID) => {
+        if (!heYiCheck(G, ctx)) {
+            return INVALID_MOVE;
         }
+        heYiChange(G, c);
     }
 }
 
@@ -319,6 +360,8 @@ export const developCard: LongFormMove = {
         }
         const pub = getStateById(G, ctx.playerID);
         pub.develop.push(args);
+        endRoundCheck(G, ctx);
+        ctx.events?.endTurn();
     }
 }
 
@@ -339,7 +382,6 @@ export const chooseFirst: LongFormMove = {
         logger.info(log.join(''));
     }
 }
-
 
 export const choosePlan: LongFormMove = {
     client: false,
@@ -457,7 +499,12 @@ export const showPlan: LongFormMove = {
     }
 }
 
-export const playAsOp = {};
+export const op: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, cid: CardID) => {
+        const card = sjCardById(cid);
+
+    }
+};
 
 // Adjust status moves for semi auto only
 
@@ -474,10 +521,10 @@ export const down: LongFormMove = {
                 } else {
                     switch (choice) {
                         case DevelopChoice.MILITARY:
-                            G.song.military--;
+                            G.jinn.military--;
                             break;
                         case DevelopChoice.CIVIL:
-                            G.song.civil--;
+                            G.jinn.civil--;
                             break;
                         case DevelopChoice.POLICY:
                             G.policy--;
@@ -493,10 +540,10 @@ export const down: LongFormMove = {
                 } else {
                     switch (choice) {
                         case DevelopChoice.MILITARY:
-                            G.song.military--;
+                            G.jinn.military--;
                             break;
                         case DevelopChoice.CIVIL:
-                            G.song.civil--;
+                            G.jinn.civil--;
                             break;
                         case DevelopChoice.COLONY:
                             G.colony--;
@@ -509,5 +556,11 @@ export const down: LongFormMove = {
             default:
                 break;
         }
+    }
+}
+
+export const endRound: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx) => {
+
     }
 }
