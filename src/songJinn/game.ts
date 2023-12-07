@@ -7,7 +7,7 @@ import {
     ChoosePlanPhaseConfig,
     DevelopPhaseConfig,
     DrawPhaseConfig,
-    NormalTurnConfig,
+    NormalTurnConfig, ResolvePlanPhaseConfig,
     ShowPlanPhaseConfig
 } from "./constant/config";
 import {getJinnPower, getSongPower} from "./util/calc";
@@ -27,7 +27,7 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
         choosePlan: ChoosePlanPhaseConfig,
         showPlan: ShowPlanPhaseConfig,
         action: ActionPhaseConfig,
-
+        resolvePlan: ResolvePlanPhaseConfig,
         develop: DevelopPhaseConfig
     },
     turn: NormalTurnConfig,

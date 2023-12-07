@@ -2,19 +2,28 @@ import {PhaseConfig, StageConfig, TurnConfig} from "boardgame.io";
 import {SongJinnGame} from "./setup";
 import {TurnOrder} from "boardgame.io/core";
 import {
+    cardEvent,
     chooseFirst,
     choosePlan,
-    develop, developCard, tieJun,
-    discard, endRound, heYi, letter, op,
+    chooseTop,
+    develop,
+    developCard,
+    discard,
+    endRound,
+    heYi,
+    letter,
+    op,
     placeUnit,
     returnToHand,
+    rollDices,
     search,
     searchFirst,
-    showPlan, cardEvent, chooseTop, rollDices
+    showPlan,
+    takePlan,
+    tieJun
 } from "../moves";
-import {getStateById, playerById} from "../util/fetch";
+import {playerById} from "../util/fetch";
 import {drawPlanForPlayer, remove} from "../util/card";
-import {getPlanById} from "./plan";
 import {ActiveEvents, PlayerPendingEffect, SJPlayer} from "./general";
 import {logger} from "../../game/logger";
 import {getLeadingPlayer} from "../util/calc";
@@ -150,7 +159,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         letter: letter,
         heYi: heYi,
         tieJun: tieJun,
-        rollDices:rollDices,
+        rollDices: rollDices,
         //
         endRound: endRound
     },
@@ -159,10 +168,24 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
 export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     start: true,
     onBegin: (G, ctx) => {
-
+        G.plans = G.plans.concat(G.song.plan);
+        if (G.song.completedPlan.length > 0 && !G.events.includes(ActiveEvents.YanJingYiNan)) {
+            const songTop = G.song.completedPlan.pop();
+            if (songTop !== undefined) {
+                G.plans.push(songTop);
+            }
+        }
+        if (G.jinn.completedPlan.length > 0) {
+            const jinnTop = G.jinn.completedPlan.pop();
+            if (jinnTop !== undefined) {
+                G.plans.push(jinnTop);
+            }
+        }
+        G.song.plan = [];
+        G.jinn.plan = [];
     },
     moves: {
-
+        takePlan: takePlan,
         chooseTop: chooseTop,
         //
         endRound: endRound

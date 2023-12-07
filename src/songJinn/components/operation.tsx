@@ -8,8 +8,9 @@ import {ActiveEvents, Country, DevelopChoice, JinnUnit, SJPlayer, SongUnit, UNIT
 import {remainDevelop} from "../util/calc";
 import {returnDevCardCheck} from "../util/check";
 import {sjCardById} from "../constant/cards";
-import {getPlanById} from "../constant/plan";
+import {getPlanById, PlanID} from "../constant/plan";
 import Button from "@material-ui/core/Button";
+import CheckBoxDialog from "./choice";
 
 
 export interface IOperationProps {
@@ -223,10 +224,26 @@ export const Operation = ({
         title={"请选择项目"} toggleText={"降低等级"} initial={false}
     />
 
+    const takePlan = (choices: string[]) => {
+        moves.takePlan(choices)
+    };
+    const takePlanDialog = <CheckBoxDialog
+        callback={takePlan}
+        choices={G.plans.map(p => {
+            return {
+                label: getPlanById(p).name,
+                value: p,
+                disabled: false,
+                hidden: false
+            }
+        })}
+        show={isActive && ctx.phase === 'resolvePlan'} title={"选择计划"} toggleText={"选择完成的计划"}
+        initial={true}/>
+
     return <Grid>
         {endRound}
         {showPlan}
-
+        {takePlanDialog}
         {recruitDialog}
 
         {developDialog}

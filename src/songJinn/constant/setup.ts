@@ -209,6 +209,7 @@ export const emptyPlayerInfo: () => SJPlayerInfo = () => {
 }
 
 export interface SongJinnGame {
+    plans: PlanID[],
     dices: number[],
     order: SJPlayer[],
     removedCountries: NationID[],
@@ -244,6 +245,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
         PlanID.J06
     ])
     const G = {
+        plans:[],
         dices: [],
         removedCountries: [],
         // start from action phase for debugging

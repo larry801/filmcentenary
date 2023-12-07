@@ -31,7 +31,8 @@ import {sjCardById} from "./constant/cards";
 import {drawPhaseForPlayer, drawPlanForPlayer, remove} from "./util/card";
 import {endRoundCheck, endTurnCheck, heYiCheck, returnDevCardCheck} from "./util/check";
 import {getCityById} from "./constant/city";
-import {heYiChange} from "./util/change";
+import {addTroop, heYiChange} from "./util/change";
+import {getRegionById} from "./constant/regions";
 
 export const letter: LongFormMove = {
     move: (G, ctx, arg: LetterOfCredence) => {
@@ -84,18 +85,7 @@ export interface IPlaceUnitsArgs {
 
 export const placeUnit: LongFormMove = {
     move: (G, ctx, {dst, units, country}: IPlaceUnitsArgs) => {
-        switch (country) {
-            case Country.SONG:
-                for (let i = 0; i < units.length; i++) {
-                    G.song.standby[i] -= units[i];
-                }
-                break;
-            case Country.JINN:
-                for (let i = 0; i < units.length; i++) {
-                    G.jinn.standby[i] -= units[i];
-                }
-        }
-        endTurnCheck(G, ctx);
+        addTroop(G, dst, units, country);
     }
 }
 
@@ -206,10 +196,9 @@ export const chooseUnit: LongFormMove = {
 }
 
 
-
 export const rollDices: LongFormMove = {
     move: (G, ctx, count: number) => {
-       G.dices = ctx.random?.D6(count);
+        G.dices = ctx.random?.D6(count);
     }
 }
 
@@ -601,6 +590,7 @@ export const chooseTop: LongFormMove = {
         }
     }
 }
+
 export const endRound: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx) => {
         if (ctx.playerID === undefined) {
@@ -610,6 +600,24 @@ export const endRound: LongFormMove = {
         ctx.events?.endTurn();
     }
 }
+
+
+export const takePlan: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, arg: PlanID[]) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
+        if (ctr === "SONG") {
+            G.song.completedPlan = G.song.completedPlan.concat(arg);
+        } else {
+            G.jinn.completedPlan = G.jinn.completedPlan.concat(arg);
+        }
+    }
+}
+
 export const empty: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx) => {
         if (ctx.playerID === undefined) {

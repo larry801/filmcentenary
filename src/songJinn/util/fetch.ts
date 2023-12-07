@@ -27,18 +27,37 @@ import {activePlayer} from "../../game/util";
 import {sjCardById} from "../constant/cards";
 
 
-
-
-export const getReadyGenerals = (G: SongJinnGame, pid:PlayerID) => {
+export const getReadyGenerals = (G: SongJinnGame, pid: PlayerID) => {
+    const readyGenerals = [];
     switch (pid as SJPlayer) {
         case SJPlayer.P1:
             for (let i = 0; i < 6; i++) {
-                if(G.song.generals[i] === GeneralStatus.READY){
-
+                if (G.song.generals[i] === GeneralStatus.READY) {
+                    readyGenerals.push(i);
+                }
+            }
+            break;
+        case SJPlayer.P2:
+            for (let i = 0; i < 6; i++) {
+                if (G.jinn.generals[i] === GeneralStatus.READY) {
+                    readyGenerals.push(i);
                 }
             }
             break;
     }
+    return readyGenerals;
+}
+
+export const getMovePlan = (G: SongJinnGame) => {
+    const plans = [...G.song.plan, ...G.jinn.plan];
+    if (G.song.completedPlan.length > 0 && !G.events.includes(ActiveEvents.YanJingYiNan)) {
+        const songTop = G.song.completedPlan[G.song.completedPlan.length - 1];
+        plans.push(songTop);
+    }
+    if (G.jinn.completedPlan.length > 0) {
+        plans.push(G.jinn.completedPlan[G.jinn.completedPlan.length - 1])
+    }
+    return plans;
 }
 
 export const diplomaticVictory = (G: SongJinnGame) => {
@@ -60,7 +79,6 @@ export const getStage = (ctx: Ctx) => {
         return ctx.activePlayers[activePlayer(ctx)]
     }
 }
-
 
 export const getJinnTroopByRegion = (G: SongJinnGame, r: RegionID) => {
     G.jinn.troops.forEach(t => {
@@ -99,20 +117,20 @@ export const getSongTroopByCity = (G: SongJinnGame, r: CityID) => {
 }
 
 export const getSongDeployCities = (G: SongJinnGame, r: CityID) => {
-    G.song.cities.filter((cid)=>{
+    G.song.cities.filter((cid) => {
         const troop = getJinnTroopByCity(G, cid);
         return troop === null;
     })
 }
 
 export const getJinnDeployCities = (G: SongJinnGame, r: CityID) => {
-    G.jinn.cities.filter((cid)=>{
+    G.jinn.cities.filter((cid) => {
         const troop = getSongTroopByCity(G, cid);
         return troop === null;
     })
 }
 
-export const getArmyDst = (G: SongJinnGame, t: Troop) => {
+export const getTroopDst = (G: SongJinnGame, t: Troop) => {
     const place = t.p;
     if (place === null) {
         // 被围困
@@ -209,19 +227,19 @@ const cardIdSort = (a: CardID, b: CardID) => {
 
 export const cardToSearch = (G: SongJinnGame, ctx: Ctx, pid: PlayerID): CardID[] => {
     const isSong = pid as SJPlayer === SJPlayer.P1;
-    let totalDeck : CardID[] = isSong ? SongEarlyCardID : JinnEarlyCardID;
-    if (G.turn > 3){
+    let totalDeck: CardID[] = isSong ? SongEarlyCardID : JinnEarlyCardID;
+    if (G.turn > 3) {
         const mid = isSong ? [...SongMidCardID] : [...JinnMidCardID];
-        totalDeck = [...totalDeck,...mid];
+        totalDeck = [...totalDeck, ...mid];
     }
-    if (G.turn > 6){
+    if (G.turn > 6) {
         const late = isSong ? [...SongLateCardID] : [...JinnLateCardID];
-        totalDeck = [...totalDeck,...late];
+        totalDeck = [...totalDeck, ...late];
     }
     const discard = isSong ? G.song.discard : G.jinn.discard;
     const remove = isSong ? G.song.remove : G.jinn.remove;
     const hand = isSong ? G.player[SJPlayer.P1].hand : G.player[SJPlayer.P2].hand;
-    return totalDeck.filter(c=>!(hand.includes(c)||discard.includes(c)||remove.includes(c)))
+    return totalDeck.filter(c => !(hand.includes(c) || discard.includes(c) || remove.includes(c)))
 }
 
 export const getCountryById = (pid: PlayerID) => {

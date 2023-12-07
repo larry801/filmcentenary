@@ -21,13 +21,16 @@ import {remove} from "../util/card";
 export const getFullDesc = (card: Cards): string => {
     let effText = "效果：" + card.effectText;
     if (card.precondition !== null) {
-        effText = `${card.precondition} ${effText}`
+        effText = ` 前置条件：${card.precondition} ${effText}`
     }
     if (card.ban !== null) {
         effText += `撤销：${card.ban}`
     }
     if (card.block !== null) {
         effText += `禁止：${card.ban}`
+    }
+    if (card.unlock !== null) {
+        effText += `解锁：${card.unlock}`
     }
     return effText;
 }

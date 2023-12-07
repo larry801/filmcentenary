@@ -6,11 +6,8 @@ import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
 import {
     Country,
-    SJPlayer, UNIT_SHORTHAND, DevelopChoice,
-    SongUnit,
-    JinnUnit,
-    ActiveEvents,
-    UNIT_FULL_NAME
+    SJPlayer, UNIT_SHORTHAND
+
 } from "../constant/general";
 import {getPlanById} from "../constant/plan";
 import {getStateById, playerById, getCountryById, getStage} from "../util/fetch";
@@ -25,6 +22,7 @@ import PlayerHand from "../../components/player-hand";
 import {SJPlayerHand} from "./player-hand";
 import LogView from "./view-log";
 import {sjPlayerName} from "../util/text";
+import TroopOperation from "./troops";
 
 export const SongJinnBoard = ({
                                   G,
@@ -49,32 +47,10 @@ export const SongJinnBoard = ({
 
     return <ErrorBoundary>
         <Grid container>
+            {ctx.gameover !== undefined && <ChoiceDialog callback={()=>{}} choices={[]} defaultChoice={""} show={true} title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`} toggleText={"游戏结束"} initial={true}/>}
             {isActive && <Grid item>
                 <PubInfo G={G} ctx={ctx}/>
-                {pub.troops.map((t, idx) => {
-                    const c = t.c === null ? "" : getCityById(t.c).name;
-                    const p = t.p === null ? "" : (typeof t.p === "number" ? getRegionById(t.p).name : t.p.toString());
-                    let shortUnits = '';
-                    switch (t.country) {
-                        case Country.JINN:
-                            UNIT_SHORTHAND[1].forEach((v, i) => {
-                                if (t.u[i] > 0) {
-                                    shortUnits += `${t.u[i]}${v}`
-                                }
-                            });
-                            break;
-                        case Country.SONG:
-                            UNIT_SHORTHAND[0].forEach((v, i) => {
-                                if (t.u[i] > 0) {
-                                    shortUnits += `${t.u[i]}${v}`;
-                                }
-                            });
-                            break;
-                    }
-                    return <Button key={`troop-${idx}`}>{p}|{c}|{shortUnits}</Button>;
-                })}
                 <LogView log={log} getPlayerName={sjPlayerName} G={G}/>
-
             </Grid>}
 
             {playerID !== null &&
@@ -85,13 +61,17 @@ export const SongJinnBoard = ({
                         moves={moves}
                         isActive={isActive}
                     />
-                    {isActive &&
+                    {isActive && <Grid>
                         <SJPlayerHand
                             moves={moves}
                             G={G} ctx={ctx}
                             isActive={isActive}
                             pid={playerID}
                         />
+                        <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
+
+                    </Grid>
+
                     }
                 </Grid>
             }

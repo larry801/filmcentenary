@@ -60,12 +60,12 @@ export enum MarchResult {
 export type Level = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export const enum VictoryType {
-    ShaoXingHeYi,
-    PowerOfNation,
-    StrategicPlan,
-    WuShanLiMa,
-    ZhiDaoHuangLong,
-    Diplomacy
+    ShaoXingHeYi = "绍兴和议",
+    PowerOfNation = "国力",
+    StrategicPlan = "作战计划",
+    WuShanLiMa = "吴山立马",
+    ZhiDaoHuangLong = "直捣黄龙",
+    Diplomacy = "外交"
 }
 
 export enum NationID {
@@ -153,8 +153,8 @@ export const INITIAL_RECRUIT_COST = [
 ];
 
 export const enum Country {
-    SONG = "SONG",
-    JINN = "JINN"
+    SONG = "宋",
+    JINN = "金"
 }
 
 export const enum IEra {
@@ -603,21 +603,27 @@ export enum RegionID {
     R77
 }
 
-export const enum ProvinceID {
-    XIJINGLU,
-    BEIJINGLU,
-    YANJINGLU,
-    DONGJINGLU,
-    HEDONGLU,
-    HEBEILIANGLU,
-    JINGDONGLIANGLU,
-    JINGXILIANGLU,
-    JINGJILU,
-    HUAINANLIANGLU,
-    CHUANSHANSILU,
-    JINHULIANGLU,
-    JIANGNANLIANGLU,
-    LIANGZHELU,
-    FUJIANLU,
-    SHANXILIULU
+export enum ProvinceID {
+    XIJINGLU = "西京路",
+    BEIJINGLU = "北京路",
+    YANJINGLU = "燕京路",
+    DONGJINGLU = "东京路",
+    HEDONGLU = "河东路",
+    HEBEILIANGLU = "河北两路",
+    JINGDONGLIANGLU = "京东两路",
+    JINGXILIANGLU = "京西两路",
+    JINGJILU = "京畿路",
+    HUAINANLIANGLU = "淮南两路",
+    CHUANSHANSILU = "川陕四路",
+    JINHULIANGLU = "荆湖两路",
+    JIANGNANLIANGLU = "江南两路",
+    LIANGZHELU = "两浙路",
+    FUJIANLU = "福建路",
+    SHANXILIULU = "陕西六路"
+}
+
+export const provinceToRegion = {
+    [ProvinceID.XIJINGLU]:[RegionID.R01,RegionID.R02,RegionID.R03],
+    [ProvinceID.BEIJINGLU]:[RegionID.R01,RegionID.R02,RegionID.R03],
+    [ProvinceID.YANJINGLU]:[RegionID.R01,RegionID.R02,RegionID.R03],
 }

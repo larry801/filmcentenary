@@ -1,12 +1,49 @@
 import {SongJinnGame} from "../constant/setup";
-import {CityID, Country, General, GeneralStatus, NationID, Nations, SJPlayer, Troop} from "../constant/general";
+import {
+    CityID,
+    Country,
+    General,
+    GeneralStatus,
+    NationID,
+    Nations,
+    RegionID,
+    SJPlayer,
+    Troop
+} from "../constant/general";
 import {getCountryById, getSongTroopByCity, playerById} from "./fetch";
 import {remove} from "./card";
 import {getCityById} from "../constant/city";
 import {PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
+import {getRegionById} from "../constant/regions";
 
-
+export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], country: Country) => {
+    switch (country) {
+        case Country.SONG:
+            for (let i = 0; i < units.length; i++) {
+                G.song.standby[i] -= units[i];
+            }
+            G.song.troops.push({
+                p: dst,
+                c: getRegionById(dst).city,
+                country: Country.SONG,
+                u: units,
+                j: []
+            })
+            break;
+        case Country.JINN:
+            for (let i = 0; i < units.length; i++) {
+                G.jinn.standby[i] -= units[i];
+            }
+            G.jinn.troops.push({
+                p: dst,
+                c: getRegionById(dst).city,
+                country: Country.SONG,
+                u: units,
+                j: []
+            })
+    }
+}
 
 export const colonyUp = (G: SongJinnGame, a: number) => {
     if (G.colony + a > 4) {
@@ -117,8 +154,8 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
             })
         }
     }
-    jinn.lod.forEach(l=>G.jinn.discard.push(l.card));
-    song.lod.forEach(l=>G.song.discard.push(l.card));
+    jinn.lod.forEach(l => G.jinn.discard.push(l.card));
+    song.lod.forEach(l => G.song.discard.push(l.card));
     jinn.lod = [];
     song.lod = [];
 }

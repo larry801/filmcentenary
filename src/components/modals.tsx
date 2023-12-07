@@ -37,7 +37,7 @@ export interface IChoiceProps {
     buttonColor?: boolean,
 }
 
-const useDebounce = (callback: () => any, delay: number) => {
+export const useDebounce = (callback: () => any, delay: number) => {
     const latestCallback = useRef(() => {
     });
     const [callCount, setCallCount] = useState(0);
