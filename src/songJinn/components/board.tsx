@@ -23,6 +23,8 @@ import {PubInfo} from "./pub-info";
 import {Operation} from "./operation";
 import PlayerHand from "../../components/player-hand";
 import {SJPlayerHand} from "./player-hand";
+import LogView from "./view-log";
+import {sjPlayerName} from "../util/text";
 
 export const SongJinnBoard = ({
                                   G,
@@ -43,7 +45,6 @@ export const SongJinnBoard = ({
     const pub = getStateById(G, playerID as SJPlayer);
     const player = playerById(G, playerID as SJPlayer);
     const country = getCountryById(playerID as SJPlayer);
-    const isSpectate = playerID === null;
 
 
     return <ErrorBoundary>
@@ -72,7 +73,10 @@ export const SongJinnBoard = ({
                     }
                     return <Button key={`troop-${idx}`}>{p}|{c}|{shortUnits}</Button>;
                 })}
+                <LogView log={log} getPlayerName={sjPlayerName} G={G}/>
+
             </Grid>}
+
             {playerID !== null &&
                 <Grid>
                     <Operation
@@ -81,12 +85,14 @@ export const SongJinnBoard = ({
                         moves={moves}
                         isActive={isActive}
                     />
-                    <SJPlayerHand
-                        moves={moves}
-                        G={G} ctx={ctx}
-                        isActive={isActive}
-                        pid={playerID}
-                    />
+                    {isActive &&
+                        <SJPlayerHand
+                            moves={moves}
+                            G={G} ctx={ctx}
+                            isActive={isActive}
+                            pid={playerID}
+                        />
+                    }
                 </Grid>
             }
         </Grid>

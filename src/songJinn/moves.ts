@@ -1,11 +1,13 @@
 import {Ctx, LongFormMove} from "boardgame.io";
 import {SongJinnGame} from "./constant/setup";
 import {
+    ActiveEvents,
     BaseCardID,
     CardID,
     CityID,
     Country,
-    DevelopChoice, LetterOfCredence,
+    DevelopChoice,
+    LetterOfCredence,
     NationID,
     PlayerPendingEffect,
     RegionID,
@@ -15,9 +17,11 @@ import {logger} from "../game/logger";
 import {getPlanById, PlanID} from "./constant/plan";
 import {
     cardToSearch,
-    getCountryById, getJinnTroopByCity,
+    getCountryById,
+    getJinnTroopByCity,
     getJinnTroopByRegion,
-    getSongTroopByCity, getSongTroopByRegion,
+    getSongTroopByCity,
+    getSongTroopByRegion,
     getStateById,
     playerById
 } from "./util/fetch";
@@ -27,7 +31,7 @@ import {sjCardById} from "./constant/cards";
 import {drawPhaseForPlayer, drawPlanForPlayer, remove} from "./util/card";
 import {endRoundCheck, endTurnCheck, heYiCheck, returnDevCardCheck} from "./util/check";
 import {getCityById} from "./constant/city";
-import {heYiChange, policyUp} from "./util/change";
+import {heYiChange} from "./util/change";
 
 export const letter: LongFormMove = {
     move: (G, ctx, arg: LetterOfCredence) => {
@@ -35,7 +39,13 @@ export const letter: LongFormMove = {
             return INVALID_MOVE;
         }
         const player = playerById(G, ctx.playerID);
+        if (player.hand.includes(arg.card)) {
+            remove(arg.card, player.hand);
+        } else {
+            return INVALID_MOVE;
+        }
         player.lod.push(arg);
+        ctx.events?.endTurn();
     }
 }
 
@@ -177,8 +187,16 @@ export interface IDirectRecruitArgs {
 
 
 export const tieJun: LongFormMove = {
-    move: (G, ctx, args) => {
-
+    move: (G, ctx, args: CardID) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
+        if (player.hand.includes(args)) {
+            remove(args, player.hand);
+        }
     }
 }
 export const chooseUnit: LongFormMove = {
@@ -187,13 +205,19 @@ export const chooseUnit: LongFormMove = {
     }
 }
 
+
+
+export const rollDices: LongFormMove = {
+    move: (G, ctx, count: number) => {
+       G.dices = ctx.random?.D6(count);
+    }
+}
+
 export const recruitPuppet: LongFormMove = {
     move: (G, ctx, dst: RegionID) => {
         if (ctx.playerID !== SJPlayer.P2) {
             return INVALID_MOVE;
         }
-
-
     }
 }
 
@@ -559,8 +583,40 @@ export const down: LongFormMove = {
     }
 }
 
+export const chooseTop: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, p: PlanID) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
+        if (!pub.completedPlan.includes(p)) {
+            return INVALID_MOVE;
+        }
+        remove(p, pub.completedPlan);
+        pub.completedPlan.push(p);
+        if (ctr === "SONG" && G.events.includes(ActiveEvents.YanJingYiNan)) {
+
+        }
+    }
+}
 export const endRound: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx) => {
-
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        endRoundCheck(G, ctx);
+        ctx.events?.endTurn();
+    }
+}
+export const empty: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
     }
 }

@@ -11,6 +11,7 @@ export const enum ActiveEvents {
     ZhongBuBing = "重步兵",
     YueShuaiZhiLai = "岳帅之来，此间震怒",
     WuLin = "吴璘",
+    YanJingYiNan = "燕京以南，号令不行",
 
     JingKangZhiBian = "靖康之变",
     ZhuiWangZhuBei = "追亡逐北",
@@ -105,10 +106,10 @@ export const Nations = [
 ];
 
 export enum DevelopChoice {
-    MILITARY = "军事",
-    CIVIL = "内政",
-    COLONY = "殖民",
-    POLICY = "政策",
+    MILITARY = "提升军事",
+    CIVIL = "提升内政",
+    COLONY = "提升殖民",
+    POLICY = "提升政策",
     EMPEROR = "拥立"
 }
 

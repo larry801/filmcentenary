@@ -26,8 +26,10 @@ import {Stage} from "boardgame.io/core";
 import {activePlayer} from "../../game/util";
 import {sjCardById} from "../constant/cards";
 
-export const getReadyGenerals = (G: SongJinnGame, pid:PlayerID) => {
 
+
+
+export const getReadyGenerals = (G: SongJinnGame, pid:PlayerID) => {
     switch (pid as SJPlayer) {
         case SJPlayer.P1:
             for (let i = 0; i < 6; i++) {

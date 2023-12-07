@@ -1,15 +1,18 @@
-import {Ctx, Game, PlayerID, TurnConfig} from "boardgame.io";
+import {Ctx, Game} from "boardgame.io";
 import {setupSongJinn, SongJinnGame} from "./constant/setup";
-import {PlayerView, TurnOrder} from "boardgame.io/core";
+import {PlayerView} from "boardgame.io/core";
 import {
     ActionPhaseConfig,
     ChooseFirstPhaseConfig,
-    ChoosePlanPhaseConfig, DevelopPhaseConfig, DrawPhaseConfig,
+    ChoosePlanPhaseConfig,
+    DevelopPhaseConfig,
+    DrawPhaseConfig,
     NormalTurnConfig,
     ShowPlanPhaseConfig
 } from "./constant/config";
 import {getJinnPower, getSongPower} from "./util/calc";
-import {SJPlayer, VictoryType} from "./constant/general";
+import {Country, SJPlayer, VictoryType} from "./constant/general";
+import {diplomaticVictory} from "./util/fetch";
 
 
 export const SongJinnGameDef: Game<SongJinnGame> = {
@@ -39,6 +42,34 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
             return {
                 winner: SJPlayer.P1,
                 type: VictoryType.PowerOfNation
+            }
+        }
+        const dipVic = diplomaticVictory(G);
+        if (dipVic !== null) {
+            switch (dipVic) {
+                case Country.JINN:
+                    return {
+                        winner: SJPlayer.P2,
+                        type: VictoryType.Diplomacy
+                    }
+                case Country.SONG:
+                    return {
+                        winner: SJPlayer.P2,
+                        type: VictoryType.Diplomacy
+                    }
+            }
+        }
+        const completedPlanDelta = G.song.completedPlan.length - G.jinn.completedPlan.length;
+        if (completedPlanDelta >= 4) {
+            return {
+                winner: SJPlayer.P1,
+                type: VictoryType.StrategicPlan
+            }
+        }
+        if (completedPlanDelta <= -4) {
+            return {
+                winner: SJPlayer.P2,
+                type: VictoryType.StrategicPlan
             }
         }
     }

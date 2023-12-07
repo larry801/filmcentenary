@@ -10,7 +10,7 @@ import {
     returnToHand,
     search,
     searchFirst,
-    showPlan, cardEvent
+    showPlan, cardEvent, chooseTop, rollDices
 } from "../moves";
 import {getStateById, playerById} from "../util/fetch";
 import {drawPlanForPlayer, remove} from "../util/card";
@@ -31,7 +31,6 @@ export const DiscardStageConfig: StageConfig<SongJinnGame> = {
 }
 
 
-
 export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
         const log = [`turnEndPhase|onBegin|${G.order}`];
@@ -41,8 +40,8 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
             if (G.song.effect.includes(PlayerPendingEffect.SearchCard)) {
                 if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
                     // 目前不可能 因为只有京畿计划有检索
-                    remove(PlayerPendingEffect.SearchCard,G.jinn.effect);
-                    remove(PlayerPendingEffect.SearchCard,G.song.effect);
+                    remove(PlayerPendingEffect.SearchCard, G.jinn.effect);
+                    remove(PlayerPendingEffect.SearchCard, G.song.effect);
                     ctx.events?.setPhase('placeUnit');
 
                 } else {
@@ -84,7 +83,7 @@ export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         drawPlanForPlayer(G, firstPid);
         const player = playerById(G, firstPid);
         log.push(`|p${firstPid}|${player.plans}`);
-        if (player.plans.filter((pid) => canChoosePlan(G, ctx,firstPid ,pid)).length === 0) {
+        if (player.plans.filter((pid) => canChoosePlan(G, ctx, firstPid, pid)).length === 0) {
             log.push(`|cannot chose`)
             G.secret.planDeck.concat(player.plans);
             player.plans = [];
@@ -92,7 +91,7 @@ export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
             drawPlanForPlayer(G, secondPid);
             const secondPlayer = playerById(G, secondPid);
             log.push(`|p${secondPid}|${secondPlayer.plans}`);
-            if (secondPlayer.plans.filter((p) => canChoosePlan(G, ctx,secondPid ,p))) {
+            if (secondPlayer.plans.filter((p) => canChoosePlan(G, ctx, secondPid, p))) {
                 G.secret.planDeck.concat(secondPlayer.plans);
                 secondPlayer.plans = [];
                 log.push(`|cannot|chose|goto|action`);
@@ -142,16 +141,34 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
 }
 
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
-    start:true,
+    start: true,
     moves: {
 
-        op:op,
-        cardEvent:cardEvent,
-        developCard:developCard,
-        letter:letter,
-        heYi:heYi,
-        tieJun:tieJun,
+        op: op,
+        cardEvent: cardEvent,
+        developCard: developCard,
+        letter: letter,
+        heYi: heYi,
+        tieJun: tieJun,
+        rollDices:rollDices,
         //
-        endRound:endRound
+        endRound: endRound
     },
 }
+
+export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
+    start: true,
+    onBegin: (G, ctx) => {
+
+    },
+    moves: {
+
+        chooseTop: chooseTop,
+        //
+        endRound: endRound
+    },
+}
+
+export const DiplomacyPhaseConfig: PhaseConfig<SongJinnGame> = {}
+export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {}
+export const EmptyPhaseConfig: PhaseConfig<SongJinnGame> = {}

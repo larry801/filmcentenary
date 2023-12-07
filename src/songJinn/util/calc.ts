@@ -1,21 +1,22 @@
 import {SongJinnGame} from "../constant/setup";
 import {
+    accumulator,
     ActiveEvents,
     Country,
     isMountainPassID,
     isRegionID,
+    ProvinceID,
     SJPlayer,
     TerrainType,
-    Troop,
-    accumulator
+    Troop
 } from "../constant/general";
 import {Ctx, PlayerID} from "boardgame.io";
 import {getRegionById} from "../constant/regions";
 import {getCityById} from "../constant/city";
-import {Terrain} from "@material-ui/icons";
 import {getStateById} from "./fetch";
 import {sjCardById} from "../constant/cards";
 import {getPlanById} from "../constant/plan";
+import {remove} from "./card";
 
 export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
     return G.jinn.civil > G.song.civil ? SJPlayer.P2 : SJPlayer.P1;
@@ -97,7 +98,14 @@ export const getSongScore = (G: SongJinnGame): number => {
 }
 
 export const getSongPower = (G: SongJinnGame): number => {
-    let power = G.song.provinces.length;
+    const countedProvince = [...G.song.provinces];
+    remove(ProvinceID.JINGJILU, countedProvince);
+    if(!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)){
+        remove(ProvinceID.FUJIANLU, countedProvince);
+
+    }
+    let power = countedProvince.length;
+
     if (G.song.emperor !== null) {
         power++;
     }
@@ -121,7 +129,13 @@ export const getJinnScore = (G: SongJinnGame): number => {
 }
 
 export const getJinnPower = (G: SongJinnGame): number => {
-    let power = G.jinn.provinces.length;
+    const countedProvince = [...G.jinn.provinces];
+    remove(ProvinceID.JINGJILU, countedProvince);
+    if(!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)){
+        remove(ProvinceID.FUJIANLU, countedProvince);
+
+    }
+    let power = countedProvince.length;
     if (G.jinn.emperor !== null) {
         power++;
     }

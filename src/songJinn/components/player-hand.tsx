@@ -5,7 +5,7 @@ import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
 import { Country, Nations, CardID } from "../constant/general";
 
-import { getStateById, playerById, getCountryById } from "../util/fetch";
+import { playerById, getCountryById } from "../util/fetch";
 import Button from "@material-ui/core/Button";
 import { sjCardById } from "../constant/cards";
 import Accordion from '@material-ui/core/Accordion';
@@ -29,11 +29,10 @@ export const SJPlayerHand = ({ G, ctx, pid, isActive, moves }: IPlayerHandProps)
     const inPhase = ctx.phase === 'action';
     const player = playerById(G, pid);
     const hand = player.hand;
-    const onPlayAsEvent = (cid: CardID) => moves.eventCard(cid);
 
     return <Grid>
         <ChoiceDialog
-            callback={(cid: string) => moves.letter({ country: cid, card: dipCard[0] })}
+            callback={(cid: string) => moves.letter({ nation: cid, card: dipCard[0] })}
             choices={
                 Nations.map((c) => {
                     return {

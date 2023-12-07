@@ -1,7 +1,7 @@
 import {SongJinnGame} from "../constant/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {addLateTermCard, addMidTermCard, remove} from "./card";
-import {ActiveEvents, CardID, Country} from "../constant/general";
+import {ActiveEvents, CardID, Country, ProvinceID} from "../constant/general";
 import {logger} from "../../game/logger";
 import {getCountryById, getStateById} from "./fetch";
 import {totalDevelop} from "./calc";
@@ -19,11 +19,19 @@ export const canChoosePlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: Pl
             return false
         }
     }
-    if (getStateById(G, pid).military < getPlanById(plan).level) {
-        return false;
-    }
-    return true;
+    return getStateById(G, pid).military >= getPlanById(plan).level;
 }
+export const checkPlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
+    const ctr = getCountryById(pid);
+    const planObj = getPlanById(plan);
+    if (ctr === "SONG") {
+
+    } else {
+
+    }
+}
+
+
 export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
     const log = [`t${G.turn}endTurnCheck`];
     if (G.turn === 2) {
