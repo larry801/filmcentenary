@@ -1490,9 +1490,10 @@ console.log("\n\n\n");
 provinces.forEach((e)=>{
     let t = `[${provinceIDsArray[e.id]}]:{id:${provinceIDsArray[e.id]},`
     t += `name:"${e.name}",`;
-    t += `capital:${cityIDsArray[e.capital]},`
-    t += `adjacent:[${e.adjacent.map((r)=>rid(r)).join(',')}],`;
-    t += `other:[${e.otherCities.map((r)=>cityIDsArray[r]).join(',')}]},`;
+    t += `capital:[${e.capital.map(c=>cityIDsArray[c])}],`
+    t += `adjacent:[${e.adjacent.map((r)=>provinceIDsArray[r]).join(',')}],`;
+    t += `other:[${e.otherCities.map((r)=>cityIDsArray[r]).join(',')}],`;
+    t += `regions:[${regions.filter(reg=>reg.provinceID === e.id).map((r)=>rid(r.id)).join(',')}]},`;
     console.log(t);
 })
 console.log("\n\n\n");
