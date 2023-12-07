@@ -4,21 +4,11 @@ import {SongJinnGame} from "../constant/setup";
 import ErrorBoundary from "../../components/error";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {
-    Country,
-    SJPlayer, UNIT_SHORTHAND
-
-} from "../constant/general";
-import {getPlanById} from "../constant/plan";
-import {getStateById, playerById, getCountryById, getStage} from "../util/fetch";
+import {SJPlayer} from "../constant/general";
+import {getStateById, playerById, getCountryById} from "../util/fetch";
 import Button from "@material-ui/core/Button";
-import {getCityById} from "../constant/city";
-import {getRegionById} from "../constant/regions";
-import {sjCardById} from "../constant/cards";
-import {remainDevelop} from "../util/calc";
 import {PubInfo} from "./pub-info";
 import {Operation} from "./operation";
-import PlayerHand from "../../components/player-hand";
 import {SJPlayerHand} from "./player-hand";
 import LogView from "./view-log";
 import {sjPlayerName} from "../util/text";
@@ -47,7 +37,10 @@ export const SongJinnBoard = ({
 
     return <ErrorBoundary>
         <Grid container>
-            {ctx.gameover !== undefined && <ChoiceDialog callback={()=>{}} choices={[]} defaultChoice={""} show={true} title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`} toggleText={"游戏结束"} initial={true}/>}
+            {ctx.gameover !== undefined && <ChoiceDialog callback={() => {
+            }} choices={[]} defaultChoice={""} show={true}
+                                                         title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`}
+                                                         toggleText={"游戏结束"} initial={true}/>}
             {isActive && <Grid item>
                 <PubInfo G={G} ctx={ctx}/>
                 <LogView log={log} getPlayerName={sjPlayerName} G={G}/>
@@ -55,7 +48,7 @@ export const SongJinnBoard = ({
 
             {playerID !== null &&
                 <Grid>
-                    <Button onClick={()=>undo()} >撤回</Button>
+                    <Button onClick={() => undo()}>撤回</Button>
                     <Operation
                         G={G} ctx={ctx}
                         playerID={playerID}

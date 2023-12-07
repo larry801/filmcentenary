@@ -99,17 +99,16 @@ export const CheckBoxDialog = ({
                 <FormControl required component="fieldset">
                     <FormGroup>
                         <FormLabel component="legend">{toggleText}</FormLabel>
-                        {choices.map((c, idx) => <FormControlLabel
-                            control={<Checkbox checked={checked[idx]} onChange={() => handleChange(idx)}/>}
+                        {choices.map((c, idx) => <FormControlLabel key={`checkbox-c-${idx}`}
+                            control={<Checkbox checked={checked[idx]} onChange={() => handleChange(idx)} key={`checkbox-${idx}`}/>}
                             label={c.label}/>
                         )}
-
                     </FormGroup>
                 </FormControl>
             </DialogContent>
             <DialogActions>
                 <Button onClick={debouncedHandleConfirm} color="primary">
-                    "确认"
+                    确认
                 </Button>
             </DialogActions>
         </Dialog>

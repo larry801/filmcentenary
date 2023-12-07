@@ -10,7 +10,7 @@ import {
     SJPlayer,
     Troop
 } from "../constant/general";
-import {getCountryById, getSongTroopByCity, playerById} from "./fetch";
+import {getCountryById, getSongTroopByCity, getSongTroopByRegion, playerById} from "./fetch";
 import {remove} from "./card";
 import {getCityById} from "../constant/city";
 import {PlayerID} from "boardgame.io";
@@ -18,10 +18,17 @@ import {sjCardById} from "../constant/cards";
 import {getRegionById} from "../constant/regions";
 
 export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], country: Country) => {
+
     switch (country) {
         case Country.SONG:
+            const st = getSongTroopByRegion(G,dst);
             for (let i = 0; i < units.length; i++) {
-                G.song.standby[i] -= units[i];
+
+                if(G.song.standby[i] > units[i]) {
+                    G.song.standby[i] -= units[i];
+                }else{
+                    G.song.standby[i] = 0;
+                }
             }
             G.song.troops.push({
                 p: dst,
@@ -38,10 +45,13 @@ export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], countr
             G.jinn.troops.push({
                 p: dst,
                 c: getRegionById(dst).city,
-                country: Country.SONG,
+                country: Country.JINN,
                 u: units,
                 j: []
-            })
+            });
+            break;
+        default:
+            return null;
     }
 }
 

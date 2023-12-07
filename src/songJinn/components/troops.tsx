@@ -3,7 +3,7 @@ import {Ctx, PlayerID} from "boardgame.io"
 import {SongJinnGame} from "../constant/setup";
 import Grid from "@material-ui/core/Grid";
 
-import {getStateById, playerById, getCountryById, unitsToString} from "../util/fetch";
+import {getStateById, playerById, getCountryById, unitsToString, StrProvince} from "../util/fetch";
 import Button from "@material-ui/core/Button";
 import {sjCardById} from "../constant/cards";
 import Accordion from '@material-ui/core/Accordion';
@@ -34,7 +34,6 @@ enum TroopStep {
 
 const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
     const [expanded, setExpanded] = React.useState(0);
-    const [prov, setProv] = React.useState(ProvinceID.JINGJILU);
     const [reg, setReg] = React.useState(RegionID.R01);
     const [newStep, setNewStep] = React.useState(TroopStep.START);
     const [regions, setRegions] = React.useState([RegionID.R01])
@@ -47,9 +46,17 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
         <Button variant={"contained"} fullWidth onClick={() => setNewStep(TroopStep.PROVINCE)}>新增部队</Button>
         <ChoiceDialog
             callback={(c) => {
-                const newProv = c as ProvinceID;
-                setRegions(getProvinceById(newProv).regions);
-                setProv(newProv);
+                const newProv = StrProvince.get(c);
+                if (newProv === undefined) {
+                    console.log(`${c}|cannot|convertToProv`);
+                    return;
+                }
+                const province = getProvinceById(newProv);
+                const newRegions = province.regions;
+                console.log(JSON.stringify(province))
+                console.log(newProv);
+                console.log(newRegions);
+                setRegions(newRegions);
                 setNewStep(TroopStep.REGION);
             }} choices={
             Object.values(ProvinceID).map(p => {
@@ -71,7 +78,8 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
                 })
                 moves.placeUnit({
                     dst: reg,
-                    units: units
+                    units: units,
+                    country: ctr
                 })
                 setNewStep(TroopStep.START);
             }}
@@ -89,7 +97,7 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
             callback={(c) => {
                 const regID = parseInt(c) as RegionID;
                 setReg(regID);
-
+                setNewStep(TroopStep.UNIT);
             }}
             choices={regions.map(r => {
                 const reg = getRegionById(r);

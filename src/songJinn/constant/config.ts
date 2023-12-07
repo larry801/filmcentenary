@@ -145,12 +145,12 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
         chooseFirst: chooseFirst
     },
     next: 'choosePlan',
-    start: true,
+    // start: true,
     turn: NormalTurnConfig
 }
 
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
-    // start: true,
+    start: true,
     moves: {
 
         op: op,

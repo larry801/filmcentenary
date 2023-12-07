@@ -11,7 +11,7 @@ import {
     JinnLateCardID,
     JinnMidCardID,
     MountainPassID,
-    Nations,
+    Nations, ProvinceID,
     RegionID,
     SJPlayer,
     SongEarlyCardID,
@@ -25,7 +25,12 @@ import {getRegionById} from "../constant/regions";
 import {Stage} from "boardgame.io/core";
 import {activePlayer} from "../../game/util";
 import {sjCardById} from "../constant/cards";
+import {getProvinceById} from "../constant/province";
 
+
+export const StrProvince: Map<string, ProvinceID> = new Map(Object.values(ProvinceID).map(
+    (memberValue) => [`${memberValue}`, memberValue] as const
+))
 
 export const getReadyGenerals = (G: SongJinnGame, pid: PlayerID) => {
     const readyGenerals = [];

@@ -1422,6 +1422,7 @@ const provinceIDsArray = [
     "ProvinceID.HEDONGLU",
     "ProvinceID.HEBEILIANGLU",
     "ProvinceID.JINGDONGLIANGLU",
+    "ProvinceID.SHANXILIULU",
     "ProvinceID.JINGXILIANGLU",
     "ProvinceID.JINGJILU",
     "ProvinceID.HUAINANLIANGLU",
@@ -1430,7 +1431,6 @@ const provinceIDsArray = [
     "ProvinceID.JIANGNANLIANGLU",
     "ProvinceID.LIANGZHELU",
     "ProvinceID.FUJIANLU",
-    "ProvinceID.SHANXILIULU",
 ];
 
 function rid(id) {

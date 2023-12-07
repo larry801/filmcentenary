@@ -32,7 +32,6 @@ import {drawPhaseForPlayer, drawPlanForPlayer, remove} from "./util/card";
 import {endRoundCheck, endTurnCheck, heYiCheck, returnDevCardCheck} from "./util/check";
 import {getCityById} from "./constant/city";
 import {addTroop, heYiChange} from "./util/change";
-import {getRegionById} from "./constant/regions";
 
 export const letter: LongFormMove = {
     move: (G, ctx, arg: LetterOfCredence) => {
