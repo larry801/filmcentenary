@@ -54,7 +54,13 @@ export const march: LongFormMove = {
         const pub = getStateById(G, ctx.playerID);
         const t = pub.troops[idx];
         if (t.u.filter((u, i) => units[i] === u).length === units.length) {
-            t.p = dst;
+            const destTroops = pub.troops.filter((t2:Troop) => t2.p === dst);
+            if (destTroops.length > 0) {
+                const d = destTroops[0];
+                mergeTroopTo(G, idx, pub.troops.indexOf(d), ctx.playerID);
+            } else {
+                t.p = dst;
+            }
         } else {
             for (let i = 0; i < units.length; i++) {
                 if (t.u[i] < units[i]) {
