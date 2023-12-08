@@ -22,7 +22,7 @@ export const getLogText = (l: LogEntry): string => {
             try {
 
                 const name = payload.type;
-                const arg = payload.args === undefined ? payload.args[0] : "";
+                const arg = payload.args !== undefined && payload.args[0] !== undefined ? payload.args[0] : "";
                 switch (name) {
                     case 'deploy':
                         log += `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
@@ -53,6 +53,9 @@ export const getLogText = (l: LogEntry): string => {
                         break;
                     case 'chooseFirst':
                         log += `选择${sjPlayerName(arg)}先行动`;
+                        break;
+                    case 'takePlan':
+                        log += `拿走了${arg.map((p: PlanID) => getPlanById(p).name)}`;
                         break;
                     case 'showPlan':
                         log += `展示${arg.map((p: PlanID) => getPlanById(p).name)}`;

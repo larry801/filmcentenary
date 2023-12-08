@@ -792,6 +792,12 @@ export const chooseTop: LongFormMove = {
         if (ctr === Country.SONG && G.events.includes(ActiveEvents.YanJingYiNan)) {
 
         }
+        if (G.order[0] === ctx.playerID) {
+
+            ctx.events?.endTurn()
+        }else{
+            ctx.events?.setPhase('develop')
+        }
     }
 }
 
@@ -814,11 +820,17 @@ export const takePlan: LongFormMove = {
         const ctr = getCountryById(ctx.playerID);
         // const pub = getStateById(G, ctx.playerID);
         // const player = playerById(G, ctx.playerID);
+        arg.forEach((p) => {
+            if (!G.plans.includes(p)) {
+                return INVALID_MOVE;
+            }
+        })
         if (ctr === Country.SONG) {
             G.song.completedPlan = G.song.completedPlan.concat(arg);
         } else {
             G.jinn.completedPlan = G.jinn.completedPlan.concat(arg);
         }
+        G.plans = [];
     }
 }
 

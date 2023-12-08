@@ -4,7 +4,7 @@ import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
 import {cardToSearch, getCountryById, getStage, getStateById, playerById} from "../util/fetch";
-import { Country, DevelopChoice,  SJPlayer} from "../constant/general";
+import {Country, DevelopChoice, SJPlayer} from "../constant/general";
 import {remainDevelop} from "../util/calc";
 import {returnDevCardCheck} from "../util/check";
 import {sjCardById} from "../constant/cards";
@@ -182,8 +182,24 @@ export const Operation = ({
                 hidden: false
             }
         })}
-        show={isActive && ctx.phase === 'resolvePlan'} title={"选择计划"} toggleText={"选择完成的计划"}
+        show={isActive && ctx.phase === 'resolvePlan' && G.plans.length > 0} title={"选择计划"}
+        toggleText={"选择完成的计划"}
         initial={true}/>
+
+    const chooseTopPlanDialog =
+        <CheckBoxDialog
+            callback={(p) => moves.chooseTop(p)}
+            choices={pub.completedPlan.map(p => {
+                return {
+                    label: getPlanById(p).name,
+                    value: p,
+                    disabled: false,
+                    hidden: false
+                }
+            })}
+            show={isActive && ctx.phase === 'resolvePlan' && pub.completedPlan.length > 0} title={"顶端计划"}
+            toggleText={"选择放在顶端的计划"}
+            initial={true}/>
 
     const [dices, setDices] = useState(5);
     const adjustDice = (n: number) => {
@@ -204,10 +220,10 @@ export const Operation = ({
 
     const emptyRoundButton = <Button
         disabled={player.hand.length + G.round > 9}
-                                     onClick={() => moves.emptyRound()}>空过</Button>
+        onClick={() => moves.emptyRound()}>空过</Button>
     const opponentButton = <Button
         disabled={false}
-                                     onClick={() => moves.opponentMove()}>对方操作</Button>
+        onClick={() => moves.opponentMove()}>对方操作</Button>
 
     return <Grid container>
         {diceRoller}
@@ -216,7 +232,7 @@ export const Operation = ({
         {opponentButton}
         {showPlan}
         {takePlanDialog}
-
+        {chooseTopPlanDialog}
         {developDialog}
         {returnToHandDialog}
 

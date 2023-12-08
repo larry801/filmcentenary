@@ -69,7 +69,7 @@ export const ChooseUnitsDialog = ({
         newUnits[idx] += a;
         setUnits(newUnits);
     }
-    const debouncedHandleConfirm = useDebounce(handleConfirm, 300);
+    const debouncedHandleConfirm = useDebounce(handleConfirm, 400);
 
     return show ? <>
         <Button variant={"outlined"} onClick={handleClickOpen}>{toggleText}</Button>
