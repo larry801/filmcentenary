@@ -1,21 +1,20 @@
-import React from "react";
+import React, {useState} from "react";
 import {Ctx, PlayerID} from "boardgame.io"
 import {SongJinnGame} from "../constant/setup";
 import Grid from "@material-ui/core/Grid";
 
-import {getStateById, playerById, getCountryById, unitsToString, StrProvince} from "../util/fetch";
+import {getStateById, getCountryById, unitsToString, StrProvince, getMarchDst} from "../util/fetch";
 import Button from "@material-ui/core/Button";
-import {sjCardById} from "../constant/cards";
 import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
-import {placeUnit} from "../moves";
 import {placeToStr} from "../util/text";
-import {Country, ProvinceID, RegionID, UNIT_SHORTHAND} from "../constant/general";
+import {CityID, Country, isRegionID, ProvinceID, RegionID, UNIT_SHORTHAND} from "../constant/general";
 import ChoiceDialog from "../../components/modals";
 import {getProvinceById} from "../constant/province";
 import {getRegionById} from "../constant/regions";
 import CheckBoxDialog from "./choice";
+import {ChooseUnitsDialog} from "./recruit";
 
 export interface IPlayerHandProps {
     G: SongJinnGame,
@@ -32,21 +31,146 @@ enum TroopStep {
     UNIT
 }
 
+enum MarchStep {
+    TROOP,
+    UNITS,
+    TARGET
+}
+
+enum RemoveStep {
+    TROOP,
+    UNITS
+}
+
+enum PlaceStep {
+    TROOP,
+    UNITS
+}
+
+enum MoveStep {
+    TROOP,
+    PROVINCE,
+    REGION
+}
+
+enum DeployStep {
+    TROOP,
+    UNITS
+}
+
+enum DeployNewStep {
+    TROOP,
+    CITY,
+    UNITS
+}
+
+enum TakeDamageStep {
+    TROOP,
+    READY,
+    STANDBY
+}
+
 const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
     const [expanded, setExpanded] = React.useState(0);
-    const [reg, setReg] = React.useState(RegionID.R01);
-    const [newStep, setNewStep] = React.useState(TroopStep.START);
-    const [regions, setRegions] = React.useState([RegionID.R01])
 
-    const player = playerById(G, pid);
-    const troops = getStateById(G, pid).troops;
+    const pub = getStateById(G, pid);
+    const troops = pub.troops;
     const ctr = getCountryById(pid);
     const unitNames = ctr === Country.SONG ? UNIT_SHORTHAND[0] : UNIT_SHORTHAND[1];
+
+
+    const [removeStep, setRemoveStep] = React.useState(RemoveStep.TROOP);
+    const [removeTroop, setRemoveTroop] = React.useState(0);
+
+    const [deployStep, setDeployStep] = React.useState(DeployStep.TROOP);
+    const [deployTroop, setDeployTroop] = useState(0);
+
+    const depUnitDialog = <ChooseUnitsDialog
+        callback={(u) => {
+            moves.deploy({
+                units: u,
+                idx: deployTroop
+            });
+            setDeployStep(DeployStep.TROOP);
+        }}
+        max={[...pub.ready]}
+        initUnits={unitNames.map(() => 0)}
+        show={isActive && deployStep === DeployStep.UNITS}
+        title={"选择补充部队"} toggleText={"补充"}
+        initial={true} country={ctr}
+    />
+
+
+    const [takeDamageStep, setTakeDamageStep] = React.useState(TakeDamageStep.TROOP);
+    const [takeDamageTroop, setTakeDamageTroop] = useState(0);
+    const [readyUnits, setReadyUnits] = React.useState([0]);
+
+    const takeDamageReadyDialog = <ChooseUnitsDialog
+        callback={(u) => {
+            setTakeDamageStep(TakeDamageStep.STANDBY)
+            setReadyUnits(u)
+        }} max={troops[removeTroop].u} initUnits={unitNames.map(() => 0)}
+        show={isActive && takeDamageStep === TakeDamageStep.READY} title={"选择要消灭的部队"}
+        toggleText={"消灭部队"} initial={true} country={ctr}/>
+
+    const takeDamageStandbyDialog = <ChooseUnitsDialog
+        callback={(u) => {
+            setTakeDamageStep(TakeDamageStep.TROOP)
+            moves.takeDamage({
+                c: ctr,
+                idx: takeDamageTroop,
+                ready: readyUnits,
+                standby: u
+            })
+        }} max={troops[removeTroop].u} initUnits={unitNames.map(() => 0)}
+        show={isActive && takeDamageStep === TakeDamageStep.STANDBY} title={"选择要消灭的部队"}
+        toggleText={"消灭部队"} initial={true} country={ctr}/>
+
+    const [moveTroop, setMoveTroop] = useState(0);
+    const [moveStep, setMoveStep] = useState(MoveStep.TROOP);
+
+    const moveProvDialog = <ChoiceDialog
+        callback={(c) => {
+            const newProv = StrProvince.get(c);
+            if (newProv === undefined) {
+                console.log(`${c}|cannot|convertToProv`);
+                return;
+            }
+            const province = getProvinceById(newProv);
+            const newRegions = province.regions;
+            setRegions(newRegions);
+            setMoveStep(MoveStep.REGION);
+        }} choices={
+        Object.values(ProvinceID).map(p => {
+            return {
+                label: p,
+                value: p,
+                disabled: false,
+                hidden: false
+            }
+        })} defaultChoice={""}
+        show={isActive && moveStep === MoveStep.PROVINCE}
+        title={"选择移动目标路"} toggleText={"选择移动到的路"} initial={true}/>
+
+
+    const [newTroopRegion, setNewTroopRegion] = React.useState(RegionID.R01);
+    const [newStep, setNewStep] = React.useState(TroopStep.START);
+    const [regions, setRegions] = React.useState([RegionID.R01]);
+
     const regionDialog = <ChoiceDialog
         callback={(c) => {
             const regID = parseInt(c) as RegionID;
-            setReg(regID);
-            setNewStep(TroopStep.UNIT);
+            if (newStep === TroopStep.REGION) {
+                setNewTroopRegion(regID);
+                setNewStep(TroopStep.UNIT);
+            }
+            if (moveStep === MoveStep.REGION) {
+                setMoveStep(MoveStep.TROOP);
+                moves.moveTroop({
+                    idx: moveTroop,
+                    dst: regID
+                })
+            }
         }}
         choices={regions.map(r => {
             const reg = getRegionById(r);
@@ -56,8 +180,10 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
                 hidden: false,
                 disabled: false
             }
-        })} defaultChoice={""} show={isActive && newStep === TroopStep.REGION} title={"选择目标区域"}
+        })} defaultChoice={""} show={isActive && newStep === TroopStep.REGION || moveStep === MoveStep.REGION}
+        title={"选择目标区域"}
         toggleText={"选择目标区域"} initial={true}/>;
+
     const unitDialog = <CheckBoxDialog
         callback={(c) => {
             const units = unitNames.map(() => 0);
@@ -65,8 +191,8 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
                 const idx = unitNames.indexOf(u);
                 units[idx] = 1;
             })
-            moves.placeUnit({
-                dst: reg,
+            moves.placeUnits({
+                dst: newTroopRegion,
                 units: units,
                 country: ctr
             })
@@ -82,6 +208,7 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
         })}
         show={isActive && newStep === TroopStep.UNIT}
         title={"选择兵种"} toggleText={"选择兵种"} initial={true}/>;
+
     const provDialog = <ChoiceDialog
         callback={(c) => {
             const newProv = StrProvince.get(c);
@@ -91,9 +218,6 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
             }
             const province = getProvinceById(newProv);
             const newRegions = province.regions;
-            console.log(JSON.stringify(province))
-            console.log(newProv);
-            console.log(newRegions);
             setRegions(newRegions);
             setNewStep(TroopStep.REGION);
         }} choices={
@@ -108,35 +232,183 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
         defaultChoice={""} show={isActive && newStep === TroopStep.PROVINCE} title={"选择目标路"}
         toggleText={"选择目标路"} initial={true}/>;
 
-    const removeUnitDialog = <ChoiceDialog callback={() => {
-    }} choices={[]} defaultChoice={""} show={false} title={"选择要消灭的部队"} toggleText={"消灭部队"} initial={true}/>
-    const a = <ChoiceDialog callback={() => {
-    }} choices={[]} defaultChoice={""} show={false} title={"选择要消灭的部队"} toggleText={"消灭部队"} initial={true}/>
-    const b = <ChoiceDialog callback={() => {
-    }} choices={[]} defaultChoice={""} show={false} title={"选择要消灭的部队"} toggleText={"消灭部队"} initial={true}/>
-    const c = <ChoiceDialog callback={() => {
-    }} choices={[]} defaultChoice={""} show={false} title={"选择要消灭的部队"} toggleText={"消灭部队"} initial={true}/>
-    const d = <ChoiceDialog callback={() => {
-    }} choices={[]} defaultChoice={""} show={false} title={"选择要消灭的部队"} toggleText={"消灭部队"} initial={true}/>
+
+    const [marchStep, setMarchStep] = React.useState(MarchStep.TROOP);
+    const [marchUnits, setMarchUnits] = React.useState([0, 0, 0]);
+    const [marchTroop, setMarchTroop] = React.useState(0);
+
+    const marchRegionDialog = <ChoiceDialog
+        callback={(r) => {
+            moves.march({
+                dst: r,
+                units: marchUnits,
+                country: ctr,
+                idx: marchTroop
+            });
+            setMarchStep(MarchStep.TROOP);
+        }}
+        choices={getMarchDst(G, troops[marchTroop].p).map(r => {
+            if (r == null) {
+                return {
+                    label: "",
+                    value: "",
+                    hidden: true,
+                    disabled: true
+                }
+            }
+            if (isRegionID(r)) {
+                const reg = getRegionById(r);
+                return {
+                    label: reg.name,
+                    value: r.toString(),
+                    hidden: false,
+                    disabled: false
+                }
+            } else {
+                return {
+                    label: r.toString(),
+                    value: r.toString(),
+                    hidden: false,
+                    disabled: false
+                }
+            }
+
+        })}
+        defaultChoice={""}
+        show={isActive && marchStep === MarchStep.TARGET}
+        title={"选择目标区域"}
+        toggleText={"选择目标区域"}
+        initial={true}/>;
+
+
+    const marchDialog = <ChooseUnitsDialog
+        callback={(c) => {
+            setMarchUnits(c);
+            setMarchStep(MarchStep.TARGET)
+        }} max={[...troops[marchTroop].u]} initUnits={[...troops[marchTroop].u]}
+        show={isActive && marchStep === MarchStep.UNITS}
+        title={"选择进军部队"} toggleText={"选择进军部队"} initial={true} country={ctr}/>
+
+    const [deployNewStep, setDeployNewStep] = React.useState(DeployNewStep.TROOP);
+    const [deployNewCity, setDeployNewCity] = React.useState(CityID.DaTong);
+
+    const deployNewCityDialog = <ChoiceDialog
+        callback={(c) => {
+            setDeployNewCity(c as unknown as CityID);
+            setDeployNewStep(DeployNewStep.UNITS);
+        }} choices={pub.cities.map(c => {
+        return {
+            label: c.toString(),
+            value: c.toString(),
+            hidden: false,
+            disabled: false
+        }
+    })} defaultChoice={""}
+        show={isActive && deployNewStep === DeployNewStep.CITY} title={"补充城市"} toggleText={"补充城市"}
+        initial={true}/>
+
+    const deployNewCityUnitsDialog = <ChooseUnitsDialog
+        callback={(u) => {
+            moves.deploy({city: deployNewCity, units: u});
+            setDeployNewStep(DeployNewStep.TROOP);
+        }}
+        max={pub.ready} initUnits={unitNames.map(() => 0)}
+        show={isActive && deployNewStep === DeployNewStep.UNITS} title={"补充部队"} toggleText={"补充部队"}
+        initial={true} country={ctr}
+    />
+
+    const removeUnitDialog = <ChooseUnitsDialog
+        callback={(u) => {
+            setRemoveStep(RemoveStep.TROOP)
+            moves.removeUnits({
+                units: u,
+                idx: removeTroop,
+                country: ctr
+            })
+        }} max={troops[removeTroop].u} initUnits={unitNames.map(() => 0)}
+        show={isActive && removeStep === RemoveStep.UNITS} title={"选择要消灭的部队"}
+        toggleText={"消灭部队"} initial={true} country={ctr}/>
+
+    const [placeStep, setPlaceStep] = useState(PlaceStep.TROOP);
+    const [placeTroop, setPlaceTroop] = useState(0);
+
+    const placeUnitsDialog = <ChooseUnitsDialog
+        callback={(u) => {
+            setPlaceStep(PlaceStep.TROOP)
+            moves.placeTroop({
+                units: u,
+                idx: removeTroop,
+                country: ctr
+            })
+        }} max={troops[placeTroop].u} initUnits={unitNames.map(() => 0)}
+        show={isActive && placeStep === PlaceStep.UNITS} title={"选择要放置的的部队"}
+        toggleText={"放置部队"} initial={true} country={ctr}/>
+
 
     return <Grid>
-        <Button variant={"contained"} fullWidth onClick={() => setNewStep(TroopStep.PROVINCE)}>新增部队</Button>
+        <Button variant={"contained"} fullWidth onClick={() => setNewStep(TroopStep.PROVINCE)}>放置部队</Button>
+        <Button variant={"contained"} fullWidth onClick={() => setDeployNewStep(DeployNewStep.CITY)}>补充空城市</Button>
         {provDialog}
         {unitDialog}
         {regionDialog}
 
-        <ChoiceDialog callback={() => {
-        }} choices={[]} defaultChoice={""} show={false} title={"选择受创单位"} toggleText={"单位"} initial={true}/>
+        {marchDialog}
+        {marchRegionDialog}
+
+        {deployNewCityDialog}
+        {deployNewCityUnitsDialog}
+
+        {depUnitDialog}
+
+        {takeDamageReadyDialog}
+        {takeDamageStandbyDialog}
+
+        {removeUnitDialog}
+
+        {moveProvDialog}
+
+        {placeUnitsDialog}
+
         {troops.map((t, idx) => <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
                                            key={`troop-${idx}`}>
             <AccordionSummary>{placeToStr(t.p)}|{unitsToString(t.u)}</AccordionSummary>
             <AccordionDetails>
-                <Button>进军</Button>
-                <Button>移动</Button>
-                <Button>受创</Button>
-                <Button>补充</Button>
-                <Button>放置</Button>
-                <Button>消灭</Button>
+                <Button onClick={
+                    () => {
+                        setMarchTroop(idx);
+                        setMarchStep(MarchStep.UNITS);
+                    }
+                }>进军</Button>
+                <Button onClick={
+                    () => {
+                        setMoveTroop(idx);
+                        setMoveStep(MoveStep.PROVINCE)
+                    }
+                }>移动</Button>
+                <Button onClick={
+                    () => {
+                        setTakeDamageStep(TakeDamageStep.READY);
+                        setTakeDamageTroop(idx);
+                    }
+                }>受创</Button>
+                <Button onClick={
+                    () => {
+                        setDeployStep(DeployStep.UNITS);
+                        setDeployTroop(idx);
+                    }
+                }>补充</Button>
+                <Button onClick={
+                    () => {
+                        setPlaceStep(PlaceStep.UNITS);
+                        setPlaceTroop(idx);
+                    }
+                }>放置</Button>
+                <Button onClick={
+                    () => {
+                        setRemoveStep(RemoveStep.UNITS);
+                        setRemoveTroop(idx);
+                    }
+                }>消灭</Button>
             </AccordionDetails>
         </Accordion>)}
     </Grid>

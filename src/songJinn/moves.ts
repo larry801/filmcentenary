@@ -7,11 +7,13 @@ import {
     CityID,
     Country,
     DevelopChoice,
+    isRegionID,
     LetterOfCredence,
     NationID,
     PlayerPendingEffect,
     RegionID,
-    SJPlayer
+    SJPlayer,
+    TroopPlace
 } from "./constant/general";
 import {logger} from "../game/logger";
 import {getPlanById, PlanID} from "./constant/plan";
@@ -31,7 +33,51 @@ import {sjCardById} from "./constant/cards";
 import {drawPhaseForPlayer, drawPlanForPlayer, remove} from "./util/card";
 import {endRoundCheck, heYiCheck, returnDevCardCheck} from "./util/check";
 import {getCityById} from "./constant/city";
-import {addTroop, heYiChange, rollDiceByPid} from "./util/change";
+import {addTroop, heYiChange, recruit, removeUnitOnTroop, rollDiceByPid} from "./util/change";
+import {getRegionById} from "./constant/regions";
+
+interface IMarchArgs {
+    dst: TroopPlace;
+    idx: number;
+    country: Country;
+    units: number[]
+}
+
+export const march: LongFormMove = {
+    move: (G, ctx, {dst, idx, country, units}: IMarchArgs) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const ctr = getCountryById(ctx.playerID);
+        // const player = playerById(G, ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const t = pub.troops[idx];
+        if (t.u.filter((u, i) => units[i] === u).length === units.length) {
+            t.p = dst;
+        } else {
+            for (let i = 0; i < units.length; i++) {
+                if (t.u[i] < units[i]) {
+                    return INVALID_MOVE;
+                } else {
+                    t.u[i] -= units[i];
+                }
+            }
+            let city = null;
+            if (isRegionID(dst)) {
+                city = getRegionById(dst).city;
+            }
+            pub.troops.push({
+                p: dst,
+                c: city,
+                j: [],
+                u: units,
+                country: ctr
+            })
+        }
+        ctx.events?.endTurn();
+    }
+}
+
 
 export const letter: LongFormMove = {
     move: (G, ctx, arg: LetterOfCredence) => {
@@ -76,15 +122,64 @@ export const takeDamage: LongFormMove = {
     }
 }
 
-export interface IPlaceUnitsArgs {
-    dst: number,
+export interface IPlaceUnitsToTroopArgs {
+    idx: number,
     units: number[],
     country: Country
 }
 
 export const placeUnit: LongFormMove = {
-    move: (G, ctx, {dst, units, country}: IPlaceUnitsArgs) => {
-        addTroop(G, dst, units, country);
+    move: (G, ctx, {idx, units, country}: IPlaceUnitsToTroopArgs) => {
+        const pub = country === Country.SONG ? G.song : G.jinn;
+        const t = pub.troops[idx];
+        if (t === undefined) {
+            return INVALID_MOVE;
+        }
+        for (let i = 0; i < units.length; i++) {
+            if (pub.standby[i] < units[i]) {
+                t.u[i] += pub.standby[i];
+                pub.standby[i] = 0;
+            } else {
+                pub.standby[i] -= units[i];
+                t.u[i] += units[i];
+            }
+        }
+    }
+}
+
+
+export interface IPlaceNewTroopArgs {
+    dst: TroopPlace,
+    units: number[],
+    country: Country
+}
+
+export const placeTroop: LongFormMove = {
+    move: (G, ctx, {dst, units, country}: IPlaceNewTroopArgs) => {
+        const pub = country === Country.SONG ? G.song : G.jinn;
+        pub.troops.push({
+            p: dst,
+            u: units,
+            j: [],
+            c: null,
+            country: country
+        })
+    }
+}
+
+
+export interface IRemoveUnitArgs {
+    idx: number;
+    units: number[];
+    c: Country
+}
+
+export const removeUnit: LongFormMove = {
+    move: (G, ctx, {idx, c, units}: IRemoveUnitArgs) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        removeUnitOnTroop(G, units, ctx.playerID, idx);
     }
 }
 
@@ -155,25 +250,6 @@ export const discard: LongFormMove = {
     }
 }
 
-export const cardToDevelop: LongFormMove = {
-    move: (G, ctx, args) => {
-
-    }
-}
-
-export interface IDevelopArgs {
-    military: number,
-    civil: number,
-    return: [],
-    special: number,
-    country: Country
-}
-
-export interface IDirectRecruitArgs {
-    dst: RegionID,
-    units: number[]
-}
-
 
 export const tieJun: LongFormMove = {
     move: (G, ctx, args: CardID) => {
@@ -209,29 +285,36 @@ export const rollDices: LongFormMove = {
 }
 
 export const recruitPuppet: LongFormMove = {
-    move: (G, ctx, dst: RegionID) => {
+    move: (G, ctx, dst: CityID) => {
         if (ctx.playerID !== SJPlayer.P2) {
             return INVALID_MOVE;
+        }
+        const jt = getJinnTroopByCity(G, dst);
+        if (jt === null) {
+            addTroop(G, getCityById(dst).region, [0, 0, 0, 0, 0, 1, 0], Country.JINN);
+        } else {
+            jt.u[5]++;
         }
     }
 }
 
-export interface IRecruitArgs {
-    units: number[],
-    op: number,
-    country: Country
-}
 
 export interface IMoveTroopArgs {
-    src: RegionID | NationID,
-    dst: RegionID | NationID,
+    idx: number,
+    dst: TroopPlace,
     units: number[],
     country: Country
 }
 
 export const moveTroop: LongFormMove = {
     move: (G, ctx, args: IMoveTroopArgs) => {
-        const {src, dst, units, country} = args;
+        const {idx, dst, units, country} = args;
+        const pub = country === Country.SONG ? G.song : G.jinn;
+        const t = pub.troops[idx];
+        if (t === undefined) {
+            return INVALID_MOVE;
+        }
+        t.p = dst;
     }
 }
 export const emptyRound: LongFormMove = {
@@ -389,10 +472,10 @@ export const chooseFirst: LongFormMove = {
         const pid = ctx.playerID;
         const log = [`p${pid}.moves.chooseFirst(${args})`];
         G.first = args;
-        if (args === SJPlayer.P1){
+        if (args === SJPlayer.P1) {
             G.order = [SJPlayer.P1, SJPlayer.P2];
 
-        }else{
+        } else {
             G.order = [SJPlayer.P2, SJPlayer.P1];
         }
         ctx.events?.endPhase();
@@ -527,12 +610,13 @@ export const op: LongFormMove = {
         const pub = getStateById(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         const card = sjCardById(cid);
-        if(player.hand.includes(cid)){
-            remove(cid,player.hand);
+        if (player.hand.includes(cid)) {
+            remove(cid, player.hand);
             pub.discard.push(cid);
         }
     }
 };
+
 
 export const paiQian: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, cid: CardID) => {
@@ -542,8 +626,8 @@ export const paiQian: LongFormMove = {
         const ctr = getCountryById(ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
-        if(player.hand.includes(cid)){
-            remove(cid,player.hand);
+        if (player.hand.includes(cid)) {
+            remove(cid, player.hand);
             pub.discard.push(cid);
         }
     }
@@ -610,7 +694,6 @@ export const chooseTop: LongFormMove = {
         }
         const ctr = getCountryById(ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
-        const player = playerById(G, ctx.playerID);
         if (!pub.completedPlan.includes(p)) {
             return INVALID_MOVE;
         }
@@ -639,13 +722,22 @@ export const takePlan: LongFormMove = {
             return INVALID_MOVE;
         }
         const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
-        const player = playerById(G, ctx.playerID);
+        // const pub = getStateById(G, ctx.playerID);
+        // const player = playerById(G, ctx.playerID);
         if (ctr === Country.SONG) {
             G.song.completedPlan = G.song.completedPlan.concat(arg);
         } else {
             G.jinn.completedPlan = G.jinn.completedPlan.concat(arg);
         }
+    }
+}
+
+export const recruitUnit: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, units: number[]) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        recruit(G, units, ctx.playerID);
     }
 }
 

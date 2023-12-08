@@ -7,17 +7,21 @@ import {
     GeneralStatus,
     isMountainPassID,
     isOtherCountryID,
+    isRegionID,
     JinnEarlyCardID,
     JinnLateCardID,
     JinnMidCardID,
     MountainPassID,
-    Nations, ProvinceID,
+    NationID,
+    Nations,
+    ProvinceID,
     RegionID,
     SJPlayer,
     SongEarlyCardID,
     SongLateCardID,
     SongMidCardID,
     Troop,
+    TroopPlace,
     UNIT_SHORTHAND
 } from "../constant/general";
 import {Ctx, LogEntry, PlayerID} from "boardgame.io";
@@ -25,12 +29,33 @@ import {getRegionById} from "../constant/regions";
 import {Stage} from "boardgame.io/core";
 import {activePlayer} from "../../game/util";
 import {sjCardById} from "../constant/cards";
-import {getProvinceById} from "../constant/province";
 
 
 export const StrProvince: Map<string, ProvinceID> = new Map(Object.values(ProvinceID).map(
     (memberValue) => [`${memberValue}`, memberValue] as const
-))
+));
+
+
+export const getMarchDst = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
+    if (isMountainPassID(dst)) {
+        return getPassAdj(dst);
+    }
+    if (isRegionID(dst)) {
+        const reg = getRegionById(dst);
+        const result: TroopPlace[] = [...reg.land, ...reg.water];
+        Nations.forEach(n => {
+            if (getNationAdj(n).includes(dst)) {
+                result.push(n);
+            }
+        })
+        return result;
+    }
+    if (isOtherCountryID(dst)) {
+        return getNationAdj(dst);
+    }
+    // bei wei kun
+    return [];
+}
 
 export const getReadyGenerals = (G: SongJinnGame, pid: PlayerID) => {
     const readyGenerals = [];
@@ -85,7 +110,7 @@ export const getStage = (ctx: Ctx) => {
     }
 }
 
-export const getJinnTroopByRegion = (G: SongJinnGame, r: RegionID):Troop|null => {
+export const getJinnTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null => {
     G.jinn.troops.forEach(t => {
         if (t.p === r) {
             return t;
@@ -94,7 +119,7 @@ export const getJinnTroopByRegion = (G: SongJinnGame, r: RegionID):Troop|null =>
     return null;
 }
 
-export const getSongTroopByRegion = (G: SongJinnGame, r: RegionID):Troop|null => {
+export const getSongTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null => {
     G.song.troops.forEach(t => {
         if (t.p === r) {
             return t;
@@ -103,7 +128,20 @@ export const getSongTroopByRegion = (G: SongJinnGame, r: RegionID):Troop|null =>
     return null;
 }
 
-export const getJinnTroopByCity = (G: SongJinnGame, r: CityID):Troop|null => {
+export const getTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null => {
+    const st = getSongTroopByRegion(G, r);
+    const jt = getJinnTroopByRegion(G, r);
+    return st === null ? jt : st;
+}
+
+export const getTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => {
+    const st = getSongTroopByCity(G, r);
+    const jt = getJinnTroopByCity(G, r);
+    return st === null ? jt : st;
+}
+
+
+export const getJinnTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => {
     G.jinn.troops.forEach(t => {
         if (t.c === r) {
             return t;
@@ -112,7 +150,7 @@ export const getJinnTroopByCity = (G: SongJinnGame, r: CityID):Troop|null => {
     return null;
 }
 
-export const getSongTroopByCity = (G: SongJinnGame, r: CityID):Troop|null => {
+export const getSongTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => {
     G.song.troops.forEach(t => {
         if (t.c === r) {
             return t;
@@ -135,29 +173,18 @@ export const getJinnDeployCities = (G: SongJinnGame, r: CityID) => {
     })
 }
 
-export const getTroopDst = (G: SongJinnGame, t: Troop) => {
-    const place = t.p;
-    if (place === null) {
-        // 被围困
-        return [];
-    }
-    if (isOtherCountryID(place)) {
-        return [];
-    } else {
-        if (isMountainPassID(place)) {
-            return getPassAdj(place);
-        } else {
-            const region = getRegionById(place);
-            return [...region.land, ...region.water]
-        }
-    }
-}
-
 export const getPolicy = (G: SongJinnGame, ctx: Ctx) => {
     if (G.events.includes(ActiveEvents.LiGang)) {
         return G.policy > 1 ? 3 : G.policy + 2;
     } else {
         return G.policy;
+    }
+}
+
+
+export function troopPlaceToString(p: TroopPlace) {
+    if (p === null) {
+
     }
 }
 
@@ -189,6 +216,29 @@ export function songTroopStr(units: number[]) {
     return result;
 }
 
+
+export const getNationAdj = (pid: NationID): TroopPlace[] => {
+    switch (pid) {
+        case NationID.XiLiao:
+            return [NationID.XiXia];
+        case NationID.XiXia:
+            return [
+                RegionID.R01, RegionID.R02,
+                RegionID.R09,
+                RegionID.R29, RegionID.R30, RegionID.R31, RegionID.R32
+            ];
+        case NationID.TuBo:
+            return [
+                RegionID.R29, RegionID.R33,
+                RegionID.R51, RegionID.R53, RegionID.R54,
+            ]
+        case NationID.DaLi:
+            return [RegionID.R53, RegionID.R57, RegionID.R58]
+        case NationID.GaoLi:
+            return [RegionID.R23, RegionID.R06];
+    }
+
+}
 export const getPassAdj = (pid: MountainPassID) => {
     switch (pid) {
         case MountainPassID.WuGuan:

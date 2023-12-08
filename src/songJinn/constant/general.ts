@@ -88,8 +88,8 @@ export const enum SJPlayer {
 }
 
 export const GeneralNames = [
-    ["宗泽","岳飞","韩世忠","李显忠","吴玠","吴璘"],
-    ["斡离不","粘罕","娄室","兀朮","银术可","奔睹"]
+    ["宗泽", "岳飞", "韩世忠", "李显忠", "吴玠", "吴璘"],
+    ["斡离不", "粘罕", "娄室", "兀朮", "银术可", "奔睹"]
 ]
 
 export const UNIT_FULL_NAME = [
@@ -113,7 +113,7 @@ export enum DevelopChoice {
     EMPEROR = "拥立"
 }
 
-export const accumulator = (accumulator: number, currentValue :number) => accumulator + currentValue;
+export const accumulator = (accumulator: number, currentValue: number) => accumulator + currentValue;
 
 export const MountainPasses = [
     MountainPassID.DaSanGuan,
@@ -135,7 +135,11 @@ export function isMountainPassID(place: TroopPlace): place is MountainPassID {
     return typeof place === 'string' && Object.values(MountainPassID).includes(place as MountainPassID);
 }
 
-export type TroopPlace = RegionID | NationID | MountainPassID | null;
+export function isCityID(place: TroopPlace): place is MountainPassID {
+    return typeof place === 'string' && Object.values(CityID).includes(place as CityID);
+}
+
+export type TroopPlace = RegionID | NationID | MountainPassID | CityID;
 
 export const UNIT_SHORTHAND = [
     ['步', '弓', '骑', '船', '炮', '背'],
@@ -472,55 +476,42 @@ export interface LetterOfCredence {
     card: CardID;
 }
 
-export const enum CityID {
-    DaTong = 0,
-
-    DaDing = 1,
-    LiaoYang = 2,
-
-    XiJin = 3,
-
-    YangQu = 4,
-    LinFen = 5,
-
-    ShangDang = 6,
-    ZhenDing = 7,
-    AnXi = 8,
-    HeJian = 9,
-    YuanCheng = 10,
-    LiCheng = 11,
-    XuCheng = 12,
-    SongCheng = 13,
-
-    Fushi = 14,
-    TianXing = 15,
-    ChangAn = 16,
-
-    LuoYang = 17,
-    WanQiu = 18,
-    XiangYang = 19,
-
-    KaiFeng = 20,
-
-    JiangDu = 21,
-    XiaCai = 22,
-
-    NanZhen = 23,
-    ChengDu = 24,
-
-    QiXian = 25,
-    JiangLing = 26,
-    AnLu = 27,
-    ChangSha = 28,
-
-    JiangNing = 29,
-    NanChang = 30,
-
-    DanTu = 31,
-    WuXian = 32,
-    QianTang = 33,
-
-    MinXian = 34
+export enum CityID {
+    DaTong = "大同",
+    DaDing = "大定",
+    LiaoYang = "辽阳",
+    XiJin = "析津",
+    YangQu = "阳曲",
+    LinFen = "临汾",
+    ShangDang = "上党",
+    ZhenDing = "真定",
+    AnXi = "安喜",
+    HeJian = "河间",
+    YuanCheng = "元城",
+    LiCheng = "历城",
+    XuCheng = "须城",
+    SongCheng = "宋城",
+    Fushi = "肤施",
+    TianXing = "天兴",
+    ChangAn = "长安",
+    LuoYang = "洛阳",
+    WanQiu = "宛丘",
+    XiangYang = "襄阳",
+    KaiFeng = "开封",
+    JiangDu = "江都",
+    XiaCai = "下蔡",
+    NanZhen = "南郑",
+    ChengDu = "成都",
+    QiXian = "郪县",
+    JiangLing = "江陵",
+    AnLu = "安陆",
+    ChangSha = "长沙",
+    JiangNing = "江宁",
+    NanChang = "南昌",
+    DanTu = "丹徒",
+    WuXian = "吴县",
+    QianTang = "钱塘",
+    MinXian = "闽县",
 }
 
 export enum RegionID {
@@ -623,7 +614,7 @@ export enum ProvinceID {
 }
 
 export const provinceToRegion = {
-    [ProvinceID.XIJINGLU]:[RegionID.R01,RegionID.R02,RegionID.R03],
-    [ProvinceID.BEIJINGLU]:[RegionID.R01,RegionID.R02,RegionID.R03],
-    [ProvinceID.YANJINGLU]:[RegionID.R01,RegionID.R02,RegionID.R03],
+    [ProvinceID.XIJINGLU]: [RegionID.R01, RegionID.R02, RegionID.R03],
+    [ProvinceID.BEIJINGLU]: [RegionID.R01, RegionID.R02, RegionID.R03],
+    [ProvinceID.YANJINGLU]: [RegionID.R01, RegionID.R02, RegionID.R03],
 }

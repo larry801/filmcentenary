@@ -1511,4 +1511,6 @@ regions.forEach((e) => {
     }
     console.log(t);
 })
+console.log("\n\n\n");
 
+cities.forEach(c=>console.log(`${cityIDsArray[c.id]} = "${c.name}",`));

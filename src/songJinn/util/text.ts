@@ -4,6 +4,8 @@ import {LogEntry, PlayerID} from "boardgame.io";
 import {ActionShape} from "boardgame.io/src/types";
 import {sjCardById} from "../constant/cards";
 import {getPlanById, PlanID} from "../constant/plan";
+import {getCityById} from "../constant/city";
+import {unitsToString} from "./fetch";
 
 export const placeToStr = (p: TroopPlace) => {
     return typeof p === "number" ? getRegionById(p).name : p
@@ -20,6 +22,9 @@ export const getLogText = (l: LogEntry): string => {
             const arg = l.action.payload.args;
             const name = l.action.payload.type;
             switch (name) {
+                case 'moveTroop':
+                    log += `移动${unitsToString(arg.units)}到${arg.dst}`;
+                    break;
                 case 'rollDice':
                     log += `扔了${arg === undefined ? 5 : arg}个骰子`;
                     break;
@@ -43,6 +48,12 @@ export const getLogText = (l: LogEntry): string => {
                     break;
                 case 'develop':
                     log += `${arg}`;
+                    break;
+                case 'recruitUnit':
+                    log += `征募${unitsToString(arg)}`;
+                    break;
+                case 'recruitPuppet':
+                    log += `在${getCityById(arg).name}征募签军`;
                     break;
                 case 'letter':
                     log += `向${arg.nation}递交了国书`;

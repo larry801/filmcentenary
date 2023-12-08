@@ -11,14 +11,14 @@ import {
     discard,
     endRound,
     heYi,
-    letter,
-    op,
-    placeUnit,
+    letter, march,
+    op, placeTroop,
+    placeUnit, recruitPuppet, recruitUnit, removeUnit,
     returnToHand,
     rollDices,
     search,
     searchFirst,
-    showPlan,
+    showPlan, takeDamage,
     takePlan,
     tieJun
 } from "../moves";
@@ -28,6 +28,7 @@ import {ActiveEvents, PlayerPendingEffect, SJPlayer} from "./general";
 import {logger} from "../../game/logger";
 import {getLeadingPlayer} from "../util/calc";
 import {canChoosePlan} from "../util/check";
+import {recruit} from "../util/change";
 
 export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
@@ -145,23 +146,28 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
         chooseFirst: chooseFirst
     },
     next: 'choosePlan',
-    start: true,
+    // start: true,
     turn: NormalTurnConfig
 }
 
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
-    // start: true,
+    start: true,
     moves: {
-
         op:op,
+        march:march,
+        recruitUnit:recruitUnit,
+        takeDamage:takeDamage,
         cardEvent: cardEvent,
         developCard: developCard,
         letter: letter,
         heYi: heYi,
         tieJun: tieJun,
+        recruitPuppet:recruitPuppet,
         rollDices: rollDices,
-        //
+        removeUnit:removeUnit,
         placeUnit: placeUnit,
+        //
+        placeTroop:placeTroop,
 
         endRound: endRound
     },

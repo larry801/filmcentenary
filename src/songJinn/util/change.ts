@@ -10,12 +10,52 @@ import {
     SJPlayer,
     Troop
 } from "../constant/general";
-import {getCountryById, getJinnTroopByRegion, getSongTroopByCity, getSongTroopByRegion, playerById} from "./fetch";
+import {
+    getCountryById,
+    getJinnTroopByRegion,
+    getSongTroopByCity,
+    getSongTroopByRegion,
+    getStateById,
+    playerById
+} from "./fetch";
 import {remove} from "./card";
 import {getCityById} from "../constant/city";
 import {Ctx, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
 import {getRegionById} from "../constant/regions";
+
+
+export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerID, idx: number) => {
+    const pub = getStateById(G, pid);
+    const t = pub.troops[idx];
+    if (t === undefined) {
+        return null;
+    }
+    for (let i = 0; i < units.length; i++) {
+        if (units[i] > t.u[i]) {
+            pub.standby[i] += t.u[i] ;
+            t.u[i] = 0;
+        } else {
+            pub.standby[i] += units[i]
+            t.u[i] -= units[i]
+        }
+    }
+}
+
+export const recruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
+    const actualUnits = [...units];
+    const pub = getStateById(G, pid);
+    for (let i = 0; i < units.length; i++) {
+        if (pub.standby[i] > units[i]) {
+            actualUnits[i] = units[i]
+            pub.standby[i] -= units[i];
+        } else {
+            actualUnits[i] = pub.standby[i];
+            pub.standby[i] = 0;
+        }
+        pub.ready[i] += actualUnits[i];
+    }
+}
 
 export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], country: Country) => {
     const actualUnits = [...units];

@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 import {SongJinnGame} from "../constant/setup";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
@@ -8,7 +8,7 @@ import {ActiveEvents, Country, DevelopChoice, JinnUnit, SJPlayer, SongUnit, UNIT
 import {remainDevelop} from "../util/calc";
 import {returnDevCardCheck} from "../util/check";
 import {sjCardById} from "../constant/cards";
-import {getPlanById, PlanID} from "../constant/plan";
+import {getPlanById} from "../constant/plan";
 import Button from "@material-ui/core/Button";
 import CheckBoxDialog from "./choice";
 
@@ -34,32 +34,6 @@ export const Operation = ({
     const country = getCountryById(playerID);
     const remainDevelopPoint: number = remainDevelop(G, ctx, playerID);
 
-    const recruit = (choice: string) => {
-        moves.recruit(choice);
-    }
-
-    const recruitDialog = <ChoiceDialog
-        callback={recruit}
-        choices={country === Country.SONG ? [
-            {label: UNIT_FULL_NAME[0][0], value: SongUnit.Bu.toString(), disabled: false, hidden: false},
-            {label: UNIT_FULL_NAME[0][1], value: SongUnit.Gong.toString(), disabled: false, hidden: false},
-            {label: UNIT_FULL_NAME[0][2], value: SongUnit.Chuan.toString(), disabled: false, hidden: false},
-        ] : [
-            {label: UNIT_FULL_NAME[0][0], value: JinnUnit.Bu.toString(), disabled: false, hidden: false},
-            {label: UNIT_FULL_NAME[0][1], value: JinnUnit.Guai.toString(), disabled: false, hidden: false},
-            {label: UNIT_FULL_NAME[0][2], value: JinnUnit.Tie.toString(), disabled: false, hidden: false},
-            {label: UNIT_FULL_NAME[0][5], value: JinnUnit.Qian.toString(), disabled: false, hidden: false},
-            {
-                label: UNIT_FULL_NAME[0][6],
-                value: JinnUnit.Qi.toString(),
-                disabled: false,
-                hidden: !G.events.includes(ActiveEvents.JianLiDaQi)
-            },
-        ]}
-        defaultChoice={""}
-        toggleText={"征募"} title={"请选择要征募的兵种"}
-        show={isActive && getStage(ctx) === 'recruit'} initial={true}
-    />
 
     const chooseFirst = (choice: string) => {
         moves.chooseFirst(choice);
@@ -240,11 +214,28 @@ export const Operation = ({
         show={isActive && ctx.phase === 'resolvePlan'} title={"选择计划"} toggleText={"选择完成的计划"}
         initial={true}/>
 
-    return <Grid>
+    const [dices, setDices] = useState(5);
+    const adjustDice = (n: number) => {
+        const newDice = dices + n;
+        if (newDice < 1) {
+            setDices(1);
+        } else {
+            setDices(newDice);
+        }
+    }
+    const diceRoller =         <Grid item>
+        <Button onClick={() => adjustDice(-5)}>-5</Button>
+        <Button onClick={() => adjustDice(-1)}>-1</Button>
+        <Button onClick={() => moves.rollDice(dices)}>掷{dices}个骰子</Button>
+        <Button onClick={() => adjustDice(1)}>+1</Button>
+        <Button onClick={() => adjustDice(5)}>+5</Button>
+    </Grid>
+
+    return <Grid container>
+        {diceRoller}
         {endRound}
         {showPlan}
         {takePlanDialog}
-        {recruitDialog}
 
         {developDialog}
         {returnToHandDialog}
