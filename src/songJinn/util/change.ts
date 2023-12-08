@@ -25,7 +25,31 @@ import {sjCardById} from "../constant/cards";
 import {getRegionById} from "../constant/regions";
 import {troopEmpty} from "./check";
 
+export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
+    const pub = getStateById(G, pid);
+    if (pub.civil + a < 1) {
+        pub.civil = 1;
+    } else {
+        if (pub.civil + a > 7) {
+            pub.civil = 7;
+        } else {
+            pub.civil += a;
+        }
+    }
+}
 
+export const changeMilitrary = (G: SongJinnGame, pid: PlayerID, a: number) => {
+    const pub = getStateById(G, pid);
+    if (pub.militrary + a < 1) {
+        pub.militrary = 1;
+    } else {
+        if (pub.militrary + a > 7) {
+            pub.militrary = 7;
+        } else {
+            pub.militrary += a;
+        }
+    }
+}
 
 export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerID, idx: number) => {
     const pub = getStateById(G, pid);
@@ -42,8 +66,8 @@ export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerI
             t.u[i] -= units[i]
         }
     }
-    if (troopEmpty(t)){
-        rm(t,pub.troops);
+    if (troopEmpty(t)) {
+        rm(t, pub.troops);
     }
 }
 
@@ -164,7 +188,8 @@ export const policyDown = (G: SongJinnGame, a: number) => {
     }
 }
 
-export const addGeneral = (G: SongJinnGame, pid: PlayerID, general: General) => {}
+export const addGeneral = (G: SongJinnGame, pid: PlayerID, general: General) => {
+}
 
 export const removeGeneral = (G: SongJinnGame, pid: PlayerID, general: General) => {
     const country = getCountryById(pid);

@@ -34,11 +34,11 @@ import {drawPhaseForPlayer, drawPlanForPlayer, rm} from "./util/card";
 import {endRoundCheck, heYiCheck, returnDevCardCheck, troopEmpty} from "./util/check";
 import {getCityById} from "./constant/city";
 import {
-    addTroop,
-    colonyDown,
+    addTroop, changeCivil, changeMilitrary,
+    colonyDown, colonyUp,
     heYiChange,
     mergeTroopTo,
-    policyDown,
+    policyDown, policyUp,
     recruit,
     removeUnitOnTroop,
     rollDiceByPid
@@ -436,17 +436,28 @@ export const develop: LongFormMove = {
                 } else {
                     switch (choice) {
                         case DevelopChoice.MILITARY:
-                            G.song.military++;
-                            pub.usedDevelop += G.song.military;
+                            if (G.song.military < 7) {
+                                changeMilitrary(G, SJPlayer.P1, 1);
+                                pub.usedDevelop += G.song.military;
+                            } else {
+                                return INVALID_MOVE;
+                            }
                             break;
                         case DevelopChoice.CIVIL:
-                            G.song.civil++;
-                            pub.usedDevelop += G.song.civil;
+                            if (G.song.civil < 7) {
+                                changeCivil(G, SJPlayer.P1, 1);
+                                pub.usedDevelop += G.song.civil;
+                            } else {
+                                return INVALID_MOVE;
+                            }
                             break;
                         case DevelopChoice.POLICY:
-                            G.policy++;
-                            pub.usedDevelop += 3;
-
+                            if (G.policy < 3) {
+                                policyUp(G, 1);
+                                pub.usedDevelop += 3;
+                            } else {
+                                return INVALID_MOVE;
+                            }
                             break;
                         default:
                             break;
@@ -459,16 +470,28 @@ export const develop: LongFormMove = {
                 } else {
                     switch (choice) {
                         case DevelopChoice.MILITARY:
-                            G.jinn.military++;
-                            pub.usedDevelop += G.jinn.military;
+                            if (pub.military < 7) {
+                                changeMilitrary(G, SJPlayer.P2, 1);
+                                pub.usedDevelop += G.jinn.military;
+                            } else {
+                                return INVALID_MOVE;
+                            }
                             break;
                         case DevelopChoice.CIVIL:
-                            G.jinn.civil++;
-                            pub.usedDevelop += G.jinn.military;
+                            if (G.jinn.civil < 7) {
+                                changeCivil(G, SJPlayer.P2, 1);
+                                pub.usedDevelop += G.jinn.military;
+                            } else {
+                                return INVALID_MOVE;
+                            }
                             break;
                         case DevelopChoice.COLONY:
-                            G.colony++;
-                            pub.usedDevelop += G.colony * 2;
+                            if (G.colony < 4) {
+                                colonyUp(G, 1);
+                                pub.usedDevelop += G.colony * 2;
+                            } else {
+                                return INVALID_MOVE;
+                            }
                             break;
                         default:
                             break;
@@ -795,7 +818,7 @@ export const chooseTop: LongFormMove = {
         if (G.order[0] === ctx.playerID) {
 
             ctx.events?.endTurn()
-        }else{
+        } else {
             ctx.events?.setPhase('develop')
         }
     }

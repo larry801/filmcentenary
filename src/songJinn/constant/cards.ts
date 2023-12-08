@@ -15,7 +15,7 @@ import {
 } from "./general";
 import {SongJinnGame} from "./setup";
 import {Ctx} from "boardgame.io";
-import {removeGeneral} from "../util/change";
+import {changeCivil, removeGeneral} from "../util/change";
 import {rm} from "../util/card";
 
 export const getFullDesc = (card: Cards): string => {
@@ -222,7 +222,7 @@ export const idToCard = {
         effectText: "西辽成为宋国的盟国。若西辽已经是宋国的盟国，消灭金国1个部队。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
-            if(G.song.nations.includes(NationID.XiLiao)){
+            if (G.song.nations.includes(NationID.XiLiao)) {
 
             } else {
                 rm(NationID.XiLiao, G.jinn.nations);
@@ -941,8 +941,11 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "宋国失去1国力。金国获得1国力，并提升1级内政等级。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => !G.song.cities.includes(CityID.KaiFeng),
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            changeCivil(G, SJPlayer.P2, 1);
+            G.events.push(ActiveEvents.JingKangZhiBian);
+        }
     },
     [JinnBaseCardID.J02]: {
         id: JinnBaseCardID.J02,
