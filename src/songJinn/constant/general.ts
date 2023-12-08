@@ -14,6 +14,7 @@ export const enum ActiveEvents {
     YanJingYiNan = "燕京以南，号令不行",
 
     JingKangZhiBian = "靖康之变",
+    JinTaiZong = "金太宗",
     ZhuiWangZhuBei = "追亡逐北",
     JiNanZhiFuLiuYu = "济南知府刘豫",
     JinBingLaiLe = "金兵来了",

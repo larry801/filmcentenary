@@ -1,7 +1,15 @@
 import {SongJinnGame} from "../constant/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {getStateById, playerById} from "./fetch";
-import {JinnLateCardID, JinnMidCardID, SJPlayer, SongLateCardID, SongMidCardID} from "../constant/general";
+import {
+    CardID,
+    JinnLateCardID,
+    JinnMidCardID,
+    SJPlayer,
+    SongBaseCardID,
+    SongLateCardID,
+    SongMidCardID
+} from "../constant/general";
 import {getJinnPower} from "./calc";
 import {shuffle} from "../../game/util";
 
@@ -11,6 +19,12 @@ export const rm: RemoveFn<any> = (target, array) => {
     if (array.includes(target)) {
         array.splice(array.indexOf(target), 1);
     }
+}
+
+export const developInstead = (G: SongJinnGame,pid:PlayerID,cid:CardID) => {
+const pub =getStateById(G,pid)
+    G.song.develop.push(cid);
+    rm(cid, G.song.discard)
 }
 
 export const drawPlanForPlayer = (G: SongJinnGame, pid: PlayerID) => {

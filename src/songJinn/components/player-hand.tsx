@@ -57,36 +57,36 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
 
             </AccordionSummary>
             <AccordionDetails>
-                    <Button
-                        disabled={!(isActive && inPhase)}
-                        onClick={() => moves.op(cid)}
-                    >征募和进军</Button>
-                    <Button
-                        disabled={!(isActive && inPhase)}
-                        onClick={() => moves.cardEvent(cid)}
-                    >事件</Button>
-                    <Button
-                        disabled={!(isActive && inPhase)}
-                        onClick={() => moves.paiQIan(cid)}
-                    >派遣</Button>
-                    <Button
-                        disabled={!(isActive && inPhase)}
-                        onClick={() => {
-                            setDipChosen(true);
-                            // @ts-ignore
-                            setDipCard([cid]);
-                        }}
-                    >外交</Button>
-                    <Button
-                        disabled={!(isActive && inPhase)}
-                        onClick={() => moves.developCard(cid)}
-                    >发展</Button>
-                    {getCountryById(pid) === Country.SONG ? <Button
-                        disabled={!(isActive && inPhase)}
-                    >和议</Button> : <Button
-                        onClick={() => moves.tieJun(cid)}
-                        disabled={!(isActive && inPhase)}
-                    >贴军</Button>}
+                <Button
+                    disabled={!(isActive && inPhase)}
+                    onClick={() => moves.op(cid)}
+                >征募和进军</Button>
+                <Button
+                    disabled={!(isActive && inPhase && sjCardById(cid).event(G, ctx))}
+                    onClick={() => moves.cardEvent(cid)}
+                >事件</Button>
+                <Button
+                    disabled={!(isActive && inPhase)}
+                    onClick={() => moves.paiQIan(cid)}
+                >派遣</Button>
+                <Button
+                    disabled={!(isActive && inPhase)}
+                    onClick={() => {
+                        setDipChosen(true);
+                        // @ts-ignore
+                        setDipCard([cid]);
+                    }}
+                >外交</Button>
+                <Button
+                    disabled={!(isActive && inPhase)}
+                    onClick={() => moves.developCard(cid)}
+                >发展</Button>
+                {getCountryById(pid) === Country.SONG ? <Button
+                    disabled={!(isActive && inPhase)}
+                >和议</Button> : <Button
+                    onClick={() => moves.tieJun(cid)}
+                    disabled={!(isActive && inPhase)}
+                >贴军</Button>}
             </AccordionDetails>
         </Accordion>)}
     </Grid>

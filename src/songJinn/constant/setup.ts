@@ -215,6 +215,7 @@ export const emptyPlayerInfo: () => SJPlayerInfo = () => {
 
 export interface SongJinnGame {
     op: number,
+    qi:ProvinceID[],
     plans: PlanID[],
     dices: number[],
     order: SJPlayer[],
@@ -251,6 +252,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
         PlanID.J06
     ])
     const G = {
+        qi:[],
         op: 0,
         plans: [],
         dices: [],

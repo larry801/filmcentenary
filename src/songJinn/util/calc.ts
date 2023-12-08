@@ -5,8 +5,10 @@ import {
     Country,
     isMountainPassID,
     isRegionID,
+    JinnBaseCardID,
     ProvinceID,
     SJPlayer,
+    SongBaseCardID,
     TerrainType,
     Troop
 } from "../constant/general";
@@ -23,9 +25,17 @@ export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
 }
 
 export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
-    const d = getStateById(G, playerId).develop.map(c => sjCardById(c).op);
+    const pub = getStateById(G, playerId);
+    const d = pub.develop.map(c => sjCardById(c).op);
     if (d.length > 0) {
-        return d.reduce(accumulator);
+        let sum = d.reduce(accumulator);
+        if (pub.develop.includes(JinnBaseCardID.J40)) {
+            sum += G.colony * 2 - 2;
+        }
+        if (pub.develop.includes(SongBaseCardID.S45)){
+            sum += G.jinn.cities.filter(c=>getCityById(c).colonizeLevel > G.colony).length - 3;
+        }
+        return sum;
     } else {
         return 0;
     }
@@ -94,13 +104,16 @@ export const getSongScore = (G: SongJinnGame): number => {
     })
     score += G.song.military;
     score += G.song.civil;
+    if(G.events.includes(ActiveEvents.YanJingYiNan)){
+        score ++;
+    }
     return score
 }
 
 export const getSongPower = (G: SongJinnGame): number => {
     const countedProvince = [...G.song.provinces];
     rm(ProvinceID.JINGJILU, countedProvince);
-    if(!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)){
+    if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
         rm(ProvinceID.FUJIANLU, countedProvince);
 
     }
@@ -131,7 +144,7 @@ export const getJinnScore = (G: SongJinnGame): number => {
 export const getJinnPower = (G: SongJinnGame): number => {
     const countedProvince = [...G.jinn.provinces];
     rm(ProvinceID.JINGJILU, countedProvince);
-    if(!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)){
+    if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
         rm(ProvinceID.FUJIANLU, countedProvince);
 
     }

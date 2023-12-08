@@ -5,18 +5,22 @@ import {
     CityID,
     Country,
     EventDuration,
+    GeneralStatus,
     IEra,
     JinnBaseCardID,
     JinnGeneral,
     NationID,
+    ProvinceID,
     RegionID,
     SJPlayer,
-    SongBaseCardID
+    SongBaseCardID,
+    SongGeneral
 } from "./general";
 import {SongJinnGame} from "./setup";
 import {Ctx} from "boardgame.io";
-import {changeCivil, removeGeneral} from "../util/change";
-import {rm} from "../util/card";
+import {changeCivil, changeMilitary, colonyDown, policyDown, policyUp, removeGeneral} from "../util/change";
+import {developInstead, drawCardForSong, rm} from "../util/card";
+import {PlanID} from "./plan";
 
 export const getFullDesc = (card: Cards): string => {
     let effText = "效果：" + card.effectText;
@@ -27,7 +31,7 @@ export const getFullDesc = (card: Cards): string => {
         effText += `撤销：${card.ban}`
     }
     if (card.block !== null) {
-        effText += `禁止：${card.ban}`
+        effText += `禁止：${card.block}`
     }
     if (card.unlock !== null) {
         effText += `解锁：${card.unlock}`
@@ -75,7 +79,6 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => !G.song.cities.includes(CityID.KaiFeng),
         event: (G: SongJinnGame, ctx: Ctx) => {
             G.events.push(ActiveEvents.JianYanNanDu);
-            ctx.events?.setStage('emperor');
         }
     },
     [SongBaseCardID.S02]: {
@@ -92,8 +95,13 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "腐败值减1。本回合余下的时间内，政策倾向视为提升2级的状态（最高为主战3）。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.turn < 7,
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            if (G.song.corruption > 0) {
+                G.song.corruption--;
+            }
+            G.events.push(ActiveEvents.LiGang)
+        }
     },
     [SongBaseCardID.S03]: {
         id: SongBaseCardID.S03,
@@ -109,8 +117,11 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "腐败值变为0 ,每因此减少1点腐败值就提升1级政策倾向。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.policy < 0,
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            policyUp(G, G.song.corruption);
+            G.song.corruption = 0;
+        }
     },
     [SongBaseCardID.S04]: {
         id: SongBaseCardID.S04,
@@ -127,7 +138,7 @@ export const idToCard = {
         combat: false,
         effectText: "【三年之约】作为事件打出时行动点数减1。每当回合结束阶段时，宋国在陕西六路放置1个步兵。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => G.events.push(ActiveEvents.XiJunQuDuan)
     },
     [SongBaseCardID.S05]: {
         id: SongBaseCardID.S05,
@@ -222,9 +233,7 @@ export const idToCard = {
         effectText: "西辽成为宋国的盟国。若西辽已经是宋国的盟国，消灭金国1个部队。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
-            if (G.song.nations.includes(NationID.XiLiao)) {
-
-            } else {
+            if (!G.song.nations.includes(NationID.XiLiao)) {
                 rm(NationID.XiLiao, G.jinn.nations);
                 G.song.nations.push(NationID.XiLiao);
             }
@@ -261,7 +270,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "宋国按照补充规则，在宋国控制且殖民难度大于金国殖民能力的城市，放置预备兵。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => G.song.emperor !== null,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [SongBaseCardID.S12]: {
@@ -330,7 +339,7 @@ export const idToCard = {
         combat: false,
         effectText: "在河北两路的1个区域，放置2个步兵。【刘錡】伤害加1。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => G.events.push(ActiveEvents.BaZiJun)
     },
     [SongBaseCardID.S16]: {
         id: SongBaseCardID.S16,
@@ -346,7 +355,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "在1个未完成殖民的金国城市，放置2个步兵，这个城市所在的路结算控制权。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.JingKangZhiBian),
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [SongBaseCardID.S17]: {
@@ -363,8 +372,11 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "移除粘罕，选择金国内政等级、军事等级或殖民能力降低1级。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.turn >= 5,
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            G.events.push(ActiveEvents.JinTaiZongJiaBeng);
+            rm(ActiveEvents.JinTaiZongJiaBeng, G.events);
+        }
     },
     [SongBaseCardID.S18]: {
         id: SongBaseCardID.S18,
@@ -772,7 +784,12 @@ export const idToCard = {
         combat: false,
         effectText: "宋国作战计划替换为【还我河山】。本回合内宋国所有战斗骰点数加1。当岳飞被移除时，此事件被撤销。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            G.events.push(ActiveEvents.YueShuaiZhiLai);
+            G.song.plan.forEach(p => G.secret.planDeck.push(p));
+            rm(PlanID.J23, G.secret.planDeck);
+            G.song.plan = [PlanID.J23]
+        }
     },
     [SongBaseCardID.S42]: {
         id: SongBaseCardID.S42,
@@ -839,8 +856,11 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "降低金国1级殖民能力，用此牌执行发展。发展阶段，此牌提供发展力等于金国占领但没有完成殖民的城市数量。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.song.generals[SongGeneral.YueFei] === GeneralStatus.TROOP,
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            colonyDown(G, 1);
+            developInstead(G, SJPlayer.P1, SongBaseCardID.S45);
+        }
     },
     [SongBaseCardID.S46]: {
         id: SongBaseCardID.S46,
@@ -856,8 +876,8 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "移动宋国皇帝到钱塘，用此牌执行派遣。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.song.emperor !== null,
+        event: (G: SongJinnGame, ctx: Ctx) => G.song.emperor = CityID.QianTang
     },
     [SongBaseCardID.S47]: {
         id: SongBaseCardID.S47,
@@ -874,7 +894,7 @@ export const idToCard = {
         combat: false,
         effectText: "移除银术可。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => removeGeneral(G, SJPlayer.P2, JinnGeneral.YinShuKe)
     },
     [SongBaseCardID.S48]: {
         id: SongBaseCardID.S48,
@@ -890,8 +910,11 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "用此牌执行发展，宋国摸1张牌。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.song.cities.includes(CityID.LuoYang),
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            developInstead(G, SJPlayer.P1, SongBaseCardID.S48);
+            drawCardForSong(G, ctx);
+        }
     },
     [SongBaseCardID.S49]: {
         id: SongBaseCardID.S49,
@@ -907,8 +930,8 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "放在宋国完成的作战计划堆最上面。绍兴和议时，宋国额外获得1胜利分数。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.song.cities.includes(CityID.XiJin),
+        event: (G: SongJinnGame, ctx: Ctx) => G.events.push(ActiveEvents.YanJingYiNan)
     },
     [SongBaseCardID.S50]: {
         id: SongBaseCardID.S50,
@@ -1012,8 +1035,8 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "在补充阶段开始时可以使用1行动力征募。在发展阶段提供额外1发展力。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => !G.events.includes(ActiveEvents.JinTaiZongJiaBeng),
+        event: (G: SongJinnGame, ctx: Ctx) => G.events.push(ActiveEvents.JinTaiZong)
     },
     [JinnBaseCardID.J06]: {
         id: JinnBaseCardID.J06,
@@ -1029,7 +1052,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "宋国选择以下一项执行：弃掉1张手牌，并移动1个和宋国皇帝相邻的军团到宋国皇帝所在区域；或者宋国失去皇帝。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.JianYanNanDu),
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J07]: {
@@ -1046,8 +1069,8 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "移除 宗泽",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.turn >= 2,
+        event: (G: SongJinnGame, ctx: Ctx) => removeGeneral(G, SJPlayer.P1, SongGeneral.ZongZe)
     },
     [JinnBaseCardID.J08]: {
         id: JinnBaseCardID.J08,
@@ -1148,8 +1171,8 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "禁止拥立。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.JingKangZhiBian),
+        event: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.JinBingLaiLe)
     },
     [JinnBaseCardID.J14]: {
         id: JinnBaseCardID.J14,
@@ -1182,7 +1205,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "使用1行动力进军，不受河流边界限制。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => G.round === 2 || G.round == 6,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J16]: {
@@ -1199,7 +1222,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "使用1行动力进军，不受补给限制。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => [1, 4, 5, 8].includes(G.round),
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J17]: {
@@ -1233,7 +1256,7 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "在3个金国控制的路，放置齐控制标志，齐控制的城市视为完成了殖民。金国获得齐军征募许可，齐军在任何结算时都同时视为签军。若金国军事等级不小于5 ,签军获得远程属性。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.JiNanZhiFuLiuYu),
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J19]: {
@@ -1251,7 +1274,9 @@ export const idToCard = {
         combat: false,
         effectText: "移除斡离不。在1个金国控制的区域放置兀术。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            removeGeneral(G, SJPlayer.P2, JinnGeneral.WoLiBu)
+        }
     },
     [JinnBaseCardID.J20]: {
         id: JinnBaseCardID.J20,
@@ -1284,7 +1309,7 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "宋国每回合开始时腐败值加1。【莫须有】结算时，金国内政等级视为再提升1级的状态。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.ZhangZhaoZhiZheng),
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J22]: {
@@ -1318,7 +1343,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "在陕西六路，使用本卡牌的行动力对任意没有宋国将领的军团执行进军。移除娄室。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => [1, 4, 5, 8].includes(G.round),
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J24]: {
@@ -1335,7 +1360,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "在准南两路，消灭2个部队。征募2个步兵和1个战船（不受内政等级限制〕。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.ZhangZhaoZhiZheng),
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J25]: {
@@ -1352,7 +1377,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "与另1张牌一起打出，行动点数合并计算。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => G.jinn.cities.includes(CityID.JiangDu),
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J26]: {
@@ -1370,7 +1395,7 @@ export const idToCard = {
         combat: false,
         effectText: "宋国失去皇帝。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => G.song.emperor = null
     },
     [JinnBaseCardID.J27]: {
         id: JinnBaseCardID.J27,
@@ -1386,8 +1411,8 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "降低1级殖民能力，在所有齐控制的城市，各放置1个签军和1个拐子马。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.qi.length === 1,
+        event: (G: SongJinnGame, ctx: Ctx) => colonyDown(G, 1)
     },
     [JinnBaseCardID.J28]: {
         id: JinnBaseCardID.J28,
@@ -1403,7 +1428,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "若吐蕃中立，在川峡四路，放置1个步兵；若吐蕃是金国的盟国，则效果翻倍。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => !G.song.nations.includes(NationID.TuBo),
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J29]: {
@@ -1420,7 +1445,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "弃掉数是最多等于内政等级的手牌，然后从金国牌库摸取相等数畺的牌。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.JinTaiZongJiaBeng),
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J30]: {
@@ -1438,7 +1463,7 @@ export const idToCard = {
         combat: false,
         effectText: "禁止宋国对高丽执行外交。若高丽是金国的盟国，则在发展阶段额外提供1发展力。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => G.events.push(ActiveEvents.BuJianLaiShi)
     },
     [JinnBaseCardID.J31]: {
         id: JinnBaseCardID.J31,
@@ -1454,7 +1479,9 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "在陕西六路，消灭2个部队。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) =>
+            G.jinn.provinces.includes(ProvinceID.SHANXILIULU) ||
+            G.jinn.provinces.includes(ProvinceID.HEDONGLU),
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J32]: {
@@ -1471,7 +1498,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: true,
         effectText: "战斗牌消灭1个参战的宋国战船。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => G.jinn.generals[JinnGeneral.WuZhu] === GeneralStatus.TROOP,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J33]: {
@@ -1539,8 +1566,8 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "铁浮屠征募消耗变为1。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.jinn.civil >= 5 && G.jinn.provinces.includes(ProvinceID.JINGDONGLIANGLU),
+        event: (G: SongJinnGame, ctx: Ctx) => G.events.push(ActiveEvents.XuZhouYeTie)
     },
     [JinnBaseCardID.J37]: {
         id: JinnBaseCardID.J37,
@@ -1624,8 +1651,10 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "降低2级政策倾向，消灭宋国总共4个部队。若此时政策倾向为和议，则移除岳飞。否则，放置岳飞到预备兵区。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.jinn.civil === 7,
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            policyDown(G, 2);
+        }
     },
     [JinnBaseCardID.J42]: {
         id: JinnBaseCardID.J42,
@@ -1658,8 +1687,13 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "提升金国1级军事等级，本回合作战计划替换为【吴山立马】。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (G: SongJinnGame, ctx: Ctx) => G.jinn.military >= 5,
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            changeMilitary(G, SJPlayer.P2, 1);
+            G.jinn.plan.forEach(p => G.secret.planDeck.push(p));
+            rm(PlanID.J24, G.secret.planDeck);
+            G.jinn.plan = [PlanID.J24]
+        }
     },
     [JinnBaseCardID.J44]: {
         id: JinnBaseCardID.J44,
