@@ -38,15 +38,15 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
     }
 }
 
-export const changeMilitrary = (G: SongJinnGame, pid: PlayerID, a: number) => {
+export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
     const pub = getStateById(G, pid);
-    if (pub.militrary + a < 1) {
-        pub.militrary = 1;
+    if (pub.military + a < 1) {
+        pub.military = 1;
     } else {
-        if (pub.militrary + a > 7) {
-            pub.militrary = 7;
+        if (pub.military + a > 7) {
+            pub.military = 7;
         } else {
-            pub.militrary += a;
+            pub.military += a;
         }
     }
 }

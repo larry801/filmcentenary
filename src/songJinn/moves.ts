@@ -34,7 +34,7 @@ import {drawPhaseForPlayer, drawPlanForPlayer, rm} from "./util/card";
 import {endRoundCheck, heYiCheck, returnDevCardCheck, troopEmpty} from "./util/check";
 import {getCityById} from "./constant/city";
 import {
-    addTroop, changeCivil, changeMilitrary,
+    addTroop, changeCivil, changeMilitary,
     colonyDown, colonyUp,
     heYiChange,
     mergeTroopTo,
@@ -437,7 +437,7 @@ export const develop: LongFormMove = {
                     switch (choice) {
                         case DevelopChoice.MILITARY:
                             if (G.song.military < 7) {
-                                changeMilitrary(G, SJPlayer.P1, 1);
+                                changeMilitary(G, SJPlayer.P1, 1);
                                 pub.usedDevelop += G.song.military;
                             } else {
                                 return INVALID_MOVE;
@@ -471,7 +471,7 @@ export const develop: LongFormMove = {
                     switch (choice) {
                         case DevelopChoice.MILITARY:
                             if (pub.military < 7) {
-                                changeMilitrary(G, SJPlayer.P2, 1);
+                                changeMilitary(G, SJPlayer.P2, 1);
                                 pub.usedDevelop += G.jinn.military;
                             } else {
                                 return INVALID_MOVE;
