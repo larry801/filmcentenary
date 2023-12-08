@@ -47,8 +47,8 @@ export interface SJPubInfo {
 export const initialJinnPub: SJPubInfo = {
     dices: [],
     troopIdx: -1,
-    develop:[],
-    usedDevelop:0,
+    develop: [],
+    usedDevelop: 0,
     troops: [
         {u: [1, 2, 1, 0, 1, 0, 0], p: RegionID.R20, j: [JinnGeneral.WoLiBu], c: null, country: Country.JINN},
         {u: [2, 0, 0, 0, 0, 0, 0], p: RegionID.R11, j: [JinnGeneral.LouShi], c: CityID.LinFen, country: Country.JINN},
@@ -99,7 +99,7 @@ export const initialJinnPub: SJPubInfo = {
         CityID.YuanCheng,
         CityID.LuoYang
     ],
-    generals:[
+    generals: [
         GeneralStatus.TROOP,
         GeneralStatus.TROOP,
         GeneralStatus.TROOP,
@@ -214,6 +214,7 @@ export const emptyPlayerInfo: () => SJPlayerInfo = () => {
 }
 
 export interface SongJinnGame {
+    op: number,
     plans: PlanID[],
     dices: number[],
     order: SJPlayer[],
@@ -250,11 +251,12 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
         PlanID.J06
     ])
     const G = {
-        plans:[],
+        op: 0,
+        plans: [],
         dices: [],
         removedCountries: [],
         // start from action phase for debugging
-        order: [SJPlayer.P1,SJPlayer.P2],
+        order: [SJPlayer.P1, SJPlayer.P2],
         // order: [SJPlayer.P1],
         events: [],
         round: 1,

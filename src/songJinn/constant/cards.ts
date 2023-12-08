@@ -16,7 +16,7 @@ import {
 import {SongJinnGame} from "./setup";
 import {Ctx} from "boardgame.io";
 import {removeGeneral} from "../util/change";
-import {remove} from "../util/card";
+import {rm} from "../util/card";
 
 export const getFullDesc = (card: Cards): string => {
     let effText = "效果：" + card.effectText;
@@ -225,7 +225,7 @@ export const idToCard = {
             if(G.song.nations.includes(NationID.XiLiao)){
 
             } else {
-                remove(NationID.XiLiao, G.jinn.nations);
+                rm(NationID.XiLiao, G.jinn.nations);
                 G.song.nations.push(NationID.XiLiao);
             }
         }

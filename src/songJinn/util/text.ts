@@ -50,6 +50,12 @@ export const getLogText = (l: LogEntry): string => {
                     case 'choosePlan':
                         log += '选择了一张作战计划';
                         break;
+                    case 'discard':
+                        log += `弃牌${sjCardById(arg).name}`;
+                        break;
+                    case 'search':
+                        log += `检索${sjCardById(arg).name}`;
+                        break;
                     case 'op':
                         log += `打出${sjCardById(arg).name}`;
                         break;
@@ -58,6 +64,9 @@ export const getLogText = (l: LogEntry): string => {
                         break;
                     case 'developCard':
                         log += `发展${sjCardById(arg).name}`;
+                        break;
+                    case 'loseCity':
+                        log += `丢失${arg.city}${arg.opponent?"对手占领":""}`;
                         break;
                     case 'develop':
                         log += `${arg}`;

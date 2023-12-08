@@ -23,7 +23,7 @@ import {
     tieJun
 } from "../moves";
 import {playerById} from "../util/fetch";
-import {drawPlanForPlayer, remove} from "../util/card";
+import {drawPlanForPlayer, rm} from "../util/card";
 import {ActiveEvents, PlayerPendingEffect, SJPlayer} from "./general";
 import {logger} from "../../game/logger";
 import {getLeadingPlayer} from "../util/calc";
@@ -50,8 +50,8 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
             if (G.song.effect.includes(PlayerPendingEffect.SearchCard)) {
                 if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
                     // 目前不可能 因为只有京畿计划有检索
-                    remove(PlayerPendingEffect.SearchCard, G.jinn.effect);
-                    remove(PlayerPendingEffect.SearchCard, G.song.effect);
+                    rm(PlayerPendingEffect.SearchCard, G.jinn.effect);
+                    rm(PlayerPendingEffect.SearchCard, G.song.effect);
                     ctx.events?.setPhase('placeUnit');
 
                 } else {

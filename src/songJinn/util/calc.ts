@@ -16,7 +16,7 @@ import {getCityById} from "../constant/city";
 import {getStateById} from "./fetch";
 import {sjCardById} from "../constant/cards";
 import {getPlanById} from "../constant/plan";
-import {remove} from "./card";
+import {rm} from "./card";
 
 export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
     return G.jinn.civil > G.song.civil ? SJPlayer.P2 : SJPlayer.P1;
@@ -99,9 +99,9 @@ export const getSongScore = (G: SongJinnGame): number => {
 
 export const getSongPower = (G: SongJinnGame): number => {
     const countedProvince = [...G.song.provinces];
-    remove(ProvinceID.JINGJILU, countedProvince);
+    rm(ProvinceID.JINGJILU, countedProvince);
     if(!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)){
-        remove(ProvinceID.FUJIANLU, countedProvince);
+        rm(ProvinceID.FUJIANLU, countedProvince);
 
     }
     let power = countedProvince.length;
@@ -130,9 +130,9 @@ export const getJinnScore = (G: SongJinnGame): number => {
 
 export const getJinnPower = (G: SongJinnGame): number => {
     const countedProvince = [...G.jinn.provinces];
-    remove(ProvinceID.JINGJILU, countedProvince);
+    rm(ProvinceID.JINGJILU, countedProvince);
     if(!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)){
-        remove(ProvinceID.FUJIANLU, countedProvince);
+        rm(ProvinceID.FUJIANLU, countedProvince);
 
     }
     let power = countedProvince.length;

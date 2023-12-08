@@ -36,6 +36,11 @@ export const StrProvince: Map<string, ProvinceID> = new Map(Object.values(Provin
 ));
 
 
+export const optionToActualDst = (dst: string): TroopPlace => {
+    const parsedDst = parseInt(dst);
+    return (parsedDst === undefined ? dst : parsedDst) as TroopPlace;
+}
+
 export const getMarchDst = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
     if (isMountainPassID(dst)) {
         return getPassAdj(dst);
@@ -159,15 +164,15 @@ export const getSongTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => 
     return null;
 }
 
-export const getSongDeployCities = (G: SongJinnGame, r: CityID) => {
-    G.song.cities.filter((cid) => {
+export const getSongDeployCities = (G: SongJinnGame) => {
+    return G.song.cities.filter((cid) => {
         const troop = getJinnTroopByCity(G, cid);
         return troop === null;
     })
 }
 
-export const getJinnDeployCities = (G: SongJinnGame, r: CityID) => {
-    G.jinn.cities.filter((cid) => {
+export const getJinnDeployCities = (G: SongJinnGame) => {
+    return G.jinn.cities.filter((cid) => {
         const troop = getSongTroopByCity(G, cid);
         return troop === null;
     })
@@ -267,12 +272,19 @@ export const playerById = (G: SongJinnGame, pid: PlayerID) => {
     return G.player[pid as SJPlayer];
 }
 
+export const getOpponentStateById = (G: SongJinnGame, pid: PlayerID) => {
+    if (pid as SJPlayer === SJPlayer.P1) {
+        return G.jinn;
+    } else {
+        return G.song;
+    }
+}
+
 export const getStateById = (G: SongJinnGame, pid: PlayerID) => {
-    switch (pid as SJPlayer) {
-        case SJPlayer.P1:
-            return G.song;
-        case SJPlayer.P2:
-            return G.jinn;
+    if (pid as SJPlayer === SJPlayer.P1) {
+        return G.song;
+    } else {
+        return G.jinn;
     }
 }
 

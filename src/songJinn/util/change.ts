@@ -18,11 +18,12 @@ import {
     getStateById,
     playerById
 } from "./fetch";
-import {remove} from "./card";
+import {rm} from "./card";
 import {getCityById} from "../constant/city";
 import {Ctx, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
 import {getRegionById} from "../constant/regions";
+
 
 
 export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerID, idx: number) => {
@@ -68,7 +69,7 @@ export const mergeTroopTo = (G: SongJinnGame, src: number, dst: number, pid: Pla
             b.u[i] += a.u[i];
         }
         b.j = b.j.concat(a.j);
-        remove(a, pub.troops);
+        rm(a, pub.troops);
     }
 
 }
@@ -159,16 +160,18 @@ export const policyDown = (G: SongJinnGame, a: number) => {
     }
 }
 
+export const addGeneral = (G: SongJinnGame, pid: PlayerID, general: General) => {}
+
 export const removeGeneral = (G: SongJinnGame, pid: PlayerID, general: General) => {
     const country = getCountryById(pid);
     switch (country) {
         case Country.SONG:
             G.song.generals[general] = GeneralStatus.REMOVED;
-            G.song.troops.forEach(t => remove(general, t.j));
+            G.song.troops.forEach(t => rm(general, t.j));
             break;
         case Country.JINN:
             G.jinn.generals[general] = GeneralStatus.REMOVED;
-            G.jinn.troops.forEach(t => remove(general, t.j));
+            G.jinn.troops.forEach(t => rm(general, t.j));
             break;
     }
 }
@@ -184,7 +187,7 @@ export const loseCity = (G: SongJinnGame, pid: PlayerID, c: CityID) => {
 
 export const nationMoveJinn = (G: SongJinnGame, c: NationID) => {
     if (G.song.nations.includes(c)) {
-        remove(c, G.song.nations);
+        rm(c, G.song.nations);
     } else {
         if (!G.jinn.nations.includes(c)) {
             G.jinn.nations.push(c)
@@ -194,7 +197,7 @@ export const nationMoveJinn = (G: SongJinnGame, c: NationID) => {
 
 export const nationMoveSong = (G: SongJinnGame, c: NationID) => {
     if (G.jinn.nations.includes(c)) {
-        remove(c, G.jinn.nations);
+        rm(c, G.jinn.nations);
     } else {
         if (!G.song.nations.includes(c)) {
             G.song.nations.push(c)
@@ -254,7 +257,7 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
             G.song.ready[i] += songTroop.u[i];
         }
     }
-    remove(songTroop, G.song.troops);
+    rm(songTroop, G.song.troops);
     const city = getCityById(c);
 
     policyUp(G, city.colonizeLevel);
@@ -262,7 +265,7 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
     if (availableQianJun === 0) {
 
     } else {
-        remove(c, G.song.cities);
+        rm(c, G.song.cities);
         G.jinn.cities.push(c);
         if (availableQianJun === 1) {
             G.jinn.troops.push({

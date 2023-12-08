@@ -7,7 +7,7 @@ import {shuffle} from "../../game/util";
 
 type RemoveFn<T> = (target: T, array: T[]) => void;
 
-export const remove: RemoveFn<any> = (target, array) => {
+export const rm: RemoveFn<any> = (target, array) => {
     if (array.includes(target)) {
         array.splice(array.indexOf(target), 1);
     }

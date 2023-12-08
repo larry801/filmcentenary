@@ -9,10 +9,9 @@ import {
     DevelopChoice,
     isRegionID,
     LetterOfCredence,
-    NationID,
     PlayerPendingEffect,
-    RegionID,
-    SJPlayer, Troop,
+    SJPlayer,
+    Troop,
     TroopPlace
 } from "./constant/general";
 import {logger} from "../game/logger";
@@ -22,15 +21,16 @@ import {
     getCountryById,
     getJinnTroopByCity,
     getJinnTroopByRegion,
+    getOpponentStateById,
     getSongTroopByCity,
     getSongTroopByRegion,
-    getStateById, getTroopByRegion,
+    getStateById,
     playerById
 } from "./util/fetch";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {shuffle} from "../game/util";
 import {sjCardById} from "./constant/cards";
-import {drawPhaseForPlayer, drawPlanForPlayer, remove} from "./util/card";
+import {drawPhaseForPlayer, drawPlanForPlayer, rm} from "./util/card";
 import {endRoundCheck, heYiCheck, returnDevCardCheck} from "./util/check";
 import {getCityById} from "./constant/city";
 import {addTroop, heYiChange, mergeTroopTo, recruit, removeUnitOnTroop, rollDiceByPid} from "./util/change";
@@ -45,23 +45,35 @@ interface IMarchArgs {
 }
 
 export const march: LongFormMove = {
-    move: (G, ctx, {dst, idx, units}: IMarchArgs) => {
+    move: (G, ctx, arg: IMarchArgs) => {
+        const {dst, idx, units} = arg;
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
+        logger.info(`p${ctx.playerID}.march(${JSON.stringify(arg)});`)
         const ctr = getCountryById(ctx.playerID);
         // const player = playerById(G, ctx.playerID);
+        const log = [`p${ctx.playerID}|march|src`];
+        log.push(`|parsed${JSON.stringify(dst)}`);
         const pub = getStateById(G, ctx.playerID);
         const t = pub.troops[idx];
+        log.push(`|${JSON.stringify(t)}`);
         if (t.u.filter((u, i) => units[i] === u).length === units.length) {
-            const destTroops = pub.troops.filter((t2:Troop) => t2.p === dst);
+            log.push(`|all`);
+            const destTroops = pub.troops.filter((t2: Troop) => t2.p === dst);
             if (destTroops.length > 0) {
                 const d = destTroops[0];
-                mergeTroopTo(G, idx, pub.troops.indexOf(d), ctx.playerID);
+                const dstIdx = pub.troops.indexOf(d);
+                log.push(`|merge|to|${d}|${dstIdx}`);
+                mergeTroopTo(G, idx, dstIdx, ctx.playerID);
+                log.push(`|result|${JSON.stringify(d)}`);
             } else {
+                log.push(`|move`);
                 t.p = dst;
+                log.push(`${JSON.stringify(t)}`);
             }
         } else {
+            log.push(`|part`);
             for (let i = 0; i < units.length; i++) {
                 if (t.u[i] < units[i]) {
                     return INVALID_MOVE;
@@ -73,14 +85,18 @@ export const march: LongFormMove = {
             if (isRegionID(dst)) {
                 city = getRegionById(dst).city;
             }
-            pub.troops.push({
+            log.push(`|city${city}`);
+            const newTroop = {
                 p: dst,
                 c: city,
                 j: [],
                 u: units,
                 country: ctr
-            })
+            };
+            log.push(`|new|${newTroop}`);
+            pub.troops.push(newTroop);
         }
+        logger.debug(log.join(''));
     }
 }
 
@@ -92,7 +108,7 @@ export const letter: LongFormMove = {
         }
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(arg.card)) {
-            remove(arg.card, player.hand);
+            rm(arg.card, player.hand);
         } else {
             return INVALID_MOVE;
         }
@@ -249,7 +265,7 @@ export const discard: LongFormMove = {
         }
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(c)) {
-            remove(c, player.hand);
+            rm(c, player.hand);
             const pub = getStateById(G, ctx.playerID);
             pub.discard.push(c);
         } else {
@@ -264,19 +280,19 @@ export const tieJun: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
+        // const ctr = getCountryById(ctx.playerID);
+        // const pub = getStateById(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(args)) {
-            remove(args, player.hand);
+            rm(args, player.hand);
         }
     }
 }
-export const chooseUnit: LongFormMove = {
-    move: (G, ctx, args) => {
-
-    }
-}
+// export const chooseUnit: LongFormMove = {
+//     move: (G, ctx, args) => {
+//
+//     }
+// }
 
 
 export const rollDices: LongFormMove = {
@@ -317,13 +333,13 @@ export interface IMoveTroopArgs {
 export const moveTroop: LongFormMove = {
     move: (G, ctx, args: IMoveTroopArgs) => {
         if (ctx.playerID === undefined) return INVALID_MOVE;
-        const {idx, dst, units, country} = args;
+        const {idx, dst, country} = args;
         const pub = country === Country.SONG ? G.song : G.jinn;
         const t = pub.troops[idx];
         if (t === undefined) {
             return INVALID_MOVE;
         }
-        const destTroops = pub.troops.filter((t:Troop) => t.p === dst);
+        const destTroops = pub.troops.filter((t: Troop) => t.p === dst);
         if (destTroops.length > 0) {
             const d = destTroops[0];
             mergeTroopTo(G, idx, pub.troops.indexOf(d), ctx.playerID);
@@ -358,7 +374,7 @@ export const develop: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        const player = playerById(G, ctx.playerID);
+        // const player = playerById(G, ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         const country = getCountryById(ctx.playerID);
         switch (country) {
@@ -424,7 +440,7 @@ export const returnToHand: LongFormMove = {
         const player = playerById(G, ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         if (pub.develop.includes(args)) {
-            remove(args, pub.develop);
+            rm(args, pub.develop);
             player.hand.push(args)
         } else {
             return INVALID_MOVE;
@@ -473,7 +489,7 @@ export const developCard: LongFormMove = {
         }
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(args)) {
-            remove(args, player.hand);
+            rm(args, player.hand);
         } else {
             return INVALID_MOVE;
         }
@@ -572,17 +588,21 @@ export const choosePlan: LongFormMove = {
 }
 
 export const search: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx, args: CardID) => {
+    client: false,
+    move: (G: SongJinnGame, ctx: Ctx, cid: CardID) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE
         }
         const cards = cardToSearch(G, ctx, ctx.playerID);
-        switch (ctx.playerID as SJPlayer) {
-            case SJPlayer.P1:
-
-                return;
-            case SJPlayer.P2:
-                return;
+        // const ctr = getCountryById(ctx.playerID);
+        // const pub = getStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
+        const deck = ctx.playerID as SJPlayer === SJPlayer.P1 ? G.secret.songDeck : G.secret.jinnDeck;
+        if (deck.includes(cid) && cards.includes(cid)) {
+            rm(cid, deck);
+            player.hand.push(cid);
+        } else {
+            return INVALID_MOVE;
         }
     }
 }
@@ -623,12 +643,13 @@ export const op: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        const ctr = getCountryById(ctx.playerID);
+        // const ctr = getCountryById(ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         const card = sjCardById(cid);
+        G.op = card.op;
         if (player.hand.includes(cid)) {
-            remove(cid, player.hand);
+            rm(cid, player.hand);
             pub.discard.push(cid);
         }
     }
@@ -644,7 +665,7 @@ export const paiQian: LongFormMove = {
         const pub = getStateById(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(cid)) {
-            remove(cid, player.hand);
+            rm(cid, player.hand);
             pub.discard.push(cid);
         }
     }
@@ -652,6 +673,7 @@ export const paiQian: LongFormMove = {
 
 
 // Adjust status moves for semi auto only
+
 
 export const down: LongFormMove = {
     move: (G, ctx, choice: DevelopChoice) => {
@@ -714,7 +736,7 @@ export const chooseTop: LongFormMove = {
         if (!pub.completedPlan.includes(p)) {
             return INVALID_MOVE;
         }
-        remove(p, pub.completedPlan);
+        rm(p, pub.completedPlan);
         pub.completedPlan.push(p);
         if (ctr === Country.SONG && G.events.includes(ActiveEvents.YanJingYiNan)) {
 
@@ -755,6 +777,31 @@ export const recruitUnit: LongFormMove = {
             return INVALID_MOVE;
         }
         recruit(G, units, ctx.playerID);
+    }
+}
+
+interface ILoseCity {
+    cid: CityID,
+    opponent: boolean
+}
+
+export const loseCity: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx,arg:ILoseCity) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const {cid,opponent} = arg;
+        // const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const oppo = getOpponentStateById(G, ctx.playerID);
+        if (pub.cities.includes(cid)) {
+            rm(cid, pub.cities);
+            if (opponent) {
+                oppo.cities.push(cid)
+            }
+        } else {
+            return INVALID_MOVE;
+        }
     }
 }
 

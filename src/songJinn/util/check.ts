@@ -1,6 +1,6 @@
 import {SongJinnGame} from "../constant/setup";
 import {Ctx, PlayerID} from "boardgame.io";
-import {addLateTermCard, addMidTermCard, remove} from "./card";
+import {addLateTermCard, addMidTermCard, rm} from "./card";
 import {ActiveEvents, CardID, Country, ProvinceID} from "../constant/general";
 import {logger} from "../../game/logger";
 import {getCountryById, getStateById} from "./fetch";
@@ -42,10 +42,10 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
     }
     if (G.events.includes(ActiveEvents.YueShuaiZhiLai)) {
         log.push(`|RemoveYueShuaiZhiLai|${G.events.toString()}`);
-        remove(ActiveEvents.YueShuaiZhiLai, G.events);
+        rm(ActiveEvents.YueShuaiZhiLai, G.events);
         log.push(`|after|${G.events.toString()}`);
     }
-    remove(ActiveEvents.LiGang, G.events);
+    rm(ActiveEvents.LiGang, G.events);
     G.turn++;
     logger.debug(log.join(''));
 }

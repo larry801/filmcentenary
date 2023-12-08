@@ -3,7 +3,7 @@ import {Ctx, PlayerID} from "boardgame.io"
 import {SongJinnGame} from "../constant/setup";
 import Grid from "@material-ui/core/Grid";
 
-import {getStateById, getCountryById, unitsToString, StrProvince, getMarchDst} from "../util/fetch";
+import {getStateById, getCountryById, unitsToString, StrProvince, getMarchDst, optionToActualDst} from "../util/fetch";
 import Button from "@material-ui/core/Button";
 import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
@@ -70,7 +70,7 @@ enum TakeDamageStep {
     STANDBY
 }
 
-const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
+const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const [expanded, setExpanded] = React.useState(0);
 
     const pub = getStateById(G, pid);
@@ -243,7 +243,7 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
         callback={(r) => {
             moves.march({
                 src: troops[marchTroop].p,
-                dst: r,
+                dst: optionToActualDst(r),
                 units: marchUnits,
                 country: ctr,
                 idx: marchTroop
