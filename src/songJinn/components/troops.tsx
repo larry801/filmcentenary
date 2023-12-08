@@ -117,6 +117,7 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
         callback={(u) => {
             setTakeDamageStep(TakeDamageStep.TROOP)
             moves.takeDamage({
+                src: troops[takeDamageTroop].p,
                 c: ctr,
                 idx: takeDamageTroop,
                 ready: readyUnits,
@@ -167,6 +168,7 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
             if (moveStep === MoveStep.REGION) {
                 setMoveStep(MoveStep.TROOP);
                 moves.moveTroop({
+                    src: troops[moveTroop].p,
                     idx: moveTroop,
                     dst: regID
                 })
@@ -240,6 +242,7 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
     const marchRegionDialog = <ChoiceDialog
         callback={(r) => {
             moves.march({
+                src: troops[marchTroop].p,
                 dst: r,
                 units: marchUnits,
                 country: ctr,
@@ -320,7 +323,8 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
     const removeUnitDialog = <ChooseUnitsDialog
         callback={(u) => {
             setRemoveStep(RemoveStep.TROOP)
-            moves.removeUnits({
+            moves.removeUnit({
+                src: troops[removeTroop].p,
                 units: u,
                 idx: removeTroop,
                 country: ctr

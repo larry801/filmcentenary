@@ -22,8 +22,20 @@ export const getLogText = (l: LogEntry): string => {
             const arg = l.action.payload.args;
             const name = l.action.payload.type;
             switch (name) {
+                case 'deploy':
+                    log += `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
+                    break;
+                case 'removeUnit':
+                    log += `移除${placeToStr(arg.dst)}${unitsToString(arg.units)}`;
+                    break;
+                case 'placeUnits':
+                    log += `在${placeToStr(arg.dst)}放置${unitsToString(arg.units)}`;
+                    break;
+                case 'march':
+                    log += `${placeToStr(arg.src)}${unitsToString(arg.units)}进军${arg.dst}`;
+                    break;
                 case 'moveTroop':
-                    log += `移动${unitsToString(arg.units)}到${arg.dst}`;
+                    log += `${placeToStr(arg.src)}全军移动到${arg.dst}`;
                     break;
                 case 'rollDices':
                     log += `扔了${arg === undefined ? 5 : arg}个骰子`;

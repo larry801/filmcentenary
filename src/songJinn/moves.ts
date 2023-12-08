@@ -37,6 +37,7 @@ import {addTroop, heYiChange, recruit, removeUnitOnTroop, rollDiceByPid} from ".
 import {getRegionById} from "./constant/regions";
 
 interface IMarchArgs {
+    src: TroopPlace;
     dst: TroopPlace;
     idx: number;
     country: Country;
@@ -98,6 +99,7 @@ export const letter: LongFormMove = {
 export interface ITakeDamageArgs {
     c: Country,
     idx: number,
+    src: TroopPlace,
     standby: number[],
     ready: number[]
 }
@@ -169,13 +171,14 @@ export const placeTroop: LongFormMove = {
 
 
 export interface IRemoveUnitArgs {
+    src: TroopPlace;
     idx: number;
     units: number[];
     c: Country
 }
 
 export const removeUnit: LongFormMove = {
-    move: (G, ctx, {idx, c, units}: IRemoveUnitArgs) => {
+    move: (G, ctx, {idx,units}: IRemoveUnitArgs) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
