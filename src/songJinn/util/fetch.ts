@@ -6,7 +6,7 @@ import {
     Country,
     GeneralStatus,
     isMountainPassID,
-    isOtherCountryID,
+    isNationID,
     isRegionID,
     JinnEarlyCardID,
     JinnLateCardID,
@@ -55,11 +55,26 @@ export const getMarchDst = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
         })
         return result;
     }
-    if (isOtherCountryID(dst)) {
+    if (isNationID(dst)) {
         return getNationAdj(dst);
     }
     // bei wei kun
     return [];
+}
+
+
+
+export const getTroopByPlace = (G: SongJinnGame, p: TroopPlace) => {
+    G.song.troops.forEach(t=> {
+        if (t.p === p) {
+            return t
+        }
+    });
+    G.jinn.troops.forEach(t=> {
+        if (t.p === p) {
+            return t
+        }
+    });
 }
 
 export const getReadyGenerals = (G: SongJinnGame, pid: PlayerID) => {

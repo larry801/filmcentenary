@@ -6,7 +6,7 @@ import {
     CardID,
     CityID,
     Country,
-    DevelopChoice,
+    DevelopChoice, General,
     isRegionID,
     LetterOfCredence,
     PlayerPendingEffect, ProvinceID,
@@ -215,6 +215,16 @@ export const placeUnit: LongFormMove = {
     }
 }
 
+interface IDeployGeneral {
+    general: General;
+    dst: TroopPlace;
+}
+
+export const deployGeneral: LongFormMove = {
+    move: (G, ctx, arg: IDeployGeneral) => {
+
+    }
+}
 
 export interface IPlaceNewTroopArgs {
     dst: TroopPlace,

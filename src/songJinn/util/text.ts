@@ -69,9 +69,14 @@ export const getLogText = (l: LogEntry): string => {
                         case 'takePlan':
                             log += `拿走了${arg.map((p: PlanID) => getPlanById(p).name)}`;
                             break;
+                        case 'chooseTop':
+                            log += `把${getPlanById(arg).name}放在最上面`;
+                            break;
                         case 'showPlan':
                             log += `展示${arg.map((p: PlanID) => getPlanById(p).name)}`;
                             break;
+
+
                         case 'discard':
                             log += `弃牌${sjCardById(arg).name}`;
                             break;

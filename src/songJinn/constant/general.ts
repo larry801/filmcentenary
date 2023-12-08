@@ -127,7 +127,7 @@ export function isRegionID(place: TroopPlace): place is RegionID {
     return typeof place === 'number' && Object.values(RegionID).includes(place as RegionID);
 }
 
-export function isOtherCountryID(place: TroopPlace): place is NationID {
+export function isNationID(place: TroopPlace): place is NationID {
     return typeof place === 'string' && Object.values(NationID).includes(place as NationID);
 }
 

@@ -76,6 +76,9 @@ export const Operation = ({
     const endRound = (isActive && ctx.phase === 'action') && <Button
         onClick={() => moves.endRound()}
         color={"primary"} variant={"contained"}>结束行动</Button>
+    const endPlan = (isActive && ctx.phase === 'resolvePlan') && <Button
+        onClick={() => ctx.events?.endTurn()}
+        color={"primary"} variant={"contained"}>结束计划结算</Button>
 
     const search = (choice: string) => {
         moves.search(choice);

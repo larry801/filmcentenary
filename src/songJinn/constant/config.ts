@@ -28,6 +28,7 @@ import {ActiveEvents, PlayerPendingEffect, SJPlayer} from "./general";
 import {logger} from "../../game/logger";
 import {getLeadingPlayer} from "../util/calc";
 import {canChoosePlan} from "../util/check";
+import {changeDiplomacyByLOD} from "../util/change";
 
 export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
@@ -50,6 +51,13 @@ export const ReactStageConfig: StageConfig<SongJinnGame> = {
         placeTroop: placeTroop,
     }
 }
+
+const StagedTurnConfig = {
+    order: TurnOrder.CUSTOM_FROM("order"),
+    stages: {
+        react: ReactStageConfig,
+    },
+};
 export const DiscardStageConfig: StageConfig<SongJinnGame> = {
     moves: {
         discard: discard
@@ -166,14 +174,10 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
     turn: NormalTurnConfig
 }
 
+
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
-    turn:{
-        order: TurnOrder.CUSTOM_FROM("order"),
-        stages: {
-            react: ReactStageConfig,
-        },
-    },
+    turn: StagedTurnConfig,
     moves: {
         emptyRound: emptyRound,
 
@@ -197,8 +201,8 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         removeUnit: removeUnit,
         placeUnit: placeUnit,
         rollDices: rollDices,
-        loseCity:loseCity,
-        loseProvince:loseProvince,
+        loseCity: loseCity,
+        loseProvince: loseProvince,
         placeTroop: placeTroop,
         down: down,
     },
@@ -208,7 +212,6 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     onBegin: (G, ctx) => {
         const log = [`resolvePlanPhase|onBegin|${G.order}`];
-
         G.plans = G.plans.concat(G.song.plan);
         log.push(`|${G.plans}`);
         G.plans = G.plans.concat(G.jinn.plan);
@@ -240,8 +243,20 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         //
         endRound: endRound
     },
+    turn: StagedTurnConfig,
 }
 
-export const DiplomacyPhaseConfig: PhaseConfig<SongJinnGame> = {}
-export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {}
+export const DiplomacyPhaseConfig: PhaseConfig<SongJinnGame> = {
+    onBegin: (G, ctx) => {
+        changeDiplomacyByLOD(G);
+    },
+    turn: StagedTurnConfig,
+    next: 'develop',
+}
+export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
+    onBegin: (G, ctx) => {
+        G.song.nations.length;
+    },
+    turn: StagedTurnConfig
+}
 export const EmptyPhaseConfig: PhaseConfig<SongJinnGame> = {}

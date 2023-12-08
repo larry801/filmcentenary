@@ -3,19 +3,20 @@ import {
     CityID,
     Country,
     General,
-    GeneralStatus,
+    GeneralStatus, isNationID,
     NationID,
     Nations,
     RegionID,
     SJPlayer,
-    Troop
+    Troop,
+    TroopPlace
 } from "../constant/general";
 import {
     getCountryById,
     getJinnTroopByRegion,
     getSongTroopByCity,
     getSongTroopByRegion,
-    getStateById,
+    getStateById, getTroopByRegion,
     playerById
 } from "./fetch";
 import {rm} from "./card";
@@ -37,6 +38,7 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
         }
     }
 }
+
 
 export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
     const pub = getStateById(G, pid);
@@ -188,7 +190,29 @@ export const policyDown = (G: SongJinnGame, a: number) => {
     }
 }
 
-export const addGeneral = (G: SongJinnGame, pid: PlayerID, general: General) => {
+export const deployGeneral = (G: SongJinnGame, pid: PlayerID, general: General, dst: TroopPlace) => {
+    const ctr = getCountryById(pid);
+    const pub = getStateById(G, pid);
+    const player = playerById(G, pid);
+    const gState = pub.generals[general];
+
+}
+export const moveGeneral = (G: SongJinnGame, pid: PlayerID, general: General, dst: TroopPlace) => {
+    const ctr = getCountryById(pid);
+    const pub = getStateById(G, pid);
+    const player = playerById(G, pid);
+    const gState = pub.generals[general];
+
+    switch (gState) {
+        case GeneralStatus.PRE:
+            break;
+        case GeneralStatus.TROOP:
+            break;
+        case GeneralStatus.READY:
+            break;
+        case GeneralStatus.REMOVED:
+            break;
+    }
 }
 
 export const removeGeneral = (G: SongJinnGame, pid: PlayerID, general: General) => {
@@ -275,6 +299,16 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
     song.lod.forEach(l => G.song.discard.push(l.card));
     jinn.lod = [];
     song.lod = [];
+    G.song.troops.forEach(t => {
+        if (isNationID((t.p))) {
+            nationMoveJinn(G, t.p);
+        }
+    });
+    G.jinn.troops.forEach(t => {
+        if (isNationID((t.p))) {
+            nationMoveSong(G, t.p);
+        }
+    });
 }
 
 export const heYiChange = (G: SongJinnGame, c: CityID) => {
