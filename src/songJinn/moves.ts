@@ -380,8 +380,8 @@ export const recruitPuppet: LongFormMove = {
 
 export interface IMoveTroopArgs {
     idx: number,
+    src:Troop,
     dst: TroopPlace,
-    units: number[],
     country: Country
 }
 
@@ -400,9 +400,7 @@ export const moveTroop: LongFormMove = {
             mergeTroopTo(G, idx, pub.troops.indexOf(d), ctx.playerID);
         } else {
             t.p = dst;
-
         }
-
     }
 }
 

@@ -130,7 +130,6 @@ export const AdjustOps = ({
                 disabled: pub.civil === 1,
                 hidden: false
             },
-
         ]}
         show={isActive}
         title={"请选择项目"} toggleText={"降低等级"} initial={false}

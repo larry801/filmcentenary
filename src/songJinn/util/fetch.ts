@@ -37,8 +37,8 @@ export const StrProvince: Map<string, ProvinceID> = new Map(Object.values(Provin
 
 
 export const optionToActualDst = (dst: string): TroopPlace => {
-    const parsedDst = parseInt(dst);
-    return (parsedDst === undefined ? dst : parsedDst) as TroopPlace;
+    const parsed = parseInt(dst);
+    return (parsed === undefined || isNaN(parsed) ? dst : parsed) as TroopPlace;
 }
 
 export const getMarchDst = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {

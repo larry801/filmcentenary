@@ -171,12 +171,12 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
     },
     next: 'choosePlan',
     start: true,
-    turn: NormalTurnConfig
+    // turn: NormalTurnConfig
 }
 
 
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
-    // start: true,
+    start: true,
     turn: StagedTurnConfig,
     moves: {
         emptyRound: emptyRound,
@@ -238,10 +238,25 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         logger.info(`${log.join('')}`);
     },
     moves: {
+        recruitPuppet: recruitPuppet,
+        endRound: endRound,
+
+
+        deploy: deploy,
+        opponentMove: opponentMove,
+        march: march,
+        moveTroop: moveTroop,
+        takeDamage: takeDamage,
+        removeUnit: removeUnit,
+        placeUnit: placeUnit,
+        rollDices: rollDices,
+        loseCity: loseCity,
+        loseProvince: loseProvince,
+        placeTroop: placeTroop,
+        down: down,
         takePlan: takePlan,
         chooseTop: chooseTop,
         //
-        endRound: endRound
     },
     turn: StagedTurnConfig,
 }
@@ -257,6 +272,23 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
         G.song.nations.length;
     },
-    turn: StagedTurnConfig
+    turn: StagedTurnConfig,
+    moves:{
+        recruitPuppet: recruitPuppet,
+        endRound: endRound,
+        deploy: deploy,
+        opponentMove: opponentMove,
+        march: march,
+        moveTroop: moveTroop,
+        takeDamage: takeDamage,
+        removeUnit: removeUnit,
+        placeUnit: placeUnit,
+        rollDices: rollDices,
+        loseCity: loseCity,
+        loseProvince: loseProvince,
+        placeTroop: placeTroop,
+        down: down,
+    }
 }
+export const EPhaseConfig: PhaseConfig<SongJinnGame> = {}
 export const EmptyPhaseConfig: PhaseConfig<SongJinnGame> = {}

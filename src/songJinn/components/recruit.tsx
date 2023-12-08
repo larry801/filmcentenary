@@ -72,7 +72,7 @@ export const ChooseUnitsDialog = ({
     const debouncedHandleConfirm = useDebounce(handleConfirm, 400);
 
     return show ? <>
-        <Button variant={"outlined"} onClick={handleClickOpen}>{toggleText}</Button>
+        <Button fullWidth variant={"outlined"} onClick={handleClickOpen}>{toggleText}</Button>
         <Dialog
             aria-label={title}
             open={open}

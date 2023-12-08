@@ -205,12 +205,15 @@ export const Operation = ({
             show={isActive && ctx.phase === 'resolvePlan' && pub.completedPlan.length > 0} title={"顶端计划"}
             toggleText={"选择放在顶端的计划"}
             initial={true} defaultChoice={""}/>
+    const recruitPhases = ['action','deploy'];
 
     const recruitDialog = <ChooseUnitsDialog
         callback={(u) => moves.recruitUnit(u)} max={pub.standby}
-        initUnits={pub.standby.map(() => 0)} show={isActive} title={"征募"}
-        toggleText={"请选择要征募的兵种"} initial={false} country={ctr}
+        initUnits={pub.standby.map(() => 0)}
+        show={isActive &&  recruitPhases.includes(ctx.phase)}
+        title={"征募"} toggleText={"请选择要征募的兵种"} initial={false} country={ctr}
     />
+
     const [dices, setDices] = useState(5);
     const adjustDice = (n: number) => {
         const newDice = dices + n;

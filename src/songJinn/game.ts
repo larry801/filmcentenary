@@ -4,11 +4,11 @@ import {PlayerView} from "boardgame.io/core";
 import {
     ActionPhaseConfig,
     ChooseFirstPhaseConfig,
-    ChoosePlanPhaseConfig,
-    DevelopPhaseConfig,
+    ChoosePlanPhaseConfig, DeployPhaseConfig,
+    DevelopPhaseConfig, DiplomacyPhaseConfig,
     DrawPhaseConfig,
     NormalTurnConfig, ResolvePlanPhaseConfig,
-    ShowPlanPhaseConfig
+    ShowPlanPhaseConfig, TurnEndPhaseConfig
 } from "./constant/config";
 import {getJinnPower, getSongPower} from "./util/calc";
 import {Country, SJPlayer, VictoryType} from "./constant/general";
@@ -26,9 +26,14 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
         chooseFirst: ChooseFirstPhaseConfig,
         choosePlan: ChoosePlanPhaseConfig,
         showPlan: ShowPlanPhaseConfig,
+
         action: ActionPhaseConfig,
+
         resolvePlan: ResolvePlanPhaseConfig,
-        develop: DevelopPhaseConfig
+        diplomacy:DiplomacyPhaseConfig,
+        develop: DevelopPhaseConfig,
+        deploy: DeployPhaseConfig,
+        turnEnd: TurnEndPhaseConfig,
     },
     turn: NormalTurnConfig,
     endIf: (G: SongJinnGame, ctx: Ctx) => {

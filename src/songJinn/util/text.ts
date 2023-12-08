@@ -7,7 +7,7 @@ import {getCityById} from "../constant/city";
 import {unitsToString} from "./fetch";
 
 export const placeToStr = (p: TroopPlace) => {
-    return typeof p === "number" ? getRegionById(p).name : p;
+    return typeof p === "number" && !isNaN(p)? getRegionById(p).name : p;
 }
 
 export const sjPlayerName = (l: PlayerID): string => {

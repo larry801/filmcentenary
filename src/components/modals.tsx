@@ -105,7 +105,7 @@ export const ChoiceDialog = ({
         console.log(e.target.value);
     };
 
-    return show ? <Grid item xs={12}>
+    return show ? <Grid key={nanoid()} item xs={12}>
         <Button
             key={nanoid()}
             aria-label={title}
@@ -122,14 +122,15 @@ export const ChoiceDialog = ({
             open={open}
             onClose={handleClose}
         >
-            <DialogTitle>
+            <DialogTitle key={nanoid()}>
                 {title}
             </DialogTitle>
-            <DialogContent>
+            <DialogContent key={nanoid()}>
                 <FormControl key={nanoid()} required component="fieldset">
                     <FormGroup key={nanoid()}>
-                        <FormLabel component="legend">{toggleText}</FormLabel>
+                        <FormLabel key={nanoid()} component="legend">{toggleText}</FormLabel>
                         <RadioGroup
+                            key={nanoid()}
                             aria-label={title}
                             name="choices" value={choice}
                             onChange={handleChange}>
@@ -151,7 +152,7 @@ export const ChoiceDialog = ({
                 </Button>
             </DialogActions>
         </Dialog>
-    </Grid> : <div/>
+    </Grid> : <div key={nanoid()}/>
 }
 
 export default ChoiceDialog;

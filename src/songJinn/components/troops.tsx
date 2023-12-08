@@ -171,7 +171,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 moves.moveTroop({
                     src: troops[moveTroop],
                     idx: moveTroop,
-                    dst: regID
+                    dst: regID,
+                    country:ctr
                 })
             }
         }}
