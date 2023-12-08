@@ -163,12 +163,12 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
         chooseFirst: chooseFirst
     },
     next: 'choosePlan',
-    // start: true,
+    start: true,
     turn: NormalTurnConfig
 }
 
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
-    start: true,
+    // start: true,
     turn:{
         order: TurnOrder.CUSTOM_FROM("order"),
         stages: {
@@ -208,21 +208,32 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
 export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     onBegin: (G, ctx) => {
+        const log = [`resolvePlanPhase|onBegin|${G.order}`];
+
         G.plans = G.plans.concat(G.song.plan);
+        log.push(`|${G.plans}`);
+        G.plans = G.plans.concat(G.jinn.plan);
+        log.push(`|${G.plans}`);
         if (G.song.completedPlan.length > 0 && !G.events.includes(ActiveEvents.YanJingYiNan)) {
             const songTop = G.song.completedPlan.pop();
+            log.push(`songTop|${songTop}`);
             if (songTop !== undefined) {
                 G.plans.push(songTop);
+                log.push(`|${G.plans}`);
+
             }
         }
         if (G.jinn.completedPlan.length > 0) {
             const jinnTop = G.jinn.completedPlan.pop();
+            log.push(`jinnTop|${jinnTop}`);
             if (jinnTop !== undefined) {
                 G.plans.push(jinnTop);
             }
         }
+        log.push(`|${G.plans}`);
         G.song.plan = [];
         G.jinn.plan = [];
+        logger.info(`${log.join('')}`);
     },
     moves: {
         takePlan: takePlan,

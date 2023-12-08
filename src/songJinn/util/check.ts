@@ -55,8 +55,8 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
 
 export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
     const log = [`t${G.turn}r${G.round}endRoundCheck`];
-    if (G.round === 3) {
-        ctx.events?.setPhase('develop')
+    if (G.round === 5) {
+        ctx.events?.setPhase('resolvePlan')
     }
     if (G.order[1] === ctx.playerID) {
         G.round++;

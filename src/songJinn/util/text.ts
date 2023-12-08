@@ -14,13 +14,15 @@ export const sjPlayerName = (l: PlayerID): string => {
     return l === SJPlayer.P1 ? "宋" : "金";
 }
 export const getLogText = (l: LogEntry): string => {
-    const s = sjPlayerName(l.action.payload.playerID);
+    const payload = l.action.payload;
+    const s = sjPlayerName(payload.playerID);
     switch (l.action.type) {
         case "MAKE_MOVE":
             let log = s;
-            const arg = l.action.payload.args[0];
-            const name = l.action.payload.type;
             try {
+
+                const name = payload.type;
+                const arg = payload.args === undefined ? payload.args[0] : "";
                 switch (name) {
                     case 'deploy':
                         log += `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
@@ -111,7 +113,7 @@ export const getLogText = (l: LogEntry): string => {
             }
             return log;
         case "GAME_EVENT":
-            return `${s}${l.action.payload.type}`;
+            return `${s}${payload.type}`;
         case "UNDO":
             return s + "撤销";
         case "REDO":

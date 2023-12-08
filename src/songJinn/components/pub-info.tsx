@@ -53,7 +53,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label>移除：{j.remove.map(p => sjCardById(p).name)}</label></div>
             {j.dices.length > 0 && <Typography>{j.dices.join(',')}</Typography>}
             {/*<div><label>手牌数：</label></div>*/}
-            <div><label>发展牌：{j.develop.map(p => sjCardById(p).name)}</label></div>
+            <div><label>发展牌：{j.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
             {G.turn > 6 && <div><label>绍兴和议分数：{getJinnScore(G)}</label></div>}
         </Paper></Grid>
     </Grid>
