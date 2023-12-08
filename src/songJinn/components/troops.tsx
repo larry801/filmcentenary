@@ -168,7 +168,7 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
             if (moveStep === MoveStep.REGION) {
                 setMoveStep(MoveStep.TROOP);
                 moves.moveTroop({
-                    src: troops[moveTroop].p,
+                    src: troops[moveTroop],
                     idx: moveTroop,
                     dst: regID
                 })
@@ -193,7 +193,7 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
                 const idx = unitNames.indexOf(u);
                 units[idx] = 1;
             })
-            moves.placeUnits({
+            moves.placeUnit({
                 dst: newTroopRegion,
                 units: units,
                 country: ctr
@@ -290,6 +290,7 @@ const TroopOperation = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) => {
             setMarchStep(MarchStep.TARGET)
         }} max={[...troops[marchTroop].u]} initUnits={[...troops[marchTroop].u]}
         show={isActive && marchStep === MarchStep.UNITS}
+        popAfterShow={true}
         title={"选择进军部队"} toggleText={"选择进军部队"} initial={true} country={ctr}/>
 
     const [deployNewStep, setDeployNewStep] = React.useState(DeployNewStep.TROOP);

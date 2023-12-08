@@ -12,7 +12,7 @@ import {
     NationID,
     PlayerPendingEffect,
     RegionID,
-    SJPlayer,
+    SJPlayer, Troop,
     TroopPlace
 } from "./constant/general";
 import {logger} from "../game/logger";
@@ -24,7 +24,7 @@ import {
     getJinnTroopByRegion,
     getSongTroopByCity,
     getSongTroopByRegion,
-    getStateById,
+    getStateById, getTroopByRegion,
     playerById
 } from "./util/fetch";
 import {INVALID_MOVE} from "boardgame.io/core";
@@ -33,7 +33,7 @@ import {sjCardById} from "./constant/cards";
 import {drawPhaseForPlayer, drawPlanForPlayer, remove} from "./util/card";
 import {endRoundCheck, heYiCheck, returnDevCardCheck} from "./util/check";
 import {getCityById} from "./constant/city";
-import {addTroop, heYiChange, recruit, removeUnitOnTroop, rollDiceByPid} from "./util/change";
+import {addTroop, heYiChange, mergeTroopTo, recruit, removeUnitOnTroop, rollDiceByPid} from "./util/change";
 import {getRegionById} from "./constant/regions";
 
 interface IMarchArgs {
@@ -45,7 +45,7 @@ interface IMarchArgs {
 }
 
 export const march: LongFormMove = {
-    move: (G, ctx, {dst, idx, country, units}: IMarchArgs) => {
+    move: (G, ctx, {dst, idx, units}: IMarchArgs) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
@@ -178,7 +178,7 @@ export interface IRemoveUnitArgs {
 }
 
 export const removeUnit: LongFormMove = {
-    move: (G, ctx, {idx,units}: IRemoveUnitArgs) => {
+    move: (G, ctx, {idx, units}: IRemoveUnitArgs) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
@@ -311,13 +311,22 @@ export interface IMoveTroopArgs {
 
 export const moveTroop: LongFormMove = {
     move: (G, ctx, args: IMoveTroopArgs) => {
+        if (ctx.playerID === undefined) return INVALID_MOVE;
         const {idx, dst, units, country} = args;
         const pub = country === Country.SONG ? G.song : G.jinn;
         const t = pub.troops[idx];
         if (t === undefined) {
             return INVALID_MOVE;
         }
-        t.p = dst;
+        const destTroops = pub.troops.filter((t:Troop) => t.p === dst);
+        if (destTroops.length > 0) {
+            const d = destTroops[0];
+            mergeTroopTo(G, idx, pub.troops.indexOf(d), ctx.playerID);
+        } else {
+            t.p = dst;
+
+        }
+
     }
 }
 export const emptyRound: LongFormMove = {

@@ -43,6 +43,10 @@ export const ChooseUnitsDialog = ({
     const prevShow = usePrevious(show);
 
     React.useEffect(() => {
+        setUnits(initUnits)
+    }, [initUnits]);
+
+    React.useEffect(() => {
         if (show && prevShow === false && popAfterShow !== false) {
             setOpen(true);
         }
@@ -80,20 +84,23 @@ export const ChooseUnitsDialog = ({
             <DialogContent>
                 <Grid container>
                     {units.map((u, idx) => {
-                        return <Grid item xs={12} key={`adjust-${idx}`}>
-
-                            <Button
-                                disabled={u === 0}
-                                onClick={() => {
-                                    changeUnits(idx, -1)
-                                }}>-</Button>
-                            {u}{unitNames[idx]}
-                            <Button disabled={u >= max[idx]}
+                        if (max[idx] > 0) {
+                            return <Grid item xs={12} key={`adjust-${idx}`}>
+                                <Button
+                                    disabled={u === 0}
                                     onClick={() => {
-                                        changeUnits(idx, 1)
-                                    }}
-                            >+</Button>
-                        </Grid>
+                                        changeUnits(idx, -1)
+                                    }}>-</Button>
+                                {u}{unitNames[idx]}
+                                <Button disabled={u >= max[idx]}
+                                        onClick={() => {
+                                            changeUnits(idx, 1)
+                                        }}
+                                >+</Button>
+                            </Grid>
+                        } else {
+                            return <div key={`adjust-${idx}`}></div>
+                        }
                     })}
                 </Grid>
             </DialogContent>

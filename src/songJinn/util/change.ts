@@ -33,7 +33,7 @@ export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerI
     }
     for (let i = 0; i < units.length; i++) {
         if (units[i] > t.u[i]) {
-            pub.standby[i] += t.u[i] ;
+            pub.standby[i] += t.u[i];
             t.u[i] = 0;
         } else {
             pub.standby[i] += units[i]
@@ -57,6 +57,21 @@ export const recruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
     }
 }
 
+export const mergeTroopTo = (G: SongJinnGame, src: number, dst: number, pid: PlayerID) => {
+    const pub = getStateById(G, pid);
+    let a = pub.troops[src];
+    let b = pub.troops[dst];
+    if (a === undefined || b === undefined) {
+        console.log(`cannot merge${a}|to|${b}`)
+    } else {
+        for (let i = 0; i < b.u.length; i++) {
+            b.u[i] += a.u[i];
+        }
+        b.j = b.j.concat(a.j);
+        remove(a, pub.troops);
+    }
+
+}
 export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], country: Country) => {
     const actualUnits = [...units];
     switch (country) {

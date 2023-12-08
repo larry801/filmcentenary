@@ -5,13 +5,13 @@ import {
     cardEvent,
     chooseFirst,
     choosePlan,
-    chooseTop,
+    chooseTop, deploy,
     develop,
     developCard,
     discard,
     endRound,
     heYi,
-    letter, march,
+    letter, march, moveTroop,
     op, placeTroop,
     placeUnit, recruitPuppet, recruitUnit, removeUnit,
     returnToHand,
@@ -153,21 +153,26 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     start: true,
     moves: {
-        op:op,
-        march:march,
-        recruitUnit:recruitUnit,
-        takeDamage:takeDamage,
+        op: op,
+        recruitUnit: recruitUnit,
         cardEvent: cardEvent,
         developCard: developCard,
         letter: letter,
         heYi: heYi,
         tieJun: tieJun,
-        recruitPuppet:recruitPuppet,
+        recruitPuppet: recruitPuppet,
         rollDices: rollDices,
-        removeUnit:removeUnit,
+
+
+        deploy: deploy,
+        march: march,
+
+        moveTroop: moveTroop,
+        takeDamage: takeDamage,
+        removeUnit: removeUnit,
         placeUnit: placeUnit,
         //
-        placeTroop:placeTroop,
+        placeTroop: placeTroop,
 
         endRound: endRound
     },
