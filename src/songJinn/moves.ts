@@ -81,7 +81,6 @@ export const march: LongFormMove = {
                 country: ctr
             })
         }
-        ctx.events?.endTurn();
     }
 }
 
