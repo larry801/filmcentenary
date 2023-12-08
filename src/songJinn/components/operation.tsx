@@ -223,10 +223,10 @@ export const Operation = ({
             setDices(newDice);
         }
     }
-    const diceRoller =         <Grid item>
+    const diceRoller = <Grid item>
         <Button onClick={() => adjustDice(-5)}>-5</Button>
         <Button onClick={() => adjustDice(-1)}>-1</Button>
-        <Button onClick={() => moves.rollDice(dices)}>掷{dices}个骰子</Button>
+        <Button onClick={() => moves.rollDices(dices)}>掷{dices}个骰子</Button>
         <Button onClick={() => adjustDice(1)}>+1</Button>
         <Button onClick={() => adjustDice(5)}>+5</Button>
     </Grid>

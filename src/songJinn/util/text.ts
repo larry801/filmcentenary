@@ -25,7 +25,7 @@ export const getLogText = (l: LogEntry): string => {
                 case 'moveTroop':
                     log += `移动${unitsToString(arg.units)}到${arg.dst}`;
                     break;
-                case 'rollDice':
+                case 'rollDices':
                     log += `扔了${arg === undefined ? 5 : arg}个骰子`;
                     break;
                 case 'chooseFirst':
