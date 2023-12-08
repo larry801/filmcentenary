@@ -107,8 +107,10 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
 export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
     moves: {
         develop: develop,
-        returnToHand: returnToHand
-    }
+        returnToHand: returnToHand,
+        opponentMove:opponentMove
+    },
+    turn:StagedTurnConfig,
 }
 export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
@@ -223,7 +225,6 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
             if (songTop !== undefined) {
                 G.plans.push(songTop);
                 log.push(`|${G.plans}`);
-
             }
         }
         if (G.jinn.completedPlan.length > 0) {
@@ -234,14 +235,18 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
             }
         }
         log.push(`|${G.plans}`);
-        G.song.plan = [];
         G.jinn.plan = [];
+        G.song.plan = [];
+        if (G.plans.length === 0){
+            // debug helper usually no use in real game
+            log.push(`|no|plans|endPhase`);
+            ctx.events?.endPhase();
+        }
         logger.info(`${log.join('')}`);
     },
     moves: {
         recruitPuppet: recruitPuppet,
         endRound: endRound,
-
 
         deploy: deploy,
         opponentMove: opponentMove,
@@ -260,11 +265,17 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         //
     },
     turn: StagedTurnConfig,
+    next: 'diplomacy'
 }
 
 export const DiplomacyPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
+        const log = [`diplomacy|onBegin`];
+        log.push(`|before|${G.song.nations}|${G.jinn.nations}`);
         changeDiplomacyByLOD(G);
+        log.push(`|after|${G.song.nations}|${G.jinn.nations}`);
+        ctx.events?.endPhase();
+        logger.info(`${log.join('')}`);
     },
     turn: StagedTurnConfig,
     next: 'develop',

@@ -54,8 +54,13 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
            return <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
                        key={`playerHand-${cid}`}>
                 <AccordionSummary key={`summary-${cid}`}>
-                    <Typography key={`summary-text-${cid}`}>{card.name}|{card.op}</Typography>
-                    {getFullDesc(card)}
+                    <Grid key={`grid-1-${cid}`} item container xs={4}>
+
+                        <Typography key={`summary-text-${cid}`}>{card.name}|{card.op}</Typography>
+                    </Grid>
+                    <Grid key={`grid-2-${cid}`}  item container xs={8}>
+                        {getFullDesc(card)}
+                    </Grid>
 
                 </AccordionSummary>
                 <AccordionDetails>

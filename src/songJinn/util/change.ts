@@ -261,16 +261,20 @@ export const nationMoveSong = (G: SongJinnGame, c: NationID) => {
 }
 
 export const changeDiplomacyByLOD = (G: SongJinnGame) => {
+    const log = [`changeDiplomacyByLOD`]
     const song = playerById(G, SJPlayer.P1);
     const jinn = playerById(G, SJPlayer.P2);
     if (song.lod.length === 0) {
         if (jinn.lod.length === 0) {
-            return;
+            log.push(`|noLOD|`)
         } else {
+            log.push('|moveForJinn');
             jinn.lod.forEach(l => nationMoveJinn(G, l.nation))
         }
     } else {
         if (jinn.lod.length === 0) {
+            log.push('|moveForSong');
+
             song.lod.forEach(l => nationMoveJinn(G, l.nation))
         } else {
             Nations.forEach(n => {
@@ -303,11 +307,13 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
     song.lod = [];
     G.song.troops.forEach(t => {
         if (isNationID((t.p))) {
+            log.push(`|song|${t.p}|hasTroop`);
             nationMoveJinn(G, t.p);
         }
     });
     G.jinn.troops.forEach(t => {
         if (isNationID((t.p))) {
+            log.push(`|jinn|${t.p}|hasTroop`);
             nationMoveSong(G, t.p);
         }
     });

@@ -12,6 +12,7 @@ import {getPlanById} from "../constant/plan";
 import Button from "@material-ui/core/Button";
 import CheckBoxDialog from "./choice";
 import {ChooseUnitsDialog} from "./recruit";
+import * as events from "events";
 
 
 export interface IOperationProps {
@@ -245,15 +246,20 @@ export const Operation = ({
     const emptyRoundButton = ctx.phase === 'action' && <Button
         disabled={player.hand.length + G.round > 9}
         onClick={() => moves.emptyRound()}>空过</Button>
+    const endPhaseButton =<Button
+    onClick={()=>ctx.events?.endPhase()}
+    >EndPhase</Button>
     const opponentButton = <Button
         disabled={false}
         onClick={() => moves.opponentMove()}>对方操作</Button>
 
     return <Grid container>
+
         {diceRoller}
         {endRound}
         {emptyRoundButton}
         {opponentButton}
+        {endPhaseButton}
         {showPlan}
         {takePlanDialog}
         {chooseTopPlanDialog}

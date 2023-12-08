@@ -45,6 +45,8 @@ import {
 } from "./util/change";
 import {getRegionById} from "./constant/regions";
 import {changePlayerStage} from "../game/logFix";
+import {totalDevelop} from "./util/calc";
+import {normalizePath} from "vite";
 
 interface IMarchArgs {
     src: TroopPlace;
@@ -509,6 +511,23 @@ export const develop: LongFormMove = {
             default:
                 break;
         }
+        const remainDev = totalDevelop(G, ctx, ctx.playerID) - pub.usedDevelop;
+        const canCommon = remainDev < pub.civil + 1 && remainDev <= pub.military + 1;
+        const canPolicy = ctx.playerID === SJPlayer.P1 && remainDev < 3 || G.policy === 3;
+        const canEmperor = ctx.playerID === SJPlayer.P1 && remainDev < 4 && G.song.emperor !== null;
+        const canColony = ctx.playerID === SJPlayer.P2 && remainDev < (2 * G.colony + 2);
+        const canSong = ctx.playerID === SJPlayer.P1 && canPolicy && canCommon && canEmperor;
+        const canJinn = ctx.playerID === SJPlayer.P2 && canColony && canCommon;
+        const noOps = ctx.playerID === SJPlayer.P1? canSong :canJinn;
+        if (noOps) {
+            pub.develop.forEach(c => pub.discard.push(c));
+            pub.develop = []
+            if (G.order[0] === ctx.playerID) {
+                ctx.events?.endTurn();
+            } else {
+                ctx.events?.endPhase();
+            }
+        }
     }
 }
 
@@ -544,13 +563,14 @@ export const combatCard: LongFormMove = {
         ) {
             args.forEach(c => {
                 const card = sjCardById(c);
+                // @ts-ignore
                 const pub = getStateById(G, ctx.playerID);
                 if (card.remove) {
-                    pub.remove.push(args);
+                    pub.remove.push(c);
                 } else {
-                    pub.discard.push(args);
+                    pub.discard.push(c);
                 }
-                rm(cid,player.hand);
+                rm(c, player.hand);
             })
         }
 
@@ -574,7 +594,7 @@ export const cardEvent: LongFormMove = {
             } else {
                 pub.discard.push(args);
             }
-            rm(args,player.hand);
+            rm(args, player.hand);
             card.event(G, ctx);
         } else {
             return INVALID_MOVE;
