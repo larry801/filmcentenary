@@ -79,6 +79,7 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => !G.song.cities.includes(CityID.KaiFeng),
         event: (G: SongJinnGame, ctx: Ctx) => {
             G.events.push(ActiveEvents.JianYanNanDu);
+            ctx.events?.setStage('emperor');
         }
     },
     [SongBaseCardID.S02]: {

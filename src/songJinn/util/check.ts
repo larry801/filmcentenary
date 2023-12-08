@@ -12,6 +12,7 @@ import {getProvinceById} from "../constant/province";
 
 
 
+
 export const troopEmpty = (troop: Troop) => {
     return troop.u.filter(c => c > 0).length === 0
 }

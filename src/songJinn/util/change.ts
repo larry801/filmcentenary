@@ -5,7 +5,7 @@ import {
     General,
     GeneralStatus, isNationID,
     NationID,
-    Nations,
+    Nations, ProvinceID,
     RegionID,
     SJPlayer,
     Troop,
@@ -13,7 +13,7 @@ import {
 } from "../constant/general";
 import {
     getCountryById,
-    getJinnTroopByRegion,
+    getJinnTroopByRegion, getOpponentStateById,
     getSongTroopByCity,
     getSongTroopByRegion,
     getStateById, getTroopByRegion,
@@ -27,7 +27,6 @@ import {getRegionById} from "../constant/regions";
 import {troopEmpty} from "./check";
 
 
-
 export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
     const pub = getStateById(G, pid);
     if (pub.civil + a < 1) {
@@ -37,6 +36,24 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
             pub.civil = 7;
         } else {
             pub.civil += a;
+        }
+    }
+}
+
+export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
+    const pub = getStateById(G, pid);
+    const oppo = getOpponentStateById(G, pid)
+
+    if (pid === SJPlayer.P1) {
+        policyDown(G, 1);
+    }
+    if (pub.corruption > 0) {
+        pub.corruption--;
+    }
+    if (pub.provinces.includes(prov)) {
+        rm(prov, pub.provinces);
+        if (opponent) {
+            oppo.provinces.push(prov);
         }
     }
 }

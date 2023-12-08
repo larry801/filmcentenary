@@ -93,7 +93,7 @@ export const AdjustOps = ({
     const loseCityToOpponentDialog = <ChoiceDialog
         callback={(c) => {
             const opponent = c === "yes";
-            moves.loseCity({city: city, opponent: opponent});
+            moves.loseCity({cityID: city, opponent: opponent});
             setLoseCityStep(LoseCityStep.CITY)
         }}
         choices={[

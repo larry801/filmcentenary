@@ -8,7 +8,7 @@ import {
     chooseTop, combatCard, deploy,
     develop,
     developCard,
-    discard, down, emptyRound,
+    discard, down, emperor, emptyRound,
     endRound,
     heYi,
     letter, loseCity, loseProvince, march, moveTroop,
@@ -34,8 +34,17 @@ export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
 }
 
+
+
+export const EmperorStageConfig: StageConfig<SongJinnGame> = {
+    moves:{
+        emperor:emperor
+    }
+}
 export const ReactStageConfig: StageConfig<SongJinnGame> = {
     moves: {
+        emperor:emperor,
+
         discard: discard,
         deploy: deploy,
         opponentMove: opponentMove,
@@ -56,6 +65,7 @@ const StagedTurnConfig = {
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
         react: ReactStageConfig,
+        emperor: EmperorStageConfig
     },
 };
 export const DiscardStageConfig: StageConfig<SongJinnGame> = {
@@ -108,6 +118,7 @@ export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
     moves: {
         develop: develop,
         returnToHand: returnToHand,
+        emperor:emperor,
         opponentMove:opponentMove
     },
     turn:StagedTurnConfig,

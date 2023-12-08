@@ -13,6 +13,7 @@ import Button from "@material-ui/core/Button";
 import CheckBoxDialog from "./choice";
 import {ChooseUnitsDialog} from "./recruit";
 import * as events from "events";
+import {actualStage} from "../../game/util";
 
 
 export interface IOperationProps {
@@ -73,12 +74,14 @@ export const Operation = ({
 
     const combatCardDialog = <CheckBoxDialog
         callback={(c) => moves.combatCard(c)}
-        choices={player.hand.filter(c => sjCardById(c).combat).map(c=>{return {
-            label:sjCardById(c).name,
-            value:c,
-            disabled:false,
-            hidden:false
-        }})}
+        choices={player.hand.filter(c => sjCardById(c).combat).map(c => {
+            return {
+                label: sjCardById(c).name,
+                value: c,
+                disabled: false,
+                hidden: false
+            }
+        })}
         show={isActive && ctx.phase === 'action'} title={"请选择战斗牌"}
         toggleText={"战斗牌"} initial={false}/>
 
@@ -112,6 +115,8 @@ export const Operation = ({
     const discard = (choice: string) => {
         moves.discard(choice);
     }
+
+
     const discardDialog = <ChoiceDialog
         callback={discard}
         choices={player.hand.map(bcid => {
@@ -143,6 +148,21 @@ export const Operation = ({
         defaultChoice={""}
         show={isActive && ctx.phase === 'develop'}
         title={"请选择需要返回手牌的发展牌"} toggleText={"发展牌回手"} initial={false}
+    />
+
+    const emperorDialog = <ChoiceDialog
+        callback={(c) => moves.emperor(c)}
+        choices={pub.cities.map(c => {
+            return {
+                label: c,
+                value: c,
+                disabled: false,
+                hidden: false
+            }
+        })}
+        defaultChoice={""}
+        show={isActive && ctr === Country.SONG && actualStage(G, ctx) === 'emperor'}
+        title={"请选择拥立目标城市"} toggleText={"拥立"} initial={false}
     />
 
 
@@ -246,8 +266,8 @@ export const Operation = ({
     const emptyRoundButton = ctx.phase === 'action' && <Button
         disabled={player.hand.length + G.round > 9}
         onClick={() => moves.emptyRound()}>空过</Button>
-    const endPhaseButton =<Button
-    onClick={()=>ctx.events?.endPhase()}
+    const endPhaseButton = <Button
+        onClick={() => ctx.events?.endPhase()}
     >EndPhase</Button>
     const opponentButton = <Button
         disabled={false}
@@ -266,7 +286,7 @@ export const Operation = ({
         {combatCardDialog}
         {developDialog}
         {returnToHandDialog}
-
+        {emperorDialog}
         {chooseFirstDialog}
         {choosePlanDialog}
 

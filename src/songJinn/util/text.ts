@@ -115,6 +115,9 @@ export const getLogText = (l: LogEntry): string => {
                         case 'recruitPuppet':
                             log += `在${getCityById(arg).name}征募签军`;
                             break;
+                        case 'emperor':
+                            log += `在${getCityById(arg).name}拥立`;
+                            break;
                         case 'letter':
                             log += `向${arg.nation}递交了国书`;
                             break;

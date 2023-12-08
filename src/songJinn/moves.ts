@@ -428,6 +428,9 @@ export const emperor: LongFormMove = {
         if (ctx.phase === 'develop') {
             ctx.events?.endTurn();
         }
+        if (ctx.phase === 'action') {
+            ctx.events?.endStage();
+        }
     }
 }
 
@@ -468,6 +471,9 @@ export const develop: LongFormMove = {
                             } else {
                                 return INVALID_MOVE;
                             }
+                            break;
+                        case DevelopChoice.EMPEROR:
+                            ctx.events?.setStage('emperor');
                             break;
                         default:
                             break;
@@ -518,7 +524,7 @@ export const develop: LongFormMove = {
         const canColony = ctx.playerID === SJPlayer.P2 && remainDev < (2 * G.colony + 2);
         const canSong = ctx.playerID === SJPlayer.P1 && canPolicy && canCommon && canEmperor;
         const canJinn = ctx.playerID === SJPlayer.P2 && canColony && canCommon;
-        const noOps = ctx.playerID === SJPlayer.P1? canSong :canJinn;
+        const noOps = ctx.playerID === SJPlayer.P1 ? canSong : canJinn;
         if (noOps) {
             pub.develop.forEach(c => pub.discard.push(c));
             pub.develop = []
@@ -962,11 +968,19 @@ export const loseCity: LongFormMove = {
             return INVALID_MOVE;
         }
         const {cityID, opponent} = arg;
-        // const ctr = getCountryById(ctx.playerID);
+        const ctr = getCountryById(ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         const oppo = getOpponentStateById(G, ctx.playerID);
         if (pub.cities.includes(cityID)) {
             rm(cityID, pub.cities);
+            if (ctr === Country.SONG && G.song.emperor === cityID) {
+                G.song.emperor = null;
+                policyDown(G, 1);
+            }
+            const city = getCityById(cityID);
+            if(city.capital){
+                loseProvince
+            }
             if (opponent) {
                 oppo.cities.push(cityID)
             }

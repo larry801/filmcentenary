@@ -93,7 +93,7 @@ export const shuffle = (ctx: Ctx, arg: any[]): any[] => {
     return ctx.random?.Shuffle(arg) || arg;
 }
 
-export const actualStage = (G: IG, ctx: Ctx,): string => {
+export const actualStage = (G: any, ctx: Ctx,): string => {
     if (ctx.activePlayers === null) {
         return Stage.NULL;
     } else {
