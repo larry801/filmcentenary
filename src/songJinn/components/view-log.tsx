@@ -62,12 +62,11 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
         </Grid>
         {open && <Grid item xs={12}>
             <TextField
-                aria-live="polite"
                 disabled
                 defaultValue={totalLogText}
                 fullWidth
                 multiline
-                minRows={2}
+                minRows={8}
                 maxRows={8}
                 variant="filled"
             />

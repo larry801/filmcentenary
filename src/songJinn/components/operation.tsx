@@ -225,7 +225,7 @@ export const Operation = ({
         <Button onClick={() => adjustDice(5)}>+5</Button>
     </Grid>
 
-    const emptyRoundButton = <Button
+    const emptyRoundButton = ctx.phase==='action' && <Button
         disabled={player.hand.length + G.round > 9}
         onClick={() => moves.emptyRound()}>空过</Button>
     const opponentButton = <Button
