@@ -69,6 +69,7 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
                     >事件</Button>
                     <Button
                         disabled={!(isActive && inPhase)}
+                        onClick={() => moves.paiQIan(cid)}
                     >派遣</Button>
                     <Button
                         disabled={!(isActive && inPhase)}

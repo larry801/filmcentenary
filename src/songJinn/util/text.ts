@@ -20,11 +20,14 @@ export const getLogText = (l: LogEntry): string => {
             const arg = l.action.payload.args;
             const name = l.action.payload.type;
             switch (name) {
+                case 'rollDice':
+                    log += `扔了${arg === undefined ? 5 : arg}个骰子`;
+                    break;
                 case 'chooseFirst':
-                    log += `选择让${sjPlayerName(arg)}先行动`;
+                    log += `选择${sjPlayerName(arg[0])}先行动`;
                     break;
                 case 'showPlan':
-                    log += `选择了${arg.map((p:PlanID)=>getPlanById(p).name)}`;
+                    log += `展示${arg.map((p: PlanID) => getPlanById(p).name)}`;
                     break;
                 case 'choosePlan':
                     log += '选择了一张作战计划';
@@ -39,7 +42,7 @@ export const getLogText = (l: LogEntry): string => {
                     log += `发展${sjCardById(arg).name}`;
                     break;
                 case 'develop':
-                    log += `选择了${arg}`;
+                    log += `${arg}`;
                     break;
                 case 'letter':
                     log += `向${arg.nation}递交了国书`;
@@ -48,10 +51,13 @@ export const getLogText = (l: LogEntry): string => {
                     log += `用${sjCardById(arg).name}和议`;
                     break;
                 case 'tieJun':
-                    log += `用${sjCardById(arg).name}贴军`
+                    log += `用${sjCardById(arg).name}贴军`;
+                    break;
+                case 'paiQian':
+                    log += `用${sjCardById(arg).name}派遣`;
                     break;
                 case 'endRound':
-                    log += `结束行动`
+                    log += `结束行动`;
                     break;
                 default:
                     log += `${name}|${JSON.stringify(arg)}`

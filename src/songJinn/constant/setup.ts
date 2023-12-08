@@ -4,7 +4,6 @@ import {
     CardID,
     CityID,
     Country,
-    General,
     GeneralStatus,
     JinnEarlyCardID,
     JinnGeneral,
@@ -23,6 +22,8 @@ import {Ctx} from "boardgame.io";
 import {shuffle} from "../../game/util";
 
 export interface SJPubInfo {
+    dices: number[],
+    troopIdx: number,
     cities: CityID[],
     civil: Level,
     completedPlan: PlanID[],
@@ -44,6 +45,8 @@ export interface SJPubInfo {
 }
 
 export const initialJinnPub: SJPubInfo = {
+    dices: [],
+    troopIdx: -1,
     develop:[],
     usedDevelop:0,
     troops: [
@@ -107,6 +110,8 @@ export const initialJinnPub: SJPubInfo = {
 }
 
 export const initialSongPub: SJPubInfo = {
+    dices: [],
+    troopIdx: -1,
     cities: [
         CityID.LiCheng,
         CityID.SongCheng,

@@ -85,7 +85,7 @@ export const getStage = (ctx: Ctx) => {
     }
 }
 
-export const getJinnTroopByRegion = (G: SongJinnGame, r: RegionID) => {
+export const getJinnTroopByRegion = (G: SongJinnGame, r: RegionID):Troop|null => {
     G.jinn.troops.forEach(t => {
         if (t.p === r) {
             return t;
@@ -94,7 +94,7 @@ export const getJinnTroopByRegion = (G: SongJinnGame, r: RegionID) => {
     return null;
 }
 
-export const getSongTroopByRegion = (G: SongJinnGame, r: RegionID) => {
+export const getSongTroopByRegion = (G: SongJinnGame, r: RegionID):Troop|null => {
     G.song.troops.forEach(t => {
         if (t.p === r) {
             return t;
@@ -103,7 +103,7 @@ export const getSongTroopByRegion = (G: SongJinnGame, r: RegionID) => {
     return null;
 }
 
-export const getJinnTroopByCity = (G: SongJinnGame, r: CityID) => {
+export const getJinnTroopByCity = (G: SongJinnGame, r: CityID):Troop|null => {
     G.jinn.troops.forEach(t => {
         if (t.c === r) {
             return t;
@@ -112,7 +112,7 @@ export const getJinnTroopByCity = (G: SongJinnGame, r: CityID) => {
     return null;
 }
 
-export const getSongTroopByCity = (G: SongJinnGame, r: CityID) => {
+export const getSongTroopByCity = (G: SongJinnGame, r: CityID):Troop|null => {
     G.song.troops.forEach(t => {
         if (t.c === r) {
             return t;

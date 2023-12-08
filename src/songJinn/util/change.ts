@@ -10,45 +10,65 @@ import {
     SJPlayer,
     Troop
 } from "../constant/general";
-import {getCountryById, getSongTroopByCity, getSongTroopByRegion, playerById} from "./fetch";
+import {getCountryById, getJinnTroopByRegion, getSongTroopByCity, getSongTroopByRegion, playerById} from "./fetch";
 import {remove} from "./card";
 import {getCityById} from "../constant/city";
-import {PlayerID} from "boardgame.io";
+import {Ctx, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
 import {getRegionById} from "../constant/regions";
 
 export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], country: Country) => {
-
+    const actualUnits = [...units];
     switch (country) {
         case Country.SONG:
-            const st = getSongTroopByRegion(G,dst);
+            const st = getSongTroopByRegion(G, dst);
             for (let i = 0; i < units.length; i++) {
-
-                if(G.song.standby[i] > units[i]) {
+                if (G.song.standby[i] > units[i]) {
+                    actualUnits[i] = units[i]
                     G.song.standby[i] -= units[i];
-                }else{
+                } else {
+                    actualUnits[i] = G.song.standby[i];
                     G.song.standby[i] = 0;
                 }
             }
-            G.song.troops.push({
-                p: dst,
-                c: getRegionById(dst).city,
-                country: Country.SONG,
-                u: units,
-                j: []
-            })
+            if (st === null) {
+                G.song.troops.push({
+                    p: dst,
+                    c: getRegionById(dst).city,
+                    country: Country.SONG,
+                    u: actualUnits,
+                    j: []
+                })
+            } else {
+                for (let i = 0; i < units.length; i++) {
+                    st.u[i] += actualUnits[i];
+                }
+            }
             break;
         case Country.JINN:
+            const jt = getJinnTroopByRegion(G, dst);
             for (let i = 0; i < units.length; i++) {
-                G.jinn.standby[i] -= units[i];
+                if (G.jinn.standby[i] > units[i]) {
+                    actualUnits[i] = units[i]
+                    G.jinn.standby[i] -= units[i];
+                } else {
+                    actualUnits[i] = G.jinn.standby[i];
+                    G.jinn.standby[i] = 0;
+                }
             }
-            G.jinn.troops.push({
-                p: dst,
-                c: getRegionById(dst).city,
-                country: Country.JINN,
-                u: units,
-                j: []
-            });
+            if (jt === null) {
+                G.jinn.troops.push({
+                    p: dst,
+                    c: getRegionById(dst).city,
+                    country: Country.JINN,
+                    u: actualUnits,
+                    j: []
+                })
+            } else {
+                for (let i = 0; i < units.length; i++) {
+                    jt.u[i] += actualUnits[i];
+                }
+            }
             break;
         default:
             return null;
@@ -208,4 +228,16 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
         }
     }
 
+}
+export const rollDiceByPid = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, count: number) => {
+    const country = getCountryById(pid);
+    const dices = ctx.random?.D6(count);
+    if (dices === undefined) {
+        return;
+    }
+    if (country === Country.SONG) {
+        G.song.dices = dices;
+    } else {
+        G.jinn.dices = dices;
+    }
 }

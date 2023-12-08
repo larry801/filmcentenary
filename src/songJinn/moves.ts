@@ -29,9 +29,9 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {shuffle} from "../game/util";
 import {sjCardById} from "./constant/cards";
 import {drawPhaseForPlayer, drawPlanForPlayer, remove} from "./util/card";
-import {endRoundCheck, endTurnCheck, heYiCheck, returnDevCardCheck} from "./util/check";
+import {endRoundCheck, heYiCheck, returnDevCardCheck} from "./util/check";
 import {getCityById} from "./constant/city";
-import {addTroop, heYiChange} from "./util/change";
+import {addTroop, heYiChange, rollDiceByPid} from "./util/change";
 
 export const letter: LongFormMove = {
     move: (G, ctx, arg: LetterOfCredence) => {
@@ -197,7 +197,14 @@ export const chooseUnit: LongFormMove = {
 
 export const rollDices: LongFormMove = {
     move: (G, ctx, count: number) => {
-        G.dices = ctx.random?.D6(count);
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        if (count === undefined) {
+            rollDiceByPid(G, ctx, ctx.playerID, 5);
+        } else {
+            rollDiceByPid(G, ctx, ctx.playerID, count);
+        }
     }
 }
 
@@ -382,13 +389,11 @@ export const chooseFirst: LongFormMove = {
         const pid = ctx.playerID;
         const log = [`p${pid}.moves.chooseFirst(${args})`];
         G.first = args;
-        switch (args) {
-            case SJPlayer.P1:
-                G.order = [SJPlayer.P1, SJPlayer.P2];
-                break
-            case SJPlayer.P2:
-                G.order = [SJPlayer.P2, SJPlayer.P1];
-                break
+        if (args === SJPlayer.P1){
+            G.order = [SJPlayer.P1, SJPlayer.P2];
+
+        }else{
+            G.order = [SJPlayer.P2, SJPlayer.P1];
         }
         ctx.events?.endPhase();
         logger.info(log.join(''));
@@ -515,10 +520,35 @@ export const showPlan: LongFormMove = {
 
 export const op: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, cid: CardID) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
         const card = sjCardById(cid);
-
+        if(player.hand.includes(cid)){
+            remove(cid,player.hand);
+            pub.discard.push(cid);
+        }
     }
 };
+
+export const paiQian: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, cid: CardID) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
+        if(player.hand.includes(cid)){
+            remove(cid,player.hand);
+            pub.discard.push(cid);
+        }
+    }
+};
+
 
 // Adjust status moves for semi auto only
 
