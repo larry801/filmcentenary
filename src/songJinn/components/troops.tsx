@@ -109,9 +109,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         callback={(u) => {
             setTakeDamageStep(TakeDamageStep.STANDBY)
             setReadyUnits(u)
-        }} max={troops[removeTroop].u} initUnits={unitNames.map(() => 0)}
-        show={isActive && takeDamageStep === TakeDamageStep.READY} title={"选择要消灭的部队"}
-        toggleText={"消灭部队"} initial={true} country={ctr}/>
+        }} max={troops[takeDamageTroop].u} initUnits={unitNames.map(() => 0)}
+        show={isActive && takeDamageStep === TakeDamageStep.READY} title={"选择被击溃的部队"}
+        toggleText={"击溃"} initial={true} country={ctr}/>
 
     const takeDamageStandbyDialog = <ChooseUnitsDialog
         callback={(u) => {
@@ -123,8 +123,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 ready: readyUnits,
                 standby: u
             })
-        }} max={troops[removeTroop].u} initUnits={unitNames.map(() => 0)}
-        show={isActive && takeDamageStep === TakeDamageStep.STANDBY} title={"选择要消灭的部队"}
+        }} max={troops[takeDamageTroop].u} initUnits={unitNames.map(() => 0)}
+        show={isActive && takeDamageStep === TakeDamageStep.STANDBY} title={"选择要被消灭的部队"}
         toggleText={"消灭部队"} initial={true} country={ctr}/>
 
     const [moveTroop, setMoveTroop] = useState(0);
@@ -342,80 +342,85 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             setPlaceStep(PlaceStep.TROOP)
             moves.placeTroop({
                 units: u,
-                idx: removeTroop,
+                idx: placeTroop,
                 country: ctr
             })
-        }} max={troops[placeTroop].u} initUnits={unitNames.map(() => 0)}
+        }} max={[...pub.standby]} initUnits={unitNames.map(() => 0)}
         show={isActive && placeStep === PlaceStep.UNITS} title={"选择要放置的的部队"}
         toggleText={"放置部队"} initial={true} country={ctr}/>
 
 
-    return <Grid>
-        <Button variant={"contained"} fullWidth onClick={() => setNewStep(TroopStep.PROVINCE)}>放置部队</Button>
-        <Button variant={"contained"} fullWidth onClick={() => setDeployNewStep(DeployNewStep.CITY)}>补充空城市</Button>
-        {provDialog}
-        {unitDialog}
-        {regionDialog}
+    return <Grid item container xs={12}>
+       <Grid item xs={12}>
+           <Button variant={"contained"} fullWidth onClick={() => setNewStep(TroopStep.PROVINCE)}>放置部队</Button>
+           <Button variant={"contained"} fullWidth onClick={() => setDeployNewStep(DeployNewStep.CITY)}>补充空城市</Button>
+           {provDialog}
+           {unitDialog}
+           {regionDialog}
 
-        {marchDialog}
-        {marchRegionDialog}
+           {marchDialog}
+           {marchRegionDialog}
 
-        {deployNewCityDialog}
-        {deployNewCityUnitsDialog}
+           {deployNewCityDialog}
+           {deployNewCityUnitsDialog}
 
-        {depUnitDialog}
+           {depUnitDialog}
 
-        {takeDamageReadyDialog}
-        {takeDamageStandbyDialog}
+           {takeDamageReadyDialog}
+           {takeDamageStandbyDialog}
 
-        {removeUnitDialog}
+           {removeUnitDialog}
 
-        {moveProvDialog}
+           {moveProvDialog}
 
-        {placeUnitsDialog}
+           {placeUnitsDialog}
+       </Grid>
 
-        {troops.map((t, idx) => <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
-                                           key={`troop-${idx}`}>
-            <AccordionSummary>{placeToStr(t.p)}|{unitsToString(t.u)}</AccordionSummary>
-            <AccordionDetails>
-                <Button onClick={
-                    () => {
-                        setMarchTroop(idx);
-                        setMarchStep(MarchStep.UNITS);
-                    }
-                }>进军</Button>
-                <Button onClick={
-                    () => {
-                        setMoveTroop(idx);
-                        setMoveStep(MoveStep.PROVINCE)
-                    }
-                }>移动</Button>
-                <Button onClick={
-                    () => {
-                        setTakeDamageStep(TakeDamageStep.READY);
-                        setTakeDamageTroop(idx);
-                    }
-                }>受创</Button>
-                <Button onClick={
-                    () => {
-                        setDeployStep(DeployStep.UNITS);
-                        setDeployTroop(idx);
-                    }
-                }>补充</Button>
-                <Button onClick={
-                    () => {
-                        setPlaceStep(PlaceStep.UNITS);
-                        setPlaceTroop(idx);
-                    }
-                }>放置</Button>
-                <Button onClick={
-                    () => {
-                        setRemoveStep(RemoveStep.UNITS);
-                        setRemoveTroop(idx);
-                    }
-                }>消灭</Button>
-            </AccordionDetails>
-        </Accordion>)}
+        {troops.map((t, idx) => <Grid item xs={6} key={`troop-grid-${idx}`}>
+            <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
+                       key={`troop-${idx}`}>
+                <AccordionSummary>{placeToStr(t.p)}|{unitsToString(t.u)}</AccordionSummary>
+                <AccordionDetails>
+                    <button onClick={
+                        () => {
+                            setMarchTroop(idx);
+                            setMarchStep(MarchStep.UNITS);
+                        }
+                    }>进军</button>
+                    <button onClick={
+                        () => {
+                            setMoveTroop(idx);
+                            setMoveStep(MoveStep.PROVINCE)
+                        }
+                    }>移动</button>
+                    <button onClick={
+                        () => {
+                            setTakeDamageStep(TakeDamageStep.READY);
+                            setTakeDamageTroop(idx);
+                        }
+                    }>受创</button>
+                    <button onClick={
+                        () => {
+                            setDeployStep(DeployStep.UNITS);
+                            setDeployTroop(idx);
+                        }
+                    }>补充</button>
+                    <button onClick={
+                        () => {
+                            setPlaceStep(PlaceStep.UNITS);
+                            setPlaceTroop(idx);
+                        }
+                    }>放置</button>
+                    <button onClick={
+                        () => {
+                            setRemoveStep(RemoveStep.UNITS);
+                            setRemoveTroop(idx);
+                        }
+                    }>消灭</button>
+                </AccordionDetails>
+            </Accordion>
+
+        </Grid>)}
     </Grid>
 }
 

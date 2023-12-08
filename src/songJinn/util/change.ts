@@ -41,6 +41,9 @@ export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerI
             t.u[i] -= units[i]
         }
     }
+    if (t.u.filter(c=>c>0).length === 0){
+        rm(t,pub.troops);
+    }
 }
 
 export const recruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {

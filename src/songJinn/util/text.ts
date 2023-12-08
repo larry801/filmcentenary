@@ -32,11 +32,17 @@ export const getLogText = (l: LogEntry): string => {
                     case 'placeUnits':
                         log += `在${placeToStr(arg.dst)}放置${unitsToString(arg.units)}`;
                         break;
+                    case 'opponentMove':
+                        log += `让对方操作`;
+                        break;
                     case 'march':
-                        log += `${placeToStr(arg.src)}${unitsToString(arg.units)}进军${arg.dst}`;
+                        log += `${placeToStr(arg.src)}${unitsToString(arg.units)}进军${placeToStr(arg.dst)}`;
+                        break;
+                    case 'placeTroop':
+                        log += `${placeToStr(arg.src.p)}${placeToStr(arg.dst)}`;
                         break;
                     case 'moveTroop':
-                        log += `${placeToStr(arg.src.p)}全军移动到${arg.dst}`;
+                        log += `${placeToStr(arg.src.p)}全军移动到${placeToStr(arg.dst)}`;
                         break;
                     case 'rollDices':
                         log += `扔了${arg === undefined ? 5 : arg}个骰子`;

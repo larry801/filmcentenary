@@ -187,7 +187,6 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         tieJun: tieJun,
 
         recruitPuppet: recruitPuppet,
-        rollDices: rollDices,
         endRound: endRound,
 
 
