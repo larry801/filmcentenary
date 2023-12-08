@@ -31,7 +31,7 @@ import {INVALID_MOVE, Stage} from "boardgame.io/core";
 import {shuffle} from "../game/util";
 import {sjCardById} from "./constant/cards";
 import {drawPhaseForPlayer, drawPlanForPlayer, rm} from "./util/card";
-import {endRoundCheck, heYiCheck, returnDevCardCheck} from "./util/check";
+import {endRoundCheck, heYiCheck, returnDevCardCheck, troopEmpty} from "./util/check";
 import {getCityById} from "./constant/city";
 import {
     addTroop,
@@ -161,22 +161,32 @@ export interface ITakeDamageArgs {
 }
 
 export const takeDamage: LongFormMove = {
-    move: (G, ctx, {c, idx, standby, ready}: ITakeDamageArgs) => {
-        const troop = c === Country.JINN ? G.jinn.troops[idx] : G.song.troops[idx];
-        for (let i = 0; i < standby.length; i++) {
-            troop[i] -= standby[i];
-            troop[i] -= ready[i];
-            switch (c) {
-                case Country.JINN:
-                    G.jinn.standby[i] += standby[i];
-                    G.jinn.ready[i] += standby[i];
-                    break;
-                case Country.SONG:
-                    G.song.standby[i] += standby[i];
-                    G.song.ready[i] += standby[i];
-                    break;
-            }
+    move: (G, ctx, arg: ITakeDamageArgs) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
         }
+        logger.info(`p${ctx.playerID}.takeDamage(${arg})`)
+        const pub = getStateById(G, ctx.playerID);
+        const log = [`|before|${pub.standby}|${pub.standby}|`];
+        const troop = arg.c === Country.JINN ? G.jinn.troops[arg.idx] : G.song.troops[arg.idx];
+        for (let i = 0; i < arg.standby.length; i++) {
+            troop[i] -= (arg.standby)[i];
+            troop[i] -= (arg.ready)[i];
+            if (troop[i] < 0) {
+                log.push(`|${troop[i]}<0`);
+                logger.debug(log.join(''));
+                return INVALID_MOVE;
+            }
+            log.push(JSON.stringify(troop));
+            pub.standby[i] += (arg.standby)[i];
+            pub.ready[i] += (arg.ready)[i];
+            log.push(`|after|${pub.standby}|${arg.standby}`);
+        }
+        if (troopEmpty(troop)) {
+            rm(troop, pub.troops);
+        }
+        logger.debug(log.join(''));
+
     }
 }
 

@@ -23,6 +23,7 @@ import {getCityById} from "../constant/city";
 import {Ctx, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
 import {getRegionById} from "../constant/regions";
+import {troopEmpty} from "./check";
 
 
 
@@ -41,7 +42,7 @@ export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerI
             t.u[i] -= units[i]
         }
     }
-    if (t.u.filter(c=>c>0).length === 0){
+    if (troopEmpty(t)){
         rm(t,pub.troops);
     }
 }

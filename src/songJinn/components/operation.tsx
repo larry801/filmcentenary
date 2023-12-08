@@ -4,7 +4,7 @@ import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
 import {cardToSearch, getCountryById, getStage, getStateById, playerById} from "../util/fetch";
-import {ActiveEvents, Country, DevelopChoice, JinnUnit, SJPlayer, SongUnit, UNIT_FULL_NAME} from "../constant/general";
+import { Country, DevelopChoice,  SJPlayer} from "../constant/general";
 import {remainDevelop} from "../util/calc";
 import {returnDevCardCheck} from "../util/check";
 import {sjCardById} from "../constant/cards";

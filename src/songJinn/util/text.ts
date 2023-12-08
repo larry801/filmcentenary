@@ -1,7 +1,6 @@
 import {DevelopChoice, SJPlayer, TroopPlace} from "../constant/general";
 import {getRegionById} from "../constant/regions";
 import {LogEntry, PlayerID} from "boardgame.io";
-import {ActionShape} from "boardgame.io/src/types";
 import {sjCardById} from "../constant/cards";
 import {getPlanById, PlanID} from "../constant/plan";
 import {getCityById} from "../constant/city";
@@ -34,6 +33,9 @@ export const getLogText = (l: LogEntry): string => {
                         break;
                     case 'opponentMove':
                         log += `让对方操作`;
+                        break;
+                    case 'takeDamage':
+                        log += `死${unitsToString(arg.standby)}溃${unitsToString(arg.ready)}`;
                         break;
                     case 'march':
                         log += `${placeToStr(arg.src)}${unitsToString(arg.units)}进军${placeToStr(arg.dst)}`;

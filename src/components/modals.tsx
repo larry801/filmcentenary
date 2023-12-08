@@ -107,6 +107,7 @@ export const ChoiceDialog = ({
 
     return show ? <Grid item xs={12}>
         <Button
+            key={nanoid()}
             aria-label={title}
             color={buttonColor ? "secondary" : "primary"}
             fullWidth
@@ -116,6 +117,7 @@ export const ChoiceDialog = ({
             style={{textTransform: 'none'}}
         > {toggleText}</Button>
         <Dialog
+            key={nanoid()}
             aria-label={title}
             open={open}
             onClose={handleClose}
@@ -124,8 +126,8 @@ export const ChoiceDialog = ({
                 {title}
             </DialogTitle>
             <DialogContent>
-                <FormControl required component="fieldset">
-                    <FormGroup>
+                <FormControl key={nanoid()} required component="fieldset">
+                    <FormGroup key={nanoid()}>
                         <FormLabel component="legend">{toggleText}</FormLabel>
                         <RadioGroup
                             aria-label={title}
@@ -136,15 +138,15 @@ export const ChoiceDialog = ({
                                     <FormControlLabel
                                         disabled={choice.disabled}
                                         key={nanoid()} value={choice.value}
-                                        control={<Radio/>}
+                                        control={<Radio key={nanoid()}/>}
                                         label={choice.label}/> : <></>
                             )}
                         </RadioGroup>
                     </FormGroup>
                 </FormControl>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={debouncedHandleConfirm} color="primary">
+            <DialogActions key={nanoid()}>
+                <Button key={nanoid()} onClick={debouncedHandleConfirm} color="primary">
                     {i18n.confirm}
                 </Button>
             </DialogActions>

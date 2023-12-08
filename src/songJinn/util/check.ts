@@ -1,7 +1,7 @@
 import {SongJinnGame} from "../constant/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {addLateTermCard, addMidTermCard, rm} from "./card";
-import {ActiveEvents, CardID, Country, ProvinceID} from "../constant/general";
+import {ActiveEvents, CardID, Country, ProvinceID, Troop} from "../constant/general";
 import {logger} from "../../game/logger";
 import {getCountryById, getStateById} from "./fetch";
 import {totalDevelop} from "./calc";
@@ -9,6 +9,9 @@ import {sjCardById} from "../constant/cards";
 import {getPlanById, PlanID} from "../constant/plan";
 
 
+export const troopEmpty = (troop: Troop) => {
+    return troop.u.filter(c => c > 0).length === 0
+}
 export const canChoosePlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
     if ([PlanID.J23, PlanID.J24].includes(plan)) {
         const ctr = getCountryById(pid);
