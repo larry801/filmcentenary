@@ -51,14 +51,12 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
         />
         {hand.map((cid, idx) => <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
                                            key={`playerHand-${cid}`}>
-            <AccordionSummary key={`summary-${cid}`}>{sjCardById(cid).name}|{sjCardById(cid).op}</AccordionSummary>
+            <AccordionSummary key={`summary-${cid}`}>
+                <Typography key={`summary-text-${cid}`}>{sjCardById(cid).name}|{sjCardById(cid).op}</Typography>
+                {getFullDesc(sjCardById(cid))}
+
+            </AccordionSummary>
             <AccordionDetails>
-                <Grid item xs={12}>
-
-                    <Typography>{getFullDesc(sjCardById(cid))}</Typography>
-                </Grid>
-                <Grid item xs={12}>
-
                     <Button
                         disabled={!(isActive && inPhase)}
                         onClick={() => moves.op(cid)}
@@ -89,8 +87,6 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
                         onClick={() => moves.tieJun(cid)}
                         disabled={!(isActive && inPhase)}
                     >贴军</Button>}
-                </Grid>
-
             </AccordionDetails>
         </Accordion>)}
     </Grid>

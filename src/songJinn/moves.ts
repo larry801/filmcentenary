@@ -33,7 +33,16 @@ import {sjCardById} from "./constant/cards";
 import {drawPhaseForPlayer, drawPlanForPlayer, rm} from "./util/card";
 import {endRoundCheck, heYiCheck, returnDevCardCheck} from "./util/check";
 import {getCityById} from "./constant/city";
-import {addTroop, heYiChange, mergeTroopTo, recruit, removeUnitOnTroop, rollDiceByPid} from "./util/change";
+import {
+    addTroop,
+    colonyDown,
+    heYiChange,
+    mergeTroopTo,
+    policyDown,
+    recruit,
+    removeUnitOnTroop,
+    rollDiceByPid
+} from "./util/change";
 import {getRegionById} from "./constant/regions";
 
 interface IMarchArgs {
@@ -681,47 +690,46 @@ export const down: LongFormMove = {
             return INVALID_MOVE;
         }
         const country = getCountryById(ctx.playerID);
-        switch (country) {
-            case Country.SONG:
-                if (choice === DevelopChoice.COLONY) {
-                    return INVALID_MOVE;
-                } else {
-                    switch (choice) {
-                        case DevelopChoice.MILITARY:
-                            G.jinn.military--;
-                            break;
-                        case DevelopChoice.CIVIL:
-                            G.jinn.civil--;
-                            break;
-                        case DevelopChoice.POLICY:
-                            G.policy--;
-                            break;
-                        default:
-                            break;
-                    }
+        if (country === Country.SONG) {
+                switch (choice) {
+                    case DevelopChoice.MILITARY:
+                        G.jinn.military--;
+                        break;
+                    case DevelopChoice.CIVIL:
+                        G.jinn.civil--;
+                        break;
+                    case DevelopChoice.POLICY:
+                        policyDown(G,1);
+                        break;
+                    case DevelopChoice.COLONY:
+                        colonyDown(G,1);
+                        break;
+                    default:
+                        break;
                 }
-                break;
-            case Country.JINN:
-                if (choice === DevelopChoice.POLICY || choice === DevelopChoice.EMPEROR) {
-                    return INVALID_MOVE;
-                } else {
-                    switch (choice) {
-                        case DevelopChoice.MILITARY:
-                            G.jinn.military--;
-                            break;
-                        case DevelopChoice.CIVIL:
-                            G.jinn.civil--;
-                            break;
-                        case DevelopChoice.COLONY:
-                            G.colony--;
-                            break;
-                        default:
-                            break;
-                    }
+
+        } else if (country === Country.JINN) {
+            if (choice === DevelopChoice.EMPEROR) {
+                return INVALID_MOVE;
+            } else {
+                switch (choice) {
+                    case DevelopChoice.MILITARY:
+                        G.jinn.military--;
+                        break;
+                    case DevelopChoice.CIVIL:
+                        G.jinn.civil--;
+                        break;
+                    case DevelopChoice.POLICY:
+                        policyDown(G,1);
+                        break;
+                    case DevelopChoice.COLONY:
+                        colonyDown(G,1);
+                        break;
+                    default:
+                        break;
                 }
-                break;
-            default:
-                break;
+            }
+        } else {
         }
     }
 }

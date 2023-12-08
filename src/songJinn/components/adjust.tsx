@@ -4,7 +4,7 @@ import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
 import {getCountryById, getStateById, playerById} from "../util/fetch";
-import {CityID} from "../constant/general";
+import {CityID, Country, DevelopChoice} from "../constant/general";
 
 export interface IOperationProps {
     G: SongJinnGame;
@@ -14,13 +14,8 @@ export interface IOperationProps {
     isActive: boolean;
 }
 
-enum LoseCityStep {
-    START,
-    CITY,
-    OPPONENT
-}
 
-export const Adjust = ({
+export const AdjustOps = ({
                               G,
                               ctx,
                               playerID,
@@ -33,8 +28,13 @@ export const Adjust = ({
     const country = getCountryById(playerID);
 
     const [city, setCity] = useState(CityID.DaTong);
-    const [loseCityStep, setLoseCityStep] = useState(LoseCityStep.CITY);
 
+    enum LoseCityStep {
+        CITY,
+        OPPONENT
+    }
+
+    const [loseCityStep, setLoseCityStep] = useState(LoseCityStep.CITY);
     const cityDialog = <ChoiceDialog
         callback={
             (c) => {
@@ -48,12 +48,13 @@ export const Adjust = ({
             disabled: false,
             hidden: false,
         }
-    })} defaultChoice={""} show={isActive}
-        title={"丢失城市"} toggleText={""} initial={true}/>
+    })} defaultChoice={""} show={isActive && loseCityStep === LoseCityStep.CITY}
+        title={"请选择丢失的城市"} toggleText={"丢失城市"} initial={false}/>
     const loseCityToOpponentDialog = <ChoiceDialog
         callback={(c) => {
             const opponent = c === "yes";
             moves.loseCity({city: city, opponent: opponent});
+            setLoseCityStep(LoseCityStep.CITY)
         }}
         choices={[
             {label: "是", value: "yes", disabled: false, hidden: false},
@@ -62,11 +63,43 @@ export const Adjust = ({
         show={isActive && loseCityStep === LoseCityStep.OPPONENT}
         title={"是否对手控制"}
         toggleText={"确认"}
-        initial={false}/>
+        initial={true}/>
+
+
+    const downDialog = <ChoiceDialog
+        callback={(c) => moves.down(c)}
+        defaultChoice={DevelopChoice.CIVIL}
+        choices={[
+            {
+                label: DevelopChoice.COLONY, value: DevelopChoice.COLONY,
+                disabled: false,
+                hidden: G.colony === 0
+            },
+            {
+                label: DevelopChoice.MILITARY, value: DevelopChoice.MILITARY,
+                disabled: pub.military === 1,
+                hidden: false
+            },
+            {
+                label: DevelopChoice.POLICY, value: DevelopChoice.POLICY,
+                disabled: G.policy === -3,
+                hidden: G.policy === -3
+            },
+            {
+                label: DevelopChoice.CIVIL, value: DevelopChoice.CIVIL,
+                disabled: pub.civil === 1,
+                hidden: false
+            },
+
+        ]}
+        show={isActive}
+        title={"请选择项目"} toggleText={"降低等级"} initial={false}
+    />
 
     return <Grid container>
         {cityDialog}
         {loseCityToOpponentDialog}
 
+        {downDialog}
     </Grid>
 }

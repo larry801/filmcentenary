@@ -106,10 +106,10 @@ export const Nations = [
 ];
 
 export enum DevelopChoice {
-    MILITARY = "提升军事",
-    CIVIL = "提升内政",
-    COLONY = "提升殖民",
-    POLICY = "提升政策",
+    MILITARY = "军事",
+    CIVIL = "内政",
+    COLONY = "殖民",
+    POLICY = "政策",
     EMPEROR = "拥立"
 }
 

@@ -168,35 +168,7 @@ export const Operation = ({
         title={"请选择发展项目"} toggleText={"发展"} initial={false}
     />
 
-    const downDialog = <ChoiceDialog
-        callback={(c) => moves.down(c)}
-        defaultChoice={DevelopChoice.CIVIL}
-        choices={[
-            {
-                label: DevelopChoice.COLONY, value: DevelopChoice.COLONY,
-                disabled: false,
-                hidden: country !== Country.JINN
-            },
-            {
-                label: DevelopChoice.MILITARY, value: DevelopChoice.MILITARY,
-                disabled: pub.military === 7 || pub.military + 1 > remainDevelopPoint,
-                hidden: false
-            },
-            {
-                label: DevelopChoice.POLICY, value: DevelopChoice.POLICY,
-                disabled: remainDevelopPoint < 3,
-                hidden: false
-            },
-            {
-                label: DevelopChoice.CIVIL, value: DevelopChoice.CIVIL,
-                disabled: pub.civil === 7 || pub.civil + 1 > remainDevelopPoint,
-                hidden: false
-            },
 
-        ]}
-        show={isActive && ctx.phase === 'develop'}
-        title={"请选择项目"} toggleText={"降低等级"} initial={false}
-    />
 
     const takePlan = (choices: string[]) => {
         moves.takePlan(choices)
@@ -246,7 +218,5 @@ export const Operation = ({
 
         {discardDialog}
         {searchDialog}
-
-        {downDialog}
     </Grid>
 }

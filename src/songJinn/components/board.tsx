@@ -13,6 +13,7 @@ import {SJPlayerHand} from "./player-hand";
 import LogView from "./view-log";
 import {sjPlayerName} from "../util/text";
 import TroopOperation from "./troops";
+import {AdjustOps} from "./adjust";
 
 export const SongJinnBoard = ({
                                   G,
@@ -55,14 +56,14 @@ export const SongJinnBoard = ({
                         moves={moves}
                         isActive={isActive}
                     />
-                    {isActive && <Grid>
-                        <SJPlayerHand
-                            moves={moves}
-                            G={G} ctx={ctx}
-                            isActive={isActive}
-                            pid={playerID}
-                        />
-                        <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
+                    {isActive && <Grid container>
+                        <Grid item xs={12} sm={6}>
+                            <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
+                        </Grid>
+                        <AdjustOps G={G} ctx={ctx} isActive={isActive} playerID={playerID} moves={moves}/>
 
                     </Grid>
 

@@ -1,4 +1,4 @@
-import {SJPlayer, TroopPlace} from "../constant/general";
+import {DevelopChoice, SJPlayer, TroopPlace} from "../constant/general";
 import {getRegionById} from "../constant/regions";
 import {LogEntry, PlayerID} from "boardgame.io";
 import {ActionShape} from "boardgame.io/src/types";
@@ -66,10 +66,13 @@ export const getLogText = (l: LogEntry): string => {
                         log += `发展${sjCardById(arg).name}`;
                         break;
                     case 'loseCity':
-                        log += `丢失${arg.city}${arg.opponent?"对手占领":""}`;
+                        log += `丢失${arg.city}${arg.opponent ? "对手占领" : ""}`;
+                        break;
+                    case 'down':
+                        log += `降低${arg}`;
                         break;
                     case 'develop':
-                        log += `${arg}`;
+                        log += `${arg !== DevelopChoice.EMPEROR ? "提升" : ""}${arg}`;
                         break;
                     case 'recruitUnit':
                         log += `征募${unitsToString(arg)}`;
@@ -95,8 +98,8 @@ export const getLogText = (l: LogEntry): string => {
                     default:
                         log += `${name}|${JSON.stringify(arg)}`
                 }
-            }catch (e) {
-                log  += `${JSON.stringify(l)}|${JSON.stringify(e)}`
+            } catch (e) {
+                log += `${JSON.stringify(l)}|${JSON.stringify(e)}`
             }
             return log;
         case "GAME_EVENT":
