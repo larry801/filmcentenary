@@ -2,7 +2,7 @@ import {SongJinnGame} from "../constant/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {getStateById, playerById} from "./fetch";
 import {
-    CardID,
+    SJEventCardID,
     JinnLateCardID,
     JinnMidCardID,
     SJPlayer,
@@ -21,7 +21,7 @@ export const rm: RemoveFn<any> = (target, array) => {
     }
 }
 
-export const developInstead = (G: SongJinnGame,pid:PlayerID,cid:CardID) => {
+export const developInstead = (G: SongJinnGame,pid:PlayerID,cid:SJEventCardID) => {
 const pub =getStateById(G,pid)
     G.song.develop.push(cid);
     rm(cid, G.song.discard)

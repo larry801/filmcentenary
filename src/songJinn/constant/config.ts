@@ -5,7 +5,7 @@ import {
     cardEvent,
     chooseFirst,
     choosePlan,
-    chooseTop, deploy,
+    chooseTop, combatCard, deploy,
     develop,
     developCard,
     discard, down, emptyRound,
@@ -188,6 +188,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         letter: letter,
         heYi: heYi,
         tieJun: tieJun,
+        combatCard:combatCard,
 
         recruitPuppet: recruitPuppet,
         endRound: endRound,

@@ -1,4 +1,4 @@
-import {DevelopChoice, SJPlayer, TroopPlace} from "../constant/general";
+import {SJEventCardID, DevelopChoice, SJPlayer, TroopPlace} from "../constant/general";
 import {getRegionById} from "../constant/regions";
 import {LogEntry, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
@@ -7,7 +7,7 @@ import {getCityById} from "../constant/city";
 import {unitsToString} from "./fetch";
 
 export const placeToStr = (p: TroopPlace) => {
-    return typeof p === "number" && !isNaN(p)? getRegionById(p).name : p;
+    return typeof p === "number" && !isNaN(p) ? getRegionById(p).name : p;
 }
 
 export const sjPlayerName = (l: PlayerID): string => {
@@ -22,7 +22,7 @@ export const getLogText = (l: LogEntry): string => {
             try {
                 const name = payload.type;
                 const args = payload.args !== undefined ? payload.args : "";
-                if(args === null || args === []){
+                if (args === null || args === []) {
                     switch (name) {
                         case 'choosePlan':
                             log += '选择了一张作战计划';
@@ -33,8 +33,8 @@ export const getLogText = (l: LogEntry): string => {
                         default:
                             log += `${name}|${JSON.stringify(args)}`;
                     }
-                }else{
-                    const arg=args[0];
+                } else {
+                    const arg = args[0];
                     switch (name) {
                         case 'deploy':
                             log += `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
@@ -65,6 +65,10 @@ export const getLogText = (l: LogEntry): string => {
                             break;
                         case 'chooseFirst':
                             log += `选择${sjPlayerName(arg)}先行动`;
+                            break;
+                        case 'combatCard':
+                            log += arg.length === 0 ? "不使用战斗牌" :
+                                `使用战斗牌${arg.map((p: SJEventCardID) => sjCardById(p).name)}`;
                             break;
                         case 'takePlan':
                             log += `拿走了${arg.map((p: PlanID) => getPlanById(p).name)}`;

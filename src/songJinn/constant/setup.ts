@@ -1,7 +1,7 @@
 import {PlanID} from "./plan";
 import {
     ActiveEvents,
-    CardID,
+    SJEventCardID,
     CityID,
     Country,
     GeneralStatus,
@@ -29,8 +29,8 @@ export interface SJPubInfo {
     completedPlan: PlanID[],
     corruption: number;
     nations: NationID[];
-    develop: CardID[],
-    discard: CardID[],
+    develop: SJEventCardID[],
+    discard: SJEventCardID[],
     effect: PlayerPendingEffect[],
     emperor: CityID | null,
     generals: GeneralStatus[],
@@ -38,7 +38,7 @@ export interface SJPubInfo {
     plan: PlanID[],
     provinces: ProvinceID[],
     ready: number[],
-    remove: CardID[],
+    remove: SJEventCardID[],
     standby: number[],
     troops: Troop[],
     usedDevelop: number
@@ -196,8 +196,8 @@ export const initialSongPub: SJPubInfo = {
 }
 
 export interface SJPlayerInfo {
-    hand: CardID[],
-    combatCard: CardID[],
+    hand: SJEventCardID[],
+    combatCard: SJEventCardID[],
     plans: PlanID[],
     chosenPlans: PlanID[],
     lod: LetterOfCredence[]
@@ -233,8 +233,8 @@ export interface SongJinnGame {
     }
     // combat: CombatInfo,
     secret: {
-        songDeck: CardID[],
-        jinnDeck: CardID[],
+        songDeck: SJEventCardID[],
+        jinnDeck: SJEventCardID[],
         planDeck: PlanID[],
     },
     first: SJPlayer,

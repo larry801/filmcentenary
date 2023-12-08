@@ -70,6 +70,17 @@ export const Operation = ({
         title={"请选择1张作战计划"} toggleText={"选择作战计划"}
         initial={true}/>;
 
+    const combatCardDialog = <CheckBoxDialog
+        callback={(c) => moves.combatCard(c)}
+        choices={player.hand.filter(c => sjCardById(c).combat).map(c=>{return {
+            label:sjCardById(c).name,
+            value:c,
+            disabled:false,
+            hidden:false
+        }})}
+        show={isActive && ctx.phase === 'action'} title={"请选择战斗牌"}
+        toggleText={"战斗牌"} initial={false}/>
+
     const showPlan = (isActive && ctx.phase === 'showPlan') && <Button
         onClick={() => moves.showPlan(player.chosenPlans)}
         color={"primary"} variant={"contained"}>展示作战计划</Button>
@@ -205,12 +216,12 @@ export const Operation = ({
             show={isActive && ctx.phase === 'resolvePlan' && pub.completedPlan.length > 0} title={"顶端计划"}
             toggleText={"选择放在顶端的计划"}
             initial={true} defaultChoice={""}/>
-    const recruitPhases = ['action','deploy'];
+    const recruitPhases = ['action', 'deploy'];
 
     const recruitDialog = <ChooseUnitsDialog
         callback={(u) => moves.recruitUnit(u)} max={pub.standby}
         initUnits={pub.standby.map(() => 0)}
-        show={isActive &&  recruitPhases.includes(ctx.phase)}
+        show={isActive && recruitPhases.includes(ctx.phase)}
         title={"征募"} toggleText={"请选择要征募的兵种"} initial={false} country={ctr}
     />
 
@@ -231,7 +242,7 @@ export const Operation = ({
         <Button onClick={() => adjustDice(5)}>+5</Button>
     </Grid>
 
-    const emptyRoundButton = ctx.phase==='action' && <Button
+    const emptyRoundButton = ctx.phase === 'action' && <Button
         disabled={player.hand.length + G.round > 9}
         onClick={() => moves.emptyRound()}>空过</Button>
     const opponentButton = <Button
@@ -246,6 +257,7 @@ export const Operation = ({
         {showPlan}
         {takePlanDialog}
         {chooseTopPlanDialog}
+        {combatCardDialog}
         {developDialog}
         {returnToHandDialog}
 

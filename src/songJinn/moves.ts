@@ -3,7 +3,7 @@ import {SongJinnGame} from "./constant/setup";
 import {
     ActiveEvents,
     BaseCardID,
-    CardID,
+    SJEventCardID,
     CityID,
     Country,
     DevelopChoice, General,
@@ -331,7 +331,7 @@ export const discard: LongFormMove = {
 
 
 export const tieJun: LongFormMove = {
-    move: (G, ctx, args: CardID) => {
+    move: (G, ctx, args: SJEventCardID) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
@@ -380,7 +380,7 @@ export const recruitPuppet: LongFormMove = {
 
 export interface IMoveTroopArgs {
     idx: number,
-    src:Troop,
+    src: Troop,
     dst: TroopPlace,
     country: Country
 }
@@ -531,6 +531,32 @@ export const returnToHand: LongFormMove = {
     }
 }
 
+export const combatCard: LongFormMove = {
+    move: (G, ctx, args: BaseCardID[]) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const player = playerById(G, ctx.playerID);
+        if (
+            args.filter(
+                c => player.hand.includes(c) &&
+                    sjCardById(c).combat).length === args.length
+        ) {
+            args.forEach(c => {
+                const card = sjCardById(c);
+                const pub = getStateById(G, ctx.playerID);
+                if (card.remove) {
+                    pub.remove.push(args);
+                } else {
+                    pub.discard.push(args);
+                }
+                rm(cid,player.hand);
+            })
+        }
+
+
+    }
+}
 export const cardEvent: LongFormMove = {
     move: (G, ctx, args: BaseCardID) => {
         if (ctx.playerID === undefined) {
@@ -548,7 +574,7 @@ export const cardEvent: LongFormMove = {
             } else {
                 pub.discard.push(args);
             }
-            player.hand.splice(player.hand.indexOf(args), 1);
+            rm(args,player.hand);
             card.event(G, ctx);
         } else {
             return INVALID_MOVE;
@@ -672,7 +698,7 @@ export const choosePlan: LongFormMove = {
 
 export const search: LongFormMove = {
     client: false,
-    move: (G: SongJinnGame, ctx: Ctx, cid: CardID) => {
+    move: (G: SongJinnGame, ctx: Ctx, cid: SJEventCardID) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE
         }
@@ -722,7 +748,7 @@ export const showPlan: LongFormMove = {
 }
 
 export const op: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx, cid: CardID) => {
+    move: (G: SongJinnGame, ctx: Ctx, cid: SJEventCardID) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
@@ -740,7 +766,7 @@ export const op: LongFormMove = {
 
 
 export const paiQian: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx, cid: CardID) => {
+    move: (G: SongJinnGame, ctx: Ctx, cid: SJEventCardID) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }

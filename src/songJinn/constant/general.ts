@@ -419,7 +419,7 @@ export const SongLateCardID = [
     SongBaseCardID.S50
 ];
 
-export type CardID = SongBaseCardID | JinnBaseCardID;
+export type SJEventCardID = SongBaseCardID | JinnBaseCardID;
 
 export enum GeneralStatus {
     PRE,
@@ -474,7 +474,7 @@ export enum JinnUnit {
 
 export interface LetterOfCredence {
     nation: NationID;
-    card: CardID;
+    card: SJEventCardID;
 }
 
 export enum CityID {

@@ -3,7 +3,7 @@ import {Ctx, PlayerID} from "boardgame.io"
 import {SongJinnGame} from "../constant/setup";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {Country, Nations, CardID} from "../constant/general";
+import {Country, Nations, SJEventCardID} from "../constant/general";
 
 import {playerById, getCountryById} from "../util/fetch";
 import Button from "@material-ui/core/Button";
@@ -49,46 +49,49 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
             toggleText={"外交"}
             initial={true}
         />
-        {hand.map((cid, idx) => <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
-                                           key={`playerHand-${cid}`}>
-            <AccordionSummary key={`summary-${cid}`}>
-                <Typography key={`summary-text-${cid}`}>{sjCardById(cid).name}|{sjCardById(cid).op}</Typography>
-                {getFullDesc(sjCardById(cid))}
+        {hand.map((cid, idx) => {
+            const card = sjCardById(cid);
+           return <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
+                       key={`playerHand-${cid}`}>
+                <AccordionSummary key={`summary-${cid}`}>
+                    <Typography key={`summary-text-${cid}`}>{card.name}|{card.op}</Typography>
+                    {getFullDesc(card)}
 
-            </AccordionSummary>
-            <AccordionDetails>
-                <Button
-                    disabled={!(isActive && inPhase)}
-                    onClick={() => moves.op(cid)}
-                >征募和进军</Button>
-                <Button
-                    disabled={!(isActive && inPhase && sjCardById(cid).event(G, ctx))}
-                    onClick={() => moves.cardEvent(cid)}
-                >事件</Button>
-                <Button
-                    disabled={!(isActive && inPhase)}
-                    onClick={() => moves.paiQIan(cid)}
-                >派遣</Button>
-                <Button
-                    disabled={!(isActive && inPhase)}
-                    onClick={() => {
-                        setDipChosen(true);
-                        // @ts-ignore
-                        setDipCard([cid]);
-                    }}
-                >外交</Button>
-                <Button
-                    disabled={!(isActive && inPhase)}
-                    onClick={() => moves.developCard(cid)}
-                >发展</Button>
-                {getCountryById(pid) === Country.SONG ? <Button
-                    disabled={!(isActive && inPhase)}
-                >和议</Button> : <Button
-                    onClick={() => moves.tieJun(cid)}
-                    disabled={!(isActive && inPhase)}
-                >贴军</Button>}
-            </AccordionDetails>
-        </Accordion>)}
+                </AccordionSummary>
+                <AccordionDetails>
+                    <Button
+                        disabled={!(isActive && inPhase)}
+                        onClick={() => moves.op(cid)}
+                    >征募和进军</Button>
+                    <Button
+                        disabled={!(isActive && inPhase && card.pre(G,ctx))}
+                        onClick={() => moves.cardEvent(cid)}
+                    >事件</Button>
+                    <Button
+                        disabled={!(isActive && inPhase)}
+                        onClick={() => moves.paiQIan(cid)}
+                    >派遣</Button>
+                    <Button
+                        disabled={!(isActive && inPhase)}
+                        onClick={() => {
+                            setDipChosen(true);
+                            // @ts-ignore
+                            setDipCard([cid]);
+                        }}
+                    >外交</Button>
+                    <Button
+                        disabled={!(isActive && inPhase)}
+                        onClick={() => moves.developCard(cid)}
+                    >发展</Button>
+                    {getCountryById(pid) === Country.SONG ? <Button
+                        disabled={!(isActive && inPhase)}
+                    >和议</Button> : <Button
+                        onClick={() => moves.tieJun(cid)}
+                        disabled={!(isActive && inPhase)}
+                    >贴军</Button>}
+                </AccordionDetails>
+            </Accordion>
+        })}
     </Grid>
 
 }

@@ -1,7 +1,7 @@
 import {
     ActiveEvents,
     BaseCardID,
-    CardID,
+    SJEventCardID,
     CityID,
     Country,
     EventDuration,
@@ -40,7 +40,7 @@ export const getFullDesc = (card: Cards): string => {
 }
 
 export interface Cards {
-    id: CardID,
+    id: SJEventCardID,
     block: string | null
     name: string,
     country: Country,
@@ -138,7 +138,10 @@ export const idToCard = {
         combat: false,
         effectText: "【三年之约】作为事件打出时行动点数减1。每当回合结束阶段时，宋国在陕西六路放置1个步兵。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G.events.push(ActiveEvents.XiJunQuDuan)
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            console.log(JSON.stringify({G,ctx}));
+            G.events.push(ActiveEvents.XiJunQuDuan);
+        }
     },
     [SongBaseCardID.S05]: {
         id: SongBaseCardID.S05,

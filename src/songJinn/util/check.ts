@@ -1,7 +1,7 @@
 import {SongJinnGame} from "../constant/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {addLateTermCard, addMidTermCard, rm} from "./card";
-import {ActiveEvents, CardID, Country, ProvinceID, Troop} from "../constant/general";
+import {ActiveEvents, SJEventCardID, Country, ProvinceID, Troop} from "../constant/general";
 import {logger} from "../../game/logger";
 import {getCountryById, getStateById} from "./fetch";
 import {totalDevelop} from "./calc";
@@ -71,7 +71,7 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
     logger.debug(log.join(''));
 }
 
-export const returnDevCardCheck = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cid: CardID) => {
+export const returnDevCardCheck = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cid: SJEventCardID) => {
     const pub = getStateById(G, pid);
     const card = sjCardById(cid);
     return totalDevelop(G, ctx, pid) - pub.usedDevelop > card.op;

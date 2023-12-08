@@ -1,7 +1,7 @@
 import {SongJinnGame} from "../constant/setup";
 import {
     ActiveEvents,
-    CardID,
+    SJEventCardID,
     CityID,
     Country,
     GeneralStatus,
@@ -303,13 +303,13 @@ export const getStateById = (G: SongJinnGame, pid: PlayerID) => {
     }
 }
 
-const cardIdSort = (a: CardID, b: CardID) => {
+const cardIdSort = (a: SJEventCardID, b: SJEventCardID) => {
     return sjCardById(a).op - sjCardById(b).op;
 }
 
-export const cardToSearch = (G: SongJinnGame, ctx: Ctx, pid: PlayerID): CardID[] => {
+export const cardToSearch = (G: SongJinnGame, ctx: Ctx, pid: PlayerID): SJEventCardID[] => {
     const isSong = pid as SJPlayer === SJPlayer.P1;
-    let totalDeck: CardID[] = isSong ? SongEarlyCardID : JinnEarlyCardID;
+    let totalDeck: SJEventCardID[] = isSong ? SongEarlyCardID : JinnEarlyCardID;
     if (G.turn > 3) {
         const mid = isSong ? [...SongMidCardID] : [...JinnMidCardID];
         totalDeck = [...totalDeck, ...mid];
