@@ -24,7 +24,7 @@ export interface IPlayerHandProps {
     moves: Record<string, (...args: any[]) => void>;
 }
 
-enum TroopStep {
+enum NewTroopStep {
     START,
     PROVINCE,
     REGION,
@@ -155,15 +155,16 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
 
     const [newTroopRegion, setNewTroopRegion] = React.useState(RegionID.R01);
-    const [newStep, setNewStep] = React.useState(TroopStep.START);
+    const [newTroopStep, setNewTroopStep] = React.useState(NewTroopStep.START);
+
     const [regions, setRegions] = React.useState([RegionID.R01]);
 
     const regionDialog = <ChoiceDialog
         callback={(c) => {
             const regID = parseInt(c) as RegionID;
-            if (newStep === TroopStep.REGION) {
+            if (newTroopStep === NewTroopStep.REGION) {
                 setNewTroopRegion(regID);
-                setNewStep(TroopStep.UNIT);
+                setNewTroopStep(NewTroopStep.UNIT);
             }
             if (moveStep === MoveStep.REGION) {
                 setMoveStep(MoveStep.TROOP);
@@ -182,7 +183,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 hidden: false,
                 disabled: false
             }
-        })} defaultChoice={""} show={isActive && newStep === TroopStep.REGION || moveStep === MoveStep.REGION}
+        })} defaultChoice={""} show={isActive && newTroopStep === NewTroopStep.REGION || moveStep === MoveStep.REGION}
         title={"选择目标区域"}
         toggleText={"选择目标区域"} initial={true}/>;
 
@@ -193,12 +194,12 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 const idx = unitNames.indexOf(u);
                 units[idx] = 1;
             })
-            moves.placeUnit({
+            moves.placeTroop({
                 dst: newTroopRegion,
                 units: units,
                 country: ctr
             })
-            setNewStep(TroopStep.START);
+            setNewTroopStep(NewTroopStep.START);
         }}
         choices={unitNames.map(u => {
             return {
@@ -208,7 +209,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 hidden: false
             }
         })}
-        show={isActive && newStep === TroopStep.UNIT}
+        show={isActive && newTroopStep === NewTroopStep.UNIT}
         title={"选择兵种"} toggleText={"选择兵种"} initial={true}/>;
 
     const provDialog = <ChoiceDialog
@@ -221,7 +222,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             const province = getProvinceById(newProv);
             const newRegions = province.regions;
             setRegions(newRegions);
-            setNewStep(TroopStep.REGION);
+            setNewTroopStep(NewTroopStep.REGION);
         }} choices={
         Object.values(ProvinceID).map(p => {
             return {
@@ -231,7 +232,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 hidden: false
             }
         })}
-        defaultChoice={""} show={isActive && newStep === TroopStep.PROVINCE} title={"选择目标路"}
+        defaultChoice={""} show={isActive && newTroopStep === NewTroopStep.PROVINCE} title={"选择目标路"}
         toggleText={"选择目标路"} initial={true}/>;
 
 
@@ -340,83 +341,119 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const placeUnitsDialog = <ChooseUnitsDialog
         callback={(u) => {
             setPlaceStep(PlaceStep.TROOP)
-            moves.placeTroop({
+            moves.placeUnit({
                 units: u,
                 idx: placeTroop,
                 country: ctr
             })
         }} max={[...pub.standby]} initUnits={unitNames.map(() => 0)}
         show={isActive && placeStep === PlaceStep.UNITS} title={"选择要放置的的部队"}
-        toggleText={"放置部队"} initial={true} country={ctr}/>
+        toggleText={"放置新部队"} initial={true} country={ctr}/>
 
+    const restoreOthers = () => {
+        setNewTroopStep(NewTroopStep.START);
+        setDeployNewStep(DeployNewStep.TROOP);
 
+        setTakeDamageStep(TakeDamageStep.TROOP);
+        setMarchStep(MarchStep.TROOP);
+        setRemoveStep(RemoveStep.TROOP);
+        setDeployStep(DeployStep.TROOP)
+        setMoveStep(MoveStep.TROOP);
+    }
     return <Grid item container xs={12}>
-       <Grid item xs={12}>
-           <Button variant={"contained"} fullWidth onClick={() => setNewStep(TroopStep.PROVINCE)}>放置部队</Button>
-           <Button variant={"contained"} fullWidth onClick={() => setDeployNewStep(DeployNewStep.CITY)}>补充空城市</Button>
-           {provDialog}
-           {unitDialog}
-           {regionDialog}
+        <Grid item xs={12}>
+            <Button
+                variant={"contained"} fullWidth
+                onClick={() => {
+                    restoreOthers();
+                    setNewTroopStep(NewTroopStep.PROVINCE);
+                }}>放置新部队</Button>
+            <Button
+                variant={"contained"} fullWidth
+                onClick={() => {
+                    restoreOthers();
+                    setDeployNewStep(DeployNewStep.CITY);
+                }}>补充空城市</Button>
+            {provDialog}
+            {unitDialog}
+            {regionDialog}
 
-           {marchDialog}
-           {marchRegionDialog}
+            {marchDialog}
+            {marchRegionDialog}
 
-           {deployNewCityDialog}
-           {deployNewCityUnitsDialog}
+            {deployNewCityDialog}
+            {deployNewCityUnitsDialog}
 
-           {depUnitDialog}
+            {depUnitDialog}
 
-           {takeDamageReadyDialog}
-           {takeDamageStandbyDialog}
+            {takeDamageReadyDialog}
+            {takeDamageStandbyDialog}
 
-           {removeUnitDialog}
+            {removeUnitDialog}
 
-           {moveProvDialog}
+            {moveProvDialog}
 
-           {placeUnitsDialog}
-       </Grid>
+            {placeUnitsDialog}
+        </Grid>
 
         {troops.map((t, idx) => <Grid item xs={6} key={`troop-grid-${idx}`}>
             <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
                        key={`troop-${idx}`}>
-                <AccordionSummary>{placeToStr(t.p)}|{unitsToString(t.u)}</AccordionSummary>
+                <AccordionSummary>
+                    {placeToStr(t.p)}|{unitsToString(t.u)}</AccordionSummary>
                 <AccordionDetails>
                     <button onClick={
                         () => {
                             setMarchTroop(idx);
                             setMarchStep(MarchStep.UNITS);
                         }
-                    }>进军</button>
+                    }>进军
+                    </button>
                     <button onClick={
                         () => {
+
                             setMoveTroop(idx);
-                            setMoveStep(MoveStep.PROVINCE)
+                            setMoveStep(MoveStep.PROVINCE);
+
+
                         }
-                    }>移动</button>
+                    }>移动
+                    </button>
                     <button onClick={
                         () => {
+                            restoreOthers();
                             setTakeDamageStep(TakeDamageStep.READY);
                             setTakeDamageTroop(idx);
                         }
-                    }>受创</button>
+                    }>受创
+                    </button>
                     <button onClick={
                         () => {
+                            restoreOthers();
+
                             setDeployStep(DeployStep.UNITS);
                             setDeployTroop(idx);
                         }
-                    }>补充</button>
+                    }>补充
+                    </button>
                     <button onClick={
                         () => {
+                            restoreOthers();
+
                             setPlaceStep(PlaceStep.UNITS);
                             setPlaceTroop(idx);
                         }
-                    }>放置</button>
+                    }>放置
+                    </button>
                     <button onClick={
                         () => {
+                            restoreOthers();
+
                             setRemoveStep(RemoveStep.UNITS);
                             setRemoveTroop(idx);
                         }
-                    }>消灭</button>
+                    }>消灭
+                    </button>
                 </AccordionDetails>
             </Accordion>
 
