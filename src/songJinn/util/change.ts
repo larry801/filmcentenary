@@ -26,6 +26,8 @@ import {sjCardById} from "../constant/cards";
 import {getRegionById} from "../constant/regions";
 import {troopEmpty} from "./check";
 
+
+
 export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
     const pub = getStateById(G, pid);
     if (pub.civil + a < 1) {

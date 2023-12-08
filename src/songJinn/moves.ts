@@ -890,8 +890,14 @@ export const loseProvince: LongFormMove = {
         // const ctr = getCountryById(ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         const oppo = getOpponentStateById(G, ctx.playerID);
+        if (ctx.playerID === SJPlayer.P1) {
+            policyDown(G, 1);
+        }
+        if (pub.corruption > 0) {
+            pub.corruption--;
+        }
         if (pub.provinces.includes(province)) {
-            rm(province, pub.cities);
+            rm(province, pub.provinces);
             if (opponent) {
                 oppo.provinces.push(province)
             }

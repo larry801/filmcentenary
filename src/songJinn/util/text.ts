@@ -76,6 +76,13 @@ export const getLogText = (l: LogEntry): string => {
                             log += `展示${arg.map((p: PlanID) => getPlanById(p).name)}`;
                             break;
 
+                        case 'loseProvince':
+                            log += `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`
+                            break;
+                        case 'loseCity':
+                            log += `丢失${arg.cityID}${arg.opponent ? "对手占领" : ""}`;
+                            break;
+
 
                         case 'discard':
                             log += `弃牌${sjCardById(arg).name}`;
@@ -91,9 +98,6 @@ export const getLogText = (l: LogEntry): string => {
                             break;
                         case 'developCard':
                             log += `发展${sjCardById(arg).name}`;
-                            break;
-                        case 'loseCity':
-                            log += `丢失${arg.city}${arg.opponent ? "对手占领" : ""}`;
                             break;
                         case 'down':
                             log += `降低${arg}`;
