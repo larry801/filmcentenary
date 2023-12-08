@@ -11,7 +11,7 @@ import {
     discard, down, emptyRound,
     endRound,
     heYi,
-    letter, march, moveTroop,
+    letter, loseCity, loseProvince, march, moveTroop,
     op, opponentMove, placeTroop,
     placeUnit, recruitPuppet, recruitUnit, removeUnit,
     returnToHand,
@@ -28,7 +28,6 @@ import {ActiveEvents, PlayerPendingEffect, SJPlayer} from "./general";
 import {logger} from "../../game/logger";
 import {getLeadingPlayer} from "../util/calc";
 import {canChoosePlan} from "../util/check";
-import {recruit} from "../util/change";
 
 export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
@@ -198,10 +197,10 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         removeUnit: removeUnit,
         placeUnit: placeUnit,
         rollDices: rollDices,
-        //
-        down: down,
-
+        loseCity:loseCity,
+        loseProvince:loseProvince,
         placeTroop: placeTroop,
+        down: down,
     },
 }
 

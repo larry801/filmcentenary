@@ -71,7 +71,7 @@ export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerI
     }
 }
 
-export const recruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
+export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
     const actualUnits = [...units];
     const pub = getStateById(G, pid);
     for (let i = 0; i < units.length; i++) {

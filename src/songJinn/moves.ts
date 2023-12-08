@@ -9,7 +9,7 @@ import {
     DevelopChoice,
     isRegionID,
     LetterOfCredence,
-    PlayerPendingEffect,
+    PlayerPendingEffect, ProvinceID,
     SJPlayer,
     Troop,
     TroopPlace
@@ -39,7 +39,7 @@ import {
     heYiChange,
     mergeTroopTo,
     policyDown, policyUp,
-    recruit,
+    doRecruit,
     removeUnitOnTroop,
     rollDiceByPid
 } from "./util/change";
@@ -816,7 +816,6 @@ export const chooseTop: LongFormMove = {
 
         }
         if (G.order[0] === ctx.playerID) {
-
             ctx.events?.endTurn()
         } else {
             ctx.events?.setPhase('develop')
@@ -862,12 +861,38 @@ export const recruitUnit: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        recruit(G, units, ctx.playerID);
+        doRecruit(G, units, ctx.playerID);
+    }
+}
+
+interface ILoseProv {
+    province: ProvinceID,
+    opponent: boolean
+}
+
+
+export const loseProvince: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, arg: ILoseProv) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const {province, opponent} = arg;
+        // const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const oppo = getOpponentStateById(G, ctx.playerID);
+        if (pub.provinces.includes(province)) {
+            rm(province, pub.cities);
+            if (opponent) {
+                oppo.provinces.push(province)
+            }
+        } else {
+            return INVALID_MOVE;
+        }
     }
 }
 
 interface ILoseCity {
-    cid: CityID,
+    cityID: CityID,
     opponent: boolean
 }
 
@@ -876,14 +901,14 @@ export const loseCity: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        const {cid, opponent} = arg;
+        const {cityID, opponent} = arg;
         // const ctr = getCountryById(ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         const oppo = getOpponentStateById(G, ctx.playerID);
-        if (pub.cities.includes(cid)) {
-            rm(cid, pub.cities);
+        if (pub.cities.includes(cityID)) {
+            rm(cityID, pub.cities);
             if (opponent) {
-                oppo.cities.push(cid)
+                oppo.cities.push(cityID)
             }
         } else {
             return INVALID_MOVE;

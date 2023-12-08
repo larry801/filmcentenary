@@ -11,6 +11,7 @@ import {sjCardById} from "../constant/cards";
 import {getPlanById} from "../constant/plan";
 import Button from "@material-ui/core/Button";
 import CheckBoxDialog from "./choice";
+import {ChooseUnitsDialog} from "./recruit";
 
 
 export interface IOperationProps {
@@ -29,6 +30,7 @@ export const Operation = ({
                               isActive
                           }: IOperationProps) => {
 
+    const ctr = getCountryById(playerID);
     const pub = getStateById(G, playerID);
     const player = playerById(G, playerID);
     const country = getCountryById(playerID);
@@ -187,7 +189,7 @@ export const Operation = ({
         initial={true}/>
 
     const chooseTopPlanDialog =
-        <CheckBoxDialog
+        <ChoiceDialog
             callback={(p) => moves.chooseTop(p)}
             choices={pub.completedPlan.map(p => {
                 return {
@@ -199,8 +201,13 @@ export const Operation = ({
             })}
             show={isActive && ctx.phase === 'resolvePlan' && pub.completedPlan.length > 0} title={"顶端计划"}
             toggleText={"选择放在顶端的计划"}
-            initial={true}/>
+            initial={true} defaultChoice={""}/>
 
+    const recruitDialog = <ChooseUnitsDialog
+        callback={(u) => moves.recruitUnit(u)} max={pub.standby}
+        initUnits={pub.standby.map(() => 0)} show={isActive} title={"征募"}
+        toggleText={"请选择要征募的兵种"} initial={false} country={ctr}
+    />
     const [dices, setDices] = useState(5);
     const adjustDice = (n: number) => {
         const newDice = dices + n;
@@ -239,7 +246,7 @@ export const Operation = ({
         {chooseFirstDialog}
         {choosePlanDialog}
 
-
+        {recruitDialog}
         {discardDialog}
         {searchDialog}
     </Grid>

@@ -4,7 +4,7 @@ import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
 import {getCountryById, getStateById, playerById} from "../util/fetch";
-import {CityID, Country, DevelopChoice} from "../constant/general";
+import {CityID, Country, DevelopChoice, ProvinceID} from "../constant/general";
 
 export interface IOperationProps {
     G: SongJinnGame;
@@ -26,6 +26,46 @@ export const AdjustOps = ({
     const pub = getStateById(G, playerID);
     const player = playerById(G, playerID);
     const country = getCountryById(playerID);
+
+    const [prov, setProv] = useState(ProvinceID.XIJINGLU);
+
+    enum LoseProvStep {
+        PROVINCE,
+        OPPONENT
+    }
+
+    const [loseProvStep, setLoseProvStep] = useState(LoseProvStep.PROVINCE);
+
+    const provDialog = <ChoiceDialog
+        callback={
+            (c) => {
+                setProv(c as ProvinceID);
+                setLoseProvStep(LoseProvStep.OPPONENT)
+            }
+        } choices={pub.provinces.map(c => {
+        return {
+            label: c,
+            value: c,
+            disabled: false,
+            hidden: false,
+        }
+    })} defaultChoice={""} show={isActive && loseProvStep === LoseProvStep.PROVINCE}
+        title={"请选择丢失的路"} toggleText={"丢失路权"} initial={false}/>
+
+    const loseProvToOpponentDialog = <ChoiceDialog
+        callback={(c) => {
+            const opponent = c === "yes";
+            setLoseProvStep(LoseProvStep.PROVINCE);
+            moves.loseProvince({province: prov, opponent: opponent});
+        }}
+        choices={[
+            {label: "是", value: "yes", disabled: false, hidden: false},
+            {label: "否", value: "no", disabled: false, hidden: false}
+        ]} defaultChoice={"no"}
+        show={isActive && loseProvStep === LoseProvStep.OPPONENT}
+        title={"是否对手控制"}
+        toggleText={"确认"}
+        initial={true}/>
 
     const [city, setCity] = useState(CityID.DaTong);
 
@@ -99,6 +139,12 @@ export const AdjustOps = ({
     return <Grid container>
         {cityDialog}
         {loseCityToOpponentDialog}
+
+        {provDialog}
+        {loseProvToOpponentDialog}
+
+        {}
+        {}
 
         {downDialog}
     </Grid>

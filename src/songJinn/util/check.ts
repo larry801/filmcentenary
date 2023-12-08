@@ -7,11 +7,18 @@ import {getCountryById, getStateById} from "./fetch";
 import {totalDevelop} from "./calc";
 import {sjCardById} from "../constant/cards";
 import {getPlanById, PlanID} from "../constant/plan";
+import {getProvinceById} from "../constant/province";
+
+
 
 
 export const troopEmpty = (troop: Troop) => {
     return troop.u.filter(c => c > 0).length === 0
 }
+export const jieSuanLuQuan = (G: SongJinnGame, ctx: Ctx, pid: ProvinceID) => {
+    const prov = getProvinceById(pid);
+    prov.capital.filter(c=>G.song.cities.includes(c))
+};
 export const canChoosePlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
     if ([PlanID.J23, PlanID.J24].includes(plan)) {
         const ctr = getCountryById(pid);
