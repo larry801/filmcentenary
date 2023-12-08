@@ -42,21 +42,25 @@ export const SongJinnBoard = ({
             }} choices={[]} defaultChoice={""} show={true}
                                                          title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`}
                                                          toggleText={"游戏结束"} initial={true}/>}
-            {isActive && <Grid item>
-                <PubInfo G={G} ctx={ctx}/>
-                <LogView log={log} getPlayerName={sjPlayerName} G={G}/>
+            {isActive && <Grid container item xs={12}>
+                <Grid item xs={12} sm={6}>
+                    <PubInfo G={G} ctx={ctx}/>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                    <LogView log={log} getPlayerName={sjPlayerName} G={G}/>
+                </Grid>
             </Grid>}
 
             {playerID !== null &&
                 <Grid>
-                    <Button onClick={() => undo()}>撤回</Button>
-                    <Operation
-                        G={G} ctx={ctx}
-                        playerID={playerID}
-                        moves={moves}
-                        isActive={isActive}
-                    />
                     {isActive && <Grid container>
+                        <Button onClick={() => undo()}>撤回</Button>
+                        <Operation
+                            G={G} ctx={ctx}
+                            playerID={playerID}
+                            moves={moves}
+                            isActive={isActive}
+                        />
                         <Grid item xs={12} sm={6}>
                             <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
                         </Grid>

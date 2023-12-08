@@ -169,7 +169,6 @@ export const Operation = ({
     />
 
 
-
     const takePlan = (choices: string[]) => {
         moves.takePlan(choices)
     };
@@ -203,9 +202,18 @@ export const Operation = ({
         <Button onClick={() => adjustDice(5)}>+5</Button>
     </Grid>
 
+    const emptyRoundButton = <Button
+        disabled={player.hand.length + G.round > 9}
+                                     onClick={() => moves.emptyRound()}>空过</Button>
+    const opponentButton = <Button
+        disabled={false}
+                                     onClick={() => moves.opponentMove()}>对方操作</Button>
+
     return <Grid container>
         {diceRoller}
         {endRound}
+        {emptyRoundButton}
+        {opponentButton}
         {showPlan}
         {takePlanDialog}
 

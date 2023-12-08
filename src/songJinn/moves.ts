@@ -27,7 +27,7 @@ import {
     getStateById,
     playerById
 } from "./util/fetch";
-import {INVALID_MOVE} from "boardgame.io/core";
+import {INVALID_MOVE, Stage} from "boardgame.io/core";
 import {shuffle} from "../game/util";
 import {sjCardById} from "./constant/cards";
 import {drawPhaseForPlayer, drawPlanForPlayer, rm} from "./util/card";
@@ -44,6 +44,7 @@ import {
     rollDiceByPid
 } from "./util/change";
 import {getRegionById} from "./constant/regions";
+import {changePlayerStage} from "../game/logFix";
 
 interface IMarchArgs {
     src: TroopPlace;
@@ -53,6 +54,19 @@ interface IMarchArgs {
     units: number[]
 }
 
+export const opponentMove: LongFormMove = {
+    move: (G, ctx) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const oppo = ctx.playerID === SJPlayer.P1 ? SJPlayer.P2 : SJPlayer.P1;
+        if (ctx.playerID === ctx.currentPlayer) {
+            changePlayerStage(G, ctx, 'react', oppo);
+        } else {
+            ctx.events?.endStage();
+        }
+    }
+}
 export const march: LongFormMove = {
     move: (G, ctx, arg: IMarchArgs) => {
         const {dst, idx, units} = arg;
@@ -83,6 +97,7 @@ export const march: LongFormMove = {
             }
         } else {
             log.push(`|part`);
+
             for (let i = 0; i < units.length; i++) {
                 if (t.u[i] < units[i]) {
                     return INVALID_MOVE;
@@ -90,20 +105,31 @@ export const march: LongFormMove = {
                     t.u[i] -= units[i];
                 }
             }
-            let city = null;
-            if (isRegionID(dst)) {
-                city = getRegionById(dst).city;
+            const destTroops = pub.troops.filter((t2: Troop) => t2.p === dst);
+            if (destTroops.length > 0) {
+                const d = destTroops[0];
+                const dstIdx = pub.troops.indexOf(d);
+                log.push(`|merge|to|${d}|${dstIdx}`);
+                mergeTroopTo(G, idx, dstIdx, ctx.playerID);
+                log.push(`|result|${JSON.stringify(d)}`);
+            } else {
+                let city = null;
+                if (isRegionID(dst)) {
+                    city = getRegionById(dst).city;
+                }
+                log.push(`|city${city}`);
+                const newTroop = {
+                    p: dst,
+                    c: city,
+                    j: [],
+                    u: units,
+                    country: ctr
+                };
+                log.push(`|new|${JSON.stringify(newTroop)}`);
+                pub.troops.push(newTroop);
             }
-            log.push(`|city${city}`);
-            const newTroop = {
-                p: dst,
-                c: city,
-                j: [],
-                u: units,
-                country: ctr
-            };
-            log.push(`|new|${newTroop}`);
-            pub.troops.push(newTroop);
+
+
         }
         logger.debug(log.join(''));
     }
@@ -359,9 +385,16 @@ export const moveTroop: LongFormMove = {
 
     }
 }
-export const emptyRound: LongFormMove = {
-    move: (G, ctx, args) => {
 
+export const emptyRound: LongFormMove = {
+    move: (G, ctx) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        // const ctr = getCountryById(ctx.playerID);
+        // const pub = getStateById(G, ctx.playerID);
+        // const player = playerById(G, ctx.playerID);
+        G.op = 1;
     }
 }
 
@@ -691,22 +724,22 @@ export const down: LongFormMove = {
         }
         const country = getCountryById(ctx.playerID);
         if (country === Country.SONG) {
-                switch (choice) {
-                    case DevelopChoice.MILITARY:
-                        G.jinn.military--;
-                        break;
-                    case DevelopChoice.CIVIL:
-                        G.jinn.civil--;
-                        break;
-                    case DevelopChoice.POLICY:
-                        policyDown(G,1);
-                        break;
-                    case DevelopChoice.COLONY:
-                        colonyDown(G,1);
-                        break;
-                    default:
-                        break;
-                }
+            switch (choice) {
+                case DevelopChoice.MILITARY:
+                    G.jinn.military--;
+                    break;
+                case DevelopChoice.CIVIL:
+                    G.jinn.civil--;
+                    break;
+                case DevelopChoice.POLICY:
+                    policyDown(G, 1);
+                    break;
+                case DevelopChoice.COLONY:
+                    colonyDown(G, 1);
+                    break;
+                default:
+                    break;
+            }
 
         } else if (country === Country.JINN) {
             if (choice === DevelopChoice.EMPEROR) {
@@ -720,10 +753,10 @@ export const down: LongFormMove = {
                         G.jinn.civil--;
                         break;
                     case DevelopChoice.POLICY:
-                        policyDown(G,1);
+                        policyDown(G, 1);
                         break;
                     case DevelopChoice.COLONY:
-                        colonyDown(G,1);
+                        colonyDown(G, 1);
                         break;
                     default:
                         break;
@@ -794,11 +827,11 @@ interface ILoseCity {
 }
 
 export const loseCity: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx,arg:ILoseCity) => {
+    move: (G: SongJinnGame, ctx: Ctx, arg: ILoseCity) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        const {cid,opponent} = arg;
+        const {cid, opponent} = arg;
         // const ctr = getCountryById(ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         const oppo = getOpponentStateById(G, ctx.playerID);

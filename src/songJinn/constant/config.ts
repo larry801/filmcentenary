@@ -8,11 +8,11 @@ import {
     chooseTop, deploy,
     develop,
     developCard,
-    discard,
+    discard, down, emptyRound,
     endRound,
     heYi,
     letter, march, moveTroop,
-    op, placeTroop,
+    op, opponentMove, placeTroop,
     placeUnit, recruitPuppet, recruitUnit, removeUnit,
     returnToHand,
     rollDices,
@@ -34,6 +34,23 @@ export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
 }
 
+export const ReactStageConfig: StageConfig<SongJinnGame> = {
+    moves: {
+        discard: discard,
+        deploy: deploy,
+        opponentMove: opponentMove,
+        march: march,
+        moveTroop: moveTroop,
+        takeDamage: takeDamage,
+        removeUnit: removeUnit,
+        placeUnit: placeUnit,
+        rollDices: rollDices,
+        //
+        down: down,
+
+        placeTroop: placeTroop,
+    }
+}
 export const DiscardStageConfig: StageConfig<SongJinnGame> = {
     moves: {
         discard: discard
@@ -152,7 +169,15 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
 
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     start: true,
+    turn:{
+        order: TurnOrder.CUSTOM_FROM("order"),
+        stages: {
+            react: ReactStageConfig,
+        },
+    },
     moves: {
+        emptyRound: emptyRound,
+
         op: op,
         recruitUnit: recruitUnit,
         cardEvent: cardEvent,
@@ -160,21 +185,24 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         letter: letter,
         heYi: heYi,
         tieJun: tieJun,
+
         recruitPuppet: recruitPuppet,
         rollDices: rollDices,
+        endRound: endRound,
 
 
         deploy: deploy,
+        opponentMove: opponentMove,
         march: march,
-
         moveTroop: moveTroop,
         takeDamage: takeDamage,
         removeUnit: removeUnit,
         placeUnit: placeUnit,
+        rollDices: rollDices,
         //
-        placeTroop: placeTroop,
+        down: down,
 
-        endRound: endRound
+        placeTroop: placeTroop,
     },
 }
 
