@@ -94,8 +94,8 @@ export const ChoiceDialog = ({
     };
 
     const handleConfirm = () => {
-        handleClose();
         callback(choice);
+        handleClose();
     };
 
     const debouncedHandleConfirm = useDebounce(handleConfirm, 400);
@@ -147,7 +147,7 @@ export const ChoiceDialog = ({
                 </FormControl>
             </DialogContent>
             <DialogActions key={nanoid()}>
-                <Button key={nanoid()} onClick={debouncedHandleConfirm} color="primary">
+                <Button key={nanoid()} onClick={handleConfirm} color="primary">
                     {i18n.confirm}
                 </Button>
             </DialogActions>

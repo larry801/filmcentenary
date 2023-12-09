@@ -19,7 +19,9 @@ export interface IPubInfo {
 export const PubInfo = ({G, ctx}: IPubInfo) => {
     const s = G.song;
     const j = G.jinn;
-    return <Grid container><Grid item><Paper>
+    return <Grid container>
+        <h4>T{G.turn}R{G.round}</h4>
+        <Grid item><Paper>
         <label>宋</label>
         <div><label>军事：</label>{s.military}</div>
         <div><label>内政：</label>{s.civil}</div>

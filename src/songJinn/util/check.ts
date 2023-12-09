@@ -10,15 +10,12 @@ import {getPlanById, PlanID} from "../constant/plan";
 import {getProvinceById} from "../constant/province";
 
 
-
-
-
 export const troopEmpty = (troop: Troop) => {
     return troop.u.filter(c => c > 0).length === 0
 }
 export const jieSuanLuQuan = (G: SongJinnGame, ctx: Ctx, pid: ProvinceID) => {
     const prov = getProvinceById(pid);
-    prov.capital.filter(c=>G.song.cities.includes(c))
+    prov.capital.filter(c => G.song.cities.includes(c))
 };
 export const canChoosePlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
     if ([PlanID.J23, PlanID.J24].includes(plan)) {
@@ -62,12 +59,18 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
 }
 
 export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
-    const log = [`t${G.turn}r${G.round}endRoundCheck`];
-    if (G.round === 5) {
-        ctx.events?.setPhase('resolvePlan')
-    }
+    const log = [`t${G.turn}r${G.round}|endRoundCheck`];
     if (G.order[1] === ctx.playerID) {
-        G.round++;
+        log.push(`|second`);
+        if (G.round === 2) {
+            log.push(`|action|end|resolvePlan`);
+            ctx.events?.setPhase('resolvePlan')
+        } else {
+            G.round++;
+            log.push(`|r${G.round}start`);
+        }
+    }else {
+        log.push(`|firstPlayer`);
     }
     logger.debug(log.join(''));
 }

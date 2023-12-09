@@ -155,7 +155,7 @@ export const getLogText = (l: LogEntry): string => {
                             log += '选择了一张作战计划';
                             break;
                         case 'endRound':
-                            log += `结束行动`;
+                            log += `结束第${arg}行动轮`;
                             break;
                         default:
                             log += `|${JSON.stringify(name)}|${JSON.stringify(arg)}`

@@ -124,7 +124,7 @@ export const march: LongFormMove = {
                 const newTroop = {
                     p: dst,
                     c: city,
-                    
+
                     u: units,
                     country: ctr
                 };
@@ -262,7 +262,7 @@ export const placeTroop: LongFormMove = {
         pub.troops.push({
             p: dst,
             u: units,
-            
+
             c: null,
             country: country
         })
@@ -309,7 +309,7 @@ export const deploy: LongFormMove = {
                         p: place,
                         c: city,
                         u: units,
-                        
+
                         country: country
                     })
                 }
@@ -327,7 +327,7 @@ export const deploy: LongFormMove = {
                         p: place,
                         c: city,
                         u: units,
-                        
+
                         country: country
                     })
                 }
@@ -670,8 +670,6 @@ export const developCard: LongFormMove = {
         }
         const pub = getStateById(G, ctx.playerID);
         pub.develop.push(args);
-        endRoundCheck(G, ctx);
-        ctx.events?.endTurn();
     }
 }
 
@@ -905,6 +903,7 @@ export const chooseTop: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
+        const log = [`chooseTop|p${ctx.playerID}`];
         const ctr = getCountryById(ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         if (!pub.completedPlan.includes(p)) {
@@ -916,15 +915,18 @@ export const chooseTop: LongFormMove = {
 
         }
         if (G.order[0] === ctx.playerID) {
-            ctx.events?.endTurn()
+            log.push(`|nextPlayer`);
+            ctx.events?.endTurn();
         } else {
-            ctx.events?.setPhase('develop')
+            log.push(`|develop`);
+            ctx.events?.setPhase('develop');
         }
+        logger.info(`${log.join('')}`);
     }
 }
 
 export const endRound: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx) => {
+    move: (G: SongJinnGame, ctx: Ctx, arg: number) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
@@ -939,8 +941,9 @@ export const takePlan: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
+        logger.info(`[p${ctx.playerID}.takePlan(${JSON.stringify(arg)})`)
         const ctr = getCountryById(ctx.playerID);
-        // const pub = getStateById(G, ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
         // const player = playerById(G, ctx.playerID);
         arg.forEach((p) => {
             if (!G.plans.includes(p)) {
@@ -952,7 +955,12 @@ export const takePlan: LongFormMove = {
         } else {
             G.jinn.completedPlan = G.jinn.completedPlan.concat(arg);
         }
-        G.plans = [];
+        arg.forEach((p) => {
+            rm(p, G.plans);
+        })
+        if (pub.completedPlan.length === 0) {
+            ctx.events?.endTurn();
+        }
     }
 }
 

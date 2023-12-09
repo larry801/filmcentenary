@@ -24,14 +24,21 @@ export const ChatMessage = ({sendChatMessage,chatMessages,getPlayerName}:IChatMe
         <TextField
             disabled
             defaultValue={messages}
+            fullWidth
             maxRows={8}
             multiline
             variant="outlined"
         />
         <TextField
             value={message}
-            variant="outlined"
+            variant="filled"
             onChange={handleChange}
+            onKeyDown={(ev) => {
+                if (ev.key === 'Enter') {
+                    sendChatMessage(message)
+                    ev.preventDefault();
+                }
+            }}
         />
         <Button
             variant={"outlined"}
