@@ -7,7 +7,7 @@ import {
     ctr2pub,
     getCountryById,
     getMarchDst,
-    getOpponentStateById,
+    getOpponentStateById, getPlaceGeneral, getReadyGenerals,
     getStateById,
     optionToActualDst,
     StrProvince,
@@ -17,8 +17,18 @@ import Button from "@material-ui/core/Button";
 import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
-import {getPlaceGeneralNames, placeToStr} from "../util/text";
-import {CityID, Country, isRegionID, ProvinceID, RegionID, Troop, UNIT_SHORTHAND} from "../constant/general";
+import {getGeneralNameByCountry, getPlaceGeneralNames, placeToStr} from "../util/text";
+import {
+    CityID,
+    Country,
+    General,
+    isRegionID,
+    JinnGeneral,
+    ProvinceID,
+    RegionID,
+    Troop,
+    UNIT_SHORTHAND
+} from "../constant/general";
 import ChoiceDialog from "../../components/modals";
 import {getProvinceById} from "../constant/province";
 import {getRegionById} from "../constant/regions";
@@ -43,6 +53,7 @@ enum NewTroopStep {
 enum MarchStep {
     TROOP,
     UNITS,
+    GENERALS,
     TARGET
 }
 
@@ -250,7 +261,23 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
     const [marchStep, setMarchStep] = React.useState(MarchStep.TROOP);
     const [marchUnits, setMarchUnits] = React.useState(emptyTroop.u);
+    const [marchGenerals, setMarchGenerals] = useState([JinnGeneral.WoLiBu]);
     const [marchTroop, setMarchTroop] = React.useState(emptyTroop);
+
+    const marchGeneralsDialog = <CheckBoxDialog
+        callback={(c) => {
+            const generals:General[] = c.map(g=>parseInt(g));
+            setMarchGenerals(generals);
+            setMarchStep(MarchStep.TARGET);
+        }} choices={getPlaceGeneral(G, pid, marchTroop.p).map(gen=>{
+            return {
+                label:getGeneralNameByCountry(marchTroop.country,gen),
+                value:gen.toString(),
+                disabled:false,
+                hidden:false
+            }
+    })} show={isActive && marchStep === MarchStep.GENERALS}
+        title={""} toggleText={""} initial={true}/>
 
     const marchRegionDialog = <ChoiceDialog
         callback={(r) => {
@@ -258,6 +285,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 src: marchTroop.p,
                 dst: optionToActualDst(r),
                 units: marchUnits,
+                generals: marchGenerals,
                 country: ctr
             });
             setMarchStep(MarchStep.TROOP);
@@ -299,7 +327,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const marchDialog = <ChooseUnitsDialog
         callback={(c) => {
             setMarchUnits(c);
-            setMarchStep(MarchStep.TARGET)
+            setMarchStep(MarchStep.GENERALS)
         }} max={[...marchTroop.u]} initUnits={[...marchTroop.u]}
         show={isActive && marchStep === MarchStep.UNITS}
         popAfterShow={true}
@@ -358,7 +386,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 units: u,
                 country: placeUnitTroop.country
             })
-        }} max={[...ctr2pub(G,placeUnitTroop.country).standby]} initUnits={unitNames.map(() => 0)}
+        }} max={[...ctr2pub(G, placeUnitTroop.country).standby]} initUnits={unitNames.map(() => 0)}
         show={isActive && placeStep === PlaceStep.UNITS} title={"选择要放置的的部队"}
         toggleText={"放置新部队"} initial={true} country={ctr}/>
 

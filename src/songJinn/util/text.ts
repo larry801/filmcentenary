@@ -1,12 +1,13 @@
 import {
-    SJEventCardID,
+    Country,
     DevelopChoice,
-    SJPlayer,
-    TroopPlace,
+    General,
     GeneralNames,
     PlanID,
+    SJEventCardID,
+    SJPlayer,
     Troop,
-    ProvinceID
+    TroopPlace
 } from "../constant/general";
 import {getRegionById} from "../constant/regions";
 import {LogEntry, PlayerID} from "boardgame.io";
@@ -15,28 +16,36 @@ import {getPlanById} from "../constant/plan";
 import {getCityById} from "../constant/city";
 import {getPlaceGeneral, getReadyGenerals, unitsToString} from "./fetch";
 import {SongJinnGame} from "../constant/setup";
-import {getProvinceById} from "../constant/province";
 
-export  const phaseName = (c:string)=>{
+export const phaseName = (c: string) => {
     const phaseMap = {
-        'draw':'摸牌阶段',
-        'chooseFirst':'行动顺序',
-        'choosePlan':'选择作战计划',
-        'showPlan':'作战计划',
-        'action':'行动阶段',
-        'resolvePlan':'结算计划',
-        'diplomacy':'结算外交',
-        'develop':'发展阶段',
-        'deploy':'补充阶段',
-        'turnEnd':'回合结束',
+        'draw': '摸牌阶段',
+        'chooseFirst': '行动顺序',
+        'choosePlan': '选择作战计划',
+        'showPlan': '作战计划',
+        'action': '行动阶段',
+        'resolvePlan': '结算计划',
+        'diplomacy': '结算外交',
+        'develop': '发展阶段',
+        'deploy': '补充阶段',
+        'turnEnd': '回合结束',
     }
     // @ts-ignore
     const result = phaseMap[c];
     return result !== undefined ? result : " ";
 }
 
-export const troopToString = (G:SongJinnGame,pid:PlayerID,t:Troop) =>{
-    return t.country + placeToStr(t.p)+ unitsToString(t.u) + getPlaceGeneral(G,pid,t.p);
+export const troopToString = (G: SongJinnGame, pid: PlayerID, t: Troop) => {
+    return t.country + placeToStr(t.p) + unitsToString(t.u) + getPlaceGeneral(G, pid, t.p);
+}
+
+
+export const getGeneralNameByCountry = (country: Country, general: General) => {
+    if (country === Country.SONG) {
+        return GeneralNames[0][general];
+    } else {
+        return GeneralNames[1][general];
+    }
 }
 
 export const getPlaceGeneralNames = (G: SongJinnGame, pid: PlayerID, place: TroopPlace) => {
@@ -206,9 +215,9 @@ export const getLogText = (l: LogEntry): string => {
             }
             return log;
         case "GAME_EVENT":
-            if(payload.type === 'endPhase'){
+            if (payload.type === 'endPhase') {
                 return `${phaseName(l.phase)}结束`
-            }else{
+            } else {
                 return "";
             }
         case "UNDO":

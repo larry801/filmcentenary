@@ -95,6 +95,8 @@ export const GeneralNames = [
     ["斡离不", "粘罕", "娄室", "兀朮", "银术可", "奔睹"]
 ]
 
+export const SongGenerals = [];
+
 export const UNIT_FULL_NAME = [
     ['步军', '步射', '马军', '水军', '霹雳炮', '背嵬军'],
     ['步军', '拐子马', '铁浮屠', '水军', '鹅车', '签军', '齐军']

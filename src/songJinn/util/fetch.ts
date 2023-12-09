@@ -14,7 +14,7 @@ import {
     MountainPasses,
     MountainPassID,
     NationID,
-    Nations,
+    Nations, NationState,
     ProvinceID,
     RegionID,
     SJEventCardID,
@@ -37,6 +37,18 @@ import {logger} from "../../game/logger";
 export const StrProvince: Map<string, ProvinceID> = new Map(Object.values(ProvinceID).map(
     (memberValue) => [`${memberValue}`, memberValue] as const
 ));
+
+export const getNationState = (G: SongJinnGame, n: NationID) => {
+    if (G.song.nations.includes(n)) {
+        return NationState.SONG;
+    } else {
+        if (G.jinn.nations.includes(n)) {
+            return NationState.JINN;
+        } else {
+            return NationState.NEUTRAL;
+        }
+    }
+}
 
 
 export const ctr2pub = (G: SongJinnGame, country: Country) => country === Country.SONG ? G.song : G.jinn;
@@ -183,8 +195,8 @@ export const getSongTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
     return result;
 }
 
-export const getTroopByCountryPlace= (G:SongJinnGame, ctr:Country, src:TroopPlace) => {
-  return ctr === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src)
+export const getTroopByCountryPlace = (G: SongJinnGame, ctr: Country, src: TroopPlace) => {
+    return ctr === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src)
 }
 
 export const getJinnTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | null => {
