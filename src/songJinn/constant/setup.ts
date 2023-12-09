@@ -302,9 +302,9 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
     G.secret.jinnDeck = jinnDeck.slice(0, 9);
     console.log(G.secret.songDeck.toString());
     console.log(G.secret.jinnDeck.toString());
-
-    G.player['1'].hand.push(JinnBaseCardID.J09);
-    G.player['1'].hand.push(JinnBaseCardID.J18);
+    //
+    // G.player['1'].hand.push(JinnBaseCardID.J09);
+    // G.player['1'].hand.push(JinnBaseCardID.J18);
 
     return G;
 }
