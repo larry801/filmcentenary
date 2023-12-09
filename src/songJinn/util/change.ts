@@ -20,7 +20,7 @@ import {
     getSongTroopByCity,
     getSongTroopByRegion,
     getStateById,
-    playerById
+    playerById, unitsToString
 } from "./fetch";
 import {rm} from "./card";
 import {getCityById} from "../constant/city";
@@ -28,6 +28,8 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
 import {getRegionById} from "../constant/regions";
 import {troopEmpty} from "./check";
+import {placeToStr} from "./text";
+import {logger} from "../../game/logger";
 
 
 export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
@@ -94,6 +96,27 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
     }
 }
 
+export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerID, place: TroopPlace) => {
+    const log = [`removeUnitByPlace|${placeToStr(place)}|${unitsToString(units)}`]
+    const pub = getStateById(G, pid);
+    const filtered = pub.troops.filter(t => t.p === place);
+    log.push(`${filtered}`);
+    if (filtered.length > 0) {
+        removeUnitOnTroop(G, units, pid, pub.troops.indexOf(filtered[0]));
+        if (filtered.length > 1) {
+            log.push(`|moreThanOne`);
+            mergeTroopTo(G,
+                pub.troops.indexOf(filtered[1]),
+                pub.troops.indexOf(filtered[0]), pid);
+            removeUnitOnTroop(G, units, pid, pub.troops.indexOf(filtered[0]));
+        }
+        logger.debug(`${log.join('')}`);
+    } else {
+        log.push(`noTroop`);
+        logger.debug(`${log.join('')}`);
+        return null;
+    }
+}
 export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerID, idx: number) => {
     const pub = getStateById(G, pid);
     const t = pub.troops[idx];
@@ -395,7 +418,7 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
                 p: city.region,
                 c: c,
                 u: [0, 0, 0, 0, 0, 1, 0],
-                
+
                 country: Country.JINN
             });
         } else {
@@ -403,7 +426,7 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
                 p: city.region,
                 c: c,
                 u: [0, 0, 0, 0, 0, 2, 0],
-                
+
                 country: Country.JINN
             });
         }

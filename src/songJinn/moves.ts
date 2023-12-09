@@ -3,21 +3,26 @@ import {SongJinnGame} from "./constant/setup";
 import {
     ActiveEvents,
     BaseCardID,
-    SJEventCardID,
     CityID,
     Country,
-    DevelopChoice, General,
+    DevelopChoice,
+    General,
     isRegionID,
     LetterOfCredence,
-    PlayerPendingEffect, ProvinceID,
+    PlanID,
+    PlayerPendingEffect,
+    ProvinceID,
+    RegionID,
+    SJEventCardID,
     SJPlayer,
     Troop,
-    TroopPlace, RegionID, PlanID
+    TroopPlace
 } from "./constant/general";
 import {logger} from "../game/logger";
 import {getPlanById} from "./constant/plan";
 import {
     cardToSearch,
+    ctr2pid,
     getCountryById,
     getJinnTroopByCity,
     getJinnTroopByRegion,
@@ -25,7 +30,7 @@ import {
     getSongTroopByCity,
     getSongTroopByRegion,
     getStateById,
-    playerById
+    playerById, unitsToString
 } from "./util/fetch";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {shuffle} from "../game/util";
@@ -34,14 +39,20 @@ import {drawPhaseForPlayer, drawPlanForPlayer, rm} from "./util/card";
 import {endRoundCheck, endTurnCheck, heYiCheck, returnDevCardCheck, troopEmpty} from "./util/check";
 import {getCityById} from "./constant/city";
 import {
-    addTroop, changeCivil, changeMilitary,
-    colonyDown, colonyUp,
+    addTroop,
+    changeCivil,
+    changeMilitary,
+    colonyDown,
+    colonyUp,
+    doLoseProvince,
+    doRecruit,
     heYiChange,
     mergeTroopTo,
-    policyDown, policyUp,
-    doRecruit,
-    removeUnitOnTroop,
-    rollDiceByPid, doLoseProvince, moveGeneralTo
+    moveGeneralTo,
+    policyDown,
+    policyUp,
+    removeUnitByPlace,
+    rollDiceByPid
 } from "./util/change";
 import {getRegionById} from "./constant/regions";
 import {changePlayerStage} from "../game/logFix";
@@ -277,65 +288,60 @@ export interface IRemoveUnitArgs {
     src: TroopPlace;
     idx: number;
     units: number[];
-    c: Country
+    country: Country
 }
 
 export const removeUnit: LongFormMove = {
-    move: (G, ctx, {idx, units}: IRemoveUnitArgs) => {
+    move: (G, ctx, {src, units, country}: IRemoveUnitArgs) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        removeUnitOnTroop(G, units, ctx.playerID, idx);
+        const pid = ctr2pid(country);
+        removeUnitByPlace(G, units, pid, src);
     }
 }
 
 export interface IDeployUnitArgs {
     city: CityID;
-    units: number[]
+    units: number[],
+    country: Country
 }
 
 export const deploy: LongFormMove = {
-    move: (G, ctx, {city, units}: IDeployUnitArgs) => {
-        const country = ctx.playerID === SJPlayer.P1 ? Country.SONG : Country.JINN;
-        let target = null;
-        switch (country) {
-            case Country.SONG:
-                for (let i = 0; i < units.length; i++) {
-                    G.song.ready[i] -= units[i];
-                }
-                target = getSongTroopByCity(G, city);
-                if (target === null) {
-                    const region = getCityById(city).region;
-                    const place = getJinnTroopByRegion(G, region) === null ?
-                        region : null;
-                    G.song.troops.push({
-                        p: place,
-                        c: city,
-                        u: units,
-
-                        country: country
-                    })
-                }
-                break;
-            case Country.JINN:
-                for (let i = 0; i < units.length; i++) {
-                    G.jinn.ready[i] -= units[i];
-                }
-                target = getJinnTroopByCity(G, city);
-                if (target === null) {
-                    const region = getCityById(city).region;
-                    const place = getSongTroopByRegion(G, region) === null ?
-                        region : null;
-                    G.song.troops.push({
-                        p: place,
-                        c: city,
-                        u: units,
-
-                        country: country
-                    })
-                }
-                break;
+    move: (G: SongJinnGame, ctx: Ctx, args: IDeployUnitArgs) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
         }
+        logger.info(`p${ctx.playerID}.deploy(${JSON.stringify(args)})`);
+        const {city, country, units} = args;
+        const log = [`p${ctx.playerID}.deploy${country}`];
+        const target = ctr2pid(country);
+        const pub = getStateById(G, target);
+        pub.ready.forEach((u, idx) => {
+            if (u < units[idx]) {
+                log.push(`${u}<${units[idx]}|INVALID_MOVE`);
+                logger.debug(`${log.join('')}`);
+                return INVALID_MOVE;
+            }
+        })
+        const t = country === Country.SONG ? getSongTroopByCity(G, city) : getJinnTroopByCity(G, city);
+        if (t === null) {
+            log.push(`noTroop`);
+            pub.troops.push({
+                u: units,
+                country: country,
+                c: city,
+                // 围困城市不能补充 ？？？
+                p: getCityById(city).region,
+            })
+        } else {
+            log.push(`${JSON.stringify(t)}`);
+            for (let i = 0; i < units.length; i++) {
+                t.u[i] += units[i];
+            }
+            log.push(`|after|${unitsToString(t.u)}${JSON.stringify(t)}`);
+        }
+        logger.debug(`${log.join('')}`);
     }
 }
 
@@ -412,7 +418,7 @@ interface IMoveGeneralArgs {
     country: Country
 }
 
-export const movegGeneral: LongFormMove = {
+export const moveGeneral: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, args: IMoveGeneralArgs) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
@@ -428,11 +434,6 @@ export const movegGeneral: LongFormMove = {
     }
 }
 
-export const moveGeneral: LongFormMove = {
-    move: (G, ctx, args: IMoveTroopArgs) => {
-
-    }
-}
 
 export interface IMoveTroopArgs {
     idx: number,

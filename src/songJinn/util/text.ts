@@ -79,14 +79,14 @@ export const getLogText = (l: LogEntry): string => {
                 } else {
                     const arg = args[0];
                     switch (name) {
+                        case 'removeUnit':
+                            log += `消灭${arg.c}${placeToStr(arg.src)}${unitsToString(arg.units)}`;
+                            break;
                         case 'placeUnit':
                             log += `在${placeToStr(arg.place)}放置${unitsToString(arg.units)}`;
                             break;
                         case 'deploy':
                             log += `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
-                            break;
-                        case 'removeUnit':
-                            log += `移除${placeToStr(arg.dst)}${unitsToString(arg.units)}`;
                             break;
                         case 'placeUnits':
                             log += `在${placeToStr(arg.dst)}放置${unitsToString(arg.units)}`;
