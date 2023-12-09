@@ -18,6 +18,7 @@ import TableRow from "@material-ui/core/TableRow";
 import TableCell from "@material-ui/core/TableCell";
 import TableBody from "@material-ui/core/TableBody";
 import {LobbyClient} from 'boardgame.io/client';
+import {filmCentenaryName} from "../constant/multi-games";
 
 type PlayerMetadata = {
     id: number;
@@ -84,7 +85,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const [clicked, setClicked] = React.useState(false);
     const [matchID, setMatchID] = React.useState("");
     const [error, setError] = React.useState("");
-    const [numPlayers, setNumPlayers] = React.useState(4);
+    const [numPlayers, setNumPlayers] = React.useState(gameName === filmCentenaryName ? 4 : 2);
     const [isPublic, setIsPublic] = React.useState(true);
     const [matches, setMatches] = React.useState([]);
 
@@ -120,7 +121,8 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     }
     const errorMessage = <Typography>
         {error} {i18n.drawer.pleaseTry}
-        {gameName === 'songJinn' ? <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link>:<Link to={'/local'}>本地热座</Link>}
+        {gameName === 'songJinn' ? <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link> :
+            <Link to={'/local'}>本地热座</Link>}
     </Typography>
 
     useInterval(refreshLobby, 10000);
@@ -178,7 +180,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         </Grid>
         <Grid item container xs={12} sm={4}>
             <Grid item container xs={12} alignItems="center">
-                <Typography>{gameName==='film'?"电影百年":"宋金战争"}</Typography>
+                <Typography>{gameName === 'film' ? "电影百年" : "宋金战争"}</Typography>
                 <FormControl variant="outlined" className={classes.formControl}>
                     <Grid component="label" container alignItems="center" spacing={1}>
                         <InputLabel htmlFor="outlined-numPlayers-native-simple">{i18n.lobby.numPlayers}</InputLabel>
@@ -231,10 +233,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
             </Grid>
             <Grid item container xs={12} sm={7}>
                 {matchID && history.push(`/join/${gameName}/${matchID}/${player}`)}
-                {error &&
-                    <Typography>
-                        {error} {i18n.drawer.pleaseTry} <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link>
-                    </Typography>}
+                {error && errorMessage}
                 <Button onClick={onClick} disabled={clicked} fullWidth color={"primary"} variant="contained">
                     {i18n.lobby.createPrivateMatch}
                 </Button>

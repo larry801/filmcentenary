@@ -5,16 +5,17 @@ import {FilmCentenaryGame} from "./src/Game";
 import {Server} from "boardgame.io/server";
 import RedisStorage from "./ioredis-stroage";
 import {PostgresStore} from "bgio-postgres"
+import {SongJinnGameDef} from "./src/songJinn/game";
 
 const server = process.env.REDIS_URL ? Server({
-    games: [FilmCentenaryGame],
+    games: [FilmCentenaryGame,SongJinnGameDef],
     db: new RedisStorage(process.env.REDIS_URL),
     origins: [
         // Allow any domain connect.
         '*'
     ]
 }) : process.env.POSTGRES_URL ? Server({
-    games: [FilmCentenaryGame],
+    games: [FilmCentenaryGame,SongJinnGameDef],
     db: new PostgresStore(
         process.env.POSTGRES_URL,
         {
@@ -27,7 +28,7 @@ const server = process.env.REDIS_URL ? Server({
         '*'
     ]
 }) : Server({
-    games: [FilmCentenaryGame],
+    games: [FilmCentenaryGame,SongJinnGameDef],
     origins: [
         // Allow any domain connect.
         '*'
