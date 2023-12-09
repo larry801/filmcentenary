@@ -9,7 +9,7 @@ import {
     IEra,
     JinnBaseCardID,
     JinnGeneral,
-    NationID,
+    NationID, PlanID,
     ProvinceID,
     RegionID,
     SJEventCardID,
@@ -32,7 +32,6 @@ import {
     removeGeneral
 } from "../util/change";
 import {developInstead, drawCardForSong, rm} from "../util/card";
-import {PlanID} from "./plan";
 
 export const getFullDesc = (card: Cards): string => {
     let effText = "效果：" + card.effectText;

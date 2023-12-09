@@ -1,5 +1,3 @@
-import {PlanID} from "./plan";
-
 export const enum ActiveEvents {
     JianYanNanDu = "建炎南渡",
     LiGang = "李纲",
@@ -420,6 +418,33 @@ export const SongLateCardID = [
     SongBaseCardID.S50
 ];
 
+
+export const enum PlanID {
+    J01 = "J01",
+    J02 = "J02",
+    J03 = "J03",
+    J04 = "J04",
+    J05 = "J05",
+    J06 = "J06",
+    J07 = "J07",
+    J08 = "J08",
+    J09 = "J09",
+    J10 = "J10",
+    J11 = "J11",
+    J12 = "J12",
+    J13 = "J13",
+    J14 = "J14",
+    J15 = "J15",
+    J16 = "J16",
+    J17 = "J17",
+    J18 = "J18",
+    J19 = "J19",
+    J20 = "J20",
+    J21 = "J21",
+    J22 = "J22",
+    J23 = "J23",
+    J24 = "J24"
+}
 
 export const EarlyPlanID = [
     PlanID.J01,

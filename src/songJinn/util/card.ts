@@ -6,7 +6,6 @@ import {
     JinnLateCardID,
     JinnMidCardID,
     SJPlayer,
-    SongBaseCardID,
     SongLateCardID,
     SongMidCardID, LatePlanID, MidPlanID
 } from "../constant/general";

@@ -1,4 +1,3 @@
-import {PlanID} from "./plan";
 import {
     ActiveEvents,
     CityID,
@@ -7,7 +6,7 @@ import {
     JinnEarlyCardID,
     LetterOfCredence,
     Level,
-    NationID,
+    NationID, PlanID,
     PlayerPendingEffect,
     ProvinceID,
     RegionID,

@@ -1,8 +1,8 @@
-import {SJEventCardID, DevelopChoice, SJPlayer, TroopPlace, GeneralNames} from "../constant/general";
+import {SJEventCardID, DevelopChoice, SJPlayer, TroopPlace, GeneralNames, PlanID} from "../constant/general";
 import {getRegionById} from "../constant/regions";
 import {LogEntry, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
-import {getPlanById, PlanID} from "../constant/plan";
+import {getPlanById} from "../constant/plan";
 import {getCityById} from "../constant/city";
 import {getPlaceGeneral, getReadyGenerals, unitsToString} from "./fetch";
 import {SongJinnGame} from "../constant/setup";

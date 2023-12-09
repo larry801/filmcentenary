@@ -12,10 +12,10 @@ import {
     PlayerPendingEffect, ProvinceID,
     SJPlayer,
     Troop,
-    TroopPlace, RegionID
+    TroopPlace, RegionID, PlanID
 } from "./constant/general";
 import {logger} from "../game/logger";
-import {getPlanById, PlanID} from "./constant/plan";
+import {getPlanById} from "./constant/plan";
 import {
     cardToSearch,
     getCountryById,

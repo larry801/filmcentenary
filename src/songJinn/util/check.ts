@@ -1,12 +1,12 @@
 import {SongJinnGame} from "../constant/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {addLateTermCard, addMidTermCard, rm} from "./card";
-import {ActiveEvents, SJEventCardID, Country, ProvinceID, Troop} from "../constant/general";
+import {ActiveEvents, SJEventCardID, Country, ProvinceID, Troop, PlanID} from "../constant/general";
 import {logger} from "../../game/logger";
 import {getCountryById, getStateById} from "./fetch";
 import {totalDevelop} from "./calc";
 import {sjCardById} from "../constant/cards";
-import {getPlanById, PlanID} from "../constant/plan";
+import {getPlanById} from "../constant/plan";
 import {getProvinceById} from "../constant/province";
 
 

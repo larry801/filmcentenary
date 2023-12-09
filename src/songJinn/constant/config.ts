@@ -45,7 +45,6 @@ import {ActiveEvents, SJPlayer} from "./general";
 import {logger} from "../../game/logger";
 import {canChoosePlan, endTurnCheck} from "../util/check";
 import {changeDiplomacyByLOD} from "../util/change";
-import {PlanID} from "./plan";
 
 export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
@@ -141,11 +140,11 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx:Ctx) => {
         const log = [`draw|onBegin|${G.order}`]
         const firstPlayer = G.order[0];
-        if(G.song.completedPlan.includes(PlanID.J01)){
-
-        }else{
-            drawPhaseForSong(G,ctx);
-        }
+        // if(){
+        //
+        // }else{
+        //     drawPhaseForSong(G,ctx);
+        // }
         logger.info(`${log.join('')}`);
     },
     moves: {
