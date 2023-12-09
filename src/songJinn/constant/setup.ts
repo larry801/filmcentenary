@@ -1,70 +1,81 @@
-import {PlanID} from "./plan";
 import {
     ActiveEvents,
-    CardID,
     CityID,
-    Country,
+    Country, EarlyPlanID,
+    GeneralStatus,
     JinnEarlyCardID,
-    JinnGeneral,
     LetterOfCredence,
-    Level, OtherCountries, OtherCountryID,
+    Level,
+    NationID, PlanID,
     PlayerPendingEffect,
     ProvinceID,
     RegionID,
+    SJEventCardID,
     SJPlayer,
     SongEarlyCardID,
-    SongGeneral,
-    Troop
+    Troop,
+    TroopPlace
 } from "./general";
 import {Ctx} from "boardgame.io";
 import {shuffle} from "../../game/util";
 
 export interface SJPubInfo {
-    countries: OtherCountryID[],
-    troops: Troop[],
-    effect: PlayerPendingEffect[],
-    military: Level;
-    civil: Level;
-    plan: PlanID[],
+    generalPlace: TroopPlace[],
+    dices: number[],
+    troopIdx: number,
+    cities: CityID[],
+    civil: Level,
     completedPlan: PlanID[],
+    corruption: number;
+    nations: NationID[];
+    develop: SJEventCardID[],
+    discard: SJEventCardID[],
+    effect: PlayerPendingEffect[],
     emperor: CityID | null,
-    corruption: number,
-    ready: number[],
-    discard: CardID[],
-    remove: CardID[],
-    standby: number[],
+    generals: GeneralStatus[],
+    military: Level,
+    plan: PlanID[],
     provinces: ProvinceID[],
-    cities: CityID[]
+    ready: number[],
+    remove: SJEventCardID[],
+    standby: number[],
+    troops: Troop[],
+    usedDevelop: number
 }
 
 export const initialJinnPub: SJPubInfo = {
+    generalPlace: [RegionID.R20,RegionID.R37,RegionID.R11,RegionID.R01,RegionID.R01,RegionID.R01],
+    dices: [],
+    troopIdx: -1,
+    develop: [],
+    usedDevelop: 0,
     troops: [
-        {u: [1, 2, 1, 0, 1, 0, 0], p: RegionID.R20, j: [JinnGeneral.WoLiBu], c: null, country: Country.JINN},
-        {u: [2, 0, 0, 0, 0, 0, 0], p: RegionID.R11, j: [JinnGeneral.LouShi], c: CityID.LinFen, country: Country.JINN},
-        {u: [2, 2, 1, 0, 0, 0, 0], p: RegionID.R37, j: [JinnGeneral.ZhanHan], c: CityID.LuoYang, country: Country.JINN},
+        {u: [1, 2, 1, 0, 1, 0, 0], p: RegionID.R20, c: null, country: Country.JINN},
+        {u: [2, 0, 0, 0, 0, 0, 0], p: RegionID.R11, c: CityID.LinFen, country: Country.JINN},
+        {u: [2, 2, 1, 0, 0, 0, 0], p: RegionID.R37, c: CityID.LuoYang, country: Country.JINN},
 
-        {u: [1, 0, 1, 0, 1, 0, 0], p: RegionID.R06, j: [], c: CityID.LiaoYang, country: Country.JINN},
+        {u: [1, 0, 1, 0, 1, 0, 0], p: RegionID.R06, c: CityID.LiaoYang, country: Country.JINN},
 
-        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R10, j: [], c: CityID.YangQu, country: Country.JINN},
-        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R12, j: [], c: CityID.ShangDang, country: Country.JINN},
-        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R13, j: [], c: CityID.AnXi, country: Country.JINN},
+        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R10, c: CityID.YangQu, country: Country.JINN},
+        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R12, c: CityID.ShangDang, country: Country.JINN},
+        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R13, c: CityID.AnXi, country: Country.JINN},
 
-        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R14, j: [], c: CityID.ZhenDing, country: Country.JINN},
-        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R15, j: [], c: CityID.HeJian, country: Country.JINN},
+        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R14, c: CityID.ZhenDing, country: Country.JINN},
+        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R15, c: CityID.HeJian, country: Country.JINN},
 
 
-        {u: [4, 0, 0, 0, 0, 0, 0], p: RegionID.R18, j: [], c: CityID.YuanCheng, country: Country.JINN},
+        {u: [4, 0, 0, 0, 0, 0, 0], p: RegionID.R18, c: CityID.YuanCheng, country: Country.JINN},
     ],
-    countries: [OtherCountryID.GaoLi, OtherCountryID.XiXia],
+    nations: [NationID.GaoLi, NationID.XiXia],
     effect: [],
     plan: [],
     civil: 2,
     completedPlan: [],
     emperor: CityID.LiaoYang,
-    corruption: 3,
+    corruption: 0,
     discard: [],
     remove: [],
-    military: 1,
+    military: 3,
     ready: [0, 0, 1, 0, 0, 0, 0],
     standby: [5, 16, 17, 5, 1, 10, 10],
     provinces: [
@@ -74,43 +85,80 @@ export const initialJinnPub: SJPubInfo = {
         ProvinceID.HEDONGLU,
         ProvinceID.HEBEILIANGLU
     ],
-    cities: []
+    cities: [
+        CityID.DaTong,
+        CityID.DaDing,
+        CityID.LiaoYang,
+        CityID.XiJin,
+        CityID.YangQu,
+        CityID.LinFen,
+        CityID.ShangDang,
+        CityID.ZhenDing,
+        CityID.AnXi,
+        CityID.HeJian,
+        CityID.YuanCheng,
+        CityID.LuoYang
+    ],
+    generals: [
+        GeneralStatus.TROOP,
+        GeneralStatus.TROOP,
+        GeneralStatus.TROOP,
+        GeneralStatus.PRE,
+        GeneralStatus.PRE,
+        GeneralStatus.PRE
+    ]
 }
 
 export const initialSongPub: SJPubInfo = {
-    troops: [
-        {u: [2, 2, 0, 0, 0, 0], p: RegionID.R19, j: [SongGeneral.ZongZe], c: null, country: Country.SONG},
-        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R21, j: [], c: CityID.LiCheng, country: Country.SONG},
-        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R28, j: [], c: CityID.SongCheng, country: Country.SONG},
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R32, j: [], c: CityID.Fushi, country: Country.SONG},
+    generalPlace: [RegionID.R19,RegionID.R01,RegionID.R01,RegionID.R01,RegionID.R01,RegionID.R01],
+    dices: [],
+    troopIdx: -1,
+    cities: [
+        CityID.LiCheng,
+        CityID.SongCheng,
+        CityID.XuCheng,
+        CityID.KaiFeng,
+        CityID.XiangYang,
+        CityID.WanQiu,
+        CityID.JiangDu,
+        CityID.XiaCai,
+        CityID.JiangNing,
+        CityID.DanTu,
+        CityID.WuXian,
+        CityID.QianTang,
+        CityID.MinXian,
+        CityID.NanChang,
+        CityID.ChangSha,
+        CityID.AnLu,
 
-        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R33, j: [], c: CityID.TianXing, country: Country.SONG},
-        {u: [1, 1, 1, 0, 0, 0], p: RegionID.R36, j: [], c: CityID.ChangAn, country: Country.SONG},
+        CityID.ChangAn,
+        CityID.Fushi,
+        CityID.TianXing,
 
-        {u: [2, 1, 0, 0, 0, 0], p: RegionID.R42, j: [], c: CityID.XiangYang, country: Country.SONG},
-        {u: [2, 3, 0, 0, 0, 0], p: RegionID.R43, j: [], c: CityID.KaiFeng, country: Country.SONG},
+        CityID.JiangLing,
 
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R46, j: [], c: CityID.JiangDu, country: Country.SONG},
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R48, j: [], c: CityID.XiaCai, country: Country.SONG},
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R54, j: [], c: CityID.ChengDu, country: Country.SONG},
-
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R60, j: [], c: CityID.JiangLing, country: Country.SONG},
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R66, j: [], c: CityID.JiangNing, country: Country.SONG},
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R77, j: [], c: CityID.MinXian, country: Country.SONG},
-
+        CityID.ChengDu,
+        CityID.QiXian,
+        CityID.NanZhen
     ],
-    effect: [],
-    plan: [],
-    countries: [OtherCountryID.XiLiao, OtherCountryID.DaLi],
     civil: 3,
     completedPlan: [],
-    emperor: CityID.KaiFeng,
     corruption: 2,
+    nations: [NationID.XiLiao, NationID.DaLi],
+    develop: [],
     discard: [],
-    remove: [],
-    military: 1,
-    ready: [0, 0, 0, 0, 0, 0],
-    standby: [9, 18, 9, 2, 3, 5],
+    effect: [],
+    emperor: CityID.KaiFeng,
+    generals: [
+        GeneralStatus.TROOP,
+        GeneralStatus.PRE,
+        GeneralStatus.PRE,
+        GeneralStatus.PRE,
+        GeneralStatus.PRE,
+        GeneralStatus.PRE
+    ],
+    military: 2,
+    plan: [],
     provinces: [
         ProvinceID.JINGDONGLIANGLU,
         ProvinceID.SHANXILIULU,
@@ -121,12 +169,36 @@ export const initialSongPub: SJPubInfo = {
         ProvinceID.JIANGNANLIANGLU,
         ProvinceID.LIANGZHELU
     ],
-    cities: []
+    ready: [0, 0, 0, 0, 0, 0],
+    remove: [],
+    standby: [9, 18, 9, 2, 3, 5],
+    troops: [
+        {u: [2, 2, 0, 0, 0, 0], p: RegionID.R19, c: null, country: Country.SONG},
+        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R21, c: CityID.LiCheng, country: Country.SONG},
+        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R28, c: CityID.SongCheng, country: Country.SONG},
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R32, c: CityID.Fushi, country: Country.SONG},
+
+        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R33, c: CityID.TianXing, country: Country.SONG},
+        {u: [1, 1, 1, 0, 0, 0], p: RegionID.R36, c: CityID.ChangAn, country: Country.SONG},
+
+        {u: [2, 1, 0, 0, 0, 0], p: RegionID.R42, c: CityID.XiangYang, country: Country.SONG},
+        {u: [2, 3, 0, 0, 0, 0], p: RegionID.R43, c: CityID.KaiFeng, country: Country.SONG},
+
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R46, c: CityID.JiangDu, country: Country.SONG},
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R48, c: CityID.XiaCai, country: Country.SONG},
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R54, c: CityID.ChengDu, country: Country.SONG},
+
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R60, c: CityID.JiangLing, country: Country.SONG},
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R66, c: CityID.JiangNing, country: Country.SONG},
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R77, c: CityID.MinXian, country: Country.SONG},
+
+    ],
+    usedDevelop: 0
 }
 
 export interface SJPlayerInfo {
-    hand: CardID[],
-    combatCard: CardID[],
+    hand: SJEventCardID[],
+    combatCard: SJEventCardID[],
     plans: PlanID[],
     chosenPlans: PlanID[],
     lod: LetterOfCredence[]
@@ -143,13 +215,22 @@ export const emptyPlayerInfo: () => SJPlayerInfo = () => {
 }
 
 export interface SongJinnGame {
+    pending: {
+        event: string,
+        regions: RegionID[],
+        cities: CityID[],
+    }
+    op: number,
+    qi: ProvinceID[],
+    plans: PlanID[],
+    dices: number[],
     order: SJPlayer[],
-    removedCountries: OtherCountryID[],
+    removedCountries: NationID[],
     events: ActiveEvents[],
-    round: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
-    turn: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
-    policy: -3 | -2 | -1 | 0 | 1 | 2 | 3,
-    colony: 0 | 1 | 2 | 3 | 4,
+    round: number,
+    turn: number,
+    policy: number,
+    colony: number,
     song: SJPubInfo,
     jinn: SJPubInfo,
     player: {
@@ -158,27 +239,31 @@ export interface SongJinnGame {
     }
     // combat: CombatInfo,
     secret: {
-        songDeck: CardID[],
-        jinnDeck: CardID[],
+        songDeck: SJEventCardID[],
+        jinnDeck: SJEventCardID[],
         planDeck: PlanID[],
     },
     first: SJPlayer,
 }
 
-export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: Ctx) => {
+export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: Ctx, setupData: any) => {
     const songDeck = shuffle(ctx, SongEarlyCardID);
     const jinnDeck = shuffle(ctx, JinnEarlyCardID);
-    const planDeck = shuffle(ctx, [
-        PlanID.J01,
-        PlanID.J02,
-        PlanID.J03,
-        PlanID.J04,
-        PlanID.J05,
-        PlanID.J06
-    ])
-    return {
+    const planDeck = shuffle(ctx, EarlyPlanID);
+    const G = {
+        pending: {
+            event: "",
+            regions: [],
+            cities: [],
+        },
+        qi: [],
+        op: 0,
+        plans: [],
+        dices: [],
         removedCountries: [],
-        order: [SJPlayer.P1],
+        // start from action phase for debugging
+        order: [SJPlayer.P1, SJPlayer.P2],
+        // order: [SJPlayer.P1],
         events: [],
         round: 1,
         turn: 1,
@@ -197,4 +282,11 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
         song: initialSongPub,
         jinn: initialJinnPub,
     }
+    G.player[SJPlayer.P1].hand = songDeck.slice(-9);
+    G.player[SJPlayer.P2].hand = jinnDeck.slice(-7);
+    G.secret.songDeck = songDeck.slice(0, 7);
+    G.secret.jinnDeck = jinnDeck.slice(0, 9);
+    console.log(G.secret.songDeck.toString());
+    console.log(G.secret.jinnDeck.toString());
+    return G;
 }

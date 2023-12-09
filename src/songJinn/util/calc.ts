@@ -1,16 +1,56 @@
 import {SongJinnGame} from "../constant/setup";
-import {ActiveEvents, Country, isMountainPassID, isRegionID, SJPlayer, TerrainType, Troop} from "../constant/general";
-import {Ctx} from "boardgame.io";
+import {
+    accumulator,
+    ActiveEvents,
+    Country,
+    isMountainPassID,
+    isRegionID,
+    JinnBaseCardID,
+    ProvinceID,
+    SJPlayer,
+    SongBaseCardID,
+    TerrainType,
+    Troop
+} from "../constant/general";
+import {Ctx, PlayerID} from "boardgame.io";
 import {getRegionById} from "../constant/regions";
 import {getCityById} from "../constant/city";
-import {Terrain} from "@material-ui/icons";
+import {getStateById} from "./fetch";
+import {sjCardById} from "../constant/cards";
+import {getPlanById} from "../constant/plan";
+import {rm} from "./card";
 
 export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
     return G.jinn.civil > G.song.civil ? SJPlayer.P2 : SJPlayer.P1;
 }
 
+export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
+    const pub = getStateById(G, playerId);
+    const d = pub.develop.map(c => sjCardById(c).op);
+    if (d.length > 0) {
+        let sum = d.reduce(accumulator);
+        if (pub.develop.includes(JinnBaseCardID.J40)) {
+            sum += G.colony * 2 - 2;
+        }
+        if (pub.develop.includes(SongBaseCardID.S45)){
+            sum += G.jinn.cities.filter(c=>getCityById(c).colonizeLevel > G.colony).length - 3;
+        }
+        return sum;
+    } else {
+        return 0;
+    }
+}
+
+export const remainDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
+    return totalDevelop(G, ctx, playerId) - getStateById(G, playerId).usedDevelop;
+}
+
 export function troopIsArmy(G: SongJinnGame, ctx: Ctx, troop: Troop) {
     return troopEndurance(G, ctx, troop) !== 0;
+}
+
+export const rangeDamage = (G: SongJinnGame, troop: Troop) => {
+
 }
 
 export function troopEndurance(G: SongJinnGame, ctx: Ctx, troop: Troop): number {
@@ -57,8 +97,28 @@ export function troopEndurance(G: SongJinnGame, ctx: Ctx, troop: Troop): number 
     return endurance;
 }
 
+export const getSongScore = (G: SongJinnGame): number => {
+    let score = getSongPower(G);
+    G.song.completedPlan.forEach((pid) => {
+        score += getPlanById(pid).vp;
+    })
+    score += G.song.military;
+    score += G.song.civil;
+    if(G.events.includes(ActiveEvents.YanJingYiNan)){
+        score ++;
+    }
+    return score
+}
+
 export const getSongPower = (G: SongJinnGame): number => {
-    let power = G.song.provinces.length;
+    const countedProvince = [...G.song.provinces];
+    rm(ProvinceID.JINGJILU, countedProvince);
+    if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
+        rm(ProvinceID.FUJIANLU, countedProvince);
+
+    }
+    let power = countedProvince.length;
+
     if (G.song.emperor !== null) {
         power++;
     }
@@ -71,8 +131,24 @@ export const getSongPower = (G: SongJinnGame): number => {
     return power;
 }
 
+export const getJinnScore = (G: SongJinnGame): number => {
+    let score = getJinnPower(G);
+    G.jinn.completedPlan.forEach((pid) => {
+        score += getPlanById(pid).vp;
+    })
+    score += G.jinn.military;
+    score += G.jinn.civil;
+    return score;
+}
+
 export const getJinnPower = (G: SongJinnGame): number => {
-    let power = G.jinn.provinces.length;
+    const countedProvince = [...G.jinn.provinces];
+    rm(ProvinceID.JINGJILU, countedProvince);
+    if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
+        rm(ProvinceID.FUJIANLU, countedProvince);
+
+    }
+    let power = countedProvince.length;
     if (G.jinn.emperor !== null) {
         power++;
     }

@@ -4,13 +4,18 @@ import {SongJinnGame} from "../constant/setup";
 import ErrorBoundary from "../../components/error";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {Country, MountainPassID, OtherCountryID, RegionID, SJPlayer, UNIT_SHORTHAND} from "../constant/general";
-import {getPlanById} from "../constant/plan";
-import {getStateById, playerById} from "../util/fetch";
+import {SJPlayer} from "../constant/general";
+import {getStateById, playerById, getCountryById} from "../util/fetch";
 import Button from "@material-ui/core/Button";
-import {getCityById} from "../constant/city";
-import {getRegionById} from "../constant/regions";
-import Typography from "@material-ui/core/Typography";
+import {PubInfo} from "./pub-info";
+import {Operation} from "./operation";
+import {SJPlayerHand} from "./player-hand";
+import LogView from "./view-log";
+import {sjPlayerName} from "../util/text";
+import TroopOperation from "./troops";
+import {AdjustOps} from "./adjust";
+import {Chat} from "@material-ui/icons";
+import {ChatMessage} from "./chat-message";
 
 export const SongJinnBoard = ({
                                   G,
@@ -19,9 +24,8 @@ export const SongJinnBoard = ({
                                   events,
                                   moves,
                                   undo,
-                                  redo,
-                                  matchData,
-                                  matchID,
+                                  sendChatMessage,
+                                  chatMessages,
                                   playerID,
                                   isActive,
                                   isMultiplayer,
@@ -30,72 +34,58 @@ export const SongJinnBoard = ({
 
     const pub = getStateById(G, playerID as SJPlayer);
     const player = playerById(G, playerID as SJPlayer);
+    const country = getCountryById(playerID as SJPlayer);
 
-    const chooseFirst = (choice: string) => {
-        moves.chooseFirst(choice);
-    }
-    const choosePlan = (choice: string) => {
-        moves.choosePlan(choice);
-    }
+    const empty = (c: string) => {
+    };
     return <ErrorBoundary>
         <Grid container>
-            <Grid item>
-                {pub.troops.map((t, idx) => {
-                    const c = t.c === null ? "" : getCityById(t.c).name;
-                    const p = t.p === null ? "" : (typeof t.p === "number" ? getRegionById(t.p).name : t.p.toString());
-                    let shortUnits = '';
-                    switch (t.country) {
-                        case Country.JINN:
-                            UNIT_SHORTHAND[1].forEach((v, i) => {
-                                if (t.u[i] > 0) {
-                                    shortUnits += `${t.u[i]}${v}`
-                                }
-                            });
-                            break;
-                        case Country.SONG:
-                            UNIT_SHORTHAND[0].forEach((v, i) => {
-                                if (t.u[i] > 0) {
-                                    shortUnits += `${t.u[i]}${v}`;
-                                }
-                            });
-                            break;
+            {ctx.gameover !== undefined && <ChoiceDialog
+                callback={empty} choices={[]} defaultChoice={""} show={true}
+                title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`}
+                toggleText={"游戏结束"} initial={true}/>}
+            {<Grid container item xs={12}>
+                <Grid item xs={12} sm={6}>
+                    <PubInfo G={G} ctx={ctx}/>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                    <LogView log={log} getPlayerName={sjPlayerName} G={G}/>
+                </Grid>
+            </Grid>}
+
+            {playerID !== null &&
+                <Grid>
+                    {isActive ? <Grid container>
+                        <Button onClick={() => undo()}>撤回</Button>
+                        <Operation
+                            G={G} ctx={ctx}
+                            playerID={playerID}
+                            moves={moves}
+                            isActive={isActive}
+                        />
+                        <Grid item xs={12} sm={6}>
+                            <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
+                        </Grid>
+                        <ChatMessage
+                            sendChatMessage={sendChatMessage}
+                            chatMessages={chatMessages}
+                            getPlayerName={sjPlayerName}/>
+                        <AdjustOps G={G} ctx={ctx} isActive={isActive} playerID={playerID} moves={moves}/>
+                    </Grid> : <Grid container>
+                        <Grid item xs={12} sm={6}>
+                            <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
+                        </Grid>
+                    </Grid>
+
                     }
-                    return <Button key={`troop-${idx}`}>{p}|{c}|{shortUnits}</Button>;
-                })}
-            </Grid>
-            <ChoiceDialog
-                callback={chooseFirst}
-                choices={[
-                    {label: "宋", value: SJPlayer.P1, disabled: false, hidden: false,},
-                    {label: "金", value: SJPlayer.P2, disabled: false, hidden: false,},
-                ]} defaultChoice={SJPlayer.P1}
-                show={isActive && ctx.phase === 'chooseFirst'} title={"请选择先手玩家"}
-                toggleText={"请选择先手玩家"} initial={true}/>
-            <ChoiceDialog
-                callback={choosePlan}
-                choices={player.plans.map((pid) => {
-                        const plan = getPlanById(pid);
-                        return {
-                            label: plan.name,
-                            value: plan.id,
-                            disabled: plan.level > pub.military,
-                            hidden: false
-                        }
-                    }
-                )}
-                defaultChoice={player.plans.length > 0 ? player.plans[0] : 'J01'}
-                show={isActive && ctx.phase === 'choosePlan'}
-                title={"请选择1张作战计划"} toggleText={"选择作战计划"}
-                initial={true}/>
-            {
-                (isActive && ctx.phase === 'showPlan') &&
-                <Button
-                    onClick={() => moves.showPlan(player.chosenPlans)}
-                    color={"primary"}
-                    variant={"contained"}
-                >
-                    展示作战计划
-                </Button>}
+                </Grid>
+            }
         </Grid>
     </ErrorBoundary>
 }

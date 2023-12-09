@@ -42,7 +42,7 @@ const JoinPage = ({serverURL, gameName}: JoinPageProps) => {
                         .then((responseCredential) => {
                             saveCredentials(matchID, player, responseCredential);
                             setCredentials(responseCredential);
-                            history.push(`/join/${matchID}/${player}/${responseCredential}`)
+                            history.push(`/join/${gameName}/${matchID}/${player}/${responseCredential}`)
                         })
                         .catch((err) => {
                             setError(JSON.stringify(err));

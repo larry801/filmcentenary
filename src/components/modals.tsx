@@ -37,7 +37,7 @@ export interface IChoiceProps {
     buttonColor?: boolean,
 }
 
-const useDebounce = (callback: () => any, delay: number) => {
+export const useDebounce = (callback: () => any, delay: number) => {
     const latestCallback = useRef(() => {
     });
     const [callCount, setCallCount] = useState(0);
@@ -94,8 +94,8 @@ export const ChoiceDialog = ({
     };
 
     const handleConfirm = () => {
-        handleClose();
         callback(choice);
+        handleClose();
     };
 
     const debouncedHandleConfirm = useDebounce(handleConfirm, 400);
@@ -105,8 +105,9 @@ export const ChoiceDialog = ({
         console.log(e.target.value);
     };
 
-    return show ? <Grid item xs={12}>
+    return show ? <Grid key={nanoid()} item xs={12}>
         <Button
+            key={nanoid()}
             aria-label={title}
             color={buttonColor ? "secondary" : "primary"}
             fullWidth
@@ -116,18 +117,20 @@ export const ChoiceDialog = ({
             style={{textTransform: 'none'}}
         > {toggleText}</Button>
         <Dialog
+            key={nanoid()}
             aria-label={title}
             open={open}
             onClose={handleClose}
         >
-            <DialogTitle>
+            <DialogTitle key={nanoid()}>
                 {title}
             </DialogTitle>
-            <DialogContent>
-                <FormControl required component="fieldset">
-                    <FormGroup>
-                        <FormLabel component="legend">{toggleText}</FormLabel>
+            <DialogContent key={nanoid()}>
+                <FormControl key={nanoid()} required component="fieldset">
+                    <FormGroup key={nanoid()}>
+                        <FormLabel key={nanoid()} component="legend">{toggleText}</FormLabel>
                         <RadioGroup
+                            key={nanoid()}
                             aria-label={title}
                             name="choices" value={choice}
                             onChange={handleChange}>
@@ -136,20 +139,20 @@ export const ChoiceDialog = ({
                                     <FormControlLabel
                                         disabled={choice.disabled}
                                         key={nanoid()} value={choice.value}
-                                        control={<Radio/>}
+                                        control={<Radio key={nanoid()}/>}
                                         label={choice.label}/> : <></>
                             )}
                         </RadioGroup>
                     </FormGroup>
                 </FormControl>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={debouncedHandleConfirm} color="primary">
+            <DialogActions key={nanoid()}>
+                <Button key={nanoid()} onClick={handleConfirm} color="primary">
                     {i18n.confirm}
                 </Button>
             </DialogActions>
         </Dialog>
-    </Grid> : <div/>
+    </Grid> : <div key={nanoid()}/>
 }
 
 export default ChoiceDialog;

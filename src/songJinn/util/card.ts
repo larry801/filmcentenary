@@ -1,9 +1,30 @@
 import {SongJinnGame} from "../constant/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {getStateById, playerById} from "./fetch";
-import {JinnLateCardID, JinnMidCardID, SJPlayer, SongLateCardID, SongMidCardID} from "../constant/general";
+import {
+    SJEventCardID,
+    JinnLateCardID,
+    JinnMidCardID,
+    SJPlayer,
+    SongLateCardID,
+    SongMidCardID, LatePlanID, MidPlanID
+} from "../constant/general";
 import {getJinnPower} from "./calc";
 import {shuffle} from "../../game/util";
+
+type RemoveFn<T> = (target: T, array: T[]) => void;
+
+export const rm: RemoveFn<any> = (target, array) => {
+    if (array.includes(target)) {
+        array.splice(array.indexOf(target), 1);
+    }
+}
+
+export const developInstead = (G: SongJinnGame, pid: PlayerID, cid: SJEventCardID) => {
+    const pub = getStateById(G, pid)
+    G.song.develop.push(cid);
+    rm(cid, G.song.discard)
+}
 
 export const drawPlanForPlayer = (G: SongJinnGame, pid: PlayerID) => {
     const p = playerById(G, pid);
@@ -97,15 +118,19 @@ export const drawPhaseForPlayer = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
 }
 
 export const addLateTermCard = (G: SongJinnGame, ctx: Ctx) => {
-    SongLateCardID.forEach(c=>G.secret.songDeck.push(c))
-    JinnLateCardID.forEach(c=>G.secret.jinnDeck.push(c))
+    SongLateCardID.forEach(c => G.secret.songDeck.push(c));
+    JinnLateCardID.forEach(c => G.secret.jinnDeck.push(c));
     G.secret.songDeck = shuffle(ctx, G.secret.songDeck);
     G.secret.jinnDeck = shuffle(ctx, G.secret.jinnDeck);
+    LatePlanID.forEach(p => G.secret.planDeck.push(p));
+    G.secret.planDeck = shuffle(ctx, G.secret.planDeck);
 }
 
 export const addMidTermCard = (G: SongJinnGame, ctx: Ctx) => {
-    SongMidCardID.forEach(c=>G.secret.songDeck.push(c))
-    JinnMidCardID.forEach(c=>G.secret.jinnDeck.push(c))
+    SongMidCardID.forEach(c => G.secret.songDeck.push(c));
+    JinnMidCardID.forEach(c => G.secret.jinnDeck.push(c));
     G.secret.songDeck = shuffle(ctx, G.secret.songDeck);
     G.secret.jinnDeck = shuffle(ctx, G.secret.jinnDeck);
+    MidPlanID.forEach(p => G.secret.planDeck.push(p));
+    G.secret.planDeck = shuffle(ctx, G.secret.planDeck);
 }

@@ -54,7 +54,7 @@ export function changeBothStage(G: IG, ctx: Ctx, stage: string): void {
     }
 }
 
-export function changePlayerStage(G: IG, ctx: Ctx, stage: string, p: PlayerID): void {
+export function changePlayerStage(G: any, ctx: Ctx, stage: string, p: PlayerID): void {
     ctx.events?.setActivePlayers?.({
         value: {
             [p]: {stage: stage},
