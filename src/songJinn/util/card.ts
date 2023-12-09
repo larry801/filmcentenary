@@ -12,18 +12,24 @@ import {
 import {getJinnPower} from "./calc";
 import {shuffle} from "../../game/util";
 
-type RemoveFn<T> = (target: T, array: T[]) => void;
-
-export const rm: RemoveFn<any> = (target, array) => {
+export function rm(target: any, array: any[]) {
     if (array.includes(target)) {
         array.splice(array.indexOf(target), 1);
     }
 }
 
+// type RemoveFn<T> = (target: T, array: T[]) => void;
+//
+// export const rm: RemoveFn<any> = (target, array) => {
+//     if (array.includes(target)) {
+//         array.splice(array.indexOf(target), 1);
+//     }
+// }
+
 export const developInstead = (G: SongJinnGame, pid: PlayerID, cid: SJEventCardID) => {
     const pub = getStateById(G, pid)
-    G.song.develop.push(cid);
-    rm(cid, G.song.discard)
+    pub.develop.push(cid);
+    rm(cid, pub.discard);
 }
 
 export const drawPlanForPlayer = (G: SongJinnGame, pid: PlayerID) => {

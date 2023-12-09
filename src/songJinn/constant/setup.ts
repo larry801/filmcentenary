@@ -1,12 +1,15 @@
 import {
     ActiveEvents,
     CityID,
-    Country, EarlyPlanID,
+    Country,
+    EarlyPlanID,
     GeneralStatus,
+    JinnBaseCardID,
     JinnEarlyCardID,
     LetterOfCredence,
     Level,
-    NationID, PlanID,
+    NationID,
+    PlanID,
     PlayerPendingEffect,
     ProvinceID,
     RegionID,
@@ -19,7 +22,16 @@ import {
 import {Ctx} from "boardgame.io";
 import {shuffle} from "../../game/util";
 
+export interface GeneralInfo {
+    country: Country;
+    name: string;
+    status: GeneralStatus;
+    place: TroopPlace|null;
+    skill: boolean;
+}
+
 export interface SJPubInfo {
+    general:GeneralInfo[],
     generalPlace: TroopPlace[],
     dices: number[],
     troopIdx: number,
@@ -44,7 +56,8 @@ export interface SJPubInfo {
 }
 
 export const initialJinnPub: SJPubInfo = {
-    generalPlace: [RegionID.R20,RegionID.R37,RegionID.R11,RegionID.R01,RegionID.R01,RegionID.R01],
+    general:[],
+    generalPlace: [RegionID.R20, RegionID.R37, RegionID.R11, RegionID.R01, RegionID.R01, RegionID.R01],
     dices: [],
     troopIdx: -1,
     develop: [],
@@ -110,7 +123,8 @@ export const initialJinnPub: SJPubInfo = {
 }
 
 export const initialSongPub: SJPubInfo = {
-    generalPlace: [RegionID.R19,RegionID.R01,RegionID.R01,RegionID.R01,RegionID.R01,RegionID.R01],
+    general:[],
+    generalPlace: [RegionID.R19, RegionID.R01, RegionID.R01, RegionID.R01, RegionID.R01, RegionID.R01],
     dices: [],
     troopIdx: -1,
     cities: [
@@ -225,7 +239,7 @@ export interface SongJinnGame {
     plans: PlanID[],
     dices: number[],
     order: SJPlayer[],
-    removedCountries: NationID[],
+    removedNation: NationID[],
     events: ActiveEvents[],
     round: number,
     turn: number,
@@ -260,7 +274,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
         op: 0,
         plans: [],
         dices: [],
-        removedCountries: [],
+        removedNation: [],
         // start from action phase for debugging
         order: [SJPlayer.P1, SJPlayer.P2],
         // order: [SJPlayer.P1],
@@ -288,5 +302,9 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
     G.secret.jinnDeck = jinnDeck.slice(0, 9);
     console.log(G.secret.songDeck.toString());
     console.log(G.secret.jinnDeck.toString());
+    //
+    // G.player['1'].hand.push(JinnBaseCardID.J09);
+    // G.player['1'].hand.push(JinnBaseCardID.J18);
+
     return G;
 }

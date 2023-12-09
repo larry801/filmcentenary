@@ -4,14 +4,18 @@ import {PlayerView} from "boardgame.io/core";
 import {
     ActionPhaseConfig,
     ChooseFirstPhaseConfig,
-    ChoosePlanPhaseConfig, DeployPhaseConfig,
-    DevelopPhaseConfig, DiplomacyPhaseConfig,
+    ChoosePlanPhaseConfig,
+    DeployPhaseConfig,
+    DevelopPhaseConfig,
+    DiplomacyPhaseConfig,
     DrawPhaseConfig,
-    NormalTurnConfig, ResolvePlanPhaseConfig,
-    ShowPlanPhaseConfig, TurnEndPhaseConfig
+    NormalTurnConfig,
+    ResolvePlanPhaseConfig,
+    ShowPlanPhaseConfig,
+    TurnEndPhaseConfig
 } from "./constant/config";
 import {getJinnPower, getSongPower} from "./util/calc";
-import {Country, SJPlayer, VictoryType} from "./constant/general";
+import {Country, SJPlayer, VictoryReason} from "./constant/general";
 import {diplomaticVictory} from "./util/fetch";
 
 
@@ -30,7 +34,7 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
         action: ActionPhaseConfig,
 
         resolvePlan: ResolvePlanPhaseConfig,
-        diplomacy:DiplomacyPhaseConfig,
+        diplomacy: DiplomacyPhaseConfig,
         develop: DevelopPhaseConfig,
         deploy: DeployPhaseConfig,
         turnEnd: TurnEndPhaseConfig,
@@ -40,13 +44,13 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
         if (getSongPower(G) < 3) {
             return {
                 winner: SJPlayer.P2,
-                type: VictoryType.PowerOfNation
+                reason: VictoryReason.PowerOfNation
             }
         }
         if (getJinnPower(G) < 3) {
             return {
                 winner: SJPlayer.P1,
-                type: VictoryType.PowerOfNation
+                reason: VictoryReason.PowerOfNation
             }
         }
         const dipVic = diplomaticVictory(G);
@@ -55,12 +59,12 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
                 case Country.JINN:
                     return {
                         winner: SJPlayer.P2,
-                        type: VictoryType.Diplomacy
+                        reason: VictoryReason.Diplomacy
                     }
                 case Country.SONG:
                     return {
                         winner: SJPlayer.P2,
-                        type: VictoryType.Diplomacy
+                        reason: VictoryReason.Diplomacy
                     }
             }
         }
@@ -68,13 +72,19 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
         if (completedPlanDelta >= 4) {
             return {
                 winner: SJPlayer.P1,
-                type: VictoryType.StrategicPlan
+                reason: VictoryReason.StrategicPlan
             }
         }
         if (completedPlanDelta <= -4) {
             return {
                 winner: SJPlayer.P2,
-                type: VictoryType.StrategicPlan
+                reason: VictoryReason.StrategicPlan
+            }
+        }
+        if (G.jinn.emperor === null) {
+            return {
+                winner: SJPlayer.P1,
+                reason: VictoryReason.ZhiDaoHuangLong
             }
         }
     }

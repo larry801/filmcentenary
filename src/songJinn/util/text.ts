@@ -1,4 +1,13 @@
-import {SJEventCardID, DevelopChoice, SJPlayer, TroopPlace, GeneralNames, PlanID} from "../constant/general";
+import {
+    SJEventCardID,
+    DevelopChoice,
+    SJPlayer,
+    TroopPlace,
+    GeneralNames,
+    PlanID,
+    Troop,
+    ProvinceID
+} from "../constant/general";
 import {getRegionById} from "../constant/regions";
 import {LogEntry, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
@@ -6,6 +15,29 @@ import {getPlanById} from "../constant/plan";
 import {getCityById} from "../constant/city";
 import {getPlaceGeneral, getReadyGenerals, unitsToString} from "./fetch";
 import {SongJinnGame} from "../constant/setup";
+import {getProvinceById} from "../constant/province";
+
+export  const phaseName = (c:string)=>{
+    const phaseMap = {
+        'draw':'摸牌阶段',
+        'chooseFirst':'行动顺序',
+        'choosePlan':'选择作战计划',
+        'showPlan':'作战计划',
+        'action':'行动阶段',
+        'resolvePlan':'结算计划',
+        'diplomacy':'结算外交',
+        'develop':'发展阶段',
+        'deploy':'补充阶段',
+        'turnEnd':'回合结束',
+    }
+    // @ts-ignore
+    const result = phaseMap[c];
+    return result !== undefined ? result : " ";
+}
+
+export const troopToString = (G:SongJinnGame,pid:PlayerID,t:Troop) =>{
+    return t.country + placeToStr(t.p)+ unitsToString(t.u) + getPlaceGeneral(G,pid,t.p);
+}
 
 export const getPlaceGeneralNames = (G: SongJinnGame, pid: PlayerID, place: TroopPlace) => {
     const readyGenerals = getPlaceGeneral(G, pid, place);
@@ -57,23 +89,25 @@ export const getLogText = (l: LogEntry): string => {
                 } else {
                     const arg = args[0];
                     switch (name) {
+                        case 'removeUnit':
+                            log += `消灭${arg.c}${placeToStr(arg.src)}${unitsToString(arg.units)}`;
+                            break;
                         case 'placeUnit':
                             log += `在${placeToStr(arg.place)}放置${unitsToString(arg.units)}`;
                             break;
                         case 'deploy':
                             log += `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
                             break;
-                        case 'removeUnit':
-                            log += `移除${placeToStr(arg.dst)}${unitsToString(arg.units)}`;
-                            break;
                         case 'placeUnits':
                             log += `在${placeToStr(arg.dst)}放置${unitsToString(arg.units)}`;
                             break;
+
                         case 'opponentMove':
                             log += `让对方操作`;
                             break;
+
                         case 'takeDamage':
-                            log += `死${unitsToString(arg.standby)}溃${unitsToString(arg.ready)}`;
+                            log += `${placeToStr(arg.src)}${arg.c}死${unitsToString(arg.standby)}溃${unitsToString(arg.ready)}`;
                             break;
                         case 'march':
                             log += `${placeToStr(arg.src)}${unitsToString(arg.units)}进军${placeToStr(arg.dst)}`;
@@ -99,6 +133,9 @@ export const getLogText = (l: LogEntry): string => {
                             break;
                         case 'chooseTop':
                             log += `把${getPlanById(arg).name}放在最上面`;
+                            break;
+                        case 'jianLiDaQi':
+                            log += `建立大齐 齐控制${arg.join(',')}`;
                             break;
                         case 'showPlan':
                             log += `展示${arg.map((p: PlanID) => getPlanById(p).name)}`;
@@ -169,7 +206,11 @@ export const getLogText = (l: LogEntry): string => {
             }
             return log;
         case "GAME_EVENT":
-            return `${s}${payload.type}`;
+            if(payload.type === 'endPhase'){
+                return `${phaseName(l.phase)}结束`
+            }else{
+                return "";
+            }
         case "UNDO":
             return s + "撤销";
         case "REDO":

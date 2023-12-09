@@ -3,13 +3,22 @@ import {Ctx, PlayerID} from "boardgame.io"
 import {SongJinnGame} from "../constant/setup";
 import Grid from "@material-ui/core/Grid";
 
-import {getStateById, getCountryById, unitsToString, StrProvince, getMarchDst, optionToActualDst} from "../util/fetch";
+import {
+    ctr2pub,
+    getCountryById,
+    getMarchDst,
+    getOpponentStateById,
+    getStateById,
+    optionToActualDst,
+    StrProvince,
+    unitsToString
+} from "../util/fetch";
 import Button from "@material-ui/core/Button";
 import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import {getPlaceGeneralNames, placeToStr} from "../util/text";
-import {CityID, Country, isRegionID, ProvinceID, RegionID, UNIT_SHORTHAND} from "../constant/general";
+import {CityID, Country, isRegionID, ProvinceID, RegionID, Troop, UNIT_SHORTHAND} from "../constant/general";
 import ChoiceDialog from "../../components/modals";
 import {getProvinceById} from "../constant/province";
 import {getRegionById} from "../constant/regions";
@@ -73,61 +82,64 @@ enum TakeDamageStep {
 const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const [expanded, setExpanded] = React.useState(0);
 
+    const emptyTroop: Troop = {p: RegionID.R19, u: [0, 0, 0, 0, 0, 0], c: null, country: Country.SONG};
+
     const pub = getStateById(G, pid);
-    const troops = pub.troops;
+    const opp = getOpponentStateById(G, pid);
+    const troops = [...pub.troops, ...opp.troops];
     const ctr = getCountryById(pid);
     const unitNames = ctr === Country.SONG ? UNIT_SHORTHAND[0] : UNIT_SHORTHAND[1];
 
 
-    const [removeStep, setRemoveStep] = React.useState(RemoveStep.TROOP);
-    const [removeTroop, setRemoveTroop] = React.useState(0);
-
     const [deployStep, setDeployStep] = React.useState(DeployStep.TROOP);
-    const [deployTroop, setDeployTroop] = useState(0);
+    const [deployTroop, setDeployTroop] = useState(emptyTroop);
 
     const depUnitDialog = <ChooseUnitsDialog
         callback={(u) => {
             moves.deploy({
                 units: u,
-                idx: deployTroop
+                city: deployTroop.c,
+                country: deployTroop.country
             });
             setDeployStep(DeployStep.TROOP);
+            setDeployTroop(emptyTroop);
         }}
-        max={[...pub.ready]}
+        max={[...ctr2pub(G, deployTroop.country).ready]}
         initUnits={unitNames.map(() => 0)}
         show={isActive && deployStep === DeployStep.UNITS}
         title={"选择补充部队"} toggleText={"补充"}
-        initial={true} country={ctr}
+        initial={true} country={deployTroop.country}
     />
 
 
     const [takeDamageStep, setTakeDamageStep] = React.useState(TakeDamageStep.TROOP);
-    const [takeDamageTroop, setTakeDamageTroop] = useState(0);
-    const [readyUnits, setReadyUnits] = React.useState([0]);
+    const [takeDamageTroop, setTakeDamageTroop] = useState(emptyTroop);
+    const [takeDamageReadyUnits, setTakeDamageReadyUnits] = React.useState(emptyTroop.u);
 
     const takeDamageReadyDialog = <ChooseUnitsDialog
         callback={(u) => {
             setTakeDamageStep(TakeDamageStep.STANDBY)
-            setReadyUnits(u)
-        }} max={troops[takeDamageTroop].u} initUnits={unitNames.map(() => 0)}
+            setTakeDamageReadyUnits(u)
+        }} max={takeDamageTroop.u} initUnits={unitNames.map(() => 0)}
         show={isActive && takeDamageStep === TakeDamageStep.READY} title={"选择被击溃的部队"}
-        toggleText={"击溃"} initial={true} country={ctr}/>
+        toggleText={"击溃"} initial={true} country={takeDamageTroop.country}/>
 
     const takeDamageStandbyDialog = <ChooseUnitsDialog
         callback={(u) => {
             setTakeDamageStep(TakeDamageStep.TROOP)
             moves.takeDamage({
-                src: troops[takeDamageTroop].p,
-                c: ctr,
+                src: takeDamageTroop.p,
+                c: takeDamageTroop.country,
                 idx: takeDamageTroop,
-                ready: readyUnits,
+                ready: takeDamageReadyUnits,
                 standby: u
             })
-        }} max={troops[takeDamageTroop].u} initUnits={unitNames.map(() => 0)}
+        }} max={takeDamageTroop.u} initUnits={unitNames.map(() => 0)}
         show={isActive && takeDamageStep === TakeDamageStep.STANDBY} title={"选择要被消灭的部队"}
-        toggleText={"消灭部队"} initial={true} country={ctr}/>
+        toggleText={"消灭部队"} initial={true} country={takeDamageTroop.country}/>
 
-    const [moveTroop, setMoveTroop] = useState(0);
+
+    const [moveTroop, setMoveTroop] = useState(emptyTroop);
     const [moveStep, setMoveStep] = useState(MoveStep.TROOP);
 
     const moveProvDialog = <ChoiceDialog
@@ -169,10 +181,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             if (moveStep === MoveStep.REGION) {
                 setMoveStep(MoveStep.TROOP);
                 moves.moveTroop({
-                    src: troops[moveTroop],
-                    idx: moveTroop,
+                    src: moveTroop,
                     dst: regID,
-                    country: ctr
+                    country: moveTroop.country
                 })
             }
         }}
@@ -238,21 +249,20 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
 
     const [marchStep, setMarchStep] = React.useState(MarchStep.TROOP);
-    const [marchUnits, setMarchUnits] = React.useState([0, 0, 0]);
-    const [marchTroop, setMarchTroop] = React.useState(0);
+    const [marchUnits, setMarchUnits] = React.useState(emptyTroop.u);
+    const [marchTroop, setMarchTroop] = React.useState(emptyTroop);
 
     const marchRegionDialog = <ChoiceDialog
         callback={(r) => {
             moves.march({
-                src: troops[marchTroop].p,
+                src: marchTroop.p,
                 dst: optionToActualDst(r),
                 units: marchUnits,
-                country: ctr,
-                idx: marchTroop
+                country: ctr
             });
             setMarchStep(MarchStep.TROOP);
         }}
-        choices={getMarchDst(G, troops[marchTroop].p).map(r => {
+        choices={getMarchDst(G, marchTroop.p).map(r => {
             if (r == null) {
                 return {
                     label: "",
@@ -290,10 +300,10 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         callback={(c) => {
             setMarchUnits(c);
             setMarchStep(MarchStep.TARGET)
-        }} max={[...troops[marchTroop].u]} initUnits={[...troops[marchTroop].u]}
+        }} max={[...marchTroop.u]} initUnits={[...marchTroop.u]}
         show={isActive && marchStep === MarchStep.UNITS}
         popAfterShow={true}
-        title={"选择进军部队"} toggleText={"选择进军部队"} initial={true} country={ctr}/>
+        title={"选择进军部队"} toggleText={"选择进军部队"} initial={true} country={marchTroop.country}/>
 
     const [deployNewStep, setDeployNewStep] = React.useState(DeployNewStep.TROOP);
     const [deployNewCity, setDeployNewCity] = React.useState(CityID.DaTong);
@@ -323,32 +333,32 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         initial={true} country={ctr}
     />
 
+    const [removeUnitStep, setRemoveUnitStep] = React.useState(RemoveStep.TROOP);
+    const [removeUnitTroop, setRemoveUnitTroop] = React.useState(emptyTroop);
     const removeUnitDialog = <ChooseUnitsDialog
         callback={(u) => {
-            setRemoveStep(RemoveStep.TROOP)
+            setRemoveUnitStep(RemoveStep.TROOP)
             moves.removeUnit({
-                src: troops[removeTroop].p,
+                src: removeUnitTroop.p,
                 units: u,
-                idx: removeTroop,
-                country: ctr
+                country: removeUnitTroop.c
             })
-        }} max={troops[removeTroop].u} initUnits={unitNames.map(() => 0)}
-        show={isActive && removeStep === RemoveStep.UNITS} title={"选择要消灭的部队"}
+        }} max={removeUnitTroop.u} initUnits={unitNames.map(() => 0)}
+        show={isActive && removeUnitStep === RemoveStep.UNITS} title={"选择要消灭的部队"}
         toggleText={"消灭部队"} initial={true} country={ctr}/>
 
     const [placeStep, setPlaceStep] = useState(PlaceStep.TROOP);
-    const [placeTroop, setPlaceTroop] = useState(0);
+    const [placeUnitTroop, setPlaceUnitTroop] = useState(emptyTroop);
 
     const placeUnitsDialog = <ChooseUnitsDialog
         callback={(u) => {
             setPlaceStep(PlaceStep.TROOP)
             moves.placeUnit({
-                place:pub.troops[placeTroop].p,
+                place: placeUnitTroop.p,
                 units: u,
-                idx: placeTroop,
-                country: ctr
+                country: placeUnitTroop.country
             })
-        }} max={[...pub.standby]} initUnits={unitNames.map(() => 0)}
+        }} max={[...ctr2pub(G,placeUnitTroop.country).standby]} initUnits={unitNames.map(() => 0)}
         show={isActive && placeStep === PlaceStep.UNITS} title={"选择要放置的的部队"}
         toggleText={"放置新部队"} initial={true} country={ctr}/>
 
@@ -363,7 +373,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
                     setTakeDamageStep(TakeDamageStep.TROOP);
                     setMarchStep(MarchStep.TROOP);
-                    setRemoveStep(RemoveStep.TROOP);
+                    setRemoveUnitStep(RemoveStep.TROOP);
                     setDeployStep(DeployStep.TROOP)
                     setMoveStep(MoveStep.TROOP);
                     setNewTroopStep(NewTroopStep.PROVINCE);
@@ -377,7 +387,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
                     setTakeDamageStep(TakeDamageStep.TROOP);
                     setMarchStep(MarchStep.TROOP);
-                    setRemoveStep(RemoveStep.TROOP);
+                    setRemoveUnitStep(RemoveStep.TROOP);
                     setDeployStep(DeployStep.TROOP)
                     setMoveStep(MoveStep.TROOP);
                     setDeployNewStep(DeployNewStep.CITY);
@@ -403,29 +413,106 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
             {placeUnitsDialog}
         </Grid>
-
         {troops.map((t, idx) => <Grid item xs={6} key={`troop-grid-${idx}`}>
-            <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
+            <Accordion expanded={isActive && expanded === idx} onChange={() => setExpanded(idx)}
                        key={`troop-${idx}`}>
                 <AccordionSummary>
-                    {placeToStr(t.p)}|{unitsToString(t.u)}|{getPlaceGeneralNames(G, pid, t.p)}</AccordionSummary>
+                    {t.country}|{placeToStr(t.p)}|{unitsToString(t.u)}|{getPlaceGeneralNames(G, pid, t.p)}</AccordionSummary>
                 <AccordionDetails>
                     {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
-                        <button onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
+                        <button
+                            key={`grid-ops-${idx}-march`}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
 
-                                setTakeDamageStep(TakeDamageStep.TROOP);
-                                // setMarchStep(MarchStep.TROOP);
-                                setRemoveStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                setMoveStep(MoveStep.TROOP);
-                                setMarchTroop(idx);
-                                setMarchStep(MarchStep.UNITS);
-                            }
-                        }>进军
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    // setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+                                    setMarchTroop(t);
+                                    setMarchStep(MarchStep.UNITS);
+                                }
+                            }>进军
+                        </button>
+                        <button
+                            key={`grid-ops-${idx}-all-march`}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
+
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    // setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+
+                                    setMarchTroop(t);
+                                    setMarchUnits(t.u)
+                                    setMarchStep(MarchStep.TARGET);
+                                }
+                            }>全军进军
+                        </button>
+                        <button
+                            key={`grid-ops-${idx}-move`}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
+
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    // setMoveStep(MoveStep.TROOP);
+                                    setMoveTroop(t);
+                                    setMoveStep(MoveStep.PROVINCE);
+                                }
+                            }>移动
+                        </button>
+                        <button
+                            key={`grid-ops-${idx}-takeDamge`}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
+
+                                    // setTakeDamageStep(TakeDamageStep.TROOP);
+                                    setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+                                    setTakeDamageStep(TakeDamageStep.READY);
+                                    setTakeDamageTroop(t);
+                                }
+                            }>受创
+                        </button>
+                        <button
+                            key={`grid-ops-${idx}-deploy`}
+                            disabled={t.c === null}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
+
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    // setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+
+                                    setDeployStep(DeployStep.UNITS);
+                                    setDeployTroop(t);
+                                }
+                            }>补充
                         </button>
                         <button onClick={
                             () => {
@@ -435,61 +522,12 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
                                 setTakeDamageStep(TakeDamageStep.TROOP);
                                 setMarchStep(MarchStep.TROOP);
-                                setRemoveStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                // setMoveStep(MoveStep.TROOP);
-                                setMoveTroop(idx);
-                                setMoveStep(MoveStep.PROVINCE);
-                            }
-                        }>移动
-                        </button>
-                        <button onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
-
-                                // setTakeDamageStep(TakeDamageStep.TROOP);
-                                setMarchStep(MarchStep.TROOP);
-                                setRemoveStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                setMoveStep(MoveStep.TROOP);
-                                setTakeDamageStep(TakeDamageStep.READY);
-                                setTakeDamageTroop(idx);
-                            }
-                        }>受创
-                        </button>
-                        <button onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
-
-                                setTakeDamageStep(TakeDamageStep.TROOP);
-                                setMarchStep(MarchStep.TROOP);
-                                setRemoveStep(RemoveStep.TROOP);
-                                // setDeployStep(DeployStep.TROOP)
-                                setMoveStep(MoveStep.TROOP);
-
-                                setDeployStep(DeployStep.UNITS);
-                                setDeployTroop(idx);
-                            }
-                        }>补充
-                        </button>
-                        <button onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
-
-                                setTakeDamageStep(TakeDamageStep.TROOP);
-                                setMarchStep(MarchStep.TROOP);
-                                setRemoveStep(RemoveStep.TROOP);
+                                setRemoveUnitStep(RemoveStep.TROOP);
                                 setDeployStep(DeployStep.TROOP)
                                 setMoveStep(MoveStep.TROOP);
 
                                 setPlaceStep(PlaceStep.UNITS);
-                                setPlaceTroop(idx);
+                                setPlaceUnitTroop(t);
                             }
                         }>放置
                         </button>
@@ -506,8 +544,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                                 setDeployStep(DeployStep.TROOP)
                                 setMoveStep(MoveStep.TROOP);
 
-                                setRemoveStep(RemoveStep.UNITS);
-                                setRemoveTroop(idx);
+                                setRemoveUnitStep(RemoveStep.UNITS);
+                                setRemoveUnitTroop(t);
                             }
                         }>消灭
                         </button>

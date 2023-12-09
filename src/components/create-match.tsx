@@ -18,7 +18,7 @@ import TableRow from "@material-ui/core/TableRow";
 import TableCell from "@material-ui/core/TableCell";
 import TableBody from "@material-ui/core/TableBody";
 import {LobbyClient} from 'boardgame.io/client';
-import {filmCentenaryName} from "../constant/multi-games";
+import {filmCentenaryName, songJinnName} from "../constant/multi-games";
 
 type PlayerMetadata = {
     id: number;
@@ -93,7 +93,15 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         setClicked(true);
         createMatch(serverURL, gameName, isPublic ? Visibility.PUBLIC : Visibility.PRIVATE, numPlayers)
             .then((id) => setMatchID(id))
-            .catch((err) => setError(err.toString()));
+            .catch((err) => {
+                if(gameName === songJinnName){
+                    createMatch(serverURL, gameName, isPublic ? Visibility.PUBLIC : Visibility.PRIVATE, 2)
+                        .then((id) => setMatchID(id))
+                        .catch((err2) => setError(err2.toString));
+                }else{
+                    setError(JSON.stringify(err))
+                }
+            });
     };
 
     const handleChange = (event: React.ChangeEvent<{ name?: string; value: unknown }>) => {
@@ -121,8 +129,8 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     }
     const errorMessage = <Typography>
         {error} {i18n.drawer.pleaseTry}
-        {gameName === 'songJinn' ? <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link> :
-            <Link to={'/local'}>本地热座</Link>}
+        {gameName === 'film' ? <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link> :
+            <Link to={'/local'}>本地</Link>}
     </Typography>
 
     useInterval(refreshLobby, 10000);

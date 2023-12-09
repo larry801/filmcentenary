@@ -4,7 +4,7 @@ import {
     Country,
     General,
     GeneralStatus,
-    isNationID,
+    isNationID, isRegionID,
     NationID,
     Nations,
     ProvinceID,
@@ -14,13 +14,14 @@ import {
     TroopPlace
 } from "../constant/general";
 import {
-    getCountryById,
+    ctr2pid,
+    getCountryById, getJinnTroopByPlace,
     getJinnTroopByRegion,
     getOpponentStateById,
     getSongTroopByCity,
-    getSongTroopByRegion,
+    getSongTroopByPlace,
     getStateById,
-    playerById
+    playerById, unitsToString
 } from "./fetch";
 import {rm} from "./card";
 import {getCityById} from "../constant/city";
@@ -28,6 +29,9 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
 import {getRegionById} from "../constant/regions";
 import {troopEmpty} from "./check";
+import {placeToStr} from "./text";
+import {logger} from "../../game/logger";
+import {INVALID_MOVE} from "boardgame.io/core";
 
 
 export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
@@ -41,6 +45,12 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
             pub.civil += a;
         }
     }
+}
+
+export const doRemoveNation = (G:SongJinnGame, nation:NationID) => {
+    G.removedNation.push(nation);
+    rm(nation,G.song.nations);
+    rm(nation,G.jinn.nations);
 }
 
 export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
@@ -94,6 +104,70 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
     }
 }
 
+
+
+export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, place: TroopPlace) => {
+    const log = [`doPlaceUnit|${unitsToString(units)}${country}${placeToStr(place)}`];
+
+    const target = ctr2pid(country);
+    const pub = getStateById(G, target);
+    pub.standby.forEach((u, idx) => {
+        if (u < units[idx]) {
+            log.push(`${u}<${units[idx]}|INVALID_MOVE`);
+            logger.debug(`${log.join('')}`);
+            return INVALID_MOVE;
+        }
+    });
+
+    const t = country === Country.SONG ? getSongTroopByPlace(G, place) : getJinnTroopByPlace(G, place);
+    if (t === null) {
+        log.push(`noTroop`);
+        let city = null;
+        if (isRegionID(place)) {
+
+            city = getRegionById(place).city;
+            log.push(`|${city}`);
+        }
+        pub.troops.push({
+            u: units,
+            country: country,
+            c: city,
+            p: place,
+        })
+        for (let i = 0; i < units.length; i++) {
+            pub.standby[i] -= units[i];
+        }
+    } else {
+        log.push(`${JSON.stringify(t)}`);
+        for (let i = 0; i < units.length; i++) {
+            t.u[i] += units[i];
+            pub.standby[i] -= units[i];
+        }
+        log.push(`|after|${unitsToString(t.u)}${JSON.stringify(t)}`);
+    }
+    logger.debug(`${log.join('')}`);
+}
+export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerID, place: TroopPlace) => {
+    const log = [`removeUnitByPlace|${placeToStr(place)}|${unitsToString(units)}`]
+    const pub = getStateById(G, pid);
+    const filtered = pub.troops.filter(t => t.p === place);
+    log.push(`${filtered}`);
+    if (filtered.length > 0) {
+        removeUnitOnTroop(G, units, pid, pub.troops.indexOf(filtered[0]));
+        if (filtered.length > 1) {
+            log.push(`|moreThanOne`);
+            mergeTroopTo(G,
+                pub.troops.indexOf(filtered[1]),
+                pub.troops.indexOf(filtered[0]), pid);
+            removeUnitOnTroop(G, units, pid, pub.troops.indexOf(filtered[0]));
+        }
+        logger.debug(`${log.join('')}`);
+    } else {
+        log.push(`noTroop`);
+        logger.debug(`${log.join('')}`);
+        return null;
+    }
+}
 export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerID, idx: number) => {
     const pub = getStateById(G, pid);
     const t = pub.troops[idx];
@@ -147,7 +221,7 @@ export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], countr
     const actualUnits = [...units];
     switch (country) {
         case Country.SONG:
-            const st = getSongTroopByRegion(G, dst);
+            const st = getSongTroopByPlace(G, dst);
             for (let i = 0; i < units.length; i++) {
                 if (G.song.standby[i] > units[i]) {
                     actualUnits[i] = units[i]
@@ -395,7 +469,7 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
                 p: city.region,
                 c: c,
                 u: [0, 0, 0, 0, 0, 1, 0],
-                
+
                 country: Country.JINN
             });
         } else {
@@ -403,7 +477,7 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
                 p: city.region,
                 c: c,
                 u: [0, 0, 0, 0, 0, 2, 0],
-                
+
                 country: Country.JINN
             });
         }

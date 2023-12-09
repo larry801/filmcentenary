@@ -17,7 +17,7 @@ import {
     emperor,
     emptyRound,
     endRound,
-    heYi,
+    heYi, jianLiDaQi,
     letter,
     loseCity,
     loseProvince,
@@ -56,7 +56,7 @@ export const EmperorStageConfig: StageConfig<SongJinnGame> = {
         emperor: emperor
     }
 }
-
+// TODO card_1.rm is not a function?
 export const ChooseProvinceStageConfig: StageConfig<SongJinnGame> = {
     moves: {
         chooseProvince: chooseProvince,
@@ -92,7 +92,12 @@ const StagedTurnConfig = {
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
         react: ReactStageConfig,
-        emperor: EmperorStageConfig
+        emperor: EmperorStageConfig,
+        jianLiDaQi:{
+            moves:{
+                jianLiDaQi:jianLiDaQi,
+            }
+        }
     },
 };
 export const DiscardStageConfig: StageConfig<SongJinnGame> = {
@@ -128,9 +133,9 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
             //
             // }
         }
-        endTurnCheck(G, ctx);
         logger.debug(log.join(''));
     },
+    onEnd:(G,ctx)=>endTurnCheck(G,ctx),
     moves: {
         placeUnit: placeUnit,
         endRound: endRound
@@ -178,6 +183,10 @@ export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
         emperor: emperor,
         opponentMove: opponentMove,
         endRound: endRound
+    },
+    onEnd:(G,ctx)=>{
+        G.song.usedDevelop = 0;
+        G.jinn.usedDevelop = 0;
     },
     turn: StagedTurnConfig,
     next: 'deploy'

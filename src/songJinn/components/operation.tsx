@@ -3,8 +3,8 @@ import {SongJinnGame} from "../constant/setup";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {cardToSearch, getCountryById, getStage, getStateById, playerById} from "../util/fetch";
-import {Country, DevelopChoice, SJPlayer} from "../constant/general";
+import {cardToSearch, getCountryById, getStateById, playerById} from "../util/fetch";
+import {ActiveEvents, Country, DevelopChoice, SJPlayer} from "../constant/general";
 import {remainDevelop} from "../util/calc";
 import {returnDevCardCheck} from "../util/check";
 import {sjCardById} from "../constant/cards";
@@ -12,7 +12,6 @@ import {getPlanById} from "../constant/plan";
 import Button from "@material-ui/core/Button";
 import CheckBoxDialog from "./choice";
 import {ChooseUnitsDialog} from "./recruit";
-import * as events from "events";
 import {actualStage} from "../../game/util";
 
 
@@ -85,16 +84,16 @@ export const Operation = ({
         show={isActive && ctx.phase === 'action'} title={"请选择战斗牌"}
         toggleText={"战斗牌"} initial={false}/>
 
-    const autoPhases = ['showPlan']
+    const autoPhases = ['showPlan', 'chooseFirst', 'choosePlan']
     const showPlan = (isActive && ctx.phase === 'showPlan') && <Button
         onClick={() => moves.showPlan(player.chosenPlans)}
         color={"primary"} variant={"contained"}>展示作战计划</Button>
     const endRound = (isActive && !autoPhases.includes(ctx.phase)) && <Button
-        onClick={() =>{
+        onClick={() => {
             // TODO add phase info  Song ended develop phase
-            if(ctx.phase === 'action'){
+            if (ctx.phase === 'action') {
                 moves.endRound(G.round);
-            }else{
+            } else {
                 moves.endRound();
             }
         }}
@@ -202,7 +201,9 @@ export const Operation = ({
             },
             {
                 label: DevelopChoice.EMPEROR, value: DevelopChoice.EMPEROR,
-                disabled: G.song.emperor !== null || pub.usedDevelop > 0,
+                disabled: G.song.emperor !== null
+                    || pub.usedDevelop > 0
+                    || G.events.includes(ActiveEvents.JinBingLaiLe),
                 hidden: country !== Country.SONG
             },
 
@@ -269,6 +270,12 @@ export const Operation = ({
         <Button onClick={() => adjustDice(5)}>+5</Button>
     </Grid>
 
+    const jianLiDaQiButton = <CheckBoxDialog
+        callback={(c) => moves.jianLiDaQi(c)} choices={G.jinn.provinces.map((prov) => {
+        return {label: prov, value: prov, disabled: false, hidden: false}
+    })} show={isActive && actualStage(G, ctx) === 'jianLiDaQi'} title={"选择齐控制的路"} toggleText={"建立大齐"}
+        initial={true}/>
+
     const emptyRoundButton = ctx.phase === 'action' && <Button
         disabled={player.hand.length + G.round > 9}
         onClick={() => moves.emptyRound()}>空过</Button>
@@ -286,6 +293,7 @@ export const Operation = ({
         {emptyRoundButton}
         {opponentButton}
         {/*{endPhaseButton}*/}
+        {jianLiDaQiButton}
         {showPlan}
         {takePlanDialog}
         {chooseTopPlanDialog}
