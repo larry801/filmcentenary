@@ -47,7 +47,7 @@ import {
     doLoseProvince, doPlaceUnit,
     doRecruit,
     heYiChange,
-    mergeTroopTo,
+    mergeTroopTo, moveGeneralByCountry,
     moveGeneralByPid,
     policyDown,
     policyUp,
@@ -95,7 +95,7 @@ export const march: LongFormMove = {
         log.push(`|parsed${JSON.stringify(dst)}`);
 
         const pub = ctr2pub(G,country);
-        generals.forEach()
+        generals.forEach(gen=>moveGeneralByCountry(G,country,gen,dst));
         const t = getTroopByCountryPlace(G, arg.country, src);
         if (t === null) {
             log.push(`noTroop`);
