@@ -14,6 +14,8 @@ import LogView from "./view-log";
 import {sjPlayerName} from "../util/text";
 import TroopOperation from "./troops";
 import {AdjustOps} from "./adjust";
+import {Chat} from "@material-ui/icons";
+import {ChatMessage} from "./chat-message";
 
 export const SongJinnBoard = ({
                                   G,
@@ -22,9 +24,8 @@ export const SongJinnBoard = ({
                                   events,
                                   moves,
                                   undo,
-                                  redo,
-                                  matchData,
-                                  matchID,
+                                  sendChatMessage,
+                                  chatMessages,
                                   playerID,
                                   isActive,
                                   isMultiplayer,
@@ -35,14 +36,15 @@ export const SongJinnBoard = ({
     const player = playerById(G, playerID as SJPlayer);
     const country = getCountryById(playerID as SJPlayer);
 
-
+    const empty = (c: string) => {
+    };
     return <ErrorBoundary>
         <Grid container>
-            {ctx.gameover !== undefined && <ChoiceDialog callback={() => {
-            }} choices={[]} defaultChoice={""} show={true}
-                                                         title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`}
-                                                         toggleText={"游戏结束"} initial={true}/>}
-            {isActive && <Grid container item xs={12}>
+            {ctx.gameover !== undefined && <ChoiceDialog
+                callback={empty} choices={[]} defaultChoice={""} show={true}
+                title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`}
+                toggleText={"游戏结束"} initial={true}/>}
+            {<Grid container item xs={12}>
                 <Grid item xs={12} sm={6}>
                     <PubInfo G={G} ctx={ctx}/>
                 </Grid>
@@ -53,7 +55,7 @@ export const SongJinnBoard = ({
 
             {playerID !== null &&
                 <Grid>
-                    {isActive && <Grid container>
+                    {isActive ? <Grid container>
                         <Button onClick={() => undo()}>撤回</Button>
                         <Operation
                             G={G} ctx={ctx}
@@ -67,8 +69,18 @@ export const SongJinnBoard = ({
                         <Grid item xs={12} sm={6}>
                             <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
                         </Grid>
+                        <ChatMessage
+                            sendChatMessage={sendChatMessage}
+                            chatMessages={chatMessages}
+                            getPlayerName={sjPlayerName}/>
                         <AdjustOps G={G} ctx={ctx} isActive={isActive} playerID={playerID} moves={moves}/>
-
+                    </Grid> : <Grid container>
+                        <Grid item xs={12} sm={6}>
+                            <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
+                        </Grid>
                     </Grid>
 
                     }

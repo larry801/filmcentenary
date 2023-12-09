@@ -382,7 +382,9 @@ export const rollDices: LongFormMove = {
         if (count === undefined) {
             rollDiceByPid(G, ctx, ctx.playerID, 5);
         } else {
-            rollDiceByPid(G, ctx, ctx.playerID, count);
+            const newCount = count > 25 ? 25 : count;
+            rollDiceByPid(G, ctx, ctx.playerID, newCount);
+
         }
     }
 }
@@ -403,8 +405,8 @@ export const recruitPuppet: LongFormMove = {
 
 interface IMoveGeneralArgs {
     dst: TroopPlace,
-    general:General,
-    country:Country
+    general: General,
+    country: Country
 }
 
 export const moveReadyGeneral: LongFormMove = {

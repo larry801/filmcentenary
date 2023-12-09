@@ -266,9 +266,9 @@ export const Operation = ({
     const emptyRoundButton = ctx.phase === 'action' && <Button
         disabled={player.hand.length + G.round > 9}
         onClick={() => moves.emptyRound()}>空过</Button>
-    const endPhaseButton = <Button
-        onClick={() => ctx.events?.endPhase()}
-    >EndPhase</Button>
+    // const endPhaseButton = <Button
+    //     onClick={() => ctx.events?.endPhase()}
+    // >EndPhase</Button>
     const opponentButton = <Button
         disabled={false}
         onClick={() => moves.opponentMove()}>对方操作</Button>
@@ -279,7 +279,7 @@ export const Operation = ({
         {endRound}
         {emptyRoundButton}
         {opponentButton}
-        {endPhaseButton}
+        {/*{endPhaseButton}*/}
         {showPlan}
         {takePlanDialog}
         {chooseTopPlanDialog}

@@ -40,6 +40,9 @@ export const getLogText = (l: LogEntry): string => {
                         case 'endRound':
                             log += `结束行动`;
                             break;
+                        case 'opponentMove':
+                            log += `让对方操作`;
+                            break;
                         default:
                             log += `${name}|${JSON.stringify(args)}`;
                     }

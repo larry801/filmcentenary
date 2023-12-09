@@ -74,7 +74,7 @@ export const initialJinnPub: SJPubInfo = {
     civil: 2,
     completedPlan: [],
     emperor: CityID.LiaoYang,
-    corruption: 3,
+    corruption: 0,
     discard: [],
     remove: [],
     military: 3,
