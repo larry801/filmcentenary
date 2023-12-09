@@ -40,6 +40,25 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
     }
 }
 
+export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
+    const pub = getStateById(G, pid);
+    const oppo = getOpponentStateById(G, pid);
+    if (oppo.provinces.includes(prov)){
+        rm(prov,oppo.provinces);
+    }else{
+        pub.provinces.push(prov);
+    }
+}
+
+export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID, opponent: boolean) => {
+    const pub = getStateById(G, pid);
+    const oppo = getOpponentStateById(G, pid);
+    if (oppo.cities.includes(cid)){
+        rm(cid,oppo.cities);
+    }else{
+        pub.cities.push(cid);
+    }
+}
 export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid)

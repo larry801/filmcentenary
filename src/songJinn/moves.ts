@@ -957,6 +957,22 @@ export const loseProvince: LongFormMove = {
     }
 }
 
+export const message: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, msg: string) => {
+    }
+}
+
+export const controlCity: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, arg: CityID) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const oppo = getOpponentStateById(G, ctx.playerID);
+    }
+}
+
 interface ILoseCity {
     cityID: CityID,
     opponent: boolean
@@ -978,7 +994,7 @@ export const loseCity: LongFormMove = {
                 policyDown(G, 1);
             }
             const city = getCityById(cityID);
-            if(city.capital){
+            if (city.capital) {
                 loseProvince
             }
             if (opponent) {
