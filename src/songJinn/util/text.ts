@@ -8,7 +8,7 @@ import {getPlaceGeneral, getReadyGenerals, unitsToString} from "./fetch";
 import {SongJinnGame} from "../constant/setup";
 
 export const troopToString = (G:SongJinnGame,pid:PlayerID,t:Troop) =>{
-    return unitsToString(t.u) + getPlaceGeneral(G,pid,t.p);
+    return placeToStr(t.p)+ unitsToString(t.u) + getPlaceGeneral(G,pid,t.p);
 }
 
 export const getPlaceGeneralNames = (G: SongJinnGame, pid: PlayerID, place: TroopPlace) => {

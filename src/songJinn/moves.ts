@@ -41,13 +41,11 @@ import {
     policyDown, policyUp,
     doRecruit,
     removeUnitOnTroop,
-    rollDiceByPid
+    rollDiceByPid, doLoseProvince, moveGeneralTo
 } from "./util/change";
 import {getRegionById} from "./constant/regions";
 import {changePlayerStage} from "../game/logFix";
 import {totalDevelop} from "./util/calc";
-import {normalizePath} from "vite";
-import {Region} from "../types/core";
 
 interface IMarchArgs {
     src: TroopPlace;
@@ -414,11 +412,22 @@ interface IMoveGeneralArgs {
     country: Country
 }
 
-export const moveReadyGeneral: LongFormMove = {
-    move: (G, ctx, args: IMoveTroopArgs) => {
-
+export const movegGeneral: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, args: IMoveGeneralArgs) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`p${ctx.playerID}.moveReadyGeneral(${JSON.stringify(args)})`);
+        const {dst, general, country} = args;
+        const log = [`p${ctx.playerID}.moveReadyGeneral`];
+        const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
+        moveGeneralTo(G, ctx.playerID, general, dst);
+        logger.debug(`${log.join('')}`);
     }
 }
+
 export const moveGeneral: LongFormMove = {
     move: (G, ctx, args: IMoveTroopArgs) => {
 
@@ -1057,7 +1066,7 @@ export const loseCity: LongFormMove = {
             }
             const city = getCityById(cityID);
             if (city.capital) {
-                loseProvince
+                doLoseProvince(G, ctx.playerID, city.province, true);
             }
             if (opponent) {
                 oppo.cities.push(cityID)
@@ -1068,13 +1077,3 @@ export const loseCity: LongFormMove = {
     }
 }
 
-export const empty: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx) => {
-        if (ctx.playerID === undefined) {
-            return INVALID_MOVE;
-        }
-        const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
-        const player = playerById(G, ctx.playerID);
-    }
-}

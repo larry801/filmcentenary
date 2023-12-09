@@ -30,7 +30,6 @@ import {getRegionById} from "../constant/regions";
 import {Stage} from "boardgame.io/core";
 import {activePlayer} from "../../game/util";
 import {sjCardById} from "../constant/cards";
-import {TransformResult} from "vite";
 
 
 export const StrProvince: Map<string, ProvinceID> = new Map(Object.values(ProvinceID).map(

@@ -3,7 +3,15 @@ import {Ctx, PlayerID} from "boardgame.io"
 import {SongJinnGame} from "../constant/setup";
 import Grid from "@material-ui/core/Grid";
 
-import {getStateById, getCountryById, unitsToString, StrProvince, getMarchDst, optionToActualDst} from "../util/fetch";
+import {
+    getStateById,
+    getCountryById,
+    unitsToString,
+    StrProvince,
+    getMarchDst,
+    optionToActualDst,
+    getOpponentStateById
+} from "../util/fetch";
 import Button from "@material-ui/core/Button";
 import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
@@ -74,6 +82,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const [expanded, setExpanded] = React.useState(0);
 
     const pub = getStateById(G, pid);
+    const opp = getOpponentStateById(G,pid);
     const troops = pub.troops;
     const ctr = getCountryById(pid);
     const unitNames = ctr === Country.SONG ? UNIT_SHORTHAND[0] : UNIT_SHORTHAND[1];
@@ -403,7 +412,6 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
             {placeUnitsDialog}
         </Grid>
-
         {troops.map((t, idx) => <Grid item xs={6} key={`troop-grid-${idx}`}>
             <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
                        key={`troop-${idx}`}>

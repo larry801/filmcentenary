@@ -85,7 +85,7 @@ export const Operation = ({
         show={isActive && ctx.phase === 'action'} title={"请选择战斗牌"}
         toggleText={"战斗牌"} initial={false}/>
 
-    const autoPhases = ['showPlan']
+    const autoPhases = ['showPlan','chooseFirst','choosePlan']
     const showPlan = (isActive && ctx.phase === 'showPlan') && <Button
         onClick={() => moves.showPlan(player.chosenPlans)}
         color={"primary"} variant={"contained"}>展示作战计划</Button>

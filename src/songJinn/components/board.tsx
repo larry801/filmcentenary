@@ -5,7 +5,7 @@ import ErrorBoundary from "../../components/error";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
 import {SJPlayer} from "../constant/general";
-import {getStateById, playerById, getCountryById, unitsToString} from "../util/fetch";
+import {getStateById, playerById, getCountryById} from "../util/fetch";
 import Button from "@material-ui/core/Button";
 import {PubInfo} from "./pub-info";
 import {Operation} from "./operation";
@@ -14,7 +14,6 @@ import LogView from "./view-log";
 import {sjPlayerName, troopToString} from "../util/text";
 import TroopOperation from "./troops";
 import {AdjustOps} from "./adjust";
-import {Chat} from "@material-ui/icons";
 import {ChatMessage} from "./chat-message";
 import Paper from "@material-ui/core/Paper";
 
@@ -90,7 +89,7 @@ export const SongJinnBoard = ({
                         {
                             G.song.troops.map(
                                 (t, idx) => {
-                                    return <Grid xs={12} sm={6} key={`troop-song-grid-${idx}`}>\
+                                    return <Grid xs={12} sm={6} key={`troop-song-grid-${idx}`}>
                                         <Paper key={`troop-song-${idx}`}>{troopToString(G, SJPlayer.P1, t)}
                                         </Paper></Grid>
                                 }
