@@ -139,7 +139,6 @@ export const mergeTroopTo = (G: SongJinnGame, src: number, dst: number, pid: Pla
         for (let i = 0; i < b.u.length; i++) {
             b.u[i] += a.u[i];
         }
-        b.j = b.j.concat(a.j);
         rm(a, pub.troops);
     }
 
