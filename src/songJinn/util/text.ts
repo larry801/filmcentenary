@@ -95,7 +95,7 @@ export const getLogText = (l: LogEntry): string => {
                             log += `让对方操作`;
                             break;
                         case 'takeDamage':
-                            log += `死${unitsToString(arg.standby)}溃${unitsToString(arg.ready)}`;
+                            log += `${placeToStr(arg.src)}${arg.c}死${unitsToString(arg.standby)}溃${unitsToString(arg.ready)}`;
                             break;
                         case 'march':
                             log += `${placeToStr(arg.src)}${unitsToString(arg.units)}进军${placeToStr(arg.dst)}`;

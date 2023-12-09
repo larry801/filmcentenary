@@ -182,6 +182,11 @@ export const getSongTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
     logger.debug(`${log.join('')}`);
     return result;
 }
+
+export const getTroopByCountryPlace= (G:SongJinnGame, ctr:Country, src:TroopPlace) => {
+  return ctr === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src)
+}
+
 export const getJinnTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | null => {
     const log = [`getJinnTroopByPlace|${r}`];
     let result = null;

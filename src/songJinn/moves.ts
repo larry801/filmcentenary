@@ -22,14 +22,14 @@ import {logger} from "../game/logger";
 import {getPlanById} from "./constant/plan";
 import {
     cardToSearch,
-    ctr2pid,
+    ctr2pid, ctr2pub,
     getCountryById,
     getJinnTroopByCity, getJinnTroopByPlace,
     getJinnTroopByRegion,
     getOpponentStateById,
     getSongTroopByCity,
     getSongTroopByPlace,
-    getStateById,
+    getStateById, getTroopByCountryPlace, getTroopByRegion,
     playerById, unitsToString
 } from "./util/fetch";
 import {INVALID_MOVE} from "boardgame.io/core";
@@ -57,6 +57,8 @@ import {
 import {getRegionById} from "./constant/regions";
 import {changePlayerStage} from "../game/logFix";
 import {totalDevelop} from "./util/calc";
+import {nlNL} from "@material-ui/core/locale";
+import {placeToStr} from "./util/text";
 
 interface IMarchArgs {
     src: TroopPlace;
@@ -87,11 +89,11 @@ export const march: LongFormMove = {
         logger.info(`p${ctx.playerID}.march(${JSON.stringify(arg)});`)
         const ctr = getCountryById(ctx.playerID);
         // const player = playerById(G, ctx.playerID);
-        const log = [`p${ctx.playerID}|march|src`];
+        const log = [`p${ctx.playerID}|march|src${placeToStr(src)}`];
         log.push(`|parsed${JSON.stringify(dst)}`);
         const pub = getStateById(G, ctx.playerID);
-        const t = country === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
-        if (t===null){
+        const t = getTroopByCountryPlace(G, arg.country, src);
+        if (t === null) {
             log.push(`noTroop`);
             logger.debug(`${log.join('')}`);
             return INVALID_MOVE;
@@ -127,7 +129,7 @@ export const march: LongFormMove = {
                 const d = destTroops[0];
                 const dstIdx = pub.troops.indexOf(d);
                 log.push(`|merge|to|${d}|${dstIdx}`);
-                mergeTroopTo(G, idx, dstIdx, ctx.playerID);
+                mergeTroopTo(G, srcIdx, dstIdx, ctx.playerID);
                 log.push(`|result|${JSON.stringify(d)}`);
             } else {
                 let city = null;
@@ -189,7 +191,6 @@ export const chooseProvince: LongFormMove = {
 
 export interface ITakeDamageArgs {
     c: Country,
-    idx: number,
     src: TroopPlace,
     standby: number[],
     ready: number[]
@@ -200,15 +201,20 @@ export const takeDamage: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`p${ctx.playerID}.takeDamage(${arg})`)
-        const pub = getStateById(G, ctx.playerID);
+        logger.info(`p${ctx.playerID}.takeDamage(${arg})`);
+        const {c, src, standby, ready} = arg;
+        const pub = ctr2pub(G, c);
         const log = [`|before|${pub.standby}|${pub.standby}|`];
-        const troop = arg.c === Country.JINN ? G.jinn.troops[arg.idx] : G.song.troops[arg.idx];
+        const troop = c === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
+        if (troop === null) {
+            logger.debug(`${log.join('')}`);
+            return INVALID_MOVE;
+        }
         for (let i = 0; i < arg.standby.length; i++) {
-            troop[i] -= (arg.standby)[i];
-            troop[i] -= (arg.ready)[i];
-            if (troop[i] < 0) {
-                log.push(`|${troop[i]}<0`);
+            troop.u[i] -= (arg.standby)[i];
+            troop.u[i] -= (arg.ready)[i];
+            if (troop.u[i] < 0) {
+                log.push(`|${troop.u[i]}<0`);
                 logger.debug(log.join(''));
                 return INVALID_MOVE;
             }
@@ -221,7 +227,6 @@ export const takeDamage: LongFormMove = {
             rm(troop, pub.troops);
         }
         logger.debug(log.join(''));
-
     }
 }
 
@@ -238,7 +243,7 @@ export const placeUnit: LongFormMove = {
         }
         logger.info(`p${ctx.playerID}.placeUnit(${JSON.stringify(args)})`);
         const log = [`p${ctx.playerID}.placeUnit`];
-        const {place,units,country} = args;
+        const {place, units, country} = args;
 
         const target = ctr2pid(country);
         const pub = getStateById(G, target);
@@ -254,7 +259,7 @@ export const placeUnit: LongFormMove = {
         if (t === null) {
             log.push(`noTroop`);
             let city = null;
-            if (isRegionID(place)){
+            if (isRegionID(place)) {
                 city = getRegionById(place).city;
             }
             pub.troops.push({
@@ -311,7 +316,6 @@ export const placeTroop: LongFormMove = {
 
 export interface IRemoveUnitArgs {
     src: TroopPlace;
-    idx: number;
     units: number[];
     country: Country
 }
@@ -465,7 +469,6 @@ export const moveGeneral: LongFormMove = {
 
 
 export interface IMoveTroopArgs {
-    idx: number,
     src: Troop,
     dst: TroopPlace,
     country: Country
@@ -474,8 +477,13 @@ export interface IMoveTroopArgs {
 export const moveTroop: LongFormMove = {
     move: (G, ctx, args: IMoveTroopArgs) => {
         if (ctx.playerID === undefined) return INVALID_MOVE;
-        const {idx, dst, country} = args;
+        logger.info(`p${ctx.playerID}.moveTroop(${JSON.stringify(args)})`);
+        const log = [`moveTroop`];
+
+        const {src, dst, country} = args;
+        log.push(`|${placeToStr(src.p)}`);
         const pub = country === Country.SONG ? G.song : G.jinn;
+        const idx = pub.troops.indexOf(src);
         const t = pub.troops[idx];
         if (t === undefined) {
             return INVALID_MOVE;
@@ -487,6 +495,7 @@ export const moveTroop: LongFormMove = {
         } else {
             t.p = dst;
         }
+        logger.debug(`${log.join('')}`);
     }
 }
 

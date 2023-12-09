@@ -128,9 +128,9 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
             //
             // }
         }
-        endTurnCheck(G, ctx);
         logger.debug(log.join(''));
     },
+    onEnd:(G,ctx)=>endTurnCheck(G,ctx),
     moves: {
         placeUnit: placeUnit,
         endRound: endRound

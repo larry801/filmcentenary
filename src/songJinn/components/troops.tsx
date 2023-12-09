@@ -113,32 +113,33 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
 
     const [takeDamageStep, setTakeDamageStep] = React.useState(TakeDamageStep.TROOP);
-    const [takeDamageTroop, setTakeDamageTroop] = useState(0);
-    const [readyUnits, setReadyUnits] = React.useState([0]);
+    const [takeDamageTroop, setTakeDamageTroop] = useState(emptyTroop);
+    const [takeDamageReadyUnits, setTakeDamageReadyUnits] = React.useState(emptyTroop.u);
 
     const takeDamageReadyDialog = <ChooseUnitsDialog
         callback={(u) => {
             setTakeDamageStep(TakeDamageStep.STANDBY)
-            setReadyUnits(u)
-        }} max={troops[takeDamageTroop].u} initUnits={unitNames.map(() => 0)}
+            setTakeDamageReadyUnits(u)
+        }} max={takeDamageTroop.u} initUnits={unitNames.map(() => 0)}
         show={isActive && takeDamageStep === TakeDamageStep.READY} title={"选择被击溃的部队"}
-        toggleText={"击溃"} initial={true} country={ctr}/>
+        toggleText={"击溃"} initial={true} country={takeDamageTroop.country}/>
 
     const takeDamageStandbyDialog = <ChooseUnitsDialog
         callback={(u) => {
             setTakeDamageStep(TakeDamageStep.TROOP)
             moves.takeDamage({
-                src: troops[takeDamageTroop].p,
-                c: ctr,
+                src: takeDamageTroop.p,
+                c: takeDamageTroop.country,
                 idx: takeDamageTroop,
-                ready: readyUnits,
+                ready: takeDamageReadyUnits,
                 standby: u
             })
-        }} max={troops[takeDamageTroop].u} initUnits={unitNames.map(() => 0)}
+        }} max={takeDamageTroop.u} initUnits={unitNames.map(() => 0)}
         show={isActive && takeDamageStep === TakeDamageStep.STANDBY} title={"选择要被消灭的部队"}
-        toggleText={"消灭部队"} initial={true} country={ctr}/>
+        toggleText={"消灭部队"} initial={true} country={takeDamageTroop.country}/>
 
-    const [moveTroop, setMoveTroop] = useState(0);
+
+    const [moveTroop, setMoveTroop] = useState(emptyTroop);
     const [moveStep, setMoveStep] = useState(MoveStep.TROOP);
 
     const moveProvDialog = <ChoiceDialog
@@ -180,10 +181,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             if (moveStep === MoveStep.REGION) {
                 setMoveStep(MoveStep.TROOP);
                 moves.moveTroop({
-                    src: troops[moveTroop],
-                    idx: moveTroop,
+                    src: moveTroop,
                     dst: regID,
-                    country: ctr
+                    country: moveTroop.country
                 })
             }
         }}
@@ -356,9 +356,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             moves.placeUnit({
                 place: placeUnitTroop.p,
                 units: u,
-                country: ctr
+                country: placeUnitTroop.country
             })
-        }} max={[...pub.standby]} initUnits={unitNames.map(() => 0)}
+        }} max={[...ctr2pub(G,placeUnitTroop.country).standby]} initUnits={unitNames.map(() => 0)}
         show={isActive && placeStep === PlaceStep.UNITS} title={"选择要放置的的部队"}
         toggleText={"放置新部队"} initial={true} country={ctr}/>
 
@@ -451,6 +451,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                                     setRemoveUnitStep(RemoveStep.TROOP);
                                     setDeployStep(DeployStep.TROOP)
                                     setMoveStep(MoveStep.TROOP);
+
                                     setMarchTroop(t);
                                     setMarchUnits(t.u)
                                     setMarchStep(MarchStep.TARGET);
@@ -470,7 +471,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                                     setRemoveUnitStep(RemoveStep.TROOP);
                                     setDeployStep(DeployStep.TROOP)
                                     // setMoveStep(MoveStep.TROOP);
-                                    setMoveTroop(idx);
+                                    setMoveTroop(t);
                                     setMoveStep(MoveStep.PROVINCE);
                                 }
                             }>移动
@@ -478,20 +479,20 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                         <button
                             key={`grid-ops-${idx}-takeDamge`}
                             onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
 
-                                // setTakeDamageStep(TakeDamageStep.TROOP);
-                                setMarchStep(MarchStep.TROOP);
-                                setRemoveUnitStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                setMoveStep(MoveStep.TROOP);
-                                setTakeDamageStep(TakeDamageStep.READY);
-                                setTakeDamageTroop(idx);
-                            }
-                        }>受创
+                                    // setTakeDamageStep(TakeDamageStep.TROOP);
+                                    setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+                                    setTakeDamageStep(TakeDamageStep.READY);
+                                    setTakeDamageTroop(t);
+                                }
+                            }>受创
                         </button>
                         <button
                             key={`grid-ops-${idx}-deploy`}
