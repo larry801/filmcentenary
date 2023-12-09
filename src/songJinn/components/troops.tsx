@@ -7,7 +7,7 @@ import {
     ctr2pub,
     getCountryById,
     getMarchDst,
-    getOpponentStateById, getPlaceGeneral, getReadyGenerals,
+    getOpponentStateById, getPlaceGeneral,
     getStateById,
     optionToActualDst,
     StrProvince,
@@ -25,7 +25,7 @@ import {
     isRegionID,
     JinnGeneral,
     ProvinceID,
-    RegionID,
+    RegionID, SongGeneral,
     Troop,
     UNIT_SHORTHAND
 } from "../constant/general";
@@ -261,7 +261,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
     const [marchStep, setMarchStep] = React.useState(MarchStep.TROOP);
     const [marchUnits, setMarchUnits] = React.useState(emptyTroop.u);
-    const [marchGenerals, setMarchGenerals] = useState([JinnGeneral.WoLiBu]);
+    const [marchGenerals, setMarchGenerals] = useState([JinnGeneral.WoLiBu,SongGeneral.ZongZe]);
     const [marchTroop, setMarchTroop] = React.useState(emptyTroop);
 
     const marchGeneralsDialog = <CheckBoxDialog
@@ -277,7 +277,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 hidden:false
             }
     })} show={isActive && marchStep === MarchStep.GENERALS}
-        title={""} toggleText={""} initial={true}/>
+        title={"进军请选择将领"} toggleText={"选择将领"} initial={true}/>
 
     const marchRegionDialog = <ChoiceDialog
         callback={(r) => {
@@ -425,6 +425,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             {regionDialog}
 
             {marchDialog}
+            {marchGeneralsDialog}
             {marchRegionDialog}
 
             {deployNewCityDialog}
@@ -482,6 +483,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
                                     setMarchTroop(t);
                                     setMarchUnits(t.u)
+                                    setMarchGenerals(getPlaceGeneral(G,pid,t.p));
                                     setMarchStep(MarchStep.TARGET);
                                 }
                             }>全军进军
