@@ -24,11 +24,11 @@ import {
     cardToSearch,
     ctr2pid,
     getCountryById,
-    getJinnTroopByCity,
+    getJinnTroopByCity, getJinnTroopByPlace,
     getJinnTroopByRegion,
     getOpponentStateById,
     getSongTroopByCity,
-    getSongTroopByRegion,
+    getSongTroopByPlace,
     getStateById,
     playerById, unitsToString
 } from "./util/fetch";
@@ -61,7 +61,6 @@ import {totalDevelop} from "./util/calc";
 interface IMarchArgs {
     src: TroopPlace;
     dst: TroopPlace;
-    idx: number;
     country: Country;
     units: number[]
 }
@@ -81,7 +80,7 @@ export const opponentMove: LongFormMove = {
 }
 export const march: LongFormMove = {
     move: (G, ctx, arg: IMarchArgs) => {
-        const {dst, idx, units} = arg;
+        const {src, dst, country, units} = arg;
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
@@ -91,7 +90,13 @@ export const march: LongFormMove = {
         const log = [`p${ctx.playerID}|march|src`];
         log.push(`|parsed${JSON.stringify(dst)}`);
         const pub = getStateById(G, ctx.playerID);
-        const t = pub.troops[idx];
+        const t = country === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
+        if (t===null){
+            log.push(`noTroop`);
+            logger.debug(`${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        const srcIdx = pub.troops.indexOf(t);
         log.push(`|${JSON.stringify(t)}`);
         if (t.u.filter((u, i) => units[i] === u).length === units.length) {
             log.push(`|all`);
@@ -100,7 +105,7 @@ export const march: LongFormMove = {
                 const d = destTroops[0];
                 const dstIdx = pub.troops.indexOf(d);
                 log.push(`|merge|to|${d}|${dstIdx}`);
-                mergeTroopTo(G, idx, dstIdx, ctx.playerID);
+                mergeTroopTo(G, srcIdx, dstIdx, ctx.playerID);
                 log.push(`|result|${JSON.stringify(d)}`);
             } else {
                 log.push(`|move`);
@@ -133,15 +138,12 @@ export const march: LongFormMove = {
                 const newTroop = {
                     p: dst,
                     c: city,
-
                     u: units,
                     country: ctr
                 };
                 log.push(`|new|${JSON.stringify(newTroop)}`);
                 pub.troops.push(newTroop);
             }
-
-
         }
         logger.debug(log.join(''));
     }
@@ -225,31 +227,54 @@ export const takeDamage: LongFormMove = {
 
 export interface IPlaceUnitsToTroopArgs {
     place: TroopPlace,
-    idx: number,
     units: number[],
     country: Country
 }
 
 export const placeUnit: LongFormMove = {
-    move: (G, ctx, {place, idx, units, country}: IPlaceUnitsToTroopArgs) => {
-        const pub = country === Country.SONG ? G.song : G.jinn;
-        const t = pub.troops[idx];
-        if (t === undefined) {
+    move: (G: SongJinnGame, ctx: Ctx, args: IPlaceUnitsToTroopArgs) => {
+        if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        for (let i = 0; i < units.length; i++) {
-            if (pub.standby[i] < units[i]) {
-                t.u[i] += pub.standby[i];
-                pub.standby[i] = 0;
-            } else {
-                pub.standby[i] -= units[i];
-                t.u[i] += units[i];
+        logger.info(`p${ctx.playerID}.placeUnit(${JSON.stringify(args)})`);
+        const log = [`p${ctx.playerID}.placeUnit`];
+        const {place,units,country} = args;
+
+        const target = ctr2pid(country);
+        const pub = getStateById(G, target);
+        pub.standby.forEach((u, idx) => {
+            if (u < units[idx]) {
+                log.push(`${u}<${units[idx]}|INVALID_MOVE`);
+                logger.debug(`${log.join('')}`);
+                return INVALID_MOVE;
             }
+        });
+
+        const t = country === Country.SONG ? getSongTroopByPlace(G, place) : getJinnTroopByPlace(G, place);
+        if (t === null) {
+            log.push(`noTroop`);
+            let city = null;
+            if (isRegionID(place)){
+                city = getRegionById(place).city;
+            }
+            pub.troops.push({
+                u: units,
+                country: country,
+                c: city,
+                p: place,
+            })
+            for (let i = 0; i < units.length; i++) {
+                pub.standby[i] -= units[i];
+            }
+        } else {
+            log.push(`${JSON.stringify(t)}`);
+            for (let i = 0; i < units.length; i++) {
+                t.u[i] += units[i];
+                pub.standby[i] -= units[i];
+            }
+            log.push(`|after|${unitsToString(t.u)}${JSON.stringify(t)}`);
         }
-        if (ctx.phase === 'turnEnd') {
-            endTurnCheck(G, ctx);
-            ctx.events?.setPhase('draw');
-        }
+        logger.debug(`${log.join('')}`);
     }
 }
 
@@ -333,10 +358,14 @@ export const deploy: LongFormMove = {
                 c: city,
                 // 围困城市不能补充 ？？？
                 p: getCityById(city).region,
-            })
+            });
+            for (let i = 0; i < units.length; i++) {
+                pub.ready[i] -= units[i];
+            }
         } else {
             log.push(`${JSON.stringify(t)}`);
             for (let i = 0; i < units.length; i++) {
+                pub.ready[i] -= units[i];
                 t.u[i] += units[i];
             }
             log.push(`|after|${unitsToString(t.u)}${JSON.stringify(t)}`);

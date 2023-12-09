@@ -86,7 +86,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
     const pub = getStateById(G, pid);
     const opp = getOpponentStateById(G, pid);
-    const troops = [...pub.troops,...opp.troops];
+    const troops = [...pub.troops, ...opp.troops];
     const ctr = getCountryById(pid);
     const unitNames = ctr === Country.SONG ? UNIT_SHORTHAND[0] : UNIT_SHORTHAND[1];
 
@@ -258,8 +258,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 src: marchTroop.p,
                 dst: optionToActualDst(r),
                 units: marchUnits,
-                country: ctr,
-                idx: marchTroop
+                country: ctr
             });
             setMarchStep(MarchStep.TROOP);
         }}
@@ -349,15 +348,14 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         toggleText={"消灭部队"} initial={true} country={ctr}/>
 
     const [placeStep, setPlaceStep] = useState(PlaceStep.TROOP);
-    const [placeTroop, setPlaceTroop] = useState(0);
+    const [placeUnitTroop, setPlaceUnitTroop] = useState(emptyTroop);
 
     const placeUnitsDialog = <ChooseUnitsDialog
         callback={(u) => {
             setPlaceStep(PlaceStep.TROOP)
             moves.placeUnit({
-                place: pub.troops[placeTroop].p,
+                place: placeUnitTroop.p,
                 units: u,
-                idx: placeTroop,
                 country: ctr
             })
         }} max={[...pub.standby]} initUnits={unitNames.map(() => 0)}
@@ -422,39 +420,64 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     {t.country}|{placeToStr(t.p)}|{unitsToString(t.u)}|{getPlaceGeneralNames(G, pid, t.p)}</AccordionSummary>
                 <AccordionDetails>
                     {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
-                        <button onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
+                        <button
+                            key={`grid-ops-${idx}-march`}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
 
-                                setTakeDamageStep(TakeDamageStep.TROOP);
-                                // setMarchStep(MarchStep.TROOP);
-                                setRemoveUnitStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                setMoveStep(MoveStep.TROOP);
-                                setMarchTroop(t);
-                                setMarchStep(MarchStep.UNITS);
-                            }
-                        }>进军
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    // setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+                                    setMarchTroop(t);
+                                    setMarchStep(MarchStep.UNITS);
+                                }
+                            }>进军
                         </button>
-                        <button onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
+                        <button
+                            key={`grid-ops-${idx}-all-march`}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
 
-                                setTakeDamageStep(TakeDamageStep.TROOP);
-                                setMarchStep(MarchStep.TROOP);
-                                setRemoveUnitStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                // setMoveStep(MoveStep.TROOP);
-                                setMoveTroop(idx);
-                                setMoveStep(MoveStep.PROVINCE);
-                            }
-                        }>移动
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    // setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+                                    setMarchTroop(t);
+                                    setMarchUnits(t.u)
+                                    setMarchStep(MarchStep.TARGET);
+                                }
+                            }>全军进军
                         </button>
-                        <button onClick={
+                        <button
+                            key={`grid-ops-${idx}-move`}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
+
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    // setMoveStep(MoveStep.TROOP);
+                                    setMoveTroop(idx);
+                                    setMoveStep(MoveStep.PROVINCE);
+                                }
+                            }>移动
+                        </button>
+                        <button
+                            key={`grid-ops-${idx}-takeDamge`}
+                            onClick={
                             () => {
                                 setPlaceStep(PlaceStep.TROOP);
                                 setNewTroopStep(NewTroopStep.START);
@@ -471,6 +494,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                         }>受创
                         </button>
                         <button
+                            key={`grid-ops-${idx}-deploy`}
                             disabled={t.c === null}
                             onClick={
                                 () => {
@@ -502,7 +526,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                                 setMoveStep(MoveStep.TROOP);
 
                                 setPlaceStep(PlaceStep.UNITS);
-                                setPlaceTroop(idx);
+                                setPlaceUnitTroop(t);
                             }
                         }>放置
                         </button>

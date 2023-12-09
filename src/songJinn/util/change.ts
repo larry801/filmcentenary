@@ -18,7 +18,7 @@ import {
     getJinnTroopByRegion,
     getOpponentStateById,
     getSongTroopByCity,
-    getSongTroopByRegion,
+    getSongTroopByPlace,
     getStateById,
     playerById, unitsToString
 } from "./fetch";
@@ -170,7 +170,7 @@ export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], countr
     const actualUnits = [...units];
     switch (country) {
         case Country.SONG:
-            const st = getSongTroopByRegion(G, dst);
+            const st = getSongTroopByPlace(G, dst);
             for (let i = 0; i < units.length; i++) {
                 if (G.song.standby[i] > units[i]) {
                     actualUnits[i] = units[i]

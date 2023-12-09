@@ -170,17 +170,33 @@ export const getJinnTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null
     return null;
 }
 
-export const getSongTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null => {
+export const getSongTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | null => {
+    const log = [`getSongTroopByPlace|${r}`];
+    let result = null;
     G.song.troops.forEach(t => {
         if (t.p === r) {
-            return t;
+            log.push(`|ok${JSON.stringify(t)}`);
+            result = t;
         }
-    })
-    return null;
+    });
+    logger.debug(`${log.join('')}`);
+    return result;
+}
+export const getJinnTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | null => {
+    const log = [`getJinnTroopByPlace|${r}`];
+    let result = null;
+    G.jinn.troops.forEach(t => {
+        if (t.p === r) {
+            log.push(`|ok${JSON.stringify(t)}`);
+            result = t;
+        }
+    });
+    logger.debug(`${log.join('')}`);
+    return result;
 }
 
 export const getTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null => {
-    const st = getSongTroopByRegion(G, r);
+    const st = getSongTroopByPlace(G, r);
     const jt = getJinnTroopByRegion(G, r);
     return st === null ? jt : st;
 }
