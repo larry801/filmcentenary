@@ -1,10 +1,19 @@
 import {SongJinnGame} from "../constant/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {addLateTermCard, addMidTermCard, rm} from "./card";
-import {ActiveEvents, SJEventCardID, Country, ProvinceID, Troop, PlanID} from "../constant/general";
+import {
+    ActiveEvents,
+    Country,
+    MAX_ROUND,
+    PlanID,
+    ProvinceID,
+    SJEventCardID,
+    SJPlayer,
+    Troop, VictoryType
+} from "../constant/general";
 import {logger} from "../../game/logger";
 import {getCountryById, getStateById} from "./fetch";
-import {totalDevelop} from "./calc";
+import {getJinnScore, getSongScore, totalDevelop} from "./calc";
 import {sjCardById} from "../constant/cards";
 import {getPlanById} from "../constant/plan";
 import {getProvinceById} from "../constant/province";
@@ -54,7 +63,18 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
         log.push(`|after|${G.events.toString()}`);
     }
     rm(ActiveEvents.LiGang, G.events);
-    G.turn++;
+    if (G.turn >= MAX_ROUND) {
+        const songScore = getSongScore(G);
+        const jinnScore = getJinnScore(G);
+        const winner = jinnScore > songScore ? SJPlayer.P2 :SJPlayer.P1;
+        ctx.events?.endGame({
+            winner:winner,
+            reason:VictoryType.ShaoXingHeYi
+        })
+    } else {
+        log.push(`moveTurnMarker`);
+        G.turn++;
+    }
     logger.debug(log.join(''));
 }
 
@@ -62,7 +82,7 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
     const log = [`t${G.turn}r${G.round}|endRoundCheck`];
     if (G.order[1] === ctx.playerID) {
         log.push(`|second`);
-        if (G.round === 1) {
+        if (G.round >= MAX_ROUND) {
             log.push(`|action|end|resolvePlan`);
             ctx.events?.setPhase('resolvePlan')
         } else {

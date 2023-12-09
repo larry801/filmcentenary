@@ -50,7 +50,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label>殖民：</label>{G.colony}</div>
             <div><label>国力：</label>{getJinnPower(G)}</div>
             <div><label>腐败：</label>{j.corruption}</div>
-            <div><label>盟国：</label>{s.nations.join('')}</div>
+            <div><label>盟国：</label>{j.nations.join('')}</div>
             <div><label>预备区：{unitsToString(j.ready)}{getReadyGeneralNames(G, SJPlayer.P2).join('')}</label></div>
             <div><label> 备用兵区： {unitsToString(j.standby)}</label></div>
             <div><label>本回合计划：{j.plan.map(p => getPlanById(p).name)}</label></div>

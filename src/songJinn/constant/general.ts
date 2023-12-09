@@ -1,3 +1,5 @@
+export const MAX_ROUND = 8;
+
 export const enum ActiveEvents {
     JianYanNanDu = "建炎南渡",
     LiGang = "李纲",
@@ -138,6 +140,7 @@ export function isMountainPassID(place: TroopPlace): place is MountainPassID {
 export function isCityID(place: TroopPlace): place is MountainPassID {
     return typeof place === 'string' && Object.values(CityID).includes(place as CityID);
 }
+
 // CityID表示被围困
 export type TroopPlace = RegionID | NationID | MountainPassID | CityID;
 

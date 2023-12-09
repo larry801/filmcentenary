@@ -115,7 +115,6 @@ export const getSongPower = (G: SongJinnGame): number => {
     rm(ProvinceID.JINGJILU, countedProvince);
     if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
         rm(ProvinceID.FUJIANLU, countedProvince);
-
     }
     let power = countedProvince.length;
 
