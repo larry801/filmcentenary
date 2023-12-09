@@ -88,7 +88,7 @@ export const Operation = ({
     const showPlan = (isActive && ctx.phase === 'showPlan') && <Button
         onClick={() => moves.showPlan(player.chosenPlans)}
         color={"primary"} variant={"contained"}>展示作战计划</Button>
-    const endRound = (isActive && ctx.phase === 'action') && <Button
+    const endRound = (isActive) && <Button
         onClick={() => moves.endRound(G.round)}
         color={"primary"} variant={"contained"}>结束行动</Button>
     const endPlan = (isActive && ctx.phase === 'resolvePlan') && <Button

@@ -2,7 +2,7 @@ import {PlanID} from "./plan";
 import {
     ActiveEvents,
     CityID,
-    Country,
+    Country, EarlyPlanID,
     GeneralStatus,
     JinnEarlyCardID,
     LetterOfCredence,
@@ -250,14 +250,7 @@ export interface SongJinnGame {
 export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: Ctx, setupData: any) => {
     const songDeck = shuffle(ctx, SongEarlyCardID);
     const jinnDeck = shuffle(ctx, JinnEarlyCardID);
-    const planDeck = shuffle(ctx, [
-        PlanID.J01,
-        PlanID.J02,
-        PlanID.J03,
-        PlanID.J04,
-        PlanID.J05,
-        PlanID.J06
-    ])
+    const planDeck = shuffle(ctx, EarlyPlanID);
     const G = {
         pending: {
             event: "",

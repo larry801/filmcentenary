@@ -1,34 +1,51 @@
-import {PhaseConfig, StageConfig, TurnConfig} from "boardgame.io";
+import {Ctx, PhaseConfig, StageConfig, TurnConfig} from "boardgame.io";
 import {SongJinnGame} from "./setup";
 import {TurnOrder} from "boardgame.io/core";
 import {
     cardEvent,
     chooseFirst,
-    choosePlan, chooseProvince, chooseRegion,
-    chooseTop, combatCard, deploy,
+    choosePlan,
+    chooseProvince,
+    chooseRegion,
+    chooseTop,
+    combatCard,
+    deploy,
     develop,
     developCard,
-    discard, down, emperor, emptyRound,
+    discard,
+    down,
+    emperor,
+    emptyRound,
     endRound,
     heYi,
-    letter, loseCity, loseProvince, march, moveTroop,
-    op, opponentMove, placeTroop,
-    placeUnit, recruitPuppet, recruitUnit, removeUnit,
+    letter,
+    loseCity,
+    loseProvince,
+    march,
+    moveTroop,
+    op,
+    opponentMove,
+    placeTroop,
+    placeUnit,
+    recruitPuppet,
+    recruitUnit,
+    removeUnit,
     returnToHand,
     rollDices,
     search,
     searchFirst,
-    showPlan, takeDamage,
+    showPlan,
+    takeDamage,
     takePlan,
     tieJun
 } from "../moves";
 import {playerById} from "../util/fetch";
-import {drawPlanForPlayer, rm} from "../util/card";
-import {ActiveEvents, PlayerPendingEffect, SJPlayer} from "./general";
+import {drawPhaseForSong, drawPlanForPlayer} from "../util/card";
+import {ActiveEvents, SJPlayer} from "./general";
 import {logger} from "../../game/logger";
-import {getLeadingPlayer} from "../util/calc";
-import {canChoosePlan} from "../util/check";
+import {canChoosePlan, endTurnCheck} from "../util/check";
 import {changeDiplomacyByLOD} from "../util/change";
+import {PlanID} from "./plan";
 
 export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
@@ -88,34 +105,48 @@ export const DiscardStageConfig: StageConfig<SongJinnGame> = {
 export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
         const log = [`turnEndPhase|onBegin|${G.order}`];
+        G.song.corruption = 0;
+        G.jinn.corruption = 0;
+        G.round = 1;
         if (G.events.includes(ActiveEvents.XiJunQuDuan)) {
-            ctx.events?.setStage('placeUnit');
+            // changePlayerStage(G,ctx,'placeUnit',SJPlayer.P1);
         } else {
-            if (G.song.effect.includes(PlayerPendingEffect.SearchCard)) {
-                if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
-                    // 目前不可能 因为只有京畿计划有检索
-                    rm(PlayerPendingEffect.SearchCard, G.jinn.effect);
-                    rm(PlayerPendingEffect.SearchCard, G.song.effect);
-                    ctx.events?.setPhase('placeUnit');
-
-                } else {
-
-                }
-            }
-            G.order = [getLeadingPlayer(G)];
-            ctx.events?.setPhase('chooseFirst');
+            ctx.events?.setPhase('draw');
+            // 先自觉检索算了
+            // if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
+            //     // 目前不可能 因为只有京畿计划有检索
+            //     rm(PlayerPendingEffect.SearchCard, G.jinn.effect);
+            //     rm(PlayerPendingEffect.SearchCard, G.song.effect);
+            // } else {
+            //     rm(PlayerPendingEffect.SearchCard, G.song.effect);
+            // }
+            // if (G.song.effect.includes(PlayerPendingEffect.SearchCard)) {
+            //
+            //
+            // }else{
+            //
+            // }
         }
+        endTurnCheck(G,ctx);
         logger.debug(log.join(''));
     },
     moves: {
-        placeUnit: placeUnit
-    }
+        placeUnit: placeUnit,
+        endRound: endRound
+    },
+    next:'draw'
 }
 
 export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
-    onBegin: (G, ctx) => {
+    onBegin: (G, ctx:Ctx) => {
         const log = [`draw|onBegin|${G.order}`]
         const firstPlayer = G.order[0];
+        if(G.song.completedPlan.includes(PlanID.J01)){
+
+        }else{
+            drawPhaseForSong(G,ctx);
+        }
+        logger.info(`${log.join('')}`);
     },
     moves: {
         searchFirst: searchFirst,
@@ -129,9 +160,11 @@ export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
         develop: develop,
         returnToHand: returnToHand,
         emperor:emperor,
-        opponentMove:opponentMove
+        opponentMove:opponentMove,
+        endRound:endRound
     },
     turn:StagedTurnConfig,
+    next:'deploy'
 }
 export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
@@ -303,7 +336,9 @@ export const DiplomacyPhaseConfig: PhaseConfig<SongJinnGame> = {
 }
 export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
-        G.song.nations.length;
+        const log = [`developPhase|onBegin`];
+
+        logger.info(`${log.join('')}`);
     },
     turn: StagedTurnConfig,
     moves:{
@@ -321,7 +356,8 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
         loseProvince: loseProvince,
         placeTroop: placeTroop,
         down: down,
-    }
+    },
+    next:'turnEnd'
 }
 export const EPhaseConfig: PhaseConfig<SongJinnGame> = {}
 export const EmptyPhaseConfig: PhaseConfig<SongJinnGame> = {}

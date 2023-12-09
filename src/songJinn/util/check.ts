@@ -62,14 +62,14 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
     const log = [`t${G.turn}r${G.round}|endRoundCheck`];
     if (G.order[1] === ctx.playerID) {
         log.push(`|second`);
-        if (G.round === 2) {
+        if (G.round === 1) {
             log.push(`|action|end|resolvePlan`);
             ctx.events?.setPhase('resolvePlan')
         } else {
             G.round++;
             log.push(`|r${G.round}start`);
         }
-    }else {
+    } else {
         log.push(`|firstPlayer`);
     }
     logger.debug(log.join(''));

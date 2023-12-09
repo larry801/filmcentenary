@@ -1,3 +1,5 @@
+import {PlanID} from "./plan";
+
 export const enum ActiveEvents {
     JianYanNanDu = "建炎南渡",
     LiGang = "李纲",
@@ -416,6 +418,38 @@ export const SongLateCardID = [
     SongBaseCardID.S48,
     SongBaseCardID.S49,
     SongBaseCardID.S50
+];
+
+
+export const EarlyPlanID = [
+    PlanID.J01,
+    PlanID.J02,
+    PlanID.J03,
+    PlanID.J04,
+    PlanID.J05,
+    PlanID.J06
+];
+export const MidPlanID = [
+    PlanID.J07,
+    PlanID.J08,
+    PlanID.J09,
+    PlanID.J10,
+    PlanID.J11,
+    PlanID.J12,
+    PlanID.J13,
+    PlanID.J14,
+    PlanID.J15,
+    PlanID.J16,
+    PlanID.J17,
+    PlanID.J18
+];
+export const LatePlanID = [
+    PlanID.J19,
+    PlanID.J20,
+    PlanID.J21,
+    PlanID.J22,
+    PlanID.J23,
+    PlanID.J24
 ];
 
 export type SJEventCardID = SongBaseCardID | JinnBaseCardID;

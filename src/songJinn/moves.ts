@@ -31,7 +31,7 @@ import {INVALID_MOVE, Stage} from "boardgame.io/core";
 import {shuffle} from "../game/util";
 import {sjCardById} from "./constant/cards";
 import {drawPhaseForPlayer, drawPlanForPlayer, rm} from "./util/card";
-import {endRoundCheck, heYiCheck, returnDevCardCheck, troopEmpty} from "./util/check";
+import {endRoundCheck, endTurnCheck, heYiCheck, returnDevCardCheck, troopEmpty} from "./util/check";
 import {getCityById} from "./constant/city";
 import {
     addTroop, changeCivil, changeMilitary,
@@ -235,6 +235,10 @@ export const placeUnit: LongFormMove = {
                 pub.standby[i] -= units[i];
                 t.u[i] += units[i];
             }
+        }
+        if(ctx.phase === 'turnEnd'){
+            endTurnCheck(G,ctx);
+            ctx.events?.setPhase('draw');
         }
     }
 }
@@ -777,6 +781,7 @@ export const search: LongFormMove = {
         } else {
             return INVALID_MOVE;
         }
+        ctx.events?.setStage('discard')
     }
 }
 
@@ -930,8 +935,18 @@ export const endRound: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        endRoundCheck(G, ctx);
-        ctx.events?.endTurn();
+        if (ctx.phase === 'action') {
+            endRoundCheck(G, ctx);
+            ctx.events?.endTurn();
+
+        } else {
+            if (G.order[1] === ctx.playerID) {
+                ctx.events?.endPhase();
+            } else {
+                ctx.events?.endTurn();
+
+            }
+        }
     }
 }
 
