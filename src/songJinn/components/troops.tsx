@@ -8,7 +8,7 @@ import Button from "@material-ui/core/Button";
 import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
-import {placeToStr} from "../util/text";
+import {getPlaceGeneralNames, placeToStr} from "../util/text";
 import {CityID, Country, isRegionID, ProvinceID, RegionID, UNIT_SHORTHAND} from "../constant/general";
 import ChoiceDialog from "../../components/modals";
 import {getProvinceById} from "../constant/province";
@@ -172,7 +172,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     src: troops[moveTroop],
                     idx: moveTroop,
                     dst: regID,
-                    country:ctr
+                    country: ctr
                 })
             }
         }}
@@ -401,10 +401,11 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
                        key={`troop-${idx}`}>
                 <AccordionSummary>
-                    {placeToStr(t.p)}|{unitsToString(t.u)}</AccordionSummary>
+                    {placeToStr(t.p)}|{unitsToString(t.u)}|{getPlaceGeneralNames(G, pid, t.p)}</AccordionSummary>
                 <AccordionDetails>
                     <button onClick={
                         () => {
+                            restoreOthers();
                             setMarchTroop(idx);
                             setMarchStep(MarchStep.UNITS);
                         }
@@ -412,11 +413,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     </button>
                     <button onClick={
                         () => {
-
+                            restoreOthers();
                             setMoveTroop(idx);
                             setMoveStep(MoveStep.PROVINCE);
-
-
                         }
                     }>移动
                     </button>

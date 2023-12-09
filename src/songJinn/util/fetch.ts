@@ -30,11 +30,23 @@ import {getRegionById} from "../constant/regions";
 import {Stage} from "boardgame.io/core";
 import {activePlayer} from "../../game/util";
 import {sjCardById} from "../constant/cards";
+import {TransformResult} from "vite";
 
 
 export const StrProvince: Map<string, ProvinceID> = new Map(Object.values(ProvinceID).map(
     (memberValue) => [`${memberValue}`, memberValue] as const
 ));
+
+export const getPlaceGeneral = (G: SongJinnGame, pid: PlayerID, place: TroopPlace): General[] => {
+    const generals: General[] = [];
+    const pub = getStateById(G, pid);
+    pub.generalPlace.forEach((p, idx) => {
+        if (p === place) {
+            generals.push(idx as General);
+        }
+    })
+    return generals;
+}
 
 
 export const optionToActualDst = (dst: string): TroopPlace => {
@@ -64,27 +76,26 @@ export const getMarchDst = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
 }
 
 
-
 export const getTroopByPlace = (G: SongJinnGame, p: TroopPlace) => {
-    G.song.troops.forEach(t=> {
+    G.song.troops.forEach(t => {
         if (t.p === p) {
             return t
         }
     });
-    G.jinn.troops.forEach(t=> {
+    G.jinn.troops.forEach(t => {
         if (t.p === p) {
             return t
         }
     });
 }
 
-export const generalInTroop = (G: SongJinnGame, pid: PlayerID, general: General):boolean => {
-    const pub = getStateById(G,pid);
+export const generalInTroop = (G: SongJinnGame, pid: PlayerID, general: General): boolean => {
+    const pub = getStateById(G, pid);
     return pub.generals[general] === GeneralStatus.TROOP
 }
 
-export const generalRemoved = (G: SongJinnGame, pid: PlayerID, general: General):boolean => {
-    const pub = getStateById(G,pid);
+export const generalRemoved = (G: SongJinnGame, pid: PlayerID, general: General): boolean => {
+    const pub = getStateById(G, pid);
     return pub.generals[general] === GeneralStatus.REMOVED
 }
 

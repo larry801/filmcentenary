@@ -4,15 +4,23 @@ import {LogEntry, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
 import {getPlanById, PlanID} from "../constant/plan";
 import {getCityById} from "../constant/city";
-import {getReadyGenerals, unitsToString} from "./fetch";
+import {getPlaceGeneral, getReadyGenerals, unitsToString} from "./fetch";
 import {SongJinnGame} from "../constant/setup";
 
+export const getPlaceGeneralNames = (G: SongJinnGame, pid: PlayerID, place: TroopPlace) => {
+    const readyGenerals = getPlaceGeneral(G, pid, place);
+    if (pid === SJPlayer.P1) {
+        return readyGenerals.map(g => GeneralNames[0][g]);
+    } else {
+        return readyGenerals.map(g => GeneralNames[1][g]);
+    }
+}
 export const getReadyGeneralNames = (G: SongJinnGame, pid: PlayerID) => {
     const readyGenerals = getReadyGenerals(G, pid);
     if (pid === SJPlayer.P1) {
-        return readyGenerals.map(g=>GeneralNames[0][g]);
-    }else{
-        return readyGenerals.map(g=>GeneralNames[1][g]);
+        return readyGenerals.map(g => GeneralNames[0][g]);
+    } else {
+        return readyGenerals.map(g => GeneralNames[1][g]);
     }
 }
 
