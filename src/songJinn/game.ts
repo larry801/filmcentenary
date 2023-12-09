@@ -17,7 +17,7 @@ import {diplomaticVictory} from "./util/fetch";
 
 export const SongJinnGameDef: Game<SongJinnGame> = {
     setup: setupSongJinn,
-    name: "songjinn",
+    name: "songJinn",
     minPlayers: 2,
     maxPlayers: 2,
     playerView: PlayerView.STRIP_SECRETS,

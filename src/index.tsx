@@ -25,7 +25,7 @@ render(
             <Route exact path="/">
                 <MUICreateMatch gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
             </Route>
-            <Route exact path="/songjinn">
+            <Route exact path="/songJinn">
                 <MUICreateMatch gameName={"songJinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
             </Route>
             <Route exact path="/cards">
@@ -40,11 +40,11 @@ render(
             <Route exact path="/join/film/:matchID/:player">
                 <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
             </Route>
-            <Route exact path="/join/songjinn/:matchID/:player/:credential">
-                <JoinPage gameName={"songjinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+            <Route exact path="/join/songJinn/:matchID/:player/:credential">
+                <JoinPage gameName={"songJinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
             </Route>
-            <Route exact path="/join/songjinn/:matchID/:player">
-                <JoinPage gameName={"songjinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+            <Route exact path="/join/songJinn/:matchID/:player">
+                <JoinPage gameName={"songJinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
             </Route>
             <Route exact path="/join/:matchID/:player/:credential">
                 <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>

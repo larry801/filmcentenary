@@ -118,6 +118,10 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         }).catch(() => {
         });
     }
+    const errorMessage = <Typography>
+        {error} {i18n.drawer.pleaseTry}
+        {gameName === 'songJinn' ? <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link>:<Link to={'/local'}>本地热座</Link>}
+    </Typography>
 
     useInterval(refreshLobby, 10000);
 
@@ -174,6 +178,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         </Grid>
         <Grid item container xs={12} sm={4}>
             <Grid item container xs={12} alignItems="center">
+                <Typography>{gameName==='film'?"电影百年":"宋金战争"}</Typography>
                 <FormControl variant="outlined" className={classes.formControl}>
                     <Grid component="label" container alignItems="center" spacing={1}>
                         <InputLabel htmlFor="outlined-numPlayers-native-simple">{i18n.lobby.numPlayers}</InputLabel>
@@ -227,7 +232,8 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
             <Grid item container xs={12} sm={7}>
                 {matchID && history.push(`/join/${gameName}/${matchID}/${player}`)}
                 {error &&
-                    <Typography>{error} {i18n.drawer.pleaseTry} <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link>
+                    <Typography>
+                        {error} {i18n.drawer.pleaseTry} <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link>
                     </Typography>}
                 <Button onClick={onClick} disabled={clicked} fullWidth color={"primary"} variant="contained">
                     {i18n.lobby.createPrivateMatch}

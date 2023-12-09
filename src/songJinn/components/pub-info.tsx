@@ -9,6 +9,7 @@ import {getPlanById} from "../constant/plan";
 import {sjCardById} from "../constant/cards";
 import {SJPlayer} from "../constant/general";
 import Typography from "@material-ui/core/Typography";
+import {getReadyGeneralNames} from "../util/text";
 
 export interface IPubInfo {
     G: SongJinnGame,
@@ -26,7 +27,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
         <div><label>国力：</label>{getSongPower(G)}</div>
         <div><label>腐败：</label>{s.corruption}</div>
         <div><label>盟国：</label>{s.nations.join('')}</div>
-        <div><label>预备区：{unitsToString(s.ready)} {}</label></div>
+        <div><label>预备区：{unitsToString(s.ready)} {getReadyGeneralNames(G, SJPlayer.P1).join('')}</label></div>
         <div><label>备用兵区： {unitsToString(s.standby)}</label></div>
         <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
         <div><label>完成计划：{s.completedPlan.map(p => getPlanById(p).name)}</label></div>
@@ -35,7 +36,8 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
         {s.dices.length > 0 && <Typography>{s.dices.join(',')}</Typography>}
         {/*<div><label>手牌数：</label></div>*/}
         <div><label>发展牌：{s.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
-        {ctx.phase === 'develop' && <div><label> 使用/总发展点数： {s.usedDevelop}/{totalDevelop(G,ctx,SJPlayer.P1)} </label></div>}
+        {ctx.phase === 'develop' &&
+            <div><label> 使用/总发展点数： {s.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P1)} </label></div>}
         {G.turn > 6 && <div><label>绍兴和议分数：{getSongScore(G)}</label></div>}
     </Paper></Grid>
         <Grid item><Paper><label>金</label>
@@ -45,8 +47,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label>国力：</label>{getJinnPower(G)}</div>
             <div><label>腐败：</label>{j.corruption}</div>
             <div><label>盟国：</label>{s.nations.join('')}</div>
-            <div><label>预备区：
-                {unitsToString(j.ready)}</label></div>
+            <div><label>预备区：{unitsToString(j.ready)}{getReadyGeneralNames(G, SJPlayer.P2).join('')}</label></div>
             <div><label> 备用兵区： {unitsToString(j.standby)}</label></div>
             <div><label>本回合计划：{j.plan.map(p => getPlanById(p).name)}</label></div>
             <div><label>完成计划：{j.completedPlan.map(p => getPlanById(p).name)}</label></div>
