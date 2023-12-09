@@ -10,7 +10,7 @@ import {
     isRegionID,
     JinnEarlyCardID,
     JinnLateCardID,
-    JinnMidCardID,
+    JinnMidCardID, MountainPasses,
     MountainPassID,
     NationID,
     Nations,
@@ -63,6 +63,11 @@ export const getMarchDst = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
         const result: TroopPlace[] = [...reg.land, ...reg.water];
         Nations.forEach(n => {
             if (getNationAdj(n).includes(dst)) {
+                result.push(n);
+            }
+        })
+        MountainPasses.forEach(n => {
+            if (getPassAdj(n).includes(dst)) {
                 result.push(n);
             }
         })
