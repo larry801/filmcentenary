@@ -28,7 +28,7 @@ import {
     doPlaceUnit,
     doRecruit,
     doRemoveNation,
-    moveGeneralTo,
+    moveGeneralByPid,
     nationMoveJinn,
     policyDown,
     policyUp,
@@ -1817,7 +1817,7 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
             if (G.song.emperor !== null) {
-                moveGeneralTo(G, SJPlayer.P1, SongGeneral.HanShiZhong, G.song.emperor);
+                moveGeneralByPid(G, SJPlayer.P1, SongGeneral.HanShiZhong, G.song.emperor);
             }
         }
     },

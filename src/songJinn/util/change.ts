@@ -4,7 +4,8 @@ import {
     Country,
     General,
     GeneralStatus,
-    isNationID, isRegionID,
+    isNationID,
+    isRegionID,
     NationID,
     Nations,
     ProvinceID,
@@ -15,13 +16,16 @@ import {
 } from "../constant/general";
 import {
     ctr2pid,
-    getCountryById, getJinnTroopByPlace,
+    ctr2pub,
+    getCountryById,
+    getJinnTroopByPlace,
     getJinnTroopByRegion,
     getOpponentStateById,
     getSongTroopByCity,
     getSongTroopByPlace,
     getStateById,
-    playerById, unitsToString
+    playerById,
+    unitsToString
 } from "./fetch";
 import {rm} from "./card";
 import {getCityById} from "../constant/city";
@@ -158,7 +162,8 @@ export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerI
             log.push(`|moreThanOne`);
             mergeTroopTo(G,
                 pub.troops.indexOf(filtered[1]),
-                pub.troops.indexOf(filtered[0]), pid);
+                pub.troops.indexOf(filtered[0]),
+                pid);
             removeUnitOnTroop(G, units, pid, pub.troops.indexOf(filtered[0]));
         }
         logger.debug(`${log.join('')}`);
@@ -215,8 +220,8 @@ export const mergeTroopTo = (G: SongJinnGame, src: number, dst: number, pid: Pla
         }
         rm(a, pub.troops);
     }
-
 }
+
 export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], country: Country) => {
     const actualUnits = [...units];
     switch (country) {
@@ -339,8 +344,23 @@ export const moveGeneralToReady = (G: SongJinnGame, pid: PlayerID, general: Gene
     const pub = getStateById(G, pid);
     pub.generals[general] = GeneralStatus.READY;
 }
-export const moveGeneralTo = (G: SongJinnGame, pid: PlayerID, general: General, dst: TroopPlace) => {
+export const moveGeneralByPid = (G: SongJinnGame, pid: PlayerID, general: General, dst: TroopPlace) => {
     const pub = getStateById(G, pid);
+    pub.generalPlace[general] = dst;
+}
+
+
+export const generalToReadyByPid = (G: SongJinnGame, pid: PlayerID, general: General) => {
+    const pub = getStateById(G, pid);
+    pub.generals[general] = GeneralStatus.READY;
+}
+
+export const generalToReadyByCountry = (G: SongJinnGame, ctr: Country, general: General) => {
+    const pub = ctr2pub(G, ctr);
+    pub.generals[general] = GeneralStatus.READY;
+}
+export const moveGeneralByCountry = (G: SongJinnGame, ctr: Country, general: General, dst: TroopPlace) => {
+    const pub = ctr2pub(G, ctr);
     pub.generalPlace[general] = dst;
 }
 

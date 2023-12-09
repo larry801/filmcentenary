@@ -24,8 +24,10 @@ export const troopEmpty = (troop: Troop) => {
 }
 export const jieSuanLuQuan = (G: SongJinnGame, ctx: Ctx, pid: ProvinceID) => {
     const prov = getProvinceById(pid);
-    prov.capital.filter(c => G.song.cities.includes(c))
+    const cities =[...prov.capital,...prov.other]
+    const filtered = cities.filter(c => G.song.cities.includes(c))
 };
+
 export const canChoosePlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
     if ([PlanID.J23, PlanID.J24].includes(plan)) {
         const ctr = getCountryById(pid);
@@ -41,11 +43,9 @@ export const canChoosePlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: Pl
 export const checkPlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
     const ctr = getCountryById(pid);
     const planObj = getPlanById(plan);
-    if (ctr === Country.SONG) {
-
-    } else {
-
-    }
+    const pub = getStateById(G,pid);
+    const filtered = planObj.provinces.filter(prov=>pub.provinces.includes(prov));
+    return filtered.length === planObj.provinces.length;
 }
 
 
