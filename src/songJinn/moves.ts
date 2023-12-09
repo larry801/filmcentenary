@@ -781,7 +781,7 @@ export const search: LongFormMove = {
         } else {
             return INVALID_MOVE;
         }
-        ctx.events?.setStage('discard')
+        ctx.events?.setStage('discard');
     }
 }
 
@@ -938,13 +938,11 @@ export const endRound: LongFormMove = {
         if (ctx.phase === 'action') {
             endRoundCheck(G, ctx);
             ctx.events?.endTurn();
-
         } else {
             if (G.order[1] === ctx.playerID) {
                 ctx.events?.endPhase();
             } else {
                 ctx.events?.endTurn();
-
             }
         }
     }

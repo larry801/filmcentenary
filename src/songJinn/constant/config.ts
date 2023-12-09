@@ -40,36 +40,37 @@ import {
     tieJun
 } from "../moves";
 import {playerById} from "../util/fetch";
-import {drawPhaseForSong, drawPlanForPlayer} from "../util/card";
+import {drawPhaseForJinn, drawPhaseForSong, drawPlanForPlayer} from "../util/card";
 import {ActiveEvents, SJPlayer} from "./general";
 import {logger} from "../../game/logger";
 import {canChoosePlan, endTurnCheck} from "../util/check";
 import {changeDiplomacyByLOD} from "../util/change";
+import {getJinnPower, getLeadingPlayer, getSongPower} from "../util/calc";
 
 export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
 }
 
 export const EmperorStageConfig: StageConfig<SongJinnGame> = {
-    moves:{
-        emperor:emperor
+    moves: {
+        emperor: emperor
     }
 }
 
 export const ChooseProvinceStageConfig: StageConfig<SongJinnGame> = {
-    moves:{
-        chooseProvince:chooseProvince,
+    moves: {
+        chooseProvince: chooseProvince,
     }
 }
 
 export const ChooseRegionsStageConfig: StageConfig<SongJinnGame> = {
-    moves:{
-        chooseRegion:chooseRegion,
+    moves: {
+        chooseRegion: chooseRegion,
     }
 }
 export const ReactStageConfig: StageConfig<SongJinnGame> = {
     moves: {
-        emperor:emperor,
+        emperor: emperor,
 
         discard: discard,
         deploy: deploy,
@@ -96,7 +97,8 @@ const StagedTurnConfig = {
 };
 export const DiscardStageConfig: StageConfig<SongJinnGame> = {
     moves: {
-        discard: discard
+        discard: discard,
+        endRound: endRound,
     }
 }
 
@@ -126,20 +128,27 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
             //
             // }
         }
-        endTurnCheck(G,ctx);
+        endTurnCheck(G, ctx);
         logger.debug(log.join(''));
     },
     moves: {
         placeUnit: placeUnit,
         endRound: endRound
     },
-    next:'draw'
+    next: 'draw'
 }
 
 export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
-    onBegin: (G, ctx:Ctx) => {
+    onBegin: (G, ctx: Ctx) => {
         const log = [`draw|onBegin|${G.order}`]
-        const firstPlayer = G.order[0];
+        drawPhaseForSong(G, ctx);
+        drawPhaseForJinn(G, ctx);
+        const songPower = getSongPower(G);
+        G.song.corruption = songPower > 7 ? songPower - 7 : 0;
+        const jinnPower = getJinnPower(G);
+        G.jinn.corruption = jinnPower > 7 ? jinnPower - 7 : 0;
+        // const firstPlayer = G.order[0];
+        // cannot import PlanID here
         // if(){
         //
         // }else{
@@ -147,23 +156,31 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         // }
         logger.info(`${log.join('')}`);
     },
+    onEnd: (G, ctx) => {
+        const log = [`drawPhase|onEnd`]
+        G.order = [getLeadingPlayer(G)]
+        log.push(`${G.order.toString()}`);
+        logger.debug(`${log.join('')}`);
+    },
     moves: {
         searchFirst: searchFirst,
         search: search,
-        discard: discard
-    }
+        discard: discard,
+        endRound: endRound,
+    },
+    next: 'chooseFirst'
 }
 
 export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
     moves: {
         develop: develop,
         returnToHand: returnToHand,
-        emperor:emperor,
-        opponentMove:opponentMove,
-        endRound:endRound
+        emperor: emperor,
+        opponentMove: opponentMove,
+        endRound: endRound
     },
-    turn:StagedTurnConfig,
-    next:'deploy'
+    turn: StagedTurnConfig,
+    next: 'deploy'
 }
 export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
@@ -225,8 +242,7 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
         chooseFirst: chooseFirst
     },
     next: 'choosePlan',
-    start: true,
-    // turn: NormalTurnConfig
+    start: true
 }
 
 
@@ -243,7 +259,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         letter: letter,
         heYi: heYi,
         tieJun: tieJun,
-        combatCard:combatCard,
+        combatCard: combatCard,
 
         recruitPuppet: recruitPuppet,
         endRound: endRound,
@@ -290,7 +306,7 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         log.push(`|${G.plans}`);
         G.jinn.plan = [];
         G.song.plan = [];
-        if (G.plans.length === 0){
+        if (G.plans.length === 0) {
             // debug helper usually no use in real game
             log.push(`|no|plans|endPhase`);
             ctx.events?.endPhase();
@@ -340,7 +356,7 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
         logger.info(`${log.join('')}`);
     },
     turn: StagedTurnConfig,
-    moves:{
+    moves: {
         recruitPuppet: recruitPuppet,
         endRound: endRound,
         deploy: deploy,
@@ -356,7 +372,7 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
         placeTroop: placeTroop,
         down: down,
     },
-    next:'turnEnd'
+    next: 'turnEnd'
 }
 export const EPhaseConfig: PhaseConfig<SongJinnGame> = {}
 export const EmptyPhaseConfig: PhaseConfig<SongJinnGame> = {}

@@ -85,11 +85,19 @@ export const Operation = ({
         show={isActive && ctx.phase === 'action'} title={"请选择战斗牌"}
         toggleText={"战斗牌"} initial={false}/>
 
+    const autoPhases = ['showPlan']
     const showPlan = (isActive && ctx.phase === 'showPlan') && <Button
         onClick={() => moves.showPlan(player.chosenPlans)}
         color={"primary"} variant={"contained"}>展示作战计划</Button>
-    const endRound = (isActive) && <Button
-        onClick={() => moves.endRound(G.round)}
+    const endRound = (isActive && !autoPhases.includes(ctx.phase)) && <Button
+        onClick={() =>{
+            // TODO add phase info  Song ended develop phase
+            if(ctx.phase === 'action'){
+                moves.endRound(G.round);
+            }else{
+                moves.endRound();
+            }
+        }}
         color={"primary"} variant={"contained"}>结束行动</Button>
     const endPlan = (isActive && ctx.phase === 'resolvePlan') && <Button
         onClick={() => ctx.events?.endTurn()}
@@ -115,8 +123,6 @@ export const Operation = ({
     const discard = (choice: string) => {
         moves.discard(choice);
     }
-
-
     const discardDialog = <ChoiceDialog
         callback={discard}
         choices={player.hand.map(bcid => {
@@ -127,8 +133,8 @@ export const Operation = ({
                 hidden: false
             }
         })}
-        show={isActive && getStage(ctx) === 'discard'} defaultChoice={""}
-        title={"弃牌"} toggleText={"弃牌"} initial={true}
+        show={isActive} defaultChoice={""}
+        title={"弃牌"} toggleText={"弃牌"} initial={false}
     />
 
     const returnToHand = (choice: string) => {
