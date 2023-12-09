@@ -124,7 +124,7 @@ export const march: LongFormMove = {
                 const newTroop = {
                     p: dst,
                     c: city,
-                    j: [],
+                    
                     u: units,
                     country: ctr
                 };
@@ -262,7 +262,7 @@ export const placeTroop: LongFormMove = {
         pub.troops.push({
             p: dst,
             u: units,
-            j: [],
+            
             c: null,
             country: country
         })
@@ -309,7 +309,7 @@ export const deploy: LongFormMove = {
                         p: place,
                         c: city,
                         u: units,
-                        j: [],
+                        
                         country: country
                     })
                 }
@@ -327,7 +327,7 @@ export const deploy: LongFormMove = {
                         p: place,
                         c: city,
                         u: units,
-                        j: [],
+                        
                         country: country
                     })
                 }

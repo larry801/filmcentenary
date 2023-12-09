@@ -45,7 +45,6 @@ export interface Troop {
     p: TroopPlace,
     c: CityID | null,
     u: number[],
-    j: General[],
     country: Country
 }
 

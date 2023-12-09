@@ -56,17 +56,17 @@ export const initialJinnPub: SJPubInfo = {
         {u: [2, 0, 0, 0, 0, 0, 0], p: RegionID.R11, j: [JinnGeneral.LouShi], c: CityID.LinFen, country: Country.JINN},
         {u: [2, 2, 1, 0, 0, 0, 0], p: RegionID.R37, j: [JinnGeneral.ZhanHan], c: CityID.LuoYang, country: Country.JINN},
 
-        {u: [1, 0, 1, 0, 1, 0, 0], p: RegionID.R06, j: [], c: CityID.LiaoYang, country: Country.JINN},
+        {u: [1, 0, 1, 0, 1, 0, 0], p: RegionID.R06,  c: CityID.LiaoYang, country: Country.JINN},
 
-        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R10, j: [], c: CityID.YangQu, country: Country.JINN},
-        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R12, j: [], c: CityID.ShangDang, country: Country.JINN},
-        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R13, j: [], c: CityID.AnXi, country: Country.JINN},
+        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R10,  c: CityID.YangQu, country: Country.JINN},
+        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R12,  c: CityID.ShangDang, country: Country.JINN},
+        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R13,  c: CityID.AnXi, country: Country.JINN},
 
-        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R14, j: [], c: CityID.ZhenDing, country: Country.JINN},
-        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R15, j: [], c: CityID.HeJian, country: Country.JINN},
+        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R14,  c: CityID.ZhenDing, country: Country.JINN},
+        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R15,  c: CityID.HeJian, country: Country.JINN},
 
 
-        {u: [4, 0, 0, 0, 0, 0, 0], p: RegionID.R18, j: [], c: CityID.YuanCheng, country: Country.JINN},
+        {u: [4, 0, 0, 0, 0, 0, 0], p: RegionID.R18,  c: CityID.YuanCheng, country: Country.JINN},
     ],
     nations: [NationID.GaoLi, NationID.XiXia],
     effect: [],
@@ -176,23 +176,23 @@ export const initialSongPub: SJPubInfo = {
     standby: [9, 18, 9, 2, 3, 5],
     troops: [
         {u: [2, 2, 0, 0, 0, 0], p: RegionID.R19, j: [SongGeneral.ZongZe], c: null, country: Country.SONG},
-        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R21, j: [], c: CityID.LiCheng, country: Country.SONG},
-        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R28, j: [], c: CityID.SongCheng, country: Country.SONG},
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R32, j: [], c: CityID.Fushi, country: Country.SONG},
+        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R21,  c: CityID.LiCheng, country: Country.SONG},
+        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R28,  c: CityID.SongCheng, country: Country.SONG},
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R32,  c: CityID.Fushi, country: Country.SONG},
 
-        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R33, j: [], c: CityID.TianXing, country: Country.SONG},
-        {u: [1, 1, 1, 0, 0, 0], p: RegionID.R36, j: [], c: CityID.ChangAn, country: Country.SONG},
+        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R33,  c: CityID.TianXing, country: Country.SONG},
+        {u: [1, 1, 1, 0, 0, 0], p: RegionID.R36,  c: CityID.ChangAn, country: Country.SONG},
 
-        {u: [2, 1, 0, 0, 0, 0], p: RegionID.R42, j: [], c: CityID.XiangYang, country: Country.SONG},
-        {u: [2, 3, 0, 0, 0, 0], p: RegionID.R43, j: [], c: CityID.KaiFeng, country: Country.SONG},
+        {u: [2, 1, 0, 0, 0, 0], p: RegionID.R42,  c: CityID.XiangYang, country: Country.SONG},
+        {u: [2, 3, 0, 0, 0, 0], p: RegionID.R43,  c: CityID.KaiFeng, country: Country.SONG},
 
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R46, j: [], c: CityID.JiangDu, country: Country.SONG},
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R48, j: [], c: CityID.XiaCai, country: Country.SONG},
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R54, j: [], c: CityID.ChengDu, country: Country.SONG},
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R46,  c: CityID.JiangDu, country: Country.SONG},
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R48,  c: CityID.XiaCai, country: Country.SONG},
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R54,  c: CityID.ChengDu, country: Country.SONG},
 
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R60, j: [], c: CityID.JiangLing, country: Country.SONG},
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R66, j: [], c: CityID.JiangNing, country: Country.SONG},
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R77, j: [], c: CityID.MinXian, country: Country.SONG},
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R60,  c: CityID.JiangLing, country: Country.SONG},
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R66,  c: CityID.JiangNing, country: Country.SONG},
+        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R77,  c: CityID.MinXian, country: Country.SONG},
 
     ],
     usedDevelop: 0

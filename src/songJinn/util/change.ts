@@ -46,9 +46,9 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
 export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid);
-    if (oppo.provinces.includes(prov)){
-        rm(prov,oppo.provinces);
-    }else{
+    if (oppo.provinces.includes(prov)) {
+        rm(prov, oppo.provinces);
+    } else {
         pub.provinces.push(prov);
     }
 }
@@ -56,9 +56,9 @@ export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: Province
 export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID, opponent: boolean) => {
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid);
-    if (oppo.cities.includes(cid)){
-        rm(cid,oppo.cities);
-    }else{
+    if (oppo.cities.includes(cid)) {
+        rm(cid, oppo.cities);
+    } else {
         pub.cities.push(cid);
     }
 }
@@ -164,7 +164,6 @@ export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], countr
                     c: getRegionById(dst).city,
                     country: Country.SONG,
                     u: actualUnits,
-                    j: []
                 })
             } else {
                 for (let i = 0; i < units.length; i++) {
@@ -189,7 +188,6 @@ export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], countr
                     c: getRegionById(dst).city,
                     country: Country.JINN,
                     u: actualUnits,
-                    j: []
                 })
             } else {
                 for (let i = 0; i < units.length; i++) {
@@ -259,14 +257,17 @@ export const moveGeneral = (G: SongJinnGame, pid: PlayerID, general: General, ds
 //Generals
 
 
-
-export const addGeneralTo = (G: SongJinnGame, pid: PlayerID, general: General,dst:TroopPlace) => {
-    const pub = getStateById(G,pid);
+export const addGeneralTo = (G: SongJinnGame, pid: PlayerID, general: General, dst: TroopPlace) => {
+    const pub = getStateById(G, pid);
     pub.generals[general] = GeneralStatus.TROOP;
     pub.generalPlace[general] = dst;
 }
-export const moveGeneralTo = (G: SongJinnGame, pid: PlayerID, general: General,dst:TroopPlace) => {
-    const pub = getStateById(G,pid);
+export const moveGeneralToReady = (G: SongJinnGame, pid: PlayerID, general: General) => {
+    const pub = getStateById(G, pid);
+    pub.generals[general] = GeneralStatus.READY;
+}
+export const moveGeneralTo = (G: SongJinnGame, pid: PlayerID, general: General, dst: TroopPlace) => {
+    const pub = getStateById(G, pid);
     pub.generalPlace[general] = dst;
 }
 
@@ -395,7 +396,7 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
                 p: city.region,
                 c: c,
                 u: [0, 0, 0, 0, 0, 1, 0],
-                j: [],
+                
                 country: Country.JINN
             });
         } else {
@@ -403,7 +404,7 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
                 p: city.region,
                 c: c,
                 u: [0, 0, 0, 0, 0, 2, 0],
-                j: [],
+                
                 country: Country.JINN
             });
         }

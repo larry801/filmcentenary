@@ -226,8 +226,7 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.JingKangZhiBian),
         event: (G: SongJinnGame, ctx: Ctx) => {
             G.song.troops.push({
-                u: [1, 0, 0, 0, 0, 0],
-                j: [], c: CityID.KaiFeng,
+                u: [1, 0, 0, 0, 0, 0], c: CityID.KaiFeng,
                 country: Country.SONG,
                 p: RegionID.R43
             });
@@ -486,7 +485,7 @@ export const idToCard = {
         combat: false,
         effectText: "每当金国失去1点国力，宋国政策倾向提升1级。若事件发生时宋国国力不大于6 ,则立即在3个宋国控制的核心城市各放置1个步兵。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => G.events.push(ActiveEvents.WuLuKeTui)
     },
     [SongBaseCardID.S23]: {
         id: SongBaseCardID.S23,
@@ -503,7 +502,10 @@ export const idToCard = {
         combat: false,
         effectText: "降低金国1级军事等级。若兀术在场，则放置到预备兵区。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            changeMilitary(G, SJPlayer.P2, -1);
+
+        }
     },
     [SongBaseCardID.S24]: {
         id: SongBaseCardID.S24,
@@ -1841,7 +1843,7 @@ export const idToCard = {
         combat: false,
         effectText: "移除吴玠",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => removeGeneral(G, SJPlayer.P1,SongGeneral.WuJie)
+        event: (G: SongJinnGame, ctx: Ctx) => removeGeneral(G, SJPlayer.P1, SongGeneral.WuJie)
     },
     [JinnBaseCardID.J49]: {
         id: JinnBaseCardID.J49,
