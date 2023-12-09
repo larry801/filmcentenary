@@ -9,7 +9,7 @@ import {getPlanById} from "../constant/plan";
 import {sjCardById} from "../constant/cards";
 import {SJPlayer} from "../constant/general";
 import Typography from "@material-ui/core/Typography";
-import {getReadyGeneralNames} from "../util/text";
+import {getReadyGeneralNames, phaseName} from "../util/text";
 
 export interface IPubInfo {
     G: SongJinnGame,
@@ -21,7 +21,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
     const j = G.jinn;
     return <Grid container>
         <Grid item xs={12} key={`game-info`}>
-            第{G.turn}回合 第{G.round}轮
+            第{G.turn}回合 第{G.round}轮 {phaseName(ctx.phase)}
         </Grid>
         <Grid item xs={6} key={`song-pub`}><Paper>
         <label>宋</label>

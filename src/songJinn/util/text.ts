@@ -7,6 +7,24 @@ import {getCityById} from "../constant/city";
 import {getPlaceGeneral, getReadyGenerals, unitsToString} from "./fetch";
 import {SongJinnGame} from "../constant/setup";
 
+export  const phaseName = (c:string)=>{
+    const phaseMap = {
+        'draw':'摸牌阶段',
+        'chooseFirst':'行动顺序',
+        'choosePlan':'选择作战计划',
+        'showPlan':'作战计划',
+        'action':'行动阶段',
+        'resolvePlan':'结算计划',
+        'diplomacy':'结算外交',
+        'develop':'发展阶段',
+        'deploy':'补充阶段',
+        'turnEnd':'回合结束',
+    }
+    // @ts-ignore
+    const result = phaseMap[c];
+    return result !== undefined ? result : " ";
+}
+
 export const troopToString = (G:SongJinnGame,pid:PlayerID,t:Troop) =>{
     return placeToStr(t.p)+ unitsToString(t.u) + getPlaceGeneral(G,pid,t.p);
 }
@@ -173,7 +191,11 @@ export const getLogText = (l: LogEntry): string => {
             }
             return log;
         case "GAME_EVENT":
-            return `${s}${payload.type}`;
+            if(payload.type === 'endPhase'){
+                return `${phaseName(l.phase)}结束`
+            }else{
+                return "";
+            }
         case "UNDO":
             return s + "撤销";
         case "REDO":
