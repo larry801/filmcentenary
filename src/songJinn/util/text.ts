@@ -1,4 +1,13 @@
-import {SJEventCardID, DevelopChoice, SJPlayer, TroopPlace, GeneralNames, PlanID, Troop} from "../constant/general";
+import {
+    SJEventCardID,
+    DevelopChoice,
+    SJPlayer,
+    TroopPlace,
+    GeneralNames,
+    PlanID,
+    Troop,
+    ProvinceID
+} from "../constant/general";
 import {getRegionById} from "../constant/regions";
 import {LogEntry, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
@@ -6,6 +15,7 @@ import {getPlanById} from "../constant/plan";
 import {getCityById} from "../constant/city";
 import {getPlaceGeneral, getReadyGenerals, unitsToString} from "./fetch";
 import {SongJinnGame} from "../constant/setup";
+import {getProvinceById} from "../constant/province";
 
 export  const phaseName = (c:string)=>{
     const phaseMap = {
@@ -26,7 +36,7 @@ export  const phaseName = (c:string)=>{
 }
 
 export const troopToString = (G:SongJinnGame,pid:PlayerID,t:Troop) =>{
-    return placeToStr(t.p)+ unitsToString(t.u) + getPlaceGeneral(G,pid,t.p);
+    return t.country + placeToStr(t.p)+ unitsToString(t.u) + getPlaceGeneral(G,pid,t.p);
 }
 
 export const getPlaceGeneralNames = (G: SongJinnGame, pid: PlayerID, place: TroopPlace) => {
@@ -91,9 +101,11 @@ export const getLogText = (l: LogEntry): string => {
                         case 'placeUnits':
                             log += `在${placeToStr(arg.dst)}放置${unitsToString(arg.units)}`;
                             break;
+
                         case 'opponentMove':
                             log += `让对方操作`;
                             break;
+
                         case 'takeDamage':
                             log += `${placeToStr(arg.src)}${arg.c}死${unitsToString(arg.standby)}溃${unitsToString(arg.ready)}`;
                             break;
@@ -121,6 +133,9 @@ export const getLogText = (l: LogEntry): string => {
                             break;
                         case 'chooseTop':
                             log += `把${getPlanById(arg).name}放在最上面`;
+                            break;
+                        case 'jianLiDaQi':
+                            log += `建立大齐 齐控制${arg.join(',')}`;
                             break;
                         case 'showPlan':
                             log += `展示${arg.map((p: PlanID) => getPlanById(p).name)}`;

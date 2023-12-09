@@ -17,7 +17,7 @@ import {
     emperor,
     emptyRound,
     endRound,
-    heYi,
+    heYi, jianLiDaQi,
     letter,
     loseCity,
     loseProvince,
@@ -92,7 +92,12 @@ const StagedTurnConfig = {
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
         react: ReactStageConfig,
-        emperor: EmperorStageConfig
+        emperor: EmperorStageConfig,
+        jianLiDaQi:{
+            moves:{
+                jianLiDaQi:jianLiDaQi,
+            }
+        }
     },
 };
 export const DiscardStageConfig: StageConfig<SongJinnGame> = {
@@ -178,6 +183,10 @@ export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
         emperor: emperor,
         opponentMove: opponentMove,
         endRound: endRound
+    },
+    onEnd:(G,ctx)=>{
+        G.song.usedDevelop = 0;
+        G.jinn.usedDevelop = 0;
     },
     turn: StagedTurnConfig,
     next: 'deploy'

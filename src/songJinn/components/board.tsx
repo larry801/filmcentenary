@@ -21,15 +21,12 @@ export const SongJinnBoard = ({
                                   G,
                                   log,
                                   ctx,
-                                  events,
                                   moves,
                                   undo,
                                   sendChatMessage,
                                   chatMessages,
                                   playerID,
                                   isActive,
-                                  isMultiplayer,
-                                  isConnected
                               }: BoardProps<SongJinnGame>) => {
 
     const pub = getStateById(G, playerID as SJPlayer);

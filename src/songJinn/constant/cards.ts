@@ -9,7 +9,8 @@ import {
     IEra,
     JinnBaseCardID,
     JinnGeneral,
-    NationID, PlanID,
+    NationID,
+    PlanID,
     ProvinceID,
     RegionID,
     SJEventCardID,
@@ -24,14 +25,17 @@ import {
     changeMilitary,
     colonyDown,
     colonyUp,
+    doPlaceUnit,
     doRecruit,
     moveGeneralTo,
     nationMoveJinn,
     policyDown,
     policyUp,
-    removeGeneral
+    removeGeneral,
+    removeUnitByPlace
 } from "../util/change";
 import {developInstead, drawCardForSong, rm} from "../util/card";
+import {getSongTroopByCity} from "../util/fetch";
 
 export const getFullDesc = (card: Cards): string => {
     let effText = "效果：" + card.effectText;
@@ -415,7 +419,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "移除1个齐状态标志物，结算这个路的控制权，消灭2个齐军。若此时齐控制的城市不多于4个，则金国失去齐军征募许可。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.JianLiDaQi),
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [SongBaseCardID.S19]: {
@@ -433,7 +437,12 @@ export const idToCard = {
         combat: false,
         effectText: "移除宗泽，在准南两路或荆湖两路放置岳飞。",
         pre: (G: SongJinnGame, ctx: Ctx) => G.song.military >= 4,
-        event: (G: SongJinnGame, ctx: Ctx) => removeGeneral(G, SJPlayer.P1, SongGeneral.ZongZe)
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            removeGeneral(G, SJPlayer.P1, SongGeneral.ZongZe);
+            // TODO auto
+            // ctx.events?.setStage('chooseCity');
+            // G.pending = "placeGeneral";
+        }
     },
     [SongBaseCardID.S20]: {
         id: SongBaseCardID.S20,
@@ -1146,7 +1155,14 @@ export const idToCard = {
         combat: false,
         effectText: "在历城消灭灭全部宋国部队，放置2个签军。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            const troop = getSongTroopByCity(G, CityID.LiCheng);
+            if (troop !== null) {
+                removeUnitByPlace(G,troop.u,SJPlayer.P1,troop.p);
+            }
+            doPlaceUnit(G,[0,0,0,0,0,2,0],Country.JINN, RegionID.R21);
+            G.events.push(ActiveEvents.JiNanZhiFuLiuYu);
+        }
     },
     [JinnBaseCardID.J10]: {
         id: JinnBaseCardID.J10,
@@ -1214,7 +1230,7 @@ export const idToCard = {
         combat: false,
         effectText: "禁止拥立。",
         pre: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.JingKangZhiBian),
-        event: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.JinBingLaiLe)
+        event: (G: SongJinnGame, ctx: Ctx) => G.events.push(ActiveEvents.JinBingLaiLe)
     },
     [JinnBaseCardID.J14]: {
         id: JinnBaseCardID.J14,
@@ -1299,7 +1315,7 @@ export const idToCard = {
         combat: false,
         effectText: "在3个金国控制的路，放置齐控制标志，齐控制的城市视为完成了殖民。金国获得齐军征募许可，齐军在任何结算时都同时视为签军。若金国军事等级不小于5 ,签军获得远程属性。",
         pre: (G: SongJinnGame, ctx: Ctx) => G.events.includes(ActiveEvents.JiNanZhiFuLiuYu),
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => ctx.events?.setStage('jianLiDaQi')
     },
     [JinnBaseCardID.J19]: {
         id: JinnBaseCardID.J19,

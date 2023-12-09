@@ -4,7 +4,7 @@ import {
     Country,
     General,
     GeneralStatus,
-    isNationID,
+    isNationID, isRegionID,
     NationID,
     Nations,
     ProvinceID,
@@ -14,7 +14,8 @@ import {
     TroopPlace
 } from "../constant/general";
 import {
-    getCountryById,
+    ctr2pid,
+    getCountryById, getJinnTroopByPlace,
     getJinnTroopByRegion,
     getOpponentStateById,
     getSongTroopByCity,
@@ -30,6 +31,7 @@ import {getRegionById} from "../constant/regions";
 import {troopEmpty} from "./check";
 import {placeToStr} from "./text";
 import {logger} from "../../game/logger";
+import {INVALID_MOVE} from "boardgame.io/core";
 
 
 export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
@@ -96,6 +98,49 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
     }
 }
 
+
+
+export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, place: TroopPlace) => {
+    const log = [`doPlaceUnit|${unitsToString(units)}${country}${placeToStr(place)}`];
+
+    const target = ctr2pid(country);
+    const pub = getStateById(G, target);
+    pub.standby.forEach((u, idx) => {
+        if (u < units[idx]) {
+            log.push(`${u}<${units[idx]}|INVALID_MOVE`);
+            logger.debug(`${log.join('')}`);
+            return INVALID_MOVE;
+        }
+    });
+
+    const t = country === Country.SONG ? getSongTroopByPlace(G, place) : getJinnTroopByPlace(G, place);
+    if (t === null) {
+        log.push(`noTroop`);
+        let city = null;
+        if (isRegionID(place)) {
+
+            city = getRegionById(place).city;
+            log.push(`|${city}`);
+        }
+        pub.troops.push({
+            u: units,
+            country: country,
+            c: city,
+            p: place,
+        })
+        for (let i = 0; i < units.length; i++) {
+            pub.standby[i] -= units[i];
+        }
+    } else {
+        log.push(`${JSON.stringify(t)}`);
+        for (let i = 0; i < units.length; i++) {
+            t.u[i] += units[i];
+            pub.standby[i] -= units[i];
+        }
+        log.push(`|after|${unitsToString(t.u)}${JSON.stringify(t)}`);
+    }
+    logger.debug(`${log.join('')}`);
+}
 export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerID, place: TroopPlace) => {
     const log = [`removeUnitByPlace|${placeToStr(place)}|${unitsToString(units)}`]
     const pub = getStateById(G, pid);
