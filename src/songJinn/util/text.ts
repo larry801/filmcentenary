@@ -1,10 +1,20 @@
-import {SJEventCardID, DevelopChoice, SJPlayer, TroopPlace} from "../constant/general";
+import {SJEventCardID, DevelopChoice, SJPlayer, TroopPlace, GeneralNames} from "../constant/general";
 import {getRegionById} from "../constant/regions";
 import {LogEntry, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
 import {getPlanById, PlanID} from "../constant/plan";
 import {getCityById} from "../constant/city";
-import {unitsToString} from "./fetch";
+import {getReadyGenerals, unitsToString} from "./fetch";
+import {SongJinnGame} from "../constant/setup";
+
+export const getReadyGeneralNames = (G: SongJinnGame, pid: PlayerID) => {
+    const readyGenerals = getReadyGenerals(G, pid);
+    if (pid === SJPlayer.P1) {
+        return readyGenerals.map(g=>GeneralNames[0][g]);
+    }else{
+        return readyGenerals.map(g=>GeneralNames[1][g]);
+    }
+}
 
 export const placeToStr = (p: TroopPlace) => {
     return typeof p === "number" && !isNaN(p) ? getRegionById(p).name : p;
@@ -22,7 +32,7 @@ export const getLogText = (l: LogEntry): string => {
             try {
                 const name = payload.type;
                 const args = payload.args !== undefined ? payload.args : "";
-                if (args === null || args === []) {
+                if (args === null || args.length === 0) {
                     switch (name) {
                         case 'choosePlan':
                             log += '选择了一张作战计划';

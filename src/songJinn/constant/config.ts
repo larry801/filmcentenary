@@ -4,7 +4,7 @@ import {TurnOrder} from "boardgame.io/core";
 import {
     cardEvent,
     chooseFirst,
-    choosePlan,
+    choosePlan, chooseProvince, chooseRegion,
     chooseTop, combatCard, deploy,
     develop,
     developCard,
@@ -34,11 +34,21 @@ export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
 }
 
-
-
 export const EmperorStageConfig: StageConfig<SongJinnGame> = {
     moves:{
         emperor:emperor
+    }
+}
+
+export const ChooseProvinceStageConfig: StageConfig<SongJinnGame> = {
+    moves:{
+        chooseProvince:chooseProvince,
+    }
+}
+
+export const ChooseRegionsStageConfig: StageConfig<SongJinnGame> = {
+    moves:{
+        chooseRegion:chooseRegion,
     }
 }
 export const ReactStageConfig: StageConfig<SongJinnGame> = {

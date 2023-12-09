@@ -3,9 +3,11 @@ import {
     CityID,
     Country,
     General,
-    GeneralStatus, isNationID,
+    GeneralStatus,
+    isNationID,
     NationID,
-    Nations, ProvinceID,
+    Nations,
+    ProvinceID,
     RegionID,
     SJPlayer,
     Troop,
@@ -13,10 +15,11 @@ import {
 } from "../constant/general";
 import {
     getCountryById,
-    getJinnTroopByRegion, getOpponentStateById,
+    getJinnTroopByRegion,
+    getOpponentStateById,
     getSongTroopByCity,
     getSongTroopByRegion,
-    getStateById, getTroopByRegion,
+    getStateById,
     playerById
 } from "./fetch";
 import {rm} from "./card";
@@ -253,16 +256,29 @@ export const moveGeneral = (G: SongJinnGame, pid: PlayerID, general: General, ds
     }
 }
 
+//Generals
+
+
+
+export const addGeneralTo = (G: SongJinnGame, pid: PlayerID, general: General,dst:TroopPlace) => {
+    const pub = getStateById(G,pid);
+    pub.generals[general] = GeneralStatus.TROOP;
+    pub.generalPlace[general] = dst;
+}
+export const moveGeneralTo = (G: SongJinnGame, pid: PlayerID, general: General,dst:TroopPlace) => {
+    const pub = getStateById(G,pid);
+    pub.generalPlace[general] = dst;
+}
+
+
 export const removeGeneral = (G: SongJinnGame, pid: PlayerID, general: General) => {
     const country = getCountryById(pid);
     switch (country) {
         case Country.SONG:
             G.song.generals[general] = GeneralStatus.REMOVED;
-            G.song.troops.forEach(t => rm(general, t.j));
             break;
         case Country.JINN:
             G.jinn.generals[general] = GeneralStatus.REMOVED;
-            G.jinn.troops.forEach(t => rm(general, t.j));
             break;
     }
 }

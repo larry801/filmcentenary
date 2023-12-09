@@ -12,7 +12,7 @@ import {
     PlayerPendingEffect, ProvinceID,
     SJPlayer,
     Troop,
-    TroopPlace
+    TroopPlace, RegionID
 } from "./constant/general";
 import {logger} from "../game/logger";
 import {getPlanById, PlanID} from "./constant/plan";
@@ -47,6 +47,7 @@ import {getRegionById} from "./constant/regions";
 import {changePlayerStage} from "../game/logFix";
 import {totalDevelop} from "./util/calc";
 import {normalizePath} from "vite";
+import {Region} from "../types/core";
 
 interface IMarchArgs {
     src: TroopPlace;
@@ -151,6 +152,27 @@ export const letter: LongFormMove = {
         }
         player.lod.push(arg);
         ctx.events?.endTurn();
+    }
+}
+
+export const chooseRegion: LongFormMove = {
+    move: (G, ctx, arg: RegionID) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
+    }
+}
+export const chooseProvince: LongFormMove = {
+    move: (G, ctx, arg: ProvinceID) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
     }
 }
 
@@ -379,6 +401,22 @@ export const recruitPuppet: LongFormMove = {
     }
 }
 
+interface IMoveGeneralArgs {
+    dst: TroopPlace,
+    general:General,
+    country:Country
+}
+
+export const moveReadyGeneral: LongFormMove = {
+    move: (G, ctx, args: IMoveTroopArgs) => {
+
+    }
+}
+export const moveGeneral: LongFormMove = {
+    move: (G, ctx, args: IMoveTroopArgs) => {
+
+    }
+}
 
 export interface IMoveTroopArgs {
     idx: number,

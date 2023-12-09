@@ -16,12 +16,13 @@ import {
     SJPlayer,
     SongEarlyCardID,
     SongGeneral,
-    Troop
+    Troop, TroopPlace
 } from "./general";
 import {Ctx} from "boardgame.io";
 import {shuffle} from "../../game/util";
 
 export interface SJPubInfo {
+    generalPlace: TroopPlace[],
     dices: number[],
     troopIdx: number,
     cities: CityID[],
@@ -45,6 +46,7 @@ export interface SJPubInfo {
 }
 
 export const initialJinnPub: SJPubInfo = {
+    generalPlace:[],
     dices: [],
     troopIdx: -1,
     develop: [],
@@ -110,6 +112,7 @@ export const initialJinnPub: SJPubInfo = {
 }
 
 export const initialSongPub: SJPubInfo = {
+    generalPlace:[],
     dices: [],
     troopIdx: -1,
     cities: [
@@ -214,6 +217,11 @@ export const emptyPlayerInfo: () => SJPlayerInfo = () => {
 }
 
 export interface SongJinnGame {
+    pending:{
+        event:string,
+        regions:RegionID[],
+        cities:CityID[],
+    }
     op: number,
     qi:ProvinceID[],
     plans: PlanID[],
@@ -252,6 +260,11 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
         PlanID.J06
     ])
     const G = {
+        pending:{
+            event:"",
+            regions:[],
+            cities:[],
+        },
         qi:[],
         op: 0,
         plans: [],

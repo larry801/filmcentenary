@@ -2,7 +2,7 @@ import React from "react";
 import {Ctx} from "boardgame.io";
 import {SongJinnGame} from "../constant/setup";
 import Grid from "@material-ui/core/Grid";
-import {getPolicy, unitsToString} from "../util/fetch";
+import {getPolicy, getReadyGenerals, unitsToString} from "../util/fetch";
 import {getJinnPower, getJinnScore, getSongPower, getSongScore, totalDevelop} from "../util/calc";
 import Paper from "@material-ui/core/Paper";
 import {getPlanById} from "../constant/plan";
@@ -26,7 +26,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
         <div><label>国力：</label>{getSongPower(G)}</div>
         <div><label>腐败：</label>{s.corruption}</div>
         <div><label>盟国：</label>{s.nations.join('')}</div>
-        <div><label>预备区：{unitsToString(s.ready)}</label></div>
+        <div><label>预备区：{unitsToString(s.ready)} {}</label></div>
         <div><label>备用兵区： {unitsToString(s.standby)}</label></div>
         <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
         <div><label>完成计划：{s.completedPlan.map(p => getPlanById(p).name)}</label></div>

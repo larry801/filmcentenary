@@ -90,7 +90,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
 
     const onClick = () => {
         setClicked(true);
-        createMatch(serverURL, isPublic ? Visibility.PUBLIC : Visibility.PRIVATE, numPlayers)
+        createMatch(serverURL, gameName, isPublic ? Visibility.PUBLIC : Visibility.PRIVATE, numPlayers)
             .then((id) => setMatchID(id))
             .catch((err) => setError(err.toString()));
     };

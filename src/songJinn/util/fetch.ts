@@ -1,9 +1,9 @@
 import {SongJinnGame} from "../constant/setup";
 import {
     ActiveEvents,
-    SJEventCardID,
     CityID,
     Country,
+    General,
     GeneralStatus,
     isMountainPassID,
     isNationID,
@@ -16,6 +16,7 @@ import {
     Nations,
     ProvinceID,
     RegionID,
+    SJEventCardID,
     SJPlayer,
     SongEarlyCardID,
     SongLateCardID,
@@ -75,6 +76,16 @@ export const getTroopByPlace = (G: SongJinnGame, p: TroopPlace) => {
             return t
         }
     });
+}
+
+export const generalInTroop = (G: SongJinnGame, pid: PlayerID, general: General):boolean => {
+    const pub = getStateById(G,pid);
+    return pub.generals[general] === GeneralStatus.TROOP
+}
+
+export const generalRemoved = (G: SongJinnGame, pid: PlayerID, general: General):boolean => {
+    const pub = getStateById(G,pid);
+    return pub.generals[general] === GeneralStatus.REMOVED
 }
 
 export const getReadyGenerals = (G: SongJinnGame, pid: PlayerID) => {

@@ -99,6 +99,7 @@ const DrawerAppBar = () => {
                 <ListItem><Button><Link to={'/cards'}>{i18n.drawer.cards}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/about'}>{i18n.drawer.about}</Link></Button></ListItem>
+                <ListItem><Button><Link to={'/songjinn'}>{"宋金战争"}</Link></Button></ListItem>
             </List>
         </MUIDrawer>
     </React.Fragment>

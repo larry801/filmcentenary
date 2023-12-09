@@ -540,12 +540,12 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[2].school = "S1203";
     // G.pub[1].shares[Region.NA] = 2;
     // G.pub[1].shares[Region.EE] = 2;
-    G.pub[firstMovePlayer].vp = 39;
-    // G.pub[firstMovePlayer].aesthetics = 8;
-
-    G.player[firstMovePlayer].hand = [FilmCardID.F3414, BasicCardID.B07];
-    G.regions[Region.ASIA].era = IEra.THREE;
-    buildBuildingFor(G, ctx,Region.ASIA, firstMovePlayer.toString(), BuildingType.cinema);
+    // G.pub[firstMovePlayer].vp = 39;
+    // // G.pub[firstMovePlayer].aesthetics = 8;
+    //
+    // G.player[firstMovePlayer].hand = [FilmCardID.F3414, BasicCardID.B07];
+    // G.regions[Region.ASIA].era = IEra.THREE;
+    // buildBuildingFor(G, ctx,Region.ASIA, firstMovePlayer.toString(), BuildingType.cinema);
 
     // G.secretInfo.playerDecks[firstMovePlayer] = [BasicCardID.B07,BasicCardID.B07,BasicCardID.B07];
     // G.pub[firstMovePlayer].competitionPower = 7;
