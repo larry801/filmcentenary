@@ -351,28 +351,34 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         show={isActive && placeStep === PlaceStep.UNITS} title={"选择要放置的的部队"}
         toggleText={"放置新部队"} initial={true} country={ctr}/>
 
-    const restoreOthers = () => {
-        setNewTroopStep(NewTroopStep.START);
-        setDeployNewStep(DeployNewStep.TROOP);
-
-        setTakeDamageStep(TakeDamageStep.TROOP);
-        setMarchStep(MarchStep.TROOP);
-        setRemoveStep(RemoveStep.TROOP);
-        setDeployStep(DeployStep.TROOP)
-        setMoveStep(MoveStep.TROOP);
-    }
     return <Grid item container xs={12}>
         <Grid item xs={12}>
             <Button
                 variant={"contained"} fullWidth
                 onClick={() => {
-                    restoreOthers();
+                    setPlaceStep(PlaceStep.TROOP);
+                    // setNewTroopStep(NewTroopStep.START);
+                    setDeployNewStep(DeployNewStep.TROOP);
+
+                    setTakeDamageStep(TakeDamageStep.TROOP);
+                    setMarchStep(MarchStep.TROOP);
+                    setRemoveStep(RemoveStep.TROOP);
+                    setDeployStep(DeployStep.TROOP)
+                    setMoveStep(MoveStep.TROOP);
                     setNewTroopStep(NewTroopStep.PROVINCE);
                 }}>放置新部队</Button>
             <Button
                 variant={"contained"} fullWidth
                 onClick={() => {
-                    restoreOthers();
+                    setPlaceStep(PlaceStep.TROOP);
+                    setNewTroopStep(NewTroopStep.START);
+                    // setDeployNewStep(DeployNewStep.TROOP);
+
+                    setTakeDamageStep(TakeDamageStep.TROOP);
+                    setMarchStep(MarchStep.TROOP);
+                    setRemoveStep(RemoveStep.TROOP);
+                    setDeployStep(DeployStep.TROOP)
+                    setMoveStep(MoveStep.TROOP);
                     setDeployNewStep(DeployNewStep.CITY);
                 }}>补充空城市</Button>
             {provDialog}
@@ -405,7 +411,15 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 <AccordionDetails>
                     <button onClick={
                         () => {
-                            restoreOthers();
+                            setPlaceStep(PlaceStep.TROOP);
+                            setNewTroopStep(NewTroopStep.START);
+                            setDeployNewStep(DeployNewStep.TROOP);
+
+                            setTakeDamageStep(TakeDamageStep.TROOP);
+                            // setMarchStep(MarchStep.TROOP);
+                            setRemoveStep(RemoveStep.TROOP);
+                            setDeployStep(DeployStep.TROOP)
+                            setMoveStep(MoveStep.TROOP);
                             setMarchTroop(idx);
                             setMarchStep(MarchStep.UNITS);
                         }
@@ -413,7 +427,15 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     </button>
                     <button onClick={
                         () => {
-                            restoreOthers();
+                            setPlaceStep(PlaceStep.TROOP);
+                            setNewTroopStep(NewTroopStep.START);
+                            setDeployNewStep(DeployNewStep.TROOP);
+
+                            setTakeDamageStep(TakeDamageStep.TROOP);
+                            setMarchStep(MarchStep.TROOP);
+                            setRemoveStep(RemoveStep.TROOP);
+                            setDeployStep(DeployStep.TROOP)
+                            // setMoveStep(MoveStep.TROOP);
                             setMoveTroop(idx);
                             setMoveStep(MoveStep.PROVINCE);
                         }
@@ -421,7 +443,15 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     </button>
                     <button onClick={
                         () => {
-                            restoreOthers();
+                            setPlaceStep(PlaceStep.TROOP);
+                            setNewTroopStep(NewTroopStep.START);
+                            setDeployNewStep(DeployNewStep.TROOP);
+
+                            // setTakeDamageStep(TakeDamageStep.TROOP);
+                            setMarchStep(MarchStep.TROOP);
+                            setRemoveStep(RemoveStep.TROOP);
+                            setDeployStep(DeployStep.TROOP)
+                            setMoveStep(MoveStep.TROOP);
                             setTakeDamageStep(TakeDamageStep.READY);
                             setTakeDamageTroop(idx);
                         }
@@ -429,7 +459,15 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     </button>
                     <button onClick={
                         () => {
-                            restoreOthers();
+                            setPlaceStep(PlaceStep.TROOP);
+                            setNewTroopStep(NewTroopStep.START);
+                            setDeployNewStep(DeployNewStep.TROOP);
+
+                            setTakeDamageStep(TakeDamageStep.TROOP);
+                            setMarchStep(MarchStep.TROOP);
+                            setRemoveStep(RemoveStep.TROOP);
+                            // setDeployStep(DeployStep.TROOP)
+                            setMoveStep(MoveStep.TROOP);
 
                             setDeployStep(DeployStep.UNITS);
                             setDeployTroop(idx);
@@ -438,7 +476,15 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     </button>
                     <button onClick={
                         () => {
-                            restoreOthers();
+                            setPlaceStep(PlaceStep.TROOP);
+                            setNewTroopStep(NewTroopStep.START);
+                            setDeployNewStep(DeployNewStep.TROOP);
+
+                            setTakeDamageStep(TakeDamageStep.TROOP);
+                            setMarchStep(MarchStep.TROOP);
+                            setRemoveStep(RemoveStep.TROOP);
+                            setDeployStep(DeployStep.TROOP)
+                            setMoveStep(MoveStep.TROOP);
 
                             setPlaceStep(PlaceStep.UNITS);
                             setPlaceTroop(idx);
@@ -447,7 +493,16 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     </button>
                     <button onClick={
                         () => {
-                            restoreOthers();
+                            setPlaceStep(PlaceStep.TROOP);
+
+                            setNewTroopStep(NewTroopStep.START);
+                            setDeployNewStep(DeployNewStep.TROOP);
+
+                            setTakeDamageStep(TakeDamageStep.TROOP);
+                            setMarchStep(MarchStep.TROOP);
+                            // setRemoveStep(RemoveStep.TROOP);
+                            setDeployStep(DeployStep.TROOP)
+                            setMoveStep(MoveStep.TROOP);
 
                             setRemoveStep(RemoveStep.UNITS);
                             setRemoveTroop(idx);
