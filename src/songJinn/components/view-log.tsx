@@ -43,7 +43,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
     return <Grid item container xs={12}>
         <Grid item xs={12}>
             <Button fullWidth={true} onClick={toggleGameLog}>
-                "记录"
+                行动记录
             </Button>
             <IconButton
                 color="primary"

@@ -2,7 +2,7 @@ import React from "react";
 import {Ctx} from "boardgame.io";
 import {SongJinnGame} from "../constant/setup";
 import Grid from "@material-ui/core/Grid";
-import {getPolicy, getReadyGenerals, unitsToString} from "../util/fetch";
+import {getPolicy,  unitsToString} from "../util/fetch";
 import {getJinnPower, getJinnScore, getSongPower, getSongScore, totalDevelop} from "../util/calc";
 import Paper from "@material-ui/core/Paper";
 import {getPlanById} from "../constant/plan";
@@ -20,8 +20,10 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
     const s = G.song;
     const j = G.jinn;
     return <Grid container>
-        <h4>T{G.turn}R{G.round}</h4>
-        <Grid item><Paper>
+        <Grid item xs={12} key={`game-info`}>
+            第{G.turn}回合 第{G.round}轮
+        </Grid>
+        <Grid item xs={6} key={`song-pub`}><Paper>
         <label>宋</label>
         <div><label>军事：</label>{s.military}</div>
         <div><label>内政：</label>{s.civil}</div>
@@ -42,7 +44,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label> 使用/总发展点数： {s.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P1)} </label></div>}
         {G.turn > 6 && <div><label>绍兴和议分数：{getSongScore(G)}</label></div>}
     </Paper></Grid>
-        <Grid item><Paper><label>金</label>
+        <Grid item xs={6} key={`jinn-pub`}><Paper><label>金</label>
             <div><label>军事：</label>{j.military}</div>
             <div><label>内政：</label>{j.civil}</div>
             <div><label>殖民：</label>{G.colony}</div>
