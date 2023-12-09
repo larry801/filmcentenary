@@ -5,17 +5,18 @@ import ErrorBoundary from "../../components/error";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
 import {SJPlayer} from "../constant/general";
-import {getStateById, playerById, getCountryById} from "../util/fetch";
+import {getStateById, playerById, getCountryById, unitsToString} from "../util/fetch";
 import Button from "@material-ui/core/Button";
 import {PubInfo} from "./pub-info";
 import {Operation} from "./operation";
 import {SJPlayerHand} from "./player-hand";
 import LogView from "./view-log";
-import {sjPlayerName} from "../util/text";
+import {sjPlayerName, troopToString} from "../util/text";
 import TroopOperation from "./troops";
 import {AdjustOps} from "./adjust";
 import {Chat} from "@material-ui/icons";
 import {ChatMessage} from "./chat-message";
+import Paper from "@material-ui/core/Paper";
 
 export const SongJinnBoard = ({
                                   G,
@@ -53,7 +54,7 @@ export const SongJinnBoard = ({
                 </Grid>
             </Grid>}
 
-            {playerID !== null &&
+            {playerID !== null ?
                 <Grid>
                     {isActive ? <Grid container>
                         <Button onClick={() => undo()}>撤回</Button>
@@ -82,8 +83,32 @@ export const SongJinnBoard = ({
                             <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
                         </Grid>
                     </Grid>
-
                     }
+                </Grid>
+                : <Grid item container>
+                    <Grid xs={12} sm={6}>
+                        {
+                            G.song.troops.map(
+                                (t, idx) => {
+                                    return <Grid xs={12} sm={6} key={`troop-song-grid-${idx}`}>\
+                                        <Paper key={`troop-song-${idx}`}>{troopToString(G, SJPlayer.P1, t)}
+                                        </Paper></Grid>
+                                }
+                            )
+                        }
+
+                    </Grid>
+                    <Grid xs={12} sm={6}>
+                        {
+                            G.jinn.troops.map((t, idx) => {
+                                    return <Grid xs={12} sm={6} key={`troop-jinn-grid-${idx}`}>
+                                        <Paper key={`troop-jinn-${idx}`}>{troopToString(G, SJPlayer.P2, t)}
+                                        </Paper></Grid>
+                                }
+                            )
+                        }
+
+                    </Grid>
                 </Grid>
             }
         </Grid>

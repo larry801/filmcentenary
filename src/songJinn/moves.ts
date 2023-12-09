@@ -27,7 +27,7 @@ import {
     getStateById,
     playerById
 } from "./util/fetch";
-import {INVALID_MOVE, Stage} from "boardgame.io/core";
+import {INVALID_MOVE} from "boardgame.io/core";
 import {shuffle} from "../game/util";
 import {sjCardById} from "./constant/cards";
 import {drawPhaseForPlayer, drawPlanForPlayer, rm} from "./util/card";

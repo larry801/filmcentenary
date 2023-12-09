@@ -56,7 +56,7 @@ export const EmperorStageConfig: StageConfig<SongJinnGame> = {
         emperor: emperor
     }
 }
-
+// TODO card_1.rm is not a function?
 export const ChooseProvinceStageConfig: StageConfig<SongJinnGame> = {
     moves: {
         chooseProvince: chooseProvince,

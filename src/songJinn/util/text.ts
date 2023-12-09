@@ -1,4 +1,4 @@
-import {SJEventCardID, DevelopChoice, SJPlayer, TroopPlace, GeneralNames, PlanID} from "../constant/general";
+import {SJEventCardID, DevelopChoice, SJPlayer, TroopPlace, GeneralNames, PlanID, Troop} from "../constant/general";
 import {getRegionById} from "../constant/regions";
 import {LogEntry, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
@@ -6,6 +6,10 @@ import {getPlanById} from "../constant/plan";
 import {getCityById} from "../constant/city";
 import {getPlaceGeneral, getReadyGenerals, unitsToString} from "./fetch";
 import {SongJinnGame} from "../constant/setup";
+
+export const troopToString = (G:SongJinnGame,pid:PlayerID,t:Troop) =>{
+    return unitsToString(t.u) + getPlaceGeneral(G,pid,t.p);
+}
 
 export const getPlaceGeneralNames = (G: SongJinnGame, pid: PlayerID, place: TroopPlace) => {
     const readyGenerals = getPlaceGeneral(G, pid, place);
