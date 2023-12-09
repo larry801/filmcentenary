@@ -239,7 +239,7 @@ export interface SongJinnGame {
     plans: PlanID[],
     dices: number[],
     order: SJPlayer[],
-    removedCountries: NationID[],
+    removedNation: NationID[],
     events: ActiveEvents[],
     round: number,
     turn: number,
@@ -274,7 +274,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
         op: 0,
         plans: [],
         dices: [],
-        removedCountries: [],
+        removedNation: [],
         // start from action phase for debugging
         order: [SJPlayer.P1, SJPlayer.P2],
         // order: [SJPlayer.P1],

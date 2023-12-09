@@ -142,10 +142,10 @@ export const getMovePlan = (G: SongJinnGame) => {
 }
 
 export const diplomaticVictory = (G: SongJinnGame) => {
-    if (G.jinn.nations.length + G.removedCountries.length === Nations.length) {
+    if (G.jinn.nations.length + G.removedNation.length === Nations.length) {
         return Country.JINN;
     } else {
-        if (G.song.nations.length + G.removedCountries.length === Nations.length) {
+        if (G.song.nations.length + G.removedNation.length === Nations.length) {
             return Country.SONG;
         } else {
             return null;

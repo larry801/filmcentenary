@@ -27,6 +27,7 @@ import {
     colonyUp,
     doPlaceUnit,
     doRecruit,
+    doRemoveNation,
     moveGeneralTo,
     nationMoveJinn,
     policyDown,
@@ -1138,7 +1139,7 @@ export const idToCard = {
         combat: false,
         effectText: "移除西辽。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => doRemoveNation(G, NationID.XiLiao)
     },
     [JinnBaseCardID.J09]: {
         id: JinnBaseCardID.J09,

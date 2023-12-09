@@ -47,6 +47,12 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
     }
 }
 
+export const doRemoveNation = (G:SongJinnGame, nation:NationID) => {
+    G.removedNation.push(nation);
+    rm(nation,G.song.nations);
+    rm(nation,G.jinn.nations);
+}
+
 export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid);

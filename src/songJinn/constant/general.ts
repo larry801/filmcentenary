@@ -61,11 +61,12 @@ export enum MarchResult {
 
 export type Level = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
-export const enum VictoryType {
+export const enum VictoryReason {
     ShaoXingHeYi = "绍兴和议",
     PowerOfNation = "国力",
     StrategicPlan = "作战计划",
     WuShanLiMa = "吴山立马",
+    HuanWoHeShan = "还我河山",
     ZhiDaoHuangLong = "直捣黄龙",
     Diplomacy = "外交"
 }

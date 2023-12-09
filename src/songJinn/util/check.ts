@@ -9,7 +9,7 @@ import {
     ProvinceID,
     SJEventCardID,
     SJPlayer,
-    Troop, VictoryType
+    Troop, VictoryReason
 } from "../constant/general";
 import {logger} from "../../game/logger";
 import {getCountryById, getStateById} from "./fetch";
@@ -69,7 +69,7 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
         const winner = jinnScore > songScore ? SJPlayer.P2 :SJPlayer.P1;
         ctx.events?.endGame({
             winner:winner,
-            reason:VictoryType.ShaoXingHeYi
+            reason:VictoryReason.ShaoXingHeYi
         })
     } else {
         log.push(`moveTurnMarker`);

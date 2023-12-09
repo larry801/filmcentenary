@@ -1,6 +1,6 @@
-import {PlanID, ProvinceID} from "./general";
+import {PlanID, ProvinceID, VictoryReason} from "./general";
 import {SongJinnGame} from "./setup";
-import {Ctx} from "boardgame.io";
+import {Ctx, PlayerID} from "boardgame.io";
 
 export interface Plan {
     id: PlanID;
@@ -9,7 +9,7 @@ export interface Plan {
     desc: string;
     level: number;
     provinces: ProvinceID[],
-    effect: (G: SongJinnGame, ctx: Ctx) => void,
+    effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => void,
 }
 
 export const getPlanById: (pid: PlanID) => Plan = (pid: PlanID) => {
@@ -24,7 +24,8 @@ const idToPlan = {
         "level": 2,
         "provinces": [ProvinceID.JINGJILU],
         "vp": 1,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
+            
         }
     },
     [PlanID.J02]: {
@@ -34,7 +35,7 @@ const idToPlan = {
         "level": 2,
         "provinces": [ProvinceID.SHANXILIULU],
         "vp": 1,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J03]: {
@@ -44,7 +45,7 @@ const idToPlan = {
         "level": 2,
         "provinces": [ProvinceID.JINGXILIANGLU],
         "vp": 1,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J04]: {
@@ -54,7 +55,7 @@ const idToPlan = {
         "level": 2,
         "provinces": [ProvinceID.JINGDONGLIANGLU],
         "vp": 1,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J05]: {
@@ -64,7 +65,7 @@ const idToPlan = {
         "level": 2,
         "provinces": [ProvinceID.HUAINANLIANGLU],
         "vp": 1,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J06]: {
@@ -74,7 +75,7 @@ const idToPlan = {
         "level": 2,
         "provinces": [ProvinceID.HEDONGLU],
         "vp": 1,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J07]: {
@@ -84,7 +85,7 @@ const idToPlan = {
         "level": 3,
         "provinces": [ProvinceID.JINGJILU],
         "vp": 2,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J08]: {
@@ -94,7 +95,7 @@ const idToPlan = {
         "level": 3,
         "provinces": [ProvinceID.SHANXILIULU],
         "vp": 2,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J09]: {
@@ -104,7 +105,7 @@ const idToPlan = {
         "level": 3,
         "provinces": [ProvinceID.HUAINANLIANGLU],
         "vp": 2,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J10]: {
@@ -114,7 +115,7 @@ const idToPlan = {
         "level": 3,
         "provinces": [ProvinceID.JINGXILIANGLU],
         "vp": 2,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J11]: {
@@ -124,7 +125,7 @@ const idToPlan = {
         "level": 2,
         "provinces": [ProvinceID.JINHULIANGLU],
         "vp": 1,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J12]: {
@@ -134,7 +135,7 @@ const idToPlan = {
         "level": 2,
         "provinces": [ProvinceID.CHUANSHANSILU],
         "vp": 1,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J13]: {
@@ -144,7 +145,7 @@ const idToPlan = {
         "level": 3,
         "provinces": [ProvinceID.JINGDONGLIANGLU],
         "vp": 2,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J14]: {
@@ -154,7 +155,7 @@ const idToPlan = {
         "level": 2,
         "provinces": [ProvinceID.JINGXILIANGLU],
         "vp": 1,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J15]: {
@@ -164,7 +165,7 @@ const idToPlan = {
         "level": 2,
         "provinces": [ProvinceID.HEBEILIANGLU],
         "vp": 1,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J16]: {
@@ -174,7 +175,7 @@ const idToPlan = {
         "level": 4,
         "provinces": [ProvinceID.SHANXILIULU, ProvinceID.CHUANSHANSILU],
         "vp": 4,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J17]: {
@@ -184,7 +185,7 @@ const idToPlan = {
         "level": 4,
         "provinces": [ProvinceID.JINGJILU, ProvinceID.JINGXILIANGLU],
         "vp": 4,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J18]: {
@@ -194,7 +195,7 @@ const idToPlan = {
         "level": 4,
         "provinces": [ProvinceID.HUAINANLIANGLU, ProvinceID.JINGDONGLIANGLU],
         "vp": 4,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J19]: {
@@ -204,7 +205,7 @@ const idToPlan = {
         "level": 4,
         "provinces": [ProvinceID.JINGJILU],
         "vp": 3,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J20]: {
@@ -214,7 +215,7 @@ const idToPlan = {
         "level": 4,
         "provinces": [ProvinceID.SHANXILIULU],
         "vp": 3,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J21]: {
@@ -224,7 +225,7 @@ const idToPlan = {
         "level": 3,
         "provinces": [ProvinceID.HUAINANLIANGLU],
         "vp": 2,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J22]: {
@@ -234,7 +235,7 @@ const idToPlan = {
         "level": 4,
         "provinces": [ProvinceID.JINGXILIANGLU],
         "vp": 3,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
         }
     },
     [PlanID.J23]: {
@@ -244,7 +245,11 @@ const idToPlan = {
         "level": 5,
         "provinces": [ProvinceID.SHANXILIULU, ProvinceID.JINGJILU, ProvinceID.JINGDONGLIANGLU, ProvinceID.HEBEILIANGLU],
         "vp": 0,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
+            ctx.events?.endGame({
+                winner:pid,
+                reason: VictoryReason.WuShanLiMa
+            });
         }
     },
     [PlanID.J24]: {
@@ -254,7 +259,11 @@ const idToPlan = {
         "level": 5,
         "provinces": [ProvinceID.JINGJILU, ProvinceID.JINGXILIANGLU, ProvinceID.JIANGNANLIANGLU, ProvinceID.HUAINANLIANGLU],
         "vp": 0,
-        effect: (G: SongJinnGame, ctx: Ctx) => {
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
+            ctx.events?.endGame({
+                winner:pid,
+                reason: VictoryReason.WuShanLiMa
+            });
         }
     },
 
