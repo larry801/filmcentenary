@@ -343,6 +343,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         callback={(u) => {
             setPlaceStep(PlaceStep.TROOP)
             moves.placeUnit({
+                place:pub.troops[placeTroop].p,
                 units: u,
                 idx: placeTroop,
                 country: ctr

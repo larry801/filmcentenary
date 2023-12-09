@@ -57,6 +57,9 @@ export const getLogText = (l: LogEntry): string => {
                 } else {
                     const arg = args[0];
                     switch (name) {
+                        case 'placeUnit':
+                            log += `在${placeToStr(arg.place)}放置${unitsToString(arg.units)}`;
+                            break;
                         case 'deploy':
                             log += `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
                             break;

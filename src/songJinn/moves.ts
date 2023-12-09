@@ -215,13 +215,14 @@ export const takeDamage: LongFormMove = {
 }
 
 export interface IPlaceUnitsToTroopArgs {
+    place: TroopPlace,
     idx: number,
     units: number[],
     country: Country
 }
 
 export const placeUnit: LongFormMove = {
-    move: (G, ctx, {idx, units, country}: IPlaceUnitsToTroopArgs) => {
+    move: (G, ctx, {place, idx, units, country}: IPlaceUnitsToTroopArgs) => {
         const pub = country === Country.SONG ? G.song : G.jinn;
         const t = pub.troops[idx];
         if (t === undefined) {
@@ -236,8 +237,8 @@ export const placeUnit: LongFormMove = {
                 t.u[i] += units[i];
             }
         }
-        if(ctx.phase === 'turnEnd'){
-            endTurnCheck(G,ctx);
+        if (ctx.phase === 'turnEnd') {
+            endTurnCheck(G, ctx);
             ctx.events?.setPhase('draw');
         }
     }
