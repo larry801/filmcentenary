@@ -33,10 +33,10 @@ import {
     policyDown,
     policyUp,
     removeGeneral,
-    removeUnitByPlace
+    removeUnitByPlace, removeUnitOnTroop
 } from "../util/change";
 import {developInstead, drawCardForSong, rm} from "../util/card";
-import {getSongTroopByCity} from "../util/fetch";
+import {getJinnTroopByCity, getSongTroopByCity} from "../util/fetch";
 
 export const getFullDesc = (card: Cards): string => {
     let effText = "效果：" + card.effectText;
@@ -621,7 +621,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: true,
         effectText: "战斗牌：每消灭或击溃1个签军，就征募1个步兵，不受内政等级限制。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => false,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [SongBaseCardID.S30]: {
@@ -743,7 +743,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: true,
         effectText: "战斗牌：参战军团中视为增加1个岳飞。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => false,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [SongBaseCardID.S37]: {
@@ -760,7 +760,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: true,
         effectText: "战斗牌：宋国远程部队在远程阶段和交锋阶段优先结算。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => false,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [SongBaseCardID.S38]: {
@@ -794,7 +794,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: true,
         effectText: "战斗牌：金国战斗骰点数减1。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => false,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [SongBaseCardID.S40]: {
@@ -999,7 +999,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: true,
         effectText: "战斗牌： 在宋国参战军团，放置1个战船。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => false,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J01]: {
@@ -1247,7 +1247,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: true,
         effectText: "战斗牌：宋国战斗骰点数减1。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => false,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J15]: {
@@ -1557,7 +1557,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: true,
         effectText: "战斗牌：消灭1个参战的宋国战船。",
-        pre: (G: SongJinnGame, ctx: Ctx) => G.jinn.generals[JinnGeneral.WuZhu] === GeneralStatus.TROOP,
+        pre: (G: SongJinnGame, ctx: Ctx) => false,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J33]: {
@@ -1591,7 +1591,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: true,
         effectText: "战斗牌：消灭1个参战的宋国步兵或弓兵。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => false,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J35]: {
@@ -1892,7 +1892,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: true,
         effectText: "战斗牌：先于任何战斗卡结算，宋国军团立即撤退，全部战斗结算结束。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => false,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
 
