@@ -53,6 +53,18 @@ export const getNationState = (G: SongJinnGame, n: NationID) => {
 
 export const ctr2pub = (G: SongJinnGame, country: Country) => country === Country.SONG ? G.song : G.jinn;
 export const ctr2pid = (country: Country) => country === Country.SONG ? SJPlayer.P1 : SJPlayer.P2;
+export const pid2ctr = (country: PlayerID) => country === SJPlayer.P1 ? Country.SONG : Country.JINN;
+
+export const getSkillGeneral = (G: SongJinnGame, pid: PlayerID): General[] => {
+    const generals: General[] = [];
+    const pub = getStateById(G, pid);
+    pub.generalSkill.forEach((p, idx) => {
+        if (p) {
+            generals.push(idx as General);
+        }
+    })
+    return generals;
+}
 export const getPlaceGeneral = (G: SongJinnGame, pid: PlayerID, place: TroopPlace): General[] => {
     const generals: General[] = [];
     const pub = getStateById(G, pid);
