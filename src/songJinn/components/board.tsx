@@ -14,6 +14,11 @@ import {AdjustOps} from "./adjust";
 import {ChatMessage} from "./chat-message";
 import Paper from "@material-ui/core/Paper";
 import {getCountryById, getStateById, playerById, sjPlayerName, troopToString} from "../util";
+// @ts-ignore
+import disconnectedSfx from '../../components/media/connect.mp3'
+// @ts-ignore
+import playerTurnSfx from '../../components/media/turn.mp3';
+import {playConnectedSound, playSound, usePrevious} from "../../components/board";
 
 export const SongJinnBoard = ({
                                   G,
@@ -25,8 +30,25 @@ export const SongJinnBoard = ({
                                   chatMessages,
                                   playerID,
                                   isActive,
+                                  isConnected,
+                                  isMultiplayer,
                                   matchID
                               }: BoardProps<SongJinnGame>) => {
+
+    const prevIsActive = usePrevious(isActive);
+    const prevIsConnected = usePrevious(isConnected);
+
+    React.useEffect(() => {
+        if (isMultiplayer && !isConnected && prevIsConnected) {
+            playConnectedSound();
+        }
+    }, [prevIsConnected, isConnected])
+
+    React.useEffect(() => {
+        if (isActive && prevIsActive === false) {
+            playSound();
+        }
+    }, [prevIsActive, isActive])
 
     const pub = getStateById(G, playerID as SJPlayer);
     const player = playerById(G, playerID as SJPlayer);
