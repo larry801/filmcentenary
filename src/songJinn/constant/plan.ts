@@ -1,5 +1,4 @@
-import {PlanID, ProvinceID, VictoryReason} from "./general";
-import {SongJinnGame} from "./setup";
+import {PlanID, ProvinceID, SongJinnGame, VictoryReason} from "./general";
 import {Ctx, PlayerID} from "boardgame.io";
 
 export interface Plan {

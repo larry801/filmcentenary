@@ -1,5 +1,4 @@
 import {Ctx, LongFormMove} from "boardgame.io";
-import {SongJinnGame} from "./constant/setup";
 import {
     ActiveEvents,
     BaseCardID,
@@ -14,51 +13,56 @@ import {
     ProvinceID,
     RegionID,
     SJEventCardID,
-    SJPlayer,
+    SJPlayer, SongJinnGame,
     Troop,
     TroopPlace
 } from "./constant/general";
 import {logger} from "../game/logger";
 import {getPlanById} from "./constant/plan";
-import {
-    cardToSearch,
-    ctr2pid, ctr2pub,
-    getCountryById,
-    getJinnTroopByCity, getJinnTroopByPlace,
-    getJinnTroopByRegion,
-    getOpponentStateById, getPlaceGeneral,
-    getSongTroopByCity,
-    getSongTroopByPlace,
-    getStateById, getTroopByCountryPlace, getTroopByRegion, pid2ctr,
-    playerById, unitsToString
-} from "./util/fetch";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {shuffle} from "../game/util";
-import {sjCardById} from "./constant/cards";
-import {drawPhaseForPlayer, drawPlanForPlayer} from "./util/card";
-import {endRoundCheck, heYiCheck, returnDevCardCheck, troopEmpty} from "./util/check";
-import {getCityById} from "./constant/city";
-import {
-    addTroop,
-    changeCivil,
-    changeMilitary,
-    colonyDown,
-    colonyUp, doControlCity, doControlProvince, doGeneralSkill,
-    doLoseProvince, doPlaceUnit,
-    doRecruit,
-    heYiChange,
-    mergeTroopTo, moveGeneralByCountry,
-    moveGeneralByPid, moveGeneralToReady,
-    policyDown,
-    policyUp,
-    removeUnitByPlace,
-    rollDiceByPid
-} from "./util/change";
 import {getRegionById} from "./constant/regions";
 import {changePlayerStage} from "../game/logFix";
-import {totalDevelop} from "./util/calc";
-import {nlNL} from "@material-ui/core/locale";
-import {getGeneralNameByPid, placeToStr} from "./util/text";
+
+import {
+    addTroop,
+    cardToSearch, changeCivil, changeMilitary,
+    colonyDown,
+    colonyUp,
+    ctr2pid,
+    ctr2pub, doControlCity, doControlProvince, doGeneralSkill, doLoseProvince, doPlaceUnit, doRecruit,
+    drawPhaseForPlayer,
+    drawPlanForPlayer,
+    endRoundCheck, getCountryById,
+    getGeneralNameByPid,
+    getJinnTroopByCity,
+    getJinnTroopByPlace,
+    getJinnTroopByRegion,
+    getOpponentStateById,
+    getPlaceGeneral,
+    getSongTroopByCity,
+    getSongTroopByPlace,
+    getStateById,
+    getTroopByCountryPlace,
+    getTroopByRegion,
+    heYiChange,
+    heYiCheck,
+    mergeTroopTo,
+    moveGeneralByCountry,
+    moveGeneralByPid,
+    moveGeneralToReady,
+    pid2ctr,
+    placeToStr,
+    playerById,
+    policyDown,
+    policyUp, removeUnitByPlace,
+    returnDevCardCheck,
+    rollDiceByPid, sjCardById,
+    totalDevelop,
+    troopEmpty,
+    unitsToString
+} from "./util";
+import {getCityById} from "./constant/city";
 
 export const opponentMove: LongFormMove = {
     move: (G, ctx) => {
@@ -196,7 +200,7 @@ export const letter: LongFormMove = {
         }
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(arg.card)) {
-             player.hand.splice( player.hand.indexOf(arg.card),1);
+            player.hand.splice(player.hand.indexOf(arg.card), 1);
         } else {
             return INVALID_MOVE;
         }
@@ -261,7 +265,7 @@ export const takeDamage: LongFormMove = {
             log.push(`|after|${pub.standby}|${arg.standby}`);
         }
         if (troopEmpty(troop)) {
-             pub.troops.splice( pub.troops.indexOf(troop),1);
+            pub.troops.splice(pub.troops.indexOf(troop), 1);
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
@@ -318,7 +322,7 @@ export const deployGeneral: LongFormMove = {
         let newDst = dst;
         if (isCityID(dst)) {
             const weiKunTroop = getTroopByCountryPlace(G, pid2ctr(pid), dst);
-            if(weiKunTroop === null){
+            if (weiKunTroop === null) {
                 log.push(`|hasOwnTroop`);
                 // @ts-ignore
                 newDst = getCityById(dst).region;
@@ -346,7 +350,7 @@ export const rescueGeneral: LongFormMove = {
         const {general, card} = args;
         const pub = getStateById(G, pid);
         if (pub.develop.includes(card)) {
-             pub.develop.splice( pub.develop.indexOf(card),1);
+            pub.develop.splice(pub.develop.indexOf(card), 1);
             pub.discard.push(card)
             log.push(`|discard${pub.discard}`);
         } else {
@@ -452,7 +456,7 @@ export const discard: LongFormMove = {
         }
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(c)) {
-             player.hand.splice( player.hand.indexOf(c),1);
+            player.hand.splice(player.hand.indexOf(c), 1);
             const pub = getStateById(G, ctx.playerID);
             pub.discard.push(c);
         } else {
@@ -471,7 +475,7 @@ export const tieJun: LongFormMove = {
         // const pub = getStateById(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(args)) {
-             player.hand.splice( player.hand.indexOf(args),1);
+            player.hand.splice(player.hand.indexOf(args), 1);
         }
     }
 }
@@ -735,7 +739,7 @@ export const returnToHand: LongFormMove = {
         const player = playerById(G, ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         if (pub.develop.includes(args)) {
-             pub.develop.splice( pub.develop.indexOf(args),1);
+            pub.develop.splice(pub.develop.indexOf(args), 1);
             player.hand.push(args)
         } else {
             return INVALID_MOVE;
@@ -763,7 +767,7 @@ export const combatCard: LongFormMove = {
                 } else {
                     pub.discard.push(c);
                 }
-                 player.hand.splice( player.hand.indexOf(c),1);
+                player.hand.splice(player.hand.indexOf(c), 1);
             })
         }
 
@@ -787,7 +791,7 @@ export const cardEvent: LongFormMove = {
             } else {
                 pub.discard.push(args);
             }
-             player.hand.splice( player.hand.indexOf(args),1);
+            player.hand.splice(player.hand.indexOf(args), 1);
             card.event(G, ctx);
         } else {
             return INVALID_MOVE;
@@ -811,7 +815,7 @@ export const developCard: LongFormMove = {
         }
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(args)) {
-             player.hand.splice( player.hand.indexOf(args),1);
+            player.hand.splice(player.hand.indexOf(args), 1);
         } else {
             return INVALID_MOVE;
         }
@@ -927,7 +931,7 @@ export const search: LongFormMove = {
         const player = playerById(G, ctx.playerID);
         const deck = ctx.playerID as SJPlayer === SJPlayer.P1 ? G.secret.songDeck : G.secret.jinnDeck;
         if (deck.includes(cid) && cards.includes(cid)) {
-             deck.splice( deck.indexOf(cid),1);
+            deck.splice(deck.indexOf(cid), 1);
             player.hand.push(cid);
         } else {
             return INVALID_MOVE;
@@ -978,7 +982,7 @@ export const op: LongFormMove = {
         const card = sjCardById(cid);
         G.op = card.op;
         if (player.hand.includes(cid)) {
-             player.hand.splice( player.hand.indexOf(cid),1);
+            player.hand.splice(player.hand.indexOf(cid), 1);
             pub.discard.push(cid);
         }
     }
@@ -994,7 +998,7 @@ export const paiQian: LongFormMove = {
         const pub = getStateById(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(cid)) {
-             player.hand.splice( player.hand.indexOf(cid),1);
+            player.hand.splice(player.hand.indexOf(cid), 1);
             pub.discard.push(cid);
         }
     }
@@ -1065,7 +1069,7 @@ export const chooseTop: LongFormMove = {
         if (!pub.completedPlan.includes(p)) {
             return INVALID_MOVE;
         }
-         pub.completedPlan.splice( pub.completedPlan.indexOf(p),1);
+        pub.completedPlan.splice(pub.completedPlan.indexOf(p), 1);
         pub.completedPlan.push(p);
         if (ctr === Country.SONG && G.events.includes(ActiveEvents.YanJingYiNan)) {
 
@@ -1127,7 +1131,7 @@ export const takePlan: LongFormMove = {
             G.jinn.completedPlan = G.jinn.completedPlan.concat(arg);
         }
         arg.forEach((p) => {
-             G.plans.splice( G.plans.indexOf(p),1);
+            G.plans.splice(G.plans.indexOf(p), 1);
         })
         if (pub.completedPlan.length === 0) {
             ctx.events?.endTurn();
@@ -1166,7 +1170,7 @@ export const loseProvince: LongFormMove = {
             pub.corruption--;
         }
         if (pub.provinces.includes(province)) {
-             pub.provinces.splice( pub.provinces.indexOf(province),1);
+            pub.provinces.splice(pub.provinces.indexOf(province), 1);
             if (opponent) {
                 oppo.provinces.push(province)
             }
@@ -1196,7 +1200,7 @@ export const loseCity: LongFormMove = {
         const pub = getStateById(G, ctx.playerID);
         const oppo = getOpponentStateById(G, ctx.playerID);
         if (pub.cities.includes(cityID)) {
-             pub.cities.splice( pub.cities.indexOf(cityID),1);
+            pub.cities.splice(pub.cities.indexOf(cityID), 1);
             if (ctr === Country.SONG && G.song.emperor === cityID) {
                 G.song.emperor = null;
                 policyDown(G, 1);

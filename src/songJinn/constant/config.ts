@@ -1,5 +1,4 @@
 import {Ctx, PhaseConfig, StageConfig, TurnConfig} from "boardgame.io";
-import {SongJinnGame} from "./setup";
 import {TurnOrder} from "boardgame.io/core";
 import {
     cardEvent,
@@ -39,13 +38,18 @@ import {
     takePlan,
     tieJun
 } from "../moves";
-import {playerById} from "../util/fetch";
-import {drawPhaseForJinn, drawPhaseForSong, drawPlanForPlayer} from "../util/card";
-import {ActiveEvents, SJPlayer} from "./general";
+import {ActiveEvents, SJPlayer, SongJinnGame} from "./general";
 import {logger} from "../../game/logger";
-import {canChoosePlan, endTurnCheck} from "../util/check";
-import {changeDiplomacyByLOD} from "../util/change";
-import {getJinnPower, getLeadingPlayer, getSongPower} from "../util/calc";
+import {
+    canChoosePlan, changeDiplomacyByLOD,
+    drawPhaseForJinn,
+    drawPhaseForSong,
+    drawPlanForPlayer, endTurnCheck,
+    getJinnPower,
+    getLeadingPlayer,
+    getSongPower,
+    playerById
+} from "../util";
 
 export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
@@ -84,7 +88,7 @@ export const ReactStageConfig: StageConfig<SongJinnGame> = {
         recruitPuppet: recruitPuppet,
         generalSkill: generalSkill,
         deployGeneral: deployGeneral,
-        moveGeneral:moveGeneral,
+        moveGeneral: moveGeneral,
 
         rescueGeneral: rescueGeneral,
 
@@ -158,9 +162,12 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         drawPhaseForSong(G, ctx);
         drawPhaseForJinn(G, ctx);
         const songPower = getSongPower(G);
-        G.song.corruption = songPower > 7 ? songPower - 7 : 0;
+        const songCorruptionLimit = G.song.civil >= 5 ? 8 : 7;
+        G.song.corruption = songPower > songCorruptionLimit ? songPower - songCorruptionLimit : 0;
+
         const jinnPower = getJinnPower(G);
-        G.jinn.corruption = jinnPower > 7 ? jinnPower - 7 : 0;
+        const jinnCorruptionLimit = G.jinn.civil >= 5 ? 8 : 7;
+        G.jinn.corruption = jinnPower > jinnCorruptionLimit ? jinnPower - jinnCorruptionLimit : 0;
         // const firstPlayer = G.order[0];
         // cannot import PlanID here
         // if(){
@@ -265,11 +272,11 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
 
 
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
-    start: true,
+    // start: true,
     turn: StagedTurnConfig,
     moves: {
 
-        moveGeneral:moveGeneral,
+        moveGeneral: moveGeneral,
         deployGeneral: deployGeneral,
         emptyRound: emptyRound,
         op: op,

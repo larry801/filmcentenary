@@ -1,21 +1,19 @@
 import React from "react";
 import {BoardProps} from "boardgame.io/react";
-import {SongJinnGame} from "../constant/setup";
 import ErrorBoundary from "../../components/error";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {SJPlayer} from "../constant/general";
-import {getStateById, playerById, getCountryById} from "../util/fetch";
+import {SJPlayer, SongJinnGame} from "../constant/general";
 import Button from "@material-ui/core/Button";
 import {PubInfo} from "./pub-info";
 import {Operation} from "./operation";
 import {SJPlayerHand} from "./player-hand";
 import LogView from "./view-log";
-import {sjPlayerName, troopToString} from "../util/text";
 import TroopOperation from "./troops";
 import {AdjustOps} from "./adjust";
 import {ChatMessage} from "./chat-message";
 import Paper from "@material-ui/core/Paper";
+import {getCountryById, getStateById, playerById, sjPlayerName, troopToString} from "../util";
 
 export const SongJinnBoard = ({
                                   G,

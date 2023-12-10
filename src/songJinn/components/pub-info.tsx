@@ -1,15 +1,20 @@
 import React from "react";
 import {Ctx} from "boardgame.io";
-import {SongJinnGame} from "../constant/setup";
 import Grid from "@material-ui/core/Grid";
-import {getPolicy,  unitsToString} from "../util/fetch";
-import {getJinnPower, getJinnScore, getSongPower, getSongScore, totalDevelop} from "../util/calc";
 import Paper from "@material-ui/core/Paper";
 import {getPlanById} from "../constant/plan";
-import {sjCardById} from "../constant/cards";
-import {SJPlayer} from "../constant/general";
+import {SJPlayer, SongJinnGame} from "../constant/general";
 import Typography from "@material-ui/core/Typography";
-import {getReadyGeneralNames, phaseName} from "../util/text";
+
+import {
+    getJinnPower,
+    getJinnScore,
+    getPolicy,
+    getReadyGeneralNames,
+    getSongPower, getSongScore,
+    phaseName, sjCardById, totalDevelop,
+    unitsToString
+} from "../util";
 
 export interface IPubInfo {
     G: SongJinnGame,

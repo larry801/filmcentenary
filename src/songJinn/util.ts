@@ -1,47 +1,476 @@
+import {Ctx, LogEntry, PlayerID} from "boardgame.io";
 import {
     accumulator,
     ActiveEvents,
     BaseCardID,
-    Cards,
     CityID,
     Country,
+    DevelopChoice,
     EventDuration,
+    General,
+    GeneralNames,
     GeneralStatus,
     IEra,
+    isMountainPassID,
+    isNationID,
+    isRegionID,
     JinnBaseCardID,
+    JinnEarlyCardID,
     JinnGeneral,
+    JinnLateCardID,
+    JinnMidCardID,
+    LatePlanID,
+    MAX_ROUND,
+    MidPlanID,
+    MountainPasses,
+    MountainPassID,
     NationID,
+    Nations,
+    NationState,
     PlanID,
     ProvinceID,
+    ProvinceState,
     RegionID,
+    SJEventCardID,
     SJPlayer,
     SongBaseCardID,
-    SongGeneral
-} from "./general";
-import {SongJinnGame} from "./setup";
-import {Ctx} from "boardgame.io";
-import {
-    changeCivil,
-    changeMilitary,
-    colonyDown,
-    colonyUp,
-    doPlaceUnit,
-    doRecruit,
-    doRemoveNation,
-    moveGeneralByPid,
-    nationMoveJinn,
-    policyDown,
-    policyUp,
-    removeGeneral,
-    removeUnitByPlace
-} from "../util/change";
-import {developInstead, drawCardForSong} from "../util/card";
-import {getSongTroopByCity} from "../util/fetch";
+    SongEarlyCardID,
+    SongGeneral,
+    SongJinnGame,
+    SongLateCardID,
+    SongMidCardID,
+    SpecialPlan,
+    TerrainType,
+    Troop,
+    TroopPlace,
+    UNIT_SHORTHAND,
+    VictoryReason
+} from "./constant/general";
+import {getPlanById} from "./constant/plan";
+import {getRegionById} from "./constant/regions";
+import {activePlayer, shuffle} from "../game/util";
+import {logger} from "../game/logger";
+import {INVALID_MOVE, Stage} from "boardgame.io/core";
+import {getProvinceById} from "./constant/province";
+import {getCityById} from "./constant/city";
+
+export const phaseName = (c: string) => {
+    const phaseMap = {
+        'draw': '摸牌阶段',
+        'chooseFirst': '行动顺序',
+        'choosePlan': '选择作战计划',
+        'showPlan': '作战计划',
+        'action': '行动阶段',
+        'resolvePlan': '结算计划',
+        'diplomacy': '结算外交',
+        'develop': '发展阶段',
+        'deploy': '补充阶段',
+        'turnEnd': '回合结束',
+    }
+    // @ts-ignore
+    const result = phaseMap[c];
+    return result !== undefined ? result : " ";
+}
+export const StrProvince: Map<string, ProvinceID> = new Map(Object.values(ProvinceID).map(
+    (memberValue) => [`${memberValue}`, memberValue] as const
+));
+export const getNationState = (G: SongJinnGame, n: NationID) => {
+    if (G.song.nations.includes(n)) {
+        return NationState.SONG;
+    } else {
+        if (G.jinn.nations.includes(n)) {
+            return NationState.JINN;
+        } else {
+            return NationState.NEUTRAL;
+        }
+    }
+}
+export const ctr2pub = (G: SongJinnGame, country: Country) => country === Country.SONG ? G.song : G.jinn;
+export const ctr2pid = (country: Country) => country === Country.SONG ? SJPlayer.P1 : SJPlayer.P2;
+export const pid2ctr = (country: PlayerID) => country === SJPlayer.P1 ? Country.SONG : Country.JINN;
+export const currentProvStatus = (G: SongJinnGame, prov: ProvinceID) => {
+    const province = getProvinceById(prov);
+    const allCities = [...province.capital, ...province.other];
+    const songCity = allCities.filter(c => G.song.cities.includes(c)).length;
+    const jinnCity = allCities.filter(c => G.jinn.cities.includes(c)).length;
+    if (songCity === allCities.length) {
+        return ProvinceState.SONG;
+    }
+    if (jinnCity === allCities.length) {
+        return ProvinceState.JINN;
+    }
+    return ProvinceState.NEUTRAL
+}
+export const getPresentGeneral = (G: SongJinnGame, pid: PlayerID): General[] => {
+    const generals: General[] = [];
+    const pub = getStateById(G, pid);
+    pub.generals.forEach((p, idx) => {
+        if (p === GeneralStatus.TROOP) {
+            generals.push(idx as General);
+        }
+    })
+    return generals;
+}
+export const getSkillGeneral = (G: SongJinnGame, pid: PlayerID): General[] => {
+    const generals: General[] = [];
+    const pub = getStateById(G, pid);
+    pub.generalSkill.forEach((p, idx) => {
+        if (p && pub.generals[idx] === GeneralStatus.TROOP) {
+            generals.push(idx as General);
+        }
+    })
+    return generals;
+}
+export const getPlaceGeneral = (G: SongJinnGame, pid: PlayerID, place: TroopPlace): General[] => {
+    const generals: General[] = [];
+    const pub = getStateById(G, pid);
+    pub.generalPlace.forEach((p, idx) => {
+        if (p === place) {
+            generals.push(idx as General);
+        }
+    })
+    return generals;
+}
+export const optionToActualDst = (dst: string): TroopPlace => {
+    const parsed = parseInt(dst);
+    return (parsed === undefined || isNaN(parsed) ? dst : parsed) as TroopPlace;
+}
+export const getMarchDst = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
+    if (isMountainPassID(dst)) {
+        return getPassAdj(dst);
+    }
+    if (isRegionID(dst)) {
+        const reg = getRegionById(dst);
+        const result: TroopPlace[] = [...reg.land, ...reg.water];
+        Nations.forEach(n => {
+            if (getNationAdj(n).includes(dst)) {
+                result.push(n);
+            }
+        })
+        MountainPasses.forEach(n => {
+            if (getPassAdj(n).includes(dst)) {
+                result.push(n);
+            }
+        })
+        return result;
+    }
+    if (isNationID(dst)) {
+        return getNationAdj(dst);
+    }
+    // bei wei kun
+    return [];
+}
+export const getTroopByPlace = (G: SongJinnGame, p: TroopPlace) => {
+    const result: Troop[] = []
+    G.song.troops.forEach(t => {
+        if (t.p === p) {
+            result.push(t);
+        }
+    });
+    G.jinn.troops.forEach(t => {
+        if (t.p === p) {
+            result.push(t);
+
+        }
+    });
+    return result;
+}
+
+function getGeneralTroop(G: SongJinnGame, pid: string, g: General) {
+    return getTroopByPlace(G, getStateById(G, pid).generalPlace[g]);
+}
+
+export const generalWithOpponentTroop = (G: SongJinnGame, pid: PlayerID,): General[] => {
+    const result: General[] = []
+    const general = getPresentGeneral(G, pid);
+    general.forEach(g => {
+        const generalTroop = getGeneralTroop(G, pid, g);
+        generalTroop.forEach(t => {
+            if (t.country !== pid2ctr(pid)) {
+                result.push(g);
+            }
+        })
+    })
+    return result;
+}
+export const generalInTroop = (G: SongJinnGame, pid: PlayerID, general: General): boolean => {
+    const pub = getStateById(G, pid);
+    return pub.generals[general] === GeneralStatus.TROOP
+}
+export const generalRemoved = (G: SongJinnGame, pid: PlayerID, general: General): boolean => {
+    const pub = getStateById(G, pid);
+    return pub.generals[general] === GeneralStatus.REMOVED
+}
+export const getReadyGenerals = (G: SongJinnGame, pid: PlayerID) => {
+    const readyGenerals = [];
+    switch (pid as SJPlayer) {
+        case SJPlayer.P1:
+            for (let i = 0; i < 6; i++) {
+                if (G.song.generals[i] === GeneralStatus.READY) {
+                    readyGenerals.push(i);
+                }
+            }
+            break;
+        case SJPlayer.P2:
+            for (let i = 0; i < 6; i++) {
+                if (G.jinn.generals[i] === GeneralStatus.READY) {
+                    readyGenerals.push(i);
+                }
+            }
+            break;
+    }
+    return readyGenerals;
+}
+export const getMovePlan = (G: SongJinnGame) => {
+    const plans = [...G.song.plan, ...G.jinn.plan];
+    if (G.song.completedPlan.length > 0 && !G.events.includes(ActiveEvents.YanJingYiNan)) {
+        const songTop = G.song.completedPlan[G.song.completedPlan.length - 1];
+        plans.push(songTop);
+    }
+    if (G.jinn.completedPlan.length > 0) {
+        plans.push(G.jinn.completedPlan[G.jinn.completedPlan.length - 1])
+    }
+    return plans;
+}
+export const diplomaticVictory = (G: SongJinnGame) => {
+    if (G.jinn.nations.length + G.removedNation.length === Nations.length) {
+        return Country.JINN;
+    } else {
+        if (G.song.nations.length + G.removedNation.length === Nations.length) {
+            return Country.SONG;
+        } else {
+            return null;
+        }
+    }
+}
+export const getStage = (ctx: Ctx) => {
+    if (ctx.activePlayers === null) {
+        return Stage.NULL;
+    } else {
+        return ctx.activePlayers[activePlayer(ctx)]
+    }
+}
+export const getJinnTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null => {
+    G.jinn.troops.forEach(t => {
+        if (t.p === r) {
+            return t;
+        }
+    })
+    return null;
+}
+export const getSongTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | null => {
+    const log = [`getSongTroopByPlace|${r}`];
+    let result = null;
+    G.song.troops.forEach(t => {
+        if (t.p === r) {
+            log.push(`|ok${JSON.stringify(t)}`);
+            result = t;
+        }
+    });
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return result;
+}
+export const getTroopByCountryPlace = (G: SongJinnGame, ctr: Country, src: TroopPlace) => {
+    return ctr === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src)
+}
+export const getJinnTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | null => {
+    const log = [`getJinnTroopByPlace|${r}`];
+    let result = null;
+    G.jinn.troops.forEach(t => {
+        if (t.p === r) {
+            log.push(`|ok${JSON.stringify(t)}`);
+            result = t;
+        }
+    });
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return result;
+}
+export const getTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null => {
+    const st = getSongTroopByPlace(G, r);
+    const jt = getJinnTroopByRegion(G, r);
+    return st === null ? jt : st;
+}
+export const getTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => {
+    const st = getSongTroopByCity(G, r);
+    const jt = getJinnTroopByCity(G, r);
+    return st === null ? jt : st;
+}
+export const getJinnTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => {
+    const log = [`getJinnTroopByCity|${r}`];
+    let result = null;
+    G.jinn.troops.forEach(t => {
+        if (t.c === r) {
+            log.push(`|ok${JSON.stringify(t)}`);
+            result = t;
+        }
+    });
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return result;
+}
+export const getSongTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => {
+    const log = [`getSongTroopByCity|${r}`];
+    let result = null;
+    G.song.troops.forEach(t => {
+        if (t.c === r) {
+            log.push(`|ok${JSON.stringify(t)}`);
+            result = t;
+        }
+    });
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return result;
+}
+export const getSongDeployCities = (G: SongJinnGame) => {
+    return G.song.cities.filter((cid) => {
+        const troop = getJinnTroopByCity(G, cid);
+        return troop === null;
+    })
+}
+export const getJinnDeployCities = (G: SongJinnGame) => {
+    return G.jinn.cities.filter((cid) => {
+        const troop = getSongTroopByCity(G, cid);
+        return troop === null;
+    })
+}
+export const getPolicy = (G: SongJinnGame, ctx: Ctx) => {
+    if (G.events.includes(ActiveEvents.LiGang)) {
+        return G.policy > 1 ? 3 : G.policy + 2;
+    } else {
+        return G.policy;
+    }
+}
+
+export function troopPlaceToString(p: TroopPlace) {
+    if (p === null) {
+
+    }
+}
+
+export function unitsToString(units: number[]) {
+    if (units.length === 7) {
+        return jinnUnitsStr(units);
+    } else {
+        return songUnitsStr(units);
+    }
+}
+
+export function jinnUnitsStr(units: number[]) {
+    let result = "";
+    units.forEach((item, index) => {
+        if (item > 0) {
+            result = result.concat(item.toString(), UNIT_SHORTHAND[1][index]);
+        }
+    })
+    return result;
+}
+
+export function songUnitsStr(units: number[]) {
+    let result = "";
+    units.forEach((item, index) => {
+        if (item > 0) {
+            result = result.concat(item.toString(), UNIT_SHORTHAND[0][index]);
+        }
+    })
+    return result;
+}
+
+export const getNationAdj = (pid: NationID): TroopPlace[] => {
+    switch (pid) {
+        case NationID.XiLiao:
+            return [NationID.XiXia];
+        case NationID.XiXia:
+            return [
+                RegionID.R01, RegionID.R02,
+                RegionID.R09,
+                RegionID.R29, RegionID.R30, RegionID.R31, RegionID.R32
+            ];
+        case NationID.TuBo:
+            return [
+                RegionID.R29, RegionID.R33,
+                RegionID.R51, RegionID.R53, RegionID.R54,
+            ]
+        case NationID.DaLi:
+            return [RegionID.R53, RegionID.R57, RegionID.R58]
+        case NationID.GaoLi:
+            return [RegionID.R23, RegionID.R06];
+    }
+
+}
+export const getPassAdj = (pid: MountainPassID) => {
+    switch (pid) {
+        case MountainPassID.WuGuan:
+            return [RegionID.R36, RegionID.R40];
+        case MountainPassID.DaSanGuan:
+            return [RegionID.R33, RegionID.R52];
+        case MountainPassID.TongGuan:
+            return [RegionID.R36, RegionID.R37];
+        case MountainPassID.JuYongGuan:
+            return [RegionID.R02, RegionID.R07];
+        case MountainPassID.JianMenGuan:
+            return [RegionID.R51, RegionID.R54, RegionID.R55];
+
+    }
+}
+export const jinnPrivate = (G: SongJinnGame) => {
+    return G.player[SJPlayer.P2];
+}
+export const songPrivate = (G: SongJinnGame) => {
+    return G.player[SJPlayer.P2];
+}
+export const playerById = (G: SongJinnGame, pid: PlayerID) => {
+    return G.player[pid as SJPlayer];
+}
+export const getOpponentStateById = (G: SongJinnGame, pid: PlayerID) => {
+    if (pid as SJPlayer === SJPlayer.P1) {
+        return G.jinn;
+    } else {
+        return G.song;
+    }
+}
+export const getStateById = (G: SongJinnGame, pid: PlayerID) => {
+    if (pid as SJPlayer === SJPlayer.P1) {
+        return G.song;
+    } else {
+        return G.jinn;
+    }
+}
+export const getFullDesc = (card: Cards): string => {
+    let effText = "效果：" + card.effectText;
+    if (card.precondition !== null) {
+        effText = ` 前置条件：${card.precondition} ${effText}`
+    }
+    if (card.ban !== null) {
+        effText += `撤销：${card.ban}`
+    }
+    if (card.block !== null) {
+        effText += `禁止：${card.block}`
+    }
+    if (card.unlock !== null) {
+        effText += `解锁：${card.unlock}`
+    }
+    return effText;
+}
+
+export interface Cards {
+    id: SJEventCardID,
+    block: string | null
+    name: string,
+    country: Country,
+    op: number,
+    remove: boolean,
+    era: IEra,
+    duration: EventDuration,
+    effectText: string,
+    ban: string | null,
+    precondition: string | null,
+    combat: boolean,
+    unlock: string | null,
+    pre: (G: SongJinnGame, ctx: Ctx) => boolean,
+    event: (G: SongJinnGame, ctx: Ctx) => void
+}
 
 export const sjCardById: (cid: BaseCardID) => Cards = (cid: BaseCardID) => {
     return idToCard[cid];
 }
-
 export const idToCard = {
     [SongBaseCardID.S01]: {
         id: SongBaseCardID.S01,
@@ -218,7 +647,7 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
             if (!G.song.nations.includes(NationID.XiLiao)) {
-                 G.jinn.nations.splice( G.jinn.nations.indexOf(NationID.XiLiao),1);
+                G.jinn.nations.splice(G.jinn.nations.indexOf(NationID.XiLiao), 1);
                 G.song.nations.push(NationID.XiLiao);
             }
         }
@@ -368,7 +797,7 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => G.turn >= 5,
         event: (G: SongJinnGame, ctx: Ctx) => {
             G.events.push(ActiveEvents.JinTaiZongJiaBeng);
-             G.events.splice( G.events.indexOf(ActiveEvents.JinTaiZongJiaBeng),1);
+            G.events.splice(G.events.indexOf(ActiveEvents.JinTaiZongJiaBeng), 1);
         }
     },
     [SongBaseCardID.S18]: {
@@ -801,7 +1230,7 @@ export const idToCard = {
         event: (G: SongJinnGame, ctx: Ctx) => {
             G.events.push(ActiveEvents.YueShuaiZhiLai);
             G.song.plan.forEach(p => G.secret.planDeck.push(p));
-             G.secret.planDeck.splice( G.secret.planDeck.indexOf(PlanID.J23),1);
+            G.secret.planDeck.splice(G.secret.planDeck.indexOf(PlanID.J23), 1);
             G.song.plan = [PlanID.J23]
         }
     },
@@ -1124,9 +1553,9 @@ export const idToCard = {
         event: (G: SongJinnGame, ctx: Ctx) => {
             const troop = getSongTroopByCity(G, CityID.LiCheng);
             if (troop !== null) {
-                removeUnitByPlace(G,troop.u,SJPlayer.P1,troop.p);
+                removeUnitByPlace(G, troop.u, SJPlayer.P1, troop.p);
             }
-            doPlaceUnit(G,[0,0,0,0,0,2,0],Country.JINN, RegionID.R21);
+            doPlaceUnit(G, [0, 0, 0, 0, 0, 2, 0], Country.JINN, RegionID.R21);
             G.events.push(ActiveEvents.JiNanZhiFuLiuYu);
         }
     },
@@ -1724,7 +2153,7 @@ export const idToCard = {
         event: (G: SongJinnGame, ctx: Ctx) => {
             changeMilitary(G, SJPlayer.P2, 1);
             G.jinn.plan.forEach(p => G.secret.planDeck.push(p));
-             G.secret.planDeck.splice( G.secret.planDeck.indexOf(PlanID.J24),1);
+            G.secret.planDeck.splice(G.secret.planDeck.indexOf(PlanID.J24), 1);
             G.jinn.plan = [PlanID.J24]
         }
     },
@@ -1862,3 +2291,1001 @@ export const idToCard = {
     },
 
 };
+const cardIdSort = (a: SJEventCardID, b: SJEventCardID) => {
+    return sjCardById(a).op - sjCardById(b).op;
+}
+export const cardToSearch = (G: SongJinnGame, ctx: Ctx, pid: PlayerID): SJEventCardID[] => {
+    const isSong = pid as SJPlayer === SJPlayer.P1;
+    let totalDeck: SJEventCardID[] = isSong ? SongEarlyCardID : JinnEarlyCardID;
+    if (G.turn > 3) {
+        const mid = isSong ? [...SongMidCardID] : [...JinnMidCardID];
+        totalDeck = [...totalDeck, ...mid];
+    }
+    if (G.turn > 6) {
+        const late = isSong ? [...SongLateCardID] : [...JinnLateCardID];
+        totalDeck = [...totalDeck, ...late];
+    }
+    const discard = isSong ? G.song.discard : G.jinn.discard;
+    const remove = isSong ? G.song.remove : G.jinn.remove;
+    const hand = isSong ? G.player[SJPlayer.P1].hand : G.player[SJPlayer.P2].hand;
+    return totalDeck.filter(c => !(hand.includes(c) || discard.includes(c) || remove.includes(c)))
+}
+export const getCountryById = (pid: PlayerID) => {
+    switch (pid as SJPlayer) {
+        case SJPlayer.P1:
+            return Country.SONG;
+        case SJPlayer.P2:
+            return Country.JINN;
+    }
+}
+export const troopToString = (G: SongJinnGame, pid: PlayerID, t: Troop) => {
+    return t.country + placeToStr(t.p) + unitsToString(t.u) + getPlaceGeneral(G, pid, t.p);
+}
+export const getGeneralNameByPid = (pid: PlayerID, general: General) => {
+    if (pid === SJPlayer.P1) {
+        return GeneralNames[0][general];
+    } else {
+        return GeneralNames[1][general];
+    }
+}
+export const getGeneralNameByCountry = (country: Country, general: General) => {
+    if (country === Country.SONG) {
+        return GeneralNames[0][general];
+    } else {
+        return GeneralNames[1][general];
+    }
+}
+export const getPlaceGeneralNames = (G: SongJinnGame, pid: PlayerID, place: TroopPlace) => {
+    const readyGenerals = getPlaceGeneral(G, pid, place);
+    if (pid === SJPlayer.P1) {
+        return readyGenerals.map(g => GeneralNames[0][g]);
+    } else {
+        return readyGenerals.map(g => GeneralNames[1][g]);
+    }
+}
+export const getReadyGeneralNames = (G: SongJinnGame, pid: PlayerID) => {
+    const readyGenerals = getReadyGenerals(G, pid);
+    if (pid === SJPlayer.P1) {
+        return readyGenerals.map(g => GeneralNames[0][g]);
+    } else {
+        return readyGenerals.map(g => GeneralNames[1][g]);
+    }
+}
+export const placeToStr = (p: TroopPlace) => {
+    return typeof p === "number" && !isNaN(p) ? getRegionById(p).name : p;
+}
+export const sjPlayerName = (l: PlayerID): string => {
+    return l === SJPlayer.P1 ? "宋" : "金";
+}
+export const addGeneralTo = (G: SongJinnGame, pid: PlayerID, general: General, dst: TroopPlace) => {
+    const pub = getStateById(G, pid);
+    pub.generals[general] = GeneralStatus.TROOP;
+    pub.generalPlace[general] = dst;
+}
+export const moveGeneralToReady = (G: SongJinnGame, pid: PlayerID, general: General) => {
+    const pub = getStateById(G, pid);
+    pub.generals[general] = GeneralStatus.READY;
+    pub.generalPlace[general] = RegionID.R01;
+}
+export const moveGeneralByPid = (G: SongJinnGame, pid: PlayerID, general: General, dst: TroopPlace) => {
+    const pub = getStateById(G, pid);
+    pub.generalPlace[general] = dst;
+    pub.generals[general] = GeneralStatus.TROOP;
+}
+export const generalToReadyByPid = (G: SongJinnGame, pid: PlayerID, general: General) => {
+    const pub = getStateById(G, pid);
+    pub.generals[general] = GeneralStatus.READY;
+}
+export const generalToReadyByCountry = (G: SongJinnGame, ctr: Country, general: General) => {
+    const pub = ctr2pub(G, ctr);
+    pub.generals[general] = GeneralStatus.READY;
+}
+export const moveGeneralByCountry = (G: SongJinnGame, ctr: Country, general: General, dst: TroopPlace) => {
+    const pub = ctr2pub(G, ctr);
+    pub.generalPlace[general] = dst;
+}
+export const removeGeneral = (G: SongJinnGame, pid: PlayerID, general: General) => {
+    const country = getCountryById(pid);
+    switch (country) {
+        case Country.SONG:
+            G.song.generals[general] = GeneralStatus.REMOVED;
+            break;
+        case Country.JINN:
+            G.jinn.generals[general] = GeneralStatus.REMOVED;
+            break;
+    }
+}
+
+export const loseCity = (G: SongJinnGame, pid: PlayerID, c: CityID) => {
+    const city = getCityById(c);
+    if (city.capital) {
+
+    } else {
+
+    }
+}
+export const nationMoveJinn = (G: SongJinnGame, c: NationID) => {
+    if (G.song.nations.includes(c)) {
+        G.song.nations.splice(G.song.nations.indexOf(c), 1);
+    } else {
+        if (!G.jinn.nations.includes(c)) {
+            G.jinn.nations.push(c)
+        }
+    }
+}
+export const nationMoveSong = (G: SongJinnGame, c: NationID) => {
+    if (G.jinn.nations.includes(c)) {
+        G.jinn.nations.splice(G.jinn.nations.indexOf(c), 1);
+    } else {
+        if (!G.song.nations.includes(c)) {
+            G.song.nations.push(c)
+        }
+    }
+}
+export const changeDiplomacyByLOD = (G: SongJinnGame) => {
+    const log = [`changeDiplomacyByLOD`]
+    const song = playerById(G, SJPlayer.P1);
+    const jinn = playerById(G, SJPlayer.P2);
+    if (song.lod.length === 0) {
+        if (jinn.lod.length === 0) {
+            log.push(`|noLOD|`)
+        } else {
+            log.push('|moveForJinn');
+            jinn.lod.forEach(l => nationMoveJinn(G, l.nation))
+        }
+    } else {
+        if (jinn.lod.length === 0) {
+            log.push('|moveForSong');
+
+            song.lod.forEach(l => nationMoveJinn(G, l.nation))
+        } else {
+            Nations.forEach(n => {
+                let songPoint = 0;
+                let jinnPoint = 0;
+                song.lod.forEach(l => {
+                    if (l.nation === n) {
+                        songPoint += sjCardById(l.card).op;
+                    }
+                })
+                jinn.lod.forEach(l => {
+                    if (l.nation === n) {
+                        jinnPoint += sjCardById(l.card).op;
+                    }
+                })
+                if (songPoint > jinnPoint) {
+                    nationMoveSong(G, n);
+
+                } else {
+                    if (jinnPoint > songPoint) {
+                        nationMoveJinn(G, n);
+                    }
+                }
+            })
+        }
+    }
+    jinn.lod.forEach(l => G.jinn.discard.push(l.card));
+    song.lod.forEach(l => G.song.discard.push(l.card));
+    jinn.lod = [];
+    song.lod = [];
+    G.song.troops.forEach(t => {
+        if (isNationID((t.p))) {
+            log.push(`|song|${t.p}|hasTroop`);
+            nationMoveJinn(G, t.p);
+        }
+    });
+    G.jinn.troops.forEach(t => {
+        if (isNationID((t.p))) {
+            log.push(`|jinn|${t.p}|hasTroop`);
+            nationMoveSong(G, t.p);
+        }
+    });
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerID, place: TroopPlace) => {
+    const log = [`removeUnitByPlace|${placeToStr(place)}|${unitsToString(units)}`]
+    const pub = getStateById(G, pid);
+    const filtered = pub.troops.filter(t => t.p === place);
+    log.push(`${filtered}`);
+    if (filtered.length > 0) {
+        removeUnitOnTroop(G, units, pid, pub.troops.indexOf(filtered[0]));
+        if (filtered.length > 1) {
+            log.push(`|moreThanOne`);
+            mergeTroopTo(G,
+                pub.troops.indexOf(filtered[1]),
+                pub.troops.indexOf(filtered[0]),
+                pid);
+            removeUnitOnTroop(G, units, pid, pub.troops.indexOf(filtered[0]));
+        }
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    } else {
+        log.push(`noTroop`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return null;
+    }
+}
+export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerID, idx: number) => {
+    const pub = getStateById(G, pid);
+    const t = pub.troops[idx];
+    if (t === undefined) {
+        return null;
+    }
+    for (let i = 0; i < units.length; i++) {
+        if (units[i] > t.u[i]) {
+            pub.standby[i] += t.u[i];
+            t.u[i] = 0;
+        } else {
+            pub.standby[i] += units[i]
+            t.u[i] -= units[i]
+        }
+    }
+    if (troopEmpty(t)) {
+        pub.troops.splice(pub.troops.indexOf(t), 1);
+    }
+}
+export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
+    const actualUnits = [...units];
+    const pub = getStateById(G, pid);
+    for (let i = 0; i < units.length; i++) {
+        if (pub.standby[i] > units[i]) {
+            actualUnits[i] = units[i]
+            pub.standby[i] -= units[i];
+        } else {
+            actualUnits[i] = pub.standby[i];
+            pub.standby[i] = 0;
+        }
+        pub.ready[i] += actualUnits[i];
+    }
+}
+export const mergeTroopTo = (G: SongJinnGame, src: number, dst: number, pid: PlayerID) => {
+    const pub = getStateById(G, pid);
+    let a = pub.troops[src];
+    let b = pub.troops[dst];
+    if (a === undefined || b === undefined) {
+        console.log(`cannot merge${a}|to|${b}`)
+    } else {
+        for (let i = 0; i < b.u.length; i++) {
+            b.u[i] += a.u[i];
+        }
+        pub.troops.splice(pub.troops.indexOf(a), 1);
+    }
+}
+export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], country: Country) => {
+    const actualUnits = [...units];
+    switch (country) {
+        case Country.SONG:
+            const st = getSongTroopByPlace(G, dst);
+            for (let i = 0; i < units.length; i++) {
+                if (G.song.standby[i] > units[i]) {
+                    actualUnits[i] = units[i]
+                    G.song.standby[i] -= units[i];
+                } else {
+                    actualUnits[i] = G.song.standby[i];
+                    G.song.standby[i] = 0;
+                }
+            }
+            if (st === null) {
+                G.song.troops.push({
+                    p: dst,
+                    c: getRegionById(dst).city,
+                    country: Country.SONG,
+                    u: actualUnits,
+                })
+            } else {
+                for (let i = 0; i < units.length; i++) {
+                    st.u[i] += actualUnits[i];
+                }
+            }
+            break;
+        case Country.JINN:
+            const jt = getJinnTroopByRegion(G, dst);
+            for (let i = 0; i < units.length; i++) {
+                if (G.jinn.standby[i] > units[i]) {
+                    actualUnits[i] = units[i]
+                    G.jinn.standby[i] -= units[i];
+                } else {
+                    actualUnits[i] = G.jinn.standby[i];
+                    G.jinn.standby[i] = 0;
+                }
+            }
+            if (jt === null) {
+                G.jinn.troops.push({
+                    p: dst,
+                    c: getRegionById(dst).city,
+                    country: Country.JINN,
+                    u: actualUnits,
+                })
+            } else {
+                for (let i = 0; i < units.length; i++) {
+                    jt.u[i] += actualUnits[i];
+                }
+            }
+            break;
+        default:
+            return null;
+    }
+}
+export const colonyUp = (G: SongJinnGame, a: number) => {
+    if (G.colony + a > 4) {
+        G.colony = 4;
+    } else {
+        G.colony += a;
+    }
+}
+export const policyUp = (G: SongJinnGame, a: number) => {
+    if (G.policy + a > 3) {
+        G.policy = 3;
+    } else {
+        G.policy += a;
+    }
+}
+export const colonyDown = (G: SongJinnGame, a: number) => {
+    if (G.colony - a < 0) {
+        G.colony = 0;
+    } else {
+        G.colony -= a;
+    }
+}
+export const policyDown = (G: SongJinnGame, a: number) => {
+    if (G.policy - a < -3) {
+        G.policy = -3;
+    } else {
+        G.policy -= a;
+    }
+}
+export const heYiChange = (G: SongJinnGame, c: CityID) => {
+    const songTroop: Troop | null = getSongTroopByCity(G, c);
+    if (songTroop !== null) {
+        // @ts-ignore
+        for (let i = 0; i < songTroop.u.length; i++) {
+            // @ts-ignore
+            G.song.ready[i] += songTroop.u[i];
+        }
+        G.song.troops.splice(G.song.troops.indexOf(songTroop), 1);
+    }
+    const city = getCityById(c);
+    policyUp(G, city.colonizeLevel);
+    const availableQianJun = G.jinn.standby[5]
+    if (availableQianJun === 0) {
+
+    } else {
+        G.song.cities.splice(G.song.cities.indexOf(c), 1);
+        G.jinn.cities.push(c);
+        if (availableQianJun === 1) {
+            G.jinn.troops.push({
+                p: city.region,
+                c: c,
+                u: [0, 0, 0, 0, 0, 1, 0],
+
+                country: Country.JINN
+            });
+        } else {
+            G.jinn.troops.push({
+                p: city.region,
+                c: c,
+                u: [0, 0, 0, 0, 0, 2, 0],
+
+                country: Country.JINN
+            });
+        }
+    }
+
+}
+export const rollDiceByPid = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, count: number) => {
+    const country = getCountryById(pid);
+    const dices = ctx.random?.D6(count);
+    if (dices === undefined) {
+        return;
+    }
+    if (country === Country.SONG) {
+        G.song.dices = dices;
+    } else {
+        G.jinn.dices = dices;
+    }
+}
+export const getLogText = (l: LogEntry): string => {
+    const payload = l.action.payload;
+    const pid = payload.playerID;
+    const s = sjPlayerName(pid);
+    switch (l.action.type) {
+        case "MAKE_MOVE":
+            let log = s;
+            try {
+                const name = payload.type;
+                const args = payload.args !== undefined ? payload.args : "";
+                if (args === null || args.length === 0) {
+                    switch (name) {
+                        case 'choosePlan':
+                            log += '选择了一张作战计划';
+                            break;
+                        case 'endRound':
+                            log += `结束行动`;
+                            break;
+                        case 'opponentMove':
+                            log += `让对方操作`;
+                            break;
+                        default:
+                            log += `${name}|${JSON.stringify(args)}`;
+                    }
+                } else {
+                    const arg = args[0];
+                    switch (name) {
+                        case 'deployGeneral':
+                            log += `派遣${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`;
+                            break;
+                        case 'moveGeneral':
+                            log += `移动${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`;
+                            break;
+
+                        case 'rescueGeneral':
+                            log += `弃发展牌${sjCardById(arg.card).name}救援${getGeneralNameByPid(pid, arg.general)}`;
+                            break;
+                        case 'removeUnit':
+                            log += `消灭${arg.c}${placeToStr(arg.src)}${unitsToString(arg.units)}`;
+                            break;
+                        case 'placeUnit':
+                            log += `在${placeToStr(arg.place)}放置${unitsToString(arg.units)}`;
+                            break;
+                        case 'deploy':
+                            log += `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
+                            break;
+                        case 'placeUnits':
+                            log += `在${placeToStr(arg.dst)}放置${unitsToString(arg.units)}`;
+                            break;
+
+                        case 'opponentMove':
+                            log += `让对方操作`;
+                            break;
+
+                        case 'takeDamage':
+                            log += `${placeToStr(arg.src)}${arg.c}死${unitsToString(arg.standby)}溃${unitsToString(arg.ready)}`;
+                            break;
+                        case 'march':
+                            log += `${placeToStr(arg.src)}${unitsToString(arg.units)}进军${placeToStr(arg.dst)}`;
+                            break;
+                        case 'placeTroop':
+                            log += `${placeToStr(arg.src.p)}${placeToStr(arg.dst)}`;
+                            break;
+                        case 'moveTroop':
+                            log += `${placeToStr(arg.src.p)}全军移动到${placeToStr(arg.dst)}`;
+                            break;
+
+                        case 'rollDices':
+                            log += `扔了${arg === undefined ? 5 : arg}个骰子`;
+                            break;
+                        case 'chooseFirst':
+                            log += `选择${sjPlayerName(arg.choice)}先行动`;
+                            break;
+                        case 'combatCard':
+                            log += arg.length === 0 ? "不使用战斗牌" :
+                                `使用战斗牌${arg.map((p: SJEventCardID) => sjCardById(p).name)}`;
+                            break;
+
+                        case 'generalSkill':
+                            log += `横置${getGeneralNameByPid(pid, arg)}`
+                            break;
+
+                        case 'takePlan':
+                            log += `拿走了${arg.map((p: PlanID) => getPlanById(p).name)}`;
+                            break;
+                        case 'chooseTop':
+                            log += `把${getPlanById(arg).name}放在最上面`;
+                            break;
+                        case 'jianLiDaQi':
+                            log += `建立大齐 齐控制${arg.join(',')}`;
+                            break;
+                        case 'showPlan':
+                            log += `展示${arg.map((p: PlanID) => getPlanById(p).name)}`;
+                            break;
+
+                        case 'loseProvince':
+                            log += `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`
+                            break;
+                        case 'controlProvince':
+                            log += `控制了${arg.province}${arg.opponent ? "对手占领" : ""}`
+                            break;
+                        case 'controlCity':
+                            log += `控制${arg.cityID}${arg.opponent ? "对手占领" : ""}`;
+                            break;
+                        case 'loseCity':
+                            log += `丢失${arg.cityID}${arg.opponent ? "对手占领" : ""}`;
+                            break;
+
+
+                        case 'discard':
+                            log += `弃牌${sjCardById(arg).name}`;
+                            break;
+                        case 'search':
+                            log += `检索${sjCardById(arg).name}`;
+                            break;
+                        case 'op':
+                            log += `打出${sjCardById(arg).name}`;
+                            break;
+                        case 'cardEvent':
+                            log += `事件${sjCardById(arg).name}`;
+                            break;
+                        case 'developCard':
+                            log += `发展${sjCardById(arg).name}`;
+                            break;
+                        case 'down':
+                            log += `降低${arg}`;
+                            break;
+                        case 'develop':
+                            log += `${arg !== DevelopChoice.EMPEROR ? "提升" : ""}${arg}`;
+                            break;
+                        case 'recruitUnit':
+                            log += `征募${unitsToString(arg)}`;
+                            break;
+                        case 'recruitPuppet':
+                            log += `在${getCityById(arg).name}征募签军`;
+                            break;
+                        case 'emperor':
+                            log += `在${getCityById(arg).name}拥立`;
+                            break;
+                        case 'letter':
+                            log += `向${arg.nation}递交了国书`;
+                            break;
+                        case 'heYi':
+                            log += `用${sjCardById(arg).name}和议`;
+                            break;
+                        case 'tieJun':
+                            log += `用${sjCardById(arg).name}贴军`;
+                            break;
+                        case 'paiQian':
+                            log += `用${sjCardById(arg).name}派遣`;
+                            break;
+                        case 'choosePlan':
+                            log += '选择了一张作战计划';
+                            break;
+                        case 'endRound':
+                            log += `结束第${arg}行动轮`;
+                            break;
+                        default:
+                            log += `|${JSON.stringify(name)}|${JSON.stringify(arg)}`
+                    }
+                }
+            } catch (e) {
+                log += `|${JSON.stringify(l)}|${e.toString()}|${JSON.stringify(e.stackTrace)}`
+            }
+            return log;
+        case "GAME_EVENT":
+            if (payload.type === 'endPhase') {
+                return `${phaseName(l.phase)}结束`
+            } else {
+                return "";
+            }
+        case "UNDO":
+            return s + "撤销";
+        case "REDO":
+            return s + "恢复";
+        default:
+            return "";
+    }
+}
+export const developInstead = (G: SongJinnGame, pid: PlayerID, cid: SJEventCardID) => {
+    const pub = getStateById(G, pid)
+    pub.develop.push(cid);
+    pub.discard.splice(pub.discard.indexOf(cid), 1);
+}
+export const drawPlanForPlayer = (G: SongJinnGame, pid: PlayerID) => {
+    const p = playerById(G, pid);
+    const military = getStateById(G, pid).military;
+    for (let i = 0; i < military; i++) {
+        const newPlan = G.secret.planDeck.pop();
+        if (newPlan !== undefined) {
+            p.plans.push(newPlan);
+        } else {
+
+        }
+    }
+}
+export const drawCardForSong = (G: SongJinnGame, ctx: Ctx) => {
+    let deck = G.secret.songDeck;
+    const player = G.player[SJPlayer.P1];
+    const card = deck.pop();
+    if (card === undefined) {
+        G.secret.songDeck = shuffle(ctx, G.song.discard);
+        G.song.discard = [];
+    } else {
+        player.hand.push(card);
+    }
+    if (deck.length === 0) {
+        G.secret.songDeck = shuffle(ctx, G.song.discard);
+        G.song.discard = [];
+    }
+}
+export const drawCardForJinn = (G: SongJinnGame, ctx: Ctx) => {
+    const player = G.player[SJPlayer.P2];
+    const card = G.secret.jinnDeck.pop();
+    if (card === undefined) {
+        G.secret.jinnDeck = shuffle(ctx, G.song.discard);
+        G.jinn.discard = [];
+    } else {
+        player.hand.push(card);
+    }
+    if (G.secret.jinnDeck.length === 0) {
+        G.secret.jinnDeck = shuffle(ctx, G.song.discard);
+        G.jinn.discard = [];
+    }
+}
+export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
+    return G.jinn.civil > G.song.civil ? SJPlayer.P2 : SJPlayer.P1;
+}
+export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
+    const pub = getStateById(G, playerId);
+    const d = pub.develop.map(c => sjCardById(c).op);
+    if (d.length > 0) {
+        let sum = d.reduce(accumulator);
+        if (pub.develop.includes(JinnBaseCardID.J40)) {
+            sum += G.colony * 2 - 2;
+        }
+        if (pub.develop.includes(SongBaseCardID.S45)) {
+            sum += G.jinn.cities.filter(c => getCityById(c).colonizeLevel > G.colony).length - 3;
+        }
+        return sum;
+    } else {
+        return 0;
+    }
+}
+export const remainDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
+    return totalDevelop(G, ctx, playerId) - getStateById(G, playerId).usedDevelop;
+}
+
+export function troopIsArmy(G: SongJinnGame, ctx: Ctx, troop: Troop) {
+    return troopEndurance(G, ctx, troop) !== 0;
+}
+
+export function troopEndurance(G: SongJinnGame, ctx: Ctx, troop: Troop): number {
+    let endurance = 0;
+    let terrainType;
+    if (troop.p === null) {
+        if (troop.c === null) {
+            return -1;
+        }
+        terrainType = getRegionById(getCityById(troop.c).region).terrain;
+    } else {
+        if (isRegionID(troop.p)) {
+            terrainType = getRegionById(troop.p).terrain;
+        } else {
+            if (isMountainPassID(troop.p)) {
+                terrainType = TerrainType.RAMPART;
+            } else {
+                // TODO other country endurance
+                terrainType = TerrainType.FLATLAND;
+            }
+        }
+    }
+    let unitEndurance: number[] = [];
+    switch (troop.country) {
+        case Country.SONG:
+            unitEndurance = [2, 1, 1, 0, 0, 2];
+            if (G.events.includes(ActiveEvents.ZhongBuBing)) {
+                unitEndurance[0] = 3;
+            }
+            break;
+        case Country.JINN:
+            unitEndurance = [2, 1, 2, 0, 0, 1, 1];
+            if (G.events.includes(ActiveEvents.ZhongBuBing)) {
+                unitEndurance[0] = 3;
+            }
+            break;
+    }
+    if (terrainType === TerrainType.SWAMP) {
+        unitEndurance[3] = 2;
+    }
+    troop.u.forEach((i, idx) => {
+        endurance += i * unitEndurance[idx]
+    })
+    return endurance;
+}
+
+export const getSongScore = (G: SongJinnGame): number => {
+    let score = getSongPower(G);
+    G.song.completedPlan.forEach((pid) => {
+        score += getPlanById(pid).vp;
+    })
+    score += G.song.military;
+    score += G.song.civil;
+    if (G.events.includes(ActiveEvents.YanJingYiNan)) {
+        score++;
+    }
+    return score
+}
+export const getSongPower = (G: SongJinnGame): number => {
+    const countedProvince = [...G.song.provinces];
+    countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
+    if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
+        countedProvince.splice(countedProvince.indexOf(ProvinceID.FUJIANLU), 1);
+    }
+    let power = countedProvince.length;
+
+    if (G.song.emperor !== null) {
+        power++;
+    }
+    if (G.events.includes(ActiveEvents.JianYanNanDu)) {
+        power++;
+    }
+    if (G.song.civil >= 6) {
+        power++;
+    }
+    return power;
+}
+export const getJinnScore = (G: SongJinnGame): number => {
+    let score = getJinnPower(G);
+    G.jinn.completedPlan.forEach((pid) => {
+        score += getPlanById(pid).vp;
+    })
+    score += G.jinn.military;
+    score += G.jinn.civil;
+    return score;
+}
+export const getJinnPower = (G: SongJinnGame): number => {
+    const countedProvince = [...G.jinn.provinces];
+    countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
+    if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
+        countedProvince.splice(countedProvince.indexOf(ProvinceID.FUJIANLU), 1);
+
+    }
+    let power = countedProvince.length;
+    if (G.jinn.emperor !== null) {
+        power++;
+    }
+    if (G.events.includes(ActiveEvents.JingKangZhiBian)) {
+        power++;
+    }
+    if (G.song.civil >= 6) {
+        power++;
+    }
+    return power;
+}
+export const drawPhaseForSong = (G: SongJinnGame, ctx: Ctx) => {
+    const player = G.player[SJPlayer.P1];
+    const hand = player.hand;
+    const power = G.song.civil >= 7 ? 9 : getSongPower(G);
+
+    const deck = G.secret.jinnDeck;
+    const discard = G.jinn.discard;
+    const drawCount = power > 9 ? 9 : power;
+    if (deck.length + hand.length + discard.length < drawCount) {
+        player.hand = hand.concat(deck, discard);
+        G.secret.songDeck = [];
+        G.song.discard = [];
+    } else {
+        while (hand.length < drawCount) {
+            drawCardForSong(G, ctx);
+        }
+    }
+}
+export const drawPhaseForJinn = (G: SongJinnGame, ctx: Ctx) => {
+    const player = G.player[SJPlayer.P2];
+    const hand = player.hand;
+    const power = G.jinn.civil >= 7 ? 9 : getJinnPower(G);
+
+    const deck = G.secret.jinnDeck;
+    const discard = G.jinn.discard;
+    const drawCount = power > 9 ? 9 : power;
+    if (deck.length + hand.length + discard.length < drawCount) {
+        player.hand = hand.concat(deck, discard);
+        G.secret.jinnDeck = [];
+        G.jinn.discard = [];
+    } else {
+        while (hand.length < drawCount) {
+            drawCardForJinn(G, ctx);
+        }
+    }
+}
+export const drawPhaseForPlayer = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+    switch (pid as SJPlayer) {
+        case SJPlayer.P1:
+            drawPhaseForSong(G, ctx);
+            break;
+        case SJPlayer.P2:
+            drawPhaseForJinn(G, ctx);
+            break;
+    }
+}
+export const addLateTermCard = (G: SongJinnGame, ctx: Ctx) => {
+    SongLateCardID.forEach(c => G.secret.songDeck.push(c));
+    JinnLateCardID.forEach(c => G.secret.jinnDeck.push(c));
+    G.secret.songDeck = shuffle(ctx, G.secret.songDeck);
+    G.secret.jinnDeck = shuffle(ctx, G.secret.jinnDeck);
+    LatePlanID.forEach(p => G.secret.planDeck.push(p));
+    G.secret.planDeck = shuffle(ctx, G.secret.planDeck);
+}
+export const addMidTermCard = (G: SongJinnGame, ctx: Ctx) => {
+    SongMidCardID.forEach(c => G.secret.songDeck.push(c));
+    JinnMidCardID.forEach(c => G.secret.jinnDeck.push(c));
+    G.secret.songDeck = shuffle(ctx, G.secret.songDeck);
+    G.secret.jinnDeck = shuffle(ctx, G.secret.jinnDeck);
+    MidPlanID.forEach(p => G.secret.planDeck.push(p));
+    G.secret.planDeck = shuffle(ctx, G.secret.planDeck);
+}
+export const troopEmpty = (troop: Troop) => {
+    return troop.u.filter(c => c > 0).length === 0
+}
+export const jieSuanLuQuan = (G: SongJinnGame, ctx: Ctx, pid: ProvinceID) => {
+    const prov = getProvinceById(pid);
+    const cities = [...prov.capital, ...prov.other]
+    const filtered = cities.filter(c => G.song.cities.includes(c))
+};
+export const canChoosePlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
+    if ([PlanID.J23, PlanID.J24].includes(plan)) {
+        const ctr = getCountryById(pid);
+        if (ctr === Country.JINN && plan === PlanID.J23) {
+            return false
+        }
+        if (ctr === Country.SONG && plan === PlanID.J24) {
+            return false
+        }
+    }
+    return getStateById(G, pid).military >= getPlanById(plan).level;
+}
+export const checkPlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
+    const planObj = getPlanById(plan);
+    const pub = getStateById(G, pid);
+    const filtered = planObj.provinces.filter(prov => pub.provinces.includes(prov));
+    if (SpecialPlan.includes(plan)) {
+        pub.specialPlan = filtered.length;
+    }
+    return filtered.length === planObj.provinces.length;
+}
+export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
+    const log = [`t${G.turn}endTurnCheck`];
+    if (G.turn === 2) {
+        addMidTermCard(G, ctx);
+    }
+    if (G.turn === 6) {
+        addLateTermCard(G, ctx);
+    }
+    if (G.events.includes(ActiveEvents.YueShuaiZhiLai)) {
+        log.push(`|RemoveYueShuaiZhiLai|${G.events.toString()}`);
+        G.events.splice(G.events.indexOf(ActiveEvents.YueShuaiZhiLai), 1);
+        log.push(`|after|${G.events.toString()}`);
+    }
+    G.events.splice(G.events.indexOf(ActiveEvents.LiGang), 1);
+    if (G.turn >= MAX_ROUND) {
+        const songScore = getSongScore(G);
+        const jinnScore = getJinnScore(G);
+        const winner = jinnScore > songScore ? SJPlayer.P2 : SJPlayer.P1;
+        ctx.events?.endGame({
+            winner: winner,
+            reason: VictoryReason.ShaoXingHeYi
+        })
+    } else {
+        log.push(`moveTurnMarker`);
+        G.turn++;
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
+    const log = [`t${G.turn}r${G.round}|endRoundCheck`];
+    if (G.order[1] === ctx.playerID) {
+        log.push(`|second`);
+        if (G.round >= MAX_ROUND) {
+            log.push(`|action|end|resolvePlan`);
+            ctx.events?.setPhase('resolvePlan')
+        } else {
+            G.round++;
+            log.push(`|r${G.round}start`);
+        }
+    } else {
+        log.push(`|firstPlayer`);
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+export const returnDevCardCheck = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cid: SJEventCardID) => {
+    const pub = getStateById(G, pid);
+    const card = sjCardById(cid);
+    return totalDevelop(G, ctx, pid) - pub.usedDevelop > card.op;
+}
+export const heYiCheck = (G: SongJinnGame, ctx: Ctx) => {
+    return G.policy < 0;
+}
+export const doGeneralSkill = (G: SongJinnGame, pid: PlayerID, g: General) => {
+    const pub = getStateById(G, pid);
+    pub.generalSkill[g] = false;
+}
+export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
+    const pub = getStateById(G, pid);
+    if (pub.civil + a < 1) {
+        pub.civil = 1;
+    } else {
+        if (pub.civil + a > 7) {
+            pub.civil = 7;
+        } else {
+            pub.civil += a;
+        }
+    }
+}
+export const doRemoveNation = (G: SongJinnGame, nation: NationID) => {
+    G.removedNation.push(nation);
+    G.song.nations.splice(G.song.nations.indexOf(nation), 1);
+    G.jinn.nations.splice(G.jinn.nations.indexOf(nation), 1);
+}
+export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID) => {
+    const pub = getStateById(G, pid);
+    const oppo = getOpponentStateById(G, pid);
+    if (oppo.provinces.includes(prov)) {
+        oppo.provinces.splice(oppo.provinces.indexOf(prov), 1);
+    } else {
+        pub.provinces.push(prov);
+    }
+}
+export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
+    const pub = getStateById(G, pid);
+    const oppo = getOpponentStateById(G, pid);
+    if (oppo.cities.includes(cid)) {
+        oppo.cities.splice(oppo.cities.indexOf(cid), 1);
+    } else {
+        pub.cities.push(cid);
+    }
+}
+export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
+    const pub = getStateById(G, pid);
+    const oppo = getOpponentStateById(G, pid)
+
+    if (pid === SJPlayer.P1) {
+        policyDown(G, 1);
+    }
+    if (pub.corruption > 0) {
+        pub.corruption--;
+    }
+    if (pub.provinces.includes(prov)) {
+        pub.provinces.splice(pub.provinces.indexOf(prov), 1);
+        if (opponent) {
+            oppo.provinces.push(prov);
+        }
+    }
+}
+export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
+    const pub = getStateById(G, pid);
+    if (pub.military + a < 1) {
+        pub.military = 1;
+    } else {
+        if (pub.military + a > 7) {
+            pub.military = 7;
+        } else {
+            pub.military += a;
+        }
+    }
+}
+export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, place: TroopPlace) => {
+    const log = [`doPlaceUnit|${unitsToString(units)}${country}${placeToStr(place)}`];
+
+    const target = ctr2pid(country);
+    const pub = getStateById(G, target);
+    pub.standby.forEach((u, idx) => {
+        if (u < units[idx]) {
+            log.push(`${u}<${units[idx]}|INVALID_MOVE`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+    });
+
+    const t = country === Country.SONG ? getSongTroopByPlace(G, place) : getJinnTroopByPlace(G, place);
+    if (t === null) {
+        log.push(`noTroop`);
+        let city = null;
+        if (isRegionID(place)) {
+
+            city = getRegionById(place).city;
+            log.push(`|${city}`);
+        }
+        pub.troops.push({
+            u: units,
+            country: country,
+            c: city,
+            p: place,
+        })
+        for (let i = 0; i < units.length; i++) {
+            pub.standby[i] -= units[i];
+        }
+    } else {
+        log.push(`${JSON.stringify(t)}`);
+        for (let i = 0; i < units.length; i++) {
+            t.u[i] += units[i];
+            pub.standby[i] -= units[i];
+        }
+        log.push(`|after|${unitsToString(t.u)}${JSON.stringify(t)}`);
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}

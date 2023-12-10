@@ -1,23 +1,11 @@
 import React, {useState} from "react";
 import {Ctx, PlayerID} from "boardgame.io"
-import {SongJinnGame} from "../constant/setup";
 import Grid from "@material-ui/core/Grid";
 
-import {
-    ctr2pub,
-    getCountryById,
-    getMarchDst,
-    getOpponentStateById, getPlaceGeneral, getReadyGenerals,
-    getStateById,
-    optionToActualDst,
-    StrProvince,
-    unitsToString
-} from "../util/fetch";
 import Button from "@material-ui/core/Button";
 import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
-import {getGeneralNameByCountry, getPlaceGeneralNames, placeToStr} from "../util/text";
 import {
     CityID,
     Country,
@@ -25,7 +13,7 @@ import {
     isRegionID,
     JinnGeneral,
     ProvinceID,
-    RegionID, SongGeneral,
+    RegionID, SongGeneral, SongJinnGame,
     Troop,
     UNIT_SHORTHAND
 } from "../constant/general";
@@ -34,6 +22,15 @@ import {getProvinceById} from "../constant/province";
 import {getRegionById} from "../constant/regions";
 import CheckBoxDialog from "./choice";
 import {ChooseUnitsDialog} from "./recruit";
+import {
+    ctr2pub,
+    getCountryById,
+    getGeneralNameByCountry, getMarchDst,
+    getOpponentStateById, getPlaceGeneral,
+    getPlaceGeneralNames, getReadyGenerals,
+    getStateById, optionToActualDst,
+    placeToStr, StrProvince, unitsToString
+} from "../util";
 
 export interface IPlayerHandProps {
     G: SongJinnGame,

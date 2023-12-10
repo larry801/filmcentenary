@@ -5,9 +5,9 @@ import Button from "@material-ui/core/Button";
 import copy from "copy-to-clipboard";
 import ContentCopyIcon from '@material-ui/icons/FileCopy';
 import IconButton from '@material-ui/core/IconButton';
-import {getLogText} from "../util/text";
 import TextField from '@material-ui/core/TextField';
-import {SongJinnGame} from "../constant/setup";
+import {getLogText} from "../util";
+import {SongJinnGame} from "../constant/general";
 
 export interface ILogViewProps {
     log: LogEntry[],

@@ -1,20 +1,18 @@
 import React, {useState} from "react";
-import {SongJinnGame} from "../constant/setup";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
+import {CityID, DevelopChoice, General, ProvinceID, RegionID, SongJinnGame} from "../constant/general";
+import {getProvinceById} from "../constant/province";
+import {getRegionById} from "../constant/regions";
 import {
     getCountryById,
+    getGeneralNameByCountry,
     getPresentGeneral,
     getReadyGenerals,
     getStateById,
-    playerById,
-    StrProvince
-} from "../util/fetch";
-import {CityID, DevelopChoice, General, ProvinceID, RegionID} from "../constant/general";
-import {getGeneralNameByCountry} from "../util/text";
-import {getProvinceById} from "../constant/province";
-import {getRegionById} from "../constant/regions";
+    playerById, StrProvince
+} from "../util";
 
 export interface IOperationProps {
     G: SongJinnGame;

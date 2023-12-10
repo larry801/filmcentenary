@@ -1,6 +1,6 @@
 import React from "react";
-import {SongJinnGame} from "../constant/setup";
 import Grid from "@material-ui/core/Grid";
+import {SongJinnGame} from "../constant/general";
 
 export interface IMarchProps {
     G: SongJinnGame,

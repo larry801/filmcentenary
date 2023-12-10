@@ -1,5 +1,4 @@
 import {Ctx, Game} from "boardgame.io";
-import {setupSongJinn, SongJinnGame} from "./constant/setup";
 import {PlayerView} from "boardgame.io/core";
 import {
     ActionPhaseConfig,
@@ -14,9 +13,10 @@ import {
     ShowPlanPhaseConfig,
     TurnEndPhaseConfig
 } from "./constant/config";
-import {getJinnPower, getSongPower} from "./util/calc";
-import {Country, SJPlayer, VictoryReason} from "./constant/general";
-import {diplomaticVictory} from "./util/fetch";
+import {Country, setupSongJinn, SJPlayer, SongJinnGame, VictoryReason} from "./constant/general";
+
+
+import {diplomaticVictory, getJinnPower, getSongPower} from "./util";
 
 
 export const SongJinnGameDef: Game<SongJinnGame> = {

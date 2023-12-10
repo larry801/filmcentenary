@@ -1,31 +1,28 @@
 import React, {useState} from "react";
-import {SongJinnGame} from "../constant/setup";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {
-    cardToSearch, generalWithOpponentTroop,
-    getCountryById,
-    getSkillGeneral,
-    getStateById,
-    playerById
-} from "../util/fetch";
 import {
     ActiveEvents,
     Country,
     DevelopChoice,
     General,
-    SJPlayer,
+    SJPlayer, SongJinnGame,
 } from "../constant/general";
-import {remainDevelop} from "../util/calc";
-import {returnDevCardCheck} from "../util/check";
-import {sjCardById} from "../constant/cards";
 import {getPlanById} from "../constant/plan";
 import Button from "@material-ui/core/Button";
 import CheckBoxDialog from "./choice";
 import {ChooseUnitsDialog} from "./recruit";
 import {actualStage} from "../../game/util";
-import {getGeneralNameByCountry} from "../util/text";
+
+import {
+    cardToSearch,
+    generalWithOpponentTroop,
+    getCountryById,
+    getGeneralNameByCountry, getSkillGeneral,
+    getStateById,
+    playerById, remainDevelop, returnDevCardCheck, sjCardById
+} from "../util";
 
 
 export interface IOperationProps {
