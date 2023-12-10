@@ -1,10 +1,8 @@
 import {
     ActiveEvents,
     CityID,
-    Country,
-    EarlyPlanID,
+    Country, EarlyPlanID,
     GeneralStatus,
-    JinnBaseCardID,
     JinnEarlyCardID,
     LetterOfCredence,
     Level,
@@ -21,14 +19,14 @@ import {
 } from "./general";
 import {Ctx} from "boardgame.io";
 import {shuffle} from "../../game/util";
-
-export interface GeneralInfo {
-    country: Country;
-    name: string;
-    status: GeneralStatus;
-    place: TroopPlace | null;
-    skill: boolean;
-}
+//
+// export interface GeneralInfo {
+//     country: Country;
+//     name: string;
+//     status: GeneralStatus;
+//     place: TroopPlace | null;
+//     skill: boolean;
+// }
 
 export interface SJPubInfo {
     specialPlan: number,
@@ -232,6 +230,7 @@ export const emptyPlayerInfo: () => SJPlayerInfo = () => {
 }
 
 export interface SongJinnGame {
+    matchID:string,
     pending: {
         event: string,
         regions: RegionID[],
@@ -266,9 +265,10 @@ export interface SongJinnGame {
 export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: Ctx, setupData: any) => {
     const songDeck = shuffle(ctx, SongEarlyCardID);
     const jinnDeck = shuffle(ctx, JinnEarlyCardID);
-    const planDeck = shuffle(ctx, SpecialPlan);
-    // const planDeck = shuffle(ctx, EarlyPlanID);
+    // const planDeck = shuffle(ctx, SpecialPlan);
+    const planDeck = shuffle(ctx, EarlyPlanID);
     const G = {
+        matchID:"default",
         pending: {
             event: "",
             regions: [],

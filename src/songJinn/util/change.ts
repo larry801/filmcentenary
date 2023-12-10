@@ -123,7 +123,7 @@ export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, 
     pub.standby.forEach((u, idx) => {
         if (u < units[idx]) {
             log.push(`${u}<${units[idx]}|INVALID_MOVE`);
-            logger.debug(`${log.join('')}`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
     });
@@ -154,7 +154,7 @@ export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, 
         }
         log.push(`|after|${unitsToString(t.u)}${JSON.stringify(t)}`);
     }
-    logger.debug(`${log.join('')}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerID, place: TroopPlace) => {
     const log = [`removeUnitByPlace|${placeToStr(place)}|${unitsToString(units)}`]
@@ -171,10 +171,10 @@ export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerI
                 pid);
             removeUnitOnTroop(G, units, pid, pub.troops.indexOf(filtered[0]));
         }
-        logger.debug(`${log.join('')}`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
     } else {
         log.push(`noTroop`);
-        logger.debug(`${log.join('')}`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
         return null;
     }
 }
@@ -312,24 +312,6 @@ export const policyDown = (G: SongJinnGame, a: number) => {
     }
 }
 
-export const moveGeneral = (G: SongJinnGame, pid: PlayerID, general: General, dst: TroopPlace) => {
-    const ctr = getCountryById(pid);
-    const pub = getStateById(G, pid);
-    const player = playerById(G, pid);
-    const gState = pub.generals[general];
-
-    switch (gState) {
-        case GeneralStatus.PRE:
-            break;
-        case GeneralStatus.TROOP:
-            break;
-        case GeneralStatus.READY:
-            break;
-        case GeneralStatus.REMOVED:
-            break;
-    }
-}
-
 //Generals
 
 
@@ -463,6 +445,7 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
             nationMoveSong(G, t.p);
         }
     });
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export const heYiChange = (G: SongJinnGame, c: CityID) => {

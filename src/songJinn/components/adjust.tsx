@@ -126,10 +126,9 @@ export const AdjustOps = ({
                     setDeployCityChosen(true)
                 }else{
                     moves.deployGeneral({country: ctr, general: readyGenerals[0],dst:c})
-
                 }
             }
-        } choices={Object.values(CityID).map(c => {
+        } choices={G.song.cities.map(c => {
         return {
             label: c,
             value: c,
@@ -138,6 +137,7 @@ export const AdjustOps = ({
         }
     })} defaultChoice={""} show={isActive && readyGenerals.length > 0 && !deployCityChosen}
         title={"请选择要派遣的城市"} toggleText={"派遣"} initial={false}/>
+
     const deployGeneralDialog = <ChoiceDialog
         callback={(c) => {
             const g: General = parseInt(c) as General;

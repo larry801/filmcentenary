@@ -14,7 +14,7 @@ import {LogEntry, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
 import {getPlanById} from "../constant/plan";
 import {getCityById} from "../constant/city";
-import {getPlaceGeneral, getReadyGenerals, unitsToString} from "./fetch";
+import {getPlaceGeneral, getReadyGenerals, pid2ctr, unitsToString} from "./fetch";
 import {SongJinnGame} from "../constant/setup";
 
 export const phaseName = (c: string) => {
@@ -107,8 +107,15 @@ export const getLogText = (l: LogEntry): string => {
                 } else {
                     const arg = args[0];
                     switch (name) {
+                        case 'deployGeneral':
+                            log += `派遣${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`;
+                            break;
+                        case 'moveGeneral':
+                            log += `移动${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`;
+                            break;
+
                         case 'rescueGeneral':
-                            log += `弃发展牌${sjCardById(arg.card)}救援${getGeneralNameByPid(pid, arg.general)}`;
+                            log += `弃发展牌${sjCardById(arg.card).name}救援${getGeneralNameByPid(pid, arg.general)}`;
                             break;
                         case 'removeUnit':
                             log += `消灭${arg.c}${placeToStr(arg.src)}${unitsToString(arg.units)}`;
@@ -144,7 +151,7 @@ export const getLogText = (l: LogEntry): string => {
                             log += `扔了${arg === undefined ? 5 : arg}个骰子`;
                             break;
                         case 'chooseFirst':
-                            log += `选择${sjPlayerName(arg)}先行动`;
+                            log += `选择${sjPlayerName(arg.choice)}先行动`;
                             break;
                         case 'combatCard':
                             log += arg.length === 0 ? "不使用战斗牌" :

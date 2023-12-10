@@ -142,7 +142,7 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
             //
             // }
         }
-        logger.debug(log.join(''));
+        logger.debug(`${G.matchID}|${log.join('')}`);
     },
     onEnd: (G, ctx) => endTurnCheck(G, ctx),
     moves: {
@@ -174,7 +174,7 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         const log = [`drawPhase|onEnd`]
         G.order = [getLeadingPlayer(G)]
         log.push(`${G.order.toString()}`);
-        logger.debug(`${log.join('')}`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
     },
     moves: {
         searchFirst: searchFirst,
@@ -225,7 +225,7 @@ export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
                 G.order = [secondPid];
             }
         }
-        logger.debug(log.join(''));
+        logger.debug(`${G.matchID}|${log.join('')}`);
     },
     onEnd: (G, ctx) => {
         const log = [`choosePlan|onEnd|${G.order}`]
@@ -238,7 +238,7 @@ export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
                 break
         }
         log.push(`|resetOrder${JSON.stringify(G.order)}`)
-        logger.debug(log.join(''));
+        logger.debug(`${G.matchID}|${log.join('')}`);
     },
     turn: NormalTurnConfig,
     moves: {

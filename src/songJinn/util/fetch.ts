@@ -34,7 +34,6 @@ import {activePlayer} from "../../game/util";
 import {sjCardById} from "../constant/cards";
 import {logger} from "../../game/logger";
 import {getProvinceById} from "../constant/province";
-import pub from "../../components/pub";
 
 
 export const StrProvince: Map<string, ProvinceID> = new Map(Object.values(ProvinceID).map(
@@ -252,7 +251,7 @@ export const getSongTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
             result = t;
         }
     });
-    logger.debug(`${log.join('')}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
     return result;
 }
 
@@ -269,7 +268,7 @@ export const getJinnTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
             result = t;
         }
     });
-    logger.debug(`${log.join('')}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
     return result;
 }
 
@@ -295,7 +294,7 @@ export const getJinnTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => 
             result = t;
         }
     });
-    logger.debug(`${log.join('')}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
     return result;
 }
 
@@ -308,7 +307,7 @@ export const getSongTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => 
             result = t;
         }
     });
-    logger.debug(`${log.join('')}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
     return result;
 }
 
@@ -464,8 +463,4 @@ export const getCountryById = (pid: PlayerID) => {
         case SJPlayer.P2:
             return Country.JINN;
     }
-}
-
-export const getLogText = (l: LogEntry) => {
-
 }

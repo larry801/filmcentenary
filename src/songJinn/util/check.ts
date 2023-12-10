@@ -77,7 +77,7 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
         log.push(`moveTurnMarker`);
         G.turn++;
     }
-    logger.debug(log.join(''));
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
@@ -94,7 +94,7 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
     } else {
         log.push(`|firstPlayer`);
     }
-    logger.debug(log.join(''));
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export const returnDevCardCheck = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cid: SJEventCardID) => {

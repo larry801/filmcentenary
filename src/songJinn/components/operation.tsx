@@ -34,6 +34,7 @@ export interface IOperationProps {
     playerID: string;
     moves: Record<string, (...args: any[]) => void>;
     isActive: boolean;
+    matchID:string;
 }
 
 export const Operation = ({
@@ -41,7 +42,8 @@ export const Operation = ({
                               ctx,
                               playerID,
                               moves,
-                              isActive
+                              isActive,
+    matchID
                           }: IOperationProps) => {
 
     const ctr = getCountryById(playerID);
@@ -52,7 +54,7 @@ export const Operation = ({
 
 
     const chooseFirst = (choice: string) => {
-        moves.chooseFirst(choice);
+        moves.chooseFirst({choice:choice,matchID:matchID});
     }
     const chooseFirstDialog = <ChoiceDialog
         callback={chooseFirst}
