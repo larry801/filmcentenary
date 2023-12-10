@@ -15,7 +15,7 @@ import {
     RegionID,
     SJEventCardID,
     SJPlayer,
-    SongEarlyCardID,
+    SongEarlyCardID, SpecialPlan,
     Troop,
     TroopPlace
 } from "./general";
@@ -26,12 +26,13 @@ export interface GeneralInfo {
     country: Country;
     name: string;
     status: GeneralStatus;
-    place: TroopPlace|null;
+    place: TroopPlace | null;
     skill: boolean;
 }
 
 export interface SJPubInfo {
-    general:GeneralInfo[],
+    specialPlan: number,
+    general: GeneralInfo[],
     generalPlace: TroopPlace[],
     dices: number[],
     troopIdx: number,
@@ -56,7 +57,8 @@ export interface SJPubInfo {
 }
 
 export const initialJinnPub: SJPubInfo = {
-    general:[],
+    specialPlan: 0,
+    general: [],
     generalPlace: [RegionID.R20, RegionID.R37, RegionID.R11, RegionID.R01, RegionID.R01, RegionID.R01],
     dices: [],
     troopIdx: -1,
@@ -123,7 +125,8 @@ export const initialJinnPub: SJPubInfo = {
 }
 
 export const initialSongPub: SJPubInfo = {
-    general:[],
+    specialPlan: 0,
+    general: [],
     generalPlace: [RegionID.R19, RegionID.R01, RegionID.R01, RegionID.R01, RegionID.R01, RegionID.R01],
     dices: [],
     troopIdx: -1,
@@ -263,7 +266,8 @@ export interface SongJinnGame {
 export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: Ctx, setupData: any) => {
     const songDeck = shuffle(ctx, SongEarlyCardID);
     const jinnDeck = shuffle(ctx, JinnEarlyCardID);
-    const planDeck = shuffle(ctx, EarlyPlanID);
+    const planDeck = shuffle(ctx, SpecialPlan);
+    // const planDeck = shuffle(ctx, EarlyPlanID);
     const G = {
         pending: {
             event: "",

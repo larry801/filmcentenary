@@ -8,7 +8,7 @@ import {
     PlanID,
     ProvinceID,
     SJEventCardID,
-    SJPlayer,
+    SJPlayer, SpecialPlan,
     Troop, VictoryReason
 } from "../constant/general";
 import {logger} from "../../game/logger";
@@ -40,14 +40,16 @@ export const canChoosePlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: Pl
     }
     return getStateById(G, pid).military >= getPlanById(plan).level;
 }
+
 export const checkPlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
-    const ctr = getCountryById(pid);
     const planObj = getPlanById(plan);
     const pub = getStateById(G,pid);
     const filtered = planObj.provinces.filter(prov=>pub.provinces.includes(prov));
+    if (SpecialPlan.includes(plan)){
+        pub.specialPlan = filtered.length;
+    }
     return filtered.length === planObj.provinces.length;
 }
-
 
 export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
     const log = [`t${G.turn}endTurnCheck`];

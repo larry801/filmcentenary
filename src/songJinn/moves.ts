@@ -43,7 +43,7 @@ import {
     changeCivil,
     changeMilitary,
     colonyDown,
-    colonyUp,
+    colonyUp, doControlCity, doControlProvince,
     doLoseProvince, doPlaceUnit,
     doRecruit,
     heYiChange,
@@ -72,6 +72,39 @@ export const opponentMove: LongFormMove = {
             ctx.events?.endStage();
         }
     }
+
+}
+export const controlProvince: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, args: ProvinceID) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`p${ctx.playerID}.controlProvince(${JSON.stringify(args)})`);
+        const log = [`p${ctx.playerID}.controlProvince`];
+        const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
+        log.push(`|before|${pub.provinces}`);
+        doControlProvince(G, ctx.playerID, args);
+        log.push(`|after|${pub.provinces}`);
+        logger.debug(`${log.join('')}`);
+    }
+}
+export const controlCity: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, args: CityID) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`p${ctx.playerID}.controlCity(${JSON.stringify(args)})`);
+        const log = [`p${ctx.playerID}.controlCity`];
+        const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
+        log.push(`|${pub.cities}`);
+        doControlCity(G, ctx.playerID, args);
+        log.push(`|after|${pub.cities}`);
+        logger.debug(`${log.join('')}`);
+    }
 }
 
 interface IMarchArgs {
@@ -79,11 +112,12 @@ interface IMarchArgs {
     dst: TroopPlace;
     country: Country;
     units: number[];
-    generals:General[];
+    generals: General[];
 }
+
 export const march: LongFormMove = {
     move: (G, ctx, arg: IMarchArgs) => {
-        const {src, dst, country,generals, units} = arg;
+        const {src, dst, country, generals, units} = arg;
         const pid = ctx.playerID;
         if (pid === undefined) {
             return INVALID_MOVE;
@@ -94,8 +128,8 @@ export const march: LongFormMove = {
         const log = [`p${pid}|march|src${placeToStr(src)}`];
         log.push(`|parsed${JSON.stringify(dst)}`);
 
-        const pub = ctr2pub(G,country);
-        generals.forEach(gen=>moveGeneralByCountry(G,country,gen,dst));
+        const pub = ctr2pub(G, country);
+        generals.forEach(gen => moveGeneralByCountry(G, country, gen, dst));
         const t = getTroopByCountryPlace(G, arg.country, src);
         if (t === null) {
             log.push(`noTroop`);
@@ -1077,17 +1111,6 @@ export const loseProvince: LongFormMove = {
 
 export const message: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, msg: string) => {
-    }
-}
-
-export const controlCity: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx, arg: CityID) => {
-        if (ctx.playerID === undefined) {
-            return INVALID_MOVE;
-        }
-        const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
-        const oppo = getOpponentStateById(G, ctx.playerID);
     }
 }
 

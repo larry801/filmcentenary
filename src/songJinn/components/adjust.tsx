@@ -25,9 +25,48 @@ export const AdjustOps = ({
 
     const pub = getStateById(G, playerID);
     const player = playerById(G, playerID);
-    const country = getCountryById(playerID);
+    const ctr = getCountryById(playerID);
 
-    const [prov, setProv] = useState(ProvinceID.XIJINGLU);
+    const checkProvDialog = <ChoiceDialog
+        callback={
+            (c) => moves.checkProvince(c)
+        } choices={Object.values(ProvinceID).map(c => {
+        return {
+            label: c,
+            value: c,
+            disabled: false,
+            hidden: false,
+        }
+    })} defaultChoice={""} show={isActive}
+        title={"请选择结算要的路"} toggleText={"结算路权"} initial={false}/>
+
+    const controlCityDialog = <ChoiceDialog
+        callback={
+            (c) => moves.controlProvince(c)
+        } choices={Object.values(CityID).filter(c=>!pub.cities.includes(c)).map(c => {
+        return {
+            label: c,
+            value: c,
+            disabled: false,
+            hidden: false,
+        }
+    })} defaultChoice={""} show={isActive}
+        title={"请选择控制的城市"} toggleText={"控制城市"} initial={false}/>
+
+    const controlProvDialog = <ChoiceDialog
+        callback={
+            (c) => moves.controlProvince(c)
+        } choices={Object.values(ProvinceID).filter(c=>!pub.provinces.includes(c)).map(c => {
+        return {
+            label: c,
+            value: c,
+            disabled: false,
+            hidden: false,
+        }
+    })} defaultChoice={""} show={isActive}
+        title={"请选择要控制的路"} toggleText={"控制路权"} initial={false}/>
+
+    const [loseProv, setLoseProv] = useState(ProvinceID.XIJINGLU);
 
     enum LoseProvStep {
         PROVINCE,
@@ -36,10 +75,10 @@ export const AdjustOps = ({
 
     const [loseProvStep, setLoseProvStep] = useState(LoseProvStep.PROVINCE);
 
-    const provDialog = <ChoiceDialog
+    const loseProvDialog = <ChoiceDialog
         callback={
             (c) => {
-                setProv(c as ProvinceID);
+                setLoseProv(c as ProvinceID);
                 setLoseProvStep(LoseProvStep.OPPONENT)
             }
         } choices={pub.provinces.map(c => {
@@ -56,7 +95,7 @@ export const AdjustOps = ({
         callback={(c) => {
             const opponent = c === "yes";
             setLoseProvStep(LoseProvStep.PROVINCE);
-            moves.loseProvince({province: prov, opponent: opponent});
+            moves.loseProvince({province: loseProv, opponent: opponent});
         }}
         choices={[
             {label: "是", value: "yes", disabled: false, hidden: false},
@@ -139,11 +178,11 @@ export const AdjustOps = ({
         {cityDialog}
         {loseCityToOpponentDialog}
 
-        {provDialog}
+        {loseProvDialog}
         {loseProvToOpponentDialog}
 
-        {}
-        {}
+        {controlCityDialog}
+        {controlProvDialog}
 
         {downDialog}
     </Grid>

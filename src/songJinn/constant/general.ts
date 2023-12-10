@@ -452,6 +452,8 @@ export const enum PlanID {
     J24 = "J24"
 }
 
+export const SpecialPlan = [PlanID.J23,PlanID.J24];
+
 export const EarlyPlanID = [
     PlanID.J01,
     PlanID.J02,
@@ -678,8 +680,4 @@ export enum ProvinceID {
     SHANXILIULU = "陕西六路"
 }
 
-export const provinceToRegion = {
-    [ProvinceID.XIJINGLU]: [RegionID.R01, RegionID.R02, RegionID.R03],
-    [ProvinceID.BEIJINGLU]: [RegionID.R01, RegionID.R02, RegionID.R03],
-    [ProvinceID.YANJINGLU]: [RegionID.R01, RegionID.R02, RegionID.R03],
-}
+
