@@ -19,6 +19,12 @@ import disconnectedSfx from '../../components/media/connect.mp3'
 // @ts-ignore
 import playerTurnSfx from '../../components/media/turn.mp3';
 import {playConnectedSound, playSound, usePrevious} from "../../components/board";
+import Typography from "@material-ui/core/Typography";
+import i18n from "../../constant/i18n";
+import Dialog from "@material-ui/core/Dialog";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import DialogContent from "@material-ui/core/DialogContent";
+import {useI18n} from "@i18n-chain/react";
 
 export const SongJinnBoard = ({
                                   G,
@@ -34,6 +40,35 @@ export const SongJinnBoard = ({
                                   isMultiplayer,
                                   matchID
                               }: BoardProps<SongJinnGame>) => {
+    useI18n(i18n);
+    const [open, setOpen] = React.useState(true);
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
+
+    const disconnectNotice = isConnected ? <></> :
+        <>
+            <Button
+                fullWidth
+                style={{textTransform: 'none'}}
+                onClick={handleOpen}
+                color="secondary"
+                variant={"outlined"}
+            >
+                <Typography>
+                    {i18n.disconnected}
+                </Typography>
+            </Button>
+            <Dialog open={open} onClose={handleClose}>
+                <DialogTitle>
+                    <Typography variant="h5" component="h1">
+                        {i18n.disconnected}
+                    </Typography>
+                </DialogTitle>
+                <DialogContent>
+                    {i18n.disconnected}
+                </DialogContent>
+            </Dialog>
+        </>
 
     const prevIsActive = usePrevious(isActive);
     const prevIsConnected = usePrevious(isConnected);
@@ -58,6 +93,7 @@ export const SongJinnBoard = ({
     };
     return <ErrorBoundary>
         <Grid container>
+            {disconnectNotice}
             {ctx.gameover !== undefined && <ChoiceDialog
                 callback={empty} choices={[]} defaultChoice={""} show={true}
                 title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`}
