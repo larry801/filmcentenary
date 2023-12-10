@@ -27,6 +27,7 @@ export const SongJinnBoard = ({
                                   chatMessages,
                                   playerID,
                                   isActive,
+                                  matchID
                               }: BoardProps<SongJinnGame>) => {
 
     const pub = getStateById(G, playerID as SJPlayer);
@@ -59,6 +60,7 @@ export const SongJinnBoard = ({
                             playerID={playerID}
                             moves={moves}
                             isActive={isActive}
+                            matchID={matchID}
                         />
                         <Grid item xs={12} sm={6}>
                             <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>

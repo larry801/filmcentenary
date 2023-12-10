@@ -377,7 +377,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 checkNextEffect(G, ctx);
             } else {
-                logger.debug(`${G.matchID}|${log}`)
+                logger.debug(`${G.matchID}|${log.join('')}`)
             }
             return;
         case "buy":
@@ -389,7 +389,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 checkNextEffect(G, ctx);
             } else {
-                logger.debug(`${G.matchID}|${log}`)
+                logger.debug(`${G.matchID}|${log.join('')}`)
             }
             return;
         default:

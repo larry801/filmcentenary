@@ -364,8 +364,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const moveGeneralDialog = <ChoiceDialog
         callback={(g) => {
 
-    }} choices={getReadyGenerals(G, pid).map(g => {
-        return {label: getGeneralNameByCountry(ctr, g),value:g.toString(),disabled:false,hidden:false}
+        }} choices={getReadyGenerals(G, pid).map(g => {
+        return {label: getGeneralNameByCountry(ctr, g), value: g.toString(), disabled: false, hidden: false}
     })} defaultChoice={""} show={isActive} title={"将领派遣"} toggleText={"派遣"} initial={true}/>
     const moveGeneralRegionDialog = 1;
 
@@ -454,7 +454,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             <Accordion expanded={isActive && expanded === idx} onChange={() => setExpanded(idx)}
                        key={`troop-${idx}`}>
                 <AccordionSummary>
-                    {t.country}|{placeToStr(t.p)}|{unitsToString(t.u)}|{getPlaceGeneralNames(G, pid, t.p)}</AccordionSummary>
+                    {t.country}|{placeToStr(t.p)}|{unitsToString(t.u)}|{t.c === null ? '' : t.c}|{getPlaceGeneralNames(G, pid, t.p)}</AccordionSummary>
                 <AccordionDetails>
                     {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
                         <button
