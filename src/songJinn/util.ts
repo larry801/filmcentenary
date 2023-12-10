@@ -126,7 +126,7 @@ export const getPlaceGeneral = (G: SongJinnGame, pid: PlayerID, place: TroopPlac
     const generals: General[] = [];
     const pub = getStateById(G, pid);
     pub.generalPlace.forEach((p, idx) => {
-        if (p === place) {
+        if (p === place && pub.generals[idx] === GeneralStatus.TROOP) {
             generals.push(idx as General);
         }
     })
