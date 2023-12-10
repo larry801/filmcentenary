@@ -530,7 +530,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                         </button>
                         <button
                             key={`grid-ops-${idx}-deploy`}
-                            disabled={t.c === null}
+                            // disabled={t.c === null}
+                            disabled={false}
                             onClick={
                                 () => {
                                     setPlaceStep(PlaceStep.TROOP);

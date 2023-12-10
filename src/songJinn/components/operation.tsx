@@ -247,17 +247,20 @@ export const Operation = ({
             },
             {
                 label: DevelopChoice.MILITARY, value: DevelopChoice.MILITARY,
-                disabled: pub.military === 7 || pub.military + 1 > remainDevelopPoint,
+                disabled: false,
+                // disabled: pub.military === 7 || pub.military + 1 > remainDevelopPoint,
                 hidden: false
             },
             {
                 label: DevelopChoice.POLICY, value: DevelopChoice.POLICY,
-                disabled: remainDevelopPoint < 3,
+                disabled: false,
+                // disabled: remainDevelopPoint < 3,
                 hidden: country !== Country.SONG
             },
             {
                 label: DevelopChoice.CIVIL, value: DevelopChoice.CIVIL,
-                disabled: pub.civil === 7 || pub.civil + 1 > remainDevelopPoint,
+                disabled: false,
+                // disabled: pub.civil === 7 || pub.civil + 1 > remainDevelopPoint,
                 hidden: false
             },
             {
