@@ -27,7 +27,6 @@ import {
     playerById,
     unitsToString
 } from "./fetch";
-import {rm} from "./card";
 import {getCityById} from "../constant/city";
 import {Ctx, PlayerID} from "boardgame.io";
 import {sjCardById} from "../constant/cards";
@@ -37,8 +36,8 @@ import {placeToStr} from "./text";
 import {logger} from "../../game/logger";
 import {INVALID_MOVE} from "boardgame.io/core";
 
-export const doGeneralSkill=(G: SongJinnGame, pid: PlayerID, g: General)=>{
-    const pub = getStateById(G,pid);
+export const doGeneralSkill = (G: SongJinnGame, pid: PlayerID, g: General) => {
+    const pub = getStateById(G, pid);
     pub.generalSkill[g] = false;
 }
 
@@ -56,17 +55,17 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
 }
 
 
-export const doRemoveNation = (G:SongJinnGame, nation:NationID) => {
+export const doRemoveNation = (G: SongJinnGame, nation: NationID) => {
     G.removedNation.push(nation);
-    rm(nation,G.song.nations);
-    rm(nation,G.jinn.nations);
+    G.song.nations.splice(G.song.nations.indexOf(nation), 1);
+    G.jinn.nations.splice(G.jinn.nations.indexOf(nation), 1);
 }
 
 export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID) => {
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid);
     if (oppo.provinces.includes(prov)) {
-        rm(prov, oppo.provinces);
+        oppo.provinces.splice(oppo.provinces.indexOf(prov), 1);
     } else {
         pub.provinces.push(prov);
     }
@@ -76,7 +75,7 @@ export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid);
     if (oppo.cities.includes(cid)) {
-        rm(cid, oppo.cities);
+        oppo.cities.splice(oppo.cities.indexOf(cid), 1);
     } else {
         pub.cities.push(cid);
     }
@@ -92,7 +91,7 @@ export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID,
         pub.corruption--;
     }
     if (pub.provinces.includes(prov)) {
-        rm(prov, pub.provinces);
+        pub.provinces.splice(pub.provinces.indexOf(prov), 1);
         if (opponent) {
             oppo.provinces.push(prov);
         }
@@ -112,7 +111,6 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
         }
     }
 }
-
 
 
 export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, place: TroopPlace) => {
@@ -194,7 +192,7 @@ export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerI
         }
     }
     if (troopEmpty(t)) {
-        rm(t, pub.troops);
+        pub.troops.splice(pub.troops.indexOf(t), 1);
     }
 }
 
@@ -223,7 +221,7 @@ export const mergeTroopTo = (G: SongJinnGame, src: number, dst: number, pid: Pla
         for (let i = 0; i < b.u.length; i++) {
             b.u[i] += a.u[i];
         }
-        rm(a, pub.troops);
+        pub.troops.splice(pub.troops.indexOf(a), 1);
     }
 }
 
@@ -370,7 +368,7 @@ export const loseCity = (G: SongJinnGame, pid: PlayerID, c: CityID) => {
 
 export const nationMoveJinn = (G: SongJinnGame, c: NationID) => {
     if (G.song.nations.includes(c)) {
-        rm(c, G.song.nations);
+        G.song.nations.splice(G.song.nations.indexOf(c), 1);
     } else {
         if (!G.jinn.nations.includes(c)) {
             G.jinn.nations.push(c)
@@ -380,7 +378,7 @@ export const nationMoveJinn = (G: SongJinnGame, c: NationID) => {
 
 export const nationMoveSong = (G: SongJinnGame, c: NationID) => {
     if (G.jinn.nations.includes(c)) {
-        rm(c, G.jinn.nations);
+        G.jinn.nations.splice(G.jinn.nations.indexOf(c), 1);
     } else {
         if (!G.song.nations.includes(c)) {
             G.song.nations.push(c)
@@ -456,16 +454,15 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
             // @ts-ignore
             G.song.ready[i] += songTroop.u[i];
         }
+        G.song.troops.splice(G.song.troops.indexOf(songTroop), 1);
     }
-    rm(songTroop, G.song.troops);
     const city = getCityById(c);
-
     policyUp(G, city.colonizeLevel);
     const availableQianJun = G.jinn.standby[5]
     if (availableQianJun === 0) {
 
     } else {
-        rm(c, G.song.cities);
+        G.song.cities.splice(G.song.cities.indexOf(c), 1);
         G.jinn.cities.push(c);
         if (availableQianJun === 1) {
             G.jinn.troops.push({

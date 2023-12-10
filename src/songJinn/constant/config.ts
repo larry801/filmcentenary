@@ -130,10 +130,10 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
             // 先自觉检索算了
             // if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
             //     // 目前不可能 因为只有京畿计划有检索
-            //     rm(PlayerPendingEffect.SearchCard, G.jinn.effect);
-            //     rm(PlayerPendingEffect.SearchCard, G.song.effect);
+            //      G.jinn.effect.splice( G.jinn.effect.indexOf(PlayerPendingEffect.SearchCard),1);
+            //      G.song.effect.splice( G.song.effect.indexOf(PlayerPendingEffect.SearchCard),1);
             // } else {
-            //     rm(PlayerPendingEffect.SearchCard, G.song.effect);
+            //      G.song.effect.splice( G.song.effect.indexOf(PlayerPendingEffect.SearchCard),1);
             // }
             // if (G.song.effect.includes(PlayerPendingEffect.SearchCard)) {
             //

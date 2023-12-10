@@ -9,14 +9,14 @@ import {
     SongLateCardID,
     SongMidCardID, LatePlanID, MidPlanID
 } from "../constant/general";
-import {getJinnPower} from "./calc";
+import {getJinnPower, getSongPower} from "./calc";
 import {shuffle} from "../../game/util";
 
-export function rm(target: any, array: any[]) {
-    if (array.includes(target)) {
-        array.splice(array.indexOf(target), 1);
-    }
-}
+// export function rm(target: any, array: any[]) {
+//     if (array.includes(target)) {
+//         array.splice(array.indexOf(target), 1);
+//     }
+// }
 
 // type RemoveFn<T> = (target: T, array: T[]) => void;
 //
@@ -29,7 +29,7 @@ export function rm(target: any, array: any[]) {
 export const developInstead = (G: SongJinnGame, pid: PlayerID, cid: SJEventCardID) => {
     const pub = getStateById(G, pid)
     pub.develop.push(cid);
-    rm(cid, pub.discard);
+     pub.discard.splice( pub.discard.indexOf(cid),1);
 }
 
 export const drawPlanForPlayer = (G: SongJinnGame, pid: PlayerID) => {
@@ -79,7 +79,7 @@ export const drawCardForJinn = (G: SongJinnGame, ctx: Ctx) => {
 export const drawPhaseForSong = (G: SongJinnGame, ctx: Ctx) => {
     const player = G.player[SJPlayer.P1];
     const hand = player.hand;
-    const power = getJinnPower(G);
+    const power = getSongPower(G);
     const deck = G.secret.jinnDeck;
     const discard = G.jinn.discard;
     const drawCount = power > 9 ? 9 : power;

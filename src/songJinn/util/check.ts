@@ -1,6 +1,6 @@
 import {SongJinnGame} from "../constant/setup";
 import {Ctx, PlayerID} from "boardgame.io";
-import {addLateTermCard, addMidTermCard, rm} from "./card";
+import {addLateTermCard, addMidTermCard} from "./card";
 import {
     ActiveEvents,
     Country,
@@ -61,10 +61,10 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
     }
     if (G.events.includes(ActiveEvents.YueShuaiZhiLai)) {
         log.push(`|RemoveYueShuaiZhiLai|${G.events.toString()}`);
-        rm(ActiveEvents.YueShuaiZhiLai, G.events);
+         G.events.splice( G.events.indexOf(ActiveEvents.YueShuaiZhiLai),1);
         log.push(`|after|${G.events.toString()}`);
     }
-    rm(ActiveEvents.LiGang, G.events);
+     G.events.splice( G.events.indexOf(ActiveEvents.LiGang),1);
     if (G.turn >= MAX_ROUND) {
         const songScore = getSongScore(G);
         const jinnScore = getJinnScore(G);

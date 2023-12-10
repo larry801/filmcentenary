@@ -2,6 +2,7 @@ import {
     accumulator,
     ActiveEvents,
     BaseCardID,
+    Cards,
     CityID,
     Country,
     EventDuration,
@@ -13,7 +14,6 @@ import {
     PlanID,
     ProvinceID,
     RegionID,
-    SJEventCardID,
     SJPlayer,
     SongBaseCardID,
     SongGeneral
@@ -33,45 +33,10 @@ import {
     policyDown,
     policyUp,
     removeGeneral,
-    removeUnitByPlace, removeUnitOnTroop
+    removeUnitByPlace
 } from "../util/change";
-import {developInstead, drawCardForSong, rm} from "../util/card";
-import {getJinnTroopByCity, getSongTroopByCity} from "../util/fetch";
-
-export const getFullDesc = (card: Cards): string => {
-    let effText = "效果：" + card.effectText;
-    if (card.precondition !== null) {
-        effText = ` 前置条件：${card.precondition} ${effText}`
-    }
-    if (card.ban !== null) {
-        effText += `撤销：${card.ban}`
-    }
-    if (card.block !== null) {
-        effText += `禁止：${card.block}`
-    }
-    if (card.unlock !== null) {
-        effText += `解锁：${card.unlock}`
-    }
-    return effText;
-}
-
-export interface Cards {
-    id: SJEventCardID,
-    block: string | null
-    name: string,
-    country: Country,
-    op: number,
-    remove: boolean,
-    era: IEra,
-    duration: EventDuration,
-    effectText: string,
-    ban: string | null,
-    precondition: string | null,
-    combat: boolean,
-    unlock: string | null,
-    pre: (G: SongJinnGame, ctx: Ctx) => boolean,
-    event: (G: SongJinnGame, ctx: Ctx) => void
-}
+import {developInstead, drawCardForSong} from "../util/card";
+import {getSongTroopByCity} from "../util/fetch";
 
 export const sjCardById: (cid: BaseCardID) => Cards = (cid: BaseCardID) => {
     return idToCard[cid];
@@ -253,7 +218,7 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
             if (!G.song.nations.includes(NationID.XiLiao)) {
-                rm(NationID.XiLiao, G.jinn.nations);
+                 G.jinn.nations.splice( G.jinn.nations.indexOf(NationID.XiLiao),1);
                 G.song.nations.push(NationID.XiLiao);
             }
         }
@@ -403,7 +368,7 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => G.turn >= 5,
         event: (G: SongJinnGame, ctx: Ctx) => {
             G.events.push(ActiveEvents.JinTaiZongJiaBeng);
-            rm(ActiveEvents.JinTaiZongJiaBeng, G.events);
+             G.events.splice( G.events.indexOf(ActiveEvents.JinTaiZongJiaBeng),1);
         }
     },
     [SongBaseCardID.S18]: {
@@ -836,7 +801,7 @@ export const idToCard = {
         event: (G: SongJinnGame, ctx: Ctx) => {
             G.events.push(ActiveEvents.YueShuaiZhiLai);
             G.song.plan.forEach(p => G.secret.planDeck.push(p));
-            rm(PlanID.J23, G.secret.planDeck);
+             G.secret.planDeck.splice( G.secret.planDeck.indexOf(PlanID.J23),1);
             G.song.plan = [PlanID.J23]
         }
     },
@@ -1759,7 +1724,7 @@ export const idToCard = {
         event: (G: SongJinnGame, ctx: Ctx) => {
             changeMilitary(G, SJPlayer.P2, 1);
             G.jinn.plan.forEach(p => G.secret.planDeck.push(p));
-            rm(PlanID.J24, G.secret.planDeck);
+             G.secret.planDeck.splice( G.secret.planDeck.indexOf(PlanID.J24),1);
             G.jinn.plan = [PlanID.J24]
         }
     },
