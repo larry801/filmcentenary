@@ -58,7 +58,7 @@ export interface SJPubInfo {
 
 export const initialJinnPub: SJPubInfo = {
     specialPlan: 0,
-    generalSkill: [],
+    generalSkill: [true, true, true, false, false, true],
     generalPlace: [RegionID.R20, RegionID.R37, RegionID.R11, RegionID.R01, RegionID.R01, RegionID.R01],
     dices: [],
     troopIdx: -1,
@@ -126,7 +126,7 @@ export const initialJinnPub: SJPubInfo = {
 
 export const initialSongPub: SJPubInfo = {
     specialPlan: 0,
-    generalSkill: [],
+    generalSkill: [false, false, false, false, false, false],
     generalPlace: [RegionID.R19, RegionID.R01, RegionID.R01, RegionID.R01, RegionID.R01, RegionID.R01],
     dices: [],
     troopIdx: -1,

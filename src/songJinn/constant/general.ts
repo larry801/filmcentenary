@@ -79,10 +79,16 @@ export enum NationID {
     GaoLi = "高丽"
 }
 
+export const enum ProvinceState {
+    SONG="金控制",
+    JINN="宋控制",
+    NEUTRAL ="战争状态"
+}
+
 export const enum NationState {
-    SONG,
-    JINN,
-    NEUTRAL
+    SONG="盟金",
+    JINN="盟宋",
+    NEUTRAL ="中立"
 }
 
 export const enum SJPlayer {

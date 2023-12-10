@@ -3,8 +3,20 @@ import {SongJinnGame} from "../constant/setup";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {cardToSearch, getCountryById, getPlaceGeneral, getStateById, playerById} from "../util/fetch";
-import {ActiveEvents, Country, DevelopChoice, General, SJPlayer} from "../constant/general";
+import {
+    cardToSearch, generalWithOpponentTroop,
+    getCountryById,
+    getSkillGeneral,
+    getStateById,
+    playerById
+} from "../util/fetch";
+import {
+    ActiveEvents,
+    Country,
+    DevelopChoice,
+    General,
+    SJPlayer,
+} from "../constant/general";
 import {remainDevelop} from "../util/calc";
 import {returnDevCardCheck} from "../util/check";
 import {sjCardById} from "../constant/cards";
@@ -157,6 +169,55 @@ export const Operation = ({
         title={"请选择需要返回手牌的发展牌"} toggleText={"发展牌回手"} initial={false}
     />
 
+    const [rescueCard, setRescueCard] = useState("");
+    const [rescueCardChosen, setRescueCardChosen] = useState(false);
+    const rescueGenerals = generalWithOpponentTroop(G, playerID);
+    const rescueGeneralDialog = <ChoiceDialog
+        callback={(c) => {
+            if (rescueGenerals.length===1){
+                moves.rescueGeneral({
+                    general:rescueGenerals[0],
+                    card:c,
+                })
+            } else {
+                setRescueCard(c);
+                setRescueCardChosen(true);
+            }
+        }}
+        choices={pub.develop.map(bcid => {
+            return {
+                label: sjCardById(bcid).name,
+                value: bcid.toString(),
+                disabled: false,
+                hidden: false
+            }
+        })}
+        defaultChoice={""}
+        // actualStage(G,ctx)==='rescueGeneral'
+        show={isActive && pub.develop.length > 0 && rescueGenerals.length > 0}
+        title={"请选择救援将领的发展牌"} toggleText={"发展牌救援"} initial={false}
+    />
+    const chooseRescueGeneralsDialog = <ChoiceDialog
+        callback={(c) => {
+            const general: General = parseInt(c);
+            setRescueCardChosen(false);
+
+            moves.rescueGeneral({
+                general:general,
+                card: rescueCard,
+            })
+
+        }} choices={rescueGenerals.map(gen => {
+        return {
+            label: getGeneralNameByCountry(ctr, gen),
+            value: gen.toString(),
+            disabled: false,
+            hidden: false
+        }
+    })} show={isActive && rescueCardChosen}
+        defaultChoice={""}
+        title={"请选择要救援的将领"} toggleText={"救援将领"} initial={true}/>
+
     const emperorDialog = <ChoiceDialog
         callback={(c) => moves.emperor(c)}
         choices={pub.cities.map(c => {
@@ -245,18 +306,23 @@ export const Operation = ({
             show={isActive && ctx.phase === 'resolvePlan' && pub.completedPlan.length > 0} title={"顶端计划"}
             toggleText={"选择放在顶端的计划"}
             initial={true} defaultChoice={""}/>
-    const generalSkillDialog = <CheckBoxDialog
+
+    const skillGeneral = getSkillGeneral(G, playerID);
+    const generalSkillDialog = <ChoiceDialog
         callback={(c) => {
-            const generals: General[] = c.map(g => parseInt(g));
-        }} choices={getSkillGeneral(G,pid).map(gen => {
+            const g: General = parseInt(c) as General;
+            moves.generalSkill({country: ctr, general: g})
+        }} choices={skillGeneral.map(gen => {
         return {
             label: getGeneralNameByCountry(ctr, gen),
             value: gen.toString(),
             disabled: false,
             hidden: false
         }
-    })} show={isActive}
-        title={"请选择横置将领"} toggleText={"横置将领"} initial={true}/>
+    })} show={isActive && skillGeneral.length > 0}
+        defaultChoice={""}
+        title={"请选择横置将领"} toggleText={"横置将领"} initial={false}/>
+
     const recruitPhases = ['action', 'deploy'];
 
     const recruitDialog = <ChooseUnitsDialog
@@ -305,6 +371,8 @@ export const Operation = ({
         {endRound}
         {emptyRoundButton}
         {opponentButton}
+        {rescueGeneralDialog}
+        {chooseRescueGeneralsDialog}
         {/*{endPhaseButton}*/}
         {jianLiDaQiButton}
         {showPlan}

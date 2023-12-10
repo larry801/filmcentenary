@@ -14,8 +14,9 @@ import {
     MountainPasses,
     MountainPassID,
     NationID,
-    Nations, NationState,
-    ProvinceID,
+    Nations,
+    NationState,
+    ProvinceID, ProvinceState,
     RegionID,
     SJEventCardID,
     SJPlayer,
@@ -32,6 +33,8 @@ import {Stage} from "boardgame.io/core";
 import {activePlayer} from "../../game/util";
 import {sjCardById} from "../constant/cards";
 import {logger} from "../../game/logger";
+import {getProvinceById} from "../constant/province";
+import pub from "../../components/pub";
 
 
 export const StrProvince: Map<string, ProvinceID> = new Map(Object.values(ProvinceID).map(
@@ -55,16 +58,41 @@ export const ctr2pub = (G: SongJinnGame, country: Country) => country === Countr
 export const ctr2pid = (country: Country) => country === Country.SONG ? SJPlayer.P1 : SJPlayer.P2;
 export const pid2ctr = (country: PlayerID) => country === SJPlayer.P1 ? Country.SONG : Country.JINN;
 
-export const getSkillGeneral = (G: SongJinnGame, pid: PlayerID): General[] => {
+
+export const currentProvStatus = (G: SongJinnGame, prov: ProvinceID) => {
+    const province = getProvinceById(prov);
+    const allCities = [...province.capital, ...province.other];
+    const songCity = allCities.filter(c => G.song.cities.includes(c)).length;
+    const jinnCity = allCities.filter(c => G.jinn.cities.includes(c)).length;
+    if (songCity === allCities.length) {
+        return ProvinceState.SONG;
+    }
+    if (jinnCity === allCities.length) {
+        return ProvinceState.JINN;
+    }
+    return ProvinceState.NEUTRAL
+}
+export const getPresentGeneral = (G: SongJinnGame, pid: PlayerID): General[] => {
     const generals: General[] = [];
     const pub = getStateById(G, pid);
-    pub.generalSkill.forEach((p, idx) => {
-        if (p) {
+    pub.generals.forEach((p, idx) => {
+        if (p === GeneralStatus.TROOP) {
             generals.push(idx as General);
         }
     })
     return generals;
 }
+export const getSkillGeneral = (G: SongJinnGame, pid: PlayerID): General[] => {
+    const generals: General[] = [];
+    const pub = getStateById(G, pid);
+    pub.generalSkill.forEach((p, idx) => {
+        if (p && pub.generals[idx] === GeneralStatus.TROOP) {
+            generals.push(idx as General);
+        }
+    })
+    return generals;
+}
+
 export const getPlaceGeneral = (G: SongJinnGame, pid: PlayerID, place: TroopPlace): General[] => {
     const generals: General[] = [];
     const pub = getStateById(G, pid);
@@ -109,19 +137,40 @@ export const getMarchDst = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
 }
 
 
+
 export const getTroopByPlace = (G: SongJinnGame, p: TroopPlace) => {
+    const result:Troop[] = []
     G.song.troops.forEach(t => {
         if (t.p === p) {
-            return t
+            result.push(t);
         }
     });
     G.jinn.troops.forEach(t => {
         if (t.p === p) {
-            return t
+            result.push(t);
+
         }
     });
+    return result;
 }
 
+function getGeneralTroop(G: SongJinnGame, pid: string, g: General) {
+    return getTroopByPlace(G, getStateById(G, pid).generalPlace[g]);
+}
+
+export const generalWithOpponentTroop = (G: SongJinnGame, pid: PlayerID,): General[] => {
+    const result:General[] = []
+    const general = getPresentGeneral(G,pid);
+    general.forEach(g=>{
+        const generalTroop = getGeneralTroop(G, pid, g);
+        generalTroop.forEach(t=>{
+            if(t.country !== pid2ctr(pid)){
+                result.push(g);
+            }
+        })
+    })
+    return result;
+}
 export const generalInTroop = (G: SongJinnGame, pid: PlayerID, general: General): boolean => {
     const pub = getStateById(G, pid);
     return pub.generals[general] === GeneralStatus.TROOP

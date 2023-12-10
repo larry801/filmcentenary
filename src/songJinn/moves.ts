@@ -43,12 +43,12 @@ import {
     changeCivil,
     changeMilitary,
     colonyDown,
-    colonyUp, doControlCity, doControlProvince,
+    colonyUp, doControlCity, doControlProvince, doGeneralSkill,
     doLoseProvince, doPlaceUnit,
     doRecruit,
     heYiChange,
     mergeTroopTo, moveGeneralByCountry,
-    moveGeneralByPid,
+    moveGeneralByPid, moveGeneralToReady,
     policyDown,
     policyUp,
     removeUnitByPlace,
@@ -58,7 +58,7 @@ import {getRegionById} from "./constant/regions";
 import {changePlayerStage} from "../game/logFix";
 import {totalDevelop} from "./util/calc";
 import {nlNL} from "@material-ui/core/locale";
-import {placeToStr} from "./util/text";
+import {getGeneralNameByPid, placeToStr} from "./util/text";
 
 export const opponentMove: LongFormMove = {
     move: (G, ctx) => {
@@ -273,6 +273,19 @@ export interface IPlaceUnitsToTroopArgs {
     country: Country
 }
 
+export const generalSkill: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, args: General) => {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`p${pid}.generalSkill(${JSON.stringify(args)})`);
+        const log = [`p${pid}.generalSkill${getGeneralNameByPid(pid, args)}`];
+        doGeneralSkill(G, pid, args);
+        logger.debug(`${log.join('')}`);
+    }
+}
+
 export const placeUnit: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, args: IPlaceUnitsToTroopArgs) => {
         if (ctx.playerID === undefined) {
@@ -288,13 +301,49 @@ export const placeUnit: LongFormMove = {
 }
 
 interface IDeployGeneral {
+    country: Country,
     general: General;
     dst: TroopPlace;
 }
 
 export const deployGeneral: LongFormMove = {
-    move: (G, ctx, arg: IDeployGeneral) => {
+    move: (G:SongJinnGame, ctx:Ctx, args: IDeployGeneral) => {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`p${pid}.deployGeneral(${JSON.stringify(args)})`);
+        const log = [`p${pid}.deployGeneral`];
+        const {general,dst} = args;
+        moveGeneralByPid(G, pid, general, dst);
+        logger.debug(`${log.join('')}`);
+    }
+}
 
+interface IRescueGeneral {
+    card: SJEventCardID,
+    general: General
+}
+
+export const rescueGeneral: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, args: IRescueGeneral) => {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`p${pid}.rescueGeneral(${JSON.stringify(args)})`);
+        const log = [`p${pid}.rescueGeneral`];
+        const {general, card} = args;
+        const pub = getStateById(G, pid);
+        if (pub.develop.includes(card)) {
+            rm(card, pub.develop);
+            pub.discard.push(card)
+            log.push(`|discard${pub.discard}`);
+        } else {
+            return INVALID_MOVE;
+        }
+        moveGeneralToReady(G, pid, general);
+        logger.debug(`${log.join('')}`);
     }
 }
 

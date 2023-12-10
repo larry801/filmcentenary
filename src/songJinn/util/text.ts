@@ -82,7 +82,8 @@ export const sjPlayerName = (l: PlayerID): string => {
 }
 export const getLogText = (l: LogEntry): string => {
     const payload = l.action.payload;
-    const s = sjPlayerName(payload.playerID);
+    const pid = payload.playerID;
+    const s = sjPlayerName(pid);
     switch (l.action.type) {
         case "MAKE_MOVE":
             let log = s;
@@ -106,6 +107,9 @@ export const getLogText = (l: LogEntry): string => {
                 } else {
                     const arg = args[0];
                     switch (name) {
+                        case 'rescueGeneral':
+                            log += `弃发展牌${sjCardById(arg.card)}救援${getGeneralNameByPid(pid, arg.general)}`;
+                            break;
                         case 'removeUnit':
                             log += `消灭${arg.c}${placeToStr(arg.src)}${unitsToString(arg.units)}`;
                             break;
@@ -148,7 +152,7 @@ export const getLogText = (l: LogEntry): string => {
                             break;
 
                         case 'generalSkill':
-                            log += `横置${getGeneralNameByPid(payload.playerID,arg)}`
+                            log += `横置${getGeneralNameByPid(pid, arg)}`
                             break;
 
                         case 'takePlan':

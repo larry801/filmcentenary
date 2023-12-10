@@ -9,19 +9,19 @@ import {
     chooseRegion,
     chooseTop,
     combatCard, controlCity, controlProvince,
-    deploy,
+    deploy, deployGeneral,
     develop,
     developCard,
     discard,
     down,
     emperor,
     emptyRound,
-    endRound,
+    endRound, generalSkill,
     heYi, jianLiDaQi,
     letter,
     loseCity,
     loseProvince,
-    march,
+    march, moveGeneral,
     moveTroop,
     op,
     opponentMove,
@@ -29,7 +29,7 @@ import {
     placeUnit,
     recruitPuppet,
     recruitUnit,
-    removeUnit,
+    removeUnit, rescueGeneral,
     returnToHand,
     rollDices,
     search,
@@ -82,11 +82,16 @@ export const ReactStageConfig: StageConfig<SongJinnGame> = {
         placeUnit: placeUnit,
         rollDices: rollDices,
         recruitPuppet: recruitPuppet,
+        generalSkill: generalSkill,
+        deployGeneral: deployGeneral,
+        moveGeneral:moveGeneral,
+
+        rescueGeneral: rescueGeneral,
 
         loseCity: loseCity,
         loseProvince: loseProvince,
-        controlCity:controlCity,
-        controlProvince:controlProvince,
+        controlCity: controlCity,
+        controlProvince: controlProvince,
         placeTroop: placeTroop,
         down: down,
     }
@@ -97,9 +102,9 @@ const StagedTurnConfig = {
     stages: {
         react: ReactStageConfig,
         emperor: EmperorStageConfig,
-        jianLiDaQi:{
-            moves:{
-                jianLiDaQi:jianLiDaQi,
+        jianLiDaQi: {
+            moves: {
+                jianLiDaQi: jianLiDaQi,
             }
         }
     },
@@ -139,7 +144,7 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
         }
         logger.debug(log.join(''));
     },
-    onEnd:(G,ctx)=>endTurnCheck(G,ctx),
+    onEnd: (G, ctx) => endTurnCheck(G, ctx),
     moves: {
         placeUnit: placeUnit,
         endRound: endRound
@@ -188,7 +193,7 @@ export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
         opponentMove: opponentMove,
         endRound: endRound
     },
-    onEnd:(G,ctx)=>{
+    onEnd: (G, ctx) => {
         G.song.usedDevelop = 0;
         G.jinn.usedDevelop = 0;
     },
@@ -263,8 +268,10 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     start: true,
     turn: StagedTurnConfig,
     moves: {
-        emptyRound: emptyRound,
 
+        moveGeneral:moveGeneral,
+        deployGeneral: deployGeneral,
+        emptyRound: emptyRound,
         op: op,
         recruitUnit: recruitUnit,
         cardEvent: cardEvent,
@@ -274,6 +281,9 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         tieJun: tieJun,
         endRound: endRound,
         combatCard: combatCard,
+        generalSkill: generalSkill,
+
+        rescueGeneral: rescueGeneral,
 
         recruitPuppet: recruitPuppet,
         deploy: deploy,
@@ -286,8 +296,8 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         rollDices: rollDices,
         loseCity: loseCity,
         loseProvince: loseProvince,
-        controlCity:controlCity,
-        controlProvince:controlProvince,
+        controlCity: controlCity,
+        controlProvince: controlProvince,
         placeTroop: placeTroop,
         down: down,
     },
