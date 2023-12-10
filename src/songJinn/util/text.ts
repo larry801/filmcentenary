@@ -127,6 +127,7 @@ export const getLogText = (l: LogEntry): string => {
                         case 'moveTroop':
                             log += `${placeToStr(arg.src.p)}全军移动到${placeToStr(arg.dst)}`;
                             break;
+
                         case 'rollDices':
                             log += `扔了${arg === undefined ? 5 : arg}个骰子`;
                             break;
@@ -137,6 +138,7 @@ export const getLogText = (l: LogEntry): string => {
                             log += arg.length === 0 ? "不使用战斗牌" :
                                 `使用战斗牌${arg.map((p: SJEventCardID) => sjCardById(p).name)}`;
                             break;
+
                         case 'takePlan':
                             log += `拿走了${arg.map((p: PlanID) => getPlanById(p).name)}`;
                             break;
@@ -152,6 +154,12 @@ export const getLogText = (l: LogEntry): string => {
 
                         case 'loseProvince':
                             log += `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`
+                            break;
+                        case 'controlProvince':
+                            log += `控制了${arg.province}${arg.opponent ? "对手占领" : ""}`
+                            break;
+                        case 'controlCity':
+                            log += `控制${arg.cityID}${arg.opponent ? "对手占领" : ""}`;
                             break;
                         case 'loseCity':
                             log += `丢失${arg.cityID}${arg.opponent ? "对手占领" : ""}`;

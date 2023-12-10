@@ -98,6 +98,7 @@ export const Operation = ({
             }
         }}
         color={"primary"} variant={"contained"}>结束行动</Button>
+
     const endPlan = (isActive && ctx.phase === 'resolvePlan') && <Button
         onClick={() => ctx.events?.endTurn()}
         color={"primary"} variant={"contained"}>结束计划结算</Button>
@@ -169,7 +170,6 @@ export const Operation = ({
         show={isActive && ctr === Country.SONG && actualStage(G, ctx) === 'emperor'}
         title={"请选择拥立目标城市"} toggleText={"拥立"} initial={false}
     />
-
 
     const develop = (choice: string) => {
         moves.develop(choice);

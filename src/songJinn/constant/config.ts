@@ -8,7 +8,7 @@ import {
     chooseProvince,
     chooseRegion,
     chooseTop,
-    combatCard,
+    combatCard, controlCity, controlProvince,
     deploy,
     develop,
     developCard,
@@ -81,10 +81,14 @@ export const ReactStageConfig: StageConfig<SongJinnGame> = {
         removeUnit: removeUnit,
         placeUnit: placeUnit,
         rollDices: rollDices,
-        //
-        down: down,
+        recruitPuppet: recruitPuppet,
 
+        loseCity: loseCity,
+        loseProvince: loseProvince,
+        controlCity:controlCity,
+        controlProvince:controlProvince,
         placeTroop: placeTroop,
+        down: down,
     }
 }
 
@@ -268,12 +272,10 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         letter: letter,
         heYi: heYi,
         tieJun: tieJun,
+        endRound: endRound,
         combatCard: combatCard,
 
         recruitPuppet: recruitPuppet,
-        endRound: endRound,
-
-
         deploy: deploy,
         opponentMove: opponentMove,
         march: march,
@@ -284,6 +286,8 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         rollDices: rollDices,
         loseCity: loseCity,
         loseProvince: loseProvince,
+        controlCity:controlCity,
+        controlProvince:controlProvince,
         placeTroop: placeTroop,
         down: down,
     },
