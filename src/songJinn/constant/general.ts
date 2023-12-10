@@ -183,11 +183,11 @@ export const enum IEra {
 }
 
 export const enum TerrainType {
-    FLATLAND,
-    HILLS,
-    MOUNTAINS,
-    SWAMP,
-    RAMPART,
+    FLATLAND = "平原",
+    HILLS = "丘陵",
+    MOUNTAINS = "山地",
+    SWAMP = "水泽",
+    RAMPART = "城墙",
 }
 
 export const enum SongBaseCardID {

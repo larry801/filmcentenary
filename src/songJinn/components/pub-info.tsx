@@ -7,6 +7,7 @@ import {SJPlayer, SongJinnGame} from "../constant/general";
 import Typography from "@material-ui/core/Typography";
 
 import {
+    getCityText,
     getJinnPower,
     getJinnScore,
     getPolicy,
@@ -15,6 +16,10 @@ import {
     phaseName, sjCardById, totalDevelop,
     unitsToString
 } from "../util";
+import ChoiceDialog from "../../components/modals";
+import {ShowCards} from "./show-cards";
+import {getCityById} from "../constant/city";
+import {getRegionById} from "../constant/regions";
 
 export interface IPubInfo {
     G: SongJinnGame,
@@ -29,26 +34,40 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             第{G.turn}回合 第{G.round}轮 {phaseName(ctx.phase)}
         </Grid>
         <Grid item xs={6} key={`song-pub`}><Paper>
-        <label>宋</label>
-        <div><label>军事：</label>{s.military}</div>
-        <div><label>内政：</label>{s.civil}</div>
-        <div><label>政策：</label>{getPolicy(G, ctx)}</div>
-        <div><label>国力：</label>{getSongPower(G)}</div>
-        <div><label>腐败：</label>{s.corruption}</div>
-        <div><label>盟国：</label>{s.nations.join('')}</div>
-        <div><label>预备区：{unitsToString(s.ready)} {getReadyGeneralNames(G, SJPlayer.P1).join('')}</label></div>
-        <div><label>备用兵区： {unitsToString(s.standby)}</label></div>
-        <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
-        <div><label>完成计划：{s.completedPlan.map(p => getPlanById(p).name)}</label></div>
-        <div><label>弃牌：{s.discard.map(p => sjCardById(p).name)}</label></div>
-        <div><label>移除：{s.remove.map(p => sjCardById(p).name)}</label></div>
-        {s.dices.length > 0 && <Typography>{s.dices.join(',')}</Typography>}
-        {/*<div><label>手牌数：</label></div>*/}
-        <div><label>发展牌：{s.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
-        {ctx.phase === 'develop' &&
-            <div><label> 使用/总发展点数： {s.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P1)} </label></div>}
-        {G.turn > 6 && <div><label>绍兴和议分数：{getSongScore(G)}</label></div>}
-    </Paper></Grid>
+            <label>宋</label>
+            <div><label>军事：</label>{s.military}</div>
+            <div><label>内政：</label>{s.civil}</div>
+            <div><label>政策：</label>{getPolicy(G, ctx)}</div>
+            <div><label>国力：</label>{getSongPower(G)}</div>
+            <div><label>腐败：</label>{s.corruption}</div>
+            <div><label>盟国：</label>{s.nations.join('')}</div>
+            <div><label>预备区：{unitsToString(s.ready)} {getReadyGeneralNames(G, SJPlayer.P1).join('')}</label></div>
+            <div><label>备用兵区： {unitsToString(s.standby)}</label></div>
+            <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
+            <div><label>完成计划：{s.completedPlan.map(p => getPlanById(p).name)}</label></div>
+            <div><label>控制路：{s.provinces.map(p => p)}</label></div>
+            <ChoiceDialog callback={() => {
+            }} choices={
+                s.cities.map(c => {
+                    const city = getCityById(c);
+                    const region = getRegionById(city.region);
+                    return {
+                        label: getCityText(c),
+                        value: c,
+                        hidden: false,
+                        disabled: true
+                    }
+                })
+            } defaultChoice={""} show={true} title={"查看占领城市"} toggleText={"城市"} initial={false}/>
+            <div><ShowCards cards={s.discard} title={"查看弃牌"} toggleText={"弃牌"}/></div>
+            <div><ShowCards cards={s.remove} title={"查看移除"} toggleText={"移除牌"}/></div>
+            {s.dices.length > 0 && <Typography>{s.dices.join(',')}</Typography>}
+            {/*<div><label>手牌数：</label></div>*/}
+            <div><label>发展牌：{s.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
+            {ctx.phase === 'develop' &&
+                <div><label> 使用/总发展点数： {s.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P1)} </label></div>}
+            {G.turn > 6 && <div><label>绍兴和议分数：{getSongScore(G)}</label></div>}
+        </Paper></Grid>
         <Grid item xs={6} key={`jinn-pub`}><Paper><label>金</label>
             <div><label>军事：</label>{j.military}</div>
             <div><label>内政：</label>{j.civil}</div>
@@ -60,9 +79,24 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label> 备用兵区： {unitsToString(j.standby)}</label></div>
             <div><label>本回合计划：{j.plan.map(p => getPlanById(p).name)}</label></div>
             <div><label>完成计划：{j.completedPlan.map(p => getPlanById(p).name)}</label></div>
+            <div><label>控制路：{j.provinces.map(p => p)}</label></div>
+            <ChoiceDialog callback={() => {
+            }} choices={
+                j.cities.map(c => {
+                    const city = getCityById(c);
+                    const region = getRegionById(city.region);
+                    return {
+                        label: getCityText(c),
+                        value: c,
+                        hidden: false,
+                        disabled: true
+                    }
+                })
+            } defaultChoice={""} show={true} title={"查看占领城市"} toggleText={"城市"} initial={false}/>
             {/* TODO 手牌数 在pubInfo里面维护一个还是 playerView */}
-            <div><label>弃牌：{j.discard.map(p => sjCardById(p).name)}</label></div>
-            <div><label>移除：{j.remove.map(p => sjCardById(p).name)}</label></div>
+            <div><ShowCards cards={j.discard} title={"查看弃牌"} toggleText={"弃牌"}/></div>
+            <div><ShowCards cards={j.remove} title={"查看移除"} toggleText={"移除牌"}/></div>
+
             {j.dices.length > 0 && <Typography>{j.dices.join(',')}</Typography>}
             {/*<div><label>手牌数：</label></div>*/}
             <div><label>发展牌：{j.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>

@@ -11,6 +11,7 @@ import {
     GeneralNames,
     GeneralStatus,
     IEra,
+    isCityID,
     isMountainPassID,
     isNationID,
     isRegionID,
@@ -2682,6 +2683,22 @@ export const rollDiceByPid = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, count: n
         G.jinn.dices = dices;
     }
 }
+
+
+export const getRegionText = (r: RegionID) => {
+    const region = getRegionById(r);
+    const province = getProvinceById(region.province);
+    const city = region.city;
+    return `${region.name}|${city === null ? "" : (city + province.capital.includes(city) ? "*" : "")}|${region.terrain}`;
+}
+
+export const getCityText = (cid: CityID) => {
+    const city = getCityById(cid);
+    const region = getRegionById(city.region);
+    return `${city.capital ? "*" : ""}${city.name} |${region.name} |${city.province}`;
+}
+
+
 export const getLogText = (l: LogEntry): string => {
     const payload = l.action.payload;
     const pid = payload.playerID;
@@ -2698,158 +2715,246 @@ export const getLogText = (l: LogEntry): string => {
                             log += '选择了一张作战计划';
                             break;
                         case 'endRound':
-                            log += `结束行动`;
+                            log += `结束行动`
+                            ;
                             break;
                         case 'opponentMove':
-                            log += `让对方操作`;
+                            log +=
+                                `让对方操作`
+                            ;
                             break;
                         default:
-                            log += `${name}|${JSON.stringify(args)}`;
+                            log +=
+                                `${name}|${JSON.stringify(args)}`
+                            ;
                     }
                 } else {
                     const arg = args[0];
                     switch (name) {
                         case 'deployGeneral':
-                            log += `派遣${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`;
+                            log +=
+                                `派遣${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`
+                            ;
                             break;
                         case 'moveGeneral':
-                            log += `移动${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`;
+                            log +=
+                                `移动${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`
+                            ;
                             break;
 
                         case 'rescueGeneral':
-                            log += `弃发展牌${sjCardById(arg.card).name}救援${getGeneralNameByPid(pid, arg.general)}`;
+                            log +=
+                                `弃发展牌${sjCardById(arg.card).name}救援${getGeneralNameByPid(pid, arg.general)}`
+                            ;
                             break;
                         case 'removeUnit':
-                            log += `消灭${arg.c}${placeToStr(arg.src)}${unitsToString(arg.units)}`;
+                            log +=
+                                `消灭${arg.c}${placeToStr(arg.src)}${unitsToString(arg.units)}`
+                            ;
                             break;
                         case 'placeUnit':
-                            log += `在${placeToStr(arg.place)}放置${unitsToString(arg.units)}`;
+                            log +=
+                                `在${placeToStr(arg.place)}放置${unitsToString(arg.units)}`
+                            ;
                             break;
                         case 'deploy':
-                            log += `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
+                            log +=
+                                `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`
+                            ;
                             break;
                         case 'placeUnits':
-                            log += `在${placeToStr(arg.dst)}放置${unitsToString(arg.units)}`;
+                            log +=
+                                `在${placeToStr(arg.dst)}放置${unitsToString(arg.units)}`
+                            ;
                             break;
 
                         case 'opponentMove':
-                            log += `让对方操作`;
+                            log +=
+                                `让对方操作`
+                            ;
                             break;
 
                         case 'takeDamage':
-                            log += `${placeToStr(arg.src)}${arg.c}死${unitsToString(arg.standby)}溃${unitsToString(arg.ready)}`;
+                            log +=
+                                `${placeToStr(arg.src)}${arg.c}死${unitsToString(arg.standby)}溃${unitsToString(arg.ready)}`
+                            ;
                             break;
                         case 'march':
-                            log += `${placeToStr(arg.src)}${unitsToString(arg.units)}进军${placeToStr(arg.dst)}`;
+                            log +=
+                                `${placeToStr(arg.src)}${unitsToString(arg.units)}进军${placeToStr(arg.dst)}`
+                            ;
                             break;
                         case 'placeTroop':
-                            log += `${placeToStr(arg.src.p)}${placeToStr(arg.dst)}`;
+                            log +=
+                                `${placeToStr(arg.src.p)}${placeToStr(arg.dst)}`
+                            ;
                             break;
                         case 'moveTroop':
-                            log += `${placeToStr(arg.src.p)}全军移动到${placeToStr(arg.dst)}`;
+                            log +=
+                                `${placeToStr(arg.src.p)}全军移动到${placeToStr(arg.dst)}`
+                            ;
                             break;
 
                         case 'rollDices':
-                            log += `扔了${arg === undefined ? 5 : arg}个骰子`;
+                            log +=
+                                `扔了${arg === undefined ? 5 : arg}个骰子`
+                            ;
                             break;
                         case 'chooseFirst':
-                            log += `选择${sjPlayerName(arg.choice)}先行动`;
+                            log +=
+                                `选择${sjPlayerName(arg.choice)}先行动`
+                            ;
                             break;
                         case 'combatCard':
                             log += arg.length === 0 ? "不使用战斗牌" :
-                                `使用战斗牌${arg.map((p: SJEventCardID) => sjCardById(p).name)}`;
+
+                                `使用战斗牌${arg.map((p: SJEventCardID) => sjCardById(p).name)}`
+                            ;
                             break;
 
                         case 'generalSkill':
-                            log += `横置${getGeneralNameByPid(pid, arg)}`
+                            log +=
+                                `横置${getGeneralNameByPid(pid, arg)}`
+
                             break;
 
                         case 'takePlan':
-                            log += `拿走了${arg.map((p: PlanID) => getPlanById(p).name)}`;
+                            log +=
+                                `拿走了${arg.map((p: PlanID) => getPlanById(p).name)}`
+                            ;
                             break;
                         case 'chooseTop':
-                            log += `把${getPlanById(arg).name}放在最上面`;
+                            log +=
+                                `把${getPlanById(arg).name}放在最上面`
+                            ;
                             break;
                         case 'jianLiDaQi':
-                            log += `建立大齐 齐控制${arg.join(',')}`;
+                            log +=
+                                `建立大齐 齐控制${arg.join(',')}`
+                            ;
                             break;
                         case 'showPlan':
-                            log += `展示${arg.map((p: PlanID) => getPlanById(p).name)}`;
+                            log +=
+                                `展示${arg.map((p: PlanID) => getPlanById(p).name)}`
+                            ;
                             break;
 
                         case 'loseProvince':
-                            log += `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`
+                            log +=
+                                `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`
+
                             break;
                         case 'controlProvince':
-                            log += `控制了${arg.province}${arg.opponent ? "对手占领" : ""}`
+                            log +=
+                                `控制了${arg.province}${arg.opponent ? "对手占领" : ""}`
+
                             break;
                         case 'controlCity':
-                            log += `控制${arg.cityID}${arg.opponent ? "对手占领" : ""}`;
+                            log +=
+                                `控制${arg.cityID}${arg.opponent ? "对手占领" : ""}`
+                            ;
                             break;
                         case 'loseCity':
-                            log += `丢失${arg.cityID}${arg.opponent ? "对手占领" : ""}`;
+                            log +=
+                                `丢失${arg.cityID}${arg.opponent ? "对手占领" : ""}`
+                            ;
                             break;
 
 
                         case 'discard':
-                            log += `弃牌${sjCardById(arg).name}`;
+                            log +=
+                                `弃牌${sjCardById(arg).name}`
+                            ;
                             break;
                         case 'search':
-                            log += `检索${sjCardById(arg).name}`;
+                            log +=
+                                `检索${sjCardById(arg).name}`
+                            ;
                             break;
                         case 'op':
-                            log += `打出${sjCardById(arg).name}`;
+                            log +=
+                                `打出${sjCardById(arg).name}`
+                            ;
                             break;
                         case 'cardEvent':
-                            log += `事件${sjCardById(arg).name}`;
+                            log +=
+                                `事件${sjCardById(arg).name}`
+                            ;
                             break;
                         case 'developCard':
-                            log += `发展${sjCardById(arg).name}`;
+                            log +=
+                                `发展${sjCardById(arg).name}`
+                            ;
                             break;
                         case 'down':
-                            log += `降低${arg}`;
+                            log +=
+                                `降低${arg}`
+                            ;
                             break;
                         case 'develop':
-                            log += `${arg !== DevelopChoice.EMPEROR ? "提升" : ""}${arg}`;
+                            log +=
+                                `${arg !== DevelopChoice.EMPEROR ? "提升" : ""}${arg}`
+                            ;
                             break;
                         case 'recruitUnit':
-                            log += `征募${unitsToString(arg)}`;
+                            log +=
+                                `征募${unitsToString(arg)}`
+                            ;
                             break;
                         case 'recruitPuppet':
-                            log += `在${getCityById(arg).name}征募签军`;
+                            log +=
+                                `在${getCityById(arg).name}征募签军`
+                            ;
                             break;
                         case 'emperor':
-                            log += `在${getCityById(arg).name}拥立`;
+                            log +=
+                                `在${getCityById(arg).name}拥立`
+                            ;
                             break;
                         case 'letter':
-                            log += `向${arg.nation}递交了国书`;
+                            log +=
+                                `向${arg.nation}递交了国书`
+                            ;
                             break;
                         case 'heYi':
-                            log += `用${sjCardById(arg).name}和议`;
+                            log +=
+                                `用${sjCardById(arg).name}和议`
+                            ;
                             break;
                         case 'tieJun':
-                            log += `用${sjCardById(arg).name}贴军`;
+                            log +=
+                                `用${sjCardById(arg).name}贴军`
+                            ;
                             break;
                         case 'paiQian':
-                            log += `用${sjCardById(arg).name}派遣`;
+                            log +=
+                                `用${sjCardById(arg).name}派遣`
+                            ;
                             break;
                         case 'choosePlan':
                             log += '选择了一张作战计划';
                             break;
                         case 'endRound':
-                            log += `结束第${arg}行动轮`;
+                            log +=
+                                `结束第${arg}行动轮`
+                            ;
                             break;
                         default:
-                            log += `|${JSON.stringify(name)}|${JSON.stringify(arg)}`
+                            log +=
+                                `|${JSON.stringify(name)}|${JSON.stringify(arg)}`
+
                     }
                 }
             } catch (e) {
-                log += `|${JSON.stringify(l)}|${e.toString()}|${JSON.stringify(e.stackTrace)}`
+                log +=
+                    `|${JSON.stringify(l)}|${e.toString()}|${JSON.stringify(e.stackTrace)}`
+
             }
             return log;
         case "GAME_EVENT":
             if (payload.type === 'endPhase') {
-                return `${phaseName(l.phase)}结束`
+                return `${phaseName(l.phase)}结束`;
+
             } else {
                 return "";
             }
@@ -2931,43 +3036,178 @@ export const remainDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => 
 }
 
 export function troopIsArmy(G: SongJinnGame, ctx: Ctx, troop: Troop) {
-    return troopEndurance(G, ctx, troop) !== 0;
+    return troopEndurance(G, troop) !== 0;
 }
 
-export function troopEndurance(G: SongJinnGame, ctx: Ctx, troop: Troop): number {
-    let endurance = 0;
-    let terrainType;
-    if (troop.p === null) {
-        if (troop.c === null) {
-            return -1;
+export function troopRange(G: SongJinnGame, troop: Troop): number {
+
+    let range = 0;
+    const terrainType = getTerrainTypeByPlace(troop);
+    const place = troop.p;
+    // @ts-ignore
+    const isSwampRampart = isCityID(place) && getRegionById(getCityById(place)
+    ).terrain === TerrainType.SWAMP;
+
+
+    let unitRanges: number[] = [];
+
+    if (troop.country === Country.SONG) {
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitRanges = [0, 1, 0, 0, 0, 2];
+                break;
+            case TerrainType.HILLS:
+                unitRanges = [0, 1, 0, 0, 0, 2];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitRanges = [0, 1, 0, 0, 0, 2];
+                break;
+            case TerrainType.SWAMP:
+                unitRanges = [0, 2, 0, 2, 0, 2];
+                break;
+            case TerrainType.RAMPART:
+                unitRanges = [0, 2, 0, 0, 3, 2];
+                if (isSwampRampart) {
+                    unitRanges[4] = 2;
+                }
+                break;
         }
-        terrainType = getRegionById(getCityById(troop.c).region).terrain;
+        if (G.events.includes(ActiveEvents.ShenBiGong)) {
+            unitRanges[1] = 2;
+        }
     } else {
-        if (isRegionID(troop.p)) {
-            terrainType = getRegionById(troop.p).terrain;
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitRanges = [0, 2, 0, 0, 0, 1, 1];
+                break;
+            case TerrainType.HILLS:
+                unitRanges = [0, 2, 0, 0, 0, 0, 0];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitRanges = [0, 1, 0, 0, 0, 0, 0];
+                break;
+            case TerrainType.SWAMP:
+                unitRanges = [0, 2, 0, 2, 0, 0, 0];
+                break;
+            case TerrainType.RAMPART:
+                unitRanges = [0, 2, 0, 0, 0, 0, 0];
+                if (isSwampRampart) {
+                    unitRanges[3] = 2;
+                }
+                break;
+        }
+        if (G.events.includes(ActiveEvents.JianLiDaQi) && G.jinn.military >= 5) {
+            unitRanges[5] = 1;
+            unitRanges[6] = 1;
+        }
+    }
+    troop.u.forEach((i, idx) => {
+        range += i * unitRanges[idx]
+    })
+    return range;
+}
+
+export function troopMelee(G: SongJinnGame, troop: Troop): number {
+    return troopMeleeOnly(G, troop) + troopRange(G, troop);
+}
+
+export function troopMeleeOnly(G: SongJinnGame, troop: Troop): number {
+
+    let melee = 0;
+    const terrainType = getTerrainTypeByPlace(troop);
+    const place = troop.p;
+    // @ts-ignore
+    const isSwampRampart = isCityID(place) && getRegionById(getCityById(place))
+        .terrain === TerrainType.SWAMP;
+
+
+    let unitMelee: number[] = [];
+
+    if (troop.country === Country.SONG) {
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitMelee = [1, 0, 3, 0, 0, 0];
+                break;
+            case TerrainType.HILLS:
+                unitMelee = [1, 0, 2, 0, 0, 0];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitMelee = [1, 0, 1, 0, 0, 0];
+                break;
+            case TerrainType.SWAMP:
+                unitMelee = [1, 0, 1, 2, 0, 0];
+                break;
+            case TerrainType.RAMPART:
+                unitMelee = [1, 0, 1, 0, 0, 0];
+                if (isSwampRampart) {
+                    unitMelee[4] = 2;
+                }
+                break;
+        }
+        if (G.events.includes(ActiveEvents.ShenBiGong)) {
+            unitMelee[1] = 2;
+        }
+    } else {
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitMelee = [0, 0, 3, 0, 0, 1, 1];
+                break;
+            case TerrainType.HILLS:
+                unitMelee = [0, 0, 2, 0, 0, 1, 1];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitMelee = [0, 0, 1, 0, 0, 1, 1];
+                break;
+            case TerrainType.SWAMP:
+                unitMelee = [0, 0, 1, 2, 0, 1, 1];
+                break;
+            case TerrainType.RAMPART:
+                unitMelee = [0, 0, 2, 0, 0, 0, 0];
+                break;
+        }
+    }
+    troop.u.forEach((i, idx) => {
+        melee += i * unitMelee[idx]
+    })
+    return melee;
+}
+
+export function getTerrainTypeByPlace(troop: Troop) {
+    if (isRegionID(troop.p)) {
+        return getRegionById(troop.p).terrain;
+    } else {
+        if (isMountainPassID(troop.p)) {
+            return TerrainType.RAMPART;
         } else {
-            if (isMountainPassID(troop.p)) {
-                terrainType = TerrainType.RAMPART;
+            if (isCityID(troop.p)) {
+                return TerrainType.RAMPART;
             } else {
                 // TODO other country endurance
-                terrainType = TerrainType.FLATLAND;
+                return TerrainType.FLATLAND;
             }
         }
     }
+}
+
+export function getTroopText(G: SongJinnGame, t: Troop) {
+    return `${t.country}|${placeToStr(t.p)}|${unitsToString(t.u)}|${t.c === null ? '' : t.c}|` +
+        `耐久${troopEndurance(G, t)}|远程${troopRange(G, t)}|交锋${troopMelee(G, t)}`;
+
+}
+
+
+export function troopEndurance(G: SongJinnGame, troop: Troop): number {
+    let endurance = 0;
+    const terrainType = getTerrainTypeByPlace(troop);
+
     let unitEndurance: number[] = [];
-    switch (troop.country) {
-        case Country.SONG:
-            unitEndurance = [2, 1, 1, 0, 0, 2];
-            if (G.events.includes(ActiveEvents.ZhongBuBing)) {
-                unitEndurance[0] = 3;
-            }
-            break;
-        case Country.JINN:
-            unitEndurance = [2, 1, 2, 0, 0, 1, 1];
-            if (G.events.includes(ActiveEvents.ZhongBuBing)) {
-                unitEndurance[0] = 3;
-            }
-            break;
+    if (troop.country === Country.SONG) {
+        unitEndurance = [2, 1, 1, 0, 0, 2];
+        if (G.events.includes(ActiveEvents.ZhongBuBing)) {
+            unitEndurance[0] = 3;
+        }
+    } else {
+        unitEndurance = [2, 1, 2, 0, 0, 1, 1]
     }
     if (terrainType === TerrainType.SWAMP) {
         unitEndurance[3] = 2;
@@ -2977,6 +3217,7 @@ export function troopEndurance(G: SongJinnGame, ctx: Ctx, troop: Troop): number 
     })
     return endurance;
 }
+
 
 export const getSongScore = (G: SongJinnGame): number => {
     let score = getSongPower(G);
@@ -3129,7 +3370,9 @@ export const checkPlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID
     return filtered.length === planObj.provinces.length;
 }
 export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
-    const log = [`t${G.turn}endTurnCheck`];
+    const log = [
+        `t${G.turn}endTurnCheck`
+    ];
     if (G.turn === 2) {
         addMidTermCard(G, ctx);
     }
@@ -3137,9 +3380,13 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
         addLateTermCard(G, ctx);
     }
     if (G.events.includes(ActiveEvents.YueShuaiZhiLai)) {
-        log.push(`|RemoveYueShuaiZhiLai|${G.events.toString()}`);
+        log.push(
+            `|RemoveYueShuaiZhiLai|${G.events.toString()}`
+        );
         G.events.splice(G.events.indexOf(ActiveEvents.YueShuaiZhiLai), 1);
-        log.push(`|after|${G.events.toString()}`);
+        log.push(
+            `|after|${G.events.toString()}`
+        );
     }
     G.events.splice(G.events.indexOf(ActiveEvents.LiGang), 1);
     if (G.turn >= MAX_ROUND) {
@@ -3151,26 +3398,42 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
             reason: VictoryReason.ShaoXingHeYi
         })
     } else {
-        log.push(`moveTurnMarker`);
+        log.push(
+            `moveTurnMarker`
+        );
         G.turn++;
     }
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.debug(
+        `${G.matchID}|${log.join('')}`
+    );
 }
 export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
-    const log = [`t${G.turn}r${G.round}|endRoundCheck`];
+    const log = [
+        `t${G.turn}r${G.round}|endRoundCheck`
+    ];
     if (G.order[1] === ctx.playerID) {
-        log.push(`|second`);
+        log.push(
+            `|second`
+        );
         if (G.round >= MAX_ROUND) {
-            log.push(`|action|end|resolvePlan`);
+            log.push(
+                `|action|end|resolvePlan`
+            );
             ctx.events?.setPhase('resolvePlan')
         } else {
             G.round++;
-            log.push(`|r${G.round}start`);
+            log.push(
+                `|r${G.round}start`
+            );
         }
     } else {
-        log.push(`|firstPlayer`);
+        log.push(
+            `|firstPlayer`
+        );
     }
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.debug(
+        `${G.matchID}|${log.join('')}`
+    );
 }
 export const returnDevCardCheck = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cid: SJEventCardID) => {
     const pub = getStateById(G, pid);
@@ -3249,26 +3512,36 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
     }
 }
 export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, place: TroopPlace) => {
-    const log = [`doPlaceUnit|${unitsToString(units)}${country}${placeToStr(place)}`];
+    const log = [
+        `doPlaceUnit|${unitsToString(units)}${country}${placeToStr(place)}`
+    ];
 
     const target = ctr2pid(country);
     const pub = getStateById(G, target);
     pub.standby.forEach((u, idx) => {
         if (u < units[idx]) {
-            log.push(`${u}<${units[idx]}|INVALID_MOVE`);
-            logger.debug(`${G.matchID}|${log.join('')}`);
+            log.push(
+                `${u}<${units[idx]}|INVALID_MOVE`
+            );
+            logger.debug(
+                `${G.matchID}|${log.join('')}`
+            );
             return INVALID_MOVE;
         }
     });
 
     const t = country === Country.SONG ? getSongTroopByPlace(G, place) : getJinnTroopByPlace(G, place);
     if (t === null) {
-        log.push(`noTroop`);
+        log.push(
+            `noTroop`
+        );
         let city = null;
         if (isRegionID(place)) {
 
             city = getRegionById(place).city;
-            log.push(`|${city}`);
+            log.push(
+                `|${city}`
+            );
         }
         pub.troops.push({
             u: units,
@@ -3280,12 +3553,18 @@ export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, 
             pub.standby[i] -= units[i];
         }
     } else {
-        log.push(`${JSON.stringify(t)}`);
+        log.push(
+            `${JSON.stringify(t)}`
+        );
         for (let i = 0; i < units.length; i++) {
             t.u[i] += units[i];
             pub.standby[i] -= units[i];
         }
-        log.push(`|after|${unitsToString(t.u)}${JSON.stringify(t)}`);
+        log.push(
+            `|after|${unitsToString(t.u)}${JSON.stringify(t)}`
+        );
     }
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.debug(
+        `${G.matchID}|${log.join('')}`
+    );
 }
