@@ -124,7 +124,8 @@ export enum DevelopChoice {
     MILITARY = "军事",
     CIVIL = "内政",
     COLONY = "殖民",
-    POLICY = "政策",
+    POLICY_UP = "提升政策",
+    POLICY_DOWN = "降低政策",
     EMPEROR = "拥立"
 }
 

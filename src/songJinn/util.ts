@@ -2733,19 +2733,18 @@ export const getLogText = (l: LogEntry): string => {
                         case 'choosePlan':
                             log += '选择了一张作战计划';
                             break;
+                        case 'emptyRound':
+                            log += `空过`;
+                            break;
                         case 'endRound':
-                            log += `结束行动`
-                            ;
+                            log += `结束行动`;
                             break;
                         case 'opponentMove':
                             log +=
-                                `让对方操作`
-                            ;
+                                `让对方操作`;
                             break;
                         default:
-                            log +=
-                                `${name}|${JSON.stringify(args)}`
-                            ;
+                            log += `${name}|${JSON.stringify(args)}`;
                     }
                 } else {
                     const arg = args[0];
@@ -3024,7 +3023,7 @@ export const drawCardForJinn = (G: SongJinnGame, ctx: Ctx) => {
         G.secret.jinnDeck = shuffle(ctx, G.song.discard);
         G.jinn.discard = [];
     } else {
-        console.log(card+'jinn');
+        console.log(card + 'jinn');
         player.hand.push(card);
     }
     if (G.secret.jinnDeck.length === 0) {

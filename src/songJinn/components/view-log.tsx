@@ -8,6 +8,8 @@ import IconButton from '@material-ui/core/IconButton';
 import TextField from '@material-ui/core/TextField';
 import {getLogText} from "../util";
 import {SongJinnGame} from "../constant/general";
+import {useI18n} from "@i18n-chain/react";
+import i18n from "../../constant/i18n";
 
 export interface ILogViewProps {
     log: LogEntry[],
@@ -17,6 +19,7 @@ export interface ILogViewProps {
 
 export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
 
+    useI18n(i18n);
 
     const [open, setOpen] = React.useState(true);
     const toggleGameLog = () => {
@@ -43,21 +46,22 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
     return <Grid item container xs={12}>
         <Grid item xs={12}>
             <Button fullWidth={true} onClick={toggleGameLog}>
-                行动记录
+                {i18n.pub.gameLog}
             </Button>
             <IconButton
                 color="primary"
                 aria-label={"复制"}
                 edge="start"
                 onClick={onCopyLog}>
-                <ContentCopyIcon/>
+
+                <ContentCopyIcon/>复制 {i18n.pub.gameLog}
             </IconButton>
             <IconButton
                 color="secondary"
                 aria-label={"复制"}
                 edge="start"
                 onClick={onCopyMove}>
-                <ContentCopyIcon/>
+                <ContentCopyIcon/>复制链接
             </IconButton>
         </Grid>
         {open && <Grid item xs={12}>

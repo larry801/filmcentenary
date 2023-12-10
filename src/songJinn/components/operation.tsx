@@ -252,8 +252,14 @@ export const Operation = ({
                 hidden: false
             },
             {
-                label: DevelopChoice.POLICY, value: DevelopChoice.POLICY,
-                disabled: false,
+                label: DevelopChoice.POLICY_DOWN, value: DevelopChoice.POLICY_DOWN,
+                disabled: G.policy <= -3,
+                // disabled: remainDevelopPoint < 3,
+                hidden: country !== Country.SONG
+            },
+            {
+                label: DevelopChoice.POLICY_UP, value: DevelopChoice.POLICY_UP,
+                disabled: G.policy >= 3,
                 // disabled: remainDevelopPoint < 3,
                 hidden: country !== Country.SONG
             },
