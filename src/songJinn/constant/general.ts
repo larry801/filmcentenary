@@ -756,6 +756,7 @@ export const initialJinnPub: SJPubInfo = {
     provinces: [
         ProvinceID.BEIJINGLU,
         ProvinceID.DONGJINGLU,
+        ProvinceID.YANJINGLU,
         ProvinceID.XIJINGLU,
         ProvinceID.HEDONGLU,
         ProvinceID.HEBEILIANGLU
@@ -860,12 +861,13 @@ export const initialSongPub: SJPubInfo = {
         {u: [2, 1, 0, 0, 0, 0], p: RegionID.R42, c: CityID.XiangYang, country: Country.SONG},
         {u: [2, 3, 0, 0, 0, 0], p: RegionID.R43, c: CityID.KaiFeng, country: Country.SONG},
 
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R46, c: CityID.JiangDu, country: Country.SONG},
+        {u: [0, 0, 0, 1, 0, 0], p: RegionID.R72, c: CityID.DanTu, country: Country.SONG},
+        {u: [1, 0, 0, 1, 0, 0], p: RegionID.R46, c: CityID.JiangDu, country: Country.SONG},
         {u: [1, 0, 0, 0, 0, 0], p: RegionID.R48, c: CityID.XiaCai, country: Country.SONG},
         {u: [1, 0, 0, 0, 0, 0], p: RegionID.R54, c: CityID.ChengDu, country: Country.SONG},
 
         {u: [1, 0, 0, 0, 0, 0], p: RegionID.R60, c: CityID.JiangLing, country: Country.SONG},
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R66, c: CityID.JiangNing, country: Country.SONG},
+        {u: [0, 1, 0, 0, 0, 0], p: RegionID.R66, c: CityID.JiangNing, country: Country.SONG},
         {u: [1, 0, 0, 0, 0, 0], p: RegionID.R77, c: CityID.MinXian, country: Country.SONG},
 
     ],

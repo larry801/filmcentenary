@@ -26,7 +26,7 @@ import {
     ctr2pub,
     getCountryById,
     getGeneralNameByCountry, getMarchDst,
-    getOpponentStateById, getPlaceGeneral,
+    getOpponentStateById, getPlaceCountryGeneralNames, getPlaceGeneral,
     getPlaceGeneralNames, getReadyGenerals,
     getStateById, getTroopText, optionToActualDst,
     placeToStr, StrProvince, troopEndurance, troopMelee, troopRange, unitsToString
@@ -450,7 +450,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         {troops.map((t, idx) => <Grid item xs={6} key={`troop-grid-${idx}`}>
             <Accordion expanded={isActive && expanded === idx} onChange={() => setExpanded(idx)}
                        key={`troop-${idx}`}>
-                <AccordionSummary>{getPlaceGeneralNames(G, pid, t.p)}|{getTroopText(G, t)}</AccordionSummary>
+                <AccordionSummary>{getPlaceCountryGeneralNames(G, t.country, t.p)}|{getTroopText(G, t)}</AccordionSummary>
                 <AccordionDetails>
                     {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
                         <button

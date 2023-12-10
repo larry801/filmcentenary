@@ -2336,6 +2336,15 @@ export const getGeneralNameByCountry = (country: Country, general: General) => {
         return GeneralNames[1][general];
     }
 }
+export const getPlaceCountryGeneralNames = (G: SongJinnGame, country: Country, place: TroopPlace) => {
+    const pid = ctr2pid(country);
+    const readyGenerals = getPlaceGeneral(G, pid, place);
+    if (pid === SJPlayer.P1) {
+        return readyGenerals.map(g => GeneralNames[0][g]);
+    } else {
+        return readyGenerals.map(g => GeneralNames[1][g]);
+    }
+}
 export const getPlaceGeneralNames = (G: SongJinnGame, pid: PlayerID, place: TroopPlace) => {
     const readyGenerals = getPlaceGeneral(G, pid, place);
     if (pid === SJPlayer.P1) {
@@ -2390,9 +2399,11 @@ export const removeGeneral = (G: SongJinnGame, pid: PlayerID, general: General) 
     switch (country) {
         case Country.SONG:
             G.song.generals[general] = GeneralStatus.REMOVED;
+            G.song.generalPlace[general] = RegionID.R01;
             break;
         case Country.JINN:
             G.jinn.generals[general] = GeneralStatus.REMOVED;
+            G.jinn.generalPlace[general] = RegionID.R01;
             break;
     }
 }
@@ -2486,8 +2497,9 @@ export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerI
     const log = [`removeUnitByPlace|${placeToStr(place)}|${unitsToString(units)}`]
     const pub = getStateById(G, pid);
     const filtered = pub.troops.filter(t => t.p === place);
-    log.push(`${filtered}`);
+    log.push(`|filtered${(filtered)}`);
     if (filtered.length > 0) {
+        log.push(`|hasTroop`);
         removeUnitOnTroop(G, units, pid, pub.troops.indexOf(filtered[0]));
         if (filtered.length > 1) {
             log.push(`|moreThanOne`);
@@ -3234,6 +3246,7 @@ export const getSongScore = (G: SongJinnGame): number => {
 export const getSongPower = (G: SongJinnGame): number => {
     const countedProvince = [...G.song.provinces];
     countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
+    countedProvince.splice(countedProvince.indexOf(ProvinceID.YANJINGLU), 1);
     if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.FUJIANLU), 1);
     }
@@ -3262,9 +3275,9 @@ export const getJinnScore = (G: SongJinnGame): number => {
 export const getJinnPower = (G: SongJinnGame): number => {
     const countedProvince = [...G.jinn.provinces];
     countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
+    countedProvince.splice(countedProvince.indexOf(ProvinceID.YANJINGLU), 1);
     if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.FUJIANLU), 1);
-
     }
     let power = countedProvince.length;
     if (G.jinn.emperor !== null) {

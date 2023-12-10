@@ -1207,7 +1207,7 @@ export const loseCity: LongFormMove = {
             }
             const city = getCityById(cityID);
             if (city.capital) {
-                doLoseProvince(G, ctx.playerID, city.province, true);
+                doLoseProvince(G, ctx.playerID, city.province, false);
             }
             if (opponent) {
                 oppo.cities.push(cityID)
