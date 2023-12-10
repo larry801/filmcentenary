@@ -40,6 +40,14 @@ export const troopToString = (G: SongJinnGame, pid: PlayerID, t: Troop) => {
 }
 
 
+export const getGeneralNameByPid = (pid: PlayerID, general: General) => {
+    if (pid === SJPlayer.P1) {
+        return GeneralNames[0][general];
+    } else {
+        return GeneralNames[1][general];
+    }
+}
+
 export const getGeneralNameByCountry = (country: Country, general: General) => {
     if (country === Country.SONG) {
         return GeneralNames[0][general];
@@ -137,6 +145,10 @@ export const getLogText = (l: LogEntry): string => {
                         case 'combatCard':
                             log += arg.length === 0 ? "不使用战斗牌" :
                                 `使用战斗牌${arg.map((p: SJEventCardID) => sjCardById(p).name)}`;
+                            break;
+
+                        case 'generalSkill':
+                            log += `横置${getGeneralNameByPid(payload.playerID,arg)}`
                             break;
 
                         case 'takePlan':

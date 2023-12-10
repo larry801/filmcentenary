@@ -344,10 +344,12 @@ export const addGeneralTo = (G: SongJinnGame, pid: PlayerID, general: General, d
 export const moveGeneralToReady = (G: SongJinnGame, pid: PlayerID, general: General) => {
     const pub = getStateById(G, pid);
     pub.generals[general] = GeneralStatus.READY;
+    pub.generalPlace[general] = RegionID.R01;
 }
 export const moveGeneralByPid = (G: SongJinnGame, pid: PlayerID, general: General, dst: TroopPlace) => {
     const pub = getStateById(G, pid);
     pub.generalPlace[general] = dst;
+    pub.generals[general] = GeneralStatus.TROOP;
 }
 
 

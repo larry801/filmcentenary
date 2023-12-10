@@ -3,8 +3,8 @@ import {SongJinnGame} from "../constant/setup";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {cardToSearch, getCountryById, getStateById, playerById} from "../util/fetch";
-import {ActiveEvents, Country, DevelopChoice, SJPlayer} from "../constant/general";
+import {cardToSearch, getCountryById, getPlaceGeneral, getStateById, playerById} from "../util/fetch";
+import {ActiveEvents, Country, DevelopChoice, General, SJPlayer} from "../constant/general";
 import {remainDevelop} from "../util/calc";
 import {returnDevCardCheck} from "../util/check";
 import {sjCardById} from "../constant/cards";
@@ -13,6 +13,7 @@ import Button from "@material-ui/core/Button";
 import CheckBoxDialog from "./choice";
 import {ChooseUnitsDialog} from "./recruit";
 import {actualStage} from "../../game/util";
+import {getGeneralNameByCountry} from "../util/text";
 
 
 export interface IOperationProps {
@@ -244,6 +245,18 @@ export const Operation = ({
             show={isActive && ctx.phase === 'resolvePlan' && pub.completedPlan.length > 0} title={"顶端计划"}
             toggleText={"选择放在顶端的计划"}
             initial={true} defaultChoice={""}/>
+    const generalSkillDialog = <CheckBoxDialog
+        callback={(c) => {
+            const generals: General[] = c.map(g => parseInt(g));
+        }} choices={getSkillGeneral(G,pid).map(gen => {
+        return {
+            label: getGeneralNameByCountry(ctr, gen),
+            value: gen.toString(),
+            disabled: false,
+            hidden: false
+        }
+    })} show={isActive}
+        title={"请选择横置将领"} toggleText={"横置将领"} initial={true}/>
     const recruitPhases = ['action', 'deploy'];
 
     const recruitDialog = <ChooseUnitsDialog
@@ -303,6 +316,7 @@ export const Operation = ({
         {emperorDialog}
         {chooseFirstDialog}
         {choosePlanDialog}
+        {generalSkillDialog}
 
         {recruitDialog}
         {discardDialog}
