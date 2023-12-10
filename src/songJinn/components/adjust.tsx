@@ -9,7 +9,7 @@ import {
     getCountryById,
     getGeneralNameByCountry,
     getPresentGeneral,
-    getReadyGenerals,
+    getReadyGenerals, getRegionText,
     getStateById,
     playerById, StrProvince
 } from "../util";
@@ -79,9 +79,8 @@ export const AdjustOps = ({
             }
         }}
         choices={regions.map(r => {
-            const reg = getRegionById(r);
             return {
-                label: reg.name,
+                label: getRegionText(r),
                 value: r.toString(),
                 hidden: false,
                 disabled: false
@@ -288,9 +287,13 @@ export const AdjustOps = ({
                 hidden: false
             },
             {
-                label: DevelopChoice.POLICY, value: DevelopChoice.POLICY,
-                disabled: G.policy === -3,
-                hidden: G.policy === -3
+                label: DevelopChoice.POLICY_UP, value: DevelopChoice.POLICY_UP,
+                disabled: G.policy >= 3,
+                hidden: false
+            },            {
+                label: DevelopChoice.POLICY_DOWN, value: DevelopChoice.POLICY_DOWN,
+                disabled: G.policy <= -3,
+                hidden: false
             },
             {
                 label: DevelopChoice.CIVIL, value: DevelopChoice.CIVIL,

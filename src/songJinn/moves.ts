@@ -55,7 +55,7 @@ import {
     placeToStr,
     playerById,
     policyDown,
-    policyUp, removeUnitByPlace,
+    policyUp, removeUnitByCountryPlace, removeUnitByPlace,
     returnDevCardCheck,
     rollDiceByPid, sjCardById,
     totalDevelop,
@@ -391,8 +391,7 @@ export const removeUnit: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        const pid = ctr2pid(country);
-        removeUnitByPlace(G, units, pid, src);
+        removeUnitByCountryPlace(G, units, country, src)
     }
 }
 
@@ -628,10 +627,12 @@ export const emperor: LongFormMove = {
 
 export const develop: LongFormMove = {
     move: (G, ctx, choice: DevelopChoice) => {
+        logger.info(`${G.matchID}|p${ctx.playerID}.develop(${choice})`)
         const pid = ctx.playerID;
         if (pid === undefined) {
             return INVALID_MOVE;
         }
+        const log = [`p${pid}|develop`];
         // const player = playerById(G, ctx.playerID);
         const pub = getStateById(G, pid);
         const country = getCountryById(pid);
@@ -657,7 +658,15 @@ export const develop: LongFormMove = {
                                 return INVALID_MOVE;
                             }
                             break;
-                        case DevelopChoice.POLICY:
+                        case DevelopChoice.POLICY_DOWN:
+                            if (G.policy > -3) {
+                                policyDown(G, 1);
+                                pub.usedDevelop += 3;
+                            } else {
+                                return INVALID_MOVE;
+                            }
+                            break;
+                        case DevelopChoice.POLICY_UP:
                             if (G.policy < 3) {
                                 policyUp(G, 1);
                                 pub.usedDevelop += 3;
@@ -678,7 +687,11 @@ export const develop: LongFormMove = {
                 }
                 break;
             case Country.JINN:
-                if (choice === DevelopChoice.POLICY || choice === DevelopChoice.EMPEROR) {
+                if (
+                    choice === DevelopChoice.EMPEROR
+                    || choice === DevelopChoice.POLICY_DOWN
+                    || choice === DevelopChoice.POLICY_UP
+                ) {
                     return INVALID_MOVE;
                 } else {
                     switch (choice) {
@@ -715,16 +728,25 @@ export const develop: LongFormMove = {
                 break;
         }
         const remainDev = totalDevelop(G, ctx, pid) - pub.usedDevelop;
+        log.push(`|${remainDev}remainDev`);
         const canCommon = remainDev < pub.civil + 1 && remainDev <= pub.military + 1;
+        log.push(`|${canCommon}canCommon`);
         const canPolicy = pid === SJPlayer.P1 && remainDev < 3 || G.policy === 3;
+        log.push(`|${canPolicy}canPolicy`);
         const canEmperor = pid === SJPlayer.P1 && remainDev < 4 && G.song.emperor !== null;
+        log.push(`|${canEmperor}canEmperor`);
         const canColony = pid === SJPlayer.P2 && remainDev < (2 * G.colony + 2);
+        log.push(`|${canColony}canColony`);
         const canSong = pid === SJPlayer.P1 && canPolicy && canCommon && canEmperor;
         const canJinn = pid === SJPlayer.P2 && canColony && canCommon;
         const noOps = pid === SJPlayer.P1 ? canSong : canJinn;
+        log.push(`|${canSong}canSong`);
+        log.push(`|${canJinn}canJinn`);
+        log.push(`|${noOps}noOps`);
         if (noOps) {
 
         }
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
 
@@ -1022,7 +1044,10 @@ export const down: LongFormMove = {
                 case DevelopChoice.CIVIL:
                     G.jinn.civil--;
                     break;
-                case DevelopChoice.POLICY:
+                case DevelopChoice.POLICY_UP:
+                    policyUp(G, 1);
+                    break;
+                case DevelopChoice.POLICY_DOWN:
                     policyDown(G, 1);
                     break;
                 case DevelopChoice.COLONY:
@@ -1043,7 +1068,10 @@ export const down: LongFormMove = {
                     case DevelopChoice.CIVIL:
                         G.jinn.civil--;
                         break;
-                    case DevelopChoice.POLICY:
+                    case DevelopChoice.POLICY_UP:
+                        policyUp(G, 1);
+                        break;
+                    case DevelopChoice.POLICY_DOWN:
                         policyDown(G, 1);
                         break;
                     case DevelopChoice.COLONY:
@@ -1054,6 +1082,7 @@ export const down: LongFormMove = {
                 }
             }
         } else {
+
         }
     }
 }

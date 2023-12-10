@@ -27,7 +27,7 @@ import {
     getCountryById,
     getGeneralNameByCountry, getMarchDst,
     getOpponentStateById, getPlaceCountryGeneralNames, getPlaceGeneral,
-    getPlaceGeneralNames, getReadyGenerals,
+    getPlaceGeneralNames, getReadyGenerals, getRegionText,
     getStateById, getTroopText, optionToActualDst,
     placeToStr, StrProvince, troopEndurance, troopMelee, troopRange, unitsToString
 } from "../util";
@@ -196,9 +196,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             }
         }}
         choices={regions.map(r => {
-            const reg = getRegionById(r);
             return {
-                label: reg.name,
+                label: getRegionText(r),
                 value: r.toString(),
                 hidden: false,
                 disabled: false
@@ -297,9 +296,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 }
             }
             if (isRegionID(r)) {
-                const reg = getRegionById(r);
                 return {
-                    label: reg.name,
+                    label: getRegionText(r),
                     value: r.toString(),
                     hidden: false,
                     disabled: false

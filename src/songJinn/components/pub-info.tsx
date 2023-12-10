@@ -44,8 +44,11 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label>预备区：{unitsToString(s.ready)} {getReadyGeneralNames(G, SJPlayer.P1).join('')}</label></div>
             <div><label>备用兵区： {unitsToString(s.standby)}</label></div>
             <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
-            <div><label>完成计划：{s.completedPlan.map(p => getPlanById(p).name)}</label></div>
-            <div><label>控制路：{s.provinces.map(p => p)}</label></div>
+            <div><label>完成计划：</label><br/>
+                {s.completedPlan.map(p => <label>{getPlanById(p).name}</label>)}
+            </div>
+            <div>控制路：<br/>{s.provinces.map(p => <label>{p}<br/></label>)}</div>
+
             <ChoiceDialog callback={() => {
             }} choices={
                 s.cities.map(c => {
@@ -76,10 +79,12 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label>腐败：</label>{j.corruption}</div>
             <div><label>盟国：</label>{j.nations.join('')}</div>
             <div><label>预备区：{unitsToString(j.ready)}{getReadyGeneralNames(G, SJPlayer.P2).join('')}</label></div>
-            <div><label> 备用兵区： {unitsToString(j.standby)}</label></div>
+            <div><label>备用兵区： {unitsToString(j.standby)}</label></div>
             <div><label>本回合计划：{j.plan.map(p => getPlanById(p).name)}</label></div>
-            <div><label>完成计划：{j.completedPlan.map(p => getPlanById(p).name)}</label></div>
-            <div><label>控制路：{j.provinces.map(p => p)}</label></div>
+            <div><label>完成计划：</label><br/>
+                {j.completedPlan.map(p => <label>{getPlanById(p).name}</label>)}
+            </div>
+            <div>控制路：<br/>{j.provinces.map(p => <label>{p}<br/></label>)}</div>
             <ChoiceDialog callback={() => {
             }} choices={
                 j.cities.map(c => {
