@@ -396,12 +396,24 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
         moveTroop: moveTroop,
         takeDamage: takeDamage,
         removeUnit: removeUnit,
+        recruitUnit:recruitUnit,
         placeUnit: placeUnit,
         rollDices: rollDices,
         loseCity: loseCity,
         loseProvince: loseProvince,
         placeTroop: placeTroop,
         down: down,
+
+        discard: discard,
+
+        generalSkill: generalSkill,
+        deployGeneral: deployGeneral,
+        moveGeneral: moveGeneral,
+
+        rescueGeneral: rescueGeneral,
+
+        controlCity: controlCity,
+        controlProvince: controlProvince,
     },
     next: 'turnEnd'
 }
