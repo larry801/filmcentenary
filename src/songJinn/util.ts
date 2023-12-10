@@ -54,6 +54,7 @@ import {logger} from "../game/logger";
 import {INVALID_MOVE, Stage} from "boardgame.io/core";
 import {getProvinceById} from "./constant/province";
 import {getCityById} from "./constant/city";
+import troops from "./components/troops";
 
 export const phaseName = (c: string) => {
     const phaseMap = {
@@ -61,7 +62,7 @@ export const phaseName = (c: string) => {
         'chooseFirst': '行动顺序',
         'choosePlan': '选择作战计划',
         'showPlan': '作战计划',
-        'action': '行动阶段',
+        'action': '行动',
         'resolvePlan': '结算计划',
         'diplomacy': '结算外交',
         'develop': '发展阶段',
@@ -380,7 +381,7 @@ export const getNationAdj = (pid: NationID): TroopPlace[] => {
             return [NationID.XiXia];
         case NationID.XiXia:
             return [
-                RegionID.R01, RegionID.R02,
+                RegionID.R01, RegionID.DaTonFu02,
                 RegionID.R09,
                 RegionID.R29, RegionID.R30, RegionID.R31, RegionID.R32
             ];
@@ -405,7 +406,7 @@ export const getPassAdj = (pid: MountainPassID) => {
         case MountainPassID.TongGuan:
             return [RegionID.R36, RegionID.R37];
         case MountainPassID.JuYongGuan:
-            return [RegionID.R02, RegionID.R07];
+            return [RegionID.DaTonFu02, RegionID.R07];
         case MountainPassID.JianMenGuan:
             return [RegionID.R51, RegionID.R54, RegionID.R55];
 
@@ -2496,9 +2497,31 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
 
 
 export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], country: Country, place: TroopPlace) => {
+    const log = [`removeUnitByPlace|${place}|${placeToStr(place)}|${unitsToString(units)}`];
     const pub = ctr2pub(G, country);
     const filtered = pub.troops.filter(t => t.p === place);
+    const pid = ctr2pid(country);
+    log.push(`|filtered${(filtered)}`);
+    if (filtered.length > 0) {
+        log.push(`|hasTroop`);
+        if (filtered.length > 1) {
+            log.push(`|moreThanOne`);
+            mergeTroopTo(G,
+                pub.troops.indexOf(filtered[1]),
+                pub.troops.indexOf(filtered[0]),
+                pid);
 
+            removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
+        } else {
+            removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
+        }
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    } else {
+        log.push(`noTroop`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return null;
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerID, place: TroopPlace) => {
     const log = [`removeUnitByPlace|${placeToStr(place)}|${unitsToString(units)}`]
@@ -2507,14 +2530,16 @@ export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerI
     log.push(`|filtered${(filtered)}`);
     if (filtered.length > 0) {
         log.push(`|hasTroop`);
-        removeUnitOnTroop(G, units, pid, pub.troops.indexOf(filtered[0]));
         if (filtered.length > 1) {
             log.push(`|moreThanOne`);
             mergeTroopTo(G,
                 pub.troops.indexOf(filtered[1]),
                 pub.troops.indexOf(filtered[0]),
                 pid);
-            removeUnitOnTroop(G, units, pid, pub.troops.indexOf(filtered[0]));
+            removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
+        } else {
+            removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
+
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
     } else {
@@ -2523,24 +2548,33 @@ export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerI
         return null;
     }
 }
-export const removeUnitOnTroop = (G: SongJinnGame, units: number[], pid: PlayerID, idx: number) => {
+export const removeUnitByIdx = (G: SongJinnGame, units: number[], pid: PlayerID, idx: number) => {
+    const log = [`removeUnitByIdx|${idx}|${unitsToString(units)}`]
+
     const pub = getStateById(G, pid);
     const t = pub.troops[idx];
+    log.push(`|troop|${JSON.stringify(t)}`);
     if (t === undefined) {
         return null;
     }
+    log.push(`|before|standby${pub.standby}|units${t.u}`);
+
     for (let i = 0; i < units.length; i++) {
         if (units[i] > t.u[i]) {
+            log.push(`|insufficient`);
             pub.standby[i] += t.u[i];
             t.u[i] = 0;
         } else {
+
             pub.standby[i] += units[i]
             t.u[i] -= units[i]
         }
     }
+    log.push(`|after|standby${pub.standby}|units${t.u}`);
     if (troopEmpty(t)) {
         pub.troops.splice(pub.troops.indexOf(t), 1);
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
     const actualUnits = [...units];
@@ -2556,6 +2590,7 @@ export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
         pub.ready[i] += actualUnits[i];
     }
 }
+
 export const mergeTroopTo = (G: SongJinnGame, src: number, dst: number, pid: PlayerID) => {
     const pub = getStateById(G, pid);
     let a = pub.troops[src];
@@ -2569,6 +2604,7 @@ export const mergeTroopTo = (G: SongJinnGame, src: number, dst: number, pid: Pla
         pub.troops.splice(pub.troops.indexOf(a), 1);
     }
 }
+
 export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], country: Country) => {
     const actualUnits = [...units];
     switch (country) {
@@ -2683,7 +2719,6 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
                 p: city.region,
                 c: c,
                 u: [0, 0, 0, 0, 0, 2, 0],
-
                 country: Country.JINN
             });
         }
@@ -2717,6 +2752,9 @@ export const getCityText = (cid: CityID) => {
     return `${city.capital ? "*" : ""}${city.name} |${region.name} |${city.province}`;
 }
 
+export const getUnitNamesByCtr = (ctr: Country) => {
+    return ctr === Country.SONG ? UNIT_SHORTHAND[0] : UNIT_SHORTHAND[1];
+}
 
 export const getLogText = (l: LogEntry): string => {
     const payload = l.action.payload;
@@ -2766,19 +2804,14 @@ export const getLogText = (l: LogEntry): string => {
                             ;
                             break;
                         case 'removeUnit':
-                            log +=
-                                `消灭${arg.c}${placeToStr(arg.src)}${unitsToString(arg.units)}`
-                            ;
+                            log += `消灭${arg.country}${placeToStr(arg.src)}${unitsToString(arg.units)}`;
                             break;
                         case 'placeUnit':
-                            log +=
-                                `在${placeToStr(arg.place)}放置${unitsToString(arg.units)}`
-                            ;
+                            log += `在${placeToStr(arg.place)}放置${unitsToString(arg.units)}`;
                             break;
                         case 'deploy':
                             log +=
-                                `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`
-                            ;
+                                `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
                             break;
                         case 'placeUnits':
                             log +=
@@ -3035,20 +3068,28 @@ export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
     return G.jinn.civil > G.song.civil ? SJPlayer.P2 : SJPlayer.P1;
 }
 export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
+    const log = [`totalDevelop|p${playerId}`]
     const pub = getStateById(G, playerId);
     const d = pub.develop.map(c => sjCardById(c).op);
+    log.push(`|${d}`);
+    let sum = 0
     if (d.length > 0) {
-        let sum = d.reduce(accumulator);
+        sum += d.reduce(accumulator);
+        log.push(`|cardSum|${sum}`);
         if (pub.develop.includes(JinnBaseCardID.J40)) {
             sum += G.colony * 2 - 2;
+            log.push(`|南南北北|${sum}`);
         }
         if (pub.develop.includes(SongBaseCardID.S45)) {
-            sum += G.jinn.cities.filter(c => getCityById(c).colonizeLevel > G.colony).length - 3;
+            const uncolonized = G.jinn.cities.filter(c => getCityById(c).colonizeLevel > G.colony).length;
+            sum += uncolonized - 3;
+            log.push(`|梁兴渡河${uncolonized}|${sum}`);
         }
-        return sum;
-    } else {
-        return 0;
     }
+    const nationCount = pub.nations.length;
+    sum += nationCount;
+    log.push(`|nations${nationCount}|${sum}`);
+    return sum;
 }
 export const remainDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
     return totalDevelop(G, ctx, playerId) - getStateById(G, playerId).usedDevelop;

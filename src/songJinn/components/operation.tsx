@@ -20,7 +20,7 @@ import {
     generalWithOpponentTroop,
     getCountryById,
     getGeneralNameByCountry, getSkillGeneral,
-    getStateById,
+    getStateById, phaseName,
     playerById, remainDevelop, returnDevCardCheck, sjCardById
 } from "../util";
 
@@ -31,7 +31,7 @@ export interface IOperationProps {
     playerID: string;
     moves: Record<string, (...args: any[]) => void>;
     isActive: boolean;
-    matchID:string;
+    matchID: string;
 }
 
 export const Operation = ({
@@ -40,7 +40,7 @@ export const Operation = ({
                               playerID,
                               moves,
                               isActive,
-    matchID
+                              matchID
                           }: IOperationProps) => {
 
     const ctr = getCountryById(playerID);
@@ -51,7 +51,7 @@ export const Operation = ({
 
 
     const chooseFirst = (choice: string) => {
-        moves.chooseFirst({choice:choice,matchID:matchID});
+        moves.chooseFirst({choice: choice, matchID: matchID});
     }
     const chooseFirstDialog = <ChoiceDialog
         callback={chooseFirst}
@@ -100,7 +100,7 @@ export const Operation = ({
     const showPlan = (isActive && ctx.phase === 'showPlan') && <Button
         onClick={() => moves.showPlan(player.chosenPlans)}
         color={"primary"} variant={"contained"}>展示作战计划</Button>
-    const endRound = (isActive && !autoPhases.includes(ctx.phase)) && <Button
+    const endRound = (ctx.currentPlayer === playerID && !autoPhases.includes(ctx.phase)) && <Button
         onClick={() => {
             // TODO add phase info  Song ended develop phase
             if (ctx.phase === 'action') {
@@ -109,11 +109,7 @@ export const Operation = ({
                 moves.endRound();
             }
         }}
-        color={"primary"} variant={"contained"}>结束行动</Button>
-
-    const endPlan = (isActive && ctx.phase === 'resolvePlan') && <Button
-        onClick={() => ctx.events?.endTurn()}
-        color={"primary"} variant={"contained"}>结束计划结算</Button>
+        color={"primary"} variant={"contained"}>结束${phaseName(ctx.phase)}</Button>
 
     const search = (choice: string) => {
         moves.search(choice);
@@ -173,10 +169,10 @@ export const Operation = ({
     const rescueGenerals = generalWithOpponentTroop(G, playerID);
     const rescueGeneralDialog = <ChoiceDialog
         callback={(c) => {
-            if (rescueGenerals.length===1){
+            if (rescueGenerals.length === 1) {
                 moves.rescueGeneral({
-                    general:rescueGenerals[0],
-                    card:c,
+                    general: rescueGenerals[0],
+                    card: c,
                 })
             } else {
                 setRescueCard(c);
@@ -202,7 +198,7 @@ export const Operation = ({
             setRescueCardChosen(false);
 
             moves.rescueGeneral({
-                general:general,
+                general: general,
                 card: rescueCard,
             })
 
