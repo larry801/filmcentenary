@@ -12,13 +12,13 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v4
       - name: Check builder dependency change
-        uses: actions/cache@v4
+        uses: actions/cache@v3
         id: builder-dependency-check
         with:
           path: package.json
           key: ${{ runner.os }}-yarn-builder-${{ hashFiles('**/yarn.lock', 'Dockerfile.builder') }}
       - name: Check base dependency change
-        uses: actions/cache@v4
+        uses: actions/cache@v3
         id: base-dependency-check
         with:
           path: package.json
