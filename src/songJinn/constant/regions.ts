@@ -135,8 +135,8 @@ const idToRegion = {[RegionID.R01]:
             name:"平阳府",
             terrain:TerrainType.MOUNTAINS,
             province:ProvinceID.HEDONGLU,
-            land:[RegionID.R09,RegionID.R10,RegionID.LongDeFu12,RegionID.R36],
-            water:[RegionID.R32],
+            land:[RegionID.R09,RegionID.R10,RegionID.LongDeFu12,RegionID.R35],
+            water:[RegionID.R32,RegionID.R34,RegionID.R37],
             pass:[],
             city:CityID.LinFen
         },

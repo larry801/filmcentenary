@@ -137,6 +137,9 @@ export const optionToActualDst = (dst: string): TroopPlace => {
     const parsed = parseInt(dst);
     return (parsed === undefined || isNaN(parsed) ? dst : parsed) as TroopPlace;
 }
+export const hasOpponentTroop = (G: SongJinnGame, dst: TroopPlace, ctr: Country) => {
+    ctr2pub(G, ctr);
+}
 export const getMarchDst = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
     if (isMountainPassID(dst)) {
         return getPassAdj(dst);
@@ -2743,7 +2746,8 @@ export const getRegionText = (r: RegionID) => {
     const region = getRegionById(r);
     const province = getProvinceById(region.province);
     const city = region.city;
-    return `${region.name}|${city === null ? "" : (city + province.capital.includes(city) ? "*" : "")}|${region.terrain}`;
+    return `${region.name}${city === null ? "" :
+        (province.capital.includes(city) ? "|*" + city : "|" + city)}|${region.terrain}`;
 }
 
 export const getCityText = (cid: CityID) => {
