@@ -1,3 +1,6 @@
+import {SongJinnGame} from "./setup";
+import {Ctx} from "boardgame.io";
+
 export const MAX_ROUND = 8;
 
 export const enum ActiveEvents {
@@ -687,3 +690,37 @@ export enum ProvinceID {
 }
 
 
+export const getFullDesc = (card: Cards): string => {
+    let effText = "效果：" + card.effectText;
+    if (card.precondition !== null) {
+        effText = ` 前置条件：${card.precondition} ${effText}`
+    }
+    if (card.ban !== null) {
+        effText += `撤销：${card.ban}`
+    }
+    if (card.block !== null) {
+        effText += `禁止：${card.block}`
+    }
+    if (card.unlock !== null) {
+        effText += `解锁：${card.unlock}`
+    }
+    return effText;
+}
+
+export interface Cards {
+    id: SJEventCardID,
+    block: string | null
+    name: string,
+    country: Country,
+    op: number,
+    remove: boolean,
+    era: IEra,
+    duration: EventDuration,
+    effectText: string,
+    ban: string | null,
+    precondition: string | null,
+    combat: boolean,
+    unlock: string | null,
+    pre: (G: SongJinnGame, ctx: Ctx) => boolean,
+    event: (G: SongJinnGame, ctx: Ctx) => void
+}

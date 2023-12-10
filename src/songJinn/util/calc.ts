@@ -18,7 +18,6 @@ import {getCityById} from "../constant/city";
 import {getStateById} from "./fetch";
 import {sjCardById} from "../constant/cards";
 import {getPlanById} from "../constant/plan";
-import {rm} from "./card";
 
 export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
     return G.jinn.civil > G.song.civil ? SJPlayer.P2 : SJPlayer.P1;
@@ -112,9 +111,9 @@ export const getSongScore = (G: SongJinnGame): number => {
 
 export const getSongPower = (G: SongJinnGame): number => {
     const countedProvince = [...G.song.provinces];
-    rm(ProvinceID.JINGJILU, countedProvince);
+     countedProvince.splice( countedProvince.indexOf(ProvinceID.JINGJILU),1);
     if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
-        rm(ProvinceID.FUJIANLU, countedProvince);
+         countedProvince.splice( countedProvince.indexOf(ProvinceID.FUJIANLU),1);
     }
     let power = countedProvince.length;
 
@@ -142,9 +141,9 @@ export const getJinnScore = (G: SongJinnGame): number => {
 
 export const getJinnPower = (G: SongJinnGame): number => {
     const countedProvince = [...G.jinn.provinces];
-    rm(ProvinceID.JINGJILU, countedProvince);
+     countedProvince.splice( countedProvince.indexOf(ProvinceID.JINGJILU),1);
     if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
-        rm(ProvinceID.FUJIANLU, countedProvince);
+         countedProvince.splice( countedProvince.indexOf(ProvinceID.FUJIANLU),1);
 
     }
     let power = countedProvince.length;
