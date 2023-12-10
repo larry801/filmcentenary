@@ -198,7 +198,8 @@ export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
         returnToHand: returnToHand,
         emperor: emperor,
         opponentMove: opponentMove,
-        endRound: endRound
+        endRound: endRound,
+        down:down
     },
     onEnd: (G, ctx) => {
         G.song.usedDevelop = 0;
