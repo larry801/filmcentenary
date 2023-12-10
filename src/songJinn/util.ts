@@ -2493,6 +2493,13 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
     });
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
+
+export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], country: Country, place: TroopPlace) => {
+    const pub = ctr2pub(G, country);
+    const filtered = pub.troops.filter(t => t.p === place);
+
+}
 export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerID, place: TroopPlace) => {
     const log = [`removeUnitByPlace|${placeToStr(place)}|${unitsToString(units)}`]
     const pub = getStateById(G, pid);
@@ -3017,6 +3024,7 @@ export const drawCardForJinn = (G: SongJinnGame, ctx: Ctx) => {
         G.secret.jinnDeck = shuffle(ctx, G.song.discard);
         G.jinn.discard = [];
     } else {
+        console.log(card+'jinn');
         player.hand.push(card);
     }
     if (G.secret.jinnDeck.length === 0) {
@@ -3245,12 +3253,20 @@ export const getSongScore = (G: SongJinnGame): number => {
 }
 export const getSongPower = (G: SongJinnGame): number => {
     const countedProvince = [...G.song.provinces];
-    countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
-    countedProvince.splice(countedProvince.indexOf(ProvinceID.YANJINGLU), 1);
-    if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
+    console.log(countedProvince);
+    if (countedProvince.includes(ProvinceID.JINGJILU)) {
+        countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
+    }
+    if (countedProvince.includes(ProvinceID.YANJINGLU)) {
+        countedProvince.splice(countedProvince.indexOf(ProvinceID.YANJINGLU), 1);
+    }
+    if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan) &&
+        countedProvince.includes(ProvinceID.FUJIANLU)
+    ) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.FUJIANLU), 1);
     }
     let power = countedProvince.length;
+    console.log(countedProvince);
 
     if (G.song.emperor !== null) {
         power++;
@@ -3274,11 +3290,19 @@ export const getJinnScore = (G: SongJinnGame): number => {
 }
 export const getJinnPower = (G: SongJinnGame): number => {
     const countedProvince = [...G.jinn.provinces];
-    countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
-    countedProvince.splice(countedProvince.indexOf(ProvinceID.YANJINGLU), 1);
-    if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan)) {
+    console.log(countedProvince);
+    if (countedProvince.includes(ProvinceID.JINGJILU)) {
+        countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
+    }
+    if (countedProvince.includes(ProvinceID.YANJINGLU)) {
+        countedProvince.splice(countedProvince.indexOf(ProvinceID.YANJINGLU), 1);
+    }
+    if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan) &&
+        countedProvince.includes(ProvinceID.FUJIANLU)
+    ) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.FUJIANLU), 1);
     }
+    console.log(countedProvince);
     let power = countedProvince.length;
     if (G.jinn.emperor !== null) {
         power++;
@@ -3310,13 +3334,15 @@ export const drawPhaseForSong = (G: SongJinnGame, ctx: Ctx) => {
     }
 }
 export const drawPhaseForJinn = (G: SongJinnGame, ctx: Ctx) => {
+    const log = [`drawPhaseForJinn`]
     const player = G.player[SJPlayer.P2];
     const hand = player.hand;
     const power = G.jinn.civil >= 7 ? 9 : getJinnPower(G);
-
+    log.push(`|power${power}`);
     const deck = G.secret.jinnDeck;
     const discard = G.jinn.discard;
-    const drawCount = power > 9 ? 9 : power;
+    const drawCount = G.jinn.civil >= 7 ? 9 : power > 9 ? 9 : power;
+    log.push(`|drawCount${drawCount}`);
     if (deck.length + hand.length + discard.length < drawCount) {
         player.hand = hand.concat(deck, discard);
         G.secret.jinnDeck = [];
@@ -3326,6 +3352,7 @@ export const drawPhaseForJinn = (G: SongJinnGame, ctx: Ctx) => {
             drawCardForJinn(G, ctx);
         }
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const drawPhaseForPlayer = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
     switch (pid as SJPlayer) {

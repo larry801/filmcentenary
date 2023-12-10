@@ -1,5 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {shuffle} from "../../game/util";
+import {drawCardForJinn, drawCardForSong} from "../util";
 
 export const MAX_ROUND = 8;
 
@@ -966,7 +967,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
     G.player[SJPlayer.P1].hand = songDeck.slice(-9);
     G.player[SJPlayer.P2].hand = jinnDeck.slice(-7);
     G.secret.songDeck = songDeck.slice(0, 7);
-    G.secret.jinnDeck = jinnDeck.slice(0, 9);
+    G.secret.jinnDeck = jinnDeck.slice(0, 10);
     console.log(G.secret.songDeck.toString());
     console.log(G.secret.jinnDeck.toString());
     //

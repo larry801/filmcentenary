@@ -41,13 +41,13 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
     },
     turn: NormalTurnConfig,
     endIf: (G: SongJinnGame, ctx: Ctx) => {
-        if (getSongPower(G) < 3) {
+        if (getSongPower(G) <= 3) {
             return {
                 winner: SJPlayer.P2,
                 reason: VictoryReason.PowerOfNation
             }
         }
-        if (getJinnPower(G) < 3) {
+        if (getJinnPower(G) <= 3) {
             return {
                 winner: SJPlayer.P1,
                 reason: VictoryReason.PowerOfNation
