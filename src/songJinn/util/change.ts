@@ -37,6 +37,10 @@ import {placeToStr} from "./text";
 import {logger} from "../../game/logger";
 import {INVALID_MOVE} from "boardgame.io/core";
 
+export const doGeneralSkill=(G: SongJinnGame, pid: PlayerID, g: General)=>{
+    const pub = getStateById(G,pid);
+    pub.generalSkill[g] = false;
+}
 
 export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
     const pub = getStateById(G, pid);
@@ -308,13 +312,6 @@ export const policyDown = (G: SongJinnGame, a: number) => {
     }
 }
 
-export const deployGeneral = (G: SongJinnGame, pid: PlayerID, general: General, dst: TroopPlace) => {
-    const ctr = getCountryById(pid);
-    const pub = getStateById(G, pid);
-    const player = playerById(G, pid);
-    const gState = pub.generals[general];
-
-}
 export const moveGeneral = (G: SongJinnGame, pid: PlayerID, general: General, dst: TroopPlace) => {
     const ctr = getCountryById(pid);
     const pub = getStateById(G, pid);

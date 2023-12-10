@@ -3,8 +3,18 @@ import {SongJinnGame} from "../constant/setup";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {getCountryById, getStateById, playerById} from "../util/fetch";
-import {CityID, Country, DevelopChoice, ProvinceID} from "../constant/general";
+import {
+    getCountryById,
+    getPresentGeneral,
+    getReadyGenerals,
+    getStateById,
+    playerById,
+    StrProvince
+} from "../util/fetch";
+import {CityID, DevelopChoice, General, ProvinceID, RegionID} from "../constant/general";
+import {getGeneralNameByCountry} from "../util/text";
+import {getProvinceById} from "../constant/province";
+import {getRegionById} from "../constant/regions";
 
 export interface IOperationProps {
     G: SongJinnGame;
@@ -14,6 +24,11 @@ export interface IOperationProps {
     isActive: boolean;
 }
 
+enum MoveGeneralStep {
+    PROVINCE,
+    REGION,
+    GENERAL,
+}
 
 export const AdjustOps = ({
                               G,
@@ -26,6 +41,119 @@ export const AdjustOps = ({
     const pub = getStateById(G, playerID);
     const player = playerById(G, playerID);
     const ctr = getCountryById(playerID);
+
+    const presentGeneral = getPresentGeneral(G, playerID);
+    const [moveGeneralStep, setMoveGeneralStep] = useState(MoveGeneralStep.PROVINCE);
+    const [regions, setRegions] = useState([RegionID.R20]);
+    const [moveGeneralRegion, setMoveGeneralRegion] = useState(RegionID.R01);
+
+    const chooseProvDialog = <ChoiceDialog
+        callback={(c) => {
+            const newProv = StrProvince.get(c);
+            if (newProv === undefined) {
+                console.log(`${c}|cannot|convertToProv`);
+                return;
+            }
+            const province = getProvinceById(newProv);
+            const newRegions = province.regions;
+            setRegions(newRegions);
+            setMoveGeneralStep(MoveGeneralStep.REGION);
+        }} choices={
+        Object.values(ProvinceID).map(p => {
+            return {
+                label: p,
+                value: p,
+                disabled: false,
+                hidden: false
+            }
+        })} defaultChoice={""}
+        show={isActive && presentGeneral.length > 0 && moveGeneralStep === MoveGeneralStep.PROVINCE}
+        title={"选择移动目标路"} toggleText={"移动将领"} initial={false}/>
+
+
+    const chooseRegionDialog = <ChoiceDialog
+        callback={(c) => {
+            const regID = parseInt(c) as RegionID;
+
+            if (moveGeneralStep === MoveGeneralStep.REGION) {
+                setMoveGeneralStep(MoveGeneralStep.GENERAL);
+                setMoveGeneralRegion(regID);
+            }
+        }}
+        choices={regions.map(r => {
+            const reg = getRegionById(r);
+            return {
+                label: reg.name,
+                value: r.toString(),
+                hidden: false,
+                disabled: false
+            }
+        })} defaultChoice={""} show={isActive && moveGeneralStep === MoveGeneralStep.REGION}
+        title={"选择目标区域"}
+        toggleText={"选择目标区域"} initial={true}/>;
+
+
+    const chooseGeneralDialog = <ChoiceDialog
+        callback={(c) => {
+            const g: General = parseInt(c) as General;
+            moves.moveGeneral({
+                dst: moveGeneralRegion,
+                country: ctr,
+                general:g
+            })
+        }} choices={presentGeneral.map(gen => {
+        return {
+            label: getGeneralNameByCountry(ctr, gen),
+            value: gen.toString(),
+            disabled: false,
+            hidden: false
+        }
+    })} show={isActive && presentGeneral.length > 0 && moveGeneralStep === MoveGeneralStep.GENERAL}
+        defaultChoice={""}
+        title={"请选择要移动的将领"} toggleText={"移动将领"} initial={false}/>
+
+
+
+
+    const [deployCityChosen, setDeployCityChosen] = useState(false);
+    const readyGenerals = getReadyGenerals(G, playerID);
+
+    const deployDialog = <ChoiceDialog
+        callback={
+            (c) => {
+                if(readyGenerals.length > 1){
+                    setCity(c as CityID);
+                    setDeployCityChosen(true)
+                }else{
+                    moves.deployGeneral({country: ctr, general: readyGenerals[0],dst:c})
+
+                }
+            }
+        } choices={Object.values(CityID).map(c => {
+        return {
+            label: c,
+            value: c,
+            disabled: false,
+            hidden: false,
+        }
+    })} defaultChoice={""} show={isActive && readyGenerals.length > 0 && !deployCityChosen}
+        title={"请选择要派遣的城市"} toggleText={"派遣"} initial={false}/>
+    const deployGeneralDialog = <ChoiceDialog
+        callback={(c) => {
+            const g: General = parseInt(c) as General;
+            setDeployCityChosen(false);
+            moves.deployGeneral({country: ctr, general: g})
+        }} choices={readyGenerals.map(gen => {
+        return {
+            label: getGeneralNameByCountry(ctr, gen),
+            value: gen.toString(),
+            disabled: false,
+            hidden: false
+        }
+    })} show={isActive && readyGenerals.length > 0 && deployCityChosen}
+        defaultChoice={""}
+        title={"请选择派遣将领"} toggleText={"派遣将领"} initial={false}/>
+
 
     const checkProvDialog = <ChoiceDialog
         callback={
@@ -43,7 +171,7 @@ export const AdjustOps = ({
     const controlCityDialog = <ChoiceDialog
         callback={
             (c) => moves.controlProvince(c)
-        } choices={Object.values(CityID).filter(c=>!pub.cities.includes(c)).map(c => {
+        } choices={Object.values(CityID).filter(c => !pub.cities.includes(c)).map(c => {
         return {
             label: c,
             value: c,
@@ -56,7 +184,7 @@ export const AdjustOps = ({
     const controlProvDialog = <ChoiceDialog
         callback={
             (c) => moves.controlProvince(c)
-        } choices={Object.values(ProvinceID).filter(c=>!pub.provinces.includes(c)).map(c => {
+        } choices={Object.values(ProvinceID).filter(c => !pub.provinces.includes(c)).map(c => {
         return {
             label: c,
             value: c,
@@ -129,6 +257,8 @@ export const AdjustOps = ({
         }
     })} defaultChoice={""} show={isActive && loseCityStep === LoseCityStep.CITY}
         title={"请选择丢失的城市"} toggleText={"丢失城市"} initial={false}/>
+
+
     const loseCityToOpponentDialog = <ChoiceDialog
         callback={(c) => {
             const opponent = c === "yes";
@@ -183,6 +313,16 @@ export const AdjustOps = ({
 
         {controlCityDialog}
         {controlProvDialog}
+
+        {checkProvDialog}
+
+        {chooseGeneralDialog}
+        {chooseProvDialog}
+        {chooseRegionDialog}
+
+        {deployDialog}
+        {deployGeneralDialog}
+
 
         {downDialog}
     </Grid>
