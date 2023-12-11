@@ -2835,18 +2835,20 @@ export const getLogText = (l: LogEntry): string => {
                             log +=
                                 `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
                             break;
+                        case 'showLetters':
+                            log += `盟国${arg.nations.map((n: NationID) => n)}`
+                            if (arg.letters.length > 0) {
+                                log += `国书${arg.letters.map(
+                                    (l: LetterOfCredence) => `${l.nation}${sjCardById(l.card).op}${sjCardById(l.card).name}`
+                                )}`;
+                            } else {
+                                log += '无国书';
+                            }
+                            break;
                         case 'placeUnits':
                             log +=
                                 `在${placeToStr(arg.dst)}放置${unitsToString(arg.units)}`
                             ;
-                            break;
-                        case 'showLetters':
-                            if (arg.letters.length > 0) {
-                                log += `展示国书${arg.letters.map(
-                                    (l: LetterOfCredence) => `${l.nation}${sjCardById(l.card).op}${sjCardById(l.card).name}`
-                                )}`;
-                            }
-                            log += `盟国${arg.nations.map((n: NationID) => n)}`
                             break;
                         case 'opponentMove':
                             log += `让对方操作`;
@@ -3113,6 +3115,7 @@ export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
     const nationCount = pub.nations.length;
     sum += nationCount;
     log.push(`|nations${nationCount}|${sum}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
     return sum;
 }
 export const remainDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
@@ -3519,7 +3522,10 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
         log.push(
             `|second`
         );
-        if (G.round >= 2) {
+        if (
+            // G.round >= 2
+            G.round >= MAX_ROUND
+        ) {
             log.push(
                 `|action|end|resolvePlan`
             );

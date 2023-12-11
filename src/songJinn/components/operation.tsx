@@ -163,7 +163,8 @@ export const Operation = ({
             return {
                 label: sjCardById(bcid).name,
                 value: bcid.toString(),
-                disabled: !returnDevCardCheck(G, ctx, playerID, bcid),
+                // disabled: !returnDevCardCheck(G, ctx, playerID, bcid),
+                disabled: false,
                 hidden: false
             }
         })}
