@@ -2865,12 +2865,12 @@ export const getLogText = (l: LogEntry): string => {
                             break;
                         case 'march':
                             log +=
-                                `${placeToStr(arg.src)}${unitsToString(arg.units)}进军${placeToStr(arg.dst)}`
+                                `${placeToStr(arg.src)}${arg.generals.map((gen:General)=>getGeneralNameByCountry(arg.country,gen))}${unitsToString(arg.units)}进军${placeToStr(arg.dst)}`
                             ;
                             break;
                         case 'placeTroop':
                             log +=
-                                `${placeToStr(arg.src.p)}${placeToStr(arg.dst)}`
+                                `${placeToStr(arg.dst)}${unitsToString(arg.units)}`
                             ;
                             break;
                         case 'moveTroop':

@@ -966,7 +966,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
         jinn: initialJinnPub,
     }
     G.player[SJPlayer.P1].hand = songDeck.slice(-9);
-    G.player[SJPlayer.P2].hand = jinnDeck.slice(-7);
+    G.player[SJPlayer.P2].hand = jinnDeck.slice(-6);
     G.secret.songDeck = songDeck.slice(0, 7);
     G.secret.jinnDeck = jinnDeck.slice(0, 10);
     console.log(G.secret.songDeck.toString());
