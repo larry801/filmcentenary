@@ -36,7 +36,7 @@ const server = process.env.REDIS_URL ? Server({
 });
 
 
-const PORT = process.env.PORT || "80";
+const PORT = process.env.PORT || "3000";
 const {app} = server;
 
 const FRONTEND_PATH = path.join(__dirname);
