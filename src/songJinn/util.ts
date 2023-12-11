@@ -2352,6 +2352,7 @@ export const getGeneralNameByPid = (pid: PlayerID, general: General) => {
     }
 }
 export const getGeneralNameByCountry = (country: Country, general: General) => {
+    logger.warn(`getGeneralNameByCountry|${country}|${general}`);
     if (country === Country.SONG) {
         return GeneralNames[0][general];
     } else {
@@ -2914,8 +2915,7 @@ export const getLogText = (l: LogEntry): string => {
 
                         case 'generalSkill':
                             log +=
-                                `横置${getGeneralNameByCountry(arg.country, arg.general)}`
-
+                                `横置${arg.general}${getGeneralNameByCountry(arg.country, arg.general)}`
                             break;
 
                         case 'takePlan':
@@ -2940,26 +2940,18 @@ export const getLogText = (l: LogEntry): string => {
                             break;
 
                         case 'loseProvince':
-                            log +=
-                                `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`
+                            log +=  `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`;
 
                             break;
                         case 'controlProvince':
-                            log +=
-                                `控制了${arg.province}${arg.opponent ? "对手占领" : ""}`
-
+                            log += `控制了${arg}`;
                             break;
                         case 'controlCity':
-                            log +=
-                                `控制${arg.cityID}${arg.opponent ? "对手占领" : ""}`
-                            ;
+                            log +=`控制${arg}`
                             break;
                         case 'loseCity':
-                            log +=
-                                `丢失${arg.cityID}${arg.opponent ? "对手占领" : ""}`
-                            ;
+                            log += `丢失${arg.cityID}${arg.opponent ? "对手占领" : ""}`;
                             break;
-
 
                         case 'discard':
                             log +=
