@@ -90,6 +90,7 @@ export const getNationState = (G: SongJinnGame, n: NationID) => {
 export const ctr2pub = (G: SongJinnGame, country: Country) => country === Country.SONG ? G.song : G.jinn;
 export const ctr2pid = (country: Country) => country === Country.SONG ? SJPlayer.P1 : SJPlayer.P2;
 export const pid2ctr = (country: PlayerID) => country === SJPlayer.P1 ? Country.SONG : Country.JINN;
+
 export const currentProvStatus = (G: SongJinnGame, prov: ProvinceID) => {
     const province = getProvinceById(prov);
     const allCities = [...province.capital, ...province.other];
@@ -3099,6 +3100,8 @@ export const drawCardForJinn = (G: SongJinnGame, ctx: Ctx) => {
 export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
     return G.jinn.civil > G.song.civil ? SJPlayer.P2 : SJPlayer.P1;
 }
+
+
 export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
     const log = [`totalDevelop|p${playerId}`]
     const pub = getStateById(G, playerId);
@@ -3196,7 +3199,10 @@ export function troopRange(G: SongJinnGame, troop: Troop): number {
     }
     troop.u.forEach((i, idx) => {
         range += i * unitRanges[idx]
-    })
+    });
+    if (troop.g === Country.JINN && hasGeneral(G, troop, JinnGeneral.WoLiBu)) {
+        range += troop.u[1];
+    }
     return range;
 }
 
@@ -3231,6 +3237,12 @@ export function troopDefendCiyRange(G: SongJinnGame, troop: Troop): number {
         range += getCityDefence(G, troop.c, troop.g);
     }
     return range;
+}
+
+
+export function hasGeneral(G: SongJinnGame, t: Troop, gen: General) {
+    const pub = ctr2pub(G, t.g);
+    return pub.generals[gen] === GeneralStatus.TROOP ? t.p === pub.generalPlace[gen] : false;
 }
 
 export function troopMelee(G: SongJinnGame, troop: Troop): number {
@@ -3295,6 +3307,9 @@ export function troopMeleeOnly(G: SongJinnGame, troop: Troop): number {
     troop.u.forEach((i, idx) => {
         melee += i * unitMelee[idx]
     })
+    if (troop.g === Country.JINN && hasGeneral(G, troop, JinnGeneral.WoLiBu)) {
+        melee += troop.u[2];
+    }
     return melee;
 }
 

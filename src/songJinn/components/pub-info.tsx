@@ -64,9 +64,14 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             } defaultChoice={""} show={true} title={"查看占领城市"} toggleText={"城市"} initial={false}/>
             <div><ShowCards cards={s.discard} title={"查看弃牌"} toggleText={"弃牌"}/></div>
             <div><ShowCards cards={s.remove} title={"查看移除"} toggleText={"移除牌"}/></div>
-            {s.dices.length > 0 && <Typography>{s.dices.join(',')}</Typography>}
-            {/*<div><label>手牌数：</label></div>*/}
-            <div><label>发展牌：{s.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
+            {s.dices.length > 0 && <Typography>
+                {s.dices.join(',')}中
+                {s.dices.filter(d => d > 3).length}
+                |{s.dices.filter(d => d > 4).length}
+                |{s.dices.filter(d => d > 5).length}
+                {/*<div><label>手牌数：</label></div>*/}
+                <div><label>发展牌：{s.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
+            </Typography>}
             {ctx.phase === 'develop' &&
                 <div><label> 使用/总发展点数： {s.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P1)} </label></div>}
             {G.turn > 6 && <div><label>绍兴和议分数：{getSongScore(G)}</label></div>}
