@@ -167,7 +167,7 @@ export const AdjustOps = ({
 
     const controlCityDialog = <ChoiceDialog
         callback={
-            (c) => moves.controlProvince(c)
+            (c) => moves.controlCity(c)
         } choices={Object.values(CityID).filter(c => !pub.cities.includes(c)).map(c => {
         return {
             label: c,

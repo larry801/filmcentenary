@@ -2594,7 +2594,7 @@ export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
 }
 
 export const mergeTroopTo = (G: SongJinnGame, src: number, dst: number, pid: PlayerID) => {
-    const log =[`mergeTroop|${src}to${dst}`];
+    const log = [`mergeTroop|${src}to${dst}`];
     const pub = getStateById(G, pid);
     let a = pub.troops[src];
     log.push(`|${JSON.stringify(a)}`);
@@ -3589,13 +3589,28 @@ export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: Province
     }
 }
 export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
+    const log = [`doControlCity`];
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid);
     if (oppo.cities.includes(cid)) {
+        log.push(`|takeFromOpponent`);
         oppo.cities.splice(oppo.cities.indexOf(cid), 1);
     } else {
+        log.push(`|b|${pub.cities}`);
         pub.cities.push(cid);
+        log.push(`|a|${pub.cities}`);
     }
+    // TODO control all cities change prov control
+    const prov = getCityById(cid).province;
+    const province = getProvinceById(prov);
+    const all = [...province.capital, ...province.other];
+    if (
+        all.filter(c => pub.cities.includes(c)).length === all.length
+    ){
+        log.push(`|control${prov}`);
+        doControlProvince(G,pid, prov);
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
     const pub = getStateById(G, pid);

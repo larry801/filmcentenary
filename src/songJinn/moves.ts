@@ -96,16 +96,17 @@ export const controlProvince: LongFormMove = {
 }
 export const controlCity: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, args: CityID) => {
-        if (ctx.playerID === undefined) {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`p${ctx.playerID}.controlCity(${JSON.stringify(args)})`);
-        const log = [`p${ctx.playerID}.controlCity`];
-        const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
-        const player = playerById(G, ctx.playerID);
+        logger.info(`p${pid}.controlCity(${JSON.stringify(args)})`);
+        const log = [`p${pid}.controlCity`];
+        // const ctr = getCountryById(ctx.playerID);
+        const pub = getStateById(G, pid);
+        // const player = playerById(G, ctx.playerID);
         log.push(`|${pub.cities}`);
-        doControlCity(G, ctx.playerID, args);
+        doControlCity(G, pid, args);
         log.push(`|after|${pub.cities}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
