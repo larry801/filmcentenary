@@ -760,12 +760,12 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => !G.jinn.nations.includes(NationID.DaLi),
         event: (G: SongJinnGame, ctx: Ctx) => {
             if (G.song.nations.includes(NationID.DaLi)) {
+                doRecruit(G, [0, 0, 2, 0, 0, 0], SJPlayer.P1);
+            } else {
                 const readySum = G.song.ready.reduce(accumulator);
                 if (readySum < G.song.civil) {
                     doRecruit(G, [0, 0, 1, 0, 0, 0], SJPlayer.P1);
                 }
-            } else {
-                doRecruit(G, [0, 0, 2, 0, 0, 0], SJPlayer.P1);
             }
         }
     },
