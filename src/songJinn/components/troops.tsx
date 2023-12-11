@@ -13,22 +13,29 @@ import {
     isRegionID,
     JinnGeneral,
     ProvinceID,
-    RegionID, SongGeneral, SongJinnGame,
+    RegionID,
+    SongGeneral,
+    SongJinnGame,
     Troop,
     UNIT_SHORTHAND
 } from "../constant/general";
 import ChoiceDialog from "../../components/modals";
 import {getProvinceById} from "../constant/province";
-import {getRegionById} from "../constant/regions";
 import CheckBoxDialog from "./choice";
 import {ChooseUnitsDialog} from "./recruit";
 import {
     ctr2pub,
     getCountryById,
-    getGeneralNameByCountry, getMarchDst,
-    getOpponentStateById, getPlaceCountryGeneralNames, getPlaceGeneral,
-    getReadyGenerals, getRegionText,
-    getStateById, getTroopText, optionToActualDst,
+    getGeneralNameByCountry,
+    getMarchDst,
+    getOpponentStateById, getPlaceCountryGeneral,
+    getPlaceCountryGeneralNames,
+    getPlaceGeneral,
+    getReadyGenerals,
+    getRegionText,
+    getStateById,
+    getTroopText,
+    optionToActualDst,
     StrProvince,
 } from "../util";
 
@@ -97,6 +104,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const troops = [...pub.troops, ...opp.troops];
     const ctr = getCountryById(pid);
     const unitNames = ctr === Country.SONG ? UNIT_SHORTHAND[0] : UNIT_SHORTHAND[1];
+    const emptyUnitsByCountry = (c: Country) => {
+        return c === Country.JINN ? [0, 0, 0, 0, 0, 0, 0] : [0, 0, 0, 0, 0, 0];
+    }
 
 
     const [deployStep, setDeployStep] = React.useState(DeployStep.TROOP);
@@ -260,12 +270,13 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const [marchGenerals, setMarchGenerals] = useState([JinnGeneral.WoLiBu, SongGeneral.ZongZe]);
     const [marchTroop, setMarchTroop] = React.useState(emptyTroop);
 
+
     const marchGeneralsDialog = <CheckBoxDialog
         callback={(c) => {
             const generals: General[] = c.map(g => parseInt(g));
             setMarchGenerals(generals);
             setMarchStep(MarchStep.TARGET);
-        }} choices={getPlaceGeneral(G, pid, marchTroop.p).map(gen => {
+        }} choices={getPlaceCountryGeneral(G, marchTroop.g, marchTroop.p).map(gen => {
         return {
             label: getGeneralNameByCountry(marchTroop.g, gen),
             value: gen.toString(),
@@ -322,8 +333,14 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const marchDialog = <ChooseUnitsDialog
         callback={(c) => {
             setMarchUnits(c);
-            setMarchStep(MarchStep.GENERALS)
-        }} max={[...marchTroop.u]} initUnits={[...marchTroop.u]}
+            if (getPlaceCountryGeneral(G, marchTroop.g, marchTroop.p).length === 0) {
+                setMarchStep(MarchStep.TARGET);
+                setMarchGenerals([]);
+            } else {
+
+                setMarchStep(MarchStep.GENERALS);
+            }
+        }} max={[...marchTroop.u]} initUnits={emptyUnitsByCountry(marchTroop.g)}
         show={isActive && marchStep === MarchStep.UNITS}
         popAfterShow={true}
         title={"选择进军部队"} toggleText={"选择进军部队"} initial={true} country={marchTroop.g}/>

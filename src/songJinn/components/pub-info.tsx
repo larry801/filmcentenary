@@ -45,9 +45,9 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label>备用兵区： {unitsToString(s.standby)}</label></div>
             <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
             <div><label>完成计划：</label><br/>
-                {s.completedPlan.map(p => <label>{getPlanById(p).name}</label>)}
+                {s.completedPlan.map(p => <label key={`jinn-plan-name-${p}`}>{getPlanById(p).name}</label>)}
             </div>
-            <div>控制路：<br/>{s.provinces.map(p => <label>{p}<br/></label>)}</div>
+            <div>控制路：<br/>{s.provinces.map(p => <label key={ `jinn-prov-${p}`}>{p}<br/></label>)}</div>
 
             <ChoiceDialog callback={() => {
             }} choices={
@@ -87,9 +87,9 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label>备用兵区： {unitsToString(j.standby)}</label></div>
             <div><label>本回合计划：{j.plan.map(p => getPlanById(p).name)}</label></div>
             <div><label>完成计划：</label><br/>
-                {j.completedPlan.map(p => <label>{getPlanById(p).name}</label>)}
+                {j.completedPlan.map(p => <label key={ `song-jinn-${p}`}>{getPlanById(p).name}</label>)}
             </div>
-            <div>控制路：<br/>{j.provinces.map(p => <label>{p}<br/></label>)}</div>
+            <div>控制路：<br/>{j.provinces.map(p => <label key={ `song-jinn-${p}`}>{p}<br/></label>)}</div>
             <ChoiceDialog callback={() => {
             }} choices={
                 j.cities.map(c => {

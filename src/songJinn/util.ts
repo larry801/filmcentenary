@@ -124,14 +124,31 @@ export const getSkillGeneral = (G: SongJinnGame, pid: PlayerID): General[] => {
     })
     return generals;
 }
+export const getPlaceCountryGeneral = (G: SongJinnGame, ctr: Country, place: TroopPlace): General[] => {
+    const log = [`getPlaceCountryGeneral|p${ctr}${placeToStr(place)}`]
+    const generals: General[] = [];
+    const pub = ctr2pub(G, ctr);
+    pub.generalPlace.forEach((p, idx) => {
+        if (p === place && pub.generals[idx] === GeneralStatus.TROOP) {
+            log.push(`|${getGeneralNameByCountry(ctr, idx)}`);
+            generals.push(idx as General);
+        }
+    })
+    log.push(`|result${generals}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
+    return generals;
+}
 export const getPlaceGeneral = (G: SongJinnGame, pid: PlayerID, place: TroopPlace): General[] => {
+    const log = [`getPlaceGeneral|p${pid}${placeToStr(place)}`]
     const generals: General[] = [];
     const pub = getStateById(G, pid);
     pub.generalPlace.forEach((p, idx) => {
         if (p === place && pub.generals[idx] === GeneralStatus.TROOP) {
+            log.push(`|${getGeneralNameByCountry(pid2ctr(pid),idx)}`);
             generals.push(idx as General);
         }
     })
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return generals;
 }
 export const optionToActualDst = (dst: string): TroopPlace => {

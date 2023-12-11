@@ -21,7 +21,7 @@ import {logger} from "../game/logger";
 import {getPlanById} from "./constant/plan";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {shuffle} from "../game/util";
-import {getRegionById} from "./constant/regions";
+import {getRegionById, Region} from "./constant/regions";
 import {changePlayerStage} from "../game/logFix";
 
 import {
@@ -142,19 +142,26 @@ export const march: LongFormMove = {
             return INVALID_MOVE;
         }
         const srcIdx = pub.troops.indexOf(t);
+        let region: Region;
         log.push(`|${JSON.stringify(t)}`);
         if (t.u.filter((u, i) => units[i] === u).length === units.length) {
             log.push(`|all`);
             const destTroops = pub.troops.filter((t2: Troop) => t2.p === dst);
+            log.push(`|destTroops${JSON.stringify(destTroops)}`);
             if (destTroops.length > 0) {
                 const d = destTroops[0];
                 const dstIdx = pub.troops.indexOf(d);
-                log.push(`|merge|to|${d}|${dstIdx}`);
-                mergeTroopTo(G, srcIdx, dstIdx, pid);
-                log.push(`|result|${JSON.stringify(d)}`);
+                log.push(`|before|dst${JSON.stringify(d)}|src${JSON.stringify(t)}`);
+                mergeTroopTo(G, srcIdx, dstIdx, ctr2pid(t.g));
+                log.push(`|after|dst${JSON.stringify(d)}|src${JSON.stringify(t)}`);
+
             } else {
                 log.push(`|move`);
                 t.p = dst;
+                if (isRegionID(dst)) {
+                    region = getRegionById(dst);
+                    t.c = region.city;
+                }
                 log.push(`${JSON.stringify(t)}`);
             }
         } else {
@@ -166,17 +173,22 @@ export const march: LongFormMove = {
                     t.u[i] -= units[i];
                 }
             }
+            log.push(`|after|src|${JSON.stringify(t)}|${unitsToString(t.u)}`);
+
             const destTroops = pub.troops.filter((t2: Troop) => t2.p === dst);
+            log.push(`|destTroops${JSON.stringify(destTroops)}`);
             if (destTroops.length > 0) {
                 const d = destTroops[0];
                 const dstIdx = pub.troops.indexOf(d);
-                log.push(`|merge|to|${d}|${dstIdx}`);
-                mergeTroopTo(G, srcIdx, dstIdx, pid);
-                log.push(`|result|${JSON.stringify(d)}`);
+                for (let i = 0; i < d.u.length; i++) {
+                    d.u[i] += units[i];
+                }
+                log.push(`|result|${JSON.stringify(d)}|${unitsToString(t.u)}`);
             } else {
                 let city = null;
                 if (isRegionID(dst)) {
-                    city = getRegionById(dst).city;
+                    region = getRegionById(dst);
+                    city = region.city;
                 }
                 log.push(`|city${city}`);
                 const newTroop = {
@@ -206,7 +218,7 @@ export const letter: LongFormMove = {
             return INVALID_MOVE;
         }
         player.lod.push(arg);
-        endRoundCheck(G,ctx);
+        endRoundCheck(G, ctx);
         ctx.events?.endTurn();
     }
 }
@@ -567,6 +579,10 @@ export const moveTroop: LongFormMove = {
             mergeTroopTo(G, idx, pub.troops.indexOf(d), pid);
         } else {
             t.p = dst;
+            if (isRegionID(dst)) {
+                const region = getRegionById(dst);
+                t.c = region.city;
+            }
             const g = getPlaceGeneral(G, pid, t.p);
             if (g.length > 0) {
                 g.forEach(gen => moveGeneralByPid(G, pid, gen, dst));
@@ -575,10 +591,12 @@ export const moveTroop: LongFormMove = {
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
+
 interface IShowLettersArgs {
-    letters:LetterOfCredence[],
-    nations:NationID[]
+    letters: LetterOfCredence[],
+    nations: NationID[]
 }
+
 export const showLetters: LongFormMove = {
     move: (G, ctx, args: IShowLettersArgs) => {
         const pid = ctx.playerID;
@@ -590,9 +608,9 @@ export const showLetters: LongFormMove = {
         } else {
             ctx.events?.endPhase();
         }
-        const pub = getStateById(G,pid);
-        const p = playerById(G,pid);
-        p.lod.forEach(l=>pub.discard.push(l.card));
+        const pub = getStateById(G, pid);
+        const p = playerById(G, pid);
+        p.lod.forEach(l => pub.discard.push(l.card));
         p.lod = [];
         logger.info(`p${pid}.showLetters(${JSON.stringify(args)})`);
     }
