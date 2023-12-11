@@ -32,7 +32,7 @@ import {
     returnToHand,
     rollDices,
     search,
-    searchFirst,
+    searchFirst, showLetters,
     showPlan,
     takeDamage,
     takePlan,
@@ -374,11 +374,15 @@ export const DiplomacyPhaseConfig: PhaseConfig<SongJinnGame> = {
         log.push(`|before|${G.song.nations}|${G.jinn.nations}`);
         changeDiplomacyByLOD(G);
         log.push(`|after|${G.song.nations}|${G.jinn.nations}`);
-        ctx.events?.endPhase();
+        // ctx.events?.endPhase();
         logger.info(`${log.join('')}`);
     },
     turn: StagedTurnConfig,
     next: 'develop',
+    moves:{
+        showLetters:showLetters,
+        endRound:endRound
+    }
 }
 export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {

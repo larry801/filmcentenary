@@ -20,7 +20,7 @@ import {
     JinnGeneral,
     JinnLateCardID,
     JinnMidCardID,
-    LatePlanID,
+    LatePlanID, LetterOfCredence,
     MAX_ROUND,
     MidPlanID,
     MountainPasses,
@@ -54,7 +54,6 @@ import {logger} from "../game/logger";
 import {INVALID_MOVE, Stage} from "boardgame.io/core";
 import {getProvinceById} from "./constant/province";
 import {getCityById} from "./constant/city";
-import troops from "./components/troops";
 
 export const phaseName = (c: string) => {
     const phaseMap = {
@@ -2479,10 +2478,10 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
             })
         }
     }
-    jinn.lod.forEach(l => G.jinn.discard.push(l.card));
-    song.lod.forEach(l => G.song.discard.push(l.card));
-    jinn.lod = [];
-    song.lod = [];
+    // jinn.lod.forEach(l => G.jinn.discard.push(l.card));
+    // song.lod.forEach(l => G.song.discard.push(l.card));
+    // jinn.lod = [];
+    // song.lod = [];
     G.song.troops.forEach(t => {
         if (isNationID((t.p))) {
             log.push(`|song|${t.p}|hasTroop`);
@@ -2728,6 +2727,24 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
     }
 
 }
+interface ITakeDamageArgs {
+    c: Country,
+    src: TroopPlace,
+    standby: number[],
+    ready: number[]
+}
+
+const takeDamageText = (arg:ITakeDamageArgs)=>{
+    let text =`${placeToStr(arg.src)}${arg.c}`;
+    if  (arg.ready.filter(u=>u>0).length === 0){
+        text += `溃${unitsToString(arg.ready)}`;
+    }
+        if  (arg.standby.filter(u=>u>0).length === 0){
+        text += `死${unitsToString(arg.standby)}`;
+    }
+    return text;
+}
+
 export const rollDiceByPid = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, count: number) => {
     const country = getCountryById(pid);
     const dices = ctx.random?.D6(count);
@@ -2822,17 +2839,19 @@ export const getLogText = (l: LogEntry): string => {
                                 `在${placeToStr(arg.dst)}放置${unitsToString(arg.units)}`
                             ;
                             break;
-
-                        case 'opponentMove':
-                            log +=
-                                `让对方操作`
-                            ;
+                        case 'showLetters':
+                            if (arg.letters.length > 0) {
+                                log += `展示国书${arg.letters.map(
+                                    (l: LetterOfCredence) => `${l.nation}${sjCardById(l.card).op}${sjCardById(l.card).name}`
+                                )}`;
+                            }
+                            log += `盟国${arg.nations.map((n: NationID) => n)}`
                             break;
-
+                        case 'opponentMove':
+                            log += `让对方操作`;
+                            break;
                         case 'takeDamage':
-                            log +=
-                                `${placeToStr(arg.src)}${arg.c}死${unitsToString(arg.standby)}溃${unitsToString(arg.ready)}`
-                            ;
+                            log += takeDamageText(arg);
                             break;
                         case 'march':
                             log +=
@@ -3499,7 +3518,7 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
         log.push(
             `|second`
         );
-        if (G.round >= MAX_ROUND) {
+        if (G.round >= 2) {
             log.push(
                 `|action|end|resolvePlan`
             );

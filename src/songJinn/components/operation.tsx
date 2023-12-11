@@ -96,10 +96,18 @@ export const Operation = ({
         show={isActive && ctx.phase === 'action'} title={"请选择战斗牌"}
         toggleText={"战斗牌"} initial={false}/>
 
-    const autoPhases = ['showPlan', 'chooseFirst', 'choosePlan']
+    const autoPhases = ['showPlan', 'chooseFirst', 'choosePlan', 'diplomacy']
     const showPlan = (isActive && ctx.phase === 'showPlan') && <Button
         onClick={() => moves.showPlan(player.chosenPlans)}
         color={"primary"} variant={"contained"}>展示作战计划</Button>
+    const showLetters = (isActive && ctx.phase === 'diplomacy') && <Button
+        onClick={() => {
+            moves.showLetters({
+                nations: pub.nations,
+                letters: player.lod
+            })
+        }}
+        color={"primary"} variant={"contained"}>展示国书</Button>
     const endRound = (ctx.currentPlayer === playerID && !autoPhases.includes(ctx.phase)) && <Button
         onClick={() => {
             // TODO add phase info  Song ended develop phase
@@ -109,7 +117,7 @@ export const Operation = ({
                 moves.endRound();
             }
         }}
-        color={"primary"} variant={"contained"}>结束${phaseName(ctx.phase)}</Button>
+        color={"primary"} variant={"contained"}>结束{phaseName(ctx.phase)}</Button>
 
     const search = (choice: string) => {
         moves.search(choice);
@@ -379,6 +387,7 @@ export const Operation = ({
         {chooseRescueGeneralsDialog}
         {/*{endPhaseButton}*/}
         {jianLiDaQiButton}
+        {showLetters}
         {showPlan}
         {takePlanDialog}
         {chooseTopPlanDialog}

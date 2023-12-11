@@ -7,7 +7,7 @@ import {
     DevelopChoice,
     General, isCityID,
     isRegionID,
-    LetterOfCredence,
+    LetterOfCredence, NationID,
     PlanID,
     PlayerPendingEffect,
     ProvinceID,
@@ -205,6 +205,7 @@ export const letter: LongFormMove = {
             return INVALID_MOVE;
         }
         player.lod.push(arg);
+        endRoundCheck(G,ctx);
         ctx.events?.endTurn();
     }
 }
@@ -230,7 +231,7 @@ export const chooseProvince: LongFormMove = {
     }
 }
 
-export interface ITakeDamageArgs {
+interface ITakeDamageArgs {
     c: Country,
     src: TroopPlace,
     standby: number[],
@@ -571,6 +572,28 @@ export const moveTroop: LongFormMove = {
             }
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
+    }
+}
+interface IShowLettersArgs {
+    letters:LetterOfCredence[],
+    nations:NationID[]
+}
+export const showLetters: LongFormMove = {
+    move: (G, ctx, args: IShowLettersArgs) => {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        if (G.order.indexOf(pid as SJPlayer) === 0) {
+            ctx.events?.endTurn();
+        } else {
+            ctx.events?.endPhase();
+        }
+        const pub = getStateById(G,pid);
+        const p = playerById(G,pid);
+        p.lod.forEach(l=>pub.discard.push(l.card));
+        p.lod = [];
+        logger.info(`p${pid}.showLetters(${JSON.stringify(args)})`);
     }
 }
 export const jianLiDaQi: LongFormMove = {
