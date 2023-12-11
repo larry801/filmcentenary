@@ -2727,6 +2727,7 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
     }
 
 }
+
 interface ITakeDamageArgs {
     c: Country,
     src: TroopPlace,
@@ -2734,13 +2735,13 @@ interface ITakeDamageArgs {
     ready: number[]
 }
 
-const takeDamageText = (arg:ITakeDamageArgs)=>{
-    let text =`${placeToStr(arg.src)}${arg.c}`;
-    if  (arg.ready.filter(u=>u>0).length === 0){
-        text += `溃${unitsToString(arg.ready)}`;
-    }
-        if  (arg.standby.filter(u=>u>0).length === 0){
+const takeDamageText = (arg: ITakeDamageArgs) => {
+    let text = `${placeToStr(arg.src)}${arg.c}`;
+    if (arg.standby.filter(u => u > 0).length > 0) {
         text += `死${unitsToString(arg.standby)}`;
+    }
+    if (arg.ready.filter(u => u > 0).length > 0) {
+        text += `溃${unitsToString(arg.ready)}`;
     }
     return text;
 }
