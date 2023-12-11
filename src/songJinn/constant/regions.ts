@@ -55,7 +55,7 @@ const idToRegion = {[RegionID.R01]:
             name:"应蔚两州",
             terrain:TerrainType.MOUNTAINS,
             province:ProvinceID.XIJINGLU,
-            land:[RegionID.R02DaTonFu,RegionID.WuShuo2Zhou03,RegionID.R07,RegionID.R10,RegionID.R13,RegionID.R14],
+            land:[RegionID.R02DaTonFu,RegionID.WuShuo2Zhou03,RegionID.R07,RegionID.R10,RegionID.R13,RegionID.R14ZhongShanFu],
             water:[],
             pass:[],
             city:null
@@ -89,7 +89,7 @@ const idToRegion = {[RegionID.R01]:
             name:"析津府",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.DONGJINGLU,
-            land:[RegionID.R04,RegionID.R05,RegionID.R08,RegionID.R14,RegionID.R15],
+            land:[RegionID.R04,RegionID.R05,RegionID.R08,RegionID.R14ZhongShanFu,RegionID.R15],
             water:[RegionID.R16],
             pass:[RegionID.R02DaTonFu],
             city:CityID.XiJin
@@ -157,14 +157,14 @@ const idToRegion = {[RegionID.R01]:
             name:"真定府",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.HEBEILIANGLU,
-            land:[RegionID.R04,RegionID.R10,RegionID.R14,RegionID.R17],
+            land:[RegionID.R04,RegionID.R10,RegionID.R14ZhongShanFu,RegionID.R17],
             water:[],
             pass:[],
             city:CityID.ZhenDing
         },
-    [RegionID.R14]:
+    [RegionID.R14ZhongShanFu]:
         {
-            id:RegionID.R14,
+            id:RegionID.R14ZhongShanFu,
             name:"中山府",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.HEBEILIANGLU,
@@ -179,7 +179,7 @@ const idToRegion = {[RegionID.R01]:
             name:"河间府",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.HEBEILIANGLU,
-            land:[RegionID.R07,RegionID.R14],
+            land:[RegionID.R07,RegionID.R14ZhongShanFu],
             water:[RegionID.R16],
             pass:[],
             city:CityID.HeJian
@@ -191,7 +191,7 @@ const idToRegion = {[RegionID.R01]:
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.HEBEILIANGLU,
             land:[RegionID.R18],
-            water:[RegionID.R14,RegionID.R15,RegionID.R17,RegionID.R21],
+            water:[RegionID.R14ZhongShanFu,RegionID.R15,RegionID.R17,RegionID.R21],
             pass:[],
             city:null
         },
@@ -202,7 +202,7 @@ const idToRegion = {[RegionID.R01]:
             name:"庆源府和信德府",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.HEBEILIANGLU,
-            land:[RegionID.R10,RegionID.R13,RegionID.R14,RegionID.R12LongDeFu,RegionID.R19],
+            land:[RegionID.R10,RegionID.R13,RegionID.R14ZhongShanFu,RegionID.R12LongDeFu,RegionID.R19],
             water:[RegionID.R18],
             pass:[],
             city:null

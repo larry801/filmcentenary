@@ -606,7 +606,7 @@ export enum RegionID {
     R11PingYangFu,
     R12LongDeFu,
     R13,
-    R14,
+    R14ZhongShanFu,
     R15,
     R16,
     R17,
@@ -737,7 +737,7 @@ export const initialJinnPub: SJPubInfo = {
         {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R12LongDeFu, c: CityID.ShangDang, g: Country.JINN},
         {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R13, c: CityID.AnXi, g: Country.JINN},
 
-        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R14, c: CityID.ZhenDing, g: Country.JINN},
+        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R14ZhongShanFu, c: CityID.ZhenDing, g: Country.JINN},
         {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R15, c: CityID.HeJian, g: Country.JINN},
 
 

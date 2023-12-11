@@ -84,7 +84,7 @@ const idToCity = {
         capital: false,
         province: ProvinceID.HEBEILIANGLU,
         colonizeLevel: 0,
-        region: RegionID.R14
+        region: RegionID.R14ZhongShanFu
     },
     [CityID.HeJian]: {
         id: CityID.HeJian,
