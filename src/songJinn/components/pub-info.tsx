@@ -19,7 +19,6 @@ import {
 import ChoiceDialog from "../../components/modals";
 import {ShowCards} from "./show-cards";
 import {getCityById} from "../constant/city";
-import {getRegionById} from "../constant/regions";
 
 export interface IPubInfo {
     G: SongJinnGame,
@@ -33,7 +32,13 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
     const jDice: number[] = G.jinn.dices.length > 0 ? G.jinn.dices[G.jinn.dices.length - 1] : [];
     return <Grid container>
         <Grid item xs={12} key={`game-info`}>
-            第{G.turn}回合 第{G.round}轮 {phaseName(ctx.phase)}
+            <Typography>第{G.turn}回合 第{G.round}轮 {phaseName(ctx.phase)}</Typography>
+            <Typography>已发生事件：{G.events.map(e=>
+                <label key={`event-global-${e}`}>{e}</label>
+                    )}
+            </Typography>
+            {G.qi.length > 0 && <div>齐控制路：<br/>{G.qi.map(p => <label key={`qi-${p}`}>{p}<br/></label>)}</div>}
+
         </Grid>
         <Grid item xs={6} key={`song-pub`}><Paper>
             <label>宋</label>
@@ -49,9 +54,8 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label>完成计划：</label><br/>
                 {s.completedPlan.map(p => <label key={`jinn-plan-name-${p}`}>{getPlanById(p).name}</label>)}
             </div>
-            <div>控制路：<br/>{s.provinces.map(p => <label key={`jinn-prov-${p}`}>{p}<br/></label>)}</div>
 
-            <ChoiceDialog callback={() => {
+                <ChoiceDialog callback={() => {
             }} choices={
                 s.cities.map(c => {
                     const city = getCityById(c);
@@ -63,14 +67,15 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
                     }
                 })
             } defaultChoice={""} show={true} title={"查看占领城市"} toggleText={"城市"} initial={false}/>
-            <div><ShowCards cards={s.discard} title={"查看弃牌"} toggleText={"弃牌"}/></div>
-            <div><ShowCards cards={s.remove} title={"查看移除"} toggleText={"移除牌"}/></div>
-            {s.dices.length > 0 && <Typography>{sDice}中
-                {sDice.filter(d => d > 3).length}
-                |{sDice.filter(d => d > 4).length}
-                |{sDice.filter(d => d > 5).length}
-                {/*<div><label>手牌数：</label></div>*/}
-                <div><label>发展牌：{s.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
+                <div><ShowCards cards={s.discard} title={"查看弃牌"} toggleText={"弃牌"}/></div>
+                <div><ShowCards cards={s.remove} title={"查看移除"} toggleText={"移除牌"}/></div>
+                {s.dices.length > 0 && <Typography>{sDice}中
+                    {sDice.filter(d => d > 3).length}
+                    |{sDice.filter(d => d > 4).length}
+                    |{sDice.filter(d => d > 5).length}
+                    {/*<div><label>手牌数：</label></div>*/}
+                    <div>控制路：<br/>{s.provinces.map(p => <label key={`jinn-prov-${p}`}>{p}<br/></label>)}</div>
+                    <div><label>发展牌：{s.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
             </Typography>}
             {ctx.phase === 'develop' &&
                 <div><label> 使用/总发展点数： {s.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P1)} </label></div>}
@@ -89,7 +94,6 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label>完成计划：</label><br/>
                 {j.completedPlan.map(p => <label key={`song-jinn-${p}`}>{getPlanById(p).name}</label>)}
             </div>
-            <div>控制路：<br/>{j.provinces.map(p => <label key={`song-jinn-${p}`}>{p}<br/></label>)}</div>
             <ChoiceDialog callback={() => {
             }} choices={
                 j.cities.map(c => {
@@ -115,7 +119,9 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label>发展牌：{j.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
             {ctx.phase === 'develop' &&
                 <div><label> 使用/总发展点数： {j.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P2)} </label></div>}
+            {/*// TODO 和议 分数 分类*/}
             {G.turn > 6 && <div><label>绍兴和议分数：{getJinnScore(G)}</label></div>}
+            <div>控制路：<br/>{j.provinces.map(p => <label key={`song-jinn-${p}`}>{p}<br/></label>)}</div>
         </Paper></Grid>
     </Grid>
 }

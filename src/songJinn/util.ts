@@ -3669,6 +3669,11 @@ export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: Province
         log.push(`|b|${pub.provinces}`);
 
     }
+    if(G.qi.includes(prov) && pid === SJPlayer.P1){
+        log.push(`|Qi|remove|b|${G.qi}`);
+        G.qi.splice(G.qi.indexOf(prov),1);
+        log.push(`|b|${G.qi}`);
+    }
     log.push(`|b|${pub.provinces}`);
     pub.provinces.push(prov);
     log.push(`|b|${pub.provinces}`);
