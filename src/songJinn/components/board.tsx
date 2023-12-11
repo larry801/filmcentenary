@@ -109,6 +109,10 @@ export const SongJinnBoard = ({
 
             {playerID !== null ?
                 <Grid>
+                    <ChatMessage
+                        sendChatMessage={sendChatMessage}
+                        chatMessages={chatMessages}
+                        getPlayerName={sjPlayerName}/>
                     {isActive ? <Grid container>
                         <Button onClick={() => undo()}>撤回</Button>
                         <Operation
@@ -124,10 +128,6 @@ export const SongJinnBoard = ({
                         <Grid item xs={12} sm={6}>
                             <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
                         </Grid>
-                        <ChatMessage
-                            sendChatMessage={sendChatMessage}
-                            chatMessages={chatMessages}
-                            getPlayerName={sjPlayerName}/>
                         <AdjustOps G={G} ctx={ctx} isActive={isActive} playerID={playerID} moves={moves}/>
                     </Grid> : <Grid container>
                         <Grid item xs={12} sm={6}>
