@@ -336,6 +336,13 @@ export const Operation = ({
         defaultChoice={""}
         title={"请选择横置将领"} toggleText={"横置将领"} initial={false}/>
 
+    const recruitPuppetDialog = <ChoiceDialog
+        callback={(c) => {
+            moves.recruitPuppet(c);
+        }} choices={G.jinn.cities.map(c => {
+        return {label: c, value: c, hidden: false, disabled: false}
+    })} defaultChoice={""} show={isActive && ctr === Country.JINN} title={"选择征伪城市"} toggleText={"征募伪军"} initial={false}/>
+
     const recruitPhases = ['action', 'deploy'];
 
     const recruitDialog = <ChooseUnitsDialog
@@ -376,9 +383,7 @@ export const Operation = ({
     const emptyRoundButton = ctx.phase === 'action' && <Button
         disabled={player.hand.length + G.round > 9}
         onClick={() => moves.emptyRound()}>空过</Button>
-    // const endPhaseButton = <Button
-    //     onClick={() => ctx.events?.endPhase()}
-    // >EndPhase</Button>
+
     const opponentButton = <Button
         disabled={false}
         onClick={() => moves.opponentMove()}>对方操作</Button>
@@ -391,7 +396,7 @@ export const Operation = ({
         {opponentButton}
         {rescueGeneralDialog}
         {chooseRescueGeneralsDialog}
-        {/*{endPhaseButton}*/}
+        {recruitPuppetDialog}
         {jianLiDaQiButton}
         {showLetters}
         {showPlan}

@@ -519,11 +519,35 @@ export const recruitPuppet: LongFormMove = {
         if (ctx.playerID !== SJPlayer.P2) {
             return INVALID_MOVE;
         }
+        const pub = G.jinn;
+        let qi = false;
+        if (pub.standby[5] > 0) {
+            pub.standby[5]--
+        } else {
+
+            if (G.events.includes(ActiveEvents.JianLiDaQi)) {
+                if (pub.standby[6] > 0) {
+                    pub.standby[6]--;
+                }
+                qi = true;
+            }
+        }
+
         const jt = getJinnTroopByCity(G, dst);
         if (jt === null) {
-            addTroop(G, getCityById(dst).region, [0, 0, 0, 0, 0, 1, 0], Country.JINN);
+            if (qi) {
+                addTroop(G, getCityById(dst).region, [0, 0, 0, 0, 0, 0, 1], Country.JINN);
+
+            } else {
+                addTroop(G, getCityById(dst).region, [0, 0, 0, 0, 0, 1, 0], Country.JINN);
+
+            }
         } else {
-            jt.u[5]++;
+            if (qi) {
+                jt.u[6]++
+            } else {
+                jt.u[5]++;
+            }
         }
     }
 }
