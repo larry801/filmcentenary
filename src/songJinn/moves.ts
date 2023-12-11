@@ -182,7 +182,7 @@ export const march: LongFormMove = {
                     p: dst,
                     c: city,
                     u: units,
-                    country: ctr
+                    g: ctr
                 };
                 log.push(`|new|${JSON.stringify(newTroop)}`);
                 pub.troops.push(newTroop);
@@ -375,7 +375,7 @@ export const placeTroop: LongFormMove = {
             p: dst,
             u: units,
             c: null,
-            country: country
+            g: country
         })
     }
 }
@@ -418,7 +418,7 @@ function doDeployUnits(G: SongJinnGame, ctx: Ctx, country: Country, units: numbe
         log.push(`noTroop`);
         pub.troops.push({
             u: units,
-            country: country,
+            g: country,
             c: city,
             // 围困城市不能补充 ？？？
             p: getCityById(city).region,

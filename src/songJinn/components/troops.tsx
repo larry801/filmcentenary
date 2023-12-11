@@ -90,7 +90,7 @@ enum TakeDamageStep {
 const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const [expanded, setExpanded] = React.useState(0);
 
-    const emptyTroop: Troop = {p: RegionID.R19, u: [0, 0, 0, 0, 0, 0], c: null, country: Country.SONG};
+    const emptyTroop: Troop = {p: RegionID.R19, u: [0, 0, 0, 0, 0, 0], c: null, g: Country.SONG};
 
     const pub = getStateById(G, pid);
     const opp = getOpponentStateById(G, pid);
@@ -107,16 +107,16 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             moves.deploy({
                 units: u,
                 city: deployTroop.c,
-                country: deployTroop.country
+                country: deployTroop.g
             });
             setDeployStep(DeployStep.TROOP);
             setDeployTroop(emptyTroop);
         }}
-        max={[...ctr2pub(G, deployTroop.country).ready]}
+        max={[...ctr2pub(G, deployTroop.g).ready]}
         initUnits={unitNames.map(() => 0)}
         show={isActive && deployStep === DeployStep.UNITS}
         title={"选择补充部队"} toggleText={"补充"}
-        initial={true} country={deployTroop.country}
+        initial={true} country={deployTroop.g}
     />
 
 
@@ -130,21 +130,21 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             setTakeDamageReadyUnits(u)
         }} max={takeDamageTroop.u} initUnits={unitNames.map(() => 0)}
         show={isActive && takeDamageStep === TakeDamageStep.READY} title={"选择被击溃的部队"}
-        toggleText={"击溃"} initial={true} country={takeDamageTroop.country}/>
+        toggleText={"击溃"} initial={true} country={takeDamageTroop.g}/>
 
     const takeDamageStandbyDialog = <ChooseUnitsDialog
         callback={(u) => {
             setTakeDamageStep(TakeDamageStep.TROOP)
             moves.takeDamage({
                 src: takeDamageTroop.p,
-                c: takeDamageTroop.country,
+                c: takeDamageTroop.g,
                 idx: takeDamageTroop,
                 ready: takeDamageReadyUnits,
                 standby: u
             })
         }} max={takeDamageTroop.u} initUnits={unitNames.map(() => 0)}
         show={isActive && takeDamageStep === TakeDamageStep.STANDBY} title={"选择要被消灭的部队"}
-        toggleText={"消灭部队"} initial={true} country={takeDamageTroop.country}/>
+        toggleText={"消灭部队"} initial={true} country={takeDamageTroop.g}/>
 
 
     const [moveTroop, setMoveTroop] = useState(emptyTroop);
@@ -191,7 +191,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 moves.moveTroop({
                     src: moveTroop,
                     dst: regID,
-                    country: moveTroop.country
+                    country: moveTroop.g
                 })
             }
         }}
@@ -267,7 +267,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             setMarchStep(MarchStep.TARGET);
         }} choices={getPlaceGeneral(G, pid, marchTroop.p).map(gen => {
         return {
-            label: getGeneralNameByCountry(marchTroop.country, gen),
+            label: getGeneralNameByCountry(marchTroop.g, gen),
             value: gen.toString(),
             disabled: false,
             hidden: false
@@ -282,7 +282,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 dst: optionToActualDst(r),
                 units: marchUnits,
                 generals: marchGenerals,
-                country: ctr
+                country: marchTroop.g
             });
             setMarchStep(MarchStep.TROOP);
         }}
@@ -326,7 +326,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         }} max={[...marchTroop.u]} initUnits={[...marchTroop.u]}
         show={isActive && marchStep === MarchStep.UNITS}
         popAfterShow={true}
-        title={"选择进军部队"} toggleText={"选择进军部队"} initial={true} country={marchTroop.country}/>
+        title={"选择进军部队"} toggleText={"选择进军部队"} initial={true} country={marchTroop.g}/>
 
     const [deployNewStep, setDeployNewStep] = React.useState(DeployNewStep.TROOP);
     const [deployNewCity, setDeployNewCity] = React.useState(CityID.DaTong);
@@ -372,11 +372,11 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             moves.removeUnit({
                 src: removeUnitTroop.p,
                 units: u,
-                country: removeUnitTroop.c
+                country: removeUnitTroop.g
             })
         }} max={removeUnitTroop.u} initUnits={unitNames.map(() => 0)}
         show={isActive && removeUnitStep === RemoveStep.UNITS} title={"选择要消灭的部队"}
-        toggleText={"消灭部队"} initial={true} country={ctr}/>
+        toggleText={"消灭部队"} initial={true} country={removeUnitTroop.g}/>
 
     const [placeStep, setPlaceStep] = useState(PlaceStep.TROOP);
     const [placeUnitTroop, setPlaceUnitTroop] = useState(emptyTroop);
@@ -387,9 +387,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             moves.placeUnit({
                 place: placeUnitTroop.p,
                 units: u,
-                country: placeUnitTroop.country
+                country: placeUnitTroop.g
             })
-        }} max={[...ctr2pub(G, placeUnitTroop.country).standby]} initUnits={unitNames.map(() => 0)}
+        }} max={[...ctr2pub(G, placeUnitTroop.g).standby]} initUnits={unitNames.map(() => 0)}
         show={isActive && placeStep === PlaceStep.UNITS} title={"选择要放置的的部队"}
         toggleText={"放置新部队"} initial={true} country={ctr}/>
 
@@ -448,7 +448,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         {troops.map((t, idx) => <Grid item xs={6} key={`troop-grid-${idx}`}>
             <Accordion expanded={isActive && expanded === idx} onChange={() => setExpanded(idx)}
                        key={`troop-${idx}`}>
-                <AccordionSummary>{getPlaceCountryGeneralNames(G, t.country, t.p)}|{getTroopText(G, t)}</AccordionSummary>
+                <AccordionSummary>{getPlaceCountryGeneralNames(G, t.g, t.p)}|{getTroopText(G, t)}</AccordionSummary>
                 <AccordionDetails>
                     {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
                         <button

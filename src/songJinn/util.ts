@@ -190,7 +190,7 @@ export const generalWithOpponentTroop = (G: SongJinnGame, pid: PlayerID,): Gener
     general.forEach(g => {
         const generalTroop = getGeneralTroop(G, pid, g);
         generalTroop.forEach(t => {
-            if (t.country !== pid2ctr(pid)) {
+            if (t.g !== pid2ctr(pid)) {
                 result.push(g);
             }
         })
@@ -629,7 +629,7 @@ export const idToCard = {
         event: (G: SongJinnGame, ctx: Ctx) => {
             G.song.troops.push({
                 u: [1, 0, 0, 0, 0, 0], c: CityID.KaiFeng,
-                country: Country.SONG,
+                g: Country.SONG,
                 p: RegionID.R43
             });
         }
@@ -2323,7 +2323,7 @@ export const getCountryById = (pid: PlayerID) => {
     }
 }
 export const troopToString = (G: SongJinnGame, pid: PlayerID, t: Troop) => {
-    return t.country + placeToStr(t.p) + unitsToString(t.u) + getPlaceGeneral(G, pid, t.p);
+    return t.g + placeToStr(t.p) + unitsToString(t.u) + getPlaceGeneral(G, pid, t.p);
 }
 export const getGeneralNameByPid = (pid: PlayerID, general: General) => {
     if (pid === SJPlayer.P1) {
@@ -2515,9 +2515,9 @@ export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], count
 
             removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
         } else {
+            log.push(`|onlyOne`);
             removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
         }
-        logger.debug(`${G.matchID}|${log.join('')}`);
     } else {
         log.push(`noTroop`);
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -2594,17 +2594,22 @@ export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
 }
 
 export const mergeTroopTo = (G: SongJinnGame, src: number, dst: number, pid: PlayerID) => {
+    const log =[`mergeTroop|${src}to${dst}`];
     const pub = getStateById(G, pid);
     let a = pub.troops[src];
+    log.push(`|${JSON.stringify(a)}`);
     let b = pub.troops[dst];
+    log.push(`|${JSON.stringify(b)}`);
     if (a === undefined || b === undefined) {
-        console.log(`cannot merge${a}|to|${b}`)
+        log.push(`cannot merge`);
     } else {
         for (let i = 0; i < b.u.length; i++) {
             b.u[i] += a.u[i];
         }
         pub.troops.splice(pub.troops.indexOf(a), 1);
+        log.push(`|after|${JSON.stringify(b)}`);
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], country: Country) => {
@@ -2625,7 +2630,7 @@ export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], countr
                 G.song.troops.push({
                     p: dst,
                     c: getRegionById(dst).city,
-                    country: Country.SONG,
+                    g: Country.SONG,
                     u: actualUnits,
                 })
             } else {
@@ -2649,7 +2654,7 @@ export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], countr
                 G.jinn.troops.push({
                     p: dst,
                     c: getRegionById(dst).city,
-                    country: Country.JINN,
+                    g: Country.JINN,
                     u: actualUnits,
                 })
             } else {
@@ -2714,14 +2719,14 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
                 c: c,
                 u: [0, 0, 0, 0, 0, 1, 0],
 
-                country: Country.JINN
+                g: Country.JINN
             });
         } else {
             G.jinn.troops.push({
                 p: city.region,
                 c: c,
                 u: [0, 0, 0, 0, 0, 2, 0],
-                country: Country.JINN
+                g: Country.JINN
             });
         }
     }
@@ -3138,7 +3143,7 @@ export function troopRange(G: SongJinnGame, troop: Troop): number {
 
     let unitRanges: number[] = [];
 
-    if (troop.country === Country.SONG) {
+    if (troop.g === Country.SONG) {
         switch (terrainType) {
             case TerrainType.FLATLAND:
                 unitRanges = [0, 1, 0, 0, 0, 2];
@@ -3210,7 +3215,7 @@ export function troopMeleeOnly(G: SongJinnGame, troop: Troop): number {
 
     let unitMelee: number[] = [];
 
-    if (troop.country === Country.SONG) {
+    if (troop.g === Country.SONG) {
         switch (terrainType) {
             case TerrainType.FLATLAND:
                 unitMelee = [1, 0, 3, 0, 0, 0];
@@ -3277,7 +3282,7 @@ export function getTerrainTypeByPlace(troop: Troop) {
 }
 
 export function getTroopText(G: SongJinnGame, t: Troop) {
-    return `${t.country}|${placeToStr(t.p)}|${unitsToString(t.u)}|${t.c === null ? '' : t.c}|` +
+    return `${t.g}|${placeToStr(t.p)}|${unitsToString(t.u)}|${t.c === null ? '' : t.c}|` +
         `耐久${troopEndurance(G, t)}|远程${troopRange(G, t)}|交锋${troopMelee(G, t)}`;
 
 }
@@ -3288,7 +3293,7 @@ export function troopEndurance(G: SongJinnGame, troop: Troop): number {
     const terrainType = getTerrainTypeByPlace(troop);
 
     let unitEndurance: number[] = [];
-    if (troop.country === Country.SONG) {
+    if (troop.g === Country.SONG) {
         unitEndurance = [2, 1, 1, 0, 0, 2];
         if (G.events.includes(ActiveEvents.ZhongBuBing)) {
             unitEndurance[0] = 3;
@@ -3655,7 +3660,7 @@ export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, 
         }
         pub.troops.push({
             u: units,
-            country: country,
+            g: country,
             c: city,
             p: place,
         })
