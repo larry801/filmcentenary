@@ -3791,5 +3791,5 @@ export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, 
 
 export function getCardLabel(c: SJEventCardID) {
     const cardById = sjCardById(c);
-    return cardById.name + '|' + cardById.op + cardById.remove ? '*' : '';
+    return cardById.name + '|' + cardById.op +( cardById.remove ? '*' : '');
 }
