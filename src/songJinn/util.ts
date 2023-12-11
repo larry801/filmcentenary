@@ -21,7 +21,8 @@ import {
     JinnLateCardID,
     JinnMidCardID,
     LatePlanID,
-    LetterOfCredence, MAX_DICES,
+    LetterOfCredence,
+    MAX_DICES,
     MAX_ROUND,
     MidPlanID,
     MountainPasses,
@@ -144,7 +145,7 @@ export const getPlaceGeneral = (G: SongJinnGame, pid: PlayerID, place: TroopPlac
     const pub = getStateById(G, pid);
     pub.generalPlace.forEach((p, idx) => {
         if (p === place && pub.generals[idx] === GeneralStatus.TROOP) {
-            log.push(`|${getGeneralNameByCountry(pid2ctr(pid),idx)}`);
+            log.push(`|${getGeneralNameByCountry(pid2ctr(pid), idx)}`);
             generals.push(idx as General);
         }
     })
@@ -2778,9 +2779,9 @@ export const rollDiceByPid = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, count: n
         return;
     }
     if (country === Country.SONG) {
-        G.song.dices = dices;
+        G.song.dices.push(dices);
     } else {
-        G.jinn.dices = dices;
+        G.jinn.dices.push(dices);
     }
 }
 
@@ -2803,7 +2804,7 @@ export const getUnitNamesByCtr = (ctr: Country) => {
     return ctr === Country.SONG ? UNIT_SHORTHAND[0] : UNIT_SHORTHAND[1];
 }
 
-export const getLogText = (l: LogEntry): string => {
+export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
     const payload = l.action.payload;
     const pid = payload.playerID;
     const s = sjPlayerName(pid);
@@ -2813,6 +2814,7 @@ export const getLogText = (l: LogEntry): string => {
             try {
                 const name = payload.type;
                 const args = payload.args !== undefined ? payload.args : "";
+                const pub = getStateById(G, l.action.payload.playerID);
                 if (args === null || args.length === 0) {
                     switch (name) {
                         case 'choosePlan':
@@ -2882,7 +2884,7 @@ export const getLogText = (l: LogEntry): string => {
                             break;
                         case 'march':
                             log +=
-                                `${placeToStr(arg.src)}${arg.generals.map((gen:General)=>getGeneralNameByCountry(arg.country,gen))}${unitsToString(arg.units)}进军${placeToStr(arg.dst)}`
+                                `${placeToStr(arg.src)}${arg.generals.map((gen: General) => getGeneralNameByCountry(arg.country, gen))}${unitsToString(arg.units)}进军${placeToStr(arg.dst)}`
                             ;
                             break;
                         case 'placeTroop':
@@ -2897,20 +2899,16 @@ export const getLogText = (l: LogEntry): string => {
                             break;
 
                         case 'rollDices':
-                            log +=
-                                `扔了${arg === undefined ? 5 : arg > MAX_DICES ? MAX_DICES : arg}个骰子`
-                            ;
+                            log += `扔了${arg === undefined ? 5 : arg.count > MAX_DICES ? MAX_DICES : arg.count}个骰子`;
+                            log += `${pub.dices[arg.idx]}`;
                             break;
                         case 'chooseFirst':
                             log +=
-                                `选择${sjPlayerName(arg.choice)}先行动`
-                            ;
+                                `选择${sjPlayerName(arg.choice)}先行动`;
                             break;
                         case 'combatCard':
                             log += arg.length === 0 ? "不使用战斗牌" :
-
-                                `使用战斗牌${arg.map((p: SJEventCardID) => sjCardById(p).name)}`
-                            ;
+                                `使用战斗牌${arg.map((p: SJEventCardID) => sjCardById(p).name)}`;
                             break;
 
                         case 'generalSkill':
@@ -2940,14 +2938,14 @@ export const getLogText = (l: LogEntry): string => {
                             break;
 
                         case 'loseProvince':
-                            log +=  `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`;
+                            log += `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`;
 
                             break;
                         case 'controlProvince':
                             log += `控制了${arg}`;
                             break;
                         case 'controlCity':
-                            log +=`控制${arg}`
+                            log += `控制${arg}`
                             break;
                         case 'loseCity':
                             log += `丢失${arg.cityID}${arg.opponent ? "对手占领" : ""}`;
@@ -2965,7 +2963,7 @@ export const getLogText = (l: LogEntry): string => {
                             break;
                         case 'op':
                             log +=
-                                `打出${sjCardById(arg).name}`
+                                `打出${sjCardById(arg).name}|${sjCardById(arg).op}`
                             ;
                             break;
                         case 'cardEvent':
@@ -3128,6 +3126,9 @@ export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
             sum += uncolonized - 3;
             log.push(`|梁兴渡河${uncolonized}|${sum}`);
         }
+    }
+    if (playerId === SJPlayer.P2 && G.events.includes(ActiveEvents.JinTaiZong)) {
+        sum += 1;
     }
     const nationCount = pub.nations.length;
     sum += nationCount;
@@ -3632,7 +3633,7 @@ export const heYiCheck = (G: SongJinnGame, ctx: Ctx) => {
     return G.policy < 0;
 }
 export const doGeneralSkill = (G: SongJinnGame, pid: PlayerID, g: General) => {
-    const log = [`doGeneralSkill|${pid}|${g}|${getGeneralNameByPid(pid,g)}`]
+    const log = [`doGeneralSkill|${pid}|${g}|${getGeneralNameByPid(pid, g)}`]
     const pub = getStateById(G, pid);
     log.push(`|before${pub.generalSkill}`);
     pub.generalSkill[g] = false;

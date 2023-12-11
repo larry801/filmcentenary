@@ -29,6 +29,8 @@ export interface IPubInfo {
 export const PubInfo = ({G, ctx}: IPubInfo) => {
     const s = G.song;
     const j = G.jinn;
+    const sDice: number[] = G.song.dices.length > 0 ? G.song.dices[G.song.dices.length - 1] : [];
+    const jDice: number[] = G.jinn.dices.length > 0 ? G.jinn.dices[G.jinn.dices.length - 1] : [];
     return <Grid container>
         <Grid item xs={12} key={`game-info`}>
             第{G.turn}回合 第{G.round}轮 {phaseName(ctx.phase)}
@@ -47,13 +49,12 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label>完成计划：</label><br/>
                 {s.completedPlan.map(p => <label key={`jinn-plan-name-${p}`}>{getPlanById(p).name}</label>)}
             </div>
-            <div>控制路：<br/>{s.provinces.map(p => <label key={ `jinn-prov-${p}`}>{p}<br/></label>)}</div>
+            <div>控制路：<br/>{s.provinces.map(p => <label key={`jinn-prov-${p}`}>{p}<br/></label>)}</div>
 
             <ChoiceDialog callback={() => {
             }} choices={
                 s.cities.map(c => {
                     const city = getCityById(c);
-                    const region = getRegionById(city.region);
                     return {
                         label: getCityText(c),
                         value: c,
@@ -64,11 +65,10 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             } defaultChoice={""} show={true} title={"查看占领城市"} toggleText={"城市"} initial={false}/>
             <div><ShowCards cards={s.discard} title={"查看弃牌"} toggleText={"弃牌"}/></div>
             <div><ShowCards cards={s.remove} title={"查看移除"} toggleText={"移除牌"}/></div>
-            {s.dices.length > 0 && <Typography>
-                {s.dices.join(',')}中
-                {s.dices.filter(d => d > 3).length}
-                |{s.dices.filter(d => d > 4).length}
-                |{s.dices.filter(d => d > 5).length}
+            {s.dices.length > 0 && <Typography>{sDice}中
+                {sDice.filter(d => d > 3).length}
+                |{sDice.filter(d => d > 4).length}
+                |{sDice.filter(d => d > 5).length}
                 {/*<div><label>手牌数：</label></div>*/}
                 <div><label>发展牌：{s.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
             </Typography>}
@@ -87,14 +87,13 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><label>备用兵区： {unitsToString(j.standby)}</label></div>
             <div><label>本回合计划：{j.plan.map(p => getPlanById(p).name)}</label></div>
             <div><label>完成计划：</label><br/>
-                {j.completedPlan.map(p => <label key={ `song-jinn-${p}`}>{getPlanById(p).name}</label>)}
+                {j.completedPlan.map(p => <label key={`song-jinn-${p}`}>{getPlanById(p).name}</label>)}
             </div>
-            <div>控制路：<br/>{j.provinces.map(p => <label key={ `song-jinn-${p}`}>{p}<br/></label>)}</div>
+            <div>控制路：<br/>{j.provinces.map(p => <label key={`song-jinn-${p}`}>{p}<br/></label>)}</div>
             <ChoiceDialog callback={() => {
             }} choices={
                 j.cities.map(c => {
                     const city = getCityById(c);
-                    const region = getRegionById(city.region);
                     return {
                         label: getCityText(c),
                         value: c,
@@ -107,10 +106,10 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><ShowCards cards={j.discard} title={"查看弃牌"} toggleText={"弃牌"}/></div>
             <div><ShowCards cards={j.remove} title={"查看移除"} toggleText={"移除牌"}/></div>
 
-            {j.dices.length > 0 && <Typography>{j.dices.join(',')}中
-                {j.dices.filter(d => d > 3).length}
-                |{j.dices.filter(d => d > 4).length}
-                |{j.dices.filter(d => d > 5).length}
+            {j.dices.length > 0 && <Typography>{jDice.join(',')}中
+                {jDice.filter(d => d > 3).length}
+                |{jDice.filter(d => d > 4).length}
+                |{jDice.filter(d => d > 5).length}
             </Typography>}
             {/*<div><label>手牌数：</label></div>*/}
             <div><label>发展牌：{j.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>

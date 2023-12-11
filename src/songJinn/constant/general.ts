@@ -84,15 +84,15 @@ export enum NationID {
 }
 
 export const enum ProvinceState {
-    SONG="金控制",
-    JINN="宋控制",
-    NEUTRAL ="战争状态"
+    SONG = "金控制",
+    JINN = "宋控制",
+    NEUTRAL = "战争状态"
 }
 
 export const enum NationState {
-    SONG="盟金",
-    JINN="盟宋",
-    NEUTRAL ="中立"
+    SONG = "盟金",
+    JINN = "盟宋",
+    NEUTRAL = "中立"
 }
 
 export const enum SJPlayer {
@@ -463,7 +463,7 @@ export const enum PlanID {
     J24 = "J24"
 }
 
-export const SpecialPlan = [PlanID.J23,PlanID.J24];
+export const SpecialPlan = [PlanID.J23, PlanID.J24];
 
 export const EarlyPlanID = [
     PlanID.J01,
@@ -696,7 +696,7 @@ export interface SJPubInfo {
     specialPlan: number,
     generalSkill: boolean[],
     generalPlace: TroopPlace[],
-    dices: number[],
+    dices: number [][],
     troopIdx: number,
     cities: CityID[],
     civil: Level,

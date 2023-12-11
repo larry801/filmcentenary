@@ -291,9 +291,9 @@ export interface IPlaceUnitsToTroopArgs {
     country: Country
 }
 
-interface  IGeneralSkillArgs{
-    country:Country,
-    general:General
+interface IGeneralSkillArgs {
+    country: Country,
+    general: General
 }
 
 export const generalSkill: LongFormMove = {
@@ -502,13 +502,17 @@ export const tieJun: LongFormMove = {
 //
 //     }
 // }
-
+interface IRollDiceArgs {
+    count: number,
+    idx: number
+}
 
 export const rollDices: LongFormMove = {
-    move: (G, ctx, count: number) => {
+    move: (G, ctx, args: IRollDiceArgs,) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
+        const {count} = args;
         if (count === undefined) {
             rollDiceByPid(G, ctx, ctx.playerID, 5);
         } else {
@@ -516,7 +520,8 @@ export const rollDices: LongFormMove = {
             rollDiceByPid(G, ctx, ctx.playerID, newCount);
 
         }
-    }
+    },
+    undoable: false
 }
 
 export const recruitPuppet: LongFormMove = {

@@ -369,7 +369,7 @@ export const Operation = ({
     const diceRoller = <Grid item>
         <Button onClick={() => adjustDice(-5)}>-5</Button>
         <Button onClick={() => adjustDice(-1)}>-1</Button>
-        <Button onClick={() => moves.rollDices(dices)}>掷{dices}个骰子</Button>
+        <Button onClick={() => moves.rollDices({count:dices,idx:pub.dices.length})}>掷{dices}个骰子</Button>
         <Button onClick={() => adjustDice(1)}>+1</Button>
         <Button onClick={() => adjustDice(5)}>+5</Button>
     </Grid>
