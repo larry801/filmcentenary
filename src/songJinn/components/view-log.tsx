@@ -41,35 +41,13 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
             log2.push('\ncheck');
             log2.push(JSON.stringify(entry._stateID));
             if (entry.action.type === "UNDO") {
-                log2.push("\nUNDO")
-                const popped = [];
-                let prev = logs.pop();
-                log2.push('\nprev');
-                log2.push(JSON.stringify(prev));
-                while (prev !== undefined) {
-                    if (prev.action.payload.playerID !== entry.action.payload.playerID) {
-                        popped.push(prev);
-                        log2.push('\nnext');
-                        prev = logs.pop();
-                        log2.push('\nprev');
-                        log2.push(JSON.stringify(prev));
-
-                    } else {
-                        log2.push("\nout of loop");
-                        break;
-                    }
-                }
-                log2.push('\npopped')
-                log2.push(JSON.stringify(popped));
-                logs = logs.concat(popped.reverse());
-
-                log2.push('\nlogs')
-                log2.push(JSON.stringify(logs));
+                log2.push('\nUNDO');
+                logs.pop();
             } else {
                 logs.push(entry);
             }
         }
-        logger.debug(`${G.matchID}|${log2.join('')}`);
+        logger.warn(`${G.matchID}|${log2.join('')}`);
         return logs;
     }
 
