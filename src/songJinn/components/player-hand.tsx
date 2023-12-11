@@ -10,7 +10,7 @@ import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import Typography from "@material-ui/core/Typography";
 
-import {getCountryById, getFullDesc, playerById, sjCardById} from "../util";
+import {getCardLabel, getCountryById, getFullDesc, playerById, sjCardById} from "../util";
 
 export interface IPlayerHandProps {
     G: SongJinnGame,
@@ -55,7 +55,7 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
                 <AccordionSummary key={`summary-${cid}`}>
                     <Grid key={`grid-1-${cid}`} item container xs={4}>
 
-                        <Typography key={`summary-text-${cid}`}>{card.name}|{card.op}</Typography>
+                        <Typography key={`summary-text-${cid}`}>{getCardLabel(cid)}</Typography>
                     </Grid>
                     <Grid key={`grid-2-${cid}`}  item container xs={8}>
                         {getFullDesc(card)}

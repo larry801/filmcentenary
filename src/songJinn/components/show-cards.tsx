@@ -1,6 +1,6 @@
 import React from "react";
 import {SJEventCardID} from "../constant/general";
-import {sjCardById} from "../util";
+import {getCardLabel} from "../util";
 import ChoiceDialog from "../../components/modals";
 
 interface IShowCardsProps {
@@ -15,7 +15,7 @@ export const ShowCards = ({cards, title, toggleText}: IShowCardsProps) => {
         }}
         choices={cards.map(c => {
             return {
-                label: sjCardById(c).name,
+                label: getCardLabel(c),
                 value: c,
                 disabled: true,
                 hidden: false

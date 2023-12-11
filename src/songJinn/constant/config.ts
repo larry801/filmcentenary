@@ -273,7 +273,7 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
 
 
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
-    start: true,
+    // start: true,
     turn: StagedTurnConfig,
     moves: {
 

@@ -3788,3 +3788,8 @@ export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, 
         `${G.matchID}|${log.join('')}`
     );
 }
+
+export function getCardLabel(c: SJEventCardID) {
+    const cardById = sjCardById(c);
+    return cardById.name + '|' + cardById.op + cardById.remove ? '*' : '';
+}

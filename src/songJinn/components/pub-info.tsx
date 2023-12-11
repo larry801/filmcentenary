@@ -38,7 +38,6 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
                     )}
             </Typography>
             {G.qi.length > 0 && <div>齐控制路：<br/>{G.qi.map(p => <label key={`qi-${p}`}>{p}<br/></label>)}</div>}
-
         </Grid>
         <Grid item xs={6} key={`song-pub`}><Paper>
             <label>宋</label>
