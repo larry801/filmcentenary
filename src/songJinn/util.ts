@@ -383,7 +383,7 @@ export const getNationAdj = (pid: NationID): TroopPlace[] => {
             return [NationID.XiXia];
         case NationID.XiXia:
             return [
-                RegionID.R01, RegionID.DaTonFu02,
+                RegionID.R01, RegionID.R02DaTonFu,
                 RegionID.R09,
                 RegionID.R29, RegionID.R30, RegionID.R31, RegionID.R32
             ];
@@ -408,7 +408,7 @@ export const getPassAdj = (pid: MountainPassID) => {
         case MountainPassID.TongGuan:
             return [RegionID.R36, RegionID.R37];
         case MountainPassID.JuYongGuan:
-            return [RegionID.DaTonFu02, RegionID.R07];
+            return [RegionID.R02DaTonFu, RegionID.R07];
         case MountainPassID.JianMenGuan:
             return [RegionID.R51, RegionID.R54, RegionID.R55];
 

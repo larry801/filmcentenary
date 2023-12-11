@@ -20,7 +20,7 @@ const idToCity = {
         capital: true,
         province: ProvinceID.XIJINGLU,
         colonizeLevel: 0,
-        region: RegionID.R02
+        region: RegionID.R02DaTonFu
     },
     [CityID.DaDing]: {
         id: CityID.DaDing,
@@ -60,7 +60,7 @@ const idToCity = {
         capital: false,
         province: ProvinceID.HEDONGLU,
         colonizeLevel: 1,
-        region: RegionID.R11
+        region: RegionID.R11PingYangFu
     },
     [CityID.ShangDang]: {
         id: CityID.ShangDang,
@@ -68,7 +68,7 @@ const idToCity = {
         capital: false,
         province: ProvinceID.HEDONGLU,
         colonizeLevel: 1,
-        region: RegionID.R12
+        region: RegionID.R12LongDeFu
     },
     [CityID.ZhenDing]: {
         id: CityID.ZhenDing,

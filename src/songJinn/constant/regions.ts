@@ -20,15 +20,15 @@ const idToRegion = {[RegionID.R01]:
             name:"云内洲地区",
             terrain:TerrainType.MOUNTAINS,
             province:ProvinceID.XIJINGLU,
-            land:[RegionID.DaTonFu02,RegionID.WuShuo2Zhou03],
+            land:[RegionID.R02DaTonFu,RegionID.WuShuo2Zhou03],
             water:[],
             pass:[],
             city:null
         },
 
-    [RegionID.DaTonFu02]:
+    [RegionID.R02DaTonFu]:
         {
-            id:RegionID.DaTonFu02,
+            id:RegionID.R02DaTonFu,
             name:"大同府",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.XIJINGLU,
@@ -43,7 +43,7 @@ const idToRegion = {[RegionID.R01]:
             name:"武朔两州",
             terrain:TerrainType.MOUNTAINS,
             province:ProvinceID.XIJINGLU,
-            land:[RegionID.R01,RegionID.DaTonFu02,RegionID.R04,RegionID.R09,RegionID.R10],
+            land:[RegionID.R01,RegionID.R02DaTonFu,RegionID.R04,RegionID.R09,RegionID.R10],
             water:[],
             pass:[],
             city:null
@@ -55,7 +55,7 @@ const idToRegion = {[RegionID.R01]:
             name:"应蔚两州",
             terrain:TerrainType.MOUNTAINS,
             province:ProvinceID.XIJINGLU,
-            land:[RegionID.DaTonFu02,RegionID.WuShuo2Zhou03,RegionID.R07,RegionID.R10,RegionID.R13,RegionID.R14],
+            land:[RegionID.R02DaTonFu,RegionID.WuShuo2Zhou03,RegionID.R07,RegionID.R10,RegionID.R13,RegionID.R14],
             water:[],
             pass:[],
             city:null
@@ -67,7 +67,7 @@ const idToRegion = {[RegionID.R01]:
             name:"大定府",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.BEIJINGLU,
-            land:[RegionID.DaTonFu02,RegionID.R06,RegionID.R07,RegionID.R08],
+            land:[RegionID.R02DaTonFu,RegionID.R06,RegionID.R07,RegionID.R08],
             water:[],
             pass:[],
             city:CityID.DaDing
@@ -78,7 +78,7 @@ const idToRegion = {[RegionID.R01]:
             name:"辽阳府",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.YANJINGLU,
-            land:[RegionID.DaTonFu02],
+            land:[RegionID.R02DaTonFu],
             water:[],
             pass:[],
             city:CityID.LiaoYang
@@ -91,7 +91,7 @@ const idToRegion = {[RegionID.R01]:
             province:ProvinceID.DONGJINGLU,
             land:[RegionID.R04,RegionID.R05,RegionID.R08,RegionID.R14,RegionID.R15],
             water:[RegionID.R16],
-            pass:[RegionID.DaTonFu02],
+            pass:[RegionID.R02DaTonFu],
             city:CityID.XiJin
         },
     [RegionID.R08]:
@@ -112,7 +112,7 @@ const idToRegion = {[RegionID.R01]:
             name:"山西高原",
             terrain:TerrainType.MOUNTAINS,
             province:ProvinceID.HEDONGLU,
-            land:[RegionID.WuShuo2Zhou03,RegionID.R10,RegionID.PingYangFu11],
+            land:[RegionID.WuShuo2Zhou03,RegionID.R10,RegionID.R11PingYangFu],
             water:[RegionID.R32],
             pass:[],
             city:null
@@ -124,29 +124,29 @@ const idToRegion = {[RegionID.R01]:
             name:"太原府",
             terrain:TerrainType.MOUNTAINS,
             province:ProvinceID.HEDONGLU,
-            land:[RegionID.WuShuo2Zhou03,RegionID.R04,RegionID.R09,RegionID.PingYangFu11,RegionID.LongDeFu12,RegionID.R13,RegionID.R17],
+            land:[RegionID.WuShuo2Zhou03,RegionID.R04,RegionID.R09,RegionID.R11PingYangFu,RegionID.R12LongDeFu,RegionID.R13,RegionID.R17],
             water:[],
             pass:[],
             city:CityID.YangQu
         },
-    [RegionID.PingYangFu11]:
+    [RegionID.R11PingYangFu]:
         {
-            id:RegionID.PingYangFu11,
+            id:RegionID.R11PingYangFu,
             name:"平阳府",
             terrain:TerrainType.MOUNTAINS,
             province:ProvinceID.HEDONGLU,
-            land:[RegionID.R09,RegionID.R10,RegionID.LongDeFu12,RegionID.R35],
+            land:[RegionID.R09,RegionID.R10,RegionID.R12LongDeFu,RegionID.R35],
             water:[RegionID.R32,RegionID.R34,RegionID.R37],
             pass:[],
             city:CityID.LinFen
         },
-    [RegionID.LongDeFu12]:
+    [RegionID.R12LongDeFu]:
         {
-            id:RegionID.LongDeFu12,
+            id:RegionID.R12LongDeFu,
             name:"隆德府",
             terrain:TerrainType.MOUNTAINS,
             province:ProvinceID.HEDONGLU,
-            land:[RegionID.R10,RegionID.PingYangFu11,RegionID.R17,RegionID.R19],
+            land:[RegionID.R10,RegionID.R11PingYangFu,RegionID.R17,RegionID.R19],
             water:[RegionID.R37],
             pass:[],
             city:CityID.ShangDang
@@ -202,7 +202,7 @@ const idToRegion = {[RegionID.R01]:
             name:"庆源府和信德府",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.HEBEILIANGLU,
-            land:[RegionID.R10,RegionID.R13,RegionID.R14,RegionID.LongDeFu12,RegionID.R19],
+            land:[RegionID.R10,RegionID.R13,RegionID.R14,RegionID.R12LongDeFu,RegionID.R19],
             water:[RegionID.R18],
             pass:[],
             city:null
@@ -225,7 +225,7 @@ const idToRegion = {[RegionID.R01]:
             name:"卫州地区",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.HEBEILIANGLU,
-            land:[RegionID.LongDeFu12,RegionID.R17],
+            land:[RegionID.R12LongDeFu,RegionID.R17],
             water:[RegionID.R37,RegionID.R43,RegionID.R20],
             pass:[],
             city:null
@@ -379,7 +379,7 @@ const idToRegion = {[RegionID.R01]:
             terrain:TerrainType.MOUNTAINS,
             province:ProvinceID.SHANXILIULU,
             land:[RegionID.R31,RegionID.R34],
-            water:[RegionID.R09,RegionID.PingYangFu11],
+            water:[RegionID.R09,RegionID.R11PingYangFu],
             pass:[],
             city:CityID.Fushi
         },
@@ -401,7 +401,7 @@ const idToRegion = {[RegionID.R01]:
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.SHANXILIULU,
             land:[RegionID.R30,RegionID.R31,RegionID.R32,RegionID.R33],
-            water:[RegionID.PingYangFu11,RegionID.R35,RegionID.R36],
+            water:[RegionID.R11PingYangFu,RegionID.R35,RegionID.R36],
             pass:[],
             city:null
         },
@@ -412,7 +412,7 @@ const idToRegion = {[RegionID.R01]:
             name:"河中府",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.SHANXILIULU,
-            land:[RegionID.PingYangFu11],
+            land:[RegionID.R11PingYangFu],
             water:[RegionID.R34,RegionID.R35,RegionID.R37],
             pass:[],
             city:null
@@ -436,7 +436,7 @@ const idToRegion = {[RegionID.R01]:
             terrain:TerrainType.HILLS,
             province:ProvinceID.JINGXILIANGLU,
             land:[RegionID.R38,RegionID.R40,RegionID.R43],
-            water:[RegionID.PingYangFu11,RegionID.LongDeFu12,RegionID.R19,RegionID.R35],
+            water:[RegionID.R11PingYangFu,RegionID.R12LongDeFu,RegionID.R19,RegionID.R35],
             pass:[RegionID.R36],
             city:CityID.LuoYang
         },

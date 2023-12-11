@@ -594,7 +594,7 @@ export enum CityID {
 
 export enum RegionID {
     R01,
-    DaTonFu02,
+    R02DaTonFu,
     WuShuo2Zhou03,
     R04,
     R05,
@@ -603,8 +603,8 @@ export enum RegionID {
     R08,
     R09,
     R10,
-    PingYangFu11,
-    LongDeFu12,
+    R11PingYangFu,
+    R12LongDeFu,
     R13,
     R14,
     R15,
@@ -721,20 +721,20 @@ export interface SJPubInfo {
 export const initialJinnPub: SJPubInfo = {
     specialPlan: 0,
     generalSkill: [true, true, true, false, false, true],
-    generalPlace: [RegionID.R20, RegionID.R37, RegionID.PingYangFu11, RegionID.R01, RegionID.R01, RegionID.R01],
+    generalPlace: [RegionID.R20, RegionID.R37, RegionID.R11PingYangFu, RegionID.R01, RegionID.R01, RegionID.R01],
     dices: [],
     troopIdx: -1,
     develop: [],
     usedDevelop: 0,
     troops: [
         {u: [1, 2, 1, 0, 1, 0, 0], p: RegionID.R20, c: null, g: Country.JINN},
-        {u: [2, 0, 0, 0, 0, 0, 0], p: RegionID.PingYangFu11, c: CityID.LinFen, g: Country.JINN},
+        {u: [2, 0, 0, 0, 0, 0, 0], p: RegionID.R11PingYangFu, c: CityID.LinFen, g: Country.JINN},
         {u: [2, 2, 1, 0, 0, 0, 0], p: RegionID.R37, c: CityID.LuoYang, g: Country.JINN},
 
         {u: [1, 0, 1, 0, 1, 0, 0], p: RegionID.R06, c: CityID.LiaoYang, g: Country.JINN},
 
         {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R10, c: CityID.YangQu, g: Country.JINN},
-        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.LongDeFu12, c: CityID.ShangDang, g: Country.JINN},
+        {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R12LongDeFu, c: CityID.ShangDang, g: Country.JINN},
         {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R13, c: CityID.AnXi, g: Country.JINN},
 
         {u: [0, 0, 0, 0, 0, 1, 0], p: RegionID.R14, c: CityID.ZhenDing, g: Country.JINN},
