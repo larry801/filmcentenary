@@ -218,8 +218,8 @@ export const letter: LongFormMove = {
             return INVALID_MOVE;
         }
         player.lod.push(arg);
-        endRoundCheck(G, ctx);
-        ctx.events?.endTurn();
+        // endRoundCheck(G, ctx);
+        // ctx.events?.endTurn();
     }
 }
 
