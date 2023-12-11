@@ -35,7 +35,8 @@ export const ChatMessage = ({sendChatMessage,chatMessages,getPlayerName}:IChatMe
             onChange={handleChange}
             onKeyDown={(ev) => {
                 if (ev.key === 'Enter') {
-                    sendChatMessage(message)
+                    sendChatMessage(message);
+                    setMessage('');
                     ev.preventDefault();
                 }
             }}
