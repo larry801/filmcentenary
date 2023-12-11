@@ -33,7 +33,7 @@ import {
     ctr2pub, doControlCity, doControlProvince, doGeneralSkill, doLoseProvince, doPlaceUnit, doRecruit,
     drawPhaseForPlayer,
     drawPlanForPlayer,
-    endRoundCheck, getCountryById,
+    endRoundCheck, getCountryById, getGeneralNameByCountry,
     getGeneralNameByPid,
     getJinnTroopByCity,
     getJinnTroopByPlace,
@@ -291,15 +291,20 @@ export interface IPlaceUnitsToTroopArgs {
     country: Country
 }
 
+interface  IGeneralSkillArgs{
+    country:Country,
+    general:General
+}
+
 export const generalSkill: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx, args: General) => {
+    move: (G: SongJinnGame, ctx: Ctx, args: IGeneralSkillArgs) => {
         const pid = ctx.playerID;
         if (pid === undefined) {
             return INVALID_MOVE;
         }
         logger.info(`p${pid}.generalSkill(${JSON.stringify(args)})`);
-        const log = [`p${pid}.generalSkill${getGeneralNameByPid(pid, args)}`];
-        doGeneralSkill(G, pid, args);
+        const log = [`p${pid}.generalSkill${getGeneralNameByCountry(args.country, args.general)}`];
+        doGeneralSkill(G, pid, args.general);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }

@@ -2914,7 +2914,7 @@ export const getLogText = (l: LogEntry): string => {
 
                         case 'generalSkill':
                             log +=
-                                `横置${getGeneralNameByPid(pid, arg)}`
+                                `横置${getGeneralNameByCountry(arg.country, arg.general)}`
 
                             break;
 
@@ -3640,8 +3640,12 @@ export const heYiCheck = (G: SongJinnGame, ctx: Ctx) => {
     return G.policy < 0;
 }
 export const doGeneralSkill = (G: SongJinnGame, pid: PlayerID, g: General) => {
+    const log = [`doGeneralSkill|${pid}|${g}|${getGeneralNameByPid(pid,g)}`]
     const pub = getStateById(G, pid);
+    log.push(`|before${pub.generalSkill}`);
     pub.generalSkill[g] = false;
+    log.push(`|after${pub.generalSkill}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
     const pub = getStateById(G, pid);
