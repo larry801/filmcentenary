@@ -2839,8 +2839,7 @@ export const getLogText = (l: LogEntry): string => {
                             log += `在${placeToStr(arg.place)}放置${unitsToString(arg.units)}`;
                             break;
                         case 'deploy':
-                            log +=
-                                `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
+                            log += `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
                             break;
                         case 'showLetters':
                             log += `盟国${arg.nations.map((n: NationID) => n)}`
@@ -2870,12 +2869,12 @@ export const getLogText = (l: LogEntry): string => {
                             break;
                         case 'placeTroop':
                             log +=
-                                `${placeToStr(arg.dst)}${unitsToString(arg.units)}`
+                                `在${placeToStr(arg.dst)}放置${unitsToString(arg.units)}`
                             ;
                             break;
                         case 'moveTroop':
                             log +=
-                                `${placeToStr(arg.src.p)}全军移动到${placeToStr(arg.dst)}`
+                                `${placeToStr(arg.src.p)}${arg.country}全军移动到${placeToStr(arg.dst)}`
                             ;
                             break;
 
