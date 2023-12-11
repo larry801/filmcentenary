@@ -6,6 +6,7 @@ import i18n from "../../constant/i18n";
 import copy from "copy-to-clipboard";
 import ContentCopyIcon from '@material-ui/icons/FileCopy';
 import IconButton from '@material-ui/core/IconButton';
+import {Link} from "react-router-dom";
 
 interface ShareLinkProps {
     matchID: string;
@@ -44,12 +45,11 @@ export const ShareLink = ({matchID, player, numPlayer, gameName}: ShareLinkProps
             <ContentCopyIcon/>
         </IconButton>
         <Typography>{i18n.lobby.shareLink}</Typography>
-        {Player.P0 !== player && <Typography>{p0URL}</Typography>}
-        {Player.P1 !== player && <Typography>{p1URL}</Typography>}
-        {Player.P2 !== player && numPlayer > 2 && <Typography>{p2URL}</Typography>}
-        {Player.P3 !== player && numPlayer > 3 && <Typography>{p3URL}</Typography>}
-        <Typography>{i18n.playerName.spectator}</Typography>
-        <Typography>{urlPrefix + Player.SPECTATE}</Typography>
+        {Player.P0 !== player && <a href={p0URL}>{matchID}P0</a>}
+        {Player.P1 !== player && <a href={p0URL}>{matchID}P0</a>}
+        {Player.P2 !== player && numPlayer > 2 && <a href={p0URL}>{matchID}P0</a>}
+        {Player.P3 !== player && numPlayer > 3 && <a href={p0URL}>{matchID}P0</a>}
+        <a href={urlPrefix + Player.SPECTATE}>{i18n.playerName.spectator}</a>
     </>
 }
 

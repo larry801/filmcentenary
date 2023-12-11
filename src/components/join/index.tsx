@@ -1,5 +1,5 @@
 import React from "react";
-import {useHistory, useParams} from "react-router-dom";
+import {Link as RouterLink, useHistory, useParams} from "react-router-dom";
 import {deleteCredentials, loadCredentials, saveCredentials} from "../../api/localStorage";
 import {Player} from "../../Game";
 import {getMatch, joinMatch, leaveMatch} from "../../api/match";
@@ -9,6 +9,7 @@ import Typography from "@material-ui/core/Typography";
 import i18n from "../../constant/i18n";
 import {useI18n} from "@i18n-chain/react";
 import ChoiceDialog from "../modals";
+import Link  from "@material-ui/core/Link"
 
 interface JoinPageProps {
     serverURL: string;
@@ -99,7 +100,7 @@ const JoinPage = ({serverURL, gameName}: JoinPageProps) => {
     return <>
         {error !== "" ? <Typography>{error}</Typography> : <>
             {gameContent}
-            <Typography>{window.location.href}</Typography>
+            <Link href={window.location.href}>本页链接</Link>
         </>}
         {numPlayers > 0 ? <>
                 <ShareLink
