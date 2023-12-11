@@ -21,7 +21,7 @@ import {
     JinnLateCardID,
     JinnMidCardID,
     LatePlanID,
-    LetterOfCredence,
+    LetterOfCredence, MAX_DICES,
     MAX_ROUND,
     MidPlanID,
     MountainPasses,
@@ -2881,7 +2881,7 @@ export const getLogText = (l: LogEntry): string => {
 
                         case 'rollDices':
                             log +=
-                                `扔了${arg === undefined ? 5 : arg}个骰子`
+                                `扔了${arg === undefined ? 5 : arg > MAX_DICES ? MAX_DICES : arg}个骰子`
                             ;
                             break;
                         case 'chooseFirst':

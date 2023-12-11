@@ -1,8 +1,8 @@
 import {Ctx} from "boardgame.io";
 import {shuffle} from "../../game/util";
-import {drawCardForJinn, drawCardForSong} from "../util";
 
 export const MAX_ROUND = 8;
+export const MAX_DICES = 30;
 
 export const enum ActiveEvents {
     JianYanNanDu = "建炎南渡",

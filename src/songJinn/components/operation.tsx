@@ -6,7 +6,7 @@ import {
     ActiveEvents,
     Country,
     DevelopChoice,
-    General,
+    General, MAX_DICES,
     SJPlayer, SongJinnGame,
 } from "../constant/general";
 import {getPlanById} from "../constant/plan";
@@ -350,6 +350,11 @@ export const Operation = ({
         const newDice = dices + n;
         if (newDice < 1) {
             setDices(1);
+        } else {
+            setDices(newDice);
+        }
+        if (newDice > MAX_DICES) {
+            setDices(MAX_DICES);
         } else {
             setDices(newDice);
         }
