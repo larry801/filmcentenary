@@ -20,7 +20,8 @@ import {
     JinnGeneral,
     JinnLateCardID,
     JinnMidCardID,
-    LatePlanID, LetterOfCredence,
+    LatePlanID,
+    LetterOfCredence,
     MAX_ROUND,
     MidPlanID,
     MountainPasses,
@@ -3199,6 +3200,39 @@ export function troopRange(G: SongJinnGame, troop: Troop): number {
     return range;
 }
 
+export function getCityDefence(G: SongJinnGame, cid: CityID, ctr: Country): number {
+    const city = getCityById(cid);
+    let def = city.capital ? 2 : 1;
+    if (ctr2pub(G, ctr).emperor === cid) {
+        def++;
+    }
+    return def;
+}
+
+export function troopSiegeRange(G: SongJinnGame, troop: Troop): number {
+    let range = troopRange(G, troop);
+    if (troop.g === Country.JINN) {
+        range += troop.u[4];
+    }
+    return range;
+}
+
+export function troopSiegeMelee(G: SongJinnGame, troop: Troop): number {
+    let range = troopMelee(G, troop);
+    if (troop.g === Country.JINN) {
+        range += troop.u[4];
+    }
+    return range;
+}
+
+export function troopDefendCiyRange(G: SongJinnGame, troop: Troop): number {
+    let range = troopRange(G, troop);
+    if (troop.c !== null) {
+        range += getCityDefence(G, troop.c, troop.g);
+    }
+    return range;
+}
+
 export function troopMelee(G: SongJinnGame, troop: Troop): number {
     return troopMeleeOnly(G, troop) + troopRange(G, troop);
 }
@@ -3282,9 +3316,25 @@ export function getTerrainTypeByPlace(troop: Troop) {
 }
 
 export function getTroopText(G: SongJinnGame, t: Troop) {
-    return `${t.g}|${placeToStr(t.p)}|${unitsToString(t.u)}|${t.c === null ? '' : t.c}|` +
-        `耐久${troopEndurance(G, t)}|远程${troopRange(G, t)}|交锋${troopMelee(G, t)}`;
-
+    let text = `${t.g}|${placeToStr(t.p)}|${unitsToString(t.u)}`;
+    const hasCity = t.c !== null;
+    const hasEche = t.g === Country.JINN && t.u[4] !== 0;
+    if (hasCity) {
+        text += t.c;
+    }
+    text += `|耐${troopEndurance(G, t)}`;
+    text += `|远${troopRange(G, t)}`;
+    if (hasEche) {
+        text += `(${troopSiegeRange(G, t)})`;
+    }
+    if (hasCity) {
+        text += `城${troopDefendCiyRange(G, t)}`;
+    }
+    text += `|交锋${troopMelee(G, t)}`;
+    if (hasEche) {
+        text += `(${troopSiegeMelee(G, t)})`;
+    }
+    return text;
 }
 
 
@@ -3606,9 +3656,9 @@ export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
     const all = [...province.capital, ...province.other];
     if (
         all.filter(c => pub.cities.includes(c)).length === all.length
-    ){
+    ) {
         log.push(`|control${prov}`);
-        doControlProvince(G,pid, prov);
+        doControlProvince(G, pid, prov);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
