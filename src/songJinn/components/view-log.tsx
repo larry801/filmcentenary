@@ -32,14 +32,28 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
         })
     }
 
+    const process = ()=>{
+        const logs = []
+        for (let i = 0; i < log.length; i++) {
+            const entry = log[i];
+            if(entry.action.type === "UNDO"){
+                logs.pop();
+            }else{
+                logs.push(entry);
+            }
+        }
+        return logs;
+    }
+
+    const processedLogs = process();
     const onCopyLog = () => {
-        const logText = log.map((l: LogEntry) => getLogText(l)).join("\r\n");
+        const logText = processedLogs.map((l: LogEntry) => getLogText(l)).join("\r\n");
         copy(logText, {
             message: "复制",
         })
     }
 
-    const cloneLog = [...log];
+    const cloneLog = [...processedLogs];
     const reverseLog = cloneLog.filter(l => l.action.type !== "GAME_EVENT").reverse().slice(0, 50);
     const totalLogText = reverseLog.map(l => getLogText(l)).join('\n');
 
