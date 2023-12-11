@@ -10,6 +10,7 @@ import {getLogText} from "../util";
 import {SongJinnGame} from "../constant/general";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../../constant/i18n";
+import {logger} from "../../game/logger";
 
 export interface ILogViewProps {
     log: LogEntry[],
@@ -33,23 +34,42 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
     }
 
     const process = () => {
-        let logs:LogEntry[] = [];
+        const log2 = [`process`]
+        let logs: LogEntry[] = [];
         for (let i = 0; i < log.length; i++) {
             const entry = log[i];
+            log2.push('\ncheck');
+            log2.push(JSON.stringify(entry._stateID));
             if (entry.action.type === "UNDO") {
-            const popped = []
+                log2.push("\nUNDO")
+                const popped = [];
                 let prev = logs.pop();
+                log2.push('\nprev');
+                log2.push(JSON.stringify(prev));
                 while (prev !== undefined) {
                     if (prev.action.payload.playerID !== entry.action.payload.playerID) {
                         popped.push(prev);
+                        log2.push('\nnext');
                         prev = logs.pop();
+                        log2.push('\nprev');
+                        log2.push(JSON.stringify(prev));
+
+                    } else {
+                        log2.push("\nout of loop");
+                        break;
                     }
                 }
-                logs = log.concat(popped.reverse());
+                log2.push('\npopped')
+                log2.push(JSON.stringify(popped));
+                logs = logs.concat(popped.reverse());
+
+                log2.push('\nlogs')
+                log2.push(JSON.stringify(logs));
             } else {
                 logs.push(entry);
             }
         }
+        logger.debug(`${G.matchID}|${log2.join('')}`);
         return logs;
     }
 
