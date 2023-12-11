@@ -32,13 +32,21 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
         })
     }
 
-    const process = ()=>{
-        const logs = []
+    const process = () => {
+        let logs:LogEntry[] = [];
         for (let i = 0; i < log.length; i++) {
             const entry = log[i];
-            if(entry.action.type === "UNDO"){
-                logs.pop();
-            }else{
+            if (entry.action.type === "UNDO") {
+            const popped = []
+                let prev = logs.pop();
+                while (prev !== undefined) {
+                    if (prev.action.payload.playerID !== entry.action.payload.playerID) {
+                        popped.push(prev);
+                        prev = logs.pop();
+                    }
+                }
+                logs = log.concat(popped.reverse());
+            } else {
                 logs.push(entry);
             }
         }
@@ -47,7 +55,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
 
     const processedLogs = process();
     const onCopyLog = () => {
-        const logText = processedLogs.map((l: LogEntry) => getLogText(l)).join("\r\n");
+        const logText = processedLogs.map((l: LogEntry) => getLogText(G, l)).join("\r\n");
         copy(logText, {
             message: "复制",
         })
@@ -55,7 +63,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
 
     const cloneLog = [...processedLogs];
     const reverseLog = cloneLog.filter(l => l.action.type !== "GAME_EVENT").reverse().slice(0, 50);
-    const totalLogText = reverseLog.map(l => getLogText(l)).join('\n');
+    const totalLogText = reverseLog.map(l => getLogText(G, l)).join('\n');
 
     return <Grid item container xs={12}>
         <Grid item xs={12}>
