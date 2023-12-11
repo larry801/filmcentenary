@@ -19,6 +19,7 @@ import {
 import ChoiceDialog from "../../components/modals";
 import {ShowCards} from "./show-cards";
 import {getCityById} from "../constant/city";
+import ErrorBoundary from "../../components/error";
 
 export interface IPubInfo {
     G: SongJinnGame,
@@ -68,14 +69,17 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             } defaultChoice={""} show={true} title={"查看占领城市"} toggleText={"城市"} initial={false}/>
                 <div><ShowCards cards={s.discard} title={"查看弃牌"} toggleText={"弃牌"}/></div>
                 <div><ShowCards cards={s.remove} title={"查看移除"} toggleText={"移除牌"}/></div>
+            <ErrorBoundary>
                 {s.dices.length > 0 && <Typography>{sDice}中
                     {sDice.filter(d => d > 3).length}
                     |{sDice.filter(d => d > 4).length}
                     |{sDice.filter(d => d > 5).length}
+                </Typography>}
+                </ErrorBoundary>
                     {/*<div><label>手牌数：</label></div>*/}
                     <div>控制路：<br/>{s.provinces.map(p => <label key={`jinn-prov-${p}`}>{p}<br/></label>)}</div>
                     <div><label>发展牌：{s.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
-            </Typography>}
+
             {ctx.phase === 'develop' &&
                 <div><label> 使用/总发展点数： {s.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P1)} </label></div>}
             {G.turn > 6 && <div><label>绍兴和议分数：{getSongScore(G)}</label></div>}
@@ -108,12 +112,13 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             {/* TODO 手牌数 在pubInfo里面维护一个还是 playerView */}
             <div><ShowCards cards={j.discard} title={"查看弃牌"} toggleText={"弃牌"}/></div>
             <div><ShowCards cards={j.remove} title={"查看移除"} toggleText={"移除牌"}/></div>
-
+        <ErrorBoundary>
             {j.dices.length > 0 && <Typography>{jDice.join(',')}中
                 {jDice.filter(d => d > 3).length}
                 |{jDice.filter(d => d > 4).length}
                 |{jDice.filter(d => d > 5).length}
             </Typography>}
+        </ErrorBoundary>
             {/*<div><label>手牌数：</label></div>*/}
             <div><label>发展牌：{j.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
             {ctx.phase === 'develop' &&
