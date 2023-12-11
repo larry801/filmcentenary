@@ -3657,13 +3657,21 @@ export const doRemoveNation = (G: SongJinnGame, nation: NationID) => {
     G.jinn.nations.splice(G.jinn.nations.indexOf(nation), 1);
 }
 export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID) => {
+    const log = [`doControlProvince`];
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid);
     if (oppo.provinces.includes(prov)) {
+        log.push(`|takeFromOpponent`);
+        log.push(`|b|${pub.provinces}`);
+
         oppo.provinces.splice(oppo.provinces.indexOf(prov), 1);
-    } else {
-        pub.provinces.push(prov);
+        log.push(`|b|${pub.provinces}`);
+
     }
+    log.push(`|b|${pub.provinces}`);
+    pub.provinces.push(prov);
+    log.push(`|b|${pub.provinces}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
     const log = [`doControlCity`];
@@ -3672,11 +3680,10 @@ export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
     if (oppo.cities.includes(cid)) {
         log.push(`|takeFromOpponent`);
         oppo.cities.splice(oppo.cities.indexOf(cid), 1);
-    } else {
-        log.push(`|b|${pub.cities}`);
-        pub.cities.push(cid);
-        log.push(`|a|${pub.cities}`);
     }
+    log.push(`|b|${pub.cities}`);
+    pub.cities.push(cid);
+    log.push(`|a|${pub.cities}`);
     // TODO control all cities change prov control
     const prov = getCityById(cid).province;
     const province = getProvinceById(prov);
