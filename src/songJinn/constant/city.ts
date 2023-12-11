@@ -20,7 +20,7 @@ const idToCity = {
         capital: true,
         province: ProvinceID.XIJINGLU,
         colonizeLevel: 0,
-        region: RegionID.DaTonFu02
+        region: RegionID.R02
     },
     [CityID.DaDing]: {
         id: CityID.DaDing,
@@ -60,7 +60,7 @@ const idToCity = {
         capital: false,
         province: ProvinceID.HEDONGLU,
         colonizeLevel: 1,
-        region: RegionID.PingYangFu11
+        region: RegionID.R11
     },
     [CityID.ShangDang]: {
         id: CityID.ShangDang,
@@ -68,7 +68,7 @@ const idToCity = {
         capital: false,
         province: ProvinceID.HEDONGLU,
         colonizeLevel: 1,
-        region: RegionID.LongDeFu12
+        region: RegionID.R12
     },
     [CityID.ZhenDing]: {
         id: CityID.ZhenDing,
@@ -130,7 +130,7 @@ const idToCity = {
         id: CityID.Fushi,
         name: "肤施",
         capital: false,
-        province: ProvinceID.JINGXILIANGLU,
+        province: ProvinceID.SHANXILIULU,
         colonizeLevel: 1,
         region: RegionID.R32
     },
@@ -138,7 +138,7 @@ const idToCity = {
         id: CityID.TianXing,
         name: "天兴",
         capital: false,
-        province: ProvinceID.JINGXILIANGLU,
+        province: ProvinceID.SHANXILIULU,
         colonizeLevel: 2,
         region: RegionID.R33
     },
@@ -146,7 +146,7 @@ const idToCity = {
         id: CityID.ChangAn,
         name: "长安",
         capital: true,
-        province: ProvinceID.JINGXILIANGLU,
+        province: ProvinceID.SHANXILIULU,
         colonizeLevel: 2,
         region: RegionID.R36
     },
@@ -154,7 +154,7 @@ const idToCity = {
         id: CityID.LuoYang,
         name: "洛阳",
         capital: false,
-        province: ProvinceID.JINGJILU,
+        province: ProvinceID.JINGXILIANGLU,
         colonizeLevel: 2,
         region: RegionID.R37
     },
@@ -162,7 +162,7 @@ const idToCity = {
         id: CityID.WanQiu,
         name: "宛丘",
         capital: false,
-        province: ProvinceID.JINGJILU,
+        province: ProvinceID.JINGXILIANGLU,
         colonizeLevel: 2,
         region: RegionID.R41
     },
@@ -170,7 +170,7 @@ const idToCity = {
         id: CityID.XiangYang,
         name: "襄阳",
         capital: true,
-        province: ProvinceID.JINGJILU,
+        province: ProvinceID.JINGXILIANGLU,
         colonizeLevel: 3,
         region: RegionID.R42
     },
@@ -178,7 +178,7 @@ const idToCity = {
         id: CityID.KaiFeng,
         name: "开封",
         capital: true,
-        province: ProvinceID.HUAINANLIANGLU,
+        province: ProvinceID.JINGJILU,
         colonizeLevel: 2,
         region: RegionID.R43
     },
@@ -186,7 +186,7 @@ const idToCity = {
         id: CityID.JiangDu,
         name: "江都",
         capital: true,
-        province: ProvinceID.CHUANSHANSILU,
+        province: ProvinceID.HUAINANLIANGLU,
         colonizeLevel: 3,
         region: RegionID.R46
     },
@@ -194,7 +194,7 @@ const idToCity = {
         id: CityID.XiaCai,
         name: "下蔡",
         capital: false,
-        province: ProvinceID.CHUANSHANSILU,
+        province: ProvinceID.HUAINANLIANGLU,
         colonizeLevel: 3,
         region: RegionID.R48
     },
@@ -202,7 +202,7 @@ const idToCity = {
         id: CityID.NanZhen,
         name: "南郑",
         capital: false,
-        province: ProvinceID.JINHULIANGLU,
+        province: ProvinceID.CHUANSHANSILU,
         colonizeLevel: 3,
         region: RegionID.R52
     },
@@ -210,7 +210,7 @@ const idToCity = {
         id: CityID.ChengDu,
         name: "成都",
         capital: true,
-        province: ProvinceID.JINHULIANGLU,
+        province: ProvinceID.CHUANSHANSILU,
         colonizeLevel: 4,
         region: RegionID.R54
     },
@@ -218,7 +218,7 @@ const idToCity = {
         id: CityID.QiXian,
         name: "郪县",
         capital: false,
-        province: ProvinceID.JINHULIANGLU,
+        province: ProvinceID.CHUANSHANSILU,
         colonizeLevel: 4,
         region: RegionID.R55
     },
@@ -226,7 +226,7 @@ const idToCity = {
         id: CityID.JiangLing,
         name: "江陵",
         capital: true,
-        province: ProvinceID.JIANGNANLIANGLU,
+        province: ProvinceID.JINHULIANGLU,
         colonizeLevel: 4,
         region: RegionID.R60
     },
@@ -234,7 +234,7 @@ const idToCity = {
         id: CityID.AnLu,
         name: "安陆",
         capital: false,
-        province: ProvinceID.JIANGNANLIANGLU,
+        province: ProvinceID.JINHULIANGLU,
         colonizeLevel: 3,
         region: RegionID.R61
     },
@@ -242,7 +242,7 @@ const idToCity = {
         id: CityID.ChangSha,
         name: "长沙",
         capital: false,
-        province: ProvinceID.JIANGNANLIANGLU,
+        province: ProvinceID.JINHULIANGLU,
         colonizeLevel: 4,
         region: RegionID.R64
     },
@@ -250,7 +250,7 @@ const idToCity = {
         id: CityID.JiangNing,
         name: "江宁",
         capital: true,
-        province: ProvinceID.LIANGZHELU,
+        province: ProvinceID.JIANGNANLIANGLU,
         colonizeLevel: 4,
         region: RegionID.R66
     },
@@ -258,7 +258,7 @@ const idToCity = {
         id: CityID.NanChang,
         name: "南昌",
         capital: false,
-        province: ProvinceID.LIANGZHELU,
+        province: ProvinceID.JIANGNANLIANGLU,
         colonizeLevel: 4,
         region: RegionID.R68
     },
@@ -266,7 +266,7 @@ const idToCity = {
         id: CityID.DanTu,
         name: "丹徒",
         capital: true,
-        province: ProvinceID.FUJIANLU,
+        province: ProvinceID.LIANGZHELU,
         colonizeLevel: 5,
         region: RegionID.R72
     },
@@ -274,7 +274,7 @@ const idToCity = {
         id: CityID.WuXian,
         name: "吴县",
         capital: false,
-        province: ProvinceID.FUJIANLU,
+        province: ProvinceID.LIANGZHELU,
         colonizeLevel: 5,
         region: RegionID.R73
     },
@@ -282,7 +282,7 @@ const idToCity = {
         id: CityID.QianTang,
         name: "钱塘",
         capital: true,
-        province: ProvinceID.FUJIANLU,
+        province: ProvinceID.LIANGZHELU,
         colonizeLevel: 5,
         region: RegionID.R74
     },
@@ -290,7 +290,7 @@ const idToCity = {
         id: CityID.MinXian,
         name: "闽县",
         capital: true,
-        province: ProvinceID.SHANXILIULU,
+        province: ProvinceID.FUJIANLU,
         colonizeLevel: 5,
         region: RegionID.R77
     },
