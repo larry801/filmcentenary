@@ -107,7 +107,11 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <div><ShowCards cards={j.discard} title={"查看弃牌"} toggleText={"弃牌"}/></div>
             <div><ShowCards cards={j.remove} title={"查看移除"} toggleText={"移除牌"}/></div>
 
-            {j.dices.length > 0 && <Typography>{j.dices.join(',')}</Typography>}
+            {j.dices.length > 0 && <Typography>{j.dices.join(',')}中
+                {j.dices.filter(d => d > 3).length}
+                |{j.dices.filter(d => d > 4).length}
+                |{j.dices.filter(d => d > 5).length}
+            </Typography>}
             {/*<div><label>手牌数：</label></div>*/}
             <div><label>发展牌：{j.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
             {ctx.phase === 'develop' &&
