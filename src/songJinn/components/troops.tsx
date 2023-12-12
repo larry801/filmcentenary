@@ -44,6 +44,7 @@ export interface IPlayerHandProps {
     isActive: boolean,
     pid: PlayerID,
     moves: Record<string, (...args: any[]) => void>;
+    setRegion?:(r:RegionID)=> void;
 }
 
 enum NewTroopStep {

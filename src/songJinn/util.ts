@@ -298,12 +298,7 @@ export const getStage = (ctx: Ctx) => {
     }
 }
 export const getJinnTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null => {
-    G.jinn.troops.forEach(t => {
-        if (t.p === r) {
-            return t;
-        }
-    })
-    return null;
+    return getJinnTroopByPlace(G, r);
 }
 export const getSongTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | null => {
     const log = [`getSongTroopByPlace|${r}`];
@@ -314,7 +309,7 @@ export const getSongTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
             result = t;
         }
     });
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return result;
 }
 export const getTroopByCountryPlace = (G: SongJinnGame, ctr: Country, src: TroopPlace) => {
@@ -329,19 +324,19 @@ export const getJinnTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
             result = t;
         }
     });
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return result;
 }
-export const getTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null => {
-    const st = getSongTroopByPlace(G, r);
-    const jt = getJinnTroopByRegion(G, r);
-    return st === null ? jt : st;
-}
-export const getTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => {
-    const st = getSongTroopByCity(G, r);
-    const jt = getJinnTroopByCity(G, r);
-    return st === null ? jt : st;
-}
+// export const getTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null => {
+//     const st = getSongTroopByPlace(G, r);
+//     const jt = getJinnTroopByRegion(G, r);
+//     return st === null ? jt : st;
+// }
+// export const getTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => {
+//     const st = getSongTroopByCity(G, r);
+//     const jt = getJinnTroopByCity(G, r);
+//     return st === null ? jt : st;
+// }
 export const getJinnTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => {
     const log = [`getJinnTroopByCity|${r}`];
     let result = null;
@@ -351,7 +346,7 @@ export const getJinnTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => 
             result = t;
         }
     });
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return result;
 }
 export const getSongTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => {
@@ -363,7 +358,7 @@ export const getSongTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => 
             result = t;
         }
     });
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return result;
 }
 export const getSongDeployCities = (G: SongJinnGame) => {
@@ -386,11 +381,6 @@ export const getPolicy = (G: SongJinnGame, ctx: Ctx) => {
     }
 }
 
-export function troopPlaceToString(p: TroopPlace) {
-    if (p === null) {
-
-    }
-}
 
 export function unitsToString(units: number[]) {
     if (units.length === 7) {
@@ -2451,13 +2441,28 @@ export const removeGeneral = (G: SongJinnGame, pid: PlayerID, general: General) 
     }
 }
 
-export const loseCity = (G: SongJinnGame, pid: PlayerID, c: CityID) => {
-    const city = getCityById(c);
-    if (city.capital) {
-
-    } else {
-
+export const doLoseCity = (G: SongJinnGame, pid: PlayerID, cityID: CityID, opponent: boolean) => {
+    const log = [`doLostCity|p${pid}lose${cityID}`];
+    const ctr = getCountryById(pid);
+    const pub = getStateById(G, pid);
+    const oppo = getOpponentStateById(G, pid);
+    if (pub.cities.includes(cityID)) {
+        pub.cities.splice(pub.cities.indexOf(cityID), 1);
+        if (ctr === Country.SONG && G.song.emperor === cityID) {
+            log.push(`|emperor`);
+            G.song.emperor = null;
+            policyDown(G, 1);
+        }
+        const city = getCityById(cityID);
+        if (city.capital) {
+            log.push(`|loseProvince`);
+            doLoseProvince(G, pid, city.province, false);
+        }
+        if (opponent) {
+            oppo.cities.push(cityID)
+        }
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const nationMoveJinn = (G: SongJinnGame, c: NationID) => {
     if (G.song.nations.includes(c)) {
@@ -2736,29 +2741,61 @@ export const policyDown = (G: SongJinnGame, a: number) => {
     }
 }
 export const heYiChange = (G: SongJinnGame, c: CityID) => {
+    const log = [``];
     const songTroop: Troop | null = getSongTroopByCity(G, c);
     if (songTroop !== null) {
-        // @ts-ignore
         for (let i = 0; i < songTroop.u.length; i++) {
-            // @ts-ignore
             G.song.ready[i] += songTroop.u[i];
         }
-        G.song.troops.splice(G.song.troops.indexOf(songTroop), 1);
+        if (G.song.troops.includes(songTroop)) {
+            log.push(`|removed`);
+            G.song.troops.splice(G.song.troops.indexOf(songTroop), 1);
+        } else {
+            log.push(`||no|troop`);
+        }
     }
     const city = getCityById(c);
+    log.push(`|policy|from${G.policy}`);
     policyUp(G, city.colonizeLevel);
-    const availableQianJun = G.jinn.standby[5]
+    log.push(`|to|${G.policy}`);
+    let control = true;
+    const availableQianJun = G.jinn.standby[5];
     if (availableQianJun === 0) {
-
+        if (G.events.includes(ActiveEvents.JianLiDaQi)) {
+            log.push(`|useQi`);
+            if (G.jinn.standby[6] > 1) {
+                log.push(`|only|one`);
+                G.jinn.troops.push({
+                    p: city.region,
+                    c: c,
+                    u: [0, 0, 0, 0, 0, 0, 2],
+                    g: Country.JINN
+                });
+            } else {
+                if(  G.jinn.standby[6] > 0){
+                    log.push(`|two`);
+                    G.jinn.troops.push({
+                        p: city.region,
+                        c: c,
+                        u: [0, 0, 0, 0, 0, 0, 1],
+                        g: Country.JINN
+                    });
+                }else{
+                    control = false;
+                    log.push(`|noQi`);
+                }
+            }
+        }else{
+            log.push(`|noDaQiYet`);
+            control = false;
+        }
     } else {
-        G.song.cities.splice(G.song.cities.indexOf(c), 1);
-        G.jinn.cities.push(c);
+        log.push(`|useQian`);
         if (availableQianJun === 1) {
             G.jinn.troops.push({
                 p: city.region,
                 c: c,
                 u: [0, 0, 0, 0, 0, 1, 0],
-
                 g: Country.JINN
             });
         } else {
@@ -2770,7 +2807,8 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
             });
         }
     }
-
+    doLoseCity(G, SJPlayer.P1, c, control);
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 interface ITakeDamageArgs {
@@ -3027,7 +3065,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             break;
                         case 'heYi':
                             log +=
-                                `用${sjCardById(arg).name}和议`
+                                `用${sjCardById(arg.card).name}和议 割让${arg.city}`
                             ;
                             break;
                         case 'tieJun':
@@ -3358,7 +3396,7 @@ export function getTerrainTypeByPlace(troop: Troop) {
     }
 }
 
-export function getTroopPlaceText(t: Troop):string {
+export function getTroopPlaceText(t: Troop): string {
     let text = `${placeToStr(t.p)}`;
     if (t.c !== null) {
         text += t.c;
@@ -3761,13 +3799,24 @@ export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID,
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid)
 
-    if (pid === SJPlayer.P1) {
-        policyDown(G, 1);
-    }
-    if (pub.corruption > 0) {
-        pub.corruption--;
-    }
+
+
     if (pub.provinces.includes(prov)) {
+        if (pid === SJPlayer.P1) {
+            if (prov === ProvinceID.YANJINGLU || prov === ProvinceID.JINGJILU || prov === ProvinceID.FUJIANLU) {
+                if (G.events.includes(ActiveEvents.XiangHaiShangFaZhan) && prov === ProvinceID.FUJIANLU) {
+                    policyDown(G, 1);
+                    if (pub.corruption > 0) {
+                        pub.corruption--;
+                    }
+                }
+            } else {
+                policyDown(G, 1);
+                if (pub.corruption > 0) {
+                    pub.corruption--;
+                }
+            }
+        }
         pub.provinces.splice(pub.provinces.indexOf(prov), 1);
         if (opponent) {
             oppo.provinces.push(prov);

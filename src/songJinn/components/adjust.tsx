@@ -6,6 +6,7 @@ import {CityID, DevelopChoice, General, ProvinceID, RegionID, SongJinnGame} from
 import {getProvinceById} from "../constant/province";
 import {getRegionById} from "../constant/regions";
 import {
+    getCityText,
     getCountryById,
     getGeneralNameByCountry,
     getPresentGeneral,
@@ -127,7 +128,7 @@ export const AdjustOps = ({
             }
         } choices={G.song.cities.map(c => {
         return {
-            label: c,
+            label: getCityText(c),
             value: c,
             disabled: false,
             hidden: false,
@@ -170,7 +171,7 @@ export const AdjustOps = ({
             (c) => moves.controlCity(c)
         } choices={Object.values(CityID).filter(c => !pub.cities.includes(c)).map(c => {
         return {
-            label: c,
+            label: getCityText(c),
             value: c,
             disabled: false,
             hidden: false,
@@ -247,7 +248,7 @@ export const AdjustOps = ({
             }
         } choices={pub.cities.map(c => {
         return {
-            label: c,
+            label: getCityText(c),
             value: c,
             disabled: false,
             hidden: false,

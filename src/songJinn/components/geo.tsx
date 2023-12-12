@@ -1,16 +1,15 @@
 /* eslint-disable react/jsx-handler-names */
-import React from 'react';
+import React, {useState} from 'react';
 import {CustomProjection, Graticule} from '@visx/geo';
 import {geoMercator} from '@visx/vendor/d3-geo';
 import {Zoom} from '@visx/zoom';
 import {MapData} from "../constant/map";
 import {Text} from "@visx/text";
 import {getRegionById} from "../constant/regions";
-import {SongJinnGame, TerrainType} from "../constant/general";
+import {RegionID, SongJinnGame, TerrainType} from "../constant/general";
 import {green, orange, red, yellow, purple} from "@material-ui/core/colors";
 import {
     centroid, getJinnTroopByPlace,
-    getJinnTroopByRegion,
     getSongTroopByPlace,
     getTroopPlaceText,
     getTroopText
@@ -22,7 +21,7 @@ export type GeoCustomProps = {
     moves: Record<string, (...args: any[]) => void>,
     width: number;
     height: number;
-    events?: boolean;
+    region?: RegionID;
 };
 
 interface FeatureShape {
@@ -41,6 +40,7 @@ const world = MapData as {
 };
 
 export function GeoMap({width, height, G}: GeoCustomProps) {
+    const [center, setCenter] = useState([])
     const initialScale = 2750;
     return width < 10 ? null : (
         <>
@@ -82,13 +82,17 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                         {customProjection.features.map(({feature, path}, i) => {
                                             const projection = geoMercator();
 
+                                            const regionCenter = centroid(feature.geometry.coordinates);
                                             const projected = projection
                                                 .scale(zoom.transformMatrix.scaleX)
                                                 .translate([zoom.transformMatrix.translateX,
                                                     zoom.transformMatrix.translateY])
-                                                (centroid(feature.geometry.coordinates));
+                                                (regionCenter);
 
                                             const region = getRegionById(feature.id - 1);
+                                            // if(region.id === chosenRegion){
+                                            //     setCenter(regionCenter);
+                                            // }
                                             let text = region.name;
                                             const songTroop = getSongTroopByPlace(G, region.id);
                                             const jinnTroop = getJinnTroopByPlace(G, region.id);

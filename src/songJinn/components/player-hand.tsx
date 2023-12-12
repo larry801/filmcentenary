@@ -1,8 +1,8 @@
-import React from "react";
+import React, {useState} from "react";
 import {Ctx, PlayerID} from "boardgame.io"
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {Country, Nations, SJEventCardID, SongJinnGame} from "../constant/general";
+import {JinnBaseCardID, Country, Nations, SongBaseCardID, SongJinnGame} from "../constant/general";
 
 import Button from "@material-ui/core/Button";
 import Accordion from '@material-ui/core/Accordion';
@@ -10,7 +10,7 @@ import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import Typography from "@material-ui/core/Typography";
 
-import {getCardLabel, getCountryById, getFullDesc, playerById, sjCardById} from "../util";
+import {getCardLabel, getCityText, getCountryById, getFullDesc, playerById, sjCardById} from "../util";
 
 export interface IPlayerHandProps {
     G: SongJinnGame,
@@ -29,8 +29,17 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
     const inPhase = ctx.phase === 'action';
     const player = playerById(G, pid);
     const hand = player.hand;
-
+    const [heYiChosen, setHeYiChosen] = useState(false);
+    const [heYiCard, setHeYiCard] = useState([SongBaseCardID.S01,JinnBaseCardID.J01]);
     return <Grid container>
+        <ChoiceDialog
+            callback={(c) => {
+                setHeYiChosen(false);
+                moves.heYi({card:heYiCard[0],city:c});
+            }} choices={G.song.cities.map(c => {
+            return {label: getCityText(c), value: c, hidden: false, disabled: false}
+        })} defaultChoice={""} show={isActive && heYiChosen} title={"选择要割让的城市"} toggleText={"割让城市"}
+            initial={true}/>
         <ChoiceDialog
             callback={(cid: string) => moves.letter({nation: cid, card: dipCard[0]})}
             choices={
@@ -50,14 +59,14 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
         />
         {hand.map((cid, idx) => {
             const card = sjCardById(cid);
-           return <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
-                       key={`playerHand-${cid}`}>
+            return <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
+                              key={`playerHand-${cid}`}>
                 <AccordionSummary key={`summary-${cid}`}>
                     <Grid key={`grid-1-${cid}`} item container xs={4}>
 
                         <Typography key={`summary-text-${cid}`}>{getCardLabel(cid)}</Typography>
                     </Grid>
-                    <Grid key={`grid-2-${cid}`}  item container xs={8}>
+                    <Grid key={`grid-2-${cid}`} item container xs={8}>
                         {getFullDesc(card)}
                     </Grid>
 
@@ -68,7 +77,7 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
                         onClick={() => moves.op(cid)}
                     >征募和进军</Button>
                     <Button
-                        disabled={!(isActive && inPhase && card.pre(G,ctx))}
+                        disabled={!(isActive && inPhase && card.pre(G, ctx))}
                         onClick={() => moves.cardEvent(cid)}
                     >事件</Button>
                     <Button
@@ -87,12 +96,19 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
                         disabled={!(isActive && inPhase)}
                         onClick={() => moves.developCard(cid)}
                     >发展</Button>
-                    {getCountryById(pid) === Country.SONG ? <Button
+                    {
+                        getCountryById(pid) === Country.SONG ? <Button
                         disabled={!(isActive && inPhase)}
+                        onClick={
+                        () => {
+                        setHeYiChosen(true);
+                        setHeYiCard([cid]);
+                    }}
                     >和议</Button> : <Button
                         onClick={() => moves.tieJun(cid)}
                         disabled={!(isActive && inPhase)}
-                    >贴军</Button>}
+                    >贴军</Button>
+                    }
                 </AccordionDetails>
             </Accordion>
         })}

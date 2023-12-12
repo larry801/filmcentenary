@@ -935,12 +935,25 @@ export const cardEvent: LongFormMove = {
     }
 }
 
+interface IHeYiArgs {
+    card:SJEventCardID,
+    city:CityID
+}
 export const heYi: LongFormMove = {
-    move: (G, ctx, c: CityID) => {
+    move: (G, ctx, {city,card}:IHeYiArgs) => {
         if (!heYiCheck(G, ctx)) {
             return INVALID_MOVE;
         }
-        heYiChange(G, c);
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const player = playerById(G, ctx.playerID);
+        if (player.hand.includes(card)) {
+            player.hand.splice(player.hand.indexOf(card), 1);
+        } else {
+            return INVALID_MOVE;
+        }
+        heYiChange(G, city);
     }
 }
 

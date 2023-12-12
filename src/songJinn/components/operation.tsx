@@ -17,7 +17,7 @@ import {actualStage} from "../../game/util";
 
 import {
     cardToSearch,
-    generalWithOpponentTroop,
+    generalWithOpponentTroop, getCityText,
     getCountryById,
     getGeneralNameByCountry, getSkillGeneral,
     getStateById, phaseName,
@@ -226,7 +226,7 @@ export const Operation = ({
         callback={(c) => moves.emperor(c)}
         choices={pub.cities.map(c => {
             return {
-                label: c,
+                label: getCityText(c),
                 value: c,
                 disabled: false,
                 hidden: false
@@ -340,7 +340,7 @@ export const Operation = ({
         callback={(c) => {
             moves.recruitPuppet(c);
         }} choices={G.jinn.cities.map(c => {
-        return {label: c, value: c, hidden: false, disabled: false}
+        return {label: getCityText(c), value: c, hidden: false, disabled: false}
     })} defaultChoice={""} show={isActive && ctr === Country.JINN} title={"选择征伪城市"} toggleText={"征募伪军"} initial={false}/>
 
     const recruitPhases = ['action', 'deploy'];
