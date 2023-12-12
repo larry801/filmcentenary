@@ -165,7 +165,7 @@ export const getMarchDst = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
     }
     if (isRegionID(dst)) {
         const reg = getRegionById(dst);
-        const result: TroopPlace[] = [...reg.land, ...reg.water];
+        const result: TroopPlace[] = [...reg.land, ...reg.water, ...reg.pass];
         Nations.forEach(n => {
             if (getNationAdj(n).includes(dst)) {
                 result.push(n);
@@ -574,7 +574,6 @@ export const idToCard = {
         effectText: "【三年之约】作为事件打出时行动点数减1。每当回合结束阶段时，宋国在陕西六路放置1个步兵。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
-            console.log(JSON.stringify({G, ctx}));
             G.events.push(ActiveEvents.XiJunQuDuan);
         }
     },
@@ -2353,12 +2352,9 @@ export const getGeneralNameByPid = (pid: PlayerID, general: General) => {
     }
 }
 export const getGeneralNameByCountry = (country: Country, general: General) => {
-    logger.warn(`getGeneralNameByCountry|${country}|${general}`);
-    if (country === Country.SONG) {
-        return GeneralNames[0][general];
-    } else {
-        return GeneralNames[1][general];
-    }
+    const name = country === Country.SONG ? GeneralNames[0][general] : GeneralNames[1][general];
+    logger.warn(`getGeneralNameByCountry|${country}|${general}|${name}`);
+    return name;
 }
 export const getPlaceCountryGeneralNames = (G: SongJinnGame, country: Country, place: TroopPlace) => {
     const pid = ctr2pid(country);
@@ -3398,31 +3394,41 @@ export const getSongScore = (G: SongJinnGame): number => {
     return score
 }
 export const getSongPower = (G: SongJinnGame): number => {
+    const log = [`getSongPower`];
+
     const countedProvince = [...G.song.provinces];
-    console.log(countedProvince);
+    log.push(`|all|provinces|${countedProvince}`);
     if (countedProvince.includes(ProvinceID.JINGJILU)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
     }
+    log.push(`|remove|jingji|${countedProvince}`);
     if (countedProvince.includes(ProvinceID.YANJINGLU)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.YANJINGLU), 1);
     }
+    log.push(`|remove|yanjing|${countedProvince}`);
     if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan) &&
         countedProvince.includes(ProvinceID.FUJIANLU)
     ) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.FUJIANLU), 1);
+        log.push(`|remove|fujian|${countedProvince}`);
     }
+
     let power = countedProvince.length;
-    console.log(countedProvince);
+    log.push(`|powerFromProvinces${power}`);
 
     if (G.song.emperor !== null) {
+        log.push(`|emperor${power}`);
         power++;
     }
     if (G.events.includes(ActiveEvents.JianYanNanDu)) {
+        log.push(`|jianyannandu${power}`);
         power++;
     }
     if (G.song.civil >= 6) {
+        log.push(`|neizheng6${power}`);
         power++;
     }
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return power;
 }
 export const getJinnScore = (G: SongJinnGame): number => {
@@ -3432,43 +3438,57 @@ export const getJinnScore = (G: SongJinnGame): number => {
     })
     score += G.jinn.military;
     score += G.jinn.civil;
+    score += G.jinn.specialPlan;
     return score;
 }
 export const getJinnPower = (G: SongJinnGame): number => {
+    const log = [`getJinnPower`];
+
     const countedProvince = [...G.jinn.provinces];
-    console.log(countedProvince);
+    log.push(`|all|${countedProvince}`);
     if (countedProvince.includes(ProvinceID.JINGJILU)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
     }
+    log.push(`|remove|jingji|${countedProvince}`);
     if (countedProvince.includes(ProvinceID.YANJINGLU)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.YANJINGLU), 1);
     }
+    log.push(`|remove|yangjing|${countedProvince}`);
+
     if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan) &&
         countedProvince.includes(ProvinceID.FUJIANLU)
     ) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.FUJIANLU), 1);
+        log.push(`|remove|fujian|${countedProvince}`);
     }
-    console.log(countedProvince);
     let power = countedProvince.length;
+    log.push(`|provinces${power}`);
     if (G.jinn.emperor !== null) {
+        log.push(`|emperor${power}`);
         power++;
     }
     if (G.events.includes(ActiveEvents.JingKangZhiBian)) {
+        log.push(`|jingkangzhibian${power}`);
         power++;
     }
     if (G.song.civil >= 6) {
+        log.push(`|civil6${power}`);
         power++;
     }
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return power;
 }
 export const drawPhaseForSong = (G: SongJinnGame, ctx: Ctx) => {
+    const log = [`drawPhaseForSong`]
     const player = G.player[SJPlayer.P1];
     const hand = player.hand;
     const power = G.song.civil >= 7 ? 9 : getSongPower(G);
-
+    log.push(`|${power}power$`);
     const deck = G.secret.jinnDeck;
     const discard = G.jinn.discard;
     const drawCount = power > 9 ? 9 : power;
+    log.push(`|drawCount${drawCount}`);
+
     if (deck.length + hand.length + discard.length < drawCount) {
         player.hand = hand.concat(deck, discard);
         G.secret.songDeck = [];
@@ -3478,6 +3498,7 @@ export const drawPhaseForSong = (G: SongJinnGame, ctx: Ctx) => {
             drawCardForSong(G, ctx);
         }
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const drawPhaseForJinn = (G: SongJinnGame, ctx: Ctx) => {
     const log = [`drawPhaseForJinn`]
@@ -3669,9 +3690,9 @@ export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: Province
         log.push(`|b|${pub.provinces}`);
 
     }
-    if(G.qi.includes(prov) && pid === SJPlayer.P1){
+    if (G.qi.includes(prov) && pid === SJPlayer.P1) {
         log.push(`|Qi|remove|b|${G.qi}`);
-        G.qi.splice(G.qi.indexOf(prov),1);
+        G.qi.splice(G.qi.indexOf(prov), 1);
         log.push(`|b|${G.qi}`);
     }
     log.push(`|b|${pub.provinces}`);
@@ -3791,5 +3812,5 @@ export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, 
 
 export function getCardLabel(c: SJEventCardID) {
     const cardById = sjCardById(c);
-    return cardById.name + '|' + cardById.op +( cardById.remove ? '*' : '');
+    return cardById.name + '|' + cardById.op + (cardById.remove ? '*' : '');
 }
