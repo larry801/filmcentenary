@@ -526,7 +526,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             }>移动
                         </button>
                         <button
-                            key={`grid-ops-${idx}-takeDamge`}
+                            key={`grid-ops-${idx}-takeDamage`}
                             onClick={
                                 () => {
                                     setPlaceStep(PlaceStep.TROOP);

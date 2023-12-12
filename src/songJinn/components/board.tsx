@@ -25,7 +25,6 @@ import Dialog from "@material-ui/core/Dialog";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
 import {useI18n} from "@i18n-chain/react";
-import {TroopsMap} from "./map";
 import {GeoMap} from "./geo";
 import {ParentSize} from "@visx/responsive";
 
