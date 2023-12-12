@@ -223,8 +223,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 const idx = unitNames.indexOf(u);
                 units[idx] = 1;
             })
-            moves.placeTroop({
-                dst: newTroopRegion,
+            moves.placeUnit({
+                place: newTroopRegion,
                 units: units,
                 country: ctr
             })
@@ -408,7 +408,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             })
         }} max={[...ctr2pub(G, placeUnitTroop.g).standby]} initUnits={unitNames.map(() => 0)}
         show={isActive && placeStep === PlaceStep.UNITS} title={"选择要放置的的部队"}
-        toggleText={"放置新部队"} initial={true} country={ctr}/>
+        toggleText={"放置部队"} initial={true} country={ctr}/>
 
     return <Grid item container xs={12}>
         <Grid item xs={12}>
