@@ -3794,7 +3794,9 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
             `|after|${G.events.toString()}`
         );
     }
-    G.events.splice(G.events.indexOf(ActiveEvents.LiGang), 1);
+    if (G.events.includes((ActiveEvents.LiGang))){
+        G.events.splice(G.events.indexOf(ActiveEvents.LiGang), 1);
+    }
     if (G.turn >= MAX_ROUND) {
         const songScore = getSongScore(G);
         const jinnScore = getJinnScore(G);
