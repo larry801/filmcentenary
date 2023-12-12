@@ -91,7 +91,7 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                             const region = getRegionById(feature.id - 1);
                                             let text = region.name;
                                             const songTroop = getSongTroopByPlace(G, region.id);
-                                            const jinnTroop = getJinnTroopByRegion(G, region.id);
+                                            const jinnTroop = getJinnTroopByPlace(G, region.id);
                                             if (songTroop !== null) {
                                                 if (jinnTroop !== null) {
                                                     text = getTroopPlaceText(songTroop);
