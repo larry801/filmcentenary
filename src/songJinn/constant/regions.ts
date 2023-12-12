@@ -529,7 +529,7 @@ const idToRegion = {[RegionID.R01]:
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.HUAINANLIANGLU,
             land:[RegionID.R27,RegionID.R28,RegionID.R41,RegionID.R43],
-            water:[RegionID.R48],
+            water:[RegionID.R46,RegionID.R48],
             pass:[],
             city:null
         },
