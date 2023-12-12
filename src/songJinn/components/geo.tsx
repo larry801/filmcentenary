@@ -9,7 +9,7 @@ import {getRegionById} from "../constant/regions";
 import {SongJinnGame, TerrainType} from "../constant/general";
 import {green, orange, red, yellow, purple} from "@material-ui/core/colors";
 import {
-    centroid,
+    centroid, getJinnTroopByPlace,
     getJinnTroopByRegion,
     getSongTroopByPlace,
     getTroopPlaceText,

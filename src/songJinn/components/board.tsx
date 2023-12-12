@@ -101,7 +101,7 @@ export const SongJinnBoard = ({
                 title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`}
                 toggleText={"游戏结束"} initial={true}/>}
 
-            {<Grid container item xs={12}>
+            <Grid container item xs={12}>
                 <Grid item xs={12} sm={6}>
                     <PubInfo G={G} ctx={ctx}/>
                 </Grid>
@@ -113,14 +113,16 @@ export const SongJinnBoard = ({
                         {parent => <GeoMap G={G} moves={moves} height={640} width={parent.width}/>}
                     </ParentSize>
                 </Grid>
+                {playerID !== null && <Grid item xs={12} sm={6}>
+                    <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
+                    </Grid>}
                 <Grid item xs={12} sm={6}>
                     <ChatMessage
                         sendChatMessage={sendChatMessage}
                         chatMessages={chatMessages}
                         getPlayerName={sjPlayerName}/>
                 </Grid>
-
-            </Grid>}
+            </Grid>
 
             {playerID !== null ?
                 <Grid>
@@ -135,16 +137,10 @@ export const SongJinnBoard = ({
                             matchID={matchID}
                         />
                         <Grid item xs={12} sm={6}>
-                            <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
                             <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
                         </Grid>
                         <AdjustOps G={G} ctx={ctx} isActive={isActive} playerID={playerID} moves={moves}/>
                     </Grid> : <Grid container>
-                        <Grid item xs={12} sm={6}>
-                            <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
-                        </Grid>
                         <Grid item xs={12} sm={6}>
                             <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
                         </Grid>
@@ -173,7 +169,6 @@ export const SongJinnBoard = ({
                                 }
                             )
                         }
-
                     </Grid>
                 </Grid>
             }

@@ -29,13 +29,12 @@ import {
     getGeneralNameByCountry,
     getMarchDst,
     getOpponentStateById, getPlaceCountryGeneral,
-    getPlaceCountryGeneralNames,
     getPlaceGeneral,
     getReadyGenerals,
     getRegionText,
     getStateById, getTroopPlaceText,
     getTroopText,
-    optionToActualDst, placeToStr,
+    optionToActualDst,
     StrProvince,
 } from "../util";
 
