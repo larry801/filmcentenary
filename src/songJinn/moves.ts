@@ -910,6 +910,17 @@ export const combatCard: LongFormMove = {
 
     }
 }
+
+interface IAskFieldArgs {
+    place:TroopPlace
+}
+
+export const askField: LongFormMove = {
+    move:(G, ctx, args)=>{
+
+    }
+}
+
 export const cardEvent: LongFormMove = {
     move: (G, ctx, args: BaseCardID) => {
         if (ctx.playerID === undefined) {

@@ -3538,11 +3538,12 @@ export function getTroopText(G: SongJinnGame, t: Troop) {
     }
     text += `|${unitsToString(t.u)}`;
     text += `${troopEndurance(G, t)}|`;
-    text += `|${troopRange(G, t)}|`;
+    text += '\n';
+    text += `|${troopRange(G, t)}`;
     text += `/${troopSiegeRange(G, t)}`;
     text += `/${troopDefendCiyRange(G, t)}`;
     text += `|${troopMelee(G, t)}`;
-    text += `/${troopSiegeMelee(G, t)})`;
+    text += `/${troopSiegeMelee(G, t)}`;
     text += `/${troopDefendCiyMelee(G, t)}`;
     return text;
 }
