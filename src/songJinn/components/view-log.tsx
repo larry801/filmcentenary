@@ -91,7 +91,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
                 fullWidth
                 multiline
                 minRows={8}
-                maxRows={8}
+                maxRows={20}
                 variant="filled"
             />
         </Grid>}

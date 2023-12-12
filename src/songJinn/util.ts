@@ -3794,7 +3794,7 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
             `|after|${G.events.toString()}`
         );
     }
-    if (G.events.includes((ActiveEvents.LiGang))){
+    if (G.events.includes((ActiveEvents.LiGang))) {
         G.events.splice(G.events.indexOf(ActiveEvents.LiGang), 1);
     }
     if (G.turn >= MAX_ROUND) {
@@ -3876,10 +3876,10 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
 }
 export const doRemoveNation = (G: SongJinnGame, nation: NationID) => {
     G.removedNation.push(nation);
-    if(G.song.nations.includes(nation)){
+    if (G.song.nations.includes(nation)) {
         G.song.nations.splice(G.song.nations.indexOf(nation), 1);
     }
-    if(G.jinn.nations.includes(nation)) {
+    if (G.jinn.nations.includes(nation)) {
         G.jinn.nations.splice(G.jinn.nations.indexOf(nation), 1);
     }
 }
@@ -3887,6 +3887,11 @@ export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: Province
     const log = [`doControlProvince`];
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid);
+    if (pub.provinces.includes(prov)) {
+        log.push(`|hasProv${prov}`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return;
+    }
     if (oppo.provinces.includes(prov)) {
         log.push(`|takeFromOpponent`);
         log.push(`|b|${pub.provinces}`);
@@ -3901,7 +3906,7 @@ export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: Province
         log.push(`|b|${G.qi}`);
     }
     log.push(`|b|${pub.provinces}`);
-    pub.provinces.push(prov);
+
     log.push(`|b|${pub.provinces}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -3909,6 +3914,11 @@ export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
     const log = [`doControlCity`];
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid);
+    if (pub.cities.includes(cid)) {
+        log.push(`|hasCity`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return;
+    }
     if (oppo.cities.includes(cid)) {
         log.push(`|takeFromOpponent`);
         oppo.cities.splice(oppo.cities.indexOf(cid), 1);
