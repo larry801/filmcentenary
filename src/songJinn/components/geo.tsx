@@ -1,16 +1,18 @@
-import React from "react";
-import { TerrainType} from "../constant/general";
-import {Mercator, Graticule} from '@visx/geo';
-import {ParentSize} from '@visx/responsive';
+/* eslint-disable react/jsx-handler-names */
+import React, { useState } from 'react';
+import { scaleQuantize } from '@visx/scale';
+import { CustomProjection, Graticule } from '@visx/geo';
+import { geoMercator} from '@visx/vendor/d3-geo';
+import { Zoom } from '@visx/zoom';
 import {MapData} from "../constant/map";
-import {green, yellow, purple, orange, red} from "@material-ui/core/colors";
-import {getRegionById} from "../constant/regions";
-import Grid from "@material-ui/core/Grid";
 import {Text} from "@visx/text";
 
 
-export const background = '#f9f7e8';
-
+export type GeoCustomProps = {
+    width: number;
+    height: number;
+    events?: boolean;
+};
 
 interface FeatureShape {
     type: 'Feature';
@@ -19,87 +21,180 @@ interface FeatureShape {
     properties: { name: string };
 }
 
+export const background = '#252b7e';
+const purple = '#201c4e';
+
 
 const world = MapData as {
     type: 'FeatureCollection';
     features: FeatureShape[];
 };
 
-export const GeoMap = () => {
+const color = scaleQuantize({
+    domain: [
+        Math.min(...world.features.map((f) => f.geometry.coordinates.length)),
+        Math.max(...world.features.map((f) => f.geometry.coordinates.length)),
+    ],
+    range: [
+        '#019ece',
+        '#f4448b',
+        '#fccf35',
+        '#82b75d',
+        '#b33c88',
+        '#fc5e2f',
+        '#f94b3a',
+        '#f63a48',
+        '#dde1fe',
+        '#8993f9',
+        '#b6c8fb',
+        '#65fe8d',
+    ],
+});
 
+export function GeoMap({ width, height, events = true }: GeoCustomProps) {
+    const initialScale = 2750;
+    return width < 10 ? null : (
+        <>
+            <Zoom<SVGSVGElement>
+                width={width}
+                height={height}
+                scaleXMin={100}
+                scaleXMax={5000}
+                scaleYMin={100}
+                scaleYMax={5000}
+                initialTransformMatrix={{
+                    scaleX: initialScale,
+                    scaleY: initialScale,
+                    translateX: -4900,
+                    translateY: 1940,
+                    skewX: 0,
+                    skewY: 0,
+                }}
+            >
+                {(zoom) => (
+                    <div className="container">
+                        <svg
+                            width={width}
+                            height={height}
+                            className={zoom.isDragging ? 'dragging' : undefined}
+                            ref={zoom.containerRef}
+                            style={{ touchAction: 'none' }}
+                        >
+                            <rect x={0} y={0} width={width} height={height} fill={background} rx={14} />
+                            <CustomProjection<FeatureShape>
+                                projection={geoMercator}
+                                data={world.features}
+                                scale={zoom.transformMatrix.scaleX}
+                                translate={[zoom.transformMatrix.translateX, zoom.transformMatrix.translateY]}
+                            >
+                                {(customProjection) => (
+                                    <g>
+                                        <Graticule graticule={(g) => customProjection.path(g) || ''} stroke={purple} />
+                                        {customProjection.features.map(({ feature, path }, i) => (
+                                            <path
+                                                key={`map-feature-${i}`}
+                                                d={path || ''}
+                                                fill={color(feature.geometry.coordinates.length)}
+                                                stroke={background}
+                                                strokeWidth={0.5}
+                                                onClick={() => {
+                                                    // if (events) alert(`Clicked: ${feature.properties.name} (${feature.id})`);
+                                                }}
+                                            />
+                                        ))}
+                                    </g>
+                                )}
+                            </CustomProjection>
 
-    return <ParentSize>
-        {(parent) => {
-            const width = parent.width;
-            const height = parent.height;
-            const centerX = width / 2;
-            const centerY = height / 2;
-            const initialScale = (width / 630) * 100;
-            console.log(width,height,centerX,centerY, initialScale);
+                            {/** intercept all mouse events */}
+                            <rect
+                                x={0}
+                                y={0}
+                                width={width}
+                                height={height}
+                                rx={14}
+                                fill="transparent"
+                                onTouchStart={zoom.dragStart}
+                                onTouchMove={zoom.dragMove}
+                                onTouchEnd={zoom.dragEnd}
+                                onMouseDown={zoom.dragStart}
+                                onMouseMove={zoom.dragMove}
+                                onMouseUp={zoom.dragEnd}
+                                onMouseLeave={() => {
+                                    if (zoom.isDragging) zoom.dragEnd();
+                                }}
+                            />
+                        </svg>
+                        {events && (
+                            <div className="controls">
+                                <button
+                                    className="btn btn-zoom"
+                                    onClick={() => {
+                                        zoom.scale({scaleX: 1.2, scaleY: 1.2});
+                                        console.log(JSON.stringify(zoom.transformMatrix))
 
-            return <Grid>
-                <svg width={width} height={height}>
-                    <rect x={0} y={0} width={width} height={height} fill={background} rx={14}/>
+                                    }}
 
-                    <Mercator<FeatureShape>
-                        key={`mercator-container-0`}
-                        data={world.features}
-                        scale={initialScale}
-                        translate={[centerX, centerY + 50]}
-                    >
-                        {(mercator) => (
-                            <g key={`mercator-0`}>
-                                <Graticule key={`graticule-0`}
-                                           graticule={(g) => mercator.path(g) || ''}
-                                           stroke="rgba(33,33,33,0.05)"/>
-                                {mercator.features.map(
-                                    ({feature, path}, i) => {
-                                        const region = getRegionById(feature.id - 1);
-                                        let color = '#fff000';
-                                        switch (region.terrain) {
-                                            case TerrainType.FLATLAND:
-                                                color = green.A700;
-                                                break;
-                                            case TerrainType.HILLS:
-                                                color = yellow.A700;
-                                                break;
-                                            case TerrainType.MOUNTAINS:
-                                                color = orange.A700
-                                                break;
-                                            case TerrainType.SWAMP:
-                                                color = purple.A700
-                                                break;
-                                            case TerrainType.RAMPART:
-                                                color = red.A100
-                                                break;
-                                        }
-                                        return (
-                                            <>
-                                                <path
-                                                    key={`map-feature-${i}`}
-                                                    d={path || ''}
-                                                    fill={color}
-                                                    stroke={background}
-                                                    strokeWidth={0.5}
-                                                    onClick={() => {
-                                                        alert(feature.properties.name)
-                                                    }}
-                                                />
-                                                <Text
-                                                    key={`text-{i}`}
-                                                >
-                                                    {region.name}
-                                                </Text>
-                                            </>
-                                        )
-                                    })}
-
-                            </g>
+                                >
+                                    +
+                                </button>
+                                <button
+                                    className="btn btn-zoom btn-bottom"
+                                    onClick={() => zoom.scale({ scaleX: 0.8, scaleY: 0.8 })}
+                                >
+                                    -
+                                </button>
+                                <button className="btn btn-lg" onClick={zoom.reset}>
+                                    Reset
+                                </button>
+                            </div>
                         )}
-                    </Mercator>
-                </svg>
-            </Grid>
-        }}
-    </ParentSize>
-
+                    </div>
+                )}
+            </Zoom>
+            <style >{`
+        .container {
+          position: relative;
+        }
+        svg {
+          cursor: grab;
+        }
+        svg.dragging {
+          cursor: grabbing;
+        }
+        .btn {
+          margin: 0;
+          text-align: center;
+          border: none;
+          background: #dde1fe;
+          color: #222;
+          padding: 0 4px;
+          border-top: 1px solid #8993f9;
+        }
+        .btn-lg {
+          font-size: 12px;
+          line-height: 1;
+          padding: 4px;
+        }
+        .btn-zoom {
+          width: 26px;
+          font-size: 22px;
+        }
+        .btn-bottom {
+          margin-bottom: 1rem;
+        }
+        .controls {
+          position: absolute;
+          bottom: 20px;
+          right: 15px;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+        }
+        label {
+          font-size: 12px;
+        }
+      `}</style>
+        </>
+    );
 }

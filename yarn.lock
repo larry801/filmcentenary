@@ -1236,6 +1236,26 @@
   dependencies:
     "@types/yargs-parser" "*"
 
+"@use-gesture/core@10.3.0":
+  version "10.3.0"
+  resolved "https://registry.yarnpkg.com/@use-gesture/core/-/core-10.3.0.tgz#9afd3777a45b2a08990a5dcfcf8d9ddd55b00db9"
+  integrity sha512-rh+6MND31zfHcy9VU3dOZCqGY511lvGcfyJenN4cWZe0u1BH6brBpBddLVXhF2r4BMqWbvxfsbL7D287thJU2A==
+
+"@use-gesture/react@^10.0.0-beta.22":
+  version "10.3.0"
+  resolved "https://registry.yarnpkg.com/@use-gesture/react/-/react-10.3.0.tgz#180534c821fd635c2853cbcfa813f92c94f27e3f"
+  integrity sha512-3zc+Ve99z4usVP6l9knYVbVnZgfqhKah7sIG+PS2w+vpig2v2OLct05vs+ZXMzwxdNCMka8B+8WlOo0z6Pn6DA==
+  dependencies:
+    "@use-gesture/core" "10.3.0"
+
+"@visx/event@3.3.0":
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/@visx/event/-/event-3.3.0.tgz#30bb7f02857800749219e4ba76fce53df4d47353"
+  integrity sha512-fKalbNgNz2ooVOTXhvcOx5IlEQDgVfX66rI7bgZhBxI2/scy+5rWcXJXpwkheRF68SMx9R93SjKW6tmiD0h+jA==
+  dependencies:
+    "@types/react" "*"
+    "@visx/point" "3.3.0"
+
 "@visx/geo@^3.5.0":
   version "3.5.0"
   resolved "https://registry.yarnpkg.com/@visx/geo/-/geo-3.5.0.tgz#902b91bcd30aefc3c73ac394750e9020760d13af"
@@ -1257,6 +1277,11 @@
     classnames "^2.3.1"
     prop-types "^15.6.2"
 
+"@visx/point@3.3.0":
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/@visx/point/-/point-3.3.0.tgz#7a705e09892ae45b4c9cf3155e9be3a3845460d8"
+  integrity sha512-03eBBIJarkmX79WbeEGTUZwmS5/MUuabbiM9KfkGS9pETBTWkp1DZtEHZdp5z34x5TDQVLSi0rk1Plg3/8RtDg==
+
 "@visx/responsive@^3.3.0":
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/@visx/responsive/-/responsive-3.3.0.tgz#39bcc067e048e03616929460b651456ca62aa94f"
@@ -1266,6 +1291,25 @@
     "@types/react" "*"
     lodash "^4.17.21"
     prop-types "^15.6.1"
+
+"@visx/scale@^3.5.0":
+  version "3.5.0"
+  resolved "https://registry.yarnpkg.com/@visx/scale/-/scale-3.5.0.tgz#c3db3863bbdd24d44781104ef5ee4cdc8df6f11d"
+  integrity sha512-xo3zrXV2IZxrMq9Y9RUVJUpd93h3NO/r/y3GVi5F9AsbOzOhsLIbsPkunhO9mpUSR8LZ9TiumLEBrY+3frRBSg==
+  dependencies:
+    "@visx/vendor" "3.5.0"
+
+"@visx/text@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/@visx/text/-/text-3.3.0.tgz#f53366a9c18bc448c6b8869527c0f75c9591e7a7"
+  integrity sha512-fOimcsf0GtQE9whM5MdA/xIkHMaV29z7qNqNXysUDE8znSMKsN+ott7kSg2ljAEE89CQo3WKHkPNettoVsa84w==
+  dependencies:
+    "@types/lodash" "^4.14.172"
+    "@types/react" "*"
+    classnames "^2.3.1"
+    lodash "^4.17.21"
+    prop-types "^15.7.2"
+    reduce-css-calc "^1.3.0"
 
 "@visx/vendor@3.5.0":
   version "3.5.0"
@@ -1291,6 +1335,16 @@
     d3-time "3.1.0"
     d3-time-format "4.1.0"
     internmap "2.0.3"
+
+"@visx/zoom@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/@visx/zoom/-/zoom-3.3.0.tgz#079d013d5299e8f2082c4790c01b177542e3a1b2"
+  integrity sha512-ijSitmJWbhupAe1F0LTsusg/WWEvYBcxV9iOHmTbGHhgpdKuhmZCXYg2zGAF4oT3lTuhofUA678jQt5+U9FlWA==
+  dependencies:
+    "@types/react" "*"
+    "@use-gesture/react" "^10.0.0-beta.22"
+    "@visx/event" "3.3.0"
+    prop-types "^15.6.2"
 
 "@vitejs/plugin-react-refresh@^1.3.1":
   version "1.3.6"
@@ -1467,6 +1521,11 @@ babel-preset-jest@^27.5.1:
   dependencies:
     babel-plugin-jest-hoist "^27.5.1"
     babel-preset-current-node-syntax "^1.0.0"
+
+balanced-match@^0.4.2:
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-0.4.2.tgz#cb3f3e3c732dc0f01ee70b403f302e61d7709838"
+  integrity sha512-STw03mQKnGUYtoNjmowo4F2cRmIIxYEGiMsjjwla/u5P1lxadj/05WkNaFjNiKTgJkj8KiXbgAiRTmcQRwQNtg==
 
 balanced-match@^1.0.0:
   version "1.0.2"
@@ -3518,6 +3577,11 @@ makeerror@1.0.12:
   dependencies:
     tmpl "1.0.5"
 
+math-expression-evaluator@^1.2.14:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/math-expression-evaluator/-/math-expression-evaluator-1.4.0.tgz#3d66031117fbb7b9715ea6c9c68c2cd2eebd37e2"
+  integrity sha512-4vRUvPyxdO8cWULGTh9dZWL2tZK6LDBvj+OGHBER7poH9Qdt7kXEoj20wiz4lQUbUXQZFjPbe5mVDo9nutizCw==
+
 media-typer@0.3.0:
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/media-typer/-/media-typer-0.3.0.tgz#8710d7af0aa626f8fffa1ce00168545263255748"
@@ -4096,6 +4160,22 @@ redis-parser@^3.0.0:
   integrity sha512-DJnGAeenTdpMEH6uAJRK/uiyEIH9WVsUmoLwzudwGJUwZPp80PDBWPHXSAGNPwNvIXAbe7MSUB1zQFugFml66A==
   dependencies:
     redis-errors "^1.0.0"
+
+reduce-css-calc@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/reduce-css-calc/-/reduce-css-calc-1.3.0.tgz#747c914e049614a4c9cfbba629871ad1d2927716"
+  integrity sha512-0dVfwYVOlf/LBA2ec4OwQ6p3X9mYxn/wOl2xTcLwjnPYrkgEfPx3VI4eGCH3rQLlPISG5v9I9bkZosKsNRTRKA==
+  dependencies:
+    balanced-match "^0.4.2"
+    math-expression-evaluator "^1.2.14"
+    reduce-function-call "^1.0.1"
+
+reduce-function-call@^1.0.1:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/reduce-function-call/-/reduce-function-call-1.0.3.tgz#60350f7fb252c0a67eb10fd4694d16909971300f"
+  integrity sha512-Hl/tuV2VDgWgCSEeWMLwxLZqX7OK59eU1guxXsRKTAyeYimivsKdtcV4fu3r710tpG5GmDKDhQ0HSZLExnNmyQ==
+  dependencies:
+    balanced-match "^1.0.0"
 
 redux@^4.1.0:
   version "4.2.1"
