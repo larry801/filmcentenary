@@ -957,7 +957,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
         turn: 1,
         first: SJPlayer.P1,
         policy: -2,
-        colony: 2,
+        colony: 0,
         player: {
             [SJPlayer.P1]: emptyPlayerInfo(),
             [SJPlayer.P2]: emptyPlayerInfo(),
