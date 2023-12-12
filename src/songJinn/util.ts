@@ -57,6 +57,29 @@ import {INVALID_MOVE, Stage} from "boardgame.io/core";
 import {getProvinceById} from "./constant/province";
 import {getCityById} from "./constant/city";
 
+
+function area(coords: [number, number][][]) {
+    let s = 0.0;
+    let ring = coords[0];
+    for (let i = 0; i < (ring.length - 1); i++) {
+        s += (ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1]);
+    }
+    return 0.5 * s;
+}
+
+export const centroid = (coordinates: [number, number][][]): [number, number] => {
+    let c: [number, number] = [0, 0];
+    let ring = coordinates[0];
+    for (let i = 0; i < (ring.length - 1); i++) {
+        c[0] += (ring[i][0] + ring[i + 1][0]) * (ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1]);
+        c[1] += (ring[i][1] + ring[i + 1][1]) * (ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1]);
+    }
+    let a = area(coordinates);
+    c[0] /= a * 6;
+    c[1] /= a * 6;
+    return c;
+}
+
 export const phaseName = (c: string) => {
     const phaseMap = {
         'draw': '摸牌阶段',
@@ -3335,14 +3358,25 @@ export function getTerrainTypeByPlace(troop: Troop) {
     }
 }
 
-export function getTroopText(G: SongJinnGame, t: Troop) {
-    let text = `${t.g}|${placeToStr(t.p)}|${unitsToString(t.u)}`;
-    const hasCity = t.c !== null;
-    const hasEche = t.g === Country.JINN && t.u[4] !== 0;
-    if (hasCity) {
+export function getTroopPlaceText(t: Troop):string {
+    let text = `${placeToStr(t.p)}`;
+    if (t.c !== null) {
         text += t.c;
     }
+    return text;
+}
+
+export function getTroopText(G: SongJinnGame, t: Troop) {
+    let text = '';
+    const hasCity = t.c !== null;
+    const hasEche = t.g === Country.JINN && t.u[4] !== 0;
+    const general = getPlaceCountryGeneral(G, t.g, t.p);
+    if (general.length > 0) {
+        text += getPlaceCountryGeneralNames(G, t.g, t.p);
+    }
+    text += `|${unitsToString(t.u)}`;
     text += `|耐${troopEndurance(G, t)}`;
+    text += '\n';
     text += `|远${troopRange(G, t)}`;
     if (hasEche) {
         text += `(${troopSiegeRange(G, t)})`;

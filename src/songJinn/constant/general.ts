@@ -4,6 +4,11 @@ import {shuffle} from "../../game/util";
 export const MAX_ROUND = 8;
 export const MAX_DICES = 30;
 
+export enum PendingEvents {
+  PlaceUnitsToRegion,
+    XiJunQuDuan,
+}
+
 export const enum ActiveEvents {
     JianYanNanDu = "建炎南渡",
     LiGang = "李纲",
@@ -897,7 +902,7 @@ export const emptyPlayerInfo: () => SJPlayerInfo = () => {
 export interface SongJinnGame {
     matchID: string,
     pending: {
-        event: string,
+        events: PendingEvents[],
         regions: RegionID[],
         cities: CityID[],
     }
@@ -935,7 +940,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
     const G = {
         matchID: "default",
         pending: {
-            event: "",
+            events: [],
             regions: [],
             cities: [],
         },

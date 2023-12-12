@@ -25,6 +25,9 @@ import Dialog from "@material-ui/core/Dialog";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
 import {useI18n} from "@i18n-chain/react";
+import {TroopsMap} from "./map";
+import {GeoMap} from "./geo";
+import {ParentSize} from "@visx/responsive";
 
 export const SongJinnBoard = ({
                                   G,
@@ -98,6 +101,7 @@ export const SongJinnBoard = ({
                 callback={empty} choices={[]} defaultChoice={""} show={true}
                 title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`}
                 toggleText={"游戏结束"} initial={true}/>}
+
             {<Grid container item xs={12}>
                 <Grid item xs={12} sm={6}>
                     <PubInfo G={G} ctx={ctx}/>
@@ -105,14 +109,23 @@ export const SongJinnBoard = ({
                 <Grid item xs={12} sm={6}>
                     <LogView log={log} getPlayerName={sjPlayerName} G={G}/>
                 </Grid>
-            </Grid>}
-
-            {playerID !== null ?
-                <Grid>
+                <Grid item xs={12} sm={6}>
+                    <ParentSize>
+                        {parent => <GeoMap G={G} moves={moves} height={640} width={parent.width}/>}
+                    </ParentSize>
+                </Grid>
+                <Grid item xs={12} sm={6}>
                     <ChatMessage
                         sendChatMessage={sendChatMessage}
                         chatMessages={chatMessages}
                         getPlayerName={sjPlayerName}/>
+                </Grid>
+
+            </Grid>}
+
+            {playerID !== null ?
+                <Grid>
+
                     {isActive ? <Grid container>
                         <Button onClick={() => undo()}>撤回</Button>
                         <Operation

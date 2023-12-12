@@ -5,15 +5,19 @@ import {
     CityID,
     Country,
     DevelopChoice,
-    General, isCityID,
+    General,
+    isCityID,
     isRegionID,
-    LetterOfCredence, NationID,
+    LetterOfCredence,
+    NationID,
+    PendingEvents,
     PlanID,
     PlayerPendingEffect,
     ProvinceID,
     RegionID,
     SJEventCardID,
-    SJPlayer, SongJinnGame,
+    SJPlayer,
+    SongJinnGame,
     Troop,
     TroopPlace
 } from "./constant/general";
@@ -26,25 +30,32 @@ import {changePlayerStage} from "../game/logFix";
 
 import {
     addTroop,
-    cardToSearch, changeCivil, changeMilitary,
+    cardToSearch,
+    changeCivil,
+    changeMilitary,
     colonyDown,
     colonyUp,
     ctr2pid,
-    ctr2pub, doControlCity, doControlProvince, doGeneralSkill, doLoseProvince, doPlaceUnit, doRecruit,
+    ctr2pub,
+    doControlCity,
+    doControlProvince,
+    doGeneralSkill,
+    doLoseProvince,
+    doPlaceUnit,
+    doRecruit,
     drawPhaseForPlayer,
     drawPlanForPlayer,
-    endRoundCheck, getCountryById, getGeneralNameByCountry,
-    getGeneralNameByPid,
+    endRoundCheck,
+    getCountryById,
+    getGeneralNameByCountry,
     getJinnTroopByCity,
     getJinnTroopByPlace,
-    getJinnTroopByRegion,
     getOpponentStateById,
     getPlaceGeneral,
     getSongTroopByCity,
     getSongTroopByPlace,
     getStateById,
     getTroopByCountryPlace,
-    getTroopByRegion,
     heYiChange,
     heYiCheck,
     mergeTroopTo,
@@ -55,9 +66,11 @@ import {
     placeToStr,
     playerById,
     policyDown,
-    policyUp, removeUnitByCountryPlace, removeUnitByPlace,
+    policyUp,
+    removeUnitByCountryPlace,
     returnDevCardCheck,
-    rollDiceByPid, sjCardById,
+    rollDiceByPid,
+    sjCardById,
     totalDevelop,
     troopEmpty,
     unitsToString
@@ -78,6 +91,7 @@ export const opponentMove: LongFormMove = {
     }
 
 }
+
 export const controlProvince: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, args: ProvinceID) => {
         if (ctx.playerID === undefined) {
@@ -134,6 +148,7 @@ export const march: LongFormMove = {
         log.push(`|parsed${JSON.stringify(dst)}`);
 
         const pub = ctr2pub(G, country);
+
         generals.forEach(gen => moveGeneralByCountry(G, country, gen, dst));
         const t = getTroopByCountryPlace(G, arg.country, src);
         if (t === null) {
@@ -201,6 +216,7 @@ export const march: LongFormMove = {
                 pub.troops.push(newTroop);
             }
         }
+
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -224,15 +240,37 @@ export const letter: LongFormMove = {
 }
 
 export const chooseRegion: LongFormMove = {
-    move: (G, ctx, arg: RegionID) => {
+    move: (G: SongJinnGame, ctx: Ctx, args:RegionID) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
+        logger.info(`p${ctx.playerID}.chooseRegion(${JSON.stringify(args)})`);
+        const log = [`p${ctx.playerID}.chooseRegion`];
         const ctr = getCountryById(ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
+        const event = G.pending.events.pop()
+        if (event !== undefined) {
+            switch (event) {
+                case PendingEvents.PlaceUnitsToRegion:
+
+                    break;
+                case PendingEvents.XiJunQuDuan:
+                    doPlaceUnit(G, [1,0,0,0,0,0],Country.SONG, args);
+                    ctx.events?.endStage();
+                    break
+
+
+            }
+        } else {
+            log.push(`|no|events|endStage`);
+            ctx.events?.endStage();
+        }
+
+        logger.debug(`${log.join('')}`);
     }
 }
+
 export const chooseProvince: LongFormMove = {
     move: (G, ctx, arg: ProvinceID) => {
         if (ctx.playerID === undefined) {
