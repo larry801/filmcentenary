@@ -2348,9 +2348,10 @@ const cardIdSort = (a: SJEventCardID, b: SJEventCardID) => {
     return sjCardById(a).op - sjCardById(b).op;
 }
 export const cardToSearch = (G: SongJinnGame, ctx: Ctx, pid: PlayerID): SJEventCardID[] => {
+
     const isSong = pid as SJPlayer === SJPlayer.P1;
     let totalDeck: SJEventCardID[] = isSong ? SongEarlyCardID : JinnEarlyCardID;
-    if (G.turn > 3) {
+    if (G.turn > 2) {
         const mid = isSong ? [...SongMidCardID] : [...JinnMidCardID];
         totalDeck = [...totalDeck, ...mid];
     }
@@ -2910,6 +2911,9 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                 } else {
                     const arg = args[0];
                     switch (name) {
+                        case 'returnToHand':
+                            log += `拿回发展牌${sjCardById(arg)}`;
+                            break;
                         case 'deployGeneral':
                             log +=
                                 `派遣${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`
@@ -3156,9 +3160,12 @@ export const drawPlanForPlayer = (G: SongJinnGame, pid: PlayerID) => {
     }
 }
 export const drawCardForSong = (G: SongJinnGame, ctx: Ctx) => {
-    let deck = G.secret.songDeck;
+    const log = [`drawCardForSong`];
+    const deck = G.secret.songDeck;
+    log.push(`|deck${deck}`);
     const player = G.player[SJPlayer.P1];
     const card = deck.pop();
+    log.push(`|popped${card}`);
     if (card === undefined) {
         G.secret.songDeck = shuffle(ctx, G.song.discard);
         G.song.discard = [];
@@ -3166,9 +3173,12 @@ export const drawCardForSong = (G: SongJinnGame, ctx: Ctx) => {
         player.hand.push(card);
     }
     if (deck.length === 0) {
+        log.push(`|deck|empty|reshuffle|`);
         G.secret.songDeck = shuffle(ctx, G.song.discard);
         G.song.discard = [];
+        log.push(`|newDeck${deck}`);
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const drawCardForJinn = (G: SongJinnGame, ctx: Ctx) => {
     const player = G.player[SJPlayer.P2];

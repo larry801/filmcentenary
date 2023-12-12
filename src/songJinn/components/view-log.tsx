@@ -11,6 +11,7 @@ import {SongJinnGame} from "../constant/general";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../../constant/i18n";
 import {logger} from "../../game/logger";
+import Paper from "@material-ui/core/Paper";
 
 export interface ILogViewProps {
     log: LogEntry[],
@@ -18,6 +19,14 @@ export interface ILogViewProps {
     G: SongJinnGame,
 }
 
+interface INewLogProps {
+    G:SongJinnGame,
+    l:LogEntry[],
+    count:number
+}
+export const NewLog = ({l,G,count}:INewLogProps) =>{
+    return l.map((e,idx)=><Paper key={`paper-sj-log${idx}`}>{getLogText(G, e)}/{count}</Paper>)
+}
 export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
 
     useI18n(i18n);
@@ -60,7 +69,9 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
     }
 
     const cloneLog = [...processedLogs];
+
     const reverseLog = cloneLog.filter(l => l.action.type !== "GAME_EVENT").reverse().slice(0, 50);
+    const newLog = reverseLog.length >= 5? reverseLog.slice(0,4): [];
     const totalLogText = reverseLog.map(l => getLogText(G, l)).join('\n');
 
     return <Grid item container xs={12}>
@@ -94,8 +105,10 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
                 maxRows={20}
                 variant="filled"
             />
-        </Grid>}
+            <NewLog G={G} l={newLog} count={log.length}/>
+         </Grid>}
     </Grid>
 }
+
 
 export default LogView;
