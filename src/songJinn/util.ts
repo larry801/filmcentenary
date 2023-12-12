@@ -3404,6 +3404,14 @@ export function getTroopPlaceText(t: Troop): string {
     return text;
 }
 
+export  function  hasOpponentTroop(G:SongJinnGame, t:Troop){
+    if (t.g === Country.SONG){
+        return getJinnTroopByPlace(G,t.p) !== null;
+    }else{
+        return getSongTroopByPlace(G,t.p) !== null;
+    }
+}
+
 export function getTroopText(G: SongJinnGame, t: Troop) {
     let text = '';
     const hasCity = t.c !== null;

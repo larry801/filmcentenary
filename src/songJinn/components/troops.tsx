@@ -33,7 +33,7 @@ import {
     getReadyGenerals,
     getRegionText,
     getStateById, getTroopPlaceText,
-    getTroopText,
+    getTroopText, hasOpponentTroop,
     optionToActualDst,
     StrProvince,
 } from "../util";
@@ -465,7 +465,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         {troops.map((t, idx) => <Grid item xs={6} key={`troop-grid-${idx}`}>
             <Accordion expanded={isActive && expanded === idx} onChange={() => setExpanded(idx)}
                        key={`troop-${idx}`}>
-                <AccordionSummary>{t.g} {getTroopPlaceText(t)} {getTroopText(G, t)}</AccordionSummary>
+                <AccordionSummary> {hasOpponentTroop(G,t)?'(**)':''} {t.g} {getTroopPlaceText(t)} {getTroopText(G, t)}</AccordionSummary>
                 <AccordionDetails>
                     {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
                         <button
