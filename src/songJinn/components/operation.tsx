@@ -355,12 +355,12 @@ export const Operation = ({
     const [dices, setDices] = useState(5);
     const adjustDice = (n: number) => {
         const newDice = dices + n;
-        if (newDice < 1) {
+        if (newDice <= 1) {
             setDices(1);
         } else {
             setDices(newDice);
         }
-        if (newDice > MAX_DICES) {
+        if (newDice >= MAX_DICES) {
             setDices(MAX_DICES);
         } else {
             setDices(newDice);

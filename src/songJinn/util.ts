@@ -67,6 +67,23 @@ function area(coords: [number, number][][]) {
     return 0.5 * s;
 }
 
+export function getTerrainTypeByPlace(troop: Troop) {
+    if (isRegionID(troop.p)) {
+        return getRegionById(troop.p).terrain;
+    } else {
+        if (isMountainPassID(troop.p)) {
+            return TerrainType.RAMPART;
+        } else {
+            if (isCityID(troop.p)) {
+                return TerrainType.RAMPART;
+            } else {
+                // TODO other country endurance
+                return TerrainType.FLATLAND;
+            }
+        }
+    }
+}
+
 export const centroid = (coordinates: [number, number][][]): [number, number] => {
     let c: [number, number] = [0, 0];
     let ring = coordinates[0];
@@ -179,9 +196,9 @@ export const optionToActualDst = (dst: string): TroopPlace => {
     const parsed = parseInt(dst);
     return (parsed === undefined || isNaN(parsed) ? dst : parsed) as TroopPlace;
 }
-export const hasOpponentTroop = (G: SongJinnGame, dst: TroopPlace, ctr: Country) => {
-    ctr2pub(G, ctr);
-}
+// export const hasOpponentTroop = (G: SongJinnGame, dst: TroopPlace, ctr: Country) => {
+//     ctr2pub(G, ctr);
+// }
 export const getMarchDst = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
     if (isMountainPassID(dst)) {
         return getPassAdj(dst);
@@ -373,7 +390,7 @@ export const getJinnDeployCities = (G: SongJinnGame) => {
         return troop === null;
     })
 }
-export const getPolicy = (G: SongJinnGame, ctx: Ctx) => {
+export const getPolicy = (G: SongJinnGame) => {
     if (G.events.includes(ActiveEvents.LiGang)) {
         return G.policy > 1 ? 3 : G.policy + 2;
     } else {
@@ -2772,7 +2789,7 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
                     g: Country.JINN
                 });
             } else {
-                if(  G.jinn.standby[6] > 0){
+                if (G.jinn.standby[6] > 0) {
                     log.push(`|two`);
                     G.jinn.troops.push({
                         p: city.region,
@@ -2780,12 +2797,12 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
                         u: [0, 0, 0, 0, 0, 0, 1],
                         g: Country.JINN
                     });
-                }else{
+                } else {
                     control = false;
                     log.push(`|noQi`);
                 }
             }
-        }else{
+        } else {
             log.push(`|noDaQiYet`);
             control = false;
         }
@@ -2934,7 +2951,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             ;
                             break;
                         case 'opponentMove':
-                            log += `让对方操作`;
+                            log = `让对方操作`;
                             break;
                         case 'takeDamage':
                             log += takeDamageText(arg);
@@ -3282,19 +3299,132 @@ export function getCityDefence(G: SongJinnGame, cid: CityID, ctr: Country): numb
 }
 
 export function troopSiegeRange(G: SongJinnGame, troop: Troop): number {
-    let range = troopRange(G, troop);
-    if (troop.g === Country.JINN) {
-        range += troop.u[4];
+    let range = 0;
+    const terrainType = getTerrainTypeByPlace(troop);
+    let unitRanges: number[] = [];
+
+    if (troop.g === Country.SONG) {
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitRanges = [0, 1, 0, 0, 0, 1];
+                break;
+            case TerrainType.HILLS:
+                unitRanges = [0, 1, 0, 0, 0, 1];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitRanges = [0, 1, 0, 0, 0, 1];
+                break;
+            case TerrainType.SWAMP:
+                unitRanges = [0, 1, 0, 1, 0, 1];
+                break;
+            case TerrainType.RAMPART:
+                unitRanges = [0, 1, 0, 0, 0, 1];
+                break;
+        }
+    } else {
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitRanges = [0, 1, 0, 0, 1, 0, 0];
+                break;
+            case TerrainType.HILLS:
+                unitRanges = [0, 1, 0, 0, 1, 0, 0];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitRanges = [0, 1, 0, 0, 1, 0, 0];
+                break;
+            case TerrainType.SWAMP:
+                unitRanges = [0, 1, 0, 1, 1, 0, 0];
+                break;
+            case TerrainType.RAMPART:
+                unitRanges = [0, 1, 0, 0, 1, 0, 0];
+                break;
+        }
+        if (G.events.includes(ActiveEvents.JianLiDaQi) && G.jinn.military >= 5) {
+            unitRanges[5] = 1;
+            unitRanges[6] = 1;
+        }
+    }
+    troop.u.forEach((i, idx) => {
+        range += i * unitRanges[idx]
+    });
+    if (troop.g === Country.JINN && hasGeneral(G, troop, JinnGeneral.WoLiBu)) {
+        range += troop.u[1];
+        range += troop.u[2];
+    }
+    if (troop.g === Country.SONG) {
+        range += getPolicy(G);
+        range = range > 0 ? range : 0;
     }
     return range;
 }
 
 export function troopSiegeMelee(G: SongJinnGame, troop: Troop): number {
-    let range = troopMelee(G, troop);
-    if (troop.g === Country.JINN) {
-        range += troop.u[4];
+
+    let melee = 0;
+    const terrainType = getTerrainTypeByPlace(troop);
+    const place = troop.p;
+    // @ts-ignore
+    const isSwampRampart = isCityID(place) && getRegionById(getCityById(place))
+        .terrain === TerrainType.SWAMP;
+
+
+    let unitMelee: number[] = [];
+
+    if (troop.g === Country.SONG) {
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitMelee = [1, 0, 3, 0, 0, 0];
+                break;
+            case TerrainType.HILLS:
+                unitMelee = [1, 0, 2, 0, 0, 0];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitMelee = [1, 0, 1, 0, 0, 0];
+                break;
+            case TerrainType.SWAMP:
+                unitMelee = [1, 0, 1, 2, 0, 0];
+                break;
+            case TerrainType.RAMPART:
+                unitMelee = [1, 0, 1, 0, 0, 0];
+                if (isSwampRampart) {
+                    unitMelee[4] = 2;
+                }
+                break;
+        }
+        if (G.events.includes(ActiveEvents.ShenBiGong)) {
+            unitMelee[1] = 2;
+        }
+    } else {
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitMelee = [1, 1, 1, 0, 1, 1, 1];
+                break;
+            case TerrainType.HILLS:
+                unitMelee = [1, 1, 1, 0, 1, 1, 1];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitMelee = [1, 1, 1, 0, 1, 1, 1];
+                break;
+            case TerrainType.SWAMP:
+                unitMelee = [1, 1, 1, 1, 1, 1, 1];
+                break;
+            case TerrainType.RAMPART:
+                unitMelee = [1, 1, 1, 0, 1, 1, 1];
+                break;
+        }
     }
-    return range;
+    troop.u.forEach((i, idx) => {
+        melee += i * unitMelee[idx]
+    })
+    if (troop.g === Country.JINN && hasGeneral(G, troop, JinnGeneral.WoLiBu)) {
+        melee += getPolicy(G);
+        melee = melee > 0 ? melee : 0;
+    }
+    if (troop.g === Country.SONG) {
+        melee += troop.u[1];
+        melee += troop.u[2];
+    }
+    return melee;
 }
 
 export function troopDefendCiyRange(G: SongJinnGame, troop: Troop): number {
@@ -3302,9 +3432,13 @@ export function troopDefendCiyRange(G: SongJinnGame, troop: Troop): number {
     if (troop.c !== null) {
         range += getCityDefence(G, troop.c, troop.g);
     }
+    range += troop.u[1];
     return range;
 }
 
+export function troopDefendCiyMelee(G: SongJinnGame, troop: Troop): number {
+    return troopMelee(G, troop) + troop.u[1];
+}
 
 export function hasGeneral(G: SongJinnGame, t: Troop, gen: General) {
     const pub = ctr2pub(G, t.g);
@@ -3379,22 +3513,6 @@ export function troopMeleeOnly(G: SongJinnGame, troop: Troop): number {
     return melee;
 }
 
-export function getTerrainTypeByPlace(troop: Troop) {
-    if (isRegionID(troop.p)) {
-        return getRegionById(troop.p).terrain;
-    } else {
-        if (isMountainPassID(troop.p)) {
-            return TerrainType.RAMPART;
-        } else {
-            if (isCityID(troop.p)) {
-                return TerrainType.RAMPART;
-            } else {
-                // TODO other country endurance
-                return TerrainType.FLATLAND;
-            }
-        }
-    }
-}
 
 export function getTroopPlaceText(t: Troop): string {
     let text = `${placeToStr(t.p)}`;
@@ -3404,36 +3522,28 @@ export function getTroopPlaceText(t: Troop): string {
     return text;
 }
 
-export  function  hasOpponentTroop(G:SongJinnGame, t:Troop){
-    if (t.g === Country.SONG){
-        return getJinnTroopByPlace(G,t.p) !== null;
-    }else{
-        return getSongTroopByPlace(G,t.p) !== null;
+export function hasOpponentTroop(G: SongJinnGame, t: Troop) {
+    if (t.g === Country.SONG) {
+        return getJinnTroopByPlace(G, t.p) !== null;
+    } else {
+        return getSongTroopByPlace(G, t.p) !== null;
     }
 }
 
 export function getTroopText(G: SongJinnGame, t: Troop) {
     let text = '';
-    const hasCity = t.c !== null;
-    const hasEche = t.g === Country.JINN && t.u[4] !== 0;
     const general = getPlaceCountryGeneral(G, t.g, t.p);
     if (general.length > 0) {
         text += getPlaceCountryGeneralNames(G, t.g, t.p);
     }
     text += `|${unitsToString(t.u)}`;
-    text += `|耐${troopEndurance(G, t)}`;
-    text += '\n';
-    text += `|远${troopRange(G, t)}`;
-    if (hasEche) {
-        text += `(${troopSiegeRange(G, t)})`;
-    }
-    if (hasCity) {
-        text += `城${troopDefendCiyRange(G, t)}`;
-    }
-    text += `|交锋${troopMelee(G, t)}`;
-    if (hasEche) {
-        text += `(${troopSiegeMelee(G, t)})`;
-    }
+    text += `${troopEndurance(G, t)}|`;
+    text += `|${troopRange(G, t)}|`;
+    text += `/${troopSiegeRange(G, t)}`;
+    text += `/${troopDefendCiyRange(G, t)}`;
+    text += `|${troopMelee(G, t)}`;
+    text += `/${troopSiegeMelee(G, t)})`;
+    text += `/${troopDefendCiyMelee(G, t)}`;
     return text;
 }
 
@@ -3806,7 +3916,6 @@ export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
 export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid)
-
 
 
     if (pub.provinces.includes(prov)) {

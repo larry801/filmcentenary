@@ -12,7 +12,7 @@ import {
     centroid, getJinnTroopByPlace,
     getSongTroopByPlace,
     getTroopPlaceText,
-    getTroopText
+    getTroopText, unitsToString
 } from "../util";
 
 

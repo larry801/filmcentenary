@@ -44,7 +44,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <label>宋</label>
             <div><label>军事：</label>{s.military}</div>
             <div><label>内政：</label>{s.civil}</div>
-            <div><label>政策：</label>{getPolicy(G, ctx)}</div>
+            <div><label>政策：</label>{getPolicy(G)}</div>
             <div><label>国力：</label>{getSongPower(G)}</div>
             <div><label>腐败：</label>{s.corruption}</div>
             <div><label>盟国：</label>{s.nations.join(',')}</div>

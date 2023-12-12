@@ -939,6 +939,8 @@ interface IHeYiArgs {
     card:SJEventCardID,
     city:CityID
 }
+
+
 export const heYi: LongFormMove = {
     move: (G, ctx, {city,card}:IHeYiArgs) => {
         if (!heYiCheck(G, ctx)) {
@@ -1234,8 +1236,8 @@ export const chooseTop: LongFormMove = {
             log.push(`|nextPlayer`);
             ctx.events?.endTurn();
         } else {
-            log.push(`|develop`);
-            ctx.events?.setPhase('develop');
+            log.push(`|diplomacy`);
+            ctx.events?.endPhase();
         }
         logger.info(`${log.join('')}`);
     }
