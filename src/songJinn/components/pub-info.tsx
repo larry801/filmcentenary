@@ -35,7 +35,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
         <Grid item xs={12} key={`game-info`}>
             <Typography>第{G.turn}回合 第{G.round}轮 {phaseName(ctx.phase)}</Typography>
             <Typography>已发生事件：{G.events.map(e=>
-                <label key={`event-global-${e}`}>{e}</label>
+                <label key={`event-global-${e}`}>{e},</label>
                     )}
             </Typography>
             {G.qi.length > 0 && <div>齐控制路：<br/>{G.qi.map(p => <label key={`qi-${p}`}>{p}<br/></label>)}</div>}
