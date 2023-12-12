@@ -6,6 +6,7 @@ export interface Region {
     name: string;
     land: RegionID[];
     water: RegionID[];
+    pass: RegionID[];
     terrain: TerrainType,
     province: ProvinceID;
 }
