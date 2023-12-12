@@ -35,7 +35,7 @@ import {
     getStateById, getTroopPlaceText,
     getTroopText, hasOpponentTroop,
     optionToActualDst,
-    StrProvince,
+    StrProvince, unitsToString,
 } from "../util";
 
 export interface IPlayerHandProps {
@@ -125,7 +125,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         max={[...ctr2pub(G, deployTroop.g).ready]}
         initUnits={unitNames.map(() => 0)}
         show={isActive && deployStep === DeployStep.UNITS}
-        title={"选择补充部队"} toggleText={"补充"}
+        title={`选择补充部队 剩余${unitsToString(pub.ready)}`} toggleText={"补充"}
         initial={true} country={deployTroop.g}
     />
 

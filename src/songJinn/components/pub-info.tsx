@@ -37,7 +37,9 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <Typography>已发生事件：{G.events.map(e=>
                 <label key={`event-global-${e}`}>{e},</label>
                     )}
+                移除的国家：{G.removedNation}
             </Typography>
+
             {G.qi.length > 0 && <div>齐控制路：<br/>{G.qi.map(p => <label key={`qi-${p}`}>{p}<br/></label>)}</div>}
         </Grid>
         <Grid item xs={6} key={`song-pub`}><Paper>

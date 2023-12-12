@@ -42,7 +42,7 @@ import {
     doGeneralSkill,
     doLoseProvince,
     doPlaceUnit,
-    doRecruit,
+    doRecruit, doRemoveNation,
     drawPhaseForPlayer,
     drawPlanForPlayer,
     endRoundCheck,
@@ -61,7 +61,7 @@ import {
     mergeTroopTo,
     moveGeneralByCountry,
     moveGeneralByPid,
-    moveGeneralToReady,
+    moveGeneralToReady, nationMoveJinn, nationMoveSong,
     pid2ctr,
     placeToStr,
     playerById,
@@ -240,7 +240,7 @@ export const letter: LongFormMove = {
 }
 
 export const chooseRegion: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx, args:RegionID) => {
+    move: (G: SongJinnGame, ctx: Ctx, args: RegionID) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
@@ -256,7 +256,7 @@ export const chooseRegion: LongFormMove = {
 
                     break;
                 case PendingEvents.XiJunQuDuan:
-                    doPlaceUnit(G, [1,0,0,0,0,0],Country.SONG, args);
+                    doPlaceUnit(G, [1, 0, 0, 0, 0, 0], Country.SONG, args);
                     ctx.events?.endStage();
                     break
 
@@ -912,11 +912,11 @@ export const combatCard: LongFormMove = {
 }
 
 interface IAskFieldArgs {
-    place:TroopPlace
+    place: TroopPlace
 }
 
 export const askField: LongFormMove = {
-    move:(G, ctx, args)=>{
+    move: (G, ctx, args) => {
 
     }
 }
@@ -947,13 +947,13 @@ export const cardEvent: LongFormMove = {
 }
 
 interface IHeYiArgs {
-    card:SJEventCardID,
-    city:CityID
+    card: SJEventCardID,
+    city: CityID
 }
 
 
 export const heYi: LongFormMove = {
-    move: (G, ctx, {city,card}:IHeYiArgs) => {
+    move: (G, ctx, {city, card}: IHeYiArgs) => {
         if (!heYiCheck(G, ctx)) {
             return INVALID_MOVE;
         }
@@ -1245,10 +1245,10 @@ export const chooseTop: LongFormMove = {
         }
         if (G.order[0] === ctx.playerID) {
             log.push(`|nextPlayer`);
-            ctx.events?.endTurn();
+            // ctx.events?.endTurn();
         } else {
             log.push(`|diplomacy`);
-            ctx.events?.endPhase();
+            // ctx.events?.endPhase();
         }
         logger.info(`${log.join('')}`);
     }
@@ -1383,6 +1383,28 @@ export const loseCity: LongFormMove = {
             }
         } else {
             return INVALID_MOVE;
+        }
+    }
+}
+
+
+export const removeNation: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, arg: NationID) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        doRemoveNation(G, arg);
+    }
+}
+export const adjustNation: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, arg: NationID) => {
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        if (ctx.playerID === SJPlayer.P1) {
+            nationMoveSong(G, arg);
+        } else {
+            nationMoveJinn(G, arg);
         }
     }
 }

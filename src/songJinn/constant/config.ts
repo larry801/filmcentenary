@@ -1,6 +1,7 @@
 import {Ctx, PhaseConfig, StageConfig, TurnConfig} from "boardgame.io";
 import {TurnOrder} from "boardgame.io/core";
 import {
+    adjustNation,
     cardEvent,
     chooseFirst,
     choosePlan,
@@ -27,7 +28,7 @@ import {
     placeTroop,
     placeUnit,
     recruitPuppet,
-    recruitUnit,
+    recruitUnit, removeNation,
     removeUnit, rescueGeneral,
     returnToHand,
     rollDices,
@@ -76,6 +77,8 @@ export const ReactStageConfig: StageConfig<SongJinnGame> = {
     moves: {
         emperor: emperor,
 
+        removeNation:removeNation,
+        adjustNation:adjustNation,
         discard: discard,
         deploy: deploy,
         opponentMove: opponentMove,
@@ -308,6 +311,9 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         controlProvince: controlProvince,
         placeTroop: placeTroop,
         down: down,
+
+        removeNation:removeNation,
+        adjustNation:adjustNation,
     },
 }
 
@@ -345,6 +351,7 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         logger.info(`${log.join('')}`);
     },
     moves: {
+
         recruitPuppet: recruitPuppet,
         endRound: endRound,
 
@@ -362,6 +369,9 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         down: down,
         takePlan: takePlan,
         chooseTop: chooseTop,
+        removeNation:removeNation,
+        adjustNation:adjustNation,
+
         //
     },
     turn: StagedTurnConfig,
@@ -392,6 +402,9 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
     },
     turn: StagedTurnConfig,
     moves: {
+
+        removeNation:removeNation,
+        adjustNation:adjustNation,
         recruitPuppet: recruitPuppet,
         endRound: endRound,
         deploy: deploy,

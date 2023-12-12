@@ -3015,6 +3015,14 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             log += `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`;
 
                             break;
+                        case 'removeNation':
+
+                            log += `移除了${arg}`;
+                            break;
+                        case 'adjustNation':
+                            log += `调整了${arg}的外交状态 ${G.song.nations} 盟宋${G.jinn.nations}盟金`;
+
+                            break;
                         case 'controlProvince':
                             log += `控制了${arg}`;
                             break;
@@ -3866,8 +3874,12 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
 }
 export const doRemoveNation = (G: SongJinnGame, nation: NationID) => {
     G.removedNation.push(nation);
-    G.song.nations.splice(G.song.nations.indexOf(nation), 1);
-    G.jinn.nations.splice(G.jinn.nations.indexOf(nation), 1);
+    if(G.song.nations.includes(nation)){
+        G.song.nations.splice(G.song.nations.indexOf(nation), 1);
+    }
+    if(G.jinn.nations.includes(nation)) {
+        G.jinn.nations.splice(G.jinn.nations.indexOf(nation), 1);
+    }
 }
 export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID) => {
     const log = [`doControlProvince`];

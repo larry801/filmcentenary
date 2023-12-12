@@ -2,7 +2,7 @@ import React, {useState} from "react";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {CityID, DevelopChoice, General, ProvinceID, RegionID, SongJinnGame} from "../constant/general";
+import {CityID, DevelopChoice, General, NationID, ProvinceID, RegionID, SongJinnGame} from "../constant/general";
 import {getProvinceById} from "../constant/province";
 import {getRegionById} from "../constant/regions";
 import {
@@ -45,6 +45,37 @@ export const AdjustOps = ({
     const [moveGeneralStep, setMoveGeneralStep] = useState(MoveGeneralStep.PROVINCE);
     const [regions, setRegions] = useState([RegionID.R20]);
     const [moveGeneralRegion, setMoveGeneralRegion] = useState(RegionID.R01);
+
+
+
+    const removeNationDialog = <ChoiceDialog
+        callback={(c) => {
+            moves.removeNation(c)
+        }} choices={
+        Object.values(NationID).map(p => {
+            return {
+                label: p,
+                value: p,
+                disabled: false,
+                hidden: false
+            }
+        })} defaultChoice={""}
+        show={isActive}
+        title={"选择移除国家"} toggleText={"移除国家"} initial={false}/>
+    const adjustNationDialog = <ChoiceDialog
+        callback={(c) => {
+            moves.adjustNation(c)
+        }} choices={
+        Object.values(NationID).map(p => {
+            return {
+                label: p,
+                value: p,
+                disabled: false,
+                hidden: false
+            }
+        })} defaultChoice={""}
+        show={isActive}
+        title={"选择调整国家"} toggleText={"调整外交"} initial={false}/>
 
     const chooseProvDialog = <ChoiceDialog
         callback={(c) => {
@@ -307,6 +338,8 @@ export const AdjustOps = ({
     />
 
     return <Grid container>
+        {removeNationDialog}
+        {adjustNationDialog}
         {cityDialog}
         {loseCityToOpponentDialog}
 
