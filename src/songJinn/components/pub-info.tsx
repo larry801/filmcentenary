@@ -58,7 +58,6 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
                 <ChoiceDialog callback={() => {
             }} choices={
                 s.cities.map(c => {
-                    const city = getCityById(c);
                     return {
                         label: getCityText(c),
                         value: c,
@@ -100,7 +99,6 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             <ChoiceDialog callback={() => {
             }} choices={
                 j.cities.map(c => {
-                    const city = getCityById(c);
                     return {
                         label: getCityText(c),
                         value: c,
