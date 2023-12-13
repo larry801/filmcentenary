@@ -11,6 +11,7 @@ import {
     GeneralNames,
     GeneralStatus,
     IEra,
+    INITIAL_RECRUIT_PERMISSION,
     isCityID,
     isMountainPassID,
     isNationID,
@@ -525,6 +526,15 @@ export interface Cards {
 export const sjCardById: (cid: BaseCardID) => Cards = (cid: BaseCardID) => {
     return idToCard[cid];
 }
+
+export function songLoseEmperor(G: SongJinnGame) {
+    G.song.emperor = null;
+    policyDown(G, 1);
+    if (G.song.corruption > 0) {
+        G.song.corruption--;
+    }
+}
+
 export const idToCard = {
     [SongBaseCardID.S01]: {
         id: SongBaseCardID.S01,
@@ -1262,6 +1272,8 @@ export const idToCard = {
         event: (G: SongJinnGame, ctx: Ctx) => {
             G.song.corruption++;
             G.op = 2;
+            // TODO check combat??
+            developInstead(G, SJPlayer.P1, SongBaseCardID.S40);
         }
     },
     [SongBaseCardID.S41]: {
@@ -1901,7 +1913,9 @@ export const idToCard = {
         combat: false,
         effectText: "宋国失去皇帝。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G.song.emperor = null
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            songLoseEmperor(G);
+        }
     },
     [JinnBaseCardID.J27]: {
         id: JinnBaseCardID.J27,
@@ -2467,9 +2481,12 @@ export const doLoseCity = (G: SongJinnGame, pid: PlayerID, cityID: CityID, oppon
     if (pub.cities.includes(cityID)) {
         pub.cities.splice(pub.cities.indexOf(cityID), 1);
         if (ctr === Country.SONG && G.song.emperor === cityID) {
-            log.push(`|emperor`);
-            G.song.emperor = null;
-            policyDown(G, 1);
+            log.push(`|song|emperor`);
+            songLoseEmperor(G);
+        }
+        if (ctr === Country.JINN && G.jinn.emperor === cityID) {
+            log.push(`|jinn|emperor`);
+            G.jinn.emperor = null;
         }
         const city = getCityById(cityID);
         if (city.capital) {
@@ -3562,6 +3579,7 @@ export function getSimpleTroopText(G: SongJinnGame, t: Troop) {
     text += `${troopEndurance(G, t)}`
     return text;
 }
+
 export function getTroopText(G: SongJinnGame, t: Troop) {
     let text = ``;
     const general = getPlaceCountryGeneral(G, t.g, t.p);
@@ -3969,7 +3987,6 @@ export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
 export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
     const pub = getStateById(G, pid);
     const oppo = getOpponentStateById(G, pid)
-
 
     if (pub.provinces.includes(prov)) {
         if (pid === SJPlayer.P1) {

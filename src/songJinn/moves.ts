@@ -57,7 +57,7 @@ import {
     getStateById,
     getTroopByCountryPlace,
     heYiChange,
-    heYiCheck,
+    heYiCheck, songLoseEmperor,
     mergeTroopTo,
     moveGeneralByCountry,
     moveGeneralByPid,
@@ -216,7 +216,9 @@ export const march: LongFormMove = {
                 pub.troops.push(newTroop);
             }
         }
-
+        log.push(`|${G.op}G.op`);
+        G.op --;
+        log.push(`|${G.op}G.op`);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -1379,8 +1381,7 @@ export const loseCity: LongFormMove = {
         if (pub.cities.includes(cityID)) {
             pub.cities.splice(pub.cities.indexOf(cityID), 1);
             if (ctr === Country.SONG && G.song.emperor === cityID) {
-                G.song.emperor = null;
-                policyDown(G, 1);
+                songLoseEmperor(G);
             }
             const city = getCityById(cityID);
             if (city.capital) {
