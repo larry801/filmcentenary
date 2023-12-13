@@ -216,30 +216,19 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         title={"选择目标区域"}
         toggleText={"选择目标区域"} initial={true}/>;
 
-    const unitDialog = <CheckBoxDialog
+    const unitDialog = <ChooseUnitsDialog
         callback={(c) => {
-            const units = unitNames.map(() => 0);
-            c.forEach(u => {
-                const idx = unitNames.indexOf(u);
-                units[idx] = 1;
-            })
             moves.placeUnit({
                 place: newTroopRegion,
-                units: units,
+                units: c,
                 country: ctr
             })
             setNewTroopStep(NewTroopStep.START);
         }}
-        choices={unitNames.map(u => {
-            return {
-                label: u,
-                value: u,
-                disabled: false,
-                hidden: false
-            }
-        })}
         show={isActive && newTroopStep === NewTroopStep.UNIT}
-        title={"选择兵种"} toggleText={"选择兵种"} initial={true}/>;
+        title={"选择部队"} toggleText={"选择部队"}
+        initUnits={emptyUnitsByCountry(ctr)}
+        initial={true} country={ctr} max={pub.standby}/>;
 
     const provDialog = <ChoiceDialog
         callback={(c) => {
@@ -378,7 +367,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
         }} choices={getReadyGenerals(G, pid).map(g => {
         return {label: getGeneralNameByCountry(ctr, g), value: g.toString(), disabled: false, hidden: false}
-    })} defaultChoice={""} show={isActive} title={"将领派遣"} toggleText={"派遣"} initial={true}/>
+    })} defaultChoice={""} show={isActive} title={"移除将领"} toggleText={"移除将领"} initial={true}/>
     const moveGeneralRegionDialog = 1;
 
     const [removeUnitStep, setRemoveUnitStep] = React.useState(RemoveStep.TROOP);
@@ -465,7 +454,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         {troops.map((t, idx) => <Grid item xs={6} key={`troop-grid-${idx}`}>
             <Accordion expanded={isActive && expanded === idx} onChange={() => setExpanded(idx)}
                        key={`troop-${idx}`}>
-                <AccordionSummary> {hasOpponentTroop(G,t)?'(**)':''} {t.g} {getTroopPlaceText(t)} {getTroopText(G, t)}</AccordionSummary>
+                <AccordionSummary> {hasOpponentTroop(G,t)?'(**)':''} {t.g}{getTroopPlaceText(t)} {getTroopText(G, t)} </AccordionSummary>
                 <AccordionDetails>
                     {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
                         <button

@@ -9,7 +9,7 @@ import {getRegionById} from "../constant/regions";
 import {RegionID, SongJinnGame, TerrainType} from "../constant/general";
 import {green, orange, red, yellow, purple} from "@material-ui/core/colors";
 import {
-    centroid, getJinnTroopByPlace,
+    centroid, getCityText, getJinnTroopByPlace,
     getSongTroopByPlace,
     getTroopPlaceText,
     getTroopText, unitsToString
@@ -93,19 +93,15 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                             // if(region.id === chosenRegion){
                                             //     setCenter(regionCenter);
                                             // }
-                                            let text = region.name;
+                                            let text = '';
                                             const songTroop = getSongTroopByPlace(G, region.id);
                                             const jinnTroop = getJinnTroopByPlace(G, region.id);
                                             if (songTroop !== null) {
                                                 if (jinnTroop !== null) {
-                                                    text = getTroopPlaceText(songTroop);
-                                                    text += '\n';
                                                     text += getTroopText(G, songTroop);
                                                     text += '\n';
                                                     text += getTroopText(G, jinnTroop);
                                                 } else {
-                                                    text = getTroopPlaceText(songTroop);
-                                                    text += '\n';
                                                     text += getTroopText(G, songTroop);
                                                 }
                                             }else{
@@ -147,13 +143,22 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                                         key={`map-text-${i}`}
                                                         x={projected[0]}
                                                         y={projected[1]}
-                                                        fontSize={12}
+                                                        fontSize={14}
                                                         textAnchor={'middle'}
                                                         width={10}
                                                     >
                                                         {text}
                                                     </Text>}
-
+                                                    {projected !== null && <Text
+                                                        key={`map-region-text-${i}`}
+                                                        x={projected[0]}
+                                                        y={projected[1]}
+                                                        fontSize={10}
+                                                        textAnchor={'middle'}
+                                                        width={10}
+                                                    >
+                                                        {region.city !== null ? getCityText(region.city):region.name}
+                                                    </Text>}
                                                 </>
                                             )
                                         })}

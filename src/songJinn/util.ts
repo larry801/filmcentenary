@@ -2730,6 +2730,7 @@ export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], countr
             return null;
     }
 }
+
 export const colonyUp = (G: SongJinnGame, a: number) => {
     if (G.colony + a > 4) {
         G.colony = 4;
@@ -3549,7 +3550,7 @@ export function hasOpponentTroop(G: SongJinnGame, t: Troop) {
 }
 
 export function getTroopText(G: SongJinnGame, t: Troop) {
-    let text = '';
+    let text = ``;
     const general = getPlaceCountryGeneral(G, t.g, t.p);
     if (general.length > 0) {
         text += getPlaceCountryGeneralNames(G, t.g, t.p);
