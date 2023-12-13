@@ -5,7 +5,7 @@ export const MAX_ROUND = 8;
 export const MAX_DICES = 30;
 
 export enum PendingEvents {
-  PlaceUnitsToRegion,
+    PlaceUnitsToRegion,
     XiJunQuDuan,
 }
 
@@ -158,6 +158,12 @@ export function isMountainPassID(place: TroopPlace): place is MountainPassID {
 
 export function isCityID(place: TroopPlace): place is MountainPassID {
     return typeof place === 'string' && Object.values(CityID).includes(place as CityID);
+}
+
+export enum BattleChoice {
+    FIELD,
+    CONTINUE,
+
 }
 
 // CityID表示被围困
@@ -723,6 +729,91 @@ export interface SJPubInfo {
     usedDevelop: number
 }
 
+
+export const enum CombatType {
+    SIEGE = "攻城",
+    RESCUE = "解围",
+    FIELD = "野战",
+    BREAKOUT = "突围"
+}
+
+
+export interface CountryCombatInfo {
+    troop: Troop,
+    combatCard: SJEventCardID[],
+    choice: BeatGongChoice,
+    damageLeft: number,
+}
+
+export const enum BeatGongChoice {
+    CONTINUE = "继续",
+    STALEMATE = "相持",
+    RETREAT = "撤退"
+}
+
+export interface CombatInfo {
+    phase: CombatPhase,
+    attacker: Country,
+    type: CombatType,
+    region: RegionID | null,
+    city: CityID | null,
+    song: CountryCombatInfo,
+    jinn: CountryCombatInfo,
+    roundTwo: boolean,
+    ongoing: boolean
+}
+
+function emptyJinnTroop(): Troop {
+    return {
+        p: RegionID.R01,
+        g: Country.JINN,
+        c: null,
+        u: [0, 0, 0, 0, 0, 0, 0]
+    }
+}
+
+function emptySongTroop(): Troop {
+    return {
+        p: RegionID.R01,
+        g: Country.SONG,
+        c: null,
+        u: [0, 0, 0, 0, 0, 0]
+    }
+}
+
+export enum CombatPhase {
+    JieYe = "接野",
+    WeiKun = "围困",
+    YunChou = "运筹",
+    YuanCheng = "远程",
+    WuLin = "吴璘",
+    JiaoFeng = "交锋"
+}
+
+function emptyCombatInfo(): CombatInfo {
+    return {
+        phase: CombatPhase.JieYe,
+        attacker: Country.JINN,
+        type: CombatType.FIELD,
+        region: null,
+        city: null,
+        ongoing: false,
+        roundTwo: false,
+        song: {
+            choice: BeatGongChoice.CONTINUE,
+            troop: emptySongTroop(),
+            combatCard: [],
+            damageLeft: 0,
+        },
+        jinn: {
+            choice: BeatGongChoice.CONTINUE,
+            troop: emptyJinnTroop(),
+            combatCard: [],
+            damageLeft: 0,
+        }
+    }
+}
+
 export const initialJinnPub: SJPubInfo = {
     specialPlan: 0,
     generalSkill: [true, true, true, false, false, true],
@@ -923,7 +1014,7 @@ export interface SongJinnGame {
         [SJPlayer.P1]: SJPlayerInfo,
         [SJPlayer.P2]: SJPlayerInfo,
     }
-    // combat: CombatInfo,
+    combat: CombatInfo,
     secret: {
         songDeck: SJEventCardID[],
         jinnDeck: SJEventCardID[],
@@ -952,6 +1043,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
         // start from action phase for debugging
         order: [SJPlayer.P1, SJPlayer.P2],
         // order: [SJPlayer.P1],
+        combat: emptyCombatInfo(),
         events: [],
         round: 1,
         turn: 1,

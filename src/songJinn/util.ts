@@ -4,6 +4,8 @@ import {
     ActiveEvents,
     BaseCardID,
     CityID,
+    CombatPhase,
+    CombatType,
     Country,
     DevelopChoice,
     EventDuration,
@@ -57,6 +59,7 @@ import {logger} from "../game/logger";
 import {INVALID_MOVE, Stage} from "boardgame.io/core";
 import {getProvinceById} from "./constant/province";
 import {getCityById} from "./constant/city";
+import {changePlayerStage} from "../game/logFix";
 
 
 function area(coords: [number, number][][]) {
@@ -479,6 +482,29 @@ export const getOpponentStateById = (G: SongJinnGame, pid: PlayerID) => {
         return G.jinn;
     } else {
         return G.song;
+    }
+}
+
+export const getOpponentPlaceTroopByCtr = (G: SongJinnGame, ctr: Country, p: TroopPlace) => {
+    if (ctr === Country.SONG) {
+        return getJinnTroopByPlace(G, p);
+    } else {
+        return getSongTroopByPlace(G, p);
+    }
+}
+export const getOpponentPlaceTroopById = (G: SongJinnGame, pid: PlayerID, p: TroopPlace) => {
+    if (pid as SJPlayer === SJPlayer.P1) {
+        return getJinnTroopByPlace(G, p);
+    } else {
+        return getSongTroopByPlace(G, p);
+    }
+}
+
+export const getCombatStateById = (G: SongJinnGame, pid: PlayerID) => {
+    if (pid as SJPlayer === SJPlayer.P1) {
+        return G.combat.song;
+    } else {
+        return G.combat.jinn;
     }
 }
 export const getStateById = (G: SongJinnGame, pid: PlayerID) => {
@@ -3320,6 +3346,81 @@ export const remainDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => 
     return totalDevelop(G, ctx, playerId) - getStateById(G, playerId).usedDevelop;
 }
 
+export function oppoCtr(c: Country) {
+    return c === Country.SONG ? Country.JINN : Country.SONG;
+}
+
+// troop
+
+export const ciDefTroop = (G: SongJinnGame): Troop => {
+    const ci = G.combat;
+    return ci.attacker === Country.SONG ? ci.song.troop : ci.jinn.troop;
+}
+export const ciAtkTroop = (G: SongJinnGame): Troop => {
+    const ci = G.combat;
+    return ci.attacker === Country.JINN ? ci.song.troop : ci.jinn.troop;
+}
+export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+    if (G.combat.phase === CombatPhase.JieYe) {
+        return "是否接野？"
+    }
+    if (G.combat.phase === CombatPhase.WeiKun) {
+        return "是否围困？"
+    }
+    return "是否确认";
+}
+
+export function endCombat(
+    G: SongJinnGame, ctx: Ctx) {
+    const log = [`endCombat`];
+    const c = G.combat;
+    c.ongoing = false;
+    c.song.combatCard.forEach(cid => {
+        if (c.song.combatCard.includes(cid)) {
+            c.song.combatCard.splice(c.song.combatCard.indexOf(cid), 1);
+        }
+        G.song.discard.push(cid);
+    })
+
+    logger.debug(`${G.matchID}|${log.join('')}`);
+
+}
+
+export function startCombat(
+    G: SongJinnGame, ctx: Ctx,
+    attacker: Country, p: TroopPlace
+) {
+    const log = [`startCombat${attacker}${placeToStr(p)}}`];
+    const c = G.combat;
+    c.ongoing = true;
+    c.attacker = attacker;
+    const atkId = ctr2pid(attacker);
+    const defId = pid2ctr(oppoCtr(attacker));
+    if (isNationID(p)) {
+        log.push(`|cannot|combat|in|nation`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return;
+    } else {
+        if (isRegionID(p)) {
+            const reg = getRegionById(p);
+            if (reg.city === null) {
+                c.type = CombatType.FIELD;
+                changePlayerStage(G,ctx,'combatCard',G.order[0]);
+            } else {
+                changePlayerStage(G, ctx, 'confirmRespond', defId);
+            }
+        }else{
+            if(isMountainPassID(p)){
+                log.push(`|mountainPass|cc`);
+                c.type = CombatType.SIEGE;
+                changePlayerStage(G,ctx,'combatCard',G.order[0]);
+            }
+        }
+    }
+    const def = getOpponentPlaceTroopByCtr(G, attacker, p);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
 export function troopIsArmy(G: SongJinnGame, ctx: Ctx, troop: Troop) {
     return troopEndurance(G, troop) !== 0;
 }
@@ -3453,10 +3554,6 @@ export function troopSiegeRange(G: SongJinnGame, troop: Troop): number {
     troop.u.forEach((i, idx) => {
         range += i * unitRanges[idx]
     });
-    if (troop.g === Country.JINN && hasGeneral(G, troop, JinnGeneral.WoLiBu)) {
-        range += troop.u[1];
-        range += troop.u[2];
-    }
     if (troop.g === Country.SONG) {
         range += getPolicy(G);
         range = range > 0 ? range : 0;
@@ -3472,8 +3569,6 @@ export function troopSiegeMelee(G: SongJinnGame, troop: Troop): number {
     // @ts-ignore
     const isSwampRampart = isCityID(place) && getRegionById(getCityById(place))
         .terrain === TerrainType.SWAMP;
-
-
     let unitMelee: number[] = [];
 
     if (troop.g === Country.SONG) {
@@ -3871,11 +3966,11 @@ export const addMidTermCard = (G: SongJinnGame, ctx: Ctx) => {
 export const troopEmpty = (troop: Troop) => {
     return troop.u.filter(c => c > 0).length === 0
 }
-export const jieSuanLuQuan = (G: SongJinnGame, ctx: Ctx, pid: ProvinceID) => {
-    const prov = getProvinceById(pid);
-    const cities = [...prov.capital, ...prov.other]
-    const filtered = cities.filter(c => G.song.cities.includes(c))
-};
+// export const jieSuanLuQuan = (G: SongJinnGame, ctx: Ctx, pid: ProvinceID) => {
+//     const prov = getProvinceById(pid);
+//     const cities = [...prov.capital, ...prov.other]
+//     const filtered = cities.filter(c => G.song.cities.includes(c))
+// };
 export const canChoosePlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
     if ([PlanID.J23, PlanID.J24].includes(plan)) {
         const ctr = getCountryById(pid);

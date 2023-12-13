@@ -3,10 +3,13 @@ import {
     ActiveEvents,
     BaseCardID,
     CityID,
+    CombatPhase,
+    CombatType,
     Country,
     DevelopChoice,
     General,
     isCityID,
+    isNationID,
     isRegionID,
     LetterOfCredence,
     NationID,
@@ -33,6 +36,8 @@ import {
     cardToSearch,
     changeCivil,
     changeMilitary,
+    ciAtkTroop,
+    ciDefTroop,
     colonyDown,
     colonyUp,
     ctr2pid,
@@ -42,14 +47,17 @@ import {
     doGeneralSkill,
     doLoseProvince,
     doPlaceUnit,
-    doRecruit, doRemoveNation,
+    doRecruit,
+    doRemoveNation,
     drawPhaseForPlayer,
     drawPlanForPlayer,
     endRoundCheck,
+    getCombatStateById,
     getCountryById,
     getGeneralNameByCountry,
     getJinnTroopByCity,
     getJinnTroopByPlace,
+    getOpponentPlaceTroopById,
     getOpponentStateById,
     getPlaceGeneral,
     getSongTroopByCity,
@@ -57,11 +65,13 @@ import {
     getStateById,
     getTroopByCountryPlace,
     heYiChange,
-    heYiCheck, songLoseEmperor,
+    heYiCheck,
     mergeTroopTo,
     moveGeneralByCountry,
     moveGeneralByPid,
-    moveGeneralToReady, nationMoveJinn, nationMoveSong,
+    moveGeneralToReady,
+    nationMoveJinn,
+    nationMoveSong,
     pid2ctr,
     placeToStr,
     playerById,
@@ -71,6 +81,7 @@ import {
     returnDevCardCheck,
     rollDiceByPid,
     sjCardById,
+    songLoseEmperor, startCombat,
     totalDevelop,
     troopEmpty,
     unitsToString
@@ -217,8 +228,18 @@ export const march: LongFormMove = {
             }
         }
         log.push(`|${G.op}G.op`);
-        G.op --;
+        G.op--;
         log.push(`|${G.op}G.op`);
+        const oppoTroop = getOpponentPlaceTroopById(G, pid, dst);
+        if (oppoTroop !== null) {
+            if (isNationID(dst)) {
+                log.push(`|cannot|goto|nation|with|opponent|troop`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            } else {
+                startCombat(G, ctx, t.g, t.p);
+            }
+        }
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -319,7 +340,7 @@ export const takeDamage: LongFormMove = {
             log.push(`|after|${pub.standby}|${arg.standby}`);
         }
         if (troopEmpty(troop)) {
-            if(pub.troops.includes(troop)){
+            if (pub.troops.includes(troop)) {
                 pub.troops.splice(pub.troops.indexOf(troop), 1);
             }
         }
@@ -899,22 +920,29 @@ export const combatCard: LongFormMove = {
                     sjCardById(c).combat).length === args.length
         ) {
             args.forEach(c => {
-                const card = sjCardById(c);
+                player.combatCard.push(c)
                 // @ts-ignore
-                const pub = getStateById(G, ctx.playerID);
-                if (card.remove) {
-                    pub.remove.push(c);
-                } else {
-                    pub.discard.push(c);
-                }
-                if (player.hand.includes(c)) {
-                    player.hand.splice(player.hand.indexOf(c), 1);
-                }
+                // const pub = getStateById(G, ctx.playerID);
+                // const card = sjCardById(c);
+                // if (card.remove) {
+                //     pub.remove.push(c);
+                // } else {
+                //     pub.discard.push(c);
+                // }
+                // if (player.hand.includes(c)) {
+                //     player.hand.splice(player.hand.indexOf(c), 1);
+                // }
             })
         } else {
-            return  INVALID_MOVE;
+            return INVALID_MOVE;
         }
 
+
+        if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
+            changePlayerStage(G,ctx,'combatCard',G.order[1]);
+        } else {
+            changePlayerStage(G,ctx,'showCC',G.order[0]);
+        }
 
     }
 }
@@ -928,7 +956,6 @@ export const askField: LongFormMove = {
 
     }
 }
-
 
 
 export const cardEvent: LongFormMove = {
@@ -1145,6 +1172,25 @@ export const showPlan: LongFormMove = {
     }
 }
 
+export const showCC: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, args: SJEventCardID[]) => {
+        logger.info(`p${ctx.playerID}.moves.showCC(${args.toString()})`);
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const pub = getCombatStateById(G, ctx.playerID);
+        const player = playerById(G, ctx.playerID);
+
+        pub.combatCard = [...player.combatCard];
+        player.combatCard = [];
+        if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
+            changePlayerStage(G,ctx,'showCC',G.order[1]);
+        } else {
+            ctx.events?.endStage();
+        }
+    }
+}
+
 export const op: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, cid: SJEventCardID) => {
         if (ctx.playerID === undefined) {
@@ -1302,6 +1348,40 @@ export const confirmRespond: LongFormMove = {
         const log = [`confirmRespond`]
         const pub = getStateById(G, pid);
         // TODO check pending and do action
+        const ci = G.combat;
+        if (ci.phase === CombatPhase.JieYe) {
+            if (arg) {
+                ci.phase = CombatPhase.YunChou;
+                changePlayerStage(G,ctx,'combatCard',G.order[0]);
+            } else {
+                log.push(`|opponentChoose`);
+                ci.phase = CombatPhase.WeiKun;
+                ctx.events?.endTurn();
+            }
+        }
+        if (ci.phase === CombatPhase.WeiKun) {
+            if (arg) {
+                ciAtkTroop(G).c = null;
+                const def = ciDefTroop(G);
+                if (def.c === null) {
+                    if (isRegionID(def.p)) {
+                        const regionCity = getRegionById(def.p).city;
+                        if (regionCity === null) {
+                            log.push(`|error`);
+                        } else {
+                            def.p = regionCity;
+                        }
+                    }
+                } else {
+                    def.p = def.c
+                }
+                ci.ongoing = false;
+            } else {
+                ci.type = CombatType.SIEGE;
+                changePlayerStage(G,ctx,'combatCard',G.order[0]);
+            }
+        }
+
     }
 }
 

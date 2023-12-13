@@ -8,7 +8,7 @@ import {
     chooseProvince,
     chooseRegion,
     chooseTop,
-    combatCard, controlCity, controlProvince,
+    combatCard, confirmRespond, controlCity, controlProvince,
     deploy, deployGeneral,
     develop,
     developCard,
@@ -33,7 +33,7 @@ import {
     returnToHand,
     rollDices,
     search,
-    searchFirst, showLetters,
+    searchFirst, showCC, showLetters,
     showPlan,
     takeDamage,
     takePlan,
@@ -51,17 +51,21 @@ import {
     getSongPower,
     playerById
 } from "../util";
+import {confirmRespondStage} from "../../game/config";
 
-export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
-    order: TurnOrder.CUSTOM_FROM("order"),
-}
+
 
 export const EmperorStageConfig: StageConfig<SongJinnGame> = {
     moves: {
         emperor: emperor
     }
 }
-// TODO card_1.rm is not a function?
+export const ConfirmRespondStageConfig: StageConfig<SongJinnGame> = {
+    moves: {
+        confirmRespond: confirmRespond,
+    }
+}
+
 export const ChooseProvinceStageConfig: StageConfig<SongJinnGame> = {
     moves: {
         chooseProvince: chooseProvince,
@@ -104,14 +108,29 @@ export const ReactStageConfig: StageConfig<SongJinnGame> = {
     }
 }
 
+export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
+    order: TurnOrder.CUSTOM_FROM("order"),
+    stages: {
+        confirmRespond: ConfirmRespondStageConfig,
+        react: ReactStageConfig
+    }
+}
+
 const StagedTurnConfig = {
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
         react: ReactStageConfig,
         emperor: EmperorStageConfig,
+        confirmRespond: ConfirmRespondStageConfig,
         jianLiDaQi: {
             moves: {
                 jianLiDaQi: jianLiDaQi,
+            }
+        },
+        combatCard:{
+            moves:{
+                combatCard:combatCard,
+                showCC:showCC
             }
         }
     },
@@ -258,6 +277,7 @@ export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     next: 'showPlan'
 }
 
+
 export const ShowPlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     turn: NormalTurnConfig,
     moves: {
@@ -279,6 +299,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     turn: StagedTurnConfig,
     moves: {
+        showCC:showCC,
         discard: discard,
         moveGeneral: moveGeneral,
         deployGeneral: deployGeneral,
