@@ -250,7 +250,7 @@ const idToRegion = {[RegionID.R01]:
             name:"济南府",
             terrain:TerrainType.HILLS,
             province:ProvinceID.JINGDONGLIANGLU,
-            land:[RegionID.R25,RegionID.R26,RegionID.R27],
+            land:[RegionID.R22,RegionID.R25,RegionID.R26,RegionID.R27],
             water:[RegionID.R16,RegionID.R18],
             pass:[],
             city:CityID.LiCheng
