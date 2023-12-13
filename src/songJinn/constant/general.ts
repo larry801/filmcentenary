@@ -792,7 +792,7 @@ export enum CombatPhase {
     MingJin = "鸣金",
 }
 
-function emptyCombatInfo(): CombatInfo {
+export function emptyCombatInfo(): CombatInfo {
     return {
         phase: CombatPhase.JieYe,
         atk: Country.JINN,

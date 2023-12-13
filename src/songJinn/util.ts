@@ -9,6 +9,7 @@ import {
     Country,
     CountryCombatInfo,
     DevelopChoice,
+    emptyCombatInfo,
     EventDuration,
     General,
     GeneralNames,
@@ -3359,13 +3360,24 @@ export function oppoCtr(c: Country) {
 }
 
 // troop
+export const roundTwo = (G:SongJinnGame, ctx: Ctx) => {
+    ci.roundTwo = true;
+    ci.phase = CombatPhase.YunChou;
+    changePlayerStage(G,ctx,'combatCard',G.order[0]);
+}
+
 export const mingJin = (G:SongJinnGame, ctx: Ctx) => {
     G.combat.phase = CombatPhase.MingJin;
-    if(canForceRoundTwo(G)){
-        changePlayerStage(G,ctx,'confirmRespond',ciDefPid(G));
+    if(canRoundTwo(G)){
+        if(canForceRoundTwo(G)){
+            changePlayerStage(G,ctx,'confirmRespond',ciDefPid(G));
+        }else{
+            changePlayerStage(G,ctx,'confirmRespond',ciAtkPid(G));
+        }
     }else{
-        changePlayerStage(G,ctx,'confirmRespond',ciAtkPid(G));
+        endCombat(G,ctx);
     }
+
 }
 
 export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
@@ -3616,6 +3628,7 @@ export const canRoundTwo = (G: SongJinnGame): boolean => {
     const defPid = ctr2pid(ciDefCtr(G));
     const atkPub = getStateById(G, atkPid);
     const defPub = getStateById(G, defPid);
+    if(ci.roundTwo){return false;}
     if (atkPub.military > defPub.military) {
         log.push(`|${atkPub.military}>${defPub.military}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -3725,25 +3738,33 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
     return "是否确认";
 }
 
-export function endCombat(
-    G: SongJinnGame, ctx: Ctx) {
+export function endCombat(G: SongJinnGame, ctx: Ctx) {
     const log = [`endCombat`];
     const c = G.combat;
     c.ongoing = false;
+    log.push(`|${c.song.combatCard}c.song.combatCard`);
+    log.push(`|${G.song.discard}G.song.discard`);
+
     c.song.combatCard.forEach(cid => {
         if (c.song.combatCard.includes(cid)) {
             c.song.combatCard.splice(c.song.combatCard.indexOf(cid), 1);
         }
         G.song.discard.push(cid);
-    })
+    });
+    log.push(`|${c.song.combatCard}c.song.combatCard`);
+    log.push(`|${G.song.discard}G.song.discard`);
+
+    log.push(`|${c.jinn.combatCard}c.song.combatCard`);
+    log.push(`|${G.jinn.discard}G.song.discard`);
     c.jinn.combatCard.forEach(cid => {
         if (c.jinn.combatCard.includes(cid)) {
             c.jinn.combatCard.splice(c.jinn.combatCard.indexOf(cid), 1);
         }
         G.jinn.discard.push(cid);
     })
-    c.song.damageLeft = 0;
-    c.jinn.damageLeft = 0;
+    log.push(`|${c.jinn.combatCard}c.song.combatCard`);
+    log.push(`|${G.jinn.discard}G.song.discard`);
+    G.combat = emptyCombatInfo();
     log.push(`|${JSON.stringify(c)}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 
@@ -3789,13 +3810,13 @@ export function startCombat(
                 log.push(`|noCityField`);
                 c.type = CombatType.FIELD;
                 // DEBUG remove cc
-                yuanCheng(G, ctx);
-                // changePlayerStage(G, ctx, 'combatCard', G.order[0]);
+                // yuanCheng(G, ctx);
+                changePlayerStage(G, ctx, 'combatCard', G.order[0]);
             } else {
                 log.push(`|city|ask|field`);
                 // DEBUG remove cc
-                yuanCheng(G, ctx);
-                // changePlayerStage(G, ctx, 'confirmRespond', defId);
+                // yuanCheng(G, ctx);
+                changePlayerStage(G, ctx, 'confirmRespond', defId);
             }
         } else {
             if (isMountainPassID(p)) {

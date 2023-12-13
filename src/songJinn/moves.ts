@@ -87,7 +87,7 @@ import {
     policyUp,
     removeUnitByCountryPlace,
     returnDevCardCheck,
-    rollDiceByPid,
+    rollDiceByPid, roundTwo,
     sjCardById,
     songLoseEmperor,
     startCombat,
@@ -1409,16 +1409,21 @@ export const confirmRespond: LongFormMove = {
         const log = [`confirmRespond`]
         const pub = getStateById(G, pid);
         const ci = G.combat;
-        const cci = ciDefInfo(G);
-
+        const atkCCI = ciAtkInfo(G);
+        const defCCI = ciDefInfo(G);
+        log.push(`|${text}`);
         if (ci.phase === CombatPhase.JieYe) {
             if (choice) {
                 ci.phase = CombatPhase.YunChou;
                 changePlayerStage(G, ctx, 'combatCard', G.order[0]);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return;
             } else {
                 log.push(`|opponentChoose`);
                 changePlayerStage(G, ctx, 'confirmRespond', oppoPid(pid));
                 ci.phase = CombatPhase.WeiKun;
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return;
             }
         }
         if (ci.phase === CombatPhase.WeiKun) {
@@ -1441,9 +1446,13 @@ export const confirmRespond: LongFormMove = {
                 log.push(`|${atk}atk`);
                 log.push(`|${def}def`);
                 ci.ongoing = false;
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return;
             } else {
                 ci.type = CombatType.SIEGE;
                 changePlayerStage(G, ctx, 'combatCard', G.order[0]);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return;
             }
         }
         if (G.combat.phase === CombatPhase.MingJin) {
@@ -1453,19 +1462,23 @@ export const confirmRespond: LongFormMove = {
                     canForceRoundTwo(G)
                 ) {
                     if (choice){
-                        cci.choice = BeatGongChoice.CONTINUE;
+                        atkCCI.choice = BeatGongChoice.CONTINUE;
                         // TODO oppo cci
                     }else{
-                        cci.choice = BeatGongChoice.RETREAT;
+                        atkCCI.choice = BeatGongChoice.RETREAT;
                     }
                     changePlayerStage(G,ctx,'confirmRespond',ciDefPid(G));
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
                 }else{
                     if (choice){
-                        cci.choice = BeatGongChoice.CONTINUE;
+                        atkCCI.choice = BeatGongChoice.CONTINUE;
                     }else{
-                        cci.choice = BeatGongChoice.RETREAT;
+                        atkCCI.choice = BeatGongChoice.RETREAT;
                     }
                     changePlayerStage(G,ctx,'confirmRespond',ciDefPid(G));
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
                 }
 
 
@@ -1474,22 +1487,21 @@ export const confirmRespond: LongFormMove = {
                     canForceRoundTwo(G)
                 ) {
                     if (choice){
-                        ci.roundTwo = true;
-                        ci.phase = CombatPhase.YunChou;
-                        changePlayerStage(G,ctx,'combatCard',G.order[0]);
+                        roundTwo(G,ctx);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
                     }else{
-                        cci.choice = BeatGongChoice.RETREAT;
+                        defCCI.choice = BeatGongChoice.RETREAT;
                     }
                 } else {
                     if (choice){
-                        cci.choice = BeatGongChoice.CONTINUE;
+                        defCCI.choice = BeatGongChoice.CONTINUE;
                     }else{
-                        cci.choice = BeatGongChoice.RETREAT;
+                        defCCI.choice = BeatGongChoice.RETREAT;
                     }
                 }
             }
         }
-        log.push(`|${text}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
