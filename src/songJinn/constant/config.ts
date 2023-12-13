@@ -400,6 +400,29 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
 
         logger.info(`${log.join('')}`);
     },
+    onEnd: (G, ctx) => {
+        const log = [`developPhase|onEnd`];
+        log.push(`|clean ready units`);
+        log.push(`|${G.song.ready}song.ready`);
+        log.push(`|${G.song.standby}G.song.standby`);
+        for (let i = 0; i < G.song.ready.length; i++) {
+            G.song.standby[i] += G.song.ready[i];
+            G.song.ready[i] = 0;
+        }
+        log.push(`|${G.song.ready}song.ready`);
+        log.push(`|${G.song.standby}G.song.standby`);
+
+        log.push(`|${G.jinn.ready}jinn.ready`);
+        log.push(`|${G.jinn.standby}G.jinn.standby`);
+        for (let i = 0; i < G.jinn.ready.length; i++) {
+            G.jinn.standby[i] += G.jinn.ready[i];
+            G.jinn.ready[i] = 0;
+        }
+
+        log.push(`|${G.jinn.ready}jinn.ready`);
+        log.push(`|${G.jinn.standby}G.jinn.standby`);
+        logger.info(`${G.matchID}|${log.join('')}`);
+    },
     turn: StagedTurnConfig,
     moves: {
 
