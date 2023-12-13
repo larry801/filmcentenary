@@ -3717,8 +3717,7 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: boolean, ctr: Countr
             return arg ? "选择继续作战" : "选择撤退";
         } else {
             if (
-                canForceRoundTwo(G)
-            ) {
+                canForceRoundTwo(G)  ) {
                 return arg ? "选择强制第二轮" : "选择不强制第二轮";
             } else {
                 return arg ? "选择坚守" : "选择撤退";
@@ -3734,7 +3733,7 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
         return "是否接野？"
     }
     if (G.combat.phase === CombatPhase.WeiKun) {
-        return "是否围困？"
+        return "对手不接野战 选择是围困 选择否攻城"
     }
     if (G.combat.phase === CombatPhase.MingJin) {
         const ci = G.combat;
@@ -3781,6 +3780,7 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
     log.push(`|${G.jinn.discard}G.song.discard`);
     G.combat = emptyCombatInfo();
     log.push(`|${JSON.stringify(c)}`);
+    ctx.events?.endStage();
     logger.debug(`${G.matchID}|${log.join('')}`);
 
 }
