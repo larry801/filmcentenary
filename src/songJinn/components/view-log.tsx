@@ -101,7 +101,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
         {open && <Grid item xs={12}>
             <TextField
                 disabled
-                defaultValue={totalLogText}
+                value={totalLogText}
                 fullWidth
                 multiline
                 minRows={8}

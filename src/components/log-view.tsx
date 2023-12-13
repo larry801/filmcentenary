@@ -67,7 +67,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
             <TextField
                 aria-live="polite"
                 disabled
-                defaultValue={totalLogText}
+                value={totalLogText}
                 fullWidth
                 multiline
                 minRows={2}
