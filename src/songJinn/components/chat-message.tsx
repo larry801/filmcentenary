@@ -46,7 +46,10 @@ export const ChatMessage = ({sendChatMessage, chatMessages, getPlayerName}: ICha
         <Grid item xs={2}>
             <Button
                 variant={"outlined"}
-                onClick={() => sendChatMessage(message)}
+                onClick={() => {
+                    sendChatMessage(message);
+                    setMessage('');
+                }}
             >发送</Button>
         </Grid>
     </Grid>
