@@ -11,39 +11,43 @@ interface IChatMessageProps {
 }
 
 
-export const ChatMessage = ({sendChatMessage,chatMessages,getPlayerName}:IChatMessageProps) => {
+export const ChatMessage = ({sendChatMessage, chatMessages, getPlayerName}: IChatMessageProps) => {
     const [message, setMessage] = useState('');
 
-    const messages = chatMessages.map((m)=>`${getPlayerName(m.sender)}:${JSON.stringify(m.payload)}`)
+    const messages = chatMessages.map((m) => `${getPlayerName(m.sender)}:${JSON.stringify(m.payload)}`)
         .join('\n');
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setMessage(event.target.value);
     };
-    return <Grid item xs={12}>
+    return <Grid item container xs={12}>
         <TextField
             disabled
-            defaultValue={messages}
+            value={messages}
             fullWidth
             maxRows={8}
             multiline
             variant="outlined"
         />
-        <TextField
-            value={message}
-            variant="filled"
-            onChange={handleChange}
-            onKeyDown={(ev) => {
-                if (ev.key === 'Enter') {
-                    sendChatMessage(message);
-                    setMessage('');
-                    ev.preventDefault();
-                }
-            }}
-        />
-        <Button
-            variant={"outlined"}
-            onClick={()=>sendChatMessage(message)}
-        >发送</Button>
+        <Grid item xs={10}>
+            <TextField
+                value={message}
+                variant="filled"
+                onChange={handleChange}
+                onKeyDown={(ev) => {
+                    if (ev.key === 'Enter') {
+                        sendChatMessage(message);
+                        ev.preventDefault();
+                        setMessage('');
+                    }
+                }}
+            />
+        </Grid>
+        <Grid item xs={2}>
+            <Button
+                variant={"outlined"}
+                onClick={() => sendChatMessage(message)}
+            >发送</Button>
+        </Grid>
     </Grid>
 }
