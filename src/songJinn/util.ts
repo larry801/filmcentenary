@@ -2666,7 +2666,7 @@ export const canRecruitNoCivilLimit = (G: SongJinnGame, units: number[], pid: Pl
         perm = INITIAL_RECRUIT_PERMISSION[0]
     } else {
         perm = INITIAL_RECRUIT_PERMISSION[1];
-        if (G.events.includes(ActiveEvents.JianLiDaQi)){
+        if (G.events.includes(ActiveEvents.JianLiDaQi)) {
             log.push(`|daQi`);
             perm[6] = true;
         }
@@ -2909,6 +2909,13 @@ interface ITakeDamageArgs {
     ready: number[]
 }
 
+export const getSeasonText = (r: number) => {
+    if (r === 1 || r === 5) return '秋季';
+    if (r === 2 || r === 6) return '秋季';
+    if (r === 3 || r === 7) return '秋季';
+    if (r === 4 || r === 8) return '秋季';
+}
+
 const takeDamageText = (arg: ITakeDamageArgs) => {
     let text = `${placeToStr(arg.src)}${arg.c}`;
     if (arg.standby.filter(u => u > 0).length > 0) {
@@ -3011,6 +3018,12 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             break;
                         case 'deploy':
                             log += `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
+                            break;
+                        case 'askField':
+                            log += `询问对手${placeToStr(arg.place)}是否接野战`;
+                            break;
+                        case 'confirm':
+                            log += `${arg ? "同意" : "不同意"}`
                             break;
                         case 'showLetters':
                             log += `盟国${arg.nations.map((n: NationID) => n)}`

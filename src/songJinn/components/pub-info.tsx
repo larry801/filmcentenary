@@ -11,14 +11,13 @@ import {
     getJinnPower,
     getJinnScore,
     getPolicy,
-    getReadyGeneralNames,
+    getReadyGeneralNames, getSeasonText,
     getSongPower, getSongScore,
-    phaseName, placeToStr, sjCardById, totalDevelop,
+    phaseName, pid2ctr, placeToStr, sjCardById, totalDevelop,
     unitsToString
 } from "../util";
 import ChoiceDialog from "../../components/modals";
 import {ShowCards} from "./show-cards";
-import {getCityById} from "../constant/city";
 import ErrorBoundary from "../../components/error";
 
 export interface IPubInfo {
@@ -42,7 +41,6 @@ export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
         <div><label>盟国：</label>{s.nations.join(',')}</div>
         <div><label>预备区：{unitsToString(s.ready)} {getReadyGeneralNames(G, SJPlayer.P1).join('')}</label></div>
 
-        <div><label>备用兵区： {unitsToString(s.standby)}</label></div>
         <div><label>皇帝：{s.emperor === null ? "" : s.emperor}</label></div>
         <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
         <div><label>完成计划：</label><br/>
@@ -62,6 +60,7 @@ export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
         } defaultChoice={""} show={true} title={`查看占领城市`} toggleText={`城市${s.cities.length}`} initial={false}/>
         <div><ShowCards cards={s.discard} title={"查看弃牌"} toggleText={`弃牌${s.discard.length}`}/></div>
         <div><ShowCards cards={s.remove} title={"查看移除"} toggleText={`移除牌${s.remove.length}`}/></div>
+        <div><label>备用兵区： {unitsToString(s.standby)}</label></div>
         <ErrorBoundary>
             {s.dices.length > 0 && <Typography>{sDice}中
                 {sDice.filter(d => d > 3).length}
@@ -72,13 +71,13 @@ export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
         {/*<div><label>手牌数：</label></div>*/}
         <div>控制路：<br/>{s.provinces.map(p => <label key={`jinn-prov-${p}`}>{p}<br/></label>)}</div>
         <div><label>发展牌：{s.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
-
     </Grid>
 }
 export const PubInfo = ({G, ctx}: IPubInfo) => {
     return <Grid container>
         <Grid item xs={12} key={`game-info`}>
-            <Typography>第{G.turn}回合 第{G.round}轮 {phaseName(ctx.phase)}</Typography>
+            <Typography>第{G.turn}回合
+                第{G.round}轮 {getSeasonText(G.round)} {pid2ctr(ctx.currentPlayer)} {phaseName(ctx.phase)} </Typography>
             <Typography>已发生事件：{G.events.map(e =>
                 <label key={`event-global-${e}`}>{e},</label>
             )}

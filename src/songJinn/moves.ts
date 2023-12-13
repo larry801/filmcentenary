@@ -929,6 +929,8 @@ export const askField: LongFormMove = {
     }
 }
 
+
+
 export const cardEvent: LongFormMove = {
     move: (G, ctx, args: BaseCardID) => {
         if (ctx.playerID === undefined) {
@@ -1289,6 +1291,19 @@ export const endRound: LongFormMove = {
     }
 }
 
+
+export const confirmRespond: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, arg: boolean) => {
+        const pid = ctx.playerID;
+        logger.info(`${G.matchID}|p${pid}.confirmRespond(${JSON.stringify(arg)})`);
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        const log = [`confirmRespond`]
+        const pub = getStateById(G, pid);
+        // TODO check pending and do action
+    }
+}
 
 export const takePlan: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, arg: PlanID[]) => {

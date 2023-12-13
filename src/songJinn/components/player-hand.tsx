@@ -11,6 +11,7 @@ import AccordionDetails from '@material-ui/core/AccordionDetails';
 import Typography from "@material-ui/core/Typography";
 
 import {getCardLabel, getCityText, getCountryById, getFullDesc, playerById, sjCardById} from "../util";
+import {Fab} from "@material-ui/core";
 
 export interface IPlayerHandProps {
     G: SongJinnGame,
@@ -25,17 +26,22 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
     const [expanded, setExpanded] = React.useState(0);
     const [dipCard, setDipCard] = React.useState([]);
     const [dipChosen, setDipChosen] = React.useState(false);
-
+    const [detail, setDetail] = useState(false);
     const inPhase = ctx.phase === 'action';
     const player = playerById(G, pid);
     const hand = player.hand;
     const [heYiChosen, setHeYiChosen] = useState(false);
-    const [heYiCard, setHeYiCard] = useState([SongBaseCardID.S01,JinnBaseCardID.J01]);
+    const [heYiCard, setHeYiCard] = useState([SongBaseCardID.S01, JinnBaseCardID.J01]);
     return <Grid container>
+        <Button fullWidth onClick={() => {
+            setDetail(!detail)
+        }}>
+            {detail ? "简化" : "详细"}
+        </Button>
         <ChoiceDialog
             callback={(c) => {
                 setHeYiChosen(false);
-                moves.heYi({card:heYiCard[0],city:c});
+                moves.heYi({card: heYiCard[0], city: c});
             }} choices={G.song.cities.map(c => {
             return {label: getCityText(c), value: c, hidden: false, disabled: false}
         })} defaultChoice={""} show={isActive && heYiChosen} title={"选择要割让的城市"} toggleText={"割让城市"}
@@ -62,13 +68,12 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
             return <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
                               key={`playerHand-${cid}`}>
                 <AccordionSummary key={`summary-${cid}`}>
-                    <Grid key={`grid-1-${cid}`} item container xs={4}>
-
+                    <Grid key={`grid-1-${cid}`} item container xs={detail ? 8 : 12}>
                         <Typography key={`summary-text-${cid}`}>{getCardLabel(cid)}</Typography>
                     </Grid>
-                    <Grid key={`grid-2-${cid}`} item container xs={8}>
+                    {detail && <Grid key={`grid-2-${cid}`} item container xs={8}>
                         {getFullDesc(card)}
-                    </Grid>
+                    </Grid>}
 
                 </AccordionSummary>
                 <AccordionDetails>
@@ -98,18 +103,19 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
                     >发展</Button>
                     {
                         getCountryById(pid) === Country.SONG ? <Button
-                        disabled={!(isActive && inPhase)}
-                        onClick={
-                        () => {
-                        setHeYiChosen(true);
-                        setHeYiCard([cid]);
-                    }}
-                    >和议</Button> : <Button
-                        onClick={() => moves.tieJun(cid)}
-                        disabled={!(isActive && inPhase)}
-                    >贴军</Button>
+                            disabled={!(isActive && inPhase)}
+                            onClick={
+                                () => {
+                                    setHeYiChosen(true);
+                                    setHeYiCard([cid]);
+                                }}
+                        >和议</Button> : <Button
+                            onClick={() => moves.tieJun(cid)}
+                            disabled={!(isActive && inPhase)}
+                        >贴军</Button>
                     }
                 </AccordionDetails>
+
             </Accordion>
         })}
     </Grid>
