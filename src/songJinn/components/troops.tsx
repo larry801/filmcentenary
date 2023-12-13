@@ -357,7 +357,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
     const deployNewCityUnitsDialog = <ChooseUnitsDialog
         callback={(u) => {
-            moves.deploy({city: deployNewCity, units: u});
+            moves.deploy({city: deployNewCity, units: u, country:ctr});
             setDeployNewStep(DeployNewStep.TROOP);
         }}
         max={pub.ready} initUnits={unitNames.map(() => 0)}
