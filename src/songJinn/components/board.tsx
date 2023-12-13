@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 import {BoardProps} from "boardgame.io/react";
 import ErrorBoundary from "../../components/error";
 import Grid from "@material-ui/core/Grid";
@@ -72,6 +72,8 @@ export const SongJinnBoard = ({
             </Dialog>
         </>
 
+    const [showMap, setShowMap] = useState(true)
+
     const prevIsActive = usePrevious(isActive);
     const prevIsConnected = usePrevious(isConnected);
 
@@ -90,6 +92,7 @@ export const SongJinnBoard = ({
     const pub = getStateById(G, playerID as SJPlayer);
     const player = playerById(G, playerID as SJPlayer);
     const country = getCountryById(playerID as SJPlayer);
+    const SwitchMapButton = <Button onClick={()=>{if(showMap){setShowMap(false)}else{setShowMap(true)}}}>切换地图</Button>
 
     const empty = (c: string) => {
     };
@@ -107,12 +110,14 @@ export const SongJinnBoard = ({
                 </Grid>
                 <Grid item xs={12} sm={6}>
                     <LogView log={log} getPlayerName={sjPlayerName} G={G}/>
+                    {SwitchMapButton}
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                    <ParentSize>
-                        {parent => <GeoMap G={G} moves={moves} height={640} width={parent.width}/>}
-                    </ParentSize>
-                </Grid>
+                {showMap &&
+                    <Grid item xs={12} sm={6}>
+                        <ParentSize>
+                            {parent => <GeoMap G={G} moves={moves} height={640} width={parent.width}/>}
+                        </ParentSize>
+                    </Grid>}
                 {playerID !== null && <Grid item xs={12} sm={6}>
                     <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
                     </Grid>}
@@ -129,6 +134,7 @@ export const SongJinnBoard = ({
 
                     {isActive ? <Grid container>
                         <Button onClick={() => undo()}>撤回</Button>
+                        {SwitchMapButton}
                         <Operation
                             G={G} ctx={ctx}
                             playerID={playerID}
