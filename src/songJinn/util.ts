@@ -4550,6 +4550,16 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
             pub.civil += a;
         }
     }
+    if (pub.civil > pub.maxCivil) {
+        if (pub.maxCivil < 4) {
+            if (pid === SJPlayer.P1) {
+                policyUp(G, 1);
+            } else {
+                colonyUp(G, 1);
+            }
+        }
+        pub.maxCivil = 4;
+    }
 }
 export const doRemoveNation = (G: SongJinnGame, nation: NationID) => {
     G.removedNation.push(nation);
@@ -4652,6 +4662,25 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
             pub.military = 7;
         } else {
             pub.military += a;
+        }
+    }
+    if (pub.military > pub.maxMilitary) {
+        if (pub.maxMilitary < 5) {
+            if (pid === SJPlayer.P1) {
+
+                doRecruit(G, [0, 0, 0, 0, 0, 1], SJPlayer.P1);
+            } else {
+                doRecruit(G, [0, 0, 0, 1, 0, 0, 0], SJPlayer.P2);
+            }
+            pub.maxMilitary = 5;
+        }
+        if (pub.maxMilitary < 6) {
+            if (pid === SJPlayer.P1) {
+                doRecruit(G, [0, 0, 0, 0, 1, 0], SJPlayer.P1);
+            } else {
+                doRecruit(G, [0, 0, 0, 0, 1, 0, 0], SJPlayer.P2);
+            }
+            pub.maxMilitary = 6;
         }
     }
 }

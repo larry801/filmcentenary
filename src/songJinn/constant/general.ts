@@ -712,6 +712,7 @@ export interface SJPubInfo {
     troopIdx: number,
     cities: CityID[],
     civil: Level,
+    maxCivil: Level,
     completedPlan: PlanID[],
     corruption: number;
     nations: NationID[];
@@ -720,6 +721,7 @@ export interface SJPubInfo {
     effect: PlayerPendingEffect[],
     emperor: CityID | null,
     generals: GeneralStatus[],
+    maxMilitary: Level,
     military: Level,
     plan: PlanID[],
     provinces: ProvinceID[],
@@ -817,6 +819,8 @@ export function emptyCombatInfo(): CombatInfo {
 }
 
 export const initialJinnPub: SJPubInfo = {
+    maxCivil: 2,
+    maxMilitary: 3,
     specialPlan: 0,
     generalSkill: [true, true, true, false, false, true],
     generalPlace: [RegionID.R20, RegionID.R37, RegionID.R11PingYangFu, RegionID.R01, RegionID.R01, RegionID.R01],
@@ -885,6 +889,8 @@ export const initialJinnPub: SJPubInfo = {
     ]
 }
 export const initialSongPub: SJPubInfo = {
+    maxCivil: 3,
+    maxMilitary: 2,
     specialPlan: 0,
     generalSkill: [false, false, false, false, false, false],
     generalPlace: [RegionID.R19, RegionID.R01, RegionID.R01, RegionID.R01, RegionID.R01, RegionID.R01],
