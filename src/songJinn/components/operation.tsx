@@ -342,7 +342,8 @@ export const Operation = ({
             moves.recruitPuppet(c);
         }} choices={G.jinn.cities.map(c => {
         return {label: getCityText(c), value: c, hidden: false, disabled: false}
-    })} defaultChoice={""} show={isActive && ctr === Country.JINN} title={"选择征伪城市"} toggleText={"征募伪军"} initial={false}/>
+    })} defaultChoice={""} show={isActive && ctr === Country.JINN} title={"选择征伪城市"} toggleText={"征募伪军"}
+        initial={false}/>
 
     const recruitPhases = ['action', 'deploy'];
 
@@ -353,24 +354,24 @@ export const Operation = ({
         title={"征募"} toggleText={"请选择要征募的兵种"} initial={false} country={ctr}
     />
 
-    const [dices, setDices] = useState(5);
+    const [count, setCount] = useState(5);
     const adjustDice = (n: number) => {
-        const newDice = dices + n;
+        const newDice = count + n;
         if (newDice <= 1) {
-            setDices(1);
+            setCount(1);
         } else {
-            setDices(newDice);
+            if (newDice >= MAX_DICES) {
+                setCount(MAX_DICES);
+            } else {
+                setCount(newDice);
+            }
         }
-        if (newDice >= MAX_DICES) {
-            setDices(MAX_DICES);
-        } else {
-            setDices(newDice);
-        }
+
     }
     const diceRoller = <Grid item>
         <Button onClick={() => adjustDice(-5)}>-5</Button>
         <Button onClick={() => adjustDice(-1)}>-1</Button>
-        <Button onClick={() => moves.rollDices({count:dices,idx:pub.dices.length})}>掷{dices}个骰子</Button>
+        <Button onClick={() => moves.rollDices({count: count, idx: pub.dices.length})}>掷{count}个骰子</Button>
         <Button onClick={() => adjustDice(1)}>+1</Button>
         <Button onClick={() => adjustDice(5)}>+5</Button>
     </Grid>
