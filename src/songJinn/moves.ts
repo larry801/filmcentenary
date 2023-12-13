@@ -2,6 +2,7 @@ import {Ctx, LongFormMove} from "boardgame.io";
 import {
     ActiveEvents,
     BaseCardID,
+    BeatGongChoice,
     CityID,
     CombatPhase,
     CombatType,
@@ -27,16 +28,20 @@ import {
 import {logger} from "../game/logger";
 import {getPlanById} from "./constant/plan";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {shuffle} from "../game/util";
+import {actualStage, shuffle} from "../game/util";
 import {getRegionById, Region} from "./constant/regions";
 import {changePlayerStage} from "../game/logFix";
 
 import {
     addTroop,
+    canForceRoundTwo,
     cardToSearch,
     changeCivil,
     changeMilitary,
+    ciAtkInfo,
     ciAtkTroop,
+    ciDefInfo,
+    ciDefPid,
     ciDefTroop,
     colonyDown,
     colonyUp,
@@ -66,12 +71,15 @@ import {
     getTroopByCountryPlace,
     heYiChange,
     heYiCheck,
+    jiaoFeng,
     mergeTroopTo,
+    mingJin,
     moveGeneralByCountry,
     moveGeneralByPid,
     moveGeneralToReady,
     nationMoveJinn,
     nationMoveSong,
+    oppoPid,
     pid2ctr,
     placeToStr,
     playerById,
@@ -81,10 +89,12 @@ import {
     returnDevCardCheck,
     rollDiceByPid,
     sjCardById,
-    songLoseEmperor, startCombat,
+    songLoseEmperor,
+    startCombat,
     totalDevelop,
     troopEmpty,
-    unitsToString
+    unitsToString,
+    yuanCheng
 } from "./util";
 import {getCityById} from "./constant/city";
 
@@ -231,13 +241,15 @@ export const march: LongFormMove = {
         G.op--;
         log.push(`|${G.op}G.op`);
         const oppoTroop = getOpponentPlaceTroopById(G, pid, dst);
+        log.push(`|${oppoTroop}oppoTroop`);
         if (oppoTroop !== null) {
             if (isNationID(dst)) {
                 log.push(`|cannot|goto|nation|with|opponent|troop`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return INVALID_MOVE;
             } else {
-                startCombat(G, ctx, t.g, t.p);
+                log.push(`|startCombat`);
+                startCombat(G, ctx, ctr, t.p);
             }
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -312,8 +324,10 @@ interface ITakeDamageArgs {
     ready: number[]
 }
 
+
+
 export const takeDamage: LongFormMove = {
-    move: (G, ctx, arg: ITakeDamageArgs) => {
+    move: (G:SongJinnGame, ctx, arg: ITakeDamageArgs) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
@@ -344,6 +358,45 @@ export const takeDamage: LongFormMove = {
                 pub.troops.splice(pub.troops.indexOf(troop), 1);
             }
         }
+        if (actualStage(G, ctx) === 'takeDamage') {
+            if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
+                changePlayerStage(G, ctx, 'takeDamage', G.order[1]);
+            } else {
+                switch(G.combat.phase){
+                    case CombatPhase.JieYe:
+                        log.push(`|${G.combat.phase}|error`);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    case CombatPhase.WeiKun:
+                        log.push(`|${G.combat.phase}|error`);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    case CombatPhase.YunChou:
+                        log.push(`|${G.combat.phase}|error`);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    case CombatPhase.YuanCheng:
+                        jiaoFeng(G,ctx);
+                        break;
+                    case CombatPhase.WuLin:
+                        // TODO
+                        jiaoFeng(G,ctx);
+                        break;
+                    case CombatPhase.JiaoFeng:
+                        mingJin(G,ctx);
+                        break;
+                    case CombatPhase.MingJin:
+                        log.push(`|${G.combat.phase}|error`);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    default:
+                        log.push(`|${G.combat.phase}|error`);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                }
+            }
+        }
+
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -939,9 +992,9 @@ export const combatCard: LongFormMove = {
 
 
         if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
-            changePlayerStage(G,ctx,'combatCard',G.order[1]);
+            changePlayerStage(G, ctx, 'combatCard', G.order[1]);
         } else {
-            changePlayerStage(G,ctx,'showCC',G.order[0]);
+            changePlayerStage(G, ctx, 'showCC', G.order[0]);
         }
 
     }
@@ -1184,9 +1237,11 @@ export const showCC: LongFormMove = {
         pub.combatCard = [...player.combatCard];
         player.combatCard = [];
         if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
-            changePlayerStage(G,ctx,'showCC',G.order[1]);
+            changePlayerStage(G, ctx, 'showCC', G.order[1]);
         } else {
-            ctx.events?.endStage();
+            // TODO roll dice
+            // ctx.events?.endStage();
+            yuanCheng(G, ctx);
         }
     }
 }
@@ -1337,31 +1392,39 @@ export const endRound: LongFormMove = {
     }
 }
 
+interface IConfirmRespondArgs {
+    choice: boolean,
+    text: string
+}
 
 export const confirmRespond: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx, arg: boolean) => {
+    move: (G: SongJinnGame, ctx: Ctx, arg:IConfirmRespondArgs) => {
         const pid = ctx.playerID;
         logger.info(`${G.matchID}|p${pid}.confirmRespond(${JSON.stringify(arg)})`);
         if (pid === undefined) {
             return INVALID_MOVE;
         }
+        const ctr = pid2ctr(pid);
+        const {text, choice} = arg;
         const log = [`confirmRespond`]
         const pub = getStateById(G, pid);
-        // TODO check pending and do action
         const ci = G.combat;
+        const cci = ciDefInfo(G);
+
         if (ci.phase === CombatPhase.JieYe) {
-            if (arg) {
+            if (choice) {
                 ci.phase = CombatPhase.YunChou;
-                changePlayerStage(G,ctx,'combatCard',G.order[0]);
+                changePlayerStage(G, ctx, 'combatCard', G.order[0]);
             } else {
                 log.push(`|opponentChoose`);
+                changePlayerStage(G, ctx, 'confirmRespond', oppoPid(pid));
                 ci.phase = CombatPhase.WeiKun;
-                ctx.events?.endTurn();
             }
         }
         if (ci.phase === CombatPhase.WeiKun) {
-            if (arg) {
-                ciAtkTroop(G).c = null;
+            if (choice) {
+                const atk = ciAtkTroop(G);
+                atk.c = null;
                 const def = ciDefTroop(G);
                 if (def.c === null) {
                     if (isRegionID(def.p)) {
@@ -1375,13 +1438,59 @@ export const confirmRespond: LongFormMove = {
                 } else {
                     def.p = def.c
                 }
+                log.push(`|${atk}atk`);
+                log.push(`|${def}def`);
                 ci.ongoing = false;
             } else {
                 ci.type = CombatType.SIEGE;
-                changePlayerStage(G,ctx,'combatCard',G.order[0]);
+                changePlayerStage(G, ctx, 'combatCard', G.order[0]);
             }
         }
+        if (G.combat.phase === CombatPhase.MingJin) {
+            const ci = G.combat;
+            if (ctr === ci.atk) {
+                if (
+                    canForceRoundTwo(G)
+                ) {
+                    if (choice){
+                        cci.choice = BeatGongChoice.CONTINUE;
+                        // TODO oppo cci
+                    }else{
+                        cci.choice = BeatGongChoice.RETREAT;
+                    }
+                    changePlayerStage(G,ctx,'confirmRespond',ciDefPid(G));
+                }else{
+                    if (choice){
+                        cci.choice = BeatGongChoice.CONTINUE;
+                    }else{
+                        cci.choice = BeatGongChoice.RETREAT;
+                    }
+                    changePlayerStage(G,ctx,'confirmRespond',ciDefPid(G));
+                }
 
+
+            } else {
+                if (
+                    canForceRoundTwo(G)
+                ) {
+                    if (choice){
+                        ci.roundTwo = true;
+                        ci.phase = CombatPhase.YunChou;
+                        changePlayerStage(G,ctx,'combatCard',G.order[0]);
+                    }else{
+                        cci.choice = BeatGongChoice.RETREAT;
+                    }
+                } else {
+                    if (choice){
+                        cci.choice = BeatGongChoice.CONTINUE;
+                    }else{
+                        cci.choice = BeatGongChoice.RETREAT;
+                    }
+                }
+            }
+        }
+        log.push(`|${text}`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
 

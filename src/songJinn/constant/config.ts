@@ -116,7 +116,7 @@ export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     }
 }
 
-const StagedTurnConfig = {
+const StagedTurnConfig:TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
         react: ReactStageConfig,
@@ -132,7 +132,28 @@ const StagedTurnConfig = {
                 combatCard:combatCard,
                 showCC:showCC
             }
-        }
+        },
+        showCC:{
+            moves:{
+                showCC:showCC
+            }
+        },
+        takeDamage: {
+            moves: {
+                takeDamage: takeDamage,
+                generalSkill: generalSkill,
+                rescueGeneral: rescueGeneral,
+                removeUnit: removeUnit,
+                placeUnit: placeUnit,
+                moveTroop: moveTroop,
+                rollDices:rollDices,
+                loseCity: loseCity,
+                loseProvince: loseProvince,
+                controlCity: controlCity,
+                controlProvince: controlProvince,
+                down: down,
+            }
+        },
     },
 };
 export const DiscardStageConfig: StageConfig<SongJinnGame> = {
@@ -299,6 +320,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     turn: StagedTurnConfig,
     moves: {
+        confirmRespond:confirmRespond,
         showCC:showCC,
         discard: discard,
         moveGeneral: moveGeneral,
@@ -313,18 +335,20 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         tieJun: tieJun,
         endRound: endRound,
         combatCard: combatCard,
-        generalSkill: generalSkill,
 
+        generalSkill: generalSkill,
         rescueGeneral: rescueGeneral,
+        removeUnit: removeUnit,
+        placeUnit: placeUnit,
+        moveTroop: moveTroop,
+
 
         recruitPuppet: recruitPuppet,
         deploy: deploy,
         opponentMove: opponentMove,
         march: march,
-        moveTroop: moveTroop,
         takeDamage: takeDamage,
-        removeUnit: removeUnit,
-        placeUnit: placeUnit,
+
         rollDices: rollDices,
         loseCity: loseCity,
         loseProvince: loseProvince,

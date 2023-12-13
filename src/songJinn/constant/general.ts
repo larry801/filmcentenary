@@ -25,6 +25,7 @@ export const enum ActiveEvents {
     YanJingYiNan = "燕京以南，号令不行",
 
     JingKangZhiBian = "靖康之变",
+    LiuJiaShenBing = "六甲神兵",
     JinTaiZong = "金太宗",
     ZhuiWangZhuBei = "追亡逐北",
     JiNanZhiFuLiuYu = "济南知府刘豫",
@@ -753,7 +754,7 @@ export const enum BeatGongChoice {
 
 export interface CombatInfo {
     phase: CombatPhase,
-    attacker: Country,
+    atk: Country,
     type: CombatType,
     region: RegionID | null,
     city: CityID | null,
@@ -763,21 +764,21 @@ export interface CombatInfo {
     ongoing: boolean
 }
 
-function emptyJinnTroop(): Troop {
-    return {
-        p: RegionID.R01,
-        g: Country.JINN,
-        c: null,
-        u: [0, 0, 0, 0, 0, 0, 0]
-    }
-}
 
-function emptySongTroop(): Troop {
+export function emptySongTroop(): Troop {
     return {
         p: RegionID.R01,
         g: Country.SONG,
         c: null,
         u: [0, 0, 0, 0, 0, 0]
+    }
+}
+export function emptyJinnTroop(): Troop {
+    return {
+        p: RegionID.R01,
+        g: Country.JINN,
+        c: null,
+        u: [0, 0, 0, 0, 0, 0,0]
     }
 }
 
@@ -787,13 +788,14 @@ export enum CombatPhase {
     YunChou = "运筹",
     YuanCheng = "远程",
     WuLin = "吴璘",
-    JiaoFeng = "交锋"
+    JiaoFeng = "交锋",
+    MingJin = "鸣金",
 }
 
 function emptyCombatInfo(): CombatInfo {
     return {
         phase: CombatPhase.JieYe,
-        attacker: Country.JINN,
+        atk: Country.JINN,
         type: CombatType.FIELD,
         region: null,
         city: null,

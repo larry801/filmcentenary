@@ -27,6 +27,7 @@ import DialogContent from "@material-ui/core/DialogContent";
 import {useI18n} from "@i18n-chain/react";
 import {GeoMap} from "./geo";
 import {ParentSize} from "@visx/responsive";
+import {CombatInfoPanel} from "./combat-info";
 
 export const SongJinnBoard = ({
                                   G,
@@ -108,6 +109,9 @@ export const SongJinnBoard = ({
                 <Grid item xs={12} sm={6}>
                     <PubInfo G={G} ctx={ctx}/>
                 </Grid>
+                {G.combat.ongoing && <Grid item xs={12} sm={6}>
+                    <CombatInfoPanel isActive={isActive} moves={moves} pid={playerID} G={G} ctx={ctx}/>
+                </Grid>}
                 <Grid item xs={12} sm={6}>
                     <LogView log={log} getPlayerName={sjPlayerName} G={G}/>
                     {SwitchMapButton}
@@ -118,9 +122,7 @@ export const SongJinnBoard = ({
                             {parent => <GeoMap G={G} moves={moves} height={640} width={parent.width}/>}
                         </ParentSize>
                     </Grid>}
-                {playerID !== null && <Grid item xs={12} sm={6}>
-                    <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
-                    </Grid>}
+
                 <Grid item xs={12} sm={6}>
                     <ChatMessage
                         sendChatMessage={sendChatMessage}
@@ -145,10 +147,17 @@ export const SongJinnBoard = ({
                         <Grid item xs={12} sm={6}>
                             <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
                         </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
+                        </Grid>
                         <AdjustOps G={G} ctx={ctx} isActive={isActive} playerID={playerID} moves={moves}/>
+
                     </Grid> : <Grid container>
                         <Grid item xs={12} sm={6}>
                             <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
+                        </Grid>
+                    <Grid item xs={12} sm={6}>
+                            <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
                         </Grid>
                     </Grid>
                     }

@@ -16,7 +16,7 @@ import {ChooseUnitsDialog} from "./recruit";
 import {actualStage} from "../../game/util";
 
 import {
-    cardToSearch, confirmRespondText,
+    cardToSearch, confirmRespondLogText, confirmRespondText,
     generalWithOpponentTroop, getCityText,
     getCountryById,
     getGeneralNameByCountry, getSkillGeneral,
@@ -94,14 +94,14 @@ export const Operation = ({
                 hidden: false
             }
         })}
-        show={isActive && actualStage(G,ctx)=== 'combatCard'} title={"请选择战斗牌"}
+        show={isActive && actualStage(G, ctx) === 'combatCard'} title={"请选择战斗牌"}
         toggleText={"战斗牌"} initial={false}/>
 
     const autoPhases = ['showPlan', 'chooseFirst', 'choosePlan', 'diplomacy']
     const showPlan = (isActive && ctx.phase === 'showPlan') && <Button
         onClick={() => moves.showPlan(player.chosenPlans)}
         color={"primary"} variant={"contained"}>展示作战计划</Button>
-    const showCC = (isActive && actualStage(G,ctx)==='showCC') && <Button
+    const showCC = (isActive && actualStage(G, ctx) === 'showCC') && <Button
         onClick={() => moves.showCC(player.combatCard)}
         color={"primary"} variant={"contained"}>展示战斗牌</Button>
     const showLetters = (isActive && ctx.phase === 'diplomacy') && <Button
@@ -244,16 +244,17 @@ export const Operation = ({
     const confirmRespondDialog = <ChoiceDialog
         callback={(c) => {
             const opponent = c === "yes";
-         moves.confirmRespond(opponent)
-            }}
+            moves.confirmRespond({choice:opponent,text:confirmRespondLogText(G,opponent,ctr)})
+        }}
         choices={[
             {label: "是", value: "yes", disabled: false, hidden: false},
             {label: "否", value: "no", disabled: false, hidden: false}
         ]} defaultChoice={"no"}
-        show={isActive }
-        title={confirmRespondText(G,ctx,playerID)}
-        toggleText={"确认"}
+        show={isActive && actualStage( G,ctx)==='confirmRespond'}
+        title={confirmRespondText(G, ctx, playerID)}
+        toggleText={"请求确认"}
         initial={true}/>
+
     const develop = (choice: string) => {
         moves.develop(choice);
     }
@@ -384,13 +385,6 @@ export const Operation = ({
         }
 
     }
-    const diceRoller = <Grid item>
-        <Button onClick={() => adjustDice(-5)}>-5</Button>
-        <Button onClick={() => adjustDice(-1)}>-1</Button>
-        <Button onClick={() => moves.rollDices({count: count, idx: pub.dices.length})}>掷{count}个骰子</Button>
-        <Button onClick={() => adjustDice(1)}>+1</Button>
-        <Button onClick={() => adjustDice(5)}>+5</Button>
-    </Grid>
 
     const jianLiDaQiButton = <CheckBoxDialog
         callback={(c) => moves.jianLiDaQi(c)} choices={G.jinn.provinces.map((prov) => {
@@ -409,19 +403,28 @@ export const Operation = ({
 
     return <Grid container>
 
-        <Dices pub={pub}/>
+        宋<Dices pub={G.song}/>
+        金<Dices pub={G.jinn}/>
 
-        {diceRoller}
+        <Grid item>
+            <Button onClick={() => adjustDice(-5)}>-5</Button>
+            <Button onClick={() => adjustDice(-1)}>-1</Button>
+            <Button onClick={() => moves.rollDices({count: count, idx: pub.dices.length})}>掷{count}个骰子</Button>
+            <Button onClick={() => adjustDice(1)}>+1</Button>
+            <Button onClick={() => adjustDice(5)}>+5</Button>
+        </Grid>
         {endRound}
         {emptyRoundButton}
         {opponentButton}
-        {rescueGeneralDialog}
-        {chooseRescueGeneralsDialog}
-        {recruitPuppetDialog}
         {jianLiDaQiButton}
         {showLetters}
         {showPlan}
         {showCC}
+        {confirmRespondDialog}
+        {rescueGeneralDialog}
+        {chooseRescueGeneralsDialog}
+
+        {recruitPuppetDialog}
         {takePlanDialog}
         {chooseTopPlanDialog}
         {combatCardDialog}
