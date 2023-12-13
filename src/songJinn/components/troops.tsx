@@ -108,6 +108,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         return c === Country.JINN ? [0, 0, 0, 0, 0, 0, 0] : [0, 0, 0, 0, 0, 0];
     }
 
+    const [showTroops, setShowTroops] = useState(true);
+
+
 
     const [deployStep, setDeployStep] = React.useState(DeployStep.TROOP);
     const [deployTroop, setDeployTroop] = useState(emptyTroop);
@@ -403,6 +406,11 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         <Grid item xs={12}>
             <Button
                 variant={"contained"} fullWidth
+                onClick={() => setShowTroops(!showTroops)}
+            >切换部队显示</Button>
+
+            <Button
+                variant={"contained"} fullWidth
                 onClick={() => {
                     setPlaceStep(PlaceStep.TROOP);
                     // setNewTroopStep(NewTroopStep.START);
@@ -449,9 +457,11 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
             {moveProvDialog}
 
-            {placeUnitsDialog}
-        </Grid>
-        {troops.map((t, idx) => <Grid item xs={6} key={`troop-grid-${idx}`}>
+            {placeUnitsDialog}</Grid>
+            {showTroops && <>
+
+
+            {troops.map((t, idx) => <Grid item xs={6} key={`troop-grid-${idx}`}>
             <Accordion expanded={isActive && expanded === idx} onChange={() => setExpanded(idx)}
                        key={`troop-${idx}`}>
                 <AccordionSummary> {hasOpponentTroop(G,t)?'(**)':''} {t.g}{getTroopPlaceText(t)} {getTroopText(G, t)} </AccordionSummary>
@@ -592,9 +602,10 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     }
                 </AccordionDetails>
             </Accordion>
-
-        </Grid>)}
-    </Grid>
+            </Grid>
+            )}</>
+            }
+        </Grid>
 }
 
 export default TroopOperation;
