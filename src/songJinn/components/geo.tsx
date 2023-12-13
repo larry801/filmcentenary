@@ -9,11 +9,11 @@ import {getRegionById} from "../constant/regions";
 import {RegionID, SongJinnGame, TerrainType} from "../constant/general";
 import {green, orange, red, yellow, purple} from "@material-ui/core/colors";
 import {
-    centroid, getCityText, getJinnTroopByPlace,
+    centroid,  getJinnTroopByPlace, getSimpleTroopText,
     getSongTroopByPlace,
-    getTroopPlaceText,
-    getTroopText, unitsToString
+    getTroopText, placeToStr,
 } from "../util";
+import {Fab} from "@material-ui/core";
 
 
 export type GeoCustomProps = {
@@ -40,7 +40,7 @@ const world = MapData as {
 };
 
 export function GeoMap({width, height, G}: GeoCustomProps) {
-    const [center, setCenter] = useState([])
+    const [detail, setDetail] = useState(true);
     const initialScale = 2750;
     return width < 10 ? null : (
         <>
@@ -96,18 +96,14 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                             let text = '';
                                             const songTroop = getSongTroopByPlace(G, region.id);
                                             const jinnTroop = getJinnTroopByPlace(G, region.id);
-                                            if (songTroop !== null) {
-                                                if (jinnTroop !== null) {
-                                                    text += getTroopText(G, songTroop);
-                                                    text += '\n';
-                                                    text += getTroopText(G, jinnTroop);
-                                                } else {
-                                                    text += getTroopText(G, songTroop);
-                                                }
+                                            if(detail){
+                                                text += songTroop === null ? '' : getTroopText(G, songTroop);
+                                                text += '\n';
+                                                text += jinnTroop === null ? '' : getTroopText(G, jinnTroop);
                                             }else{
-                                                if (jinnTroop !== null) {
-                                                    text += getTroopText(G, jinnTroop);
-                                                }
+                                                text += songTroop === null ? '' : getSimpleTroopText(G, songTroop);
+                                                text += '\n';
+                                                text += jinnTroop === null ? '' : getSimpleTroopText(G, jinnTroop);
                                             }
                                             let color = '#fff000';
                                             switch (region.terrain) {
@@ -145,19 +141,9 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                                         y={projected[1]}
                                                         fontSize={14}
                                                         textAnchor={'middle'}
-                                                        width={10}
+                                                        width={8}
                                                     >
-                                                        {text}
-                                                    </Text>}
-                                                    {projected !== null && <Text
-                                                        key={`map-region-text-${i}`}
-                                                        x={projected[0]}
-                                                        y={projected[1]}
-                                                        fontSize={10}
-                                                        textAnchor={'middle'}
-                                                        width={10}
-                                                    >
-                                                        {region.city !== null ? getCityText(region.city):region.name}
+                                                        {(region.city !== null ? (region.city + placeToStr(region.id)) : region.name) + text}
                                                     </Text>}
                                                 </>
                                             )
@@ -203,9 +189,11 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                             >
                                 -
                             </button>
-                            <button className="btn btn-lg" onClick={zoom.reset}>
-                                Reset
-                            </button>
+                            <Fab className="btn btn-lg" onClick={() => {
+                                setDetail(!detail)
+                            }}>
+                                {detail ? "简化" : "详细"}
+                            </Fab>
                         </div>
                     </div>
                 )}
