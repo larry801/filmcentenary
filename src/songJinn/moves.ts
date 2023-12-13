@@ -92,7 +92,7 @@ import {
     songLoseEmperor,
     startCombat,
     totalDevelop,
-    troopEmpty,
+    troopEmpty, troopIsArmy,
     unitsToString,
     yuanCheng
 } from "./util";
@@ -245,15 +245,19 @@ export const march: LongFormMove = {
         G.op--;
         log.push(`|${G.op}G.op`);
         const oppoTroop = getOpponentPlaceTroopById(G, pid, dst);
-        log.push(`|${oppoTroop}oppoTroop`);
+        log.push(`|${JSON.stringify(oppoTroop)}oppoTroop`);
         if (oppoTroop !== null) {
             if (isNationID(dst)) {
                 log.push(`|cannot|goto|nation|with|opponent|troop`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return INVALID_MOVE;
             } else {
-                log.push(`|startCombat`);
-                startCombat(G, ctx, ctr, t.p);
+                if(troopIsArmy(G,ctx,oppoTroop)){
+                    log.push(`|startCombat`);
+                    startCombat(G, ctx, ctr, t.p);
+
+                }
+
             }
         }
         logger.debug(`${G.matchID}|${log.join('')}`);

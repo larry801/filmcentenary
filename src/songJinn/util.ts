@@ -3789,7 +3789,7 @@ export function startCombat(
     G: SongJinnGame, ctx: Ctx,
     attacker: Country, p: TroopPlace
 ) {
-    const log = [`startCombat|${attacker}atk${placeToStr(p)}}`];
+    const log = [`startCombat|${attacker}atk${placeToStr(p)}`];
     const c = G.combat;
     c.ongoing = true;
     c.atk = attacker;
@@ -3800,18 +3800,22 @@ export function startCombat(
     const st = getSongTroopByPlace(G, p);
     if (st !== null) {
         c.song.troop = st;
-        if(isRegionID(st.p)){
+        if (isRegionID(st.p)) {
             c.region = st.p;
         }
         c.city = st.c;
     } else {
         log.push(`|error|no song troop`);
+        endCombat(G, ctx);
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
     const jt = getJinnTroopByPlace(G, p);
     if (jt !== null) {
         c.jinn.troop = jt;
     } else {
         log.push(`|error|no jinn troop`);
+        endCombat(G, ctx);
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
     // TODO
 
@@ -3856,14 +3860,15 @@ export function troopIsArmy(G: SongJinnGame, ctx: Ctx, troop: Troop) {
 }
 
 export function troopRange(G: SongJinnGame, troop: Troop): number {
-
+    const log = [`troopRange${JSON.stringify(troop)}`];
     let range = 0;
     const terrainType = getTerrainTypeByPlace(troop);
+    log.push(`|terrain${terrainType}`);
     const place = troop.p;
     // @ts-ignore
     const isSwampRampart = isCityID(place) && getRegionById(getCityById(place)
     ).terrain === TerrainType.SWAMP;
-
+    log.push(`|${isSwampRampart}isSwampRampart`);
 
     let unitRanges: number[] = [];
 
@@ -3917,11 +3922,14 @@ export function troopRange(G: SongJinnGame, troop: Troop): number {
             unitRanges[6] = 1;
         }
     }
+    log.push(`|${unitRanges}unitRanges`);
     troop.u.forEach((i, idx) => {
         range += i * unitRanges[idx]
     });
+    log.push(`|range${range}`);
     if (troop.g === Country.JINN && hasGeneral(G, troop, JinnGeneral.WoLiBu)) {
         range += troop.u[1];
+        log.push(`|range${range}`);
     }
     return range;
 }
@@ -4191,9 +4199,10 @@ export function getTroopText(G: SongJinnGame, t: Troop) {
 
 
 export function troopEndurance(G: SongJinnGame, troop: Troop): number {
+    const log = [`troopEndurance${JSON.stringify(troop)}`];
     let endurance = 0;
     const terrainType = getTerrainTypeByPlace(troop);
-
+    log.push(`|${terrainType}terrainType`);
     let unitEndurance: number[] = [];
     if (troop.g === Country.SONG) {
         unitEndurance = [2, 1, 1, 0, 0, 2];
@@ -4206,23 +4215,36 @@ export function troopEndurance(G: SongJinnGame, troop: Troop): number {
     if (terrainType === TerrainType.SWAMP) {
         unitEndurance[3] = 2;
     }
+    log.push(`|${unitEndurance}unitEndurance`);
     troop.u.forEach((i, idx) => {
         endurance += i * unitEndurance[idx]
     })
+    log.push(`|${endurance}endurance`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
     return endurance;
 }
 
 
 export const getSongScore = (G: SongJinnGame): number => {
+    const log = [`getSongScore`];
     let score = getSongPower(G);
+    log.push(`|power${score}`);
     G.song.completedPlan.forEach((pid) => {
         score += getPlanById(pid).vp;
+        log.push(`|${pid}|${score}`);
     })
     score += G.song.military;
+    log.push(`|${score}score`);
     score += G.song.civil;
+    log.push(`|${score}score`);
+    score += G.song.specialPlan;
+    log.push(`|${score}score`);
+
     if (G.events.includes(ActiveEvents.YanJingYiNan)) {
         score++;
+        log.push(`|${score}score`);
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
     return score
 }
 export const getSongPower = (G: SongJinnGame): number => {
@@ -4275,13 +4297,21 @@ export const getSongPower = (G: SongJinnGame): number => {
     return power;
 }
 export const getJinnScore = (G: SongJinnGame): number => {
+    const log = [`getJinnScore`];
     let score = getJinnPower(G);
+    log.push(`|power${score}`);
+
     G.jinn.completedPlan.forEach((pid) => {
         score += getPlanById(pid).vp;
+
     })
     score += G.jinn.military;
+    log.push(`|${score}score`);
     score += G.jinn.civil;
+    log.push(`|${score}score`);
     score += G.jinn.specialPlan;
+    log.push(`|${score}score`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
     return score;
 }
 export const getJinnPower = (G: SongJinnGame): number => {
