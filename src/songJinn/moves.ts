@@ -317,7 +317,9 @@ export const takeDamage: LongFormMove = {
             log.push(`|after|${pub.standby}|${arg.standby}`);
         }
         if (troopEmpty(troop)) {
-            pub.troops.splice(pub.troops.indexOf(troop), 1);
+            if(pub.troops.includes(troop)){
+                pub.troops.splice(pub.troops.indexOf(troop), 1);
+            }
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
@@ -903,8 +905,12 @@ export const combatCard: LongFormMove = {
                 } else {
                     pub.discard.push(c);
                 }
-                player.hand.splice(player.hand.indexOf(c), 1);
+                if (player.hand.includes(c)) {
+                    player.hand.splice(player.hand.indexOf(c), 1);
+                }
             })
+        } else {
+            return  INVALID_MOVE;
         }
 
 
@@ -938,7 +944,9 @@ export const cardEvent: LongFormMove = {
             } else {
                 pub.discard.push(args);
             }
-            player.hand.splice(player.hand.indexOf(args), 1);
+            if (player.hand.includes(args)) {
+                player.hand.splice(player.hand.indexOf(args), 1);
+            }
             card.event(G, ctx);
         } else {
             return INVALID_MOVE;

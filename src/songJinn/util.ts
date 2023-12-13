@@ -3146,7 +3146,9 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
 export const developInstead = (G: SongJinnGame, pid: PlayerID, cid: SJEventCardID) => {
     const pub = getStateById(G, pid)
     pub.develop.push(cid);
-    pub.discard.splice(pub.discard.indexOf(cid), 1);
+    if (pub.discard.includes(cid)) {
+        pub.discard.splice(pub.discard.indexOf(cid), 1);
+    }
 }
 export const drawPlanForPlayer = (G: SongJinnGame, pid: PlayerID) => {
     const p = playerById(G, pid);
@@ -3797,21 +3799,23 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
         addLateTermCard(G, ctx);
     }
     if (G.events.includes(ActiveEvents.YueShuaiZhiLai)) {
-        log.push(
-            `|RemoveYueShuaiZhiLai|${G.events.toString()}`
-        );
+        log.push(`|RemoveYueShuaiZhiLai|${G.events.toString()}`);
         G.events.splice(G.events.indexOf(ActiveEvents.YueShuaiZhiLai), 1);
-        log.push(
-            `|after|${G.events.toString()}`
-        );
+        log.push(`|after|${G.events.toString()}`);
     }
     if (G.events.includes((ActiveEvents.LiGang))) {
+        log.push(`|RemoveLiGang|${G.events.toString()}`);
         G.events.splice(G.events.indexOf(ActiveEvents.LiGang), 1);
+        log.push(`|after|${G.events.toString()}`);
     }
     if (G.turn >= MAX_ROUND) {
+        log.push(`|shaoXingHeYi`);
         const songScore = getSongScore(G);
         const jinnScore = getJinnScore(G);
+        log.push(`|${songScore}songScore`);
+        log.push(`|${jinnScore}jinnScore`);
         const winner = jinnScore > songScore ? SJPlayer.P2 : SJPlayer.P1;
+        log.push(`|${winner}winner`);
         ctx.events?.endGame({
             winner: winner,
             reason: VictoryReason.ShaoXingHeYi
@@ -3821,6 +3825,7 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
             `moveTurnMarker`
         );
         G.turn++;
+        log.push(`turn|${G.turn}`);
     }
     logger.debug(
         `${G.matchID}|${log.join('')}`
@@ -3970,7 +3975,9 @@ export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID,
                 }
             }
         }
-        pub.provinces.splice(pub.provinces.indexOf(prov), 1);
+        if (pub.provinces.includes(prov)) {
+            pub.provinces.splice(pub.provinces.indexOf(prov), 1);
+        }
         if (opponent) {
             oppo.provinces.push(prov);
         }
