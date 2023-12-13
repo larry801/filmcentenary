@@ -38,7 +38,7 @@ import {
     cardToSearch,
     changeCivil,
     changeMilitary,
-    ciAtkInfo,
+    ciAtkInfo, ciAtkPid,
     ciAtkTroop,
     ciDefInfo,
     ciDefPid,
@@ -55,7 +55,7 @@ import {
     doRecruit,
     doRemoveNation,
     drawPhaseForPlayer,
-    drawPlanForPlayer,
+    drawPlanForPlayer, endCombat,
     endRoundCheck,
     getCombatStateById,
     getCountryById,
@@ -160,6 +160,10 @@ export const march: LongFormMove = {
         const {src, dst, country, generals, units} = arg;
         const pid = ctx.playerID;
         if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        // @ts-ignore
+        if (dst === undefined || dst === "" || dst === null) {
             return INVALID_MOVE;
         }
         logger.info(`p${pid}.march(${JSON.stringify(arg)});`)
@@ -325,18 +329,18 @@ interface ITakeDamageArgs {
 }
 
 
-
 export const takeDamage: LongFormMove = {
-    move: (G:SongJinnGame, ctx, arg: ITakeDamageArgs) => {
+    move: (G: SongJinnGame, ctx, arg: ITakeDamageArgs) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`p${ctx.playerID}.takeDamage(${arg})`);
+        logger.info(`p${ctx.playerID}.takeDamage(${JSON.stringify(arg)})`);
         const {c, src, standby, ready} = arg;
         const pub = ctr2pub(G, c);
-        const log = [`|before|${pub.standby}|${pub.standby}|`];
+        const log = [`takeDamage|before|${pub.ready}|${pub.standby}|`];
         const troop = c === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
         if (troop === null) {
+            log.push(`|noTroop`);
             logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
@@ -351,18 +355,20 @@ export const takeDamage: LongFormMove = {
             log.push(JSON.stringify(troop));
             pub.standby[i] += (arg.standby)[i];
             pub.ready[i] += (arg.ready)[i];
-            log.push(`|after|${pub.standby}|${arg.standby}`);
+            log.push(`|after|${pub.ready}|${arg.standby}`);
         }
         if (troopEmpty(troop)) {
+            log.push(`|rmTroop`);
             if (pub.troops.includes(troop)) {
                 pub.troops.splice(pub.troops.indexOf(troop), 1);
             }
         }
         if (actualStage(G, ctx) === 'takeDamage') {
+            log.push(`|stage|in|combat`);
             if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
                 changePlayerStage(G, ctx, 'takeDamage', G.order[1]);
             } else {
-                switch(G.combat.phase){
+                switch (G.combat.phase) {
                     case CombatPhase.JieYe:
                         log.push(`|${G.combat.phase}|error`);
                         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -376,14 +382,14 @@ export const takeDamage: LongFormMove = {
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     case CombatPhase.YuanCheng:
-                        jiaoFeng(G,ctx);
+                        jiaoFeng(G, ctx);
                         break;
                     case CombatPhase.WuLin:
                         // TODO
-                        jiaoFeng(G,ctx);
+                        jiaoFeng(G, ctx);
                         break;
                     case CombatPhase.JiaoFeng:
-                        mingJin(G,ctx);
+                        mingJin(G, ctx);
                         break;
                     case CombatPhase.MingJin:
                         log.push(`|${G.combat.phase}|error`);
@@ -1398,7 +1404,7 @@ interface IConfirmRespondArgs {
 }
 
 export const confirmRespond: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx, arg:IConfirmRespondArgs) => {
+    move: (G: SongJinnGame, ctx: Ctx, arg: IConfirmRespondArgs) => {
         const pid = ctx.playerID;
         logger.info(`${G.matchID}|p${pid}.confirmRespond(${JSON.stringify(arg)})`);
         if (pid === undefined) {
@@ -1461,43 +1467,57 @@ export const confirmRespond: LongFormMove = {
                 if (
                     canForceRoundTwo(G)
                 ) {
-                    if (choice){
+                    if (choice) {
                         atkCCI.choice = BeatGongChoice.CONTINUE;
-                        // TODO oppo cci
-                    }else{
+                        changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    } else {
+                        atkCCI.choice = BeatGongChoice.RETREAT;
+                        log.push(`|atkRetreat`);
+                        endCombat(G, ctx);
+                        ctx.events?.endStage()
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    }
+
+                } else {
+                    if (choice) {
+                        atkCCI.choice = BeatGongChoice.CONTINUE;
+                    } else {
                         atkCCI.choice = BeatGongChoice.RETREAT;
                     }
-                    changePlayerStage(G,ctx,'confirmRespond',ciDefPid(G));
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    return;
-                }else{
-                    if (choice){
-                        atkCCI.choice = BeatGongChoice.CONTINUE;
-                    }else{
-                        atkCCI.choice = BeatGongChoice.RETREAT;
-                    }
-                    changePlayerStage(G,ctx,'confirmRespond',ciDefPid(G));
+                    changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 }
-
-
             } else {
                 if (
                     canForceRoundTwo(G)
                 ) {
-                    if (choice){
-                        roundTwo(G,ctx);
+                    if (choice) {
+                        roundTwo(G, ctx);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
-                    }else{
-                        defCCI.choice = BeatGongChoice.RETREAT;
+                    } else {
+                        // TODO let atk choose?
+                        endCombat(G, ctx);
+                        ctx.events?.endStage()
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
                     }
                 } else {
-                    if (choice){
+                    if (choice) {
                         defCCI.choice = BeatGongChoice.CONTINUE;
-                    }else{
+                        roundTwo(G, ctx);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    } else {
                         defCCI.choice = BeatGongChoice.RETREAT;
+                        endCombat(G, ctx);
+                        ctx.events?.endStage()
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
                     }
                 }
             }

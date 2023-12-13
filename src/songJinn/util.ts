@@ -2948,11 +2948,16 @@ export const getSeasonText = (r: number) => {
 
 const takeDamageText = (arg: ITakeDamageArgs) => {
     let text = `${placeToStr(arg.src)}${arg.c}`;
-    if (arg.standby.filter(u => u > 0).length > 0) {
+    const standby = arg.standby.filter(u => u > 0).length > 0;
+    if (standby) {
         text += `死${unitsToString(arg.standby)}`;
     }
-    if (arg.ready.filter(u => u > 0).length > 0) {
+    const ready = arg.ready.filter(u => u > 0).length > 0;
+    if (ready) {
         text += `溃${unitsToString(arg.ready)}`;
+    }
+    if ((!standby) && (!ready)) {
+        text += '未受创';
     }
     return text;
 }
@@ -3360,22 +3365,24 @@ export function oppoCtr(c: Country) {
 }
 
 // troop
-export const roundTwo = (G:SongJinnGame, ctx: Ctx) => {
+
+export const roundTwo = (G: SongJinnGame, ctx: Ctx) => {
+    const ci = G.combat;
     ci.roundTwo = true;
     ci.phase = CombatPhase.YunChou;
-    changePlayerStage(G,ctx,'combatCard',G.order[0]);
+    changePlayerStage(G, ctx, 'combatCard', G.order[0]);
 }
 
-export const mingJin = (G:SongJinnGame, ctx: Ctx) => {
+export const mingJin = (G: SongJinnGame, ctx: Ctx) => {
     G.combat.phase = CombatPhase.MingJin;
-    if(canRoundTwo(G)){
-        if(canForceRoundTwo(G)){
-            changePlayerStage(G,ctx,'confirmRespond',ciDefPid(G));
-        }else{
-            changePlayerStage(G,ctx,'confirmRespond',ciAtkPid(G));
+    if (canRoundTwo(G)) {
+        if (canForceRoundTwo(G)) {
+            changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
+        } else {
+            changePlayerStage(G, ctx, 'confirmRespond', ciAtkPid(G));
         }
-    }else{
-        endCombat(G,ctx);
+    } else {
+        endCombat(G, ctx);
     }
 
 }
@@ -3432,7 +3439,7 @@ export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
     }
     log.push(`|${atkD}atkD`);
     log.push(`|${defD}defD`);
-    if(ci.atk === Country.JINN  &&ciJinnGenerals(G).includes(JinnGeneral.WuZhu)){
+    if (ci.atk === Country.JINN && ciJinnGenerals(G).includes(JinnGeneral.WuZhu)) {
         log.push(`|wuZhu+2`);
         atkD += 2;
     }
@@ -3463,6 +3470,7 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
     const oppo = getStateById(G, ctr2pid(oppoCtr(ctr)));
     let d6 = pub.dices.length > 0 ? pub.dices[pub.dices.length - 1] : [];
     let opD6 = oppo.dices.length > 0 ? oppo.dices[oppo.dices.length - 1] : [];
+    log.push(`|${JSON.stringify(d6)}`);
     if (ctr === Country.SONG) {
         if (ci.song.combatCard.includes(SongBaseCardID.S41)) {
             log.push(`|yueShuai++`);
@@ -3482,12 +3490,12 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
             d6 = d6.map(d => d + 1);
             log.push(`|${d6}`);
         }
-        if(ciJinnGenerals(G).includes(JinnGeneral.YinShuKe)){
+        if (ciJinnGenerals(G).includes(JinnGeneral.YinShuKe)) {
             log.push('yinShuKeJieWei/TuWei');
             d6 = d6.map(d => d + 1);
             log.push(`|${d6}`);
         }
-        if(ciSongGenerals(G).includes(SongGeneral.ZongZe)){
+        if (ciSongGenerals(G).includes(SongGeneral.ZongZe)) {
             log.push('zongZe');
             d6 = d6.map(d => d - 1);
             log.push(`|${d6}`);
@@ -3504,7 +3512,7 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
         }
 
     }
-    let dmg = d6.filter(d => d > 5).length;
+    let dmg = d6.filter(d => d >= 5).length;
     log.push(`|${dmg}dmg`);
 
     if (ctr === Country.SONG) {
@@ -3518,10 +3526,10 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
             dmg++;
             log.push(`|${dmg}dmg`);
         }
-        if(ciJinnGenerals(G).includes(JinnGeneral.BenZhu)
+        if (ciJinnGenerals(G).includes(JinnGeneral.BenZhu)
             && ci.type === CombatType.SIEGE
             && ci.atk === Country.SONG
-        ){
+        ) {
             log.push('benZhuShouCheng');
             const d1Count = opD6.filter(d => d === 1).length;
             log.push(`|${d1Count}d1Count`);
@@ -3628,7 +3636,9 @@ export const canRoundTwo = (G: SongJinnGame): boolean => {
     const defPid = ctr2pid(ciDefCtr(G));
     const atkPub = getStateById(G, atkPid);
     const defPub = getStateById(G, defPid);
-    if(ci.roundTwo){return false;}
+    if (ci.roundTwo) {
+        return false;
+    }
     if (atkPub.military > defPub.military) {
         log.push(`|${atkPub.military}>${defPub.military}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -3636,6 +3646,11 @@ export const canRoundTwo = (G: SongJinnGame): boolean => {
     } else {
         log.push(`|${atkPub.military}<=${defPub.military}`);
 
+        if (ci.atk === Country.SONG && ci.song.combatCard.includes(SongBaseCardID.S36)) {
+            log.push(`|yueJiaJun`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return true;
+        }
         if (ci.atk === Country.SONG && ciAtkGenerals(G).includes(SongGeneral.YueFei)) {
             log.push(`|yuefei`);
             logger.debug(`${G.matchID}|${log.join('')}`);
@@ -3794,6 +3809,9 @@ export function startCombat(
     } else {
         log.push(`|error|no jinn troop`);
     }
+    // TODO
+    c.region = st.p;
+    c.city = st.c;
     log.push(`|${JSON.stringify(atkTroop)}atk`);
     log.push(`|${JSON.stringify(defTroop)}def`);
     log.push(`|${atkId}atkId`);
@@ -3810,13 +3828,13 @@ export function startCombat(
                 log.push(`|noCityField`);
                 c.type = CombatType.FIELD;
                 // DEBUG remove cc
-                // yuanCheng(G, ctx);
-                changePlayerStage(G, ctx, 'combatCard', G.order[0]);
+                yuanCheng(G, ctx);
+                // changePlayerStage(G, ctx, 'combatCard', G.order[0]);
             } else {
                 log.push(`|city|ask|field`);
                 // DEBUG remove cc
-                // yuanCheng(G, ctx);
-                changePlayerStage(G, ctx, 'confirmRespond', defId);
+                yuanCheng(G, ctx);
+                // changePlayerStage(G, ctx, 'confirmRespond', defId);
             }
         } else {
             if (isMountainPassID(p)) {

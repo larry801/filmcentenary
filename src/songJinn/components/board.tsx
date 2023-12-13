@@ -110,7 +110,7 @@ export const SongJinnBoard = ({
                     <PubInfo G={G} ctx={ctx}/>
                 </Grid>
                 {G.combat.ongoing && <Grid item xs={12} sm={6}>
-                    <CombatInfoPanel isActive={isActive} moves={moves} pid={playerID} G={G} ctx={ctx}/>
+                    <CombatInfoPanel isActive={isActive} moves={moves} pid={playerID} G={G} ctx={ctx} log={log}/>
                 </Grid>}
                 <Grid item xs={12} sm={6}>
                     <LogView log={log} getPlayerName={sjPlayerName} G={G}/>
