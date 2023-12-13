@@ -96,6 +96,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
                 onClick={onCopyMove}>
                 <ContentCopyIcon/>复制链接
             </IconButton>
+            <NewLog G={G} l={newLog} count={log.length}/>
         </Grid>
         {open && <Grid item xs={12}>
             <TextField
@@ -107,7 +108,6 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
                 maxRows={20}
                 variant="filled"
             />
-            <NewLog G={G} l={newLog} count={log.length}/>
          </Grid>}
     </Grid>
 }
