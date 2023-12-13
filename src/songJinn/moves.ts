@@ -1451,11 +1451,12 @@ export const confirmRespond: LongFormMove = {
                 }
                 log.push(`|${atk}atk`);
                 log.push(`|${def}def`);
-                ci.ongoing = false;
+                endCombat(G, ctx);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             } else {
                 ci.type = CombatType.SIEGE;
+                ci.phase = CombatPhase.YunChou;
                 changePlayerStage(G, ctx, 'combatCard', G.order[0]);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;

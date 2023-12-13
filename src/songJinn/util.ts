@@ -3714,7 +3714,7 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: boolean, ctr: Countr
     if (G.combat.phase === CombatPhase.MingJin) {
         const ci = G.combat;
         if (ctr === ci.atk) {
-            return arg ? "选择坚守" : "选择撤退";
+            return arg ? "选择继续作战" : "选择撤退";
         } else {
             if (
                 canForceRoundTwo(G)
@@ -3739,7 +3739,7 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
     if (G.combat.phase === CombatPhase.MingJin) {
         const ci = G.combat;
         if (ctr === ci.atk) {
-            return "是否选择坚守";
+            return "是否选择继续作战";
         } else {
             if (
                 canForceRoundTwo(G)
@@ -3800,6 +3800,10 @@ export function startCombat(
     const st = getSongTroopByPlace(G, p);
     if (st !== null) {
         c.song.troop = st;
+        if(isRegionID(st.p)){
+            c.region = st.p;
+        }
+        c.city = st.c;
     } else {
         log.push(`|error|no song troop`);
     }
@@ -3810,8 +3814,7 @@ export function startCombat(
         log.push(`|error|no jinn troop`);
     }
     // TODO
-    c.region = st.p;
-    c.city = st.c;
+
     log.push(`|${JSON.stringify(atkTroop)}atk`);
     log.push(`|${JSON.stringify(defTroop)}def`);
     log.push(`|${atkId}atkId`);
@@ -3828,13 +3831,13 @@ export function startCombat(
                 log.push(`|noCityField`);
                 c.type = CombatType.FIELD;
                 // DEBUG remove cc
-                yuanCheng(G, ctx);
-                // changePlayerStage(G, ctx, 'combatCard', G.order[0]);
+                // yuanCheng(G, ctx);
+                changePlayerStage(G, ctx, 'combatCard', G.order[0]);
             } else {
                 log.push(`|city|ask|field`);
                 // DEBUG remove cc
-                yuanCheng(G, ctx);
-                // changePlayerStage(G, ctx, 'confirmRespond', defId);
+                // yuanCheng(G, ctx);
+                changePlayerStage(G, ctx, 'confirmRespond', defId);
             }
         } else {
             if (isMountainPassID(p)) {
