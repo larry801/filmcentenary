@@ -2658,6 +2658,61 @@ export const removeUnitByIdx = (G: SongJinnGame, units: number[], pid: PlayerID,
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
+export const canRecruitNoCivilLimit = (G: SongJinnGame, units: number[], pid: PlayerID): boolean => {
+    const log = [`canRecruitNoCivilLimit${unitsToString(units)}${pid2ctr(pid)}`];
+    let perm: boolean[];
+    if (pid === SJPlayer.P1) {
+        perm = INITIAL_RECRUIT_PERMISSION[0]
+    } else {
+        perm = INITIAL_RECRUIT_PERMISSION[1];
+        if (G.events.includes(ActiveEvents.JianLiDaQi)){
+            log.push(`|daQi`);
+            perm[6] = true;
+        }
+    }
+    for (let i = 0; i < units.length; i++) {
+        if (!perm[i] && units[i] > 0) {
+            log.push(`|cannot|${i}`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return false;
+        }
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return true;
+}
+
+export const canRecruit = (G: SongJinnGame, units: number[], pid: PlayerID): number => {
+    const log = [`canRecruitCost${unitsToString(units)}${pid2ctr(pid)}`];
+    let cost = 0;
+    let unitCost = [1, 1, 0, 2, 0, 0]
+    if (pid === SJPlayer.P1) {
+
+    } else {
+        unitCost = [1, 2, 2, 0, 0, 1, 1]
+    }
+
+    for (let i = 0; i < units.length; i++) {
+        cost += units[i] * unitCost[i];
+    }
+    return cost;
+}
+
+export const getRecruitCost = (G: SongJinnGame, units: number[], pid: PlayerID): number => {
+    const log = [`getRecruitCost${unitsToString(units)}${pid2ctr(pid)}`];
+    let cost = 0;
+    let unitCost = [1, 1, 0, 2, 0, 0]
+    if (pid === SJPlayer.P1) {
+
+    } else {
+        unitCost = [1, 2, 2, 0, 0, 1, 1]
+    }
+
+    for (let i = 0; i < units.length; i++) {
+        cost += units[i] * unitCost[i];
+    }
+    return cost;
+}
 export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
     const actualUnits = [...units];
     const pub = getStateById(G, pid);
@@ -3661,14 +3716,25 @@ export const getSongPower = (G: SongJinnGame): number => {
     if (G.song.emperor !== null) {
         log.push(`|emperor${power}`);
         power++;
+        log.push(`|p${power}`);
+
     }
     if (G.events.includes(ActiveEvents.JianYanNanDu)) {
         log.push(`|jianyannandu${power}`);
         power++;
+        log.push(`|p${power}`);
     }
+
+    if (G.events.includes(ActiveEvents.JingKangZhiBian)) {
+        log.push(`|jingkangzhibian${power}`);
+        power--;
+        log.push(`|p${power}`);
+    }
+
     if (G.song.civil >= 6) {
         log.push(`|neizheng6${power}`);
         power++;
+        log.push(`|p${power}`);
     }
     logger.warn(`${G.matchID}|${log.join('')}`);
     return power;
