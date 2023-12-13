@@ -2911,9 +2911,9 @@ interface ITakeDamageArgs {
 
 export const getSeasonText = (r: number) => {
     if (r === 1 || r === 5) return '秋季';
-    if (r === 2 || r === 6) return '秋季';
-    if (r === 3 || r === 7) return '秋季';
-    if (r === 4 || r === 8) return '秋季';
+    if (r === 2 || r === 6) return '冬季';
+    if (r === 3 || r === 7) return '春季';
+    if (r === 4 || r === 8) return '夏季';
 }
 
 const takeDamageText = (arg: ITakeDamageArgs) => {
