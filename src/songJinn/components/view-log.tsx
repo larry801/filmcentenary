@@ -72,7 +72,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
 
     const cloneLog = [...processedLogs];
 
-    const reverseLog = cloneLog.filter(l => l.action.type !== "GAME_EVENT").reverse().slice(0, 50);
+    const reverseLog = cloneLog.filter(l => l.action.type !== "GAME_EVENT").reverse().slice(0, 150);
     const newLog = reverseLog.length >= 5? reverseLog.slice(0,4): [];
     const totalLogText = reverseLog.map(l => getLogText(G, l)).join('\n');
 
