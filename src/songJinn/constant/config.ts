@@ -77,8 +77,8 @@ export const ReactStageConfig: StageConfig<SongJinnGame> = {
     moves: {
         emperor: emperor,
 
-        removeNation:removeNation,
-        adjustNation:adjustNation,
+        removeNation: removeNation,
+        adjustNation: adjustNation,
         discard: discard,
         deploy: deploy,
         opponentMove: opponentMove,
@@ -202,7 +202,7 @@ export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
         emperor: emperor,
         opponentMove: opponentMove,
         endRound: endRound,
-        down:down
+        down: down
     },
     onEnd: (G, ctx) => {
         G.song.usedDevelop = 0;
@@ -279,7 +279,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     turn: StagedTurnConfig,
     moves: {
-
+        discard: discard,
         moveGeneral: moveGeneral,
         deployGeneral: deployGeneral,
         emptyRound: emptyRound,
@@ -312,8 +312,8 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         placeTroop: placeTroop,
         down: down,
 
-        removeNation:removeNation,
-        adjustNation:adjustNation,
+        removeNation: removeNation,
+        adjustNation: adjustNation,
     },
 }
 
@@ -369,8 +369,8 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         down: down,
         takePlan: takePlan,
         chooseTop: chooseTop,
-        removeNation:removeNation,
-        adjustNation:adjustNation,
+        removeNation: removeNation,
+        adjustNation: adjustNation,
 
         //
     },
@@ -389,9 +389,9 @@ export const DiplomacyPhaseConfig: PhaseConfig<SongJinnGame> = {
     },
     turn: StagedTurnConfig,
     next: 'develop',
-    moves:{
-        showLetters:showLetters,
-        endRound:endRound
+    moves: {
+        showLetters: showLetters,
+        endRound: endRound
     }
 }
 export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
@@ -426,8 +426,8 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
     turn: StagedTurnConfig,
     moves: {
 
-        removeNation:removeNation,
-        adjustNation:adjustNation,
+        removeNation: removeNation,
+        adjustNation: adjustNation,
         recruitPuppet: recruitPuppet,
         endRound: endRound,
         deploy: deploy,
@@ -436,7 +436,7 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
         moveTroop: moveTroop,
         takeDamage: takeDamage,
         removeUnit: removeUnit,
-        recruitUnit:recruitUnit,
+        recruitUnit: recruitUnit,
         placeUnit: placeUnit,
         rollDices: rollDices,
         loseCity: loseCity,
