@@ -25,7 +25,9 @@ interface INewLogProps {
     count:number
 }
 export const NewLog = ({l,G,count}:INewLogProps) =>{
-    return l.map((e,idx)=><Paper key={`paper-sj-log${idx}`}>{getLogText(G, e)}/{count}</Paper>)
+    return <>
+        {l.map((e, idx) => <Paper key={`paper-sj-log${idx}`}>{getLogText(G, e)}/{count}</Paper>)}
+    </>
 }
 export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
 
