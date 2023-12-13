@@ -40,7 +40,7 @@ const world = MapData as {
 };
 
 export function GeoMap({width, height, G}: GeoCustomProps) {
-    const [detail, setDetail] = useState(true);
+    const [detail, setDetail] = useState(false);
     const initialScale = 2750;
     return width < 10 ? null : (
         <>
