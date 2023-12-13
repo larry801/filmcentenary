@@ -19,6 +19,7 @@ import {
 import ChoiceDialog from "../../components/modals";
 import {ShowCards} from "./show-cards";
 import ErrorBoundary from "../../components/error";
+import {Dices} from "./dices";
 
 export interface IPubInfo {
     G: SongJinnGame,
@@ -33,7 +34,6 @@ export interface ICPubInfo {
 
 export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
     const s = pub;
-    const sDice: number[] = s.dices.length > 0 ? s.dices[s.dices.length - 1] : [];
     return <Grid>
         <div><label>军事：</label>{s.military}</div>
         <div><label>内政：</label>{s.civil}</div>
@@ -62,11 +62,7 @@ export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
         <div><ShowCards cards={s.remove} title={"查看移除"} toggleText={`移除牌${s.remove.length}`}/></div>
         <div><label>备用兵区： {unitsToString(s.standby)}</label></div>
         <ErrorBoundary>
-            {s.dices.length > 0 && <Typography>{sDice}中
-                {sDice.filter(d => d > 3).length}
-                |{sDice.filter(d => d > 4).length}
-                |{sDice.filter(d => d > 5).length}
-            </Typography>}
+            <Dices pub={s}/>
         </ErrorBoundary>
         {/*<div><label>手牌数：</label></div>*/}
         <div>控制路：<br/>{s.provinces.map(p => <label key={`jinn-prov-${p}`}>{p}<br/></label>)}</div>
@@ -84,7 +80,6 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
                 移除的国家：{G.removedNation}
                 {ctx.phase === 'action' ? `征募和进军点数${G.op}` : ''}
             </Typography>
-
             {G.qi.length > 0 && <div>齐控制路：<br/>{G.qi.map(p => <label key={`qi-${p}`}>{p}<br/></label>)}</div>}
         </Grid>
         <Grid item xs={6} key={`song-pub`}><Paper>

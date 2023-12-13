@@ -72,7 +72,7 @@ export const SongJinnBoard = ({
             </Dialog>
         </>
 
-    const [showMap, setShowMap] = useState(true)
+    const [showMap, setShowMap] = useState(false)
 
     const prevIsActive = usePrevious(isActive);
     const prevIsConnected = usePrevious(isConnected);

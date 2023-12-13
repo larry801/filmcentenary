@@ -23,6 +23,7 @@ import {
     getStateById, phaseName,
     playerById, remainDevelop, returnDevCardCheck, sjCardById
 } from "../util";
+import {Dices} from "./dices";
 
 
 export interface IOperationProps {
@@ -387,8 +388,11 @@ export const Operation = ({
     const opponentButton = <Button
         disabled={false}
         onClick={() => moves.opponentMove()}>对方操作</Button>
+    const sDice: number[] = pub.dices.length > 0 ? pub.dices[pub.dices.length - 1] : [];
 
     return <Grid container>
+
+        <Dices pub={pub}/>
 
         {diceRoller}
         {endRound}
