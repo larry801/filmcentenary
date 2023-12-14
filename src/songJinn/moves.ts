@@ -49,7 +49,7 @@ import {
     ctr2pub,
     doControlCity,
     doControlProvince,
-    doGeneralSkill,
+    doGeneralSkill, doLoseCity,
     doLoseProvince,
     doPlaceUnit,
     doRecruit,
@@ -92,7 +92,7 @@ import {
     songLoseEmperor,
     startCombat,
     totalDevelop,
-    troopEmpty, troopIsArmy,
+    troopEmpty, troopEndurance, troopIsArmy,
     unitsToString,
     yuanCheng
 } from "./util";
@@ -373,6 +373,8 @@ export const takeDamage: LongFormMove = {
             }
         }
         if (actualStage(G, ctx) === 'takeDamage') {
+            const atkEn = troopEndurance(G, ciAtkTroop(G));
+            const defEn = troopEndurance(G, ciDefTroop(G));
             log.push(`|stage|in|combat`);
             if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
                 changePlayerStage(G, ctx, 'takeDamage', G.order[1]);
@@ -391,14 +393,53 @@ export const takeDamage: LongFormMove = {
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     case CombatPhase.YuanCheng:
-                        jiaoFeng(G, ctx);
+                        if (atkEn === 0 && defEn === 0) {
+                            endCombat(G, ctx);
+                        } else {
+                            if (atkEn === 0) {
+                                endCombat(G, ctx);
+                                // nothing todo
+                            } else {
+                                if (defEn === 0) {
+                                    if (G.combat.region !== null) {
+                                        const region = getRegionById(G.combat.region);
+                                        if(region.city !== null){
+                                            doLoseCity(G,ciDefPid(G),region.city,true);
+                                        }
+                                    }
+                                    endCombat(G, ctx);
+                                } else {
+                                    jiaoFeng(G, ctx);
+
+                                }
+                            }
+                        }
                         break;
                     case CombatPhase.WuLin:
                         // TODO
                         jiaoFeng(G, ctx);
                         break;
                     case CombatPhase.JiaoFeng:
-                        mingJin(G, ctx);
+                        if (atkEn === 0 && defEn === 0) {
+                            endCombat(G, ctx);
+                        } else {
+                            if (atkEn === 0) {
+                                endCombat(G, ctx);
+                                // nothing todo
+                            } else {
+                                if (defEn === 0) {
+                                    if (G.combat.region !== null) {
+                                        const region = getRegionById(G.combat.region);
+                                        if(region.city !== null){
+                                            doLoseCity(G,ciDefPid(G),region.city,true);
+                                        }
+                                    }
+                                    endCombat(G, ctx);
+                                } else {
+                                    mingJin(G, ctx);
+                                }
+                            }
+                        }
                         break;
                     case CombatPhase.MingJin:
                         log.push(`|${G.combat.phase}|error`);
@@ -1012,7 +1053,7 @@ export const combatCard: LongFormMove = {
             const oppoPlayer = oppoPlayerById(G, ctx.playerID);
             if (player.combatCard.length === 0 && oppoPlayer.combatCard.length === 0) {
                 yuanCheng(G, ctx);
-            }else{
+            } else {
                 changePlayerStage(G, ctx, 'showCC', G.order[0]);
             }
         }
@@ -1408,6 +1449,7 @@ export const endRound: LongFormMove = {
         const pub = getStateById(G, pid);
         if (ctx.phase === 'action') {
             endRoundCheck(G, ctx);
+            ctx.events?.endStage();
             ctx.events?.endTurn();
         } else {
             if (ctx.phase === 'develop') {
