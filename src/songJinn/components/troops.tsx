@@ -463,7 +463,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             {troops.map((t, idx) => <Grid item xs={6} key={`troop-grid-${idx}`}>
                     <Accordion expanded={isActive && expanded === idx} onChange={() => setExpanded(idx)}
                                key={`troop-${idx}`}>
-                        <AccordionSummary> {hasOpponentTroop(G, t) ? '(**)' : ''} {t.g}{getTroopPlaceText(t)} {getTroopText(G, t)} </AccordionSummary>
+                        <AccordionSummary> {hasOpponentTroop(G, t) ? '(**)' : ''} {troopIsWeiKun(G, t) ? "被围困":""}{t.g}{getTroopPlaceText(t)} {getTroopText(G, t)} </AccordionSummary>
                         <AccordionDetails>
                             {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
                                 <button
@@ -507,8 +507,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                                         }
                                     }>全军进军
                                 </button>
-                                {troopIsWeiKun(t) && <button
-                                    key={`grid-ops-${idx}-move`}
+                                {troopIsWeiKun(G, t) && <button
+                                    key={`grid-ops-${idx}-breakout`}
                                     onClick={()=> {
                                         moves.breakout({
                                             ctr: t.g,

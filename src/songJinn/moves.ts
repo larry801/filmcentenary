@@ -1454,6 +1454,8 @@ export const confirmRespond: LongFormMove = {
         log.push(`|${text}`);
         if (ci.phase === CombatPhase.JieYe) {
             if (choice) {
+                log.push(`|Feild`);
+                ci.type = CombatType.FIELD;
                 ci.phase = CombatPhase.YunChou;
                 changePlayerStage(G, ctx, 'combatCard', G.order[0]);
                 logger.debug(`${G.matchID}|${log.join('')}`);
@@ -1468,27 +1470,37 @@ export const confirmRespond: LongFormMove = {
         }
         if (ci.phase === CombatPhase.WeiKun) {
             if (choice) {
-                const atk = ciAtkTroop(G);
+                let atk = ciAtkTroop(G);
                 atk.c = null;
-                const def = ciDefTroop(G);
+                let def = ciDefTroop(G);
+                log.push(`|${JSON.stringify(atk)}atk`);
+                log.push(`|${JSON.stringify(def)}def`);
+
                 if (def.c === null) {
                     if (isRegionID(def.p)) {
+                        log.push(`|isRegion`);
                         const regionCity = getRegionById(def.p).city;
                         if (regionCity === null) {
-                            log.push(`|error`);
+                            log.push(`|error|mannual|move`);
+                            endCombat(G,ctx);
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return;
                         } else {
+                            log.push(`|regionCity${regionCity}`);
                             def.p = regionCity;
+
                         }
                     }
                 } else {
                     def.p = def.c
                 }
-                log.push(`|${atk}atk`);
-                log.push(`|${def}def`);
+                log.push(`|${JSON.stringify(atkCCI.troop)}atk`);
+                log.push(`|${JSON.stringify(defCCI.troop)}def`);
                 endCombat(G, ctx);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             } else {
+                log.push(`|siege`);
                 ci.type = CombatType.SIEGE;
                 ci.phase = CombatPhase.YunChou;
                 changePlayerStage(G, ctx, 'combatCard', G.order[0]);

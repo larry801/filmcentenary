@@ -3844,8 +3844,7 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
         }
         G.song.discard.push(cid);
     });
-    log.push(`|${c.song.combatCard}c.song.combatCard`);
-    log.push(`|${G.song.discard}G.song.discard`);
+
 
     log.push(`|${c.jinn.combatCard}c.song.combatCard`);
     log.push(`|${G.jinn.discard}G.song.discard`);
@@ -3855,7 +3854,7 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
         }
         G.jinn.discard.push(cid);
     })
-    log.push(`|${c.jinn.combatCard}c.song.combatCard`);
+    log.push(`|${c.jinn.combatCard}combatCard`);
     log.push(`|${G.jinn.discard}G.song.discard`);
     G.combat = emptyCombatInfo();
     log.push(`|${JSON.stringify(c)}`);
@@ -3903,7 +3902,7 @@ export function startCombat(
     let defTroop = getTroopByCountryPlace(G, ciDefCtr(G), p);
 
     if (isCityID(p)) {
-        // breakout
+        log.push(`|breakout`);
         // @ts-ignore
         atkTroop = getTroopByCountryCity(G, c.atk, p);
         // @ts-ignore
@@ -3974,8 +3973,10 @@ export function startCombat(
 }
 
 
-export function troopIsWeiKun(t: Troop) {
-    return isCityID(t.p);
+export function troopIsWeiKun(G: SongJinnGame, t: Troop) {
+    const b = t.p === t.c;
+    logger.debug(`${G.matchID}|troopIsWeiKun${JSON.stringify(t)}|${b}`);
+    return b;
 }
 
 export function troopIsArmy(G: SongJinnGame, ctx: Ctx, troop: Troop) {
@@ -4343,7 +4344,7 @@ export function troopEndurance(G: SongJinnGame, troop: Troop): number {
         endurance += i * unitEndurance[idx]
     })
     log.push(`|${endurance}endurance`);
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return endurance;
 }
 
@@ -4619,6 +4620,7 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
     const log = [
         `t${G.turn}r${G.round}|endRoundCheck`
     ];
+    G.op = 0;
     if (G.order[1] === ctx.playerID) {
         log.push(
             `|second`

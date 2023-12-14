@@ -115,7 +115,7 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
                     if (t.p === s.region || t.c === s.city) {
                         return <label key={`song-label-troop-${idx}`}>{getTroopText(G, t)}</label>
                     } else {
-                        return <></>
+                        return <label key={`song-label-troop-${idx}`}> {" "}</label>
                     }
 
                 })}</div>
@@ -124,7 +124,7 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
                     if (t.p === s.region || t.c === s.city) {
                         return <label key={`jinn-label-troop-${idx}`}>{getTroopText(G, t)}</label>
                     } else {
-                        return <></>
+                        return <label key={`jinn-label-troop-${idx}`}> {" "}</label>
                     }
 
                 })}</div>
@@ -153,11 +153,11 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
             </Button>}
             {log.length}
             {pid !== null && isActive && <Grid item>
-                <Button onClick={() => adjustDice(-5)}>-5</Button>
-                <Button onClick={() => adjustDice(-1)}>-1</Button>
-                <Button onClick={() => moves.rollDices({count: count, idx: pub.dices.length})}>掷{count}个骰子</Button>
-                <Button onClick={() => adjustDice(1)}>+1</Button>
-                <Button onClick={() => adjustDice(5)}>+5</Button>
+                <Button key={'adjust-5'} onClick={() => adjustDice(-5)}>-5</Button>
+                <Button key={'adjust-1'}onClick={() => adjustDice(-1)}>-1</Button>
+                <Button key={`roll-sj-dice-button-${pid}`} onClick={() => moves.rollDices({count: count, idx: pub.dices.length})}>掷{count}个骰子</Button>
+                <Button key={'adjust+1'}onClick={() => adjustDice(1)}>+1</Button>
+                <Button key={'adjust+5'}onClick={() => adjustDice(5)}>+5</Button>
             </Grid>}
         </Paper>
         </Grid>
