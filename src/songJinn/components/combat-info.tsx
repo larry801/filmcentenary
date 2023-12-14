@@ -143,8 +143,8 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
                     src: troop.p,
                     c: troop.g,
                     idx: 0,
-                    ready: standbyUnits,
-                    standby: readyUnits
+                    ready: readyUnits,
+                    standby: standbyUnits
                 });
                 setReadyUnits(emptyTroop.u);
                 setStandbyUnits(emptyTroop.u);
