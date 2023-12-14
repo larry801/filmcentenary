@@ -10,9 +10,12 @@ export const Dices = ({pub}:IDicesInfo) => {
     const sDice: number[] = pub.dices.length > 0 ? pub.dices[pub.dices.length - 1] : [];
 
     return <>
-        {pub.dices.length > 0 && <Typography>{JSON.stringify(sDice)}中
-            {sDice.filter(d => d > 3).length}
+        {pub.dices.length > 0 && <Typography>
+            {JSON.stringify(sDice)}
+            共{pub.dices.length}个中
+            |{sDice.filter(d => d > 2).length}
+            |{sDice.filter(d => d > 3).length}
             |{sDice.filter(d => d > 4).length}
-            |{sDice.filter(d => d > 5).length}
+            |{sDice.filter(d => d > 5).length}个
         </Typography>}</>
 }

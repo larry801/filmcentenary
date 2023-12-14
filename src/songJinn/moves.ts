@@ -79,7 +79,7 @@ import {
     moveGeneralToReady,
     nationMoveJinn,
     nationMoveSong,
-    oppoPid,
+    oppoPid, oppoPlayerById,
     pid2ctr,
     placeToStr,
     playerById,
@@ -1009,7 +1009,12 @@ export const combatCard: LongFormMove = {
         if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
             changePlayerStage(G, ctx, 'combatCard', G.order[1]);
         } else {
-            changePlayerStage(G, ctx, 'showCC', G.order[0]);
+            const oppoPlayer = oppoPlayerById(G, ctx.playerID);
+            if (player.combatCard.length === 0 && oppoPlayer.combatCard.length === 0) {
+                yuanCheng(G, ctx);
+            }else{
+                changePlayerStage(G, ctx, 'showCC', G.order[0]);
+            }
         }
 
     }
@@ -1077,7 +1082,7 @@ export const heYi: LongFormMove = {
     }
 }
 export const freeHeYi: LongFormMove = {
-    move: (G, ctx, city:CityID) => {
+    move: (G, ctx, city: CityID) => {
         if (!heYiCheck(G, ctx)) {
             return INVALID_MOVE;
         }
@@ -1482,7 +1487,7 @@ export const confirmRespond: LongFormMove = {
                         const regionCity = getRegionById(def.p).city;
                         if (regionCity === null) {
                             log.push(`|error|mannual|move`);
-                            endCombat(G,ctx);
+                            endCombat(G, ctx);
                             logger.debug(`${G.matchID}|${log.join('')}`);
                             return;
                         } else {

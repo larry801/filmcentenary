@@ -1,7 +1,7 @@
 import {Ctx, PhaseConfig, StageConfig, TurnConfig} from "boardgame.io";
 import {TurnOrder} from "boardgame.io/core";
 import {
-    adjustNation,
+    adjustNation, breakout,
     cardEvent,
     chooseFirst,
     choosePlan,
@@ -16,7 +16,7 @@ import {
     down,
     emperor,
     emptyRound,
-    endRound, generalSkill,
+    endRound, freeHeYi, generalSkill,
     heYi, jianLiDaQi,
     letter,
     loseCity,
@@ -52,7 +52,6 @@ import {
     playerById
 } from "../util";
 import {confirmRespondStage} from "../../game/config";
-
 
 
 export const EmperorStageConfig: StageConfig<SongJinnGame> = {
@@ -116,7 +115,7 @@ export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
     }
 }
 
-const StagedTurnConfig:TurnConfig<SongJinnGame> = {
+const StagedTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
         react: ReactStageConfig,
@@ -127,26 +126,28 @@ const StagedTurnConfig:TurnConfig<SongJinnGame> = {
                 jianLiDaQi: jianLiDaQi,
             }
         },
-        combatCard:{
-            moves:{
-                combatCard:combatCard,
-                showCC:showCC
+        combatCard: {
+            moves: {
+                combatCard: combatCard,
+                showCC: showCC
             }
         },
-        showCC:{
-            moves:{
-                showCC:showCC
+        showCC: {
+            moves: {
+                showCC: showCC
             }
         },
         takeDamage: {
             moves: {
+                endRound:endRound,
+                opponentMove:opponentMove,
                 takeDamage: takeDamage,
                 generalSkill: generalSkill,
                 rescueGeneral: rescueGeneral,
                 removeUnit: removeUnit,
                 placeUnit: placeUnit,
                 moveTroop: moveTroop,
-                rollDices:rollDices,
+                rollDices: rollDices,
                 loseCity: loseCity,
                 loseProvince: loseProvince,
                 controlCity: controlCity,
@@ -154,6 +155,11 @@ const StagedTurnConfig:TurnConfig<SongJinnGame> = {
                 down: down,
             }
         },
+        freeHeYi: {
+            moves: {
+                freeHeYi: freeHeYi,
+            }
+        }
     },
 };
 export const DiscardStageConfig: StageConfig<SongJinnGame> = {
@@ -320,8 +326,9 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     turn: StagedTurnConfig,
     moves: {
-        confirmRespond:confirmRespond,
-        showCC:showCC,
+        breakout: breakout,
+        confirmRespond: confirmRespond,
+        showCC: showCC,
         discard: discard,
         moveGeneral: moveGeneral,
         deployGeneral: deployGeneral,
@@ -331,6 +338,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
         cardEvent: cardEvent,
         developCard: developCard,
         letter: letter,
+        freeHeYi: freeHeYi,
         heYi: heYi,
         tieJun: tieJun,
         endRound: endRound,

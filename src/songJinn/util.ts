@@ -526,6 +526,9 @@ export const jinnPrivate = (G: SongJinnGame) => {
 export const songPrivate = (G: SongJinnGame) => {
     return G.player[SJPlayer.P2];
 }
+export const oppoPlayerById = (G: SongJinnGame, pid: PlayerID) => {
+    return G.player[oppoPid(pid) as SJPlayer];
+}
 export const playerById = (G: SongJinnGame, pid: PlayerID) => {
     return G.player[pid as SJPlayer];
 }

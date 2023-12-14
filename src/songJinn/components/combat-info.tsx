@@ -1,18 +1,15 @@
 import React, {useState} from "react";
-import {
-    emptySongTroop,
-    MAX_DICES,
-    SJPlayer,
-    SongJinnGame,
-    UNIT_SHORTHAND,
-    accumulator,
-} from "../constant/general";
+import {accumulator, emptySongTroop, MAX_DICES, SJPlayer, SongJinnGame, UNIT_SHORTHAND,} from "../constant/general";
 import {Ctx, LogEntry, PlayerID} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import {
+    confirmRespondLogText,
+    confirmRespondText,
     getCityText,
     getRegionText,
     getTroopText,
+    playerById,
+    sjCardById,
     unitsToString
 } from "../util";
 import {Dices} from "./dices";
@@ -20,6 +17,8 @@ import Button from "@material-ui/core/Button";
 import {ChooseUnitsDialog} from "./recruit";
 import Paper from "@material-ui/core/Paper";
 import {actualStage} from "../../game/util";
+import ChoiceDialog from "../../components/modals";
+import CheckBoxDialog from "./choice";
 
 
 export interface ICombatInfo {
@@ -101,7 +100,38 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
         }
 
     }
+    const npid = pid === SJPlayer.P1 ? SJPlayer.P1 : SJPlayer.P2;
+    const player = playerById(G, npid);
+    const showCC = (isActive && actualStage(G, ctx) === 'showCC') && <Button
+        onClick={() => moves.showCC(player.combatCard)}
+        color={"primary"} variant={"contained"}>展示战斗牌</Button>
+    const combatCardDialog = <CheckBoxDialog
+        callback={(c) => moves.combatCard(c)}
+        choices={player.hand.filter(c => sjCardById(c).combat).map(c => {
+            return {
+                label: sjCardById(c).name,
+                value: c,
+                disabled: false,
+                hidden: false
+            }
+        })}
+        show={isActive && actualStage(G, ctx) === 'combatCard'} title={"请选择战斗牌"}
+        toggleText={"战斗牌"} initial={false}/>
 
+
+    const choiceDialog = <ChoiceDialog
+        callback={(c) => {
+            const opponent = c === "yes";
+            moves.confirmRespond({choice: opponent, text: confirmRespondLogText(G, opponent, ctr)})
+        }}
+        choices={[
+            {label: "是", value: "yes", disabled: false, hidden: false},
+            {label: "否", value: "no", disabled: false, hidden: false}
+        ]} defaultChoice={"no"}
+        show={isActive && actualStage(G, ctx) === 'confirmRespond' && G.combat.ongoing}
+        title={confirmRespondText(G, ctx, npid)}
+        toggleText={"请求确认"}
+        initial={true}/>;
 
     return <>{s.ongoing &&
         <Grid container item xs={12}><Paper>
@@ -132,10 +162,12 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
             <div><label>金未处理伤害：</label>{s.jinn.damageLeft}</div>
             <div><label>宋战斗牌：</label>{s.song.combatCard}</div>
             <div><label>金战斗牌：</label>{s.jinn.combatCard}</div>
-            宋<Dices pub={G.song}/>
-            金<Dices pub={G.jinn}/>
+            宋骰子<Dices pub={G.song}/>
+            金骰子<Dices pub={G.jinn}/>
             {takeDamageStandbyDialog}
             {takeDamageReadyDialog}
+
+            {choiceDialog}
 
             {isActive && actualStage(G, ctx) === 'takeDamage' && <Button
                 fullWidth onClick={() => {
@@ -154,10 +186,11 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
             {log.length}
             {pid !== null && isActive && <Grid item>
                 <Button key={'adjust-5'} onClick={() => adjustDice(-5)}>-5</Button>
-                <Button key={'adjust-1'}onClick={() => adjustDice(-1)}>-1</Button>
-                <Button key={`roll-sj-dice-button-${pid}`} onClick={() => moves.rollDices({count: count, idx: pub.dices.length})}>掷{count}个骰子</Button>
-                <Button key={'adjust+1'}onClick={() => adjustDice(1)}>+1</Button>
-                <Button key={'adjust+5'}onClick={() => adjustDice(5)}>+5</Button>
+                <Button key={'adjust-1'} onClick={() => adjustDice(-1)}>-1</Button>
+                <Button key={`roll-sj-dice-button-${pid}`}
+                        onClick={() => moves.rollDices({count: count, idx: pub.dices.length})}>掷{count}个骰子</Button>
+                <Button key={'adjust+1'} onClick={() => adjustDice(1)}>+1</Button>
+                <Button key={'adjust+5'} onClick={() => adjustDice(5)}>+5</Button>
             </Grid>}
         </Paper>
         </Grid>

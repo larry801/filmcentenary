@@ -84,26 +84,10 @@ export const Operation = ({
         title={"请选择1张作战计划"} toggleText={"选择作战计划"}
         initial={true}/>;
 
-    const combatCardDialog = <CheckBoxDialog
-        callback={(c) => moves.combatCard(c)}
-        choices={player.hand.filter(c => sjCardById(c).combat).map(c => {
-            return {
-                label: sjCardById(c).name,
-                value: c,
-                disabled: false,
-                hidden: false
-            }
-        })}
-        show={isActive && actualStage(G, ctx) === 'combatCard'} title={"请选择战斗牌"}
-        toggleText={"战斗牌"} initial={false}/>
-
     const autoPhases = ['showPlan', 'chooseFirst', 'choosePlan', 'diplomacy']
     const showPlan = (isActive && ctx.phase === 'showPlan') && <Button
         onClick={() => moves.showPlan(player.chosenPlans)}
         color={"primary"} variant={"contained"}>展示作战计划</Button>
-    const showCC = (isActive && actualStage(G, ctx) === 'showCC') && <Button
-        onClick={() => moves.showCC(player.combatCard)}
-        color={"primary"} variant={"contained"}>展示战斗牌</Button>
     const showLetters = (isActive && ctx.phase === 'diplomacy') && <Button
         onClick={() => {
             moves.showLetters({
@@ -250,7 +234,7 @@ export const Operation = ({
             {label: "是", value: "yes", disabled: false, hidden: false},
             {label: "否", value: "no", disabled: false, hidden: false}
         ]} defaultChoice={"no"}
-        show={isActive && actualStage( G,ctx)==='confirmRespond'}
+        show={isActive && actualStage( G,ctx)==='confirmRespond' && !G.combat.ongoing}
         title={confirmRespondText(G, ctx, playerID)}
         toggleText={"请求确认"}
         initial={true}/>
@@ -418,7 +402,6 @@ export const Operation = ({
         {jianLiDaQiButton}
         {showLetters}
         {showPlan}
-        {showCC}
         {confirmRespondDialog}
         {rescueGeneralDialog}
         {chooseRescueGeneralsDialog}
@@ -426,7 +409,6 @@ export const Operation = ({
         {recruitPuppetDialog}
         {takePlanDialog}
         {chooseTopPlanDialog}
-        {combatCardDialog}
         {developDialog}
         {returnToHandDialog}
         {emperorDialog}
