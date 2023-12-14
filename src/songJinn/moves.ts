@@ -1076,6 +1076,18 @@ export const heYi: LongFormMove = {
         heYiChange(G, city);
     }
 }
+export const freeHeYi: LongFormMove = {
+    move: (G, ctx, city:CityID) => {
+        if (!heYiCheck(G, ctx)) {
+            return INVALID_MOVE;
+        }
+        if (ctx.playerID === undefined) {
+            return INVALID_MOVE;
+        }
+        const player = playerById(G, ctx.playerID);
+        heYiChange(G, city);
+    }
+}
 
 export const developCard: LongFormMove = {
     move: (G, ctx, args: BaseCardID) => {

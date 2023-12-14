@@ -2218,7 +2218,15 @@ export const idToCard = {
         combat: false,
         effectText: "若【靖康之变】已经发生，免费和议。若【靖康之变】没有发生，宋国随机弃掉1张手牌",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            if (G.events.includes(ActiveEvents.JingKangZhiBian)) {
+                if (getPolicy(G) < 0) {
+                    changePlayerStage(G, ctx, 'freeHeYi', SJPlayer.P1);
+                }
+            } else {
+                randomDiscardForSong(G, ctx);
+            }
+        }
     },
     [JinnBaseCardID.J40]: {
         id: JinnBaseCardID.J40,
@@ -2441,6 +2449,8 @@ export const idToCard = {
 const cardIdSort = (a: SJEventCardID, b: SJEventCardID) => {
     return sjCardById(a).op - sjCardById(b).op;
 }
+
+
 export const cardToSearch = (G: SongJinnGame, ctx: Ctx, pid: PlayerID): SJEventCardID[] => {
 
     const isSong = pid as SJPlayer === SJPlayer.P1;
@@ -3041,7 +3051,7 @@ export const getRegionText = (r: RegionID) => {
 export const getCityText = (cid: CityID) => {
     const city = getCityById(cid);
     const region = getRegionById(city.region);
-    return `${city.capital ? "*" : ""}${city.name} |${region.name} |${city.province}`;
+    return `${city.capital ? "*" : ""}${city.name}${city.colonizeLevel} |${region.name} |${city.province}`;
 }
 
 export const getUnitNamesByCtr = (ctr: Country) => {
@@ -3088,10 +3098,11 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                                 `派遣${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`
                             ;
                             break;
+                        case 'freeHeYi':
+                            log += `免费和议 割让${arg}`;
+                            break;
                         case 'moveGeneral':
-                            log +=
-                                `移动${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`
-                            ;
+                            log += `移动${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`;
                             break;
 
                         case 'rescueGeneral':
@@ -3205,7 +3216,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
 
                         case 'breakout':
                             log += `在${arg}突围`;
-
+                            break;
                         case 'discard':
                             log +=
                                 `弃牌${sjCardById(arg).name}`
@@ -3329,6 +3340,27 @@ export const drawPlanForPlayer = (G: SongJinnGame, pid: PlayerID) => {
 
         }
     }
+}
+export const randomDiscardForSong = (G: SongJinnGame, ctx: Ctx) => {
+    const log = [`randomDiscardForSong`];
+    const songHand = G.player[SJPlayer.P1].hand;
+    log.push(`|${songHand}songHand`);
+    if (songHand.length > 0) {
+        const randomCard = shuffle(ctx, songHand).pop();
+        log.push(`|${randomCard}randomCard`);
+        log.push(`|${G.song.discard}discard`);
+        if (songHand.includes(randomCard)) {
+            songHand.splice(songHand.indexOf(randomCard), 1);
+            G.song.discard.push(randomCard);
+            log.push(`|${songHand}songHand`);
+            log.push(`|${G.song.discard}discard`);
+        } else {
+            log.push(`|error|not|in|hand`);
+        }
+    } else {
+        log.push(`|noHand`);
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const drawCardForSong = (G: SongJinnGame, ctx: Ctx) => {
     const log = [`drawCardForSong`];
@@ -3840,6 +3872,23 @@ export const isQiXing = (t: Troop) => {
     }
 }
 
+export const heYiCities = (G: SongJinnGame) => {
+    const log = [`heYiCities`];
+    let minColonizeLevel = 10;
+    G.song.cities.forEach(c => {
+        const colonizeLevel = getCityById(c).colonizeLevel;
+        if (colonizeLevel < minColonizeLevel) {
+            minColonizeLevel = colonizeLevel;
+            log.push(`|${minColonizeLevel}minColonizeLevel`);
+        }
+    })
+    log.push(`|${minColonizeLevel}minColonizeLevel`);
+    const cityIDS = G.song.cities.filter(c => getCityById(c).colonizeLevel === minColonizeLevel);
+    log.push(`|${cityIDS}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return cityIDS;
+}
+
 export function startCombat(
     G: SongJinnGame, ctx: Ctx,
     attacker: Country, p: TroopPlace
@@ -3855,7 +3904,9 @@ export function startCombat(
 
     if (isCityID(p)) {
         // breakout
+        // @ts-ignore
         atkTroop = getTroopByCountryCity(G, c.atk, p);
+        // @ts-ignore
         defTroop = getTroopByCountryPlace(G, ciDefCtr(G), getCityById(p).region);
     }
     const st = c.atk === Country.SONG ? atkTroop : defTroop;

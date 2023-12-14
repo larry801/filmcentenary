@@ -1077,7 +1077,8 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
     console.log(G.secret.songDeck.toString());
     console.log(G.secret.jinnDeck.toString());
     //
-    // G.player['1'].hand.push(JinnBaseCardID.J09);
+    // G.player['1'].hand.push(JinnBaseCardID.J39);
+    // G.player['1'].hand.push(JinnBaseCardID.J01);
     // G.player['1'].hand.push(JinnBaseCardID.J18);
 
     return G;

@@ -12,6 +12,7 @@ import Typography from "@material-ui/core/Typography";
 
 import {getCardLabel, getCityText, getCountryById, getFullDesc, playerById, sjCardById} from "../util";
 import {Fab} from "@material-ui/core";
+import {actualStage} from "../../game/util";
 
 export interface IPlayerHandProps {
     G: SongJinnGame,
@@ -38,14 +39,22 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
         }}>
             {detail ? "简化" : "详细"}
         </Button>
+
         <ChoiceDialog
             callback={(c) => {
-                setHeYiChosen(false);
-                moves.heYi({card: heYiCard[0], city: c});
-            }} choices={G.song.cities.map(c => {
-            return {label: getCityText(c), value: c, hidden: false, disabled: false}
-        })} defaultChoice={""} show={isActive && heYiChosen} title={"选择要割让的城市"} toggleText={"割让城市"}
+                if (heYiChosen) {
+                    setHeYiChosen(false);
+                    moves.heYi({card: heYiCard[0], city: c});
+                } else {
+                    moves.freeHeYi(c);
+                }
+            }}
+            choices={G.song.cities.map(c => {
+                return {label: getCityText(c), value: c, hidden: false, disabled: false}
+            })} defaultChoice={""} show={isActive && (heYiChosen || actualStage(G, ctx) === 'freeHeYi')}
+            title={"选择要割让的城市"} toggleText={"割让城市"}
             initial={true}/>
+
         <ChoiceDialog
             callback={(cid: string) => moves.letter({nation: cid, card: dipCard[0]})}
             choices={
