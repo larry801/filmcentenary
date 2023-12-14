@@ -1,5 +1,13 @@
 import React, {useState} from "react";
-import {accumulator, emptySongTroop, MAX_DICES, SJPlayer, SongJinnGame, UNIT_SHORTHAND,} from "../constant/general";
+import {
+    accumulator,
+    Country,
+    emptySongTroop,
+    MAX_DICES,
+    SJPlayer,
+    SongJinnGame,
+    UNIT_SHORTHAND,
+} from "../constant/general";
 import {Ctx, LogEntry, PlayerID} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import {
@@ -37,6 +45,7 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
     const pub = pid === SJPlayer.P1 ? G.song : G.jinn;
     const cci = pid === SJPlayer.P1 ? s.song : s.jinn;
     const opCCI = pid === SJPlayer.P2 ? s.song : s.jinn;
+    const ctr = pid === SJPlayer.P1 ? Country.SONG: Country.JINN;
     const troop = pid === SJPlayer.P1 ? s.song.troop : s.jinn.troop;
     const [count, setCount] = useState(5);
 
@@ -166,7 +175,8 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
             金骰子<Dices pub={G.jinn}/>
             {takeDamageStandbyDialog}
             {takeDamageReadyDialog}
-
+            {showCC}
+            {combatCardDialog}
             {choiceDialog}
 
             {isActive && actualStage(G, ctx) === 'takeDamage' && <Button
@@ -183,7 +193,6 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
             }} variant={"outlined"} color={"primary"}>
                 确认受创{readyText} {standbyText}
             </Button>}
-            {log.length}
             {pid !== null && isActive && <Grid item>
                 <Button key={'adjust-5'} onClick={() => adjustDice(-5)}>-5</Button>
                 <Button key={'adjust-1'} onClick={() => adjustDice(-1)}>-1</Button>
