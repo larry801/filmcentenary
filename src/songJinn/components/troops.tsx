@@ -35,7 +35,7 @@ import {
     getStateById, getTroopPlaceText,
     getTroopText, hasOpponentTroop,
     optionToActualDst,
-    StrProvince, unitsToString,
+    StrProvince, troopIsWeiKun, unitsToString,
 } from "../util";
 
 export interface IPlayerHandProps {
@@ -289,7 +289,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             });
             setMarchStep(MarchStep.TROOP);
         }}
-        choices={getMarchDst(G, marchTroop.p).map(r => {
+        choices={getMarchDst(G, marchTroop.p, marchTroop).map(r => {
             if (r == null) {
                 return {
                     label: "",
@@ -317,8 +317,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         })}
         defaultChoice={""}
         show={isActive && marchStep === MarchStep.TARGET}
-        title={"选择目标区域"}
-        toggleText={"选择目标区域"}
+        title={"选择进军目标区域"}
+        toggleText={"进军目标"}
         initial={true}/>;
 
 
@@ -462,42 +462,44 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
 
             {troops.map((t, idx) => <Grid item xs={6} key={`troop-grid-${idx}`}>
-            <Accordion expanded={isActive && expanded === idx} onChange={() => setExpanded(idx)}
-                       key={`troop-${idx}`}>
-                <AccordionSummary> {hasOpponentTroop(G,t)?'(**)':''} {t.g}{getTroopPlaceText(t)} {getTroopText(G, t)} </AccordionSummary>
-                <AccordionDetails>
-                    {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
-                        <button
-                            key={`grid-ops-${idx}-march`}
-                            onClick={
-                                () => {
-                                    setPlaceStep(PlaceStep.TROOP);
-                                    setNewTroopStep(NewTroopStep.START);
-                                    setDeployNewStep(DeployNewStep.TROOP);
+                    <Accordion expanded={isActive && expanded === idx} onChange={() => setExpanded(idx)}
+                               key={`troop-${idx}`}>
+                        <AccordionSummary> {hasOpponentTroop(G, t) ? '(**)' : ''} {t.g}{getTroopPlaceText(t)} {getTroopText(G, t)} </AccordionSummary>
+                        <AccordionDetails>
+                            {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
+                                <button
+                                    disabled={G.op <= 0}
+                                    key={`grid-ops-${idx}-march`}
+                                    onClick={
+                                        () => {
+                                            setPlaceStep(PlaceStep.TROOP);
+                                            setNewTroopStep(NewTroopStep.START);
+                                            setDeployNewStep(DeployNewStep.TROOP);
 
-                                    setTakeDamageStep(TakeDamageStep.TROOP);
-                                    // setMarchStep(MarchStep.TROOP);
-                                    setRemoveUnitStep(RemoveStep.TROOP);
-                                    setDeployStep(DeployStep.TROOP)
-                                    setMoveStep(MoveStep.TROOP);
-                                    setMarchTroop(t);
-                                    setMarchStep(MarchStep.UNITS);
-                                }
-                            }>进军
-                        </button>
-                        <button
-                            key={`grid-ops-${idx}-all-march`}
-                            onClick={
-                                () => {
-                                    setPlaceStep(PlaceStep.TROOP);
-                                    setNewTroopStep(NewTroopStep.START);
-                                    setDeployNewStep(DeployNewStep.TROOP);
+                                            setTakeDamageStep(TakeDamageStep.TROOP);
+                                            // setMarchStep(MarchStep.TROOP);
+                                            setRemoveUnitStep(RemoveStep.TROOP);
+                                            setDeployStep(DeployStep.TROOP)
+                                            setMoveStep(MoveStep.TROOP);
+                                            setMarchTroop(t);
+                                            setMarchStep(MarchStep.UNITS);
+                                        }
+                                    }>进军
+                                </button>
+                                <button
+                                    disabled={G.op <= 0}
+                                    key={`grid-ops-${idx}-all-march`}
+                                    onClick={
+                                        () => {
+                                            setPlaceStep(PlaceStep.TROOP);
+                                            setNewTroopStep(NewTroopStep.START);
+                                            setDeployNewStep(DeployNewStep.TROOP);
 
-                                    setTakeDamageStep(TakeDamageStep.TROOP);
-                                    // setMarchStep(MarchStep.TROOP);
-                                    setRemoveUnitStep(RemoveStep.TROOP);
-                                    setDeployStep(DeployStep.TROOP)
-                                    setMoveStep(MoveStep.TROOP);
+                                            setTakeDamageStep(TakeDamageStep.TROOP);
+                                            // setMarchStep(MarchStep.TROOP);
+                                            setRemoveUnitStep(RemoveStep.TROOP);
+                                            setDeployStep(DeployStep.TROOP)
+                                            setMoveStep(MoveStep.TROOP);
 
                                     setMarchTroop(t);
                                     setMarchUnits(t.u)

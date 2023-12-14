@@ -205,7 +205,54 @@ export const optionToActualDst = (dst: string): TroopPlace => {
 // export const hasOpponentTroop = (G: SongJinnGame, dst: TroopPlace, ctr: Country) => {
 //     ctr2pub(G, ctr);
 // }
-export const getMarchDst = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
+export const isZhouXing = (t: Troop) => {
+    return t.u[3] > 0;
+}
+
+export const getMarchDst = (G: SongJinnGame, dst: TroopPlace, t: Troop): TroopPlace[] => {
+    const adj = getMarchAdj(G, dst);
+    let res: TroopPlace[] = [...adj];
+    if (isQiXing(t) || isZhouXing(t)) {
+        adj.forEach(p => {
+            const newAdj = getMarchAdj(G, p).filter(a => !res.includes(a));
+            res = res.concat(newAdj);
+            // TODO complex rule for qi xing and zhou xing
+            // if (isMountainPassID(p)) {
+            //     const d = getPassAdj(p).filter(r => {
+            //         const terrain = getRegionById(r).terrain;
+            //         return terrain === TerrainType.FLATLAND || terrain === TerrainType.HILLS
+            //     }).filter(p=>!adj.includes(p));
+            //     res = res.concat(d);
+            // }else{
+            //     if (isRegionID(p)) {
+            //         const reg = getRegionById(p);
+            //         const result: TroopPlace[] = [...reg.land, ...reg.water, ...reg.pass];
+            //         Nations.forEach(n => {
+            //             if (getNationAdj(n).includes(dst)) {
+            //                 result.push(n);
+            //             }
+            //         })
+            //         MountainPasses.forEach(n => {
+            //             if (getPassAdj(n).includes(p)) {
+            //                 result.push(n);
+            //             }
+            //         })
+            //         const regAdj = result.filter(r => {
+            //             const terrain = getRegionById(r).terrain;
+            //             return terrain === TerrainType.FLATLAND || terrain === TerrainType.HILLS
+            //         }).filter(p=>((!adj.includes(p)) && (!res.includes(p))));
+            //         res = res.concat(regAdj)
+            //     }else{
+            //         if (isNationID(dst)) {
+            //             return getNationAdj(dst);
+            //         }
+            //     }
+        })
+    }
+    return res
+}
+
+export const getMarchAdj = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
     if (isMountainPassID(dst)) {
         return getPassAdj(dst);
     }
@@ -3159,6 +3206,9 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             log += `丢失${arg.cityID}${arg.opponent ? "对手占领" : ""}`;
                             break;
 
+                        case 'breakout':
+                            log += `在${arg}突围`;
+
                         case 'discard':
                             log +=
                                 `弃牌${sjCardById(arg).name}`
@@ -3785,6 +3835,14 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
 
 }
 
+export const isQiXing = (t: Troop) => {
+    if (t.g === Country.SONG) {
+        return t.u[2] > 0;
+    } else {
+        return t.u[1] > 0 || t.u[2] > 0;
+    }
+}
+
 export function startCombat(
     G: SongJinnGame, ctx: Ctx,
     attacker: Country, p: TroopPlace
@@ -3853,6 +3911,11 @@ export function startCombat(
     }
     const def = getOpponentPlaceTroopByCtr(G, attacker, p);
     logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+
+export function troopIsWeiKun(t: Troop) {
+    return isCityID(t.p);
 }
 
 export function troopIsArmy(G: SongJinnGame, ctx: Ctx, troop: Troop) {

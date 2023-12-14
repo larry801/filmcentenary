@@ -171,7 +171,13 @@ export const march: LongFormMove = {
         // const player = playerById(G, ctx.playerID);
         const log = [`p${pid}|march|src${placeToStr(src)}`];
         log.push(`|parsed${JSON.stringify(dst)}`);
-
+        if (G.op > 0) {
+            log.push(`|${G.op}G.op`);
+            G.op--;
+            log.push(`|${G.op}G.op`);
+        } else {
+            return INVALID_MOVE;
+        }
         const pub = ctr2pub(G, country);
 
         generals.forEach(gen => moveGeneralByCountry(G, country, gen, dst));
@@ -241,9 +247,7 @@ export const march: LongFormMove = {
                 pub.troops.push(newTroop);
             }
         }
-        log.push(`|${G.op}G.op`);
-        G.op--;
-        log.push(`|${G.op}G.op`);
+
         const oppoTroop = getOpponentPlaceTroopById(G, pid, dst);
         log.push(`|${JSON.stringify(oppoTroop)}oppoTroop`);
         if (oppoTroop !== null) {
