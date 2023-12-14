@@ -136,7 +136,7 @@ export const getNationState = (G: SongJinnGame, n: NationID) => {
 }
 export const ctr2pub = (G: SongJinnGame, country: Country) => country === Country.SONG ? G.song : G.jinn;
 export const ctr2pid = (country: Country) => country === Country.SONG ? SJPlayer.P1 : SJPlayer.P2;
-export const pid2ctr = (country: PlayerID) => country === SJPlayer.P1 ? Country.SONG : Country.JINN;
+export const pid2ctr = (pid: PlayerID) => pid === SJPlayer.P1 ? Country.SONG : Country.JINN;
 
 export const currentProvStatus = (G: SongJinnGame, prov: ProvinceID) => {
     const province = getProvinceById(prov);
@@ -381,6 +381,9 @@ export const getSongTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
     });
     logger.warn(`${G.matchID}|${log.join('')}`);
     return result;
+}
+export const getTroopByCountryCity = (G: SongJinnGame, ctr: Country, src: CityID) => {
+    return ctr === Country.SONG ? getSongTroopByCity(G, src) : getJinnTroopByCity(G, src)
 }
 export const getTroopByCountryPlace = (G: SongJinnGame, ctr: Country, src: TroopPlace) => {
     return ctr === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src)
@@ -3148,12 +3151,12 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             log +=
                                 `选择${sjPlayerName(arg.choice)}先行动`;
                             break;
-                        case 'combatCard':
-                            log += "选择战斗牌";
-                            break;
                         case 'showCC':
                             log += arg.length === 0 ? "不使用战斗牌" :
                                 `使用战斗牌${arg.map((p: SJEventCardID) => sjCardById(p).name)}`;
+                            break;
+                        case 'combatCard':
+                            log += "选择战斗牌";
                             break;
                         case 'confirmRespond':
                             log += arg.text;
@@ -3174,22 +3177,16 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             ;
                             break;
                         case 'jianLiDaQi':
-                            log +=
-                                `建立大齐 齐控制${arg.join(',')}`
-                            ;
+                            log += `建立大齐 齐控制${arg.join(',')}`;
                             break;
                         case 'showPlan':
-                            log +=
-                                `展示${arg.map((p: PlanID) => getPlanById(p).name)}`
-                            ;
+                            log += `展示${arg.map((p: PlanID) => getPlanById(p).name)}`;
                             break;
-
                         case 'loseProvince':
                             log += `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`;
 
                             break;
                         case 'removeNation':
-
                             log += `移除了${arg}`;
                             break;
                         case 'adjustNation':
@@ -3767,7 +3764,7 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: boolean, ctr: Countr
             return arg ? "选择继续作战" : "选择撤退";
         } else {
             if (
-                canForceRoundTwo(G)  ) {
+                canForceRoundTwo(G)) {
                 return arg ? "选择强制第二轮" : "选择不强制第二轮";
             } else {
                 return arg ? "选择坚守" : "选择撤退";
@@ -3853,9 +3850,15 @@ export function startCombat(
     c.atk = attacker;
     const atkId = ctr2pid(attacker);
     const defId = ctr2pid(oppoCtr(attacker));
-    const atkTroop = getTroopByCountryPlace(G, c.atk, p);
-    const defTroop = getTroopByCountryPlace(G, ciDefCtr(G), p);
-    const st = getSongTroopByPlace(G, p);
+    let atkTroop = getTroopByCountryPlace(G, c.atk, p);
+    let defTroop = getTroopByCountryPlace(G, ciDefCtr(G), p);
+
+    if (isCityID(p)) {
+        // breakout
+        atkTroop = getTroopByCountryCity(G, c.atk, p);
+        defTroop = getTroopByCountryPlace(G, ciDefCtr(G), getCityById(p).region);
+    }
+    const st = c.atk === Country.SONG ? atkTroop : defTroop;
     if (st !== null) {
         c.song.troop = st;
         if (isRegionID(st.p)) {
@@ -3867,7 +3870,7 @@ export function startCombat(
         endCombat(G, ctx);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
-    const jt = getJinnTroopByPlace(G, p);
+    const jt = c.atk === Country.JINN ? atkTroop : defTroop;
     if (jt !== null) {
         c.jinn.troop = jt;
     } else {
@@ -3906,6 +3909,12 @@ export function startCombat(
                 log.push(`|mountainPass|cc`);
                 c.type = CombatType.SIEGE;
                 changePlayerStage(G, ctx, 'combatCard', G.order[0]);
+            } else {
+                if (isCityID(p)) {
+                    log.push(`|breakout|cc`);
+                    c.type = CombatType.BREAKOUT;
+                    changePlayerStage(G, ctx, 'combatCard', G.order[0]);
+                }
             }
         }
     }

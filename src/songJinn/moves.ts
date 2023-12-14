@@ -166,6 +166,7 @@ export const march: LongFormMove = {
         if (dst === undefined || dst === "" || dst === null) {
             return INVALID_MOVE;
         }
+
         logger.info(`p${pid}.march(${JSON.stringify(arg)});`)
         const ctr = getCountryById(pid);
         // const player = playerById(G, ctx.playerID);
@@ -256,7 +257,7 @@ export const march: LongFormMove = {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return INVALID_MOVE;
             } else {
-                if(troopIsArmy(G,ctx,oppoTroop)){
+                if (troopIsArmy(G, ctx, oppoTroop)) {
                     log.push(`|startCombat`);
                     startCombat(G, ctx, ctr, t.p);
 
@@ -1403,6 +1404,19 @@ export const endRound: LongFormMove = {
                 ctx.events?.endTurn();
             }
         }
+    }
+}
+
+export const breakout: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, arg: CityID) => {
+
+        const pid = ctx.playerID;
+        logger.info(`${G.matchID}|p${pid}.confirmRespond(${JSON.stringify(arg)})`);
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+
+        startCombat(G, ctx, pid2ctr(pid), arg)
     }
 }
 
