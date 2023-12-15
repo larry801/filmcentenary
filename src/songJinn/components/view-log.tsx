@@ -20,11 +20,12 @@ export interface ILogViewProps {
 }
 
 interface INewLogProps {
-    G:SongJinnGame,
-    l:LogEntry[],
-    count:number
+    G: SongJinnGame,
+    l: LogEntry[],
+    count: number
 }
-export const NewLog = ({l,G,count}:INewLogProps) =>{
+
+export const NewLog = ({l, G, count}: INewLogProps) => {
     return <>
         {l.map((e, idx) => <Paper key={`paper-sj-log${idx}`}>{getLogText(G, e)}/{count}</Paper>)}
     </>
@@ -73,7 +74,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
     const cloneLog = [...processedLogs];
 
     const reverseLog = cloneLog.filter(l => l.action.type !== "GAME_EVENT").reverse().slice(0, 150);
-    const newLog = reverseLog.length >= 5? reverseLog.slice(0,4): [];
+    const newLog = reverseLog.length >= 5 ? reverseLog.slice(0, 5) : reverseLog;
     const totalLogText = reverseLog.map(l => getLogText(G, l)).join('\n');
 
     return <Grid item container xs={12}>
@@ -108,7 +109,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
                 maxRows={20}
                 variant="filled"
             />
-         </Grid>}
+        </Grid>}
     </Grid>
 }
 

@@ -137,7 +137,7 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
             {label: "是", value: "yes", disabled: false, hidden: false},
             {label: "否", value: "no", disabled: false, hidden: false}
         ]} defaultChoice={"no"}
-        show={isActive && actualStage(G, ctx) === 'confirmRespond' && G.combat.ongoing}
+        show={isActive && actualStage(G, ctx) === 'confirmRespond'}
         title={confirmRespondText(G, ctx, npid)}
         toggleText={"请求确认"}
         initial={true}/>;
