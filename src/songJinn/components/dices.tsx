@@ -12,7 +12,7 @@ export const Dices = ({pub}:IDicesInfo) => {
     return <>
         {pub.dices.length > 0 && <Typography>
             {JSON.stringify(sDice)}
-            共{pub.dices.length}个中
+            共{sDices.length}个中
             |{sDice.filter(d => d > 2).length}
             |{sDice.filter(d => d > 3).length}
             |{sDice.filter(d => d > 4).length}
