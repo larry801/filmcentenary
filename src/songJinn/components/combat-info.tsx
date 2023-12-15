@@ -142,7 +142,7 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
         toggleText={"请求确认"}
         initial={true}/>;
 
-    return <>{s.ongoing &&
+    return <>
         <Grid container item xs={12}><Paper>
             <div><label>进攻方：</label>{s.atk}</div>
             <div><label>类型：</label>{s.type}</div>
@@ -203,5 +203,5 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
             </Grid>}
         </Paper>
         </Grid>
-    }</>
+    </>
 }
