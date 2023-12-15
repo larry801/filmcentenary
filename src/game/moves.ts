@@ -916,17 +916,27 @@ export const peek: LongFormMove = {
                         }
                     }
                 })
-                playerObj.cardsToPeek = []
+                playerObj.cardsToPeek = [];
                 break;
             case "choice":
-                log.push(`|${JSON.stringify(playerObj.cardsToPeek)}`);
-                playerObj.cardsToPeek.splice(arg.idx, 1);
-                log.push(`|${JSON.stringify(playerObj.cardsToPeek)}`);
                 if (arg.card !== null) {
-                    log.push(`|hand|${arg.card}`);
+                    log.push(`|add|${arg.card}to|hand|`);
                     log.push(`|${JSON.stringify(playerObj.hand)}`);
                     playerObj.hand.push(arg.card);
-                    log.push(`|${JSON.stringify(playerObj.hand)}`);
+                    log.push(`|after|${JSON.stringify(playerObj.hand)}`);
+                    const idxCard = playerObj.cardsToPeek[arg.idx];
+                    log.push(`|remove|${arg.card}`)
+                    log.push(`|${JSON.stringify(playerObj.cardsToPeek)}`);
+                    if(idxCard === arg.card){
+                        playerObj.cardsToPeek.splice(arg.idx, 1);
+                    }else{
+                        if(playerObj.cardsToPeek.includes(arg.card)){
+                            playerObj.cardsToPeek.splice(
+                                playerObj.cardsToPeek.indexOf(arg.card),1
+                            );
+                        }
+                    }
+                    log.push(`|${JSON.stringify(playerObj.cardsToPeek)}`);
                 } else {
                     log.push(`|noChoice`);
                 }
@@ -941,7 +951,6 @@ export const peek: LongFormMove = {
                 } else {
                     log.push(`|discardRemaining`);
                     playerObj.cardsToPeek.forEach(card => {
-                        log.push(`|evaluating${card}`);
                         log.push(`|discard|${card}`);
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         pub.discard.push(card);
@@ -951,11 +960,11 @@ export const peek: LongFormMove = {
                         }
                         log.push(`|${JSON.stringify(pub.discard)}`);
                     })
-                    playerObj.cardsToPeek = []
+                    playerObj.cardsToPeek = [];
                 }
                 break;
         }
-        log.push(`|afterDeck|${JSON.stringify(deck)}|afterHand${JSON.stringify(playerObj.hand)}|afterDiscard|${JSON.stringify(pub.discard)}`);
+        log.push(`|after|deck|${JSON.stringify(deck)}|hand${JSON.stringify(playerObj.hand)}|discard|${JSON.stringify(pub.discard)}`);
         log.push(`|cardsToPeek|${JSON.stringify(playerObj.cardsToPeek)}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         checkNextEffect(G, ctx);
@@ -1322,13 +1331,13 @@ export const playCard: LongFormMove = {
                 //流派扩：玛萨拉电影
                 case SchoolCardID.S4002:
                     drawCardForPlayer(G, ctx, arg.playerID);
-                    G.e.stack.push({e:"addVp",a:1});
+                    G.e.stack.push({e: "addVp", a: 1});
                     log.push(`|masala|${JSON.stringify(G.e.stack)}`)
 
                     break;
                 default:
-                    G.e.stack.push({e:"res",a:1});
-                    G.e.stack.push({e:"addVp",a:2});
+                    G.e.stack.push({e: "res", a: 1});
+                    G.e.stack.push({e: "addVp", a: 2});
                     log.push(`|${JSON.stringify(G.e.stack)}`)
 
                     break;
@@ -1336,8 +1345,8 @@ export const playCard: LongFormMove = {
         }
         if (pub.school === SchoolCardID.S4008 && playCard.industry > 0) {
             //流派扩：高概
-            G.e.stack.push({e:"res",a:playCard.industry});
-            G.e.stack.push({e:"addVp",a:playCard.industry});
+            G.e.stack.push({e: "res", a: playCard.industry});
+            G.e.stack.push({e: "addVp", a: playCard.industry});
             log.push(`${JSON.stringify(G.e.stack)}`)
         }
         if (pub.school === SchoolCardID.S4005 && playCard.aesthetics > 0) {
