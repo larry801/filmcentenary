@@ -260,9 +260,7 @@ export const march: LongFormMove = {
                 if (troopIsArmy(G, ctx, oppoTroop)) {
                     log.push(`|startCombat`);
                     startCombat(G, ctx, ctr, t.p);
-
                 }
-
             }
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -287,37 +285,37 @@ export const letter: LongFormMove = {
     }
 }
 
-export const chooseRegion: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx, args: RegionID) => {
-        if (ctx.playerID === undefined) {
-            return INVALID_MOVE;
-        }
-        logger.info(`p${ctx.playerID}.chooseRegion(${JSON.stringify(args)})`);
-        const log = [`p${ctx.playerID}.chooseRegion`];
-        const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
-        const player = playerById(G, ctx.playerID);
-        const event = G.pending.events.pop()
-        if (event !== undefined) {
-            switch (event) {
-                case PendingEvents.PlaceUnitsToRegion:
-
-                    break;
-                case PendingEvents.XiJunQuDuan:
-                    doPlaceUnit(G, [1, 0, 0, 0, 0, 0], Country.SONG, args);
-                    ctx.events?.endStage();
-                    break
-
-
-            }
-        } else {
-            log.push(`|no|events|endStage`);
-            ctx.events?.endStage();
-        }
-
-        logger.debug(`${log.join('')}`);
-    }
-}
+// export const chooseRegion: LongFormMove = {
+//     move: (G: SongJinnGame, ctx: Ctx, args: RegionID) => {
+//         if (ctx.playerID === undefined) {
+//             return INVALID_MOVE;
+//         }
+//         logger.info(`p${ctx.playerID}.chooseRegion(${JSON.stringify(args)})`);
+//         const log = [`p${ctx.playerID}.chooseRegion`];
+//         const ctr = getCountryById(ctx.playerID);
+//         const pub = getStateById(G, ctx.playerID);
+//         const player = playerById(G, ctx.playerID);
+//         const event = G.pending.events.pop()
+//         if (event !== undefined) {
+//             switch (event) {
+//                 case PendingEvents.PlaceUnitsToRegion:
+//
+//                     break;
+//                 case PendingEvents.XiJunQuDuan:
+//                     doPlaceUnit(G, [1, 0, 0, 0, 0, 0], Country.SONG, args);
+//                     ctx.events?.endStage();
+//                     break
+//
+//
+//             }
+//         } else {
+//             log.push(`|no|events|endStage`);
+//             ctx.events?.endStage();
+//         }
+//
+//         logger.debug(`${log.join('')}`);
+//     }
+// }
 
 export const chooseProvince: LongFormMove = {
     move: (G, ctx, arg: ProvinceID) => {
@@ -845,14 +843,33 @@ export const jianLiDaQi: LongFormMove = {
         ctx.events?.endStage();
     }
 }
-export const emptyRound: LongFormMove = {
-    move: (G, ctx) => {
-        if (ctx.playerID === undefined) {
+
+export const chooseRegion: LongFormMove = {
+    move: (G, ctx, arg) => {
+        const pid = ctx.playerID;
+        const log = [`chooseRegion`];
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        // const ctr = getCountryById(ctx.playerID);
-        // const pub = getStateById(G, ctx.playerID);
-        // const player = playerById(G, ctx.playerID);
+        logger.info(`${G.matchID}|p${pid}.moves.chooseRegion(${JSON.stringify(arg)})`);
+        const ctr = getCountryById(pid);
+        const pub = getStateById(G, pid);
+        const player = playerById(G, pid);
+        if(G.pending.regions.includes(arg)) {
+
+        }
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    }
+}
+export const emptyRound: LongFormMove = {
+    move: (G, ctx) => {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        const ctr = getCountryById(pid);
+        const pub = getStateById(G, pid);
+        const player = playerById(G, pid);
         G.op = 1;
     }
 }
@@ -1052,6 +1069,7 @@ export const combatCard: LongFormMove = {
         } else {
             const oppoPlayer = oppoPlayerById(G, ctx.playerID);
             if (player.combatCard.length === 0 && oppoPlayer.combatCard.length === 0) {
+                ctx.events?.endStage();
                 yuanCheng(G, ctx);
             } else {
                 changePlayerStage(G, ctx, 'showCC', G.order[0]);
