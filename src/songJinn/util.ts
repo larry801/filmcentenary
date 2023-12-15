@@ -2935,7 +2935,7 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
             log.push(`|removed`);
             G.song.troops.splice(G.song.troops.indexOf(songTroop), 1);
         } else {
-            log.push(`||no|troop`);
+            log.push(`|no|troop`);
         }
     }
     const city = getCityById(c);
@@ -3494,12 +3494,12 @@ export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
             }
             if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
                 log.push(`|normal`);
-                atkD = troopSiegeMelee(G, st) - getCityDefence(G, dt.c, ciDefCtr(G));
+                atkD = troopSiegeMelee(G, st);
                 defD = troopDefendCiyMelee(G, dt);
             } else {
                 log.push(`|liuJia`);
                 const cityDefence = getCityDefence(G, dt.c, Country.SONG);
-                atkD = troopSiegeMelee(G, st) + cityDefence;
+                atkD = troopSiegeMelee(G, st);
                 defD = troopDefendCiyMelee(G, dt) - (2 * cityDefence);
             }
             break;
@@ -3897,7 +3897,7 @@ export function startCombat(
 ) {
     const log = [`startCombat|${attacker}atk${placeToStr(p)}`];
     const c = G.combat;
-    c.ongoing = true;
+    G.combat.ongoing = true;
     c.atk = attacker;
     const atkId = ctr2pid(attacker);
     const defId = ctr2pid(oppoCtr(attacker));
