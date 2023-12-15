@@ -4,7 +4,7 @@ import {
     BasicCardID, EventCardID,
     IBuyInfo,
     IEra, ItrEffects,
-    Region, SimpleEffectNames, ValidRegion, NoExecutorEffectNames
+    Region, SimpleEffectNames, ValidRegion, NoExecutorEffectNames, CardID
 } from "../../types/core";
 import {
     IChooseEventArg,
@@ -263,6 +263,11 @@ const classicFilmAutoMoveMode = {
     DRAW_CARD: "自动摸牌",
     AESTHETICS_AWARD: "自动美学奖励",
 };
+const argDrawnCards = {
+    args: (cards:CardID[]): string => {
+        return `摸了 ${cards.map(c=>getCardName(c))}`;
+    }
+}
 
 const argConcede = {
     args: (): string => {

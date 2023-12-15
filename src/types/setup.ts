@@ -198,6 +198,7 @@ function pubPlayer(): IPubInfo {
 
 export function privatePlayer(): IPrivateInfo {
     return {
+        drawn: [],
         classicFilmAutoMove: ClassicFilmAutoMoveMode.NO_AUTO,
         endTurnEffectExecuted: false,
         hand: [], handSize: 0,

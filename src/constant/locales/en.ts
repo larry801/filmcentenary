@@ -1,6 +1,6 @@
 import {
     AllClassicCards,
-    BasicCardID,
+    BasicCardID, CardID,
     EventCardID,
     IBuyInfo,
     IEra,
@@ -259,6 +259,11 @@ const setting: LocaleSettings = {
 };
 const argSetupGameMode = argSetupGameModeHOF(chose, setting);
 
+const argDrawnCards = {
+    args: (cards:CardID[]): string => {
+        return `drew ${cards.map(c=>getCardName(c))}`;
+    }
+}
 const argConcede = {
     args: (): string => {
         return ` conceded from the game`

@@ -77,21 +77,21 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 ClassicFilmAutoMoveMode.DRAW_CARD,
                 ClassicFilmAutoMoveMode.AESTHETICS_AWARD
             ].map(autoMove =>
-                    <Button
-                        style={{textTransform: 'none'}}
-                        key={autoMove}
-                        disabled={iPrivateInfo.classicFilmAutoMove === autoMove}
-                        variant="contained" color="primary"
-                        onClick={() => {
-                            console.log(JSON.stringify(iPrivateInfo));
-                            console.log(iPrivateInfo.classicFilmAutoMove);
-                            moves.changePlayerSetting({
-                                classicFilmAutoMoveMode: autoMove
-                            });
-                        }}
-                    >
-                        {i18n.classicFilmAutoMove[autoMove]}
-                    </Button>)
+                <Button
+                    style={{textTransform: 'none'}}
+                    key={autoMove}
+                    disabled={iPrivateInfo.classicFilmAutoMove === autoMove}
+                    variant="contained" color="primary"
+                    onClick={() => {
+                        console.log(JSON.stringify(iPrivateInfo));
+                        console.log(iPrivateInfo.classicFilmAutoMove);
+                        moves.changePlayerSetting({
+                            classicFilmAutoMoveMode: autoMove
+                        });
+                    }}
+                >
+                    {i18n.classicFilmAutoMove[autoMove]}
+                </Button>)
         }
     </ButtonGroup>;
 
@@ -156,6 +156,11 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             title={peekDialogTitle}
             toggleText={i18n.dialog.peek.title}/>
 
+    const showDrawnButton = <Button
+        onClick={() => moves.showDrawn()}
+    >
+
+    </Button>
 
     const discardChoices = getChooseHandChoice(G, playerID, getCardName);
     const chooseHandTitle = hasCurEffect ? curEffName : i18n.dialog.chooseHand.title;
@@ -424,7 +429,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
 
 
     const redoFn = () => redo();
-    const redoButton =  !G.disableUndo && activePlayer(ctx) === playerID
+    const redoButton = !G.disableUndo && activePlayer(ctx) === playerID
         ? <IconButton
             onClick={redoFn}
             aria-label={i18n.action.redo}
@@ -473,7 +478,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         />
 
     const helpers = playerID === null ? [] : getValidHelper(G, playerID);
-    
+
     return <Grid item container xs={12} sm={5} justifyContent="flex-start">
         <Grid item container xs={12}>
             <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(playerID)]} idx={parseInt(playerID)} G={G}

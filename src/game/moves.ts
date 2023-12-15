@@ -927,12 +927,12 @@ export const peek: LongFormMove = {
                     const idxCard = playerObj.cardsToPeek[arg.idx];
                     log.push(`|remove|${arg.card}`)
                     log.push(`|${JSON.stringify(playerObj.cardsToPeek)}`);
-                    if(idxCard === arg.card){
+                    if (idxCard === arg.card) {
                         playerObj.cardsToPeek.splice(arg.idx, 1);
-                    }else{
-                        if(playerObj.cardsToPeek.includes(arg.card)){
+                    } else {
+                        if (playerObj.cardsToPeek.includes(arg.card)) {
                             playerObj.cardsToPeek.splice(
-                                playerObj.cardsToPeek.indexOf(arg.card),1
+                                playerObj.cardsToPeek.indexOf(arg.card), 1
                             );
                         }
                     }
@@ -977,12 +977,29 @@ export interface IChooseEventArg {
     idx: number,
 }
 
+export const showDrawnCard: LongFormMove = {
+    move: (G: IG, ctx: Ctx, arg: CardID[]) => {
+        const pid = ctx.playerID;
+        const log = [`showDrawnCard`];
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`${G.matchID}|p${pid}.moves.showDrawnCard(${JSON.stringify(arg)})`);
+        // player
+        const playerObj = G.player[parseInt(pid)];
+        log.push(`before|${playerObj.drawn}playerObj.drawn`);
+        playerObj.drawn = [];
+        log.push(`after|${playerObj.drawn}`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    }
+}
+
 export const chooseEvent: LongFormMove = {
     client: false,
     undoable: (G) => G.previousMoveUndoable,
     move: (G: IG, ctx: Ctx, arg: IChooseEventArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
-        logger.info(`${G.matchID}|p${arg.p}.moves.chooseEvent(${JSON.stringify(arg)})`);
+        logger.info(`$:{G.matchID}|p${arg.p}.moves.chooseEvent(${JSON.stringify(arg)})`);
         let eid: EventCardID = arg.event;
         const log = ["chooseEvent"];
         undoCheck(G, log);
