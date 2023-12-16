@@ -2736,7 +2736,7 @@ export const removeUnitByIdx = (G: SongJinnGame, units: number[], pid: PlayerID,
     log.push(`|before|standby${pub.standby}|units${t.u}`);
     if (pid=== SJPlayer.P1 ){
         if(units.length > 6){
-            actualUnits = acutalUnits.slice(0,6);
+            actualUnits = actualUnits.slice(0,6);
             log.push(`|${actualUnits}actualUnits`);
         }
     }
