@@ -4729,7 +4729,7 @@ export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: Province
         log.push(`|b|${G.qi}`);
     }
     log.push(`|b|${pub.provinces}`);
-
+    pub.provinces.push(prov);
     log.push(`|b|${pub.provinces}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
