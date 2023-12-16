@@ -63,28 +63,40 @@ redis.get(`${matchPrefix}${matchID}:state`, (err, result) => {
     if (err) {
         console.error(err);
     } else {
-        console.log(result); // Prints "value"
+        // console.log(result); // Prints "value"
+        const r= JSON.parse(result);
+        console.log(JSON.stringify(r.ctx))
     }
 });
 redis.lrange(`${matchPrefix}${matchID}:log`, 0, -1, (err, result) => {
     if (err) {
         console.error(err);
     } else {
-        console.log(result); // Prints "value"
-    }
-});
-redis.get(`${matchPrefix}${matchID}:metadata`, (err, result) => {
-    if (err) {
-        console.error(err);
-    } else {
-        console.log(result); // Prints "value"
-    }
-});
-redis.get(`${matchPrefix}${matchID}:initialState`, (err, result) => {
-    if (err) {
-        console.error(err);
-    } else {
-        console.log(result); // Prints "value"
+        // console.log(result); // Prints "value"
+        const a =result.map(l=>JSON.parse(l)).filter(l => l.type !== 'GAME_EVENT').map(l => {
+            const pid = l.action.payload.playerID
+
+            switch (l.action.type) {
+                case "MAKE_MOVE":
+                    const moveName = l.action.payload.type
+                    if (moveName === 'requestEndTurn') {
+                        return `p${pid}.moves.requestEndTurn("${pid}");`
+                    } else {
+                        if (l.action.payload.args === null) {
+                            return `p${pid}.moves.${moveName}([]);`
+                        } else {
+                            return `p${pid}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])});`
+                        }
+                    }
+                case "UNDO":
+                    return `p${pid}.undo();`
+                case "REDO":
+                    return `p${pid}.redo();`
+                default:
+                    return ""
+            }
+        }).join("\r\n");
+        console.log(a)
     }
 });
 redis.quit();

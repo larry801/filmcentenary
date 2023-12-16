@@ -37,7 +37,7 @@ import {
     canForceRoundTwo,
     cardToSearch,
     changeCivil,
-    changeMilitary,
+    changeMilitary, checkRecruitCivil,
     ciAtkInfo, ciAtkPid,
     ciAtkTroop,
     ciDefInfo,
@@ -1069,7 +1069,6 @@ export const combatCard: LongFormMove = {
         } else {
             const oppoPlayer = oppoPlayerById(G, ctx.playerID);
             if (player.combatCard.length === 0 && oppoPlayer.combatCard.length === 0) {
-                ctx.events?.endStage();
                 yuanCheng(G, ctx);
             } else {
                 changePlayerStage(G, ctx, 'showCC', G.order[0]);
@@ -1668,10 +1667,22 @@ export const takePlan: LongFormMove = {
 
 export const recruitUnit: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, units: number[]) => {
-        if (ctx.playerID === undefined) {
+        const pid = ctx.playerID;
+        logger.info(`${G.matchID}|p${pid}.moves.recruitUnit(${JSON.stringify(units)})`);
+        const log = [`recruitUnit`];
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        doRecruit(G, units, ctx.playerID);
+        if (ctx.phase === 'action'){
+            if(checkRecruitCivil(G,units,pid)){
+                doRecruit(G, units, pid);
+            }
+            else{
+                log.push(`|over|limit`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return  INVALID_MOVE;
+            }
+        }
     }
 }
 

@@ -213,10 +213,16 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         const songPower = getSongPower(G);
         const songCorruptionLimit = G.song.civil >= 5 ? 8 : 7;
         G.song.corruption = songPower > songCorruptionLimit ? songPower - songCorruptionLimit : 0;
+        log.push(`|${songPower}songPower`);
+        log.push(`|${songCorruptionLimit}songCorruptionLimit`);
+        log.push(`|${G.song.corruption}G.song.corruption`);
 
         const jinnPower = getJinnPower(G);
         const jinnCorruptionLimit = G.jinn.civil >= 5 ? 8 : 7;
         G.jinn.corruption = jinnPower > jinnCorruptionLimit ? jinnPower - jinnCorruptionLimit : 0;
+        log.push(`|${jinnPower}jinnPower`);
+        log.push(`|${jinnCorruptionLimit}jinnCorruptionLimit`);
+        log.push(`|${G.jinn.corruption}G.jinn.corruption`);
         // const firstPlayer = G.order[0];
         // cannot import PlanID here
         // if(){
@@ -224,7 +230,7 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         // }else{
         //     drawPhaseForSong(G,ctx);
         // }
-        logger.info(`${log.join('')}`);
+        logger.debug(`${log.join('')}`);
     },
     onEnd: (G, ctx) => {
         const log = [`drawPhase|onEnd`]

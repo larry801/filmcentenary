@@ -15,6 +15,7 @@ import {
     GeneralNames,
     GeneralStatus,
     IEra,
+    INITIAL_RECRUIT_COST,
     INITIAL_RECRUIT_PERMISSION,
     isCityID,
     isMountainPassID,
@@ -2806,9 +2807,22 @@ export const getRecruitCost = (G: SongJinnGame, units: number[], pid: PlayerID):
     }
     return cost;
 }
+
+export const checkRecruitCivil = (G: SongJinnGame, units: number[], pid: PlayerID) => {
+    const log = [`checkRecruitCivil${unitsToString(units)}|p${pid}`];
+    const pub = getStateById(G, pid);
+    const readySum = pub.ready.reduce(accumulator);
+    const recruitSum = units.reduce(accumulator);
+    return readySum + recruitSum <= pub.civil;
+}
+
 export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
+    const log = [`doRecruit${unitsToString(units)}|p${pid}`];
     const actualUnits = [...units];
     const pub = getStateById(G, pid);
+
+    log.push(`|${pub.ready}pub.ready`);
+    log.push(`|${pub.standby}pub.standby`);
     for (let i = 0; i < units.length; i++) {
         if (pub.standby[i] > units[i]) {
             actualUnits[i] = units[i]
@@ -2819,6 +2833,35 @@ export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
         }
         pub.ready[i] += actualUnits[i];
     }
+    log.push(`|${actualUnits}actualUnits`);
+    log.push(`|${pub.ready}pub.ready`);
+    log.push(`|${pub.standby}pub.standby`);
+    const ctr = pid2ctr(pid);
+
+    const unitsCost : number[] = getCtrRecruitCost(G, ctr);
+    log.push(`|${unitsCost}unitsCost`);
+    let cost = 0;
+    for (let i = 0; i < units.length; i++) {
+        cost += unitCost[i] * actualUnits[i];
+    }
+    log.push(`|${G.op}G.op`);
+    G.op -= cost;
+    log.push(`|${G.op}G.op`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+
+export const getCtrRecruitCost = (G: SongJinnGame, ctr:Country) => {
+    let cost : number[] = [0,0,0,0,0,0];
+    if (ctr === Country.SONG){
+        cost = INITIAL_RECRUIT_COST[0];
+        if (G.events.includes(ActiveEvents.ShenBiGong)){
+            cost[1] = 2;
+        }
+    }els{
+        cost = INITIAL_RECRUIT_COST[1];
+    }
+    return cost;
 }
 
 export const mergeTroopTo = (G: SongJinnGame, src: number, dst: number, pid: PlayerID) => {
@@ -3523,6 +3566,7 @@ export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
     }
     log.push(`|${atkD}atkD`);
     log.push(`|${defD}defD`);
+
     if (ci.atk === Country.JINN && ciJinnGenerals(G).includes(JinnGeneral.WuZhu)) {
         log.push(`|wuZhu+2`);
         atkD += 2;
@@ -3539,12 +3583,22 @@ export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
 
     rollDiceByPid(G, ctx, atkPid, atkD);
     rollDiceByPid(G, ctx, defPid, defD);
-    ci.jinn.damageLeft = countDice(G, Country.SONG);
-    ci.song.damageLeft = countDice(G, Country.JINN);
     changePlayerStage(G, ctx, 'takeDamage', G.order[0]);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
+export const hasRangeStrengthTroop = (G: SongJinnGame, t: Troop) => {
+
+    if (t.g === Country.SONG) {
+        return t.u[1] > 0 || t.u[4] > 0 || t.u[5] > 0;
+    } else {
+        if (G.events.includes(ActiveEvents.JianLiDaQi) && G.jinn.military >= 5) {
+            const qian = t.u[5] > 0 || t.u[6] > 0;
+        }else{
+            return t.u[1] > 0
+        }
+    }
+}
 export const countDice = (G: SongJinnGame, ctr: Country): number => {
     const log = [`count${ctr}Dice`];
     const ci = G.combat;
@@ -4675,6 +4729,7 @@ export const doGeneralSkill = (G: SongJinnGame, pid: PlayerID, g: General) => {
     log.push(`|after${pub.generalSkill}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
 export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
     const pub = getStateById(G, pid);
     if (pub.civil + a < 1) {
@@ -4687,14 +4742,14 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
         }
     }
     if (pub.civil > pub.maxCivil) {
-        if (pub.maxCivil < 4) {
+        if (pub.maxCivil >= 4) {
             if (pid === SJPlayer.P1) {
                 policyUp(G, 1);
             } else {
                 colonyUp(G, 1);
             }
         }
-        pub.maxCivil = 4;
+        pub.maxCivil = pub.civil;
     }
 }
 export const doRemoveNation = (G: SongJinnGame, nation: NationID) => {
@@ -4801,7 +4856,10 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
         }
     }
     if (pub.military > pub.maxMilitary) {
-        if (pub.maxMilitary < 5) {
+        if(pub.maxMilitary >= 4){
+            G.op += 2;
+        }
+        if (pub.maxMilitary >= 5) {
             if (pid === SJPlayer.P1) {
 
                 doRecruit(G, [0, 0, 0, 0, 0, 1], SJPlayer.P1);
@@ -4810,13 +4868,16 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
             }
             pub.maxMilitary = 5;
         }
-        if (pub.maxMilitary < 6) {
+        if (pub.maxMilitary >= 6) {
             if (pid === SJPlayer.P1) {
                 doRecruit(G, [0, 0, 0, 0, 1, 0], SJPlayer.P1);
             } else {
                 doRecruit(G, [0, 0, 0, 0, 1, 0, 0], SJPlayer.P2);
             }
             pub.maxMilitary = 6;
+        }
+        if (pub.maxMilitary >= 7) {
+            pub.maxMilitary = 7;
         }
     }
 }
