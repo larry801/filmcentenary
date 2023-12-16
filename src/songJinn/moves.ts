@@ -115,9 +115,10 @@ export const opponentMove: LongFormMove = {
 }
 
 interface ICheckProvince {
-    prov:ProvinceID,
-    text:string
+    prov: ProvinceID,
+    text: string
 }
+
 export const checkProvince: LongFormMove = {
     move: (G: SongJinnGame, ctx, arg: ICheckProvince) => {
         const pid = ctx.playerID;
@@ -126,7 +127,7 @@ export const checkProvince: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`${G.matchID}|p${pid}.moves.checkProvince(${JSON.stringify(arg)})`);
-        const { prov} = arg;
+        const {prov} = arg;
         const ctr = getCountryById(pid);
         const pub = getStateById(G, pid);
         const player = playerById(G, pid);
@@ -1528,6 +1529,27 @@ export const endRound: LongFormMove = {
                 ctx.events?.endTurn();
             }
         }
+    }
+}
+
+interface ISiegeArg {
+    src: CityID,
+    ctr: Country
+}
+
+export const siege: LongFormMove = {
+    move: (G, ctx, arg: ISiegeArg) => {
+        const pid = ctx.playerID;
+        const log = [`siege`];
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`${G.matchID}|p${pid}.moves.siege(${JSON.stringify(arg)})`);
+        const pub = getStateById(G, pid);
+        const player = playerById(G, pid);
+        const {src, ctr} = arg;
+        startCombat(G, ctx, ctr, src);
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
 

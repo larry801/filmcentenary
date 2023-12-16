@@ -49,7 +49,7 @@ import {
     searchFirst,
     showCC,
     showLetters,
-    showPlan,
+    showPlan, siege,
     takeDamage,
     takePlan,
     tieJun
@@ -95,6 +95,7 @@ export const ChooseRegionsStageConfig: StageConfig<SongJinnGame> = {
 }
 export const ReactStageConfig: StageConfig<SongJinnGame> = {
     moves: {
+        siege:siege,
         checkProvince:checkProvince,
         emperor: emperor,
         removeOwnGeneral:removeOwnGeneral,
@@ -353,6 +354,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     turn: StagedTurnConfig,
     moves: {
+        siege:siege,
         checkProvince:checkProvince,
         removeOwnGeneral:removeOwnGeneral,
         breakout: breakout,

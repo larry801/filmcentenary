@@ -35,7 +35,7 @@ import {
     getStateById, getTroopPlaceText,
     getTroopText, hasOpponentTroop,
     optionToActualDst,
-    StrProvince, troopIsWeiKun, unitsToString,
+    StrProvince, troopIsWeiKun, unitsToString, troopCanSiege,
 } from "../util";
 
 export interface IPlayerHandProps {
@@ -448,6 +448,17 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                         }
                     }>全军进军
                 </button>
+                {troopCanSiege(G, t) && <button
+                    key={`grid-ops-${idx}-siege`}
+                    onClick={() => {
+                        moves.siege({
+                            ctr: t.g,
+                            src: t.c
+                        });
+                    }}
+                >
+                    攻城
+                </button>}
                 {troopIsWeiKun(G, t) && <button
                     key={`grid-ops-${idx}-breakout`}
                     onClick={() => {

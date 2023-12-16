@@ -1788,7 +1788,7 @@ export const idToCard = {
         combat: false,
         effectText: "在1个被围困的城市发动进攻，在远程阶段城防的作用改为：攻城方增加等于城防的战斗力，守城方减少等于城防的战斗力。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => G.events.push(ActiveEvents.LiuJiaShenBing)
     },
     [JinnBaseCardID.J13]: {
         id: JinnBaseCardID.J13,
@@ -3168,7 +3168,6 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                 const pub = getStateById(G, pid);
                 if (args === null || args.length === 0) {
                     switch (name) {
-
                         case 'search':
                             log += `检索了一张牌`;
                             break;
@@ -3182,8 +3181,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             log += `结束行动`;
                             break;
                         case 'opponentMove':
-                            log +=
-                                `让对方操作`;
+                            log += `让对方操作`;
                             break;
                         default:
                             log += `${name}|${JSON.stringify(args)}`;
@@ -3195,9 +3193,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             log += `拿回发展牌${sjCardById(arg).name}`;
                             break;
                         case 'deployGeneral':
-                            log +=
-                                `派遣${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`
-                            ;
+                            log += `派遣${getGeneralNameByCountry(pid2ctr(pid), arg.general)}到${placeToStr(arg.dst)}`;
                             break;
                         case 'freeHeYi':
                             log += `免费和议 割让${arg}`;
@@ -3207,9 +3203,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             break;
 
                         case 'rescueGeneral':
-                            log +=
-                                `弃发展牌${sjCardById(arg.card).name}救援${getGeneralNameByPid(pid, arg.general)}`
-                            ;
+                            log += `弃发展牌${sjCardById(arg.card).name}救援${getGeneralNameByPid(pid, arg.general)}`;
                             break;
 
                         case 'removeUnit':
@@ -3321,6 +3315,9 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                         case 'removeGeneral':
                             log += `${getGeneralNameByPid(pid, arg)}`;
                             break;
+                        case 'siege':
+                            log += `让${arg.ctr}在${placeToStr(arg.src)}攻城`;
+                            break;
                         case 'breakout':
                             log += `让${arg.ctr}在${placeToStr(arg.src)}突围`;
                             break;
@@ -3350,10 +3347,10 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             break;
                         case 'develop':
                             log += `${
-                                    arg !== DevelopChoice.EMPEROR
-                                    && arg !== DevelopChoice.POLICY_UP
-                                    && arg !== DevelopChoice.POLICY_DOWN
-                                        ? "提升" : ""}${arg}`;
+                                arg !== DevelopChoice.EMPEROR
+                                && arg !== DevelopChoice.POLICY_UP
+                                && arg !== DevelopChoice.POLICY_DOWN
+                                    ? "提升" : ""}${arg}`;
                             break;
                         case 'recruitUnit':
                             log +=
@@ -3986,7 +3983,6 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
     log.push(`|${JSON.stringify(c)}`);
     ctx.events?.endStage();
     logger.debug(`${G.matchID}|${log.join('')}`);
-
 }
 
 export const isQiXing = (t: Troop) => {
@@ -4032,7 +4028,22 @@ export function startCombat(
         // @ts-ignore
         atkTroop = getTroopByCountryCity(G, c.atk, p);
         // @ts-ignore
-        defTroop = getTroopByCountryPlace(G, ciDefCtr(G), getCityById(p).region);
+        defTroop = getTroopByCountryCity(G, ciDefCtr(G), p);
+        if(atkTroop === null || defTroop === null){
+            log.push(`|error|one troop missing`);
+            endCombat(G,ctx);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return;
+        }
+        if(atkTroop.p === atkTroop.c){
+            log.push(`|breakout`);
+            c.type = CombatType.BREAKOUT;
+        }else{
+            if(defTroop.p === defTroop.c){
+                log.push(`|siege`);
+                c.type = CombatType.SIEGE;
+            }
+        }
     }
     log.push(`|${JSON.stringify(atkTroop)}atkTroop`);
     log.push(`|${JSON.stringify(defTroop)}defTroop`);
@@ -4047,6 +4058,7 @@ export function startCombat(
         log.push(`|error|no song troop`);
         endCombat(G, ctx);
         logger.debug(`${G.matchID}|${log.join('')}`);
+        return;
     }
     const jt = c.atk === Country.JINN ? atkTroop : defTroop;
     if (jt !== null) {
@@ -4055,6 +4067,7 @@ export function startCombat(
         log.push(`|error|no jinn troop`);
         endCombat(G, ctx);
         logger.debug(`${G.matchID}|${log.join('')}`);
+        return;
     }
     // TODO
 
@@ -4089,14 +4102,12 @@ export function startCombat(
                 changePlayerStage(G, ctx, 'combatCard', G.order[0]);
             } else {
                 if (isCityID(p)) {
-                    log.push(`|breakout|cc`);
-                    c.type = CombatType.BREAKOUT;
+                    log.push(`|cc`);
                     changePlayerStage(G, ctx, 'combatCard', G.order[0]);
                 }
             }
         }
     }
-    const def = getOpponentPlaceTroopByCtr(G, attacker, p);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -4126,6 +4137,40 @@ export function weiKunTroop(G: SongJinnGame, t: Troop) {
         log.push(`|cannot find troop}`);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+export function troopCanSiege(G: SongJinnGame, t: Troop) {
+    let b = false;
+    oppoPub(G, ctr2pid(t.g));
+    const log = [`troopCanSiege|${JSON.stringify(t)}`];
+    if (isRegionID(t.p)) {
+        const fieldOpTroop = getOpponentPlaceTroopByCtr(G, t.g, t.p);
+        if (fieldOpTroop !== null) {
+            log.push(`|stalemate|false`);
+            b = false;
+        } else {
+            // @ts-ignore
+            const city = getRegionById(t.p).city;
+            if (city === null) {
+                log.push(`|noCity`);
+                b = false;
+            } else {
+                const cityOpTroop = getTroopByCountryCity(G, oppoCtr(t.g), city);
+                if (cityOpTroop !== null) {
+                    log.push(`|hasOpTroop`);
+                    b = true;
+                } else {
+                    log.push(`|noOpTroop`);
+                    b = false;
+                }
+            }
+        }
+    } else {
+        log.push(`|notRegion`);
+        b = false;
+    }
+    logger.warn(`${G.matchID}|${log.join('')}`);
+    return b;
 }
 
 export function troopIsWeiKun(G: SongJinnGame, t: Troop) {
@@ -4222,7 +4267,8 @@ export function getCityDefence(G: SongJinnGame, cid: CityID, ctr: Country): numb
     return def;
 }
 
-export function troopSiegeRange(G: SongJinnGame, troop: Troop): number {
+export function troopSiegeRange(G: SongJinnGame, troop: Troop): number
+{
     let range = 0;
     const terrainType = getTerrainTypeByPlace(troop);
     let unitRanges: number[] = [];
@@ -4777,14 +4823,10 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
     );
 }
 export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
-    const log = [
-        `t${G.turn}r${G.round}|endRoundCheck`
-    ];
+    const log = [`t${G.turn}r${G.round}|endRoundCheck`];
     G.op = 0;
     if (G.order[1] === ctx.playerID) {
-        log.push(
-            `|second`
-        );
+        log.push(`|second`);
         if (
             // G.round >= 2
             G.round >= MAX_ROUND
@@ -4804,9 +4846,11 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
             `|firstPlayer`
         );
     }
-    logger.debug(
-        `${G.matchID}|${log.join('')}`
-    );
+    if (G.events.includes(ActiveEvents.LiuJiaShenBing)) {
+        log.push(`|rm|LiuJiaShenBing`);
+        G.events.splice(G.events.indexOf(ActiveEvents.LiuJiaShenBing), 1);
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const returnDevCardCheck = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cid: SJEventCardID) => {
     const pub = getStateById(G, pid);

@@ -958,15 +958,15 @@ export const initialSongPub: SJPubInfo = {
     standby: [9, 18, 9, 2, 3, 5],
     troops: [
         {u: [2, 2, 0, 0, 0, 0], p: RegionID.R19, c: null, g: Country.SONG},
+        {u: [2, 3, 0, 0, 0, 0], p: RegionID.R43, c: CityID.KaiFeng, g: Country.SONG},
         {u: [0, 1, 0, 0, 0, 0], p: RegionID.R21, c: CityID.LiCheng, g: Country.SONG},
         {u: [0, 1, 0, 0, 0, 0], p: RegionID.R28, c: CityID.SongCheng, g: Country.SONG},
+
         {u: [1, 0, 0, 0, 0, 0], p: RegionID.R32, c: CityID.Fushi, g: Country.SONG},
-
         {u: [0, 1, 0, 0, 0, 0], p: RegionID.R33, c: CityID.TianXing, g: Country.SONG},
-        {u: [1, 1, 1, 0, 0, 0], p: RegionID.R36, c: CityID.ChangAn, g: Country.SONG},
 
+        {u: [1, 1, 1, 0, 0, 0], p: RegionID.R36, c: CityID.ChangAn, g: Country.SONG},
         {u: [2, 1, 0, 0, 0, 0], p: RegionID.R42, c: CityID.XiangYang, g: Country.SONG},
-        {u: [2, 3, 0, 0, 0, 0], p: RegionID.R43, c: CityID.KaiFeng, g: Country.SONG},
 
         {u: [0, 0, 0, 1, 0, 0], p: RegionID.R72, c: CityID.DanTu, g: Country.SONG},
         {u: [1, 0, 0, 1, 0, 0], p: RegionID.R46, c: CityID.JiangDu, g: Country.SONG},
