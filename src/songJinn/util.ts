@@ -979,6 +979,7 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => G.song.military >= 4,
         event: (G: SongJinnGame, ctx: Ctx) => {
             removeGeneral(G, SJPlayer.P1, SongGeneral.ZongZe);
+            moveGeneralToReady(G,SJPlayer.P1, SongGeneral.YueFei);
             // TODO auto
             // ctx.events?.setStage('chooseCity');
             // G.pending = "placeGeneral";
@@ -999,7 +1000,9 @@ export const idToCard = {
         combat: false,
         effectText: "在陕西六路或川峡四路内的1个城市放置吴玠。若这座城市没有部队，则放置2个弓兵到该城市",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            moveGeneralToReady(G,SJPlayer.P1, SongGeneral.WuJie);
+        }
     },
     [SongBaseCardID.S21]: {
         id: SongBaseCardID.S21,
@@ -1016,7 +1019,10 @@ export const idToCard = {
         combat: false,
         effectText: "在宋国皇帝所在的区域放置韩世忠。若相邻区域有金国部队，则放置2个步兵到该城市。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            moveGeneralToReady(G,SJPlayer.P1, SongGeneral.HanShiZhong);
+            // G.song.generalPlace[SongGeneral.HanShiZhong] = G.song.emperor;
+        }
     },
     [SongBaseCardID.S22]: {
         id: SongBaseCardID.S22,
@@ -1399,7 +1405,8 @@ export const idToCard = {
         effectText: "西夏向金国方向调整1级。在1个宋国控制的区域放置李显忠和2个骑兵。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
-            nationMoveJinn(G, NationID.XiXia)
+            nationMoveJinn(G, NationID.XiXia);
+            moveGeneralToReady(G,SJPlayer.P1, SongGeneral.LiXianZhong);
         }
     },
     [SongBaseCardID.S43]: {
@@ -1435,7 +1442,10 @@ export const idToCard = {
         combat: false,
         effectText: "在陕西六路或川峡四路放置吴璘。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            moveGeneralToReady(G,SJPlayer.P1, SongGeneral.WuLin);
+
+        }
     },
     [SongBaseCardID.S45]: {
         id: SongBaseCardID.S45,
@@ -1879,7 +1889,9 @@ export const idToCard = {
         effectText: "移除斡离不。在1个金国控制的区域放置兀术。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
-            removeGeneral(G, SJPlayer.P2, JinnGeneral.WoLiBu)
+            removeGeneral(G, SJPlayer.P2, JinnGeneral.WoLiBu);
+            moveGeneralToReady(G,SJPlayer.P2, JinnGeneral.WuZhu);
+
         }
     },
     [JinnBaseCardID.J20]: {
@@ -1897,7 +1909,10 @@ export const idToCard = {
         combat: false,
         effectText: "在1个金国控制的区域放置银术可。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            moveGeneralToReady(G,SJPlayer.P2, JinnGeneral.YinShuKe);
+
+        }
     },
     [JinnBaseCardID.J21]: {
         id: JinnBaseCardID.J21,
@@ -2294,7 +2309,10 @@ export const idToCard = {
         combat: false,
         effectText: "在1个金国控制的区域放置奔睹。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            moveGeneralToReady(G,SJPlayer.P2, JinnGeneral.BenZhu);
+
+        }
     },
     [JinnBaseCardID.J43]: {
         id: JinnBaseCardID.J43,
