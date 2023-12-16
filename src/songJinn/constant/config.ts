@@ -3,7 +3,7 @@ import {TurnOrder} from "boardgame.io/core";
 import {
     adjustNation,
     breakout,
-    cardEvent,
+    cardEvent, checkProvince,
     chooseFirst,
     choosePlan,
     chooseProvince,
@@ -93,6 +93,7 @@ export const ChooseRegionsStageConfig: StageConfig<SongJinnGame> = {
 }
 export const ReactStageConfig: StageConfig<SongJinnGame> = {
     moves: {
+        checkProvince:checkProvince,
         emperor: emperor,
         removeOwnGeneral:removeOwnGeneral,
         removeNation: removeNation,
@@ -344,9 +345,10 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
 
 
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
-    // start: true,
+    start: true,
     turn: StagedTurnConfig,
     moves: {
+        checkProvince:checkProvince,
         removeOwnGeneral:removeOwnGeneral,
         breakout: breakout,
         confirmRespond: confirmRespond,

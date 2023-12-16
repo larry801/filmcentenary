@@ -3252,9 +3252,11 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             break;
 
                         case 'takePlan':
-                            log +=
-                                `拿走了${arg.map((p: PlanID) => getPlanById(p).name)}`
-                            ;
+                            if (arg.length === 0 ){
+                                log += `没有拿走计划`;
+                            }else{
+                                log += `拿走了${arg.map((p: PlanID) => getPlanById(p).name)}`;
+                            }
                             break;
                         case 'chooseTop':
                             log +=
@@ -3269,7 +3271,9 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             break;
                         case 'loseProvince':
                             log += `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`;
-
+                            break;
+                        case 'checkProvince':
+                            log += `在${arg.prov}结算路权 ${arg.text}`;
                             break;
                         case 'removeNation':
                             log += `移除了${arg}`;

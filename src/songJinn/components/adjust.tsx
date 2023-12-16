@@ -6,6 +6,7 @@ import {CityID, DevelopChoice, General, NationID, ProvinceID, RegionID, SongJinn
 import {getProvinceById} from "../constant/province";
 import {getRegionById} from "../constant/regions";
 import {
+    currentProvStatus,
     getCityText,
     getCountryById,
     getGeneralNameByCountry,
@@ -186,7 +187,7 @@ export const AdjustOps = ({
 
     const checkProvDialog = <ChoiceDialog
         callback={
-            (c) => moves.checkProvince(c)
+            (c) => moves.checkProvince({prov:c,text:currentProvStatus(G, c)})
         } choices={Object.values(ProvinceID).map(c => {
         return {
             label: c,

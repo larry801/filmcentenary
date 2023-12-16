@@ -46,7 +46,7 @@ import {
     colonyDown,
     colonyUp,
     ctr2pid,
-    ctr2pub,
+    ctr2pub, currentProvStatus,
     doControlCity,
     doControlProvince,
     doGeneralSkill, doLoseCity,
@@ -112,6 +112,51 @@ export const opponentMove: LongFormMove = {
         }
     }
 
+}
+
+interface ICheckProvince {
+    prov:ProvinceID,
+    text:string
+}
+export const checkProvince: LongFormMove = {
+    move: (G: SongJinnGame, ctx, arg: ICheckProvince) => {
+        const pid = ctx.playerID;
+        const log = [`checkProvince`];
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`${G.matchID}|p${pid}.moves.checkProvince(${JSON.stringify(arg)})`);
+        const { prov} = arg;
+        const ctr = getCountryById(pid);
+        const pub = getStateById(G, pid);
+        const player = playerById(G, pid);
+        const provStatus = currentProvStatus(G, prov);
+        switch (provStatus) {
+            case "金控制":
+                doControlProvince(G, SJPlayer.P2, prov);
+                break;
+            case "宋控制":
+                doControlProvince(G, SJPlayer.P1, prov);
+                break;
+            case "战争状态":
+                const songProv = G.song.provinces;
+                if (songProv.includes(prov)) {
+                    log.push(`|${songProv}songProv`);
+                    songProv.splice(songProv.indexOf(prov));
+                    log.push(`|${songProv}songProv`);
+                }
+                const jinnProv = G.jinn.provinces;
+                if (jinnProv.includes(prov)) {
+                    log.push(`|${jinnProv}jinnProv`);
+
+                    jinnProv.splice(jinnProv.indexOf(prov));
+                    log.push(`|${jinnProv}jinnProv`);
+                }
+                break;
+
+        }
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    }
 }
 
 export const controlProvince: LongFormMove = {
@@ -1490,6 +1535,7 @@ interface IBreakoutArg {
     src: TroopPlace,
     ctr: Country
 }
+
 export const breakout: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, arg: IBreakoutArg) => {
 
@@ -1562,12 +1608,12 @@ export const confirmRespond: LongFormMove = {
                             return;
                         } else {
                             log.push(`|regionCity${regionCity}`);
-                            weiKunTroop(G,def);
+                            weiKunTroop(G, def);
                         }
                     }
                 } else {
                     log.push(`|hasCity}`);
-                    weiKunTroop(G,def);
+                    weiKunTroop(G, def);
                 }
                 log.push(`|${JSON.stringify(atkCCI.troop)}atk`);
                 log.push(`|${JSON.stringify(defCCI.troop)}def`);
@@ -1578,6 +1624,7 @@ export const confirmRespond: LongFormMove = {
                 log.push(`|siege`);
                 ci.type = CombatType.SIEGE;
                 ci.phase = CombatPhase.YunChou;
+
                 changePlayerStage(G, ctx, 'combatCard', G.order[0]);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
