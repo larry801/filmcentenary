@@ -3036,8 +3036,10 @@ export const rollDiceByPid = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, count: n
     }
     if (country === Country.SONG) {
         G.song.dices.push(dices);
+        G.combat.jinn.damageLeft = countDice(G, Country.SONG);
     } else {
         G.jinn.dices.push(dices);
+        G.combat.song.damageLeft = countDice(G, Country.JINN);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
