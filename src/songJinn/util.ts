@@ -3138,7 +3138,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
             try {
                 const name = payload.type;
                 const args = payload.args !== undefined ? payload.args : "";
-                const pub = getStateById(G, l.action.payload.playerID);
+                const pub = getStateById(G, pid);
                 if (args === null || args.length === 0) {
                     switch (name) {
 
@@ -3287,14 +3287,14 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                         case 'loseCity':
                             log += `丢失${arg.cityID}${arg.opponent ? "对手占领" : ""}`;
                             break;
-
+                        case 'removeGeneral':
+                            log += `${getGeneralNameByPid(pid,arg)}`;
+                            break;
                         case 'breakout':
-                            log += `在${arg}突围`;
+                            log += `让${arg.ctr}在${placeToStr(arg.src)}突围`;
                             break;
                         case 'discard':
-                            log +=
-                                `弃牌${sjCardById(arg).name}`
-                            ;
+                            log += `弃牌${sjCardById(arg).name}`;
                             break;
                         case 'search':
                             log += `检索了一张牌`;
@@ -3976,7 +3976,7 @@ export function startCombat(
     G: SongJinnGame, ctx: Ctx,
     attacker: Country, p: TroopPlace
 ) {
-    const log = [`startCombat|${attacker}atk${placeToStr(p)}`];
+    const log = [`startCombat|${attacker}atk|${placeToStr(p)}`];
     const c = G.combat;
     G.combat.ongoing = true;
     c.atk = attacker;
@@ -4059,6 +4059,32 @@ export function startCombat(
 }
 
 
+export function weiKunTroop(G: SongJinnGame, t: Troop) {
+    const log = [`weiKunTroop${JSON.stringify(t)}`];
+    const pub = getStateById(G, ctr2pid(t.g));
+    const troops = pub.troops.filter(tr=>tr.p===t.p);
+    if(troops.length>0){
+        if(troops.length >1){
+            log.push(`|more than one error`);
+        }else{
+            const city = troops[0].c
+            if(city !== null){
+                troops[0].p = city;
+                log.push(`|${JSON.stringify(troops)}troops`);
+            }else{
+                if(G.combat.city !== null){
+                    troops[0].p = G.combat.city
+                    log.push(`|${JSON.stringify(troops)}troops`);
+                }else{
+                    log.push(`|no combat city | cannot wei kun|error`);
+                }
+            }
+        }
+    }else{
+        log.push(`|cannot find troop}`);
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
 export function troopIsWeiKun(G: SongJinnGame, t: Troop) {
     const b = t.p === t.c;
     logger.warn(`${G.matchID}|troopIsWeiKun${JSON.stringify(t)}|${b}`);
@@ -4076,7 +4102,7 @@ export function troopRange(G: SongJinnGame, troop: Troop): number {
     log.push(`|terrain${terrainType}`);
     const place = troop.p;
     // @ts-ignore
-    const isSwampRampart = isCityID(place) && getRegionById(getCityById(place)
+    const isSwampRampart = isCityID(place) && getRegionById(getCityById(place).region
     ).terrain === TerrainType.SWAMP;
     log.push(`|${isSwampRampart}isSwampRampart`);
 
@@ -4215,7 +4241,7 @@ export function troopSiegeMelee(G: SongJinnGame, troop: Troop): number {
     const terrainType = getTerrainTypeByPlace(troop);
     const place = troop.p;
     // @ts-ignore
-    const isSwampRampart = isCityID(place) && getRegionById(getCityById(place))
+    const isSwampRampart = isCityID(place) && getRegionById(getCityById(place).region)
         .terrain === TerrainType.SWAMP;
     let unitMelee: number[] = [];
 
@@ -4300,8 +4326,9 @@ export function troopMeleeOnly(G: SongJinnGame, troop: Troop): number {
     let melee = 0;
     const terrainType = getTerrainTypeByPlace(troop);
     const place = troop.p;
+
     // @ts-ignore
-    const isSwampRampart = isCityID(place) && getRegionById(getCityById(place))
+    const isSwampRampart = isCityID(place) && getRegionById(getCityById(place).region)
         .terrain === TerrainType.SWAMP;
 
 

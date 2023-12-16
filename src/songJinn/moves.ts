@@ -94,6 +94,7 @@ import {
     totalDevelop,
     troopEmpty, troopEndurance, troopIsArmy,
     unitsToString,
+    weiKunTroop,
     yuanCheng
 } from "./util";
 import {getCityById} from "./constant/city";
@@ -1485,16 +1486,19 @@ export const endRound: LongFormMove = {
     }
 }
 
+interface IBreakoutArg {
+    src: TroopPlace,
+    ctr: Country
+}
 export const breakout: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx, arg: CityID) => {
+    move: (G: SongJinnGame, ctx: Ctx, arg: IBreakoutArg) => {
 
         const pid = ctx.playerID;
-        logger.info(`${G.matchID}|p${pid}.confirmRespond(${JSON.stringify(arg)})`);
+        logger.info(`${G.matchID}|p${pid}.breakout(${JSON.stringify(arg)})`);
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-
-        startCombat(G, ctx, pid2ctr(pid), arg)
+        startCombat(G, ctx, arg.ctr, arg.src)
     }
 }
 
@@ -1541,7 +1545,12 @@ export const confirmRespond: LongFormMove = {
                 let def = ciDefTroop(G);
                 log.push(`|${JSON.stringify(atk)}atk`);
                 log.push(`|${JSON.stringify(def)}def`);
-
+                const defTroops = getStateById(G, ciDefPid(G)).troops;
+                const defIdx = defTroops.indexOf(def);
+                log.push(`|${defIdx}defIdx`);
+                const indexedDef = defTroops[defIdx];
+                log.push(`|${indexedDef}indexedDef`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
                 if (def.c === null) {
                     if (isRegionID(def.p)) {
                         log.push(`|isRegion`);
@@ -1553,12 +1562,12 @@ export const confirmRespond: LongFormMove = {
                             return;
                         } else {
                             log.push(`|regionCity${regionCity}`);
-                            def.p = regionCity;
-
+                            weiKunTroop(G,def);
                         }
                     }
                 } else {
-                    def.p = def.c
+                    log.push(`|hasCity}`);
+                    weiKunTroop(G,def);
                 }
                 log.push(`|${JSON.stringify(atkCCI.troop)}atk`);
                 log.push(`|${JSON.stringify(defCCI.troop)}def`);
