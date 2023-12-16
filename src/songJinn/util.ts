@@ -4888,22 +4888,21 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
         }
     }
     if (pub.civil > pub.maxCivil) {
-        if (pub.maxCivil >= 4) {
+        if (pub.maxCivil < 4 && pub.civil >= 4) {
             if (pid === SJPlayer.P1) {
                 policyUp(G, 1);
             } else {
                 colonyUp(G, 1);
             }
         }
-        if (pub.maxCivil >= 5) {
+        if (pub.maxCivil < 5 && pub.civil >= 5) {
             pub.maxCivil = 5;
         }
-        if (pub.maxCivil >= 6) {
+        if (pub.maxCivil < 6 && pub.civil >= 6) {
 
             pub.maxCivil = 6;
         }
-        if (pub.maxCivil >= 7) {
-
+        if (pub.maxCivil < 7 &&  pub.civil >= 7) {
             pub.maxCivil = 7;
         }
     }
@@ -5012,10 +5011,11 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
         }
     }
     if (pub.military > pub.maxMilitary) {
-        if (pub.maxMilitary >= 4) {
+        if (pub.maxMilitary < 4 && pub.military >= 4) {
             G.op += 2;
+            pub.maxMilitary = 4;
         }
-        if (pub.maxMilitary >= 5) {
+        if (pub.maxMilitary < 5 &&pub.military >= 5) {
             if (pid === SJPlayer.P1) {
 
                 doRecruit(G, [0, 0, 0, 0, 0, 1], SJPlayer.P1);
@@ -5024,7 +5024,7 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
             }
             pub.maxMilitary = 5;
         }
-        if (pub.maxMilitary >= 6) {
+        if (pub.maxMilitary < 6 && pub.military >= 6) {
             if (pid === SJPlayer.P1) {
                 doRecruit(G, [0, 0, 0, 0, 1, 0], SJPlayer.P1);
             } else {
@@ -5032,7 +5032,7 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
             }
             pub.maxMilitary = 6;
         }
-        if (pub.maxMilitary >= 7) {
+        if (pub.maxMilitary < 7 && pub.military >= 7) {
             pub.maxMilitary = 7;
         }
     }

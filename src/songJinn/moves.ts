@@ -1023,7 +1023,7 @@ export const develop: LongFormMove = {
                         case DevelopChoice.CIVIL:
                             if (G.jinn.civil < 7) {
                                 changeCivil(G, SJPlayer.P2, 1);
-                                pub.usedDevelop += G.jinn.military;
+                                pub.usedDevelop += G.jinn.civil;
                             } else {
                                 return INVALID_MOVE;
                             }
