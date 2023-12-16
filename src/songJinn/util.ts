@@ -3143,7 +3143,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                     const arg = args[0];
                     switch (name) {
                         case 'returnToHand':
-                            log += `拿回发展牌${sjCardById(arg)}`;
+                            log += `拿回发展牌${sjCardById(arg)}.name`;
                             break;
                         case 'deployGeneral':
                             log +=
