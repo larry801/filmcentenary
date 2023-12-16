@@ -232,6 +232,9 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         log.push(`|${songPower}songPower`);
         log.push(`|${songCorruptionLimit}songCorruptionLimit`);
         log.push(`|${G.song.corruption}G.song.corruption`);
+        if (G.events.includes(ActiveEvents.QinHuiDuXiang)){
+            G.song.corruption ++;
+        }
 
         const jinnPower = getJinnPower(G);
         const jinnCorruptionLimit = G.jinn.civil >= 5 ? 8 : 7;
@@ -345,7 +348,7 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
 
 
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
-    start: true,
+    // start: true,
     turn: StagedTurnConfig,
     moves: {
         checkProvince:checkProvince,
