@@ -43,6 +43,7 @@ export const AdjustOps = ({
     const ctr = getCountryById(playerID);
 
     const presentGeneral = getPresentGeneral(G, playerID);
+    const readyGenerals:General[] = getReadyGenerals(G, playerID);
     const [moveGeneralStep, setMoveGeneralStep] = useState(MoveGeneralStep.PROVINCE);
     const [regions, setRegions] = useState([RegionID.R20]);
     const [moveGeneralRegion, setMoveGeneralRegion] = useState(RegionID.R01);
@@ -143,11 +144,7 @@ export const AdjustOps = ({
         title={"请选择要移动的将领"} toggleText={"移动将领"} initial={false}/>
 
 
-
-
     const [deployCityChosen, setDeployCityChosen] = useState(false);
-    const readyGenerals = getReadyGenerals(G, playerID);
-
     const deployDialog = <ChoiceDialog
         callback={
             (c) => {
@@ -166,7 +163,7 @@ export const AdjustOps = ({
             hidden: false,
         }
     })} defaultChoice={""} show={isActive && readyGenerals.length > 0 && !deployCityChosen}
-        title={"请选择要派遣的城市"} toggleText={"派遣"} initial={false}/>
+        title={"请选择要派遣的城市"} toggleText={"派遣将领"} initial={false}/>
 
     const deployGeneralDialog = <ChoiceDialog
         callback={(c) => {
@@ -187,7 +184,7 @@ export const AdjustOps = ({
 
     const checkProvDialog = <ChoiceDialog
         callback={
-            (c) => moves.checkProvince({prov:c,text:currentProvStatus(G, c)})
+            (c) => moves.checkProvince({prov:c,text:currentProvStatus(G, c as ProvinceID)})
         } choices={Object.values(ProvinceID).map(c => {
         return {
             label: c,

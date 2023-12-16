@@ -319,7 +319,8 @@ export const generalRemoved = (G: SongJinnGame, pid: PlayerID, general: General)
     const pub = getStateById(G, pid);
     return pub.generals[general] === GeneralStatus.REMOVED
 }
-export const getReadyGenerals = (G: SongJinnGame, pid: PlayerID) => {
+
+export const getReadyGenerals = (G: SongJinnGame, pid: PlayerID):General[] => {
     const readyGenerals = [];
     switch (pid as SJPlayer) {
         case SJPlayer.P1:
@@ -4556,6 +4557,11 @@ export const getJinnScore = (G: SongJinnGame): number => {
     logger.debug(`${G.matchID}|${log.join('')}`);
     return score;
 }
+
+export const controlCity = (G:SongJinnGame, pid:PlayerID, c:CityID) => {
+    const prov = getCityById(c)
+}
+
 export const getJinnPower = (G: SongJinnGame): number => {
     const log = [`getJinnPower`];
 
