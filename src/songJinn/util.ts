@@ -3344,9 +3344,11 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             ;
                             break;
                         case 'develop':
-                            log +=
-                                `${arg !== DevelopChoice.EMPEROR ? "提升" : ""}${arg}`
-                            ;
+                            log += `${
+                                    arg !== DevelopChoice.EMPEROR
+                                    && arg !== DevelopChoice.POLICY_UP
+                                    && arg !== DevelopChoice.POLICY_DOWN
+                                        ? "提升" : ""}${arg}`;
                             break;
                         case 'recruitUnit':
                             log +=
