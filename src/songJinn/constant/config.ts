@@ -454,7 +454,8 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         removeNation: removeNation,
         adjustNation: adjustNation,
 
-        //
+        develop:develop,
+        //removeCompletedPlan:removeCompletedPlan
     },
     turn: StagedTurnConfig,
     next: 'diplomacy'
