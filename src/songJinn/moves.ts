@@ -84,7 +84,7 @@ import {
     placeToStr,
     playerById,
     policyDown,
-    policyUp,
+    policyUp, removeGeneral,
     removeUnitByCountryPlace,
     returnDevCardCheck,
     rollDiceByPid, roundTwo,
@@ -401,8 +401,8 @@ export const takeDamage: LongFormMove = {
                                 if (defEn === 0) {
                                     if (G.combat.region !== null) {
                                         const region = getRegionById(G.combat.region);
-                                        if(region.city !== null){
-                                            doLoseCity(G,ciDefPid(G),region.city,true);
+                                        if (region.city !== null) {
+                                            doLoseCity(G, ciDefPid(G), region.city, true);
                                         }
                                     }
                                     endCombat(G, ctx);
@@ -428,8 +428,8 @@ export const takeDamage: LongFormMove = {
                                 if (defEn === 0) {
                                     if (G.combat.region !== null) {
                                         const region = getRegionById(G.combat.region);
-                                        if(region.city !== null){
-                                            doLoseCity(G,ciDefPid(G),region.city,true);
+                                        if (region.city !== null) {
+                                            doLoseCity(G, ciDefPid(G), region.city, true);
                                         }
                                     }
                                     endCombat(G, ctx);
@@ -855,7 +855,7 @@ export const chooseRegion: LongFormMove = {
         const ctr = getCountryById(pid);
         const pub = getStateById(G, pid);
         const player = playerById(G, pid);
-        if(G.pending.regions.includes(arg)) {
+        if (G.pending.regions.includes(arg)) {
 
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -1639,6 +1639,22 @@ export const confirmRespond: LongFormMove = {
     }
 }
 
+
+export const removeOwnGeneral: LongFormMove = {
+    move: (G, ctx, arg: General) => {
+        const pid = ctx.playerID;
+        const log = [`removeOwnGeneral`];
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`${G.matchID}|p${pid}.moves.removeOwnGeneral(${JSON.stringify(arg)})`);
+        const ctr = getCountryById(pid);
+        const pub = getStateById(G, pid);
+        const player = playerById(G, pid);
+        removeGeneral(G, pid, arg);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    }
+}
 export const takePlan: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, arg: PlanID[]) => {
         if (ctx.playerID === undefined) {
@@ -1675,14 +1691,13 @@ export const recruitUnit: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        if (ctx.phase === 'action'){
-            if(checkRecruitCivil(G,units,pid)){
+        if (ctx.phase === 'action') {
+            if (checkRecruitCivil(G, units, pid)) {
                 doRecruit(G, units, pid);
-            }
-            else{
+            } else {
                 log.push(`|over|limit`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
-                return  INVALID_MOVE;
+                return INVALID_MOVE;
             }
         }
     }

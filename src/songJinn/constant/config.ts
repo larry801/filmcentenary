@@ -38,7 +38,7 @@ import {
     placeUnit,
     recruitPuppet,
     recruitUnit,
-    removeNation,
+    removeNation, removeOwnGeneral,
     removeUnit,
     rescueGeneral,
     returnToHand,
@@ -94,7 +94,7 @@ export const ChooseRegionsStageConfig: StageConfig<SongJinnGame> = {
 export const ReactStageConfig: StageConfig<SongJinnGame> = {
     moves: {
         emperor: emperor,
-
+        removeOwnGeneral:removeOwnGeneral,
         removeNation: removeNation,
         adjustNation: adjustNation,
         discard: discard,
@@ -347,6 +347,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     turn: StagedTurnConfig,
     moves: {
+        removeOwnGeneral:removeOwnGeneral,
         breakout: breakout,
         confirmRespond: confirmRespond,
         showCC: showCC,
@@ -428,7 +429,7 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
 
         recruitPuppet: recruitPuppet,
         endRound: endRound,
-
+        removeOwnGeneral:removeOwnGeneral,
         deploy: deploy,
         opponentMove: opponentMove,
         march: march,
