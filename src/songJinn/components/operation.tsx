@@ -285,7 +285,7 @@ export const Operation = ({
             },
 
         ]}
-        show={isActive && ctx.phase === 'develop'}
+        show={isActive && ctx.phase === 'develop' || ctx.phase === 'resolvePlan'}
         title={"请选择发展项目"} toggleText={"发展"} initial={false}
     />
 

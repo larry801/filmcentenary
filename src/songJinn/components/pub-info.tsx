@@ -49,8 +49,7 @@ export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
         <div><label>皇帝：{s.emperor === null ? "" : s.emperor}</label></div>
         <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
         <div><label>完成计划：</label><br/>
-            {G.events.includes(ActiveEvents.YanJingYiNan) && <label key={`yan-jing-yi-nan`}>{ActiveEvents.YanJingYiNan}</label>}
-            {s.completedPlan.reverse().map(p => <label key={`plan-name-${p}`}>{getPlanById(p).name}</label>)}
+            {s.completedPlan.toReversed().map(p => <label key={`plan-name-${p}`}>{getPlanById(p).name}</label>)}
         </div>
 
         <ChoiceDialog callback={() => {

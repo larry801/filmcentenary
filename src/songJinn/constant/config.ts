@@ -1,39 +1,52 @@
 import {Ctx, PhaseConfig, StageConfig, TurnConfig} from "boardgame.io";
 import {TurnOrder} from "boardgame.io/core";
 import {
-    adjustNation, breakout,
+    adjustNation,
+    breakout,
     cardEvent,
     chooseFirst,
     choosePlan,
     chooseProvince,
     chooseRegion,
     chooseTop,
-    combatCard, confirmRespond, controlCity, controlProvince,
-    deploy, deployGeneral,
+    combatCard,
+    confirmRespond,
+    controlCity,
+    controlProvince,
+    deploy,
+    deployGeneral,
     develop,
     developCard,
     discard,
     down,
     emperor,
     emptyRound,
-    endRound, freeHeYi, generalSkill,
-    heYi, jianLiDaQi,
+    endRound,
+    freeHeYi,
+    generalSkill,
+    heYi,
+    jianLiDaQi,
     letter,
     loseCity,
     loseProvince,
-    march, moveGeneral,
+    march,
+    moveGeneral,
     moveTroop,
     op,
     opponentMove,
     placeTroop,
     placeUnit,
     recruitPuppet,
-    recruitUnit, removeNation,
-    removeUnit, rescueGeneral,
+    recruitUnit,
+    removeNation,
+    removeUnit,
+    rescueGeneral,
     returnToHand,
     rollDices,
     search,
-    searchFirst, showCC, showLetters,
+    searchFirst,
+    showCC,
+    showLetters,
     showPlan,
     takeDamage,
     takePlan,
@@ -42,16 +55,18 @@ import {
 import {ActiveEvents, SJPlayer, SongJinnGame} from "./general";
 import {logger} from "../../game/logger";
 import {
-    canChoosePlan, changeDiplomacyByLOD,
+    canChoosePlan,
+    changeDiplomacyByLOD,
     drawPhaseForJinn,
     drawPhaseForSong,
-    drawPlanForPlayer, endTurnCheck,
+    drawPlanForPlayer,
+    endTurnCheck,
     getJinnPower,
     getLeadingPlayer,
     getSongPower,
+    getStateById,
     playerById
 } from "../util";
-import {confirmRespondStage} from "../../game/config";
 
 
 export const EmperorStageConfig: StageConfig<SongJinnGame> = {
@@ -139,8 +154,8 @@ const StagedTurnConfig: TurnConfig<SongJinnGame> = {
         },
         takeDamage: {
             moves: {
-                endRound:endRound,
-                opponentMove:opponentMove,
+                endRound: endRound,
+                opponentMove: opponentMove,
                 takeDamage: takeDamage,
                 generalSkill: generalSkill,
                 rescueGeneral: rescueGeneral,
@@ -455,7 +470,7 @@ export const DiplomacyPhaseConfig: PhaseConfig<SongJinnGame> = {
 }
 export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
-        const log = [`developPhase|onBegin`];
+        const log = [`deployPhase|onBegin`];
 
         logger.info(`${log.join('')}`);
     },
@@ -482,7 +497,23 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
         log.push(`|${G.jinn.standby}G.jinn.standby`);
         logger.info(`${G.matchID}|${log.join('')}`);
     },
-    turn: StagedTurnConfig,
+    turn: {
+        onBegin: (G: SongJinnGame, ctx: Ctx) => {
+            const log = [`deployPhaseTurn|onBegin`];
+            const pid = ctx.currentPlayer;
+            const pub = getStateById(G, pid);
+            G.op += pub.nations.length;
+            log.push(`|${G.op}G.op`);
+            if(pid === SJPlayer.P2){
+                if(G.events.includes(ActiveEvents.JinTaiZong)){
+                    log.push(`|jinTaiZong`);
+                    G.op ++;
+                    log.push(`|${G.op}G.op`);
+                }
+            }
+            logger.info(`${log.join('')}`);
+        }
+    },
     moves: {
 
         removeNation: removeNation,
