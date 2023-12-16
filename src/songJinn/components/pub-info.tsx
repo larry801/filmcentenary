@@ -39,6 +39,8 @@ export interface ICPubInfo {
 
 export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
     const s = pub;
+
+    const reversedPlan = [...s.completedPlan].reverse();
     return <Grid>
         <div><label>军事：</label>{s.military}</div>
         <div><label>内政：</label>{s.civil}</div>
@@ -49,7 +51,7 @@ export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
         <div><label>皇帝：{s.emperor === null ? "" : s.emperor}</label></div>
         <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
         <div><label>完成计划：</label><br/>
-            {s.completedPlan.toReversed().map(p => <label key={`plan-name-${p}`}>{getPlanById(p).name}</label>)}
+            {reversedPlan.map(p => <label key={`plan-name-${p}`}>{getPlanById(p).name}</label>)}
         </div>
 
         <ChoiceDialog callback={() => {
