@@ -1597,7 +1597,9 @@ export const idToCard = {
         combat: false,
         effectText: "提升金国1级内政等级或殖民能力。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            // ctx.events?.setStage('confirmRespond');
+        }
     },
     [JinnBaseCardID.J04]: {
         id: JinnBaseCardID.J04,
@@ -2677,15 +2679,17 @@ export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], count
     const pub = ctr2pub(G, country);
     const filtered = pub.troops.filter(t => t.p === place);
     const pid = ctr2pid(country);
-    log.push(`|filtered${(filtered)}`);
+    log.push(`|filtered${JSON.stringify(filtered)}`);
     if (filtered.length > 0) {
         log.push(`|hasTroop`);
+        const idx = pub.troops.indexOf(filtered[0]);
+        log.push(`|${idx}idx`);
         if (filtered.length > 1) {
             log.push(`|moreThanOne`);
-            removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
+            removeUnitByIdx(G, units, pid, idx);
         } else {
             log.push(`|onlyOne`);
-            removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
+            removeUnitByIdx(G, units, pid, idx);
         }
     } else {
         log.push(`noTroop`);
@@ -2720,7 +2724,7 @@ export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerI
     }
 }
 export const removeUnitByIdx = (G: SongJinnGame, units: number[], pid: PlayerID, idx: number) => {
-    const log = [`removeUnitByIdx|${idx}|${unitsToString(units)}`]
+    const log = [`removeUnitByIdx|${units}|${pid}|${idx}|${unitsToString(units)}`]
 
     const pub = getStateById(G, pid);
     const t = pub.troops[idx];
@@ -2728,15 +2732,20 @@ export const removeUnitByIdx = (G: SongJinnGame, units: number[], pid: PlayerID,
     if (t === undefined) {
         return null;
     }
+    let actualUnits = [...units];
     log.push(`|before|standby${pub.standby}|units${t.u}`);
-
-    for (let i = 0; i < units.length; i++) {
+    if (pid=== SJPlayer.P1 ){
+        if(units.length > 6){
+            actualUnits = acutalUnits.slice(0,6);
+            log.push(`|${actualUnits}actualUnits`);
+        }
+    }
+    for (let i = 0; i < actualUnits.length; i++) {
         if (units[i] > t.u[i]) {
             log.push(`|insufficient`);
             pub.standby[i] += t.u[i];
             t.u[i] = 0;
         } else {
-
             pub.standby[i] += units[i]
             t.u[i] -= units[i]
         }
@@ -4034,7 +4043,7 @@ export function startCombat(
 
 export function troopIsWeiKun(G: SongJinnGame, t: Troop) {
     const b = t.p === t.c;
-    logger.debug(`${G.matchID}|troopIsWeiKun${JSON.stringify(t)}|${b}`);
+    logger.warn(`${G.matchID}|troopIsWeiKun${JSON.stringify(t)}|${b}`);
     return b;
 }
 
