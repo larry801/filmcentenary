@@ -1598,7 +1598,7 @@ export const confirmRespond: LongFormMove = {
                         atkCCI.choice = BeatGongChoice.RETREAT;
                         log.push(`|atkRetreat`);
                         endCombat(G, ctx);
-                        ctx.events?.endStage()
+                        ctx.events?.endStage();
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     }
@@ -1624,7 +1624,7 @@ export const confirmRespond: LongFormMove = {
                     } else {
                         // TODO let atk choose?
                         endCombat(G, ctx);
-                        ctx.events?.endStage()
+                        ctx.events?.endStage();
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     }
@@ -1637,13 +1637,16 @@ export const confirmRespond: LongFormMove = {
                     } else {
                         defCCI.choice = BeatGongChoice.RETREAT;
                         endCombat(G, ctx);
-                        ctx.events?.endStage()
+                        ctx.events?.endStage();
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     }
                 }
             }
         }
+
+        log.push(`|error|no|event|hit|endStage`);
+        ctx.events?.endStage();
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
