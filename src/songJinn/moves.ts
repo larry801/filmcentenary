@@ -1281,7 +1281,7 @@ export const search: LongFormMove = {
         } else {
             return INVALID_MOVE;
         }
-        ctx.events?.setStage('discard');
+        // ctx.events?.setStage('discard');
     }
 }
 
