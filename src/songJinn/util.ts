@@ -3333,24 +3333,28 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             ;
                             break;
                         case 'cardEvent':
-                            log +=
-                                `事件${sjCardById(arg).name}`
-                            ;
+                            log += `事件${sjCardById(arg).name}`;
                             break;
-                        case 'developCard':
-                            log +=
-                                `发展${sjCardById(arg).name}`
-                            ;
+                        case 'developCard':log += `发展${sjCardById(arg).name}`;
                             break;
                         case 'down':
                             log += `降低${arg}`;
                             break;
                         case 'develop':
-                            log += `${
-                                arg !== DevelopChoice.EMPEROR
-                                && arg !== DevelopChoice.POLICY_UP
-                                && arg !== DevelopChoice.POLICY_DOWN
-                                    ? "提升" : ""}${arg}`;
+                            if(typeof arg === 'string'){
+                                log += `${
+                                    arg !== DevelopChoice.EMPEROR
+                                    && arg !== DevelopChoice.POLICY_UP
+                                    && arg !== DevelopChoice.POLICY_DOWN
+                                        ? "提升" : ""}${arg}`;
+                            }else{
+                                const {choice,target} = arg;
+                                log += `${
+                                    choice !== DevelopChoice.EMPEROR
+                                    && choice !== DevelopChoice.POLICY_UP
+                                    && choice !== DevelopChoice.POLICY_DOWN
+                                        ? "提升" : ""}${choice}到${target}`;
+                            }
                             break;
                         case 'recruitUnit':
                             log +=

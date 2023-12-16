@@ -241,7 +241,30 @@ export const Operation = ({
         initial={true}/>
 
     const develop = (choice: string) => {
-        moves.develop(choice);
+        let target = 0;
+        switch(choice as DevelopChoice){
+            case DevelopChoice.MILITARY:
+                target = pub.military + 1;
+                break;
+            case DevelopChoice.CIVIL:
+                target = pub.civil + 1;
+                break;
+            case DevelopChoice.COLONY:
+                target = G.colony + 1;
+                break;
+            case DevelopChoice.POLICY_UP:
+                target = G.policy + 1;
+
+                break;
+            case DevelopChoice.POLICY_DOWN:
+                target = G.policy - 1;
+                break;
+            case DevelopChoice.EMPEROR:
+                target = 0;
+                break;
+
+        }
+        moves.develop({choice,target});
     }
 
     const developDialog = <ChoiceDialog

@@ -937,13 +937,18 @@ export const emperor: LongFormMove = {
     }
 }
 
+interface IDevelopArg {
+    choice: DevelopChoice,
+    target: number
+}
 export const develop: LongFormMove = {
-    move: (G, ctx, choice: DevelopChoice) => {
-        logger.info(`${G.matchID}|p${ctx.playerID}.develop(${choice})`)
+    move: (G, ctx, arg: IDevelopArg) => {
+        logger.info(`${G.matchID}|p${ctx.playerID}.develop(${arg})`)
         const pid = ctx.playerID;
         if (pid === undefined) {
             return INVALID_MOVE;
         }
+        const {choice,target} = arg;
         const log = [`p${pid}|develop`];
         // const player = playerById(G, ctx.playerID);
         const pub = getStateById(G, pid);
@@ -1067,9 +1072,9 @@ export const returnToHand: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        if (!returnDevCardCheck(G, ctx, ctx.playerID, args)) {
-            return INVALID_MOVE;
-        }
+        // if (!returnDevCardCheck(G, ctx, ctx.playerID, args)) {
+        //     return INVALID_MOVE;
+        // }
         const player = playerById(G, ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
         if (pub.develop.includes(args)) {
