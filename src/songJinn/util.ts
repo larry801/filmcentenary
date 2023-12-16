@@ -3119,6 +3119,10 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                 const pub = getStateById(G, l.action.payload.playerID);
                 if (args === null || args.length === 0) {
                     switch (name) {
+
+                        case 'search':
+                            log += `检索了一张牌`;
+                            break;
                         case 'choosePlan':
                             log += '选择了一张作战计划';
                             break;
@@ -3271,9 +3275,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             ;
                             break;
                         case 'search':
-                            log +=
-                                `检索${sjCardById(arg).name}`
-                            ;
+                            log += `检索了一张牌`;
                             break;
                         case 'op':
                             log +=

@@ -1266,14 +1266,15 @@ export const choosePlan: LongFormMove = {
 export const search: LongFormMove = {
     client: false,
     move: (G: SongJinnGame, ctx: Ctx, cid: SJEventCardID) => {
-        if (ctx.playerID === undefined) {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
             return INVALID_MOVE
         }
-        const cards = cardToSearch(G, ctx, ctx.playerID);
+        const cards = cardToSearch(G, ctx, pid);
         // const ctr = getCountryById(ctx.playerID);
         // const pub = getStateById(G, ctx.playerID);
-        const player = playerById(G, ctx.playerID);
-        const deck = ctx.playerID as SJPlayer === SJPlayer.P1 ? G.secret.songDeck : G.secret.jinnDeck;
+        const player = playerById(G, pid);
+        const deck = pid as SJPlayer === SJPlayer.P1 ? G.secret.songDeck : G.secret.jinnDeck;
         if (deck.includes(cid) && cards.includes(cid)) {
             deck.splice(deck.indexOf(cid), 1);
             player.hand.push(cid);
@@ -1281,7 +1282,8 @@ export const search: LongFormMove = {
             return INVALID_MOVE;
         }
         // ctx.events?.setStage('discard');
-    }
+    },
+    redact: true
 }
 
 export const searchFirst: LongFormMove = {
