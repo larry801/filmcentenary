@@ -3649,6 +3649,7 @@ export const yuanCheng = (G: SongJinnGame, ctx: Ctx) => {
         case CombatType.SIEGE:
             if (dt.c === null) {
                 log.push(`|error`);
+                ctx.events?.endStage();
                 logger.error(`${G.matchID}|${log.join('')}`);
                 return;
             }
@@ -3911,6 +3912,8 @@ export function startCombat(
         // @ts-ignore
         defTroop = getTroopByCountryPlace(G, ciDefCtr(G), getCityById(p).region);
     }
+    log.push(`|${JSON.stringify(atkTroop)}atkTroop`);
+    log.push(`|${JSON.stringify(defTroop)}defTroop`);
     const st = c.atk === Country.SONG ? atkTroop : defTroop;
     if (st !== null) {
         c.song.troop = st;
@@ -4664,6 +4667,9 @@ export const doGeneralSkill = (G: SongJinnGame, pid: PlayerID, g: General) => {
     const pub = getStateById(G, pid);
     log.push(`|before${pub.generalSkill}`);
     pub.generalSkill[g] = false;
+    if(pid === SJPlayer.P2 && g === JinnGeneral.LouShi){
+        G.op = 2;
+    }
     log.push(`|after${pub.generalSkill}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
