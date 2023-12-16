@@ -186,7 +186,8 @@ export const Operation = ({
         })}
         defaultChoice={""}
         // actualStage(G,ctx)==='rescueGeneral'
-        show={isActive && pub.develop.length > 0 && rescueGenerals.length > 0}
+        show={false}
+        // show={isActive && pub.develop.length > 0 && rescueGenerals.length > 0}
         title={"请选择救援将领的发展牌"} toggleText={"发展牌救援"} initial={false}
     />
     const chooseRescueGeneralsDialog = <ChoiceDialog
