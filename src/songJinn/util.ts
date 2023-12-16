@@ -2682,11 +2682,6 @@ export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], count
         log.push(`|hasTroop`);
         if (filtered.length > 1) {
             log.push(`|moreThanOne`);
-            mergeTroopTo(G,
-                pub.troops.indexOf(filtered[1]),
-                pub.troops.indexOf(filtered[0]),
-                pid);
-
             removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
         } else {
             log.push(`|onlyOne`);
@@ -3143,7 +3138,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                     const arg = args[0];
                     switch (name) {
                         case 'returnToHand':
-                            log += `拿回发展牌${sjCardById(arg)}.name`;
+                            log += `拿回发展牌${sjCardById(arg).name}`;
                             break;
                         case 'deployGeneral':
                             log +=
