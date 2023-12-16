@@ -3,7 +3,7 @@ import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import Paper from "@material-ui/core/Paper";
 import {getPlanById} from "../constant/plan";
-import {SJPlayer, SJPubInfo, SongJinnGame} from "../constant/general";
+import {ActiveEvents, SJPlayer, SJPubInfo, SongJinnGame} from "../constant/general";
 import Typography from "@material-ui/core/Typography";
 
 import {
@@ -11,9 +11,14 @@ import {
     getJinnPower,
     getJinnScore,
     getPolicy,
-    getReadyGeneralNames, getSeasonText,
-    getSongPower, getSongScore,
-    phaseName, pid2ctr, placeToStr, sjCardById, totalDevelop,
+    getReadyGeneralNames,
+    getSeasonText,
+    getSongPower,
+    getSongScore,
+    phaseName,
+    pid2ctr,
+    sjCardById,
+    totalDevelop,
     unitsToString
 } from "../util";
 import ChoiceDialog from "../../components/modals";
@@ -44,7 +49,8 @@ export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
         <div><label>皇帝：{s.emperor === null ? "" : s.emperor}</label></div>
         <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
         <div><label>完成计划：</label><br/>
-            {s.completedPlan.reverse().map(p => <label key={`jinn-plan-name-${p}`}>{getPlanById(p).name}</label>)}
+            {G.events.includes(ActiveEvents.YanJingYiNan) && <label key={`yan-jing-yi-nan`}>{ActiveEvents.YanJingYiNan}</label>}
+            {s.completedPlan.reverse().map(p => <label key={`plan-name-${p}`}>{getPlanById(p).name}</label>)}
         </div>
 
         <ChoiceDialog callback={() => {
