@@ -28,7 +28,7 @@ import {
     getCountryById,
     getGeneralNameByCountry,
     getMarchDst,
-    getOpponentStateById, getPlaceCountryGeneral,
+    oppoPub, getPlaceCountryGeneral,
     getPlaceGeneral, getPresentGeneral,
     getReadyGenerals,
     getRegionText,
@@ -100,7 +100,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const emptyTroop: Troop = {p: RegionID.R19, u: [0, 0, 0, 0, 0, 0], c: null, g: Country.SONG};
 
     const pub = getStateById(G, pid);
-    const opp = getOpponentStateById(G, pid);
+    const opp = oppoPub(G, pid);
     const troops = [...pub.troops, ...opp.troops];
     const ctr = getCountryById(pid);
     const unitNames = ctr === Country.SONG ? UNIT_SHORTHAND[0] : UNIT_SHORTHAND[1];

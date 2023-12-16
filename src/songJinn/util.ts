@@ -289,7 +289,6 @@ export const getTroopByPlace = (G: SongJinnGame, p: TroopPlace) => {
     G.jinn.troops.forEach(t => {
         if (t.p === p) {
             result.push(t);
-
         }
     });
     return result;
@@ -304,11 +303,19 @@ export const generalWithOpponentTroop = (G: SongJinnGame, pid: PlayerID,): Gener
     const general = getPresentGeneral(G, pid);
     general.forEach(g => {
         const generalTroop = getGeneralTroop(G, pid, g);
+        let hasOwn = false;
+        let hasOppo = false;
         generalTroop.forEach(t => {
-            if (t.g !== pid2ctr(pid)) {
-                result.push(g);
+            if (t.g === pid2ctr(pid)) {
+                hasOwn = true;
+                // result.push(g);
+            } else {
+                hasOppo = true;
             }
         })
+        if (hasOppo && !hasOwn) {
+            result.push(g)
+        }
     })
     return result;
 }
@@ -529,7 +536,7 @@ export const oppoPlayerById = (G: SongJinnGame, pid: PlayerID) => {
 export const playerById = (G: SongJinnGame, pid: PlayerID) => {
     return G.player[pid as SJPlayer];
 }
-export const getOpponentStateById = (G: SongJinnGame, pid: PlayerID) => {
+export const oppoPub = (G: SongJinnGame, pid: PlayerID) => {
     if (pid as SJPlayer === SJPlayer.P1) {
         return G.jinn;
     } else {
@@ -1395,7 +1402,7 @@ export const idToCard = {
             G.events.push(ActiveEvents.YueShuaiZhiLai);
             const planDeck = G.secret.planDeck;
             G.song.plan.forEach(p => planDeck.push(p));
-            if(planDeck.includes(PlanID.J23)){
+            if (planDeck.includes(PlanID.J23)) {
                 planDeck.splice(planDeck.indexOf(PlanID.J23), 1);
             }
             G.song.plan = [PlanID.J23];
@@ -2594,7 +2601,7 @@ export const removeGeneral = (G: SongJinnGame, pid: PlayerID, general: General) 
         case Country.SONG:
             G.song.generals[general] = GeneralStatus.REMOVED;
             G.song.generalPlace[general] = RegionID.R01;
-            if(general === SongGeneral.YueFei){
+            if (general === SongGeneral.YueFei) {
                 if (G.events.includes(ActiveEvents.YueShuaiZhiLai)) {
                     G.events.splice(G.events.indexOf(ActiveEvents.YueShuaiZhiLai), 1);
                 }
@@ -2611,7 +2618,7 @@ export const doLoseCity = (G: SongJinnGame, pid: PlayerID, cityID: CityID, oppon
     const log = [`doLostCity|p${pid}lose${cityID}`];
     const ctr = getCountryById(pid);
     const pub = getStateById(G, pid);
-    const oppo = getOpponentStateById(G, pid);
+    const oppo = oppoPub(G, pid);
     if (pub.cities.includes(cityID)) {
         pub.cities.splice(pub.cities.indexOf(cityID), 1);
         if (ctr === Country.SONG && G.song.emperor === cityID) {
@@ -3339,9 +3346,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             ;
                             break;
                         case 'down':
-                            log +=
-                                `降低${arg}`
-                            ;
+                            log += `降低${arg}`;
                             break;
                         case 'develop':
                             log += `${
@@ -4867,7 +4872,7 @@ export const doRemoveNation = (G: SongJinnGame, nation: NationID) => {
 export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID) => {
     const log = [`doControlProvince`];
     const pub = getStateById(G, pid);
-    const oppo = getOpponentStateById(G, pid);
+    const oppo = oppoPub(G, pid);
     if (pub.provinces.includes(prov)) {
         log.push(`|hasProv${prov}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -4894,7 +4899,7 @@ export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: Province
 export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
     const log = [`doControlCity`];
     const pub = getStateById(G, pid);
-    const oppo = getOpponentStateById(G, pid);
+    const oppo = oppoPub(G, pid);
     if (pub.cities.includes(cid)) {
         log.push(`|hasCity`);
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -4921,7 +4926,7 @@ export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
 }
 export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
     const pub = getStateById(G, pid);
-    const oppo = getOpponentStateById(G, pid)
+    const oppo = oppoPub(G, pid)
 
     if (pub.provinces.includes(prov)) {
         if (pid === SJPlayer.P1) {

@@ -63,7 +63,7 @@ import {
     getJinnTroopByCity,
     getJinnTroopByPlace,
     getOpponentPlaceTroopById,
-    getOpponentStateById,
+    oppoPub,
     getPlaceGeneral,
     getSongTroopByCity,
     getSongTroopByPlace,
@@ -1779,7 +1779,7 @@ export const loseProvince: LongFormMove = {
         const {province, opponent} = arg;
         // const ctr = getCountryById(ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
-        const oppo = getOpponentStateById(G, ctx.playerID);
+        const oppo = oppoPub(G, ctx.playerID);
         if (ctx.playerID === SJPlayer.P1) {
             policyDown(G, 1);
         }
@@ -1815,7 +1815,7 @@ export const loseCity: LongFormMove = {
         const {cityID, opponent} = arg;
         const ctr = getCountryById(ctx.playerID);
         const pub = getStateById(G, ctx.playerID);
-        const oppo = getOpponentStateById(G, ctx.playerID);
+        const oppo = oppoPub(G, ctx.playerID);
         if (pub.cities.includes(cityID)) {
             pub.cities.splice(pub.cities.indexOf(cityID), 1);
             if (ctr === Country.SONG && G.song.emperor === cityID) {
