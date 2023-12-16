@@ -2838,11 +2838,11 @@ export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
     log.push(`|${pub.standby}pub.standby`);
     const ctr = pid2ctr(pid);
 
-    const unitsCost : number[] = getCtrRecruitCost(G, ctr);
+    const unitsCost: number[] = getCtrRecruitCost(G, ctr);
     log.push(`|${unitsCost}unitsCost`);
     let cost = 0;
     for (let i = 0; i < units.length; i++) {
-        cost += unitCost[i] * actualUnits[i];
+        cost += unitsCost[i] * actualUnits[i];
     }
     log.push(`|${G.op}G.op`);
     G.op -= cost;
@@ -2851,14 +2851,14 @@ export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
 }
 
 
-export const getCtrRecruitCost = (G: SongJinnGame, ctr:Country) => {
-    let cost : number[] = [0,0,0,0,0,0];
-    if (ctr === Country.SONG){
+export const getCtrRecruitCost = (G: SongJinnGame, ctr: Country) => {
+    let cost: number[] = [0, 0, 0, 0, 0, 0];
+    if (ctr === Country.SONG) {
         cost = INITIAL_RECRUIT_COST[0];
-        if (G.events.includes(ActiveEvents.ShenBiGong)){
+        if (G.events.includes(ActiveEvents.ShenBiGong)) {
             cost[1] = 2;
         }
-    }els{
+    } else {
         cost = INITIAL_RECRUIT_COST[1];
     }
     return cost;
@@ -3594,7 +3594,7 @@ export const hasRangeStrengthTroop = (G: SongJinnGame, t: Troop) => {
     } else {
         if (G.events.includes(ActiveEvents.JianLiDaQi) && G.jinn.military >= 5) {
             const qian = t.u[5] > 0 || t.u[6] > 0;
-        }else{
+        } else {
             return t.u[1] > 0
         }
     }
@@ -4723,7 +4723,7 @@ export const doGeneralSkill = (G: SongJinnGame, pid: PlayerID, g: General) => {
     const pub = getStateById(G, pid);
     log.push(`|before${pub.generalSkill}`);
     pub.generalSkill[g] = false;
-    if(pid === SJPlayer.P2 && g === JinnGeneral.LouShi){
+    if (pid === SJPlayer.P2 && g === JinnGeneral.LouShi) {
         G.op = 2;
     }
     log.push(`|after${pub.generalSkill}`);
@@ -4749,7 +4749,17 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
                 colonyUp(G, 1);
             }
         }
-        pub.maxCivil = pub.civil;
+        if (pub.maxCivil >= 5) {
+            pub.maxCivil = 5;
+        }
+        if (pub.maxCivil >= 6) {
+
+            pub.maxCivil = 6;
+        }
+        if (pub.maxCivil >= 7) {
+
+            pub.maxCivil = 7;
+        }
     }
 }
 export const doRemoveNation = (G: SongJinnGame, nation: NationID) => {
@@ -4856,7 +4866,7 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
         }
     }
     if (pub.military > pub.maxMilitary) {
-        if(pub.maxMilitary >= 4){
+        if (pub.maxMilitary >= 4) {
             G.op += 2;
         }
         if (pub.maxMilitary >= 5) {
