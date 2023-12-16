@@ -979,7 +979,7 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => G.song.military >= 4,
         event: (G: SongJinnGame, ctx: Ctx) => {
             removeGeneral(G, SJPlayer.P1, SongGeneral.ZongZe);
-            moveGeneralToReady(G,SJPlayer.P1, SongGeneral.YueFei);
+            moveGeneralToReady(G, SJPlayer.P1, SongGeneral.YueFei);
             // TODO auto
             // ctx.events?.setStage('chooseCity');
             // G.pending = "placeGeneral";
@@ -1001,7 +1001,7 @@ export const idToCard = {
         effectText: "在陕西六路或川峡四路内的1个城市放置吴玠。若这座城市没有部队，则放置2个弓兵到该城市",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
-            moveGeneralToReady(G,SJPlayer.P1, SongGeneral.WuJie);
+            moveGeneralToReady(G, SJPlayer.P1, SongGeneral.WuJie);
         }
     },
     [SongBaseCardID.S21]: {
@@ -1020,7 +1020,7 @@ export const idToCard = {
         effectText: "在宋国皇帝所在的区域放置韩世忠。若相邻区域有金国部队，则放置2个步兵到该城市。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
-            moveGeneralToReady(G,SJPlayer.P1, SongGeneral.HanShiZhong);
+            moveGeneralToReady(G, SJPlayer.P1, SongGeneral.HanShiZhong);
             // G.song.generalPlace[SongGeneral.HanShiZhong] = G.song.emperor;
         }
     },
@@ -1406,7 +1406,7 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
             nationMoveJinn(G, NationID.XiXia);
-            moveGeneralToReady(G,SJPlayer.P1, SongGeneral.LiXianZhong);
+            moveGeneralToReady(G, SJPlayer.P1, SongGeneral.LiXianZhong);
         }
     },
     [SongBaseCardID.S43]: {
@@ -1443,7 +1443,7 @@ export const idToCard = {
         effectText: "在陕西六路或川峡四路放置吴璘。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
-            moveGeneralToReady(G,SJPlayer.P1, SongGeneral.WuLin);
+            moveGeneralToReady(G, SJPlayer.P1, SongGeneral.WuLin);
 
         }
     },
@@ -1890,7 +1890,7 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
             removeGeneral(G, SJPlayer.P2, JinnGeneral.WoLiBu);
-            moveGeneralToReady(G,SJPlayer.P2, JinnGeneral.WuZhu);
+            moveGeneralToReady(G, SJPlayer.P2, JinnGeneral.WuZhu);
 
         }
     },
@@ -1910,7 +1910,7 @@ export const idToCard = {
         effectText: "在1个金国控制的区域放置银术可。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
-            moveGeneralToReady(G,SJPlayer.P2, JinnGeneral.YinShuKe);
+            moveGeneralToReady(G, SJPlayer.P2, JinnGeneral.YinShuKe);
 
         }
     },
@@ -2310,7 +2310,7 @@ export const idToCard = {
         effectText: "在1个金国控制的区域放置奔睹。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
-            moveGeneralToReady(G,SJPlayer.P2, JinnGeneral.BenZhu);
+            moveGeneralToReady(G, SJPlayer.P2, JinnGeneral.BenZhu);
 
         }
     },
@@ -2752,9 +2752,9 @@ export const removeUnitByIdx = (G: SongJinnGame, units: number[], pid: PlayerID,
     }
     let actualUnits = [...units];
     log.push(`|before|standby${pub.standby}|units${t.u}`);
-    if (pid=== SJPlayer.P1 ){
-        if(units.length > 6){
-            actualUnits = actualUnits.slice(0,6);
+    if (pid === SJPlayer.P1) {
+        if (units.length > 6) {
+            actualUnits = actualUnits.slice(0, 6);
             log.push(`|${actualUnits}actualUnits`);
         }
     }
@@ -3252,9 +3252,9 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             break;
 
                         case 'takePlan':
-                            if (arg.length === 0 ){
+                            if (arg.length === 0) {
                                 log += `没有拿走计划`;
-                            }else{
+                            } else {
                                 log += `拿走了${arg.map((p: PlanID) => getPlanById(p).name)}`;
                             }
                             break;
@@ -3292,7 +3292,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             log += `丢失${arg.cityID}${arg.opponent ? "对手占领" : ""}`;
                             break;
                         case 'removeGeneral':
-                            log += `${getGeneralNameByPid(pid,arg)}`;
+                            log += `${getGeneralNameByPid(pid, arg)}`;
                             break;
                         case 'breakout':
                             log += `让${arg.ctr}在${placeToStr(arg.src)}突围`;
@@ -4066,29 +4066,30 @@ export function startCombat(
 export function weiKunTroop(G: SongJinnGame, t: Troop) {
     const log = [`weiKunTroop${JSON.stringify(t)}`];
     const pub = getStateById(G, ctr2pid(t.g));
-    const troops = pub.troops.filter(tr=>tr.p===t.p);
-    if(troops.length>0){
-        if(troops.length >1){
+    const troops = pub.troops.filter(tr => tr.p === t.p);
+    if (troops.length > 0) {
+        if (troops.length > 1) {
             log.push(`|more than one error`);
-        }else{
+        } else {
             const city = troops[0].c
-            if(city !== null){
+            if (city !== null) {
                 troops[0].p = city;
                 log.push(`|${JSON.stringify(troops)}troops`);
-            }else{
-                if(G.combat.city !== null){
+            } else {
+                if (G.combat.city !== null) {
                     troops[0].p = G.combat.city
                     log.push(`|${JSON.stringify(troops)}troops`);
-                }else{
+                } else {
                     log.push(`|no combat city | cannot wei kun|error`);
                 }
             }
         }
-    }else{
+    } else {
         log.push(`|cannot find troop}`);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
 export function troopIsWeiKun(G: SongJinnGame, t: Troop) {
     const b = t.p === t.c;
     logger.warn(`${G.matchID}|troopIsWeiKun${JSON.stringify(t)}|${b}`);
@@ -4608,8 +4609,8 @@ export const drawPhaseForSong = (G: SongJinnGame, ctx: Ctx) => {
         G.secret.songDeck = [];
         G.song.discard = [];
     } else {
-        while (hand.length < drawCount) {
-            drawCardForSong(G, ctx);
+        for (let i = 0; i < drawCount; i++) {
+            drawCardForJinn(G, ctx);
         }
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
@@ -4629,7 +4630,7 @@ export const drawPhaseForJinn = (G: SongJinnGame, ctx: Ctx) => {
         G.secret.jinnDeck = [];
         G.jinn.discard = [];
     } else {
-        while (hand.length < drawCount) {
+        for (let i = 0; i < drawCount; i++) {
             drawCardForJinn(G, ctx);
         }
     }
