@@ -15,6 +15,7 @@ import {
     getStateById,
     playerById, StrProvince
 } from "../util";
+import Button from "@material-ui/core/Button";
 
 export interface IOperationProps {
     G: SongJinnGame;
@@ -155,7 +156,7 @@ export const AdjustOps = ({
                     moves.deployGeneral({country: ctr, general: readyGenerals[0],dst:c})
                 }
             }
-        } choices={G.song.cities.map(c => {
+        } choices={pub.cities.map(c => {
         return {
             label: getCityText(c),
             value: c,
@@ -336,6 +337,9 @@ export const AdjustOps = ({
     />
 
     return <Grid container>
+        <Button fullWidth variant={"outlined"} onClick={()=>moves.drawExtraCard()}>
+            额外摸一张牌
+        </Button>
         {removeNationDialog}
         {adjustNationDialog}
         {cityDialog}
