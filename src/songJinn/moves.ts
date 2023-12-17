@@ -1149,7 +1149,11 @@ export const combatCard: LongFormMove = {
             if (player.combatCard.length === 0 && oppoPlayer.combatCard.length === 0) {
                 yuanCheng(G, ctx);
             } else {
-                changePlayerStage(G, ctx, 'showCC', G.order[0]);
+                if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J50)) {
+                    endCombat(G, ctx);
+                } else {
+                    changePlayerStage(G, ctx, 'showCC', G.order[0]);
+                }
             }
         }
 
