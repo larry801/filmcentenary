@@ -2719,6 +2719,32 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
 }
 
 
+export const removeReadyUnitByCountry = (G: SongJinnGame, units: number[], country: Country) => {
+    const log = [`removeUnitByPlace|${place}|${placeToStr(place)}|${unitsToString(units)}`];
+    const pub = ctr2pub(G, country);
+    const filtered = pub.troops.filter(t => t.p === place);
+    const pid = ctr2pid(country);
+    let actualUnits = [...units];
+    if(country === Country.SONG) {
+        actualUnits = actualUnits.slice(0,6);
+    }
+    log.push(`|${pub.ready}pub.ready`);
+    log.push(`|${pub.standby}standby`);
+    for (let i = 0; i < actualUnits.length; i++) {
+        if(actualUnits[i] > pub.ready[i]){
+            actualUnits = pub.ready[i];
+            pub.standby[i] += pub.ready[i];
+            pub.ready[i] = 0;
+        }else{
+            pub.ready[i] -= actualUnits[i];
+            pub.standby[i] += actualUnits[i];
+        }
+    }
+
+    log.push(`|${pub.ready}pub.ready`);
+    log.push(`|${pub.standby}standby`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
 export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], country: Country, place: TroopPlace) => {
     const log = [`removeUnitByPlace|${place}|${placeToStr(place)}|${unitsToString(units)}`];
     const pub = ctr2pub(G, country);
@@ -3207,6 +3233,14 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
 
                         case 'rescueGeneral':
                             log += `弃发展牌${sjCardById(arg.card).name}救援${getGeneralNameByPid(pid, arg.general)}`;
+                            break;
+
+                        case 'removeReadyUnit':
+                            if (arg.country === Country.SONG) {
+                                log += `消灭${arg.country}预备区${unitsToString(arg.units.slice(0,6))}`;
+                            } else {
+                                log += `消灭${arg.country}预备区${unitsToString(arg.units)}`;
+                            }
                             break;
 
                         case 'removeUnit':

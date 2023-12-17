@@ -2,20 +2,33 @@ import React, {useState} from "react";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import ChoiceDialog from "../../components/modals";
-import {CityID, DevelopChoice, General, NationID, ProvinceID, RegionID, SongJinnGame} from "../constant/general";
+import {
+    CityID,
+    Country,
+    DevelopChoice,
+    emptyJinnTroop,
+    emptySongTroop,
+    General,
+    NationID,
+    ProvinceID,
+    RegionID,
+    SongJinnGame
+} from "../constant/general";
 import {getProvinceById} from "../constant/province";
-import {getRegionById} from "../constant/regions";
 import {
     currentProvStatus,
     getCityText,
     getCountryById,
     getGeneralNameByCountry,
     getPresentGeneral,
-    getReadyGenerals, getRegionText,
+    getReadyGenerals,
+    getRegionText,
     getStateById,
-    playerById, StrProvince
+    playerById,
+    StrProvince
 } from "../util";
 import Button from "@material-ui/core/Button";
+import {ChooseUnitsDialog} from "./recruit";
 
 export interface IOperationProps {
     G: SongJinnGame;
@@ -336,10 +349,24 @@ export const AdjustOps = ({
         title={"请选择项目"} toggleText={"降低等级"} initial={false}
     />
 
+
+    const removeSongReadyUnitDialog = <ChooseUnitsDialog
+        callback={(c)=>moves.removeReadyUnit({units:c,country:Country.SONG})}
+        max={G.song.ready} initUnits={emptySongTroop().u} show={isActive}
+        title={"消灭宋预备区部队"} toggleText={"消灭宋预备区部队"} initial={false} country={Country.SONG}/>
+
+    const removeJinnReadyUnitDialog = <ChooseUnitsDialog
+        callback={(c)=>moves.removeReadyUnit({units:c,country:Country.JINN})}
+        max={G.jinn.ready} initUnits={emptyJinnTroop().u} show={isActive}
+        title={"消灭金预备区部队"} toggleText={"消灭金预备区部队"} initial={false} country={Country.JINN}/>
+
     return <Grid container>
+        {removeJinnReadyUnitDialog}
+        {removeSongReadyUnitDialog}
         <Button fullWidth variant={"outlined"} onClick={()=>moves.drawExtraCard()}>
             额外摸一张牌
         </Button>
+
         {removeNationDialog}
         {adjustNationDialog}
         {cityDialog}

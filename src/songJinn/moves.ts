@@ -95,7 +95,7 @@ import {
     troopEmpty, troopEndurance, troopIsArmy,
     unitsToString,
     weiKunTroop,
-    yuanCheng, drawCardForSong, drawCardForJinn
+    yuanCheng, drawCardForSong, drawCardForJinn, removeReadyUnitByCountry
 } from "./util";
 import {getCityById} from "./constant/city";
 
@@ -616,18 +616,43 @@ export const placeTroop: LongFormMove = {
 }
 
 
+export interface IRemoveReadyUnitArgs {
+    units: number[];
+    country: Country;
+}
+
+
+export const removeReadyUnit: LongFormMove = {
+    move: (G, ctx, arg: IRemoveReadyUnitArgs) => {
+        const pid = ctx.playerID;
+        const log = [`removeReadyUnit`];
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`${G.matchID}|p${pid}.moves.removeReadyUnit(${JSON.stringify(arg)})`);
+        const ctr = getCountryById(pid);
+        const pub = getStateById(G, pid);
+        const player = playerById(G, pid);
+        const {units,country} = arg;
+
+
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    }
+}
+
 export interface IRemoveUnitArgs {
     src: TroopPlace;
     units: number[];
     country: Country
 }
 
+
 export const removeUnit: LongFormMove = {
     move: (G, ctx, {src, units, country}: IRemoveUnitArgs) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        removeUnitByCountryPlace(G, units, country, src)
+        removeReadyUnitByCountry(G, units, country);
     }
 }
 
@@ -941,6 +966,7 @@ interface IDevelopArg {
     choice: DevelopChoice,
     target: number
 }
+
 export const develop: LongFormMove = {
     move: (G, ctx, arg: IDevelopArg) => {
         logger.info(`${G.matchID}|p${ctx.playerID}.develop(${arg})`)
@@ -948,7 +974,7 @@ export const develop: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        const {choice,target} = arg;
+        const {choice, target} = arg;
         const log = [`p${pid}|develop`];
         // const player = playerById(G, ctx.playerID);
         const pub = getStateById(G, pid);
@@ -1805,17 +1831,17 @@ export const drawExtraCard: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`${G.matchID}|p${pid}.moves.drawExtraCard()`);
-        if(pid === SJPlayer.P1){
+        if (pid === SJPlayer.P1) {
             log.push(`|song|${G.secret.songDeck}deck`);
             log.push(`|${G.player['0'].hand}hand`);
-            drawCardForSong(G,ctx);
+            drawCardForSong(G, ctx);
             log.push(`|${G.player['0'].hand}hand`);
             log.push(`|${G.secret.songDeck}deck`);
-        }else{
+        } else {
             log.push(`|${G.secret.jinnDeck}deck`);
             log.push(`|${G.secret.jinnDeck}deck`);
             log.push(`|${G.player['1'].hand}hand`);
-            drawCardForJinn(G,ctx);
+            drawCardForJinn(G, ctx);
             log.push(`|${G.player['1'].hand}hand`);
             log.push(`|${G.secret.jinnDeck}deck`);
         }
