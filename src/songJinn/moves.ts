@@ -1783,11 +1783,11 @@ export const recruitUnit: LongFormMove = {
             } else {
                 log.push(`|over|limit`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
-                return INVALID_MOVE;
+                // return INVALID_MOVE;
+                return;
             }
         } else {
             doRecruit(G, units, pid);
-
         }
     }
 }
