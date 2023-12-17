@@ -3211,7 +3211,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
 
                         case 'removeUnit':
                             if (arg.country === Country.SONG) {
-                                log += `消灭${arg.country}${placeToStr(arg.src)}${unitsToString(arg.units.slice(0.6))}`;
+                                log += `消灭${arg.country}${placeToStr(arg.src)}${unitsToString(arg.units.slice(0,6))}`;
                             } else {
                                 log += `消灭${arg.country}${placeToStr(arg.src)}${unitsToString(arg.units)}`;
                             }
@@ -3221,12 +3221,6 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             break;
                         case 'deploy':
                             log += `在${placeToStr(arg.city)}补充${unitsToString(arg.units)}`;
-                            break;
-                        case 'askField':
-                            log += `询问对手${placeToStr(arg.place)}是否接野战`;
-                            break;
-                        case 'confirm':
-                            log += `${arg ? "同意" : "不同意"}`
                             break;
                         case 'showLetters':
                             log += `盟国${arg.nations.map((n: NationID) => n)}`
@@ -3947,6 +3941,9 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: boolean, ctr: Countr
     return arg ? "选择是" : "选择否";
 }
 
+export const confirmRespondOptions = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+
+}
 export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
     const ctr = pid2ctr(pid);
     if (G.combat.phase === CombatPhase.JieYe) {
