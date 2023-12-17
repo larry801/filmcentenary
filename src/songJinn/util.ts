@@ -2752,10 +2752,10 @@ export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerI
         log.push(`|hasTroop`);
         if (filtered.length > 1) {
             log.push(`|moreThanOne`);
-            mergeTroopTo(G,
-                pub.troops.indexOf(filtered[1]),
-                pub.troops.indexOf(filtered[0]),
-                pid);
+            // mergeTroopTo(G,
+            //     pub.troops.indexOf(filtered[1]),
+            //     pub.troops.indexOf(filtered[0]),
+            //     pid);
             removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
         } else {
             removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
@@ -2779,7 +2779,7 @@ export const removeUnitByIdx = (G: SongJinnGame, units: number[], pid: PlayerID,
     }
     let actualUnits = [...units];
     log.push(`|before|standby${pub.standby}|units${t.u}`);
-    if (pid === SJPlayer.P1) {
+    if (t.g === Country.SONG) {
         if (units.length > 6) {
             actualUnits = actualUnits.slice(0, 6);
             log.push(`|${actualUnits}actualUnits`);
