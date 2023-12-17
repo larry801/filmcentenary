@@ -115,10 +115,10 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
 
     const hasCurEffect = G.e.stack.length > 0;
     // const effType = hasCurEffect ? G.e.stack.slice(-1)[0] : "";
-    const searchChoiceCards = [PersonCardID.P2401, FilmCardID.F2404, FilmCardID.F2403, PersonCardID.P3401, FilmCardID.F3404, FilmCardID.F3414]
+    const searchChoiceCards = [PersonCardID.P2401, FilmCardID.F2403,FilmCardID.F2404,  PersonCardID.P3401, FilmCardID.F3404, FilmCardID.F3414]
     const curEffName = hasCurEffect ? effName(G.e.stack.slice(-1)[0]) : "";
     // @ts-ignore
-    const peekChoicesDisabled = G.e.card === null ? false : searchChoiceCards.includes(G.e.card);
+    const peekChoicesDisabled = G.e.card === null ? true : !searchChoiceCards.includes(G.e.card);
 
     const peekCardLength = iPrivateInfo.cardsToPeek.length.toString();
     const peekChoices = G.player[parseInt(playerID)].cardsToPeek
