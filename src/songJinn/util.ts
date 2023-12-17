@@ -3210,7 +3210,11 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             break;
 
                         case 'removeUnit':
-                            log += `消灭${arg.country}${placeToStr(arg.src)}${unitsToString(arg.units)}`;
+                            if (arg.country === Country.SONG) {
+                                log += `消灭${arg.country}${placeToStr(arg.src)}${unitsToString(arg.units.slice(0.6))}`;
+                            } else {
+                                log += `消灭${arg.country}${placeToStr(arg.src)}${unitsToString(arg.units)}`;
+                            }
                             break;
                         case 'placeUnit':
                             log += `在${placeToStr(arg.place)}放置${unitsToString(arg.units)}`;
@@ -3338,20 +3342,21 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                         case 'cardEvent':
                             log += `事件${sjCardById(arg).name}`;
                             break;
-                        case 'developCard':log += `发展${sjCardById(arg).name}`;
+                        case 'developCard':
+                            log += `发展${sjCardById(arg).name}`;
                             break;
                         case 'down':
                             log += `降低${arg}`;
                             break;
                         case 'develop':
-                            if(typeof arg === 'string'){
+                            if (typeof arg === 'string') {
                                 log += `${
                                     arg !== DevelopChoice.EMPEROR
                                     && arg !== DevelopChoice.POLICY_UP
                                     && arg !== DevelopChoice.POLICY_DOWN
                                         ? "提升" : ""}${arg}`;
-                            }else{
-                                const {choice,target} = arg;
+                            } else {
+                                const {choice, target} = arg;
                                 log += `${
                                     choice !== DevelopChoice.EMPEROR
                                     && choice !== DevelopChoice.POLICY_UP
@@ -3360,9 +3365,11 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             }
                             break;
                         case 'recruitUnit':
-                            log +=
-                                `征募${unitsToString(arg)}`
-                            ;
+                            if (pid === SJPlayer.P1) {
+                                log += `征募${unitsToString(arg.slice(0, 6))}`;
+                            } else {
+                                log += `征募${unitsToString(arg)}`;
+                            }
                             break;
                         case 'recruitPuppet':
                             log +=
@@ -4040,17 +4047,17 @@ export function startCombat(
         atkTroop = getTroopByCountryCity(G, c.atk, p);
         // @ts-ignore
         defTroop = getTroopByCountryCity(G, ciDefCtr(G), p);
-        if(atkTroop === null || defTroop === null){
+        if (atkTroop === null || defTroop === null) {
             log.push(`|error|one troop missing`);
-            endCombat(G,ctx);
+            endCombat(G, ctx);
             logger.debug(`${G.matchID}|${log.join('')}`);
             return;
         }
-        if(atkTroop.p === atkTroop.c){
+        if (atkTroop.p === atkTroop.c) {
             log.push(`|breakout`);
             c.type = CombatType.BREAKOUT;
-        }else{
-            if(defTroop.p === defTroop.c){
+        } else {
+            if (defTroop.p === defTroop.c) {
                 log.push(`|siege`);
                 c.type = CombatType.SIEGE;
             }
@@ -4278,8 +4285,7 @@ export function getCityDefence(G: SongJinnGame, cid: CityID, ctr: Country): numb
     return def;
 }
 
-export function troopSiegeRange(G: SongJinnGame, troop: Troop): number
-{
+export function troopSiegeRange(G: SongJinnGame, troop: Troop): number {
     let range = 0;
     const terrainType = getTerrainTypeByPlace(troop);
     let unitRanges: number[] = [];
@@ -4703,7 +4709,7 @@ export const drawPhaseForSong = (G: SongJinnGame, ctx: Ctx) => {
     const discard = G.jinn.discard;
     let drawCount = power > 9 ? 9 : power;
     log.push(`|drawCount${drawCount}`);
-    if (drawCount + hand.length > 9){
+    if (drawCount + hand.length > 9) {
         drawCount = 9 - hand.length;
         log.push(`|drawCount${drawCount}`);
     }
@@ -4728,7 +4734,7 @@ export const drawPhaseForJinn = (G: SongJinnGame, ctx: Ctx) => {
     const discard = G.jinn.discard;
     let drawCount = G.jinn.civil >= 7 ? 9 : power > 9 ? 9 : power;
     log.push(`|drawCount${drawCount}`);
-    if (drawCount + hand.length > 9){
+    if (drawCount + hand.length > 9) {
         drawCount = 9 - hand.length;
         log.push(`|drawCount${drawCount}`);
     }
@@ -4917,7 +4923,7 @@ export const changeCivil = (G: SongJinnGame, pid: PlayerID, a: number) => {
 
             pub.maxCivil = 6;
         }
-        if (pub.maxCivil < 7 &&  pub.civil >= 7) {
+        if (pub.maxCivil < 7 && pub.civil >= 7) {
             pub.maxCivil = 7;
         }
     }
@@ -5030,7 +5036,7 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
             G.op += 2;
             pub.maxMilitary = 4;
         }
-        if (pub.maxMilitary < 5 &&pub.military >= 5) {
+        if (pub.maxMilitary < 5 && pub.military >= 5) {
             if (pid === SJPlayer.P1) {
 
                 doRecruit(G, [0, 0, 0, 0, 0, 1], SJPlayer.P1);
