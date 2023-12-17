@@ -19,7 +19,7 @@ import {
     develop,
     developCard,
     discard,
-    down,
+    down, drawExtraCard,
     emperor,
     emptyRound,
     endRound,
@@ -95,6 +95,7 @@ export const ChooseRegionsStageConfig: StageConfig<SongJinnGame> = {
 }
 export const ReactStageConfig: StageConfig<SongJinnGame> = {
     moves: {
+        drawExtraCard:drawExtraCard,
         siege:siege,
         checkProvince:checkProvince,
         emperor: emperor,
@@ -354,6 +355,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     turn: StagedTurnConfig,
     moves: {
+        drawExtraCard:drawExtraCard,
         siege:siege,
         checkProvince:checkProvince,
         removeOwnGeneral:removeOwnGeneral,
@@ -486,7 +488,7 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
         logger.info(`${log.join('')}`);
     },
     onEnd: (G, ctx) => {
-        const log = [`developPhase|onEnd`];
+        const log = [`deployPhase|onEnd`];
         log.push(`|clean ready units`);
         log.push(`|${G.song.ready}song.ready`);
         log.push(`|${G.song.standby}G.song.standby`);
@@ -526,7 +528,7 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
         }
     },
     moves: {
-
+        drawExtraCard:drawExtraCard,
         removeNation: removeNation,
         adjustNation: adjustNation,
         recruitPuppet: recruitPuppet,

@@ -3168,6 +3168,9 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                 const pub = getStateById(G, pid);
                 if (args === null || args.length === 0) {
                     switch (name) {
+                        case 'drawExtraCard':
+                            log += `额外摸一张牌`;
+                            break;
                         case 'search':
                             log += `检索了一张牌`;
                             break;

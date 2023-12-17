@@ -95,7 +95,7 @@ import {
     troopEmpty, troopEndurance, troopIsArmy,
     unitsToString,
     weiKunTroop,
-    yuanCheng
+    yuanCheng, drawCardForSong, drawCardForJinn
 } from "./util";
 import {getCityById} from "./constant/city";
 
@@ -1797,6 +1797,32 @@ interface ILoseProv {
     opponent: boolean
 }
 
+export const drawExtraCard: LongFormMove = {
+    move: (G: SongJinnGame, ctx) => {
+        const pid = ctx.playerID;
+        const log = [`drawExtraCard`];
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`${G.matchID}|p${pid}.moves.drawExtraCard()`);
+        if(pid === SJPlayer.P1){
+            log.push(`|song|${G.secret.songDeck}deck`);
+            log.push(`|${G.player['0'].hand}hand`);
+            drawCardForSong(G,ctx);
+            log.push(`|${G.player['0'].hand}hand`);
+            log.push(`|${G.secret.songDeck}deck`);
+        }else{
+            log.push(`|${G.secret.jinnDeck}deck`);
+            log.push(`|${G.secret.jinnDeck}deck`);
+            log.push(`|${G.player['1'].hand}hand`);
+            drawCardForJinn(G,ctx);
+            log.push(`|${G.player['1'].hand}hand`);
+            log.push(`|${G.secret.jinnDeck}deck`);
+        }
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    },
+    client: false,
+}
 
 export const loseProvince: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, arg: ILoseProv) => {

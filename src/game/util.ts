@@ -1857,7 +1857,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
 }
 
 export const getEraEffectByRegion = (G: IG, ctx: Ctx, effect: any, region: Region): any => {
-    const log = [`getCardEraEffect|${effect}|region:${region}`];
+    const log = [`getCardEraEffect|${JSON.stringify(effect)}|region:${region}`];
     let subEffect;
     if (region !== Region.NONE) {
         let era;
