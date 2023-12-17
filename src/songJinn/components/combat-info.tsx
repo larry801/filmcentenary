@@ -14,7 +14,7 @@ import {
     confirmRespondLogText,
     confirmRespondText,
     getCityText,
-    getRegionText,
+    getRegionText, getSiegeRangeUnitStrength, getTerrainTypeByPlace,
     getTroopText,
     playerById,
     sjCardById,
@@ -142,6 +142,8 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
         toggleText={"请求确认"}
         initial={true}/>;
 
+
+
     return <>
         <Grid container item xs={12}><Paper>
             <div><label>进攻方：</label>{s.atk}</div>
@@ -152,7 +154,16 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
             <div><label>宋军：</label>{G.song.troops.map(
                 (t, idx) => {
                     if (t.p === s.region || t.c === s.city) {
-                        return <label key={`song-label-troop-${idx}`}>{getTroopText(G, t)}</label>
+                    //     const rangeStrength = getSiegeRangeUnitStrength(G, t, getTerrainTypeByPlace(G,t.p));
+                    //     t.u.map((u,idx)=>{
+                    //         if(u>0){
+                    //             return `${u}x${rangeStrength[idx]}+`
+                    //         }
+                    //     })
+                        return <label key={`song-label-troop-${idx}`}>
+                            {getTroopText(G, t)}
+
+                        </label>
                     } else {
                         return <label key={`song-label-troop-${idx}`}> {" "}</label>
                     }

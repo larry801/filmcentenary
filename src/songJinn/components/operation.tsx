@@ -20,7 +20,7 @@ import {
     generalWithOpponentTroop, getCityText,
     getCountryById,
     getGeneralNameByCountry, getSkillGeneral,
-    getStateById, phaseName,
+    pid2pub, phaseName,
     playerById, remainDevelop, returnDevCardCheck, sjCardById
 } from "../util";
 import {Dices} from "./dices";
@@ -45,7 +45,7 @@ export const Operation = ({
                           }: IOperationProps) => {
 
     const ctr = getCountryById(playerID);
-    const pub = getStateById(G, playerID);
+    const pub = pid2pub(G, playerID);
     const player = playerById(G, playerID);
     const country = getCountryById(playerID);
     const remainDevelopPoint: number = remainDevelop(G, ctx, playerID);

@@ -90,6 +90,12 @@ export enum NationID {
     GaoLi = "高丽"
 }
 
+export const enum CityState {
+    SONG = "受金控制",
+    JINN = "受宋控制",
+    NEUTRAL = "无人控制"
+}
+
 export const enum ProvinceState {
     SONG = "金控制",
     JINN = "宋控制",

@@ -32,7 +32,7 @@ import {
     getPlaceGeneral, getPresentGeneral,
     getReadyGenerals,
     getRegionText,
-    getStateById, getTroopPlaceText,
+    pid2pub, getTroopPlaceText,
     getTroopText, hasOpponentTroop,
     optionToActualDst,
     StrProvince, troopIsWeiKun, unitsToString, troopCanSiege,
@@ -99,7 +99,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
     const emptyTroop: Troop = {p: RegionID.R19, u: [0, 0, 0, 0, 0, 0], c: null, g: Country.SONG};
 
-    const pub = getStateById(G, pid);
+    const pub = pid2pub(G, pid);
     const opp = oppoPub(G, pid);
     const troops = [...pub.troops, ...opp.troops];
     const ctr = getCountryById(pid);

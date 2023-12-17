@@ -40,7 +40,7 @@ import {
     recruitPuppet,
     recruitUnit,
     removeNation,
-    removeOwnGeneral,
+    removeOwnGeneral, removeReadyUnit,
     removeUnit,
     rescueGeneral,
     returnToHand,
@@ -66,7 +66,7 @@ import {
     getJinnPower,
     getLeadingPlayer,
     getSongPower,
-    getStateById,
+    pid2pub,
     playerById
 } from "../util";
 
@@ -95,6 +95,7 @@ export const ChooseRegionsStageConfig: StageConfig<SongJinnGame> = {
 }
 export const ReactStageConfig: StageConfig<SongJinnGame> = {
     moves: {
+        removeReadyUnit:removeReadyUnit,
         drawExtraCard:drawExtraCard,
         siege:siege,
         checkProvince:checkProvince,
@@ -288,7 +289,7 @@ export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
 }
 export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
-        const log = [`choosePlan|onBegin|${G.order}`]
+        const log = [`choosePlan|phase|onBegin|${G.order}`]
         const firstPid = G.order[0];
         drawPlanForPlayer(G, firstPid);
         const player = playerById(G, firstPid);
@@ -314,7 +315,7 @@ export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         logger.debug(`${G.matchID}|${log.join('')}`);
     },
     onEnd: (G, ctx) => {
-        const log = [`choosePlan|onEnd|${G.order}`]
+        const log = [`choosePlan|phase|onEnd|${G.order}`]
         switch (G.first) {
             case SJPlayer.P1:
                 G.order = [SJPlayer.P1, SJPlayer.P2];
@@ -355,6 +356,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     turn: StagedTurnConfig,
     moves: {
+        removeReadyUnit:removeReadyUnit,
         drawExtraCard:drawExtraCard,
         siege:siege,
         checkProvince:checkProvince,
@@ -514,7 +516,7 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
         onBegin: (G: SongJinnGame, ctx: Ctx) => {
             const log = [`deployPhaseTurn|onBegin`];
             const pid = ctx.currentPlayer;
-            const pub = getStateById(G, pid);
+            const pub = pid2pub(G, pid);
             G.op += pub.nations.length;
             log.push(`|${G.op}G.op`);
             if(pid === SJPlayer.P2){

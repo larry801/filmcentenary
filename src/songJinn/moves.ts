@@ -11,7 +11,7 @@ import {
     General,
     isCityID,
     isNationID,
-    isRegionID,
+    isRegionID, JinnBaseCardID,
     LetterOfCredence,
     NationID,
     PendingEvents,
@@ -67,7 +67,7 @@ import {
     getPlaceGeneral,
     getSongTroopByCity,
     getSongTroopByPlace,
-    getStateById,
+    pid2pub,
     getTroopByCountryPlace,
     heYiChange,
     heYiCheck,
@@ -129,7 +129,7 @@ export const checkProvince: LongFormMove = {
         logger.info(`${G.matchID}|p${pid}.moves.checkProvince(${JSON.stringify(arg)})`);
         const {prov} = arg;
         const ctr = getCountryById(pid);
-        const pub = getStateById(G, pid);
+        const pub = pid2pub(G, pid);
         const player = playerById(G, pid);
         const provStatus = currentProvStatus(G, prov);
         switch (provStatus) {
@@ -168,7 +168,7 @@ export const controlProvince: LongFormMove = {
         logger.info(`p${ctx.playerID}.controlProvince(${JSON.stringify(args)})`);
         const log = [`p${ctx.playerID}.controlProvince`];
         const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         log.push(`|before|${pub.provinces}`);
         doControlProvince(G, ctx.playerID, args);
@@ -182,10 +182,10 @@ export const controlCity: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`p${pid}.controlCity(${JSON.stringify(args)})`);
+        logger.info(`p${pid}.moves.controlCity(${JSON.stringify(args)})`);
         const log = [`p${pid}.controlCity`];
         // const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, pid);
+        const pub = pid2pub(G, pid);
         // const player = playerById(G, ctx.playerID);
         log.push(`|${pub.cities}`);
         doControlCity(G, pid, args);
@@ -214,7 +214,7 @@ export const march: LongFormMove = {
             return INVALID_MOVE;
         }
 
-        logger.info(`p${pid}.march(${JSON.stringify(arg)});`)
+        logger.info(`p${pid}.moves.march(${JSON.stringify(arg)});`)
         const ctr = getCountryById(pid);
         // const player = playerById(G, ctx.playerID);
         const log = [`p${pid}|march|src${placeToStr(src)}`];
@@ -370,7 +370,7 @@ export const chooseProvince: LongFormMove = {
             return INVALID_MOVE;
         }
         const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
     }
 }
@@ -418,9 +418,11 @@ export const takeDamage: LongFormMove = {
             }
         }
         if (actualStage(G, ctx) === 'takeDamage') {
+            // TODO deduct endurance from ci.xxxx.damageLeft
             const atkEn = troopEndurance(G, ciAtkTroop(G));
             const defEn = troopEndurance(G, ciDefTroop(G));
             log.push(`|stage|in|combat`);
+            // TODO 0 endurance remove all trigger 'rescueGeneral' stage if has develop card
             if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
                 changePlayerStage(G, ctx, 'takeDamage', G.order[1]);
             } else {
@@ -519,7 +521,7 @@ export const generalSkill: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`p${pid}.generalSkill(${JSON.stringify(args)})`);
+        logger.info(`p${pid}.moves.generalSkill(${JSON.stringify(args)})`);
         const log = [`p${pid}.generalSkill${getGeneralNameByCountry(args.country, args.general)}`];
         doGeneralSkill(G, pid, args.general);
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -552,7 +554,7 @@ export const deployGeneral: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`p${pid}.deployGeneral(${JSON.stringify(args)})`);
+        logger.info(`p${pid}.moves.deployGeneral(${JSON.stringify(args)})`);
         const log = [`p${pid}.deployGeneral`];
         const {general, dst} = args;
         let newDst = dst;
@@ -581,10 +583,10 @@ export const rescueGeneral: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`p${pid}.rescueGeneral(${JSON.stringify(args)})`);
+        logger.info(`p${pid}.moves.rescueGeneral(${JSON.stringify(args)})`);
         const log = [`p${pid}.rescueGeneral`];
         const {general, card} = args;
-        const pub = getStateById(G, pid);
+        const pub = pid2pub(G, pid);
         if (pub.develop.includes(card)) {
             pub.develop.splice(pub.develop.indexOf(card), 1);
             pub.discard.push(card)
@@ -631,9 +633,9 @@ export const removeReadyUnit: LongFormMove = {
         }
         logger.info(`${G.matchID}|p${pid}.moves.removeReadyUnit(${JSON.stringify(arg)})`);
         const ctr = getCountryById(pid);
-        const pub = getStateById(G, pid);
+        const pub = pid2pub(G, pid);
         const player = playerById(G, pid);
-        const {units,country} = arg;
+        const {units, country} = arg;
 
 
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -665,7 +667,7 @@ export interface IDeployUnitArgs {
 function doDeployUnits(G: SongJinnGame, ctx: Ctx, country: Country, units: number[], city: CityID) {
     const log = [`${country}`];
     const target = ctr2pid(country);
-    const pub = getStateById(G, target);
+    const pub = pid2pub(G, target);
     pub.ready.forEach((u, idx) => {
         if (u < units[idx]) {
             log.push(`${u}<${units[idx]}|INVALID_MOVE`);
@@ -717,7 +719,7 @@ export const discard: LongFormMove = {
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(c)) {
             player.hand.splice(player.hand.indexOf(c), 1);
-            const pub = getStateById(G, ctx.playerID);
+            const pub = pid2pub(G, ctx.playerID);
             pub.discard.push(c);
         } else {
             return INVALID_MOVE;
@@ -819,7 +821,7 @@ export const moveGeneral: LongFormMove = {
         const {dst, general, country} = args;
         const log = [`p${ctx.playerID}.moveReadyGeneral`];
         const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         moveGeneralByPid(G, ctx.playerID, general, dst);
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -839,7 +841,7 @@ export const moveTroop: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`p${pid}.moveTroop(${JSON.stringify(args)})`);
+        logger.info(`p${pid}.moves.moveTroop(${JSON.stringify(args)})`);
         const log = [`moveTroop`];
         const {src, dst, country} = args;
         log.push(`|${placeToStr(src.p)}`);
@@ -884,11 +886,11 @@ export const showLetters: LongFormMove = {
         } else {
             ctx.events?.endPhase();
         }
-        const pub = getStateById(G, pid);
+        const pub = pid2pub(G, pid);
         const p = playerById(G, pid);
         p.lod.forEach(l => pub.discard.push(l.card));
         p.lod = [];
-        logger.info(`p${pid}.showLetters(${JSON.stringify(args)})`);
+        logger.info(`p${pid}.moves.showLetters(${JSON.stringify(args)})`);
     }
 }
 export const jianLiDaQi: LongFormMove = {
@@ -899,7 +901,7 @@ export const jianLiDaQi: LongFormMove = {
         logger.info(`p${ctx.playerID}.jianLiDaQi(${JSON.stringify(args)})`);
         const log = [`p${ctx.playerID}.jianLiDaQi`];
         const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         if (args.length !== 3) {
             log.push(`|not3prov`);
@@ -925,7 +927,7 @@ export const chooseRegion: LongFormMove = {
         }
         logger.info(`${G.matchID}|p${pid}.moves.chooseRegion(${JSON.stringify(arg)})`);
         const ctr = getCountryById(pid);
-        const pub = getStateById(G, pid);
+        const pub = pid2pub(G, pid);
         const player = playerById(G, pid);
         if (G.pending.regions.includes(arg)) {
 
@@ -940,7 +942,7 @@ export const emptyRound: LongFormMove = {
             return INVALID_MOVE;
         }
         const ctr = getCountryById(pid);
-        const pub = getStateById(G, pid);
+        const pub = pid2pub(G, pid);
         const player = playerById(G, pid);
         G.op = 1;
     }
@@ -977,7 +979,7 @@ export const develop: LongFormMove = {
         const {choice, target} = arg;
         const log = [`p${pid}|develop`];
         // const player = playerById(G, ctx.playerID);
-        const pub = getStateById(G, pid);
+        const pub = pid2pub(G, pid);
         const country = getCountryById(pid);
         switch (country) {
             case Country.SONG:
@@ -1102,7 +1104,7 @@ export const returnToHand: LongFormMove = {
         //     return INVALID_MOVE;
         // }
         const player = playerById(G, ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         if (pub.develop.includes(args)) {
             pub.develop.splice(pub.develop.indexOf(args), 1);
             player.hand.push(args)
@@ -1182,7 +1184,7 @@ export const cardEvent: LongFormMove = {
         }
         const card = sjCardById(args);
         if (card.pre(G, ctx)) {
-            const pub = getStateById(G, ctx.playerID);
+            const pub = pid2pub(G, ctx.playerID);
             if (card.remove) {
                 pub.remove.push(args);
             } else {
@@ -1245,7 +1247,7 @@ export const developCard: LongFormMove = {
         } else {
             return INVALID_MOVE;
         }
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         pub.develop.push(args);
     }
 }
@@ -1258,8 +1260,8 @@ interface IChooseFirst {
 export const chooseFirst: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, args: IChooseFirst) => {
         const pid = ctx.playerID;
-        logger.info(`p${pid}.moves.chooseFirst(${args})`)
-        const log = [`p${pid}.moves.chooseFirst(${args})`];
+        logger.info(`p${pid}.moves.chooseFirst(${JSON.stringify(args)})`)
+        const log = [`p${pid}.moves.chooseFirst(${JSON.stringify(args)})`];
         const {choice, matchID} = args;
         G.matchID = matchID
         G.first = choice;
@@ -1281,7 +1283,7 @@ export const choosePlan: LongFormMove = {
             return INVALID_MOVE;
         }
         const log = [`p${ctx.playerID}|choosePlan|${pid}`];
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         if (!player.plans.includes(pid)) {
             return INVALID_MOVE;
@@ -1321,7 +1323,7 @@ export const choosePlan: LongFormMove = {
                 const secondPid = G.order[1];
                 drawPlanForPlayer(G, secondPid);
                 const secondPlayer = playerById(G, secondPid);
-                const secondPub = getStateById(G, secondPid);
+                const secondPub = pid2pub(G, secondPid);
                 log.push(`|p${secondPid}|${secondPlayer.plans}`);
                 if (secondPlayer.plans.filter((p) => secondPub.military >= getPlanById(p).level).length === 0) {
                     // second player cannot choose plan
@@ -1383,11 +1385,11 @@ export const searchFirst: LongFormMove = {
 
 export const showPlan: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, args: PlanID[]) => {
-        logger.info(`p${ctx.playerID}.moves.showPlan(${args.toString()})`);
+        logger.info(`p${ctx.playerID}.moves.showPlan(${JSON.stringify(args)})`);
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         pub.plan = [...player.chosenPlans];
         player.chosenPlans = [];
@@ -1422,18 +1424,30 @@ export const showCC: LongFormMove = {
 
 export const op: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, cid: SJEventCardID) => {
-        if (ctx.playerID === undefined) {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        // const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
-        const player = playerById(G, ctx.playerID);
         const card = sjCardById(cid);
+        // const ctr = getCountryById(pid);
+        const pub = pid2pub(G, pid);
+        const player = playerById(G, pid);
+        const log = [`p${pid}op${card.name}|${card.op}`];
+        log.push(`|${G.op}G.op`);
         G.op = card.op;
+        log.push(`|${G.op}G.op`);
+        log.push(`|${pub.discard}pub.discard`);
+        log.push(`|${player.hand}player.hand`);
         if (player.hand.includes(cid)) {
             player.hand.splice(player.hand.indexOf(cid), 1);
             pub.discard.push(cid);
+        } else {
+            return INVALID_MOVE;
         }
+        log.push(`|${pub.discard}pub.discard`);
+        log.push(`|${player.hand}player.hand`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+
     }
 };
 
@@ -1444,7 +1458,7 @@ export const paiQian: LongFormMove = {
             return INVALID_MOVE;
         }
         const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(cid)) {
             player.hand.splice(player.hand.indexOf(cid), 1);
@@ -1521,7 +1535,7 @@ export const chooseTop: LongFormMove = {
         }
         const log = [`chooseTop|p${ctx.playerID}`];
         const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         if (!pub.completedPlan.includes(p)) {
             return INVALID_MOVE;
         }
@@ -1547,7 +1561,7 @@ export const endRound: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        const pub = getStateById(G, pid);
+        const pub = pid2pub(G, pid);
         if (ctx.phase === 'action') {
             endRoundCheck(G, ctx);
             ctx.events?.endStage();
@@ -1580,7 +1594,7 @@ export const siege: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`${G.matchID}|p${pid}.moves.siege(${JSON.stringify(arg)})`);
-        const pub = getStateById(G, pid);
+        const pub = pid2pub(G, pid);
         const player = playerById(G, pid);
         const {src, ctr} = arg;
         startCombat(G, ctx, ctr, src);
@@ -1620,7 +1634,7 @@ export const confirmRespond: LongFormMove = {
         const ctr = pid2ctr(pid);
         const {text, choice} = arg;
         const log = [`confirmRespond`]
-        const pub = getStateById(G, pid);
+        const pub = pid2pub(G, pid);
         const ci = G.combat;
         const atkCCI = ciAtkInfo(G);
         const defCCI = ciDefInfo(G);
@@ -1648,7 +1662,7 @@ export const confirmRespond: LongFormMove = {
                 let def = ciDefTroop(G);
                 log.push(`|${JSON.stringify(atk)}atk`);
                 log.push(`|${JSON.stringify(def)}def`);
-                const defTroops = getStateById(G, ciDefPid(G)).troops;
+                const defTroops = pid2pub(G, ciDefPid(G)).troops;
                 const defIdx = defTroops.indexOf(def);
                 log.push(`|${defIdx}defIdx`);
                 const indexedDef = defTroops[defIdx];
@@ -1765,7 +1779,7 @@ export const removeOwnGeneral: LongFormMove = {
         }
         logger.info(`${G.matchID}|p${pid}.moves.removeOwnGeneral(${JSON.stringify(arg)})`);
         const ctr = getCountryById(pid);
-        const pub = getStateById(G, pid);
+        const pub = pid2pub(G, pid);
         const player = playerById(G, pid);
         removeGeneral(G, pid, arg);
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -1778,7 +1792,7 @@ export const takePlan: LongFormMove = {
         }
         logger.info(`[p${ctx.playerID}.takePlan(${JSON.stringify(arg)})`)
         const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         // const player = playerById(G, ctx.playerID);
         arg.forEach((p) => {
             if (!G.plans.includes(p)) {
@@ -1861,7 +1875,7 @@ export const loseProvince: LongFormMove = {
         }
         const {province, opponent} = arg;
         // const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         const oppo = oppoPub(G, ctx.playerID);
         if (ctx.playerID === SJPlayer.P1) {
             policyDown(G, 1);
@@ -1897,7 +1911,7 @@ export const loseCity: LongFormMove = {
         }
         const {cityID, opponent} = arg;
         const ctr = getCountryById(ctx.playerID);
-        const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, ctx.playerID);
         const oppo = oppoPub(G, ctx.playerID);
         if (pub.cities.includes(cityID)) {
             pub.cities.splice(pub.cities.indexOf(cityID), 1);

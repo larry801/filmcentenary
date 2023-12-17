@@ -92,10 +92,11 @@ export const ChooseUnitsDialog = ({
                                         changeUnits(idx, -1)
                                     }}>-</Button>
                                 {u}{unitNames[idx]}
-                                <Button disabled={u >= max[idx]}
-                                        onClick={() => {
-                                            changeUnits(idx, 1)
-                                        }}
+                                <Button
+                                    disabled={u >= max[idx]}
+                                    onClick={() => {
+                                        changeUnits(idx, 1)
+                                    }}
                                 >+</Button>
                             </Grid>
                         } else {

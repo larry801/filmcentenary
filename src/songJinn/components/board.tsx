@@ -13,7 +13,7 @@ import TroopOperation from "./troops";
 import {AdjustOps} from "./adjust";
 import {ChatMessage} from "./chat-message";
 import Paper from "@material-ui/core/Paper";
-import {getCountryById, getStateById, playerById, sjPlayerName, troopToString} from "../util";
+import {getCountryById, pid2pub, playerById, sjPlayerName, troopToString} from "../util";
 // @ts-ignore
 import disconnectedSfx from '../../components/media/connect.mp3'
 // @ts-ignore
@@ -90,7 +90,7 @@ export const SongJinnBoard = ({
         }
     }, [prevIsActive, isActive])
 
-    const pub = getStateById(G, playerID as SJPlayer);
+    const pub = pid2pub(G, playerID as SJPlayer);
     const player = playerById(G, playerID as SJPlayer);
     const country = getCountryById(playerID as SJPlayer);
     const SwitchMapButton = <Button onClick={()=>{if(showMap){setShowMap(false)}else{setShowMap(true)}}}>切换地图</Button>

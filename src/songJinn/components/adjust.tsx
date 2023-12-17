@@ -23,7 +23,7 @@ import {
     getPresentGeneral,
     getReadyGenerals,
     getRegionText,
-    getStateById,
+    pid2pub,
     playerById,
     StrProvince
 } from "../util";
@@ -52,7 +52,7 @@ export const AdjustOps = ({
                               isActive
                           }: IOperationProps) => {
 
-    const pub = getStateById(G, playerID);
+    const pub = pid2pub(G, playerID);
     const player = playerById(G, playerID);
     const ctr = getCountryById(playerID);
 
