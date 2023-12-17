@@ -3545,7 +3545,11 @@ export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
     }
     const nationCount = pub.nations.length;
     sum += nationCount;
-    log.push(`|nations${nationCount}|${sum}`);
+    log.push(`|nations${nationCount}`);
+    log.push(`|${sum}sum`);
+    log.push(`|corruption`);
+    sum -= pub.corruption;
+    log.push(`|${sum}sum`);
     logger.debug(`${G.matchID}|${log.join('')}`);
     return sum;
 }
@@ -4762,6 +4766,7 @@ export const addMidTermCard = (G: SongJinnGame, ctx: Ctx) => {
     JinnMidCardID.forEach(c => G.secret.jinnDeck.push(c));
     G.secret.songDeck = shuffle(ctx, G.secret.songDeck);
     G.secret.jinnDeck = shuffle(ctx, G.secret.jinnDeck);
+
     MidPlanID.forEach(p => G.secret.planDeck.push(p));
     G.secret.planDeck = shuffle(ctx, G.secret.planDeck);
 }
