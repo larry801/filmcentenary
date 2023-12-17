@@ -404,7 +404,13 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const mapper = (t: Troop, idx: number) => <Accordion key={`troop-${idx}-${t.g}`}
                                                          expanded={isActive && expanded === idx}
                                                          onChange={() => setExpanded(idx)}>
-        <AccordionSummary> {hasOpponentTroop(G, t) ? '(**)' : ''} {troopIsWeiKun(G, t) ? "被围困" : ""}{t.g}{getTroopPlaceText(t)} {getTroopText(G, t)} </AccordionSummary>
+        <AccordionSummary>
+            {hasOpponentTroop(G, t) ? '(**)' : ''}
+            {troopIsWeiKun(G, t) ? "被围困|" : ""}
+            {troopCanSiege(G, t) && '围城|'}
+            {t.g}{getTroopPlaceText(t)}
+
+            {getTroopText(G, t)} </AccordionSummary>
         <AccordionDetails>
             {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
                 <button
