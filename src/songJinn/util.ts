@@ -4694,16 +4694,19 @@ export const drawPhaseForSong = (G: SongJinnGame, ctx: Ctx) => {
     log.push(`|${power}power$`);
     const deck = G.secret.jinnDeck;
     const discard = G.jinn.discard;
-    const drawCount = power > 9 ? 9 : power;
+    let drawCount = power > 9 ? 9 : power;
     log.push(`|drawCount${drawCount}`);
-
+    if (drawCount + hand.length > 9){
+        drawCount = 9 - hand.length;
+        log.push(`|drawCount${drawCount}`);
+    }
     if (deck.length + hand.length + discard.length < drawCount) {
         player.hand = hand.concat(deck, discard);
         G.secret.songDeck = [];
         G.song.discard = [];
     } else {
         for (let i = 0; i < drawCount; i++) {
-            drawCardForJinn(G, ctx);
+            drawCardForSong(G, ctx);
         }
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
@@ -4716,8 +4719,12 @@ export const drawPhaseForJinn = (G: SongJinnGame, ctx: Ctx) => {
     log.push(`|power${power}`);
     const deck = G.secret.jinnDeck;
     const discard = G.jinn.discard;
-    const drawCount = G.jinn.civil >= 7 ? 9 : power > 9 ? 9 : power;
+    let drawCount = G.jinn.civil >= 7 ? 9 : power > 9 ? 9 : power;
     log.push(`|drawCount${drawCount}`);
+    if (drawCount + hand.length > 9){
+        drawCount = 9 - hand.length;
+        log.push(`|drawCount${drawCount}`);
+    }
     if (deck.length + hand.length + discard.length < drawCount) {
         player.hand = hand.concat(deck, discard);
         G.secret.jinnDeck = [];
