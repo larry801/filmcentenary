@@ -63,7 +63,7 @@ import {INVALID_MOVE, Stage} from "boardgame.io/core";
 import {getProvinceById} from "./constant/province";
 import {getCityById} from "./constant/city";
 import {changePlayerStage} from "../game/logFix";
-import {placeTroop} from "./moves";
+import {placeTroop, placeUnit} from "./moves";
 
 
 function area(coords: [number, number][][]) {
@@ -1025,9 +1025,25 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "在宋国皇帝所在的区域放置韩世忠。若相邻区域有金国部队，则放置2个步兵到该城市。",
-        pre: (G: SongJinnGame, _ctx: Ctx) => true,
+        pre: (G: SongJinnGame, _ctx: Ctx) => G.song.emperor !== null,
         event: (G: SongJinnGame, _ctx: Ctx) => {
             moveGeneralToReady(G, SJPlayer.P1, SongGeneral.HanShiZhong);
+            if(G.song.emperor !== null){
+                const reg = getCityById(G.song.emperor).region;
+                const adjPlace = getMarchAdj(G, reg);
+                let placeInfantry = false;
+                // wei kun cheng nei
+                // buweikun cheng wai
+                adjPlace.forEach(p=>{
+                    const jt = getJinnTroopByPlace(G, p);
+                    if(jt !== null){
+                        placeInfantry = true;
+                    }
+                });
+                if(placeInfantry){
+                    doPlaceUnit(G,[2,0,0,0,0,0], Country.SONG, reg);
+                }
+            }
             // G.song.generalPlace[SongGeneral.HanShiZhong] = G.song.emperor;
         }
     },
@@ -2720,27 +2736,24 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
 
 
 export const removeReadyUnitByCountry = (G: SongJinnGame, units: number[], country: Country) => {
-    const log = [`removeUnitByPlace|${place}|${placeToStr(place)}|${unitsToString(units)}`];
+    const log = [`removeUnitByPlace|${unitsToString(units)}`];
     const pub = ctr2pub(G, country);
-    const filtered = pub.troops.filter(t => t.p === place);
-    const pid = ctr2pid(country);
     let actualUnits = [...units];
-    if(country === Country.SONG) {
-        actualUnits = actualUnits.slice(0,6);
+    if (country === Country.SONG) {
+        actualUnits = actualUnits.slice(0, 6);
     }
     log.push(`|${pub.ready}pub.ready`);
     log.push(`|${pub.standby}standby`);
     for (let i = 0; i < actualUnits.length; i++) {
-        if(actualUnits[i] > pub.ready[i]){
-            actualUnits = pub.ready[i];
+        if (actualUnits[i] > pub.ready[i]) {
+            actualUnits[i] = pub.ready[i];
             pub.standby[i] += pub.ready[i];
             pub.ready[i] = 0;
-        }else{
+        } else {
             pub.ready[i] -= actualUnits[i];
             pub.standby[i] += actualUnits[i];
         }
     }
-
     log.push(`|${pub.ready}pub.ready`);
     log.push(`|${pub.standby}standby`);
     logger.debug(`${G.matchID}|${log.join('')}`);
@@ -3237,7 +3250,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
 
                         case 'removeReadyUnit':
                             if (arg.country === Country.SONG) {
-                                log += `消灭${arg.country}预备区${unitsToString(arg.units.slice(0,6))}`;
+                                log += `消灭${arg.country}预备区${unitsToString(arg.units.slice(0, 6))}`;
                             } else {
                                 log += `消灭${arg.country}预备区${unitsToString(arg.units)}`;
                             }
@@ -3245,7 +3258,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
 
                         case 'removeUnit':
                             if (arg.country === Country.SONG) {
-                                log += `消灭${arg.country}${placeToStr(arg.src)}${unitsToString(arg.units.slice(0,6))}`;
+                                log += `消灭${arg.country}${placeToStr(arg.src)}${unitsToString(arg.units.slice(0, 6))}`;
                             } else {
                                 log += `消灭${arg.country}${placeToStr(arg.src)}${unitsToString(arg.units)}`;
                             }
