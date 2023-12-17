@@ -8,7 +8,7 @@ import BuyCard from "../buy-card";
 import Grid from "@material-ui/core/Grid"
 import ChoiceDialog from "../modals";
 import Typography from "@material-ui/core/Typography";
-import {BasicCardID, CardID, ClassicFilmAutoMoveMode, getCardById} from "../../types/core";
+import {BasicCardID, CardID, ClassicFilmAutoMoveMode, FilmCardID, PersonCardID} from "../../types/core";
 import {activePlayer, actualStage} from "../../game/util";
 import Button from "@material-ui/core/Button";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
@@ -115,8 +115,10 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
 
     const hasCurEffect = G.e.stack.length > 0;
     // const effType = hasCurEffect ? G.e.stack.slice(-1)[0] : "";
+    const searchChoiceCards = [PersonCardID.P2401, FilmCardID.F2404, FilmCardID.F2403, PersonCardID.P3401, FilmCardID.F3404, FilmCardID.F3414]
     const curEffName = hasCurEffect ? effName(G.e.stack.slice(-1)[0]) : "";
-    const peekChoicesDisabled = hasCurEffect && G.e.stack[0].e === "peek" ? G.e.stack[0].a.filter.e !== "choice" : true;
+    // @ts-ignore
+    const peekChoicesDisabled = G.e.card === null ? false : searchChoiceCards.includes(G.e.card);
 
     const peekCardLength = iPrivateInfo.cardsToPeek.length.toString();
     const peekChoices = G.player[parseInt(playerID)].cardsToPeek
