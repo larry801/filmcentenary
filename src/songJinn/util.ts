@@ -63,7 +63,6 @@ import {INVALID_MOVE, Stage} from "boardgame.io/core";
 import {getProvinceById} from "./constant/province";
 import {getCityById} from "./constant/city";
 import {changePlayerStage} from "../game/logFix";
-import {placeTroop, placeUnit} from "./moves";
 
 
 function area(coords: [number, number][][]) {
