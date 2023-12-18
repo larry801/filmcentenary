@@ -228,8 +228,7 @@ export const Operation = ({
 
     const confirmRespondDialog = <ChoiceDialog
         callback={(c) => {
-            const opponent = c === "yes";
-            moves.confirmRespond({choice:opponent,text:confirmRespondLogText(G,opponent,ctr)})
+            moves.confirmRespond({choice:c,text:confirmRespondLogText(G,c,ctr)})
         }}
         choices={[
             {label: "是", value: "yes", disabled: false, hidden: false},

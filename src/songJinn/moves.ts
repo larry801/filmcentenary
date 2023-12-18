@@ -11,16 +11,16 @@ import {
     General,
     isCityID,
     isNationID,
-    isRegionID, JinnBaseCardID,
+    isRegionID,
+    JinnBaseCardID,
     LetterOfCredence,
     NationID,
-    PendingEvents,
     PlanID,
     PlayerPendingEffect,
     ProvinceID,
-    RegionID,
     SJEventCardID,
     SJPlayer,
+    SongGeneral,
     SongJinnGame,
     Troop,
     TroopPlace
@@ -37,8 +37,9 @@ import {
     canForceRoundTwo,
     cardToSearch,
     changeCivil,
-    changeMilitary, checkRecruitCivil,
-    ciAtkInfo, ciAtkPid,
+    changeMilitary,
+    checkRecruitCivil,
+    ciAtkInfo,
     ciAtkTroop,
     ciDefInfo,
     ciDefPid,
@@ -46,16 +47,22 @@ import {
     colonyDown,
     colonyUp,
     ctr2pid,
-    ctr2pub, currentProvStatus,
+    ctr2pub,
+    currentProvStatus,
     doControlCity,
     doControlProvince,
-    doGeneralSkill, doLoseCity,
+    doGeneralSkill,
+    doLoseCity,
     doLoseProvince,
+    doMoveTroop,
     doPlaceUnit,
     doRecruit,
     doRemoveNation,
+    drawCardForJinn,
+    drawCardForSong,
     drawPhaseForPlayer,
-    drawPlanForPlayer, endCombat,
+    drawPlanForPlayer,
+    endCombat,
     endRoundCheck,
     getCombatStateById,
     getCountryById,
@@ -63,12 +70,10 @@ import {
     getJinnTroopByCity,
     getJinnTroopByPlace,
     getOpponentPlaceTroopById,
-    oppoPub,
-    getPlaceGeneral,
     getSongTroopByCity,
     getSongTroopByPlace,
-    pid2pub,
     getTroopByCountryPlace,
+    hasGeneral,
     heYiChange,
     heYiCheck,
     jiaoFeng,
@@ -79,23 +84,29 @@ import {
     moveGeneralToReady,
     nationMoveJinn,
     nationMoveSong,
-    oppoPid, oppoPlayerById,
+    oppoPid,
+    oppoPlayerById,
+    oppoPub,
     pid2ctr,
+    pid2pub,
     placeToStr,
     playerById,
     policyDown,
-    policyUp, removeGeneral,
-    removeUnitByCountryPlace,
-    returnDevCardCheck,
-    rollDiceByPid, roundTwo,
+    policyUp,
+    removeGeneral,
+    removeReadyUnitByCountry, removeUnitByCountryPlace,
+    rollDiceByPid,
+    roundTwo,
     sjCardById,
     songLoseEmperor,
     startCombat,
     totalDevelop,
-    troopEmpty, troopEndurance, troopIsArmy,
+    troopEmpty,
+    troopEndurance,
+    troopIsArmy,
     unitsToString,
-    weiKunTroop,
-    yuanCheng, drawCardForSong, drawCardForJinn, removeReadyUnitByCountry, doMoveTroop
+    weiKunTroop, wuLin,
+    yuanCheng
 } from "./util";
 import {getCityById} from "./constant/city";
 
@@ -445,7 +456,7 @@ export const takeDamage: LongFormMove = {
                         } else {
                             if (atkEn === 0) {
                                 endCombat(G, ctx);
-                                // nothing todo
+                                // todo remove no endurance unit && trigger rescue if has card
                             } else {
                                 if (defEn === 0) {
                                     if (G.combat.region !== null) {
@@ -456,14 +467,16 @@ export const takeDamage: LongFormMove = {
                                     }
                                     endCombat(G, ctx);
                                 } else {
-                                    jiaoFeng(G, ctx);
-
+                                    if(hasGeneral(G,G.combat.song.troop,SongGeneral.WuLin)){
+                                        wuLin(G,ctx);
+                                    }else{
+                                        jiaoFeng(G, ctx);
+                                    }
                                 }
                             }
                         }
                         break;
                     case CombatPhase.WuLin:
-                        // TODO
                         jiaoFeng(G, ctx);
                         break;
                     case CombatPhase.JiaoFeng:
@@ -472,7 +485,6 @@ export const takeDamage: LongFormMove = {
                         } else {
                             if (atkEn === 0) {
                                 endCombat(G, ctx);
-                                // nothing todo
                             } else {
                                 if (defEn === 0) {
                                     if (G.combat.region !== null) {
@@ -636,8 +648,7 @@ export const removeReadyUnit: LongFormMove = {
         const pub = pid2pub(G, pid);
         const player = playerById(G, pid);
         const {units, country} = arg;
-
-
+        removeReadyUnitByCountry(G,units,country);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -648,13 +659,15 @@ export interface IRemoveUnitArgs {
     country: Country
 }
 
-
 export const removeUnit: LongFormMove = {
-    move: (G, ctx, {src, units, country}: IRemoveUnitArgs) => {
-        if (ctx.playerID === undefined) {
+    move: (G, ctx, arg: IRemoveUnitArgs) => {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        removeReadyUnitByCountry(G, units, country);
+        logger.info(`${G.matchID}|p${pid}.moves.removeUnit(${JSON.stringify(arg)})`);
+        const {src, units, country} = arg;
+        removeUnitByCountryPlace(G, units, country, src);
     }
 }
 
@@ -1631,7 +1644,7 @@ export const breakout: LongFormMove = {
 }
 
 interface IConfirmRespondArgs {
-    choice: boolean,
+    choice: string,
     text: string
 }
 
@@ -1669,7 +1682,7 @@ export const confirmRespond: LongFormMove = {
             }
         }
         if (ci.phase === CombatPhase.WeiKun) {
-            if (choice) {
+            if (choice === "yes") {
                 log.push(`|doWeiKun`);
                 let atk = ciAtkTroop(G);
                 atk.c = null;
@@ -1718,7 +1731,7 @@ export const confirmRespond: LongFormMove = {
             if (ctr === ci.atk) {
                 log.push(`|atk`);
                 if (canForceRoundTwo(G)) {
-                    if (choice) {
+                    if (choice === "yes") {
                         atkCCI.choice = BeatGongChoice.CONTINUE;
                         changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
                         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -1733,7 +1746,17 @@ export const confirmRespond: LongFormMove = {
                     }
 
                 } else {
-                    if (choice) {
+                    if(canForceRoundTwo(G)){
+                        if (choice === "no"){
+                            atkCCI.choice = BeatGongChoice.CONTINUE;
+                            changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return;
+                        }
+                    }else{
+
+                    }
+                    if (choice === "yes") {
                         log.push(`|continue`);
                         atkCCI.choice = BeatGongChoice.CONTINUE;
                     } else {
@@ -1749,7 +1772,7 @@ export const confirmRespond: LongFormMove = {
                 if (
                     canForceRoundTwo(G)
                 ) {
-                    if (choice) {
+                    if (choice === "yes") {
                         log.push(`|forcedRoundTwo`);
                         roundTwo(G, ctx);
                         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -1762,7 +1785,7 @@ export const confirmRespond: LongFormMove = {
                         return;
                     }
                 } else {
-                    if (choice) {
+                    if (choice === "yes") {
                         log.push(`|roundTwo`);
                         defCCI.choice = BeatGongChoice.CONTINUE;
                         roundTwo(G, ctx);

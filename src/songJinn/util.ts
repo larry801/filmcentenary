@@ -3,6 +3,7 @@ import {
     accumulator,
     ActiveEvents,
     BaseCardID,
+    BeatGongChoice,
     CityID,
     CombatPhase,
     CombatType,
@@ -212,8 +213,8 @@ export const isZhouXing = (t: Troop) => {
 }
 
 
-export const getRetreatDst = (G: SongJinnGame,t: Troop): TroopPlace[] => {
-    return getMarchAdj(G,t.p);
+export const getRetreatDst = (G: SongJinnGame, t: Troop): TroopPlace[] => {
+    return getMarchAdj(G, t.p);
 }
 export const getMarchDst = (G: SongJinnGame, t: Troop): TroopPlace[] => {
     const adj = getMarchAdj(G, t.p);
@@ -1482,7 +1483,6 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
             moveGeneralToReady(G, SJPlayer.P1, SongGeneral.WuLin);
-
         }
     },
     [SongBaseCardID.S45]: {
@@ -2581,7 +2581,7 @@ export const getReadyGeneralNames = (G: SongJinnGame, pid: PlayerID) => {
         return readyGenerals.map(g => GeneralNames[1][g]);
     }
 }
-export const placeToStr = (p: TroopPlace):string => {
+export const placeToStr = (p: TroopPlace): string => {
     return typeof p === "number" && !isNaN(p) ? getRegionById(p).name : p.toString();
 }
 export const sjPlayerName = (l: PlayerID): string => {
@@ -2739,7 +2739,7 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
 
 
 export const removeReadyUnitByCountry = (G: SongJinnGame, units: number[], country: Country) => {
-    const log = [`removeUnitByPlace|${unitsToString(units)}`];
+    const log = [`removeReadyUnitByCountry|${unitsToString(units)}`];
     const pub = ctr2pub(G, country);
     let actualUnits = [...units];
     if (country === Country.SONG) {
@@ -2762,7 +2762,7 @@ export const removeReadyUnitByCountry = (G: SongJinnGame, units: number[], count
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], country: Country, place: TroopPlace) => {
-    const log = [`removeUnitByPlace|${place}|${placeToStr(place)}|${unitsToString(units)}`];
+    const log = [`removeUnitByCountryPlace|${place}|${placeToStr(place)}|${unitsToString(units)}`];
     const pub = ctr2pub(G, country);
     const filtered = pub.troops.filter(t => t.p === place);
     const pid = ctr2pid(country);
@@ -3715,18 +3715,22 @@ export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const hasRangeStrengthTroop = (G: SongJinnGame, t: Troop) => {
-
-    if (t.g === Country.SONG) {
-        return t.u[1] > 0 || t.u[4] > 0 || t.u[5] > 0;
+export const wuLin = (G: SongJinnGame, ctx: Ctx) => {
+    const log = [`wuLin`];
+    const ci = G.combat;
+    ci.phase = CombatPhase.WuLin;
+    const dices = getWuLinDice(G,ci.song.troop);
+    log.push(`|${dices}dices`);
+    rollDiceByPid(G, ctx, SJPlayer.P1,dices);
+    log.push(`|${ci.jinn.damageLeft}jinn.damageLeft`);
+    if (ci.jinn.damageLeft === 0) {
+        jiaoFeng(G, ctx);
     } else {
-        if (G.events.includes(ActiveEvents.JianLiDaQi) && G.jinn.military >= 5) {
-            const qian = t.u[5] > 0 || t.u[6] > 0;
-        } else {
-            return t.u[1] > 0
-        }
+        changePlayerStage(G, ctx, 'takeDamage', SJPlayer.P2);
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
 export const countDice = (G: SongJinnGame, ctr: Country): number => {
     const log = [`count${ctr}Dice`];
     const ci = G.combat;
@@ -3972,7 +3976,7 @@ export const ciAtkTroop = (G: SongJinnGame): Troop => {
     return ci.atk === Country.SONG ? ci.song.troop : ci.jinn.troop;
 }
 
-export const confirmRespondLogText = (G: SongJinnGame, arg: boolean, ctr: Country) => {
+export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country) => {
     if (G.combat.phase === CombatPhase.JieYe) {
         return arg ? "选择接野" : "选择不接野";
     }
@@ -3995,8 +3999,42 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: boolean, ctr: Countr
     return arg ? "选择是" : "选择否";
 }
 
-export const confirmRespondOptions = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
-
+export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+    const beatGongChoices = [
+        {label: BeatGongChoice.RETREAT, value: BeatGongChoice.RETREAT, disabled: false, hidden: false},
+        {label: BeatGongChoice.STALEMATE, value: BeatGongChoice.STALEMATE, disabled: BeatGongChoice.STALEMATE, hidden: false}
+    ]
+    const yesNoOption = [
+        {label: "是", value: "yes", disabled: false, hidden: false},
+        {label: "否", value: "no", disabled: false, hidden: false}
+    ];
+    if (G.combat.phase === CombatPhase.JieYe) {
+        return yesNoOption
+    }
+    if (G.combat.phase === CombatPhase.WeiKun) {
+        return [
+            {label: "围困", value: "yes", disabled: false, hidden: false},
+            {label: "攻城", value: "no", disabled: false, hidden: false}
+        ]
+    }
+    if (G.combat.phase === CombatPhase.MingJin) {
+        const ci = G.combat;
+        const ctr = pid2ctr(pid);
+        if (ctr === ci.atk) {
+            if (canRoundTwo(G)) {
+                beatGongChoices.push({label: BeatGongChoice.CONTINUE, value: BeatGongChoice.CONTINUE, disabled: false, hidden: false},)
+            }
+            return beatGongChoices;
+        } else {
+            if (
+                canForceRoundTwo(G)) {
+                return yesNoOption;
+            } else {
+                return beatGongChoices;
+            }
+        }
+    }
+    return yesNoOption;
 }
 export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
     const ctr = pid2ctr(pid);
@@ -4209,7 +4247,7 @@ export function weiKunTroop(G: SongJinnGame, t: Troop) {
 }
 
 export function troopCanSiege(G: SongJinnGame, t: Troop) {
-    let b = false;
+    let b: boolean;
     oppoPub(G, ctr2pid(t.g));
     const log = [`troopCanSiege|${JSON.stringify(t)}`];
     if (isRegionID(t.p)) {
