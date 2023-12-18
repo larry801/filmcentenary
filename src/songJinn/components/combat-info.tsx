@@ -11,6 +11,7 @@ import {
 import {Ctx, LogEntry, PlayerID} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import {
+    confirmRespondChoices,
     confirmRespondLogText,
     confirmRespondText,
     getCityText,
@@ -141,18 +142,13 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
 
     const choiceDialog = <ChoiceDialog
         callback={(c) => {
-            const opponent = c === "yes";
-            moves.confirmRespond({choice: opponent, text: confirmRespondLogText(G, opponent, ctr)})
+            moves.confirmRespond({choice: c, text: confirmRespondLogText(G, c, ctr)})
         }}
-        choices={[
-            {label: "是", value: "yes", disabled: false, hidden: false},
-            {label: "否", value: "no", disabled: false, hidden: false}
-        ]} defaultChoice={"no"}
+        choices={confirmRespondChoices(G, ctx, npid)} defaultChoice={"no"}
         show={isActive && actualStage(G, ctx) === 'confirmRespond'}
         title={confirmRespondText(G, ctx, npid)}
         toggleText={"请求确认"}
         initial={true}/>;
-
 
 
     return <>

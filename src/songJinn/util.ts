@@ -3978,31 +3978,31 @@ export const ciAtkTroop = (G: SongJinnGame): Troop => {
 
 export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country) => {
     if (G.combat.phase === CombatPhase.JieYe) {
-        return arg ? "选择接野" : "选择不接野";
+        return arg === 'yes' ? "选择接野" : "选择不接野";
     }
     if (G.combat.phase === CombatPhase.WeiKun) {
-        return arg ? "选择围困" : "选择攻城";
+        return arg;
     }
     if (G.combat.phase === CombatPhase.MingJin) {
         const ci = G.combat;
+        const defCCI = ciDefInfo(G);
         if (ctr === ci.atk) {
-            return arg ? "选择继续作战" : "选择撤退";
+            return arg;
         } else {
-            if (
-                canForceRoundTwo(G)) {
-                return arg ? "选择强制第二轮" : "选择不强制第二轮";
+            if (canForceRoundTwo(G) && defCCI.choice !== BeatGongChoice.NO_FORCE_ROUND_TWO) {
+                return arg === "yes" ? "选择强制第二轮" : "选择不强制第二轮";
             } else {
-                return arg ? "选择坚守" : "选择撤退";
+                return arg;
             }
         }
     }
-    return arg ? "选择是" : "选择否";
+    return arg === 'yes' ? "选择是" : "选择否";
 }
 
 export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
     const beatGongChoices = [
-        {label: BeatGongChoice.RETREAT, value: BeatGongChoice.RETREAT, disabled: false, hidden: false},
-        {label: BeatGongChoice.STALEMATE, value: BeatGongChoice.STALEMATE, disabled: BeatGongChoice.STALEMATE, hidden: false}
+        {label: BeatGongChoice.RETREAT.toString(), value: BeatGongChoice.RETREAT.toString(), disabled: false, hidden: false},
+        {label: BeatGongChoice.STALEMATE.toString(), value: BeatGongChoice.STALEMATE.toString(), disabled: false, hidden: false}
     ]
     const yesNoOption = [
         {label: "是", value: "yes", disabled: false, hidden: false},
@@ -4026,8 +4026,7 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
             }
             return beatGongChoices;
         } else {
-            if (
-                canForceRoundTwo(G)) {
+            if (canForceRoundTwo(G)) {
                 return yesNoOption;
             } else {
                 return beatGongChoices;
@@ -4036,13 +4035,14 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
     }
     return yesNoOption;
 }
+
 export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
     const ctr = pid2ctr(pid);
     if (G.combat.phase === CombatPhase.JieYe) {
         return "是否接野？"
     }
     if (G.combat.phase === CombatPhase.WeiKun) {
-        return "对手不接野战 选择是围困 选择否攻城"
+        return "对手不接野战 围困还是攻城"
     }
     if (G.combat.phase === CombatPhase.MingJin) {
         const ci = G.combat;

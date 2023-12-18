@@ -21,7 +21,7 @@ import {
     getCountryById,
     getGeneralNameByCountry, getSkillGeneral,
     pid2pub, phaseName,
-    playerById, remainDevelop, returnDevCardCheck, sjCardById
+    playerById, remainDevelop, returnDevCardCheck, sjCardById, confirmRespondChoices
 } from "../util";
 import {Dices} from "./dices";
 
@@ -230,11 +230,8 @@ export const Operation = ({
         callback={(c) => {
             moves.confirmRespond({choice:c,text:confirmRespondLogText(G,c,ctr)})
         }}
-        choices={[
-            {label: "是", value: "yes", disabled: false, hidden: false},
-            {label: "否", value: "no", disabled: false, hidden: false}
-        ]} defaultChoice={"no"}
-        show={isActive && actualStage( G,ctx)==='confirmRespond' && !G.combat.ongoing}
+        choices={confirmRespondChoices(G,ctx,playerID)} defaultChoice={"no"}
+        show={isActive && actualStage(G,ctx)==='confirmRespond' && !G.combat.ongoing}
         title={confirmRespondText(G, ctx, playerID)}
         toggleText={"请求确认"}
         initial={true}/>

@@ -40,6 +40,7 @@ import {
     changeMilitary,
     checkRecruitCivil,
     ciAtkInfo,
+    ciAtkPid,
     ciAtkTroop,
     ciDefInfo,
     ciDefPid,
@@ -94,7 +95,8 @@ import {
     policyDown,
     policyUp,
     removeGeneral,
-    removeReadyUnitByCountry, removeUnitByCountryPlace,
+    removeReadyUnitByCountry,
+    removeUnitByCountryPlace,
     rollDiceByPid,
     roundTwo,
     sjCardById,
@@ -105,7 +107,8 @@ import {
     troopEndurance,
     troopIsArmy,
     unitsToString,
-    weiKunTroop, wuLin,
+    weiKunTroop,
+    wuLin,
     yuanCheng
 } from "./util";
 import {getCityById} from "./constant/city";
@@ -467,9 +470,9 @@ export const takeDamage: LongFormMove = {
                                     }
                                     endCombat(G, ctx);
                                 } else {
-                                    if(hasGeneral(G,G.combat.song.troop,SongGeneral.WuLin)){
-                                        wuLin(G,ctx);
-                                    }else{
+                                    if (hasGeneral(G, G.combat.song.troop, SongGeneral.WuLin)) {
+                                        wuLin(G, ctx);
+                                    } else {
                                         jiaoFeng(G, ctx);
                                     }
                                 }
@@ -648,7 +651,7 @@ export const removeReadyUnit: LongFormMove = {
         const pub = pid2pub(G, pid);
         const player = playerById(G, pid);
         const {units, country} = arg;
-        removeReadyUnitByCountry(G,units,country);
+        removeReadyUnitByCountry(G, units, country);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -1667,7 +1670,7 @@ export const confirmRespond: LongFormMove = {
         if (ci.phase === CombatPhase.JieYe) {
             log.push(`|JieYe`);
             if (choice) {
-                log.push(`|Feild`);
+                log.push(`|Field`);
                 ci.type = CombatType.FIELD;
                 ci.phase = CombatPhase.YunChou;
                 changePlayerStage(G, ctx, 'combatCard', G.order[0]);
@@ -1730,69 +1733,70 @@ export const confirmRespond: LongFormMove = {
         if (ci.phase === CombatPhase.MingJin) {
             if (ctr === ci.atk) {
                 log.push(`|atk`);
-                if (canForceRoundTwo(G)) {
-                    if (choice === "yes") {
-                        atkCCI.choice = BeatGongChoice.CONTINUE;
-                        changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    } else {
-                        atkCCI.choice = BeatGongChoice.RETREAT;
-                        log.push(`|atkRetreat`);
-                        endCombat(G, ctx);
-                        ctx.events?.endStage();
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    }
-
+                if (canForceRoundTwo(G) && defCCI.choice !== BeatGongChoice.NO_FORCE_ROUND_TWO) {
+                    log.push(`|invalidState|error|manualMove`);
+                    endCombat(G, ctx);
+                    ctx.events?.endStage();
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
                 } else {
-                    if(canForceRoundTwo(G)){
-                        if (choice === "no"){
-                            atkCCI.choice = BeatGongChoice.CONTINUE;
+                    if (choice === BeatGongChoice.CONTINUE) {
+                        atkCCI.choice = BeatGongChoice.CONTINUE;
+                        if (ci.type === CombatType.SIEGE) {
+                            log.push(`|siege|cannot|retreat|roundTwo`);
+                            roundTwo(G, ctx);
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return
+                        } else {
+                            log.push(`|ask|def`);
                             changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
                             logger.debug(`${G.matchID}|${log.join('')}`);
                             return;
                         }
-                    }else{
-
-                    }
-                    if (choice === "yes") {
-                        log.push(`|continue`);
-                        atkCCI.choice = BeatGongChoice.CONTINUE;
                     } else {
-                        log.push(`|retreat`);
-                        atkCCI.choice = BeatGongChoice.RETREAT;
+                        if (choice === BeatGongChoice.RETREAT) {
+                            atkCCI.choice = BeatGongChoice.RETREAT;
+                            log.push(`|atkRetreat`);
+                            endCombat(G, ctx);
+                            ctx.events?.endStage();
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return;
+                        } else {
+                            log.push(`|ask|def`);
+                            changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return;
+                        }
                     }
-                    changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    return;
                 }
             } else {
                 log.push(`|def`);
-                if (
-                    canForceRoundTwo(G)
-                ) {
+                if (canForceRoundTwo(G) && defCCI.choice !== BeatGongChoice.NO_FORCE_ROUND_TWO) {
                     if (choice === "yes") {
                         log.push(`|forcedRoundTwo`);
                         roundTwo(G, ctx);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     } else {
-                        // TODO let atk choose?
-                        endCombat(G, ctx);
-                        ctx.events?.endStage();
+                        defCCI.choice = BeatGongChoice.NO_FORCE_ROUND_TWO;
+                        changePlayerStage(G, ctx, 'confirmRespond', ciAtkPid(G));
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     }
                 } else {
-                    if (choice === "yes") {
-                        log.push(`|roundTwo`);
-                        defCCI.choice = BeatGongChoice.CONTINUE;
-                        roundTwo(G, ctx);
+                    if (choice === BeatGongChoice.STALEMATE) {
+                        log.push(`|stalemate`);
+                        defCCI.choice = BeatGongChoice.STALEMATE;
+                        if (atkCCI.choice === BeatGongChoice.CONTINUE) {
+                            roundTwo(G, ctx);
+                        } else {
+                            endCombat(G, ctx);
+                            ctx.events?.endStage();
+                        }
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     } else {
-                        log.push(`|bothRetreat`);
+                        log.push(`|defRetreat`);
                         defCCI.choice = BeatGongChoice.RETREAT;
                         endCombat(G, ctx);
                         ctx.events?.endStage();

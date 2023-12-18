@@ -758,7 +758,8 @@ export interface CountryCombatInfo {
 export const enum BeatGongChoice {
     CONTINUE = "继续",
     STALEMATE = "相持",
-    RETREAT = "撤退"
+    RETREAT = "撤退",
+    NO_FORCE_ROUND_TWO = "不强制第二轮"
 }
 
 export interface CombatInfo {
