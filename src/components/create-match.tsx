@@ -135,6 +135,10 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
 
     useInterval(refreshLobby, 10000);
 
+    useEffect(() => {
+        refeshLobby();
+    }, []);
+
     return <Grid container>
         <Grid item container xs={12} sm={8}>
             <Button fullWidth color={"secondary"} onChange={refreshLobby}>{i18n.dialog.buyCard.refresh}</Button>
