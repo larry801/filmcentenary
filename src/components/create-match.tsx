@@ -188,7 +188,9 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         </Grid>
         <Grid item container xs={12} sm={4}>
             <Grid item container xs={12} alignItems="center">
-                <Typography>{gameName === 'film' ? "电影百年" : "宋金战争"}</Typography>
+                <Grid item xs={12}>
+                    <Typography variant={"h4"}>{gameName === 'film' ? "电影百年" : "宋金战争"}</Typography>
+                </Grid>
                 <FormControl variant="outlined" className={classes.formControl}>
                     <Grid component="label" container alignItems="center" spacing={1}>
                         <InputLabel htmlFor="outlined-numPlayers-native-simple">{i18n.lobby.numPlayers}</InputLabel>
