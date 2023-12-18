@@ -14,10 +14,10 @@ import {
     confirmRespondLogText,
     confirmRespondText,
     getCityText,
-    getRegionText, getRetreatDst, getSiegeRangeUnitStrength, getTerrainTypeByPlace,
+    getRegionText, getRetreatDst,
     getTroopText, placeToStr,
     playerById,
-    sjCardById,
+    sjCardById, troopEndurance,
     unitsToString
 } from "../util";
 import {Dices} from "./dices";
@@ -95,25 +95,16 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
         toggleText={"消灭部队"} initial={false} country={troop.g}/>
 
 
-    const mockStandby = {
-        g: troop.g,
-        p: troop.p,
-        c: troop.c,
-        u: standbyUnits
-    }
-    const mockReady = {
-        g: troop.g,
-        p: troop.p,
-        c: troop.c,
-        u: readyUnits
-    }
+    const mockStandby = {g: troop.g, p: troop.p, c: troop.c, u: standbyUnits}
+    const mockReady = {g: troop.g, p: troop.p, c: troop.c, u: readyUnits}
 
     const getAllEndurance = () => {
         const all = [...emptyTroop.u]
         for (let i = 0; i < emptyTroop.u.length; i++) {
             all[i] = readyUnits[i] + standbyUnits[i];
         }
-
+        const mockAll = {...emptyTroop,u:all};
+        return troopEndurance(G,mockAll);
     }
 
     const adjustDice = (n: number) => {
@@ -222,7 +213,12 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
                 setReadyUnits(emptyTroop.u);
                 setStandbyUnits(emptyTroop.u);
             }} variant={"outlined"} color={"primary"}>
-                确认受创{readyText} {standbyText}
+                确认受创
+                {readyText}
+                ({troopEndurance(G,mockReady)})
+                {standbyText}
+                ({troopEndurance(G,mockStandby)})
+                ({getAllEndurance()})
             </Button>}
             {pid !== null && isActive && <Grid item>
                 <Button key={'adjust-5'} onClick={() => adjustDice(-5)}>-5</Button>
