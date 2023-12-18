@@ -42,7 +42,7 @@ import {
     removeNation,
     removeOwnGeneral, removeReadyUnit,
     removeUnit,
-    rescueGeneral,
+    rescueGeneral, retreat,
     returnToHand,
     rollDices,
     search,
@@ -95,6 +95,7 @@ export const ChooseRegionsStageConfig: StageConfig<SongJinnGame> = {
 }
 export const ReactStageConfig: StageConfig<SongJinnGame> = {
     moves: {
+        retreat: retreat,
         removeReadyUnit:removeReadyUnit,
         drawExtraCard:drawExtraCard,
         siege:siege,
@@ -116,9 +117,7 @@ export const ReactStageConfig: StageConfig<SongJinnGame> = {
         generalSkill: generalSkill,
         deployGeneral: deployGeneral,
         moveGeneral: moveGeneral,
-
         rescueGeneral: rescueGeneral,
-
         loseCity: loseCity,
         loseProvince: loseProvince,
         controlCity: controlCity,
@@ -356,6 +355,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     turn: StagedTurnConfig,
     moves: {
+        retreat: retreat,
         removeReadyUnit:removeReadyUnit,
         drawExtraCard:drawExtraCard,
         siege:siege,
@@ -439,10 +439,16 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         logger.info(`${log.join('')}`);
     },
     moves: {
-
-        recruitPuppet: recruitPuppet,
-        endRound: endRound,
+        retreat: retreat,
+        removeReadyUnit:removeReadyUnit,
+        drawExtraCard:drawExtraCard,
+        siege:siege,
+        checkProvince:checkProvince,
+        emperor: emperor,
         removeOwnGeneral:removeOwnGeneral,
+        removeNation: removeNation,
+        adjustNation: adjustNation,
+        discard: discard,
         deploy: deploy,
         opponentMove: opponentMove,
         march: march,
@@ -451,14 +457,15 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         removeUnit: removeUnit,
         placeUnit: placeUnit,
         rollDices: rollDices,
+
+        recruitPuppet: recruitPuppet,
+        endRound: endRound,
         loseCity: loseCity,
         loseProvince: loseProvince,
         placeTroop: placeTroop,
         down: down,
         takePlan: takePlan,
         chooseTop: chooseTop,
-        removeNation: removeNation,
-        adjustNation: adjustNation,
 
         develop:develop,
         //removeCompletedPlan:removeCompletedPlan

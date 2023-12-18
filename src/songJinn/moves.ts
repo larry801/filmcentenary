@@ -95,7 +95,7 @@ import {
     troopEmpty, troopEndurance, troopIsArmy,
     unitsToString,
     weiKunTroop,
-    yuanCheng, drawCardForSong, drawCardForJinn, removeReadyUnitByCountry
+    yuanCheng, drawCardForSong, drawCardForJinn, removeReadyUnitByCountry, doMoveTroop
 } from "./util";
 import {getCityById} from "./constant/city";
 
@@ -791,10 +791,8 @@ export const recruitPuppet: LongFormMove = {
         if (jt === null) {
             if (qi) {
                 addTroop(G, getCityById(dst).region, [0, 0, 0, 0, 0, 0, 1], Country.JINN);
-
             } else {
                 addTroop(G, getCityById(dst).region, [0, 0, 0, 0, 0, 1, 0], Country.JINN);
-
             }
         } else {
             if (qi) {
@@ -827,7 +825,19 @@ export const moveGeneral: LongFormMove = {
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
-
+export const retreat: LongFormMove = {
+    move: (G, ctx, arg: IMoveTroopArgs) => {
+        const pid = ctx.playerID;
+        const log = [`retreat`];
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`${G.matchID}|p${pid}.moves.retreat(${JSON.stringify(arg)})`);
+        const {src, dst, country} = arg;
+        doMoveTroop(G,src,dst,country);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    }
+}
 
 export interface IMoveTroopArgs {
     src: Troop,
@@ -844,28 +854,7 @@ export const moveTroop: LongFormMove = {
         logger.info(`p${pid}.moves.moveTroop(${JSON.stringify(args)})`);
         const log = [`moveTroop`];
         const {src, dst, country} = args;
-        log.push(`|${placeToStr(src.p)}`);
-        const pub = country === Country.SONG ? G.song : G.jinn;
-        const idx = pub.troops.indexOf(src);
-        const t = pub.troops[idx];
-        if (t === undefined) {
-            return INVALID_MOVE;
-        }
-        const destTroops = pub.troops.filter((t: Troop) => t.p === dst);
-        if (destTroops.length > 0) {
-            const d = destTroops[0];
-            mergeTroopTo(G, idx, pub.troops.indexOf(d), pid);
-        } else {
-            t.p = dst;
-            if (isRegionID(dst)) {
-                const region = getRegionById(dst);
-                t.c = region.city;
-            }
-            const g = getPlaceGeneral(G, pid, t.p);
-            if (g.length > 0) {
-                g.forEach(gen => moveGeneralByPid(G, pid, gen, dst));
-            }
-        }
+        doMoveTroop(G,src,dst,country);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -1639,7 +1628,9 @@ export const confirmRespond: LongFormMove = {
         const atkCCI = ciAtkInfo(G);
         const defCCI = ciDefInfo(G);
         log.push(`|${text}`);
+        log.push(`|${ci.phase}ci.phase`);
         if (ci.phase === CombatPhase.JieYe) {
+            log.push(`|JieYe`);
             if (choice) {
                 log.push(`|Feild`);
                 ci.type = CombatType.FIELD;
@@ -1648,7 +1639,7 @@ export const confirmRespond: LongFormMove = {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             } else {
-                log.push(`|opponentChoose`);
+                log.push(`|NoField|opponentChoose`);
                 changePlayerStage(G, ctx, 'confirmRespond', oppoPid(pid));
                 ci.phase = CombatPhase.WeiKun;
                 logger.debug(`${G.matchID}|${log.join('')}`);
@@ -1657,6 +1648,7 @@ export const confirmRespond: LongFormMove = {
         }
         if (ci.phase === CombatPhase.WeiKun) {
             if (choice) {
+                log.push(`|doWeiKun`);
                 let atk = ciAtkTroop(G);
                 atk.c = null;
                 let def = ciDefTroop(G);
@@ -1673,7 +1665,7 @@ export const confirmRespond: LongFormMove = {
                         log.push(`|isRegion`);
                         const regionCity = getRegionById(def.p).city;
                         if (regionCity === null) {
-                            log.push(`|error|mannual|move`);
+                            log.push(`|error|manual|move`);
                             endCombat(G, ctx);
                             logger.debug(`${G.matchID}|${log.join('')}`);
                             return;
@@ -1683,7 +1675,7 @@ export const confirmRespond: LongFormMove = {
                         }
                     }
                 } else {
-                    log.push(`|hasCity}`);
+                    log.push(`|hasCity`);
                     weiKunTroop(G, def);
                 }
                 log.push(`|${JSON.stringify(atkCCI.troop)}atk`);
@@ -1692,21 +1684,18 @@ export const confirmRespond: LongFormMove = {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             } else {
-                log.push(`|siege`);
+                log.push(`|siege|cc`);
                 ci.type = CombatType.SIEGE;
                 ci.phase = CombatPhase.YunChou;
-
                 changePlayerStage(G, ctx, 'combatCard', G.order[0]);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             }
         }
-        if (G.combat.phase === CombatPhase.MingJin) {
-            const ci = G.combat;
+        if (ci.phase === CombatPhase.MingJin) {
             if (ctr === ci.atk) {
-                if (
-                    canForceRoundTwo(G)
-                ) {
+                log.push(`|atk`);
+                if (canForceRoundTwo(G)) {
                     if (choice) {
                         atkCCI.choice = BeatGongChoice.CONTINUE;
                         changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
@@ -1723,8 +1712,10 @@ export const confirmRespond: LongFormMove = {
 
                 } else {
                     if (choice) {
+                        log.push(`|continue`);
                         atkCCI.choice = BeatGongChoice.CONTINUE;
                     } else {
+                        log.push(`|retreat`);
                         atkCCI.choice = BeatGongChoice.RETREAT;
                     }
                     changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
@@ -1732,10 +1723,12 @@ export const confirmRespond: LongFormMove = {
                     return;
                 }
             } else {
+                log.push(`|def`);
                 if (
                     canForceRoundTwo(G)
                 ) {
                     if (choice) {
+                        log.push(`|forcedRoundTwo`);
                         roundTwo(G, ctx);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
@@ -1748,11 +1741,13 @@ export const confirmRespond: LongFormMove = {
                     }
                 } else {
                     if (choice) {
+                        log.push(`|roundTwo`);
                         defCCI.choice = BeatGongChoice.CONTINUE;
                         roundTwo(G, ctx);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     } else {
+                        log.push(`|bothRetreat`);
                         defCCI.choice = BeatGongChoice.RETREAT;
                         endCombat(G, ctx);
                         ctx.events?.endStage();

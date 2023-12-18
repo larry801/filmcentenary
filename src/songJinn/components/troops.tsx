@@ -288,7 +288,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             });
             setMarchStep(MarchStep.TROOP);
         }}
-        choices={getMarchDst(G, marchTroop.p, marchTroop).map(r => {
+        choices={getMarchDst(G, marchTroop).map(r => {
             if (r == null) {
                 return {
                     label: "",

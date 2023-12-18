@@ -9,6 +9,11 @@ const gameWithSeed = (seed: string) => ({
     seed
 });
 
+function combatState(p0: any) {
+    console.log(JSON.stringify(p0.getState().G.combat));
+    console.log(JSON.stringify(p0.getState().ctx));
+}
+
 // @ts-ignore
 it('should declare player 1 as the winner', () => {
     const spec = {
@@ -42,23 +47,44 @@ it('should declare player 1 as the winner', () => {
     p0.moves.combatCard([]);
     p1.moves.combatCard([]);
 
-    console.log(JSON.stringify(p0.getState().G.combat));
-    console.log(JSON.stringify(p0.getState().G.combat.song));
-    console.log(JSON.stringify(p0.getState().G.combat.jinn));
-    p0.moves.takeDamage({
-        src:{},
-        idx:0,
-        p:42,
-        ready: [0, 0, 0, 0, 0, 0],
-        standby: [0, 0, 0, 0, 0, 0],
-    });
+    combatState(p0);
+
     p1.moves.takeDamage({
-        src:{},
-        idx:0,
-        p:42,
+        src: 42,
+        idx: 0,
+        p: 42,
         ready: [0, 0, 0, 0, 0, 0],
         standby: [0, 0, 0, 0, 0, 0],
     });
+    p0.moves.takeDamage({
+        src: 42,
+        idx: 0,
+        p: 42,
+        ready: [0, 0, 0, 0, 0, 0],
+        standby: [0, 0, 0, 0, 0, 0],
+    });
+
+    combatState(p0);
+    p1.moves.takeDamage({
+        src: 42,
+        idx: 0,
+        p: 42,
+        ready: [0, 0, 0, 0, 0, 0],
+        standby: [0, 0, 0, 0, 0, 0],
+    });
+
+    p0.moves.takeDamage({
+        src: 42,
+        idx: 0,
+        p: 42,
+        ready: [0, 0, 0, 0, 0, 0],
+        standby: [0, 0, 0, 0, 0, 0],
+    });
+
+    combatState(p0);
+    p1.moves.confirmRespond({"choice": false, "text": ""});
+    p0.moves.confirmRespond({"choice": false, "text": ""});
+    combatState(p0);
 
 
     p0.stop();

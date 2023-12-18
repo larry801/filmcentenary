@@ -211,8 +211,12 @@ export const isZhouXing = (t: Troop) => {
     return t.u[3] > 0;
 }
 
-export const getMarchDst = (G: SongJinnGame, dst: TroopPlace, t: Troop): TroopPlace[] => {
-    const adj = getMarchAdj(G, dst);
+
+export const getRetreatDst = (G: SongJinnGame,t: Troop): TroopPlace[] => {
+    return getMarchAdj(G,t.p);
+}
+export const getMarchDst = (G: SongJinnGame, t: Troop): TroopPlace[] => {
+    const adj = getMarchAdj(G, t.p);
     let res: TroopPlace[] = [...adj];
     if (isQiXing(t) || isZhouXing(t) || hasGeneral(G, t, SongGeneral.LiXianZhong)) {
         adj.forEach(p => {
@@ -399,7 +403,7 @@ export const getTroopByCountryPlace = (G: SongJinnGame, ctr: Country, src: Troop
     return ctr === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src)
 }
 export const getJinnTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | null => {
-    const log = [`getJinnTroopByPlace|${r}`];
+    const log = [`getJinnTroopByPlace|${JSON.stringify(r)}`];
     let result = null;
     G.jinn.troops.forEach(t => {
         if (t.p === r) {
@@ -407,6 +411,7 @@ export const getJinnTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
             result = t;
         }
     });
+    log.push(`|${JSON.stringify(result)}result`);
     logger.warn(`${G.matchID}|${log.join('')}`);
     return result;
 }
@@ -2576,8 +2581,8 @@ export const getReadyGeneralNames = (G: SongJinnGame, pid: PlayerID) => {
         return readyGenerals.map(g => GeneralNames[1][g]);
     }
 }
-export const placeToStr = (p: TroopPlace) => {
-    return typeof p === "number" && !isNaN(p) ? getRegionById(p).name : p;
+export const placeToStr = (p: TroopPlace):string => {
+    return typeof p === "number" && !isNaN(p) ? getRegionById(p).name : p.toString();
 }
 export const sjPlayerName = (l: PlayerID): string => {
     return l === SJPlayer.P1 ? "宋" : "金";
@@ -3291,6 +3296,9 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             break;
                         case 'placeTroop':
                             log += `在${placeToStr(arg.dst)}放置${unitsToString(arg.units)}`;
+                            break;
+                        case 'retreat':
+                            log += `${placeToStr(arg.src.p)}${arg.country}撤退到${placeToStr(arg.dst)}`;
                             break;
                         case 'moveTroop':
                             log += `${placeToStr(arg.src.p)}${arg.country}全军移动到${placeToStr(arg.dst)}`;
@@ -4244,6 +4252,10 @@ export function troopIsArmy(G: SongJinnGame, _ctx: Ctx, troop: Troop) {
     return troopEndurance(G, troop) !== 0;
 }
 
+export function getWuLinDice(G: SongJinnGame, t: Troop): number {
+    return Math.max(t.u[0], t.u[1]);
+}
+
 export function getRangeStrength(G: SongJinnGame, t: Troop): number {
     const log = [`getRangeStrength`];
     const unitStrength = troopRange(G, t);
@@ -4310,6 +4322,56 @@ export function getGeneralCCRange(G: SongJinnGame, t: Troop): number {
     logger.debug(`${G.matchID}|${log.join('')}`);
     return mod;
 }
+
+
+export function getMeleeStr(G: SongJinnGame, t: Troop): number {
+    const log = [`getMeleeStr`];
+    const fromUnit = 0;
+    const genCCMod = getGeneralCCMelee(G, t);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return 0;
+}
+
+export function getGeneralCCMelee(G: SongJinnGame, t: Troop): number {
+    const log = [`getGeneralCCMelee`];
+    const ci = G.combat;
+    let mod = 0;
+    const cc = ciCtrInfo(G, t.g).combatCard;
+    if (cc.includes(SongBaseCardID.S12)) {
+        log.push(`|ZhanChe`);
+        mod += t.u[0];
+        log.push(`|${mod}mod`);
+    }
+    const generals = getPlaceCountryGeneral(G, t.g, t.p);
+    const unitCount = t.u.reduce(accumulator);
+    log.push(`|${unitCount}unitount`);
+    if (t.g === Country.JINN) {
+        if (generals.includes(JinnGeneral.WuZhu) && ci.atk === Country.JINN) {
+            log.push(`|wuZhuAtk`);
+            mod += 2;
+            log.push(`|${mod}mod`);
+        }
+    } else {
+        if (generals.includes(SongGeneral.LiXianZhong)) {
+            log.push(`|LiXianZhong`);
+            mod += t.u[2];
+            log.push(`|${mod}mod`);
+        }
+        if (generals.includes(SongGeneral.WuLin) && ci.atk === Country.SONG) {
+            log.push(`|wuLinAtk`);
+            mod += unitCount;
+            log.push(`|${mod}mod`);
+        }
+        if (generals.includes(SongGeneral.WuJie) && ci.atk === Country.JINN) {
+            log.push(`|wuJieDef`);
+            mod += unitCount;
+            log.push(`|${mod}mod`);
+        }
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return mod;
+}
+
 
 export function unitRangeStr(G: SongJinnGame, troop: Troop) {
     const log = [`unitRangeStr`];
@@ -5245,10 +5307,42 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
         }
     }
 }
+
+export const doMoveTroop = (
+    G: SongJinnGame, src: Troop,
+    dst: TroopPlace, country: Country
+) => {
+    const log = [`doMoveTroop`];
+    log.push(`|${JSON.stringify(src)}src`);
+    log.push(`|${placeToStr(src.p)}|src`);
+    log.push(`|${placeToStr(dst)}|dst`);
+    const pub = country === Country.SONG ? G.song : G.jinn;
+    const pid = ctr2pid(country);
+    const idx = pub.troops.indexOf(src);
+    const t = pub.troops[idx];
+    if (t === undefined) {
+        return INVALID_MOVE;
+    }
+    const destTroops = pub.troops.filter((t: Troop) => t.p === dst);
+    if (destTroops.length > 0) {
+        const d = destTroops[0];
+        mergeTroopTo(G, idx, pub.troops.indexOf(d), pid);
+    } else {
+        t.p = dst;
+        if (isRegionID(dst)) {
+            const region = getRegionById(dst);
+            t.c = region.city;
+        }
+        const g = getPlaceGeneral(G, pid, t.p);
+        if (g.length > 0) {
+            g.forEach(gen => moveGeneralByPid(G, pid, gen, dst));
+        }
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
 export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, place: TroopPlace) => {
-    const log = [
-        `doPlaceUnit|${unitsToString(units)}${country}${placeToStr(place)}`
-    ];
+    const log = [`doPlaceUnit|${unitsToString(units)}${country}${placeToStr(place)}`];
 
     const target = ctr2pid(country);
     const pub = pid2pub(G, target);

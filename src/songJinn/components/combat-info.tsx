@@ -3,7 +3,7 @@ import {
     accumulator,
     Country,
     emptySongTroop,
-    MAX_DICES,
+    MAX_DICES, RegionID,
     SJPlayer,
     SongJinnGame,
     UNIT_SHORTHAND,
@@ -14,8 +14,8 @@ import {
     confirmRespondLogText,
     confirmRespondText,
     getCityText,
-    getRegionText, getSiegeRangeUnitStrength, getTerrainTypeByPlace,
-    getTroopText,
+    getRegionText, getRetreatDst, getSiegeRangeUnitStrength, getTerrainTypeByPlace,
+    getTroopText, placeToStr,
     playerById,
     sjCardById,
     unitsToString
@@ -59,6 +59,26 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
     const standbyText = standbySum > 0 ? `死${unitsToString(standbyUnits)}` : '';
     const unitNames = pid === SJPlayer.P2 ? UNIT_SHORTHAND[1] : UNIT_SHORTHAND[0];
 
+    const retreatDialog  = <ChoiceDialog
+        callback={(c) => {
+            const regID = parseInt(c) as RegionID;
+                moves.moveTroop({
+                    src: troop,
+                    dst: regID,
+                    country: troop.g
+                })
+        }}
+        choices={getRetreatDst(G,troop).map(r => {
+            return {
+                label: placeToStr(r),
+                value: r.toString(),
+                hidden: false,
+                disabled: false
+            }
+        })} defaultChoice={""} show={isActive}
+        title={"选择撤退目标区域"}
+        popAfterShow={false}
+        toggleText={"撤退"} initial={false}/>;
 
     const takeDamageReadyDialog = <ChooseUnitsDialog
         callback={(u) => {
@@ -189,7 +209,7 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
             {showCC}
             {combatCardDialog}
             {choiceDialog}
-
+            {retreatDialog}
             {isActive && actualStage(G, ctx) === 'takeDamage' && <Button
                 fullWidth onClick={() => {
                 moves.takeDamage({
