@@ -327,6 +327,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             for (let i = 0; i < c.length; i++) {
                 march[i] = marchTroop.u[i] - c[i];
             }
+            console.log(unitsToString(march));
+            setMarchUnits([...march]);
             setMarchStep(MarchStep.TARGET);
             setMarchGenerals(getPlaceCountryGeneral(G, marchTroop.g, marchTroop.p));
         }} max={[...marchTroop.u]} initUnits={emptyUnitsByCountry(marchTroop.g)}

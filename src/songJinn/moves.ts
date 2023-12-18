@@ -1,5 +1,6 @@
 import {Ctx, LongFormMove} from "boardgame.io";
 import {
+    accumulator,
     ActiveEvents,
     BaseCardID,
     BeatGongChoice,
@@ -225,6 +226,10 @@ export const march: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
+        if (units.reduce(accumulator) === 0) {
+            log.push(`|no|units`);
+            return INVALID_MOVE;
+        }
         // @ts-ignore
         if (dst === undefined || dst === "" || dst === null) {
             return INVALID_MOVE;
@@ -320,10 +325,10 @@ export const march: LongFormMove = {
         const oppoTroop = getOpponentPlaceTroopById(G, pid, newDst);
         log.push(`|${JSON.stringify(oppoTroop)}oppoTroop`);
         if (oppoTroop !== null) {
-            const oppoE = troopEndurance(G,oppoTroop);
-            if (oppoE > 0){
+            const oppoE = troopEndurance(G, oppoTroop);
+            if (oppoE > 0) {
 
-            }else{
+            } else {
 
             }
             if (isNationID(newDst)) {
@@ -479,7 +484,7 @@ export const takeDamage: LongFormMove = {
                         endCombat(G, ctx);
                     } else {
                         if (atkEn === 0) {
-                            removeZeroTroop(G,ctx,ciAtkTroop(G));
+                            removeZeroTroop(G, ctx, ciAtkTroop(G));
                             logger.debug(`${G.matchID}|${log.join('')}`);
                             return;
                         } else {
@@ -490,7 +495,7 @@ export const takeDamage: LongFormMove = {
                                         doLoseCity(G, ciDefPid(G), region.city, true);
                                     }
                                 }
-                                removeZeroTroop(G,ctx,ciDefTroop(G));
+                                removeZeroTroop(G, ctx, ciDefTroop(G));
                                 logger.debug(`${G.matchID}|${log.join('')}`);
                                 return;
                             } else {
