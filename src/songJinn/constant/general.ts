@@ -1018,6 +1018,8 @@ export interface SongJinnGame {
         events: PendingEvents[],
         regions: RegionID[],
         cities: CityID[],
+        places: TroopPlace[],
+        generals: General[],
     }
     op: number,
     qi: ProvinceID[],
@@ -1056,6 +1058,8 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
             events: [],
             regions: [],
             cities: [],
+            places: [],
+            generals: [],
         },
         qi: [],
         op: 0,

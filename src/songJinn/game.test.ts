@@ -82,6 +82,25 @@ describe('diplomacy', () => {
         expect(p0.getState().G.song.nations.includes("吐蕃"));
         expect(!p0.getState().G.song.nations.includes("西辽"));
     });
+    it('no_letter',()=>{
+        p0.moves.endRound();
+        p1.moves.endRound();
+        p0.moves.takePlan(["J01"]);
+        p0.moves.chooseTop("J01");
+        p0.moves.endRound();
+        p1.moves.takePlan(["J02"]);
+        p1.moves.chooseTop("J02");
+        p1.moves.endRound();
+        console.log(JSON.stringify(p0.getState().G.song.nations));
+        console.log(JSON.stringify(p0.getState().G.jinn.nations));
+        console.log(JSON.stringify(p0.getState().ctx));
+        expect(!p0.getState().G.song.nations.includes("吐蕃"));
+        expect(!p0.getState().G.jinn.nations.includes("吐蕃"));
+        expect(p0.getState().G.song.nations.includes("大理"));
+        expect(p0.getState().G.song.nations.includes("西辽"));
+        expect(p0.getState().G.song.nations.includes("西夏"));
+        expect(p0.getState().G.song.nations.includes("高丽"));
+    })
     it('march', () => {
         console.log(JSON.stringify(p0.getState().G.player));
         p0.moves.op("S11");
@@ -93,23 +112,36 @@ describe('diplomacy', () => {
         p1.moves.march({"src": 36, "dst": 42, "units": [3, 4, 2, 0, 1, 0, 0], "generals": [0, 1], "country": "金"});
 
         p0.moves.confirmRespond({"choice": "no", "text": "选择不接野"});
-        p1.moves.confirmRespond({"choice": "围困", "text": ""});
+        p1.moves.confirmRespond({"choice": "攻城", "text": "攻城"});
+
+        p0.moves.combatCard([]);
+
+        p1.moves.combatCard([]);
+
+        p1.moves.takeDamage({
+            src: 42,
+            idx: 0,
+            p: 42,
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+        p0.moves.takeDamage({
+            src: 42,
+            idx: 0,
+            p: 42,
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+
         combatState(p0);
-        p1.moves.march({"src": 42, "dst": 28, "units": [2, 2, 2, 0, 1, 0, 0], "generals": [0], "country": "金"});
-        combatState(p0);
-
-
-        // p0.moves.combatCard([]);
-
-        // p1.moves.combatCard([]);
-
-        // p1.moves.takeDamage({
-        //     src: 42,
-        //     idx: 0,
-        //     p: 42,
-        //     ready: [0, 0, 0, 0, 0, 0],
-        //     standby: [0, 0, 0, 0, 0, 0],
-        // });
+        p1.moves.takeDamage({
+            src: 42,
+            idx: 0,
+            p: 42,
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+        //
         // p0.moves.takeDamage({
         //     src: 42,
         //     idx: 0,
@@ -117,23 +149,18 @@ describe('diplomacy', () => {
         //     ready: [0, 0, 0, 0, 0, 0],
         //     standby: [0, 0, 0, 0, 0, 0],
         // });
-        //
+
+
+        combatState(p0);
+        p1.moves.confirmRespond({"choice": "撤退", "text": ""});
         // combatState(p0);
-        // p1.moves.takeDamage({
-        //     src: 42,
-        //     idx: 0,
-        //     p: 42,
-        //     ready: [0, 0, 0, 0, 0, 0],
-        //     standby: [0, 0, 0, 0, 0, 0],
-        // });
-        //
-        // p0.moves.takeDamage({
-        //     src: 42,
-        //     idx: 0,
-        //     p: 42,
-        //     ready: [0, 0, 0, 0, 0, 0],
-        //     standby: [0, 0, 0, 0, 0, 0],
-        // });
+        combatState(p0);
+        p1.moves.march({"src": 42, "dst": 27, "units": [2, 2, 2, 0, 1, 0, 0], "generals": [0], "country": "金"});
+        combatState(p0);
+        p0.moves.confirmRespond({"choice": "no", "text": "选择不接野"});
+        p1.moves.confirmRespond({"choice": "围困", "text": ""});
+
+
     });
 });
 

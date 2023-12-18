@@ -26,12 +26,12 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
         let r = JSON.parse(JSON.stringify(G));
         r.song.handCount = r.player['0'].hand.length;
         r.jinn.handCount = r.player['1'].hand.length;
-        if(playerID===null){
+        if (playerID === null) {
             delete r.player
-        }else{
-            if (playerID === SJPlayer.P1){
+        } else {
+            if (playerID === SJPlayer.P1) {
                 delete r.player['1']
-            }else{
+            } else {
                 delete r.player['0']
             }
         }

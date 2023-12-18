@@ -153,6 +153,11 @@ const StagedTurnConfig: TurnConfig<SongJinnGame> = {
                 showCC: showCC
             }
         },
+        rescueGeneral: {
+            moves: {
+                rescueGeneral: rescueGeneral
+            }
+        },
         showCC: {
             moves: {
                 showCC: showCC

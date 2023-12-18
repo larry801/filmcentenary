@@ -1,5 +1,5 @@
 import React from "react";
-import {Ctx} from "boardgame.io";
+import {Ctx, PlayerID} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import Paper from "@material-ui/core/Paper";
 import {getPlanById} from "../constant/plan";
@@ -7,6 +7,7 @@ import {ActiveEvents, SJPlayer, SJPubInfo, SongJinnGame} from "../constant/gener
 import Typography from "@material-ui/core/Typography";
 
 import {
+    cardToSearch,
     getCityText,
     getJinnPower,
     getJinnScore,
@@ -34,19 +35,21 @@ export interface IPubInfo {
 export interface ICPubInfo {
     G: SongJinnGame,
     pub: SJPubInfo,
-    ctx: Ctx
+    ctx: Ctx;
+    pid: PlayerID;
 }
 
-export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
+export const CountryPubInfo = ({pub, G, ctx, pid}: ICPubInfo) => {
     const s = pub;
 
     const reversedPlan = [...s.completedPlan].reverse();
+    const searchCards = cardToSearch(G, ctx, pid);
     return <Grid>
         <div><label>军事：</label>{s.military}</div>
         <div><label>内政：</label>{s.civil}</div>
         <div><label>腐败：</label>{s.corruption}</div>
         <div><label>盟国：</label>{s.nations.join(',')}</div>
-        <div><label>预备区：{unitsToString(s.ready)} {getReadyGeneralNames(G, SJPlayer.P1).join('')}</label></div>
+        <div><label>预备区：{unitsToString(s.ready)} {getReadyGeneralNames(G, pid).join('')}</label></div>
         <div><label>手牌数：{pub.handCount}</label></div>
         <div><label>皇帝：{s.emperor === null ? "" : s.emperor}</label></div>
         <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
@@ -67,6 +70,8 @@ export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
         } defaultChoice={""} show={true} title={`查看占领城市`} toggleText={`城市${s.cities.length}`} initial={false}/>
         <div><ShowCards cards={s.discard} title={"查看弃牌"} toggleText={`弃牌${s.discard.length}`}/></div>
         <div><ShowCards cards={s.remove} title={"查看移除"} toggleText={`移除牌${s.remove.length}`}/></div>
+        <div><ShowCards cards={searchCards} title={"手牌+牌堆"}
+                        toggleText={`手牌+牌堆${searchCards.length}`}/></div>
         <div><label>备用兵区： {unitsToString(s.standby)}</label></div>
         <ErrorBoundary>
             <Dices pub={s}/>
@@ -93,7 +98,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
 
             <div><label>政策：</label>{getPolicy(G)}</div>
             <div><label>国力：</label>{getSongPower(G)}</div>
-            <CountryPubInfo G={G} pub={G.song} ctx={ctx}/>
+            <CountryPubInfo G={G} pub={G.song} ctx={ctx} pid={SJPlayer.P1}/>
             {ctx.phase === 'develop' &&
                 <div><label> 使用/总发展点数： {G.song.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P1)} </label></div>}
             {G.turn > 6 && <div><label>绍兴和议分数：{getSongScore(G)}</label></div>}
@@ -102,7 +107,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
         <Grid item xs={6} key={`jinn-pub`}><Paper><label>金</label>
             <div><label>殖民：</label>{G.colony}</div>
             <div><label>国力：</label>{getJinnPower(G)}</div>
-            <CountryPubInfo G={G} pub={G.jinn} ctx={ctx}/>
+            <CountryPubInfo G={G} pub={G.jinn} ctx={ctx} pid={SJPlayer.P2}/>
             {/*// TODO 和议 分数 分类*/}
             {ctx.phase === 'develop' &&
                 <div><label> 使用/总发展点数： {G.jinn.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P2)} </label></div>}

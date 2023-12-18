@@ -21,7 +21,7 @@ import {
     getCountryById,
     getGeneralNameByCountry, getSkillGeneral,
     pid2pub, phaseName,
-    playerById, remainDevelop, returnDevCardCheck, sjCardById, confirmRespondChoices
+    playerById, remainDevelop, sjCardById, confirmRespondChoices
 } from "../util";
 import {Dices} from "./dices";
 

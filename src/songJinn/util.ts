@@ -570,6 +570,13 @@ export const getCombatStateById = (G: SongJinnGame, pid: PlayerID) => {
         return G.combat.jinn;
     }
 }
+export const pid2cci = (G: SongJinnGame, pid: PlayerID) => {
+    if (pid as SJPlayer === SJPlayer.P1) {
+        return G.combat.song;
+    } else {
+        return G.combat.jinn;
+    }
+}
 export const pid2pub = (G: SongJinnGame, pid: PlayerID) => {
     if (pid as SJPlayer === SJPlayer.P1) {
         return G.song;
@@ -2660,7 +2667,7 @@ export const doLoseCity = (G: SongJinnGame, pid: PlayerID, cityID: CityID, oppon
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const nationMoveJinn = (G: SongJinnGame, c: NationID) => {
-    const log = [`nationMoveJinn|${c}`]  ;
+    const log = [`nationMoveJinn|${c}`];
     log.push(`|${JSON.stringify(G.song.nations)}G.song.nations`);
     log.push(`|${JSON.stringify(G.jinn.nations)}G.jinn.nations`);
     if (G.song.nations.includes(c)) {
@@ -2805,6 +2812,45 @@ export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], count
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
+export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
+    const log = [`removeZeroTroop`];
+    const pid = ctr2pid(t.g);
+    const pub = pid2pub(G, pid);
+    log.push(`|${JSON.stringify(t)}t`);
+    removeUnitByCountryPlace(G, t.u, t.g, t.p);
+    const gen = getPlaceGeneral(G, pid, t.p);
+    log.push(`|${JSON.stringify(gen)}generals`);
+    if (t.g === Country.JINN && gen.includes(JinnGeneral.WuZhu)) {
+        log.push(`|wuZhuReady`);
+        moveGeneralToReady(G, pid, JinnGeneral.WuZhu);
+        if (gen.includes(JinnGeneral.WuZhu)) {
+            log.push(`|${JSON.stringify(gen)}gen`);
+            gen.splice(gen.indexOf(JinnGeneral.WuZhu), 1);
+            log.push(`|${JSON.stringify(gen)}gen`);
+        }
+    }
+    if (gen.length > 0) {
+        if (pub.develop.length > 0) {
+            G.pending.generals = [...gen];
+            changePlayerStage(G, ctx, 'rescueGeneral', pid);
+        } else {
+            gen.forEach(g => {
+                if (t.g === Country.JINN && g === JinnGeneral.WuZhu) {
+                    log.push(`|wuZhu|ready`);
+                    moveGeneralToReady(G, pid, g);
+                } else {
+                    log.push(`|rm${getGeneralNameByCountry(t.g,g)}`);
+                    removeGeneral(G, pid, g);
+                }
+            });
+            log.push(`|endCombat`);
+            endCombat(G, ctx);
+        }
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
 export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerID, place: TroopPlace) => {
     const log = [`removeUnitByPlace|${placeToStr(place)}|${unitsToString(units)}`]
     const pub = pid2pub(G, pid);
@@ -3738,9 +3784,9 @@ export const wuLin = (G: SongJinnGame, ctx: Ctx) => {
     const log = [`wuLin`];
     const ci = G.combat;
     ci.phase = CombatPhase.WuLin;
-    const dices = getWuLinDice(G,ci.song.troop);
+    const dices = getWuLinDice(G, ci.song.troop);
     log.push(`|${dices}dices`);
-    rollDiceByPid(G, ctx, SJPlayer.P1,dices);
+    rollDiceByPid(G, ctx, SJPlayer.P1, dices);
     log.push(`|${ci.jinn.damageLeft}jinn.damageLeft`);
     if (ci.jinn.damageLeft === 0) {
         jiaoFeng(G, ctx);
@@ -4020,8 +4066,18 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country
 
 export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
     const beatGongChoices = [
-        {label: BeatGongChoice.RETREAT.toString(), value: BeatGongChoice.RETREAT.toString(), disabled: false, hidden: false},
-        {label: BeatGongChoice.STALEMATE.toString(), value: BeatGongChoice.STALEMATE.toString(), disabled: false, hidden: false}
+        {
+            label: BeatGongChoice.RETREAT.toString(),
+            value: BeatGongChoice.RETREAT.toString(),
+            disabled: false,
+            hidden: false
+        },
+        {
+            label: BeatGongChoice.STALEMATE.toString(),
+            value: BeatGongChoice.STALEMATE.toString(),
+            disabled: false,
+            hidden: false
+        }
     ]
     const yesNoOption = [
         {label: "是", value: "yes", disabled: false, hidden: false},
@@ -4041,7 +4097,12 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
         const ctr = pid2ctr(pid);
         if (ctr === ci.atk) {
             if (canRoundTwo(G)) {
-                beatGongChoices.push({label: BeatGongChoice.CONTINUE, value: BeatGongChoice.CONTINUE, disabled: false, hidden: false},)
+                beatGongChoices.push({
+                    label: BeatGongChoice.CONTINUE,
+                    value: BeatGongChoice.CONTINUE,
+                    disabled: false,
+                    hidden: false
+                },)
             }
             return beatGongChoices;
         } else {
@@ -4235,6 +4296,10 @@ export function startCombat(
         }
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+export function continueCombat(G: SongJinnGame, ctx: Ctx) {
+
 }
 
 

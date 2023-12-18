@@ -34,7 +34,7 @@ import {changePlayerStage} from "../game/logFix";
 
 import {
     addTroop,
-    canForceRoundTwo,
+    canForceRoundTwo, canRoundTwo,
     cardToSearch,
     changeCivil,
     changeMilitary,
@@ -87,7 +87,7 @@ import {
     nationMoveSong,
     oppoPid,
     oppoPlayerById,
-    oppoPub,
+    oppoPub, pid2cci,
     pid2ctr,
     pid2pub,
     placeToStr,
@@ -96,7 +96,7 @@ import {
     policyUp,
     removeGeneral,
     removeReadyUnitByCountry,
-    removeUnitByCountryPlace,
+    removeUnitByCountryPlace, removeZeroTroop,
     rollDiceByPid,
     roundTwo,
     sjCardById,
@@ -221,6 +221,7 @@ export const march: LongFormMove = {
     move: (G, ctx, arg: IMarchArgs) => {
         const {src, dst, country, generals, units} = arg;
         const pid = ctx.playerID;
+        logger.info(`p${pid}.moves.march(${JSON.stringify(arg)})`);
         if (pid === undefined) {
             return INVALID_MOVE;
         }
@@ -228,12 +229,14 @@ export const march: LongFormMove = {
         if (dst === undefined || dst === "" || dst === null) {
             return INVALID_MOVE;
         }
-
-        logger.info(`p${pid}.moves.march(${JSON.stringify(arg)});`)
+        const log = [`p${pid}|march|src${placeToStr(src)}|dst${placeToStr(dst)}`];
+        const parsedDst = typeof dst === "number" ? dst : parseInt(dst);
+        const newDst = parsedDst === undefined ? dst : parsedDst;
         const ctr = getCountryById(pid);
+        log.push(`|${typeof dst}typeof dst`);
+        log.push(`|${typeof newDst}typeof newDst`);
         // const player = playerById(G, ctx.playerID);
-        const log = [`p${pid}|march|src${placeToStr(src)}`];
-        log.push(`|parsed${JSON.stringify(dst)}`);
+        log.push(`|parsed${JSON.stringify(newDst)}`);
         if (G.op > 0) {
             log.push(`|${G.op}G.op`);
             G.op--;
@@ -243,7 +246,7 @@ export const march: LongFormMove = {
         }
         const pub = ctr2pub(G, country);
 
-        generals.forEach(gen => moveGeneralByCountry(G, country, gen, dst));
+        generals.forEach(gen => moveGeneralByCountry(G, country, gen, newDst));
         const t = getTroopByCountryPlace(G, arg.country, src);
         if (t === null) {
             log.push(`noTroop`);
@@ -256,7 +259,7 @@ export const march: LongFormMove = {
         if (t.u.filter((u, i) => units[i] === u).length === units.length) {
             log.push(`|all`);
             // TODO src weikun troop auto jiewei
-            const destTroops = pub.troops.filter((t2: Troop) => t2.p === dst);
+            const destTroops = pub.troops.filter((t2: Troop) => t2.p === newDst);
             log.push(`|destTroops${JSON.stringify(destTroops)}`);
             if (destTroops.length > 0) {
                 const d = destTroops[0];
@@ -267,9 +270,9 @@ export const march: LongFormMove = {
 
             } else {
                 log.push(`|move`);
-                t.p = dst;
-                if (isRegionID(dst)) {
-                    region = getRegionById(dst);
+                t.p = newDst;
+                if (isRegionID(newDst)) {
+                    region = getRegionById(newDst);
                     t.c = region.city;
                 }
                 log.push(`${JSON.stringify(t)}`);
@@ -285,7 +288,7 @@ export const march: LongFormMove = {
             }
             log.push(`|after|src|${JSON.stringify(t)}|${unitsToString(t.u)}`);
 
-            const destTroops = pub.troops.filter((t2: Troop) => t2.p === dst);
+            const destTroops = pub.troops.filter((t2: Troop) => t2.p === newDst);
             log.push(`|destTroops${JSON.stringify(destTroops)}`);
             if (destTroops.length > 0) {
                 const d = destTroops[0];
@@ -296,13 +299,13 @@ export const march: LongFormMove = {
                 log.push(`|result|${JSON.stringify(d)}|${unitsToString(t.u)}`);
             } else {
                 let city = null;
-                if (isRegionID(dst)) {
-                    region = getRegionById(dst);
+                if (isRegionID(newDst)) {
+                    region = getRegionById(newDst);
                     city = region.city;
                 }
                 log.push(`|city${city}`);
                 const newTroop = {
-                    p: dst,
+                    p: newDst,
                     c: city,
                     u: units,
                     g: ctr
@@ -312,10 +315,16 @@ export const march: LongFormMove = {
             }
         }
 
-        const oppoTroop = getOpponentPlaceTroopById(G, pid, dst);
+        const oppoTroop = getOpponentPlaceTroopById(G, pid, newDst);
         log.push(`|${JSON.stringify(oppoTroop)}oppoTroop`);
         if (oppoTroop !== null) {
-            if (isNationID(dst)) {
+            const oppoE = troopEndurance(G,oppoTroop);
+            if (oppoE > 0){
+
+            }else{
+
+            }
+            if (isNationID(newDst)) {
                 log.push(`|cannot|goto|nation|with|opponent|troop`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return INVALID_MOVE;
@@ -415,7 +424,7 @@ export const takeDamage: LongFormMove = {
         const log = [`takeDamage|before|${pub.ready}|${pub.standby}|`];
         const troop = c === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
         if (troop === null) {
-            log.push(`|noTroop`);
+            log.push(`|noTroop|invalid`);
             logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
@@ -443,85 +452,90 @@ export const takeDamage: LongFormMove = {
             const atkEn = troopEndurance(G, ciAtkTroop(G));
             const defEn = troopEndurance(G, ciDefTroop(G));
             log.push(`|stage|in|combat`);
-            // TODO 0 endurance remove all trigger 'rescueGeneral' stage if has develop card
             if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
-                changePlayerStage(G, ctx, 'takeDamage', G.order[1]);
-            } else {
-                switch (G.combat.phase) {
-                    case CombatPhase.JieYe:
-                        log.push(`|${G.combat.phase}|error`);
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    case CombatPhase.WeiKun:
-                        log.push(`|${G.combat.phase}|error`);
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    case CombatPhase.YunChou:
-                        log.push(`|${G.combat.phase}|error`);
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    case CombatPhase.YuanCheng:
-                        if (atkEn === 0 && defEn === 0) {
-                            endCombat(G, ctx);
-                        } else {
-                            if (atkEn === 0) {
-                                endCombat(G, ctx);
-                                // todo remove no endurance unit && trigger rescue if has card
-                            } else {
-                                if (defEn === 0) {
-                                    if (G.combat.region !== null) {
-                                        const region = getRegionById(G.combat.region);
-                                        if (region.city !== null) {
-                                            doLoseCity(G, ciDefPid(G), region.city, true);
-                                        }
-                                    }
-                                    endCombat(G, ctx);
-                                } else {
-                                    if (hasGeneral(G, G.combat.song.troop, SongGeneral.WuLin)) {
-                                        wuLin(G, ctx);
-                                    } else {
-                                        jiaoFeng(G, ctx);
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                    case CombatPhase.WuLin:
-                        jiaoFeng(G, ctx);
-                        break;
-                    case CombatPhase.JiaoFeng:
-                        if (atkEn === 0 && defEn === 0) {
-                            endCombat(G, ctx);
-                        } else {
-                            if (atkEn === 0) {
-                                endCombat(G, ctx);
-                            } else {
-                                if (defEn === 0) {
-                                    if (G.combat.region !== null) {
-                                        const region = getRegionById(G.combat.region);
-                                        if (region.city !== null) {
-                                            doLoseCity(G, ciDefPid(G), region.city, true);
-                                        }
-                                    }
-                                    endCombat(G, ctx);
-                                } else {
-                                    mingJin(G, ctx);
-                                }
-                            }
-                        }
-                        break;
-                    case CombatPhase.MingJin:
-                        log.push(`|${G.combat.phase}|error`);
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    default:
-                        log.push(`|${G.combat.phase}|error`);
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
+                const nextPid = G.order[1];
+                const dmg = pid2cci(G, nextPid).damageLeft;
+                if (dmg === 0) {
+                    log.push(`|0dmg|next`);
+                } else {
+                    changePlayerStage(G, ctx, 'takeDamage', nextPid);
+                    log.push(`|p${nextPid}takeDamage`);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return
                 }
             }
+            switch (G.combat.phase) {
+                case CombatPhase.JieYe:
+                case CombatPhase.WeiKun:
+                case CombatPhase.YunChou:
+                    log.push(`|${G.combat.phase}|error`);
+                    endCombat(G, ctx);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
+                case CombatPhase.YuanCheng:
+                    if (atkEn === 0 && defEn === 0) {
+                        endCombat(G, ctx);
+                    } else {
+                        if (atkEn === 0) {
+                            removeZeroTroop(G,ctx,ciAtkTroop(G));
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return;
+                        } else {
+                            if (defEn === 0) {
+                                if (G.combat.region !== null) {
+                                    const region = getRegionById(G.combat.region);
+                                    if (region.city !== null) {
+                                        doLoseCity(G, ciDefPid(G), region.city, true);
+                                    }
+                                }
+                                removeZeroTroop(G,ctx,ciDefTroop(G));
+                                logger.debug(`${G.matchID}|${log.join('')}`);
+                                return;
+                            } else {
+                                // next
+                                if (hasGeneral(G, G.combat.song.troop, SongGeneral.WuLin)) {
+                                    wuLin(G, ctx);
+                                } else {
+                                    jiaoFeng(G, ctx);
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case CombatPhase.WuLin:
+                    jiaoFeng(G, ctx);
+                    break;
+                case CombatPhase.JiaoFeng:
+                    if (atkEn === 0 && defEn === 0) {
+                        endCombat(G, ctx);
+                    } else {
+                        if (atkEn === 0) {
+                            endCombat(G, ctx);
+                        } else {
+                            if (defEn === 0) {
+                                if (G.combat.region !== null) {
+                                    const region = getRegionById(G.combat.region);
+                                    if (region.city !== null) {
+                                        doLoseCity(G, ciDefPid(G), region.city, true);
+                                    }
+                                }
+                                endCombat(G, ctx);
+                            } else {
+                                mingJin(G, ctx);
+                            }
+                        }
+                    }
+                    break;
+                case CombatPhase.MingJin:
+                    log.push(`|${G.combat.phase}|error`);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
+                default:
+                    log.push(`|${G.combat.phase}|error`);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
+            }
         }
-
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -1761,15 +1775,22 @@ export const confirmRespond: LongFormMove = {
                     return;
                 } else {
                     if (choice === BeatGongChoice.CONTINUE) {
-                        atkCCI.choice = BeatGongChoice.CONTINUE;
-                        if (ci.type === CombatType.SIEGE) {
-                            log.push(`|siege|cannot|retreat|roundTwo`);
-                            roundTwo(G, ctx);
-                            logger.debug(`${G.matchID}|${log.join('')}`);
-                            return
+                        if (canRoundTwo(G)) {
+                            atkCCI.choice = BeatGongChoice.CONTINUE;
+
+                            if (ci.type === CombatType.SIEGE) {
+                                log.push(`|siege|cannot|retreat|roundTwo`);
+                                roundTwo(G, ctx);
+                                logger.debug(`${G.matchID}|${log.join('')}`);
+                                return
+                            } else {
+                                log.push(`|ask|def`);
+                                changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
+                                logger.debug(`${G.matchID}|${log.join('')}`);
+                                return;
+                            }
                         } else {
-                            log.push(`|ask|def`);
-                            changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
+                            log.push(`|cannot|roundTwo|chooseAgain`);
                             logger.debug(`${G.matchID}|${log.join('')}`);
                             return;
                         }
