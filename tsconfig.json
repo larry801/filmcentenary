@@ -25,6 +25,7 @@
     "sourceMap": true,
     "types": [
       "vite/client",
+      "jest"
     ],
     "noFallthroughCasesInSwitch": true
   }

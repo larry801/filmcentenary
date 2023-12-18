@@ -2660,22 +2660,39 @@ export const doLoseCity = (G: SongJinnGame, pid: PlayerID, cityID: CityID, oppon
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const nationMoveJinn = (G: SongJinnGame, c: NationID) => {
+    const log = [`nationMoveJinn|${c}`]  ;
+    log.push(`|${JSON.stringify(G.song.nations)}G.song.nations`);
+    log.push(`|${JSON.stringify(G.jinn.nations)}G.jinn.nations`);
     if (G.song.nations.includes(c)) {
+        log.push(`|rm`);
         G.song.nations.splice(G.song.nations.indexOf(c), 1);
     } else {
         if (!G.jinn.nations.includes(c)) {
+            log.push(`|add`);
             G.jinn.nations.push(c)
         }
     }
+
+    log.push(`|${JSON.stringify(G.song.nations)}G.song.nations`);
+    log.push(`|${JSON.stringify(G.jinn.nations)}G.jinn.nations`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const nationMoveSong = (G: SongJinnGame, c: NationID) => {
+    const log = [`nationMoveSong|${c}`];
+    log.push(`|${JSON.stringify(G.song.nations)}G.song.nations`);
+    log.push(`|${JSON.stringify(G.jinn.nations)}G.jinn.nations`);
     if (G.jinn.nations.includes(c)) {
+        log.push(`|rm`);
         G.jinn.nations.splice(G.jinn.nations.indexOf(c), 1);
     } else {
+        log.push(`|add`);
         if (!G.song.nations.includes(c)) {
             G.song.nations.push(c)
         }
     }
+    log.push(`|${JSON.stringify(G.song.nations)}G.song.nations`);
+    log.push(`|${JSON.stringify(G.jinn.nations)}G.jinn.nations`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const changeDiplomacyByLOD = (G: SongJinnGame) => {
     const log = [`changeDiplomacyByLOD`]
@@ -2683,33 +2700,40 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
     const jinn = playerById(G, SJPlayer.P2);
     if (song.lod.length === 0) {
         if (jinn.lod.length === 0) {
-            log.push(`|noLOD|`)
+            log.push(`|noLOD`)
         } else {
-            log.push('|moveForJinn');
+            log.push('|onlyJinn|moveForJinn');
             jinn.lod.forEach(l => nationMoveJinn(G, l.nation))
         }
     } else {
         if (jinn.lod.length === 0) {
-            log.push('|moveForSong');
-
+            log.push('|onlySong|moveForSong');
             song.lod.forEach(l => nationMoveJinn(G, l.nation))
         } else {
             Nations.forEach(n => {
+                log.push(`|${n}`);
                 let songPoint = 0;
                 let jinnPoint = 0;
                 song.lod.forEach(l => {
                     if (l.nation === n) {
-                        songPoint += sjCardById(l.card).op;
+                        log.push(`|s|${l.card}`);
+                        const op = sjCardById(l.card).op;
+                        log.push(`|${op}op`);
+                        songPoint += op;
                     }
                 })
                 jinn.lod.forEach(l => {
                     if (l.nation === n) {
-                        jinnPoint += sjCardById(l.card).op;
+                        log.push(`|j|${l.card}`);
+                        const op = sjCardById(l.card).op;
+                        log.push(`|${op}op`);
+                        jinnPoint += op;
                     }
                 })
+                log.push(`|${songPoint}songPoint`);
+                log.push(`|${jinnPoint}jinnPoint`);
                 if (songPoint > jinnPoint) {
                     nationMoveSong(G, n);
-
                 } else {
                     if (jinnPoint > songPoint) {
                         nationMoveJinn(G, n);
@@ -2718,19 +2742,15 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
             })
         }
     }
-    // jinn.lod.forEach(l => G.jinn.discard.push(l.card));
-    // song.lod.forEach(l => G.song.discard.push(l.card));
-    // jinn.lod = [];
-    // song.lod = [];
     G.song.troops.forEach(t => {
         if (isNationID((t.p))) {
-            log.push(`|song|${t.p}|hasTroop`);
+            log.push(`|song|${t.p}|hasTroop|${unitsToString(t.u)}`);
             nationMoveJinn(G, t.p);
         }
     });
     G.jinn.troops.forEach(t => {
         if (isNationID((t.p))) {
-            log.push(`|jinn|${t.p}|hasTroop`);
+            log.push(`|jinn|${t.p}|hasTroop|${unitsToString(t.u)}`);
             nationMoveSong(G, t.p);
         }
     });
@@ -4012,8 +4032,8 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
     }
     if (G.combat.phase === CombatPhase.WeiKun) {
         return [
-            {label: "围困", value: "yes", disabled: false, hidden: false},
-            {label: "攻城", value: "no", disabled: false, hidden: false}
+            {label: "围困", value: "围困", disabled: false, hidden: false},
+            {label: "攻城", value: "攻城", disabled: false, hidden: false}
         ]
     }
     if (G.combat.phase === CombatPhase.MingJin) {
@@ -4405,7 +4425,7 @@ export function getGeneralCCMelee(G: SongJinnGame, t: Troop): number {
             log.push(`|${mod}mod`);
         }
     }
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return mod;
 }
 
@@ -4470,7 +4490,7 @@ export function unitRangeStr(G: SongJinnGame, troop: Troop) {
         }
     }
     log.push(`|${JSON.stringify(unitRanges)}unitRanges`);
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return unitRanges;
 }
 
@@ -4495,7 +4515,7 @@ export function troopRange(G: SongJinnGame, troop: Troop): number {
         range += troop.u[1];
         log.push(`|range${range}`);
     }
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return range;
 }
 

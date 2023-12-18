@@ -47,7 +47,7 @@ export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
         <div><label>腐败：</label>{s.corruption}</div>
         <div><label>盟国：</label>{s.nations.join(',')}</div>
         <div><label>预备区：{unitsToString(s.ready)} {getReadyGeneralNames(G, SJPlayer.P1).join('')}</label></div>
-
+        <div><label>手牌数：{pub.handCount}</label></div>
         <div><label>皇帝：{s.emperor === null ? "" : s.emperor}</label></div>
         <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
         <div><label>完成计划：</label><br/>
@@ -71,7 +71,6 @@ export const CountryPubInfo = ({pub, G}: ICPubInfo) => {
         <ErrorBoundary>
             <Dices pub={s}/>
         </ErrorBoundary>
-        {/*<div><label>手牌数：</label></div>*/}
         <div>控制路：<br/>{s.provinces.map(p => <label key={`jinn-prov-${p}`}>{p}<br/></label>)}</div>
         <div><label>发展牌：{s.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
     </Grid>

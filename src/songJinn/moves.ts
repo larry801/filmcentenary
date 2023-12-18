@@ -254,6 +254,7 @@ export const march: LongFormMove = {
         log.push(`|${JSON.stringify(t)}`);
         if (t.u.filter((u, i) => units[i] === u).length === units.length) {
             log.push(`|all`);
+            // TODO src weikun troop auto jiewei
             const destTroops = pub.troops.filter((t2: Troop) => t2.p === dst);
             log.push(`|destTroops${JSON.stringify(destTroops)}`);
             if (destTroops.length > 0) {
@@ -331,12 +332,17 @@ export const march: LongFormMove = {
 
 export const letter: LongFormMove = {
     move: (G, ctx, arg: LetterOfCredence) => {
-        if (ctx.playerID === undefined) {
+
+        const pid = ctx.playerID;
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        const player = playerById(G, ctx.playerID);
+        logger.info(`p${pid}.moves.letter(${JSON.stringify(arg)});`)
+        const player = playerById(G, pid);
+        const pub = pid2pub(G, pid);
         if (player.hand.includes(arg.card)) {
             player.hand.splice(player.hand.indexOf(arg.card), 1);
+            pub.lodNations.push(arg.nation);
         } else {
             return INVALID_MOVE;
         }

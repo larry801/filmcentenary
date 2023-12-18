@@ -712,6 +712,7 @@ export enum ProvinceID {
 
 
 export interface SJPubInfo {
+    lodNations: NationID[],
     specialPlan: number,
     generalSkill: boolean[],
     generalPlace: TroopPlace[],
@@ -736,7 +737,8 @@ export interface SJPubInfo {
     remove: SJEventCardID[],
     standby: number[],
     troops: Troop[],
-    usedDevelop: number
+    usedDevelop: number,
+    handCount: number
 }
 
 
@@ -827,6 +829,7 @@ export function emptyCombatInfo(): CombatInfo {
 }
 
 export const initialJinnPub: SJPubInfo = {
+    lodNations: [],
     maxCivil: 2,
     maxMilitary: 3,
     specialPlan: 0,
@@ -894,9 +897,11 @@ export const initialJinnPub: SJPubInfo = {
         GeneralStatus.PRE,
         GeneralStatus.PRE,
         GeneralStatus.PRE
-    ]
+    ],
+    handCount: 0
 }
 export const initialSongPub: SJPubInfo = {
+    lodNations: [],
     maxCivil: 3,
     maxMilitary: 2,
     specialPlan: 0,
@@ -985,7 +990,8 @@ export const initialSongPub: SJPubInfo = {
         {u: [1, 0, 0, 0, 0, 0], p: RegionID.R77, c: CityID.MinXian, g: Country.SONG},
 
     ],
-    usedDevelop: 0
+    usedDevelop: 0,
+    handCount: 0
 }
 
 export interface SJPlayerInfo {

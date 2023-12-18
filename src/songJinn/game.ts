@@ -1,4 +1,4 @@
-import {Ctx, Game} from "boardgame.io";
+import {Ctx, Game, PlayerID} from "boardgame.io";
 import {PlayerView} from "boardgame.io/core";
 import {
     ActionPhaseConfig,
@@ -14,8 +14,6 @@ import {
     TurnEndPhaseConfig
 } from "./constant/config";
 import {Country, setupSongJinn, SJPlayer, SongJinnGame, VictoryReason} from "./constant/general";
-
-
 import {diplomaticVictory, getJinnPower, getSongPower} from "./util";
 
 
@@ -24,7 +22,24 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
     name: "songJinn",
     minPlayers: 2,
     maxPlayers: 2,
-    playerView: PlayerView.STRIP_SECRETS,
+    playerView: (G: SongJinnGame, ctx: Ctx, playerID: PlayerID | null) => {
+        let r = JSON.parse(JSON.stringify(G));
+        r.song.handCount = r.player['0'].hand.length;
+        r.jinn.handCount = r.player['1'].hand.length;
+        if(playerID===null){
+            delete r.player
+        }else{
+            if (playerID === SJPlayer.P1){
+                delete r.player['1']
+            }else{
+                delete r.player['0']
+            }
+        }
+        if (r.secret !== undefined) {
+            delete r.secret;
+        }
+        return r;
+    },
     phases: {
         draw: DrawPhaseConfig,
         chooseFirst: ChooseFirstPhaseConfig,
