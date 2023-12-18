@@ -47,10 +47,11 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
             <Zoom<SVGSVGElement>
                 width={width}
                 height={height}
-                scaleXMin={100}
-                scaleXMax={5000}
-                scaleYMin={100}
-                scaleYMax={5000}
+                scaleXMin={1400}
+                scaleXMax={7000}
+                scaleYMin={1400}
+                scaleYMax={7000}
+
                 initialTransformMatrix={{
                     scaleX: initialScale,
                     scaleY: initialScale,
@@ -69,7 +70,7 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                             ref={zoom.containerRef}
                             style={{touchAction: 'none'}}
                         >
-                            <rect x={0} y={0} width={width} height={height} fill={background} rx={14}/>
+                            <rect x={0} y={0} width={width} height={height} fill={'#fff'} rx={14}/>
                             <CustomProjection<FeatureShape>
                                 projection={geoMercator}
                                 data={world.features}
@@ -78,7 +79,7 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                             >
                                 {(customProjection) => (
                                     <g>
-                                        <Graticule graticule={(g) => customProjection.path(g) || ''} stroke={'#fff'}/>
+                                        <Graticule key={`graticule-sj`} graticule={(g) => customProjection.path(g) || ''} stroke={'#fff'}/>
                                         {customProjection.features.map(({feature, path}, i) => {
                                             const projection = geoMercator();
 
@@ -105,6 +106,13 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                                 text += '\n';
                                                 text += jinnTroop === null ? '' : getSimpleTroopText(G, jinnTroop);
                                             }
+                                            let stroke = '#fff';
+                                            if(jinnTroop === null && songTroop !== null){
+                                                stroke = '#fff000'
+                                            }
+                                            if(songTroop === null && jinnTroop !== null){
+                                                stroke = red.A400
+                                            }
                                             let color = '#fff000';
                                             switch (region.terrain) {
                                                 case TerrainType.FLATLAND:
@@ -129,8 +137,10 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                                         key={`map-feature-${i}`}
                                                         d={path || ''}
                                                         fill={color}
-                                                        stroke={background}
-                                                        strokeWidth={0.5}
+                                                        stroke={stroke}
+                                                        fill-opacity={0.4}
+                                                        strokeWidth={4}
+                                                        stroke-opacity={0.5}
                                                         onClick={() => {
                                                             // if (events) alert(`Clicked: ${feature.properties.name} (${feature.id})`);
                                                         }}
@@ -177,9 +187,7 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                 onClick={() => {
                                     zoom.scale({scaleX: 1.2, scaleY: 1.2});
                                     console.log(JSON.stringify(zoom.transformMatrix))
-
                                 }}
-
                             >
                                 +
                             </button>
