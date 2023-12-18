@@ -3639,7 +3639,6 @@ export const mingJin = (G: SongJinnGame, ctx: Ctx) => {
     } else {
         endCombat(G, ctx);
     }
-
 }
 
 export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
@@ -4784,7 +4783,7 @@ export function getSimpleTroopText(G: SongJinnGame, t: Troop) {
     }
     text += '\n';
     text += `|${unitsToString(t.u)}`;
-    text += `${troopEndurance(G, t)}`
+    // text += `${troopEndurance(G, t)}`
     return text;
 }
 

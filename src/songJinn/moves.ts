@@ -1665,11 +1665,11 @@ export const confirmRespond: LongFormMove = {
         const ci = G.combat;
         const atkCCI = ciAtkInfo(G);
         const defCCI = ciDefInfo(G);
-        log.push(`|${text}`);
+        log.push(`|${JSON.stringify(arg)}arg`);
         log.push(`|${ci.phase}ci.phase`);
         if (ci.phase === CombatPhase.JieYe) {
             log.push(`|JieYe`);
-            if (choice) {
+            if (choice === 'yes') {
                 log.push(`|Field`);
                 ci.type = CombatType.FIELD;
                 ci.phase = CombatPhase.YunChou;
@@ -1685,7 +1685,7 @@ export const confirmRespond: LongFormMove = {
             }
         }
         if (ci.phase === CombatPhase.WeiKun) {
-            if (choice === "yes") {
+            if (choice === "围困") {
                 log.push(`|doWeiKun`);
                 let atk = ciAtkTroop(G);
                 atk.c = null;
