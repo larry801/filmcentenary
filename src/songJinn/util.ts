@@ -3426,6 +3426,14 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                                 `横置${arg.general}${getGeneralNameByCountry(arg.country, arg.general)}`
                             break;
 
+                        case 'removeCompletedPlan':
+                            if(arg !== ''){
+                                log += `把${getPlanById(arg).name}移除游戏`;
+                            }else{
+                                log += '';
+                            }
+
+                            break;
                         case 'takePlan':
                             if (arg.length === 0) {
                                 log += `没有拿走计划`;
@@ -5043,6 +5051,13 @@ export const getJinnScore = (G: SongJinnGame): number => {
     return score;
 }
 
+export const checkCtrRegion =  (G: SongJinnGame, ctr: Country, c: CityID) => {
+
+}
+
+export const checkCtrCity =  (G: SongJinnGame, ctr: Country, c: CityID) => {
+    return checkControlCity(G, ctr2pid(ctr),c)
+}
 
 export const checkControlCity = (G: SongJinnGame, pid: PlayerID, c: CityID) => {
     const log = [`checkControlCity|p${pid}|${c}`];

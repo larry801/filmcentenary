@@ -174,7 +174,7 @@ export const AdjustOps = ({
         defaultChoice={''}
         show={isActive && ctx.phase === 'resolvePlan'}
         title={"请选择1张已完成作战计划移除"} toggleText={"移除完成作战计划"}
-        initial={true}/>;
+        initial={false}/>;
 
     const [deployCityChosen, setDeployCityChosen] = useState(false);
     const deployDialog = <ChoiceDialog
