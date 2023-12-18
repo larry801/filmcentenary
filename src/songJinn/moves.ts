@@ -954,6 +954,7 @@ export const showLetters: LongFormMove = {
         const p = playerById(G, pid);
         p.lod.forEach(l => pub.discard.push(l.card));
         p.lod = [];
+        pub.lodNations = [];
         logger.info(`p${pid}.moves.showLetters(${JSON.stringify(args)})`);
     }
 }
