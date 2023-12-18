@@ -56,6 +56,7 @@ enum NewTroopStep {
 
 enum MarchStep {
     TROOP,
+    LEAVE_UNITS,
     UNITS,
     GENERALS,
     TARGET
@@ -320,6 +321,18 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         toggleText={"进军目标"}
         initial={true}/>;
 
+    const leftMarchDialog = <ChooseUnitsDialog
+        callback={(c) => {
+            const march=[...c];
+            for (let i = 0; i < c.length; i++) {
+                march[i] = marchTroop.u[i] - c[i];
+            }
+            setMarchStep(MarchStep.TARGET);
+            setMarchGenerals(getPlaceCountryGeneral(G, marchTroop.g, marchTroop.p));
+        }} max={[...marchTroop.u]} initUnits={emptyUnitsByCountry(marchTroop.g)}
+        show={isActive && marchStep === MarchStep.LEAVE_UNITS}
+        popAfterShow={true}
+        title={"选择留下部队"} toggleText={"留下部队"} initial={true} country={marchTroop.g}/>
 
     const marchDialog = <ChooseUnitsDialog
         callback={(c) => {
@@ -405,7 +418,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                                                          expanded={isActive && expanded === idx}
                                                          onChange={() => setExpanded(idx)}>
         <AccordionSummary>
-            {hasOpponentTroop(G, t) ? '(**)' : ''}
+            {hasOpponentTroop(G, t) ? '对峙|' : ''}
             {troopIsWeiKun(G, t) ? "被围困|" : ""}
             {troopCanSiege(G, t) && '围城|'}
             {t.g}{getTroopPlaceText(t)}
@@ -453,6 +466,26 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             setMarchStep(MarchStep.TARGET);
                         }
                     }>全军进军
+                </button>
+                <button
+                    disabled={G.op <= 0}
+                    key={`grid-ops-${idx}-left-march`}
+                    onClick={
+                        () => {
+                            setPlaceStep(PlaceStep.TROOP);
+                            setNewTroopStep(NewTroopStep.START);
+                            setDeployNewStep(DeployNewStep.TROOP);
+
+                            setTakeDamageStep(TakeDamageStep.TROOP);
+                            // setMarchStep(MarchStep.TROOP);
+                            setRemoveUnitStep(RemoveStep.TROOP);
+                            setDeployStep(DeployStep.TROOP)
+                            setMoveStep(MoveStep.TROOP);
+
+                            setMarchTroop(t);
+                            setMarchStep(MarchStep.LEAVE_UNITS);
+                        }
+                    }>留X进军
                 </button>
                 {troopCanSiege(G, t) && <button
                     key={`grid-ops-${idx}-siege`}
@@ -613,6 +646,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             {regionDialog}
 
             {marchDialog}
+            {leftMarchDialog}
             {marchGeneralsDialog}
             {marchRegionDialog}
 

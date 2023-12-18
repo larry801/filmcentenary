@@ -231,7 +231,9 @@ export const march: LongFormMove = {
         }
         const log = [`p${pid}|march|src${placeToStr(src)}|dst${placeToStr(dst)}`];
         const parsedDst = typeof dst === "number" ? dst : parseInt(dst);
-        const newDst = parsedDst === undefined ? dst : parsedDst;
+        const newDst =
+            parsedDst === undefined || parsedDst === null || isNaN(parsedDst)
+                ? dst : parsedDst;
         const ctr = getCountryById(pid);
         log.push(`|${typeof dst}typeof dst`);
         log.push(`|${typeof newDst}typeof newDst`);
@@ -421,7 +423,7 @@ export const takeDamage: LongFormMove = {
         logger.info(`p${ctx.playerID}.takeDamage(${JSON.stringify(arg)})`);
         const {c, src, standby, ready} = arg;
         const pub = ctr2pub(G, c);
-        const log = [`takeDamage|before|${pub.ready}|${pub.standby}|`];
+        const log = [`takeDamage|before|${unitsToString(pub.ready)}|${unitsToString(pub.standby)}|`];
         const troop = c === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
         if (troop === null) {
             log.push(`|noTroop|invalid`);
@@ -439,7 +441,7 @@ export const takeDamage: LongFormMove = {
             log.push(JSON.stringify(troop));
             pub.standby[i] += (arg.standby)[i];
             pub.ready[i] += (arg.ready)[i];
-            log.push(`|after|${pub.ready}|${arg.standby}`);
+            log.push(`|after|${unitsToString(pub.ready)}|${unitsToString(arg.standby)}`);
         }
         if (troopEmpty(troop)) {
             log.push(`|rmTroop`);

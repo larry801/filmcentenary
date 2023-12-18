@@ -2523,6 +2523,22 @@ const cardIdSort = (a: SJEventCardID, b: SJEventCardID) => {
 }
 
 
+export const handDeckCards = (G: SongJinnGame, ctx: Ctx, pid: PlayerID): SJEventCardID[] => {
+
+    const isSong = pid as SJPlayer === SJPlayer.P1;
+    let totalDeck: SJEventCardID[] = isSong ? SongEarlyCardID : JinnEarlyCardID;
+    if (G.turn > 2) {
+        const mid = isSong ? [...SongMidCardID] : [...JinnMidCardID];
+        totalDeck = [...totalDeck, ...mid];
+    }
+    if (G.turn > 6) {
+        const late = isSong ? [...SongLateCardID] : [...JinnLateCardID];
+        totalDeck = [...totalDeck, ...late];
+    }
+    const discard = isSong ? G.song.discard : G.jinn.discard;
+    const remove = isSong ? G.song.remove : G.jinn.remove;
+    return totalDeck.filter(c => !(discard.includes(c) || remove.includes(c)));
+}
 export const cardToSearch = (G: SongJinnGame, ctx: Ctx, pid: PlayerID): SJEventCardID[] => {
 
     const isSong = pid as SJPlayer === SJPlayer.P1;

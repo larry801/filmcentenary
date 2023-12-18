@@ -3,11 +3,10 @@ import {Ctx, PlayerID} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import Paper from "@material-ui/core/Paper";
 import {getPlanById} from "../constant/plan";
-import {ActiveEvents, SJPlayer, SJPubInfo, SongJinnGame} from "../constant/general";
 import Typography from "@material-ui/core/Typography";
+import { SJPlayer, SJPubInfo, SongJinnGame} from "../constant/general";
 
 import {
-    cardToSearch,
     getCityText,
     getJinnPower,
     getJinnScore,
@@ -15,7 +14,7 @@ import {
     getReadyGeneralNames,
     getSeasonText,
     getSongPower,
-    getSongScore,
+    getSongScore, handDeckCards,
     phaseName,
     pid2ctr,
     sjCardById,
@@ -43,7 +42,7 @@ export const CountryPubInfo = ({pub, G, ctx, pid}: ICPubInfo) => {
     const s = pub;
 
     const reversedPlan = [...s.completedPlan].reverse();
-    const searchCards = cardToSearch(G, ctx, pid);
+    const searchCards = handDeckCards(G, ctx, pid);
     return <Grid>
         <div><label>军事：</label>{s.military}</div>
         <div><label>内政：</label>{s.civil}</div>
