@@ -768,6 +768,28 @@ export const rollDices: LongFormMove = {
     undoable: false
 }
 
+export const removeCompletedPlan: LongFormMove = {
+    move: (G, ctx, arg: PlanID) => {
+        const pid = ctx.playerID;
+        const log = [`removeCompletedPlan`];
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`${G.matchID}|p${pid}.moves.removeCompletedPlan(${JSON.stringify(arg)})`);
+        if (G.song.completedPlan.includes(arg)) {
+            log.push(`|${JSON.stringify(G.song.completedPlan)}G.song.completedPlan`);
+            G.song.completedPlan.splice(G.song.completedPlan.indexOf(arg), 1);
+            log.push(`|${JSON.stringify(G.song.completedPlan)}G.song.completedPlan`);
+        }
+        if (G.jinn.completedPlan.includes(arg)) {
+            log.push(`|${JSON.stringify(G.jinn.completedPlan)}G.jinn.completedPlan`);
+            G.jinn.completedPlan.splice(G.jinn.completedPlan.indexOf(arg), 1);
+            log.push(`|${JSON.stringify(G.jinn.completedPlan)}G.jinn.completedPlan`);
+        }
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    }
+}
+
 export const recruitPuppet: LongFormMove = {
     move: (G, ctx, dst: CityID) => {
         if (ctx.playerID !== SJPlayer.P2) {
@@ -834,7 +856,7 @@ export const retreat: LongFormMove = {
         }
         logger.info(`${G.matchID}|p${pid}.moves.retreat(${JSON.stringify(arg)})`);
         const {src, dst, country} = arg;
-        doMoveTroop(G,src,dst,country);
+        doMoveTroop(G, src, dst, country);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -854,7 +876,7 @@ export const moveTroop: LongFormMove = {
         logger.info(`p${pid}.moves.moveTroop(${JSON.stringify(args)})`);
         const log = [`moveTroop`];
         const {src, dst, country} = args;
-        doMoveTroop(G,src,dst,country);
+        doMoveTroop(G, src, dst, country);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }

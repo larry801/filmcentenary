@@ -39,6 +39,7 @@ import {
     placeUnit,
     recruitPuppet,
     recruitUnit,
+    removeCompletedPlan,
     removeNation,
     removeOwnGeneral, removeReadyUnit,
     removeUnit,
@@ -468,7 +469,7 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         chooseTop: chooseTop,
 
         develop:develop,
-        //removeCompletedPlan:removeCompletedPlan
+        removeCompletedPlan:removeCompletedPlan
     },
     turn: StagedTurnConfig,
     next: 'diplomacy'

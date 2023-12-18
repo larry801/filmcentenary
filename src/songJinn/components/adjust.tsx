@@ -29,6 +29,7 @@ import {
 } from "../util";
 import Button from "@material-ui/core/Button";
 import {ChooseUnitsDialog} from "./recruit";
+import {getPlanById} from "../constant/plan";
 
 export interface IOperationProps {
     G: SongJinnGame;
@@ -157,6 +158,22 @@ export const AdjustOps = ({
         defaultChoice={""}
         title={"请选择要移动的将领"} toggleText={"移动将领"} initial={false}/>
 
+    const removeCompletedPlanDialog = <ChoiceDialog
+        callback={(c)=>moves.removeCompletedPlan(c)}
+        choices={[...G.song.completedPlan,...G.jinn.completedPlan].plans.map((pid) => {
+                const plan = getPlanById(pid);
+                return {
+                    label: plan.name,
+                    value: plan.id,
+                    disabled: plan.level > pub.military,
+                    hidden: false
+                }
+            }
+        )}
+        defaultChoice={''}
+        show={isActive && ctx.phase === 'resolvePlan'}
+        title={"请选择1张已完成作战计划移除"} toggleText={"移除完成作战计划"}
+        initial={true}/>;
 
     const [deployCityChosen, setDeployCityChosen] = useState(false);
     const deployDialog = <ChoiceDialog
@@ -366,7 +383,7 @@ export const AdjustOps = ({
         <Button fullWidth variant={"outlined"} onClick={()=>moves.drawExtraCard()}>
             额外摸一张牌
         </Button>
-
+        {removeCompletedPlanDialog}
         {removeNationDialog}
         {adjustNationDialog}
         {cityDialog}
