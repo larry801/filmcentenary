@@ -217,6 +217,7 @@ interface IMarchArgs {
 }
 
 export const march: LongFormMove = {
+    client: false,
     move: (G, ctx, arg: IMarchArgs) => {
         const {src, dst, country, generals, units} = arg;
         const pid = ctx.playerID;
@@ -1148,6 +1149,7 @@ export const returnToHand: LongFormMove = {
 }
 
 export const combatCard: LongFormMove = {
+    client: false,
     move: (G, ctx, args: BaseCardID[]) => {
         const pid = ctx.playerID;
         logger.info(`${G.matchID}|p${pid}.moves.combatCard`)
@@ -1218,6 +1220,7 @@ export const askField: LongFormMove = {
 
 
 export const cardEvent: LongFormMove = {
+    client: false,
     move: (G, ctx, args: BaseCardID) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
