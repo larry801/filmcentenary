@@ -1149,17 +1149,22 @@ export const returnToHand: LongFormMove = {
 
 export const combatCard: LongFormMove = {
     move: (G, ctx, args: BaseCardID[]) => {
-        if (ctx.playerID === undefined) {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        const player = playerById(G, ctx.playerID);
+        logger.info(`${G.matchID}|p${pid}.moves.combatCard`)
+        const player = playerById(G, pid);
+        const log = [`combatCard|${args}`];
         if (
             args.filter(
                 c => player.hand.includes(c) &&
-                    sjCardById(c).combat).length === args.length
+                    sjCardById(c).combat
+            ).length === args.length
         ) {
             args.forEach(c => {
                 player.combatCard.push(c)
+                log.push(`|${player.combatCard}player.combatCard`);
                 // @ts-ignore
                 // const pub = getStateById(G, ctx.playerID);
                 // const card = sjCardById(c);
@@ -1173,25 +1178,31 @@ export const combatCard: LongFormMove = {
                 // }
             })
         } else {
+            log.push(`|notValid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
 
 
-        if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
+        if (G.order.indexOf(pid as SJPlayer) === 0) {
+            log.push(`|nextCC`);
             changePlayerStage(G, ctx, 'combatCard', G.order[1]);
         } else {
-            const oppoPlayer = oppoPlayerById(G, ctx.playerID);
+            const oppoPlayer = oppoPlayerById(G, pid);
             if (player.combatCard.length === 0 && oppoPlayer.combatCard.length === 0) {
+                log.push(`|yuanCheng`);
                 yuanCheng(G, ctx);
             } else {
                 if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J50)) {
+                    log.push(`|yiBing|endCombat`);
                     endCombat(G, ctx);
                 } else {
+                    log.push(`|showCC`);
                     changePlayerStage(G, ctx, 'showCC', G.order[0]);
                 }
             }
         }
-
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
 
