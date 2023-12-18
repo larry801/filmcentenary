@@ -222,8 +222,10 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                             name: 'numPlayers',
                             id: 'outlined-numPlayers-native-simple',
                         }}>
-                        <option value={Player.P0}>{Player.P0}</option>
-                        <option value={Player.P1}>{Player.P1}</option>
+                        {gameName === 'film' ? <option value={Player.P0}>{Player.P0}</option>
+                            : <option value={Player.P0}>宋</option>}
+                        {gameName === 'film' ? <option value={Player.P1}>{Player.P1}</option>
+                            : <option value={Player.P1}>金</option>}
                         {gameName === 'film' && numPlayers >= 3 ?
                             <option value={Player.P2}>{Player.P2}</option>
                             : <></>}
