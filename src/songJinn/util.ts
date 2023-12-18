@@ -389,6 +389,7 @@ export const getSongTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
     const log = [`getSongTroopByPlace|${r}`];
     let result = null;
     G.song.troops.forEach(t => {
+        log.push(`|${JSON.stringify(t)}|t`);
         if (t.p === r) {
             log.push(`|ok${JSON.stringify(t)}`);
             result = t;
@@ -407,6 +408,7 @@ export const getJinnTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
     const log = [`getJinnTroopByPlace|${JSON.stringify(r)}`];
     let result = null;
     G.jinn.troops.forEach(t => {
+        log.push(`|${JSON.stringify(t)}|t`);
         if (t.p === r) {
             log.push(`|ok${JSON.stringify(t)}`);
             result = t;
@@ -2809,6 +2811,7 @@ export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], count
     const pub = ctr2pub(G, country);
     const filtered = pub.troops.filter(t => t.p === place);
     const pid = ctr2pid(country);
+    log.push(`|${pid}|pid`);
     log.push(`|filtered${JSON.stringify(filtered)}`);
     if (filtered.length > 0) {
         log.push(`|hasTroop`);
@@ -2896,6 +2899,7 @@ export const removeUnitByIdx = (G: SongJinnGame, units: number[], pid: PlayerID,
     const log = [`removeUnitByIdx|${units}|${pid}|${idx}|${unitsToString(units)}`]
 
     const pub = pid2pub(G, pid);
+    log.push(`|${pid}|pid`);
     const t = pub.troops[idx];
     log.push(`|troop|${JSON.stringify(t)}`);
     if (t === undefined) {
@@ -2917,6 +2921,20 @@ export const removeUnitByIdx = (G: SongJinnGame, units: number[], pid: PlayerID,
         } else {
             pub.standby[i] += units[i]
             t.u[i] -= units[i]
+        }
+    }
+    if (t.g === Country.SONG) {
+        if (t.u .length > 6) {
+            const r = t.u.pop();
+            log.push(`|${JSON.stringify(r)}|popped`);
+        }
+        if (pub.ready.length>6){
+            const r = pub.ready.pop();
+            log.push(`|${JSON.stringify(r)}|popped`);
+        }
+        if (pub.standby.length > 6){
+            const r = pub.standby.pop();
+            log.push(`|${JSON.stringify(r)}|popped`);
         }
     }
     log.push(`|after|standby${pub.standby}|units${t.u}`);

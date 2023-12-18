@@ -226,15 +226,16 @@ export const march: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
+        const log = [`p${pid}|march|src${placeToStr(src)}|dst${placeToStr(dst)}`];
         if (units.reduce(accumulator) === 0) {
             log.push(`|no|units`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
         // @ts-ignore
         if (dst === undefined || dst === "" || dst === null) {
             return INVALID_MOVE;
         }
-        const log = [`p${pid}|march|src${placeToStr(src)}|dst${placeToStr(dst)}`];
         const parsedDst = typeof dst === "number" ? dst : parseInt(dst);
         const newDst =
             parsedDst === undefined || parsedDst === null || isNaN(parsedDst)
@@ -277,12 +278,17 @@ export const march: LongFormMove = {
 
             } else {
                 log.push(`|move`);
-                t.p = newDst;
-                if (isRegionID(newDst)) {
-                    region = getRegionById(newDst);
-                    t.c = region.city;
-                }
-                log.push(`${JSON.stringify(t)}`);
+                pub.troops.forEach(pt=>{
+                    if(pt.p === t.p){
+                        pt.p = newDst;
+
+                        if (isRegionID(newDst)) {
+                            region = getRegionById(newDst);
+                            t.c = region.city;
+                        }
+                        log.push(`${JSON.stringify(pt)}`);
+                    }
+                })
             }
         } else {
             log.push(`|part`);
@@ -326,20 +332,23 @@ export const march: LongFormMove = {
         log.push(`|${JSON.stringify(oppoTroop)}oppoTroop`);
         if (oppoTroop !== null) {
             const oppoE = troopEndurance(G, oppoTroop);
+            log.push(`|${oppoE}|oppoE`);
             if (oppoE > 0) {
-
-            } else {
-
-            }
-            if (isNationID(newDst)) {
-                log.push(`|cannot|goto|nation|with|opponent|troop`);
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                return INVALID_MOVE;
-            } else {
-                if (troopIsArmy(G, ctx, oppoTroop)) {
-                    log.push(`|startCombat`);
-                    startCombat(G, ctx, ctr, t.p);
+                if (isNationID(newDst)) {
+                    log.push(`|cannot|goto|nation|with|opponent|troop`);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return INVALID_MOVE;
+                } else {
+                    if (troopIsArmy(G, ctx, oppoTroop)) {
+                        log.push(`|startCombat`);
+                        startCombat(G, ctx, ctr, newDst);
+                    }else{
+                        log.push(`|error`);
+                        endCombat(G,ctx);
+                    }
                 }
+            } else {
+                removeZeroTroop(G, ctx, oppoTroop);
             }
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
