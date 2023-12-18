@@ -48,6 +48,7 @@ export const CountryPubInfo = ({pub, G, ctx, pid}: ICPubInfo) => {
         <div><label>内政：</label>{s.civil}</div>
         <div><label>腐败：</label>{s.corruption}</div>
         <div><label>盟国：</label>{s.nations.join(',')}</div>
+        <div><label>国书：</label>{s.lodNations.join(',')}</div>
         <div><label>预备区：{unitsToString(s.ready)} {getReadyGeneralNames(G, pid).join('')}</label></div>
         <div><label>手牌数：{pub.handCount}</label></div>
         <div><label>皇帝：{s.emperor === null ? "" : s.emperor}</label></div>
