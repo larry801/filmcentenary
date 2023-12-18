@@ -4582,7 +4582,7 @@ export function getSiegeRangeUnitStrength(G: SongJinnGame, troop: Troop, terrain
         }
     }
     log.push(`|${JSON.stringify(unitRanges)}unitRanges`);
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return unitRanges;
 }
 
@@ -4621,7 +4621,7 @@ export function troopSiegeRange(G: SongJinnGame, troop: Troop): number {
         range += i * unitRanges[idx]
     });
     log.push(`|${range}range`);
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return range;
 }
 
