@@ -43,6 +43,7 @@ export const ShareLink = ({matchID, player, numPlayer, gameName}: ShareLinkProps
             edge="start"
             onClick={onCopy}>
             <ContentCopyIcon/>
+            复制邀请链接
         </IconButton>
         <Typography>{i18n.lobby.shareLink}</Typography>
         {Player.P0 !== player && <a href={p0URL}>{matchID}P0</a>}
