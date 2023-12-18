@@ -158,9 +158,10 @@ export const AdjustOps = ({
         defaultChoice={""}
         title={"请选择要移动的将领"} toggleText={"移动将领"} initial={false}/>
 
+    const completedPlans = [...G.song.completedPlan,...G.jinn.completedPlan];
     const removeCompletedPlanDialog = <ChoiceDialog
         callback={(c)=>moves.removeCompletedPlan(c)}
-        choices={[...G.song.completedPlan,...G.jinn.completedPlan].plans.map((pid) => {
+        choices={completedPlans.map((pid) => {
                 const plan = getPlanById(pid);
                 return {
                     label: plan.name,
