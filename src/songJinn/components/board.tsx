@@ -90,6 +90,13 @@ export const SongJinnBoard = ({
         }
     }, [prevIsActive, isActive])
 
+    const curPlayerSuffix = "(*)";
+
+    React.useEffect((): () => void => {
+        document.title = (isActive ? curPlayerSuffix : "") + "宋金战争";
+        return () => document.title = "宋金战争";
+    }, [isActive])
+
     const pub = pid2pub(G, playerID as SJPlayer);
     const player = playerById(G, playerID as SJPlayer);
     const country = getCountryById(playerID as SJPlayer);
