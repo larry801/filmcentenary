@@ -278,6 +278,7 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
 
 export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
     moves: {
+        recruitUnit:recruitUnit,
         develop: develop,
         returnToHand: returnToHand,
         emperor: emperor,
