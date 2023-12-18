@@ -1150,10 +1150,10 @@ export const returnToHand: LongFormMove = {
 export const combatCard: LongFormMove = {
     move: (G, ctx, args: BaseCardID[]) => {
         const pid = ctx.playerID;
+        logger.info(`${G.matchID}|p${pid}.moves.combatCard`)
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`${G.matchID}|p${pid}.moves.combatCard`)
         const player = playerById(G, pid);
         const log = [`combatCard|${args}`];
         if (
