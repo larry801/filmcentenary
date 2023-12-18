@@ -136,7 +136,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     useInterval(refreshLobby, 10000);
 
     useEffect(() => {
-        refeshLobby();
+        refreshLobby();
     }, []);
 
     return <Grid container>
