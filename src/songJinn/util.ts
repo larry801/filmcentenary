@@ -3181,7 +3181,7 @@ export const policyDown = (G: SongJinnGame, a: number) => {
         G.policy -= a;
     }
 }
-export const heYiChange = (G: SongJinnGame,ctx:Ctx, c: CityID) => {
+export const heYiChange = (G: SongJinnGame, ctx: Ctx, c: CityID) => {
     const log = [``];
     const songTroop: Troop | null = getSongTroopByCity(G, c);
     if (songTroop !== null) {
@@ -3807,16 +3807,16 @@ export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
             }
             break;
         case CombatType.RESCUE:
-            atkD = troopMelee(G, at);
-            defD = troopMelee(G, dt);
+            atkD = getMeleeStr(G, at);
+            defD = getMeleeStr(G, dt);
             break;
         case CombatType.FIELD:
-            atkD = troopMelee(G, at);
-            defD = troopMelee(G, dt);
+            atkD = getMeleeStr(G, at);
+            defD = getMeleeStr(G, dt);
             break;
         case CombatType.BREAKOUT:
-            atkD = troopMelee(G, at);
-            defD = troopMelee(G, dt);
+            atkD = getMeleeStr(G, at);
+            defD = getMeleeStr(G, dt);
             break;
     }
     if (ci.type !== CombatType.SIEGE && ci.atk === Country.SONG) {
@@ -3980,11 +3980,11 @@ export const yuanCheng = (G: SongJinnGame, ctx: Ctx) => {
             log.push(`|${cityDef}cityDef`);
             if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
                 log.push(`|normal`);
-                atkD = getRangeSiegeStr(G, at) - cityDef;
+                atkD = getSiegeRangeStr(G, at) - cityDef;
                 defD = troopDefendCiyRange(G, dt);
             } else {
                 log.push(`|liuJia`);
-                atkD = getRangeSiegeStr(G, at) + cityDef;
+                atkD = getSiegeRangeStr(G, at) + cityDef;
                 defD = troopDefendCiyRange(G, dt) - (2 * cityDef);
             }
             break;
@@ -4556,33 +4556,6 @@ export function getWuLinDice(G: SongJinnGame, t: Troop): number {
     return Math.max(t.u[0], t.u[1]);
 }
 
-export function getRangeStrength(G: SongJinnGame, t: Troop): number {
-    const log = [`getRangeStrength`];
-    const unitStrength = troopRange(G, t);
-    log.push(`|${unitStrength}unitStrength`);
-    const genCCModifier = getGeneralCCRange(G, t);
-    log.push(`|${genCCModifier}generalStr`);
-    let siegeMod = 0;
-    if (G.combat.type === CombatType.SIEGE) {
-
-    } else {
-
-    }
-    let total = unitStrength + genCCModifier;
-    if (unitStrength > 0) {
-        if (total <= 0) {
-            total = 1;
-        }
-    } else {
-        if (total <= 0) {
-            total = 0;
-        }
-    }
-    logger.debug(`${G.matchID}|${log.join('')}`);
-    return total;
-}
-
-
 export function getGeneralCCRange(G: SongJinnGame, t: Troop): number {
     const log = [`getGeneralCCRange`];
     const ci = G.combat;
@@ -4623,13 +4596,75 @@ export function getGeneralCCRange(G: SongJinnGame, t: Troop): number {
     return mod;
 }
 
+export function getRangeStrength(G: SongJinnGame, t: Troop): number {
+    const log = [`getRangeStrength`];
+    const unitStrength = troopRange(G, t);
+    log.push(`|${unitStrength}unitStrength`);
+    const genCCModifier = getGeneralCCRange(G, t);
+    log.push(`|${genCCModifier}generalStr`);
+    let total = unitStrength + genCCModifier;
+    if (unitStrength > 0) {
+        if (total <= 0) {
+            total = 1;
+        }
+    } else {
+        if (total <= 0) {
+            total = 0;
+        }
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return total;
+}
+
+export function getSiegeMeleeStr(G: SongJinnGame, t: Troop): number {
+    const log = [`getSiegeMeleeStr`];
+    const ci = G.combat
+    const fromUnit = troopSiegeMelee(G, t);
+    log.push(`|${fromUnit}|fromUnit`);
+    const genCCModifier = getGeneralCCMelee(G, t);
+
+    log.push(`|${genCCModifier}genCCMod`);
+    let total = fromUnit + genCCModifier;
+
+    if(t.g === ci.atk && t.g === Country.SONG){
+        total += getPolicy(G);
+    }
+    if (fromUnit > 0) {
+        if (total <= 0) {
+            total = 1;
+        }
+    } else {
+        if (total <= 0) {
+            total = 0;
+        }
+    }
+
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return total;
+}
 
 export function getMeleeStr(G: SongJinnGame, t: Troop): number {
     const log = [`getMeleeStr`];
-    const fromUnit = 0;
-    const genCCMod = getGeneralCCMelee(G, t);
+    const fromUnit = troopMelee(G, t);
+    const genCCModifier = getGeneralCCMelee(G, t);
+    const ci = G.combat;
+    log.push(`|${genCCModifier}generalStr`);
+    let total = fromUnit + genCCModifier;
+
+    if(t.g === ci.atk && t.g === Country.SONG){
+        total += getPolicy(G);
+    }
+    if (fromUnit > 0) {
+        if (total <= 0) {
+            total = 1;
+        }
+    } else {
+        if (total <= 0) {
+            total = 0;
+        }
+    }
     logger.debug(`${G.matchID}|${log.join('')}`);
-    return 0;
+    return total;
 }
 
 export function getGeneralCCMelee(G: SongJinnGame, t: Troop): number {
@@ -4672,13 +4707,105 @@ export function getGeneralCCMelee(G: SongJinnGame, t: Troop): number {
     return mod;
 }
 
+export function unitSiegeMeleeStr(G: SongJinnGame, troop: Troop) {
+    const log = [`unitSiegeMeleeStr`];
+    const terrainType = getTerrainTypeByPlace(troop);
+    const isSwampRampart = checkSwampRampart(troop.p);
+    let unitMelee: number[] = [];
+
+    if (troop.g === Country.SONG) {
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitMelee = [1, 0, 1, 0, 0, 0];
+                break;
+            case TerrainType.HILLS:
+                unitMelee = [1, 0, 1, 0, 0, 0];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitMelee = [1, 0, 1, 0, 0, 0];
+                break;
+            case TerrainType.SWAMP:
+                unitMelee = [1, 0, 1, 1, 0, 0];
+                break;
+            case TerrainType.RAMPART:
+                unitMelee = [1, 0, 1, 0, 0, 0];
+                if (isSwampRampart) {
+                    unitMelee[4] = 2;
+                }
+                break;
+        }
+    } else {
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitMelee = [1, 1, 1, 0, 1, 1, 1];
+                break;
+            case TerrainType.HILLS:
+                unitMelee = [1, 1, 1, 0, 1, 1, 1];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitMelee = [1, 1, 1, 0, 1, 1, 1];
+                break;
+            case TerrainType.SWAMP:
+                unitMelee = [1, 1, 1, 1, 1, 1, 1];
+                break;
+            case TerrainType.RAMPART:
+                unitMelee = [1, 1, 1, 0, 1, 1, 1];
+                break;
+        }
+    }
+    log.push(`|${JSON.stringify(unitMelee)}|unitMelee`);
+    return unitMelee;
+}
 
 export function unitMeleeStr(G: SongJinnGame, troop: Troop) {
     const log = [`unitMeleeStr`];
     const terrainType = getTerrainTypeByPlace(troop);
     const isSwampRampart = checkSwampRampart(troop.p);
-
-
+    let unitMelee = [0];
+    if (troop.g === Country.SONG) {
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitMelee = [1, 1, 3, 0, 0, 2];
+                break;
+            case TerrainType.HILLS:
+                unitMelee = [1, 1, 2, 0, 0, 2];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitMelee = [1, 1, 1, 0, 0, 2];
+                break;
+            case TerrainType.SWAMP:
+                unitMelee = [1, 2, 1, 2, 0, 2];
+                break;
+            case TerrainType.RAMPART:
+                unitMelee = [1, 2, 1, 0, 3, 2];
+                if (isSwampRampart) {
+                    unitMelee[4] = 2;
+                }
+                break;
+        }
+        if (G.events.includes(ActiveEvents.ShenBiGong)) {
+            unitMelee[1] = 2;
+        }
+    } else {
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitMelee = [1, 2, 3, 0, 0, 1, 1];
+                break;
+            case TerrainType.HILLS:
+                unitMelee = [1, 2, 2, 0, 0, 1, 1];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitMelee = [1, 1, 1, 0, 0, 1, 1];
+                break;
+            case TerrainType.SWAMP:
+                unitMelee = [1, 2, 1, 2, 0, 1, 1];
+                break;
+            case TerrainType.RAMPART:
+                unitMelee = [1, 2, 2, 0, 0, 1, 1];
+                break;
+        }
+    }
+    return unitMelee;
 }
 
 export function unitRangeStr(G: SongJinnGame, troop: Troop) {
@@ -4716,7 +4843,7 @@ export function unitRangeStr(G: SongJinnGame, troop: Troop) {
     } else {
         switch (terrainType) {
             case TerrainType.FLATLAND:
-                unitRanges = [0, 2, 0, 0, 0, 1, 1];
+                unitRanges = [0, 2, 0, 0, 0, 0, 0];
                 break;
             case TerrainType.HILLS:
                 unitRanges = [0, 2, 0, 0, 0, 0, 0];
@@ -4841,7 +4968,7 @@ function isAtkSong(G: SongJinnGame) {
     return G.combat.atk === Country.SONG;
 }
 
-export function getRangeSiegeStr(G: SongJinnGame, t: Troop) {
+export function getSiegeRangeStr(G: SongJinnGame, t: Troop) {
     const log = [`getRangeSiegeStr`];
     const fromUnit = troopSiegeRange(G, t);
     log.push(`|${fromUnit}fromUnit`);
@@ -4876,69 +5003,9 @@ export function troopSiegeRange(G: SongJinnGame, troop: Troop): number {
     return range;
 }
 
-export function troopSiegeMelee(G: SongJinnGame, troop: Troop): number {
-    let melee = 0;
-    const terrainType = getTerrainTypeByPlace(troop);
-    const place = troop.p;
-    const isSwampRampart = checkSwampRampart(place);
-    let unitMelee: number[] = [];
-
-    if (troop.g === Country.SONG) {
-        switch (terrainType) {
-            case TerrainType.FLATLAND:
-                unitMelee = [1, 0, 1, 0, 0, 0];
-                break;
-            case TerrainType.HILLS:
-                unitMelee = [1, 0, 2, 0, 0, 0];
-                break;
-            case TerrainType.MOUNTAINS:
-                unitMelee = [1, 0, 1, 0, 0, 0];
-                break;
-            case TerrainType.SWAMP:
-                unitMelee = [1, 0, 1, 2, 0, 0];
-                break;
-            case TerrainType.RAMPART:
-                unitMelee = [1, 0, 1, 0, 0, 0];
-                if (isSwampRampart) {
-                    unitMelee[4] = 2;
-                }
-                break;
-        }
-    } else {
-        switch (terrainType) {
-            case TerrainType.FLATLAND:
-                unitMelee = [1, 1, 1, 0, 1, 1, 1];
-                break;
-            case TerrainType.HILLS:
-                unitMelee = [1, 1, 1, 0, 1, 1, 1];
-                break;
-            case TerrainType.MOUNTAINS:
-                unitMelee = [1, 1, 1, 0, 1, 1, 1];
-                break;
-            case TerrainType.SWAMP:
-                unitMelee = [1, 1, 1, 1, 1, 1, 1];
-                break;
-            case TerrainType.RAMPART:
-                unitMelee = [1, 1, 1, 0, 1, 1, 1];
-                break;
-        }
-    }
-    troop.u.forEach((i, idx) => {
-        melee += i * unitMelee[idx]
-    })
-    if (troop.g === Country.JINN && hasGeneral(G, troop, JinnGeneral.WoLiBu)) {
-        melee += troop.u[1];
-        melee += troop.u[2];
-    }
-    if (troop.g === Country.SONG) {
-        melee += getPolicy(G);
-        melee = melee > 0 ? melee : 0;
-    }
-    return melee;
-}
 
 export function troopDefendCiyRange(G: SongJinnGame, troop: Troop): number {
-    let range = troopRange(G, troop);
+    let range = getRangeStrength(G, troop);
     if (troop.c !== null) {
         range += getCityDefence(G, troop.c, troop.g);
     }
@@ -4955,8 +5022,24 @@ export function hasGeneral(G: SongJinnGame, t: Troop, gen: General) {
     return pub.generals[gen] === GeneralStatus.TROOP ? t.p === pub.generalPlace[gen] : false;
 }
 
+
+
+export function troopSiegeMelee(G: SongJinnGame, troop: Troop): number {
+    const unitMelee = unitSiegeMeleeStr(G, troop);
+    let melee = 0;
+    for (let i = 0; i < troop.u.length; i++) {
+        melee += troop.u[i] * unitMelee[i]
+    }
+    return melee;
+}
+
 export function troopMelee(G: SongJinnGame, troop: Troop): number {
-    return troopMeleeOnly(G, troop) + troopRange(G, troop);
+    const unitMelee = unitMeleeStr(G, troop);
+    let melee = 0;
+    for (let i = 0; i < troop.u.length; i++) {
+        melee += troop.u[i] * unitMelee[i]
+    }
+    return melee;
 }
 
 export function troopMeleeOnly(G: SongJinnGame, troop: Troop): number {
@@ -5063,11 +5146,11 @@ export function getTroopText(G: SongJinnGame, t: Troop) {
     text += `|${unitsToString(t.u)}`;
     text += `${troopEndurance(G, t)}|`;
     text += '\n';
-    text += `|${troopRange(G, t)}`;
-    text += `/${troopSiegeRange(G, t)}`;
+    text += `|${getRangeStrength(G, t)}`;
+    text += `/${getSiegeRangeStr(G, t)}`;
     text += `/${troopDefendCiyRange(G, t)}`;
-    text += `|${troopMelee(G, t)}`;
-    text += `/${troopSiegeMelee(G, t)}`;
+    text += `|${getMeleeStr(G, t)}`;
+    text += `/${getSiegeMeleeStr(G, t)}`;
     text += `/${troopDefendCiyMelee(G, t)}`;
     return text;
 }
