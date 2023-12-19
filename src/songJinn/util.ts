@@ -4592,7 +4592,7 @@ export function getGeneralCCRange(G: SongJinnGame, t: Troop): number {
             log.push(`|${mod}mod`);
         }
     }
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return mod;
 }
 
@@ -4612,7 +4612,7 @@ export function getRangeStrength(G: SongJinnGame, t: Troop): number {
             total = 0;
         }
     }
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return total;
 }
 
@@ -4639,10 +4639,102 @@ export function getSiegeMeleeStr(G: SongJinnGame, t: Troop): number {
         }
     }
     log.push(`|${total}|final`);
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return total;
 }
 
+
+
+export function unitsMeleeOnlyStr(G: SongJinnGame, troop: Troop): number[] {
+    const log = [`unitsMeleeOnlyStr`];
+
+    const terrainType = getTerrainTypeByPlace(troop);
+    const isSwampRampart = checkSwampRampart(troop.p);
+    log.push(`|terrain${terrainType}`);
+    log.push(`|${isSwampRampart}isSwampRampart`);
+    let unitMeleeOnly = [0];
+    if (troop.g === Country.SONG) {
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitMeleeOnly = [1, 0, 3, 0, 0, 0];
+                break;
+            case TerrainType.HILLS:
+                unitMeleeOnly = [1, 0, 2, 0, 0, 0];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitMeleeOnly = [1, 0, 1, 0, 0, 0];
+                break;
+            case TerrainType.SWAMP:
+                unitMeleeOnly = [1, 0, 1, 2, 0, 0];
+                break;
+            case TerrainType.RAMPART:
+                unitMeleeOnly = [1, 0, 1, 0, 0, 0];
+                if (isSwampRampart) {
+                    unitMeleeOnly[4] = 2;
+                }
+                break;
+        }
+        if (G.events.includes(ActiveEvents.ShenBiGong)) {
+            unitMeleeOnly[1] = 2;
+        }
+    } else {
+        log.push(`|not|reachable`);
+        switch (terrainType) {
+            case TerrainType.FLATLAND:
+                unitMeleeOnly = [1, 0, 3, 0, 0, 1, 1];
+                break;
+            case TerrainType.HILLS:
+                unitMeleeOnly = [1, 0, 2, 0, 0, 1, 1];
+                break;
+            case TerrainType.MOUNTAINS:
+                unitMeleeOnly = [1, 0, 1, 0, 0, 1, 1];
+                break;
+            case TerrainType.SWAMP:
+                unitMeleeOnly = [1, 0, 1, 2, 0, 1, 1];
+                break;
+            case TerrainType.RAMPART:
+                unitMeleeOnly = [1, 0, 2, 0, 0, 0, 0];
+                break;
+        }
+    }
+    logger.warn(`${G.matchID}|${log.join('')}`);
+    return unitMeleeOnly;
+}
+export function troopMeleeOnlyStr(G: SongJinnGame, t: Troop): number {
+
+
+    let meleeOnly = 0;
+
+    return meleeOnly;
+}
+export function getMeleeOnlyStr(G: SongJinnGame, t: Troop): number {
+    const log = [`getMeleeOnlyStr`];
+    const fromUnit = troopMelee(G, t);
+    const genCCModifier = getGeneralCCMelee(G, t);
+    const ci = G.combat;
+    log.push(`|${genCCModifier}generalStr`);
+    let total = fromUnit + genCCModifier;
+
+    if(t.g === ci.atk && t.g === Country.SONG){
+        total += getPolicy(G);
+        log.push(`|afterPolicy${total}`);
+    }
+    if (fromUnit > 0) {
+        if (total <= 0) {
+            total = 1;
+            log.push(`|correctTo1`);
+        }
+    } else {
+        if (total <= 0) {
+            total = 0;
+            log.push(`|correctTo0`);
+        }
+    }
+    log.push(`|${total}|final`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
+    return total;
+
+}
 export function getMeleeStr(G: SongJinnGame, t: Troop): number {
     const log = [`getMeleeStr`];
     const fromUnit = troopMelee(G, t);
@@ -4663,10 +4755,49 @@ export function getMeleeStr(G: SongJinnGame, t: Troop): number {
             total = 0;
         }
     }
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return total;
 }
 
+export function getGeneralCCMeleeOnly(G: SongJinnGame, t: Troop): number {
+    const log = [`getGeneralCCMelee`];
+    const ci = G.combat;
+    let mod = 0;
+    const cc = ciCtrInfo(G, t.g).combatCard;
+    if (cc.includes(SongBaseCardID.S12)) {
+        log.push(`|ZhanChe`);
+        mod += t.u[0];
+        log.push(`|${mod}mod`);
+    }
+    const generals = getPlaceCountryGeneral(G, t.g, t.p);
+    const unitCount = t.u.reduce(accumulator);
+    log.push(`|${unitCount}unitount`);
+    if (t.g === Country.JINN) {
+        if (generals.includes(JinnGeneral.WuZhu) && ci.atk === Country.JINN) {
+            log.push(`|wuZhuAtk`);
+            mod += 2;
+            log.push(`|${mod}mod`);
+        }
+    } else {
+        if (generals.includes(SongGeneral.LiXianZhong)) {
+            log.push(`|LiXianZhong`);
+            mod += t.u[2];
+            log.push(`|${mod}mod`);
+        }
+        if (generals.includes(SongGeneral.WuLin) && ci.atk === Country.SONG) {
+            log.push(`|wuLinAtk`);
+            mod += unitCount;
+            log.push(`|${mod}mod`);
+        }
+        if (generals.includes(SongGeneral.WuJie) && ci.atk === Country.JINN) {
+            log.push(`|wuJieDef`);
+            mod += unitCount;
+            log.push(`|${mod}mod`);
+        }
+    }
+    logger.warn(`${G.matchID}|${log.join('')}`);
+    return mod;
+}
 export function getGeneralCCMelee(G: SongJinnGame, t: Troop): number {
     const log = [`getGeneralCCMelee`];
     const ci = G.combat;
@@ -4984,7 +5115,7 @@ export function getSiegeRangeStr(G: SongJinnGame, t: Troop) {
         strength <= 1 ? 1 : strength :
         strength <= 0 ? 0 : strength;
     log.push(`|${final}final`);
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return final
 }
 
@@ -5202,7 +5333,7 @@ export const getSongScore = (G: SongJinnGame): number => {
         score++;
         log.push(`|${score}score`);
     }
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return score
 }
 export const getSongPower = (G: SongJinnGame): number => {
@@ -5269,7 +5400,7 @@ export const getJinnScore = (G: SongJinnGame): number => {
     log.push(`|${score}score`);
     score += G.jinn.specialPlan;
     log.push(`|${score}score`);
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return score;
 }
 
@@ -5300,7 +5431,7 @@ export const checkControlCity = (G: SongJinnGame, pid: PlayerID, c: CityID) => {
         }
     }
     log.push(`|${result}result`);
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return result;
 }
 
