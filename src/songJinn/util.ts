@@ -66,6 +66,56 @@ import {getProvinceById} from "./constant/province";
 import {getCityById} from "./constant/city";
 import {changePlayerStage} from "../game/logFix";
 
+export const isSongEvent = (e: ActiveEvents) => {
+    switch (e) {
+        case ActiveEvents.LiGang:
+        case ActiveEvents.JianYanNanDu:
+        case ActiveEvents.XiJunQuDuan:
+        case ActiveEvents.JinTaiZongJiaBeng:
+        case ActiveEvents.BaZiJun:
+        case ActiveEvents.WuLuKeTui:
+        case ActiveEvents.XiangHaiShangFaZhan:
+        case ActiveEvents.FuHaiTaoSheng:
+        case ActiveEvents.ShenBiGong:
+        case ActiveEvents.ZhongBuBing:
+        case ActiveEvents.YueShuaiZhiLai:
+        case ActiveEvents.WuLin:
+        case ActiveEvents.YanJingYiNan:
+        case ActiveEvents.JingKangZhiBian:
+            return true;
+        case ActiveEvents.LiuJiaShenBing:
+        case ActiveEvents.JinTaiZong:
+        case ActiveEvents.ZhuiWangZhuBei:
+        case ActiveEvents.JiNanZhiFuLiuYu:
+        case ActiveEvents.JinBingLaiLe:
+        case ActiveEvents.ZhangZhaoZhiZheng:
+        case ActiveEvents.JianLiDaQi:
+        case ActiveEvents.QinHuiDuXiang:
+        case ActiveEvents.BuJianLaiShi:
+        case ActiveEvents.QuDuanZhiSi:
+        case ActiveEvents.XuZhouYeTie:
+        case ActiveEvents.TianJuanZhengBian:
+        case ActiveEvents.JieChuBingQuan:
+            return false;
+    }
+}
+
+export const jinnSorter = (a: Troop, b: Troop) => {
+    const unitDelta = a.u.reduce(accumulator) - b.u.reduce(accumulator);
+    if (unitDelta === 0) {
+        return a.p > b.p ? 1 : -1;
+    } else {
+        return -unitDelta;
+    }
+}
+export const songSorter = (a: Troop, b: Troop) => {
+    const unitDelta = a.u.reduce(accumulator) - b.u.reduce(accumulator);
+    if (unitDelta === 0) {
+        return b.p - a.p ? 1 : -1;
+    } else {
+        return -unitDelta;
+    }
+}
 
 function area(coords: [number, number][][]) {
     let s = 0.0;

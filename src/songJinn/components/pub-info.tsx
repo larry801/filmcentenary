@@ -85,9 +85,15 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
         <Grid item xs={12} key={`game-info`}>
             <Typography>第{G.turn}回合
                 第{G.round}轮 {getSeasonText(G.round)} {pid2ctr(ctx.currentPlayer)} {phaseName(ctx.phase)} </Typography>
-            <Typography>已发生事件：{G.events.map(e =>
-                <label key={`event-global-${e}`}>{e},</label>
-            )}
+            <Typography>已发生事件：
+                {G.events.filter(e => isSongEvent(e)).map(e =>
+                    <label key={`event-global-${e}`}>{e},</label>
+                )}
+                <br/>
+                {G.events.filter(e => !isSongEvent(e)).map(e =>
+                    <label key={`event-global-${e}`}>{e},</label>
+                )}
+                <br/>
                 移除的国家：{G.removedNation}
                 {ctx.phase === 'action' ? `征募和进军点数${G.op}` : ''}
             </Typography>

@@ -13,7 +13,7 @@ export enum PendingEvents {
     ZhangZhaoZhiZheng = "张赵之争",
 }
 
-export const enum ActiveEvents {
+export enum ActiveEvents {
     JianYanNanDu = "建炎南渡",
     LiGang = "李纲",
     XiJunQuDuan = "西军曲端",
