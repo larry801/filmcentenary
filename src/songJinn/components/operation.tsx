@@ -228,17 +228,17 @@ export const Operation = ({
 
     const confirmRespondDialog = <ChoiceDialog
         callback={(c) => {
-            moves.confirmRespond({choice:c,text:confirmRespondLogText(G,c,ctr)})
+            moves.confirmRespond({choice: c, text: confirmRespondLogText(G, c, ctr)})
         }}
-        choices={confirmRespondChoices(G,ctx,playerID)} defaultChoice={"no"}
-        show={isActive && actualStage(G,ctx)==='confirmRespond' && !G.combat.ongoing}
+        choices={confirmRespondChoices(G, ctx, playerID)} defaultChoice={"no"}
+        show={isActive && actualStage(G, ctx) === 'confirmRespond' && !G.combat.ongoing}
         title={confirmRespondText(G, ctx, playerID)}
         toggleText={"请求确认"}
         initial={true}/>
 
     const develop = (choice: string) => {
         let target = 0;
-        switch(choice as DevelopChoice){
+        switch (choice as DevelopChoice) {
             case DevelopChoice.MILITARY:
                 target = pub.military + 1;
                 break;
@@ -260,9 +260,9 @@ export const Operation = ({
                 break;
 
         }
-        moves.develop({choice,target});
+        moves.develop({choice, target});
     }
-
+    const developPhases = ['draw', 'develop', 'action', 'resolvePlan', 'turnEnd']
     const developDialog = <ChoiceDialog
         callback={develop}
         defaultChoice={DevelopChoice.CIVIL}
@@ -305,7 +305,7 @@ export const Operation = ({
             },
 
         ]}
-        show={isActive && ctx.phase === 'develop' || ctx.phase === 'resolvePlan' || ctx.phase === 'action'}
+        show={isActive && developPhases.includes(ctx.phase)}
         title={"请选择发展项目"} toggleText={"发展"} initial={false}
     />
 

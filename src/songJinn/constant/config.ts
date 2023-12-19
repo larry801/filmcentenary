@@ -227,6 +227,8 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
     },
     onEnd: (G, ctx) => endTurnCheck(G, ctx),
     moves: {
+        down:down,
+        develop:develop,
         placeUnit: placeUnit,
         endRound: endRound
     },
@@ -274,6 +276,8 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         search: search,
         discard: discard,
         endRound: endRound,
+        drawExtraCard: drawExtraCard,
+        develop:develop,
     },
     next: 'chooseFirst'
 }
