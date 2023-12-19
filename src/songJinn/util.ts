@@ -626,6 +626,15 @@ export const sjCardById: (cid: BaseCardID) => Cards = (cid: BaseCardID) => {
     return idToCard[cid];
 }
 
+
+export function checkSongLoseEmperor(G: SongJinnGame, ctx:Ctx) {
+    if(G.player['0'].hand.includes(SongBaseCardID.S30)){
+        G.pending.events.push(PendingEvents.SouShanJianHai);
+        changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
+    }else{
+        songLoseEmperor(G);
+    }
+}
 export function songLoseEmperor(G: SongJinnGame) {
     G.song.emperor = null;
     policyDown(G, 1);
@@ -1911,7 +1920,10 @@ export const idToCard = {
         combat: false,
         effectText: "放置1个在场的宋国将领到预备兵区或者宋国内政等级降低1级。【莫须有】结算时，金国内政等级视为提升1级的状态。",
         pre: (G: SongJinnGame, _ctx: Ctx) => true,
-        event: (G: SongJinnGame, _ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            G.pending.events.push(PendingEvents.ZhangZhaoZhiZheng);
+            ctx.events?.setStage('confirmRespond')
+        }
     },
     [JinnBaseCardID.J18]: {
         id: JinnBaseCardID.J18,
@@ -4112,23 +4124,36 @@ export const ciAtkTroop = (G: SongJinnGame): Troop => {
 }
 
 export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country) => {
-    if (G.combat.phase === CombatPhase.JieYe) {
-        return arg === 'yes' ? "选择接野" : "选择不接野";
-    }
-    if (G.combat.phase === CombatPhase.WeiKun) {
-        return arg;
-    }
-    if (G.combat.phase === CombatPhase.MingJin) {
-        const ci = G.combat;
-        const defCCI = ciDefInfo(G);
-        if (ctr === ci.atk) {
+    const ci = G.combat;
+    if (ci.ongoing) {
+        if (ci.phase === CombatPhase.JieYe) {
+            return arg === 'yes' ? "选择接野" : "选择不接野";
+        }
+        if (ci.phase === CombatPhase.WeiKun) {
             return arg;
-        } else {
-            if (canForceRoundTwo(G) && defCCI.choice !== BeatGongChoice.NO_FORCE_ROUND_TWO) {
-                return arg === "yes" ? "选择强制第二轮" : "选择不强制第二轮";
-            } else {
+        }
+        if (ci.phase === CombatPhase.MingJin) {
+            const defCCI = ciDefInfo(G);
+            if (ctr === ci.atk) {
                 return arg;
+            } else {
+                if (canForceRoundTwo(G) && defCCI.choice !== BeatGongChoice.NO_FORCE_ROUND_TWO) {
+                    return arg === "yes" ? "选择强制第二轮" : "选择不强制第二轮";
+                } else {
+                    return arg;
+                }
             }
+        }
+    } else {
+        if (G.pending.events.includes(PendingEvents.ZhangZhaoZhiZheng)) {
+            if (arg === '选择降低宋内政') {
+                return arg;
+            } else {
+                // @ts-ignore
+                return `选择把${getGeneralNameByCountry(G, SJPlayer.P1, parseInt(arg))}移动到预备兵区`
+            }
+        } else {
+            return arg;
         }
     }
     return arg === 'yes' ? "选择是" : "选择否";
@@ -4192,12 +4217,24 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
                 {label: "内政", value: "内政", disabled: false, hidden: false}
             ]
         }
-
+        if (G.pending.events.includes(PendingEvents.ZhangZhaoZhiZheng)) {
+            G.pending.events.splice(G.pending.events.indexOf(PendingEvents.ZhangZhaoZhiZheng), 1);
+            const choices = [
+                {label: "降低宋内政", value: "选择降低宋内政", disabled: false, hidden: false},
+            ]
+            getPresentGeneral(G, SJPlayer.P1).forEach(g => {
+                choices.push({
+                    label: getGeneralNameByCountry(Country.SONG, g), value: g.toString(),
+                    disabled: false, hidden: false
+                })
+            });
+            return choices;
+        }
         if (G.pending.events.includes(PendingEvents.JiaBeng)) {
             return [
-                {label: "殖民", value: "殖民", disabled: false, hidden: false},
-                {label: "内政", value: "内政", disabled: false, hidden: false},
-                {label: "军事", value: "军事", disabled: false, hidden: false}
+                {label: "降低金殖民", value: "选择降低金殖民", disabled: false, hidden: false},
+                {label: "降低金内政", value: "选择降低金内政", disabled: false, hidden: false},
+                {label: "降低金军事", value: "选择降低金军事", disabled: false, hidden: false}
             ]
         }
 
@@ -4231,10 +4268,19 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
         }
     } else {
         if (G.pending.events.includes(PendingEvents.HanFang)) {
-            return "请选择提内政或者殖民";
+            return "请选择提升内政或者殖民";
         }
         if (G.pending.events.includes(PendingEvents.JiaBeng)) {
             return "请选择降低金内政，军事或者殖民";
+        }
+        if (G.pending.events.includes(PendingEvents.ZhangZhaoZhiZheng)) {
+            return "请选择降低宋内政，或者移动一个宋将到预备区";
+        }
+        if (G.pending.events.includes(PendingEvents.WeiQi)) {
+            return "请选择要移除的齐控制物";
+        }
+        if (G.pending.events.includes(PendingEvents.SouShanJianHai)) {
+            return "请选择是否移除搜山检海";
         }
     }
     return "是否确认";

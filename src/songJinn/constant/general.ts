@@ -6,10 +6,11 @@ export const MAX_DICES = 30;
 
 export enum PendingEvents {
     PlaceUnitsToRegion,
-    XiJunQuDuan,
+    SouShanJianHai,
     HanFang,
     JiaBeng,
     WeiQi,
+    ZhangZhaoZhiZheng,
 }
 
 export const enum ActiveEvents {
@@ -1074,7 +1075,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
         combat: emptyCombatInfo(),
         events: [],
         round: 1,
-        turn: 1,
+        turn: 6,
         first: SJPlayer.P1,
         policy: -2,
         colony: 0,
@@ -1097,9 +1098,10 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
     console.log(G.secret.songDeck.toString());
     console.log(G.secret.jinnDeck.toString());
     //
-    // G.player['1'].hand.push(JinnBaseCardID.J39);
-    // G.player['1'].hand.push(JinnBaseCardID.J01);
-    // G.player['1'].hand.push(JinnBaseCardID.J18);
+    G.player['1'].hand.push(JinnBaseCardID.J17);
+    G.player['1'].hand.push(JinnBaseCardID.J03);
+    G.player['0'].hand.push(SongBaseCardID.S17);
+    G.player['0'].hand.push(SongBaseCardID.S30);
 
     return G;
 }

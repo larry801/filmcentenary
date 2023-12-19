@@ -21,8 +21,10 @@ import {
     PlayerPendingEffect,
     ProvinceID,
     SJEventCardID,
-    SJPlayer, SongBaseCardID,
-    SongJinnGame, Troop,
+    SJPlayer,
+    SongBaseCardID,
+    SongJinnGame,
+    Troop,
     TroopPlace
 } from "./constant/general";
 import {logger} from "../game/logger";
@@ -754,6 +756,7 @@ interface IRollDiceArgs {
 }
 
 export const rollDices: LongFormMove = {
+    client: false,
     move: (G, ctx, args: IRollDiceArgs,) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
@@ -771,6 +774,7 @@ export const rollDices: LongFormMove = {
 }
 
 export const removeCompletedPlan: LongFormMove = {
+    client: false,
     move: (G, ctx, arg: PlanID) => {
         const pid = ctx.playerID;
         const log = [`removeCompletedPlan`];
@@ -802,12 +806,15 @@ export const recruitPuppet: LongFormMove = {
         if (pub.standby[5] > 0) {
             pub.standby[5]--
         } else {
-
             if (G.events.includes(ActiveEvents.JianLiDaQi)) {
                 if (pub.standby[6] > 0) {
                     pub.standby[6]--;
+                }else{
+                    return  INVALID_MOVE;
                 }
                 qi = true;
+            }else{
+                return INVALID_MOVE;
             }
         }
 
@@ -911,6 +918,8 @@ export const showLetters: LongFormMove = {
     }
 }
 export const jianLiDaQi: LongFormMove = {
+    client: false,
+
     move: (G: SongJinnGame, ctx: Ctx, args: ProvinceID[]) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
@@ -953,6 +962,7 @@ export const chooseRegion: LongFormMove = {
     }
 }
 export const emptyRound: LongFormMove = {
+    client: false,
     move: (G, ctx) => {
         const pid = ctx.playerID;
         if (pid === undefined) {
@@ -961,12 +971,13 @@ export const emptyRound: LongFormMove = {
         const ctr = getCountryById(pid);
         const pub = pid2pub(G, pid);
         const player = playerById(G, pid);
-        G.op = 1;
+        G.op += 1;
     }
 }
 
 
 export const emperor: LongFormMove = {
+    client: false,
     move: (G, ctx, city: CityID) => {
         if (ctx.playerID !== SJPlayer.P1 || G.song.emperor !== null) {
             return INVALID_MOVE;
@@ -987,6 +998,7 @@ interface IDevelopArg {
 }
 
 export const develop: LongFormMove = {
+    client: false,
     move: (G, ctx, arg: IDevelopArg) => {
         logger.info(`${G.matchID}|p${ctx.playerID}.develop(${arg})`)
         const pid = ctx.playerID;
@@ -1113,6 +1125,8 @@ export const develop: LongFormMove = {
 }
 
 export const returnToHand: LongFormMove = {
+    client: false,
+
     move: (G, ctx, args: BaseCardID) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
@@ -1179,7 +1193,7 @@ export const combatCard: LongFormMove = {
                 yuanCheng(G, ctx);
             } else {
                 if (G.combat.jinn.combatCard.includes(SongBaseCardID.S50)) {
-                    doPlaceUnit(G,[0,0,0,1,0,0],Country.SONG, G.combat.song.troop.p);
+                    doPlaceUnit(G, [0, 0, 0, 1, 0, 0], Country.SONG, G.combat.song.troop.p);
                 }
                 if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J50)) {
                     log.push(`|yiBing|endCombat`);
@@ -1191,16 +1205,6 @@ export const combatCard: LongFormMove = {
             }
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
-    }
-}
-
-interface IAskFieldArgs {
-    place: TroopPlace
-}
-
-export const askField: LongFormMove = {
-    move: (G, ctx, args) => {
-
     }
 }
 
@@ -1404,6 +1408,7 @@ export const search: LongFormMove = {
 }
 
 export const searchFirst: LongFormMove = {
+    client: false,
     move: (G: SongJinnGame, ctx: Ctx, args: boolean) => {
         if (!args) {
             if (ctx.playerID !== undefined) {
@@ -1417,6 +1422,7 @@ export const searchFirst: LongFormMove = {
 }
 
 export const showPlan: LongFormMove = {
+    client: false,
     move: (G: SongJinnGame, ctx: Ctx, args: PlanID[]) => {
         logger.info(`p${ctx.playerID}.moves.showPlan(${JSON.stringify(args)})`);
         if (ctx.playerID === undefined) {
@@ -1435,6 +1441,7 @@ export const showPlan: LongFormMove = {
 }
 
 export const showCC: LongFormMove = {
+    client: false,
     move: (G: SongJinnGame, ctx: Ctx, args: SJEventCardID[]) => {
         logger.info(`p${ctx.playerID}.moves.showCC(${args.toString()})`);
         if (ctx.playerID === undefined) {
@@ -1486,6 +1493,8 @@ export const op: LongFormMove = {
 
 
 export const paiQian: LongFormMove = {
+    client: false,
+
     move: (G: SongJinnGame, ctx: Ctx, cid: SJEventCardID) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
@@ -1505,6 +1514,7 @@ export const paiQian: LongFormMove = {
 
 
 export const down: LongFormMove = {
+    client: false,
     move: (G, ctx, choice: DevelopChoice) => {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
@@ -1589,7 +1599,8 @@ export const chooseTop: LongFormMove = {
 }
 
 export const endRound: LongFormMove = {
-    move: (G: SongJinnGame, ctx: Ctx, arg: number,) => {
+    client: false,
+    move: (G: SongJinnGame, ctx: Ctx, arg: number) => {
         const pid = ctx.playerID;
         if (pid === undefined) {
             return INVALID_MOVE;
@@ -1620,6 +1631,7 @@ interface ISiegeArg {
 }
 
 export const siege: LongFormMove = {
+    client: false,
     move: (G, ctx, arg: ISiegeArg) => {
         const pid = ctx.playerID;
         const log = [`siege`];
@@ -1641,6 +1653,7 @@ interface IBreakoutArg {
 }
 
 export const breakout: LongFormMove = {
+    client: false,
     move: (G: SongJinnGame, ctx: Ctx, arg: IBreakoutArg) => {
 
         const pid = ctx.playerID;
@@ -1658,6 +1671,7 @@ interface IConfirmRespondArgs {
 }
 
 export const confirmRespond: LongFormMove = {
+    client: false,
     move: (G: SongJinnGame, ctx: Ctx, arg: IConfirmRespondArgs) => {
         const pid = ctx.playerID;
         logger.info(`${G.matchID}|p${pid}.confirmRespond(${JSON.stringify(arg)})`);
@@ -1821,20 +1835,45 @@ export const confirmRespond: LongFormMove = {
                 }
             }
         } else {
-
+            if (G.pending.events.includes(PendingEvents.ZhangZhaoZhiZheng)) {
+                if (choice === '选择降低宋内政') {
+                    changeCivil(G, SJPlayer.P1, -1);
+                } else {
+                    const gen: General = parseInt(choice);
+                    log.push(`|${gen}|gen`);
+                    // @ts-ignore
+                    log.push(`|${getGeneralNameByCountry(G, SJPlayer.P1, gen)}`);
+                    moveGeneralToReady(G, SJPlayer.P1, gen);
+                }
+            }
+            if (G.pending.events.includes(PendingEvents.SouShanJianHai)) {
+                if (choice === 'yes') {
+                    if (G.player['0'].hand.includes(SongBaseCardID.S30)) {
+                        G.player['0'].hand.splice(G.player['0'].hand.indexOf(SongBaseCardID.S30), 1);
+                    }
+                    G.song.remove.push(SongBaseCardID.S30);
+                    changePlayerStage(G, ctx, 'emperor', SJPlayer.P1);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
+                } else {
+                    songLoseEmperor(G);
+                    ctx.events?.endStage();
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return
+                }
+            }
             if (G.pending.events.includes(PendingEvents.WeiQi)) {
                 const prov = choice as ProvinceID;
                 if (Object.values(ProvinceID).includes(prov)) {
                     if (G.qi.includes(prov)) {
                         G.qi.splice(G.qi.indexOf(prov), 1);
-                    }else{
+                    } else {
                         log.push(`|error|manual|move`);
                     }
-                }else{
+                } else {
                     log.push(`|error|manual|move`);
                 }
                 G.pending.events.splice(G.pending.events.indexOf(PendingEvents.WeiQi), 1);
-
                 ctx.events?.endStage();
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
@@ -1860,24 +1899,24 @@ export const confirmRespond: LongFormMove = {
             if (G.pending.events.includes(PendingEvents.JiaBeng)) {
                 log.push(`|hanFang`);
                 G.pending.events.splice(G.pending.events.indexOf(PendingEvents.JiaBeng), 1);
-                if (choice == "殖民") {
+                if (choice == "选择降低金殖民") {
                     colonyDown(G, 1);
                 } else {
-                    if (choice === "内政") {
+                    if (choice === "选择降低金内政") {
                         changeCivil(G, SJPlayer.P2, -1);
                     } else {
-                        if (choice === "军事") {
+                        if (choice === "选择降低金军事") {
                             changeMilitary(G, SJPlayer.P2, -1)
+                        } else {
+                            log.push(`|otherChoice`);
+                            changeCivil(G, SJPlayer.P2, -1);
                         }
-                        log.push(`|not|`);
-                        changeCivil(G, SJPlayer.P2, -1);
                     }
                 }
                 ctx.events?.endStage();
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             }
-
         }
         log.push(`|error|no|event|hit|endStage`);
         ctx.events?.endStage();
