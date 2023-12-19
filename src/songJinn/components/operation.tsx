@@ -306,7 +306,7 @@ export const Operation = ({
 
         ]}
         show={isActive && developPhases.includes(ctx.phase)}
-        title={"请选择发展项目"} toggleText={"发展"} initial={false}
+        title={"请选择发展项目"} toggleText={"发展（提升等级）"} initial={false}
     />
 
 
