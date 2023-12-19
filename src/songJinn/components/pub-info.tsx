@@ -76,7 +76,7 @@ export const CountryPubInfo = ({pub, G, ctx, pid}: ICPubInfo) => {
         <ErrorBoundary>
             <Dices pub={s}/>
         </ErrorBoundary>
-        <div>控制路：<br/>{s.provinces.map(p => <label key={`jinn-prov-${p}`}>{p}<br/></label>)}</div>
+        <div>控制路：<br/>{s.provinces.join(',')}</div>
         <div><label>发展牌：{s.develop.map(p => `${sjCardById(p).name}|${sjCardById(p).op}`)}</label></div>
     </Grid>
 }
