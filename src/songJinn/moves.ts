@@ -863,7 +863,7 @@ export const retreat: LongFormMove = {
 }
 
 export interface IMoveTroopArgs {
-    src: Troop;
+    src: TroopPlace;
     dst: TroopPlace;
     ctr: Country;
     units: number[];
@@ -879,15 +879,7 @@ export const moveTroop: LongFormMove = {
         logger.info(`p${pid}.moves.moveTroop(${JSON.stringify(args)})`);
         const log = [`moveTroop`];
         const {src, dst, ctr, units, generals} = args;
-
-        if (src.u.filter((u, i) => units[i] === u).length === units.length) {
-            log.push(`|all`);
-            // TODO src weikun troop auto jiewei
-            doMoveTroopAll(G, src.p, dst, ctr);
-        } else {
-            log.push(`|part`);
-            doMoveTroopPart(G, src.p, dst, ctr, units, generals);
-        }
+        doMoveTroopPart(G, src, dst, ctr, units, generals);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }

@@ -28,7 +28,7 @@ import {
     getCountryById,
     getGeneralNameByCountry,
     getMarchDst,
-    oppoPub, getPlaceCountryGeneral,
+    getPlaceCountryGeneral,
     getPlaceGeneral, getPresentGeneral,
     getReadyGenerals,
     getRegionText,
@@ -103,8 +103,6 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const emptyTroop: Troop = {p: RegionID.R19, u: [0, 0, 0, 0, 0, 0], c: null, g: Country.SONG};
 
     const pub = pid2pub(G, pid);
-    const opp = oppoPub(G, pid);
-    const troops = [...pub.troops, ...opp.troops];
     const ctr = getCountryById(pid);
     const unitNames = ctr === Country.SONG ? UNIT_SHORTHAND[0] : UNIT_SHORTHAND[1];
     const emptyUnitsByCountry = (c: Country) => {
@@ -205,7 +203,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             setMoveStep(MoveStep.PROVINCE);
         }} choices={getPlaceCountryGeneral(G, moveTroop.g, moveTroop.p).map(gen => {
         return {
-            label: getGeneralNameByCountry(marchTroop.g, gen),
+            label: getGeneralNameByCountry(moveTroop.g, gen),
             value: gen.toString(),
             disabled: false,
             hidden: false
@@ -229,7 +227,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             if (moveStep === MoveStep.REGION) {
                 setMoveStep(MoveStep.TROOP);
                 moves.moveTroop({
-                    src: moveTroop,
+                    src: moveTroop.p,
                     units: moveUnits,
                     generals: moveGenerals,
                     dst: regID,
@@ -541,7 +539,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     突围
                 </button>}
                 <button
-                    key={`grid-ops-${idx}-move`}
+                    key={`grid-ops-${idx}-move-all`}
                     onClick={
                         () => {
                             setPlaceStep(PlaceStep.TROOP);
@@ -555,13 +553,13 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             // setMoveStep(MoveStep.TROOP);
                             setMoveTroop(t);
                             setMoveUnits(t.u);
-                            setMoveGenerals(getPlaceCountryGeneral(G,t.g，t.p));
+                            setMoveGenerals(getPlaceCountryGeneral(G,t.g,t.p));
                             setMoveStep(MoveStep.PROVINCE);
                         }
                     }>移动全部
                 </button>
                 <button
-                    key={`grid-ops-${idx}-move`}
+                    key={`grid-ops-${idx}-move-part`}
                     onClick={
                         () => {
                             setPlaceStep(PlaceStep.TROOP);
@@ -695,6 +693,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             {unitDialog}
             {regionDialog}
 
+            {moveGeneralsDialog}
+
             {marchDialog}
             {leftMarchDialog}
             {marchGeneralsDialog}
@@ -711,7 +711,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             {removeUnitDialog}
             {removeGeneralDialog}
             {moveProvDialog}
-
+            {moveUnitsDialog}
             {placeUnitsDialog}</Grid>
         {showTroops && <>
             <Grid item container xs={12}>

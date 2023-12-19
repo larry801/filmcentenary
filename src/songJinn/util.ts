@@ -5546,12 +5546,18 @@ export const doMoveTroopPart = (
         logger.debug(`${G.matchID}|${log.join('')}`);
         return;
     }
+
     for (let i = 0; i < units.length; i++) {
         if (t.u[i] < units[i]) {
+            log.push(`${i}|error`);
             return;
-        } else {
-            t.u[i] -= units[i];
         }
+    }
+    for (let i = 0; i < units.length; i++) {
+            t.u[i] -= units[i];
+    }
+    if (troopEmpty(t)) {
+        pub.troops.splice(pub.troops.indexOf(t), 1);
     }
     log.push(`|after|src|${JSON.stringify(t)}|${unitsToString(t.u)}`);
 
