@@ -454,7 +454,7 @@ export const takeDamage: LongFormMove = {
                                 if (G.combat.region !== null) {
                                     const region = getRegionById(G.combat.region);
                                     if (region.city !== null) {
-                                        doLoseCity(G, ciDefPid(G), region.city, true);
+                                        doLoseCity(G, ctx, ciDefPid(G), region.city, true);
                                     }
                                 }
                                 removeZeroTroop(G, ctx, ciDefTroop(G));
@@ -483,7 +483,7 @@ export const takeDamage: LongFormMove = {
                                 if (G.combat.region !== null) {
                                     const region = getRegionById(G.combat.region);
                                     if (region.city !== null) {
-                                        doLoseCity(G, ciDefPid(G), region.city, true);
+                                        doLoseCity(G, ctx, ciDefPid(G), region.city, true);
                                     }
                                 }
                                 endCombat(G, ctx);
@@ -809,11 +809,11 @@ export const recruitPuppet: LongFormMove = {
             if (G.events.includes(ActiveEvents.JianLiDaQi)) {
                 if (pub.standby[6] > 0) {
                     pub.standby[6]--;
-                }else{
-                    return  INVALID_MOVE;
+                } else {
+                    return INVALID_MOVE;
                 }
                 qi = true;
-            }else{
+            } else {
                 return INVALID_MOVE;
             }
         }
@@ -1257,7 +1257,7 @@ export const heYi: LongFormMove = {
         } else {
             return INVALID_MOVE;
         }
-        heYiChange(G, city);
+        heYiChange(G, ctx, city);
     }
 }
 export const freeHeYi: LongFormMove = {
@@ -1269,7 +1269,7 @@ export const freeHeYi: LongFormMove = {
             return INVALID_MOVE;
         }
         const player = playerById(G, ctx.playerID);
-        heYiChange(G, city);
+        heYiChange(G, ctx, city);
     }
 }
 
@@ -2072,7 +2072,7 @@ export const loseCity: LongFormMove = {
         if (pub.cities.includes(cityID)) {
             pub.cities.splice(pub.cities.indexOf(cityID), 1);
             if (ctr === Country.SONG && G.song.emperor === cityID) {
-                checkSongLoseEmperor(G,ctx);
+                checkSongLoseEmperor(G, ctx);
             }
             const city = getCityById(cityID);
             if (city.capital) {

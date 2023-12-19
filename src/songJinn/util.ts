@@ -627,14 +627,15 @@ export const sjCardById: (cid: BaseCardID) => Cards = (cid: BaseCardID) => {
 }
 
 
-export function checkSongLoseEmperor(G: SongJinnGame, ctx:Ctx) {
-    if(G.player['0'].hand.includes(SongBaseCardID.S30)){
+export function checkSongLoseEmperor(G: SongJinnGame, ctx: Ctx) {
+    if (G.player['0'].hand.includes(SongBaseCardID.S30)) {
         G.pending.events.push(PendingEvents.FuHaiTaoSheng);
         changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
-    }else{
+    } else {
         songLoseEmperor(G);
     }
 }
+
 export function songLoseEmperor(G: SongJinnGame) {
     G.song.emperor = null;
     policyDown(G, 1);
@@ -2680,7 +2681,7 @@ export const removeGeneral = (G: SongJinnGame, pid: PlayerID, general: General) 
     }
 }
 
-export const doLoseCity = (G: SongJinnGame, pid: PlayerID, cityID: CityID, opponent: boolean) => {
+export const doLoseCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cityID: CityID, opponent: boolean) => {
     const log = [`doLostCity|p${pid}lose${cityID}`];
     const ctr = getCountryById(pid);
     const pub = pid2pub(G, pid);
@@ -3180,7 +3181,7 @@ export const policyDown = (G: SongJinnGame, a: number) => {
         G.policy -= a;
     }
 }
-export const heYiChange = (G: SongJinnGame, c: CityID) => {
+export const heYiChange = (G: SongJinnGame,ctx:Ctx, c: CityID) => {
     const log = [``];
     const songTroop: Troop | null = getSongTroopByCity(G, c);
     if (songTroop !== null) {
@@ -3247,7 +3248,7 @@ export const heYiChange = (G: SongJinnGame, c: CityID) => {
             });
         }
     }
-    doLoseCity(G, SJPlayer.P1, c, control);
+    doLoseCity(G, ctx, SJPlayer.P1, c, control);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
