@@ -4,7 +4,7 @@ import Grid from "@material-ui/core/Grid";
 import Paper from "@material-ui/core/Paper";
 import {getPlanById} from "../constant/plan";
 import Typography from "@material-ui/core/Typography";
-import { SJPlayer, SJPubInfo, SongJinnGame} from "../constant/general";
+import {ActiveEvents, SJPlayer, SJPubInfo, SongJinnGame} from "../constant/general";
 
 import {
     getCityText,
@@ -14,7 +14,7 @@ import {
     getReadyGeneralNames,
     getSeasonText,
     getSongPower,
-    getSongScore, handDeckCards,
+    getSongScore, handDeckCards, isSongEvent,
     phaseName,
     pid2ctr,
     sjCardById,
