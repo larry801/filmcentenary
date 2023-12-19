@@ -1258,7 +1258,7 @@ export const idToCard = {
         combat: false,
         effectText: "宋国弓兵在全部地形战斗力变为2 ,征募消变为2。",
         pre: (G: SongJinnGame, _ctx: Ctx) => G.song.military >= 5 && !G.events.includes(ActiveEvents.ShenBiGong),
-        event: (G: SongJinnGame, _ctx: Ctx) => G.events.push(ActiveEvents.ZhongBuBing)
+        event: (G: SongJinnGame, _ctx: Ctx) => G.events.push(ActiveEvents.ShenBiGong)
     },
     [SongBaseCardID.S32]: {
         id: SongBaseCardID.S32,
