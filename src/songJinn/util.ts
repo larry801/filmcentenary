@@ -4622,12 +4622,12 @@ export function getSiegeMeleeStr(G: SongJinnGame, t: Troop): number {
     const fromUnit = troopSiegeMelee(G, t);
     log.push(`|${fromUnit}|fromUnit`);
     const genCCModifier = getGeneralCCMelee(G, t);
-
     log.push(`|${genCCModifier}genCCMod`);
     let total = fromUnit + genCCModifier;
-
+    log.push(`|${total}|total`);
     if(t.g === ci.atk && t.g === Country.SONG){
         total += getPolicy(G);
+        log.push(`|${total}|after|policy`);
     }
     if (fromUnit > 0) {
         if (total <= 0) {
@@ -4638,7 +4638,7 @@ export function getSiegeMeleeStr(G: SongJinnGame, t: Troop): number {
             total = 0;
         }
     }
-
+    log.push(`|${total}|final`);
     logger.debug(`${G.matchID}|${log.join('')}`);
     return total;
 }
