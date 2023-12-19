@@ -163,7 +163,7 @@ export const Operation = ({
 
     const [rescueCard, setRescueCard] = useState("");
     const [rescueCardChosen, setRescueCardChosen] = useState(false);
-    const rescueGenerals = generalWithOpponentTroop(G, playerID);
+    const rescueGenerals = G.pending.generals;
     const rescueGeneralDialog = <ChoiceDialog
         callback={(c) => {
             if (rescueGenerals.length === 1) {
@@ -186,8 +186,8 @@ export const Operation = ({
         })}
         defaultChoice={""}
         // actualStage(G,ctx)==='rescueGeneral'
-        show={false}
-        // show={isActive && pub.develop.length > 0 && rescueGenerals.length > 0}
+        // show={false}
+        show={isActive && pub.develop.length > 0 && rescueGenerals.length > 0}
         title={"请选择救援将领的发展牌"} toggleText={"发展牌救援"} initial={false}
     />
     const chooseRescueGeneralsDialog = <ChoiceDialog

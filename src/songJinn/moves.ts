@@ -47,7 +47,7 @@ import {
     ciDefPid,
     ciDefTroop,
     colonyDown,
-    colonyUp,
+    colonyUp, continueCombat,
     ctr2pid,
     ctr2pub,
     currentProvStatus,
@@ -56,7 +56,7 @@ import {
     doGeneralSkill,
     doLoseCity,
     doLoseProvince,
-    doMoveTroop,
+    doMoveTroop, doMoveTroopAll, doMoveTroopPart,
     doPlaceUnit,
     doRecruit,
     doRemoveNation,
@@ -104,7 +104,6 @@ import {
     songLoseEmperor,
     startCombat,
     totalDevelop,
-    troopEmpty,
     troopEndurance,
     troopIsArmy,
     unitsToString,
@@ -249,8 +248,6 @@ export const march: LongFormMove = {
             log.push(`|${G.op}G.op`);
             G.op--;
             log.push(`|${G.op}G.op`);
-        } else {
-            return INVALID_MOVE;
         }
         const pub = ctr2pub(G, country);
 
@@ -267,65 +264,10 @@ export const march: LongFormMove = {
         if (t.u.filter((u, i) => units[i] === u).length === units.length) {
             log.push(`|all`);
             // TODO src weikun troop auto jiewei
-            const destTroops = pub.troops.filter((t2: Troop) => t2.p === newDst);
-            log.push(`|destTroops${JSON.stringify(destTroops)}`);
-            if (destTroops.length > 0) {
-                const d = destTroops[0];
-                const dstIdx = pub.troops.indexOf(d);
-                log.push(`|before|dst${JSON.stringify(d)}|src${JSON.stringify(t)}`);
-                mergeTroopTo(G, srcIdx, dstIdx, ctr2pid(t.g));
-                log.push(`|after|dst${JSON.stringify(d)}|src${JSON.stringify(t)}`);
-
-            } else {
-                log.push(`|move`);
-                pub.troops.forEach(pt=>{
-                    if(pt.p === t.p){
-                        pt.p = newDst;
-
-                        if (isRegionID(newDst)) {
-                            region = getRegionById(newDst);
-                            t.c = region.city;
-                        }
-                        log.push(`${JSON.stringify(pt)}`);
-                    }
-                })
-            }
+            doMoveTroopAll(G, src, newDst, ctr);
         } else {
             log.push(`|part`);
-            for (let i = 0; i < units.length; i++) {
-                if (t.u[i] < units[i]) {
-                    return INVALID_MOVE;
-                } else {
-                    t.u[i] -= units[i];
-                }
-            }
-            log.push(`|after|src|${JSON.stringify(t)}|${unitsToString(t.u)}`);
-
-            const destTroops = pub.troops.filter((t2: Troop) => t2.p === newDst);
-            log.push(`|destTroops${JSON.stringify(destTroops)}`);
-            if (destTroops.length > 0) {
-                const d = destTroops[0];
-                const dstIdx = pub.troops.indexOf(d);
-                for (let i = 0; i < d.u.length; i++) {
-                    d.u[i] += units[i];
-                }
-                log.push(`|result|${JSON.stringify(d)}|${unitsToString(t.u)}`);
-            } else {
-                let city = null;
-                if (isRegionID(newDst)) {
-                    region = getRegionById(newDst);
-                    city = region.city;
-                }
-                log.push(`|city${city}`);
-                const newTroop = {
-                    p: newDst,
-                    c: city,
-                    u: units,
-                    g: ctr
-                };
-                log.push(`|new|${JSON.stringify(newTroop)}`);
-                pub.troops.push(newTroop);
-            }
+            doMoveTroopPart(G, src, newDst, ctr, units, generals);
         }
 
         const oppoTroop = getOpponentPlaceTroopById(G, pid, newDst);
@@ -342,9 +284,9 @@ export const march: LongFormMove = {
                     if (troopIsArmy(G, ctx, oppoTroop)) {
                         log.push(`|startCombat`);
                         startCombat(G, ctx, ctr, newDst);
-                    }else{
+                    } else {
                         log.push(`|error`);
-                        endCombat(G,ctx);
+                        endCombat(G, ctx);
                     }
                 }
             } else {
@@ -430,20 +372,24 @@ interface ITakeDamageArgs {
 
 
 export const takeDamage: LongFormMove = {
+    client: false,
     move: (G: SongJinnGame, ctx, arg: ITakeDamageArgs) => {
-        if (ctx.playerID === undefined) {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`p${ctx.playerID}.takeDamage(${JSON.stringify(arg)})`);
+        logger.info(`p${pid}.takeDamage(${JSON.stringify(arg)})`);
         const {c, src, standby, ready} = arg;
         const pub = ctr2pub(G, c);
-        const log = [`takeDamage|before|${unitsToString(pub.ready)}|${unitsToString(pub.standby)}|`];
+        const log = [`takeDamage|${src}|${placeToStr(src)}`];
         const troop = c === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
         if (troop === null) {
             log.push(`|noTroop|invalid`);
             logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
+        log.push(`|${JSON.stringify(troop)}|troop`);
+        log.push(`|before|${unitsToString(pub.ready)}|${unitsToString(pub.standby)}`);
         for (let i = 0; i < arg.standby.length; i++) {
             troop.u[i] -= (arg.standby)[i];
             troop.u[i] -= (arg.ready)[i];
@@ -452,23 +398,26 @@ export const takeDamage: LongFormMove = {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return INVALID_MOVE;
             }
-            log.push(JSON.stringify(troop));
             pub.standby[i] += (arg.standby)[i];
             pub.ready[i] += (arg.ready)[i];
-            log.push(`|after|${unitsToString(pub.ready)}|${unitsToString(arg.standby)}`);
         }
-        if (troopEmpty(troop)) {
-            log.push(`|rmTroop`);
-            if (pub.troops.includes(troop)) {
-                pub.troops.splice(pub.troops.indexOf(troop), 1);
-            }
-        }
+        log.push(`|${JSON.stringify(troop)}|troop`);
+        log.push(`|after|${unitsToString(pub.ready)}|${unitsToString(pub.standby)}`);
+        // retain empty troop for unitEndurance check in battle
+        // if (troopEmpty(troop)) {
+        //     log.push(`|rmTroop`);
+        //     if (pub.troops.includes(troop)) {
+        //         pub.troops.splice(pub.troops.indexOf(troop), 1);
+        //     }
+        // }
         if (actualStage(G, ctx) === 'takeDamage') {
             // TODO deduct endurance from ci.xxxx.damageLeft
             const atkEn = troopEndurance(G, ciAtkTroop(G));
             const defEn = troopEndurance(G, ciDefTroop(G));
-            log.push(`|stage|in|combat`);
-            if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
+            log.push(`|in|stage|combat`);
+            log.push(`|${JSON.stringify(atkEn)}|atkEn`);
+            log.push(`|${JSON.stringify(defEn)}|defEn`);
+            if (G.order.indexOf(pid as SJPlayer) === 0) {
                 const nextPid = G.order[1];
                 const dmg = pid2cci(G, nextPid).damageLeft;
                 if (dmg === 0) {
@@ -508,12 +457,10 @@ export const takeDamage: LongFormMove = {
                                 logger.debug(`${G.matchID}|${log.join('')}`);
                                 return;
                             } else {
-                                // next
-                                if (hasGeneral(G, G.combat.song.troop, SongGeneral.WuLin)) {
-                                    wuLin(G, ctx);
-                                } else {
-                                    jiaoFeng(G, ctx);
-                                }
+                                log.push(`|next`);
+                                continueCombat(G, ctx);
+                                logger.debug(`${G.matchID}|${log.join('')}`);
+                                return;
                             }
                         }
                     }
@@ -900,6 +847,7 @@ export const moveGeneral: LongFormMove = {
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
+
 export const retreat: LongFormMove = {
     move: (G, ctx, arg: IMoveTroopArgs) => {
         const pid = ctx.playerID;
@@ -908,16 +856,18 @@ export const retreat: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`${G.matchID}|p${pid}.moves.retreat(${JSON.stringify(arg)})`);
-        const {src, dst, country} = arg;
-        doMoveTroop(G, src, dst, country);
+        const {src, dst, ctr} = arg;
+        doMoveTroop(G, src, dst, ctr);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
 
 export interface IMoveTroopArgs {
-    src: Troop,
-    dst: TroopPlace,
-    country: Country
+    src: Troop;
+    dst: TroopPlace;
+    ctr: Country;
+    units: number[];
+    generals: General[];
 }
 
 export const moveTroop: LongFormMove = {
@@ -928,8 +878,16 @@ export const moveTroop: LongFormMove = {
         }
         logger.info(`p${pid}.moves.moveTroop(${JSON.stringify(args)})`);
         const log = [`moveTroop`];
-        const {src, dst, country} = args;
-        doMoveTroop(G, src, dst, country);
+        const {src, dst, ctr, units, generals} = args;
+
+        if (src.u.filter((u, i) => units[i] === u).length === units.length) {
+            log.push(`|all`);
+            // TODO src weikun troop auto jiewei
+            doMoveTroopAll(G, src.p, dst, ctr);
+        } else {
+            log.push(`|part`);
+            doMoveTroopPart(G, src.p, dst, ctr, units, generals);
+        }
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -1512,7 +1470,7 @@ export const op: LongFormMove = {
         const player = playerById(G, pid);
         const log = [`p${pid}op${card.name}|${card.op}`];
         log.push(`|${G.op}G.op`);
-        G.op = card.op;
+        G.op += card.op;
         log.push(`|${G.op}G.op`);
         log.push(`|${pub.discard}pub.discard`);
         log.push(`|${player.hand}player.hand`);
