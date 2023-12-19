@@ -41,7 +41,7 @@ import {
     cardToSearch,
     changeCivil,
     changeMilitary,
-    checkRecruitCivil,
+    checkRecruitCivil, checkSongLoseEmperor,
     ciAtkInfo,
     ciAtkPid,
     ciAtkTroop,
@@ -1846,7 +1846,8 @@ export const confirmRespond: LongFormMove = {
                     moveGeneralToReady(G, SJPlayer.P1, gen);
                 }
             }
-            if (G.pending.events.includes(PendingEvents.SouShanJianHai)) {
+            if (G.pending.events.includes(PendingEvents.FuHaiTaoSheng)) {
+                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.FuHaiTaoSheng), 1);
                 if (choice === 'yes') {
                     if (G.player['0'].hand.includes(SongBaseCardID.S30)) {
                         G.player['0'].hand.splice(G.player['0'].hand.indexOf(SongBaseCardID.S30), 1);
@@ -2071,7 +2072,7 @@ export const loseCity: LongFormMove = {
         if (pub.cities.includes(cityID)) {
             pub.cities.splice(pub.cities.indexOf(cityID), 1);
             if (ctr === Country.SONG && G.song.emperor === cityID) {
-                songLoseEmperor(G);
+                checkSongLoseEmperor(G,ctx);
             }
             const city = getCityById(cityID);
             if (city.capital) {

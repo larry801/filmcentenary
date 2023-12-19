@@ -629,7 +629,7 @@ export const sjCardById: (cid: BaseCardID) => Cards = (cid: BaseCardID) => {
 
 export function checkSongLoseEmperor(G: SongJinnGame, ctx:Ctx) {
     if(G.player['0'].hand.includes(SongBaseCardID.S30)){
-        G.pending.events.push(PendingEvents.SouShanJianHai);
+        G.pending.events.push(PendingEvents.FuHaiTaoSheng);
         changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
     }else{
         songLoseEmperor(G);
@@ -2083,8 +2083,8 @@ export const idToCard = {
         combat: false,
         effectText: "宋国失去皇帝。",
         pre: (G: SongJinnGame, _ctx: Ctx) => true,
-        event: (G: SongJinnGame, _ctx: Ctx) => {
-            songLoseEmperor(G);
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            checkSongLoseEmperor(G, ctx);
         }
     },
     [JinnBaseCardID.J27]: {
@@ -2689,7 +2689,7 @@ export const doLoseCity = (G: SongJinnGame, pid: PlayerID, cityID: CityID, oppon
         pub.cities.splice(pub.cities.indexOf(cityID), 1);
         if (ctr === Country.SONG && G.song.emperor === cityID) {
             log.push(`|song|emperor`);
-            songLoseEmperor(G);
+            checkSongLoseEmperor(G, ctx);
         }
         if (ctr === Country.JINN && G.jinn.emperor === cityID) {
             log.push(`|jinn|emperor`);
@@ -4279,8 +4279,8 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
         if (G.pending.events.includes(PendingEvents.WeiQi)) {
             return "请选择要移除的齐控制物";
         }
-        if (G.pending.events.includes(PendingEvents.SouShanJianHai)) {
-            return "请选择是否移除搜山检海";
+        if (G.pending.events.includes(PendingEvents.FuHaiTaoSheng)) {
+            return "请选择是否移除浮海逃生移动皇帝";
         }
     }
     return "是否确认";

@@ -5,12 +5,12 @@ export const MAX_ROUND = 8;
 export const MAX_DICES = 30;
 
 export enum PendingEvents {
-    PlaceUnitsToRegion,
-    SouShanJianHai,
-    HanFang,
-    JiaBeng,
-    WeiQi,
-    ZhangZhaoZhiZheng,
+    PlaceUnitsToRegion = "放置部队",
+    FuHaiTaoSheng = "浮海逃生",
+    HanFang = "韩昉",
+    JiaBeng = "金太宗驾崩",
+    WeiQi = "废黜伪齐",
+    ZhangZhaoZhiZheng = "张赵之争",
 }
 
 export const enum ActiveEvents {
@@ -788,12 +788,13 @@ export function emptySongTroop(): Troop {
         u: [0, 0, 0, 0, 0, 0]
     }
 }
+
 export function emptyJinnTroop(): Troop {
     return {
         p: RegionID.R01,
         g: Country.JINN,
         c: null,
-        u: [0, 0, 0, 0, 0, 0,0]
+        u: [0, 0, 0, 0, 0, 0, 0]
     }
 }
 
@@ -1097,7 +1098,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
     G.secret.jinnDeck = jinnDeck.slice(0, 10);
     console.log(G.secret.songDeck.toString());
     console.log(G.secret.jinnDeck.toString());
-    //
+    // //
     // G.player['1'].hand.push(JinnBaseCardID.J17);
     // G.player['1'].hand.push(JinnBaseCardID.J03);
     // G.player['0'].hand.push(SongBaseCardID.S17);
