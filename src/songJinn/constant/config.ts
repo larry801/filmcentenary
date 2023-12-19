@@ -417,6 +417,8 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
 
         removeNation: removeNation,
         adjustNation: adjustNation,
+
+        develop: develop,
     },
 }
 
