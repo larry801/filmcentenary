@@ -163,7 +163,7 @@ export const Operation = ({
 
     const [rescueCard, setRescueCard] = useState("");
     const [rescueCardChosen, setRescueCardChosen] = useState(false);
-    const rescueGenerals = G.pending.generals;
+    const rescueGenerals = G.pending.generals !== undefined ? G.pending.generals : [];
     const rescueGeneralDialog = <ChoiceDialog
         callback={(c) => {
             if (rescueGenerals.length === 1) {
