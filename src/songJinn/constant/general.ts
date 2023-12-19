@@ -1098,10 +1098,10 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
     console.log(G.secret.songDeck.toString());
     console.log(G.secret.jinnDeck.toString());
     //
-    G.player['1'].hand.push(JinnBaseCardID.J17);
-    G.player['1'].hand.push(JinnBaseCardID.J03);
-    G.player['0'].hand.push(SongBaseCardID.S17);
-    G.player['0'].hand.push(SongBaseCardID.S30);
+    // G.player['1'].hand.push(JinnBaseCardID.J17);
+    // G.player['1'].hand.push(JinnBaseCardID.J03);
+    // G.player['0'].hand.push(SongBaseCardID.S17);
+    // G.player['0'].hand.push(SongBaseCardID.S30);
 
     return G;
 }
