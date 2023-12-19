@@ -5458,16 +5458,16 @@ export const getJinnPower = (G: SongJinnGame): number => {
     let power = countedProvince.length;
     log.push(`|provinces${power}`);
     if (G.jinn.emperor !== null) {
-        log.push(`|emperor${power}`);
         power++;
+        log.push(`|emperor${power}`);
     }
     if (G.events.includes(ActiveEvents.JingKangZhiBian)) {
+        power++;
         log.push(`|jingkangzhibian${power}`);
-        power++;
     }
-    if (G.song.civil >= 6) {
-        log.push(`|civil6${power}`);
+    if (G.jinn.civil >= 6) {
         power++;
+        log.push(`|civil6${power}`);
     }
     logger.warn(`${G.matchID}|${log.join('')}`);
     return power;
