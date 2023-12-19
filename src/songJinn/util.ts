@@ -81,8 +81,8 @@ export const isSongEvent = (e: ActiveEvents) => {
         case ActiveEvents.YueShuaiZhiLai:
         case ActiveEvents.WuLin:
         case ActiveEvents.YanJingYiNan:
-        case ActiveEvents.JingKangZhiBian:
             return true;
+        case ActiveEvents.JingKangZhiBian:
         case ActiveEvents.LiuJiaShenBing:
         case ActiveEvents.JinTaiZong:
         case ActiveEvents.ZhuiWangZhuBei:
