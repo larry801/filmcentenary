@@ -97,12 +97,12 @@ export const ChooseRegionsStageConfig: StageConfig<SongJinnGame> = {
 export const ReactStageConfig: StageConfig<SongJinnGame> = {
     moves: {
         retreat: retreat,
-        removeReadyUnit:removeReadyUnit,
-        drawExtraCard:drawExtraCard,
-        siege:siege,
-        checkProvince:checkProvince,
+        removeReadyUnit: removeReadyUnit,
+        drawExtraCard: drawExtraCard,
+        siege: siege,
+        checkProvince: checkProvince,
         emperor: emperor,
-        removeOwnGeneral:removeOwnGeneral,
+        removeOwnGeneral: removeOwnGeneral,
         removeNation: removeNation,
         adjustNation: adjustNation,
         discard: discard,
@@ -180,7 +180,7 @@ const StagedTurnConfig: TurnConfig<SongJinnGame> = {
                 controlCity: controlCity,
                 controlProvince: controlProvince,
                 down: down,
-                recruitUnit:recruitUnit,
+                recruitUnit: recruitUnit,
             }
         },
         freeHeYi: {
@@ -227,8 +227,8 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
     },
     onEnd: (G, ctx) => endTurnCheck(G, ctx),
     moves: {
-        down:down,
-        develop:develop,
+        down: down,
+        develop: develop,
         placeUnit: placeUnit,
         endRound: endRound
     },
@@ -246,8 +246,8 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         log.push(`|${songPower}songPower`);
         log.push(`|${songCorruptionLimit}songCorruptionLimit`);
         log.push(`|${G.song.corruption}G.song.corruption`);
-        if (G.events.includes(ActiveEvents.QinHuiDuXiang)){
-            G.song.corruption ++;
+        if (G.events.includes(ActiveEvents.QinHuiDuXiang)) {
+            G.song.corruption++;
         }
 
         const jinnPower = getJinnPower(G);
@@ -272,19 +272,21 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         logger.debug(`${G.matchID}|${log.join('')}`);
     },
     moves: {
+        down: down,
         searchFirst: searchFirst,
         search: search,
         discard: discard,
         endRound: endRound,
+        opponentMove: opponentMove,
         drawExtraCard: drawExtraCard,
-        develop:develop,
+        develop: develop,
     },
     next: 'chooseFirst'
 }
 
 export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
     moves: {
-        recruitUnit:recruitUnit,
+        recruitUnit: recruitUnit,
         develop: develop,
         returnToHand: returnToHand,
         emperor: emperor,
@@ -369,11 +371,11 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     turn: StagedTurnConfig,
     moves: {
         retreat: retreat,
-        removeReadyUnit:removeReadyUnit,
-        drawExtraCard:drawExtraCard,
-        siege:siege,
-        checkProvince:checkProvince,
-        removeOwnGeneral:removeOwnGeneral,
+        removeReadyUnit: removeReadyUnit,
+        drawExtraCard: drawExtraCard,
+        siege: siege,
+        checkProvince: checkProvince,
+        removeOwnGeneral: removeOwnGeneral,
         breakout: breakout,
         confirmRespond: confirmRespond,
         showCC: showCC,
@@ -453,12 +455,12 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     },
     moves: {
         retreat: retreat,
-        removeReadyUnit:removeReadyUnit,
-        drawExtraCard:drawExtraCard,
-        siege:siege,
-        checkProvince:checkProvince,
+        removeReadyUnit: removeReadyUnit,
+        drawExtraCard: drawExtraCard,
+        siege: siege,
+        checkProvince: checkProvince,
         emperor: emperor,
-        removeOwnGeneral:removeOwnGeneral,
+        removeOwnGeneral: removeOwnGeneral,
         removeNation: removeNation,
         adjustNation: adjustNation,
         discard: discard,
@@ -480,8 +482,8 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         takePlan: takePlan,
         chooseTop: chooseTop,
 
-        develop:develop,
-        removeCompletedPlan:removeCompletedPlan
+        develop: develop,
+        removeCompletedPlan: removeCompletedPlan
     },
     turn: StagedTurnConfig,
     next: 'diplomacy'
@@ -539,10 +541,10 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
             const pub = pid2pub(G, pid);
             G.op += pub.nations.length;
             log.push(`|${G.op}G.op`);
-            if(pid === SJPlayer.P2){
-                if(G.events.includes(ActiveEvents.JinTaiZong)){
+            if (pid === SJPlayer.P2) {
+                if (G.events.includes(ActiveEvents.JinTaiZong)) {
                     log.push(`|jinTaiZong`);
-                    G.op ++;
+                    G.op++;
                     log.push(`|${G.op}G.op`);
                 }
             }
@@ -550,7 +552,7 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
         }
     },
     moves: {
-        drawExtraCard:drawExtraCard,
+        drawExtraCard: drawExtraCard,
         removeNation: removeNation,
         adjustNation: adjustNation,
         recruitPuppet: recruitPuppet,
