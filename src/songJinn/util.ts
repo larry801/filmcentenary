@@ -111,7 +111,7 @@ export const jinnSorter = (a: Troop, b: Troop) => {
 export const songSorter = (a: Troop, b: Troop) => {
     const unitDelta = a.u.reduce(accumulator) - b.u.reduce(accumulator);
     if (unitDelta === 0) {
-        return b.p - a.p ? 1 : -1;
+        return b.p > a.p ? 1 : -1;
     } else {
         return -unitDelta;
     }
