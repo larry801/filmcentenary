@@ -44,8 +44,8 @@ export const CountryPubInfo = ({pub, G, ctx, pid}: ICPubInfo) => {
     const reversedPlan = [...s.completedPlan].reverse();
     const searchCards = handDeckCards(G, ctx, pid);
     return <Grid>
-        <div><label>军事：</label>{s.military}</div>
-        <div><label>内政：</label>{s.civil}</div>
+        <div><label>军事：</label>{s.military}({s.maxMilitary}</div>
+        <div><label>内政：</label>{s.civil}({s.maxCivil})</div>
         <div><label>腐败：</label>{s.corruption}</div>
         <div><label>盟国：</label>{s.nations.join(',')}</div>
         <div><label>国书：</label>{s.lodNations !== undefined ? s.lodNations.join(',') : ""}</div>
