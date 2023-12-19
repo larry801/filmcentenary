@@ -227,7 +227,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             if (moveStep === MoveStep.REGION) {
                 setMoveStep(MoveStep.TROOP);
                 moves.moveTroop({
-                    src: moveTroop.p,
+                    src: moveTroop,
                     units: moveUnits,
                     generals: moveGenerals,
                     dst: regID,

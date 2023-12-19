@@ -7,7 +7,9 @@ export const MAX_DICES = 30;
 export enum PendingEvents {
     PlaceUnitsToRegion,
     XiJunQuDuan,
-    HanFang
+    HanFang,
+    JiaBeng,
+    WeiQi,
 }
 
 export const enum ActiveEvents {

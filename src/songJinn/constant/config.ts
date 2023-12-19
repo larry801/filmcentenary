@@ -165,6 +165,7 @@ const StagedTurnConfig: TurnConfig<SongJinnGame> = {
         },
         takeDamage: {
             moves: {
+
                 endRound: endRound,
                 opponentMove: opponentMove,
                 takeDamage: takeDamage,
@@ -179,6 +180,7 @@ const StagedTurnConfig: TurnConfig<SongJinnGame> = {
                 controlCity: controlCity,
                 controlProvince: controlProvince,
                 down: down,
+                recruitUnit:recruitUnit,
             }
         },
         freeHeYi: {

@@ -63,7 +63,7 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
     const retreatDialog  = <ChoiceDialog
         callback={(c) => {
             const regID = parseInt(c) as RegionID;
-                moves.moveTroop({
+                moves.retreat({
                     src: troop,
                     dst: regID,
                     country: troop.g
