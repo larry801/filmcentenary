@@ -1950,7 +1950,7 @@ export const idToCard = {
         combat: false,
         effectText: "使用1行动力进军，不受河流边界限制。",
         pre: (G: SongJinnGame, ctx: Ctx) => G.round === 2 || G.round == 6,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => G.op = 1
     },
     [JinnBaseCardID.J16]: {
         id: JinnBaseCardID.J16,
