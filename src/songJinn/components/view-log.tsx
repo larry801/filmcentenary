@@ -6,7 +6,7 @@ import copy from "copy-to-clipboard";
 import ContentCopyIcon from '@material-ui/icons/FileCopy';
 import IconButton from '@material-ui/core/IconButton';
 import TextField from '@material-ui/core/TextField';
-import {getLogText} from "../util";
+import {getLogText, getMoveText} from "../util";
 import {SongJinnGame} from "../constant/general";
 import {useI18n} from "@i18n-chain/react";
 import i18n from "../../constant/i18n";
@@ -40,9 +40,10 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
     }
 
     const onCopyMove = () => {
-        copy(window.location.toString(), {
+        const moveText = log.map((l: LogEntry) => getMoveText(l)).join("\r\n");
+        copy(moveText, {
             message: "复制",
-        })
+        });
     }
 
     const process = () => {
@@ -95,7 +96,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
                 aria-label={"复制"}
                 edge="start"
                 onClick={onCopyMove}>
-                <ContentCopyIcon/>复制链接
+                <ContentCopyIcon/>
             </IconButton>
             <NewLog G={G} l={newLog} count={log.length}/>
         </Grid>

@@ -1101,6 +1101,9 @@ export const idToCard = {
         pre: (G: SongJinnGame, _ctx: Ctx) => true,
         event: (G: SongJinnGame, _ctx: Ctx) => {
             moveGeneralToReady(G, SJPlayer.P1, SongGeneral.WuJie);
+            if (G.events.includes(ActiveEvents.XiJunQuDuan)) {
+                G.events.splice(G.events.indexOf(ActiveEvents.XiJunQuDuan), 1);
+            }
         }
     },
     [SongBaseCardID.S21]: {
@@ -3429,6 +3432,31 @@ export const getUnitNamesByCtr = (ctr: Country) => {
     return ctr === Country.SONG ? UNIT_SHORTHAND[0] : UNIT_SHORTHAND[1];
 }
 
+
+export const getMoveText = (l: LogEntry): string => {
+    const payload = l.action.payload;
+    const pid = payload.playerID;
+    switch (l.action.type) {
+        case "MAKE_MOVE":
+            try {
+                const name = payload.type;
+                const args = payload.args !== undefined ? payload.args : "";
+                if (args === null || args.length === 0) {
+                    return `p${pid}.moves.${name}()`
+                }else{
+                    return `p${pid}.moves.${name}(${args.join(',')})`
+                }
+            }catch(e){
+                return `${JSON.stringify(l)}|${e.toString()}|${JSON.stringify(e.stackTrace)}`;
+            }
+        case "GAME_EVENT":
+            return ''
+        case "UNDO":
+            return `p${pid}.undo()`
+        case "REDO":
+            return `p${pid}.redo()`;
+    }
+}
 export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
     const payload = l.action.payload;
     const pid = payload.playerID;
@@ -3613,9 +3641,9 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             log += `让${arg.ctr}在${placeToStr(arg.src)}攻城`;
                             break;
                         case 'breakout':
-                            if(isCityID(arg.src)){
+                            if (isCityID(arg.src)) {
                                 log += `让${arg.ctr}在${placeToStr(arg.src)}突围`;
-                            }else{
+                            } else {
                                 log += `让${arg.ctr}在${placeToStr(arg.src)}进攻对峙军团`;
                             }
                             break;
@@ -3707,15 +3735,13 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                     }
                 }
             } catch (e) {
-                log +=
-                    `|${JSON.stringify(l)}|${e.toString()}|${JSON.stringify(e.stackTrace)}`
+                log += `|${JSON.stringify(l)}|${e.toString()}|${JSON.stringify(e.stackTrace)}`
 
             }
             return log;
         case "GAME_EVENT":
             if (payload.type === 'endPhase') {
                 return `${phaseName(l.phase)}结束`;
-
             } else {
                 return "";
             }
@@ -4375,7 +4401,7 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
         if (G.pending.events.includes(PendingEvents.BingShi)) {
             const cards = G.song.discard;
             if (cards.length > 0) {
-                const name = sjCardById(cards[cards.length -1]).name
+                const name = sjCardById(cards[cards.length - 1]).name
                 return [
                     {label: name, value: name, disabled: false, hidden: false}
                 ]
