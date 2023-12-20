@@ -138,9 +138,9 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                                         d={path || ''}
                                                         fill={color}
                                                         stroke={stroke}
-                                                        fill-opacity={0.4}
+                                                        fillOpacity={0.4}
                                                         strokeWidth={4}
-                                                        stroke-opacity={0.5}
+                                                        strokeOpacity={0.5}
                                                         onClick={() => {
                                                             // if (events) alert(`Clicked: ${feature.properties.name} (${feature.id})`);
                                                         }}
