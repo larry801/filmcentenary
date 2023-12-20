@@ -129,33 +129,28 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive}: ICombatInfo) => 
             <div><label>阶段：</label>{s.phase}</div>
             <div><label>区域：</label>{s.region === null ? "" : `${getRegionText(s.region)}`}</div>
             <div><label>城市：</label>{s.city === null ? "" : `${getCityText(s.city)}`}</div>
-            <div><label>宋军：</label>{G.song.troops.map(
-                (t, idx) => {
-                    if (t.p === s.region || t.c === s.city) {
-                        //     const rangeStrength = getSiegeRangeUnitStrength(G, t, getTerrainTypeByPlace(G,t.p));
-                        //     t.u.map((u,idx)=>{
-                        //         if(u>0){
-                        //             return `${u}x${rangeStrength[idx]}+`
-                        //         }
-                        //     })
-                        return <label key={`song-label-troop-${idx}`}>
-                            {getTroopText(G, t)}
+            {s.region === null && s.city === null ? <></> :
+                <>
+                    <div><label>宋军：</label>{G.song.troops.map(
+                        (t, idx) => {
+                            if (t.p === s.region || t.c === s.city) {
+                                return <label key={`song-label-troop-${idx}`}>
+                                    {getTroopText(G, t)}
+                                </label>
+                            } else {
+                                return <label key={`song-label-troop-${idx}`}> {" "}</label>
+                            }
+                        })}</div>
+                    <div><label>金军：</label>{G.jinn.troops.map(
+                        (t, idx) => {
+                            if (t.p === s.region || t.c === s.city) {
+                                return <label key={`jinn-label-troop-${idx}`}>{getTroopText(G, t)}</label>
+                            } else {
+                                return <label key={`jinn-label-troop-${idx}`}> {" "}</label>
+                            }
 
-                        </label>
-                    } else {
-                        return <label key={`song-label-troop-${idx}`}> {" "}</label>
-                    }
-
-                })}</div>
-            <div><label>金军：</label>{G.jinn.troops.map(
-                (t, idx) => {
-                    if (t.p === s.region || t.c === s.city) {
-                        return <label key={`jinn-label-troop-${idx}`}>{getTroopText(G, t)}</label>
-                    } else {
-                        return <label key={`jinn-label-troop-${idx}`}> {" "}</label>
-                    }
-
-                })}</div>
+                        })}</div>
+                </>}
             <div><label>宋未处理伤害：</label>{s.song.damageLeft}</div>
             <div><label>金未处理伤害：</label>{s.jinn.damageLeft}</div>
             <div><label>宋战斗牌：</label>{s.song.combatCard}</div>
