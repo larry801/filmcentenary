@@ -453,7 +453,8 @@ export const takeDamage: LongFormMove = {
             } else {
                 log.push(`|secondPlayer|damageTaken`);
                 damageTaken(G, ctx);
-
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return
             }
         } else {
             if (troopEmpty(troop)) {
