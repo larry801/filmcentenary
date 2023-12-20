@@ -118,8 +118,54 @@ describe('diplomacy', () => {
         p0.moves.confirmRespond({"choice": "no", "text": "选择不接野"});
         p1.moves.confirmRespond({"choice": "攻城", "text": "攻城"});
         p0.moves.combatCard([]);
-
         p1.moves.combatCard([]);
+
+        combatState(p0);
+        p1.moves.takeDamage({
+            c: "金",
+            src: 42,
+            ready: [1, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+        combatState(p0);
+        p0.moves.takeDamage({
+            c: "宋",
+            src: 42,
+            ready: [1, 1, 0, 0, 0, 0],
+            standby: [1, 2, 0, 0, 0, 0],
+        });
+        combatState(p0);
+        p1.moves.takeDamage({
+            c: "金",
+            src: 42,
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+        combatState(p0);
+        expect(p0.getState().G.song.emperor === null);
+
+    })
+    it('march-twice-march',()=>{
+        p0.moves.op("S11");
+        p0.moves.march({"src":18,"dst":42,"units":[2,1,0,0,0,0],"generals":[0],"country":"宋"})
+        p0.moves.march({"src":42,"dst":36,"units":[4,3,0,0,0,0],"generals":[0],"country":"宋"})
+        combatState(p1);
+        expect(p0.getState().ctx.activePlayers['1'] === 'confirmRespond');
+
+    })
+    it('jinn-remove-song',()=>{
+        p0.moves.endRound();
+        p1.moves.removeUnit({"src":42,"units":[0,1,0,0,0,0,0],"country":"宋"});
+        p0.getState().G.song.troops.forEach((t:any,idx:number)=>{
+            expect(t.u.length <= 6);
+            console.log(idx)
+            console.log(JSON.stringify(t));
+        });
+        console.log(p0.getState().G.song.ready)
+        console.log(p0.getState().G.song.standby)
+        // expect(p0.getState().ctx.activePlayers['1'] === 'confirmRespond');
+
+
     })
     it('march', () => {
         console.log(JSON.stringify(p0.getState().G.player));
