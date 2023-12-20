@@ -144,6 +144,10 @@ export const modifyGameState: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
+        delete arg.secret;
+        if(arg.player !== undefined){
+            delete arg.player[oppoPid(pid)];
+        }
         logger.info(`${G.matchID}|p${pid}.moves.modifyGameState(${JSON.stringify(arg)})`);
         log.push(`|${JSON.stringify(arg)}|arg`);
         log.push(`|${JSON.stringify(G)}|G`);
