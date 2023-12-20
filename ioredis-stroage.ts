@@ -5,8 +5,10 @@ import Redis from 'ioredis';
 import {ChainableCommander} from "ioredis/built/utils/RedisCommander";
 
 
-const l = (c: string) => console.log(Date.now().toString() + '|' + c);
-const expireTime = 48 * 60 * 60;
+const l = (c: string) => {};
+// const l = (c: string) => console.log(Date.now().toString() + '|ioredis|' + c);
+// 3 days
+const expireTime = 3 * 24 * 60 * 60;
 type FetchOpts = StorageAPI.FetchOpts;
 type PlayerMetadata = {
     id: number;
@@ -56,7 +58,7 @@ class RedisStorage extends Async {
                 console.error('Error sending MODULE LIST command:', err);
             } else {
                 // Parse the result to check if ReJSON is in the list of loaded modules
-                const moduleList = result.toString();
+                // TODO use ReJSON if available
                 result.forEach((r) => {
                     if (r.includes("ReJSON")) {
                         console.log("Has ReJSON")
