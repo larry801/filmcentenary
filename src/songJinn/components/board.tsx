@@ -28,7 +28,6 @@ import {useI18n} from "@i18n-chain/react";
 import {GeoMap} from "./geo";
 import {ParentSize} from "@visx/responsive";
 import {CombatInfoPanel} from "./combat-info";
-import CascadingDropdown from "./select";
 
 export const SongJinnBoard = ({
                                   G,
