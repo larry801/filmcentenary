@@ -41,7 +41,7 @@ const world = MapData as {
 
 export function GeoMap({width, height, G}: GeoCustomProps) {
     const [detail, setDetail] = useState(false);
-    const initialScale = 2750;
+    const initialScale = 2000;
     return width < 10 ? null : (
         <>
             <Zoom<SVGSVGElement>
@@ -55,8 +55,8 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                 initialTransformMatrix={{
                     scaleX: initialScale,
                     scaleY: initialScale,
-                    translateX: -4900,
-                    translateY: 1940,
+                    translateX: -3850,
+                    translateY: 1500,
                     skewX: 0,
                     skewY: 0,
                 }}
@@ -149,7 +149,7 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                                         key={`map-text-${i}`}
                                                         x={projected[0]}
                                                         y={projected[1]}
-                                                        fontSize={14}
+                                                        fontSize={8}
                                                         textAnchor={'middle'}
                                                         width={8}
                                                     >
