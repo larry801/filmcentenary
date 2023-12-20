@@ -454,7 +454,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             {getTroopText(G, t)} </AccordionSummary>
         <AccordionDetails>
             {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
-                <button
+                <Button
+                    variant={"contained"}
                     disabled={G.op <= 0}
                     key={`grid-ops-${idx}-march`}
                     onClick={
@@ -472,8 +473,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             setMarchStep(MarchStep.UNITS);
                         }
                     }>进军
-                </button>
-                <button
+                </Button>
+                <Button
+                    variant={"contained"}
                     disabled={G.op <= 0}
                     key={`grid-ops-${idx}-all-march`}
                     onClick={
@@ -494,8 +496,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             setMarchStep(MarchStep.TARGET);
                         }
                     }>全军进军
-                </button>
-                <button
+                </Button>
+                <Button
+                    variant={"contained"}
                     disabled={G.op <= 0}
                     key={`grid-ops-${idx}-left-march`}
                     onClick={
@@ -514,8 +517,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             setMarchStep(MarchStep.LEAVE_UNITS);
                         }
                     }>留X进军
-                </button>
-                {troopCanSiege(G, t) && <button
+                </Button>
+                {troopCanSiege(G, t) && <Button
+                    variant={"contained"}
                     key={`grid-ops-${idx}-siege`}
                     onClick={() => {
                         moves.siege({
@@ -525,8 +529,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     }}
                 >
                     攻城
-                </button>}
-                {hasOpponentTroop(G, t) && <button
+                </Button>}
+                {hasOpponentTroop(G, t) && <Button
+                    variant={"contained"}
                     key={`grid-ops-${idx}-attack`}
                     onClick={() => {
                         moves.breakout({
@@ -536,8 +541,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     }}
                 >
                     进攻对峙军团
-                </button>}
-                {troopIsWeiKun(G, t) && <button
+                </Button>}
+                {troopIsWeiKun(G, t) && <Button
+                    variant={"contained"}
                     key={`grid-ops-${idx}-breakout`}
                     onClick={() => {
                         moves.breakout({
@@ -547,8 +553,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     }}
                 >
                     突围
-                </button>}
-                <button
+                </Button>}
+                <Button
+                    variant={"contained"}
                     key={`grid-ops-${idx}-move-all`}
                     onClick={
                         () => {
@@ -567,8 +574,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             setMoveStep(MoveStep.PROVINCE);
                         }
                     }>移动全部
-                </button>
-                <button
+                </Button>
+                <Button
+                    variant={"contained"}
                     key={`grid-ops-${idx}-move-part`}
                     onClick={
                         () => {
@@ -584,8 +592,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             setMoveStep(MoveStep.UNITS);
                         }
                     }>移动
-                </button>
-                <button
+                </Button>
+                <Button
+                    variant={"contained"}
                     key={`grid-ops-${idx}-takeDamage`}
                     onClick={
                         () => {
@@ -602,8 +611,9 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             setTakeDamageTroop(t);
                         }
                     }>受创
-                </button>
-                <button
+                </Button>
+                <Button
+                    variant={"contained"}
                     key={`grid-ops-${idx}-deploy`}
                     // disabled={t.c === null}
                     disabled={false}
@@ -623,8 +633,10 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             setDeployTroop(t);
                         }
                     }>补充
-                </button>
-                <button onClick={
+                </Button>
+                <Button
+                    variant={"contained"}
+                    onClick={
                     () => {
                         setPlaceStep(PlaceStep.TROOP);
                         setNewTroopStep(NewTroopStep.START);
@@ -640,8 +652,10 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                         setPlaceUnitTroop(t);
                     }
                 }>放置
-                </button>
-                <button onClick={
+                </Button>
+                <Button
+                    variant={"contained"}
+                    onClick={
                     () => {
                         setPlaceStep(PlaceStep.TROOP);
 
@@ -658,7 +672,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                         setRemoveUnitTroop(t);
                     }
                 }>消灭
-                </button>
+                </Button>
             </Grid>
             }
         </AccordionDetails>
