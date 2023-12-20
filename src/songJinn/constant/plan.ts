@@ -247,7 +247,7 @@ const idToPlan = {
         effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
             ctx.events?.endGame({
                 winner:pid,
-                reason: VictoryReason.WuShanLiMa
+                reason: VictoryReason.HuanWoHeShan
             });
         }
     },
