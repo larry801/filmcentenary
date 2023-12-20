@@ -3444,7 +3444,7 @@ export const getMoveText = (l: LogEntry): string => {
                 if (args === null || args.length === 0) {
                     return `p${pid}.moves.${name}()`
                 }else{
-                    return `p${pid}.moves.${name}(${args.join(',')})`
+                    return `p${pid}.moves.${name}(${args.map((a:any)=>JSON.stringify(a)).join(',')})`
                 }
             }catch(e){
                 return `${JSON.stringify(l)}|${e.toString()}|${JSON.stringify(e.stackTrace)}`;

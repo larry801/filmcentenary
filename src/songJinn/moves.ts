@@ -1923,7 +1923,7 @@ export const takePlan: LongFormMove = {
         }
         logger.info(`[p${pid}.takePlan(${JSON.stringify(arg)})`)
         const ctr = getCountryById(pid);
-        const pub = pid2pub(G, pid);
+        // const pub = pid2pub(G, pid);
         // const player = playerById(G, ctx.playerID);
         arg.forEach((p) => {
             if (!G.plans.includes(p)) {

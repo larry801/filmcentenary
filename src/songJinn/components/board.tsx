@@ -28,6 +28,7 @@ import {useI18n} from "@i18n-chain/react";
 import {GeoMap} from "./geo";
 import {ParentSize} from "@visx/responsive";
 import {CombatInfoPanel} from "./combat-info";
+import CascadingDropdown from "./select";
 
 export const SongJinnBoard = ({
                                   G,
@@ -102,8 +103,8 @@ export const SongJinnBoard = ({
     const country = getCountryById(playerID as SJPlayer);
     const SwitchMapButton = <Button onClick={()=>{if(showMap){setShowMap(false)}else{setShowMap(true)}}}>切换地图</Button>
 
-    const empty = (c: string) => {
-    };
+    const empty = () => {};
+
     return <ErrorBoundary>
         <Grid container>
             {disconnectNotice}
@@ -132,6 +133,7 @@ export const SongJinnBoard = ({
 
                 <Grid item xs={12} sm={6}>
                     <ChatMessage
+                        moves={moves}
                         sendChatMessage={sendChatMessage}
                         chatMessages={chatMessages}
                         getPlayerName={sjPlayerName}/>
