@@ -83,19 +83,6 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
                     }
             }
         }
-        const completedPlanDelta = G.song.completedPlan.length - G.jinn.completedPlan.length;
-        if (completedPlanDelta >= 4) {
-            return {
-                winner: SJPlayer.P1,
-                reason: VictoryReason.StrategicPlan
-            }
-        }
-        if (completedPlanDelta <= -4) {
-            return {
-                winner: SJPlayer.P2,
-                reason: VictoryReason.StrategicPlan
-            }
-        }
         if (G.jinn.emperor === null) {
             return {
                 winner: SJPlayer.P1,

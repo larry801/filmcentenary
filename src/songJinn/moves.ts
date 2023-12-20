@@ -25,7 +25,7 @@ import {
     SongBaseCardID,
     SongJinnGame,
     Troop,
-    TroopPlace
+    TroopPlace, VictoryReason
 } from "./constant/general";
 import {logger} from "../game/logger";
 import {getPlanById} from "./constant/plan";
@@ -1896,12 +1896,13 @@ export const removeOwnGeneral: LongFormMove = {
 }
 export const takePlan: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, arg: PlanID[]) => {
-        if (ctx.playerID === undefined) {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`[p${ctx.playerID}.takePlan(${JSON.stringify(arg)})`)
-        const ctr = getCountryById(ctx.playerID);
-        const pub = pid2pub(G, ctx.playerID);
+        logger.info(`[p${pid}.takePlan(${JSON.stringify(arg)})`)
+        const ctr = getCountryById(pid);
+        const pub = pid2pub(G, pid);
         // const player = playerById(G, ctx.playerID);
         arg.forEach((p) => {
             if (!G.plans.includes(p)) {
@@ -1916,8 +1917,21 @@ export const takePlan: LongFormMove = {
         arg.forEach((p) => {
             G.plans.splice(G.plans.indexOf(p), 1);
         })
-        if (pub.completedPlan.length === 0) {
-            ctx.events?.endTurn();
+        if(G.order.indexOf(pid as SJPlayer) === 1) {
+            const completedPlanDelta = G.song.completedPlan.length - G.jinn.completedPlan.length;
+            if (completedPlanDelta >= 4) {
+                ctx.events?.endGame({
+                    winner: SJPlayer.P1,
+                    reason: VictoryReason.StrategicPlan
+                })
+            }
+            if (completedPlanDelta <= -4) {
+                ctx.events?.endGame({
+                    winner: SJPlayer.P2,
+                    reason: VictoryReason.StrategicPlan
+                })
+            }
+
         }
     }
 }
