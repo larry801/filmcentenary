@@ -137,6 +137,22 @@ interface ICheckProvince {
     text: string
 }
 
+export const modifyGameState: LongFormMove = {
+    move: (G, ctx, arg: Partial<SongJinnGame>) => {
+        const pid = ctx.playerID;
+        const log = [`modifyGameState`];
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`${G.matchID}|p${pid}.moves.modifyGameState(${JSON.stringify(arg)})`);
+        log.push(`|${JSON.stringify(arg)}|arg`);
+        log.push(`|${JSON.stringify(G)}|G`);
+        G = {...G,...arg}
+        log.push(`|${JSON.stringify(G)}|G`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    }
+}
+
 export const checkProvince: LongFormMove = {
     move: (G: SongJinnGame, ctx, arg: ICheckProvince) => {
         const pid = ctx.playerID;

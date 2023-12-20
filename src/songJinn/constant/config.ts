@@ -31,7 +31,7 @@ import {
     letter,
     loseCity,
     loseProvince,
-    march,
+    march, modifyGameState,
     moveGeneral,
     moveTroop,
     op,
@@ -58,6 +58,7 @@ import {
     takeDamage,
     takePlan,
     tieJun
+
 } from "../moves";
 import {ActiveEvents, PlanID, PlayerPendingEffect, ProvinceID, SJPlayer, SongJinnGame} from "./general";
 import {logger} from "../../game/logger";
@@ -77,6 +78,7 @@ import {
 } from "../util";
 
 const moves = {
+    modifyGameState: modifyGameState,
     returnToHand: returnToHand,
     retreat: retreat,
     removeReadyUnit: removeReadyUnit,

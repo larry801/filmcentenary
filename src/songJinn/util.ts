@@ -3470,6 +3470,9 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                 const pub = pid2pub(G, pid);
                 if (args === null || args.length === 0) {
                     switch (name) {
+                        case 'modifyGameState':
+                            log += `修改了面板`;
+                            break;
                         case 'drawExtraCard':
                             log += `额外摸一张牌`;
                             break;
@@ -3494,6 +3497,9 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                 } else {
                     const arg = args[0];
                     switch (name) {
+                        case 'modifyGameState':
+                            log += `修改了面板`;
+                            break;
                         case 'returnToHand':
                             log += `拿回发展牌${sjCardById(arg).name}`;
                             break;
