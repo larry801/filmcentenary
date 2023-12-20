@@ -3640,8 +3640,11 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                         case 'loseCity':
                             log += `丢失${arg.cityID}${arg.opponent ? "对手占领" : ""}`;
                             break;
+                        case 'removeOwnGeneral':
+                            log += `移除${getGeneralNameByPid(pid, arg)}`;
+                            break;
                         case 'removeGeneral':
-                            log += `${getGeneralNameByPid(pid, arg)}`;
+                            log += `移除${getGeneralNameByPid(pid, arg)}`;
                             break;
                         case 'siege':
                             log += `让${arg.ctr}在${placeToStr(arg.src)}攻城`;
