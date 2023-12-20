@@ -11,6 +11,7 @@ export enum PendingEvents {
     JiaBeng = "金太宗驾崩",
     WeiQi = "废黜伪齐",
     ZhangZhaoZhiZheng = "张赵之争",
+    BingShi = "病逝",
 }
 
 export enum ActiveEvents {
