@@ -25,7 +25,8 @@ import {
     SongBaseCardID,
     SongJinnGame,
     Troop,
-    TroopPlace, VictoryReason
+    TroopPlace,
+    VictoryReason
 } from "./constant/general";
 import {logger} from "../game/logger";
 import {getPlanById} from "./constant/plan";
@@ -1125,7 +1126,7 @@ export const combatCard: LongFormMove = {
     client: false,
     move: (G, ctx, args: BaseCardID[]) => {
         const pid = ctx.playerID;
-        logger.info(`${G.matchID}|p${pid}.moves.combatCard`)
+        logger.info(`${G.matchID}|p${pid}.moves.combatCard(${JSON.stringify(args)})`)
         if (pid === undefined) {
             return INVALID_MOVE;
         }
@@ -1138,19 +1139,11 @@ export const combatCard: LongFormMove = {
             ).length === args.length
         ) {
             args.forEach(c => {
+                if (player.hand.includes(c)) {
+                    player.hand.splice(player.hand.indexOf(c), 1);
+                }
                 player.combatCard.push(c)
                 log.push(`|${player.combatCard}player.combatCard`);
-                // @ts-ignore
-                // const pub = getStateById(G, ctx.playerID);
-                // const card = sjCardById(c);
-                // if (card.remove) {
-                //     pub.remove.push(c);
-                // } else {
-                //     pub.discard.push(c);
-                // }
-                // if (player.hand.includes(c)) {
-                //     player.hand.splice(player.hand.indexOf(c), 1);
-                // }
             })
         } else {
             log.push(`|notValid`);
@@ -1160,24 +1153,17 @@ export const combatCard: LongFormMove = {
 
 
         if (G.order.indexOf(pid as SJPlayer) === 0) {
-            log.push(`|nextCC`);
+            log.push(`|pos0|nextCC`);
             changePlayerStage(G, ctx, 'combatCard', G.order[1]);
         } else {
+            log.push(`|pos1`);
             const oppoPlayer = oppoPlayerById(G, pid);
             if (player.combatCard.length === 0 && oppoPlayer.combatCard.length === 0) {
-                log.push(`|yuanCheng`);
+                log.push(`|noCC|yuanCheng`);
                 yuanCheng(G, ctx);
             } else {
-                if (G.combat.jinn.combatCard.includes(SongBaseCardID.S50)) {
-                    doPlaceUnit(G, [0, 0, 0, 1, 0, 0], Country.SONG, G.combat.song.troop.p);
-                }
-                if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J50)) {
-                    log.push(`|yiBing|endCombat`);
-                    endCombat(G, ctx);
-                } else {
-                    log.push(`|showCC`);
-                    changePlayerStage(G, ctx, 'showCC', G.order[0]);
-                }
+                log.push(`|showCC`);
+                changePlayerStage(G, ctx, 'showCC', G.order[0]);
             }
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -1418,22 +1404,36 @@ export const showPlan: LongFormMove = {
 export const showCC: LongFormMove = {
     client: false,
     move: (G: SongJinnGame, ctx: Ctx, args: SJEventCardID[]) => {
-        logger.info(`p${ctx.playerID}.moves.showCC(${args.toString()})`);
-        if (ctx.playerID === undefined) {
+        const pid = ctx.playerID;
+        const log = [`showCC`];
+        logger.info(`p${pid}.moves.showCC(${JSON.stringify(args)})`);
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        const pub = getCombatStateById(G, ctx.playerID);
-        const player = playerById(G, ctx.playerID);
+        const cci = getCombatStateById(G, pid);
+        const player = playerById(G, pid);
 
-        pub.combatCard = [...player.combatCard];
+        cci.combatCard = [...player.combatCard];
         player.combatCard = [];
-        if (G.order.indexOf(ctx.playerID as SJPlayer) === 0) {
+        if (G.order.indexOf(pid as SJPlayer) === 0) {
             changePlayerStage(G, ctx, 'showCC', G.order[1]);
         } else {
-            // TODO roll dice
-            // ctx.events?.endStage();
+            if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J50)) {
+                log.push(`|yiBing|endCombat`);
+                endCombat(G, ctx);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return;
+            } else {
+                if (G.combat.song.combatCard.includes(SongBaseCardID.S50)) {
+                    doPlaceUnit(G, [0, 0, 0, 1, 0, 0], Country.SONG, G.combat.song.troop.p);
+                }
+                if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J32)) {
+                    removeUnitByCountryPlace(G,[0,0,0,1,0,0],Country.SONG, G.combat.song.troop.p);
+                }
+            }
             yuanCheng(G, ctx);
         }
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
 
