@@ -1,4 +1,4 @@
-import {PlanID, ProvinceID, SongJinnGame, VictoryReason} from "./general";
+import {PlanID, PlayerPendingEffect, ProvinceID, SJPlayer, SongJinnGame, VictoryReason} from "./general";
 import {Ctx, PlayerID} from "boardgame.io";
 
 export interface Plan {
@@ -225,6 +225,8 @@ const idToPlan = {
         "provinces": [ProvinceID.HUAINANLIANGLU],
         "vp": 2,
         effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
+            const pub = pid === SJPlayer.P1  ? G.song : G.jinn;
+            pub.effect.push(PlayerPendingEffect.TwoPlan);
         }
     },
     [PlanID.J22]: {
@@ -234,8 +236,7 @@ const idToPlan = {
         "level": 4,
         "provinces": [ProvinceID.JINGXILIANGLU],
         "vp": 3,
-        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
-        }
+        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {}
     },
     [PlanID.J23]: {
         "id": PlanID.J23,
@@ -244,7 +245,7 @@ const idToPlan = {
         "level": 5,
         "provinces": [ProvinceID.SHANXILIULU, ProvinceID.JINGJILU, ProvinceID.JINGDONGLIANGLU, ProvinceID.HEBEILIANGLU],
         "vp": 0,
-        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
+        effect: (_G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
             ctx.events?.endGame({
                 winner:pid,
                 reason: VictoryReason.HuanWoHeShan
@@ -258,7 +259,7 @@ const idToPlan = {
         "level": 5,
         "provinces": [ProvinceID.JINGJILU, ProvinceID.JINGXILIANGLU, ProvinceID.JIANGNANLIANGLU, ProvinceID.HUAINANLIANGLU],
         "vp": 0,
-        effect: (G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
+        effect: (_G: SongJinnGame, ctx: Ctx, pid:PlayerID) => {
             ctx.events?.endGame({
                 winner:pid,
                 reason: VictoryReason.WuShanLiMa
