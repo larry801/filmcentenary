@@ -3613,7 +3613,11 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             log += `让${arg.ctr}在${placeToStr(arg.src)}攻城`;
                             break;
                         case 'breakout':
-                            log += `让${arg.ctr}在${placeToStr(arg.src)}突围`;
+                            if(isCityID(arg.src)){
+                                log += `让${arg.ctr}在${placeToStr(arg.src)}突围`;
+                            }else{
+                                log += `让${arg.ctr}在${placeToStr(arg.src)}进攻对峙军团`;
+                            }
                             break;
                         case 'discard':
                             log += `弃牌${sjCardById(arg).name}`;

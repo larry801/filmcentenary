@@ -526,6 +526,17 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 >
                     攻城
                 </button>}
+                {hasOpponentTroop(G, t) && <button
+                    key={`grid-ops-${idx}-attack`}
+                    onClick={() => {
+                        moves.breakout({
+                            ctr: t.g,
+                            src: t.p
+                        });
+                    }}
+                >
+                    进攻对峙军团
+                </button>}
                 {troopIsWeiKun(G, t) && <button
                     key={`grid-ops-${idx}-breakout`}
                     onClick={() => {
