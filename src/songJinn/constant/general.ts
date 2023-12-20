@@ -1066,6 +1066,7 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
             cities: [],
             places: [],
             generals: [],
+            cards:[],
         },
         qi: [],
         op: 0,
