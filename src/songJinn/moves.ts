@@ -1863,6 +1863,12 @@ export const confirmRespond: LongFormMove = {
                     return
                 }
             }
+            if (G.pending.events.includes(PendingEvents.BingShi)) {
+                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.BingShi), 1);
+                ctx.events?.endStage();
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return;
+            }
             if (G.pending.events.includes(PendingEvents.WeiQi)) {
                 const prov = choice as ProvinceID;
                 if (Object.values(ProvinceID).includes(prov)) {

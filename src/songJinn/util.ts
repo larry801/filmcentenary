@@ -2369,6 +2369,8 @@ export const idToCard = {
                 }
             } else {
                 randomDiscardForSong(G, ctx);
+                G.pending.events.push(PendingEvents.BingShi);
+                changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
             }
         }
     },
@@ -4288,6 +4290,17 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
                 {label: "降低金军事", value: "选择降低金军事", disabled: false, hidden: false}
             ]
         }
+        if (G.pending.events.includes(PendingEvents.BingShi)) {
+            const cards = G.song.discard;
+            if (cards.length > 0) {
+                const name = sjCardById(cards[cards.length -1]).name
+                return [
+                    {label: name, value: name, disabled: false, hidden: false}
+                ]
+            } else {
+                return yesNoOption;
+            }
+        }
 
     }
 
@@ -4332,6 +4345,9 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
         }
         if (G.pending.events.includes(PendingEvents.FuHaiTaoSheng)) {
             return "请选择是否移除浮海逃生移动皇帝";
+        }
+        if (G.pending.events.includes(PendingEvents.BingShi)) {
+            return "展示弃牌";
         }
     }
     return "是否确认";
