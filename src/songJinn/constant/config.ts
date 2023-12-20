@@ -76,6 +76,59 @@ import {
     playerById
 } from "../util";
 
+const moves = {
+    returnToHand: returnToHand,
+    retreat: retreat,
+    removeReadyUnit: removeReadyUnit,
+    drawExtraCard: drawExtraCard,
+    siege: siege,
+    checkProvince: checkProvince,
+    removeOwnGeneral: removeOwnGeneral,
+    breakout: breakout,
+    confirmRespond: confirmRespond,
+    showCC: showCC,
+    discard: discard,
+    moveGeneral: moveGeneral,
+    deployGeneral: deployGeneral,
+    emptyRound: emptyRound,
+    op: op,
+    recruitUnit: recruitUnit,
+    cardEvent: cardEvent,
+    developCard: developCard,
+    letter: letter,
+    freeHeYi: freeHeYi,
+    heYi: heYi,
+    tieJun: tieJun,
+    endRound: endRound,
+    combatCard: combatCard,
+
+    generalSkill: generalSkill,
+    rescueGeneral: rescueGeneral,
+    removeUnit: removeUnit,
+    placeUnit: placeUnit,
+    moveTroop: moveTroop,
+
+
+    recruitPuppet: recruitPuppet,
+    deploy: deploy,
+    opponentMove: opponentMove,
+    march: march,
+    takeDamage: takeDamage,
+
+    rollDices: rollDices,
+    loseCity: loseCity,
+    loseProvince: loseProvince,
+    controlCity: controlCity,
+    controlProvince: controlProvince,
+    placeTroop: placeTroop,
+    down: down,
+
+    removeNation: removeNation,
+    adjustNation: adjustNation,
+
+    develop: develop,
+    emperor: emperor,
+}
 
 export const EmperorStageConfig: StageConfig<SongJinnGame> = {
     moves: {
@@ -100,37 +153,7 @@ export const ChooseRegionsStageConfig: StageConfig<SongJinnGame> = {
     }
 }
 export const ReactStageConfig: StageConfig<SongJinnGame> = {
-    moves: {
-        retreat: retreat,
-        removeReadyUnit: removeReadyUnit,
-        drawExtraCard: drawExtraCard,
-        siege: siege,
-        checkProvince: checkProvince,
-        emperor: emperor,
-        removeOwnGeneral: removeOwnGeneral,
-        removeNation: removeNation,
-        adjustNation: adjustNation,
-        discard: discard,
-        deploy: deploy,
-        opponentMove: opponentMove,
-        march: march,
-        moveTroop: moveTroop,
-        takeDamage: takeDamage,
-        removeUnit: removeUnit,
-        placeUnit: placeUnit,
-        rollDices: rollDices,
-        recruitPuppet: recruitPuppet,
-        generalSkill: generalSkill,
-        deployGeneral: deployGeneral,
-        moveGeneral: moveGeneral,
-        rescueGeneral: rescueGeneral,
-        loseCity: loseCity,
-        loseProvince: loseProvince,
-        controlCity: controlCity,
-        controlProvince: controlProvince,
-        placeTroop: placeTroop,
-        down: down,
-    }
+    moves: moves
 }
 
 export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
@@ -169,24 +192,7 @@ const StagedTurnConfig: TurnConfig<SongJinnGame> = {
             }
         },
         takeDamage: {
-            moves: {
-
-                endRound: endRound,
-                opponentMove: opponentMove,
-                takeDamage: takeDamage,
-                generalSkill: generalSkill,
-                rescueGeneral: rescueGeneral,
-                removeUnit: removeUnit,
-                placeUnit: placeUnit,
-                moveTroop: moveTroop,
-                rollDices: rollDices,
-                loseCity: loseCity,
-                loseProvince: loseProvince,
-                controlCity: controlCity,
-                controlProvince: controlProvince,
-                down: down,
-                recruitUnit: recruitUnit,
-            }
+            moves: moves
         },
         freeHeYi: {
             moves: {
@@ -195,12 +201,6 @@ const StagedTurnConfig: TurnConfig<SongJinnGame> = {
         }
     },
 };
-export const DiscardStageConfig: StageConfig<SongJinnGame> = {
-    moves: {
-        discard: discard,
-        endRound: endRound,
-    }
-}
 
 
 export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
@@ -231,12 +231,7 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
         logger.debug(`${G.matchID}|${log.join('')}`);
     },
     onEnd: (G, ctx) => endTurnCheck(G, ctx),
-    moves: {
-        down: down,
-        develop: develop,
-        placeUnit: placeUnit,
-        endRound: endRound
-    },
+    moves: moves,
     next: 'draw'
 }
 
@@ -270,7 +265,7 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         // }
         logger.debug(`${log.join('')}`);
     },
-    onEnd: (G, ctx) => {
+    onEnd: (G, _ctx) => {
         const log = [`drawPhase|onEnd`]
         G.order = [getLeadingPlayer(G)]
         log.push(`${G.order.toString()}`);
@@ -290,16 +285,8 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
 }
 
 export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
-    moves: {
-        recruitUnit: recruitUnit,
-        develop: develop,
-        returnToHand: returnToHand,
-        emperor: emperor,
-        opponentMove: opponentMove,
-        endRound: endRound,
-        down: down
-    },
-    onEnd: (G, ctx) => {
+    moves: moves,
+    onEnd: (G, _ctx) => {
         G.song.usedDevelop = 0;
         G.jinn.usedDevelop = 0;
     },
@@ -333,7 +320,7 @@ export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
     },
-    onEnd: (G, ctx) => {
+    onEnd: (G, _ctx) => {
         const log = [`choosePlan|phase|onEnd|${G.order}`]
         switch (G.first) {
             case SJPlayer.P1:
@@ -374,57 +361,7 @@ export const ChooseFirstPhaseConfig: PhaseConfig<SongJinnGame> = {
 export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     turn: StagedTurnConfig,
-    moves: {
-        retreat: retreat,
-        removeReadyUnit: removeReadyUnit,
-        drawExtraCard: drawExtraCard,
-        siege: siege,
-        checkProvince: checkProvince,
-        removeOwnGeneral: removeOwnGeneral,
-        breakout: breakout,
-        confirmRespond: confirmRespond,
-        showCC: showCC,
-        discard: discard,
-        moveGeneral: moveGeneral,
-        deployGeneral: deployGeneral,
-        emptyRound: emptyRound,
-        op: op,
-        recruitUnit: recruitUnit,
-        cardEvent: cardEvent,
-        developCard: developCard,
-        letter: letter,
-        freeHeYi: freeHeYi,
-        heYi: heYi,
-        tieJun: tieJun,
-        endRound: endRound,
-        combatCard: combatCard,
-
-        generalSkill: generalSkill,
-        rescueGeneral: rescueGeneral,
-        removeUnit: removeUnit,
-        placeUnit: placeUnit,
-        moveTroop: moveTroop,
-
-
-        recruitPuppet: recruitPuppet,
-        deploy: deploy,
-        opponentMove: opponentMove,
-        march: march,
-        takeDamage: takeDamage,
-
-        rollDices: rollDices,
-        loseCity: loseCity,
-        loseProvince: loseProvince,
-        controlCity: controlCity,
-        controlProvince: controlProvince,
-        placeTroop: placeTroop,
-        down: down,
-
-        removeNation: removeNation,
-        adjustNation: adjustNation,
-
-        develop: develop,
-    },
+    moves: moves,
 }
 
 export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
@@ -513,7 +450,7 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
 }
 
 export const DiplomacyPhaseConfig: PhaseConfig<SongJinnGame> = {
-    onBegin: (G, ctx) => {
+    onBegin: (G, _ctx) => {
         const log = [`diplomacy|onBegin`];
         log.push(`|before|${G.song.nations}|${G.jinn.nations}`);
         changeDiplomacyByLOD(G);
@@ -529,12 +466,7 @@ export const DiplomacyPhaseConfig: PhaseConfig<SongJinnGame> = {
     }
 }
 export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
-    onBegin: (G, ctx) => {
-        const log = [`deployPhase|onBegin`];
-
-        logger.info(`${log.join('')}`);
-    },
-    onEnd: (G, ctx) => {
+    onEnd: (G, _ctx) => {
         const log = [`deployPhase|onEnd`];
         log.push(`|clean ready units`);
         log.push(`|${G.song.ready}song.ready`);
@@ -574,38 +506,6 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
             logger.info(`${log.join('')}`);
         }
     },
-    moves: {
-        drawExtraCard: drawExtraCard,
-        removeNation: removeNation,
-        adjustNation: adjustNation,
-        recruitPuppet: recruitPuppet,
-        endRound: endRound,
-        deploy: deploy,
-        opponentMove: opponentMove,
-        march: march,
-        moveTroop: moveTroop,
-        takeDamage: takeDamage,
-        removeUnit: removeUnit,
-        recruitUnit: recruitUnit,
-        placeUnit: placeUnit,
-        rollDices: rollDices,
-        loseCity: loseCity,
-        loseProvince: loseProvince,
-        placeTroop: placeTroop,
-        down: down,
-
-        discard: discard,
-
-        generalSkill: generalSkill,
-        deployGeneral: deployGeneral,
-        moveGeneral: moveGeneral,
-
-        rescueGeneral: rescueGeneral,
-
-        controlCity: controlCity,
-        controlProvince: controlProvince,
-    },
+    moves: moves,
     next: 'turnEnd'
 }
-export const EPhaseConfig: PhaseConfig<SongJinnGame> = {}
-export const EmptyPhaseConfig: PhaseConfig<SongJinnGame> = {}
