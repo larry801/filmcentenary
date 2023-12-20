@@ -816,7 +816,7 @@ export function emptyCombatInfo(): CombatInfo {
         phase: CombatPhase.JieYe,
         atk: Country.JINN,
         type: CombatType.FIELD,
-        region: null,
+        region: RegionID.R01,
         city: null,
         ongoing: false,
         roundTwo: false,
