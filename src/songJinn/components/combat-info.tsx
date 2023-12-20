@@ -17,7 +17,6 @@ import {
     getCityText,
     getRegionText, getRetreatDst,
     getTroopText, placeToStr,
-    playerById,
     sjCardById, troopEndurance,
     unitsToString
 } from "../util";
@@ -40,13 +39,13 @@ export interface ICombatInfo {
 }
 
 
-export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo) => {
+export const CombatInfoPanel = ({G, ctx, pid, moves, isActive}: ICombatInfo) => {
     const s = G.combat;
 
     const pub = pid === SJPlayer.P1 ? G.song : G.jinn;
-    const cci = pid === SJPlayer.P1 ? s.song : s.jinn;
-    const opCCI = pid === SJPlayer.P2 ? s.song : s.jinn;
-    const ctr = pid === SJPlayer.P1 ? Country.SONG: Country.JINN;
+    // const cci = pid === SJPlayer.P1 ? s.song : s.jinn;
+    // const opCCI = pid === SJPlayer.P2 ? s.song : s.jinn;
+    const ctr = pid === SJPlayer.P1 ? Country.SONG : Country.JINN;
     const troop = pid === SJPlayer.P1 ? s.song.troop : s.jinn.troop;
     const [count, setCount] = useState(5);
 
@@ -60,16 +59,16 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
     const standbyText = standbySum > 0 ? `死${unitsToString(standbyUnits)}` : '';
     const unitNames = pid === SJPlayer.P2 ? UNIT_SHORTHAND[1] : UNIT_SHORTHAND[0];
 
-    const retreatDialog  = <ChoiceDialog
+    const retreatDialog = <ChoiceDialog
         callback={(c) => {
             const regID = parseInt(c) as RegionID;
-                moves.retreat({
-                    src: troop,
-                    dst: regID,
-                    country: troop.g
-                })
+            moves.retreat({
+                src: troop,
+                dst: regID,
+                country: troop.g
+            })
         }}
-        choices={getRetreatDst(G,troop).map(r => {
+        choices={getRetreatDst(G, troop).map(r => {
             return {
                 label: placeToStr(r),
                 value: r.toString(),
@@ -104,8 +103,8 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
         for (let i = 0; i < emptyTroop.u.length; i++) {
             all[i] = readyUnits[i] + standbyUnits[i];
         }
-        const mockAll = {...emptyTroop,u:all};
-        return troopEndurance(G,mockAll);
+        const mockAll = {...emptyTroop, u: all};
+        return troopEndurance(G, mockAll);
     }
 
     const adjustDice = (n: number) => {
@@ -121,34 +120,6 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
         }
 
     }
-    const npid = pid === SJPlayer.P1 ? SJPlayer.P1 : SJPlayer.P2;
-    const player = playerById(G, npid);
-    const showCC = (isActive && actualStage(G, ctx) === 'showCC') && <Button
-        onClick={() => moves.showCC(player.combatCard)}
-        color={"primary"} variant={"contained"}>展示战斗牌</Button>
-    const combatCardDialog = <CheckBoxDialog
-        callback={(c) => moves.combatCard(c)}
-        choices={player.hand.filter(c => sjCardById(c).combat).map(c => {
-            return {
-                label: sjCardById(c).name,
-                value: c,
-                disabled: false,
-                hidden: false
-            }
-        })}
-        show={isActive && actualStage(G, ctx) === 'combatCard'} title={"请选择战斗牌"}
-        toggleText={"战斗牌"} initial={false}/>
-
-
-    const choiceDialog = <ChoiceDialog
-        callback={(c) => {
-            moves.confirmRespond({choice: c, text: confirmRespondLogText(G, c, ctr)})
-        }}
-        choices={confirmRespondChoices(G, ctx, npid)} defaultChoice={"no"}
-        show={isActive && actualStage(G, ctx) === 'confirmRespond'}
-        title={confirmRespondText(G, ctx, npid)}
-        toggleText={"请求确认"}
-        initial={true}/>;
 
 
     return <>
@@ -161,12 +132,12 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
             <div><label>宋军：</label>{G.song.troops.map(
                 (t, idx) => {
                     if (t.p === s.region || t.c === s.city) {
-                    //     const rangeStrength = getSiegeRangeUnitStrength(G, t, getTerrainTypeByPlace(G,t.p));
-                    //     t.u.map((u,idx)=>{
-                    //         if(u>0){
-                    //             return `${u}x${rangeStrength[idx]}+`
-                    //         }
-                    //     })
+                        //     const rangeStrength = getSiegeRangeUnitStrength(G, t, getTerrainTypeByPlace(G,t.p));
+                        //     t.u.map((u,idx)=>{
+                        //         if(u>0){
+                        //             return `${u}x${rangeStrength[idx]}+`
+                        //         }
+                        //     })
                         return <label key={`song-label-troop-${idx}`}>
                             {getTroopText(G, t)}
 
@@ -193,9 +164,35 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
             金骰子<Dices pub={G.jinn}/>
             {takeDamageStandbyDialog}
             {takeDamageReadyDialog}
-            {showCC}
-            {combatCardDialog}
-            {choiceDialog}
+            {pid !== null ? <>
+                {
+                    (isActive && actualStage(G, ctx) === 'showCC') && <Button
+                        onClick={() => moves.showCC(G.player[pid as SJPlayer].combatCard)}
+                        color={"primary"} variant={"contained"}>展示战斗牌</Button>
+                }
+                <CheckBoxDialog
+                    callback={(c) => moves.combatCard(c)}
+                    choices={G.player[pid as SJPlayer].hand.filter(c => sjCardById(c).combat).map(c => {
+                        return {
+                            label: sjCardById(c).name,
+                            value: c,
+                            disabled: false,
+                            hidden: false
+                        }
+                    })}
+                    show={isActive && actualStage(G, ctx) === 'combatCard'} title={"请选择战斗牌"}
+                    toggleText={"战斗牌"} initial={false}/>
+                <ChoiceDialog
+                    callback={(c) => {
+                        moves.confirmRespond({choice: c, text: confirmRespondLogText(G, c, ctr)})
+                    }}
+                    choices={confirmRespondChoices(G, ctx, pid)} defaultChoice={"no"}
+                    show={isActive && actualStage(G, ctx) === 'confirmRespond'}
+                    title={confirmRespondText(G, ctx, pid)}
+                    toggleText={"请求确认"}
+                    initial={true}/>;
+
+            </> : <></>}
             {retreatDialog}
             {isActive && actualStage(G, ctx) === 'takeDamage' && <Button
                 fullWidth onClick={() => {
@@ -211,9 +208,9 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive, log}: ICombatInfo
             }} variant={"outlined"} color={"primary"}>
                 确认受创
                 {readyText}
-                ({troopEndurance(G,mockReady)})
+                ({troopEndurance(G, mockReady)})
                 {standbyText}
-                ({troopEndurance(G,mockStandby)})
+                ({troopEndurance(G, mockStandby)})
                 ({getAllEndurance()})
             </Button>}
             {pid !== null && isActive && <Grid item>
