@@ -154,7 +154,8 @@ export const modifyGameState: LongFormMove = {
         G = {...G,...arg}
         log.push(`|${JSON.stringify(G)}|G`);
         logger.debug(`${G.matchID}|${log.join('')}`);
-    }
+    },
+    client: false
 }
 
 export const checkProvince: LongFormMove = {
