@@ -35,7 +35,7 @@ import {
     pid2pub, getTroopPlaceText,
     getTroopText, hasOpponentTroop,
     optionToActualDst,
-    StrProvince, troopIsWeiKun, unitsToString, troopCanSiege,
+    StrProvince, troopIsWeiKun, unitsToString, troopCanSiege, songSorter, jinnSorter,
 } from "../util";
 
 export interface IPlayerHandProps {
@@ -110,7 +110,6 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     }
 
     const [showTroops, setShowTroops] = useState(true);
-
 
     const [deployStep, setDeployStep] = React.useState(DeployStep.TROOP);
     const [deployTroop, setDeployTroop] = useState(emptyTroop);
@@ -716,10 +715,10 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         {showTroops && <>
             <Grid item container xs={12}>
                 <Grid item xs={6}>
-                    {G.song.troops.map(mapper)}
+                    {[...G.song.troops].sort(songSorter).map(mapper)}
                 </Grid>
                 <Grid item xs={6}>
-                    {G.jinn.troops.map(mapper)}
+                    {[...G.jinn.troops].sort(jinnSorter).map(mapper)}
                 </Grid>
             </Grid>
 
