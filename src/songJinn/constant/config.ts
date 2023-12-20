@@ -19,7 +19,8 @@ import {
     develop,
     developCard,
     discard,
-    down, drawExtraCard,
+    down,
+    drawExtraCard,
     emperor,
     emptyRound,
     endRound,
@@ -41,25 +42,29 @@ import {
     recruitUnit,
     removeCompletedPlan,
     removeNation,
-    removeOwnGeneral, removeReadyUnit,
+    removeOwnGeneral,
+    removeReadyUnit,
     removeUnit,
-    rescueGeneral, retreat,
+    rescueGeneral,
+    retreat,
     returnToHand,
     rollDices,
     search,
     searchFirst,
     showCC,
     showLetters,
-    showPlan, siege,
+    showPlan,
+    siege,
     takeDamage,
     takePlan,
     tieJun
 } from "../moves";
-import {ActiveEvents, SJPlayer, SongJinnGame} from "./general";
+import {ActiveEvents, PlanID, PlayerPendingEffect, ProvinceID, SJPlayer, SongJinnGame} from "./general";
 import {logger} from "../../game/logger";
 import {
     canChoosePlan,
     changeDiplomacyByLOD,
+    currentProvStatus,
     drawPhaseForJinn,
     drawPhaseForSong,
     drawPlanForPlayer,
@@ -426,6 +431,22 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     onBegin: (G, ctx) => {
         const log = [`resolvePlanPhase|onBegin|${G.order}`];
+        // add two plan and search here
+        const currentPlans = [...G.song.plan,...G.jinn.plan];
+        if (currentPlans.includes(PlanID.J21)){
+           const status =  currentProvStatus(G, ProvinceID.HUAINANLIANGLU);
+           switch (status) {
+               case "金控制":
+                   G.jinn.effect.push(PlayerPendingEffect.TwoPlan)
+                   break;
+               case "宋控制":
+                   G.song.effect.push(PlayerPendingEffect.TwoPlan)
+                   break;
+               case "战争状态":
+                   break;
+           }
+        }
+        // TODO wu shan li ma / huan wo he shan scores
         G.plans = G.plans.concat(G.song.plan);
         log.push(`|${G.plans}`);
         G.plans = G.plans.concat(G.jinn.plan);
