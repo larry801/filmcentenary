@@ -1025,6 +1025,7 @@ export interface SongJinnGame {
         cities: CityID[],
         places: TroopPlace[],
         generals: General[],
+        cards: SJEventCardID[],
     }
     op: number,
     qi: ProvinceID[],
