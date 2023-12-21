@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-handler-names */
 import React, {useState} from 'react';
-import {CustomProjection, Graticule} from '@visx/geo';
+import {CustomProjection} from '@visx/geo';
 import {geoMercator} from '@visx/vendor/d3-geo';
 import {Zoom} from '@visx/zoom';
 import {MapData} from "../constant/map";
@@ -79,7 +79,6 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                             >
                                 {(customProjection) => (
                                     <g>
-                                        <Graticule key={`graticule-sj`} graticule={(g) => customProjection.path(g) || ''} stroke={'#fff'}/>
                                         {customProjection.features.map(({feature, path}, i) => {
                                             const projection = geoMercator();
 
