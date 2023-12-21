@@ -552,7 +552,9 @@ export const takeDamage: LongFormMove = {
         if (actualStage(G, ctx) === 'takeDamage') {
 
             const atkEn = troopEndurance(G, ciAtkTroop(G));
-            const defEn = troopEndurance(G, ciDefTroop(G));
+            const defT = ciDefTroop(G);
+            log.push(`|${JSON.stringify(defT)}|defT`);
+            const defEn = troopEndurance(G, defT);
             const curEn = ci.atk === pid ? atkEn : defEn;
             log.push(`|in|stage|combat`);
             log.push(`|${JSON.stringify(atkEn)}|atkEn`);

@@ -3005,31 +3005,31 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
                     removeGeneral(G, pid, g);
                 }
             });
-            log.push(`|${ci.type}|ci.type`);
-            switch (ci.type) {
-                case CombatType.RESCUE:
-                case CombatType.SIEGE:
-                    if (ci.atk === t.g) {
-                    } else {
-                        log.push(`|autoLoseCity`);
-                        autoLoseCity(G, ctx);
-                    }
-                    break;
-                case CombatType.FIELD:
-                    break;
-                case CombatType.BREAKOUT:
-                    if (ci.atk === t.g) {
-                        log.push(`|autoLoseCity`);
 
-                        autoLoseCity(G, ctx);
-                    } else {
-                    }
-                    break;
-            }
-            log.push(`|endCombat`);
-            endCombat(G, ctx);
         }
     }
+    log.push(`|${ci.type}|ci.type`);
+    switch (ci.type) {
+        case CombatType.RESCUE:
+        case CombatType.SIEGE:
+            if (ci.atk === t.g) {
+            } else {
+                log.push(`|autoLoseCity`);
+                autoLoseCity(G, ctx);
+            }
+            break;
+        case CombatType.FIELD:
+            break;
+        case CombatType.BREAKOUT:
+            if (ci.atk === t.g) {
+                log.push(`|autoLoseCity`);
+                autoLoseCity(G, ctx);
+            } else {
+            }
+            break;
+    }
+    log.push(`|endCombat`);
+    endCombat(G, ctx);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -4310,10 +4310,17 @@ export const ciPlace = (G: SongJinnGame): TroopPlace => {
 export const ciDefTroop = (G: SongJinnGame): Troop => {
     const ci = G.combat;
     const p = ciPlace(G);
-    const jt = getJinnTroopByPlace(G, p);
-    const st = getSongTroopByPlace(G, p);
+    let jt = getJinnTroopByPlace(G, p);
+    let st = getSongTroopByPlace(G, p);
+    if (ci.type === CombatType.SIEGE && ci.city !== null) {
+        // @ts-ignore
+        jt = getJinnTroopByPlace(G, ci.city);
+        // @ts-ignore
+        st = getSongTroopByPlace(G, ci.city);
+    }
     return ci.atk === Country.SONG ? (jt === null ? ci.jinn.troop : jt) : (st === null ? ci.song.troop : st);
 }
+
 export const ciAtkTroop = (G: SongJinnGame): Troop => {
     const p = ciPlace(G);
     const ci = G.combat;
@@ -4708,11 +4715,13 @@ export function damageTaken(G: SongJinnGame, ctx: Ctx, choice?: string) {
                 return
             } else {
                 if (atkEn === 0) {
+                    log.push(`|rmAtk`);
                     removeZeroTroop(G, ctx, ciAtkTroop(G));
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 } else {
                     if (defEn === 0) {
+                        log.push(`|rmDef`);
                         removeZeroTroop(G, ctx, ciDefTroop(G));
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
@@ -4729,20 +4738,24 @@ export function damageTaken(G: SongJinnGame, ctx: Ctx, choice?: string) {
             break;
         case CombatPhase.JiaoFeng:
             if (atkEn === 0 && defEn === 0) {
+                log.push(`|duiZhiEnd`);
                 endCombat(G, ctx);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             } else {
                 if (atkEn === 0) {
+                    log.push(`|rmAtk`);
                     removeZeroTroop(G, ctx, ciAtkTroop(G));
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 } else {
                     if (defEn === 0) {
+                        log.push(`|rmDef`);
                         removeZeroTroop(G, ctx, ciDefTroop(G));
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     } else {
+                        log.push(`|mingJin`);
                         mingJin(G, ctx);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
