@@ -2860,7 +2860,7 @@ export const changeDiplomacyByLOD = (G: SongJinnGame) => {
     } else {
         if (jinn.lod.length === 0) {
             log.push('|onlySong|moveForSong');
-            song.lod.forEach(l => nationMoveJinn(G, l.nation))
+            song.lod.forEach(l => nationMoveSong(G, l.nation))
         } else {
             Nations.forEach(n => {
                 log.push(`|${n}`);
