@@ -2962,23 +2962,25 @@ export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], count
 export const autoLoseCity = (G: SongJinnGame, ctx: Ctx, c?: CityID) => {
     const log = [`autoLostCity`];
     const ci = G.combat;
-    if  (c!==undefined){
-        doLoseCity(G, ctx, ciDefPid(G), c, true);
-
-    }else {
+    const pid = ci.type === CombatType.SIEGE ? ciDefPid(G) : ciAtkPid(G);
+    if (c !== undefined) {
+        doLoseCity(G, ctx, pid, c, true);
+    } else {
         if (ci.city !== null) {
             log.push(`|${ci.city}|ci.city`);
-            doLoseCity(G, ctx, ciDefPid(G), ci.city, true);
+            doLoseCity(G, ctx, pid, ci.city, true);
         } else {
-            const region = getRegionById(ci.region);
-            log.push(`|${region.city}|region.city`);
-            if (region.city !== null) {
-                log.push(`|doLost`);
-                doLoseCity(G, ctx, ciDefPid(G), region.city, true);
+            if(ci.region !== null){
+                log.push(`|${ci.region}|ci.region`);
+                const region = getRegionById(ci.region);
+                log.push(`|${region.city}|region.city`);
+                if (region.city !== null) {
+                    log.push(`|doLost`);
+                    doLoseCity(G, ctx, pid, region.city, true);
+                }
             }
         }
     }
-
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -3024,7 +3026,11 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
             if (ci.atk === t.g) {
             } else {
                 log.push(`|autoLoseCity`);
-                autoLoseCity(G, ctx, t.c);
+                if (t.c !== null) {
+                    autoLoseCity(G, ctx, t.c);
+                } else {
+                    autoLoseCity(G, ctx);
+                }
             }
             break;
         case CombatType.FIELD:
@@ -3032,8 +3038,11 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
         case CombatType.BREAKOUT:
             if (ci.atk === t.g) {
                 log.push(`|autoLoseCity`);
-                autoLoseCity(G, ctx, t.c);
-            } else {
+                if (t.c !== null) {
+                    autoLoseCity(G, ctx, t.c);
+                } else {
+                    autoLoseCity(G, ctx);
+                }
             }
             break;
     }
