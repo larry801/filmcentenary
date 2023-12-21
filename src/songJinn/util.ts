@@ -761,7 +761,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "腐败值变为0 ,每因此减少1点腐败值就提升1级政策倾向。",
-        pre: (G: SongJinnGame, _ctx: Ctx) => G.policy < 0,
+        pre: (G: SongJinnGame, _ctx: Ctx) => getPolicy(G) < 0,
         event: (G: SongJinnGame, _ctx: Ctx) => {
             policyUp(G, G.song.corruption);
             G.song.corruption = 0;
@@ -2488,7 +2488,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "使用该卡牌的行动点数，对宋国军团执行进军，不能触发战斗，不能移动到缺乏补给的区域。",
-        pre: (G: SongJinnGame, ctx: Ctx) => G.policy < 0,
+        pre: (G: SongJinnGame, ctx: Ctx) => getPolicy(G) < 0,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J45]: {
@@ -2548,7 +2548,7 @@ export const idToCard = {
         effectText: "若政策倾向为和议，提升1级殖民能力。若政策倾向为主战或中立，降低1级政策倾向。",
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
-            if (G.policy < 0) {
+            if (getPolicy(G) < 0) {
                 colonyUp(G, 1);
             } else {
                 policyDown(G, 1);
@@ -5917,7 +5917,7 @@ export const returnDevCardCheck = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cid
     return totalDevelop(G, ctx, pid) - pub.usedDevelop > card.op;
 }
 export const heYiCheck = (G: SongJinnGame, ctx: Ctx) => {
-    return G.policy < 0;
+    return getPolicy(G) < 0;
 }
 export const doGeneralSkill = (G: SongJinnGame, pid: PlayerID, g: General) => {
     const log = [`doGeneralSkill|${pid}|${g}|${getGeneralNameByPid(pid, g)}`]
