@@ -4324,8 +4324,14 @@ export const ciDefTroop = (G: SongJinnGame): Troop => {
 export const ciAtkTroop = (G: SongJinnGame): Troop => {
     const p = ciPlace(G);
     const ci = G.combat;
-    const jt = getJinnTroopByPlace(G, p);
-    const st = getSongTroopByPlace(G, p);
+    let jt = getJinnTroopByPlace(G, p);
+    let st = getSongTroopByPlace(G, p);
+    if (ci.type === CombatType.BREAKOUT && ci.city !== null) {
+        // @ts-ignore
+        jt = getJinnTroopByPlace(G, ci.city);
+        // @ts-ignore
+        st = getSongTroopByPlace(G, ci.city);
+    }
     return ci.atk === Country.JINN ? (jt === null ? ci.jinn.troop : jt) : (st === null ? ci.song.troop : st);
 }
 
