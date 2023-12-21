@@ -2959,7 +2959,7 @@ export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], count
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const autoLoseCity = (G: SongJinnGame, ctx: Ctx, c? CityID) => {
+export const autoLoseCity = (G: SongJinnGame, ctx: Ctx, c?: CityID) => {
     const log = [`autoLostCity`];
     const ci = G.combat;
     if  (c!==undefined){
