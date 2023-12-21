@@ -94,8 +94,14 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                             //     setCenter(regionCenter);
                                             // }
                                             let text = '';
-                                            const songTroop = getSongTroopByPlace(G, region.id);
-                                            const jinnTroop = getJinnTroopByPlace(G, region.id);
+                                            let songTroop = getSongTroopByPlace(G, region.id);
+                                            if(songTroop === null && region.city !== null){
+                                                songTroop = getSongTroopByPlace(G, region.city);
+                                            }
+                                            let jinnTroop = getJinnTroopByPlace(G, region.id);
+                                            if(jinnTroop === null && region.city !== null){
+                                                jinnTroop = getJinnTroopByPlace(G, region.city);
+                                            }
                                             if(detail){
                                                 text += songTroop === null ? '' : getTroopText(G, songTroop);
                                                 text += '\n';
