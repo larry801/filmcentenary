@@ -717,12 +717,12 @@ export function checkSongLoseEmperor(G: SongJinnGame, ctx: Ctx) {
         changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
     } else {
         log.push(`|doLose`);
-        songLoseEmperor(G);
+        songLoseEmperor(G, ctx);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export function songLoseEmperor(G: SongJinnGame) {
+export function songLoseEmperor(G: SongJinnGame, ctx: Ctx) {
     const log = [`songLoseEmperor`];
     log.push(`|${G.song.emperor}|G.song.emperor`);
     G.song.emperor = null;
@@ -2968,7 +2968,7 @@ export const autoLoseCity = (G: SongJinnGame, ctx: Ctx, c?: CityID) => {
             log.push(`|${ci.city}|ci.city`);
             doLoseCity(G, ctx, pid, ci.city, true);
         } else {
-            if(ci.region !== null){
+            if (ci.region !== null) {
                 log.push(`|${ci.region}|ci.region`);
                 const region = getRegionById(ci.region);
                 log.push(`|${region.city}|region.city`);
@@ -4380,21 +4380,19 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country
                 // @ts-ignore
                 return `选择把${getGeneralNameByCountry(G, SJPlayer.P1, parseInt(arg))}移动到预备兵区`
             }
-        } else
-            if(G.pending.events.includes(PendingEvents.LoseCorruption)) {
-                if (arg === 'corruption') {
-                    return "选择失去腐败国力"
-                }else{
-                    return  "选择失去正常";
-                }
-            }else{
-
-            return arg;
+        } else if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
+            if (arg === 'corruption') {
+                return "选择失去腐败国力"
+            } else {
+                return "选择失去正常国力";
             }
+        } else {
+            return arg;
         }
     }
     return arg === 'yes' ? "选择是" : "选择否";
 }
+
 
 export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
     const beatGongChoices = [

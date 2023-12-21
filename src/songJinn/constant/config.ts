@@ -506,7 +506,8 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
                 }
             }
             logger.info(`${log.join('')}`);
-        }
+        },
+        ...StagedTurnConfig
     },
     moves: moves,
     next: 'turnEnd'

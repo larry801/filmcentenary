@@ -1957,7 +1957,7 @@ export const confirmRespond: LongFormMove = {
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 } else {
-                    songLoseEmperor(G);
+                    songLoseEmperor(G, ctx);
                     ctx.events?.endStage();
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return
