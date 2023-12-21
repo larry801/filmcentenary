@@ -26,29 +26,42 @@ import {ChooseUnitsDialog} from "./recruit";
 import {
     ctr2pub,
     getCountryById,
+    getDefendCityRangeStr,
+    getDefendCiyMelee,
+    getDeployCities,
+    getGeneralCCMelee,
+    getGeneralCCRange,
     getGeneralNameByCountry,
     getMarchDst,
+    getMeleeStr,
     getPlaceCountryGeneral,
     getPlaceGeneral,
+    getPolicy,
     getPresentGeneral,
+    getRangeStrength,
     getReadyGenerals,
     getRegionText,
-    pid2pub,
+    getSiegeMeleeStr,
+    getSiegeRangeStr,
     getTroopPlaceText,
     getTroopText,
     hasOpponentTroop,
-    optionToActualDst,
-    StrProvince,
-    troopIsWeiKun,
-    unitsToString,
-    troopCanSiege,
-    songSorter,
     jinnSorter,
-    checkControlCity,
-    ctr2pid,
-    checkColonyCity, getDeployCities,
+    optionToActualDst,
+    pid2pub,
+    songSorter,
+    StrProvince,
+    troopCanSiege,
+    troopIsWeiKun,
+    troopMelee,
+    troopRange,
+    troopSiegeMelee,
+    troopSiegeRange,
+    unitsToString,
+    checkColonyCity
 } from "../util";
 import {getRegionById} from "../constant/regions";
+import Typography from "@material-ui/core/Typography";
 
 export interface IPlayerHandProps {
     G: SongJinnGame,
@@ -110,7 +123,7 @@ enum TakeDamageStep {
 }
 
 const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
-    const [expanded, setExpanded] = React.useState(0);
+    const [expanded, setExpanded] = React.useState('');
 
     const emptyTroop: Troop = {p: RegionID.R19, u: [0, 0, 0, 0, 0, 0], c: null, g: Country.SONG};
 
@@ -455,8 +468,8 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         toggleText={"放置部队"} initial={true} country={ctr}/>
 
     const mapper = (t: Troop, idx: number) => <Accordion key={`troop-${idx}-${t.g}`}
-                                                         expanded={isActive && expanded === idx}
-                                                         onChange={() => setExpanded(idx)}>
+                                                         expanded={isActive && expanded === `troop-${idx}-${t.g}`}
+                                                         onChange={() => setExpanded(`troop-${idx}-${t.g}`)}>
         <AccordionSummary>
             {hasOpponentTroop(G, t) ? '对峙|' : ''}
             {troopIsWeiKun(G, t) ? "被围困|" : ""}
@@ -465,15 +478,44 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
 
             {getTroopText(G, t)} </AccordionSummary>
         <AccordionDetails>
-            {isActive && <Grid item container spacing={1} key={`grid-ops-${idx}`}>
+            {/*<Grid item xs={12} container spacing={1} key={`grid-calc-strength-${idx}`}>*/}
+            {/*    <Typography>*/}
+            {/*        野战*/}
+            {/*        {troopRange(G, t)}+{getGeneralCCRange(G, t)}*/}
+            {/*        {t.g === Country.SONG ? '' : `+(${getPolicy(G)})`}*/}
+            {/*        = {getRangeStrength(G, t)}*/}
+            {/*        {troopMelee(G, t)}+{getGeneralCCMelee(G, t)}*/}
+            {/*        {t.g === Country.SONG ? '' : `+(${getPolicy(G)})`}*/}
+            {/*        = {getMeleeStr(G, t)}*/}
+            {/*    </Typography>*/}
+            {/*    <Typography>*/}
+            {/*        守城{getDefendCityRangeStr(G, t)}/*/}
+            {/*        {getDefendCiyMelee(G, t)}*/}
+            {/*    </Typography>*/}
+            {/*    <Typography>*/}
+            {/*        攻城远程*/}
+            {/*        {troopSiegeRange(G, t)}+{getGeneralCCRange(G, t)}*/}
+            {/*        {t.g === Country.SONG ? '' : `+(${getPolicy(G)})`}*/}
+            {/*        = {getSiegeRangeStr(G, t)}*/}
+            {/*    </Typography>*/}
+            {/*    <Typography>*/}
+            {/*        攻城交锋*/}
+            {/*        {troopSiegeMelee(G, t)}+{getGeneralCCMelee(G, t)}*/}
+
+            {/*        {t.g === Country.SONG ? '' : `+(${getPolicy(G)})`}*/}
+
+            {/*        ={getSiegeMeleeStr(G, t)}*/}
+            {/*    </Typography>*/}
+            {/*</Grid>*/}
+            {isActive && <Grid item xs={12} container spacing={1} key={`grid-ops-${idx}`}>
                 <Button
                     variant={"contained"}
                     disabled={G.op <= 0}
                     key={`grid-ops-${idx}-march`}
                     onClick={
                         () => {
-                            setPlaceStep(PlaceStep.TROOP);
                             setNewTroopStep(NewTroopStep.START);
+                            setPlaceStep(PlaceStep.TROOP);
                             setDeployNewStep(DeployNewStep.TROOP);
 
                             setTakeDamageStep(TakeDamageStep.TROOP);
@@ -492,13 +534,13 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     key={`grid-ops-${idx}-all-march`}
                     onClick={
                         () => {
-                            setPlaceStep(PlaceStep.TROOP);
                             setNewTroopStep(NewTroopStep.START);
                             setDeployNewStep(DeployNewStep.TROOP);
-
                             setTakeDamageStep(TakeDamageStep.TROOP);
+
                             // setMarchStep(MarchStep.TROOP);
                             setRemoveUnitStep(RemoveStep.TROOP);
+                            setPlaceStep(PlaceStep.TROOP);
                             setDeployStep(DeployStep.TROOP)
                             setMoveStep(MoveStep.TROOP);
 
@@ -593,14 +635,14 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     key={`grid-ops-${idx}-move-part`}
                     onClick={
                         () => {
-                            setPlaceStep(PlaceStep.TROOP);
                             setNewTroopStep(NewTroopStep.START);
                             setDeployNewStep(DeployNewStep.TROOP);
-
                             setTakeDamageStep(TakeDamageStep.TROOP);
+
                             setMarchStep(MarchStep.TROOP);
                             setRemoveUnitStep(RemoveStep.TROOP);
                             setDeployStep(DeployStep.TROOP)
+                            setPlaceStep(PlaceStep.TROOP);
                             setMoveTroop(t);
                             setMoveStep(MoveStep.UNITS);
                         }
@@ -649,6 +691,24 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             setDeployTroop(t);
                         }
                     }>补充
+                </Button>                <Button
+                    variant={"contained"}
+                    key={`grid-ops-${idx}-deploy-puppet`}
+                    // disabled={t.c === null}
+                    disabled={
+                        troopIsWeiKun(G, t) || troopCanSiege(G, t) || t.c === null
+                        || (t.g === Country.JINN && !checkColonyCity(G, t.c))
+                    }
+
+                    onClick={
+                        () => {
+                            moves.deploy({
+                                units:[0,0,0,0,0,1,0],
+                                country: t.g,
+                                city: t.c
+                            })
+                        }
+                    }>补充伪军
                 </Button>
                 <Button
                     variant={"contained"}
