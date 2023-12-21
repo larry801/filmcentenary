@@ -519,7 +519,7 @@ export const getSongTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => 
 }
 
 
-export const getDeployCities = (G: SongJinnGame, ctr:Country) => {
+export const getDeployCities = (G: SongJinnGame, ctr: Country) => {
     return ctr === Country.SONG ? getSongDeployCities(G) : getJinnDeployCities(G);
 }
 
@@ -3974,12 +3974,12 @@ export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
             if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
                 log.push(`|normal`);
                 atkD = troopSiegeMelee(G, st);
-                defD = troopDefendCiyMelee(G, dt);
+                defD = getDefendCiyMelee(G, dt);
             } else {
                 log.push(`|liuJia`);
                 const cityDefence = getCityDefence(G, dt.c, Country.SONG);
                 atkD = troopSiegeMelee(G, st);
-                defD = troopDefendCiyMelee(G, dt) - (2 * cityDefence);
+                defD = getDefendCiyMelee(G, dt) - (2 * cityDefence);
             }
             break;
         case CombatType.RESCUE:
@@ -4157,11 +4157,11 @@ export const yuanCheng = (G: SongJinnGame, ctx: Ctx) => {
             if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
                 log.push(`|normal`);
                 atkD = getSiegeRangeStr(G, at) - cityDef;
-                defD = troopDefendCiyRange(G, dt);
+                defD = getDefendCityRangeStr(G, dt);
             } else {
                 log.push(`|liuJia`);
                 atkD = getSiegeRangeStr(G, at) + cityDef;
-                defD = troopDefendCiyRange(G, dt) - (2 * cityDef);
+                defD = getDefendCityRangeStr(G, dt) - (2 * cityDef);
             }
             break;
         case CombatType.RESCUE:
@@ -5392,7 +5392,7 @@ export function getSiegeRangeStr(G: SongJinnGame, t: Troop) {
     const genCCMod = getGeneralCCRange(G, t);
     log.push(`|${genCCMod}genCCMod`);
     let policyMod = 0;
-    if (isAtkSong(G)) {
+    if (t.g === Country.SONG) {
         policyMod = getPolicy(G)
     }
     log.push(`|${policyMod}policyMod`);
@@ -5420,8 +5420,7 @@ export function troopSiegeRange(G: SongJinnGame, troop: Troop): number {
     return range;
 }
 
-
-export function troopDefendCiyRange(G: SongJinnGame, troop: Troop): number {
+export function getDefendCityRangeStr(G: SongJinnGame, troop: Troop): number {
     let range = getRangeStrength(G, troop);
     if (troop.c !== null) {
         range += getCityDefence(G, troop.c, troop.g);
@@ -5430,8 +5429,8 @@ export function troopDefendCiyRange(G: SongJinnGame, troop: Troop): number {
     return range;
 }
 
-export function troopDefendCiyMelee(G: SongJinnGame, troop: Troop): number {
-    return troopMelee(G, troop) + troop.u[1];
+export function getDefendCiyMelee(G: SongJinnGame, troop: Troop): number {
+    return getMeleeStr(G, troop) + troop.u[1];
 }
 
 export function hasGeneral(G: SongJinnGame, t: Troop, gen: General) {
@@ -5564,10 +5563,10 @@ export function getTroopText(G: SongJinnGame, t: Troop) {
     text += '\n';
     text += `|${getRangeStrength(G, t)}`;
     text += `/${getSiegeRangeStr(G, t)}`;
-    text += `/${troopDefendCiyRange(G, t)}`;
+    text += `/${getDefendCityRangeStr(G, t)}`;
     text += `|${getMeleeStr(G, t)}`;
     text += `/${getSiegeMeleeStr(G, t)}`;
-    text += `/${troopDefendCiyMelee(G, t)}`;
+    text += `/${getDefendCiyMelee(G, t)}`;
     return text;
 }
 
@@ -5708,7 +5707,7 @@ export const checkColonyCity = (G: SongJinnGame, c: CityID) => {
         log.push(`|hasLouShi`);
         result = true;
     } else {
-        if (city.colonizeLevel <= G.colony){
+        if (city.colonizeLevel <= G.colony) {
             log.push(`|${city.colonizeLevel}|city.colonizeLevel`);
             log.push(`|${G.colony}|G.colony`);
             log.push(`|levelReached`);
@@ -5783,16 +5782,18 @@ export const drawPhaseForSong = (G: SongJinnGame, ctx: Ctx) => {
     const player = G.player[SJPlayer.P1];
     const hand = player.hand;
     const power = G.song.civil >= 7 ? 9 : getSongPower(G);
-    log.push(`|${power}power$`);
-    const deck = G.secret.jinnDeck;
-    const discard = G.jinn.discard;
+    log.push(`|${power}power`);
+    const deck = G.secret.songDeck;
+    const discard = G.song.discard;
     let drawCount = power > 9 ? 9 : power;
     log.push(`|drawCount${drawCount}`);
     if (drawCount + hand.length > 9) {
+        log.push(`|hand over 9`);
         drawCount = 9 - hand.length;
         log.push(`|drawCount${drawCount}`);
     }
     if (deck.length + hand.length + discard.length < drawCount) {
+        log.push(`|insufficient`);
         player.hand = hand.concat(deck, discard);
         G.secret.songDeck = [];
         G.song.discard = [];
@@ -5814,10 +5815,12 @@ export const drawPhaseForJinn = (G: SongJinnGame, ctx: Ctx) => {
     let drawCount = G.jinn.civil >= 7 ? 9 : power > 9 ? 9 : power;
     log.push(`|drawCount${drawCount}`);
     if (drawCount + hand.length > 9) {
+        log.push(`|hand over 9`);
         drawCount = 9 - hand.length;
         log.push(`|drawCount${drawCount}`);
     }
     if (deck.length + hand.length + discard.length < drawCount) {
+        log.push(`|insufficient`);
         player.hand = hand.concat(deck, discard);
         G.secret.jinnDeck = [];
         G.jinn.discard = [];

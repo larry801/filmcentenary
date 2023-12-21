@@ -2004,18 +2004,17 @@ export const drawExtraCard: LongFormMove = {
         }
         logger.info(`${G.matchID}|p${pid}.moves.drawExtraCard()`);
         if (pid === SJPlayer.P1) {
-            log.push(`|song|${G.secret.songDeck}deck`);
-            log.push(`|${G.player['0'].hand}hand`);
+            log.push(`|song|${JSON.stringify(G.secret.songDeck)}deck`);
+            log.push(`|${JSON.stringify(G.player['0'].hand)}hand`);
             drawCardForSong(G, ctx);
-            log.push(`|${G.player['0'].hand}hand`);
-            log.push(`|${G.secret.songDeck}deck`);
+            log.push(`|${JSON.stringify(G.player['0'].hand)}hand`);
+            log.push(`|${JSON.stringify(G.secret.songDeck)}deck`);
         } else {
-            log.push(`|${G.secret.jinnDeck}deck`);
-            log.push(`|${G.secret.jinnDeck}deck`);
-            log.push(`|${G.player['1'].hand}hand`);
+            log.push(`|jinn${JSON.stringify(G.secret.jinnDeck)}deck`);
+            log.push(`|${JSON.stringify(G.player['1'].hand)}hand`);
             drawCardForJinn(G, ctx);
-            log.push(`|${G.player['1'].hand}hand`);
-            log.push(`|${G.secret.jinnDeck}deck`);
+            log.push(`|${JSON.stringify(G.player['1'].hand)}hand`);
+            log.push(`|jinn${JSON.stringify(G.secret.jinnDeck)}deck`);
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
     },
