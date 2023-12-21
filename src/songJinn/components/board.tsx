@@ -98,9 +98,6 @@ export const SongJinnBoard = ({
         return () => document.title = "宋金战争";
     }, [isActive])
 
-    const pub = pid2pub(G, playerID as SJPlayer);
-    const player = playerById(G, playerID as SJPlayer);
-    const country = getCountryById(playerID as SJPlayer);
     const SwitchMapButton = <Button onClick={() => {
         if (showMap) {
             setShowMap(false)
