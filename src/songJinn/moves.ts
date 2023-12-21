@@ -589,10 +589,15 @@ export const placeUnit: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
+
         logger.info(`p${ctx.playerID}.placeUnit(${JSON.stringify(args)})`);
         const log = [`p${ctx.playerID}.placeUnit`];
         const {place, units, country} = args;
-
+        if (units.reduce(accumulator) === 0) {
+            log.push(`|0Units|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
         doPlaceUnit(G, units, country, place);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
@@ -698,6 +703,11 @@ export const removeReadyUnit: LongFormMove = {
         // const pub = pid2pub(G, pid);
         // const player = playerById(G, pid);
         const {units, country} = arg;
+        if (units.reduce(accumulator) === 0) {
+            log.push(`|9Units|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
         removeReadyUnitByCountry(G, units, country);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
