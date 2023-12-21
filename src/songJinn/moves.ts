@@ -474,6 +474,7 @@ export const chooseProvince: LongFormMove = {
 
 interface ITakeDamageArgs {
     c: Country,
+    city: CityID;
     src: TroopPlace,
     standby: number[],
     ready: number[]
@@ -488,16 +489,19 @@ export const takeDamage: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`p${pid}.takeDamage(${JSON.stringify(arg)})`);
-        const {c, src, standby, ready} = arg;
+        const {c, src, standby, ready, city} = arg;
         const pub = ctr2pub(G, c);
         const log = [`takeDamage|${src}|${placeToStr(src)}`];
         log.push(`|si${unitsToString(standby)}|kui${unitsToString(ready)}`);
 
-        const troop = c === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
+        let troop = c === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
         if (troop === null) {
             log.push(`|noTroop|invalid`);
-            logger.debug(`${G.matchID}|${log.join('')}`);
-            return INVALID_MOVE;
+            troop = c === Country.SONG ? getSongTroopByPlace(G, city) : getJinnTroopByPlace(G, city);
+            if(troop === null ) {
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
         }
         const ci = G.combat;
         log.push(`|${JSON.stringify(troop)}|troop`);
