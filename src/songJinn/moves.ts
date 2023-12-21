@@ -427,27 +427,37 @@ export const takeDamage: LongFormMove = {
         }
         log.push(`|${JSON.stringify(troop)}|troop`);
         log.push(`|after|${unitsToString(pub.ready)}|${unitsToString(pub.standby)}`);
+        if(troop.g === Country.SONG){
+            if(troop.u.length > 6){
+                log.push(`|${JSON.stringify(troop.u)}|troop.u`);
+                const extra = troop.u.pop();
+                log.push(`|${extra}|extra`);
+                log.push(`|${JSON.stringify(troop.u)}|troop.u`);
+            }
+        }
+
+        const readyEndurance = troopEndurance(G,{
+            g:c,
+            c:null,
+            p:src,
+            u:ready
+        })
+        const standbyEndurance = troopEndurance(G,{
+            g:c,
+            c:null,
+            p:src,
+            u:standby
+        })
+        log.push(`|${readyEndurance}|readyEndurance`);
+        log.push(`|${standbyEndurance}|standbyEndurance`);
+        const cci = ciCtrInfo(G, c);
+        log.push(`|${cci.damageLeft}|cci.damageLeft`);
+        cci.damageLeft -= readyEndurance;
+        cci.damageLeft -= standbyEndurance;
+        log.push(`|${cci.damageLeft}|cci.damageLeft`);
+
         // retain empty troop for unitEndurance check in battle
         if (actualStage(G, ctx) === 'takeDamage') {
-            const readyEndurance = troopEndurance(G,{
-                g:c,
-                c:null,
-                p:src,
-                u:ready
-            })
-            const standbyEndurance = troopEndurance(G,{
-                g:c,
-                c:null,
-                p:src,
-                u:standby
-            })
-            log.push(`|${readyEndurance}|readyEndurance`);
-            log.push(`|${standbyEndurance}|standbyEndurance`);
-            const cci = ciCtrInfo(G, c);
-            log.push(`|${cci.damageLeft}|cci.damageLeft`);
-            cci.damageLeft -= readyEndurance;
-            cci.damageLeft -= standbyEndurance;
-            log.push(`|${cci.damageLeft}|cci.damageLeft`);
 
             const atkEn = troopEndurance(G, ciAtkTroop(G));
             const defEn = troopEndurance(G, ciDefTroop(G));
