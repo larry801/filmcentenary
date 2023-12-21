@@ -641,6 +641,9 @@ export const removeUnit: LongFormMove = {
         }
         logger.info(`${G.matchID}|p${pid}.moves.removeUnit(${JSON.stringify(arg)})`);
         const {src, units, country} = arg;
+        if (units.reduce(accumulator) ===0) {
+            return INVALID_MOVE;
+        }
         removeUnitByCountryPlace(G, units, country, src);
     }
 }
