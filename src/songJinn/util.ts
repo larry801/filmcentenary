@@ -5684,24 +5684,24 @@ export const getSongPower = (G: SongJinnGame): number => {
     const log = [`getSongPower`];
 
     const countedProvince = [...G.song.provinces];
-    log.push(`|all|provinces|${countedProvince}`);
+    log.push(`|all|provinces|${countedProvince.length}`);
     if (countedProvince.includes(ProvinceID.JINGJILU)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
     }
-    log.push(`|remove|jingji|${countedProvince}`);
+    log.push(`|jingji|${countedProvince.length}`);
     if (countedProvince.includes(ProvinceID.YANJINGLU)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.YANJINGLU), 1);
     }
-    log.push(`|remove|yanjing|${countedProvince}`);
+    log.push(`|yanjing|${countedProvince}`);
     if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan) &&
         countedProvince.includes(ProvinceID.FUJIANLU)
     ) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.FUJIANLU), 1);
-        log.push(`|remove|fujian|${countedProvince}`);
+        log.push(`|fujian|${countedProvince.length}`);
     }
 
     let power = countedProvince.length;
-    log.push(`|powerFromProvinces${power}`);
+    log.push(`|fromProv${power}`);
 
     if (G.song.emperor !== null) {
         log.push(`|emperor${power}`);
@@ -5722,7 +5722,7 @@ export const getSongPower = (G: SongJinnGame): number => {
     }
 
     if (G.song.civil >= 6) {
-        log.push(`|neizheng6${power}`);
+        log.push(`|civil6${power}`);
         power++;
         log.push(`|p${power}`);
     }
@@ -5804,21 +5804,21 @@ export const getJinnPower = (G: SongJinnGame): number => {
     const log = [`getJinnPower`];
 
     const countedProvince = [...G.jinn.provinces];
-    log.push(`|all|${countedProvince}`);
+    log.push(`|all|${countedProvince.length}`);
     if (countedProvince.includes(ProvinceID.JINGJILU)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
     }
-    log.push(`|remove|jingji|${countedProvince}`);
+    log.push(`|jingji|${countedProvince.length}`);
     if (countedProvince.includes(ProvinceID.YANJINGLU)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.YANJINGLU), 1);
     }
-    log.push(`|remove|yangjing|${countedProvince}`);
+    log.push(`|yangjing|${countedProvince.length}`);
 
     if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan) &&
         countedProvince.includes(ProvinceID.FUJIANLU)
     ) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.FUJIANLU), 1);
-        log.push(`|remove|fujian|${countedProvince}`);
+        log.push(`|fujian|${countedProvince.length}`);
     }
     let power = countedProvince.length;
     log.push(`|provinces${power}`);
@@ -5832,7 +5832,7 @@ export const getJinnPower = (G: SongJinnGame): number => {
     }
     if (G.jinn.civil >= 6) {
         power++;
-        log.push(`|civil6${power}`);
+        log.push(`|civil6|${power}`);
     }
     logger.warn(`${G.matchID}|${log.join('')}`);
     return power;
