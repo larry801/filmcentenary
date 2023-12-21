@@ -6072,6 +6072,7 @@ export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
+    const log = [`doLoseProvince`];
     const pub = pid2pub(G, pid);
     const oppo = oppoPub(G, pid)
 
@@ -6079,12 +6080,14 @@ export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID,
         if (pid === SJPlayer.P1) {
             if (prov === ProvinceID.YANJINGLU || prov === ProvinceID.JINGJILU || prov === ProvinceID.FUJIANLU) {
                 if (G.events.includes(ActiveEvents.XiangHaiShangFaZhan) && prov === ProvinceID.FUJIANLU) {
+                    log.push(`|HaiFa`);
                     policyDown(G, 1);
                     if (pub.corruption > 0) {
                         pub.corruption--;
                     }
                 }
             } else {
+                log.push(`|CountingProvince`);
                 policyDown(G, 1);
                 if (pub.corruption > 0) {
                     pub.corruption--;
@@ -6092,16 +6095,22 @@ export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID,
             }
         } else {
             if (G.events.includes(ActiveEvents.WuLuKeTui)) {
+                log.push(`|WuLuKeTui`);
                 policyUp(G, 1);
             }
         }
         if (pub.provinces.includes(prov)) {
+            log.push(`|${JSON.stringify(pub.provinces.length)}|pub.provinces.length`);
             pub.provinces.splice(pub.provinces.indexOf(prov), 1);
+            log.push(`|${JSON.stringify(pub.provinces.length)}|pub.provinces.length`);
         }
         if (opponent) {
+            log.push(`|${oppo.provinces.length}|oppo.provinces.length`);
             oppo.provinces.push(prov);
+            log.push(`|${oppo.provinces.length}|oppo.provinces.length`);
         }
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
     const pub = pid2pub(G, pid);
