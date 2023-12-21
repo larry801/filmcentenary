@@ -156,6 +156,22 @@ export const centroid = (coordinates: [number, number][][]): [number, number] =>
     return c;
 }
 
+export const stageName = (c: string) => {
+    const stageMap = {
+        'react': "回合外行动",
+        'takeDamage': "受创",
+        'emperor': "拥立",
+        'jianLiDaQi':"建立大齐",
+        'combatCard':"选择战斗牌",
+        'rescueGeneral':"发展牌救援将领",
+        'showCC':"展示战斗牌",
+        'freeHeYi':"免费和议",
+    }
+    // @ts-ignore
+    const result = stageMap[c];
+    return result !== undefined ? result : " ";
+
+}
 export const phaseName = (c: string) => {
     const phaseMap = {
         'draw': '摸牌阶段',
