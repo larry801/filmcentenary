@@ -2060,21 +2060,27 @@ export const recruitUnit: LongFormMove = {
             return INVALID_MOVE;
         }
         if (units.reduce(accumulator) === 0) {
-
             return INVALID_MOVE;
         }
-        if (ctx.phase === 'action') {
-            if (checkRecruitCivil(G, units, pid)) {
-                doRecruit(G, units, pid);
-            } else {
-                log.push(`|over|limit`);
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                // return INVALID_MOVE;
-                return;
-            }
+        if (pid === SJPlayer.P1) {
+            doRecruit(G, units.slice(0, 6), pid);
+
         } else {
             doRecruit(G, units, pid);
         }
+
+        // if (ctx.phase === 'action') {
+        //     if (checkRecruitCivil(G, units, pid)) {
+        //         doRecruit(G, units, pid);
+        //     } else {
+        //         doRecruit(G, units, pid);
+        //         log.push(`|over|limit`);
+        //         logger.debug(`${G.matchID}|${log.join('')}`);
+        //         return;
+        //     }
+        // } else {
+        //     doRecruit(G, units, pid);
+        // }
     }
 }
 
