@@ -2959,17 +2959,26 @@ export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], count
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const autoLoseCity = (G: SongJinnGame, ctx: Ctx) => {
+export const autoLoseCity = (G: SongJinnGame, ctx: Ctx, c? CityID) => {
     const log = [`autoLostCity`];
     const ci = G.combat;
-    if (ci.region !== null) {
-        const region = getRegionById(ci.region);
-        log.push(`|${region.city}|region.city`);
-        if (region.city !== null) {
-            log.push(`|doLost`);
-            doLoseCity(G, ctx, ciDefPid(G), region.city, true);
+    if  (c!==undefined){
+        doLoseCity(G, ctx, ciDefPid(G), c, true);
+
+    }else {
+        if (ci.city !== null) {
+            log.push(`|${ci.city}|ci.city`);
+            doLoseCity(G, ctx, ciDefPid(G), ci.city, true);
+        } else {
+            const region = getRegionById(ci.region);
+            log.push(`|${region.city}|region.city`);
+            if (region.city !== null) {
+                log.push(`|doLost`);
+                doLoseCity(G, ctx, ciDefPid(G), region.city, true);
+            }
         }
     }
+
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -3015,7 +3024,7 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
             if (ci.atk === t.g) {
             } else {
                 log.push(`|autoLoseCity`);
-                autoLoseCity(G, ctx);
+                autoLoseCity(G, ctx, t.c);
             }
             break;
         case CombatType.FIELD:
@@ -3023,7 +3032,7 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
         case CombatType.BREAKOUT:
             if (ci.atk === t.g) {
                 log.push(`|autoLoseCity`);
-                autoLoseCity(G, ctx);
+                autoLoseCity(G, ctx, t.c);
             } else {
             }
             break;
