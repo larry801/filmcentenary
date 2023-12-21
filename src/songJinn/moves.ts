@@ -1823,6 +1823,18 @@ export const confirmRespond: LongFormMove = {
                     moveGeneralToReady(G, SJPlayer.P1, gen);
                 }
             }
+
+            if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
+                log.push(`|losePower`);
+                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.LoseCorruption), 1);
+                if (choice === 'yes' || choice === 'corruption') {
+                    if(G.song.corruption > 0){
+                        log.push(`|${G.song.corruption}|G.song.corruption`);
+                        G.song.corruption -- ;
+                        log.push(`|${G.song.corruption}|G.song.corruption`);
+                    }
+                }
+            }
             if (G.pending.events.includes(PendingEvents.FuHaiTaoSheng)) {
                 G.pending.events.splice(G.pending.events.indexOf(PendingEvents.FuHaiTaoSheng), 1);
                 if (choice === 'yes') {

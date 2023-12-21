@@ -4431,6 +4431,12 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
                 {label: "降低金军事", value: "选择降低金军事", disabled: false, hidden: false}
             ]
         }
+        if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
+            return [
+                {label: "腐败国力", value: "corruption", disabled: false, hidden: false},
+                {label: "普通国力", value: "normal", disabled: false, hidden: false},
+            ]
+        }
         if (G.pending.events.includes(PendingEvents.BingShi)) {
             const cards = G.song.discard;
             if (cards.length > 0) {
@@ -4489,6 +4495,10 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
         }
         if (G.pending.events.includes(PendingEvents.BingShi)) {
             return "展示弃牌";
+        }
+
+        if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
+            return '请选择丢失的国力';
         }
     }
     return "是否确认";
