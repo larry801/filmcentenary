@@ -88,7 +88,10 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
         <Grid item xs={12} key={`game-info`}>
             <Typography>第{G.turn}回合
                 第{G.round}轮 {getSeasonText(G.round)} {pid2ctr(ctx.currentPlayer)} {phaseName(ctx.phase)}
-                ({ctx.activePlayers === null ? "" : Object.keys(ctx.activePlayers).map(p=>`${pid2ctr(p)}:${stageName(ctx.activePlayers[p])}`).join(',')})
+                ({ctx.activePlayers === null ? "" : Object.keys(ctx.activePlayers).map(p=>`${pid2ctr(p)}:${
+                    // @ts-ignore
+                    stageName(ctx.activePlayers[p])
+                }`).join(',')})
             </Typography>
             <Typography>已发生事件：
                 {G.events.filter(e => isSongEvent(e)).map(e =>
