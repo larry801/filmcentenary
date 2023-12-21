@@ -35,6 +35,7 @@ export const SongJinnBoard = ({
                                   ctx,
                                   moves,
                                   undo,
+                                  redo,
                                   sendChatMessage,
                                   chatMessages,
                                   playerID,
@@ -100,9 +101,16 @@ export const SongJinnBoard = ({
     const pub = pid2pub(G, playerID as SJPlayer);
     const player = playerById(G, playerID as SJPlayer);
     const country = getCountryById(playerID as SJPlayer);
-    const SwitchMapButton = <Button onClick={()=>{if(showMap){setShowMap(false)}else{setShowMap(true)}}}>切换地图</Button>
+    const SwitchMapButton = <Button onClick={() => {
+        if (showMap) {
+            setShowMap(false)
+        } else {
+            setShowMap(true)
+        }
+    }}>切换地图</Button>
 
-    const empty = () => {};
+    const empty = () => {
+    };
 
     return <ErrorBoundary>
         <Grid container>
@@ -144,6 +152,7 @@ export const SongJinnBoard = ({
 
                     {isActive ? <Grid container>
                         <Button onClick={() => undo()}>撤回</Button>
+                        <Button onClick={() => redo()}>恢复撤回</Button>
                         {SwitchMapButton}
                         <Operation
                             G={G} ctx={ctx}
@@ -164,7 +173,7 @@ export const SongJinnBoard = ({
                         <Grid item xs={12} sm={6}>
                             <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
                         </Grid>
-                    <Grid item xs={12} sm={6}>
+                        <Grid item xs={12} sm={6}>
                             <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
                         </Grid>
                     </Grid>
