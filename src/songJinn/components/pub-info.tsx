@@ -41,6 +41,8 @@ export interface ICPubInfo {
 export const CountryPubInfo = ({pub, G, ctx, pid}: ICPubInfo) => {
     const s = pub;
 
+    const ready = pid === SJPlayer.P1 ? s.ready.slice(0,6) : s.ready;
+    const standby = pid === SJPlayer.P1 ? s.standby.slice(0,6) : s.standby;
     const reversedPlan = [...s.completedPlan].reverse();
     const searchCards = handDeckCards(G, ctx, pid);
     return <Grid>
@@ -49,7 +51,7 @@ export const CountryPubInfo = ({pub, G, ctx, pid}: ICPubInfo) => {
         <div><label>腐败：</label>{s.corruption}</div>
         <div><label>盟国：</label>{s.nations.join(',')}</div>
         <div><label>国书：</label>{s.lodNations !== undefined ? s.lodNations.join(',') : ""}</div>
-        <div><label>预备区：{unitsToString(s.ready)} {getReadyGeneralNames(G, pid).join('')}</label></div>
+        <div><label>预备区：{unitsToString(ready)} {getReadyGeneralNames(G, pid).join('')}</label></div>
         <div><label>手牌数：{pub.handCount}</label></div>
         <div><label>皇帝：{s.emperor === null ? "" : s.emperor}</label></div>
         <div><label>本回合计划：{s.plan.map(p => getPlanById(p).name)}</label></div>
@@ -72,7 +74,7 @@ export const CountryPubInfo = ({pub, G, ctx, pid}: ICPubInfo) => {
         <div><ShowCards cards={s.remove} title={"查看移除"} toggleText={`移除牌${s.remove.length}`}/></div>
         <div><ShowCards cards={searchCards} title={"手牌+牌堆"}
                         toggleText={`手牌+牌堆${searchCards.length}`}/></div>
-        <div><label>备用兵区： {unitsToString(s.standby)}</label></div>
+        <div><label>备用兵区： {unitsToString(standby)}</label></div>
         <ErrorBoundary>
             <Dices pub={s}/>
         </ErrorBoundary>
