@@ -691,11 +691,14 @@ function doDeployUnits(G: SongJinnGame, _ctx: Ctx, country: Country, units: numb
 
 export const deploy: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, args: IDeployUnitArgs) => {
+        logger.info(`p${ctx.playerID}.deploy(${JSON.stringify(args)})`);
+        const {city, country, units} = args;
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`p${ctx.playerID}.deploy(${JSON.stringify(args)})`);
-        const {city, country, units} = args;
+        if(city === null){
+            return  INVALID_MOVE;
+        }
         doDeployUnits(G, ctx, country, units, city);
     }
 }
