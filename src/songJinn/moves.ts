@@ -1916,8 +1916,10 @@ export const confirmRespond: LongFormMove = {
                 if (choice !== "围困") {
                     const place = G.pending.places[0];
                     log.push(`|${place}|place`);
-                    startCombat(G, ctx, pid2ctr(pid), place)
+                    startCombat(G, ctx, pid2ctr(pid), place);
                     G.pending.places = [];
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
                 }
             }
             if (G.pending.events.includes(PendingEvents.ZhangZhaoZhiZheng)) {
