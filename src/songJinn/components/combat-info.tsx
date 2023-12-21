@@ -196,7 +196,7 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive}: ICombatInfo) => 
                 moves.takeDamage({
                     src: troop.p,
                     c: troop.g,
-                    idx: 0,
+                    city: troop.c,
                     ready: readyUnits,
                     standby: standbyUnits
                 });

@@ -106,6 +106,49 @@ describe('diplomacy', () => {
         p0.moves.op("S11");
         p0.moves.march({"src": 18, "dst": "潼关", "units": [2, 1, 0, 0, 0, 0], "generals": [0], "country": "宋"});
     });
+    it('march-hui-zhan',()=>{
+        p0.moves.op("S11");
+        p0.moves.march({"src": 18, "dst": 42, "units": [2, 1, 0, 0, 0, 0], "generals": [0], "country": "宋"});
+        p0.moves.march({"src": 42, "dst": 27, "units": [2, 1, 0, 0, 0, 0], "generals": [], "country": "宋"});
+        p0.moves.endRound();
+        p1.moves.op("J03");
+        p1.moves.march({"src": 19, "dst": 42, "units": [1, 2, 1, 0, 1, 0, 0], "generals": [0], "country": "金"});
+        p0.moves.confirmRespond({"choice": "no", "text": "选择不接野"});
+
+        p1.moves.confirmRespond({"choice": "围困", "text": "围困"});
+        p1.moves.march({"src": 36, "dst": 42, "units": [3, 4, 2, 0, 1, 0, 0], "generals": [0, 1], "country": "金"});
+        combatState(p0);
+        p1.moves.confirmRespond({"choice": "攻城", "text": "攻城"});
+        p0.moves.combatCard([]);
+
+        p1.moves.combatCard([]);
+        combatState(p0);
+        // song 0 dmg
+        p1.moves.takeDamage({
+            c: "金",
+            src: 42,
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+        combatState(p0);
+
+        p0.moves.takeDamage({
+            c: "宋",
+            src: "开封",
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [1, 0, 0, 0, 0, 0],
+        });
+        p1.moves.takeDamage({
+            c: "金",
+            src: 42,
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+        combatState(p0);
+        expect(p0.getState().ctx.activePlayers['1'] === "confirmRespond");
+    });
+
+
     it('march-zero',()=>{
         p0.moves.op("S11");
         p0.moves.march({"src": 18, "dst": 42, "units": [2, 1, 0, 0, 0, 0], "generals": [0], "country": "宋"});
@@ -121,13 +164,13 @@ describe('diplomacy', () => {
         p1.moves.combatCard([]);
 
         combatState(p0);
-        p1.moves.takeDamage({
-            c: "金",
-            src: 42,
-            ready: [1, 0, 0, 0, 0, 0],
-            standby: [0, 0, 0, 0, 0, 0],
-        });
-        combatState(p0);
+        // p1.moves.takeDamage({
+        //     c: "金",
+        //     src: 42,
+        //     ready: [1, 0, 0, 0, 0, 0],
+        //     standby: [0, 0, 0, 0, 0, 0],
+        // });
+        // combatState(p0);
         p0.moves.takeDamage({
             c: "宋",
             src: 42,
@@ -135,13 +178,13 @@ describe('diplomacy', () => {
             standby: [1, 2, 0, 0, 0, 0],
         });
         combatState(p0);
-        p1.moves.takeDamage({
-            c: "金",
-            src: 42,
-            ready: [0, 0, 0, 0, 0, 0],
-            standby: [0, 0, 0, 0, 0, 0],
-        });
-        combatState(p0);
+        // p1.moves.takeDamage({
+        //     c: "金",
+        //     src: 42,
+        //     ready: [0, 0, 0, 0, 0, 0],
+        //     standby: [0, 0, 0, 0, 0, 0],
+        // });
+        // combatState(p0);
         expect(p0.getState().G.song.emperor === null);
 
     })

@@ -490,6 +490,7 @@ export const takeDamage: LongFormMove = {
         const pub = ctr2pub(G, c);
         const log = [`takeDamage|${src}|${placeToStr(src)}`];
         log.push(`|si${unitsToString(standby)}|kui${unitsToString(ready)}`);
+
         const troop = c === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
         if (troop === null) {
             log.push(`|noTroop|invalid`);

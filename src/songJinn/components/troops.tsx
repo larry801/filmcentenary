@@ -176,7 +176,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             moves.takeDamage({
                 src: takeDamageTroop.p,
                 c: takeDamageTroop.g,
-                idx: takeDamageTroop,
+                city: takeDamageTroop.c,
                 ready: takeDamageReadyUnits,
                 standby: u
             })

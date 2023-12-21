@@ -452,6 +452,7 @@ export const getStage = (ctx: Ctx) => {
 export const getJinnTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null => {
     return getJinnTroopByPlace(G, r);
 }
+
 export const getSongTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | null => {
     const log = [`getSongTroopByPlace|${r}`];
     let result = null;
