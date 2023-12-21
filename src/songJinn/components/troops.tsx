@@ -693,7 +693,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                         }
                     }>补充
                 </Button>
-                {t.g === Country.Jinn && G.jinn.ready[5] > 0 &&
+                {t.g === Country.JINN && G.jinn.ready[5] > 0 &&
                 <Button
                     variant={"contained"}
                     key={`grid-ops-${idx}-deploy-puppet`}
@@ -710,7 +710,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             })
                         }
                     }>补充伪军
-                </Button>}{t.g === Country.Jinn && G.jinn.ready[6] > 0 &&
+                </Button>}{t.g === Country.JINN && G.jinn.ready[6] > 0 &&
                 <Button
                     variant={"contained"}
                     key={`grid-ops-${idx}-deploy-puppet`}
