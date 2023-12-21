@@ -449,7 +449,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 units: u,
                 country: removeUnitTroop.g
             })
-        }} max={removeUnitTroop.u} initUnits={unitNames.map(() => 0)}
+        }} max={removeUnitTroop.u} initUnits={removeUnitTroop.u.map(() => 0)}
         show={isActive && removeUnitStep === RemoveStep.UNITS} title={"选择要消灭的部队"}
         toggleText={"消灭部队"} initial={true} country={removeUnitTroop.g}/>
 
