@@ -4380,14 +4380,16 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country
                 // @ts-ignore
                 return `选择把${getGeneralNameByCountry(G, SJPlayer.P1, parseInt(arg))}移动到预备兵区`
             }
-        } else if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
-            if (arg === 'corruption') {
-                return "选择失去腐败国力"
-            } else {
-                return "选择失去正常国力";
-            }
         } else {
-            return arg;
+            if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
+                if (arg === 'corruption') {
+                    return "选择失去腐败国力"
+                } else {
+                    return "选择失去正常国力";
+                }
+            } else {
+                return arg;
+            }
         }
     }
     return arg === 'yes' ? "选择是" : "选择否";
