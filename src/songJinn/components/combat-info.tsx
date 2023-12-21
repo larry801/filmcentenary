@@ -124,8 +124,10 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive}: ICombatInfo) => 
 
     return <>
         <Grid container item xs={12}><Paper>
+
+            <div><label></label>{s.atk}</div>
             <div><label>进攻方：</label>{s.atk}</div>
-            <div><label>类型：</label>{s.type}</div>
+            <div><label>类型：</label>{s.ongoing ? `(*)${s.type}` : `${s.type}`}</div>
             <div><label>阶段：</label>{s.phase}</div>
             <div><label>区域：</label>{s.region === null ? "" : `${getRegionText(s.region)}`}</div>
             <div><label>城市：</label>{s.city === null ? "" : `${getCityText(s.city)}`}</div>
