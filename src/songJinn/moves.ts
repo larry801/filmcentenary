@@ -60,6 +60,7 @@ import {
     doControlCity,
     doControlProvince,
     doGeneralSkill,
+    doLoseCity,
     doLoseProvince,
     doMoveTroop,
     doMoveTroopAll,
@@ -78,6 +79,7 @@ import {
     getGeneralNameByCountry,
     getJinnTroopByCity,
     getJinnTroopByPlace,
+    getOpponentCityTroopByCtr,
     getOpponentPlaceTroopById,
     getSongTroopByCity,
     getSongTroopByPlace,
@@ -282,8 +284,27 @@ export const march: LongFormMove = {
         log.push(`|${JSON.stringify(t)}`);
         if (t.u.filter((u, i) => units[i] === u).length === units.length) {
             log.push(`|all`);
-            // TODO src围困部队解围
             doMoveTroopAll(G, src, newDst, ctr);
+            if(isRegionID(src)){
+                const cid = getRegionById(src).city;
+                if(cid !== null ){
+                    const city = getCityById(cid);
+                    if(t.g === Country.JINN && city.colonizeLevel > G.colony)
+                    {
+                        log.push(`|not|colonized`);
+                        doLoseCity(G,ctx,SJPlayer.P2,cid,G.song.provinces.includes(city.province));
+                    }
+                    const oppoCityTroop = getOpponentCityTroopByCtr(G, t.g, cid);
+                    if(oppoCityTroop !== null){
+                        log.push(`|weiKunGone`);
+                        oppoPub(G,ctr2pid(oppoCityTroop.g)).troops.forEach(ot=>{
+                            if (ot.c === cid){
+                                ot.p = src;
+                            }
+                        })
+                    }
+                }
+            }
         } else {
             log.push(`|part`);
             doMoveTroopPart(G, src, newDst, ctr, units, generals);
