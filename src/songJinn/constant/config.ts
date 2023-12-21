@@ -486,7 +486,7 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
             G.jinn.standby[i] += G.jinn.ready[i];
             G.jinn.ready[i] = 0;
         }
-
+        G.op = 0;
         log.push(`|${G.jinn.ready}jinn.ready`);
         log.push(`|${G.jinn.standby}G.jinn.standby`);
         logger.info(`${G.matchID}|${log.join('')}`);
