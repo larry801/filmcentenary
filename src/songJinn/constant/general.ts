@@ -13,6 +13,7 @@ export enum PendingEvents {
     ZhangZhaoZhiZheng = "张赵之争",
     BingShi = "病逝",
     LoseCorruption = "丢失国力",
+    MergeORSiege = "会战攻城",
 }
 
 export enum ActiveEvents {

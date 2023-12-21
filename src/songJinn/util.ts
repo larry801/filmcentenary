@@ -2795,7 +2795,7 @@ export const doLoseCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cityID: Cit
         const city = getCityById(cityID);
         if (city.capital) {
             log.push(`|loseProvince`);
-            doLoseProvince(G, pid, city.province, false);
+            doLoseProvince(G,ctx, pid, city.province, false);
         }
         if (opponent) {
             log.push(`|${opponent}|opponent`);
@@ -4380,15 +4380,16 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
         {label: "否", value: "no", disabled: false, hidden: false}
     ];
     const ci = G.combat;
+    const siegeOrWei = [
+        {label: "围困", value: "围困", disabled: false, hidden: false},
+        {label: "攻城", value: "攻城", disabled: false, hidden: false}
+    ];
     if (ci.ongoing) {
         if (ci.phase === CombatPhase.JieYe) {
             return yesNoOption
         }
         if (ci.phase === CombatPhase.WeiKun) {
-            return [
-                {label: "围困", value: "围困", disabled: false, hidden: false},
-                {label: "攻城", value: "攻城", disabled: false, hidden: false}
-            ]
+            return siegeOrWei
         }
         if (ci.phase === CombatPhase.MingJin) {
             const ctr = pid2ctr(pid);
@@ -4455,7 +4456,9 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
                 return yesNoOption;
             }
         }
-
+        if (G.pending.events.includes(PendingEvents.MergeORSiege)) {
+            return siegeOrWei;
+        }
     }
 
     return yesNoOption;
@@ -4502,6 +4505,10 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
         }
         if (G.pending.events.includes(PendingEvents.BingShi)) {
             return "展示弃牌";
+        }
+
+        if (G.pending.events.includes(PendingEvents.MergeORSiege)) {
+            return "继续围困还是会战攻城";
         }
 
         if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
@@ -4626,7 +4633,6 @@ export function startCombat(
         logger.debug(`${G.matchID}|${log.join('')}`);
         return;
     }
-    // TODO
 
     log.push(`|${JSON.stringify(atkTroop)}atk`);
     log.push(`|${JSON.stringify(defTroop)}def`);
@@ -6090,7 +6096,7 @@ export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
-export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
+export const doLoseProvince = (G: SongJinnGame,ctx:Ctx, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
     const log = [`doLoseProvince`];
     const pub = pid2pub(G, pid);
     const oppo = oppoPub(G, pid)
@@ -6100,17 +6106,17 @@ export const doLoseProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID,
             if (prov === ProvinceID.YANJINGLU || prov === ProvinceID.JINGJILU || prov === ProvinceID.FUJIANLU) {
                 if (G.events.includes(ActiveEvents.XiangHaiShangFaZhan) && prov === ProvinceID.FUJIANLU) {
                     log.push(`|HaiFa`);
-                    policyDown(G, 1);
-                    if (pub.corruption > 0) {
-                        pub.corruption--;
-                    }
+                    policyDown(G,1);
+                    G.pending.events.push(PendingEvents.LoseCorruption);
+                    changePlayerStage(G,ctx,'confirmRespond',SJPlayer.P1);
+                    log.push(`|chooseLoseNormalOrCorruiton`);
                 }
             } else {
                 log.push(`|CountingProvince`);
-                policyDown(G, 1);
-                if (pub.corruption > 0) {
-                    pub.corruption--;
-                }
+                policyDown(G,1);
+                G.pending.events.push(PendingEvents.LoseCorruption);
+                changePlayerStage(G,ctx,'confirmRespond',SJPlayer.P1);
+                log.push(`|chooseLoseNormalOrCorruption`);
             }
         } else {
             if (G.events.includes(ActiveEvents.WuLuKeTui)) {

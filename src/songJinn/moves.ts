@@ -13,7 +13,8 @@ import {
     isCityID,
     isNationID,
     isRegionID,
-    JinnBaseCardID, JinnGeneral,
+    JinnBaseCardID,
+    JinnGeneral,
     LetterOfCredence,
     NationID,
     PendingEvents,
@@ -42,7 +43,6 @@ import {
     cardToSearch,
     changeCivil,
     changeMilitary,
-    checkRecruitCivil,
     checkSongLoseEmperor,
     ciAtkInfo,
     ciAtkPid,
@@ -79,8 +79,10 @@ import {
     getGeneralNameByCountry,
     getJinnTroopByCity,
     getJinnTroopByPlace,
-    getOpponentCityTroopByCtr, getOpponentPlaceTroopByCtr,
+    getOpponentCityTroopByCtr,
+    getOpponentPlaceTroopByCtr,
     getPlaceGeneral,
+    getSimpleTroopText,
     getSongTroopByCity,
     getSongTroopByPlace,
     getTroopByCountryPlace,
@@ -90,7 +92,8 @@ import {
     moveGeneralByPid,
     moveGeneralToReady,
     nationMoveJinn,
-    nationMoveSong, oppoCtr,
+    nationMoveSong,
+    oppoCtr,
     oppoPid,
     oppoPlayerById,
     oppoPub,
@@ -242,7 +245,7 @@ interface IMarchArgs {
 
 export const march: LongFormMove = {
     client: false,
-    move: (G, ctx, arg: IMarchArgs) => {
+    move: (G: SongJinnGame, ctx:Ctx, arg: IMarchArgs) => {
         const {src, dst, country, generals, units} = arg;
         const pid = ctx.playerID;
         logger.info(`p${pid}.moves.march(${JSON.stringify(arg)})`);
@@ -310,10 +313,11 @@ export const march: LongFormMove = {
             doMoveTroopPart(G, src, newDst, ctr, units, generals);
         }
 
-        const oppoTroop = getOpponentPlaceTroopByCtr(G, t.g, newDst);
-        log.push(`|${JSON.stringify(oppoTroop)}oppoTroop`);
-        if (oppoTroop !== null) {
-            const oppoE = troopEndurance(G, oppoTroop);
+
+        const oppoFieldTroop = getOpponentPlaceTroopByCtr(G, t.g, newDst);
+        log.push(`|${JSON.stringify(oppoFieldTroop)}oppoTroop`);
+        if (oppoFieldTroop !== null) {
+            const oppoE = troopEndurance(G, oppoFieldTroop);
             log.push(`|${oppoE}|oppoE`);
             if (oppoE > 0) {
                 if (isNationID(newDst)) {
@@ -321,26 +325,46 @@ export const march: LongFormMove = {
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return INVALID_MOVE;
                 } else {
-                    if (troopIsArmy(G, ctx, oppoTroop)) {
+                    if (troopIsArmy(G, ctx, oppoFieldTroop)) {
                         log.push(`|startCombat`);
                         startCombat(G, ctx, ctr, newDst);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
                     } else {
                         log.push(`|error`);
                         endCombat(G, ctx);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
                     }
                 }
             } else {
-                removeZeroTroop(G, ctx, oppoTroop);
+                removeZeroTroop(G, ctx, oppoFieldTroop);
             }
         } else {
             if (isRegionID(newDst)) {
                 const cid = getRegionById(newDst).city;
                 log.push(`|${cid}|cid`);
-                if (cid !== null && !pub.cities.includes(cid)) {
-                    pub.cities.push(cid);
+                if (cid !== null) {
+                    const oppoCityTroop = getOpponentPlaceTroopByCtr(G, t.g, cid);
+                    if (oppoCityTroop !== null) {
+                        log.push(`|${getSimpleTroopText(G, oppoCityTroop)}|oppoCityTroop`);
+                        log.push(`|mergeOrSiege`);
+                        G.pending.places.push(cid);
+                        G.pending.events.push(PendingEvents.MergeORSiege);
+                        changePlayerStage(G, ctx, 'confirmRespond', ctr2pid(t.g));
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    } else {
+                        if (!pub.cities.includes(cid)) {
+                            pub.cities.push(cid);
+                        }
+                    }
+                } else {
+
                 }
             }
         }
+
         const oCtr = oppoCtr(t.g);
         const opid = ctr2pid(oCtr);
         const gen = getPlaceGeneral(G, opid, newDst);
@@ -465,6 +489,7 @@ export const takeDamage: LongFormMove = {
         const {c, src, standby, ready} = arg;
         const pub = ctr2pub(G, c);
         const log = [`takeDamage|${src}|${placeToStr(src)}`];
+        log.push(`|si${unitsToString(standby)}|kui${unitsToString(ready)}`);
         const troop = c === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
         if (troop === null) {
             log.push(`|noTroop|invalid`);
@@ -1898,7 +1923,18 @@ export const confirmRespond: LongFormMove = {
                 }
             }
         } else {
+
+            if (G.pending.events.includes(PendingEvents.MergeORSiege)) {
+                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.MergeORSiege), 1);
+                if (choice !=="围困") {
+                    const place = G.pending.places[0];
+                    log.push(`|${place}|place`);
+                    startCombat(G, ctx, pid2ctr(pid), place)
+                    G.pending.places = [];
+                }
+            }
             if (G.pending.events.includes(PendingEvents.ZhangZhaoZhiZheng)) {
+                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.ZhangZhaoZhiZheng), 1);
                 if (choice === '选择降低宋内政' || choice === 'yes') {
                     changeCivil(G, SJPlayer.P1, -1);
                 } else {
@@ -1911,8 +1947,8 @@ export const confirmRespond: LongFormMove = {
             }
 
             if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
-                log.push(`|losePower`);
                 G.pending.events.splice(G.pending.events.indexOf(PendingEvents.LoseCorruption), 1);
+                log.push(`|losePower`);
                 if (choice === 'yes' || choice === 'corruption') {
                     if (G.song.corruption > 0) {
                         log.push(`|${G.song.corruption}|G.song.corruption`);
@@ -1945,6 +1981,7 @@ export const confirmRespond: LongFormMove = {
                 return;
             }
             if (G.pending.events.includes(PendingEvents.WeiQi)) {
+                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.WeiQi), 1);
                 const prov = choice as ProvinceID;
                 if (Object.values(ProvinceID).includes(prov)) {
                     if (G.qi.includes(prov)) {
@@ -1955,7 +1992,6 @@ export const confirmRespond: LongFormMove = {
                 } else {
                     log.push(`|error|manual|move`);
                 }
-                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.WeiQi), 1);
                 ctx.events?.endStage();
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
@@ -2091,6 +2127,7 @@ export const recruitUnit: LongFormMove = {
         // } else {
         //     doRecruit(G, units, pid);
         // }
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
 
@@ -2177,7 +2214,7 @@ export const loseCity: LongFormMove = {
             }
             const city = getCityById(cityID);
             if (city.capital) {
-                doLoseProvince(G, ctx.playerID, city.province, false);
+                doLoseProvince(G,ctx, ctx.playerID, city.province, false);
             }
             if (opponent) {
                 oppo.cities.push(cityID)
