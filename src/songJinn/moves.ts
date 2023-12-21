@@ -245,7 +245,7 @@ interface IMarchArgs {
 
 export const march: LongFormMove = {
     client: false,
-    move: (G: SongJinnGame, ctx:Ctx, arg: IMarchArgs) => {
+    move: (G: SongJinnGame, ctx: Ctx, arg: IMarchArgs) => {
         const {src, dst, country, generals, units} = arg;
         const pid = ctx.playerID;
         logger.info(`p${pid}.moves.march(${JSON.stringify(arg)})`);
@@ -1794,39 +1794,16 @@ export const confirmRespond: LongFormMove = {
                 }
             }
             if (ci.phase === CombatPhase.WeiKun) {
-                if (choice === "围困") {
-                    log.push(`|doWeiKun`);
-                    let atk = ciAtkTroop(G);
-                    atk.c = null;
-                    let def = ciDefTroop(G);
-                    log.push(`|${JSON.stringify(atk)}atk`);
-                    log.push(`|${JSON.stringify(def)}def`);
-                    const defTroops = pid2pub(G, ciDefPid(G)).troops;
-                    const defIdx = defTroops.indexOf(def);
-                    log.push(`|${defIdx}defIdx`);
-                    const indexedDef = defTroops[defIdx];
-                    log.push(`|${indexedDef}indexedDef`);
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    if (def.c === null) {
-                        if (isRegionID(def.p)) {
-                            log.push(`|isRegion`);
-                            const regionCity = getRegionById(def.p).city;
-                            if (regionCity === null) {
-                                log.push(`|error|manual|move`);
-                                endCombat(G, ctx);
-                                logger.debug(`${G.matchID}|${log.join('')}`);
-                                return;
-                            } else {
-                                log.push(`|regionCity${regionCity}`);
-                                weiKunTroop(G, def);
-                            }
-                        }
-                    } else {
-                        log.push(`|hasCity`);
-                        weiKunTroop(G, def);
+                const atkPub = ctr2pub(G, ci.atk);
+                atkPub.troops.forEach(at => {
+                    if (at.p === ciAtkTroop(G).p) {
+                        at.c === null;
                     }
-                    log.push(`|${JSON.stringify(atkCCI.troop)}atk`);
-                    log.push(`|${JSON.stringify(defCCI.troop)}def`);
+                })
+                weiKunTroop(G, defCCI.troop);
+                log.push(`|${JSON.stringify(atkCCI.troop)}atk`);
+                log.push(`|${JSON.stringify(defCCI.troop)}def`);
+                if (choice === "围困") {
                     endCombat(G, ctx);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
@@ -1926,7 +1903,7 @@ export const confirmRespond: LongFormMove = {
 
             if (G.pending.events.includes(PendingEvents.MergeORSiege)) {
                 G.pending.events.splice(G.pending.events.indexOf(PendingEvents.MergeORSiege), 1);
-                if (choice !=="围困") {
+                if (choice !== "围困") {
                     const place = G.pending.places[0];
                     log.push(`|${place}|place`);
                     startCombat(G, ctx, pid2ctr(pid), place)
@@ -2214,7 +2191,7 @@ export const loseCity: LongFormMove = {
             }
             const city = getCityById(cityID);
             if (city.capital) {
-                doLoseProvince(G,ctx, ctx.playerID, city.province, false);
+                doLoseProvince(G, ctx, ctx.playerID, city.province, false);
             }
             if (opponent) {
                 oppo.cities.push(cityID)

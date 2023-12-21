@@ -2795,7 +2795,7 @@ export const doLoseCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cityID: Cit
         const city = getCityById(cityID);
         if (city.capital) {
             log.push(`|loseProvince`);
-            doLoseProvince(G,ctx, pid, city.province, false);
+            doLoseProvince(G, ctx, pid, city.province, false);
         }
         if (opponent) {
             log.push(`|${opponent}|opponent`);
@@ -4159,17 +4159,8 @@ export const yuanCheng = (G: SongJinnGame, ctx: Ctx) => {
                 logger.error(`${G.matchID}|${log.join('')}`);
                 return;
             }
-            const cityDef = getCityDefence(G, dt.c, ciDefCtr(G));
-            log.push(`|${cityDef}cityDef`);
-            if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
-                log.push(`|normal`);
-                atkD = getSiegeRangeStr(G, at) - cityDef;
-                defD = getDefendCityRangeStr(G, dt);
-            } else {
-                log.push(`|liuJia`);
-                atkD = getSiegeRangeStr(G, at) + cityDef;
-                defD = getDefendCityRangeStr(G, dt) - (2 * cityDef);
-            }
+            defD = getDefendCityRangeStr(G, dt);
+            atkD = getSiegeRangeStr(G, at);
             break;
         case CombatType.RESCUE:
             atkD = getRangeStrength(G, at);
@@ -4586,31 +4577,45 @@ export function startCombat(
     const defId = ctr2pid(oppoCtr(attacker));
     let atkTroop = getTroopByCountryPlace(G, c.atk, p);
     let defTroop = getTroopByCountryPlace(G, ciDefCtr(G), p);
-
     if (isCityID(p)) {
-        log.push(`|breakout`);
         // @ts-ignore
-        atkTroop = getTroopByCountryCity(G, c.atk, p);
+        let atkCityTroop = getTroopByCountryCity(G, c.atk, p);
         // @ts-ignore
-        defTroop = getTroopByCountryCity(G, ciDefCtr(G), p);
-        if (atkTroop === null || defTroop === null) {
+        let defCityTroop = getTroopByCountryCity(G, ciDefCtr(G), p);
+        log.push(`|place|city`);
+        if (atkCityTroop !== null) {
+            log.push(`|${getSimpleTroopText(G, atkCityTroop)}|atkCityTroop`);
+            if (atkCityTroop.p === atkCityTroop.c) {
+                log.push(`|breakout`);
+                c.type = CombatType.BREAKOUT;
+                atkTroop = atkCityTroop;
+                // @ts-ignore
+                defTroop = getTroopByCountryPlace(G, ciDefCtr(G), getCityById(p).region);
+            }
+        }
+        if (defCityTroop !== null) {
+            log.push(`|${getSimpleTroopText(G, defCityTroop)}|defCityTroop`);
+            if (defCityTroop.p === defCityTroop.c) {
+                defTroop = defCityTroop;
+                // @ts-ignore
+                atkTroop = getTroopByCountryPlace(G, c.atk, getCityById(p).region);
+                log.push(`|siege`);
+                c.type = CombatType.SIEGE;
+            }
+        }
+        if (atkTroop === null && defTroop === null) {
             log.push(`|error|one troop missing`);
             endCombat(G, ctx);
             logger.debug(`${G.matchID}|${log.join('')}`);
             return;
         }
-        if (atkTroop.p === atkTroop.c) {
-            log.push(`|breakout`);
-            c.type = CombatType.BREAKOUT;
-        } else {
-            if (defTroop.p === defTroop.c) {
-                log.push(`|siege`);
-                c.type = CombatType.SIEGE;
-            }
-        }
     }
-    log.push(`|${JSON.stringify(atkTroop)}atkTroop`);
-    log.push(`|${JSON.stringify(defTroop)}defTroop`);
+    if (atkTroop !== null) {
+        log.push(`|${getSimpleTroopText(G, atkTroop)}atkTroop`);
+    }
+    if (defTroop !== null) {
+        log.push(`|${getSimpleTroopText(G, defTroop)}defTroop`);
+    }
     const st = c.atk === Country.SONG ? atkTroop : defTroop;
     if (st !== null) {
         c.song.troop = st;
@@ -4633,13 +4638,11 @@ export function startCombat(
         logger.debug(`${G.matchID}|${log.join('')}`);
         return;
     }
-
-    log.push(`|${JSON.stringify(atkTroop)}atk`);
-    log.push(`|${JSON.stringify(defTroop)}def`);
     log.push(`|${atkId}atkId`);
     log.push(`|${defId}defId`);
     if (isNationID(p)) {
-        log.push(`|cannot|combat|in|nation`);
+        log.push(`|cannot|combat|in|nation|endCombat`);
+        endCombat(G, ctx);
         logger.debug(`${G.matchID}|${log.join('')}`);
         return;
     } else {
@@ -4804,7 +4807,7 @@ export function weiKunTroop(G: SongJinnGame, t: Troop) {
                     troops[0].p = G.combat.city
                     log.push(`|${JSON.stringify(troops)}troops`);
                 } else {
-                    log.push(`|no combat city | cannot wei kun|error`);
+                    log.push(`|no city|no combat city | cannot wei kun|error`);
                 }
             }
         }
@@ -5121,6 +5124,12 @@ export function getGeneralCCMelee(G: SongJinnGame, t: Troop): number {
     const unitCount = t.u.reduce(accumulator);
     log.push(`|${unitCount}unitount`);
     if (t.g === Country.JINN) {
+
+        if (generals.includes(JinnGeneral.WoLiBu)) {
+            log.push(`|woLiBu`);
+            mod += t.u[1] + t.u[2];
+            log.push(`|${mod}mod`);
+        }
         if (generals.includes(JinnGeneral.WuZhu) && ci.atk === Country.JINN) {
             log.push(`|wuZhuAtk`);
             mod += 2;
@@ -5329,10 +5338,6 @@ export function troopRange(G: SongJinnGame, troop: Troop): number {
         range += i * unitRanges[idx]
     });
     log.push(`|range${range}`);
-    if (troop.g === Country.JINN && hasGeneral(G, troop, JinnGeneral.WoLiBu)) {
-        range += troop.u[1];
-        log.push(`|range${range}`);
-    }
     logger.warn(`${G.matchID}|${log.join('')}`);
     return range;
 }
@@ -5410,6 +5415,14 @@ function isAtkSong(G: SongJinnGame) {
 
 export function getSiegeRangeStr(G: SongJinnGame, t: Troop) {
     const log = [`getRangeSiegeStr`];
+    let def = 0;
+    if (isRegionID(t.p)) {
+        // @ts-ignore
+        const cid = getRegionById(t.p).city;
+        if (cid !== null) {
+            def = getCityDefence(G, cid, oppoCtr(t.g));
+        }
+    }
     const fromUnit = troopSiegeRange(G, t);
     log.push(`|${fromUnit}fromUnit`);
     const genCCMod = getGeneralCCRange(G, t);
@@ -5420,6 +5433,15 @@ export function getSiegeRangeStr(G: SongJinnGame, t: Troop) {
     }
     log.push(`|${policyMod}policyMod`);
     let strength = fromUnit + genCCMod + policyMod;
+    if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
+        log.push(`|normal`);
+        strength -= def;
+        log.push(`|${strength}|strength`);
+    } else {
+        log.push(`|liuJia`);
+        strength += def;
+        log.push(`|${strength}|strength`);
+    }
     const final = fromUnit > 0 ?
         strength <= 1 ? 1 : strength :
         strength <= 0 ? 0 : strength;
@@ -5444,16 +5466,30 @@ export function troopSiegeRange(G: SongJinnGame, troop: Troop): number {
 }
 
 export function getDefendCityRangeStr(G: SongJinnGame, troop: Troop): number {
-    let range = getRangeStrength(G, troop);
+    const log = [`getDefendCityRangeStr`];
+    const range = getRangeStrength(G, troop);
+    log.push(`|${range}|range`);
+    let mod = 0;
     if (troop.c !== null) {
-        range += getCityDefence(G, troop.c, troop.g);
+        if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
+            mod = getCityDefence(G, troop.c, troop.g);
+        } else {
+            mod = 0 - getCityDefence(G, troop.c, troop.g);
+        }
     }
-    range += troop.u[1];
-    return range;
+    log.push(`|${mod}|mod`);
+    const res = range + mod;
+    log.push(`|${res}|res`);
+    const final = range > 0
+        ? (res <= 0 ? 1 : res)
+        : (res < 0 ? 0 : res)
+    log.push(`|${final}|final`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
+    return final;
 }
 
 export function getDefendCiyMelee(G: SongJinnGame, troop: Troop): number {
-    return getMeleeStr(G, troop) + troop.u[1];
+    return getMeleeStr(G, troop);
 }
 
 export function hasGeneral(G: SongJinnGame, t: Troop, gen: General) {
@@ -5978,7 +6014,7 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
         log.push(`|rm|LiuJiaShenBing`);
         G.events.splice(G.events.indexOf(ActiveEvents.LiuJiaShenBing), 1);
     }
-    endCombat(G,ctx);
+    endCombat(G, ctx);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const returnDevCardCheck = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cid: SJEventCardID) => {
@@ -6096,7 +6132,7 @@ export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
-export const doLoseProvince = (G: SongJinnGame,ctx:Ctx, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
+export const doLoseProvince = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, prov: ProvinceID, opponent: boolean) => {
     const log = [`doLoseProvince`];
     const pub = pid2pub(G, pid);
     const oppo = oppoPub(G, pid)
@@ -6106,16 +6142,16 @@ export const doLoseProvince = (G: SongJinnGame,ctx:Ctx, pid: PlayerID, prov: Pro
             if (prov === ProvinceID.YANJINGLU || prov === ProvinceID.JINGJILU || prov === ProvinceID.FUJIANLU) {
                 if (G.events.includes(ActiveEvents.XiangHaiShangFaZhan) && prov === ProvinceID.FUJIANLU) {
                     log.push(`|HaiFa`);
-                    policyDown(G,1);
+                    policyDown(G, 1);
                     G.pending.events.push(PendingEvents.LoseCorruption);
-                    changePlayerStage(G,ctx,'confirmRespond',SJPlayer.P1);
+                    changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
                     log.push(`|chooseLoseNormalOrCorruiton`);
                 }
             } else {
                 log.push(`|CountingProvince`);
-                policyDown(G,1);
+                policyDown(G, 1);
                 G.pending.events.push(PendingEvents.LoseCorruption);
-                changePlayerStage(G,ctx,'confirmRespond',SJPlayer.P1);
+                changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
                 log.push(`|chooseLoseNormalOrCorruption`);
             }
         } else {
