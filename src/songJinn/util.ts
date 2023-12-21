@@ -632,6 +632,13 @@ export const getOpponentPlaceTroopByCtr = (G: SongJinnGame, ctr: Country, p: Tro
         return getSongTroopByPlace(G, p);
     }
 }
+export const getOpponentCityTroopByCtr = (G: SongJinnGame, ctr: Country, c: CityID) => {
+    if (ctr === Country.SONG) {
+        return getJinnTroopByCity(G, c);
+    } else {
+        return getSongTroopByCity(G, c);
+    }
+}
 export const getOpponentPlaceTroopById = (G: SongJinnGame, pid: PlayerID, p: TroopPlace) => {
     if (pid as SJPlayer === SJPlayer.P1) {
         return getJinnTroopByPlace(G, p);
@@ -6221,7 +6228,7 @@ export const doMoveTroopPart = (
 export const doMoveTroopAll = (
     G: SongJinnGame, src: TroopPlace, dst: TroopPlace, country: Country,
 ) => {
-    const log = [`doMovePartTroop`];
+    const log = [`doMoveTroopAll`];
     const pub = ctr2pub(G, country);
     const generals = getPlaceCountryGeneral(G, country, src);
     generals.forEach(gen => moveGeneralByCountry(G, country, gen, dst));
