@@ -62,6 +62,7 @@ import {
 } from "../util";
 import {getRegionById} from "../constant/regions";
 import Typography from "@material-ui/core/Typography";
+import {getCityById} from "../constant/city";
 
 export interface IPlayerHandProps {
     G: SongJinnGame,
@@ -691,25 +692,41 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             setDeployTroop(t);
                         }
                     }>补充
-                </Button>                <Button
+                </Button>
+                {t.g === Country.Jinn && G.jinn.ready[5] > 0 &&
+                <Button
                     variant={"contained"}
                     key={`grid-ops-${idx}-deploy-puppet`}
                     // disabled={t.c === null}
                     disabled={
-                        troopIsWeiKun(G, t) || troopCanSiege(G, t) || t.c === null
-                        || (t.g === Country.JINN && !checkColonyCity(G, t.c))
+                        t.c === null || getCityById(t.c).colonizeLevel > G.jinn.military
                     }
-
                     onClick={
                         () => {
                             moves.deploy({
-                                units:[0,0,0,0,0,1,0],
+                                units: [0, 0, 0, 0, 0, 1, 0],
                                 country: t.g,
                                 city: t.c
                             })
                         }
                     }>补充伪军
-                </Button>
+                </Button>}{t.g === Country.Jinn && G.jinn.ready[6] > 0 &&
+                <Button
+                    variant={"contained"}
+                    key={`grid-ops-${idx}-deploy-puppet`}
+                    disabled={
+                        t.c === null || getCityById(t.c).colonizeLevel > G.jinn.military
+                    }
+                    onClick={
+                        () => {
+                            moves.deploy({
+                                units: [0, 0, 0, 0, 0, 0, 1],
+                                country: t.g,
+                                city: t.c
+                            })
+                        }
+                    }>补充齐军
+                </Button>}
                 <Button
                     variant={"contained"}
                     onClick={
