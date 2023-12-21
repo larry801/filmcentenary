@@ -5949,14 +5949,13 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
             );
         }
     } else {
-        log.push(
-            `|firstPlayer`
-        );
+        log.push(`|firstPlayer`);
     }
     if (G.events.includes(ActiveEvents.LiuJiaShenBing)) {
         log.push(`|rm|LiuJiaShenBing`);
         G.events.splice(G.events.indexOf(ActiveEvents.LiuJiaShenBing), 1);
     }
+    endCombat(G,ctx);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const returnDevCardCheck = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cid: SJEventCardID) => {
