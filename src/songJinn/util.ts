@@ -161,11 +161,11 @@ export const stageName = (c: string) => {
         'react': "回合外行动",
         'takeDamage': "受创",
         'emperor': "拥立",
-        'jianLiDaQi':"建立大齐",
-        'combatCard':"选择战斗牌",
-        'rescueGeneral':"发展牌救援将领",
-        'showCC':"展示战斗牌",
-        'freeHeYi':"免费和议",
+        'jianLiDaQi': "建立大齐",
+        'combatCard': "选择战斗牌",
+        'rescueGeneral': "发展牌救援将领",
+        'showCC': "展示战斗牌",
+        'freeHeYi': "免费和议",
     }
     // @ts-ignore
     const result = stageMap[c];
@@ -517,6 +517,12 @@ export const getSongTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => 
     logger.warn(`${G.matchID}|${log.join('')}`);
     return result;
 }
+
+
+export const getDeployCities = (G: SongJinnGame, ctr:Country) => {
+    return ctr === Country.SONG ? getSongDeployCities(G) : getJinnDeployCities(G);
+}
+
 export const getSongDeployCities = (G: SongJinnGame) => {
     return G.song.cities.filter((cid) => {
         const troop = getJinnTroopByCity(G, cid);
@@ -526,9 +532,11 @@ export const getSongDeployCities = (G: SongJinnGame) => {
 export const getJinnDeployCities = (G: SongJinnGame) => {
     return G.jinn.cities.filter((cid) => {
         const troop = getSongTroopByCity(G, cid);
-        return troop === null;
+        const city = getCityById(cid)
+        return troop === null && city.colonizeLevel <= G.colony;
     })
 }
+
 export const getPolicy = (G: SongJinnGame) => {
     if (G.events.includes(ActiveEvents.LiGang)) {
         return G.policy > 1 ? 3 : G.policy + 2;
@@ -3459,10 +3467,10 @@ export const getMoveText = (l: LogEntry): string => {
                 const args = payload.args !== undefined ? payload.args : "";
                 if (args === null || args.length === 0) {
                     return `p${pid}.moves.${name}()`
-                }else{
-                    return `p${pid}.moves.${name}(${args.map((a:any)=>JSON.stringify(a)).join(',')})`
+                } else {
+                    return `p${pid}.moves.${name}(${args.map((a: any) => JSON.stringify(a)).join(',')})`
                 }
-            }catch(e){
+            } catch (e) {
                 return `${JSON.stringify(l)}|${e.toString()}|${JSON.stringify(e.stackTrace)}`;
             }
         case "GAME_EVENT":
@@ -5689,12 +5697,33 @@ export const checkCtrCity = (G: SongJinnGame, ctr: Country, c: CityID) => {
     return checkControlCity(G, ctr2pid(ctr), c)
 }
 
+
+export const checkColonyCity = (G: SongJinnGame, c: CityID) => {
+    const log = [`checkColonyCity`];
+    const lsPlace = G.jinn.generalPlace[JinnGeneral.LouShi];
+    log.push(`|${lsPlace}|lsPlace`);
+    let result = false;
+    const city = getCityById(c);
+    if (c === lsPlace || city.region === lsPlace) {
+        log.push(`|hasLouShi`);
+        result = true;
+    } else {
+        if (city.colonizeLevel <= G.colony){
+            log.push(`|${city.colonizeLevel}|city.colonizeLevel`);
+            log.push(`|${G.colony}|G.colony`);
+            log.push(`|levelReached`);
+            result = true;
+        }
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return result;
+}
 export const checkControlCity = (G: SongJinnGame, pid: PlayerID, c: CityID) => {
     const log = [`checkControlCity|p${pid}|${c}`];
     const cityTroop = getTroopByCountryCity(G, pid2ctr(pid), c);
     let result = false;
     if (cityTroop !== null) {
-        return true;
+        result = true;
     } else {
         const city = getCityById(c);
         const prov = city.province;

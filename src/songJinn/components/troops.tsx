@@ -29,13 +29,24 @@ import {
     getGeneralNameByCountry,
     getMarchDst,
     getPlaceCountryGeneral,
-    getPlaceGeneral, getPresentGeneral,
+    getPlaceGeneral,
+    getPresentGeneral,
     getReadyGenerals,
     getRegionText,
-    pid2pub, getTroopPlaceText,
-    getTroopText, hasOpponentTroop,
+    pid2pub,
+    getTroopPlaceText,
+    getTroopText,
+    hasOpponentTroop,
     optionToActualDst,
-    StrProvince, troopIsWeiKun, unitsToString, troopCanSiege, songSorter, jinnSorter,
+    StrProvince,
+    troopIsWeiKun,
+    unitsToString,
+    troopCanSiege,
+    songSorter,
+    jinnSorter,
+    checkControlCity,
+    ctr2pid,
+    checkColonyCity, getDeployCities,
 } from "../util";
 import {getRegionById} from "../constant/regions";
 
@@ -385,7 +396,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         callback={(c) => {
             setDeployNewCity(c as unknown as CityID);
             setDeployNewStep(DeployNewStep.UNITS);
-        }} choices={pub.cities.map(c => {
+        }} choices={getDeployCities(G, ctr).map(c => {
         return {
             label: c.toString(),
             value: c.toString(),
@@ -572,7 +583,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                             // setMoveStep(MoveStep.TROOP);
                             setMoveTroop(t);
                             setMoveUnits(t.u);
-                            setMoveGenerals(getPlaceCountryGeneral(G,t.g,t.p));
+                            setMoveGenerals(getPlaceCountryGeneral(G, t.g, t.p));
                             setMoveStep(MoveStep.PROVINCE);
                         }
                     }>移动全部
@@ -618,7 +629,10 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     variant={"contained"}
                     key={`grid-ops-${idx}-deploy`}
                     // disabled={t.c === null}
-                    disabled={false}
+                    disabled={
+                        troopIsWeiKun(G, t) || troopCanSiege(G, t) || t.c === null
+                        || !checkColonyCity(G, t.c)
+                    }
                     onClick={
                         () => {
                             setPlaceStep(PlaceStep.TROOP);
@@ -639,41 +653,41 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                 <Button
                     variant={"contained"}
                     onClick={
-                    () => {
-                        setPlaceStep(PlaceStep.TROOP);
-                        setNewTroopStep(NewTroopStep.START);
-                        setDeployNewStep(DeployNewStep.TROOP);
+                        () => {
+                            setPlaceStep(PlaceStep.TROOP);
+                            setNewTroopStep(NewTroopStep.START);
+                            setDeployNewStep(DeployNewStep.TROOP);
 
-                        setTakeDamageStep(TakeDamageStep.TROOP);
-                        setMarchStep(MarchStep.TROOP);
-                        setRemoveUnitStep(RemoveStep.TROOP);
-                        setDeployStep(DeployStep.TROOP)
-                        setMoveStep(MoveStep.TROOP);
+                            setTakeDamageStep(TakeDamageStep.TROOP);
+                            setMarchStep(MarchStep.TROOP);
+                            setRemoveUnitStep(RemoveStep.TROOP);
+                            setDeployStep(DeployStep.TROOP)
+                            setMoveStep(MoveStep.TROOP);
 
-                        setPlaceStep(PlaceStep.UNITS);
-                        setPlaceUnitTroop(t);
-                    }
-                }>放置
+                            setPlaceStep(PlaceStep.UNITS);
+                            setPlaceUnitTroop(t);
+                        }
+                    }>放置
                 </Button>
                 <Button
                     variant={"contained"}
                     onClick={
-                    () => {
-                        setPlaceStep(PlaceStep.TROOP);
+                        () => {
+                            setPlaceStep(PlaceStep.TROOP);
 
-                        setNewTroopStep(NewTroopStep.START);
-                        setDeployNewStep(DeployNewStep.TROOP);
+                            setNewTroopStep(NewTroopStep.START);
+                            setDeployNewStep(DeployNewStep.TROOP);
 
-                        setTakeDamageStep(TakeDamageStep.TROOP);
-                        setMarchStep(MarchStep.TROOP);
-                        // setRemoveStep(RemoveStep.TROOP);
-                        setDeployStep(DeployStep.TROOP)
-                        setMoveStep(MoveStep.TROOP);
+                            setTakeDamageStep(TakeDamageStep.TROOP);
+                            setMarchStep(MarchStep.TROOP);
+                            // setRemoveStep(RemoveStep.TROOP);
+                            setDeployStep(DeployStep.TROOP)
+                            setMoveStep(MoveStep.TROOP);
 
-                        setRemoveUnitStep(RemoveStep.UNITS);
-                        setRemoveUnitTroop(t);
-                    }
-                }>消灭
+                            setRemoveUnitStep(RemoveStep.UNITS);
+                            setRemoveUnitTroop(t);
+                        }
+                    }>消灭
                 </Button>
             </Grid>
             }
