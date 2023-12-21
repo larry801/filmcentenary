@@ -315,10 +315,12 @@ export const march: LongFormMove = {
 
 
         const oppoFieldTroop = getOpponentPlaceTroopByCtr(G, t.g, newDst);
-        log.push(`|${JSON.stringify(oppoFieldTroop)}oppoTroop`);
+        log.push(`|${JSON.stringify(oppoFieldTroop)}|oppoTroop`);
         if (oppoFieldTroop !== null) {
+            // @ts-ignore
+            log.push(`|${getSimpleTroopText(G,oppoFieldTroop)}`);
             const oppoE = troopEndurance(G, oppoFieldTroop);
-            log.push(`|${oppoE}|oppoE`);
+            log.push(`|${oppoE}|endurance`);
             if (oppoE > 0) {
                 if (isNationID(newDst)) {
                     log.push(`|cannot|goto|nation|with|opponent|troop`);
@@ -341,6 +343,38 @@ export const march: LongFormMove = {
                 removeZeroTroop(G, ctx, oppoFieldTroop);
             }
         } else {
+            const oCtr = oppoCtr(t.g);
+            const opid = ctr2pid(oCtr);
+            log.push(`|${opid}|opid`);
+            const gen = getPlaceGeneral(G, opid, newDst);
+            log.push(`|${gen}${oCtr}General`);
+            if (gen.length > 0) {
+                if (oCtr === Country.JINN && gen.includes(JinnGeneral.WuZhu)) {
+                    log.push(`|wuZhuReady`);
+                    moveGeneralToReady(G, opid, JinnGeneral.WuZhu);
+                    if (gen.includes(JinnGeneral.WuZhu)) {
+                        log.push(`|${JSON.stringify(gen)}gen`);
+                        gen.splice(gen.indexOf(JinnGeneral.WuZhu), 1);
+                        log.push(`|${JSON.stringify(gen)}gen`);
+                    }
+                }
+                if (gen.length > 0) {
+                    if (pub.develop.length > 0) {
+                        G.pending.generals = [...gen];
+                        changePlayerStage(G, ctx, 'rescueGeneral', opid);
+                    } else {
+                        gen.forEach(g => {
+                            if (oCtr === Country.JINN && g === JinnGeneral.WuZhu) {
+                                log.push(`|wuZhu|ready`);
+                                moveGeneralToReady(G, opid, g);
+                            } else {
+                                log.push(`|rm${getGeneralNameByCountry(oCtr, g)}`);
+                                removeGeneral(G, opid, g);
+                            }
+                        });
+                    }
+                }
+            }
             if (isRegionID(newDst)) {
                 const cid = getRegionById(newDst).city;
                 log.push(`|${cid}|cid`);
@@ -359,43 +393,11 @@ export const march: LongFormMove = {
                             pub.cities.push(cid);
                         }
                     }
-                } else {
-
                 }
             }
         }
 
-        const oCtr = oppoCtr(t.g);
-        const opid = ctr2pid(oCtr);
-        const gen = getPlaceGeneral(G, opid, newDst);
-        log.push(`|${gen}|oppoGeneral`);
-        if (gen.length > 0) {
-            if (oCtr === Country.JINN && gen.includes(JinnGeneral.WuZhu)) {
-                log.push(`|wuZhuReady`);
-                moveGeneralToReady(G, pid, JinnGeneral.WuZhu);
-                if (gen.includes(JinnGeneral.WuZhu)) {
-                    log.push(`|${JSON.stringify(gen)}gen`);
-                    gen.splice(gen.indexOf(JinnGeneral.WuZhu), 1);
-                    log.push(`|${JSON.stringify(gen)}gen`);
-                }
-            }
-            if (gen.length > 0) {
-                if (pub.develop.length > 0) {
-                    G.pending.generals = [...gen];
-                    changePlayerStage(G, ctx, 'rescueGeneral', opid);
-                } else {
-                    gen.forEach(g => {
-                        if (oCtr === Country.JINN && g === JinnGeneral.WuZhu) {
-                            log.push(`|wuZhu|ready`);
-                            moveGeneralToReady(G, opid, g);
-                        } else {
-                            log.push(`|rm${getGeneralNameByCountry(t.g, g)}`);
-                            removeGeneral(G, opid, g);
-                        }
-                    });
-                }
-            }
-        }
+
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -963,8 +965,8 @@ export const retreat: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`${G.matchID}|p${pid}.moves.retreat(${JSON.stringify(arg)})`);
-        const {src, dst, ctr} = arg;
-        doMoveTroop(G, src, dst, ctr);
+        const {src, dst, country} = arg;
+        doMoveTroop(G, src, dst, country);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -972,7 +974,7 @@ export const retreat: LongFormMove = {
 export interface IMoveTroopArgs {
     src: Troop;
     dst: TroopPlace;
-    ctr: Country;
+    country: Country;
     units: number[];
     generals: General[];
 }
@@ -985,8 +987,9 @@ export const moveTroop: LongFormMove = {
         }
         logger.info(`p${pid}.moves.moveTroop(${JSON.stringify(args)})`);
         const log = [`moveTroop`];
-        const {src, dst, ctr, units, generals} = args;
-        doMoveTroopPart(G, src.p, dst, ctr, units, generals);
+        const {src, dst, country, units, generals} = args;
+
+        doMoveTroopPart(G, src.p, dst, country, units, generals);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }

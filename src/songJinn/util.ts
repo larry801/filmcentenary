@@ -256,7 +256,7 @@ export const getPlaceCountryGeneral = (G: SongJinnGame, ctr: Country, place: Tro
     return generals;
 }
 export const getPlaceGeneral = (G: SongJinnGame, pid: PlayerID, place: TroopPlace): General[] => {
-    const log = [`getPlaceGeneral|p${pid}${placeToStr(place)}`]
+    const log = [`getPlaceGeneral|p${pid}|${placeToStr(place)}`]
     const generals: General[] = [];
     const pub = pid2pub(G, pid);
     pub.generalPlace.forEach((p, idx) => {
@@ -265,7 +265,7 @@ export const getPlaceGeneral = (G: SongJinnGame, pid: PlayerID, place: TroopPlac
             generals.push(idx as General);
         }
     })
-    logger.warn(`${G.matchID}|${log.join('')}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
     return generals;
 }
 export const optionToActualDst = (dst: string): TroopPlace => {
@@ -2756,8 +2756,14 @@ export const generalToReadyByCountry = (G: SongJinnGame, ctr: Country, general: 
     pub.generals[general] = GeneralStatus.READY;
 }
 export const moveGeneralByCountry = (G: SongJinnGame, ctr: Country, general: General, dst: TroopPlace) => {
+    const log = [`moveGeneralByCountry`];
     const pub = ctr2pub(G, ctr);
+    log.push(`|${dst}|dst`);
+    log.push(`|${placeToStr(dst)}`);
+    log.push(`|${general}|general`);
     pub.generalPlace[general] = dst;
+    log.push(`|${JSON.stringify(pub.generalPlace)}|pub.generalPlace`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const removeGeneral = (G: SongJinnGame, pid: PlayerID, general: General) => {
     const country = getCountryById(pid);
@@ -6220,23 +6226,23 @@ export const doMoveTroopPart = (
 ) => {
     const log = [`doMoveTroopPart`];
     const pub = ctr2pub(G, country);
-    generals.forEach(gen => moveGeneralByCountry(G, country, gen, dst));
     const t = getTroopByCountryPlace(G, country, src);
     if (t === null) {
         log.push(`|noTroop`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         return;
     }
-
     for (let i = 0; i < units.length; i++) {
         if (t.u[i] < units[i]) {
-            log.push(`${i}|error`);
+            log.push(`|${i}|${t.u[i]} < ${units[i]}|error`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
             return;
         }
     }
     for (let i = 0; i < units.length; i++) {
         t.u[i] -= units[i];
     }
+    generals.forEach(gen => moveGeneralByCountry(G, country, gen, dst));
     if (troopEmpty(t)) {
         pub.troops.splice(pub.troops.indexOf(t), 1);
     }
