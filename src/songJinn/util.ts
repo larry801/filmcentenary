@@ -728,11 +728,9 @@ export function songLoseEmperor(G: SongJinnGame) {
     G.song.emperor = null;
     log.push(`|${G.song.emperor}|G.song.emperor`);
     policyDown(G, 1);
-    if (G.song.corruption > 0) {
-        log.push(`|${G.song.corruption}|G.song.corruption`);
-        G.song.corruption--;
-        log.push(`|${G.song.corruption}|G.song.corruption`);
-    }
+    G.pending.events.push(PendingEvents.LoseCorruption);
+    changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
+    log.push(`|chooseLoseNormalOrCorruiton`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
