@@ -24,6 +24,7 @@ import {getProvinceById} from "../constant/province";
 import CheckBoxDialog from "./choice";
 import {ChooseUnitsDialog} from "./recruit";
 import {
+    checkColonyCity,
     ctr2pub,
     getCountryById,
     getGeneralNameByCountry,
@@ -631,7 +632,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     // disabled={t.c === null}
                     disabled={
                         troopIsWeiKun(G, t) || troopCanSiege(G, t) || t.c === null
-                        || !checkColonyCity(G, t.c)
+                        || t.g === Country.JINN ||  !checkColonyCity(G, t.c)
                     }
                     onClick={
                         () => {
