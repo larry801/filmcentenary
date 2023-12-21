@@ -24,7 +24,6 @@ import {getProvinceById} from "../constant/province";
 import CheckBoxDialog from "./choice";
 import {ChooseUnitsDialog} from "./recruit";
 import {
-    checkColonyCity,
     ctr2pub,
     getCountryById,
     getGeneralNameByCountry,
