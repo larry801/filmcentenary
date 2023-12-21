@@ -37,6 +37,7 @@ import {
     optionToActualDst,
     StrProvince, troopIsWeiKun, unitsToString, troopCanSiege, songSorter, jinnSorter,
 } from "../util";
+import {getRegionById} from "../constant/regions";
 
 export interface IPlayerHandProps {
     G: SongJinnGame,
@@ -522,9 +523,10 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
                     variant={"contained"}
                     key={`grid-ops-${idx}-siege`}
                     onClick={() => {
+                        const city = getRegionById(t.p as RegionID).city;
                         moves.siege({
                             ctr: t.g,
-                            src: t.c
+                            src: city
                         });
                     }}
                 >
