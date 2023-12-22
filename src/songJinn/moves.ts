@@ -329,7 +329,7 @@ export const march: LongFormMove = {
                         return;
                     } else {
                         log.push(`|rm|zero`);
-                        removeZeroTroop(G,ctx,oppoFieldTroop)
+                        removeZeroTroop(G, ctx, oppoFieldTroop)
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     }
@@ -1850,6 +1850,10 @@ export const confirmRespond: LongFormMove = {
                                 log.push(`|atkRetreat`);
                                 endCombat(G, ctx);
                                 ctx.events?.endStage();
+                                // changePlayerStage(G, ctx, 'retreat', ciAtkPid(G));
+                                if (ciAtkPid(G) !== ctx.currentPlayer) {
+                                    changePlayerStage(G, ctx, 'react', ciAtkPid(G));
+                                }
                                 logger.debug(`${G.matchID}|${log.join('')}`);
                                 return;
                             } else {
@@ -1891,6 +1895,9 @@ export const confirmRespond: LongFormMove = {
                             defCCI.choice = BeatGongChoice.RETREAT;
                             endCombat(G, ctx);
                             ctx.events?.endStage();
+                            if (ciDefPid(G) !== ctx.currentPlayer) {
+                                changePlayerStage(G, ctx, 'react', ciDefPid(G));
+                            }
                             logger.debug(`${G.matchID}|${log.join('')}`);
                             return;
                         }
