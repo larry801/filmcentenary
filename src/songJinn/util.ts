@@ -1,4 +1,4 @@
-import {Ctx, LogEntry, PlayerID} from "boardgame.io";
+import { Ctx, LogEntry, PlayerID } from "boardgame.io";
 import {
     accumulator,
     ActiveEvents,
@@ -58,14 +58,14 @@ import {
     UNIT_SHORTHAND,
     VictoryReason
 } from "./constant/general";
-import {getPlanById} from "./constant/plan";
-import {getRegionById} from "./constant/regions";
-import {activePlayer, shuffle} from "../game/util";
-import {logger} from "../game/logger";
-import {INVALID_MOVE, Stage} from "boardgame.io/core";
-import {getProvinceById} from "./constant/province";
-import {getCityById} from "./constant/city";
-import {changePlayerStage} from "../game/logFix";
+import { getPlanById } from "./constant/plan";
+import { getRegionById } from "./constant/regions";
+import { activePlayer, shuffle } from "../game/util";
+import { logger } from "../game/logger";
+import { INVALID_MOVE, Stage } from "boardgame.io/core";
+import { getProvinceById } from "./constant/province";
+import { getCityById } from "./constant/city";
+import { changePlayerStage } from "../game/logFix";
 
 export const isSongEvent = (e: ActiveEvents) => {
     switch (e) {
@@ -3617,7 +3617,7 @@ export const getMoveText = (l: LogEntry): string => {
                 } else {
                     return `p${pid}.moves.${name}(${args.map((a: any) => JSON.stringify(a)).join(',')})`
                 }
-            } catch (e) {
+            } catch (e: any) {
                 return `${JSON.stringify(l)}|${e.toString()}|${JSON.stringify(e.stackTrace)}`;
             }
         case "GAME_EVENT":
@@ -3781,7 +3781,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                         case 'chooseTop':
                             log +=
                                 `把${getPlanById(arg).name}放在最上面`
-                            ;
+                                ;
                             break;
                         case 'jianLiDaQi':
                             log += `建立大齐 齐控制${arg.join(',')}`;
@@ -3836,7 +3836,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                         case 'op':
                             log +=
                                 `打出${sjCardById(arg).name}|${sjCardById(arg).op}`
-                            ;
+                                ;
                             break;
                         case 'cardEvent':
                             log += `事件${sjCardById(arg).name}`;
@@ -3849,17 +3849,15 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             break;
                         case 'develop':
                             if (typeof arg === 'string') {
-                                log += `${
-                                    arg !== DevelopChoice.EMPEROR
-                                    && arg !== DevelopChoice.POLICY_UP
-                                    && arg !== DevelopChoice.POLICY_DOWN
+                                log += `${arg !== DevelopChoice.EMPEROR
+                                        && arg !== DevelopChoice.POLICY_UP
+                                        && arg !== DevelopChoice.POLICY_DOWN
                                         ? "提升" : ""}${arg}`;
                             } else {
-                                const {choice, target} = arg;
-                                log += `${
-                                    choice !== DevelopChoice.EMPEROR
-                                    && choice !== DevelopChoice.POLICY_UP
-                                    && choice !== DevelopChoice.POLICY_DOWN
+                                const { choice, target } = arg;
+                                log += `${choice !== DevelopChoice.EMPEROR
+                                        && choice !== DevelopChoice.POLICY_UP
+                                        && choice !== DevelopChoice.POLICY_DOWN
                                         ? "提升" : ""}${choice}到${target}`;
                             }
                             break;
@@ -3873,32 +3871,32 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                         case 'recruitPuppet':
                             log +=
                                 `在${getCityById(arg).name}征募签军`
-                            ;
+                                ;
                             break;
                         case 'emperor':
                             log +=
                                 `在${getCityById(arg).name}拥立`
-                            ;
+                                ;
                             break;
                         case 'letter':
                             log +=
                                 `向${arg.nation}递交了国书`
-                            ;
+                                ;
                             break;
                         case 'heYi':
                             log +=
                                 `用${sjCardById(arg.card).name}和议 割让${arg.city}`
-                            ;
+                                ;
                             break;
                         case 'tieJun':
                             log +=
                                 `用${sjCardById(arg).name}贴军`
-                            ;
+                                ;
                             break;
                         case 'paiQian':
                             log +=
                                 `用${sjCardById(arg).name}派遣`
-                            ;
+                                ;
                             break;
                         case 'choosePlan':
                             log += '选择了一张作战计划';
@@ -3906,7 +3904,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                         case 'endRound':
                             log +=
                                 `结束第${arg}行动轮`
-                            ;
+                                ;
                             break;
                         default:
                             log +=
@@ -3914,7 +3912,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
 
                     }
                 }
-            } catch (e) {
+            } catch (e: any) {
                 log += `|${JSON.stringify(l)}|${e.toString()}|${JSON.stringify(e.stackTrace)}`
 
             }
@@ -4520,13 +4518,13 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
         }
     ]
     const yesNoOption = [
-        {label: "是", value: "yes", disabled: false, hidden: false},
-        {label: "否", value: "no", disabled: false, hidden: false}
+        { label: "是", value: "yes", disabled: false, hidden: false },
+        { label: "否", value: "no", disabled: false, hidden: false }
     ];
     const ci = G.combat;
     const siegeOrWei = [
-        {label: "围困", value: "围困", disabled: false, hidden: false},
-        {label: "攻城", value: "攻城", disabled: false, hidden: false}
+        { label: "围困", value: "围困", disabled: false, hidden: false },
+        { label: "攻城", value: "攻城", disabled: false, hidden: false }
     ];
     if (ci.ongoing) {
         if (ci.phase === CombatPhase.JieYe) {
@@ -4559,14 +4557,14 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
 
         if (G.pending.events.includes(PendingEvents.HanFang)) {
             return [
-                {label: "殖民", value: "殖民", disabled: false, hidden: false},
-                {label: "内政", value: "内政", disabled: false, hidden: false}
+                { label: "殖民", value: "殖民", disabled: false, hidden: false },
+                { label: "内政", value: "内政", disabled: false, hidden: false }
             ]
         }
         if (G.pending.events.includes(PendingEvents.ZhangZhaoZhiZheng)) {
             G.pending.events.splice(G.pending.events.indexOf(PendingEvents.ZhangZhaoZhiZheng), 1);
             const choices = [
-                {label: "降低宋内政", value: "选择降低宋内政", disabled: false, hidden: false},
+                { label: "降低宋内政", value: "选择降低宋内政", disabled: false, hidden: false },
             ]
             getPresentGeneral(G, SJPlayer.P1).forEach(g => {
                 choices.push({
@@ -4578,15 +4576,15 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
         }
         if (G.pending.events.includes(PendingEvents.JiaBeng)) {
             return [
-                {label: "降低金殖民", value: "选择降低金殖民", disabled: false, hidden: false},
-                {label: "降低金内政", value: "选择降低金内政", disabled: false, hidden: false},
-                {label: "降低金军事", value: "选择降低金军事", disabled: false, hidden: false}
+                { label: "降低金殖民", value: "选择降低金殖民", disabled: false, hidden: false },
+                { label: "降低金内政", value: "选择降低金内政", disabled: false, hidden: false },
+                { label: "降低金军事", value: "选择降低金军事", disabled: false, hidden: false }
             ]
         }
         if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
             return [
-                {label: "腐败国力", value: "corruption", disabled: false, hidden: false},
-                {label: "普通国力", value: "normal", disabled: false, hidden: false},
+                { label: "腐败国力", value: "corruption", disabled: false, hidden: false },
+                { label: "普通国力", value: "normal", disabled: false, hidden: false },
             ]
         }
         if (G.pending.events.includes(PendingEvents.BingShi)) {
@@ -4594,7 +4592,7 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
             if (cards.length > 0) {
                 const name = sjCardById(cards[cards.length - 1]).name
                 return [
-                    {label: name, value: name, disabled: false, hidden: false}
+                    { label: name, value: name, disabled: false, hidden: false }
                 ]
             } else {
                 return yesNoOption;
@@ -5087,20 +5085,25 @@ export function getRangeStrength(G: SongJinnGame, t: Troop): number {
 export function getCityDefByTroop(G: SongJinnGame, t: Troop): number {
     const log = [`getCityDefByTroop`];
     let def = 0;
-    if (isRegionID(t.p)) {
+    if (isCityID(t.p)) {
         // @ts-ignore
-        const cid = getRegionById(t.p).city;
-        if (cid !== null) {
-            def = getCityDefence(G, cid, oppoCtr(t.g));
-        } else {
-            log.push(`|noCity0`);
-        }
+        def = getCityDefence(G, t.p, t.g);
     } else {
-        if (isMountainPassID(t.p)) {
-            def = 2
-            log.push(`|pass2`);
+        if (isRegionID(t.p)) {
+            // @ts-ignore
+            const cid = getRegionById(t.p).city;
+            if (cid !== null) {
+                def = getCityDefence(G, cid, t.g);
+            } else {
+                log.push(`|noCity0`);
+            }
         } else {
-            log.push(`|notRegion|notMountainPass0`);
+            if (isMountainPassID(t.p)) {
+                def = 2
+                log.push(`|pass2`);
+            } else {
+                log.push(`|notRegion|notMountainPass0`);
+            }
         }
     }
     logger.warn(`${G.matchID}|${log.join('')}`);
@@ -5647,22 +5650,25 @@ export function troopSiegeRange(G: SongJinnGame, troop: Troop): number {
 
 export function getDefendCityRangeStr(G: SongJinnGame, troop: Troop): number {
     const log = [`getDefendCityRangeStr`];
-    const range = getRangeStrength(G, troop);
-    log.push(`|${range}|range`);
+    const unitStrength = troopRange(G, troop);
+    log.push(`|${unitStrength}unitStrength`);
+    const genCCModifier = getGeneralCCRange(G, troop);
+    log.push(`|${genCCModifier}genCC`);
+    log.push(`|${unitStrength}|unit`);
     let mod = 0;
     const def = getCityDefByTroop(G, troop);
     log.push(`|${def}|def`);
     if (troop.c !== null) {
         if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
-            mod = def;
+            mod += def;
         } else {
-            mod = 0 - def;
+            mod -= def;
         }
     }
     log.push(`|${mod}|mod`);
-    const res = range + mod;
+    const res = unitStrength + genCCModifier + mod;
     log.push(`|${res}|res`);
-    const final = range > 0
+    const final = unitStrength > 0
         ? (res <= 0 ? 1 : res)
         : (res < 0 ? 0 : res)
     log.push(`|${final}|final`);
