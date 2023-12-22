@@ -4968,6 +4968,29 @@ export function getRangeStrength(G: SongJinnGame, t: Troop): number {
     return total;
 }
 
+export function getCityDefByTroop(G: SongJinnGame, t: Troop): number {
+    const log = [`getCityDefByTroop`];
+    let def = 0;
+    if (isRegionID(t.p)) {
+        // @ts-ignore
+        const cid = getRegionById(t.p).city;
+        if (cid !== null) {
+            def = getCityDefence(G, cid, oppoCtr(t.g));
+        } else {
+            log.push(`|noCity0`);
+        }
+    } else {
+        if (isMountainPassID(t.p)) {
+            def = 2
+            log.push(`|pass2`);
+        } else {
+            log.push(`|notRegion|notMountainPass0`);
+        }
+    }
+    logger.warn(`${G.matchID}|${log.join('')}`);
+    return def;
+}
+
 export function getSiegeMeleeStr(G: SongJinnGame, t: Troop): number {
     const log = [`getSiegeMeleeStr`];
     const ci = G.combat
@@ -4980,6 +5003,17 @@ export function getSiegeMeleeStr(G: SongJinnGame, t: Troop): number {
     if (t.g === ci.atk && t.g === Country.SONG) {
         total += getPolicy(G);
         log.push(`|${total}|after|policy`);
+    }
+    const def = getCityDefByTroop(G, t);
+    log.push(`|${def}|def`);
+    if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
+        log.push(`|normal`);
+        total -= def;
+        log.push(`|${total}|total`);
+    } else {
+        log.push(`|liuJia`);
+        total += def;
+        log.push(`|${total}|total`);
     }
     if (fromUnit > 0) {
         if (total <= 0) {
@@ -5460,14 +5494,6 @@ function isAtkSong(G: SongJinnGame) {
 
 export function getSiegeRangeStr(G: SongJinnGame, t: Troop) {
     const log = [`getRangeSiegeStr`];
-    let def = 0;
-    if (isRegionID(t.p)) {
-        // @ts-ignore
-        const cid = getRegionById(t.p).city;
-        if (cid !== null) {
-            def = getCityDefence(G, cid, oppoCtr(t.g));
-        }
-    }
     const fromUnit = troopSiegeRange(G, t);
     log.push(`|${fromUnit}fromUnit`);
     const genCCMod = getGeneralCCRange(G, t);
@@ -5478,6 +5504,7 @@ export function getSiegeRangeStr(G: SongJinnGame, t: Troop) {
     }
     log.push(`|${policyMod}policyMod`);
     let strength = fromUnit + genCCMod + policyMod;
+    const def = getCityDefByTroop(G,t)
     if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
         log.push(`|normal`);
         strength -= def;
@@ -5515,11 +5542,13 @@ export function getDefendCityRangeStr(G: SongJinnGame, troop: Troop): number {
     const range = getRangeStrength(G, troop);
     log.push(`|${range}|range`);
     let mod = 0;
+    const def = getCityDefByTroop(G, troop);
+    log.push(`|${def}|def`);
     if (troop.c !== null) {
         if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
-            mod = getCityDefence(G, troop.c, troop.g);
+            mod = def;
         } else {
-            mod = 0 - getCityDefence(G, troop.c, troop.g);
+            mod = 0 - def;
         }
     }
     log.push(`|${mod}|mod`);
