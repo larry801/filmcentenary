@@ -224,6 +224,8 @@ describe('diplomacy', () => {
         cs(p0);
         p1.moves.march({"src": 42, "dst": 1, "units": [3, 4, 2, 0, 1, 0, 0], "generals": [0, 1], "country": "金"});
         console.log(JSON.stringify(p0.getState().G.song.troops))
+        expect(p0.getState().G.song.troops['0'].p === 42);
+
     });
     it('march-jiao-feng-dmg', () => {
         p0.moves.op("S11");
@@ -257,6 +259,27 @@ describe('diplomacy', () => {
             ready: [0, 0, 0, 0, 0, 0],
             standby: [0, 0, 0, 0, 0, 0],
         });
+        cs(p0);
+        p0.moves.takeDamage({
+            c: "宋",
+            src: "开封",
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+        cs(p0);
+        p1.moves.takeDamage({
+            c: "金",
+            src: 42,
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+        cs(p0);
+
+        p1.moves.confirmRespond({"choice": "相持", "text": "相持"});
+        p0.moves.confirmRespond({"choice": "撤退", "text": "撤退"});
+        cs(p0)
+        expect(p0.getState().ctx.activePlayers['0'] === "react");
+
     });
 });
 
