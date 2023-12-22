@@ -5003,17 +5003,6 @@ export function getSiegeMeleeStr(G: SongJinnGame, t: Troop): number {
         total += getPolicy(G);
         log.push(`|${total}|after|policy`);
     }
-    const def = getCityDefByTroop(G, t);
-    log.push(`|${def}|def`);
-    if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
-        log.push(`|normal`);
-        total -= def;
-        log.push(`|${total}|total`);
-    } else {
-        log.push(`|liuJia`);
-        total += def;
-        log.push(`|${total}|total`);
-    }
     if (fromUnit > 0) {
         if (total <= 0) {
             total = 1;
@@ -5570,16 +5559,7 @@ export function getDefendCiyMelee(G: SongJinnGame, troop: Troop): number {
     log.push(`|${fromUnit}|fromUnit`);
     const genCCModifier = getGeneralCCMelee(G, troop);
     log.push(`|${genCCModifier}|genCCModifier`);
-    let mod = 0;
-    if (troop.c !== null) {
-        if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
-            mod = getCityDefence(G, troop.c, troop.g);
-        } else {
-            mod = 0 - getCityDefence(G, troop.c, troop.g);
-        }
-    }
-    log.push(`|${mod}|mod`);
-    const res = fromUnit + genCCModifier + mod;
+    const res = fromUnit + genCCModifier;
     log.push(`|${res}|res`);
     const final = fromUnit > 0
         ? (res <= 0 ? 1 : res)

@@ -501,7 +501,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const troopKey = (t: Troop, idx: number) => `troop-${idx}-${t.g}`;
 
     const mapper = (t: Troop, idx: number) => <Accordion key={troopKey(t, idx)}
-                                                         expanded={isActive && expanded === troopKey(t, idx)}
+                                                         expanded={expanded === troopKey(t, idx)}
                                                          onChange={() => setExpanded(troopKey(t, idx))}>
         <AccordionSummary>
             {hasOpponentTroop(G, t) ? '对峙|' : ''}
