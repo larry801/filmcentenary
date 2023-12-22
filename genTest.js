@@ -8,7 +8,7 @@ const fs = require('node:fs');
 function fn(content) {
     try {
         fs.writeFile(`./src/songJinn/${matchID}.test.ts`,
-            content, { flag: 'a+' },
+            content, { flag: 'w+' },
                 err => {
             console.log(err);
         });
@@ -17,18 +17,31 @@ function fn(content) {
     }
 }
 
-let seed = '';
+let seed = 'lqac5xab';
+let r;
 redis.get(`${matchPrefix}${matchID}:state`, (err, result) => {
     if (err) {
         console.error(err);
     } else {
-        // console.log(result); // Prints "value"
-        const r = JSON.parse(result);
-        console.log(JSON.stringify(r.ctx))
+        console.log(result); // Prints "value"
+        r = JSON.parse(result);
+        // console.log(JSON.stringify(r.ctx))
         seed = r.plugins.random.data.seed;
         console.log(seed);
+        console.log(JSON.stringify(r.G.secret))
+        console.log(JSON.stringify(r.G.player['1']))
+        console.log(JSON.stringify(r.G.player['0']))
+        console.log(JSON.stringify(r.G.jinn.generalPlace))
+        console.log(JSON.stringify(r.G.song.generalPlace))
     }
 });
+// redis.set(`${matchPrefix}${matchID}:state`,JSON.stringify(r), (err, result) => {
+//     if (err) {
+//         console.error(err);}else{
+//
+//         console.log(result);
+//     }
+// });
 redis.lrange(`${matchPrefix}${matchID}:log`, 0, -1, (err, result) => {
     if (err) {
         console.error(err);
@@ -43,10 +56,11 @@ redis.lrange(`${matchPrefix}${matchID}:log`, 0, -1, (err, result) => {
                     if (moveName === 'requestEndTurn') {
                         return `p${pid}.moves.requestEndTurn("${pid}");`
                     } else {
-                        if (l.action.payload.args === null) {
-                            return `p${pid}.moves.${moveName}([]);`
+                        const arg = l.action.payload.args;
+                        if (arg === null || arg === undefined || arg.length === 0) {
+                            return `p${pid}.moves.${moveName}();`
                         } else {
-                            return `p${pid}.moves.${moveName}(${JSON.stringify(l.action.payload.args[0])});`
+                            return `p${pid}.moves.${moveName}(${JSON.stringify(arg[0])});`
                         }
                     }
                 case "UNDO":
@@ -63,12 +77,16 @@ import {SongJinnGameDef} from './game';
 import {SongJinnGame} from "./constant/general";
 import {Ctx} from "boardgame.io";
 
+function cs(p0: any) {
+    console.log(JSON.stringify(p0.getState().G.combat));
+    console.log(JSON.stringify(p0.getState().ctx));
+}
+
 const gameWithSeed = (seed: string) => ({
     ...SongJinnGameDef,
     seed
 });
 
-// @ts-ignore
 it('${matchID}', () => {
     const spec = {
         numPlayers: 2,
@@ -86,14 +104,16 @@ it('${matchID}', () => {
         fn(content);
     }
 });
-// redis.get(`${matchPrefix}${matchID}:metadata`, (err, result) => {
-//     if (err) {
-//         console.error(err);
-//     } else {
-//         console.log(result); // Prints "value"
-//
-//     }
-// });
+redis.get(`${matchPrefix}${matchID}:metadata`, (err, result) => {
+    if (err) {
+        console.error(err);
+    } else {
+        console.log(result); // Prints "value"
+        const res = JSON.parse(result);
+        console.log(`http://49.232.162.167:3004/join/songJinn/${matchID}/0/${res.players['0'].credentials}`);
+        console.log(`http://49.232.162.167:3004/join/songJinn/${matchID}/1/${res.players['1'].credentials}`);
+    }
+});
 // redis.get(`${matchPrefix}${matchID}:initialState`, (err, result) => {
 //     if (err) {
 //         console.error(err);
