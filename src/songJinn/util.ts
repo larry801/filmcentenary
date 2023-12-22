@@ -4113,7 +4113,6 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
             d6 = d6.map(d => d - 1);
             log.push(`|${d6}`);
         }
-
     }
     let dmg = d6.filter(d => d >= 5).length;
     log.push(`|${dmg}dmg`);
@@ -5128,6 +5127,7 @@ export function getMeleeOnlyStr(G: SongJinnGame, t: Troop): number {
 export function getMeleeStr(G: SongJinnGame, t: Troop): number {
     const log = [`getMeleeStr`];
     const fromUnit = troopMelee(G, t);
+    log.push(`|${fromUnit}|fromUnit`);
     const genCCModifier = getGeneralCCMelee(G, t);
     const ci = G.combat;
     log.push(`|${genCCModifier}generalStr`);
@@ -5136,6 +5136,7 @@ export function getMeleeStr(G: SongJinnGame, t: Troop): number {
     if (t.g === ci.atk && t.g === Country.SONG) {
         total += getPolicy(G);
     }
+
     if (fromUnit > 0) {
         if (total <= 0) {
             total = 1;
@@ -5145,6 +5146,7 @@ export function getMeleeStr(G: SongJinnGame, t: Troop): number {
             total = 0;
         }
     }
+    log.push(`|${total}|total`);
     logger.warn(`${G.matchID}|${log.join('')}`);
     return total;
 }
@@ -5603,11 +5605,15 @@ export function troopSiegeMelee(G: SongJinnGame, troop: Troop): number {
 }
 
 export function troopMelee(G: SongJinnGame, troop: Troop): number {
+    const log = [`troopMelee`];
     const unitMelee = unitMeleeStr(G, troop);
+    log.push(`|${JSON.stringify(unitMelee)}|unitMelee`);
     let melee = 0;
     for (let i = 0; i < troop.u.length; i++) {
         melee += troop.u[i] * unitMelee[i]
     }
+    log.push(`|${melee}|melee`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
     return melee;
 }
 
