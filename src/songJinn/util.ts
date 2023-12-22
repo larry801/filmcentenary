@@ -4118,7 +4118,7 @@ export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
                 logger.error(`${G.matchID}|${log.join('')}`);
                 return;
             }
-            atkD = getSiegeMeleeStr(G, st);
+            atkD = getSiegeMeleeStr(G, at);
             defD = getDefendCiyMelee(G, dt);
             break;
         case CombatType.RESCUE:

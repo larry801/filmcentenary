@@ -119,8 +119,8 @@ describe('diplomacy', () => {
         p1.moves.march({"src": 36, "dst": 42, "units": [3, 4, 2, 0, 1, 0, 0], "generals": [0, 1], "country": "金"});
         cs(p0);
         p1.moves.confirmRespond({"choice": "攻城", "text": "攻城"});
-        p0.moves.combatCard([]);
 
+        p0.moves.combatCard([]);
         p1.moves.combatCard([]);
         cs(p0);
         // song 0 dmg
@@ -224,6 +224,39 @@ describe('diplomacy', () => {
         cs(p0);
         p1.moves.march({"src": 42, "dst": 1, "units": [3, 4, 2, 0, 1, 0, 0], "generals": [0, 1], "country": "金"});
         console.log(JSON.stringify(p0.getState().G.song.troops))
+    });
+    it('march-jiao-feng-dmg', () => {
+        p0.moves.op("S11");
+        p0.moves.march({"src": 18, "dst": 42, "units": [2, 2, 0, 0, 0, 0], "generals": [0], "country": "宋"});
+        p0.moves.march({"src": 42, "dst": 27, "units": [2, 1, 0, 0, 0, 0], "generals": [], "country": "宋"});
+        p0.moves.endRound();
+        p1.moves.op("J03");
+        p1.moves.march({"src": 19, "dst": 36, "units": [1, 2, 1, 0, 1, 0, 0], "generals": [0], "country": "金"});
+        p1.moves.march({"src": 36, "dst": 42, "units": [3, 4, 2, 0, 1, 0, 0], "generals": [0, 1], "country": "金"});
+        p0.moves.confirmRespond({"choice": "no", "text": "选择不接野"});
+
+        p1.moves.confirmRespond({"choice": "攻城", "text": "攻城"});
+
+        p0.moves.combatCard([]);
+        p1.moves.combatCard([]);
+
+        cs(p0);
+
+        cs(p0);
+
+        p0.moves.takeDamage({
+            c: "宋",
+            src: "开封",
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+        cs(p0);
+        p1.moves.takeDamage({
+            c: "金",
+            src: 42,
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
     });
 });
 
