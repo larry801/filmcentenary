@@ -4001,16 +4001,8 @@ export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
                 logger.error(`${G.matchID}|${log.join('')}`);
                 return;
             }
-            if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
-                log.push(`|normal`);
-                atkD = troopSiegeMelee(G, st);
-                defD = getDefendCiyMelee(G, dt);
-            } else {
-                log.push(`|liuJia`);
-                const cityDefence = getCityDefence(G, dt.c, Country.SONG);
-                atkD = troopSiegeMelee(G, st);
-                defD = getDefendCiyMelee(G, dt) - (2 * cityDefence);
-            }
+            atkD = getSiegeMeleeStr(G, st);
+            defD = getDefendCiyMelee(G, dt);
             break;
         case CombatType.RESCUE:
             atkD = getMeleeStr(G, at);
@@ -4992,10 +4984,12 @@ export function getSiegeMeleeStr(G: SongJinnGame, t: Troop): number {
     if (fromUnit > 0) {
         if (total <= 0) {
             total = 1;
+            log.push(`|to1`);
         }
     } else {
-        if (total <= 0) {
+        if (total < 0) {
             total = 0;
+            log.push(`|to0`);
         }
     }
     log.push(`|${total}|final`);
@@ -5540,7 +5534,28 @@ export function getDefendCityRangeStr(G: SongJinnGame, troop: Troop): number {
 }
 
 export function getDefendCiyMelee(G: SongJinnGame, troop: Troop): number {
-    return getMeleeStr(G, troop);
+    const log = [`getDefendCiyMelee`];
+    const fromUnit = getMeleeStr(G, troop);
+    log.push(`|${fromUnit}|fromUnit`);
+    const genCCModifier = getGeneralCCMelee(G, troop);
+    log.push(`|${genCCModifier}|genCCModifier`);
+    let mod = 0;
+    if (troop.c !== null) {
+        if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
+            mod = getCityDefence(G, troop.c, troop.g);
+        } else {
+            mod = 0 - getCityDefence(G, troop.c, troop.g);
+        }
+    }
+    log.push(`|${mod}|mod`);
+    const res = fromUnit + genCCModifier + mod;
+    log.push(`|${res}|res`);
+    const final = fromUnit > 0
+        ? (res <= 0 ? 1 : res)
+        : (res < 0 ? 0 : res)
+    log.push(`|${final}|final`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
+    return final
 }
 
 export function hasGeneral(G: SongJinnGame, t: Troop, gen: General) {
@@ -5568,7 +5583,6 @@ export function troopMelee(G: SongJinnGame, troop: Troop): number {
 }
 
 export function troopMeleeOnly(G: SongJinnGame, troop: Troop): number {
-
     let melee = 0;
     const terrainType = getTerrainTypeByPlace(troop);
     const place = troop.p;
