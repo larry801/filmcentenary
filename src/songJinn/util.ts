@@ -5737,12 +5737,12 @@ export const getSongPower = (G: SongJinnGame): number => {
     log.push(`|all|provinces|${countedProvince.length}`);
     if (countedProvince.includes(ProvinceID.JINGJILU)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.JINGJILU), 1);
+        log.push(`|jingji|${countedProvince.length}`);
     }
-    log.push(`|jingji|${countedProvince.length}`);
     if (countedProvince.includes(ProvinceID.YANJINGLU)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.YANJINGLU), 1);
+        log.push(`|yanjing|${countedProvince.length}`);
     }
-    log.push(`|yanjing|${countedProvince}`);
     if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan) &&
         countedProvince.includes(ProvinceID.FUJIANLU)
     ) {
