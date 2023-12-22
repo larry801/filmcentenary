@@ -1,5 +1,5 @@
-import {Ctx, PhaseConfig, StageConfig, TurnConfig} from "boardgame.io";
-import {TurnOrder} from "boardgame.io/core";
+import { Ctx, PhaseConfig, StageConfig, TurnConfig } from "boardgame.io";
+import { TurnOrder } from "boardgame.io/core";
 import {
     adjustNation,
     breakout,
@@ -60,8 +60,8 @@ import {
     tieJun
 
 } from "../moves";
-import {ActiveEvents, PlanID, PlayerPendingEffect, ProvinceID, SJPlayer, SongJinnGame} from "./general";
-import {logger} from "../../game/logger";
+import { ActiveEvents, PlanID, PlayerPendingEffect, ProvinceID, SJPlayer, SongJinnGame } from "./general";
+import { logger } from "../../game/logger";
 import {
     canChoosePlan,
     changeDiplomacyByLOD,
@@ -267,11 +267,19 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         // }
         logger.debug(`${log.join('')}`);
     },
-    onEnd: (G, _ctx) => {
+    onEnd: (G:SongJinnGame, ctx:Ctx) => {
         const log = [`drawPhase|onEnd`]
-        G.order = [getLeadingPlayer(G)]
-        log.push(`${G.order.toString()}`);
+        
         logger.debug(`${G.matchID}|${log.join('')}`);
+        if (G.song.civil === G.jinn.civil) {
+            G.order = [SJPlayer.P1, SJPlayer.P2];
+            log.push(`|civil|same|order:${G.order.toString()}`);
+            ctx.events?.setPhase('choosePlan');
+        }else{
+            G.order = [getLeadingPlayer(G)]
+            log.push(`${G.order.toString()}`);
+            ctx.events?.setPhase('chooseFirst');
+        }
     },
     moves: {
         down: down,
@@ -371,19 +379,19 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx) => {
         const log = [`resolvePlanPhase|onBegin|${G.order}`];
         // add two plan and search here
-        const currentPlans = [...G.song.plan,...G.jinn.plan];
-        if (currentPlans.includes(PlanID.J21)){
-           const status =  currentProvStatus(G, ProvinceID.HUAINANLIANGLU);
-           switch (status) {
-               case "金控制":
-                   G.jinn.effect.push(PlayerPendingEffect.TwoPlan)
-                   break;
-               case "宋控制":
-                   G.song.effect.push(PlayerPendingEffect.TwoPlan)
-                   break;
-               case "战争状态":
-                   break;
-           }
+        const currentPlans = [...G.song.plan, ...G.jinn.plan];
+        if (currentPlans.includes(PlanID.J21)) {
+            const status = currentProvStatus(G, ProvinceID.HUAINANLIANGLU);
+            switch (status) {
+                case "金控制":
+                    G.jinn.effect.push(PlayerPendingEffect.TwoPlan)
+                    break;
+                case "宋控制":
+                    G.song.effect.push(PlayerPendingEffect.TwoPlan)
+                    break;
+                case "战争状态":
+                    break;
+            }
         }
         // TODO wu shan li ma / huan wo he shan scores
         G.plans = G.plans.concat(G.song.plan);
