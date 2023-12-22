@@ -254,7 +254,7 @@ export const march: LongFormMove = {
         }
         const log = [`p${pid}|march|src${placeToStr(src)}|dst${placeToStr(dst)}`];
         if (units.reduce(accumulator) === 0) {
-            log.push(`|no|units`);
+            log.push(`|no|units|cannot|move`);
             logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
@@ -286,7 +286,6 @@ export const march: LongFormMove = {
         log.push(`|${t.g}|t.g`);
         generals.forEach(gen => moveGeneralByCountry(G, t.g, gen, newDst));
         log.push(`|${JSON.stringify(t)}`);
-        const pub = ctr2pub(G, t.g);
         if (t.u.filter((u, i) => units[i] === u).length === units.length) {
             log.push(`|all`);
             doMoveTroopAll(G, src, newDst, ctr);
@@ -301,7 +300,7 @@ export const march: LongFormMove = {
                     const oppoCityTroop = getOpponentCityTroopByCtr(G, t.g, cid);
                     if (oppoCityTroop !== null) {
                         log.push(`|weiKunGone`);
-                        setTroopPlaceByCtr(G, t.g, cid, src);
+                        setTroopPlaceByCtr(G, oppoCtr(t.g), cid, src);
                     }
                 }
             }
@@ -309,7 +308,6 @@ export const march: LongFormMove = {
             log.push(`|part`);
             doMoveTroopPart(G, src, newDst, ctr, units, generals);
         }
-
 
         const oppoFieldTroop = getOpponentPlaceTroopByCtr(G, t.g, newDst);
         log.push(`|${JSON.stringify(oppoFieldTroop)}|oppoTroop`);
@@ -330,8 +328,8 @@ export const march: LongFormMove = {
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     } else {
-                        log.push(`|error`);
-                        endCombat(G, ctx);
+                        log.push(`|rm|zero`);
+                        removeZeroTroop(G,ctx,oppoFieldTroop)
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     }
@@ -343,7 +341,7 @@ export const march: LongFormMove = {
             const oCtr = oppoCtr(t.g);
             const opid = ctr2pid(oCtr);
             log.push(`|${opid}|opid`);
-            removeNoTroopGeneralByCtr(G, ctx, t.p, t.g);
+            removeNoTroopGeneralByCtr(G, ctx, t.p, oppoCtr(t.g));
             if (isRegionID(newDst)) {
                 const cid = getRegionById(newDst).city;
                 log.push(`|${cid}|cid`);
@@ -755,12 +753,11 @@ function doDeployUnits(G: SongJinnGame, _ctx: Ctx, country: Country, units: numb
     })
     const t = country === Country.SONG ? getSongTroopByCity(G, city) : getJinnTroopByCity(G, city);
     if (t === null) {
-        log.push(`noTroop`);
+        log.push(`|noTroop|insertNew`);
         pub.troops.push({
             u: units,
             g: country,
             c: city,
-            // 围困城市不能补充 ？？？
             p: getCityById(city).region,
         });
         for (let i = 0; i < units.length; i++) {
@@ -1730,9 +1727,9 @@ export const breakout: LongFormMove = {
         }
         const log = [`breakout`];
         const {src, ctr} = arg;
-        const pub = ctr2pub(G, ctr);
         if (isCityID(src)) {
             log.push(`|city`);
+            // @ts-ignore
             const region = getCityById(src).region;
             log.push(`|${region}|region`);
             const oppoTroop = getOpponentPlaceTroopByCtr(G, ctr, region);

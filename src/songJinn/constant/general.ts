@@ -16,6 +16,19 @@ export enum PendingEvents {
     MergeORSiege = "会战攻城",
 }
 
+export enum MarchDstStatus {
+    INVALID = "无法进军",
+    SIEGE = "攻城",
+    JIE_DAO ="借道",
+    YE_ZHAN = "野战",
+    HUI_ZHAN = "会战",
+    XIAO_MIE = "直接消灭",
+    YI_DONG = "移动",
+    HE_BING = "合兵",
+    SIEGE_ATTACK = "围困/攻城",
+    FIELD_OR_NOT = "对方选择接野",
+}
+
 export enum ActiveEvents {
     JianYanNanDu = "建炎南渡",
     LiGang = "李纲",
@@ -66,15 +79,15 @@ export interface Troop {
     u: number[],
     g: Country
 }
-
-export enum MarchResult {
-    MOVE,
-    MERGE,
-    OVERFLOW,
-    JOINT,
-    ELIMINATE,
-    RIVER,
-}
+//
+// export enum MarchResult {
+//     MOVE,
+//     MERGE,
+//     OVERFLOW,
+//     JOINT,
+//     ELIMINATE,
+//     RIVER,
+// }
 
 export type Level = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -172,12 +185,6 @@ export function isMountainPassID(place: TroopPlace): place is MountainPassID {
 
 export function isCityID(place: TroopPlace): place is MountainPassID {
     return typeof place === 'string' && Object.values(CityID).includes(place as CityID);
-}
-
-export enum BattleChoice {
-    FIELD,
-    CONTINUE,
-
 }
 
 // CityID表示被围困

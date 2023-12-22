@@ -59,7 +59,7 @@ import {
     troopSiegeMelee,
     troopSiegeRange,
     unitsToString,
-    checkColonyCity, getCityDefByTroop
+    checkColonyCity, getCityDefByTroop, marchDstStatus
 } from "../util";
 import {getRegionById} from "../constant/regions";
 import Typography from "@material-ui/core/Typography";
@@ -353,14 +353,14 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
             }
             if (isRegionID(r)) {
                 return {
-                    label: getRegionText(r),
+                    label: getRegionText(r) + '|' + marchDstStatus(G, ctr, r),
                     value: r.toString(),
                     hidden: false,
                     disabled: false
                 }
             } else {
                 return {
-                    label: r.toString(),
+                    label: r.toString() + '|' + marchDstStatus(G, ctr, r),
                     value: r.toString(),
                     hidden: false,
                     disabled: false
@@ -481,7 +481,7 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
         const defByTroop = getCityDefByTroop(G, t);
         return G.events.includes(ActiveEvents.LiuJiaShenBing) ? `-${defByTroop}` : ` +${defByTroop}`
     }
-    const rangeSiegeText = (t: Troop) => `${troopSiegeRange(G, t)}${genCCRange(t)}${policyText(t)}${siegeText(t)} => ${getRangeStrength(G, t)}`;
+    const rangeSiegeText = (t: Troop) => `${troopSiegeRange(G, t)}${genCCRange(t)}${policyText(t)}${siegeText(t)} => ${getSiegeRangeStr(G, t)}`;
     const meleeSiegeText = (t: Troop) => `${troopSiegeMelee(G, t)}${genCCMelee(t)}${policyText(t)}${siegeText(t)} => ${getSiegeMeleeStr(G, t)}`;
 
     const rangeDefText = (t: Troop) => `${troopRange(G, t)}${genCCRange(t)}${defText(t)} => ${getDefendCityRangeStr(G, t)}`;
@@ -490,12 +490,12 @@ const TroopOperation = ({G, pid, isActive, moves}: IPlayerHandProps) => {
     const rangeText = (t: Troop) => {
         const fromUnits = troopRange(G, t);
         const final = getRangeStrength(G, t);
-        return fromUnits === final ? `${final}`: `${fromUnits}${genCCRange(t)}${policyText(t)} = ${final}`;
+        return fromUnits === final ? `${final}` : `${fromUnits}${genCCRange(t)}${policyText(t)} = ${final}`;
     }
     const meleeText = (t: Troop) => {
         const units = troopMelee(G, t);
         const final = getMeleeStr(G, t);
-        return units === final ? `${final}` :`${units}${genCCMelee(t)}${policyText(t)} = ${final}`;
+        return units === final ? `${final}` : `${units}${genCCMelee(t)}${policyText(t)} = ${final}`;
     }
 
     const troopKey = (t: Troop, idx: number) => `troop-${idx}-${t.g}`;

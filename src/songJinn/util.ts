@@ -29,6 +29,7 @@ import {
     JinnMidCardID,
     LatePlanID,
     LetterOfCredence,
+    MarchDstStatus,
     MAX_DICES,
     MAX_ROUND,
     MidPlanID,
@@ -326,7 +327,7 @@ export const getMarchDst = (G: SongJinnGame, t: Troop): TroopPlace[] => {
     return res
 }
 
-export const getMarchAdj = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
+export const getMarchAdj = (_G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
     if (isMountainPassID(dst)) {
         return getPassAdj(dst);
     }
@@ -626,17 +627,20 @@ export const oppoPub = (G: SongJinnGame, pid: PlayerID) => {
 
 export const setTroopPlaceByCtr = (G: SongJinnGame, ctr: Country, p: TroopPlace, newPlace: TroopPlace) => {
     const log = [`setTroopPlaceByCtr`];
+    log.push(`|${ctr}|ctr`);
+    log.push(`|${placeToStr(p)}|src`);
+    log.push(`|${placeToStr(newPlace)}|dst`);
     const troops = ctr === Country.SONG ? G.song.troops : G.jinn.troops;
     const target = troops.filter(tr => tr.p === p);
     log.push(`|${JSON.stringify(target)}|target`);
-    if(target.length > 0){
-        if (troops.length > 1) {
+    if (target.length > 0) {
+        if (target.length > 1) {
             log.push(`|more than one error`);
-        }else{
+        } else {
             target[0].p = newPlace;
         }
-    }else{
-        log.push(`|noTroop|errer`);
+    } else {
+        log.push(`|noTroop|error`);
     }
     log.push(`|${JSON.stringify(troops)}|troops`);
     logger.debug(`${G.matchID}|${log.join('')}`);
@@ -827,7 +831,7 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "【三年之约】作为事件打出时行动点数减1。每当回合结束阶段时，宋国在陕西六路放置1个步兵。",
-        pre: (G: SongJinnGame, _ctx: Ctx) => true,
+        pre: (_G: SongJinnGame, _ctx: Ctx) => true,
         event: (G: SongJinnGame, _ctx: Ctx) => {
             G.events.push(ActiveEvents.XiJunQuDuan);
         }
@@ -846,7 +850,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "移动1个宋国军团到所在路内或相邻路内1座没有被围困的宋国城市。",
-        pre: (G: SongJinnGame, _ctx: Ctx) => true,
+        pre: (_G: SongJinnGame, _ctx: Ctx) => true,
         event: (G: SongJinnGame, _ctx: Ctx) => G
     },
     [SongBaseCardID.S06]: {
@@ -863,7 +867,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "在1个宋国控制的城市，放置1个霹雳炮。",
-        pre: (G: SongJinnGame, _ctx: Ctx) => true,
+        pre: (_G: SongJinnGame, _ctx: Ctx) => true,
         event: (G: SongJinnGame, _ctx: Ctx) => G
     },
     [SongBaseCardID.S07]: {
@@ -922,8 +926,8 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "西辽成为宋国的盟国。若西辽已经是宋国的盟国，消灭金国1个部队。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => {
+        pre: (_G: SongJinnGame, _ctx: Ctx) => true,
+        event: (G: SongJinnGame, _ctx: Ctx) => {
             if (!G.song.nations.includes(NationID.XiLiao)) {
                 if (G.jinn.nations.includes(NationID.XiLiao)) {
                     G.jinn.nations.splice(G.jinn.nations.indexOf(NationID.XiLiao), 1);
@@ -2799,12 +2803,14 @@ export const removeGeneral = (G: SongJinnGame, pid: PlayerID, general: General) 
 }
 
 export const doLoseCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cityID: CityID, opponent: boolean) => {
-    const log = [`doLostCity|p${pid}lose${cityID}`];
+    const log = [`doLoseCity|p${pid}lose${cityID}`];
     const ctr = getCountryById(pid);
     const pub = pid2pub(G, pid);
     const oppo = oppoPub(G, pid);
     if (pub.cities.includes(cityID)) {
+        log.push(`|${pub.cities.length}|pub.cities.length`);
         pub.cities.splice(pub.cities.indexOf(cityID), 1);
+        log.push(`|${pub.cities.length}|pub.cities.length`);
         if (ctr === Country.SONG && G.song.emperor === cityID) {
             log.push(`|song|emperor`);
             checkSongLoseEmperor(G, ctx);
@@ -2822,9 +2828,12 @@ export const doLoseCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cityID: Cit
             log.push(`|${opponent}|opponent`);
             oppo.cities.push(cityID)
         }
+    } else {
+        log.push(`|noThisCity`);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
 export const nationMoveJinn = (G: SongJinnGame, c: NationID) => {
     const log = [`nationMoveJinn|${c}`];
     log.push(`|${JSON.stringify(G.song.nations)}G.song.nations`);
@@ -2966,7 +2975,7 @@ export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], count
             removeUnitByIdx(G, units, pid, idx);
         }
     } else {
-        log.push(`noTroop`);
+        log.push(`|noTroop`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         return null;
     }
@@ -2998,8 +3007,93 @@ export const autoLoseCity = (G: SongJinnGame, ctx: Ctx, c?: CityID) => {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
+export const marchDstStatus = (G: SongJinnGame, ctr: Country, dst: TroopPlace) => {
+    const log = [`marchDstStatus`];
+    let result: MarchDstStatus = MarchDstStatus.INVALID;
+    const oc = oppoCtr(ctr);
+    const pub = ctr2pub(G, ctr);
+    log.push(`|${oc}|oc`);
+    const opt = getOpponentPlaceTroopByCtr(G, oc, dst);
+    if (opt !== null) {
+        log.push(`|${getSimpleTroopText(G, opt)}|opt`);
+    }
+    const st = getTroopByCountryPlace(G, ctr, dst);
+    if (st !== null) {
+        log.push(`|${getSimpleTroopText(G, st)}|st`);
+    }
+    if (isRegionID(dst)) {
+        const cid = getRegionById(dst).city;
+        if (cid === null) {
+            if (opt !== null) {
+                if (st !== null) {
+                    result = MarchDstStatus.HUI_ZHAN;
+                } else {
+                    if (troopEndurance(G, opt) === 0) {
+                        result = MarchDstStatus.XIAO_MIE;
+                    } else {
+                        result = MarchDstStatus.YE_ZHAN;
+                    }
+                }
+            } else {
+                if (st !== null) {
+                    result = MarchDstStatus.HE_BING;
+                } else {
+                    result = MarchDstStatus.YI_DONG;
+                }
+            }
+        } else {
+            if (opt !== null) {
+                if (st !== null) {
+                    result = MarchDstStatus.FIELD_OR_NOT;
+                } else {
+                    if (troopEndurance(G, opt) === 0) {
+                        result = MarchDstStatus.XIAO_MIE;
+                    } else {
+                        result = MarchDstStatus.FIELD_OR_NOT;
+                    }
+                }
+            } else {
+                if (st !== null) {
+                    result = MarchDstStatus.HE_BING;
+                } else {
+                    result = MarchDstStatus.YI_DONG;
+                }
+            }
+        }
+    } else {
+        if (isMountainPassID(dst)) {
+            if (opt !== null) {
+                if (st !== null) {
+                    log.push(`|error`);
+                    result = MarchDstStatus.INVALID;
+                } else {
+                    result = MarchDstStatus.SIEGE;
+                }
+            } else {
+                if (st !== null) {
+                    result = MarchDstStatus.HE_BING;
+                } else {
+                    result = MarchDstStatus.YI_DONG;
+                }
+            }
+        } else {
+            if (isNationID(dst)) {
+                if (pub.nations.includes(dst)) {
+                    result = MarchDstStatus.JIE_DAO;
+                } else {
+                    result = MarchDstStatus.INVALID
+                }
+            }
+        }
+    }
+    return result;
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
 export const removeNoTroopGeneralByCtr = (G: SongJinnGame, ctx: Ctx, p: TroopPlace, ctr: Country) => {
     const log = [`removeNoTroopGeneralByCtr`];
+    const pid = ctr2pid(ctr);
+    const pub = ctr2pub(G, ctr);
     const gen = getPlaceGeneral(G, pid, p);
     log.push(`|${JSON.stringify(gen.map(g => getGeneralNameByCountry(ctr, g)))}|generals`);
     if (ctr === Country.JINN && gen.includes(JinnGeneral.WuZhu)) {
@@ -5620,13 +5714,6 @@ export function troopMelee(G: SongJinnGame, troop: Troop): number {
     return melee;
 }
 
-export const getRetreatDst = (G: SongJinnGame, t: Troop) => {
-    const dst = getMarchAdj(G, t.p);
-    dst.forEach(p => {
-
-    });
-
-}
 
 export function troopMeleeOnly(G: SongJinnGame, troop: Troop): number {
     let melee = 0;

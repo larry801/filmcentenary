@@ -9,7 +9,7 @@ const gameWithSeed = (seed: string) => ({
     seed
 });
 
-function combatState(p0: any) {
+function cs(p0: any) {
     console.log(JSON.stringify(p0.getState().G.combat));
     console.log(JSON.stringify(p0.getState().ctx));
 }
@@ -117,12 +117,12 @@ describe('diplomacy', () => {
 
         p1.moves.confirmRespond({"choice": "围困", "text": "围困"});
         p1.moves.march({"src": 36, "dst": 42, "units": [3, 4, 2, 0, 1, 0, 0], "generals": [0, 1], "country": "金"});
-        combatState(p0);
+        cs(p0);
         p1.moves.confirmRespond({"choice": "攻城", "text": "攻城"});
         p0.moves.combatCard([]);
 
         p1.moves.combatCard([]);
-        combatState(p0);
+        cs(p0);
         // song 0 dmg
         p1.moves.takeDamage({
             c: "金",
@@ -130,7 +130,7 @@ describe('diplomacy', () => {
             ready: [0, 0, 0, 0, 0, 0],
             standby: [0, 0, 0, 0, 0, 0],
         });
-        combatState(p0);
+        cs(p0);
 
         p0.moves.takeDamage({
             c: "宋",
@@ -144,7 +144,7 @@ describe('diplomacy', () => {
             ready: [0, 0, 0, 0, 0, 0],
             standby: [0, 0, 0, 0, 0, 0],
         });
-        combatState(p0);
+        cs(p0);
         expect(p0.getState().ctx.activePlayers['1'] === "confirmRespond");
     });
 
@@ -163,28 +163,28 @@ describe('diplomacy', () => {
         p0.moves.combatCard([]);
         p1.moves.combatCard([]);
 
-        combatState(p0);
+        cs(p0);
         // p1.moves.takeDamage({
         //     c: "金",
         //     src: 42,
         //     ready: [1, 0, 0, 0, 0, 0],
         //     standby: [0, 0, 0, 0, 0, 0],
         // });
-        // combatState(p0);
+        // cs(p0);
         p0.moves.takeDamage({
             c: "宋",
             src: 42,
             ready: [1, 1, 0, 0, 0, 0],
             standby: [1, 2, 0, 0, 0, 0],
         });
-        combatState(p0);
+        cs(p0);
         // p1.moves.takeDamage({
         //     c: "金",
         //     src: 42,
         //     ready: [0, 0, 0, 0, 0, 0],
         //     standby: [0, 0, 0, 0, 0, 0],
         // });
-        // combatState(p0);
+        // cs(p0);
         expect(p0.getState().G.song.emperor === null);
 
     })
@@ -192,7 +192,7 @@ describe('diplomacy', () => {
         p0.moves.op("S11");
         p0.moves.march({"src":18,"dst":42,"units":[2,1,0,0,0,0],"generals":[0],"country":"宋"})
         p0.moves.march({"src":42,"dst":36,"units":[4,3,0,0,0,0],"generals":[0],"country":"宋"})
-        combatState(p1);
+        cs(p1);
         expect(p0.getState().ctx.activePlayers['1'] === 'confirmRespond');
 
     })
@@ -206,12 +206,11 @@ describe('diplomacy', () => {
         });
         console.log(p0.getState().G.song.ready)
         console.log(p0.getState().G.song.standby)
-        // expect(p0.getState().ctx.activePlayers['1'] === 'confirmRespond');
+        expect(p0.getState().ctx.activePlayers['1'] === 'confirmRespond');
 
 
     })
-    it('march', () => {
-        console.log(JSON.stringify(p0.getState().G.player));
+    it('march-weiKunGon', () => {
         p0.moves.op("S11");
         p0.moves.march({"src": 18, "dst": 42, "units": [2, 2, 0, 0, 0, 0], "generals": [0], "country": "宋"});
         p0.moves.march({"src": 42, "dst": 27, "units": [2, 1, 0, 0, 0, 0], "generals": [], "country": "宋"});
@@ -219,30 +218,12 @@ describe('diplomacy', () => {
         p1.moves.op("J03");
         p1.moves.march({"src": 19, "dst": 36, "units": [1, 2, 1, 0, 1, 0, 0], "generals": [0], "country": "金"});
         p1.moves.march({"src": 36, "dst": 42, "units": [3, 4, 2, 0, 1, 0, 0], "generals": [0, 1], "country": "金"});
-
         p0.moves.confirmRespond({"choice": "no", "text": "选择不接野"});
-        p1.moves.confirmRespond({"choice": "攻城", "text": "攻城"});
 
-        p0.moves.combatCard([]);
-        p1.moves.combatCard([]);
-
-        p1.moves.takeDamage({
-            src: 42,
-            idx: 0,
-            p: 42,
-            ready: [1, 0, 0, 0, 0, 0],
-            standby: [0, 0, 0, 0, 0, 0],
-        });
-        p0.moves.takeDamage({
-            src: 42,
-            idx: 0,
-            p: 42,
-            ready: [1, 2, 0, 0, 0, 0],
-            standby: [1, 2, 0, 0, 0, 0],
-        });
-        combatState(p0);
-
-
+        p1.moves.confirmRespond({"choice": "围困", "text": "围困"});
+        cs(p0);
+        p1.moves.march({"src": 42, "dst": 1, "units": [3, 4, 2, 0, 1, 0, 0], "generals": [0, 1], "country": "金"});
+        console.log(JSON.stringify(p0.getState().G.song.troops))
     });
 });
 
