@@ -2289,7 +2289,11 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) =>
             G.jinn.provinces.includes(ProvinceID.SHANXILIULU) ||
             G.jinn.provinces.includes(ProvinceID.HEDONGLU),
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            if(G.events.includes(ActiveEvents.XiJunQuDuan)){
+                G.events.splice(G.events.indexOf(ActiveEvents.XiJunQuDuan), 1)
+            }
+        }
     },
     [JinnBaseCardID.J32]: {
         id: JinnBaseCardID.J32,
