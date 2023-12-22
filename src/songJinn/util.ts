@@ -457,7 +457,7 @@ export const getSongTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
     const log = [`getSongTroopByPlace|${r}`];
     let result = null;
     G.song.troops.forEach(t => {
-        log.push(`|${JSON.stringify(t)}|t`);
+        log.push(`|${getSimpleTroopText(t)}|t`);
         if (t.p === r) {
             log.push(`|ok${JSON.stringify(t)}`);
             result = t;
@@ -476,7 +476,7 @@ export const getJinnTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
     const log = [`getJinnTroopByPlace|${JSON.stringify(r)}`];
     let result = null;
     G.jinn.troops.forEach(t => {
-        log.push(`|${JSON.stringify(t)}|t`);
+        log.push(`|${getSimpleTroopText(t)}|t`);
         if (t.p === r) {
             log.push(`|ok${JSON.stringify(t)}`);
             result = t;
@@ -486,11 +486,7 @@ export const getJinnTroopByPlace = (G: SongJinnGame, r: TroopPlace): Troop | nul
     logger.warn(`${G.matchID}|${log.join('')}`);
     return result;
 }
-// export const getTroopByRegion = (G: SongJinnGame, r: RegionID): Troop | null => {
-//     const st = getSongTroopByPlace(G, r);
-//     const jt = getJinnTroopByRegion(G, r);
-//     return st === null ? jt : st;
-// }
+
 export const getTroopByCityCountry = (G: SongJinnGame, r: CityID, ctr: Country): Troop | null => {
     return ctr === Country.JINN ? getJinnTroopByCity(G, r) : getSongTroopByCity(G, r);
 }
@@ -498,6 +494,7 @@ export const getJinnTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => 
     const log = [`getJinnTroopByCity|${r}`];
     let result = null;
     G.jinn.troops.forEach(t => {
+        log.push(`|${getSimpleTroopText(t)}|t`);
         if (t.c === r) {
             log.push(`|ok${JSON.stringify(t)}`);
             result = t;
@@ -510,6 +507,7 @@ export const getSongTroopByCity = (G: SongJinnGame, r: CityID): Troop | null => 
     const log = [`getSongTroopByCity|${r}`];
     let result = null;
     G.song.troops.forEach(t => {
+        log.push(`|${getSimpleTroopText(t)}|t`);
         if (t.c === r) {
             log.push(`|ok${JSON.stringify(t)}`);
             result = t;
@@ -5495,7 +5493,7 @@ export function getSiegeRangeStr(G: SongJinnGame, t: Troop) {
     }
     log.push(`|${policyMod}policyMod`);
     let strength = fromUnit + genCCMod + policyMod;
-    const def = getCityDefByTroop(G,t)
+    const def = getCityDefByTroop(G, t)
     if (!G.events.includes(ActiveEvents.LiuJiaShenBing)) {
         log.push(`|normal`);
         strength -= def;
@@ -5595,6 +5593,14 @@ export function troopMelee(G: SongJinnGame, troop: Troop): number {
     log.push(`|${melee}|melee`);
     logger.debug(`${G.matchID}|${log.join('')}`);
     return melee;
+}
+
+export const getRetreatDst = (G: SongJinnGame, t: Troop) => {
+    const dst = getMarchAdj(G, t.p);
+    dst.forEach(p => {
+
+    });
+
 }
 
 export function troopMeleeOnly(G: SongJinnGame, troop: Troop): number {
@@ -5827,8 +5833,16 @@ export const getJinnScore = (G: SongJinnGame): number => {
     return score;
 }
 
-export const checkCtrRegion = (G: SongJinnGame, ctr: Country, c: CityID) => {
-
+export const checkCtrRegion = (G: SongJinnGame, ctr: Country, c: RegionID) => {
+    const log = [`checkCtrRegion`];
+    const jt = getJinnTroopByPlace(G, c);
+    const st = getSongTroopByPlace(G, c);
+    log.push(`|${JSON.stringify(jt)}|jt`);
+    log.push(`|${JSON.stringify(st)}|st`);
+    const result = ctr === Country.SONG ? (st !== null && jt === null)
+        : (jt !== null && st === null);
+    log.push(`|${result}|result`);
+    return result;
 }
 
 export const checkCtrCity = (G: SongJinnGame, ctr: Country, c: CityID) => {
