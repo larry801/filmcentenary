@@ -104,12 +104,12 @@ import {
     playerById,
     policyDown,
     policyUp,
-    removeGeneral,
+    removeGeneral, removeNoTroopGeneralByCtr,
     removeReadyUnitByCountry,
     removeUnitByCountryPlace,
     removeZeroTroop,
     rollDiceByPid,
-    roundTwo,
+    roundTwo, setTroopPlaceByCtr,
     sjCardById,
     songLoseEmperor,
     startCombat,
@@ -276,14 +276,15 @@ export const march: LongFormMove = {
             G.op--;
             log.push(`|${G.op}G.op`);
         }
-        generals.forEach(gen => moveGeneralByCountry(G, country, gen, newDst));
-
         const t = getTroopByCountryPlace(G, arg.country, src);
         if (t === null) {
             log.push(`noTroop`);
             logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
+        log.push(`|${country}|country`);
+        log.push(`|${t.g}|t.g`);
+        generals.forEach(gen => moveGeneralByCountry(G, t.g, gen, newDst));
         log.push(`|${JSON.stringify(t)}`);
         const pub = ctr2pub(G, t.g);
         if (t.u.filter((u, i) => units[i] === u).length === units.length) {
@@ -300,11 +301,7 @@ export const march: LongFormMove = {
                     const oppoCityTroop = getOpponentCityTroopByCtr(G, t.g, cid);
                     if (oppoCityTroop !== null) {
                         log.push(`|weiKunGone`);
-                        oppoPub(G, ctr2pid(oppoCityTroop.g)).troops.forEach(ot => {
-                            if (ot.c === cid) {
-                                ot.p = src;
-                            }
-                        })
+                        setTroopPlaceByCtr(G, t.g, cid, src);
                     }
                 }
             }
@@ -318,7 +315,7 @@ export const march: LongFormMove = {
         log.push(`|${JSON.stringify(oppoFieldTroop)}|oppoTroop`);
         if (oppoFieldTroop !== null) {
             // @ts-ignore
-            log.push(`|${getSimpleTroopText(G,oppoFieldTroop)}`);
+            log.push(`|${getSimpleTroopText(G, oppoFieldTroop)}`);
             const oppoE = troopEndurance(G, oppoFieldTroop);
             log.push(`|${oppoE}|endurance`);
             if (oppoE > 0) {
@@ -346,52 +343,23 @@ export const march: LongFormMove = {
             const oCtr = oppoCtr(t.g);
             const opid = ctr2pid(oCtr);
             log.push(`|${opid}|opid`);
-            const gen = getPlaceGeneral(G, opid, newDst);
-            log.push(`|${gen}${oCtr}General`);
-            if (gen.length > 0) {
-                if (oCtr === Country.JINN && gen.includes(JinnGeneral.WuZhu)) {
-                    log.push(`|wuZhuReady`);
-                    moveGeneralToReady(G, opid, JinnGeneral.WuZhu);
-                    if (gen.includes(JinnGeneral.WuZhu)) {
-                        log.push(`|${JSON.stringify(gen)}gen`);
-                        gen.splice(gen.indexOf(JinnGeneral.WuZhu), 1);
-                        log.push(`|${JSON.stringify(gen)}gen`);
-                    }
-                }
-                if (gen.length > 0) {
-                    if (pub.develop.length > 0) {
-                        G.pending.generals = [...gen];
-                        changePlayerStage(G, ctx, 'rescueGeneral', opid);
-                    } else {
-                        gen.forEach(g => {
-                            if (oCtr === Country.JINN && g === JinnGeneral.WuZhu) {
-                                log.push(`|wuZhu|ready`);
-                                moveGeneralToReady(G, opid, g);
-                            } else {
-                                log.push(`|rm${getGeneralNameByCountry(oCtr, g)}`);
-                                removeGeneral(G, opid, g);
-                            }
-                        });
-                    }
-                }
-            }
+            removeNoTroopGeneralByCtr(G, ctx, t.p, t.g);
             if (isRegionID(newDst)) {
                 const cid = getRegionById(newDst).city;
                 log.push(`|${cid}|cid`);
                 if (cid !== null) {
                     const oppoCityTroop = getOpponentPlaceTroopByCtr(G, t.g, cid);
+                    const troopPid = ctr2pid(t.g);
                     if (oppoCityTroop !== null) {
                         log.push(`|${getSimpleTroopText(G, oppoCityTroop)}|oppoCityTroop`);
                         log.push(`|mergeOrSiege`);
                         G.pending.places.push(cid);
                         G.pending.events.push(PendingEvents.MergeORSiege);
-                        changePlayerStage(G, ctx, 'confirmRespond', ctr2pid(t.g));
+                        changePlayerStage(G, ctx, 'confirmRespond', troopPid);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     } else {
-                        if (!pub.cities.includes(cid)) {
-                            pub.cities.push(cid);
-                        }
+                        doControlCity(G, troopPid, cid);
                     }
                 }
             }
@@ -498,7 +466,7 @@ export const takeDamage: LongFormMove = {
         if (troop === null) {
             log.push(`|noTroop|invalid`);
             troop = c === Country.SONG ? getSongTroopByPlace(G, city) : getJinnTroopByPlace(G, city);
-            if(troop === null ) {
+            if (troop === null) {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return INVALID_MOVE;
             }
@@ -1760,7 +1728,30 @@ export const breakout: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        startCombat(G, ctx, arg.ctr, arg.src);
+        const log = [`breakout`];
+        const {src, ctr} = arg;
+        const pub = ctr2pub(G, ctr);
+        if (isCityID(src)) {
+            log.push(`|city`);
+            const region = getCityById(src).region;
+            log.push(`|${region}|region`);
+            const oppoTroop = getOpponentPlaceTroopByCtr(G, ctr, region);
+            if (oppoTroop === null) {
+                log.push(`|setPlaceToRegion`);
+                setTroopPlaceByCtr(G, ctr, src, region);
+            } else {
+                log.push(`|breakoutCombat`);
+                startCombat(G, ctx, arg.ctr, src);
+            }
+        } else {
+            if (isRegionID(src)) {
+                log.push(`|fieldCombat`);
+                startCombat(G, ctx, arg.ctr, src);
+            } else {
+                log.push(`|otherPlaceType|error`);
+            }
+        }
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
 
