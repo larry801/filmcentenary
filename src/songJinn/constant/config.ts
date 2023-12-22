@@ -485,6 +485,8 @@ export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
             G.song.standby[i] += G.song.ready[i];
             G.song.ready[i] = 0;
         }
+        G.jinn.usedDevelop = 0;
+        G.song.usedDevelop = 0;
         log.push(`|${G.song.ready}song.ready`);
         log.push(`|${G.song.standby}G.song.standby`);
 
