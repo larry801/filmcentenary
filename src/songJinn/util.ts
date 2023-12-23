@@ -4234,7 +4234,10 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
             d6 = d6.map(d => d + 1);
             log.push(`|${d6}`);
         }
-        if (jinnGenerals.includes(JinnGeneral.YinShuKe)) {
+        if (
+            jinnGenerals.includes(JinnGeneral.YinShuKe)
+            && (ci.type === CombatType.BREAKOUT || ci.type === CombatType.RESCUE)
+        ) {
             log.push('yinShuKeJieWei/TuWei');
             d6 = d6.map(d => d + 1);
             log.push(`|${d6}`);
