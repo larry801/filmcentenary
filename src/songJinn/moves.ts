@@ -177,19 +177,19 @@ export const checkProvince: LongFormMove = {
         const provStatus = currentProvStatus(G, prov);
         switch (provStatus) {
             case "金控制":
-                doControlProvince(G,ctx, SJPlayer.P2, prov);
+                doControlProvince(G, ctx, SJPlayer.P2, prov);
                 break;
             case "宋控制":
-                doControlProvince(G,ctx, SJPlayer.P1, prov);
+                doControlProvince(G, ctx, SJPlayer.P1, prov);
                 break;
             case "战争状态":
                 const songProv = G.song.provinces;
                 if (songProv.includes(prov)) {
-                    doLoseProvince(G,ctx, SJPlayer.P1, prov, false);
+                    doLoseProvince(G, ctx, SJPlayer.P1, prov, false);
                 }
                 const jinnProv = G.jinn.provinces;
                 if (jinnProv.includes(prov)) {
-                    doLoseProvince(G,ctx, SJPlayer.P2, prov, false);
+                    doLoseProvince(G, ctx, SJPlayer.P2, prov, false);
                 }
                 break;
         }
@@ -207,7 +207,7 @@ export const controlProvince: LongFormMove = {
         const log = [`p${pid}.controlProvince`];
         const pub = pid2pub(G, pid);
         log.push(`|before|${pub.provinces}`);
-        doControlProvince(G,ctx, pid, args);
+        doControlProvince(G, ctx, pid, args);
         log.push(`|after|${pub.provinces}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
@@ -232,6 +232,7 @@ export const controlCity: LongFormMove = {
 
 interface IMarchArgs {
     src: TroopPlace;
+    mid?: TroopPlace;
     dst: TroopPlace;
     country: Country;
     units: number[];
@@ -241,12 +242,13 @@ interface IMarchArgs {
 export const march: LongFormMove = {
     client: false,
     move: (G: SongJinnGame, ctx: Ctx, arg: IMarchArgs) => {
-        const { src, dst, country, generals, units } = arg;
+        const { src, dst, country, mid, generals, units } = arg;
         const pid = ctx.playerID;
         logger.info(`p${pid}.moves.march(${JSON.stringify(arg)})`);
         if (pid === undefined) {
             return INVALID_MOVE;
         }
+
         const log = [`p${pid}|march|src${placeToStr(src)}|dst${placeToStr(dst)}`];
         if (units.reduce(accumulator) === 0) {
             log.push(`|no|units|cannot|move`);
@@ -1523,6 +1525,21 @@ export const showCC: LongFormMove = {
                 if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J32)) {
                     removeUnitByCountryPlace(G, [0, 0, 0, 1, 0, 0], Country.SONG, G.combat.song.troop.p);
                 }
+                if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J34)) {
+                    const st = getTroopByCountryPlace(G, Country.SONG, G.combat.song.troop.p);
+                    if (st !== null) {
+                        if (st.u[0] <= 0) {
+                            removeUnitByCountryPlace(G, [0, 1, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
+                        } else {
+                            if (st.u[1] <= 0) {
+                                removeUnitByCountryPlace(G, [1, 0, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
+                            } else {
+                                G.pending.events.push(PendingEvents.HuFuXiangBing);
+                                changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P2);
+                            }
+                        }
+                    }
+                }
             }
             yuanCheng(G, ctx);
         }
@@ -1924,119 +1941,120 @@ export const confirmRespond: LongFormMove = {
                 }
             }
         } else {
-
-            if (G.pending.events.includes(PendingEvents.MergeORSiege)) {
-                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.MergeORSiege), 1);
-                if (choice !== "围困") {
-                    const place = G.pending.places.pop();
-                    log.push(`|${place}|place`);
-                    if(place !== undefined){
-                        startCombat(G, ctx, pid2ctr(pid), place);
-                    }
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    return;
-                }
-            }
-            if (G.pending.events.includes(PendingEvents.ZhangZhaoZhiZheng)) {
-                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.ZhangZhaoZhiZheng), 1);
-                if (choice === '选择降低宋内政' || choice === 'yes') {
-                    changeCivil(G, SJPlayer.P1, -1);
-                } else {
-                    const gen: General = parseInt(choice);
-                    log.push(`|${gen}|gen`);
-                    // @ts-ignore
-                    log.push(`|${getGeneralNameByCountry(G, SJPlayer.P1, gen)}`);
-                    moveGeneralToReady(G, SJPlayer.P1, gen);
-                }
-            }
-
-            if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
-                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.LoseCorruption), 1);
-                log.push(`|losePower`);
-                if (choice === 'yes' || choice === 'corruption') {
-                    if (pub.corruption > 0) {
-                        log.push(`|${G.song.corruption}|corruption`);
-                        pub.corruption--;
-                        log.push(`|${G.song.corruption}|corruption`);
-                    }
-                }
-            }
-            if (G.pending.events.includes(PendingEvents.FuHaiTaoSheng)) {
-                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.FuHaiTaoSheng), 1);
-                if (choice === 'yes') {
-                    if (G.player['0'].hand.includes(SongBaseCardID.S30)) {
-                        G.player['0'].hand.splice(G.player['0'].hand.indexOf(SongBaseCardID.S30), 1);
-                    }
-                    G.song.remove.push(SongBaseCardID.S30);
-                    changePlayerStage(G, ctx, 'emperor', SJPlayer.P1);
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    return;
-                } else {
-                    songLoseEmperor(G, ctx);
-                    ctx.events?.endStage();
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    return
-                }
-            }
-            if (G.pending.events.includes(PendingEvents.BingShi)) {
-                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.BingShi), 1);
-                ctx.events?.endStage();
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                return;
-            }
-            if (G.pending.events.includes(PendingEvents.WeiQi)) {
-                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.WeiQi), 1);
-                const prov = choice as ProvinceID;
-                if (Object.values(ProvinceID).includes(prov)) {
-                    if (G.qi.includes(prov)) {
-                        G.qi.splice(G.qi.indexOf(prov), 1);
-                    } else {
-                        log.push(`|error|manual|move`);
-                    }
-                } else {
-                    log.push(`|error|manual|move`);
-                }
-                ctx.events?.endStage();
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                return;
-            }
-            if (G.pending.events.includes(PendingEvents.HanFang)) {
-                log.push(`|hanFang`);
-                if (choice == "殖民") {
-                    colonyUp(G, 1);
-                } else {
-                    if (choice === "内政") {
-                        changeCivil(G, SJPlayer.P2, 1);
-                    } else {
-                        log.push(`|not|both`);
-                        changeCivil(G, SJPlayer.P2, 1);
-                    }
-                }
-                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.HanFang), 1);
-                ctx.events?.endStage();
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                return;
-            }
-            if (G.pending.events.includes(PendingEvents.JiaBeng)) {
-                log.push(`|hanFang`);
-                G.pending.events.splice(G.pending.events.indexOf(PendingEvents.JiaBeng), 1);
-                if (choice == "选择降低金殖民") {
-                    colonyDown(G, 1);
-                } else {
-                    if (choice === "选择降低金内政") {
-                        changeCivil(G, SJPlayer.P2, -1);
-                    } else {
-                        if (choice === "选择降低金军事") {
-                            changeMilitary(G, SJPlayer.P2, -1)
-                        } else {
-                            log.push(`|otherChoice`);
-                            changeCivil(G, SJPlayer.P2, -1);
+            const poppedEvent = G.pending.events.pop()
+            if (poppedEvent !== undefined) {
+                switch (poppedEvent) {
+                    case PendingEvents.MergeORSiege:
+                        if (choice !== "围困") {
+                            const place = G.pending.places.pop();
+                            log.push(`|${place}|place`);
+                            if (place !== undefined) {
+                                startCombat(G, ctx, pid2ctr(pid), place);
+                            }
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return;
                         }
-                    }
+                        break;
+                    case PendingEvents.ZhangZhaoZhiZheng:
+                        if (choice === '选择降低宋内政' || choice === 'yes') {
+                            changeCivil(G, SJPlayer.P1, -1);
+                        } else {
+                            const gen: General = parseInt(choice);
+                            log.push(`|${gen}|gen`);
+                            // @ts-ignore
+                            log.push(`|${getGeneralNameByCountry(G, SJPlayer.P1, gen)}`);
+                            moveGeneralToReady(G, SJPlayer.P1, gen);
+                        }
+                        break;
+                    case PendingEvents.LoseCorruption:
+                        log.push(`|losePower`);
+                        if (choice === 'yes' || choice === 'corruption') {
+                            if (pub.corruption > 0) {
+                                log.push(`|${G.song.corruption}|corruption`);
+                                pub.corruption--;
+                                log.push(`|${G.song.corruption}|corruption`);
+                            }
+                        }
+                        break;
+                    case PendingEvents.FuHaiTaoSheng:
+                        if (choice === 'yes') {
+                            if (G.player['0'].hand.includes(SongBaseCardID.S30)) {
+                                G.player['0'].hand.splice(G.player['0'].hand.indexOf(SongBaseCardID.S30), 1);
+                            }
+                            G.song.remove.push(SongBaseCardID.S30);
+                            changePlayerStage(G, ctx, 'emperor', SJPlayer.P1);
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return;
+                        } else {
+                            songLoseEmperor(G, ctx);
+                            ctx.events?.endStage();
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return
+                        }
+                    case PendingEvents.HuFuXiangBing:
+                        if (choice === 'yes' || choice === "archer") {
+                            removeUnitByCountryPlace(G, [0, 1, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
+                        } else {
+                            removeUnitByCountryPlace(G, [1, 0, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
+                        }
+                        yuanCheng(G, ctx);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    case PendingEvents.BingShi:
+                        G.pending.events.splice(G.pending.events.indexOf(PendingEvents.BingShi), 1);
+                        ctx.events?.endStage();
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    case PendingEvents.WeiQi:
+                        const prov = choice as ProvinceID;
+                        if (Object.values(ProvinceID).includes(prov)) {
+                            if (G.qi.includes(prov)) {
+                                G.qi.splice(G.qi.indexOf(prov), 1);
+                            } else {
+                                log.push(`|error|manual|move`);
+                            }
+                        } else {
+                            log.push(`|error|manual|move`);
+                        }
+                        ctx.events?.endStage();
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    case PendingEvents.JiaBeng:
+                        if (choice == "选择降低金殖民") {
+                            colonyDown(G, 1);
+                        } else {
+                            if (choice === "选择降低金内政") {
+                                changeCivil(G, SJPlayer.P2, -1);
+                            } else {
+                                if (choice === "选择降低金军事") {
+                                    changeMilitary(G, SJPlayer.P2, -1)
+                                } else {
+                                    log.push(`|otherChoice`);
+                                    changeCivil(G, SJPlayer.P2, -1);
+                                }
+                            }
+                        }
+                        ctx.events?.endStage();
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    case PendingEvents.HanFang:
+                        log.push(`|hanFang`);
+                        if (choice == "殖民") {
+                            colonyUp(G, 1);
+                        } else {
+                            if (choice === "内政") {
+                                changeCivil(G, SJPlayer.P2, 1);
+                            } else {
+                                log.push(`|not|both`);
+                                changeCivil(G, SJPlayer.P2, 1);
+                            }
+                        }
+                        ctx.events?.endStage();
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return;
+                    default:
+                        break;
                 }
-                ctx.events?.endStage();
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                return;
             }
         }
         log.push(`|error|no|event|hit|endStage`);

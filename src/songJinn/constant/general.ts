@@ -14,6 +14,7 @@ export enum PendingEvents {
     BingShi = "病逝",
     LoseCorruption = "丢失国力",
     MergeORSiege = "会战攻城",
+    HuFuXiangBing = "胡服乡兵",
 }
 
 export enum MarchDstStatus {

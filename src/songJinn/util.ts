@@ -1605,8 +1605,8 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "掷骰1次，对1个围城军团造成等于掷骰点数的伤害。",
-        pre: (G: SongJinnGame, _ctx: Ctx) => G.jinn.troops.filter(t=>troopCanSiege(G,t)).length > 0,
-        event: (G: SongJinnGame, ctx: Ctx) => rollDiceByPid(G, ctx, SJPlayer.P1 , 1)
+        pre: (G: SongJinnGame, _ctx: Ctx) => G.jinn.troops.filter(t => troopCanSiege(G, t)).length > 0,
+        event: (G: SongJinnGame, ctx: Ctx) => rollDiceByPid(G, ctx, SJPlayer.P1, 1)
     },
     [SongBaseCardID.S44]: {
         id: SongBaseCardID.S44,
@@ -4523,22 +4523,31 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country
             }
         }
     } else {
-        if (G.pending.events.includes(PendingEvents.ZhangZhaoZhiZheng)) {
-            if (arg === '选择降低宋内政') {
-                return arg;
-            } else {
-                // @ts-ignore
-                return `选择把${getGeneralNameByCountry(G, SJPlayer.P1, parseInt(arg))}移动到预备兵区`
-            }
-        } else {
-            if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
-                if (arg === 'corruption') {
-                    return "选择失去腐败国力"
-                } else {
-                    return "选择失去正常国力";
-                }
-            } else {
-                return arg;
+        const lastEvent = G.pending.events[G.pending.events.length - 1];
+        if (lastEvent !== undefined) {
+            switch (lastEvent) {
+                case PendingEvents.ZhangZhaoZhiZheng:
+                    if (arg === '选择降低宋内政') {
+                        return arg;
+                    } else {
+                        // @ts-ignore
+                        return `选择把${getGeneralNameByCountry(G, SJPlayer.P1, parseInt(arg))}移动到预备兵区`
+                    }
+                case PendingEvents.LoseCorruption:
+                    if (arg === 'corruption') {
+                        return "选择失去腐败国力"
+                    } else {
+                        return "选择失去正常国力";
+                    }
+                case PendingEvents.HuFuXiangBing:
+                    if (arg === 'archer') {
+                        return '选择消灭步';
+                    } else {
+                        return '选择消灭弓';
+                    }
+
+                default:
+                    return arg;
             }
         }
     }
@@ -4598,55 +4607,60 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
             }
         }
     } else {
-
-        if (G.pending.events.includes(PendingEvents.HanFang)) {
-            return [
-                { label: "殖民", value: "殖民", disabled: false, hidden: false },
-                { label: "内政", value: "内政", disabled: false, hidden: false }
-            ]
-        }
-        if (G.pending.events.includes(PendingEvents.ZhangZhaoZhiZheng)) {
-            G.pending.events.splice(G.pending.events.indexOf(PendingEvents.ZhangZhaoZhiZheng), 1);
-            const choices = [
-                { label: "降低宋内政", value: "选择降低宋内政", disabled: false, hidden: false },
-            ]
-            getPresentGeneral(G, SJPlayer.P1).forEach(g => {
-                choices.push({
-                    label: getGeneralNameByCountry(Country.SONG, g), value: g.toString(),
-                    disabled: false, hidden: false
-                })
-            });
-            return choices;
-        }
-        if (G.pending.events.includes(PendingEvents.JiaBeng)) {
-            return [
-                { label: "降低金殖民", value: "选择降低金殖民", disabled: false, hidden: false },
-                { label: "降低金内政", value: "选择降低金内政", disabled: false, hidden: false },
-                { label: "降低金军事", value: "选择降低金军事", disabled: false, hidden: false }
-            ]
-        }
-        if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
-            return [
-                { label: "腐败国力", value: "corruption", disabled: false, hidden: false },
-                { label: "普通国力", value: "normal", disabled: false, hidden: false },
-            ]
-        }
-        if (G.pending.events.includes(PendingEvents.BingShi)) {
-            const cards = G.song.discard;
-            if (cards.length > 0) {
-                const name = sjCardById(cards[cards.length - 1]).name
-                return [
-                    { label: name, value: name, disabled: false, hidden: false }
-                ]
-            } else {
-                return yesNoOption;
+        const lastEvent = G.pending.events[G.pending.events.length - 1];
+        if (lastEvent !== undefined) {
+            switch (lastEvent) {
+                case PendingEvents.HanFang:
+                    return [
+                        { label: "殖民", value: "殖民", disabled: false, hidden: false },
+                        { label: "内政", value: "内政", disabled: false, hidden: false }
+                    ];
+                case PendingEvents.ZhangZhaoZhiZheng:
+                    G.pending.events.splice(G.pending.events.indexOf(PendingEvents.ZhangZhaoZhiZheng), 1);
+                    const choices = [
+                        { label: "降低宋内政", value: "选择降低宋内政", disabled: false, hidden: false },
+                    ]
+                    getPresentGeneral(G, SJPlayer.P1).forEach(g => {
+                        choices.push({
+                            label: getGeneralNameByCountry(Country.SONG, g), value: g.toString(),
+                            disabled: false, hidden: false
+                        })
+                    });
+                    return choices;
+                case PendingEvents.JiaBeng:
+                    return [
+                        { label: "降低金殖民", value: "选择降低金殖民", disabled: false, hidden: false },
+                        { label: "降低金内政", value: "选择降低金内政", disabled: false, hidden: false },
+                        { label: "降低金军事", value: "选择降低金军事", disabled: false, hidden: false }
+                    ];
+                case PendingEvents.LoseCorruption:
+                    return [
+                        { label: "腐败国力", value: "corruption", disabled: false, hidden: false },
+                        { label: "普通国力", value: "normal", disabled: false, hidden: false },
+                    ]
+                case PendingEvents.BingShi:
+                    const cards = G.song.discard;
+                    if (cards.length > 0) {
+                        const name = sjCardById(cards[cards.length - 1]).name
+                        return [
+                            { label: name, value: name, disabled: false, hidden: false }
+                        ]
+                    } else {
+                        return yesNoOption;
+                    }
+                case PendingEvents.MergeORSiege:
+                    return siegeOrWei;
+                case PendingEvents.HuFuXiangBing:
+                    return [{
+                        label: "弓", value: "archer", disabled: false, hidden: false
+                    }, {
+                        label: "步", value: "infantry", disabled: false, hidden: false
+                    }];
+                    defualt:
+                    return yesNoOption;
             }
         }
-        if (G.pending.events.includes(PendingEvents.MergeORSiege)) {
-            return siegeOrWei;
-        }
     }
-
     return yesNoOption;
 }
 
@@ -4674,32 +4688,33 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
             }
         }
     } else {
-        if (G.pending.events.includes(PendingEvents.HanFang)) {
-            return "请选择提升内政或者殖民";
-        }
-        if (G.pending.events.includes(PendingEvents.JiaBeng)) {
-            return "请选择降低金内政，军事或者殖民";
-        }
-        if (G.pending.events.includes(PendingEvents.ZhangZhaoZhiZheng)) {
-            return "请选择降低宋内政，或者移动一个宋将到预备区";
-        }
-        if (G.pending.events.includes(PendingEvents.WeiQi)) {
-            return "请选择要移除的齐控制物";
-        }
-        if (G.pending.events.includes(PendingEvents.FuHaiTaoSheng)) {
-            return "请选择是否移除浮海逃生移动皇帝";
-        }
-        if (G.pending.events.includes(PendingEvents.BingShi)) {
-            return "展示弃牌";
+        const lastEvent = G.pending.events[G.pending.events.length - 1];
+        if (lastEvent !== undefined) {
+            switch (lastEvent) {
+                case PendingEvents.HanFang:
+                    return "请选择提升内政或者殖民";
+                case PendingEvents.HuFuXiangBing:
+                    return "请选择消灭步或者弓";
+                case PendingEvents.JiaBeng:
+                    return "请选择降低金内政，军事或者殖民";
+                case PendingEvents.ZhangZhaoZhiZheng:
+                    return "请选择降低宋内政，或者移动一个宋将到预备区";
+                case PendingEvents.WeiQi:
+                    return "请选择要移除的齐控制物";
+                case PendingEvents.FuHaiTaoSheng:
+                    return "请选择是否移除浮海逃生移动皇帝";
+                case PendingEvents.BingShi:
+                    return "展示弃牌";
+                case PendingEvents.MergeORSiege:
+                    return "继续围困还是会战攻城";
+                case PendingEvents.LoseCorruption:
+                    return '请选择丢失的国力';
+                default:
+                    return "是否确认";
+            }
         }
 
-        if (G.pending.events.includes(PendingEvents.MergeORSiege)) {
-            return "继续围困还是会战攻城";
-        }
 
-        if (G.pending.events.includes(PendingEvents.LoseCorruption)) {
-            return '请选择丢失的国力';
-        }
     }
     return "是否确认";
 }
@@ -6347,7 +6362,7 @@ export const doControlProvince = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, prov
         log.push(`|b|${pub.provinces}`);
         doLoseProvince(G, ctx, oppoPid(pid), prov, true);
         log.push(`|b|${pub.provinces}`);
-    }else{
+    } else {
         pub.provinces.push(prov);
     }
     if (G.qi.includes(prov) && pid === SJPlayer.P1) {
