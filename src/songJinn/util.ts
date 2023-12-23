@@ -2455,7 +2455,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "用此牌发展，提供发展力等于实时殖民能力的2倍",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => false,
         event: (G: SongJinnGame, ctx: Ctx) => G
     },
     [JinnBaseCardID.J41]: {
