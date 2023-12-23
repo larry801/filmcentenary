@@ -78,6 +78,7 @@ import {
 } from "../util";
 
 const moves = {
+    takePlan: takePlan,
     modifyGameState: modifyGameState,
     returnToHand: returnToHand,
     retreat: retreat,
