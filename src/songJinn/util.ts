@@ -3351,6 +3351,9 @@ export const getCtrRecruitCost = (G: SongJinnGame, ctr: Country) => {
         }
     } else {
         cost = INITIAL_RECRUIT_COST[1];
+        if (G.events.includes(ActiveEvents.XuZhouYeTie)){
+            cost [2] = 1; 
+        }
     }
     return cost;
 }
