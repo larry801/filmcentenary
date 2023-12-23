@@ -1119,6 +1119,7 @@ export const develop: LongFormMove = {
                             break;
                         case DevelopChoice.EMPEROR:
                             if (!G.events.includes(ActiveEvents.JinBingLaiLe)) {
+                                pub.usedDevelop = totalDevelop;
                                 ctx.events?.setStage('emperor');
                             } else {
                                 return INVALID_MOVE;
