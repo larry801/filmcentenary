@@ -4287,7 +4287,7 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
     } else {
 
     }
-    if (oppo.military >= 7 && dmg > 0) {
+    if (oppo.military >= 7 && dmg > 0 && ci.phase === CombatPhase.JiaoFeng) {
         dmg--;
     }
     log.push(`|${dmg}dmg`);
