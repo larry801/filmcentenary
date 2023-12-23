@@ -4024,18 +4024,25 @@ export const drawCardForSong = (G: SongJinnGame, ctx: Ctx) => {
 }
 export const drawCardForJinn = (G: SongJinnGame, ctx: Ctx) => {
     const player = G.player[SJPlayer.P2];
+    const log = [`drawCardForSong`];
+    const deck = G.secret.jinnDeck;
+
+    log.push(`|deck${deck}`);
     const card = G.secret.jinnDeck.pop();
+    log.push(`|popped${card}`);
     if (card === undefined) {
-        G.secret.jinnDeck = shuffle(ctx, G.song.discard);
+        G.secret.jinnDeck = shuffle(ctx, G.jinn.discard);
         G.jinn.discard = [];
+        log.push(`|shuffle${deck}`);
     } else {
-        console.log(card + 'jinn');
         player.hand.push(card);
     }
     if (G.secret.jinnDeck.length === 0) {
-        G.secret.jinnDeck = shuffle(ctx, G.song.discard);
+        G.secret.jinnDeck = shuffle(ctx, G.jinn.discard);
+        log.push(`|shuffle${deck}`);
         G.jinn.discard = [];
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const getLeadingPlayer = (G: SongJinnGame): SJPlayer => {
     return G.jinn.civil > G.song.civil ? SJPlayer.P2 : SJPlayer.P1;
@@ -4719,7 +4726,7 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
         G.jinn.discard.push(cid);
     })
     log.push(`|${c.jinn.combatCard}combatCard`);
-    log.push(`|${G.jinn.discard}G.song.discard`);
+    log.push(`|${G.jinn.discard}G.jinn.discard`);
     G.combat = emptyCombatInfo();
     log.push(`|${JSON.stringify(c)}`);
     ctx.events?.endStage();
