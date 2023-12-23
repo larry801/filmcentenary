@@ -4124,16 +4124,18 @@ export const roundTwo = (G: SongJinnGame, ctx: Ctx) => {
 }
 
 export const mingJin = (G: SongJinnGame, ctx: Ctx) => {
+    const log = ['mingJin'];
     G.combat.phase = CombatPhase.MingJin;
-    if (canRoundTwo(G)) {
     if (canForceRoundTwo(G)) {
+        log.push(`p${ciDefPid(G)}confirmRespond`);
         changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
     } else {
+        log.push(`p${ciAtkPid(G)}confirmRespond`);
+
         changePlayerStage(G, ctx, 'confirmRespond', ciAtkPid(G));
-        }
-    } else {
-        endCombat(G, ctx);
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+
 }
 
 export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
@@ -6319,7 +6321,7 @@ export const doRemoveNation = (G: SongJinnGame, nation: NationID) => {
         G.jinn.nations.splice(G.jinn.nations.indexOf(nation), 1);
     }
 }
-export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: ProvinceID) => {
+export const doControlProvince = (G: SongJinnGame,ctx:Ctx, pid: PlayerID, prov: ProvinceID) => {
     const log = [`doControlProvince`];
     const pub = pid2pub(G, pid);
     const oppo = oppoPub(G, pid);
@@ -6329,12 +6331,7 @@ export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: Province
         return;
     }
     if (oppo.provinces.includes(prov)) {
-        log.push(`|takeFromOpponent`);
-        log.push(`|b|${pub.provinces}`);
-
-        oppo.provinces.splice(oppo.provinces.indexOf(prov), 1);
-        log.push(`|b|${pub.provinces}`);
-
+        doLoseProvince(G,ctx,oppoPid(pid),prov,true);
     }
     if (G.qi.includes(prov) && pid === SJPlayer.P1) {
         log.push(`|Qi|remove|b|${G.qi}`);
@@ -6346,7 +6343,7 @@ export const doControlProvince = (G: SongJinnGame, pid: PlayerID, prov: Province
     log.push(`|b|${pub.provinces}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
-export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
+export const doControlCity = (G: SongJinnGame, ctx:Ctx, pid: PlayerID, cid: CityID) => {
     const log = [`doControlCity`];
     const pub = pid2pub(G, pid);
     const oppo = oppoPub(G, pid);
@@ -6370,7 +6367,7 @@ export const doControlCity = (G: SongJinnGame, pid: PlayerID, cid: CityID) => {
         all.filter(c => pub.cities.includes(c)).length === all.length
     ) {
         log.push(`|control${prov}`);
-        doControlProvince(G, pid, prov);
+        doControlProvince(G, ctx, pid, prov);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -6380,38 +6377,45 @@ export const doLoseProvince = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, prov: P
     const oppo = oppoPub(G, pid)
 
     if (pub.provinces.includes(prov)) {
-        if (pid === SJPlayer.P1) {
-            if (prov === ProvinceID.YANJINGLU || prov === ProvinceID.JINGJILU || prov === ProvinceID.FUJIANLU) {
-                if (G.events.includes(ActiveEvents.XiangHaiShangFaZhan) && prov === ProvinceID.FUJIANLU) {
-                    log.push(`|HaiFa`);
+        if (prov === ProvinceID.YANJINGLU || prov === ProvinceID.JINGJILU || prov === ProvinceID.FUJIANLU) {
+            if (G.events.includes(ActiveEvents.XiangHaiShangFaZhan) && prov === ProvinceID.FUJIANLU) {
+                log.push(`|HaiFa`);
+                if (pid === SJPlayer.P1) {
                     policyDown(G, 1);
+                } else {
+                    if (G.events.includes(ActiveEvents.WuLuKeTui)) {
+                        log.push(`|WuLuKeTui`);
+                        policyUp(G, 1);
+                    }
+                }
+                if (pub.corruption > 0) {
                     G.pending.events.push(PendingEvents.LoseCorruption);
-                    changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
+                    changePlayerStage(G, ctx, 'confirmRespond', pid);
                     log.push(`|chooseLoseNormalOrCorruiton`);
                 }
-            } else {
-                log.push(`|CountingProvince`);
-                policyDown(G, 1);
-                G.pending.events.push(PendingEvents.LoseCorruption);
-                changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
-                log.push(`|chooseLoseNormalOrCorruption`);
             }
         } else {
-            if (G.events.includes(ActiveEvents.WuLuKeTui)) {
-                log.push(`|WuLuKeTui`);
-                policyUp(G, 1);
+            log.push(`|CountingProvince`);
+            if (pid === SJPlayer.P1) {
+                policyDown(G, 1);
+            } else {
+                if (G.events.includes(ActiveEvents.WuLuKeTui)) {
+                    log.push(`|WuLuKeTui`);
+                    policyUp(G, 1);
+                }
+            }
+            if (pub.corruption > 0) {
+                G.pending.events.push(PendingEvents.LoseCorruption);
+                changePlayerStage(G, ctx, 'confirmRespond', pid);
+                log.push(`|chooseLoseNormalOrCorruiton`);
             }
         }
-        if (pub.provinces.includes(prov)) {
-            log.push(`|${JSON.stringify(pub.provinces.length)}|pub.provinces.length`);
-            pub.provinces.splice(pub.provinces.indexOf(prov), 1);
-            log.push(`|${JSON.stringify(pub.provinces.length)}|pub.provinces.length`);
-        }
-        if (opponent) {
-            log.push(`|${oppo.provinces.length}|oppo.provinces.length`);
-            oppo.provinces.push(prov);
-            log.push(`|${oppo.provinces.length}|oppo.provinces.length`);
-        }
+    }
+
+    if (opponent) {
+        log.push(`|${oppo.provinces.length}|oppo.provinces.length`);
+        oppo.provinces.push(prov);
+        log.push(`|${oppo.provinces.length}|oppo.provinces.length`);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -6646,7 +6650,10 @@ export function getCardLabel(c: SJEventCardID) {
 export function canForceRoundTwo(G: SongJinnGame) {
     const ci = G.combat;
 
-    return !ci.roundTwo &&
+    const res = !ci.roundTwo &&
         ci.atk === Country.SONG &&
         ciDefGenerals(G).includes(SongGeneral.YueFei);
+    logger.debug(`${G.matchID}|canForceRoundTwo|${res}`);
+
+    return res;
 }

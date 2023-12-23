@@ -177,24 +177,19 @@ export const checkProvince: LongFormMove = {
         const provStatus = currentProvStatus(G, prov);
         switch (provStatus) {
             case "金控制":
-                doControlProvince(G, SJPlayer.P2, prov);
+                doControlProvince(G,ctx, SJPlayer.P2, prov);
                 break;
             case "宋控制":
-                doControlProvince(G, SJPlayer.P1, prov);
+                doControlProvince(G,ctx, SJPlayer.P1, prov);
                 break;
             case "战争状态":
                 const songProv = G.song.provinces;
                 if (songProv.includes(prov)) {
-                    log.push(`|${songProv}songProv`);
-                    songProv.splice(songProv.indexOf(prov), 1);
-                    log.push(`|${songProv}songProv`);
+                    doLoseProvince(G,ctx, SJPlayer.P1, prov, false);
                 }
                 const jinnProv = G.jinn.provinces;
                 if (jinnProv.includes(prov)) {
-                    log.push(`|${jinnProv}jinnProv`);
-
-                    jinnProv.splice(jinnProv.indexOf(prov), 1);
-                    log.push(`|${jinnProv}jinnProv`);
+                    doLoseProvince(G,ctx, SJPlayer.P2, prov, false);
                 }
                 break;
         }
@@ -212,7 +207,7 @@ export const controlProvince: LongFormMove = {
         const log = [`p${pid}.controlProvince`];
         const pub = pid2pub(G, pid);
         log.push(`|before|${pub.provinces}`);
-        doControlProvince(G, pid, args);
+        doControlProvince(G,ctx, pid, args);
         log.push(`|after|${pub.provinces}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
@@ -229,7 +224,7 @@ export const controlCity: LongFormMove = {
         const pub = pid2pub(G, pid);
         // const player = playerById(G, ctx.playerID);
         log.push(`|${pub.cities}`);
-        doControlCity(G, pid, args);
+        doControlCity(G, ctx, pid, args);
         log.push(`|after|${pub.cities}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
@@ -357,7 +352,7 @@ export const march: LongFormMove = {
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     } else {
-                        doControlCity(G, troopPid, cid);
+                        doControlCity(G, ctx, troopPid, cid);
                     }
                 }
             }
@@ -1788,6 +1783,7 @@ export const confirmRespond: LongFormMove = {
             return INVALID_MOVE;
         }
         const ctr = pid2ctr(pid);
+        const pub = pid2pub(G, pid);
         const { choice } = arg;
         const log = [`confirmRespond`]
         const ci = G.combat;
@@ -1957,10 +1953,10 @@ export const confirmRespond: LongFormMove = {
                 G.pending.events.splice(G.pending.events.indexOf(PendingEvents.LoseCorruption), 1);
                 log.push(`|losePower`);
                 if (choice === 'yes' || choice === 'corruption') {
-                    if (G.song.corruption > 0) {
-                        log.push(`|${G.song.corruption}|G.song.corruption`);
-                        G.song.corruption--;
-                        log.push(`|${G.song.corruption}|G.song.corruption`);
+                    if (pub.corruption > 0) {
+                        log.push(`|${G.song.corruption}|corruption`);
+                        pub.corruption--;
+                        log.push(`|${G.song.corruption}|corruption`);
                     }
                 }
             }
@@ -2016,7 +2012,6 @@ export const confirmRespond: LongFormMove = {
                     }
                 }
                 G.pending.events.splice(G.pending.events.indexOf(PendingEvents.HanFang), 1);
-
                 ctx.events?.endStage();
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
