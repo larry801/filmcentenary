@@ -38,6 +38,7 @@ import {
     NationID,
     Nations,
     NationState,
+    OptionalSongCardID,
     PendingEvents,
     PlanID,
     ProvinceID,
@@ -1223,10 +1224,13 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "降低金国1级军事等级。若兀术在场，则放置到预备兵区。",
-        pre: (G: SongJinnGame, _ctx: Ctx) => true,
+        pre: (G: SongJinnGame, _ctx: Ctx) => G.events.includes(ActiveEvents.JinTaiZongJiaBeng)
+            && !G.events.includes(ActiveEvents.TianJuanZhengBian),
         event: (G: SongJinnGame, _ctx: Ctx) => {
             changeMilitary(G, SJPlayer.P2, -1);
-
+            if (G.jinn.generals[JinnGeneral.WuZhu] === GeneralStatus.TROOP) {
+                moveGeneralToReady(G, SJPlayer.P2, JinnGeneral.WuZhu)
+            }
         }
     },
     [SongBaseCardID.S24]: {
@@ -1277,7 +1281,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "齐每控制1个路，宋国就征募1个骑兵（不受内政等级限制〕。",
-        pre: (G: SongJinnGame, _ctx: Ctx) => true,
+        pre: (G: SongJinnGame, _ctx: Ctx) => G.qi.length > 0,
         event: (G: SongJinnGame, _ctx: Ctx) => doRecruit(G, [0, 0, G.qi.length, 0, 0, 0], SJPlayer.P1)
     },
     [SongBaseCardID.S27]: {
@@ -1351,10 +1355,8 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "当宋国失去皇帝时，可以移除这张牌，移动宋国皇帝到任意宋国控制的城市。",
-        pre: (G: SongJinnGame, _ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => {
-            ctx.events?.setStage('emperor')
-        }
+        pre: (_G: SongJinnGame, _ctx: Ctx) => false,
+        event: (G: SongJinnGame, _ctx: Ctx) => G
     },
     [SongBaseCardID.S31]: {
         id: SongBaseCardID.S31,
@@ -1404,7 +1406,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "在宋国皇帝所在的区域放置1个步兵和1个弓兵。",
-        pre: (G: SongJinnGame, _ctx: Ctx) => true,
+        pre: (G: SongJinnGame, _ctx: Ctx) => G.song.emperor !== null,
         event: (G: SongJinnGame, _ctx: Ctx) => {
             if (G.song.emperor !== null) {
                 const reg = getCityById(G.song.emperor).region;
@@ -1559,7 +1561,7 @@ export const idToCard = {
         effectText: "宋国作战计划替换为【还我河山】。本回合内宋国所有战斗骰点数加1。当岳飞被移除时，此事件被撤销。",
         pre: (G: SongJinnGame, _ctx: Ctx) => G.song.military >= 6 &&
             G.song.generals[SongGeneral.YueFei] === GeneralStatus.TROOP,
-        event: (G: SongJinnGame, ctx: Ctx) => {
+        event: (G: SongJinnGame, _ctx: Ctx) => {
             G.events.push(ActiveEvents.YueShuaiZhiLai);
             const planDeck = G.secret.planDeck;
             G.song.plan.forEach(p => planDeck.push(p));
@@ -1603,8 +1605,8 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "掷骰1次，对1个围城军团造成等于掷骰点数的伤害。",
-        pre: (_G: SongJinnGame, _ctx: Ctx) => true,
-        event: (G: SongJinnGame, _ctx: Ctx) => G
+        pre: (G: SongJinnGame, _ctx: Ctx) => G.jinn.troops.filter(t=>troopCanSiege(G,t)).length > 0,
+        event: (G: SongJinnGame, ctx: Ctx) => rollDiceByPid(G, ctx, SJPlayer.P1 , 1)
     },
     [SongBaseCardID.S44]: {
         id: SongBaseCardID.S44,
@@ -1613,7 +1615,7 @@ export const idToCard = {
         country: Country.SONG,
         era: IEra.L,
         remove: true,
-        precondition: null,
+        precondition: "吴玠不在场",
         ban: null,
         block: null,
         unlock: null,
@@ -2095,7 +2097,6 @@ export const idToCard = {
         pre: (G: SongJinnGame, _ctx: Ctx) => true,
         event: (G: SongJinnGame, _ctx: Ctx) => {
             moveGeneralToReady(G, SJPlayer.P2, JinnGeneral.YinShuKe);
-
         }
     },
     [JinnBaseCardID.J21]: {
@@ -2287,10 +2288,10 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "在陕西六路，消灭2个部队。",
-        pre: (G: SongJinnGame, ctx: Ctx) =>
+        pre: (G: SongJinnGame, _ctx: Ctx) =>
             G.jinn.provinces.includes(ProvinceID.SHANXILIULU) ||
             G.jinn.provinces.includes(ProvinceID.HEDONGLU),
-        event: (G: SongJinnGame, ctx: Ctx) => {
+        event: (G: SongJinnGame, _ctx: Ctx) => {
             if (G.events.includes(ActiveEvents.XiJunQuDuan)) {
                 G.events.splice(G.events.indexOf(ActiveEvents.XiJunQuDuan), 1)
             }
@@ -2486,6 +2487,11 @@ export const idToCard = {
         },
         event: (G: SongJinnGame, ctx: Ctx) => {
             policyDown(G, 2);
+            if (getPolicy(G) < 0) {
+                removeGeneral(G, SJPlayer.P1, SongGeneral.YueFei);
+            } else {
+                moveGeneralToReady(G, SJPlayer.P1, SongGeneral.YueFei);
+            }
         }
     },
     [JinnBaseCardID.J42]: {
@@ -2505,7 +2511,6 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
             moveGeneralToReady(G, SJPlayer.P2, JinnGeneral.BenZhu);
-
         }
     },
     [JinnBaseCardID.J43]: {
@@ -2525,6 +2530,7 @@ export const idToCard = {
         pre: (G: SongJinnGame, ctx: Ctx) => G.jinn.military >= 5,
         event: (G: SongJinnGame, ctx: Ctx) => {
             changeMilitary(G, SJPlayer.P2, 1);
+            G.events.push(ActiveEvents.TianJuanZhengBian);
             G.jinn.plan.forEach(p => G.secret.planDeck.push(p));
             G.secret.planDeck.splice(G.secret.planDeck.indexOf(PlanID.J24), 1);
             G.jinn.plan = [PlanID.J24]
@@ -2581,7 +2587,7 @@ export const idToCard = {
         duration: EventDuration.CONTINUOUS,
         combat: false,
         effectText: "若宋国皇帝在场，则将韩世忠移动到皇帝所在区域，韩世忠之后只能随宋国皇帝移动。否则，移除韩世忠。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => getPolicy(G) < 0,
         event: (G: SongJinnGame, ctx: Ctx) => {
             if (G.song.emperor !== null) {
                 moveGeneralByPid(G, SJPlayer.P1, SongGeneral.HanShiZhong, G.song.emperor);
@@ -2602,7 +2608,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "若政策倾向为和议，提升1级殖民能力。若政策倾向为主战或中立，降低1级政策倾向。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
+        pre: (G: SongJinnGame, ctx: Ctx) => getPolicy(G) < 0,
         event: (G: SongJinnGame, ctx: Ctx) => {
             if (getPolicy(G) < 0) {
                 colonyUp(G, 1);
@@ -2664,6 +2670,13 @@ export const idToCard = {
     },
 
 };
+
+// export const idToOptionalCard = {
+//     [OptionalSongCardID.X08]:{
+
+//     }
+// }
+
 const cardIdSort = (a: SJEventCardID, b: SJEventCardID) => {
     return sjCardById(a).op - sjCardById(b).op;
 }
@@ -6321,7 +6334,7 @@ export const doRemoveNation = (G: SongJinnGame, nation: NationID) => {
         G.jinn.nations.splice(G.jinn.nations.indexOf(nation), 1);
     }
 }
-export const doControlProvince = (G: SongJinnGame,ctx:Ctx, pid: PlayerID, prov: ProvinceID) => {
+export const doControlProvince = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, prov: ProvinceID) => {
     const log = [`doControlProvince`];
     const pub = pid2pub(G, pid);
     const oppo = oppoPub(G, pid);
@@ -6331,7 +6344,7 @@ export const doControlProvince = (G: SongJinnGame,ctx:Ctx, pid: PlayerID, prov: 
         return;
     }
     if (oppo.provinces.includes(prov)) {
-        doLoseProvince(G,ctx,oppoPid(pid),prov,true);
+        doLoseProvince(G, ctx, oppoPid(pid), prov, true);
     }
     if (G.qi.includes(prov) && pid === SJPlayer.P1) {
         log.push(`|Qi|remove|b|${G.qi}`);
@@ -6343,7 +6356,7 @@ export const doControlProvince = (G: SongJinnGame,ctx:Ctx, pid: PlayerID, prov: 
     log.push(`|b|${pub.provinces}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
-export const doControlCity = (G: SongJinnGame, ctx:Ctx, pid: PlayerID, cid: CityID) => {
+export const doControlCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cid: CityID) => {
     const log = [`doControlCity`];
     const pub = pid2pub(G, pid);
     const oppo = oppoPub(G, pid);
