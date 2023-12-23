@@ -3745,7 +3745,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             log += `${placeToStr(arg.src.p)}${arg.country}撤退到${placeToStr(arg.dst)}`;
                             break;
                         case 'moveTroop':
-                            log += `${placeToStr(arg.src.p)}${arg.country}全军移动到${placeToStr(arg.dst)}`;
+                            log += `${placeToStr(arg.src.p)}${arg.generals.map((gen: General) => getGeneralNameByCountry(arg.country, gen))}${arg.country}${unitsToString(arg.units)}移动到${placeToStr(arg.dst)}`;
                             break;
                         case 'rollDices':
                             log += `扔了${arg === undefined ? 5 : arg.count > MAX_DICES ? MAX_DICES : arg.count}个骰子`;
