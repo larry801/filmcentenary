@@ -72,7 +72,7 @@ export const Operation = ({
         choices={player.plans.map((pid) => {
                 const plan = getPlanById(pid);
                 return {
-                    label: plan.name,
+                    label: plan.name + plan.desc,
                     value: plan.id,
                     disabled: plan.level > pub.military,
                     hidden: false
