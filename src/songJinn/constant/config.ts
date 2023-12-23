@@ -267,20 +267,6 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         // }
         logger.debug(`${log.join('')}`);
     },
-    onEnd: (G:SongJinnGame, ctx:Ctx) => {
-        const log = [`drawPhase|onEnd`]
-        
-        logger.debug(`${G.matchID}|${log.join('')}`);
-        if (G.song.civil === G.jinn.civil) {
-            G.order = [SJPlayer.P1, SJPlayer.P2];
-            log.push(`|civil|same|order:${G.order.toString()}`);
-            ctx.events?.setPhase('choosePlan');
-        }else{
-            G.order = [getLeadingPlayer(G)]
-            log.push(`${G.order.toString()}`);
-            ctx.events?.setPhase('chooseFirst');
-        }
-    },
     moves: {
         down: down,
         searchFirst: searchFirst,
@@ -291,7 +277,20 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         drawExtraCard: drawExtraCard,
         develop: develop,
     },
-    next: 'chooseFirst'
+    next: (G:SongJinnGame,ctx:Ctx)=>{
+        const log = [`drawPhase|next`];
+        if (G.song.civil === G.jinn.civil) {
+            G.order = [SJPlayer.P1, SJPlayer.P2];
+            log.push(`|civil|same|order:${G.order.toString()}`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return 'choosePlan';
+        }else{
+            G.order = [getLeadingPlayer(G)]
+            log.push(`${G.order.toString()}`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return 'chooseFirst';
+        }
+    }
 }
 
 export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
@@ -423,38 +422,7 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         }
         logger.info(`${log.join('')}`);
     },
-    moves: {
-        retreat: retreat,
-        removeReadyUnit: removeReadyUnit,
-        drawExtraCard: drawExtraCard,
-        siege: siege,
-        checkProvince: checkProvince,
-        emperor: emperor,
-        removeOwnGeneral: removeOwnGeneral,
-        removeNation: removeNation,
-        adjustNation: adjustNation,
-        discard: discard,
-        deploy: deploy,
-        opponentMove: opponentMove,
-        march: march,
-        moveTroop: moveTroop,
-        takeDamage: takeDamage,
-        removeUnit: removeUnit,
-        placeUnit: placeUnit,
-        rollDices: rollDices,
-
-        recruitPuppet: recruitPuppet,
-        endRound: endRound,
-        loseCity: loseCity,
-        loseProvince: loseProvince,
-        placeTroop: placeTroop,
-        down: down,
-        takePlan: takePlan,
-        chooseTop: chooseTop,
-
-        develop: develop,
-        removeCompletedPlan: removeCompletedPlan
-    },
+    moves: moves,
     turn: StagedTurnConfig,
     next: 'diplomacy'
 }
