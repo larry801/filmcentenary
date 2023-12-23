@@ -411,7 +411,7 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         }
         logger.info(`${log.join('')}`);
     },
-    onEnd: (G: SongJinnGame) {
+    onEnd: (G: SongJinnGame) => {
         G.jinn.usedDevelop = 0;
         G.song.usedDevelop = 0;
     },

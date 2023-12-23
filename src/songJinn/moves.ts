@@ -1079,6 +1079,8 @@ export const develop: LongFormMove = {
         // const player = playerById(G, ctx.playerID);
         const pub = pid2pub(G, pid);
         const country = getCountryById(pid);
+        const total = totalDevelop(G, ctx, pid);
+        log.push(`|${total}|total`)
         switch (country) {
             case Country.SONG:
                 if (choice === DevelopChoice.COLONY) {
@@ -1119,7 +1121,7 @@ export const develop: LongFormMove = {
                             break;
                         case DevelopChoice.EMPEROR:
                             if (!G.events.includes(ActiveEvents.JinBingLaiLe)) {
-                                pub.usedDevelop = totalDevelop;
+                                pub.usedDevelop = total;
                                 ctx.events?.setStage('emperor');
                             } else {
                                 return INVALID_MOVE;
@@ -1171,7 +1173,7 @@ export const develop: LongFormMove = {
             default:
                 break;
         }
-        const remainDev = totalDevelop(G, ctx, pid) - pub.usedDevelop;
+        const remainDev = total - pub.usedDevelop;
         log.push(`|${remainDev}remainDev`);
         const canCommon = remainDev < pub.civil + 1 && remainDev <= pub.military + 1;
         log.push(`|${canCommon}canCommon`);
