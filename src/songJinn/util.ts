@@ -2290,7 +2290,7 @@ export const idToCard = {
             G.jinn.provinces.includes(ProvinceID.SHANXILIULU) ||
             G.jinn.provinces.includes(ProvinceID.HEDONGLU),
         event: (G: SongJinnGame, ctx: Ctx) => {
-            if(G.events.includes(ActiveEvents.XiJunQuDuan)){
+            if (G.events.includes(ActiveEvents.XiJunQuDuan)) {
                 G.events.splice(G.events.indexOf(ActiveEvents.XiJunQuDuan), 1)
             }
         }
@@ -3351,8 +3351,8 @@ export const getCtrRecruitCost = (G: SongJinnGame, ctr: Country) => {
         }
     } else {
         cost = INITIAL_RECRUIT_COST[1];
-        if (G.events.includes(ActiveEvents.XuZhouYeTie)){
-            cost [2] = 1; 
+        if (G.events.includes(ActiveEvents.XuZhouYeTie)) {
+            cost[2] = 1;
         }
     }
     return cost;
@@ -3635,6 +3635,21 @@ export const getMoveText = (l: LogEntry): string => {
             return `p${pid}.redo()`;
     }
 }
+
+export const canSendLetter = (G: SongJinnGame, ctr: Country, n: NationID) => {
+
+
+    switch (n) {
+        case NationID.XiLiao:
+            checkCtrCity(G, ctr, CityID.DaTong);
+            return checkCtrRegion(G, ctr, RegionID.R02DaTonFu)
+            break;
+
+        default:
+            break;
+    }
+}
+
 export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
     const payload = l.action.payload;
     const pid = payload.playerID;
@@ -3857,15 +3872,15 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                         case 'develop':
                             if (typeof arg === 'string') {
                                 log += `${arg !== DevelopChoice.EMPEROR
-                                        && arg !== DevelopChoice.POLICY_UP
-                                        && arg !== DevelopChoice.POLICY_DOWN
-                                        ? "提升" : ""}${arg}`;
+                                    && arg !== DevelopChoice.POLICY_UP
+                                    && arg !== DevelopChoice.POLICY_DOWN
+                                    ? "提升" : ""}${arg}`;
                             } else {
                                 const { choice, target } = arg;
                                 log += `${choice !== DevelopChoice.EMPEROR
-                                        && choice !== DevelopChoice.POLICY_UP
-                                        && choice !== DevelopChoice.POLICY_DOWN
-                                        ? "提升" : ""}${choice}到${target}`;
+                                    && choice !== DevelopChoice.POLICY_UP
+                                    && choice !== DevelopChoice.POLICY_DOWN
+                                    ? "提升" : ""}${choice}到${target}`;
                             }
                             break;
                         case 'recruitUnit':
@@ -4041,7 +4056,16 @@ export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
             sum += uncolonized - 3;
             log.push(`|梁兴渡河${uncolonized}|${sum}`);
         }
+        if (
+            pub.develop.includes(SongBaseCardID.S27)
+            && !G.events.includes(ActiveEvents.ZhangZhaoZhiZheng)
+        ) {
+            sum += 4 - 3;
+            log.push(`|任用赵鼎 张浚|${sum}`);
+        
+        }
     }
+
     if (playerId === SJPlayer.P2 && G.events.includes(ActiveEvents.JinTaiZong)) {
         log.push(`|JinTaiZong`);
         sum += 1;
