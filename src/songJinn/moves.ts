@@ -1319,6 +1319,7 @@ export const heYi: LongFormMove = {
         heYiChange(G, ctx, city);
     }
 }
+
 export const freeHeYi: LongFormMove = {
     move: (G, ctx, city: CityID) => {
         if (!heYiCheck(G, ctx)) {
@@ -1676,7 +1677,7 @@ export const endRound: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        const log =[`endRound`];
+        const log = [`endRound`];
 
         const pub = pid2pub(G, pid);
         if (ctx.phase === 'action') {
@@ -1695,12 +1696,12 @@ export const endRound: LongFormMove = {
                         G.order = [SJPlayer.P1, SJPlayer.P2];
                         log.push(`|civil|same|order:${G.order.toString()}`);
                         ctx.events?.setPhase('choosePlan');
-                    }else{
+                    } else {
                         G.order = [getLeadingPlayer(G)]
                         log.push(`${G.order.toString()}`);
                         ctx.events?.setPhase('chooseFirst');
                     }
-                }else{
+                } else {
                     ctx.events?.endPhase();
                 }
             } else {
@@ -1878,6 +1879,7 @@ export const confirmRespond: LongFormMove = {
                                 logger.debug(`${G.matchID}|${log.join('')}`);
                                 return;
                             } else {
+                                atkCCI.choice = BeatGongChoice.STALEMATE;
                                 log.push(`|ask|def`);
                                 changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
                                 logger.debug(`${G.matchID}|${log.join('')}`);
@@ -1903,7 +1905,7 @@ export const confirmRespond: LongFormMove = {
                         if (choice === BeatGongChoice.STALEMATE) {
                             log.push(`|stalemate`);
                             defCCI.choice = BeatGongChoice.STALEMATE;
-                            if (atkCCI.choice === BeatGongChoice.CONTINUE) {
+                            if (atkCCI.choice === BeatGongChoice.CONTINUE && canRoundTwo(G)) {
                                 roundTwo(G, ctx);
                             } else {
                                 endCombat(G, ctx);

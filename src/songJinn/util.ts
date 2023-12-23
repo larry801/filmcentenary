@@ -4126,10 +4126,10 @@ export const roundTwo = (G: SongJinnGame, ctx: Ctx) => {
 export const mingJin = (G: SongJinnGame, ctx: Ctx) => {
     G.combat.phase = CombatPhase.MingJin;
     if (canRoundTwo(G)) {
-        if (canForceRoundTwo(G)) {
-            changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
-        } else {
-            changePlayerStage(G, ctx, 'confirmRespond', ciAtkPid(G));
+    if (canForceRoundTwo(G)) {
+        changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
+    } else {
+        changePlayerStage(G, ctx, 'confirmRespond', ciAtkPid(G));
         }
     } else {
         endCombat(G, ctx);
