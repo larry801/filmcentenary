@@ -4175,26 +4175,9 @@ export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
             defD = getMeleeStr(G, dt);
             break;
     }
-    if (ci.type !== CombatType.SIEGE && ci.atk === Country.SONG) {
-        atkD += getPolicy(G);
-    }
+
     log.push(`|${atkD}atkD`);
     log.push(`|${defD}defD`);
-
-    if (ci.atk === Country.JINN && ciJinnGenerals(G).includes(JinnGeneral.WuZhu)) {
-        log.push(`|wuZhu+2`);
-        atkD += 2;
-    }
-    // TODO you chan dou li de yuan cheng
-    if (defD <= 0) {
-        log.push(`|correctAtkDice${defD}To1`);
-        defD = 1
-    }
-    if (atkD <= 0) {
-        log.push(`|correctAtkDice${atkD}To1`);
-        atkD = 1
-    }
-
     rollDiceByPid(G, ctx, atkPid, atkD);
     rollDiceByPid(G, ctx, defPid, defD);
     changePlayerStage(G, ctx, 'takeDamage', G.order[0]);
