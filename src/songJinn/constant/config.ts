@@ -78,6 +78,8 @@ import {
 } from "../util";
 
 const moves = {
+    removeCompletedPlan: removeCompletedPlan,
+    chooseTop: chooseTop,
     takePlan: takePlan,
     modifyGameState: modifyGameState,
     returnToHand: returnToHand,
