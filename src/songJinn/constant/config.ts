@@ -276,20 +276,6 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         opponentMove: opponentMove,
         drawExtraCard: drawExtraCard,
         develop: develop,
-    },
-    next: (G:SongJinnGame,ctx:Ctx)=>{
-        const log = [`drawPhase|next`];
-        if (G.song.civil === G.jinn.civil) {
-            G.order = [SJPlayer.P1, SJPlayer.P2];
-            log.push(`|civil|same|order:${G.order.toString()}`);
-            logger.debug(`${G.matchID}|${log.join('')}`);
-            return 'choosePlan';
-        }else{
-            G.order = [getLeadingPlayer(G)]
-            log.push(`${G.order.toString()}`);
-            logger.debug(`${G.matchID}|${log.join('')}`);
-            return 'chooseFirst';
-        }
     }
 }
 
