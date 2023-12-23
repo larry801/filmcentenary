@@ -1928,10 +1928,11 @@ export const confirmRespond: LongFormMove = {
             if (G.pending.events.includes(PendingEvents.MergeORSiege)) {
                 G.pending.events.splice(G.pending.events.indexOf(PendingEvents.MergeORSiege), 1);
                 if (choice !== "围困") {
-                    const place = G.pending.places[0];
+                    const place = G.pending.places.pop();
                     log.push(`|${place}|place`);
-                    startCombat(G, ctx, pid2ctr(pid), place);
-                    G.pending.places = [];
+                    if(place !== undefined){
+                        startCombat(G, ctx, pid2ctr(pid), place);
+                    }
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 }
