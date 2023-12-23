@@ -56,39 +56,39 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
     },
     turn: NormalTurnConfig,
     endIf: (G: SongJinnGame, ctx: Ctx) => {
-        // if (getSongPower(G) <= 3) {
-        //     return {
-        //         winner: SJPlayer.P2,
-        //         reason: VictoryReason.PowerOfNation
-        //     }
-        // }
-        // if (getJinnPower(G) <= 3) {
-        //     return {
-        //         winner: SJPlayer.P1,
-        //         reason: VictoryReason.PowerOfNation
-        //     }
-        // }
-        // const dipVic = diplomaticVictory(G);
-        // if (dipVic !== null) {
-        //     switch (dipVic) {
-        //         case Country.JINN:
-        //             return {
-        //                 winner: SJPlayer.P2,
-        //                 reason: VictoryReason.Diplomacy
-        //             }
-        //         case Country.SONG:
-        //             return {
-        //                 winner: SJPlayer.P2,
-        //                 reason: VictoryReason.Diplomacy
-        //             }
-        //     }
-        // }
-        // if (G.jinn.emperor === null) {
-        //     return {
-        //         winner: SJPlayer.P1,
-        //         reason: VictoryReason.ZhiDaoHuangLong
-        //     }
-        // }
+        if (getSongPower(G) <= 3) {
+            return {
+                winner: SJPlayer.P2,
+                reason: VictoryReason.PowerOfNation
+            }
+        }
+        if (getJinnPower(G) <= 3) {
+            return {
+                winner: SJPlayer.P1,
+                reason: VictoryReason.PowerOfNation
+            }
+        }
+        const dipVic = diplomaticVictory(G);
+        if (dipVic !== null) {
+            switch (dipVic) {
+                case Country.JINN:
+                    return {
+                        winner: SJPlayer.P2,
+                        reason: VictoryReason.Diplomacy
+                    }
+                case Country.SONG:
+                    return {
+                        winner: SJPlayer.P2,
+                        reason: VictoryReason.Diplomacy
+                    }
+            }
+        }
+        if (G.jinn.emperor === null) {
+            return {
+                winner: SJPlayer.P1,
+                reason: VictoryReason.ZhiDaoHuangLong
+            }
+        }
     }
 }
 
