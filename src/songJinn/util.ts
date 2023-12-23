@@ -3924,9 +3924,11 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             log += '选择了一张作战计划';
                             break;
                         case 'endRound':
-                            log +=
-                                `结束第${arg}行动轮`
-                                ;
+                            if (typeof arg === 'number') {
+                                log += `结束第${arg}行动轮`;
+                            } else {
+                                log += `结束${phaseName(arg)}`
+                            }
                             break;
                         default:
                             log +=
@@ -4062,7 +4064,7 @@ export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
         ) {
             sum += 4 - 3;
             log.push(`|任用赵鼎 张浚|${sum}`);
-        
+
         }
     }
 

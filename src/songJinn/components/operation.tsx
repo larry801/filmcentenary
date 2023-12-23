@@ -102,7 +102,7 @@ export const Operation = ({
             if (ctx.phase === 'action') {
                 moves.endRound(G.round);
             } else {
-                moves.endRound();
+                moves.endRound(ctx.phase);
             }
         }}
         color={"primary"} variant={"contained"}>结束{phaseName(ctx.phase)}</Button>
