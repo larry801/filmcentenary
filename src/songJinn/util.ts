@@ -1620,7 +1620,7 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "在陕西六路或川峡四路放置吴璘。",
-        pre: (_G: SongJinnGame, _ctx: Ctx) => true,
+        pre: (G: SongJinnGame, _ctx: Ctx) => G.song.generals[SongGeneral.WuJie] !== GeneralStatus.TROOP,
         event: (G: SongJinnGame, _ctx: Ctx) => {
             moveGeneralToReady(G, SJPlayer.P1, SongGeneral.WuLin);
         }
