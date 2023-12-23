@@ -2035,6 +2035,7 @@ export const idToCard = {
         effectText: "放置1个在场的宋国将领到预备兵区或者宋国内政等级降低1级。【莫须有】结算时，金国内政等级视为提升1级的状态。",
         pre: (G: SongJinnGame, _ctx: Ctx) => true,
         event: (G: SongJinnGame, ctx: Ctx) => {
+            G.events.push(ActiveEvents.ZhangZhaoZhiZheng);
             G.pending.events.push(PendingEvents.ZhangZhaoZhiZheng);
             ctx.events?.setStage('confirmRespond')
         }
@@ -2293,6 +2294,7 @@ export const idToCard = {
             if (G.events.includes(ActiveEvents.XiJunQuDuan)) {
                 G.events.splice(G.events.indexOf(ActiveEvents.XiJunQuDuan), 1)
             }
+            G.events.push(ActiveEvents.QuDuanZhiSi);
         }
     },
     [JinnBaseCardID.J32]: {
