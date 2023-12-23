@@ -299,7 +299,7 @@ export const Operation = ({
             {
                 label: DevelopChoice.EMPEROR, value: DevelopChoice.EMPEROR,
                 disabled: G.song.emperor !== null
-                    || pub.usedDevelop > 0
+                    // || pub.usedDevelop > 0
                     || G.events.includes(ActiveEvents.JinBingLaiLe),
                 hidden: country !== Country.SONG
             },
