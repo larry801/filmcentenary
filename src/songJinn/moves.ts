@@ -186,18 +186,17 @@ export const checkProvince: LongFormMove = {
                 const songProv = G.song.provinces;
                 if (songProv.includes(prov)) {
                     log.push(`|${songProv}songProv`);
-                    songProv.splice(songProv.indexOf(prov));
+                    songProv.splice(songProv.indexOf(prov), 1);
                     log.push(`|${songProv}songProv`);
                 }
                 const jinnProv = G.jinn.provinces;
                 if (jinnProv.includes(prov)) {
                     log.push(`|${jinnProv}jinnProv`);
 
-                    jinnProv.splice(jinnProv.indexOf(prov));
+                    jinnProv.splice(jinnProv.indexOf(prov), 1);
                     log.push(`|${jinnProv}jinnProv`);
                 }
                 break;
-
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
