@@ -1047,13 +1047,15 @@ export const emptyRound: LongFormMove = {
 
 export const emperor: LongFormMove = {
     client: false,
-    move: (G, ctx, city: CityID) => {
+    move: (G: SongJinnGame, ctx: Ctx, city: CityID) => {
         if (ctx.playerID !== SJPlayer.P1 || G.song.emperor !== null) {
             return INVALID_MOVE;
         }
         G.song.emperor = city;
         if (ctx.phase === 'develop') {
-            ctx.events?.endTurn();
+            G.song.develop.forEach(c => G.song.discard.push(c));
+            G.song.develop = []
+            G.song.usedDevelop = totalDevelop(G, ctx, ctx.playerID);
         }
         if (ctx.phase === 'action') {
             ctx.events?.endStage();

@@ -3926,7 +3926,8 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             log += '选择了一张作战计划';
                             break;
                         case 'endRound':
-                            if (typeof arg === 'number') {
+                            const n = parseInt(arg);
+                            if (!isNaN(n)) {
                                 log += `结束第${arg}行动轮`;
                             } else {
                                 log += `结束${phaseName(arg)}`
