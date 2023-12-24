@@ -3029,10 +3029,9 @@ export const autoLoseCity = (G: SongJinnGame, ctx: Ctx, c?: CityID) => {
 export const marchDstStatus = (G: SongJinnGame, ctr: Country, dst: TroopPlace) => {
     const log = [`marchDstStatus`];
     let result: MarchDstStatus = MarchDstStatus.INVALID;
-    const oc = oppoCtr(ctr);
     const pub = ctr2pub(G, ctr);
-    log.push(`|${oc}|oc`);
-    const opt = getOpponentPlaceTroopByCtr(G, oc, dst);
+    log.push(`|${ctr}|ctr`);
+    const opt = getOpponentPlaceTroopByCtr(G, ctr, dst);
     if (opt !== null) {
         log.push(`|${getSimpleTroopText(G, opt)}|opt`);
     }
@@ -3085,7 +3084,7 @@ export const marchDstStatus = (G: SongJinnGame, ctr: Country, dst: TroopPlace) =
         if (isMountainPassID(dst)) {
             if (opt !== null) {
                 if (st !== null) {
-                    log.push(`|error`);
+                    log.push(`|only|one|troop|on|pass|error`);
                     result = MarchDstStatus.INVALID;
                 } else {
                     result = MarchDstStatus.SIEGE;
@@ -3106,7 +3105,9 @@ export const marchDstStatus = (G: SongJinnGame, ctr: Country, dst: TroopPlace) =
                 }
             }
         }
+    
     }
+    log.push(`|${JSON.stringify(result)}|result`);
     logger.warn(`${G.matchID}|${log.join('')}`);
     return result;
 }
