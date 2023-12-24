@@ -27,6 +27,7 @@ import Paper from "@material-ui/core/Paper";
 import {actualStage} from "../../game/util";
 import ChoiceDialog from "../../components/modals";
 import CheckBoxDialog from "./choice";
+import { TakeDamageDialog } from "./take-damage";
 
 
 export interface ICombatInfo {
@@ -75,7 +76,11 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive}: ICombatInfo) => 
                 hidden: false,
                 disabled: false
             }
-        })} defaultChoice={""} show={isActive}
+        })} defaultChoice={""} 
+        show={isActive 
+            // && actualStage(G, ctx) === 'retreat'
+            && actualStage(G, ctx) === 'react'
+        }
         title={"选择撤退目标区域"}
         popAfterShow={false}
         toggleText={"撤退"} initial={false}/>;
@@ -94,19 +99,6 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive}: ICombatInfo) => 
         show={isActive && actualStage(G, ctx) === 'takeDamage'} title={"选择要被消灭的部队"}
         toggleText={"消灭部队"} initial={false} country={troop.g}/>
 
-
-    const mockStandby = {g: troop.g, p: troop.p, c: troop.c, u: standbyUnits}
-    const mockReady = {g: troop.g, p: troop.p, c: troop.c, u: readyUnits}
-
-    const getAllEndurance = () => {
-        const all = [...emptyTroop.u]
-        for (let i = 0; i < emptyTroop.u.length; i++) {
-            all[i] = readyUnits[i] + standbyUnits[i];
-        }
-        const mockAll = {...emptyTroop, u: all};
-        return troopEndurance(G, mockAll);
-    }
-
     const adjustDice = (n: number) => {
         const newDice = count + n;
         if (newDice <= 1) {
@@ -120,6 +112,25 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive}: ICombatInfo) => 
         }
 
     }
+    const takdDamageDialog = <TakeDamageDialog
+    callback={(r: number[], s: number[]) => {
+        moves.takeDamage({
+            ready: r,
+            standby: s,
+            src: troop.p,
+            c: troop.g,
+            city: troop.c,
+        });
+    }}
+    G={G}
+    p={troop.p}
+    c={troop.c}
+    show={isActive && actualStage(G, ctx) === 'takeDamage'} 
+    country={troop.g}
+    initUnits={troop.u.map(u => 0)}
+    max={troop.u}
+    initial={false}
+/>
 
 
     return <>
@@ -159,8 +170,6 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive}: ICombatInfo) => 
             <div><label>金战斗牌：</label>{s.jinn.combatCard}</div>
             宋骰子<Dices pub={G.song}/>
             金骰子<Dices pub={G.jinn}/>
-            {takeDamageStandbyDialog}
-            {takeDamageReadyDialog}
             {pid !== null ? <>
                 {
                     (isActive && actualStage(G, ctx) === 'showCC') && <Button
@@ -189,27 +198,10 @@ export const CombatInfoPanel = ({G, ctx, pid, moves, isActive}: ICombatInfo) => 
                     toggleText={"请求确认"}
                     initial={true}/>;
 
-            </> : <></>}
             {retreatDialog}
-            {isActive && actualStage(G, ctx) === 'takeDamage' && <Button
-                fullWidth onClick={() => {
-                moves.takeDamage({
-                    src: troop.p,
-                    c: troop.g,
-                    city: troop.c,
-                    ready: readyUnits,
-                    standby: standbyUnits
-                });
-                setReadyUnits(emptyTroop.u);
-                setStandbyUnits(emptyTroop.u);
-            }} variant={"outlined"} color={"primary"}>
-                确认受创
-                {readyText}
-                ({troopEndurance(G, mockReady)})
-                {standbyText}
-                ({troopEndurance(G, mockStandby)})
-                ({getAllEndurance()})
-            </Button>}
+            {takdDamageDialog}
+            </> : <></>}
+            
             {pid !== null && isActive && <Grid item>
                 <Button key={'adjust-5'} onClick={() => adjustDice(-5)}>-5</Button>
                 <Button key={'adjust-1'} onClick={() => adjustDice(-1)}>-1</Button>
