@@ -50,6 +50,14 @@ export const Operation = ({
     const country = getCountryById(playerID);
     const remainDevelopPoint: number = remainDevelop(G, ctx, playerID);
 
+    React.useEffect(()=>{
+        if(player.chosenPlans.length > 0 && isActive && ctx.phase === 'showPlan'){
+            console.log(`operation|show chosen plan[${player.chosenPlans}]`);
+            moves.showPlan(player.chosenPlans);
+        }else{
+            console.log("operation|no chosen plan");
+        }
+    },[player.chosenPlans.length, isActive, ctx.phase])
 
     const chooseFirst = (choice: string) => {
         moves.chooseFirst({choice: choice, matchID: matchID});
