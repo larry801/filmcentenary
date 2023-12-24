@@ -267,7 +267,7 @@ export const getPlaceGeneral = (G: SongJinnGame, pid: PlayerID, place: TroopPlac
             generals.push(idx as General);
         }
     })
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return generals;
 }
 export const optionToActualDst = (dst: string): TroopPlace => {
@@ -281,10 +281,10 @@ export const isZhouXing = (t: Troop) => {
     return t.u[3] > 0;
 }
 
-
 export const getRetreatDst = (G: SongJinnGame, t: Troop): TroopPlace[] => {
     return getMarchAdj(G, t.p);
 }
+
 export const getMarchDst = (G: SongJinnGame, t: Troop): TroopPlace[] => {
     const adj = getMarchAdj(G, t.p);
     let res: TroopPlace[] = [...adj];
@@ -3043,6 +3043,7 @@ export const marchDstStatus = (G: SongJinnGame, ctr: Country, dst: TroopPlace) =
     if (isRegionID(dst)) {
         const cid = getRegionById(dst).city;
         if (cid === null) {
+            log.push('|no city');
             if (opt !== null) {
                 if (st !== null) {
                     result = MarchDstStatus.HUI_ZHAN;
@@ -3063,7 +3064,7 @@ export const marchDstStatus = (G: SongJinnGame, ctr: Country, dst: TroopPlace) =
         } else {
             if (opt !== null) {
                 if (st !== null) {
-                    result = MarchDstStatus.FIELD_OR_NOT;
+                    result = MarchDstStatus.SIEGE_ATTACK;
                 } else {
                     if (troopEndurance(G, opt) === 0) {
                         result = MarchDstStatus.XIAO_MIE;
@@ -6082,7 +6083,7 @@ export const getJinnPower = (G: SongJinnGame): number => {
     if (countedProvince.includes(ProvinceID.YANJINGLU)) {
         countedProvince.splice(countedProvince.indexOf(ProvinceID.YANJINGLU), 1);
     }
-    log.push(`|yangjing|${countedProvince.length}`);
+    log.push(`|yanjing|${countedProvince.length}`);
 
     if (!G.events.includes(ActiveEvents.XiangHaiShangFaZhan) &&
         countedProvince.includes(ProvinceID.FUJIANLU)
