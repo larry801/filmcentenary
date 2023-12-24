@@ -3107,7 +3107,7 @@ export const marchDstStatus = (G: SongJinnGame, ctr: Country, dst: TroopPlace) =
         }
     }
     return result;
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
 }
 
 export const removeNoTroopGeneralByCtr = (G: SongJinnGame, ctx: Ctx, p: TroopPlace, ctr: Country) => {
@@ -5453,6 +5453,7 @@ export function unitSiegeMeleeStr(G: SongJinnGame, troop: Troop) {
         }
     }
     log.push(`|${JSON.stringify(unitMelee)}|unitMelee`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return unitMelee;
 }
 
@@ -5504,6 +5505,7 @@ export function unitMeleeStr(G: SongJinnGame, troop: Troop) {
                 break;
         }
     }
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return unitMelee;
 }
 
@@ -5776,7 +5778,7 @@ export function troopMelee(G: SongJinnGame, troop: Troop): number {
         melee += troop.u[i] * unitMelee[i]
     }
     log.push(`|${melee}|melee`);
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return melee;
 }
 
@@ -6045,7 +6047,7 @@ export const checkColonyCity = (G: SongJinnGame, c: CityID) => {
             result = true;
         }
     }
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
     return result;
 }
 export const checkControlCity = (G: SongJinnGame, pid: PlayerID, c: CityID) => {
