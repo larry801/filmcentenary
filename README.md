@@ -1,6 +1,6 @@
-# 电影百年网页版
+# 电影百年/宋金战争 网页版
 
-用(boardgame.io)[https://boardgame.io]框架实现的桌游电影百年网页版
+用[boardgame.io](https://boardgame.io)框架实现的桌游网页版
 
 ## 启动
 
