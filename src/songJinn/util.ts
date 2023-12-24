@@ -3042,6 +3042,7 @@ export const marchDstStatus = (G: SongJinnGame, ctr: Country, dst: TroopPlace) =
     }
     if (isRegionID(dst)) {
         const cid = getRegionById(dst).city;
+        log.push(`|cid|${JSON.stringify(cid)}`);
         if (cid === null) {
             log.push('|no city');
             if (opt !== null) {
@@ -3106,8 +3107,8 @@ export const marchDstStatus = (G: SongJinnGame, ctr: Country, dst: TroopPlace) =
             }
         }
     }
-    return result;
     logger.warn(`${G.matchID}|${log.join('')}`);
+    return result;
 }
 
 export const removeNoTroopGeneralByCtr = (G: SongJinnGame, ctx: Ctx, p: TroopPlace, ctr: Country) => {
@@ -3151,10 +3152,10 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
     const pub = pid2pub(G, pid);
     const ci = G.combat;
     log.push(`|${JSON.stringify(t)}t`);
+    log.push(`|${getSimpleTroopText(G, t)}t`);
+    log.push(`|${ci.type}|ci.type`);
     removeUnitByCountryPlace(G, t.u, t.g, t.p);
     removeNoTroopGeneralByCtr(G, ctx, t.p, t.g);
-
-    log.push(`|${ci.type}|ci.type`);
     switch (ci.type) {
         case CombatType.RESCUE:
         case CombatType.SIEGE:
@@ -3190,7 +3191,7 @@ export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerI
     const log = [`removeUnitByPlace|${placeToStr(place)}|${unitsToString(units)}`]
     const pub = pid2pub(G, pid);
     const filtered = pub.troops.filter(t => t.p === place);
-    log.push(`|filtered${(filtered)}`);
+    log.push(`|${JSON.stringify(filtered)}|filtered`);
     if (filtered.length > 0) {
         log.push(`|hasTroop`);
         if (filtered.length > 1) {
@@ -3211,9 +3212,9 @@ export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerI
         return null;
     }
 }
+
 export const removeUnitByIdx = (G: SongJinnGame, units: number[], pid: PlayerID, idx: number) => {
     const log = [`removeUnitByIdx|${units}|${pid}|${idx}|${unitsToString(units)}`]
-
     const pub = pid2pub(G, pid);
     log.push(`|${pid}|pid`);
     const t = pub.troops[idx];
@@ -3488,7 +3489,7 @@ export const policyDown = (G: SongJinnGame, a: number) => {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const heYiChange = (G: SongJinnGame, ctx: Ctx, c: CityID) => {
-    const log = [``];
+    const log = [`heYiChange`];
     const songTroop: Troop | null = getSongTroopByCity(G, c);
     if (songTroop !== null) {
         for (let i = 0; i < songTroop.u.length; i++) {
@@ -3520,7 +3521,7 @@ export const heYiChange = (G: SongJinnGame, ctx: Ctx, c: CityID) => {
                 });
             } else {
                 if (G.jinn.standby[6] > 0) {
-                    log.push(`|two`);
+                    log.push(`|2Qi`);
                     G.jinn.troops.push({
                         p: city.region,
                         c: c,
@@ -3554,7 +3555,9 @@ export const heYiChange = (G: SongJinnGame, ctx: Ctx, c: CityID) => {
             });
         }
     }
-    doLoseCity(G, ctx, SJPlayer.P1, c, control);
+    if(control) {
+        doLoseCity(G, ctx, SJPlayer.P1, c, control);
+    }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
