@@ -9,6 +9,18 @@
             "name": "Run test",
             "request": "launch",
             "type": "node-terminal"
+        },
+        {
+            "command": "yarn start",
+            "name": "Start vite dev",
+            "request": "launch",
+            "type": "node-terminal"
+        },
+        {
+            "command": "yarn serve",
+            "name": "Start serve",
+            "request": "launch",
+            "type": "node-terminal"
         }
     ]
 }

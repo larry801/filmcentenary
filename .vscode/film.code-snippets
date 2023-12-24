@@ -1,0 +1,41 @@
+{
+	// Place your filmcentenary workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
+	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
+	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 
+	// used to trigger the snippet and the body will be expanded and inserted. Possible variables are: 
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. 
+	// Placeholders with the same ids are connected.
+	// Example:
+	"add to log": {
+		"scope": "javascript,typescript",
+		"prefix": "ll",
+		"body": [
+			"log.push('$1');$0"
+		],
+		"description": "Add to log"
+	},
+	"write log": {
+		"scope": "javascript,typescript",
+		"prefix": "rl",
+		"body": [
+			"logger.debug(`${G.matchID}|${log.join('')}`);$0"
+		],
+		"description": "Output log"
+	},
+	"new log": {
+		"scope": "javascript,typescript",
+		"prefix": "nl",
+		"body": [
+			"const log =[`|$1`]);$0"
+		],
+		"description": "New log"
+	},
+	"JSON log": {
+		"scope": "javascript,typescript",
+		"prefix": "lj",
+		"body": [
+			"log.push(`|${JSON.stringify($1)}|$1`);$0"
+		],
+		"description": "Add JSON log"
+	},
+}
