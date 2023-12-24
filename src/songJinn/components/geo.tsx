@@ -124,7 +124,7 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                                     color = green.A700;
                                                     break;
                                                 case TerrainType.HILLS:
-                                                    color = yellow.A700;
+                                                    color = '#9c7d44';
                                                     break;
                                                 case TerrainType.MOUNTAINS:
                                                     color = orange.A700
