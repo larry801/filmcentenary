@@ -16,7 +16,7 @@ export const ChatMessage = ({sendChatMessage, chatMessages, getPlayerName, moves
     const [message, setMessage] = useState('');
 
     const messages = chatMessages.map((m) => `${getPlayerName(m.sender)}:${JSON.stringify(m.payload)}`)
-        .join('\n');
+        .reverse().join('\n');
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setMessage(event.target.value);
