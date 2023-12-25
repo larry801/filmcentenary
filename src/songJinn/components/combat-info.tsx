@@ -130,17 +130,33 @@ export const CombatInfoPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) =
         initial={false}
     />
 
-    React.useEffect(()=>{
-        if(isActive && actualStage(G, ctx) === 'showCC'){
-            if(pid !== null) {
+    React.useEffect(() => {
+        if (isActive && actualStage(G, ctx) === 'showCC') {
+            if (pid !== null) {
                 moves.showCC(G.player[pid as SJPlayer].combatCard)
-            }else{
+            } else {
                 console.log('pid is null');
             }
-        }else{
+        } else {
             console.log('not in stage');
         }
-    },[isActive, ctx.activePlayers])
+    }, [isActive, ctx.activePlayers])
+
+    React.useEffect(() => {
+        if (isActive && actualStage(G, ctx) === 'combatCard') {
+            if (pid !== null) {
+                if (G.player[pid as SJPlayer].hand.filter(c => sjCardById(c).combat).length === 0) {
+                    moves.combatCard([])
+                } else {
+                    console.log('hasCC');
+                }
+            } else {
+                console.log('pid is null');
+            }
+        } else {
+            console.log('not in stage');
+        }
+    }, [isActive, ctx.activePlayers])
 
     return <>
         <Grid container item xs={12}><Paper>
@@ -175,8 +191,8 @@ export const CombatInfoPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) =
                 </>}
             <div><label>宋未处理伤害：</label>{s.song.damageLeft}</div>
             <div><label>金未处理伤害：</label>{s.jinn.damageLeft}</div>
-            <div><label>宋战斗牌：</label>{s.song.combatCard.map(c=>sjCardById(c).name)}</div>
-            <div><label>金战斗牌：</label>{s.jinn.combatCard.map(c=>sjCardById(c).name)}</div>
+            <div><label>宋战斗牌：</label>{s.song.combatCard.map(c => sjCardById(c).name)}</div>
+            <div><label>金战斗牌：</label>{s.jinn.combatCard.map(c => sjCardById(c).name)}</div>
             宋骰子<Dices pub={G.song} />
             金骰子<Dices pub={G.jinn} />
             {pid !== null ? <>
