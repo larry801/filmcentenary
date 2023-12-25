@@ -47,9 +47,9 @@ export const ShareLink = ({matchID, player, numPlayer, gameName}: ShareLinkProps
         </IconButton>
         <Typography>{i18n.lobby.shareLink}</Typography>
         {Player.P0 !== player && <a href={p0URL}>{matchID}P0</a>}
-        {Player.P1 !== player && <a href={p0URL}>{matchID}P0</a>}
-        {Player.P2 !== player && numPlayer > 2 && <a href={p0URL}>{matchID}P0</a>}
-        {Player.P3 !== player && numPlayer > 3 && <a href={p0URL}>{matchID}P0</a>}
+        {Player.P1 !== player && <a href={p1URL}>{matchID}P1</a>}
+        {Player.P2 !== player && numPlayer > 2 && <a href={p0URL}>{matchID}P2</a>}
+        {Player.P3 !== player && numPlayer > 3 && <a href={p0URL}>{matchID}P3</a>}
         <a href={urlPrefix + Player.SPECTATE}>{i18n.playerName.spectator}</a>
     </>
 }
