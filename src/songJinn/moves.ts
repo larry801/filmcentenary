@@ -151,7 +151,12 @@ export const modifyGameState: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        delete arg.secret;
+        if (arg === undefined) {
+            return INVALID_MOVE;
+        }
+        if (arg.secret !== undefined) {
+            delete arg.secret;
+        }
         if (arg.player !== undefined) {
             delete arg.player[oppoPid(pid)];
         }
