@@ -17,6 +17,13 @@ export default defineConfig({
                     ) {
                         return '@react-router';
                     }
+                    if (
+                        id.includes('visx') ||
+                        id.includes('d3') ||
+                        id.includes('material')
+                    ) {
+                        return 'visx';
+                    } 
                 },
             }
         }
@@ -47,6 +54,7 @@ export default defineConfig({
     },
 
     server: {
+        cors: true,
         host: '0.0.0.0' // debug in lan
     }
 })
