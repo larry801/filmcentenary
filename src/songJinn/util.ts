@@ -3105,7 +3105,7 @@ export const marchDstStatus = (G: SongJinnGame, ctr: Country, dst: TroopPlace) =
                 }
             }
         }
-    
+
     }
     log.push(`|${JSON.stringify(result)}|result`);
     logger.warn(`${G.matchID}|${log.join('')}`);
@@ -3556,7 +3556,7 @@ export const heYiChange = (G: SongJinnGame, ctx: Ctx, c: CityID) => {
             });
         }
     }
-    if(control) {
+    if (control) {
         doLoseCity(G, ctx, SJPlayer.P1, c, control);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
@@ -3829,7 +3829,11 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             log += `建立大齐 齐控制${arg.join(',')}`;
                             break;
                         case 'showPlan':
-                            log += `展示${arg.map((p: PlanID) => getPlanById(p).name)}`;
+                            if (arg.length > 0) {
+                                log += `展示${arg.map((p: PlanID) => getPlanById(p).name)}`;
+                            } else {
+                                log += `没有作战计划可选`;
+                            }
                             break;
                         case 'loseProvince':
                             log += `丢失了${arg.province}${arg.opponent ? "对手占领" : ""}`;

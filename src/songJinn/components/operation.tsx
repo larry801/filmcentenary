@@ -51,13 +51,25 @@ export const Operation = ({
     const remainDevelopPoint: number = remainDevelop(G, ctx, playerID);
 
     React.useEffect(()=>{
-        if(player.chosenPlans.length > 0 && isActive && ctx.phase === 'showPlan'){
+        if(isActive && ctx.phase === 'diplomacy'){
+            console.log(`operation|auto show letter[${player.lod}]`);
+            moves.showLetters({
+                nations: pub.nations,
+                letters: player.lod
+            })
+        }else{
+            console.log("operation|not in phase");
+        }
+    },[isActive, ctx.phase])
+
+    React.useEffect(()=>{
+        if(isActive && ctx.phase === 'showPlan'){
             console.log(`operation|show chosen plan[${player.chosenPlans}]`);
             moves.showPlan(player.chosenPlans);
         }else{
             console.log("operation|no chosen plan");
         }
-    },[player.chosenPlans.length, isActive, ctx.phase])
+    },[isActive, ctx.phase])
 
     const chooseFirst = (choice: string) => {
         moves.chooseFirst({choice: choice, matchID: matchID});
