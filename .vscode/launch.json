@@ -5,6 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch Program",
+            "program": "${workspaceFolder}/genTest.js",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
             "command": "yarn jest",
             "name": "Run test",
             "request": "launch",
@@ -21,6 +31,6 @@
             "name": "Start serve",
             "request": "launch",
             "type": "node-terminal"
-        }
+        },
     ]
 }

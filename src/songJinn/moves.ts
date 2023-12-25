@@ -154,17 +154,11 @@ export const modifyGameState: LongFormMove = {
         if (arg === undefined) {
             return INVALID_MOVE;
         }
-        if (arg.secret !== undefined) {
-            delete arg.secret;
-        }
-        if (arg.player !== undefined) {
-            delete arg.player[oppoPid(pid)];
-        }
         logger.info(`${G.matchID}|p${pid}.moves.modifyGameState(${JSON.stringify(arg)})`);
-        log.push(`|${JSON.stringify(arg)}|arg`);
-        log.push(`|${JSON.stringify(G)}|G`);
+        log.push(`|${JSON.stringify(arg)}|arg\n`);
+        log.push(`|${JSON.stringify(G)}|G\n`);
         G = { ...G, ...arg }
-        log.push(`|${JSON.stringify(G)}|G`);
+        log.push(`|${JSON.stringify(G)}|G\n`);
         logger.debug(`${G.matchID}|${log.join('')}`);
     },
     client: false
@@ -1231,11 +1225,14 @@ export const combatCard: LongFormMove = {
         }
         const player = playerById(G, pid);
         const log = [`combatCard|${args}`];
+        log.push(`|${JSON.stringify(player.hand)}|player.hand`);
+        const validCC = args.filter(
+            c => player.hand.includes(c) &&
+                sjCardById(c).combat
+        );
+        log.push(`|${JSON.stringify(validCC)}|validCC`);
         if (
-            args.filter(
-                c => player.hand.includes(c) &&
-                    sjCardById(c).combat
-            ).length === args.length
+            validCC.length === args.length
         ) {
             args.forEach(c => {
                 if (player.hand.includes(c)) {
@@ -1534,13 +1531,17 @@ export const showCC: LongFormMove = {
                     const st = getTroopByCountryPlace(G, Country.SONG, G.combat.song.troop.p);
                     if (st !== null) {
                         if (st.u[0] <= 0) {
+                            log.push(`|removeGong`);
                             removeUnitByCountryPlace(G, [0, 1, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
                         } else {
                             if (st.u[1] <= 0) {
+                                log.push(`|removeBu`);
                                 removeUnitByCountryPlace(G, [1, 0, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
                             } else {
                                 G.pending.events.push(PendingEvents.HuFuXiangBing);
                                 changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P2);
+                                logger.debug(`${G.matchID}|${log.join('')}`);
+                                return;
                             }
                         }
                     }
