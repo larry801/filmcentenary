@@ -609,16 +609,20 @@ export const getNationAdj = (pid: NationID): TroopPlace[] => {
         case NationID.XiXia:
             return [
                 RegionID.R01, RegionID.R02DaTonFu,
-                RegionID.R09,
-                RegionID.R29, RegionID.R30, RegionID.R31, RegionID.R32
+                RegionID.R09, RegionID.R29,
+                RegionID.R30, RegionID.R31,
+                RegionID.R32, NationID.XiLiao
             ];
         case NationID.TuBo:
             return [
                 RegionID.R29, RegionID.R33,
-                RegionID.R51, RegionID.R53, RegionID.R54,
+                RegionID.R51, RegionID.R53,
+                RegionID.R54, NationID.XiXia,
+                NationID.TuBo
             ]
         case NationID.DaLi:
-            return [RegionID.R53, RegionID.R57, RegionID.R58]
+            return [RegionID.R53, RegionID.R57,
+            RegionID.R58, NationID.TuBo]
         case NationID.GaoLi:
             return [RegionID.R23, RegionID.R06];
     }
@@ -3694,17 +3698,53 @@ export const getMoveText = (l: LogEntry): string => {
 }
 
 export const canSendLetter = (G: SongJinnGame, ctr: Country, n: NationID) => {
-
-
-    switch (n) {
-        case NationID.XiLiao:
-            checkCtrCity(G, ctr, CityID.DaTong);
-            return checkCtrRegion(G, ctr, RegionID.R02DaTonFu)
-            break;
-
-        default:
-            break;
+    let res = false;
+    const log = [`canSendLetter|${ctr}|${n}`];
+    if (G.removedNation.includes(n)) {
+        log.push(`|removed`);
+    } else {
+        const adjReg = getNationAdj(n);
+        adjReg.forEach(r => {
+            const t = getTroopByCountryPlace(G, ctr, r);
+            if (t !== null) {
+                log.push(`|${getSimpleTroopText(G, t)}|t`);
+                res = true;
+            };
+            if (isRegionID(r)) {
+                const city = getRegionById(r).city;
+                if (city !== null) {
+                    if (checkCtrCity(G, ctr, city)) {
+                        log.push(`|${JSON.stringify(city)}|city`);
+                        res = true;
+                    }
+                }
+            }
+        });
+        if (ctr === Country.SONG && n === NationID.GaoLi) {
+            if (
+                G.events.includes(ActiveEvents.BuJianLaiShi)
+            ) {
+                log.push(`|BuJianLaiShi`);
+                res = false;
+            } else {
+                if (
+                    G.events.includes(ActiveEvents.XiangHaiShangFaZhan)
+                ) {
+                    if (getTroopByCountryPlace(G, ctr, RegionID.R77) !== null) {
+                        log.push(`|PingJiangFu`);
+                        res = true;
+                    } else {
+                        if (checkCtrCity(G, Country.SONG, CityID.MinXian)) {
+                            log.push(`|MinXian`);
+                            res = true;
+                        }
+                    }
+                }
+            }
+        }
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return res;
 }
 
 export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
@@ -4262,7 +4302,7 @@ export const wuLin = (G: SongJinnGame, ctx: Ctx) => {
 }
 
 export const countDice = (G: SongJinnGame, ctr: Country): number => {
-    const log = [`count${ctr}Dice`];
+    const log = [`countDice|${ctr}`];
     const ci = G.combat;
     const terrain = getTerrainTypeByPlace(ciAtkTroop(G));
 

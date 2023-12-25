@@ -10,7 +10,7 @@ import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import Typography from "@material-ui/core/Typography";
 
-import {getCardLabel, getCityText, getCountryById, getFullDesc, playerById, sjCardById} from "../util";
+import {canSendLetter, getCardLabel, getCityText, getCountryById, getFullDesc, pid2ctr, playerById, sjCardById} from "../util";
 import {Fab} from "@material-ui/core";
 import {actualStage} from "../../game/util";
 
@@ -62,8 +62,8 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
                     return {
                         label: c,
                         value: c,
-                        disabled: false,
-                        hidden: false,
+                        disabled:  !canSendLetter(G, pid2ctr(pid),c),
+                        hidden: G.removedNation.includes(c),
                     }
                 })}
             defaultChoice={Nations[0]}
