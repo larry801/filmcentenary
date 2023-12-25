@@ -273,7 +273,7 @@ const idToRegion = {[RegionID.R01]:
             name:"登州",
             terrain:TerrainType.HILLS,
             province:ProvinceID.JINGDONGLIANGLU,
-            land:[RegionID.R23],
+            land:[RegionID.R22],
             water:[],
             pass:[],
             city:null
