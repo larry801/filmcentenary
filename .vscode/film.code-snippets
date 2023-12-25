@@ -10,7 +10,7 @@
 		"scope": "javascript,typescript",
 		"prefix": "ll",
 		"body": [
-			"log.push('$1');$0"
+			"log.push(`|$1`);$0"
 		],
 		"description": "Add to log"
 	},
@@ -26,7 +26,7 @@
 		"scope": "javascript,typescript",
 		"prefix": "nl",
 		"body": [
-			"const log =[`|$1`]);$0"
+			"const log =[`$1`];$0"
 		],
 		"description": "New log"
 	},
