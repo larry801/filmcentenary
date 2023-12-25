@@ -175,8 +175,8 @@ export const CombatInfoPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) =
                 </>}
             <div><label>宋未处理伤害：</label>{s.song.damageLeft}</div>
             <div><label>金未处理伤害：</label>{s.jinn.damageLeft}</div>
-            <div><label>宋战斗牌：</label>{s.song.combatCard}</div>
-            <div><label>金战斗牌：</label>{s.jinn.combatCard}</div>
+            <div><label>宋战斗牌：</label>{s.song.combatCard.map(c=>sjCardById(c).name)}</div>
+            <div><label>金战斗牌：</label>{s.jinn.combatCard.map(c=>sjCardById(c).name)}</div>
             宋骰子<Dices pub={G.song} />
             金骰子<Dices pub={G.jinn} />
             {pid !== null ? <>
