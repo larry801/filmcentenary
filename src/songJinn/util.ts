@@ -6199,7 +6199,7 @@ export function getSimpleTroopText(G: SongJinnGame, t: Troop) {
     if (general.length > 0) {
         text += getPlaceCountryGeneralNames(G, t.g, t.p);
     }
-    text += '\n';
+    // text += '\n';
     text += `|${unitsToString(t.u)}`;
     // text += `${troopEndurance(G, t)}`
     return text;

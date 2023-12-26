@@ -7,9 +7,9 @@ import {MapData} from "../constant/map";
 import {Text} from "@visx/text";
 import {getRegionById} from "../constant/regions";
 import {RegionID, SongJinnGame, TerrainType} from "../constant/general";
-import {green, orange, red, yellow, purple} from "@material-ui/core/colors";
+import {green, orange, red, blue, purple} from "@material-ui/core/colors";
 import {
-    centroid,  getJinnTroopByPlace, getSimpleTroopText,
+    centroid, getJinnTroopByPlace, getSimpleTroopText,
     getSongTroopByPlace,
     getTroopText, placeToStr,
 } from "../util";
@@ -31,8 +31,6 @@ interface FeatureShape {
     properties: { name: string };
 }
 
-export const background = '#252b7e';
-
 
 const world = MapData as {
     type: 'FeatureCollection';
@@ -42,6 +40,8 @@ const world = MapData as {
 export function GeoMap({width, height, G}: GeoCustomProps) {
     const [detail, setDetail] = useState(false);
     const initialScale = 2000;
+    const moveStep = 50;
+
     return width < 10 ? null : (
         <>
             <Zoom<SVGSVGElement>
@@ -66,19 +66,17 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                         <svg
                             width={width}
                             height={height}
-                            className={zoom.isDragging ? 'dragging' : undefined}
-                            ref={zoom.containerRef}
-                            style={{touchAction: 'none'}}
                         >
                             <rect x={0} y={0} width={width} height={height} fill={'#fff'} rx={14}/>
                             <CustomProjection<FeatureShape>
+                                key={'project-song-jinn'}
                                 projection={geoMercator}
                                 data={world.features}
                                 scale={zoom.transformMatrix.scaleX}
                                 translate={[zoom.transformMatrix.translateX, zoom.transformMatrix.translateY]}
                             >
                                 {(customProjection) => (
-                                    <g>
+                                    <g key={`g-projection`}>
                                         {customProjection.features.map(({feature, path}, i) => {
                                             const projection = geoMercator();
 
@@ -90,32 +88,20 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                                 (regionCenter);
 
                                             const region = getRegionById(feature.id - 1);
-                                            // if(region.id === chosenRegion){
-                                            //     setCenter(regionCenter);
-                                            // }
-                                            let text = '';
+
                                             let songTroop = getSongTroopByPlace(G, region.id);
-                                            if(songTroop === null && region.city !== null){
+                                            if (songTroop === null && region.city !== null) {
                                                 songTroop = getSongTroopByPlace(G, region.city);
                                             }
                                             let jinnTroop = getJinnTroopByPlace(G, region.id);
-                                            if(jinnTroop === null && region.city !== null){
+                                            if (jinnTroop === null && region.city !== null) {
                                                 jinnTroop = getJinnTroopByPlace(G, region.city);
                                             }
-                                            if(detail){
-                                                text += songTroop === null ? '' : getTroopText(G, songTroop);
-                                                text += '\n';
-                                                text += jinnTroop === null ? '' : getTroopText(G, jinnTroop);
-                                            }else{
-                                                text += songTroop === null ? '' : getSimpleTroopText(G, songTroop);
-                                                text += '\n';
-                                                text += jinnTroop === null ? '' : getSimpleTroopText(G, jinnTroop);
-                                            }
                                             let stroke = '#fff';
-                                            if(jinnTroop === null && songTroop !== null){
+                                            if (jinnTroop === null && songTroop !== null) {
                                                 stroke = '#fff000'
                                             }
-                                            if(songTroop === null && jinnTroop !== null){
+                                            if (songTroop === null && jinnTroop !== null) {
                                                 stroke = red.A400
                                             }
                                             let color = '#fff000';
@@ -137,17 +123,17 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                                     break;
                                             }
                                             return (
-                                                <>
+                                                <g key={`map-div-${i}`}>
                                                     <path
                                                         key={`map-feature-${i}`}
                                                         d={path || ''}
                                                         fill={color}
                                                         stroke={stroke}
+                                                        strokeOpacity={stroke === '#fff' ? 0.2 : 0.5}
                                                         fillOpacity={0.4}
-                                                        strokeWidth={4}
-                                                        strokeOpacity={0.5}
+                                                        strokeWidth={stroke === '#fff' ? 3 : 5}
                                                         onClick={() => {
-                                                            // if (events) alert(`Clicked: ${feature.properties.name} (${feature.id})`);
+                                                            console.log(`Clicked: ${feature.properties.name} (${feature.id})`);
                                                         }}
                                                     />
                                                     {projected !== null && <Text
@@ -158,33 +144,67 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
                                                         textAnchor={'middle'}
                                                         width={8}
                                                     >
-                                                        {(region.city !== null ? (region.city + placeToStr(region.id)) : region.name) + text}
+                                                        {(region.city !== null ? (region.city + placeToStr(region.id)) : region.name)}
                                                     </Text>}
-                                                </>
+                                                    {projected !== null && songTroop !== null &&
+                                                        <Text
+                                                            key={`map-text-troop-${i}`}
+                                                            x={projected[0]}
+                                                            y={projected[1]}
+                                                            dy={10}
+                                                            fill={red.A200}
+                                                            fontSize={9}
+                                                            textAnchor={'middle'}
+                                                            width={8}
+                                                        >
+                                                            {detail ? getTroopText(G, songTroop) : getSimpleTroopText(G, songTroop)}
+                                                        </Text>}
+                                                    {projected !== null && jinnTroop !== null &&
+                                                        <Text
+                                                            key={`map-text-troop-${i}`}
+                                                            x={projected[0]}
+                                                            y={projected[1]}
+                                                            dy={songTroop !== null ? 24 : 10}
+                                                            fill={blue.A400}
+                                                            fontSize={9}
+                                                            textAnchor={'middle'}
+                                                            width={8}
+                                                        >
+                                                            {detail ? getTroopText(G, jinnTroop) : getSimpleTroopText(G, jinnTroop)}
+                                                        </Text>}
+                                                </g>
                                             )
                                         })}
                                     </g>
                                 )}
                             </CustomProjection>
 
-                            {/** intercept all mouse events */}
-                            <rect
-                                x={0}
-                                y={0}
-                                width={width}
-                                height={height}
-                                rx={14}
-                                fill="transparent"
-                                onTouchStart={zoom.dragStart}
-                                onTouchMove={zoom.dragMove}
-                                onTouchEnd={zoom.dragEnd}
-                                onMouseDown={zoom.dragStart}
-                                onMouseMove={zoom.dragMove}
-                                onMouseUp={zoom.dragEnd}
-                                onMouseLeave={() => {
-                                    if (zoom.isDragging) zoom.dragEnd();
-                                }}
-                            />
+                            <circle cx="50" cy="550" r="40" fill="#e0e0e0" stroke="#000" strokeWidth="2"/>
+                            <circle cx="50" cy="520" r="12" fill="#007BFF" onClick={() => {
+                                zoom.setTranslate({
+                                    translateX: zoom.transformMatrix.translateX,
+                                    translateY: zoom.transformMatrix.translateY + moveStep
+                                });
+                            }}
+                                    style={{cursor: 'pointer'}}/>
+                            <circle cx="50" cy="580" r="12" fill="#007BFF" onClick={() =>
+                                zoom.setTranslate({
+                                    translateX: zoom.transformMatrix.translateX,
+                                    translateY: zoom.transformMatrix.translateY - moveStep
+                                })}
+                                    style={{cursor: 'pointer'}}/>
+                            <circle cx="20" cy="550" r="12" fill="#007BFF" onClick={() =>
+                                zoom.setTranslate({
+                                    translateX: zoom.transformMatrix.translateX + moveStep,
+                                    translateY: zoom.transformMatrix.translateY
+                                })}
+                                    style={{cursor: 'pointer'}}/>
+                            <circle cx="80" cy="550" r="12" fill="#007BFF" onClick={() =>
+                                zoom.setTranslate({
+                                    translateX: zoom.transformMatrix.translateX - moveStep,
+                                    translateY: zoom.transformMatrix.translateY
+                                })}
+                                    style={{cursor: 'pointer'}}/>
                         </svg>
                         <div className="controls">
                             <button
@@ -214,12 +234,6 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
             <style>{`
         .container {
           position: relative;
-        }
-        svg {
-          cursor: grab;
-        }
-        svg.dragging {
-          cursor: grabbing;
         }
         .btn {
           margin: 0;
