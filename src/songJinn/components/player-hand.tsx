@@ -10,7 +10,17 @@ import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import Typography from "@material-ui/core/Typography";
 
-import {canSendLetter, getCardLabel, getCityText, getCountryById, getFullDesc, pid2ctr, playerById, sjCardById} from "../util";
+import {
+    canSendLetter,
+    getCardLabel,
+    getCityText,
+    getCountryById,
+    getFullDesc,
+    heYiCities,
+    pid2ctr,
+    playerById,
+    sjCardById
+} from "../util";
 import {Fab} from "@material-ui/core";
 import {actualStage} from "../../game/util";
 
@@ -49,7 +59,7 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
                     moves.freeHeYi(c);
                 }
             }}
-            choices={G.song.cities.map(c => {
+            choices={heYiCities(G).map(c => {
                 return {label: getCityText(c), value: c, hidden: false, disabled: false}
             })} defaultChoice={""} show={isActive && (heYiChosen || actualStage(G, ctx) === 'freeHeYi')}
             title={"选择要割让的城市"} toggleText={"割让城市"}
