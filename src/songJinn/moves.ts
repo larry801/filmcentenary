@@ -14,6 +14,7 @@ import {
     isNationID,
     isRegionID,
     JinnBaseCardID,
+    JinnGeneral,
     LetterOfCredence,
     NationID,
     PendingEvents,
@@ -243,7 +244,7 @@ interface IMarchArgs {
 export const march: LongFormMove = {
     client: false,
     move: (G: SongJinnGame, ctx: Ctx, arg: IMarchArgs) => {
-        const {src, dst, country, generals, units} = arg;
+        const {src, dst, country, generals, units, mid} = arg;
         const pid = ctx.playerID;
         logger.info(`p${pid}.moves.march(${JSON.stringify(arg)})`);
         if (pid === undefined) {
@@ -291,9 +292,13 @@ export const march: LongFormMove = {
                 const cid = getRegionById(src).city;
                 if (cid !== null) {
                     const city = getCityById(cid);
-                    if (t.g === Country.JINN && city.colonizeLevel > G.colony) {
-                        log.push(`|not|colonized`);
-                        doLoseCity(G, ctx, SJPlayer.P2, cid, G.song.provinces.includes(city.province));
+                    if (t.g === Country.JINN && t.c !== null){
+                        if(city.colonizeLevel > G.colony){
+                            log.push(`|not|colonized`);
+                            doLoseCity(G, ctx, SJPlayer.P2, cid, G.song.provinces.includes(city.province));
+                        } else {
+                            log.push(`|colonized`);
+                        }
                     }
                     const oppoCityTroop = getOpponentCityTroopByCtr(G, t.g, cid);
                     if (oppoCityTroop !== null) {
@@ -305,6 +310,37 @@ export const march: LongFormMove = {
         } else {
             log.push(`|part`);
             doMoveTroopPart(G, src, newDst, ctr, units, generals);
+        }
+
+        if (mid !== undefined) {
+            const oppoMidT = getOpponentPlaceTroopByCtr(G, t.g, mid);
+            if (oppoMidT !== null) {
+                log.push(`|${getSimpleTroopText(G, oppoMidT)}|oppoMidT`);
+                const midEn = troopEndurance(G, oppoMidT);
+                if (midEn !== 0) {
+                    log.push(`|cannot|combat|on|mid`);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return INVALID_MOVE;
+                } else {
+                    removeZeroTroop(G, ctx, oppoMidT);
+                }
+            } else {
+                if (isRegionID(newDst)) {
+                    const cid = getRegionById(newDst).city;
+                    log.push(`|${cid}|cid`);
+                    if (cid !== null) {
+                        const oppoCityTroop = getOpponentPlaceTroopByCtr(G, t.g, cid);
+                        const troopPid = ctr2pid(t.g);
+                        if (oppoCityTroop === null) {
+                            if(G.jinn.generalPlace[JinnGeneral.YinShuKe] === dst){
+                                doPlaceUnit(G,[1,0,0,0,0,0,0],Country.JINN, mid);
+                            }
+                        } else {
+
+                        }
+                    }
+                }
+            }
         }
 
         const oppoFieldTroop = getOpponentPlaceTroopByCtr(G, t.g, newDst);
@@ -355,6 +391,9 @@ export const march: LongFormMove = {
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     } else {
+                        if(G.jinn.generalPlace[JinnGeneral.YinShuKe] === dst){
+                            doPlaceUnit(G,[1,0,0,0,0,0,0],Country.JINN, dst);
+                        }
                         doControlCity(G, ctx, troopPid, cid);
                     }
                 }
