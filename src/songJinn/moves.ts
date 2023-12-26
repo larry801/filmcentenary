@@ -1,4 +1,4 @@
-import { Ctx, LongFormMove } from "boardgame.io";
+import {Ctx, LongFormMove} from "boardgame.io";
 import {
     accumulator,
     ActiveEvents,
@@ -14,7 +14,6 @@ import {
     isNationID,
     isRegionID,
     JinnBaseCardID,
-    JinnGeneral,
     LetterOfCredence,
     NationID,
     PendingEvents,
@@ -29,12 +28,13 @@ import {
     TroopPlace,
     VictoryReason
 } from "./constant/general";
-import { logger } from "../game/logger";
-import { getPlanById } from "./constant/plan";
-import { INVALID_MOVE } from "boardgame.io/core";
-import { actualStage, shuffle } from "../game/util";
-import { getRegionById } from "./constant/regions";
-import { changePlayerStage } from "../game/logFix";
+import {logger} from "../game/logger";
+import {getPlanById} from "./constant/plan";
+import {INVALID_MOVE} from "boardgame.io/core";
+import {actualStage, shuffle} from "../game/util";
+import {getRegionById} from "./constant/regions";
+import {changePlayerStage} from "../game/logFix";
+import {merge} from "lodash";
 
 import {
     addTroop,
@@ -51,6 +51,7 @@ import {
     ciDefInfo,
     ciDefPid,
     ciDefTroop,
+    ciSongTroop,
     colonyDown,
     colonyUp,
     ctr2pid,
@@ -82,7 +83,6 @@ import {
     getLeadingPlayer,
     getOpponentCityTroopByCtr,
     getOpponentPlaceTroopByCtr,
-    getPlaceGeneral,
     getSimpleTroopText,
     getSongTroopByCity,
     getSongTroopByPlace,
@@ -105,12 +105,14 @@ import {
     playerById,
     policyDown,
     policyUp,
-    removeGeneral, removeNoTroopGeneralByCtr,
+    removeGeneral,
+    removeNoTroopGeneralByCtr,
     removeReadyUnitByCountry,
     removeUnitByCountryPlace,
     removeZeroTroop,
     rollDiceByPid,
-    roundTwo, setTroopPlaceByCtr,
+    roundTwo,
+    setTroopPlaceByCtr,
     sjCardById,
     songLoseEmperor,
     startCombat,
@@ -122,7 +124,7 @@ import {
     weiKunTroop,
     yuanCheng
 } from "./util";
-import { getCityById } from "./constant/city";
+import {getCityById} from "./constant/city";
 
 export const opponentMove: LongFormMove = {
     move: (G, ctx) => {
@@ -157,7 +159,7 @@ export const modifyGameState: LongFormMove = {
         logger.info(`${G.matchID}|p${pid}.moves.modifyGameState(${JSON.stringify(arg)})`);
         log.push(`|${JSON.stringify(arg)}|arg\n`);
         log.push(`|${JSON.stringify(G)}|G\n`);
-        G = { ...G, ...arg }
+        G = merge(G, arg);
         log.push(`|${JSON.stringify(G)}|G\n`);
         logger.debug(`${G.matchID}|${log.join('')}`);
     },
@@ -172,7 +174,7 @@ export const checkProvince: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`${G.matchID}|p${pid}.moves.checkProvince(${JSON.stringify(arg)})`);
-        const { prov } = arg;
+        const {prov} = arg;
         const provStatus = currentProvStatus(G, prov);
         switch (provStatus) {
             case "金控制":
@@ -241,7 +243,7 @@ interface IMarchArgs {
 export const march: LongFormMove = {
     client: false,
     move: (G: SongJinnGame, ctx: Ctx, arg: IMarchArgs) => {
-        const { src, dst, country, mid, generals, units } = arg;
+        const {src, dst, country, generals, units} = arg;
         const pid = ctx.playerID;
         logger.info(`p${pid}.moves.march(${JSON.stringify(arg)})`);
         if (pid === undefined) {
@@ -451,7 +453,7 @@ export const takeDamage: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`p${pid}.takeDamage(${JSON.stringify(arg)})`);
-        const { c, src, standby, ready, city } = arg;
+        const {c, src, standby, ready, city} = arg;
         const pub = ctr2pub(G, c);
         const log = [`takeDamage|${src}|${placeToStr(src)}`];
         log.push(`|si${unitsToString(standby)}|kui${unitsToString(ready)}`);
@@ -588,7 +590,7 @@ export const placeUnit: LongFormMove = {
 
         logger.info(`p${ctx.playerID}.placeUnit(${JSON.stringify(args)})`);
         const log = [`p${ctx.playerID}.placeUnit`];
-        const { place, units, country } = args;
+        const {place, units, country} = args;
         if (units.reduce(accumulator) === 0) {
             log.push(`|0Units|invalid`);
             logger.debug(`${G.matchID}|${log.join('')}`);
@@ -613,7 +615,7 @@ export const deployGeneral: LongFormMove = {
         }
         logger.info(`p${pid}.moves.deployGeneral(${JSON.stringify(args)})`);
         const log = [`p${pid}.deployGeneral`];
-        const { general, dst } = args;
+        const {general, dst} = args;
         let newDst = dst;
         if (isCityID(dst)) {
             const weiKunTroop = getTroopByCountryPlace(G, pid2ctr(pid), dst);
@@ -642,7 +644,7 @@ export const rescueGeneral: LongFormMove = {
         }
         logger.info(`p${pid}.moves.rescueGeneral(${JSON.stringify(args)})`);
         const log = [`p${pid}.rescueGeneral`];
-        const { general, card } = args;
+        const {general, card} = args;
         const pub = pid2pub(G, pid);
         if (pub.develop.includes(card)) {
             pub.develop.splice(pub.develop.indexOf(card), 1);
@@ -669,7 +671,7 @@ export interface IPlaceNewTroopArgs {
 }
 
 export const placeTroop: LongFormMove = {
-    move: (G, _ctx, { dst, units, country }: IPlaceNewTroopArgs) => {
+    move: (G, _ctx, {dst, units, country}: IPlaceNewTroopArgs) => {
         const pub = country === Country.SONG ? G.song : G.jinn;
         pub.troops.push({
             p: dst,
@@ -698,7 +700,7 @@ export const removeReadyUnit: LongFormMove = {
         // const ctr = getCountryById(pid);
         // const pub = pid2pub(G, pid);
         // const player = playerById(G, pid);
-        const { units, country } = arg;
+        const {units, country} = arg;
         if (units.reduce(accumulator) === 0) {
             log.push(`|9Units|invalid`);
             logger.debug(`${G.matchID}|${log.join('')}`);
@@ -722,7 +724,7 @@ export const removeUnit: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`${G.matchID}|p${pid}.moves.removeUnit(${JSON.stringify(arg)})`);
-        const { src, units, country } = arg;
+        const {src, units, country} = arg;
         if (units.reduce(accumulator) === 0) {
             return INVALID_MOVE;
         }
@@ -773,7 +775,7 @@ function doDeployUnits(G: SongJinnGame, _ctx: Ctx, country: Country, units: numb
 export const deploy: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, args: IDeployUnitArgs) => {
         logger.info(`p${ctx.playerID}.deploy(${JSON.stringify(args)})`);
-        const { city, country, units } = args;
+        const {city, country, units} = args;
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
@@ -831,7 +833,7 @@ export const rollDices: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        const { count } = args;
+        const {count} = args;
         if (count === undefined) {
             rollDiceByPid(G, ctx, ctx.playerID, 5);
         } else {
@@ -917,7 +919,7 @@ export const moveGeneral: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`p${ctx.playerID}.moveReadyGeneral(${JSON.stringify(args)})`);
-        const { dst, general } = args;
+        const {dst, general} = args;
         const log = [`p${ctx.playerID}.moveReadyGeneral`];
         moveGeneralByPid(G, ctx.playerID, general, dst);
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -932,7 +934,7 @@ export const retreat: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`${G.matchID}|p${pid}.moves.retreat(${JSON.stringify(arg)})`);
-        const { src, dst, country } = arg;
+        const {src, dst, country} = arg;
         doMoveTroop(G, src, dst, country);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
@@ -954,7 +956,7 @@ export const moveTroop: LongFormMove = {
         }
         logger.info(`p${pid}.moves.moveTroop(${JSON.stringify(args)})`);
         const log = [`moveTroop`];
-        const { src, dst, country, units, generals } = args;
+        const {src, dst, country, units, generals} = args;
 
         doMoveTroopPart(G, src.p, dst, country, units, generals);
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -1072,7 +1074,7 @@ export const develop: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        const { choice } = arg;
+        const {choice} = arg;
         const log = [`p${pid}|develop`];
         // const player = playerById(G, ctx.playerID);
         const pub = pid2pub(G, pid);
@@ -1302,7 +1304,7 @@ interface IHeYiArgs {
 
 
 export const heYi: LongFormMove = {
-    move: (G, ctx, { city, card }: IHeYiArgs) => {
+    move: (G, ctx, {city, card}: IHeYiArgs) => {
         if (!heYiCheck(G, ctx)) {
             return INVALID_MOVE;
         }
@@ -1357,7 +1359,7 @@ export const chooseFirst: LongFormMove = {
         const pid = ctx.playerID;
         logger.info(`p${pid}.moves.chooseFirst(${JSON.stringify(args)})`)
         const log = [`p${pid}.moves.chooseFirst(${JSON.stringify(args)})`];
-        const { choice, matchID } = args;
+        const {choice, matchID} = args;
         G.matchID = matchID
         G.first = choice;
         if (choice === SJPlayer.P1) {
@@ -1513,8 +1515,10 @@ export const showCC: LongFormMove = {
         cci.combatCard = [...player.combatCard];
         player.combatCard = [];
         if (G.order.indexOf(pid as SJPlayer) === 0) {
+            log.push(`|nextShowCC`);
             changePlayerStage(G, ctx, 'showCC', G.order[1]);
         } else {
+            log.push(`|resolveCC`);
             if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J50)) {
                 log.push(`|yiBing|endCombat`);
                 endCombat(G, ctx);
@@ -1522,14 +1526,18 @@ export const showCC: LongFormMove = {
                 return;
             } else {
                 if (G.combat.song.combatCard.includes(SongBaseCardID.S50)) {
+                    log.push(`|LiBao`);
                     doPlaceUnit(G, [0, 0, 0, 1, 0, 0], Country.SONG, G.combat.song.troop.p);
                 }
                 if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J32)) {
+                    log.push(`|huoGong`);
                     removeUnitByCountryPlace(G, [0, 0, 0, 1, 0, 0], Country.SONG, G.combat.song.troop.p);
                 }
                 if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J34)) {
-                    const st = getTroopByCountryPlace(G, Country.SONG, G.combat.song.troop.p);
+                    log.push(`|huFuXiangBing`);
+                    const st = ciSongTroop(G);
                     if (st !== null) {
+                        log.push(`|${getSimpleTroopText(G, st)}|st`);
                         if (st.u[0] <= 0) {
                             log.push(`|removeGong`);
                             removeUnitByCountryPlace(G, [0, 1, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
@@ -1538,12 +1546,15 @@ export const showCC: LongFormMove = {
                                 log.push(`|removeBu`);
                                 removeUnitByCountryPlace(G, [1, 0, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
                             } else {
+                                log.push(`|chooseBuOrGong`);
                                 G.pending.events.push(PendingEvents.HuFuXiangBing);
                                 changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P2);
                                 logger.debug(`${G.matchID}|${log.join('')}`);
                                 return;
                             }
                         }
+                    } else {
+                        log.push(`|noSongTroop`);
                     }
                 }
             }
@@ -1745,7 +1756,7 @@ export const siege: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`${G.matchID}|p${pid}.moves.siege(${JSON.stringify(arg)})`);
-        const { src, ctr } = arg;
+        const {src, ctr} = arg;
         startCombat(G, ctx, ctr, src);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
@@ -1766,7 +1777,7 @@ export const breakout: LongFormMove = {
             return INVALID_MOVE;
         }
         const log = [`breakout`];
-        const { src, ctr } = arg;
+        const {src, ctr} = arg;
         if (isCityID(src)) {
             log.push(`|city`);
             // @ts-ignore
@@ -1807,7 +1818,7 @@ export const confirmRespond: LongFormMove = {
         }
         const ctr = pid2ctr(pid);
         const pub = pid2pub(G, pid);
-        const { choice } = arg;
+        const {choice} = arg;
         const log = [`confirmRespond`]
         const ci = G.combat;
         const atkCCI = ciAtkInfo(G);
@@ -1944,6 +1955,20 @@ export const confirmRespond: LongFormMove = {
                             return;
                         }
                     }
+                }
+            }
+            if (ci.phase === CombatPhase.YunChou) {
+                const poppedEvent = G.pending.events.pop()
+                log.push(`|${poppedEvent}|poppedEvent`);
+                if (poppedEvent === PendingEvents.HuFuXiangBing) {
+                    if (choice === 'yes' || choice === "archer") {
+                        removeUnitByCountryPlace(G, [0, 1, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
+                    } else {
+                        removeUnitByCountryPlace(G, [1, 0, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
+                    }
+                    yuanCheng(G, ctx);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
                 }
             }
         } else {
@@ -2194,7 +2219,7 @@ export const loseProvince: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        const { province, opponent } = arg;
+        const {province, opponent} = arg;
         // const ctr = getCountryById(ctx.playerID);
         const pub = pid2pub(G, ctx.playerID);
         const oppo = oppoPub(G, ctx.playerID);
@@ -2230,7 +2255,7 @@ export const loseCity: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        const { cityID, opponent } = arg;
+        const {cityID, opponent} = arg;
         const ctr = getCountryById(ctx.playerID);
         const pub = pid2pub(G, ctx.playerID);
         const oppo = oppoPub(G, ctx.playerID);
