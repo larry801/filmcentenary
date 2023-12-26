@@ -1004,7 +1004,7 @@ export const initialSongPub: SJPubInfo = {
         {u: [1, 0, 0, 0, 0, 0], p: RegionID.R48, c: CityID.XiaCai, g: Country.SONG},
         {u: [1, 0, 0, 0, 0, 0], p: RegionID.R54, c: CityID.ChengDu, g: Country.SONG},
 
-        {u: [1, 0, 0, 0, 0, 0], p: RegionID.R60, c: CityID.JiangLing, g: Country.SONG},
+        {u: [0, 0, 1, 0, 0, 0], p: RegionID.R60, c: CityID.JiangLing, g: Country.SONG},
         {u: [0, 1, 0, 0, 0, 0], p: RegionID.R66, c: CityID.JiangNing, g: Country.SONG},
         {u: [1, 0, 0, 0, 0, 0], p: RegionID.R77, c: CityID.MinXian, g: Country.SONG},
 
