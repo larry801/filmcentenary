@@ -307,67 +307,66 @@ export const getSupplyAdj = (G: SongJinnGame, src: TroopPlace, ctr: Country): Tr
     log.push(`|${placeToStr(src)}`);
     const path: TroopPlace[] = [];
     adj.forEach(p => {
-            if (isNationID(p)) {
-                if (ctr2pub(G, ctr).nations.includes(p)) {
-                    log.push(`|${p}|ally`);
-                    path.push(p);
-                    // TODO recursive check
-                    // const pAdj = getSupplyAdj(G,p,ctr);
-                    // if(
-                    //     pAdj.filter(pa=>checkedPlaces.includes(pa))
-                    //         .length === pAdj.length
-                    // ) {
-                    //     return;
-                    // }
-                }
-            } else {
-                if (isRegionID(p)) {
-                    const reg = getRegionById(p);
-                    if (reg.pass.includes(p)) {
-                        // @ts-ignore
-                        const pass = passAdjToPass(G, src, p);
-                        if (pass !== null) {
-                            const ot = getOpponentPlaceTroopByCtr(G, ctr, pass);
-                            if (ot !== null) {
-                                log.push(`|${getSimpleTroopText(G, ot)}|ot|pass`);
-                                return;
-                            }
-                        }
-                    }else{
-                        const ot = getOpponentPlaceTroopByCtr(G, ctr, p);
+        if (isNationID(p)) {
+            if (ctr2pub(G, ctr).nations.includes(p)) {
+                log.push(`|${p}|ally`);
+                path.push(p);
+                // TODO recursive check
+                // const pAdj = getSupplyAdj(G,p,ctr);
+                // if(
+                //     pAdj.filter(pa=>checkedPlaces.includes(pa))
+                //         .length === pAdj.length
+                // ) {
+                //     return;
+                // }
+            }
+        } else {
+            if (isRegionID(p)) {
+                const reg = getRegionById(p);
+                if (reg.pass.includes(p)) {
+                    // @ts-ignore
+                    const pass = passAdjToPass(G, src, p);
+                    if (pass !== null) {
+                        const ot = getOpponentPlaceTroopByCtr(G, ctr, pass);
                         if (ot !== null) {
-                            log.push(`|${getSimpleTroopText(G, ot)}|ot|region`);
+                            log.push(`|${getSimpleTroopText(G, ot)}|ot|pass`);
                             return;
-                        } else {
-                            path.push(p);
                         }
                     }
-                }else{
-                    if (isMountainPassID(p)) {
+                } else {
+                    const ot = getOpponentPlaceTroopByCtr(G, ctr, p);
+                    if (ot !== null) {
+                        log.push(`|${getSimpleTroopText(G, ot)}|ot|region`);
                         return;
                     } else {
-
+                        path.push(p);
                     }
                 }
+            } else {
+                if (isMountainPassID(p)) {
+                    return;
+                } else {
+
+                }
             }
+        }
     })
     logger.debug(`${G.matchID}|${log.join('')}`);
     return path;
 }
 
 
-
 export const checkSupply = (G: SongJinnGame, src: TroopPlace, ctr: Country): boolean => {
     const log = [`checkSupply`];
     let res = false;
-    if(isRegionID(src)){
+    if (isRegionID(src)) {
         const ot = getOpponentPlaceTroopByCtr(G, ctr, src);
         if (ot !== null) {
             log.push(`|${getSimpleTroopText(G, ot)}|ot|region`);
         } else {
             const cid = getRegionById(src).city;
-            if(cid !== null){
-                if(checkCtrCity(G,ctr,cid)){
+            if (cid !== null) {
+                if (checkCtrCity(G, ctr, cid)) {
                     log.push(`|${ctr}control${cid}`);
                     res = true;
                 }
@@ -376,7 +375,7 @@ export const checkSupply = (G: SongJinnGame, src: TroopPlace, ctr: Country): boo
     }
     log.push(`|${res}|res`);
     logger.debug(`${G.matchID}|${log.join('')}`);
-    return  res;
+    return res;
 }
 export const getSupplyRegions = (G: SongJinnGame, src: TroopPlace, ctr: Country): boolean => {
     const log = [`getSupplyRegions`];
@@ -384,20 +383,20 @@ export const getSupplyRegions = (G: SongJinnGame, src: TroopPlace, ctr: Country)
     const checkedPlaces: TroopPlace[] = [];
     const path: TroopPlace[] = [src];
     let res = false;
-    while(path.length > 0){
+    while (path.length > 0) {
         const popped = path.pop();
-        if(popped !== undefined){
+        if (popped !== undefined) {
             checkedPlaces.push(popped);
-            if(checkSupply(G,popped,ctr)){
+            if (checkSupply(G, popped, ctr)) {
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return true;
-            } else{
-                const adj = getSupplyAdj(G,popped,ctr);
-                adj.forEach(a=>{
-                    if(!checkedPlaces.includes(a)){
+            } else {
+                const adj = getSupplyAdj(G, popped, ctr);
+                adj.forEach(a => {
+                    if (!checkedPlaces.includes(a)) {
                         path.push(a);
                         log.push(`|${a}|path`);
-                    } else{
+                    } else {
                         log.push(`|${a}|checked`);
                     }
                 })
@@ -434,7 +433,7 @@ export const pathToText = (p: IMarchPath) => `${p.mid !== undefined ?
 
 export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchPath[] => {
     const log = [`getMarchDst`];
-    if(units.reduce(accumulator) === 0) {
+    if (units.reduce(accumulator) === 0) {
         log.push(`|noUnits`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         return [];
@@ -450,12 +449,12 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
     if (isQiXing(newTroop)) {
         adj.forEach(p => {
             if (isRegionID(p)) {
-                if(canQiXing(p)){
-                    const qTroop = {...newTroop,p:p}
+                if (canQiXing(p)) {
+                    const qTroop = {...newTroop, p: p}
                     const qAdj = getMarchAdj(G, qTroop);
-                    qAdj.forEach(q=>{
-                        if(isRegionID(q) && canQiXing(q) && q !== t.p){
-                            res.push({mid:p,dst:q});
+                    qAdj.forEach(q => {
+                        if (isRegionID(q) && canQiXing(q) && q !== t.p) {
+                            res.push({mid: p, dst: q});
                         }
                     })
                 }
@@ -464,11 +463,11 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
     }
     if (isZhouXing(newTroop) || hasGeneral(G, t, SongGeneral.LiXianZhong)) {
         adj.forEach(p => {
-            const zTroop = {...newTroop,p:p}
-            const zAdj = getMarchAdj(G,zTroop);
-            zAdj.forEach(z=>{
-                if(z !== t.p){
-                    res.push({mid:p,dst:z});
+            const zTroop = {...newTroop, p: p}
+            const zAdj = getMarchAdj(G, zTroop);
+            zAdj.forEach(z => {
+                if (z !== t.p) {
+                    res.push({mid: p, dst: z});
                 }
             })
             // TODO complex rule for zhou xing
@@ -504,7 +503,7 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
             //     }
         })
     }
-    log.push(`|${JSON.stringify(res.map(r=>pathToText(r)))}|res`);
+    log.push(`|${JSON.stringify(res.map(r => pathToText(r)))}|res`);
     logger.debug(`${G.matchID}|${log.join('')}`);
     return res;
 }
@@ -3023,7 +3022,7 @@ export const getReadyGeneralNames = (G: SongJinnGame, pid: PlayerID) => {
 }
 export const placeText = (p: TroopPlace): string => {
     // @ts-ignore
-    return typeof p === "number" && !isNaN(p) ? getRegionText(p) : (isCityID(p) ? getCityText(p): p.toString())
+    return typeof p === "number" && !isNaN(p) ? getRegionText(p) : (isCityID(p) ? getCityText(p) : p.toString())
 }
 export const placeToStr = (p: TroopPlace): string => {
     return typeof p === "number" && !isNaN(p) ? getRegionById(p).name : p.toString();
@@ -3097,16 +3096,27 @@ export const doLoseCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cityID: Cit
             G.jinn.emperor = null;
         }
         const city = getCityById(cityID);
+        const oppoProvStatus = pid === SJPlayer.P1 ? ProvinceState.JINN : ProvinceState.SONG;
+        const toOpponent = currentProvStatus(G, city.province) === oppoProvStatus;
         if (city.capital) {
             log.push(`|loseProvince`);
-            doLoseProvince(G, ctx, pid, city.province, false);
+            doLoseProvince(G, ctx, pid, city.province, toOpponent);
+        } else {
+            if (toOpponent) {
+                log.push(`|controlAllCities`);
+                doControlProvince(G, ctx, oppoPid(pid), city.province);
+            }
         }
         if (opponent) {
+            if(G.jinn.generalPlace[JinnGeneral.YinShuKe] === city.region){
+                log.push(`|yinShuKe|1Bu`);
+                doPlaceUnit(G,[1,0,0,0,0,0,0],Country.JINN, city.region);
+            }
             log.push(`|${opponent}|opponent`);
-            oppo.cities.push(cityID)
+            oppo.cities.push(cityID);
         }
     } else {
-        log.push(`|noThisCity`);
+        log.push(`|noSuchCity`);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
