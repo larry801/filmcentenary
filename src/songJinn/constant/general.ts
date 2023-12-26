@@ -815,6 +815,7 @@ export enum CombatPhase {
     WeiKun = "围困",
     YunChou = "运筹",
     YuanCheng = "远程",
+    ZhuDuiShi = "驻队矢",
     YuanChengDamage = "远程受创",
     WuLin = "吴璘",
     JiaoFeng = "交锋",

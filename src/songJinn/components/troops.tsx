@@ -21,7 +21,7 @@ import {
     UNIT_SHORTHAND
 } from "../constant/general";
 import ChoiceDialog from "../../components/modals";
-import { TakeDamageDialog } from "../components/take-damage";
+import { TakeDamageDialog } from "./take-damage";
 import { getProvinceById } from "../constant/province";
 import CheckBoxDialog from "./choice";
 import { ChooseUnitsDialog } from "./recruit";
@@ -60,7 +60,7 @@ import {
     troopSiegeMelee,
     troopSiegeRange,
     unitsToString,
-    checkColonyCity, getCityDefByTroop, marchDstStatus
+    checkColonyCity, getCityDefByTroop, marchDstStatus, IMarchPath, pathToText
 } from "../util";
 import { getRegionById } from "../constant/regions";
 import Typography from "@material-ui/core/Typography";
@@ -355,39 +355,50 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
 
     const marchRegionDialog = <ChoiceDialog
         callback={(r) => {
+            const path :IMarchPath = JSON.parse(r);
+            console.log(JSON.stringify(path));
+            console.log(pathToText(path));
             moves.march({
                 src: marchTroop.p,
-                dst: optionToActualDst(r),
+                // dst: optionToActualDst(r),
+                dst: path.dst,
+                mid: path.mid,
                 units: marchUnits,
                 generals: marchGenerals,
                 country: marchTroop.g
             });
             setMarchStep(MarchStep.TROOP);
         }}
-        choices={getMarchDst(G, marchTroop).map(r => {
-            if (r == null) {
-                return {
-                    label: "",
-                    value: "",
-                    hidden: true,
-                    disabled: true
-                }
+        choices={getMarchDst(G, marchTroop,marchUnits).map((r) => {
+            return {
+                        label: `${pathToText(r)}|${marchDstStatus(G, ctr, r.dst)}`,
+                        value: JSON.stringify(r),
+                        hidden: false,
+                        disabled: false
             }
-            if (isRegionID(r)) {
-                return {
-                    label: getRegionText(r) + '|' + marchDstStatus(G, ctr, r),
-                    value: r.toString(),
-                    hidden: false,
-                    disabled: false
-                }
-            } else {
-                return {
-                    label: r.toString() + '|' + marchDstStatus(G, ctr, r),
-                    value: r.toString(),
-                    hidden: false,
-                    disabled: false
-                }
-            }
+            // if (r == null) {
+            //     return {
+            //         label: "",
+            //         value: "",
+            //         hidden: true,
+            //         disabled: true
+            //     }
+            // }
+            // if (isRegionID(r)) {
+            //     return {
+            //         label: getRegionText(r) + '|' + marchDstStatus(G, ctr, r),
+            //         value: r.toString(),
+            //         hidden: false,
+            //         disabled: false
+            //     }
+            // } else {
+            //     return {
+            //         label: r.toString() + '|' + marchDstStatus(G, ctr, r),
+            //         value: r.toString(),
+            //         hidden: false,
+            //         disabled: false
+            //     }
+            // }
 
         })}
         defaultChoice={""}

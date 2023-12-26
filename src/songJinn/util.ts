@@ -33,6 +33,7 @@ import {
     MAX_DICES,
     MAX_ROUND,
     MidPlanID,
+    MountainPasses,
     MountainPassID,
     NationID,
     Nations,
@@ -285,13 +286,78 @@ export const isZhouXing = (t: Troop) => {
 export const getRetreatDst = (G: SongJinnGame, t: Troop): TroopPlace[] => {
     return getAdj(G, t.p);
 }
-export const getSupplyAdj = (G: SongJinnGame, dst: TroopPlace): TroopPlace[] => {
-    const log = [`getSupplyAdj`];
-    const result = getAdj(G, dst);
 
+export const passAdjToPass = (G: SongJinnGame, r: RegionID, r2: RegionID) => {
+    const log = [`passAdjToPass`];
+    let res = null;
+    MountainPasses.forEach(p => {
+        const adj = getPassAdj(p);
+        if (adj.includes(r) && adj.includes(r2)) {
+            res = p;
+        }
+    });
+    log.push(`|${res}|res`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return res;
+}
+
+export const getSupplyAdj = (G: SongJinnGame, src: TroopPlace, ctr: Country): TroopPlace[] => {
+    const log = [`getSupplyAdj`];
+    const adj = getAdj(G, src);
+    log.push(`|${placeToStr(src)}`);
+    const checkedPlaces: TroopPlace[] = [];
+    const path: TroopPlace[] = [];
+    adj.forEach(p => {
+        if (!checkedPlaces.includes(p)) {
+            checkedPlaces.push(p);
+            if (isNationID(p)) {
+                if (ctr2pub(G, ctr).nations.includes(p)) {
+                    log.push(`|${p}|ally`);
+                    path.push(p);
+                    // TODO recursive check
+                    // const pAdj = getSupplyAdj(G,p,ctr);
+                    // if(
+                    //     pAdj.filter(pa=>checkedPlaces.includes(pa))
+                    //         .length === pAdj.length
+                    // ) {
+                    //     return;
+                    // }
+                }
+            } else {
+                if (isMountainPassID(p)) {
+                    return;
+                } else {
+                    if (isRegionID(p)) {
+                        const reg = getRegionById(p);
+                        if (reg.pass.includes(p)) {
+                            // @ts-ignore
+                            const pass = passAdjToPass(G, src, p);
+                            if (pass !== null) {
+                                const ot = getOpponentPlaceTroopByCtr(G, ctr, pass);
+                                if (ot !== null) {
+                                    log.push(`|${getSimpleTroopText(G, ot)}|ot|pass`);
+                                    return;
+                                }
+                            }
+                        }
+                        const ot = getOpponentPlaceTroopByCtr(G, ctr, p);
+                        if (ot !== null) {
+                            log.push(`|${getSimpleTroopText(G, ot)}|ot|region`);
+                            return;
+                        } else {
+                            path.push(p);
+                        }
+                    }
+                }
+            }
+        } else {
+            log.push(`|${p}|checked`);
+        }
+        path.forEach(p => getSupplyAdj(G, p, ctr));
+    })
 
     logger.debug(`${G.matchID}|${log.join('')}`);
-    return result;
+    return path;
 }
 
 export const hasSupply = (G: SongJinnGame, t: Troop): boolean => {
@@ -301,21 +367,62 @@ export const hasSupply = (G: SongJinnGame, t: Troop): boolean => {
         log.push('|stationed');
         result = true;
     } else {
-        log.push('|not stationed')
-
+        log.push('|not stationed');
     }
+    log.push(`|${result}|result`);
     logger.debug(`${G.matchID}|${log.join('')}`);
     return result;
 }
 
-export const getMarchDst = (G: SongJinnGame, t: Troop): TroopPlace[] => {
-    const adj = getMarchAdj(G, t);
-    let res: TroopPlace[] = [...adj];
-    if (isQiXing(t) || isZhouXing(t) || hasGeneral(G, t, SongGeneral.LiXianZhong)) {
+export interface IMarchPath {
+    mid?: TroopPlace;
+    dst: TroopPlace;
+}
+
+export const pathToText = (p: IMarchPath) => `${p.mid !== undefined ?
+    `经过` + placeText(p.mid) + '到'
+    : ""} ${placeText(p.dst)}`;
+
+export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchPath[] => {
+    const log = [`getMarchDst`];
+    if(units.reduce(accumulator) === 0) {
+        log.push(`|noUnits`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return [];
+    }
+    const newTroop = {...t, u: units};
+    const adj = getMarchAdj(G, newTroop);
+    log.push(`|${getSimpleTroopText(G, newTroop)}|newTroop`);
+    let res: IMarchPath[] = adj.map((a) => {
+        return {dst: a}
+    });
+    log.push(`|${JSON.stringify(res)}|res`);
+    log.push(`|${JSON.stringify(adj)}|adj`);
+    if (isQiXing(newTroop)) {
         adj.forEach(p => {
-            const newAdj = getAdj(G, p).filter(a => !res.includes(a));
-            res = res.concat(newAdj);
-            // TODO complex rule for qi xing and zhou xing
+            if (isRegionID(p)) {
+                if(canQiXing(p)){
+                    const qTroop = {...newTroop,p:p}
+                    const qAdj = getMarchAdj(G, qTroop);
+                    qAdj.forEach(q=>{
+                        if(isRegionID(q) && canQiXing(q) && q !== t.p){
+                            res.push({mid:p,dst:q});
+                        }
+                    })
+                }
+            }
+        })
+    }
+    if (isZhouXing(newTroop) || hasGeneral(G, t, SongGeneral.LiXianZhong)) {
+        adj.forEach(p => {
+            const zTroop = {...newTroop,p:p}
+            const zAdj = getMarchAdj(G,zTroop);
+            zAdj.forEach(z=>{
+                if(z !== t.p){
+                    res.push({mid:p,dst:z});
+                }
+            })
+            // TODO complex rule for zhou xing
             // if (isMountainPassID(p)) {
             //     const d = getPassAdj(p).filter(r => {
             //         const terrain = getRegionById(r).terrain;
@@ -348,7 +455,9 @@ export const getMarchDst = (G: SongJinnGame, t: Troop): TroopPlace[] => {
             //     }
         })
     }
-    return res
+    log.push(`|${JSON.stringify(res.map(r=>pathToText(r)))}|res`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return res;
 }
 
 export const getMarchAdj = (G: SongJinnGame, t: Troop, fengDong?: boolean): TroopPlace[] => {
@@ -361,23 +470,46 @@ export const getMarchAdj = (G: SongJinnGame, t: Troop, fengDong?: boolean): Troo
         } else {
             if (isRegionID(src)) {
                 const reg = getRegionById(src);
-                const result: TroopPlace[] = [...reg.land, ...reg.pass];
+                const result: TroopPlace[] = [...reg.land];
                 Nations.forEach(n => {
-                    if (getNationAdj(n).includes(src)) {
+                    if (getNationAdj(n).includes(src) && ctr2pub(G, t.g).nations.includes(n)) {
+                        log.push(`|${n}|n`);
                         result.push(n);
                     }
                 })
                 reg.water.forEach(r => {
                     if (fengDong) {
+                        log.push(`|fengDong`);
                         result.push(r)
                     } else {
                         const wt = getTroopByCountryPlace(G, t.g, r);
                         const owt = getOpponentPlaceTroopByCtr(G, t.g, r);
                         if (wt !== null) {
                             log.push(`|${getSimpleTroopText(G, wt)}|wt`);
+                            result.push(r);
+                        } else {
+                            if (owt !== null) {
+                                log.push(`|${getSimpleTroopText(G, owt)}|owt`);
+                                if (owt.u[3] <= 0 || t.u[3] > 0) {
+                                    log.push(`|boatOK`);
+                                    result.push(r);
+                                }
+                            } else {
+                                log.push(`|noTroop`);
+                                result.push(r);
+                            }
                         }
-                        if (owt !== null) {
-                            log.push(`|${getSimpleTroopText(G, owt)}|owt`);
+                    }
+                })
+                reg.pass.forEach(pr => {
+                    const pass = passAdjToPass(G, src, pr);
+                    if (pass !== null) {
+                        const ot = getOpponentPlaceTroopByCtr(G, t.g, pass);
+                        if (ot !== null) {
+                            log.push(`|${getSimpleTroopText(G, ot)}|pass`);
+                            return;
+                        } else {
+                            result.push(pr);
                         }
                     }
                 })
@@ -389,13 +521,13 @@ export const getMarchAdj = (G: SongJinnGame, t: Troop, fengDong?: boolean): Troo
             }
         }
     } else {
-
+        log.push(`|weiKun|noDst`);
     }
-
     log.push(`|${JSON.stringify(res)}|res`);
     logger.debug(`${G.matchID}|${log.join('')}`);
     return res;
 }
+
 export const getAdj = (G: SongJinnGame, src: TroopPlace): TroopPlace[] => {
     const log = [`getAdj`];
     let res: TroopPlace[] = [];
@@ -1964,7 +2096,7 @@ export const idToCard = {
         combat: false,
         effectText: "在历城消灭灭全部宋国部队，放置2个签军。",
         pre: (_G: SongJinnGame, _ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => {
+        event: (G: SongJinnGame, _ctx: Ctx) => {
             const troop = getSongTroopByCity(G, CityID.LiCheng);
             if (troop !== null) {
                 removeUnitByPlace(G, troop.u, SJPlayer.P1, troop.p);
@@ -1987,8 +2119,8 @@ export const idToCard = {
         duration: EventDuration.INSTANT,
         combat: false,
         effectText: "使用3行动力征募。若降低1级殖民能力，则可以使用6行动力征募，且无视内政等级限制。不能征募签军。",
-        pre: (G: SongJinnGame, ctx: Ctx) => true,
-        event: (G: SongJinnGame, ctx: Ctx) => G
+        pre: (_G: SongJinnGame, _ctx: Ctx) => true,
+        event: (G: SongJinnGame, _ctx: Ctx) => G
     },
     [JinnBaseCardID.J11]: {
         id: JinnBaseCardID.J11,
@@ -2840,6 +2972,10 @@ export const getReadyGeneralNames = (G: SongJinnGame, pid: PlayerID) => {
         return readyGenerals.map(g => GeneralNames[1][g]);
     }
 }
+export const placeText = (p: TroopPlace): string => {
+    // @ts-ignore
+    return typeof p === "number" && !isNaN(p) ? getRegionText(p) : (isCityID(p) ? getCityText(p): p.toString())
+}
 export const placeToStr = (p: TroopPlace): string => {
     return typeof p === "number" && !isNaN(p) ? getRegionById(p).name : p.toString();
 }
@@ -3370,6 +3506,7 @@ export const canRecruit = (G: SongJinnGame, units: number[], pid: PlayerID): num
     for (let i = 0; i < units.length; i++) {
         cost += units[i] * unitCost[i];
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
     return cost;
 }
 
@@ -3395,7 +3532,10 @@ export const checkRecruitCivil = (G: SongJinnGame, units: number[], pid: PlayerI
     const pub = pid2pub(G, pid);
     const readySum = pub.ready.reduce(accumulator);
     const recruitSum = units.reduce(accumulator);
-    return readySum + recruitSum <= pub.civil;
+    const res = readySum + recruitSum <= pub.civil;
+    log.push(`|${res}|res`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return res;
 }
 
 export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
@@ -4883,11 +5023,23 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
+export const canQiXing = (r: RegionID) => {
+    const reg = getRegionById(r);
+    return reg.terrain === TerrainType.HILLS || reg.terrain === TerrainType.FLATLAND
+}
+
 export const isQiXing = (t: Troop) => {
     if (t.g === Country.SONG) {
-        return t.u[2] > 0;
+        return (t.u[2] > 0 || t.u[5] > 0)
+            && t.u[0] === 0
+            && t.u[1] === 0
+            && t.u[3] === 0;
     } else {
-        return t.u[1] > 0 || t.u[2] > 0;
+        return t.u[1] > 0 || t.u[2] > 0
+            && t.u[0] === 0
+            && t.u[3] === 0
+            && t.u[5] === 0
+            && t.u[6] === 0;
     }
 }
 
