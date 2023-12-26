@@ -1305,7 +1305,7 @@ interface IHeYiArgs {
 
 export const heYi: LongFormMove = {
     move: (G, ctx, {city, card}: IHeYiArgs) => {
-        if (!heYiCheck(G, ctx)) {
+        if (!heYiCheck(G)) {
             return INVALID_MOVE;
         }
         if (ctx.playerID === undefined) {
@@ -1323,7 +1323,7 @@ export const heYi: LongFormMove = {
 
 export const freeHeYi: LongFormMove = {
     move: (G, ctx, city: CityID) => {
-        if (!heYiCheck(G, ctx)) {
+        if (!heYiCheck(G)) {
             return INVALID_MOVE;
         }
         if (ctx.playerID === undefined) {
@@ -1532,6 +1532,10 @@ export const showCC: LongFormMove = {
                 if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J32)) {
                     log.push(`|huoGong`);
                     removeUnitByCountryPlace(G, [0, 0, 0, 1, 0, 0], Country.SONG, G.combat.song.troop.p);
+                }
+                if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J37)) {
+                    log.push(`|kongYanZhou`);
+                    doPlaceUnit(G, [0, 0, 0, 1, 0, 0], Country.JINN, G.combat.jinn.troop.p);
                 }
                 if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J34)) {
                     log.push(`|huFuXiangBing`);
