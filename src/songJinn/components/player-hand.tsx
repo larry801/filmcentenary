@@ -21,7 +21,6 @@ import {
     playerById,
     sjCardById
 } from "../util";
-import {Fab} from "@material-ui/core";
 import {actualStage} from "../../game/util";
 
 export interface IPlayerHandProps {

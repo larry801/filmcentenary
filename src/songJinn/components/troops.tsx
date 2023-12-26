@@ -60,7 +60,7 @@ import {
     troopSiegeMelee,
     troopSiegeRange,
     unitsToString,
-    checkColonyCity, getCityDefByTroop, marchDstStatus, IMarchPath, pathToText
+    checkColonyCity, getCityDefByTroop, marchDstStatus, IMarchPath, pathToText, hasSupply
 } from "../util";
 import { getRegionById } from "../constant/regions";
 import Typography from "@material-ui/core/Typography";
@@ -533,291 +533,298 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
 
     const troopKey = (t: Troop, idx: number) => `troop-${idx}-${t.g}`;
 
-    const mapper = (t: Troop, idx: number) => <Accordion key={troopKey(t, idx)}
-        expanded={expanded === troopKey(t, idx)}
-        onChange={() => setExpanded(troopKey(t, idx))}>
-        <AccordionSummary>
-            {hasOpponentTroop(G, t) ? '对峙|' : ''}
-            {troopIsWeiKun(G, t) ? "被围困|" : ""}
-            {troopCanSiege(G, t) && '围城|'}
-            {t.g}{getTroopPlaceText(t)}
-            {getTroopText(G, t)} </AccordionSummary>
-        <AccordionDetails>
-            <Grid container>
-                <Grid item xs={12} container spacing={1} key={`grid-calc-strength-${idx}`}>
-                    <Typography>
-                        野战 {rangeText(t)}/{meleeText(t)}
-                    </Typography>
-                    {troopIsWeiKun(G, t) && <Typography>
-                        守城{rangeDefText(t)}/{meleeDefText(t)}
-                    </Typography>}
-                    {troopCanSiege(G, t) && <Typography>
-                        攻城{rangeSiegeText(t)}/{meleeSiegeText(t)}
-                    </Typography>}
-                </Grid>
-                {isActive && <Grid item xs={12} container spacing={1} key={`grid-ops-${idx}`}>
-                    <Button
-                        variant={"contained"}
-                        disabled={G.op <= 0}
-                        key={`grid-ops-${idx}-march`}
-                        onClick={
-                            () => {
-                                setNewTroopStep(NewTroopStep.START);
-                                setPlaceStep(PlaceStep.TROOP);
-                                setDeployNewStep(DeployNewStep.TROOP);
 
-                                setTakeDamageStep(TakeDamageStep.TROOP);
-                                // setMarchStep(MarchStep.TROOP);
-                                setRemoveUnitStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                setMoveStep(MoveStep.TROOP);
-                                setMarchTroop(t);
-                                setMarchStep(MarchStep.UNITS);
-                            }
-                        }>进军
-                    </Button>
-                    <Button
-                        variant={"contained"}
-                        disabled={G.op <= 0}
-                        key={`grid-ops-${idx}-all-march`}
-                        onClick={
-                            () => {
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
-                                setTakeDamageStep(TakeDamageStep.TROOP);
+    const mapper = (t: Troop, idx: number) => {
+        const noSupply = !hasSupply(G, t);
+        const marchDisabled = G.op <= 0  || noSupply;
 
-                                // setMarchStep(MarchStep.TROOP);
-                                setRemoveUnitStep(RemoveStep.TROOP);
-                                setPlaceStep(PlaceStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                setMoveStep(MoveStep.TROOP);
-
-                                setMarchTroop(t);
-                                setMarchUnits(t.u)
-                                setMarchGenerals(getPlaceGeneral(G, pid, t.p));
-                                setMarchStep(MarchStep.TARGET);
-                            }
-                        }>全军进军
-                    </Button>
-                    <Button
-                        variant={"contained"}
-                        disabled={G.op <= 0}
-                        key={`grid-ops-${idx}-left-march`}
-                        onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
-
-                                setTakeDamageStep(TakeDamageStep.TROOP);
-                                // setMarchStep(MarchStep.TROOP);
-                                setRemoveUnitStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                setMoveStep(MoveStep.TROOP);
-
-                                setMarchTroop(t);
-                                setMarchStep(MarchStep.LEAVE_UNITS);
-                            }
-                        }>留X进军
-                    </Button>
-                    {troopCanSiege(G, t) && <Button
-                        variant={"contained"}
-                        key={`grid-ops-${idx}-siege`}
-                        onClick={() => {
-                            const city = getRegionById(t.p as RegionID).city;
-                            moves.siege({
-                                ctr: t.g,
-                                src: city
-                            });
-                        }}
-                    >
-                        攻城
-                    </Button>}
-                    {hasOpponentTroop(G, t) && <Button
-                        variant={"contained"}
-                        key={`grid-ops-${idx}-attack`}
-                        onClick={() => {
-                            moves.breakout({
-                                ctr: t.g,
-                                src: t.p
-                            });
-                        }}
-                    >
-                        进攻对峙军团
-                    </Button>}
-                    {troopIsWeiKun(G, t) && <Button
-                        variant={"contained"}
-                        key={`grid-ops-${idx}-breakout`}
-                        onClick={() => {
-                            moves.breakout({
-                                ctr: t.g,
-                                src: t.p
-                            });
-                        }}
-                    >
-                        突围
-                    </Button>}
-                    <Button
-                        variant={"contained"}
-                        key={`grid-ops-${idx}-move-all`}
-                        onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
-
-                                setTakeDamageStep(TakeDamageStep.TROOP);
-                                setMarchStep(MarchStep.TROOP);
-                                setRemoveUnitStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                // setMoveStep(MoveStep.TROOP);
-                                setMoveTroop(t);
-                                setMoveUnits(t.u);
-                                setMoveGenerals(getPlaceCountryGeneral(G, t.g, t.p));
-                                setMoveStep(MoveStep.PROVINCE);
-                            }
-                        }>移动全部
-                    </Button>
-                    <Button
-                        variant={"contained"}
-                        key={`grid-ops-${idx}-move-part`}
-                        onClick={
-                            () => {
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
-                                setTakeDamageStep(TakeDamageStep.TROOP);
-
-                                setMarchStep(MarchStep.TROOP);
-                                setRemoveUnitStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                setPlaceStep(PlaceStep.TROOP);
-                                setMoveTroop(t);
-                                setMoveStep(MoveStep.UNITS);
-                            }
-                        }>移动
-                    </Button>
-                    <Button
-                        variant={"contained"}
-                        key={`grid-ops-${idx}-takeDamage`}
-                        onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
-
-                                // setTakeDamageStep(TakeDamageStep.TROOP);
-                                setMarchStep(MarchStep.TROOP);
-                                setRemoveUnitStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                setMoveStep(MoveStep.TROOP);
-                                setTakeDamageStep(TakeDamageStep.READY);
-                                setTakeDamageTroop(t);
-                            }
-                        }>受创
-                    </Button>
-                    <Button
-                        variant={"contained"}
-                        key={`grid-ops-${idx}-deploy`}
-                        // disabled={t.c === null}
-                        disabled={
-                            troopIsWeiKun(G, t) || troopCanSiege(G, t) || t.c === null
-                            || (t.g === Country.JINN && !checkColonyCity(G, t.c))
-                        }
-                        onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
-
-                                setTakeDamageStep(TakeDamageStep.TROOP);
-                                setMarchStep(MarchStep.TROOP);
-                                setRemoveUnitStep(RemoveStep.TROOP);
-                                // setDeployStep(DeployStep.TROOP)
-                                setMoveStep(MoveStep.TROOP);
-
-                                setDeployStep(DeployStep.UNITS);
-                                setDeployTroop(t);
-                            }
-                        }>补充
-                    </Button>
-                    {t.g === Country.JINN && G.jinn.ready[5] > 0 &&
+         return <Accordion key={troopKey(t, idx)}
+                   expanded={expanded === troopKey(t, idx)}
+                   onChange={() => setExpanded(troopKey(t, idx))}>
+            <AccordionSummary>
+                {noSupply ? "断补" : ""}
+                {hasOpponentTroop(G, t) ? '对峙|' : ''}
+                {troopIsWeiKun(G, t) ? "被围困|" : ""}
+                {troopCanSiege(G, t) && '围城|'}
+                {t.g}{getTroopPlaceText(t)}
+                {getTroopText(G, t)} </AccordionSummary>
+            <AccordionDetails>
+                <Grid container>
+                    <Grid item xs={12} container spacing={1} key={`grid-calc-strength-${idx}`}>
+                        <Typography>
+                            野战 {rangeText(t)}/{meleeText(t)}
+                        </Typography>
+                        {troopIsWeiKun(G, t) && <Typography>
+                            守城{rangeDefText(t)}/{meleeDefText(t)}
+                        </Typography>}
+                        {troopCanSiege(G, t) && <Typography>
+                            攻城{rangeSiegeText(t)}/{meleeSiegeText(t)}
+                        </Typography>}
+                    </Grid>
+                    {isActive && <Grid item xs={12} container spacing={1} key={`grid-ops-${idx}`}>
                         <Button
                             variant={"contained"}
-                            key={`grid-ops-${idx}-deploy-puppet`}
+                            disabled={marchDisabled}
+                            key={`grid-ops-${idx}-march`}
+                            onClick={
+                                () => {
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setDeployNewStep(DeployNewStep.TROOP);
+
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    // setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+                                    setMarchTroop(t);
+                                    setMarchStep(MarchStep.UNITS);
+                                }
+                            }>进军
+                        </Button>
+                        <Button
+                            variant={"contained"}
+                            disabled={marchDisabled}
+                            key={`grid-ops-${idx}-all-march`}
+                            onClick={
+                                () => {
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+
+                                    // setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+
+                                    setMarchTroop(t);
+                                    setMarchUnits(t.u)
+                                    setMarchGenerals(getPlaceGeneral(G, pid, t.p));
+                                    setMarchStep(MarchStep.TARGET);
+                                }
+                            }>全军进军
+                        </Button>
+                        <Button
+                            variant={"contained"}
+                            disabled={marchDisabled}
+                            key={`grid-ops-${idx}-left-march`}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
+
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    // setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+
+                                    setMarchTroop(t);
+                                    setMarchStep(MarchStep.LEAVE_UNITS);
+                                }
+                            }>留X进军
+                        </Button>
+                        {troopCanSiege(G, t) && <Button
+                            variant={"contained"}
+                            key={`grid-ops-${idx}-siege`}
+                            onClick={() => {
+                                const city = getRegionById(t.p as RegionID).city;
+                                moves.siege({
+                                    ctr: t.g,
+                                    src: city
+                                });
+                            }}
+                        >
+                            攻城
+                        </Button>}
+                        {hasOpponentTroop(G, t) && <Button
+                            variant={"contained"}
+                            key={`grid-ops-${idx}-attack`}
+                            onClick={() => {
+                                moves.breakout({
+                                    ctr: t.g,
+                                    src: t.p
+                                });
+                            }}
+                        >
+                            进攻对峙军团
+                        </Button>}
+                        {troopIsWeiKun(G, t) && <Button
+                            variant={"contained"}
+                            key={`grid-ops-${idx}-breakout`}
+                            onClick={() => {
+                                moves.breakout({
+                                    ctr: t.g,
+                                    src: t.p
+                                });
+                            }}
+                        >
+                            突围
+                        </Button>}
+                        <Button
+                            variant={"contained"}
+                            key={`grid-ops-${idx}-move-all`}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
+
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    // setMoveStep(MoveStep.TROOP);
+                                    setMoveTroop(t);
+                                    setMoveUnits(t.u);
+                                    setMoveGenerals(getPlaceCountryGeneral(G, t.g, t.p));
+                                    setMoveStep(MoveStep.PROVINCE);
+                                }
+                            }>移动全部
+                        </Button>
+                        <Button
+                            variant={"contained"}
+                            key={`grid-ops-${idx}-move-part`}
+                            onClick={
+                                () => {
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+
+                                    setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setMoveTroop(t);
+                                    setMoveStep(MoveStep.UNITS);
+                                }
+                            }>移动
+                        </Button>
+                        <Button
+                            variant={"contained"}
+                            key={`grid-ops-${idx}-takeDamage`}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
+
+                                    // setTakeDamageStep(TakeDamageStep.TROOP);
+                                    setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+                                    setTakeDamageStep(TakeDamageStep.READY);
+                                    setTakeDamageTroop(t);
+                                }
+                            }>受创
+                        </Button>
+                        <Button
+                            variant={"contained"}
+                            key={`grid-ops-${idx}-deploy`}
                             // disabled={t.c === null}
                             disabled={
-                                t.c === null || getCityById(t.c).colonizeLevel > G.jinn.military
+                                troopIsWeiKun(G, t) || troopCanSiege(G, t) || t.c === null
+                                || (t.g === Country.JINN && !checkColonyCity(G, t.c))
                             }
                             onClick={
                                 () => {
-                                    moves.deploy({
-                                        units: [0, 0, 0, 0, 0, 1, 0],
-                                        country: t.g,
-                                        city: t.c
-                                    })
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
+
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    // setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+
+                                    setDeployStep(DeployStep.UNITS);
+                                    setDeployTroop(t);
                                 }
-                            }>补充伪军
-                        </Button>}{t.g === Country.JINN && G.jinn.ready[6] > 0 &&
+                            }>补充
+                        </Button>
+                        {t.g === Country.JINN && G.jinn.ready[5] > 0 &&
                             <Button
                                 variant={"contained"}
                                 key={`grid-ops-${idx}-deploy-puppet`}
+                                // disabled={t.c === null}
                                 disabled={
                                     t.c === null || getCityById(t.c).colonizeLevel > G.jinn.military
                                 }
                                 onClick={
                                     () => {
                                         moves.deploy({
-                                            units: [0, 0, 0, 0, 0, 0, 1],
+                                            units: [0, 0, 0, 0, 0, 1, 0],
                                             country: t.g,
                                             city: t.c
                                         })
                                     }
-                                }>补充齐军
-                            </Button>}
-                    <Button
-                        variant={"contained"}
-                        onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
-
-                                setTakeDamageStep(TakeDamageStep.TROOP);
-                                setMarchStep(MarchStep.TROOP);
-                                setRemoveUnitStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                setMoveStep(MoveStep.TROOP);
-
-                                setPlaceStep(PlaceStep.UNITS);
-                                setPlaceUnitTroop(t);
+                                }>补充伪军
+                            </Button>}{t.g === Country.JINN && G.jinn.ready[6] > 0 &&
+                        <Button
+                            variant={"contained"}
+                            key={`grid-ops-${idx}-deploy-puppet`}
+                            disabled={
+                                t.c === null || getCityById(t.c).colonizeLevel > G.jinn.military
                             }
-                        }>放置
-                    </Button>
-                    <Button
-                        variant={"contained"}
-                        onClick={
-                            () => {
-                                setPlaceStep(PlaceStep.TROOP);
+                            onClick={
+                                () => {
+                                    moves.deploy({
+                                        units: [0, 0, 0, 0, 0, 0, 1],
+                                        country: t.g,
+                                        city: t.c
+                                    })
+                                }
+                            }>补充齐军
+                        </Button>}
+                        <Button
+                            variant={"contained"}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
 
-                                setNewTroopStep(NewTroopStep.START);
-                                setDeployNewStep(DeployNewStep.TROOP);
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    setMarchStep(MarchStep.TROOP);
+                                    setRemoveUnitStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
 
-                                setTakeDamageStep(TakeDamageStep.TROOP);
-                                setMarchStep(MarchStep.TROOP);
-                                // setRemoveStep(RemoveStep.TROOP);
-                                setDeployStep(DeployStep.TROOP)
-                                setMoveStep(MoveStep.TROOP);
+                                    setPlaceStep(PlaceStep.UNITS);
+                                    setPlaceUnitTroop(t);
+                                }
+                            }>放置
+                        </Button>
+                        <Button
+                            variant={"contained"}
+                            onClick={
+                                () => {
+                                    setPlaceStep(PlaceStep.TROOP);
 
-                                setRemoveUnitStep(RemoveStep.UNITS);
-                                setRemoveUnitTroop(t);
-                            }
-                        }>消灭
-                    </Button>
-                </Grid>}
+                                    setNewTroopStep(NewTroopStep.START);
+                                    setDeployNewStep(DeployNewStep.TROOP);
 
-            </Grid>
-        </AccordionDetails>
-    </Accordion>;
+                                    setTakeDamageStep(TakeDamageStep.TROOP);
+                                    setMarchStep(MarchStep.TROOP);
+                                    // setRemoveStep(RemoveStep.TROOP);
+                                    setDeployStep(DeployStep.TROOP)
+                                    setMoveStep(MoveStep.TROOP);
+
+                                    setRemoveUnitStep(RemoveStep.UNITS);
+                                    setRemoveUnitTroop(t);
+                                }
+                            }>消灭
+                        </Button>
+                    </Grid>}
+
+                </Grid>
+            </AccordionDetails>
+        </Accordion>;
+    }
 
     return <Grid item container xs={12}>
         <Grid item xs={12}>

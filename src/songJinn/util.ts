@@ -305,11 +305,8 @@ export const getSupplyAdj = (G: SongJinnGame, src: TroopPlace, ctr: Country): Tr
     const log = [`getSupplyAdj`];
     const adj = getAdj(G, src);
     log.push(`|${placeToStr(src)}`);
-    const checkedPlaces: TroopPlace[] = [];
     const path: TroopPlace[] = [];
     adj.forEach(p => {
-        if (!checkedPlaces.includes(p)) {
-            checkedPlaces.push(p);
             if (isNationID(p)) {
                 if (ctr2pub(G, ctr).nations.includes(p)) {
                     log.push(`|${p}|ally`);
@@ -324,22 +321,19 @@ export const getSupplyAdj = (G: SongJinnGame, src: TroopPlace, ctr: Country): Tr
                     // }
                 }
             } else {
-                if (isMountainPassID(p)) {
-                    return;
-                } else {
-                    if (isRegionID(p)) {
-                        const reg = getRegionById(p);
-                        if (reg.pass.includes(p)) {
-                            // @ts-ignore
-                            const pass = passAdjToPass(G, src, p);
-                            if (pass !== null) {
-                                const ot = getOpponentPlaceTroopByCtr(G, ctr, pass);
-                                if (ot !== null) {
-                                    log.push(`|${getSimpleTroopText(G, ot)}|ot|pass`);
-                                    return;
-                                }
+                if (isRegionID(p)) {
+                    const reg = getRegionById(p);
+                    if (reg.pass.includes(p)) {
+                        // @ts-ignore
+                        const pass = passAdjToPass(G, src, p);
+                        if (pass !== null) {
+                            const ot = getOpponentPlaceTroopByCtr(G, ctr, pass);
+                            if (ot !== null) {
+                                log.push(`|${getSimpleTroopText(G, ot)}|ot|pass`);
+                                return;
                             }
                         }
+                    }else{
                         const ot = getOpponentPlaceTroopByCtr(G, ctr, p);
                         if (ot !== null) {
                             log.push(`|${getSimpleTroopText(G, ot)}|ot|region`);
@@ -348,16 +342,70 @@ export const getSupplyAdj = (G: SongJinnGame, src: TroopPlace, ctr: Country): Tr
                             path.push(p);
                         }
                     }
+                }else{
+                    if (isMountainPassID(p)) {
+                        return;
+                    } else {
+
+                    }
                 }
             }
-        } else {
-            log.push(`|${p}|checked`);
-        }
-        path.forEach(p => getSupplyAdj(G, p, ctr));
     })
-
     logger.debug(`${G.matchID}|${log.join('')}`);
     return path;
+}
+
+
+
+export const checkSupply = (G: SongJinnGame, src: TroopPlace, ctr: Country): boolean => {
+    const log = [`checkSupply`];
+    let res = false;
+    if(isRegionID(src)){
+        const ot = getOpponentPlaceTroopByCtr(G, ctr, src);
+        if (ot !== null) {
+            log.push(`|${getSimpleTroopText(G, ot)}|ot|region`);
+        } else {
+            const cid = getRegionById(src).city;
+            if(cid !== null){
+                if(checkCtrCity(G,ctr,cid)){
+                    log.push(`|${ctr}control${cid}`);
+                    res = true;
+                }
+            }
+        }
+    }
+    log.push(`|${res}|res`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return  res;
+}
+export const getSupplyRegions = (G: SongJinnGame, src: TroopPlace, ctr: Country): boolean => {
+    const log = [`getSupplyRegions`];
+    log.push(`|${placeToStr(src)}|${ctr}`);
+    const checkedPlaces: TroopPlace[] = [];
+    const path: TroopPlace[] = [src];
+    let res = false;
+    while(path.length > 0){
+        const popped = path.pop();
+        if(popped !== undefined){
+            checkedPlaces.push(popped);
+            if(checkSupply(G,popped,ctr)){
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return true;
+            } else{
+                const adj = getSupplyAdj(G,popped,ctr);
+                adj.forEach(a=>{
+                    if(!checkedPlaces.includes(a)){
+                        path.push(a);
+                        log.push(`|${a}|path`);
+                    } else{
+                        log.push(`|${a}|checked`);
+                    }
+                })
+            }
+        }
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return false;
 }
 
 export const hasSupply = (G: SongJinnGame, t: Troop): boolean => {
@@ -368,6 +416,7 @@ export const hasSupply = (G: SongJinnGame, t: Troop): boolean => {
         result = true;
     } else {
         log.push('|not stationed');
+        result = getSupplyRegions(G, t.p, t.g);
     }
     log.push(`|${result}|result`);
     logger.debug(`${G.matchID}|${log.join('')}`);
