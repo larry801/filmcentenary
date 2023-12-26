@@ -7,8 +7,8 @@ import {
     checkProvince,
     chooseFirst,
     choosePlan,
-    chooseProvince,
-    chooseRegion,
+    // chooseProvince,
+    // chooseRegion,
     chooseTop,
     combatCard,
     confirmRespond,
@@ -71,10 +71,9 @@ import {
     drawPlanForPlayer,
     endTurnCheck,
     getJinnPower,
-    getLeadingPlayer,
     getSongPower,
     pid2pub,
-    playerById
+    playerById, randomDiscardForSong
 } from "../util";
 
 const moves = {
@@ -145,31 +144,28 @@ export const ConfirmRespondStageConfig: StageConfig<SongJinnGame> = {
         confirmRespond: confirmRespond,
     }
 }
+//
+// export const ChooseProvinceStageConfig: StageConfig<SongJinnGame> = {
+//     moves: {
+//         chooseProvince: chooseProvince,
+//     }
+// }
+//
+// export const ChooseRegionsStageConfig: StageConfig<SongJinnGame> = {
+//     moves: {
+//         chooseRegion: chooseRegion,
+//     }
+// }
 
-export const ChooseProvinceStageConfig: StageConfig<SongJinnGame> = {
-    moves: {
-        chooseProvince: chooseProvince,
-    }
-}
-
-export const ChooseRegionsStageConfig: StageConfig<SongJinnGame> = {
-    moves: {
-        chooseRegion: chooseRegion,
-    }
-}
 export const ReactStageConfig: StageConfig<SongJinnGame> = {
     moves: moves
 }
 
 export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
-    order: TurnOrder.CUSTOM_FROM("order"),
-    stages: {
-        confirmRespond: ConfirmRespondStageConfig,
-        react: ReactStageConfig
-    }
+    order: TurnOrder.CUSTOM_FROM("order")
 }
 
-const StagedTurnConfig: TurnConfig<SongJinnGame> = {
+export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
     order: TurnOrder.CUSTOM_FROM("order"),
     stages: {
         react: ReactStageConfig,
@@ -203,7 +199,18 @@ const StagedTurnConfig: TurnConfig<SongJinnGame> = {
             moves: {
                 freeHeYi: freeHeYi,
             }
-        }
+        },
+        searchFirst: {
+            moves: {
+                searchFirst: searchFirst
+            }
+        },
+        search: {
+            moves: {
+                search: search,
+                discard: randomDiscardForSong,
+            }
+        },
     },
 };
 
@@ -242,7 +249,7 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
 
 export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G, ctx: Ctx) => {
-        const log = [`draw|onBegin|${G.order}`]
+        const log = [`draw|onBegin|${G.order}`];
         drawPhaseForSong(G, ctx);
         drawPhaseForJinn(G, ctx);
         const songPower = getSongPower(G);
@@ -261,25 +268,11 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         log.push(`|${jinnPower}jinnPower`);
         log.push(`|${jinnCorruptionLimit}jinnCorruptionLimit`);
         log.push(`|${G.jinn.corruption}G.jinn.corruption`);
-        // const firstPlayer = G.order[0];
-        // cannot import PlanID here
-        // if(){
-        //
-        // }else{
-        //     drawPhaseForSong(G,ctx);
-        // }
+
         logger.debug(`${log.join('')}`);
     },
-    moves: {
-        down: down,
-        searchFirst: searchFirst,
-        search: search,
-        discard: discard,
-        endRound: endRound,
-        opponentMove: opponentMove,
-        drawExtraCard: drawExtraCard,
-        develop: develop,
-    }
+    moves: moves,
+    turn: StagedTurnConfig,
 }
 
 export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
@@ -376,6 +369,32 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
                     break;
                 case "宋控制":
                     G.song.effect.push(PlayerPendingEffect.TwoPlan)
+                    break;
+                case "战争状态":
+                    break;
+            }
+        }
+        if (currentPlans.includes(PlanID.J01)) {
+            const status = currentProvStatus(G, ProvinceID.JINGJILU);
+            switch (status) {
+                case "金控制":
+                    G.jinn.effect.push(PlayerPendingEffect.SearchCard)
+                    break;
+                case "宋控制":
+                    G.song.effect.push(PlayerPendingEffect.SearchCard)
+                    break;
+                case "战争状态":
+                    break;
+            }
+        }
+        if (currentPlans.includes(PlanID.J07)) {
+            const status = currentProvStatus(G, ProvinceID.JINGJILU);
+            switch (status) {
+                case "金控制":
+                    G.jinn.effect.push(PlayerPendingEffect.SearchCard)
+                    break;
+                case "宋控制":
+                    G.song.effect.push(PlayerPendingEffect.SearchCard)
                     break;
                 case "战争状态":
                     break;

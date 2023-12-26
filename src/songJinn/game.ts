@@ -1,5 +1,4 @@
 import {Ctx, Game, PlayerID} from "boardgame.io";
-import {PlayerView} from "boardgame.io/core";
 import {
     ActionPhaseConfig,
     ChooseFirstPhaseConfig,
@@ -8,9 +7,8 @@ import {
     DevelopPhaseConfig,
     DiplomacyPhaseConfig,
     DrawPhaseConfig,
-    NormalTurnConfig,
     ResolvePlanPhaseConfig,
-    ShowPlanPhaseConfig,
+    ShowPlanPhaseConfig, StagedTurnConfig,
     TurnEndPhaseConfig
 } from "./constant/config";
 import {Country, setupSongJinn, SJPlayer, SongJinnGame, VictoryReason} from "./constant/general";
@@ -22,7 +20,7 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
     name: "songJinn",
     minPlayers: 2,
     maxPlayers: 2,
-    playerView: (G: SongJinnGame, ctx: Ctx, playerID: PlayerID | null) => {
+    playerView: (G: SongJinnGame, _ctx: Ctx, playerID: PlayerID | null) => {
         let r = JSON.parse(JSON.stringify(G));
         r.song.handCount = r.player['0'].hand.length;
         r.jinn.handCount = r.player['1'].hand.length;
@@ -54,8 +52,8 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
         deploy: DeployPhaseConfig,
         turnEnd: TurnEndPhaseConfig,
     },
-    turn: NormalTurnConfig,
-    endIf: (G: SongJinnGame, ctx: Ctx) => {
+    turn: StagedTurnConfig,
+    endIf: (G: SongJinnGame, _ctx: Ctx) => {
         if (getSongPower(G) <= 3) {
             return {
                 winner: SJPlayer.P2,
