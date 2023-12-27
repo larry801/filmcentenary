@@ -282,7 +282,7 @@ export const Operation = ({
         }
         moves.develop({choice, target});
     }
-    const developPhases = ['draw', 'develop', 'action', 'resolvePlan', 'turnEnd']
+    const developPhases = ['draw', 'develop', 'action', 'resolvePlan','deploy', 'turnEnd']
     const developDialog = <ChoiceDialog
         callback={develop}
         defaultChoice={DevelopChoice.CIVIL}
