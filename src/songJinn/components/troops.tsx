@@ -11,7 +11,6 @@ import {
     CityID,
     Country,
     General,
-    isRegionID,
     JinnGeneral,
     ProvinceID,
     RegionID,
@@ -49,7 +48,6 @@ import {
     getTroopText,
     hasOpponentTroop,
     jinnSorter,
-    optionToActualDst,
     pid2pub,
     songSorter,
     StrProvince,
@@ -121,8 +119,7 @@ enum DeployNewStep {
 
 enum TakeDamageStep {
     TROOP,
-    READY,
-    STANDBY
+    READY
 }
 
 const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
@@ -180,7 +177,7 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
         c={takeDamageTroop.c}
         show={isActive && takeDamageStep === TakeDamageStep.READY}
         country={takeDamageTroop.g}
-        initUnits={takeDamageTroop.u.map(u => 0)}
+        initUnits={takeDamageTroop.u.map(() => 0)}
         max={takeDamageTroop.u}
         initial={false}
     />
@@ -542,10 +539,10 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
                    expanded={expanded === troopKey(t, idx)}
                    onChange={() => setExpanded(troopKey(t, idx))}>
             <AccordionSummary>
-                {noSupply ? "断补" : ""}
-                {hasOpponentTroop(G, t) ? '对峙|' : ''}
-                {troopIsWeiKun(G, t) ? "被围困|" : ""}
-                {troopCanSiege(G, t) && '围城|'}
+                {noSupply && "断补|"}
+                {hasOpponentTroop(G, t) && "对峙|"}
+                {troopIsWeiKun(G, t) && "被围困|"}
+                {troopCanSiege(G, t) && "围城|"}
                 {t.g}{getTroopPlaceText(t)}
                 {getTroopText(G, t)} </AccordionSummary>
             <AccordionDetails>

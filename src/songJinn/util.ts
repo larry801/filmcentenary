@@ -382,7 +382,6 @@ export const getSupplyRegions = (G: SongJinnGame, src: TroopPlace, ctr: Country)
     log.push(`|${placeToStr(src)}|${ctr}`);
     const checkedPlaces: TroopPlace[] = [];
     const path: TroopPlace[] = [src];
-    let res = false;
     while (path.length > 0) {
         const popped = path.pop();
         if (popped !== undefined) {
@@ -409,7 +408,7 @@ export const getSupplyRegions = (G: SongJinnGame, src: TroopPlace, ctr: Country)
 
 export const hasSupply = (G: SongJinnGame, t: Troop): boolean => {
     const log = [`hasSupply`];
-    let result = false;
+    let result;
     if (t.c !== null) {
         log.push('|stationed');
         result = true;
