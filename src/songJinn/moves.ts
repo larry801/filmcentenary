@@ -373,8 +373,8 @@ export const march: LongFormMove = {
             }
         } else {
             const oCtr = oppoCtr(t.g);
-            const opid = ctr2pid(oCtr);
-            log.push(`|${opid}|opid`);
+            const oppoPid = ctr2pid(oCtr);
+            log.push(`|${oppoPid}|oppoPid`);
             removeNoTroopGeneralByCtr(G, ctx, t.p, oppoCtr(t.g));
             if (isRegionID(newDst)) {
                 const cid = getRegionById(newDst).city;
@@ -908,27 +908,33 @@ export const removeCompletedPlan: LongFormMove = {
 }
 
 export const recruitPuppet: LongFormMove = {
+    client: false,
     move: (G, ctx, dst: CityID) => {
+        const log = [`recruitPuppet|${dst}`];
         if (ctx.playerID !== SJPlayer.P2) {
             return INVALID_MOVE;
         }
         const pub = G.jinn;
         let qi = false;
         if (pub.standby[5] > 0) {
-            pub.standby[5]--
+            log.push(`|useQian`);
         } else {
             if (G.events.includes(ActiveEvents.JianLiDaQi)) {
                 if (pub.standby[6] > 0) {
-                    pub.standby[6]--;
+                    log.push(`|useQi`);
                 } else {
+                    log.push(`|noQiJun`);
                     return INVALID_MOVE;
                 }
                 qi = true;
             } else {
+                log.push(`|noDaQi`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
                 return INVALID_MOVE;
             }
         }
 
+        log.push(`|${pub.standby}|pub.standby`);
         const jt = getJinnTroopByCity(G, dst);
         if (jt === null) {
             if (qi) {
@@ -938,11 +944,16 @@ export const recruitPuppet: LongFormMove = {
             }
         } else {
             if (qi) {
+                pub.standby[6]--;
                 jt.u[6]++
             } else {
+                pub.standby[5]--;
                 jt.u[5]++;
             }
+            log.push(`|${getSimpleTroopText(G, jt)}|jt`);
         }
+        log.push(`|${pub.standby}|pub.standby`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
 
@@ -1385,6 +1396,7 @@ export const developCard: LongFormMove = {
         }
         const pub = pid2pub(G, ctx.playerID);
         pub.develop.push(args);
+
     }
 }
 
@@ -1864,6 +1876,15 @@ export const confirmRespond: LongFormMove = {
         const defCCI = ciDefInfo(G);
         log.push(`|${JSON.stringify(arg)}arg`);
         log.push(`|${ci.phase}ci.phase`);
+
+        function eliminate() {
+            if (choice === 'yes' || choice === "archer") {
+                removeUnitByCountryPlace(G, [0, 1, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
+            } else {
+                removeUnitByCountryPlace(G, [1, 0, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
+            }
+        }
+
         if (ci.ongoing) {
             if (ci.phase === CombatPhase.JieYe) {
                 log.push(`|JieYe`);
@@ -1886,7 +1907,7 @@ export const confirmRespond: LongFormMove = {
                 const atkPub = ctr2pub(G, ci.atk);
                 atkPub.troops.forEach(at => {
                     if (at.p === ciAtkTroop(G).p) {
-                        at.c === null;
+                        at.c = null;
                     }
                 })
                 weiKunTroop(G, defCCI.troop);
@@ -2000,11 +2021,7 @@ export const confirmRespond: LongFormMove = {
                 const poppedEvent = G.pending.events.pop()
                 log.push(`|${poppedEvent}|poppedEvent`);
                 if (poppedEvent === PendingEvents.HuFuXiangBing) {
-                    if (choice === 'yes' || choice === "archer") {
-                        removeUnitByCountryPlace(G, [0, 1, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
-                    } else {
-                        removeUnitByCountryPlace(G, [1, 0, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
-                    }
+                    eliminate();
                     yuanCheng(G, ctx);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
@@ -2062,11 +2079,7 @@ export const confirmRespond: LongFormMove = {
                             return
                         }
                     case PendingEvents.HuFuXiangBing:
-                        if (choice === 'yes' || choice === "archer") {
-                            removeUnitByCountryPlace(G, [0, 1, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
-                        } else {
-                            removeUnitByCountryPlace(G, [1, 0, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
-                        }
+                        eliminate();
                         yuanCheng(G, ctx);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
