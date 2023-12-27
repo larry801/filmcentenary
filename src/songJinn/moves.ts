@@ -64,7 +64,6 @@ import {
     doGeneralSkill,
     doLoseCity,
     doLoseProvince,
-    doMoveTroop,
     doMoveTroopAll,
     doMoveTroopPart,
     doPlaceUnit,
@@ -330,10 +329,9 @@ export const march: LongFormMove = {
                     log.push(`|${cid}|cid`);
                     if (cid !== null) {
                         const oppoCityTroop = getOpponentPlaceTroopByCtr(G, t.g, cid);
-                        const troopPid = ctr2pid(t.g);
                         if (oppoCityTroop === null) {
                             if(G.jinn.generalPlace[JinnGeneral.YinShuKe] === dst){
-                                doPlaceUnit(G,[1,0,0,0,0,0,0],Country.JINN, mid);
+                                doPlaceUnit(G,ctx,[1,0,0,0,0,0,0],Country.JINN, mid);
                             }
                         } else {
 
@@ -357,6 +355,8 @@ export const march: LongFormMove = {
                     return INVALID_MOVE;
                 } else {
                     if (troopIsArmy(G, ctx, oppoFieldTroop)) {
+                        G.pending.places.push(mid === undefined ? src : mid);
+                        log.push(`|${JSON.stringify(G.pending.places)}|G.pending.places`);
                         log.push(`|startCombat`);
                         startCombat(G, ctx, ctr, newDst);
                         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -392,7 +392,7 @@ export const march: LongFormMove = {
                         return;
                     } else {
                         if(G.jinn.generalPlace[JinnGeneral.YinShuKe] === dst){
-                            doPlaceUnit(G,[1,0,0,0,0,0,0],Country.JINN, dst);
+                            doPlaceUnit(G,ctx,[1,0,0,0,0,0,0],Country.JINN, dst);
                         }
                         doControlCity(G, ctx, troopPid, cid);
                     }
@@ -459,21 +459,21 @@ export const letter: LongFormMove = {
 //         logger.debug(`${log.join('')}`);
 //     }
 // }
-
-export const chooseProvince: LongFormMove = {
-    move: (
-        G: SongJinnGame, ctx,
-        // arg: ProvinceID
-    ) => {
-        const pid = ctx.playerID;
-        if (pid === undefined) {
-            return INVALID_MOVE;
-        }
-        // const ctr = getCountryById(ctx.playerID);
-        // const pub = pid2pub(G, ctx.playerID);
-        // const player = playerById(G, ctx.playerID);
-    }
-}
+//
+// export const chooseProvince: LongFormMove = {
+//     move: (
+//         G: SongJinnGame, ctx,
+//         // arg: ProvinceID
+//     ) => {
+//         const pid = ctx.playerID;
+//         if (pid === undefined) {
+//             return INVALID_MOVE;
+//         }
+//         // const ctr = getCountryById(ctx.playerID);
+//         // const pub = pid2pub(G, ctx.playerID);
+//         // const player = playerById(G, ctx.playerID);
+//     }
+// }
 
 interface ITakeDamageArgs {
     c: Country,
@@ -635,7 +635,7 @@ export const placeUnit: LongFormMove = {
             logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
-        doPlaceUnit(G, units, country, place);
+        doPlaceUnit(G,ctx, units, country, place);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -974,7 +974,7 @@ export const retreat: LongFormMove = {
         }
         logger.info(`${G.matchID}|p${pid}.moves.retreat(${JSON.stringify(arg)})`);
         const {src, dst, country} = arg;
-        doMoveTroop(G, src, dst, country);
+        doMoveTroopAll(G, src.p, dst, country);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -1566,7 +1566,7 @@ export const showCC: LongFormMove = {
             } else {
                 if (G.combat.song.combatCard.includes(SongBaseCardID.S50)) {
                     log.push(`|LiBao`);
-                    doPlaceUnit(G, [0, 0, 0, 1, 0, 0], Country.SONG, G.combat.song.troop.p);
+                    doPlaceUnit(G, ctx, [0, 0, 0, 1, 0, 0], Country.SONG, G.combat.song.troop.p);
                 }
                 if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J32)) {
                     log.push(`|huoGong`);

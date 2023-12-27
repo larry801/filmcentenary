@@ -873,11 +873,11 @@ export const oppoPub = (G: SongJinnGame, pid: PlayerID) => {
     }
 }
 
-export const setTroopPlaceByCtr = (G: SongJinnGame, ctr: Country, p: TroopPlace, newPlace: TroopPlace) => {
-    const log = [`setTroopPlaceByCtr`];
+export const setTroopCityByCtr = (G: SongJinnGame, ctr: Country, p: TroopPlace, cid: CityID) => {
+    const log = [`setTroopCityByCtr`];
     log.push(`|${ctr}|ctr`);
     log.push(`|${placeToStr(p)}|src`);
-    log.push(`|${placeToStr(newPlace)}|dst`);
+    log.push(`|${placeToStr(cid)}|dst`);
     const troops = ctr === Country.SONG ? G.song.troops : G.jinn.troops;
     const target = troops.filter(tr => tr.p === p);
     log.push(`|${JSON.stringify(target)}|target`);
@@ -885,7 +885,29 @@ export const setTroopPlaceByCtr = (G: SongJinnGame, ctr: Country, p: TroopPlace,
         if (target.length > 1) {
             log.push(`|more than one error`);
         } else {
-            target[0].p = newPlace;
+            target[0].c = cid;
+        }
+    } else {
+        log.push(`|noTroop|error`);
+    }
+    log.push(`|${JSON.stringify(troops)}|troops`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+
+export const setTroopPlaceByCtr = (G: SongJinnGame, ctr: Country, p: TroopPlace, np: TroopPlace) => {
+    const log = [`setTroopPlaceByCtr`];
+    log.push(`|${ctr}|ctr`);
+    log.push(`|${placeToStr(p)}|src`);
+    log.push(`|${placeToStr(np)}|dst`);
+    const troops = ctr === Country.SONG ? G.song.troops : G.jinn.troops;
+    const target = troops.filter(tr => tr.p === p);
+    log.push(`|${JSON.stringify(target)}|target`);
+    if (target.length > 0) {
+        if (target.length > 1) {
+            log.push(`|more than one error`);
+        } else {
+            target[0].p = np;
         }
     } else {
         log.push(`|noTroop|error`);
@@ -1419,13 +1441,13 @@ export const idToCard = {
         combat: false,
         effectText: "在宋国皇帝所在的区域放置韩世忠。若相邻区域有金国部队，则放置2个步兵到该城市。",
         pre: (G: SongJinnGame, _ctx: Ctx) => G.song.emperor !== null,
-        event: (G: SongJinnGame, _ctx: Ctx) => {
+        event: (G: SongJinnGame, ctx: Ctx) => {
             moveGeneralToReady(G, SJPlayer.P1, SongGeneral.HanShiZhong);
             const emperor = G.song.emperor;
             if (emperor !== null) {
                 const reg = getCityById(emperor).region;
                 if (getJinnTroopByPlace(G, reg) !== null) {
-                    doPlaceUnit(G, [2, 0, 0, 0, 0, 0], Country.SONG, emperor);
+                    doPlaceUnit(G, ctx, [2, 0, 0, 0, 0, 0], Country.SONG, emperor);
                     G.song.generalPlace[SongGeneral.HanShiZhong] = emperor;
                 } else {
                     const adjPlace = getAdj(G, reg);
@@ -1437,7 +1459,7 @@ export const idToCard = {
                         }
                     });
                     if (placeInfantry) {
-                        doPlaceUnit(G, [2, 0, 0, 0, 0, 0], Country.SONG, reg);
+                        doPlaceUnit(G, ctx, [2, 0, 0, 0, 0, 0], Country.SONG, reg);
                     }
                     G.song.generalPlace[SongGeneral.HanShiZhong] = reg;
                 }
@@ -1658,14 +1680,14 @@ export const idToCard = {
         combat: false,
         effectText: "在宋国皇帝所在的区域放置1个步兵和1个弓兵。",
         pre: (G: SongJinnGame, _ctx: Ctx) => G.song.emperor !== null,
-        event: (G: SongJinnGame, _ctx: Ctx) => {
+        event: (G: SongJinnGame, ctx: Ctx) => {
             if (G.song.emperor !== null) {
                 const reg = getCityById(G.song.emperor).region;
                 const tr = getTroopByCountryPlace(G, Country.SONG, reg);
                 if (tr === null) {
-                    doPlaceUnit(G, [1, 1, 0, 0, 0, 0], Country.SONG, G.song.emperor);
+                    doPlaceUnit(G, ctx, [1, 1, 0, 0, 0, 0], Country.SONG, G.song.emperor);
                 } else {
-                    doPlaceUnit(G, [1, 1, 0, 0, 0, 0], Country.SONG, reg);
+                    doPlaceUnit(G, ctx, [1, 1, 0, 0, 0, 0], Country.SONG, reg);
                 }
             }
         }
@@ -1702,8 +1724,8 @@ export const idToCard = {
         combat: false,
         effectText: "在泰州地区放置1个战船，在准南两路消灭1个金国部队。",
         pre: (_G: SongJinnGame, _ctx: Ctx) => true,
-        event: (G: SongJinnGame, _ctx: Ctx) => {
-            doPlaceUnit(G, [0, 0, 0, 1, 0, 0], Country.SONG, RegionID.R47);
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            doPlaceUnit(G, ctx, [0, 0, 0, 1, 0, 0], Country.SONG, RegionID.R47);
         }
     },
     [SongBaseCardID.S36]: {
@@ -2144,12 +2166,12 @@ export const idToCard = {
         combat: false,
         effectText: "在历城消灭灭全部宋国部队，放置2个签军。",
         pre: (_G: SongJinnGame, _ctx: Ctx) => true,
-        event: (G: SongJinnGame, _ctx: Ctx) => {
+        event: (G: SongJinnGame, ctx: Ctx) => {
             const troop = getSongTroopByCity(G, CityID.LiCheng);
             if (troop !== null) {
                 removeUnitByPlace(G, troop.u, SJPlayer.P1, troop.p);
             }
-            doPlaceUnit(G, [0, 0, 0, 0, 0, 2, 0], Country.JINN, RegionID.R21);
+            doPlaceUnit(G, ctx, [0, 0, 0, 0, 0, 2, 0], Country.JINN, RegionID.R21);
             G.events.push(ActiveEvents.JiNanZhiFuLiuYu);
         }
     },
@@ -3108,9 +3130,9 @@ export const doLoseCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cityID: Cit
             }
         }
         if (opponent) {
-            if(G.jinn.generalPlace[JinnGeneral.YinShuKe] === city.region){
+            if (G.jinn.generalPlace[JinnGeneral.YinShuKe] === city.region) {
                 log.push(`|yinShuKe|1Bu`);
-                doPlaceUnit(G,[1,0,0,0,0,0,0],Country.JINN, city.region);
+                doPlaceUnit(G, ctx, [1, 0, 0, 0, 0, 0, 0], Country.JINN, city.region);
             }
             log.push(`|${opponent}|opponent`);
             oppo.cities.push(cityID);
@@ -3417,7 +3439,6 @@ export const removeNoTroopGeneralByCtr = (G: SongJinnGame, ctx: Ctx, p: TroopPla
 
 export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
     const log = [`removeZeroTroop`];
-    const pid = ctr2pid(t.g);
     const ci = G.combat;
     log.push(`|${JSON.stringify(t)}t`);
     log.push(`|${getSimpleTroopText(G, t)}t`);
@@ -3431,8 +3452,10 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
             } else {
                 log.push(`|autoLoseCity`);
                 if (t.c !== null) {
+                    setTroopCityByCtr(G, ciAtkCtr(G), t.p, t.c);
                     autoLoseCity(G, ctx, t.c);
                 } else {
+                    // TODO fetch region
                     autoLoseCity(G, ctx);
                 }
             }
@@ -3935,7 +3958,7 @@ export const canSendLetter = (G: SongJinnGame, ctr: Country, n: NationID) => {
         log.push(`|removed`);
     } else {
         const adjReg = getNationAdj(n);
-        if (n === NationID.XiLiao){
+        if (n === NationID.XiLiao) {
             adjReg.push(RegionID.R02DaTonFu)
         }
         adjReg.forEach(r => {
@@ -4748,6 +4771,10 @@ export const canRoundTwo = (G: SongJinnGame): boolean => {
 
 export const ciAtkPid = (G: SongJinnGame): PlayerID => ctr2pid(G.combat.atk);
 export const ciDefPid = (G: SongJinnGame): PlayerID => ctr2pid(ciDefCtr(G));
+export const ciAtkCtr = (G: SongJinnGame): Country => {
+    const ci = G.combat;
+    return ci.atk === Country.JINN ? Country.JINN : Country.SONG;
+}
 export const ciDefCtr = (G: SongJinnGame): Country => {
     const ci = G.combat;
     return ci.atk === Country.SONG ? Country.JINN : Country.SONG;
@@ -5057,6 +5084,23 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
 export function endCombat(G: SongJinnGame, ctx: Ctx) {
     const log = [`endCombat`];
     const c = G.combat;
+
+    const retreatPlace = G.pending.places.pop();
+    if (c.type === CombatType.RESCUE) {
+        if (retreatPlace !== undefined) {
+            const dt = ciDefTroop(G);
+            if(dt !== null){
+                if(troopEndurance(G,dt) > 0){
+                    log.push(`|${retreatPlace}|retreatPlace`);
+                    if (c.region !== null) {
+                        doMoveTroopAll(G,dt.p,retreatPlace,c.atk);
+                    } else {
+                        log.push(`|no region`);
+                    }
+                }
+            }
+        }
+    }
     c.ongoing = false;
     log.push(`|${c.song.combatCard}c.song.combatCard`);
     log.push(`|${G.song.discard}G.song.discard`);
@@ -5135,6 +5179,7 @@ export function startCombat(
     let atkTroop = getTroopByCountryPlace(G, c.atk, p);
     let defTroop = getTroopByCountryPlace(G, ciDefCtr(G), p);
     if (isCityID(p)) {
+        log.push(`|isCity`);
         // @ts-ignore
         let atkCityTroop = getTroopByCountryCity(G, c.atk, p);
         // @ts-ignore
@@ -5209,14 +5254,18 @@ export function startCombat(
             if (reg.city === null) {
                 log.push(`|noCityField`);
                 c.type = CombatType.FIELD;
-                // DEBUG remove cc
-                // yuanCheng(G, ctx);
                 changePlayerStage(G, ctx, 'combatCard', G.order[0]);
             } else {
-                log.push(`|city|ask|field`);
-                // DEBUG remove cc
-                // yuanCheng(G, ctx);
-                changePlayerStage(G, ctx, 'confirmRespond', defId);
+                const atkCityTroop = getTroopByCityCountry(G, reg.city, ciAtkCtr(G));
+                if (atkCityTroop !== null) {
+                    log.push(`|${JSON.stringify(atkCityTroop)}|atkCityTroop`);
+                    log.push(`|${getSimpleTroopText(G, atkCityTroop)}|atkCityTroop`);
+                    c.type = CombatType.RESCUE;
+                    changePlayerStage(G, ctx, 'combatCard', G.order[0]);
+                } else {
+                    log.push(`|city|ask|field`);
+                    changePlayerStage(G, ctx, 'confirmRespond', defId);
+                }
             }
         } else {
             if (isMountainPassID(p)) {
@@ -6838,12 +6887,12 @@ export const changeMilitary = (G: SongJinnGame, pid: PlayerID, a: number) => {
 
 
 export const doMoveTroopPart = (
-    G: SongJinnGame, src: TroopPlace, dst: TroopPlace, country: Country,
+    G: SongJinnGame, src: TroopPlace, dst: TroopPlace, ctr: Country,
     units: number[], generals: General[]
 ) => {
     const log = [`doMoveTroopPart`];
-    const pub = ctr2pub(G, country);
-    const t = getTroopByCountryPlace(G, country, src);
+    const pub = ctr2pub(G, ctr);
+    const t = getTroopByCountryPlace(G, ctr, src);
     if (t === null) {
         log.push(`|noTroop`);
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -6859,7 +6908,7 @@ export const doMoveTroopPart = (
     for (let i = 0; i < units.length; i++) {
         t.u[i] -= units[i];
     }
-    generals.forEach(gen => moveGeneralByCountry(G, country, gen, dst));
+    generals.forEach(gen => moveGeneralByCountry(G, ctr, gen, dst));
     if (troopEmpty(t)) {
         pub.troops.splice(pub.troops.indexOf(t), 1);
     }
@@ -6880,11 +6929,18 @@ export const doMoveTroopPart = (
             city = region.city;
         }
         log.push(`|city${city}`);
+        if(city !== null){
+            const oct = getOpponentCityTroopByCtr(G,ctr,city);
+            if(oct !== null){
+                log.push(`|${getSimpleTroopText(G, oct)}|oct`);
+                city = null;
+            }
+        }
         const newTroop = {
             p: dst,
             c: city,
             u: units,
-            g: country
+            g: ctr
         };
         log.push(`|new|${JSON.stringify(newTroop)}`);
         pub.troops.push(newTroop);
@@ -6920,7 +6976,17 @@ export const doMoveTroopAll = (
                 pt.p = dst;
                 if (isRegionID(dst)) {
                     const region = getRegionById(dst);
-                    t.c = region.city;
+                    const cid = region.city;
+                    if (cid !== null) {
+                        const ot = getOpponentCityTroopByCtr(G, t.g, cid);
+                        if (ot !== null) {
+                            log.push(`|${getSimpleTroopText(G, ot)}|ot`);
+                        } else {
+                            t.c = cid;
+                        }
+                    } else {
+                        t.c = null;
+                    }
                 }
                 log.push(`${JSON.stringify(pt)}`);
             }
@@ -6930,43 +6996,8 @@ export const doMoveTroopAll = (
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const doMoveTroop = (
-    G: SongJinnGame, src: Troop,
-    dst: TroopPlace, country: Country
-) => {
-    const log = [`doMoveTroop`];
-    log.push(`|${JSON.stringify(src)}src`);
-    log.push(`|${placeToStr(src.p)}|src`);
-    log.push(`|${placeToStr(dst)}|dst`);
-    const pub = country === Country.SONG ? G.song : G.jinn;
-    const pid = ctr2pid(country);
-    const idx = pub.troops.indexOf(src);
-    const t = pub.troops[idx];
-    if (t === undefined) {
-        return INVALID_MOVE;
-    }
-    const destTroops = pub.troops.filter((t: Troop) => t.p === dst);
-    log.push(`|${JSON.stringify(destTroops)}|destTroops`);
-    if (destTroops.length > 0) {
-        const d = destTroops[0];
-        mergeTroopTo(G, idx, pub.troops.indexOf(d), pid);
-    } else {
-        pub.troops[idx].p = dst;
-        if (isRegionID(dst)) {
-            const region = getRegionById(dst);
-            t.c = region.city;
-        }
-        const g = getPlaceGeneral(G, pid, t.p);
-        if (g.length > 0) {
-            g.forEach(gen => moveGeneralByPid(G, pid, gen, dst));
-        }
-    }
-    logger.debug(`${G.matchID}|${log.join('')}`);
-}
-
-export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, place: TroopPlace) => {
+export const doPlaceUnit = (G: SongJinnGame, ctx: Ctx, units: number[], country: Country, place: TroopPlace) => {
     const log = [`doPlaceUnit|${unitsToString(units)}${country}${placeToStr(place)}`];
-
     const target = ctr2pid(country);
     const pub = pid2pub(G, target);
     pub.standby.forEach((u, idx) => {
@@ -7015,9 +7046,41 @@ export const doPlaceUnit = (G: SongJinnGame, units: number[], country: Country, 
             `|after|${unitsToString(t.u)}${JSON.stringify(t)}`
         );
     }
-    logger.debug(
-        `${G.matchID}|${log.join('')}`
-    );
+
+    const ot = getOpponentPlaceTroopByCtr(G, country, place);
+    if (ot !== null) {
+        log.push(`|${getSimpleTroopText(G, ot)}|ot`);
+        if (troopIsArmy(G, ctx, ot)) {
+            log.push(`|startCombat`);
+            startCombat(G, ctx, country, place);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return;
+        } else {
+            log.push(`|rm|zero`);
+            removeZeroTroop(G, ctx, ot);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return;
+        }
+    } else {
+        if (isRegionID(place)) {
+            const cid = getRegionById(place).city;
+            log.push(`|${cid}|cid`);
+            if (cid !== null) {
+                const oct = getOpponentCityTroopByCtr(G, country, cid);
+                if (oct !== null) {
+                    log.push(`|${getSimpleTroopText(G, oct)}|oct`);
+                    log.push(`|mergeOrSiege`);
+                    G.pending.places.push(cid);
+                    G.pending.events.push(PendingEvents.MergeORSiege);
+                    changePlayerStage(G, ctx, 'confirmRespond', ctr2pid(oct.g));
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
+                }
+            }
+        }
+    }
+
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export function getCardLabel(c: SJEventCardID) {
@@ -7029,7 +7092,7 @@ export function canForceRoundTwo(G: SongJinnGame) {
     const ci = G.combat;
 
     const res = !ci.roundTwo &&
-        ci.atk === Country.SONG &&
+        ci.atk === Country.JINN &&
         ciDefGenerals(G).includes(SongGeneral.YueFei);
     logger.debug(`${G.matchID}|canForceRoundTwo|${res}`);
 
