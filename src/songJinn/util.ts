@@ -3935,6 +3935,9 @@ export const canSendLetter = (G: SongJinnGame, ctr: Country, n: NationID) => {
         log.push(`|removed`);
     } else {
         const adjReg = getNationAdj(n);
+        if (n === NationID.XiLiao){
+            adjReg.push(RegionID.R02DaTonFu)
+        }
         adjReg.forEach(r => {
             const t = getTroopByCountryPlace(G, ctr, r);
             if (t !== null) {
