@@ -48,6 +48,7 @@ export enum ActiveEvents {
     JingKangZhiBian = "靖康之变",
     LiuJiaShenBing = "六甲神兵",
     HeMianFengDong = "河面封冻",
+    LueDuo = "掠夺",
     JinTaiZong = "金太宗",
     ZhuiWangZhuBei = "追亡逐北",
     JiNanZhiFuLiuYu = "济南知府刘豫",

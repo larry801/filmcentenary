@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Ctx, PlayerID } from "boardgame.io"
+import React, {useState} from "react";
+import {Ctx, PlayerID} from "boardgame.io"
 import Grid from "@material-ui/core/Grid";
 
 import Button from "@material-ui/core/Button";
@@ -20,12 +20,14 @@ import {
     UNIT_SHORTHAND
 } from "../constant/general";
 import ChoiceDialog from "../../components/modals";
-import { TakeDamageDialog } from "./take-damage";
-import { getProvinceById } from "../constant/province";
+import {TakeDamageDialog} from "./take-damage";
+import {getProvinceById} from "../constant/province";
 import CheckBoxDialog from "./choice";
-import { ChooseUnitsDialog } from "./recruit";
+import {ChooseUnitsDialog} from "./recruit";
 import {
+    checkColonyCity,
     ctr2pub,
+    getCityDefByTroop,
     getCountryById,
     getDefendCityRangeStr,
     getDefendCiyMelee,
@@ -47,7 +49,11 @@ import {
     getTroopPlaceText,
     getTroopText,
     hasOpponentTroop,
+    hasSupply,
+    IMarchPath,
     jinnSorter,
+    marchDstStatus,
+    pathToText,
     pid2pub,
     songSorter,
     StrProvince,
@@ -57,12 +63,11 @@ import {
     troopRange,
     troopSiegeMelee,
     troopSiegeRange,
-    unitsToString,
-    checkColonyCity, getCityDefByTroop, marchDstStatus, IMarchPath, pathToText, hasSupply
+    unitsToString
 } from "../util";
-import { getRegionById } from "../constant/regions";
+import {getRegionById} from "../constant/regions";
 import Typography from "@material-ui/core/Typography";
-import { getCityById } from "../constant/city";
+import {getCityById} from "../constant/city";
 
 export interface IPlayerHandProps {
     G: SongJinnGame,
@@ -532,7 +537,7 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
 
 
     const mapper = (t: Troop, idx: number) => {
-        const noSupply = !hasSupply(G, t);
+        const noSupply =  G.events.includes(ActiveEvents.LueDuo) && t.g === Country.JINN ? false : !hasSupply(G, t);
         const marchDisabled = G.op <= 0  || noSupply;
 
          return <Accordion key={troopKey(t, idx)}

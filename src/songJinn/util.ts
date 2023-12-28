@@ -434,8 +434,17 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
     const log = [`getMarchDst`];
     if (units.reduce(accumulator) === 0) {
         log.push(`|noUnits`);
-        logger.debug(`${G.matchID}|${log.join('')}`);
+        logger.warn(`${G.matchID}|${log.join('')}`);
         return [];
+    }
+    if(!hasSupply(G,t)){
+        log.push(`|noSupply`);
+        if(G.events.includes(ActiveEvents.LueDuo) && t.g === Country.JINN){
+            log.push(`|lueDuo`);
+        }else{
+            logger.warn(`${G.matchID}|${log.join('')}`);
+            return [];
+        }
     }
     const newTroop = {...t, u: units};
     const adj = getMarchAdj(G, newTroop);
@@ -2306,7 +2315,10 @@ export const idToCard = {
         combat: false,
         effectText: "使用1行动力进军，不受补给限制。",
         pre: (G: SongJinnGame, _ctx: Ctx) => [1, 4, 5, 8].includes(G.round),
-        event: (G: SongJinnGame, _ctx: Ctx) => G.op = 1
+        event: (G: SongJinnGame, _ctx: Ctx) => {
+            G.events.push(ActiveEvents.LueDuo)
+            G.op = 1;
+        }
     },
     [JinnBaseCardID.J17]: {
         id: JinnBaseCardID.J17,
@@ -5300,7 +5312,7 @@ export function startCombat(
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export function damageTaken(G: SongJinnGame, ctx: Ctx, choice?: string) {
+export function damageTaken(G: SongJinnGame, ctx: Ctx) {
     const log = [`damageTaken`];
     const ci = G.combat;
     const atkEn = troopEndurance(G, ciAtkTroop(G));
@@ -5382,7 +5394,7 @@ export function damageTaken(G: SongJinnGame, ctx: Ctx, choice?: string) {
     }
 }
 
-export function continueCombat(G: SongJinnGame, ctx: Ctx, choice?: string) {
+export function continueCombat(G: SongJinnGame, ctx: Ctx) {
     const log = [`continueCombat`];
     const ci = G.combat;
     log.push(`|${ci.phase}|ci.phase`);
@@ -6634,6 +6646,10 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
     if (G.events.includes(ActiveEvents.HeMianFengDong)) {
         log.push(`|rm|${ActiveEvents.HeMianFengDong}`)
         G.events.splice(G.events.indexOf(ActiveEvents.HeMianFengDong), 1);
+    }
+    if (G.events.includes(ActiveEvents.LueDuo)) {
+        log.push(`|rm|${ActiveEvents.LueDuo}`)
+        G.events.splice(G.events.indexOf(ActiveEvents.LueDuo), 1);
     }
     endCombat(G, ctx);
     logger.debug(`${G.matchID}|${log.join('')}`);
