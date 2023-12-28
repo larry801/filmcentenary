@@ -48,9 +48,8 @@ import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
 import {logger} from "./logger";
-// import card from "components/card";
 
-export const curPid = (G: IG, ctx: Ctx): number => {
+export const curPid = (_G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
 }
 
@@ -93,7 +92,7 @@ export const shuffle = (ctx: Ctx, arg: any[]): any[] => {
     return ctx.random?.Shuffle(arg) || arg;
 }
 
-export const actualStage = (G: any, ctx: Ctx,): string => {
+export const actualStage = (_G: any, ctx: Ctx,): string => {
     if (ctx.activePlayers === null) {
         return Stage.NULL;
     } else {
@@ -185,7 +184,7 @@ function getShare(G: IG, region: ValidRegion, obj: IPubInfo, num: number) {
     }
 }
 
-export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
+export function payCost(G: IG, _ctx: Ctx, p: PlayerID, cost: number): void {
     const pub = G.pub[parseInt(p)];
     const log = [`payCost|p${p}|${cost}`];
     if (pub.resource + pub.deposit < cost) {
@@ -204,7 +203,7 @@ export function payCost(G: IG, ctx: Ctx, p: PlayerID, cost: number): void {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export function buyCardEffectPrepare(G: IG, ctx: Ctx, cardID: CardID, p: PlayerID) {
+export function buyCardEffectPrepare(G: IG, _ctx: Ctx, cardID: CardID, p: PlayerID) {
     const log = [`buyCardEffectPrepare|card|${cardID}|p${p}`];
     const targetCard = getCardById(cardID);
     const cardEff = getCardEffect(targetCard.cardId);
@@ -587,18 +586,18 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const cardInDeck = (G: IG, ctx: Ctx, p: number, cardId: CardID): boolean => {
+export const cardInDeck = (G: IG, _ctx: Ctx, p: number, cardId: CardID): boolean => {
     return G.secretInfo.playerDecks[p].filter(c => c === cardId).length > 0;
 }
-export const cardInHand = (G: IG, ctx: Ctx, p: number, cardId: CardID): boolean => {
+export const cardInHand = (G: IG, _ctx: Ctx, p: number, cardId: CardID): boolean => {
     return G.player[p].hand.filter(c => c === cardId).length > 0;
 }
-export const cardInDiscard = (G: IG, ctx: Ctx, p: number, cardId: CardID): boolean => {
+export const cardInDiscard = (G: IG, _ctx: Ctx, p: number, cardId: CardID): boolean => {
     return G.pub[p].discard.filter(c => c === cardId).length > 0;
 }
 export const ownCardPlayers = (G: IG, ctx: Ctx, cardId: CardID): PlayerID[] => {
     let p: PlayerID[] = [];
-    G.order.forEach((i, idx) => {
+    G.order.forEach((_i, idx) => {
             if (cardInHand(G, ctx, idx, cardId) || cardInDeck(G, ctx, idx, cardId) || cardInDiscard(G, ctx, idx, cardId)) {
                 p.push(idx.toString());
             }
@@ -610,11 +609,11 @@ export const ownCardPlayers = (G: IG, ctx: Ctx, cardId: CardID): PlayerID[] => {
 export const buildingInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
     return studioInRegion(G, ctx, r, p) || cinemaInRegion(G, ctx, r, p);
 }
-export const studioInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
+export const studioInRegion = (G: IG, _ctx: Ctx, r: Region, p: PlayerID): boolean => {
     if (r === Region.NONE) return false;
     return G.regions[r].buildings.filter(s => s.building === BuildingType.studio && s.owner === p).length > 0;
 }
-export const cinemaInRegion = (G: IG, ctx: Ctx, r: Region, p: PlayerID): boolean => {
+export const cinemaInRegion = (G: IG, _ctx: Ctx, r: Region, p: PlayerID): boolean => {
     if (r === Region.NONE) return false;
     return G.regions[r].buildings.filter(s => s.building === BuildingType.cinema && s.owner === p).length > 0;
 }
@@ -669,11 +668,11 @@ export const noStudioPlayers = (G: IG, ctx: Ctx, r: Region): PlayerID[] => {
     return result
 }
 
-export const initialPosOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
+export const initialPosOfPlayer = (G: IG, _ctx: Ctx, p: PlayerID): number => {
     return G.initialOrder.indexOf(p);
 }
 
-export const posOfPlayer = (G: IG, ctx: Ctx, p: PlayerID): number => {
+export const posOfPlayer = (G: IG, _ctx: Ctx, p: PlayerID): number => {
     return G.order.indexOf(p);
 }
 
@@ -682,7 +681,7 @@ export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
     return !G.regions[r].completedLastScoring && (regionCardDepleted(G, r) || shareDepleted(G, ctx, r));
 }
 
-export const seqFromPos = (G: IG, ctx: Ctx, pos: number): PlayerID[] => {
+export const seqFromPos = (G: IG, _ctx: Ctx, pos: number): PlayerID[] => {
     const log = [`seqFromPos`];
     let seq = [];
     const remainPlayers = G.order.length
@@ -1943,7 +1942,7 @@ export const industryAward = (G: IG, ctx: Ctx, p: PlayerID): void => {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const cardSlotOnBoard2p = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICardSlot | null => {
+export const cardSlotOnBoard2p = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): ICardSlot | null => {
     if (card.region === Region.NONE) return null;
     if (card.type === CardType.S) {
         for (let slot of G.twoPlayer.school) {
@@ -1957,7 +1956,7 @@ export const cardSlotOnBoard2p = (G: IG, ctx: Ctx, card: INormalOrLegendCard): I
         return null;
     }
 }
-export const cardSlotOnBoard = (G: IG, ctx: Ctx, card: INormalOrLegendCard): ICardSlot | null => {
+export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): ICardSlot | null => {
     if (card.region === Region.NONE) return null;
     let r = G.regions[card.region];
     switch (card.cardId) {
@@ -2028,12 +2027,12 @@ export function regionCardDepleted(G: IG, region: Region) {
     return noRegionCardOnBoard(G, region) && r.normalDeck.length === 0 && r.legendDeck.length === 0;
 }
 
-export function shareDepleted(G: IG, ctx: Ctx, region: Region) {
+export function shareDepleted(G: IG, _ctx: Ctx, region: Region) {
     if (region === Region.NONE) return false;
     return G.regions[region].share === 0;
 }
 
-export function resCost(G: IG, ctx: Ctx, arg: IBuyInfo, showLog: boolean = true): number {
+export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true): number {
     let targetCard = getCardById(arg.target);
     let cost: ICost = targetCard.cost;
     const log = [`resCost|${targetCard.name}|Cost:|${cost.res}|${cost.industry}|${cost.aesthetics}`];
@@ -2328,7 +2327,7 @@ export const fillPlayerHand = (G: IG, ctx: Ctx, p: PlayerID): void => {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const canHelp = (G: IG, ctx: Ctx, p: PlayerID, target: ClassicCardID | BasicCardID, helper: CardID): boolean => {
+export const canHelp = (G: IG, _ctx: Ctx, p: PlayerID, target: ClassicCardID | BasicCardID, helper: CardID): boolean => {
     const targetCard = getCardById(target);
     if (targetCard.cost.industry === 0 && targetCard.cost.aesthetics ===0) {
         return false;
@@ -2730,7 +2729,7 @@ export const getRegionRank = (G: IG, ctx: Ctx, r: ValidRegion): PlayerID[] => {
     const log = ["getRegionRank"];
     const era = G.regions[r].era;
     const rankingPlayer: PlayerID[] = [];
-    G.order.forEach((i, idx) => {
+    G.order.forEach((_i, idx) => {
         log.push(`|p${idx}|share${G.pub[idx].shares[r]}`);
         if (G.pub[idx].shares[r] === 0) {
             log.push("|badFilm");
@@ -2873,7 +2872,7 @@ export function fillEventCard(G: IG, ctx: Ctx) {
         if (G.events[0] === "E03") {
             log.push(`|E03Discarded`);
             G.activeEvents.push(EventCardID.E03);
-            G.order.forEach((i, idx) => {
+            G.order.forEach((_i, idx) => {
                 if (G.pub[idx].action < 2) G.pub[idx].action = 2
             });
         }
@@ -3128,7 +3127,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
     }
 }
 
-export const addCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, num: number) => {
+export const addCompetitionPower = (G: IG, _ctx: Ctx, p: PlayerID, num: number) => {
     const log = [`p${p}|addCompetitionPower|${num}`];
     const pub = G.pub[parseInt(p)];
     log.push(`|before|${pub.competitionPower}`);
@@ -3143,7 +3142,7 @@ export const addCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, num: number) =
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const loseCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, num: number) => {
+export const loseCompetitionPower = (G: IG, _ctx: Ctx, p: PlayerID, num: number) => {
     const log = [`p${p}|loseCompetitionPower|${num}`];
     let pub = G.pub[parseInt(p)];
     log.push(`|before|${pub.competitionPower}`);
@@ -3157,7 +3156,7 @@ export const loseCompetitionPower = (G: IG, ctx: Ctx, p: PlayerID, num: number) 
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const addRes = (G: IG, ctx: Ctx, p: PlayerID, res: number) => {
+export const addRes = (G: IG, _ctx: Ctx, p: PlayerID, res: number) => {
     const log = [`addRes|p${p}`];
     const pub = G.pub[parseInt(p)];
     {
@@ -3168,7 +3167,7 @@ export const addRes = (G: IG, ctx: Ctx, p: PlayerID, res: number) => {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
+export const addVp = (G: IG, _ctx: Ctx, p: PlayerID, vp: number) => {
     const log = [`addVp|p${p}|${vp}vp`];
     const pub = G.pub[parseInt(p)];
     log.push(`|prev|${pub.vp}`);
@@ -3206,7 +3205,7 @@ export const addVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     }
 }
 
-export const loseDeposit = (G: IG, ctx: Ctx, p: PlayerID, deposit: number) => {
+export const loseDeposit = (G: IG, _ctx: Ctx, p: PlayerID, deposit: number) => {
     const log = [`p${p}|loseDeposit|${deposit}`];
     let pub = G.pub[parseInt(p)];
     log.push(`|before|${pub.deposit}`);
@@ -3270,7 +3269,7 @@ export const buildBuildingFor = (G: IG, ctx: Ctx, r: ValidRegion, p: PlayerID, b
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const competitionCleanUp = (G: IG, ctx: Ctx) => {
+export const competitionCleanUp = (G: IG, _ctx: Ctx) => {
     const log = [`competitionCleanUp`];
     let i = G.competitionInfo;
     const atkSchool = G.pub[parseInt(i.atk)].school;
@@ -3597,7 +3596,7 @@ export const checkCompetitionAttacker = (G: IG, ctx: Ctx) => {
     }
 }
 
-const cleanUpScore = (G: IG, ctx: Ctx, pid: PlayerID) => {
+const cleanUpScore = (G: IG, _ctx: Ctx, pid: PlayerID) => {
     let i = parseInt(pid);
     let p = G.pub[i];
     let f = p.finalScoring;
@@ -3774,7 +3773,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: b
     }
 }
 
-export const schoolPlayer = (G: IG, ctx: Ctx, cardId: CardID): PlayerID | null => {
+export const schoolPlayer = (G: IG, _ctx: Ctx, cardId: CardID): PlayerID | null => {
     const log = [`schoolPlayer|${cardId}`];
     let player = null
     G.order.forEach(p => {
