@@ -445,8 +445,20 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
     });
     log.push(`|${JSON.stringify(res)}|res`);
     log.push(`|${JSON.stringify(adj)}|adj`);
+    const noArmyAdj = adj.filter(p=>{
+        const opponentMidTroop = getOpponentPlaceTroopByCtr(G,t.g,p);
+        if(opponentMidTroop !== null) {
+            log.push(`|${getSimpleTroopText(G, opponentMidTroop)}|opponentMidTroop`);
+            if(troopEndurance(G,opponentMidTroop) > 0 ){
+                log.push(`|hasOpponentArmy`);
+                return false;
+            }
+        }
+        return true;
+    })
+    log.push(`|${JSON.stringify(noArmyAdj)}|noArmyAdj`);
     if (isQiXing(newTroop)) {
-        adj.forEach(p => {
+        noArmyAdj.forEach(p => {
             if (isRegionID(p)) {
                 if (canQiXing(p)) {
                     const qTroop = {...newTroop, p: p}
@@ -507,7 +519,7 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
     return res;
 }
 
-export const getMarchAdj = (G: SongJinnGame, t: Troop, fengDong?: boolean): TroopPlace[] => {
+export const getMarchAdj = (G: SongJinnGame, t: Troop): TroopPlace[] => {
     const log = [`getMarchAdj`];
     const src = t.p;
     let res: TroopPlace[] = [];
@@ -525,7 +537,7 @@ export const getMarchAdj = (G: SongJinnGame, t: Troop, fengDong?: boolean): Troo
                     }
                 })
                 reg.water.forEach(r => {
-                    if (fengDong) {
+                    if (G.events.includes(ActiveEvents.HeMianFengDong) && t.g === Country.JINN) {
                         log.push(`|fengDong`);
                         result.push(r)
                     } else {
