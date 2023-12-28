@@ -3132,17 +3132,6 @@ export const doLoseCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cityID: Cit
             G.jinn.emperor = null;
         }
         const city = getCityById(cityID);
-        const oppoProvStatus = pid === SJPlayer.P1 ? ProvinceState.JINN : ProvinceState.SONG;
-        const toOpponent = currentProvStatus(G, city.province) === oppoProvStatus;
-        if (city.capital) {
-            log.push(`|loseProvince`);
-            doLoseProvince(G, ctx, pid, city.province, toOpponent);
-        } else {
-            if (toOpponent) {
-                log.push(`|controlAllCities`);
-                doControlProvince(G, ctx, oppoPid(pid), city.province);
-            }
-        }
         if (opponent) {
             if (G.jinn.generalPlace[JinnGeneral.YinShuKe] === city.region) {
                 log.push(`|yinShuKe|1Bu`);
@@ -3150,6 +3139,17 @@ export const doLoseCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cityID: Cit
             }
             log.push(`|${opponent}|opponent`);
             oppo.cities.push(cityID);
+            const oppoProvStatus = pid === SJPlayer.P1 ? ProvinceState.JINN : ProvinceState.SONG;
+            const toOpponent = currentProvStatus(G, city.province) === oppoProvStatus;
+            if (city.capital) {
+                log.push(`|capital|loseProvince`);
+                doLoseProvince(G, ctx, pid, city.province, toOpponent);
+            } else {
+                if (toOpponent) {
+                    log.push(`|notCapital|controlAllCities`);
+                    doControlProvince(G, ctx, oppoPid(pid), city.province);
+                }
+            }
         }
     } else {
         log.push(`|noSuchCity`);
