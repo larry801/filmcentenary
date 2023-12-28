@@ -50,26 +50,26 @@ export const Operation = ({
     const country = getCountryById(playerID);
     const remainDevelopPoint: number = remainDevelop(G, ctx, playerID);
 
-    React.useEffect(()=>{
-        if(isActive && ctx.phase === 'diplomacy'){
+    React.useEffect(() => {
+        if (isActive && ctx.phase === 'diplomacy') {
             console.log(`operation|auto show letter[${player.lod}]`);
             moves.showLetters({
                 nations: pub.nations,
                 letters: player.lod
             })
-        }else{
+        } else {
             console.log("operation|not in phase");
         }
-    },[isActive, ctx.phase])
+    }, [isActive, ctx.phase])
 
-    React.useEffect(()=>{
-        if(isActive && ctx.phase === 'showPlan'){
+    React.useEffect(() => {
+        if (isActive && ctx.phase === 'showPlan') {
             console.log(`operation|show chosen plan[${player.chosenPlans}]`);
             moves.showPlan(player.chosenPlans);
-        }else{
+        } else {
             console.log("operation|no chosen plan");
         }
-    },[isActive, ctx.phase])
+    }, [isActive, ctx.phase])
 
     const chooseFirst = (choice: string) => {
         moves.chooseFirst({choice: choice, matchID: matchID});
@@ -94,7 +94,11 @@ export const Operation = ({
                 return {
                     label: plan.name + plan.desc,
                     value: plan.id,
-                    disabled: plan.level > pub.military,
+                    disabled: plan.level > pub.military
+                        // @ts-ignore
+                        || (ctr === Country.SONG && plan === "J24")
+                        // @ts-ignore
+                        || (ctr === Country.JINN && plan === "J23"),
                     hidden: false
                 }
             }
@@ -282,7 +286,7 @@ export const Operation = ({
         }
         moves.develop({choice, target});
     }
-    const developPhases = ['draw', 'develop', 'action', 'resolvePlan','deploy', 'turnEnd']
+    const developPhases = ['draw', 'develop', 'action', 'resolvePlan', 'deploy', 'turnEnd']
     const developDialog = <ChoiceDialog
         callback={develop}
         defaultChoice={DevelopChoice.CIVIL}
@@ -386,7 +390,7 @@ export const Operation = ({
     })} defaultChoice={""} show={isActive && ctr === Country.JINN} title={"选择征伪城市"} toggleText={"征募伪军"}
         initial={false}/>
 
-    const recruitPhases = ['action', 'deploy', 'resolvePlan' , 'develop'];
+    const recruitPhases = ['action', 'deploy', 'resolvePlan', 'develop'];
 
     const recruitDialog = <ChooseUnitsDialog
         callback={(u) => moves.recruitUnit(u)} max={pub.standby}
