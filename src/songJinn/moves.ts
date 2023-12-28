@@ -1621,10 +1621,10 @@ export const down: LongFormMove = {
         if (country === Country.SONG) {
             switch (choice) {
                 case DevelopChoice.MILITARY:
-                    G.jinn.military--;
+                    G.song.military--;
                     break;
                 case DevelopChoice.CIVIL:
-                    G.jinn.civil--;
+                    G.song.civil--;
                     break;
                 case DevelopChoice.POLICY_UP:
                     policyUp(G, 1);
