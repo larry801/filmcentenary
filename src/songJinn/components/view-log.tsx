@@ -31,7 +31,6 @@ export const NewLog = ({l, G, count}: INewLogProps) => {
     </>
 }
 export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
-
     useI18n(i18n);
 
     const [open, setOpen] = React.useState(true);
@@ -74,7 +73,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
 
     const cloneLog = [...processedLogs];
 
-    const reverseLog = cloneLog.filter(l => l.action.type !== "GAME_EVENT").reverse().slice(0, 150);
+    const reverseLog = cloneLog.filter(l => l.action.type !== "GAME_EVENT").reverse().slice(0, 200);
     const newLog = reverseLog.length >= 5 ? reverseLog.slice(0, 5) : reverseLog;
     const totalLogText = reverseLog.map(l => getLogText(G, l)).join('\n');
 
