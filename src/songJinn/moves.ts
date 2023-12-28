@@ -127,14 +127,27 @@ import {getCityById} from "./constant/city";
 
 export const opponentMove: LongFormMove = {
     move: (G, ctx) => {
-        if (ctx.playerID === undefined) {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        const oppo = ctx.playerID === SJPlayer.P1 ? SJPlayer.P2 : SJPlayer.P1;
-        if (ctx.playerID === ctx.currentPlayer) {
-            changePlayerStage(G, ctx, 'react', oppo);
+        logger.info(`${G.matchID}|p${pid}.moves.opponentMove()`);
+
+        const oppo = pid === SJPlayer.P1 ? SJPlayer.P2 : SJPlayer.P1;
+        if (pid === ctx.currentPlayer) {
+            if (getStage(ctx) === 'takeDamage') {
+                // changePlayerStage(G, ctx, 'react', oppo);
+                changePlayerStage(G, ctx, 'takeDamage', oppo);
+            } else {
+                changePlayerStage(G, ctx, 'react', oppo);
+            }
         } else {
-            ctx.events?.endStage();
+            if (getStage(ctx) === 'takeDamage') {
+                // changePlayerStage(G, ctx, 'react', oppo);
+                changePlayerStage(G, ctx, 'takeDamage', oppo);
+            } else {
+                ctx.events?.endStage();
+            }
         }
     }
 

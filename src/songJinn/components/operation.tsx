@@ -17,7 +17,7 @@ import {actualStage} from "../../game/util";
 
 import {
     cardToSearch, confirmRespondLogText, confirmRespondText,
-    generalWithOpponentTroop, getCityText,
+    getCityText,
     getCountryById,
     getGeneralNameByCountry, getSkillGeneral,
     pid2pub, phaseName,
