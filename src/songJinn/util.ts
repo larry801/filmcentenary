@@ -2213,7 +2213,7 @@ export const idToCard = {
         combat: false,
         effectText: "使用3行动力征募。若降低1级殖民能力，则可以使用6行动力征募，且无视内政等级限制。不能征募签军。",
         pre: (_G: SongJinnGame, _ctx: Ctx) => true,
-        event: (G: SongJinnGame, _ctx: Ctx) => {
+        event: (G: SongJinnGame, ctx: Ctx) => {
             G.pending.events.push(PendingEvents.MengAnMouKe);
             ctx.events?.setStage('confirmRespond');
         }
@@ -5295,7 +5295,7 @@ export function startCombat(
         }
     } else {
         if(isMountainPassID(p)){
-
+            log.push(`|pass`);
         }
     }
     if (atkTroop !== null) {
