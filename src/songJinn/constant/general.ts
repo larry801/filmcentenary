@@ -6,6 +6,7 @@ export const MAX_DICES = 30;
 
 export enum PendingEvents {
     PlaceUnitsToRegion = "放置部队",
+    MengAnMouKe = "猛安谋克",
     FuHaiTaoSheng = "浮海逃生",
     HanFang = "韩昉",
     JiaBeng = "金太宗驾崩",
@@ -49,6 +50,8 @@ export enum ActiveEvents {
     LiuJiaShenBing = "六甲神兵",
     HeMianFengDong = "河面封冻",
     LueDuo = "掠夺",
+    LiaoGuoJiuBu = "辽国旧部",
+    MengAnMouKe = "猛安谋克",
     JinTaiZong = "金太宗",
     ZhuiWangZhuBei = "追亡逐北",
     JiNanZhiFuLiuYu = "济南知府刘豫",

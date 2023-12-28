@@ -437,11 +437,11 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
         logger.warn(`${G.matchID}|${log.join('')}`);
         return [];
     }
-    if(!hasSupply(G,t)){
+    if (!hasSupply(G, t)) {
         log.push(`|noSupply`);
-        if(G.events.includes(ActiveEvents.LueDuo) && t.g === Country.JINN){
+        if (G.events.includes(ActiveEvents.LueDuo) && t.g === Country.JINN) {
             log.push(`|lueDuo`);
-        }else{
+        } else {
             logger.warn(`${G.matchID}|${log.join('')}`);
             return [];
         }
@@ -892,11 +892,15 @@ export const oppoPub = (G: SongJinnGame, pid: PlayerID) => {
     }
 }
 
-export const setTroopCityByCtr = (G: SongJinnGame, ctr: Country, p: TroopPlace, cid: CityID) => {
+export const setTroopCityByCtr = (G: SongJinnGame, ctr: Country, p: TroopPlace, cid: CityID | null) => {
     const log = [`setTroopCityByCtr`];
     log.push(`|${ctr}|ctr`);
     log.push(`|${placeToStr(p)}|src`);
-    log.push(`|${placeToStr(cid)}|dst`);
+    if(cid !== null){
+        log.push(`|${placeToStr(cid)}|dst`);
+    }else{
+        log.push(`|setToNull`);
+    }
     const troops = ctr === Country.SONG ? G.song.troops : G.jinn.troops;
     const target = troops.filter(tr => tr.p === p);
     log.push(`|${JSON.stringify(target)}|target`);
@@ -2188,7 +2192,7 @@ export const idToCard = {
         event: (G: SongJinnGame, ctx: Ctx) => {
             const troop = getSongTroopByCity(G, CityID.LiCheng);
             if (troop !== null) {
-                removeUnitByPlace(G, troop.u, SJPlayer.P1, troop.p);
+                removeUnitByCountryPlace(G, ctx, troop.u, Country.SONG, troop.p);
             }
             doPlaceUnit(G, ctx, [0, 0, 0, 0, 0, 2, 0], Country.JINN, RegionID.R21);
             G.events.push(ActiveEvents.JiNanZhiFuLiuYu);
@@ -2209,7 +2213,10 @@ export const idToCard = {
         combat: false,
         effectText: "使用3行动力征募。若降低1级殖民能力，则可以使用6行动力征募，且无视内政等级限制。不能征募签军。",
         pre: (_G: SongJinnGame, _ctx: Ctx) => true,
-        event: (G: SongJinnGame, _ctx: Ctx) => G
+        event: (G: SongJinnGame, _ctx: Ctx) => {
+            G.pending.events.push(PendingEvents.MengAnMouKe);
+            ctx.events?.setStage('confirmRespond');
+        }
     },
     [JinnBaseCardID.J11]: {
         id: JinnBaseCardID.J11,
@@ -3289,7 +3296,7 @@ export const removeReadyUnitByCountry = (G: SongJinnGame, units: number[], count
     log.push(`|${pub.standby}standby`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
-export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], country: Country, place: TroopPlace) => {
+export const removeUnitByCountryPlace = (G: SongJinnGame, ctx: Ctx, units: number[], country: Country, place: TroopPlace) => {
     const log = [`removeUnitByCountryPlace|${place}|${placeToStr(place)}|${unitsToString(units)}`];
     const pub = ctr2pub(G, country);
     const filtered = pub.troops.filter(t => t.p === place);
@@ -3302,10 +3309,10 @@ export const removeUnitByCountryPlace = (G: SongJinnGame, units: number[], count
         log.push(`|${idx}idx`);
         if (filtered.length > 1) {
             log.push(`|moreThanOne`);
-            removeUnitByIdx(G, units, pid, idx);
+            removeUnitByIdx(G, ctx, units, pid, idx);
         } else {
             log.push(`|onlyOne`);
-            removeUnitByIdx(G, units, pid, idx);
+            removeUnitByIdx(G, ctx, units, pid, idx);
         }
     } else {
         log.push(`|noTroop`);
@@ -3467,7 +3474,7 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
     log.push(`|${JSON.stringify(t)}t`);
     log.push(`|${getSimpleTroopText(G, t)}t`);
     log.push(`|${ci.type}|ci.type`);
-    removeUnitByCountryPlace(G, t.u, t.g, t.p);
+    removeUnitByCountryPlace(G, ctx, t.u, t.g, t.p);
     removeNoTroopGeneralByCtr(G, ctx, t.p, t.g);
     switch (ci.type) {
         case CombatType.RESCUE:
@@ -3502,33 +3509,7 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const removeUnitByPlace = (G: SongJinnGame, units: number[], pid: PlayerID, place: TroopPlace) => {
-    const log = [`removeUnitByPlace|${placeToStr(place)}|${unitsToString(units)}`]
-    const pub = pid2pub(G, pid);
-    const filtered = pub.troops.filter(t => t.p === place);
-    log.push(`|${JSON.stringify(filtered)}|filtered`);
-    if (filtered.length > 0) {
-        log.push(`|hasTroop`);
-        if (filtered.length > 1) {
-            log.push(`|moreThanOne`);
-            // mergeTroopTo(G,
-            //     pub.troops.indexOf(filtered[1]),
-            //     pub.troops.indexOf(filtered[0]),
-            //     pid);
-            removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
-        } else {
-            removeUnitByIdx(G, units, pid, pub.troops.indexOf(filtered[0]));
-
-        }
-        logger.debug(`${G.matchID}|${log.join('')}`);
-    } else {
-        log.push(`noTroop`);
-        logger.debug(`${G.matchID}|${log.join('')}`);
-        return null;
-    }
-}
-
-export const removeUnitByIdx = (G: SongJinnGame, units: number[], pid: PlayerID, idx: number) => {
+export const removeUnitByIdx = (G: SongJinnGame, ctx: Ctx, units: number[], pid: PlayerID, idx: number) => {
     const log = [`removeUnitByIdx|${units}|${pid}|${idx}|${unitsToString(units)}`]
     const pub = pid2pub(G, pid);
     log.push(`|${pid}|pid`);
@@ -3571,6 +3552,27 @@ export const removeUnitByIdx = (G: SongJinnGame, units: number[], pid: PlayerID,
     }
     log.push(`|after|standby${pub.standby}|units${t.u}`);
     if (troopEmpty(t)) {
+        const c: CityID = t.p as CityID;
+        if (troopIsWeiKun(G, t)) {
+            log.push(`|autoLose${c}`);
+            if (isCityID(c)) {
+                autoLoseCity(G, ctx, c);
+                const reg = getCityById(c).region
+                setTroopCityByCtr(G, oppoCtr(t.g), reg, c);
+            } else {
+                log.push(`|invalid`);
+            }
+        }
+        if (t.g === Country.JINN) {
+            const city = getCityById(c);
+            log.push(`|jinn`);
+            if (city.colonizeLevel > G.colony) {
+                log.push(`|not|colonized`);
+                doLoseCity(G, ctx, SJPlayer.P2, c, G.song.provinces.includes(city.province));
+            } else {
+                log.push(`|colonized`);
+            }
+        }
         pub.troops.splice(pub.troops.indexOf(t), 1);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
@@ -3637,7 +3639,9 @@ export const checkRecruitCivil = (G: SongJinnGame, units: number[], pid: PlayerI
     const log = [`checkRecruitCivil${unitsToString(units)}|p${pid}`];
     const pub = pid2pub(G, pid);
     const readySum = pub.ready.reduce(accumulator);
+    log.push(`|${readySum}|readySum`);
     const recruitSum = units.reduce(accumulator);
+    log.push(`|${recruitSum}|recruitSum`);
     const res = readySum + recruitSum <= pub.civil;
     log.push(`|${res}|res`);
     logger.debug(`${G.matchID}|${log.join('')}`);
@@ -4931,7 +4935,12 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country
                     } else {
                         return '选择消灭步';
                     }
-
+                case PendingEvents.MengAnMouKe:
+                    if (arg === 'yes') {
+                        return '选择降低殖民等级';
+                    } else {
+                        return '不降低殖民等级';
+                    }
                 default:
                     return arg;
             }
@@ -4965,12 +4974,28 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
         {label: "围困", value: "围困", disabled: false, hidden: false},
         {label: "攻城", value: "攻城", disabled: false, hidden: false}
     ];
+    const huFuOption = [{
+        label: "弓", value: "archer", disabled: false, hidden: false
+    }, {
+        label: "步", value: "infantry", disabled: false, hidden: false
+    }];
     if (ci.ongoing) {
         if (ci.phase === CombatPhase.JieYe) {
             return yesNoOption
         }
         if (ci.phase === CombatPhase.WeiKun) {
             return siegeOrWei
+        }
+        if (ci.phase === CombatPhase.YunChou) {
+            const lastEvent = G.pending.events[G.pending.events.length - 1];
+            if (lastEvent !== undefined) {
+                switch (lastEvent) {
+                    case PendingEvents.HuFuXiangBing:
+                        return huFuOption;
+                    default:
+                        return yesNoOption
+                }
+            }
         }
         if (ci.phase === CombatPhase.MingJin) {
             const ctr = pid2ctr(pid);
@@ -4996,6 +5021,15 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
         const lastEvent = G.pending.events[G.pending.events.length - 1];
         if (lastEvent !== undefined) {
             switch (lastEvent) {
+                case PendingEvents.PlaceUnitsToRegion:
+                    break;
+                case PendingEvents.MengAnMouKe:
+                    return yesNoOption;
+                case PendingEvents.FuHaiTaoSheng:
+                    break;
+                case PendingEvents.WeiQi:
+                    break;
+
                 case PendingEvents.HanFang:
                     return [
                         {label: "殖民", value: "殖民", disabled: false, hidden: false},
@@ -5037,11 +5071,7 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
                 case PendingEvents.MergeORSiege:
                     return siegeOrWei;
                 case PendingEvents.HuFuXiangBing:
-                    return [{
-                        label: "弓", value: "archer", disabled: false, hidden: false
-                    }, {
-                        label: "步", value: "infantry", disabled: false, hidden: false
-                    }];
+                    return huFuOption;
                 default:
                     return yesNoOption;
             }
@@ -5052,31 +5082,57 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
 
 export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
     const ctr = pid2ctr(pid);
-    if (G.combat.ongoing) {
-        if (G.combat.phase === CombatPhase.JieYe) {
-            return "是否接野？"
-        }
-        if (G.combat.phase === CombatPhase.WeiKun) {
-            return "对手不接野战 围困还是攻城"
-        }
-        if (G.combat.phase === CombatPhase.MingJin) {
-            const ci = G.combat;
-            if (ctr === ci.atk) {
-                return "是否选择继续作战";
-            } else {
-                if (
-                    canForceRoundTwo(G)
-                ) {
-                    return "选择是否强制第二轮";
-                } else {
-                    return "是否选择坚守";
+    const ci = G.combat;
+
+    if (ci.ongoing) {
+        switch (ci.phase) {
+            case CombatPhase.JieYe:
+                return "是否接野？"
+            case CombatPhase.WeiKun:
+                return "对手不接野战 围困还是攻城"
+            case CombatPhase.YunChou:
+                const lastEvent = G.pending.events[G.pending.events.length - 1];
+                if (lastEvent !== undefined) {
+                    switch (lastEvent) {
+                        case PendingEvents.HuFuXiangBing:
+                            return "请选择消灭步或者弓";
+                    }
                 }
-            }
+                break;
+            case CombatPhase.YuanCheng:
+                break;
+            case CombatPhase.ZhuDuiShi:
+                break;
+            case CombatPhase.YuanChengDamage:
+                break;
+            case CombatPhase.WuLin:
+                break;
+            case CombatPhase.JiaoFeng:
+                break;
+            case CombatPhase.JiaoFengDamage:
+                break;
+            case CombatPhase.MingJin:
+                if (ctr === ci.atk) {
+                    return "是否选择继续作战";
+                } else {
+                    if (
+                        canForceRoundTwo(G)
+                    ) {
+                        return "选择是否强制第二轮";
+                    } else {
+                        return "是否选择坚守";
+                    }
+                }
         }
+
     } else {
         const lastEvent = G.pending.events[G.pending.events.length - 1];
         if (lastEvent !== undefined) {
             switch (lastEvent) {
+                case PendingEvents.PlaceUnitsToRegion:
+                    break;
+                case PendingEvents.MengAnMouKe:
+                    return "是否降低殖民等级？"
                 case PendingEvents.HanFang:
                     return "请选择提升内政或者殖民";
                 case PendingEvents.HuFuXiangBing:
@@ -5099,8 +5155,6 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
                     return "是否确认";
             }
         }
-
-
     }
     return "是否确认";
 }
@@ -5149,7 +5203,7 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
     log.push(`|${G.jinn.discard}G.jinn.discard`);
     G.combat = emptyCombatInfo();
     log.push(`|${JSON.stringify(c)}`);
-    if(G.pending.events.length === 0) {
+    if (G.pending.events.length === 0) {
         ctx.events?.endStage();
     } else {
         log.push(`|${JSON.stringify(G.pending.events)}|G.pending.events`);
@@ -5238,6 +5292,10 @@ export function startCombat(
             endCombat(G, ctx);
             logger.debug(`${G.matchID}|${log.join('')}`);
             return;
+        }
+    } else {
+        if(isMountainPassID(p)){
+
         }
     }
     if (atkTroop !== null) {
@@ -6626,15 +6684,11 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
             // G.round >= 2
             G.round >= MAX_ROUND
         ) {
-            log.push(
-                `|action|end|resolvePlan`
-            );
+            log.push( `|action|end|resolvePlan`);
             ctx.events?.setPhase('resolvePlan')
         } else {
             G.round++;
-            log.push(
-                `|r${G.round}start`
-            );
+            log.push( `|r${G.round}start`);
         }
     } else {
         log.push(`|firstPlayer`);
@@ -6650,6 +6704,14 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
     if (G.events.includes(ActiveEvents.LueDuo)) {
         log.push(`|rm|${ActiveEvents.LueDuo}`)
         G.events.splice(G.events.indexOf(ActiveEvents.LueDuo), 1);
+    }
+    if (G.events.includes(ActiveEvents.LiaoGuoJiuBu)) {
+        log.push(`|rm|${ActiveEvents.LiaoGuoJiuBu}`)
+        G.events.splice(G.events.indexOf(ActiveEvents.LiaoGuoJiuBu), 1);
+    }
+    if (G.events.includes(ActiveEvents.MengAnMouKe)) {
+        log.push(`|rm|${ActiveEvents.MengAnMouKe}`)
+        G.events.splice(G.events.indexOf(ActiveEvents.MengAnMouKe), 1);
     }
     endCombat(G, ctx);
     logger.debug(`${G.matchID}|${log.join('')}`);

@@ -11,7 +11,6 @@ import {
     DevelopChoice,
     General,
     isCityID,
-    isNationID,
     isRegionID,
     JinnBaseCardID,
     JinnGeneral,
@@ -43,7 +42,9 @@ import {
     canRoundTwo,
     cardToSearch,
     changeCivil,
-    changeMilitary, checkMoveDst,
+    changeMilitary,
+    checkMoveDst,
+    checkRecruitCivil,
     checkSongLoseEmperor,
     ciAtkInfo,
     ciAtkPid,
@@ -80,11 +81,11 @@ import {
     getJinnTroopByCity,
     getJinnTroopByPlace,
     getLeadingPlayer,
-    getOpponentCityTroopByCtr,
     getOpponentPlaceTroopByCtr,
     getSimpleTroopText,
     getSongTroopByCity,
-    getSongTroopByPlace, getStage,
+    getSongTroopByPlace,
+    getStage,
     getTroopByCountryPlace,
     heYiChange,
     heYiCheck,
@@ -93,7 +94,6 @@ import {
     moveGeneralToReady,
     nationMoveJinn,
     nationMoveSong,
-    oppoCtr,
     oppoPid,
     oppoPlayerById,
     oppoPub,
@@ -105,7 +105,6 @@ import {
     policyDown,
     policyUp,
     removeGeneral,
-    removeNoTroopGeneralByCtr,
     removeReadyUnitByCountry,
     removeUnitByCountryPlace,
     removeZeroTroop,
@@ -118,7 +117,6 @@ import {
     totalDevelop,
     troopEmpty,
     troopEndurance,
-    troopIsArmy,
     unitsToString,
     weiKunTroop,
     yuanCheng
@@ -486,7 +484,6 @@ export const takeDamage: LongFormMove = {
 
         // retain empty troop for unitEndurance check in battle
         if (actualStage(G, ctx) === 'takeDamage') {
-
             const atkEn = troopEndurance(G, ciAtkTroop(G));
             const defT = ciDefTroop(G);
             log.push(`|${JSON.stringify(defT)}|defT`);
@@ -700,7 +697,7 @@ export const removeUnit: LongFormMove = {
         if (units.reduce(accumulator) === 0) {
             return INVALID_MOVE;
         }
-        removeUnitByCountryPlace(G, units, country, src);
+        removeUnitByCountryPlace(G, ctx, units, country, src);
     }
 }
 
@@ -1528,7 +1525,7 @@ export const showCC: LongFormMove = {
                 }
                 if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J32)) {
                     log.push(`|huoGong`);
-                    removeUnitByCountryPlace(G, [0, 0, 0, 1, 0, 0], Country.SONG, G.combat.song.troop.p);
+                    removeUnitByCountryPlace(G, ctx, [0, 0, 0, 1, 0, 0], Country.SONG, G.combat.song.troop.p);
                 }
                 if (G.combat.jinn.combatCard.includes(JinnBaseCardID.J34)) {
                     log.push(`|huFuXiangBing`);
@@ -1537,11 +1534,11 @@ export const showCC: LongFormMove = {
                         log.push(`|${getSimpleTroopText(G, st)}|st`);
                         if (st.u[0] <= 0) {
                             log.push(`|removeGong`);
-                            removeUnitByCountryPlace(G, [0, 1, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
+                            removeUnitByCountryPlace(G, ctx, [0, 1, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
                         } else {
                             if (st.u[1] <= 0) {
                                 log.push(`|removeBu`);
-                                removeUnitByCountryPlace(G, [1, 0, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
+                                removeUnitByCountryPlace(G, ctx, [1, 0, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
                             } else {
                                 log.push(`|chooseBuOrGong`);
                                 G.pending.events.push(PendingEvents.HuFuXiangBing);
@@ -1767,7 +1764,6 @@ interface IBreakoutArg {
 export const breakout: LongFormMove = {
     client: false,
     move: (G: SongJinnGame, ctx: Ctx, arg: IBreakoutArg) => {
-
         const pid = ctx.playerID;
         logger.info(`${G.matchID}|p${pid}.breakout(${JSON.stringify(arg)})`);
         if (pid === undefined) {
@@ -1825,9 +1821,9 @@ export const confirmRespond: LongFormMove = {
 
         function eliminate() {
             if (choice === 'yes' || choice === "archer") {
-                removeUnitByCountryPlace(G, [0, 1, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
+                removeUnitByCountryPlace(G, ctx, [0, 1, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
             } else {
-                removeUnitByCountryPlace(G, [1, 0, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
+                removeUnitByCountryPlace(G, ctx, [1, 0, 0, 0, 0, 0], Country.SONG, G.combat.song.troop.p);
             }
         }
 
@@ -1986,6 +1982,15 @@ export const confirmRespond: LongFormMove = {
                             }
                             logger.debug(`${G.matchID}|${log.join('')}`);
                             return;
+                        }
+                        break;
+                    case PendingEvents.MengAnMouKe:
+                        if (choice === 'yes') {
+                            colonyDown(G, 1);
+                            G.op = 6;
+                            G.events.push(ActiveEvents.MengAnMouKe);
+                        } else {
+                            G.op = 3;
                         }
                         break;
                     case PendingEvents.ZhangZhaoZhiZheng:
@@ -2158,25 +2163,35 @@ export const recruitUnit: LongFormMove = {
         if (units.reduce(accumulator) === 0) {
             return INVALID_MOVE;
         }
-        if (pid === SJPlayer.P1) {
-            doRecruit(G, units.slice(0, 6), pid);
+        if (ctx.phase === 'action') {
+            if (checkRecruitCivil(G, units, pid)) {
+                if (pid === SJPlayer.P1) {
+                    doRecruit(G, units.slice(0, 6), pid);
+                } else {
+                    doRecruit(G, units, pid);
+                }
+            } else {
+                log.push(`|over|limit`);
+                if (
+                    G.events.includes(ActiveEvents.LiaoGuoJiuBu)
+                    || G.events.includes(ActiveEvents.MengAnMouKe)
+                ) {
+                    log.push(`|events|doRecruit`);
 
+                    if (pid === SJPlayer.P1) {
+                        doRecruit(G, units.slice(0, 6), pid);
+                    } else {
+                        doRecruit(G, units, pid);
+                    }
+                } else {
+                    log.push(`|invalid`);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return INVALID_MOVE;
+                }
+            }
         } else {
             doRecruit(G, units, pid);
         }
-
-        // if (ctx.phase === 'action') {
-        //     if (checkRecruitCivil(G, units, pid)) {
-        //         doRecruit(G, units, pid);
-        //     } else {
-        //         doRecruit(G, units, pid);
-        //         log.push(`|over|limit`);
-        //         logger.debug(`${G.matchID}|${log.join('')}`);
-        //         return;
-        //     }
-        // } else {
-        //     doRecruit(G, units, pid);
-        // }
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
