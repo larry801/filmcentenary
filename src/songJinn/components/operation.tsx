@@ -386,7 +386,7 @@ export const Operation = ({
     })} defaultChoice={""} show={isActive && ctr === Country.JINN} title={"选择征伪城市"} toggleText={"征募伪军"}
         initial={false}/>
 
-    const recruitPhases = ['action', 'deploy', 'develop'];
+    const recruitPhases = ['action', 'deploy', 'resolvePlan' , 'develop'];
 
     const recruitDialog = <ChooseUnitsDialog
         callback={(u) => moves.recruitUnit(u)} max={pub.standby}
