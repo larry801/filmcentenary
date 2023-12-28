@@ -43,7 +43,7 @@ import {
     canRoundTwo,
     cardToSearch,
     changeCivil,
-    changeMilitary,
+    changeMilitary, checkMoveDst,
     checkSongLoseEmperor,
     ciAtkInfo,
     ciAtkPid,
@@ -62,7 +62,6 @@ import {
     doControlCity,
     doControlProvince,
     doGeneralSkill,
-    doLoseCity,
     doLoseProvince,
     doMoveTroopAll,
     doMoveTroopPart,
@@ -85,7 +84,7 @@ import {
     getOpponentPlaceTroopByCtr,
     getSimpleTroopText,
     getSongTroopByCity,
-    getSongTroopByPlace,
+    getSongTroopByPlace, getStage,
     getTroopByCountryPlace,
     heYiChange,
     heYiCheck,
@@ -286,26 +285,7 @@ export const march: LongFormMove = {
         log.push(`|${JSON.stringify(t)}`);
         if (t.u.filter((u, i) => units[i] === u).length === units.length) {
             log.push(`|all`);
-            doMoveTroopAll(G, src, newDst, ctr);
-            if (isRegionID(src)) {
-                const cid = getRegionById(src).city;
-                if (cid !== null) {
-                    const city = getCityById(cid);
-                    if (t.g === Country.JINN && t.c !== null){
-                        if(city.colonizeLevel > G.colony){
-                            log.push(`|not|colonized`);
-                            doLoseCity(G, ctx, SJPlayer.P2, cid, G.song.provinces.includes(city.province));
-                        } else {
-                            log.push(`|colonized`);
-                        }
-                    }
-                    const oppoCityTroop = getOpponentCityTroopByCtr(G, t.g, cid);
-                    if (oppoCityTroop !== null) {
-                        log.push(`|weiKunGone`);
-                        setTroopPlaceByCtr(G, oppoCtr(t.g), cid, src);
-                    }
-                }
-            }
+            doMoveTroopAll(G, ctx, src, newDst, ctr);
         } else {
             log.push(`|part`);
             doMoveTroopPart(G, src, newDst, ctr, units, generals);
@@ -330,8 +310,8 @@ export const march: LongFormMove = {
                     if (cid !== null) {
                         const oppoCityTroop = getOpponentPlaceTroopByCtr(G, t.g, cid);
                         if (oppoCityTroop === null) {
-                            if(G.jinn.generalPlace[JinnGeneral.YinShuKe] === dst){
-                                doPlaceUnit(G,ctx,[1,0,0,0,0,0,0],Country.JINN, mid);
+                            if (G.jinn.generalPlace[JinnGeneral.YinShuKe] === dst) {
+                                doPlaceUnit(G, ctx, [1, 0, 0, 0, 0, 0, 0], Country.JINN, mid);
                             }
                         } else {
 
@@ -340,67 +320,7 @@ export const march: LongFormMove = {
                 }
             }
         }
-
-        const oppoFieldTroop = getOpponentPlaceTroopByCtr(G, t.g, newDst);
-        log.push(`|${JSON.stringify(oppoFieldTroop)}|oppoTroop`);
-        if (oppoFieldTroop !== null) {
-            // @ts-ignore
-            log.push(`|${getSimpleTroopText(G, oppoFieldTroop)}`);
-            const oppoE = troopEndurance(G, oppoFieldTroop);
-            log.push(`|${oppoE}|endurance`);
-            if (oppoE > 0) {
-                if (isNationID(newDst)) {
-                    log.push(`|cannot|goto|nation|with|opponent|troop`);
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    return INVALID_MOVE;
-                } else {
-                    if (troopIsArmy(G, ctx, oppoFieldTroop)) {
-                        G.pending.places.push(mid === undefined ? src : mid);
-                        log.push(`|${JSON.stringify(G.pending.places)}|G.pending.places`);
-                        log.push(`|startCombat`);
-                        startCombat(G, ctx, ctr, newDst);
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    } else {
-                        log.push(`|rm|zero`);
-                        removeZeroTroop(G, ctx, oppoFieldTroop)
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    }
-                }
-            } else {
-                removeZeroTroop(G, ctx, oppoFieldTroop);
-            }
-        } else {
-            const oCtr = oppoCtr(t.g);
-            const oppoPid = ctr2pid(oCtr);
-            log.push(`|${oppoPid}|oppoPid`);
-            removeNoTroopGeneralByCtr(G, ctx, t.p, oppoCtr(t.g));
-            if (isRegionID(newDst)) {
-                const cid = getRegionById(newDst).city;
-                log.push(`|${cid}|cid`);
-                if (cid !== null) {
-                    const oppoCityTroop = getOpponentPlaceTroopByCtr(G, t.g, cid);
-                    const troopPid = ctr2pid(t.g);
-                    if (oppoCityTroop !== null) {
-                        log.push(`|${getSimpleTroopText(G, oppoCityTroop)}|oppoCityTroop`);
-                        log.push(`|mergeOrSiege`);
-                        G.pending.places.push(cid);
-                        G.pending.events.push(PendingEvents.MergeORSiege);
-                        changePlayerStage(G, ctx, 'confirmRespond', troopPid);
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    } else {
-                        if(G.jinn.generalPlace[JinnGeneral.YinShuKe] === dst){
-                            doPlaceUnit(G,ctx,[1,0,0,0,0,0,0],Country.JINN, dst);
-                        }
-                        doControlCity(G, ctx, troopPid, cid);
-                    }
-                }
-            }
-        }
-
-
+        checkMoveDst(G, ctx, src, newDst, t, mid);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -635,7 +555,7 @@ export const placeUnit: LongFormMove = {
             logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
-        doPlaceUnit(G,ctx, units, country, place);
+        doPlaceUnit(G, ctx, units, country, place);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -985,7 +905,7 @@ export const retreat: LongFormMove = {
         }
         logger.info(`${G.matchID}|p${pid}.moves.retreat(${JSON.stringify(arg)})`);
         const {src, dst, country} = arg;
-        doMoveTroopAll(G, src.p, dst, country);
+        doMoveTroopAll(G, ctx, src.p, dst, country);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -1007,8 +927,21 @@ export const moveTroop: LongFormMove = {
         logger.info(`p${pid}.moves.moveTroop(${JSON.stringify(args)})`);
         const log = [`moveTroop`];
         const {src, dst, country, units, generals} = args;
-
-        doMoveTroopPart(G, src.p, dst, country, units, generals);
+        const srcPlace = src.p;
+        const ctr = src.g;
+        if (units.reduce(accumulator) === 0) {
+            log.push(`|no|units|cannot|move`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        if (src.u.filter((u, i) => units[i] === u).length === units.length) {
+            log.push(`|all`);
+            doMoveTroopAll(G, ctx, srcPlace, dst, ctr);
+        } else {
+            log.push(`|part`);
+            doMoveTroopPart(G, srcPlace, dst, ctr, units, generals);
+        }
+        checkMoveDst(G, ctx, srcPlace, dst, src);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }

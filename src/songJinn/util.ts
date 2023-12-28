@@ -461,7 +461,7 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
         })
     }
     if (isZhouXing(newTroop) || hasGeneral(G, t, SongGeneral.LiXianZhong)) {
-        adj.forEach(p => {
+        noArmyAdj.forEach(p => {
             const zTroop = {...newTroop, p: p}
             const zAdj = getMarchAdj(G, zTroop);
             zAdj.forEach(z => {
@@ -2274,7 +2274,10 @@ export const idToCard = {
         combat: false,
         effectText: "使用1行动力进军，不受河流边界限制。",
         pre: (G: SongJinnGame, _ctx: Ctx) => G.round === 2 || G.round == 6,
-        event: (G: SongJinnGame, _ctx: Ctx) => G.op = 1
+        event: (G: SongJinnGame, _ctx: Ctx) => {
+            G.events.push(ActiveEvents.HeMianFengDong);
+            G.op = 1;
+        }
     },
     [JinnBaseCardID.J16]: {
         id: JinnBaseCardID.J16,
@@ -5088,11 +5091,11 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
     if (c.type === CombatType.RESCUE) {
         if (retreatPlace !== undefined) {
             const dt = ciDefTroop(G);
-            if(dt !== null){
-                if(troopEndurance(G,dt) > 0){
+            if (dt !== null) {
+                if (troopEndurance(G, dt) > 0) {
                     log.push(`|${retreatPlace}|retreatPlace`);
                     if (c.region !== null) {
-                        doMoveTroopAll(G,dt.p,retreatPlace,c.atk);
+                        doMoveTroopAll(G, ctx, dt.p, retreatPlace, c.atk);
                     } else {
                         log.push(`|no region`);
                     }
@@ -6676,8 +6679,12 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
         log.push(`|firstPlayer`);
     }
     if (G.events.includes(ActiveEvents.LiuJiaShenBing)) {
-        log.push(`|rm|LiuJiaShenBing`);
+        log.push(`|rm|${ActiveEvents.LiuJiaShenBing}`);
         G.events.splice(G.events.indexOf(ActiveEvents.LiuJiaShenBing), 1);
+    }
+    if (G.events.includes(ActiveEvents.HeMianFengDong)) {
+        log.push(`|rm|${ActiveEvents.HeMianFengDong}`)
+        G.events.splice(G.events.indexOf(ActiveEvents.HeMianFengDong), 1);
     }
     endCombat(G, ctx);
     logger.debug(`${G.matchID}|${log.join('')}`);
@@ -6928,9 +6935,9 @@ export const doMoveTroopPart = (
             city = region.city;
         }
         log.push(`|city${city}`);
-        if(city !== null){
-            const oct = getOpponentCityTroopByCtr(G,ctr,city);
-            if(oct !== null){
+        if (city !== null) {
+            const oct = getOpponentCityTroopByCtr(G, ctr, city);
+            if (oct !== null) {
                 log.push(`|${getSimpleTroopText(G, oct)}|oct`);
                 city = null;
             }
@@ -6946,8 +6953,75 @@ export const doMoveTroopPart = (
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
+
+export const checkMoveDst = (
+    G: SongJinnGame, ctx:Ctx,src:TroopPlace, newDst:TroopPlace, t:Troop, mid? :TroopPlace
+) => {
+    const log = [`checkMoveDst`];
+    const oppoFieldTroop = getOpponentPlaceTroopByCtr(G, t.g, newDst);
+    log.push(`|${JSON.stringify(oppoFieldTroop)}|oppoTroop`);
+    if (oppoFieldTroop !== null) {
+        // @ts-ignore
+        log.push(`|${getSimpleTroopText(G, oppoFieldTroop)}`);
+        const oppoE = troopEndurance(G, oppoFieldTroop);
+        log.push(`|${oppoE}|endurance`);
+        if (oppoE > 0) {
+            if (isNationID(newDst)) {
+                log.push(`|cannot|goto|nation|with|opponent|troop`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            } else {
+                if (troopIsArmy(G, ctx, oppoFieldTroop)) {
+                    G.pending.places.push(mid === undefined ? src : mid);
+                    log.push(`|${JSON.stringify(G.pending.places)}|G.pending.places`);
+                    log.push(`|startCombat`);
+                    startCombat(G, ctx, t.g, newDst);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
+                } else {
+                    log.push(`|rm|zero`);
+                    removeZeroTroop(G, ctx, oppoFieldTroop)
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
+                }
+            }
+        } else {
+            removeZeroTroop(G, ctx, oppoFieldTroop);
+        }
+    } else {
+        const oCtr = oppoCtr(t.g);
+        const oppoPid = ctr2pid(oCtr);
+        log.push(`|${oppoPid}|oppoPid`);
+        removeNoTroopGeneralByCtr(G, ctx, t.p, oppoCtr(t.g));
+        if (isRegionID(newDst)) {
+            const cid = getRegionById(newDst).city;
+            log.push(`|${cid}|cid`);
+            if (cid !== null) {
+                const oppoCityTroop = getOpponentPlaceTroopByCtr(G, t.g, cid);
+                const troopPid = ctr2pid(t.g);
+                if (oppoCityTroop !== null) {
+                    log.push(`|${getSimpleTroopText(G, oppoCityTroop)}|oppoCityTroop`);
+                    log.push(`|mergeOrSiege`);
+                    G.pending.places.push(cid);
+                    G.pending.events.push(PendingEvents.MergeORSiege);
+                    changePlayerStage(G, ctx, 'confirmRespond', troopPid);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
+                } else {
+                    if (G.jinn.generalPlace[JinnGeneral.YinShuKe] === newDst) {
+                        doPlaceUnit(G, ctx, [1, 0, 0, 0, 0, 0, 0], Country.JINN, newDst);
+                    }
+                    doControlCity(G, ctx, troopPid, cid);
+                }
+            }
+        }
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
 export const doMoveTroopAll = (
-    G: SongJinnGame, src: TroopPlace, dst: TroopPlace, country: Country,
+    G: SongJinnGame, ctx: Ctx, src: TroopPlace, dst: TroopPlace, country: Country,
 ) => {
     const log = [`doMoveTroopAll`];
     const pub = ctr2pub(G, country);
@@ -6989,9 +7063,29 @@ export const doMoveTroopAll = (
                 }
                 log.push(`${JSON.stringify(pt)}`);
             }
-        })
+        });
     }
-
+    if (isRegionID(src)) {
+        const cid = getRegionById(src).city;
+        log.push(`|${cid}|cid`);
+        if (cid !== null) {
+            const city = getCityById(cid);
+            if (t.g === Country.JINN) {
+                log.push(`|jinn`);
+                if (city.colonizeLevel > G.colony) {
+                    log.push(`|not|colonized`);
+                    doLoseCity(G, ctx, SJPlayer.P2, cid, G.song.provinces.includes(city.province));
+                } else {
+                    log.push(`|colonized`);
+                }
+            }
+            const oppoCityTroop = getOpponentCityTroopByCtr(G, t.g, cid);
+            if (oppoCityTroop !== null) {
+                log.push(`|weiKunGone`);
+                setTroopPlaceByCtr(G, oppoCtr(t.g), cid, src);
+            }
+        }
+    }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -7013,16 +7107,12 @@ export const doPlaceUnit = (G: SongJinnGame, ctx: Ctx, units: number[], country:
 
     const t = country === Country.SONG ? getSongTroopByPlace(G, place) : getJinnTroopByPlace(G, place);
     if (t === null) {
-        log.push(
-            `noTroop`
-        );
+        log.push(`noTroop`);
         let city = null;
         if (isRegionID(place)) {
 
             city = getRegionById(place).city;
-            log.push(
-                `|${city}`
-            );
+            log.push(`|${city}`);
         }
         pub.troops.push({
             u: units,
@@ -7034,16 +7124,12 @@ export const doPlaceUnit = (G: SongJinnGame, ctx: Ctx, units: number[], country:
             pub.standby[i] -= units[i];
         }
     } else {
-        log.push(
-            `${JSON.stringify(t)}`
-        );
+        log.push(`|${getSimpleTroopText(G, t)}|t`);
         for (let i = 0; i < units.length; i++) {
             t.u[i] += units[i];
             pub.standby[i] -= units[i];
         }
-        log.push(
-            `|after|${unitsToString(t.u)}${JSON.stringify(t)}`
-        );
+        log.push(`|after|${unitsToString(t.u)}${JSON.stringify(t)}`);
     }
 
     const ot = getOpponentPlaceTroopByCtr(G, country, place);
