@@ -5138,7 +5138,11 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
     log.push(`|${G.jinn.discard}G.jinn.discard`);
     G.combat = emptyCombatInfo();
     log.push(`|${JSON.stringify(c)}`);
-    ctx.events?.endStage();
+    if(G.pending.events.length === 0) {
+        ctx.events?.endStage();
+    } else {
+        log.push(`|${JSON.stringify(G.pending.events)}|G.pending.events`);
+    }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -5775,7 +5779,7 @@ export function getGeneralCCMelee(G: SongJinnGame, t: Troop): number {
     }
     const generals = getPlaceCountryGeneral(G, t.g, t.p);
     const unitCount = t.u.reduce(accumulator);
-    log.push(`|${unitCount}unitount`);
+    log.push(`|${unitCount}unitCount`);
     if (t.g === Country.JINN) {
 
         if (generals.includes(JinnGeneral.WoLiBu)) {
