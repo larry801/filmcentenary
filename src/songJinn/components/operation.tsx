@@ -21,7 +21,7 @@ import {
     getCountryById,
     getGeneralNameByCountry, getSkillGeneral,
     pid2pub, phaseName,
-    playerById, remainDevelop, sjCardById, confirmRespondChoices
+    playerById, remainDevelop, sjCardById, confirmRespondChoices, checkRecruitCivil
 } from "../util";
 import {Dices} from "./dices";
 
@@ -396,7 +396,7 @@ export const Operation = ({
         callback={(u) => moves.recruitUnit(u)} max={pub.standby}
         initUnits={pub.standby.map(() => 0)}
         show={isActive && recruitPhases.includes(ctx.phase)}
-        title={"征募"} toggleText={"请选择要征募的兵种"} initial={false} country={ctr}
+        title={"请选择要征募的兵种"} toggleText={"征募"} initial={false} country={ctr}
     />
 
     const [count, setCount] = useState(5);

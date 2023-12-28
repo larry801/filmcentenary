@@ -789,15 +789,14 @@ export const getDeployCities = (G: SongJinnGame, ctr: Country) => {
 
 export const getSongDeployCities = (G: SongJinnGame) => {
     return G.song.cities.filter((cid) => {
-        const troop = getJinnTroopByCity(G, cid);
-        return troop === null;
+        return getSongTroopByCity(G, cid) === null;
     })
 }
+
 export const getJinnDeployCities = (G: SongJinnGame) => {
     return G.jinn.cities.filter((cid) => {
-        const troop = getSongTroopByCity(G, cid);
         const city = getCityById(cid)
-        return troop === null && city.colonizeLevel <= G.colony;
+        return getJinnTroopByCity(G, cid) === null && city.colonizeLevel <= G.colony;
     })
 }
 
@@ -5570,6 +5569,7 @@ export function getCityDefByTroop(G: SongJinnGame, t: Troop): number {
         if (isRegionID(t.p)) {
             // @ts-ignore
             const cid = getRegionById(t.p).city;
+            log.push(`|${cid}|cid`);
             if (cid !== null) {
                 def = getCityDefence(G, cid, t.g);
             } else {
