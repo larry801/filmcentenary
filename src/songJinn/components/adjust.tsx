@@ -11,7 +11,7 @@ import {
     General,
     NationID,
     ProvinceID,
-    RegionID,
+    RegionID, SongGeneral,
     SongJinnGame
 } from "../constant/general";
 import {getProvinceById} from "../constant/province";
@@ -114,7 +114,7 @@ export const AdjustOps = ({
                 hidden: false
             }
         })} defaultChoice={""}
-        show={isActive && presentGeneral.length > 0 && moveGeneralStep === MoveGeneralStep.PROVINCE}
+        show={isActive && moveGeneralStep === MoveGeneralStep.PROVINCE}
         title={"选择移动目标路"} toggleText={"移动将领"} initial={false}/>
 
 
@@ -139,6 +139,7 @@ export const AdjustOps = ({
         toggleText={"选择目标区域"} initial={true}/>;
 
 
+    // @ts-ignore
     const chooseGeneralDialog = <ChoiceDialog
         callback={(c) => {
             const g: General = parseInt(c) as General;
@@ -147,14 +148,15 @@ export const AdjustOps = ({
                 country: ctr,
                 general:g
             })
-        }} choices={presentGeneral.map(gen => {
+        }} choices={Object.values(SongGeneral).map(gen => {
         return {
-            label: getGeneralNameByCountry(ctr, gen),
+            // @ts-ignore
+            label: getGeneralNameByCountry(ctr, gen as General),
             value: gen.toString(),
             disabled: false,
             hidden: false
         }
-    })} show={isActive && presentGeneral.length > 0 && moveGeneralStep === MoveGeneralStep.GENERAL}
+    })} show={isActive && moveGeneralStep === MoveGeneralStep.GENERAL}
         defaultChoice={""}
         title={"请选择要移动的将领"} toggleText={"移动将领"} initial={false}/>
 
