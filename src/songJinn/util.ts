@@ -4617,7 +4617,7 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
         }
         if (ci.jinn.combatCard.includes(JinnBaseCardID.J14)) {
             log.push(`|xiJun--`);
-            d6 = d6.map(d => d + 1);
+            d6 = d6.map(d => d - 1);
             log.push(`|${d6}`);
         }
     } else {
