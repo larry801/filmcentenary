@@ -4987,7 +4987,7 @@ export const optionToPlace = (p: string): TroopPlace | null => {
 }
 
 export const placeToOption = (p: TroopPlace): string => {
-    return typeof p === "number" && !isNaN(p) ? getRegionById(p).name : p.toString();
+    return p.toString();
 }
 
 export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
@@ -5067,7 +5067,6 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
                             label: placeToStr(p), value: placeToOption(p), disabled: false, hidden: false
                         }
                     });
-                    break;
                 case PendingEvents.MengAnMouKe:
                     return yesNoOption;
                 case PendingEvents.FuHaiTaoSheng:
@@ -7099,10 +7098,13 @@ export const doMoveTroopPart = (
 
 
 export const checkMoveDst = (
-    G: SongJinnGame, ctx: Ctx, src: TroopPlace, newDst: TroopPlace, t: Troop, mid?: TroopPlace
+    G: SongJinnGame, ctx: Ctx, src: TroopPlace, dst: TroopPlace, t: Troop, mid?: TroopPlace
 ) => {
     const log = [`checkMoveDst`];
-    const oppoFieldTroop = getOpponentPlaceTroopByCtr(G, t.g, newDst);
+    const oppoFieldTroop = getOpponentPlaceTroopByCtr(G, t.g, dst);
+    log.push(`|${getSimpleTroopText(G, t)}|t`);
+    log.push(`|${JSON.stringify(t)}|t`);
+    log.push(`|${dst}|dst`);
     log.push(`|${JSON.stringify(oppoFieldTroop)}|oppoTroop`);
     if (oppoFieldTroop !== null) {
         // @ts-ignore
@@ -7110,7 +7112,7 @@ export const checkMoveDst = (
         const oppoE = troopEndurance(G, oppoFieldTroop);
         log.push(`|${oppoE}|endurance`);
         if (oppoE > 0) {
-            if (isNationID(newDst)) {
+            if (isNationID(dst)) {
                 log.push(`|cannot|goto|nation|with|opponent|troop`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return INVALID_MOVE;
@@ -7119,7 +7121,7 @@ export const checkMoveDst = (
                     G.pending.places.push(mid === undefined ? src : mid);
                     log.push(`|${JSON.stringify(G.pending.places)}|G.pending.places`);
                     log.push(`|startCombat`);
-                    startCombat(G, ctx, t.g, newDst);
+                    startCombat(G, ctx, t.g, dst);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 } else {
@@ -7137,8 +7139,8 @@ export const checkMoveDst = (
         const oppoPid = ctr2pid(oCtr);
         log.push(`|${oppoPid}|oppoPid`);
         removeNoTroopGeneralByCtr(G, ctx, t.p, oppoCtr(t.g));
-        if (isRegionID(newDst)) {
-            const cid = getRegionById(newDst).city;
+        if (isRegionID(dst)) {
+            const cid = getRegionById(dst).city;
             log.push(`|${cid}|cid`);
             if (cid !== null) {
                 const oppoCityTroop = getOpponentPlaceTroopByCtr(G, t.g, cid);
@@ -7152,8 +7154,8 @@ export const checkMoveDst = (
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 } else {
-                    if (G.jinn.generalPlace[JinnGeneral.YinShuKe] === newDst) {
-                        doPlaceUnit(G, ctx, [1, 0, 0, 0, 0, 0, 0], Country.JINN, newDst);
+                    if (G.jinn.generalPlace[JinnGeneral.YinShuKe] === dst) {
+                        doPlaceUnit(G, ctx, [1, 0, 0, 0, 0, 0, 0], Country.JINN, dst);
                     }
                     doControlCity(G, ctx, troopPid, cid);
                 }
@@ -7224,8 +7226,15 @@ export const doMoveTroopAll = (
             }
             const oppoCityTroop = getOpponentCityTroopByCtr(G, t.g, cid);
             if (oppoCityTroop !== null) {
+                log.push(`|${getSimpleTroopText(G, oppoCityTroop)}|oppoCityTroop`);
                 log.push(`|weiKunGone`);
                 setTroopPlaceByCtr(G, oppoCtr(t.g), cid, src);
+            }
+            const oppoFieldTroop = getOpponentPlaceTroopByCtr(G, t.g, city.region);
+            if (oppoFieldTroop !== null) {
+                log.push(`|${getSimpleTroopText(G, oppoFieldTroop)}|oppoFieldTroop`);
+                setTroopCityByCtr(G, oppoCtr(t.g), city.region, cid);
+                doControlCity(G, ctx, ctr2pid(t.g), cid);
             }
         }
     }
