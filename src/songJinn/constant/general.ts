@@ -21,7 +21,7 @@ export enum PendingEvents {
 export enum MarchDstStatus {
     INVALID = "无法进军",
     SIEGE = "攻城",
-    JIE_DAO ="借道",
+    JIE_DAO = "借道",
     YE_ZHAN = "野战",
     HUI_ZHAN = "会战",
     XIAO_MIE = "直接消灭",
@@ -85,6 +85,7 @@ export interface Troop {
     u: number[],
     g: Country
 }
+
 //
 // export enum MarchResult {
 //     MOVE,
@@ -819,10 +820,12 @@ export enum CombatPhase {
     JieYe = "接野",
     WeiKun = "围困",
     YunChou = "运筹",
+    ZhuDuiShiY = "驻队矢远程",
     YuanCheng = "远程",
-    ZhuDuiShi = "驻队矢",
     YuanChengDamage = "远程受创",
     WuLin = "吴璘",
+    ZhuDuiShiJFSong = "驻队矢交锋",
+    ZhuDuiShiJ2 = "驻队矢交锋2",
     JiaoFeng = "交锋",
     JiaoFengDamage = "交锋受创",
     MingJin = "鸣金",
@@ -1039,6 +1042,7 @@ export const emptyPlayerInfo: () => SJPlayerInfo = () => {
 
 export interface SongJinnGame {
     matchID: string,
+    mode: boolean[],
     pending: {
         events: PendingEvents[],
         regions: RegionID[],
@@ -1080,13 +1084,14 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
     const planDeck = shuffle(ctx, EarlyPlanID);
     const G = {
         matchID: "default",
+        mode: [false, false, false],
         pending: {
             events: [],
             regions: [],
             cities: [],
             places: [],
             generals: [],
-            cards:[],
+            cards: [],
         },
         qi: [],
         op: 0,

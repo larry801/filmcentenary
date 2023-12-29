@@ -4517,11 +4517,10 @@ export const mingJin = (G: SongJinnGame, ctx: Ctx) => {
     const log = ['mingJin'];
     G.combat.phase = CombatPhase.MingJin;
     if (canForceRoundTwo(G)) {
-        log.push(`p${ciDefPid(G)}confirmRespond`);
+        log.push(`|canForceRoundTwo|p${ciDefPid(G)}|confirmRespond`);
         changePlayerStage(G, ctx, 'confirmRespond', ciDefPid(G));
     } else {
-        log.push(`p${ciAtkPid(G)}confirmRespond`);
-
+        log.push(`|p${ciAtkPid(G)}confirmRespond`);
         changePlayerStage(G, ctx, 'confirmRespond', ciAtkPid(G));
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
@@ -4594,7 +4593,11 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
     const log = [`countDice|${ctr}`];
     const ci = G.combat;
     const terrain = getTerrainTypeByPlace(ciAtkTroop(G));
-
+    const jfPhases = [
+        CombatPhase.JiaoFeng,
+        CombatPhase.ZhuDuiShiJ2,
+        CombatPhase.ZhuDuiShiJFSong
+    ]
     const pub = pid2pub(G, ctr2pid(ctr));
     const oppo = pid2pub(G, ctr2pid(oppoCtr(ctr)));
     let d6 = pub.dices.length > 0 ? pub.dices[pub.dices.length - 1] : [];
@@ -4616,7 +4619,6 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
             log.push(`|xiJun--`);
             d6 = d6.map(d => d + 1);
             log.push(`|${d6}`);
-
         }
     } else {
         if (terrain === TerrainType.FLATLAND && jinnGenerals.includes(JinnGeneral.ZhanHan)) {
@@ -4661,7 +4663,7 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
             dmg++;
             log.push(`|${dmg}dmg`);
         }
-        if (ci.phase === CombatPhase.JiaoFeng && songGenerals.includes(SongGeneral.YueFei)) {
+        if (jfPhases.includes(ci.phase) && songGenerals.includes(SongGeneral.YueFei)) {
             log.push(`|yueFei++`);
             dmg++;
             log.push(`|${dmg}dmg`);
@@ -4679,10 +4681,12 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
     } else {
 
     }
-    if (oppo.military >= 7 && dmg > 0 && ci.phase === CombatPhase.JiaoFeng) {
+    if (oppo.military >= 7 && dmg > 0 && (
+        ci.phase === CombatPhase.JiaoFeng
+        || ci.phase === CombatPhase.ZhuDuiShiJ2
+    )) {
         dmg--;
     }
-
     log.push(`|${dmg}dmg`);
     logger.debug(`${G.matchID}|${log.join('')}`);
     return dmg;
@@ -4731,13 +4735,9 @@ export const yuanCheng = (G: SongJinnGame, ctx: Ctx) => {
     log.push(`|${defD}defD`);
     rollDiceByPid(G, ctx, atkPid, atkD);
     rollDiceByPid(G, ctx, defPid, defD);
-    ci.jinn.damageLeft = countDice(G, Country.SONG);
-    ci.song.damageLeft = countDice(G, Country.JINN);
-    // TODO skip if 0 damage after calculation stable
     if (ci.song.damageLeft === 0 && ci.jinn.damageLeft === 0) {
-        log.push(`|nextStage`);
-        // TODO wu jie / zhu dui shi
-        jiaoFeng(G, ctx);
+        log.push(`|both|zero|continueCombat`);
+        continueCombat(G, ctx);
     } else {
         const firstPid = G.order[0];
         if (
@@ -4918,9 +4918,9 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country
             switch (lastEvent) {
                 case PendingEvents.XiJunQuDuan:
                     const place = optionToPlace(arg);
-                    if(place === null){
+                    if (place === null) {
                         return `不放置西军曲端步兵`
-                    }else{
+                    } else {
                         return `在${placeToStr(place)}放置西军曲端步兵`
                     }
                 case PendingEvents.ZhangZhaoZhiZheng:
@@ -4956,21 +4956,21 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country
     return arg === 'yes' ? "选择是" : "选择否";
 }
 
-export const optionToPlace = (p: string): TroopPlace | null=> {
+export const optionToPlace = (p: string): TroopPlace | null => {
     const parsed = parseInt(p);
     if (isNaN(parsed)) {
-        if(isMountainPassID(p as TroopPlace)){
+        if (isMountainPassID(p as TroopPlace)) {
             // @ts-ignore
             return p as MountainPassID;
-        }else{
-            if(isCityID(p as TroopPlace)) {
+        } else {
+            if (isCityID(p as TroopPlace)) {
                 // @ts-ignore
                 return p as CityID;
-            }else{
-                if(isNationID(p as TroopPlace)){
+            } else {
+                if (isNationID(p as TroopPlace)) {
                     // @ts-ignore
                     return p as NationID
-                }else{
+                } else {
                     // @ts-ignore
                     return null;
                 }
@@ -4980,7 +4980,7 @@ export const optionToPlace = (p: string): TroopPlace | null=> {
         if (isRegionID(parsed)) {
             // @ts-ignore
             return p as RegionID;
-        }else{
+        } else {
             return null;
         }
     }
@@ -5062,9 +5062,11 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
         if (lastEvent !== undefined) {
             switch (lastEvent) {
                 case PendingEvents.XiJunQuDuan:
-                    return provPlaces(G,ProvinceID.SHANXILIULU).map(p=>{return{
-                        label: placeToStr(p), value: placeToOption(p), disabled: false, hidden: false
-                    }});
+                    return provPlaces(G, ProvinceID.SHANXILIULU).map(p => {
+                        return {
+                            label: placeToStr(p), value: placeToOption(p), disabled: false, hidden: false
+                        }
+                    });
                     break;
                 case PendingEvents.MengAnMouKe:
                     return yesNoOption;
@@ -5144,7 +5146,9 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
                 break;
             case CombatPhase.YuanCheng:
                 break;
-            case CombatPhase.ZhuDuiShi:
+            case CombatPhase.ZhuDuiShiY:
+                break;
+            case CombatPhase.ZhuDuiShiJFSong:
                 break;
             case CombatPhase.YuanChengDamage:
                 break;
@@ -5250,6 +5254,7 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
     } else {
         log.push(`|${JSON.stringify(G.pending.events)}|G.pending.events`);
     }
+    // console.trace(`${G.matchID}|${log.join('')}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -5419,78 +5424,102 @@ export function damageTaken(G: SongJinnGame, ctx: Ctx) {
     log.push(`|${JSON.stringify(atkEn)}|atkEn`);
     log.push(`|${JSON.stringify(defEn)}|defEn`);
     log.push(`|${ci.phase}|ci.phase`);
-    switch (ci.phase) {
-        case CombatPhase.JieYe:
-        case CombatPhase.WeiKun:
-        case CombatPhase.YunChou:
-            log.push(`|${G.combat.phase}|error`);
+    if (ci.ongoing) {
+        if (atkEn === 0 && defEn === 0) {
+            log.push(`|原地对峙`);
             endCombat(G, ctx);
             logger.debug(`${G.matchID}|${log.join('')}`);
-            return;
-        case CombatPhase.YuanCheng:
-            if (atkEn === 0 && defEn === 0) {
-                log.push(`|原地对峙`);
-                endCombat(G, ctx);
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                return
-            } else {
-                if (atkEn === 0) {
-                    log.push(`|rmAtk`);
-                    removeZeroTroop(G, ctx, ciAtkTroop(G));
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    return;
-                } else {
-                    if (defEn === 0) {
-                        log.push(`|rmDef`);
-                        removeZeroTroop(G, ctx, ciDefTroop(G));
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    } else {
-                        log.push(`|next`);
-                        continueCombat(G, ctx);
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    }
-                }
-            }
-        case CombatPhase.WuLin:
-            jiaoFeng(G, ctx);
-            break;
-        case CombatPhase.JiaoFeng:
-            if (atkEn === 0 && defEn === 0) {
-                log.push(`|duiZhiEnd`);
-                endCombat(G, ctx);
+            return
+        } else {
+            if (atkEn === 0) {
+                log.push(`|rmAtk`);
+                removeZeroTroop(G, ctx, ciAtkTroop(G));
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             } else {
-                if (atkEn === 0) {
-                    log.push(`|rmAtk`);
-                    removeZeroTroop(G, ctx, ciAtkTroop(G));
+                if (defEn === 0) {
+                    log.push(`|rmDef`);
+                    removeZeroTroop(G, ctx, ciDefTroop(G));
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 } else {
-                    if (defEn === 0) {
-                        log.push(`|rmDef`);
-                        removeZeroTroop(G, ctx, ciDefTroop(G));
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    } else {
-                        log.push(`|mingJin`);
-                        mingJin(G, ctx);
-                        logger.debug(`${G.matchID}|${log.join('')}`);
-                        return;
-                    }
+                    log.push(`|continueCombat`);
+                    continueCombat(G, ctx);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    return;
                 }
             }
-        case CombatPhase.MingJin:
-            log.push(`|${G.combat.phase}|error`);
-            logger.debug(`${G.matchID}|${log.join('')}`);
-            return;
-        default:
-            log.push(`|otherPhase|error`);
-            logger.debug(`${G.matchID}|${log.join('')}`);
-            return;
+        }
+    } else {
+        log.push(`|not|in|combat|error`);
     }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+export function zhuDuiShiJiaoFeng2(G: SongJinnGame, ctx: Ctx) {
+    const log = [`zhuDuiShiJiaoFeng2`];
+    const ci = G.combat;
+    log.push(`|${ci.phase}|ci.phase`);
+    ci.phase = CombatPhase.ZhuDuiShiJ2;
+    log.push(`|${ci.phase}|ci.phase`);
+    const jinnStr = getMeleeStr(G, ciJinnTroop(G));
+    const songStr = getMeleeOnlyStr(G, ciSongTroop(G));
+    log.push(`|${jinnStr}|jinnStr`);
+    log.push(`|${songStr}|songStr`);
+    rollDiceByPid(G, ctx, SJPlayer.P1, songStr);
+    rollDiceByPid(G, ctx, SJPlayer.P2, jinnStr);
+    changePlayerStage(G ,ctx, 'takeDamage', G.order[0]);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+export function zhuDuiShiJiaoFengSong(G: SongJinnGame, ctx: Ctx) {
+    const log = [`zhuDuiShiJiaoFeng`];
+    const ci = G.combat;
+    log.push(`|${ci.phase}|ci.phase`);
+    ci.phase = CombatPhase.ZhuDuiShiJFSong;
+    log.push(`|${ci.phase}|ci.phase`);
+    const strength = getRangeStrength(G, ciSongTroop(G));
+    log.push(`|${strength}|strength`);
+    rollDiceByPid(G, ctx, SJPlayer.P1, strength);
+    log.push(`|${ci.jinn.damageLeft}|ci.jinn.damageLeft`);
+    if(ci.jinn.damageLeft === 0) {
+        log.push(`|zhuDuiShiJiaoFeng2`);
+        zhuDuiShiJiaoFeng2(G, ctx);
+    } else {
+        log.push(`|takeDamage`);
+        changePlayerStage(G ,ctx, 'takeDamage', SJPlayer.P2);
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+export function zhuDuiShiYuanCheng(G: SongJinnGame, ctx: Ctx) {
+    const log = [`zhuDuiShiYuanCheng`];
+    const ci = G.combat;
+    log.push(`|${ci.phase}|ci.phase`);
+    ci.phase = CombatPhase.ZhuDuiShiY;
+    log.push(`|${ci.phase}|ci.phase`);
+    const strength = getRangeStrength(G, ciSongTroop(G));
+    rollDiceByPid(G, ctx, SJPlayer.P1, strength);
+    log.push(`|${ci.jinn.damageLeft}|ci.jinn.damageLeft`);
+    if(ci.jinn.damageLeft === 0) {
+        log.push(`|zhuDuiShiYuanChengJinn`);
+        zhuDuiShiYuanChengJinn(G, ctx);
+    } else {
+        log.push(`|takeDamage`);
+        changePlayerStage(G ,ctx, 'takeDamage', SJPlayer.P2);
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+export function zhuDuiShiYuanChengJinn(G: SongJinnGame, ctx: Ctx) {
+    const log = [`zhuDuiShiYuanChengJinn`];
+    const ci = G.combat;
+    log.push(`|${ci.phase}|ci.phase`);
+    const strength = getRangeStrength(G, ciJinnTroop(G));
+    log.push(`|${strength}|strength`);
+    rollDiceByPid(G, ctx, SJPlayer.P2, strength);
+    log.push(`|${ci.song.damageLeft}|ci.song.damageLeft`);
+    changePlayerStage(G ,ctx, 'takeDamage', SJPlayer.P1)
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export function continueCombat(G: SongJinnGame, ctx: Ctx) {
@@ -5500,33 +5529,59 @@ export function continueCombat(G: SongJinnGame, ctx: Ctx) {
     if (ci.ongoing) {
         switch (ci.phase) {
             case CombatPhase.JieYe:
-                break;
             case CombatPhase.WeiKun:
-                break;
             case CombatPhase.YunChou:
+                if(rangeFirst(G)){
+                    log.push(`|zhuDuiShiYuanCheng`);
+                    zhuDuiShiYuanCheng(G, ctx);
+                }else{
+                    log.push(`|yuanCheng`);
+                    yuanCheng(G, ctx);
+                }
                 break;
+            case CombatPhase.ZhuDuiShiY:
             case CombatPhase.YuanCheng:
                 if (hasGeneral(G, G.combat.song.troop, SongGeneral.WuLin)) {
                     log.push(`|wuLin`);
                     wuLin(G, ctx);
                 } else {
-                    log.push(`|jiaoFeng`);
-                    jiaoFeng(G, ctx);
+                    if(rangeFirst(G)){
+                        log.push(`|zhuDuiShiJiaoFengSong`);
+                        zhuDuiShiJiaoFengSong(G, ctx);
+                    }else{
+                        log.push(`|jiaoFeng`);
+                        jiaoFeng(G, ctx);
+                    }
                 }
                 break;
             case CombatPhase.WuLin:
-                jiaoFeng(G, ctx);
+                if(rangeFirst(G)){
+                    log.push(`|zhuDuiShiJiaoFengSong`);
+                    zhuDuiShiJiaoFengSong(G, ctx);
+                }else{
+                    log.push(`|交锋`);
+
+                    jiaoFeng(G, ctx);
+                }
                 break;
+            case CombatPhase.ZhuDuiShiJFSong:
+                log.push(`|驻队矢交锋2`);
+                zhuDuiShiJiaoFeng2(G, ctx);
+                break;
+            case CombatPhase.ZhuDuiShiJ2:
             case CombatPhase.JiaoFeng:
+                log.push(`|mingJin`);
+                mingJin(G, ctx);
                 break;
             case CombatPhase.MingJin:
+                log.push(`|endCombat`);
                 endCombat(G, ctx);
                 break;
-
         }
     } else {
         log.push(`|error|not|ongoing`);
     }
+    // console.trace(`${G.matchID}|${log.join('')}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -7270,4 +7325,8 @@ export function canForceRoundTwo(G: SongJinnGame) {
     logger.debug(`${G.matchID}|canForceRoundTwo|${res}`);
 
     return res;
+}
+
+export function isFast(G: SongJinnGame) {
+    return G.mode !== undefined && G.mode[0];
 }

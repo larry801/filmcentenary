@@ -56,6 +56,7 @@ import {
     ciSongTroop,
     colonyDown,
     colonyUp,
+    continueCombat,
     ctr2pid,
     ctr2pub,
     currentProvStatus,
@@ -89,6 +90,7 @@ import {
     getTroopByCountryPlace,
     heYiChange,
     heYiCheck,
+    isFast,
     moveGeneralByCountry,
     moveGeneralByPid,
     moveGeneralToReady,
@@ -120,7 +122,7 @@ import {
     troopEndurance,
     unitsToString,
     weiKunTroop,
-    yuanCheng
+    zhuDuiShiYuanChengJinn
 } from "./util";
 import {getCityById} from "./constant/city";
 
@@ -355,8 +357,10 @@ export const letter: LongFormMove = {
             return INVALID_MOVE;
         }
         player.lod.push(arg);
-        // endRoundCheck(G, ctx);
-        // ctx.events?.endTurn();
+        if (isFast(G)) {
+            endRoundCheck(G, ctx);
+            ctx.events?.endTurn();
+        }
     }
 }
 
@@ -414,7 +418,6 @@ interface ITakeDamageArgs {
     standby: number[],
     ready: number[]
 }
-
 
 export const takeDamage: LongFormMove = {
     client: false,
@@ -482,7 +485,7 @@ export const takeDamage: LongFormMove = {
         cci.damageLeft -= readyEndurance;
         cci.damageLeft -= standbyEndurance;
         log.push(`|${cci.damageLeft}|cci.damageLeft`);
-
+        // TODO check left damage < 0
         // retain empty troop for unitEndurance check in battle
         if (actualStage(G, ctx) === 'takeDamage') {
             const atkEn = troopEndurance(G, ciAtkTroop(G));
@@ -494,28 +497,44 @@ export const takeDamage: LongFormMove = {
             log.push(`|${JSON.stringify(atkEn)}|atkEn`);
             log.push(`|${JSON.stringify(defEn)}|defEn`);
             log.push(`|${curEn}|curEn`);
-            if (G.order.indexOf(pid as SJPlayer) === 0) {
-                log.push(`|firstPlayer`);
-                const nextPid = G.order[1];
-                const dmg = pid2cci(G, nextPid).damageLeft;
-                log.push(`|${dmg}|dmg`);
-                if (dmg <= 0) {
-                    log.push(`|dmg<0|damageTaken`);
-                    damageTaken(G, ctx);
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    return
+            if (ci.phase === CombatPhase.ZhuDuiShiY) {
+                if (pid === SJPlayer.P1) {
+                    log.push(`|continueCombat`);
+                    continueCombat(G, ctx);
                 } else {
-                    log.push(`|p${nextPid}takeDamage`);
-                    changePlayerStage(G, ctx, 'takeDamage', nextPid);
-                    logger.debug(`${G.matchID}|${log.join('')}`);
-                    return
+                    log.push(`|zhuDuiShiYuanChengJinn`);
+                    zhuDuiShiYuanChengJinn(G, ctx);
                 }
             } else {
-                log.push(`|secondPlayer|damageTaken`);
-                damageTaken(G, ctx);
-                logger.debug(`${G.matchID}|${log.join('')}`);
-                return
+                if (ci.phase === CombatPhase.ZhuDuiShiJFSong) {
+                    log.push(`|continueCombat`);
+                    continueCombat(G, ctx);
+                } else {
+                    if (G.order.indexOf(pid as SJPlayer) === 0) {
+                        log.push(`|firstPlayer`);
+                        const nextPid = G.order[1];
+                        const dmg = pid2cci(G, nextPid).damageLeft;
+                        log.push(`|${dmg}|dmg`);
+                        if (dmg <= 0) {
+                            log.push(`|dmg<0|damageTaken`);
+                            damageTaken(G, ctx);
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return
+                        } else {
+                            log.push(`|p${nextPid}takeDamage`);
+                            changePlayerStage(G, ctx, 'takeDamage', nextPid);
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return
+                        }
+                    } else {
+                        log.push(`|secondPlayer|damageTaken`);
+                        damageTaken(G, ctx);
+                        logger.debug(`${G.matchID}|${log.join('')}`);
+                        return
+                    }
+                }
             }
+
         } else {
             if (troopEmpty(troop)) {
                 log.push(`|rmTroop`);
@@ -937,7 +956,7 @@ export const moveTroop: LongFormMove = {
         }
         logger.info(`p${pid}.moves.moveTroop(${JSON.stringify(args)})`);
         const log = [`moveTroop`];
-        const {src, dst, country, units, generals} = args;
+        const {src, dst, units, generals} = args;
         const srcPlace = src.p;
         const ctr = src.g;
         if (units.reduce(accumulator) === 0) {
@@ -1050,7 +1069,12 @@ export const emperor: LongFormMove = {
             G.song.usedDevelop = totalDevelop(G, ctx, ctx.playerID);
         }
         if (ctx.phase === 'action') {
-            ctx.events?.endStage();
+            if (isFast(G)) {
+                endRoundCheck(G, ctx);
+                ctx.events?.endTurn();
+            } else {
+                ctx.events?.endStage();
+            }
         }
     }
 }
@@ -1251,8 +1275,8 @@ export const combatCard: LongFormMove = {
             log.push(`|pos1`);
             const oppoPlayer = oppoPlayerById(G, pid);
             if (player.combatCard.length === 0 && oppoPlayer.combatCard.length === 0) {
-                log.push(`|noCC|yuanCheng`);
-                yuanCheng(G, ctx);
+                log.push(`|noCC|continueCombat`);
+                continueCombat(G, ctx);
             } else {
                 log.push(`|showCC`);
                 changePlayerStage(G, ctx, 'showCC', G.order[0]);
@@ -1312,6 +1336,10 @@ export const heYi: LongFormMove = {
             return INVALID_MOVE;
         }
         heYiChange(G, ctx, city);
+        if (isFast(G)) {
+            endRoundCheck(G, ctx);
+            ctx.events?.endTurn();
+        }
     }
 }
 
@@ -1340,7 +1368,10 @@ export const developCard: LongFormMove = {
         }
         const pub = pid2pub(G, ctx.playerID);
         pub.develop.push(args);
-
+        if (isFast(G)) {
+            endRoundCheck(G, ctx);
+            ctx.events?.endTurn();
+        }
     }
 }
 
@@ -1553,7 +1584,8 @@ export const showCC: LongFormMove = {
                     }
                 }
             }
-            yuanCheng(G, ctx);
+            log.push(`|continueCombat`);
+            continueCombat(G, ctx);
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
@@ -1965,7 +1997,8 @@ export const confirmRespond: LongFormMove = {
                 log.push(`|${poppedEvent}|poppedEvent`);
                 if (poppedEvent === PendingEvents.HuFuXiangBing) {
                     eliminate();
-                    yuanCheng(G, ctx);
+                    log.push(`|continueCombat`);
+                    continueCombat(G, ctx);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 }
@@ -1986,7 +2019,6 @@ export const confirmRespond: LongFormMove = {
                             logger.debug(`${G.matchID}|${log.join('')}`);
                             return;
                         }
-                        break;
                     case PendingEvents.MergeORSiege:
                         if (choice !== "围困") {
                             const place = G.pending.places.pop();
@@ -2045,7 +2077,8 @@ export const confirmRespond: LongFormMove = {
                         }
                     case PendingEvents.HuFuXiangBing:
                         eliminate();
-                        yuanCheng(G, ctx);
+                        log.push(`|continueCombat`);
+                        continueCombat(G, ctx);
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     case PendingEvents.BingShi:

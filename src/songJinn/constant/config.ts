@@ -213,7 +213,6 @@ export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
     },
 };
 
-
 export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
     onBegin: (G: SongJinnGame, _ctx: Ctx) => {
         const log = [`turnEndPhase|onBegin|${G.order}`];
