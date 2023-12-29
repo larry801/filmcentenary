@@ -127,14 +127,14 @@ function area(coords: [number, number][][]) {
     return 0.5 * s;
 }
 
-export function getTerrainTypeByPlace(troop: Troop) {
-    if (isRegionID(troop.p)) {
-        return getRegionById(troop.p).terrain;
+export function getTerrainTypeByPlace(p: TroopPlace) {
+    if (isRegionID(p)) {
+        return getRegionById(p).terrain;
     } else {
-        if (isMountainPassID(troop.p)) {
+        if (isMountainPassID(p)) {
             return TerrainType.RAMPART;
         } else {
-            if (isCityID(troop.p)) {
+            if (isCityID(p)) {
                 return TerrainType.RAMPART;
             } else {
                 // TODO other country endurance
@@ -142,6 +142,9 @@ export function getTerrainTypeByPlace(troop: Troop) {
             }
         }
     }
+}
+export function getTerrainTypeByTroop(troop: Troop) {
+  return getTerrainTypeByPlace(troop.p)
 }
 
 export const centroid = (coordinates: [number, number][][]): [number, number] => {
@@ -281,6 +284,23 @@ export const optionToActualDst = (dst: string): TroopPlace => {
 // }
 export const isZhouXing = (t: Troop) => {
     return t.u[3] > 0;
+}
+
+export const onlyBoat = (t: Troop) => {
+    if(t.g === Country.SONG){
+        return t.u[3] > 0
+            && t.u[0] === 0
+            && t.u[1] === 0
+            && t.u[2] === 0
+            && t.u[5] === 0;
+    }else{
+        return t.u[3] > 0
+            && t.u[0] === 0
+            && t.u[1] === 0
+            && t.u[2] === 0
+            && t.u[5] === 0
+            && t.u[6] === 0;
+    }
 }
 
 export const getRetreatDst = (G: SongJinnGame, t: Troop): TroopPlace[] => {
@@ -446,6 +466,10 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
             return [];
         }
     }
+    if (onlyBoat(t) && getTerrainTypeByPlace(t.p) !== TerrainType.SWAMP) {
+        log.push(`|onlyBoard|cannot|start|from|none|swamp`);
+        return [];
+    }
     const newTroop = {...t, u: units};
     const adj = getMarchAdj(G, newTroop);
     log.push(`|${getSimpleTroopText(G, newTroop)}|newTroop`);
@@ -483,11 +507,24 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
     }
     if (isZhouXing(newTroop) || hasGeneral(G, t, SongGeneral.LiXianZhong)) {
         noArmyAdj.forEach(p => {
+            if(onlyBoat(t)) {
+                if(getTerrainTypeByPlace(p) !== TerrainType.SWAMP){
+                    log.push(`|cannot|use|none|swamp|mid`);
+                    return;
+                }
+            }
             const zTroop = {...newTroop, p: p}
             const zAdj = getMarchAdj(G, zTroop);
             zAdj.forEach(z => {
                 if (z !== t.p) {
-                    res.push({mid: p, dst: z});
+                    if(onlyBoat(t)) {
+                        if(getTerrainTypeByPlace(z) !== TerrainType.SWAMP){
+                            log.push(`|cannot|goto|none|swamp`);
+                            return;
+                        }else{
+                            res.push({mid: p, dst: z});
+                        }
+                    }
                 }
             })
             // TODO complex rule for zhou xing
@@ -1041,9 +1078,11 @@ export function songLoseEmperor(G: SongJinnGame, ctx: Ctx) {
     G.song.emperor = null;
     log.push(`|${G.song.emperor}|G.song.emperor`);
     policyDown(G, 1);
-    G.pending.events.push(PendingEvents.LoseCorruption);
-    changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
-    log.push(`|chooseLoseNormalOrCorruiton`);
+    if( G.song.corruption > 0) {
+        G.pending.events.push(PendingEvents.LoseCorruption);
+        changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
+        log.push(`|chooseLoseNormalOrCorruption`);
+    }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -4592,7 +4631,7 @@ export const wuLin = (G: SongJinnGame, ctx: Ctx) => {
 export const countDice = (G: SongJinnGame, ctr: Country): number => {
     const log = [`countDice|${ctr}`];
     const ci = G.combat;
-    const terrain = getTerrainTypeByPlace(ciAtkTroop(G));
+    const terrain = getTerrainTypeByTroop(ciAtkTroop(G));
     const jfPhases = [
         CombatPhase.JiaoFeng,
         CombatPhase.ZhuDuiShiJ2,
@@ -4891,6 +4930,40 @@ export const ciAtkTroop = (G: SongJinnGame): Troop => {
     return ci.atk === Country.JINN ? (jt === null ? ci.jinn.troop : jt) : (st === null ? ci.song.troop : st);
 }
 
+export const optionToPlace = (p: string): TroopPlace | null => {
+    const parsed = parseInt(p);
+    if (isNaN(parsed)) {
+        if (isMountainPassID(p as TroopPlace)) {
+            // @ts-ignore
+            return p as MountainPassID;
+        } else {
+            if (isCityID(p as TroopPlace)) {
+                // @ts-ignore
+                return p as CityID;
+            } else {
+                if (isNationID(p as TroopPlace)) {
+                    // @ts-ignore
+                    return p as NationID
+                } else {
+                    // @ts-ignore
+                    return null;
+                }
+            }
+        }
+    } else {
+        if (isRegionID(parsed)) {
+            // @ts-ignore
+            return parsed as RegionID;
+        } else {
+            return null;
+        }
+    }
+}
+
+export const placeToOption = (p: TroopPlace): string => {
+    return p.toString();
+}
+
 export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country) => {
     const ci = G.combat;
     if (ci.ongoing) {
@@ -4954,40 +5027,6 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country
         }
     }
     return arg === 'yes' ? "选择是" : "选择否";
-}
-
-export const optionToPlace = (p: string): TroopPlace | null => {
-    const parsed = parseInt(p);
-    if (isNaN(parsed)) {
-        if (isMountainPassID(p as TroopPlace)) {
-            // @ts-ignore
-            return p as MountainPassID;
-        } else {
-            if (isCityID(p as TroopPlace)) {
-                // @ts-ignore
-                return p as CityID;
-            } else {
-                if (isNationID(p as TroopPlace)) {
-                    // @ts-ignore
-                    return p as NationID
-                } else {
-                    // @ts-ignore
-                    return null;
-                }
-            }
-        }
-    } else {
-        if (isRegionID(parsed)) {
-            // @ts-ignore
-            return parsed as RegionID;
-        } else {
-            return null;
-        }
-    }
-}
-
-export const placeToOption = (p: TroopPlace): string => {
-    return p.toString();
 }
 
 export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
@@ -5802,7 +5841,7 @@ export function getSiegeMeleeStr(G: SongJinnGame, t: Troop): number {
 
 export function unitsMeleeOnlyStr(G: SongJinnGame, troop: Troop): number[] {
     const log = [`unitsMeleeOnlyStr`];
-    const terrainType = getTerrainTypeByPlace(troop);
+    const terrainType = getTerrainTypeByTroop(troop);
     const isSwampRampart = checkSwampRampart(troop.p);
     log.push(`|terrain${terrainType}`);
     log.push(`|${isSwampRampart}isSwampRampart`);
@@ -5924,7 +5963,7 @@ export function getGeneralCCMeleeOnly(G: SongJinnGame, t: Troop): number {
     const ci = G.combat;
     let mod = 0;
     const cc = ciCtrInfo(G, t.g).combatCard;
-    const terrainType = getTerrainTypeByPlace(t);
+    const terrainType = getTerrainTypeByTroop(t);
     if (cc.includes(SongBaseCardID.S12) && terrainType === TerrainType.FLATLAND) {
         log.push(`|ZhanChe`);
         mod += t.u[0];
@@ -5965,7 +6004,7 @@ export function getGeneralCCMelee(G: SongJinnGame, t: Troop): number {
     const ci = G.combat;
     let mod = 0;
     const cc = ciCtrInfo(G, t.g).combatCard;
-    const terrainType = getTerrainTypeByPlace(t);
+    const terrainType = getTerrainTypeByTroop(t);
     if (cc.includes(SongBaseCardID.S12) && terrainType === TerrainType.FLATLAND) {
         log.push(`|ZhanChe`);
         mod += t.u[0];
@@ -6009,7 +6048,7 @@ export function getGeneralCCMelee(G: SongJinnGame, t: Troop): number {
 
 export function unitSiegeMeleeStr(G: SongJinnGame, troop: Troop) {
     const log = [`unitSiegeMeleeStr`];
-    const terrainType = getTerrainTypeByPlace(troop);
+    const terrainType = getTerrainTypeByTroop(troop);
     const isSwampRampart = checkSwampRampart(troop.p);
     let unitMelee: number[] = [];
 
@@ -6060,7 +6099,7 @@ export function unitSiegeMeleeStr(G: SongJinnGame, troop: Troop) {
 
 export function unitMeleeStr(G: SongJinnGame, troop: Troop) {
     const log = [`unitMeleeStr`];
-    const terrainType = getTerrainTypeByPlace(troop);
+    const terrainType = getTerrainTypeByTroop(troop);
     const isSwampRampart = checkSwampRampart(troop.p);
     let unitMelee = [0];
     if (troop.g === Country.SONG) {
@@ -6112,7 +6151,7 @@ export function unitMeleeStr(G: SongJinnGame, troop: Troop) {
 
 export function unitRangeStr(G: SongJinnGame, troop: Troop) {
     const log = [`unitRangeStr`];
-    const terrainType = getTerrainTypeByPlace(troop);
+    const terrainType = getTerrainTypeByTroop(troop);
     const isSwampRampart = checkSwampRampart(troop.p);
     log.push(`|terrain${terrainType}`);
     log.push(`|${isSwampRampart}isSwampRampart`);
@@ -6296,7 +6335,7 @@ export function troopSiegeRange(G: SongJinnGame, troop: Troop): number {
     const log = [`troopSiegeRange`];
     log.push(`|${JSON.stringify(troop)}troop`);
     let range = 0;
-    const terrainType = getTerrainTypeByPlace(troop);
+    const terrainType = getTerrainTypeByTroop(troop);
     const unitRanges = getSiegeRangeUnitStrength(G, troop, terrainType);
     log.push(`|${JSON.stringify(unitRanges)}unitRanges`);
     troop.u.forEach((i, idx) => {
@@ -6431,7 +6470,7 @@ export function getTroopText(G: SongJinnGame, t: Troop) {
 export function troopEndurance(G: SongJinnGame, troop: Troop): number {
     const log = [`troopEndurance${JSON.stringify(troop)}`];
     let endurance = 0;
-    const terrainType = getTerrainTypeByPlace(troop);
+    const terrainType = getTerrainTypeByTroop(troop);
     log.push(`|${terrainType}terrainType`);
     let unitEndurance: number[] = [];
     if (troop.g === Country.SONG) {
@@ -6967,7 +7006,7 @@ export const doLoseProvince = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, prov: P
                 if (pub.corruption > 0) {
                     G.pending.events.push(PendingEvents.LoseCorruption);
                     changePlayerStage(G, ctx, 'confirmRespond', pid);
-                    log.push(`|chooseLoseNormalOrCorruiton`);
+                    log.push(`|chooseLoseNormalOrCorruption`);
                 }
             }
         } else {
@@ -6983,7 +7022,7 @@ export const doLoseProvince = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, prov: P
             if (pub.corruption > 0) {
                 G.pending.events.push(PendingEvents.LoseCorruption);
                 changePlayerStage(G, ctx, 'confirmRespond', pid);
-                log.push(`|chooseLoseNormalOrCorruiton`);
+                log.push(`|chooseLoseNormalOrCorruption`);
             }
         }
     }
