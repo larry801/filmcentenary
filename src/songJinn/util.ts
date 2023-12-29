@@ -466,6 +466,10 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
             return [];
         }
     }
+    if(troopEndurance(G, t) === 0) {
+        log.push(`|0endurance|no|dst`);
+        return [];
+    }
     if (onlyBoat(t) && getTerrainTypeByPlace(t.p) !== TerrainType.SWAMP) {
         log.push(`|onlyBoard|cannot|start|from|none|swamp`);
         return [];
