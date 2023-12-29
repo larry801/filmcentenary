@@ -6670,11 +6670,12 @@ export const addMidTermCard = (G: SongJinnGame, ctx: Ctx) => {
     MidPlanID.forEach(p => G.secret.planDeck.push(p));
     G.secret.planDeck = shuffle(ctx, G.secret.planDeck);
 }
+
 export const troopEmpty = (troop: Troop) => {
     return troop.u.filter(c => c > 0).length === 0
 }
 
-export const canChoosePlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
+export const canChoosePlan = (G: SongJinnGame, _ctx: Ctx, pid: PlayerID, plan: PlanID) => {
     if ([PlanID.J23, PlanID.J24].includes(plan)) {
         const ctr = getCountryById(pid);
         if (ctr === Country.JINN && plan === PlanID.J23) {
@@ -6687,7 +6688,7 @@ export const canChoosePlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: Pl
     return pid2pub(G, pid).military >= getPlanById(plan).level;
 }
 
-export const checkPlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID) => {
+export const checkPlan = (G: SongJinnGame, _ctx: Ctx, pid: PlayerID, plan: PlanID) => {
     const planObj = getPlanById(plan);
     const pub = pid2pub(G, pid);
     const filtered = planObj.provinces.filter(prov => pub.provinces.includes(prov));

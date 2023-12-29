@@ -71,8 +71,7 @@ import {
     getJinnPower,
     getSongPower,
     pid2pub,
-    playerById,
-    randomDiscardForSong
+    playerById
 } from "../util";
 import {changePlayerStage} from "../../game/logFix";
 
@@ -166,7 +165,7 @@ export const NormalTurnConfig: TurnConfig<SongJinnGame> = {
 }
 
 export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
-    order: TurnOrder.CUSTOM_FROM("order"),
+    ...NormalTurnConfig,
     stages: {
         react: ReactStageConfig,
         emperor: EmperorStageConfig,
@@ -208,7 +207,7 @@ export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
         search: {
             moves: {
                 search: search,
-                discard: randomDiscardForSong,
+                discard: discard,
             }
         },
     },
@@ -216,32 +215,20 @@ export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
 
 
 export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
-    onBegin: (G, ctx) => {
+    onBegin: (G: SongJinnGame, _ctx: Ctx) => {
         const log = [`turnEndPhase|onBegin|${G.order}`];
         G.song.corruption = 0;
         G.jinn.corruption = 0;
-        G.round = 1;
-        if (G.events.includes(ActiveEvents.XiJunQuDuan)) {
-            G.pending.events.push(PendingEvents.XiJunQuDuan);
-            changePlayerStage(G,ctx,'confirmRespond',SJPlayer.P1);
-        } else {
-            // ctx.events?.setPhase('draw');
-            // TODO 先自觉检索算了
-            // if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
-            //     // 目前不可能 因为只有京畿计划有检索
-            //      G.jinn.effect.splice( G.jinn.effect.indexOf(PlayerPendingEffect.SearchCard),1);
-            //      G.song.effect.splice( G.song.effect.indexOf(PlayerPendingEffect.SearchCard),1);
-            // } else {
-            //      G.song.effect.splice( G.song.effect.indexOf(PlayerPendingEffect.SearchCard),1);
-            // }
-            // if (G.song.effect.includes(PlayerPendingEffect.SearchCard)) {
-            //
-            //
-            // }else{
-            //
-            // }
-        }
         logger.debug(`${G.matchID}|${log.join('')}`);
+    },
+    turn: {
+        ...StagedTurnConfig,
+        onBegin: (G: SongJinnGame, ctx: Ctx) => {
+            if (ctx.currentPlayer === SJPlayer.P1 && G.events.includes(ActiveEvents.XiJunQuDuan)) {
+                G.pending.events.push(PendingEvents.XiJunQuDuan);
+                changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
+            }
+        }
     },
     onEnd: (G, ctx) => endTurnCheck(G, ctx),
     moves: moves,

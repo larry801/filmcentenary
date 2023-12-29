@@ -21,7 +21,7 @@ import {
     getCountryById,
     getGeneralNameByCountry, getSkillGeneral,
     pid2pub, phaseName,
-    playerById, remainDevelop, sjCardById, confirmRespondChoices, checkRecruitCivil, canChoosePlan
+    playerById, remainDevelop, sjCardById, confirmRespondChoices,  canChoosePlan
 } from "../util";
 import {Dices} from "./dices";
 
@@ -48,7 +48,7 @@ export const Operation = ({
     const pub = pid2pub(G, playerID);
     const player = playerById(G, playerID);
     const country = getCountryById(playerID);
-    const remainDevelopPoint: number = remainDevelop(G, ctx, playerID);
+    // const remainDevelopPoint: number = remainDevelop(G, ctx, playerID);
 
     React.useEffect(() => {
         if (isActive && ctx.phase === 'diplomacy') {
