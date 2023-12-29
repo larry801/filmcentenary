@@ -6788,6 +6788,7 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
         G.turn++;
         log.push(`turn|${G.turn}`);
     }
+    G.round = 1;
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
