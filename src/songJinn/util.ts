@@ -896,9 +896,9 @@ export const setTroopCityByCtr = (G: SongJinnGame, ctr: Country, p: TroopPlace, 
     const log = [`setTroopCityByCtr`];
     log.push(`|${ctr}|ctr`);
     log.push(`|${placeToStr(p)}|src`);
-    if(cid !== null){
+    if (cid !== null) {
         log.push(`|${placeToStr(cid)}|dst`);
-    }else{
+    } else {
         log.push(`|setToNull`);
     }
     const troops = ctr === Country.SONG ? G.song.troops : G.jinn.troops;
@@ -4916,6 +4916,13 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country
         const lastEvent = G.pending.events[G.pending.events.length - 1];
         if (lastEvent !== undefined) {
             switch (lastEvent) {
+                case PendingEvents.XiJunQuDuan:
+                    const place = optionToPlace(arg);
+                    if(place === null){
+                        return `不放置西军曲端步兵`
+                    }else{
+                        return `在${placeToStr(place)}放置西军曲端步兵`
+                    }
                 case PendingEvents.ZhangZhaoZhiZheng:
                     if (arg === '选择降低宋内政') {
                         return arg;
@@ -4949,6 +4956,39 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country
     return arg === 'yes' ? "选择是" : "选择否";
 }
 
+export const optionToPlace = (p: string): TroopPlace | null=> {
+    const parsed = parseInt(p);
+    if (isNaN(parsed)) {
+        if(isMountainPassID(p as TroopPlace)){
+            // @ts-ignore
+            return p as MountainPassID;
+        }else{
+            if(isCityID(p as TroopPlace)) {
+                // @ts-ignore
+                return p as CityID;
+            }else{
+                if(isNationID(p as TroopPlace)){
+                    // @ts-ignore
+                    return p as NationID
+                }else{
+                    // @ts-ignore
+                    return null;
+                }
+            }
+        }
+    } else {
+        if (isRegionID(parsed)) {
+            // @ts-ignore
+            return p as RegionID;
+        }else{
+            return null;
+        }
+    }
+}
+
+export const placeToOption = (p: TroopPlace): string => {
+    return typeof p === "number" && !isNaN(p) ? getRegionById(p).name : p.toString();
+}
 
 export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
     const beatGongChoices = [
@@ -5021,7 +5061,10 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
         const lastEvent = G.pending.events[G.pending.events.length - 1];
         if (lastEvent !== undefined) {
             switch (lastEvent) {
-                case PendingEvents.PlaceUnitsToRegion:
+                case PendingEvents.XiJunQuDuan:
+                    return provPlaces(G,ProvinceID.SHANXILIULU).map(p=>{return{
+                        label: placeToStr(p), value: placeToOption(p), disabled: false, hidden: false
+                    }});
                     break;
                 case PendingEvents.MengAnMouKe:
                     return yesNoOption;
@@ -5124,13 +5167,12 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
                     }
                 }
         }
-
     } else {
         const lastEvent = G.pending.events[G.pending.events.length - 1];
         if (lastEvent !== undefined) {
             switch (lastEvent) {
-                case PendingEvents.PlaceUnitsToRegion:
-                    break;
+                case PendingEvents.XiJunQuDuan:
+                    return "选择放置西军曲端步兵的地点"
                 case PendingEvents.MengAnMouKe:
                     return "是否降低殖民等级？"
                 case PendingEvents.HanFang:
@@ -5294,7 +5336,7 @@ export function startCombat(
             return;
         }
     } else {
-        if(isMountainPassID(p)){
+        if (isMountainPassID(p)) {
             log.push(`|pass`);
         }
     }
@@ -5513,6 +5555,34 @@ export function weiKunTroop(G: SongJinnGame, t: Troop) {
         log.push(`|cannot find troop`);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+export const provPlaces = (G: SongJinnGame, prov: ProvinceID): TroopPlace[] => {
+    const log = [`provPlaces`];
+    const province = getProvinceById(prov);
+    const result: TroopPlace[] = [...province.capital, ...province.other, ...province.regions];
+    switch (prov) {
+        case ProvinceID.SHANXILIULU:
+            result.push(MountainPassID.TongGuan);
+            result.push(MountainPassID.WuGuan);
+            result.push(MountainPassID.DaSanGuan);
+            break;
+        case ProvinceID.CHUANSHANSILU:
+            result.push(MountainPassID.DaSanGuan);
+            result.push(MountainPassID.JianMenGuan);
+            break;
+        case ProvinceID.JINGXILIANGLU:
+            result.push(MountainPassID.TongGuan);
+            result.push(MountainPassID.WuGuan);
+            break;
+        case ProvinceID.XIJINGLU:
+        case ProvinceID.BEIJINGLU:
+            result.push(MountainPassID.JuYongGuan);
+            break;
+    }
+    log.push(`|${JSON.stringify(result)}|result`);
+    logger.warn(`${G.matchID}|${log.join('')}`);
+    return result;
 }
 
 export function troopCanSiege(G: SongJinnGame, t: Troop) {
@@ -6138,10 +6208,6 @@ export function getSiegeRangeUnitStrength(G: SongJinnGame, troop: Troop, terrain
     return unitRanges;
 }
 
-function isAtkSong(G: SongJinnGame) {
-    return G.combat.atk === Country.SONG;
-}
-
 export function getSiegeRangeStr(G: SongJinnGame, t: Troop) {
     const log = [`getRangeSiegeStr`];
     const fromUnit = troopSiegeRange(G, t);
@@ -6633,9 +6699,7 @@ export const checkPlan = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, plan: PlanID
 
 
 export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
-    const log = [
-        `t${G.turn}endTurnCheck`
-    ];
+    const log = [`t${G.turn}endTurnCheck`];
     if (G.turn === 2) {
         addMidTermCard(G, ctx);
     }
@@ -6665,15 +6729,11 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
             reason: VictoryReason.ShaoXingHeYi
         })
     } else {
-        log.push(
-            `moveTurnMarker`
-        );
+        log.push(`moveTurnMarker`);
         G.turn++;
         log.push(`turn|${G.turn}`);
     }
-    logger.debug(
-        `${G.matchID}|${log.join('')}`
-    );
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
     const log = [`t${G.turn}r${G.round}|endRoundCheck`];
@@ -6684,11 +6744,11 @@ export const endRoundCheck = (G: SongJinnGame, ctx: Ctx) => {
             // G.round >= 2
             G.round >= MAX_ROUND
         ) {
-            log.push( `|action|end|resolvePlan`);
+            log.push(`|action|end|resolvePlan`);
             ctx.events?.setPhase('resolvePlan')
         } else {
             G.round++;
-            log.push( `|r${G.round}start`);
+            log.push(`|r${G.round}start`);
         }
     } else {
         log.push(`|firstPlayer`);

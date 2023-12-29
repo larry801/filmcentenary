@@ -1,5 +1,5 @@
-import { Ctx, PhaseConfig, StageConfig, TurnConfig } from "boardgame.io";
-import { TurnOrder } from "boardgame.io/core";
+import {Ctx, PhaseConfig, StageConfig, TurnConfig} from "boardgame.io";
+import {TurnOrder} from "boardgame.io/core";
 import {
     adjustNation,
     breakout,
@@ -7,8 +7,6 @@ import {
     checkProvince,
     chooseFirst,
     choosePlan,
-    // chooseProvince,
-    // chooseRegion,
     chooseTop,
     combatCard,
     confirmRespond,
@@ -31,7 +29,8 @@ import {
     letter,
     loseCity,
     loseProvince,
-    march, modifyGameState,
+    march,
+    modifyGameState,
     moveGeneral,
     moveTroop,
     op,
@@ -58,10 +57,9 @@ import {
     takeDamage,
     takePlan,
     tieJun
-
 } from "../moves";
-import { ActiveEvents, PlanID, PlayerPendingEffect, ProvinceID, SJPlayer, SongJinnGame } from "./general";
-import { logger } from "../../game/logger";
+import {ActiveEvents, PendingEvents, PlanID, PlayerPendingEffect, ProvinceID, SJPlayer, SongJinnGame} from "./general";
+import {logger} from "../../game/logger";
 import {
     canChoosePlan,
     changeDiplomacyByLOD,
@@ -73,8 +71,10 @@ import {
     getJinnPower,
     getSongPower,
     pid2pub,
-    playerById, randomDiscardForSong
+    playerById,
+    randomDiscardForSong
 } from "../util";
+import {changePlayerStage} from "../../game/logFix";
 
 const moves = {
     removeCompletedPlan: removeCompletedPlan,
@@ -222,10 +222,11 @@ export const TurnEndPhaseConfig: PhaseConfig<SongJinnGame> = {
         G.jinn.corruption = 0;
         G.round = 1;
         if (G.events.includes(ActiveEvents.XiJunQuDuan)) {
-            // changePlayerStage(G,ctx,'placeUnit',SJPlayer.P1);
+            G.pending.events.push(PendingEvents.XiJunQuDuan);
+            changePlayerStage(G,ctx,'confirmRespond',SJPlayer.P1);
         } else {
-            ctx.events?.setPhase('draw');
-            // 先自觉检索算了
+            // ctx.events?.setPhase('draw');
+            // TODO 先自觉检索算了
             // if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
             //     // 目前不可能 因为只有京畿计划有检索
             //      G.jinn.effect.splice( G.jinn.effect.indexOf(PlayerPendingEffect.SearchCard),1);

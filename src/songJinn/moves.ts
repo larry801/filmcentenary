@@ -97,6 +97,7 @@ import {
     oppoPid,
     oppoPlayerById,
     oppoPub,
+    optionToPlace,
     pid2cci,
     pid2ctr,
     pid2pub,
@@ -1973,6 +1974,19 @@ export const confirmRespond: LongFormMove = {
             const poppedEvent = G.pending.events.pop()
             if (poppedEvent !== undefined) {
                 switch (poppedEvent) {
+                    case PendingEvents.XiJunQuDuan:
+                        const place = optionToPlace(choice);
+                        if (place === null) {
+                            log.push(`|noPlace|doNothing|chooseAgain`);
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return;
+                        } else {
+                            ctx.events?.endStage();
+                            doPlaceUnit(G, ctx, [1, 0, 0, 0, 0, 0], Country.SONG, place);
+                            logger.debug(`${G.matchID}|${log.join('')}`);
+                            return;
+                        }
+                        break;
                     case PendingEvents.MergeORSiege:
                         if (choice !== "围困") {
                             const place = G.pending.places.pop();

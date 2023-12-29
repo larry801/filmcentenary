@@ -5,7 +5,7 @@ export const MAX_ROUND = 8;
 export const MAX_DICES = 30;
 
 export enum PendingEvents {
-    PlaceUnitsToRegion = "放置部队",
+    XiJunQuDuan = "西军曲端",
     MengAnMouKe = "猛安谋克",
     FuHaiTaoSheng = "浮海逃生",
     HanFang = "韩昉",
