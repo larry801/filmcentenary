@@ -14,11 +14,13 @@ import {
     getReadyGeneralNames,
     getSeasonText,
     getSongPower,
-    getSongScore, handDeckCards, isSongEvent,
+    getSongScore,
+    handDeckCards,
+    isSongEvent,
     phaseName,
-    stageName,
     pid2ctr,
     sjCardById,
+    stageName,
     totalDevelop,
     unitsToString
 } from "../util";
@@ -109,23 +111,36 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
         </Grid>
         <Grid item xs={6} key={`song-pub`}><Paper>
             <label>宋</label>
-
             <div><label>政策：</label>{getPolicy(G)}</div>
             <div><label>国力：</label>{getSongPower(G)}</div>
             <CountryPubInfo G={G} pub={G.song} ctx={ctx} pid={SJPlayer.P1}/>
             {ctx.phase === 'develop' &&
                 <div><label> 使用/总发展点数： {G.song.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P1)} </label></div>}
-            {G.turn > 6 && <div><label>绍兴和议分数：{getSongScore(G)}</label></div>}
+            {G.turn > 6 && <div><label>绍兴和议分数：
+                {`国力${getSongPower(G)}+内政${G.song.civil}+军事${G.song.military}+`}
+                {G.song.completedPlan.map(p=>{
+                    const plan = getPlanById(p);
+                    return `${plan.name}${plan.vp}`;
+                }).join('+')}
+                {G.song.specialPlan > 0 && `+还我河山${G.song.specialPlan}`}
+                {G.events.includes(ActiveEvents.YanJingYiNan) && `+${ActiveEvents.YanJingYiNan}1`}
+                ={getSongScore(G)}</label></div>}
 
         </Paper></Grid>
         <Grid item xs={6} key={`jinn-pub`}><Paper><label>金</label>
             <div><label>殖民：</label>{G.colony}</div>
             <div><label>国力：</label>{getJinnPower(G)}</div>
             <CountryPubInfo G={G} pub={G.jinn} ctx={ctx} pid={SJPlayer.P2}/>
-            {/*// TODO 和议 分数 分类*/}
             {ctx.phase === 'develop' &&
                 <div><label> 使用/总发展点数： {G.jinn.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P2)} </label></div>}
-            {G.turn > 6 && <div><label>绍兴和议分数：{getJinnScore(G)}</label></div>}
+            {G.turn > 6 && <div><label>绍兴和议分数：
+                {`国力${getJinnPower(G)}+内政${G.jinn.civil}+军事${G.jinn.military}+`}
+                {G.jinn.completedPlan.map(p=>{
+                    const plan = getPlanById(p);
+                    return `${plan.name}${plan.vp}`;
+                }).join('+')}
+                {G.jinn.specialPlan > 0 && `+吴山立马${G.song.specialPlan}`}
+                ={getJinnScore(G)}</label></div>}
         </Paper></Grid>
     </Grid>
 }
