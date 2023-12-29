@@ -4979,7 +4979,7 @@ export const optionToPlace = (p: string): TroopPlace | null => {
     } else {
         if (isRegionID(parsed)) {
             // @ts-ignore
-            return p as RegionID;
+            return parsed as RegionID;
         } else {
             return null;
         }
