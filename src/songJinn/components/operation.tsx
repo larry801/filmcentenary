@@ -21,7 +21,7 @@ import {
     getCountryById,
     getGeneralNameByCountry, getSkillGeneral,
     pid2pub, phaseName,
-    playerById, remainDevelop, sjCardById, confirmRespondChoices, checkRecruitCivil
+    playerById, remainDevelop, sjCardById, confirmRespondChoices, checkRecruitCivil, canChoosePlan
 } from "../util";
 import {Dices} from "./dices";
 
@@ -94,11 +94,7 @@ export const Operation = ({
                 return {
                     label: plan.name + plan.desc,
                     value: plan.id,
-                    disabled: plan.level > pub.military
-                        // @ts-ignore
-                        || (ctr === Country.SONG && plan === "J24")
-                        // @ts-ignore
-                        || (ctr === Country.JINN && plan === "J23"),
+                    disabled: !canChoosePlan(G, ctx, playerID, pid),
                     hidden: false
                 }
             }
