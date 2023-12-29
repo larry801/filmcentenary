@@ -40,6 +40,7 @@ import {
     NationState,
     PendingEvents,
     PlanID,
+    PlayerPendingEffect,
     ProvinceID,
     ProvinceState,
     RegionID,
@@ -58,7 +59,6 @@ import {
     UNIT_SHORTHAND,
     VictoryReason
 } from "./constant/general";
-import {getPlanById} from "./constant/plan";
 import {getRegionById} from "./constant/regions";
 import {activePlayer, shuffle} from "../game/util";
 import {logger} from "../game/logger";
@@ -143,8 +143,9 @@ export function getTerrainTypeByPlace(p: TroopPlace) {
         }
     }
 }
+
 export function getTerrainTypeByTroop(troop: Troop) {
-  return getTerrainTypeByPlace(troop.p)
+    return getTerrainTypeByPlace(troop.p)
 }
 
 export const centroid = (coordinates: [number, number][][]): [number, number] => {
@@ -275,25 +276,19 @@ export const getPlaceGeneral = (G: SongJinnGame, pid: PlayerID, place: TroopPlac
     logger.warn(`${G.matchID}|${log.join('')}`);
     return generals;
 }
-export const optionToActualDst = (dst: string): TroopPlace => {
-    const parsed = parseInt(dst);
-    return (parsed === undefined || isNaN(parsed) ? dst : parsed) as TroopPlace;
-}
-// export const hasOpponentTroop = (G: SongJinnGame, dst: TroopPlace, ctr: Country) => {
-//     ctr2pub(G, ctr);
-// }
+
 export const isZhouXing = (t: Troop) => {
     return t.u[3] > 0;
 }
 
 export const onlyBoat = (t: Troop) => {
-    if(t.g === Country.SONG){
+    if (t.g === Country.SONG) {
         return t.u[3] > 0
             && t.u[0] === 0
             && t.u[1] === 0
             && t.u[2] === 0
             && t.u[5] === 0;
-    }else{
+    } else {
         return t.u[3] > 0
             && t.u[0] === 0
             && t.u[1] === 0
@@ -466,7 +461,7 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
             return [];
         }
     }
-    if(troopEndurance(G, t) === 0) {
+    if (troopEndurance(G, t) === 0) {
         log.push(`|0endurance|no|dst`);
         return [];
     }
@@ -511,8 +506,8 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
     }
     if (isZhouXing(newTroop) || hasGeneral(G, t, SongGeneral.LiXianZhong)) {
         noArmyAdj.forEach(p => {
-            if(onlyBoat(t)) {
-                if(getTerrainTypeByPlace(p) !== TerrainType.SWAMP){
+            if (onlyBoat(t)) {
+                if (getTerrainTypeByPlace(p) !== TerrainType.SWAMP) {
                     log.push(`|cannot|use|none|swamp|mid`);
                     return;
                 }
@@ -521,11 +516,11 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
             const zAdj = getMarchAdj(G, zTroop);
             zAdj.forEach(z => {
                 if (z !== t.p) {
-                    if(onlyBoat(t)) {
-                        if(getTerrainTypeByPlace(z) !== TerrainType.SWAMP){
+                    if (onlyBoat(t)) {
+                        if (getTerrainTypeByPlace(z) !== TerrainType.SWAMP) {
                             log.push(`|cannot|goto|none|swamp`);
                             return;
-                        }else{
+                        } else {
                             res.push({mid: p, dst: z});
                         }
                     }
@@ -1082,7 +1077,7 @@ export function songLoseEmperor(G: SongJinnGame, ctx: Ctx) {
     G.song.emperor = null;
     log.push(`|${G.song.emperor}|G.song.emperor`);
     policyDown(G, 1);
-    if( G.song.corruption > 0) {
+    if (G.song.corruption > 0) {
         G.pending.events.push(PendingEvents.LoseCorruption);
         changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
         log.push(`|chooseLoseNormalOrCorruption`);
@@ -2276,7 +2271,20 @@ export const idToCard = {
         combat: false,
         effectText: "金国每控制西京路、北京路、燕京路或东京路中的1个，就可以使用1行动力征募〔不受内政等级限制",
         pre: (G: SongJinnGame, _ctx: Ctx) => true,
-        event: (G: SongJinnGame, _ctx: Ctx) => G
+        event: (G: SongJinnGame, _ctx: Ctx) => {
+            G.events.push(ActiveEvents.LiaoGuoJiuBu);
+            const prov = [
+                ProvinceID.XIJINGLU,
+                ProvinceID.BEIJINGLU,
+                ProvinceID.YANJINGLU,
+                ProvinceID.DONGJINGLU,
+            ];
+            prov.forEach(p => {
+                if (G.jinn.provinces.includes(p)) {
+                    G.op++
+                }
+            });
+        }
     },
     [JinnBaseCardID.J12]: {
         id: JinnBaseCardID.J12,
@@ -5510,7 +5518,7 @@ export function zhuDuiShiJiaoFeng2(G: SongJinnGame, ctx: Ctx) {
     log.push(`|${songStr}|songStr`);
     rollDiceByPid(G, ctx, SJPlayer.P1, songStr);
     rollDiceByPid(G, ctx, SJPlayer.P2, jinnStr);
-    changePlayerStage(G ,ctx, 'takeDamage', G.order[0]);
+    changePlayerStage(G, ctx, 'takeDamage', G.order[0]);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -5524,12 +5532,12 @@ export function zhuDuiShiJiaoFengSong(G: SongJinnGame, ctx: Ctx) {
     log.push(`|${strength}|strength`);
     rollDiceByPid(G, ctx, SJPlayer.P1, strength);
     log.push(`|${ci.jinn.damageLeft}|ci.jinn.damageLeft`);
-    if(ci.jinn.damageLeft === 0) {
+    if (ci.jinn.damageLeft === 0) {
         log.push(`|zhuDuiShiJiaoFeng2`);
         zhuDuiShiJiaoFeng2(G, ctx);
     } else {
         log.push(`|takeDamage`);
-        changePlayerStage(G ,ctx, 'takeDamage', SJPlayer.P2);
+        changePlayerStage(G, ctx, 'takeDamage', SJPlayer.P2);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -5543,15 +5551,16 @@ export function zhuDuiShiYuanCheng(G: SongJinnGame, ctx: Ctx) {
     const strength = getRangeStrength(G, ciSongTroop(G));
     rollDiceByPid(G, ctx, SJPlayer.P1, strength);
     log.push(`|${ci.jinn.damageLeft}|ci.jinn.damageLeft`);
-    if(ci.jinn.damageLeft === 0) {
+    if (ci.jinn.damageLeft === 0) {
         log.push(`|zhuDuiShiYuanChengJinn`);
         zhuDuiShiYuanChengJinn(G, ctx);
     } else {
         log.push(`|takeDamage`);
-        changePlayerStage(G ,ctx, 'takeDamage', SJPlayer.P2);
+        changePlayerStage(G, ctx, 'takeDamage', SJPlayer.P2);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
 export function zhuDuiShiYuanChengJinn(G: SongJinnGame, ctx: Ctx) {
     const log = [`zhuDuiShiYuanChengJinn`];
     const ci = G.combat;
@@ -5560,7 +5569,7 @@ export function zhuDuiShiYuanChengJinn(G: SongJinnGame, ctx: Ctx) {
     log.push(`|${strength}|strength`);
     rollDiceByPid(G, ctx, SJPlayer.P2, strength);
     log.push(`|${ci.song.damageLeft}|ci.song.damageLeft`);
-    changePlayerStage(G ,ctx, 'takeDamage', SJPlayer.P1)
+    changePlayerStage(G, ctx, 'takeDamage', SJPlayer.P1)
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -5573,10 +5582,10 @@ export function continueCombat(G: SongJinnGame, ctx: Ctx) {
             case CombatPhase.JieYe:
             case CombatPhase.WeiKun:
             case CombatPhase.YunChou:
-                if(rangeFirst(G)){
+                if (rangeFirst(G)) {
                     log.push(`|zhuDuiShiYuanCheng`);
                     zhuDuiShiYuanCheng(G, ctx);
-                }else{
+                } else {
                     log.push(`|yuanCheng`);
                     yuanCheng(G, ctx);
                 }
@@ -5587,20 +5596,20 @@ export function continueCombat(G: SongJinnGame, ctx: Ctx) {
                     log.push(`|wuLin`);
                     wuLin(G, ctx);
                 } else {
-                    if(rangeFirst(G)){
+                    if (rangeFirst(G)) {
                         log.push(`|zhuDuiShiJiaoFengSong`);
                         zhuDuiShiJiaoFengSong(G, ctx);
-                    }else{
+                    } else {
                         log.push(`|jiaoFeng`);
                         jiaoFeng(G, ctx);
                     }
                 }
                 break;
             case CombatPhase.WuLin:
-                if(rangeFirst(G)){
+                if (rangeFirst(G)) {
                     log.push(`|zhuDuiShiJiaoFengSong`);
                     zhuDuiShiJiaoFengSong(G, ctx);
-                }else{
+                } else {
                     log.push(`|交锋`);
 
                     jiaoFeng(G, ctx);
@@ -6785,14 +6794,46 @@ export const canChoosePlan = (G: SongJinnGame, _ctx: Ctx, pid: PlayerID, plan: P
     return pid2pub(G, pid).military >= getPlanById(plan).level;
 }
 
-export const checkPlan = (G: SongJinnGame, _ctx: Ctx, pid: PlayerID, plan: PlanID) => {
+export const checkPlan = (G: SongJinnGame, ctx: Ctx, plan: PlanID) => {
+    const log = [`checkPlan`];
     const planObj = getPlanById(plan);
-    const pub = pid2pub(G, pid);
-    const filtered = planObj.provinces.filter(prov => pub.provinces.includes(prov));
-    if (SpecialPlan.includes(plan)) {
-        pub.specialPlan = filtered.length;
+    log.push(`|${planObj.name}|planObj.name`);
+    const song = planObj.provinces.filter(prov => G.song.provinces.includes(prov)).length;
+    log.push(`|${song}|song`);
+    const jinn = planObj.provinces.filter(prov => G.jinn.provinces.includes(prov)).length;
+    log.push(`|${jinn}|jinn`);
+    const total = planObj.provinces.length;
+    log.push(`|${total}|total`);
+    if (song === total) {
+        G.song.completedPlan.push(plan);
+        planObj.effect(G, ctx, SJPlayer.P1);
+    } else {
+        if (jinn === total) {
+            G.jinn.completedPlan.push(plan);
+            planObj.effect(G, ctx, SJPlayer.P1);
+        } else {
+            G.secret.planDeck.push(plan)
+        }
     }
-    return filtered.length === planObj.provinces.length;
+    if (SpecialPlan.includes(plan)) {
+        const cities: CityID[] = [];
+        planObj.provinces.forEach(prov => {
+            const province = getProvinceById(prov);
+            province.capital.forEach(c => cities.push(c));
+            province.other.forEach(c => cities.push(c));
+        })
+        const cityCount = cities.filter(c => G.song.cities.includes(c)).length;
+        log.push(`|${cityCount}|cityCount`);
+        if (plan === PlanID.J23) {
+            G.song.specialPlan = cityCount;
+            log.push(`|${G.song.specialPlan}|G.song.specialPlan`);
+        } else {
+            G.jinn.specialPlan = cityCount;
+            log.push(`|${G.jinn.specialPlan}|G.jinn.specialPlan`);
+        }
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return;
 }
 
 
