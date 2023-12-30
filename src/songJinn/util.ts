@@ -3539,54 +3539,59 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
     log.push(`|${place}|place`);
     const cid = isRegionID(place) ? getRegionById(place).city : null;
     log.push(`|${cid}|cid`);
-    switch (ci.type) {
-        case CombatType.RESCUE:
-        case CombatType.SIEGE:
-            if (ci.atk === t.g) {
-                log.push(`|atk|gone`);
-                if (cid !== null) {
-                    log.push(`|weiKunGone`);
-                    setTroopPlaceByCtr(G, ciDefCtr(G), cid, place);
-                }
-            } else {
-                log.push(`|def|gone|autoLoseCity`);
-                if (t.c !== null) {
-                    log.push(`|${t.c}|t.c`);
-                    setTroopCityByCtr(G, ciAtkCtr(G), t.p, t.c);
-                    autoLoseCity(G, ctx, t.c);
-                } else {
+    if(ci.ongoing){
+        log.push(`|ongoing`);
+        switch (ci.type) {
+            case CombatType.RESCUE:
+            case CombatType.SIEGE:
+                if (ci.atk === t.g) {
+                    log.push(`|atk|gone`);
                     if (cid !== null) {
-                        log.push(`|${cid}|cid`);
-                        setTroopCityByCtr(G, ciAtkCtr(G), t.p, cid);
-                        autoLoseCity(G, ctx, cid);
+                        log.push(`|weiKunGone`);
+                        setTroopPlaceByCtr(G, ciDefCtr(G), cid, place);
+                    }
+                } else {
+                    log.push(`|def|gone|autoLoseCity`);
+                    if (t.c !== null) {
+                        log.push(`|${t.c}|t.c`);
+                        setTroopCityByCtr(G, ciAtkCtr(G), t.p, t.c);
+                        autoLoseCity(G, ctx, t.c);
+                    } else {
+                        if (cid !== null) {
+                            log.push(`|${cid}|cid`);
+                            setTroopCityByCtr(G, ciAtkCtr(G), t.p, cid);
+                            autoLoseCity(G, ctx, cid);
+                        }
                     }
                 }
-            }
-            break;
-        case CombatType.FIELD:
-            if (cid !== null) {
-                log.push(`|hasCity|lose${cid}   `);
-                setTroopCityByCtr(G, ciAtkCtr(G), t.p, cid);
-                autoLoseCity(G, ctx, cid);
-            } else {
-                log.push(`|noCity`);
-            }
-            break;
-        case CombatType.BREAKOUT:
-            if (ci.atk === t.g) {
-                log.push(`|atk|gone|autoLoseCity`);
-                log.push(`|setTroopCityByCtr`);
-                setTroopCityByCtr(G, ciAtkCtr(G), t.p, cid);
-                if (t.c !== null) {
-                    autoLoseCity(G, ctx, t.c);
+                break;
+            case CombatType.FIELD:
+                if (cid !== null) {
+                    log.push(`|hasCity|lose${cid}   `);
+                    setTroopCityByCtr(G, ciAtkCtr(G), t.p, cid);
+                    autoLoseCity(G, ctx, cid);
                 } else {
-                    autoLoseCity(G, ctx);
+                    log.push(`|noCity`);
                 }
-            }
-            break;
+                break;
+            case CombatType.BREAKOUT:
+                if (ci.atk === t.g) {
+                    log.push(`|atk|gone|autoLoseCity`);
+                    log.push(`|setTroopCityByCtr`);
+                    setTroopCityByCtr(G, ciAtkCtr(G), t.p, cid);
+                    if (t.c !== null) {
+                        autoLoseCity(G, ctx, t.c);
+                    } else {
+                        autoLoseCity(G, ctx);
+                    }
+                }
+                break;
+        }
+        log.push(`|endCombat`);
+        endCombat(G, ctx);
+    } else {
+        log.push(`|not|ongoing`);
     }
-    log.push(`|endCombat`);
-    endCombat(G, ctx);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -7783,12 +7788,15 @@ export const doPlaceUnit = (G: SongJinnGame, ctx: Ctx, units: number[], country:
                     changePlayerStage(G, ctx, 'confirmRespond', ctr2pid(country));
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
+                } else {
+                    doControlCity(G, ctx, ctr2pid(country), cid);
                 }
             }
         }
     }
 
-    logger.debug(`${G.matchID}|${log.join('')}`);
+    console.trace(`${G.matchID}|${log.join('')}`);
+    // logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export function getCardLabel(c: SJEventCardID) {

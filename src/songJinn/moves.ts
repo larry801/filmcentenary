@@ -305,6 +305,7 @@ export const march: LongFormMove = {
         }
 
         if (mid !== undefined) {
+            log.push(`|${placeToStr(mid)}|mid`);
             const oppoMidT = getOpponentPlaceTroopByCtr(G, t.g, mid);
             if (oppoMidT !== null) {
                 log.push(`|${getSimpleTroopText(G, oppoMidT)}|oppoMidT`);
@@ -317,17 +318,16 @@ export const march: LongFormMove = {
                     removeZeroTroop(G, ctx, oppoMidT);
                 }
             } else {
-                if (isRegionID(newDst)) {
-                    const cid = getRegionById(newDst).city;
+                if (isRegionID(mid)) {
+                    const cid = getRegionById(mid).city;
                     log.push(`|${cid}|cid`);
                     if (cid !== null) {
                         const oppoCityTroop = getOpponentPlaceTroopByCtr(G, t.g, cid);
                         if (oppoCityTroop === null) {
                             if (G.jinn.generalPlace[JinnGeneral.YinShuKe] === dst) {
+                                log.push(`|yinShuKe`);
                                 doPlaceUnit(G, ctx, [1, 0, 0, 0, 0, 0, 0], Country.JINN, mid);
                             }
-                        } else {
-
                         }
                     }
                 }

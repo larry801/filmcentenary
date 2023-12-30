@@ -336,9 +336,29 @@ describe('diplomacy', () => {
         p1.moves.cardEvent("J20");
         p1.moves.deployGeneral({general:4,dst:17});
         p1.moves.op("J03");
-        p1.moves.march({"src": 17, "dst": 24, "mid":25,"units": [1, 0, 0, 0, 0, 0, 0], "generals": [4], "country": "金"});
+        p1.moves.march({"src": 17, "dst": 24, "mid":20,"units": [1, 0, 0, 0, 0, 0, 0], "generals": [4], "country": "金"});
         cs(p1);
         console.log(p1.getState().G.jinn.troops);
+
+    })
+    it('yin-shu-ke-mid-no-city', () => {
+        p0.moves.op("S11");
+        p0.moves.modifyGameState({
+            "player": {
+                "1": {
+                    "hand": ["J20"]
+                }
+            }
+        });
+        p0.moves.endRound();
+        p1.moves.cardEvent("J20");
+        p1.moves.op("J03");
+
+        p1.moves.placeUnit({place:26,units:[0,1,0,0,0,0,0],"country": "金"});
+        p1.moves.deployGeneral({general:4,dst:26});
+        p1.moves.march({"src": 26, "dst": 40, "mid":44,"units": [0, 1, 0, 0, 0, 0, 0], "generals": [4], "country": "金"});
+        cs(p1);
+        console.log(JSON.stringify(p1.getState().G.jinn.troops));
 
     })
     it('zhu-dui-shi', () => {
