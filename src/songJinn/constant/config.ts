@@ -273,13 +273,14 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         log.push(`|${jinnCorruptionLimit}jinnCorruptionLimit`);
         log.push(`|${G.jinn.corruption}G.jinn.corruption`);
 
-        if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
-            changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P2);
-        } else {
-            if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
-                changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
-            }
-        }
+        // TODO auto search
+        // if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
+        //     changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P2);
+        // } else {
+        //     if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
+        //         changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
+        //     }
+        // }
         logger.debug(`${log.join('')}`);
     },
     moves: moves,
