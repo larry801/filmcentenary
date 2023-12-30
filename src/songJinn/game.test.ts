@@ -33,9 +33,9 @@ describe('diplomacy', () => {
 
         p0.moves.chooseFirst({choice: '0', matchID: 'test'});
         // const plan = p0.G.player['0'].plans[0];
-        p0.moves.choosePlan("J01");
+        p0.moves.choosePlan("J03");
         p1.moves.choosePlan("J02")
-        p0.moves.showPlan(["J01"]);
+        p0.moves.showPlan(["J03"]);
         p1.moves.showPlan(["J02"]);
 
         p0.moves.endRound();
@@ -429,6 +429,31 @@ describe('diplomacy', () => {
         });
         cs(p0);
         expect(p0.getState().ctx.activePlayers['1'] === 'confirmRespond');
+
+    })
+    it('no-search',()=>{
+        p0.moves.endRound();
+        p1.moves.endRound();
+        cs(p0);
+        p0.moves.endRound();
+        p1.moves.endRound();
+        cs(p0);
+
+        p0.moves.endRound();
+        p1.moves.endRound();
+        cs(p0);
+
+        p0.moves.endRound();
+        p1.moves.endRound();
+        cs(p0);
+        p0.moves.endRound();
+        p1.moves.endRound();
+        cs(p0);
+        p0.moves.endRound();
+        p1.moves.endRound();
+        cs(p0);
+        expect(p0.getState().ctx.phase === 'chooseFirst')
+
 
     })
     it('place-city-combat',()=>{
