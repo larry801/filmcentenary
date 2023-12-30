@@ -7780,7 +7780,7 @@ export const doPlaceUnit = (G: SongJinnGame, ctx: Ctx, units: number[], country:
                     log.push(`|mergeOrSiege`);
                     G.pending.places.push(cid);
                     G.pending.events.push(PendingEvents.MergeORSiege);
-                    changePlayerStage(G, ctx, 'confirmRespond', ctr2pid(oct.g));
+                    changePlayerStage(G, ctx, 'confirmRespond', ctr2pid(country));
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 }
