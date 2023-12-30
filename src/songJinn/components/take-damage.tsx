@@ -168,7 +168,7 @@ export const TakeDamageDialog = ({
             </DialogContent>
             <DialogActions>
                 <Button onClick={debouncedHandleConfirm}>
-                    {title}
+                    确认{title}
                 </Button>
             </DialogActions>
         </Dialog>
