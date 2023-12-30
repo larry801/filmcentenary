@@ -60,6 +60,10 @@ export const CountryPubInfo = ({pub, G, ctx, pid}: ICPubInfo) => {
         <div><label>完成计划：</label><br/>
             {reversedPlan.map(p => <label key={`plan-name-${p}`}>{getPlanById(p).name}</label>)}
         </div>
+        { pub.effect.length > 0 &&
+            <div>
+                <label>计划奖励：{pub.effect.join(',')}</label>
+            </div>}
 
         <ChoiceDialog callback={() => {
         }} choices={

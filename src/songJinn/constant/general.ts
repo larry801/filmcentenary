@@ -75,9 +75,9 @@ export enum MountainPassID {
 }
 
 export const enum PlayerPendingEffect {
-    SearchCard,
-    TwoPlan,
-    FourDevelopPoint,
+    SearchCard = "检索",
+    TwoPlan = "可选两张计划",
+    FourDevelopPoint = "四点发展",
 }
 
 export interface Troop {

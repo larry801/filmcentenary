@@ -20,7 +20,7 @@ import {
     getCountryById,
     getGeneralNameByCountry, getSkillGeneral,
     pid2pub, phaseName,
-    playerById, remainDevelop, sjCardById, confirmRespondChoices, canChoosePlan, getPlanById
+    playerById, sjCardById, confirmRespondChoices, canChoosePlan, getPlanById, getStage
 } from "../util";
 import {Dices} from "./dices";
 
@@ -141,7 +141,9 @@ export const Operation = ({
             }
         })}
         defaultChoice={''}
-        show={isActive && ctx.phase === 'draw'} title={"请选择检索牌"} toggleText={"检索"} initial={true}/>
+        popAfterShow={false}
+        show={isActive} title={"请选择检索牌"} toggleText={"检索"}
+        initial={getStage(ctx) === 'search'}/>
 
     const discard = (choice: string) => {
         moves.discard(choice);
@@ -157,7 +159,7 @@ export const Operation = ({
             }
         })}
         show={isActive} defaultChoice={""}
-        title={"弃牌"} toggleText={"弃牌"} initial={false}
+        title={"弃牌"} toggleText={"弃牌"} initial={getStage(ctx) === 'discard'}
     />
 
     const returnToHand = (choice: string) => {

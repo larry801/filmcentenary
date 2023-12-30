@@ -72,7 +72,7 @@ import {
     drawCardForSong,
     drawPhaseForPlayer,
     drawPlanForPlayer,
-    endCombat,
+    endCombat, endDraw,
     endRoundCheck,
     getCombatStateById,
     getCountryById,
@@ -776,18 +776,37 @@ export const deploy: LongFormMove = {
 
 
 export const discard: LongFormMove = {
-    move: (G, ctx, c: BaseCardID) => {
-        if (ctx.playerID === undefined) {
+    move: (G: SongJinnGame, ctx: Ctx, c: BaseCardID) => {
+        const log = [`discard|${c}`];
+        const pid = ctx.playerID;
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        const player = playerById(G, ctx.playerID);
+        const pub = pid2pub(G, pid);
+        const player = playerById(G, pid);
         if (player.hand.includes(c)) {
+            log.push(`|${JSON.stringify(player.hand)}|player.hand`);
+            log.push(`|${JSON.stringify(pub.discard)}|pub.discard`);
             player.hand.splice(player.hand.indexOf(c), 1);
-            const pub = pid2pub(G, ctx.playerID);
             pub.discard.push(c);
+            log.push(`|${JSON.stringify(player.hand)}|player.hand`);
+            log.push(`|${JSON.stringify(pub.discard)}|pub.discard`);
         } else {
+            log.push(`|${JSON.stringify(player.hand)}|player.hand`);
+            log.push(`|not|in|hand|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
+        if(ctx.phase === 'draw' && getStage(ctx) === 'discard') {
+            if(pub.effect.includes(PlayerPendingEffect.SearchCard)){
+                log.push(`|anotherSearch`);
+                changePlayerStage(G, ctx, 'search', pid);
+            } else {
+                log.push(`|endPhase`);
+                endDraw(G, ctx);
+            }
+        }
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
 
@@ -797,8 +816,6 @@ export const tieJun: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        // const ctr = getCountryById(ctx.playerID);
-        // const pub = getStateById(G, ctx.playerID);
         const player = playerById(G, ctx.playerID);
         if (player.hand.includes(args)) {
             player.hand.splice(player.hand.indexOf(args), 1);
@@ -1086,7 +1103,7 @@ interface IDevelopArg {
 export const develop: LongFormMove = {
     client: false,
     move: (G, ctx, arg: IDevelopArg) => {
-        logger.info(`${G.matchID}|p${ctx.playerID}.develop(${arg})`)
+        logger.info(`${G.matchID}|p${ctx.playerID}.develop(${JSON.stringify(arg)})`)
         const pid = ctx.playerID;
         if (pid === undefined) {
             return INVALID_MOVE;
@@ -1472,22 +1489,43 @@ export const choosePlan: LongFormMove = {
 export const search: LongFormMove = {
     client: false,
     move: (G: SongJinnGame, ctx: Ctx, cid: SJEventCardID) => {
+
         const pid = ctx.playerID;
+        logger.info(`p${pid}.moves.search(${JSON.stringify(cid)})`);
+        const log = [`search`];
         if (pid === undefined) {
             return INVALID_MOVE
         }
         const cards = cardToSearch(G, ctx, pid);
-        // const ctr = getCountryById(ctx.playerID);
-        // const pub = getStateById(G, ctx.playerID);
+        const pub = pid2pub(G, pid);
         const player = playerById(G, pid);
         const deck = pid as SJPlayer === SJPlayer.P1 ? G.secret.songDeck : G.secret.jinnDeck;
+        log.push(`|${JSON.stringify(cards)}|cards`);
         if (deck.includes(cid) && cards.includes(cid)) {
+
+            log.push(`|${player.hand}|player.hand`);
+            log.push(`|${JSON.stringify(deck)}|deck`);
+
             deck.splice(deck.indexOf(cid), 1);
             player.hand.push(cid);
+
+            log.push(`|${player.hand}|player.hand`);
+            log.push(`|${JSON.stringify(deck)}|deck`);
+
         } else {
+            log.push(`|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
-        // ctx.events?.setStage('discard');
+        if (ctx.phase === 'draw' && getStage(ctx) === 'search'){
+            if (pub.effect.includes(PlayerPendingEffect.SearchCard)) {
+                pub.effect.splice(pub.effect.indexOf(PlayerPendingEffect.SearchCard), 1);
+                log.push(`|${JSON.stringify(pub.effect)}|pub.effect`);
+            }
+            log.push(`|toDiscard`);
+            changePlayerStage(G, ctx, 'discard', pid);
+        }
+        logger.debug(`${G.matchID}|${log.join('')}`);
     },
     redact: true
 }
@@ -1750,15 +1788,7 @@ export const endRound: LongFormMove = {
             }
             if (G.order[1] === pid) {
                 if (ctx.phase === 'draw') {
-                    if (G.song.civil === G.jinn.civil) {
-                        G.order = [SJPlayer.P1, SJPlayer.P2];
-                        log.push(`|civil|same|order:${G.order.toString()}`);
-                        ctx.events?.setPhase('choosePlan');
-                    } else {
-                        G.order = [getLeadingPlayer(G)]
-                        log.push(`${G.order.toString()}`);
-                        ctx.events?.setPhase('chooseFirst');
-                    }
+                    endDraw(G, ctx);
                 } else {
                     ctx.events?.endPhase();
                 }

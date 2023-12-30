@@ -3860,6 +3860,22 @@ export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], countr
     }
 }
 
+
+
+export const endDraw = (G: SongJinnGame, ctx: Ctx) => {
+    const log = [`endDraw`];
+    if (G.song.civil === G.jinn.civil) {
+        G.order = [SJPlayer.P1, SJPlayer.P2];
+        log.push(`|civil|same|order:${G.order.toString()}`);
+        ctx.events?.setPhase('choosePlan');
+    } else {
+        G.order = [getLeadingPlayer(G)]
+        log.push(`${G.order.toString()}`);
+        ctx.events?.setPhase('chooseFirst');
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
 export const colonyUp = (G: SongJinnGame, a: number) => {
     if (G.colony + a > 4) {
         G.colony = 4;
@@ -4131,6 +4147,7 @@ export interface Plan {
 export const getPlanById: (pid: PlanID) => Plan = (pid: PlanID) => {
     return idToPlan[pid];
 }
+
 const idToPlan = {
     [PlanID.J01]: {
         "id": PlanID.J01,
@@ -4142,6 +4159,7 @@ const idToPlan = {
         effect: (G: SongJinnGame, _ctx: Ctx, pid: PlayerID) => {
             const pub = pid2pub(G, pid);
             pub.effect.push(PlayerPendingEffect.SearchCard);
+            console.log(JSON.stringify(pub.effect));
         }
     },
     [PlanID.J02]: {
@@ -4213,6 +4231,7 @@ const idToPlan = {
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
             const pub = pid2pub(G, pid);
             pub.effect.push(PlayerPendingEffect.SearchCard);
+            console.log(JSON.stringify(pub.effect));
         }
     },
     [PlanID.J08]: {
@@ -7168,7 +7187,7 @@ export const checkSeizePlan = (G: SongJinnGame, _ctx: Ctx, plan: PlanID, pid: Pl
 export const checkPlan = (G: SongJinnGame, ctx: Ctx, plan: PlanID) => {
     const log = [`checkPlan`];
     const planObj = getPlanById(plan);
-    log.push(`|${planObj.name}|planObj.name`);
+    log.push(`|${planObj.name}`);
     const song = planObj.provinces.filter(prov => G.song.provinces.includes(prov)).length;
     log.push(`|${song}|song`);
     const jinn = planObj.provinces.filter(prov => G.jinn.provinces.includes(prov)).length;
@@ -7185,7 +7204,7 @@ export const checkPlan = (G: SongJinnGame, ctx: Ctx, plan: PlanID) => {
             log.push(`|${JSON.stringify(G.jinn.completedPlan)}|jinn.completedPlan`);
             G.jinn.completedPlan.push(plan);
             log.push(`|${JSON.stringify(G.jinn.completedPlan)}|jinn.completedPlan`);
-            planObj.effect(G, ctx, SJPlayer.P1);
+            planObj.effect(G, ctx, SJPlayer.P2);
         } else {
             log.push(`|${JSON.stringify(G.secret.planDeck)}|planDeck`);
             G.secret.planDeck.push(plan);
@@ -7795,8 +7814,8 @@ export const doPlaceUnit = (G: SongJinnGame, ctx: Ctx, units: number[], country:
         }
     }
 
-    console.trace(`${G.matchID}|${log.join('')}`);
-    // logger.debug(`${G.matchID}|${log.join('')}`);
+    // console.trace(`${G.matchID}|${log.join('')}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
 export function getCardLabel(c: SJEventCardID) {

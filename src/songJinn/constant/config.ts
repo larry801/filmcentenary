@@ -68,6 +68,7 @@ import {
     drawPhaseForJinn,
     drawPhaseForSong,
     drawPlanForPlayer,
+    endDraw,
     endTurnCheck,
     getJinnPower,
     getSongPower,
@@ -208,7 +209,11 @@ export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
         search: {
             moves: {
                 search: search,
-                discard: discard,
+            }
+        },
+        discard: {
+            moves: {
+                discard: discard
             }
         },
         removeNation: {
@@ -265,26 +270,29 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
             G.song.corruption++;
         }
 
-
         const jinnPower = getJinnPower(G);
         const jinnCorruptionLimit = G.jinn.civil >= 5 ? 8 : 7;
         G.jinn.corruption = jinnPower > jinnCorruptionLimit ? jinnPower - jinnCorruptionLimit : 0;
         log.push(`|${jinnPower}jinnPower`);
         log.push(`|${jinnCorruptionLimit}jinnCorruptionLimit`);
         log.push(`|${G.jinn.corruption}G.jinn.corruption`);
-
-        // TODO auto search
-        // if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
-        //     changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P2);
-        // } else {
-        //     if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
-        //         changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
-        //     }
-        // }
         logger.debug(`${log.join('')}`);
     },
     moves: moves,
-    turn: StagedTurnConfig,
+    turn: {
+        ...StagedTurnConfig,
+        onBegin:(G:SongJinnGame, ctx:Ctx)=>{
+            if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
+                changePlayerStage(G, ctx, 'search', SJPlayer.P2);
+            } else {
+                if (G.song.effect.includes(PlayerPendingEffect.SearchCard)) {
+                    changePlayerStage(G, ctx, 'search', SJPlayer.P1);
+                } else {
+                    endDraw(G, ctx);
+                }
+            }
+        }
+    },
 }
 
 export const DevelopPhaseConfig: PhaseConfig<SongJinnGame> = {
@@ -369,7 +377,7 @@ export const ActionPhaseConfig: PhaseConfig<SongJinnGame> = {
 
 export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
-    onBegin: (G, ctx) => {
+    onBegin: (G: SongJinnGame, ctx: Ctx) => {
         const log = [`resolvePlanPhase|onBegin|${G.order}`];
         if (!G.events.includes(ActiveEvents.YanJingYiNan)) {
             const songTop = G.song.completedPlan[G.song.completedPlan.length - 1];
@@ -394,8 +402,8 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
             log.push(`|noJinnTop`);
         }
         const currentPlans = [...G.song.plan, ...G.jinn.plan];
-        currentPlans.forEach(plid => {
-            checkPlan(G, ctx, plid);
+        currentPlans.forEach(pid => {
+            checkPlan(G, ctx, pid);
         })
         G.song.plan = [];
         G.jinn.plan = [];
