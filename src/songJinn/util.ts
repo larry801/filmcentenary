@@ -609,8 +609,10 @@ export const getMarchAdj = (G: SongJinnGame, t: Troop): TroopPlace[] => {
                     const pass = passAdjToPass(G, src, pr);
                     if (pass !== null) {
                         const ot = getOpponentPlaceTroopByCtr(G, t.g, pass);
+                        log.push(`|${pass}|pass`);
+                        result.push(pass);
                         if (ot !== null) {
-                            log.push(`|${getSimpleTroopText(G, ot)}|pass`);
+                            log.push(`|${getSimpleTroopText(G, ot)}|passTroop`);
                             return;
                         } else {
                             result.push(pr);
