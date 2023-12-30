@@ -58,17 +58,13 @@ import {
     takePlan,
     tieJun
 } from "../moves";
-import {
-    ActiveEvents,
-    PendingEvents,
-    SJPlayer,
-    SongJinnGame,
-    VictoryReason
-} from "./general";
+import {ActiveEvents, PendingEvents, PlayerPendingEffect, SJPlayer, SongJinnGame, VictoryReason} from "./general";
 import {logger} from "../../game/logger";
 import {
     canChoosePlan,
-    changeDiplomacyByLOD, checkPlan, checkSeizePlan,
+    changeDiplomacyByLOD,
+    checkPlan,
+    checkSeizePlan,
     drawPhaseForJinn,
     drawPhaseForSong,
     drawPlanForPlayer,
@@ -269,6 +265,7 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
             G.song.corruption++;
         }
 
+
         const jinnPower = getJinnPower(G);
         const jinnCorruptionLimit = G.jinn.civil >= 5 ? 8 : 7;
         G.jinn.corruption = jinnPower > jinnCorruptionLimit ? jinnPower - jinnCorruptionLimit : 0;
@@ -276,6 +273,13 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
         log.push(`|${jinnCorruptionLimit}jinnCorruptionLimit`);
         log.push(`|${G.jinn.corruption}G.jinn.corruption`);
 
+        if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
+            changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P2);
+        } else {
+            if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
+                changePlayerStage(G, ctx, 'confirmRespond', SJPlayer.P1);
+            }
+        }
         logger.debug(`${log.join('')}`);
     },
     moves: moves,

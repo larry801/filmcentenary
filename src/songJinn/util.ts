@@ -3535,18 +3535,18 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
     log.push(`|${ci.type}|ci.type`);
     removeUnitByCountryPlace(G, ctx, t.u, t.g, t.p);
     removeNoTroopGeneralByCtr(G, ctx, t.p, t.g);
-    const place =t.p;
+    const place = t.p;
     log.push(`|${place}|place`);
-    const cid = isRegionID(place) ?  getRegionById(place).city : null;
+    const cid = isRegionID(place) ? getRegionById(place).city : null;
     log.push(`|${cid}|cid`);
     switch (ci.type) {
         case CombatType.RESCUE:
         case CombatType.SIEGE:
             if (ci.atk === t.g) {
                 log.push(`|atk|gone`);
-                if(cid !== null) {
+                if (cid !== null) {
                     log.push(`|weiKunGone`);
-                    setTroopPlaceByCtr(G, ciDefCtr(G),cid,place);
+                    setTroopPlaceByCtr(G, ciDefCtr(G), cid, place);
                 }
             } else {
                 log.push(`|def|gone|autoLoseCity`);
@@ -3555,7 +3555,7 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
                     setTroopCityByCtr(G, ciAtkCtr(G), t.p, t.c);
                     autoLoseCity(G, ctx, t.c);
                 } else {
-                    if(cid !== null) {
+                    if (cid !== null) {
                         log.push(`|${cid}|cid`);
                         setTroopCityByCtr(G, ciAtkCtr(G), t.p, cid);
                         autoLoseCity(G, ctx, cid);
@@ -3564,7 +3564,7 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
             }
             break;
         case CombatType.FIELD:
-            if(cid !== null) {
+            if (cid !== null) {
                 log.push(`|hasCity|lose${cid}   `);
                 setTroopCityByCtr(G, ciAtkCtr(G), t.p, cid);
                 autoLoseCity(G, ctx, cid);
@@ -4206,6 +4206,8 @@ const idToPlan = {
         "provinces": [ProvinceID.JINGJILU],
         "vp": 2,
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            const pub = pid2pub(G, pid);
+            pub.effect.push(PlayerPendingEffect.SearchCard);
         }
     },
     [PlanID.J08]: {
@@ -4216,6 +4218,7 @@ const idToPlan = {
         "provinces": [ProvinceID.SHANXILIULU],
         "vp": 2,
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            changeMilitary(G, pid, 1);
         }
     },
     [PlanID.J09]: {
@@ -4226,6 +4229,7 @@ const idToPlan = {
         "provinces": [ProvinceID.HUAINANLIANGLU],
         "vp": 2,
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            changeCivil(G, pid, 1);
         }
     },
     [PlanID.J10]: {
@@ -4287,7 +4291,7 @@ const idToPlan = {
         "level": 2,
         "provinces": [ProvinceID.JINGXILIANGLU],
         "vp": 1,
-        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+        effect: (G: SongJinnGame, _ctx: Ctx, pid: PlayerID) => {
             if (pid === SJPlayer.P1) {
                 policyUp(G, 1);
             } else {
@@ -4330,7 +4334,6 @@ const idToPlan = {
         "vp": 4,
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
             // changePlayerStage(G, ctx, 'removeCompletedPlan', pid);
-
         }
     },
     [PlanID.J18]: {
@@ -4351,8 +4354,7 @@ const idToPlan = {
         "level": 4,
         "provinces": [ProvinceID.JINGJILU],
         "vp": 3,
-        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
-        }
+        effect: (G: SongJinnGame, _ctx: Ctx, _pid: PlayerID) => G
     },
     [PlanID.J20]: {
         "id": PlanID.J20,
@@ -4361,8 +4363,7 @@ const idToPlan = {
         "level": 4,
         "provinces": [ProvinceID.SHANXILIULU],
         "vp": 3,
-        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
-        }
+        effect: (G: SongJinnGame, _ctx: Ctx, _pid: PlayerID) => G
     },
     [PlanID.J21]: {
         "id": PlanID.J21,
@@ -4383,8 +4384,7 @@ const idToPlan = {
         "level": 4,
         "provinces": [ProvinceID.JINGXILIANGLU],
         "vp": 3,
-        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
-        }
+        effect: (G: SongJinnGame, _ctx: Ctx, _pid: PlayerID) => G
     },
     [PlanID.J23]: {
         "id": PlanID.J23,
@@ -4849,6 +4849,10 @@ export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
             sum += 4 - 3;
             log.push(`|任用赵鼎 张浚|${sum}`);
 
+        }
+        if (pub.effect.includes(PlayerPendingEffect.FourDevelopPoint)) {
+            sum += 4;
+            log.push(`JinHu4Point${sum}`);
         }
     }
 
@@ -7127,7 +7131,7 @@ export const canChoosePlan = (G: SongJinnGame, _ctx: Ctx, pid: PlayerID, plan: P
     return pid2pub(G, pid).military >= getPlanById(plan).level;
 }
 
-export const checkSeizePlan = (G: SongJinnGame, _ctx: Ctx, plan: PlanID, pid:PlayerID) => {
+export const checkSeizePlan = (G: SongJinnGame, _ctx: Ctx, plan: PlanID, pid: PlayerID) => {
     const log = [`checkSeizePlan`];
     const pub = pid2pub(G, pid);
     const oppoPub = pid2pub(G, oppoPid(pid));
@@ -7140,7 +7144,7 @@ export const checkSeizePlan = (G: SongJinnGame, _ctx: Ctx, plan: PlanID, pid:Pla
     log.push(`|${provCount}|provCount`);
     const total = planObj.provinces.length;
     log.push(`|${total}|total`);
-    if(provCount === total) {
+    if (provCount === total) {
         log.push(`|seized`);
         if (pub.completedPlan.includes(plan)) {
             pub.completedPlan.splice(pub.completedPlan.indexOf(plan), 1);

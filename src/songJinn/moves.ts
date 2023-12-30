@@ -25,8 +25,7 @@ import {
     SongBaseCardID,
     SongJinnGame,
     Troop,
-    TroopPlace,
-    VictoryReason
+    TroopPlace
 } from "./constant/general";
 import {logger} from "../game/logger";
 import {INVALID_MOVE} from "boardgame.io/core";
@@ -81,7 +80,8 @@ import {
     getJinnTroopByCity,
     getJinnTroopByPlace,
     getLeadingPlayer,
-    getOpponentPlaceTroopByCtr, getPlanById,
+    getOpponentPlaceTroopByCtr,
+    getPlanById,
     getSimpleTroopText,
     getSongTroopByCity,
     getSongTroopByPlace,
@@ -1063,8 +1063,8 @@ export const emperor: LongFormMove = {
         }
         G.song.emperor = city;
         if (ctx.phase === 'develop') {
-            G.song.develop.forEach(c => G.song.discard.push(c));
-            G.song.develop = []
+            // G.song.develop.forEach(c => G.song.discard.push(c));
+            // G.song.develop = []
             G.song.usedDevelop = totalDevelop(G, ctx, ctx.playerID);
         }
         if (ctx.phase === 'action') {
@@ -1743,6 +1743,9 @@ export const endRound: LongFormMove = {
             if (ctx.phase === 'develop') {
                 pub.develop.forEach(c => pub.discard.push(c));
                 pub.develop = []
+                if (pub.effect.includes(PlayerPendingEffect.FourDevelopPoint)) {
+                    pub.effect.splice(pub.effect.indexOf(PlayerPendingEffect.FourDevelopPoint), 1);
+                }
                 pub.usedDevelop = 0;
             }
             if (G.order[1] === pid) {
