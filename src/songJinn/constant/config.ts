@@ -58,12 +58,17 @@ import {
     takePlan,
     tieJun
 } from "../moves";
-import {ActiveEvents, PendingEvents, PlanID, PlayerPendingEffect, ProvinceID, SJPlayer, SongJinnGame} from "./general";
+import {
+    ActiveEvents,
+    PendingEvents,
+    SJPlayer,
+    SongJinnGame,
+    VictoryReason
+} from "./general";
 import {logger} from "../../game/logger";
 import {
     canChoosePlan,
-    changeDiplomacyByLOD,
-    currentProvStatus,
+    changeDiplomacyByLOD, checkPlan, checkSeizePlan,
     drawPhaseForJinn,
     drawPhaseForSong,
     drawPlanForPlayer,
@@ -210,6 +215,21 @@ export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
                 discard: discard,
             }
         },
+        removeNation: {
+            moves: {
+                removeNation: removeNation
+            }
+        },
+        removeCompletedPlan: {
+            moves: {
+                removeCompletedPlan: removeCompletedPlan
+            }
+        },
+        adjustNation: {
+            moves: {
+                adjustNation: adjustNation
+            }
+        },
     },
 };
 
@@ -346,76 +366,54 @@ export const ResolvePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
     // start: true,
     onBegin: (G, ctx) => {
         const log = [`resolvePlanPhase|onBegin|${G.order}`];
-        // add two plan and search here
-        const currentPlans = [...G.song.plan, ...G.jinn.plan];
-        if (currentPlans.includes(PlanID.J21)) {
-            const status = currentProvStatus(G, ProvinceID.HUAINANLIANGLU);
-            switch (status) {
-                case "金控制":
-                    G.jinn.effect.push(PlayerPendingEffect.TwoPlan)
-                    break;
-                case "宋控制":
-                    G.song.effect.push(PlayerPendingEffect.TwoPlan)
-                    break;
-                case "战争状态":
-                    break;
-            }
-        }
-        if (currentPlans.includes(PlanID.J01)) {
-            const status = currentProvStatus(G, ProvinceID.JINGJILU);
-            switch (status) {
-                case "金控制":
-                    G.jinn.effect.push(PlayerPendingEffect.SearchCard)
-                    break;
-                case "宋控制":
-                    G.song.effect.push(PlayerPendingEffect.SearchCard)
-                    break;
-                case "战争状态":
-                    break;
-            }
-        }
-        if (currentPlans.includes(PlanID.J07)) {
-            const status = currentProvStatus(G, ProvinceID.JINGJILU);
-            switch (status) {
-                case "金控制":
-                    G.jinn.effect.push(PlayerPendingEffect.SearchCard)
-                    break;
-                case "宋控制":
-                    G.song.effect.push(PlayerPendingEffect.SearchCard)
-                    break;
-                case "战争状态":
-                    break;
-            }
-        }
-        // TODO wu shan li ma / huan wo he shan scores
-        G.plans = G.plans.concat(G.song.plan);
-        log.push(`|${G.plans}`);
-        G.plans = G.plans.concat(G.jinn.plan);
-        log.push(`|${G.plans}`);
-        if (G.song.completedPlan.length > 0 && !G.events.includes(ActiveEvents.YanJingYiNan)) {
-            const songTop = G.song.completedPlan.pop();
-            log.push(`songTop|${songTop}`);
+        if (!G.events.includes(ActiveEvents.YanJingYiNan)) {
+            const songTop = G.song.completedPlan[G.song.completedPlan.length - 1];
+            log.push(`|songTop|${songTop}`);
             if (songTop !== undefined) {
-                G.plans.push(songTop);
-                log.push(`|${G.plans}`);
+                checkSeizePlan(G, ctx, songTop, SJPlayer.P1);
+                log.push(`|${JSON.stringify(G.song.completedPlan)}|song`);
+                log.push(`|${JSON.stringify(G.jinn.completedPlan)}|jinn`);
+            } else {
+                log.push(`|noSongTop`);
             }
+        } else {
+            log.push(`|${ActiveEvents.YanJingYiNan}`);
         }
-        if (G.jinn.completedPlan.length > 0) {
-            const jinnTop = G.jinn.completedPlan.pop();
-            log.push(`jinnTop|${jinnTop}`);
-            if (jinnTop !== undefined) {
-                G.plans.push(jinnTop);
-            }
+        const jinnTop = G.jinn.completedPlan[G.jinn.completedPlan.length - 1];
+        log.push(`|jinnTop|${jinnTop}`);
+        if (jinnTop !== undefined) {
+            checkSeizePlan(G, ctx, jinnTop, SJPlayer.P2);
+            log.push(`|${JSON.stringify(G.song.completedPlan)}|song`);
+            log.push(`|${JSON.stringify(G.jinn.completedPlan)}|jinn`);
+        } else {
+            log.push(`|noJinnTop`);
         }
-        log.push(`|${G.plans}`);
-        G.jinn.plan = [];
+        const currentPlans = [...G.song.plan, ...G.jinn.plan];
+        currentPlans.forEach(plid => {
+            checkPlan(G, ctx, plid);
+        })
         G.song.plan = [];
-        if (G.plans.length === 0) {
-            // debug helper usually no use in real game
-            log.push(`|no|plans|endPhase`);
-            ctx.events?.endPhase();
+        G.jinn.plan = [];
+
+        log.push(`|${JSON.stringify(G.song.completedPlan)}|song`);
+        log.push(`|${JSON.stringify(G.jinn.completedPlan)}|jinn`);
+        const completedPlanDelta = G.song.completedPlan.length - G.jinn.completedPlan.length;
+        log.push(`|${completedPlanDelta}|completedPlanDelta`);
+        if (completedPlanDelta >= 4) {
+            log.push(`|songWinPlan|`);
+            ctx.events?.endGame({
+                winner: SJPlayer.P1,
+                reason: VictoryReason.StrategicPlan
+            });
         }
-        logger.info(`${log.join('')}`);
+        if (completedPlanDelta <= -4) {
+            log.push(`|jinnWinPlan|`);
+            ctx.events?.endGame({
+                winner: SJPlayer.P2,
+                reason: VictoryReason.StrategicPlan
+            });
+        }
+        logger.info(`${G.matchID}|${log.join('')}`);
     },
     onEnd: (G: SongJinnGame) => {
         G.jinn.usedDevelop = 0;

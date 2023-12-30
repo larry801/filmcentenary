@@ -29,7 +29,6 @@ import {
     VictoryReason
 } from "./constant/general";
 import {logger} from "../game/logger";
-import {getPlanById} from "./constant/plan";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {actualStage, shuffle} from "../game/util";
 import {getRegionById} from "./constant/regions";
@@ -82,7 +81,7 @@ import {
     getJinnTroopByCity,
     getJinnTroopByPlace,
     getLeadingPlayer,
-    getOpponentPlaceTroopByCtr,
+    getOpponentPlaceTroopByCtr, getPlanById,
     getSimpleTroopText,
     getSongTroopByCity,
     getSongTroopByPlace,
@@ -2180,22 +2179,7 @@ export const takePlan: LongFormMove = {
         arg.forEach((p) => {
             G.plans.splice(G.plans.indexOf(p), 1);
         })
-        if (G.order.indexOf(pid as SJPlayer) === 1) {
-            const completedPlanDelta = G.song.completedPlan.length - G.jinn.completedPlan.length;
-            if (completedPlanDelta >= 4) {
-                ctx.events?.endGame({
-                    winner: SJPlayer.P1,
-                    reason: VictoryReason.StrategicPlan
-                })
-            }
-            if (completedPlanDelta <= -4) {
-                ctx.events?.endGame({
-                    winner: SJPlayer.P2,
-                    reason: VictoryReason.StrategicPlan
-                })
-            }
 
-        }
     }
 }
 

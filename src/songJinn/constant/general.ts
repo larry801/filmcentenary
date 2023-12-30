@@ -77,6 +77,7 @@ export enum MountainPassID {
 export const enum PlayerPendingEffect {
     SearchCard,
     TwoPlan,
+    FourDevelopPoint,
 }
 
 export interface Troop {
@@ -982,6 +983,7 @@ export const initialSongPub: SJPubInfo = {
     military: 2,
     plan: [],
     provinces: [
+        ProvinceID.JINGJILU,
         ProvinceID.JINGDONGLIANGLU,
         ProvinceID.SHANXILIULU,
         ProvinceID.CHUANSHANSILU,

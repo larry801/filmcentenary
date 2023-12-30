@@ -3198,10 +3198,16 @@ export const doLoseCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cityID: Cit
         if (ctr === Country.JINN && G.jinn.emperor === cityID) {
             log.push(`|jinn|emperor`);
             G.jinn.emperor = null;
+            log.push(`|songWin${VictoryReason.ZhiDaoHuangLong}`);
+            ctx.events?.endGame({
+                winner: SJPlayer.P1,
+                reason: VictoryReason.ZhiDaoHuangLong
+            });
+            return;
         }
         const city = getCityById(cityID);
         if (opponent) {
-            if (G.jinn.generalPlace[JinnGeneral.YinShuKe] === city.region) {
+            if (ctr === Country.SONG && G.jinn.generalPlace[JinnGeneral.YinShuKe] === city.region) {
                 log.push(`|yinShuKe|1Bu`);
                 doPlaceUnit(G, ctx, [1, 0, 0, 0, 0, 0, 0], Country.JINN, city.region);
             }
@@ -3375,9 +3381,11 @@ export const removeUnitByCountryPlace = (G: SongJinnGame, ctx: Ctx, units: numbe
 
 export const autoLoseCity = (G: SongJinnGame, ctx: Ctx, c?: CityID) => {
     const log = [`autoLostCity`];
+    log.push(`|${c}|c`);
     const ci = G.combat;
-    const pid = ci.type === CombatType.SIEGE ? ciDefPid(G) : ciAtkPid(G);
+    const pid = ci.type === CombatType.SIEGE || ci.type === CombatType.FIELD ? ciDefPid(G) : ciAtkPid(G);
     if (c !== undefined) {
+        log.push(`|doLose`);
         doLoseCity(G, ctx, pid, c, true);
     } else {
         if (ci.city !== null) {
@@ -3389,7 +3397,7 @@ export const autoLoseCity = (G: SongJinnGame, ctx: Ctx, c?: CityID) => {
                 const region = getRegionById(ci.region);
                 log.push(`|${region.city}|region.city`);
                 if (region.city !== null) {
-                    log.push(`|doLost`);
+                    log.push(`|doLose`);
                     doLoseCity(G, ctx, pid, region.city, true);
                 }
             }
@@ -3527,26 +3535,48 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
     log.push(`|${ci.type}|ci.type`);
     removeUnitByCountryPlace(G, ctx, t.u, t.g, t.p);
     removeNoTroopGeneralByCtr(G, ctx, t.p, t.g);
+    const place =t.p;
+    log.push(`|${place}|place`);
+    const cid = isRegionID(place) ?  getRegionById(place).city : null;
+    log.push(`|${cid}|cid`);
     switch (ci.type) {
         case CombatType.RESCUE:
         case CombatType.SIEGE:
             if (ci.atk === t.g) {
+                log.push(`|atk|gone`);
+                if(cid !== null) {
+                    log.push(`|weiKunGone`);
+                    setTroopPlaceByCtr(G, ciDefCtr(G),cid,place);
+                }
             } else {
-                log.push(`|autoLoseCity`);
+                log.push(`|def|gone|autoLoseCity`);
                 if (t.c !== null) {
+                    log.push(`|${t.c}|t.c`);
                     setTroopCityByCtr(G, ciAtkCtr(G), t.p, t.c);
                     autoLoseCity(G, ctx, t.c);
                 } else {
-                    // TODO fetch region
-                    autoLoseCity(G, ctx);
+                    if(cid !== null) {
+                        log.push(`|${cid}|cid`);
+                        setTroopCityByCtr(G, ciAtkCtr(G), t.p, cid);
+                        autoLoseCity(G, ctx, cid);
+                    }
                 }
             }
             break;
         case CombatType.FIELD:
+            if(cid !== null) {
+                log.push(`|hasCity|lose${cid}   `);
+                setTroopCityByCtr(G, ciAtkCtr(G), t.p, cid);
+                autoLoseCity(G, ctx, cid);
+            } else {
+                log.push(`|noCity`);
+            }
             break;
         case CombatType.BREAKOUT:
             if (ci.atk === t.g) {
-                log.push(`|autoLoseCity`);
+                log.push(`|atk|gone|autoLoseCity`);
+                log.push(`|setTroopCityByCtr`);
+                setTroopCityByCtr(G, ciAtkCtr(G), t.p, cid);
                 if (t.c !== null) {
                     autoLoseCity(G, ctx, t.c);
                 } else {
@@ -4083,6 +4113,309 @@ export const canSendLetter = (G: SongJinnGame, ctr: Country, n: NationID) => {
     return res;
 }
 
+export interface Plan {
+    id: PlanID;
+    name: string;
+    vp: number;
+    desc: string;
+    level: number;
+    provinces: ProvinceID[],
+    effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => void,
+}
+
+export const getPlanById: (pid: PlanID) => Plan = (pid: PlanID) => {
+    return idToPlan[pid];
+}
+const idToPlan = {
+    [PlanID.J01]: {
+        "id": PlanID.J01,
+        "name": "早期京畿路",
+        "desc": "核心/目标：开封   其他城市：无   首次完成/奖励选取奖励：下一个摸牌阶段，通过检索获得1张手牌，然后弃掉1张手牌",
+        "level": 2,
+        "provinces": [ProvinceID.JINGJILU],
+        "vp": 1,
+        effect: (G: SongJinnGame, _ctx: Ctx, pid: PlayerID) => {
+            const pub = pid2pub(G, pid);
+            pub.effect.push(PlayerPendingEffect.SearchCard);
+        }
+    },
+    [PlanID.J02]: {
+        "id": PlanID.J02,
+        "name": "早期陕西六路",
+        "desc": "核心/目标：长安   其他城市：天兴 肤施   首次完成/奖励选取奖励：提高【军事等级】1级",
+        "level": 2,
+        "provinces": [ProvinceID.SHANXILIULU],
+        "vp": 1,
+        effect: (G: SongJinnGame, _ctx: Ctx, pid: PlayerID) => {
+            changeMilitary(G, pid, 1);
+        }
+    },
+    [PlanID.J03]: {
+        "id": PlanID.J03,
+        "name": "早期京西两路",
+        "desc": "核心/目标：襄阳   其他城市：洛阳宛丘   首次完成/奖励选取奖励：提高【政策】/【殖民】1级",
+        "level": 2,
+        "provinces": [ProvinceID.JINGXILIANGLU],
+        "vp": 1,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            if (pid === SJPlayer.P1) {
+                policyUp(G, 1);
+            } else {
+                colonyUp(G, 1);
+            }
+        }
+    },
+    [PlanID.J04]: {
+        "id": PlanID.J04,
+        "name": "早期京东两路",
+        "desc": "核心/目标：宋城   其他城市：历城须城   首次完成/奖励选取奖励：调整1个其他国家【外交】状态1级",
+        "level": 2,
+        "provinces": [ProvinceID.JINGDONGLIANGLU],
+        "vp": 1,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            // changePlayerStage(G, ctx, 'adjustNation', pid);
+
+        }
+    },
+    [PlanID.J05]: {
+        "id": PlanID.J05,
+        "name": "早期淮南两路",
+        "desc": "核心/目标：江都   其他城市：下蔡   首次完成/奖励选取奖励：提高【内政等级】1级",
+        "level": 2,
+        "provinces": [ProvinceID.HUAINANLIANGLU],
+        "vp": 1,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            changeCivil(G, pid, 1);
+        }
+    },
+    [PlanID.J06]: {
+        "id": PlanID.J06,
+        "name": "早期河东路",
+        "desc": "核心/目标：阳曲   其他城市：临汾上党   首次完成/奖励选取奖励：消灭总共2耐久度的部队",
+        "level": 2,
+        "provinces": [ProvinceID.HEDONGLU],
+        "vp": 1,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+        }
+    },
+    [PlanID.J07]: {
+        "id": PlanID.J07,
+        "name": "中期京畿路",
+        "desc": "核心/目标：开封   其他城市：无   首次完成/奖励选取奖励：下一个摸牌阶段，通过检索获得1张手牌，然后弃掉1张手牌",
+        "level": 3,
+        "provinces": [ProvinceID.JINGJILU],
+        "vp": 2,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+        }
+    },
+    [PlanID.J08]: {
+        "id": PlanID.J08,
+        "name": "中期陕西六路",
+        "desc": "核心/目标：长安   其他城市：   首次完成/奖励选取奖励：提高【军事等级】1级",
+        "level": 3,
+        "provinces": [ProvinceID.SHANXILIULU],
+        "vp": 2,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+        }
+    },
+    [PlanID.J09]: {
+        "id": PlanID.J09,
+        "name": "中期淮南两路",
+        "desc": "核心/目标：江都   其他城市：下蔡   首次完成/奖励选取奖励：提高【内政等级】1级",
+        "level": 3,
+        "provinces": [ProvinceID.HUAINANLIANGLU],
+        "vp": 2,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+        }
+    },
+    [PlanID.J10]: {
+        "id": PlanID.J10,
+        "name": "中期京西两路",
+        "desc": "核心/目标：襄阳   其他城市：洛阳宛丘   首次完成/奖励选取奖励：提高【政策】，【殖民】1级",
+        "level": 3,
+        "provinces": [ProvinceID.JINGXILIANGLU],
+        "vp": 2,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            if (pid === SJPlayer.P1) {
+                policyUp(G, 1);
+            } else {
+                colonyUp(G, 1);
+            }
+        }
+    },
+    [PlanID.J11]: {
+        "id": PlanID.J11,
+        "name": "中期荆湖两路",
+        "desc": "核心/目标：江陵   其他城市：长沙安陆   首次完成/奖励选取奖励：提供4点【发展力】",
+        "level": 2,
+        "provinces": [ProvinceID.JINHULIANGLU],
+        "vp": 1,
+        effect: (G: SongJinnGame, _ctx: Ctx, pid: PlayerID) => {
+            const pub = pid2pub(G, pid);
+            pub.effect.push(PlayerPendingEffect.FourDevelopPoint);
+        }
+    },
+    [PlanID.J12]: {
+        "id": PlanID.J12,
+        "name": "中期川峡四路",
+        "desc": "核心/目标：成都   其他城市：南郑 郪县   首次完成/奖励选取奖励：摸1张牌",
+        "level": 2,
+        "provinces": [ProvinceID.CHUANSHANSILU],
+        "vp": 1,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            if (pid === SJPlayer.P1) {
+                drawCardForSong(G, ctx);
+            } else {
+                drawCardForJinn(G, ctx);
+            }
+        }
+    },
+    [PlanID.J13]: {
+        "id": PlanID.J13,
+        "name": "中期京东两路",
+        "desc": "核心/目标：宋城   其他城市：历城须城   首次完成/奖励选取奖励：调整1个其他国家【外交】状态1级",
+        "level": 3,
+        "provinces": [ProvinceID.JINGDONGLIANGLU],
+        "vp": 2,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+        }
+    },
+    [PlanID.J14]: {
+        "id": PlanID.J14,
+        "name": "中期江西两路",
+        "desc": "核心/目标：江宁   其他城市：南昌   首次完成/奖励选取奖励：提高【政策】/【殖民】1级",
+        "level": 2,
+        "provinces": [ProvinceID.JINGXILIANGLU],
+        "vp": 1,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            if (pid === SJPlayer.P1) {
+                policyUp(G, 1);
+            } else {
+                colonyUp(G, 1);
+            }
+        }
+    },
+    [PlanID.J15]: {
+        "id": PlanID.J15,
+        "name": "中期河北两路",
+        "desc": "核心/目标：元城   其他城市：真定 安喜 河间   首次完成/奖励选取奖励：在【元城】放置1个【拐子马】/【背嵬军】",
+        "level": 2,
+        "provinces": [ProvinceID.HEBEILIANGLU],
+        "vp": 1,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            if (pid === SJPlayer.P1) {
+                doPlaceUnit(G, ctx, [0, 0, 0, 0, 0, 1], Country.SONG, CityID.YuanCheng);
+            } else {
+                doPlaceUnit(G, ctx, [0, 1, 0, 0, 0, 0, 0], Country.JINN, CityID.YuanCheng);
+            }
+        }
+    },
+    [PlanID.J16]: {
+        "id": PlanID.J16,
+        "name": "中期川陕战区",
+        "desc": "核心/目标：长安   其他城市：天兴 肤施 南郑 郪县   首次完成/奖励选取奖励：将1个在场的【将领】移出游戏",
+        "level": 4,
+        "provinces": [ProvinceID.SHANXILIULU, ProvinceID.CHUANSHANSILU],
+        "vp": 4,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            // changePlayerStage(G, ctx, 'removeGeneral', pid);
+        }
+    },
+    [PlanID.J17]: {
+        "id": PlanID.J17,
+        "name": "中期荆襄战区",
+        "desc": "核心/目标：襄阳开封   其他城市：洛阳宛丘   首次完成/奖励选取奖励：将1个已完成的【作战计划】移出游戏",
+        "level": 4,
+        "provinces": [ProvinceID.JINGJILU, ProvinceID.JINGXILIANGLU],
+        "vp": 4,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            // changePlayerStage(G, ctx, 'removeCompletedPlan', pid);
+
+        }
+    },
+    [PlanID.J18]: {
+        "id": PlanID.J18,
+        "name": "中期两淮战区",
+        "desc": "核心/目标：江都宋城   其他城市：历城须城下蔡   首次完成/奖励选取奖励：将1个其他国家移出游戏",
+        "level": 4,
+        "provinces": [ProvinceID.HUAINANLIANGLU, ProvinceID.JINGDONGLIANGLU],
+        "vp": 4,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            // changePlayerStage(G, ctx, 'removeNation', pid);
+        }
+    },
+    [PlanID.J19]: {
+        "id": PlanID.J19,
+        "name": "后期京畿路",
+        "desc": "核心/目标：开封   其他城市：无   首次完成/奖励选取奖励：无",
+        "level": 4,
+        "provinces": [ProvinceID.JINGJILU],
+        "vp": 3,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+        }
+    },
+    [PlanID.J20]: {
+        "id": PlanID.J20,
+        "name": "后期陕西六路",
+        "desc": "核心/目标：长安   其他城市：   首次完成/奖励选取奖励：无",
+        "level": 4,
+        "provinces": [ProvinceID.SHANXILIULU],
+        "vp": 3,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+        }
+    },
+    [PlanID.J21]: {
+        "id": PlanID.J21,
+        "name": "后期淮南两路",
+        "desc": "核心/目标：江都   其他城市：下蔡   首次完成/奖励选取奖励：下回合可以选取2张【作战计划】",
+        "level": 3,
+        "provinces": [ProvinceID.HUAINANLIANGLU],
+        "vp": 2,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            const pub = pid === SJPlayer.P1 ? G.song : G.jinn;
+            pub.effect.push(PlayerPendingEffect.TwoPlan);
+        }
+    },
+    [PlanID.J22]: {
+        "id": PlanID.J22,
+        "name": "后期京西两路",
+        "desc": "核心/目标：襄阳   其他城市：洛阳宛丘   首次完成/奖励选取奖励：无",
+        "level": 4,
+        "provinces": [ProvinceID.JINGXILIANGLU],
+        "vp": 3,
+        effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+        }
+    },
+    [PlanID.J23]: {
+        "id": PlanID.J23,
+        "name": "还我河山",
+        "desc": "核心/目标：长安 宋城 元城 开封    其他城市：肤施天兴须城历城河间安喜真定   首次完成/奖励选取奖励：自动获胜；若未完成，当【绍兴和议】时，每座计划内的城市1分",
+        "level": 5,
+        "provinces": [ProvinceID.SHANXILIULU, ProvinceID.JINGJILU, ProvinceID.JINGDONGLIANGLU, ProvinceID.HEBEILIANGLU],
+        "vp": 0,
+        effect: (_G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            ctx.events?.endGame({
+                winner: pid,
+                reason: VictoryReason.HuanWoHeShan
+            });
+        }
+    },
+    [PlanID.J24]: {
+        "id": PlanID.J24,
+        "name": "吴山立马",
+        "desc": "核心/目标：江宁襄阳江都开封   其他城市：下蔡南昌洛阳宛丘   首次完成/奖励选取奖励：自动获胜；若未完成，当【绍兴和议】时，每座计划内的城市1分",
+        "level": 5,
+        "provinces": [ProvinceID.JINGJILU, ProvinceID.JINGXILIANGLU, ProvinceID.JIANGNANLIANGLU, ProvinceID.HUAINANLIANGLU],
+        "vp": 0,
+        effect: (_G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            ctx.events?.endGame({
+                winner: pid,
+                reason: VictoryReason.WuShanLiMa
+            });
+        }
+    },
+
+}
 export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
     const payload = l.action.payload;
     const pid = payload.playerID;
@@ -6794,6 +7127,35 @@ export const canChoosePlan = (G: SongJinnGame, _ctx: Ctx, pid: PlayerID, plan: P
     return pid2pub(G, pid).military >= getPlanById(plan).level;
 }
 
+export const checkSeizePlan = (G: SongJinnGame, _ctx: Ctx, plan: PlanID, pid:PlayerID) => {
+    const log = [`checkSeizePlan`];
+    const pub = pid2pub(G, pid);
+    const oppoPub = pid2pub(G, oppoPid(pid));
+    const planObj = getPlanById(plan);
+    log.push(`|${plan}|${planObj.name}|planObj.name`);
+    log.push(`|${pid2ctr(pid)}`);
+    log.push(`|${JSON.stringify(pub.completedPlan)}|pub`);
+    log.push(`|${JSON.stringify(oppoPub.completedPlan)}|oppo`);
+    const provCount = planObj.provinces.filter(prov => oppoPub.provinces.includes(prov)).length;
+    log.push(`|${provCount}|provCount`);
+    const total = planObj.provinces.length;
+    log.push(`|${total}|total`);
+    if(provCount === total) {
+        log.push(`|seized`);
+        if (pub.completedPlan.includes(plan)) {
+            pub.completedPlan.splice(pub.completedPlan.indexOf(plan), 1);
+        }
+        oppoPub.completedPlan.push(plan);
+        log.push(`|${JSON.stringify(pub.completedPlan)}|pub`);
+        log.push(`|${JSON.stringify(oppoPub.completedPlan)}|oppo`);
+    } else {
+        log.push(`|not|seized`);
+        log.push(`|${JSON.stringify(pub.completedPlan)}|pub`);
+        log.push(`|${JSON.stringify(oppoPub.completedPlan)}|oppo`);
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
 export const checkPlan = (G: SongJinnGame, ctx: Ctx, plan: PlanID) => {
     const log = [`checkPlan`];
     const planObj = getPlanById(plan);
@@ -6805,14 +7167,20 @@ export const checkPlan = (G: SongJinnGame, ctx: Ctx, plan: PlanID) => {
     const total = planObj.provinces.length;
     log.push(`|${total}|total`);
     if (song === total) {
+        log.push(`|${JSON.stringify(G.song.completedPlan)}|song.completedPlan`);
         G.song.completedPlan.push(plan);
+        log.push(`|${JSON.stringify(G.song.completedPlan)}|song.completedPlan`);
         planObj.effect(G, ctx, SJPlayer.P1);
     } else {
         if (jinn === total) {
+            log.push(`|${JSON.stringify(G.jinn.completedPlan)}|jinn.completedPlan`);
             G.jinn.completedPlan.push(plan);
+            log.push(`|${JSON.stringify(G.jinn.completedPlan)}|jinn.completedPlan`);
             planObj.effect(G, ctx, SJPlayer.P1);
         } else {
-            G.secret.planDeck.push(plan)
+            log.push(`|${JSON.stringify(G.secret.planDeck)}|planDeck`);
+            G.secret.planDeck.push(plan);
+            log.push(`|${JSON.stringify(G.secret.planDeck)}|planDeck`);
         }
     }
     if (SpecialPlan.includes(plan)) {
@@ -6981,10 +7349,11 @@ export const doRemoveNation = (G: SongJinnGame, nation: NationID) => {
 }
 export const doControlProvince = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, prov: ProvinceID) => {
     const log = [`doControlProvince`];
+    log.push(`|${pid2ctr(pid)}|${prov}`);
     const pub = pid2pub(G, pid);
     const oppo = oppoPub(G, pid);
     if (pub.provinces.includes(prov)) {
-        log.push(`|hasProv${prov}`);
+        log.push(`|hasProv`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         return;
     }
@@ -7002,8 +7371,10 @@ export const doControlProvince = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, prov
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
 export const doControlCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cid: CityID) => {
     const log = [`doControlCity`];
+    log.push(`|${pid2ctr(pid)}|${cid}`);
     const pub = pid2pub(G, pid);
     const oppo = oppoPub(G, pid);
     if (pub.cities.includes(cid)) {
@@ -7018,7 +7389,7 @@ export const doControlCity = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, cid: Cit
     log.push(`|b|${pub.cities}`);
     pub.cities.push(cid);
     log.push(`|a|${pub.cities}`);
-    // TODO control all cities change prov control
+
     const prov = getCityById(cid).province;
     const province = getProvinceById(prov);
     const all = [...province.capital, ...province.other];
@@ -7251,19 +7622,23 @@ export const checkMoveDst = (
 }
 
 export const doMoveTroopAll = (
-    G: SongJinnGame, ctx: Ctx, src: TroopPlace, dst: TroopPlace, country: Country,
+    G: SongJinnGame, ctx: Ctx, src: TroopPlace, dst: TroopPlace, ctr: Country,
 ) => {
     const log = [`doMoveTroopAll`];
-    const pub = ctr2pub(G, country);
-    const generals = getPlaceCountryGeneral(G, country, src);
-    generals.forEach(gen => moveGeneralByCountry(G, country, gen, dst));
-    const t = getTroopByCountryPlace(G, country, src);
+    log.push(`|${placeToStr(src)}|to|${placeToStr(dst)}`);
+    log.push(`${ctr}`);
+    const pub = ctr2pub(G, ctr);
+    const generals = getPlaceCountryGeneral(G, ctr, src);
+    generals.forEach(gen => moveGeneralByCountry(G, ctr, gen, dst));
+    const t = getTroopByCountryPlace(G, ctr, src);
     if (t === null) {
         log.push(`|noTroop`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         return;
     }
+    log.push(`|${getSimpleTroopText(G, t)}|t`);
     const srcIdx = pub.troops.indexOf(t);
+    log.push(`|${srcIdx}|srcIdx`);
     const destTroops = pub.troops.filter((t2: Troop) => t2.p === dst);
     log.push(`|destTroops${JSON.stringify(destTroops)}`);
     if (destTroops.length > 0) {
@@ -7278,17 +7653,23 @@ export const doMoveTroopAll = (
             if (pt.p === t.p) {
                 pt.p = dst;
                 if (isRegionID(dst)) {
+                    log.push(`|dst|isRegionID`);
                     const region = getRegionById(dst);
                     const cid = region.city;
                     if (cid !== null) {
+                        log.push(`|hasCity`);
                         const ot = getOpponentCityTroopByCtr(G, t.g, cid);
                         if (ot !== null) {
                             log.push(`|${getSimpleTroopText(G, ot)}|ot`);
+                            log.push(`|hasOt|pt.c=null`);
+                            pt.c = null;
                         } else {
-                            t.c = cid;
+                            log.push(`|noOt|pt.c=${cid}`);
+                            pt.c = cid;
                         }
                     } else {
-                        t.c = null;
+                        log.push(`|noCity|pt.c=null`);
+                        pt.c = null;
                     }
                 }
                 log.push(`${JSON.stringify(pt)}`);
@@ -7318,8 +7699,9 @@ export const doMoveTroopAll = (
             const oppoFieldTroop = getOpponentPlaceTroopByCtr(G, t.g, city.region);
             if (oppoFieldTroop !== null) {
                 log.push(`|${getSimpleTroopText(G, oppoFieldTroop)}|oppoFieldTroop`);
-                setTroopCityByCtr(G, oppoCtr(t.g), city.region, cid);
-                doControlCity(G, ctx, ctr2pid(t.g), cid);
+                log.push(`|cityToOpponent`);
+                setTroopCityByCtr(G, oppoFieldTroop.g, city.region, cid);
+                doControlCity(G, ctx, ctr2pid(oppoFieldTroop.g), cid);
             }
         }
     }

@@ -9,7 +9,6 @@ import {
     General, MAX_DICES,
     SJPlayer, SongJinnGame,
 } from "../constant/general";
-import {getPlanById} from "../constant/plan";
 import Button from "@material-ui/core/Button";
 import CheckBoxDialog from "./choice";
 import {ChooseUnitsDialog} from "./recruit";
@@ -21,7 +20,7 @@ import {
     getCountryById,
     getGeneralNameByCountry, getSkillGeneral,
     pid2pub, phaseName,
-    playerById, remainDevelop, sjCardById, confirmRespondChoices,  canChoosePlan
+    playerById, remainDevelop, sjCardById, confirmRespondChoices, canChoosePlan, getPlanById
 } from "../util";
 import {Dices} from "./dices";
 

@@ -19,17 +19,14 @@ import {
     currentProvStatus,
     getCityText,
     getCountryById,
-    getGeneralNameByCountry,
-    getPresentGeneral,
+    getGeneralNameByCountry, getPlanById,
     getReadyGenerals,
     getRegionText,
     pid2pub,
-    playerById,
     StrProvince
 } from "../util";
 import Button from "@material-ui/core/Button";
 import {ChooseUnitsDialog} from "./recruit";
-import {getPlanById} from "../constant/plan";
 
 export interface IOperationProps {
     G: SongJinnGame;
@@ -54,15 +51,12 @@ export const AdjustOps = ({
                           }: IOperationProps) => {
 
     const pub = pid2pub(G, playerID);
-    const player = playerById(G, playerID);
     const ctr = getCountryById(playerID);
 
-    const presentGeneral = getPresentGeneral(G, playerID);
-    const readyGenerals:General[] = getReadyGenerals(G, playerID);
+    const readyGenerals: General[] = getReadyGenerals(G, playerID);
     const [moveGeneralStep, setMoveGeneralStep] = useState(MoveGeneralStep.PROVINCE);
     const [regions, setRegions] = useState([RegionID.R20]);
     const [moveGeneralRegion, setMoveGeneralRegion] = useState(RegionID.R01);
-
 
 
     const removeNationDialog = <ChoiceDialog
@@ -146,7 +140,7 @@ export const AdjustOps = ({
             moves.moveGeneral({
                 dst: moveGeneralRegion,
                 country: ctr,
-                general:g
+                general: g
             })
         }} choices={Object.values(SongGeneral).map(gen => {
         return {
@@ -160,9 +154,9 @@ export const AdjustOps = ({
         defaultChoice={""}
         title={"请选择要移动的将领"} toggleText={"移动将领"} initial={false}/>
 
-    const completedPlans = [...G.song.completedPlan,...G.jinn.completedPlan];
+    const completedPlans = [...G.song.completedPlan, ...G.jinn.completedPlan];
     const removeCompletedPlanDialog = <ChoiceDialog
-        callback={(c)=>moves.removeCompletedPlan(c)}
+        callback={(c) => moves.removeCompletedPlan(c)}
         choices={completedPlans.map((pid) => {
                 const plan = getPlanById(pid);
                 return {
@@ -182,11 +176,11 @@ export const AdjustOps = ({
     const deployDialog = <ChoiceDialog
         callback={
             (c) => {
-                if(readyGenerals.length > 1){
+                if (readyGenerals.length > 1) {
                     setCity(c as CityID);
                     setDeployCityChosen(true)
-                }else{
-                    moves.deployGeneral({country: ctr, general: readyGenerals[0],dst:c})
+                } else {
+                    moves.deployGeneral({country: ctr, general: readyGenerals[0], dst: c})
                 }
             }
         } choices={pub.cities.map(c => {
@@ -218,7 +212,7 @@ export const AdjustOps = ({
 
     const checkProvDialog = <ChoiceDialog
         callback={
-            (c) => moves.checkProvince({prov:c,text:currentProvStatus(G, c as ProvinceID)})
+            (c) => moves.checkProvince({prov: c, text: currentProvStatus(G, c as ProvinceID)})
         } choices={Object.values(ProvinceID).map(c => {
         return {
             label: c,
@@ -354,7 +348,7 @@ export const AdjustOps = ({
                 label: DevelopChoice.POLICY_UP, value: DevelopChoice.POLICY_UP,
                 disabled: G.policy >= 3,
                 hidden: false
-            },            {
+            }, {
                 label: DevelopChoice.POLICY_DOWN, value: DevelopChoice.POLICY_DOWN,
                 disabled: G.policy <= -3,
                 hidden: false
@@ -371,43 +365,77 @@ export const AdjustOps = ({
 
 
     const removeSongReadyUnitDialog = <ChooseUnitsDialog
-        callback={(c)=>moves.removeReadyUnit({units:c,country:Country.SONG})}
+        callback={(c) => moves.removeReadyUnit({units: c, country: Country.SONG})}
         max={G.song.ready} initUnits={emptySongTroop().u} show={isActive}
         title={"消灭宋预备区部队"} toggleText={"消灭宋预备区部队"} initial={false} country={Country.SONG}/>
 
     const removeJinnReadyUnitDialog = <ChooseUnitsDialog
-        callback={(c)=>moves.removeReadyUnit({units:c,country:Country.JINN})}
+        callback={(c) => moves.removeReadyUnit({units: c, country: Country.JINN})}
         max={G.jinn.ready} initUnits={emptyJinnTroop().u} show={isActive}
         title={"消灭金预备区部队"} toggleText={"消灭金预备区部队"} initial={false} country={Country.JINN}/>
 
     return <Grid container>
-        {removeJinnReadyUnitDialog}
-        {removeSongReadyUnitDialog}
-        <Button fullWidth variant={"outlined"} onClick={()=>moves.drawExtraCard()}>
-            额外摸一张牌
-        </Button>
-        {removeCompletedPlanDialog}
-        {removeNationDialog}
-        {adjustNationDialog}
-        {cityDialog}
-        {loseCityToOpponentDialog}
+        <Grid item xs={6} sm={3}>
+            {removeSongReadyUnitDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {removeJinnReadyUnitDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            <Button fullWidth variant={"outlined"} onClick={() => moves.drawExtraCard()}>
+                额外摸一张牌
+            </Button>
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {removeCompletedPlanDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {removeNationDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {adjustNationDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {cityDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {loseCityToOpponentDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {loseProvDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {loseProvToOpponentDialog}
+        </Grid>
 
-        {loseProvDialog}
-        {loseProvToOpponentDialog}
+        <Grid item xs={6} sm={3}>
+            {controlCityDialog}
+        </Grid>
 
-        {controlCityDialog}
-        {controlProvDialog}
+        <Grid item xs={6} sm={3}>
+            {controlProvDialog}
+        </Grid>
 
-        {checkProvDialog}
-
-        {chooseGeneralDialog}
-        {chooseProvDialog}
-        {chooseRegionDialog}
-
-        {deployDialog}
-        {deployGeneralDialog}
-
-
-        {downDialog}
+        <Grid item xs={6} sm={3}>
+            {checkProvDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {chooseGeneralDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {chooseProvDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {chooseRegionDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {deployDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {deployGeneralDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
+            {downDialog}
+        </Grid>
     </Grid>
 }

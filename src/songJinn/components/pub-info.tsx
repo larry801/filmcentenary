@@ -2,14 +2,13 @@ import React from "react";
 import {Ctx, PlayerID} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import Paper from "@material-ui/core/Paper";
-import {getPlanById} from "../constant/plan";
 import Typography from "@material-ui/core/Typography";
 import {ActiveEvents, SJPlayer, SJPubInfo, SongJinnGame} from "../constant/general";
 
 import {
     getCityText,
     getJinnPower,
-    getJinnScore,
+    getJinnScore, getPlanById,
     getPolicy,
     getReadyGeneralNames,
     getSeasonText,
