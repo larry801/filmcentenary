@@ -328,24 +328,6 @@ export const Operation = ({
         title={"请选择发展项目"} toggleText={"发展（提升等级）"} initial={false}
     />
 
-
-    const takePlan = (choices: string[]) => {
-        moves.takePlan(choices)
-    };
-    const takePlanDialog = <CheckBoxDialog
-        callback={takePlan}
-        choices={G.plans.map(p => {
-            return {
-                label: getPlanById(p).name,
-                value: p,
-                disabled: false,
-                hidden: false
-            }
-        })}
-        show={isActive && ctx.phase === 'resolvePlan' && G.plans.length > 0} title={"选择计划"}
-        toggleText={"选择完成的计划"}
-        initial={true}/>
-
     const chooseTopPlanDialog =
         <ChoiceDialog
             callback={(p) => moves.chooseTop(p)}
@@ -446,7 +428,6 @@ export const Operation = ({
         {chooseRescueGeneralsDialog}
 
         {recruitPuppetDialog}
-        {takePlanDialog}
         {chooseTopPlanDialog}
         {developDialog}
         {returnToHandDialog}

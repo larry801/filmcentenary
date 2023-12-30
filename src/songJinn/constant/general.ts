@@ -474,7 +474,7 @@ export const SongLateCardID = [
 ];
 
 
-export const enum PlanID {
+export enum PlanID {
     J01 = "J01",
     J02 = "J02",
     J03 = "J03",

@@ -9,7 +9,7 @@ import {
     emptyJinnTroop,
     emptySongTroop,
     General,
-    NationID,
+    NationID, PlanID,
     ProvinceID,
     RegionID, SongGeneral,
     SongJinnGame
@@ -27,6 +27,7 @@ import {
 } from "../util";
 import Button from "@material-ui/core/Button";
 import {ChooseUnitsDialog} from "./recruit";
+import CheckBoxDialog from "./choice";
 
 export interface IOperationProps {
     G: SongJinnGame;
@@ -87,6 +88,23 @@ export const AdjustOps = ({
         })} defaultChoice={""}
         show={isActive}
         title={"选择调整国家"} toggleText={"调整外交"} initial={false}/>
+
+    const takePlan = (choices: string[]) => {
+        moves.takePlan(choices)
+    };
+    const takePlanDialog = <CheckBoxDialog
+        callback={takePlan}
+        choices={Object.values(PlanID).map((p: PlanID) => {
+            return {
+                label: getPlanById(p).name,
+                value: p,
+                disabled: false,
+                hidden: false
+            }
+        })}
+        show={isActive} title={"选择完成的计划"}
+        toggleText={"修改完成的计划"}
+        initial={false}/>
 
     const chooseProvDialog = <ChoiceDialog
         callback={(c) => {
@@ -387,6 +405,9 @@ export const AdjustOps = ({
             </Button>
         </Grid>
         <Grid item xs={6} sm={3}>
+            {takePlanDialog}
+        </Grid>
+        <Grid item xs={6} sm={3}>
             {removeCompletedPlanDialog}
         </Grid>
         <Grid item xs={6} sm={3}>
@@ -415,7 +436,6 @@ export const AdjustOps = ({
         <Grid item xs={6} sm={3}>
             {controlProvDialog}
         </Grid>
-
         <Grid item xs={6} sm={3}>
             {checkProvDialog}
         </Grid>

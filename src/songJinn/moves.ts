@@ -2164,22 +2164,11 @@ export const takePlan: LongFormMove = {
         }
         logger.info(`[p${pid}.takePlan(${JSON.stringify(arg)})`)
         const ctr = getCountryById(pid);
-        // const pub = pid2pub(G, pid);
-        // const player = playerById(G, ctx.playerID);
-        arg.forEach((p) => {
-            if (!G.plans.includes(p)) {
-                return INVALID_MOVE;
-            }
-        })
         if (ctr === Country.SONG) {
-            G.song.completedPlan = G.song.completedPlan.concat(arg);
+            G.song.completedPlan = arg;
         } else {
-            G.jinn.completedPlan = G.jinn.completedPlan.concat(arg);
+            G.jinn.completedPlan = arg;
         }
-        arg.forEach((p) => {
-            G.plans.splice(G.plans.indexOf(p), 1);
-        })
-
     }
 }
 

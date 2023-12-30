@@ -4566,9 +4566,9 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                             break;
                         case 'takePlan':
                             if (arg.length === 0) {
-                                log += `没有拿走计划`;
+                                log += `修改已完成计划为空`;
                             } else {
-                                log += `拿走了${arg.map((p: PlanID) => getPlanById(p).name)}`;
+                                log += `修改已完成计划为${arg.map((p: PlanID) => getPlanById(p).name)}`;
                             }
                             break;
                         case 'chooseTop':
