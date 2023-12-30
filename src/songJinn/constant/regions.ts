@@ -390,7 +390,7 @@ const idToRegion = {[RegionID.R01]:
             name:"凤翔府",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.SHANXILIULU,
-            land:[RegionID.R29,RegionID.R30,RegionID.R31,RegionID.R34,RegionID.R35, RegionID.R36],
+            land:[RegionID.R29,RegionID.R30,RegionID.R31,RegionID.R34, RegionID.R36],
             water:[],
             pass:[RegionID.R52],
             city:CityID.TianXing
@@ -414,7 +414,7 @@ const idToRegion = {[RegionID.R01]:
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.SHANXILIULU,
             land:[RegionID.R11PingYangFu],
-            water:[RegionID.R34,RegionID.R35,RegionID.R37],
+            water:[RegionID.R34,RegionID.R36,RegionID.R37],
             pass:[],
             city:null
         },
