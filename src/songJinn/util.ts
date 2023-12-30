@@ -5033,6 +5033,11 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
             log.push(`|${d6}`);
         }
     } else {
+        if (terrain === TerrainType.MOUNTAINS && jinnGenerals.includes(JinnGeneral.LouShi)) {
+            log.push(`|louShi|mountain|++`);
+            d6 = d6.map(d => d + 1);
+            log.push(`|${d6}`);
+        }
         if (terrain === TerrainType.FLATLAND && jinnGenerals.includes(JinnGeneral.ZhanHan)) {
             log.push(`|zhanHan|plain|++`);
             d6 = d6.map(d => d + 1);
@@ -5042,7 +5047,7 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
             jinnGenerals.includes(JinnGeneral.YinShuKe)
             && (ci.type === CombatType.BREAKOUT || ci.type === CombatType.RESCUE)
         ) {
-            log.push('yinShuKeJieWei/TuWei');
+            log.push('yinShuKeJieWei/TuWei++');
             d6 = d6.map(d => d + 1);
             log.push(`|${d6}`);
         }
@@ -5051,7 +5056,7 @@ export const countDice = (G: SongJinnGame, ctr: Country): number => {
             && ci.type === CombatType.SIEGE
             && ci.atk === Country.JINN
         ) {
-            log.push('zongZe');
+            log.push('zongZe--');
             d6 = d6.map(d => d - 1);
             log.push(`|${d6}`);
         }
