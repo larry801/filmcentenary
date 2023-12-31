@@ -117,7 +117,6 @@ export const Operation = ({
         color={"primary"} variant={"contained"}>展示国书</Button>
     const endRound = (ctx.currentPlayer === playerID && !autoPhases.includes(ctx.phase)) && <Button
         onClick={() => {
-            // TODO add phase info  Song ended develop phase
             if (ctx.phase === 'action') {
                 moves.endRound(G.round);
             } else {

@@ -79,7 +79,6 @@ import {
     getGeneralNameByCountry,
     getJinnTroopByCity,
     getJinnTroopByPlace,
-    getLeadingPlayer,
     getOpponentPlaceTroopByCtr,
     getPlanById,
     getSimpleTroopText,
@@ -136,14 +135,12 @@ export const opponentMove: LongFormMove = {
         const oppo = pid === SJPlayer.P1 ? SJPlayer.P2 : SJPlayer.P1;
         if (pid === ctx.currentPlayer) {
             if (getStage(ctx) === 'takeDamage') {
-                // changePlayerStage(G, ctx, 'react', oppo);
                 changePlayerStage(G, ctx, 'takeDamage', oppo);
             } else {
                 changePlayerStage(G, ctx, 'react', oppo);
             }
         } else {
             if (getStage(ctx) === 'takeDamage') {
-                // changePlayerStage(G, ctx, 'react', oppo);
                 changePlayerStage(G, ctx, 'takeDamage', oppo);
             } else {
                 ctx.events?.endStage();
@@ -433,9 +430,10 @@ export const takeDamage: LongFormMove = {
 
         let troop = c === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
         if (troop === null) {
-            log.push(`|noTroop|invalid`);
+            log.push(`|noPlaceTroop|checkCity`);
             troop = c === Country.SONG ? getSongTroopByPlace(G, city) : getJinnTroopByPlace(G, city);
             if (troop === null) {
+                log.push(`|noCityTroop|invalid`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return INVALID_MOVE;
             }
