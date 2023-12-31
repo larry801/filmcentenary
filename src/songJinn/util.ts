@@ -281,6 +281,18 @@ export const isZhouXing = (t: Troop) => {
     return t.u[3] > 0;
 }
 
+export const isAllTerrainHalf = (G: SongJinnGame, t: Troop): boolean => {
+    if (t.g === Country.SONG) {
+        return hasGeneral(G, t, SongGeneral.LiXianZhong) || t.u[5] > 0
+            && t.u[0] === 0
+            && t.u[1] === 0
+            && t.u[2] === 0
+            && t.u[3] === 0;
+    } else {
+        return false;
+    }
+}
+
 export const onlyBoat = (t: Troop) => {
     if (t.g === Country.SONG) {
         return t.u[3] > 0
@@ -504,7 +516,7 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
             }
         })
     }
-    if (isZhouXing(newTroop) || hasGeneral(G, t, SongGeneral.LiXianZhong)) {
+    if (isZhouXing(newTroop) || isAllTerrainHalf(G, newTroop)) {
         noArmyAdj.forEach(p => {
             if (onlyBoat(t)) {
                 if (getTerrainTypeByPlace(p) !== TerrainType.SWAMP) {
@@ -3541,7 +3553,7 @@ export const removeZeroTroop = (G: SongJinnGame, ctx: Ctx, t: Troop) => {
     log.push(`|${place}|place`);
     const cid = isRegionID(place) ? getRegionById(place).city : null;
     log.push(`|${cid}|cid`);
-    if(ci.ongoing){
+    if (ci.ongoing) {
         log.push(`|ongoing`);
         switch (ci.type) {
             case CombatType.RESCUE:
@@ -3861,7 +3873,6 @@ export const addTroop = (G: SongJinnGame, dst: RegionID, units: number[], countr
             return null;
     }
 }
-
 
 
 export const endDraw = (G: SongJinnGame, ctx: Ctx) => {
@@ -5623,6 +5634,8 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
     return "是否确认";
 }
 
+// TODO canStalemate  rescue or attack mountain pass
+
 export function endCombat(G: SongJinnGame, ctx: Ctx) {
     const log = [`endCombat`];
     const c = G.combat;
@@ -5643,6 +5656,7 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
             }
         }
     }
+    // TODO auto retreat pass / rescue
     c.ongoing = false;
     log.push(`|${c.song.combatCard}c.song.combatCard`);
     log.push(`|${G.song.discard}G.song.discard`);
@@ -7807,6 +7821,7 @@ export const doPlaceUnit = (G: SongJinnGame, ctx: Ctx, units: number[], country:
             if (cid !== null) {
                 const oct = getOpponentCityTroopByCtr(G, country, cid);
                 if (oct !== null) {
+                    log.push(`|${JSON.stringify(oct)}|oct`);
                     log.push(`|${getSimpleTroopText(G, oct)}|oct`);
                     log.push(`|mergeOrSiege`);
                     G.pending.places.push(cid);
@@ -7843,4 +7858,12 @@ export function canForceRoundTwo(G: SongJinnGame) {
 
 export function isFast(G: SongJinnGame) {
     return G.mode !== undefined && G.mode[0];
+}
+
+export function isOptional(G: SongJinnGame) {
+    return G.mode !== undefined && G.mode[1];
+}
+
+export function isCRT(G: SongJinnGame) {
+    return G.mode !== undefined && G.mode[2];
 }
