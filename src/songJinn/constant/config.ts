@@ -194,7 +194,11 @@ export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
             }
         },
         takeDamage: {
-            moves: moves
+            moves: {
+                takeDamage: takeDamage,
+                opponentMove: opponentMove,
+                rollDices: rollDices
+            }
         },
         freeHeYi: {
             moves: {
@@ -281,7 +285,7 @@ export const DrawPhaseConfig: PhaseConfig<SongJinnGame> = {
     moves: moves,
     turn: {
         ...StagedTurnConfig,
-        onBegin:(G:SongJinnGame, ctx:Ctx)=>{
+        onBegin: (G: SongJinnGame, ctx: Ctx) => {
             if (G.jinn.effect.includes(PlayerPendingEffect.SearchCard)) {
                 changePlayerStage(G, ctx, 'search', SJPlayer.P2);
             } else {
