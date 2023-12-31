@@ -1,28 +1,25 @@
 import React, { useState } from "react";
 import {
-    accumulator,
     Country,
-    emptySongTroop,
     MAX_DICES, RegionID,
     SJPlayer,
     SongJinnGame,
-    UNIT_SHORTHAND,
 } from "../constant/general";
 import { Ctx, LogEntry, PlayerID } from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 import {
+    ciJinnTroop,
+    ciSongTroop,
     confirmRespondChoices,
     confirmRespondLogText,
     confirmRespondText,
     getCityText,
     getRegionText, getRetreatDst,
     getTroopText, placeToStr,
-    sjCardById, troopEndurance,
-    unitsToString
+    sjCardById,
 } from "../util";
 import { Dices } from "./dices";
 import Button from "@material-ui/core/Button";
-import { ChooseUnitsDialog } from "./recruit";
 import Paper from "@material-ui/core/Paper";
 import { actualStage } from "../../game/util";
 import ChoiceDialog from "../../components/modals";
@@ -44,19 +41,9 @@ export const CombatInfoPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) =
     const s = G.combat;
 
     const pub = pid === SJPlayer.P1 ? G.song : G.jinn;
-    // const cci = pid === SJPlayer.P1 ? s.song : s.jinn;
-    // const opCCI = pid === SJPlayer.P2 ? s.song : s.jinn;
     const ctr = pid === SJPlayer.P1 ? Country.SONG : Country.JINN;
-    const troop = pid === SJPlayer.P1 ? s.song.troop : s.jinn.troop;
+    const troop = pid === SJPlayer.P1 ? ciSongTroop(G) : ciJinnTroop(G);
     const [count, setCount] = useState(5);
-
-    const emptyTroop = emptySongTroop();
-
-    const [readyUnits, setReadyUnits] = React.useState(emptyTroop.u);
-    const [standbyUnits, setStandbyUnits] = React.useState(emptyTroop.u);
-    const readySum = readyUnits.reduce(accumulator);
-    const standbySum = standbyUnits.reduce(accumulator);
-    const unitNames = pid === SJPlayer.P2 ? UNIT_SHORTHAND[1] : UNIT_SHORTHAND[0];
 
     const retreatDialog = <ChoiceDialog
         callback={(c) => {
@@ -83,20 +70,6 @@ export const CombatInfoPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) =
         popAfterShow={false}
         toggleText={"撤退"} initial={false} />;
 
-    const takeDamageReadyDialog = <ChooseUnitsDialog
-        callback={(u) => {
-            setReadyUnits(u);
-        }} max={troop.u} initUnits={unitNames.map(() => 0)}
-        show={isActive && actualStage(G, ctx) === 'takeDamage'} title={"选择被击溃的部队"}
-        toggleText={"击溃"} initial={false} country={troop.g} />
-
-    const takeDamageStandbyDialog = <ChooseUnitsDialog
-        callback={(u) => {
-            setStandbyUnits(u);
-        }} max={troop.u} initUnits={unitNames.map(() => 0)}
-        show={isActive && actualStage(G, ctx) === 'takeDamage'} title={"选择要被消灭的部队"}
-        toggleText={"消灭部队"} initial={false} country={troop.g} />
-
     const adjustDice = (n: number) => {
         const newDice = count + n;
         if (newDice <= 1) {
@@ -110,7 +83,7 @@ export const CombatInfoPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) =
         }
 
     }
-    const takdDamageDialog = <TakeDamageDialog
+    const takeDamageDialog = <TakeDamageDialog
         callback={(r: number[], s: number[]) => {
             moves.takeDamage({
                 ready: r,
@@ -125,7 +98,7 @@ export const CombatInfoPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) =
         c={troop.c}
         show={isActive && actualStage(G, ctx) === 'takeDamage'}
         country={troop.g}
-        initUnits={troop.u.map(u => 0)}
+        initUnits={troop.u.map(() => 0)}
         max={troop.u}
         initial={false}
     />
@@ -224,7 +197,7 @@ export const CombatInfoPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) =
                     initial={true} />;
 
                 {retreatDialog}
-                {takdDamageDialog}
+                {takeDamageDialog}
             </> : <></>}
 
             {pid !== null && isActive && <Grid item>
