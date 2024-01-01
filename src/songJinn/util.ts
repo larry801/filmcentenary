@@ -3666,11 +3666,15 @@ export const removeUnitByIdx = (G: SongJinnGame, ctx: Ctx, units: number[], pid:
         if (t.g === Country.JINN) {
             const city = getCityById(c);
             log.push(`|jinn`);
-            if (city.colonizeLevel > G.colony) {
-                log.push(`|not|colonized`);
-                doLoseCity(G, ctx, SJPlayer.P2, c, G.song.provinces.includes(city.province));
-            } else {
-                log.push(`|colonized`);
+            if (city === undefined) {
+
+            }else{
+                if (city.colonizeLevel > G.colony) {
+                    log.push(`|not|colonized`);
+                    doLoseCity(G, ctx, SJPlayer.P2, c, G.song.provinces.includes(city.province));
+                } else {
+                    log.push(`|colonized`);
+                }
             }
         }
         pub.troops.splice(pub.troops.indexOf(t), 1);
