@@ -413,7 +413,19 @@ export const JinnLateCardID = [
     JinnBaseCardID.J48,
     JinnBaseCardID.J49,
     JinnBaseCardID.J50,
+];
 
+export const OptJinnLateCardID = [
+    JinnBaseCardID.J41,
+    JinnBaseCardID.J42,
+    OptionalJinnCardID.X07,
+    JinnBaseCardID.J44,
+    JinnBaseCardID.J45,
+    JinnBaseCardID.J46,
+    JinnBaseCardID.J47,
+    OptionalJinnCardID.X06,
+    JinnBaseCardID.J49,
+    JinnBaseCardID.J50,
 ];
 
 export const SongEarlyCardID = [
@@ -434,6 +446,28 @@ export const SongEarlyCardID = [
     SongBaseCardID.S15,
     SongBaseCardID.S16
 ];
+
+export const OptSongEarlyCardID = [
+    SongBaseCardID.S01,
+    SongBaseCardID.S02,
+    SongBaseCardID.S03,
+    SongBaseCardID.S04,
+    SongBaseCardID.S05,
+    SongBaseCardID.S06,
+    SongBaseCardID.S07,
+    SongBaseCardID.S08,
+    SongBaseCardID.S09,
+    SongBaseCardID.S10,
+    SongBaseCardID.S11,
+    SongBaseCardID.S12,
+    SongBaseCardID.S13,
+    SongBaseCardID.S14,
+    SongBaseCardID.S15,
+    SongBaseCardID.S16,
+    OptionalSongCardID.X08,
+    OptionalSongCardID.X11
+];
+
 export const SongMidCardID = [
     SongBaseCardID.S17,
     SongBaseCardID.S18,
@@ -460,6 +494,35 @@ export const SongMidCardID = [
     SongBaseCardID.S39,
     SongBaseCardID.S40
 ];
+
+export const OptSongMidCardID = [
+    SongBaseCardID.S17,
+    SongBaseCardID.S18,
+    SongBaseCardID.S19,
+    SongBaseCardID.S20,
+    SongBaseCardID.S21,
+    SongBaseCardID.S22,
+    SongBaseCardID.S23,
+    SongBaseCardID.S24,
+    SongBaseCardID.S25,
+    SongBaseCardID.S26,
+    SongBaseCardID.S27,
+    SongBaseCardID.S28,
+    SongBaseCardID.S29,
+    SongBaseCardID.S30,
+    SongBaseCardID.S31,
+    SongBaseCardID.S32,
+    SongBaseCardID.S33,
+    SongBaseCardID.S34,
+    SongBaseCardID.S35,
+    SongBaseCardID.S36,
+    SongBaseCardID.S37,
+    SongBaseCardID.S38,
+    SongBaseCardID.S39,
+    SongBaseCardID.S40,
+    OptionalSongCardID.X09
+];
+
 export const SongLateCardID = [
     SongBaseCardID.S41,
     SongBaseCardID.S42,
@@ -467,6 +530,20 @@ export const SongLateCardID = [
     SongBaseCardID.S44,
     SongBaseCardID.S45,
     SongBaseCardID.S46,
+    SongBaseCardID.S47,
+    SongBaseCardID.S48,
+    SongBaseCardID.S49,
+    SongBaseCardID.S50
+];
+
+export const OptSongLateCardID = [
+    SongBaseCardID.S41,
+    SongBaseCardID.S42,
+    SongBaseCardID.S43,
+    SongBaseCardID.S44,
+    SongBaseCardID.S45,
+    OptionalSongCardID.X10,
+    OptionalSongCardID.X12,
     SongBaseCardID.S47,
     SongBaseCardID.S48,
     SongBaseCardID.S49,

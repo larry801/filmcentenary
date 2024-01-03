@@ -459,7 +459,7 @@ const idToRegion = {[RegionID.R01]:
             name:"秦巴山区",
             terrain:TerrainType.MOUNTAINS,
             province:ProvinceID.JINGXILIANGLU,
-            land:[RegionID.R40,RegionID.R52],
+            land:[RegionID.R52],
             water:[RegionID.R42],
             pass:[],
             city:null
@@ -471,7 +471,7 @@ const idToRegion = {[RegionID.R01]:
             name:"邓州",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.JINGXILIANGLU,
-            land:[RegionID.R37,RegionID.R38,RegionID.R39,RegionID.R41,RegionID.R42],
+            land:[RegionID.R37,RegionID.R38,RegionID.R41,RegionID.R42],
             water:[],
             pass:[RegionID.R36],
             city:null
@@ -483,7 +483,7 @@ const idToRegion = {[RegionID.R01]:
             name:"淮宁",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.JINGXILIANGLU,
-            land:[RegionID.R38,RegionID.R40,RegionID.R42,RegionID.R43,RegionID.R45],
+            land:[RegionID.R38,RegionID.R40,RegionID.R42,RegionID.R43,RegionID.R45, RegionID.R61],
             water:[RegionID.R48],
             pass:[],
             city:CityID.WanQiu
@@ -494,8 +494,8 @@ const idToRegion = {[RegionID.R01]:
             name:"襄阳",
             terrain:TerrainType.HILLS,
             province:ProvinceID.JINGXILIANGLU,
-            land:[RegionID.R39,RegionID.R40,RegionID.R41,RegionID.R61],
-            water:[RegionID.R39,RegionID.R59,RegionID.R60,RegionID.R61],
+            land:[RegionID.R40,RegionID.R41,RegionID.R61],
+            water:[RegionID.R39,RegionID.R59,RegionID.R60],
             pass:[],
             city:CityID.XiangYang
         },
@@ -765,7 +765,6 @@ const idToRegion = {[RegionID.R01]:
             pass:[],
             city:null
         },
-
     [RegionID.R66]:
         {
             id:RegionID.R66,
@@ -843,7 +842,7 @@ const idToRegion = {[RegionID.R01]:
             terrain:TerrainType.SWAMP,
             province:ProvinceID.LIANGZHELU,
             land:[RegionID.R66],
-            water:[RegionID.R73],
+            water:[RegionID.R73, RegionID.R46],
             pass:[],
             city:CityID.DanTu
         },

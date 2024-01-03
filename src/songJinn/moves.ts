@@ -72,7 +72,8 @@ import {
     drawCardForSong,
     drawPhaseForPlayer,
     drawPlanForPlayer,
-    endCombat, endDraw,
+    endCombat,
+    endDraw,
     endRoundCheck,
     getCombatStateById,
     getCountryById,
@@ -484,6 +485,7 @@ export const takeDamage: LongFormMove = {
         log.push(`|${cci.damageLeft}|cci.damageLeft`);
         // TODO check left damage < 0
         // retain empty troop for unitEndurance check in battle
+        //
         if (actualStage(G, ctx) === 'takeDamage') {
             const atkEn = troopEndurance(G, ciAtkTroop(G));
             const defT = ciDefTroop(G);
@@ -533,11 +535,10 @@ export const takeDamage: LongFormMove = {
             }
 
         } else {
+            // TODO not in combat take damage
+            //  check has opponent troop ...
             if (troopEmpty(troop)) {
-                log.push(`|rmTroop`);
-                if (pub.troops.includes(troop)) {
-                    pub.troops.splice(pub.troops.indexOf(troop), 1);
-                }
+                removeZeroTroop(G, ctx, troop);
             }
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -581,6 +582,8 @@ export const placeUnit: LongFormMove = {
             log.push(`|0Units|invalid`);
             logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
+        } else {
+            log.push(`|doPlaceUnit`);
         }
         doPlaceUnit(G, ctx, units, country, place);
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -725,7 +728,7 @@ export interface IDeployUnitArgs {
 }
 
 function doDeployUnits(G: SongJinnGame, _ctx: Ctx, country: Country, units: number[], city: CityID) {
-    const log = [`${country}`];
+    const log = [`doDeployUnits|${country}`];
     const target = ctr2pid(country);
     const pub = pid2pub(G, target);
     pub.ready.forEach((u, idx) => {
@@ -768,7 +771,18 @@ export const deploy: LongFormMove = {
         if (city === null) {
             return INVALID_MOVE;
         }
-        doDeployUnits(G, ctx, country, units, city);
+        const target = ctr2pid(country);
+        const pub = pid2pub(G, target);
+        pub.ready.forEach((u, idx) => {
+            if (u < units[idx]) {
+                return INVALID_MOVE;
+            }
+        })
+        if (args.units.reduce(accumulator) === 0) {
+            return INVALID_MOVE;
+        }else{
+            doDeployUnits(G, ctx, country, units, city);
+        }
     }
 }
 
@@ -1930,6 +1944,9 @@ export const confirmRespond: LongFormMove = {
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return;
                 }
+            }
+            if (ci.phase === CombatPhase.ZhuDuiShiY) {
+                // TODO go to
             }
             if (ci.phase === CombatPhase.MingJin) {
                 if (ctr === ci.atk) {

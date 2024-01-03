@@ -457,7 +457,10 @@ describe('diplomacy', () => {
 
     })
     it('place-city-combat',()=>{
+        p0.moves.cardEvent("S13");
+        p0.moves.placeUnit({"place":11,"units":[4,0,0,0,0,0],"country":"宋"});
 
+        cs(p0);
     })
     it('place-combat',()=>{
         p0.moves.op("S11");
