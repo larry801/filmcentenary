@@ -120,7 +120,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             {ctx.phase === 'develop' ?
                 <div><label> 使用/总发展点数： {G.song.usedDevelop}/{totalDevelop(G, ctx, SJPlayer.P1)} </label></div>
             :
-                <div><label> 预计发展点数：{totalDevelop(G, ctx, SJPlayer.P2)} </label></div>
+                <div><label> 预计发展点数：{totalDevelop(G, ctx, SJPlayer.P1)} </label></div>
 
             }
             {G.turn > 6 && <div><label>绍兴和议分数：
