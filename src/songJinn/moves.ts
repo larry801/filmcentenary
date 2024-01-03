@@ -19,7 +19,7 @@ import {
     PendingEvents,
     PlanID,
     PlayerPendingEffect,
-    ProvinceID,
+    ProvinceID, ProvinceState,
     SJEventCardID,
     SJPlayer,
     SongBaseCardID,
@@ -187,13 +187,13 @@ export const checkProvince: LongFormMove = {
         const {prov} = arg;
         const provStatus = currentProvStatus(G, prov);
         switch (provStatus) {
-            case "金控制":
+            case ProvinceState.JINN:
                 doControlProvince(G, ctx, SJPlayer.P2, prov);
                 break;
-            case "宋控制":
+            case ProvinceState.SONG:
                 doControlProvince(G, ctx, SJPlayer.P1, prov);
                 break;
-            case "战争状态":
+            case ProvinceState.NEUTRAL:
                 const songProv = G.song.provinces;
                 if (songProv.includes(prov)) {
                     doLoseProvince(G, ctx, SJPlayer.P1, prov, false);

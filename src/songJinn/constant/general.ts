@@ -124,8 +124,8 @@ export const enum CityState {
 }
 
 export const enum ProvinceState {
-    SONG = "金控制",
-    JINN = "宋控制",
+    SONG = "宋控制",
+    JINN = "金控制",
     NEUTRAL = "战争状态"
 }
 
