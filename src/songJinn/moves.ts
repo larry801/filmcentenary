@@ -37,7 +37,7 @@ import {merge} from "lodash";
 import {
     addTroop,
     canForceRoundTwo,
-    canRoundTwo,
+    canRoundTwo, canStalemate,
     cardToSearch,
     changeCivil,
     changeMilitary,
@@ -780,7 +780,7 @@ export const deploy: LongFormMove = {
         })
         if (args.units.reduce(accumulator) === 0) {
             return INVALID_MOVE;
-        }else{
+        } else {
             doDeployUnits(G, ctx, country, units, city);
         }
     }
@@ -809,8 +809,8 @@ export const discard: LongFormMove = {
             logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
-        if(ctx.phase === 'draw' && getStage(ctx) === 'discard') {
-            if(pub.effect.includes(PlayerPendingEffect.SearchCard)){
+        if (ctx.phase === 'draw' && getStage(ctx) === 'discard') {
+            if (pub.effect.includes(PlayerPendingEffect.SearchCard)) {
                 log.push(`|anotherSearch`);
                 changePlayerStage(G, ctx, 'search', pid);
             } else {
@@ -1529,7 +1529,7 @@ export const search: LongFormMove = {
             logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
-        if (ctx.phase === 'draw' && getStage(ctx) === 'search'){
+        if (ctx.phase === 'draw' && getStage(ctx) === 'search') {
             if (pub.effect.includes(PlayerPendingEffect.SearchCard)) {
                 pub.effect.splice(pub.effect.indexOf(PlayerPendingEffect.SearchCard), 1);
                 log.push(`|${JSON.stringify(pub.effect)}|pub.effect`);
@@ -1946,7 +1946,18 @@ export const confirmRespond: LongFormMove = {
                 }
             }
             if (ci.phase === CombatPhase.ZhuDuiShiY) {
-                // TODO go to
+                // TODO  yue fei / jian sun zhu dui shi
+                const poppedEvent = G.pending.events.pop()
+                if (poppedEvent !== undefined) {
+                    switch (poppedEvent) {
+                        case PendingEvents.YueFeiZhuDuiShi:
+
+                        case PendingEvents.JianSunZhuDuiShi:
+
+                        default:
+                            return;
+                    }
+                }
             }
             if (ci.phase === CombatPhase.MingJin) {
                 if (ctr === ci.atk) {
@@ -1982,11 +1993,45 @@ export const confirmRespond: LongFormMove = {
                             if (choice === BeatGongChoice.RETREAT) {
                                 atkCCI.choice = BeatGongChoice.RETREAT;
                                 log.push(`|atkRetreat`);
-                                endCombat(G, ctx);
-                                ctx.events?.endStage();
-                                // changePlayerStage(G, ctx, 'retreat', ciAtkPid(G));
-                                if (ciAtkPid(G) !== ctx.currentPlayer) {
-                                    changePlayerStage(G, ctx, 'react', ciAtkPid(G));
+                                if (!canStalemate(G)) {
+                                    log.push(`|auto|retreat`);
+
+                                    const retreatPlace = G.pending.places.pop();
+                                    log.push(`|${retreatPlace}|retreatPlace`);
+                                    if (retreatPlace !== undefined) {
+                                        if (G.combat.pass !== null) {
+                                            log.push(`|move|from|pass`);
+                                            log.push(`|${G.combat.pass}|G.combat.pass`);
+                                            doMoveTroopAll(G, ctx, G.combat.pass, retreatPlace, G.combat.atk);
+                                            endCombat(G, ctx);
+                                            logger.debug(`${G.matchID}|${log.join('')}`);
+                                            return;
+                                        } else {
+                                            if (G.combat.region !== null) {
+                                                log.push(`|move|from|region`);
+                                                log.push(`|${placeToStr(G.combat.region)}|G.combat.region`);
+                                                doMoveTroopAll(G, ctx, G.combat.region, retreatPlace, G.combat.atk);
+                                                endCombat(G, ctx);
+                                                logger.debug(`${G.matchID}|${log.join('')}`);
+                                                return;
+                                            } else {
+                                                log.push(`|no region|manual|retreat`);
+                                                ctx.events?.endStage();
+                                                endCombat(G, ctx);
+                                                // TODO changePlayerStage(G, ctx, 'retreat', ciAtkPid(G));
+                                                if (ciAtkPid(G) !== ctx.currentPlayer) {
+                                                    changePlayerStage(G, ctx, 'react', ciAtkPid(G));
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    ctx.events?.endStage();
+                                    //  TODO changePlayerStage(G, ctx, 'retreat', ciAtkPid(G));
+                                    if (ciAtkPid(G) !== ctx.currentPlayer) {
+                                        changePlayerStage(G, ctx, 'react', ciAtkPid(G));
+                                    }
+                                    endCombat(G, ctx);
                                 }
                                 logger.debug(`${G.matchID}|${log.join('')}`);
                                 return;

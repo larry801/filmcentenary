@@ -16,6 +16,9 @@ export enum PendingEvents {
     LoseCorruption = "丢失国力",
     MergeORSiege = "会战攻城",
     HuFuXiangBing = "胡服乡兵",
+    YueFeiZhuDuiShi = "岳飞",
+    JianSunZhuDuiShi = "减损",
+
 }
 
 export enum MarchDstStatus {
@@ -536,7 +539,8 @@ export const SongLateCardID = [
     SongBaseCardID.S50
 ];
 
-export const OptSongLateCardID = [
+export const OptSongLateCardID =
+    [
     SongBaseCardID.S41,
     SongBaseCardID.S42,
     SongBaseCardID.S43,

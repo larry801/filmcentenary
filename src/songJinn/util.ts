@@ -37,7 +37,7 @@ import {
     MountainPassID,
     NationID,
     Nations,
-    NationState,
+    NationState, OptJinnLateCardID, OptSongLateCardID, OptSongMidCardID,
     PendingEvents,
     PlanID,
     PlayerPendingEffect,
@@ -3133,14 +3133,7 @@ export const getPlaceCountryGeneralNames = (G: SongJinnGame, country: Country, p
         return readyGenerals.map(g => GeneralNames[1][g]);
     }
 }
-export const getPlaceGeneralNames = (G: SongJinnGame, pid: PlayerID, place: TroopPlace) => {
-    const readyGenerals = getPlaceGeneral(G, pid, place);
-    if (pid === SJPlayer.P1) {
-        return readyGenerals.map(g => GeneralNames[0][g]);
-    } else {
-        return readyGenerals.map(g => GeneralNames[1][g]);
-    }
-}
+
 export const getReadyGeneralNames = (G: SongJinnGame, pid: PlayerID) => {
     const readyGenerals = getReadyGenerals(G, pid);
     if (pid === SJPlayer.P1) {
@@ -3170,14 +3163,7 @@ export const moveGeneralByPid = (G: SongJinnGame, pid: PlayerID, general: Genera
     pub.generalPlace[general] = dst;
     pub.generals[general] = GeneralStatus.TROOP;
 }
-export const generalToReadyByPid = (G: SongJinnGame, pid: PlayerID, general: General) => {
-    const pub = pid2pub(G, pid);
-    pub.generals[general] = GeneralStatus.READY;
-}
-export const generalToReadyByCountry = (G: SongJinnGame, ctr: Country, general: General) => {
-    const pub = ctr2pub(G, ctr);
-    pub.generals[general] = GeneralStatus.READY;
-}
+
 export const moveGeneralByCountry = (G: SongJinnGame, ctr: Country, general: General, dst: TroopPlace) => {
     const log = [`moveGeneralByCountry`];
     const pub = ctr2pub(G, ctr);
@@ -3799,7 +3785,7 @@ export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
 
 
 export const getCtrRecruitCost = (G: SongJinnGame, ctr: Country) => {
-    let cost: number[] = [0, 0, 0, 0, 0, 0];
+    let cost: number[];
     if (ctr === Country.SONG) {
         cost = INITIAL_RECRUIT_COST[0];
         if (G.events.includes(ActiveEvents.ShenBiGong)) {
@@ -4224,6 +4210,7 @@ const idToPlan = {
         "provinces": [ProvinceID.JINGDONGLIANGLU],
         "vp": 1,
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            // TODO limit adjust nation to one time
             // changePlayerStage(G, ctx, 'adjustNation', pid);
 
         }
@@ -4247,6 +4234,8 @@ const idToPlan = {
         "provinces": [ProvinceID.HEDONGLU],
         "vp": 1,
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            // TODO limit remove unit by endurance
+            // changePlayerStage(G, ctx, 'removeUnit', pid);
         }
     },
     [PlanID.J07]: {
@@ -4919,7 +4908,6 @@ export const totalDevelop = (G: SongJinnGame, ctx: Ctx, playerId: PlayerID) => {
     ) {
         log.push(`|BuJianLaiShi`);
         sum++;
-
         log.push(`|${sum}sum`);
     }
     const nationCount = pub.nations.length;
@@ -5446,14 +5434,14 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
             value: BeatGongChoice.RETREAT.toString(),
             disabled: false,
             hidden: false
-        },
-        {
-            label: BeatGongChoice.STALEMATE.toString(),
-            value: BeatGongChoice.STALEMATE.toString(),
-            disabled: false,
-            hidden: false
         }
-    ]
+    ];
+    const stalemateChoice = {
+        label: BeatGongChoice.STALEMATE.toString(),
+        value: BeatGongChoice.STALEMATE.toString(),
+        disabled: false,
+        hidden: false
+    };
     const yesNoOption = [
         {label: "是", value: "yes", disabled: false, hidden: false},
         {label: "否", value: "no", disabled: false, hidden: false}
@@ -5497,11 +5485,15 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
                         hidden: false
                     },)
                 }
+                if (canStalemate(G)) {
+                    beatGongChoices.push(stalemateChoice)
+                }
                 return beatGongChoices;
             } else {
                 if (canForceRoundTwo(G)) {
                     return yesNoOption;
                 } else {
+                    beatGongChoices.push(stalemateChoice);
                     return beatGongChoices;
                 }
             }
@@ -5653,29 +5645,9 @@ export const confirmRespondText = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
     return "是否确认";
 }
 
-// TODO canStalemate  rescue or attack mountain pass
-
 export function endCombat(G: SongJinnGame, ctx: Ctx) {
     const log = [`endCombat`];
     const c = G.combat;
-
-    const retreatPlace = G.pending.places.pop();
-    if (c.type === CombatType.RESCUE) {
-        if (retreatPlace !== undefined) {
-            const dt = ciDefTroop(G);
-            if (dt !== null) {
-                if (troopEndurance(G, dt) > 0) {
-                    log.push(`|${retreatPlace}|retreatPlace`);
-                    if (c.region !== null) {
-                        doMoveTroopAll(G, ctx, dt.p, retreatPlace, c.atk);
-                    } else {
-                        log.push(`|no region`);
-                    }
-                }
-            }
-        }
-    }
-    // TODO auto retreat pass / rescue
     c.ongoing = false;
     log.push(`|${c.song.combatCard}c.song.combatCard`);
     log.push(`|${G.song.discard}G.song.discard`);
@@ -5701,6 +5673,7 @@ export function endCombat(G: SongJinnGame, ctx: Ctx) {
     G.combat = emptyCombatInfo();
     log.push(`|${JSON.stringify(c)}`);
     if (G.pending.events.length === 0) {
+        log.push(`|no|pneding|endStage`);
         ctx.events?.endStage();
     } else {
         log.push(`|${JSON.stringify(G.pending.events)}|G.pending.events`);
@@ -5729,15 +5702,15 @@ export const isQiXing = (t: Troop) => {
     }
 }
 
-export const shouldAutoRetreat = (G: SongJinnGame, t: Troop): boolean => {
+export const canStalemate = (G: SongJinnGame): boolean => {
     const ci = G.combat;
     if (ci.pass !== null) {
-        return ci.atk === t.g;
+        return false;
     } else {
         if (ci.type === CombatType.RESCUE) {
-            return ci.atk === t.g;
-        } else {
             return false;
+        } else {
+            return true;
         }
     }
 }
@@ -7180,16 +7153,26 @@ export const drawPhaseForPlayer = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
     }
 }
 export const addLateTermCard = (G: SongJinnGame, ctx: Ctx) => {
-    SongLateCardID.forEach(c => G.secret.songDeck.push(c));
-    JinnLateCardID.forEach(c => G.secret.jinnDeck.push(c));
+    if(isOptional(G)){
+        // OptSongLateCardID.forEach(c => G.secret.songDeck.push(c));
+        // OptJinnLateCardID.forEach(c => G.secret.jinnDeck.push(c));
+    }else{
+        SongLateCardID.forEach(c => G.secret.songDeck.push(c));
+        JinnLateCardID.forEach(c => G.secret.jinnDeck.push(c));
+    }
     G.secret.songDeck = shuffle(ctx, G.secret.songDeck);
     G.secret.jinnDeck = shuffle(ctx, G.secret.jinnDeck);
     LatePlanID.forEach(p => G.secret.planDeck.push(p));
     G.secret.planDeck = shuffle(ctx, G.secret.planDeck);
 }
 export const addMidTermCard = (G: SongJinnGame, ctx: Ctx) => {
-    SongMidCardID.forEach(c => G.secret.songDeck.push(c));
-    JinnMidCardID.forEach(c => G.secret.jinnDeck.push(c));
+    if(isOptional(G)){
+        // OptSongMidCardID.forEach(c => G.secret.songDeck.push(c));
+        // JinnMidCardID.forEach(c => G.secret.jinnDeck.push(c));
+    }else{
+        SongMidCardID.forEach(c => G.secret.songDeck.push(c));
+        JinnMidCardID.forEach(c => G.secret.jinnDeck.push(c));
+    }
     G.secret.songDeck = shuffle(ctx, G.secret.songDeck);
     G.secret.jinnDeck = shuffle(ctx, G.secret.jinnDeck);
 
