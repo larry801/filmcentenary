@@ -37,7 +37,7 @@ import {
     MountainPassID,
     NationID,
     Nations,
-    NationState, OptJinnLateCardID, OptSongLateCardID, OptSongMidCardID,
+    NationState,
     PendingEvents,
     PlanID,
     PlayerPendingEffect,
@@ -540,7 +540,7 @@ export const getMarchDst = (G: SongJinnGame, t: Troop, units: number[]): IMarchP
                             log.push(`|swamp`);
                             res.push({mid: p, dst: z});
                         }
-                    }else{
+                    } else {
                         res.push({mid: p, dst: z});
                     }
                 }
@@ -2543,7 +2543,7 @@ export const idToCard = {
         effectText: "在准南两路，消灭2个部队。征募2个步兵和1个战船（不受内政等级限制〕。",
         pre: (G: SongJinnGame, _ctx: Ctx) => G.events.includes(ActiveEvents.ZhangZhaoZhiZheng),
         event: (G: SongJinnGame, _ctx: Ctx) => {
-            doRecruit(G, [2,0,0,1,0,0,0], SJPlayer.P2);
+            doRecruit(G, [2, 0, 0, 1, 0, 0, 0], SJPlayer.P2);
         }
     },
     [JinnBaseCardID.J25]: {
@@ -4971,10 +4971,16 @@ export const jiaoFeng = (G: SongJinnGame, ctx: Ctx) => {
     log.push(`|${ci.type}`);
     switch (ci.type) {
         case CombatType.SIEGE:
-            if (dt.c === null) {
-                log.push(`|error`);
-                logger.error(`${G.matchID}|${log.join('')}`);
-                return;
+            if(ci.pass !== null){
+                log.push(`|pass${ci.pass}`);
+            }else{
+                log.push(`|${dt.c}|dt.c`);
+                if (dt.c === null) {
+                    log.push(`|no|def|city|error|endCombat`);
+                    endCombat(G, ctx);
+                    logger.error(`${G.matchID}|${log.join('')}`);
+                    return;
+                }
             }
             atkD = getSiegeMeleeStr(G, at);
             defD = getDefendCiyMelee(G, dt);
@@ -5145,11 +5151,16 @@ export const yuanCheng = (G: SongJinnGame, ctx: Ctx) => {
     log.push(`|${ci.type}`);
     switch (ci.type) {
         case CombatType.SIEGE:
-            if (dt.c === null) {
-                log.push(`|no|def|city|error|endCombat`);
-                endCombat(G, ctx);
-                logger.error(`${G.matchID}|${log.join('')}`);
-                return;
+            if (ci.pass !== null) {
+                log.push(`|pass${ci.pass}`);
+            } else {
+                log.push(`|${dt.c}`);
+                if (dt.c === null) {
+                    log.push(`|no|def|city|error|endCombat`);
+                    endCombat(G, ctx);
+                    logger.error(`${G.matchID}|${log.join('')}`);
+                    return;
+                }
             }
             defD = getDefendCityRangeStr(G, dt);
             atkD = getSiegeRangeStr(G, at);
@@ -5785,7 +5796,7 @@ export function startCombat(
     } else {
         if (isMountainPassID(p)) {
             log.push(`|pass`);
-            c.type = CombatType.SIEGE;
+            c.pass = p;
         }
     }
     if (atkTroop !== null) {
@@ -5941,7 +5952,16 @@ export function zhuDuiShiYuanCheng(G: SongJinnGame, ctx: Ctx) {
     log.push(`|${ci.phase}|ci.phase`);
     ci.phase = CombatPhase.ZhuDuiShiY;
     log.push(`|${ci.phase}|ci.phase`);
-    const strength = getRangeStrength(G, ciSongTroop(G));
+    let strength;
+    if (ci.type === CombatType.SIEGE) {
+        if (ci.atk === Country.JINN) {
+            strength = getDefendCityRangeStr(G, ciSongTroop(G));
+        } else {
+            strength = getSiegeRangeStr(G, ciSongTroop(G));
+        }
+    } else {
+        strength = getRangeStrength(G, ciSongTroop(G))
+    }
     rollDiceByPid(G, ctx, SJPlayer.P1, strength);
     log.push(`|${ci.jinn.damageLeft}|ci.jinn.damageLeft`);
     if (ci.jinn.damageLeft === 0) {
@@ -5958,7 +5978,16 @@ export function zhuDuiShiYuanChengJinn(G: SongJinnGame, ctx: Ctx) {
     const log = [`zhuDuiShiYuanChengJinn`];
     const ci = G.combat;
     log.push(`|${ci.phase}|ci.phase`);
-    const strength = getRangeStrength(G, ciJinnTroop(G));
+    let strength;
+    if (ci.type === CombatType.SIEGE) {
+        if (ci.atk === Country.JINN) {
+            strength = getSiegeRangeStr(G, ciJinnTroop(G));
+        } else {
+            strength = getDefendCityRangeStr(G, ciJinnTroop(G));
+        }
+    } else {
+        strength = getRangeStrength(G, ciJinnTroop(G))
+    }
     log.push(`|${strength}|strength`);
     rollDiceByPid(G, ctx, SJPlayer.P2, strength);
     log.push(`|${ci.song.damageLeft}|ci.song.damageLeft`);
@@ -7153,10 +7182,10 @@ export const drawPhaseForPlayer = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => 
     }
 }
 export const addLateTermCard = (G: SongJinnGame, ctx: Ctx) => {
-    if(isOptional(G)){
+    if (isOptional(G)) {
         // OptSongLateCardID.forEach(c => G.secret.songDeck.push(c));
         // OptJinnLateCardID.forEach(c => G.secret.jinnDeck.push(c));
-    }else{
+    } else {
         SongLateCardID.forEach(c => G.secret.songDeck.push(c));
         JinnLateCardID.forEach(c => G.secret.jinnDeck.push(c));
     }
@@ -7166,10 +7195,10 @@ export const addLateTermCard = (G: SongJinnGame, ctx: Ctx) => {
     G.secret.planDeck = shuffle(ctx, G.secret.planDeck);
 }
 export const addMidTermCard = (G: SongJinnGame, ctx: Ctx) => {
-    if(isOptional(G)){
+    if (isOptional(G)) {
         // OptSongMidCardID.forEach(c => G.secret.songDeck.push(c));
         // JinnMidCardID.forEach(c => G.secret.jinnDeck.push(c));
-    }else{
+    } else {
         SongMidCardID.forEach(c => G.secret.songDeck.push(c));
         JinnMidCardID.forEach(c => G.secret.jinnDeck.push(c));
     }

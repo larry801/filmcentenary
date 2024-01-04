@@ -105,7 +105,39 @@ describe('diplomacy', () => {
 
     it('march-tong-guan', () => {
         p0.moves.op("S11");
-        p0.moves.march({"src": 18, "dst": "潼关", "units": [2, 1, 0, 0, 0, 0], "generals": [0], "country": "宋"});
+        p0.moves.march({"src": 35, "dst": "潼关", "units": [0, 1, 0, 0, 0, 0], "generals": [0], "country": "宋"});
+        p0.moves.endRound();
+        p1.moves.emptyRound();
+        p1.moves.march({"src": 36, "dst": "潼关", "units": [2, 2, 1, 0, 0, 0, 0], "generals": [], "country": "金"});
+        cs(p0);
+        p0.moves.combatCard([]);
+        p1.moves.combatCard([]);
+        cs(p0);
+
+
+
+        p0.moves.takeDamage({
+            c: "宋",
+            src: "潼关",
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+        cs(p0);
+        p1.moves.takeDamage({
+            c: "金",
+            src: "潼关",
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+        cs(p0);
+        p1.moves.takeDamage({
+            c: "金",
+            src: "潼关",
+            ready: [0, 0, 0, 0, 0, 0],
+            standby: [0, 0, 0, 0, 0, 0],
+        });
+        cs(p0);
+
     });
     it('march-hui-zhan', () => {
         p0.moves.op("S11");
