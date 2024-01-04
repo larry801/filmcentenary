@@ -6225,14 +6225,14 @@ export function getCityDefByTroop(G: SongJinnGame, t: Troop): number {
     let def = 0;
     if (isCityID(t.p)) {
         // @ts-ignore
-        def = getCityDefence(G, t.p, t.g);
+        def = getCityDefence(G, t.p);
     } else {
         if (isRegionID(t.p)) {
             // @ts-ignore
             const cid = getRegionById(t.p).city;
             log.push(`|${cid}|cid`);
             if (cid !== null) {
-                def = getCityDefence(G, cid, t.g);
+                def = getCityDefence(G, cid);
             } else {
                 log.push(`|noCity0`);
             }
@@ -6674,12 +6674,12 @@ export function troopRange(G: SongJinnGame, troop: Troop): number {
     return range;
 }
 
-export function getCityDefence(G: SongJinnGame, cid: CityID, ctr: Country): number {
+export function getCityDefence(G: SongJinnGame, cid: CityID): number {
     const city = getCityById(cid);
     const log = [`getCityDefence${city.name}`];
     let def = city.capital ? 2 : 1;
     log.push(`|${def}def`);
-    if (ctr2pub(G, ctr).emperor === cid) {
+    if (ctr2pub(G, oppoCtr(G.combat.atk)).emperor === cid) {
         log.push(`|emperor`);
         def++;
         log.push(`|${def}def`);
