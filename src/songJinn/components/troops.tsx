@@ -548,7 +548,8 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
                 {hasOpponentTroop(G, t) && "对峙|"}
                 {troopIsWeiKun(G, t) && "被围困|"}
                 {troopCanSiege(G, t) && "围城|"}
-                {t.g}{getTroopPlaceText(t)}
+                {t.g}|{getTroopPlaceText(t)}|
+                {t.c === null ? `()` : `(${t.c})`}
                 {getTroopText(G, t)} </AccordionSummary>
             <AccordionDetails>
                 <Grid container>
