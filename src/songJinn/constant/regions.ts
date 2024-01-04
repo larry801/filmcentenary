@@ -79,7 +79,7 @@ const idToRegion = {[RegionID.R01]:
             name:"辽阳府",
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.YANJINGLU,
-            land:[RegionID.R02DaTonFu],
+            land:[RegionID.R05],
             water:[],
             pass:[],
             city:CityID.LiaoYang
