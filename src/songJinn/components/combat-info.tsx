@@ -63,8 +63,7 @@ export const CombatInfoPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) =
             }
         })} defaultChoice={""}
         show={isActive
-            // && actualStage(G, ctx) === 'retreat'
-            && actualStage(G, ctx) === 'react'
+            && actualStage(G, ctx) === 'retreat'
         }
         title={"选择撤退目标区域"}
         popAfterShow={false}
