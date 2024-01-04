@@ -16,7 +16,7 @@ import {
     RegionID,
     SongGeneral,
     SongJinnGame,
-    Troop,
+    Troop, TroopPlace,
     UNIT_SHORTHAND
 } from "../constant/general";
 import ChoiceDialog from "../../components/modals";
@@ -43,7 +43,6 @@ import {
     getPresentGeneral,
     getRangeStrength,
     getReadyGenerals,
-    getRegionText,
     getSiegeMeleeStr,
     getSiegeRangeStr,
     getTroopPlaceText,
@@ -52,9 +51,9 @@ import {
     hasSupply,
     IMarchPath,
     jinnSorter,
-    marchDstStatus,
+    marchDstStatus, optionToPlace,
     pathToText,
-    pid2pub,
+    pid2pub, placeToOption, placeToStr, provPlaces,
     songSorter,
     StrProvince,
     troopCanSiege,
@@ -222,9 +221,8 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
                 console.log(`${c}|cannot|convertToProv`);
                 return;
             }
-            const province = getProvinceById(newProv);
-            const newRegions = province.regions;
-            setRegions(newRegions);
+            const newRegions = provPlaces(G, newProv);
+            setPlaces(newRegions);
             setMoveStep(MoveStep.REGION);
         }} choices={
             Object.values(ProvinceID).map(p => {
@@ -262,35 +260,39 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
         title={"请选择移动将领"} toggleText={"选择移动将领"} initial={true} />
 
 
-    const [newTroopRegion, setNewTroopRegion] = React.useState(RegionID.R01);
+    const [newTroopRegion, setNewTroopRegion] = React.useState<TroopPlace>(RegionID.R01);
     const [newTroopStep, setNewTroopStep] = React.useState(NewTroopStep.START);
 
-    const [regions, setRegions] = React.useState([RegionID.R01]);
+    const [places, setPlaces] = React.useState<TroopPlace[]>([RegionID.R01]);
 
     const regionDialog = <ChoiceDialog
         callback={(c) => {
-            const regID = parseInt(c) as RegionID;
-            if (newTroopStep === NewTroopStep.REGION) {
-                setNewTroopRegion(regID);
-                setNewTroopStep(NewTroopStep.UNIT);
-            }
-            if (moveStep === MoveStep.REGION) {
-                setMoveStep(MoveStep.TROOP);
-                moves.moveTroop({
-                    src: moveTroop,
-                    units: moveUnits,
-                    generals: moveGenerals,
-                    dst: regID,
-                    country: moveTroop.g
-                })
+            const regID = optionToPlace(c);
+            if(regID === null){
+                console.log(c+'|regionDialog')
+            }else{
+                if (newTroopStep === NewTroopStep.REGION) {
+                    setNewTroopRegion(regID);
+                    setNewTroopStep(NewTroopStep.UNIT);
+                }
+                if (moveStep === MoveStep.REGION) {
+                    setMoveStep(MoveStep.TROOP);
+                    moves.moveTroop({
+                        src: moveTroop,
+                        units: moveUnits,
+                        generals: moveGenerals,
+                        dst: regID,
+                        country: moveTroop.g
+                    })
+                }
             }
         }}
-        choices={regions.map(r => {
+        choices={places.map(r => {
             return {
-                label: getRegionText(r),
-                value: r.toString(),
+                label: placeToStr(r),
                 hidden: false,
-                disabled: false
+                disabled: false,
+                value: placeToOption(r)
             }
         })} defaultChoice={""} show={isActive && newTroopStep === NewTroopStep.REGION || moveStep === MoveStep.REGION}
         title={"选择目标区域"}
@@ -319,7 +321,7 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
             }
             const province = getProvinceById(newProv);
             const newRegions = province.regions;
-            setRegions(newRegions);
+            setPlaces(newRegions);
             setNewTroopStep(NewTroopStep.REGION);
         }} choices={
             Object.values(ProvinceID).map(p => {
