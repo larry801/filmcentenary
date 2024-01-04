@@ -5439,13 +5439,14 @@ export const confirmRespondLogText = (G: SongJinnGame, arg: string, ctr: Country
 }
 
 export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+    const retreatChoice = {
+        label: BeatGongChoice.RETREAT.toString(),
+        value: BeatGongChoice.RETREAT.toString(),
+        disabled: false,
+        hidden: false
+    };
     const beatGongChoices = [
-        {
-            label: BeatGongChoice.RETREAT.toString(),
-            value: BeatGongChoice.RETREAT.toString(),
-            disabled: false,
-            hidden: false
-        }
+
     ];
     const stalemateChoice = {
         label: BeatGongChoice.STALEMATE.toString(),
@@ -5499,11 +5500,15 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
                 if (canStalemate(G)) {
                     beatGongChoices.push(stalemateChoice)
                 }
+                beatGongChoices.push(retreatChoice);
                 return beatGongChoices;
             } else {
                 if (canForceRoundTwo(G)) {
                     return yesNoOption;
                 } else {
+                    if(ci.type !== CombatType.SIEGE){
+                        beatGongChoices.push(retreatChoice);
+                    }
                     beatGongChoices.push(stalemateChoice);
                     return beatGongChoices;
                 }
