@@ -197,7 +197,9 @@ export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
             moves: {
                 takeDamage: takeDamage,
                 opponentMove: opponentMove,
-                rollDices: rollDices
+                rollDices: rollDices,
+                endRound: endRound,
+                generalSkill: generalSkill,
             }
         },
         freeHeYi: {
