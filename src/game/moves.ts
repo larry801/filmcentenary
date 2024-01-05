@@ -1350,20 +1350,18 @@ export const playCard: LongFormMove = {
                     drawCardForPlayer(G, ctx, arg.playerID);
                     G.e.stack.push({e: "addVp", a: 1});
                     log.push(`|masala|${JSON.stringify(G.e.stack)}`)
-
                     break;
                 default:
-                    G.e.stack.push({e: "res", a: 1});
                     G.e.stack.push({e: "addVp", a: 2});
+                    G.e.stack.push({e: "res", a: 1});
                     log.push(`|${JSON.stringify(G.e.stack)}`)
-
                     break;
             }
         }
         if (pub.school === SchoolCardID.S4008 && playCard.industry > 0) {
             //流派扩：高概
-            G.e.stack.push({e: "res", a: playCard.industry});
             G.e.stack.push({e: "addVp", a: playCard.industry});
+            G.e.stack.push({e: "res", a: playCard.industry});
             log.push(`${JSON.stringify(G.e.stack)}`)
         }
         if (pub.school === SchoolCardID.S4005 && playCard.aesthetics > 0) {
