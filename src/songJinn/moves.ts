@@ -943,13 +943,18 @@ interface IMoveGeneralArgs {
 
 export const moveGeneral: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, args: IMoveGeneralArgs) => {
-        if (ctx.playerID === undefined) {
+        const pid = ctx.playerID;
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        logger.info(`p${ctx.playerID}.moveReadyGeneral(${JSON.stringify(args)})`);
+        logger.info(`p${pid}.moveReadyGeneral(${JSON.stringify(args)})`);
+
         const {dst, general} = args;
-        const log = [`p${ctx.playerID}.moveReadyGeneral`];
-        moveGeneralByPid(G, ctx.playerID, general, dst);
+        if (dst === null) {
+            return INVALID_MOVE;
+        }
+        const log = [`p${pid}.moveReadyGeneral`];
+        moveGeneralByPid(G, pid, general, dst);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }

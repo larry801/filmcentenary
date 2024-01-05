@@ -12,7 +12,7 @@ import {
     NationID, PlanID,
     ProvinceID,
     RegionID, SongGeneral,
-    SongJinnGame
+    SongJinnGame, TroopPlace
 } from "../constant/general";
 import {getProvinceById} from "../constant/province";
 import {
@@ -21,8 +21,8 @@ import {
     getCountryById,
     getGeneralNameByCountry, getPlanById,
     getReadyGenerals,
-    getRegionText,
-    pid2pub,
+    getRegionText, optionToPlace,
+    pid2pub, placeToOption, placeToStr, provPlaces,
     StrProvince
 } from "../util";
 import Button from "@material-ui/core/Button";
@@ -56,8 +56,8 @@ export const AdjustOps = ({
 
     const readyGenerals: General[] = getReadyGenerals(G, playerID);
     const [moveGeneralStep, setMoveGeneralStep] = useState(MoveGeneralStep.PROVINCE);
-    const [regions, setRegions] = useState([RegionID.R20]);
-    const [moveGeneralRegion, setMoveGeneralRegion] = useState(RegionID.R01);
+    const [regions, setRegions] = useState<TroopPlace[]>([RegionID.R20]);
+    const [moveGeneralRegion, setMoveGeneralRegion] = useState<TroopPlace>(RegionID.R01);
 
 
     const removeNationDialog = <ChoiceDialog
@@ -113,8 +113,7 @@ export const AdjustOps = ({
                 console.log(`${c}|cannot|convertToProv`);
                 return;
             }
-            const province = getProvinceById(newProv);
-            const newRegions = province.regions;
+            const newRegions = provPlaces(G, newProv)
             setRegions(newRegions);
             setMoveGeneralStep(MoveGeneralStep.REGION);
         }} choices={
@@ -132,17 +131,20 @@ export const AdjustOps = ({
 
     const chooseRegionDialog = <ChoiceDialog
         callback={(c) => {
-            const regID = parseInt(c) as RegionID;
-
-            if (moveGeneralStep === MoveGeneralStep.REGION) {
-                setMoveGeneralStep(MoveGeneralStep.GENERAL);
-                setMoveGeneralRegion(regID);
+            const regID = optionToPlace(c);
+            if(regID !== null) {
+                if (moveGeneralStep === MoveGeneralStep.REGION) {
+                    setMoveGeneralStep(MoveGeneralStep.GENERAL);
+                    setMoveGeneralRegion(regID);
+                }
+            }else{
+                console.log(c,regID)
             }
         }}
         choices={regions.map(r => {
             return {
-                label: getRegionText(r),
-                value: r.toString(),
+                label: placeToStr(r),
+                value: placeToOption(r),
                 hidden: false,
                 disabled: false
             }
@@ -155,18 +157,20 @@ export const AdjustOps = ({
     const chooseGeneralDialog = <ChoiceDialog
         callback={(c) => {
             const g: General = parseInt(c) as General;
+            console.log(c);
             moves.moveGeneral({
                 dst: moveGeneralRegion,
                 country: ctr,
                 general: g
-            })
+            });
+            setMoveGeneralStep(MoveGeneralStep.PROVINCE);
         }} choices={Object.values(SongGeneral).map(gen => {
         return {
             // @ts-ignore
             label: getGeneralNameByCountry(ctr, gen as General),
             value: gen.toString(),
             disabled: false,
-            hidden: false
+            hidden: typeof gen === 'string'
         }
     })} show={isActive && moveGeneralStep === MoveGeneralStep.GENERAL}
         defaultChoice={""}

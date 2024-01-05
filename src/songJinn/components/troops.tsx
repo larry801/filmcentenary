@@ -222,6 +222,7 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
                 return;
             }
             const newRegions = provPlaces(G, newProv);
+            console.log(newRegions);
             setPlaces(newRegions);
             setMoveStep(MoveStep.REGION);
         }} choices={
@@ -319,9 +320,7 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
                 console.log(`${c}|cannot|convertToProv`);
                 return;
             }
-            const province = getProvinceById(newProv);
-            const newRegions = province.regions;
-            setPlaces(newRegions);
+            setPlaces(provPlaces(G, newProv));
             setNewTroopStep(NewTroopStep.REGION);
         }} choices={
             Object.values(ProvinceID).map(p => {
