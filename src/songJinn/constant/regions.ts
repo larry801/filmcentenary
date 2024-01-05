@@ -506,7 +506,7 @@ const idToRegion = {[RegionID.R01]:
             terrain:TerrainType.FLATLAND,
             province:ProvinceID.JINGJILU,
             land:[RegionID.R20,RegionID.R24,RegionID.R28,RegionID.R37,RegionID.R38,RegionID.R41,RegionID.R45],
-            water:[],
+            water:[RegionID.R19],
             pass:[],
             city:CityID.KaiFeng
         },
