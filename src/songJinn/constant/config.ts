@@ -185,7 +185,9 @@ export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
         },
         rescueGeneral: {
             moves: {
-                rescueGeneral: rescueGeneral
+                rescueGeneral: rescueGeneral,
+                endRound: endRound,
+                opponentMove: opponentMove
             }
         },
         showCC: {

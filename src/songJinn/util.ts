@@ -3521,7 +3521,7 @@ export const removeNoTroopGeneralByCtr = (G: SongJinnGame, ctx: Ctx, p: TroopPla
     if (gen.length > 0) {
         if (pub.develop.length > 0) {
             G.pending.generals = [...gen];
-            changePlayerStage(G, ctx, 'rescueGeneral', pid);
+            // changePlayerStage(G, ctx, 'rescueGeneral', pid);
         } else {
             gen.forEach(g => {
                 if (ctr === Country.JINN && g === JinnGeneral.WuZhu) {
