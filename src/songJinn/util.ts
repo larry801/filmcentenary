@@ -5537,7 +5537,6 @@ export const confirmRespondChoices = (G: SongJinnGame, ctx: Ctx, pid: PlayerID) 
                         {label: "内政", value: "内政", disabled: false, hidden: false}
                     ];
                 case PendingEvents.ZhangZhaoZhiZheng:
-                    G.pending.events.splice(G.pending.events.indexOf(PendingEvents.ZhangZhaoZhiZheng), 1);
                     const choices = [
                         {label: "降低宋内政", value: "选择降低宋内政", disabled: false, hidden: false},
                     ]
