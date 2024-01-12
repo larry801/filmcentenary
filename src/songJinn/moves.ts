@@ -2138,6 +2138,7 @@ export const confirmRespond: LongFormMove = {
                         break;
                     case PendingEvents.ZhangZhaoZhiZheng:
                         if (choice === '选择降低宋内政' || choice === 'yes') {
+                            log.push(`|civilDown`);
                             changeCivil(G, SJPlayer.P1, -1);
                         } else {
                             const gen: General = parseInt(choice);

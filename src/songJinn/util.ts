@@ -6380,15 +6380,22 @@ export function getMeleeStr(G: SongJinnGame, t: Troop): number {
     let total = fromUnit + genCCModifier;
 
     if (t.g === ci.atk && t.g === Country.SONG) {
-        total += getPolicy(G);
+        const policy = getPolicy(G);
+        log.push(`|policy${policy}`);
+        total += policy;
+        log.push(`|total${total}`);
     }
 
     if (fromUnit > 0) {
+        log.push(`|unit>0`);
         if (total <= 0) {
+            log.push(`|to1`);
             total = 1;
         }
     } else {
+        log.push(`|unit=0`);
         if (total <= 0) {
+            log.push(`|to0`);
             total = 0;
         }
     }
