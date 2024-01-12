@@ -1412,7 +1412,7 @@ export const playCard: LongFormMove = {
             const eff = {...cardEff.play};
             if (eff.e !== "none") {
                 log.push(`|${JSON.stringify(eff)}`);
-                G.e.stack.push(eff)
+                G.e.stack.splice(0, 0, eff);
                 log.push(`${JSON.stringify(G.e.stack)}`)
                 playerEffExec(G, ctx, ctx.currentPlayer);
             } else {
