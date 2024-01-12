@@ -6501,21 +6501,21 @@ export function unitSiegeMeleeStr(G: SongJinnGame, troop: Troop) {
     if (troop.g === Country.SONG) {
         switch (terrainType) {
             case TerrainType.FLATLAND:
-                unitMelee = [1, 0, 1, 0, 0, 0];
+                unitMelee = [1, 1, 1, 0, 0, 1];
                 break;
             case TerrainType.HILLS:
-                unitMelee = [1, 0, 1, 0, 0, 0];
+                unitMelee = [1, 1, 1, 0, 0, 1];
                 break;
             case TerrainType.MOUNTAINS:
-                unitMelee = [1, 0, 1, 0, 0, 0];
+                unitMelee = [1, 1, 1, 0, 0, 1];
                 break;
             case TerrainType.SWAMP:
-                unitMelee = [1, 0, 1, 1, 0, 0];
+                unitMelee = [1, 1, 1, 1, 0, 1];
                 break;
             case TerrainType.RAMPART:
-                unitMelee = [1, 0, 1, 0, 0, 0];
+                unitMelee = [1, 1, 1, 0, 0, 1];
                 if (isSwampRampart) {
-                    unitMelee[4] = 2;
+                    unitMelee[4] = 1;
                 }
                 break;
         }
@@ -6821,8 +6821,9 @@ export function getDefendCityRangeStr(G: SongJinnGame, troop: Troop): number {
 }
 
 export function getDefendCiyMelee(G: SongJinnGame, troop: Troop): number {
-    const log = [`getDefendCiyMelee`];
-    const fromUnit = getMeleeStr(G, troop);
+    const log = [`getDefendCityMelee`];
+    const fromUnit = troopMelee(G, troop);
+    log.push(`|${JSON.stringify(troop)}|troop`);
     log.push(`|${fromUnit}|fromUnit`);
     const genCCModifier = getGeneralCCMelee(G, troop);
     log.push(`|${genCCModifier}|genCCModifier`);
