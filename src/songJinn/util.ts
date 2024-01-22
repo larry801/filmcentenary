@@ -3880,6 +3880,7 @@ export const endDraw = (G: SongJinnGame, ctx: Ctx) => {
     const log = [`endDraw`];
     if (G.song.civil === G.jinn.civil) {
         G.order = [SJPlayer.P1, SJPlayer.P2];
+        G.first = SJPlayer.P1;
         log.push(`|civil|same|order:${G.order.toString()}`);
         ctx.events?.setPhase('choosePlan');
     } else {
