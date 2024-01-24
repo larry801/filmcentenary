@@ -1385,6 +1385,7 @@ export const freeHeYi: LongFormMove = {
             return INVALID_MOVE;
         }
         heYiChange(G, ctx, city);
+        ctx.events?.endStage();
     }
 }
 

@@ -207,6 +207,7 @@ export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
         freeHeYi: {
             moves: {
                 freeHeYi: freeHeYi,
+                opponentMove: opponentMove
             }
         },
         searchFirst: {
