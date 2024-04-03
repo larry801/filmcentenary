@@ -3026,7 +3026,7 @@ export const setupAfterScoring = (G: IG, ctx: Ctx) => {
 }
 
 export const getPlayerAction = (G: IG, arg: PlayerID): number => {
-    const log = [`endTurnEffect|p${arg}`];
+    const log = [`getPlayerAction|p${arg}`];
     const pub = G.pub[parseInt(arg)];
     let act: number;
     if (pub.school !== null) {
