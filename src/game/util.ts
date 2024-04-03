@@ -3069,10 +3069,6 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     fillPlayerHand(G, ctx, ctx.currentPlayer);
     log.push(`| execute development rewards`);
     log.push(`|aesAwardEndTurn`);
-    //流派扩：法国印象派
-    if (pub.school === SchoolCardID.S4001 && pub.aesthetics >= 5) {
-        addRes(G, ctx, p, 1);
-    }
     aesAwardEndTurn(G, ctx, ctx.currentPlayer);
     log.push(`|industryAwardEndTurn`);
     industryAwardEndTurn(G, ctx, ctx.currentPlayer);
