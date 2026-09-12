@@ -59,20 +59,18 @@ export interface IChampionProps {
 }
 
 export const ChampionIcon = ({champion}: IChampionProps) => {
-    const IconComponent = () => {
-        switch (champion.era) {
-            case IEra.ONE:
-                return LooksOneIcon;
-            case IEra.TWO:
-                return LooksTwoIcon;
-            case IEra.THREE:
-                return Looks3Icon;
-            default:
-                return NoScoringCardIcon;
-        }
+    // Picking the icon component directly (instead of defining a component
+    // inside the render) keeps React from remounting the icon on every render.
+    switch (champion.era) {
+        case IEra.ONE:
+            return <LooksOneIcon style={{color: getColor(champion.region)}}/>;
+        case IEra.TWO:
+            return <LooksTwoIcon style={{color: getColor(champion.region)}}/>;
+        case IEra.THREE:
+            return <Looks3Icon style={{color: getColor(champion.region)}}/>;
+        default:
+            return <NoScoringCardIcon style={{color: getColor(champion.region)}}/>;
     }
-    const IC = IconComponent();
-    return <IC style={{color: getColor(champion.region)}}/>
 }
 
 export const ActionPointIcon = () => <SvgIcon style={verticalAlign}>

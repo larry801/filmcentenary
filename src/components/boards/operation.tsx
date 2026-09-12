@@ -44,9 +44,16 @@ export interface IOPanelProps {
     redo: () => void;
     getName: (pid: string) => string,
     log: LogEntry[],
+    /** Paying cards of the active player, computed once by the board. */
+    helpers?: CardID[],
+    /** Region rankings shared by every panel. */
+    regionRanks?: PlayerID[][],
 }
 
-export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, events, log}: IOPanelProps) => {
+export const OperationPanel = ({
+                                  G, getName, ctx, playerID, moves, undo, redo, events, log,
+                                  helpers: helpersProp, regionRanks
+                              }: IOPanelProps) => {
     const pub = G.pub[parseInt(playerID)];
     const iPrivateInfo = G.player[parseInt(playerID)];
     const hand = iPrivateInfo.hand
@@ -70,6 +77,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         return result;
     }
 
+
     const classicFilmButtonGroup = <ButtonGroup aria-label="outlined secondary button group">
         {
             [
@@ -83,8 +91,6 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                     disabled={iPrivateInfo.classicFilmAutoMove === autoMove}
                     variant="contained" color="primary"
                     onClick={() => {
-                        console.log(JSON.stringify(iPrivateInfo));
-                        console.log(iPrivateInfo.classicFilmAutoMove);
                         moves.changePlayerSetting({
                             classicFilmAutoMoveMode: autoMove
                         });
@@ -166,7 +172,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
 
     </Button>
 
-    const discardChoices = getChooseHandChoice(G, playerID, getCardName);
+    const discardChoices = handChoices;
     const chooseHandTitle = hasCurEffect ? curEffName : i18n.chain.dialog.chooseHand.title;
     const chooseHand = (choice: string) => {
         moves.chooseHand({
@@ -481,12 +487,14 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             toggleText={<ConcedeIcon/>}
         />
 
-    const helpers = playerID === null ? [] : getValidHelper(G, playerID);
+    const helpers = helpersProp !== undefined
+        ? helpersProp
+        : (playerID === null ? [] : getValidHelper(G, playerID));
 
     return <Grid container size={{xs: 12, sm: 5}} sx={{justifyContent: 'flex-start'}}>
         <Grid container size={12}>
             <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(playerID)]} idx={parseInt(playerID)} G={G}
-                      getName={getName}/>
+                      getName={getName} regionRanks={regionRanks}/>
         </Grid>
         {noStage && canMoveCurrent ?
             <Grid size={6}>
@@ -537,4 +545,4 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     </Grid>
 }
 
-export default OperationPanel;
+export default React.memo(OperationPanel);

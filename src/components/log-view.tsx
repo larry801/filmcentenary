@@ -38,9 +38,18 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
         })
     }
 
-    const cloneLog = [...log]
-    const reverseLog = cloneLog.filter(l => l.action.type !== "GAME_EVENT").reverse().slice(0, 50);
-    const totalLogText = reverseLog.map(l => getLogText(l, getPlayerName, G)).join('\n');
+    // Only the last 50 lines are shown: scan the tail instead of the whole
+    // (game-long, ever growing) log on every render.
+    const totalLogText = React.useMemo(() => {
+        const lines: string[] = [];
+        for (let idx = log.length - 1; idx >= 0 && lines.length < 50; idx--) {
+            const entry = log[idx];
+            if (entry.action.type !== "GAME_EVENT") {
+                lines.push(getLogText(entry, getPlayerName, G));
+            }
+        }
+        return lines.join('\n');
+    }, [log, log.length, getPlayerName, G]);
 
     return <Grid container size={12}>
         <Grid size={12}>
@@ -77,4 +86,4 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
     </Grid>
 }
 
-export default LogView;
+export default React.memo(LogView);

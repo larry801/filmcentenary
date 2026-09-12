@@ -8,6 +8,9 @@
 # testing
 /coverage
 
+# perf harness output
+/perf/out
+
 # production
 /build
 

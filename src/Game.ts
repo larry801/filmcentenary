@@ -59,14 +59,30 @@ export const FilmCentenaryGame: Game<IG> = {
     minPlayers: 2,
     maxPlayers: 4,
     playerView: (G: IG, ctx: Ctx, playerID: PlayerID | null) => {
-        let r = JSON.parse(JSON.stringify(G));
+        // Only the handful of fields the client may see are copied; cloning the
+        // whole state (decks included) with JSON cost as much as everything the
+        // board actually renders, on every state sync for every player.
+        const r: any = {
+            ...G,
+            twoPlayer: {
+                ...G.twoPlayer,
+                schoolDeckLength: G.secretInfo.twoPlayer.school.length,
+                filmDeckLength: G.secretInfo.twoPlayer.film.length,
+            },
+            regions: {
+                0: {...G.regions[0]},
+                1: {...G.regions[1]},
+                2: {...G.regions[2]},
+                3: {...G.regions[3]},
+                4: {...G.regions[4]},
+            },
+            pub: G.pub.map(p => ({...p, finalScoring: {...p.finalScoring}})),
+        };
         r.eventDeckLength = G.secretInfo.events.length;
         valid_regions.forEach(region => {
             r.regions[region].legendDeckLength = G.secretInfo.regions[region].legendDeck.length;
             r.regions[region].normalDeckLength = G.secretInfo.regions[region].normalDeck.length;
         })
-        r.twoPlayer.schoolDeckLength = G.secretInfo.twoPlayer.school.length;
-        r.twoPlayer.filmDeckLength = G.secretInfo.twoPlayer.film.length;
         let newPlayerObj = [];
         for (let p = 0; p < r.player.length; p++) {
             let oldPlayerPrivateInfo = G.player[p];

@@ -8,7 +8,6 @@ import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import Button from "@mui/material/Button";
-import {nanoid} from "nanoid";
 import {CardInfo} from "./card";
 import {actualStage} from "../game/util";
 import {Stage} from "boardgame.io/core";
@@ -97,7 +96,7 @@ export const PlayerHand = ({
                     }
                     return <Accordion
                         expanded={true}
-                        key={nanoid()}>
+                        key={`hand-${idx}-${c}`}>
                         <AccordionSummary key={idx}>
                             <CardInfo cid={c}/>
                             {era !== null ?

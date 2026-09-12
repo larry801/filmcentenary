@@ -12,7 +12,6 @@ import FormControl from "@mui/material/FormControl";
 import FormGroup from "@mui/material/FormGroup";
 import DialogActions from "@mui/material/DialogActions";
 import Grid from "@mui/material/Grid";
-import {nanoid} from "nanoid";
 import {usePrevious} from "./board";
 
 
@@ -101,12 +100,10 @@ export const ChoiceDialog = ({
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setChoice(e.target.value);
-        console.log(e.target.value);
     };
 
-    return show ? <Grid key={nanoid()} size={12}>
+    return show ? <Grid size={12}>
         <Button
-            key={nanoid()}
             aria-label={title}
             color={buttonColor ? "secondary" : "primary"}
             fullWidth
@@ -116,42 +113,40 @@ export const ChoiceDialog = ({
             style={{textTransform: 'none'}}
         > {toggleText}</Button>
         <Dialog
-            key={nanoid()}
             aria-label={title}
             open={open}
             onClose={handleClose}
         >
-            <DialogTitle key={nanoid()}>
+            <DialogTitle>
                 {title}
             </DialogTitle>
-            <DialogContent key={nanoid()}>
-                <FormControl key={nanoid()} required component="fieldset">
-                    <FormGroup key={nanoid()}>
-                        <FormLabel key={nanoid()} component="legend">{toggleText}</FormLabel>
+            <DialogContent>
+                <FormControl required component="fieldset">
+                    <FormGroup>
+                        <FormLabel component="legend">{toggleText}</FormLabel>
                         <RadioGroup
-                            key={nanoid()}
                             aria-label={title}
                             name="choices" value={choice}
                             onChange={handleChange}>
-                            {choices.map((choice) =>
+                            {choices.map((choice, idx) =>
                                 !choice.hidden ?
                                     <FormControlLabel
                                         disabled={choice.disabled}
-                                        key={nanoid()} value={choice.value}
-                                        control={<Radio key={nanoid()}/>}
-                                        label={choice.label}/> : <></>
+                                        key={`${choice.value}-${idx}`} value={choice.value}
+                                        control={<Radio/>}
+                                        label={choice.label}/> : <React.Fragment key={`hidden-${idx}`}/>
                             )}
                         </RadioGroup>
                     </FormGroup>
                 </FormControl>
             </DialogContent>
-            <DialogActions key={nanoid()}>
-                <Button key={nanoid()} onClick={handleConfirm} color="primary">
+            <DialogActions>
+                <Button onClick={handleConfirm} color="primary">
                     {i18n.chain.confirm}
                 </Button>
             </DialogActions>
         </Dialog>
-    </Grid> : <div key={nanoid()}/>
+    </Grid> : <div/>
 }
 
-export default ChoiceDialog;
+export default React.memo(ChoiceDialog);

@@ -65,7 +65,31 @@ export interface ICardListProps {
     title: string,
 }
 
-export const CardList = ({cards, title, label}: ICardListProps) => {
+const CardListContent = ({cards}: { cards: CardID[] }) => <>
+    {cards.map((c, idx) => {
+            const cardObj = getCardById(c);
+            return <Paper variant="outlined" key={`${c}-${idx}`}>
+                <CardInfo cid={c}/>
+                <Typography
+                    style={{
+                        display: 'inline-flex',
+                        verticalAlign: 'middle'
+                    }}>
+                    <ResourceIcon/>
+                    {cardObj.cost.res}
+                    <IndustryIcon/>
+                    {cardObj.cost.industry}
+                    <AestheticsIcon/>
+                    {cardObj.cost.aesthetics}
+                    <PrestigeIcon/>
+                    {cardObj.vp}
+                </Typography>
+            </Paper>
+        }
+    )}
+</>
+
+const CardListInner = ({cards, title, label}: ICardListProps) => {
 
     i18n.use();
 
@@ -77,6 +101,13 @@ export const CardList = ({cards, title, label}: ICardListProps) => {
     const handleClose = () => {
         setOpen(false);
     };
+    // The dialog body is only built when it is actually opened: these lists
+    // exist for every pile of every player and used to be rendered on every
+    // state update even while closed.
+    const content = React.useMemo(
+        () => (open ? <CardListContent cards={cards}/> : null),
+        [open, cards]
+    );
     return <Grid size={12}>
         <Button
             aria-label={title}
@@ -92,27 +123,7 @@ export const CardList = ({cards, title, label}: ICardListProps) => {
         >
             <DialogTitle>{title}</DialogTitle>
             <DialogContent>
-                {cards.map(c => {
-                        const cardObj = getCardById(c);
-                        return <Paper variant="outlined" key={title + c}>
-                            <CardInfo cid={c}/>
-                            <Typography
-                                style={{
-                                    display:'inline-flex',
-                                    verticalAlign:'middle'
-                                }}>
-                                <ResourceIcon/>
-                                {cardObj.cost.res}
-                                <IndustryIcon/>
-                                {cardObj.cost.industry}
-                                <AestheticsIcon/>
-                                {cardObj.cost.aesthetics}
-                                <PrestigeIcon/>
-                                {cardObj.vp}
-                            </Typography>
-                        </Paper>
-                    }
-                )}
+                {content}
             </DialogContent>
             <DialogActions>
                 <Button onClick={handleClose} color="primary">
@@ -121,5 +132,13 @@ export const CardList = ({cards, title, label}: ICardListProps) => {
             </DialogActions>
         </Dialog></Grid>
 }
+
+/** Cards only change when their contents change, not on every state update. */
+const cardsEqual = (a: ICardListProps, b: ICardListProps) =>
+    a.title === b.title &&
+    a.cards.length === b.cards.length &&
+    a.cards.every((c, idx) => c === b.cards[idx]);
+
+export const CardList = React.memo(CardListInner, cardsEqual);
 
 export default CardList;

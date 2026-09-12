@@ -2,6 +2,7 @@ import React from "react";
 import {
     BasicCardID,
     BuildingType,
+    CardID,
     getCardById,
     ICardSlot,
     IRegionInfo,
@@ -29,7 +30,6 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 import DeckIcon from '@mui/icons-material/Layers';
 import CardInfo, {getCardName} from "./card";
 import {ChampionIcon, DrawnShareIcon, getColor} from "./icons";
-import {nanoid} from "nanoid";
 import PrestigeIcon from "@mui/icons-material/EmojiEvents";
 import ResourceIcon from "@mui/icons-material/MonetizationOn";
 import AestheticsIcon from "@mui/icons-material/ImportContacts";
@@ -43,9 +43,10 @@ export interface ICardSlotProp {
     moves: Record<string, (...args: any[]) => void>,
     comment: (slot: ICardSlot, card: BasicCardID | null) => void,
     playerID: PlayerID | null,
+    helpers?: CardID[],
 }
 
-export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlotProp) => {
+export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment, helpers: helpersProp}: ICardSlotProp) => {
 
     const variant = !slot.isLegend ? "elevation" : "outlined"
 
@@ -58,7 +59,9 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
         });
     }
 
-    const helpers = playerID === null ? [] : getValidHelper(G, playerID);
+    const helpers = helpersProp !== undefined
+        ? helpersProp
+        : (playerID === null ? [] : getValidHelper(G, playerID));
 
     const cardObj = slot.card === null ? getCardById("B07") : getCardById(slot.card);
     const region = slot.card === null ? Region.NA : cardObj.region;
@@ -129,6 +132,7 @@ export interface IRegionProp {
     getPlayerName: (pid: string) => string,
     playerID: PlayerID | null,
     moves: Record<string, (...args: any[]) => void>;
+    helpers?: CardID[];
 }
 
 export interface InvRegionProp {
@@ -139,6 +143,7 @@ export interface InvRegionProp {
     getPlayerName: (pid: string) => string,
     playerID: PlayerID | null,
     moves: Record<string, (...args: any[]) => void>;
+    helpers?: CardID[];
 }
 
 const styles = {
@@ -154,15 +159,15 @@ const styles = {
 };
 
 
-export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}: IRegionProp) => {
+export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves, helpers}: IRegionProp) => {
     i18n.use();
     const {era, share, legend, normal, legendDeckLength, normalDeckLength} = region;
 
-    const comment = (slot: ICardSlot, card: BasicCardID | null) => moves.comment({
+    const comment = React.useCallback((slot: ICardSlot, card: BasicCardID | null) => moves.comment({
         target: slot.card,
         comment: card,
         p: playerID
-    })
+    }), [moves, playerID]);
 
     const buildingSlotName = (r: ValidRegion, idx: number): string => {
         switch (r) {
@@ -277,18 +282,20 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                             moves={moves}
                             comment={comment}
                             playerID={playerID}
+                            helpers={helpers}
                         /></Grid>
-                    {normal.map((slot) => {
+                    {normal.map((slot, idx) => {
                         if (slot.card !== null) {
-                            return <Grid key={nanoid()} size={{xs: 12, md: 6}}>
+                            return <Grid key={`${r}-normal-${idx}`} size={{xs: 12, md: 6}}>
                                 <BoardCardSlot
                                     moves={moves}
                                     G={G} ctx={ctx} slot={slot}
                                     comment={comment} playerID={playerID}
+                                    helpers={helpers}
                                 />
                             </Grid>
                         } else {
-                            return <React.Fragment key={nanoid()}/>
+                            return <React.Fragment key={`${r}-normal-${idx}`}/>
                         }
                     })}
                 </Grid>
@@ -297,15 +304,15 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
     </Grid>
 }
 
-export const SchoolRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}: InvRegionProp) => {
+export const SchoolRegion = ({getPlayerName, r, region, G, ctx, playerID, moves, helpers}: InvRegionProp) => {
     i18n.use();
     const {era, share, legend, normal, legendDeckLength, normalDeckLength} = region;
 
-    const comment = (slot: ICardSlot, card: BasicCardID | null) => moves.comment({
+    const comment = React.useCallback((slot: ICardSlot, card: BasicCardID | null) => moves.comment({
         target: slot.card,
         comment: card,
         p: playerID
-    })
+    }), [moves, playerID]);
 
     return <Grid size={12}>
         <Accordion
@@ -348,18 +355,20 @@ export const SchoolRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}
                             moves={moves}
                             comment={comment}
                             playerID={playerID}
+                            helpers={helpers}
                         /></Grid>
-                    {normal.map((slot) => {
+                    {normal.map((slot, idx) => {
                         if (slot.card !== null) {
-                            return <Grid key={nanoid()} size={{xs: 12, md: 6}}>
+                            return <Grid key={`${r}-normal-${idx}`} size={{xs: 12, md: 6}}>
                                 <BoardCardSlot
                                     moves={moves}
                                     G={G} ctx={ctx} slot={slot}
                                     comment={comment} playerID={playerID}
+                                    helpers={helpers}
                                 />
                             </Grid>
                         } else {
-                            return <React.Fragment key={nanoid()}/>
+                            return <React.Fragment key={`${r}-normal-${idx}`}/>
                         }
                     })}
                 </Grid>

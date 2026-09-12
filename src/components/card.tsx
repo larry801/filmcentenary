@@ -564,21 +564,21 @@ export const effName = (eff: any): string => {
     }
 }
 
-export const CardInfo = ({cid}: ICardEffectProps) => {
+const CardInfoInner = ({cid}: ICardEffectProps) => {
     const card = getCardById(cid);
     const r = card.region;
 
     return <Grid container size={12}>
-        {card.industry > 0 ? Array(card.industry).fill(1).map(() =>
+        {card.industry > 0 ? Array(card.industry).fill(1).map((_, idx) =>
                 <IndustryIcon
-                    key={nanoid()}
+                    key={`industry-${idx}`}
                     style={{color: getColor(r)}}/>)
-            : <React.Fragment key={nanoid()}/>}
-        {card.aesthetics > 0 ? Array(card.aesthetics).fill(1).map(() =>
+            : <React.Fragment/>}
+        {card.aesthetics > 0 ? Array(card.aesthetics).fill(1).map((_, idx) =>
                 <AestheticsIcon
-                    key={nanoid()}
+                    key={`aesthetics-${idx}`}
                     style={{color: getColor(r)}}/>)
-            : <React.Fragment key={nanoid()}/>}
+            : <React.Fragment/>}
         <Typography
             style={{
                 color: getColor(r)
@@ -589,7 +589,18 @@ export const CardInfo = ({cid}: ICardEffectProps) => {
     </Grid>
 }
 
+export const CardInfo = React.memo(CardInfoInner);
+
+const effectTextCache = new Map<string, string>();
+
 export const getEffectTextById = (cid: CardID): string => {
+    // Rendered for every card on the board on every state update, but the text
+    // only depends on the card and the active locale.
+    const cacheKey = `${i18n.getLocaleName()}|${cid}`;
+    const cached = effectTextCache.get(cacheKey);
+    if (cached !== undefined) {
+        return cached;
+    }
     const buyEffText = buyCardEffectText(cid);
     const playEffText = playCardEffectText(cid);
     const arch = archiveCardEffectText(cid);
@@ -600,7 +611,9 @@ export const getEffectTextById = (cid: CardID): string => {
             hand: eff.school.hand,
             action: eff.school.action
         }) : ""
-    return `${buyEffText} ${playEffText} ${arch} ${score} ${schoolBasic} ${schoolEffectText(cid)}`
+    const text = `${buyEffText} ${playEffText} ${arch} ${score} ${schoolBasic} ${schoolEffectText(cid)}`;
+    effectTextCache.set(cacheKey, text);
+    return text;
 }
 
 export const CardEffect = ({cid}: ICardEffectProps) => {
@@ -647,4 +660,4 @@ export const CardEffect = ({cid}: ICardEffectProps) => {
     </React.Fragment>
 }
 
-export default React.memo(CardInfo);
+export default CardInfo;

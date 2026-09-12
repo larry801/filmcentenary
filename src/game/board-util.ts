@@ -124,16 +124,28 @@ export const inferDeckRemoveHelper = (result: CardID[], cardsToRemove: CardID[])
 
 export const getPlayerInferredHand = (G: IG, pid: PlayerID): CardID[] => {
     const pub = G.pub[parseInt(pid)];
-    const result = [...pub.allCards]
-    inferDeckRemoveHelper(result, pub.discard)
-    inferDeckRemoveHelper(result, pub.playedCardInTurn)
+    // Same result as removing every known card one by one with indexOf/splice,
+    // but without the quadratic scan (this runs for every player panel).
+    const removeCount = new Map<CardID, number>();
+    const countRemoval = (c: CardID) => removeCount.set(c, (removeCount.get(c) ?? 0) + 1);
+    pub.discard.forEach(countRemoval);
+    pub.playedCardInTurn.forEach(countRemoval);
+    pub.archive.forEach(countRemoval);
     if (pub.school !== null) {
-        let sIndex = result.indexOf(pub.school)
-        if (sIndex !== -1) {
-            result.splice(sIndex, 1);
-        }
+        countRemoval(pub.school);
     }
-    inferDeckRemoveHelper(result, pub.archive)
+    if (removeCount.size === 0) {
+        return [...pub.allCards];
+    }
+    const result: CardID[] = [];
+    pub.allCards.forEach(c => {
+        const left = removeCount.get(c) ?? 0;
+        if (left > 0) {
+            removeCount.set(c, left - 1);
+        } else {
+            result.push(c);
+        }
+    });
     return result;
 }
 

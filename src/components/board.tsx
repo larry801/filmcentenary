@@ -2,7 +2,8 @@ import React from "react";
 import {BoardProps} from "boardgame.io/react";
 import {IG} from "../types/setup";
 import {BoardCardSlot, BoardRegion, SchoolRegion} from "./region";
-import {activePlayer} from "../game/util";
+import {activePlayer, getRegionRank} from "../game/util";
+import {getValidHelper} from "../game/board-util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@mui/material/Button";
@@ -25,7 +26,6 @@ import LegendCardIcon from '@mui/icons-material/StarBorder';
 import OperationPanel from "./boards/operation";
 import FinalScoreTable from "./boards/final";
 import {getCardName} from "./card";
-import {nanoid} from "nanoid";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import SetupPanel from "./boards/setup-game-mode";
@@ -111,38 +111,55 @@ export const FilmCentenaryBoard = ({
         return () => document.title = i18n.chain.title;
     }, [isActive, locale])
 
-    const getName = (playerID: PlayerID | null = ctx.currentPlayer): string => {
-        const fallbackName = i18n.chain.playerName.player + playerID;
-        const curSuffix = ctx.currentPlayer === playerID ? curPlayerSuffix : ""
-        const activeSuffix = activePlayer(ctx) === playerID && ctx.currentPlayer !== playerID ? "(**)" : ""
-        const markSuffix = G.regionScoreCompensateMarker === playerID ? "" : ""
-        let name = "";
-        if (playerID === null) {
-            return i18n.chain.playerName.spectator
-        } else {
-            if (matchData === undefined) {
-                name = fallbackName
-            } else {
-                let arr = matchData.filter(m => m.id.toString() === playerID)
-                if (arr.length === 0) {
-                    name = fallbackName
-                } else {
-                    if (arr[0].name === undefined) {
-                        name = fallbackName;
-                    } else {
-                        name = arr[0].name
-                    }
+    const activePid = activePlayer(ctx);
+    // Names are used by every panel and every card slot, so they are computed
+    // once per state instead of once per lookup.
+    const names = React.useMemo((): Record<string, string> => {
+        const map: Record<string, string> = {};
+        for (let p = 0; p < ctx.numPlayers; p++) {
+            const pid = p.toString();
+            let name = i18n.chain.playerName.player + pid;
+            if (matchData !== undefined) {
+                const found = matchData.filter(m => m.id.toString() === pid);
+                if (found.length > 0 && found[0].name !== undefined) {
+                    name = found[0].name;
                 }
             }
+            const curSuffix = ctx.currentPlayer === pid ? curPlayerSuffix : "";
+            const activeSuffix = activePid === pid && ctx.currentPlayer !== pid ? "(**)" : "";
+            map[pid] = `${name}${curSuffix}${activeSuffix}`;
         }
-        return `${name}${curSuffix}${activeSuffix}${markSuffix}`
-    }
+        return map;
+    }, [matchData, ctx.currentPlayer, activePid, locale]);
 
-    const comment = (slot: ICardSlot, card: BasicCardID | null) => moves.comment({
+    const getName = React.useCallback((playerID: PlayerID | null = ctx.currentPlayer): string => {
+        if (playerID === null) {
+            return i18n.chain.playerName.spectator
+        }
+        const cached = names[playerID];
+        return cached !== undefined ? cached : i18n.chain.playerName.player + playerID;
+    }, [names, ctx.currentPlayer]);
+
+    const comment = React.useCallback((slot: ICardSlot, card: BasicCardID | null) => moves.comment({
         target: slot.card,
         comment: card,
         p: playerID
-    })
+    }), [moves, playerID]);
+
+    // Cards that can pay for a purchase: identical for every card slot.
+    const helpers = React.useMemo(
+        () => (playerID === null ? [] : getValidHelper(G, playerID)),
+        [G, playerID]
+    );
+
+    // Region rankings: one shared lookup per region instead of one per region
+    // per panel (only the four-player board shows them).
+    const regionRanks = React.useMemo(
+        () => ctx.numPlayers > SimpleRuleNumPlayers
+            ? valid_regions.map(r => getRegionRank(G, ctx, r))
+            : [],
+        [G, ctx, ctx.numPlayers]
+    );
 
     const showBoardStatus = () => {
         const args = ctx.numPlayers > SimpleRuleNumPlayers ? {
@@ -174,7 +191,7 @@ export const FilmCentenaryBoard = ({
                     {valid_regions.map(r => {
                         const regionIdx: 0 | 1 | 2 | 3 | 4 = r;
                         const region = G.regions[regionIdx];
-                        return <React.Fragment key={nanoid()}>
+                        return <React.Fragment key={`region-share-${r}`}>
                             <DrawnShareIcon r={r}/>{region.share}
                         </React.Fragment>;
                     })}
@@ -212,15 +229,15 @@ export const FilmCentenaryBoard = ({
 
         <Grid container size={{xs: 12, sm: 7}}>
             <BoardRegion getPlayerName={getName} r={Region.NA} moves={moves} region={G.regions[0]} G={G} ctx={ctx}
-                         playerID={playerID}/>
+                         playerID={playerID} helpers={helpers}/>
             <BoardRegion getPlayerName={getName} r={Region.WE} moves={moves} region={G.regions[1]} G={G} ctx={ctx}
-                         playerID={playerID}/>
+                         playerID={playerID} helpers={helpers}/>
             <BoardRegion getPlayerName={getName} r={Region.EE} moves={moves} region={G.regions[2]} G={G} ctx={ctx}
-                         playerID={playerID}/>
+                         playerID={playerID} helpers={helpers}/>
             <BoardRegion getPlayerName={getName} r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx}
-                         playerID={playerID}/>
+                         playerID={playerID} helpers={helpers}/>
             <SchoolRegion getPlayerName={getName} r={Region.NONE} moves={moves} region={G.regions[4]} G={G} ctx={ctx}
-                          playerID={playerID}/>
+                          playerID={playerID} helpers={helpers}/>
         </Grid>
 
     const [open, setOpen] = React.useState(true);
@@ -320,6 +337,8 @@ export const FilmCentenaryBoard = ({
                             undo={undo} redo={redo}
                             getName={getName}
                             log={log}
+                            helpers={helpers}
+                            regionRanks={regionRanks}
                         />
                         : <></>}
                 </>}
@@ -361,8 +380,8 @@ export const FilmCentenaryBoard = ({
             {G.order.map((i: PlayerID) =>
                 <Grid key={`grid-pub-panel-${i}-${playerID}`} size={{sm: 6, lg: 3}}>
                     <ErrorBoundary>
-                        <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(i)]} key={nanoid()} G={G} idx={parseInt(i)}
-                                  getName={getName}/>
+                        <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(i)]} G={G} idx={parseInt(i)}
+                                  getName={getName} regionRanks={regionRanks}/>
                     </ErrorBoundary>
                 </Grid>
             )}

@@ -42,9 +42,13 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
 
     const [checked, setChecked] = React.useState(Array(helpers.length).fill(false));
 
+    // Reset the selection when the available helpers actually change. Keyed by
+    // content: the array identity changes on every render, which used to reset
+    // the checkboxes (and re-render every buy button) constantly.
+    const helpersKey = helpers.join('|');
     React.useEffect(() => {
         setChecked(Array(helpers.length).fill(false))
-    }, [helpers])
+    }, [helpersKey, helpers.length])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let newHelper = [...checked]
@@ -133,7 +137,65 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             </Typography>
         </Button>
         <Dialog onClose={handleClose} open={open}>
-            <DialogTitle>
+            {open ? <BuyCardDialogBody
+                card={card}
+                targetCard={targetCard}
+                helpers={helpers}
+                checked={checked}
+                canBuy={canBuy}
+                res={res}
+                deposit={deposit}
+                sliderRequired={sliderRequired}
+                minDeposit={minDeposit}
+                maxDeposit={maxDeposit}
+                depositExtra={depositExtra}
+                handleSliderChange={handleSliderChange}
+                handleChange={handleChange}
+                isValidHelper={isValidHelper}
+                buyAndClose={buyAndClose}
+                handleClose={handleClose}
+                refreshCost={refreshCost}
+                canMakeBuyMove={canMakeBuyMove}
+                getValueText={getValueText}
+            /> : null}
+        </Dialog>
+    </Grid>
+}
+
+interface IBuyDialogBodyProps {
+    card: ClassicCardID | BasicCardID,
+    targetCard: any,
+    helpers: CardID[],
+    checked: boolean[],
+    canBuy: boolean,
+    res: number,
+    deposit: number,
+    sliderRequired: boolean,
+    minDeposit: number,
+    maxDeposit: number,
+    depositExtra: number,
+    handleSliderChange: (event: any, newValue: number | number[]) => void,
+    handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+    isValidHelper: (helper: CardID) => boolean,
+    buyAndClose: () => void,
+    handleClose: () => void,
+    refreshCost: () => void,
+    canMakeBuyMove: () => boolean,
+    getValueText: (n: number) => string,
+}
+
+/**
+ * The dialog is closed most of the time; building its contents (a card lookup
+ * and a validity check per helper for every card slot) is deferred until it is
+ * actually opened.
+ */
+const BuyCardDialogBody = ({
+                               card, targetCard, helpers, checked, canBuy, res, deposit,
+                               sliderRequired, minDeposit, maxDeposit, depositExtra,
+                               handleSliderChange, handleChange, isValidHelper, buyAndClose,
+                               handleClose, refreshCost, canMakeBuyMove, getValueText,
+                           }: IBuyDialogBodyProps) => <>
+    <DialogTitle>
                 {i18n.chain.dialog.buyCard.board}
                 {getCardName(card)}
                 {i18n.chain.dialog.buyCard.cost} {targetCard.cost.res}
@@ -198,9 +260,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                     {i18n.chain.dialog.buyCard.refresh}
                 </Button>
             </DialogActions>
-        </Dialog>
-    </Grid>
-}
+</>
 
 export interface ICommentProps {
     slot: ICardSlot,

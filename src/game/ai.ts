@@ -20,6 +20,7 @@ import {
     valid_regions,
 } from "../types/core";
 import {getChooseHandChoice, getPeekChoices} from "./board-util";
+import {logger} from "./logger";
 
 const getCardNameMock = () => "";
 export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalOrLegendCard | IBasicCard):
@@ -69,7 +70,7 @@ export const buyCardArgEnumerate = (G: IG, ctx: Ctx, p: PlayerID, card: INormalO
         }
     }
     log += (`${JSON.stringify(moves)}`);
-    console.log(`${G.matchID}|${log}`);
+    logger.debug(`${G.matchID}|${log}`);
     return moves;
 }
 
