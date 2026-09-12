@@ -1,13 +1,13 @@
 import React from 'react';
-import Dialog from "@material-ui/core/Dialog";
-import Button from "@material-ui/core/Button";
+import Dialog from "@mui/material/Dialog";
+import Button from "@mui/material/Button";
 import {Country, UNIT_SHORTHAND} from "../constant/general";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 import {useDebounce} from "../../components/modals";
 import {usePrevious} from "../../components/board";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogActions from "@material-ui/core/DialogActions";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 
 
 interface IChoiceProps {
@@ -17,7 +17,7 @@ interface IChoiceProps {
     disabled?: boolean,
     show: boolean,
     title: string,
-    toggleText: string | JSX.Element,
+    toggleText: string | React.JSX.Element,
     initial: boolean,
     popAfterShow?: boolean,
     buttonColor?: boolean,
@@ -85,7 +85,7 @@ export const ChooseUnitsDialog = ({
                 <Grid container>
                     {units.map((u, idx) => {
                         if (max[idx] > 0) {
-                            return <Grid item xs={12} key={`adjust-${idx}`}>
+                            return <Grid key={`adjust-${idx}`} size={12}>
                                 <Button
                                     disabled={u === 0}
                                     onClick={() => {

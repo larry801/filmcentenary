@@ -1,6 +1,6 @@
 import React, {useState} from "react";
 import {Ctx} from "boardgame.io";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 import ChoiceDialog from "../../components/modals";
 import {
     CityID,
@@ -25,7 +25,7 @@ import {
     pid2pub, placeToOption, placeToStr, provPlaces,
     StrProvince
 } from "../util";
-import Button from "@material-ui/core/Button";
+import Button from "@mui/material/Button";
 import {ChooseUnitsDialog} from "./recruit";
 import CheckBoxDialog from "./choice";
 
@@ -397,68 +397,68 @@ export const AdjustOps = ({
         title={"消灭金预备区部队"} toggleText={"消灭金预备区部队"} initial={false} country={Country.JINN}/>
 
     return <Grid container>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {removeSongReadyUnitDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {removeJinnReadyUnitDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             <Button fullWidth variant={"outlined"} onClick={() => moves.drawExtraCard()}>
                 额外摸一张牌
             </Button>
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {takePlanDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {removeCompletedPlanDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {removeNationDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {adjustNationDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {cityDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {loseCityToOpponentDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {loseProvDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {loseProvToOpponentDialog}
         </Grid>
 
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {controlCityDialog}
         </Grid>
 
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {controlProvDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {checkProvDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {chooseGeneralDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {chooseProvDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {chooseRegionDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {deployDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {deployGeneralDialog}
         </Grid>
-        <Grid item xs={6} sm={3}>
+        <Grid size={{xs: 6, sm: 3}}>
             {downDialog}
         </Grid>
     </Grid>

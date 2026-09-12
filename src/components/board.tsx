@@ -5,7 +5,7 @@ import {BoardCardSlot, BoardRegion, SchoolRegion} from "./region";
 import {activePlayer} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
-import Button from "@material-ui/core/Button";
+import Button from "@mui/material/Button";
 import PubPanel from "./pub";
 import {
     BasicCardID,
@@ -15,27 +15,26 @@ import {
     SimpleRuleNumPlayers,
     valid_regions
 } from "../types/core";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Paper from "@material-ui/core/Paper";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Paper from "@mui/material/Paper";
 import LogView from './log-view';
-import DeckIcon from '@material-ui/icons/Layers';
-import NormalCardIcon from '@material-ui/icons/RadioButtonUnchecked';
-import LegendCardIcon from '@material-ui/icons/StarBorder';
-import {useI18n} from "@i18n-chain/react";
+import DeckIcon from '@mui/icons-material/Layers';
+import NormalCardIcon from '@mui/icons-material/RadioButtonUnchecked';
+import LegendCardIcon from '@mui/icons-material/StarBorder';
 import OperationPanel from "./boards/operation";
 import FinalScoreTable from "./boards/final";
 import {getCardName} from "./card";
 import {nanoid} from "nanoid";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
 import SetupPanel from "./boards/setup-game-mode";
 // @ts-ignore
 import disconnectedSfx from './media/connect.mp3'
 // @ts-ignore
 import playerTurnSfx from './media/turn.mp3';
 import {ChampionIcon, DrawnShareIcon} from "./icons";
-import Dialog from "@material-ui/core/Dialog";
+import Dialog from "@mui/material/Dialog";
 import ErrorBoundary from "./error";
 
 let sound: HTMLAudioElement;
@@ -59,7 +58,7 @@ export const playSound = () => {
 
 
 export function usePrevious(value: any) {
-    const ref = React.useRef();
+    const ref = React.useRef<any>(undefined);
 
     React.useEffect(() => {
         ref.current = value;
@@ -84,7 +83,7 @@ export const FilmCentenaryBoard = ({
                                        isConnected
                                    }: BoardProps<IG>) => {
 
-    useI18n(i18n);
+    i18n.use();
     const canMoveCurrent = ctx.currentPlayer === playerID && activePlayer(ctx) === playerID;
     const canMoveOutOfTurn = ctx.currentPlayer !== playerID && activePlayer(ctx) === playerID;
     const canMove = ctx.currentPlayer === playerID ? canMoveCurrent : canMoveOutOfTurn;
@@ -105,21 +104,21 @@ export const FilmCentenaryBoard = ({
         }
     }, [prevIsActive, isActive])
 
-    const locale = i18n._.getLocaleName();
+    const locale = i18n.getLocaleName();
 
     React.useEffect((): () => void => {
-        document.title = (isActive ? curPlayerSuffix : "") + i18n.title;
-        return () => document.title = i18n.title;
+        document.title = (isActive ? curPlayerSuffix : "") + i18n.chain.title;
+        return () => document.title = i18n.chain.title;
     }, [isActive, locale])
 
     const getName = (playerID: PlayerID | null = ctx.currentPlayer): string => {
-        const fallbackName = i18n.playerName.player + playerID;
+        const fallbackName = i18n.chain.playerName.player + playerID;
         const curSuffix = ctx.currentPlayer === playerID ? curPlayerSuffix : ""
         const activeSuffix = activePlayer(ctx) === playerID && ctx.currentPlayer !== playerID ? "(**)" : ""
         const markSuffix = G.regionScoreCompensateMarker === playerID ? "" : ""
         let name = "";
         if (playerID === null) {
-            return i18n.playerName.spectator
+            return i18n.chain.playerName.spectator
         } else {
             if (matchData === undefined) {
                 name = fallbackName
@@ -169,8 +168,8 @@ export const FilmCentenaryBoard = ({
     const endPhase = () => events?.endPhase?.();
 
     const cardBoard = ctx.numPlayers === SimpleRuleNumPlayers ?
-        <Grid item container xs={12} sm={7}>
-            <Grid item xs={12} sm={6}>
+        <Grid container size={{xs: 12, sm: 7}}>
+            <Grid size={{xs: 12, sm: 6}}>
                 <Typography>
                     {valid_regions.map(r => {
                         const regionIdx: 0 | 1 | 2 | 3 | 4 = r;
@@ -185,33 +184,33 @@ export const FilmCentenaryBoard = ({
                     }}/><DeckIcon/><LegendCardIcon/>{G.twoPlayer.schoolDeckLength}<NormalCardIcon/>{G.twoPlayer.filmDeckLength}
                 </Typography>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <BoardCardSlot slot={G.twoPlayer.school[0]} G={G} ctx={ctx} moves={moves} comment={comment}
                                playerID={playerID}/>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <BoardCardSlot slot={G.twoPlayer.school[1]} G={G} ctx={ctx} moves={moves} comment={comment}
                                playerID={playerID}/>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <BoardCardSlot slot={G.twoPlayer.film[0]} G={G} ctx={ctx} moves={moves} comment={comment}
                                playerID={playerID}/>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <BoardCardSlot slot={G.twoPlayer.film[1]} G={G} ctx={ctx} moves={moves} comment={comment}
                                playerID={playerID}/>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <BoardCardSlot slot={G.twoPlayer.film[2]} G={G} ctx={ctx} moves={moves} comment={comment}
                                playerID={playerID}/>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <BoardCardSlot slot={G.twoPlayer.film[3]} G={G} ctx={ctx} moves={moves} comment={comment}
                                playerID={playerID}/>
             </Grid>
         </Grid> :
 
-        <Grid item container xs={12} sm={7}>
+        <Grid container size={{xs: 12, sm: 7}}>
             <BoardRegion getPlayerName={getName} r={Region.NA} moves={moves} region={G.regions[0]} G={G} ctx={ctx}
                          playerID={playerID}/>
             <BoardRegion getPlayerName={getName} r={Region.WE} moves={moves} region={G.regions[1]} G={G} ctx={ctx}
@@ -238,17 +237,17 @@ export const FilmCentenaryBoard = ({
                 variant={"outlined"}
             >
                 <Typography>
-                    {i18n.disconnected}
+                    {i18n.chain.disconnected}
                 </Typography>
             </Button>
             <Dialog open={open} onClose={handleClose}>
                 <DialogTitle>
                     <Typography variant="h5" component="h1">
-                        {i18n.disconnected}
+                        {i18n.chain.disconnected}
                     </Typography>
                 </DialogTitle>
                 <DialogContent>
-                    {i18n.disconnected}
+                    {i18n.chain.disconnected}
                 </DialogContent>
             </Dialog>
         </>
@@ -263,22 +262,22 @@ export const FilmCentenaryBoard = ({
                 variant={"outlined"}
             >
                 <Typography>
-                    {i18n.gameOver.title}
+                    {i18n.chain.gameOver.title}
                 </Typography>
             </Button>
             <Dialog open={open} onClose={handleClose}>
                 <DialogTitle>
                     <Typography variant="h5" component="h1">
-                        {i18n.gameOver.title}
+                        {i18n.chain.gameOver.title}
                     </Typography>
                 </DialogTitle>
                 <DialogContent>
                     <Paper variant="elevation">
                         <Typography variant="h6" component="h2">{
                             // @ts-ignore
-                            i18n.gameOver.reason[ctx.gameover.reason]
+                            i18n.chain.gameOver.reason[ctx.gameover.reason]
                         }</Typography>
-                        <Typography variant="h6" component="h2">{i18n.gameOver.winner}</Typography>
+                        <Typography variant="h6" component="h2">{i18n.chain.gameOver.winner}</Typography>
                         <Typography variant="h6" component="h2">{getName(ctx.gameover.winner)}</Typography>
                     </Paper>
                     <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
@@ -287,7 +286,7 @@ export const FilmCentenaryBoard = ({
         </>
     const upperPanel = playerID !== null ? <>
             {ctx.phase === "InitPhase" ?
-                isActive ? <Grid item xs={12}>
+                isActive ? <Grid size={12}>
                     <SetupPanel ctx={ctx} moves={moves}/>
                     <Button
                         fullWidth
@@ -297,7 +296,7 @@ export const FilmCentenaryBoard = ({
                         size="large"
                         disabled={!canMove}
                         onClick={showBoardStatus}>
-                        {i18n.action.showBoardStatus}
+                        {i18n.chain.action.showBoardStatus}
                     </Button>
                     {G.pending.endPhase && canMoveCurrent ?
                         <Button
@@ -305,7 +304,7 @@ export const FilmCentenaryBoard = ({
                             variant={"outlined"}
                             onClick={endPhase}
                         >
-                            {i18n.action.endPhase}
+                            {i18n.chain.action.endPhase}
                         </Button>
                         : <></>}
                 </Grid> : <></>
@@ -328,39 +327,39 @@ export const FilmCentenaryBoard = ({
         : <></>
 
     return <ErrorBoundary>
-        <Grid container justifyContent="flex-start" key={`film-centenary-board-player-${playerID}`}>
+        <Grid container key={`film-centenary-board-player-${playerID}`} sx={{justifyContent: 'flex-start'}}>
             {gameOverResult}
             {disconnectNotice}
             {G.pending.lastRoundOfGame && ctx.gameover === undefined ?
-                <Grid item container xs={12} justifyContent="space-evenly">
+                <Grid container size={12} sx={{justifyContent: 'space-evenly'}}>
                     <Paper variant="elevation">
-                        <Typography variant="h4" component="h1">{i18n.pub.lastRoundOfGame}</Typography>
+                        <Typography variant="h4" component="h1">{i18n.chain.pub.lastRoundOfGame}</Typography>
                     </Paper> </Grid> : <></>}
-            {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
-                <Grid item xs={4}>
-                    <Typography>{`${i18n.pub.events}(${G.eventDeckLength})`}</Typography
+            {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid spacing={2} container size={12}>
+                <Grid size={4}>
+                    <Typography>{`${i18n.chain.pub.events}(${G.eventDeckLength})`}</Typography
                     ></Grid>
-                {G.events.map((e: EventCardID, idx: number) => <Grid key={idx} item xs={4}>
+                {G.events.map((e: EventCardID, idx: number) => <Grid key={idx} size={4}>
                     <Paper key={idx} elevation={5}>
                         <Typography>{getCardName(e)}</Typography>
-                        <Typography>{i18n.eventName[e]}</Typography>
+                        <Typography>{i18n.chain.eventName[e]}</Typography>
                     </Paper></Grid>)}
             </Grid> : <></>}
             {playerID === null ? cardBoard : <></>}
             {upperPanel}
-            <Grid item container justifyContent="space-evenly">
-                <Grid item><Typography>{i18n.card.B01} {G.basicCards.B01}</Typography></Grid>
-                <Grid item><Typography>{i18n.card.B02} {G.basicCards.B02}</Typography></Grid>
-                <Grid item><Typography>{i18n.card.B03} {G.basicCards.B03}</Typography></Grid>
-                <Grid item><Typography>{i18n.card.B04} {G.basicCards.B04}</Typography></Grid>
-                <Grid item><Typography>{i18n.card.B05} {G.basicCards.B05}</Typography></Grid>
+            <Grid container sx={{justifyContent: 'space-evenly'}}>
+                <Grid><Typography>{i18n.chain.card.B01} {G.basicCards.B01}</Typography></Grid>
+                <Grid><Typography>{i18n.chain.card.B02} {G.basicCards.B02}</Typography></Grid>
+                <Grid><Typography>{i18n.chain.card.B03} {G.basicCards.B03}</Typography></Grid>
+                <Grid><Typography>{i18n.chain.card.B04} {G.basicCards.B04}</Typography></Grid>
+                <Grid><Typography>{i18n.chain.card.B05} {G.basicCards.B05}</Typography></Grid>
             </Grid>
             {
                 log === undefined ? <></> :
                     <LogView log={log} getPlayerName={getName} G={G}/>
             }
             {G.order.map((i: PlayerID) =>
-                <Grid item sm={6} lg={3} key={`grid-pub-panel-${i}-${playerID}`}>
+                <Grid key={`grid-pub-panel-${i}-${playerID}`} size={{sm: 6, lg: 3}}>
                     <ErrorBoundary>
                         <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(i)]} key={nanoid()} G={G} idx={parseInt(i)}
                                   getName={getName}/>

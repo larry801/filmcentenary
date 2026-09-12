@@ -1,8 +1,8 @@
-import {defineConfig, splitVendorChunkPlugin} from 'vite'
-import {resolve} from "path";
-import reactRefresh from '@vitejs/plugin-react-refresh'
+import {defineConfig} from 'vite'
+import {fileURLToPath} from "node:url";
+import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
+// https://vite.dev/config/
 export default defineConfig({
     build: {
         outDir: 'build',
@@ -23,32 +23,19 @@ export default defineConfig({
                         id.includes('material')
                     ) {
                         return 'visx';
-                    } 
+                    }
                 },
             }
         }
     },
     plugins: [
-        reactRefresh(),
-        splitVendorChunkPlugin()
+        react(),
     ],
     resolve: {
         alias: [
             {
-                find: /^@material-ui\/icons\/(.*)/,
-                replacement: "@material-ui/icons/esm/$1",
-            },
-            {
-                find: /^@material-ui\/core\/(.+)/,
-                replacement: "@material-ui/core/es/$1",
-            },
-            {
-                find: /^@material-ui\/core$/,
-                replacement: "@material-ui/core/es",
-            },
-            {
                 find: 'src',
-                replacement: resolve(__dirname, 'src')
+                replacement: fileURLToPath(new URL('./src', import.meta.url))
             }
         ],
     },

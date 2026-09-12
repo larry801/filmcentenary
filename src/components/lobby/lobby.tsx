@@ -1,22 +1,18 @@
 import {
-    Redirect,
+    Navigate,
     Route,
     BrowserRouter as Router,
-    Switch,
+    Routes,
 } from "react-router-dom";
 import React from "react";
 
 const App = () => (
     <Router>
-        <Switch>
-            <Route exact path="/join/:matchID/:player">
-            </Route>
-            <Route exact path="/">
-            </Route>
-            <Route path="*">
-                <Redirect to="/" />
-            </Route>
-        </Switch>
+        <Routes>
+            <Route path="/join/:matchID/:player"/>
+            <Route path="/"/>
+            <Route path="*" element={<Navigate replace to="/"/>}/>
+        </Routes>
     </Router>
 );
 

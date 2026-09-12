@@ -1,7 +1,7 @@
 import React, {useState} from "react";
-import Grid from "@material-ui/core/Grid";
-import TextField from "@material-ui/core/TextField";
-import Button from "@material-ui/core/Button";
+import Grid from "@mui/material/Grid";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
 import {ChatMessage as Msg, PlayerID} from "boardgame.io";
 
 interface IChatMessageProps {
@@ -21,7 +21,7 @@ export const ChatMessage = ({sendChatMessage, chatMessages, getPlayerName, moves
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setMessage(event.target.value);
     };
-    return <Grid item container xs={12}>
+    return <Grid container size={12}>
         <TextField
             disabled
             value={messages}
@@ -30,7 +30,7 @@ export const ChatMessage = ({sendChatMessage, chatMessages, getPlayerName, moves
             multiline
             variant="outlined"
         />
-        <Grid item xs={8}>
+        <Grid size={8}>
             <TextField
                 value={message}
                 variant="filled"
@@ -45,7 +45,7 @@ export const ChatMessage = ({sendChatMessage, chatMessages, getPlayerName, moves
                 }}
             />
         </Grid>
-        <Grid item xs={2}>
+        <Grid size={2}>
             <Button
                 variant={"outlined"}
                 onClick={() => {
@@ -55,7 +55,7 @@ export const ChatMessage = ({sendChatMessage, chatMessages, getPlayerName, moves
             >发送</Button>
         </Grid>
 
-        <Grid item xs={2}>
+        <Grid size={2}>
             <Button
                 variant={"contained"}
                 onClick={() => {

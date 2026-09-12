@@ -3,7 +3,7 @@ import React from "react";
 import {Client} from "boardgame.io/react";
 import {FilmCentenaryGame} from "../../Game";
 import {FilmCentenaryBoard} from "../board";
-import Grid from "@material-ui/core/Grid"
+import Grid from "@mui/material/Grid"
 import {Local} from "boardgame.io/multiplayer"
 
 const FilmClient2pSingle = Client({
@@ -15,8 +15,8 @@ const FilmClient2pSingle = Client({
 });
 
 const SinglePlayer = () => <Grid container>
-    <Grid item> <FilmClient2pSingle playerID='0'/></Grid>
-    <Grid item> <FilmClient2pSingle playerID='1'/></Grid>
+    <Grid> <FilmClient2pSingle playerID='0'/></Grid>
+    <Grid> <FilmClient2pSingle playerID='1'/></Grid>
 </Grid>
 
 export default SinglePlayer;

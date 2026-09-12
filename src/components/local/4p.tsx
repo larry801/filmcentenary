@@ -3,7 +3,7 @@ import React from "react";
 import {Client} from "boardgame.io/react";
 import {FilmCentenaryGame} from "../../Game";
 import {FilmCentenaryBoard} from "../board";
-import Grid from "@material-ui/core/Grid"
+import Grid from "@mui/material/Grid"
 import {Local} from "boardgame.io/multiplayer";
 import {Loading} from "../join/multiplayer";
 
@@ -18,9 +18,9 @@ const FilmClient4p = Client(
     }
 );
 const FourPlayerLocal = () => <Grid container>
-    <Grid item> <FilmClient4p playerID='0'/></Grid>
-    <Grid item> <FilmClient4p playerID='1'/></Grid>
-    <Grid item> <FilmClient4p playerID='2'/></Grid>
-    <Grid item> <FilmClient4p playerID='3'/></Grid>
+    <Grid> <FilmClient4p playerID='0'/></Grid>
+    <Grid> <FilmClient4p playerID='1'/></Grid>
+    <Grid> <FilmClient4p playerID='2'/></Grid>
+    <Grid> <FilmClient4p playerID='3'/></Grid>
 </Grid>
 export default FourPlayerLocal;

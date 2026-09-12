@@ -1,15 +1,14 @@
 import React from "react";
-import {Link as RouterLink, useHistory, useParams} from "react-router-dom";
+import {Link as RouterLink, useNavigate, useParams} from "react-router-dom";
 import {deleteCredentials, loadCredentials, saveCredentials} from "../../api/localStorage";
 import {Player} from "../../Game";
 import {getMatch, joinMatch, leaveMatch} from "../../api/match";
 import {MultiPlayer, Spectate} from "./multiplayer";
 import {ShareLink} from "./share";
-import Typography from "@material-ui/core/Typography";
+import Typography from "@mui/material/Typography";
 import i18n from "../../constant/i18n";
-import {useI18n} from "@i18n-chain/react";
 import ChoiceDialog from "../modals";
-import Link  from "@material-ui/core/Link"
+import Link  from "@mui/material/Link"
 
 interface JoinPageProps {
     serverURL: string;
@@ -23,9 +22,9 @@ interface Params {
 }
 
 const JoinPage = ({serverURL, gameName}: JoinPageProps) => {
-    useI18n(i18n);
-    const history = useHistory();
-    const {matchID, player, credential}: Params = useParams();
+    i18n.use();
+    const navigate = useNavigate();
+    const {matchID, player, credential} = useParams() as unknown as Params;
     const [credentials, setCredentials] = React.useState("generateCredentials");
     const [error, setError] = React.useState("");
     const [numPlayers, setNumPlayers] = React.useState(0);
@@ -36,14 +35,14 @@ const JoinPage = ({serverURL, gameName}: JoinPageProps) => {
             const loadedCredential = loadCredentials(matchID, player, gameName);
             if (loadedCredential) {
                 setCredentials(loadedCredential);
-                history.push(`/join/${gameName}/${matchID}/${player}/${loadedCredential}`)
+                navigate(`/join/${gameName}/${matchID}/${player}/${loadedCredential}`)
             } else {
                 if (player !== Player.SPECTATE) {
                     joinMatch(serverURL, matchID, player, gameName)
                         .then((responseCredential) => {
                             saveCredentials(matchID, player, responseCredential);
                             setCredentials(responseCredential);
-                            history.push(`/join/${gameName}/${matchID}/${player}/${responseCredential}`)
+                            navigate(`/join/${gameName}/${matchID}/${player}/${responseCredential}`)
                         })
                         .catch((err) => {
                             setError(JSON.stringify(err));
@@ -68,7 +67,7 @@ const JoinPage = ({serverURL, gameName}: JoinPageProps) => {
             leaveMatch(serverURL, matchID, player, credentials, gameName)
                 .then(() => {
                     deleteCredentials(matchID, player);
-                    history.push('/');
+                    navigate('/');
                 })
                 .catch((err) => setError(err.toString))
 
@@ -90,11 +89,11 @@ const JoinPage = ({serverURL, gameName}: JoinPageProps) => {
                 initial={false}
                 callback={handleLeave}
                 choices={[
-                    {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
-                    {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
+                    {label: i18n.chain.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
+                    {label: i18n.chain.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
                 ]} defaultChoice={"no"}
                 show={true}
-                title={i18n.lobby.leave} toggleText={i18n.lobby.leave}
+                title={i18n.chain.lobby.leave} toggleText={i18n.chain.lobby.leave}
             />
         </>
     return <>

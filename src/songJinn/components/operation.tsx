@@ -1,6 +1,6 @@
 import React, {useState} from "react";
 import {Ctx} from "boardgame.io";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 import ChoiceDialog from "../../components/modals";
 import {
     ActiveEvents,
@@ -9,7 +9,7 @@ import {
     General, MAX_DICES,
     SJPlayer, SongJinnGame,
 } from "../constant/general";
-import Button from "@material-ui/core/Button";
+import Button from "@mui/material/Button";
 import CheckBoxDialog from "./choice";
 import {ChooseUnitsDialog} from "./recruit";
 import {actualStage} from "../../game/util";
@@ -411,7 +411,7 @@ export const Operation = ({
         宋<Dices pub={G.song}/>
         金<Dices pub={G.jinn}/>
 
-        <Grid item>
+        <Grid>
             <Button onClick={() => adjustDice(-5)}>-5</Button>
             <Button onClick={() => adjustDice(-1)}>-1</Button>
             <Button onClick={() => moves.rollDices({count: count, idx: pub.dices.length})}>掷{count}个骰子</Button>

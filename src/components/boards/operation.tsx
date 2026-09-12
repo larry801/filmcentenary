@@ -1,29 +1,29 @@
 import React from "react";
-import NextTurnIcon from '@material-ui/icons/ExitToApp';
-import DeckIcon from '@material-ui/icons/Layers';
+import NextTurnIcon from '@mui/icons-material/ExitToApp';
+import DeckIcon from '@mui/icons-material/Layers';
 import {IG} from "../../types/setup";
 import {Ctx, LogEntry, PlayerID} from "boardgame.io";
 import i18n from "../../constant/i18n";
 import BuyCard from "../buy-card";
-import Grid from "@material-ui/core/Grid"
+import Grid from "@mui/material/Grid"
 import ChoiceDialog from "../modals";
-import Typography from "@material-ui/core/Typography";
+import Typography from "@mui/material/Typography";
 import {BasicCardID, CardID, ClassicFilmAutoMoveMode, FilmCardID, PersonCardID} from "../../types/core";
 import {activePlayer, actualStage} from "../../game/util";
-import Button from "@material-ui/core/Button";
-import ButtonGroup from "@material-ui/core/ButtonGroup";
+import Button from "@mui/material/Button";
+import ButtonGroup from "@mui/material/ButtonGroup";
 import {PlayerHand} from "../player-hand";
 import {Stage} from "boardgame.io/core";
-import Slider from "@material-ui/core/Slider";
+import Slider from "@mui/material/Slider";
 import {PubPanel} from "../pub";
 import {getChooseHandChoice, getValidHelper, inferDeckRemoveHelper} from "../../game/board-util";
 import {effName, getCardName} from "../card";
-import UndoIcon from '@material-ui/icons/Undo';
-import RedoIcon from '@material-ui/icons/Redo';
-import IconButton from "@material-ui/core/IconButton";
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
+import IconButton from "@mui/material/IconButton";
 import {ActionPointIcon} from "../icons";
-import HandIcon from "@material-ui/icons/PanTool";
-import ConcedeIcon from '@material-ui/icons/DirectionsRun';
+import HandIcon from "@mui/icons-material/PanTool";
+import ConcedeIcon from '@mui/icons-material/DirectionsRun';
 import CardList from "./list-card";
 
 
@@ -90,7 +90,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                         });
                     }}
                 >
-                    {i18n.classicFilmAutoMove[autoMove]}
+                    {i18n.chain.classicFilmAutoMove[autoMove]}
                 </Button>)
         }
     </ButtonGroup>;
@@ -104,7 +104,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                     <DeckIcon/>{deck.length}
                 </Typography>}
             title={
-                `${playerID}|${i18n.pub.deck}(${deck.length})`
+                `${playerID}|${i18n.chain.pub.deck}(${deck.length})`
             }/>
 
 
@@ -140,7 +140,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         disabled: false,
     }, ...peekChoices];
     const peekDialogChoices = peekChoicesDisabled ? peekNoChoiceChoices : peekChoices;
-    const peekDialogTitle = peekChoicesDisabled ? i18n.dialog.peek.title : i18n.dialog.peek.choice;
+    const peekDialogTitle = peekChoicesDisabled ? i18n.chain.dialog.peek.title : i18n.chain.dialog.peek.choice;
     const peek = (choice: string) => {
         const cardChoice = peekChoicesDisabled ? null : iPrivateInfo.cardsToPeek[parseInt(choice)];
         moves.peek({
@@ -158,7 +158,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             defaultChoice={peekDialogDefaultChoice}
             show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "peek"}
             title={peekDialogTitle}
-            toggleText={i18n.dialog.peek.title}/>
+            toggleText={i18n.chain.dialog.peek.title}/>
 
     const showDrawnButton = <Button
         onClick={() => moves.showDrawn()}
@@ -167,7 +167,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     </Button>
 
     const discardChoices = getChooseHandChoice(G, playerID, getCardName);
-    const chooseHandTitle = hasCurEffect ? curEffName : i18n.dialog.chooseHand.title;
+    const chooseHandTitle = hasCurEffect ? curEffName : i18n.chain.dialog.chooseHand.title;
     const chooseHand = (choice: string) => {
         moves.chooseHand({
             hand: hand[parseInt(choice)],
@@ -181,7 +181,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             choices={discardChoices} defaultChoice={"0"}
             show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseHand"}
             title={chooseHandTitle}
-            toggleText={i18n.dialog.chooseHand.toggleText}
+            toggleText={i18n.chain.dialog.chooseHand.toggleText}
             initial={true}/>
 
     const confirmRespond = (choice: string) => {
@@ -191,12 +191,12 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         <ChoiceDialog
             callback={confirmRespond}
             choices={[
-                {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
-                {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
+                {label: i18n.chain.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
+                {label: i18n.chain.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
             ]} defaultChoice={"no"}
             show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "confirmRespond"}
             title={effName(G.e.currentEffect)}
-            toggleText={i18n.dialog.confirmRespond.title}
+            toggleText={i18n.chain.dialog.confirmRespond.title}
             initial={true}/>
 
 
@@ -208,7 +208,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             targetName: getName(G.c.players[parseInt(choice)])
         })
     }
-    const chooseTargetTitle = hasCurEffect ? curEffName : i18n.dialog.chooseTarget.title;
+    const chooseTargetTitle = hasCurEffect ? curEffName : i18n.chain.dialog.chooseTarget.title;
     const chooseTargetDialog =
         <ChoiceDialog
             initial={true}
@@ -224,7 +224,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             } defaultChoice={'0'}
             show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseTarget"}
             title={chooseTargetTitle}
-            toggleText={i18n.dialog.chooseTarget.toggleText}/>
+            toggleText={i18n.chain.dialog.chooseTarget.toggleText}/>
 
 
     const chooseRegion = (choice: string) => {
@@ -234,7 +234,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             p: playerID,
         })
     }
-    const chooseRegionTitle = hasCurEffect ? curEffName : i18n.dialog.chooseRegion.title;
+    const chooseRegionTitle = hasCurEffect ? curEffName : i18n.chain.dialog.chooseRegion.title;
     const chooseRegionDialog =
         <ChoiceDialog
             initial={true}
@@ -243,7 +243,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 G.e.regions
                     .map((r, idx) => {
                         return {
-                            label: i18n.region[r],
+                            label: i18n.chain.region[r],
                             value: idx.toString(),
                             hidden: false, disabled: false
                         }
@@ -251,10 +251,10 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             } defaultChoice={"4"}
             show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseRegion"}
             title={chooseRegionTitle}
-            toggleText={i18n.dialog.chooseRegion.toggleText}/>
+            toggleText={i18n.chain.dialog.chooseRegion.toggleText}/>
 
 
-    const chooseEffectTitle = hasCurEffect ? curEffName : i18n.dialog.chooseEffect.title;
+    const chooseEffectTitle = hasCurEffect ? curEffName : i18n.chain.dialog.chooseEffect.title;
     const chooseEffect = (choice: string) => {
         moves.chooseEffect({
             effect: G.e.choices[parseInt(choice)],
@@ -273,7 +273,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             }
         })} defaultChoice={"0"}
         show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseEffect"}
-        title={chooseEffectTitle} toggleText={i18n.dialog.chooseEffect.toggleText}
+        title={chooseEffectTitle} toggleText={i18n.chain.dialog.chooseEffect.toggleText}
         initial={true}/>
 
 
@@ -289,14 +289,14 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             callback={chooseEvent}
             choices={G.events.map((c, idx) => {
                 return {
-                    label: getCardName(c) + i18n.eventName[c],
+                    label: getCardName(c) + i18n.chain.eventName[c],
                     disabled: false,
                     hidden: false,
                     value: idx.toString()
                 }
             })} defaultChoice={"0"}
             show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseEvent"}
-            title={i18n.dialog.chooseEvent.title} toggleText={i18n.dialog.chooseEvent.toggleText}
+            title={i18n.chain.dialog.chooseEvent.title} toggleText={i18n.chain.dialog.chooseEvent.toggleText}
             initial={true}/>
 
 
@@ -313,8 +313,8 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         choices={handChoices}
         defaultChoice={'0'}
         show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "competitionCard"}
-        title={i18n.dialog.competitionCard.title}
-        toggleText={i18n.dialog.competitionCard.toggleText}
+        title={i18n.chain.dialog.competitionCard.title}
+        toggleText={i18n.chain.dialog.competitionCard.toggleText}
         initial={true}/>
 
     const requestEndTurn = (choice: string) => {
@@ -328,11 +328,11 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             callback={requestEndTurn}
             popAfterShow={false}
             choices={[
-                {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
-                {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
+                {label: i18n.chain.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
+                {label: i18n.chain.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
             ]} defaultChoice={"yes"}
             show={canMoveCurrent && !G.pending.endTurn && noStage}
-            title={i18n.action.endStage}
+            title={i18n.chain.action.endStage}
             toggleText={<Typography><NextTurnIcon/></Typography>}
         />
 
@@ -347,8 +347,8 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             callback={drawCard}
             popAfterShow={false}
             choices={[
-                {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
-                {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
+                {label: i18n.chain.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
+                {label: i18n.chain.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
             ]} defaultChoice={"yes"}
             disabled={
                 G.player[parseInt(playerID)].deckEmpty
@@ -358,7 +358,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 && !G.pending.endTurn
                 && noStage
             }
-            title={i18n.action.draw}
+            title={i18n.chain.action.draw}
             toggleText={<Typography>
                 <ActionPointIcon/>
                 <HandIcon/>
@@ -376,7 +376,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 fullWidth
                 variant={"outlined"}
                 onClick={showCompetitionResult}
-            >{i18n.action.showCompetitionResult}</Button>
+            >{i18n.chain.action.showCompetitionResult}</Button>
             : <></>
 
 
@@ -397,8 +397,8 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             deposit: deposit,
         })
     }
-    const sliderPart = stage === "payAdditionalCost" && canMove ? <Grid item xs={6}>
-            <Typography>{i18n.action.adjustInSlider}</Typography>
+    const sliderPart = stage === "payAdditionalCost" && canMove ? <Grid size={6}>
+            <Typography>{i18n.chain.action.adjustInSlider}</Typography>
             <Slider
                 onChange={handleSliderChange}
                 min={0}
@@ -414,9 +414,9 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 variant="contained"
                 color="primary"
                 onClick={payAdditionalCost}>
-                {i18n.action.payAdditionalCost}
-                {i18n.pub.res}{extraCost - deposit}
-                {i18n.pub.deposit}{deposit}
+                {i18n.chain.action.payAdditionalCost}
+                {i18n.chain.pub.res}{extraCost - deposit}
+                {i18n.chain.pub.deposit}{deposit}
             </Button>
         </Grid> :
         <></>
@@ -425,7 +425,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const undoButton = !G.disableUndo && activePlayer(ctx) === playerID
         ? <IconButton
             onClick={undoFn}
-            aria-label={i18n.action.undo}
+            aria-label={i18n.chain.action.undo}
         >
             <UndoIcon/>
         </IconButton>
@@ -436,7 +436,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const redoButton = !G.disableUndo && activePlayer(ctx) === playerID
         ? <IconButton
             onClick={redoFn}
-            aria-label={i18n.action.redo}
+            aria-label={i18n.chain.action.redo}
         >
             <RedoIcon/>
         </IconButton>
@@ -448,7 +448,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             fullWidth
             variant={"outlined"}
             onClick={endStage}
-        >{i18n.action.endStage}</Button>
+        >{i18n.chain.action.endStage}</Button>
         : <></>
 
 
@@ -458,7 +458,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             fullWidth
             variant={"outlined"}
             onClick={endTurn}
-        >{i18n.action.endTurn}</Button>
+        >{i18n.chain.action.endTurn}</Button>
         : <></>
 
     const concede = (choice: string) => {
@@ -473,27 +473,27 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             callback={concede}
             popAfterShow={false}
             choices={[
-                {label: i18n.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
-                {label: i18n.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
+                {label: i18n.chain.dialog.confirmRespond.yes, value: "yes", disabled: false, hidden: false},
+                {label: i18n.chain.dialog.confirmRespond.no, value: "no", disabled: false, hidden: false}
             ]} defaultChoice={"no"}
             show={canMoveCurrent && noStage}
-            title={i18n.dialog.concede.title}
+            title={i18n.chain.dialog.concede.title}
             toggleText={<ConcedeIcon/>}
         />
 
     const helpers = playerID === null ? [] : getValidHelper(G, playerID);
 
-    return <Grid item container xs={12} sm={5} justifyContent="flex-start">
-        <Grid item container xs={12}>
+    return <Grid container size={{xs: 12, sm: 5}} sx={{justifyContent: 'flex-start'}}>
+        <Grid container size={12}>
             <PubPanel log={log} ctx={ctx} i={G.pub[parseInt(playerID)]} idx={parseInt(playerID)} G={G}
                       getName={getName}/>
         </Grid>
         {noStage && canMoveCurrent ?
-            <Grid item xs={6}>
+            <Grid size={6}>
                 <Typography
                     variant={"h6"}
                     color="inherit"
-                >{i18n.dialog.buyCard.basic}</Typography>
+                >{i18n.chain.dialog.buyCard.basic}</Typography>
                 <BuyCard
                     card={BasicCardID.B01} helpers={helpers}
                     G={G} playerID={playerID} ctx={ctx} moves={moves}/>
@@ -512,7 +512,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                 {classicFilmButtonGroup}
             </Grid> : <></>}
         {sliderPart}
-        <Grid item xs={6}>
+        <Grid size={6}>
             {undoButton}
             {redoButton}
             {endTurnButton}
@@ -531,7 +531,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             {chooseEffectDialog}
             {deckDialog}
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={12}>
             <PlayerHand moves={moves} G={G} playerID={playerID} ctx={ctx}/>
         </Grid>
     </Grid>

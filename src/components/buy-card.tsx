@@ -2,25 +2,24 @@ import React from "react";
 import {IG} from "../types/setup";
 import {BasicCardID, CardID, ClassicCardID, getCardById, ICardSlot} from "../types/core";
 import ChoiceDialog from "./modals";
-import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
-import Dialog from "@material-ui/core/Dialog";
-import FormLabel from "@material-ui/core/FormLabel";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
+import Dialog from "@mui/material/Dialog";
+import FormLabel from "@mui/material/FormLabel";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import {Ctx, PlayerID} from "boardgame.io";
 import {canAfford, canBuyCard, canHelp, resCost} from "../game/util";
-import Slider from "@material-ui/core/Slider";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import InsertCommentIcon from '@material-ui/icons/RateReview';
-import RemoveCommentIcon from '@material-ui/icons/SpeakerNotesOff';
-import Button from "@material-ui/core/Button";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import FormGroup from "@material-ui/core/FormGroup";
-import FormControl from "@material-ui/core/FormControl";
-import Checkbox from "@material-ui/core/Checkbox";
-import DialogActions from "@material-ui/core/DialogActions";
+import Slider from "@mui/material/Slider";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import InsertCommentIcon from '@mui/icons-material/RateReview';
+import RemoveCommentIcon from '@mui/icons-material/SpeakerNotesOff';
+import Button from "@mui/material/Button";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import FormGroup from "@mui/material/FormGroup";
+import FormControl from "@mui/material/FormControl";
+import Checkbox from "@mui/material/Checkbox";
+import DialogActions from "@mui/material/DialogActions";
 import {CardInfo, getCardName} from "./card";
 
 export interface IBuyDialogProps {
@@ -34,7 +33,7 @@ export interface IBuyDialogProps {
 
 export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProps) => {
 
-    useI18n(i18n);
+    i18n.use();
     const targetCard = getCardById(card);
 
     const [open, setOpen] = React.useState(false);
@@ -116,7 +115,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     const getValueText = (n: number) => n.toString();
 
     // @ts-ignore
-    return <Grid item xs={12}>
+    return <Grid size={12}>
         <Button
             fullWidth
             style={{textTransform: 'none'}}
@@ -125,7 +124,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
             variant={"outlined"}
         >
             <Typography>
-                {i18n.dialog.buyCard.board}
+                {i18n.chain.dialog.buyCard.board}
                 {getCardName(card)}
                 {card.startsWith("B0") ? `(${
                     // @ts-ignore
@@ -135,23 +134,23 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         </Button>
         <Dialog onClose={handleClose} open={open}>
             <DialogTitle>
-                {i18n.dialog.buyCard.board}
+                {i18n.chain.dialog.buyCard.board}
                 {getCardName(card)}
-                {i18n.dialog.buyCard.cost} {targetCard.cost.res}
-                {i18n.pub.industryRequirement} {targetCard.cost.industry}
-                {i18n.pub.aestheticsRequirement} {targetCard.cost.aesthetics}
+                {i18n.chain.dialog.buyCard.cost} {targetCard.cost.res}
+                {i18n.chain.pub.industryRequirement} {targetCard.cost.industry}
+                {i18n.chain.pub.aestheticsRequirement} {targetCard.cost.aesthetics}
             </DialogTitle>
             <DialogContent>
                 <CardInfo cid={targetCard.cardId}/>
                 <FormControl required component="fieldset">
                     <FormLabel component="legend" error={!canBuy}>
-                        {i18n.dialog.buyCard.cost} {i18n.pub.res} {res}
-                        {i18n.pub.deposit} {deposit}
+                        {i18n.chain.dialog.buyCard.cost} {i18n.chain.pub.res} {res}
+                        {i18n.chain.pub.deposit} {deposit}
                     </FormLabel>
                     <FormGroup>
                         {sliderRequired
                             ? <>
-                                <Typography>{i18n.action.adjustInSlider}</Typography>
+                                <Typography>{i18n.chain.action.adjustInSlider}</Typography>
                                 <Slider
                                     onChange={handleSliderChange}
                                     min={0}
@@ -173,9 +172,9 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                                     name={getCardName(p)}/>}
                                 label={
                                     getCardName(p) + "  " +
-                                    i18n.pub.industry +
+                                    i18n.chain.pub.industry +
                                     getCardById(p).industry.toString() +
-                                    i18n.pub.aesthetics +
+                                    i18n.chain.pub.aesthetics +
                                     getCardById(p).aesthetics.toString()
                                 }
                             /> : <div key={idx}/>)}
@@ -187,16 +186,16 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
                         variant={"contained"}
                         onClick={buyAndClose} color="primary"
                         disabled={!canMakeBuyMove()}>
-                    {i18n.confirm}
+                    {i18n.chain.confirm}
                 </Button>
                 <Button key={2}
                         onClick={handleClose} color="secondary" variant={"outlined"}>
-                    {i18n.cancel}
+                    {i18n.chain.cancel}
                 </Button>
                 <Button key={3}
                         onClick={refreshCost}
                         color="secondary" variant={"outlined"}>
-                    {i18n.dialog.buyCard.refresh}
+                    {i18n.chain.dialog.buyCard.refresh}
                 </Button>
             </DialogActions>
         </Dialog>
@@ -210,7 +209,7 @@ export interface ICommentProps {
 }
 
 export const Comment = ({slot, comment, G}: ICommentProps) => {
-    useI18n(i18n);
+    i18n.use();
     const cards: BasicCardID[] = [BasicCardID.B01, BasicCardID.B02, BasicCardID.B03, BasicCardID.B04];
 
     const removeComment = () => {
@@ -236,9 +235,9 @@ export const Comment = ({slot, comment, G}: ICommentProps) => {
             )
             }
             defaultChoice={"B01"} show={slot.card !== null}
-            title={i18n.action.comment}
+            title={i18n.chain.action.comment}
             toggleText={<InsertCommentIcon/>}/> :
-        <Button fullWidth onClick={removeComment} aria-label={i18n.dialog.comment.removeCommentCard}>
+        <Button fullWidth onClick={removeComment} aria-label={i18n.chain.dialog.comment.removeCommentCard}>
             <RemoveCommentIcon/>
         </Button>
 }

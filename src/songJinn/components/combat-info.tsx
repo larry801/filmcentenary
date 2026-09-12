@@ -6,7 +6,7 @@ import {
     SongJinnGame,
 } from "../constant/general";
 import { Ctx, LogEntry, PlayerID } from "boardgame.io";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 import {
     ciJinnTroop,
     ciSongTroop,
@@ -19,8 +19,8 @@ import {
     sjCardById,
 } from "../util";
 import { Dices } from "./dices";
-import Button from "@material-ui/core/Button";
-import Paper from "@material-ui/core/Paper";
+import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
 import { actualStage } from "../../game/util";
 import ChoiceDialog from "../../components/modals";
 import CheckBoxDialog from "./choice";
@@ -131,7 +131,7 @@ export const CombatInfoPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) =
     }, [isActive, ctx.activePlayers])
 
     return <>
-        <Grid container item xs={12}><Paper>
+        <Grid container size={12}><Paper>
 
             <div><label></label>{s.atk}</div>
             <div><label>进攻方：</label>{s.atk}</div>
@@ -199,7 +199,7 @@ export const CombatInfoPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) =
                 {takeDamageDialog}
             </> : <></>}
 
-            {pid !== null && isActive && <Grid item>
+            {pid !== null && isActive && <Grid>
                 <Button key={'adjust-5'} onClick={() => adjustDice(-5)}>-5</Button>
                 <Button key={'adjust-1'} onClick={() => adjustDice(-1)}>-1</Button>
                 <Button key={`roll-sj-dice-button-${pid}`}

@@ -3,7 +3,7 @@ import {SocketIO} from 'boardgame.io/multiplayer';
 import {Client} from 'boardgame.io/react';
 import {FilmCentenaryGame, Player} from "../../Game";
 import {FilmCentenaryBoard} from "../board";
-import CircularProgress from "@material-ui/core/CircularProgress";
+import CircularProgress from "@mui/material/CircularProgress";
 import {SongJinnGameDef} from "../../songJinn/game";
 import {SongJinnBoard} from "../../songJinn/components/board";
 

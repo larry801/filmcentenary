@@ -1,17 +1,17 @@
 import React from "react";
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import FormLabel from '@material-ui/core/FormLabel';
-import Button from '@material-ui/core/Button';
-import Dialog from "@material-ui/core/Dialog";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import FormControl from "@material-ui/core/FormControl/FormControl";
-import FormGroup from "@material-ui/core/FormGroup/FormGroup";
-import DialogActions from "@material-ui/core/DialogActions";
-import Grid from "@material-ui/core/Grid";
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormLabel from '@mui/material/FormLabel';
+import Button from '@mui/material/Button';
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import FormControl from "@mui/material/FormControl";
+import FormGroup from "@mui/material/FormGroup";
+import DialogActions from "@mui/material/DialogActions";
+import Grid from "@mui/material/Grid";
 import {usePrevious} from "../../components/board";
 import {useDebounce} from "../../components/modals";
-import Checkbox from "@material-ui/core/Checkbox";
+import Checkbox from "@mui/material/Checkbox";
 
 
 export interface Choice {
@@ -27,7 +27,7 @@ export interface IChoiceProps {
     disabled?: boolean,
     show: boolean,
     title: string,
-    toggleText: string | JSX.Element,
+    toggleText: string | React.JSX.Element,
     initial: boolean,
     popAfterShow?: boolean,
     buttonColor?: boolean,
@@ -77,7 +77,7 @@ export const CheckBoxDialog = ({
         setChecked(newChecked);
     };
 
-    return show ? <Grid item xs={12}>
+    return show ? <Grid size={12}>
         <Button
             aria-label={title}
             color={buttonColor ? "secondary" : "primary"}

@@ -3,7 +3,7 @@ import React from "react";
 import {Client} from "boardgame.io/react";
 import {FilmCentenaryGame} from "../../Game";
 import {FilmCentenaryBoard} from "../board";
-import Grid from "@material-ui/core/Grid"
+import Grid from "@mui/material/Grid"
 import {Local} from "boardgame.io/multiplayer";
 import {Loading} from "../join/multiplayer";
 
@@ -18,8 +18,8 @@ const FilmClient3p = Client(
     }
 );
 const ThreePlayerLocal = () => <Grid container>
-    <Grid item> <FilmClient3p playerID='0'/></Grid>
-    <Grid item> <FilmClient3p playerID='1'/></Grid>
-    <Grid item> <FilmClient3p playerID='2'/></Grid>
+    <Grid> <FilmClient3p playerID='0'/></Grid>
+    <Grid> <FilmClient3p playerID='1'/></Grid>
+    <Grid> <FilmClient3p playerID='2'/></Grid>
 </Grid>
 export default ThreePlayerLocal;

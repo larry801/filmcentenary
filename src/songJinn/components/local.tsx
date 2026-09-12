@@ -1,7 +1,7 @@
 import React from "react";
 
 import {Client} from "boardgame.io/react";
-import Grid from "@material-ui/core/Grid"
+import Grid from "@mui/material/Grid"
 import {Local} from "boardgame.io/multiplayer"
 import {SJPlayer} from "../constant/general";
 import {SongJinnGameDef} from "../game";
@@ -16,8 +16,8 @@ const SongJinnLocal = Client({
 });
 
 const SinglePlayer = () => <Grid container>
-    <Grid item> <SongJinnLocal matchID={'local'} playerID={SJPlayer.P1}/></Grid>
-    <Grid item> <SongJinnLocal matchID={'local'} playerID={SJPlayer.P2}/></Grid>
+    <Grid> <SongJinnLocal matchID={'local'} playerID={SJPlayer.P1}/></Grid>
+    <Grid> <SongJinnLocal matchID={'local'} playerID={SJPlayer.P2}/></Grid>
 </Grid>
 
 export default SinglePlayer;

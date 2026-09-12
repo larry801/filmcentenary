@@ -3,34 +3,33 @@ import {LogEntry} from "boardgame.io";
 import {CardID, getCardById, MoveNames} from "../../types/core";
 import i18n from "../../constant/i18n";
 import CardInfo, {effName, getCardName} from "../card";
-import {useI18n} from "@i18n-chain/react";
-import Grid from "@material-ui/core/Grid";
-import Button from "@material-ui/core/Button";
-import Dialog from "@material-ui/core/Dialog";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import Paper from "@material-ui/core/Paper";
-import DialogActions from "@material-ui/core/DialogActions";
+import Grid from "@mui/material/Grid";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import Paper from "@mui/material/Paper";
+import DialogActions from "@mui/material/DialogActions";
 import {IG} from "../../types/setup";
-import PrestigeIcon from "@material-ui/icons/EmojiEvents";
-import AestheticsIcon from "@material-ui/icons/ImportContacts";
-import IndustryIcon from "@material-ui/icons/Settings";
-import ResourceIcon from "@material-ui/icons/MonetizationOn";
-import Typography from "@material-ui/core/Typography";
+import PrestigeIcon from "@mui/icons-material/EmojiEvents";
+import AestheticsIcon from "@mui/icons-material/ImportContacts";
+import IndustryIcon from "@mui/icons-material/Settings";
+import ResourceIcon from "@mui/icons-material/MonetizationOn";
+import Typography from "@mui/material/Typography";
 
 
 export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string, G: IG): string => {
     switch (l.action.type) {
         case "GAME_EVENT":
             if (l.action.payload.type === "endTurn" && l.turn !== 1) {
-                return i18n.action.turnEnd({a: l.turn - 1})
+                return i18n.chain.action.turnEnd({a: l.turn - 1})
             } else {
                 return "";
             }
         case "MAKE_MOVE":
             let moveName = l.action.payload.type;
             if (moveName === MoveNames.chooseEffect) {
-                return getPlayerName(l.action.payload.playerID) + i18n.effect.chose + effName(
+                return getPlayerName(l.action.payload.playerID) + i18n.chain.effect.chose + effName(
                     // @ts-ignore
                     l.action.payload.args[0].effect
                 )
@@ -38,10 +37,10 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string,
                 if (moveName === MoveNames.updateSlot) {
                     const updatedResult = l.metadata.updatedResult;
                     const resultText = typeof updatedResult === typeof Array ? updatedResult.map((c: string) => '【' + getCardName(c) + '】').join('') : "";
-                    return `${getPlayerName(l.action.payload.playerID)}${i18n.moves[moveName]({args: l.action.payload.args})}${resultText}`
+                    return `${getPlayerName(l.action.payload.playerID)}${i18n.chain.moves[moveName]({args: l.action.payload.args})}${resultText}`
                 } else {
                     // @ts-ignore
-                    return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
+                    return getPlayerName(l.action.payload.playerID) + i18n.chain.moves[moveName]({
                         // @ts-ignore
                         args: l.action.payload.args
                     })
@@ -50,11 +49,11 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string,
         case
         "REDO"
         :
-            return getPlayerName(l.action.payload.playerID) + i18n.action.redo
+            return getPlayerName(l.action.payload.playerID) + i18n.chain.action.redo
         case
         "UNDO"
         :
-            return getPlayerName(l.action.payload.playerID) + i18n.action.undo
+            return getPlayerName(l.action.payload.playerID) + i18n.chain.action.undo
         default:
             return ""
     }
@@ -62,13 +61,13 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string,
 
 export interface ICardListProps {
     cards: CardID[],
-    label: JSX.Element,
+    label: React.JSX.Element,
     title: string,
 }
 
 export const CardList = ({cards, title, label}: ICardListProps) => {
 
-    useI18n(i18n);
+    i18n.use();
 
     const [open, setOpen] = React.useState(false);
     const handleClickOpen = () => {
@@ -78,7 +77,7 @@ export const CardList = ({cards, title, label}: ICardListProps) => {
     const handleClose = () => {
         setOpen(false);
     };
-    return <Grid item xs={12}>
+    return <Grid size={12}>
         <Button
             aria-label={title}
             fullWidth
@@ -117,7 +116,7 @@ export const CardList = ({cards, title, label}: ICardListProps) => {
             </DialogContent>
             <DialogActions>
                 <Button onClick={handleClose} color="primary">
-                    {i18n.confirm}
+                    {i18n.chain.confirm}
                 </Button>
             </DialogActions>
         </Dialog></Grid>

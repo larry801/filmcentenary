@@ -4,7 +4,7 @@
 
 ## 启动
 
-先安装依赖 要求node 16以上
+先安装依赖 要求 node 20.19 以上（vite 8 需要 ^20.19 或 >=22.12，Docker 镜像使用 node 22）
 ```shell
 yarn install
 ```

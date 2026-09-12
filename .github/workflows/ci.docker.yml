@@ -7,32 +7,32 @@ on:
 
 jobs:
   docker_image:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Check builder dependency change
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         id: builder-dependency-check
         with:
           path: package.json
           key: ${{ runner.os }}-yarn-builder-${{ hashFiles('**/yarn.lock', 'Dockerfile.builder') }}
       - name: Check base dependency change
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         id: base-dependency-check
         with:
           path: package.json
           key: ${{ runner.os }}-yarn-base-${{ hashFiles('**/yarn.lock', 'Dockerfile.base') }}
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Login to Coding Artifact
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: filmcentenary-docker.pkg.coding.net
           username: ${{ secrets.CODING_USERNAME }}
@@ -42,7 +42,7 @@ jobs:
         run: echo "sha_short=$(git rev-parse --short HEAD)"  >> $GITHUB_OUTPUT
       - name: Build and push builder image
         if: steps.builder-dependency-check.outputs.cache-hit != 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.builder
@@ -50,7 +50,7 @@ jobs:
           tags: larry801/film-centenary-builder:latest,larry801/film-centenary-builder:${{ steps.vars.outputs.sha_short }}
       - name: Build and push base image
         if: steps.base-dependency-check.outputs.cache-hit != 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.base
@@ -61,7 +61,7 @@ jobs:
             larry801/film-centenary-base:${{ steps.vars.outputs.sha_short }}
             filmcentenary-docker.pkg.coding.net/dianyingbainian/web_full_stack/film-centenary-base:${{ steps.vars.outputs.sha_short }}
       - name: Build and push app image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.web

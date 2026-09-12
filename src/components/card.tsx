@@ -9,7 +9,7 @@ import {
     Region,
     ScoreCardID, SimpleEffectNames
 } from "../types/core";
-import PrestigeIcon from '@material-ui/icons/EmojiEvents';
+import PrestigeIcon from '@mui/icons-material/EmojiEvents';
 import {
     ActionPointIcon, AestheticsCardIcon, BasicCardIcon, BuyCardForFreeIcon,
     CardIcon,
@@ -21,31 +21,31 @@ import {
     FreeBreakthroughIcon, getColor, IndustryCardIcon, LegendCardIcon,
     LoseShareIcon, NormalCardIcon
 } from "./icons"
-import InsertCommentIcon from '@material-ui/icons/RateReview';
-import DepositIcon from '@material-ui/icons/LocalAtm';
-import Typography from "@material-ui/core/Typography";
-import ContinuousHeaderIcon from '@material-ui/icons/RepeatOne';
-import ArchiveHeaderIcon from '@material-ui/icons/Archive';
-import BuyCardHeaderIcon from '@material-ui/icons/ShoppingCart';
-import AestheticsIcon from '@material-ui/icons/ImportContacts';
-import IndustryIcon from '@material-ui/icons/Settings';
+import InsertCommentIcon from '@mui/icons-material/RateReview';
+import DepositIcon from '@mui/icons-material/LocalAtm';
+import Typography from "@mui/material/Typography";
+import ContinuousHeaderIcon from '@mui/icons-material/RepeatOne';
+import ArchiveHeaderIcon from '@mui/icons-material/Archive';
+import BuyCardHeaderIcon from '@mui/icons-material/ShoppingCart';
+import AestheticsIcon from '@mui/icons-material/ImportContacts';
+import IndustryIcon from '@mui/icons-material/Settings';
 import { nanoid } from "nanoid";
-import CompetitionIcon from '@material-ui/icons/SportsKabaddi';
-import AnyPlayerIcon from '@material-ui/icons/People';
-import PlayCardIcon from '@material-ui/icons/PlayCircleFilledWhiteOutlined';
+import CompetitionIcon from '@mui/icons-material/SportsKabaddi';
+import AnyPlayerIcon from '@mui/icons-material/People';
+import PlayCardIcon from '@mui/icons-material/PlayCircleFilledWhiteOutlined';
 import {getCardEffect} from "../constant/effects";
 import i18n from "../constant/i18n";
-import HandIcon from "@material-ui/icons/PanTool";
-import ResIcon from '@material-ui/icons/MonetizationOn';
-import UpgradeBadgeIcon from '@material-ui/icons/PublishRounded';
-import Badge from "@material-ui/core/Badge";
-import OptionalIcon from '@material-ui/icons/Help';
-import PickIcon from '@material-ui/icons/Colorize';
-import UpdateSlotIcon from '@material-ui/icons/Loop';
-import StudioIcon from '@material-ui/icons/Business';
-import PayIcon from '@material-ui/icons/Remove';
-import SearchIcon from '@material-ui/icons/Search';
-import Grid from "@material-ui/core/Grid";
+import HandIcon from "@mui/icons-material/PanTool";
+import ResIcon from '@mui/icons-material/MonetizationOn';
+import UpgradeBadgeIcon from '@mui/icons-material/PublishRounded';
+import Badge from "@mui/material/Badge";
+import OptionalIcon from '@mui/icons-material/Help';
+import PickIcon from '@mui/icons-material/Colorize';
+import UpdateSlotIcon from '@mui/icons-material/Loop';
+import StudioIcon from '@mui/icons-material/Business';
+import PayIcon from '@mui/icons-material/Remove';
+import SearchIcon from '@mui/icons-material/Search';
+import Grid from "@mui/material/Grid";
 
 export interface ICardEffectProps {
     cid: CardID,
@@ -55,22 +55,22 @@ const verticalAlign = {verticalAlign: "-0.125em"};
 
 
 export const getCardName = (cardId: string): string => {
-    if (cardId in i18n.card) {
+    if (cardId in i18n.chain.card) {
         // @ts-ignore
-        return i18n.card[cardId];
+        return i18n.chain.card[cardId];
     } else {
         if (cardId in AllClassicCards) {
             let trimmedID = cardId.slice(1)
             // @ts-ignore
-            return i18n.card[trimmedID];
+            return i18n.chain.card[trimmedID];
         } else {
             if (cardId in EventCardID) {
                 // @ts-ignore
-                return i18n.card[cardId]
+                return i18n.chain.card[cardId]
             } else {
                 if (cardId in ScoreCardID) {
                     const scoreCard = getScoreCardByID(cardId);
-                    return i18n.score.cardName({
+                    return i18n.chain.score.cardName({
                         era: scoreCard.era,
                         region: scoreCard.region,
                         rank: scoreCard.rank,
@@ -86,7 +86,7 @@ export const playCardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
     let r: string[] = [];
     if (effObj.hasOwnProperty("play") && effObj.play.e !== "none") {
-        r.push(i18n.effect.playCardHeader);
+        r.push(i18n.chain.effect.playCardHeader);
         r.push(effName(effObj.play));
     }
     return r.join(" ");
@@ -96,7 +96,7 @@ export const buyCardEffectText = (cardId: CardID): string => {
     let r: string[] = [];
     try{
         if (effObj.hasOwnProperty("buy") && effObj.buy.e !== "none") {
-            r.push(i18n.effect.buyCardHeader);
+            r.push(i18n.chain.effect.buyCardHeader);
             r.push(effName(effObj.buy));
         }
     }catch (e) {
@@ -110,7 +110,7 @@ export const schoolEffectText = (cardId: CardID): string => {
     try{
         if (effObj.hasOwnProperty("school")) {
             if (effObj.hasOwnProperty("response") && effObj.response.hasOwnProperty("pre") && effObj.response.pre.e !== "none") {
-                r.push(i18n.effect.extraEffect);
+                r.push(i18n.chain.effect.extraEffect);
                 if (effObj.response.pre.e === "multiple") {
                     effObj.response.effect.forEach((singleEff: any) => {
                         r.push(effName(singleEff.pre))
@@ -123,7 +123,7 @@ export const schoolEffectText = (cardId: CardID): string => {
             }
         } else {
             if (effObj.hasOwnProperty("response") && effObj.response.hasOwnProperty("pre") && effObj.response.pre.e !== "none") {
-                r.push(i18n.effect.responseHeader);
+                r.push(i18n.chain.effect.responseHeader);
                 r.push(effName(effObj.response.pre));
                 r.push(effName(effObj.response.effect));
             }
@@ -139,7 +139,7 @@ export const archiveCardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
     let r: string[] = [];
     if (effObj.hasOwnProperty("archive") && effObj.archive.e !== "none") {
-        r.push(i18n.effect.breakthroughHeader);
+        r.push(i18n.chain.effect.breakthroughHeader);
         r.push(effName(effObj.archive));
     }
     return r.join(" ");
@@ -148,13 +148,13 @@ export const scoreEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
     let r: string[] = [];
     if (effObj.hasOwnProperty("scoring")) {
-        r.push(i18n.effect.scoringHeader);
+        r.push(i18n.chain.effect.scoringHeader);
         r.push(effName(effObj.scoring));
     }
     return r.join(" ");
 }
 
-export const effIcon = (eff: any): JSX.Element => {
+export const effIcon = (eff: any): React.JSX.Element => {
     switch (eff.e) {
         case SimpleEffectNames.CompetitionPowerToVp:
             return <React.Fragment key={eff.e}>
@@ -243,7 +243,7 @@ export const effIcon = (eff: any): JSX.Element => {
                     <Badge
                         badgeContent={'-'}
                         color="primary"
-                        overlap="rectangle"
+                        overlap="rectangular"
                     >
                         <StudioIcon/>
                     </Badge>
@@ -306,7 +306,7 @@ export const effIcon = (eff: any): JSX.Element => {
                             }}
                             badgeContent={'-'}
                             color="primary"
-                            overlap="rectangle"
+                            overlap="rectangular"
                         >
                             <PrestigeIcon/>
                         </Badge>
@@ -321,7 +321,7 @@ export const effIcon = (eff: any): JSX.Element => {
                             }}
                             badgeContent={'-'}
                             color="primary"
-                            overlap="rectangle"
+                            overlap="rectangular"
                         >
                             <DepositIcon/>
                         </Badge>
@@ -336,7 +336,7 @@ export const effIcon = (eff: any): JSX.Element => {
                             }}
                             badgeContent={'-'}
                             color="primary"
-                            overlap="rectangle"
+                            overlap="rectangular"
                         >
                             <ResIcon/>
                         </Badge>
@@ -351,7 +351,7 @@ export const effIcon = (eff: any): JSX.Element => {
                             }}
                             badgeContent={'-'}
                             color="primary"
-                            overlap="rectangle"
+                            overlap="rectangular"
                         >
                             <DrawnShareIcon r={eff.a.cost.region}/>
                         </Badge>
@@ -366,7 +366,7 @@ export const effIcon = (eff: any): JSX.Element => {
             return <React.Fragment key={nanoid()}><UpdateSlotIcon key={nanoid()}/></React.Fragment>
         case "choice":
             return <React.Fragment key={nanoid()}>
-                {i18n.effect.choice}
+                {i18n.chain.effect.choice}
                 {eff.a.map((i: any, idx: number) =>
                     <React.Fragment key={nanoid()}> ({idx + 1}) {effIcon(i)}</React.Fragment>
                 )}
@@ -524,12 +524,12 @@ export const effName = (eff: any): string => {
         case "studio":
         case "noStudio":
             // @ts-ignore
-            return i18n.effect[eff.e] + effName(eff.a);
+            return i18n.chain.effect[eff.e] + effName(eff.a);
         default:
             break;
     }
     if (eff.e === "pay") {
-        return i18n.effect.pay + effName(eff.a.cost) + effName(eff.a.eff);
+        return i18n.chain.effect.pay + effName(eff.a.cost) + effName(eff.a.eff);
     }
     if (eff.e === "era") {
         let r = []
@@ -537,7 +537,7 @@ export const effName = (eff: any): string => {
             let sub = eff.a[i];
             if (sub.e === "none") continue;
             const eraConvert = i as 0 | 1 | 2;
-            r.push(i18n.effect.era[eraConvert]);
+            r.push(i18n.chain.effect.era[eraConvert]);
             r.push(effName(sub));
         }
         return r.join("");
@@ -548,11 +548,11 @@ export const effName = (eff: any): string => {
     }
     if (eff.e === "choice") {
         let res = eff.a.map((e: any, idx: number) => "（" + (idx + 1).toString() + "）" + effName(e));
-        res.unshift(i18n.effect.choice)
+        res.unshift(i18n.chain.effect.choice)
         return res.join("");
     }
     // @ts-ignore
-    let name = i18n.effect[eff.e];
+    let name = i18n.chain.effect[eff.e];
     if (typeof name === "string") {
         return name;
     } else {
@@ -568,9 +568,7 @@ export const CardInfo = ({cid}: ICardEffectProps) => {
     const card = getCardById(cid);
     const r = card.region;
 
-    return <Grid
-        container item xs={12}
-    >
+    return <Grid container size={12}>
         {card.industry > 0 ? Array(card.industry).fill(1).map(() =>
                 <IndustryIcon
                     key={nanoid()}
@@ -598,7 +596,7 @@ export const getEffectTextById = (cid: CardID): string => {
     const score = scoreEffectText(cid);
     const eff = getCardEffect(cid);
     const schoolBasic = eff.hasOwnProperty("school")
-        ? i18n.effect.school({
+        ? i18n.chain.effect.school({
             hand: eff.school.hand,
             action: eff.school.action
         }) : ""
@@ -621,19 +619,19 @@ export const CardEffect = ({cid}: ICardEffectProps) => {
             {effIcon(effObj.buy)}
         </React.Fragment> : <React.Fragment key={nanoid()}/>}
         {playEffText !== "" ? <React.Fragment key={nanoid()}>
-            <Typography key={nanoid()} aria-label={i18n.effect.playCardHeader}>
+            <Typography key={nanoid()} aria-label={i18n.chain.effect.playCardHeader}>
                 【<PlayCardIcon style={verticalAlign}/> 】
             </Typography>
             {effIcon(effObj.play)}
         </React.Fragment> : <React.Fragment key={nanoid()}/>}
         {arch !== "" ? <React.Fragment key={nanoid()}>
-            <Typography key={nanoid()} aria-label={i18n.effect.breakthroughHeader}>
+            <Typography key={nanoid()} aria-label={i18n.chain.effect.breakthroughHeader}>
                 【<ArchiveHeaderIcon style={verticalAlign}/>】
             </Typography>
             {effIcon(effObj.archive)}
         </React.Fragment> : <React.Fragment key={nanoid()}/>}
         {isSchool ? <React.Fragment key={nanoid()}>
-            <Typography key={nanoid()} aria-label={i18n.effect.continuous}>
+            <Typography key={nanoid()} aria-label={i18n.chain.effect.continuous}>
                 <ContinuousHeaderIcon style={verticalAlign}/>
             </Typography>
             <Typography key={nanoid()}>

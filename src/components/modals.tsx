@@ -1,18 +1,17 @@
 import React, {useState, useRef, useEffect} from "react";
-import Radio from '@material-ui/core/Radio';
-import RadioGroup from '@material-ui/core/RadioGroup';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import FormLabel from '@material-ui/core/FormLabel';
-import Button from '@material-ui/core/Button';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormLabel from '@mui/material/FormLabel';
+import Button from '@mui/material/Button';
 import i18n from "../constant/i18n";
-import {useI18n} from "@i18n-chain/react";
-import Dialog from "@material-ui/core/Dialog";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import FormControl from "@material-ui/core/FormControl/FormControl";
-import FormGroup from "@material-ui/core/FormGroup/FormGroup";
-import DialogActions from "@material-ui/core/DialogActions";
-import Grid from "@material-ui/core/Grid";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import FormControl from "@mui/material/FormControl";
+import FormGroup from "@mui/material/FormGroup";
+import DialogActions from "@mui/material/DialogActions";
+import Grid from "@mui/material/Grid";
 import {nanoid} from "nanoid";
 import {usePrevious} from "./board";
 
@@ -31,7 +30,7 @@ export interface IChoiceProps {
     disabled?: boolean,
     show: boolean,
     title: string,
-    toggleText: string | JSX.Element,
+    toggleText: string | React.JSX.Element,
     initial: boolean,
     popAfterShow?: boolean,
     buttonColor?: boolean,
@@ -74,7 +73,7 @@ export const ChoiceDialog = ({
                                  popAfterShow
                              }: IChoiceProps) => {
 
-    useI18n(i18n);
+    i18n.use();
     const [open, setOpen] = React.useState(initial);
     const [choice, setChoice] = React.useState(defaultChoice);
     const prevShow = usePrevious(show);
@@ -105,7 +104,7 @@ export const ChoiceDialog = ({
         console.log(e.target.value);
     };
 
-    return show ? <Grid key={nanoid()} item xs={12}>
+    return show ? <Grid key={nanoid()} size={12}>
         <Button
             key={nanoid()}
             aria-label={title}
@@ -148,7 +147,7 @@ export const ChoiceDialog = ({
             </DialogContent>
             <DialogActions key={nanoid()}>
                 <Button key={nanoid()} onClick={handleConfirm} color="primary">
-                    {i18n.confirm}
+                    {i18n.chain.confirm}
                 </Button>
             </DialogActions>
         </Dialog>

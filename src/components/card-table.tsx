@@ -1,33 +1,32 @@
 import React from "react";
 import {AllClassicCards, BasicCardID, EventCardID, getCardById, ScoreCardID} from "../types/core";
-import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableContainer from '@material-ui/core/TableContainer';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
-import Paper from '@material-ui/core/Paper';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
 import {archiveCardEffectText, CardEffect, getCardName, getEffectTextById} from "./card";
 import './card-table.css';
 
 const DenseTable = () => {
-    useI18n(i18n);
+    i18n.use();
 
     return (
         <TableContainer component={Paper}>
             <Table className={"tab-update"} size="small" aria-label="Card table">
                 <TableHead>
                     <TableRow>
-                        <TableCell>{i18n.cardTable.cardId}</TableCell>
-                        <TableCell>{i18n.pub.era}</TableCell>
-                        <TableCell>{i18n.pub.region}</TableCell>
-                        <TableCell>{i18n.cardTable.cardName}</TableCell>
-                        <TableCell>{i18n.dialog.buyCard.cost}</TableCell>
-                        <TableCell>{i18n.pub.vp}/{i18n.pub.industryMarker}/{i18n.pub.aestheticsMarker}</TableCell>
-                        <TableCell>{i18n.cardTable.effectIcon}</TableCell>
-                        <TableCell>{i18n.cardTable.effectText}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.cardId}</TableCell>
+                        <TableCell>{i18n.chain.pub.era}</TableCell>
+                        <TableCell>{i18n.chain.pub.region}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.cardName}</TableCell>
+                        <TableCell>{i18n.chain.dialog.buyCard.cost}</TableCell>
+                        <TableCell>{i18n.chain.pub.vp}/{i18n.chain.pub.industryMarker}/{i18n.chain.pub.aestheticsMarker}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.effectIcon}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.effectText}</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -41,8 +40,8 @@ const DenseTable = () => {
                             <TableCell component="th" scope="row">
                                 {id.slice(1)}
                             </TableCell>
-                            <TableCell align="right">{i18n.era[c.era]}</TableCell>
-                            <TableCell align="right">{i18n.region[c.region]}</TableCell>
+                            <TableCell align="right">{i18n.chain.era[c.era]}</TableCell>
+                            <TableCell align="right">{i18n.chain.region[c.region]}</TableCell>
                             <TableCell align="right">
                                 {getCardName(id)}
                             </TableCell>
@@ -59,11 +58,11 @@ const DenseTable = () => {
             <Table size="small" aria-label="Card table">
                 <TableHead>
                     <TableRow>
-                        <TableCell>{i18n.cardTable.cardId}</TableCell>
-                        <TableCell>{i18n.cardTable.cardName}</TableCell>
-                        <TableCell>{i18n.dialog.buyCard.cost}</TableCell>
-                        <TableCell>{i18n.pub.vp}/{i18n.pub.industryMarker}/{i18n.pub.aestheticsMarker}</TableCell>
-                        <TableCell>{i18n.cardTable.effectText}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.cardId}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.cardName}</TableCell>
+                        <TableCell>{i18n.chain.dialog.buyCard.cost}</TableCell>
+                        <TableCell>{i18n.chain.pub.vp}/{i18n.chain.pub.industryMarker}/{i18n.chain.pub.aestheticsMarker}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.effectText}</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -88,10 +87,10 @@ const DenseTable = () => {
             <Table size="small" aria-label="Event card table">
                 <TableHead>
                     <TableRow>
-                        <TableCell>{i18n.cardTable.cardId}</TableCell>
-                        <TableCell>{i18n.pub.era}</TableCell>
-                        <TableCell>{i18n.cardTable.cardName}</TableCell>
-                        <TableCell>{i18n.cardTable.effectText}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.cardId}</TableCell>
+                        <TableCell>{i18n.chain.pub.era}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.cardName}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.effectText}</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -101,14 +100,14 @@ const DenseTable = () => {
                             <TableCell component="th" scope="row">
                                 {id}
                             </TableCell>
-                            <TableCell align="right">{i18n.era[c.era]}</TableCell>
+                            <TableCell align="right">{i18n.chain.era[c.era]}</TableCell>
                             <TableCell align="right">
                                 {getCardName(id)}
                             </TableCell>
                             <TableCell align="left">
                                 {
                                     // @ts-ignore
-                                    i18n.eventName[id]
+                                    i18n.chain.eventName[id]
                                 }
                             </TableCell>
                         </TableRow>
@@ -118,10 +117,10 @@ const DenseTable = () => {
             <Table size="small" aria-label="Score card table">
                 <TableHead>
                     <TableRow>
-                        <TableCell>{i18n.cardTable.cardId}</TableCell>
-                        <TableCell>{i18n.cardTable.cardName}</TableCell>
-                        <TableCell>{i18n.pub.vp}/{i18n.pub.industryMarker}/{i18n.pub.aestheticsMarker}</TableCell>
-                        <TableCell>{i18n.cardTable.effectText}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.cardId}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.cardName}</TableCell>
+                        <TableCell>{i18n.chain.pub.vp}/{i18n.chain.pub.industryMarker}/{i18n.chain.pub.aestheticsMarker}</TableCell>
+                        <TableCell>{i18n.chain.cardTable.effectText}</TableCell>
 
                     </TableRow>
                 </TableHead>

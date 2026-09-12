@@ -3,7 +3,7 @@
     "./src/*"
   ],
   "compilerOptions": {
-    "baseUrl": "./src/",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "lib": [
@@ -18,14 +18,15 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "sourceMap": true,
     "types": [
       "vite/client",
-      "jest"
+      "jest",
+      "node"
     ],
     "noFallthroughCasesInSwitch": true
   }

@@ -3,9 +3,11 @@
   "compilerOptions": {
     "noEmit": false,
     "outDir": "./build",
-    "baseUrl": "./",
     "isolatedModules": false,
-    "target": "es6"
+    "target": "es6",
+    "rootDir": "."
   },
-  "include": ["server.ts"]
+  "include": [
+    "server.ts"
+  ]
 }

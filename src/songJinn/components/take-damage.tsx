@@ -1,15 +1,15 @@
 import React from 'react';
-import Dialog from "@material-ui/core/Dialog";
-import Button from "@material-ui/core/Button";
+import Dialog from "@mui/material/Dialog";
+import Button from "@mui/material/Button";
 import { Country, SongJinnGame, TroopPlace, UNIT_SHORTHAND, emptyJinnTroop, emptySongTroop, CityID, accumulator } from "../constant/general";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 import { useDebounce } from "../../components/modals";
 import { usePrevious } from "../../components/board";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogActions from "@material-ui/core/DialogActions";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import { troopEndurance, unitsToString } from '../util';
-import { Typography } from '@material-ui/core';
+import { Typography } from '@mui/material';
 
 
 interface ITakeDmgProps {
@@ -116,12 +116,12 @@ export const TakeDamageDialog = ({
                 {title}
             </DialogTitle>
             <DialogContent>
-                <Grid container xs={12}>
-                    <Grid item xs={6} >
+                <Grid container size={12}>
+                    <Grid size={6}>
                         <Typography>击溃 {readyText}</Typography>
                         {readyUnits.map((u, idx) => {
                             if (max[idx] > 0) {
-                                return <Grid container item xs={12} key={`adjust-${idx}-grid`}>
+                                return <Grid container key={`adjust-${idx}-grid`} size={12}>
                                     <Button
                                         disabled={u === 0}
                                         onClick={() => {
@@ -141,11 +141,11 @@ export const TakeDamageDialog = ({
                             }
                         })}
                     </Grid>
-                    <Grid item xs={6} >
+                    <Grid size={6}>
                         <Typography>消灭 {standbyText} </Typography>
                         {standbyUnits.map((u, idx) => {
                             if (max[idx] > 0) {
-                                return <Grid item xs={12} key={`adjust-${idx}-standby-grid`}>
+                                return <Grid key={`adjust-${idx}-standby-grid`} size={12}>
                                     <Button
                                         disabled={u === 0}
                                         onClick={() => {

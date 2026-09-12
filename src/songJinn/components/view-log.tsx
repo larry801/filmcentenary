@@ -1,17 +1,16 @@
 import React from "react";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 import {LogEntry} from "boardgame.io";
-import Button from "@material-ui/core/Button";
+import Button from "@mui/material/Button";
 import copy from "copy-to-clipboard";
-import ContentCopyIcon from '@material-ui/icons/FileCopy';
-import IconButton from '@material-ui/core/IconButton';
-import TextField from '@material-ui/core/TextField';
+import ContentCopyIcon from '@mui/icons-material/FileCopy';
+import IconButton from '@mui/material/IconButton';
+import TextField from '@mui/material/TextField';
 import {getLogText, getMoveText} from "../util";
 import {SongJinnGame} from "../constant/general";
-import {useI18n} from "@i18n-chain/react";
 import i18n from "../../constant/i18n";
 import {logger} from "../../game/logger";
-import Paper from "@material-ui/core/Paper";
+import Paper from "@mui/material/Paper";
 
 export interface ILogViewProps {
     log: LogEntry[],
@@ -31,7 +30,7 @@ export const NewLog = ({l, G, count}: INewLogProps) => {
     </>
 }
 export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
-    useI18n(i18n);
+    i18n.use();
 
     const [open, setOpen] = React.useState(true);
     const toggleGameLog = () => {
@@ -77,10 +76,10 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
     const newLog = reverseLog.length >= 5 ? reverseLog.slice(0, 5) : reverseLog;
     const totalLogText = reverseLog.map(l => getLogText(G, l)).join('\n');
 
-    return <Grid item container xs={12}>
-        <Grid item xs={12}>
+    return <Grid container size={12}>
+        <Grid size={12}>
             <Button fullWidth={true} onClick={toggleGameLog}>
-                {i18n.pub.gameLog}
+                {i18n.chain.pub.gameLog}
             </Button>
             <IconButton
                 color="primary"
@@ -88,7 +87,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
                 edge="start"
                 onClick={onCopyLog}>
 
-                <ContentCopyIcon/>复制 {i18n.pub.gameLog}
+                <ContentCopyIcon/>复制 {i18n.chain.pub.gameLog}
             </IconButton>
             <IconButton
                 color="secondary"
@@ -99,7 +98,7 @@ export const LogView = ({log, getPlayerName, G}: ILogViewProps) => {
             </IconButton>
             <NewLog G={G} l={newLog} count={log.length}/>
         </Grid>
-        {open && <Grid item xs={12}>
+        {open && <Grid size={12}>
             <TextField
                 disabled
                 value={totalLogText}

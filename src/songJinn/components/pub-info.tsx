@@ -1,8 +1,8 @@
 import React from "react";
 import {Ctx, PlayerID} from "boardgame.io";
-import Grid from "@material-ui/core/Grid";
-import Paper from "@material-ui/core/Paper";
-import Typography from "@material-ui/core/Typography";
+import Grid from "@mui/material/Grid";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 import {ActiveEvents, SJPlayer, SJPubInfo, SongJinnGame} from "../constant/general";
 
 import {
@@ -90,7 +90,7 @@ export const CountryPubInfo = ({pub, G, ctx, pid}: ICPubInfo) => {
 }
 export const PubInfo = ({G, ctx}: IPubInfo) => {
     return <Grid container>
-        <Grid item xs={12} key={`game-info`}>
+        <Grid key={`game-info`} size={12}>
             <Typography>第{G.turn}回合
                 第{G.round}轮 {getSeasonText(G.round)} {pid2ctr(ctx.currentPlayer)} {phaseName(ctx.phase)}
                 ({ctx.activePlayers === null ? "" : Object.keys(ctx.activePlayers).map(p=>`${pid2ctr(p)}:${
@@ -112,7 +112,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
             </Typography>
             {G.qi.length > 0 && <div>齐控制路：<br/>{G.qi.map(p => <label key={`qi-${p}`}>{p}<br/></label>)}</div>}
         </Grid>
-        <Grid item xs={6} key={`song-pub`}><Paper>
+        <Grid key={`song-pub`} size={6}><Paper>
             <label>宋</label>
             <div><label>政策：</label>{getPolicy(G)}</div>
             <div><label>国力：</label>{getSongPower(G)}</div>
@@ -134,7 +134,7 @@ export const PubInfo = ({G, ctx}: IPubInfo) => {
                 ={getSongScore(G)}</label></div>}
 
         </Paper></Grid>
-        <Grid item xs={6} key={`jinn-pub`}><Paper><label>金</label>
+        <Grid key={`jinn-pub`} size={6}><Paper><label>金</label>
             <div><label>殖民：</label>{G.colony}</div>
             <div><label>国力：</label>{getJinnPower(G)}</div>
             <CountryPubInfo G={G} pub={G.jinn} ctx={ctx} pid={SJPlayer.P2}/>

@@ -8,7 +8,7 @@ const i18n = createI18n({
         values: zh_CN,
     },
 })
-i18n._.define('en', en);
+i18n.define('en', en);
 
 
 // const i18n = createI18n({
@@ -17,6 +17,6 @@ i18n._.define('en', en);
 //         values: en,
 //     },
 // });
-i18n._.define('zh_CN', zh_CN);
+i18n.define('zh_CN', zh_CN);
 
 export default i18n;

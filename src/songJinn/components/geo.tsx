@@ -7,13 +7,13 @@ import {MapData} from "../constant/map";
 import {Text} from "@visx/text";
 import {getRegionById} from "../constant/regions";
 import {RegionID, SongJinnGame, TerrainType} from "../constant/general";
-import {green, orange, red, blue, purple} from "@material-ui/core/colors";
+import {green, orange, red, blue, purple} from "@mui/material/colors";
 import {
     centroid, getJinnTroopByPlace, getSimpleTroopText,
     getSongTroopByPlace,
     getTroopText, placeToStr,
 } from "../util";
-import {Fab} from "@material-ui/core";
+import {Fab} from "@mui/material";
 
 
 export type GeoCustomProps = {

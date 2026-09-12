@@ -1,11 +1,11 @@
 import React, {useState} from "react";
 import {Ctx, PlayerID} from "boardgame.io"
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 
-import Button from "@material-ui/core/Button";
-import Accordion from '@material-ui/core/Accordion';
-import AccordionSummary from '@material-ui/core/AccordionSummary';
-import AccordionDetails from '@material-ui/core/AccordionDetails';
+import Button from "@mui/material/Button";
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
 import {
     ActiveEvents,
     CityID,
@@ -65,7 +65,7 @@ import {
     unitsToString
 } from "../util";
 import {getRegionById} from "../constant/regions";
-import Typography from "@material-ui/core/Typography";
+import Typography from "@mui/material/Typography";
 import {getCityById} from "../constant/city";
 
 export interface IPlayerHandProps {
@@ -554,7 +554,7 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
                 {getTroopText(G, t)} </AccordionSummary>
             <AccordionDetails>
                 <Grid container>
-                    <Grid item xs={12} container spacing={1} key={`grid-calc-strength-${idx}`}>
+                    <Grid container spacing={1} key={`grid-calc-strength-${idx}`} size={12}>
                         <Typography>
                             野战 {rangeText(t)}/{meleeText(t)}
                         </Typography>
@@ -565,7 +565,7 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
                             攻城{rangeSiegeText(t)}/{meleeSiegeText(t)}
                         </Typography>}
                     </Grid>
-                    {isActive && <Grid item xs={12} container spacing={1} key={`grid-ops-${idx}`}>
+                    {isActive && <Grid container spacing={1} key={`grid-ops-${idx}`} size={12}>
                         <Button
                             variant={"contained"}
                             disabled={marchDisabled}
@@ -830,8 +830,8 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
         </Accordion>;
     }
 
-    return <Grid item container xs={12}>
-        <Grid item xs={12}>
+    return <Grid container size={12}>
+        <Grid size={12}>
             <Button
                 variant={"contained"} fullWidth
                 onClick={() => setShowTroops(!showTroops)}
@@ -889,11 +889,11 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
             {moveUnitsDialog}
             {placeUnitsDialog}</Grid>
         {showTroops && <>
-            <Grid item container xs={12}>
-                <Grid item xs={6}>
+            <Grid container size={12}>
+                <Grid size={6}>
                     {[...G.song.troops].sort(songSorter).map(mapper)}
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={6}>
                     {[...G.jinn.troops].sort(jinnSorter).map(mapper)}
                 </Grid>
             </Grid>

@@ -1,22 +1,20 @@
 import React, {useEffect, useRef} from "react";
 import {Player} from "../Game";
-import {Link, useHistory} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 import {createMatch, Visibility} from "../api/match";
-import Button from "@material-ui/core/Button";
-import {createStyles, makeStyles, Theme} from '@material-ui/core/styles';
-import InputLabel from '@material-ui/core/InputLabel';
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
-import Typography from "@material-ui/core/Typography";
-import {useI18n} from "@i18n-chain/react";
+import Button from "@mui/material/Button";
+import InputLabel from '@mui/material/InputLabel';
+import FormControl from '@mui/material/FormControl';
+import Select, {SelectChangeEvent} from '@mui/material/Select';
+import Typography from "@mui/material/Typography";
 import i18n from "../constant/i18n";
-import {Switch} from "@material-ui/core";
-import Grid from "@material-ui/core/Grid";
-import Table from "@material-ui/core/Table";
-import TableHead from "@material-ui/core/TableHead";
-import TableRow from "@material-ui/core/TableRow";
-import TableCell from "@material-ui/core/TableCell";
-import TableBody from "@material-ui/core/TableBody";
+import {Switch} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import Table from "@mui/material/Table";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import TableCell from "@mui/material/TableCell";
+import TableBody from "@mui/material/TableBody";
 import {LobbyClient} from 'boardgame.io/client';
 import {filmCentenaryName, songJinnName} from "../constant/multi-games";
 
@@ -42,17 +40,15 @@ interface CreateMatchProps {
     gameName: string;
 }
 
-const useStyles = makeStyles((theme: Theme) =>
-    createStyles({
-        formControl: {
-            margin: theme.spacing(1),
-            minWidth: 120,
-        },
-        selectEmpty: {
-            marginTop: theme.spacing(2),
-        },
-    }),
-);
+const styles = {
+    formControl: {
+        m: 1,
+        minWidth: 120,
+    },
+    selectEmpty: {
+        mt: 2,
+    },
+};
 
 interface IUseInterval {
     (callback: () => void, interval: number): void;
@@ -78,9 +74,8 @@ const useInterval: IUseInterval = (callback, interval) => {
 };
 
 const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
-    useI18n(i18n);
-    const history = useHistory();
-    const classes = useStyles();
+    i18n.use();
+    const navigate = useNavigate();
     const [player, setPlayer] = React.useState(Player.P0);
     const [clicked, setClicked] = React.useState(false);
     const [matchID, setMatchID] = React.useState("");
@@ -88,6 +83,12 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const [numPlayers, setNumPlayers] = React.useState(gameName === filmCentenaryName ? 4 : 2);
     const [isPublic, setIsPublic] = React.useState(true);
     const [matches, setMatches] = React.useState([]);
+
+    React.useEffect(() => {
+        if (matchID) {
+            navigate(`/join/${gameName}/${matchID}/${player}`);
+        }
+    }, [matchID, gameName, player, navigate]);
 
     const onClick = () => {
         setClicked(true);
@@ -104,13 +105,11 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
             });
     };
 
-    const handleChange = (event: React.ChangeEvent<{ name?: string; value: unknown }>) => {
-        // @ts-ignore
-        setNumPlayers(parseInt(event.target.value));
+    const handleChange = (event: SelectChangeEvent<number>) => {
+        setNumPlayers(Number(event.target.value));
     };
 
-    const handlePlayerChange = (event: React.ChangeEvent<{ name?: string; value: unknown }>) => {
-        // @ts-ignore
+    const handlePlayerChange = (event: SelectChangeEvent<Player>) => {
         setPlayer(event.target.value);
     };
 
@@ -128,8 +127,8 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         });
     }
     const errorMessage = <Typography>
-        {error} {i18n.drawer.pleaseTry}
-        {gameName === 'film' ? <Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link> :
+        {error} {i18n.chain.drawer.pleaseTry}
+        {gameName === 'film' ? <Link to={'/local4p'}>{i18n.chain.drawer.fourPlayer}</Link> :
             <Link to={'/local'}>本地</Link>}
     </Typography>
 
@@ -140,15 +139,15 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     }, []);
 
     return <Grid container>
-        <Grid item container xs={12} sm={8}>
-            <Button fullWidth color={"secondary"} onChange={refreshLobby}>{i18n.dialog.buyCard.refresh}</Button>
+        <Grid container size={{xs: 12, sm: 8}}>
+            <Button fullWidth color={"secondary"} onChange={refreshLobby}>{i18n.chain.dialog.buyCard.refresh}</Button>
             <Table size="small" aria-label="Public match table">
                 <TableHead>
                     <TableRow>
                         <TableCell>Match ID</TableCell>
-                        <TableCell>{i18n.lobby.numPlayers}</TableCell>
-                        <TableCell>{i18n.lobby.join}</TableCell>
-                        <TableCell>{i18n.lobby.spectate}</TableCell>
+                        <TableCell>{i18n.chain.lobby.numPlayers}</TableCell>
+                        <TableCell>{i18n.chain.lobby.join}</TableCell>
+                        <TableCell>{i18n.chain.lobby.spectate}</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -166,7 +165,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                 {match.players.map((player, idx) => {
                                     if (player.name === undefined) {
                                         return <a href={`${serverURL}/join/${match.gameName}/${match.matchID}/${idx}`}>
-                                            {`${i18n.lobby.join}|${idx + 1}`}
+                                            {`${i18n.chain.lobby.join}|${idx + 1}`}
                                         </a>
                                     } else {
                                         return <Typography>{player.name} {player.isConnected ? "(+)" : "(-)"} </Typography>
@@ -176,7 +175,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                             <TableCell>
                                 <a
                                     href={`${serverURL}/join/${match.gameName}/${match.matchID}/spectate`}
-                                >{i18n.lobby.spectate}</a>
+                                >{i18n.chain.lobby.spectate}</a>
                             </TableCell>
                             <TableCell>
                                 {createdDate.toLocaleString()}
@@ -190,19 +189,19 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                 </TableBody>
             </Table>
         </Grid>
-        <Grid item container xs={12} sm={4}>
-            <Grid item container xs={12} alignItems="center">
-                <Grid item xs={12}>
+        <Grid container size={{xs: 12, sm: 4}}>
+            <Grid container size={12} sx={{alignItems: 'center'}}>
+                <Grid size={12}>
                     <Typography variant={"h4"}>{gameName === 'film' ? "电影百年" : "宋金战争"}</Typography>
                 </Grid>
-                <FormControl variant="outlined" className={classes.formControl}>
-                    <Grid component="label" container alignItems="center" spacing={1}>
-                        <InputLabel htmlFor="outlined-numPlayers-native-simple">{i18n.lobby.numPlayers}</InputLabel>
+                <FormControl variant="outlined" sx={styles.formControl}>
+                    <Grid component="label" container spacing={1} sx={{alignItems: 'center'}}>
+                        <InputLabel htmlFor="outlined-numPlayers-native-simple">{i18n.chain.lobby.numPlayers}</InputLabel>
                         <Select
                             native
                             value={numPlayers}
                             onChange={handleChange}
-                            label={i18n.lobby.numPlayers}
+                            label={i18n.chain.lobby.numPlayers}
                             inputProps={{
                                 name: 'numPlayers',
                                 id: 'outlined-numPlayers-native-simple',
@@ -216,14 +215,14 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                     </Grid>
                 </FormControl>
             </Grid>
-            <FormControl variant="outlined" className={classes.formControl}>
-                <Grid component="label" container alignItems="center" spacing={1}>
-                    <InputLabel htmlFor="outlined-numPlayers-native-simple">{i18n.lobby.player}</InputLabel>
+            <FormControl variant="outlined" sx={styles.formControl}>
+                <Grid component="label" container spacing={1} sx={{alignItems: 'center'}}>
+                    <InputLabel htmlFor="outlined-numPlayers-native-simple">{i18n.chain.lobby.player}</InputLabel>
                     <Select
                         native
                         value={player}
                         onChange={handlePlayerChange}
-                        label={i18n.lobby.player}
+                        label={i18n.chain.lobby.player}
                         inputProps={{
                             name: 'numPlayers',
                             id: 'outlined-numPlayers-native-simple',
@@ -242,16 +241,15 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                 </Grid>
             </FormControl>
 
-            <Grid component="label" container alignItems="center" spacing={1}>
-                <Typography>{i18n.lobby.privateGame}</Typography>
+            <Grid component="label" container spacing={1} sx={{alignItems: 'center'}}>
+                <Typography>{i18n.chain.lobby.privateGame}</Typography>
                 <Switch checked={isPublic} onChange={handlePublicChange}/>
-                <Typography>{i18n.lobby.publicGame}</Typography>
+                <Typography>{i18n.chain.lobby.publicGame}</Typography>
             </Grid>
-            <Grid item container xs={12} sm={7}>
-                {matchID && history.push(`/join/${gameName}/${matchID}/${player}`)}
+            <Grid container size={{xs: 12, sm: 7}}>
                 {error && errorMessage}
                 <Button onClick={onClick} disabled={clicked} fullWidth color={"primary"} variant="contained">
-                    {i18n.lobby.createPrivateMatch}
+                    {i18n.chain.lobby.createPrivateMatch}
                 </Button>
             </Grid>
         </Grid>

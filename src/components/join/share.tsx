@@ -1,11 +1,10 @@
 import React from "react";
 import {Player} from "../../Game";
-import Typography from "@material-ui/core/Typography";
-import {useI18n} from "@i18n-chain/react";
+import Typography from "@mui/material/Typography";
 import i18n from "../../constant/i18n";
 import copy from "copy-to-clipboard";
-import ContentCopyIcon from '@material-ui/icons/FileCopy';
-import IconButton from '@material-ui/core/IconButton';
+import ContentCopyIcon from '@mui/icons-material/FileCopy';
+import IconButton from '@mui/material/IconButton';
 import {Link} from "react-router-dom";
 
 interface ShareLinkProps {
@@ -16,7 +15,7 @@ interface ShareLinkProps {
 }
 
 export const ShareLink = ({matchID, player, numPlayer, gameName}: ShareLinkProps) => {
-    useI18n(i18n);
+    i18n.use();
     const urlPrefix = `${window.location.origin}/join/${gameName}/${matchID}/`;
 
     const p0URL = Player.P0 !== player ? urlPrefix + Player.P0 : "";
@@ -27,30 +26,30 @@ export const ShareLink = ({matchID, player, numPlayer, gameName}: ShareLinkProps
 
     const onCopy = () => {
         const copyText = [
-            i18n.lobby.shareLink,
+            i18n.chain.lobby.shareLink,
             p0URL, p1URL, p2URL, p3URL,
-            i18n.playerName.spectator,
+            i18n.chain.playerName.spectator,
             spectateURL
         ].join("\r\n");
         copy(copyText, {
-            message: i18n.lobby.copyPrompt,
+            message: i18n.chain.lobby.copyPrompt,
         });
     }
     return <>
         <IconButton
             color="primary"
-            aria-label={i18n.lobby.copyPrompt}
+            aria-label={i18n.chain.lobby.copyPrompt}
             edge="start"
             onClick={onCopy}>
             <ContentCopyIcon/>
             复制邀请链接
         </IconButton>
-        <Typography>{i18n.lobby.shareLink}</Typography>
+        <Typography>{i18n.chain.lobby.shareLink}</Typography>
         {Player.P0 !== player && <a href={p0URL}>{matchID}P0</a>}
         {Player.P1 !== player && <a href={p1URL}>{matchID}P1</a>}
         {Player.P2 !== player && numPlayer > 2 && <a href={p0URL}>{matchID}P2</a>}
         {Player.P3 !== player && numPlayer > 3 && <a href={p0URL}>{matchID}P3</a>}
-        <a href={urlPrefix + Player.SPECTATE}>{i18n.playerName.spectator}</a>
+        <a href={urlPrefix + Player.SPECTATE}>{i18n.chain.playerName.spectator}</a>
     </>
 }
 

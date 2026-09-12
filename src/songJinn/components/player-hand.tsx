@@ -1,14 +1,14 @@
 import React, {useState} from "react";
 import {Ctx, PlayerID} from "boardgame.io"
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 import ChoiceDialog from "../../components/modals";
 import {JinnBaseCardID, Country, Nations, SongBaseCardID, SongJinnGame} from "../constant/general";
 
-import Button from "@material-ui/core/Button";
-import Accordion from '@material-ui/core/Accordion';
-import AccordionSummary from '@material-ui/core/AccordionSummary';
-import AccordionDetails from '@material-ui/core/AccordionDetails';
-import Typography from "@material-ui/core/Typography";
+import Button from "@mui/material/Button";
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Typography from "@mui/material/Typography";
 
 import {
     canSendLetter,
@@ -86,10 +86,10 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
             return <Accordion expanded={expanded === idx} onChange={() => setExpanded(idx)}
                               key={`playerHand-${cid}`}>
                 <AccordionSummary key={`summary-${cid}`}>
-                    <Grid key={`grid-1-${cid}`} item container xs={detail ? 8 : 12}>
+                    <Grid key={`grid-1-${cid}`} container size={detail ? 8 : 12}>
                         <Typography key={`summary-text-${cid}`}>{getCardLabel(cid)}</Typography>
                     </Grid>
-                    {detail && <Grid key={`grid-2-${cid}`} item container xs={8}>
+                    {detail && <Grid key={`grid-2-${cid}`} container size={8}>
                         {getFullDesc(card)}
                     </Grid>}
 

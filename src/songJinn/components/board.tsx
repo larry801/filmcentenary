@@ -1,10 +1,10 @@
 import React, {useState} from "react";
 import {BoardProps} from "boardgame.io/react";
 import ErrorBoundary from "../../components/error";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 import ChoiceDialog from "../../components/modals";
 import {SJPlayer, SongJinnGame} from "../constant/general";
-import Button from "@material-ui/core/Button";
+import Button from "@mui/material/Button";
 import {PubInfo} from "./pub-info";
 import {Operation} from "./operation";
 import {SJPlayerHand} from "./player-hand";
@@ -12,19 +12,18 @@ import LogView from "./view-log";
 import TroopOperation from "./troops";
 import {AdjustOps} from "./adjust";
 import {ChatMessage} from "./chat-message";
-import Paper from "@material-ui/core/Paper";
+import Paper from "@mui/material/Paper";
 import {getCountryById, pid2pub, playerById, sjPlayerName, troopToString} from "../util";
 // @ts-ignore
 import disconnectedSfx from '../../components/media/connect.mp3'
 // @ts-ignore
 import playerTurnSfx from '../../components/media/turn.mp3';
 import {playConnectedSound, playSound, usePrevious} from "../../components/board";
-import Typography from "@material-ui/core/Typography";
+import Typography from "@mui/material/Typography";
 import i18n from "../../constant/i18n";
-import Dialog from "@material-ui/core/Dialog";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import {useI18n} from "@i18n-chain/react";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
 import {GeoMap} from "./geo";
 import {ParentSize} from "@visx/responsive";
 import {CombatInfoPanel} from "./combat-info";
@@ -44,7 +43,7 @@ export const SongJinnBoard = ({
                                   isMultiplayer,
                                   matchID
                               }: BoardProps<SongJinnGame>) => {
-    useI18n(i18n);
+    i18n.use();
     const [open, setOpen] = React.useState(true);
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
@@ -59,17 +58,17 @@ export const SongJinnBoard = ({
                 variant={"outlined"}
             >
                 <Typography>
-                    {i18n.disconnected}
+                    {i18n.chain.disconnected}
                 </Typography>
             </Button>
             <Dialog open={open} onClose={handleClose}>
                 <DialogTitle>
                     <Typography variant="h5" component="h1">
-                        {i18n.disconnected}
+                        {i18n.chain.disconnected}
                     </Typography>
                 </DialogTitle>
                 <DialogContent>
-                    {i18n.disconnected}
+                    {i18n.chain.disconnected}
                 </DialogContent>
             </Dialog>
         </>
@@ -117,25 +116,25 @@ export const SongJinnBoard = ({
                 title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`}
                 toggleText={"游戏结束"} initial={true}/>}
 
-            <Grid container item xs={12}>
-                <Grid item xs={12} sm={6}>
+            <Grid container size={12}>
+                <Grid size={{xs: 12, sm: 6}}>
                     <PubInfo G={G} ctx={ctx}/>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{xs: 12, sm: 6}}>
                     <CombatInfoPanel isActive={isActive} moves={moves} pid={playerID} G={G} ctx={ctx} log={log}/>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{xs: 12, sm: 6}}>
                     <LogView log={log} getPlayerName={sjPlayerName} G={G}/>
                     {SwitchMapButton}
                 </Grid>
                 {showMap &&
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{xs: 12, sm: 6}}>
                         <ParentSize>
                             {parent => <GeoMap G={G} moves={moves} height={640} width={parent.width}/>}
                         </ParentSize>
                     </Grid>}
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{xs: 12, sm: 6}}>
                     <ChatMessage
                         moves={moves}
                         sendChatMessage={sendChatMessage}
@@ -158,30 +157,30 @@ export const SongJinnBoard = ({
                             isActive={isActive}
                             matchID={matchID}
                         />
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{xs: 12, sm: 6}}>
                             <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{xs: 12, sm: 6}}>
                             <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
                         </Grid>
                         <AdjustOps G={G} ctx={ctx} isActive={isActive} playerID={playerID} moves={moves}/>
 
                     </Grid> : <Grid container>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{xs: 12, sm: 6}}>
                             <SJPlayerHand moves={moves} G={G} ctx={ctx} isActive={isActive} pid={playerID}/>
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{xs: 12, sm: 6}}>
                             <TroopOperation G={G} ctx={ctx} isActive={isActive} pid={playerID} moves={moves}/>
                         </Grid>
                     </Grid>
                     }
                 </Grid>
-                : <Grid item container>
-                    <Grid xs={12} sm={6}>
+                : <Grid container>
+                    <Grid size={{xs: 12, sm: 6}}>
                         {
                             G.song.troops.map(
                                 (t, idx) => {
-                                    return <Grid xs={12} sm={6} key={`troop-song-grid-${idx}`}>
+                                    return <Grid key={`troop-song-grid-${idx}`} size={{xs: 12, sm: 6}}>
                                         <Paper key={`troop-song-${idx}`}>{troopToString(G, SJPlayer.P1, t)}
                                         </Paper></Grid>
                                 }
@@ -189,10 +188,10 @@ export const SongJinnBoard = ({
                         }
 
                     </Grid>
-                    <Grid xs={12} sm={6}>
+                    <Grid size={{xs: 12, sm: 6}}>
                         {
                             G.jinn.troops.map((t, idx) => {
-                                    return <Grid xs={12} sm={6} key={`troop-jinn-grid-${idx}`}>
+                                    return <Grid key={`troop-jinn-grid-${idx}`} size={{xs: 12, sm: 6}}>
                                         <Paper key={`troop-jinn-${idx}`}>{troopToString(G, SJPlayer.P2, t)}
                                         </Paper></Grid>
                                 }

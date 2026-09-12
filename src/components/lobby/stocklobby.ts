@@ -1,6 +1,6 @@
 import React from "react";
 import {Client} from "boardgame.io/react";
-import {Prompt,useParams} from 'react-router-dom'
+import {useParams} from 'react-router-dom'
 import {SocketIO} from "boardgame.io/multiplayer";
 import {LobbyConnection} from "../../api/connection";
 import {loadCredentials,saveCredentials} from "../../api/localStorage";

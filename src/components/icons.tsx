@@ -1,13 +1,13 @@
 import React from "react";
-import SvgIcon from "@material-ui/core/SvgIcon";
-import NoScoringCardIcon from '@material-ui/icons/Block';
+import SvgIcon from "@mui/material/SvgIcon";
+import NoScoringCardIcon from '@mui/icons-material/Block';
 import {Champion, IEra, Region,} from "../types/core";
-import {blue, grey, purple, red, yellow} from "@material-ui/core/colors";
-import LooksOneIcon from '@material-ui/icons/LooksOne';
-import LooksTwoIcon from '@material-ui/icons/LooksTwo';
-import Looks3Icon from '@material-ui/icons/Looks3';
-import Badge from "@material-ui/core/Badge";
-import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
+import {blue, grey, purple, red, yellow} from "@mui/material/colors";
+import LooksOneIcon from '@mui/icons-material/LooksOne';
+import LooksTwoIcon from '@mui/icons-material/LooksTwo';
+import Looks3Icon from '@mui/icons-material/Looks3';
+import Badge from "@mui/material/Badge";
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 
 const verticalAlign = {verticalAlign: "-0.125em"};
 
@@ -193,7 +193,7 @@ export const PersonCardIcon = () =><SvgIcon style={verticalAlign}>
     </text>
 </SvgIcon>
 export interface IDiscardHelper {
-    elem:JSX.Element
+    elem:React.JSX.Element
 }
 export const DiscardIconHelper = ({elem}:IDiscardHelper) => <Badge
     anchorOrigin={{

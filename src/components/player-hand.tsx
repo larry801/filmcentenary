@@ -1,28 +1,27 @@
 import React from "react";
 import {IG} from "../types/setup";
 import {Ctx} from "boardgame.io";
-import {useI18n} from "@i18n-chain/react";
 import i18n from "../constant/i18n";
-import Accordion from "@material-ui/core/Accordion";
-import AccordionDetails from "@material-ui/core/AccordionDetails";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import AccordionSummary from "@material-ui/core/AccordionSummary";
-import Button from "@material-ui/core/Button";
+import Accordion from "@mui/material/Accordion";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import Button from "@mui/material/Button";
 import {nanoid} from "nanoid";
 import {CardInfo} from "./card";
 import {actualStage} from "../game/util";
 import {Stage} from "boardgame.io/core";
 import {getCardById, Region, SimpleRuleNumPlayers} from "../types/core";
-import DepositIcon from '@material-ui/icons/LocalAtm';
-import ResIcon from '@material-ui/icons/MonetizationOn';
-import PlayCardIcon from '@material-ui/icons/PlayCircleFilledWhiteOutlined';
+import DepositIcon from '@mui/icons-material/LocalAtm';
+import ResIcon from '@mui/icons-material/MonetizationOn';
+import PlayCardIcon from '@mui/icons-material/PlayCircleFilledWhiteOutlined';
 import {ChampionIcon, FreeBreakthroughIcon, getColor} from "./icons";
-import PrestigeIcon from "@material-ui/icons/EmojiEvents";
+import PrestigeIcon from "@mui/icons-material/EmojiEvents";
 
-// import Backdrop from '@material-ui/core/Backdrop';
-// import CircularProgress from '@material-ui/core/CircularProgress';
-// import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
+// import Backdrop from '@mui/material/Backdrop';
+// import CircularProgress from '@mui/material/CircularProgress';
+// import { makeStyles, createStyles, Theme } from '@mui/material/styles';
 //
 // const useStyles = makeStyles((theme: Theme) =>
 //     createStyles({
@@ -40,7 +39,7 @@ export const PlayerHand = ({
                                playerID
                            }: { moves: Record<string, (...args: any[]) => void>, G: IG, ctx: Ctx, playerID: string }) => {
 
-    useI18n(i18n);
+    i18n.use();
 
     // const [open, setOpen] = React.useState(false);
     const p = G.pub[parseInt(playerID)];
@@ -50,7 +49,7 @@ export const PlayerHand = ({
     // };
     const canPlayOrBreakthrough = ctx.currentPlayer === playerID && ctx.activePlayers === null
 
-    return <Grid item container xs={12} justifyContent="flex-start">
+    return <Grid container size={12} sx={{justifyContent: 'flex-start'}}>
         {/*<Backdrop className={classes.backdrop} open={open} onClick={handleClose}>*/}
         {/*    <CircularProgress color="inherit" />*/}
         {/*</Backdrop>*/}
@@ -102,7 +101,7 @@ export const PlayerHand = ({
                         <AccordionSummary key={idx}>
                             <CardInfo cid={c}/>
                             {era !== null ?
-                                <Typography aria-label={i18n.era[era]}>
+                                <Typography aria-label={i18n.chain.era[era]}>
                                     <ChampionIcon champion={{region: card.region, era: era}}/>
                                 </Typography> : <></>}
                             <Typography
@@ -119,9 +118,9 @@ export const PlayerHand = ({
                         </AccordionSummary>
                         <AccordionDetails key={idx}>
                             <Grid container>
-                                <Grid item xs={12}>
+                                <Grid size={12}>
                                     <Button
-                                        aria-label={i18n.action.play}
+                                        aria-label={i18n.chain.action.play}
                                         autoFocus={idx === 0 && actualStage(G, ctx) === Stage.NULL}
                                         style={{textTransform: 'none'}}
                                         disabled={!canPlayOrBreakthrough}
@@ -131,7 +130,7 @@ export const PlayerHand = ({
                                     </Button>
 
                                     <Button
-                                        aria-label={i18n.action.breakthrough2Res}
+                                        aria-label={i18n.chain.action.breakthrough2Res}
                                         disabled={!canPlayOrBreakthrough || p.action < 1 || p.resource < 2}
                                         onClick={archive2res}
                                         style={{textTransform: 'none'}}
@@ -139,7 +138,7 @@ export const PlayerHand = ({
                                         <ResIcon/>X2<FreeBreakthroughIcon/>
                                     </Button>
                                     <Button
-                                        aria-label={i18n.action.breakthrough1Res}
+                                        aria-label={i18n.chain.action.breakthrough1Res}
                                         disabled={!canPlayOrBreakthrough || p.action < 1 || p.resource < 1 || p.deposit < 1}
                                         onClick={archive1res}
                                         style={{textTransform: 'none'}}
@@ -147,7 +146,7 @@ export const PlayerHand = ({
                                         <ResIcon/><DepositIcon/> <FreeBreakthroughIcon/>
                                     </Button>
                                     <Button
-                                        aria-label={i18n.action.breakthrough0Res}
+                                        aria-label={i18n.chain.action.breakthrough0Res}
                                         disabled={!canPlayOrBreakthrough || p.action < 1 || p.deposit < 2}
                                         onClick={archive0res}
                                         style={{textTransform: 'none'}}
