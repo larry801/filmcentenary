@@ -663,7 +663,7 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
     G.patronizedThisTurn = [];
     G.cardDrawDone = [];
     if (G.scenario !== "tutorial" && G.powers.spain.treasures.length === 0) {
-        G.powers.spain.treasures = Array.from({length: 4}, () => 1 + die(ctx, 5) - 1);
+        G.powers.spain.treasures = Array.from({length: G.philippinesSpanish === true ? 5 : 4}, () => 1 + die(ctx, 5) - 1);
     }
     resolveColonies(G, ctx);
 };

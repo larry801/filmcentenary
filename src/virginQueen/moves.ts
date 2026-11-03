@@ -424,6 +424,14 @@ const resolveTreasureFleet = (G: VQGame, ctx: Ctx): void => {
 
 /** #100 Enterprise of England mandatory event (23.3). */
 /** #33 Gouvernante de France: place +2 Wedding Festivities on a French match. */
+/** #49 Conquest of the Philippines. */
+const resolveConquestOfPhilippines = (G: VQGame, ctx: Ctx): void => {
+    G.worldControls.philippines = "spain";
+    G.philippinesSpanish = true;
+    if (G.powers.spain.treasures.length < 5) G.powers.spain.treasures.push(die(ctx, 5));
+    pushLog(G, "Spain conquers the Philippines and gains a fifth New World treasure box.");
+};
+
 const resolveGouvernanteDeFrance = (G: VQGame, ctx: Ctx): void => {
     if (atWar(G, "france", "protestant") && G.powers.france.cards.length <= 2) {
         const result = die(ctx, 6) + 2;
@@ -605,6 +613,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveEnterpriseOfEngland(G);
     } else if (handler === "gouvernanteDeFrance") {
         resolveGouvernanteDeFrance(G, ctx);
+    } else if (handler === "card049") {
+        resolveConquestOfPhilippines(G, ctx);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {

@@ -588,6 +588,8 @@ export interface VQGame {
     armada?: {strength: 2 | 4 | 6 | 8; location: string; land?: LandStack};
     /** Armada Turn Track return year after elimination. */
     armadaReturn?: number;
+    /** Spain has conquered the Philippines and uses the fifth treasure box. */
+    philippinesSpanish?: boolean;
     /** Naval units loaned to an ally for one turn (rule 9.2). */
     loanedNaval?: {lender: Power; borrower: Power; kind: "galley" | "galleon" | "racebuilt"; fromPort: string; toPort: string; leader?: string}[];
     /** Portugal has entered play and its three-treasure row. */
