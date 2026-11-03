@@ -25,6 +25,21 @@ describe("The Black Queen, option 3 (card #80)", () => {
         expect(G.powers.france.cards).toContain("vq-020");
     });
 
+    it("can launch a free assassination in France", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-080"];
+        G.powers.france.cp = 0;
+        G.year = 3;
+        G.leaders.alba = {id: "alba", location: "paris"};
+        G.spaces.paris.leaders = ["alba"];
+
+        expect(playCard(G, context(), {cardId: "vq-080", asEvent: true, target: "assassinate:alba"})).toBeUndefined();
+
+        expect(G.powers.france.cp).toBe(0);
+        expect(G.assassinationUsed).toContain("france");
+        expect(G.log.join("\n")).toContain("The Black Queen sends an agent");
+    });
+
     it("can send agents and draw a card", () => {
         const G = game();
         G.powers.france.cards = ["vq-080"];

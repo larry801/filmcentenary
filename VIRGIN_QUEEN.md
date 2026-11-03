@@ -1186,7 +1186,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #71 黑魔法选项 2 接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、597 tests passed（新增 1 项：指定弃牌）；`npm run build` 通过。
 
-#80 黑王后抽 2/密探选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、607 tests passed（新增 2 项：目标有牌时改抽 2、派遣密探抽 1）；`npm run build` 通过。
+#80 黑王后选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、608 tests passed（新增 3 项：目标有牌时改抽 2、派遣密探抽 1、法国境内刺杀）；`npm run build` 通过。
 
 #52 福克斯殉道者名录区域选择接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、599 tests passed（新增 1 项：固定苏格兰区域）；`npm run build` 通过。
 
