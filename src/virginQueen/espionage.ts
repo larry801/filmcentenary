@@ -547,8 +547,15 @@ const beginWalsinghamResponse = (G: VQGame, ctx: Ctx, outer: PendingEspionage): 
 
 /** Resume the interrupted action after Walsingham's nested sequence finishes. */
 const resumeWalsinghamOuter = (G: VQGame, ctx: Ctx, outer: PendingEspionage,
-    choice: string, step: "neutralize" | "extraNeutralize" | "defense"): void => {
+    choice: string, step: NonNullable<PendingEspionage["walsinghamStep"]>): void => {
     G.pendingEspionage = outer;
+    if (step === "event") {
+        // #92 Double Agent removes an English informant as part of its event;
+        // finish the interrupted event after Walsingham's nested sequence.
+        resolveDoubleAgent(G, outer.power, outer.target!);
+        finish(G, ctx);
+        return;
+    }
     outer.responding = step === "defense" ? outer.targetPower : outer.power;
     if (step === "defense") {
         outer.used.push(choice);
@@ -591,6 +598,12 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
         const pendingChoice = p.walsinghamChoice!;
         delete p.walsinghamStep;
         delete p.walsinghamChoice;
+        if (step === "event") {
+            // England declined #81; the event's removal resolves unchanged.
+            resolveDoubleAgent(G, p.power, p.target!);
+            finish(G, ctx);
+            return;
+        }
         p.step = step;
         resumeWalsinghamOuter(G, ctx, p, pendingChoice, step);
         return;
@@ -909,7 +922,25 @@ export const canPlayEspionageEvent = (G: VQGame, power: Power, handler: string, 
 };
 export const beginEspionageEvent = (G: VQGame, ctx: Ctx, power: Power, handler: string, target?: string): void => {
     const state = espionageState(G);
-    if (handler === "doubleAgent") {resolveDoubleAgent(G, power, target!); return;}
+    if (handler === "doubleAgent") {
+        const enemy = target!.split(">")[0] as Power;
+        const removesEnglishInformant = enemy === "england" &&
+            G.informants.some((i) => i.owner === "england" && i.target === power);
+        if (removesEnglishInformant && G.powers.england.cards.includes("vq-081") && state.walsingham === undefined) {
+            // #81 may respond before #92 removes the English informant.  The
+            // event waits in `walsinghamReturn` while Walsingham resolves.
+            G.pendingEspionage = {
+                kind: "doubleAgent", power, targetPower: "england", responding: "england",
+                step: "walsinghamResponse", cp: 0, remaining: 0, used: [],
+                event: "doubleAgent", target, walsinghamStep: "event", walsinghamChoice: target,
+            };
+            pushLog(G, `Double Agent would remove England's informant; England may respond with Walsingham.`);
+            stage(G, ctx, "england");
+            return;
+        }
+        resolveDoubleAgent(G, power, target!);
+        return;
+    }
     if (handler === "cipherKey") {
         if (target === "remove") for (const p of POWERS) {if (state.cipherKeys[p] === power) delete state.cipherKeys[p];}
         else state.cipherKeys[power] = target as Power;

@@ -15,7 +15,7 @@ export interface EspionageState {
 }
 
 export interface PendingEspionage {
-    kind: "intelligence" | "assassination" | "rebellion" | "jesuitEvent" | "walsingham" | "northernRising" | "massacre";
+    kind: "intelligence" | "assassination" | "rebellion" | "jesuitEvent" | "walsingham" | "northernRising" | "massacre" | "doubleAgent";
     power: Power;
     targetPower: Power;
     responding: Power;
@@ -48,7 +48,7 @@ export interface PendingEspionage {
     walsinghamReturn?: PendingEspionage;
     /** The outer neutralization choice held while England decides on #81. */
     walsinghamChoice?: string;
-    walsinghamStep?: "neutralize" | "extraNeutralize" | "defense";
+    walsinghamStep?: "neutralize" | "extraNeutralize" | "defense" | "event";
     protectedJesuit?: string;
     priestQueue?: Power[];
     displacements?: {owner: Power; controller: Controller; from: string; kind: "land" | "naval"}[];
