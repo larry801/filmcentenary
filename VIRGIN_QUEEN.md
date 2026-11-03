@@ -523,7 +523,7 @@
 
 ### 科学与艺术的赞助人（#35）
 
-- 选项 1：指定意大利或 HRE 艺术家/科学家，视作 3 CP 赞助并加入待结算；鲁道夫在位时放置“+2 布拉格文化中心”标记；抽 1 张牌。
+- 选项 1：指定意大利或 HRE 艺术家/科学家；不指定目标时自动选择首个可用 HRE 赞助人；视作 3 CP 赞助并加入待结算；鲁道夫在位时放置“+2 布拉格文化中心”标记；抽 1 张牌。
 - 选项 2：HRE 从牌堆抽 2 张，然后把一张非本国牌/非强制事件牌交给另一势力。
 - 布拉格 +2 标记已在冬季赞助结算中为该赞助人提供 +2。
 
@@ -1124,7 +1124,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #5 教宗诏书（传播分支）接入后的验证：`jest src/virginQueen --runInBand --silent` 111 suites、533 tests passed（新增 1 项：教廷评议+7 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#53 壮游接入后的验证：`jest src/virginQueen --runInBand --silent` 128 suites、563 tests passed（新增 3 项：基础效果、停战且不多取诺查丹玛斯、指定给牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#53 壮游接入后的验证：`jest src/virginQueen --runInBand --silent` 128 suites、564 tests passed（新增 3 项：基础效果、停战且不多取诺查丹玛斯、指定给牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #55 破坏圣像运动接入后的验证：`jest src/virginQueen --runInBand --silent` 113 suites、538 tests passed（新增 1 项：无转化时每个 1 仍放置骚乱）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 

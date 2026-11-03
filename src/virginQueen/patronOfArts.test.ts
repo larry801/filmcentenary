@@ -15,6 +15,17 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Patron of Arts, option 2 (card #35)", () => {
+    it("sponsors a random HRE patron without a target", () => {
+        const G = game();
+        G.powers.hre.cards = ["vq-035"];
+        const patron = G.patronsAvailable.map((id) => patronById(G, id)).find((candidate) => candidate?.region === "hre" && candidate.rating !== null);
+        expect(patron).toBeDefined();
+
+        expect(playCard(G, context(), {cardId: "vq-035", asEvent: true})).toBeUndefined();
+
+        expect(G.pendingPatronage.some((entry) => entry.patronId === patron!.id && entry.cp === 3)).toBe(true);
+    });
+
     it("sponsors an Italian patron and marks Prague while Rudolf rules", () => {
         const G = game();
         G.powers.hre.cards = ["vq-035"];

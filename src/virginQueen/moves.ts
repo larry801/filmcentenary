@@ -1545,6 +1545,9 @@ const resolveIndex = (G: VQGame, ctx: Ctx): void => {
 };
 
 const resolvePatronOfArts = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target === undefined) {
+        target = G.patronsAvailable.map((id) => patronById(G, id)).find((patron) => patron?.region === "hre" && patron.rating !== null)?.id;
+    }
     if (target === undefined) return;
     const patron = patronById(G, target);
     if (patron !== undefined && (patron.region === "italy" || patron.region === "hre") && patron.rating !== null &&
