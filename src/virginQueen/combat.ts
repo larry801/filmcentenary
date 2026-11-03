@@ -7,7 +7,7 @@ import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID} from "./mapData";
 import {ownerOf} from "./ownership";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {
-    atWar, bestBattle, captureLeaders, discardCard, ensureLand, ensureNaval, friendlyControlled,
+    atWar, bestBattle, captureLeaders, checkCyprusVp, discardCard, ensureLand, ensureNaval, friendlyControlled,
     friendlyController, hits, isFortifiedSpace, isSeaZone, minorAlly, moveLeaders, navalAdjacent,
     ownersWithLand, ownersWithNaval, pushLog, recordNavalLoss, removeCardFromHand, roll, totalLand, totalNaval,
 } from "./util";
@@ -143,12 +143,14 @@ const finishCasualties = (G: VQGame, ctx: Ctx): void => {
             captureLeaders(G, battle.location, battle.defenders, battle.attacker);
             G.spaces[battle.location].control = battle.attacker;
             delete G.spaces[battle.location].siege;
+            checkCyprusVp(G, battle.attacker, battle.location);
             endBattle(G, ctx);
             return;
         }
         if (attackerUnits > 0 && defenderUnits === 0 && battle.hitCounts!.attacker > 0) {
             G.spaces[battle.location].control = battle.attacker;
             delete G.spaces[battle.location].siege;
+            checkCyprusVp(G, battle.attacker, battle.location);
         } else if (attackerUnits <= defenderUnits) {
             delete G.spaces[battle.location].siege;
             battle.loser = battle.attacker;

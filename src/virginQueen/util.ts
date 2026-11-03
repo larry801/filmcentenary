@@ -1786,6 +1786,13 @@ const pickCandidate = (G: VQGame, ctx: Ctx, side: Religion, area: ReligionArea, 
  * Resolve a batch of conversion attempts (rules 18.5), auto-allocating the
  * dice. Returns a short report for the log.
  */
+export const checkCyprusVp = (G: VQGame, power: Power, location: string): void => {
+    if (power !== "ottoman" || G.cyprusAwarded === true || G.cyprusTarget !== location) return;
+    G.cyprusAwarded = true;
+    addVp(G, "ottoman", 1);
+    pushLog(G, "The Ottoman seizes the Cyprus VP target and gains 1 VP.");
+};
+
 export const resolveConversions = (
     G: VQGame,
     ctx: Ctx,

@@ -188,7 +188,7 @@
 
 - 塞利姆二世继位奥斯曼，属性改为 2 Admin / +1 卡牌奖励；
 - 在塞浦路斯/干地亚/科孚中标记首个非奥斯曼控制地区为“塞浦路斯 VP”目标；
-- 目标地区被奥斯曼夺取时的 VP 结算尚未接入。
+- 目标地区被奥斯曼攻占时自动 +1 VP（每次一局一次），并在攻城结算中检查。
 
 ### 破坏圣像运动（#55）
 
@@ -1109,4 +1109,4 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #55 破坏圣像运动接入后的验证：`jest src/virginQueen --runInBand --silent` 113 suites、538 tests passed（新增 1 项：无转化时每个 1 仍放置骚乱）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#6 塞利姆二世接入后的验证：`jest src/virginQueen --runInBand --silent` 114 suites、539 tests passed（新增 1 项：继位属性与塞浦路斯目标）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#6 塞利姆二世接入后的验证：`jest src/virginQueen --runInBand --silent` 115 suites、540 tests passed（新增 2 项：继位属性/目标、夺取后 +1 VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
