@@ -3,7 +3,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {VQGame} from "./constant/general";
 import {armadaTransport, loadArmada, moveNaval, playCard, unloadArmada, upgradeArmada} from "./moves";
 import {applyNavalCombatLosses, navalCombatDice, retreatNaval} from "./navalCombat";
-import {navalBlockadeSatisfied, setupGame, winter} from "./util";
+import {navalBlockadeSatisfied, rebuildArmada, setWar, setupGame, winter} from "./util";
 
 const context = (values: number[] = [], player = "1"): Ctx => ({
     currentPlayer: player,
@@ -125,6 +125,46 @@ describe("Spanish Armada (rule 23.2)", () => {
         G.spaces.corunna.control = "spain";
         winter(G, context([], "1"));
         expect(G.seaZones[G.armada.location as keyof VQGame["seaZones"]]).toBeUndefined();
+    });
+
+    it("intercepts alone from an adjacent sea zone", () => {
+        const G = game();
+        setWar(G, "france", "spain");
+        G.powers.france.cp = 1;
+        for (const space of Object.values(G.spaces)) delete space.naval.england;
+        G.armada = {strength: 4, location: "northSea"};
+        G.spaces.calais.naval.france = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+
+        expect(moveNaval(G, context([6, 6, 6, 6, 6, 6], "3"), {from: "calais", to: "englishChannel"})).toBeUndefined();
+
+        expect(G.armada.location).toBe("englishChannel");
+        expect(G.log.join("\n")).toContain("intercepts the naval move");
+    });
+
+    it("avoids battle alone from a sea zone", () => {
+        const G = game();
+        setWar(G, "france", "spain");
+        G.powers.france.cp = 1;
+        for (const space of Object.values(G.spaces)) delete space.naval.england;
+        G.armada = {strength: 4, location: "englishChannel"};
+        G.spaces.portsmouth.control = "spain";
+        G.spaces.calais.naval.france = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+
+        expect(moveNaval(G, context([6, 6], "3"), {from: "calais", to: "englishChannel"})).toBeUndefined();
+
+        expect(G.armada.location).not.toBe("englishChannel");
+        expect(G.spaces[G.armada.location]).toBeDefined();
+    });
+
+    it("rebuilds at strength 2 on its Turn Track year", () => {
+        const G = game();
+        G.spaces.seville.control = "spain";
+        G.armadaReturn = G.year;
+
+        rebuildArmada(G);
+
+        expect(G.armada).toEqual({strength: 2, location: "seville"});
+        expect(G.armadaReturn).toBeUndefined();
     });
 
     it("trims excess land when the Armada loses strength", () => {

@@ -582,6 +582,8 @@ export interface VQGame {
     worldFortressesBuilt?: number;
     /** Spanish Armada: strength 2/4/6/8 and current port or sea zone. */
     armada?: {strength: 2 | 4 | 6 | 8; location: string; land?: LandStack};
+    /** Armada Turn Track return year after elimination. */
+    armadaReturn?: number;
     /** Portugal has entered play and its three-treasure row. */
     portugalEntered?: boolean;
     portugueseTreasures?: number[];

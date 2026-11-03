@@ -571,9 +571,20 @@ export const awardPortugueseTreasures = (G: VQGame, ctx: Ctx): void => {
     G.portugueseTreasures = [];
 };
 
+/** Rebuild the Armada at strength 2 on its Turn Track year. */
+export const rebuildArmada = (G: VQGame): void => {
+    if (G.armada !== undefined || G.armadaReturn === undefined || G.armadaReturn > G.year) return;
+    const port = ["seville", "corunna", "lisbon"].find((id) => G.spaces[id]?.control === "spain" && !G.spaces[id].unrest);
+    if (port === undefined) return;
+    G.armada = {strength: 2, location: port};
+    delete G.armadaReturn;
+    pushLog(G, `The Spanish Armada is rebuilt in ${SPACE_BY_ID[port].name}.`);
+};
+
 /** Deal a new year's hands. Home cards return, hands are trimmed to Admin. */
 export const dealYear = (G: VQGame, ctx: Ctx): void => {
     returnSeaCaptains(G);
+    rebuildArmada(G);
     refreshPortugueseTreasures(G, ctx);
     G.piracyActions = {};
     G.piracyZones = {};

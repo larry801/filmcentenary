@@ -62,6 +62,7 @@ export const applyNavalCombatLosses = (
         hitsCount -= absorbed;
         if (remainingStrength <= 0) {
             delete G.armada;
+            G.armadaReturn = G.year + 1;
             pushLog(G, "The Spanish Armada is eliminated.");
         } else {
             G.armada.strength = remainingStrength as 2 | 4 | 6 | 8;
@@ -155,12 +156,13 @@ export const attemptNavalAvoidBattle = (G: VQGame, ctx: Ctx, active: Power, loca
         .filter((owner) => owner !== active && isPower(owner) && atWar(G, active, owner) &&
             navalCount(stackAt(G, location, owner)) > 0)
         .sort((a, b) => POWER_INDEX[a as Power] - POWER_INDEX[b as Power]) as Power[];
+    if (G.armada?.location === location && atWar(G, active, "spain") && !enemies.includes("spain")) enemies.push("spain");
     for (const enemy of enemies) {
         const candidates = navalRetreatCandidates(G, location, [enemy]);
         if (candidates.length === 0) continue;
         const stack = stackAt(G, location, enemy);
-        if (stack === undefined) continue;
-        const galleonPenalty = MEDITERRANEAN.has(location) && stack.galleon + stack.racebuilt > 0 ? -1 : 0;
+        if (stack === undefined && !(enemy === "spain" && G.armada?.location === location)) continue;
+        const galleonPenalty = stack !== undefined && MEDITERRANEAN.has(location) && stack.galleon + stack.racebuilt > 0 ? -1 : 0;
         const telescope = G.powers[enemy].scienceBonuses.includes("telescope") ? 1 : 0;
         const modifier = bestBattle(G, location, [enemy], "naval") + galleonPenalty + telescope;
         const dice = roll(ctx, 2);
@@ -196,15 +198,20 @@ export const attemptNavalInterception = (
             if (!isPower(owner) || !atWar(G, owner, active) || navalCount(stacks[owner]) === 0) continue;
             candidates.push({location: id, power: owner});
         }
+        if (id === G.armada?.location && atWar(G, "spain", active) &&
+            !candidates.some((candidate) => candidate.location === id && candidate.power === "spain")) {
+            candidates.push({location: id, power: "spain"});
+        }
     }
     candidates.sort((a, b) => POWER_INDEX[a.power] - POWER_INDEX[b.power] || a.location.localeCompare(b.location));
     for (const candidate of candidates) {
         const source = navalAt(G, candidate.location)[candidate.power];
-        if (source === undefined || navalCount(source) === 0) continue;
+        const armadaOnly = source === undefined && candidate.power === "spain" && G.armada?.location === candidate.location;
+        if (!armadaOnly && (source === undefined || navalCount(source) === 0)) continue;
         if (!used.includes(candidate.location)) used.push(candidate.location);
         const leaders = leadersAt(G, candidate.location).filter((id) =>
             LEADER_BY_ID[id]?.power === candidate.power && LEADER_BY_ID[id]?.kind === "naval");
-        const galleonPenalty = isSeaZone(to) && MEDITERRANEAN.has(to) &&
+        const galleonPenalty = source !== undefined && isSeaZone(to) && MEDITERRANEAN.has(to) &&
             source.galleon + source.racebuilt > 0 ? -1 : 0;
         const telescope = G.powers[candidate.power].scienceBonuses.includes("telescope") ? 1 : 0;
         const modifier = bestBattle(G, candidate.location, [candidate.power], "naval") + galleonPenalty + telescope;
@@ -212,13 +219,15 @@ export const attemptNavalInterception = (
         const total = dice[0] + dice[1] + modifier;
         pushLog(G, `${powerLabel(candidate.power)} naval interception from ${SPACE_BY_ID[candidate.location]?.name ?? candidate.location}: [${dice.join(",")}] + ${modifier} = ${total}.`);
         if (total < 9) continue;
-        const target = navalAt(G, to)[candidate.power] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
-        target.galley += source.galley;
-        target.galleon += source.galleon;
-        target.racebuilt += source.racebuilt;
-        target.corsair += source.corsair;
-        navalAt(G, to)[candidate.power] = target;
-        delete navalAt(G, candidate.location)[candidate.power];
+        if (!armadaOnly && source !== undefined) {
+            const target = navalAt(G, to)[candidate.power] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
+            target.galley += source.galley;
+            target.galleon += source.galleon;
+            target.racebuilt += source.racebuilt;
+            target.corsair += source.corsair;
+            navalAt(G, to)[candidate.power] = target;
+            delete navalAt(G, candidate.location)[candidate.power];
+        }
         if (leaders.length > 0) moveLeaders(G, candidate.location, to, leaders);
         if (candidate.power === "spain" && G.armada?.location === candidate.location) G.armada.location = to;
         pushLog(G, `${powerLabel(candidate.power)} intercepts the naval move into ${SPACE_BY_ID[to]?.name ?? to}.`);
@@ -239,7 +248,7 @@ export const resolveNavalCombat = (G: VQGame, ctx: Ctx, location: string, attack
     const port = !isSeaZone(location);
     for (const enemy of enemies) {
         if (countAt(G, location, [attacker]) === 0) return;
-        if (countAt(G, location, [enemy]) === 0) continue;
+        if (countAt(G, location, [enemy]) === 0 && !(enemy === "spain" && G.armada?.location === location)) continue;
         const aDice = navalCombatDice(G, location, [attacker], false);
         const dDice = navalCombatDice(G, location, [enemy], true);
         const aRolls = roll(ctx, aDice);

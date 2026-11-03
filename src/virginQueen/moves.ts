@@ -422,6 +422,7 @@ const resolveSpanishArmada = (G: VQGame, p: Power): void => {
             return;
         }
         G.armada = {strength: 2, location: port};
+        delete G.armadaReturn;
         G.powers[p].cp += 5;
         pushLog(G, `The Spanish Armada is placed in ${SPACE_BY_ID[port].name}; Spain gains 5 CP.`);
     } else {
