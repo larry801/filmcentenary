@@ -655,6 +655,19 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #79 Convention of Estates: convert three Netherlands spaces to Protestant. */
 /** #67 Spanish Pay Ships Seized: Spain loses two Netherlands regulars. */
 /** #71 Black Magic: take a random non-home card from another power. */
+/** #68 Taxis Family Courier: give one card to another power and draw one. */
+const resolveTaxis = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    if (target !== undefined && isPower(target) && target !== p) {
+        const card = G.powers[p].cards.find((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory");
+        if (card !== undefined) {
+            G.powers[p].cards = G.powers[p].cards.filter((id) => id !== card);
+            G.powers[target].cards.push(card);
+            pushLog(G, `Taxis Family Courier gives ${cardById(card).name} to ${powerLabel(target)}.`);
+        }
+    }
+    drawCards(G, ctx, p, 1);
+};
+
 const resolveBlackMagic = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     if (target === undefined || !isPower(target) || target === p) return;
     const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
@@ -1191,6 +1204,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveSpanishPayShips(G, ctx, p);
     } else if (handler === "blackMagic") {
         resolveBlackMagic(G, ctx, p, target);
+    } else if (handler === "taxisFamilyCourier") {
+        resolveTaxis(G, ctx, p, target);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {

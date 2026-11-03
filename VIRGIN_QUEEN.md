@@ -170,6 +170,12 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 塔克西斯家族信使（#68）
+
+- 将一张非本国牌/非强制事件牌交给另一势力；
+- 然后从牌堆抽 1 张；
+- “抽到的牌不能立即使用”尚未单独建模。
+
 ### 黑魔法（#71）/ 阿马达赦令（#104）
 
 - #71 黑魔法：从目标势力随机抽取一张非本国牌并保留。
@@ -551,6 +557,7 @@ src/virginQueen/
   conventionEstates.test.ts #79 省议会
   spanishPayShips.test.ts #67 西班牙运银船被截
   blackMagic.test.ts    #71 黑魔法 / #104 阿马达赦令
+  taxis.test.ts         #68 塔克西斯家族信使
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -737,3 +744,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #67 西班牙运银船被截接入后的验证：`jest src/virginQueen --runInBand --silent` 73 suites、481 tests passed（新增 2 项：移除/抽牌、西班牙不可打出）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #71 黑魔法与 #104 阿马达赦令接入后的验证：`jest src/virginQueen --runInBand --silent` 74 suites、483 tests passed（新增 2 项：随机夺牌、阿马达 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#68 塔克西斯家族信使接入后的验证：`jest src/virginQueen --runInBand --silent` 75 suites、484 tests passed（新增 1 项：交牌并抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
