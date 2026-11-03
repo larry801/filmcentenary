@@ -141,7 +141,6 @@ export const EVENT_TARGET_EXAMPLES: Record<string, string> = {
     "vq-030": "spain:return:alba 或 france:skip",
     "vq-053": "peace:france、give:france:vq-020 或 move:paris",
     "vq-061": "fortress:atlanticCoast",
-    "vq-086": "france:vq-001|hre:vq-020|spain:treasure:1",
     "vq-098": "france:vq-022:vq-021",
     "vq-105": "oporto",
     "vq-107": "york",
@@ -170,6 +169,21 @@ export const playEventCard = (
 ): void => {
     const target = eventPlayTarget(targets);
     playCard({cardId, asEvent: true, ...(target !== undefined ? {target} : {})});
+};
+
+/**
+ * Which targeting control the event-card drawer renders.  Cards with a
+ * dedicated selector never fall back to free text, so #24 and #86 can only be
+ * played through their enumerated choices.
+ */
+export type EventTargetMode = "espionage" | "foreignWar" | "holyLeague" | "polishElection" | "freeText";
+
+export const eventTargetMode = (handler: string, espionageTargetCount: number): EventTargetMode => {
+    if (espionageTargetCount > 0) return "espionage";
+    if (handler === "warInPersia" || handler === "warWithPoland") return "foreignWar";
+    if (handler === "holyLeague") return "holyLeague";
+    if (handler === "polishRoyalElection") return "polishElection";
+    return "freeText";
 };
 
 /** Optional target argument for cards whose choices cannot be rendered as a list. */
@@ -255,6 +269,84 @@ export const HolyLeagueTargetSelect = ({options, value, onChange}: {
         {options.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
     </Select>
 </FormControl>;
+
+type PolishElectionPower = "france" | "hre" | "spain";
+
+/** #86 bids are resolved in this fixed order, which also breaks ties. */
+export const POLISH_ELECTION_POWERS: PolishElectionPower[] = ["france", "hre", "spain"];
+
+export interface PolishElectionBidOption {
+    /** Segment value for one power: "" (auto), a card id, or "treasure:N". */
+    value: string;
+    label: string;
+}
+
+/** Chosen segment per bidding power; a missing or empty entry means auto. */
+export type PolishElectionBidChoices = Partial<Record<PolishElectionPower, string>>;
+
+/** What `resolvePolishElection` does without a segment: highest-CP card, else highest treasure. */
+export const POLISH_ELECTION_AUTO_LABEL = "自动：最高 CP 手牌，否则最大财宝";
+
+/**
+ * Bid choices for one power in #86, in the same order the engine considers
+ * them: non-mandatory hand cards by descending CP, then treasures.  Mandatory
+ * cards are never legal bids, so they are not offered.
+ */
+export const polishElectionBidOptions = (G: VQGame, power: PolishElectionPower): PolishElectionBidOption[] => {
+    const cards = [...G.powers[power].cards]
+        .filter((id) => cardById(id).officialKind !== "mandatory")
+        .sort((a, b) => cardById(b).cp - cardById(a).cp || a.localeCompare(b))
+        .map((id) => {
+            const def = cardById(id);
+            return {value: id, label: `${def.name}（手牌 ${def.cp} CP）`};
+        });
+    const treasures = [...G.powers[power].treasures].sort((a, b) => b - a)
+        .map((value) => ({value: `treasure:${value}`, label: `财宝 ${value}（${value} CP）`}));
+    return [{value: "", label: POLISH_ELECTION_AUTO_LABEL}, ...cards, ...treasures];
+};
+
+/** Drops a stored bid that is no longer a legal choice for that power. */
+export const polishElectionBidValue = (G: VQGame, power: PolishElectionPower, selected: string | undefined): string => {
+    const value = selected ?? "";
+    return polishElectionBidOptions(G, power).some((option) => option.value === value) ? value : "";
+};
+
+/**
+ * Builds the `france:card|hre:card|spain:treasure:N` grammar `playCard`
+ * expects.  Auto-bidding powers are omitted; no explicit bid at all yields
+ * `undefined` so `playCard` keeps its no-target defaults.
+ */
+export const polishElectionTargetValue = (G: VQGame, choices: PolishElectionBidChoices): string | undefined => {
+    const segments = POLISH_ELECTION_POWERS
+        .map((power) => ({power, value: polishElectionBidValue(G, power, choices[power])}))
+        .filter((entry) => entry.value !== "")
+        .map((entry) => `${entry.power}:${entry.value}`);
+    return segments.length > 0 ? segments.join("|") : undefined;
+};
+
+/** Dedicated #86 selector: one bid dropdown per participating power. */
+export const PolishElectionTargetSelect = ({G, value, onChange}: {
+    G: VQGame;
+    value: PolishElectionBidChoices;
+    onChange: (power: PolishElectionPower, value: string) => void;
+}) => <Stack spacing={0.5} sx={{mt: 1}}>
+    <Typography variant="caption" color="text.secondary">
+        选王出价（每个势力可选一张手牌或一件财宝，留空为自动）
+    </Typography>
+    {POLISH_ELECTION_POWERS.map((power) => {
+        const labelId = `vq-polish-bid-${power}`;
+        const label = `${POWER_NAMES[power].zh} 出价`;
+        return <FormControl key={power} size="small" fullWidth>
+            <InputLabel id={labelId}>{label}</InputLabel>
+            <Select labelId={labelId} label={label} displayEmpty
+                    value={polishElectionBidValue(G, power, value[power])}
+                    onChange={(event) => onChange(power, event.target.value)}>
+                {polishElectionBidOptions(G, power).map((option) =>
+                    <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+            </Select>
+        </FormControl>;
+    })}
+</Stack>;
 
 export interface BetrothalChoices {
     /** Own royals selectable as the domestic side of the marriage. */
@@ -377,6 +469,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [informantSource, setInformantSource] = React.useState("");
     const [espionageEventTarget, setEspionageEventTarget] = React.useState("");
     const [holyLeagueEventTarget, setHolyLeagueEventTarget] = React.useState("");
+    const [polishElectionBids, setPolishElectionBids] = React.useState<PolishElectionBidChoices>({});
     const [expeditionCaptain, setExpeditionCaptain] = React.useState("");
     const [expeditionHasColony, setExpeditionHasColony] = React.useState(false);
     const [foreignArmySize, setForeignArmySize] = React.useState(3);
@@ -525,15 +618,17 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 handler === "doubleAgent" && me !== undefined ? doubleAgentTargets(G, me) :
                     handler === "untimelyDeath" && G.scenario !== "tutorial" ? (untimelyDeathTargets(G).length ? untimelyDeathTargets(G) : ["none"]) : [];
         const espionageTarget = espionageTargets.includes(espionageEventTarget) ? espionageEventTarget : espionageTargets[0];
-        const foreignWarPower = handler === "warInPersia" ? "ottoman" : handler === "warWithPoland" ? "hre" : undefined;
-        const holyLeagueOptions = handler === "holyLeague" ? holyLeagueTargetOptions(G) : [];
+        const targetMode = eventTargetMode(handler, espionageTargets.length);
+        const foreignWarPower = targetMode === "foreignWar" ? (handler === "warInPersia" ? "ottoman" : "hre") : undefined;
+        const holyLeagueOptions = targetMode === "holyLeague" ? holyLeagueTargetOptions(G) : [];
         const holyLeagueTarget = holyLeagueTargetValue(G, holyLeagueEventTarget);
+        const polishElection = targetMode === "polishElection";
         const foreignWarBlocked = foreignWarPower !== undefined && (G.foreignWars[foreignWarPower] !== undefined ||
             (foreignWarPower === "hre" && atWar(G, "hre", "ottoman")) ||
             Object.values(G.spaces).filter((space) => space.siege === undefined)
                 .reduce((total, space) => total + landCount(space.land[foreignWarPower]), 0) < 3);
         const canPlayAsEvent = def.kind !== "command" || def.officialKind === "mandatory" || G.scenario === "tutorial";
-        const showTargetField = canPlayAsEvent && espionageTargets.length === 0 && foreignWarPower === undefined && holyLeagueOptions.length === 0;
+        const showTargetField = canPlayAsEvent && targetMode === "freeText";
         return <Paper key={id} variant="outlined" sx={{p: 0.75, mb: 0.5}}>
             <Stack direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
                 <Typography variant="caption" sx={{fontWeight: 700}}>{def.name}</Typography>
@@ -562,6 +657,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             </FormControl>}
             {holyLeagueOptions.length > 0 && <HolyLeagueTargetSelect options={holyLeagueOptions}
                 value={holyLeagueTarget} onChange={setHolyLeagueEventTarget}/>}
+            {polishElection && <PolishElectionTargetSelect G={G} value={polishElectionBids}
+                onChange={(power, choice) => setPolishElectionBids((current) => ({...current, [power]: choice}))}/>}
             {showTargetField && <Box sx={{mt: 0.5}}>
                 <EventTargetField cardId={id} value={eventTarget} onChange={setEventTarget}/>
             </Box>}
@@ -575,11 +672,13 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                       (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
                                                   onClick={() => {
                                                       playEventCard(moves.playCard, id, {
-                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : undefined,
-                                                          typed: eventTarget,
+                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : undefined,
+                                                          // Free text is only honoured for cards without a dedicated selector.
+                                                          typed: targetMode === "freeText" ? eventTarget : "",
                                                       });
                                                       setEventTarget("");
                                                       setHolyLeagueEventTarget("");
+                                                      setPolishElectionBids({});
                                                       setSelectedCard(undefined);
                                                   }}>
                     {def.kind === "home" ? "使用能力" : "作为事件"}
@@ -1687,7 +1786,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {hand.length === 0 && <Typography variant="body2" color="text.secondary">{me ? "暂无手牌。" : "旁观模式仅展示公开牌数。"}</Typography>}
                     <div className="vq-card-tray">{hand.map((id) => {
                         const card = cardById(id);
-                        return <button key={id} className="vq-card" aria-label={`查看卡牌 ${card.name} · ${card.cp} CP`} onClick={() => {setSelectedCard(id); setEventTarget(""); setHolyLeagueEventTarget("");}}>
+                        return <button key={id} className="vq-card" aria-label={`查看卡牌 ${card.name} · ${card.cp} CP`} onClick={() => {setSelectedCard(id); setEventTarget(""); setHolyLeagueEventTarget(""); setPolishElectionBids({});}}>
                             <CardArt def={card} className="vq-card-art" lazy/>
                             <small>{card.kind === "home" ? "本国牌" : card.kind === "event" ? "事件牌" : "行动牌"}<span className="vq-card-cp">{card.cp} CP</span></small>
                             <strong>{card.name}</strong><small>查看详情 ↗</small>

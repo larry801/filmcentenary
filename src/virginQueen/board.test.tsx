@@ -1,7 +1,7 @@
 import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
-import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET} from "./components/board";
+import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL} from "./components/board";
 import {proposeBetroth} from "./moves";
 import {setupGame} from "./util";
 import {Power, VQGame} from "./constant/general";
@@ -288,6 +288,91 @@ describe("Virgin Queen board", () => {
             value={holyLeagueTargetValue(G, "")} onChange={() => undefined}/>);
         expect(html).toContain("神圣同盟目标");
         expect(html).toContain("教宗国 +2，威尼斯 +2");
+        expect(html).not.toContain("事件目标（可选）");
+    });
+
+    it("offers #86 per-power card and treasure bids with defaults and clear labels", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.powers.france.cards = ["vq-022", "vq-001"];
+        G.powers.france.treasures = [1, 3];
+        G.powers.hre.cards = ["vq-086", "vq-020"];
+        G.powers.spain.cards = [];
+        G.powers.spain.treasures = [2];
+
+        const france = polishElectionBidOptions(G, "france");
+        expect(france.map((option) => option.value)).toEqual(["", "vq-001", "vq-022", "treasure:3", "treasure:1"]);
+        expect(france[0].label).toBe(POLISH_ELECTION_AUTO_LABEL);
+        expect(france.find((option) => option.value === "vq-001")?.label).toBe("大维齐尔（手牌 5 CP）");
+        expect(france.find((option) => option.value === "vq-022")?.label).toContain("3 CP");
+        expect(france.find((option) => option.value === "treasure:3")?.label).toBe("财宝 3（3 CP）");
+
+        // Mandatory cards can never be bid, so #86 itself is not offered.
+        expect(polishElectionBidOptions(G, "hre").map((option) => option.value)).toEqual(["", "vq-020"]);
+        expect(polishElectionBidOptions(G, "spain").map((option) => option.value)).toEqual(["", "treasure:2"]);
+
+        expect(polishElectionBidValue(G, "france", "vq-001")).toBe("vq-001");
+        expect(polishElectionBidValue(G, "hre", "vq-086")).toBe("");
+        expect(polishElectionBidValue(G, "france", "treasure:9")).toBe("");
+        expect(polishElectionBidValue(G, "spain", undefined)).toBe("");
+    });
+
+    it("builds the #86 target grammar from per-power choices and omits auto bids", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.powers.france.cards = ["vq-001"];
+        G.powers.france.treasures = [];
+        G.powers.hre.cards = ["vq-020"];
+        G.powers.spain.cards = [];
+        G.powers.spain.treasures = [1];
+
+        expect(polishElectionTargetValue(G, {france: "vq-001", hre: "vq-020", spain: "treasure:1"}))
+            .toBe("france:vq-001|hre:vq-020|spain:treasure:1");
+        // The grammar order is the engine's france/hre/spain order, not selection order.
+        expect(polishElectionTargetValue(G, {spain: "treasure:1", hre: "vq-020", france: "vq-001"}))
+            .toBe("france:vq-001|hre:vq-020|spain:treasure:1");
+        expect(polishElectionTargetValue(G, {})).toBeUndefined();
+        expect(polishElectionTargetValue(G, {france: "", hre: "", spain: ""})).toBeUndefined();
+        expect(polishElectionTargetValue(G, {hre: "vq-020"})).toBe("hre:vq-020");
+        // A bid that is no longer legal falls back to auto instead of forwarding stale state.
+        expect(polishElectionTargetValue(G, {france: "vq-022"})).toBeUndefined();
+    });
+
+    it("forwards the dedicated #86 bid target and keeps free-text targeting off that card", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.powers.france.cards = ["vq-001"];
+        G.powers.hre.cards = ["vq-020"];
+        G.powers.spain.treasures = [1];
+        const played: {cardId: string; asEvent: true; target?: string}[] = [];
+        const playCard = (args: {cardId: string; asEvent: true; target?: string}): void => { played.push(args); };
+        const choices = {france: "vq-001", hre: "vq-020", spain: "treasure:1"};
+
+        playEventCard(playCard, "vq-086", {typed: "ignored free text", selected: polishElectionTargetValue(G, choices)});
+        playEventCard(playCard, "vq-086", {typed: "", selected: polishElectionTargetValue(G, {})});
+
+        expect(played).toEqual([
+            {cardId: "vq-086", asEvent: true, target: "france:vq-001|hre:vq-020|spain:treasure:1"},
+            {cardId: "vq-086", asEvent: true},
+        ]);
+        expect(eventTargetMode("polishRoyalElection", 0)).toBe("polishElection");
+        expect(eventTargetMode("holyLeague", 0)).toBe("holyLeague");
+        expect(eventTargetMode("", 0)).toBe("freeText");
+        // #86 no longer advertises a free-text example.
+        const field = renderToStaticMarkup(<EventTargetField cardId="vq-086" value="" onChange={() => undefined}/>);
+        expect(field).toContain("按卡牌文本填写");
+    });
+
+    it("renders the dedicated #86 selector with one labeled bid per power", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.powers.france.cards = ["vq-001"];
+        G.powers.france.treasures = [];
+        G.powers.hre.cards = ["vq-020"];
+        G.powers.spain.treasures = [1];
+        const html = renderToStaticMarkup(<PolishElectionTargetSelect G={G} value={{france: "vq-001"}}
+            onChange={() => undefined}/>);
+        expect(html).toContain("选王出价");
+        expect(html).toContain("法国 出价");
+        expect(html).toContain("神圣罗马帝国 出价");
+        expect(html).toContain("西班牙 出价");
+        expect(html).toContain("大维齐尔（手牌 5 CP）");
         expect(html).not.toContain("事件目标（可选）");
     });
 
