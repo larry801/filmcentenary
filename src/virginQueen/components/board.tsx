@@ -954,6 +954,14 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 <Typography variant="caption" color="text.secondary">
                     宣战/议和使用手牌支付；同盟只持续本回合。
                 </Typography>
+                {ps !== undefined && ps.treasures.length > 0 && <Stack spacing={0.5}>
+                    <Typography variant="subtitle2">赠送宝藏给 {POWER_NAMES[diploTarget].zh}</Typography>
+                    <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                        {ps.treasures.map((value, index) => <Button key={`${value}-${index}`} size="small" variant="outlined"
+                            disabled={!myTurn || atWar(G, me, diploTarget)}
+                            onClick={() => moves.giveTreasure({target: diploTarget, index})}>价值 {value}</Button>)}
+                    </Stack>
+                </Stack>}
                 {G.powers[me].allies.includes(diploTarget) && <Stack spacing={0.5}>
                     <Typography variant="subtitle2">海军借调</Typography>
                     <FormControl size="small" fullWidth>

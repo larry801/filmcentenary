@@ -958,6 +958,18 @@ export const formAlliance = (G: VQGame, ctx: Ctx, args: { target: Power }): void
     pushLog(G, `${powerLabel(p)} and ${powerLabel(t)} form an alliance for this turn.`);
 };
 
+export const giveTreasure = (G: VQGame, ctx: Ctx, args: {target: Power; index: number}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "diplomacy") return INVALID_MOVE;
+    const p = power(G, ctx);
+    if (!isPower(args.target) || args.target === p || atWar(G, p, args.target)) return INVALID_MOVE;
+    const index = Number(args.index);
+    const value = G.powers[p].treasures[index];
+    if (value === undefined) return INVALID_MOVE;
+    G.powers[p].treasures.splice(index, 1);
+    G.powers[args.target].treasures.push(value);
+    pushLog(G, `${powerLabel(p)} gives a treasure to ${powerLabel(args.target)}.`);
+};
+
 export const loanNaval = (G: VQGame, ctx: Ctx, args: {target: Power; fromPort: string; toPort: string; kind: "galley" | "galleon" | "racebuilt"}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "diplomacy") return INVALID_MOVE;
     const p = power(G, ctx);

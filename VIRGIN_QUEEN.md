@@ -151,6 +151,11 @@
 - 总和 1–2：英格兰 +1 VP、西班牙 −1 VP；3–4：英格兰 +1；5–6：无；7–10：西班牙 +1；11–15：西班牙 +2、英格兰 −1；16+：西班牙 +3、英格兰 −2。
 - 作为强制事件打出后照常获得 2 CP。
 
+### 外交交换（9.1）
+
+- 外交阶段可把手中的一个宝藏赠送给非交战国；界面列出己方宝藏价值。
+- 卡牌/雇佣兵交换与“随机抽牌”协议尚未实现。
+
 ### 海军借调（9.2）
 
 - 同盟双方可借调海军：借出方在受控港口选择 1 艘桨帆船/大帆船/快帆船，经纯海域路径送到受助方受控港口。
@@ -313,6 +318,7 @@ src/virginQueen/
   withdraw.test.ts      13.4 退入要塞后的 1 CP 继续/返回
   protestantDraw.test.ts 23.6 荷兰/胡格诺两行关键地区抽牌
   loan.test.ts          9.2 海军借调、单向限制、冬季归还
+  diplomacyExchange.test.ts 9.1 宝藏赠送/敌对与索引校验
   enterprise.test.ts    #100 英格兰的局势 1–16+ VP 表
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
@@ -418,3 +424,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 海军借调（9.2）接入后的验证：`jest src/virginQueen --runInBand --silent` 38 suites、426 tests passed（新增 2 项：借调/冬季归还、需同盟与海路）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #100 英格兰的局势接入后的验证：`jest src/virginQueen --runInBand --silent` 39 suites、427 tests passed（新增 1 项：1–16+ 各档 VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+外交宝藏赠送（9.1）接入后的验证：`jest src/virginQueen --runInBand --silent` 40 suites、429 tests passed（新增 2 项：宝藏转移、敌对/非法索引拒绝）；`npm run build` 通过，仍有既有大体积 chunk 提示。
