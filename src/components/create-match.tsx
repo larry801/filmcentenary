@@ -17,7 +17,8 @@ import TableCell from "@mui/material/TableCell";
 import TableBody from "@mui/material/TableBody";
 import {LobbyClient} from 'boardgame.io/client';
 import {filmCentenaryName, songJinnName, virginQueenName} from "../constant/multi-games";
-import {POWER_NAMES, POWERS} from "../virginQueen/constant/general";
+import {ScenarioID} from "../virginQueen/constant/general";
+import {SCENARIO_OPTIONS, seatLabels} from "../virginQueen/configuration";
 
 type PlayerMetadata = {
     id: number;
@@ -34,6 +35,7 @@ interface MatchData {
     nextMatchID?: string;
     createdAt: number;
     updatedAt: number;
+    setupData?: {scenario?: ScenarioID};
 }
 
 interface CreateMatchProps {
@@ -84,7 +86,11 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const [numPlayers, setNumPlayers] = React.useState(gameName === filmCentenaryName ? 4 : gameName === virginQueenName ? 6 : 2);
     const [isPublic, setIsPublic] = React.useState(true);
     const [matches, setMatches] = React.useState([]);
-    const [vqScenario, setVqScenario] = React.useState<"campaign" | "tournament">("campaign");
+    const [vqScenario, setVqScenario] = React.useState<ScenarioID>("campaign");
+
+    React.useEffect(() => {
+        if (Number(player) >= numPlayers) setPlayer(Player.P0);
+    }, [numPlayers, player]);
 
     React.useEffect(() => {
         if (matchID) {
@@ -158,6 +164,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                     {matches.map((match: MatchData) => {
                         const createdDate = new Date(match.createdAt);
                         const updateDate = new Date(match.updatedAt);
+                        const seats = match.gameName === virginQueenName ? seatLabels(match.setupData?.scenario ?? "campaign", match.players.length) : undefined;
                         return <TableRow key={match.matchID}>
                             <TableCell component="th" scope="row">
                                 {match.matchID}
@@ -169,10 +176,10 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                 {match.players.map((player, idx) => {
                                     if (player.name === undefined) {
                                         return <a href={`${serverURL}/join/${match.gameName}/${match.matchID}/${idx}`}>
-                                            {`${i18n.chain.lobby.join}|${idx + 1}`}
+                                            {`${i18n.chain.lobby.join}|${idx + 1}${seats ? ` ${seats[idx]}` : ""}`}
                                         </a>
                                     } else {
-                                        return <Typography>{player.name} {player.isConnected ? "(+)" : "(-)"} </Typography>
+                                        return <Typography>{player.name} {seats?.[idx]} {player.isConnected ? "(+)" : "(-)"} </Typography>
                                     }
                                 })}
                             </TableCell>
@@ -210,7 +217,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                 name: 'numPlayers',
                                 id: 'outlined-numPlayers-native-simple',
                             }}>
-                            {gameName === virginQueenName ? <option value={6}>6</option> : <>
+                            {gameName === virginQueenName ? SCENARIO_OPTIONS.find((entry) => entry.id === vqScenario)!.players.map((count) => <option key={count} value={count}>{count}</option>) : <>
                                 <option value={2}>2</option>
                                 {gameName === 'film' ? <>
                                     <option value={3}>3</option>
@@ -234,7 +241,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                             id: 'outlined-numPlayers-native-simple',
                         }}>
                         {gameName === virginQueenName ? <>
-                            {POWERS.map((p, idx) => <option key={p} value={String(idx)}>{`P${idx + 1} ${POWER_NAMES[p].zh}`}</option>)}
+                            {seatLabels(vqScenario, numPlayers).map((label, index) => <option key={index} value={String(index)}>{`P${index + 1} ${label}`}</option>)}
                         </> : <>
                             {gameName === 'film' ? <option value={Player.P0}>{Player.P0}</option>
                                 : <option value={Player.P0}>宋</option>}
@@ -253,10 +260,13 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
 
             {gameName === virginQueenName && <FormControl variant="outlined" sx={styles.formControl}>
                 <InputLabel htmlFor="vq-scenario">场景</InputLabel>
-                <Select native value={vqScenario} onChange={(e) => setVqScenario(e.target.value as "campaign" | "tournament")} label="场景"
+                <Select native value={vqScenario} onChange={(e) => {
+                    const scenario = e.target.value as ScenarioID;
+                    setVqScenario(scenario);
+                    if (scenario === "tutorial") setNumPlayers(2);
+                }} label="场景"
                         inputProps={{name: "scenario", id: "vq-scenario"}}>
-                    <option value="campaign">Campaign · 拉罗谢尔之围</option>
-                    <option value="tournament">Tournament · 荷兰起义开始</option>
+                    {SCENARIO_OPTIONS.map((entry) => <option key={entry.id} value={entry.id}>{entry.label}</option>)}
                 </Select>
             </FormControl>}
 

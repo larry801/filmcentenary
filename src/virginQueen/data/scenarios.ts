@@ -5,6 +5,7 @@ import {CAMPAIGN_PATRONAGE, TOURNAMENT_PATRONAGE} from "./patrons";
 import {CAMPAIGN_VP_AWARDS, TOURNAMENT_UNAVAILABLE_VP_AWARDS, TOURNAMENT_VP_AWARDS} from "./patronage";
 import {SCIENCE_BONUSES} from "./scienceBonuses";
 import {ScenarioPhase, ScenarioSetup, ScenarioSpaceSetup} from "./types";
+import {tutorialSpaceAllowed} from "../tutorial";
 
 const scm = (control: Controller, extra: ScenarioSpaceSetup = {}): ScenarioSpaceSetup => ({
     control,
@@ -461,9 +462,34 @@ export const TOURNAMENT: ScenarioSetup = {
     ],
 };
 
+export const TUTORIAL: ScenarioSetup = {
+    ...CAMPAIGN,
+    id: "tutorial",
+    nameZh: "勒班陀海战",
+    nameEn: "The Battle of Lepanto",
+    endTurn: 3,
+    endYear: 1575,
+    vpStart: {ottoman: 13, spain: 0, england: 0, france: 0, hre: 0, protestant: 0},
+    protestantSpaces: 18,
+    wars: [["ottoman", "spain"]],
+    alliances: [["spain", "papacy"]],
+    influence: {ottoman: {papacy: 0, venice: 2}, spain: {papacy: 1, venice: 0}},
+    spaces: Object.fromEntries(Object.entries(CAMPAIGN.spaces).filter(([id]) => tutorialSpaceAllowed(id))),
+    powerCard: {ottoman: {scmOnCard: 4, ruler: "suleiman"}, spain: {scmOnCard: 6}, england: {}, france: {}, hre: {}, protestant: {}},
+    royals: [],
+    royalStatus: {},
+    patronage: {artists: [], scientists: [], vpMarkers: 0, artistVpMarkers: 0, scientistVpMarkers: 0, scienceBonuses: [], vpAwards: []},
+    cardsInPlay: Array.from({length: 31}, (_, index) => index + 1),
+    cardsRemoved: Array.from({length: 81}, (_, index) => index + 32),
+    cardsOnBoard: [],
+    phaseOrder: ["cardDraw", "spring", "action"],
+    notes: ["Scenario Book pp. 4–5: Ottoman vs Spain, turns 1–3; HRE has no independent hand."],
+};
+
 export const SCENARIOS: Record<ScenarioSetup["id"], ScenarioSetup> = {
     campaign: CAMPAIGN,
     tournament: TOURNAMENT,
+    tutorial: TUTORIAL,
 };
 
 export const scenarioById = (id: ScenarioSetup["id"]): ScenarioSetup => SCENARIOS[id];

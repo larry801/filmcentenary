@@ -67,9 +67,14 @@ rendered and no OCR was run.
 
 ## Scenarios (`scenarios.ts`)
 
-* Six-player Campaign (turns 1–7, 1559–1598) and Tournament (turns 3–6,
-  1570–1593) setups only. The 2–5 player Activated Major Power rules are out of
-  scope for this round.
+* Campaign (turns 1–7, 1559–1598) and Tournament (turns 3–6,
+  1570–1593) support six or two players. The adapter in `../scenario.ts`
+  applies the two-player component removals; `../ownership.ts` handles
+  activated-major ownership. The separate Lepanto tutorial uses turns 1–3,
+  cards 1–31 and the tutorial power-card tracks in `../tutorial.ts`.
+* Setup references: 2024 Living Scenario Book pp. 4–5 and 10–13. Downloaded
+  PDFs and the distribution archive remain local, uncommitted references.
+  See `../../../VIRGIN_QUEEN.md` for runtime coverage and outstanding rules.
 * Card pools are built in `deck.ts`; `cardsInPlay` and `cardsRemoved` partition
   the 112-card deck for each scenario.
 * The Tournament setup puts Morisco Revolt (`#28`) on the board.
@@ -80,6 +85,14 @@ rendered and no OCR was run.
   During Spring Deployment each power secretly keeps one Home card and places
   the rest face down on its power card; the Ottoman may keep both while
   Suleiman is ruler.  `"variable"` Home cards (`#111`) wait for their event.
+* HRE religious preference follows rules 23.5 and 25.2–25.3. The three special
+  VP columns were transcribed from the supplied VASSAL 4.6 module's
+  `images/protspaces.jpg`: Protestant `[0,0,0,0,1,3,5,7]`, Balanced
+  `[0,0,2,4,4,2,0,0]`, Catholic `[7,5,3,1,0,0,0,0]`, for track rows
+  10–14 through 45–49. The first Spring choice is private until the winter
+  victory check needs it to win or prevent domination. Unrevealed VP are
+  excluded from public scores and historical tie-breakers; two-player games
+  and the tutorial skip this rule.
 
 ## Other tables
 
@@ -108,7 +121,9 @@ track offsets, official card pools and turn availability, scenario royals,
 patron and science catalogs, and scenario captain assignments. Shared
 France/Protestant captains can be claimed during Card Draw. Scenario patron
 The current data includes patron ratings and the full VP award-marker pool.
-Complex card text also remains manual.
+Complex card text outside the tutorial also remains manual. Tutorial handlers
+live in `../tutorialEvents.ts`; the existence of a handler does not establish
+full coverage of every printed timing or choice (see the main coverage notes).
 
 ## Validation
 

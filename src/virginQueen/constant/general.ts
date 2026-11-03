@@ -20,7 +20,7 @@ export const POWERS = [
 
 export type Power = typeof POWERS[number];
 
-export type ScenarioID = "campaign" | "tournament";
+export type ScenarioID = "campaign" | "tournament" | "tutorial";
 
 export const POWER_INDEX: Record<Power, number> = {
     ottoman: 0,
@@ -96,6 +96,12 @@ export const controllerNameZh = (c: Controller): string =>
     isPower(c) ? POWER_NAMES[c].zh : MINOR_NAMES[c].zh;
 
 export type Religion = "catholic" | "protestant";
+export type HreReligiousPreference = Religion | "balanced";
+export const HRE_RELIGIOUS_PREFERENCE_NAMES: Record<HreReligiousPreference, string> = {
+    catholic: "天主教",
+    protestant: "新教",
+    balanced: "平衡",
+};
 export type ReligionArea = "england" | "scotland" | "netherlands" | "france";
 
 export const RELIGION_AREAS: ReligionArea[] = [
@@ -162,6 +168,7 @@ export interface LeaderState {
     /** Space id, sea zone id, "pool" or "captured". */
     location: string;
     capturedBy?: Power;
+    returnTurn?: number;
 }
 
 export interface Ruler {
@@ -406,6 +413,59 @@ export interface PowerState {
 }
 
 export interface VQGame {
+    playerPowers?: Record<string, Power[]>;
+    activatedMajors?: Partial<Record<Power, {ally: Power; baseline: number}>>;
+    majorInfluence?: Partial<Record<Power, Partial<Record<Power, number>>>>;
+    pendingActivation?: {power: Power; ally: Power; aggressor?: Power};
+    majorDiplomacyResolved?: Power[];
+    tutorialHreAlly?: Power;
+    tutorialEffects?: {
+        nextDraw: Partial<Record<Power, number>>;
+        skip: Power[];
+        piracyVp: number;
+        cyprusTarget?: string;
+        cyprusAwarded?: boolean;
+        haremImpulse?: number;
+        dragutWindow?: boolean;
+        moriscoSpace?: string;
+        stormImpulse?: number;
+        movedAfterStorm?: string[];
+    };
+    pendingTutorialEvent?: {
+        cardId: string;
+        power: Power;
+        responding: Power;
+        step: string;
+        remaining: number;
+        space?: string;
+        targetPower?: Power;
+        tracks: string[];
+    };
+    pendingPiracy?: {power: Power; target: Power; zone: SeaZoneID; step: "losses" | "rewards"; remaining: number; rewards: Record<string, number>};
+    piracyUsed?: Partial<Record<Power, SeaZoneID[]>>;
+    pendingAction?: {power: Power; move: "moveLand" | "moveNaval" | "navalTransport" | "assault" | "piracy"; args: {from?: string; to?: string; space?: string; zone?: string; target?: Power; units?: Partial<LandStack>; leaders?: string[]; unitPower?: Controller; zones?: string[]}};
+    resumeAction?: boolean;
+    pendingIntercept?: {power: Power; defender: Power; from: string; to: string; phase: "field" | "naval"; attackers: Controller[]; attempted: string[]; succeeded: boolean; transported?: boolean};
+    interceptedThisImpulse?: {impulse: number; spaces: string[]};
+    pendingBattle?: {
+        phase: "field" | "naval" | "assault";
+        location: string;
+        from: string;
+        attacker: Power;
+        attackers: Controller[];
+        defenders: Controller[];
+        defender: Power;
+        responding: Power;
+        step: "defend" | "attackerCards" | "defenderCards" | "attackerAfterRoll" | "defenderAfterRoll" | "attackerLosses" | "defenderLosses" | "retreat";
+        treachery?: boolean;
+        intercepted?: boolean;
+        transported?: boolean;
+        cards: Partial<Record<Power, string[]>>;
+        rolls?: {attacker: number[]; defender: number[]};
+        hitCounts?: {attacker: number; defender: number};
+        losses?: {attacker: number; defender: number};
+        loser?: Power;
+    };
     /** Scenario selected when the match was created. */
     scenario: ScenarioID;
     /** First official turn of the scenario (1 for Campaign, 3 for Tournament). */
@@ -445,6 +505,9 @@ export interface VQGame {
     marriages: number;
     log: string[];
     vpHistory: Record<string, Partial<Record<Power, number>>>;
+    hreReligiousPreference?: HreReligiousPreference;
+    hreReligiousPreferenceChosen: boolean;
+    hreReligiousPreferenceRevealed: boolean;
     /** Set at the end of the Action Phase so endIf can score the winter. */
     checkVictory: boolean;
     /** Key counts at setup, so starting positions do not trigger military victory. */

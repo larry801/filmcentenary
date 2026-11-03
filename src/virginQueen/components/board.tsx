@@ -18,6 +18,8 @@ import {
     AREA_NAMES,
     CONTROLLER_COLORS,
     controllerNameZh,
+    HRE_RELIGIOUS_PREFERENCE_NAMES,
+    HreReligiousPreference,
     landCount,
     MINOR_NAMES,
     MINOR_POWERS,
@@ -36,7 +38,7 @@ import {
 import {cardById} from "../constant/cards";
 import {LEADER_BY_ID} from "../constant/leaders";
 import {patronDef, royalAvailable, scenarioSetup, scienceBonusById, seaCaptainById} from "../scenario";
-import {DUTCH_KEYS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "../constant/spaces";
+import {DUTCH_KEYS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "../mapData";
 import {WORLD_SEA_ZONES, WORLD_SETTLEMENTS} from "../data/world";
 import {PATRONAGE_VP_AWARD_BY_ID} from "../data/patronage";
 import {MINOR_DIPLOMACY} from "../data/minorDiplomacy";
@@ -47,6 +49,8 @@ import {
     capitalOf,
     controlledKeys,
     homeCardChoiceRequired,
+    hreReligiousPreferenceRequired,
+    hreReligiousVp,
     keepsBothHomeCards,
     powerVp,
     protestantSpaceCount,
@@ -57,8 +61,18 @@ import {
     warCost,
     zonePorts,
     minorAvailable,
+    friendlyController,
 } from "../util";
 import {VQMap} from "./map";
+import {controlledPowers, ownerOf, isActivatedMajor} from "../ownership";
+import {tutorialFortressVp, tutorialSpaceAllowed} from "../tutorial";
+import {scenarioName} from "../scenario";
+import {Controller} from "../constant/general";
+import {battleOptions} from "../combat";
+import {canPlayTutorialEvent, tutorialEventOptions} from "../tutorialEvents";
+import {piracyOptions} from "../piracy";
+import {actionResponseOptions} from "../moves";
+import {interceptionOptions} from "../interception";
 
 type Mode =
     | "inspect"
@@ -71,6 +85,7 @@ type Mode =
     | "buildCorsair"
     | "moveLand"
     | "moveNaval"
+    | "navalTransport"
     | "spring"
     | "control"
     | "assault"
@@ -88,6 +103,7 @@ const MODE_LABELS: Record<Mode, string> = {
     buildCorsair: "建造海盗船 (1 CP)",
     moveLand: "陆军移动 (1/2 CP)",
     moveNaval: "海军移动 (1 CP)",
+    navalTransport: "海运陆军 (海域数 + 1 CP)",
     spring: "春季部署 (免费)",
     control: "控制/清除动荡 (1 CP)",
     assault: "强攻 (1 CP)",
@@ -125,6 +141,10 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
     const [selected, setSelected] = React.useState<string | undefined>("london");
     const [mode, setMode] = React.useState<Mode>("inspect");
     const [from, setFrom] = React.useState<string | null>(null);
+    const [movingUnits, setMovingUnits] = React.useState<LandStack>({regular: 0, merc: 0, cav: 0});
+    const [movingOwner, setMovingOwner] = React.useState<Controller>("ottoman");
+    const [movingLeaders, setMovingLeaders] = React.useState<string[]>([]);
+    const [transportZones, setTransportZones] = React.useState<string[]>([]);
     const [rebelCp, setRebelCp] = React.useState(2);
     const [piracyZone, setPiracyZone] = React.useState("");
     const [piracyTarget, setPiracyTarget] = React.useState("");
@@ -141,23 +161,34 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
     const [foreignWarUnits, setForeignWarUnits] = React.useState<{space: string; kind: keyof LandStack}[]>([]);
     const [foreignWarLeader, setForeignWarLeader] = React.useState("");
 
-    const me: Power | undefined = playerID === null ? undefined : powerAt(playerID);
-    const myTurn = me !== undefined && ctx.currentPlayer === playerID;
+    const [viewPower, setViewPower] = React.useState<Power>();
+    const owned = controlledPowers(G, playerID);
+    const piracyResponder = G.pendingPiracy && (G.pendingPiracy.step === "losses" ? G.pendingPiracy.power : G.pendingPiracy.target);
+    const actionResponder = G.pendingAction && (G.pendingAction.power === "ottoman" ? "spain" : "ottoman");
+    const responsePower = G.pendingIntercept && ownerOf(G, G.pendingIntercept.defender) === playerID ? G.pendingIntercept.defender :
+        actionResponder && ownerOf(G, actionResponder) === playerID ? actionResponder :
+        piracyResponder && ownerOf(G, piracyResponder) === playerID ? piracyResponder :
+        G.pendingTutorialEvent && ownerOf(G, G.pendingTutorialEvent.responding) === playerID ? G.pendingTutorialEvent.responding :
+        G.pendingBattle && ownerOf(G, G.pendingBattle.responding) === playerID ? G.pendingBattle.responding :
+        G.pendingBetrothal && ownerOf(G, G.pendingBetrothal.target) === playerID ? G.pendingBetrothal.target : undefined;
+    const me: Power | undefined = responsePower ?? (ctx.currentPlayer === playerID ? G.activePower :
+        viewPower && owned.includes(viewPower) ? viewPower : owned[0]);
+    const myTurn = me !== undefined && ctx.currentPlayer === playerID && me === G.activePower;
     const phase = ctx.phase ?? "";
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
     const hand = ps?.cards ?? [];
-    const canAct = myTurn && phase === "action";
+    const canAct = myTurn && phase === "action" && !G.pendingBattle && !G.pendingActivation && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept;
 
     React.useEffect(() => {
         setMode("inspect");
         setFrom(null);
         setForeignWarUnits([]);
         setForeignWarLeader("");
-    }, [ctx.phase, ctx.currentPlayer]);
+    }, [ctx.phase, ctx.currentPlayer, G.activePower]);
 
     const doSpaceAction = (id: string): void => {
-        if (!canAct || me === undefined) {
+        if ((!canAct && !(myTurn && phase === "spring" && mode === "spring")) || me === undefined) {
             return;
         }
         switch (mode) {
@@ -183,12 +214,20 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                 moves.buildNaval({port: id, kind: "corsair"});
                 break;
             case "moveLand":
+            case "navalTransport":
                 if (from === null) {
-                    if ((G.spaces[id].land[me]?.regular ?? 0) + (G.spaces[id].land[me]?.merc ?? 0) + (G.spaces[id].land[me]?.cav ?? 0) > 0) {
+                    const owner = (Object.keys(G.spaces[id].land) as Controller[]).find((candidate) =>
+                        (mode === "navalTransport" ? candidate === me : friendlyController(G, me, candidate)) && landCount(G.spaces[id].land[candidate]) > 0);
+                    if (owner) {
                         setFrom(id);
+                        setMovingOwner(owner);
+                        setMovingUnits({...G.spaces[id].land[owner]!});
+                        setMovingLeaders(G.spaces[id].leaders.filter((leader) => LEADER_BY_ID[leader]?.power === owner && LEADER_BY_ID[leader]?.kind === "army"));
+                        setTransportZones([]);
                     }
                 } else {
-                    moves.moveLand({from, to: id});
+                    if (mode === "navalTransport") moves.navalTransport({from, to: id, zones: transportZones, units: movingUnits, leaders: movingLeaders});
+                    else moves.moveLand({from, to: id, units: movingUnits, unitPower: movingOwner, leaders: movingLeaders});
                     setFrom(null);
                 }
                 break;
@@ -208,9 +247,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                 if (from === null) {
                     if ([capitalOf(G, me)].includes(id)) {
                         setFrom(id);
+                        setMovingOwner(me);
+                        setMovingUnits({...G.spaces[id].land[me] ?? {regular: 0, merc: 0, cav: 0}});
+                        setMovingLeaders(G.spaces[id].leaders.filter((leader) => LEADER_BY_ID[leader]?.power === me && LEADER_BY_ID[leader]?.kind === "army").slice(0, 2));
                     }
                 } else {
-                    moves.springDeploy({from, to: id});
+                    moves.springDeploy({from, to: id, units: movingUnits, leaders: movingLeaders});
                     setFrom(null);
                 }
                 break;
@@ -265,19 +307,57 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                 </Select>
             </FormControl>}
             <Stack direction="row" spacing={0.5} sx={{mt: 0.5}}>
-                {def.kind !== "command" && <Button size="small" variant="contained"
-                                                  disabled={disabled || foreignWarBlocked}
+                {(def.kind !== "command" || def.officialKind === "mandatory" || G.scenario === "tutorial") && <Button size="small" variant="contained"
+                                                  disabled={disabled || foreignWarBlocked || (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
                                                   onClick={() => moves.playCard({cardId: id, asEvent: true,
                                                       ...(foreignWarPower !== undefined ? {target: String(foreignArmySize)} : {})})}>
                     {def.kind === "home" ? "使用能力" : "作为事件"}
                 </Button>}
-                <Button size="small" variant="outlined" disabled={disabled}
+                <Button size="small" variant="outlined" disabled={disabled || def.officialKind === "mandatory"}
                         onClick={() => moves.playCard({cardId: id})}>作为 CP</Button>
             </Stack>
         </Paper>;
     };
 
     const actionPanel = () => {
+        if (G.pendingIntercept) return <Stack spacing={1}>
+            <Typography>拦截 · 等待 {POWER_NAMES[G.pendingIntercept.defender].zh}。</Typography>
+            {ownerOf(G, G.pendingIntercept.defender) === playerID && interceptionOptions(G).map((entry) =>
+                <Button key={entry.id} onClick={() => moves.chooseInterception({choice: entry.id})}>{entry.label}</Button>)}
+        </Stack>;
+        if (G.pendingAction) return <Stack spacing={1}>
+            <Typography>行动响应 · 等待 {POWER_NAMES[actionResponder!].zh}。</Typography>
+            {ownerOf(G, actionResponder!) === playerID && actionResponseOptions(G).map((entry) =>
+                <Button key={entry.id} onClick={() => moves.respondAction({choice: entry.id})}>{entry.label}</Button>)}
+        </Stack>;
+        if (G.pendingPiracy) return <Stack spacing={1}>
+            <Typography>海盗行动 · 等待 {POWER_NAMES[piracyResponder!].zh} 选择。</Typography>
+            {ownerOf(G, piracyResponder!) === playerID && piracyOptions(G).map((entry) =>
+                <Button key={entry.id} onClick={() => moves.choosePiracy({choice: entry.id})}>{entry.label}</Button>)}
+        </Stack>;
+        if (G.pendingTutorialEvent) return <Stack spacing={1}>
+            <Typography>{cardById(G.pendingTutorialEvent.cardId).name} · 等待 {POWER_NAMES[G.pendingTutorialEvent.responding].zh} 选择。</Typography>
+            {ownerOf(G, G.pendingTutorialEvent.responding) === playerID && tutorialEventOptions(G).map((entry) =>
+                <Button key={entry.id} onClick={() => moves.chooseTutorialEvent({choice: entry.id})}>{entry.label}</Button>)}
+        </Stack>;
+        if (G.pendingBattle) return <Stack spacing={1}>
+            <Typography>战斗：{SPACE_BY_ID[G.pendingBattle.location]?.name ?? G.pendingBattle.location} · 等待 {POWER_NAMES[G.pendingBattle.responding].zh} 选择。</Typography>
+            {ownerOf(G, G.pendingBattle.responding) === playerID && battleOptions(G).map((option) =>
+                <Button key={option.id} onClick={() => moves.chooseBattle({choice: option.id})}>{option.label}</Button>)}
+        </Stack>;
+        if (G.pendingActivation) {
+            const pending = G.pendingActivation;
+            const canRespond = ownerOf(G, pending.ally) === playerID;
+            return <Stack spacing={1}>
+                <Typography>等待 {POWER_NAMES[pending.ally].zh} 激活 {POWER_NAMES[pending.power].zh}。</Typography>
+                {canRespond && <>
+                    <Button onClick={() => moves.chooseMajorActivation({})}>激活，不追加宣战</Button>
+                    {pending.aggressor && <Button onClick={() => moves.chooseMajorActivation({joinDefense: true})}>协同参战并激活</Button>}
+                    {POWERS.filter((power) => power !== pending.power && ownerOf(G, power) !== playerID && ownerOf(G, power) !== undefined)
+                        .map((power) => <Button key={power} onClick={() => moves.chooseMajorActivation({war: power})}>激活并向{POWER_NAMES[power].zh}宣战</Button>)}
+                </>}
+            </Stack>;
+        }
         if (me === undefined) {
             return <Typography variant="body2" color="text.secondary">旁观模式：只能查看局势。</Typography>;
         }
@@ -287,7 +367,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                 <Typography variant="body2">已按本回合可用性发放本国牌与年度手牌。拥有两张可用本国牌的强国，将在春季部署时秘密保留一张。</Typography>
                 {G.powers.ottoman.ruler === "suleiman" &&
                     <Typography variant="caption" color="text.secondary">苏莱曼一世在位时，奥斯曼可保留两张本国牌。</Typography>}
-                <Typography variant="caption" color="text.secondary">{G.scenario === "campaign" ? "拉罗谢尔之围（Campaign）" : "荷兰起义开始（Tournament）"}</Typography>
+                <Typography variant="caption" color="text.secondary">{scenarioName(G.scenario)}</Typography>
                 {me !== "france" && me !== "protestant" ? null : G.seaCaptainsAvailable.map((id) => {
                     const captain = seaCaptainById(id);
                     if (captain === undefined || captain.turn > G.year) {
@@ -302,7 +382,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
             </Stack>;
         }
         if (phase === "action") {
-            const patronageSetup = scenarioSetup(G.scenario).patronage;
+            const patronageSetup = scenarioSetup(G.scenario, G.playerPowers ? 2 : 6).patronage;
             const vpAwards = patronageSetup.vpAwards.map((id) => PATRONAGE_VP_AWARD_BY_ID[id])
                 .filter((award): award is PatronageVpAward => award !== undefined);
             const artistMarkersLeft = vpAwards.filter((award) => award.kind === "artist").length;
@@ -327,9 +407,39 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                             }}>
                         {Object.keys(MODE_LABELS)
                             .filter((m) => m !== "rebellion" || me === "protestant")
+                            .filter((m) => m !== "navalTransport" || G.scenario === "tutorial")
+                            .filter((m) => G.scenario !== "tutorial" || !["buildFortress", "buildRacebuilt", "rebellion"].includes(m))
                             .map((m) => <MenuItem key={m} value={m}>{MODE_LABELS[m as Mode]}</MenuItem>)}
                     </Select>
                 </FormControl>
+                {(mode === "moveLand" || mode === "navalTransport") && from && <Stack spacing={0.5}>
+                    <Typography variant="caption">选择移动编队，再点击目的地。无将领最多 4 单位；最多两名将领。</Typography>
+                    {mode === "navalTransport" && <>
+                        <Typography variant="caption">按顺序选择运输海域，每个海域须有己方舰队，最多运输 5 单位。</Typography>
+                        <Select size="small" multiple value={transportZones} onChange={(event) => setTransportZones(typeof event.target.value === "string" ? event.target.value.split(",") : event.target.value)}>
+                            {Object.values(SEA_ZONE_BY_ID).filter((zone) => navalCount(G.seaZones[zone.id].naval[me]) > 0)
+                                .map((zone) => <MenuItem key={zone.id} value={zone.id}>{zone.name}</MenuItem>)}
+                        </Select>
+                        <Typography variant="caption">航线：{transportZones.map((zone) => SEA_ZONE_BY_ID[zone].name).join(" → ") || "尚未选择"}</Typography>
+                    </>}
+                    <Select size="small" value={movingOwner} onChange={(event) => {
+                        const owner = event.target.value as Controller;
+                        setMovingOwner(owner);
+                        setMovingUnits({...G.spaces[from].land[owner]!});
+                        setMovingLeaders([]);
+                    }}>
+                        {(Object.keys(G.spaces[from].land) as Controller[]).filter((owner) => (mode === "navalTransport" ? owner === me : friendlyController(G, me, owner)) && landCount(G.spaces[from].land[owner]) > 0)
+                            .map((owner) => <MenuItem key={owner} value={owner}>{controllerNameZh(owner)}</MenuItem>)}
+                    </Select>
+                    {(["regular", "merc", "cav"] as const).map((kind) => <Stack key={kind} direction="row" spacing={1}>
+                        <Typography variant="caption">{kind}</Typography>
+                        <Select size="small" value={movingUnits[kind]} onChange={(event) => setMovingUnits({...movingUnits, [kind]: Number(event.target.value)})}>
+                            {Array.from({length: (G.spaces[from].land[movingOwner]?.[kind] ?? 0) + 1}, (_, count) => <MenuItem key={count} value={count}>{count}</MenuItem>)}
+                        </Select>
+                    </Stack>)}
+                    {G.spaces[from].leaders.filter((leader) => LEADER_BY_ID[leader]?.power === movingOwner && LEADER_BY_ID[leader]?.kind === "army").map((leader) =>
+                        <Button key={leader} variant={movingLeaders.includes(leader) ? "contained" : "outlined"} onClick={() => setMovingLeaders(movingLeaders.includes(leader) ? movingLeaders.filter((id) => id !== leader) : [...movingLeaders, leader])}>{LEADER_BY_ID[leader].name}</Button>)}
+                </Stack>}
                 {mode === "rebellion" && <FormControl size="small" fullWidth>
                     <InputLabel id="vq-rebel">叛乱投入 CP</InputLabel>
                     <Select labelId="vq-rebel" label="叛乱投入 CP" value={rebelCp}
@@ -393,23 +503,24 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                     </Stack>
                 </Paper>}
                 <Divider/>
-                <Typography variant="subtitle2">宗教行动</Typography>
+                {G.scenario !== "tutorial" && <><Typography variant="subtitle2">宗教行动</Typography>
                 <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                     {religionActions(me).map((a) => <Button key={a.label} size="small" variant="outlined"
                                                              disabled={!myTurn || cp < 2}
                                                              onClick={() => a.run()}>{a.label}</Button>)}
                 </Stack>
                 <Divider/>
+                </>}
                 <Typography variant="subtitle2">小国影响力与外交</Typography>
                 <Typography variant="caption" color="text.secondary">
                     购买影响力每枚 1 CP；事件或对小国宣战触发外交决议，同一小国每回合只能决议一次。
                 </Typography>
                 <Stack spacing={0.5}>
-                    {MINOR_POWERS.map((minor) => {
+                    {MINOR_POWERS.filter((minor) => G.scenario !== "tutorial" || ["papacy", "venice"].includes(minor)).map((minor) => {
                         const influence = ps?.influence[minor] ?? 0;
                         const ally = POWERS.find((candidate) => G.powers[candidate].alliedMinors.includes(minor));
                         const resolved = G.minorDiplomacyResolved.includes(minor);
-                        const eligible = MINOR_DIPLOMACY[minor].eligible.includes(me) &&
+                        const eligible = (MINOR_DIPLOMACY[minor].eligible.includes(me) || (G.scenario === "tutorial" && minor === "papacy" && me === "ottoman")) &&
                             !G.minorInfluenceBlocked[me].includes(minor);
                         return <Stack key={minor} direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
                             <Typography variant="caption" sx={{minWidth: 78}}>
@@ -422,9 +533,15 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                             {resolved && <Chip size="small" color="success" label="本回合已决议"/>}
                         </Stack>;
                     })}
+                    {G.majorInfluence && (["ottoman", "hre"] as Power[]).filter((target) => G.majorInfluence![target]?.[me] !== undefined)
+                        .map((target) => <Stack key={target} direction="row" spacing={0.5}>
+                            <Typography variant="caption">{POWER_NAMES[target].zh} · 影响力 {G.majorInfluence![target]![me]}</Typography>
+                            <Button size="small" disabled={!myTurn || cp < 1 || G.majorDiplomacyResolved?.includes(target)}
+                                onClick={() => moves.influence({target})}>+1 影响力</Button>
+                        </Stack>)}
                 </Stack>
                 <Divider/>
-                <Typography variant="subtitle2">间谍与刺杀</Typography>
+                {G.scenario !== "tutorial" && !isActivatedMajor(G, me) && <><Typography variant="subtitle2">间谍与刺杀</Typography>
                 <Typography variant="caption" color="text.secondary">
                     第 3 回合起开放。间谍按 2 CP 派遣；情报行动为 2 CP；刺杀每回合一次，投入 2–4 CP。
                 </Typography>
@@ -533,6 +650,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                             {p.name}{p.rating === null ? " (评级待录)" : ` (评级 ${p.rating})`}{p.kind === "scientist" ? " · 科学家" : ""}
                         </Button>)}
                 </Stack>
+                </>}
                 {ps !== undefined && ps.seaCaptains.length > 0 && <>
                     <Divider/>
                     <Typography variant="subtitle2">船长</Typography>
@@ -687,8 +805,20 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
         if (phase === "spring") {
             const springHomeCards = hand.filter((id) => cardById(id).kind === "home");
             const choiceRequired = homeCardChoiceRequired(G, me);
+            const preferenceRequired = hreReligiousPreferenceRequired(G, me);
             const mayKeepBoth = keepsBothHomeCards(G, me);
             return <Stack spacing={1}>
+                {preferenceRequired && <Stack spacing={0.5}>
+                    <Typography variant="subtitle2">秘密宗教倾向</Typography>
+                    <Typography variant="caption" color="text.secondary">首回合选择一次；胜利判定时足以取胜或阻止他国支配胜利才会公开。</Typography>
+                    <Stack direction="row" spacing={0.5}>
+                        {(Object.keys(HRE_RELIGIOUS_PREFERENCE_NAMES) as HreReligiousPreference[]).map((preference) =>
+                            <Button key={preference} size="small" variant="outlined" disabled={!myTurn}
+                                    onClick={() => moves.chooseHreReligiousPreference({preference})}>
+                                {HRE_RELIGIOUS_PREFERENCE_NAMES[preference]}
+                            </Button>)}
+                    </Stack>
+                </Stack>}
                 <Typography variant="body2">
                     春季部署：先秘密选择本回合保留的本国牌（未选中的面朝下放在势力卡上），然后可从首都免费调动一支陆军编队。
                 </Typography>
@@ -725,7 +855,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                 <Typography variant="caption" color="text.secondary">
                     首都：{CAPITAL_SPACES_UI[me] ?? ""} {from !== null ? `· 起点 ${SPACE_BY_ID[from]?.name}` : ""}
                 </Typography>
-                <Button size="small" variant="outlined" disabled={!myTurn || choiceRequired} onClick={() => moves.endPhaseTurn()}>
+                <Button size="small" variant="outlined" disabled={!myTurn || choiceRequired || preferenceRequired} onClick={() => moves.endPhaseTurn()}>
                     结束春季部署
                 </Button>
             </Stack>;
@@ -762,10 +892,20 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
 
     return <Box sx={{p: 1}}>
         {ctx.gameover !== undefined && <Paper sx={{p: 1, mb: 1, bgcolor: "#e8f5e9"}}>
-            <Typography variant="h6">对局结束 · 胜者：{POWER_NAMES[powerAt(String(ctx.gameover.winner))].zh}</Typography>
+            <Typography variant="h6">对局结束 · 胜者：P{Number(ctx.gameover.winner) + 1} {POWER_NAMES[(ctx.gameover.power ?? powerAt(String(ctx.gameover.winner))) as Power].zh}</Typography>
             <Typography variant="caption">原因：{ctx.gameover.reason ?? ""}</Typography>
         </Paper>}
         <Paper sx={{p: 1, mb: 1}}>
+            {owned.length > 1 && <Stack direction="row" spacing={1}>
+                {owned.map((power) => <Button key={power} size="small" disabled={myTurn || !!responsePower}
+                    variant={me === power ? "contained" : "outlined"} onClick={() => setViewPower(power)}>{POWER_NAMES[power].zh}</Button>)}
+            </Stack>}
+            {G.scenario === "tutorial" && <Stack spacing={0.5}>
+                <Typography variant="subtitle1">勒班陀海战 · 第 {Math.min(G.year, 3)} / 3 回合</Typography>
+                <Typography variant="body2">奥斯曼：军事胜利立即获胜；回合结束达到 20 VP 获胜。第 3 回合结束未达成则西班牙获胜。</Typography>
+                <Typography variant="body2">奥斯曼 {powerVp(G, "ottoman")} VP（关键城市 {baseVp(G, "ottoman")}，无动荡要塞 {tutorialFortressVp(G)}，其他 {G.powers.ottoman.bonusVp}）。剩余回合：{Math.max(0, 4 - G.year)}。</Typography>
+                <Typography variant="caption">当前阶段：{PHASE_LABELS[phase] ?? phase}。地图 × 标记地区禁止进入。双方持续交战。</Typography>
+            </Stack>}
             <Stack direction="row" spacing={1} sx={{alignItems: "center", flexWrap: "wrap"}}>
                 <Typography variant="h6" sx={{fontWeight: 700}}>Virgin Queen</Typography>
                 <Chip color="primary" label={`第 ${G.year} 回合`}/>
@@ -834,8 +974,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                     <Typography variant="subtitle2" gutterBottom>列强概览</Typography>
                     {POWERS.map((p) => <Stack key={p} direction="row" spacing={0.5} sx={{alignItems: "center", mb: 0.25}}>
                         <Box sx={{width: 10, height: 10, bgcolor: CONTROLLER_COLORS[p], borderRadius: 0.5}}/>
-                        <Typography variant="caption" sx={{minWidth: 72}}>{POWER_NAMES[p].short}</Typography>
+                        <Typography variant="caption" sx={{minWidth: 72}}>{POWER_NAMES[p].short} · {ownerOf(G, p) === undefined ? "未激活" : `P${Number(ownerOf(G, p)) + 1}`}</Typography>
                         <Chip size="small" label={`${powerVp(G, p)} VP`}/>
+                        {p === "hre" && G.hreReligiousPreferenceChosen && <Chip size="small" variant="outlined"
+                            label={G.hreReligiousPreference !== undefined && (me === "hre" || G.hreReligiousPreferenceRevealed)
+                                ? `${G.hreReligiousPreferenceRevealed ? "已公开" : "秘密"}：${HRE_RELIGIOUS_PREFERENCE_NAMES[G.hreReligiousPreference]} · ${hreReligiousVp(G)} VP${G.hreReligiousPreferenceRevealed ? "" : "（未计入）"}`
+                                : "宗教倾向已秘密选择"}/>}
                         <Chip size="small" variant="outlined" label={`${controlledKeys(G, p).length}K`}/>
                         <Chip size="small" variant="outlined" label={`${G.handCounts?.[p] ?? G.powers[p].cards.length}牌`}/>
                         {(G.homeCardSetAsideCounts?.[p] ?? 0) > 0 &&

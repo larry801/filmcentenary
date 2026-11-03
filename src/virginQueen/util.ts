@@ -4,6 +4,7 @@ import {
     CardDef,
     Controller,
     EventEffect,
+    HRE_RELIGIOUS_PREFERENCE_NAMES,
     LandStack,
     landCount,
     LeaderDef,
@@ -64,6 +65,9 @@ import {
     scenarioSpaces,
 } from "./scenario";
 import {PATRONAGE_VP_AWARD_BY_ID} from "./data/patronage";
+import {validateSetupData} from "./configuration";
+import {isActivatedMajor, ownerOf, participatingPowers, samePlayer} from "./ownership";
+import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, TUTORIAL_POWER_CARDS, tutorialFortressVp, tutorialSpaceAllowed} from "./tutorial";
 
 export {SPACE_BY_ID, KEY_SPACES, DUTCH_KEYS, initialControl, initialReligion, initialLandFor, initialNavalFor};
 
@@ -103,8 +107,11 @@ export const sortByImpulse = (list: Power[]): Power[] =>
 // --------------------------------------------------------------------------
 
 export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
+    const numPlayers = ctx.numPlayers ?? 6;
+    const setupError = validateSetupData(setupData, numPlayers);
+    if (setupError) throw new Error(setupError);
     const scenarioId = scenarioFromSetupData(setupData);
-    const scenario = scenarioSetup(scenarioId);
+    const scenario = scenarioSetup(scenarioId, numPlayers);
     const spaces = scenarioSpaces(scenario);
     const militaryVictoryBaseline = Object.fromEntries(POWERS.map((p) => [
         p,
@@ -180,6 +187,14 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
     const leaders = scenarioLeaders(scenario, spaces);
 
     const G: VQGame = {
+        ...(scenarioId === "tutorial" ? {tutorialEffects: {nextDraw: {}, skip: [], piracyVp: 0}} : {}),
+        ...(numPlayers === 2 ? {
+            playerPowers: scenarioId === "tutorial" ? {"0": ["ottoman" as Power], "1": ["spain" as Power]} :
+                {"0": ["spain" as Power, "france" as Power], "1": ["england" as Power, "protestant" as Power]},
+            activatedMajors: {},
+            majorDiplomacyResolved: [],
+            majorInfluence: {ottoman: {spain: 1, england: 0, protestant: 0}, hre: {ottoman: 3, spain: 1, england: scenarioId === "tutorial" ? 0 : 1, france: scenarioId === "tutorial" ? 0 : 1, protestant: scenarioId === "tutorial" ? 0 : 1}},
+        } : {}),
         scenario: scenarioId,
         startTurn: scenario.startTurn,
         endTurn: scenario.endTurn,
@@ -209,7 +224,7 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
             })
             .map((number) => OFFICIAL_CARDS[number - 1].id)),
         discard: [],
-        removed: [],
+        removed: scenario.cardsRemoved.map((number) => OFFICIAL_CARDS[number - 1].id),
         homeSetAside: [],
         doWCostEnglandSpain: 5,
         suezAttempts: scenario.powerCard.ottoman.suezAttempts ?? 0,
@@ -220,6 +235,8 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         marriages: 0,
         log: [],
         vpHistory: {},
+        hreReligiousPreferenceChosen: false,
+        hreReligiousPreferenceRevealed: false,
         checkVictory: false,
         militaryVictoryBaseline,
         lastAction: scenario.nameZh,
@@ -256,7 +273,11 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
     // The VP track starts at the printed scenario value.  Keep that value as an
     // offset so the dynamic base/religious scoring below still moves from it.
     for (const p of POWERS) {
-        powers[p].bonusVp = scenario.vpStart[p] - (baseVp(G, p) + religiousSpecialVp(G, p));
+        powers[p].bonusVp = scenario.vpStart[p] - (baseVp(G, p) + religiousSpecialVp(G, p)) -
+            (scenarioId === "tutorial" && p === "ottoman" ? tutorialFortressVp(G) : 0);
+    }
+    if (numPlayers === 2 && scenarioId !== "tutorial") {
+        G.activatedMajors!.ottoman = {ally: "england", baseline: powerVp(G, "ottoman")};
     }
 
     pushLog(G, `Virgin Queen: ${scenario.nameZh}（第 ${scenario.startTurn}-${scenario.endTurn} 回合）`);
@@ -281,6 +302,7 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
 
 export const drawCards = (G: VQGame, ctx: Ctx, p: Power, n: number): string[] => {
     const drawn: string[] = [];
+    if (ownerOf(G, p) === undefined) return drawn;
     for (let i = 0; i < n; i++) {
         if (G.deck.length === 0) {
             if (G.discard.length === 0) {
@@ -338,7 +360,8 @@ export const discardCard = (G: VQGame, p: Power, cardId: string, asEvent: boolea
  * does not yet model, so they stay out of the annual hand.
  */
 export const availableHomeCards = (G: VQGame, p: Power): string[] => {
-    const scenario = scenarioSetup(G.scenario);
+    if (isActivatedMajor(G, p)) return [];
+    const scenario = scenarioSetup(G.scenario, G.playerPowers ? 2 : 6);
     const available: string[] = [];
     for (const number of scenario.cardsInPlay) {
         const card = OFFICIAL_CARDS[number - 1];
@@ -372,8 +395,20 @@ export const homeCardChoiceRequired = (G: VQGame, p: Power): boolean =>
     !G.powers[p].homeCardChoiceDone &&
     homeCardsInHand(G, p).length > 1;
 
+export const hreReligiousPreferenceEnabled = (G: VQGame): boolean =>
+    G.scenario !== "tutorial" && !G.playerPowers;
+
+export const hreReligiousPreferenceRequired = (G: VQGame, p: Power): boolean =>
+    p === "hre" && hreReligiousPreferenceEnabled(G) && G.year === G.startTurn &&
+    !G.hreReligiousPreferenceChosen && G.hreReligiousPreference === undefined;
+
 export const drawCount = (G: VQGame, p: Power): number => {
     const keys = controlledKeys(G, p).length;
+    if (G.scenario === "tutorial" && (p === "ottoman" || p === "spain")) {
+        const table = TUTORIAL_POWER_CARDS[p].draw;
+        const rulerBonus = p === "spain" || G.powers.ottoman.ruler === "selimII" ? 1 : 0;
+        return Math.max(0, table[Math.min(keys, table.length - 1)] + rulerBonus + G.powers[p].cardModifier + (G.tutorialEffects?.nextDraw[p] ?? 0));
+    }
     const info = POWER_INFO[p];
     const table = info.drawByKeys;
     const base = table[Math.min(keys, table.length - 1)] ?? 3;
@@ -396,6 +431,7 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
     G.homeSetAside = [];
     for (const p of POWERS) {
         const ps = G.powers[p];
+        if (ownerOf(G, p) === undefined) continue;
         // Home cards return to the power card after use / Spring set-aside and
         // are dealt again only if they are available this turn.
         ps.cards = ps.cards.filter((id) => cardById(id).kind !== "home");
@@ -406,7 +442,7 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
         ps.homeCardChoiceDone = false;
         // Keep at most the ruler's admin rating of non-home cards.
         const nonHome = ps.cards.filter((c) => cardById(c).kind !== "home");
-        const keep = Math.min(nonHome.length, POWER_INFO[p].ruler.admin);
+        const keep = Math.min(nonHome.length, G.scenario === "tutorial" ? 2 : POWER_INFO[p].ruler.admin);
         const dropped = nonHome.slice(keep);
         for (const d of dropped) {
             ps.cards = ps.cards.filter((c) => c !== d);
@@ -414,13 +450,14 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
         }
         const n = drawCount(G, p);
         drawCards(G, ctx, p, n);
+        if (G.tutorialEffects) delete G.tutorialEffects.nextDraw[p];
         ps.passed = false;
         ps.cp = 0;
         ps.cardPlayed = false;
         ps.treasurePlayed = false;
         // The first Card Draw Phase preserves the scenario's printed alliances
         // and influence.  Later years keep the existing simplified reset.
-        if (G.dealtYear !== 0) {
+        if (G.dealtYear !== 0 && !G.playerPowers) {
             ps.influence = {};
             ps.allies = [];
         }
@@ -429,7 +466,7 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
     G.springDone = [];
     G.patronizedThisTurn = [];
     G.cardDrawDone = [];
-    if (G.powers.spain.treasures.length === 0) {
+    if (G.scenario !== "tutorial" && G.powers.spain.treasures.length === 0) {
         G.powers.spain.treasures = Array.from({length: 4}, () => 1 + die(ctx, 5) - 1);
     }
 };
@@ -437,6 +474,7 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
 export const shuffleTreasure = (ctx: Ctx): number => 1 + (die(ctx, 5) - 1);
 
 export const addTreasure = (G: VQGame, ctx: Ctx, p: Power, n: number): void => {
+    if (G.scenario === "tutorial") return;
     for (let i = 0; i < n; i++) {
         G.powers[p].treasures.push(shuffleTreasure(ctx));
     }
@@ -478,7 +516,8 @@ export const resolveMinorDiplomacy = (
 ): Power | undefined => {
     if (!MINOR_POWERS.includes(minor) || G.minorDiplomacyResolved.includes(minor) || !minorAvailable(G, minor)) return undefined;
     const def = MINOR_DIPLOMACY[minor];
-    const candidates = def.eligible.filter((p) =>
+    const candidates = [...def.eligible, ...(G.scenario === "tutorial" && minor === "papacy" ? ["ottoman" as Power] : [])].filter((p) =>
+        ownerOf(G, p) !== undefined &&
         !options.exclude?.includes(p) && !G.minorInfluenceBlocked[p]?.includes(minor));
     if (candidates.length === 0) {
         G.minorDiplomacyResolved.push(minor);
@@ -496,14 +535,13 @@ export const resolveMinorDiplomacy = (
         return {power: p, die: dieRoll, influence: G.powers[p].influence[minor] ?? 0, modifier,
             total: dieRoll + (G.powers[p].influence[minor] ?? 0) + modifier};
     });
-    const activateRank = new Map(def.activateOrder.map((p, i) => [p, i]));
     rolls.sort((a, b) => b.total - a.total ||
-        (activateRank.get(a.power) ?? Number.MAX_SAFE_INTEGER) - (activateRank.get(b.power) ?? Number.MAX_SAFE_INTEGER));
+        POWERS.indexOf(a.power) - POWERS.indexOf(b.power));
     const winner = rolls[0].power;
     const oldAlly = minorAlly(G, minor);
     pushLog(G, `${minor} diplomacy: ${rolls.map((r) => `${powerLabel(r.power)} ${r.die}+${r.influence}+${r.modifier}=${r.total}`).join("; ")}. ${powerLabel(winner)} wins.`);
 
-    const deactivatesExistingAlly = def.deactivate.includes(winner) && oldAlly !== undefined &&
+    const deactivatesExistingAlly = (def.deactivate.includes(winner) || (G.scenario === "tutorial" && minor === "papacy" && winner === "ottoman")) && oldAlly !== undefined &&
         (!def.activateOrder.includes(winner) || oldAlly === winner);
     if (deactivatesExistingAlly) {
         G.powers[oldAlly].alliedMinors = G.powers[oldAlly].alliedMinors.filter((m) => m !== minor);
@@ -539,7 +577,9 @@ export const resolveMinorDiplomacy = (
 };
 
 export const allied = (G: VQGame, a: Power, b: Power): boolean =>
-    a !== b && G.powers[a].allies.includes(b);
+    a !== b && (G.powers[a].allies.includes(b) || G.activatedMajors?.[a]?.ally === b ||
+        G.activatedMajors?.[b]?.ally === a ||
+        (G.scenario === "tutorial" && ((a === "hre" && G.tutorialHreAlly === b) || (b === "hre" && G.tutorialHreAlly === a))));
 
 export const friendly = (G: VQGame, a: Power, b: Power): boolean => a === b || allied(G, a, b);
 
@@ -587,13 +627,142 @@ export const warCost = (G: VQGame, a: Power, b: Power): number => {
 };
 
 export const canDeclareWar = (G: VQGame, a: Power, b: Power): boolean => {
-    if (a === b || atWar(G, a, b) || allied(G, a, b)) {
+    if (a === b || samePlayer(G, a, b) || atWar(G, a, b) || allied(G, a, b)) {
         return false;
     }
     if ((a === "spain" && b === "protestant") || (a === "protestant" && b === "spain")) {
         return false;
     }
     return true;
+};
+
+export const settleActivatedMajorVp = (G: VQGame, only?: Power): void => {
+    for (const power of POWERS) {
+        if (only !== undefined && power !== only) continue;
+        const activation = G.activatedMajors?.[power];
+        if (!activation) continue;
+        const change = Math.trunc((powerVp(G, power) - activation.baseline) / 2);
+        if (change === 0) continue;
+        addVp(G, activation.ally, change);
+        activation.baseline += change * 2;
+        pushLog(G, `${powerLabel(activation.ally)} receives ${change} VP from ${powerLabel(power)}.`);
+    }
+};
+
+export const deactivateMajor = (G: VQGame, power: Power): void => {
+    if (!G.activatedMajors?.[power]) return;
+    settleActivatedMajorVp(G, power);
+    delete G.activatedMajors[power];
+    for (const other of POWERS) {
+        G.powers[other].wars = G.powers[other].wars.filter((enemy) => enemy !== power);
+        G.powers[other].allies = G.powers[other].allies.filter((ally) => ally !== power);
+    }
+    const state = G.powers[power];
+    state.wars = [];
+    state.allies = [];
+    state.influence = {};
+    for (const card of state.cards) discardCard(G, power, card, false);
+    state.cards = [];
+    state.cp = 0;
+    state.cardModifier = 0;
+    G.majorDiplomacyResolved ??= [];
+    if (!G.majorDiplomacyResolved.includes(power)) G.majorDiplomacyResolved.push(power);
+    if (power === "hre") {
+        for (const minor of state.alliedMinors) {
+            for (const def of SPACES.filter((space) => space.home === minor)) {
+                if (G.spaces[def.id].control === power) G.spaces[def.id].control = minor;
+            }
+        }
+        state.alliedMinors = [];
+    }
+    for (const def of SPACES) {
+        for (const other of POWERS) {
+            const relocate = other === power || G.spaces[def.id].control === power;
+            if (!relocate) continue;
+            const space = G.spaces[def.id];
+            if (space.land[other]) {
+                const destinations = SPACES.filter((candidate) => candidate.home === other &&
+                    G.spaces[candidate.id].control === other && isFortifiedSpace(G, candidate.id));
+                const destination = destinations.sort((first, second) =>
+                    Math.hypot(first.lon - def.lon, first.lat - def.lat) - Math.hypot(second.lon - def.lon, second.lat - def.lat))[0];
+                if (destination && destination.id !== def.id) {
+                    const target = ensureLand(G, destination.id, other);
+                    const source = space.land[other]!;
+                    target.regular += source.regular;
+                    target.merc += source.merc;
+                    target.cav += source.cav;
+                    delete space.land[other];
+                    moveLeaders(G, def.id, destination.id, space.leaders.filter((id) => LEADER_BY_ID[id]?.power === other && LEADER_BY_ID[id].kind === "army"));
+                }
+            }
+            if (space.naval[other]) {
+                const destination = SPACES.find((candidate) => candidate.home === other && candidate.id !== def.id &&
+                    G.spaces[candidate.id].control === other && isPort(candidate.id));
+                if (destination) {
+                    const target = ensureNaval(G, destination.id, other);
+                    for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) target[kind] += space.naval[other]![kind];
+                    delete space.naval[other];
+                    moveLeaders(G, def.id, destination.id, space.leaders.filter((id) => LEADER_BY_ID[id]?.power === other && LEADER_BY_ID[id].kind === "naval"));
+                }
+            }
+        }
+    }
+    for (const zone of SEA_ZONES) {
+        const source = G.seaZones[zone.id].naval[power];
+        if (!source) continue;
+        const destination = nearestFriendlyPort(G, power, zone.id);
+        if (destination) {
+            const target = ensureNaval(G, destination, power);
+            for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) target[kind] += source[kind];
+            moveLeaders(G, zone.id, destination, G.seaZones[zone.id].leaders.filter((id) => LEADER_BY_ID[id]?.power === power));
+        }
+        delete G.seaZones[zone.id].naval[power];
+    }
+    pushLog(G, `${powerLabel(power)} is deactivated.`);
+};
+
+export const activateMajor = (G: VQGame, ctx: Ctx, power: Power, ally: Power, options: {war?: Power; defense?: Power} = {}): boolean => {
+    if (!isActivatedMajor(G, power) || isActivatedMajor(G, ally) || ownerOf(G, ally) === undefined || power === ally) return false;
+    if (options.war && (samePlayer(G, ally, options.war) || options.war === power)) return false;
+    deactivateMajor(G, power);
+    G.activatedMajors![power] = {ally, baseline: powerVp(G, power)};
+    G.majorDiplomacyResolved ??= [];
+    if (!G.majorDiplomacyResolved.includes(power)) G.majorDiplomacyResolved.push(power);
+    G.powers[power].influence = {...G.minorInfluenceDefaults[power]};
+    if (options.defense && !samePlayer(G, ally, options.defense)) setWar(G, ally, options.defense);
+    if (options.war) setWar(G, power, options.war);
+    const cap = Math.max(0, ...participatingPowers(G).filter((other) => other !== power).map((other) => handCount(G, other)));
+    const count = Math.min(drawCount(G, power), cap, options.war ? handCount(G, options.war) : Infinity);
+    drawCards(G, ctx, power, count);
+    pushLog(G, `${powerLabel(power)} is activated by ${powerLabel(ally)} and draws ${count} cards.`);
+    return true;
+};
+
+export const resolveMajorDiplomacy = (G: VQGame, ctx: Ctx, target: Power, aggressor?: Power): void => {
+    if (!G.majorInfluence?.[target] || G.majorDiplomacyResolved?.includes(target)) return;
+    if (G.scenario === "tutorial" && target !== "hre") return;
+    const candidates = POWERS.filter((power) => power !== target && power !== aggressor &&
+        G.majorInfluence![target]![power] !== undefined &&
+        (ownerOf(G, power) !== undefined || (G.scenario === "tutorial" && power === "ottoman")));
+    const results = candidates.map((power) => ({power, result: die(ctx) + (G.majorInfluence![target]![power] ?? 0)}))
+        .sort((first, second) => second.result - first.result || POWERS.indexOf(first.power) - POWERS.indexOf(second.power));
+    if (!results.length) return;
+    const winner = results[0].power;
+    G.majorDiplomacyResolved ??= [];
+    G.majorDiplomacyResolved.push(target);
+    pushLog(G, `${powerLabel(target)} diplomacy: ${results.map((entry) => `${powerLabel(entry.power)} ${entry.result}`).join("; ")}.`);
+    const deactivate = (target === "ottoman" && winner === "spain") || (target === "hre" && winner === "ottoman");
+    if (G.scenario === "tutorial") {
+        G.tutorialHreAlly = deactivate ? undefined : "spain";
+        return;
+    }
+    if (deactivate) {
+        deactivateMajor(G, target);
+        return;
+    }
+    if (G.activatedMajors?.[target]?.ally === winner) return;
+    G.pendingActivation = {power: target, ally: winner, aggressor};
+    ctx.events?.setActivePlayers({value: {[ownerOf(G, winner)!]: "activateMajor"}});
 };
 
 export const declareWar = (G: VQGame, a: Power, b: Power): boolean => {
@@ -623,7 +792,7 @@ export const friendlyControlled = (G: VQGame, p: Power, space: string): boolean 
 };
 
 export const controlledKeys = (G: VQGame, p: Power): string[] =>
-    KEY_SPACES.filter((id) => {
+    (G.scenario === "tutorial" ? TUTORIAL_KEYS : KEY_SPACES).filter((id) => {
         const s = G.spaces[id];
         return s !== undefined && s.control === p && !s.unrest;
     });
@@ -635,6 +804,10 @@ export const protestantKeysOutsideNetherlands = (G: VQGame): string[] =>
     controlledKeys(G, "protestant").filter((id) => !DUTCH_KEYS.includes(id));
 
 export const baseVp = (G: VQGame, p: Power): number => {
+    if (G.scenario === "tutorial" && (p === "ottoman" || p === "spain")) {
+        const table = TUTORIAL_POWER_CARDS[p].vp;
+        return table[Math.min(controlledKeys(G, p).length, table.length - 1)];
+    }
     if (p === "protestant") {
         const keys = controlledKeys(G, "protestant");
         return keys.reduce((sum, id) => sum + (DUTCH_KEYS.includes(id) ? 3 : 2), 0);
@@ -662,7 +835,19 @@ export const protestantSpaceCount = (G: VQGame): number => {
 export const protestantSpacesInArea = (G: VQGame, area: ReligionArea): number =>
     SPACES.filter((s) => s.area === area && G.spaces[s.id].religion === "protestant" && !G.spaces[s.id].unrest).length;
 
+export const hreReligiousVp = (G: VQGame): number => {
+    if (!hreReligiousPreferenceEnabled(G) || G.hreReligiousPreference === undefined) return 0;
+    const row = Math.max(0, Math.min(7, Math.floor((protestantSpaceCount(G) - 10) / 5)));
+    const vp = {
+        protestant: [0, 0, 0, 0, 1, 3, 5, 7],
+        balanced: [0, 0, 2, 4, 4, 2, 0, 0],
+        catholic: [7, 5, 3, 1, 0, 0, 0, 0],
+    };
+    return vp[G.hreReligiousPreference][row];
+};
+
 export const religiousSpecialVp = (G: VQGame, p: Power): number => {
+    if (G.scenario === "tutorial") return 0;
     const n = protestantSpaceCount(G);
     switch (p) {
         case "spain":
@@ -672,18 +857,22 @@ export const religiousSpecialVp = (G: VQGame, p: Power): number => {
         case "protestant":
             return n <= 8 ? 0 : n <= 16 ? 1 : n <= 25 ? 2 : n <= 33 ? 3 : n <= 42 ? 4 : 5;
         case "hre":
-            // Secret religious preference is simplified to a balanced emperor.
-            return n >= 20 && n <= 36 ? 2 : 0;
+            return G.hreReligiousPreferenceRevealed ? hreReligiousVp(G) : 0;
         default:
             return 0;
     }
 };
 
 export const powerVp = (G: VQGame, p: Power): number =>
-    baseVp(G, p) + religiousSpecialVp(G, p) + G.powers[p].bonusVp;
+    baseVp(G, p) + religiousSpecialVp(G, p) + G.powers[p].bonusVp +
+    (G.scenario === "tutorial" && p === "ottoman" ? tutorialFortressVp(G) +
+        (G.tutorialEffects?.cyprusTarget && G.spaces[G.tutorialEffects.cyprusTarget].control === "ottoman" ? 1 : 0) : 0);
 
-export const victoryStandings = (G: VQGame): { power: Power; vp: number }[] =>
-    POWERS.map((p) => ({power: p, vp: powerVp(G, p)})).sort((a, b) => b.vp - a.vp);
+export const victoryStandings = (G: VQGame, includeSecretHreVp = false): { power: Power; vp: number }[] =>
+    participatingPowers(G).filter((power) => !isActivatedMajor(G, power))
+        .map((p) => ({power: p, vp: powerVp(G, p) +
+            (p === "hre" && includeSecretHreVp && !G.hreReligiousPreferenceRevealed ? hreReligiousVp(G) : 0)}))
+        .sort((a, b) => b.vp - a.vp);
 
 export const addVp = (G: VQGame, p: Power, n: number): void => {
     G.powers[p].bonusVp += n;
@@ -707,8 +896,10 @@ export const ensureLand = (G: VQGame, space: string, c: Controller): LandStack =
     return s.land[c] as LandStack;
 };
 
+const navalStateAt = (G: VQGame, space: string) => G.seaZones[space as SeaZoneID] ?? G.spaces[space];
+
 export const ensureNaval = (G: VQGame, space: string, c: Controller): NavalStack => {
-    const s = G.spaces[space];
+    const s = navalStateAt(G, space);
     if (s.naval[c] === undefined) {
         s.naval[c] = emptyNaval();
     }
@@ -723,7 +914,7 @@ export const cleanupLand = (G: VQGame, space: string, c: Controller): void => {
 };
 
 export const cleanupNaval = (G: VQGame, space: string, c: Controller): void => {
-    const s = G.spaces[space];
+    const s = navalStateAt(G, space);
     if (s.naval[c] !== undefined && navalCount(s.naval[c] as NavalStack) <= 0) {
         delete s.naval[c];
     }
@@ -741,13 +932,13 @@ export const ownersWithLand = (G: VQGame, space: string): Controller[] =>
     Object.keys(G.spaces[space].land) as Controller[];
 
 export const ownersWithNaval = (G: VQGame, space: string): Controller[] =>
-    Object.keys(G.spaces[space].naval) as Controller[];
+    (Object.keys(navalStateAt(G, space).naval) as Controller[]).filter((owner) => navalCount(navalStateAt(G, space).naval[owner]) > 0);
 
 export const totalLand = (G: VQGame, space: string, owners: Controller[]): number =>
     owners.reduce((n, c) => n + landCount(G.spaces[space].land[c]), 0);
 
 export const totalNaval = (G: VQGame, space: string, owners: Controller[]): number =>
-    owners.reduce((n, c) => n + navalCount(G.spaces[space].naval[c]), 0);
+    owners.reduce((n, c) => n + navalCount(navalStateAt(G, space).naval[c]), 0);
 
 export const enemyOwners = (G: VQGame, p: Power, space: string): Controller[] =>
     ownersWithLand(G, space).filter((c) => {
@@ -760,7 +951,7 @@ export const spaceHasEnemyLand = (G: VQGame, p: Power, space: string): boolean =
 
 export const spaceHasEnemyNaval = (G: VQGame, p: Power, space: string): boolean =>
     ownersWithNaval(G, space).some((c) => !friendlyController(G, p, c) &&
-        (isPower(c) ? atWar(G, p, c) : c !== "independent") && navalCount(G.spaces[space].naval[c]) > 0);
+        (isPower(c) ? atWar(G, p, c) : c !== "independent") && navalCount(navalStateAt(G, space).naval[c]) > 0);
 
 export const removeLandLosses = (G: VQGame, space: string, owners: Controller[], hitsCount: number): void => {
     let left = hitsCount;
@@ -943,6 +1134,7 @@ export const navalAdjacent = (a: string, b: string): boolean => {
 };
 
 export const isFortifiedSpace = (G: VQGame, id: string): boolean => {
+    if (G.scenario === "tutorial") return TUTORIAL_KEYS.includes(id) || TUTORIAL_FORTRESSES.includes(id);
     const def = SPACE_BY_ID[id];
     if (def === undefined) {
         return false;
@@ -964,6 +1156,7 @@ export const capitalOf = (G: VQGame, p: Power): string | undefined => {
 /** Bring leaders waiting in the pool onto the map (Spring Deployment, 10.4). */
 export const arriveLeaders = (G: VQGame): void => {
     for (const p of POWERS) {
+        if (ownerOf(G, p) === undefined) continue;
         const cap = capitalOf(G, p);
         if (cap === undefined || G.spaces[cap] === undefined) {
             continue;
@@ -971,7 +1164,7 @@ export const arriveLeaders = (G: VQGame): void => {
         for (const id of Object.keys(G.leaders)) {
             const def = LEADER_BY_ID[id];
             const st = G.leaders[id];
-            if (def === undefined || def.power !== p || st.location !== "pool") {
+            if (def === undefined || def.power !== p || st.location !== "pool" || (st.returnTurn ?? 0) > G.year) {
                 continue;
             }
             if (!friendlyControlled(G, p, cap) || G.spaces[cap].unrest) {
@@ -1024,6 +1217,31 @@ export const nearestFriendlyPort = (G: VQGame, p: Power, fromZone: SeaZoneID): s
  * hop through a sea zone containing friendly naval units.
  */
 export const hasLOC = (G: VQGame, p: Power, target: string): boolean => {
+    if (G.scenario === "tutorial") {
+        if (!tutorialSpaceAllowed(target)) return false;
+        const starts = SPACES.filter((space) => tutorialSpaceAllowed(space.id) && isFortifiedSpace(G, space.id) &&
+            friendlyController(G, p, space.home) && friendlyControlled(G, p, space.id) && !G.spaces[space.id].unrest).map((space) => space.id);
+        const queue = [...starts];
+        const visited = new Set(queue);
+        while (queue.length) {
+            const current = queue.shift()!;
+            if (current === target) return true;
+            const neighbors = isSeaZone(current) ? [...SEA_ZONE_BY_ID[current].adjacent, ...zonePorts(current as SeaZoneID)] :
+                [...landNeighbors(current).map((neighbor) => neighbor.id), ...portZones(current)];
+            for (const next of neighbors) {
+                if (visited.has(next)) continue;
+                if (next === target) return true;
+                if (isSeaZone(next)) {
+                    if (!ownersWithNaval(G, next).some((owner) => friendlyController(G, p, owner)) ||
+                        ownersWithNaval(G, next).some((owner) => !friendlyController(G, p, owner))) continue;
+                } else if (!tutorialSpaceAllowed(next) || !friendlyControlled(G, p, next) || G.spaces[next].unrest ||
+                    spaceHasEnemyLand(G, p, next) || spaceHasEnemyNaval(G, p, next)) continue;
+                visited.add(next);
+                queue.push(next);
+            }
+        }
+        return false;
+    }
     if (SPACE_BY_ID[target] === undefined) {
         return false;
     }
@@ -1695,6 +1913,16 @@ export const resolvePatronage = (G: VQGame, ctx: Ctx): void => {
 };
 
 export const winter = (G: VQGame, ctx: Ctx): void => {
+    if (G.scenario === "tutorial" && G.year === 2 && G.powers.ottoman.ruler === "suleiman") {
+        G.deck = G.deck.filter((id) => id !== "vq-006");
+        G.discard = G.discard.filter((id) => id !== "vq-006");
+        G.futureDeck = G.futureDeck.filter((id) => id !== "vq-006");
+        for (const power of POWERS) G.powers[power].cards = G.powers[power].cards.filter((id) => id !== "vq-006");
+        G.powers.ottoman.ruler = "selimII";
+        G.tutorialEffects!.cyprusTarget = ["cyprus", "candia", "corfu"].find((space) => G.spaces[space].control !== "ottoman");
+        if (!G.removed.includes("vq-006")) G.removed.push("vq-006");
+        pushLog(G, "Selim II succeeds Suleiman before Turn 3 (Scenario Book card clarification #6).");
+    }
     resolveMarriages(G, ctx);
     resolvePatronage(G, ctx);
     const neutralized = G.informants.filter((i) => i.neutralized).length;
@@ -1733,7 +1961,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
             pushLog(G, `${powerLabel(p)} withdraws ${landCount(stack)} unit(s) from ${def.name} to ${SPACE_BY_ID[dest].name}.`);
         }
         // Replacements at each controlled capital.
-        for (const cap of CAPITAL_SPACES[p]) {
+        for (const cap of ownerOf(G, p) === undefined ? [] : CAPITAL_SPACES[p]) {
             const s = G.spaces[cap];
             if ((s.control === p || (isPower(s.control) && allied(G, p, s.control))) && !s.unrest && s.siege === undefined) {
                 addLand(G, cap, p, "regular", 1);
@@ -1747,6 +1975,12 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         G.powers[p].influence = {...G.minorInfluenceDefaults[p]};
     }
     G.minorDiplomacyResolved = [];
+    G.piracyUsed = {};
+    for (const target of G.majorDiplomacyResolved ?? []) {
+        if (target === "ottoman") G.majorInfluence![target] = {spain: 1, england: 0, protestant: 0};
+        if (target === "hre") G.majorInfluence![target] = {ottoman: 3, spain: 1, england: 0, france: 0, protestant: 0};
+    }
+    G.majorDiplomacyResolved = [];
     // Sieges with no besieging force left are lifted.
     for (const def of SPACES) {
         const s = G.spaces[def.id];
@@ -1775,13 +2009,28 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
             r.eligibility = Math.max(0, (r.eligibility ?? 0) - 1);
         }
     }
-    G.vpHistory[String(G.year)] = Object.fromEntries(POWERS.map((p) => [p, powerVp(G, p)]));
+    settleActivatedMajorVp(G);
     G.year += 1;
     G.checkVictory = true;
+    if (hreReligiousPreferenceEnabled(G) && !G.hreReligiousPreferenceRevealed && hreReligiousVp(G) > 0) {
+        const publicVictory = checkVictory(G);
+        const secretVictory = checkVictory(G, true);
+        if ((secretVictory?.winner === "hre" && publicVictory?.winner !== "hre") ||
+            (publicVictory?.reason === "domination" && publicVictory.winner !== "hre" &&
+                secretVictory?.reason !== "domination")) {
+            G.hreReligiousPreferenceRevealed = true;
+            pushLog(G, `Holy Roman reveals religious preference: ${HRE_RELIGIOUS_PREFERENCE_NAMES[G.hreReligiousPreference!]} (${hreReligiousVp(G)} VP).`);
+        }
+    }
+    G.vpHistory[String(G.year - 1)] = Object.fromEntries(POWERS.map((p) => [p, powerVp(G, p)]));
     pushLog(G, G.year <= G.endTurn ? `Winter ends. Turn ${G.year} begins.` : `Winter ends. Scenario turn ${G.endTurn} is complete.`);
 };
 
 export const checkImmediateVictory = (G: VQGame): { winner: Power; reason: string } | undefined => {
+    if (G.scenario === "tutorial") {
+        return controlledKeys(G, "ottoman").length >= TUTORIAL_POWER_CARDS.ottoman.military
+            ? {winner: "ottoman", reason: "military"} : undefined;
+    }
     const n = protestantSpaceCount(G);
     if (n > 50) {
         return {winner: "protestant", reason: "protestantReligious"};
@@ -1791,6 +2040,7 @@ export const checkImmediateVictory = (G: VQGame): { winner: Power; reason: strin
         return {winner: franceAndScotland <= 2 ? "france" : "spain", reason: "catholicReligious"};
     }
     for (const p of POWERS) {
+        if (ownerOf(G, p) === undefined || isActivatedMajor(G, p)) continue;
         const keys = p === "protestant" ? protestantKeysOutsideNetherlands(G).length : controlledKeys(G, p).length;
         if (keys >= POWER_INFO[p].autoWinKeys && keys > G.militaryVictoryBaseline[p]) {
             return {winner: p, reason: "military"};
@@ -1799,12 +2049,17 @@ export const checkImmediateVictory = (G: VQGame): { winner: Power; reason: strin
     return undefined;
 };
 
-export const checkVictory = (G: VQGame): { winner: Power; reason: string } | undefined => {
+export const checkVictory = (G: VQGame, includeSecretHreVp = false): { winner: Power; reason: string } | undefined => {
     const immediate = checkImmediateVictory(G);
     if (immediate !== undefined) {
         return immediate;
     }
-    const standings = victoryStandings(G);
+    if (G.scenario === "tutorial") {
+        if (G.checkVictory && powerVp(G, "ottoman") >= 20) return {winner: "ottoman", reason: "standard"};
+        if (G.year > 3) return {winner: "spain", reason: "timeLimit"};
+        return undefined;
+    }
+    const standings = victoryStandings(G, includeSecretHreVp);
     const top = standings[0];
     const second = standings[1];
     const tiedWinner = (): Power => {
@@ -1812,7 +2067,7 @@ export const checkVictory = (G: VQGame): { winner: Power; reason: string } | und
         if (tied.length === 1) {
             return top.power;
         }
-        for (let year = G.year - 1; year >= 1; year--) {
+        for (let year = G.year - 2; year >= G.startTurn; year--) {
             const hist = G.vpHistory[String(year)];
             if (hist === undefined) {
                 continue;
@@ -1834,7 +2089,7 @@ export const checkVictory = (G: VQGame): { winner: Power; reason: string } | und
     if (top.vp >= 25) {
         return {winner: tiedWinner(), reason: "standard"};
     }
-    if (G.year >= 4 && top.vp - second.vp >= 5) {
+    if (G.year > 4 && top.vp - second.vp >= 5) {
         return {winner: top.power, reason: "domination"};
     }
     return undefined;

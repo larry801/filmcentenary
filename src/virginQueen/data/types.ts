@@ -13,7 +13,8 @@ import {
  * into setupGame yet; round 2 will consume it.
  */
 
-export type ScenarioID = "campaign" | "tournament";
+export type {ScenarioID} from "../constant/general";
+import type {ScenarioID} from "../constant/general";
 
 export type ControlMarker = "scm" | "hcm";
 

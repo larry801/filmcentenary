@@ -30,7 +30,7 @@ import {
     setupGame,
     winter,
 } from "./util";
-import {chooseHomeCard, endPhaseTurn, fightForeignWar, gainIntelligence, playCard} from "./moves";
+import {chooseHomeCard, chooseHreReligiousPreference, endPhaseTurn, fightForeignWar, gainIntelligence, playCard} from "./moves";
 import {INVALID_MOVE} from "boardgame.io/core";
 
 const fakeCtx = (roll = () => 6): Ctx => ({
@@ -250,6 +250,7 @@ function driveToAction(clients: any[]) {
     expect(clients[0].getState().ctx.phase).toBe("spring");
     for (let i = 0; i < 6; i++) {
         const state = clients[i].getState();
+        if (i === 4 && !state.G.hreReligiousPreferenceChosen) clients[i].moves.chooseHreReligiousPreference({preference: "balanced"});
         if (homeCardChoiceRequired(state.G, POWERS[i])) {
             clients[i].moves.chooseHomeCard({cardId: homeCardsInHand(state.G, POWERS[i])[0]});
         }
@@ -350,6 +351,8 @@ describe("Virgin Queen turn flow", () => {
         expect(homeCardsInHand(G, "hre")).toEqual([home[0]]);
         expect(G.powers.hre.homeCardSetAside).toEqual([home[1]]);
         expect(chooseHomeCard(G, ctx, {cardId: home[0]})).toBe(INVALID_MOVE);
+        expect(endPhaseTurn(G, ctx)).toBe(INVALID_MOVE);
+        expect(chooseHreReligiousPreference(G, ctx, {preference: "balanced"})).toBeUndefined();
         expect(endPhaseTurn(G, ctx)).toBeUndefined();
     });
 

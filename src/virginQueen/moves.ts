@@ -3,6 +3,8 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {
     CardDef,
     Controller,
+    HreReligiousPreference,
+    HRE_RELIGIOUS_PREFERENCE_NAMES,
     landCount,
     LandStack,
     MinorPower,
@@ -23,14 +25,23 @@ import {cardById} from "./constant/cards";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
 import {WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENT_BY_ID} from "./data/world";
 import {patronById, royalAvailable, seaCaptainById} from "./scenario";
+import {actingPower, ownerOf, samePlayer} from "./ownership";
+import {moveError} from "./movePolicy";
+import {activateMajor, resolveMajorDiplomacy} from "./util";
+import {startBattle} from "./combat";
+import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
+import {startPiracy} from "./piracy";
+import {offerInterception} from "./interception";
+import {tutorialSpaceAllowed} from "./tutorial";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {
     CAPITAL_SPACES,
     KEY_SPACES,
     LAND_NEIGHBORS,
+    SEA_ZONE_BY_ID,
     SPACE_BY_ID,
     SPACES,
-} from "./constant/spaces";
+} from "./mapData";
 import {
     addLand,
     addNaval,
@@ -50,6 +61,7 @@ import {
     clearWar,
     dealYear,
     discardCard,
+    drawCards,
     ensureLand,
     ensureNaval,
     exactLand,
@@ -60,6 +72,7 @@ import {
     hasLOC,
     hits,
     homeCardChoiceRequired,
+    hreReligiousPreferenceRequired,
     isFortifiedSpace,
     isPort,
     isSeaZone,
@@ -87,13 +100,66 @@ import {
     setWar,
     shuffle,
     spaceHasEnemyLand,
+    spaceHasEnemyNaval,
+    moveLeaders,
     totalLand,
     totalNaval,
     warCost,
     zonePorts,
 } from "./util";
 
-const power = (ctx: Ctx): Power => powerAt(ctx.currentPlayer);
+const power = (G: VQGame, ctx: Ctx): Power => actingPower(G, ctx.currentPlayer);
+
+const offerActionResponse = (G: VQGame, ctx: Ctx, move: NonNullable<VQGame["pendingAction"]>["move"], args: NonNullable<VQGame["pendingAction"]>["args"]): boolean => {
+    if (G.resumeAction) {delete G.resumeAction; return false;}
+    if (G.scenario !== "tutorial") return false;
+    const active = power(G, ctx);
+    const responder = active === "ottoman" ? "spain" : "ottoman";
+    if (!G.powers[responder].cards.includes("vq-015") && !(active === "ottoman" && G.impulse > 1 && G.powers[responder].cards.includes("vq-016"))) return false;
+    G.pendingAction = {power: active, move, args};
+    ctx.events?.setActivePlayers({value: {[ownerOf(G, responder)!]: "actionResponse"}});
+    return true;
+};
+
+export const actionResponseOptions = (G: VQGame): {id: string; label: string}[] => {
+    const pending = G.pendingAction;
+    if (!pending) return [];
+    const responder = pending.power === "ottoman" ? "spain" : "ottoman";
+    return [{id: "continue", label: "允许行动"},
+        ...(G.powers[responder].cards.includes("vq-015") ? [{id: "storms", label: "打出 Storms，中断行动"}] : []),
+        ...(pending.power === "ottoman" && G.impulse > 1 && G.powers[responder].cards.includes("vq-016") ? [{id: "harem", label: "打出 Sultan's Harem，奥斯曼跳过下次冲动"}] : [])];
+};
+
+export const respondAction = (G: VQGame, ctx: Ctx, args: {choice: string}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingAction;
+    if (!pending) return INVALID_MOVE;
+    const responder = pending.power === "ottoman" ? "spain" : "ottoman";
+    if (ctx.playerID !== ownerOf(G, responder) || !actionResponseOptions(G).some((entry) => entry.id === args.choice)) return INVALID_MOVE;
+    delete G.pendingAction;
+    ctx.events?.endStage();
+    if (args.choice === "storms") {
+        removeCardFromHand(G, responder, "vq-015");
+        discardCard(G, responder, "vq-015", true);
+        G.powers[pending.power].cp = Math.max(0, G.powers[pending.power].cp - 1);
+        G.tutorialEffects!.stormImpulse = G.impulse;
+        G.tutorialEffects!.movedAfterStorm = [];
+        return;
+    }
+    if (args.choice === "harem") {
+        removeCardFromHand(G, responder, "vq-016");
+        discardCard(G, responder, "vq-016", true);
+        G.tutorialEffects!.skip.push("ottoman");
+        drawCards(G, ctx, responder, 1);
+    }
+    G.resumeAction = true;
+    const activeCtx = {...ctx, playerID: ownerOf(G, pending.power)};
+    if (pending.move === "moveLand") moveLand(G, activeCtx, pending.args as Parameters<typeof moveLand>[2]);
+    if (pending.move === "moveNaval") moveNaval(G, activeCtx, pending.args as Parameters<typeof moveNaval>[2]);
+    if (pending.move === "navalTransport") navalTransport(G, activeCtx, pending.args as Parameters<typeof navalTransport>[2]);
+    if (pending.move === "assault") assault(G, activeCtx, pending.args as Parameters<typeof assault>[2]);
+    if (pending.move === "piracy") piracy(G, activeCtx, pending.args as Parameters<typeof piracy>[2]);
+    delete G.resumeAction;
+};
 
 const markAction = (G: VQGame, p: Power): void => {
     G.powers[p].passed = false;
@@ -107,6 +173,10 @@ const awardMinorInfluence = (G: VQGame, p: Power, minor: MinorPower, amount: num
 
 const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef): boolean => {
     const handler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
+    if ((handler === "germanIntervention" || handler === "sublimePorte") && G.majorInfluence) {
+        resolveMajorDiplomacy(G, ctx, handler === "germanIntervention" ? "hre" : "ottoman");
+        return true;
+    }
     if (handler === "kingSebastianDies") {
         for (const major of POWERS) {
             G.minorInfluenceDefaults[major].portugal = major === "england" ? 1 : 0;
@@ -221,10 +291,11 @@ const payWarCost = (G: VQGame, p: Power, cost: number): boolean => {
 // --------------------------------------------------------------------------
 
 export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: boolean; target?: string }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "playCard", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const ps = G.powers[p];
     if (ps.cardPlayed) {
         return INVALID_MOVE;
@@ -265,6 +336,8 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     const mandatory = def.officialKind === "mandatory";
     const timedCombatCard = def.officialKind === "combat";
     const timedResponseCard = def.officialKind === "response";
+    const tutorialEvent = G.scenario === "tutorial" && args.asEvent === true;
+    if (tutorialEvent && !canPlayTutorialEvent(G, p, args.cardId)) return INVALID_MOVE;
     if (mandatory && args.asEvent !== true) {
         return INVALID_MOVE;
     }
@@ -278,7 +351,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
             (G.cardWindow.attacker !== undefined && G.cardWindow.attacker !== p))) {
         return INVALID_MOVE;
     }
-    if (args.asEvent === true && timedResponseCard && G.cardWindow?.kind !== "response") {
+    if (args.asEvent === true && timedResponseCard && !tutorialEvent && G.cardWindow?.kind !== "response") {
         return INVALID_MOVE;
     }
     removeCardFromHand(G, p, args.cardId);
@@ -287,7 +360,9 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     markAction(G, p);
     if (args.asEvent === true) {
         pushLog(G, `${powerLabel(p)} plays ${def.name} as an event.`);
-        if (beneficiary !== undefined) {
+        if (tutorialEvent) {
+            beginTutorialEvent(G, ctx, p, args.cardId);
+        } else if (beneficiary !== undefined) {
             startForeignWar(G, args.cardId, beneficiary, Number(args.target));
         } else if (def.effect !== undefined) {
             resolveEvent(G, ctx, p, def.effect);
@@ -319,10 +394,11 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
 };
 
 export const playTreasure = (G: VQGame, ctx: Ctx, args: { index: number }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "playTreasure", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const ps = G.powers[p];
     if (!ps.cardPlayed || ps.treasurePlayed) {
         return INVALID_MOVE;
@@ -339,10 +415,11 @@ export const playTreasure = (G: VQGame, ctx: Ctx, args: { index: number }): void
 };
 
 export const pass = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    if (moveError(G, "pass")) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     if (G.foreignWars[p]?.status === "setup" || G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory")) {
         return INVALID_MOVE;
     }
@@ -354,10 +431,11 @@ export const pass = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
 };
 
 export const endImpulse = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    if (moveError(G, "endImpulse")) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     if (G.foreignWars[p]?.status === "setup") {
         return INVALID_MOVE;
     }
@@ -378,20 +456,23 @@ export const endImpulse = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
 };
 
 export const endPhaseTurn = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    if (moveError(G, "endPhaseTurn")) return INVALID_MOVE;
     if (ctx.phase !== "cardDraw" && ctx.phase !== "diplomacy" && ctx.phase !== "spring") {
         return INVALID_MOVE;
     }
-    if (ctx.phase === "spring" && homeCardChoiceRequired(G, power(ctx))) {
+    if (ctx.phase === "spring" && (homeCardChoiceRequired(G, power(G, ctx)) ||
+        hreReligiousPreferenceRequired(G, power(G, ctx)))) {
         return INVALID_MOVE;
     }
     ctx.events?.endTurn();
 };
 
 export const claimSeaCaptain = (G: VQGame, ctx: Ctx, args: {captain: string}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "claimSeaCaptain", args)) return INVALID_MOVE;
     if (ctx.phase !== "cardDraw") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const captain = seaCaptainById(args.captain);
     if (captain === undefined || captain.power !== "france/protestant" || captain.turn > G.year ||
         !G.seaCaptainsAvailable.includes(captain.id) || G.powers[p].seaCaptains.includes(captain.id) ||
@@ -408,10 +489,11 @@ export const claimSeaCaptain = (G: VQGame, ctx: Ctx, args: {captain: string}): v
 // --------------------------------------------------------------------------
 
 export const declareWar = (G: VQGame, ctx: Ctx, args: { target: Power }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "declareWar", args)) return INVALID_MOVE;
     if (ctx.phase !== "diplomacy") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const target = args.target;
     if (!isPower(target) || !canDeclareWar(G, p, target)) {
         return INVALID_MOVE;
@@ -420,15 +502,17 @@ export const declareWar = (G: VQGame, ctx: Ctx, args: { target: Power }): void |
     if (!payWarCost(G, p, cost)) {
         return INVALID_MOVE;
     }
+    if (G.majorInfluence?.[target] && ownerOf(G, target) === undefined) resolveMajorDiplomacy(G, ctx, target, p);
     setWar(G, p, target);
     pushLog(G, `${powerLabel(p)} pays ${cost} CP for the declaration of war.`);
 };
 
 export const declareWarMinor = (G: VQGame, ctx: Ctx, args: { target: MinorPower }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "declareWarMinor", args)) return INVALID_MOVE;
     if (ctx.phase !== "diplomacy") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const target = args.target;
     if (!minorAvailable(G, target)) {
         return INVALID_MOVE;
@@ -455,10 +539,11 @@ export const declareWarMinor = (G: VQGame, ctx: Ctx, args: { target: MinorPower 
 };
 
 export const makePeace = (G: VQGame, ctx: Ctx, args: { target: Power }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "makePeace", args)) return INVALID_MOVE;
     if (ctx.phase !== "diplomacy") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     if (!atWar(G, p, args.target)) {
         return INVALID_MOVE;
     }
@@ -470,10 +555,11 @@ export const makePeace = (G: VQGame, ctx: Ctx, args: { target: Power }): void | 
 };
 
 export const formAlliance = (G: VQGame, ctx: Ctx, args: { target: Power }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "formAlliance", args)) return INVALID_MOVE;
     if (ctx.phase !== "diplomacy") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const t = args.target;
     if (!isPower(t) || p === t || atWar(G, p, t) || allied(G, p, t)) {
         return INVALID_MOVE;
@@ -493,13 +579,14 @@ export const formAlliance = (G: VQGame, ctx: Ctx, args: { target: Power }): void
 };
 
 export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female: string }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "proposeBetroth", args)) return INVALID_MOVE;
     if (ctx.phase !== "diplomacy") {
         return INVALID_MOVE;
     }
     if (G.pendingBetrothal !== null) {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const male = G.royals.find((r) => r.id === args.male);
     const female = G.royals.find((r) => r.id === args.female);
     if (male === undefined || female === undefined || male.gender !== "male" || female.gender !== "female") {
@@ -521,16 +608,27 @@ export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female
         return INVALID_MOVE;
     }
     const target = male.power === p ? female.power : male.power;
+    if (target === "hre" && G.playerPowers && ownerOf(G, "hre") === undefined) {
+        const influence = G.majorInfluence?.hre?.[p] ?? 0;
+        if (influence < 1) return INVALID_MOVE;
+        G.majorInfluence!.hre![p] = influence - 1;
+        G.betrothals.push({male: male.id, female: female.id});
+        pushLog(G, `${powerLabel(p)} spends 1 HRE influence to arrange a marriage between ${male.name} and ${female.name}.`);
+        return;
+    }
+    const targetPlayerID = ownerOf(G, target);
+    if (targetPlayerID === undefined) return INVALID_MOVE;
     G.pendingBetrothal = {male: male.id, female: female.id, proposer: p, target};
     pushLog(G, `${powerLabel(p)} proposes a marriage between ${male.name} and ${female.name}.`);
-    const targetPlayerID = String(POWER_INDEX[target]);
     ctx.events?.setActivePlayers?.({value: {[targetPlayerID]: "respondBetroth"}, moveLimit: 1});
 };
 
 export const acceptBetroth = (G: VQGame, _ctx: Ctx): void | typeof INVALID_MOVE => {
+    if (moveError(G, "acceptBetroth")) return INVALID_MOVE;
     if (G.pendingBetrothal === null) {
         return INVALID_MOVE;
     }
+    if (_ctx.playerID !== undefined && ownerOf(G, G.pendingBetrothal.target) !== _ctx.playerID) return INVALID_MOVE;
     const {male, female} = G.pendingBetrothal;
     const maleDef = G.royals.find((r) => r.id === male);
     const femaleDef = G.royals.find((r) => r.id === female);
@@ -540,35 +638,40 @@ export const acceptBetroth = (G: VQGame, _ctx: Ctx): void | typeof INVALID_MOVE 
 };
 
 export const rejectBetroth = (G: VQGame, _ctx: Ctx): void | typeof INVALID_MOVE => {
+    if (moveError(G, "rejectBetroth")) return INVALID_MOVE;
     if (G.pendingBetrothal === null) {
         return INVALID_MOVE;
     }
+    if (_ctx.playerID !== undefined && ownerOf(G, G.pendingBetrothal.target) !== _ctx.playerID) return INVALID_MOVE;
     const {proposer} = G.pendingBetrothal;
     G.pendingBetrothal = null;
     pushLog(G, `${powerLabel(proposer)}'s marriage proposal was rejected.`);
 };
 
 export const ransom = (G: VQGame, ctx: Ctx, args: { leaderId: string }): void | typeof INVALID_MOVE => {
-    if (ctx.phase !== "diplomacy") {
+    if (moveError(G, "ransom", args)) return INVALID_MOVE;
+    if (ctx.phase !== "diplomacy" && !(G.scenario === "tutorial" && ctx.phase === "cardDraw")) {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const def = LEADER_BY_ID[args.leaderId];
     const st = G.leaders[args.leaderId];
-    if (def === undefined || st === undefined || def.power !== p || st.location !== "captured") {
+    const tutorialHreRansom = G.scenario === "tutorial" && p === "spain" && def?.power === "hre";
+    if (def === undefined || st === undefined || (def.power !== p && !tutorialHreRansom) || st.location !== "captured") {
         return INVALID_MOVE;
     }
     const usable = G.powers[p].cards.filter((id) => cardById(id).kind !== "home");
     if (usable.length > 0) {
         const paid = shuffle(ctx, usable)[0];
         removeCardFromHand(G, p, paid);
-        discardCard(G, p, paid, false);
+        if (tutorialHreRansom) G.powers.ottoman.cards.push(paid);
+        else discardCard(G, p, paid, false);
     } else if (G.powers[p].treasures.length > 0) {
         G.powers[p].treasures.pop();
     } else {
         return INVALID_MOVE;
     }
-    const dest = capitalOf(G, p) ?? KEY_SPACES.find((id) => G.spaces[id].control === p);
+    const dest = capitalOf(G, tutorialHreRansom ? "hre" : p) ?? KEY_SPACES.find((id) => G.spaces[id].control === (tutorialHreRansom ? "hre" : p));
     if (dest === undefined) {
         return INVALID_MOVE;
     }
@@ -588,10 +691,11 @@ export const ransom = (G: VQGame, ctx: Ctx, args: { leaderId: string }): void | 
  * ruler, but may still choose to set a card aside voluntarily.
  */
 export const chooseHomeCard = (G: VQGame, ctx: Ctx, args: {cardId: string}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "chooseHomeCard", args)) return INVALID_MOVE;
     if (ctx.phase !== "spring") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const ps = G.powers[p];
     if (ps.homeCardChoiceDone) {
         return INVALID_MOVE;
@@ -609,11 +713,21 @@ export const chooseHomeCard = (G: VQGame, ctx: Ctx, args: {cardId: string}): voi
     pushLog(G, `${powerLabel(p)} keeps one Home card and sets ${setAside.length} face down on the power card.`);
 };
 
-export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: string }): void | typeof INVALID_MOVE => {
+export const chooseHreReligiousPreference = (G: VQGame, ctx: Ctx, args: {preference: HreReligiousPreference}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "chooseHreReligiousPreference", args)) return INVALID_MOVE;
+    if (ctx.phase !== "spring" || !hreReligiousPreferenceRequired(G, power(G, ctx)) ||
+        !args || !Object.prototype.hasOwnProperty.call(HRE_RELIGIOUS_PREFERENCE_NAMES, args.preference)) return INVALID_MOVE;
+    G.hreReligiousPreference = args.preference;
+    G.hreReligiousPreferenceChosen = true;
+    pushLog(G, "Holy Roman records its secret religious preference.");
+};
+
+export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: string; units?: Partial<LandStack>; leaders?: string[]; path?: string[] }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "springDeploy", args)) return INVALID_MOVE;
     if (ctx.phase !== "spring") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     if (G.springDone.includes(p)) {
         return INVALID_MOVE;
     }
@@ -627,6 +741,45 @@ export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: stri
     const to = args.to;
     if (G.spaces[to] === undefined || !friendlyControlled(G, p, to) || G.spaces[to].unrest) {
         return INVALID_MOVE;
+    }
+    if (G.scenario === "tutorial") {
+        const available = G.spaces[args.from].land[p];
+        if (!available) return INVALID_MOVE;
+        const stack = args.units ? {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0} : {...available};
+        const availableLeaders = G.spaces[args.from].leaders.filter((id) => LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id].kind === "army");
+        const leaders = args.leaders ?? availableLeaders.slice(0, 2);
+        const capacity = Math.max(4, leaders.reduce((sum, id) => sum + (LEADER_BY_ID[id]?.command ?? 0), 0));
+        if (leaders.length > 2 || new Set(leaders).size !== leaders.length || leaders.some((id) => !availableLeaders.includes(id)) ||
+            landCount(stack) < 1 || landCount(stack) > capacity || Object.entries(stack).some(([kind, count]) => count < 0 || !Number.isInteger(count) || count > available[kind as keyof LandStack])) return INVALID_MOVE;
+        const queue: {id: string; crossedSea: boolean}[] = [{id: args.from, crossedSea: false}];
+        const seen = new Set<string>();
+        let reachable = false;
+        while (queue.length) {
+            const current = queue.shift()!;
+            if (current.id === to) {reachable = true; break;}
+            const key = `${current.id}:${current.crossedSea}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            for (const neighbor of LAND_NEIGHBORS[current.id] ?? []) {
+                if (!neighbor.pass && tutorialSpaceAllowed(neighbor.id) && friendlyControlled(G, p, neighbor.id) && !G.spaces[neighbor.id].unrest &&
+                    ownersWithLand(G, neighbor.id).every((owner) => friendlyController(G, p, owner))) queue.push({id: neighbor.id, crossedSea: current.crossedSea});
+            }
+            if (!current.crossedSea && landCount(stack) <= 5) {
+                for (const zone of portZones(current.id)) {
+                    const occupied = zonePorts(zone).some((port) => ownersWithNaval(G, port).some((owner) => owner !== p));
+                    if (occupied || ownersWithNaval(G, zone).some((owner) => owner !== p)) continue;
+                    for (const port of zonePorts(zone)) {
+                        if (tutorialSpaceAllowed(port) && friendlyControlled(G, p, port) && !G.spaces[port].unrest) queue.push({id: port, crossedSea: true});
+                    }
+                }
+            }
+        }
+        if (!reachable) return INVALID_MOVE;
+        const target = ensureLand(G, to, p);
+        for (const kind of ["regular", "merc", "cav"] as const) {available[kind] -= stack[kind]; target[kind] += stack[kind];}
+        moveLeaders(G, args.from, to, leaders);
+        G.springDone.push(p);
+        return;
     }
     const direct = LAND_NEIGHBORS[args.from].find((n) => n.id === to && !n.pass);
     const sea = portZones(args.from).some((z) => portZones(to).includes(z));
@@ -668,15 +821,21 @@ export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: stri
 // --------------------------------------------------------------------------
 
 export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regular" | "merc" | "cav" }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "recruit", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const space = args.space;
     const s = G.spaces[space];
     const def = SPACE_BY_ID[space];
     if (s === undefined || def === undefined) {
         return INVALID_MOVE;
+    }
+    if (G.scenario === "tutorial" && p === "spain" && G.tutorialHreAlly === "spain" && def.home === "hre") {
+        if (s.control !== "hre" || s.unrest || s.siege || !["regular", "merc"].includes(args.kind) || !spend(G, p, args.kind === "regular" ? 2 : 1)) return INVALID_MOVE;
+        addLand(G, space, "hre", args.kind, 1);
+        return;
     }
     if (s.control !== p || s.unrest || !isFortifiedSpace(G, space)) {
         return INVALID_MOVE;
@@ -693,7 +852,7 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
     if (args.kind === "merc" && p === "ottoman") {
         return INVALID_MOVE;
     }
-    if (!spend(G, p, 1)) {
+    if (!spend(G, p, G.scenario === "tutorial" && args.kind === "regular" ? 2 : 1)) {
         return INVALID_MOVE;
     }
     addLand(G, space, p, args.kind, 1);
@@ -701,10 +860,11 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
 };
 
 export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyof NavalStack }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "buildNaval", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const port = args.port;
     const s = G.spaces[port];
     const def = SPACE_BY_ID[port];
@@ -718,7 +878,7 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
         return INVALID_MOVE;
     }
     const kind = args.kind;
-    const cost: Record<string, number> = {galley: 1, galleon: 2, racebuilt: 2, corsair: 1};
+    const cost: Record<string, number> = {galley: G.scenario === "tutorial" ? 2 : 1, galleon: 2, racebuilt: 2, corsair: 1};
     if (kind === "racebuilt" && p !== "england") {
         return INVALID_MOVE;
     }
@@ -738,10 +898,11 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
 };
 
 export const buildFortress = (G: VQGame, ctx: Ctx, args: { space: string }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "buildFortress", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const s = G.spaces[args.space];
     const def = SPACE_BY_ID[args.space];
     if (s === undefined || def === undefined) {
@@ -757,13 +918,21 @@ export const buildFortress = (G: VQGame, ctx: Ctx, args: { space: string }): voi
     pushLog(G, `${powerLabel(p)} builds a fortress in ${def.name}.`);
 };
 
-export const influence = (G: VQGame, ctx: Ctx, args: { target: MinorPower }): void | typeof INVALID_MOVE => {
+export const influence = (G: VQGame, ctx: Ctx, args: { target: MinorPower | Power }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "influence", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const target = args.target;
-    if (!MINOR_POWERS.includes(target) || !MINOR_DIPLOMACY[target].eligible.includes(p) ||
+    if (isPower(target)) {
+        const track = G.majorInfluence?.[target];
+        if (!track || track[p] === undefined || G.majorDiplomacyResolved?.includes(target) || target === p || (track[p] ?? 0) >= 9 || !spend(G, p, 1)) return INVALID_MOVE;
+        track[p] = (track[p] ?? 0) + 1;
+        return;
+    }
+    if (!MINOR_POWERS.includes(target) || (!MINOR_DIPLOMACY[target].eligible.includes(p) &&
+        !(G.scenario === "tutorial" && p === "ottoman" && target === "papacy")) ||
         G.minorDiplomacyResolved.includes(target) || G.minorInfluenceBlocked[p].includes(target) ||
         !minorAvailable(G, target)) {
         return INVALID_MOVE;
@@ -776,11 +945,25 @@ export const influence = (G: VQGame, ctx: Ctx, args: { target: MinorPower }): vo
     pushLog(G, `${powerLabel(p)} buys influence with ${target} (${cur + 1}).`);
 };
 
+export const chooseMajorActivation = (G: VQGame, ctx: Ctx, args: {joinDefense?: boolean; war?: Power}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingActivation;
+    if (!pending || ctx.playerID !== ownerOf(G, pending.ally)) return INVALID_MOVE;
+    if (args.war && (!isPower(args.war) || samePlayer(G, pending.ally, args.war) || args.war === pending.power ||
+        allied(G, pending.power, args.war))) return INVALID_MOVE;
+    if (!activateMajor(G, ctx, pending.power, pending.ally, {
+        war: args.war, defense: args.joinDefense ? pending.aggressor : undefined,
+    })) return INVALID_MOVE;
+    if (pending.aggressor) setWar(G, pending.power, pending.aggressor);
+    delete G.pendingActivation;
+    ctx.events?.endStage();
+};
+
 const espionageAvailable = (G: VQGame): boolean => G.year >= 3;
 
 export const plantInformant = (G: VQGame, ctx: Ctx, args: {target: Power}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "plantInformant", args)) return INVALID_MOVE;
     if (ctx.phase !== "action" || !espionageAvailable(G)) return INVALID_MOVE;
-    const p = power(ctx);
+    const p = power(G, ctx);
     if (args.target === p || G.informants.some((i) => i.target === args.target) ||
         G.informants.filter((i) => i.owner === p).length >= 2 ||
         !spend(G, p, 2)) return INVALID_MOVE;
@@ -789,8 +972,9 @@ export const plantInformant = (G: VQGame, ctx: Ctx, args: {target: Power}): void
 };
 
 export const gainIntelligence = (G: VQGame, ctx: Ctx, args: {target: Power}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "gainIntelligence", args)) return INVALID_MOVE;
     if (ctx.phase !== "action" || !espionageAvailable(G)) return INVALID_MOVE;
-    const p = power(ctx);
+    const p = power(G, ctx);
     if (args.target === p || !spend(G, p, 2)) return INVALID_MOVE;
     const bonus = G.informants.filter((i) => i.target === args.target && !i.neutralized && i.plantedImpulse < G.impulse).length * 2;
     const dice = roll(ctx, 2 + bonus);
@@ -812,8 +996,9 @@ export const gainIntelligence = (G: VQGame, ctx: Ctx, args: {target: Power}): vo
 };
 
 export const assassinate = (G: VQGame, ctx: Ctx, args: {target: string; cp: number}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "assassinate", args)) return INVALID_MOVE;
     if (ctx.phase !== "action" || !espionageAvailable(G)) return INVALID_MOVE;
-    const p = power(ctx);
+    const p = power(G, ctx);
     const isElizabeth = args.target === "elizabeth";
     const royal = G.royals.find((r) => r.id === args.target);
     const def = LEADER_BY_ID[args.target];
@@ -851,8 +1036,9 @@ export const assassinate = (G: VQGame, ctx: Ctx, args: {target: string; cp: numb
 };
 
 export const buildExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; colony?: boolean}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "buildExpedition", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") return INVALID_MOVE;
-    const p = power(ctx);
+    const p = power(G, ctx);
     const captain = seaCaptainById(args.captain);
     const start = p === "ottoman" ? "indianOcean" : "northAtlantic";
     const freeColonist = captain?.bonus.startsWith("Free colonist") === true;
@@ -866,8 +1052,9 @@ export const buildExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; col
 };
 
 export const moveExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; zone: string}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "moveExpedition", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") return INVALID_MOVE;
-    const p = power(ctx);
+    const p = power(G, ctx);
     const expedition = G.worldCaptains[args.captain];
     const moveAlreadyPaid = Object.values(G.worldCaptains).some((candidate) => candidate.power === p && candidate.movedImpulse === G.impulse);
     if (expedition === undefined || expedition.power !== p || !WORLD_SEA_ZONE_BY_ID[args.zone] ||
@@ -879,8 +1066,9 @@ export const moveExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; zone
 };
 
 export const settleColony = (G: VQGame, ctx: Ctx, args: {captain: string; settlement: string}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "settleColony", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") return INVALID_MOVE;
-    const p = power(ctx);
+    const p = power(G, ctx);
     const expedition = G.worldCaptains[args.captain];
     const settlement = WORLD_SETTLEMENT_BY_ID[args.settlement];
     if (expedition === undefined || expedition.power !== p || !expedition.colony || settlement === undefined ||
@@ -898,7 +1086,7 @@ export const commitForeignWarForce = (
     args: {units: {space: string; kind: keyof LandStack}[]; leaderId?: string},
 ): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "action") return INVALID_MOVE;
-    const p = power(ctx);
+    const p = power(G, ctx);
     const war = G.foreignWars[p];
     if ((p !== "ottoman" && p !== "hre") || war?.status !== "setup" || !Array.isArray(args.units) ||
         args.units.length < 3 || args.units.length > 8) return INVALID_MOVE;
@@ -968,8 +1156,9 @@ const endForeignWar = (G: VQGame, p: "ottoman" | "hre"): void => {
 };
 
 export const fightForeignWar = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    if (moveError(G, "fightForeignWar")) return INVALID_MOVE;
     if (ctx.phase !== "action") return INVALID_MOVE;
-    const p = power(ctx);
+    const p = power(G, ctx);
     const war = G.foreignWars[p];
     if ((p !== "ottoman" && p !== "hre") || war?.status !== "active" || landCount(war.units) === 0 || !spend(G, p, 1)) return INVALID_MOVE;
     const majorUnits = landCount(war.units);
@@ -994,7 +1183,7 @@ export const reinforceForeignWar = (
     args: {kind: keyof LandStack},
 ): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "action") return INVALID_MOVE;
-    const p = power(ctx);
+    const p = power(G, ctx);
     const war = G.foreignWars[p];
     const cost = args.kind === "regular" ? 2 : 1;
     if ((p !== "ottoman" && p !== "hre") || war?.status !== "active" || landCount(war.units) >= 8 ||
@@ -1004,10 +1193,11 @@ export const reinforceForeignWar = (
 };
 
 export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string; cp: number }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "patronize", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const patron = patronById(G, args.patron);
     if (patron === undefined || patron.region !== p || patron.rating === null) {
         return INVALID_MOVE;
@@ -1031,11 +1221,52 @@ export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string; cp: numbe
 // Movement
 // --------------------------------------------------------------------------
 
-export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string }): void | typeof INVALID_MOVE => {
+export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: string; zones: string[]; units: Partial<LandStack>; leaders?: string[]}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "navalTransport", args) || ctx.phase !== "action" || G.scenario !== "tutorial") return INVALID_MOVE;
+    const p = power(G, ctx);
+    const source = G.spaces[args.from]?.land[p];
+    const destination = G.spaces[args.to];
+    if (G.spaces[args.from]?.siege && G.spaces[args.from].siege!.by !== p) return INVALID_MOVE;
+    if (!source || !destination || !isPort(args.from) || !isPort(args.to) || args.from === args.to || !args.zones.length ||
+        new Set(args.zones).size !== args.zones.length || !portZones(args.from).includes(args.zones[0] as keyof VQGame["seaZones"]) ||
+        !portZones(args.to).includes(args.zones[args.zones.length - 1] as keyof VQGame["seaZones"])) return INVALID_MOVE;
+    if (G.spaces[args.from].siege && G.spaces[args.from].siege!.by !== p) return INVALID_MOVE;
+    const stack = {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0};
+    if (landCount(stack) < 1 || landCount(stack) > 5 || Object.entries(stack).some(([kind, count]) => count < 0 || !Number.isInteger(count) || count > source[kind as keyof LandStack])) return INVALID_MOVE;
+    for (let index = 0; index < args.zones.length; index++) {
+        const zone = args.zones[index];
+        if (!isSeaZone(zone) || navalCount(G.seaZones[zone as keyof VQGame["seaZones"]].naval[p]) === 0 ||
+            (index > 0 && !SEA_ZONE_BY_ID[args.zones[index - 1]].adjacent.includes(zone as keyof VQGame["seaZones"]))) return INVALID_MOVE;
+    }
+    if (spaceHasEnemyNaval(G, p, args.to) || (!friendlyControlled(G, p, args.to) && destination.control !== "independent" &&
+        !(isPower(destination.control) ? atWar(G, p, destination.control) : atWarWithMinor(G, p, destination.control as MinorPower)))) return INVALID_MOVE;
+    const leaders = args.leaders ?? [];
+    if (leaders.length > 2 || new Set(leaders).size !== leaders.length || leaders.some((id) => !G.spaces[args.from].leaders.includes(id) || LEADER_BY_ID[id]?.power !== p || LEADER_BY_ID[id]?.kind !== "army")) return INVALID_MOVE;
+    const capacity = Math.max(4, leaders.reduce((sum, id) => sum + (LEADER_BY_ID[id].command ?? 0), 0));
+    if (landCount(stack) > capacity || G.powers[p].cp < args.zones.length + 1) return INVALID_MOVE;
+    if (offerActionResponse(G, ctx, "navalTransport", args)) return;
+    if (!spend(G, p, args.zones.length + 1)) return INVALID_MOVE;
+    const target = ensureLand(G, args.to, p);
+    for (const kind of ["regular", "merc", "cav"] as const) {source[kind] -= stack[kind]; target[kind] += stack[kind];}
+    moveLeaders(G, args.from, args.to, leaders);
+    if (offerInterception(G, ctx, "field", args.from, args.to, p)) {
+        G.pendingIntercept!.transported = true;
+        return;
+    }
+    const enemies = ownersWithLand(G, args.to).filter((owner) => !friendlyController(G, p, owner));
+    if (enemies.length) {
+        startBattle(G, ctx, "field", args.to, p, enemies, args.from);
+        G.pendingBattle!.transported = true;
+    } else if (isFortifiedSpace(G, args.to) && !friendlyControlled(G, p, args.to)) destination.siege = {by: p, sinceImpulse: G.impulse};
+    pushLog(G, `${powerLabel(p)} transports ${landCount(stack)} units from ${args.from} to ${args.to}.`);
+};
+
+export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; units?: Partial<LandStack>; leaders?: string[]; unitPower?: Controller }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "moveLand", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const from = args.from;
     const to = args.to;
     if (G.spaces[from] === undefined || G.spaces[to] === undefined || from === to) {
@@ -1044,10 +1275,18 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string }
     if (!LAND_NEIGHBORS[from].some((n) => n.id === to)) {
         return INVALID_MOVE;
     }
-    const stack = G.spaces[from].land[p];
-    if (stack === undefined || landCount(stack) === 0) {
+    const unitPower = args.unitPower ?? p;
+    if (!friendlyController(G, p, unitPower)) return INVALID_MOVE;
+    const source = G.spaces[from].land[unitPower];
+    if (source === undefined || landCount(source) === 0) {
         return INVALID_MOVE;
     }
+    const stack: LandStack = args.units ? {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0} : {...source};
+    if (landCount(stack) === 0 || Object.entries(stack).some(([kind, count]) => !Number.isInteger(count) || count < 0 || count > source[kind as keyof LandStack])) return INVALID_MOVE;
+    const availableLeaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === unitPower && LEADER_BY_ID[id]?.kind === "army");
+    const leaders = args.leaders ?? availableLeaders;
+    if (new Set(leaders).size !== leaders.length || leaders.some((id) => !availableLeaders.includes(id))) return INVALID_MOVE;
+    if (G.scenario === "tutorial" && (leaders.length > 2 || landCount(stack) > Math.max(4, leaders.reduce((total, id) => total + (LEADER_BY_ID[id].command ?? 0), 0)))) return INVALID_MOVE;
     if (spaceHasEnemyLand(G, p, from) && G.spaces[from].siege !== undefined && G.spaces[from].siege?.by !== p) {
         // Units under siege may not move; the besieger may march away.
         return INVALID_MOVE;
@@ -1058,25 +1297,30 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string }
         || destControl === "independent"
         || (isPower(destControl) ? atWar(G, p, destControl) : atWarWithMinor(G, p, destControl as MinorPower));
     const otherUnits = ownersWithLand(G, to).filter((c) => !friendlyController(G, p, c));
-    if (!canEnter && otherUnits.length === 0) {
+    if (!canEnter && (G.scenario === "tutorial" || otherUnits.length === 0)) {
         return INVALID_MOVE;
     }
     const cost = passBetween(from, to) ? 2 : 1;
+    if (G.powers[p].cp < cost) return INVALID_MOVE;
+    if (offerActionResponse(G, ctx, "moveLand", args)) return;
     if (!spend(G, p, cost)) {
         return INVALID_MOVE;
     }
-    const leaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id]?.kind === "army");
-    const tgt = ensureLand(G, to, p);
+    const tgt = ensureLand(G, to, unitPower);
     tgt.regular += stack.regular;
     tgt.merc += stack.merc;
     tgt.cav += stack.cav;
-    delete G.spaces[from].land[p];
+    source.regular -= stack.regular;
+    source.merc -= stack.merc;
+    source.cav -= stack.cav;
+    if (landCount(source) === 0) delete G.spaces[from].land[unitPower];
     for (const id of leaders) {
         G.spaces[from].leaders = G.spaces[from].leaders.filter((x) => x !== id);
         G.spaces[to].leaders.push(id);
         G.leaders[id].location = to;
     }
     pushLog(G, `${powerLabel(p)} moves ${landCount(stack)} unit(s) from ${SPACE_BY_ID[from].name} to ${SPACE_BY_ID[to].name}.`);
+    if (G.tutorialEffects?.stormImpulse === G.impulse) G.tutorialEffects.movedAfterStorm?.push(to);
     // Marching the besiegers away lifts the siege (rule 15.3).
     const oldSiege = G.spaces[from].siege;
     if (oldSiege !== undefined && oldSiege.by === p) {
@@ -1088,11 +1332,16 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string }
         }
     }
 
+    if (offerInterception(G, ctx, "field", from, to, p, [unitPower])) return;
     const hostile = ownersWithLand(G, to)
         .filter((c) => !friendlyController(G, p, c))
         .filter((c) => isPower(c) ? atWar(G, p, c) : true);
     const defenders = totalLand(G, to, hostile);
     if (defenders > 0) {
+        if (G.scenario === "tutorial") {
+            startBattle(G, ctx, "field", to, p, hostile, from, [unitPower]);
+            return;
+        }
         if (isFortifiedSpace(G, to) && defenders <= 4) {
             if (totalLand(G, to, [p]) > defenders) {
                 dest.siege = {by: p, sinceImpulse: G.impulse};
@@ -1125,10 +1374,11 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string }
 };
 
 export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "moveNaval", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const from = args.from;
     const to = args.to;
     if (!isSeaZone(from) && G.spaces[from] === undefined) {
@@ -1150,6 +1400,8 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
             return INVALID_MOVE;
         }
     }
+    if (G.powers[p].cp < 1) return INVALID_MOVE;
+    if (offerActionResponse(G, ctx, "moveNaval", args)) return;
     if (!spend(G, p, 1)) {
         return INVALID_MOVE;
     }
@@ -1189,6 +1441,13 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
         G.leaders[id].location = to;
     }
     pushLog(G, `${powerLabel(p)} sails from ${from} to ${to}.`);
+    if (G.scenario === "tutorial") {
+        if (offerInterception(G, ctx, "naval", from, to, p)) return;
+        const enemies = ownersWithNaval(G, to).filter((owner) => !friendlyController(G, p, owner) &&
+            (isPower(owner) ? atWar(G, p, owner) : true));
+        if (enemies.length) startBattle(G, ctx, "naval", to, p, enemies, from);
+        return;
+    }
 
     // Naval combat against enemy squadrons in a sea zone.
     if (isSeaZone(to)) {
@@ -1257,10 +1516,11 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
 // --------------------------------------------------------------------------
 
 export const controlSpace = (G: VQGame, ctx: Ctx, args: { space: string }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "controlSpace", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const space = args.space;
     const s = G.spaces[space];
     const def = SPACE_BY_ID[space];
@@ -1292,10 +1552,11 @@ export const controlSpace = (G: VQGame, ctx: Ctx, args: { space: string }): void
 };
 
 export const assault = (G: VQGame, ctx: Ctx, args: { space: string }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "assault", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const s = G.spaces[args.space];
     if (s === undefined || s.siege === undefined || s.siege.by !== p) {
         return INVALID_MOVE;
@@ -1306,10 +1567,14 @@ export const assault = (G: VQGame, ctx: Ctx, args: { space: string }): void | ty
     if (!hasLOC(G, p, args.space)) {
         return INVALID_MOVE;
     }
+    if (G.powers[p].cp < 1) return INVALID_MOVE;
+    if (offerActionResponse(G, ctx, "assault", args)) return;
     if (!spend(G, p, 1)) {
         return INVALID_MOVE;
     }
-    assaultSpace(G, ctx, p, args.space);
+    if (G.scenario === "tutorial") {
+        startBattle(G, ctx, "assault", args.space, p, ownersWithLand(G, args.space).filter((owner) => !friendlyController(G, p, owner)), args.space);
+    } else assaultSpace(G, ctx, p, args.space);
 };
 
 const allowedPreach = (p: Power, area: ReligionArea): Religion | undefined => {
@@ -1323,10 +1588,11 @@ const allowedPreach = (p: Power, area: ReligionArea): Religion | undefined => {
 };
 
 export const preach = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "preach", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const side = allowedPreach(p, args.area);
     if (side === undefined || !spend(G, p, 2)) {
         return INVALID_MOVE;
@@ -1336,10 +1602,11 @@ export const preach = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): void 
 };
 
 export const suppress = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "suppress", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     let side: Religion | undefined;
     if (p === "spain" && args.area === "netherlands") {
         side = "catholic";
@@ -1356,10 +1623,11 @@ export const suppress = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): voi
 };
 
 export const rebellion = (G: VQGame, ctx: Ctx, args: { space: string; cp: number }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "rebellion", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
+    const p = power(G, ctx);
     const cp = Number(args.cp);
     if (p !== "protestant" || cp < 2 || cp > 5) {
         return INVALID_MOVE;
@@ -1378,11 +1646,12 @@ export const rebellion = (G: VQGame, ctx: Ctx, args: { space: string; cp: number
 // --------------------------------------------------------------------------
 
 export const piracy = (G: VQGame, ctx: Ctx, args: { zone: string; target: Power }): void | typeof INVALID_MOVE => {
+    if (moveError(G, "piracy", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
-    const p = power(ctx);
-    if (!isSeaZone(args.zone) || !isPower(args.target) || args.target === p) {
+    const p = power(G, ctx);
+    if (!isSeaZone(args.zone) || !isPower(args.target) || samePlayer(G, p, args.target)) {
         return INVALID_MOVE;
     }
     const zone = args.zone as keyof VQGame["seaZones"];
@@ -1397,6 +1666,15 @@ export const piracy = (G: VQGame, ctx: Ctx, args: { zone: string; target: Power 
     const corsair = ownStack.corsair > 0;
     if (!atWar(G, p, args.target) && !corsair) {
         return INVALID_MOVE;
+    }
+    if (G.scenario === "tutorial") {
+        const used = G.piracyUsed?.[p] ?? [];
+        const zoneUsers = Object.values(G.piracyUsed ?? {}).filter((zones) => zones?.includes(zone)).length;
+        if (used.includes(zone) || used.length >= 3 || zoneUsers >= 2 || G.powers[p].cp < 2) return INVALID_MOVE;
+        if (offerActionResponse(G, ctx, "piracy", args)) return;
+        if (!spend(G, p, 2)) return INVALID_MOVE;
+        startPiracy(G, ctx, p, args.target, zone);
+        return;
     }
     if (!spend(G, p, 1)) {
         return INVALID_MOVE;

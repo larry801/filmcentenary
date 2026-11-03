@@ -1,10 +1,10 @@
 # Virgin Queen: Wars of Religion ~ 1559-1598
 
-在 `boardgame.io` 框架里新增的第三个游戏：六人（六强国）卡驱/骰驱策略游戏。
+在 `boardgame.io` 框架里新增的第三个游戏：支持六人、双人正式局和双人教学的卡驱/骰驱策略游戏。
 规则依据用户提供的 `vq_rules_final_lo-res.pdf`（GMT 规则书）。
 
 - 在线入口：`/virginQueen`
-- 本地六人热座：`/localVQ`
+- 本地热座（五种组合）：`/localVQ`
 - 游戏名（API / 路由）：`virginQueen`
 - 菜单：左上角抽屉 → “Virgin Queen 处女女王”
 
@@ -58,6 +58,8 @@
    - 赎回被俘将领
    - 英格兰-西班牙战争费用从 5 CP 开始，可被事件降低
 3. **春季部署**（`spring`）：先秘密选择保留 1 张本国牌（未选中的面朝下放在势力卡上；苏莱曼一世在位时奥斯曼可保留两张），再从首都免费移动一支陆军编队到友好控制区
+   - 六人局 HRE 在剧本首回合秘密选择天主教、新教或平衡倾向，此后不能更改；双人局与教学局跳过
+   - 按官方 Protestant Spaces 表计算潜在宗教 VP；只有足以赢得胜利或阻止他国支配胜利时才在冬季自动公开，公开后持续计分。隐藏期间不计入公共 VP 和历年平分记录
 4. **行动阶段**（`action`）：按冲动顺序循环，直到连续 6 国 pass
    - 出牌为 CP 或事件；出牌后可用宝藏延长冲动
    - 行动（见下）
@@ -110,24 +112,33 @@
 
 VP = 关键城市基础分 + 宗教特殊分 + 奖励分（赞助、婚姻、海盗、事件等）。
 
-## 三、未实现 / 有意简化
+## 三、双人正式局与教学剧本
+
+建局时可选择五种组合：Campaign 六人或双人、Tournament 六人或双人，以及双人“勒班陀海战”教学剧本。双人正式局使用 P1 控制西班牙与法国、P2 控制英格兰与新教；奥斯曼和 HRE 按激活强国规则运行。热座和在线房间共用同一套 `setupData.scenario` 校验，玩家视图只公开本人控制国家的手牌。
+
+教学剧本固定为两名玩家，使用第 1–31 号卡、三回合和官方开局 VP/部队。服务端与地图共同限制禁入地区和禁用系统；战斗、拦截、避战、退入要塞、海运、海盗、响应卡窗口和教学事件接入 boardgame.io 响应阶段。奥斯曼要塞 VP、海盗 VP 例外、20 VP 胜利和第三回合西班牙胜利均纳入结算。
+
+当前版本仍未达到完整实体规则自动化，尤其不能将“存在 1–31 号卡处理器”理解为每张卡的所有时机和选择均已完整验证：Spanish Road 仍缺少事件中的完整部署选择；City State Rebels 的混合陆海损失、部分事件和拦截的编队选择、Dragut Falls 等响应卡的全部合法时机仍需补齐。冬季返还目前自动选择陆军目的地，海军返港与损耗的完整选择流程、解围后的特殊处理、强国停用时的全部遣返选择也尚未完成。以上部分不能用当前测试通过来证明与官方规则完全等价。
+
+官方核对资料保存在项目目录中但不应提交：`VQ 2024 Living ScenBook Final Low-Res.pdf`、`VQ 2024 Living Rules Final Low-Res.pdf`、勘误、参考卡和教程 PDF。规则出处主要是场景书第 4–5、10–13 页及规则书第 9、13–16 节。
+
+## 四、未实现 / 有意简化
 
 这些部分在规则书里存在，但本轮没有做（大多需要场景书或额外数据）：
 
-- 2–5 人局的 Activated Major Power（本实现固定 6 人，每人控制一个强国）
-- 小国激活 / 外交影响力判定（影响力行动已从 UI 移除；小国目前只会静态防守）
+- 2–5 人局中除双人配置外的 Activated Major Power 变体
+- 小国激活与外交影响力判定已接入；完整的小国部队调度和事件例外仍需继续核对
 - 间谍/刺杀已有可操作首版：第 3 回合开放派遣间谍、获取情报、每回合一次刺杀；暗杀目前以骰中 5–6 的双方命中差判定，尚未接入官方 Espionage Table、Jesuit 与 English Catholic Rebellion。
 - 世界地图已有海域航行、派出船长/殖民队、建立殖民地的可操作框架；世界地图点位仍是近似数据，导航/危险航路检定、环航、世界海盗、要塞和宝藏船队尚未自动结算。
 - 境外战争已接入“波斯战争”和“波兰战争”：配置 3/5 名敌军、派出 3–8 个部队、逐次投入 1 CP 作战、增援、战后返军与战争胜利 VP；波兰战争的 −1 抽牌与“波兰皇家选举”终止效果也已接入。
-- Response / Combat 卡、其余 Mandatory Event、Catholic League
-- 拦截、避战、退入要塞的选择（守军 ≤4 时自动退入）
-- 陆军移动/春季部署以整支编队为单位，不能拆分留守；海军移动一次只移动一个海域/港口
-- 冬季海军不强制回港、不受损耗；没有海军运输
+- 正式局仍有部分 Response / Combat 卡、Mandatory Event 和 Catholic League 效果需要手动结算；教学局使用的响应卡和 1–31 号卡已接入对应教学流程
+- 正式局的部分拦截、避战、退入要塞选项仍保留简化；教学局提供可选择的响应窗口
+- 正式局冬季海军返港、损耗和海运仍是简化实现；教学局已支持受限海运，冬季仍沿用自动陆军返还
 - 解围、阿马达、苏伊士的完整规则（本国牌做了简化判定）
-- 统治者死亡/更替、HRE 秘密宗教倾向（简化为 7–13 个新教格时 +2 VP）、
+- 统治者死亡/更替、
   科学家/艺术家全部名单、计数器上限
 
-## 四、代码结构
+## 五、代码结构
 
 ```
 src/virginQueen/
@@ -140,11 +151,15 @@ src/virginQueen/
   game.ts               阶段流转、playerView（隐藏手牌/牌堆）
   components/map.tsx    SVG 欧洲示意图
   components/board.tsx  棋盘、手牌、行动面板、外交/春季面板
-  components/local.tsx  六人热座
-  virginQueen.test.ts + board.test.tsx   36 个用例（含 board SSR 与官方数据校验）
+  ownership.ts          国家归属、激活强国归属、旧六人存档兼容
+  configuration.ts     共用场景清单、人数校验、席位标签
+  tutorial.ts          教学范围、国家卡轨道与要塞计分
+  combat.ts / interception.ts / piracy.ts / tutorialEvents.ts  教学响应状态
+  components/local.tsx  五种组合的本地热座
+  twoPlayer.test.ts     双人、教学、三回合轮转与响应集成测试
 ```
 
-## 五、验证
+## 六、验证
 
 ```shell
 ./node_modules/.bin/jest src/virginQueen
@@ -152,5 +167,4 @@ src/virginQueen/
 ./node_modules/.bin/vite build
 ```
 
-最近结果：`jest src/virginQueen` 59 passed；`tsc --noEmit`、`vite build`、`tsc -p tsconfig.server.json` 均通过；
-`GET /games` 返回 `film, songJinn, virginQueen`，`POST /games/virginQueen/create` 可创建 6 人局。
+最近结果：`jest src/virginQueen --runInBand --silent` 82 passed；`tsc --noEmit`、`npm run build`、`npm run build:server` 和 `git diff --check` 均通过。自动测试还覆盖三回合教学流程、双客户端响应、观战手牌隔离、非法人数、海运编队与海战卡时机。临时 HTTP 服务器检查验证五种在线建局、双人加入及非法组合的 400 响应；尚未执行真实浏览器/WebSocket 断线重连验收。官方资料保持为未提交的工作区文件。

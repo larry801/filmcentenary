@@ -2,6 +2,7 @@ import React from "react";
 import {Controller, landCount, navalCount, Religion, VQGame} from "../constant/general";
 import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES} from "../mapData";
 import {CONTROLLER_COLORS} from "../constant/general";
+import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, tutorialSpaceAllowed} from "../tutorial";
 
 const X = (lon: number): number => 10 + ((lon + 11) / 47) * 980;
 const Y = (lat: number): number => 10 + ((58 - lat) / 26) * 600;
@@ -16,6 +17,7 @@ export interface VQMapProps {
 
 function SpaceShape({id, G, selected, onSelect}: { id: string; G: VQGame; selected?: string; onSelect: (id: string) => void }) {
     const def = SPACE_BY_ID[id];
+    const excluded = G.scenario === "tutorial" && !tutorialSpaceAllowed(id);
     const st = G.spaces[id];
     const x = X(def.lon);
     const y = Y(def.lat);
@@ -26,7 +28,8 @@ function SpaceShape({id, G, selected, onSelect}: { id: string; G: VQGame; select
     const navalN = Object.keys(st.naval).reduce((n, c) => n + navalCount(st.naval[c as Controller]), 0);
     const total = landN + navalN;
     const leaders = st.leaders.length;
-    const kind = def.kind === "open" && G.spaces[id].fortress ? "fortress" : def.kind;
+    const kind = G.scenario === "tutorial" ? TUTORIAL_KEYS.includes(id) ? "key" : TUTORIAL_FORTRESSES.includes(id) ? "fortress" : "open" :
+        def.kind === "open" && G.spaces[id].fortress ? "fortress" : def.kind;
     let shape: React.ReactNode;
     if (kind === "key") {
         shape = <rect x={x - 6} y={y - 6} width={12} height={12} fill={color} stroke={stroke}
@@ -45,13 +48,14 @@ function SpaceShape({id, G, selected, onSelect}: { id: string; G: VQGame; select
         st.unrest ? "动荡" : "",
         st.siege ? `被 ${st.siege.by} 围困` : "",
     ].filter(Boolean).join("\n");
-    return <g onClick={() => onSelect(id)} style={{cursor: "pointer"}}>
+    return <g onClick={() => onSelect(id)} style={{cursor: "pointer"}} opacity={excluded ? 0.25 : 1}>
         <title>{title}</title>
         {isSelected && <circle cx={x} cy={y} r={12} fill="none" stroke="#ffd54f" strokeWidth={2.5}/>}
         {st.unrest && <circle cx={x} cy={y} r={9.5} fill="none" stroke="#d32f2f" strokeWidth={1.6}
                               strokeDasharray="2 2"/>}
         {st.siege && <circle cx={x} cy={y} r={11} fill="none" stroke="#ff8f00" strokeWidth={1.4}/>}
         {shape}
+        {excluded && <text x={x} y={y + 3} textAnchor="middle" fontSize={12} fill="#b71c1c">×</text>}
         {total > 0 && <text x={x + 8} y={y - 6} fontSize={7} fill="#111" fontWeight={700}>{total}</text>}
         {leaders > 0 && <text x={x + 8} y={y + 3} fontSize={6} fill="#4a148c">L{leaders}</text>}
         <text x={x} y={y + 17} textAnchor="middle" fontSize={6.4} fill="#212121">{def.name}</text>
