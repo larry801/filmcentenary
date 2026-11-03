@@ -700,6 +700,25 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #18 City State Rebels: five dice against an occupying garrison. */
 /** #31 Treachery!: force an immediate assault on a besieged fortress. */
 /** #24 Holy League: influence the Papacy and Venice, then resolve. */
+/** #27 Knights of St. John: deploy the Knights when they are absent. */
+const resolveKnightsOfStJohn = (G: VQGame): void => {
+    const onMap = (G.spaces.malta?.land.independent?.regular ?? 0) > 0;
+    if (onMap) return;
+    if (G.spaces.malta?.control === "spain" && G.spaces.malta.siege === undefined) {
+        addLand(G, "malta", "independent", "regular", 2);
+        pushLog(G, "Knights of St. John deploy 2 regulars in Malta.");
+        return;
+    }
+    const port = SPACES.find((space) => space.home === "spain" && space.ports !== undefined &&
+        G.spaces[space.id].control === "spain" && G.spaces[space.id].siege === undefined &&
+        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 && !G.spaces[space.id].fortress);
+    if (port !== undefined) {
+        addLand(G, port.id, "independent", "regular", 2);
+        G.spaces[port.id].fortress = true;
+        pushLog(G, `Knights of St. John deploy 2 regulars and a fortress in ${port.name}.`);
+    }
+};
+
 const resolveHolyLeague = (G: VQGame, ctx: Ctx, p: Power): void => {
     for (const minor of ["papacy", "venice"] as MinorPower[]) {
         awardMinorInfluence(G, p, minor, 2);
@@ -1802,6 +1821,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveTreachery(G, ctx, target);
     } else if (handler === "holyLeague") {
         resolveHolyLeague(G, ctx, p);
+    } else if (handler === "knightsOfStJohn") {
+        resolveKnightsOfStJohn(G);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {

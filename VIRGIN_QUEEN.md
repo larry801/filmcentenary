@@ -184,6 +184,13 @@
 - 目标地区及一个相邻地区放置动荡。
 - 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
 
+### 圣约翰骑士团（#27）
+
+- 骑士团不在马耳他时：
+  - 西班牙控制未被围城的马耳他：在马耳他放置 2 个骑士团正规军；
+  - 否则在西班牙无驻军、非设防本土港口放置 2 个骑士团正规军并建要塞；
+- 骑士团暂以 `independent` 单位表示；骑士团在图上时的夺牌/海盗 VP 分支尚未接入。
+
 ### 神圣同盟（#24）
 
 - 对教廷与威尼斯各 +2 影响力，并立即分别评议；
@@ -784,6 +791,7 @@ src/virginQueen/
   cityRebels.test.ts    #18 城邦起义
   treachery.test.ts     #31 变节！
   holyLeague.test.ts    #24 神圣同盟
+  knights.test.ts       #27 圣约翰骑士团
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -1036,3 +1044,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #31 变节！接入后的验证：`jest src/virginQueen --runInBand --silent` 105 suites、527 tests passed（新增 1 项：强制攻城）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #24 神圣同盟接入后的验证：`jest src/virginQueen --runInBand --silent` 106 suites、528 tests passed（新增 1 项：教廷/威尼斯影响力与评议）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#27 圣约翰骑士团接入后的验证：`jest src/virginQueen --runInBand --silent` 107 suites、529 tests passed（新增 1 项：马耳他驻军）；`npm run build` 通过，仍有既有大体积 chunk 提示。
