@@ -1005,10 +1005,17 @@ const resolveSmallAid = (G: VQGame, target?: string): void => {
 };
 
 const resolveEloquentAmbassador = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
-    if (target === undefined || !(target in MINOR_DIPLOMACY)) return;
-    const minor = target as MinorPower;
-    awardMinorInfluence(G, p, minor, 3);
-    if (!G.minorDiplomacyResolved.includes(minor)) resolveMinorDiplomacy(G, ctx, minor);
+    if (target === undefined) return;
+    const minors = target.split(":").filter((id): id is MinorPower => id in MINOR_DIPLOMACY);
+    if (minors.length === 0) return;
+    if (minors.length === 1) {
+        awardMinorInfluence(G, p, minors[0], 3);
+    } else {
+        for (const minor of minors.slice(0, -1)) awardMinorInfluence(G, p, minor, 1);
+        awardMinorInfluence(G, p, minors[minors.length - 1], Math.max(0, 3 - (minors.length - 1)));
+    }
+    const resolved = minors[minors.length - 1];
+    if (!G.minorDiplomacyResolved.includes(resolved)) resolveMinorDiplomacy(G, ctx, resolved);
 };
 
 const resolveDiplomaticFauxPas = (G: VQGame, target?: string): void => {

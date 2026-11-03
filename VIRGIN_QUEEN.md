@@ -1195,3 +1195,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #33 大旅行取回选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、609 tests passed（新增 1 项：取回大旅行）；`npm run build` 通过。
 
 #33 指定转化地区接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、610 tests passed（新增 1 项：仅转化指定地区）；`npm run build` 通过。
+
+#20 雄辩大使影响力分配接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、613 tests passed（新增 1 项：拆分 3 点影响力）；`npm run build` 通过。
