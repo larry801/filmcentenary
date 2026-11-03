@@ -3652,7 +3652,7 @@ export const assault = (G: VQGame, ctx: Ctx, args: { space: string }): void | ty
     // naval units in the North Sea.
     const inlandLink = inlandPortLink(args.space);
     if (inlandLink !== undefined && G.spaces[inlandLink].control === s.control &&
-        navalCount(G.seaZones.northSea.naval[p]) === 0) return INVALID_MOVE;
+        navalCount(G.seaZones.northSea.naval[p]) === 0 && !G.powers[p].cards.includes("vq-010")) return INVALID_MOVE;
     if (!navalBlockadeSatisfied(G, p, args.space)) return INVALID_MOVE;
     if (G.powers[p].cp < 1) return INVALID_MOVE;
     if (offerActionResponse(G, ctx, "assault", args)) return;
