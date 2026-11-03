@@ -613,6 +613,29 @@ const resolveDutchRevolt = (G: VQGame): void => {
     }
 };
 
+/** #75 Lost Colony: destroy an Atlantic-coast colony unless it rolls 5-6. */
+const resolveLostColony = (G: VQGame, ctx: Ctx): void => {
+    const colony = Object.entries(G.worldColonies).find(([settlement]) => {
+        const def = WORLD_SETTLEMENT_BY_ID[settlement];
+        return def !== undefined && (def.region === "atlanticCoast" || def.region === "northAmerica");
+    });
+    if (colony === undefined) {
+        pushLog(G, "Lost Colony: no Atlantic-coast colony is present.");
+        return;
+    }
+    const [settlement, power] = colony;
+    if (power === undefined) return;
+    const roll = die(ctx, 6);
+    G.lastRolls = `Lost Colony (${settlement}): ${roll}`;
+    if (roll >= 5) {
+        pushLog(G, `${G.lastRolls} — the colony survives.`);
+        return;
+    }
+    delete G.worldColonies[settlement];
+    if (G.worldControls[settlement] === power) delete G.worldControls[settlement];
+    pushLog(G, `${G.lastRolls} — the colony is destroyed.`);
+};
+
 const resolveIndex = (G: VQGame, ctx: Ctx): void => {
     for (let attempt = 0; attempt < 6; attempt++) {
         const areas = ["france", "netherlands", "scotland"] as const;
@@ -936,6 +959,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolvePatronOfArts(G, ctx, target);
     } else if (handler === "indexOfProhibitedBooks") {
         resolveIndex(G, ctx);
+    } else if (handler === "lostColony") {
+        resolveLostColony(G, ctx);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {

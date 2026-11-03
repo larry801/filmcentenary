@@ -161,6 +161,13 @@
   - 20+：西班牙 +3。
 - 作为强制事件结算后照常获得 2 CP。
 
+### 消失的殖民地（#75）
+
+- 选择一个大西洋沿岸殖民地，控制者掷 1d6：
+  - 5–6：殖民地保留；
+  - 1–4：殖民地被摧毁并移除控制。
+- 当前自动选择第一个符合条件的殖民地；强制事件结算后照常获得 2 CP。
+
 ### 禁书目录（#56）
 
 - 选项 1：在法兰西/尼德兰/苏格兰共进行 6 次天主教传播尝试，首个骰值自动为 6；自动选择当前新教地区最多的区域逐个结算。
@@ -466,6 +473,7 @@ src/virginQueen/
   ottomanTribute.test.ts #2 奥斯曼贡金
   spanishRoad.test.ts   #3 西班牙之路
   indexBooks.test.ts    #56 禁书目录 6 次天主教尝试
+  lostColony.test.ts    #75 消失的殖民地
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
   regularLimit.test.ts  17.1 正规军计数器上限
@@ -625,3 +633,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #56 禁书目录（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 60 suites、461 tests passed（新增 1 项：6 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #83 荷兰起义接入后的验证：`jest src/virginQueen --runInBand --silent` 61 suites、462 tests passed（新增 1 项：0/1/8/12/19 各档 VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#75 消失的殖民地接入后的验证：`jest src/virginQueen --runInBand --silent` 62 suites、464 tests passed（新增 2 项：1–4 摧毁、5–6 保留）；`npm run build` 通过，仍有既有大体积 chunk 提示。
