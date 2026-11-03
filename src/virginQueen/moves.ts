@@ -653,6 +653,27 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #62 Northwest Passage: force a navigator to test the passage. */
 /** #65 Puritans: draw a random English card or place three English unrest. */
 /** #79 Convention of Estates: convert three Netherlands spaces to Protestant. */
+/** #67 Spanish Pay Ships Seized: Spain loses two Netherlands regulars. */
+const resolveSpanishPayShips = (G: VQGame, ctx: Ctx, p: Power): void => {
+    let remaining = 2;
+    for (const space of SPACES.filter((def) => def.area === "netherlands")) {
+        const stack = G.spaces[space.id].land.spain;
+        if (stack === undefined) continue;
+        while (remaining > 0 && stack.regular > 0) {
+            stack.regular -= 1;
+            remaining -= 1;
+        }
+        while (remaining > 0 && stack.merc >= 2) {
+            stack.merc -= 2;
+            remaining -= 1;
+        }
+        if (stack.regular + stack.merc + stack.cav === 0) delete G.spaces[space.id].land.spain;
+        if (remaining === 0) break;
+    }
+    drawCards(G, ctx, p, 1);
+    pushLog(G, `Spanish Pay Ships Seized removes ${2 - remaining} Spanish unit(s) and ${powerLabel(p)} draws a card.`);
+};
+
 const resolveConventionOfEstates = (G: VQGame): void => {
     const targets = SPACES.filter((space) => space.area === "netherlands" && G.spaces[space.id].religion !== "protestant").slice(0, 3);
     for (const space of targets) G.spaces[space.id].religion = "protestant";
@@ -1144,6 +1165,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolvePuritans(G, ctx, p);
     } else if (handler === "conventionOfEstates") {
         resolveConventionOfEstates(G);
+    } else if (handler === "spanishPayShipsSeized") {
+        resolveSpanishPayShips(G, ctx, p);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {
@@ -1222,6 +1245,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (args.asEvent === true && cardHandler === "untimelyDeath" && G.scenario !== "tutorial" && !canPlayUntimelyDeath(G, args.target)) return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "moriscoRevolt" &&
         !(atWar(G, "ottoman", "spain") && G.morisco === undefined)) return INVALID_MOVE;
+    if (args.asEvent === true && cardHandler === "spanishPayShipsSeized" && p === "spain") return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "virginQueen" &&
         !G.royals.some((royal) => royal.id === "elizabeth" && royal.alive)) return INVALID_MOVE;
     if (args.asEvent === true && beneficiary !== undefined) {

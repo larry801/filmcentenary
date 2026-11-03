@@ -170,6 +170,12 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 西班牙运银船被截（#67）
+
+- 西班牙不能作为事件打出。
+- 西班牙移除尼德兰地区 2 个正规军；每 2 个雇佣兵可代替 1 个正规军。
+- 出牌方抽 1 张牌；事件牌移出游戏。
+
 ### 省议会（#79）
 
 - 将任意 3 个尼德兰地区转为新教（可不符合传教条件）；
@@ -538,6 +544,7 @@ src/virginQueen/
   northwestPassage.test.ts #62 西北航道
   puritans.test.ts      #65 清教徒
   conventionEstates.test.ts #79 省议会
+  spanishPayShips.test.ts #67 西班牙运银船被截
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -720,3 +727,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #65 清教徒接入后的验证：`jest src/virginQueen --runInBand --silent` 71 suites、478 tests passed（新增 2 项：抽牌/三地动荡）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #79 省议会接入后的验证：`jest src/virginQueen --runInBand --silent` 72 suites、479 tests passed（新增 1 项：3 个尼德兰转新教）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#67 西班牙运银船被截接入后的验证：`jest src/virginQueen --runInBand --silent` 73 suites、481 tests passed（新增 2 项：移除/抽牌、西班牙不可打出）；`npm run build` 通过，仍有既有大体积 chunk 提示。
