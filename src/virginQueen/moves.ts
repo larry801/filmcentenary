@@ -52,6 +52,7 @@ import {
     addVp,
     allied,
     applyCatholicLeagueSpace,
+    attemptLandInterception,
     applyHreReplacement,
     assaultSpace,
     atWar,
@@ -1388,6 +1389,8 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     if (!spend(G, p, cost)) {
         return INVALID_MOVE;
     }
+    // Interception is resolved before the active formation enters (13.2).
+    const intercepted = !isRelief && attemptLandInterception(G, ctx, p, from, to);
     const tgt = ensureLand(G, to, unitPower);
     tgt.regular += stack.regular;
     tgt.merc += stack.merc;
@@ -1429,6 +1432,10 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
         .filter((c) => isPower(c) ? atWar(G, p, c) : true);
     const defenders = totalLand(G, to, hostile);
     if (defenders > 0) {
+        if (intercepted) {
+            fieldBattle(G, ctx, to, p, hostile, from);
+            return;
+        }
         if (G.scenario === "tutorial") {
             startBattle(G, ctx, "field", to, p, hostile, from, [unitPower]);
             return;

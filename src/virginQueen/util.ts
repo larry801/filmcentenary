@@ -1759,6 +1759,76 @@ export const reliefBattle = (
     return {attackerHits: aHits, defenderHits: dHits, attackerDice: aDice, defenderDice: dDice, winner};
 };
 
+/**
+ * Automatic land interception (rule 13.2): an enemy stack adjacent to the
+ * destination may attempt to intercept.  Formations are selected
+ * automatically (up to the best leaders' command capacity); every eligible
+ * stack may roll once, and the first success joins the destination.
+ */
+export const attemptLandInterception = (
+    G: VQGame,
+    ctx: Ctx,
+    active: Power,
+    from: string,
+    to: string,
+): boolean => {
+    if (G.scenario === "tutorial" || G.spaces[to].siege !== undefined || friendlyControlled(G, active, to)) return false;
+    const destinationOwners = ownersWithLand(G, to);
+    if (G.interceptedThisImpulse?.impulse !== G.impulse) G.interceptedThisImpulse = {impulse: G.impulse, spaces: []};
+    const used = G.interceptedThisImpulse.spaces;
+    const candidates: {space: string; power: Power}[] = [];
+    for (const link of landNeighbors(to)) {
+        if (link.pass || link.id === from || used.includes(link.id)) continue;
+        const state = G.spaces[link.id];
+        if (state === undefined || state.siege !== undefined) continue;
+        for (const owner of ownersWithLand(G, link.id)) {
+            if (!isPower(owner) || !atWar(G, owner, active)) continue;
+            if (destinationOwners.length > 0 && !destinationOwners.every((c) => friendlyController(G, owner, c))) continue;
+            const control = G.spaces[to].control;
+            if (isPower(control) && control !== owner && !allied(G, owner, control) && !atWar(G, owner, control)) continue;
+            candidates.push({space: link.id, power: owner});
+        }
+    }
+    candidates.sort((a, b) => POWERS.indexOf(a.power) - POWERS.indexOf(b.power) || a.space.localeCompare(b.space));
+    for (const candidate of candidates) {
+        const source = G.spaces[candidate.space];
+        const stack = source.land[candidate.power];
+        if (stack === undefined || landCount(stack) === 0) continue;
+        if (!used.includes(candidate.space)) used.push(candidate.space);
+        const leaders = source.leaders
+            .filter((id) => LEADER_BY_ID[id]?.power === candidate.power && LEADER_BY_ID[id]?.kind === "army")
+            .sort((a, b) => (LEADER_BY_ID[b].battle ?? 0) - (LEADER_BY_ID[a].battle ?? 0))
+            .slice(0, 2);
+        const capacity = Math.max(4, leaders.reduce((sum, id) => sum + (LEADER_BY_ID[id].command ?? 0), 0));
+        const moving = emptyLand();
+        let remaining = capacity;
+        for (const kind of ["regular", "merc", "cav"] as const) {
+            const n = Math.min(remaining, stack[kind]);
+            moving[kind] = n;
+            remaining -= n;
+        }
+        if (landCount(moving) === 0) continue;
+        const ottomanCavalry = candidate.power === "ottoman" && moving.cav > 0 ? 1 : 0;
+        const enemyCavalry = candidate.power !== "ottoman" && (G.spaces[to].land.ottoman?.cav ?? 0) > 0 ? -1 : 0;
+        const telescope = G.powers[candidate.power].scienceBonuses.includes("telescope") ? 1 : 0;
+        const modifier = bestBattle(G, candidate.space, [candidate.power], "army") + ottomanCavalry + enemyCavalry + telescope;
+        const dice = roll(ctx, 2);
+        const total = dice[0] + dice[1] + modifier;
+        pushLog(G, `${powerLabel(candidate.power)} interception from ${SPACE_BY_ID[candidate.space].name}: [${dice.join(",")}] + ${modifier} = ${total}.`);
+        if (total < 9) continue;
+        const target = ensureLand(G, to, candidate.power);
+        for (const kind of ["regular", "merc", "cav"] as const) {
+            stack[kind] -= moving[kind];
+            target[kind] += moving[kind];
+        }
+        cleanupLand(G, candidate.space, candidate.power);
+        moveLeaders(G, candidate.space, to, leaders);
+        pushLog(G, `${powerLabel(candidate.power)} intercepts the move into ${SPACE_BY_ID[to].name}.`);
+        return true;
+    }
+    return false;
+};
+
 export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): boolean => {
     const s = G.spaces[space];
     const siege = s.siege;
