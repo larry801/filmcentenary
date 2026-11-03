@@ -707,6 +707,9 @@
 - 伊丽莎白已订婚时，可解除婚约；新郎势力按 Jilted Table 掷 1d6：6 得两张 +1 Card 标记，5 得一张，4/3/2 获得 4/3/2 CP 用于外交影响和/或雇佣兵，1 无补偿；英格兰随后抽一张牌。
 - 未订婚时，自动取回弃牌堆中第一张非本国牌并保留。
 - 目标 `retrieve:<卡牌ID>:play` 取回指定牌并立即按其事件结算；`retrieve:<卡牌ID>:play:<事件目标>` 可同时传入该牌自身的事件目标（例如 `retrieve:vq-005:play:excommunicate`）。实现复用 `playCard`，因此仍受该牌的时机、目标与合法性限制；无法打出时牌留在弃牌堆，若事件可被取消则照常进入取消响应窗口。
+- **已支持的响应/战斗牌子集**：当英格兰是当前战斗的进攻方且 `G.cardWindow` 为该战斗的开窗时，可立即打出印刷类别为 Combat 的战斗牌（#7 强攻、#8 精锐部队、#9 火攻战船、#10 围城工事、#40 提尔伯里演讲）；牌会登记到 `pendingBattle.cards[power]`，由战斗掷骰例程读取其加骰/改判效果，并照常进入弃牌堆。窗口的类别（野战/海战/攻城）必须与该牌印刷阶段一致，#40（任意阶段）除外。
+  - 边界：仅支持进攻方一侧的 Combat 牌；防守方只有在 `battleChoice` 阶段通过 `chooseBattle` 出牌，`playCard` 在防守方不可用。依赖触发时机的 Response 牌（#12 威尼斯桨帆船、#13 黑骑士、#15 风暴、#39 洪水等）仍走各自的 `chooseBattle`/响应阶段，不在此子集内；没有窗口时这些牌保持在弃牌堆。
+  - 可达性说明：boardgame.io 在战斗期间只让应对方进入 `battleChoice` 阶段，普通客户端无法在战斗中途调用 `playCard`；本子集为规则层能力（供直接调用/后续集成使用），`moveError` 仅在 `pendingBattle` 时放行 `playCard`，其余待响应状态仍全部拦截。测试通过直接驱动 `playCard` + `startBattle` 覆盖成功与回滚。
 - 伊丽莎白死亡后，此牌不能作为事件打出。
 
 ### 胜利
@@ -1267,3 +1270,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #11 德拉古特之死海盗响应时机接入后的验证：`jest src/virginQueen/dragutPiracy.test.ts src/virginQueen/dragut.test.ts --runInBand` 2 suites、10 tests passed；`jest src/virginQueen --runInBand --silent` 146 suites、682 tests passed（新增 6 项：海盗设置 `dragutFought`、未参与时不设置、4–6 死亡/1–3 回池、西班牙事件模式、战斗行为回归）；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。
 
 #36 童贞女王新增 `retrieve:<卡牌ID>:play[:<事件目标>]`：取回弃牌堆中的牌并立即按该牌自己的事件结算，复用 `playCard` 的时机/目标/合法性校验；无法打出时回滚并留在弃牌堆。验证：`jest src/virginQueen --runInBand --silent` 141 suites、649 tests passed（新增 4 项）；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。
+
+#36 童贞女王即时打出扩展到战斗窗口：`retrieve:<Combat 牌>:play` 在英格兰为进攻方且窗口阶段匹配时，把 Combat 牌登记进 `pendingBattle.cards[power]`（新增 `combat.playBattleCard`），牌照常进入弃牌堆；无窗口或阶段不匹配时 `playCard` 在改动状态前拒绝，`resolveVirginQueenEvent` 回滚取回并把牌留在弃牌堆。`moveError` 仅在 `pendingBattle` 存在时放行 `playCard`，其余待响应状态仍全部拦截。测试：`virginQueenResponsePlay.test.ts` 6 项（成功登记、加 2 骰、阶段不匹配回滚、无战斗回滚、触发型响应牌回滚、回滚后行动轮状态）。验证：`jest src/virginQueen --runInBand --silent` 146 suites、682 tests passed（新增 6 项）；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。

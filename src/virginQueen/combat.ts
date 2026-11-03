@@ -9,7 +9,7 @@ import {tutorialSpaceAllowed} from "./tutorial";
 import {
     addLand, atWar, bestBattle, captureLeaders, checkCyprusVp, discardCard, ensureLand, ensureNaval, friendlyControlled, landDistance,
     friendlyController, hits, isFortifiedSpace, isSeaZone, minorAlly, moveLeaders, navalAdjacent,
-    ownersWithLand, ownersWithNaval, pushLog, recordNavalLoss, removeCardFromHand, roll, totalLand, totalNaval,
+    ownersWithLand, ownersWithNaval, powerLabel, pushLog, recordNavalLoss, removeCardFromHand, roll, totalLand, totalNaval,
 } from "./util";
 
 type Battle = NonNullable<VQGame["pendingBattle"]>;
@@ -249,6 +249,33 @@ const rollBattle = (G: VQGame, ctx: Ctx): void => {
     G.lastRolls = `${battle.phase}: [${battle.rolls.attacker.join(",")}] ${battle.hitCounts.attacker} hits; [${battle.rolls.defender.join(",")}] ${battle.hitCounts.defender} hits`;
     pushLog(G, G.lastRolls);
     prompt(G, ctx, "attackerAfterRoll", battle.attacker);
+};
+
+/**
+ * Registers a printed Combat card for the battle that is already under way.
+ *
+ * `chooseBattle` consumes its own card choices; this helper exposes the same
+ * registration step to a card that was played outside the battle stage, which
+ * in practice means the Virgin Queen (#36) "retrieve and play immediately"
+ * option.  Only printed Combat cards (`officialKind === "combat"`) are
+ * accepted: their whole effect is read from `battle.cards`, so registering the
+ * card is enough.  Trigger-bound Response cards (Venetian Galleasses, Reiters,
+ * Flooding, ...) keep their own `chooseBattle`/stage timing and are rejected
+ * here.  Returns false without mutating `G` when no matching window is open.
+ */
+export const playBattleCard = (G: VQGame, power: Power, cardId: string): boolean => {
+    const battle = G.pendingBattle;
+    const def = cardById(cardId);
+    if (battle === undefined || def.officialKind !== "combat") return false;
+    const window = G.cardWindow;
+    if (window?.kind !== "combat") return false;
+    const phase = def.officialEffect?.kind === "combat" ? def.officialEffect.phase : undefined;
+    if (phase !== undefined && phase !== "any" && window.phase !== phase) return false;
+    if (window.attacker !== undefined && window.attacker !== power) return false;
+    battle.cards[power] ??= [];
+    if (!battle.cards[power]!.includes(cardId)) battle.cards[power]!.push(cardId);
+    pushLog(G, `${powerLabel(power)} plays ${def.name} for the ${battle.phase} battle.`);
+    return true;
 };
 
 export const chooseBattle = (G: VQGame, ctx: Ctx, args: {choice: string}): void | typeof INVALID_MOVE => {

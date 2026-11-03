@@ -11,7 +11,16 @@ export const moveError = (G: VQGame, move: string, args?: unknown): string | und
     if (G.pendingInterceptionOrder && move !== "chooseInterceptionOrder" && move !== "autoInterceptionOrder") {
         return "请先选择海军拦截顺序。";
     }
-    if ((G.pendingBattle || G.pendingTutorialEvent || G.pendingActivation || G.pendingPiracy || G.pendingAction || G.pendingIntercept) && !["chooseBattle", "chooseTutorialEvent", "chooseMajorActivation", "choosePiracy", "respondAction", "chooseInterception"].includes(move)) return "请先完成当前响应。";
+    // A pending battle only exposes the battle choices to the responding
+    // power; `playCard` stays allowed at the rule layer so that the Virgin
+    // Queen (#36) "play the retrieved card immediately" option can register a
+    // printed Combat card for the battle that opened the card window.  The
+    // boardgame.io turn/stage guard still keeps ordinary clients from playing
+    // cards mid-battle (only the responding player is active, in
+    // `battleChoice`).
+    const battleMoves = ["chooseBattle", "chooseTutorialEvent", "chooseMajorActivation", "choosePiracy", "respondAction", "chooseInterception"];
+    if ((G.pendingBattle !== undefined && move !== "playCard" && !battleMoves.includes(move)) ||
+        ((G.pendingTutorialEvent || G.pendingActivation || G.pendingPiracy || G.pendingAction || G.pendingIntercept) && !battleMoves.includes(move))) return "请先完成当前响应。";
     if (G.navalLeaderArrivals?.some((entry) => entry.power === G.activePower) &&
         !["chooseNavalLeaderPort", "chooseHomeCard", "chooseHreReligiousPreference", "endPhaseTurn"].includes(move)) {
         return "请先选择返回海军将领的本土港口。";

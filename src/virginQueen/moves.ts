@@ -32,7 +32,7 @@ import {patronById, royalAvailable, seaCaptainById} from "./scenario";
 import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
 import {activateMajor, checkCircumnavigation, die, navigationCheck, resolveMajorDiplomacy} from "./util";
-import {startBattle} from "./combat";
+import {playBattleCard, startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {beginGrandVizierEvent, cancelEventResponder, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
 import {startPiracy} from "./piracy";
@@ -2431,6 +2431,12 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveOttomanTribute(G, ctx, target);
     } else if (handler === "spanishRoad") {
         resolveSpanishRoad(G);
+    } else if (def.officialKind === "combat") {
+        // Printed Combat cards are read by the battle's dice routine, so
+        // "playing" one against an open card window only registers it there.
+        // When no matching window is open playCard rejects the card before
+        // this point, which is what keeps the Virgin Queen rollback intact.
+        playBattleCard(G, p, cardId);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def, target)) {
@@ -2561,7 +2567,8 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     if (args.asEvent === true && timedCombatCard && !isBeaconFires &&
-        (G.cardWindow?.kind !== "combat" || (def.officialEffect?.kind === "combat" &&
+        (G.pendingBattle === undefined || G.cardWindow?.kind !== "combat" ||
+            (def.officialEffect?.kind === "combat" &&
             def.officialEffect.phase !== undefined && def.officialEffect.phase !== "any" &&
             G.cardWindow.phase !== def.officialEffect.phase) ||
             (G.cardWindow.attacker !== undefined && G.cardWindow.attacker !== p))) {
