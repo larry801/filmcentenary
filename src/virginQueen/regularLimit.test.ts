@@ -32,6 +32,14 @@ describe("regular counter limit (17.1)", () => {
         expect(recruit(G, context(), {space: "seville", kind: "regular"})).toBe(INVALID_MOVE);
     });
 
+    it("counts mercenaries against the same physical counter pool", () => {
+        const G = game();
+        clearSpanishRegulars(G);
+        G.spaces.madrid.land.spain = {regular: 41, merc: 1, cav: 0};
+
+        expect(recruit(G, context(), {space: "seville", kind: "regular"})).toBe(INVALID_MOVE);
+    });
+
     it("allows recruiting up to the limit", () => {
         const G = game();
         clearSpanishRegulars(G);

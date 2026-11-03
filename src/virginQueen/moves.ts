@@ -110,6 +110,7 @@ import {
     removeCardFromHand,
     removeCardFromGame,
     reliefBattle,
+    landForceCount,
     regularCount,
     removeLandLosses,
     removePortNavalLosses,
@@ -2294,7 +2295,7 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
     // Rule 17.2 construction exceptions.
     if (p === "ottoman" && ["algiers", "tripoli"].includes(space)) return INVALID_MOVE;
     if (p === "spain" && ["oran", "malta"].includes(space)) return INVALID_MOVE;
-    if (args.kind === "regular" && regularCount(G, p) >= REGULAR_LIMITS[p]) return INVALID_MOVE;
+    if (landForceCount(G, p) >= REGULAR_LIMITS[p]) return INVALID_MOVE;
     if (!spend(G, p, args.kind === "regular" ? 2 : 1)) {
         return INVALID_MOVE;
     }

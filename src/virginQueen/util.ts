@@ -998,6 +998,13 @@ export const friendlyControlled = (G: VQGame, p: Power, space: string): boolean 
         (!isPower(s.control) && s.control !== "independent" && G.powers[p].alliedMinors.includes(s.control));
 };
 
+/** Land counters (regular/mercenary are two sides of the same physical counter). */
+export const landForceCount = (G: VQGame, p: Power): number =>
+    Object.values(G.spaces).reduce((total, space) => {
+        const stack = space.land[p];
+        return total + (stack === undefined ? 0 : stack.regular + stack.merc);
+    }, 0);
+
 export const regularCount = (G: VQGame, p: Power): number => {
     let total = 0;
     for (const space of Object.values(G.spaces)) total += space.land[p]?.regular ?? 0;
