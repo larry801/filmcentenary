@@ -3306,6 +3306,7 @@ const winterMorisco = (G: VQGame): void => {
 export const returnWorldCaptains = (G: VQGame): void => {
     for (const [id, expedition] of Object.entries(G.worldCaptains)) {
         if (!G.powers[expedition.power].seaCaptains.includes(id)) G.powers[expedition.power].seaCaptains.push(id);
+        if (expedition.treasureValues !== undefined) G.powers[expedition.power].treasures.push(...expedition.treasureValues);
         delete G.worldCaptains[id];
         pushLog(G, `${id} returns to ${powerLabel(expedition.power)}'s sea captain pool at Winter.`);
     }

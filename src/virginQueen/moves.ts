@@ -1113,7 +1113,7 @@ const resolveDrakeHawkins = (G: VQGame): void => {
     const drake = seaCaptainById("drake");
     const hawkins = seaCaptainById("hawkins");
     if (drake === undefined || hawkins === undefined) return;
-    G.worldCaptains.drake = {power: "england", location: "northAtlantic", damaged: false, colony: false, route: ["northAtlantic"], companion: "hawkins"};
+    G.worldCaptains.drake = {power: "england", location: "northAtlantic", damaged: false, colony: false, route: ["northAtlantic"], companion: "hawkins", treasureValues: []};
     G.powers.england.seaCaptains = G.powers.england.seaCaptains.filter((id) => id !== "drake" && id !== "hawkins");
     G.seaCaptainsAvailable = G.seaCaptainsAvailable.filter((id) => id !== "drake" && id !== "hawkins");
     removeCardFromGame(G, "vq-106");
@@ -3073,8 +3073,13 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
             pushLog(G, "A Spanish patrol is eliminated.");
         } else if (G.powers.spain.treasures.length > 0) {
             const treasure = G.powers.spain.treasures.pop()!;
-            G.powers[p].treasures.push(treasure);
-            pushLog(G, `${powerLabel(p)} captures a ${treasure} CP Spanish treasure.`);
+            if (expedition.treasureValues !== undefined && expedition.treasureValues.length < 2) {
+                expedition.treasureValues.push(treasure);
+                pushLog(G, `${powerLabel(p)} loads a ${treasure} CP treasure onto the expedition.`);
+            } else {
+                G.powers[p].treasures.push(treasure);
+                pushLog(G, `${powerLabel(p)} captures a ${treasure} CP Spanish treasure.`);
+            }
         } else {
             addVp(G, p, 1);
             pushLog(G, `${powerLabel(p)} gains 1 piracy VP.`);

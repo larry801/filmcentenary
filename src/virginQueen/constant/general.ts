@@ -598,7 +598,7 @@ export interface VQGame {
     /** Powers that have used their once-per-turn assassination action. */
     assassinationUsed: Power[];
     /** Sea captains currently on the World Map, with an optional colony aboard. */
-    worldCaptains: Record<string, {power: Power; location: string; damaged: boolean; colony: boolean; movedImpulse?: number; route?: string[]; navigationBonus?: number; navigationPenalty?: number; companion?: string}>;
+    worldCaptains: Record<string, {power: Power; location: string; damaged: boolean; colony: boolean; movedImpulse?: number; route?: string[]; navigationBonus?: number; navigationPenalty?: number; companion?: string; treasureValues?: number[]}>;
     /** Settlements already occupied by a permanent colony. */
     worldColonies: Partial<Record<string, Power>>;
     /** Starting or event-granted world-space control markers. */

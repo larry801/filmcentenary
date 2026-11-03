@@ -326,7 +326,7 @@
 
 - 若德雷克与霍金斯均未在地图上：立即组建一支英格兰联合远征队（使用德雷克等级）；
 - 事件牌移出游戏；
-- 2 份宝藏携带尚未接入；6 点摧毁要塞已接入（德雷克远征海盗骰含 6 时摧毁同海域西班牙要塞）；两位船长的“先各承受 1 点损伤”已用 `companion` 实现：首次消灭结果由霍金斯吸收。
+- 2 份宝藏携带已接入：远征最多携带 2 个宝藏，冬季返航时交给英格兰；6 点摧毁要塞已接入（德雷克远征海盗骰含 6 时摧毁同海域西班牙要塞）；两位船长的“先各承受 1 点损伤”已用 `companion` 实现：首次消灭结果由霍金斯吸收。
 
 ### 洛林的路易丝（#95）
 
@@ -833,6 +833,7 @@ src/virginQueen/
   drakeHawkins.test.ts  #106 德雷克/霍金斯远征
   companion.test.ts     #106 双船长伤害分担
   drakeFortress.test.ts #106 德雷克摧毁要塞
+  drakeTreasure.test.ts #106 德雷克携带宝藏
   borderReivers.test.ts #41 边境掠夺者
   seaBeggars.test.ts    #66 海上乞丐
   jeanne.test.ts        #58 纳瓦拉的珍妮
@@ -1151,3 +1152,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #36 童贞女王新增 `retrieve` / `retrieve:卡牌ID` 目标：即使伊丽莎白有婚约，也可从弃牌堆取回指定牌而不解除婚约。验证：`jest src/virginQueen --runInBand --silent` 126 suites、559 tests passed。
 
 行动面板新增两个响应按钮：法国持有 #89 且玛丽在世时可点“+4 苏格兰影响力”；持有 #11 且 `dragutFought` 为真时可点“德拉古特之死：掷骰”。验证：`jest src/virginQueen --runInBand --silent` 126 suites、559 tests passed；`npm run build` 通过。
+
+#106 德雷克携带宝藏接入后的验证：`jest src/virginQueen --runInBand --silent` 127 suites、560 tests passed（新增 1 项：海盗夺宝并冬季交付）；`npm run build` 通过，仍有既有大体积 chunk 提示。
