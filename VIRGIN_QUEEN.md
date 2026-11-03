@@ -170,6 +170,12 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 埃德蒙·坎皮恩（#107）
+
+- 在英格兰一个无驻军地区放置耶稣会士并转为天主教；
+- 统计相邻新教地区数，在英格兰进行等量天主教传播尝试；
+- 自动选择第一个无驻军英格兰地区。
+
 ### 第十便士（#69）
 
 - 新教打出：在尼德兰进行一次 5 CP 的煽动叛乱（自动选择首个目标）。
@@ -565,6 +571,7 @@ src/virginQueen/
   blackMagic.test.ts    #71 黑魔法 / #104 阿马达赦令
   taxis.test.ts         #68 塔克西斯家族信使
   tenthPenny.test.ts    #69 第十便士
+  campion.test.ts       #107 埃德蒙·坎皮恩
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -755,3 +762,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #68 塔克西斯家族信使接入后的验证：`jest src/virginQueen --runInBand --silent` 75 suites、484 tests passed（新增 1 项：交牌并抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #69 第十便士接入后的验证：`jest src/virginQueen --runInBand --silent` 76 suites、485 tests passed（新增 1 项：西班牙抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#107 埃德蒙·坎皮恩接入后的验证：`jest src/virginQueen --runInBand --silent` 77 suites、486 tests passed（新增 1 项：耶稣会士/转化）；`npm run build` 通过，仍有既有大体积 chunk 提示。

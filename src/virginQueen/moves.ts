@@ -657,6 +657,22 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #71 Black Magic: take a random non-home card from another power. */
 /** #68 Taxis Family Courier: give one card to another power and draw one. */
 /** #69 Tenth Penny: Protestant rebellion or Spanish card seizure. */
+/** #107 Edmund Campion: place a Jesuit and make conversion attempts. */
+const resolveEdmundCampion = (G: VQGame, ctx: Ctx): void => {
+    const target = SPACES.find((space) => space.area === "england" &&
+        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 && !G.spaces[space.id].unrest);
+    if (target === undefined) return;
+    const state = espionageState(G);
+    if (!state.jesuits.includes(target.id)) {
+        state.jesuits.push(target.id);
+        state.jesuitsOnCard = Math.max(0, state.jesuitsOnCard - 1);
+    }
+    G.spaces[target.id].religion = "catholic";
+    const adjacentProtestant = landNeighbors(target.id).filter((neighbor) => G.spaces[neighbor.id]?.religion === "protestant").length;
+    if (adjacentProtestant > 0) resolveConversions(G, ctx, "spain", "catholic", "england", adjacentProtestant);
+    pushLog(G, `Edmund Campion places a Jesuit in ${target.name}; ${adjacentProtestant} conversion attempt(s).`);
+};
+
 const resolveTenthPenny = (G: VQGame, ctx: Ctx, p: Power): void => {
     if (p === "protestant") {
         const space = rebellionTargets(G)[0];
@@ -1226,6 +1242,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveTaxis(G, ctx, p, target);
     } else if (handler === "tenthPenny") {
         resolveTenthPenny(G, ctx, p);
+    } else if (handler === "edmundCampion") {
+        resolveEdmundCampion(G, ctx);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
