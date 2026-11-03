@@ -2357,7 +2357,7 @@ export const rebellionTargets = (G: VQGame): string[] =>
     }).map((d) => d.id);
 
 export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, cp: number): boolean => {
-    if (p !== "protestant" || cp < 2 || cp > 5) {
+    if (p !== "protestant" || cp < 2 || cp > 7) {
         return false;
     }
     const def = SPACE_BY_ID[space];

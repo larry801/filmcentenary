@@ -785,6 +785,10 @@ const resolvePapalBull = (G: VQGame, ctx: Ctx, target?: string): void => {
 };
 
 const resolveCalvinistZeal = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target?.startsWith("rebel:")) {
+        resolveRebellion(G, ctx, "protestant", target.slice("rebel:".length), 7);
+        return;
+    }
     if (target?.startsWith("double:")) {
         const [first, second] = target.slice("double:".length).split(":");
         if (first !== undefined) resolveRebellion(G, ctx, "protestant", first, 4);
