@@ -53,6 +53,7 @@ import {
     atWar,
     baseVp,
     capitalOf,
+    catholicLeagueSpaceOptions,
     controlledKeys,
     homeCardChoiceRequired,
     hreReligiousPreferenceRequired,
@@ -833,6 +834,16 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 <Typography variant="caption" color="text.secondary">
                     手牌总 CP：{handCp}（宣战/议和使用手牌支付，本国牌不可用于宣战）
                 </Typography>
+                {G.pendingCatholicLeague !== undefined && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "divider", borderRadius: 1}}>
+                    <Typography variant="subtitle2">天主教联盟：西班牙选择法国地区</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        还需选择 {G.pendingCatholicLeague.remaining} 个未设防的法国本土地区（不能是休格诺家乡地区）。
+                    </Typography>
+                    {me === "spain" ? <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                        {catholicLeagueSpaceOptions(G).map((id) => <Button key={id} size="small" variant="outlined" disabled={!myTurn}
+                            onClick={() => moves.chooseCatholicLeagueSpace({space: id})}>{SPACE_BY_ID[id].name}</Button>)}
+                    </Stack> : <Typography variant="body2" color="text.secondary">等待西班牙选择…</Typography>}
+                </Stack>}
                 <FormControl size="small" fullWidth>
                     <InputLabel id="vq-diplo">目标强国</InputLabel>
                     <Select labelId="vq-diplo" label="目标强国" value={diploTarget}

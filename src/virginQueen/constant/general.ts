@@ -530,6 +530,8 @@ export interface VQGame {
     catholicLeagueNoDealsUntil?: number;
     /** The spaces Spain took when the League formed (Reims first). */
     catholicLeagueSpaces?: string[];
+    /** Spain still has to choose the League's two additional French spaces. */
+    pendingCatholicLeague?: {remaining: number};
     /** Set at the end of the Action Phase so endIf can score the winter. */
     checkVictory: boolean;
     /** Key counts at setup, so starting positions do not trigger military victory. */

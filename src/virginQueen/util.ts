@@ -2399,9 +2399,11 @@ const displaceReimsGarrison = (G: VQGame): void => {
 
 /**
  * Check for Catholic League formation at the end of Winter (rule 20.10).
- * The Spanish player's two additional space choices are currently made by a
- * deterministic priority (Protestant-controlled first, then French-controlled,
- * then nearest to Reims); the rest of the formation procedure is official.
+ * Reims and the reduced French forces are applied immediately; Spain then
+ * chooses the two additional unfortified French home spaces during the next
+ * Diplomacy Phase (see chooseCatholicLeagueSpace).  If the choice is still
+ * pending when Spring Deployment begins, resolvePendingCatholicLeague applies
+ * a deterministic fallback.
  */
 export const checkCatholicLeague = (G: VQGame, ctx: Ctx): boolean => {
     if (G.scenario === "tutorial" || G.catholicLeagueFormed === true || G.year < 3 || G.year > 6) {
@@ -2425,23 +2427,11 @@ export const checkCatholicLeague = (G: VQGame, ctx: Ctx): boolean => {
     if (!formed) return false;
 
     displaceReimsGarrison(G);
-    const candidates = SPACES.filter((def) => def.home === "france" && def.id !== "reims" &&
-        !isFortifiedSpace(G, def.id))
-        .sort((a, b) => {
-            const priority = (id: string): number => {
-                const control = G.spaces[id].control;
-                return control === "protestant" ? 0 : control === "france" ? 1 : 2;
-            };
-            return priority(a.id) - priority(b.id) ||
-                (winterDistance("reims", a.id) ?? 999) - (winterDistance("reims", b.id) ?? 999) ||
-                a.id.localeCompare(b.id);
-        });
-    const chosen = candidates.slice(0, 2).map((def) => def.id);
-    for (const id of ["reims", ...chosen]) {
-        G.spaces[id].control = "spain";
-        G.spaces[id].religion = "catholic";
-    }
-    pushLog(G, `Catholic League: Spain takes ${["reims", ...chosen].map((id) => SPACE_BY_ID[id].name).join(", ")}.`);
+    G.spaces.reims.control = "spain";
+    G.spaces.reims.religion = "catholic";
+    G.catholicLeagueSpaces = ["reims"];
+    G.pendingCatholicLeague = {remaining: 2};
+    pushLog(G, "Catholic League: Spain takes Reims; Spain must now choose 2 unfortified French home spaces.");
 
     const regularsBefore = SPACES.reduce((n, def) => n + (G.spaces[def.id].land.france?.regular ?? 0), 0);
     const mercsBefore = SPACES.reduce((n, def) => n + (G.spaces[def.id].land.france?.merc ?? 0), 0);
@@ -2470,11 +2460,54 @@ export const checkCatholicLeague = (G: VQGame, ctx: Ctx): boolean => {
     }
     if (!atWar(G, "spain", "france")) setWar(G, "spain", "france");
     if (!atWar(G, "spain", "protestant")) setWar(G, "spain", "protestant");
-    G.catholicLeagueSpaces = ["reims", ...chosen];
     G.catholicLeagueNoDealsUntil = G.year + 1;
     G.catholicLeagueFormed = true;
     pushLog(G, "The Catholic League has formed; Spain may make no deals with France or the Protestant this coming Diplomacy Segment.");
     return true;
+};
+
+/** Unfortified French home spaces Spain may still take for the League. */
+export const catholicLeagueSpaceOptions = (G: VQGame): string[] => {
+    if (G.pendingCatholicLeague === undefined) return [];
+    return SPACES.filter((def) => def.home === "france" && def.id !== "reims" &&
+        !isFortifiedSpace(G, def.id) && !(G.catholicLeagueSpaces ?? []).includes(def.id))
+        .map((def) => def.id);
+};
+
+export const applyCatholicLeagueSpace = (G: VQGame, id: string): void => {
+    if (G.pendingCatholicLeague === undefined) return;
+    G.spaces[id].control = "spain";
+    G.spaces[id].religion = "catholic";
+    G.catholicLeagueSpaces = [...(G.catholicLeagueSpaces ?? []), id];
+    G.pendingCatholicLeague.remaining -= 1;
+    pushLog(G, `Catholic League: Spain takes ${SPACE_BY_ID[id].name}.`);
+    if (G.pendingCatholicLeague.remaining <= 0) {
+        delete G.pendingCatholicLeague;
+        pushLog(G, `Catholic League spaces: ${(G.catholicLeagueSpaces ?? []).map((space) => SPACE_BY_ID[space].name).join(", ")}.`);
+    }
+};
+
+/** Fallback when Spain has not chosen by Spring Deployment. */
+export const resolvePendingCatholicLeague = (G: VQGame): void => {
+    if (G.pendingCatholicLeague === undefined) return;
+    const priority = (id: string): number => {
+        const control = G.spaces[id].control;
+        return control === "protestant" ? 0 : control === "france" ? 1 : 2;
+    };
+    const sorted = [...catholicLeagueSpaceOptions(G)].sort((a, b) =>
+        priority(a) - priority(b) ||
+        (winterDistance("reims", a) ?? 999) - (winterDistance("reims", b) ?? 999) ||
+        a.localeCompare(b));
+    const remaining = G.pendingCatholicLeague.remaining;
+    for (let i = 0; i < remaining; i++) {
+        const id = sorted[i];
+        if (id === undefined) break;
+        applyCatholicLeagueSpace(G, id);
+    }
+    if (G.pendingCatholicLeague !== undefined) {
+        pushLog(G, "Catholic League: no further unfortified French home spaces are available.");
+        delete G.pendingCatholicLeague;
+    }
 };
 
 export const winter = (G: VQGame, ctx: Ctx): void => {

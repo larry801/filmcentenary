@@ -49,6 +49,7 @@ import {
     addNaval,
     addVp,
     allied,
+    applyCatholicLeagueSpace,
     assaultSpace,
     atWar,
     atWarWithMinor,
@@ -58,6 +59,7 @@ import {
     canDeclareWar,
     capitalOf,
     captureLeaders,
+    catholicLeagueSpaceOptions,
     cleanupLand,
     cleanupNaval,
     clearWar,
@@ -600,6 +602,14 @@ export const declareWarMinor = (G: VQGame, ctx: Ctx, args: { target: MinorPower 
     if (winner !== undefined && G.powers[winner].alliedMinors.includes(target)) {
         setWar(G, winner, p);
     }
+};
+
+export const chooseCatholicLeagueSpace = (G: VQGame, ctx: Ctx, args: {space: string}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "diplomacy" || G.pendingCatholicLeague === undefined) return INVALID_MOVE;
+    if (power(G, ctx) !== "spain") return INVALID_MOVE;
+    if (ctx.playerID !== undefined && ownerOf(G, "spain") !== ctx.playerID) return INVALID_MOVE;
+    if (!catholicLeagueSpaceOptions(G).includes(args.space)) return INVALID_MOVE;
+    applyCatholicLeagueSpace(G, args.space);
 };
 
 export const makePeace = (G: VQGame, ctx: Ctx, args: { target: Power }): void | typeof INVALID_MOVE => {

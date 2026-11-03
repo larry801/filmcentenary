@@ -2,8 +2,8 @@ import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {VQGame} from "./constant/general";
 import {SPACE_BY_ID, SPACES} from "./mapData";
-import {makePeace, moveLand} from "./moves";
-import {atWar, checkCatholicLeague, isFortifiedSpace, setupGame, winter} from "./util";
+import {chooseCatholicLeagueSpace, makePeace, moveLand} from "./moves";
+import {atWar, catholicLeagueSpaceOptions, checkCatholicLeague, isFortifiedSpace, resolvePendingCatholicLeague, setupGame, winter} from "./util";
 
 const context = (roll = 6, numPlayers = 6): Ctx => ({
     currentPlayer: "0",
@@ -15,6 +15,11 @@ const context = (roll = 6, numPlayers = 6): Ctx => ({
 } as unknown as Ctx);
 
 const game = (): VQGame => setupGame(context());
+
+const spainDiplomacy = (): Ctx => ({...context(), phase: "diplomacy", currentPlayer: "1", playerID: "1"} as Ctx);
+
+const chooseLeague = (G: VQGame, space: string, ctx = spainDiplomacy()): void | typeof INVALID_MOVE =>
+    chooseCatholicLeagueSpace(G, ctx, {space});
 
 const frenchRegulars = (G: VQGame): number =>
     SPACES.reduce((total, space) => total + (G.spaces[space.id].land.france?.regular ?? 0), 0);
@@ -65,8 +70,8 @@ describe("Catholic League formation (rule 20.10)", () => {
         expect(checkCatholicLeague(G, context())).toBe(true);
 
         expect(G.catholicLeagueFormed).toBe(true);
-        expect(G.catholicLeagueSpaces).toHaveLength(3);
-        expect(G.catholicLeagueSpaces![0]).toBe("reims");
+        expect(G.pendingCatholicLeague).toEqual({remaining: 2});
+        expect(G.catholicLeagueSpaces).toEqual(["reims"]);
         expect(G.spaces.reims.control).toBe("spain");
         expect(G.spaces.reims.religion).toBe("catholic");
         expect(G.spaces.reims.fortress).toBe(true);
@@ -81,6 +86,47 @@ describe("Catholic League formation (rule 20.10)", () => {
         expect(atWar(G, "spain", "protestant")).toBe(true);
         expect(G.catholicLeagueNoDealsUntil).toBe(5);
         expect(G.log.join("\n")).toContain("Catholic League");
+
+        const options = catholicLeagueSpaceOptions(G);
+        expect(options.length).toBeGreaterThanOrEqual(2);
+        expect(chooseLeague(G, options[0])).toBeUndefined();
+        expect(G.pendingCatholicLeague).toEqual({remaining: 1});
+        expect(chooseLeague(G, options[1])).toBeUndefined();
+        expect(G.pendingCatholicLeague).toBeUndefined();
+        expect(G.catholicLeagueSpaces).toHaveLength(3);
+        expect(G.spaces[options[0]].control).toBe("spain");
+        expect(G.spaces[options[0]].religion).toBe("catholic");
+        expect(G.spaces[options[1]].control).toBe("spain");
+    });
+
+    it("rejects illegal league space choices and non-Spanish choosers", () => {
+        const G = game();
+        G.year = 4;
+        giveProtestantKeys(G);
+        checkCatholicLeague(G, context());
+
+        expect(chooseLeague(G, "paris", {...context(), phase: "diplomacy", currentPlayer: "0", playerID: "0"})).toBe(INVALID_MOVE);
+        expect(chooseLeague(G, "paris")).toBe(INVALID_MOVE);
+        expect(chooseLeague(G, "laRochelle")).toBe(INVALID_MOVE);
+        expect(chooseCatholicLeagueSpace(G, {...spainDiplomacy(), phase: "action"}, {space: catholicLeagueSpaceOptions(G)[0]})).toBe(INVALID_MOVE);
+
+        const option = catholicLeagueSpaceOptions(G)[0];
+        expect(chooseLeague(G, option)).toBeUndefined();
+        expect(chooseLeague(G, option)).toBe(INVALID_MOVE);
+        expect(G.pendingCatholicLeague).toEqual({remaining: 1});
+    });
+
+    it("resolves any pending league choices automatically before spring deployment", () => {
+        const G = game();
+        G.year = 4;
+        giveProtestantKeys(G);
+        checkCatholicLeague(G, context());
+
+        resolvePendingCatholicLeague(G);
+
+        expect(G.pendingCatholicLeague).toBeUndefined();
+        expect(G.catholicLeagueSpaces).toHaveLength(3);
+        expect(G.log.join("\n")).toContain("Catholic League spaces:");
     });
 
     it("does not form with five French home spaces and fewer than three keys", () => {
