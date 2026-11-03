@@ -2,8 +2,8 @@ import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {VQGame} from "./constant/general";
 import {armadaTransport, loadArmada, moveNaval, playCard, unloadArmada, upgradeArmada} from "./moves";
-import {applyNavalCombatLosses, navalCombatDice} from "./navalCombat";
-import {navalBlockadeSatisfied, setupGame} from "./util";
+import {applyNavalCombatLosses, navalCombatDice, retreatNaval} from "./navalCombat";
+import {navalBlockadeSatisfied, setupGame, winter} from "./util";
 
 const context = (values: number[] = [], player = "1"): Ctx => ({
     currentPlayer: player,
@@ -109,6 +109,22 @@ describe("Spanish Armada (rule 23.2)", () => {
         expect(G.armada.land).toBeUndefined();
         expect(G.spaces.portsmouth.land.spain.regular).toBe(3);
         expect(G.powers.spain.cp).toBe(0);
+    });
+
+    it("retreats with a Spanish fleet and returns to port in winter", () => {
+        const G = game();
+        G.armada = {strength: 2, location: "englishChannel"};
+        G.seaZones.englishChannel.naval.spain = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+        G.spaces.portsmouth.control = "spain";
+
+        expect(retreatNaval(G, "englishChannel", ["spain"])).toBe(true);
+        expect(G.armada.location).not.toBe("englishChannel");
+        expect(G.spaces[G.armada.location]).toBeDefined();
+
+        G.armada.location = "bayOfBiscay";
+        G.spaces.corunna.control = "spain";
+        winter(G, context([], "1"));
+        expect(G.seaZones[G.armada.location as keyof VQGame["seaZones"]]).toBeUndefined();
     });
 
     it("trims excess land when the Armada loses strength", () => {

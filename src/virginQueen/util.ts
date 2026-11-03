@@ -2714,6 +2714,20 @@ const winterReturnNaval = (G: VQGame): void => {
             }
         }
     }
+    if (G.armada !== undefined && isSeaZone(G.armada.location)) {
+        const ports = SPACES.filter((def) => G.spaces[def.id].control === "spain" && isPort(def.id) && !isInlandPort(def.id))
+            .map((def) => def.id)
+            .map((port) => ({port, distance: winterNavalDistance(G.armada!.location as SeaZoneID, port)}))
+            .filter((entry): entry is {port: string; distance: number} => entry.distance !== undefined)
+            .sort((a, b) => a.distance - b.distance || a.port.localeCompare(b.port));
+        if (ports.length === 0) {
+            delete G.armada;
+            pushLog(G, "The Armada has no port to return to and is eliminated.");
+        } else {
+            G.armada.location = ports[0].port;
+            pushLog(G, `The Armada returns to ${SPACE_BY_ID[ports[0].port].name}.`);
+        }
+    }
 };
 
 const winterReturnLand = (G: VQGame, p: Power): void => {

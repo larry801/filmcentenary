@@ -123,6 +123,7 @@ export const retreatNaval = (G: VQGame, location: string, owners: Controller[], 
         const leaders = leadersAt(G, location).filter((id) => LEADER_BY_ID[id]?.kind === "naval" &&
             owners.includes(LEADER_BY_ID[id].power));
         if (leaders.length > 0) moveLeaders(G, location, "pool", leaders);
+        if (owners.includes("spain") && G.armada?.location === location) delete G.armada;
         pushLog(G, `${owners.join("/")} naval force is eliminated (no retreat).`);
         return false;
     }
@@ -141,6 +142,7 @@ export const retreatNaval = (G: VQGame, location: string, owners: Controller[], 
     const leaders = leadersAt(G, location).filter((id) => LEADER_BY_ID[id]?.kind === "naval" &&
         owners.includes(LEADER_BY_ID[id].power));
     if (leaders.length > 0) moveLeaders(G, location, destination, leaders);
+    if (owners.includes("spain") && G.armada?.location === location) G.armada.location = destination;
     pushLog(G, `${owners.join("/")} naval force retreats to ${SPACE_BY_ID[destination]?.name ?? destination}.`);
     return true;
 };
@@ -218,6 +220,7 @@ export const attemptNavalInterception = (
         navalAt(G, to)[candidate.power] = target;
         delete navalAt(G, candidate.location)[candidate.power];
         if (leaders.length > 0) moveLeaders(G, candidate.location, to, leaders);
+        if (candidate.power === "spain" && G.armada?.location === candidate.location) G.armada.location = to;
         pushLog(G, `${powerLabel(candidate.power)} intercepts the naval move into ${SPACE_BY_ID[to]?.name ?? to}.`);
         return true;
     }
