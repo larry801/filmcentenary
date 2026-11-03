@@ -639,6 +639,15 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             onClick={() => moves.pass()}>跳过</Button>
                     <Button size="small" variant="outlined" disabled={!myTurn}
                             onClick={() => moves.endImpulse()}>结束行动轮次</Button>
+                    {myTurn && me === "france" && G.powers.france.cards.includes("vq-089") &&
+                        G.royals.some((royal) => royal.id === "maryScots" && royal.alive) &&
+                        <Button size="small" variant="outlined" onClick={() => (moves as unknown as {maryInfluence: () => void}).maryInfluence()}>
+                            玛丽：+4 苏格兰影响力
+                        </Button>}
+                    {myTurn && G.powers[me].cards.includes("vq-011") && G.dragutFought === true &&
+                        <Button size="small" variant="outlined" onClick={() => (moves as unknown as {dragutFallsRoll: () => void}).dragutFallsRoll()}>
+                            德拉古特之死：掷骰
+                        </Button>}
                 </Stack>
                 <Divider/>
                 {G.foreignWars[me]?.status === "setup" && <Paper variant="outlined" sx={{p: 1}}>

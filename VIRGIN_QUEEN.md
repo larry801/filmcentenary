@@ -1149,3 +1149,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #108 英格兰拒绝国教者接入后的验证：`jest src/virginQueen --runInBand --silent` 125 suites、558 tests passed（新增 1 项：英/苏各 3 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #36 童贞女王新增 `retrieve` 目标：即使伊丽莎白有婚约，也可选择从弃牌堆取回一张牌而不解除婚约。验证：`jest src/virginQueen --runInBand --silent` 126 suites、559 tests passed。
+
+行动面板新增两个响应按钮：法国持有 #89 且玛丽在世时可点“+4 苏格兰影响力”；持有 #11 且 `dragutFought` 为真时可点“德拉古特之死：掷骰”。验证：`jest src/virginQueen --runInBand --silent` 126 suites、559 tests passed；`npm run build` 通过。
