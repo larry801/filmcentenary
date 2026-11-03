@@ -170,6 +170,12 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 誓绝法案（#103）
+
+- 英格兰/法国/HRE 向新教提议：立即结盟，并从本土向尼德兰新教控制、无其他势力部队的地区移动至多 5 个正规军；
+- 提议方获得 1 VP，事件牌移出游戏；
+- 当前自动从本土按顺序抽调最多 5 个正规军；其他势力只能接受一个提议、将领随行与多提议竞争尚未接入。
+
 ### 街垒日（#112）
 
 - 条件：法国未与西班牙结盟、巴黎不由西班牙控制、西班牙控制 2 个巴黎相邻地区、巴黎/相邻地区有 ≥4 西班牙正规军且吉斯公爵在 1 格内。
@@ -597,6 +603,7 @@ src/virginQueen/
   sultanaSafiye.test.ts #98 苏丹娜·萨菲耶选项 1
   blackQueen.test.ts    #80 黑太后选项 3
   dayBarricades.test.ts #112 街垒日
+  actAbjuration.test.ts #103 誓绝法案
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -797,3 +804,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #80 黑太后选项 3 接入后的验证：`jest src/virginQueen --runInBand --silent` 80 suites、491 tests passed（新增 2 项：抽牌/抽 2）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #112 街垒日接入后的验证：`jest src/virginQueen --runInBand --silent` 81 suites、492 tests passed（新增 1 项：西班牙夺取巴黎）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#103 誓绝法案接入后的验证：`jest src/virginQueen --runInBand --silent` 82 suites、493 tests passed（新增 1 项：结盟/派兵/VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。

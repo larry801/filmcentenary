@@ -671,6 +671,31 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #98 Sultana Safiye option 1: exchange a card with another power. */
 /** #80 The Black Queen, option 3: take a card or draw two. */
 /** #112 Day of the Barricades: seize Paris under the right conditions. */
+/** #103 Act of Abjuration: one power allies with the Protestant and sends troops. */
+const resolveActOfAbjuration = (G: VQGame, p: Power, target?: string): void => {
+    if (!["england", "france", "hre"].includes(p) || atWar(G, p, "protestant") ||
+        target === undefined || SPACE_BY_ID[target]?.area !== "netherlands" ||
+        G.spaces[target].control !== "protestant") return;
+    const owners = ownersWithLand(G, target);
+    if (owners.some((owner) => owner !== "protestant")) return;
+    G.powers[p].allies.push("protestant");
+    G.powers.protestant.allies.push(p);
+    let remaining = 5;
+    for (const space of SPACES.filter((def) => def.home === p && G.spaces[def.id].control === p)) {
+        const stack = G.spaces[space.id].land[p];
+        if (stack === undefined) continue;
+        const take = Math.min(remaining, stack.regular);
+        stack.regular -= take;
+        remaining -= take;
+        addLand(G, target, p, "regular", take);
+        if (take > 0) pushLog(G, `Act of Abjuration: ${powerLabel(p)} sends ${take} regular(s) from ${space.name}.`);
+        if (remaining === 0) break;
+    }
+    addVp(G, p, 1);
+    removeCardFromGame(G, "vq-103");
+    pushLog(G, `Act of Abjuration: ${powerLabel(p)} allies with the Protestant and gains 1 VP.`);
+};
+
 const resolveDayOfBarricades = (G: VQGame): void => {
     if (allied(G, "france", "spain") || G.spaces.paris.control === "spain") return;
     const neighbors = landNeighbors("paris").map((neighbor) => neighbor.id);
@@ -1307,6 +1332,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveBlackQueen(G, ctx, p, target);
     } else if (handler === "dayOfTheBarricades") {
         resolveDayOfBarricades(G);
+    } else if (handler === "actOfAbjuration") {
+        resolveActOfAbjuration(G, p, target);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
