@@ -153,6 +153,14 @@
 - Valois 王室结婚时法国额外 +1 VP。
 - 已接入 Don Carlos/Anna of Austria 重掷、William of Orange 回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 卡牌标记、Isabella Clara Eugenia 赞助加值；#36 童贞女王已接入弃婚与 Jilted Table；Philip II/Charles IX/Henry III/Rudolf II/Elizabeth I 死亡效果已按 23.2–23.5 接入；Mary Queen of Scots 状态仍简化。
 
+### 西班牙阿马达（23.2）
+
+- 打出 #99 西班牙无敌舰队：若阿马达未在地图，放置于西班牙控制的塞维利亚/科伦纳/里斯本，强度 2，并获得 5 CP；若已在地图，获得 7 CP。
+- 升级：3 CP，强度 +2，上限 8；须在塞维利亚/科伦纳/里斯本。
+- 战斗：与西班牙舰队同格时增加等同于强度的骰数；承受命中时先以强度吸收（每 2 命中降 1 级，强度归零则消灭）。
+- 移动：随同格的西班牙舰队移动；尚不能单独移动。
+- 未实现：载运陆军、阿马达海运、海军封锁、拦截/避战、冬季返港与重建。
+
 ### 统治者死亡（23.2–23.5）
 
 - Philip II 被谋杀：西班牙 0 卡牌奖励、1 Admin。
@@ -213,7 +221,8 @@ Card Draw 按参战强国依次确认，同一玩家控制的多个强国也需�
 - 正式局仍有部分 Response / Combat 卡与 Mandatory Event 需要手动结算；教学局使用的响应卡和 1–31 号卡已接入对应教学流程
 - 正式局已接入自动拦截（13.2）与自动陆军避战（13.3），但编队/尝试顺序由程序选择；退入要塞选项仍保留简化
 - 冬季 20.4 的海军返港、陆军半损/4 单位上限/首都例外已实现；但目的地与损耗单位没有交互选择；海运已在正式局开放，但 Storms 响应、海运期间拦截与“每行动轮次只能海运一个编队”尚未实现；Catholic League（20.10）已接入，西班牙在下一外交阶段交互选地（春季未选完时自动补选）；Grand Tour #53 在联盟成立后打出即移出游戏，Dragut Falls #11 在 Dragut 离场时移出游戏；世界地图船长返航未实现
-- 阿马达的完整规则（相关本国牌仍做了简化判定）；正式局退入要塞仍未完整
+- 西班牙阿马达已接入 #99 放置/升级、随西班牙舰队移动、战斗骰与承受命中；单独移动、载运陆军、海军运输、封锁、拦截/避战与冬季处理仍未完整
+- 正式局退入要塞仍未完整
 - 海军避战已接入但目的地/编队自动；海军拦截编队与多敌军顺序仍自动
 - 婚姻已按官方 Royal Wedding Table 结算（2d6 + 资格；同国只取较高资格；15+ 双方 2 VP、14 双方 1 VP+卡牌标记、13 双方 1 VP、12 +1 卡牌标记、10/11 无效果、9 最后取消、8 −1 卡牌标记、7 妻子死于难产、6- 丈夫被谋杀；Valois +1 VP）。已接入 Don Carlos 最高骰重掷、Anna of Austria 最低骰重掷、William of Orange 无 VP 结果回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 的卡牌标记、Isabella Clara Eugenia 赞助加值；#36 童贞女王已接入弃婚与 Jilted Table；Philip II/Charles IX/Henry III/Rudolf II/Elizabeth I 死亡效果已按 23.2–23.5 降低卡牌/Admin，并处理 Henry III 将领与 Elizabeth 牌
 - 统治者死亡/更替、
@@ -267,6 +276,7 @@ src/virginQueen/
   circumnavigation.test.ts 16.6 首次/后续 VP、缺少前置航段、奥斯曼路线
   rulerDeath.test.ts    23.2–23.5 统治者死亡后的卡牌/Admin/将领/Elizabeth 牌
   worldPiracy.test.ts   16.5/17.3 巡逻舰、世界要塞、世界海盗防御/奖励/限制
+  armada.test.ts        23.2 阿马达放置/升级/骰数/承伤/随行
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
 ```
@@ -341,3 +351,5 @@ Royal Wedding Table（21.1）接入后的验证：`jest src/virginQueen --runInB
 贸易风（16.4）接入后的验证：`jest src/virginQueen --runInBand --silent` 32 suites、391 tests passed（新增 2 项：逆风检定、顺风不检定）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 世界海盗/巡逻舰/要塞（16.5/17.3）接入后的验证：`jest src/virginQueen --runInBand --silent` 33 suites、396 tests passed（新增 5 项：建造巡逻舰与要塞、巡逻/宝藏/VP 奖励顺序、无巡逻无宝藏给 VP、两防御命中消灭船长、每海域每势力一次限制）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+西班牙阿马达（23.2）接入后的验证：`jest src/virginQueen --runInBand --silent` 34 suites、401 tests passed（新增 5 项：放置与 5 CP、已在地图 7 CP、升级限制、骰数与承伤、随舰队移动）；`npm run build` 通过，仍有既有大体积 chunk 提示。

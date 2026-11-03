@@ -506,6 +506,15 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {ps !== undefined && ps.cardPlayed && <Chip size="small" color="success" label="本回合已出牌"/>}
                 </Stack>
                 {!myTurn && <Typography variant="caption" color="text.secondary">等待 {POWER_NAMES[G.activePower].zh} 行动。</Typography>}
+                {me === "spain" && G.armada !== undefined && <Paper variant="outlined" sx={{p: 1}}>
+                    <Typography variant="subtitle2">西班牙阿马达 · 强度 {G.armada.strength}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        位于 {SPACE_BY_ID[G.armada.location]?.name ?? G.armada.location}；与西班牙舰队同格时自动参战/随行。
+                    </Typography>
+                    <Button size="small" variant="outlined" sx={{mt: 0.5}}
+                        disabled={!myTurn || cp < 3 || G.armada.strength >= 8 || !["seville", "corunna", "lisbon"].includes(G.armada.location)}
+                        onClick={() => moves.upgradeArmada()}>升级阿马达 (3 CP)</Button>
+                </Paper>}
                 <FormControl size="small" fullWidth>
                     <InputLabel id="vq-mode">行动</InputLabel>
                     <Select labelId="vq-mode" label="行动" value={mode}

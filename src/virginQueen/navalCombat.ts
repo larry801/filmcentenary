@@ -30,6 +30,7 @@ export const navalCombatDice = (G: VQGame, location: string, owners: Controller[
         if (stack === undefined) continue;
         dice += stack.corsair + stack.galleon * 2 + stack.racebuilt * 2 + stack.galley * galleyDice;
     }
+    if (owners.includes("spain") && G.armada?.location === location) dice += G.armada.strength;
     dice += bestBattle(G, location, owners, "naval");
     if (defender && port) dice += 1;
     return Math.max(1, dice);
@@ -53,6 +54,18 @@ export const applyNavalCombatLosses = (
         const racebuilt = owners.reduce((total, owner) => total + (stackAt(G, location, owner)?.racebuilt ?? 0), 0);
         const fives = opposingRolls.filter((value) => value === 5).length;
         hitsCount = Math.max(0, hitsCount - Math.min(racebuilt, fives));
+    }
+    if (owners.includes("spain") && G.armada?.location === location && hitsCount > 0) {
+        const absorbed = Math.min(hitsCount, G.armada.strength);
+        const levels = Math.ceil(absorbed / 2);
+        const remainingStrength = G.armada.strength - levels * 2;
+        hitsCount -= absorbed;
+        if (remainingStrength <= 0) {
+            delete G.armada;
+            pushLog(G, "The Spanish Armada is eliminated.");
+        } else {
+            G.armada.strength = remainingStrength as 2 | 4 | 6 | 8;
+        }
     }
     let losses = Math.floor(hitsCount / 2) + (losing ? hitsCount % 2 : 0);
     let removed = 0;

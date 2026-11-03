@@ -579,6 +579,8 @@ export interface VQGame {
     piracyActions?: Partial<Record<Power, number>>;
     piracyZones?: Partial<Record<string, Power[]>>;
     worldFortressesBuilt?: number;
+    /** Spanish Armada: strength 2/4/6/8 and current port or sea zone. */
+    armada?: {strength: 2 | 4 | 6 | 8; location: string};
     /** Number of completed circumnavigations (first 2 VP, later 1 VP). */
     circumnavigations?: number;
     /** Sea captains on the Turn Track, returning to the pool in a future year. */

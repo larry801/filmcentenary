@@ -354,6 +354,31 @@ const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power): void => {
     }
 };
 
+/** Spanish Armada home card: place it and grant CP, or grant CP if already placed. */
+const resolveSpanishArmada = (G: VQGame, p: Power): void => {
+    if (G.armada === undefined) {
+        const port = ["seville", "corunna", "lisbon"].find((id) => G.spaces[id].control === p && !G.spaces[id].unrest && G.spaces[id].siege === undefined);
+        if (port === undefined) {
+            pushLog(G, "Spain has no legal port for the Armada.");
+            return;
+        }
+        G.armada = {strength: 2, location: port};
+        G.powers[p].cp += 5;
+        pushLog(G, `The Spanish Armada is placed in ${SPACE_BY_ID[port].name}; Spain gains 5 CP.`);
+    } else {
+        G.powers[p].cp += 7;
+        pushLog(G, "Spain gains 7 CP for the Armada.");
+    }
+};
+
+export const upgradeArmada = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action" || power(G, ctx) !== "spain" || G.armada === undefined || G.armada.strength >= 8 ||
+        !["seville", "corunna", "lisbon"].includes(G.armada.location) || G.powers.spain.cp < 3) return INVALID_MOVE;
+    if (!spend(G, "spain", 3)) return INVALID_MOVE;
+    G.armada.strength = (G.armada.strength + 2) as 2 | 4 | 6 | 8;
+    pushLog(G, `Spain upgrades the Armada to strength ${G.armada.strength}.`);
+};
+
 const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, target?: string): void => {
     const def = cardById(cardId);
     const handler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
@@ -376,6 +401,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveMoriscoRevolt(G, p);
     } else if (handler === "virginQueen") {
         resolveVirginQueenEvent(G, ctx, p);
+    } else if (handler === "spanishArmada") {
+        resolveSpanishArmada(G, p);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
@@ -1723,6 +1750,7 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
         }
         G.leaders[id].location = to;
     }
+    if (p === "spain" && G.armada?.location === from) G.armada.location = to;
     pushLog(G, `${powerLabel(p)} sails from ${from} to ${to}.`);
     if (G.scenario === "tutorial") {
         if (offerInterception(G, ctx, "naval", from, to, p)) return;
