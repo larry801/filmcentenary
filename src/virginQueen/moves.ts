@@ -591,6 +591,17 @@ const resolveHolyRomanIntercession = (G: VQGame, ctx: Ctx, target?: string): voi
     pushLog(G, `${powerLabel("hre")} allies with ${powerLabel(ally)}, declares war on ${powerLabel(enemy)}, and places ${ones} unrest (${G.lastRolls}).`);
 };
 
+/** #56 Index of Prohibited Books, option 1: six Catholic attempts. */
+const resolveIndex = (G: VQGame, ctx: Ctx): void => {
+    for (let attempt = 0; attempt < 6; attempt++) {
+        const areas = ["france", "netherlands", "scotland"] as const;
+        const area = areas
+            .map((id) => ({id, count: SPACES.filter((space) => space.area === id && G.spaces[space.id].religion === "protestant").length}))
+            .sort((a, b) => b.count - a.count)[0].id;
+        resolveConversions(G, ctx, "spain", "catholic", area, 1, attempt === 0);
+    }
+};
+
 const resolvePatronOfArts = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined) return;
     const patron = patronById(G, target);
@@ -902,6 +913,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveItalianExpert(G, p, target);
     } else if (handler === "patronOfArts") {
         resolvePatronOfArts(G, ctx, target);
+    } else if (handler === "indexOfProhibitedBooks") {
+        resolveIndex(G, ctx);
     } else if (handler === "holyRomanIntercession") {
         resolveHolyRomanIntercession(G, ctx, target);
     } else if (handler === "ottomanTribute") {

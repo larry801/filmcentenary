@@ -151,6 +151,11 @@
 - `recruit` 招募正规军前检查当前正规军总数（地图 + 境外战争 + 阿马达搭载），达到上限则非法。
 - 雇佣兵、骑兵、海军与海军重建延迟仍未纳入统一 force pool。
 
+### 禁书目录（#56）
+
+- 选项 1：在法兰西/尼德兰/苏格兰共进行 6 次天主教传播尝试，首个骰值自动为 6；自动选择当前新教地区最多的区域逐个结算。
+- 选项 2（取消艺术家/科学家工作进度）尚未接入。
+
 ### 西班牙之路（#3）
 
 - 若米兰由西班牙控制：在米兰 +1 正规军，并准备一次西班牙之路行军。
@@ -450,6 +455,7 @@ src/virginQueen/
   hreIntercession.test.ts #34 神圣罗马的调解
   ottomanTribute.test.ts #2 奥斯曼贡金
   spanishRoad.test.ts   #3 西班牙之路
+  indexBooks.test.ts    #56 禁书目录 6 次天主教尝试
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
   regularLimit.test.ts  17.1 正规军计数器上限
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
@@ -604,3 +610,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #2 奥斯曼贡金接入后的验证：`jest src/virginQueen --runInBand --silent` 58 suites、459 tests passed（新增 2 项：纳贡/宣战）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #3 西班牙之路接入后的验证：`jest src/virginQueen --runInBand --silent` 59 suites、460 tests passed（新增 1 项：米兰增兵与特殊行军）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#56 禁书目录（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 60 suites、461 tests passed（新增 1 项：6 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
