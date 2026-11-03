@@ -1465,9 +1465,9 @@ const resolveNorthwestPassage = (G: VQGame, ctx: Ctx, target?: string): void => 
     }
 };
 
-const resolveMenendez = (G: VQGame, ctx: Ctx): void => {
+const resolveMenendez = (G: VQGame, ctx: Ctx, target?: string): void => {
     const florida = G.worldColonies.florida;
-    if (florida !== undefined && florida !== "spain") {
+    if (target !== "escort" && target !== "fortress" && florida !== undefined && florida !== "spain") {
         const roll = die(ctx, 6);
         G.lastRolls = `Menéndez de Avilés: ${roll}`;
         if (roll >= 3) {
@@ -1479,7 +1479,7 @@ const resolveMenendez = (G: VQGame, ctx: Ctx): void => {
         }
         return;
     }
-    if ((G.treasureFleetEscorts ?? 0) < 2) {
+    if (target !== "fortress" && (G.treasureFleetEscorts ?? 0) < 2) {
         G.treasureFleetEscorts = (G.treasureFleetEscorts ?? 0) + 1;
         pushLog(G, "Menéndez de Avilés adds a galleon to the Treasure Fleet escorts.");
         return;
@@ -1941,7 +1941,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "card063") {
         resolveNostradamus(G, ctx, p);
     } else if (handler === "menendezDeAviles") {
-        resolveMenendez(G, ctx);
+        resolveMenendez(G, ctx, target);
     } else if (handler === "northwestPassage") {
         resolveNorthwestPassage(G, ctx, target);
     } else if (handler === "puritans") {

@@ -465,7 +465,7 @@
 - 若佛罗里达有非西班牙殖民地：掷 1d6，3+ 移除殖民地并由西班牙控制。
 - 否则若护航不足 2：增加 1 艘珍宝舰队护航。
 - 否则在西班牙世界定居点建要塞并增加 1 支巡逻队。
-- 三选项自动按优先级选择；间谍自动成功尚未接入。
+- 默认按“佛罗里达→护航→要塞”优先级自动选择；可用 `escort`/`fortress` 强制选择护航或要塞；间谍自动成功尚未接入。
 
 ### 诺查丹玛斯的大预言（#63）
 
@@ -1036,7 +1036,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #63 诺查丹玛斯接入后的验证：`jest src/virginQueen --runInBand --silent` 68 suites、472 tests passed（新增 1 项：抽牌保留最高 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#61 梅嫩德斯接入后的验证：`jest src/virginQueen --runInBand --silent` 69 suites、474 tests passed（新增 2 项：佛罗里达殖民地/护航）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#61 梅嫩德斯接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、588 tests passed（新增 3 项：佛罗里达殖民地、护航、强制护航）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #62 西北航道接入后的验证：`jest src/virginQueen --runInBand --silent` 70 suites、476 tests passed（新增 2 项：安全/死亡）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 

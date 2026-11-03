@@ -30,6 +30,18 @@ describe("Menéndez de Avilés (card #61)", () => {
         expect(G.worldControls.florida).toBe("spain");
     });
 
+    it("can choose the escort even when Florida is available", () => {
+        const G = game();
+        prepare(G);
+        G.worldColonies.florida = "england";
+        G.treasureFleetEscorts = 0;
+
+        expect(playCard(G, context([3]), {cardId: "vq-061", asEvent: true, target: "escort"})).toBeUndefined();
+
+        expect(G.treasureFleetEscorts).toBe(1);
+        expect(G.worldColonies.florida).toBe("england");
+    });
+
     it("adds a treasure-fleet escort when Florida is not available", () => {
         const G = game();
         prepare(G);
