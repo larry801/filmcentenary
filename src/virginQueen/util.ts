@@ -451,15 +451,20 @@ export const navigationCheck = (G: VQGame, ctx: Ctx, captainId: string): boolean
     pushLog(G, G.lastRolls);
     if (total <= 6) {
         delete G.worldCaptains[captainId];
-        if (!G.powers[expedition.power].seaCaptains.includes(captainId)) G.powers[expedition.power].seaCaptains.push(captainId);
-        pushLog(G, `${captain.nameEn}'s expedition is eliminated; the captain returns to the pool next turn.`);
+        if (captainId === "muratReis") {
+            G.seaCaptainReturn = {...(G.seaCaptainReturn ?? {}), [captainId]: {power: expedition.power, turn: G.year + 1}};
+            pushLog(G, "Murat Reis survives the elimination and returns to the Turn Track.");
+        } else {
+            G.powers[expedition.power].seaCaptains = G.powers[expedition.power].seaCaptains.filter((id) => id !== captainId);
+            pushLog(G, `${captain.nameEn}'s expedition is eliminated; the captain is removed from the game.`);
+        }
         return false;
     }
     if (total <= 8) {
         if (expedition.damaged) {
             delete G.worldCaptains[captainId];
-            if (!G.powers[expedition.power].seaCaptains.includes(captainId)) G.powers[expedition.power].seaCaptains.push(captainId);
-            pushLog(G, `${captain.nameEn}'s already damaged expedition is eliminated.`);
+            G.seaCaptainReturn = {...(G.seaCaptainReturn ?? {}), [captainId]: {power: expedition.power, turn: G.year + 1}};
+            pushLog(G, `${captain.nameEn}'s already damaged expedition is eliminated; the captain goes to the Turn Track.`);
             return false;
         }
         expedition.damaged = true;
@@ -495,7 +500,7 @@ export const checkCircumnavigation = (G: VQGame, captainId: string, from: string
     const vp = number === 1 ? 2 : 1;
     addVp(G, expedition.power, vp);
     delete G.worldCaptains[captainId];
-    if (!G.powers[expedition.power].seaCaptains.includes(captainId)) G.powers[expedition.power].seaCaptains.push(captainId);
+    G.seaCaptainReturn = {...(G.seaCaptainReturn ?? {}), [captainId]: {power: expedition.power, turn: G.year + 1}};
     pushLog(G, `${captainId} completes a circumnavigation; ${powerLabel(expedition.power)} gains ${vp} VP.`);
     return true;
 };
@@ -526,8 +531,19 @@ export const resolveColonies = (G: VQGame, ctx: Ctx): void => {
     }
 };
 
+/** Return sea captains from the Turn Track during Card Draw. */
+export const returnSeaCaptains = (G: VQGame): void => {
+    for (const [id, entry] of Object.entries(G.seaCaptainReturn ?? {})) {
+        if (entry.turn > G.year) continue;
+        if (!G.powers[entry.power].seaCaptains.includes(id)) G.powers[entry.power].seaCaptains.push(id);
+        delete G.seaCaptainReturn![id];
+        pushLog(G, `${id} returns to ${powerLabel(entry.power)}'s sea captain pool.`);
+    }
+};
+
 /** Deal a new year's hands. Home cards return, hands are trimmed to Admin. */
 export const dealYear = (G: VQGame, ctx: Ctx): void => {
+    returnSeaCaptains(G);
     refreshJesuits(G);
     const eligibleFuture: string[] = [];
     G.futureDeck = G.futureDeck.filter((id) => {

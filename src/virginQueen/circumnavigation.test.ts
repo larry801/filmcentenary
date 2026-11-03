@@ -29,6 +29,7 @@ describe("circumnavigation (rule 16.6)", () => {
         expect(G.circumnavigations).toBe(1);
         expect(G.powers.england.bonusVp).toBe(vp + 2);
         expect(G.worldCaptains.drake).toBeUndefined();
+        expect(G.seaCaptainReturn?.drake).toMatchObject({power: "england", turn: G.year + 1});
     });
 
     it("awards 1 VP after the first circumnavigation", () => {

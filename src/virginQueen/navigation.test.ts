@@ -1,11 +1,11 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
 import {moveExpedition} from "./moves";
-import {setupGame} from "./util";
+import {returnSeaCaptains, setupGame} from "./util";
 
-const context = (values: number[]): Ctx => ({
-    currentPlayer: "2",
-    playerID: "2",
+const context = (values: number[], player = "2"): Ctx => ({
+    currentPlayer: player,
+    playerID: player,
     phase: "action",
     numPlayers: 6,
     random: {Die: () => values.shift() ?? 6, Shuffle: (cards: unknown[]) => cards},
@@ -26,6 +26,7 @@ describe("Navigation Table (rule 16.4)", () => {
         expect(moveExpedition(G, context([1, 2]), {captain: "drake", zone: "southAtlantic"})).toBeUndefined();
 
         expect(G.worldCaptains.drake).toBeUndefined();
+        expect(G.seaCaptainReturn?.drake).toBeUndefined();
         expect(G.lastRolls).toContain("= 6");
     });
 
@@ -47,6 +48,30 @@ describe("Navigation Table (rule 16.4)", () => {
         expect(moveExpedition(G, context([2, 3]), {captain: "drake", zone: "southAtlantic"})).toBeUndefined();
 
         expect(G.worldCaptains.drake).toBeUndefined();
+        expect(G.seaCaptainReturn?.drake).toMatchObject({power: "england", turn: G.year + 1});
+    });
+
+    it("returns Murat Reis to the Turn Track instead of removing him", () => {
+        const G = game();
+        G.powers.ottoman.cp = 2;
+        G.powers.ottoman.seaCaptains = G.powers.ottoman.seaCaptains.filter((id) => id !== "muratReis");
+        G.worldCaptains.muratReis = {power: "ottoman", location: "chileanCoast", damaged: false, colony: false};
+
+        expect(moveExpedition(G, context([1, 2], "0"), {captain: "muratReis", zone: "southAtlantic"})).toBeUndefined();
+
+        expect(G.seaCaptainReturn?.muratReis).toMatchObject({power: "ottoman", turn: G.year + 1});
+        expect(G.powers.ottoman.seaCaptains).not.toContain("muratReis");
+    });
+
+    it("returns a Turn Track captain to the pool in a later Card Draw", () => {
+        const G = game();
+        G.powers.england.seaCaptains = G.powers.england.seaCaptains.filter((id) => id !== "drake");
+        G.seaCaptainReturn = {drake: {power: "england", turn: G.year}};
+
+        returnSeaCaptains(G);
+
+        expect(G.powers.england.seaCaptains).toContain("drake");
+        expect(G.seaCaptainReturn?.drake).toBeUndefined();
     });
 
     it("survives on 9+ and adds the Map Projection bonus", () => {

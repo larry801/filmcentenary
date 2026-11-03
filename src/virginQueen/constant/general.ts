@@ -573,6 +573,8 @@ export interface VQGame {
     worldControls: Partial<Record<string, Power>>;
     /** Number of completed circumnavigations (first 2 VP, later 1 VP). */
     circumnavigations?: number;
+    /** Sea captains on the Turn Track, returning to the pool in a future year. */
+    seaCaptainReturn?: Record<string, {power: Power; turn: number}>;
     /** Ottoman/Persian and HRE/Polish off-map conflicts. */
     foreignWars: Partial<Record<Power, ForeignWarState>>;
     /** Context gates response and combat cards at their printed timing. */
