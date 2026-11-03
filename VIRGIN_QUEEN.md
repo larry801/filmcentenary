@@ -531,7 +531,7 @@
 
 ### 凯瑟琳的飞剪船（#42）
 
-- 作为响应牌可取消下列事件：军队哗变（#17）、城邦起义（#18）、德意志募兵受限（#23）、变节！（#31）、福克斯殉道者名录（#52）、胡格诺派大斋期（#54）、破坏圣像运动（#55）。
+- 作为响应牌可取消下列事件：军队哗变（#17）、城邦起义（#18）、德意志募兵受限（#23）、变节！（#31）、福克斯殉道者名录（#52）、胡格诺派大斋期（#54）、破坏圣像运动（#55），以及任何时机取消纳瓦拉的珍妮（#58）。
 - 事件打出后若任一势力持有 #42，会暂停并提示该势力选择“允许事件/打出飞剪船取消”。
 - 取消后事件牌与 #42 均进入弃牌堆。
 - 烧杀掳掠（#44）作为已接入的 response 牌，也已列入飞剪船可取消集合。
@@ -1207,3 +1207,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #5 教宗诏书选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、619 tests passed（新增 3 项：绝罚伊丽莎白、绝罚降低战争费用、找回神圣同盟）；`npm run build` 通过。
 
 #32 双地区叛乱接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、620 tests passed（新增 1 项：两地区叛乱）；`npm run build` 通过。
+
+#42 取消纳瓦拉的珍妮接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、623 tests passed（新增 1 项：Catherine 可取消 #58）；`npm run build` 通过。

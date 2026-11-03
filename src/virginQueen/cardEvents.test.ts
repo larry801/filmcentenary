@@ -231,6 +231,12 @@ describe("Grand Vizier event cancellation", () => {
         expect(canCancelCardEvent(newGame(), cardById(id))).toBe(false);
     });
 
+    it("lets Catherine's Flying Squadron cancel Jeanne of Navarre", () => {
+        const G = newGame();
+        G.powers.france.cards = ["vq-042"];
+        expect(canCancelCardEvent(G, cardById("vq-058"))).toBe(true);
+    });
+
     it("does not offer cancellation when playing an ordinary card for CP", () => {
         const G = newGame();
         G.powers.spain.cards = ["vq-021"];
