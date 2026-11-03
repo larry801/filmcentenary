@@ -157,6 +157,10 @@ export interface SeaCaptain {
     nameZh?: string;
     turn: number;
     power: Power | "france/protestant";
+    /** Printed piracy value (P) on the counter. */
+    piracy: number;
+    /** Printed navigation value (N) on the counter. */
+    navigation: number;
     bonus: string;
     notes?: string;
 }

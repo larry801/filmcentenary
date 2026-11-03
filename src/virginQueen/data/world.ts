@@ -42,7 +42,7 @@ export const WORLD_SEA_ZONES: WorldSeaZone[] = [
         id: "chileanCoast",
         nameEn: "Chilean Coast",
         nameZh: "智利海岸",
-        adjacent: ["mexicanCoast", "southPacific"],
+        adjacent: ["mexicanCoast", "southPacific", "southAtlantic"],
     },
     {
         id: "southPacific",
@@ -60,13 +60,23 @@ export const WORLD_SEA_ZONES: WorldSeaZone[] = [
         id: "southAtlantic",
         nameEn: "South Atlantic",
         nameZh: "南大西洋",
-        adjacent: ["indianOcean", "guineaCoast", "northAtlantic"],
+        adjacent: ["indianOcean", "guineaCoast", "northAtlantic", "chileanCoast"],
     },
 ];
 
 export const WORLD_SEA_ZONE_BY_ID: Record<string, WorldSeaZone> = Object.fromEntries(
     WORLD_SEA_ZONES.map((z) => [z.id, z]),
 );
+
+/** Hazardous passages marked with blue arrows on the World Map. */
+export const WORLD_HAZARDS: ReadonlySet<string> = new Set([
+    "chileanCoast|southAtlantic",
+    "southAtlantic|chileanCoast",
+    "chileanCoast|southPacific",
+    "southPacific|chileanCoast",
+    "southAtlantic|indianOcean",
+    "indianOcean|southAtlantic",
+]);
 
 export const WORLD_SETTLEMENTS: WorldSettlement[] = [
     {

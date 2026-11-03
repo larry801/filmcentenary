@@ -199,7 +199,7 @@ Card Draw 按参战强国依次确认，同一玩家控制的多个强国也需�
 - 2–5 人局中除双人配置外的 Activated Major Power 变体
 - 小国激活与外交影响力判定已接入；完整的小国部队调度和事件例外仍需继续核对
 - 谍报三项行动已接入 2024 官方结果表、Jesuit 与 English Catholic Rebellion；自由时点的全部相关 Response / Event 卡组合仍未完整覆盖，见下方说明。
-- 世界地图已有海域航行、派出船长/殖民队、建立殖民地的可操作框架；Card Draw 时已按 8.4 Colony Table 为每个殖民地掷 2d6（Plantation +1）：2–4 消灭、5–8 无效果、9–11 得宝藏、12+ 得宝藏与 1 Virginia Dare VP。世界地图点位仍是近似数据，导航/危险航路检定、环航、世界海盗、要塞和宝藏船队尚未自动结算。
+- 世界地图已有海域航行、派出船长/殖民队、建立殖民地的可操作框架；Card Draw 时已按 8.4 Colony Table 为每个殖民地掷 2d6（Plantation +1）：2–4 消灭、5–8 无效果、9–11 得宝藏、12+ 得宝藏与 1 Virginia Dare VP。危险航路已按 16.4 Navigation Table 检定（2d6 + 船长导航值 + Map Projection；2–6 消灭、7–8 受损、9+ 无效果；已受损再受损则消灭）；当前危险航路集合为合恩角、麦哲伦海峡、好望角，贸易风、环航、世界海盗、要塞和宝藏船队尚未自动结算，世界地图点位仍是近似数据。
 - 境外战争已接入“波斯战争”和“波兰战争”：配置 3/5 名敌军、派出 3–8 个部队、逐次投入 1 CP 作战、增援、战后返军与战争胜利 VP；波兰战争的 −1 抽牌与“波兰皇家选举”终止效果也已接入。
 - 正式局仍有部分 Response / Combat 卡与 Mandatory Event 需要手动结算；教学局使用的响应卡和 1–31 号卡已接入对应教学流程
 - 正式局已接入自动拦截（13.2）与自动陆军避战（13.3），但编队/尝试顺序由程序选择；退入要塞选项仍保留简化
@@ -254,6 +254,7 @@ src/virginQueen/
   defaultLeader.test.ts 5.1 默认将领属性、最后将领移除、登场与标准将领替换
   marriageTable.test.ts 21.1 Royal Wedding Table 各档结果、同国资格与特殊婚姻加值
   virginQueenCard.test.ts #36 童贞女王弃婚、Jilted Table、取回弃牌
+  navigation.test.ts     16.4 Navigation Table 消灭/受损/连续受损/Map Projection
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
 ```
@@ -316,3 +317,5 @@ Royal Wedding Table（21.1）接入后的验证：`jest src/virginQueen --runInB
 王室特殊婚姻加值接入后的验证：`jest src/virginQueen --runInBand --silent` 28 suites、370 tests passed（新增 3 项：Don Carlos/Anna of Austria 重掷、William of Orange 无 VP 回池、Anna of Saxony/Isabella Clara Eugenia 加值）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 童贞女王 #36 接入后的验证：`jest src/virginQueen --runInBand --silent` 29 suites、374 tests passed（新增 4 项：弃婚并应用 Jilted Table、2-4 给 CP、未订婚取回弃牌、伊丽莎白死后禁止打出）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+危险航路 Navigation Table（16.4）接入后的验证：`jest src/virginQueen --runInBand --silent` 30 suites、378 tests passed（新增 4 项：2–6 消灭、7–8 受损、已受损再受损消灭、9+ 安全与 Map Projection +1）；`npm run build` 通过，仍有既有大体积 chunk 提示。危险航路为按地图近似的合恩角/麦哲伦海峡/好望角；贸易风与环航尚未实现。

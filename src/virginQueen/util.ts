@@ -67,6 +67,7 @@ import {
     scenarioSpaces,
 } from "./scenario";
 import {PATRONAGE_VP_AWARD_BY_ID} from "./data/patronage";
+import {WORLD_HAZARDS} from "./data/world";
 import {validateSetupData} from "./configuration";
 import {isActivatedMajor, ownerOf, participatingPowers, samePlayer} from "./ownership";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, TUTORIAL_POWER_CARDS, tutorialFortressVp, tutorialSpaceAllowed} from "./tutorial";
@@ -435,6 +436,36 @@ export const drawCount = (G: VQGame, p: Power): number => {
     const base = table[Math.min(keys, table.length - 1)] ?? 3;
     const rulerBonus = p === "england" && G.powers.england.ruler === "elizabethDead" ? 0 : info.ruler.cardBonus;
     return Math.max(1, base + rulerBonus + G.powers[p].cardModifier + (G.powers[p].marriageCardModifier ?? 0) + (G.espionage?.nextDraw[p] ?? 0));
+};
+
+/** Navigation Table check for a hazardous passage (16.4). */
+export const navigationCheck = (G: VQGame, ctx: Ctx, captainId: string): boolean => {
+    const expedition = G.worldCaptains[captainId];
+    const captain = seaCaptainById(captainId);
+    if (expedition === undefined || captain === undefined) return false;
+    const mapProjection = G.powers[expedition.power].scienceBonuses.includes("mapProjection") ? 1 : 0;
+    const dice = roll(ctx, 2);
+    const total = dice[0] + dice[1] + captain.navigation + mapProjection;
+    G.lastRolls = `Navigation (${captain.nameEn}): [${dice.join(",")}] + ${captain.navigation}` +
+        `${mapProjection ? ` + ${mapProjection} Map Projection` : ""} = ${total}`;
+    pushLog(G, G.lastRolls);
+    if (total <= 6) {
+        delete G.worldCaptains[captainId];
+        if (!G.powers[expedition.power].seaCaptains.includes(captainId)) G.powers[expedition.power].seaCaptains.push(captainId);
+        pushLog(G, `${captain.nameEn}'s expedition is eliminated; the captain returns to the pool next turn.`);
+        return false;
+    }
+    if (total <= 8) {
+        if (expedition.damaged) {
+            delete G.worldCaptains[captainId];
+            if (!G.powers[expedition.power].seaCaptains.includes(captainId)) G.powers[expedition.power].seaCaptains.push(captainId);
+            pushLog(G, `${captain.nameEn}'s already damaged expedition is eliminated.`);
+            return false;
+        }
+        expedition.damaged = true;
+        pushLog(G, `${captain.nameEn}'s expedition is damaged.`);
+    }
+    return true;
 };
 
 /** 8.4 Colony Table: each established colony rolls for survival/rewards. */

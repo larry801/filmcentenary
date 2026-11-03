@@ -13,6 +13,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "穆拉特·雷斯",
         turn: 1,
         power: "ottoman",
+        piracy: 1,
+        navigation: 1,
         bonus: "Never dies from navigation rolls; if eliminated by navigation, re-enters next turn.",
     },
     {
@@ -21,6 +23,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "霍金斯",
         turn: 1,
         power: "england",
+        piracy: 1,
+        navigation: 1,
         bonus:
             "Creates race-built galleons: starting Turn 3, galleons built in London are placed race-built if Hawkins is there.",
     },
@@ -30,6 +34,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "勒泰斯蒂",
         turn: 1,
         power: "france",
+        piracy: 1,
+        navigation: 2,
         bonus: "May instead be used as a scientist.",
     },
     {
@@ -38,6 +44,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "维尔加尼翁",
         turn: 1,
         power: "france",
+        piracy: 1,
+        navigation: 1,
         bonus: "Free colonist: add a colony marker to his expedition without paying the usual extra CP.",
     },
     {
@@ -46,6 +54,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "德索雷斯",
         turn: 1,
         power: "france/protestant",
+        piracy: 1,
+        navigation: 1,
         bonus: "Fortresses do not roll against him; available to France or the Protestant, first come first served.",
     },
     {
@@ -54,6 +64,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "勒克莱尔",
         turn: 1,
         power: "france/protestant",
+        piracy: 1,
+        navigation: 1,
         bonus: "P2 in the Antilles; available to France or the Protestant, first come first served.",
     },
     {
@@ -62,6 +74,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "亨斯莱因",
         turn: 1,
         power: "hre",
+        piracy: 0,
+        navigation: 0,
         bonus: "Costs 2 CP to Build Expedition; the HRE has no colonies, so none may be added.",
     },
     {
@@ -70,6 +84,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "洛多尼耶",
         turn: 1,
         power: "protestant",
+        piracy: 0,
+        navigation: 1,
         bonus: "Free colonist: add a colony marker to his expedition without paying the usual extra CP.",
     },
     {
@@ -78,6 +94,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "德雷克",
         turn: 3,
         power: "england",
+        piracy: 2,
+        navigation: 3,
         bonus:
             "England chooses the piracy reward; Drake may spend a piracy hit to repair his damaged expedition.",
     },
@@ -87,6 +105,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "弗罗比舍",
         turn: 4,
         power: "england",
+        piracy: 1,
+        navigation: 2,
         bonus: "Special Northwest Passage effects: his expedition is cancelled by that event but he is never killed.",
     },
     {
@@ -95,6 +115,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "罗利",
         turn: 5,
         power: "england",
+        piracy: 1,
+        navigation: 1,
         bonus: "Free colonist: add a colony marker to his expedition without paying the usual extra CP.",
     },
     {
@@ -103,6 +125,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "卡文迪什",
         turn: 5,
         power: "england",
+        piracy: 1,
+        navigation: 3,
         bonus: "P2 in the Mexican and Chilean Coasts.",
     },
     {
@@ -111,6 +135,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         nameZh: "范努尔特",
         turn: 5,
         power: "protestant",
+        piracy: 1,
+        navigation: 2,
         bonus: "P2 in the Mexican and Chilean Coasts.",
     },
 ];

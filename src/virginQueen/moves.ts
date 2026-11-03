@@ -24,11 +24,11 @@ import {
 } from "./constant/general";
 import {cardById} from "./constant/cards";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
-import {WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENT_BY_ID} from "./data/world";
+import {WORLD_HAZARDS, WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENT_BY_ID} from "./data/world";
 import {patronById, royalAvailable, seaCaptainById} from "./scenario";
 import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
-import {activateMajor, die, resolveMajorDiplomacy} from "./util";
+import {activateMajor, die, navigationCheck, resolveMajorDiplomacy} from "./util";
 import {startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {beginGrandVizierEvent, canCancelCardEvent, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, grandVizierInHand, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
@@ -1208,6 +1208,7 @@ export const moveExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; zone
     if (expedition === undefined || expedition.power !== p || !WORLD_SEA_ZONE_BY_ID[args.zone] ||
         expedition.movedImpulse === G.impulse || !WORLD_SEA_ZONE_BY_ID[expedition.location].adjacent.includes(args.zone) ||
         (!moveAlreadyPaid && !spend(G, p, 1))) return INVALID_MOVE;
+    if (WORLD_HAZARDS.has(`${expedition.location}|${args.zone}`) && !navigationCheck(G, ctx, args.captain)) return;
     expedition.location = args.zone;
     expedition.movedImpulse = G.impulse;
     pushLog(G, `${args.captain} sails to ${WORLD_SEA_ZONE_BY_ID[args.zone].nameEn}.`);
