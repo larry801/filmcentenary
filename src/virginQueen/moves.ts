@@ -357,6 +357,62 @@ const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power): void => {
 };
 
 /** Spanish Armada home card: place it and grant CP, or grant CP if already placed. */
+/** Treasure Fleet mandatory event (23.2). */
+const resolveTreasureFleet = (G: VQGame, ctx: Ctx): void => {
+    G.powers.spain.treasures.push(die(ctx, 5));
+    const escorts = G.treasureFleetEscorts ?? 0;
+    const count = Math.min(escorts >= 2 ? 3 : 2, G.powers.spain.treasures.length);
+    const fleet = G.powers.spain.treasures.splice(0, count);
+    const zoneRoll = die(ctx, 6);
+    const zone = zoneRoll <= 2 ? "northAtlantic" : zoneRoll <= 4 ? "antilles" :
+        zoneRoll === 5 ? "spanishMain" : (G.worldControls.philippines === "spain" ? "mexicanCoast" : "spanishMain");
+    const expeditions = Object.entries(G.worldCaptains)
+        .filter(([, expedition]) => expedition.location === zone)
+        .sort(([a, ea], [b, eb]) => POWER_INDEX[ea.power] - POWER_INDEX[eb.power] || a.localeCompare(b));
+    pushLog(G, `Treasure Fleet appears in ${WORLD_SEA_ZONE_BY_ID[zone].nameEn} with ${fleet.length} treasure(s).`);
+    let escortsLeft = escorts;
+    for (const [id, expedition] of expeditions) {
+        const captain = seaCaptainById(id);
+        if (captain === undefined) continue;
+        const attackDice = (expedition.damaged ? 1 : 2) + captain.piracy;
+        const defenseDice = 1 + escortsLeft;
+        const attackHits = hits(roll(ctx, attackDice));
+        const defenseHits = hits(roll(ctx, defenseDice));
+        const net = attackHits - defenseHits;
+        G.lastRolls = `Treasure Fleet attack by ${captain.nameEn}: ${attackHits} hits vs ${defenseHits}`;
+        pushLog(G, G.lastRolls);
+        if (net > 0) {
+            let awards = net;
+            while (awards > 0) {
+                if (fleet.length > 0) {
+                    const treasure = fleet.shift()!;
+                    G.powers[expedition.power].treasures.push(treasure);
+                    pushLog(G, `${captain.nameEn} captures a treasure.`);
+                } else if (escortsLeft > 0) {
+                    escortsLeft -= 1;
+                    pushLog(G, "An escorting galleon is eliminated.");
+                } else {
+                    addVp(G, expedition.power, 1);
+                    pushLog(G, `${captain.nameEn} gains 1 piracy VP.`);
+                }
+                awards -= 1;
+            }
+        } else if (net < 0) {
+            const damage = -net;
+            if (damage === 1 && !expedition.damaged) {
+                expedition.damaged = true;
+                pushLog(G, `${captain.nameEn} is damaged.`);
+            } else {
+                delete G.worldCaptains[id];
+                G.powers[expedition.power].seaCaptains = G.powers[expedition.power].seaCaptains.filter((captainId) => captainId !== id);
+                pushLog(G, `${captain.nameEn}'s expedition is eliminated.`);
+            }
+        }
+    }
+    G.treasureFleetEscorts = escortsLeft;
+    for (const treasure of fleet) G.powers.spain.treasures.push(treasure);
+};
+
 const resolveSpanishArmada = (G: VQGame, p: Power): void => {
     if (G.armada === undefined) {
         const port = ["seville", "corunna", "lisbon"].find((id) => G.spaces[id].control === p && !G.spaces[id].unrest && G.spaces[id].siege === undefined);
@@ -477,6 +533,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveVirginQueenEvent(G, ctx, p);
     } else if (handler === "spanishArmada") {
         resolveSpanishArmada(G, p);
+    } else if (handler === "treasureFleet") {
+        resolveTreasureFleet(G, ctx);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
