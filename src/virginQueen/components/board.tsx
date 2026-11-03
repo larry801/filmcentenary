@@ -844,6 +844,20 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             onClick={() => moves.chooseCatholicLeagueSpace({space: id})}>{SPACE_BY_ID[id].name}</Button>)}
                     </Stack> : <Typography variant="body2" color="text.secondary">等待西班牙选择…</Typography>}
                 </Stack>}
+                {G.pendingHreReplacement !== undefined && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "divider", borderRadius: 1}}>
+                    <Typography variant="subtitle2">神圣罗马帝国冬季补员</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        选择 1 正规军、2 雇佣兵，或将雇佣兵市场标记从 0 移到 4。
+                    </Typography>
+                    {playerID !== null && ownerOf(G, "hre") === playerID ? <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                        <Button size="small" variant="outlined" disabled={!myTurn || !G.pendingHreReplacement.canRegular}
+                            onClick={() => moves.chooseHreReplacement({choice: "regular"})}>维也纳 +1 正规军</Button>
+                        <Button size="small" variant="outlined" disabled={!myTurn || !G.pendingHreReplacement.canMercs}
+                            onClick={() => moves.chooseHreReplacement({choice: "mercs"})}>维也纳 +2 雇佣兵</Button>
+                        <Button size="small" variant="outlined" disabled={!myTurn || !G.pendingHreReplacement.canMarker || G.mercenariesForHire !== 0}
+                            onClick={() => moves.chooseHreReplacement({choice: "marker"})}>雇佣兵市场 0→4</Button>
+                    </Stack> : <Typography variant="body2" color="text.secondary">等待神圣罗马选择…</Typography>}
+                </Stack>}
                 <FormControl size="small" fullWidth>
                     <InputLabel id="vq-diplo">目标强国</InputLabel>
                     <Select labelId="vq-diplo" label="目标强国" value={diploTarget}

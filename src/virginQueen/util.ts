@@ -2510,6 +2510,38 @@ export const resolvePendingCatholicLeague = (G: VQGame): void => {
     }
 };
 
+export type HreReplacementChoice = "regular" | "mercs" | "marker";
+
+export const applyHreReplacement = (G: VQGame, choice: HreReplacementChoice): boolean => {
+    const pending = G.pendingHreReplacement;
+    if (pending === undefined) return false;
+    if (choice === "regular") {
+        if (!pending.canRegular) return false;
+        addLand(G, "vienna", "hre", "regular", 1);
+        pushLog(G, "Holy Roman replacement: +1 regular in Vienna.");
+    } else if (choice === "mercs") {
+        if (!pending.canMercs) return false;
+        addLand(G, "vienna", "hre", "merc", 2);
+        pushLog(G, "Holy Roman replacement: +2 mercenaries in Vienna.");
+    } else {
+        if (!pending.canMarker || G.mercenariesForHire !== 0) return false;
+        G.mercenariesForHire = 4;
+        pushLog(G, "Holy Roman replacement: Mercenaries for Hire marker moves from 0 to 4.");
+    }
+    delete G.pendingHreReplacement;
+    return true;
+};
+
+/** Fallback if the HRE choice was not made by Spring Deployment. */
+export const resolvePendingHreReplacement = (G: VQGame): void => {
+    const pending = G.pendingHreReplacement;
+    if (pending === undefined) return;
+    if (pending.canRegular) {applyHreReplacement(G, "regular"); return;}
+    if (pending.canMercs) {applyHreReplacement(G, "mercs"); return;}
+    if (pending.canMarker) {applyHreReplacement(G, "marker"); return;}
+    delete G.pendingHreReplacement;
+};
+
 export const winter = (G: VQGame, ctx: Ctx): void => {
     if (G.scenario === "tutorial" && G.year === 2 && G.powers.ottoman.ruler === "suleiman") {
         G.deck = G.deck.filter((id) => id !== "vq-006");
@@ -2535,11 +2567,24 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     winterReturnNaval(G);
     for (const p of POWERS) {
         winterReturnLand(G, p);
-        // Replacements at each controlled capital.
-        for (const cap of ownerOf(G, p) === undefined ? [] : CAPITAL_SPACES[p]) {
-            const s = G.spaces[cap];
-            if ((s.control === p || (isPower(s.control) && allied(G, p, s.control))) && !s.unrest && s.siege === undefined) {
-                addLand(G, cap, p, "regular", 1);
+        // Replacements at each controlled capital (rule 20.6).
+        if (ownerOf(G, p) !== undefined && p === "hre") {
+            const cap = CAPITAL_SPACES.hre[0];
+            const state = G.spaces[cap];
+            const friendlyCapital = (state.control === p || (isPower(state.control) && allied(G, p, state.control))) && !state.unrest;
+            const canRegular = friendlyCapital;
+            const canMercs = friendlyCapital;
+            const canMarker = G.mercenariesForHire === 0;
+            if (canRegular || canMercs || canMarker) {
+                G.pendingHreReplacement = {canRegular, canMercs, canMarker};
+                pushLog(G, "Holy Roman replacement: choose 1 regular, 2 mercenaries, or the Mercenaries for Hire marker 0→4.");
+            }
+        } else if (ownerOf(G, p) !== undefined) {
+            for (const cap of CAPITAL_SPACES[p]) {
+                const state = G.spaces[cap];
+                if ((state.control === p || (isPower(state.control) && allied(G, p, state.control))) && !state.unrest) {
+                    addLand(G, cap, p, "regular", 1);
+                }
             }
         }
         G.powers[p].allies = [];

@@ -50,6 +50,7 @@ import {
     addVp,
     allied,
     applyCatholicLeagueSpace,
+    applyHreReplacement,
     assaultSpace,
     atWar,
     atWarWithMinor,
@@ -602,6 +603,12 @@ export const declareWarMinor = (G: VQGame, ctx: Ctx, args: { target: MinorPower 
     if (winner !== undefined && G.powers[winner].alliedMinors.includes(target)) {
         setWar(G, winner, p);
     }
+};
+
+export const chooseHreReplacement = (G: VQGame, ctx: Ctx, args: {choice: "regular" | "mercs" | "marker"}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "diplomacy" || G.pendingHreReplacement === undefined) return INVALID_MOVE;
+    if (ctx.playerID !== undefined && ownerOf(G, "hre") !== ctx.playerID) return INVALID_MOVE;
+    if (!applyHreReplacement(G, args.choice)) return INVALID_MOVE;
 };
 
 export const chooseCatholicLeagueSpace = (G: VQGame, ctx: Ctx, args: {space: string}): void | typeof INVALID_MOVE => {

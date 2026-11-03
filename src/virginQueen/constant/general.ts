@@ -532,6 +532,8 @@ export interface VQGame {
     catholicLeagueSpaces?: string[];
     /** Spain still has to choose the League's two additional French spaces. */
     pendingCatholicLeague?: {remaining: number};
+    /** HRE winter replacement choice (20.6), made during the next Diplomacy Phase. */
+    pendingHreReplacement?: {canRegular: boolean; canMercs: boolean; canMarker: boolean};
     /** Set at the end of the Action Phase so endIf can score the winter. */
     checkVictory: boolean;
     /** Key counts at setup, so starting positions do not trigger military victory. */

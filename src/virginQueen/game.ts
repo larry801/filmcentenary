@@ -8,7 +8,7 @@ import {chooseBattle} from "./combat";
 import {chooseTutorialEvent} from "./tutorialEvents";
 import {choosePiracy} from "./piracy";
 import {chooseInterception} from "./interception";
-import {arriveLeaders, checkVictory, dealYear, resolvePendingCatholicLeague, setupGame, winter} from "./util";
+import {arriveLeaders, checkVictory, dealYear, resolvePendingCatholicLeague, resolvePendingHreReplacement, setupGame, winter} from "./util";
 import {
     assault,
     proposeBetroth,
@@ -20,6 +20,7 @@ import {
     claimSeaCaptain,
     chooseHomeCard,
     chooseCatholicLeagueSpace,
+    chooseHreReplacement,
     chooseHreReligiousPreference,
     controlSpace,
     declareWar,
@@ -171,6 +172,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 G.turnsCompleted = 0;
                 G.springDone = [];
                 resolvePendingCatholicLeague(G);
+                resolvePendingHreReplacement(G);
                 arriveLeaders(G);
             },
             turn: {order: powerOrder, onBegin: turnBegin, onEnd: turnEnd, stages: choiceStages},
@@ -199,6 +201,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
         endPhaseTurn,
         chooseHomeCard: {move: chooseHomeCard, redact: true},
         chooseCatholicLeagueSpace,
+        chooseHreReplacement,
         chooseHreReligiousPreference: {move: chooseHreReligiousPreference, redact: true},
         claimSeaCaptain,
         declareWar,
