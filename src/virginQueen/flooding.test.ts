@@ -1,7 +1,8 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
 import {battleOptions, chooseBattle, startBattle} from "./combat";
-import {setupGame} from "./util";
+import {assault} from "./moves";
+import {setWar, setupGame} from "./util";
 
 const context = (playerID: string): Ctx => ({
     currentPlayer: playerID,
@@ -14,6 +15,27 @@ const context = (playerID: string): Ctx => ({
 const game = (): VQGame => setupGame({...context("0"), phase: "action"} as Ctx);
 
 describe("Flooding (card #39)", () => {
+    it("is applied automatically in a campaign assault", () => {
+        const G = game();
+        G.impulse = 2;
+        G.spaces.ghent.control = "spain";
+        G.spaces.ghent.siege = {by: "france", sinceImpulse: 1};
+        G.spaces.ghent.land.spain = {regular: 1, merc: 0, cav: 0};
+        G.spaces.ghent.land.france = {regular: 1, merc: 4, cav: 0};
+        G.spaces.brussels.control = "france";
+        G.spaces.brussels.unrest = false;
+        G.powers.spain.cards = ["vq-039"];
+        setWar(G, "france", "spain");
+        G.powers.france.cp = 10;
+        const franceContext = {...context("0"), currentPlayer: "3", playerID: "3"} as Ctx;
+
+        expect(assault(G, franceContext, {space: "ghent"})).toBeUndefined();
+
+        expect(G.spaces.ghent.siege).toBeUndefined();
+        expect(G.spaces.ghent.land.france?.merc).toBe(2);
+        expect(G.powers.spain.cards).not.toContain("vq-039");
+    });
+
     it("is not offered outside the Netherlands", () => {
         const G = game();
         G.spaces.belgrade.control = "ottoman";

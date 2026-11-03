@@ -367,6 +367,7 @@
 - 战斗牌：敌军在尼德兰设防地区攻城时，防守方可在掷骰前使用（非尼德兰不提供）；
 - 围城解除，敌军撤退，敌军雇佣兵减半（向上取整）；
 - 不能阻止“变节”。
+- 正式局自动攻城时，若防守方持有 #39 且目标为尼德兰，自动解围并减半进攻方雇佣兵。
 
 ### 蒂尔伯里演说（#40）
 
@@ -1070,7 +1071,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #40 蒂尔伯里演说接入后的验证：`jest src/virginQueen --runInBand --silent` 85 suites、496 tests passed（新增 1 项：英格兰 +4 骰）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#39 洪水接入后的验证：`jest src/virginQueen --runInBand --silent` 134 suites、581 tests passed（新增 2 项：解围/撤退/雇佣兵减半、非尼德兰不提供）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#39 洪水接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、593 tests passed（新增 4 项：解围/撤退/雇佣兵减半、非尼德兰不提供、取消、自动攻城）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #11 德拉古特之死（事件 + 响应掷骰）接入后的验证：`jest src/virginQueen --runInBand --silent` 89 suites、502 tests passed（新增 4 项：事件/4–6 死亡/1–3 回池/参战时机）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
