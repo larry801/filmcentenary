@@ -572,6 +572,22 @@ export const awardPortugueseTreasures = (G: VQGame, ctx: Ctx): void => {
     G.portugueseTreasures = [];
 };
 
+/** 20.3: return loaned naval units to the lender. */
+export const returnLoanedNaval = (G: VQGame): void => {
+    for (const loan of G.loanedNaval ?? []) {
+        const stack = G.spaces[loan.toPort].naval[loan.borrower];
+        if (stack === undefined || stack[loan.kind] < 1) continue;
+        stack[loan.kind] -= 1;
+        if (stack.galley + stack.galleon + stack.racebuilt + stack.corsair === 0) delete G.spaces[loan.toPort].naval[loan.borrower];
+        const port = G.spaces[loan.fromPort]?.control === loan.lender ? loan.fromPort :
+            SPACES.find((def) => G.spaces[def.id].control === loan.lender && isPort(def.id) && !isInlandPort(def.id))?.id;
+        if (port === undefined) continue;
+        ensureNaval(G, port, loan.lender)[loan.kind] += 1;
+        pushLog(G, `${powerLabel(loan.lender)}'s loaned ${loan.kind} returns from ${powerLabel(loan.borrower)}.`);
+    }
+    G.loanedNaval = [];
+};
+
 /** Rebuild the Armada at strength 2 on its Turn Track year. */
 export const rebuildArmada = (G: VQGame): void => {
     if (G.armada !== undefined || G.armadaReturn === undefined || G.armadaReturn > G.year) return;
@@ -1329,6 +1345,25 @@ export const seaAdjacent = (a: SeaZoneID, b: SeaZoneID): boolean =>
 export const portZones = (space: string): SeaZoneID[] => SPACE_BY_ID[space]?.ports ?? [];
 
 export const isPort = (space: string): boolean => portZones(space).length > 0;
+/** True when a path of sea zones (without intermediate ports) connects two ports. */
+export const seaPathBetweenPorts = (fromPort: string, toPort: string): boolean => {
+    const starts = portZones(fromPort);
+    const goals = new Set(portZones(toPort));
+    if (starts.some((zone) => goals.has(zone))) return true;
+    const visited = new Set(starts);
+    const queue = [...starts];
+    while (queue.length > 0) {
+        const zone = queue.shift()!;
+        for (const next of SEA_ZONE_BY_ID[zone].adjacent) {
+            if (goals.has(next)) return true;
+            if (visited.has(next)) continue;
+            visited.add(next);
+            queue.push(next);
+        }
+    }
+    return false;
+};
+
 /** Rule 15.1: the attacker needs more non-corsair naval units than the port's defenders. */
 export const navalBlockadeSatisfied = (G: VQGame, p: Power, space: string): boolean => {
     const state = G.spaces[space];
@@ -3193,6 +3228,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     }
     if (neutralized > 0) pushLog(G, `${neutralized} neutralized informant(s) returned to their owners.`);
     // Captains finish their annual expedition in place; a colony already placed remains on the map.
+    returnLoanedNaval(G);
     winterReturnNaval(G);
     for (const p of POWERS) {
         winterReturnLand(G, p);

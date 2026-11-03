@@ -145,6 +145,13 @@
 
 地图中的英格兰家乡地区已补齐宗教区域标记；补入里尔与敦刻尔克供杜埃事件检查。新增点位与邻接仍是重建示意数据，将领战斗值也沿用现有近似值。此处没有完成全部自由响应时点和沃尔辛厄姆在另一行动中插入“移除人员＋获取情报”的嵌套响应；不能由本轮结果推断这些卡已完整自动化。大屠杀的“纳瓦拉与法国王室订婚”只检查当年外交阶段登记、尚未在冬季结算的订婚；纳瓦拉目前只在锦标赛的王室名单中，战役中他不会在第 3 回合自动加入，因此战役局里加强版条件实际上不会触发。计数器供应限制除五枚 Jesuit 外仍沿用原有实现。
 
+### 海军借调（9.2）
+
+- 同盟双方可借调海军：借出方在受控港口选择 1 艘桨帆船/大帆船/快帆船，经纯海域路径送到受助方受控港口。
+- 每对同盟每回合只能单向借调；海盗船、巡逻舰与阿马达不可借调。
+- 借调单位按受助方单位参战/移动；冬季 20.3 自动返回借出方港口。
+- 尚未实现海军将领随借调。
+
 ### 新教抽牌（23.6）
 
 - 新教手牌数不再按总关键地区数查表，而是比较荷兰三钥匙（阿姆斯特丹、安特卫普、布鲁塞尔）与荷兰以外关键地区数，取较低者：
@@ -299,6 +306,7 @@ src/virginQueen/
   treasureFleet.test.ts 春季护航、葡萄牙宝藏行/冬季奖励
   withdraw.test.ts      13.4 退入要塞后的 1 CP 继续/返回
   protestantDraw.test.ts 23.6 荷兰/胡格诺两行关键地区抽牌
+  loan.test.ts          9.2 海军借调、单向限制、冬季归还
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
 ```
@@ -399,3 +407,5 @@ Royal Wedding Table（21.1）接入后的验证：`jest src/virginQueen --runInB
 Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --runInBand --silent` 37 suites、423 tests passed（新增 2 项：Elizabeth 死后处决被俘 Mary、Mary 在苏格兰时不被处决）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 守方主动撤退/野战选择接入后的验证：`jest src/virginQueen --runInBand --silent` 37 suites、424 tests passed（新增 1 项：守方选择出城野战；原继续/返回测试改为先由守方选择撤退）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+海军借调（9.2）接入后的验证：`jest src/virginQueen --runInBand --silent` 38 suites、426 tests passed（新增 2 项：借调/冬季归还、需同盟与海路）；`npm run build` 通过，仍有既有大体积 chunk 提示。

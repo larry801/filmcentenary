@@ -70,6 +70,7 @@ import {
     minorAvailable,
     friendlyController,
     landNeighbors,
+    seaPathBetweenPorts,
 } from "../util";
 import {VQMap} from "./map";
 import {TutorialGuide} from "./tutorial-guide";
@@ -179,6 +180,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [piracyZone, setPiracyZone] = React.useState("");
     const [piracyTarget, setPiracyTarget] = React.useState("");
     const [diploTarget, setDiploTarget] = React.useState<Power>("spain");
+    const [loanFromPort, setLoanFromPort] = React.useState("");
+    const [loanToPort, setLoanToPort] = React.useState("");
     const [domesticRoyal, setDomesticRoyal] = React.useState("");
     const [foreignRoyal, setForeignRoyal] = React.useState("");
     const [patronageCp, setPatronageCp] = React.useState(2);
@@ -951,6 +954,33 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 <Typography variant="caption" color="text.secondary">
                     宣战/议和使用手牌支付；同盟只持续本回合。
                 </Typography>
+                {G.powers[me].allies.includes(diploTarget) && <Stack spacing={0.5}>
+                    <Typography variant="subtitle2">海军借调</Typography>
+                    <FormControl size="small" fullWidth>
+                        <InputLabel id="vq-loan-from">借出港口</InputLabel>
+                        <Select labelId="vq-loan-from" label="借出港口" value={loanFromPort}
+                                onChange={(e) => setLoanFromPort(e.target.value)}>
+                            {SPACES.filter((space) => space.control === me && (space.ports?.length ?? 0) > 0)
+                                .map((space) => <MenuItem key={space.id} value={space.id}>{space.name}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <FormControl size="small" fullWidth>
+                        <InputLabel id="vq-loan-to">接收港口</InputLabel>
+                        <Select labelId="vq-loan-to" label="接收港口" value={loanToPort}
+                                onChange={(e) => setLoanToPort(e.target.value)}>
+                            {SPACES.filter((space) => space.control === diploTarget && (space.ports?.length ?? 0) > 0)
+                                .map((space) => <MenuItem key={space.id} value={space.id}>{space.name}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                        {(["galley", "galleon", "racebuilt"] as const).map((kind) =>
+                            <Button key={kind} size="small" variant="outlined"
+                                disabled={!myTurn || loanFromPort === "" || loanToPort === "" || !seaPathBetweenPorts(loanFromPort, loanToPort)}
+                                onClick={() => moves.loanNaval({target: diploTarget, fromPort: loanFromPort, toPort: loanToPort, kind})}>
+                                借出 {kind}
+                            </Button>)}
+                    </Stack>
+                </Stack>}
                 <Typography variant="subtitle2">对小国宣战 (2 CP)</Typography>
                 <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                     {MINOR_POWERS.map((m) => <Button key={m} size="small" variant="outlined"

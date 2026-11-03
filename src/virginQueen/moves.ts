@@ -97,6 +97,7 @@ import {
     passBetween,
     navalBlockadeSatisfied,
     portZones,
+    seaPathBetweenPorts,
     powerLabel,
     pushLog,
     rebellionTargets,
@@ -926,6 +927,25 @@ export const formAlliance = (G: VQGame, ctx: Ctx, args: { target: Power }): void
     G.powers[p].allies.push(t);
     G.powers[t].allies.push(p);
     pushLog(G, `${powerLabel(p)} and ${powerLabel(t)} form an alliance for this turn.`);
+};
+
+export const loanNaval = (G: VQGame, ctx: Ctx, args: {target: Power; fromPort: string; toPort: string; kind: "galley" | "galleon" | "racebuilt"}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "diplomacy") return INVALID_MOVE;
+    const p = power(G, ctx);
+    if (!isPower(args.target) || args.target === p || !allied(G, p, args.target) ||
+        G.spaces[args.fromPort]?.control !== p || G.spaces[args.toPort]?.control !== args.target ||
+        !seaPathBetweenPorts(args.fromPort, args.toPort)) return INVALID_MOVE;
+    if ((G.loanedNaval ?? []).some((loan) =>
+        (loan.lender === p && loan.borrower === args.target) || (loan.lender === args.target && loan.borrower === p))) return INVALID_MOVE;
+    const source = G.spaces[args.fromPort].naval[p];
+    if (source === undefined || source[args.kind] < 1) return INVALID_MOVE;
+    source[args.kind] -= 1;
+    if (source.galley + source.galleon + source.racebuilt + source.corsair === 0) delete G.spaces[args.fromPort].naval[p];
+    const target = G.spaces[args.toPort].naval[args.target] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
+    target[args.kind] += 1;
+    G.spaces[args.toPort].naval[args.target] = target;
+    G.loanedNaval = [...(G.loanedNaval ?? []), {lender: p, borrower: args.target, kind: args.kind, fromPort: args.fromPort, toPort: args.toPort}];
+    pushLog(G, `${powerLabel(p)} loans one ${args.kind} to ${powerLabel(args.target)}.`);
 };
 
 export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female: string }): void | typeof INVALID_MOVE => {
