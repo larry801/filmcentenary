@@ -650,6 +650,28 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #60 John Knox: convert all but one Scottish space, or add influence. */
 /** #63 Nostradamus' Prophecies: draw 4 (8 for France) and keep one. */
 /** #61 Menéndez de Avilés: Florida raid, escort, or fortress/patrol. */
+/** #62 Northwest Passage: force a navigator to test the passage. */
+const resolveNorthwestPassage = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target === undefined || G.worldCaptains[target] === undefined) return;
+    const expedition = G.worldCaptains[target];
+    const captain = seaCaptainById(target);
+    if (captain === undefined || !["northAtlantic", "guineaCoast"].includes(expedition.location)) return;
+    const first = die(ctx, 6);
+    if (first <= captain.navigation) {
+        pushLog(G, `Northwest Passage: ${captain.nameEn} rolls ${first} and remains safe.`);
+        return;
+    }
+    delete G.worldCaptains[target];
+    const second = die(ctx, 6);
+    if (second >= 5) {
+        G.powers[expedition.power].seaCaptains = G.powers[expedition.power].seaCaptains.filter((id) => id !== target);
+        pushLog(G, `Northwest Passage: ${captain.nameEn} rolls ${first} then ${second} and dies.`);
+    } else {
+        G.seaCaptainReturn = {...(G.seaCaptainReturn ?? {}), [target]: {power: expedition.power, turn: G.year + 1}};
+        pushLog(G, `Northwest Passage: ${captain.nameEn} rolls ${first} then ${second}; the expedition ends and he returns next turn.`);
+    }
+};
+
 const resolveMenendez = (G: VQGame, ctx: Ctx): void => {
     const florida = G.worldColonies.florida;
     if (florida !== undefined && florida !== "spain") {
@@ -1093,6 +1115,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveNostradamus(G, ctx, p);
     } else if (handler === "menendezDeAviles") {
         resolveMenendez(G, ctx);
+    } else if (handler === "northwestPassage") {
+        resolveNorthwestPassage(G, ctx, target);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {
