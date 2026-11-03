@@ -1170,4 +1170,4 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #10 攻城工程的特例已接入：持有 #10 时，即使守方控制安特卫普/鹿特丹的内河出海口且进攻方无北海舰队，也允许发起攻城。验证：`jest src/virginQueen --runInBand --silent` 132 suites、577 tests passed（新增 2 项：持牌允许/无牌拒绝）；`npm run build` 通过。
 
-#13 雇佣骑兵的奥斯曼分支已扩展为“地图上任意 2 支雇佣兵”：优先战场地区，不足时遍历地图补齐。验证：`jest src/virginQueen --runInBand --silent` 133 suites、578 tests passed（新增 1 项：从索菲亚移除 2 雇佣兵）；`npm run build` 通过。
+#13 雇佣骑兵：奥斯曼分支可在地图任意处移除 2 支雇佣兵；非奥斯曼改为在合法己方控制地区放置 2 支，距 HRE 本土 2 格内改为 4 支。验证：`jest src/virginQueen --runInBand --silent` 133 suites、578 tests passed（新增 2 项：任意移除 2 雇佣兵、非奥斯曼放置 2 支）；`npm run build` 通过。

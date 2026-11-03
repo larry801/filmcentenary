@@ -14,6 +14,23 @@ const context = (playerID: string): Ctx => ({
 const game = (): VQGame => setupGame({...context("0"), phase: "action"} as Ctx);
 
 describe("Reiters (card #13)", () => {
+    it("places two mercenaries for a non-Ottoman defender", () => {
+        const G = game();
+        G.powers.england.cards = ["vq-013"];
+        G.spaces.london.control = "england";
+        G.spaces.london.unrest = false;
+        G.spaces.london.siege = undefined;
+        G.spaces.london.land = {england: {regular: 1, merc: 0, cav: 0}};
+        G.spaces.calais.land.spain = {regular: 1, merc: 0, cav: 0};
+
+        startBattle(G, context("1"), "field", "london", "spain", ["england"], "calais");
+        chooseBattle(G, context("2"), {choice: "fight"});
+        chooseBattle(G, context("1"), {choice: "done"});
+        expect(chooseBattle(G, context("2"), {choice: "card:vq-013"})).toBeUndefined();
+
+        expect(G.spaces.london.land.england?.merc).toBe(2);
+    });
+
     it("lets the Ottoman remove two mercenaries anywhere", () => {
         const G = game();
         G.powers.ottoman.cards = ["vq-013"];

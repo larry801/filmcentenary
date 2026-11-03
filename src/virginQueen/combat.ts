@@ -3,11 +3,11 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {Controller, Power, VQGame, isPower, landCount, navalCount} from "./constant/general";
 import {cardById} from "./constant/cards";
 import {LEADER_BY_ID} from "./constant/leaders";
-import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID} from "./mapData";
+import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "./mapData";
 import {ownerOf} from "./ownership";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {
-    atWar, bestBattle, captureLeaders, checkCyprusVp, discardCard, ensureLand, ensureNaval, friendlyControlled,
+    addLand, atWar, bestBattle, captureLeaders, checkCyprusVp, discardCard, ensureLand, ensureNaval, friendlyControlled, landDistance,
     friendlyController, hits, isFortifiedSpace, isSeaZone, minorAlly, moveLeaders, navalAdjacent,
     ownersWithLand, ownersWithNaval, pushLog, recordNavalLoss, removeCardFromHand, roll, totalLand, totalNaval,
 } from "./util";
@@ -298,8 +298,16 @@ export const chooseBattle = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
                     }
                 }
             } else {
-                const stack = ensureLand(G, battle.location, battle.responding);
-                stack.merc += SPACE_BY_ID[battle.location].home === "hre" ? 4 : 2;
+                const target = G.spaces[battle.location].control === battle.responding && G.spaces[battle.location].siege === undefined &&
+                    !G.spaces[battle.location].unrest &&
+                    ownersWithLand(G, battle.location).every((owner) => !isPower(owner) || owner === battle.responding)
+                    ? battle.location
+                    : SPACES.find((space) => G.spaces[space.id].control === battle.responding && G.spaces[space.id].siege === undefined &&
+                        !G.spaces[space.id].unrest && ownersWithLand(G, space.id).every((owner) => !isPower(owner) || owner === battle.responding))?.id;
+                if (target !== undefined) {
+                    const nearHre = SPACES.some((space) => space.home === "hre" && (landDistance(target, space.id) ?? 99) <= 2);
+                    addLand(G, target, battle.responding, "merc", nearHre ? 4 : 2);
+                }
             }
         }
         if (id === "vq-039") {
