@@ -423,6 +423,22 @@ const resolveTreasureFleet = (G: VQGame, ctx: Ctx): void => {
 };
 
 /** #100 Enterprise of England mandatory event (23.3). */
+/** #33 Gouvernante de France: place +2 Wedding Festivities on a French match. */
+const resolveGouvernanteDeFrance = (G: VQGame, ctx: Ctx): void => {
+    const betrothal = G.betrothals.find((b) => {
+        const male = G.royals.find((royal) => royal.id === b.male);
+        const female = G.royals.find((royal) => royal.id === b.female);
+        return male?.power === "france" || female?.power === "france";
+    });
+    if (betrothal === undefined) {
+        pushLog(G, "Gouvernante de France: no French betrothal is available.");
+        return;
+    }
+    G.marriageFestivities = "france";
+    drawCards(G, ctx, "france", 1);
+    pushLog(G, "Gouvernante de France places +2 Wedding Festivities on a French marriage and draws a card.");
+};
+
 const resolveEnterpriseOfEngland = (G: VQGame): void => {
     const english = SPACES.filter((space) => space.area === "england");
     const jesuits = (G.espionage?.jesuits ?? []).filter((space) => english.some((def) => def.id === space)).length;
@@ -574,6 +590,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveTreasureFleet(G, ctx);
     } else if (handler === "enterpriseOfEngland") {
         resolveEnterpriseOfEngland(G);
+    } else if (handler === "gouvernanteDeFrance") {
+        resolveGouvernanteDeFrance(G, ctx);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {

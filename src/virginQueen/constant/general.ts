@@ -597,6 +597,8 @@ export interface VQGame {
     treasureFleetEscorts?: number;
     /** Number of completed circumnavigations (first 2 VP, later 1 VP). */
     circumnavigations?: number;
+    /** +2 Wedding Festivities marker placed on a French marriage. */
+    marriageFestivities?: Power;
     /** Sea captains on the Turn Track, returning to the pool in a future year. */
     seaCaptainReturn?: Record<string, {power: Power; turn: number}>;
     /** Ottoman/Persian and HRE/Polish off-map conflicts. */

@@ -145,6 +145,12 @@
 
 地图中的英格兰家乡地区已补齐宗教区域标记；补入里尔与敦刻尔克供杜埃事件检查。新增点位与邻接仍是重建示意数据，将领战斗值也沿用现有近似值。此处没有完成全部自由响应时点和沃尔辛厄姆在另一行动中插入“移除人员＋获取情报”的嵌套响应；不能由本轮结果推断这些卡已完整自动化。大屠杀的“纳瓦拉与法国王室订婚”只检查当年外交阶段登记、尚未在冬季结算的订婚；纳瓦拉目前只在锦标赛的王室名单中，战役中他不会在第 3 回合自动加入，因此战役局里加强版条件实际上不会触发。计数器供应限制除五枚 Jesuit 外仍沿用原有实现。
 
+### 法兰西的女管家（#33）
+
+- 法国已有订婚时，可打出 #33 在該次法国联姻上放置“皇室婚宴 +2”标记，并从牌堆抽 1 张牌。
+- 婚姻结算时若涉及法国，掷骰总和 +2；结算后清除标记。
+- #33 的第二个选项（法国与新教交战时转化法国地区）尚未实现。
+
 ### 英格兰的局势（#100）
 
 - 统计英格兰地区内：耶稣会士数、天主教地区数、西班牙控制地区数、西班牙正规军数（动荡地区不计）。
@@ -322,6 +328,7 @@ src/virginQueen/
   loan.test.ts          9.2 海军借调、单向限制、冬季归还
   diplomacyExchange.test.ts 9.1 宝藏赠送/敌对与索引校验
   enterprise.test.ts    #100 英格兰的局势 1–16+ VP 表
+  gouvernante.test.ts   #33 法兰西的女管家 +2 婚宴标记
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
 ```
@@ -432,3 +439,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 外交卡牌/雇佣兵赠送接入后的验证：`jest src/virginQueen --runInBand --silent` 40 suites、431 tests passed（新增 2 项：随机非本国牌、雇佣兵转移）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 海军将领随借调接入后的验证：`jest src/virginQueen --runInBand --silent` 40 suites、432 tests passed（新增 1 项：将领随借、受助方战斗值、冬季归还）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#33 法兰西的女管家（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 41 suites、434 tests passed（新增 2 项：放置 +2 标记并抽牌、婚姻掷骰 +2 改变结果）；`npm run build` 通过，仍有既有大体积 chunk 提示。

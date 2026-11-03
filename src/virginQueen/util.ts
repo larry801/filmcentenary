@@ -2364,9 +2364,12 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
             if (reroll > dice[low]) dice[low] = reroll;
         }
         const samePower = male.power === female.power;
-        const ratings = samePower
+        const festivities = G.marriageFestivities === "france" &&
+            (male.power === "france" || female.power === "france") ? 2 : 0;
+        if (festivities > 0) delete G.marriageFestivities;
+        const ratings = (samePower
             ? Math.max(male.eligibility ?? 0, female.eligibility ?? 0)
-            : (male.eligibility ?? 0) + (female.eligibility ?? 0);
+            : (male.eligibility ?? 0) + (female.eligibility ?? 0)) + festivities;
         const total = dice[0] + dice[1] + ratings;
         G.lastRolls = `Marriage roll: ${dice[0]}+${dice[1]}+${ratings}=${total}`;
         pushLog(G, `${male.name} & ${female.name}: ${G.lastRolls}`);
