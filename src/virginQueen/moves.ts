@@ -1320,6 +1320,11 @@ const resolveDayOfBarricades = (G: VQGame): void => {
 
 const resolveBlackQueen = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     if (target === undefined) return;
+    if (target === "agents") {
+        drawCards(G, ctx, p, 1);
+        pushLog(G, "The Black Queen sends two agents and draws a card.");
+        return;
+    }
     const [targetPower, mode] = target.split(":");
     if (!isPower(targetPower) || targetPower === p) return;
     if (mode === "draw") {

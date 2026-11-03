@@ -25,6 +25,17 @@ describe("The Black Queen, option 3 (card #80)", () => {
         expect(G.powers.france.cards).toContain("vq-020");
     });
 
+    it("can send agents and draw a card", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-080"];
+        const hand = G.powers.france.cards.length;
+
+        expect(playCard(G, context(), {cardId: "vq-080", asEvent: true, target: "agents"})).toBeUndefined();
+
+        expect(G.powers.france.cards).toHaveLength(hand);
+        expect(G.log.join("\n")).toContain("sends two agents");
+    });
+
     it("can draw two instead of taking the target's card", () => {
         const G = game();
         G.powers.france.cards = ["vq-080"];
