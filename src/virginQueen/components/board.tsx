@@ -883,12 +883,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                     </Stack>
                 </Stack>}
                 <Typography variant="body2">
-                    春季部署：先秘密选择本回合保留的本国牌（未选中的面朝下放在势力卡上），然后可从首都免费调动一支陆军编队。
+                    春季部署：{choiceRequired && "先秘密选择本回合保留的本国牌（未选中的面朝下放在势力卡上），然后"}可从首都免费调动一支陆军编队。
                 </Typography>
                 {mayKeepBoth && <Typography variant="caption" color="success.main">
                     苏莱曼一世在位：奥斯曼可保留两张本国牌，无需二选一。
                 </Typography>}
-                {springHomeCards.length > 1 && !ps?.homeCardChoiceDone && <Stack spacing={0.5}>
+                {choiceRequired && <Stack spacing={0.5}>
                     <Typography variant="subtitle2">选择保留的本国牌</Typography>
                     <Typography variant="caption" color="text.secondary">
                         其余本国牌将面朝下放在势力卡上，直到下一年的 Card Draw。
