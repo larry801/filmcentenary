@@ -457,7 +457,8 @@ export interface VQGame {
         kind: "cancelEvent";
         cardId: string;
         power: Power;
-        responding: "ottoman";
+        responding: Power;
+        responseCard?: string;
         target?: string;
     };
     pendingTutorialEvent?: {

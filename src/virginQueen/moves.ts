@@ -32,7 +32,7 @@ import {moveError} from "./movePolicy";
 import {activateMajor, checkCircumnavigation, die, navigationCheck, resolveMajorDiplomacy} from "./util";
 import {startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
-import {beginGrandVizierEvent, canCancelCardEvent, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, grandVizierInHand, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
+import {beginGrandVizierEvent, cancelEventResponder, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
 import {startPiracy} from "./piracy";
 import {attemptNavalAvoidBattle, attemptNavalInterception, navalEnemies, resolveNavalCombat, resolveNavalCombatEnemy} from "./navalCombat";
 import {offerInterception} from "./interception";
@@ -811,10 +811,10 @@ export const chooseCardEvent = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
     ctx.events?.endStage();
     if (args.choice === "cancel") {
         discardCard(G, pending.power, pending.cardId, false);
-        const responseCard = grandVizierInHand(G)!;
-        removeCardFromHand(G, "ottoman", responseCard);
-        discardCard(G, "ottoman", responseCard, true);
-        pushLog(G, `Grand Vizier cancels ${cardById(pending.cardId).name}.`);
+        const responseCard = pending.responseCard ?? (pending.responding === "ottoman" ? G.powers.ottoman.cards.find((id) => id === "vq-001" || id === "vq-home-grand-vizier") : undefined)!;
+        removeCardFromHand(G, pending.responding, responseCard);
+        discardCard(G, pending.responding, responseCard, true);
+        pushLog(G, `${pending.responding === "ottoman" && responseCard !== "vq-042" ? "Grand Vizier" : "Catherine's Flying Squadron"} cancels ${cardById(pending.cardId).name}.`);
     } else {
         // Continue with the original power and target, without playing or discarding twice.
         discardCard(G, pending.power, pending.cardId, true);
@@ -897,7 +897,8 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack"].includes(cardHandler)) {
         return INVALID_MOVE;
     }
-    const cancelWindow = args.asEvent === true && canCancelCardEvent(G, def);
+    const cancellation = args.asEvent === true ? cancelEventResponder(G, def) : undefined;
+    const cancelWindow = cancellation !== undefined;
     removeCardFromHand(G, p, args.cardId);
     // Event-only removal is deferred until the Ottoman accepts or cancels the event.
     if (!cancelWindow) discardCard(G, p, args.cardId, args.asEvent === true);
@@ -906,9 +907,9 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (args.asEvent === true) {
         pushLog(G, `${powerLabel(p)} plays ${def.name} as an event.`);
         if (cancelWindow) {
-            G.pendingCardEvent = {kind: "cancelEvent", cardId: args.cardId, power: p, responding: "ottoman",
-                ...(args.target !== undefined ? {target: args.target} : {})};
-            ctx.events?.setActivePlayers({value: {[ownerOf(G, "ottoman")!]: "cardEvent"}});
+            G.pendingCardEvent = {kind: "cancelEvent", cardId: args.cardId, power: p, responding: cancellation!.power,
+                responseCard: cancellation!.cardId, ...(args.target !== undefined ? {target: args.target} : {})};
+            ctx.events?.setActivePlayers({value: {[ownerOf(G, cancellation!.power)!]: "cardEvent"}});
             return;
         }
         resolvePlayedCardEvent(G, ctx, p, args.cardId, args.target);

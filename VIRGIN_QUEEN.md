@@ -151,6 +151,13 @@
 - `recruit` 招募正规军前检查当前正规军总数（地图 + 境外战争 + 阿马达搭载），达到上限则非法。
 - 雇佣兵、骑兵、海军与海军重建延迟仍未纳入统一 force pool。
 
+### 凯瑟琳的飞剪船（#42）
+
+- 作为响应牌可取消下列事件：军队哗变（#17）、变节！（#31）、福克斯殉道者名录（#52）、胡格诺派大斋期（#54）、破坏圣像运动（#55）。
+- 事件打出后若任一势力持有 #42，会暂停并提示该势力选择“允许事件/打出飞剪船取消”。
+- 取消后事件牌与 #42 均进入弃牌堆。
+- 目标针对法兰西地区的额外可取消事件（城邦起义、德意志的裁军、烧杀掳掠等）尚未列入。
+
 ### 意大利的委托（#48）
 
 - 指定一个意大利艺术家/科学家，视作花费 3 CP 给予赞助并加入待结算赞助；不实际扣除 CP。
@@ -412,6 +419,7 @@ src/virginQueen/
   spanishFury.test.ts   #46 西班牙人的狂暴夺牌/抽牌/标记
   sack.test.ts          #44 烧杀掳掠相邻要塞投降
   italianExpert.test.ts #48 意大利的委托免费赞助
+  catherineCancel.test.ts #42 飞剪船取消事件
   regularLimit.test.ts  17.1 正规军计数器上限
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
@@ -551,3 +559,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #44 烧杀掳掠接入后的验证：`jest src/virginQueen --runInBand --silent` 52 suites、451 tests passed（新增 1 项：相邻要塞投降）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #48 意大利的委托接入后的验证：`jest src/virginQueen --runInBand --silent` 53 suites、452 tests passed（新增 1 项：免费赞助不扣 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#42 凯瑟琳的飞剪船取消事件接入后的验证：`jest src/virginQueen --runInBand --silent` 54 suites、453 tests passed（新增 1 项：取消 #52 并保持英格兰宗教不变）；`npm run build` 通过，仍有既有大体积 chunk 提示。
