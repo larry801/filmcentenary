@@ -721,6 +721,18 @@ const resolveCalvinistZeal = (G: VQGame, ctx: Ctx): void => {
     resolveConversions(G, ctx, "protestant", "protestant", "netherlands", 7, true);
 };
 
+/** #53 Grand Tour: clear French unrest, recover Nostradamus, reinforce Paris. */
+const resolveGrandTour = (G: VQGame, p: Power): void => {
+    for (const space of SPACES.filter((def) => def.area === "france" || def.home === "france")) G.spaces[space.id].unrest = false;
+    if (G.discard.includes("vq-063")) {
+        G.discard = G.discard.filter((id) => id !== "vq-063");
+        G.powers[p].cards.push("vq-063");
+    }
+    if (p === "france") addLand(G, "paris", "france", "regular", 1);
+    if (G.catholicLeagueFormed === true) removeCardFromGame(G, "vq-053");
+    pushLog(G, `Grand Tour clears French unrest and reinforces Paris for ${powerLabel(p)}.`);
+};
+
 const resolveGenoeseBankers = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     const captain = target !== undefined ? seaCaptainById(target) : undefined;
     if (captain !== undefined && G.powers[p].seaCaptains.includes(captain.id) && G.worldCaptains[captain.id] === undefined &&
@@ -1868,6 +1880,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveMuscovyCompany(G, p);
     } else if (handler === "card022") {
         resolveGenoeseBankers(G, ctx, p, target);
+    } else if (handler === "grandTour") {
+        resolveGrandTour(G, p);
     } else if (handler === "calvinistZeal") {
         resolveCalvinistZeal(G, ctx);
     } else if (handler === "papalBull") {

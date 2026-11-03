@@ -184,6 +184,14 @@
 - 目标地区及一个相邻地区放置动荡。
 - 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
 
+### 壮游（#53）
+
+- 移除法兰西地区所有动荡；
+- 若弃牌堆有诺查丹玛斯，将其取回法国手中；
+- 在巴黎 +1 法国正规军；
+- 天主教联盟已成立时事件移出游戏；
+- 余下两项自选效果（停战、给牌/宝藏、从巴黎发兵）尚未接入。
+
 ### 教宗诏书（#5）
 
 - 立即进行教廷外交评议；
@@ -819,6 +827,7 @@ src/virginQueen/
   genoese.test.ts       #22 热那亚银行家
   calvinistZeal.test.ts #32 加尔文主义狂热
   papalBull.test.ts     #5 教宗诏书
+  grandTour.test.ts     #53 壮游
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -1081,3 +1090,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #32 加尔文主义狂热（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 110 suites、532 tests passed（新增 1 项：法/尼各 7 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #5 教宗诏书（传播分支）接入后的验证：`jest src/virginQueen --runInBand --silent` 111 suites、533 tests passed（新增 1 项：教廷评议+7 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#53 壮游接入后的验证：`jest src/virginQueen --runInBand --silent` 112 suites、535 tests passed（新增 1 项：清动荡/取回诺查丹玛斯/巴黎增兵）；`npm run build` 通过，仍有既有大体积 chunk 提示。
