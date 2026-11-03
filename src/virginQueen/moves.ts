@@ -677,6 +677,22 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #11 Dragut Falls: kill Dragut and bring Uluch Ali next turn. */
 /** #86 Polish Royal Election: resolve bids and elect a king. */
 /** #101 Gregorian Calendar: choose the next power to act. */
+/** #110 Dunkirk Privateers: free North Sea piracy with four dice. */
+const resolveDunkirkPrivateers = (G: VQGame, ctx: Ctx): void => {
+    if (G.spaces.antwerp?.control !== "spain" && G.spaces.dunkirk?.control !== "spain" &&
+        !SPACES.some((space) => space.area === "netherlands" && space.ports?.includes("northSea") &&
+            G.spaces[space.id].control === "spain" && !G.spaces[space.id].unrest)) return;
+    const target = zonePorts("northSea").find((id) => ["england", "protestant"].includes(G.spaces[id].control) && !G.spaces[id].unrest);
+    if (target === undefined) return;
+    const dice = roll(ctx, 4);
+    const remaining = hits(dice);
+    G.lastRolls = `Dunkirk Privateers [${dice.join(",")}] = ${remaining} hit(s)`;
+    pushLog(G, `${G.lastRolls} against ${SPACE_BY_ID[target].name}.`);
+    if (remaining === 0) return;
+    G.pendingPiracy = {power: "spain", target: G.spaces[target].control as Power, zone: "northSea", step: "rewards", remaining, rewards: {}};
+    ctx.events?.setActivePlayers({value: {[ownerOf(G, G.spaces[target].control as Power)!]: "piracyChoice"}});
+};
+
 const resolveGregorianCalendar = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     if (target === undefined || !isPower(target)) return;
     G.gregorianNext = target;
@@ -1450,6 +1466,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolvePolishElection(G, ctx);
     } else if (handler === "gregorianCalendar") {
         resolveGregorianCalendar(G, ctx, p, target);
+    } else if (handler === "dunkirkPrivateers") {
+        resolveDunkirkPrivateers(G, ctx);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {

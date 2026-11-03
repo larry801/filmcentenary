@@ -170,6 +170,13 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 敦刻尔克私掠者（#110）
+
+- 若西班牙控制未被骚乱的尼德兰北海港口：获得一次免费北海海盗行动；
+- 直接跳到奖励步骤，西班牙掷 4 个骰子；
+- 不放置海盗标记，也不要求西班牙海军在地图上；
+- 目标自动选择首个英格兰/新教北海港口。
+
 ### 公历纪年法（#101）
 
 - 指定任意势力开始下一个行动轮（可为刚结束者）；
@@ -657,6 +664,7 @@ src/virginQueen/
   dragut.test.ts        #11 德拉古特之死
   polishElection.test.ts #86 波兰选王
   gregorian.test.ts     #101 公历纪年法
+  dunkirk.test.ts       #110 敦刻尔克私掠者
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -873,3 +881,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #86 波兰选王接入后的验证：`jest src/virginQueen --runInBand --silent` 88 suites、499 tests passed（新增 1 项：结束战争/选王/VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #101 公历纪年法接入后的验证：`jest src/virginQueen --runInBand --silent` 89 suites、500 tests passed（新增 1 项：指定下一势力并生效）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#110 敦刻尔克私掠者接入后的验证：`jest src/virginQueen --runInBand --silent` 90 suites、503 tests passed（新增 1 项：免费 4 骰海盗）；`npm run build` 通过，仍有既有大体积 chunk 提示。
