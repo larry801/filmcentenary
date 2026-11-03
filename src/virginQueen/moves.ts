@@ -688,7 +688,7 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #106 Drake/Hawkins Expedition: combine both captains into one expedition. */
 /** #41 Border Reivers: raid a border power's hand or add Scottish influence. */
 /** #66 Sea Beggars: seize an undefended Dutch port. */
-const resolveSeaBeggars = (G: VQGame, target?: string): void => {
+const resolveSeaBeggars = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined) return;
     const def = SPACE_BY_ID[target];
     const state = G.spaces[target];
@@ -700,6 +700,17 @@ const resolveSeaBeggars = (G: VQGame, target?: string): void => {
     addNaval(G, target, "protestant", "galleon", 1);
     if (["brielle", "flushing"].includes(target)) addNaval(G, target, "protestant", "galleon", 1);
     pushLog(G, `Sea Beggars seize ${def.name} for the Protestant.`);
+    const spanishPort = zonePorts("northSea").find((id) => G.spaces[id].control === "spain" && !G.spaces[id].unrest);
+    if (spanishPort !== undefined && (G.piracyActions?.protestant ?? 0) < 3) {
+        const dice = roll(ctx, 3);
+        const remaining = hits(dice);
+        G.lastRolls = `Sea Beggars piracy [${dice.join(",")}] = ${remaining} hit(s)`;
+        pushLog(G, G.lastRolls);
+        if (remaining > 0) {
+            G.pendingPiracy = {power: "protestant", target: "spain", zone: "northSea", step: "rewards", remaining, rewards: {}};
+            ctx.events?.setActivePlayers({value: {[ownerOf(G, "spain")!]: "piracyChoice"}});
+        }
+    }
 };
 
 const resolveBorderReivers = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
@@ -1548,7 +1559,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "borderReivers") {
         resolveBorderReivers(G, ctx, p, target);
     } else if (handler === "seaBeggars") {
-        resolveSeaBeggars(G, target);
+        resolveSeaBeggars(G, ctx, target);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {

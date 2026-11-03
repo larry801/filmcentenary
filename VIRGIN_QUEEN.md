@@ -180,7 +180,7 @@
 
 - 新教取得一个无守军尼德兰北海港口控制权并转为新教；
 - 放置 1 艘荷兰大帆船与 1 个正规军；布里勒/法拉盛额外 +1 大帆船；
-- 免费的北海海盗行动尚未自动串接。
+- 若西班牙仍控制未被骚乱的北海港口且新教本回合尚可海盗：免费进行 3 骰北海海盗（跳过防御，直接进入奖励步骤）。
 
 ### 边境掠夺者（#41）
 
@@ -926,4 +926,4 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #41 边境掠夺者接入后的验证：`jest src/virginQueen --runInBand --silent` 93 suites、509 tests passed（新增 2 项：夺牌/苏格兰影响力）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#66 海上乞丐接入后的验证：`jest src/virginQueen --runInBand --silent` 94 suites、512 tests passed（新增 1 项：夺取港口/放置舰船）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#66 海上乞丐接入后的验证：`jest src/virginQueen --runInBand --silent` 94 suites、512 tests passed（夺取港口/放置舰船，并验证免费 3 骰海盗）；`npm run build` 通过，仍有既有大体积 chunk 提示。

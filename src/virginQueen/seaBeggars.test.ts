@@ -8,7 +8,7 @@ const context = (): Ctx => ({
     playerID: "5",
     phase: "action",
     numPlayers: 6,
-    random: {Die: () => 3, Shuffle: (cards: unknown[]) => cards},
+    random: {Die: () => 6, Shuffle: (cards: unknown[]) => cards},
 } as unknown as Ctx);
 
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
@@ -19,6 +19,8 @@ describe("Sea Beggars (card #66)", () => {
         G.powers.protestant.cards = ["vq-066"];
         G.spaces.amsterdam.control = "spain";
         G.spaces.amsterdam.land = {};
+        G.spaces.antwerp.control = "spain";
+        G.spaces.antwerp.unrest = false;
 
         expect(playCard(G, context(), {cardId: "vq-066", asEvent: true, target: "amsterdam"})).toBeUndefined();
 
@@ -26,5 +28,7 @@ describe("Sea Beggars (card #66)", () => {
         expect(G.spaces.amsterdam.religion).toBe("protestant");
         expect(G.spaces.amsterdam.land.protestant?.regular).toBe(1);
         expect(G.spaces.amsterdam.naval.protestant?.galleon).toBe(1);
+        expect(G.pendingPiracy?.zone).toBe("northSea");
+        expect(G.pendingPiracy?.remaining).toBe(3);
     });
 });
