@@ -424,6 +424,17 @@ export const hreReligiousPreferenceRequired = (G: VQGame, p: Power): boolean =>
     p === "hre" && hreReligiousPreferenceEnabled(G) && G.year === G.startTurn &&
     !G.hreReligiousPreferenceChosen && G.hreReligiousPreference === undefined;
 
+/** Current ruler card/admin ratings, including deaths from marriage/assassination. */
+export const rulerStats = (G: VQGame, p: Power): {cardBonus: number; admin: number} => {
+    const dead = (id: string): boolean => G.royals.find((royal) => royal.id === id)?.alive === false;
+    if (p === "england" && (G.powers.england.ruler === "elizabethDead" || dead("elizabeth"))) return {cardBonus: 0, admin: 1};
+    if (p === "spain" && dead("philip")) return {cardBonus: 0, admin: 1};
+    if (p === "france" && G.powers.france.ruler === "charlesIX" && dead("charlesIX")) return {cardBonus: 0, admin: 0};
+    if (p === "france" && dead("henryIII")) return {cardBonus: 0, admin: 1};
+    if (p === "hre" && dead("rudolf")) return {cardBonus: 0, admin: 1};
+    return {cardBonus: POWER_INFO[p].ruler.cardBonus, admin: POWER_INFO[p].ruler.admin};
+};
+
 export const drawCount = (G: VQGame, p: Power): number => {
     const keys = controlledKeys(G, p).length;
     if (G.scenario === "tutorial" && (p === "ottoman" || p === "spain")) {
@@ -434,7 +445,7 @@ export const drawCount = (G: VQGame, p: Power): number => {
     const info = POWER_INFO[p];
     const table = info.drawByKeys;
     const base = table[Math.min(keys, table.length - 1)] ?? 3;
-    const rulerBonus = p === "england" && G.powers.england.ruler === "elizabethDead" ? 0 : info.ruler.cardBonus;
+    const rulerBonus = rulerStats(G, p).cardBonus;
     return Math.max(1, base + rulerBonus + G.powers[p].cardModifier + (G.powers[p].marriageCardModifier ?? 0) + (G.espionage?.nextDraw[p] ?? 0));
 };
 
@@ -570,7 +581,7 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
         ps.homeCardChoiceDone = false;
         // Keep at most the ruler's admin rating of non-home cards.
         const nonHome = ps.cards.filter((c) => cardById(c).kind !== "home");
-        const keep = Math.min(nonHome.length, G.scenario === "tutorial" ? 2 : p === "england" && ps.ruler === "elizabethDead" ? 1 : POWER_INFO[p].ruler.admin);
+        const keep = Math.min(nonHome.length, G.scenario === "tutorial" ? 2 : rulerStats(G, p).admin);
         const dropped = nonHome.slice(keep);
         for (const d of dropped) {
             ps.cards = ps.cards.filter((c) => c !== d);
@@ -2196,6 +2207,33 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
 // Winter, marriages, victory
 // --------------------------------------------------------------------------
 
+const applyRulerDeath = (G: VQGame, id: string): void => {
+    if (id === "elizabeth") {
+        G.powers.england.ruler = "elizabethDead";
+        G.powers.england.cards = G.powers.england.cards.filter((card) => card !== "vq-036");
+        removeCardFromGame(G, "vq-036");
+        if (G.espionage) G.espionage.mary = "dead";
+        pushLog(G, "Elizabeth I dies; England drops to 1 Admin and 0 card bonus.");
+    } else if (id === "henryIII") {
+        const state = G.leaders.henryIII;
+        if (state !== undefined) {
+            if (G.spaces[state.location] !== undefined) {
+                G.spaces[state.location].leaders = G.spaces[state.location].leaders.filter((leader) => leader !== "henryIII");
+            } else if (G.seaZones[state.location as SeaZoneID] !== undefined) {
+                G.seaZones[state.location as SeaZoneID].leaders = G.seaZones[state.location as SeaZoneID].leaders.filter((leader) => leader !== "henryIII");
+            }
+            delete G.leaders.henryIII;
+        }
+        pushLog(G, "Henry III is murdered; France drops to 1 Admin and 0 card bonus.");
+    } else if (id === "philip") {
+        pushLog(G, "Philip II is murdered; Spain drops to 1 Admin and 0 card bonus.");
+    } else if (id === "charlesIX") {
+        pushLog(G, "Charles IX is murdered; France drops to 0 Admin and 0 card bonus until Henry III takes the throne.");
+    } else if (id === "rudolf") {
+        pushLog(G, "Rudolf II is murdered; the Holy Roman Empire drops to 1 Admin and 0 card bonus.");
+    }
+};
+
 export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
     for (const b of G.betrothals) {
         const male = G.royals.find((r) => r.id === b.male);
@@ -2272,12 +2310,14 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
             female.status = "dead";
             male.married = true;
             G.marriages += 1;
+            applyRulerDeath(G, female.id);
             pushLog(G, `Death in Childbirth: ${female.name} dies.`);
         } else {
             male.alive = false;
             male.status = "dead";
             female.married = true;
             G.marriages += 1;
+            applyRulerDeath(G, male.id);
             pushLog(G, `Rumors of Murder: ${male.name} is murdered.`);
         }
         if (total !== 9) {
