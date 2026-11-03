@@ -496,6 +496,30 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
 /** #48 Italian Expert: sponsor an Italian patron for 3 CP without paying. */
 /** #35 Patron of Arts, option 2: draw two cards and give one to another power. */
 /** #34 Holy Roman Intercession: join one side of a war and punish the other. */
+/** #2 Ottoman Tribute: threaten a power; auto-resolve tribute or war. */
+const resolveOttomanTribute = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target === undefined || !isPower(target) || target === "ottoman" || allied(G, "ottoman", target)) return;
+    const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
+    const treasures = G.powers[target].treasures;
+    if (cards.length > 0 || treasures.length > 0) {
+        if (treasures.length >= cards.length) {
+            const value = treasures.splice(Math.max(0, die(ctx, treasures.length) - 1), 1)[0];
+            G.powers.ottoman.treasures.push(value);
+            pushLog(G, `${powerLabel(target)} pays tribute: the Ottoman takes a treasure.`);
+        } else {
+            const card = cards[Math.max(0, die(ctx, cards.length) - 1)];
+            G.powers[target].cards = G.powers[target].cards.filter((id) => id !== card);
+            G.powers.ottoman.cards.push(card);
+            pushLog(G, `${powerLabel(target)} pays tribute: the Ottoman takes a card.`);
+        }
+        drawCards(G, ctx, "ottoman", 1);
+        return;
+    }
+    setWar(G, "ottoman", target);
+    G.powers.ottoman.cp += 2;
+    pushLog(G, `${powerLabel(target)} refuses tribute; the Ottoman declares war and gains 2 CP.`);
+};
+
 const resolveHolyRomanIntercession = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined) return;
     const [ally, enemy] = target.split(":");
@@ -826,6 +850,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolvePatronOfArts(G, ctx, target);
     } else if (handler === "holyRomanIntercession") {
         resolveHolyRomanIntercession(G, ctx, target);
+    } else if (handler === "ottomanTribute") {
+        resolveOttomanTribute(G, ctx, target);
     } else if (handler === "beaconFires") {
         G.beaconFires = p;
         pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
