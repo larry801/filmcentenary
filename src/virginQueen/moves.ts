@@ -846,12 +846,15 @@ const resolveKnightsOfStJohn = (G: VQGame): void => {
     }
 };
 
-const resolveHolyLeague = (G: VQGame, ctx: Ctx, p: Power): void => {
-    for (const minor of ["papacy", "venice"] as MinorPower[]) {
-        awardMinorInfluence(G, p, minor, 2);
+const resolveHolyLeague = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    const chosen = (target?.split(":") ?? []).filter((id): id is "papacy" | "venice" => id === "papacy" || id === "venice");
+    const minors: ("papacy" | "venice")[] = chosen.length > 0 ? chosen : ["papacy", "venice"];
+    const amount = minors.length === 1 ? 4 : 2;
+    for (const minor of minors) {
+        awardMinorInfluence(G, p, minor, amount);
         if (!G.minorDiplomacyResolved.includes(minor)) resolveMinorDiplomacy(G, ctx, minor);
     }
-    pushLog(G, `Holy League adds 2 influence each to the Papacy and Venice for ${powerLabel(p)}.`);
+    pushLog(G, `Holy League adds ${amount} influence to ${minors.join(" and ")} for ${powerLabel(p)}.`);
 };
 
 const resolveTreachery = (G: VQGame, ctx: Ctx, target?: string): void => {
@@ -2112,7 +2115,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "treachery") {
         resolveTreachery(G, ctx, target);
     } else if (handler === "holyLeague") {
-        resolveHolyLeague(G, ctx, p);
+        resolveHolyLeague(G, ctx, p, target);
     } else if (handler === "knightsOfStJohn") {
         resolveKnightsOfStJohn(G);
     } else if (handler === "muscovyCompany") {

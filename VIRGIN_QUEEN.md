@@ -1199,3 +1199,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #20 雄辩大使影响力分配接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、613 tests passed（新增 1 项：拆分 3 点影响力）；`npm run build` 通过。
 
 #19 外交失礼指定小国接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、614 tests passed（新增 1 项：优先扣威尼斯）；`npm run build` 通过。
+
+#24 神圣同盟影响力分配接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、615 tests passed（新增 1 项：4 点全给教廷）；`npm run build` 通过。

@@ -14,6 +14,20 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Holy League (card #24)", () => {
+    it("can give all four influence to one minor", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-024"];
+        G.powers.france.influence.papacy = 0;
+        G.powers.france.influence.venice = 0;
+        G.minorDiplomacyResolved = G.minorDiplomacyResolved.filter((minor) => minor !== "papacy" && minor !== "venice");
+
+        expect(playCard(G, context(), {cardId: "vq-024", asEvent: true, target: "papacy"})).toBeUndefined();
+
+        expect(G.powers.france.influence.papacy).toBeGreaterThanOrEqual(4);
+        expect(G.powers.france.influence.venice).toBe(0);
+        expect(G.minorDiplomacyResolved).toContain("papacy");
+    });
+
     it("adds influence to the Papacy and Venice and resolves them", () => {
         const G = game();
         G.powers.france.cards = ["vq-024"];
