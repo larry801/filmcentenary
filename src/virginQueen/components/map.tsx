@@ -1,6 +1,6 @@
 import React from "react";
 import {Controller, landCount, navalCount, Religion, VQGame} from "../constant/general";
-import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES} from "../constant/spaces";
+import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES} from "../mapData";
 import {CONTROLLER_COLORS} from "../constant/general";
 
 const X = (lon: number): number => 10 + ((lon + 11) / 47) * 980;

@@ -75,6 +75,7 @@ export const WORLD_SETTLEMENTS: WorldSettlement[] = [
         nameZh: "佛罗里达",
         region: "northAmerica",
         kind: "colony",
+        seaZone: "northAtlantic",
         home: "spain",
         notes: "Spain places an HCM here in the Tournament scenario.",
     },
@@ -84,8 +85,17 @@ export const WORLD_SETTLEMENTS: WorldSettlement[] = [
         nameZh: "菲律宾",
         region: "asia",
         kind: "settlement",
+        seaZone: "indianOcean",
         notes: "Conquest of the Philippines adds a Spanish control marker and a recurring treasure.",
     },
+    // The physical World Map was not supplied with the source set. These
+    // generic slots let an expedition settle the named region without
+    // inventing an exact printed location.
+    {id: "atlanticCoast", nameEn: "Atlantic Coast", nameZh: "大西洋沿岸", region: "atlanticCoast", kind: "colony", seaZone: "northAtlantic"},
+    {id: "antillesColony", nameEn: "Antilles", nameZh: "安的列斯", region: "antilles", kind: "colony", seaZone: "antilles"},
+    {id: "southAmericaColony", nameEn: "South America", nameZh: "南美洲", region: "southAmerica", kind: "colony", seaZone: "southAtlantic"},
+    {id: "guineaCoastColony", nameEn: "Guinea Coast", nameZh: "几内亚海岸", region: "africa", kind: "colony", seaZone: "guineaCoast"},
+    {id: "asiaColony", nameEn: "Asia", nameZh: "亚洲", region: "asia", kind: "colony", seaZone: "indianOcean"},
 ];
 
 export const WORLD_SETTLEMENT_BY_ID: Record<string, WorldSettlement> = Object.fromEntries(

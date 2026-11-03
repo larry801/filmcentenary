@@ -76,6 +76,10 @@ rendered and no OCR was run.
 * Scenario `phaseOrder` is `cardDraw → diplomacy → spring → action`; the runtime
   now deals the scenario deck at the start of Card Draw and returns to it after
   Winter.
+* A Home card enters the hand only when its `availableFromTurn` is reached.
+  During Spring Deployment each power secretly keeps one Home card and places
+  the rest face down on its power card; the Ottoman may keep both while
+  Suleiman is ruler.  `"variable"` Home cards (`#111`) wait for their event.
 
 ## Other tables
 
@@ -92,7 +96,10 @@ rendered and no OCR was run.
 * `scienceBonuses.ts`: all nine science bonuses.
 * `leaders.ts`: leaders referenced by the setups and the Leader Entry Table.
 * `world.ts`: coarse World Map skeleton (sea zones and settlements named in the
-  supplied sources). The physical world map was not supplied.
+  supplied sources). The physical world map was not supplied. The runtime now
+  supports basic expedition launch/movement and colony placement on the
+  settlements represented here; the map links remain approximate. Foreign War
+  events are tracked in runtime game state rather than this geography table.
 
 ## Runtime coverage and limits
 

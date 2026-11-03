@@ -49,21 +49,22 @@
 
 每年（Turn 1–7）：
 
-1. **Card Draw**（`cardDraw`）：按场景发放年度手牌，本国牌回到手牌；法国/新教玩家可领取共享船长
+1. **Card Draw**（`cardDraw`）：按场景发放年度手牌；按入场回合把本回合可用的本国牌加入手牌，法国/新教玩家可领取共享船长
 2. **外交阶段**（`diplomacy`）：每国一次行动机会
    - 宣战（按 Diplomatic Status 费用支付手牌/宝藏）
+   - 对未激活小国宣战会进行外交影响力掷骰；胜出的第三方介入并与宣战方交战
    - 议和、结盟（同盟持续到冬季）
    - 王室订婚（冬季结算）
    - 赎回被俘将领
    - 英格兰-西班牙战争费用从 5 CP 开始，可被事件降低
-3. **春季部署**（`spring`）：从首都免费移动一支陆军编队到友好控制区
+3. **春季部署**（`spring`）：先秘密选择保留 1 张本国牌（未选中的面朝下放在势力卡上；苏莱曼一世在位时奥斯曼可保留两张），再从首都免费移动一支陆军编队到友好控制区
 4. **行动阶段**（`action`）：按冲动顺序循环，直到连续 6 国 pass
    - 出牌为 CP 或事件；出牌后可用宝藏延长冲动
    - 行动（见下）
 4. **冬季结算**（行动阶段结束时自动）：
    - 非友方要塞内的陆军撤回最近友方要塞，无路可走则损失
    - 每个受控首都补 1 正规军
-   - 清除同盟、宝藏、影响力、siege 失效判定
+   - 清除同盟与宝藏；影响力标记恢复到场景初始值；检查 siege 是否失效
    - 结算婚姻、艺术家/科学家赞助掷骰与 VP/科技奖励、伊丽莎白未婚 VP、年度 VP 快照
    - 进入下一年
 
@@ -78,8 +79,11 @@
 - 布道 / 镇压异端（2 CP，5 次转化判定）
 - 新教叛乱（2–5 CP）
 - 修筑要塞（2 CP）
+- 购买小国外交影响力（1 CP；小国每回合只能决议一次，影响力于冬季恢复场景初始值）
 - 赞助本势力艺术家/科学家（2–4 CP，每年每类一次；冬季按评级掷 2d6，并消耗符合条件的 VP 标记或科技奖励）
 - 海盗（1 CP，欧洲海域；每命中偷 1 张牌/宝藏或 1 VP）
+
+小国外交面板显示每国影响力、当前盟友和本回合决议状态。`resolveMinorDiplomacy` 按官方激活顺序处理掷骰、苏格兰宗教修正、盟友切换及爱尔兰叛军。爱尔兰叛乱、苏格兰领主叛乱、塞巴斯蒂昂驾崩、莎菲雅与唐·安东尼奥事件会触发相应的外交决议或葡萄牙启用；对小国宣战会自动触发决议，并由胜出的可激活势力介入。
 
 ### 战斗
 
@@ -112,9 +116,10 @@ VP = 关键城市基础分 + 宗教特殊分 + 奖励分（赞助、婚姻、海
 
 - 2–5 人局的 Activated Major Power（本实现固定 6 人，每人控制一个强国）
 - 小国激活 / 外交影响力判定（影响力行动已从 UI 移除；小国目前只会静态防守）
-- 间谍（19.0）、暗杀、English Catholic Rebellion
-- 世界地图：远征、殖民地、环航、世界海盗、西班牙/葡萄牙宝藏船队
-- Response / Combat 卡、Mandatory Event、Catholic League、Foreign War
+- 间谍/刺杀已有可操作首版：第 3 回合开放派遣间谍、获取情报、每回合一次刺杀；暗杀目前以骰中 5–6 的双方命中差判定，尚未接入官方 Espionage Table、Jesuit 与 English Catholic Rebellion。
+- 世界地图已有海域航行、派出船长/殖民队、建立殖民地的可操作框架；世界地图点位仍是近似数据，导航/危险航路检定、环航、世界海盗、要塞和宝藏船队尚未自动结算。
+- 境外战争已接入“波斯战争”和“波兰战争”：配置 3/5 名敌军、派出 3–8 个部队、逐次投入 1 CP 作战、增援、战后返军与战争胜利 VP；波兰战争的 −1 抽牌与“波兰皇家选举”终止效果也已接入。
+- Response / Combat 卡、其余 Mandatory Event、Catholic League
 - 拦截、避战、退入要塞的选择（守军 ≤4 时自动退入）
 - 陆军移动/春季部署以整支编队为单位，不能拆分留守；海军移动一次只移动一个海域/港口
 - 冬季海军不强制回港、不受损耗；没有海军运输
@@ -128,7 +133,7 @@ VP = 关键城市基础分 + 宗教特殊分 + 奖励分（赞助、婚姻、海
 src/virginQueen/
   constant/general.ts   类型、六强国、统治者、VP/抽牌表、胜利原因
   constant/spaces.ts    92 个城市、13 个海域、相邻关系、开局守军
-  constant/cards.ts     6 张本国牌 + 24 张事件 + 44 张 CP 牌
+  constant/cards.ts     卡牌索引（官方 112 张，含 12 张家族牌）
   constant/leaders.ts   25 名陆军/海军将领
   setup / util.ts       初始状态、抽牌、LOC、战斗、转化、叛乱、冬季、VP、事件
   moves.ts              所有 boardgame.io moves
@@ -136,7 +141,7 @@ src/virginQueen/
   components/map.tsx    SVG 欧洲示意图
   components/board.tsx  棋盘、手牌、行动面板、外交/春季面板
   components/local.tsx  六人热座
-  virginQueen.test.ts + board.test.tsx   23 个用例（含 board SSR 冒烟测试）
+  virginQueen.test.ts + board.test.tsx   36 个用例（含 board SSR 与官方数据校验）
 ```
 
 ## 五、验证
@@ -147,5 +152,5 @@ src/virginQueen/
 ./node_modules/.bin/vite build
 ```
 
-最近结果：78 passed（全部测试，其中本游戏 23 个）；`tsc --noEmit`、`vite build`、`tsc -p tsconfig.server.json` 均通过；
+最近结果：`jest src/virginQueen` 59 passed；`tsc --noEmit`、`vite build`、`tsc -p tsconfig.server.json` 均通过；
 `GET /games` 返回 `film, songJinn, virginQueen`，`POST /games/virginQueen/create` 可创建 6 人局。

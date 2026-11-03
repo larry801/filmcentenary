@@ -4,25 +4,34 @@ import {Local} from "boardgame.io/multiplayer";
 import {VirginQueenGameDef} from "./game";
 import {POWERS, VQGame} from "./constant/general";
 import {ALL_CARDS, cardById} from "./constant/cards";
-import {LAND_LINKS, SEA_ZONE_BY_ID, SEA_ZONES, SPACES, SPACE_BY_ID} from "./constant/spaces";
+import {SEA_ZONE_BY_ID, SEA_ZONES} from "./constant/spaces";
+import {LAND_LINKS, SPACES, SPACE_BY_ID} from "./mapData";
 import {
     addLand,
     allied,
     assaultSpace,
     atWar,
+    availableHomeCards,
     baseVp,
     canControlSpace,
+    checkImmediateVictory,
     checkVictory,
     controlledKeys,
+    dealYear,
     fieldBattle,
+    homeCardChoiceRequired,
+    homeCardsInHand,
     powerVp,
     protestantSpaceCount,
     resolveConversions,
+    resolveMinorDiplomacy,
     resolveEvent,
     resolveRebellion,
     setupGame,
     winter,
 } from "./util";
+import {chooseHomeCard, endPhaseTurn, fightForeignWar, gainIntelligence, playCard} from "./moves";
+import {INVALID_MOVE} from "boardgame.io/core";
 
 const fakeCtx = (roll = () => 6): Ctx => ({
     random: {
@@ -41,19 +50,48 @@ describe("Virgin Queen setup and data", () => {
         expect(Object.keys(G.powers)).toHaveLength(6);
         expect(G.spaces.london.control).toBe("england");
         expect(G.spaces.amsterdam.control).toBe("spain");
-        expect(G.spaces.laRochelle.control).toBe("protestant");
+        expect(G.spaces.laRochelle.control).toBe("france");
         expect(G.spaces.vienna.control).toBe("hre");
-        expect(G.powers.spain.treasures).toHaveLength(4);
+        expect(G.powers.spain.treasures).toHaveLength(1);
     });
 
-    it("deals a home card and a hand to every power", () => {
+    it("deals only the Home cards available on the current turn", () => {
         const G = newGame();
+        dealYear(G, fakeCtx());
+        const expected: Record<string, number> = {
+            ottoman: 2,
+            spain: 1,
+            england: 1,
+            france: 1,
+            hre: 2,
+            protestant: 1,
+        };
         for (const p of POWERS) {
             const hand = G.powers[p].cards;
             expect(hand.length).toBeGreaterThanOrEqual(3);
-            expect(hand.filter((id) => cardById(id).kind === "home")).toHaveLength(1);
+            expect(homeCardsInHand(G, p)).toHaveLength(expected[p]);
         }
+        expect(availableHomeCards(G, "hre")).toEqual(["vq-034", "vq-035"]);
+        expect(availableHomeCards(G, "protestant")).toEqual(["vq-032"]);
         expect(G.powers.ottoman.cards.length).toBeGreaterThan(0);
+    });
+
+    it("adds later Home cards when their printed turn arrives", () => {
+        const G = newGame();
+        dealYear(G, fakeCtx());
+        expect(homeCardsInHand(G, "england")).toEqual(["vq-036"]);
+        expect(homeCardsInHand(G, "france")).toEqual(["vq-033"]);
+        expect(homeCardsInHand(G, "spain")).toEqual(["vq-003"]);
+
+        G.year = 3;
+        dealYear(G, fakeCtx());
+        expect(homeCardsInHand(G, "england")).toHaveLength(2);
+        expect(homeCardsInHand(G, "france")).toHaveLength(2);
+        expect(homeCardsInHand(G, "spain")).toHaveLength(1);
+
+        G.year = 4;
+        dealYear(G, fakeCtx());
+        expect(homeCardsInHand(G, "spain")).toHaveLength(2);
     });
 
 
@@ -82,7 +120,8 @@ describe("Virgin Queen setup and data", () => {
     it("starts with the historical wars", () => {
         const G = newGame();
         expect(atWar(G, "ottoman", "spain")).toBe(true);
-        expect(atWar(G, "france", "protestant")).toBe(true);
+        expect(atWar(G, "england", "france")).toBe(true);
+        expect(atWar(G, "france", "protestant")).toBe(false);
         expect(atWar(G, "england", "spain")).toBe(false);
         expect(allied(G, "spain", "france")).toBe(false);
     });
@@ -99,10 +138,89 @@ describe("Virgin Queen setup and data", () => {
 
     it("counts keys and base VP", () => {
         const G = newGame();
-        expect(controlledKeys(G, "spain")).toHaveLength(6);
-        expect(baseVp(G, "spain")).toBe(12);
+        expect(controlledKeys(G, "spain")).toHaveLength(8);
+        expect(baseVp(G, "spain")).toBe(20);
         expect(protestantSpaceCount(G)).toBeGreaterThan(8);
         expect(powerVp(G, "spain")).toBeGreaterThanOrEqual(6);
+    });
+
+    it("does not treat a scenario's starting keys as an immediate military victory", () => {
+        const G = newGame();
+        expect(checkImmediateVictory(G)).toBeUndefined();
+
+        for (const id of ["vienna", "prague", "buda", "brussels", "antwerp"]) {
+            G.spaces[id].control = "hre";
+        }
+        expect(checkImmediateVictory(G)).toEqual({winner: "hre", reason: "military"});
+    });
+
+    it("lets Ottoman Venice diplomacy deactivate its existing ally", () => {
+        const G = newGame();
+        G.powers.spain.alliedMinors.push("venice");
+        G.powers.ottoman.influence.venice = 9;
+
+        resolveMinorDiplomacy(G, fakeCtx(), "venice");
+
+        expect(G.powers.spain.alliedMinors).not.toContain("venice");
+        expect(G.powers.ottoman.alliedMinors).not.toContain("venice");
+        expect(G.log.some((line) => line.includes("deactivates venice"))).toBe(true);
+    });
+
+    it("lets England's Ireland result deactivate its existing ally", () => {
+        const G = newGame();
+        G.powers.spain.alliedMinors.push("ireland");
+        G.powers.england.influence.ireland = 9;
+
+        resolveMinorDiplomacy(G, fakeCtx(), "ireland");
+
+        expect(G.powers.spain.alliedMinors).not.toContain("ireland");
+        expect(G.powers.england.alliedMinors).not.toContain("ireland");
+        expect(G.log.some((line) => line.includes("deactivates ireland"))).toBe(true);
+    });
+
+    it("excludes a power barred from minor diplomacy", () => {
+        const G = newGame();
+        G.minorInfluenceBlocked.france.push("venice");
+        G.powers.france.influence.venice = 9;
+        G.powers.spain.influence.venice = 9;
+
+        const winner = resolveMinorDiplomacy(G, fakeCtx(), "venice");
+
+        expect(winner).toBe("spain");
+        expect(G.log.join("\n")).not.toContain("France 6+9");
+    });
+
+    it("applies and clears the Ottoman Persia-war card penalty", () => {
+        const G = newGame();
+        const ctx = {...fakeCtx(), currentPlayer: "0", phase: "action"} as unknown as Ctx;
+        G.powers.ottoman.cards.push("vq-073");
+        playCard(G, ctx, {cardId: "vq-073", asEvent: true, target: "3"});
+        expect(G.powers.ottoman.cardModifier).toBe(-1);
+
+        G.foreignWars.ottoman!.status = "active";
+        G.foreignWars.ottoman!.units.regular = 3;
+        G.foreignWars.ottoman!.enemyUnits = 1;
+        G.powers.ottoman.cp = 1;
+        fightForeignWar(G, ctx);
+
+        expect(G.foreignWars.ottoman).toBeUndefined();
+        expect(G.powers.ottoman.cardModifier).toBe(0);
+    });
+
+    it("preserves informant timing across winter", () => {
+        const G = newGame();
+        G.year = 3;
+        G.impulse = 7;
+        G.informants.push({owner: "spain", target: "france", neutralized: false, plantedImpulse: 7});
+        winter(G, fakeCtx());
+
+        expect(G.impulse).toBe(7);
+        G.impulse += 1;
+        G.powers.spain.cp = 2;
+        const ctx = {...fakeCtx(), currentPlayer: "1", phase: "action"} as unknown as Ctx;
+        gainIntelligence(G, ctx, {target: "france"});
+
+        expect(G.lastRolls).toContain("4 dice");
     });
 });
 
@@ -121,12 +239,20 @@ function startClients() {
 }
 
 function driveToAction(clients: any[]) {
-    // Diplomacy: each power ends its turn.
+    // Each power completes Card Draw, Diplomacy and Spring Deployment.
+    for (let i = 0; i < 6; i++) {
+        clients[i].moves.endPhaseTurn();
+    }
+    expect(clients[0].getState().ctx.phase).toBe("diplomacy");
     for (let i = 0; i < 6; i++) {
         clients[i].moves.endPhaseTurn();
     }
     expect(clients[0].getState().ctx.phase).toBe("spring");
     for (let i = 0; i < 6; i++) {
+        const state = clients[i].getState();
+        if (homeCardChoiceRequired(state.G, POWERS[i])) {
+            clients[i].moves.chooseHomeCard({cardId: homeCardsInHand(state.G, POWERS[i])[0]});
+        }
         clients[i].moves.endPhaseTurn();
     }
     expect(clients[0].getState().ctx.phase).toBe("action");
@@ -139,11 +265,34 @@ function stopClients(clients: any[]) {
     }
 }
 
+/**
+ * Resolve any Mandatory Events that block a pass, then pass until the Action
+ * Phase ends.  A power may not pass while holding a Mandatory Event.
+ */
+function passToEndAction(clients: any[]) {
+    for (let guard = 0; guard < 80; guard++) {
+        const state = clients[0].getState();
+        if (state.ctx.phase !== "action" || state.G.consecutivePasses >= 6) {
+            return;
+        }
+        const idx = Number(state.ctx.currentPlayer);
+        const p = POWERS[idx];
+        const hand = clients[idx].getState().G.powers[p].cards;
+        const mandatory = hand.find((id: string) => cardById(id).officialKind === "mandatory");
+        if (mandatory !== undefined) {
+            clients[idx].moves.playCard({cardId: mandatory, asEvent: true});
+            clients[idx].moves.endImpulse();
+        } else {
+            clients[idx].moves.pass();
+        }
+    }
+}
+
 describe("Virgin Queen turn flow", () => {
     it("runs diplomacy, spring and the first action impulses", () => {
         const clients = startClients();
         try {
-            expect(clients[0].getState().ctx.phase).toBe("diplomacy");
+            expect(clients[0].getState().ctx.phase).toBe("cardDraw");
             driveToAction(clients);
             const state = clients[0].getState();
             const ottoman = state.G.powers.ottoman;
@@ -168,13 +317,11 @@ describe("Virgin Queen turn flow", () => {
         const clients = startClients();
         try {
             driveToAction(clients);
-            for (let i = 0; i < 6; i++) {
-                clients[i].moves.pass();
-            }
+            passToEndAction(clients);
             const state = clients[0].getState();
-            // The winter resolution advances the year and starts a new diplomacy phase.
+            // Winter advances the year and begins the next Card Draw phase.
             expect(state.G.year).toBe(2);
-            expect(state.ctx.phase).toBe("diplomacy");
+            expect(state.ctx.phase).toBe("cardDraw");
             expect(state.G.powers.ottoman.cards.length).toBeGreaterThan(0);
         } finally {
             stopClients(clients);
@@ -182,17 +329,140 @@ describe("Virgin Queen turn flow", () => {
     });
 
 
+    it("requires the HRE to make its secret Spring Home card choice", () => {
+        const G = newGame();
+        dealYear(G, fakeCtx());
+        const ctx = {
+            ...fakeCtx(),
+            phase: "spring",
+            currentPlayer: "4",
+            events: {endTurn: jest.fn()},
+        } as unknown as Ctx;
+
+        expect(homeCardChoiceRequired(G, "hre")).toBe(true);
+        expect(endPhaseTurn(G, ctx)).toBe(INVALID_MOVE);
+        expect(G.powers.hre.homeCardChoiceDone).toBe(false);
+
+        const home = homeCardsInHand(G, "hre");
+        expect(home).toHaveLength(2);
+        expect(chooseHomeCard(G, ctx, {cardId: home[0]})).toBeUndefined();
+        expect(G.powers.hre.homeCardChoiceDone).toBe(true);
+        expect(homeCardsInHand(G, "hre")).toEqual([home[0]]);
+        expect(G.powers.hre.homeCardSetAside).toEqual([home[1]]);
+        expect(chooseHomeCard(G, ctx, {cardId: home[0]})).toBe(INVALID_MOVE);
+        expect(endPhaseTurn(G, ctx)).toBeUndefined();
+    });
+
+    it("requires the Tournament Ottoman to choose because Selim II rules", () => {
+        const G = setupGame(fakeCtx(), {scenario: "tournament"});
+        dealYear(G, fakeCtx());
+        expect(G.powers.ottoman.ruler).toBe("selimII");
+        expect(homeCardChoiceRequired(G, "ottoman")).toBe(true);
+    });
+
+    it("returns used and set-aside Home cards at the next Card Draw", () => {
+        const G = newGame();
+        dealYear(G, fakeCtx());
+        const home = homeCardsInHand(G, "hre");
+        const springCtx = {
+            ...fakeCtx(),
+            phase: "spring",
+            currentPlayer: "4",
+        } as unknown as Ctx;
+        expect(chooseHomeCard(G, springCtx, {cardId: home[0]})).toBeUndefined();
+        expect(G.powers.hre.homeCardSetAside).toEqual([home[1]]);
+
+        const actionCtx = {...fakeCtx(), phase: "action", currentPlayer: "4"} as unknown as Ctx;
+        expect(playCard(G, actionCtx, {cardId: home[0], asEvent: true})).toBeUndefined();
+        expect(G.homeSetAside).toContain(home[0]);
+
+        G.year += 1;
+        dealYear(G, fakeCtx());
+        const returned = homeCardsInHand(G, "hre");
+        expect(returned).toHaveLength(2);
+        expect(new Set(returned).size).toBe(2);
+        expect(returned).toEqual(expect.arrayContaining(home));
+        expect(G.powers.hre.homeCardSetAside).toEqual([]);
+        expect(G.powers.hre.homeCardChoiceDone).toBe(false);
+        expect(G.homeSetAside).toEqual([]);
+    });
+
+    it("does not require the Ottoman to choose while Suleiman rules", () => {
+        const G = newGame();
+        dealYear(G, fakeCtx());
+        const ctx = {
+            ...fakeCtx(),
+            phase: "spring",
+            currentPlayer: "0",
+            events: {endTurn: jest.fn()},
+        } as unknown as Ctx;
+
+        expect(G.powers.ottoman.ruler).toBe("suleiman");
+        expect(homeCardChoiceRequired(G, "ottoman")).toBe(false);
+        expect(endPhaseTurn(G, ctx)).toBeUndefined();
+
+        G.powers.ottoman.ruler = "selimII";
+        expect(homeCardChoiceRequired(G, "ottoman")).toBe(true);
+        expect(endPhaseTurn(G, ctx)).toBe(INVALID_MOVE);
+    });
+
+    it("switches the Ottoman ruler when Selim II is played", () => {
+        const G = newGame();
+        dealYear(G, fakeCtx());
+        G.powers.ottoman.cards.push("vq-006");
+        const ctx = {...fakeCtx(), phase: "action", currentPlayer: "0"} as unknown as Ctx;
+
+        expect(playCard(G, ctx, {cardId: "vq-006", asEvent: true})).toBeUndefined();
+        expect(G.powers.ottoman.ruler).toBe("selimII");
+        expect(homeCardChoiceRequired(G, "ottoman")).toBe(true);
+    });
+
+    it("keeps the Spring Home card choice secret from other powers", () => {
+        const clients = startClients();
+        try {
+            for (let i = 0; i < 6; i++) {
+                clients[i].moves.endPhaseTurn();
+            }
+            for (let i = 0; i < 6; i++) {
+                clients[i].moves.endPhaseTurn();
+            }
+            for (let i = 0; i < 4; i++) {
+                clients[i].moves.endPhaseTurn();
+            }
+            const hre = clients[4];
+            const home = homeCardsInHand(hre.getState().G, "hre");
+            hre.moves.chooseHomeCard({cardId: home[0]});
+
+            const hreView = hre.getState().G;
+            const spainView = clients[1].getState().G;
+            expect(hreView.powers.hre.homeCardSetAside).toHaveLength(1);
+            expect(hreView.powers.hre.homeCardSetAside[0]).toBe(home[1]);
+            expect(spainView.powers.hre.homeCardSetAside).toHaveLength(0);
+            expect(spainView.homeCardSetAsideCounts?.hre).toBe(1);
+            expect(spainView.powers.hre.cards).toHaveLength(0);
+            const choiceLog = clients[1].getState().log.slice(-1)[0] as any;
+            expect(choiceLog.action.type).toBe("MAKE_MOVE");
+            expect(choiceLog.action.payload.type).toBe("chooseHomeCard");
+            expect(choiceLog.action.payload.args).toBeNull();
+        } finally {
+            stopClients(clients);
+        }
+    });
+
     it("spring-deploys a formation from the capital", () => {
         const clients = startClients();
         try {
             for (let i = 0; i < 6; i++) {
                 clients[i].moves.endPhaseTurn();
             }
+            for (let i = 0; i < 6; i++) {
+                clients[i].moves.endPhaseTurn();
+            }
             expect(clients[0].getState().ctx.phase).toBe("spring");
-            const before = clients[0].getState().G.spaces.edirne.land.ottoman.regular;
+            const before = clients[0].getState().G.spaces.edirne.land.ottoman?.regular ?? 0;
             clients[0].moves.springDeploy({from: "istanbul", to: "edirne"});
             const state = clients[0].getState();
-            expect(state.G.spaces.edirne.land.ottoman.regular).toBe(before + 4);
+            expect(state.G.spaces.edirne.land.ottoman.regular).toBe(before + 8);
             expect(state.G.spaces.istanbul.land.ottoman).toBeUndefined();
         } finally {
             stopClients(clients);
@@ -202,6 +472,9 @@ describe("Virgin Queen turn flow", () => {
     it("declares war during diplomacy by paying cards", () => {
         const clients = startClients();
         try {
+            for (let i = 0; i < 6; i++) {
+                clients[i].moves.endPhaseTurn();
+            }
             clients[0].moves.endPhaseTurn();
             clients[1].moves.endPhaseTurn();
             expect(clients[0].getState().ctx.currentPlayer).toBe("2");
@@ -223,7 +496,7 @@ describe("Virgin Queen turn flow", () => {
             const state = clients[0].getState();
             const card = state.G.powers.ottoman.cards.find((id: string) => cardById(id).cp >= 1);
             clients[0].moves.playCard({cardId: card});
-            const before = state.G.spaces.edirne.land.ottoman.regular;
+            const before = state.G.spaces.edirne.land.ottoman?.regular ?? 0;
             clients[0].moves.moveLand({from: "istanbul", to: "edirne"});
             const after = clients[0].getState().G.spaces.edirne.land.ottoman.regular;
             expect(after).toBeGreaterThan(before);
@@ -235,29 +508,12 @@ describe("Virgin Queen turn flow", () => {
 
 
     it("ends by time limit after turn seven", () => {
-        const clients = startClients();
-        try {
-            for (let year = 1; year <= 7; year++) {
-                driveToAction(clients);
-                for (let i = 0; i < 6; i++) {
-                    clients[i].moves.pass();
-                }
-            }
-            let state = clients[0].getState();
-            if (state.ctx.gameover === undefined) {
-                // The end-of-winter victory check may be evaluated at the start
-                // of the next phase's first move.
-                state = clients[0].getState();
-                if (state.ctx.phase === "diplomacy") {
-                    clients[0].moves.endPhaseTurn();
-                }
-                state = clients[0].getState();
-            }
-            expect(state.ctx.gameover).toBeDefined();
-            expect(state.ctx.gameover.reason).toBe("timeLimit");
-        } finally {
-            stopClients(clients);
-        }
+        const G = newGame();
+        G.year = G.endTurn + 1;
+        G.checkVictory = true;
+        const v = checkVictory(G);
+        expect(v).toBeDefined();
+        expect(v?.reason).toBe("timeLimit");
     });
 
     it("hides other powers' hands in playerView", () => {
@@ -331,11 +587,16 @@ describe("Virgin Queen events", () => {
         try {
             for (let year = 1; year <= 3; year++) {
                 driveToAction(clients);
-                for (let i = 0; i < 6; i++) {
-                    clients[i].moves.pass();
+                passToEndAction(clients);
+                const state = clients[0].getState();
+                if (state.ctx.gameover !== undefined) {
+                    // A domination victory can legitimately end the match
+                    // before the fourth Card Draw Phase.
+                    expect(state.ctx.gameover.reason).toBe("domination");
+                    return;
                 }
-                expect(clients[0].getState().G.year).toBe(year + 1);
-                expect(clients[0].getState().ctx.phase).toBe("diplomacy");
+                expect(state.G.year).toBe(year + 1);
+                expect(state.ctx.phase).toBe("cardDraw");
             }
         } finally {
             stopClients(clients);

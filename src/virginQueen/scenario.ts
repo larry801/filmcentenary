@@ -14,10 +14,10 @@ import {
 import {LEADERS} from "./constant/leaders";
 import {PATRON_BY_ID} from "./data/patrons";
 import {ROYAL_BY_ID} from "./data/royals";
-import {SCENARIOS, ScenarioSetup} from "./data/scenarios";
+import {SCENARIOS} from "./data/scenarios";
 import {SCIENCE_BONUSES, SCIENCE_BONUS_BY_ID} from "./data/scienceBonuses";
 import {SEA_CAPTAINS, SEA_CAPTAIN_BY_ID} from "./data/seaCaptains";
-import {PowerCardSetup, ScenarioSpaceSetup} from "./data/types";
+import {PowerCardSetup, ScenarioSetup, ScenarioSpaceSetup} from "./data/types";
 import {OFFICIAL_SPACES} from "./data/spaces";
 
 /**

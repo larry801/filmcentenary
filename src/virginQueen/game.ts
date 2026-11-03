@@ -4,11 +4,14 @@ import {POWER_INDEX, POWERS, Power, VQGame, powerAt} from "./constant/general";
 import {arriveLeaders, checkVictory, dealYear, setupGame, winter} from "./util";
 import {
     assault,
-    betroth,
+    proposeBetroth,
+    acceptBetroth,
+    rejectBetroth,
     ransom,
     buildFortress,
     buildNaval,
     claimSeaCaptain,
+    chooseHomeCard,
     controlSpace,
     declareWar,
     declareWarMinor,
@@ -16,6 +19,15 @@ import {
     endPhaseTurn,
     formAlliance,
     influence,
+    plantInformant,
+    gainIntelligence,
+    assassinate,
+    buildExpedition,
+    moveExpedition,
+    settleColony,
+    commitForeignWarForce,
+    fightForeignWar,
+    reinforceForeignWar,
     makePeace,
     moveLand,
     moveNaval,
@@ -59,12 +71,16 @@ export const VirginQueenGameDef: Game<VQGame> = {
         r.futureDeckCount = G.futureDeck.length;
         r.discardCount = G.discard.length;
         r.handCounts = {};
+        r.homeCardSetAsideCounts = {};
         const viewer = playerID === null ? undefined : powerAt(playerID);
         for (const p of POWERS) {
             r.handCounts[p] = G.powers[p].cards.length;
+            r.homeCardSetAsideCounts[p] = G.powers[p].homeCardSetAside?.length ?? 0;
             if (viewer !== p) {
                 r.powers[p].cards = [];
                 r.powers[p].treasures = [];
+                // The Spring Home card choice is secret; only its count is public.
+                r.powers[p].homeCardSetAside = [];
             }
         }
         r.deck = [];
@@ -86,7 +102,15 @@ export const VirginQueenGameDef: Game<VQGame> = {
             next: "diplomacy",
         },
         diplomacy: {
-            turn: {order: TurnOrder.ONCE, onBegin: turnBegin},
+            turn: {
+                order: TurnOrder.ONCE,
+                onBegin: turnBegin,
+                stages: {
+                    respondBetroth: {
+                        moves: {acceptBetroth, rejectBetroth},
+                    },
+                },
+            },
             next: "spring",
         },
         spring: {
@@ -117,18 +141,30 @@ export const VirginQueenGameDef: Game<VQGame> = {
         pass,
         endImpulse,
         endPhaseTurn,
+        chooseHomeCard: {move: chooseHomeCard, redact: true},
         claimSeaCaptain,
         declareWar,
         declareWarMinor,
         makePeace,
         formAlliance,
-        betroth,
+        proposeBetroth,
+        acceptBetroth,
+        rejectBetroth,
         ransom,
         springDeploy,
         recruit,
         buildNaval,
         buildFortress,
         influence,
+        plantInformant,
+        gainIntelligence,
+        assassinate,
+        buildExpedition,
+        moveExpedition,
+        settleColony,
+        commitForeignWarForce,
+        fightForeignWar,
+        reinforceForeignWar,
         patronize,
         moveLand,
         moveNaval,

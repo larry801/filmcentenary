@@ -165,6 +165,8 @@ export interface LeaderState {
 }
 
 export interface Ruler {
+    /** Stable ruler id, used for ruler-dependent rules such as the Home card exception. */
+    id: string;
     name: string;
     /** Number of cards that may be kept between turns. */
     admin: number;
@@ -187,52 +189,64 @@ export interface PowerInfo {
 export const POWER_INFO: Record<Power, PowerInfo> = {
     ottoman: {
         power: "ottoman",
-        ruler: {name: "Suleiman the Magnificent", admin: 2, cardBonus: 1},
+        ruler: {id: "suleiman", name: "Suleiman the Magnificent", admin: 2, cardBonus: 1},
         drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
         vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
         autoWinKeys: 7,
-        homeCards: ["vq-home-grand-vizier"],
+        homeCards: ["vq-001", "vq-002"],
     },
     spain: {
         power: "spain",
-        ruler: {name: "Philip II", admin: 1, cardBonus: 0},
+        ruler: {id: "philipII", name: "Philip II", admin: 1, cardBonus: 0},
         drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
         vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
         autoWinKeys: 8,
-        homeCards: ["vq-home-spanish-armada"],
+        homeCards: ["vq-003", "vq-099"],
     },
     england: {
         power: "england",
-        ruler: {name: "Elizabeth I", admin: 2, cardBonus: 1},
+        ruler: {id: "elizabethI", name: "Elizabeth I", admin: 2, cardBonus: 1},
         drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
         vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
         autoWinKeys: 5,
-        homeCards: ["vq-home-virgin-queen"],
+        homeCards: ["vq-036", "vq-081"],
     },
     france: {
         power: "france",
-        ruler: {name: "Henry III", admin: 1, cardBonus: 0},
+        ruler: {id: "henryIII", name: "Henry III", admin: 1, cardBonus: 0},
         drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
         vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
         autoWinKeys: 5,
-        homeCards: ["vq-home-valois-wedding"],
+        homeCards: ["vq-033", "vq-080"],
     },
     hre: {
         power: "hre",
-        ruler: {name: "Ferdinand I", admin: 2, cardBonus: 0},
+        ruler: {id: "ferdinandI", name: "Ferdinand I", admin: 2, cardBonus: 0},
         drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
         vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
         autoWinKeys: 5,
-        homeCards: ["vq-home-imperial-diet"],
+        homeCards: ["vq-034", "vq-035"],
     },
     protestant: {
         power: "protestant",
-        ruler: {name: "Council of the Reformed Churches", admin: 2, cardBonus: 0},
+        ruler: {id: "reformedChurches", name: "Council of the Reformed Churches", admin: 2, cardBonus: 0},
         drawByKeys: [4, 4, 5, 5, 6, 6, 7, 7, 7],
         vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
         autoWinKeys: 5,
-        homeCards: ["vq-home-huguenot-lent"],
+        homeCards: ["vq-032", "vq-111"],
     },
+};
+
+/** Display names for the ruler ids stored on each power state. */
+export const RULER_NAMES: Record<string, string> = {
+    suleiman: "Suleiman the Magnificent",
+    selimII: "Selim II",
+    muradIII: "Murad III",
+    philipII: "Philip II",
+    elizabethI: "Elizabeth I",
+    henryIII: "Henry III",
+    ferdinandI: "Ferdinand I",
+    reformedChurches: "Council of the Reformed Churches",
 };
 
 export type SeaZoneID =
@@ -306,7 +320,7 @@ export interface CardDef {
     /** Command point value. */
     cp: number;
     kind: CardKind;
-    /** Home cards belong to a power and return to that power every year. */
+    /** Official Home cards for this power; availability is checked each turn. */
     power?: Power;
     text?: string;
     effect?: EventEffect | EventEffect[];
@@ -352,6 +366,8 @@ export interface SeaState {
 
 export interface PowerState {
     power: Power;
+    /** Current ruler id (the Ottoman changes from Suleiman to Selim II). */
+    ruler: string;
     cards: string[];
     treasures: number[];
     /** Command points left in the current impulse. */
@@ -379,6 +395,14 @@ export interface PowerState {
     scmOnCard: number;
     /** True when the power has passed and no one has acted since. */
     passed: boolean;
+    /**
+     * Home cards placed face down on the power card during Spring Deployment
+     * because they were not chosen. Their identities are secret until the next
+     * Card Draw; used Home cards go to the public homeSetAside list instead.
+     */
+    homeCardSetAside: string[];
+    /** True once this power has resolved its Spring Home card choice. */
+    homeCardChoiceDone: boolean;
 }
 
 export interface VQGame {
@@ -394,6 +418,7 @@ export interface VQGame {
     turnsCompleted: number;
     phaseTurns: number;
     consecutivePasses: number;
+    /** Monotonic action-turn counter; kept across winter for siege and informant timing. */
     impulse: number;
     activePower: Power;
     spaces: Record<string, SpaceState>;
@@ -414,12 +439,16 @@ export interface VQGame {
     mercenariesForHire: number;
     /** Betrothals announced during the current Diplomacy Phase. */
     betrothals: { male: string; female: string }[];
+    /** Marriage proposal awaiting the target power's response. */
+    pendingBetrothal: { male: string; female: string; proposer: Power; target: Power } | null;
     /** Royal marriages resolved this year (used for "Virgin Queen" VP). */
     marriages: number;
     log: string[];
     vpHistory: Record<string, Partial<Record<Power, number>>>;
     /** Set at the end of the Action Phase so endIf can score the winter. */
     checkVictory: boolean;
+    /** Key counts at setup, so starting positions do not trigger military victory. */
+    militaryVictoryBaseline: Record<Power, number>;
     lastAction: string;
     lastRolls: string;
     royals: RoyalDef[];
@@ -429,6 +458,24 @@ export interface VQGame {
     vpAwardsAvailable: string[];
     /** Artists and scientists sponsored this year, resolved in the Winter Phase. */
     pendingPatronage: {power: Power; patronId: string; cp: number}[];
+    /** Starting diplomatic influence markers, restored at Winter reset. */
+    minorInfluenceDefaults: Record<Power, Partial<Record<MinorPower, number>>>;
+    /** Minor powers whose diplomacy has already been resolved this turn. */
+    minorDiplomacyResolved: MinorPower[];
+    /** Powers permanently barred from influencing a minor after declaring war on it. */
+    minorInfluenceBlocked: Record<Power, MinorPower[]>;
+    /** Informants on major-power cards; neutralized informants return in winter. */
+    informants: {owner: Power; target: Power; neutralized: boolean; plantedImpulse: number}[];
+    /** Powers that have used their once-per-turn assassination action. */
+    assassinationUsed: Power[];
+    /** Sea captains currently on the World Map, with an optional colony aboard. */
+    worldCaptains: Record<string, {power: Power; location: string; damaged: boolean; colony: boolean; movedImpulse?: number}>;
+    /** Settlements already occupied by a permanent colony. */
+    worldColonies: Partial<Record<string, Power>>;
+    /** Starting or event-granted world-space control markers. */
+    worldControls: Partial<Record<string, Power>>;
+    /** Ottoman/Persian and HRE/Polish off-map conflicts. */
+    foreignWars: Partial<Record<Power, ForeignWarState>>;
     /** Context gates response and combat cards at their printed timing. */
     cardWindow?: CardWindow;
     /** Sea captains available under this scenario's power cards. */
@@ -443,9 +490,23 @@ export interface VQGame {
     futureDeckCount?: number;
     discardCount?: number;
     handCounts?: Partial<Record<Power, number>>;
+    /** Public count of each power's face-down Home cards (identities hidden). */
+    homeCardSetAsideCounts?: Partial<Record<Power, number>>;
     springDone: Power[];
     patronizedThisTurn: string[];
     cardDrawDone: Power[];
+}
+
+export interface ForeignWarState {
+    power: "ottoman" | "hre";
+    cardId: string;
+    enemy: "Persia" | "Poland";
+    enemyUnits: number;
+    /** Major-power units and an optional army leader sent off-map. */
+    units: LandStack;
+    leaderId?: string;
+    winnerVp: boolean;
+    status: "setup" | "active";
 }
 
 export interface RoyalDef {

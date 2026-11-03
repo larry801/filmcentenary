@@ -4,10 +4,12 @@ import {
     CardDef,
     Controller,
     landCount,
+    LandStack,
     MinorPower,
     MINOR_POWERS,
     NavalStack,
     navalCount,
+    POWER_INDEX,
     POWER_INFO,
     POWERS,
     Power,
@@ -18,6 +20,8 @@ import {
     powerAt,
 } from "./constant/general";
 import {cardById} from "./constant/cards";
+import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
+import {WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENT_BY_ID} from "./data/world";
 import {patronById, royalAvailable, seaCaptainById} from "./scenario";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {
@@ -51,14 +55,16 @@ import {
     exactLand,
     exactNaval,
     fieldBattle,
-    friendly,
+    friendlyController,
     friendlyControlled,
     hasLOC,
     hits,
+    homeCardChoiceRequired,
     isFortifiedSpace,
     isPort,
     isSeaZone,
     leadersAt,
+    minorAvailable,
     navalAdjacent,
     ownersWithLand,
     ownersWithNaval,
@@ -75,6 +81,7 @@ import {
     resolveConversions,
     resolveEvent,
     resolveOfficialCardEffect,
+    resolveMinorDiplomacy,
     resolveRebellion,
     roll,
     setWar,
@@ -91,6 +98,82 @@ const power = (ctx: Ctx): Power => powerAt(ctx.currentPlayer);
 const markAction = (G: VQGame, p: Power): void => {
     G.powers[p].passed = false;
     G.consecutivePasses = 0;
+};
+
+const awardMinorInfluence = (G: VQGame, p: Power, minor: MinorPower, amount: number): void => {
+    const current = G.powers[p].influence[minor] ?? 0;
+    G.powers[p].influence[minor] = Math.min(9, current + amount);
+};
+
+const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef): boolean => {
+    const handler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
+    if (handler === "kingSebastianDies") {
+        for (const major of POWERS) {
+            G.minorInfluenceDefaults[major].portugal = major === "england" ? 1 : 0;
+            G.powers[major].influence.portugal = G.minorInfluenceDefaults[major].portugal;
+        }
+        pushLog(G, "Portugal enters play; England starts with 1 diplomatic influence there.");
+        return true;
+    }
+    if (handler === "irishRebellion") {
+        if (!["spain", "france", "hre"].includes(p) || G.minorDiplomacyResolved.includes("ireland")) return false;
+        awardMinorInfluence(G, p, "ireland", 2);
+        resolveMinorDiplomacy(G, ctx, "ireland");
+        if (POWERS.some((major) => G.powers[major].alliedMinors.includes("ireland"))) {
+            for (const id of ["dublin", "kinsale"]) {
+                const units = G.spaces[id]?.land.england;
+                if (units !== undefined) {
+                    units.regular -= Math.floor(units.regular / 2);
+                    units.merc -= Math.floor(units.merc / 2);
+                }
+            }
+        }
+        return true;
+    }
+    if (handler === "scottishLordsRebel") {
+        if (G.minorDiplomacyResolved.includes("scotland")) return false;
+        const edinburghController = G.spaces.edinburgh?.control;
+        const modifier = isPower(edinburghController) ? {[edinburghController]: 1} : {};
+        resolveMinorDiplomacy(G, ctx, "scotland", {modifier});
+        for (const space of SPACES.filter((s) => s.area === "scotland")) {
+            G.spaces[space.id].land = {};
+        }
+        addLand(G, "edinburgh", "scotland", "regular", 2);
+        return true;
+    }
+    if (handler === "sultanaSafiye" && p !== "ottoman") {
+        if (!MINOR_DIPLOMACY.venice.eligible.includes(p) || G.minorDiplomacyResolved.includes("venice")) return false;
+        awardMinorInfluence(G, p, "venice", 2);
+        resolveMinorDiplomacy(G, ctx, "venice");
+        return true;
+    }
+    if (handler === "donAntonioOfPortugal" && !G.powers[p].alliedMinors.includes("portugal")) {
+        if (!MINOR_DIPLOMACY.portugal.eligible.includes(p) || G.minorDiplomacyResolved.includes("portugal") ||
+            !minorAvailable(G, "portugal")) return false;
+        awardMinorInfluence(G, p, "portugal", 2);
+        resolveMinorDiplomacy(G, ctx, "portugal");
+        return true;
+    }
+    return false;
+};
+
+const foreignWarPower = (handler: string): "ottoman" | "hre" | undefined =>
+    handler === "warInPersia" ? "ottoman" : handler === "warWithPoland" ? "hre" : undefined;
+
+const startForeignWar = (G: VQGame, cardId: string, beneficiary: "ottoman" | "hre", enemyUnits: number): void => {
+    const enemy = beneficiary === "ottoman" ? "Persia" : "Poland";
+    G.foreignWars[beneficiary] = {
+        power: beneficiary,
+        cardId,
+        enemy,
+        enemyUnits,
+        units: {regular: 0, merc: 0, cav: 0},
+        winnerVp: enemyUnits === 5,
+        status: "setup",
+    };
+    G.powers[beneficiary].cardModifier -= 1;
+    G.discard = G.discard.filter((id) => id !== cardId);
+    pushLog(G, `${enemyUnits}-unit foreign army appears in ${enemy}; ${powerLabel(beneficiary)} must commit 3–8 land units.`);
 };
 
 const spend = (G: VQGame, p: Power, cost: number): boolean => {
@@ -150,6 +233,31 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     const def = cardById(args.cardId);
+    const cardHandler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
+    const beneficiary = foreignWarPower(cardHandler);
+    if (args.asEvent === true && beneficiary !== undefined) {
+        const enemyUnits = Number(args.target);
+        if ((enemyUnits !== 3 && enemyUnits !== 5) || G.foreignWars[beneficiary] !== undefined ||
+            (beneficiary === "hre" && atWar(G, "hre", "ottoman")) ||
+            Object.values(G.spaces).filter((space) => space.siege === undefined)
+                .reduce((total, space) => total + landCount(space.land[beneficiary]), 0) < 3) return INVALID_MOVE;
+    }
+    const cardDiplomacyTarget: MinorPower | undefined = cardHandler === "irishRebellion" ? "ireland" :
+        cardHandler === "scottishLordsRebel" ? "scotland" :
+            cardHandler === "sultanaSafiye" && p !== "ottoman" ? "venice" :
+                cardHandler === "donAntonioOfPortugal" && !ps.alliedMinors.includes("portugal") ? "portugal" : undefined;
+    if (args.asEvent === true && cardDiplomacyTarget !== undefined &&
+        (G.minorDiplomacyResolved.includes(cardDiplomacyTarget) ||
+            !minorAvailable(G, cardDiplomacyTarget))) {
+        return INVALID_MOVE;
+    }
+    if (args.asEvent === true && cardHandler === "irishRebellion" && !["spain", "france", "hre"].includes(p)) {
+        return INVALID_MOVE;
+    }
+    if (args.asEvent === true && cardHandler === "sultanaSafiye" && p !== "ottoman" &&
+        !MINOR_DIPLOMACY.venice.eligible.includes(p)) return INVALID_MOVE;
+    if (args.asEvent === true && cardHandler === "donAntonioOfPortugal" &&
+        !ps.alliedMinors.includes("portugal") && !MINOR_DIPLOMACY.portugal.eligible.includes(p)) return INVALID_MOVE;
     if (args.asEvent === true && def.officialEffect?.kind === "conversion" &&
         def.officialEffect.areas.length > 1 && args.target === undefined) {
         return INVALID_MOVE;
@@ -179,13 +287,25 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     markAction(G, p);
     if (args.asEvent === true) {
         pushLog(G, `${powerLabel(p)} plays ${def.name} as an event.`);
-        if (def.effect !== undefined) {
+        if (beneficiary !== undefined) {
+            startForeignWar(G, args.cardId, beneficiary, Number(args.target));
+        } else if (def.effect !== undefined) {
             resolveEvent(G, ctx, p, def.effect);
+        } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
+            // Official minor-power event handler resolved above.
         } else if (def.officialEffect !== undefined &&
             resolveOfficialCardEffect(G, ctx, p, def, args.target)) {
             // The typed card-table effect resolved above.
         } else if (def.officialNumber !== undefined) {
             pushLog(G, `Official event text: ${def.text ?? ""}`);
+        }
+        if (cardHandler === "polishRoyalElection" && G.foreignWars.hre?.status === "active") {
+            endForeignWar(G, "hre");
+            pushLog(G, "The Polish Royal Election ends the HRE's foreign war.");
+        }
+        if (cardHandler === "selimII") {
+            G.powers.ottoman.ruler = "selimII";
+            pushLog(G, "Selim II succeeds Suleiman; the Ottoman Home card exception ends.");
         }
         if (mandatory) {
             // Mandatory events resolve before their printed two command points.
@@ -223,7 +343,7 @@ export const pass = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
         return INVALID_MOVE;
     }
     const p = power(ctx);
-    if (G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory")) {
+    if (G.foreignWars[p]?.status === "setup" || G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory")) {
         return INVALID_MOVE;
     }
     G.powers[p].cp = 0;
@@ -238,10 +358,17 @@ export const endImpulse = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
         return INVALID_MOVE;
     }
     const p = power(ctx);
-    if (G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory")) {
+    if (G.foreignWars[p]?.status === "setup") {
         return INVALID_MOVE;
     }
     if (!G.powers[p].cardPlayed) {
+        // Ending an impulse without playing a card is a pass, which is illegal
+        // while a Mandatory Event is still in hand.  After a card has been
+        // played the impulse may end normally, even if another Mandatory Event
+        // is waiting for a later impulse this turn.
+        if (G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory")) {
+            return INVALID_MOVE;
+        }
         G.powers[p].passed = true;
         G.consecutivePasses += 1;
         pushLog(G, `${powerLabel(p)} passes (no card played).`);
@@ -250,8 +377,11 @@ export const endImpulse = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     ctx.events?.endTurn();
 };
 
-export const endPhaseTurn = (_G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+export const endPhaseTurn = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "cardDraw" && ctx.phase !== "diplomacy" && ctx.phase !== "spring") {
+        return INVALID_MOVE;
+    }
+    if (ctx.phase === "spring" && homeCardChoiceRequired(G, power(ctx))) {
         return INVALID_MOVE;
     }
     ctx.events?.endTurn();
@@ -300,7 +430,12 @@ export const declareWarMinor = (G: VQGame, ctx: Ctx, args: { target: MinorPower 
     }
     const p = power(ctx);
     const target = args.target;
-    if (!MINOR_POWERS.includes(target) || G.powers[p].warsMinors.includes(target)) {
+    if (!minorAvailable(G, target)) {
+        return INVALID_MOVE;
+    }
+    if (!MINOR_POWERS.includes(target) || G.powers[p].warsMinors.includes(target) ||
+        POWERS.some((major) => G.powers[major].alliedMinors.includes(target)) ||
+        G.minorInfluenceBlocked[p].includes(target)) {
         return INVALID_MOVE;
     }
     if (!payWarCost(G, p, 2)) {
@@ -308,6 +443,15 @@ export const declareWarMinor = (G: VQGame, ctx: Ctx, args: { target: MinorPower 
     }
     G.powers[p].warsMinors.push(target);
     pushLog(G, `${powerLabel(p)} declares war on ${target}.`);
+    G.minorInfluenceBlocked[p].push(target);
+    delete G.powers[p].influence[target];
+    delete G.minorInfluenceDefaults[p][target];
+    const winner = resolveMinorDiplomacy(G, ctx, target, {
+        exclude: [p, ...MINOR_DIPLOMACY[target].deactivate],
+    });
+    if (winner !== undefined && G.powers[winner].alliedMinors.includes(target)) {
+        setWar(G, winner, p);
+    }
 };
 
 export const makePeace = (G: VQGame, ctx: Ctx, args: { target: Power }): void | typeof INVALID_MOVE => {
@@ -348,8 +492,11 @@ export const formAlliance = (G: VQGame, ctx: Ctx, args: { target: Power }): void
     pushLog(G, `${powerLabel(p)} and ${powerLabel(t)} form an alliance for this turn.`);
 };
 
-export const betroth = (G: VQGame, ctx: Ctx, args: { male: string; female: string }): void | typeof INVALID_MOVE => {
+export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female: string }): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "diplomacy") {
+        return INVALID_MOVE;
+    }
+    if (G.pendingBetrothal !== null) {
         return INVALID_MOVE;
     }
     const p = power(ctx);
@@ -373,8 +520,32 @@ export const betroth = (G: VQGame, ctx: Ctx, args: { male: string; female: strin
     if (p !== male.power && p !== female.power) {
         return INVALID_MOVE;
     }
-    G.betrothals.push({male: male.id, female: female.id});
-    pushLog(G, `${male.name} and ${female.name} are betrothed.`);
+    const target = male.power === p ? female.power : male.power;
+    G.pendingBetrothal = {male: male.id, female: female.id, proposer: p, target};
+    pushLog(G, `${powerLabel(p)} proposes a marriage between ${male.name} and ${female.name}.`);
+    const targetPlayerID = String(POWER_INDEX[target]);
+    ctx.events?.setActivePlayers?.({value: {[targetPlayerID]: "respondBetroth"}, moveLimit: 1});
+};
+
+export const acceptBetroth = (G: VQGame, _ctx: Ctx): void | typeof INVALID_MOVE => {
+    if (G.pendingBetrothal === null) {
+        return INVALID_MOVE;
+    }
+    const {male, female} = G.pendingBetrothal;
+    const maleDef = G.royals.find((r) => r.id === male);
+    const femaleDef = G.royals.find((r) => r.id === female);
+    G.betrothals.push({male, female});
+    G.pendingBetrothal = null;
+    pushLog(G, `${maleDef?.name ?? male} and ${femaleDef?.name ?? female} are betrothed.`);
+};
+
+export const rejectBetroth = (G: VQGame, _ctx: Ctx): void | typeof INVALID_MOVE => {
+    if (G.pendingBetrothal === null) {
+        return INVALID_MOVE;
+    }
+    const {proposer} = G.pendingBetrothal;
+    G.pendingBetrothal = null;
+    pushLog(G, `${powerLabel(proposer)}'s marriage proposal was rejected.`);
 };
 
 export const ransom = (G: VQGame, ctx: Ctx, args: { leaderId: string }): void | typeof INVALID_MOVE => {
@@ -409,6 +580,34 @@ export const ransom = (G: VQGame, ctx: Ctx, args: { leaderId: string }): void | 
 // --------------------------------------------------------------------------
 // Spring Deployment
 // --------------------------------------------------------------------------
+
+/**
+ * Secretly keep one Home card and place the rest face down on the power card
+ * (rulebook 10).  The move is redacted in game.ts so the chosen card is not
+ * revealed through the move log.  The Ottoman may skip this while Suleiman is
+ * ruler, but may still choose to set a card aside voluntarily.
+ */
+export const chooseHomeCard = (G: VQGame, ctx: Ctx, args: {cardId: string}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "spring") {
+        return INVALID_MOVE;
+    }
+    const p = power(ctx);
+    const ps = G.powers[p];
+    if (ps.homeCardChoiceDone) {
+        return INVALID_MOVE;
+    }
+    const homeCards = G.powers[p].cards.filter((id) => cardById(id).kind === "home");
+    if (homeCards.length <= 1 || !homeCards.includes(args.cardId)) {
+        return INVALID_MOVE;
+    }
+    const setAside = homeCards.filter((id) => id !== args.cardId);
+    for (const id of setAside) {
+        removeCardFromHand(G, p, id);
+    }
+    ps.homeCardSetAside = setAside;
+    ps.homeCardChoiceDone = true;
+    pushLog(G, `${powerLabel(p)} keeps one Home card and sets ${setAside.length} face down on the power card.`);
+};
 
 export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: string }): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "spring") {
@@ -563,15 +762,245 @@ export const influence = (G: VQGame, ctx: Ctx, args: { target: MinorPower }): vo
         return INVALID_MOVE;
     }
     const p = power(ctx);
-    if (!MINOR_POWERS.includes(args.target)) {
+    const target = args.target;
+    if (!MINOR_POWERS.includes(target) || !MINOR_DIPLOMACY[target].eligible.includes(p) ||
+        G.minorDiplomacyResolved.includes(target) || G.minorInfluenceBlocked[p].includes(target) ||
+        !minorAvailable(G, target)) {
         return INVALID_MOVE;
     }
-    const cur = G.powers[p].influence[args.target] ?? 0;
+    const cur = G.powers[p].influence[target] ?? 0;
     if (cur >= 9 || !spend(G, p, 1)) {
         return INVALID_MOVE;
     }
-    G.powers[p].influence[args.target] = cur + 1;
-    pushLog(G, `${powerLabel(p)} buys influence with ${args.target} (${cur + 1}).`);
+    G.powers[p].influence[target] = cur + 1;
+    pushLog(G, `${powerLabel(p)} buys influence with ${target} (${cur + 1}).`);
+};
+
+const espionageAvailable = (G: VQGame): boolean => G.year >= 3;
+
+export const plantInformant = (G: VQGame, ctx: Ctx, args: {target: Power}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action" || !espionageAvailable(G)) return INVALID_MOVE;
+    const p = power(ctx);
+    if (args.target === p || G.informants.some((i) => i.target === args.target) ||
+        G.informants.filter((i) => i.owner === p).length >= 2 ||
+        !spend(G, p, 2)) return INVALID_MOVE;
+    G.informants.push({owner: p, target: args.target, neutralized: false, plantedImpulse: G.impulse});
+    pushLog(G, `${powerLabel(p)} plants an informant in ${powerLabel(args.target)}.`);
+};
+
+export const gainIntelligence = (G: VQGame, ctx: Ctx, args: {target: Power}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action" || !espionageAvailable(G)) return INVALID_MOVE;
+    const p = power(ctx);
+    if (args.target === p || !spend(G, p, 2)) return INVALID_MOVE;
+    const bonus = G.informants.filter((i) => i.target === args.target && !i.neutralized && i.plantedImpulse < G.impulse).length * 2;
+    const dice = roll(ctx, 2 + bonus);
+    const successes = hits(dice);
+    const exposed = G.informants.filter((i) => i.owner !== p && i.target === args.target && !i.neutralized);
+    for (const informant of exposed.slice(0, successes)) informant.neutralized = true;
+    G.lastRolls = `Gain Intelligence: ${2 + bonus} dice [${dice.join(", ")}] = ${successes} hit(s)`;
+    pushLog(G, G.lastRolls);
+    if (successes > 0) {
+        const stealable = G.powers[args.target].cards.filter((id) => cardById(id).kind !== "home");
+        if (stealable.length > 0) {
+            const id = shuffle(ctx, stealable)[0];
+            removeCardFromHand(G, args.target, id);
+            G.powers[p].cards.push(id);
+            pushLog(G, `${powerLabel(p)} steals one card from ${powerLabel(args.target)}.`);
+        }
+        if (exposed.length > 0) pushLog(G, `${Math.min(successes, exposed.length)} informant(s) neutralized.`);
+    }
+};
+
+export const assassinate = (G: VQGame, ctx: Ctx, args: {target: string; cp: number}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action" || !espionageAvailable(G)) return INVALID_MOVE;
+    const p = power(ctx);
+    const isElizabeth = args.target === "elizabeth";
+    const royal = G.royals.find((r) => r.id === args.target);
+    const def = LEADER_BY_ID[args.target];
+    const eligibleLeader = def?.kind === "army" && G.leaders[args.target] !== undefined &&
+        G.leaders[args.target].location !== "pool" && G.leaders[args.target].location !== "captured" &&
+        G.leaders[args.target].location !== "offMap" &&
+        Object.values(G.spaces).some((space) => space.leaders.includes(args.target));
+    if (!Number.isInteger(args.cp) || args.cp < 2 || args.cp > 4 || G.assassinationUsed.includes(p) ||
+        (isElizabeth && p === "england") ||
+        !(isElizabeth ? royal?.alive === true : eligibleLeader) || def?.power === p || !spend(G, p, args.cp)) return INVALID_MOVE;
+    const targetPower = isElizabeth ? "england" : def!.power;
+    const attackDice = args.cp + 2 * G.informants.filter((i) => i.target === targetPower && !i.neutralized && i.plantedImpulse < G.impulse).length;
+    const defenseDice = 2 + 2 * G.informants.filter((i) => i.owner === targetPower && i.target === p && !i.neutralized && i.plantedImpulse < G.impulse).length;
+    const attack = roll(ctx, attackDice);
+    const defense = roll(ctx, defenseDice);
+    const attackHits = hits(attack);
+    const defenseHits = hits(defense);
+    G.assassinationUsed.push(p);
+    G.lastRolls = `Assassination: ${powerLabel(p)} ${attackDice} [${attack.join(", ")}] = ${attackHits}; ${powerLabel(targetPower)} ${defenseDice} [${defense.join(", ")}] = ${defenseHits}`;
+    pushLog(G, G.lastRolls);
+    if (attackHits > defenseHits) {
+        if (isElizabeth && royal !== undefined) {
+            royal.alive = false;
+            royal.status = "dead";
+        } else if (G.leaders[args.target] !== undefined) {
+            G.leaders[args.target].location = "pool";
+            for (const space of Object.values(G.spaces)) space.leaders = space.leaders.filter((id) => id !== args.target);
+            for (const zone of Object.values(G.seaZones)) zone.leaders = zone.leaders.filter((id) => id !== args.target);
+        }
+        addVp(G, p, 1);
+        pushLog(G, `${args.target} is assassinated; ${powerLabel(p)} gains 1 VP.`);
+    } else {
+        pushLog(G, `Assassination attempt against ${args.target} fails.`);
+    }
+};
+
+export const buildExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; colony?: boolean}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action") return INVALID_MOVE;
+    const p = power(ctx);
+    const captain = seaCaptainById(args.captain);
+    const start = p === "ottoman" ? "indianOcean" : "northAtlantic";
+    const freeColonist = captain?.bonus.startsWith("Free colonist") === true;
+    const freeScienceColony = G.powers[p].scienceBonuses.includes("plantation");
+    const baseCost = captain?.bonus.startsWith("Costs 2 CP") === true ? 2 : 1;
+    const cost = baseCost + (args.colony && !freeColonist && !freeScienceColony ? 1 : 0);
+    if (captain === undefined || captain.turn > G.year || !G.powers[p].seaCaptains.includes(args.captain) ||
+        (args.colony === true && p === "hre") || G.worldCaptains[args.captain] !== undefined || !spend(G, p, cost)) return INVALID_MOVE;
+    G.worldCaptains[args.captain] = {power: p, location: start, damaged: p === "ottoman" && !G.suezDone, colony: args.colony === true};
+    pushLog(G, `${powerLabel(p)} launches ${captain.nameEn}'s expedition from ${WORLD_SEA_ZONE_BY_ID[start].nameEn}${args.colony ? " with a colony" : ""}.`);
+};
+
+export const moveExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; zone: string}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action") return INVALID_MOVE;
+    const p = power(ctx);
+    const expedition = G.worldCaptains[args.captain];
+    const moveAlreadyPaid = Object.values(G.worldCaptains).some((candidate) => candidate.power === p && candidate.movedImpulse === G.impulse);
+    if (expedition === undefined || expedition.power !== p || !WORLD_SEA_ZONE_BY_ID[args.zone] ||
+        expedition.movedImpulse === G.impulse || !WORLD_SEA_ZONE_BY_ID[expedition.location].adjacent.includes(args.zone) ||
+        (!moveAlreadyPaid && !spend(G, p, 1))) return INVALID_MOVE;
+    expedition.location = args.zone;
+    expedition.movedImpulse = G.impulse;
+    pushLog(G, `${args.captain} sails to ${WORLD_SEA_ZONE_BY_ID[args.zone].nameEn}.`);
+};
+
+export const settleColony = (G: VQGame, ctx: Ctx, args: {captain: string; settlement: string}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action") return INVALID_MOVE;
+    const p = power(ctx);
+    const expedition = G.worldCaptains[args.captain];
+    const settlement = WORLD_SETTLEMENT_BY_ID[args.settlement];
+    if (expedition === undefined || expedition.power !== p || !expedition.colony || settlement === undefined ||
+        settlement.id === "philippines" || settlement.seaZone !== expedition.location || G.worldControls[settlement.id] !== undefined ||
+        !spend(G, p, 1)) return INVALID_MOVE;
+    G.worldColonies[settlement.id] = p;
+    G.worldControls[settlement.id] = p;
+    expedition.colony = false;
+    pushLog(G, `${powerLabel(p)} establishes a colony at ${settlement.nameEn}.`);
+};
+
+export const commitForeignWarForce = (
+    G: VQGame,
+    ctx: Ctx,
+    args: {units: {space: string; kind: keyof LandStack}[]; leaderId?: string},
+): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action") return INVALID_MOVE;
+    const p = power(ctx);
+    const war = G.foreignWars[p];
+    if ((p !== "ottoman" && p !== "hre") || war?.status !== "setup" || !Array.isArray(args.units) ||
+        args.units.length < 3 || args.units.length > 8) return INVALID_MOVE;
+    const selectionCounts = new Map<string, number>();
+    for (const selection of args.units) {
+        const key = `${selection.space}:${selection.kind}`;
+        selectionCounts.set(key, (selectionCounts.get(key) ?? 0) + 1);
+    }
+    for (const [key, count] of selectionCounts) {
+        const [spaceId, kind] = key.split(":") as [string, keyof LandStack];
+        const space = G.spaces[spaceId];
+        if (space === undefined || space.siege !== undefined || (space.land[p]?.[kind] ?? 0) < count) return INVALID_MOVE;
+    }
+    if (args.leaderId !== undefined) {
+        const leader = G.leaders[args.leaderId];
+        if (LEADER_BY_ID[args.leaderId]?.power !== p || LEADER_BY_ID[args.leaderId]?.kind !== "army" ||
+            leader === undefined || leader.location === "pool" || leader.location === "captured" ||
+            !Object.values(G.spaces).some((s) => s.leaders.includes(args.leaderId!))) return INVALID_MOVE;
+    }
+    for (const [key, count] of selectionCounts) {
+        const [spaceId, kind] = key.split(":") as [string, keyof LandStack];
+        const space = G.spaces[spaceId];
+        const stack = space.land[p]!;
+        stack[kind] -= count;
+        war.units[kind] += count;
+        if (landCount(stack) === 0) delete space.land[p];
+    }
+    if (args.leaderId !== undefined) {
+        for (const space of Object.values(G.spaces)) space.leaders = space.leaders.filter((id) => id !== args.leaderId);
+        G.leaders[args.leaderId].location = "foreignWar";
+        war.leaderId = args.leaderId;
+    }
+    war.status = "active";
+    pushLog(G, `${powerLabel(p)} commits ${landCount(war.units)} unit(s)${war.leaderId ? ` and ${war.leaderId}` : ""} to the ${war.enemy} war.`);
+};
+
+const loseForeignWarUnits = (units: LandStack, losses: number): number => {
+    let remaining = losses;
+    for (const kind of ["merc", "cav", "regular"] as const) {
+        const lost = Math.min(units[kind], remaining);
+        units[kind] -= lost;
+        remaining -= lost;
+        if (remaining === 0) break;
+    }
+    return losses - remaining;
+};
+
+const endForeignWar = (G: VQGame, p: "ottoman" | "hre"): void => {
+    const war = G.foreignWars[p];
+    if (war === undefined) return;
+    const destination = capitalOf(G, p);
+    if (destination !== undefined && landCount(war.units) > 0) {
+        const stack = ensureLand(G, destination, p);
+        stack.regular += war.units.regular;
+        stack.merc += war.units.merc;
+        stack.cav += war.units.cav;
+    }
+    if (destination !== undefined && war.leaderId !== undefined) {
+        G.leaders[war.leaderId].location = destination;
+        if (!G.spaces[destination].leaders.includes(war.leaderId)) G.spaces[destination].leaders.push(war.leaderId);
+    }
+    if (war.winnerVp) addVp(G, p, 1);
+    G.powers[p].cardModifier += 1;
+    G.discard.push(war.cardId);
+    delete G.foreignWars[p];
+    pushLog(G, `${powerLabel(p)} ends the foreign war${war.winnerVp ? " and gains 1 War Winner VP" : ""}.`);
+};
+
+export const fightForeignWar = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action") return INVALID_MOVE;
+    const p = power(ctx);
+    const war = G.foreignWars[p];
+    if ((p !== "ottoman" && p !== "hre") || war?.status !== "active" || landCount(war.units) === 0 || !spend(G, p, 1)) return INVALID_MOVE;
+    const majorUnits = landCount(war.units);
+    const leaderDice = war.leaderId === undefined ? 0 : (LEADER_BY_ID[war.leaderId]?.battle ?? 0);
+    const attackDice = majorUnits + leaderDice;
+    const attackRolls = roll(ctx, attackDice);
+    const enemyRolls = roll(ctx, war.enemyUnits);
+    const attackHits = hits(attackRolls);
+    const enemyHits = hits(enemyRolls);
+    const enemyLosses = Math.min(war.enemyUnits, attackHits);
+    const unitLosses = loseForeignWarUnits(war.units, enemyHits);
+    war.enemyUnits -= enemyLosses;
+    G.lastRolls = `Foreign war: ${p} ${attackDice} dice [${attackRolls.join(", ")}] = ${attackHits}; ${war.enemy} ${enemyRolls.length} dice [${enemyRolls.join(", ")}] = ${enemyHits}`;
+    pushLog(G, G.lastRolls);
+    pushLog(G, `${p} loses ${unitLosses} unit(s); ${war.enemy} loses ${enemyLosses}.`);
+    if (war.enemyUnits === 0) endForeignWar(G, p);
+};
+
+export const reinforceForeignWar = (
+    G: VQGame,
+    ctx: Ctx,
+    args: {kind: keyof LandStack},
+): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action") return INVALID_MOVE;
+    const p = power(ctx);
+    const war = G.foreignWars[p];
+    const cost = args.kind === "regular" ? 2 : 1;
+    if ((p !== "ottoman" && p !== "hre") || war?.status !== "active" || landCount(war.units) >= 8 ||
+        (args.kind === "cav" && p !== "ottoman") || (args.kind === "merc" && p === "ottoman") || !spend(G, p, cost)) return INVALID_MOVE;
+    war.units[args.kind] += 1;
+    pushLog(G, `${powerLabel(p)} recruits 1 ${args.kind} directly into the ${war.enemy} war.`);
 };
 
 export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string; cp: number }): void | typeof INVALID_MOVE => {
@@ -628,7 +1057,7 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string }
     const canEnter = friendlyControlled(G, p, to)
         || destControl === "independent"
         || (isPower(destControl) ? atWar(G, p, destControl) : atWarWithMinor(G, p, destControl as MinorPower));
-    const otherUnits = ownersWithLand(G, to).filter((c) => c !== p && !(isPower(c) && friendly(G, p, c)));
+    const otherUnits = ownersWithLand(G, to).filter((c) => !friendlyController(G, p, c));
     if (!canEnter && otherUnits.length === 0) {
         return INVALID_MOVE;
     }
@@ -660,7 +1089,7 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string }
     }
 
     const hostile = ownersWithLand(G, to)
-        .filter((c) => c !== p && !(isPower(c) && friendly(G, p, c)))
+        .filter((c) => !friendlyController(G, p, c))
         .filter((c) => isPower(c) ? atWar(G, p, c) : true);
     const defenders = totalLand(G, to, hostile);
     if (defenders > 0) {
@@ -839,8 +1268,8 @@ export const controlSpace = (G: VQGame, ctx: Ctx, args: { space: string }): void
         return INVALID_MOVE;
     }
     if (s.unrest) {
-        const friendlyPresent = ownersWithLand(G, space).some((c) => isPower(c) && friendly(G, p, c));
-        const adjacentFriendly = LAND_NEIGHBORS[space].some((n) => ownersWithLand(G, n.id).some((c) => isPower(c) && friendly(G, p, c)));
+        const friendlyPresent = ownersWithLand(G, space).some((c) => friendlyController(G, p, c));
+        const adjacentFriendly = LAND_NEIGHBORS[space].some((n) => ownersWithLand(G, n.id).some((c) => friendlyController(G, p, c)));
         if (!friendlyPresent && !adjacentFriendly) {
             return INVALID_MOVE;
         }

@@ -46,6 +46,7 @@ import {
 import {cardById, officialCardById} from "./constant/cards";
 import {OFFICIAL_CARDS} from "./data/cards";
 import {PatronageVpAward} from "./data/types";
+import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
 import {LEADER_BY_ID, LEADERS, startingLeaders} from "./constant/leaders";
 import {
     ScenarioSetupData,
@@ -105,6 +106,11 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
     const scenarioId = scenarioFromSetupData(setupData);
     const scenario = scenarioSetup(scenarioId);
     const spaces = scenarioSpaces(scenario);
+    const militaryVictoryBaseline = Object.fromEntries(POWERS.map((p) => [
+        p,
+        KEY_SPACES.filter((id) => spaces[id]?.control === p && !spaces[id]?.unrest &&
+            (p !== "protestant" || !DUTCH_KEYS.includes(id))).length,
+    ])) as Record<Power, number>;
 
     const seaZones: VQGame["seaZones"] = {} as VQGame["seaZones"];
     for (const zone of SEA_ZONES) {
@@ -115,6 +121,7 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
     for (const p of POWERS) {
         powers[p] = {
             power: p,
+            ruler: scenario.powerCard[p]?.ruler ?? POWER_INFO[p].ruler.id,
             cards: [],
             treasures: [],
             cp: 0,
@@ -133,6 +140,8 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
             patronageModifier: 0,
             scmOnCard: 0,
             passed: false,
+            homeCardSetAside: [],
+            homeCardChoiceDone: false,
         };
     }
 
@@ -207,10 +216,12 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         suezDone: false,
         mercenariesForHire,
         betrothals: [],
+        pendingBetrothal: null,
         marriages: 0,
         log: [],
         vpHistory: {},
         checkVictory: false,
+        militaryVictoryBaseline,
         lastAction: scenario.nameZh,
         lastRolls: "",
         springDone: [],
@@ -220,6 +231,20 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         patronsAvailable: scenarioPatrons(scenario),
         vpAwardsAvailable: [...scenario.patronage.vpAwards],
         pendingPatronage: [],
+        minorInfluenceDefaults: Object.fromEntries(POWERS.map((p) => [p, {...(scenario.influence[p] ?? {})}])) as VQGame["minorInfluenceDefaults"],
+        minorDiplomacyResolved: [],
+        minorInfluenceBlocked: POWERS.reduce((blocked, p) => {
+            blocked[p] = [];
+            return blocked;
+        }, {} as VQGame["minorInfluenceBlocked"]),
+        informants: [],
+        assassinationUsed: [],
+        worldCaptains: {},
+        worldColonies: {},
+        worldControls: Object.fromEntries(Object.entries(scenario.worldSpaces ?? {})
+            .filter(([, setup]) => setup.control !== undefined && isPower(setup.control))
+            .map(([id, setup]) => [id, setup.control as Power])),
+        foreignWars: {},
         seaCaptainsAvailable: scenarioSeaCaptains(scenario).filter((id) => seaCaptainById(id)?.power === "france/protestant"),
         scienceBonusesAvailable: [...scenario.patronage.scienceBonuses],
         protestantSpacesStart: scenario.protestantSpaces,
@@ -290,7 +315,14 @@ export const removeCardFromHand = (G: VQGame, p: Power, cardId: string): boolean
 export const discardCard = (G: VQGame, p: Power, cardId: string, asEvent: boolean): void => {
     const def = cardById(cardId);
     if (def.kind === "home") {
-        G.homeSetAside.push(cardId);
+        // Used Home cards sit face up on the power card until the next Card
+        // Draw.  A few Home cards (for example #111) are removed for good when
+        // played as an event.
+        if (def.removeAfterUse || (asEvent && def.removeOnEvent)) {
+            G.removed.push(cardId);
+        } else {
+            G.homeSetAside.push(cardId);
+        }
         return;
     }
     if (def.removeAfterUse || (asEvent && def.removeOnEvent) || (asEvent && def.kind === "event" && def.text?.includes("Remove from deck"))) {
@@ -299,6 +331,46 @@ export const discardCard = (G: VQGame, p: Power, cardId: string, asEvent: boolea
         G.discard.push(cardId);
     }
 };
+
+/**
+ * Home cards that are available to a power on the current turn (6.2 / 10).
+ * "variable" cards enter only through their printed event, which this runtime
+ * does not yet model, so they stay out of the annual hand.
+ */
+export const availableHomeCards = (G: VQGame, p: Power): string[] => {
+    const scenario = scenarioSetup(G.scenario);
+    const available: string[] = [];
+    for (const number of scenario.cardsInPlay) {
+        const card = OFFICIAL_CARDS[number - 1];
+        if (card?.kind !== "home" || card.power !== p) {
+            continue;
+        }
+        if (typeof card.availableFromTurn !== "number" || card.availableFromTurn > G.year) {
+            continue;
+        }
+        if (G.removed.includes(card.id)) {
+            continue;
+        }
+        available.push(card.id);
+    }
+    return available;
+};
+
+export const homeCardsInHand = (G: VQGame, p: Power): string[] =>
+    G.powers[p].cards.filter((id) => cardById(id).kind === "home");
+
+/** While Suleiman is the Ottoman ruler, the Ottoman keeps both Home cards (6.1 / 10). */
+export const suleimanIsOttomanRuler = (G: VQGame): boolean =>
+    G.powers.ottoman.ruler === "suleiman";
+
+export const keepsBothHomeCards = (G: VQGame, p: Power): boolean =>
+    p === "ottoman" && suleimanIsOttomanRuler(G);
+
+/** True when the active power still owes its secret Spring Home card choice. */
+export const homeCardChoiceRequired = (G: VQGame, p: Power): boolean =>
+    !keepsBothHomeCards(G, p) &&
+    !G.powers[p].homeCardChoiceDone &&
+    homeCardsInHand(G, p).length > 1;
 
 export const drawCount = (G: VQGame, p: Power): number => {
     const keys = controlledKeys(G, p).length;
@@ -310,7 +382,6 @@ export const drawCount = (G: VQGame, p: Power): number => {
 
 /** Deal a new year's hands. Home cards return, hands are trimmed to Admin. */
 export const dealYear = (G: VQGame, ctx: Ctx): void => {
-    const scenario = scenarioSetup(G.scenario);
     const eligibleFuture: string[] = [];
     G.futureDeck = G.futureDeck.filter((id) => {
         const card = officialCardById(id);
@@ -322,16 +393,17 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
     });
     G.deck = shuffle(ctx, [...G.deck, ...G.discard, ...eligibleFuture]);
     G.discard = [];
+    G.homeSetAside = [];
     for (const p of POWERS) {
         const ps = G.powers[p];
-        // Return all scenario home cards from the previous year to the hand.
+        // Home cards return to the power card after use / Spring set-aside and
+        // are dealt again only if they are available this turn.
         ps.cards = ps.cards.filter((id) => cardById(id).kind !== "home");
-        for (const number of scenario.cardsInPlay) {
-            const card = OFFICIAL_CARDS[number - 1];
-            if (card?.kind === "home" && card.power === p) {
-                ps.cards.push(card.id);
-            }
+        for (const id of availableHomeCards(G, p)) {
+            ps.cards.push(id);
         }
+        ps.homeCardSetAside = [];
+        ps.homeCardChoiceDone = false;
         // Keep at most the ruler's admin rating of non-home cards.
         const nonHome = ps.cards.filter((c) => cardById(c).kind !== "home");
         const keep = Math.min(nonHome.length, POWER_INFO[p].ruler.admin);
@@ -391,10 +463,88 @@ export const atWar = (G: VQGame, a: Power, b: Power): boolean =>
 export const atWarWithMinor = (G: VQGame, p: Power, m: MinorPower): boolean =>
     G.powers[p].warsMinors.includes(m);
 
+export const minorAlly = (G: VQGame, minor: MinorPower): Power | undefined =>
+    POWERS.find((p) => G.powers[p].alliedMinors.includes(minor));
+
+export const minorAvailable = (G: VQGame, minor: MinorPower): boolean =>
+    minor !== "portugal" || POWERS.some((p) => G.minorInfluenceDefaults[p].portugal !== undefined);
+
+/** Evaluate one minor's influence track and apply the resulting activation. */
+export const resolveMinorDiplomacy = (
+    G: VQGame,
+    ctx: Ctx,
+    minor: MinorPower,
+    options: {exclude?: Power[]; modifier?: Partial<Record<Power, number>>} = {},
+): Power | undefined => {
+    if (!MINOR_POWERS.includes(minor) || G.minorDiplomacyResolved.includes(minor) || !minorAvailable(G, minor)) return undefined;
+    const def = MINOR_DIPLOMACY[minor];
+    const candidates = def.eligible.filter((p) =>
+        !options.exclude?.includes(p) && !G.minorInfluenceBlocked[p]?.includes(minor));
+    if (candidates.length === 0) {
+        G.minorDiplomacyResolved.push(minor);
+        return undefined;
+    }
+    const scotlandCatholic = minor === "scotland" &&
+        SPACES.filter((s) => s.home === "scotland" && G.spaces[s.id].religion === "catholic").length >= 3;
+    const scotlandProtestant = minor === "scotland" &&
+        SPACES.filter((s) => s.home === "scotland" && G.spaces[s.id].religion === "protestant").length >= 3;
+    const rolls = candidates.map((p) => {
+        const dieRoll = die(ctx);
+        const modifier = (options.modifier?.[p] ?? 0) +
+            (p === "france" && scotlandCatholic ? 2 : 0) +
+            (p === "protestant" && scotlandProtestant ? 2 : 0);
+        return {power: p, die: dieRoll, influence: G.powers[p].influence[minor] ?? 0, modifier,
+            total: dieRoll + (G.powers[p].influence[minor] ?? 0) + modifier};
+    });
+    const activateRank = new Map(def.activateOrder.map((p, i) => [p, i]));
+    rolls.sort((a, b) => b.total - a.total ||
+        (activateRank.get(a.power) ?? Number.MAX_SAFE_INTEGER) - (activateRank.get(b.power) ?? Number.MAX_SAFE_INTEGER));
+    const winner = rolls[0].power;
+    const oldAlly = minorAlly(G, minor);
+    pushLog(G, `${minor} diplomacy: ${rolls.map((r) => `${powerLabel(r.power)} ${r.die}+${r.influence}+${r.modifier}=${r.total}`).join("; ")}. ${powerLabel(winner)} wins.`);
+
+    const deactivatesExistingAlly = def.deactivate.includes(winner) && oldAlly !== undefined &&
+        (!def.activateOrder.includes(winner) || oldAlly === winner);
+    if (deactivatesExistingAlly) {
+        G.powers[oldAlly].alliedMinors = G.powers[oldAlly].alliedMinors.filter((m) => m !== minor);
+        for (const s of SPACES.filter((space) => space.home === minor)) {
+            if (G.spaces[s.id].control === oldAlly) G.spaces[s.id].control = minor;
+        }
+        pushLog(G, `${powerLabel(winner)} deactivates ${minor}.`);
+    } else if (def.activateOrder.includes(winner) && oldAlly !== winner) {
+        if (oldAlly !== undefined) {
+            G.powers[oldAlly].alliedMinors = G.powers[oldAlly].alliedMinors.filter((m) => m !== minor);
+            for (const s of SPACES.filter((space) => space.home === minor)) {
+                if (G.spaces[s.id].control === oldAlly) G.spaces[s.id].control = minor;
+            }
+        }
+        G.powers[winner].alliedMinors.push(minor);
+        for (const s of SPACES.filter((space) => space.home === minor)) {
+            const owner = G.spaces[s.id].control;
+            if (owner === minor || (isPower(owner) && def.eligible.includes(owner))) G.spaces[s.id].control = winner;
+        }
+        for (const p of POWERS) G.powers[p].warsMinors = G.powers[p].warsMinors.filter((m) => m !== minor);
+        if (minor === "ireland") {
+            const ulster = G.spaces.ulster;
+            if (ulster !== undefined) {
+                delete ulster.land.ireland;
+                ulster.fortress = true;
+                addLand(G, "ulster", "ireland", "regular", 3);
+            }
+        }
+        pushLog(G, `${powerLabel(winner)} activates ${minor} as an ally.`);
+    }
+    G.minorDiplomacyResolved.push(minor);
+    return winner;
+};
+
 export const allied = (G: VQGame, a: Power, b: Power): boolean =>
     a !== b && G.powers[a].allies.includes(b);
 
 export const friendly = (G: VQGame, a: Power, b: Power): boolean => a === b || allied(G, a, b);
+
+export const friendlyController = (G: VQGame, p: Power, owner: Controller): boolean =>
+    owner === p || (isPower(owner) ? friendly(G, p, owner) : owner !== "independent" && G.powers[p].alliedMinors.includes(owner));
 
 export const setWar = (G: VQGame, a: Power, b: Power): void => {
     if (!G.powers[a].wars.includes(b)) {
@@ -468,7 +618,8 @@ export const friendlyControlled = (G: VQGame, p: Power, space: string): boolean 
     if (s === undefined) {
         return false;
     }
-    return s.control === p || (isPower(s.control) && allied(G, p, s.control));
+    return s.control === p || (isPower(s.control) && allied(G, p, s.control)) ||
+        (!isPower(s.control) && s.control !== "independent" && G.powers[p].alliedMinors.includes(s.control));
 };
 
 export const controlledKeys = (G: VQGame, p: Power): string[] =>
@@ -599,13 +750,17 @@ export const totalNaval = (G: VQGame, space: string, owners: Controller[]): numb
     owners.reduce((n, c) => n + navalCount(G.spaces[space].naval[c]), 0);
 
 export const enemyOwners = (G: VQGame, p: Power, space: string): Controller[] =>
-    ownersWithLand(G, space).filter((c) => isPower(c) ? atWar(G, p, c) : c !== "independent");
+    ownersWithLand(G, space).filter((c) => {
+        if (friendlyController(G, p, c) || c === "independent") return false;
+        return isPower(c) ? atWar(G, p, c) : true;
+    });
 
 export const spaceHasEnemyLand = (G: VQGame, p: Power, space: string): boolean =>
     enemyOwners(G, p, space).some((c) => landCount(G.spaces[space].land[c]) > 0);
 
 export const spaceHasEnemyNaval = (G: VQGame, p: Power, space: string): boolean =>
-    ownersWithNaval(G, space).some((c) => isPower(c) && atWar(G, p, c) && navalCount(G.spaces[space].naval[c]) > 0);
+    ownersWithNaval(G, space).some((c) => !friendlyController(G, p, c) &&
+        (isPower(c) ? atWar(G, p, c) : c !== "independent") && navalCount(G.spaces[space].naval[c]) > 0);
 
 export const removeLandLosses = (G: VQGame, space: string, owners: Controller[], hitsCount: number): void => {
     let left = hitsCount;
@@ -1542,6 +1697,14 @@ export const resolvePatronage = (G: VQGame, ctx: Ctx): void => {
 export const winter = (G: VQGame, ctx: Ctx): void => {
     resolveMarriages(G, ctx);
     resolvePatronage(G, ctx);
+    const neutralized = G.informants.filter((i) => i.neutralized).length;
+    G.informants = G.informants.filter((i) => !i.neutralized);
+    G.assassinationUsed = [];
+    for (const captain of Object.values(G.worldCaptains)) {
+        captain.damaged = false;
+    }
+    if (neutralized > 0) pushLog(G, `${neutralized} neutralized informant(s) returned to their owners.`);
+    // Captains finish their annual expedition in place; a colony already placed remains on the map.
     for (const p of POWERS) {
         // Land units outside friendly fortified quarters return home.
         for (const def of SPACES) {
@@ -1581,8 +1744,9 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         G.powers[p].cp = 0;
         G.powers[p].cardPlayed = false;
         G.powers[p].passed = false;
-        G.powers[p].influence = {};
+        G.powers[p].influence = {...G.minorInfluenceDefaults[p]};
     }
+    G.minorDiplomacyResolved = [];
     // Sieges with no besieging force left are lifted.
     for (const def of SPACES) {
         const s = G.spaces[def.id];
@@ -1614,7 +1778,6 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     G.vpHistory[String(G.year)] = Object.fromEntries(POWERS.map((p) => [p, powerVp(G, p)]));
     G.year += 1;
     G.checkVictory = true;
-    G.impulse = 0;
     pushLog(G, G.year <= G.endTurn ? `Winter ends. Turn ${G.year} begins.` : `Winter ends. Scenario turn ${G.endTurn} is complete.`);
 };
 
@@ -1629,7 +1792,7 @@ export const checkImmediateVictory = (G: VQGame): { winner: Power; reason: strin
     }
     for (const p of POWERS) {
         const keys = p === "protestant" ? protestantKeysOutsideNetherlands(G).length : controlledKeys(G, p).length;
-        if (keys >= POWER_INFO[p].autoWinKeys) {
+        if (keys >= POWER_INFO[p].autoWinKeys && keys > G.militaryVictoryBaseline[p]) {
             return {winner: p, reason: "military"};
         }
     }

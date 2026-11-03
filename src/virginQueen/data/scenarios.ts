@@ -21,10 +21,12 @@ const hcm = (control: Controller, extra: ScenarioSpaceSetup = {}): ScenarioSpace
 const allScienceBonusIds = SCIENCE_BONUSES.map((b) => b.id);
 
 const commonInfluence = {
-    papacy: {france: 0, hre: 0, spain: 1},
-    venice: {spain: 0, france: 0, hre: 0, ottoman: 2},
-    scotland: {england: 0, france: 0, protestant: 1},
-    ireland: {france: 0, hre: 0, spain: 1, england: 2},
+    ottoman: {venice: 2},
+    spain: {papacy: 1, venice: 0, ireland: 1},
+    england: {scotland: 0, ireland: 2},
+    france: {papacy: 0, scotland: 0, ireland: 0},
+    hre: {papacy: 0, venice: 0, ireland: 0},
+    protestant: {scotland: 1},
 } as const;
 
 const phaseOrder: ScenarioPhase[] = ["cardDraw", "diplomacy", "spring", "action"];

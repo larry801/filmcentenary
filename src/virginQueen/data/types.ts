@@ -174,6 +174,8 @@ export interface WorldSettlement {
     nameZh: string;
     region: string;
     kind: "settlement" | "colony" | "fortress";
+    /** Ocean zone connected to the settlement on the coarse digital map. */
+    seaZone?: string;
     /** Initial owner, if the scenario places a marker there. */
     home?: Controller;
     notes?: string;
