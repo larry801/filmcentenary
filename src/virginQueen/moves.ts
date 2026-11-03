@@ -894,15 +894,49 @@ const resolveKnightsOfStJohn = (G: VQGame): void => {
     }
 };
 
+type HolyLeagueTrack = "papacy" | "venice" | "hre";
+
+/**
+ * #24: the Papacy and Venice tracks are always available; the HRE track only
+ * exists while the HRE is a non-player major power.
+ */
+const holyLeagueTracks = (G: VQGame): HolyLeagueTrack[] => [
+    "papacy",
+    "venice",
+    ...(G.majorInfluence?.hre !== undefined && ownerOf(G, "hre") === undefined ? ["hre" as HolyLeagueTrack] : []),
+];
+
 const resolveHolyLeague = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
-    const chosen = (target?.split(":") ?? []).filter((id): id is "papacy" | "venice" => id === "papacy" || id === "venice");
-    const minors: ("papacy" | "venice")[] = chosen.length > 0 ? chosen : ["papacy", "venice"];
-    const amount = minors.length === 1 ? 4 : 2;
-    for (const minor of minors) {
-        awardMinorInfluence(G, p, minor, amount);
-        if (!G.minorDiplomacyResolved.includes(minor)) resolveMinorDiplomacy(G, ctx, minor);
+    const available = holyLeagueTracks(G);
+    const requested = [...new Set((target?.split(":") ?? []).filter(
+        (id): id is HolyLeagueTrack => id === "papacy" || id === "venice" || (id === "hre" && available.includes("hre"))))];
+    const tracks: HolyLeagueTrack[] = requested.length > 0 ? requested : ["papacy", "venice"];
+    // The card grants 4 influence: 4 to one track, 2/2 to two, and 2/1/1 if a
+    // three-part target asks for all of them.
+    const shares = tracks.length === 1 ? [4] : tracks.length === 2 ? [2, 2] : [2, 1, 1];
+    const influenced: HolyLeagueTrack[] = [];
+    tracks.forEach((track, index) => {
+        const amount = shares[index] ?? 0;
+        if (amount <= 0) return;
+        if (track === "hre") {
+            const influence = G.majorInfluence?.hre;
+            if (influence === undefined) return;
+            influence[p] = Math.min(9, (influence[p] ?? 0) + amount);
+        } else {
+            awardMinorInfluence(G, p, track, amount);
+        }
+        influenced.push(track);
+    });
+    // Conduct diplomacy with up to two of the influenced tracks, where
+    // possible; an already-resolved track is skipped.
+    const resolvable = influenced.filter((track) => track === "hre"
+        ? G.majorInfluence?.hre !== undefined && !G.majorDiplomacyResolved?.includes("hre")
+        : !G.minorDiplomacyResolved.includes(track));
+    for (const track of resolvable.slice(0, 2)) {
+        if (track === "hre") resolveMajorDiplomacy(G, ctx, "hre");
+        else resolveMinorDiplomacy(G, ctx, track);
     }
-    pushLog(G, `Holy League adds ${amount} influence to ${minors.join(" and ")} for ${powerLabel(p)}.`);
+    pushLog(G, `Holy League adds ${tracks.map((track, index) => `${track} +${shares[index] ?? 0}`).join(", ")} influence for ${powerLabel(p)}.`);
 };
 
 const resolveTreachery = (G: VQGame, ctx: Ctx, target?: string): void => {
