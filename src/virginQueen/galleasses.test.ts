@@ -24,6 +24,20 @@ const offered = (zone: string): boolean => {
 };
 
 describe("Venetian Galleasses (card #12)", () => {
+    it("can add its dice to the attacker", () => {
+        const G = setupGame({...context("0"), phase: "action"} as Ctx);
+        G.seaZones.aegean.naval.france = {galley: 1, galleon: 0, racebuilt: 0, corsair: 0};
+        G.seaZones.aegean.naval.england = {galley: 1, galleon: 0, racebuilt: 0, corsair: 0};
+        G.powers.france.cards = ["vq-012"];
+        startBattle(G, context("3"), "naval", "aegean", "france", ["england"], "venice");
+        chooseBattle(G, context("2"), {choice: "fight"});
+        chooseBattle(G, context("3"), {choice: "done"});
+        chooseBattle(G, context("2"), {choice: "done"});
+        const before = G.pendingBattle!.rolls!.attacker.length;
+        chooseBattle(G, context("3"), {choice: "card:vq-012:attacker"});
+        expect(G.pendingBattle!.rolls!.attacker.length).toBe(before + 3);
+    });
+
     it("is only offered in the Mediterranean", () => {
         expect(offered("aegean")).toBe(true);
         expect(offered("northSea")).toBe(false);
