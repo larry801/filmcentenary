@@ -85,6 +85,11 @@ const turnBegin = (G: VQGame, ctx: Ctx): void => {
             ctx.events?.endTurn();
             return;
         }
+        if (G.skipImpulse?.includes(p)) {
+            G.skipImpulse = G.skipImpulse.filter((power) => power !== p);
+            ctx.events?.endTurn();
+            return;
+        }
         G.impulse += 1;
         G.powers[p].cp = 0;
         G.powers[p].cardPlayed = false;

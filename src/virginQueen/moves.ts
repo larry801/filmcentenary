@@ -950,13 +950,20 @@ const resolveUnrestInRealm = (G: VQGame, target?: string): void => {
 
 /** #30 Ruler Falls Ill: discard a random card from another power. */
 const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
-    if (target === undefined || !isPower(target) || target === p) return;
-    const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
+    if (target === undefined) return;
+    const [targetPower, mode] = target.split(":");
+    if (!isPower(targetPower) || targetPower === p) return;
+    if (mode === "skip") {
+        G.skipImpulse = [...(G.skipImpulse ?? []), targetPower];
+        pushLog(G, `Ruler Falls Ill: ${powerLabel(targetPower)} will skip its next action round.`);
+        return;
+    }
+    const cards = G.powers[targetPower].cards.filter((id) => cardById(id).kind !== "home");
     if (cards.length === 0) return;
     const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
-    G.powers[target].cards = G.powers[target].cards.filter((id) => id !== card);
-    discardCard(G, target, card, false);
-    pushLog(G, `Ruler Falls Ill discards ${cardById(card).name} from ${powerLabel(target)}.`);
+    G.powers[targetPower].cards = G.powers[targetPower].cards.filter((id) => id !== card);
+    discardCard(G, targetPower, card, false);
+    pushLog(G, `Ruler Falls Ill discards ${cardById(card).name} from ${powerLabel(targetPower)}.`);
 };
 
 const resolveJeanne = (G: VQGame, ctx: Ctx): void => {

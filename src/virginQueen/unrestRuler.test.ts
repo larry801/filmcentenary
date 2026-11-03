@@ -1,6 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
 import {playCard} from "./moves";
+import {VirginQueenGameDef} from "./game";
 import {SPACES} from "./mapData";
 import {setupGame} from "./util";
 
@@ -26,6 +27,21 @@ describe("Unrest in the Realm / Ruler Falls Ill", () => {
         expect(playCard(G, context(), {cardId: "vq-025", asEvent: true, target: "ottoman"})).toBeUndefined();
 
         expect(SPACES.filter((space) => space.home === "ottoman" && G.spaces[space.id].unrest)).toHaveLength(3);
+    });
+
+    it("can skip the target's next action round", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-030"];
+
+        expect(playCard(G, context(), {cardId: "vq-030", asEvent: true, target: "spain:skip"})).toBeUndefined();
+        expect(G.skipImpulse).toContain("spain");
+
+        G.activePower = "spain";
+        const endTurn = jest.fn();
+        const onBegin = VirginQueenGameDef.phases!.action!.turn!.onBegin as (g: VQGame, c: Ctx) => void;
+        onBegin(G, {...context(), events: {endTurn}} as unknown as Ctx);
+        expect(endTurn).toHaveBeenCalled();
+        expect(G.skipImpulse).not.toContain("spain");
     });
 
     it("discards a random card from another power", () => {
