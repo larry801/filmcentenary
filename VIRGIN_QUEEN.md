@@ -321,7 +321,7 @@
 
 - 若德雷克与霍金斯均未在地图上：立即组建一支英格兰联合远征队（使用德雷克等级）；
 - 事件牌移出游戏；
-- 2 份宝藏携带、6 点摧毁要塞尚未接入；两位船长的“先各承受 1 点损伤”已用 `companion` 实现：首次消灭结果由霍金斯吸收。
+- 2 份宝藏携带尚未接入；6 点摧毁要塞已接入（德雷克远征海盗骰含 6 时摧毁同海域西班牙要塞）；两位船长的“先各承受 1 点损伤”已用 `companion` 实现：首次消灭结果由霍金斯吸收。
 
 ### 洛林的路易丝（#95）
 
@@ -827,6 +827,7 @@ src/virginQueen/
   louise.test.ts        #95 洛林的路易丝
   drakeHawkins.test.ts  #106 德雷克/霍金斯远征
   companion.test.ts     #106 双船长伤害分担
+  drakeFortress.test.ts #106 德雷克摧毁要塞
   borderReivers.test.ts #41 边境掠夺者
   seaBeggars.test.ts    #66 海上乞丐
   jeanne.test.ts        #58 纳瓦拉的珍妮
@@ -1134,3 +1135,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #16 苏丹后宫的事件模式已接入：奥斯曼获得 5 CP，本行动轮只能建造海盗船/海军移动/海盗；响应模式可跳过奥斯曼下一行动轮并让出牌方抽 1 张。验证：`jest src/virginQueen --runInBand --silent` 121 suites、551 tests passed。
 
 #106 双船长伤害分担接入后的验证：`jest src/virginQueen --runInBand --silent` 122 suites、552 tests passed（新增 1 项：霍金斯吸收首次消灭）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#106 德雷克摧毁要塞接入后的验证：`jest src/virginQueen --runInBand --silent` 123 suites、553 tests passed（新增 1 项：海盗 6 摧毁要塞）；`npm run build` 通过，仍有既有大体积 chunk 提示。

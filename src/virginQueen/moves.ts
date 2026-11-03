@@ -3036,6 +3036,13 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
     const hits = dice.filter((die) => die >= 5).length;
     G.lastRolls = `World piracy (${captain.nameEn}): [${dice.join(",")}] = ${hits} hit(s)`;
     pushLog(G, G.lastRolls);
+    if (args.captain === "drake" && dice.includes(6)) {
+        const fortress = settlements.find((settlement) => G.worldFortresses?.[settlement.id] === "spain");
+        if (fortress !== undefined) {
+            delete G.worldFortresses![fortress.id];
+            pushLog(G, `Drake destroys the Spanish fortress at ${fortress.nameEn}.`);
+        }
+    }
     let remaining = hits;
     while (remaining > 0) {
         if ((G.worldPatrols?.[expedition.location] ?? 0) > 0) {
