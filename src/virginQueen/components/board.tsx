@@ -648,6 +648,10 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <Button size="small" variant="outlined" onClick={() => (moves as unknown as {dragutFallsRoll: () => void}).dragutFallsRoll()}>
                             德拉古特之死：掷骰
                         </Button>}
+                    {G.powers[me].cards.includes("vq-102") && G.espionage?.walsingham !== undefined &&
+                        <Button size="small" variant="outlined" onClick={() => (moves as unknown as {cancelWalsingham: () => void}).cancelWalsingham()}>
+                            斯塔福德：取消沃尔辛厄姆
+                        </Button>}
                 </Stack>
                 <Divider/>
                 {G.foreignWars[me]?.status === "setup" && <Paper variant="outlined" sx={{p: 1}}>
