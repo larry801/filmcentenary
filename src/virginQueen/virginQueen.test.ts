@@ -467,6 +467,12 @@ describe("Virgin Queen turn flow", () => {
                 clients[i].moves.endPhaseTurn();
             }
             expect(clients[0].getState().ctx.phase).toBe("spring");
+            // Returning naval leaders now ask for a home port before deployment.
+            const pending = clients[0].getState().G.navalLeaderArrivals?.filter((entry) => entry.power === "ottoman") ?? [];
+            expect(pending.length).toBeGreaterThan(0);
+            for (const entry of pending) {
+                clients[0].moves.chooseNavalLeaderPort({leader: entry.leader, port: entry.ports[0]});
+            }
             const before = clients[0].getState().G.spaces.edirne.land.ottoman?.regular ?? 0;
             clients[0].moves.springDeploy({from: "istanbul", to: "edirne", units: {regular: 6}, leaders: ["mehmed"]});
             const state = clients[0].getState();

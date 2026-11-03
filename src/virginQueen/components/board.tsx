@@ -1263,7 +1263,23 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             const choiceRequired = homeCardChoiceRequired(G, me);
             const preferenceRequired = hreReligiousPreferenceRequired(G, me);
             const mayKeepBoth = keepsBothHomeCards(G, me);
+            const navalPortChoices = (G.navalLeaderArrivals ?? []).filter((entry) => entry.power === me);
             return <Stack spacing={1}>
+                {navalPortChoices.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
+                    <Typography variant="subtitle2">海军将领归国：选择港口</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        从船池返回的海军将领必须先选择一个合法的本土港口，才能继续春季部署。
+                    </Typography>
+                    {navalPortChoices.map((entry) => <Stack key={entry.leader} spacing={0.5}>
+                        <Typography variant="body2">{LEADER_BY_ID[entry.leader]?.name ?? entry.leader}</Typography>
+                        <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                            {entry.ports.map((port) => <Button key={port} size="small" variant="outlined" disabled={!myTurn}
+                                onClick={() => moves.chooseNavalLeaderPort({leader: entry.leader, port})}>
+                                {SPACE_BY_ID[port]?.name ?? port}
+                            </Button>)}
+                        </Stack>
+                    </Stack>)}
+                </Stack>}
                 {preferenceRequired && <Stack spacing={0.5}>
                     <Typography variant="subtitle2">秘密宗教倾向</Typography>
                     <Typography variant="caption" color="text.secondary">首回合选择一次；胜利判定时足以取胜或阻止他国支配胜利才会公开。</Typography>
@@ -1349,7 +1365,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 <Typography variant="caption" color="text.secondary">
                     首都：{me === "hre" && G.hreCapital !== undefined ? SPACE_BY_ID[G.hreCapital]?.name ?? G.hreCapital : me === "protestant" && G.protestantCapital !== undefined ? SPACE_BY_ID[G.protestantCapital]?.name ?? G.protestantCapital : CAPITAL_SPACES_UI[me] ?? ""} {from !== null ? `· 起点 ${SPACE_BY_ID[from]?.name}` : ""}
                 </Typography>
-                <Button size="small" variant="outlined" disabled={!myTurn || choiceRequired || preferenceRequired} onClick={() => moves.endPhaseTurn()}>
+                <Button size="small" variant="outlined" disabled={!myTurn || choiceRequired || preferenceRequired || navalPortChoices.length > 0} onClick={() => moves.endPhaseTurn()}>
                     结束春季部署
                 </Button>
             </Stack>;

@@ -1532,7 +1532,44 @@ export const ensureDefaultLeader = (G: VQGame, p: Power): void => {
     pushLog(G, `${powerLabel(p)} places a Default Leader on the Turn Track.`);
 };
 
-export const arriveLeaders = (G: VQGame): void => {
+/** Home ports a returning naval leader may currently be placed in. */
+export const homePortsFor = (G: VQGame, p: Power): string[] =>
+    SPACES.filter((space) => space.home === p && space.ports !== undefined &&
+        G.spaces[space.id].siege === undefined && !G.spaces[space.id].unrest &&
+        friendlyControlled(G, p, space.id)).map((space) => space.id);
+
+const placeArrivingLeader = (G: VQGame, id: string, destination: string): void => {
+    const def = LEADER_BY_ID[id];
+    G.spaces[destination].leaders.push(id);
+    G.leaders[id] = {id, location: destination};
+    pushLog(G, `${def?.name ?? id} arrives in ${SPACE_BY_ID[destination].name}.`);
+};
+
+/**
+ * Safe fallback for a pending naval port choice: put the leader in the first
+ * port that is still legal (normally the first option recorded on arrival).
+ * If no port is legal the leader stays in the pool.
+ */
+export const autoPlaceNavalLeaderArrivals = (G: VQGame, p: Power): void => {
+    const pending = (G.navalLeaderArrivals ?? []).filter((entry) => entry.power === p);
+    if (pending.length === 0) return;
+    for (const entry of pending) {
+        const legal = homePortsFor(G, p);
+        const destination = entry.ports.find((port) => legal.includes(port)) ?? legal[0];
+        if (destination !== undefined) placeArrivingLeader(G, entry.leader, destination);
+    }
+    G.navalLeaderArrivals = (G.navalLeaderArrivals ?? []).filter((entry) => entry.power !== p);
+    if (G.navalLeaderArrivals.length === 0) delete G.navalLeaderArrivals;
+};
+
+/**
+ * Bring leaders waiting in the pool onto the map (Spring Deployment, 10.4).
+ * With `interactive`, naval leaders record a pending home-port choice for the
+ * owning player instead of being placed immediately (the UI/choice stage then
+ * calls chooseNavalLeaderPort). Without it, or when no port is legal, the
+ * original automatic placement applies.
+ */
+export const arriveLeaders = (G: VQGame, options?: {interactive?: boolean}): void => {
     for (const p of POWERS) {
         if (ownerOf(G, p) === undefined) continue;
         const cap = capitalOf(G, p);
@@ -1542,14 +1579,24 @@ export const arriveLeaders = (G: VQGame): void => {
             const st = G.leaders[id];
             if (def === undefined || def.power !== p || isDefaultLeader(id) || st.location !== "pool" ||
                 (st.returnTurn ?? 0) > G.year) continue;
-            const destination = def.kind === "naval"
-                ? SPACES.find((space) => space.home === p && space.ports !== undefined && G.spaces[space.id].siege === undefined &&
-                    !G.spaces[space.id].unrest && friendlyControlled(G, p, space.id))?.id
-                : cap;
+            if (def.kind === "naval") {
+                const ports = homePortsFor(G, p);
+                // No legal port: the leader keeps waiting in the pool.
+                if (ports.length === 0) continue;
+                if (options?.interactive) {
+                    const pending = G.navalLeaderArrivals ?? [];
+                    if (!pending.some((entry) => entry.leader === id)) {
+                        G.navalLeaderArrivals = [...pending, {leader: id, power: p, ports}];
+                        pushLog(G, `${def.name} returns from the pool; ${powerLabel(p)} must choose a home port.`);
+                    }
+                    continue;
+                }
+                placeArrivingLeader(G, id, ports[0]);
+                continue;
+            }
+            const destination = cap;
             if (destination === undefined || G.spaces[destination] === undefined || !friendlyControlled(G, p, destination) || G.spaces[destination].unrest) continue;
-            G.spaces[destination].leaders.push(id);
-            G.leaders[id] = {id, location: destination};
-            pushLog(G, `${def.name} arrives in ${SPACE_BY_ID[destination].name}.`);
+            placeArrivingLeader(G, id, destination);
         }
         const standardInPlay = Object.keys(G.leaders).some((id) => {
             const leader = LEADER_BY_ID[id];

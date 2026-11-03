@@ -26,6 +26,7 @@ import {
     setTreasureFleetEscorts,
     chooseHomeCard,
     chooseCatholicLeagueSpace,
+    chooseNavalLeaderPort,
     chooseHreReplacement,
     chooseHreReligiousPreference,
     controlSpace,
@@ -86,6 +87,14 @@ import {
 } from "./moves";
 
 const turnBegin = (G: VQGame, ctx: Ctx): void => {
+    if (ctx.phase === "spring" && G.navalLeaderArrivals?.some((entry) => entry.power === G.activePower)) {
+        // Returning naval leaders need a home port before the power can deploy.
+        const owner = ownerOf(G, G.activePower);
+        if (owner !== undefined) {
+            ctx.events?.setActivePlayers({value: {[owner]: "navalPortChoice"}});
+            return;
+        }
+    }
     if (ctx.phase === "action") {
         // #101 opens after a power finishes its turn, before the next action
         // turn starts.  Defer that turn's CP/impulse reset until the holder
@@ -154,6 +163,16 @@ const choiceStages = {
     gregorianResponse: {moves: {playCard, declineGregorianCalendar}},
     interceptChoice: {moves: {chooseInterception}},
     respondBetroth: {moves: {acceptBetroth, rejectBetroth}},
+    // Spring-only: choose a returning naval leader's home port. Home card,
+    // HRE preference and ending the turn stay available so automated clients
+    // (and a power that skips the choice) fall back safely. Keep the redaction
+    // wrappers so secret choices are not leaked while this stage is active.
+    navalPortChoice: {moves: {
+        chooseNavalLeaderPort,
+        chooseHomeCard: {move: chooseHomeCard, redact: true as const},
+        chooseHreReligiousPreference: {move: chooseHreReligiousPreference, redact: true as const},
+        endPhaseTurn,
+    }},
 };
 
 export const VirginQueenGameDef: Game<VQGame> = {
@@ -226,7 +245,10 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 G.navalLost = {};
                 resolvePendingCatholicLeague(G);
                 resolvePendingHreReplacement(G);
-                arriveLeaders(G);
+                // Clear anything left over from an interrupted Spring, then let
+                // naval leaders returning from the pool pick a home port.
+                delete G.navalLeaderArrivals;
+                arriveLeaders(G, {interactive: true});
             },
             turn: {order: powerOrder, onBegin: turnBegin, onEnd: turnEnd, stages: choiceStages},
             next: "action",
@@ -254,6 +276,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
         endPhaseTurn,
         chooseHomeCard: {move: chooseHomeCard, redact: true},
         chooseCatholicLeagueSpace,
+        chooseNavalLeaderPort,
         chooseHreReplacement,
         chooseHreReligiousPreference: {move: chooseHreReligiousPreference, redact: true},
         claimSeaCaptain,

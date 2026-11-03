@@ -63,6 +63,7 @@ import {
     assaultSpace,
     atWar,
     atWarWithMinor,
+    autoPlaceNavalLeaderArrivals,
     bestBattle,
     bestPiracy,
     canControlSpace,
@@ -2719,6 +2720,9 @@ export const endPhaseTurn = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE =>
         hreReligiousPreferenceRequired(G, power(G, ctx)))) {
         return INVALID_MOVE;
     }
+    // Safe fallback: ending the Spring turn without choosing a port places any
+    // remaining returning naval leader in its first legal home port.
+    if (ctx.phase === "spring") autoPlaceNavalLeaderArrivals(G, power(G, ctx));
     ctx.events?.endTurn();
 };
 
@@ -2848,6 +2852,29 @@ export const chooseCatholicLeagueSpace = (G: VQGame, ctx: Ctx, args: {space: str
     if (ctx.playerID !== undefined && ownerOf(G, "spain") !== ctx.playerID) return INVALID_MOVE;
     if (!catholicLeagueSpaceOptions(G).includes(args.space)) return INVALID_MOVE;
     applyCatholicLeagueSpace(G, args.space);
+};
+
+/**
+ * Spring Deployment port choice for a naval leader returning from the pool
+ * (see arriveLeaders({interactive: true})). The chosen port must be one of the
+ * options recorded when the choice was created and still be a friendly,
+ * unsieged, unrest-free home port.
+ */
+export const chooseNavalLeaderPort = (G: VQGame, ctx: Ctx, args: {leader: string; port: string}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "spring") return INVALID_MOVE;
+    const pending = (G.navalLeaderArrivals ?? []).find((entry) => entry.leader === args.leader);
+    if (pending === undefined) return INVALID_MOVE;
+    if (power(G, ctx) !== pending.power) return INVALID_MOVE;
+    if (ctx.playerID !== undefined && ctx.playerID !== null && ownerOf(G, pending.power) !== ctx.playerID) return INVALID_MOVE;
+    const space = G.spaces[args.port];
+    if (space === undefined || !pending.ports.includes(args.port) || space.siege !== undefined || space.unrest ||
+        !friendlyControlled(G, pending.power, args.port)) return INVALID_MOVE;
+    G.navalLeaderArrivals = (G.navalLeaderArrivals ?? []).filter((entry) => entry.leader !== args.leader);
+    if (G.navalLeaderArrivals.length === 0) delete G.navalLeaderArrivals;
+    space.leaders.push(args.leader);
+    G.leaders[args.leader] = {id: args.leader, location: args.port};
+    pushLog(G, `${LEADER_BY_ID[args.leader]?.name ?? args.leader} arrives in ${SPACE_BY_ID[args.port].name}.`);
+    if (!(G.navalLeaderArrivals ?? []).some((entry) => entry.power === pending.power)) ctx.events?.endStage();
 };
 
 export const makePeace = (G: VQGame, ctx: Ctx, args: { target: Power }): void | typeof INVALID_MOVE => {

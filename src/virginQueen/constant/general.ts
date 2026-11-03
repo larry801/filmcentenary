@@ -653,6 +653,13 @@ export interface VQGame {
     cyprusAwarded?: boolean;
     /** Naval counters lost this year; they return to the pool at Spring. */
     navalLost?: Partial<Record<Power, NavalStack>>;
+    /**
+     * Naval leaders returning from the pool whose home port has not been
+     * chosen yet. The leader stays in the pool until the owning player picks
+     * one of `ports` during Spring Deployment; if the turn is ended first, the
+     * first still-legal port is used automatically.
+     */
+    navalLeaderArrivals?: {leader: string; power: Power; ports: string[]}[];
     spanishRoadAvailable?: boolean;
     /** Beacon Fires: next interception by this power succeeds and gains +2 dice. */
     beaconFires?: Power;
