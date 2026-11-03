@@ -1120,7 +1120,9 @@ const resolveElDorado = (G: VQGame, target?: string): void => {
     if (target === undefined) return;
     const expedition = G.worldCaptains[target];
     if (expedition === undefined || !["spanishMain", "antilles"].includes(expedition.location)) return;
+    const lostTreasure = expedition.treasureValues?.length ?? 0;
     delete G.worldCaptains[target];
+    if (lostTreasure > 0) pushLog(G, `El Dorado: ${lostTreasure} treasure(s) are lost with the expedition.`);
     G.seaCaptainReturn = {...(G.seaCaptainReturn ?? {}), [target]: {power: expedition.power, turn: G.year + 1}};
     if (expedition.companion !== undefined) {
         G.seaCaptainReturn[expedition.companion] = {power: expedition.power, turn: G.year + 1};

@@ -271,7 +271,7 @@
 
 - 目标航海家须在 `spanishMain`/`antilles`；
 - 远征结束、航海家置于回合记录轨，下回合回到船长池；德雷克/霍金斯联合远征会同时安排两位船长；
-- 黄金国搜寻与宝藏丢失的后续步骤尚未接入。
+- 远征携带的宝藏（`treasureValues`）全部丢失并写入日志；余下回合视为搜寻黄金国，不再移动。
 
 ### 贤者之石（#64）
 
@@ -1129,7 +1129,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #64 贤者之石接入后的验证：`jest src/virginQueen --runInBand --silent` 128 suites、565 tests passed（取消科学家赞助、下一年回池、卡牌进弃牌堆）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#51 黄金国接入后的验证：`jest src/virginQueen --runInBand --silent` 102 suites、524 tests passed（新增 1 项：结束远征并安排回场）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#51 黄金国接入后的验证：`jest src/virginQueen --runInBand --silent` 145 suites、676 tests passed（结束远征并安排回场、联合船长回场、宝藏丢失）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #17 军队哗变接入后的验证：`jest src/virginQueen --runInBand --silent` 103 suites、525 tests passed（新增 1 项：雇佣兵/正规军/动荡）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
