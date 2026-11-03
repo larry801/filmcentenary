@@ -4428,6 +4428,8 @@ export const piracy = (G: VQGame, ctx: Ctx, args: { zone: string; target: Power 
     if (!spend(G, p, 1)) {
         return INVALID_MOVE;
     }
+    // #11 Dragut Falls may be played after a piracy action involving Dragut.
+    if (G.seaZones[zone].leaders.includes("dragut") && leaderPower(G, "dragut") === p) G.dragutFought = true;
     const diceN = navalCount(ownStack) + bestPiracy(G, args.zone, [p]);
     const r = roll(ctx, diceN);
     const h = hits(r);

@@ -5,7 +5,7 @@ import {SEA_ZONE_BY_ID, SEA_ZONES, SPACE_BY_ID} from "./mapData";
 import {ownerOf} from "./ownership";
 import {cardById} from "./constant/cards";
 import {TUTORIAL_FORTRESSES, tutorialSpaceAllowed} from "./tutorial";
-import {atWar, bestPiracy, hits, isSeaZone, pushLog, recordNavalLoss, removeCardFromHand, roll, shuffle, zonePorts} from "./util";
+import {atWar, bestPiracy, hits, isSeaZone, leaderPower, pushLog, recordNavalLoss, removeCardFromHand, roll, shuffle, zonePorts} from "./util";
 
 const stacks = (G: VQGame, location: string) => isSeaZone(location) ? G.seaZones[location as SeaZoneID].naval : G.spaces[location].naval;
 const adjacentLocations = (zone: SeaZoneID): string[] => [...zonePorts(zone).filter(tutorialSpaceAllowed), ...SEA_ZONE_BY_ID[zone].adjacent];
@@ -55,6 +55,8 @@ export const startPiracy = (G: VQGame, ctx: Ctx, power: Power, target: Power, zo
     G.piracyUsed ??= {};
     G.piracyUsed[power] ??= [];
     G.piracyUsed[power]!.push(zone);
+    // #11 Dragut Falls may be played after a piracy action involving Dragut.
+    if (G.seaZones[zone].leaders.includes("dragut") && leaderPower(G, "dragut") === power) G.dragutFought = true;
     let dice = 2 * navalCount(G.seaZones[zone].naval[target]);
     for (const location of adjacentLocations(zone)) {
         for (const other of ["ottoman", "spain"] as Power[]) {
