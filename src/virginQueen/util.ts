@@ -999,6 +999,13 @@ export const friendlyControlled = (G: VQGame, p: Power, space: string): boolean 
 };
 
 /** Land counters (regular/mercenary are two sides of the same physical counter). */
+export const navalForceCount = (G: VQGame, p: Power): number => {
+    let total = 0;
+    for (const zone of Object.values(G.seaZones)) total += navalCount(zone.naval[p]);
+    for (const space of Object.values(G.spaces)) total += navalCount(space.naval[p]);
+    return total;
+};
+
 export const cavalryCount = (G: VQGame, p: Power): number =>
     Object.values(G.spaces).reduce((total, space) => total + (space.land[p]?.cav ?? 0), 0);
 

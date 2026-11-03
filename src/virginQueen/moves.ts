@@ -14,6 +14,7 @@ import {
     navalCount,
     POWER_INDEX,
     POWER_INFO,
+    NAVAL_LIMITS,
     OTTOMAN_CAVALRY_LIMIT,
     REGULAR_LIMITS,
     POWERS,
@@ -113,6 +114,7 @@ import {
     reliefBattle,
     cavalryCount,
     landForceCount,
+    navalForceCount,
     regularCount,
     removeLandLosses,
     removePortNavalLosses,
@@ -2380,6 +2382,9 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
         return INVALID_MOVE;
     }
     if (p === "ottoman" && kind === "galley" && ["algiers", "tripoli"].includes(port)) {
+        return INVALID_MOVE;
+    }
+    if (navalForceCount(G, p) >= NAVAL_LIMITS[p]) {
         return INVALID_MOVE;
     }
     if (kind === "galleon" && !portZones(port).some((z) => z === "atlanticOcean" || z === "englishChannel" || z === "northSea" || z === "irishSea" || z === "bayOfBiscay")) {

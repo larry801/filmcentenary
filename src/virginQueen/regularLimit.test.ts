@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {VQGame} from "./constant/general";
-import {recruit} from "./moves";
+import {buildNaval, recruit} from "./moves";
 import {setupGame} from "./util";
 
 const context = (): Ctx => ({
@@ -52,6 +52,18 @@ describe("land counter limits (17.1)", () => {
         const ottomanContext = {...context(), currentPlayer: "0", playerID: "0"} as Ctx;
 
         expect(recruit(G, ottomanContext, {space: "istanbul", kind: "cav"})).toBe(INVALID_MOVE);
+    });
+
+    it("limits English naval counters to six", () => {
+        const G = game();
+        for (const zone of Object.values(G.seaZones)) delete zone.naval.england;
+        for (const space of Object.values(G.spaces)) delete space.naval.england;
+        G.spaces.london.naval.england = {galley: 0, galleon: 6, racebuilt: 0, corsair: 0};
+        G.spaces.portsmouth.control = "england";
+        G.spaces.portsmouth.unrest = false;
+        G.powers.england.cp = 10;
+
+        expect(buildNaval(G, context(), {port: "portsmouth", kind: "galleon"})).toBe(INVALID_MOVE);
     });
 
     it("allows recruiting up to the limit", () => {
