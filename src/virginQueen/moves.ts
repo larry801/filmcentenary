@@ -1809,6 +1809,9 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
             .sort((a, b) => b.count - a.count).slice(0, 2);
         resolveConversions(G, ctx, p, "catholic", areas[0].id, 4, true);
         resolveConversions(G, ctx, p, "catholic", areas[1].id, 4, false);
+    } else if (cardId === "vq-108") {
+        resolveConversions(G, ctx, p, "catholic", "england", 3, true);
+        resolveConversions(G, ctx, p, "catholic", "scotland", 3, false);
     } else if (isGrandVizier(def)) {
         beginGrandVizierEvent(G, ctx, cardId);
     } else if (G.scenario === "tutorial") {

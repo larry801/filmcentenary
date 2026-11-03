@@ -184,6 +184,11 @@
 - 目标地区及一个相邻地区放置动荡。
 - 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
 
+### 英格兰拒绝国教者（#108）
+
+- 在英格兰与苏格兰各进行 3 次天主教传播，共 6 次；
+- 仅第一次自动为 6。
+
 ### 特兰托教义问答（#70）
 
 - 在英格兰/苏格兰/尼德兰/法兰西中自动选新教最多的两个区域；
@@ -851,6 +856,7 @@ src/virginQueen/
   iconoclasm.test.ts    #55 破坏圣像运动
   selimII.test.ts       #6 塞利姆二世
   tridentine.test.ts    #70 特兰托教义问答
+  recusants.test.ts     #108 英格兰拒绝国教者
   maryInfluence.test.ts #89 玛丽 +4 影响力响应
   stormsCampaign.test.ts #15 正式局暴风雨响应
   irishRebellion.test.ts #57 爱尔兰叛乱
@@ -1139,3 +1145,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #106 德雷克摧毁要塞接入后的验证：`jest src/virginQueen --runInBand --silent` 123 suites、553 tests passed（新增 1 项：海盗 6 摧毁要塞）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #45 坏血病强制航行选项接入后的验证：`jest src/virginQueen --runInBand --silent` 124 suites、557 tests passed（新增 1 项：强制检定并弃牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#108 英格兰拒绝国教者接入后的验证：`jest src/virginQueen --runInBand --silent` 125 suites、558 tests passed（新增 1 项：英/苏各 3 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
