@@ -1217,4 +1217,4 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #2 奥斯曼纳贡类型选择接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、629 tests passed（新增 1 项：强制索要宝藏）；`npm run build` 通过。
 
-#86 波兰选王出价接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、631 tests passed（新增 2 项：本国牌出价、宝藏出价）；`npm run build` 通过。
+#86 波兰选王出价接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、632 tests passed（新增 3 项：本国牌出价、宝藏出价、指定宝藏出价）；`npm run build` 通过。

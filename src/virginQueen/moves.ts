@@ -1246,7 +1246,10 @@ const resolveGregorianCalendar = (G: VQGame, ctx: Ctx, p: Power, target?: string
     pushLog(G, `Gregorian Calendar: ${powerLabel(target)} will begin the next action round.`);
 };
 
-const resolvePolishElection = (G: VQGame, ctx: Ctx): void => {
+const resolvePolishElection = (G: VQGame, ctx: Ctx, target?: string): void => {
+    const manualIndex = target?.indexOf(":") ?? -1;
+    const manualPower = manualIndex >= 0 ? target!.slice(0, manualIndex) : undefined;
+    const manualBid = manualIndex >= 0 ? target!.slice(manualIndex + 1) : undefined;
     if (G.foreignWars.hre?.enemy === "Poland") {
         delete G.foreignWars.hre;
         pushLog(G, "Polish Royal Election ends the Polish war; the Holy Roman Empire is considered victorious.");
@@ -1258,7 +1261,16 @@ const resolvePolishElection = (G: VQGame, ctx: Ctx): void => {
             .filter((id) => cardById(id).officialKind !== "mandatory")
             .sort((a, b) => cardById(b).cp - cardById(a).cp)[0];
         let bid = 0;
-        if (card !== undefined) {
+        const useManual = power === manualPower && manualBid !== undefined;
+        const manualTreasure = useManual && manualBid.startsWith("treasure:") ? Number(manualBid.slice("treasure:".length)) : NaN;
+        if (useManual && Number.isFinite(manualTreasure) && G.powers[power].treasures.includes(manualTreasure)) {
+            bid = manualTreasure;
+            G.powers[power].treasures = G.powers[power].treasures.filter((value) => value !== manualTreasure);
+        } else if (useManual && G.powers[power].cards.includes(manualBid) && cardById(manualBid).officialKind !== "mandatory") {
+            bid = cardById(manualBid).cp;
+            removeCardFromHand(G, power, manualBid);
+            discardCard(G, power, manualBid, false);
+        } else if (card !== undefined) {
             bid = cardById(card).cp;
             removeCardFromHand(G, power, card);
             discardCard(G, power, card, false);
@@ -2139,7 +2151,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "dragutFalls") {
         resolveDragutFalls(G);
     } else if (handler === "polishRoyalElection") {
-        resolvePolishElection(G, ctx);
+        resolvePolishElection(G, ctx, target);
     } else if (handler === "gregorianCalendar") {
         resolveGregorianCalendar(G, ctx, p, target);
     } else if (handler === "dunkirkPrivateers") {
