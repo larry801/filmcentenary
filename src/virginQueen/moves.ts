@@ -1262,6 +1262,9 @@ const resolvePolishElection = (G: VQGame, ctx: Ctx): void => {
             bid = cardById(card).cp;
             removeCardFromHand(G, power, card);
             discardCard(G, power, card, false);
+        } else if (G.powers[power].treasures.length > 0) {
+            bid = Math.max(...G.powers[power].treasures);
+            G.powers[power].treasures = G.powers[power].treasures.filter((value) => value !== bid);
         }
         const score = die(ctx, 6) + bid;
         scores.push({power, score});

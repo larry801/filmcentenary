@@ -14,11 +14,29 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Polish Royal Election (card #86)", () => {
+    it("allows a treasure to be bid", () => {
+        const G = game();
+        G.powers.hre.cards = ["vq-086"];
+        G.powers.france.cards = [];
+        G.powers.france.treasures = [2];
+        G.powers.spain.cards = [];
+        G.powers.hre.treasures = [];
+        G.powers.spain.treasures = [];
+        const vp = G.powers.france.bonusVp;
+
+        expect(playCard(G, context(), {cardId: "vq-086", asEvent: true})).toBeUndefined();
+
+        expect(G.powers.france.bonusVp).toBe(vp + 2);
+        expect(G.powers.france.treasures).not.toContain(2);
+    });
+
     it("allows a home card to be bid", () => {
         const G = game();
         G.powers.hre.cards = ["vq-086"];
         G.powers.france.cards = ["vq-001"];
         G.powers.spain.cards = [];
+        G.powers.hre.treasures = [];
+        G.powers.spain.treasures = [];
         const vp = G.powers.france.bonusVp;
 
         expect(playCard(G, context(), {cardId: "vq-086", asEvent: true})).toBeUndefined();
@@ -32,6 +50,8 @@ describe("Polish Royal Election (card #86)", () => {
         G.powers.hre.cards = ["vq-086"];
         G.powers.france.cards = [];
         G.powers.spain.cards = [];
+        G.powers.hre.treasures = [];
+        G.powers.spain.treasures = [];
         G.foreignWars.hre = {power: "hre", cardId: "vq-086", enemy: "Poland", enemyUnits: 3,
             units: {regular: 0, merc: 0, cav: 0}, winnerVp: false, status: "active"};
         const vp = G.powers.france.bonusVp;
