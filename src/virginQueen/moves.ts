@@ -816,6 +816,7 @@ const resolveUnionOfArras = (G: VQGame): void => {
         }
     }
     G.unionOfArras = true;
+    G.dutchSpanishHome = true;
     const selected = SPACES.filter((space) => space.area === "netherlands").slice(0, 5);
     for (const space of selected) {
         G.spaces[space.id].control = "spain";
@@ -2325,7 +2326,8 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
         return;
     }
     // Rule 17.2: any controlled home space not occupied by enemy units.
-    if (s.control !== p || s.unrest || def.home !== p || spaceHasEnemyLand(G, p, space)) {
+    const spanishDutchHome = G.dutchSpanishHome === true && p === "spain" && def.area === "netherlands";
+    if (s.control !== p || s.unrest || (def.home !== p && !spanishDutchHome) || spaceHasEnemyLand(G, p, space)) {
         return INVALID_MOVE;
     }
     if (args.kind === "cav" && p !== "ottoman") {
@@ -2365,7 +2367,8 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
     if (s.control !== p || s.unrest || spaceHasEnemyLand(G, p, port)) {
         return INVALID_MOVE;
     }
-    if (def.home !== p) {
+    const spanishDutchHome = G.dutchSpanishHome === true && p === "spain" && def.area === "netherlands";
+    if (def.home !== p && !spanishDutchHome) {
         return INVALID_MOVE;
     }
     const kind = args.kind;

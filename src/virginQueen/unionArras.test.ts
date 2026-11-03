@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
-import {playCard} from "./moves";
+import {buildNaval, playCard, recruit} from "./moves";
 import {SPACES} from "./mapData";
 import {rebellionTargets, setupGame} from "./util";
 
@@ -28,5 +28,9 @@ describe("Union of Arras (card #109)", () => {
         expect(SPACES.filter((space) => space.area === "netherlands" && G.spaces[space.id].control === "spain").length).toBeGreaterThanOrEqual(5);
         expect(G.removed).toContain("vq-109");
         expect(rebellionTargets(G).some((id) => SPACES.find((space) => space.id === id)?.area === "netherlands")).toBe(false);
+        expect(G.dutchSpanishHome).toBe(true);
+        G.powers.spain.cp = 20;
+        expect(recruit(G, context(), {space: "amsterdam", kind: "regular"})).toBeUndefined();
+        expect(buildNaval(G, context(), {port: "amsterdam", kind: "galleon"})).toBeUndefined();
     });
 });

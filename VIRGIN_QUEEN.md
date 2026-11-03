@@ -239,7 +239,7 @@
 - 本回合新教不得在尼德兰煽动（`rebellionTargets`/`resolveRebellion` 已拦截，行动阶段结束清除）；
 - 西班牙选 5 个尼德兰地区转为天主教并由西班牙控制；
 - 在西班牙控制、未被围城的尼德兰地区最多放置 4 个瓦隆卫队，每 1 个替换 1 个西班牙正规军；
-- 事件牌移出游戏；“双色地区视为西班牙本土”尚未建模。
+- 事件牌移出游戏；`dutchSpanishHome` 使西班牙把尼德兰地区视为本土，可在当地招募/建造海军。
 
 ### 巴黎值得一场弥撒（#111）
 
@@ -897,7 +897,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #111 巴黎值得一场弥撒接入后的验证：`jest src/virginQueen --runInBand --silent` 83 suites、494 tests passed（新增 1 项：夺取巴黎/迁都）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#109 阿拉斯联盟接入后的验证：`jest src/virginQueen --runInBand --silent` 84 suites、495 tests passed（清雇佣兵/5 地区/瓦隆卫队，并验证尼德兰煽动被拦截）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#109 阿拉斯联盟接入后的验证：`jest src/virginQueen --runInBand --silent` 93 suites、511 tests passed（清雇佣兵/5 地区/瓦隆卫队、尼德兰煽动拦截、西班牙本土化招募/建造）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #40 蒂尔伯里演说接入后的验证：`jest src/virginQueen --runInBand --silent` 85 suites、496 tests passed（新增 1 项：英格兰 +4 骰）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
