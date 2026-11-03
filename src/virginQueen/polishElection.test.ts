@@ -14,6 +14,19 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Polish Royal Election (card #86)", () => {
+    it("allows a home card to be bid", () => {
+        const G = game();
+        G.powers.hre.cards = ["vq-086"];
+        G.powers.france.cards = ["vq-001"];
+        G.powers.spain.cards = [];
+        const vp = G.powers.france.bonusVp;
+
+        expect(playCard(G, context(), {cardId: "vq-086", asEvent: true})).toBeUndefined();
+
+        expect(G.powers.france.bonusVp).toBe(vp + 2);
+        expect(G.powers.france.cards).not.toContain("vq-001");
+    });
+
     it("ends the Polish war and elects the highest bidder", () => {
         const G = game();
         G.powers.hre.cards = ["vq-086"];

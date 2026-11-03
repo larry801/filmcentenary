@@ -1216,3 +1216,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #62 西北航道掠夺物丢失接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、625 tests passed（新增 1 项：携带 2 宝藏丢失）；`npm run build` 通过。
 
 #2 奥斯曼纳贡类型选择接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、629 tests passed（新增 1 项：强制索要宝藏）；`npm run build` 通过。
+
+#86 波兰选王允许本国牌出价接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、630 tests passed（新增 1 项：法国以本国牌出价获胜）；`npm run build` 通过。

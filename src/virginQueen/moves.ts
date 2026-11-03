@@ -958,7 +958,7 @@ const resolveArmyMutiny = (G: VQGame, ctx: Ctx, target?: string): void => {
     const stack = state.land[owner]!;
     stack.merc = 0;
     const card = G.powers[owner].cards
-        .filter((id) => cardById(id).officialKind !== "mandatory")
+        .filter((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory")
         .sort((a, b) => cardById(a).cp - cardById(b).cp)[0];
     let keep = 0;
     if (card !== undefined) {
@@ -1255,7 +1255,7 @@ const resolvePolishElection = (G: VQGame, ctx: Ctx): void => {
     const scores: {power: Power; score: number}[] = [];
     for (const power of order) {
         const card = G.powers[power].cards
-            .filter((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory")
+            .filter((id) => cardById(id).officialKind !== "mandatory")
             .sort((a, b) => cardById(b).cp - cardById(a).cp)[0];
         let bid = 0;
         if (card !== undefined) {
