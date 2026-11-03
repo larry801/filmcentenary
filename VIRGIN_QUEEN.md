@@ -166,7 +166,7 @@
 - 15+：双方各 2 Wedding VP；14：双方各 1 VP + 1 张 +1 Card 标记；13：双方各 1 VP；12：双方各 1 张 +1 Card 标记；10/11：无效果；9：最后取消，双方回到婚姻池；8：双方各 1 张 −1 Card 标记；7：妻子死于难产；6 或更低：丈夫被谋杀。
 - 除 9 外双方王室离场（`married`）；+1/−1 Card 标记只影响下一次 Card Draw，抽牌后清除。
 - Valois 王室结婚时法国额外 +1 VP。
-- 已接入 Don Carlos/Anna of Austria 重掷、William of Orange 回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 卡牌标记、Isabella Clara Eugenia 赞助加值；#36 童贞女王已接入弃婚与 Jilted Table；Philip II/Charles IX/Henry III/Rudolf II/Elizabeth I 死亡效果已按 23.2–23.5 接入；Mary Queen of Scots 状态仍简化。
+- 已接入 Don Carlos/Anna of Austria 重掷、William of Orange 回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 卡牌标记、Isabella Clara Eugenia 赞助加值；#36 童贞女王已接入弃婚与 Jilted Table；Philip II/Charles IX/Henry III/Rudolf II/Elizabeth I 死亡效果已按 23.2–23.5 接入；Mary Queen of Scots 的俘获/处决/难产死亡已接入状态与 VP 影响。
 
 ### 西班牙阿马达（23.2）
 
@@ -186,7 +186,7 @@
 - Charles IX 被谋杀：法国 0/0，直到 Henry III 继位。
 - Henry III 被谋杀：移除 Henry III 陆军将领，法国 0/1。
 - Rudolf II 被谋杀：HRE 0/1。
-- Elizabeth I 死亡：英格兰 0/1，Virgin Queen 本国牌移出游戏，Mary Queen of Scots 状态简化处理。
+- Elizabeth I 死亡：英格兰 0/1，Virgin Queen 本国牌移出游戏；若 Mary Queen of Scots 已被俘，则立即处决（英格兰 −1 VP，对西战争费用降低）；若 Mary 仍在苏格兰则不受影响。
 - 死亡来源目前主要接入婚姻表 6/7；其他刺杀/事件路径共用同一 `rulerStats`。
 
 ### 童贞女王（#36）
@@ -395,3 +395,5 @@ Royal Wedding Table（21.1）接入后的验证：`jest src/virginQueen --runInB
 海战多敌军顺序选择接入后的验证：`jest src/virginQueen --runInBand --silent` 36 suites、420 tests passed（新增 1 项：攻方可先选非 impulse 顺序的敌军；原多敌军测试改为逐次选择）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 新教荷兰/胡格诺抽牌（23.6）接入后的验证：`jest src/virginQueen --runInBand --silent` 37 suites、421 tests passed（新增 1 项：两行关键地区较低者决定 4/5/6/7 张）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --runInBand --silent` 37 suites、423 tests passed（新增 2 项：Elizabeth 死后处决被俘 Mary、Mary 在苏格兰时不被处决）；`npm run build` 通过，仍有既有大体积 chunk 提示。

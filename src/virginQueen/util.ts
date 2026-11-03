@@ -2268,7 +2268,14 @@ const applyRulerDeath = (G: VQGame, id: string): void => {
         G.powers.england.ruler = "elizabethDead";
         G.powers.england.cards = G.powers.england.cards.filter((card) => card !== "vq-036");
         removeCardFromGame(G, "vq-036");
-        if (G.espionage) G.espionage.mary = "dead";
+        if (G.espionage?.mary === "captured") {
+            G.espionage.mary = "dead";
+            const mary = G.royals.find((royal) => royal.id === "maryScots");
+            if (mary !== undefined) {mary.alive = false; mary.status = "dead";}
+            addVp(G, "england", -1);
+            G.doWCostEnglandSpain = Math.max(1, G.doWCostEnglandSpain - 3);
+            pushLog(G, "Mary Queen of Scots is executed after Elizabeth's death (−1 VP).");
+        }
         pushLog(G, "Elizabeth I dies; England drops to 1 Admin and 0 card bonus.");
     } else if (id === "henryIII") {
         const state = G.leaders.henryIII;
@@ -2287,6 +2294,9 @@ const applyRulerDeath = (G: VQGame, id: string): void => {
         pushLog(G, "Charles IX is murdered; France drops to 0 Admin and 0 card bonus until Henry III takes the throne.");
     } else if (id === "rudolf") {
         pushLog(G, "Rudolf II is murdered; the Holy Roman Empire drops to 1 Admin and 0 card bonus.");
+    } else if (id === "maryScots") {
+        if (G.espionage !== undefined) G.espionage.mary = "dead";
+        pushLog(G, "Mary Queen of Scots dies.");
     }
 };
 

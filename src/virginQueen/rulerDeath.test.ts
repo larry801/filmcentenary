@@ -1,5 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {Power, RoyalDef, VQGame} from "./constant/general";
+import {espionageState} from "./espionage";
 import {resolveMarriages, rulerStats, setupGame} from "./util";
 
 const context = (values: number[]): Ctx => ({
@@ -15,6 +16,14 @@ const game = (): VQGame => setupGame({...context([]), phase: "action"} as Ctx);
 const royal = (id: string, power: Power, gender: "male" | "female", eligibility = 0): RoyalDef => ({
     id, name: id, power, gender, eligibility, alive: true, married: false, status: "available",
 });
+
+const ensureMary = (G: VQGame): RoyalDef => {
+    const existing = G.royals.find((royal) => royal.id === "maryScots");
+    if (existing !== undefined) return existing;
+    const mary = royal("maryScots", "france", "female", 3);
+    G.royals.push(mary);
+    return mary;
+};
 
 const pair = (G: VQGame, male: RoyalDef, female: RoyalDef, values: number[]): void => {
     G.royals = G.royals.filter((r) => r.id !== male.id && r.id !== female.id);
@@ -49,13 +58,37 @@ describe("ruler death effects (section 23)", () => {
         expect(rulerStats(G, "england")).toEqual({cardBonus: 0, admin: 1});
     });
 
+    it("executes a captured Mary when Elizabeth dies", () => {
+        const G = game();
+        espionageState(G).mary = "captured";
+        ensureMary(G);
+        const vp = G.powers.england.bonusVp;
+        pair(G, royal("m5", "spain", "male"), royal("elizabeth", "england", "female"), [4, 3]);
+
+        expect(G.espionage?.mary).toBe("dead");
+        expect(G.royals.find((r) => r.id === "maryScots")?.alive).toBe(false);
+        expect(G.powers.england.bonusVp).toBe(vp - 1);
+    });
+
+    it("does not execute Mary when Elizabeth dies while Mary is in Scotland", () => {
+        const G = game();
+        espionageState(G).mary = "scotland";
+        ensureMary(G);
+        pair(G, royal("m6", "spain", "male"), royal("elizabeth", "england", "female"), [4, 3]);
+
+        expect(G.espionage?.mary).toBe("scotland");
+        expect(G.royals.find((r) => r.id === "maryScots")?.alive).toBe(true);
+    });
+
     it("kills Mary Queen of Scots when she dies in childbirth", () => {
         const G = game();
+        espionageState(G).mary = "scotland";
         pair(G, royal("m3", "spain", "male"), royal("maryScots", "france", "female"), [4, 3]);
 
         const mary = G.royals.find((r) => r.id === "maryScots")!;
         expect(mary.status).toBe("dead");
         expect(mary.alive).toBe(false);
+        expect(G.espionage?.mary).toBe("dead");
     });
 
     it("drops the Holy Roman Empire to 0/1 if Rudolf II is murdered", () => {
