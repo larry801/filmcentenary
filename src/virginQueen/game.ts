@@ -8,7 +8,7 @@ import {chooseBattle} from "./combat";
 import {chooseTutorialEvent} from "./tutorialEvents";
 import {choosePiracy} from "./piracy";
 import {chooseInterception} from "./interception";
-import {arriveLeaders, checkVictory, dealYear, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
+import {arriveLeaders, autoResolveWinterLossChoices, checkVictory, dealYear, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
 import {
     assault,
     chooseNavalOrder,
@@ -27,6 +27,7 @@ import {
     chooseHomeCard,
     chooseCatholicLeagueSpace,
     chooseNavalLeaderPort,
+    chooseWinterLoss,
     chooseHreReplacement,
     chooseHreReligiousPreference,
     controlSpace,
@@ -87,6 +88,14 @@ import {
 } from "./moves";
 
 const turnBegin = (G: VQGame, ctx: Ctx): void => {
+    if (ctx.phase === "cardDraw" && G.winterLossChoices?.some((entry) => entry.power === G.activePower)) {
+        // Winter attrition losses are confirmed before the new year's card draw.
+        const owner = ownerOf(G, G.activePower);
+        if (owner !== undefined) {
+            ctx.events?.setActivePlayers({value: {[owner]: "winterLossChoice"}});
+            return;
+        }
+    }
     if (ctx.phase === "spring" && G.navalLeaderArrivals?.some((entry) => entry.power === G.activePower)) {
         // Returning naval leaders need a home port before the power can deploy.
         const owner = ownerOf(G, G.activePower);
@@ -173,6 +182,9 @@ const choiceStages = {
         chooseHreReligiousPreference: {move: chooseHreReligiousPreference, redact: true as const},
         endPhaseTurn,
     }},
+    // Winter attrition losses: the owner confirms or swaps the removed unit
+    // type during Card Draw. Ending the turn keeps the safe automatic result.
+    winterLossChoice: {moves: {chooseWinterLoss, endPhaseTurn}},
 };
 
 export const VirginQueenGameDef: Game<VQGame> = {
@@ -224,11 +236,16 @@ export const VirginQueenGameDef: Game<VQGame> = {
                     dealYear(G, ctx);
                 }
             },
-            turn: {order: powerOrder, onBegin: turnBegin, onEnd: turnEnd},
+            turn: {order: powerOrder, onBegin: turnBegin, onEnd: turnEnd, stages: choiceStages},
             next: (G: VQGame) => G.scenario === "tutorial" ? "spring" : "diplomacy",
         },
         diplomacy: {
-            onBegin: phaseBegin,
+            onBegin: (G: VQGame) => {
+                // Winter loss choices are bounded to Card Draw. Anything still
+                // pending keeps its automatic composition.
+                autoResolveWinterLossChoices(G);
+                phaseBegin(G);
+            },
             turn: {
                 order: powerOrder,
                 onBegin: turnBegin,
@@ -245,6 +262,8 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 G.navalLost = {};
                 resolvePendingCatholicLeague(G);
                 resolvePendingHreReplacement(G);
+                // A skipped Card Draw choice keeps the automatic winter losses.
+                autoResolveWinterLossChoices(G);
                 // Clear anything left over from an interrupted Spring, then let
                 // naval leaders returning from the pool pick a home port.
                 delete G.navalLeaderArrivals;
@@ -277,6 +296,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
         chooseHomeCard: {move: chooseHomeCard, redact: true},
         chooseCatholicLeagueSpace,
         chooseNavalLeaderPort,
+        chooseWinterLoss,
         chooseHreReplacement,
         chooseHreReligiousPreference: {move: chooseHreReligiousPreference, redact: true},
         claimSeaCaptain,

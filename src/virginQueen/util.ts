@@ -2902,17 +2902,47 @@ const winterTakeUnits = (stack: LandStack, count: number): LandStack => {
     return taken;
 };
 
-/** Lose half of a moving stack, rounded up.  Returns the number lost. */
-const winterAttrition = (units: LandStack): number => {
+/** Lose half of a moving stack, rounded up.  Returns the units removed. */
+const winterAttrition = (units: LandStack): LandStack => {
     const losses = Math.ceil(landCount(units) / 2);
     let left = losses;
+    const removed = emptyLand();
     for (const kind of ["merc", "cav", "regular"] as const) {
         const n = Math.min(left, units[kind]);
         units[kind] -= n;
+        removed[kind] = n;
         left -= n;
         if (left === 0) break;
     }
-    return losses;
+    return removed;
+};
+
+/**
+ * Record a winter attrition loss so its owner may pick the unit type during
+ * the Card Draw phase.  The automatic losses are already applied; a skipped
+ * choice therefore keeps the automatic composition.
+ */
+const recordWinterLossChoice = (G: VQGame, p: Power, space: string, removed: LandStack): void => {
+    const amount = landCount(removed);
+    if (amount === 0 || G.spaces[space] === undefined) return;
+    G.winterLossChoices = [...(G.winterLossChoices ?? []), {power: p, space, amount, removed}];
+};
+
+/**
+ * Safe fallback for a pending winter loss choice.  The automatic losses are
+ * already on the board, so dropping the records keeps that composition.  With
+ * no power given every pending choice is dropped (used when the Card Draw
+ * phase ends or the next phase begins).
+ */
+export const autoResolveWinterLossChoices = (G: VQGame, p?: Power): void => {
+    const pending = G.winterLossChoices;
+    if (pending === undefined) return;
+    const remaining = p === undefined ? [] : pending.filter((entry) => entry.power !== p);
+    if (p !== undefined && remaining.length !== pending.length) {
+        pushLog(G, `${powerLabel(p)} keeps the automatic winter loss composition.`);
+    }
+    if (remaining.length === 0) delete G.winterLossChoices;
+    else G.winterLossChoices = remaining;
 };
 
 const winterAddUnits = (G: VQGame, space: string, p: Power, units: LandStack): void => {
@@ -3043,9 +3073,11 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
         const capital = capitals[0];
         const moving = winterTakeUnits(stack, excess);
         const clean = winterCleanPath(G, p, id, capital.id);
-        const lost = clean ? 0 : winterAttrition(moving);
+        const removed = clean ? emptyLand() : winterAttrition(moving);
+        const lost = landCount(removed);
         cleanupLand(G, id, p);
         winterAddUnits(G, capital.id, p, moving);
+        if (lost > 0 && landCount(moving) > 0) recordWinterLossChoice(G, p, capital.id, removed);
         pushLog(G, `${powerLabel(p)} returns ${excess - lost} overstacked unit(s) from ${SPACE_BY_ID[id].name} to ${SPACE_BY_ID[capital.id].name}${lost > 0 ? ` (${lost} lost to winter attrition)` : ""}.`);
     }
     // 2. Units outside friendly winter quarters must return home.
@@ -3092,7 +3124,8 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
             Number(b.capital) - Number(a.capital) ||
             a.dest.localeCompare(b.dest));
         const chosen = candidates[0];
-        const lost = chosen.clean ? 0 : winterAttrition(stack);
+        const removed = chosen.clean ? emptyLand() : winterAttrition(stack);
+        const lost = landCount(removed);
         const leaders = winterArmyLeaders(G, id, p);
         if (landCount(stack) === 0) {
             cleanupLand(G, id, p);
@@ -3101,6 +3134,7 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
             continue;
         }
         winterAddUnits(G, chosen.dest, p, stack);
+        if (lost > 0) recordWinterLossChoice(G, p, chosen.dest, removed);
         delete state.land[p];
         let movingLeaders = leaders;
         if (p === "france" && movingLeaders.includes("guise") && !inFrenchReligiousArea(chosen.dest)) {

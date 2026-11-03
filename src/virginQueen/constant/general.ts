@@ -153,6 +153,22 @@ export interface NavalStack {
     corsair: number;
 }
 
+/**
+ * A winter attrition loss whose unit type has not been confirmed by the owner
+ * yet. The automatic losses have already been applied; choosing another unit
+ * type restores the automatically removed units to `space` and takes the
+ * chosen type instead. If the choice is skipped the automatic result stands.
+ */
+export interface WinterLossChoice {
+    power: Power;
+    /** Space holding the surviving stack the losses came from. */
+    space: string;
+    /** Number of units lost to winter attrition. */
+    amount: number;
+    /** Unit types removed by the automatic mercenary/cavalry/regular rule. */
+    removed: LandStack;
+}
+
 export const emptyLand = (): LandStack => ({regular: 0, merc: 0, cav: 0});
 
 export const emptyNaval = (): NavalStack => ({
@@ -660,6 +676,12 @@ export interface VQGame {
      * first still-legal port is used automatically.
      */
     navalLeaderArrivals?: {leader: string; power: Power; ports: string[]}[];
+    /**
+     * Winter attrition losses awaiting the owner's choice of unit type. The
+     * automatic result is already on the board; the Card Draw choice stage may
+     * swap it, and ending the turn keeps the automatic composition.
+     */
+    winterLossChoices?: WinterLossChoice[];
     spanishRoadAvailable?: boolean;
     /** Beacon Fires: next interception by this power succeeds and gains +2 dice. */
     navalDiceBonus?: {power: Power; amount: number};

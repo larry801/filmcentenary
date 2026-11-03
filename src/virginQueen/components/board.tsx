@@ -702,8 +702,37 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         if (phase === "cardDraw") {
             const powers = participatingPowers(G);
             const nextPhase = G.scenario === "tutorial" ? "春季部署阶段" : "外交阶段";
+            const winterLosses = (G.winterLossChoices ?? []).filter((entry) => entry.power === me);
+            const unitNames: Record<keyof LandStack, string> = {regular: "正规军", merc: "雇佣兵", cav: "骑兵"};
             return <Stack spacing={1}>
                 <Typography variant="subtitle2">Card Draw 阶段 · 第 {G.year} 回合</Typography>
+                {winterLosses.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
+                    <Typography variant="subtitle2">冬季损失：选择失去的单位类型</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        已按雇佣兵、骑兵、正规军的顺序自动移除；可为每处损失改选该地现有足够数量的类型，或保留自动结果。
+                    </Typography>
+                    {winterLosses.map((entry, index) => {
+                        const stack = G.spaces[entry.space]?.land[me];
+                        const choices = (["regular", "merc", "cav"] as const)
+                            .filter((kind) => (stack?.[kind] ?? 0) >= entry.amount);
+                        return <Stack key={`${entry.space}-${index}`} spacing={0.5}>
+                            <Typography variant="body2">
+                                {SPACE_BY_ID[entry.space]?.name ?? entry.space} · 需失去 {entry.amount} 个单位
+                            </Typography>
+                            <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                                {choices.map((kind) => <Button key={kind} size="small" variant="outlined"
+                                    disabled={!myTurn}
+                                    onClick={() => moves.chooseWinterLoss({space: entry.space, kind})}>
+                                    改为失去 {unitNames[kind]}
+                                </Button>)}
+                                <Button size="small" variant="outlined" disabled={!myTurn}
+                                    onClick={() => moves.chooseWinterLoss({space: entry.space, kind: "auto"})}>
+                                    保留自动结果
+                                </Button>
+                            </Stack>
+                        </Stack>;
+                    })}
+                </Stack>}
                 <Typography variant="body2" color={myTurn ? "primary" : "text.secondary"}>
                     {`${myTurn ? "请确认" : "等待"} P${Number(ctx.currentPlayer) + 1} · ${POWER_NAMES[G.activePower].zh} 完成抽牌（${powers.indexOf(G.activePower) + 1}/${powers.length}）。`}
                 </Typography>

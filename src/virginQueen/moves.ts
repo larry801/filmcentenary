@@ -64,6 +64,7 @@ import {
     atWar,
     atWarWithMinor,
     autoPlaceNavalLeaderArrivals,
+    autoResolveWinterLossChoices,
     bestBattle,
     bestPiracy,
     canControlSpace,
@@ -2720,6 +2721,9 @@ export const endPhaseTurn = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE =>
     // Safe fallback: ending the Spring turn without choosing a port places any
     // remaining returning naval leader in its first legal home port.
     if (ctx.phase === "spring") autoPlaceNavalLeaderArrivals(G, power(G, ctx));
+    // Safe fallback: leaving Card Draw without a choice keeps the automatic
+    // winter attrition composition.
+    if (ctx.phase === "cardDraw") autoResolveWinterLossChoices(G, power(G, ctx));
     ctx.events?.endTurn();
 };
 
@@ -2872,6 +2876,42 @@ export const chooseNavalLeaderPort = (G: VQGame, ctx: Ctx, args: {leader: string
     G.leaders[args.leader] = {id: args.leader, location: args.port};
     pushLog(G, `${LEADER_BY_ID[args.leader]?.name ?? args.leader} arrives in ${SPACE_BY_ID[args.port].name}.`);
     if (!(G.navalLeaderArrivals ?? []).some((entry) => entry.power === pending.power)) ctx.events?.endStage();
+};
+
+const WINTER_LOSS_KIND_NAMES: Record<keyof LandStack, string> = {
+    regular: "regular",
+    merc: "mercenary",
+    cav: "cavalry",
+};
+
+/**
+ * Card Draw confirmation of a winter attrition loss.  The automatic losses
+ * (mercenary, then cavalry, then regular) are already applied; `kind` replaces
+ * them with the same number of the chosen type from the surviving stack.
+ * Passing `kind: "auto"` keeps the automatic composition.
+ */
+export const chooseWinterLoss = (G: VQGame, ctx: Ctx, args: {space: string; kind: keyof LandStack | "auto"}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "cardDraw") return INVALID_MOVE;
+    if (moveError(G, "chooseWinterLoss", args)) return INVALID_MOVE;
+    const p = power(G, ctx);
+    if (ctx.playerID !== undefined && ctx.playerID !== null && ownerOf(G, p) !== ctx.playerID) return INVALID_MOVE;
+    const pending = (G.winterLossChoices ?? []).find((entry) => entry.power === p && entry.space === args.space);
+    if (pending === undefined) return INVALID_MOVE;
+    if (args.kind !== "auto") {
+        if (args.kind !== "regular" && args.kind !== "merc" && args.kind !== "cav") return INVALID_MOVE;
+        const stack = G.spaces[args.space]?.land[p];
+        if (stack === undefined || stack[args.kind] < pending.amount) return INVALID_MOVE;
+        // Put the automatic losses back, then take the chosen type instead.
+        for (const kind of ["regular", "merc", "cav"] as const) stack[kind] += pending.removed[kind];
+        stack[args.kind] -= pending.amount;
+        cleanupLand(G, args.space, p);
+        pushLog(G, `${powerLabel(p)} loses ${pending.amount} ${WINTER_LOSS_KIND_NAMES[args.kind]} unit(s) in ${SPACE_BY_ID[args.space].name} to winter attrition.`);
+    } else {
+        pushLog(G, `${powerLabel(p)} keeps the automatic winter losses in ${SPACE_BY_ID[args.space].name}.`);
+    }
+    G.winterLossChoices = (G.winterLossChoices ?? []).filter((entry) => entry !== pending);
+    if (G.winterLossChoices.length === 0) delete G.winterLossChoices;
+    if (!(G.winterLossChoices ?? []).some((entry) => entry.power === p)) ctx.events?.endStage();
 };
 
 export const makePeace = (G: VQGame, ctx: Ctx, args: { target: Power }): void | typeof INVALID_MOVE => {
