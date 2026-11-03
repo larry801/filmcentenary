@@ -992,6 +992,14 @@ export const friendlyControlled = (G: VQGame, p: Power, space: string): boolean 
         (!isPower(s.control) && s.control !== "independent" && G.powers[p].alliedMinors.includes(s.control));
 };
 
+export const regularCount = (G: VQGame, p: Power): number => {
+    let total = 0;
+    for (const space of Object.values(G.spaces)) total += space.land[p]?.regular ?? 0;
+    total += G.foreignWars[p]?.units.regular ?? 0;
+    if (p === "spain" && G.armada?.land !== undefined) total += G.armada.land.regular;
+    return total;
+};
+
 export const controlledKeys = (G: VQGame, p: Power): string[] =>
     (G.scenario === "tutorial" ? TUTORIAL_KEYS : KEY_SPACES).filter((id) => {
         const s = G.spaces[id];

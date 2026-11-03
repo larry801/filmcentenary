@@ -39,6 +39,16 @@ export const powerAt = (playerID: string | null | undefined): Power => {
 export const isPower = (value: string): value is Power =>
     (POWERS as readonly string[]).includes(value);
 
+/** Physical regular-counter limits (points) for each major power. */
+export const REGULAR_LIMITS: Record<Power, number> = {
+    ottoman: 39,
+    spain: 42,
+    england: 25,
+    france: 32,
+    hre: 29,
+    protestant: 48,
+};
+
 export const POWER_NAMES: Record<Power, { en: string; zh: string; short: string }> = {
     ottoman: {en: "Ottoman Empire", zh: "奥斯曼帝国", short: "Ottoman"},
     spain: {en: "Spain", zh: "西班牙", short: "Spain"},
