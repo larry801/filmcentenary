@@ -183,6 +183,11 @@ const haremResponseAllowed = (G: VQGame): boolean => {
     return G.phaseTurns > 0 || G.impulse > 1;
 };
 
+/** First non-Ottoman power (with a player) still holding Sultan's Harem. */
+const haremResponseHolder = (G: VQGame): Power | undefined =>
+    POWERS.find((power) => power !== "ottoman" && ownerOf(G, power) !== undefined &&
+        G.powers[power].cards.includes("vq-016"));
+
 /**
  * Spain remains the default Storms responder, but card #16 is a response any
  * non-Ottoman power may play.  When Spain cannot play Storms, hand the window
@@ -192,8 +197,7 @@ const actionResponseResponder = (G: VQGame, active: Power): Power => {
     if (active !== "ottoman") return "ottoman";
     if (G.powers.spain.cards.includes("vq-015")) return "spain";
     if (haremResponseAllowed(G)) {
-        const holder = POWERS.find((power) => power !== "ottoman" && ownerOf(G, power) !== undefined &&
-            G.powers[power].cards.includes("vq-016"));
+        const holder = haremResponseHolder(G);
         if (holder !== undefined) return holder;
     }
     return "spain";
@@ -215,12 +219,28 @@ const offerActionResponse = (G: VQGame, ctx: Ctx, move: NonNullable<VQGame["pend
     return true;
 };
 
+/**
+ * Card #16 is a break-between-impulses response: after the Ottoman's first
+ * impulse of the turn, every Ottoman impulse start offers a non-Ottoman
+ * #16 holder the chance to make the Ottoman skip its next impulse.  The
+ * window is opened before the Ottoman performs any action, so recruit,
+ * influence, pass and every other impulse action are covered alike.
+ */
+const offerImpulseResponse = (G: VQGame, ctx: Ctx): boolean => {
+    if (ctx.phase !== "action" || G.activePower !== "ottoman" || !haremResponseAllowed(G)) return false;
+    const responder = haremResponseHolder(G);
+    if (responder === undefined) return false;
+    G.pendingAction = {power: "ottoman", responder, move: "impulse", args: {}};
+    ctx.events?.setActivePlayers({value: {[ownerOf(G, responder)!]: "actionResponse"}});
+    return true;
+};
+
 export const actionResponseOptions = (G: VQGame): {id: string; label: string}[] => {
     const pending = G.pendingAction;
     if (!pending) return [];
     const responder = pendingResponder(G, pending);
     return [{id: "continue", label: "允许行动"},
-        ...(G.powers[responder].cards.includes("vq-015") ? [{id: "storms", label: "打出 Storms，中断行动"}] : []),
+        ...(pending.move !== "impulse" && G.powers[responder].cards.includes("vq-015") ? [{id: "storms", label: "打出 Storms，中断行动"}] : []),
         ...(pending.power === "ottoman" && responder !== "ottoman" && haremResponseAllowed(G) &&
             G.powers[responder].cards.includes("vq-016") ? [{id: "harem", label: "打出 Sultan's Harem，奥斯曼跳过下次行动轮次"}] : [])];
 };
@@ -247,6 +267,8 @@ export const respondAction = (G: VQGame, ctx: Ctx, args: {choice: string}): void
         drawCards(G, ctx, responder, 1);
         pushLog(G, `${powerLabel(responder)} plays Sultan's Harem: the Ottoman skips its next action round and ${powerLabel(responder)} draws a card.`);
     }
+    // An impulse-start window has no interrupted action to resume.
+    if (pending.move === "impulse") return;
     G.resumeAction = true;
     const activeCtx = {...ctx, playerID: ownerOf(G, pending.power)};
     if (pending.move === "moveLand") moveLand(G, activeCtx, pending.args as Parameters<typeof moveLand>[2]);
@@ -1423,6 +1445,10 @@ export const startActionTurn = (G: VQGame, ctx: Ctx): void => {
     G.powers[p].treasurePlayed = false;
     G.powers[p].passed = false;
     if (G.lockedCards?.[p] !== undefined) delete G.lockedCards[p];
+    // Card #16 may be played at any break between Ottoman impulses; open the
+    // window once the impulse is live so recruit/influence/pass impulses are
+    // covered too.  The first Ottoman impulse of the turn is never offered.
+    offerImpulseResponse(G, ctx);
 };
 
 /** Decline the #101 after-turn response and start the next power's turn. */

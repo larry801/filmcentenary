@@ -203,7 +203,9 @@ describe("national turns through the client reducer", () => {
             client.updatePlayerID(turn.activePlayers ? Object.keys(turn.activePlayers)[0] : turn.currentPlayer);
             const {G, ctx, _stateID} = client.getState()!;
             years.add(G.year);
-            if (G.pendingActivation) {
+            if (G.pendingAction) {
+                client.moves.respondAction({choice: "continue"});
+            } else if (G.pendingActivation) {
                 client.moves.chooseMajorActivation({});
             } else if (G.pendingTutorialEvent) {
                 const options = tutorialEventOptions(G);

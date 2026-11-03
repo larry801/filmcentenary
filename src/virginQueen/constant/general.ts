@@ -508,7 +508,7 @@ export interface VQGame {
     };
     pendingPiracy?: {power: Power; target: Power; zone: SeaZoneID; step: "losses" | "rewards"; remaining: number; rewards: Record<string, number>};
     piracyUsed?: Partial<Record<Power, SeaZoneID[]>>;
-    pendingAction?: {power: Power; responder?: Power; move: "moveLand" | "moveNaval" | "navalTransport" | "assault" | "piracy"; args: {from?: string; to?: string; space?: string; zone?: string; target?: Power; units?: Partial<LandStack>; leaders?: string[]; unitPower?: Controller; zones?: string[]}};
+    pendingAction?: {power: Power; responder?: Power; move: "moveLand" | "moveNaval" | "navalTransport" | "assault" | "piracy" | "impulse"; args: {from?: string; to?: string; space?: string; zone?: string; target?: Power; units?: Partial<LandStack>; leaders?: string[]; unitPower?: Controller; zones?: string[]}};
     resumeAction?: boolean;
     pendingNavalOrder?: {attacker: Power; location: string; enemies: Power[]};
     pendingWithdraw?: {active: Power; defender: Power; space: string; origin: string};

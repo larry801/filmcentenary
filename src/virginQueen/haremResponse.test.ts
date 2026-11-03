@@ -37,6 +37,9 @@ const reachOttomanSecondImpulse = (G: VQGame): void => {
     beginImpulse(G, "ottoman");
     beginImpulse(G, "spain");
     beginImpulse(G, "ottoman");
+    // The impulse-start window (see haremImpulseResponse.test.ts) opens first;
+    // decline it so these tests exercise the move-declaration window.
+    if (G.pendingAction?.move === "impulse") respondAction(G, context("1"), {choice: "continue"});
 };
 
 const ottomanMove = (G: VQGame): void | typeof INVALID_MOVE => {

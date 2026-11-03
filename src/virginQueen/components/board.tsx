@@ -668,7 +668,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 <Button key={entry.id} onClick={() => moves.chooseInterception({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
         if (G.pendingAction) return <Stack spacing={1}>
-            <Typography>行动响应 · 等待 {POWER_NAMES[actionResponder!].zh}。</Typography>
+            <Typography>{G.pendingAction.move === "impulse" ? "行动轮开始响应" : "行动响应"} · 等待 {POWER_NAMES[actionResponder!].zh}。</Typography>
             {ownerOf(G, actionResponder!) === playerID && actionResponseOptions(G).map((entry) =>
                 <Button key={entry.id} onClick={() => moves.respondAction({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;

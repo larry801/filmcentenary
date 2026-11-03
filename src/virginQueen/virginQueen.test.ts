@@ -277,6 +277,13 @@ function passToEndAction(clients: any[]) {
         if (state.ctx.phase !== "action" || state.G.consecutivePasses >= 6) {
             return;
         }
+        // The Ottoman's post-first-impulse #16 window is optional; decline it.
+        if (state.G.pendingAction) {
+            const responder = state.G.pendingAction.responder ??
+                (state.G.pendingAction.power === "ottoman" ? "spain" : "ottoman");
+            clients[POWERS.indexOf(responder)].moves.respondAction({choice: "continue"});
+            continue;
+        }
         const idx = Number(state.ctx.currentPlayer);
         const p = POWERS[idx];
         const hand = clients[idx].getState().G.powers[p].cards;
