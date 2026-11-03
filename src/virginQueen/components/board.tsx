@@ -314,7 +314,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [viewPower, setViewPower] = React.useState<Power>();
     const owned = controlledPowers(G, playerID);
     const piracyResponder = G.pendingPiracy && (G.pendingPiracy.step === "losses" ? G.pendingPiracy.power : G.pendingPiracy.target);
-    const actionResponder = G.pendingAction && (G.pendingAction.power === "ottoman" ? "spain" : "ottoman");
+    const actionResponder = G.pendingAction && (G.pendingAction.responder ?? (G.pendingAction.power === "ottoman" ? "spain" : "ottoman"));
     const responsePower = G.gregorianResponse && ownerOf(G, G.gregorianResponse.responder) === playerID ? G.gregorianResponse.responder :
         G.pendingIntercept && ownerOf(G, G.pendingIntercept.defender) === playerID ? G.pendingIntercept.defender :
         G.pendingEspionage && ownerOf(G, G.pendingEspionage.responding) === playerID ? G.pendingEspionage.responding :

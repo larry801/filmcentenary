@@ -60,7 +60,7 @@ export const tutorialLesson = (G: VQGame, phase: string): TutorialLesson | undef
     if (G.pendingAction) return {
         title: "响应：使用响应牌或放行",
         instruction: "在行动面板选择可用的响应牌，或选择放行；不必等待自己的正常行动轮次。",
-        power: G.pendingAction.power === "ottoman" ? "spain" : "ottoman",
+        power: G.pendingAction.responder ?? (G.pendingAction.power === "ottoman" ? "spain" : "ottoman"),
     };
     if (G.pendingPiracy) return {
         title: "响应：结算海盗行动",

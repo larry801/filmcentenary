@@ -108,6 +108,7 @@ const phaseBegin = (G: VQGame): void => {
     restorePatrons(G);
     G.activePower = participatingPowers(G)[0];
     G.phaseTurns = 0;
+    G.actionTurnsThisTurn = {};
     G.unionOfArras = false;
     delete G.gregorianResponse;
 };

@@ -166,12 +166,48 @@ const catholicLeagueDealsBlocked = (G: VQGame, a: Power, b: Power): boolean =>
     ((a === "spain" && (b === "france" || b === "protestant")) ||
         (b === "spain" && (a === "france" || a === "protestant")));
 
+/**
+ * Card #16 FAQ: a response may not skip the Ottoman's first action round
+ * (impulse) of the turn.  `actionTurnsThisTurn` counts impulses actually taken
+ * this year, so an impulse skipped by another effect does not make the
+ * following one the Ottoman's "first".
+ */
+const haremResponseAllowed = (G: VQGame): boolean => {
+    const taken = G.actionTurnsThisTurn?.ottoman;
+    if (taken !== undefined) return taken > 1;
+    // States assembled directly in tests may not have run a turn begin yet;
+    // after the action phase wraps, the Ottoman is past its first impulse.
+    return G.phaseTurns > 0;
+};
+
+/**
+ * Spain remains the default Storms responder, but card #16 is a response any
+ * non-Ottoman power may play.  When Spain cannot play Storms, hand the window
+ * to the first non-Ottoman holder of #16.
+ */
+const actionResponseResponder = (G: VQGame, active: Power): Power => {
+    if (active !== "ottoman") return "ottoman";
+    if (G.powers.spain.cards.includes("vq-015")) return "spain";
+    if (haremResponseAllowed(G)) {
+        const holder = POWERS.find((power) => power !== "ottoman" && ownerOf(G, power) !== undefined &&
+            G.powers[power].cards.includes("vq-016"));
+        if (holder !== undefined) return holder;
+    }
+    return "spain";
+};
+
+const pendingResponder = (G: VQGame, pending: NonNullable<VQGame["pendingAction"]>): Power =>
+    pending.responder ?? (pending.power === "ottoman" ? "spain" : "ottoman");
+
 const offerActionResponse = (G: VQGame, ctx: Ctx, move: NonNullable<VQGame["pendingAction"]>["move"], args: NonNullable<VQGame["pendingAction"]>["args"]): boolean => {
     if (G.resumeAction) {delete G.resumeAction; return false;}
     const active = power(G, ctx);
-    const responder = active === "ottoman" ? "spain" : "ottoman";
-    if (!G.powers[responder].cards.includes("vq-015") && !(active === "ottoman" && G.impulse > 1 && G.powers[responder].cards.includes("vq-016"))) return false;
-    G.pendingAction = {power: active, move, args};
+    const responder = actionResponseResponder(G, active);
+    const canStorm = G.powers[responder].cards.includes("vq-015");
+    const canHarem = active === "ottoman" && responder !== "ottoman" && haremResponseAllowed(G) &&
+        G.powers[responder].cards.includes("vq-016");
+    if (!canStorm && !canHarem) return false;
+    G.pendingAction = {power: active, responder, move, args};
     ctx.events?.setActivePlayers({value: {[ownerOf(G, responder)!]: "actionResponse"}});
     return true;
 };
@@ -179,16 +215,17 @@ const offerActionResponse = (G: VQGame, ctx: Ctx, move: NonNullable<VQGame["pend
 export const actionResponseOptions = (G: VQGame): {id: string; label: string}[] => {
     const pending = G.pendingAction;
     if (!pending) return [];
-    const responder = pending.power === "ottoman" ? "spain" : "ottoman";
+    const responder = pendingResponder(G, pending);
     return [{id: "continue", label: "允许行动"},
         ...(G.powers[responder].cards.includes("vq-015") ? [{id: "storms", label: "打出 Storms，中断行动"}] : []),
-        ...(pending.power === "ottoman" && G.impulse > 1 && G.powers[responder].cards.includes("vq-016") ? [{id: "harem", label: "打出 Sultan's Harem，奥斯曼跳过下次行动轮次"}] : [])];
+        ...(pending.power === "ottoman" && responder !== "ottoman" && haremResponseAllowed(G) &&
+            G.powers[responder].cards.includes("vq-016") ? [{id: "harem", label: "打出 Sultan's Harem，奥斯曼跳过下次行动轮次"}] : [])];
 };
 
 export const respondAction = (G: VQGame, ctx: Ctx, args: {choice: string}): void | typeof INVALID_MOVE => {
     const pending = G.pendingAction;
     if (!pending) return INVALID_MOVE;
-    const responder = pending.power === "ottoman" ? "spain" : "ottoman";
+    const responder = pendingResponder(G, pending);
     if (ctx.playerID !== ownerOf(G, responder) || !actionResponseOptions(G).some((entry) => entry.id === args.choice)) return INVALID_MOVE;
     delete G.pendingAction;
     ctx.events?.endStage();
@@ -204,8 +241,8 @@ export const respondAction = (G: VQGame, ctx: Ctx, args: {choice: string}): void
         removeCardFromHand(G, responder, "vq-016");
         discardCard(G, responder, "vq-016", true);
         G.skipImpulse = [...(G.skipImpulse ?? []), "ottoman"];
-        G.haremImpulse = G.impulse;
         drawCards(G, ctx, responder, 1);
+        pushLog(G, `${powerLabel(responder)} plays Sultan's Harem: the Ottoman skips its next action round and ${powerLabel(responder)} draws a card.`);
     }
     G.resumeAction = true;
     const activeCtx = {...ctx, playerID: ownerOf(G, pending.power)};
@@ -1371,6 +1408,10 @@ export const startActionTurn = (G: VQGame, ctx: Ctx): void => {
         ctx.events?.endTurn();
         return;
     }
+    if (ctx.phase === "action") {
+        G.actionTurnsThisTurn = {...(G.actionTurnsThisTurn ?? {})};
+        G.actionTurnsThisTurn[p] = (G.actionTurnsThisTurn[p] ?? 0) + 1;
+    }
     G.impulse += 1;
     G.powers[p].cp = 0;
     G.powers[p].cardPlayed = false;
@@ -2442,6 +2483,9 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     const cardHandler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
     const isBeaconFires = def.id === "vq-014";
     const beneficiary = foreignWarPower(cardHandler);
+    // #16: only the Ottoman may use Sultan's Harem as an event; other holders
+    // may only play it through the response window.
+    if (args.asEvent === true && cardHandler === "sultansHarem" && p !== "ottoman") return INVALID_MOVE;
     if (args.asEvent === true && isEspionageEvent(cardHandler) && !canPlayEspionageEvent(G, p, cardHandler, args.target)) return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "northernRising" && !canPlayNorthernRising(G)) return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "stBartholomewsDayMassacre" && !canPlayMassacre(G)) return INVALID_MOVE;
