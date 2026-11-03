@@ -1429,13 +1429,18 @@ const resolveConventionOfEstates = (G: VQGame): void => {
     pushLog(G, `Convention of Estates converts ${targets.length} Netherlands space(s) to Protestant.`);
 };
 
-const resolvePuritans = (G: VQGame, ctx: Ctx, p: Power): void => {
+const resolvePuritans = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     const cards = G.powers.england.cards.filter((id) => cardById(id).kind !== "home");
     if (cards.length > 0) {
         const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
         G.powers.england.cards = G.powers.england.cards.filter((id) => id !== card);
-        G.powers[p].cards.push(card);
-        pushLog(G, `Puritans draw ${cardById(card).name} from England; England gives it to ${powerLabel(p)}.`);
+        if (target === "discard") {
+            discardCard(G, "england", card, true);
+            pushLog(G, `Puritans draw ${cardById(card).name} from England; England discards it.`);
+        } else {
+            G.powers[p].cards.push(card);
+            pushLog(G, `Puritans draw ${cardById(card).name} from England; England gives it to ${powerLabel(p)}.`);
+        }
         return;
     }
     const targets = SPACES.filter((space) => space.home === "england" && !G.spaces[space.id].unrest &&
@@ -1946,7 +1951,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "northwestPassage") {
         resolveNorthwestPassage(G, ctx, target);
     } else if (handler === "puritans") {
-        resolvePuritans(G, ctx, p);
+        resolvePuritans(G, ctx, p, target);
     } else if (handler === "conventionOfEstates") {
         resolveConventionOfEstates(G);
     } else if (handler === "spanishPayShipsSeized") {

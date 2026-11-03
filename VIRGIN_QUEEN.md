@@ -451,7 +451,7 @@
 
 ### 清教徒（#65）
 
-- 英格兰有非本国牌时：清教徒随机抽 1 张，英格兰选择弃置或交给新教（当前自动交给新教）；
+- 英格兰有非本国牌时：清教徒随机抽 1 张；默认交给新教，可用目标 `discard` 改为英格兰弃置；
 - 否则在最多 3 个英格兰无驻军地区放置动荡。
 
 ### 西北航道（#62）
@@ -1041,7 +1041,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #62 西北航道接入后的验证：`jest src/virginQueen --runInBand --silent` 70 suites、476 tests passed（新增 2 项：安全/死亡）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#65 清教徒接入后的验证：`jest src/virginQueen --runInBand --silent` 71 suites、478 tests passed（新增 2 项：抽牌/三地动荡）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#65 清教徒接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、595 tests passed（新增 3 项：抽牌、弃置、三地动荡）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #79 省议会接入后的验证：`jest src/virginQueen --runInBand --silent` 72 suites、479 tests passed（新增 1 项：3 个尼德兰转新教）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
