@@ -675,6 +675,38 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #111 Paris is Worth a Mass: move the Huguenot capital to Paris. */
 /** #109 Union of Arras: remove Dutch mercenaries, secure five spaces, raise Walloons. */
 /** #11 Dragut Falls: kill Dragut and bring Uluch Ali next turn. */
+/** #86 Polish Royal Election: resolve bids and elect a king. */
+const resolvePolishElection = (G: VQGame, ctx: Ctx): void => {
+    if (G.foreignWars.hre?.enemy === "Poland") {
+        delete G.foreignWars.hre;
+        pushLog(G, "Polish Royal Election ends the Polish war; the Holy Roman Empire is considered victorious.");
+    }
+    const order: Power[] = ["france", "hre", "spain"];
+    const scores: {power: Power; score: number}[] = [];
+    for (const power of order) {
+        const card = G.powers[power].cards
+            .filter((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory")
+            .sort((a, b) => cardById(b).cp - cardById(a).cp)[0];
+        let bid = 0;
+        if (card !== undefined) {
+            bid = cardById(card).cp;
+            removeCardFromHand(G, power, card);
+            discardCard(G, power, card, false);
+        }
+        const score = die(ctx, 6) + bid;
+        scores.push({power, score});
+        pushLog(G, `Polish election: ${powerLabel(power)} bids ${bid} and rolls ${score - bid} = ${score}.`);
+    }
+    const best = scores.slice().sort((a, b) => b.score - a.score || order.indexOf(a.power) - order.indexOf(b.power))[0];
+    if (best !== undefined && best.score > 5) {
+        addVp(G, best.power, 2);
+        pushLog(G, `${powerLabel(best.power)} wins the Polish election and gains 2 VP.`);
+    } else {
+        pushLog(G, "No candidate exceeds 5; no Polish election VP is awarded.");
+    }
+    removeCardFromGame(G, "vq-086");
+};
+
 const resolveDragutFalls = (G: VQGame): void => {
     if (G.spaces.djerba?.control !== "spain" && G.spaces.tripoli?.control !== "spain") return;
     const dragut = G.leaders.dragut;
@@ -1405,6 +1437,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveUnionOfArras(G);
     } else if (handler === "dragutFalls") {
         resolveDragutFalls(G);
+    } else if (handler === "polishRoyalElection") {
+        resolvePolishElection(G, ctx);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
