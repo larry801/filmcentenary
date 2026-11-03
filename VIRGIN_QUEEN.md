@@ -161,6 +161,12 @@
   - 20+：西班牙 +3。
 - 作为强制事件结算后照常获得 2 CP。
 
+### 进击的葡萄牙（#77）
+
+- 移除一个位于南大西洋/印度洋/南太平洋的殖民地；不可移除西班牙殖民地。
+- 若出牌方控制里斯本，再抽 1 个宝藏。
+- 当前自动选择第一个符合条件的殖民地。
+
 ### 消失的殖民地（#75）
 
 - 选择一个大西洋沿岸殖民地，控制者掷 1d6：
@@ -474,6 +480,7 @@ src/virginQueen/
   spanishRoad.test.ts   #3 西班牙之路
   indexBooks.test.ts    #56 禁书目录 6 次天主教尝试
   lostColony.test.ts    #75 消失的殖民地
+  portugueseRaid.test.ts #77 进击的葡萄牙
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
   regularLimit.test.ts  17.1 正规军计数器上限
@@ -635,3 +642,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #83 荷兰起义接入后的验证：`jest src/virginQueen --runInBand --silent` 61 suites、462 tests passed（新增 1 项：0/1/8/12/19 各档 VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #75 消失的殖民地接入后的验证：`jest src/virginQueen --runInBand --silent` 62 suites、464 tests passed（新增 2 项：1–4 摧毁、5–6 保留）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#77 进击的葡萄牙接入后的验证：`jest src/virginQueen --runInBand --silent` 63 suites、465 tests passed（新增 1 项：移除殖民地并抽宝藏）；`npm run build` 通过，仍有既有大体积 chunk 提示。

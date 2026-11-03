@@ -51,6 +51,7 @@ import {
 import {
     addLand,
     addNaval,
+    addTreasure,
     addVp,
     allied,
     applyCatholicLeagueSpace,
@@ -614,6 +615,24 @@ const resolveDutchRevolt = (G: VQGame): void => {
 };
 
 /** #75 Lost Colony: destroy an Atlantic-coast colony unless it rolls 5-6. */
+/** #77 Portuguese Raid: remove a southern-ocean colony; draw if Lisbon is held. */
+const resolvePortugueseRaid = (G: VQGame, p: Power, ctx: Ctx): void => {
+    const colony = Object.entries(G.worldColonies).find(([settlement, owner]) => {
+        const def = WORLD_SETTLEMENT_BY_ID[settlement];
+        return def !== undefined && ["southAtlantic", "indianOcean", "southPacific"].includes(def.seaZone ?? "") &&
+            owner !== "spain";
+    });
+    if (colony === undefined) {
+        pushLog(G, "Portuguese Raid: no eligible colony is present.");
+        return;
+    }
+    const [settlement, owner] = colony;
+    delete G.worldColonies[settlement];
+    if (owner !== undefined && G.worldControls[settlement] === owner) delete G.worldControls[settlement];
+    if (G.spaces.lisbon?.control === p) addTreasure(G, ctx, p, 1);
+    pushLog(G, `Portuguese Raid removes the colony at ${settlement}${G.spaces.lisbon.control === p ? " and draws a treasure" : ""}.`);
+};
+
 const resolveLostColony = (G: VQGame, ctx: Ctx): void => {
     const colony = Object.entries(G.worldColonies).find(([settlement]) => {
         const def = WORLD_SETTLEMENT_BY_ID[settlement];
@@ -961,6 +980,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveIndex(G, ctx);
     } else if (handler === "lostColony") {
         resolveLostColony(G, ctx);
+    } else if (handler === "portugueseRaid") {
+        resolvePortugueseRaid(G, p, ctx);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {
