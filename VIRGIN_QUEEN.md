@@ -161,6 +161,15 @@
   - 20+：西班牙 +3。
 - 作为强制事件结算后照常获得 2 CP。
 
+### 爱尔兰叛乱（#57）
+
+- 若本回合爱尔兰未评议：对爱尔兰 +2 外交影响并立即评议。
+- 若爱尔兰与主要势力结盟：
+  - 都柏林/金赛尔英格兰正规军与雇佣兵各减半（至少 1）；
+  - 清空阿尔斯特并放置 3 个爱尔兰叛军；
+  - 盟方可移动叛军（尚未单独界面）。
+- 事件可在外交阶段由西班牙/法国/HRE 打出。
+
 ### 亨利三世 / 穆拉德三世（#84/#85）
 
 - #84：亨利三世继位法国，统治者属性改为 1 Admin / +1 卡牌奖励；未联姻的查理九世移出婚姻池并终止婚约。
@@ -488,6 +497,7 @@ src/virginQueen/
   lostColony.test.ts    #75 消失的殖民地
   portugueseRaid.test.ts #77 进击的葡萄牙
   rulerAccession.test.ts #84/#85 亨利三世/穆拉德三世继位
+  irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
   regularLimit.test.ts  17.1 正规军计数器上限
@@ -653,3 +663,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #77 进击的葡萄牙接入后的验证：`jest src/virginQueen --runInBand --silent` 63 suites、465 tests passed（新增 1 项：移除殖民地并抽宝藏）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #84/#85 继位事件接入后的验证：`jest src/virginQueen --runInBand --silent` 64 suites、467 tests passed（新增 2 项：亨利三世、穆拉德三世）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#57 爱尔兰叛乱增强后的验证：`jest src/virginQueen --runInBand --silent` 65 suites、468 tests passed（新增 1 项：减半/阿尔斯特叛军）；`npm run build` 通过，仍有既有大体积 chunk 提示。

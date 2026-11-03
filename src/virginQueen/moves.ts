@@ -229,10 +229,16 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef):
             for (const id of ["dublin", "kinsale"]) {
                 const units = G.spaces[id]?.land.england;
                 if (units !== undefined) {
-                    units.regular -= Math.floor(units.regular / 2);
-                    units.merc -= Math.floor(units.merc / 2);
+                    if (units.regular > 0) units.regular -= Math.max(1, Math.floor(units.regular / 2));
+                    if (units.merc > 0) units.merc -= Math.max(1, Math.floor(units.merc / 2));
                 }
             }
+            const ulster = G.spaces.ulster;
+            ulster.land = {};
+            ulster.leaders = [];
+            ulster.control = "ireland";
+            addLand(G, "ulster", "ireland", "regular", 3);
+            pushLog(G, "Ireland rises: Ulster is cleared and 3 Irish rebels are placed.");
         }
         return true;
     }
