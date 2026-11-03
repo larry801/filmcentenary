@@ -12,7 +12,7 @@ services:
     ports:
       - "3030:5432"
   web:
-    image: "filmcentenary-docker.pkg.coding.net/dianyingbainian/web_full_stack/film-centenary:latest"
+    image: "ghcr.io/larry801/film-centenary:latest"
     ports:
       - "80:3000"
     environment:

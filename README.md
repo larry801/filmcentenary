@@ -19,6 +19,23 @@ yarn start
 yarn serve
 ```
 
+## 镜像
+
+master 分支的 CI（`.github/workflows/ci.docker.yml`）会构建并推送三个镜像：
+
+- `ghcr.io/larry801/film-centenary`：应用镜像（`docker-compose.yml` 使用）
+- `ghcr.io/larry801/film-centenary-base`：运行时依赖层
+- `ghcr.io/larry801/film-centenary-builder`：构建层
+
+同一个镜像也会同步推到 Docker Hub 的 `larry801/` 下。GHCR 包默认是私有的，
+部署机器拉取前需要登录（用带 `read:packages` 权限的 PAT）：
+
+```shell
+echo "$GHCR_TOKEN" | docker login ghcr.io -u <你的用户名> --password-stdin
+```
+
+或者在包的 Settings → Danger Zone 里把可见性改成 public，之后就能匿名拉取。
+
 ## 结构
 
 - 电影百年：`src/game/`

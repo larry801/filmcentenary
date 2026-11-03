@@ -4,6 +4,16 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
+
+# GITHUB_TOKEN needs packages: write to push to GitHub Container Registry.
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: larry801
 
 jobs:
   docker_image:
@@ -16,13 +26,15 @@ jobs:
         id: builder-dependency-check
         with:
           path: package.json
-          key: ${{ runner.os }}-yarn-builder-${{ hashFiles('**/yarn.lock', 'Dockerfile.builder') }}
+          key: ${{ runner.os }}-yarn-builder-${{ hashFiles('package.json', 'yarn.lock', 'Dockerfile.builder') }}
+          lookup-only: true
       - name: Check base dependency change
         uses: actions/cache@v6
         id: base-dependency-check
         with:
           path: package.json
-          key: ${{ runner.os }}-yarn-base-${{ hashFiles('**/yarn.lock', 'Dockerfile.base') }}
+          key: ${{ runner.os }}-yarn-base-${{ hashFiles('package.json', 'yarn.lock', 'Dockerfile.base') }}
+          lookup-only: true
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v4
@@ -31,15 +43,15 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Login to Coding Artifact
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v4
         with:
-          registry: filmcentenary-docker.pkg.coding.net
-          username: ${{ secrets.CODING_USERNAME }}
-          password: ${{ secrets.CODING_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set outputs
         id: vars
-        run: echo "sha_short=$(git rev-parse --short HEAD)"  >> $GITHUB_OUTPUT
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
       - name: Build and push builder image
         if: steps.builder-dependency-check.outputs.cache-hit != 'true'
         uses: docker/build-push-action@v7
@@ -47,7 +59,11 @@ jobs:
           context: .
           file: Dockerfile.builder
           push: true
-          tags: larry801/film-centenary-builder:latest,larry801/film-centenary-builder:${{ steps.vars.outputs.sha_short }}
+          tags: |
+            ${{ env.IMAGE_NAMESPACE }}/film-centenary-builder:latest
+            ${{ env.IMAGE_NAMESPACE }}/film-centenary-builder:${{ steps.vars.outputs.sha_short }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary-builder:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary-builder:${{ steps.vars.outputs.sha_short }}
       - name: Build and push base image
         if: steps.base-dependency-check.outputs.cache-hit != 'true'
         uses: docker/build-push-action@v7
@@ -56,10 +72,10 @@ jobs:
           file: Dockerfile.base
           push: true
           tags: |
-            larry801/film-centenary-base:latest
-            filmcentenary-docker.pkg.coding.net/dianyingbainian/web_full_stack/film-centenary-base:latest
-            larry801/film-centenary-base:${{ steps.vars.outputs.sha_short }}
-            filmcentenary-docker.pkg.coding.net/dianyingbainian/web_full_stack/film-centenary-base:${{ steps.vars.outputs.sha_short }}
+            ${{ env.IMAGE_NAMESPACE }}/film-centenary-base:latest
+            ${{ env.IMAGE_NAMESPACE }}/film-centenary-base:${{ steps.vars.outputs.sha_short }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary-base:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary-base:${{ steps.vars.outputs.sha_short }}
       - name: Build and push app image
         uses: docker/build-push-action@v7
         with:
@@ -67,7 +83,7 @@ jobs:
           file: Dockerfile.web
           push: true
           tags: |
-            larry801/film-centenary:latest
-            filmcentenary-docker.pkg.coding.net/dianyingbainian/web_full_stack/film-centenary:latest
-            larry801/film-centenary:${{ steps.vars.outputs.sha_short }}
-            filmcentenary-docker.pkg.coding.net/dianyingbainian/web_full_stack/film-centenary:${{ steps.vars.outputs.sha_short }}
+            ${{ env.IMAGE_NAMESPACE }}/film-centenary:latest
+            ${{ env.IMAGE_NAMESPACE }}/film-centenary:${{ steps.vars.outputs.sha_short }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary:${{ steps.vars.outputs.sha_short }}
