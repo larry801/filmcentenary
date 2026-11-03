@@ -3,7 +3,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {VQGame} from "./constant/general";
 import {moveNaval, playCard, upgradeArmada} from "./moves";
 import {applyNavalCombatLosses, navalCombatDice} from "./navalCombat";
-import {setupGame} from "./util";
+import {navalBlockadeSatisfied, setupGame} from "./util";
 
 const context = (values: number[] = [], player = "1"): Ctx => ({
     currentPlayer: player,
@@ -68,6 +68,33 @@ describe("Spanish Armada (rule 23.2)", () => {
         expect(applyNavalCombatLosses(G, "englishChannel", ["spain"], 2, false, [])).toBe(0);
         expect(G.armada).toBeUndefined();
         expect(G.seaZones.englishChannel.naval.spain.galleon).toBe(1);
+    });
+
+    it("moves by itself without a Spanish naval stack", () => {
+        const G = game();
+        G.powers.spain.cp = 1;
+        G.armada = {strength: 2, location: "englishChannel"};
+
+        expect(moveNaval(G, context([6, 6]), {from: "englishChannel", to: "northSea"})).toBeUndefined();
+
+        expect(G.armada.location).toBe("northSea");
+    });
+
+    it("contributes half its strength to a naval blockade", () => {
+        const G = game();
+        G.impulse = 2;
+        G.powers.spain.cp = 1;
+        G.spaces.portsmouth.control = "england";
+        G.spaces.portsmouth.siege = {by: "spain", sinceImpulse: 0};
+        G.spaces.portsmouth.land = {england: {regular: 1, merc: 0, cav: 0}, spain: {regular: 3, merc: 0, cav: 0}};
+        G.spaces.dover.control = "spain";
+        G.spaces.dover.land.spain = {regular: 1, merc: 0, cav: 0};
+        G.spaces.portsmouth.naval = {england: {galley: 0, galleon: 1, racebuilt: 0, corsair: 0}};
+        G.armada = {strength: 4, location: "englishChannel"};
+
+        expect(navalBlockadeSatisfied(G, "spain", "portsmouth")).toBe(true);
+        delete G.armada;
+        expect(navalBlockadeSatisfied(G, "spain", "portsmouth")).toBe(false);
     });
 
     it("moves with a Spanish naval stack from its location", () => {

@@ -1296,6 +1296,26 @@ export const seaAdjacent = (a: SeaZoneID, b: SeaZoneID): boolean =>
 export const portZones = (space: string): SeaZoneID[] => SPACE_BY_ID[space]?.ports ?? [];
 
 export const isPort = (space: string): boolean => portZones(space).length > 0;
+/** Rule 15.1: the attacker needs more non-corsair naval units than the port's defenders. */
+export const navalBlockadeSatisfied = (G: VQGame, p: Power, space: string): boolean => {
+    const state = G.spaces[space];
+    if (state === undefined) return true;
+    const defenders = ownersWithNaval(G, space)
+        .filter((owner) => !friendlyController(G, p, owner))
+        .reduce((total, owner) => {
+            const stack = state.naval[owner];
+            return total + (stack ? stack.galley + stack.galleon + stack.racebuilt : 0);
+        }, 0);
+    if (defenders === 0) return true;
+    let attackers = 0;
+    for (const zone of portZones(space)) {
+        const stack = G.seaZones[zone].naval[p];
+        if (stack !== undefined) attackers += stack.galley + stack.galleon + stack.racebuilt;
+        if (G.armada?.location === zone) attackers += Math.floor(G.armada.strength / 2);
+    }
+    return attackers > defenders;
+};
+
 
 export const zonePorts = (zone: SeaZoneID): string[] => SEA_PORTS[zone] ?? [];
 

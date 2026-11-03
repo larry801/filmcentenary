@@ -94,6 +94,7 @@ import {
     ownersWithLand,
     ownersWithNaval,
     passBetween,
+    navalBlockadeSatisfied,
     portZones,
     powerLabel,
     pushLog,
@@ -1699,7 +1700,8 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
         return INVALID_MOVE;
     }
     const stack = isSeaZone(from) ? G.seaZones[from as keyof VQGame["seaZones"]].naval[p] : G.spaces[from].naval[p];
-    if (stack === undefined || navalCount(stack) === 0) {
+    const armadaHere = p === "spain" && G.armada?.location === from;
+    if ((stack === undefined || navalCount(stack) === 0) && !armadaHere) {
         return INVALID_MOVE;
     }
     if (isInlandPort(from) || isInlandPort(to)) return INVALID_MOVE;
@@ -1715,27 +1717,30 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
         return INVALID_MOVE;
     }
     const destinationHadEnemy = ownersWithNaval(G, to).some((owner) => !friendlyController(G, p, owner));
+    if (stack === undefined && destinationHadEnemy) return INVALID_MOVE;
     const leaders = (isSeaZone(from) ? G.seaZones[from as keyof VQGame["seaZones"]].leaders : G.spaces[from].leaders)
         .filter((id) => LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id]?.kind === "naval");
-    if (isSeaZone(to)) {
-        const dst = G.seaZones[to as keyof VQGame["seaZones"]];
-        const tgt = dst.naval[p] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
-        tgt.galley += stack.galley;
-        tgt.galleon += stack.galleon;
-        tgt.racebuilt += stack.racebuilt;
-        tgt.corsair += stack.corsair;
-        dst.naval[p] = tgt;
-    } else {
-        const dst = ensureNaval(G, to, p);
-        dst.galley += stack.galley;
-        dst.galleon += stack.galleon;
-        dst.racebuilt += stack.racebuilt;
-        dst.corsair += stack.corsair;
-    }
-    if (isSeaZone(from)) {
-        delete G.seaZones[from as keyof VQGame["seaZones"]].naval[p];
-    } else {
-        delete G.spaces[from].naval[p];
+    if (stack !== undefined) {
+        if (isSeaZone(to)) {
+            const dst = G.seaZones[to as keyof VQGame["seaZones"]];
+            const tgt = dst.naval[p] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
+            tgt.galley += stack.galley;
+            tgt.galleon += stack.galleon;
+            tgt.racebuilt += stack.racebuilt;
+            tgt.corsair += stack.corsair;
+            dst.naval[p] = tgt;
+        } else {
+            const dst = ensureNaval(G, to, p);
+            dst.galley += stack.galley;
+            dst.galleon += stack.galleon;
+            dst.racebuilt += stack.racebuilt;
+            dst.corsair += stack.corsair;
+        }
+        if (isSeaZone(from)) {
+            delete G.seaZones[from as keyof VQGame["seaZones"]].naval[p];
+        } else {
+            delete G.spaces[from].naval[p];
+        }
     }
     for (const id of leaders) {
         if (isSeaZone(from)) {
@@ -1826,6 +1831,7 @@ export const assault = (G: VQGame, ctx: Ctx, args: { space: string }): void | ty
     const inlandLink = inlandPortLink(args.space);
     if (inlandLink !== undefined && G.spaces[inlandLink].control === s.control &&
         navalCount(G.seaZones.northSea.naval[p]) === 0) return INVALID_MOVE;
+    if (!navalBlockadeSatisfied(G, p, args.space)) return INVALID_MOVE;
     if (G.powers[p].cp < 1) return INVALID_MOVE;
     if (offerActionResponse(G, ctx, "assault", args)) return;
     if (!spend(G, p, 1)) {
