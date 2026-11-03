@@ -316,6 +316,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const piracyResponder = G.pendingPiracy && (G.pendingPiracy.step === "losses" ? G.pendingPiracy.power : G.pendingPiracy.target);
     const actionResponder = G.pendingAction && (G.pendingAction.responder ?? (G.pendingAction.power === "ottoman" ? "spain" : "ottoman"));
     const responsePower = G.gregorianResponse && ownerOf(G, G.gregorianResponse.responder) === playerID ? G.gregorianResponse.responder :
+        G.pendingBeacon && ownerOf(G, G.pendingBeacon.defender) === playerID ? G.pendingBeacon.defender :
         G.pendingIntercept && ownerOf(G, G.pendingIntercept.defender) === playerID ? G.pendingIntercept.defender :
         G.pendingEspionage && ownerOf(G, G.pendingEspionage.responding) === playerID ? G.pendingEspionage.responding :
         actionResponder && ownerOf(G, actionResponder) === playerID ? actionResponder :
@@ -333,7 +334,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
     const hand = ps?.cards ?? [];
-    const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse;
+    const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon;
 
     React.useEffect(() => {
         setMode("inspect");
@@ -562,6 +563,17 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 </Typography>}
             {ownerOf(G, G.pendingCardEvent.responding) === playerID && cardEventOptions(G, ctx.numPlayers).map((entry) =>
                 <Button key={entry.id} onClick={() => moves.chooseCardEvent({choice: entry.id})}>{entry.label}</Button>)}
+        </Stack>;
+        if (G.pendingBeacon) return <Stack spacing={1}>
+            <Typography>烽火 · {POWER_NAMES[G.pendingBeacon.defender].zh} 正在从 {SPACE_BY_ID[G.pendingBeacon.from]?.name ?? G.pendingBeacon.from} 拦截，可在此次拦截判定前打出 #14。</Typography>
+            {ownerOf(G, G.pendingBeacon.defender) === playerID && <>
+                <Typography variant="body2">本次拦截自动成功，拦截方在随后海战中额外掷 2 个骰子。</Typography>
+                <Stack direction="row" spacing={0.5}>
+                    <Button variant="contained" disabled={!G.powers[G.pendingBeacon.defender].cards.includes("vq-014")}
+                        onClick={() => moves.respondBeaconFires({choice: "play"})}>打出烽火</Button>
+                    <Button variant="outlined" onClick={() => moves.respondBeaconFires({choice: "decline"})}>不打出</Button>
+                </Stack>
+            </>}
         </Stack>;
         if (G.pendingIntercept) return <Stack spacing={1}>
             <Typography>拦截 · 等待 {POWER_NAMES[G.pendingIntercept.defender].zh}。</Typography>
@@ -1372,7 +1384,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         return list;
     };
 
-    const pendingPower = G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
+    const pendingPower = G.pendingBeacon?.defender ?? G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
         G.pendingEspionage?.responding ?? G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target;
     const hasResponse = pendingPower !== undefined && ctx.gameover === undefined;
     const selectedSea = selected ? G.seaZones[selected as keyof VQGame["seaZones"]] : undefined;

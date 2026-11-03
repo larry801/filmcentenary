@@ -36,7 +36,7 @@ import {startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {beginGrandVizierEvent, cancelEventResponder, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
 import {startPiracy} from "./piracy";
-import {attemptNavalAvoidBattle, attemptNavalInterception, navalEnemies, resolveNavalCombat, resolveNavalCombatEnemy} from "./navalCombat";
+import {attemptNavalAvoidBattle, attemptNavalInterception, completeNavalInterception, navalEnemies, resolveNavalCombat, resolveNavalCombatEnemy} from "./navalCombat";
 import {offerInterception} from "./interception";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN} from "./constant/leaders";
@@ -3936,6 +3936,40 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     }
 };
 
+/**
+ * Finish a naval move once the moving fleet is already in the destination:
+ * resolve interception, avoid battle and the ensuing naval combat.  The
+ * interception helper can pause for the #14 response window; the partial
+ * state is kept in G.pendingBeacon and this helper is re-entered afterwards.
+ */
+const finishNavalMove = (
+    G: VQGame,
+    ctx: Ctx,
+    p: Power,
+    from: string,
+    to: string,
+    destinationHadEnemy: boolean,
+    intercepted = false,
+    beaconSkipAt?: string,
+): void => {
+    let hit = intercepted;
+    if (!hit) {
+        const result = attemptNavalInterception(G, ctx, p, from, to, destinationHadEnemy, beaconSkipAt);
+        if (result === "paused") return;
+        hit = result;
+    }
+    if (!hit) {
+        // Avoid battle is resolved before choosing the order of multiple enemies.
+        attemptNavalAvoidBattle(G, ctx, p, to);
+    }
+    const enemies = navalEnemies(G, to, p);
+    if (enemies.length > 1) {
+        G.pendingNavalOrder = {attacker: p, location: to, enemies};
+    } else {
+        resolveNavalCombat(G, ctx, to, p, hit, true);
+    }
+};
+
 export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string }): void | typeof INVALID_MOVE => {
     if (moveError(G, "moveNaval", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
@@ -4019,16 +4053,33 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
         return;
     }
 
-    const intercepted = attemptNavalInterception(G, ctx, p, from, to, destinationHadEnemy);
-    if (!intercepted) {
-        // Avoid battle is resolved before choosing the order of multiple enemies.
-        attemptNavalAvoidBattle(G, ctx, p, to);
-    }
-    const enemies = navalEnemies(G, to, p);
-    if (enemies.length > 1) {
-        G.pendingNavalOrder = {attacker: p, location: to, enemies};
+    finishNavalMove(G, ctx, p, from, to, destinationHadEnemy);
+};
+
+/**
+ * #14 Beacon Fires response: played by the intercepting power after a legal
+ * home-port naval interception has been announced but before its die roll.
+ * It consumes the card, makes the interception automatic and records the +2
+ * dice for the resulting naval battle.
+ */
+export const respondBeaconFires = (G: VQGame, ctx: Ctx, args: {choice: "play" | "decline"}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingBeacon;
+    if (pending === undefined || (args.choice !== "play" && args.choice !== "decline")) return INVALID_MOVE;
+    if (ctx.playerID === undefined || ctx.playerID === null || ownerOf(G, pending.defender) !== ctx.playerID) return INVALID_MOVE;
+    if (ctx.activePlayers?.[ctx.playerID] !== "beaconResponse") return INVALID_MOVE;
+    if (args.choice === "play" && !G.powers[pending.defender].cards.includes("vq-014")) return INVALID_MOVE;
+    delete G.pendingBeacon;
+    ctx.events?.endStage();
+    if (args.choice === "play") {
+        removeCardFromHand(G, pending.defender, "vq-014");
+        discardCard(G, pending.defender, "vq-014", true);
+        pushLog(G, `${powerLabel(pending.defender)} plays Beacon Fires: interception succeeds automatically.`);
+        G.navalDiceBonus = {power: pending.defender, amount: 2};
+        completeNavalInterception(G, pending.defender, pending.from, pending.to);
+        finishNavalMove(G, ctx, pending.power, pending.moveFrom, pending.to, pending.destinationHadEnemy, true);
     } else {
-        resolveNavalCombat(G, ctx, to, p, intercepted, true);
+        pushLog(G, `${powerLabel(pending.defender)} declines Beacon Fires.`);
+        finishNavalMove(G, ctx, pending.power, pending.moveFrom, pending.to, pending.destinationHadEnemy, false, pending.from);
     }
 };
 

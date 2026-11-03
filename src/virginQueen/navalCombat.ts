@@ -2,6 +2,7 @@ import {Ctx} from "boardgame.io";
 import {Controller, POWER_INDEX, Power, VQGame, isPower, landCount, navalCount} from "./constant/general";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {SEA_ZONE_BY_ID, SPACE_BY_ID} from "./mapData";
+import {ownerOf} from "./ownership";
 import {
     atWar, bestBattle, friendlyController, hits, isSeaZone, leaderPower, leadersAt, moveLeaders,
     navalAdjacent, ownersWithNaval, powerLabel, pushLog, roll,
@@ -177,7 +178,35 @@ export const attemptNavalAvoidBattle = (G: VQGame, ctx: Ctx, active: Power, loca
     return avoided;
 };
 
-/** Automatic naval interception (16.1 step 4), used when the destination is empty. */
+/** Move a successful intercepting fleet into the destination (16.1 step 4). */
+export const completeNavalInterception = (G: VQGame, power: Power, from: string, to: string): void => {
+    const source = navalAt(G, from)[power];
+    if (source !== undefined) {
+        const target = navalAt(G, to)[power] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
+        target.galley += source.galley;
+        target.galleon += source.galleon;
+        target.racebuilt += source.racebuilt;
+        target.corsair += source.corsair;
+        navalAt(G, to)[power] = target;
+        delete navalAt(G, from)[power];
+    }
+    const leaders = leadersAt(G, from).filter((id) =>
+        leaderPower(G, id) === power && LEADER_BY_ID[id]?.kind === "naval");
+    if (leaders.length > 0) moveLeaders(G, from, to, leaders);
+    if (power === "spain" && G.armada?.location === from) G.armada.location = to;
+    pushLog(G, `${powerLabel(power)} intercepts the naval move into ${SPACE_BY_ID[to]?.name ?? to}.`);
+};
+
+/** #14 legal only while a fleet in one of the power's own home ports intercepts. */
+export const canOfferBeaconResponse = (G: VQGame, power: Power, location: string): boolean =>
+    !isSeaZone(location) && SPACE_BY_ID[location]?.home === power && G.powers[power].cards.includes("vq-014");
+
+/**
+ * Automatic naval interception (16.1 step 4), used when the destination is
+ * empty.  When the next intercepting stack is a home-port fleet holding #14
+ * the resolution pauses before that stack's roll so the owner can play the
+ * response; `"paused"` tells the caller to resume after the response window.
+ */
 export const attemptNavalInterception = (
     G: VQGame,
     ctx: Ctx,
@@ -185,7 +214,8 @@ export const attemptNavalInterception = (
     from: string,
     to: string,
     destinationHadEnemy: boolean,
-): boolean => {
+    beaconSkipAt?: string,
+): boolean | "paused" => {
     if (destinationHadEnemy) return false;
     if (G.interceptedThisImpulse?.impulse !== G.impulse) G.interceptedThisImpulse = {impulse: G.impulse, spaces: []};
     const used = G.interceptedThisImpulse.spaces;
@@ -209,9 +239,13 @@ export const attemptNavalInterception = (
         const source = navalAt(G, candidate.location)[candidate.power];
         const armadaOnly = source === undefined && candidate.power === "spain" && G.armada?.location === candidate.location;
         if (!armadaOnly && (source === undefined || navalCount(source) === 0)) continue;
+        if (beaconSkipAt !== candidate.location && G.beaconFires !== candidate.power &&
+            canOfferBeaconResponse(G, candidate.power, candidate.location)) {
+            G.pendingBeacon = {power: active, defender: candidate.power, from: candidate.location, moveFrom: from, to, destinationHadEnemy};
+            ctx.events?.setActivePlayers({value: {[ownerOf(G, candidate.power)!]: "beaconResponse"}});
+            return "paused";
+        }
         if (!used.includes(candidate.location)) used.push(candidate.location);
-        const leaders = leadersAt(G, candidate.location).filter((id) =>
-            leaderPower(G, id) === candidate.power && LEADER_BY_ID[id]?.kind === "naval");
         const galleonPenalty = source !== undefined && isSeaZone(to) && MEDITERRANEAN.has(to) &&
             source.galleon + source.racebuilt > 0 ? -1 : 0;
         const telescope = G.powers[candidate.power].scienceBonuses.includes("telescope") ? 1 : 0;
@@ -227,18 +261,7 @@ export const attemptNavalInterception = (
             pushLog(G, `${powerLabel(candidate.power)} naval interception from ${SPACE_BY_ID[candidate.location]?.name ?? candidate.location}: [${dice.join(",")}] + ${modifier} = ${total}.`);
             if (total < 9) continue;
         }
-        if (!armadaOnly && source !== undefined) {
-            const target = navalAt(G, to)[candidate.power] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
-            target.galley += source.galley;
-            target.galleon += source.galleon;
-            target.racebuilt += source.racebuilt;
-            target.corsair += source.corsair;
-            navalAt(G, to)[candidate.power] = target;
-            delete navalAt(G, candidate.location)[candidate.power];
-        }
-        if (leaders.length > 0) moveLeaders(G, candidate.location, to, leaders);
-        if (candidate.power === "spain" && G.armada?.location === candidate.location) G.armada.location = to;
-        pushLog(G, `${powerLabel(candidate.power)} intercepts the naval move into ${SPACE_BY_ID[to]?.name ?? to}.`);
+        completeNavalInterception(G, candidate.power, candidate.location, to);
         return true;
     }
     return false;

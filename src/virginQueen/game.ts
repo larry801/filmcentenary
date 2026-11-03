@@ -81,6 +81,7 @@ import {
     respondAction,
     navalTransport,
     declineGregorianCalendar,
+    respondBeaconFires,
     startActionTurn,
 } from "./moves";
 
@@ -149,6 +150,7 @@ const choiceStages = {
     tutorialEvent: {moves: {chooseTutorialEvent}},
     piracyChoice: {moves: {choosePiracy}},
     actionResponse: {moves: {respondAction}},
+    beaconResponse: {moves: {respondBeaconFires}},
     gregorianResponse: {moves: {playCard, declineGregorianCalendar}},
     interceptChoice: {moves: {chooseInterception}},
     respondBetroth: {moves: {acceptBetroth, rejectBetroth}},

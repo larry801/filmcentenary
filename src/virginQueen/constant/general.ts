@@ -498,6 +498,8 @@ export interface VQGame {
     pendingWithdraw?: {active: Power; defender: Power; space: string; origin: string};
     pendingContinue?: {power: Power; origin: string; space: string; units: LandStack; leaders: string[]};
     pendingIntercept?: {power: Power; defender: Power; from: string; to: string; phase: "field" | "naval"; attackers: Controller[]; attempted: string[]; succeeded: boolean; transported?: boolean};
+    /** #14 response window: a home-port interception attempt waits for the defender before its roll. */
+    pendingBeacon?: {power: Power; defender: Power; from: string; moveFrom: string; to: string; destinationHadEnemy: boolean};
     interceptedThisImpulse?: {impulse: number; spaces: string[]};
     pendingBattle?: {
         phase: "field" | "naval" | "assault";
