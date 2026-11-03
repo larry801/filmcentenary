@@ -698,6 +698,19 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #51 El Dorado: send a northern South America captain to search. */
 /** #17 Army Mutiny: strip mercenaries and possibly regulars from a stack. */
 /** #18 City State Rebels: five dice against an occupying garrison. */
+/** #31 Treachery!: force an immediate assault on a besieged fortress. */
+const resolveTreachery = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target === undefined) return;
+    const state = G.spaces[target];
+    if (state === undefined || state.siege === undefined) return;
+    const attacker = state.siege.by;
+    if (!isPower(attacker)) return;
+    const defenders = ownersWithLand(G, target).filter((owner) => !friendlyController(G, attacker, owner));
+    startBattle(G, ctx, "assault", target, attacker, defenders, target);
+    if (G.pendingBattle !== undefined) G.pendingBattle.treachery = true;
+    pushLog(G, `Treachery! forces an assault on ${SPACE_BY_ID[target].name}.`);
+};
+
 const resolveCityStateRebels = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined) return;
     const def = SPACE_BY_ID[target];
@@ -1776,6 +1789,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveArmyMutiny(G, ctx, target);
     } else if (handler === "cityStateRebels") {
         resolveCityStateRebels(G, ctx, target);
+    } else if (handler === "treachery") {
+        resolveTreachery(G, ctx, target);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {

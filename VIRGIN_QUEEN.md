@@ -184,6 +184,13 @@
 - 目标地区及一个相邻地区放置动荡。
 - 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
 
+### 变节！（#31）
+
+- 目标为正在被围城的设防地区；
+- 围城方立即发起一次攻城（使用 `treachery` 标记）；
+- 攻城后若围城方部队多于守军，守军全灭、围城方取得控制；
+- 当前通过正常攻城战斗流程结算，未额外跳过攻城前置条件。
+
 ### 城邦起义（#18）
 
 - 目标为一个被占领的本土设防地区；
@@ -770,6 +777,7 @@ src/virginQueen/
   elDorado.test.ts      #51 黄金国
   armyMutiny.test.ts    #17 军队哗变
   cityRebels.test.ts    #18 城邦起义
+  treachery.test.ts     #31 变节！
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -1018,3 +1026,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #17 军队哗变接入后的验证：`jest src/virginQueen --runInBand --silent` 103 suites、525 tests passed（新增 1 项：雇佣兵/正规军/动荡）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #18 城邦起义接入后的验证：`jest src/virginQueen --runInBand --silent` 104 suites、526 tests passed（新增 1 项：全灭/控制权回归）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#31 变节！接入后的验证：`jest src/virginQueen --runInBand --silent` 105 suites、527 tests passed（新增 1 项：强制攻城）；`npm run build` 通过，仍有既有大体积 chunk 提示。
