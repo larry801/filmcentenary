@@ -145,6 +145,12 @@
 
 地图中的英格兰家乡地区已补齐宗教区域标记；补入里尔与敦刻尔克供杜埃事件检查。新增点位与邻接仍是重建示意数据，将领战斗值也沿用现有近似值。此处没有完成全部自由响应时点和沃尔辛厄姆在另一行动中插入“移除人员＋获取情报”的嵌套响应；不能由本轮结果推断这些卡已完整自动化。大屠杀的“纳瓦拉与法国王室订婚”只检查当年外交阶段登记、尚未在冬季结算的订婚；纳瓦拉目前只在锦标赛的王室名单中，战役中他不会在第 3 回合自动加入，因此战役局里加强版条件实际上不会触发。计数器供应限制除五枚 Jesuit 外仍沿用原有实现。
 
+### 福克斯殉道者名录（#52）
+
+- 将英格兰最多 2 个天主教地区转为新教。
+- 在法兰西/尼德兰/苏格兰进行共 5 次新教传播尝试；自动选择当前天主教地区最多的区域逐个结算。
+- 自动分配区域，尚未提供逐次选择。
+
 ### 血腥委员会（#50）
 
 - 条件：西班牙在尼德兰地区有至少 5 个陆军单位。
@@ -345,6 +351,7 @@ src/virginQueen/
   gouvernante.test.ts   #33 法兰西的女管家 +2 婚宴标记
   philippines.test.ts   #49 征服菲律宾、第 5 宝藏格
   councilOfTroubles.test.ts #50 血腥委员会条件/转化/夺地/卡牌标记
+  foxesBook.test.ts     #52 福克斯殉道者名录
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
 ```
@@ -463,3 +470,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #49 征服菲律宾接入后的验证：`jest src/virginQueen --runInBand --silent` 42 suites、437 tests passed（新增 2 项：控制/第 5 格、Card Draw 5 宝藏）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #50 血腥委员会接入后的验证：`jest src/virginQueen --runInBand --silent` 43 suites、439 tests passed（新增 2 项：条件满足时转化/夺地/卡牌标记、条件不足无效果）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#52 福克斯殉道者名录接入后的验证：`jest src/virginQueen --runInBand --silent` 44 suites、440 tests passed（新增 1 项：2 个英格兰转化 + 5 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。

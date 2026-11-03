@@ -426,6 +426,20 @@ const resolveTreasureFleet = (G: VQGame, ctx: Ctx): void => {
 /** #33 Gouvernante de France: place +2 Wedding Festivities on a French match. */
 /** #49 Conquest of the Philippines. */
 /** #50 Council of Troubles. */
+/** #52 Foxe's Book of Martyrs. */
+const resolveFoxesBook = (G: VQGame, ctx: Ctx): void => {
+    const english = SPACES.filter((space) => space.area === "england" && G.spaces[space.id].religion === "catholic").slice(0, 2);
+    for (const space of english) G.spaces[space.id].religion = "protestant";
+    pushLog(G, `Foxe's Book of Martyrs converts ${english.length} English Catholic space(s).`);
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const areas = ["france", "netherlands", "scotland"] as const;
+        const area = areas
+            .map((id) => ({id, count: SPACES.filter((space) => space.area === id && G.spaces[space.id].religion === "catholic").length}))
+            .sort((a, b) => b.count - a.count)[0].id;
+        resolveConversions(G, ctx, "protestant", "protestant", area, 1);
+    }
+};
+
 const resolveCouncilOfTroubles = (G: VQGame, ctx: Ctx): void => {
     const spanishUnits = SPACES.filter((space) => space.area === "netherlands")
         .reduce((total, space) => total + totalLand(G, space.id, ["spain"]), 0);
@@ -634,6 +648,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveConquestOfPhilippines(G, ctx);
     } else if (handler === "councilOfTroubles") {
         resolveCouncilOfTroubles(G, ctx);
+    } else if (handler === "foxesBookOfMartyrs") {
+        resolveFoxesBook(G, ctx);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
