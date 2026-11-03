@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {VQGame, navalCount} from "./constant/general";
 import {moveNaval} from "./moves";
-import {setupGame} from "./util";
+import {setWar, setupGame} from "./util";
 
 const context = (values: number[] = [6]): Ctx => ({
     currentPlayer: "3",
@@ -30,7 +30,7 @@ describe("official naval combat (rule 16.2)", () => {
 
         expect(moveNaval(G, context([6, 6, 6, 6, 6, 6]), {from: "calais", to: "englishChannel"})).toBeUndefined();
 
-        expect(G.lastRolls).toContain("4 hits (4 dice) vs 2 hits (2 dice)");
+        expect(G.lastRolls).toContain("4 hits (4 dice) vs England 2 hits (2 dice)");
         expect(navalCount(G.seaZones.englishChannel.naval.france)).toBe(1);
         expect(navalCount(G.seaZones.englishChannel.naval.england)).toBe(0);
     });
@@ -46,7 +46,7 @@ describe("official naval combat (rule 16.2)", () => {
             from: "calais", to: "englishChannel",
         })).toBeUndefined();
 
-        expect(G.lastRolls).toContain("3 hits (6 dice) vs 0 hits (6 dice)");
+        expect(G.lastRolls).toContain("3 hits (6 dice) vs England 0 hits (6 dice)");
         expect(totalEnglish(G)).toBe(beforeEnglish - 2);
         expect(navalCount(G.seaZones.englishChannel.naval.england)).toBe(0);
         expect(navalCount(G.seaZones.englishChannel.naval.france)).toBe(3);
@@ -60,8 +60,26 @@ describe("official naval combat (rule 16.2)", () => {
 
         expect(moveNaval(G, context([1, 1, 1, 1, 1]), {from: "englishChannel", to: "portsmouth"})).toBeUndefined();
 
-        expect(G.lastRolls).toContain("(2 dice) vs 0 hits (3 dice)");
+        expect(G.lastRolls).toContain("(2 dice) vs England 0 hits (3 dice)");
         expect(navalCount(G.spaces.portsmouth.naval.france)).toBe(0);
+    });
+
+    it("fights multiple enemy powers one at a time in impulse order", () => {
+        const G = game();
+        setWar(G, "france", "spain");
+        G.powers.france.cp = 1;
+        G.spaces.calais.naval.france = {galley: 0, galleon: 4, racebuilt: 0, corsair: 0};
+        G.seaZones.englishChannel.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+        G.seaZones.englishChannel.naval.spain = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+
+        expect(moveNaval(G, context([6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]), {
+            from: "calais", to: "englishChannel",
+        })).toBeUndefined();
+
+        expect(G.log.join("\n").match(/Naval battle at/g)).toHaveLength(2);
+        expect(navalCount(G.seaZones.englishChannel.naval.spain)).toBe(0);
+        expect(navalCount(G.seaZones.englishChannel.naval.england)).toBe(0);
+        expect(navalCount(G.seaZones.englishChannel.naval.france)).toBe(2);
     });
 
     it("lets the defender retain one unit when both sides are eliminated", () => {

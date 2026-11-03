@@ -1,10 +1,10 @@
 import {Ctx} from "boardgame.io";
-import {Controller, Power, VQGame, isPower, navalCount} from "./constant/general";
+import {Controller, POWER_INDEX, Power, VQGame, isPower, navalCount} from "./constant/general";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {SEA_ZONE_BY_ID, SPACE_BY_ID} from "./mapData";
 import {
     atWar, bestBattle, friendlyController, hits, isSeaZone, leadersAt, moveLeaders,
-    navalAdjacent, ownersWithNaval, pushLog, roll,
+    navalAdjacent, ownersWithNaval, powerLabel, pushLog, roll,
 } from "./util";
 
 const MEDITERRANEAN = new Set([
@@ -116,40 +116,46 @@ export const retreatNaval = (G: VQGame, location: string, owners: Controller[], 
 
 /** Resolve a full-game naval combat in a sea zone or port (16.2). */
 export const resolveNavalCombat = (G: VQGame, ctx: Ctx, location: string, attacker: Power): void => {
-    const enemies = ownersWithNaval(G, location).filter((owner) =>
-        owner !== attacker && isPower(owner) && atWar(G, attacker, owner) && navalCount(stackAt(G, location, owner)) > 0);
+    const enemies = ownersWithNaval(G, location)
+        .filter((owner) => owner !== attacker && isPower(owner) && atWar(G, attacker, owner) &&
+            navalCount(stackAt(G, location, owner)) > 0)
+        .sort((a, b) => POWER_INDEX[a as Power] - POWER_INDEX[b as Power]) as Power[];
     if (enemies.length === 0) return;
     const port = !isSeaZone(location);
-    const aDice = navalCombatDice(G, location, [attacker], false);
-    const dDice = navalCombatDice(G, location, enemies, true);
-    const aRolls = roll(ctx, aDice);
-    const dRolls = roll(ctx, dDice);
-    const aHits = hits(aRolls);
-    const dHits = hits(dRolls);
-    G.lastRolls = `Naval battle at ${SPACE_BY_ID[location]?.name ?? location}: ${aHits} hits (${aDice} dice) vs ${dHits} hits (${dDice} dice)`;
-    pushLog(G, G.lastRolls);
-    const winner: "attacker" | "defender" = aHits > dHits ? "attacker" : "defender";
-    applyNavalCombatLosses(G, location, enemies, aHits, winner === "attacker", aRolls);
-    applyNavalCombatLosses(G, location, [attacker], dHits, winner === "defender", dRolls);
-    let attackerLeft = countAt(G, location, [attacker]);
-    let defenderLeft = countAt(G, location, enemies);
-    if (attackerLeft === 0 && defenderLeft === 0) {
-        // Both sides eliminated: the side that rolled more dice retains 1 unit.
-        const keeper = aDice > dDice ? attacker : enemies[0];
-        const target = navalAt(G, location)[keeper] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
-        target.galley += 1;
-        navalAt(G, location)[keeper] = target;
-        if (keeper === attacker) attackerLeft = 1; else defenderLeft = 1;
-        pushLog(G, `Both naval forces are eliminated; ${keeper} retains 1 galley.`);
-    }
-    if (port) {
-        // The attacker always retreats from a port, win or lose.
-        if (attackerLeft > 0) retreatNaval(G, location, [attacker], true);
-        return;
-    }
-    if (winner === "defender") {
-        if (attackerLeft > 0) retreatNaval(G, location, [attacker]);
-    } else if (defenderLeft > 0) {
-        retreatNaval(G, location, enemies);
+    for (const enemy of enemies) {
+        if (countAt(G, location, [attacker]) === 0) return;
+        if (countAt(G, location, [enemy]) === 0) continue;
+        const aDice = navalCombatDice(G, location, [attacker], false);
+        const dDice = navalCombatDice(G, location, [enemy], true);
+        const aRolls = roll(ctx, aDice);
+        const dRolls = roll(ctx, dDice);
+        const aHits = hits(aRolls);
+        const dHits = hits(dRolls);
+        G.lastRolls = `Naval battle at ${SPACE_BY_ID[location]?.name ?? location}: ${aHits} hits (${aDice} dice) vs ${powerLabel(enemy)} ${dHits} hits (${dDice} dice)`;
+        pushLog(G, G.lastRolls);
+        const winner: "attacker" | "defender" = aHits > dHits ? "attacker" : "defender";
+        applyNavalCombatLosses(G, location, [enemy], aHits, winner === "attacker", aRolls);
+        applyNavalCombatLosses(G, location, [attacker], dHits, winner === "defender", dRolls);
+        let attackerLeft = countAt(G, location, [attacker]);
+        let defenderLeft = countAt(G, location, [enemy]);
+        if (attackerLeft === 0 && defenderLeft === 0) {
+            // Both sides eliminated: the side that rolled more dice retains 1 unit.
+            const keeper = aDice > dDice ? attacker : enemy;
+            const target = navalAt(G, location)[keeper] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
+            target.galley += 1;
+            navalAt(G, location)[keeper] = target;
+            if (keeper === attacker) attackerLeft = 1; else defenderLeft = 1;
+            pushLog(G, `Both naval forces are eliminated; ${powerLabel(keeper)} retains 1 galley.`);
+        }
+        if (port) {
+            // The attacker always retreats from a port, win or lose.
+            if (attackerLeft > 0) retreatNaval(G, location, [attacker], true);
+            return;
+        }
+        if (winner === "defender") {
+            if (attackerLeft > 0) retreatNaval(G, location, [attacker]);
+            return;
+        }
+        if (defenderLeft > 0) retreatNaval(G, location, [enemy]);
     }
 };
