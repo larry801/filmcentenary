@@ -26,6 +26,18 @@ describe("Diplomatic Faux Pas / German Recruitment Curtailed", () => {
         expect(G.powers.spain.influence.papacy).toBe(0);
     });
 
+    it("can remove influence from a chosen minor first", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-019"];
+        G.powers.spain.influence.venice = 3;
+        G.powers.spain.influence.papacy = 3;
+
+        expect(playCard(G, context(), {cardId: "vq-019", asEvent: true, target: "spain:venice"})).toBeUndefined();
+
+        expect(G.powers.spain.influence.venice).toBe(0);
+        expect(G.powers.spain.influence.papacy).toBe(1);
+    });
+
     it("lets the HRE choose two spaces", () => {
         const G = game();
         G.powers.hre.cards = ["vq-023"];

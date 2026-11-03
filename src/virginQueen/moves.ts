@@ -1019,16 +1019,21 @@ const resolveEloquentAmbassador = (G: VQGame, ctx: Ctx, p: Power, target?: strin
 };
 
 const resolveDiplomaticFauxPas = (G: VQGame, target?: string): void => {
-    if (target === undefined || !isPower(target)) return;
+    if (target === undefined) return;
+    const [targetPower, preferred] = target.split(":");
+    if (!isPower(targetPower)) return;
     let remaining = 5;
-    const influences = G.powers[target].influence;
-    for (const minor of (Object.keys(influences) as MinorPower[]).sort((a, b) => (influences[b] ?? 0) - (influences[a] ?? 0))) {
+    const influences = G.powers[targetPower].influence;
+    const minors = Object.keys(influences) as MinorPower[];
+    minors.sort((a, b) => (a === preferred ? 0 : 1) - (b === preferred ? 0 : 1) ||
+        (influences[b] ?? 0) - (influences[a] ?? 0));
+    for (const minor of minors) {
         if (remaining <= 0) break;
         const take = Math.min(remaining, influences[minor] ?? 0);
         influences[minor] = (influences[minor] ?? 0) - take;
         remaining -= take;
     }
-    pushLog(G, `Diplomatic Faux Pas removes ${5 - remaining} influence from ${powerLabel(target)}.`);
+    pushLog(G, `Diplomatic Faux Pas removes ${5 - remaining} influence from ${powerLabel(targetPower)}.`);
 };
 
 /** #23 German Recruitment Curtailed: remove all mercenaries in a space. */
