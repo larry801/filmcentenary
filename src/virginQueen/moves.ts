@@ -651,6 +651,22 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #63 Nostradamus' Prophecies: draw 4 (8 for France) and keep one. */
 /** #61 Menéndez de Avilés: Florida raid, escort, or fortress/patrol. */
 /** #62 Northwest Passage: force a navigator to test the passage. */
+/** #65 Puritans: draw a random English card or place three English unrest. */
+const resolvePuritans = (G: VQGame, ctx: Ctx, p: Power): void => {
+    const cards = G.powers.england.cards.filter((id) => cardById(id).kind !== "home");
+    if (cards.length > 0) {
+        const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
+        G.powers.england.cards = G.powers.england.cards.filter((id) => id !== card);
+        G.powers[p].cards.push(card);
+        pushLog(G, `Puritans draw ${cardById(card).name} from England; England gives it to ${powerLabel(p)}.`);
+        return;
+    }
+    const targets = SPACES.filter((space) => space.home === "england" && !G.spaces[space.id].unrest &&
+        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0).slice(0, 3);
+    for (const space of targets) G.spaces[space.id].unrest = true;
+    pushLog(G, `Puritans place unrest in ${targets.length} English space(s).`);
+};
+
 const resolveNorthwestPassage = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined || G.worldCaptains[target] === undefined) return;
     const expedition = G.worldCaptains[target];
@@ -1117,6 +1133,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveMenendez(G, ctx);
     } else if (handler === "northwestPassage") {
         resolveNorthwestPassage(G, ctx, target);
+    } else if (handler === "puritans") {
+        resolvePuritans(G, ctx, p);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {
