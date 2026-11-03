@@ -176,6 +176,12 @@
 - 招募正规军或雇佣兵都受 `REGULAR_LIMITS` 限制，避免通过雇佣兵绕过 force pool。
 - 骑兵与海军计数器上限仍待补。
 
+### 德雷克/霍金斯远征（#106）
+
+- 若德雷克与霍金斯均未在地图上：立即组建一支英格兰联合远征队（使用德雷克等级）；
+- 事件牌移出游戏；
+- 2 份宝藏携带、6 点摧毁要塞、两位船长分担损伤等细节尚未接入。
+
 ### 洛林的路易丝（#95）
 
 - 非奥斯曼势力打出：将洛林的路易丝加入婚姻池，归属出牌势力、适婚可用；
@@ -678,6 +684,7 @@ src/virginQueen/
   gregorian.test.ts     #101 公历纪年法
   dunkirk.test.ts       #110 敦刻尔克私掠者
   louise.test.ts        #95 洛林的路易丝
+  drakeHawkins.test.ts  #106 德雷克/霍金斯远征
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -900,3 +907,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #95 洛林的路易丝接入后的验证：`jest src/virginQueen --runInBand --silent` 91 suites、504 tests passed（新增 1 项：加入婚姻池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 陆军 force pool 修正后的验证：`jest src/virginQueen --runInBand --silent` 91 suites、505 tests passed（新增 1 项：雇佣兵计入同一计数器池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#106 德雷克/霍金斯远征接入后的验证：`jest src/virginQueen --runInBand --silent` 92 suites、506 tests passed（新增 1 项：联合远征）；`npm run build` 通过，仍有既有大体积 chunk 提示。

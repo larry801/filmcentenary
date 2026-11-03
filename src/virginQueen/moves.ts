@@ -680,6 +680,19 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #101 Gregorian Calendar: choose the next power to act. */
 /** #110 Dunkirk Privateers: free North Sea piracy with four dice. */
 /** #95 Louise of Lorraine enters the marriage pool for the playing power. */
+/** #106 Drake/Hawkins Expedition: combine both captains into one expedition. */
+const resolveDrakeHawkins = (G: VQGame): void => {
+    if (G.worldCaptains.drake !== undefined || G.worldCaptains.hawkins !== undefined) return;
+    const drake = seaCaptainById("drake");
+    const hawkins = seaCaptainById("hawkins");
+    if (drake === undefined || hawkins === undefined) return;
+    G.worldCaptains.drake = {power: "england", location: "northAtlantic", damaged: false, colony: false, route: ["northAtlantic"]};
+    G.powers.england.seaCaptains = G.powers.england.seaCaptains.filter((id) => id !== "drake" && id !== "hawkins");
+    G.seaCaptainsAvailable = G.seaCaptainsAvailable.filter((id) => id !== "drake" && id !== "hawkins");
+    removeCardFromGame(G, "vq-106");
+    pushLog(G, "Drake and Hawkins combine into a single English expedition.");
+};
+
 const resolveLouise = (G: VQGame, p: Power): void => {
     if (p === "ottoman") return;
     const existing = G.royals.find((royal) => royal.id === "louiseLorraine");
@@ -1489,6 +1502,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveDunkirkPrivateers(G, ctx);
     } else if (handler === "louiseOfLorraine") {
         resolveLouise(G, p);
+    } else if (handler === "drakeHawkinsExpedition") {
+        resolveDrakeHawkins(G);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
