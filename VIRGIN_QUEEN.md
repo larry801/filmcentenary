@@ -1127,3 +1127,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 世界地图船长返航接入后的验证：`jest src/virginQueen --runInBand --silent` 118 suites、548 tests passed（新增 1 项：冬季收回现役远征船长）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 正式局 Storms 响应接入后的验证：`jest src/virginQueen --runInBand --silent` 119 suites、549 tests passed（新增 1 项：中断行动并禁止海军移动）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#15 暴风雨的强制航行检定选项已接入 `stormNavigation`：持有 #15 时可对现役远征队执行 Navigation Table 检定并弃置卡牌。验证：`jest src/virginQueen --runInBand --silent` 120 suites、550 tests passed。

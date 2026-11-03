@@ -2182,6 +2182,15 @@ export const endImpulse = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
 
 /** #11 response after Dragut fights: roll for death or return to the Turn Track. */
 /** #89 Mary Queen of Scots response: +4 French influence in Scotland. */
+/** #15 Storms option 2: force an expedition navigation check. */
+export const stormNavigation = (G: VQGame, ctx: Ctx, args: {captain: string}): void | typeof INVALID_MOVE => {
+    const p = power(G, ctx);
+    if (!G.powers[p].cards.includes("vq-015") || G.worldCaptains[args.captain] === undefined) return INVALID_MOVE;
+    removeCardFromHand(G, p, "vq-015");
+    discardCard(G, p, "vq-015", true);
+    navigationCheck(G, ctx, args.captain);
+};
+
 export const maryInfluence = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     const p = power(G, ctx);
     const mary = G.royals.find((royal) => royal.id === "maryScots");
