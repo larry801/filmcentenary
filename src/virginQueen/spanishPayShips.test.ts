@@ -28,6 +28,18 @@ describe("Spanish Pay Ships Seized (card #67)", () => {
         expect(G.powers.england.cards).toHaveLength(1);
     });
 
+    it("can remove mercenaries instead of regulars", () => {
+        const G = game();
+        G.powers.england.cards = ["vq-067"];
+        G.spaces.brussels.control = "spain";
+        G.spaces.brussels.land.spain = {regular: 2, merc: 4, cav: 0};
+
+        expect(playCard(G, context("2"), {cardId: "vq-067", asEvent: true, target: "mercs"})).toBeUndefined();
+
+        expect(G.spaces.brussels.land.spain?.regular).toBe(2);
+        expect(G.spaces.brussels.land.spain?.merc).toBe(0);
+    });
+
     it("cannot be played by Spain", () => {
         const G = game();
         G.powers.spain.cards = ["vq-067"];

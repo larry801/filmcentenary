@@ -1403,11 +1403,17 @@ const resolveArmadaPardon = (G: VQGame, p: Power): void => {
     pushLog(G, `Armada Pardon grants Spain ${4 + papacy} CP for the Armada.`);
 };
 
-const resolveSpanishPayShips = (G: VQGame, ctx: Ctx, p: Power): void => {
+const resolveSpanishPayShips = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     let remaining = 2;
     for (const space of SPACES.filter((def) => def.area === "netherlands")) {
         const stack = G.spaces[space.id].land.spain;
         if (stack === undefined) continue;
+        if (target === "mercs") {
+            while (remaining > 0 && stack.merc >= 2) {
+                stack.merc -= 2;
+                remaining -= 1;
+            }
+        }
         while (remaining > 0 && stack.regular > 0) {
             stack.regular -= 1;
             remaining -= 1;
@@ -1955,7 +1961,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "conventionOfEstates") {
         resolveConventionOfEstates(G);
     } else if (handler === "spanishPayShipsSeized") {
-        resolveSpanishPayShips(G, ctx, p);
+        resolveSpanishPayShips(G, ctx, p, target);
     } else if (handler === "blackMagic") {
         resolveBlackMagic(G, ctx, p, target);
     } else if (handler === "taxisFamilyCourier") {

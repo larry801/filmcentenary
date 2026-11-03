@@ -441,7 +441,7 @@
 ### 西班牙运银船被截（#67）
 
 - 西班牙不能作为事件打出。
-- 西班牙移除尼德兰地区 2 个正规军；每 2 个雇佣兵可代替 1 个正规军。
+- 西班牙移除尼德兰地区 2 个正规军；每 2 个雇佣兵可代替 1 个正规军，目标写 `mercs` 时优先移除雇佣兵。
 - 出牌方抽 1 张牌；事件牌移出游戏。
 
 ### 省议会（#79）
@@ -1045,7 +1045,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #79 省议会接入后的验证：`jest src/virginQueen --runInBand --silent` 72 suites、479 tests passed（新增 1 项：3 个尼德兰转新教）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#67 西班牙运银船被截接入后的验证：`jest src/virginQueen --runInBand --silent` 73 suites、481 tests passed（新增 2 项：移除/抽牌、西班牙不可打出）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#67 西班牙运银船被截接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、596 tests passed（新增 3 项：移除/抽牌、雇佣兵替代、西班牙不可打出）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #71 黑魔法与 #104 阿马达赦令接入后的验证：`jest src/virginQueen --runInBand --silent` 74 suites、483 tests passed（新增 2 项：随机夺牌、阿马达 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
