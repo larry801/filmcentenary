@@ -19,11 +19,14 @@ describe("City State Rebels (card #18)", () => {
         G.powers.england.cards = ["vq-018"];
         G.spaces.rotterdam.control = "france";
         G.spaces.rotterdam.land = {france: {regular: 1, merc: 0, cav: 0}};
+        G.leaders.guise = {id: "guise", location: "rotterdam"};
+        G.spaces.rotterdam.leaders = ["guise"];
 
         expect(playCard(G, context(), {cardId: "vq-018", asEvent: true, target: "rotterdam"})).toBeUndefined();
 
         expect(G.spaces.rotterdam.land.france).toBeUndefined();
         expect(G.spaces.rotterdam.control).toBe("protestant");
         expect(G.spaces.rotterdam.land.protestant?.regular).toBe(1);
+        expect(G.leaders.guise.location).toBe("captured");
     });
 });

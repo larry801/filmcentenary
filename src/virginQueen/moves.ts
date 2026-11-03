@@ -818,7 +818,7 @@ const resolveTreachery = (G: VQGame, ctx: Ctx, target?: string): void => {
     pushLog(G, `Treachery! forces an assault on ${SPACE_BY_ID[target].name}.`);
 };
 
-const resolveCityStateRebels = (G: VQGame, ctx: Ctx, target?: string): void => {
+const resolveCityStateRebels = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     if (target === undefined) return;
     const def = SPACE_BY_ID[target];
     const state = G.spaces[target];
@@ -847,6 +847,7 @@ const resolveCityStateRebels = (G: VQGame, ctx: Ctx, target?: string): void => {
         }
     }
     if (totalLand(G, target, ownersWithLand(G, target)) === 0 && totalNaval(G, target, ownersWithNaval(G, target)) === 0) {
+        captureLeaders(G, target, [controller], p);
         state.control = def.home;
         addLand(G, target, def.home, "regular", 1);
     }
@@ -1930,7 +1931,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "armyMutiny") {
         resolveArmyMutiny(G, ctx, target);
     } else if (handler === "cityStateRebels") {
-        resolveCityStateRebels(G, ctx, target);
+        resolveCityStateRebels(G, ctx, p, target);
     } else if (handler === "treachery") {
         resolveTreachery(G, ctx, target);
     } else if (handler === "holyLeague") {
