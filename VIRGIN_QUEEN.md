@@ -526,7 +526,7 @@
 ### 科学与艺术的赞助人（#35）
 
 - 选项 1：指定意大利或 HRE 艺术家/科学家；不指定目标时自动选择首个可用 HRE 赞助人；视作 3 CP 赞助并加入待结算；鲁道夫在位时放置“+2 布拉格文化中心”标记；抽 1 张牌。
-- 选项 2：HRE 从牌堆抽 2 张，然后把一张非本国牌/非强制事件牌交给另一势力。
+- 选项 2：HRE 从牌堆抽 2 张，然后把一张非本国牌/非强制事件牌交给另一势力；目标写 `势力:卡牌ID` 可指定交出的牌。
 - 布拉格 +2 标记已在冬季赞助结算中为该赞助人提供 +2。
 
 ### 凯瑟琳的飞剪船（#42）
@@ -1201,3 +1201,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #19 外交失礼指定小国接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、614 tests passed（新增 1 项：优先扣威尼斯）；`npm run build` 通过。
 
 #24 神圣同盟影响力分配接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、615 tests passed（新增 1 项：4 点全给教廷）；`npm run build` 通过。
+
+#35 指定给牌接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、616 tests passed（新增 1 项：指定交牌）；`npm run build` 通过。
