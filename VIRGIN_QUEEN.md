@@ -859,7 +859,7 @@ src/virginQueen/
   selimII.test.ts       #6 塞利姆二世
   tridentine.test.ts    #70 特兰托教义问答
   recusants.test.ts     #108 英格兰拒绝国教者
-  maryInfluence.test.ts #89 玛丽 +4 影响力响应
+  maryInfluence.test.ts #89 玛丽 +4 影响力响应/死亡移除
   stormsCampaign.test.ts #15 正式局暴风雨响应
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
@@ -1157,3 +1157,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #106 德雷克携带宝藏接入后的验证：`jest src/virginQueen --runInBand --silent` 127 suites、560 tests passed（新增 1 项：海盗夺宝并冬季交付）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #59 霍金斯海盗等级接入后的验证：`jest src/virginQueen --runInBand --silent` 128 suites、562 tests passed（新增 2 项：几内亚海岸海盗 2、失败 −1 VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#89 玛丽死亡后以 CP 打出移出游戏接入后的验证：`jest src/virginQueen --runInBand --silent` 128 suites、566 tests passed（新增 1 项：死亡后 CP 打出进 removed）；`npm run build` 通过，仍有既有大体积 chunk 提示。

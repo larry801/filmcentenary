@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
-import {maryInfluence} from "./moves";
+import {maryInfluence, playCard} from "./moves";
 import {setupGame} from "./util";
 
 const context = (): Ctx => ({
@@ -14,6 +14,17 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Mary Queen of Scots response (card #89)", () => {
+    it("is removed when played for CP after Mary dies", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-089"];
+        G.espionage!.mary = "dead";
+        const mary = G.royals.find((royal) => royal.id === "maryScots");
+        if (mary !== undefined) mary.alive = false;
+
+        expect(playCard(G, context(), {cardId: "vq-089"})).toBeUndefined();
+        expect(G.removed).toContain("vq-089");
+    });
+
     it("adds 4 French influence in Scotland", () => {
         const G = game();
         G.powers.france.cards = ["vq-089"];
