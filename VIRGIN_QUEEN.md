@@ -460,7 +460,7 @@
 - 强制北大西洋/几内亚海岸的一名航海家掷 1d6：
   - ≤ Navigation：安全；
   - 否则远征结束，再掷 1d6：5–6 死亡移出游戏，其余放 Turn Track 下回合回池。
-- 掠夺物丢失尚未单独建模。
+- 远征结束时携带的宝藏（`treasureValues`）会丢失并写入日志。
 
 ### 梅嫩德斯·德·阿维莱斯（#61）
 
@@ -1211,3 +1211,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #42 取消纳瓦拉的珍妮接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、623 tests passed（新增 1 项：Catherine 可取消 #58）；`npm run build` 通过。
 
 #58 取消法兰西的女管家接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、624 tests passed（新增 1 项：#58 取消 #33）；`npm run build` 通过。
+
+#62 西北航道掠夺物丢失接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、625 tests passed（新增 1 项：携带 2 宝藏丢失）；`npm run build` 通过。

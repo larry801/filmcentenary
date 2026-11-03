@@ -1588,7 +1588,9 @@ const resolveNorthwestPassage = (G: VQGame, ctx: Ctx, target?: string): void => 
         pushLog(G, `Northwest Passage: ${captain.nameEn} rolls ${first} and remains safe.`);
         return;
     }
+    const lostTreasure = expedition.treasureValues?.length ?? 0;
     delete G.worldCaptains[target];
+    if (lostTreasure > 0) pushLog(G, `Northwest Passage: ${lostTreasure} treasure(s) are lost with the expedition.`);
     const second = die(ctx, 6);
     if (second >= 5) {
         G.powers[expedition.power].seaCaptains = G.powers[expedition.power].seaCaptains.filter((id) => id !== target);

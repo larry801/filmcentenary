@@ -29,6 +29,17 @@ describe("Northwest Passage (card #62)", () => {
         expect(G.worldCaptains.hawkins).toBeDefined();
     });
 
+    it("loses carried treasure when the expedition ends", () => {
+        const G = game();
+        prepare(G);
+        G.worldCaptains.hawkins.treasureValues = [3, 4];
+
+        expect(playCard(G, context([6, 1]), {cardId: "vq-062", asEvent: true, target: "hawkins"})).toBeUndefined();
+
+        expect(G.worldCaptains.hawkins).toBeUndefined();
+        expect(G.log.join("\n")).toContain("2 treasure(s) are lost");
+    });
+
     it("kills the navigator on a failed second roll of 5-6", () => {
         const G = game();
         prepare(G);
