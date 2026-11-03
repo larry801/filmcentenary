@@ -151,6 +151,12 @@
 - `recruit` 招募正规军前检查当前正规军总数（地图 + 境外战争 + 阿马达搭载），达到上限则非法。
 - 雇佣兵、骑兵、海军与海军重建延迟仍未纳入统一 force pool。
 
+### 西班牙之路（#3）
+
+- 若米兰由西班牙控制：在米兰 +1 正规军，并准备一次西班牙之路行军。
+- 该行军从米兰出发，可经过中立/无敌军地区，最多经过 1 个山口，不能跨海，不能被拦截。
+- 当前需通过 `spanishRoadMove` 指定目标、单位与将领；界面逐格选择尚未接入。
+
 ### 奥斯曼贡金（#2）
 
 - 向目标势力威胁开战；当前自动结算为：
@@ -443,6 +449,7 @@ src/virginQueen/
   patronOfArts.test.ts  #35 赞助人抽 2 给 1
   hreIntercession.test.ts #34 神圣罗马的调解
   ottomanTribute.test.ts #2 奥斯曼贡金
+  spanishRoad.test.ts   #3 西班牙之路
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
   regularLimit.test.ts  17.1 正规军计数器上限
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
@@ -595,3 +602,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #34 神圣罗马的调解接入后的验证：`jest src/virginQueen --runInBand --silent` 57 suites、457 tests passed（新增 1 项：结盟/宣战/2 正规军/动荡）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #2 奥斯曼贡金接入后的验证：`jest src/virginQueen --runInBand --silent` 58 suites、459 tests passed（新增 2 项：纳贡/宣战）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#3 西班牙之路接入后的验证：`jest src/virginQueen --runInBand --silent` 59 suites、460 tests passed（新增 1 项：米兰增兵与特殊行军）；`npm run build` 通过，仍有既有大体积 chunk 提示。

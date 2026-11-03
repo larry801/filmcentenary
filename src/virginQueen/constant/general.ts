@@ -602,6 +602,7 @@ export interface VQGame {
     /** Spain has conquered the Philippines and uses the fifth treasure box. */
     philippinesSpanish?: boolean;
     pragueCulturalCenter?: string;
+    spanishRoadAvailable?: boolean;
     /** Beacon Fires: next interception by this power succeeds and gains +2 dice. */
     beaconFires?: Power;
     navalDiceBonus?: {power: Power; amount: number};

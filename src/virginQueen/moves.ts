@@ -520,6 +520,60 @@ const resolveOttomanTribute = (G: VQGame, ctx: Ctx, target?: string): void => {
     pushLog(G, `${powerLabel(target)} refuses tribute; the Ottoman declares war and gains 2 CP.`);
 };
 
+/** #3 Spanish Road: place a regular in Milan and prepare one special move. */
+const resolveSpanishRoad = (G: VQGame): void => {
+    if (G.spaces.milan?.control !== "spain") {
+        pushLog(G, "Spanish Road requires Spanish control of Milan.");
+        return;
+    }
+    addLand(G, "milan", "spain", "regular", 1);
+    G.spanishRoadAvailable = true;
+    pushLog(G, "Spain adds a regular in Milan and prepares a Spanish Road move.");
+};
+
+export const spanishRoadMove = (G: VQGame, ctx: Ctx, args: {to: string; units?: Partial<LandStack>; leaders?: string[]}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action" || power(G, ctx) !== "spain" || G.spanishRoadAvailable !== true ||
+        G.spaces[args.to] === undefined || !friendlyControlled(G, "spain", args.to)) return INVALID_MOVE;
+    const source = G.spaces.milan.land.spain;
+    if (source === undefined) return INVALID_MOVE;
+    const stack = {regular: args.units?.regular ?? source.regular, merc: args.units?.merc ?? 0, cav: args.units?.cav ?? 0};
+    if (landCount(stack) < 1 || Object.entries(stack).some(([kind, count]) => count < 0 || count > source[kind as keyof LandStack])) return INVALID_MOVE;
+    const availableLeaders = G.spaces.milan.leaders.filter((id) => LEADER_BY_ID[id]?.power === "spain" && LEADER_BY_ID[id].kind === "army");
+    const leaders = args.leaders ?? [];
+    if (new Set(leaders).size !== leaders.length || leaders.some((id) => !availableLeaders.includes(id))) return INVALID_MOVE;
+    const capacity = Math.max(4, leaders.reduce((total, id) => total + (LEADER_BY_ID[id].command ?? 0), 0));
+    if (landCount(stack) > capacity) return INVALID_MOVE;
+    const queue: {id: string; passes: number}[] = [{id: "milan", passes: 0}];
+    const seen = new Set(["milan:0"]);
+    let reachable = false;
+    while (queue.length > 0) {
+        const current = queue.shift()!;
+        if (current.id === args.to) {reachable = true; break;}
+        if (current.id !== "milan" && spaceHasEnemyLand(G, "spain", current.id)) continue;
+        for (const neighbor of landNeighbors(current.id)) {
+            if (G.spaces[neighbor.id] === undefined) continue;
+            const passes = current.passes + (neighbor.pass ? 1 : 0);
+            if (passes > 1) continue;
+            const key = `${neighbor.id}:${passes}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            queue.push({id: neighbor.id, passes});
+        }
+    }
+    if (!reachable) return INVALID_MOVE;
+    source.regular -= stack.regular;
+    source.merc -= stack.merc;
+    source.cav -= stack.cav;
+    if (landCount(source) === 0) delete G.spaces.milan.land.spain;
+    const target = ensureLand(G, args.to, "spain");
+    target.regular += stack.regular;
+    target.merc += stack.merc;
+    target.cav += stack.cav;
+    moveLeaders(G, "milan", args.to, leaders);
+    delete G.spanishRoadAvailable;
+    pushLog(G, `Spain uses the Spanish Road from Milan to ${SPACE_BY_ID[args.to].name}.`);
+};
+
 const resolveHolyRomanIntercession = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined) return;
     const [ally, enemy] = target.split(":");
@@ -852,6 +906,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveHolyRomanIntercession(G, ctx, target);
     } else if (handler === "ottomanTribute") {
         resolveOttomanTribute(G, ctx, target);
+    } else if (handler === "spanishRoad") {
+        resolveSpanishRoad(G);
     } else if (handler === "beaconFires") {
         G.beaconFires = p;
         pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
