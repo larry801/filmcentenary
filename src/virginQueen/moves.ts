@@ -694,6 +694,16 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #20 Eloquent Ambassador: three influence then a diplomacy resolution. */
 /** #21 Foreign Volunteers: three regulars in controlled spaces. */
 /** #59 John Hawkins: five CP for English naval operations. */
+/** #64 Philosopher's Stone: cancel a scientist's patronage work. */
+const resolvePhilosophersStone = (G: VQGame, target?: string): void => {
+    const candidates = G.pendingPatronage.filter((entry) => patronById(G, entry.patronId)?.kind === "scientist");
+    const entry = target !== undefined ? candidates.find((candidate) => candidate.patronId === target) : candidates[0];
+    if (entry === undefined) return;
+    G.pendingPatronage = G.pendingPatronage.filter((candidate) => candidate !== entry);
+    removeCardFromGame(G, "vq-064");
+    pushLog(G, `Philosopher's Stone cancels ${patronById(G, entry.patronId)?.name ?? entry.patronId}'s work.`);
+};
+
 const resolveJohnHawkins = (G: VQGame, p: Power): void => {
     if (p !== "england") return;
     G.powers.england.cp += 5;
@@ -1684,6 +1694,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveForeignVolunteers(G, p);
     } else if (handler === "johnHawkins") {
         resolveJohnHawkins(G, p);
+    } else if (handler === "philosophersStone") {
+        resolvePhilosophersStone(G, target);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {

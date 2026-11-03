@@ -176,6 +176,13 @@
 - 招募正规军或雇佣兵都受 `REGULAR_LIMITS` 限制，避免通过雇佣兵绕过 force pool。
 - 奥斯曼骑兵计数器上限 39；海军计数器上限按 VASSAL 计数器：奥斯曼 9、西班牙 7、英格兰 6、法国 4、HRE 1、新教 4，`buildNaval` 统一检查。
 
+### 贤者之石（#64）
+
+- 取消一个待结算科学家赞助的工作进度；
+- 该赞助人留在可用池，下回合可重新赞助；
+- 本回合仍视为已赞助；事件牌移出游戏；
+- 当前直接移除 `pendingPatronage` 中的对应条目，未把标记实际放上回合记录轨。
+
 ### 约翰·霍金斯（#59）
 
 - 英格兰获得 5 CP，用于海军建造/移动/海盗；
@@ -738,6 +745,7 @@ src/virginQueen/
   ambassador.test.ts    #20 雄辩的大使
   volunteersAid.test.ts #21 外国志愿军 / #26 小型救援
   johnHawkins.test.ts   #59 约翰·霍金斯
+  philosopher.test.ts   #64 贤者之石
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -978,3 +986,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #21/#26 接入后的验证：`jest src/virginQueen --runInBand --silent` 99 suites、521 tests passed（新增 2 项：三地志愿军、被围城增援）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #59 约翰·霍金斯（CP 分支）接入后的验证：`jest src/virginQueen --runInBand --silent` 100 suites、522 tests passed（新增 1 项：+5 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#64 贤者之石接入后的验证：`jest src/virginQueen --runInBand --silent` 101 suites、523 tests passed（新增 1 项：取消科学家赞助）；`npm run build` 通过，仍有既有大体积 chunk 提示。
