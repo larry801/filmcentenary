@@ -499,7 +499,7 @@
 ### 禁书目录（#56）
 
 - 选项 1：在法兰西/尼德兰/苏格兰共进行 6 次天主教传播尝试，首个骰值自动为 6；自动选择当前新教地区最多的区域逐个结算。
-- 选项 2（取消艺术家/科学家工作进度）尚未接入。
+- 选项 2：指定待结算赞助人，取消其工作进度，赞助人下一年回到可用池。
 
 ### 西班牙之路（#3）
 
@@ -1018,7 +1018,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #3 西班牙之路接入后的验证：`jest src/virginQueen --runInBand --silent` 59 suites、460 tests passed（新增 1 项：米兰增兵与特殊行军）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#56 禁书目录（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 60 suites、461 tests passed（新增 1 项：6 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#56 禁书目录接入后的验证：`jest src/virginQueen --runInBand --silent` 137 suites、586 tests passed（新增 2 项：取消赞助、6 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #83 荷兰起义接入后的验证：`jest src/virginQueen --runInBand --silent` 61 suites、462 tests passed（新增 1 项：0/1/8/12/19 各档 VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 

@@ -1564,7 +1564,17 @@ const resolveLostColony = (G: VQGame, ctx: Ctx): void => {
     pushLog(G, `${G.lastRolls} — the colony is destroyed.`);
 };
 
-const resolveIndex = (G: VQGame, ctx: Ctx): void => {
+const resolveIndex = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target !== undefined) {
+        const entry = G.pendingPatronage.find((candidate) => candidate.patronId === target);
+        if (entry !== undefined) {
+            G.pendingPatronage = G.pendingPatronage.filter((candidate) => candidate !== entry);
+            G.patronsAvailable = G.patronsAvailable.filter((id) => id !== target);
+            G.patronReturn = {...(G.patronReturn ?? {}), [target]: G.year + 1};
+            pushLog(G, `Index of Prohibited Books cancels ${patronById(G, target)?.name ?? target}'s work.`);
+            return;
+        }
+    }
     for (let attempt = 0; attempt < 6; attempt++) {
         const areas = ["france", "netherlands", "scotland"] as const;
         const area = areas
@@ -1904,7 +1914,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "patronOfArts") {
         resolvePatronOfArts(G, ctx, target);
     } else if (handler === "indexOfProhibitedBooks") {
-        resolveIndex(G, ctx);
+        resolveIndex(G, ctx, target);
     } else if (handler === "lostColony") {
         resolveLostColony(G, ctx);
     } else if (handler === "portugueseRaid") {
