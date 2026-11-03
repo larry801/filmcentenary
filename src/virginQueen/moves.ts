@@ -693,6 +693,23 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #19 Diplomatic Faux Pas: remove up to five influence from a power. */
 /** #20 Eloquent Ambassador: three influence then a diplomacy resolution. */
 /** #21 Foreign Volunteers: three regulars in controlled spaces. */
+/** #59 John Hawkins: five CP for English naval operations. */
+const resolveJohnHawkins = (G: VQGame, p: Power): void => {
+    if (p !== "england") return;
+    G.powers.england.cp += 5;
+    G.hawkinsBonus = true;
+    pushLog(G, "John Hawkins grants England 5 CP for naval operations.");
+};
+
+const resolveTopcliffe = (G: VQGame, ctx: Ctx): void => {
+    const state = espionageState(G);
+    const removed = state.jesuits.filter((id) => SPACE_BY_ID[id]?.area === "england").slice(0, 2);
+    state.jesuits = state.jesuits.filter((id) => !removed.includes(id));
+    resolveConversions(G, ctx, "protestant", "protestant", "england", 5);
+    G.powers.spain.cardModifier += 1;
+    pushLog(G, `Richard Topcliffe removes ${removed.length} Jesuit(s), converts England, and Spain gains +1 Card.`);
+};
+
 const resolveForeignVolunteers = (G: VQGame, p: Power): void => {
     const targets = SPACES.filter((space) => G.spaces[space.id].control === p && !G.spaces[space.id].siege &&
         !G.spaces[space.id].unrest).slice(0, 3);
@@ -1665,6 +1682,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveEloquentAmbassador(G, ctx, p, target);
     } else if (handler === "foreignVolunteers") {
         resolveForeignVolunteers(G, p);
+    } else if (handler === "johnHawkins") {
+        resolveJohnHawkins(G, p);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {
