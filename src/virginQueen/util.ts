@@ -1542,10 +1542,14 @@ export const arriveLeaders = (G: VQGame): void => {
             const st = G.leaders[id];
             if (def === undefined || def.power !== p || isDefaultLeader(id) || st.location !== "pool" ||
                 (st.returnTurn ?? 0) > G.year) continue;
-            if (cap === undefined || G.spaces[cap] === undefined || !friendlyControlled(G, p, cap) || G.spaces[cap].unrest) continue;
-            G.spaces[cap].leaders.push(id);
-            G.leaders[id] = {id, location: cap};
-            pushLog(G, `${def.name} arrives in ${SPACE_BY_ID[cap].name}.`);
+            const destination = def.kind === "naval"
+                ? SPACES.find((space) => space.home === p && space.ports !== undefined && G.spaces[space.id].siege === undefined &&
+                    !G.spaces[space.id].unrest && friendlyControlled(G, p, space.id))?.id
+                : cap;
+            if (destination === undefined || G.spaces[destination] === undefined || !friendlyControlled(G, p, destination) || G.spaces[destination].unrest) continue;
+            G.spaces[destination].leaders.push(id);
+            G.leaders[id] = {id, location: destination};
+            pushLog(G, `${def.name} arrives in ${SPACE_BY_ID[destination].name}.`);
         }
         const standardInPlay = Object.keys(G.leaders).some((id) => {
             const leader = LEADER_BY_ID[id];
