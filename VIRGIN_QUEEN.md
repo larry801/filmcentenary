@@ -170,6 +170,12 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 洪水（#39）
+
+- 战斗牌：敌军在尼德兰设防地区攻城时，防守方可在掷骰前使用；
+- 围城解除，敌军撤退，敌军雇佣兵减半（向上取整）；
+- 不能阻止“变节”。
+
 ### 蒂尔伯里演说（#40）
 
 - 战斗牌：野战/海战/攻城额外 +2 骰，英格兰使用改为 +4 骰；
@@ -626,6 +632,7 @@ src/virginQueen/
   parisMass.test.ts     #111 巴黎值得一场弥撒
   unionArras.test.ts    #109 阿拉斯联盟
   tilbury.test.ts       #40 蒂尔伯里演说
+  flooding.test.ts      #39 洪水
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -834,3 +841,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #109 阿拉斯联盟接入后的验证：`jest src/virginQueen --runInBand --silent` 84 suites、495 tests passed（清雇佣兵/5 地区/瓦隆卫队，并验证尼德兰煽动被拦截）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #40 蒂尔伯里演说接入后的验证：`jest src/virginQueen --runInBand --silent` 85 suites、496 tests passed（新增 1 项：英格兰 +4 骰）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#39 洪水接入后的验证：`jest src/virginQueen --runInBand --silent` 86 suites、497 tests passed（新增 1 项：解围/撤退/雇佣兵减半）；`npm run build` 通过，仍有既有大体积 chunk 提示。

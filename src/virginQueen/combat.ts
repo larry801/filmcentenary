@@ -100,6 +100,7 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
             if (number === 9) return battle.phase === "naval";
             if (number === 13) return battle.phase !== "naval";
             if (number === 40) return true;
+            if (number === 39) return battle.phase === "assault" && power !== battle.attacker;
             return false;
         });
         return [...candidates.map((id) => ({id: `card:${id}`, label: `打出 ${cardById(id).name}`})), {id: "done", label: "继续结算"}];
@@ -280,6 +281,16 @@ export const chooseBattle = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
                 const stack = ensureLand(G, battle.location, battle.responding);
                 stack.merc += SPACE_BY_ID[battle.location].home === "hre" ? 4 : 2;
             }
+        }
+        if (id === "vq-039") {
+            for (const owner of sideOwners(battle, true)) {
+                const stack = G.spaces[battle.location].land[owner];
+                if (stack !== undefined) stack.merc -= Math.ceil(stack.merc / 2);
+            }
+            delete G.spaces[battle.location].siege;
+            moveSide(G, battle, true, battle.from);
+            endBattle(G, ctx);
+            return;
         }
         if (id === "vq-012") {
             const ownVenetians = sideOwners(battle, battle.responding === battle.attacker).includes("venice");
