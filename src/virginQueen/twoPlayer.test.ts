@@ -26,7 +26,8 @@ describe("Virgin Queen configurations and ownership", () => {
 
     it("rejects illegal scenarios and player counts at the game boundary", () => {
         expect(validateSetupData({scenario: "tutorial"}, 6)).toContain("仅支持 2");
-        expect(validateSetupData({scenario: "campaign"}, 3)).toContain("2、5、6 人");
+        expect(validateSetupData({scenario: "campaign"}, 3)).toBeUndefined();
+        expect(validateSetupData({scenario: "campaign"}, 4)).toContain("2、3、5、6 人");
         expect(validateSetupData({scenario: "typo"}, 2)).toContain("非法剧本");
         expect(validateSetupData({scenario: null}, 2)).toContain("非法剧本");
         expect(() => setupGame(context(4))).toThrow();

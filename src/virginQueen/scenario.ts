@@ -51,8 +51,13 @@ const removeCardsByName = (setup: ScenarioSetup, names: string[]): void => {
     setup.cardsRemoved = [...new Set([...setup.cardsRemoved, ...numbers])].sort((first, second) => first - second);
 };
 
-/** Scenario Book p. 12: 2-player Campaign/Tournament modifications. */
-const twoPlayerSetup = (id: ScenarioID): ScenarioSetup => {
+/**
+ * Scenario Book p. 12: 2- and 3-player modifications.  Both configurations
+ * print the same card, royal, patronage, sea-captain and artist/scientist
+ * removals; they differ only in the seating and the Ottoman influence column
+ * (handled in `setupGame`).  The UI exposes 3 players for the Campaign only.
+ */
+const reducedMajorSetup = (id: ScenarioID): ScenarioSetup => {
     const setup = cloneScenario(id);
     const removed = ["Grand Vizier", "Ottoman Tribute", "Holy Roman Intercession", "Patron of Arts & Sciences", "War with Poland", "War in Persia"];
     const removedNumbers = OFFICIAL_CARDS.filter((card) => removed.includes(card.nameEn)).map((card) => card.number);
@@ -92,7 +97,7 @@ const fivePlayerSetup = (id: ScenarioID): ScenarioSetup => {
 
 export const scenarioSetup = (id: ScenarioID, numPlayers = 6): ScenarioSetup => {
     if (id === "tutorial") return SCENARIOS[id];
-    if (numPlayers === 2) return twoPlayerSetup(id);
+    if (numPlayers === 2 || numPlayers === 3) return reducedMajorSetup(id);
     if (numPlayers === 5) return fivePlayerSetup(id);
     return SCENARIOS[id];
 };

@@ -192,20 +192,29 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
 
     const G: VQGame = {
         ...(scenarioId === "tutorial" ? {tutorialEffects: {nextDraw: {}, skip: [], piracyVp: 0}} : {}),
-        ...(numPlayers === 2 || numPlayers === 5 ? {
-            // 2-player: Spain/France vs England/Protestant, Ottoman starts as
-            // England's activated ally.  5-player: one seat per power, with the
-            // HRE inactive and activatable (Scenario Book p. 12).
+        ...(numPlayers === 2 || numPlayers === 3 || numPlayers === 5 ? {
+            // 2-player: Spain/France vs England/Protestant.  3-player: Spain,
+            // England+Protestant and France, with the Ottoman as England's
+            // activated ally.  5-player: one seat per power.  In all three the
+            // HRE starts inactive and activatable (Scenario Book p. 12).
             playerPowers: numPlayers === 5
                 ? {"0": ["ottoman" as Power], "1": ["spain" as Power], "2": ["england" as Power],
                     "3": ["france" as Power], "4": ["protestant" as Power]}
-                : scenarioId === "tutorial" ? {"0": ["ottoman" as Power], "1": ["spain" as Power]} :
-                    {"0": ["spain" as Power, "france" as Power], "1": ["england" as Power, "protestant" as Power]},
+                : numPlayers === 3
+                    ? {"0": ["spain" as Power], "1": ["england" as Power, "protestant" as Power],
+                        "2": ["france" as Power]}
+                    : scenarioId === "tutorial" ? {"0": ["ottoman" as Power], "1": ["spain" as Power]} :
+                        {"0": ["spain" as Power, "france" as Power], "1": ["england" as Power, "protestant" as Power]},
             activatedMajors: {},
             majorDiplomacyResolved: [],
             majorInfluence: numPlayers === 5
                 ? {hre: {ottoman: 3, spain: 1, england: 1, france: 1, protestant: 1}}
-                : {ottoman: {spain: 1, england: 0, protestant: 0}, hre: {ottoman: 3, spain: 1, england: scenarioId === "tutorial" ? 0 : 1, france: scenarioId === "tutorial" ? 0 : 1, protestant: scenarioId === "tutorial" ? 0 : 1}},
+                : {
+                    ottoman: numPlayers === 3
+                        ? {spain: 1, england: 0, france: 0, protestant: 0}
+                        : {spain: 1, england: 0, protestant: 0},
+                    hre: {ottoman: 3, spain: 1, england: scenarioId === "tutorial" ? 0 : 1, france: scenarioId === "tutorial" ? 0 : 1, protestant: scenarioId === "tutorial" ? 0 : 1},
+                },
         } : {}),
         scenario: scenarioId,
         startTurn: scenario.startTurn,
@@ -292,7 +301,7 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         powers[p].bonusVp = scenario.vpStart[p] - (baseVp(G, p) + religiousSpecialVp(G, p)) -
             (scenarioId === "tutorial" && p === "ottoman" ? tutorialFortressVp(G) : 0);
     }
-    if (numPlayers === 2 && scenarioId !== "tutorial") {
+    if ((numPlayers === 2 || numPlayers === 3) && scenarioId !== "tutorial") {
         G.activatedMajors!.ottoman = {ally: "england", baseline: powerVp(G, "ottoman")};
     }
 

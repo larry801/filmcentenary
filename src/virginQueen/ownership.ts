@@ -25,9 +25,9 @@ export const playerCount = (G: VQGame): number =>
     G.playerPowers === undefined ? 6 : Object.keys(G.playerPowers).length;
 
 /**
- * A major power that may be activated by another player.  In 2-player games
- * both the Ottoman and the HRE are eligible; in 5-player games the Ottoman is
- * player-controlled and only the HRE is eligible.
+ * A major power that may be activated by another player.  In 2- and 3-player
+ * games both the Ottoman and the HRE are eligible; in 5-player games the
+ * Ottoman is player-controlled and only the HRE is eligible.
  */
 export const canActivateMajor = (G: VQGame, power: Power): boolean =>
     G.scenario !== "tutorial" && !!G.playerPowers && (power === "ottoman" || power === "hre") &&
@@ -35,10 +35,10 @@ export const canActivateMajor = (G: VQGame, power: Power): boolean =>
 
 /**
  * True for a power that is part of an Activated Major Power variant rather
- * than a directly seated power.  The HRE is always such a power in the 2- and
- * 5-player configurations (inactive until diplomacy activates it); the Ottoman
- * is one only in the 2-player configuration, where setup puts it in
- * `activatedMajors` from the start.
+ * than a directly seated power.  The HRE is always such a power in the 2-, 3-
+ * and 5-player configurations (inactive until diplomacy activates it); the
+ * Ottoman is one only in the 2- and 3-player configurations, where setup puts
+ * it in `activatedMajors` from the start.
  */
 export const isActivatedMajor = (G: VQGame, power: Power): boolean =>
     G.scenario !== "tutorial" && !!G.playerPowers &&
