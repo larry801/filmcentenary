@@ -401,6 +401,13 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             {ownerOf(G, G.pendingEspionage.responding) === playerID && espionageOptions(G).map((entry) =>
                 <Button key={entry.id} variant="outlined" onClick={() => moves.chooseEspionage({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
+        if (G.pendingAbjuration) return <Stack spacing={1}>
+            <Typography>誓绝法案 · 等待新教选择一项提议。</Typography>
+            {ownerOf(G, "protestant") === playerID && G.pendingAbjuration.offers.map((offer) =>
+                <Button key={offer.power} variant="outlined" onClick={() => (moves as unknown as {chooseAbjuration: (args: {power: string}) => void}).chooseAbjuration({power: offer.power})}>
+                    {POWER_NAMES[offer.power].short}：在 {SPACE_BY_ID[offer.space].name} 结盟
+                </Button>)}
+        </Stack>;
         if (G.pendingCardEvent) return <Stack spacing={1}>
             <Typography>{G.pendingCardEvent.kind === "cancelEvent" ? "事件响应" : "大维齐尔"} · 等待奥斯曼帝国选择。</Typography>
             {G.pendingCardEvent.kind === "cancelEvent" ? <Typography variant="body2">
