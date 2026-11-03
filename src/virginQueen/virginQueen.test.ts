@@ -507,6 +507,7 @@ describe("Virgin Queen turn flow", () => {
             clients[0].moves.playCard({cardId: card});
             const before = state.G.spaces.edirne.land.ottoman?.regular ?? 0;
             clients[0].moves.moveLand({from: "istanbul", to: "edirne"});
+            if (clients[0].getState().G.pendingAction) clients[1].moves.respondAction({choice: "continue"});
             const after = clients[0].getState().G.spaces.edirne.land.ottoman.regular;
             expect(after).toBeGreaterThan(before);
             expect(clients[0].getState().G.spaces.istanbul.land.ottoman).toBeUndefined();

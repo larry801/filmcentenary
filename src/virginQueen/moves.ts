@@ -154,7 +154,6 @@ const catholicLeagueDealsBlocked = (G: VQGame, a: Power, b: Power): boolean =>
 
 const offerActionResponse = (G: VQGame, ctx: Ctx, move: NonNullable<VQGame["pendingAction"]>["move"], args: NonNullable<VQGame["pendingAction"]>["args"]): boolean => {
     if (G.resumeAction) {delete G.resumeAction; return false;}
-    if (G.scenario !== "tutorial") return false;
     const active = power(G, ctx);
     const responder = active === "ottoman" ? "spain" : "ottoman";
     if (!G.powers[responder].cards.includes("vq-015") && !(active === "ottoman" && G.impulse > 1 && G.powers[responder].cards.includes("vq-016"))) return false;
@@ -183,14 +182,15 @@ export const respondAction = (G: VQGame, ctx: Ctx, args: {choice: string}): void
         removeCardFromHand(G, responder, "vq-015");
         discardCard(G, responder, "vq-015", true);
         G.powers[pending.power].cp = Math.max(0, G.powers[pending.power].cp - 1);
-        G.tutorialEffects!.stormImpulse = G.impulse;
-        G.tutorialEffects!.movedAfterStorm = [];
+        G.stormImpulse = G.impulse;
+        G.stormMoved = [];
         return;
     }
     if (args.choice === "harem") {
         removeCardFromHand(G, responder, "vq-016");
         discardCard(G, responder, "vq-016", true);
-        G.tutorialEffects!.skip.push("ottoman");
+        G.skipImpulse = [...(G.skipImpulse ?? []), "ottoman"];
+        G.haremImpulse = G.impulse;
         drawCards(G, ctx, responder, 1);
     }
     G.resumeAction = true;
@@ -3339,6 +3339,7 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
         reliefBattle(G, ctx, to, p, from, stack, leaders, pUnitsInside);
         return;
     }
+    if (G.stormImpulse === G.impulse) G.stormMoved = [...(G.stormMoved ?? []), to];
     if (G.tutorialEffects?.stormImpulse === G.impulse) G.tutorialEffects.movedAfterStorm?.push(to);
     // Marching the besiegers away lifts the siege (rule 15.3).
     const oldSiege = G.spaces[from].siege;

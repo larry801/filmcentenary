@@ -625,6 +625,9 @@ export interface VQGame {
     patronReturn?: Record<string, number>;
     pendingCardDraws?: {power: Power; turn: number; amount: number}[];
     skipImpulse?: Power[];
+    stormImpulse?: number;
+    stormMoved?: string[];
+    haremImpulse?: number;
     cyprusTarget?: string;
     cyprusAwarded?: boolean;
     /** Naval counters lost this year; they return to the pool at Spring. */

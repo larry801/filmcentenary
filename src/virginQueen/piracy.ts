@@ -41,7 +41,7 @@ const rollPiracy = (G: VQGame, ctx: Ctx): void => {
     if (!stack || navalCount(stack) === 0 || (!atWar(G, pending.power, pending.target) && stack.corsair === 0)) {finish(G, ctx); return;}
     const ports = zonePorts(pending.zone).filter((id) => tutorialSpaceAllowed(id) && G.spaces[id].control === pending.target).length;
     const base = navalCount(stack) === 1 || ports === 1 ? 1 : 2;
-    const dice = roll(ctx, base + bestPiracy(G, pending.zone, [pending.power]) + (G.tutorialEffects?.haremImpulse === G.impulse ? 1 : 0));
+    const dice = roll(ctx, base + bestPiracy(G, pending.zone, [pending.power]) + ((G.haremImpulse ?? G.tutorialEffects?.haremImpulse) === G.impulse ? 1 : 0));
     pending.remaining = hits(dice);
     pending.step = "rewards";
     G.lastRolls = `Piracy [${dice.join(",")}] = ${pending.remaining} hits`;
