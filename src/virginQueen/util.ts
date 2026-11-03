@@ -69,7 +69,7 @@ import {
 import {PATRONAGE_VP_AWARD_BY_ID} from "./data/patronage";
 import {WORLD_HAZARDS} from "./data/world";
 import {validateSetupData} from "./configuration";
-import {isActivatedMajor, ownerOf, participatingPowers, samePlayer} from "./ownership";
+import {canActivateMajor, isActivatedMajor, ownerOf, participatingPowers, playerCount, samePlayer} from "./ownership";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, TUTORIAL_POWER_CARDS, tutorialFortressVp, tutorialSpaceAllowed} from "./tutorial";
 
 export {SPACE_BY_ID, KEY_SPACES, DUTCH_KEYS, initialControl, initialReligion, initialLandFor, initialNavalFor};
@@ -192,12 +192,20 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
 
     const G: VQGame = {
         ...(scenarioId === "tutorial" ? {tutorialEffects: {nextDraw: {}, skip: [], piracyVp: 0}} : {}),
-        ...(numPlayers === 2 ? {
-            playerPowers: scenarioId === "tutorial" ? {"0": ["ottoman" as Power], "1": ["spain" as Power]} :
-                {"0": ["spain" as Power, "france" as Power], "1": ["england" as Power, "protestant" as Power]},
+        ...(numPlayers === 2 || numPlayers === 5 ? {
+            // 2-player: Spain/France vs England/Protestant, Ottoman starts as
+            // England's activated ally.  5-player: one seat per power, with the
+            // HRE inactive and activatable (Scenario Book p. 12).
+            playerPowers: numPlayers === 5
+                ? {"0": ["ottoman" as Power], "1": ["spain" as Power], "2": ["england" as Power],
+                    "3": ["france" as Power], "4": ["protestant" as Power]}
+                : scenarioId === "tutorial" ? {"0": ["ottoman" as Power], "1": ["spain" as Power]} :
+                    {"0": ["spain" as Power, "france" as Power], "1": ["england" as Power, "protestant" as Power]},
             activatedMajors: {},
             majorDiplomacyResolved: [],
-            majorInfluence: {ottoman: {spain: 1, england: 0, protestant: 0}, hre: {ottoman: 3, spain: 1, england: scenarioId === "tutorial" ? 0 : 1, france: scenarioId === "tutorial" ? 0 : 1, protestant: scenarioId === "tutorial" ? 0 : 1}},
+            majorInfluence: numPlayers === 5
+                ? {hre: {ottoman: 3, spain: 1, england: 1, france: 1, protestant: 1}}
+                : {ottoman: {spain: 1, england: 0, protestant: 0}, hre: {ottoman: 3, spain: 1, england: scenarioId === "tutorial" ? 0 : 1, france: scenarioId === "tutorial" ? 0 : 1, protestant: scenarioId === "tutorial" ? 0 : 1}},
         } : {}),
         scenario: scenarioId,
         startTurn: scenario.startTurn,
@@ -383,7 +391,7 @@ export const discardCard = (G: VQGame, p: Power, cardId: string, asEvent: boolea
  */
 export const availableHomeCards = (G: VQGame, p: Power): string[] => {
     if (isActivatedMajor(G, p)) return [];
-    const scenario = scenarioSetup(G.scenario, G.playerPowers ? 2 : 6);
+    const scenario = scenarioSetup(G.scenario, playerCount(G));
     const available: string[] = [];
     for (const number of scenario.cardsInPlay) {
         const card = OFFICIAL_CARDS[number - 1];
@@ -952,7 +960,7 @@ export const deactivateMajor = (G: VQGame, power: Power): void => {
 };
 
 export const activateMajor = (G: VQGame, ctx: Ctx, power: Power, ally: Power, options: {war?: Power; defense?: Power} = {}): boolean => {
-    if (!isActivatedMajor(G, power) || isActivatedMajor(G, ally) || ownerOf(G, ally) === undefined || power === ally) return false;
+    if (!canActivateMajor(G, power) || isActivatedMajor(G, ally) || ownerOf(G, ally) === undefined || power === ally) return false;
     if (options.war && (samePlayer(G, ally, options.war) || options.war === power)) return false;
     deactivateMajor(G, power);
     G.activatedMajors![power] = {ally, baseline: powerVp(G, power)};

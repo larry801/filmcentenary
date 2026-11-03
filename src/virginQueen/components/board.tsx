@@ -77,7 +77,7 @@ import {
 } from "../util";
 import {VQMap} from "./map";
 import {TutorialGuide} from "./tutorial-guide";
-import {controlledPowers, ownerOf, isActivatedMajor, participatingPowers} from "../ownership";
+import {controlledPowers, ownerOf, isActivatedMajor, participatingPowers, playerCount} from "../ownership";
 import {tutorialFortressVp, tutorialSpaceAllowed} from "../tutorial";
 import {scenarioName} from "../scenario";
 import {Controller} from "../constant/general";
@@ -897,7 +897,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             </Stack>;
         }
         if (phase === "action") {
-            const patronageSetup = scenarioSetup(G.scenario, G.playerPowers ? 2 : 6).patronage;
+            const patronageSetup = scenarioSetup(G.scenario, playerCount(G)).patronage;
             const vpAwards = patronageSetup.vpAwards.map((id) => PATRONAGE_VP_AWARD_BY_ID[id])
                 .filter((award): award is PatronageVpAward => award !== undefined);
             const artistMarkersLeft = vpAwards.filter((award) => award.kind === "artist").length;

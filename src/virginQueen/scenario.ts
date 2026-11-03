@@ -42,9 +42,18 @@ export const scenarioFromSetupData = (setupData?: ScenarioSetupData): ScenarioID
     return setupData?.scenario ?? "campaign";
 };
 
-export const scenarioSetup = (id: ScenarioID, numPlayers = 6): ScenarioSetup => {
-    if (numPlayers !== 2 || id === "tutorial") return SCENARIOS[id];
-    const setup: ScenarioSetup = JSON.parse(JSON.stringify(SCENARIOS[id]));
+const cloneScenario = (id: ScenarioID): ScenarioSetup =>
+    JSON.parse(JSON.stringify(SCENARIOS[id])) as ScenarioSetup;
+
+const removeCardsByName = (setup: ScenarioSetup, names: string[]): void => {
+    const numbers = OFFICIAL_CARDS.filter((card) => names.includes(card.nameEn)).map((card) => card.number);
+    setup.cardsInPlay = setup.cardsInPlay.filter((number) => !numbers.includes(number)).sort((first, second) => first - second);
+    setup.cardsRemoved = [...new Set([...setup.cardsRemoved, ...numbers])].sort((first, second) => first - second);
+};
+
+/** Scenario Book p. 12: 2-player Campaign/Tournament modifications. */
+const twoPlayerSetup = (id: ScenarioID): ScenarioSetup => {
+    const setup = cloneScenario(id);
     const removed = ["Grand Vizier", "Ottoman Tribute", "Holy Roman Intercession", "Patron of Arts & Sciences", "War with Poland", "War in Persia"];
     const removedNumbers = OFFICIAL_CARDS.filter((card) => removed.includes(card.nameEn)).map((card) => card.number);
     setup.cardsInPlay = [...new Set([...setup.cardsInPlay, 4, 37])].filter((number) => !removedNumbers.includes(number)).sort((first, second) => first - second);
@@ -61,6 +70,31 @@ export const scenarioSetup = (id: ScenarioID, numPlayers = 6): ScenarioSetup => 
         setup.powerCard[power].seaCaptains = setup.powerCard[power].seaCaptains?.filter((captain) => !["muratReis", "henszlein"].includes(captain));
     }
     return setup;
+};
+
+/** Scenario Book p. 12: 5-player modifications (Ottoman seated, HRE inactive). */
+const fivePlayerSetup = (id: ScenarioID): ScenarioSetup => {
+    const setup = cloneScenario(id);
+    removeCardsByName(setup, ["Holy Roman Intercession", "Patron of Arts & Sciences", "War with Poland", "The Sublime Porte"]);
+    setup.cardsInPlay = [...new Set([...setup.cardsInPlay, 4])].sort((first, second) => first - second);
+    setup.cardsRemoved = setup.cardsRemoved.filter((number) => number !== 4);
+    setup.royals = setup.royals.filter((royal) => royal.nameEn !== "Rudolf II");
+    const removedPatrons = ["mercator", "arcimboldo", "brahe", "spranger", "kepler"];
+    setup.patronage.artists = setup.patronage.artists.filter((patron) => !removedPatrons.includes(patron));
+    setup.patronage.scientists = setup.patronage.scientists.filter((patron) => !removedPatrons.includes(patron));
+    const removedAwards = ["vertumnus", "lawsPlanetaryMotion"];
+    setup.patronage.vpAwards = setup.patronage.vpAwards.filter((award) => !removedAwards.includes(award));
+    for (const power of POWERS) {
+        setup.powerCard[power].seaCaptains = setup.powerCard[power].seaCaptains?.filter((captain) => captain !== "henszlein");
+    }
+    return setup;
+};
+
+export const scenarioSetup = (id: ScenarioID, numPlayers = 6): ScenarioSetup => {
+    if (id === "tutorial") return SCENARIOS[id];
+    if (numPlayers === 2) return twoPlayerSetup(id);
+    if (numPlayers === 5) return fivePlayerSetup(id);
+    return SCENARIOS[id];
 };
 
 export const scenarioName = (id: ScenarioID): string => SCENARIOS[id].nameZh;
