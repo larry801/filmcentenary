@@ -958,6 +958,16 @@ const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
         pushLog(G, `Ruler Falls Ill: ${powerLabel(targetPower)} will skip its next action round.`);
         return;
     }
+    if (mode === "return") {
+        const leader = Object.values(G.leaders).find((state) => LEADER_BY_ID[state.id]?.power === targetPower && LEADER_BY_ID[state.id]?.kind === "army" &&
+            state.location !== "pool" && state.location !== "dead" && G.spaces[state.location] !== undefined);
+        const capital = capitalOf(G, targetPower) ?? SPACES.find((space) => space.home === targetPower && space.kind === "fortress")?.id;
+        if (leader !== undefined && capital !== undefined && leader.location !== capital) {
+            moveLeaders(G, leader.location, capital, [leader.id]);
+            pushLog(G, `Ruler Falls Ill: ${leader.id} returns to ${SPACE_BY_ID[capital].name}.`);
+        }
+        return;
+    }
     const cards = G.powers[targetPower].cards.filter((id) => cardById(id).kind !== "home");
     if (cards.length === 0) return;
     const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
