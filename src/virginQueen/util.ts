@@ -192,25 +192,29 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
 
     const G: VQGame = {
         ...(scenarioId === "tutorial" ? {tutorialEffects: {nextDraw: {}, skip: [], piracyVp: 0}} : {}),
-        ...(numPlayers === 2 || numPlayers === 3 || numPlayers === 5 ? {
+        ...(numPlayers === 2 || numPlayers === 3 || numPlayers === 4 || numPlayers === 5 ? {
             // 2-player: Spain/France vs England/Protestant.  3-player: Spain,
-            // England+Protestant and France, with the Ottoman as England's
-            // activated ally.  5-player: one seat per power.  In all three the
-            // HRE starts inactive and activatable (Scenario Book p. 12).
+            // England+Protestant and France.  4-player: one seat each for Spain,
+            // England, France and Protestant.  5-player: one seat per power.
+            // In all four the Ottoman starts as England's activated ally (except
+            // 5-player) and the HRE starts inactive and activatable.
             playerPowers: numPlayers === 5
                 ? {"0": ["ottoman" as Power], "1": ["spain" as Power], "2": ["england" as Power],
                     "3": ["france" as Power], "4": ["protestant" as Power]}
-                : numPlayers === 3
-                    ? {"0": ["spain" as Power], "1": ["england" as Power, "protestant" as Power],
-                        "2": ["france" as Power]}
-                    : scenarioId === "tutorial" ? {"0": ["ottoman" as Power], "1": ["spain" as Power]} :
-                        {"0": ["spain" as Power, "france" as Power], "1": ["england" as Power, "protestant" as Power]},
+                : numPlayers === 4
+                    ? {"0": ["spain" as Power], "1": ["england" as Power],
+                        "2": ["france" as Power], "3": ["protestant" as Power]}
+                    : numPlayers === 3
+                        ? {"0": ["spain" as Power], "1": ["england" as Power, "protestant" as Power],
+                            "2": ["france" as Power]}
+                        : scenarioId === "tutorial" ? {"0": ["ottoman" as Power], "1": ["spain" as Power]} :
+                            {"0": ["spain" as Power, "france" as Power], "1": ["england" as Power, "protestant" as Power]},
             activatedMajors: {},
             majorDiplomacyResolved: [],
             majorInfluence: numPlayers === 5
                 ? {hre: {ottoman: 3, spain: 1, england: 1, france: 1, protestant: 1}}
                 : {
-                    ottoman: numPlayers === 3
+                    ottoman: numPlayers === 3 || numPlayers === 4
                         ? {spain: 1, england: 0, france: 0, protestant: 0}
                         : {spain: 1, england: 0, protestant: 0},
                     hre: {ottoman: 3, spain: 1, england: scenarioId === "tutorial" ? 0 : 1, france: scenarioId === "tutorial" ? 0 : 1, protestant: scenarioId === "tutorial" ? 0 : 1},
@@ -301,7 +305,7 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         powers[p].bonusVp = scenario.vpStart[p] - (baseVp(G, p) + religiousSpecialVp(G, p)) -
             (scenarioId === "tutorial" && p === "ottoman" ? tutorialFortressVp(G) : 0);
     }
-    if ((numPlayers === 2 || numPlayers === 3) && scenarioId !== "tutorial") {
+    if ((numPlayers === 2 || numPlayers === 3 || numPlayers === 4) && scenarioId !== "tutorial") {
         G.activatedMajors!.ottoman = {ally: "england", baseline: powerVp(G, "ottoman")};
     }
 
@@ -3601,7 +3605,12 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     G.minorDiplomacyResolved = [];
     G.piracyUsed = {};
     for (const target of G.majorDiplomacyResolved ?? []) {
-        if (target === "ottoman") G.majorInfluence![target] = {spain: 1, england: 0, protestant: 0};
+        // 2-player removes France from the Ottoman column; 4-player keeps all
+        // four influence tracks, so preserve that column on the winter reset.
+        if (target === "ottoman") G.majorInfluence![target] = {
+            spain: 1, england: 0, protestant: 0,
+            ...(G.majorInfluence![target]?.france !== undefined ? {france: 0} : {}),
+        };
         if (target === "hre") G.majorInfluence![target] = {ottoman: 3, spain: 1, england: 0, france: 0, protestant: 0};
     }
     G.majorDiplomacyResolved = [];

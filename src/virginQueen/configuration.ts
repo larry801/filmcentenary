@@ -1,7 +1,7 @@
-import {POWER_NAMES, POWERS, ScenarioID} from "./constant/general";
+import {POWER_NAMES, POWERS, Power, ScenarioID} from "./constant/general";
 
 export const SCENARIO_OPTIONS: {id: ScenarioID; label: string; players: number[]}[] = [
-    {id: "campaign", label: "Campaign · 拉罗谢尔之围", players: [2, 3, 5, 6]},
+    {id: "campaign", label: "Campaign · 拉罗谢尔之围", players: [2, 3, 4, 5, 6]},
     {id: "tournament", label: "Tournament · 荷兰起义开始", players: [2, 5, 6]},
     {id: "tutorial", label: "教学 · 勒班陀海战", players: [2]},
 ];
@@ -9,7 +9,8 @@ export const SCENARIO_OPTIONS: {id: ScenarioID; label: string; players: number[]
 export const seatLabels = (scenario: ScenarioID, numPlayers: number): string[] =>
     numPlayers === 6 ? POWERS.map((power) => POWER_NAMES[power].zh)
         : numPlayers === 5 ? POWERS.filter((power) => power !== "hre").map((power) => POWER_NAMES[power].zh)
-            : numPlayers === 3 ? ["西班牙", "英格兰 / 新教联盟", "法国"]
+            : numPlayers === 4 ? ["spain", "england", "france", "protestant"].map((power) => POWER_NAMES[power as Power].zh)
+                : numPlayers === 3 ? ["西班牙", "英格兰 / 新教联盟", "法国"]
                 : scenario === "tutorial"
                     ? ["奥斯曼帝国", "西班牙"] : ["西班牙 / 法国", "英格兰 / 新教联盟"];
 

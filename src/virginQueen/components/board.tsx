@@ -1751,6 +1751,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {POWERS.map((p) => <Stack key={p} direction="row" spacing={0.5} sx={{alignItems: "center", mb: 0.25}}>
                         <Box sx={{width: 10, height: 10, bgcolor: CONTROLLER_COLORS[p], borderRadius: 0.5}}/>
                         <Typography variant="caption" sx={{minWidth: 72}}>{POWER_NAMES[p].short} · {ownerOf(G, p) === undefined ? "未激活" : `P${Number(ownerOf(G, p)) + 1}`}</Typography>
+                        {isActivatedMajor(G, p) && <Chip size="small" variant="outlined"
+                            label={ownerOf(G, p) === undefined ? "待激活" : "激活"}/>}
                         <Chip size="small" label={`${powerVp(G, p)} VP`}/>
                         {p === "hre" && G.hreReligiousPreferenceChosen && <Chip size="small" variant="outlined"
                             label={G.hreReligiousPreference !== undefined && (me === "hre" || G.hreReligiousPreferenceRevealed)

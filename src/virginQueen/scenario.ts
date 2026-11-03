@@ -52,10 +52,9 @@ const removeCardsByName = (setup: ScenarioSetup, names: string[]): void => {
 };
 
 /**
- * Scenario Book p. 12: 2- and 3-player modifications.  Both configurations
- * print the same card, royal, patronage, sea-captain and artist/scientist
- * removals; they differ only in the seating and the Ottoman influence column
- * (handled in `setupGame`).  The UI exposes 3 players for the Campaign only.
+ * Scenario Book p. 12: 2-, 3- and 4-player games print the same card, royal,
+ * patronage, sea-captain and artist/scientist removals; they differ only in
+ * seating and influence columns (handled in `setupGame`).
  */
 const reducedMajorSetup = (id: ScenarioID): ScenarioSetup => {
     const setup = cloneScenario(id);
@@ -97,7 +96,7 @@ const fivePlayerSetup = (id: ScenarioID): ScenarioSetup => {
 
 export const scenarioSetup = (id: ScenarioID, numPlayers = 6): ScenarioSetup => {
     if (id === "tutorial") return SCENARIOS[id];
-    if (numPlayers === 2 || numPlayers === 3) return reducedMajorSetup(id);
+    if (numPlayers === 2 || numPlayers === 3 || numPlayers === 4) return reducedMajorSetup(id);
     if (numPlayers === 5) return fivePlayerSetup(id);
     return SCENARIOS[id];
 };
