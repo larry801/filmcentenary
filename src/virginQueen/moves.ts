@@ -697,6 +697,42 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #64 Philosopher's Stone: cancel a scientist's patronage work. */
 /** #51 El Dorado: send a northern South America captain to search. */
 /** #17 Army Mutiny: strip mercenaries and possibly regulars from a stack. */
+/** #18 City State Rebels: five dice against an occupying garrison. */
+const resolveCityStateRebels = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target === undefined) return;
+    const def = SPACE_BY_ID[target];
+    const state = G.spaces[target];
+    if (def === undefined || state === undefined || def.kind !== "fortress" || !isPower(state.control)) return;
+    const controller = state.control;
+    const values = roll(ctx, 5);
+    let hitCount = hits(values);
+    G.lastRolls = `City State Rebels [${values.join(",")}] = ${hitCount} hit(s)`;
+    for (const owner of [controller]) {
+        const stack = state.land[owner];
+        if (stack !== undefined) {
+            for (const kind of ["merc", "regular", "cav"] as const) {
+                const take = Math.min(hitCount, stack[kind]);
+                stack[kind] -= take;
+                hitCount -= take;
+            }
+            if (stack.regular + stack.merc + stack.cav === 0) delete state.land[owner];
+        }
+        const naval = state.naval[owner];
+        if (naval !== undefined && hitCount > 0) {
+            for (const kind of ["corsair", "galley", "galleon", "racebuilt"] as const) {
+                const take = Math.min(hitCount, naval[kind]);
+                naval[kind] -= take;
+                hitCount -= take;
+            }
+        }
+    }
+    if (totalLand(G, target, ownersWithLand(G, target)) === 0 && totalNaval(G, target, ownersWithNaval(G, target)) === 0) {
+        state.control = def.home;
+        addLand(G, target, def.home, "regular", 1);
+    }
+    pushLog(G, `${G.lastRolls} in ${def.name}.`);
+};
+
 const resolveArmyMutiny = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined || G.spaces[target] === undefined) return;
     const state = G.spaces[target];
@@ -1738,6 +1774,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveElDorado(G, target);
     } else if (handler === "armyMutiny") {
         resolveArmyMutiny(G, ctx, target);
+    } else if (handler === "cityStateRebels") {
+        resolveCityStateRebels(G, ctx, target);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {

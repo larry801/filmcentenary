@@ -184,6 +184,13 @@
 - 目标地区及一个相邻地区放置动荡。
 - 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
 
+### 城邦起义（#18）
+
+- 目标为一个被占领的本土设防地区；
+- 掷 5 骰，每个命中消灭 1 个陆军/海军单位；
+- 若守军全灭，控制权回归原属势力并放置 1 个正规军；
+- 将领俘虏/回场细节尚未接入。
+
 ### 黄金国（#51）
 
 - 目标航海家须在 `spanishMain`/`antilles`；
@@ -762,6 +769,7 @@ src/virginQueen/
   philosopher.test.ts   #64 贤者之石
   elDorado.test.ts      #51 黄金国
   armyMutiny.test.ts    #17 军队哗变
+  cityRebels.test.ts    #18 城邦起义
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -1008,3 +1016,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #51 黄金国接入后的验证：`jest src/virginQueen --runInBand --silent` 102 suites、524 tests passed（新增 1 项：结束远征并安排回场）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #17 军队哗变接入后的验证：`jest src/virginQueen --runInBand --silent` 103 suites、525 tests passed（新增 1 项：雇佣兵/正规军/动荡）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#18 城邦起义接入后的验证：`jest src/virginQueen --runInBand --silent` 104 suites、526 tests passed（新增 1 项：全灭/控制权回归）；`npm run build` 通过，仍有既有大体积 chunk 提示。
