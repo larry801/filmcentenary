@@ -25,6 +25,7 @@ describe("Dragut Falls (card #11)", () => {
 
         expect(G.leaders.dragut).toBeUndefined();
         expect(G.leaders.uluchAli.returnTurn).toBe(G.year + 1);
+        expect(G.removed).toContain("vq-011");
     });
 
     it("rolls 1-3: Dragut returns next turn", () => {

@@ -2210,6 +2210,7 @@ export const dragutFallsRoll = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE
     if (roll >= 4) {
         delete G.leaders.dragut;
         G.leaders.uluchAli = {id: "uluchAli", location: "pool", returnTurn: G.year + 1};
+        removeCardFromGame(G, "vq-011");
         pushLog(G, `${G.lastRolls} — Dragut dies; Uluch Ali returns next turn.`);
     } else {
         G.leaders.dragut = {id: "dragut", location: "pool", returnTurn: G.year + 1};
