@@ -87,6 +87,7 @@ import {
     isFortifiedSpace,
     isPort,
     isSeaZone,
+    landAdjacent,
     landDistance,
     leadersAt,
     minorAvailable,
@@ -1814,6 +1815,9 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
             if (totalLand(G, to, [p]) > defenders) {
                 dest.siege = {by: p, sinceImpulse: G.impulse};
                 pushLog(G, `The defenders of ${SPACE_BY_ID[to].name} withdraw into the fortifications; the space is under siege.`);
+            } else if (G.powers[p].cp >= 1) {
+                G.pendingContinue = {power: p, origin: from, space: to, units: {...stack}, leaders: [...leaders]};
+                pushLog(G, "The defenders withdraw; the active formation may spend 1 CP to continue or return.");
             } else {
                 const st = G.spaces[to].land[p];
                 if (st !== undefined) {
@@ -1999,6 +2003,58 @@ export const assault = (G: VQGame, ctx: Ctx, args: { space: string }): void | ty
     if (G.scenario === "tutorial") {
         startBattle(G, ctx, "assault", args.space, p, ownersWithLand(G, args.space).filter((owner) => !friendlyController(G, p, owner)), args.space);
     } else assaultSpace(G, ctx, p, args.space);
+};
+
+export const continueMove = (G: VQGame, ctx: Ctx, args: {to: string}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingContinue;
+    if (pending === undefined || power(G, ctx) !== pending.power || !landAdjacent(pending.space, args.to) ||
+        G.powers[pending.power].cp < 1 || args.to === pending.origin) return INVALID_MOVE;
+    const destination = G.spaces[args.to];
+    if (destination === undefined) return INVALID_MOVE;
+    const hostile = ownersWithLand(G, args.to).some((owner) => !friendlyController(G, pending.power, owner));
+    if (hostile) return INVALID_MOVE;
+    const canEnter = friendlyControlled(G, pending.power, args.to) || destination.control === "independent" ||
+        (isPower(destination.control) ? atWar(G, pending.power, destination.control) : atWarWithMinor(G, pending.power, destination.control));
+    if (!canEnter || !spend(G, pending.power, 1)) return INVALID_MOVE;
+    const source = G.spaces[pending.space].land[pending.power];
+    if (source === undefined || source.regular < pending.units.regular || source.merc < pending.units.merc || source.cav < pending.units.cav) return INVALID_MOVE;
+    source.regular -= pending.units.regular;
+    source.merc -= pending.units.merc;
+    source.cav -= pending.units.cav;
+    if (landCount(source) === 0) delete G.spaces[pending.space].land[pending.power];
+    const target = ensureLand(G, args.to, pending.power);
+    target.regular += pending.units.regular;
+    target.merc += pending.units.merc;
+    target.cav += pending.units.cav;
+    for (const id of pending.leaders) {
+        G.spaces[pending.space].leaders = G.spaces[pending.space].leaders.filter((leader) => leader !== id);
+        G.spaces[args.to].leaders.push(id);
+        G.leaders[id].location = args.to;
+    }
+    delete G.pendingContinue;
+    pushLog(G, `${powerLabel(pending.power)} continues to ${SPACE_BY_ID[args.to].name}.`);
+};
+
+export const stopContinue = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    const pending = G.pendingContinue;
+    if (pending === undefined || power(G, ctx) !== pending.power) return INVALID_MOVE;
+    const source = G.spaces[pending.space].land[pending.power];
+    if (source === undefined) return INVALID_MOVE;
+    source.regular -= pending.units.regular;
+    source.merc -= pending.units.merc;
+    source.cav -= pending.units.cav;
+    if (landCount(source) === 0) delete G.spaces[pending.space].land[pending.power];
+    const target = ensureLand(G, pending.origin, pending.power);
+    target.regular += pending.units.regular;
+    target.merc += pending.units.merc;
+    target.cav += pending.units.cav;
+    for (const id of pending.leaders) {
+        G.spaces[pending.space].leaders = G.spaces[pending.space].leaders.filter((leader) => leader !== id);
+        G.spaces[pending.origin].leaders.push(id);
+        G.leaders[id].location = pending.origin;
+    }
+    delete G.pendingContinue;
+    pushLog(G, `${powerLabel(pending.power)} returns to ${SPACE_BY_ID[pending.origin].name}.`);
 };
 
 const allowedPreach = (p: Power, area: ReligionArea): Religion | undefined => {

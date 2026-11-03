@@ -145,6 +145,12 @@
 
 地图中的英格兰家乡地区已补齐宗教区域标记；补入里尔与敦刻尔克供杜埃事件检查。新增点位与邻接仍是重建示意数据，将领战斗值也沿用现有近似值。此处没有完成全部自由响应时点和沃尔辛厄姆在另一行动中插入“移除人员＋获取情报”的嵌套响应；不能由本轮结果推断这些卡已完整自动化。大屠杀的“纳瓦拉与法国王室订婚”只检查当年外交阶段登记、尚未在冬季结算的订婚；纳瓦拉目前只在锦标赛的王室名单中，战役中他不会在第 3 回合自动加入，因此战役局里加强版条件实际上不会触发。计数器供应限制除五枚 Jesuit 外仍沿用原有实现。
 
+### 退入要塞（13.4）
+
+- 守军不超过 4 个时自动退入要塞；若攻方单位多于守军，直接围城。
+- 若攻方单位不多于守军且有至少 1 CP，形成待选状态：可花 1 CP 继续移动到相邻空地区，或免费返回出发地。
+- 继续行军只能进入无敌军且可进入的相邻地区；守方撤退选择仍自动。
+
 ### 婚姻（21.1）
 
 - 双方各掷 1 骰并加各自王室当前资格；同一强国的两位王室只加较高资格一次，合计查 Royal Wedding Table。
@@ -226,7 +232,7 @@ Card Draw 按参战强国依次确认，同一玩家控制的多个强国也需�
 - 正式局已接入自动拦截（13.2）与自动陆军避战（13.3），但编队/尝试顺序由程序选择；退入要塞选项仍保留简化
 - 冬季 20.4 的海军返港、陆军半损/4 单位上限/首都例外已实现；但目的地与损耗单位没有交互选择；海运已在正式局开放，但 Storms 响应、海运期间拦截与“每行动轮次只能海运一个编队”尚未实现；Catholic League（20.10）已接入，西班牙在下一外交阶段交互选地（春季未选完时自动补选）；Grand Tour #53 在联盟成立后打出即移出游戏，Dragut Falls #11 在 Dragut 离场时移出游戏；世界地图船长返航未实现
 - 西班牙阿马达已接入 #99 放置/升级、单独/随舰队移动、战斗骰与承受命中，并按强度/2计入海军封锁；载运陆军已接入港口装载/卸载、海上 1 CP 与相邻港口间运输及容量限制；可随西班牙舰队一起拦截/避战/撤退，冬季从海域自动返回西班牙港口；重建仍未完整
-- 正式局退入要塞仍未完整
+- 正式局退入要塞已接入自动撤退与攻方 1 CP 继续/返回选择；守方是否撤退仍自动
 - 海军避战已接入但目的地/编队自动；海军拦截编队与多敌军顺序仍自动
 - 婚姻已按官方 Royal Wedding Table 结算（2d6 + 资格；同国只取较高资格；15+ 双方 2 VP、14 双方 1 VP+卡牌标记、13 双方 1 VP、12 +1 卡牌标记、10/11 无效果、9 最后取消、8 −1 卡牌标记、7 妻子死于难产、6- 丈夫被谋杀；Valois +1 VP）。已接入 Don Carlos 最高骰重掷、Anna of Austria 最低骰重掷、William of Orange 无 VP 结果回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 的卡牌标记、Isabella Clara Eugenia 赞助加值；#36 童贞女王已接入弃婚与 Jilted Table；Philip II/Charles IX/Henry III/Rudolf II/Elizabeth I 死亡效果已按 23.2–23.5 降低卡牌/Admin，并处理 Henry III 将领与 Elizabeth 牌
 - 统治者死亡/更替、
@@ -282,6 +288,7 @@ src/virginQueen/
   worldPiracy.test.ts   16.5/17.3 巡逻舰、世界要塞、世界海盗防御/奖励/限制
   armada.test.ts        23.2 阿马达放置/升级/骰数/承伤/随行
   treasureFleet.test.ts 春季护航、葡萄牙宝藏行/冬季奖励
+  withdraw.test.ts      13.4 退入要塞后的 1 CP 继续/返回
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
 ```
@@ -370,3 +377,5 @@ Royal Wedding Table（21.1）接入后的验证：`jest src/virginQueen --runInB
 春季护航与葡萄牙宝藏行接入后的验证：`jest src/virginQueen --runInBand --silent` 35 suites、411 tests passed（新增 4 项：护航进出上限、里斯本控制者取 1 宝藏、无控制者丢弃、Card Draw 补充 3 个）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #38 珍宝舰队事件接入后的验证：`jest src/virginQueen --runInBand --silent` 35 suites、413 tests passed（新增 2 项：无袭击时宝藏回西班牙、海域内船长夺取宝藏）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+退入要塞后的继续/返回接入后的验证：`jest src/virginQueen --runInBand --silent` 36 suites、416 tests passed（新增 3 项：生成继续选择、花 1 CP 继续、免费返回）；`npm run build` 通过，仍有既有大体积 chunk 提示。

@@ -69,6 +69,7 @@ import {
     zonePorts,
     minorAvailable,
     friendlyController,
+    landNeighbors,
 } from "../util";
 import {VQMap} from "./map";
 import {TutorialGuide} from "./tutorial-guide";
@@ -506,6 +507,18 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {ps !== undefined && ps.cardPlayed && <Chip size="small" color="success" label="本回合已出牌"/>}
                 </Stack>
                 {!myTurn && <Typography variant="caption" color="text.secondary">等待 {POWER_NAMES[G.activePower].zh} 行动。</Typography>}
+                {G.pendingContinue !== undefined && G.pendingContinue.power === me && <Paper variant="outlined" sx={{p: 1}}>
+                    <Typography variant="subtitle2">守军退入要塞</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        可花 1 CP 继续行军到相邻空地区，或返回 {SPACE_BY_ID[G.pendingContinue.origin]?.name ?? G.pendingContinue.origin}。
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap", mt: 0.5}}>
+                        {landNeighbors(G.pendingContinue.space).filter((neighbor) => !neighbor.pass).map((neighbor) =>
+                            <Button key={neighbor.id} size="small" variant="outlined" disabled={!myTurn || cp < 1}
+                                onClick={() => moves.continueMove({to: neighbor.id})}>{SPACE_BY_ID[neighbor.id]?.name ?? neighbor.id}</Button>)}
+                        <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.stopContinue()}>返回出发地</Button>
+                    </Stack>
+                </Paper>}
                 {me === "spain" && G.armada !== undefined && <Paper variant="outlined" sx={{p: 1}}>
                     <Typography variant="subtitle2">西班牙阿马达 · 强度 {G.armada.strength}</Typography>
                     <Typography variant="caption" color="text.secondary">
