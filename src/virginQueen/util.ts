@@ -1796,6 +1796,7 @@ export const resolveConversions = (
     autoSix = false,
     extraUnrest = 0,
     rollOptions: {fivesAsSix?: boolean; threesAsFour?: boolean} = {},
+    unrestOnOnes = false,
 ): string => {
     const dice: number[] = [];
     for (let i = 0; i < attempts; i++) {
@@ -1823,11 +1824,20 @@ export const resolveConversions = (
         G.spaces[target].religion = side;
         converted.push(target);
     }
-    const unrestTokens = Math.min(ones + extraUnrest, converted.length > 0 ? converted.length : 0);
-    for (let i = 0; i < unrestTokens; i++) {
-        const target = converted[i % converted.length];
-        if (target !== undefined) {
-            G.spaces[target].unrest = true;
+    let unrestTokens = 0;
+    if (unrestOnOnes) {
+        const candidates = SPACES.filter((space) => space.area === area && !G.spaces[space.id].unrest);
+        for (const space of candidates.slice(0, ones + extraUnrest)) {
+            G.spaces[space.id].unrest = true;
+            unrestTokens += 1;
+        }
+    } else {
+        unrestTokens = Math.min(ones + extraUnrest, converted.length > 0 ? converted.length : 0);
+        for (let i = 0; i < unrestTokens; i++) {
+            const target = converted[i % converted.length];
+            if (target !== undefined) {
+                G.spaces[target].unrest = true;
+            }
         }
     }
     G.lastRolls = `${side} conversions in ${AREA_NAMES[area].en}: [${dice.join(", ")}]`;

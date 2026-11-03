@@ -1757,6 +1757,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveForeignVolunteers(G, p);
     } else if (cardId === "vq-026") {
         resolveSmallAid(G, target);
+    } else if (cardId === "vq-055" && (target === "france" || target === "netherlands")) {
+        resolveConversions(G, ctx, p, "protestant", target, 7, true, 0, {fivesAsSix: true}, true);
     } else if (isGrandVizier(def)) {
         beginGrandVizierEvent(G, ctx, cardId);
     } else if (G.scenario === "tutorial") {

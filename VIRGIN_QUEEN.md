@@ -184,6 +184,12 @@
 - 目标地区及一个相邻地区放置动荡。
 - 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
 
+### 破坏圣像运动（#55）
+
+- 在法兰西或尼德兰进行 7 次新教传播，5 视为 6；
+- 每个骰值 1 都在该地区一个无动荡地区放置骚乱（不再受转化数量限制）；
+- 已通过 `unrestOnOnes` 选项接入。
+
 ### 壮游（#53）
 
 - 移除法兰西地区所有动荡；
@@ -828,6 +834,7 @@ src/virginQueen/
   calvinistZeal.test.ts #32 加尔文主义狂热
   papalBull.test.ts     #5 教宗诏书
   grandTour.test.ts     #53 壮游
+  iconoclasm.test.ts    #55 破坏圣像运动
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -1092,3 +1099,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #5 教宗诏书（传播分支）接入后的验证：`jest src/virginQueen --runInBand --silent` 111 suites、533 tests passed（新增 1 项：教廷评议+7 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #53 壮游接入后的验证：`jest src/virginQueen --runInBand --silent` 112 suites、535 tests passed（新增 1 项：清动荡/取回诺查丹玛斯/巴黎增兵）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#55 破坏圣像运动接入后的验证：`jest src/virginQueen --runInBand --silent` 113 suites、538 tests passed（新增 1 项：无转化时每个 1 仍放置骚乱）；`npm run build` 通过，仍有既有大体积 chunk 提示。
