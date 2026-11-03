@@ -280,7 +280,7 @@
 ### 约翰·霍金斯（#59）
 
 - 英格兰获得 5 CP，用于海军建造/移动/海盗；
-- 当前为通用 CP，未限制用途；目标写为 `upgrade` 时，将英格兰本土港口所有大帆船翻面升级为快速帆船；霍金斯海盗等级提升与奴隶贩子 VP 分支尚未接入。
+- 当前为通用 CP，未限制用途；目标写为 `upgrade` 时，将英格兰本土港口所有大帆船翻面升级为快速帆船；霍金斯在几内亚海岸/南美北海岸时海盗等级视为 2；奴隶贩子 VP 分支尚未接入。
 
 ### 外国志愿军 / 小型救援（#21/#26）
 
@@ -842,6 +842,7 @@ src/virginQueen/
   ambassador.test.ts    #20 雄辩的大使
   volunteersAid.test.ts #21 外国志愿军 / #26 小型救援
   johnHawkins.test.ts   #59 约翰·霍金斯
+  hawkinsPiracy.test.ts #59 霍金斯海盗等级
   philosopher.test.ts   #64 贤者之石
   elDorado.test.ts      #51 黄金国
   armyMutiny.test.ts    #17 军队哗变
@@ -1154,3 +1155,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 行动面板新增两个响应按钮：法国持有 #89 且玛丽在世时可点“+4 苏格兰影响力”；持有 #11 且 `dragutFought` 为真时可点“德拉古特之死：掷骰”。验证：`jest src/virginQueen --runInBand --silent` 126 suites、559 tests passed；`npm run build` 通过。
 
 #106 德雷克携带宝藏接入后的验证：`jest src/virginQueen --runInBand --silent` 127 suites、560 tests passed（新增 1 项：海盗夺宝并冬季交付）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#59 霍金斯海盗等级接入后的验证：`jest src/virginQueen --runInBand --silent` 128 suites、561 tests passed（新增 1 项：几内亚海岸海盗 2）；`npm run build` 通过，仍有既有大体积 chunk 提示。

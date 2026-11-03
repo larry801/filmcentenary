@@ -3054,7 +3054,8 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
         if (hits === 1) expedition.damaged = true;
     }
     const base = expedition.damaged || settlements.length === 1 ? 1 : 2;
-    const piracyDice = base + captain.piracy;
+    const hawkinsPiracy = args.captain === "hawkins" && ["guineaCoast", "spanishMain"].includes(expedition.location);
+    const piracyDice = base + (hawkinsPiracy ? 2 : captain.piracy);
     const dice = roll(ctx, piracyDice);
     const hits = dice.filter((die) => die >= 5).length;
     G.lastRolls = `World piracy (${captain.nameEn}): [${dice.join(",")}] = ${hits} hit(s)`;
