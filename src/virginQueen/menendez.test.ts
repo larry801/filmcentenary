@@ -30,6 +30,18 @@ describe("Menéndez de Avilés (card #61)", () => {
         expect(G.worldControls.florida).toBe("spain");
     });
 
+    it("succeeds automatically with an informant", () => {
+        const G = game();
+        prepare(G);
+        G.worldColonies.florida = "england";
+        G.informants = [{owner: "spain", target: "england", plantedImpulse: 1, neutralized: false}];
+
+        expect(playCard(G, context([1]), {cardId: "vq-061", asEvent: true})).toBeUndefined();
+
+        expect(G.worldColonies.florida).toBeUndefined();
+        expect(G.worldControls.florida).toBe("spain");
+    });
+
     it("can choose the escort even when Florida is available", () => {
         const G = game();
         prepare(G);

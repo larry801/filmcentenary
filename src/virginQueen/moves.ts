@@ -1468,8 +1468,9 @@ const resolveNorthwestPassage = (G: VQGame, ctx: Ctx, target?: string): void => 
 const resolveMenendez = (G: VQGame, ctx: Ctx, target?: string): void => {
     const florida = G.worldColonies.florida;
     if (target !== "escort" && target !== "fortress" && florida !== undefined && florida !== "spain") {
-        const roll = die(ctx, 6);
-        G.lastRolls = `Menéndez de Avilés: ${roll}`;
+        const informant = G.informants.some((info) => info.owner === "spain" && info.target === florida && !info.neutralized);
+        const roll = informant ? 6 : die(ctx, 6);
+        G.lastRolls = `Menéndez de Avilés: ${roll}${informant ? " (informant)" : ""}`;
         if (roll >= 3) {
             delete G.worldColonies.florida;
             G.worldControls.florida = "spain";
