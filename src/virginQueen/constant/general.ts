@@ -534,6 +534,8 @@ export interface VQGame {
     pendingCatholicLeague?: {remaining: number};
     /** HRE winter replacement choice (20.6), made during the next Diplomacy Phase. */
     pendingHreReplacement?: {canRegular: boolean; canMercs: boolean; canMarker: boolean};
+    /** Morisco Revolt unit (rule 20.1 / card #28), if in play. */
+    morisco?: {space: string; units: number};
     /** Set at the end of the Action Phase so endIf can score the winter. */
     checkVictory: boolean;
     /** Key counts at setup, so starting positions do not trigger military victory. */

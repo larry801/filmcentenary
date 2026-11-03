@@ -82,6 +82,7 @@ import {
     isFortifiedSpace,
     isPort,
     isSeaZone,
+    landDistance,
     leadersAt,
     minorAvailable,
     navalAdjacent,
@@ -100,6 +101,7 @@ import {
     removeSeaNavalLosses,
     resolveConversions,
     resolveEvent,
+    resolveMoriscoRevolt,
     resolveOfficialCardEffect,
     resolveMinorDiplomacy,
     resolveRebellion,
@@ -327,6 +329,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         beginNorthernRising(G, ctx, p);
     } else if (handler === "untimelyDeath") {
         resolveUntimelyDeath(G, target ?? "none");
+    } else if (handler === "moriscoRevolt") {
+        resolveMoriscoRevolt(G, p);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
@@ -391,6 +395,8 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (args.asEvent === true && cardHandler === "northernRising" && !canPlayNorthernRising(G)) return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "stBartholomewsDayMassacre" && !canPlayMassacre(G)) return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "untimelyDeath" && G.scenario !== "tutorial" && !canPlayUntimelyDeath(G, args.target)) return INVALID_MOVE;
+    if (args.asEvent === true && cardHandler === "moriscoRevolt" &&
+        !(atWar(G, "ottoman", "spain") && G.morisco === undefined)) return INVALID_MOVE;
     if (args.asEvent === true && beneficiary !== undefined) {
         const enemyUnits = Number(args.target);
         if ((enemyUnits !== 3 && enemyUnits !== 5) || G.foreignWars[beneficiary] !== undefined ||
@@ -1320,6 +1326,9 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     }
     const unitPower = args.unitPower ?? p;
     if (!friendlyController(G, p, unitPower)) return INVALID_MOVE;
+    // Rule 23.1: Morisco units may never move more than 2 spaces from Granada.
+    if (p === "ottoman" && unitPower === "ottoman" && G.morisco?.space === from &&
+        (landDistance("granada", to) ?? Number.POSITIVE_INFINITY) > 2) return INVALID_MOVE;
     const source = G.spaces[from].land[unitPower];
     if (source === undefined || landCount(source) === 0) {
         return INVALID_MOVE;
@@ -1366,6 +1375,11 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     source.merc -= stack.merc;
     source.cav -= stack.cav;
     if (landCount(source) === 0) delete G.spaces[from].land[unitPower];
+    if (p === "ottoman" && unitPower === "ottoman" && G.morisco?.space === from &&
+        landCount(G.spaces[from].land.ottoman) === 0) {
+        G.morisco.space = to;
+        G.morisco.units = Math.min(G.morisco.units, landCount(G.spaces[to].land.ottoman));
+    }
     for (const id of leaders) {
         G.spaces[from].leaders = G.spaces[from].leaders.filter((x) => x !== id);
         G.spaces[to].leaders.push(id);

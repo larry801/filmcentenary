@@ -265,6 +265,7 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         worldControls: Object.fromEntries(Object.entries(scenario.worldSpaces ?? {})
             .filter(([, setup]) => setup.control !== undefined && isPower(setup.control))
             .map(([id, setup]) => [id, setup.control as Power])),
+        morisco: scenario.cardsOnBoard.includes(28) ? {space: "granada", units: 2} : undefined,
         foreignWars: {},
         seaCaptainsAvailable: scenarioSeaCaptains(scenario).filter((id) => seaCaptainById(id)?.power === "france/protestant"),
         scienceBonusesAvailable: [...scenario.patronage.scienceBonuses],
@@ -609,6 +610,7 @@ export const clearWar = (G: VQGame, a: Power, b: Power): void => {
     G.powers[a].wars = G.powers[a].wars.filter((x) => x !== b);
     G.powers[b].wars = G.powers[b].wars.filter((x) => x !== a);
     pushLog(G, `${powerLabel(a)} and ${powerLabel(b)} make peace.`);
+    if (G.morisco !== undefined && !atWar(G, "ottoman", "spain")) clearMorisco(G);
 };
 
 const WAR_COST: Record<string, number> = {
@@ -1115,6 +1117,41 @@ export const landAdjacent = (a: string, b: string): boolean =>
 
 export const passBetween = (a: string, b: string): boolean =>
     landNeighbors(a).some((n) => n.id === b && n.pass);
+
+/** Shortest land-only path length, or undefined when disconnected. */
+export const landDistance = (from: string, to: string): number | undefined => {
+    if (from === to) return 0;
+    const seen = new Set([from]);
+    const queue: {id: string; distance: number}[] = [{id: from, distance: 0}];
+    while (queue.length > 0) {
+        const current = queue.shift() as {id: string; distance: number};
+        for (const next of landNeighbors(current.id)) {
+            if (seen.has(next.id)) continue;
+            if (next.id === to) return current.distance + 1;
+            seen.add(next.id);
+            queue.push({id: next.id, distance: current.distance + 1});
+        }
+    }
+    return undefined;
+};
+
+/** All land spaces within `distance` steps of `from`, including `from`. */
+export const landWithin = (from: string, distance: number): string[] => {
+    const seen = new Set([from]);
+    let frontier = [from];
+    for (let step = 0; step < distance; step++) {
+        const next: string[] = [];
+        for (const id of frontier) {
+            for (const neighbor of landNeighbors(id)) {
+                if (seen.has(neighbor.id)) continue;
+                seen.add(neighbor.id);
+                next.push(neighbor.id);
+            }
+        }
+        frontier = next;
+    }
+    return [...seen];
+};
 
 export const seaAdjacent = (a: SeaZoneID, b: SeaZoneID): boolean =>
     SEA_ZONE_BY_ID[a].adjacent.includes(b);
@@ -2251,6 +2288,8 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
         const state = G.spaces[id];
         const stack = state.land[p];
         if (stack === undefined || landCount(stack) === 0) continue;
+        // Rule 23.1: the Morisco unit never moves during the Winter Phase.
+        if (p === "ottoman" && G.morisco?.space === id) continue;
         if (!isFortifiedSpace(G, id) || state.control !== p || winterIsCapital(p, id) || landCount(stack) <= 4) continue;
         const capitals = winterCapitalsFor(G, p, id)
             .map((cap) => ({id: cap, distance: winterDistance(id, cap)}))
@@ -2276,6 +2315,8 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
         const state = G.spaces[id];
         const stack = state.land[p];
         if (stack === undefined || landCount(stack) === 0) continue;
+        // Rule 23.1: the Morisco unit never moves during the Winter Phase.
+        if (p === "ottoman" && G.morisco?.space === id) continue;
         // Friendly fortifications (including capitals) are valid winter quarters.
         if (state.control === p && isFortifiedSpace(G, id)) continue;
         const capitals = winterCapitalsFor(G, p, id);
@@ -2542,6 +2583,90 @@ export const resolvePendingHreReplacement = (G: VQGame): void => {
     delete G.pendingHreReplacement;
 };
 
+// --------------------------------------------------------------------------
+// Morisco Revolt (card #28 / rule 20.1)
+// --------------------------------------------------------------------------
+
+export const placeMoriscoUnrest = (G: VQGame, origin?: string): string[] => {
+    if (G.morisco === undefined) return [];
+    const center = origin ?? G.morisco.space;
+    const candidates = landWithin(center, 2).filter((id) =>
+        id !== center && G.spaces[id] !== undefined && !G.spaces[id].unrest && ownersWithLand(G, id).length === 0);
+    const chosen = candidates.slice(0, 2);
+    for (const id of chosen) {
+        G.spaces[id].unrest = true;
+        pushLog(G, `Morisco Revolt: unrest in ${SPACE_BY_ID[id].name}.`);
+    }
+    if (chosen.length < 2) {
+        pushLog(G, `Morisco Revolt: only ${chosen.length} unoccupied space(s) within 2 of ${SPACE_BY_ID[center]?.name ?? center}.`);
+    }
+    return chosen;
+};
+
+export const clearMorisco = (G: VQGame): void => {
+    const morisco = G.morisco;
+    if (morisco === undefined) return;
+    const stack = G.spaces[morisco.space]?.land.ottoman;
+    if (stack !== undefined) {
+        const removed = Math.min(morisco.units, stack.regular);
+        stack.regular -= removed;
+        cleanupLand(G, morisco.space, "ottoman");
+    }
+    delete G.morisco;
+    if (!G.removed.includes("vq-028")) G.removed.push("vq-028");
+    G.deck = G.deck.filter((id) => id !== "vq-028");
+    G.discard = G.discard.filter((id) => id !== "vq-028");
+    G.futureDeck = G.futureDeck.filter((id) => id !== "vq-028");
+    pushLog(G, "Morisco Revolt ends: the Morisco unit is removed and card #28 leaves play.");
+};
+
+export const checkMoriscoStatus = (G: VQGame): void => {
+    const morisco = G.morisco;
+    if (morisco === undefined) return;
+    if (!atWar(G, "ottoman", "spain")) {
+        clearMorisco(G);
+        return;
+    }
+    const count = G.spaces[morisco.space] === undefined ? 0 : landCount(G.spaces[morisco.space].land.ottoman);
+    if (count <= 0) {
+        clearMorisco(G);
+        return;
+    }
+    morisco.units = Math.min(morisco.units, count);
+};
+
+/** Resolve card #28: the Morisco unit appears in Granada (rule 23.1). */
+export const resolveMoriscoRevolt = (G: VQGame, _p: Power): boolean => {
+    if (!atWar(G, "ottoman", "spain") || G.morisco !== undefined) return false;
+    const granada = G.spaces.granada;
+    if (granada === undefined) return false;
+    captureLeaders(G, "granada", ownersWithLand(G, "granada"), "ottoman");
+    granada.land = {};
+    granada.unrest = true;
+    addLand(G, "granada", "ottoman", "regular", 2);
+    G.morisco = {space: "granada", units: 2};
+    placeMoriscoUnrest(G, "granada");
+    pushLog(G, "Morisco Revolt: Granada is cleared, unrest spreads, and 2 Morisco units appear.");
+    return true;
+};
+
+const winterMorisco = (G: VQGame): void => {
+    const morisco = G.morisco;
+    if (morisco === undefined) return;
+    if (!atWar(G, "ottoman", "spain")) {
+        clearMorisco(G);
+        return;
+    }
+    const state = G.spaces[morisco.space];
+    if (state?.siege?.by === "ottoman" && isFortifiedSpace(G, morisco.space)) {
+        pushLog(G, "Morisco Revolt: the Morisco unit is besieging a fortified space at Winter and is eliminated.");
+        clearMorisco(G);
+        return;
+    }
+    placeMoriscoUnrest(G, morisco.space);
+    checkMoriscoStatus(G);
+};
+
 export const winter = (G: VQGame, ctx: Ctx): void => {
     if (G.scenario === "tutorial" && G.year === 2 && G.powers.ottoman.ruler === "suleiman") {
         G.deck = G.deck.filter((id) => id !== "vq-006");
@@ -2553,6 +2678,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         if (!G.removed.includes("vq-006")) G.removed.push("vq-006");
         pushLog(G, "Selim II succeeds Suleiman before Turn 3 (Scenario Book card clarification #6).");
     }
+    winterMorisco(G);
     resolveMarriages(G, ctx);
     resolvePatronage(G, ctx);
     const neutralized = G.informants.filter((i) => i.neutralized).length;
