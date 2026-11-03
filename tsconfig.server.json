@@ -5,7 +5,12 @@
     "outDir": "./build",
     "isolatedModules": false,
     "target": "es6",
-    "rootDir": "."
+    "rootDir": ".",
+    // tsconfig.json 用 bundler 解析；tsc-bundle 打包时强制 module=amd + outFile，
+    // 与 bundler 不兼容（TS5095），amd 与 outFile 在 TS6 也需显式忽略弃用告警。
+    "module": "amd",
+    "moduleResolution": "node10",
+    "ignoreDeprecations": "6.0"
   },
   "include": [
     "server.ts"
