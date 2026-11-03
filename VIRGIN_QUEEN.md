@@ -566,7 +566,7 @@
 ### 爱德华·斯塔福德爵士（#102）
 
 - 作为事件打出，检视目标势力的手牌与宝藏，并按混合手牌规则随机弃置一张非本国牌或一个宝藏。
-- 响应模式（取消沃尔辛厄姆）尚未接入。
+- 响应模式：`cancelWalsingham` 可弃置 #102 并清除当前沃尔辛厄姆状态。
 
 ### 苏格兰的玛丽女王（#89）
 
@@ -1179,3 +1179,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #7 绝望强攻测试已补：攻城时进攻方命中 4–6，防守方掷双倍骰。验证：`jest src/virginQueen --runInBand --silent` 136 suites、583 tests passed（新增 1 项：防守骰翻倍）；`npm run build` 通过。
 
 #50 血腥委员会奥兰治处理接入后的验证：`jest src/virginQueen --runInBand --silent` 137 suites、585 tests passed（新增 1 项：奥兰治进 Turn Track）；`npm run build` 通过。
+
+#102 斯塔福德响应取消沃尔辛厄姆接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、587 tests passed（新增 1 项：取消沃尔辛厄姆）；`npm run build` 通过。

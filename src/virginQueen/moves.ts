@@ -2271,6 +2271,16 @@ export const stormNavigation = (G: VQGame, ctx: Ctx, args: {captain: string}): v
     navigationCheck(G, ctx, args.captain);
 };
 
+/** #102 Sir Edward Stafford response: cancel Walsingham. */
+export const cancelWalsingham = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    const p = power(G, ctx);
+    if (!G.powers[p].cards.includes("vq-102") || G.espionage?.walsingham === undefined) return INVALID_MOVE;
+    removeCardFromHand(G, p, "vq-102");
+    discardCard(G, p, "vq-102", true);
+    delete G.espionage.walsingham;
+    pushLog(G, `Sir Edward Stafford cancels Walsingham for ${powerLabel(p)}.`);
+};
+
 export const maryInfluence = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     const p = power(G, ctx);
     const mary = G.royals.find((royal) => royal.id === "maryScots");
