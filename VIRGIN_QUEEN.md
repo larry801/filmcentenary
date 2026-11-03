@@ -587,7 +587,7 @@
 
 - 奥斯曼事件模式：+5 CP，本行动轮仅限建造海盗船/海军移动/海盗行动，海盗额外 +1 骰；
 - 非奥斯曼响应模式：在奥斯曼本回合首个行动轮之后打出，弃置 #16，使奥斯曼跳过下一个行动轮，响应方抽 1 张；
-- 首个行动轮不能用响应效果跳过；响应窗口沿用现有 `pendingAction` 响应阶段；
+- 首个行动轮不能用响应效果跳过；除行动声明响应外，奥斯曼每个行动轮开始时（首个行动轮之后）也会先开放 `pendingAction.move = "impulse"` 响应窗口；
 - 每个奥斯曼行动轮开始时（首个之后）都会向持有 #16 的非奥斯曼势力开放 `move: "impulse"` 窗口，因此征募、影响力、pass 等不经过移动声明的行动同样可被响应；放行后原有移动声明窗口仍可用（对应“每次行动后”的响应时机）。
 
 ### 坏血病（#45）
@@ -706,7 +706,7 @@
 
 - 伊丽莎白已订婚时，可解除婚约；新郎势力按 Jilted Table 掷 1d6：6 得两张 +1 Card 标记，5 得一张，4/3/2 获得 4/3/2 CP 用于外交影响和/或雇佣兵，1 无补偿；英格兰随后抽一张牌。
 - 未订婚时，自动取回弃牌堆中第一张非本国牌并保留。
-- 目标 `retrieve:<卡牌ID>:play` 取回指定牌并立即按其事件结算；`retrieve:<卡牌ID>:play:<事件目标>` 可同时传入该牌自身的事件目标（例如 `retrieve:vq-005:play:excommunicate`）。实现复用 `playCard`，因此仍受该牌的时机、目标与合法性限制；无法打出时牌留在弃牌堆，若事件可被取消则照常进入取消响应窗口。
+- 目标 `retrieve:<卡牌ID>:play` 取回指定牌并立即按其事件结算；若英格兰是战斗攻方且当前 `cardWindow` 为匹配的战斗窗口，#7/#8/#9/#10/#40 可作为战斗牌注册并结算；`retrieve:<卡牌ID>:play:<事件目标>` 可同时传入该牌自身的事件目标（例如 `retrieve:vq-005:play:excommunicate`）。实现复用 `playCard`，因此仍受该牌的时机、目标与合法性限制；无法打出时牌留在弃牌堆，若事件可被取消则照常进入取消响应窗口。
 - **已支持的响应/战斗牌子集**：当英格兰是当前战斗的进攻方且 `G.cardWindow` 为该战斗的开窗时，可立即打出印刷类别为 Combat 的战斗牌（#7 强攻、#8 精锐部队、#9 火攻战船、#10 围城工事、#40 提尔伯里演讲）；牌会登记到 `pendingBattle.cards[power]`，由战斗掷骰例程读取其加骰/改判效果，并照常进入弃牌堆。窗口的类别（野战/海战/攻城）必须与该牌印刷阶段一致，#40（任意阶段）除外。
   - 边界：仅支持进攻方一侧的 Combat 牌；防守方只有在 `battleChoice` 阶段通过 `chooseBattle` 出牌，`playCard` 在防守方不可用。依赖触发时机的 Response 牌（#12 威尼斯桨帆船、#13 黑骑士、#15 风暴、#39 洪水等）仍走各自的 `chooseBattle`/响应阶段，不在此子集内；没有窗口时这些牌保持在弃牌堆。
   - 可达性说明：boardgame.io 在战斗期间只让应对方进入 `battleChoice` 阶段，普通客户端无法在战斗中途调用 `playCard`；本子集为规则层能力（供直接调用/后续集成使用），`moveError` 仅在 `pendingBattle` 时放行 `playCard`，其余待响应状态仍全部拦截。测试通过直接驱动 `playCard` + `startBattle` 覆盖成功与回滚。
@@ -756,10 +756,10 @@ Card Draw 按参战强国依次确认，同一玩家控制的多个强国也需�
 - 境外战争已接入“波斯战争”和“波兰战争”：配置 3/5 名敌军、派出 3–8 个部队、逐次投入 1 CP 作战、增援、战后返军与战争胜利 VP；波兰战争的 −1 抽牌与“波兰皇家选举”终止效果也已接入。
 - 正式局仍有部分 Response / Combat 卡与 Mandatory Event 需要手动结算；教学局使用的响应卡和 1–31 号卡已接入对应教学流程
 - 正式局已接入自动拦截（13.2）与自动陆军避战（13.3），但编队/尝试顺序由程序选择；退入要塞选项仍保留简化
-- 冬季 20.4 的海军返港、陆军半损/4 单位上限/首都例外已实现；但目的地与损耗单位没有交互选择；海运已在正式局开放；Storms 响应与每行动轮次一个运输编队已接入，海运期间拦截仍走现有自动拦截流程。Catholic League（20.10）已接入，西班牙在下一外交阶段交互选地（春季未选完时自动补选）；Grand Tour #53 在联盟成立后打出即移出游戏，Dragut Falls #11 在 Dragut 离场时移出游戏；世界地图船长返航已接入 `returnWorldCaptains`（冬季将现役远征船长收回船长池）
+- 冬季 20.4 的海军返港、陆军半损/4 单位上限/首都例外已实现；陆军返营损耗单位类型可交互选择（其余冬季损耗仍自动）；海运已在正式局开放；Storms 响应与每行动轮次一个运输编队已接入，海运期间拦截仍走现有自动拦截流程。Catholic League（20.10）已接入，西班牙在下一外交阶段交互选地（春季未选完时自动补选）；Grand Tour #53 在联盟成立后打出即移出游戏，Dragut Falls #11 在 Dragut 离场时移出游戏；世界地图船长返航已接入 `returnWorldCaptains`（冬季将现役远征船长收回船长池）
 - 西班牙阿马达已接入 #99 放置/升级、单独/随舰队移动、战斗骰与承受命中，并按强度/2计入海军封锁；载运陆军已接入港口装载/卸载、海上 1 CP 与相邻港口间运输及容量限制；可单独或随西班牙舰队拦截/避战/撤退，冬季从海域自动返回西班牙港口；被消灭后于下一 Turn Track 年份在塞维利亚/科伦纳/里斯本以强度 2 重建
 - 正式局退入要塞已接入守方“退入要塞/出城野战”选择，以及攻方 1 CP 继续/返回选择
-- 海军避战已接入但目的地/编队自动；海军拦截编队仍自动；多敌军交战顺序已交互
+- 海军避战已接入但目的地/编队自动；海军拦截的尝试顺序已交互（`interceptionOrder`）；多敌军交战顺序已交互
 - 婚姻已按官方 Royal Wedding Table 结算（2d6 + 资格；同国只取较高资格；15+ 双方 2 VP、14 双方 1 VP+卡牌标记、13 双方 1 VP、12 +1 卡牌标记、10/11 无效果、9 最后取消、8 −1 卡牌标记、7 妻子死于难产、6- 丈夫被谋杀；Valois +1 VP）。已接入 Don Carlos 最高骰重掷、Anna of Austria 最低骰重掷、William of Orange 无 VP 结果回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 的卡牌标记、Isabella Clara Eugenia 赞助加值；#36 童贞女王已接入弃婚与 Jilted Table；Philip II/Charles IX/Henry III/Rudolf II/Elizabeth I 死亡效果已按 23.2–23.5 降低卡牌/Admin，并处理 Henry III 将领与 Elizabeth 牌
 - 统治者死亡/更替、
   科学家/艺术家全部名单、计数器上限
@@ -1272,3 +1272,19 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #36 童贞女王新增 `retrieve:<卡牌ID>:play[:<事件目标>]`：取回弃牌堆中的牌并立即按该牌自己的事件结算，复用 `playCard` 的时机/目标/合法性校验；无法打出时回滚并留在弃牌堆。验证：`jest src/virginQueen --runInBand --silent` 141 suites、649 tests passed（新增 4 项）；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。
 
 #36 童贞女王即时打出扩展到战斗窗口：`retrieve:<Combat 牌>:play` 在英格兰为进攻方且窗口阶段匹配时，把 Combat 牌登记进 `pendingBattle.cards[power]`（新增 `combat.playBattleCard`），牌照常进入弃牌堆；无窗口或阶段不匹配时 `playCard` 在改动状态前拒绝，`resolveVirginQueenEvent` 回滚取回并把牌留在弃牌堆。`moveError` 仅在 `pendingBattle` 存在时放行 `playCard`，其余待响应状态仍全部拦截。测试：`virginQueenResponsePlay.test.ts` 6 项（成功登记、加 2 骰、阶段不匹配回滚、无战斗回滚、触发型响应牌回滚、回滚后行动轮状态）。验证：`jest src/virginQueen --runInBand --silent` 146 suites、682 tests passed（新增 6 项）；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。
+
+
+## 八子代理集成验证
+
+八个并行子代理分别在独立 worktree 完成并提交，已 cherry-pick 到主分支：
+
+- #16 行动轮开始响应：`be6c254`
+- 海军拦截尝试顺序：`20c997e`
+- #24 神圣同盟目标选择器：`dceeee5`
+- 冬季损耗单位类型选择：`b5a7e98`
+- #11 德拉古特海盗响应：`5aed877`
+- #36 取回战斗牌立即打出：`3980a61`
+- 沃尔辛厄姆嵌套响应：`c754994`
+- Activated Major DOW 排除 Deactivate 势力：`c929fc6`
+
+集成后验证：`jest src/virginQueen --runInBand --silent` 152 suites、723 tests passed；`jest --runInBand --silent` 157 suites、778 tests passed；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。
