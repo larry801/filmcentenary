@@ -1939,7 +1939,10 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     }
     if (handler === "selimII") {
         G.powers.ottoman.ruler = "selimII";
-        pushLog(G, "Selim II succeeds Suleiman; the Ottoman Home card exception ends.");
+        G.powers.ottoman.rulerAdmin = 2;
+        G.powers.ottoman.rulerCardBonus = 1;
+        G.cyprusTarget = ["nicosia", "candia", "corfu"].find((id) => G.spaces[id] !== undefined && G.spaces[id].control !== "ottoman");
+        pushLog(G, `Selim II succeeds Suleiman; the Cyprus VP target is ${G.cyprusTarget ?? "none"}.`);
     }
     if (def.officialKind === "mandatory") {
         G.powers[p].cp += 2;
