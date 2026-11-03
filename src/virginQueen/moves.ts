@@ -677,26 +677,46 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #98 Sultana Safiye option 1: exchange a card with another power. */
 /** #80 The Black Queen, option 3: take a card or draw two. */
 /** #112 Day of the Barricades: seize Paris under the right conditions. */
-/** #103 Act of Abjuration: one power allies with the Protestant and sends troops. */
-/** #111 Paris is Worth a Mass: move the Huguenot capital to Paris. */
-/** #109 Union of Arras: remove Dutch mercenaries, secure five spaces, raise Walloons. */
-/** #11 Dragut Falls: kill Dragut and bring Uluch Ali next turn. */
-/** #86 Polish Royal Election: resolve bids and elect a king. */
-/** #101 Gregorian Calendar: choose the next power to act. */
-/** #110 Dunkirk Privateers: free North Sea piracy with four dice. */
-/** #95 Louise of Lorraine enters the marriage pool for the playing power. */
-/** #106 Drake/Hawkins Expedition: combine both captains into one expedition. */
-/** #41 Border Reivers: raid a border power's hand or add Scottish influence. */
-/** #66 Sea Beggars: seize an undefended Dutch port. */
-/** #58 Jeanne of Navarre: French rebellion and the fall of Bayonne. */
-/** #25 Unrest in the Realm: place up to three unrest in a major's home. */
-/** #19 Diplomatic Faux Pas: remove up to five influence from a power. */
-/** #20 Eloquent Ambassador: three influence then a diplomacy resolution. */
-/** #21 Foreign Volunteers: three regulars in controlled spaces. */
-/** #59 John Hawkins: five CP for English naval operations. */
-/** #64 Philosopher's Stone: cancel a scientist's patronage work. */
-/** #51 El Dorado: send a northern South America captain to search. */
-/** #17 Army Mutiny: strip mercenaries and possibly regulars from a stack. */
+/** #103 Act of Abjuration: collect offers for the Protestant to choose. */
+const resolveActOfAbjuration = (G: VQGame, ctx: Ctx, p: Power): void => {
+    if (!["england", "france", "hre"].includes(p) || atWar(G, p, "protestant")) return;
+    const offers: {power: Power; space: string}[] = [];
+    for (const power of ["england", "france", "hre"] as Power[]) {
+        if (atWar(G, power, "protestant")) continue;
+        const space = SPACES.find((def) => def.area === "netherlands" && G.spaces[def.id].control === "protestant" &&
+            ownersWithLand(G, def.id).every((owner) => owner === "protestant"));
+        if (space !== undefined) offers.push({power, space: space.id});
+    }
+    if (offers.length === 0) return;
+    G.pendingAbjuration = {offers};
+    ctx.events?.setActivePlayers({value: {[ownerOf(G, "protestant")!]: "abjurationChoice"}});
+    pushLog(G, "Act of Abjuration: offers are made; the Protestant must choose one.");
+};
+
+export const chooseAbjuration = (G: VQGame, ctx: Ctx, args: {power: Power}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingAbjuration;
+    if (ctx.playerID !== ownerOf(G, "protestant") || pending === undefined) return INVALID_MOVE;
+    const offer = pending.offers.find((candidate) => candidate.power === args.power);
+    if (offer === undefined) return INVALID_MOVE;
+    G.powers[offer.power].allies.push("protestant");
+    G.powers.protestant.allies.push(offer.power);
+    let remaining = 5;
+    for (const space of SPACES.filter((def) => def.home === offer.power && G.spaces[def.id].control === offer.power)) {
+        const stack = G.spaces[space.id].land[offer.power];
+        if (stack === undefined) continue;
+        const take = Math.min(remaining, stack.regular);
+        stack.regular -= take;
+        remaining -= take;
+        addLand(G, offer.space, offer.power, "regular", take);
+        if (remaining === 0) break;
+    }
+    addVp(G, offer.power, 1);
+    delete G.pendingAbjuration;
+    removeCardFromGame(G, "vq-103");
+    ctx.events?.endStage();
+    pushLog(G, `Act of Abjuration: the Protestant accepts ${powerLabel(offer.power)}'s offer.`);
+};
+
 /** #18 City State Rebels: five dice against an occupying garrison. */
 /** #31 Treachery!: force an immediate assault on a besieged fortress. */
 /** #24 Holy League: influence the Papacy and Venice, then resolve. */
@@ -1223,30 +1243,6 @@ const resolveParisMass = (G: VQGame): void => {
     G.protestantCapital = "paris";
     removeCardFromGame(G, "vq-111");
     pushLog(G, "Paris is Worth a Mass: the Protestant takes Paris and moves the Huguenot capital there.");
-};
-
-const resolveActOfAbjuration = (G: VQGame, p: Power, target?: string): void => {
-    if (!["england", "france", "hre"].includes(p) || atWar(G, p, "protestant") ||
-        target === undefined || SPACE_BY_ID[target]?.area !== "netherlands" ||
-        G.spaces[target].control !== "protestant") return;
-    const owners = ownersWithLand(G, target);
-    if (owners.some((owner) => owner !== "protestant")) return;
-    G.powers[p].allies.push("protestant");
-    G.powers.protestant.allies.push(p);
-    let remaining = 5;
-    for (const space of SPACES.filter((def) => def.home === p && G.spaces[def.id].control === p)) {
-        const stack = G.spaces[space.id].land[p];
-        if (stack === undefined) continue;
-        const take = Math.min(remaining, stack.regular);
-        stack.regular -= take;
-        remaining -= take;
-        addLand(G, target, p, "regular", take);
-        if (take > 0) pushLog(G, `Act of Abjuration: ${powerLabel(p)} sends ${take} regular(s) from ${space.name}.`);
-        if (remaining === 0) break;
-    }
-    addVp(G, p, 1);
-    removeCardFromGame(G, "vq-103");
-    pushLog(G, `Act of Abjuration: ${powerLabel(p)} allies with the Protestant and gains 1 VP.`);
 };
 
 const resolveDayOfBarricades = (G: VQGame): void => {
@@ -1905,7 +1901,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "dayOfTheBarricades") {
         resolveDayOfBarricades(G);
     } else if (handler === "actOfAbjuration") {
-        resolveActOfAbjuration(G, p, target);
+        resolveActOfAbjuration(G, ctx, p);
     } else if (handler === "parisIsWorthAMass") {
         resolveParisMass(G);
     } else if (handler === "unionOfArras") {
