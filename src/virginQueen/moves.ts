@@ -872,8 +872,18 @@ const resolvePhilosophersStone = (G: VQGame, target?: string): void => {
     pushLog(G, `Philosopher's Stone cancels ${patronById(G, entry.patronId)?.name ?? entry.patronId}'s work.`);
 };
 
-const resolveJohnHawkins = (G: VQGame, p: Power): void => {
+const resolveJohnHawkins = (G: VQGame, p: Power, target?: string): void => {
     if (p !== "england") return;
+    if (target === "upgrade") {
+        for (const space of SPACES.filter((def) => def.home === "england" && def.ports !== undefined && G.spaces[def.id].control === "england")) {
+            const stack = G.spaces[space.id].naval.england;
+            if (stack === undefined) continue;
+            stack.racebuilt += stack.galleon;
+            stack.galleon = 0;
+        }
+        pushLog(G, "John Hawkins upgrades English home-port galleons to race-built galleons.");
+        return;
+    }
     G.powers.england.cp += 5;
     G.hawkinsBonus = true;
     pushLog(G, "John Hawkins grants England 5 CP for naval operations.");
@@ -1886,7 +1896,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "foreignVolunteers") {
         resolveForeignVolunteers(G, p);
     } else if (handler === "johnHawkins") {
-        resolveJohnHawkins(G, p);
+        resolveJohnHawkins(G, p, target);
     } else if (handler === "philosophersStone") {
         resolvePhilosophersStone(G, target);
     } else if (handler === "elDorado") {

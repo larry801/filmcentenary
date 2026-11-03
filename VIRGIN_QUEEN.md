@@ -275,7 +275,7 @@
 ### 约翰·霍金斯（#59）
 
 - 英格兰获得 5 CP，用于海军建造/移动/海盗；
-- 当前为通用 CP，未限制用途；霍金斯海盗等级提升、奴隶贩子 VP 与升级快速帆船等分支尚未接入。
+- 当前为通用 CP，未限制用途；目标写为 `upgrade` 时，将英格兰本土港口所有大帆船翻面升级为快速帆船；霍金斯海盗等级提升与奴隶贩子 VP 分支尚未接入。
 
 ### 外国志愿军 / 小型救援（#21/#26）
 
@@ -1088,7 +1088,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #21/#26 接入后的验证：`jest src/virginQueen --runInBand --silent` 99 suites、521 tests passed（新增 2 项：三地志愿军、被围城增援）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#59 约翰·霍金斯（CP 分支）接入后的验证：`jest src/virginQueen --runInBand --silent` 100 suites、522 tests passed（新增 1 项：+5 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#59 约翰·霍金斯接入后的验证：`jest src/virginQueen --runInBand --silent` 116 suites、544 tests passed（新增 2 项：+5 CP、升级快速帆船）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #64 贤者之石接入后的验证：`jest src/virginQueen --runInBand --silent` 101 suites、523 tests passed（取消科学家赞助，并验证下一年回到可用池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
