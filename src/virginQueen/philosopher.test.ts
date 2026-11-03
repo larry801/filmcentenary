@@ -2,7 +2,7 @@ import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
 import {playCard} from "./moves";
 import {patronById} from "./scenario";
-import {setupGame} from "./util";
+import {restorePatrons, setupGame} from "./util";
 
 const context = (): Ctx => ({
     currentPlayer: "3",
@@ -25,6 +25,11 @@ describe("Philosopher's Stone (card #64)", () => {
         expect(playCard(G, context(), {cardId: "vq-064", asEvent: true, target: scientist!.id})).toBeUndefined();
 
         expect(G.pendingPatronage).toEqual([]);
+        expect(G.patronsAvailable).not.toContain(scientist!.id);
+        expect(G.patronReturn?.[scientist!.id]).toBe(G.year + 1);
+        G.year += 1;
+        restorePatrons(G);
+        expect(G.patronsAvailable).toContain(scientist!.id);
         expect(G.removed).toContain("vq-064");
     });
 });

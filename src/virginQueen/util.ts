@@ -2574,6 +2574,14 @@ const removePatronFromPool = (G: VQGame, patronId: string): void => {
 };
 
 /** Resolve the year's artists and scientists against the remaining award pool. */
+export const restorePatrons = (G: VQGame): void => {
+    for (const [patronId, turn] of Object.entries(G.patronReturn ?? {})) {
+        if (turn > G.year) continue;
+        if (!G.patronsAvailable.includes(patronId)) G.patronsAvailable.push(patronId);
+        delete G.patronReturn![patronId];
+    }
+};
+
 export const resolvePatronage = (G: VQGame, ctx: Ctx): void => {
     const pending = G.pendingPatronage.slice().sort((a, b) => {
         const pa = patronDef(a.patronId);

@@ -700,6 +700,8 @@ const resolvePhilosophersStone = (G: VQGame, target?: string): void => {
     const entry = target !== undefined ? candidates.find((candidate) => candidate.patronId === target) : candidates[0];
     if (entry === undefined) return;
     G.pendingPatronage = G.pendingPatronage.filter((candidate) => candidate !== entry);
+    G.patronsAvailable = G.patronsAvailable.filter((id) => id !== entry.patronId);
+    G.patronReturn = {...(G.patronReturn ?? {}), [entry.patronId]: G.year + 1};
     removeCardFromGame(G, "vq-064");
     pushLog(G, `Philosopher's Stone cancels ${patronById(G, entry.patronId)?.name ?? entry.patronId}'s work.`);
 };

@@ -622,6 +622,7 @@ export interface VQGame {
     dutchSpanishHome?: boolean;
     gregorianNext?: Power;
     hawkinsBonus?: boolean;
+    patronReturn?: Record<string, number>;
     /** Naval counters lost this year; they return to the pool at Spring. */
     navalLost?: Partial<Record<Power, NavalStack>>;
     spanishRoadAvailable?: boolean;

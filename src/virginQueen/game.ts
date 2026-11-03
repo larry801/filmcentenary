@@ -8,7 +8,7 @@ import {chooseBattle} from "./combat";
 import {chooseTutorialEvent} from "./tutorialEvents";
 import {choosePiracy} from "./piracy";
 import {chooseInterception} from "./interception";
-import {arriveLeaders, checkVictory, dealYear, resolvePendingCatholicLeague, resolvePendingHreReplacement, setupGame, winter} from "./util";
+import {arriveLeaders, checkVictory, dealYear, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
 import {
     assault,
     chooseNavalOrder,
@@ -94,6 +94,7 @@ const turnBegin = (G: VQGame, ctx: Ctx): void => {
 };
 
 const phaseBegin = (G: VQGame): void => {
+    restorePatrons(G);
     G.activePower = participatingPowers(G)[0];
     G.phaseTurns = 0;
     G.unionOfArras = false;
