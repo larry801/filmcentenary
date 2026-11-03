@@ -1159,3 +1159,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #59 霍金斯海盗等级接入后的验证：`jest src/virginQueen --runInBand --silent` 128 suites、562 tests passed（新增 2 项：几内亚海岸海盗 2、失败 −1 VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #89 玛丽死亡后以 CP 打出移出游戏接入后的验证：`jest src/virginQueen --runInBand --silent` 128 suites、566 tests passed（新增 1 项：死亡后 CP 打出进 removed）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#36 在伊丽莎白死亡后不能作为事件打出；若以 CP 打出，卡牌直接从游戏中移除，与场景书说明一致。验证：`jest src/virginQueen --runInBand --silent` 129 suites、567 tests passed。

@@ -2125,8 +2125,11 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     removeCardFromHand(G, p, args.cardId);
     const maryDead = args.cardId === "vq-089" && args.asEvent !== true &&
         (G.espionage?.mary === "dead" || G.royals.find((royal) => royal.id === "maryScots")?.alive === false);
+    const elizabethDead = args.cardId === "vq-036" && args.asEvent !== true &&
+        G.royals.find((royal) => royal.id === "elizabeth")?.alive === false;
     // Event-only removal is deferred until the Ottoman accepts or cancels the event.
     if (maryDead) removeCardFromGame(G, "vq-089");
+    else if (elizabethDead) removeCardFromGame(G, "vq-036");
     else if (!cancelWindow) discardCard(G, p, args.cardId, args.asEvent === true);
     ps.cardPlayed = true;
     markAction(G, p);
