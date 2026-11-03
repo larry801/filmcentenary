@@ -53,6 +53,7 @@ import {
     addVp,
     allied,
     applyCatholicLeagueSpace,
+    attemptLandAvoidBattle,
     attemptLandInterception,
     applyHreReplacement,
     assaultSpace,
@@ -1468,6 +1469,8 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     }
 
     if (offerInterception(G, ctx, "field", from, to, p, [unitPower])) return;
+    // Rule 13.3: defenders may attempt to avoid battle before it is fought.
+    if (!intercepted && !friendlyControlled(G, p, to)) attemptLandAvoidBattle(G, ctx, p, to, from);
     const hostile = ownersWithLand(G, to)
         .filter((c) => !friendlyController(G, p, c))
         .filter((c) => isPower(c) ? atWar(G, p, c) : true);

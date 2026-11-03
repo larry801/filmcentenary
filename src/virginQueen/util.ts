@@ -1774,6 +1774,58 @@ export const reliefBattle = (
 };
 
 /**
+ * Automatic land avoid-battle attempts (13.3).  Each defending major power
+ * attempts to move its whole stack to the first legal adjacent space; the
+ * player choices are resolved automatically.
+ */
+export const attemptLandAvoidBattle = (
+    G: VQGame,
+    ctx: Ctx,
+    active: Power,
+    space: string,
+    from: string,
+): boolean => {
+    if (G.scenario === "tutorial" || G.spaces[space].siege !== undefined) return false;
+    let moved = false;
+    const defenders = ownersWithLand(G, space)
+        .filter((owner): owner is Power => isPower(owner) && !friendlyController(G, active, owner));
+    for (const owner of defenders) {
+        const stack = G.spaces[space].land[owner];
+        if (stack === undefined || landCount(stack) === 0) continue;
+        const destinations = landNeighbors(space)
+            .filter((neighbor) => !neighbor.pass && neighbor.id !== from)
+            .map((neighbor) => neighbor.id)
+            .filter((id) => {
+                const state = G.spaces[id];
+                if (state === undefined || state.unrest) return false;
+                if (state.control !== owner && !(isPower(state.control) && friendlyController(G, owner, state.control))) return false;
+                return ownersWithLand(G, id).every((other) => friendlyController(G, owner, other));
+            });
+        if (destinations.length === 0) continue;
+        const leaders = G.spaces[space].leaders.filter((id) =>
+            LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === "army");
+        const ottomanCavalry = owner === "ottoman" && stack.cav > 0 ? 1 : 0;
+        const enemyCavalry = owner !== "ottoman" && (G.spaces[space].land.ottoman?.cav ?? 0) > 0 ? -1 : 0;
+        const telescope = G.powers[owner].scienceBonuses.includes("telescope") ? 1 : 0;
+        const modifier = bestBattle(G, space, [owner], "army") + ottomanCavalry + enemyCavalry + telescope;
+        const dice = roll(ctx, 2);
+        const total = dice[0] + dice[1] + modifier;
+        pushLog(G, `${powerLabel(owner)} avoid-battle at ${SPACE_BY_ID[space].name}: [${dice.join(",")}] + ${modifier} = ${total}.`);
+        if (total < 9) continue;
+        const destination = destinations[0];
+        const target = ensureLand(G, destination, owner);
+        target.regular += stack.regular;
+        target.merc += stack.merc;
+        target.cav += stack.cav;
+        delete G.spaces[space].land[owner];
+        moveLeaders(G, space, destination, leaders);
+        pushLog(G, `${powerLabel(owner)} avoids battle and moves to ${SPACE_BY_ID[destination].name}.`);
+        moved = true;
+    }
+    return moved;
+};
+
+/**
  * Automatic land interception (rule 13.2): an enemy stack adjacent to the
  * destination may attempt to intercept.  Formations are selected
  * automatically (up to the best leaders' command capacity); every eligible
