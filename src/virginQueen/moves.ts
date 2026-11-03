@@ -32,7 +32,7 @@ import {patronById, royalAvailable, seaCaptainById} from "./scenario";
 import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
 import {activateMajor, checkCircumnavigation, die, navigationCheck, resolveMajorDiplomacy} from "./util";
-import {playBattleCard, startBattle} from "./combat";
+import {canPlayBattleCard, playBattleCard, startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {beginGrandVizierEvent, cancelEventResponder, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
 import {startPiracy} from "./piracy";
@@ -2582,12 +2582,12 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (args.asEvent === true && def.kind === "command" && !mandatory && !timedCombatCard && !timedResponseCard) {
         return INVALID_MOVE;
     }
-    if (args.asEvent === true && timedCombatCard && !isBeaconFires &&
-        (G.pendingBattle === undefined || G.cardWindow?.kind !== "combat" ||
-            (def.officialEffect?.kind === "combat" &&
-            def.officialEffect.phase !== undefined && def.officialEffect.phase !== "any" &&
-            G.cardWindow.phase !== def.officialEffect.phase) ||
-            (G.cardWindow.attacker !== undefined && G.cardWindow.attacker !== p))) {
+    // A printed Combat card needs a matching open battle window.  This is
+    // checked before any hand/discard mutation so the Virgin Queen (#36)
+    // immediate play can roll back cleanly; it also lets the defending side
+    // declare its own Combat cards (#8/#9/#40), subject to each card's printed
+    // side restriction (#7/#10 stay attacker-only).
+    if (args.asEvent === true && timedCombatCard && !isBeaconFires && !canPlayBattleCard(G, p, args.cardId)) {
         return INVALID_MOVE;
     }
     if (args.asEvent === true && timedResponseCard && !isBeaconFires && !tutorialEvent && G.cardWindow?.kind !== "response" &&

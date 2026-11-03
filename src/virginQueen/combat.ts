@@ -252,26 +252,65 @@ const rollBattle = (G: VQGame, ctx: Ctx): void => {
 };
 
 /**
+ * Printed Combat cards whose whole effect is read from `battle.cards`.
+ *
+ * Trigger-bound cards with a manual/handler effect (Flooding #39, Venetian
+ * Galleasses #12, Reiters #13, ...) keep their own `chooseBattle`/response
+ * timing and are deliberately absent here.  Flooding is a `kind: "combat"`
+ * card, so gating on `officialKind` alone would register it where nothing
+ * reads it.
+ */
+const RETRIEVABLE_COMBAT_CARDS: ReadonlySet<string> = new Set([
+    "vq-007", "vq-008", "vq-009", "vq-010", "vq-040",
+]);
+
+/**
+ * Reports whether a printed Combat card can be registered for `power` now.
+ *
+ * Shared by {@link playBattleCard} and the `playCard` timing guard: the guard
+ * must reject an illegal combat play *before* `playCard` mutates the hand and
+ * discard pile, otherwise the Virgin Queen (#36) retrieval could not roll the
+ * play back.
+ *
+ * Both battle sides are accepted: the attacker named by the open
+ * `G.cardWindow`, and the battle's controlling defender for a defender-side
+ * declaration.  The printed side restrictions still apply: Desperate Assault
+ * (#7) and Siege Engineering (#10) may only be declared by the attacking side.
+ * Allied defenders other than `battle.defender` are rejected because the dice
+ * routine reads `battle.cards[battle.defender]` only.
+ */
+export const canPlayBattleCard = (G: VQGame, power: Power, cardId: string): boolean => {
+    const battle = G.pendingBattle;
+    const def = cardById(cardId);
+    if (battle === undefined || def.officialKind !== "combat") return false;
+    if (!RETRIEVABLE_COMBAT_CARDS.has(cardId)) return false;
+    const window = G.cardWindow;
+    if (window?.kind !== "combat") return false;
+    const phase = def.officialEffect?.kind === "combat" ? def.officialEffect.phase : undefined;
+    if (phase !== undefined && phase !== "any" && window.phase !== phase) return false;
+    const attacker = power === battle.attacker;
+    const defender = power === battle.defender;
+    if (!attacker && !defender) return false;
+    if (window.attacker !== undefined && power !== window.attacker && !defender) return false;
+    if ((cardId === "vq-007" || cardId === "vq-010") && !attacker) return false;
+    return true;
+};
+
+/**
  * Registers a printed Combat card for the battle that is already under way.
  *
  * `chooseBattle` consumes its own card choices; this helper exposes the same
  * registration step to a card that was played outside the battle stage, which
  * in practice means the Virgin Queen (#36) "retrieve and play immediately"
- * option.  Only printed Combat cards (`officialKind === "combat"`) are
- * accepted: their whole effect is read from `battle.cards`, so registering the
- * card is enough.  Trigger-bound Response cards (Venetian Galleasses, Reiters,
- * Flooding, ...) keep their own `chooseBattle`/stage timing and are rejected
- * here.  Returns false without mutating `G` when no matching window is open.
+ * option.  The attacker-side and defender-side cases both go through
+ * {@link canPlayBattleCard}, so the phase window and printed side restrictions
+ * are checked identically.  Returns false without mutating `G` when the play
+ * is not legal in the open window.
  */
 export const playBattleCard = (G: VQGame, power: Power, cardId: string): boolean => {
-    const battle = G.pendingBattle;
+    if (!canPlayBattleCard(G, power, cardId)) return false;
+    const battle = G.pendingBattle!;
     const def = cardById(cardId);
-    if (battle === undefined || def.officialKind !== "combat") return false;
-    const window = G.cardWindow;
-    if (window?.kind !== "combat") return false;
-    const phase = def.officialEffect?.kind === "combat" ? def.officialEffect.phase : undefined;
-    if (phase !== undefined && phase !== "any" && window.phase !== phase) return false;
-    if (window.attacker !== undefined && window.attacker !== power) return false;
     battle.cards[power] ??= [];
     if (!battle.cards[power]!.includes(cardId)) battle.cards[power]!.push(cardId);
     pushLog(G, `${powerLabel(power)} plays ${def.name} for the ${battle.phase} battle.`);

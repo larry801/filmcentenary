@@ -706,10 +706,10 @@
 
 - 伊丽莎白已订婚时，可解除婚约；新郎势力按 Jilted Table 掷 1d6：6 得两张 +1 Card 标记，5 得一张，4/3/2 获得 4/3/2 CP 用于外交影响和/或雇佣兵，1 无补偿；英格兰随后抽一张牌。
 - 未订婚时，自动取回弃牌堆中第一张非本国牌并保留。
-- 目标 `retrieve:<卡牌ID>:play` 取回指定牌并立即按其事件结算；若英格兰是战斗攻方且当前 `cardWindow` 为匹配的战斗窗口，#7/#8/#9/#10/#40 可作为战斗牌注册并结算；`retrieve:<卡牌ID>:play:<事件目标>` 可同时传入该牌自身的事件目标（例如 `retrieve:vq-005:play:excommunicate`）。实现复用 `playCard`，因此仍受该牌的时机、目标与合法性限制；无法打出时牌留在弃牌堆，若事件可被取消则照常进入取消响应窗口。
-- **已支持的响应/战斗牌子集**：当英格兰是当前战斗的进攻方且 `G.cardWindow` 为该战斗的开窗时，可立即打出印刷类别为 Combat 的战斗牌（#7 强攻、#8 精锐部队、#9 火攻战船、#10 围城工事、#40 提尔伯里演讲）；牌会登记到 `pendingBattle.cards[power]`，由战斗掷骰例程读取其加骰/改判效果，并照常进入弃牌堆。窗口的类别（野战/海战/攻城）必须与该牌印刷阶段一致，#40（任意阶段）除外。
-  - 边界：仅支持进攻方一侧的 Combat 牌；防守方只有在 `battleChoice` 阶段通过 `chooseBattle` 出牌，`playCard` 在防守方不可用。依赖触发时机的 Response 牌（#12 威尼斯桨帆船、#13 黑骑士、#15 风暴、#39 洪水等）仍走各自的 `chooseBattle`/响应阶段，不在此子集内；没有窗口时这些牌保持在弃牌堆。
-  - 可达性说明：boardgame.io 在战斗期间只让应对方进入 `battleChoice` 阶段，普通客户端无法在战斗中途调用 `playCard`；本子集为规则层能力（供直接调用/后续集成使用），`moveError` 仅在 `pendingBattle` 时放行 `playCard`，其余待响应状态仍全部拦截。测试通过直接驱动 `playCard` + `startBattle` 覆盖成功与回滚。
+- 目标 `retrieve:<卡牌ID>:play` 取回指定牌并立即按其事件结算；若当前 `cardWindow` 为匹配的战斗窗口，#7/#8/#9/#10/#40 可作为战斗牌注册并结算；`retrieve:<卡牌ID>:play:<事件目标>` 可同时传入该牌自身的事件目标（例如 `retrieve:vq-005:play:excommunicate`）。实现复用 `playCard`，因此仍受该牌的时机、目标与合法性限制；无法打出时牌留在弃牌堆，若事件可被取消则照常进入取消响应窗口。
+- **已支持的响应/战斗牌子集**：当 `G.cardWindow` 为该战斗的开窗时，参战方（进攻方或防守方）可立即打出印刷类别为 Combat 的战斗牌（#7 强攻、#8 精锐部队、#9 火攻战船、#10 围城工事、#40 提尔伯里演讲）；牌会登记到 `pendingBattle.cards[power]`，由战斗掷骰例程读取其加骰/改判效果，并照常进入弃牌堆。窗口的类别（野战/海战/攻城）必须与该牌印刷阶段一致，#40（任意阶段）除外。
+  - 边界：防守方一侧只支持战斗的主防守方 `pendingBattle.defender`；其他防守同盟势力暂不登记（掷骰例程只读取 `battle.cards[battle.defender]`）。#7 强攻与 #10 围城工事仍按印刷文字仅限进攻方，防守方即时打出会被回滚并留在弃牌堆。依赖触发时机的 Response 牌（#12 威尼斯桨帆船、#13 黑骑士、#15 风暴等）与其他手动结算战斗牌（#39 洪水）仍走各自的 `chooseBattle`/响应阶段，不在此子集内；没有窗口时这些牌保持在弃牌堆。
+  - 可达性说明：boardgame.io 在战斗期间只让应对方进入 `battleChoice` 阶段，普通客户端无法在战斗中途调用 `playCard`；本子集为规则层能力（供直接调用/后续集成使用），`moveError` 仅在 `pendingBattle` 时放行 `playCard`，其余待响应状态仍全部拦截。测试通过直接驱动 `playCard` + `startBattle` 覆盖进攻方与防守方的成功、加骰与回滚。
 - 伊丽莎白死亡后，此牌不能作为事件打出。
 
 ### 胜利
@@ -1288,3 +1288,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 - Activated Major DOW 排除 Deactivate 势力：`c929fc6`
 
 集成后验证：`jest src/virginQueen --runInBand --silent` 152 suites、723 tests passed；`jest --runInBand --silent` 157 suites、778 tests passed；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。
+
+#36 童贞女王即时战斗牌扩展到防守方：`canPlayBattleCard` 统一校验 `pendingBattle`、`G.cardWindow` 阶段与参战方身份，`playCard` 在任何状态改动前据此拒绝非法战斗牌，`playBattleCard` 复用同一判定后登记到 `pendingBattle.cards[power]`。防守方（`pendingBattle.defender`）可即时打出 #8/#9/#40 并把加骰应用到守方掷骰；#7/#10 保持印刷的仅限进攻方限制，非法打出时取回回滚、牌留在弃牌堆。`playBattleCard` 同时显式限定 #7/#8/#9/#10/#40，避免把 #39 洪水等手动结算战斗牌登记到无效果的 `battle.cards`。测试：`virginQueenDefenderPlay.test.ts` 9 项（野战 #8 +3 骰、海战 #9 +2 骰、任意阶段 #40 英格兰 +4 骰、#7/#10 防守方回滚、阶段不匹配回滚、非参战方回滚、非主防守方回滚、无战斗回滚）。
