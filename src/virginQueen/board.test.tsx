@@ -1,9 +1,10 @@
 import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
-import {VirginQueenBoard, EventTargetField, playEventCard} from "./components/board";
+import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices} from "./components/board";
+import {proposeBetroth} from "./moves";
 import {setupGame} from "./util";
-import {VQGame} from "./constant/general";
+import {Power, VQGame} from "./constant/general";
 import {VirginQueenGameDef} from "./game";
 import {cardById} from "./constant/cards";
 
@@ -13,6 +14,31 @@ const fakeCtx = (): Ctx => ({
         Shuffle: (a: any[]) => a,
     },
 } as unknown as Ctx);
+
+const diplomacyCtx = (playerID = "3"): Ctx => ({
+    ...fakeCtx(), numPlayers: 6, currentPlayer: playerID, playerID, phase: "diplomacy",
+} as Ctx);
+
+/** Makes a royal selectable regardless of the campaign's historical status. */
+const availableRoyal = (G: VQGame, id: string): void => {
+    const royal = G.royals.find((r) => r.id === id);
+    if (royal === undefined) throw new Error(`missing royal ${id}`);
+    Object.assign(royal, {alive: true, married: false, status: "available", turn: 1});
+};
+
+/** Simulates #95 having been played by `power` this Diplomacy Phase. */
+const attachLouise = (G: VQGame, power: Power): void => {
+    G.year = 3;
+    G.royals = G.royals.filter((royal) => royal.id !== "louiseLorraine");
+    G.royals.push({id: "louiseLorraine", name: "Louise of Lorraine", power, gender: "female",
+        eligibility: 2, status: "available", alive: true, married: false});
+    G.louiseAttachment = {power, available: true};
+};
+
+const renderDiplomacy = (G: VQGame, playerID: string | null, currentPlayer = "1"): string =>
+    renderToStaticMarkup(<VirginQueenBoard {...{
+        G, ctx: {phase: "diplomacy", currentPlayer}, moves: {}, playerID, isActive: playerID === currentPlayer,
+    } as any}/>);
 
 describe("Virgin Queen board", () => {
     it("exposes espionage result choices and private hand snapshots only to their owning seat", () => {
@@ -257,6 +283,59 @@ describe("Virgin Queen board", () => {
         const legacy = render(["vq-ev-morisco-revolt"]);
         expect(legacy).toContain("Morisco Revolt");
         expect(legacy).not.toContain("<img");
+    });
+
+    it("exposes the #95 same-power marriage option and proposes the correct pair", () => {
+        const G = setupGame(fakeCtx());
+        attachLouise(G, "spain");
+        availableRoyal(G, "donCarlos");
+
+        const choices = betrothalChoices(G, "spain", "donCarlos", "louiseLorraine");
+
+        expect(choices.samePowerLouise).toBe(true);
+        expect(choices.foreign.map((royal) => royal.id)).toContain("louiseLorraine");
+        expect(choices.proposal).toEqual({male: "donCarlos", female: "louiseLorraine"});
+        // The same-power pair is announced directly by proposeBetroth and
+        // consumes the attachment; no foreign response is involved.
+        expect(proposeBetroth(G, diplomacyCtx("1"), choices.proposal!)).toBeUndefined();
+        expect(G.betrothals).toContainEqual({male: "donCarlos", female: "louiseLorraine", louiseAttached: true});
+        expect(G.louiseAttachment).toEqual({power: "spain", available: false});
+    });
+
+    it("keeps ordinary foreign royal choices alongside the #95 option", () => {
+        const G = setupGame(fakeCtx());
+        G.year = 3;
+        availableRoyal(G, "donCarlos");
+        availableRoyal(G, "elisabethValois");
+
+        const choices = betrothalChoices(G, "spain", "donCarlos", "elisabethValois");
+
+        expect(choices.samePowerLouise).toBe(false);
+        expect(choices.foreign.map((royal) => royal.id)).toContain("elisabethValois");
+        expect(choices.proposal).toEqual({male: "donCarlos", female: "elisabethValois"});
+    });
+
+    it("offers another power's attached Louise as a normal foreign royal", () => {
+        const G = setupGame(fakeCtx());
+        attachLouise(G, "france");
+        availableRoyal(G, "donCarlos");
+
+        const choices = betrothalChoices(G, "spain", "donCarlos", "louiseLorraine");
+
+        expect(choices.samePowerLouise).toBe(false);
+        expect(choices.foreign.map((royal) => royal.id)).toContain("louiseLorraine");
+        expect(choices.proposal).toEqual({male: "donCarlos", female: "louiseLorraine"});
+    });
+
+    it("shows the #95 same-power hint only in the card player's diplomacy panel", () => {
+        const G = setupGame(fakeCtx());
+        attachLouise(G, "spain");
+        availableRoyal(G, "donCarlos");
+        G.activePower = "spain";
+
+        expect(renderDiplomacy(G, "1")).toContain("同国联姻：洛林的路易丝（#95）可与本国男性王室成婚。");
+        expect(renderDiplomacy(G, "3")).not.toContain("同国联姻：");
+        expect(renderDiplomacy(G, null)).not.toContain("同国联姻：");
     });
 
     it("renders the diplomacy panel and map for a spectator", () => {

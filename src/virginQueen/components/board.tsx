@@ -36,6 +36,7 @@ import {
     POWER_NAMES,
     POWERS,
     Power,
+    RoyalDef,
     RULER_NAMES,
     ReligionArea,
     VQGame,
@@ -181,6 +182,63 @@ export const EventTargetField = ({cardId, value, onChange}: {
         onChange={(event) => onChange(event.target.value)}
         placeholder="例如 france、york、spain:return:alba"
         helperText={example !== undefined ? `目标参数示例：${example}` : "按卡牌文本填写；留空则无目标结算。"}/>;
+};
+
+export interface BetrothalChoices {
+    /** Own royals selectable as the domestic side of the marriage. */
+    domestic: RoyalDef[];
+    /** Opposite-gender royals selectable as the other side. */
+    foreign: RoyalDef[];
+    /**
+     * #95: the attached Louise counts as a royal of the power that played the
+     * card, so that power may pick its own male royal and Louise together even
+     * though ordinary same-power marriages are not allowed.
+     */
+    samePowerLouise: boolean;
+    /** The same-power marriage is offered at all (an own male royal exists). */
+    louiseAttachable: boolean;
+    /** Arguments for proposeBetroth, only when both selections are legal. */
+    proposal?: {male: string; female: string};
+}
+
+/**
+ * Builds the royal-marriage picker.  The #95 attachment is the only case where
+ * a same-power pair is selectable: Louise (female) plus the card player's own
+ * male royal.  All pre-existing foreign choices use the same filters as before
+ * (gender, availability, entry turn, shared family and war).
+ */
+export const betrothalChoices = (
+    G: VQGame,
+    me: Power | undefined,
+    domesticRoyal: string,
+    foreignRoyal?: string,
+): BetrothalChoices => {
+    const domestic = me === undefined ? [] : G.royals.filter((royal) =>
+        royal.power === me && royalAvailable(royal) && (royal.turn ?? 1) <= G.year);
+    const domesticDef = G.royals.find((royal) => royal.id === domesticRoyal);
+    const targetGender = domesticDef?.gender === "male" ? "female" : "male";
+    const louiseAvailable = G.royals.some((royal) => royal.id === "louiseLorraine" && royal.power === me &&
+        royalAvailable(royal) && (royal.turn ?? 1) <= G.year);
+    const louiseAttachable = domestic.some((royal) => royal.gender === "male") && louiseAvailable &&
+        G.louiseAttachment?.available === true && G.louiseAttachment.power === me;
+    const samePowerLouise = domesticDef?.gender === "male" && louiseAttachable;
+    const foreign = G.royals.filter((royal) => {
+        if (samePowerLouise && royal.id === "louiseLorraine") return true;
+        return royal.power !== me &&
+            royal.gender === targetGender &&
+            royalAvailable(royal) &&
+            (royal.turn ?? 1) <= G.year &&
+            !(domesticDef?.family && royal.family === domesticDef.family) &&
+            !(me !== undefined && atWar(G, me, royal.power));
+    });
+    const domesticPick = domestic.find((royal) => royal.id === domesticRoyal);
+    const foreignPick = foreign.find((royal) => royal.id === foreignRoyal);
+    const proposal = domesticPick !== undefined && foreignPick !== undefined
+        ? domesticPick.gender === "male"
+            ? {male: domesticPick.id, female: foreignPick.id}
+            : {male: foreignPick.id, female: domesticPick.id}
+        : undefined;
+    return {domestic, foreign, samePowerLouise, louiseAttachable, proposal};
 };
 
 const patronageAwardSummary = (awards: PatronageVpAward[], kind: "artist" | "scientist"): string => {
@@ -1007,6 +1065,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         }
         if (phase === "diplomacy") {
             const handCp = hand.reduce((n, id) => n + cardById(id).cp, 0);
+            const betrothal = betrothalChoices(G, me, domesticRoyal, foreignRoyal);
             return <Stack spacing={1}>
                 <Typography variant="subtitle2">外交</Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -1145,7 +1204,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <InputLabel id="vq-domestic">本国王室</InputLabel>
                         <Select labelId="vq-domestic" label="本国王室" value={domesticRoyal}
                                 onChange={(e) => { setDomesticRoyal(e.target.value as string); setForeignRoyal(""); }}>
-                            {G.royals.filter((r) => r.power === me && royalAvailable(r) && (r.turn ?? 1) <= G.year).map((r) =>
+                            {betrothal.domestic.map((r) =>
                                 <MenuItem key={r.id} value={r.id}>{r.name} ({r.gender === "male" ? "男" : "女"})</MenuItem>)}
                         </Select>
                     </FormControl>
@@ -1154,28 +1213,20 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <Select labelId="vq-foreign" label="外国王室" value={foreignRoyal}
                                 onChange={(e) => setForeignRoyal(e.target.value as string)}
                                 disabled={domesticRoyal === ""}>
-                            {(() => {
-                                const domesticDef = G.royals.find((r) => r.id === domesticRoyal);
-                                const targetGender = domesticDef?.gender === "male" ? "female" : "male";
-                                return G.royals.filter((r) =>
-                                    r.power !== me &&
-                                    r.gender === targetGender &&
-                                    royalAvailable(r) &&
-                                    (r.turn ?? 1) <= G.year &&
-                                    !(domesticDef?.family && r.family === domesticDef.family) &&
-                                    !(me !== undefined && atWar(G, me, r.power))
-                                ).map((r) =>
-                                    <MenuItem key={r.id} value={r.id}>{r.name} ({POWER_NAMES[r.power].zh})</MenuItem>);
-                            })()}
+                            {betrothal.foreign.map((r) =>
+                                <MenuItem key={r.id} value={r.id}>{r.name}
+                                    {r.id === "louiseLorraine" && betrothal.samePowerLouise
+                                        ? "（同国联姻）"
+                                        : ` (${POWER_NAMES[r.power].zh})`}</MenuItem>)}
                         </Select>
                     </FormControl>
+                    {betrothal.louiseAttachable && <Typography variant="caption" color="success.main">
+                        同国联姻：洛林的路易丝（#95）可与本国男性王室成婚。
+                    </Typography>}
                     <Button size="small" variant="outlined"
-                            disabled={!myTurn || domesticRoyal === "" || foreignRoyal === "" || G.pendingBetrothal !== null}
+                            disabled={!myTurn || betrothal.proposal === undefined || G.pendingBetrothal !== null}
                             onClick={() => {
-                                const d = G.royals.find((r) => r.id === domesticRoyal);
-                                const male = d?.gender === "male" ? domesticRoyal : foreignRoyal;
-                                const female = d?.gender === "female" ? domesticRoyal : foreignRoyal;
-                                moves.proposeBetroth({male, female});
+                                if (betrothal.proposal !== undefined) moves.proposeBetroth(betrothal.proposal);
                             }}>提议联姻</Button>
                 </>)}
                 {Object.keys(G.leaders).filter((id) => G.leaders[id].location === "captured" && LEADER_BY_ID[id]?.power === me).length > 0 && <>
