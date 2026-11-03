@@ -425,6 +425,23 @@ const resolveTreasureFleet = (G: VQGame, ctx: Ctx): void => {
 /** #100 Enterprise of England mandatory event (23.3). */
 /** #33 Gouvernante de France: place +2 Wedding Festivities on a French match. */
 /** #49 Conquest of the Philippines. */
+/** #50 Council of Troubles. */
+const resolveCouncilOfTroubles = (G: VQGame, ctx: Ctx): void => {
+    const spanishUnits = SPACES.filter((space) => space.area === "netherlands")
+        .reduce((total, space) => total + totalLand(G, space.id, ["spain"]), 0);
+    if (spanishUnits < 5) {
+        pushLog(G, "Council of Troubles: Spain has fewer than 5 units in the Netherlands.");
+        return;
+    }
+    resolveConversions(G, ctx, "spain", "catholic", "netherlands", 8, true);
+    const targets = SPACES.filter((space) => space.area === "netherlands" && G.spaces[space.id].control === "protestant" &&
+        !G.spaces[space.id].unrest && totalLand(G, space.id, ownersWithLand(G, space.id)) === 0)
+        .slice(0, 3);
+    for (const space of targets) G.spaces[space.id].control = "spain";
+    G.powers.protestant.marriageCardModifier = (G.powers.protestant.marriageCardModifier ?? 0) + 1;
+    pushLog(G, `Council of Troubles converts the Netherlands and takes ${targets.length} space(s); the Protestant gains a +1 Card marker.`);
+};
+
 const resolveConquestOfPhilippines = (G: VQGame, ctx: Ctx): void => {
     G.worldControls.philippines = "spain";
     G.philippinesSpanish = true;
@@ -615,6 +632,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveGouvernanteDeFrance(G, ctx);
     } else if (handler === "card049") {
         resolveConquestOfPhilippines(G, ctx);
+    } else if (handler === "councilOfTroubles") {
+        resolveCouncilOfTroubles(G, ctx);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {

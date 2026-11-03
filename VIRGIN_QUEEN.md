@@ -145,6 +145,14 @@
 
 地图中的英格兰家乡地区已补齐宗教区域标记；补入里尔与敦刻尔克供杜埃事件检查。新增点位与邻接仍是重建示意数据，将领战斗值也沿用现有近似值。此处没有完成全部自由响应时点和沃尔辛厄姆在另一行动中插入“移除人员＋获取情报”的嵌套响应；不能由本轮结果推断这些卡已完整自动化。大屠杀的“纳瓦拉与法国王室订婚”只检查当年外交阶段登记、尚未在冬季结算的订婚；纳瓦拉目前只在锦标赛的王室名单中，战役中他不会在第 3 回合自动加入，因此战役局里加强版条件实际上不会触发。计数器供应限制除五枚 Jesuit 外仍沿用原有实现。
 
+### 血腥委员会（#50）
+
+- 条件：西班牙在尼德兰地区有至少 5 个陆军单位。
+- 在尼德兰进行 8 次天主教传播尝试，首个骰值自动为 6。
+- 自动夺取最多 3 个新教控制、无驻军、无动荡的尼德兰地区。
+- 新教获得 1 张 +1 Card 标记。
+- William of Orange 的 Turn Track 处理尚未接入。
+
 ### 征服菲律宾（#49）
 
 - 在菲律宾放置西班牙控制标记；
@@ -336,6 +344,7 @@ src/virginQueen/
   enterprise.test.ts    #100 英格兰的局势 1–16+ VP 表
   gouvernante.test.ts   #33 法兰西的女管家 +2 婚宴标记
   philippines.test.ts   #49 征服菲律宾、第 5 宝藏格
+  councilOfTroubles.test.ts #50 血腥委员会条件/转化/夺地/卡牌标记
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
 ```
@@ -452,3 +461,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #33 选项 2 接入后的验证：`jest src/virginQueen --runInBand --silent` 41 suites、435 tests passed（新增 1 项：转化法国地区并封锁本回合叛乱）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #49 征服菲律宾接入后的验证：`jest src/virginQueen --runInBand --silent` 42 suites、437 tests passed（新增 2 项：控制/第 5 格、Card Draw 5 宝藏）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#50 血腥委员会接入后的验证：`jest src/virginQueen --runInBand --silent` 43 suites、439 tests passed（新增 2 项：条件满足时转化/夺地/卡牌标记、条件不足无效果）；`npm run build` 通过，仍有既有大体积 chunk 提示。
