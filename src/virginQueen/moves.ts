@@ -539,26 +539,28 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
 /** #34 Holy Roman Intercession: join one side of a war and punish the other. */
 /** #2 Ottoman Tribute: threaten a power; auto-resolve tribute or war. */
 const resolveOttomanTribute = (G: VQGame, ctx: Ctx, target?: string): void => {
-    if (target === undefined || !isPower(target) || target === "ottoman" || allied(G, "ottoman", target)) return;
-    const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
-    const treasures = G.powers[target].treasures;
+    if (target === undefined) return;
+    const [targetPower, mode] = target.split(":");
+    if (!isPower(targetPower) || targetPower === "ottoman" || allied(G, "ottoman", targetPower)) return;
+    const cards = G.powers[targetPower].cards.filter((id) => cardById(id).kind !== "home");
+    const treasures = G.powers[targetPower].treasures;
     if (cards.length > 0 || treasures.length > 0) {
-        if (treasures.length >= cards.length) {
+        if ((mode === "treasure" && treasures.length > 0) || (mode !== "card" && treasures.length >= cards.length)) {
             const value = treasures.splice(Math.max(0, die(ctx, treasures.length) - 1), 1)[0];
             G.powers.ottoman.treasures.push(value);
-            pushLog(G, `${powerLabel(target)} pays tribute: the Ottoman takes a treasure.`);
+            pushLog(G, `${powerLabel(targetPower)} pays tribute: the Ottoman takes a treasure.`);
         } else {
             const card = cards[Math.max(0, die(ctx, cards.length) - 1)];
-            G.powers[target].cards = G.powers[target].cards.filter((id) => id !== card);
+            G.powers[targetPower].cards = G.powers[targetPower].cards.filter((id) => id !== card);
             G.powers.ottoman.cards.push(card);
-            pushLog(G, `${powerLabel(target)} pays tribute: the Ottoman takes a card.`);
+            pushLog(G, `${powerLabel(targetPower)} pays tribute: the Ottoman takes a card.`);
         }
         drawCards(G, ctx, "ottoman", 1);
         return;
     }
-    setWar(G, "ottoman", target);
+    setWar(G, "ottoman", targetPower);
     G.powers.ottoman.cp += 2;
-    pushLog(G, `${powerLabel(target)} refuses tribute; the Ottoman declares war and gains 2 CP.`);
+    pushLog(G, `${powerLabel(targetPower)} refuses tribute; the Ottoman declares war and gains 2 CP.`);
 };
 
 /** #3 Spanish Road: place a regular in Milan and prepare one special move. */

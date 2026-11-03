@@ -27,6 +27,18 @@ describe("Ottoman Tribute (card #2)", () => {
         expect(atWar(G, "ottoman", "hre")).toBe(false);
     });
 
+    it("can demand a treasure instead of a card", () => {
+        const G = game();
+        if (!G.powers.ottoman.cards.includes("vq-002")) G.powers.ottoman.cards.push("vq-002");
+        G.powers.hre.cards = ["vq-020"];
+        G.powers.hre.treasures = [3];
+
+        expect(playCard(G, context(), {cardId: "vq-002", asEvent: true, target: "hre:treasure"})).toBeUndefined();
+
+        expect(G.powers.hre.cards).toContain("vq-020");
+        expect(G.powers.ottoman.treasures).toContain(3);
+    });
+
     it("declares war and gains 2 CP when the target has nothing to give", () => {
         const G = game();
         if (!G.powers.ottoman.cards.includes("vq-002")) G.powers.ottoman.cards.push("vq-002");

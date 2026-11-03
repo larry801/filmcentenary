@@ -1214,3 +1214,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #58 取消法兰西的女管家接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、624 tests passed（新增 1 项：#58 取消 #33）；`npm run build` 通过。
 
 #62 西北航道掠夺物丢失接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、625 tests passed（新增 1 项：携带 2 宝藏丢失）；`npm run build` 通过。
+
+#2 奥斯曼纳贡类型选择接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、629 tests passed（新增 1 项：强制索要宝藏）；`npm run build` 通过。
