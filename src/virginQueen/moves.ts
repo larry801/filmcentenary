@@ -648,6 +648,20 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 
 /** #87 Rudolf II succeeds Maximilian II and moves the HRE capital to Prague. */
 /** #60 John Knox: convert all but one Scottish space, or add influence. */
+/** #63 Nostradamus' Prophecies: draw 4 (8 for France) and keep one. */
+const resolveNostradamus = (G: VQGame, ctx: Ctx, p: Power): void => {
+    const drawn = drawCards(G, ctx, p, p === "france" ? 8 : 4);
+    if (drawn.length === 0) return;
+    const best = drawn.slice().sort((a, b) => (cardById(b).cp ?? 0) - (cardById(a).cp ?? 0))[0];
+    for (const card of drawn) {
+        if (card === best) continue;
+        G.powers[p].cards = G.powers[p].cards.filter((id) => id !== card);
+        G.deck.push(card);
+    }
+    G.deck = shuffle(ctx, G.deck);
+    pushLog(G, `Nostradamus' Prophecies: ${powerLabel(p)} keeps ${cardById(best).name} and returns the rest.`);
+};
+
 const resolveJohnKnox = (G: VQGame, p: Power, target?: string): void => {
     const chosen = target !== undefined ? SPACE_BY_ID[target] : undefined;
     if (chosen !== undefined && chosen.area === "scotland") {
@@ -1046,6 +1060,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveRudolfII(G, ctx);
     } else if (handler === "johnKnox") {
         resolveJohnKnox(G, p, target);
+    } else if (handler === "card063") {
+        resolveNostradamus(G, ctx, p);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {

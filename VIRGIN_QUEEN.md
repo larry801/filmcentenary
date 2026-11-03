@@ -170,6 +170,11 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 诺查丹玛斯的大预言（#63）
+
+- 从牌堆抽 4 张（法国玩家抽 8 张），保留 CP 最高的一张，其余洗回牌堆；
+- 事件牌移出游戏。
+
 ### 约翰·诺克斯（#60）
 
 - 指定一个苏格兰地区：其余所有苏格兰地区转为新教；
@@ -504,6 +509,7 @@ src/virginQueen/
   rulerAccession.test.ts #84/#85 亨利三世/穆拉德三世继位
   rudolfII.test.ts      #87 鲁道夫二世/迁都布拉格
   johnKnox.test.ts      #60 约翰·诺克斯
+  nostradamus.test.ts   #63 诺查丹玛斯抽牌保留最高 CP
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -676,3 +682,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #87 鲁道夫二世与迁都接入后的验证：`jest src/virginQueen --runInBand --silent` 66 suites、469 tests passed（新增 1 项：继位属性与首都）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #60 约翰·诺克斯接入后的验证：`jest src/virginQueen --runInBand --silent` 67 suites、471 tests passed（新增 2 项：苏格兰转化/影响力）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#63 诺查丹玛斯接入后的验证：`jest src/virginQueen --runInBand --silent` 68 suites、472 tests passed（新增 1 项：抽牌保留最高 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
