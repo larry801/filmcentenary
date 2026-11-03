@@ -105,7 +105,13 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
             if (number === 39) return battle.phase === "assault" && power !== battle.attacker && SPACE_BY_ID[battle.location]?.area === "netherlands";
             return false;
         });
-        return [...candidates.map((id) => ({id: `card:${id}`, label: `打出 ${cardById(id).name}`})), {id: "done", label: "继续结算"}];
+        return [
+            ...candidates.flatMap((id) => id === "vq-012" ? [
+                {id: "card:vq-012:attacker", label: "威尼斯桨帆船：给进攻方 +3/+5 骰"},
+                {id: "card:vq-012:defender", label: "威尼斯桨帆船：给防守方 +3/+5 骰"},
+            ] : [{id: `card:${id}`, label: `打出 ${cardById(id).name}`}]),
+            {id: "done", label: "继续结算"},
+        ];
     }
     if (battle.step === "attackerLosses" || battle.step === "defenderLosses") {
         const owners = sideOwners(battle, battle.step === "attackerLosses");
@@ -271,7 +277,7 @@ export const chooseBattle = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
         return;
     }
     if (choice.startsWith("card:")) {
-        const id = choice.slice(5);
+        const [, id, sideChoice] = choice.split(":");
         removeCardFromHand(G, battle.responding, id);
         discardCard(G, battle.responding, id, true);
         battle.cards[battle.responding] ??= [];
@@ -329,11 +335,14 @@ export const chooseBattle = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
             return;
         }
         if (id === "vq-012") {
-            const ownVenetians = sideOwners(battle, battle.responding === battle.attacker).includes("venice");
+            const side = sideChoice === "attacker" || sideChoice === "defender"
+                ? sideChoice
+                : battle.responding === battle.attacker ? "attacker" : "defender";
+            const ownVenetians = sideOwners(battle, side === "attacker").includes("venice");
             const values = roll(ctx, ownVenetians ? 5 : 3);
-            const side = battle.responding === battle.attacker ? "attacker" : "defender";
             battle.rolls![side].push(...values);
             battle.hitCounts![side] += hits(values);
+            pushLog(G, `Venetian Galleasses add ${values.length} dice to the ${side}.`);
         }
         return;
     }

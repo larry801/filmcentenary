@@ -20,7 +20,7 @@ const offered = (zone: string): boolean => {
     chooseBattle(G, context("2"), {choice: "fight"});
     chooseBattle(G, context("3"), {choice: "done"});
     chooseBattle(G, context("2"), {choice: "done"});
-    return battleOptions(G).some((option) => option.id === "card:vq-012");
+    return battleOptions(G).some((option) => option.id.startsWith("card:vq-012"));
 };
 
 describe("Venetian Galleasses (card #12)", () => {

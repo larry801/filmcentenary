@@ -237,12 +237,12 @@ describe("tutorial battle responses", () => {
         expect(battleOptions(G).some((option) => option.id.startsWith("avoid:"))).toBe(true);
         chooseBattle(G, ctx, {choice: "fight"});
         chooseBattle(G, {...ctx, playerID: "0"}, {choice: "done"});
-        expect(battleOptions(G).map((option) => option.id)).not.toContain("card:vq-012");
+        expect(battleOptions(G).some((option) => option.id.startsWith("card:vq-012"))).toBe(false);
         chooseBattle(G, ctx, {choice: "done"});
         chooseBattle(G, {...ctx, playerID: "0"}, {choice: "done"});
         const before = G.pendingBattle!.rolls!.defender.length;
-        expect(battleOptions(G).map((option) => option.id)).toContain("card:vq-012");
-        chooseBattle(G, ctx, {choice: "card:vq-012"});
+        expect(battleOptions(G).map((option) => option.id)).toContain("card:vq-012:defender");
+        chooseBattle(G, ctx, {choice: "card:vq-012:defender"});
         expect(G.pendingBattle!.rolls!.defender).toHaveLength(before + 5);
         expect(G.powers.spain.cards).not.toContain("vq-012");
     });
