@@ -3060,6 +3060,10 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
     const hits = dice.filter((die) => die >= 5).length;
     G.lastRolls = `World piracy (${captain.nameEn}): [${dice.join(",")}] = ${hits} hit(s)`;
     pushLog(G, G.lastRolls);
+    if (args.captain === "hawkins" && !dice.some((die) => die >= 4)) {
+        addVp(G, "england", -1);
+        pushLog(G, "Hawkins fails to roll 4-6; England takes a -1 Slave Trader VP marker.");
+    }
     if (args.captain === "drake" && dice.includes(6)) {
         const fortress = settlements.find((settlement) => G.worldFortresses?.[settlement.id] === "spain");
         if (fortress !== undefined) {
