@@ -2181,6 +2181,17 @@ export const endImpulse = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
 };
 
 /** #11 response after Dragut fights: roll for death or return to the Turn Track. */
+/** #89 Mary Queen of Scots response: +4 French influence in Scotland. */
+export const maryInfluence = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    const p = power(G, ctx);
+    const mary = G.royals.find((royal) => royal.id === "maryScots");
+    if (p !== "france" || !G.powers.france.cards.includes("vq-089") || G.espionage?.mary === "dead" || mary?.alive === false) return INVALID_MOVE;
+    G.powers.france.influence.scotland = (G.powers.france.influence.scotland ?? 0) + 4;
+    removeCardFromHand(G, "france", "vq-089");
+    discardCard(G, "france", "vq-089", true);
+    pushLog(G, "Mary Queen of Scots adds 4 French influence in Scotland.");
+};
+
 export const dragutFallsRoll = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     const p = power(G, ctx);
     if (!G.powers[p].cards.includes("vq-011") || G.leaders.dragut === undefined ||

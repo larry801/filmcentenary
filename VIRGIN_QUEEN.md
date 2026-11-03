@@ -567,7 +567,7 @@
 
 - 玛丽在世时，作为事件打出：法国对苏格兰 +3 外交影响力，然后立即进行苏格兰外交评议。
 - 玛丽已死时，作为事件/CP 打出后移出游戏。
-- 响应模式（+4 影响力、叛乱/刺杀 +3 骰）尚未接入。
+- 响应模式：`maryInfluence` 可作为响应 +4 法国对苏格兰影响力；叛乱/刺杀 +3 骰已通过 espionage 选项接入。
 
 ### 老练领航员（#43）
 
@@ -849,6 +849,7 @@ src/virginQueen/
   iconoclasm.test.ts    #55 破坏圣像运动
   selimII.test.ts       #6 塞利姆二世
   tridentine.test.ts    #70 特兰托教义问答
+  maryInfluence.test.ts #89 玛丽 +4 影响力响应
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -1119,3 +1120,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #6 塞利姆二世接入后的验证：`jest src/virginQueen --runInBand --silent` 115 suites、540 tests passed（新增 2 项：继位属性/目标、夺取后 +1 VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #70 特兰托教义问答接入后的验证：`jest src/virginQueen --runInBand --silent` 116 suites、542 tests passed（新增 1 项：两区各 4 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#89 玛丽 +4 影响力响应接入后的验证：`jest src/virginQueen --runInBand --silent` 117 suites、547 tests passed（新增 1 项：+4 法国影响力）；`npm run build` 通过，仍有既有大体积 chunk 提示。
