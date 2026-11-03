@@ -302,7 +302,7 @@
 ### 国内动荡 / 统治者病倒（#25/#30）
 
 - #25：在奥斯曼/HRE/西班牙最多 3 个无驻军本土地区放置动荡；西班牙不含尼德兰。
-- #30：从另一主要势力随机弃置 1 张非本国牌；或目标写为 `势力:skip` 跳过其下一行动轮（`skipImpulse` 在 turnBegin 生效）。目标写为 `势力:return` 时，将该势力一个陆军将领送回首都（首都不可用则找本土设防地区）；吉斯公爵不会被选中。
+- #30：从另一主要势力随机弃置 1 张非本国牌；或目标写为 `势力:skip` 跳过其下一行动轮（`skipImpulse` 在 turnBegin 生效）。目标写为 `势力:return` 或 `势力:return:将领ID` 时，将该势力指定/首个陆军将领送回首都（首都不可用则找本土设防地区）；吉斯公爵不会被选中。
 
 ### 纳瓦拉的珍妮（#58）
 
@@ -1092,7 +1092,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #58 纳瓦拉的珍妮（事件分支）接入后的验证：`jest src/virginQueen --runInBand --silent` 95 suites、513 tests passed（新增 1 项：巴约纳转新教并驻军）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#25/#30 接入后的验证：`jest src/virginQueen --runInBand --silent` 112 suites、537 tests passed（新增 5 项：三地动荡、随机弃牌、跳过行动轮、将领回首都、吉斯公爵限制）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#25/#30 接入后的验证：`jest src/virginQueen --runInBand --silent` 112 suites、537 tests passed（新增 6 项：三地动荡、随机弃牌、跳过行动轮、将领回首都、指定将领、吉斯公爵限制）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #19/#23 接入后的验证：`jest src/virginQueen --runInBand --silent` 97 suites、518 tests passed（新增 3 项：移除影响力、HRE 双地区、清空雇佣兵）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 

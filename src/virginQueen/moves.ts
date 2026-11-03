@@ -1029,7 +1029,7 @@ const resolveUnrestInRealm = (G: VQGame, target?: string): void => {
 /** #30 Ruler Falls Ill: discard a random card from another power. */
 const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     if (target === undefined) return;
-    const [targetPower, mode] = target.split(":");
+    const [targetPower, mode, extra] = target.split(":");
     if (!isPower(targetPower) || targetPower === p) return;
     if (mode === "skip") {
         G.skipImpulse = [...(G.skipImpulse ?? []), targetPower];
@@ -1038,6 +1038,7 @@ const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
     }
     if (mode === "return") {
         const leader = Object.values(G.leaders).find((state) => state.id !== "guise" && LEADER_BY_ID[state.id]?.power === targetPower && LEADER_BY_ID[state.id]?.kind === "army" &&
+            (extra === undefined || state.id === extra) &&
             state.location !== "pool" && state.location !== "dead" && G.spaces[state.location] !== undefined);
         const capital = capitalOf(G, targetPower) ?? SPACES.find((space) => space.home === targetPower && space.kind === "fortress")?.id;
         if (leader !== undefined && capital !== undefined && leader.location !== capital) {

@@ -56,6 +56,20 @@ describe("Unrest in the Realm / Ruler Falls Ill", () => {
         expect(G.spaces.rotterdam.leaders).not.toContain("alba");
     });
 
+    it("returns a specifically named leader", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-030"];
+        G.leaders.parma = {id: "parma", location: "milan"};
+        G.spaces.milan.leaders = ["parma"];
+        G.leaders.alba = {id: "alba", location: "brussels"};
+        G.spaces.brussels.leaders = ["alba"];
+
+        expect(playCard(G, context(), {cardId: "vq-030", asEvent: true, target: "spain:return:parma"})).toBeUndefined();
+
+        expect(G.leaders.parma.location).toBe("madrid");
+        expect(G.leaders.alba.location).toBe("brussels");
+    });
+
     it("does not return the Duke of Guise", () => {
         const G = game();
         G.powers.france.cards = ["vq-030"];
