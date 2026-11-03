@@ -1056,7 +1056,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #107 埃德蒙·坎皮恩接入后的验证：`jest src/virginQueen --runInBand --silent` 77 suites、486 tests passed（新增 1 项：耶稣会士/转化）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#105 唐·安东尼奥接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、610 tests passed（新增 3 项：影响力评议/结盟驻军/指定驻军地区）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#105 唐·安东尼奥接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、612 tests passed（新增 3 项：影响力评议/结盟驻军/指定驻军地区）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #98 苏丹娜·萨菲耶选项 1 接入后的验证：`jest src/virginQueen --runInBand --silent` 79 suites、489 tests passed（新增 1 项：交换卡牌/抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
