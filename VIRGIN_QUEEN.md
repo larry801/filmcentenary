@@ -592,7 +592,7 @@
 - 在尼德兰进行 8 次天主教传播尝试，首个骰值自动为 6。
 - 自动夺取最多 3 个新教控制、无驻军、无动荡的尼德兰地区。
 - 新教获得 1 张 +1 Card 标记。
-- William of Orange 的 Turn Track 处理尚未接入。
+- 若威廉·奥兰治在图上，先将其置于回合记录轨（下回合回池），再结算传播与夺地。
 
 ### 征服菲律宾（#49）
 
@@ -1177,3 +1177,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #8 精锐部队测试已补：野战额外 +3 骰，且奥斯曼/西班牙后 3 骰命中 4–6。验证：`jest src/virginQueen --runInBand --silent` 135 suites、582 tests passed（新增 1 项：+3 骰）；`npm run build` 通过。
 
 #7 绝望强攻测试已补：攻城时进攻方命中 4–6，防守方掷双倍骰。验证：`jest src/virginQueen --runInBand --silent` 136 suites、583 tests passed（新增 1 项：防守骰翻倍）；`npm run build` 通过。
+
+#50 血腥委员会奥兰治处理接入后的验证：`jest src/virginQueen --runInBand --silent` 137 suites、585 tests passed（新增 1 项：奥兰治进 Turn Track）；`npm run build` 通过。

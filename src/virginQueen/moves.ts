@@ -476,6 +476,17 @@ const resolveCouncilOfTroubles = (G: VQGame, ctx: Ctx): void => {
         pushLog(G, "Council of Troubles: Spain has fewer than 5 units in the Netherlands.");
         return;
     }
+    const orange = G.leaders.orange;
+    if (orange !== undefined && orange.location !== "pool" && orange.location !== "dead") {
+        if (G.spaces[orange.location] !== undefined) {
+            G.spaces[orange.location].leaders = G.spaces[orange.location].leaders.filter((id) => id !== "orange");
+        } else if (G.seaZones[orange.location as keyof VQGame["seaZones"]] !== undefined) {
+            G.seaZones[orange.location as keyof VQGame["seaZones"]].leaders =
+                G.seaZones[orange.location as keyof VQGame["seaZones"]].leaders.filter((id) => id !== "orange");
+        }
+        G.leaders.orange = {id: "orange", location: "pool", returnTurn: G.year + 1};
+        pushLog(G, "William of Orange is placed on the Turn Track.");
+    }
     resolveConversions(G, ctx, "spain", "catholic", "netherlands", 8, true);
     const targets = SPACES.filter((space) => space.area === "netherlands" && G.spaces[space.id].control === "protestant" &&
         !G.spaces[space.id].unrest && totalLand(G, space.id, ownersWithLand(G, space.id)) === 0)
