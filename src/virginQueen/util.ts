@@ -3298,6 +3298,14 @@ const winterMorisco = (G: VQGame): void => {
     checkMoriscoStatus(G);
 };
 
+export const returnWorldCaptains = (G: VQGame): void => {
+    for (const [id, expedition] of Object.entries(G.worldCaptains)) {
+        if (!G.powers[expedition.power].seaCaptains.includes(id)) G.powers[expedition.power].seaCaptains.push(id);
+        delete G.worldCaptains[id];
+        pushLog(G, `${id} returns to ${powerLabel(expedition.power)}'s sea captain pool at Winter.`);
+    }
+};
+
 export const winter = (G: VQGame, ctx: Ctx): void => {
     if (G.scenario === "tutorial" && G.year === 2 && G.powers.ottoman.ruler === "suleiman") {
         G.deck = G.deck.filter((id) => id !== "vq-006");
@@ -3309,6 +3317,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         if (!G.removed.includes("vq-006")) G.removed.push("vq-006");
         pushLog(G, "Selim II succeeds Suleiman before Turn 3 (Scenario Book card clarification #6).");
     }
+    returnWorldCaptains(G);
     winterMorisco(G);
     resolveMarriages(G, ctx);
     resolvePatronage(G, ctx);
