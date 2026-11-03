@@ -490,6 +490,22 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
 };
 
 /** #45 Scurvy: -1 Navigation on the next navigation check. */
+/** #46 Spanish Fury: take a card from the defender, then draw one. */
+const resolveSpanishFury = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target === undefined || !isPower(target) || target === "spain") return;
+    const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
+    if (cards.length === 0) {
+        pushLog(G, "Spanish Fury: the defender has no cards to seize.");
+        return;
+    }
+    const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
+    G.powers[target].cards = G.powers[target].cards.filter((id) => id !== card);
+    G.powers.spain.cards.push(card);
+    drawCards(G, ctx, "spain", 1);
+    G.powers[target].marriageCardModifier = (G.powers[target].marriageCardModifier ?? 0) + 1;
+    pushLog(G, `Spanish Fury seizes ${cardById(card).name} from ${powerLabel(target)}; Spain draws a card and the defender gains +1 Card.`);
+};
+
 const resolveScurvy = (G: VQGame, target?: string): void => {
     if (target === undefined || G.worldCaptains[target] === undefined) return;
     G.worldCaptains[target].navigationPenalty = 1;
@@ -715,6 +731,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveSirEdwardStafford(G, ctx, target);
     } else if (handler === "scurvy") {
         resolveScurvy(G, target);
+    } else if (handler === "spanishFury") {
+        resolveSpanishFury(G, ctx, target);
     } else if (handler === "beaconFires") {
         G.beaconFires = p;
         pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
@@ -833,7 +851,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     if (args.asEvent === true && timedResponseCard && !isBeaconFires && !tutorialEvent && G.cardWindow?.kind !== "response" &&
-        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy"].includes(cardHandler)) {
+        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury"].includes(cardHandler)) {
         return INVALID_MOVE;
     }
     const cancelWindow = args.asEvent === true && canCancelCardEvent(G, def);

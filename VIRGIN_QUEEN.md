@@ -151,6 +151,12 @@
 - `recruit` 招募正规军前检查当前正规军总数（地图 + 境外战争 + 阿马达搭载），达到上限则非法。
 - 雇佣兵、骑兵、海军与海军重建延迟仍未纳入统一 force pool。
 
+### 西班牙人的狂暴（#46）
+
+- 作为事件打出并指定防守方：随机夺取其一张非本国牌，西班牙再从牌堆抽 1 张；
+- 防守方获得 1 张 +1 Card 标记；
+- 当前作为事件预先打出，严格“攻占核心地区后”的响应窗口尚未实现。
+
 ### 烽火（#14）
 
 - 打出后为下一次海军拦截准备“烽火”：该次拦截自动成功，并在随后的海战中 +2 骰。
@@ -390,6 +396,7 @@ src/virginQueen/
   stafford.test.ts      #102 斯塔福德随机弃牌/宝藏
   scurvy.test.ts        #45 坏血病 -1 Navigation
   beaconFires.test.ts   #14 烽火自动拦截/+2 骰
+  spanishFury.test.ts   #46 西班牙人的狂暴夺牌/抽牌/标记
   regularLimit.test.ts  17.1 正规军计数器上限
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
@@ -523,3 +530,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 常规军计数器上限接入后的验证：`jest src/virginQueen --runInBand --silent` 49 suites、448 tests passed（新增 2 项：达上限拒绝、上限前可招募）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #14 烽火接入后的验证：`jest src/virginQueen --runInBand --silent` 50 suites、449 tests passed（新增 1 项：自动拦截并进入海战）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#46 西班牙人的狂暴接入后的验证：`jest src/virginQueen --runInBand --silent` 51 suites、450 tests passed（新增 1 项：夺牌/抽牌/+1 Card）；`npm run build` 通过，仍有既有大体积 chunk 提示。
