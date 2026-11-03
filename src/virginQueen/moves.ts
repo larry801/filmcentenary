@@ -678,6 +678,24 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #86 Polish Royal Election: resolve bids and elect a king. */
 /** #101 Gregorian Calendar: choose the next power to act. */
 /** #110 Dunkirk Privateers: free North Sea piracy with four dice. */
+/** #95 Louise of Lorraine enters the marriage pool for the playing power. */
+const resolveLouise = (G: VQGame, p: Power): void => {
+    if (p === "ottoman") return;
+    const existing = G.royals.find((royal) => royal.id === "louiseLorraine");
+    if (existing !== undefined) {
+        existing.alive = true;
+        existing.married = false;
+        existing.status = "available";
+        existing.power = p;
+        existing.eligibility = 2;
+    } else {
+        G.royals.push({id: "louiseLorraine", name: "Louise of Lorraine", power: p, gender: "female",
+            eligibility: 2, status: "available", alive: true, married: false});
+    }
+    removeCardFromGame(G, "vq-095");
+    pushLog(G, `Louise of Lorraine enters the marriage pool for ${powerLabel(p)}.`);
+};
+
 const resolveDunkirkPrivateers = (G: VQGame, ctx: Ctx): void => {
     if (G.spaces.antwerp?.control !== "spain" && G.spaces.dunkirk?.control !== "spain" &&
         !SPACES.some((space) => space.area === "netherlands" && space.ports?.includes("northSea") &&
@@ -1468,6 +1486,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveGregorianCalendar(G, ctx, p, target);
     } else if (handler === "dunkirkPrivateers") {
         resolveDunkirkPrivateers(G, ctx);
+    } else if (handler === "louiseOfLorraine") {
+        resolveLouise(G, p);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
@@ -1549,6 +1569,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (args.asEvent === true && cardHandler === "moriscoRevolt" &&
         !(atWar(G, "ottoman", "spain") && G.morisco === undefined)) return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "spanishPayShipsSeized" && p === "spain") return INVALID_MOVE;
+    if (args.asEvent === true && cardHandler === "louiseOfLorraine" && p === "ottoman") return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "virginQueen" &&
         !G.royals.some((royal) => royal.id === "elizabeth" && royal.alive)) return INVALID_MOVE;
     if (args.asEvent === true && beneficiary !== undefined) {

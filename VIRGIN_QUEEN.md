@@ -170,6 +170,12 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 洛林的路易丝（#95）
+
+- 非奥斯曼势力打出：将洛林的路易丝加入婚姻池，归属出牌势力、适婚可用；
+- 事件牌移出游戏；
+- 作为附带协议联姻与“宣布/确认协议”的时机尚未接入。
+
 ### 敦刻尔克私掠者（#110）
 
 - 若西班牙控制未被骚乱的尼德兰北海港口：获得一次免费北海海盗行动；
@@ -665,6 +671,7 @@ src/virginQueen/
   polishElection.test.ts #86 波兰选王
   gregorian.test.ts     #101 公历纪年法
   dunkirk.test.ts       #110 敦刻尔克私掠者
+  louise.test.ts        #95 洛林的路易丝
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -883,3 +890,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #101 公历纪年法接入后的验证：`jest src/virginQueen --runInBand --silent` 89 suites、500 tests passed（新增 1 项：指定下一势力并生效）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #110 敦刻尔克私掠者接入后的验证：`jest src/virginQueen --runInBand --silent` 90 suites、503 tests passed（新增 1 项：免费 4 骰海盗）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#95 洛林的路易丝接入后的验证：`jest src/virginQueen --runInBand --silent` 91 suites、504 tests passed（新增 1 项：加入婚姻池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
