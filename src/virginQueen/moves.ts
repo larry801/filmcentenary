@@ -683,6 +683,26 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #110 Dunkirk Privateers: free North Sea piracy with four dice. */
 /** #95 Louise of Lorraine enters the marriage pool for the playing power. */
 /** #106 Drake/Hawkins Expedition: combine both captains into one expedition. */
+/** #41 Border Reivers: raid a border power's hand or add Scottish influence. */
+const resolveBorderReivers = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    const border = (power: Power): boolean => G.spaces.york.control === power ||
+        SPACES.some((space) => space.area === "scotland" && G.spaces[space.id].control === power);
+    if (target !== undefined && isPower(target) && target !== p && border(p) && border(target)) {
+        const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
+        if (cards.length > 0) {
+            const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
+            G.powers[target].cards = G.powers[target].cards.filter((id) => id !== card);
+            G.powers[p].cards.push(card);
+            pushLog(G, `Border Reivers take ${cardById(card).name} from ${powerLabel(target)}.`);
+        }
+        return;
+    }
+    if (p === "england" || p === "france" || p === "protestant") {
+        G.powers[p].influence.scotland = (G.powers[p].influence.scotland ?? 0) + 4;
+        pushLog(G, `Border Reivers add 4 ${powerLabel(p)} influence in Scotland.`);
+    }
+};
+
 const resolveDrakeHawkins = (G: VQGame): void => {
     if (G.worldCaptains.drake !== undefined || G.worldCaptains.hawkins !== undefined) return;
     const drake = seaCaptainById("drake");
@@ -1506,6 +1526,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveLouise(G, p);
     } else if (handler === "drakeHawkinsExpedition") {
         resolveDrakeHawkins(G);
+    } else if (handler === "borderReivers") {
+        resolveBorderReivers(G, ctx, p, target);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
@@ -1636,7 +1658,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     if (args.asEvent === true && timedResponseCard && !isBeaconFires && !tutorialEvent && G.cardWindow?.kind !== "response" &&
-        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack", "dragutFalls", "gregorianCalendar"].includes(cardHandler)) {
+        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack", "dragutFalls", "gregorianCalendar", "borderReivers"].includes(cardHandler)) {
         return INVALID_MOVE;
     }
     const cancellation = args.asEvent === true ? cancelEventResponder(G, def) : undefined;

@@ -176,6 +176,12 @@
 - 招募正规军或雇佣兵都受 `REGULAR_LIMITS` 限制，避免通过雇佣兵绕过 force pool。
 - 奥斯曼骑兵计数器上限 39 已接入；其他势力无独立骑兵计数器，海军计数器上限仍待补。
 
+### 边境掠夺者（#41）
+
+- 控制约克或任一苏格兰地区的势力：从另一个同样控制边境地区的势力随机抽 1 张非本国牌。
+- 或英格兰/法国/新教：对苏格兰 +4 外交影响力。
+- 卡莱尔/贝里克郡等未建模地区未纳入控制判定。
+
 ### 德雷克/霍金斯远征（#106）
 
 - 若德雷克与霍金斯均未在地图上：立即组建一支英格兰联合远征队（使用德雷克等级）；
@@ -685,6 +691,7 @@ src/virginQueen/
   dunkirk.test.ts       #110 敦刻尔克私掠者
   louise.test.ts        #95 洛林的路易丝
   drakeHawkins.test.ts  #106 德雷克/霍金斯远征
+  borderReivers.test.ts #41 边境掠夺者
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -909,3 +916,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 陆军/骑兵 force pool 修正后的验证：`jest src/virginQueen --runInBand --silent` 92 suites、507 tests passed（新增 2 项：雇佣兵计入同一计数器池、奥斯曼骑兵上限）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #106 德雷克/霍金斯远征接入后的验证：`jest src/virginQueen --runInBand --silent` 92 suites、506 tests passed（新增 1 项：联合远征）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#41 边境掠夺者接入后的验证：`jest src/virginQueen --runInBand --silent` 93 suites、509 tests passed（新增 2 项：夺牌/苏格兰影响力）；`npm run build` 通过，仍有既有大体积 chunk 提示。
