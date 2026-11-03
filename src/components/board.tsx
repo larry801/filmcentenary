@@ -36,6 +36,7 @@ import playerTurnSfx from './media/turn.mp3';
 import {ChampionIcon, DrawnShareIcon} from "./icons";
 import Dialog from "@mui/material/Dialog";
 import ErrorBoundary from "./error";
+import ExportLogButton from "./export-log-button";
 
 let sound: HTMLAudioElement;
 let connectedSound: HTMLAudioElement;
@@ -298,6 +299,7 @@ export const FilmCentenaryBoard = ({
                         <Typography variant="h6" component="h2">{getName(ctx.gameover.winner)}</Typography>
                     </Paper>
                     <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
+                    <ExportLogButton gameName="film" matchID={matchID}/>
                 </DialogContent>
             </Dialog>
         </>

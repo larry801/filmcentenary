@@ -10,6 +10,7 @@ import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import {ActionGroup, VQSurface} from "./theme";
+import ExportLogButton from "../../components/export-log-button";
 import InputLabel from "@mui/material/InputLabel";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -144,7 +145,7 @@ const patronageAwardSummary = (awards: PatronageVpAward[], kind: "artist" | "sci
 
 const cell = (v: number): string => (v > 0 ? String(v) : "·");
 
-export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps<VQGame>) => {
+export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: BoardProps<VQGame>) => {
     const [selected, setSelected] = React.useState<string | undefined>(G.scenario === "tutorial"
         ? playerID === "1" ? "madrid" : "istanbul" : "london");
     const isDesktop = useMediaQuery("(min-width:1024px)");
@@ -487,6 +488,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                                 setFrom(null);
                             }}>
                         {Object.keys(MODE_LABELS)
+                            .filter((m) => m !== "recruitMerc" || me !== "ottoman")
+                            .filter((m) => m !== "recruitCav" || me === "ottoman")
                             .filter((m) => m !== "rebellion" || me === "protestant")
                             .filter((m) => m !== "navalTransport" || G.scenario === "tutorial")
                             .filter((m) => G.scenario !== "tutorial" || !["buildFortress", "buildRacebuilt", "rebellion"].includes(m))
@@ -1056,6 +1059,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                 {ctx.gameover !== undefined ? <Paper variant="outlined" sx={{p: 1.5, mb: 1}} role="status">
                     <Typography variant="h6">对局结束 · 胜者：P{Number(ctx.gameover.winner) + 1} {POWER_NAMES[(ctx.gameover.power ?? powerAt(String(ctx.gameover.winner))) as Power].zh}</Typography>
                     <Typography variant="body2">原因：{ctx.gameover.reason ?? ""}</Typography>
+                    {matchID !== undefined && <ExportLogButton gameName="virginQueen" matchID={matchID}/>}
                 </Paper> : actionPanel()}
                 {space !== undefined && spaceDef !== undefined && <section className="vq-space-detail" aria-label="选中地区详情">
                     <Typography variant="subtitle2">{spaceDef.name}</Typography>

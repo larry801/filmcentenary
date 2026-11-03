@@ -1,0 +1,2984 @@
+PAGE 1
+Living Scenario Book 2024
+SCENARIO B O O K
+SCENARIO B O O Kby Ed Beach
+SCENARIO BOO K SCENARIO BOO K
+Table of Contents
+ABOUT THIS BOOK. ........................................................... 2
+SCENARIOS.......................................................................... 3
+Tutorial Scenario............................................................... 4
+Campaign Scenario........................................................... 6
+Tournament Scenario. ........................................................ 8
+Setting Your Own Time Limit. ........................................ 10
+Games with 2 to 5 Players. .............................................. 11
+Play-By-Email Tips. ........................................................ 14
+DESIGNER’S NOTES........................................................ 14
+EXTENDED EXAMPLE OF PLAY.................................. 16
+THE GAME AS HISTORY. ................................................ 22
+Card FAQ............................................................................... 30
+Marriage Bonuses Table........................................................ 33
+Leader Entry Table. ................................................................ 34
+Sea Captain Table.................................................................. 34
+Science Bonuses Table........................................................... 35
+This is the “Living Scenario Book” document for the game.
+It includes errata and clarifications to the original rules.
+To aid readability, errata is indicated in blue text.
+GMT Games, LLC • P.O. Box 1308, Hanford, CA 93232-1308
+www.GMTGames.com
+PAGE 2
+2
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+ABOUT THIS BOOK
+The front sections of this scenario book provide all the setup
+information necessary to play Virgin Queen in any of the possible
+configurations. The middle sections supply designer’s notes and
+historical background materials to further the player’s apprecia-
+tion of the Reformation period. The final pages provide additional
+explanatory information about some of the cards and counters
+included with Virgin Queen.
+Getting Started
+Players not familiar with Europe during the Elizabethan period
+are encouraged to read the section “The Game As History” before
+beginning play to gain an overview of the events covered in the
+game.
+Virgin Queen is a sequel to Here I Stand (released by GMT
+Games in 2006). Players familiar with Here I Stand may begin play
+without reading the rule sections listed in the table below since they
+are almost entirely unchanged from that earlier title:
+Rule Sections Unchanged from Here I Stand
+12 Control and Unrest
+13 Movement
+14 Field Battle
+15 Siege
+Players unfamiliar with Here I Stand are encouraged to start with
+the two-player Tutorial Scenario (found in the “Scenarios” section
+below) that allows play to begin without the need to utilize many
+of the rules in Sections 16 through 23. Once the Tutorial Scenario
+has been completed, players should have a understanding of most
+of the key rules that have been carried over from Here I Stand into
+Virgin Queen.
+All players should then read the full rulebook to prepare to
+play the Campaign or Tournament scenarios that accommodate
+up to 6 players. After reading the rules, players may want to set
+up the Tutorial Scenario and work their way through the Extended
+Example of Play (found on Page 15). The Campaign scenario is
+recommended for your first game with the full ruleset. The religious
+rebellions in France and the Netherlands are just getting underway
+in this scenario, making it an easy way to learn the procedures for
+conversion attempts and rebellions (found in Rule Book Section 18).
+The following approximate time estimates are provided for
+6-player games (if all players are already familiar with the rules):
+Campaign Scenario: 8 hours
+Tournament Scenario: 5 hours
+The Victory Point (VP) system employed by Virgin Queen also
+allows players to play for a set number of turns or hours instead of
+following through with a scenario to completion. See the section
+“Setting Your Own Time Limit” just after the scenarios for details.
+Finally, the game plays quite well (and a bit faster) with less
+than 6 players. The adjustments necessary to play with fewer par-
+ticipants are presented in the section “Games with 2 to 5 players”.
+However players familiar with Here I Stand should note these
+very important changes to the diplomacy for Virgin Queen:
+•
+Suing for peace is no longer possible
+•
+Severe restrictions have been placed on ceding of spaces to
+other powers (see Rulebook Section 9.1)
+© 2024 GMT Games, LLC
+PAGE 3
+Scenario Book 3
+Virgin Queen: Wars of Religion ~ 1559-1598
+SCENARIOS
+The first section below provides general guidelines that are use-
+ful when setting up any of the scenarios. Then, the three scenarios
+included with Virgin Queen are presented in the recommended
+order of play.
+Setup Guidelines
+Map, Off-Map Charts and Power Card Layout
+Place the map on a table between all of the players. The power
+cards should be placed around the map in Impulse Order so players
+can easily remember the order in which players take their moves.
+A decorative banner appears for each of the powers on the edge
+of the map to mark the position at the table recommended for that
+power. The following configuration of power cards and off-map
+charts is especially recommended:
+France
+HRE
+England
+Royal
+Weddings
+Protestant
+Spaces
+Protestant
+Patronage Diplomatic
+Influence
+Spain
+Ottoman
+Royal Weddings Card
+The royal counters that start on the Royal Wedding Card are listed
+in the setup information for each scenario.
+VP Markers: Place each power’s color-coded “VP” marker in
+the proper box of the Victory Track (located at the bottom of the
+Royal Weddings Card) according to the initial VP count specified
+for the scenario.
+Patronage Charts
+The artists, scientists and Patronage VP markers that start on the
+Patronage Charts are listed in the setup information for each sce-
+nario. Artists and Scientists that enter on later turns of the scenario
+should be placed on the bottom of the Patronage Charts over their
+matching picture.
+Protestant Spaces Card
+Place the Protestant Spaces marker on the Protestant Space Track
+in the numbered box specified for the scenario.
+Diplomatic Status Display: In each scenario, several wars are
+underway; place a marker on the “At War” side in the appropriate
+box of the Diplomatic Status Display (located at the bottom of the
+Protestant Spaces Card) to mark each of these conflicts. There are
+also several minor powers that start each scenario allied to a major
+power. Place a marker on the “Allied” side in the appropriate box
+to mark each of these alliances.
+Diplomatic Influence Table
+The influence markers that start on the Diplomatic Influence Table
+are listed in the setup information for each scenario.
+Setup Abbreviations
+The following abbreviations are used in the setup tables for the
+scenarios:
+At Start Unit/Power Card Setup
+Set up the game one power at a time, using the setup tables
+for each power provided in the Tutorial, Campaign or Tournament
+Scenario section below. The setup table for each power lists the
+units that appear on the map and specifies the placement of all
+markers that start the game on that nation’s power card. The setup
+information also lists the placement of markers and counters on the
+various off-map charts used in Virgin Queen.
+Force Pool Setup
+Land and naval units for each power that do not appear on the
+map at start should be placed next to each power card to create a
+pool of available forces that may be constructed during play. Unused
+minor power and neutral units should be placed in a separate pile.
+Marker Setup
+Turn Marker: The Turn Track can be found in the upper-right
+corner of the map. Place the black “Turn” marker in the Turn 1 box
+of the Turn Track if this is the Tutorial or Campaign scenario. For
+the Tournament scenario, place it in the Turn 3 box.
+Abbreviation Meaning Sample
+HCM hexagonal control marker
+(on Catholic side)
+hcm hexagonal control marker
+(on Protestant side)
+SCM square control marker
+(on Catholic side)
+scm square control marker
+(on Protestant side)
+merc Mercenary
+© 2024 GMT Games, LLC
+PAGE 4
+4
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+Spain
+The Battle of Lepanto
+Madrid. .........................Duke of Alva, 3 regulars, SCM
+Barcelona. .....................1 regular, SCM
+Seville/Cádiz................SCM
+Oran. .............................1 regular
+Milan............................2 regulars, SCM
+Genoa...........................1 regular, SCM
+Ravenna. .......................HCM
+Ancona.........................HCM
+Rome............................SCM
+Naples. ..........................1 regular, SCM
+Messina........................2 galleys
+Malta............................2 regulars (Knights of St. John), SCM
+SCM on Power Card: 6
+Holy Roman Empire
+Tutorial Scenario
+Description
+The Tutorial Scenario is specifically designed for two players (Ot-
+toman vs. Spain) who wish to learn the basic mechanics of Virgin
+Queen without having to learn the full set of rules or gather enough
+players for one of the lengthier scenarios.
+Game Length
+3 Turns: Turn 1 (1559) to Turn 3 (1575)
+Setup
+nario:
+The following components are not needed in this simplified sce-
+•
+•
+•
+Patronage Charts
+Power Cards for England, France, Holy Roman and Protestant
+Any units or markers for England, France, or the Protestant
+The Victory Point Track is used only to track Ottoman VP. The
+Protestant Spaces Card is used only for the Diplomatic Status
+Display at the bottom of the card. Be sure to place the Ottoman
+Power Card and Spanish Power Card on their reverse side (labeled
+“For Tutorial Scenario”).
+Ottoman
+Vienna..........................Schwendi, 2 regulars, 2 mercs, SCM,
+Holy Roman Capital
+Prague. ..........................1 regular, SCM
+Augsburg......................1 regular, scm
+Frankfurt. ......................1 regular, scm
+Szigetvar. ......................Zrinyi, 1 regular
+Papacy
+Ravenna. .......................1 regular
+Rome............................2 regulars
+Messina........................1 galley
+Venice
+Venice. ..........................2 regulars, 3 galleys
+Candia..........................1 regular
+Cyprus..........................1 regular
+Independents
+Istanbul. ........................Mehmed, Piyale Pasha, 8 regulars, 2
+cavalry, 3 galleys, SCM
+Salonika. .......................1 regular, SCM
+Athens..........................1 regular, SCM
+Scutari..........................1 cavalry
+Belgrade.......................1 regular, SCM
+Buda.............................2 regulars, SCM
+Algiers. .........................Dragut, 2 regulars, 3 corsairs, SCM
+SCM on Power Card: 4
+Bonus VP Box: 2 Fortresses (see Victory Points below)
+Florence. .......................1 regular
+Tunis. ............................1 regular
+Royal Weddings Card
+VP Track: Ottoman 13
+Protestant Spaces Card
+Diplomatic Status Display:
+• Ottoman and Spain are at war.
+• Spain and Papacy are allied.
+Diplomatic Influence Table
+Papacy: Ottoman Influence 0, Spanish Influence 1
+Venice: Spanish Influence 0, Ottoman Influence 2
+Holy Roman: Spanish Influence 1, Ottoman Influence 3
+Note: The countermix does not include a third Ottoman Diplomatic
+Influence marker for the Tutorial Scenario. Use the green “VP
+Baseline” marker as a substitute.
+© 2024 GMT Games, LLC
+PAGE 5
+Scenario Book 5
+Virgin Queen: Wars of Religion ~ 1559-1598
+Cards in Play
+Only cards numbered from 1 through 31 are used in this scenario.
+Cards 1 and 2 are the Ottoman Home cards, Card 3 is the Spanish
+Home card, and Cards 4 through 31 form the deck.
+Victory Points
+Only Ottoman VP are tracked during this scenario. The Ottomans
+win with either a military victory or if they end any turn with 20 or
+more VP. If they have not managed to achieve either of these condi-
+tions by the end of Turn 3, then Spain is the winner. The Ottomans
+receive 1 VP for each fortress space they currently control that is
+not in unrest (in addition to receiving VP from keys and piracy as
+normal). Since they control Scutari and Djerba/Tripoli at the start
+of the game, they start with 13 VP (11 from keys and 2 from for-
+tresses). Fortress markers can be added to their Bonus VP box as
+a reminder of these extra VP; this allows players to view their VP
+total directly on their Power Card. Neither player may construct
+new fortresses in this scenario. If Spain initiates piracy against the
+Ottoman and scores one or more hits, the Ottoman player is not
+permitted to give Spain 1 Piracy VP. Instead that choice is changed
+to reducing his Ottoman Piracy VP total by 1.
+Special Rules
+1. No spaces in Scotland, England, the Netherlands, France or
+Portugal may be entered during this scenario. The independent key
+Metz is also out of play. Spain does NOT get credit for 3 keys in
+the Netherlands when placing their control markers on the map at
+the start of the game.
+2. The ocean zones and spaces on the World Map are not used in
+this scenario. Do not deal treasures; no power receives any treasures
+from the New World.
+3. The Ottoman and Spain are At War at the start of the scenario.
+Skip the Negotiation and War Segments of the Diplomacy Phase
+during each turn of this scenario. The only declarations of war that
+may be made are those made during the Action Phase through play
+of the Ottoman Home Card Ottoman Tribute.
+4. The Holy Roman Empire is considered a minor power in this
+scenario. (Do not use the rules for activating the Holy Roman
+Empire in games with 2 to 5 players; thus they do not receive a
+hand of cards in this tutorial scenario.) They conform to all rules
+for minor powers found in Section 24 of the rulebook with these
+three exceptions:
+(a) do not place Spanish control markers on Holy Roman home
+spaces if they are activated as an ally of Spain.
+(b) Spain may ransom Holy Roman leaders if they become
+captured during play. In this case the Ottoman receives a card
+draw from the Spanish hand but the leader still returns to the
+Holy Roman capital (or home key) as per 9.3.
+(c) Spain may build both regulars and mercenaries of the Holy
+Roman Empire according to the rules in 24.3.
+5. For this scenario (only), the Ottoman can add diplomatic influence
+to the Papacy to attempt to deactivate that minor power. If Spain
+gains control of the Papacy by play of the Mandatory Event Papal
+Bull, Spain must receive either the fourth benefit listed (retrieve
+Holy League) or no benefit at all (the first three are not available
+in this scenario).
+6. The following rule sections are not used in this scenario:
+16.5 Piracy on the World Map
+16.6 Circumnavigation
+16.7 Antwerp and Rotterdam
+17.4 Expeditions
+17.5 Fortresses
+18. Religious Struggles
+19. Espionage
+20.2 Discard Unused Treasures
+20.3 Loaned Naval Unit Markers
+20.5 Major Power Alliance Markers
+20.8 Espionage Reset
+20.10 Catholic League Formation
+21. Marriage
+22. Patronage
+23.3 England
+23.4 France
+23.5 Holy Roman Empire
+23.6 Protestant
+23.7 Foreign War Cards
+This special rule means that the following Ottoman actions cannot
+be used:
+•
+Build Fortress
+•
+•
+•
+•
+Build Expedition
+Gain Intelligence
+Plant Operative
+Assassination
+•
+Patronize Artist or Scientist
+The following Spanish actions cannot be used:
+•
+Build Patrol
+•
+Build Fortress
+•
+•
+Upgrade Armada
+Preach Sermon
+•
+•
+•
+•
+Suppress Heresy
+Gain Intelligence
+Plant Operative
+Assassination
+•
+•
+English Catholic Rebellion
+Patronize Artist or Scientist
+Besides the Diplomacy Phase, the Marriage Resolution and Patron-
+age Phases are also skipped in this scenario.
+© 2024 GMT Games, LLC
+PAGE 6
+6
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+The Siege of La Rochelle
+Haarlem. .......................HCM
+Amsterdam...................SCM
+Rotterdam. ....................HCM
+Utrecht. .........................HCM
+Arnhem. ........................HCM
+Brielle. ..........................HCM
+Antwerp. .......................1 regular (Walloon), SCM
+’s-Hertogenbosch. .........HCM
+Flushing. .......................HCM
+Ghent. ...........................hcm
+Brussels........................1 regular, SCM
+Maastricht. ....................HCM
+SCM on Power Card: 3
+World Map Fortresses: 1 fortress marker
+Treasures in Hand: 1 (draw at random before start of game).
+England
+Campaign Scenario
+Description
+The Campaign Scenario is the lengthiest version of the game,
+covering all 40 years when both Elizabeth reigned in England and
+Philip II was King of Spain.
+Game Length
+7 Turns: Turn 1 (1559) to Turn 7 (1598)
+Setup
+Ottoman
+London.........................2 regulars, scm
+Portsmouth...................1 galleon
+Bristol. ..........................1 regular, scm
+York. .............................scm
+Berwick........................2 regulars, 1 galleon, HCM
+Dublin. ..........................1 regular, SCM
+SCM on Power Card: 3
+Sea Captains Available: Hawkins
+France
+Istanbul. ........................Mehmed, Piyale Pasha, 8 regulars, 2
+cavalry, 3 galleys, SCM
+Salonika. .......................1 regular, SCM
+Athens..........................1 regular, SCM
+Scutari..........................1 cavalry
+Belgrade.......................1 regular, SCM
+Buda.............................2 regulars, SCM
+Algiers. .........................Dragut, 2 regulars, 3 corsairs, SCM
+SCM on Power Card: 4
+Suez Cannel: 0 Attempts
+Sea Captains Available: Murat Reis
+Spain
+Paris. .............................Montmorency, 3 regulars, SCM
+Orleans.........................1 regular
+Calais. ...........................galleon, SCM
+Rouen...........................scm
+Metz.............................1 regular, SCM
+Lyon.............................1 regular, SCM
+Marseille. ......................1 regular, SCM
+Bordeaux......................1 regular
+La Rochelle..................scm
+Nantes. ..........................hcm
+Amboise.......................hcm
+Brest.............................1 galley
+Edinburgh. ....................1 regular, SCM
+Glasgow. .......................HCM
+Stirling. .........................HCM
+Perth.............................hcm
+SCM on Power Card: 2
+Sea Captains Available: le Testu, Villegaignon. Shared with
+Protestant: de Sores, le Clerc.
+Madrid. .........................Duke of Alva, 3 regulars, SCM
+Barcelona. .....................1 regular, SCM
+Seville/ Cádiz...............1 galleon, SCM
+Oran. .............................1 regular
+Milan............................2 regulars, SCM
+Genoa...........................1 regular, SCM
+Ravenna. .......................HCM
+Ancona.........................HCM
+Rome............................SCM
+Naples. ..........................1 regular, SCM
+Messina........................2 galleys
+Malta............................2 regulars (Knights of St. John), SCM
+Alkmaar. .......................HCM
+© 2024 GMT Games, LLC
+PAGE 7
+Scenario Book 7
+Virgin Queen: Wars of Religion ~ 1559-1598
+Holy Roman Empire
+Vienna..........................Schwendi, 2 regulars, 2 mercs, SCM,
+Holy Roman Capital
+Prague. ..........................1 regular, SCM
+Augsburg......................1 regular, scm
+Frankfurt. ......................1 regular, scm
+Szigetvar. ......................Zrinyi, 1 regular
+SCM on Power Card: 4
+Mercenaries for Hire: 4 Mercs
+Sea Captains Available: Henszlein
+Protestant – Dutch
+SCM on Power Card: 3
+Sea Captains Available: Laudonniere. Shared with France: de
+Sores, le Clerc.
+Protestant – Huguenot
+SCM on Power Card: 5
+Leaders Held Off-Map: Coligny
+Ireland
+No forces at start (enter when Ireland activates)
+Papacy
+Ravenna. .......................1 regular
+Rome............................2 regulars
+Messina........................1 galley
+Portugal
+Lisbon. ..........................1 regular, 1 galleon
+Scotland
+No forces at start (enter with Scottish Lords Rebel event)
+Venice
+Venice. ..........................2 regulars, 3 galleys
+Candia..........................1 regular
+Cyprus..........................1 regular
+Independents
+Patronage Charts
+Artists Currently Available:
+Ottoman: Sinan
+Spain: Titian, Bautista
+France: Clouet, de L’Orme
+Protestant: Brueghel
+From Italy: Palladio
+Scientists Currently Available:
+Ottoman: Seydi ali Reis
+Spain: Herrera
+England: Dee
+France: Le Testu
+Holy Roman: Mercator
+Protestant: Le Moyne
+From Italy: Bellaso
+VP Markers: all 19 (13 for artists, 6 for scientists)
+Science Bonuses: all 9
+Protestant Spaces Card
+Protestant Spaces: 18
+Diplomatic Status Display:
+•
+Spain and the Papacy are allied.
+•
+France and Scotland are allied.
+•
+Ottoman and Spain are at war.
+•
+England and France are at war.
+Neither of these 2 wars may be ended during Turn 1 negotiations.
+Diplomatic Influence Table
+Papacy: French Influence 0, Holy Roman Influence 0, Spanish
+Influence 1
+Venice: Spanish Influence 0, French Influence 0, Holy Roman
+Influence 0, Ottoman Influence 2
+Scotland: English Influence 0, French Influence 0, Protestant
+Influence 1
+Ireland: French Influence 0, Holy Roman Influence 0, Spanish
+Influence 1, English Influence 2
+Cards in Play
+If playing with all 6 players, all cards except these are in play:
+#4 German Intervention
+#37 The Sublime Porte
+For games with less than 6 players see the section below “Games
+with 2 to 5 players”. Please note that many cards are added to play
+later than Turn 1, as specified in the upper right corner of each card.
+Florence. .......................1 regular
+Tunis. ............................1 regular
+Royal Weddings Card
+Available to Wed, 5 Eligibility: Elizabeth I
+Available to Wed, 3 Eligibility: Phillip II
+Available to Wed, 2 Eligibility: Don Carlos, Elisabeth de Valois,
+Charles II, William of Orange
+Available to Wed, 1 Eligibility: Leicester, Anna of Saxony,
+Earl of Arran
+Prior to the period covered in the game, Catherine de Medici agreed
+to marry her daughter Elizabeth de Valois to Philip II of Spain.
+Neither player is bound to follow through with this agreement.
+However as noted in Philip II’s marriage bonus, if the agreement
+is broken off by either side, Spain draws one card less on Turn 2.
+VP Track: Protestants 1, English 6, Holy Roman Empire 8, French
+9, Ottoman 11, Spanish 17
+© 2024 GMT Games, LLC
+PAGE 8
+8
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+The Dutch Revolt Starts
+Tournament Scenario
+Description
+The Tournament Scenario is an abbreviated version of the game
+that skips the first two turns and puts all six powers in a position
+to threaten victory within just a few turns of play.
+Game Length
+4 Turns: Turn 3 (1570) to Turn 6 (1593)
+Setup
+Ottoman
+Venice. ..........................SCM
+Zara..............................HCM
+Ravenna. .......................HCM
+Acona...........................HCM
+Rome............................SCM
+Naples. ..........................1 regular, SCM
+Messina........................1 galley
+Malta............................1 regular (Knights of St. John), SCM
+Corfu............................HCM
+Candia..........................HCM
+Cyprus..........................+1 VP Cyprus marker, HCM
+Florida..........................HCM
+Alkmaar. .......................hcm
+Haarlem. .......................HCM
+Amsterdam...................scm
+Rotterdam. ....................HCM
+Utrecht. .........................1 regular, HCM
+Arnhem. ........................HCM
+Brielle. ..........................hcm
+Antwerp. .......................2 regulars (Walloon), SCM
+‘s-Hertogenbosch.........HCM
+Flushing. .......................hcm
+Ghent. ...........................HCM
+Brussels........................Duke of Alva, 1 regular, SCM
+Maastricht. ....................HCM
+SCM on Power Card: 2
+World Map Fortresses: 1 fortress marker
+Jesuits: 1 available
+Treasure Fleets Escort: 1 Galleon
+Treasures in Hand: 2 (draw at random before start of game).
+England
+Istanbul. ........................Mehmed, Piyale Pasha, 6 regulars, 1
+cavalry, 5 galleys, SCM
+Salonika. .......................1 regular, SCM
+Athens..........................1 regular, SCM
+Belgrade.......................1 regular, SCM
+Buda.............................2 regulars, SCM
+Djerba/Tripoli. ..............Uluch Ali, 3 corsairs
+Tunis. ............................2 regulars, SCM
+Algiers. .........................2 regulars, SCM
+Granada........................2 regulars (Morisco)
+SCM on Power Card: 3
+Suez Cannel: 0 Attempts
+Bonus VP Box: +1 VP Artist (Elegy for Suleiman, by Baki)
+Current Ruler: Selim II (place card #6 over the picture of
+Suleiman I)
+Sea Captains Available: Murat Reis
+Spain
+London.........................Leicester, 3 regulars, 1 galleon, scm
+York. .............................1 regular, scm
+Bristol. ..........................1 regular, scm
+Portsmouth...................1 galleon
+Plymouth......................1 galleon
+Dublin. ..........................1 regular, SCM
+Berwick........................HCM
+SCM on Power Card: 3
+Mary Queen of Scots: Mary Queen of Scots Captured
+Walsingham: Unused
+Bonus VP Box: Two +1 VP Virgin Queen, +1VP Piracy
+Sea Captains Available: Hawkins, Drake
+Treasures in Hand: 1 (draw at random before start of game).
+France
+Madrid. .........................Don John, 2 regulars, 2 mercs, SCM
+Barcelona. .....................1 regular, 1 galley, SCM
+Seville/ Cádiz...............SCM
+Gibraltar.......................Unrest marker
+Granada........................Unrest marker
+Cartagena. .....................Unrest marker, 1 galley
+Oran. .............................1 regular
+Milan............................1 regular, 1 merc, SCM
+Genoa...........................1 regular, 1 galley, SCM
+Paris. .............................Henry III, 1 regular, 2 mercs, SCM
+Calais. ...........................1 regular, SCM
+Rouen...........................1 galleon, SCM
+Metz.............................1 regular, SCM
+Lyon.............................SCM
+Marseille. ......................1 regular, SCM
+© 2024 GMT Games, LLC
+PAGE 9
+Scenario Book 9
+Virgin Queen: Wars of Religion ~ 1559-1598
+Bordeaux......................1 regular
+Rennes. .........................hcm
+Nantes. ..........................hcm
+Amboise.......................hcm
+Poitiers.........................hcm
+Limoges. .......................hcm
+Montpellier. ..................hcm
+Avignon........................hcm
+SCM on Power Card: 4
+Valois Marriage to arrange: Elisabeth de Valois
+Bonus VP Box: Paris VP Turn 1, Paris VP Turn 2
+Sea Captains Available: le Testu. Shared with Protestant: de
+Sores.
+Out of Game: Montmorency, Villegaignon, le Clerc
+Holy Roman Empire
+Portugal
+Lisbon. ..........................1 regular, 1 galleon
+Scotland
+Edinburgh. ....................2 regulars
+Venice
+Venice. ..........................2 regulars, 3 galleys
+Candia..........................1 regular
+Cyprus..........................1 regular
+Independents
+Vienna..........................Schwendi, 2 regulars, 2 mercs, SCM,
+Holy Roman Capital
+Prague. ..........................1 regular, SCM
+Augsburg......................1 regular, scm
+Frankfurt. ......................1 regular, scm
+SCM on Power Card: 4
+Mercenaries for Hire: 4 Mercs
+Sea Captains Available: Henszlein
+Out of Game: Zrinyi
+Protestant – Dutch
+SCM on Power Card: 3
+Leaders Held Off-Map: William of Orange
+Bonus VP Box: +2 VP Painter VP (Fight between Carnival and
+Lent, by Brueghel)
+Sea Captains Available: Laudonniere. Shared with France: de
+Sores.
+Protestant – Huguenot
+La Rochelle..................Coligny, 1 regular, 2 mercs, scm, Hugue-
+not Capital
+Cognac. .........................hcm
+Toulouse.......................1 regular, Fortress, hcm
+Bayonne. .......................1 regular, hcm
+Edinburgh. ....................scm
+Perth.............................hcm
+Stirling. .........................hcm
+Glasgow. .......................HCM
+SCM on Power Card: 3
+Treasures in Hand: 1 (draw at random before start of game).
+Ireland
+No forces at start (enter when Ireland activates)
+Papacy
+Ravenna. .......................1 regular
+Rome............................2 regulars
+Messina........................1 galley
+Florence. .......................1 regular
+On Board Cards
+Morisco Revolt (Card #28)
+Royal Weddings Card
+Available to Wed, 3 Eligibility: Elizabeth I, Marguerite de Valois,
+Henry III (Anjou), Henry IV (Navarre)
+Available to Wed, 2 Eligibility: Philip II, Charles IX, Anna of
+Austria, Elisabeth of Austria, William of Orange
+Available to Wed, 1 Eligibility: Leicester
+Note: Elizabeth I, Philip II, and Charles IX all start the scenario
+below their printed eligibility ratings (having dropped in eligibility
+on Turns 1 and/or 2).
+VP Track: Holy Roman Empire 8, French 10, Protestants 10,
+English 11, Ottoman 14, Spanish 15
+Patronage Charts
+Artists Currently Available:
+Ottoman: Sinan
+Spain: Titian, Bautista
+England: Hilliard
+France: Clouet, Ronsard, de L’Orme
+Holy Roman: Arcimboldo
+Protestant: Marnix
+From Italy: Palladio, Tintoretto
+Scientists Currently Available:
+Ottoman: Taqi al-Din, Seydi ali Reis
+Spain: Herrera
+England: Dee
+France: Le Testu
+Holy Roman: Brahe, Mercator
+Protestant: Le Moyne
+From Italy: Bellaso
+VP Markers: 17 (11 for artists, 6 for scientists): all but +2 VP
+Painter (Fight between Carnival and Lent) and +1 VP Artist (Elegy
+for Suleiman)
+Science Bonuses: all 9
+Protestant Spaces Card
+Protestant Spaces: 30
+Diplomatic Status Display:
+•
+Spain and the Papacy are allied.
+© 2024 GMT Games, LLC
+PAGE 10
+10
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+•
+•
+•
+•
+Spain and Venice are allied.
+Protestant and Scotland are allied.
+Ottoman and Spain are at war.
+France and Protestant are at war.
+The war between the Ottomans and Spain cannot be ended during
+Turn 3 negotiations (the first turn of this scenario). The war between
+France and the Protestant may be ended.
+Diplomatic Influence Table
+Papacy: French Influence 0, Holy Roman Influence 0, Spanish
+Influence 1
+Venice: Spanish Influence 0, French Influence 0, Holy Roman
+Influence 0, Ottoman Influence 2
+Scotland: English Influence 0, French Influence 0, Protestant
+Influence 1
+Ireland: French Influence 0, Holy Roman Influence 0, Spanish
+Influence 1, English Influence 2
+Cards in Play
+Remove these cards from play while setting up this scenario (they
+are events that are considered to have occurred on Turn 1 or 2):
+#11 Dragut Falls
+#58 Jeanne of Navarre
+If playing with all 6 players, all other cards are in play except these
+two (which are only used in games with less than 6 players):
+#4 German Intervention
+#37 The Sublime Porte
+For games with less than 6 players see the section below “Games
+with 2 to 5 players”. Please note that many cards are added to play
+later than Turn 3, as specified in the upper right corner of each card.
+Special Rules
+1. The event Morisco Revolt has been played by the Ottoman
+against Spain prior to the start of the scenario. If this event causes
+unrest to spread during the Winter Phase, the Ottoman player (or
+England if the Otttoman is inactive in a 4-player game) should
+choose the additional spaces that enter unrest.
+SETTING YOUR OWN TIME LIMIT
+The VP system used in Virgin Queen allows players to declare a
+winner at the end of a turn, even if none of the victory types listed in
+Section 25 of the rulebook have been triggered. The one rule-of-thumb
+to keep in mind is that the VP totals are not in balance until the end of
+Turn 4 (to give the Protestant time to catch up to the other powers). So,
+in the Victory Determination Phase of Turns 4 through 6, players are
+free to end the game and award victory to the player with the highest
+VP total. Ties for the highest total are resolved as described in Section
+25.3 (Standard Victory). Because of the possibility of ties, players
+should be sure to record the VP totals at the end of each turn of play
+(even at the end of turns prior to Turn 4).
+Thus, players can use Virgin Queen’s VP system to tailor their gaming
+session according to the time available for their gaming group. Here are
+some examples of perfectly legitimate, balanced ways to play the game:
+•
+Start with the Campaign Scenario setup and play for 6 hours,
+then declare a winner at the end of the first turn that ends after
+the 6-hour mark (as long as this is at least the end of Turn 4).
+•
+Start with the Campaign Scenario setup and play until the end
+of Turn 5 (about 7 hours of play).
+•
+Start with the Tournament Scenario setup and play for 4 hours,
+then declare a winner at the end of the first turn that ends after
+the 4-hour mark.
+Groups are encouraged to have a firm agreement on the limits
+for their game session before beginning play.
+© 2024 GMT Games, LLC
+PAGE 11
+Scenario Book 11
+Virgin Queen: Wars of Religion ~ 1559-1598
+GAMES WITH 2 TO 5 PLAYERS
+The Virgin Queen rulebook assumes a game with the full
+complement of 6 players, one for each power. However, the game
+was designed and tested to play with fewer players (2, 3, 4, or 5),
+using the rule modifications from this section. In addition, there is
+a Tutorial scenario that is an additional way to play with just two
+participants. The special rules for that method of playing with two
+players are listed with the Tutorial scenario information, rather
+than in this section.
+Configurations
+The assignments of powers to players in games with less than 6
+players are given below. Powers that are not directly controlled by
+players but can be activated for a while through diplomatic influ-
+ence are listed as “Activated Majors” below. In 2 or 3-player games
+(where a player may control two different powers), victory goes to
+the player who first has a single power meet the usual conditions for
+victory (evaluating victory as if the players are in a 4-player game
+between Spain, England, France, and the Protestant).
+2-player
+Player 1: Spain and France
+Player 2: England and Protestant
+Activated Majors: Ottoman, Holy Roman Empire. Ottoman
+starts as Ally of England. Holy Roman Empire starts inactive.
+Cards Added to Play: German Intervention, The Sublime
+Porte
+Cards Removed from Play: Grand Vizier, Ottoman Tribute,
+Holy Roman Intercession, Patron of Arts & Sciences, War
+with Poland, War in Persia
+Patronage Awards Removed From Play: Suleimaniye Mosque
+(+3 VP Architect), Elegy for Suleiman (+1 VP Artist), Ver-
+tumnus (+1 VP Artist), Laws of Planetary Motion (+2 VP
+Scientist), Mirror of Countries (+1 VP Scientist), Excavation
+(Science Bonus)
+Royals Removed From Play: Rudolf II
+Sea Captains Removed From Play: Murat Reis, Henszlein
+Artists/Scientists Removed From Play: Sinan, Seydi ali Reis,
+Taqi al-Din, Baki, Mercator, Arcimboldo, Brahe, Spranger,
+Kepler.
+At Start Diplomatic Influence Change: England, France and the
+Protestant start with 1 influence with the Holy Roman Empire
+(allowing them to strike a marriage deal). Remove the French
+Influence marker from the Ottoman column on the Diplomatic
+Influence table; France may not influence the Ottoman in a
+2-player game. Set aside the HRE Influence markers that usually
+are placed on the Papacy, Venice, and Ireland. The HRE cannot
+influence these minor powers until it is activated.
+3-player
+Player 1: Spain
+Player 2: England and Protestant
+Player 3: France
+Activated Majors: Ottoman, Holy Roman Empire. Ottoman
+starts as Ally of England. Holy Roman Empire starts inactive.
+Cards Added to Play: German Intervention, The Sublime
+Porte
+Cards Removed from Play: Grand Vizier, Ottoman Tribute,
+Holy Roman Intercession, Patron of Arts & Sciences, War
+with Poland, War in Persia
+Patronage Awards Removed From Play: Suleimaniye Mosque
+(+3 VP Architect), Elegy for Suleiman (+1 VP Artist), Ver-
+tumnus (+1 VP Artist), Laws of Planetary Motion (+2 VP
+Scientist), Mirror of Countries (+1 VP Scientist), Excavation
+(Science Bonus)
+Royals Removed From Play: Rudolf II
+Sea Captains Removed From Play: Murat Reis, Henszlein
+Artists/Scientists Removed From Play: Sinan, Seydi ali Reis,
+Taqi al-Din, Baki, Mercator, Arcimboldo, Brahe, Spranger,
+Kepler.
+At Start Diplomatic Influence Change: England, France and the
+Protestant start with 1 influence with the Holy Roman Empire
+(allowing them to strike a marriage deal). Set aside the HRE
+Influence markers that usually are placed on the Papacy, Venice,
+and Ireland. The HRE cannot influence these minor powers
+until it is activated.
+4-player
+Player 1: Spain
+Player 2: England
+Player 3: France
+Player 4: Protestant
+Activated Majors: Ottoman, Holy Roman Empire. Ottoman
+starts as Ally of England. Holy Roman Empire starts inactive.
+Cards Added to Play: German Intervention, The Sublime
+Porte
+Cards Removed from Play: Grand Vizier, Ottoman Tribute,
+Holy Roman Intercession, Patron of Arts & Sciences, War
+with Poland, War in Persia
+Patronage Awards Removed From Play: Suleimaniye Mosque
+(+3 VP Architect), Elegy for Suleiman (+1 VP Artist), Ver-
+tumnus (+1 VP Artist), Laws of Planetary Motion (+2 VP
+Scientist), Mirror of Countries (+1 VP Scientist), Excavation
+(Science Bonus)
+Royals Removed From Play: Rudolf II
+Sea Captains Removed From Play: Murat Reis, Henszlein
+Artists/Scientists Removed From Play: Sinan, Seydi ali Reis,
+Taqi al-Din, Baki, Mercator, Arcimboldo, Brahe, Spranger,
+Kepler.
+At Start Diplomatic Influence Change: England, France and the
+Protestant start with 1 influence with the Holy Roman Empire
+(allowing them to strike a marriage deal). Set aside the HRE
+Influence markers that usually are placed on the Papacy, Venice,
+and Ireland. The HRE cannot influence these minor powers
+until it is activated.
+5-player
+Player 1: Ottoman
+Player 2: Spain
+Player 3: England
+Player 4: France
+Player 5: Protestant
+Activated Majors: Holy Roman Empire (who starts inactive)
+Cards Added to Play: German Intervention
+© 2024 GMT Games, LLC
+PAGE 12
+12
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+•
+•
+Cards Removed from Play: Holy Roman Intercession, Patron
+of Arts & Sciences, War with Poland, The Sublime Porte
+Patronage Awards Removed From Play: Vertumnus (+1 VP
+Artist), Laws of Planetary Motion (+2 VP Scientist)
+Royals Removed From Play: Rudolf II
+Sea Captains Removed From Play: Henszlein
+Artists/Scientists Removed From Play: Mercator, Arcimboldo,
+Brahe, Spranger, Kepler.
+At Start Diplomatic Influence Change: England, France and the
+Protestant start with 1 influence with the Holy Roman Empire
+(allowing them to strike a marriage deal). Set aside the HRE
+Influence markers that usually are placed on the Papacy, Venice,
+and Ireland. The HRE cannot influence these minor powers
+until it is activated.
+Controlling 2 Powers
+Additional restrictions are placed on any player that controls two
+powers:
+•
+A player may never use one power to conduct piracy on the
+other power controlled by the same player.
+A player may never have one of his powers declare war on the
+other. [When the Catholic League is formed in a 2-player game,
+skip the portion of Step 4 (War Status) that calls for Spain to
+go to war with France.]
+A player may never award a card draw or mercenaries from
+one of his powers to the other.
+The two powers controlled by a single player may ally and loan
+naval squadrons however.
+Activated Major Powers
+As shown above, the Ottoman and/or Holy Roman Empire
+powers will be major powers that have to be activated in games
+with less than 6 players. This activation is handled in a similar
+fashion as the five minor powers (whose activation and deactiva-
+tion is described in Section 24 of the Virgin Queen rulebook). The
+major powers that are being actively controlled by players spend
+CP on the Buy Diplomatic Influence action to advance influence
+markers on the tracks of the Ottoman and Holy Roman Empire.
+Then, when the proper event is played, their diplomatic status is
+resolved, just as in 24.6. Their diplomatic status is also resolved
+if a power declares war on an inactive major power (so it can be
+determined which player will control the power targeted by the
+DOW during the conflict). Remove the power declaring war and
+any power listed as a “Deactivate” power from those considered
+during this Diplomatic Status check.
+Diplomatic Influence Setup
+Set up markers for these powers on the Diplomatic Influence Table
+if they are activated powers, as follows:
+Ottoman: English Influence 0, French Influence 0, Protestant
+Influence 0, Spanish Influence 1
+Holy Roman: English Influence 0, French Influence 0, Protestant
+Influence 0, Spanish Influence 1, Ottoman Influence 3
+Activation
+Follow these steps when activating a major power (instead of the
+usual steps for activation of a minor):
+1. Record Victory Point Baseline: Place the “VP Baseline” marker
+on the Victory Point track on the same space as the primary VP
+marker for the major power being activated. This marker will remain
+in place until this power is deactivated or the marker is adjusted in
+an upcoming Victory Segment.
+2. Place “Ally of Major Power” Marker: Add an “Ally
+of Major Power” marker to the box that cross-referenc-
+es these powers on the Diplomatic Status Display.
+3. Coordinated Defense: If this major power is being activated in
+response to a DOW, the player gaining control may elect to have
+their major power join the conflict on the side of the target of the
+DOW. Add an At War marker between the winning power and the
+power declaring war (even if those powers were previously allied).
+4. Declare New Wars: The player gaining control may elect to
+have this newly activated major power declare war on any one
+major power that is not their ally. Add an “At War” marker between
+these two powers.
+5. Set Diplomatic Influence: All Influence markers in the column
+of this power that is being activated are placed in the Resolved This
+Turn box. All influence markers that this activating major power
+has for minor powers are reset to their default values.
+6. Deal Cards: Deal a hand of cards to the newly activated power.
+The number of cards dealt is whichever one of these items listed
+below represents the smallest number:
+•
+The number of cards this power would receive from keys plus
+their ruler’s card bonus at the start of the turn.
+•
+The number of cards currently in the hand of a power they just
+declared war on in Step 4 (ignore this bullet if they did not make
+such a DOW).
+•
+The number of cards currently in the hand of the power with
+the most cards in their hand.
+Restrictions
+While allied, activated major powers operate under the follow-
+ing restrictions:
+•
+They may not take Patronage actions.
+•
+They may not take the Build Expedition action.
+•
+They may not conduct Espionage actions. Their leaders cannot
+be targets of the Assassination action.
+•
+Activated major powers conduct diplomacy normally making
+announcements and declaring war. However the restrictions for
+“Controlling 2 Powers” listed above apply between an activated
+major power and any other power(s) controlled by the same
+player.
+Activated major powers may add diplomatic influence to minor
+powers and win diplomatic checks to gain allies or to cause minor
+powers to deactivate (or remain inactive).
+© 2024 GMT Games, LLC
+PAGE 13
+Scenario Book 13
+Virgin Queen: Wars of Religion ~ 1559-1598
+Weddings
+If the Holy Roman Empire is active, the player activating the
+Holy Roman Empire makes all deals involving Holy Roman royals
+who are eligible for marriage.
+If the Holy Roman Empire is inactive, these royals can still
+be worked into a marriage deal. A power with 1 or more points
+of diplomatic influence with the Holy Roman Empire may spend
+1 point of influence as diplomatic announcements are made to
+announce a deal to marry one of these Holy Roman royals. Since
+announcements are made in Impulse Order, Spain typically gets the
+first chance for such a marriage, though if royals (and influence)
+are available, there is no limit to the number of powers that can
+strike such a deal.
+Winter
+Replacements: Only an active major power receives a regular in
+their capital during winter. Inactive minor powers never receive a
+unit at this time.
+Major Power Alliance Markers: Do not remove “Ally of Major
+Power” markers during winter. Do remove “Ally” markers placed
+during the Diplomacy Phase if these activated major powers an-
+nounced or confirmed a deal that included an alliance.
+Victory Points
+During each Victory Segment, review the VP total of each activated
+major power.
+Higher than Baseline: If the VP total is 2 or more spaces above
+the VP Baseline marker for this power, VP are awarded to this
+activated power’s major power ally. For every 2 full spaces the
+VP marker is above the baseline, award one “Activated Major
+1 VP” bonus VP marker to the ally. After awarding each VP,
+move the VP Baseline marker up 2 spaces.
+Lower than Baseline: If the VP total is 2 or more spaces below the
+VP Baseline marker for this power, negative VP are awarded to
+this activated power’s major power ally. For every 2 full spaces
+the VP marker is below the baseline, award one “Activated
+Major –1 VP” bonus VP marker to the ally. After awarding
+each VP, move the VP Baseline marker down 2 spaces.
+Additional Considerations:
+1) Players should skip having the Holy Roman player choose a secret
+religious preference (and gain VP from such a choice) in the 2 to
+5-player games.
+2) The Ottoman or Holy Roman may not win victories when they
+are serving as activated major powers. If a situation develops where
+the last square control marker should be placed on the map, place a
+hexagonal control marker instead. If a square control marker is later
+returned to the power card while this hexagonal marker is still on a
+key, shuffle the markers to maximize the number of square control
+markers on the map (but continue to leave the final square control
+marker on the Auto Win space of the power card).
+Deactivation
+Follow these steps when deactivating a major power (instead
+of the usual steps for deactivation of a minor). The player who
+previously controlled this major power makes all decisions about
+the movement of this major power’s units while executing the
+bullets below:
+•
+•
+•
+•
+•
+•
+•
+•
+•
+•
+•
+•
+Award bonus VP markers according to the procedure above
+for awarding VP for activated major powers during the Victory
+Segment (see above). Then remove this power’s Baseline VP
+marker from the Victory Point track.
+Remove the “Ally of Major Power” marker from the box that
+cross-references these powers on the Diplomatic Status Display.
+Remove all “At War” markers between this deactivating major
+power and other powers.
+Units from other powers are displaced if they occupy one of
+the spaces controlled by the deactivating power. Follow the
+procedure described in (12.5). Note that control of these spaces
+remains with the deactivating power.
+All land units of the power being deactivated are returned to friendly-
+controlled, fortified spaces as per the Winter Phase rules (20.4).
+All naval leaders and units of the power being deactivated are
+returned to friendly-controlled ports as per the Winter Phase
+rules (20.4).
+All cards and treasures currently in the deactivating power’s
+hand are immediately discarded (even if this major power is
+going to be immediately activated as an ally of a different major
+power).
+All Influence markers in the column of this activating major
+power are placed in the Resolved This Turn box. All influence
+markers that this activating major power has for minor powers
+are set aside.
+If the Holy Roman Empire is being deactivated, and the Papacy,
+Venice or Ireland is a HRE minor power ally, then deactivate
+that ally (or allies).
+Remove all “Allied” markers between this deactivating major
+power and other powers.
+Remove all +1 Card and –1 Card markers from this deactivating
+power’s Power Card.
+Any leaders captured by the deactivating power remain on their
+Power Card. These leaders may still be ransomed at the cost
+of one random card draw. In this case that card is immediately
+discarded (even if it is a Mandatory Event).
+© 2024 GMT Games, LLC
+PAGE 14
+14
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+PLAY-BY-EMAIL TIPS
+The majority of playtesting for Virgin Queen was completed
+through play-by-email games. Most email games were completed
+using Cyberboard, a Windows application that serves as a PBEM
+boardgame assistant (http://cyberboard.brainiac.com). Here are
+some tips on how to best keep PBEM games moving efficiently,
+whether you are using Cyberboard or another PBEM utility.
+Interruptions to Play
+PBEM games flow smoothly if each player takes their move in
+impulse order and completes that impulse with a single email mes-
+sage. However, Combat cards and Response cards may be played
+by other powers during an impulse, interrupting play. In addition,
+as land and naval units move, other players must make decisions
+about intercept, avoid battle, and withdrawing into fortifications.
+The best way to handle these situations is to first remember that
+the only game operations that can be interrupted are:
+•
+Move Formation action
+•
+Naval Move action
+•
+Field battle, naval combat, and assault
+There are other operations that involve direct conflict between
+powers (piracy, conversion attempts, rebellion, assassination) , but
+none of them can be interrupted.
+For the Move Formation and Naval Move actions, the active
+player should continue move actions until a move is made that
+requires an enemy decision on whether or not to intercept, avoid
+battle, or withdraw into fortifications. The game should then be
+interrupted to wait for the enemy response. In field battles and as-
+saults, the active player should initiate the combat and declare any
+combat cards that he intends to play. The play of defensive cards
+and the resolution of the combat is then handled by the defender.
+Response Card Play
+The trickiest interruptions to account for come from play of
+Response cards (since any of the players in the game may play a
+Response during another player’s impulse). Recommended PBEM
+handling of some of these is described below. Note that several of
+these recommendations cause game actions to be “rewound” back
+to the point in time when the Response occurred. This rewinding is
+recommended so PBEM play is not halted over-and-over because
+of possible Response card play.
+Storms: Play just after the email that notifies you of the move,
+assault, piracy, or naval transport that they are stopping.
+Gregorian Calendar, Sultan’s Harem: Play at any break
+between impulses.
+Reiters: Handle as a Combat card (allowing it to be played after
+combat is declared but before it is resolved).
+Galleasses, Hand Guns: Play just after the email that notifies
+them of the naval combat or assassination that they will be
+modifying.
+Jeanne of Navarre, Sir Edward Stafford, Catherine’s
+Flying Squadron: Cancel an event named on this Response
+card just after the email that notifies you of its play. You are not
+permitted to wait until you have seen the full event execution
+and then play this response.
+Elizabeth Receiving Dutch Ambassadors
+DESIGNER’S NOTES
+Here I Stand’s popularity with the strategic boardgame com-
+munity world-wide was honestly not something I anticipated. I
+was asking the wargame community to accept a game that was at
+least as much about religious conflict as about military endeavors.
+And I was proposing to the Eurogamers that they might like to
+try a historical boardgame with a ruleset as long as many “heavy”
+wargames. However a few years after publication it was clear that
+the mix of negotiation, strategic planning, and historical narrative
+embodied in Here I Stand (HIS) had struck a chord with these audi-
+ences. And they wanted to see more.
+Goals
+Work on Virgin Queen began by taking stock of HIS’s strengths
+and weaknesses. I found these items I wanted to improve upon in
+the sequel:
+•
+All players’ turns should be quick to resolve. (HIS suffered
+from too much down time for the military powers due to the
+back-to-back resolution of the Papal and Protestant impulses).
+•
+We needed a mechanic that eases new players into negotia-
+tion in early turns. (Diplomatic negotiations are difficult to
+engage in when you are just learning a deep strategy game).
+•
+More groups would enjoy a game that had a better system
+for scaling between four and six players. (HIS games with
+four or five players tended to be unbalanced in favor of the
+players leading two powers).
+•
+The World Map should be more interactive. (Many players
+commented that they wanted to be able to maneuver their
+overseas expeditions and truly engage with that additional
+map area).
+New Mechanics
+With these goals in mind, I quickly decided that religion conver-
+sions needed to be resolved with a single throw of the dice, not one
+set of throws per space as in HIS. Yes, we’d lose some detail, but
+now, 42 years after Luther published his theses, his reform ideas
+had already taken root in England, France, and the Netherlands. The
+religious mechanic no longer had to capture the spread of reformed
+beliefs. Now it was more about the work put in by the Protestants
+(or Catholics in England) to demand tolerance of their style of wor-
+© 2024 GMT Games, LLC
+PAGE 15
+Scenario Book 15
+Virgin Queen: Wars of Religion ~ 1559-1598
+ship within each of these lands, arguably a simpler phenomenon.
+The largest addition to diplomacy was the ability to arrange
+marriages. Royals are the diplomatic collateral which enable these
+deals to take place: the aging mechanism that forces royals to lose
+eligibility each turn gives players great incentive to arrange mar-
+riages as soon as possible. Now we have a system that meets our
+goal of encouraging early game deals. Plus marriages tied in the
+stories of Catherine de Medici (with her quest to favorably marry
+off her children) and Elizabeth (with her numerous suitors). And it
+was even one of the few new systems that worked right out of the
+box (most others—especially religious conversions—would see 3
+or 4 iterations before settling into their final forms).
+The diplomatic influence mechanic sprang into being when I
+first decided to demote the Papacy to a minor power. Spanish influ-
+ence dominated the Papal elections during this period. With that
+in mind, I decided that the role of Pope would be best represented
+as bonus powers springing from a minor power alliance (not as
+an independent player). The original influence idea was that each
+CP spent was buying the influence of a cardinal that would sit at
+the next Papal conclave. Early tests showed great promise for the
+mechanic; the timing and coordination of influence plays and the
+Papal Bull event became a frequent topic for negotiations. I soon
+realized that expanding the role of influence could make minor
+power recruitment more interesting and give us a way to success-
+fully scale the game down to 4 or 5 players.
+The last new mechanic to tackle was World Map piracy and
+circumnavigation. Two problems existed here. The first was one
+of map representation. We needed most of Europe at the scale
+of HIS, the Netherlands in great detail, and somehow needed to
+plug that into a map of all the oceans of the world. Early playtest
+maps divided the world into four separate maps using inset boxes
+where necessary. Enter Mark Mahaffey, who quickly proposed the
+idea of a “cartogram,” distorting the geography to proportionally
+scale each map area according to its importance in the game. It’s a
+wonderful solution: I like to call the map “The World from Inside
+the Brain of Philip II.”
+The second issue was how to model the financial losses to Spain
+from New World piracy. I soon realized I should not try to model
+the historical revenue loss (which was probably 5% or less). If
+treasure losses were that low in the game then the Spanish player
+wouldn’t care, and no power would attempt piracy with such a
+chance of success. However looking at the history of the period,
+these sea captains obviously had a telling effect. Hawkins and
+Drake drew the attention and wrath of Spain (as evidenced by the
+Armada campaign and the legend of El Draque that arose in Spain
+during this time). So despite the minor economic effect, there was
+certainly a major psychological impact caused by Drake and his
+fellow sea dogs. Also, from the English or Huguenot point-of-view,
+the riches brought in from piracy were vast sums. So I decided that
+piracy awards as significant as a full card/treasure are appropriate in
+this game system where a card represents more of an “opportunity
+for historical change” than an exact amount of coinage. As long
+as: the pirating powers can draw the ire of the Spanish player, the
+treasure gained by pirates is worth their investment in CP, and the
+Spanish player has defensive tools to curb piracy over time, then
+the system is a success.
+Thanks
+Once again Virgin Queen has been a huge team effort and I’ll
+never be able to sufficiently credit all those folks who have helped
+me along the way. There are now over 110 players in our Internet
+playtest group: a team that has been plugging away at five different
+iterations of the game rules over more than two years. Dozens of
+other players have tried the game in our face-to-face tests that have
+sprung up at many a local convention in the Mid Atlantic.
+However I’d be remiss without acknowledging the special
+contributions of some of our most dedicated testers. Justin Rice
+and Rob Davidson have followed the game as closely as anyone
+throughout the process. Justin became champion of the Holy Roman
+cause and helped me mold that power into something intriguing
+to play; Rob was invaluable at identifying loopholes, exceptions,
+and needed clarifications in each rule system soon after they came
+online. And Joel Tamburo rejoined us toward the end of the process
+and proposed the Treasure system, a key mechanic in helping us
+speed play and smooth over some of the awkwardness from the
+potentially large Spanish hand sizes.
+The other group of playtesters I’d like to thank are those who
+joined us from Europe. As an English speaker, it’s easy to let the
+English view of this period gain dominance. I wanted as much help
+as I could get from locals of Spain, France, and the Low Countries
+to double-check my work and make sure I was sticking to a bal-
+anced portrayal of the period that would hold up to scrutiny from
+the point-of-view of those other nations. Luckily such aid arrived,
+especially from Ivan Mostinckx (Belgium), Jose Luis Villarig and
+Javier Morilla (Spain).
+Finally, I would like to dedicate Virgin Queen to my father, Rod
+Beach, who passed away this week. Dad was the original history
+buff in the family, earning a Master’s degree in History at Columbia
+University. The seed Dad planted has sprouted: the family has since
+spawned an undergraduate history major, several family members
+who are minoring in history and a game designer with a special
+interest in 16th Century Europe. We’ve caught the history bug in
+a serious way, heavily enough that my daughter Natalie was the
+only student in her high school to take two Advanced Placement
+History exams in the same day last spring. Thanks in part to a bit
+of good fortune, she came through the six hours of essay writing
+with flying colors. The main essay on the European History AP was
+something she’d become quite familiar with over the past few years:
+“Discuss the challenges facing Elizabeth I as a female monarch
+in Renaissance Europe.” She’s pretty sure that Virgin Queen-ish
+question was the key to her strong score!
+© 2024 GMT Games, LLC
+PAGE 16
+16
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+EXTENDED EXAMPLE OF PLAY
+This section presents an example of the action at the beginning
+of a five-player Tournament Scenario game. As a Tournament
+Scenario, this game starts on Turn 3 with the setup listed earlier in
+this book for that particular scenario. A five-player game is used
+as the example to showcase the rules for Activated Major Powers;
+Turn 3 is used so Espionage actions can be included. New players
+are encouraged to set up this scenario and play along to become
+acquainted with Virgin Queen play.
+TURN 3
+Card Draw Phase:
+Add new personages: The army leaders, naval leaders, sea cap-
+tains, royals, artists, and scientists added on Turn 3 were already
+listed in the setup for this scenario. No additional action is required
+during this portion of the turn.
+Add fortresses and Jesuits: One fortress and one Jesuit should
+already be on the Spanish Power Card from the setup.
+Add new cards to deck: As per the scenario, the following cards
+are removed from the game:
+#11 Dragut Falls
+#58 Jeanne of Navarre
+Since this is a 5-player game, these cards are also out of play:
+#34 Holy Roman Intercession
+#35 Patron of Arts & Sciences
+#37 The Sublime Porte
+#72 War with Poland
+However, this card is included because it is a 5-player game:
+#4 German Intervention
+All cards that enter Turn 4, 5 or 6 are also out of play.
+Shuffle deck and deal cards: The cards are dealt to the five play-
+ers as follows:
+Ottoman – 7 cards (2 home, 4 from keys, 1 for Selim card bonus)
+•
+#1 Grand Vizier (Home, 5 CP)
+•
+#2 Ottoman Tribute (Home, 5 CP)
+•
+#9 Fire Ships (Combat, 1 CP)
+•
+#21 Foreign Volunteers (5 CP)
+•
+#30 Ruler Falls Ill (3 CP)
+•
+#79 Synod of Emden (3 CP)
+•
+#83 Dutch Revolt (Mandatory, 2 CP)
+Spain – 8 cards (1 home, 6 from keys, 1 for Philip II card bonus)
+•
+#3 Spanish Road (Home, 5 CP)
+•
+#13 Reiters (Response, 1 CP)
+•
+#40 Tilbury Speech (Combat, 1 CP)
+•
+#43 Experienced Pilot (Response, 1 CP)
+•
+#46 Spanish Fury (Response, 4 CP)
+•
+#52 Foxe’s Book of Martyrs (2 CP)
+•
+#53 Grand Tour (4 CP)
+•
+#94 God’s Secret Agents (3 CP)
+England – 6 cards (2 home, 3 from keys, 1 for Elizabeth I card
+bonus)
+•
+#4 German Intervention (Mandatory, 2 CP)
+•
+#19 Diplomatic Miscue (3 CP)
+•
+#31 Treachery! (5 CP)
+•
+#36 Virgin Queen (Home, 5 CP)
+•
+#81 Walsingham (Home, 4 CP)
+•
+#96 Richard Topcliffe (3 CP)
+France – 6 cards (2 home, 4 from keys)
+•
+#7 Desperate Assault (Combat, 1 CP)
+•
+#33 Gouvernante de France (Home, 5 CP)
+•
+#76 Untimely Death (Mandatory, 2 CP)
+•
+#80 Black Queen (Home, 5 CP)
+•
+#85 Murad III (Mandatory, 2 CP)
+•
+#98 Sultana Safiye (3 CP)
+Protestant – 5 cards (1 home, 4 from keys)
+•
+#16 Sultan’s Harem (Response 5 CP)
+•
+#32 Calvinist Zeal (Home, 5 CP)
+•
+#42 Catherine’s Flying Squadron (Response, 2 CP)
+•
+#84 Henry III (Duke of Anjou) (Mandatory, 2 CP)
+•
+#91 Cipher Key (2 CP)
+No hand is dealt for the Holy Roman since they are an inactive
+major power.
+Return discarded treasures to pool; deal new treasures; check
+for New World riches:
+4 Treasures are dealt to the Spanish treasure boxes:
+•
+2CP, 1CP, 3CP, and 4 CP
+3 Treasures are dealt to the Portuguese treasure boxes:
+•
+3 CP, 2 CP, and Science Bonus
+As per the setup, 2 Treasures are dealt to Spain:
+•
+4 CP and 3 CP
+As per the setup, 1 Treasure is dealt to England:
+•
+2CP
+As per the setup, 1 Treasure is dealt to the Protestant:
+•
+2CP
+Diplomacy Phase:
+Negotiation Segment – Hold Negotiations
+The players get up from the table and discuss deals they would
+like to announce. The presence of the Dutch Revolt Mandatory
+Event in the Ottoman hand is the first order of business. If played
+at the start of the turn, the Spanish would gain 3 VP. So the Otto-
+man approaches the Protestant and volunteers to play Synod of
+Emden as an event early in the turn and encourages the Protestant
+to follow that play quickly with a rebellion. In return the Protestant
+will give the Ottoman a card draw; this deal will give the Ottoman
+either 2 more CP or the extremely valuable Sultan’s Harem card.
+Spain wants to lock up a faithful Catholic ally, so he shows
+France that he is holding the Grand Tour card. He offers to play
+it whenever France desires on Turn 3 or 4 if France will ally with
+him on both of those turns. A firm French alliance will allow Spain
+to use spring deployment or the Spanish Road Home card to re-
+© 2024 GMT Games, LLC
+PAGE 17
+Scenario Book 17
+Virgin Queen: Wars of Religion ~ 1559-1598
+inforce the Netherlands. Spain also inquires about Marguerite de
+Valois’ availability for a marriage to Philip. France defers, saying
+she’ll “get back to Spain on that one.”
+The Protestant is also interested in a marriage to Marguerite,
+since he would receive an extra card next turn if she marries Henry
+of Navarre. Knowing he needs to start his religious campaign in
+the Netherlands, the Protestant offers to play “no more than 2 cards
+and treasures in France” this turn, if France marries Marguerite
+to Henry. As a show of good faith he shows France the Henry III
+(Anjou) event to make it clear to France that he should not try to
+marry off Charles IX (since he will not survive the turn). France
+agrees to the deal (and informs Spain that Philip will have to look
+elsewhere for a match).
+Finally, France is concerned about trying to secure a marriage
+for Henry III. She assumes that Philip will use a point of diplo-
+matic influence to marry one of the two Holy Roman princesses. If
+Leicester marries the other, France will have no match for Henry.
+So the French player approaches the English player with a deal. If
+England does not marry Leicester to a Holy Roman princess, France
+will: play Untimely Death against a target of England’s choosing,
+give England 2 mercs this turn and a card draw next turn (France
+does not want to give up a card this turn because they might lose the
+chance to activate Venice with the Sultana Safiye event). Knowing
+that the low eligibility rating of Leicester makes it unlikely he will
+earn VP or cards from his marriage, England agrees.
+Negotiation Segment – Announce Deals
+The Ottoman announces they will receive a card draw from
+the Protestant.
+Spain announces an alliance with France. Spain will spend 1
+influence with the Holy Roman Empire to set up a marriage between
+Philip II and Elisabeth of Austria.
+England announces receipt of 2 mercs from France.
+France confirms the deals with Spain and England. The alliance
+is formed and the 2 mercs arrive in London from Paris. France sets
+up a marriage between Henry III and Anna of Austria by paying one
+influence with the HRE. France also announces a marriage between
+Marguerite and Navarre.
+The Protestant confirms the Ottoman deal. Cipher Key is drawn
+from his hand by the Ottoman. He also confirms the marriage
+between Marguerite and Navarre. All three marriages are marked
+by taking the cards for these Royals and stacking each couple near
+the Royal Wedding table.
+Ransom Segment
+Skipped. No leaders are captured.
+War Segment
+decline.
+All five powers are offered the option of declaring war and all
+Spring Deployment Phase:
+Ottoman: Discard Ottoman Tribute. Sokollu Mehmed and 5
+regulars to Finica.
+Spain: Don John, 2 regulars, 2 mercs to Cordoba.
+England: Hawkins placed in London (to facilitate building race-
+built galleons). Walsingham Home card discarded. 2 regulars
+deployed to Dublin (3 there now total).
+France: 1 regular from Paris to Orleans. Black Queen discarded
+(so Gouvernante de France can be used to bless an upcoming
+wedding).
+Protestant: None. The Protestant only has 1 Home card and his
+units are bottled up in France.
+Action Phase – Round 1
+Ottoman: #79 Synod of Emden (3 CP). Played as event to com-
+plete the negotiated deal with the Protestant. Flip Arnhem, Utrecht,
+and s’Hertogenbosch to Protestant religious influence. Space count
+to 33 (no change in VP). Card removed from play.
+Spain: #52 Foxe’s Book of Martyrs for 2 CP. Suppress Heresy
+action in the Netherlands. 5 dice rolled: 4, 6, 6, 5, and 1. Flip
+Arnhem, Utrecht, s’Hertogenbosch, and Amsterdam to Catholic
+religious influence; add Unrest in Arnhem. Space count to 29 (VP
+change: +1 Spain, –1 England, –1 Protestant).
+Impulse is then extended with a 3 CP treasure.
+CP1: Don John to Granada with 2 regulars and 2 mercenaries.
+Field battle with 2 Moriscos there. Spanish roll (5 dice = 4 dice
+for units and 1 for Don John’s Battle Rating): 1, 3, 1, 5, 2 = 1
+hit. Morisco roll (3 dice = 2 dice for units, 1 die as defender):
+6, 4, 2 = 1 hit. Spain loses 1 mercenary and must retreat back
+to Cordoba. 1 Morisco remains.
+CP2: Naval move. Galleys in Barcelona, Genoa and Cartagena
+to Gulf of Lyon; Galleys in Messina (1 Spanish, 1 Papal) to
+Tyrrhenian Sea; Venetian galleys to Adriatic.
+CP3: All 5 Spanish and Papal galleys to Barbary Coast; Venetian
+galleys to Ionian Sea.
+England: #31 Treachery! for 5 CP.
+CP1: Add 1 diplomatic influence with Holy Roman Empire (to 2).
+CP2: Build expedition with Drake in Guinea Coast.
+CP3: Naval move. Drake to Antilles. Galleon in London to North
+Sea; Galleons in Portsmouth and Plymouth to English Channel.
+CP4-5: Piracy vs. Spain in Antilles. No defense dice. Drake’s roll
+(4 dice = 2 for number of target settlements with full strength
+expedition; 2 for Piracy Rating) : 1, 4, 5, 1 = 1 hit. Spain chooses
+to award 1 VP to England (instead of a treasure). England now
+to 2 Piracy VP (11 VP total).
+France: #33 Gouvernante de France for event (top half). Add
++2 Wedding Festivities to marriage of Henry III (Anjou) and Anna
+of Austria. Card drawn from deck: #89 Mary Queen of Scots
+(Response, 3 CP).
+Holy Roman Empire: Currently inactive; impulse is skipped.
+Protestant: #16 Sultan’s Harem for 5 CP.
+CP1-2: Preach Sermon in Netherlands. 5 dice rolled: 4, 1, 6, 4, 2.
+Major hit of 6 used to neutralize the unrest from the 1. Zutphen,
+Amsterdam, and Haarlem flip. Space count to 32 (VP change:
+–1 Spain, +1 England, +1 Protestant).
+CP3-4: Rebellion targeting Amsterdam. No Catholic units so
+automatically successful. Protestants gain political control of
+Amsterdam and Haarlem (–1 VP to Spain; +3 VP to Protestant).
+1 regular and William of Orange placed in Amsterdam.
+CP5: Build 1 mercenary in Amsterdam.
+© 2024 GMT Games, LLC
+PAGE 18
+18
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+After the Protestant impulse
+Action Phase – Round 2
+Ottoman: #21 Foreign Volunteers for 5 CP.
+CP1-2: Build galley in Istanbul (now 6 galleys there).
+CP3: Naval move. All galleys in Istanbul to Aegean Sea along
+with Piyale Pasha. Venetian galleys in Ionian Sea may intercept,
+but they decline.
+CP4: Naval move. Now all galleys in Ionian Sea move to Eastern
+Mediterranean along with Piyale Pasha. Once again Venetian
+galleys in Ionian may intercept, but they decline.
+CP5: Naval move. All galleys in Eastern Mediterranean, all cor-
+sairs in Djerba/Tripoli, Piyale Pasha and Uluch Ali all assemble
+in North African Coast. Spain declines to intercept from either
+the Ionian Sea or the Barbary Coast.
+After the Ottoman impulse
+Spain: #46 Spanish Fury for 4 CP.
+CP1-2: Build fortress in Nombre de Dios/Panama (using Fortress
+marker on power card
+CP3: Naval move. Venetian galleys join the rest of the Spanish
+fleet in the Barbary Coast.
+CP4: Don John to Granada with 2 regulars and 1 mercenary.
+Field battle with 1 Morisco there. Spanish roll (4 dice = 3 dice
+for units and 1 for Don John’s Battle Rating): 1, 2, 1, 5 = 1
+hit. Morisco roll (2 dice = 1 die for units, 1 die as defender):
+1, 2, 2 = no hits. Moriscos eliminated; Morisco Revolt event
+removed from game. Don John’s army remains in Granada
+(which is still in unrest).
+England: #4 German Intervention for the Mandatory Event.
+Diplomatic status of HRE is now resolved. Influence plus die rolls
+are as follows:
+Ottoman: 3 influence + roll of 2 = 5
+Spain: 0 influence + roll of 6 = 6
+England: 2 influence + roll of 4 = 6
+France: 0 influence + roll of 5 = 5
+Protestant: 1 influence + roll of 2 = 3
+Spain and England tied but Spain is listed first in the list of
+Activate powers at the bottom of the Diplomatic Influence Table so
+HRE becomes a Spanish ally (not what England intended!). All five
+HRE influence markers are placed in the Resolved This Turn box
+under the Holy Roman Empire on the Diplomatic Influence Table.
+Baseline VP marker for Holy Roman is placed
+on the 8 space on the VP track. “Ally of Ma-
+jor Power” marker added on Diplomatic
+Status Display on Spain/Holy Roman space.
+Spain descides not to have the Holy Roman Empire declare war
+(though he was tempted to have him declare against the Ottoman,
+but feared losing VP to the Ottoman in future turns). Four cards are
+dealt as a Holy Roman hand:
+•
+#45 Scurvy (Response, 1 CP)
+•
+#48 Commissioned from Italy (3 CP)
+•
+#49 Conquest of the Philippines (4 CP)
+•
+#60 John Knox (2 CP)
+The Mandatory Event resolved, England has 2 CP to spend:
+CP1: Naval move. Drake to Spanish Main; Galleon in North Sea
+joins 2 others in English Channel.
+CP2: Add 1 influence to Scotland.
+France: #76 Untimely Death for the Mandatory Event. As prom-
+ised during negotiations, France allows England to help choose the
+target. Don John is chosen and removed from the game.
+The Mandatory Event resolved, France has 2 CP to spend. Takes a
+Plant Operative action to add a French Informant to the Protestant
+power card.
+Holy Roman Empire: Now active, so Spain chooses to play Con-
+quest of the Philippines for the event. A new treasure (3 CP) is
+drawn and placed into the fifth Spanish treasure slot. A Spanish
+control marker is placed on the Philippines settlement. The card is
+removed from play.
+Protestant: #32 Calvinist Zeal as the event to get seven conver-
+sion attempts in both France and the Netherlands.
+© 2024 GMT Games, LLC
+PAGE 19
+Scenario Book 19
+Virgin Queen: Wars of Religion ~ 1559-1598
+In France: 6 (automatic) and rolls of 4, 1, 6, 5, 6, 2. Use one 6 to
+neutralize unrest; use another to expand base to Lyon; use the
+third one to flip under the Catholic unit at Marseilles. In total
+the spaces flipped are: Lyon, Marseille, Grenoble, Clermont
+and Dijon. Protestant space count to 37.
+In Netherlands: 6 (automatic) and rolls of 1, 6, 5, 1, 4, 3. Take
+minor conversions in Groningen and Rotterdam. Take major
+conversions under Catholic units at Utrecht and Antwerp. Add
+the unrest to Antwerp (Spain loses 1 VP until cleared). Protes-
+tant space count to 41. (VP change: –1 Spain, +1 England, +1
+Protestant). VP are now:
+•
+Ottoman: 14 (unchanged from start)
+•
+Spain: 11 (–4 from start)
+•
+England: 13 (+2 from start)
+•
+France: 10 (unchanged)
+•
+Protestant: 15 (+5 from start)
+Impulse is then extended with a 2 CP treasure. Gain Intelligence
+action against France to try and neutralize their Informant. Two dice
+rolled: 5, 6. Two hits! Protestant neutralizes the French informant
+with first hit and forces a random card to be discarded with the
+second (since it was a roll of 6 and France has 3 or more cards in
+their hand). Murad III event is selected at random and discarded
+(in such a case the Mandatory Event does not occur).
+Action Phase – Round 3
+Ottoman: #1 Grand Vizier for 5 CP.
+Spain: #43 Experienced Pilot for 1 CP. With situations relatively
+stable on all fronts, Spain decides to save resources for later in the
+turn and just spends his weakest card.
+CP1: Naval move. The Spanish fleet moves east into the Ionian.
+The Spanish are willing to concede the Cyprus VP to the Ot-
+toman, but don’t want to see the Ottomans moving on Malta
+or pirating further without opposition.
+England: #36 The Virgin Queen for 5 CP. England thought about
+using this as an event to pick up a 5 CP card (and thus defer its
+move until later in the turn). But she wants Drake to strike before
+the Spanish can build any more World Map defenses.
+CP1-2: World Map piracy in Spanish Main ocean zone. One die
+is rolled against the pirates (for the fortress at Nombre de Dios/
+Panama): 3 = not a hit. Drake rolls 4 dice (since there are 2
+settlements of the targeted power bordering the zone, plus 2
+dice for Drake’s Piracy rating): 2, 5, 2, 2 = 1 hit. Drake’s bonus
+is “Chooses piracy reward; can repair. England chooses the
+reward for any piracy hit when Drake is present, instead of the
+target power as usual.” England elects to deprive Spain of a
+treasure. Spain’s fortress can protect one treasure from piracy,
+so Spain removes the 4 CP treasure and England draws a marker
+at random from the four treasures that remain. Sadly it is just a 1
+CP treasure.Drake decides not to return home with this meager
+loot (plus England would rather have the treasure to spend next
+turn). The treasure is placed under Drake’s sea captain counter.
+CP1: Naval move. Having united his fleet on the previous im-
+pulse, the Ottoman is now set to invade Cyprus. All naval units
+move from North African Coast to Eastern Mediterranean.
+CP2-3: Initiate Piracy in Eastern Mediterranean versus Spain.
+Two dice are rolled against the pirates (for the fortresses of
+Candia and Cyprus): 1, 3 = no hits. The Ottoman pirates roll
+3 dice (since there are 2 ports of the targeted power bordering
+the Eastern Mediterranean, plus 1 die for UIuch Ali’s Piracy
+rating): 6, 6, 1 = 2 hits. Spain must award 1 VP and one card
+draw since there are no Spanish naval units adjacent to this
+zone. Spain has 5 cards and 1 treasure in their hand. Accord-
+ing to 6.3, a random card is drawn (since Spain has more cards
+than treasures). #13 Reiters is drawn. Ottoman VP jump to 15
+as a +1 VP Piracy Bonus VP marker is placed on the Ottoman
+power card.
+CP4-5: Naval transport of Sokollu Mehmed and 5 regulars to
+Cyprus to establish a siege there.
+After Drake’s World Map piracy
+England has 3 CP left to spend from the Home card. She also
+considers extending the impulse by spending her 2 CP treasure.
+Any treasure still in England’s possession at the end of the Action
+Phase is lost. After this impulse England will only have two cards
+(and can thus pass). So spending the treasure now seems like the
+best course of action.
+After the Ottoman impulse
+© 2024 GMT Games, LLC
+PAGE 20
+20
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+CP3-5: Sponsor the scientist Dee for 3 CP. He is placed on the
+Patronage card as shown below:
+England now extends their impulse by spending their 2 CP treasure.
+A race-built Galleon is built in London (since Hawkins is present
+there).
+France: #89 Mary Queen of Scots for 3 CP (this is a great card
+for France before Mary’s captured; after that point it is mostly a
+card for Spain—so France now uses it for CP). There are a lot of
+Protestant spaces in southern France now. France needs to flip some
+back before a rebellion strikes. The Protestant promised to only play
+one more card on behalf of the Huguenots, but if that card comes
+now it could be bad news.
+CP1-2: Suppress Heresy. Five dice are rolled: 3, 4, 4, 4, 2. Minor
+hits used to flip Dijon, Clermont, and Grenoble (this makes
+it a lot less useful for the Protestant to rebel at Lyon). Space
+count to 38 (VP change: +1 Spain, –1 England, –1 Protestant).
+VP are now:
+• Ottoman: 15 (unchanged from start)
+• Spain: 12 (–3 from start)
+• England: 12 (+1 from start)
+• France: 10 (unchanged)
+• Protestant: 14 (+4 from start)
+CP3: Add 1 Diplomatic Influence to Venice (now at 1). France is
+still planning to play Sultana Safiye before the turn is over,
+so this influence will help when that diplomatic status check
+is made.
+After France’s impulse
+Holy Roman Empire: #60 John Knox for 2 CP. Build 2 merce-
+naries in Pressburg. Spain believes they may be able to use Holy
+Roman mercenaries as a bargaining chip next turn.
+Protestant: #84 Henry III (Duke of Anjou) for the Mandatory
+Event. Charles IX’s counter is removed from the Available to Wed
+chart. The card played is put on the French power card over top of
+the picture of Charles IX. The Protestant now has 2 CP to spend
+(and wants to use up their treasure at the same time). However they
+cannot use all 4 CP on religious activities since actions selected
+when playing a treasure must be a different type from the actions
+generated from a card played for CP earlier in that impulse (11.0).
+CP1-2: Rebellion at Utrecht. Knowing that the Dutch Revolt
+Mandatory Event in still in the Ottoman hand, this move seems
+more pressing that one in France. 3 dice are rolled (2 for the
+CP spent and 1 more since Utrecht is a Protestant home space):
+5, 5, 4 = 2 hits. The Spanish regular in Utrecht is eliminated.
+Utrecht and Rotterdam come under Protestant control (Arnhem
+and s’Hertogenbosch cannot be chosen since they are still
+Catholic in religious influence). 1 Protestant regular is added
+to the map in Utrecht.
+© 2024 GMT Games, LLC
+PAGE 21
+Scenario Book 21
+Virgin Queen: Wars of Religion ~ 1559-1598
+After the Protestant impulse
+Moving Forward
+The Ottoman is now up in the fourth round of the Action Phase
+[They will now play the Dutch Revolt Mandatory Event since the
+Protestant is down to just one card and it looks like they’ve hit their
+high tide mark for the turn. Spain will gain 2 Dutch Revolt Bonus
+VP, but at least it is not the 3 VP it would have been if that event
+occurred at the start of the turn.] The players will continue playing
+cards in this fashion until all six powers have passed in consecu-
+tive impulses. Then they proceed to Phases 5, 6, 7 and 8 (Winter
+Phase, Marriage Resolution Phase, Patronage Phase, and Victory
+Determination Phase) to complete a turn of play.
+© 2024 GMT Games, LLC
+PAGE 22
+22
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+THE GAME AS HISTORY
+This section outlines the history of the Wars of Religion,
+organized into the seven turns represented in the game. People,
+events and artwork listed in bold are represented directly in the
+game with a counter or event.
+The Treaty of Cataeu-Cambrésis
+their long-standing claims in Italy. A marriage was part of the deal
+too: Philip II, now widowed, was slated to marry the eldest daughter
+of Henry II, Elisabeth de Valois.
+The treaty was unpopular in France as most hated to abandon
+France’s decades-long fight for Italian holdings. However peace
+would give Henry II time to confront the encroachment of Cal-
+vinist thought infiltrating in to France from Geneva. Five days of
+feasting and tournaments were set to celebrate the peace and the
+marriage of Elisabeth and Philip. On the third day of the tourna-
+ment Henry suffered a grievous blow from a splintered lance just
+above his right eye. Although the famed physician Vesalius was
+summoned from Brussels, Henry died ten days later. Effective
+rule of France now fell to the regent, Henry’s Florentine wife
+Catherine de Medici. She would have the challenge of leading a
+land caught in a religious storm between Catholics and Huguenots.
+Simultaneously she would need to find favorable marital matches
+for her five young children.
+The new ruler of England, Mary I’s half-sister Elizabeth I, also
+would be playing the diplomatic marriage game. A marriage to
+Philip II was quickly rejected; Elizabeth had witnessed the damage
+his reign with Mary had caused to England. However she enjoyed
+no shortage of other suitors. And like Catherine de Medici, this
+daughter of Henry VIII and Anne Boleyn was inheriting a realm
+divided along religious lines: over the previous thirty years Eng-
+land had gone from Catholic to Protestant and back again. Which
+religion would Elizabeth sanction now?
+The Wars of Religion are about to begin!
+Background
+The 1555 Peace of Augsburg, negotiated between Charles V
+and the leaders of the Schmalkaldic League, allowed each Ger-
+man prince to choose the religious affiliation of his realm. The
+Latin phrase “Cuius region, eius religio” (“Whose realm, his
+religion”) was the operating principle that allowed each prince to
+choose either Catholic or Lutheran worship for his people. The
+Augsburg Settlement effectively ended the first round of conflict
+between Catholics and Protestants. The Protestant side had gained
+a foothold; religious harmony would reign in Germany for the
+next 50 years.
+However across the Rhine were larger dominions that could not
+be segmented into small principalities each with their own choice
+of worship. The largest nation bordering Germany was France.
+Henry II had acceded to the French throne in 1547 upon the death
+of his father, Francis I. Despite military threats from a Hapsburg/
+English alliance, Henry’s forces held their own. Charles V was
+unable to drive French forces from Metz in 1552, and six years
+later French forces under Francis, Duke of Guise captured Calais
+(England’s only continental outpost) in a surprise mid-winter at-
+tack. By 1559, all three parties were in desperate need of peace.
+The peace negotiations revolved around the dispositions of Savoy
+(represented in Virgin Queen by the Grenoble and Turin spaces)
+and Calais.
+Mary Queen of Scots & John Knox
+The 1559 Peace of Cataeu-Cambrésis featured two separate
+treaties: one between France and England and another between
+France and Spain. Philip II, now ruler of Spain and the Netherlands
+with the abdication of his father Charles V, played a pivotal role
+in both negotiations. As king of England (through his wife Mary
+I), he also needed to look after English interests. However Mary
+died during the lengthy negotiations, lessening Philip’s interest in
+getting a good deal for the English. He therefore went ahead and
+let France hold on to Calais; in exchange France would relinquish
+Turn 1 (1559-1563)
+Elizabeth enjoys no early honeymoon period as ruler of Eng-
+land. Immediately she must reshape religious practices throughout
+the land. Under Mary, England had returned to Catholic worship
+overseen by the Pope in Rome. Elizabeth’s pro-Protestant religious
+settlement passes parliament by just three votes. The 1559 Act
+of Supremacy establishes her as head of the Church of England,
+once again an institution fully independent from Rome. Thomas
+Cranmer’s Book of Common Prayer is also reinstated through the
+1559 Act of Uniformity. And all but one of the English bishops is
+replaced by a new clergyman.
+Diplomatic affairs for Elizabeth are also complex. In Scotland,
+a group of Protestant lords rebel against the French rule of the
+regent Mary of Guise. These Lords of the Congregation turn to
+Elizabeth for aid. But is she willing to risk war with France when
+© 2024 GMT Games, LLC
+PAGE 23
+Scenario Book 23
+Virgin Queen: Wars of Religion ~ 1559-1598
+the ink has barely dried on the Treaty of Cataeu-Cambrésis? After
+initial delays, Elizabeth sends a small army of 6000 men. Together
+with an English fleet they besiege the town of Leith, port for the
+Scottish capital of Edinburgh. The French hold out until the death
+of Mary of Guise in the summer of 1560. The war concludes with
+the Treaty of Edinburgh, a deal which ends the Auld Alliance be-
+tween France and Scotland and maintains the English and French
+agreements from Cataeu-Cambrésis.
+One final stipulation of the Treaty of Edinbugh is that it of-
+ficially declared Elizabeth to be the recognized queen of England.
+Her chief rival to that claim is the recently widowed Mary, Queen
+of Scots, who steadfastly refuses to ratify the treaty. Mary’s hus-
+band Francis II, the sixteen-year-old King of France, had died from
+a horrible ear infection after little more than a year on the throne.
+She arrives to take the Scottish throne in 1561 amid a tumultuous
+political climate. As a devout Catholic, she immediately comes
+under attack from the Calvinist orator John Knox. However
+Mary is able to place enough Protestant lords in offices of power to
+stabilize her hold on Scotland for the immediate future. She faces
+an upcoming decision on remarrying that could hold important
+implications for both her rule in Scotland and the strength of her
+claim to the English throne.
+Back on the continent, new showdowns between Catholic and
+Protestants are looming. The Council of Trent reconvenes, and
+in its eighteenth session outlines the Tridentine Catechism, “a
+formulary and method for teaching the rudiments of the faith, to
+be used by all legitimate pastors and teachers.” This document will
+serve as the basis for Catholic instruction for the next 400 years. In
+the Netherlands, Guido de Bres creates the Belgic Confession, a
+set of 37 articles that express the beliefs of Protestants throughout
+the Low Countries. A copy is sent to Philip II along with a letter
+stating that the authors would “offer their backs to stripes, their
+tongues to knives, their mouths to gags, and their whole bodies to
+the fire” before contradicting the word of this confession.
+But it is in France that religious war ignites. The entourage of
+Francis, Duke of Guise (an ultraconservative Catholic and the hero
+of Calais) encounters a group of Protestants worshipping secretly
+in a barn near the town of Vassy. Somehow things turn violent:
+soon dozens of unarmed Huguenot lie dead. It is just the catalyst
+needed to incite the Catholics and Huguenots into open warfare:
+the first of nine French Wars of Religion has begun. This first war
+runs but one year and includes the Huguenot seizure of towns
+along the Loire Valley and major sieges at Rouen and Orleans.
+Anne de Montmorency, Constable of France, is captured; Guise
+is assassinated as the royalist forces lay siege to Orleans. With no
+end to the siege in sight, Catherine de Medici mediates a peace
+with the Edict of Amboise, an agreement that permits Protestant
+worship (albeit in a limited number of locations).
+On the World Map:
+On the seas, John Hawkins sails to Sierra Leone where he
+has the fortune to capture a Portuguese ship full with over 300
+slaves. He sails to the Spanish Main (on the north coast of South
+America) and profits by selling those Africans off to the Spanish
+colonists. For better or for worse, England has entered the slave
+trade. French raiding of Caribbean ports, started in the 1540s, is
+still underway, now led by Jacques De Sores and Francois le
+Clerc. The French also establish colonies in both Florida (the
+expedition was led by Rene Laudonniere) and Brazil (Nicolas
+Durand de Villegaignon).
+Weddings:
+The diplomatic marriage between Philip II and Elisabeth de
+Valois is a success. Both are quickly enamored with each other.
+However over nine years of marriage they produce only daughters;
+Elisabeth will die in 1568 after she miscarries with her first son.
+William of Orange’s second marriage to the wealthy Anna of
+Saxony is much less amicable. The couple feuds over access to
+Anna’s considerable funds and both are unfaithful. When Anna
+gives birth to a daughter from a liaison with her lawyer, William has
+her placed under house arrest and annuls their union. Meanwhile
+the most eligible royal in Europe, Elizabeth I, receives offers from
+across the continent. Charles II of Austria, younger brother of the
+new Holy Roman Emperor Maximilian II, is the most prestigious
+suitor. But he refuses to consider a conversion to Protestantism.
+The Protestant options, Elizabeth’s childhood friend Robert Dudley
+(soon to be Earl of Leicester) and the Scottish Earl of Arran,
+are both considered to be below her station. So Elizabeth keeps
+her options open.
+Patronage:
+During these years great works are created across Europe. In
+Istanbul, Sinan’s masterpiece the Suleimaniye Mosque opens
+while the Ottoman scientist Seydi ali Reis publishes his travelogue
+Mirror of Countries. Titian completes his famous painting Diana
+and Actaeon on commission for Philip II (this work was recently
+purchased by the British National Gallery for £50 million). In the
+Netherlands, Pieter Brueghel the Elder is the master, finishing
+his satire on the conflicts of the Reformation, The Fight between
+Carnival and Lent. French artistic works are led by the poet Pierre
+de Ronsard, who will enjoy royal favor for decades to come,
+despite frequent changes in who is king.
+The Siege of Malta
+Turn 2 (1564-1569)
+For 25 years, ever since the Battle of Preveza in 1538, Otto-
+man domination of the Mediterranean Sea had been a fact of life.
+With Piyale Pasha’s sack of the Balaeric Islands (1558) and vic-
+tory over the Christian fleet at Djerba (1560), only the outpost of
+the Knights of St. John on Malta remains to slow Piyale and
+his corsair ally Dragut. On May 18, 1565 an Ottoman armada of
+131 galleys, seven galliots and four galleasses arrive on Malta
+and disembark nearly 30,000 men. The Knights and their allies
+are outnumbered by a factor of 5 to 1. But the Knights had faced
+similar odds on Rhodes in 1522 and they are determined to prevail
+© 2024 GMT Games, LLC
+PAGE 24
+24
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+again. A desperate stand at Fort St. Elmo costs the Ottomans 6000
+Janissanies and Dragut, who is mortally wounded by cannon fire
+during the assault. Bolstered first by a small relief force, “Il Pic-
+colo Soccorso,” and later by the Spanish Grand Soccorso, the
+Ottoman are finally forced to withdraw. After suffering through this
+bloody siege, the Ottomans will not attempt to capture Malta again.
+A year later in 1566 Suleiman once again leads his army up the
+Danube toward Vienna. Their progress is halted for over a month
+by the Hungarian garrison at the fortress town of Szigetvar. Just
+as the city is about to fall, the aged Suleiman dies (due to natural
+causes). His army does succeed in capturing Szigetvar, though the
+defending commander, Nikola Zrinyi, becomes a Hungarian folk
+hero when he leads a final sortie from the inner fortress into the
+Ottoman hordes. Grand Vizier Sokollu Mehmed Pasha calls off
+the advance so he can return to Istanbul and oversee the transition
+of power to Suleiman’s son, Selim II.
+The fragile religious settlement in France is held in place by
+a two-year long royal progress, the Grand Tour. Masterminded
+by Catherine de Medici, this 400-kilometer circuit of the king-
+dom helps reestablish royal power in the wake of the first War
+of Religion. Catherine even arranges separate meetings with
+both Spanish diplomats and her soothsayer Nostradamus along
+the way. However Calvinist sentiments are not kept in check as
+successfully to the north. In August 1566, the tension of years of
+religious repression is released by the tearing down of idols from
+churches and public squares. This Iconoclastic Fury spreads
+throughout the coastal towns of the Netherlands and forces the cur-
+rent regent, Margaret of Parma, to allow some forms of Protestant
+worship. Unhappy with Margaret’s conciliatory approach, Philip II
+dispatches the Duke of Alva with 12,000 men to the Netherlands.
+Alva is forced to take the Spanish Road around the eastern edge
+of France since Catherine de Medici doesn’t want the presence of
+his Catholic army to incite renewed Huguenot hostilities. Arriv-
+ing in the Netherlands with a charter to rid the land of heretics,
+Alva’s strong-armed approach is to tax the Dutch heavily with the
+Tenth Penny and to launch a tribunal to try and execute heretics,
+the Council of Troubles. As predicted by Margaret, such ap-
+proaches only escalate the conflict. Even England is drawn into
+the fray when Spanish ships are intercepted near Plymouth. These
+Spanish Pay Ships are carrying bullion to pay Alva’s men. Eliza-
+beth’s refusal to return the money to Spain will remain a point of
+contention between the two nations for years to come.
+On the World Map:
+John Hawkins sails twice more to the Caribbean, taking a path
+down the Guinea Coast to capture slaves each time. However the
+effects of such raids are finally troublesome enough to spur a Span-
+ish reaction. Raiding the east coast of Mexico at San Juan de Ulua,
+Hawkins is ambushed by a Spanish patrol and narrowly escapes
+back to England. French New World colonies also suffer a series of
+setbacks. The colony in Florida is sacked by the Spanish admiral
+Menendez de Aviles; France Antarctique (in Brazil) is abandoned
+after being damaged in a series of Portuguese Attacks.
+Weddings:
+The wedding with critical political ramifications is the 1565
+union of Mary, Queen of Scots and Henry, Lord Darnley, both
+claimants to the English succession. Their son, the future James
+VI of Scotland, is born just a year after their marriage and is a
+leading candidate to someday succeed Elizabeth. However on all
+other fronts, the marriage of Mary and Henry is an unmitigated
+disaster. They feud over her refusal to grant him the Crown Mat-
+rimonial (which would give him ruling powers in Scotland), his
+drinking, and her alleged affairs with her secretary, David Rizzio.
+In the end both Rizzio and Darnley end up murdered with Mary
+entering a third marriage with the unpopular Earl of Bothwell. The
+Scottish Lords have seen enough and rebel. James is placed
+under their protection and Mary is forced to abdicate and flee to
+England. Once across the border, she becomes a political liability
+for Elizabeth, who is well aware of Mary’s popularity with Catho-
+lics across Europe. For now she remains imprisoned in northern
+England, though even that is enough to foment a Catholic Rising
+of the North in short order.
+Patronage:
+The passing of the great Ottoman leader, Suleiman, leads to
+the creation of one of the most famed poems in Turkish literature,
+Elegy for Suleiman by Baki.
+St. Bartholomew’s Day Massacre
+Turn 3 (1570-1575)
+Pope Pius V is not pleased to see Mary imprisoned in England.
+In an attempt to support the Rising of the North, he issues the bull
+Regnans in Excelsis excommunicating Elizabeth and declaring that
+she is “the pretended Queen of England and the servant of crime.”
+He releases all her subjects from any allegiance to her. The pontiff
+also has a plan to deal with the Ottoman menace. In response to
+the Ottoman conquest of Cyprus, Pius V announces the formation
+of a Holy League uniting the naval forces of Spain, Venice and
+the Papacy against the Turk. Philip II’s half-brother, Don John of
+Austria is placed in command of the united fleet. The two fleets,
+numbering over 200 galleys each, meet near Lepanto on the west
+coast of Greece. After five hours of fighting the Christians win a
+decisive victory. Their superior firepower, especially that provided
+by Venetian Galleasses, proves to be the decisive edge. Although
+the Grand Vizier Sokollu Mehmed will see that the fleet is rebuilt
+quickly, the Ottoman aura of invincibility is gone. Don John be-
+comes one of the greatest military heroes of 16th Century Europe.
+Back in the Netherlands, the repressive tactics of the Iron Duke
+(of Alva) are taking their toll on the Protestants. Over 1000 people
+are executed during the seven-year reign of Alva’s “Council of
+Blood.” The Catholics are even able to train for a reintroduction
+of Catholicism to England through the founding of an English
+College in Douai. This school instructs up to 150 students, each
+preparing to become a Jesuit missionary who will slip into England
+in the years ahead.
+© 2024 GMT Games, LLC
+PAGE 25
+Scenario Book 25
+Virgin Queen: Wars of Religion ~ 1559-1598
+However the Protestant sympathizers in the Netherlands are
+preparing for a lengthy struggle as well. At the Synod of Emden,
+29 exiled Calvinist leaders get together and officially form the
+Dutch Reform Church. Meanwhile a partisan naval force, the Sea
+Beggars, is expelled from England as Elizabeth tries to appease
+the Spanish. Without a port available to them, the Sea Beggars de-
+cide it is time to capture the seaside towns of Brielle and Flushing.
+The Dutch Revolt is back underway. Encouraged by the success
+at Brielle, other Dutch towns rebel. William of Orange is chosen
+to lead the newly-formed Dutch government.
+the recent Polish Royal Election. On his travels to Poland he
+became enchanted with the alluring Louise of Lorraine. Though
+not a noble, she becomes Henry’s bride soon after his return to
+claim the throne of France.
+Patronage:
+The talents of the French royal family’s portrait artist, Fran-
+cois Clouet, are put to the test during this time of engagements
+and weddings. His best work comes from this period, a Portrait
+of Elisabeth of Austria, the new queen of France. Architectural
+work is also in vogue, though it briefly comes to a halt in France
+On the World Map:
+with the death of Catherine of Medici’s chief architect, Philippe
+With armies now committed against the Ottomans and Dutch,
+de L’Orme. The largest contribution to architecture is made by
+Philip II’s expenses are monumental. Luckily his revenues from
+the Venetian Palladio. His Four Books of Architecture, published
+the New World are also on the rise. A Spanish colony is established
+at this time, become the standard texts on architecture until the
+at Manila in the Philippines. Soon a second Pacific Treasure
+19th Century.
+Fleet will make a yearly journey across the Pacific to Acapulco
+with treasures from the Orient. Seeking riches themselves, Francis
+Drake of England and Guillaume le Testu combine forces for
+an attack on Panama. They initially capture a mule train carrying
+South American silver, but a Spanish fleet off-shore captures (and
+executes) le Testu in the subsequent fight. Drake is forced to build
+a raft to reach his off-shore fleet and make good his escape. One
+pirate who is not so lucky is Klein Henszlein: the only notable
+German pirate of the period is captured and executed, bringing his
+13-year career of North Sea piracy to an abrupt end.
+Weddings:
+Despite Catherine de Medici’s efforts with the Grand Tour, hos-
+tilities continued between Huguenot and royalist forces in France.
+A brief second War of Religion was followed by a bloodier third
+war. In this later conflict the Huguenots were defeated at Poitiers
+but were able to regroup in southern France. Soon they had captured
+Toulouse and marched north up the Rhone River Valley. Tired of
+the bloodshed and in significant debt, the 20 year-old king Charles
+IX negotiates the 1570 Peace of Saint Germaine-en-Laye. The
+Protestants are allowed to retain four fortified towns including
+Cognac and their new capital of La Rochelle.
+The weddings during these years are all related to these re-
+ligious conflicts as well. Charles IX is in need of an heir and so
+must be married at once. He cannot marry Anna of Austria, as
+she is to become the fourth (and most successful) wife of Philip
+II. So he instead marries Anna’s devout Catholic sister Elisabeth
+of Austria, a match designed to send a signal of solidarity to the
+Catholics of Europe. Finally, what better way to cement this new
+peace in France than a wedding between Huguenot and French
+royals? So Catherine de Medici arranges for a marriage between
+her daughter Marguerite de Valois and the new Protestant leader,
+Henry of Navarre, son of Jeanne of Navarre. This high profile
+wedding at last brings the wealthy and influential Huguenots back
+to the Catholic city of Paris. Just six days after the wedding, on
+Saint Bartholomew’s Day, the Huguenot military leader Ad-
+miral Coligny is assassinated. Days of violence (and the fourth
+War of Religion) ensue, with Huguenots being slaughtered in both
+the capital and towns across France. Luckily for Henry Navarre,
+his new wife ensures his safety during the massacre.
+Being witness to and partially responsible for such carnage
+shakes the constitution of the fragile Charles IX. He falls into
+decline and is dead within 18 months. His younger brother Henry
+III is next in line to the throne. The healthiest of the Valois men,
+Henry is off in Poland at the time of Charles’ death, having won
+Drake Returns
+Turn 4 (1576-1581)
+Henry III’s younger brother, Francis, Duke of Alencon be-
+comes a thorn in the side of the royal family. Disgruntled that
+neither of his older brothers would place him in a position of
+authority, Alencon flees the French court and joins a group that
+is happy to have someone in line for the throne—the Huguenots.
+Henry of Navarre also leaves court and formally takes command of
+the Huguenot armed forces. German Reiters from the Palatinate
+invade eastern France in support of Alencon. With this growing
+collection of Protestant forces arrayed against him, Henry III is
+forced to accept Alencon’s terms. The Peace of Monsieur thus ends
+the fifth War of Religion on terms very favorable to the Huguenots,
+who are granted the right of public worship in all cities of France
+except the capital.
+Reaction against the peace is immediate from the Catholic
+factions in France, led by Henry, Duke of Guise. Enlisting fi-
+nancial support from Spain, Henry founds the Catholic League,
+an ultra-Catholic faction based in northeastern France. The French
+Estates-General, dominated by Guise, vote to cancel the terms of
+the Peace of Monsieur. A brief sixth war of religion follows, with
+the royalist forces fighting as one with the Catholic League. Soon
+the Huguenots are forced to accept a new peace that limits their
+worship to just one town in each judicial district.
+Under a new Sultan, Murad III, the Ottoman threat wanes.
+(Murad is known more for his attention to his Harem and his
+favorite wife, the Venetian Sultana Safiye, than for his military
+© 2024 GMT Games, LLC
+PAGE 26
+26
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+exploits.) This respite allows Philip to appoint Don John to head
+the Spanish forces in the Netherlands opposing William of Orange’s
+growing rebellion. Before Don John can arrive, bands of leaderless,
+unpaid Spanish troops go on a campaign of looting known as the
+Spanish Fury. Don John is forced to accept the Pacification of
+Ghent which calls for most Spanish troops to be sent out of the
+Netherlands. Disgruntled and ineffective, Don John succumbs to
+typhus and dies. Before he death he nominates his successor, the
+able commander Alexander Farnese, Duke of Parma. Parma
+quickly requisitions a new army from Spain and convinces the
+southern (French-speaking) provinces to pledge loyalty to Spain
+and form the Union of Arras. William of Orange reacts imme-
+diately, uniting the northern provinces in the Union of Utrecht.
+The battle lines for the next phase of the Dutch Revolt have been
+drawn. To gain legitimacy for the newly united north, William
+looks for a foreign monarch willing to accept sovereignty over
+the Netherlands. Elizabeth is the first choice, but she declines to
+avoid antagonizing Spain. So William offers the post to the Duke of
+Alencon and issues the Act of Abjuration, formally renouncing
+Philip as the rightful king over the Netherlands.
+On the World Map:
+The world-wide political situation changes dramatically with
+the presumed Death of King Sebastian of Portugal at the Battle
+of Alcácer-Quibir in Morocco. The Portuguese succession is muddy
+enough that Dom Antonio, illegitimate grandson of King Manuel
+I, proclaims himself the new king. However Philip II also has a
+claim to the throne through his mother. He sends the Duke of Alva’s
+army to crush Antonio’s forces and assure Spanish control of their
+Iberian neighbor (and its overseas empire). Despite losing this first
+struggle, Antonio soon resurfaces in both France and England, two
+countries loathe to see Spanish power on the increase world-wide.
+English activity is also on the rise. Although John Hawkins
+remains in England to serve as Secretary of the Navy overseeing
+Elizabeth’s naval building program, a new English explorer takes
+to the seas. Martin Frobisher’s three expeditions sail to Northern
+Canada in search of a Northwest Passage to China. Frobisher
+reaches Baffin Island and the Hudson Strait and brings back a
+mysterious black stone with flecks of gold. Unfortunately tests on
+it conclude it is just pyrite. A much greater success is achieved by
+Francis Drake, who begins an intended voyage of circumnavigation
+in 1577. Although down to a single ship after crossing the Straits
+of Magellan, Drake is able to pull in loot from the Pacific coast of
+South America, an area of the Spanish empire still undefended.
+By the time he and 59 men return to Plymouth in 1580, Drake is
+carrying a fortune that nearly equals the crown’s revenues for a
+single year.
+Weddings:
+Elizabeth exchanges gifts with Drake and knights him for his
+deeds. Conveniently, a French delegation is in London negotiat-
+ing the possible betrothal of Elizabeth with the Duke of Alencon.
+Elizabeth gets the French ambassador to perform the knighting
+of Drake to show tacit French approval for his raids against the
+Spanish. Alencon is one of the few suitors for Elizabeth’s hand
+that makes the effort to travel to London and meet her in person.
+Although enchanted by her young “frog,” Elizabeth knows a
+marriage to him would prove unpopular. She bids him farewell,
+writing the famous poem “On Monsieur’s Departure” to document
+her sadness at that moment.
+Patronage:
+A happier moment occurs in Madrid near this time. A veteran of
+Lepanto, Miguel Cervantes, had been captured by Barbary corsairs
+in 1575. After 5 years as a slave in Algiers, he is at last ransomed
+by his parents and returns to Madrid. He will begin his literary
+career part-time, mixing it in with work as a purchasing agent for
+the Spanish Armada. The one notable scientific achievement of
+the period is the publication of one of the world’s first atlases by
+Gerardus Mercator, also inventor of the Mercator map projection.
+Spanish Fury
+Turn 5 (1582-1587)
+Back in 1576, Maximilian II had died and his eccentric son
+Rudolf II had become Holy Roman Emperor. An introvert by
+nature, Rudolf prefers the quiet of Prague to the bustle of Vienna.
+He begins work on a new wing of Prague Castle to house his varied
+collections of natural objects and works of art. Some of the great-
+est artists and scientists in Europe are invited to work at his court
+(which he officially moves to Prague in 1583).
+William of Orange’s plan to have the Duke of Alencon rule
+over the Netherlands looks better on paper than it works in prac-
+tice. Alencon insists on attending Catholic services, making him a
+foreigner who has neither a common country nor a shared religion
+with the Dutch he is supposed to be ruling. Alencon’s frustrations
+culminate in 1583 when he decides to try a military coup to seize
+Antwerp. A trap is sprung on his army instead and he barely escapes
+with his life. Disgraced, Alencon flees to France, only to contract
+malaria and die.
+William’s personal safety is in peril as well; a 1580 proclama-
+tion offered 25,000 crowns and a pardon from Philip II to anyone
+who would kill the Prince of Orange. Miraculously he survives a
+1582 attempt on his life as a bullet passes through his cheek and
+misses his brain. However he is not so lucky the second time:
+two years later he becomes the first head of state to be killed by
+a concealed Handgun. Leadership of the Dutch cause passes to
+his son, Maurice of Nassau.
+Maurice faces a difficult task for the Duke of Parma’s army
+has been reinforced to over 60,000 men. Brussels and the south-
+ern provinces fall quickly and even mighty Antwerp is put under
+siege. The key to capturing Antwerp is the river Scheldt. In an
+impressive feat of Siege Engineering, Parma’s army constructs
+a huge pontoon bridge to block that river and cut off the city. The
+Protestant defenders send flaming barges against the pontoon but it
+holds. After a one-year siege, the town’s mayor Philips of Marnix
+(who is also a writer, cryptographer and William’s chief advisor)
+surrenders the city. Fortunately Parma grants the citizens lenient
+terms, even giving Protestant citizens the option to migrate north
+© 2024 GMT Games, LLC
+PAGE 27
+Scenario Book 27
+Virgin Queen: Wars of Religion ~ 1559-1598
+into Dutch-controlled cities.
+The assassination of William of Orange sends shock waves
+over to London. Elizabeth is also the head of a Protestant state;
+might not she be targeted for assassination in the same fashion?
+In fact her efficient spymaster, Sir Francis Walsingham does
+uncover two such plots, one led by Francis Throckmorton (1583)
+and the other by Anthony Babington (1586). Both times Mary
+Queen of Scots is also implicated for the plan is to free her from
+captivity and place her on the throne of England once Elizabeth is
+dead. Keeping Mary alive any longer is becoming too dangerous.
+Despite Elizabeth’s qualms about killing another female head of
+state, she has Mary beheaded. Also executed during this period are
+Jesuit priests trained at Douai, most notably Edmund Campion.
+Despite the support of English Recusants that hide the Jesuits
+in Priest Holes built into their country estates, most of these
+Douai priests are arrested and interrogated by either Walsingham
+or the notorious Richard Topcliffe.
+Elizabeth’s other concern is Spain’s growing strength that is
+threatening to overwhelm the Dutch. Her current policies of New
+World piracy and under-the-table support for the Dutch are not
+proving sufficient. She therefore signs the Treaty of Nonsuch to
+send English troops and the Earl of Leicester to the Netherlands.
+She also authorizes Drake to begin raids on the coast of Spain. His
+Cadiz raid of 1587 catches Philip just as he is preparing a Spanish
+Armada to invade England. Plans for the invasion of England,
+known as the “Enterprise of England,” had been drawn up by
+Philip’s best admiral, the Marquis of Santa Cruz and financed by
+an Armada Indulgence sponsored by Pope Sixtus V.
+On the World Map:
+Elizabeth’s other measure against Spain is to begin English ef-
+forts to found a New World empire. She takes the recommendation
+of Sir Walter Raleigh and has Richard Grenville establish a colony
+at Roanoke Island of the coast of present-day North Carolina. The
+first English citizen born in the New World, Virginia Dare, is born
+at that site in 1587.
+Weddings:
+The trying times in the Netherlands described above are hardest
+on William of Orange and his various wives. His third wife, Char-
+lotte of Bourbon, spends months after the 1582 attempt on his life
+nursing him back to health. In the end it is her strength that fails
+and she herself perishes. William takes a wife for the fourth time
+soon thereafter, marrying Louise de Coligny, the daughter of the
+French admiral murdered at the start of the Saint Bartholomew’s
+Day Massacre. And tragedy continues to follow Louise as within
+15 months William too lies dead.
+Patronage:
+El Escorial, started by Juan Bautista de Toledo 21 years
+before, is finished by Juan de Herrera. Herrera then becomes the
+founder and first director of the Academy of Military Architec-
+ture, a precursor to the modern Academy of Sciences.
+Race-built Galleon vs. Spanish Galleon
+Turn 6 (1588-1593)
+Fighting breaks out for the first time since the reign of Sulei-
+man between the Ottomans and Holy Roman Empire in 1591. Thus
+starts the so-called Long War, a conflict that will last until 1606.
+Most of the fighting and sieges are along the Danube in the region
+of modern-day Slovakia and western Hungary. The Ottomans hope
+for a decisive win to allow for a siege of Vienna; the Holy Romans
+are hoping for the same result so they can retake Buda. Neither
+side is successful.
+The Long War is just a side show to the main events of this
+period in England and France. For on July 21, 1588, the Spanish
+Armada is finally ready to set sail from Corunna for the English
+Channel. Santa Cruz had died of typhus over the previous winter;
+command of the great fleet passed to the Duke of Medina Sidonia.
+His plan is to take the Armada to the Netherlands and use it to sup-
+port an amphibious landing near Dover by the Duke of Parma’s
+Army of Flanders. Once in the Channel, the Armada encounters
+the English fleet led by Charles Lord Howard. A series of running
+engagements follow. The superior range of the English gunnery
+and the maneuverability of their race-built galleons allow them to
+harass the Armada without risking a close range action. Still, they
+cannot prevent the Spanish from reaching Calais. Once anchored
+off that French port, Medina Sidonia learns with disappointment
+that it will be six days before Parma’s army is ready to embark
+for England. (Communication between the two Spanish forces had
+been spotty and Parma was never given a good estimate for the
+arrival of the Armada). The English see their opportunity and send
+Fire Ships in to attack the anchored Spanish fleet. The Spanish cut
+their anchors and engage the English off the coast near Gravelines.
+The combat is deadly to both sides, but eventually the Spanish fleet
+is driven north by a steady “Protestant wind”. While waiting for a
+potential Spanish landing on the east coast of England, Elizabeth
+delivers her famous Tilbury Speech:
+I know I have the body of a weak and feeble woman; but I have
+the heart and stomach of a king – and of a King of England
+too, and think foul scorn that Parma or Spain, or any prince
+of Europe, should dare to invade the borders of my realm.
+But no invasion is to come. The demoralized Spanish decides
+to return to Spain around the coasts of Scotland and Ireland and
+preserve what strength they can. However the Armada’s numbers
+are decimated by gales that blow the ships into the rocky shores.
+© 2024 GMT Games, LLC
+PAGE 28
+28
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+Only half of the original ships are able to return to Spain. It is the
+greatest defeat in Spanish history; Philip II’s reputation is shattered.
+The following year the English attempt to capitalize on their
+ascendancy with a “counter armada” attack on Spain. Led by Drake
+and Sir John Norreys, this English Armada hopes to receive
+popular support for placing Dom Antonio on the Portuguese throne.
+After raiding Corunna, the English disembark north of Lisbon and
+march on the city. However the popular uprising never materializes.
+Without proper siege equipment, the English force is compelled to
+withdraw. The expedition limps back to England having failed to
+accomplish any of its objectives and having lost 30 ships.
+If the situation in England is tense, in France it is just plain
+chaotic. Five of the six powers represented in the game send armies
+into France during this six-year span. Furthermore, a three-sided
+war breaks out between the Huguenots, French Royalists, and the
+Spanish-backed Catholic League—and all three powers are led by
+a commander named Henry! Starting in 1587, this “War of Three
+Henries” starts with King Henry III taking his royalist troops into
+the field to support the Catholic League led by Henry, Duke of
+Guise. They confront the Huguenot army of Henry of Navarre
+who is trying to connect with a large German army. These reiters
+have been sent to aid the Huguenots from the Holy Roman Em-
+pire after funds for their pay are contributed by Elizabeth I. The
+first round of the fighting goes to Navarre, who leads the Royalist
+army south into Huguenot lands and defeats them decisively at
+the Battle of Coutras.
+However, the strategic advantage swings toward the Catholic
+League. On May 12, 1588, in an event known as the Day of the
+Barricades, a spontaneous uprising against Henry III throws
+control of Paris to the Duke of Guise. Catholic League power
+continues to grow as they force Henry III to sign an edict prohibit-
+ing Huguenots from holding public office or claiming the French
+throne. Henry III has no choice but to strike back: he lures the
+Duke of Guise into a trap and has him and his brother (a cardinal)
+assassinated. He then merges forces with the Huguenots for a joint
+move to retake Paris.
+However Henry III’s popularity now hits rock bottom. His
+vacillation between Catholic and Protestant camps and his as-
+sassination of a Catholic cardinal lead preachers in Paris to call
+for his removal as an “agent of Satan.” In August 1589, he too is
+assassinated. His death should yield the French crown to Henry of
+Navarre. But Navarre’s claim is discredited due to his Protestant
+beliefs. A number of other candidates are put forth, including the
+Duke of Mayenne, brother of the murdered Duke of Guise. May-
+enne takes to the field to drive Navarre’s forces into the sea but is
+soundly defeated at the Battle of Arques in Normandy. The tables
+are soon reversed and Navarre puts Paris under siege. By late sum-
+mer 1590, the situation for Parisians is desperate and thousands
+die to starvation. Only a Spanish relief force led by the Duke of
+Parma prevents the city’s capture.
+The wars in France continue for three more years. More Spanish
+troops are sent in, thwarting Protestant efforts to seize the ports on
+the Channel coast. Despite numerous successes on the battlefield,
+Henry of Navarre is no closer to gaining control of the staunchly
+Catholic town of Paris. Realizing that he would only gain the throne
+by converting back to Catholicism, he states that “Paris is Worth
+a Mass.” With his conversion the people of France at last have a
+king that they can fully support. Support for the Catholic League
+melts away and Henry IV is crowned as the new French king.
+On the World Map:
+The English navigator Thomas Cavendish returns late in
+1588 from a circumnavigation planned to emulate Drake’s earlier
+success. Cavendish uses a similar strategy of raiding along the
+Pacific Coast and finishes his voyage in nine fewer months than
+it took Drake.
+John White, governor of the Roanoke Island colony, finally
+returns there in 1590. His resupply voyage has been delayed for
+two years because of the attack of the Spanish Armada. Arriving
+at Roanoke, he discovers that the settlement is abandoned. The
+fate of the Lost Colony is unknown to this day.
+Weddings:
+None of note.
+Patronage:
+Several great paintings are created at this time, though the most
+notable were expressionist works that did not gain renown until
+later centuries. El Greco finishes his masterpiece the Burial of
+the Count of Orgaz depicting a popular local legend. Meanwhile,
+Rudolf II’s stable of artists in Prague is similarly busy. Giuseppe
+Arcimboldo completes a painting of the emperor as Vertumnus,
+god of the changing seasons, depicting Rudolf as a collage of
+fruits and vegetables!
+Navarre Enters Paris
+Turn 7 (1594-1598)
+The undeclared war between England and Spain continues on
+several fronts. Unexpected aid to the Spanish cause comes from the
+Irish Rebellion of Hugh O’Neill. Fighting against the English
+presence in Ulster, O’Neill widens the conflict by appealing for
+Spanish aid. It will take nine years for England to bring Ireland
+back under control. Meanwhile Spain is preparing to strike again
+at England proper. A raiding force crosses the English Channel and
+loots Cornwall in 1595. Over the next two years, two new Spanish
+Armadas sail for England. However in each case Storms scatter
+the fleet before it can cross the Bay of Biscay. England is even
+subject to attacks on their east coast from the Dunkirkers, pro-
+Catholic pirates operating from ports in the southern Netherlands.
+Elizabeth’s response is to team up with the Dutch for a joint naval
+attack on the Spanish port of Cadiz. The raid is surprisingly suc-
+cessful: the town is set fire and Spain is forced to sink the newly-
+arrived silver ships to keep them from falling into English hands.
+© 2024 GMT Games, LLC
+PAGE 29
+Scenario Book 29
+Virgin Queen: Wars of Religion ~ 1559-1598
+By 1598, France is ready to put the wars of religion behind
+them. Henry IV issues the Edict of Nantes, providing a number
+of civil rights to Huguenots. At last peace can come to France.
+Closure is also coming to this era in Spain. By the summer of
+1598, Philip II’s health is failing. He is racked by severe attacks
+of gout, fever and dropsy. In September he dies with rule of Spain
+passing to his son, Philip III.
+Even in England, it is acknowledged that the Elizabethan Age
+will end soon. Robert Cecil and the Privy Council open secret
+negotiations with James VI of Scotland to prepare for a smooth
+succession. Elizabeth does live five more years until 1603. Upon
+her death James I of England is raised to the throne. The English
+and Scottish crowns are united, and the era of the Virgin Queen
+is over.
+On the World Map:
+John Hawkins and Francis Drake decide to team up one last
+time for a major attack on the Spanish Caribbean. The size of this
+Drake/Hawkins Expedition is immense for a transatlantic voy-
+age: 27 ships and 2500 men. Their target is a damaged treasure
+ship in harbor in San Juan, Puerto Rico. However the greatly
+strengthened Spanish naval defenses thwart the English. Even a
+subsequent attack on Panama is turned away by the experienced
+Spanish garrison now posted at that critical isthmus. Both Hawkins
+and Drake fall ill and perish.
+Now it is the Dutch that get a voyage of circumnavigation (by
+Olivier van Noort) underway in 1598. Van Noort does not return
+until 1601 (after the time period of the game); his voyage does serve
+as inspiration for the founding of the Dutch East India Company.
+Weddings:
+None of note.
+Patronage:
+The English Renaissance hits its peak with playwrights such
+as Christopher Marlowe and William Shakespeare leading
+the way. Shakespeare’s Romeo and Juliet, is published in 1597
+(just before the end of the period represented in Virgin Queen).
+However several key works are still a few years off. The first part
+of Miguel de Cervantes’ great novel Don Quixote will not be
+ready for publication until 1605. Likewise William Gilbert is 2
+years from publishing his work on magnetism, On the Magnet.
+And Johannes Kepler is about a decade away from completing
+his Laws of Planetary Motion (though all the data for Kepler’s
+studies are complete, having been compiled decades earlier by
+Tycho Brahe). Soon the Renaissance will be coming to an end;
+the Age of Reason approaches.
+Outdoor Sermon
+© 2024 GMT Games, LLC
+PAGE 30
+30
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+Card FAQ
+1 Grand Vizier: If played to cancel an event, play it after the
+event is declared but before it is resolved. Can not be used
+to cancel Mandatory Events, Combat cards, Response cards
+(even when played as an event during a player’s impulse), or
+Home cards. Cannot add regulars to Algiers, Djerba/Tripoli,
+or spaces under siege.
+2 Ottoman Tribute: Spain or Holy Roman may not offer
+tribute if they have neither a card nor a treasure in their hand.
+If tribute is accepted the 2 CP of actions are also cancelled.
+Not playable as event to declare war on Venice or Holy Ro-
+man Empire if their diplomatic status was already resolved
+this turn.
+3 Spanish Road: Playable only if Milan is under Spanish
+control and is not under siege or in unrest. Leader moved
+to Milan may not start this impulse under siege. This move
+may not be intercepted.
+5 Papal Bull: Elizabeth may only be excommunicated once
+per game. Ignore this event entirely if the Papacy’s Diplo-
+matic status has already been resolved this turn; place the
+card in the discard pile and then the power playing the card
+spends 2 CP. All bonus actions may be declined even if valid
+actions exist.
+6 Selim II: Selim must always be the Ottoman ruler at the
+start of Turn 3. To ensure this, assume this card can never
+be chosen when a player is forced to discard. In games with
+less than 5 players, this card may also fail to be played if the
+Ottoman is deactivated during Turn 1 and this card was not
+dealt that turn. In this case retrieve the Selim II card from
+the deck during the Turn 2 Winter Phase and trigger its event
+at this time.
+10 Siege Engineering: The Flooding card does not appear
+in the Two-Player Tutorial, so only the first use is applicable
+in the Two-Player Tutorial.
+11 Dragut Falls: If Dragut is eliminated, Uluch Ali naval
+leader enters the game at the start of the next turn. In the
+Tutorial Scenario, VP cannot be awarded to Spain. Instead
+the Ottoman loses 1 VP (use a Slave Trader –1 VP token to
+remember this loss). First option triggers after piracy results
+are applied (so this card can itself be lost to a piracy attempt).
+The second option on this card may be played as an event
+during your impulse.
+13 Reiters: Space chosen may not be under siege or in unrest, nor
+may it contain land units controlled by another major power.
+This card may be played as an event during your impulse. Can-
+not be played in the middle of the execution of another event
+to make an unoccupied space occupied (e.g in the middle of
+the Sea Beggars event).
+15 Storms: Effects only last for this one impulse; may not be
+used to stop Treachery! event. May be used to disrupt naval
+movement and piracy during the Sultan’s Harem event. The
+second option on this card may be played as an event during
+your impulse.
+16 17 18 21 22 26 28 30 31 33 34 Sultan’s Harem: May not be played before the first impulse
+of the Action Phase.
+Army Mutiny: Target power gets to choose which regulars
+are retained and which ones lost. A power may use his Home
+Card (but not a Mandatory event) to retain regulars. Place
+unrest last (after breaking any sieges that may be affected).
+City State Rebels: Target space cannot be under control
+of its major power ally either. It may be an independent
+fortified space controlled by a major power.
+Foreign Volunteers: This card does allow Spain to add
+regulars to spaces in the Netherlands to Oran or to Malta and
+the Ottoman to add regulars to Algiers or to Djerba/Tripoli
+(where they normally can not construct units).
+Genoese Bankers: If played by the Ottoman before they
+have constructed the Suez Canal they launch a damaged
+expedition without a colony.
+Il Piccolo Soccorso: Can be used to add regulars in
+spaces where they normally cannot be constructed (for
+Spain in the Netherlands, Oran, and Malta; for the Ottoman
+in Algiers and Djerba/Tripoli).
+Morisco Revolt: Players may wish to leave this card out
+near Spain until the Morisco unit has been removed from
+the game to remind players of the Winter Phase effect. If
+the Ottoman is inactive in a game with less than 5 players,
+England should spread unrest from this event. A leader pres-
+ent in Granada when the event is played is captured by the
+Ottoman.
+Ruler Falls Ill: Option 2 of this card may not be used to
+target the Duke of Guise. It can be used to target a leader
+under siege. If a Spanish leader is targeted, the Spanish player
+can choose to return him to either Madrid or Milan.
+Treachery: “Where a besieging power does not meet the
+requirements for assault” refers to situations where nor-
+mal assault is not possible because of a lack of a LOC or
+because of the presence of enemy naval units. Naval units
+and leaders are not counted when determining whether or
+not the space falls.
+Gouvernante de France: A French royal must be be-
+trothed to enable the card draw or the retrieval of Grand
+Tour from the discards. Grand Tour may be played im-
+mediately if desired. Displace units if necessary because
+of ending the war between France and the Protestant. For
+the rest of the turn, place the Turn Marker on its flip side to
+remind players of this card’s effect. For the second option, if
+there is only one space remaining that is under both Protes-
+tant political control and Protestant religious influence, the
+religious flip is dropped (since it is illegal to flip the final
+space) but the political flip is retained.
+Holy Roman Intercession: Holy Roman may not be At
+War with either power when event played. Unrest may be
+placed in occupied spaces. Leader may be moved even if
+under siege.
+© 2024 GMT Games, LLC
+PAGE 31
+Scenario Book 31
+Virgin Queen: Wars of Religion ~ 1559-1598
+Card FAQ
+35 Patron of Arts & Sciences: If Rudolf dies or marries,
+immediately remove the +2 Prague Cultural Center marker
+from the artist/scientist sponsored by this event.
+36 The Virgin Queen: If still in hand when Elizabeth is assas-
+sinated, can only be played for CP that turn, then cannot be
+selected in later turns. Can be used to retrieve a previously
+canceled card from the discard pile.
+41 Border Reivers: May be played even if Mary Queen of
+Scots has already been played in response to the same Dip-
+lomatic Status check for Scotland. This card may be played
+as an event during your impulse.
+42 Catherine’s Flying Squadron: Play after event and target
+space is declared but before the event is resolved. If canceling
+German Recruitment Curtailed played by the HRE, all
+mercenaries are saved as long as at least one of the target
+spaces is in France. If used to cancel Jeanne of Navarre,
+that card remains in play and is placed in the discard pile.
+43 Experienced Pilot: Marker is lost if sea captain winters in
+a colony. A sea captain can never have more than one marker.
+This card may be played as an event during your impulse.
+44 Sack! Adjacent enemy-controlled fortified spaces under
+siege by another power may still surrender -- if so besieging
+units are also displaced.
+45 Scurvy: The second option on this card may be played as
+an event during your impulse.
+51 El Dorado: If played against Drake/Hawkins Expedition
+(card 106), remove both sea captains from the map.
+52 Foxe’s Book of Martyrs: The conversion attempts are
+rolled even if there were not enough Catholic spaces in
+England to take both switches to Protestant influence.
+53 Grand Tour: Card is removed from play if played after
+the Catholic League is formed—even if just played for CP.
+Card or treasure awarded from French hand is specifically
+chosen, not drawn at random.
+56 Index of Prohibited Books: Placing the artist or scientist
+on the Turn Track serves as a reminder that this power may
+not sponsor another artist (or another scientist) until next
+turn. The artist or scientist reenters play next turn.
+57 Irish Rebellion: Count the total number of regulars in
+Dublin plus Kinsale and then halve that number (rounding
+down). The English removes this number of regulars from
+these two spaces in any combination they desire. Then repeat
+for mercenaries.
+58 Jeanne Of Navarre: If used to start a rebellion, power play-
+ing the card chooses the target. Not playable as an event if
+France is allied with the Protestants. Cannot cancel French
+home card when it is played for CP.
+59 John Hawkins: If piracy is attempted twice with the 5 CP
+of actions and both fail to generate a 4 or higher, England
+takes two -1 VP Slave Trader markers.
+61 66 68 78 80 81 84 86 89 91 92 95 97 Menendez de Aviles: The fortress placed need not come off
+those available to build this turn on the Spanish Power Card.
+Sea Beggars: The piracy roll is lost if the Protestant (or
+two other powers) have already initiated piracy in the North
+Sea this turn. Piracy allowed even if the Protestant and Spain
+are not at war.
+Taxis Family Couriers: Draw a card from the deck even
+if you don’t have a second card in hand to give to another
+player.
+Rising of the North: For the Rebellion action, follow
+the procedure in 19.4 starting with Step 2. Does not count
+against Spanish limit of one English Catholic Rebellion
+attempt per turn.
+The Black Queen: If the Assassination targets the same
+power as the newly placed Informant, add 2 extra attack dice
+for the Informant even though he was not in place at the start
+of the Impulse. First option cannot be chosen if France has
+used their Assassination attempt this turn. With the second
+option, France can use this to take a Gain Intelligence or
+Plant Operative action (even though those only cost 2 CP).
+Walsingham: If played as a response in face-to-face play,
+must be played before any dice are rolled.
+Henry Iii (Anjou): If Charles IX has been murdered due
+to a marriage result (dropping France to an Admin Rating
+of 0 with no card bonus) and Henry III has also been assas-
+sinated before this card is played, the card bonus remains 0
+and the Admin Rating is now 1.
+Polish Royal Election: Mandatory Events may not be
+played for the election; home cards may be. In the case of a
+tie, France scores the 2 VP if they are one of the tied pow-
+ers. If not the Holy Roman scores the VP. A power can only
+make a roll if it contributes a card or treasure.
+Mary Queen of Scots: May be played even if Border
+Reivers has already been played in response to the same
+Diplomatic Status check for Scotland.
+Cipher Key: It is legal to move your Cipher Key marker
+off one power’s Power Card and directly onto a different
+power.
+Double Agent: An enemy informant is an informant from
+any other power. There is no requirement that you be At War
+with that power. This informant must start the impulse on
+the power card of the player triggering the event.
+Louise of Lorraine: Can be played to a player with a
+male Royal to marry that male royal to Louise. Only the
+highest of the two Eligibility Ratings will be used since this
+is considered a marriage between 2 royals of the same power.
+Louise doesn’t age until she enters play and is present on
+the Available to Wed chart.
+St. Bartholomew’s Day Massacre: No Assassination
+attempt occurs against Coligny if France has used their As-
+sassination attempt this turn.
+© 2024 GMT Games, LLC
+PAGE 32
+32
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+Card FAQ
+98 Sultana Safiye: First option on card is not playable in a
+game with less than 5 players if the Ottoman is inactive.
+99 Spanish Armada: Armada must be in Spanish home port
+for land units to be built on it. Armada must be in Seville,
+Corunna or Lisbon to be upgraded.
+100 Enterprise of England: Count spaces under Spanish
+control even if they are Catholic (i.e., some spaces may count
+for more than one of these items). Ignore Unrest entirely
+when making these counts.
+103 Act of Abjuration: Forces must be moved to a space in
+the Netherlands under Protestant political control. An offer
+may be accepted from a power at war with the Protestant; in
+this case immediately flip their status from At War to Allied.
+France may not make an offer if currently a Spanish ally.
+The bonus VP marker awarded from this event is “Master
+of Netherlands”. The space chosen may be in unrest. It must
+be Protestant-controlled and free of units controlled by other
+major powers. The space should be designated in the offer
+(but there is nothing preventing the Protestant from sug-
+gesting his preferred destination while everyone is trying
+to figure out what they’d like to offer).
+106 Drake/Hawkins Expedition: This expedition carries 2
+treasures if both captains are undamaged; 1 treasure other-
+wise. The expedition can still destroy a fortress, even if just
+1 captain remains (and even if he is damaged). If Northwest
+Passage is played against a Drake/Hawkins expedition,
+resolve it as follows: first roll against Drake’s (higher)
+Navigation rating. If that fails the expedition is cancelled
+and you should have each captain roll individually to see if
+he survives.
+109 Union of Arras: Even after this event, Walloons remain the
+only units that Spain may build in the Netherlands. Spaces
+chosen for change of political control or religious influence
+may not be in unrest, under siege, or contain units that are
+enemies of Spain. The Spanish player must flip 5 spaces if
+there are enough eligible targets. If there are not enough
+Spanish regulars in the Netherlands to displace them on a
+one-for-one basis as Walloons are added, just displace all
+Spanish regulars that are in the Netherlands (and you can
+still add up to 4 Walloons). If the Dutch capital is in a split
+orange/yellow space it is removed. Place the capital marker
+on the Turn Track; it may reenter play during a rebellion on
+a future turn.
+110 Dunkirkers: No piracy marker is placed. The state of war
+between these powers is not changed. The piracy roll occurs
+even if no Spanish naval units are present.
+111 Paris is Worth a Mass: May be played regardless of who
+currently controls Paris. Displace units if necessary because
+of switching political control of spaces near Paris. Paris is
+treated as a split French/Huguenot home space for the rest
+of the game. Place the Huguenot capital marker even if it’s
+on the Turn Track from removal earlier in the turn.
+112 Day of the Barricades: Do not count Walloons when
+counting Spanish regulars near Paris. May be played regard-
+less of who controls Paris.
+© 2024 GMT Games, LLC
+PAGE 33
+Scenario Book 33
+Virgin Queen: Wars of Religion ~ 1559-1598
+Marriage Bonuses
+The table below consolidates all the marriage ratings and bonus descriptions for all Royals in the game into a single table.
+Use it as a reference tool to arrange the most favorable matches for your royals
+Royal Country Turn Rating Bonus
+Philip II Spain 1 3 –1 card on Turn 2 if he breaks prearranged marriage to Elisabeth de Valois.
+(This includes if France announces that Elisabeth is marrying someone else
+or if the result is Last Minute Cancellation)
+Earl of Leicester England 1 1 If unmarried, stays in the pool as a 1 every turn Elizabeth I is in
+Elizabeth I England 1 5 +1 Virgin Queen VP at end of each turn she remains unmarried (thru Turn 5)
+William of Orange Protestant 1 2 If marriage result does not score VP (specifically the results of 7, 8, 10/11, or
+12), William returns to the pool to start the next turn at Eligibility Rating of
+2. He is removed from the game (along with the Army Leader counter) if a
+Husband Murdered result is obtained.
+Earl of Arran Protestant 1 1 After marriage, Protestant immediately resolves a Preach Sermon action in
+Scotland
+Charles II of Austria HRE 1 2 –1 card on next turn to England or Protestant if their royal marries him
+Elisabeth de Valois France 1 2 Has prearranged marriage to Philip II on Turn 1; +1 Valois Marriage VP when
+she marries
+Anna of Saxony HRE 1 1 Husband’s power +1 card next turn
+Don Carlos Spain 1 2 Must reroll highest marriage result die. Take this reroll before Anna of Aus-
+tria’s if the two marry.
+Mary Queen of Scots France 2 3 Husband’s power adds 2 influence in Scotland; resolve her wedding imme-
+diately (in Diplomacy Phase)
+Henry, Lord Darnley England 2 1 Add 2 French influence in Scotland if he marries Mary Queen of Scots
+Charles IX France 2 3 +1 Valois Marriage VP when he marries (may not marry a French royal other
+than Mary Queen of Scots)
+Anna of Austria HRE 3 2 May reroll lowest marriage result die if desired (Reroll choice is made by
+HRE unless they are inactive, in which case husband’s power decides).
+Henry III (Anjou) France 3 3 +1 Valois Marriage VP when he marries (may not marry a French royal other
+than Mary Queen of Scots)
+Marguerite de Valois France 3 3 +1 Valois Marriage VP when she marries (may not marry a French royal)
+Henry IV (Navarre) Protestant 3 3 Protestant +1 card next turn if he marries a French royal (Louise of Lorraine
+played by France is not a French royal).
+Louise of Lorraine Any 3 2 Added by event card, not associated with any specific power
+Elisabeth of Austria HRE 3 2 If she marries a French or Spanish royal, that power immediately resolves a
+Suppress Heresy action
+Rudolf II HRE 4 2 Loses patronage Home Card bonus if marries (place marker on Holy Roman
+power card)
+Louise de Coligny Protestant 4 2 If she marries an English or Protestant royal, that power +1 card next turn
+Duke of Alencon France 4 1 +1 Valois Marriage VP when he marries (may not marry a French royal other
+than Mary Queen of Scots)
+Isabella Clara Eugenia Spain 5 2 Husband’s power is +1 on all patronage rolls if her husband is a ruler (place
+marker on husband’s power card)
+© 2024 GMT Games, LLC
+PAGE 34
+34
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+Leader Entry Table
+Leader Turn Type Power
+Leader Turn Type Power
+Don John 2 Both Spain
+Santa Cruz 4 Naval Spain
+Leicester 2 Army England
+Parma 4 Army Spain
+Henry III 2 Army France
+Norreys 4 Army England
+William of Orange 2 Army Protestant
+Henry of Navarre 4 Army Protestant
+Maurice of Nassau 5 Army Protestant
+Sea Captain Table
+Sea Captain Turn Power Bonus (and additional explanation)
+Murat Reis 1 Ottoman Never dies from navigation rolls. If a navigational result normally would eliminate
+him, place him on the Turn Track to reenter play next turn.
+Hawkins 1 England Creates race-built Galleons (London, T3). Starting with Turn 3, galleons built in the
+London space are placed on their race-built side if Hawkins is present in that space.
+le Testu 1 France May instead be used as scientist. See 22.2 for details.
+Villegaignon 1 France Free colonist. If a colony marker is available, add it to his expedition without paying
+the usual 1 extra CP.
+de Sores 1 France/Protestant Fortresses do not roll against him. Skip those rolls when resolving piracy by de Sores.
+Fortresses do still protect 1 treasure from a random draw. Available on first come, first
+serve basis to either France or the Protestant.
+le Clerc 1 France/Protestant P2 in Antilles. Available on first come, first serve basis to either France or the Prot-
+estant.
+Henszlein 1 Holy Roman Costs 2 CP to Build Expedition. The Holy Roman Empire has no colonies so these
+may not be added to his expeditions.
+Laudonniere 1 Protestant Free colonist. If a colony marker is available, add it to his expedition without paying
+the usual 1 extra CP.
+Drake 3 England Chooses piracy reward; can repair. England chooses the reward for any piracy hit
+when Drake is present, instead of the target power as usual. Drake may choose to use
+up a piracy hit in order to repair his expedition (flip his damaged counter over to the
+front side).
+Frobisher 4 England Special NW Passage effects. If his expedition is targeted with the event Northwest
+Passage, his expedition is automatically cancelled, but he is never killed.
+Raleigh 5 England Free colonist. If a colony marker is available, add it to his expedition without paying
+the usual 1 extra CP.
+Cavendish 5 England P2 in Mexican & Chilean Coasts.
+van Noort 5 Protestant P2 in Mexican & Chilean Coasts.
+© 2024 GMT Games, LLC
+PAGE 35
+Scenario Book 35
+Virgin Queen: Wars of Religion ~ 1559-1598
+Science Bonuses
+Bonus Description Eligible Power (and additional explanation)
+Coastal Fortification Spain may build 2 World Map Fortresses per turn Spain only. 2 fortresses placed on Power Card in Card
+Draw Phase
+Cryptography Roll 1 extra die Espionage attack or defense Any power.
+Dry Dock Naval losses immediately return to force pool. Any power. Does not apply to minor power allies.
+Excavation +2 to Suez Canal rolls Ottoman only.
+Map Projection +1 to Navigation rolls Any power except Spain.
+Observatory +2 to Science rolls; return this scientist to pool Any power. May patronize scientist in a future turn.
+Plantation Free colony each expedition; +1 to colony rolls Ottoman, England, France or Protestant.
+Ravelin Roll 1 extra die when defender in Assault Any power. Applies for defense of any fortified space
+you control, regardless of which units are defending.
+Telescope +1 to Intercept/Avoid Battle rolls (land and naval) Any power. Does not apply if all units are minor allies
+and/or lent naval units.
+Cover Art:
+Courtesy of Beverley R. Robinson Collection, U.S. Naval Academy Museum
+The Decisive Action with the Armada Off Gravelines, July 30th 1588
+Etching by David Law after a painting by Oswald W. Brierly (1882)
+© 2024 GMT Games, LLC
+PAGE 36
+36
+Virgin Queen: Wars of Religion ~ 1559-1598 Scenario Book
+GMT Games, LLC
+P.O. Box 1308, Hanford, CA 93232-1308
+© 2024 GMT Games, LLC

@@ -27,6 +27,7 @@ import DialogContent from "@mui/material/DialogContent";
 import {GeoMap} from "./geo";
 import {ParentSize} from "@visx/responsive";
 import {CombatInfoPanel} from "./combat-info";
+import ExportLogButton from "../../components/export-log-button";
 
 export const SongJinnBoard = ({
                                   G,
@@ -115,6 +116,9 @@ export const SongJinnBoard = ({
                 callback={empty} choices={[]} defaultChoice={""} show={true}
                 title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`}
                 toggleText={"游戏结束"} initial={true}/>}
+            {ctx.gameover !== undefined && <Grid size={12}>
+                <ExportLogButton gameName="songJinn" matchID={matchID}/>
+            </Grid>}
 
             <Grid container size={12}>
                 <Grid size={{xs: 12, sm: 6}}>

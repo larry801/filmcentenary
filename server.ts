@@ -56,6 +56,29 @@ const server = process.env.REDIS_URL ? Server({
 const PORT = process.env.PORT || "3000";
 const {app} = server;
 
+/**
+ * Full, unredacted match log. boardgame.io strips the args of `redact: true`
+ * moves before sending logs to other seats, so hidden choices never reach
+ * opponents during play. Once the match is over nothing is secret any more,
+ * so this route serves the stored log as-is, and only for finished matches.
+ */
+server.router.get('/games/:name/:id/log', async (ctx) => {
+    const {name, id} = ctx.params;
+    const {state, metadata, log} = await server.db.fetch(id, {state: true, metadata: true, log: true});
+    if (!metadata || metadata.gameName !== name || !state) {
+        ctx.throw(404, 'Match ' + id + ' not found');
+    }
+    if (state.ctx.gameover === undefined) {
+        ctx.throw(403, 'Match ' + id + ' has not ended');
+    }
+    ctx.body = {
+        gameName: name,
+        matchID: id,
+        gameover: state.ctx.gameover,
+        log: log ?? [],
+    };
+});
+
 const FRONTEND_PATH = path.join(__dirname);
 app.use(
     serve(FRONTEND_PATH, {
