@@ -92,6 +92,19 @@ const stage = (G: VQGame, ctx: Ctx, responding: Power): void => {
     ctx.events?.setActivePlayers({value: {[ownerOf(G, responding)!]: "espionageChoice"}});
 };
 const finish = (G: VQGame, ctx: Ctx): void => {
+    const p = G.pendingEspionage!;
+    // #81 was played as a nested response; restore the interrupted action and
+    // finish the neutralization it was responding to before ending the stage.
+    if (p.walsinghamReturn !== undefined) {
+        const outer = p.walsinghamReturn;
+        const choice = outer.walsinghamChoice!;
+        const step = outer.walsinghamStep!;
+        delete p.walsinghamReturn;
+        delete outer.walsinghamChoice;
+        delete outer.walsinghamStep;
+        resumeWalsinghamOuter(G, ctx, outer, choice, step);
+        return;
+    }
     delete G.pendingEspionage;
     ctx.events?.endStage();
 };
@@ -391,6 +404,10 @@ export const espionageOptions = (G: VQGame): {id: string; label: string}[] => {
             [{id: "displace:pool", label: "无合法遣返地区，返回人员池"}];
     }
     if (p.step === "responses") return responseOptions(G, p);
+    if (p.step === "walsinghamResponse") return [
+        {id: "walsingham", label: "打出沃尔辛厄姆：先移除人员，再以 +2 骰获取情报"},
+        {id: "continue", label: "允许无效化"},
+    ];
     if (p.step === "mary") return [{id: "spareMary", label: "不处决玛丽"}, {id: "executeMary", label: "处决玛丽（英格兰 −1 VP）"}];
     if (p.step === "priestHoles") return [{id: "allowNeutralize", label: "允许耶稣会士无效化"},
         ...(G.powers[p.responding].cards.includes("vq-090") ? [{id: "priestHoles", label: "神父藏身所：保留耶稣会士"}] : [])];
@@ -487,6 +504,68 @@ const neutralizeJesuit = (G: VQGame, ctx: Ctx, id: string): void => {
     else {espionageState(G).jesuits = espionageState(G).jesuits.filter((s) => s !== id); afterNeutralize(G, ctx);}
 };
 
+/**
+ * #81 can answer a neutralization that would remove an English informant.  The
+ * card is a Response card and must be played before the neutralization effect.
+ * `defense` covers the defender of an English action choosing to neutralize
+ * the English informant; the other steps cover a foreign intelligence action
+ * neutralizing one.
+ */
+const canRespondWithWalsingham = (G: VQGame, p: PendingEspionage, choice: string,
+    step: "neutralize" | "extraNeutralize" | "defense"): boolean => {
+    if (!G.powers.england.cards.includes("vq-081") || G.espionage?.walsingham !== undefined) return false;
+    if (step === "defense") {
+        return p.power === "england" && p.targetPower !== "england" && activeInformant(G, p.power, p.targetPower);
+    }
+    if (p.power === "england") return false;
+    const [type, owner] = choice.split(":");
+    return type === "informant" && owner === "england";
+};
+
+/** Start Walsingham's remove-person + bonus intelligence sequence as a nested action. */
+const beginWalsinghamResponse = (G: VQGame, ctx: Ctx, outer: PendingEspionage): void => {
+    const target = outer.power === "england" ? outer.targetPower : outer.power;
+    const inner: PendingEspionage = {
+        kind: "walsingham", power: "england", targetPower: target, responding: "england",
+        step: "neutralize", cp: 0, remaining: 0, used: [], event: "walsingham",
+        neutralizeReturn: "walsingham", walsinghamReturn: outer,
+    };
+    removeCardFromHand(G, "england", "vq-081");
+    discardCard(G, "england", "vq-081", true);
+    pushLog(G, `England responds with Walsingham before the English informant is neutralized.`);
+    G.pendingEspionage = inner;
+    if (!operativeOptions(G, inner).length) {
+        // No enemy operative is on England's card; only the bonus intelligence remains.
+        inner.kind = "intelligence";
+        inner.attackBonus = 2;
+        inner.step = "responses";
+        beginResponses(G, ctx);
+        return;
+    }
+    stage(G, ctx, "england");
+};
+
+/** Resume the interrupted action after Walsingham's nested sequence finishes. */
+const resumeWalsinghamOuter = (G: VQGame, ctx: Ctx, outer: PendingEspionage,
+    choice: string, step: "neutralize" | "extraNeutralize" | "defense"): void => {
+    G.pendingEspionage = outer;
+    outer.responding = step === "defense" ? outer.targetPower : outer.power;
+    if (step === "defense") {
+        outer.used.push(choice);
+        outer.remaining--;
+        if (choice === "neutralize") neutralizeInformant(G, outer.power, outer.targetPower);
+        if (outer.remaining <= 0 || !espionageOptions(G).some((o) => o.id !== "done")) finishOrMary(G, ctx);
+        else stage(G, ctx, outer.responding);
+        return;
+    }
+    if (step === "extraNeutralize") outer.neutralizeReturn = "extraNeutralize";
+    (outer.neutralizedOperatives ??= []).push(choice);
+    const [type, target] = choice.split(":");
+    if (type === "jesuit") {neutralizeJesuit(G, ctx, target); return;}
+    if (type === "informant") neutralizeInformant(G, target as Power, outer.power);
+    afterNeutralize(G, ctx);
+};
+
 export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): void | typeof INVALID_MOVE => {
     const p = G.pendingEspionage;
     if (!p || ctx.playerID !== ownerOf(G, p.responding) || !espionageOptions(G).some((o) => o.id === args.choice)) return INVALID_MOVE;
@@ -501,6 +580,19 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
         }
         p.responseQueue!.shift();
         if (p.responseQueue!.length) stage(G, ctx, p.responseQueue![0]); else resolveRoll(G, ctx);
+        return;
+    }
+    if (p.step === "walsinghamResponse") {
+        if (choice === "walsingham") {
+            beginWalsinghamResponse(G, ctx, p);
+            return;
+        }
+        const step = p.walsinghamStep!;
+        const pendingChoice = p.walsinghamChoice!;
+        delete p.walsinghamStep;
+        delete p.walsinghamChoice;
+        p.step = step;
+        resumeWalsinghamOuter(G, ctx, p, pendingChoice, step);
         return;
     }
     if (p.step === "mary") {if (choice === "executeMary") executeMary(G); finish(G, ctx); return;}
@@ -564,6 +656,14 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
     }
     if (p.step === "neutralize" || p.step === "extraNeutralize") {
         if (p.step === "extraNeutralize") p.neutralizeReturn = "extraNeutralize";
+        if (canRespondWithWalsingham(G, p, choice, p.step)) {
+            p.walsinghamChoice = choice;
+            p.walsinghamStep = p.step;
+            p.step = "walsinghamResponse";
+            p.responding = "england";
+            stage(G, ctx, "england");
+            return;
+        }
         const [type, target] = choice.split(":");
         if (type === "jesuit" || type === "informant") (p.neutralizedOperatives ??= []).push(choice);
         if (type === "jesuit") {neutralizeJesuit(G, ctx, target); return;}
@@ -572,6 +672,14 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
         return;
     }
     if (p.step === "defense") {
+        if (choice === "neutralize" && canRespondWithWalsingham(G, p, choice, "defense")) {
+            p.walsinghamChoice = choice;
+            p.walsinghamStep = "defense";
+            p.step = "walsinghamResponse";
+            p.responding = "england";
+            stage(G, ctx, "england");
+            return;
+        }
         p.used.push(choice); p.remaining--;
         if (choice === "neutralize") neutralizeInformant(G, p.power, p.targetPower);
         if (choice === "inspect") inspect(G, p.targetPower, p.power);

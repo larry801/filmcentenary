@@ -22,7 +22,7 @@ export interface PendingEspionage {
     step: "responses" | "offense" | "neutralize" | "extraNeutralize" | "defense" | "mary" |
         "conversions" | "unrest" | "rebelTarget" | "rebelLosses" | "rebelSpaces" |
         "jesuitPlace" | "jesuitMove" | "jesuitDestination" | "priestHoles" | "displace" |
-        "northernConvert" | "northernUnrest" | "massacreConvert" | "massacreAssassinate";
+        "northernConvert" | "northernUnrest" | "massacreConvert" | "massacreAssassinate" | "walsinghamResponse";
     target?: string;
     cp: number;
     remaining: number;
@@ -41,6 +41,14 @@ export interface PendingEspionage {
     movingJesuit?: string;
     neutralizeReturn?: "offense" | "walsingham" | "extraNeutralize" | "topcliffe";
     neutralizedOperatives?: string[];
+    /**
+     * #81 nested response: an English response is resolving while this outer
+     * espionage action waits to finish its neutralization effect.
+     */
+    walsinghamReturn?: PendingEspionage;
+    /** The outer neutralization choice held while England decides on #81. */
+    walsinghamChoice?: string;
+    walsinghamStep?: "neutralize" | "extraNeutralize" | "defense";
     protectedJesuit?: string;
     priestQueue?: Power[];
     displacements?: {owner: Power; controller: Controller; from: string; kind: "land" | "naval"}[];
