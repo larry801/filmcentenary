@@ -79,6 +79,7 @@ import {canPlayGrandVizier, cardEventOptions, isGrandVizier} from "../cardEvents
 import {piracyOptions} from "../piracy";
 import {actionResponseOptions} from "../moves";
 import {interceptionOptions} from "../interception";
+import {assassinationTargets, espionageOptions, canPlayEspionageEvent, isEspionageEvent} from "../espionage";
 
 type Mode =
     | "inspect"
@@ -166,9 +167,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
     const [domesticRoyal, setDomesticRoyal] = React.useState("");
     const [foreignRoyal, setForeignRoyal] = React.useState("");
     const [patronageCp, setPatronageCp] = React.useState(2);
-    const [espionageTarget, setEspionageTarget] = React.useState<Power>("spain");
+    const [espionageTargetSelection, setEspionageTarget] = React.useState<Power>("spain");
     const [assassinationTarget, setAssassinationTarget] = React.useState("elizabeth");
     const [assassinationCp, setAssassinationCp] = React.useState(2);
+    const [catholicRebellionCp, setCatholicRebellionCp] = React.useState(3);
+    const [informantSource, setInformantSource] = React.useState("");
+    const [espionageEventTarget, setEspionageEventTarget] = React.useState("");
     const [expeditionCaptain, setExpeditionCaptain] = React.useState("");
     const [expeditionHasColony, setExpeditionHasColony] = React.useState(false);
     const [foreignArmySize, setForeignArmySize] = React.useState(3);
@@ -180,6 +184,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
     const piracyResponder = G.pendingPiracy && (G.pendingPiracy.step === "losses" ? G.pendingPiracy.power : G.pendingPiracy.target);
     const actionResponder = G.pendingAction && (G.pendingAction.power === "ottoman" ? "spain" : "ottoman");
     const responsePower = G.pendingIntercept && ownerOf(G, G.pendingIntercept.defender) === playerID ? G.pendingIntercept.defender :
+        G.pendingEspionage && ownerOf(G, G.pendingEspionage.responding) === playerID ? G.pendingEspionage.responding :
         actionResponder && ownerOf(G, actionResponder) === playerID ? actionResponder :
         piracyResponder && ownerOf(G, piracyResponder) === playerID ? piracyResponder :
         G.pendingCardEvent && ownerOf(G, G.pendingCardEvent.responding) === playerID ? G.pendingCardEvent.responding :
@@ -188,12 +193,14 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
         G.pendingBetrothal && ownerOf(G, G.pendingBetrothal.target) === playerID ? G.pendingBetrothal.target : undefined;
     const me: Power | undefined = responsePower ?? (ctx.currentPlayer === playerID ? G.activePower :
         viewPower && owned.includes(viewPower) ? viewPower : owned[0]);
+    const legalEspionageTargets = POWERS.filter((p) => p !== me && !isActivatedMajor(G, p));
+    const espionageTarget = legalEspionageTargets.includes(espionageTargetSelection) ? espionageTargetSelection : legalEspionageTargets[0];
     const myTurn = ctx.gameover === undefined && me !== undefined && ctx.currentPlayer === playerID && me === G.activePower;
     const phase = ctx.phase ?? "";
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
     const hand = ps?.cards ?? [];
-    const canAct = myTurn && phase === "action" && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept;
+    const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept;
 
     React.useEffect(() => {
         setMode("inspect");
@@ -305,6 +312,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
         const def = cardById(id);
         const disabled = !canAct || ps === undefined || ps.cardPlayed;
         const handler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
+        const espionageTargets = handler === "walsingham" ? ["offensive", "defensive", ...POWERS.filter((p) => p !== "england" && !isActivatedMajor(G, p))] :
+            handler === "cipherKey" ? ["remove", ...POWERS.filter((p) => p !== me && !isActivatedMajor(G, p))] : [];
+        const espionageTarget = espionageTargets.includes(espionageEventTarget) ? espionageEventTarget : espionageTargets[0];
         const foreignWarPower = handler === "warInPersia" ? "ottoman" : handler === "warWithPoland" ? "hre" : undefined;
         const foreignWarBlocked = foreignWarPower !== undefined && (G.foreignWars[foreignWarPower] !== undefined ||
             (foreignWarPower === "hre" && atWar(G, "hre", "ottoman")) ||
@@ -318,6 +328,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                 {def.kind === "home" && <Chip size="small" variant="outlined" label="本国牌"/>}
             </Stack>
             {def.text !== undefined && <Typography variant="caption" color="text.secondary">{def.text}</Typography>}
+            {espionageTargets.length > 0 && <Select size="small" fullWidth value={espionageTarget}
+                onChange={(e) => setEspionageEventTarget(e.target.value)}>
+                {espionageTargets.map((target) => <MenuItem key={target} value={target}>
+                    {target === "offensive" ? "进攻模式" : target === "defensive" ? "防御模式" : target === "remove" ? "移除本国所有敌方解码书" : POWER_NAMES[target as Power].zh}
+                </MenuItem>)}
+            </Select>}
             {foreignWarPower !== undefined && <FormControl size="small" sx={{mt: 0.5, minWidth: 130}}>
                 <InputLabel id={`vq-war-size-${id}`}>境外军规模</InputLabel>
                 <Select labelId={`vq-war-size-${id}`} label="境外军规模" value={foreignArmySize}
@@ -328,9 +344,11 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
             <Stack direction="row" spacing={0.5} sx={{mt: 0.5}}>
                 {(def.kind !== "command" || def.officialKind === "mandatory" || G.scenario === "tutorial") && <Button size="small" variant="contained"
                                                   disabled={disabled || foreignWarBlocked ||
+                                                      (isEspionageEvent(handler) && !canPlayEspionageEvent(G, me!, handler, espionageTarget)) ||
                                                       (isGrandVizier(def) && !canPlayGrandVizier(G, me!, ctx.numPlayers)) ||
                                                       (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
                                                   onClick={() => {moves.playCard({cardId: id, asEvent: true,
+                                                      ...(espionageTargets.length ? {target: espionageTarget} : {}),
                                                       ...(foreignWarPower !== undefined ? {target: String(foreignArmySize)} : {})}); setSelectedCard(undefined);}}>
                     {def.kind === "home" ? "使用能力" : "作为事件"}
                 </Button>}
@@ -341,6 +359,16 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
     };
 
     const actionPanel = () => {
+        if (G.pendingEspionage) return <Stack spacing={1}>
+            <Typography>谍报结算 · 等待 {POWER_NAMES[G.pendingEspionage.responding].zh} 选择。</Typography>
+            <Typography variant="body2">{G.pendingEspionage.step === "responses" ? "可在掷骰前使用响应牌。" :
+                G.pendingEspionage.step === "offense" ? `剩余 ${G.pendingEspionage.remaining} 次情报效果，每种效果最多一次。` :
+                G.pendingEspionage.step === "conversions" ? `在英格兰分配${G.pendingEspionage.conversionSide === "protestant" ? "新教" : "天主教"}转化骰；可用 6 点扩展基础，或保留至最后转化有部队的地区。` :
+                G.pendingEspionage.step === "rebelLosses" ? `英格兰还需分配 ${G.pendingEspionage.remaining} 次损失。` :
+                "选择下方合法选项，完成官方结果表的后续结算。"}</Typography>
+            {ownerOf(G, G.pendingEspionage.responding) === playerID && espionageOptions(G).map((entry) =>
+                <Button key={entry.id} variant="outlined" onClick={() => moves.chooseEspionage({choice: entry.id})}>{entry.label}</Button>)}
+        </Stack>;
         if (G.pendingCardEvent) return <Stack spacing={1}>
             <Typography>{G.pendingCardEvent.kind === "cancelEvent" ? "事件响应" : "大维齐尔"} · 等待奥斯曼帝国选择。</Typography>
             {G.pendingCardEvent.kind === "cancelEvent" ? <Typography variant="body2">
@@ -599,43 +627,64 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                 </Stack>
                 <Divider/>
                 </ActionGroup>
-                {G.scenario !== "tutorial" && !isActivatedMajor(G, me) && <><ActionGroup title="间谍与刺杀">
+                {G.scenario !== "tutorial" && !isActivatedMajor(G, me) && <><ActionGroup title="谍报 · 官方 Espionage Table">
                 <Typography variant="caption" color="text.secondary">
-                    第 3 回合起开放。间谍按 2 CP 派遣；情报行动为 2 CP；刺杀每回合一次，投入 2–4 CP。
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                    当前骰表为可玩近似：命中按 5–6 计，情报命中可夺取手牌并解除间谍，刺杀按双方命中差判定；官方结果表尚待录入。
+                    第 3 回合起开放。情报与派遣人员各 2 CP；刺杀 2–4 CP，天主教叛乱 3–5 CP，两者共用每回合一次标记。
                 </Typography>
                 <FormControl size="small" fullWidth>
                     <InputLabel id="vq-espionage-target">目标势力</InputLabel>
                     <Select labelId="vq-espionage-target" label="目标势力" value={espionageTarget}
                             onChange={(e) => setEspionageTarget(e.target.value as Power)}>
-                        {POWERS.filter((p) => p !== me).map((p) => <MenuItem key={p} value={p}>{POWER_NAMES[p].zh}</MenuItem>)}
+                        {POWERS.filter((p) => p !== me && !isActivatedMajor(G, p)).map((p) => <MenuItem key={p} value={p}>{POWER_NAMES[p].zh}</MenuItem>)}
                     </Select>
                 </FormControl>
+                <Select size="small" value={informantSource} onChange={(e) => setInformantSource(e.target.value)} displayEmpty>
+                    <MenuItem value="">使用人员池中的间谍</MenuItem>
+                    {G.informants.filter((i) => i.owner === me && !i.neutralized).map((i) =>
+                        <MenuItem key={i.target} value={i.target}>调动在{POWER_NAMES[i.target].zh}的间谍</MenuItem>)}
+                </Select>
                 <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
-                    <Button size="small" variant="outlined" disabled={!myTurn || cp < 2 || G.year < 3 || G.informants.some((i) => i.target === espionageTarget)}
-                            onClick={() => moves.plantInformant({target: espionageTarget})}>派遣间谍 (2 CP)</Button>
-                    <Button size="small" variant="outlined" disabled={!myTurn || cp < 2 || G.year < 3}
+                    <Button size="small" variant="outlined" disabled={!canAct || cp < 2 || G.year < 3 || espionageTarget === me ||
+                        G.informants.some((i) => i.owner === me && i.target === espionageTarget) ||
+                        (informantSource === "" && G.informants.filter((i) => i.owner === me).length >= 2)}
+                            onClick={() => moves.plantInformant({target: espionageTarget, ...(informantSource ? {fromTarget: informantSource} : {})})}>派遣／调动间谍 (2 CP)</Button>
+                    <Button size="small" variant="outlined" disabled={!canAct || cp < 2 || G.year < 3 || espionageTarget === me}
                             onClick={() => moves.gainIntelligence({target: espionageTarget})}>获取情报 (2 CP)</Button>
                 </Stack>
                 <FormControl size="small" fullWidth>
                     <InputLabel id="vq-assassination-target">刺杀目标</InputLabel>
                     <Select labelId="vq-assassination-target" label="刺杀目标" value={assassinationTarget}
                             onChange={(e) => setAssassinationTarget(e.target.value)}>
-                        <MenuItem value="elizabeth" disabled={!G.royals.some((r) => r.id === "elizabeth" && r.alive)}>伊丽莎白一世</MenuItem>
-                        {Object.values(G.leaders).filter((l) => LEADER_BY_ID[l.id]?.kind === "army" && LEADER_BY_ID[l.id]?.power !== me &&
-                            l.location !== "pool" && l.location !== "captured" && l.location !== "offMap").map((l) =>
-                            <MenuItem key={l.id} value={l.id}>{LEADER_BY_ID[l.id]?.name ?? l.id} ({POWER_NAMES[LEADER_BY_ID[l.id].power].zh})</MenuItem>)}
+                        <MenuItem value="elizabeth" disabled={!assassinationTargets(G, me).includes("elizabeth")}>伊丽莎白一世</MenuItem>
+                        {assassinationTargets(G, me).filter((id) => id !== "elizabeth").map((id) =>
+                            <MenuItem key={id} value={id}>{LEADER_BY_ID[id].name} ({POWER_NAMES[LEADER_BY_ID[id].power].zh})</MenuItem>)}
                     </Select>
                 </FormControl>
                 <Stack direction="row" spacing={0.5} sx={{alignItems: "center"}}>
                     <Select size="small" value={assassinationCp} onChange={(e) => setAssassinationCp(Number(e.target.value))}>
                         {[2, 3, 4].map((n) => <MenuItem key={n} value={n}>{n} CP</MenuItem>)}
                     </Select>
-                    <Button size="small" variant="outlined" disabled={!myTurn || cp < assassinationCp || G.year < 3 || G.assassinationUsed.includes(me)}
+                    <Button size="small" variant="outlined" disabled={!canAct || cp < assassinationCp || G.year < 3 || G.assassinationUsed.includes(me) ||
+                        !assassinationTargets(G, me).includes(assassinationTarget)}
                             onClick={() => moves.assassinate({target: assassinationTarget, cp: assassinationCp})}>尝试刺杀</Button>
                 </Stack>
+                {me === "spain" && <>
+                    <Typography variant="caption">耶稣会士：势力卡 {G.espionage?.jesuitsOnCard ?? 0} / 英格兰 {G.espionage?.jesuits.length ?? 0} / 总上限 5。选中英格兰地区后可派遣。</Typography>
+                    <Button size="small" variant="outlined" disabled={!canAct || cp < 2 || G.year < 3 || (G.espionage?.jesuitsOnCard ?? 0) < 1 ||
+                        spaceDef?.area !== "england" || G.espionage?.jesuits.includes(selected!)}
+                        onClick={() => moves.plantInformant({space: selected})}>派遣耶稣会士到 {spaceDef?.area === "england" ? spaceDef.name : "选中地区"} (2 CP)</Button>
+                    <Stack direction="row" spacing={0.5}>
+                        <Select size="small" value={catholicRebellionCp} onChange={(e) => setCatholicRebellionCp(Number(e.target.value))}>
+                            {[3, 4, 5].map((n) => <MenuItem key={n} value={n}>{n} CP</MenuItem>)}
+                        </Select>
+                        <Button size="small" variant="outlined" disabled={!canAct || cp < catholicRebellionCp || G.year < 3 ||
+                            G.assassinationUsed.includes("spain") || G.powers.spain.allies.includes("england")}
+                            onClick={() => moves.englishCatholicRebellion({cp: catholicRebellionCp})}>英格兰天主教叛乱</Button>
+                    </Stack>
+                </>}
+                {G.informants.map((i) => <Typography key={`${i.owner}:${i.target}`} variant="caption">
+                    {POWER_NAMES[i.owner].zh} → {POWER_NAMES[i.target].zh}：{i.neutralized ? "已无效化，冬季回收" : i.plantedImpulse < G.impulse ? "+2 攻击骰" : "下次冲动起生效"}
+                </Typography>)}
                 <Divider/>
                 </ActionGroup>
                 <ActionGroup title="世界地图 · 探险与殖民">
@@ -954,7 +1003,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
     };
 
     const pendingPower = G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
-        G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target;
+        G.pendingEspionage?.responding ?? G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target;
     const hasResponse = pendingPower !== undefined && ctx.gameover === undefined;
     const selectedSea = selected ? G.seaZones[selected as keyof VQGame["seaZones"]] : undefined;
     const panelProps = (name: string) => ({id: `${panelID}-${name}`, role: isDesktop ? undefined : "tabpanel",
@@ -964,7 +1013,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
             if (actionRef.current) actionRef.current.scrollTop = 0;
             if (sidebarRef.current) sidebarRef.current.scrollTop = 0;
         }
-    }, [hasResponse, pendingPower, G.pendingBattle?.step, G.pendingPiracy?.step, G.pendingTutorialEvent?.step, G.pendingCardEvent]);
+    }, [hasResponse, pendingPower, G.pendingBattle?.step, G.pendingPiracy?.step, G.pendingTutorialEvent?.step, G.pendingCardEvent, G.pendingEspionage?.step]);
 
     return <VQSurface><div className="vq-board">
         <header className="vq-status">
@@ -1039,6 +1088,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                             海军 {controllerNameZh(c as any)}: 桨帆 {cell(st.galley)} / 大帆 {cell(st.galleon)} / 快帆 {cell(st.racebuilt)} / 海盗 {cell(st.corsair)}
                         </Typography>;
                     })}
+                    {G.espionage?.jesuits.includes(selected!) && <Chip size="small" label="耶稣会士"/>}
                     {space.leaders.length > 0 && <Typography variant="caption" sx={{display: "block"}}>
                         将领：{space.leaders.map((id) => LEADER_BY_ID[id]?.name ?? id).join("、")}
                     </Typography>}
@@ -1079,7 +1129,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                         <Chip size="small" variant="outlined" label={`${controlledKeys(G, me).length} 关键城市`}/>
                     </Stack>
                     <Typography variant="caption" color="text.secondary">
-                        统治者：{RULER_NAMES[ps.ruler] ?? POWER_INFO[me].ruler.name}（行政 {POWER_INFO[me].ruler.admin} / 额外牌 {POWER_INFO[me].ruler.cardBonus}）
+                        统治者：{ps.ruler === "elizabethDead" ? "伊丽莎白逝世后的继任政府" : RULER_NAMES[ps.ruler] ?? POWER_INFO[me].ruler.name}（行政 {ps.ruler === "elizabethDead" ? 1 : POWER_INFO[me].ruler.admin} / 额外牌 {ps.ruler === "elizabethDead" ? 0 : POWER_INFO[me].ruler.cardBonus}）
                         · 基础 {baseVp(G, me)} + 宗教 {religiousSpecialVp(G, me)} + 奖励 {ps.bonusVp}
                     </Typography>
                     <Stack direction="row" spacing={1} sx={{mt: 0.5}}>
@@ -1089,6 +1139,11 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                     </Stack>
                 </ActionGroup>}
 
+                {G.espionage?.inspections.filter((entry) => playerID !== null && ownerOf(G, entry.viewer) === playerID).map((entry) =>
+                    <ActionGroup key={`${entry.viewer}:${entry.target}`} title={`秘密情报 · ${POWER_NAMES[entry.target].zh}手牌快照`}>
+                        <Typography variant="caption">仅你可见；记录查看时的手牌，不随对方后续行动更新。</Typography>
+                        {entry.cards.map((id) => <Typography key={id} variant="body2">{cardById(id).name} · {cardById(id).cp} CP</Typography>)}
+                    </ActionGroup>)}
                 <ActionGroup title={`对局日志 · ${G.log.length}`}>
                     {G.lastRolls && <Typography variant="body2">最近掷骰：{G.lastRolls}</Typography>}
                     <List dense disablePadding>{G.log.slice(-30).reverse().map((line, index) => <ListItem key={index} disableGutters sx={{py: 0.5}}>

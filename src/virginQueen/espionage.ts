@@ -1,0 +1,646 @@
+import {Ctx} from "boardgame.io";
+import {INVALID_MOVE} from "boardgame.io/core";
+import {Controller, NavalStack, Power, POWERS, VQGame, isPower, navalCount} from "./constant/general";
+import {LEADER_BY_ID} from "./constant/leaders";
+import {cardById} from "./constant/cards";
+import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "./mapData";
+import {actingPower, isActivatedMajor, ownerOf, participatingPowers} from "./ownership";
+import {assassinationResult, catholicRebellionResult} from "./data/espionage";
+import {EspionageState, PendingEspionage} from "./espionageTypes";
+import {addLand, addVp, allied, capitalOf, discardCard, ensureLand, ensureNaval,
+    hits, isFortifiedSpace, pushLog, removeCardFromHand,
+    roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
+
+export const espionageState = (G: VQGame): EspionageState => G.espionage ??= {
+    jesuits: [], jesuitsOnCard: G.scenario === "tournament" ? 1 : 0, douai: false,
+    mary: G.scenario === "tournament" ? "captured" : "scotland", cipherKeys: {}, nextDraw: {}, inspections: [],
+};
+export const espionageAvailable = (G: VQGame): boolean => G.scenario !== "tutorial" && G.year >= 3;
+export const activeInformant = (G: VQGame, owner: Power, target: Power): boolean => G.informants.some((i) =>
+    i.owner === owner && i.target === target && !i.neutralized && i.plantedImpulse < G.impulse);
+const crypto = (G: VQGame, p: Power, target: Power): number =>
+    G.powers[p].scienceBonuses.includes("cryptography") || G.espionage?.cipherKeys[p] === target ? 1 : 0;
+const maryAlive = (G: VQGame): boolean => G.espionage?.mary !== "dead" &&
+    G.royals.find((r) => r.id === "maryScots")?.alive !== false;
+
+export const assassinationTargets = (G: VQGame, p: Power): string[] => [
+    ...(p !== "england" && G.royals.some((r) => r.id === "elizabeth" && r.alive) ? ["elizabeth"] : []),
+    ...Object.keys(G.leaders).filter((id) => {
+        const def = LEADER_BY_ID[id];
+        const loc = G.leaders[id].location;
+        return def?.kind === "army" && def.power !== p && !isActivatedMajor(G, def.power) &&
+            !!G.spaces[loc] && G.spaces[loc].leaders.includes(id);
+    }),
+];
+
+export const espionageDice = (G: VQGame, pending: PendingEspionage): {attack: number; defense: number} => {
+    const {power: p, targetPower: target, kind} = pending;
+    const informant = activeInformant(G, p, target) ? 2 : 0;
+    let attack = (kind === "intelligence" ? 2 : pending.cp) + informant + crypto(G, p, target) + (pending.attackBonus ?? 0);
+    if (kind === "intelligence") return {attack, defense: 0};
+    let defense = (kind === "rebellion" ? 5 : 1) + crypto(G, target, p);
+    if (kind === "assassination") {
+        if (pending.target === "elizabeth") {
+            attack += maryAlive(G) ? 1 : 0;
+            defense += 3;
+        } else {
+            const def = LEADER_BY_ID[pending.target!];
+            defense += def.battle;
+            const loc = G.leaders[pending.target!].location;
+            if (SPACE_BY_ID[loc]?.home === target && G.spaces[loc].control === target) defense++;
+        }
+    } else {
+        attack += G.espionage?.jesuits.length ?? 0;
+        if (maryAlive(G) || G.espionage?.maryBonusTurn === G.year) attack += 3;
+        if (SPACES.some((s) => (s.home === "ireland" || s.area === "scotland") && (G.spaces[s.id].land.spain?.regular ?? 0) > 0)) attack += 2;
+        if (SPACES.some((s) => s.area === "england" && (G.spaces[s.id].land.spain?.regular ?? 0) > 0)) attack += 4;
+    }
+    return {attack, defense};
+};
+
+const inspect = (G: VQGame, viewer: Power, target: Power): void => {
+    const state = espionageState(G);
+    state.inspections = state.inspections.filter((i) => i.viewer !== viewer || i.target !== target);
+    state.inspections.push({viewer, target, cards: [...G.powers[target].cards]});
+    pushLog(G, `${viewer} secretly inspects ${target}'s hand.`);
+};
+
+/** Random losses use the larger pool; treasures win ties (6.3). Home cards cannot be lost. */
+const randomDiscard = (G: VQGame, ctx: Ctx, p: Power, allowTreasure: boolean): void => {
+    const cards = G.powers[p].cards.filter((id) => cardById(id).kind !== "home");
+    const treasures = G.powers[p].treasures;
+    const kind = allowTreasure && treasures.length > 0 && treasures.length >= G.powers[p].cards.length ? "treasure" : "card";
+    if (kind === "treasure") {
+        const index = shuffle(ctx, treasures.map((_, i) => i))[0];
+        treasures.splice(index, 1);
+        pushLog(G, `${p} discards a random treasure.`);
+    } else if (cards.length) {
+        const id = shuffle(ctx, cards)[0];
+        removeCardFromHand(G, p, id);
+        discardCard(G, p, id, false);
+        pushLog(G, `${p} discards ${cardById(id).name}.`);
+    }
+};
+
+const spend = (G: VQGame, p: Power, cp: number): void => {
+    G.powers[p].cp -= cp;
+    G.powers[p].passed = false;
+    G.consecutivePasses = 0;
+};
+const stage = (G: VQGame, ctx: Ctx, responding: Power): void => {
+    G.pendingEspionage!.responding = responding;
+    ctx.events?.setActivePlayers({value: {[ownerOf(G, responding)!]: "espionageChoice"}});
+};
+const finish = (G: VQGame, ctx: Ctx): void => {
+    delete G.pendingEspionage;
+    ctx.events?.endStage();
+};
+const neutralizeInformant = (G: VQGame, owner: Power, target: Power): void => {
+    const i = G.informants.find((i) => i.owner === owner && i.target === target && !i.neutralized);
+    if (i) i.neutralized = true;
+};
+const operativeOptions = (G: VQGame, p: PendingEspionage, extra = false): {id: string; label: string}[] => p.event === "richardTopcliffe" ?
+    (G.espionage?.jesuits ?? []).filter((id) => !p.neutralizedOperatives?.includes(`jesuit:${id}`)).map((id) => ({id: `jesuit:${id}`, label: `无效化耶稣会士：${SPACE_BY_ID[id].name}`})) : [
+    ...G.informants.filter((i) => i.target === p.power && !i.neutralized && (extra || p.kind === "walsingham" || i.owner === p.targetPower))
+        .map((i) => ({id: `informant:${i.owner}`, label: `无效化 ${i.owner} 在本国的间谍`})),
+    ...(p.power === "england" && (p.kind === "walsingham" || p.targetPower === "spain") ? (G.espionage?.jesuits ?? []).filter((id) => !p.neutralizedOperatives?.includes(`jesuit:${id}`))
+        .map((id) => ({id: `jesuit:${id}`, label: `无效化耶稣会士：${SPACE_BY_ID[id].name}`})) : []),
+];
+
+const responseOptions = (G: VQGame, p: PendingEspionage): {id: string; label: string}[] => {
+    const cards = G.powers[p.responding].cards;
+    return [
+        {id: "continue", label: "继续掷骰"},
+        ...(cards.includes("vq-081") && !G.espionage?.walsingham ? [
+            {id: "walsingham:offensive", label: "沃尔辛厄姆：英格兰攻击骰 4–6 命中"},
+            {id: "walsingham:defensive", label: "沃尔辛厄姆：攻击英格兰仅 6 命中"},
+        ] : []),
+        ...(p.kind === "assassination" && cards.includes("vq-088") && !p.used.includes("pistols") ?
+            [{id: "pistols", label: "手枪：刺杀攻击 +2 骰"}] : []),
+        ...((p.kind === "rebellion" || p.kind === "assassination" && p.target === "elizabeth") &&
+        cards.includes("vq-089") && maryAlive(G) && !p.used.includes("maryCard") ?
+            [{id: "maryCard", label: "苏格兰女王玛丽：攻击 +3 骰"}] : []),
+    ];
+};
+
+const finishOrMary = (G: VQGame, ctx: Ctx): void => {
+    const p = G.pendingEspionage!;
+    if ((p.kind === "rebellion" || p.target === "elizabeth") && espionageState(G).mary === "captured") {
+        p.step = "mary";
+        stage(G, ctx, "england");
+    } else finish(G, ctx);
+};
+const executeMary = (G: VQGame): void => {
+    const state = espionageState(G);
+    state.mary = "dead";
+    const royal = G.royals.find((r) => r.id === "maryScots");
+    if (royal) {royal.alive = false; royal.status = "dead";}
+    addVp(G, "england", -1);
+    G.doWCostEnglandSpain = Math.max(1, G.doWCostEnglandSpain - 3);
+    pushLog(G, "England executes Mary Queen of Scots (−1 VP).");
+};
+
+const attackHits = (G: VQGame, p: PendingEspionage, dice: number[]): number => dice.filter((d) =>
+    d >= (p.targetPower === "england" && G.espionage?.walsingham === "defensive" ? 6 :
+        p.power === "england" && G.espionage?.walsingham === "offensive" ? 4 : 5)).length;
+
+const startConversions = (G: VQGame, ctx: Ctx, rebellion: boolean, side: "catholic" | "protestant" = "catholic", attempts = 6): void => {
+    const p = G.pendingEspionage!;
+    p.step = "conversions";
+    p.rebellionAfterConversions = rebellion;
+    p.conversionSide = side;
+    p.conversionDice = roll(ctx, attempts);
+    p.unrest = p.conversionDice.includes(1);
+    p.conversionDice = p.conversionDice.filter((d) => d >= 4).sort((a, b) => b - a);
+    p.converted = [];
+    p.conversionBase = SPACES.filter((s) => G.spaces[s.id].religion === side && !G.spaces[s.id].unrest).map((s) => s.id);
+    stage(G, ctx, p.power);
+};
+
+const resolveRoll = (G: VQGame, ctx: Ctx): void => {
+    const p = G.pendingEspionage!;
+    const count = espionageDice(G, p);
+    p.attack = roll(ctx, count.attack);
+    p.defense = roll(ctx, count.defense);
+    const a = attackHits(G, p, p.attack), d = hits(p.defense), diff = a - d;
+    G.lastRolls = `${p.kind === "intelligence" ? "Gain Intelligence" : p.kind}: ${count.attack} dice [${p.attack.join(", ")}] = ${a} hits; defense ${count.defense} [${p.defense.join(", ")}] = ${d} hits`;
+    pushLog(G, G.lastRolls);
+    if (p.kind === "intelligence") {
+        p.step = "offense"; p.remaining = a;
+        if (a) stage(G, ctx, p.power); else finish(G, ctx);
+        return;
+    }
+    if (p.kind === "assassination") {
+        const result = assassinationResult(diff, p.target === "elizabeth" ? 2 : LEADER_BY_ID[p.target!].battle);
+        if (result.reroll) {
+            // A new response window also avoids an unbounded synchronous reroll loop.
+            p.step = "responses"; p.responseQueue = [p.power]; stage(G, ctx, p.power);
+            return;
+        }
+        if (result.discard) randomDiscard(G, ctx, p.targetPower, true);
+        if (result.killed) {
+            if (p.target === "elizabeth") {
+                const royal = G.royals.find((r) => r.id === "elizabeth")!;
+                royal.alive = false; royal.status = "dead";
+                G.powers.england.ruler = "elizabethDead";
+                G.removed.push(...["vq-036", "vq-home-virgin-queen"].filter((id) => !G.removed.includes(id)));
+                G.powers.england.cards = G.powers.england.cards.filter((id) => !G.removed.includes(id));
+                if (espionageState(G).mary === "captured") {executeMary(G); espionageState(G).maryBonusTurn = G.year;}
+            } else {
+                const loc = G.leaders[p.target!].location;
+                G.spaces[loc].leaders = G.spaces[loc].leaders.filter((id) => id !== p.target);
+                G.leaders[p.target!].location = "offMap";
+                // Off-map assassinated leaders never return in Spring.
+                G.leaders[p.target!].returnTurn = 99;
+            }
+            addVp(G, p.power, 1);
+            pushLog(G, `${p.target} killed; ${p.power} gains 1 VP.`);
+            finish(G, ctx);
+        } else if (result.defensiveActions) {
+            p.step = "defense"; p.remaining = result.defensiveActions; stage(G, ctx, p.targetPower);
+        } else {
+            if (result.neutralize && activeInformant(G, p.power, p.targetPower)) neutralizeInformant(G, p.power, p.targetPower);
+            finishOrMary(G, ctx);
+        }
+        return;
+    }
+    const result = catholicRebellionResult(diff);
+    pushLog(G, `English Catholic Rebellion: ${result}.`);
+    if (result === "victory") {espionageState(G).catholicRebellionVictory = true; finish(G, ctx);}
+    else if (result === "conversions" || result === "conversionsAndRebellion") startConversions(G, ctx, result === "conversionsAndRebellion");
+    else {
+        if (result === "inspectEngland") inspect(G, "spain", "england");
+        else {
+            for (const i of G.informants.filter((i) => i.target === "england")) i.neutralized = true;
+            espionageState(G).jesuits = [];
+            if (result === "inspectSpain") inspect(G, "england", "spain");
+            if (result === "minusCard") espionageState(G).nextDraw.spain = (espionageState(G).nextDraw.spain ?? 0) - 1;
+        }
+        finishOrMary(G, ctx);
+    }
+};
+
+const beginResponses = (G: VQGame, ctx: Ctx): void => {
+    const p = G.pendingEspionage!;
+    p.responseQueue = participatingPowers(G).filter((power) => {
+        const test = {...p, responding: power};
+        return responseOptions(G, test).length > 1;
+    });
+    if (p.responseQueue.length) {p.step = "responses"; stage(G, ctx, p.responseQueue[0]);}
+    else resolveRoll(G, ctx);
+};
+
+export const startEspionage = (G: VQGame, ctx: Ctx, kind: "intelligence" | "assassination" | "rebellion", args: {target?: string; cp?: number}): void | typeof INVALID_MOVE => {
+    const power = actingPower(G, ctx.currentPlayer);
+    const cp = kind === "intelligence" ? 2 : args.cp!;
+    const targetPower = kind === "intelligence" ? args.target as Power : kind === "rebellion" || args.target === "elizabeth" ? "england" : LEADER_BY_ID[args.target!]?.power;
+    if (ctx.phase !== "action" || !espionageAvailable(G) || isActivatedMajor(G, power) || !isPower(targetPower) || targetPower === power ||
+        !ownerOf(G, targetPower) || isActivatedMajor(G, targetPower) || G.pendingEspionage ||
+        !Number.isInteger(cp) || cp < (kind === "rebellion" ? 3 : 2) || cp > (kind === "rebellion" ? 5 : kind === "assassination" ? 4 : 2) ||
+        G.powers[power].cp < cp || kind !== "intelligence" && G.assassinationUsed.includes(power) ||
+        kind === "rebellion" && (power !== "spain" || (allied(G, "england", "spain") || allied(G, "spain", "england"))) ||
+        kind === "assassination" && !assassinationTargets(G, power).includes(args.target!)) return INVALID_MOVE;
+    espionageState(G);
+    spend(G, power, cp);
+    if (kind !== "intelligence") G.assassinationUsed.push(power);
+    G.pendingEspionage = {kind, power, targetPower, target: args.target, cp, responding: power, step: "responses", remaining: 0, used: []};
+    beginResponses(G, ctx);
+};
+
+export const plantOperative = (G: VQGame, ctx: Ctx, args: {target?: Power; space?: string; fromTarget?: Power}): void | typeof INVALID_MOVE => {
+    const power = actingPower(G, ctx.currentPlayer);
+    if (ctx.phase !== "action" || !espionageAvailable(G) || isActivatedMajor(G, power) || G.powers[power].cp < 2 || G.pendingEspionage) return INVALID_MOVE;
+    if (args.space !== undefined) {
+        if (args.target !== undefined || power !== "spain" || SPACE_BY_ID[args.space]?.area !== "england" ||
+            (G.espionage?.jesuitsOnCard ?? 0) < 1 || G.espionage?.jesuits.includes(args.space)) return INVALID_MOVE;
+        spend(G, power, 2);
+        espionageState(G).jesuitsOnCard--;
+        espionageState(G).jesuits.push(args.space);
+        pushLog(G, `Spain plants a Jesuit in ${SPACE_BY_ID[args.space].name}.`);
+        return;
+    }
+    const target = args.target;
+    if ((target === undefined || !isPower(target)) || target === power || !ownerOf(G, target) || isActivatedMajor(G, target) ||
+        G.informants.some((i) => i.owner === power && i.target === target)) return INVALID_MOVE;
+    const own = G.informants.filter((i) => i.owner === power);
+    const moving = own.find((i) => i.target === args.fromTarget && !i.neutralized);
+    if (args.fromTarget !== undefined && !moving || own.length >= 2 && !moving) return INVALID_MOVE;
+    spend(G, power, 2);
+    if (moving) {moving.target = target; moving.plantedImpulse = G.impulse;}
+    else G.informants.push({owner: power, target, plantedImpulse: G.impulse, neutralized: false});
+    pushLog(G, `${power} plants an informant on ${target}.`);
+};
+
+export const englishRebellionTargets = (G: VQGame): string[] => SPACES.filter((s) => s.area === "england" &&
+    G.spaces[s.id].control === "england" && G.spaces[s.id].religion === "catholic" &&
+    !G.spaces[s.id].siege && !G.spaces[s.id].unrest).map((s) => s.id);
+
+const protestantUnits = (G: VQGame, id: string, englishOnly = false): {id: string; label: string}[] => {
+    const s = G.spaces[id];
+    const controllers = Object.keys({...s.land, ...s.naval}) as Controller[];
+    return controllers.filter((c) => unitReligion(c) === "protestant" && (!englishOnly || c === "england" || !isPower(c) && G.powers.england.alliedMinors.includes(c as any))).flatMap((c) => [
+        ...((s.land[c]?.regular ?? 0) > 0 ? [{id: `regular:${c}`, label: `移除 ${c} 正规军`}] : []),
+        ...Object.entries(s.naval[c] ?? {}).filter(([, n]) => n > 0).map(([kind]) => ({id: `${kind}:${c}`, label: `移除 ${c} ${kind}`})),
+    ]);
+};
+
+const adjacentConversions = (G: VQGame, id: string, base: string[]): boolean =>
+    LAND_NEIGHBORS[id].some((n) => base.includes(n.id)) || (SPACE_BY_ID[id].ports ?? []).some((z) => zonePorts(z).some((port) => port !== id && base.includes(port)));
+const conversionOptions = (G: VQGame, p: PendingEspionage): {id: string; label: string}[] => {
+    const dice = p.conversionDice ?? [];
+    const opts = [{id: "conversionsDone", label: "完成宗教转化"}];
+    const side = p.conversionSide ?? "catholic";
+    if (SPACES.filter((s) => s.area === "england" && G.spaces[s.id].religion !== side).length <= 1) return opts;
+    for (const d of [...new Set(dice)]) {
+        for (const s of SPACES.filter((s) => s.area === "england")) {
+            const side = p.conversionSide ?? "catholic";
+            const opposing = side === "catholic" ? protestantUnits(G, s.id).length > 0 :
+                G.espionage?.jesuits.includes(s.id) || Object.keys({...G.spaces[s.id].land, ...G.spaces[s.id].naval}).some((c) =>
+                    unitReligion(c as Controller) === "catholic" && ((G.spaces[s.id].land[c as Controller]?.regular ?? 0) > 0 || navalCount(G.spaces[s.id].naval[c as Controller]) > 0));
+            if (G.spaces[s.id].religion === side || !adjacentConversions(G, s.id, p.conversionBase ?? []) ||
+                d !== 6 && opposing) continue;
+            opts.push({id: `convert:${d}:${s.id}`, label: `${d} 点转化：${s.name}`});
+            // Expanding the base is legal only without opposing units; it consumes this major.
+            if (d === 6 && !p.used.includes("remainingConversions") && !opposing) opts.push({id: `expand:${s.id}`, label: `6 点扩展${side === "catholic" ? "天主教" : "新教"}基础：${s.name}`});
+        }
+    }
+    if (p.unrest && dice.includes(6)) opts.push({id: "cancelUnrest", label: "将一颗 6 降为 5，取消动荡"});
+    return opts.some((o) => o.id.startsWith("convert:") || o.id.startsWith("expand:")) ? opts.filter((o) => o.id !== "conversionsDone") : opts;
+};
+
+const displacementOwner = (G: VQGame, controller: Controller): Power | undefined => isPower(controller) ? controller :
+    POWERS.find((p) => G.powers[p].alliedMinors.includes(controller as any));
+
+/** 12.5: distance ignores intervening control; sea zones count as spaces. */
+const displacementDestinations = (G: VQGame, item: NonNullable<PendingEspionage["displacements"]>[number]): string[] => {
+    const {owner, from, kind} = item;
+    const queue = [{id: from, distance: 0}], seen = new Set([from]);
+    let nearest = Infinity;
+    const destinations: string[] = [];
+    while (queue.length) {
+        const {id, distance} = queue.shift()!;
+        if (distance > nearest) break;
+        if (id !== from && G.spaces[id]?.control === owner && (kind === "land" ? isFortifiedSpace(G, id) : (SPACE_BY_ID[id]?.ports?.length ?? 0) > 0)) {
+            nearest = distance; destinations.push(id); continue;
+        }
+        const zone = SEA_ZONE_BY_ID[id];
+        const neighbors = zone ? [...zone.adjacent, ...zonePorts(zone.id)] : [
+            ...(kind === "land" ? LAND_NEIGHBORS[id].filter((n) => {
+                const port = [id, n.id].includes("brielle") && [id, n.id].includes("rotterdam") ? "brielle" :
+                    [id, n.id].includes("flushing") && [id, n.id].includes("antwerp") ? "flushing" : undefined;
+                return !port || G.spaces[port].control === owner || isPower(G.spaces[port].control) && allied(G, owner, G.spaces[port].control as Power);
+            }).map((n) => n.id) : []),
+            ...(SPACE_BY_ID[id]?.ports ?? []),
+        ];
+        for (const next of neighbors) if (!seen.has(next)) {seen.add(next); queue.push({id: next, distance: distance + 1});}
+    }
+    const capital = capitalOf(G, owner);
+    if (kind === "land" && capital && capital !== from && G.spaces[capital].control === owner && !destinations.includes(capital)) destinations.push(capital);
+    return destinations;
+};
+const queueDisplacements = (G: VQGame, id: string, primary = false): void => {
+    const p = G.pendingEspionage!, s = G.spaces[id];
+    p.displacements ??= [];
+    const controllers = new Set<Controller>([...Object.keys(s.land), ...Object.keys(s.naval),
+        ...s.leaders.map((l) => LEADER_BY_ID[l]?.power).filter(Boolean)] as Controller[]);
+    for (const controller of controllers) {
+        if (controller === "spain" && !primary) continue;
+        const owner = displacementOwner(G, controller);
+        if (!owner) {delete s.land[controller]; delete s.naval[controller]; continue;}
+        const leaders = s.leaders.filter((id) => LEADER_BY_ID[id]?.power === controller);
+        const land = s.land[controller];
+        if (land && land.regular + land.merc + land.cav > 0 || leaders.some((id) => LEADER_BY_ID[id].kind === "army")) p.displacements.push({owner, controller, from: id, kind: "land"});
+        else delete s.land[controller];
+        if (navalCount(s.naval[controller]) > 0 || leaders.some((id) => LEADER_BY_ID[id].kind === "naval")) p.displacements.push({owner, controller, from: id, kind: "naval"});
+        else delete s.naval[controller];
+    }
+};
+const continueRebellion = (G: VQGame, ctx: Ctx): void => {
+    const p = G.pendingEspionage!;
+    if (p.displacements?.length) {p.step = "displace"; stage(G, ctx, p.displacements[0].owner);}
+    else {
+        if (p.rebellionRegularsPending) {
+            addLand(G, p.rebellionRegularsPending, "spain", "regular", 2);
+            delete p.rebellionRegularsPending;
+        }
+        if (p.remaining > 0) {p.step = "rebelSpaces"; stage(G, ctx, "spain");}
+        else finish(G, ctx);
+    }
+};
+const seize = (G: VQGame, id: string, primary = false): void => {
+    G.spaces[id].control = "spain";
+    queueDisplacements(G, id, primary);
+    pushLog(G, `English Catholic Rebellion: Spain controls ${SPACE_BY_ID[id].name}.`);
+};
+const successfulRebellion = (G: VQGame, ctx: Ctx): void => {
+    const p = G.pendingEspionage!;
+    p.rebellionRegularsPending = p.target;
+    seize(G, p.target!, true); setWar(G, "spain", "england");
+    p.remaining = 3; continueRebellion(G, ctx);
+};
+
+export const espionageOptions = (G: VQGame): {id: string; label: string}[] => {
+    const p = G.pendingEspionage;
+    if (!p) return [];
+    if (p.step === "displace") {
+        const dest = displacementDestinations(G, p.displacements![0]);
+        return dest.length ? dest.map((id) => ({id: `displace:${id}`, label: `遣返${p.displacements![0].kind === "land" ? "陆军与将领" : "海军与将领"}：${SPACE_BY_ID[id].name}`})) :
+            [{id: "displace:pool", label: "无合法遣返地区，返回人员池"}];
+    }
+    if (p.step === "responses") return responseOptions(G, p);
+    if (p.step === "mary") return [{id: "spareMary", label: "不处决玛丽"}, {id: "executeMary", label: "处决玛丽（英格兰 −1 VP）"}];
+    if (p.step === "priestHoles") return [{id: "allowNeutralize", label: "允许耶稣会士无效化"},
+        ...(G.powers[p.responding].cards.includes("vq-090") ? [{id: "priestHoles", label: "神父藏身所：保留耶稣会士"}] : [])];
+    if (p.step === "offense") {
+        const result = [
+        ...(!p.used.includes("neutralize") && operativeOptions(G, p).length ? [{id: "neutralize", label: "无效化敌方情报人员"}] : []),
+        ...(!p.used.includes("inspect") ? [{id: "inspect", label: "秘密查看目标手牌"}] : []),
+        ...(!p.used.includes("discard") && (G.handCounts?.[p.targetPower] ?? G.powers[p.targetPower].cards.length) >= 3 && p.attack?.includes(6) ?
+            [{id: "discard", label: "迫使目标随机弃一张牌或宝藏"}] : []),
+        ];
+        return result.length ? result : [{id: "done", label: "完成情报行动"}];
+    }
+    if (p.step === "neutralize" || p.step === "extraNeutralize") return [
+        ...operativeOptions(G, p, p.step === "extraNeutralize"),
+        ...(p.step === "extraNeutralize" ? [{id: "skipNeutralize", label: "跳过额外无效化"}] : []),
+        ...(p.event === "richardTopcliffe" ? [{id: "topcliffeDone", label: "完成耶稣会士无效化，进行新教转化"}] : []),
+    ];
+    if (p.step === "defense") return [
+        ...(!p.used.includes("neutralize") && activeInformant(G, p.power, p.targetPower) ? [{id: "neutralize", label: "无效化协助本次刺杀的间谍"}] : []),
+        ...(!p.used.includes("inspect") ? [{id: "inspect", label: "秘密查看刺杀方手牌"}] : []),
+        ...(!p.used.includes("minusCard") ? [{id: "minusCard", label: "刺杀方下一回合少抽一张牌"}] : []),
+    ];
+    if (p.step === "conversions") return conversionOptions(G, p);
+    if (p.step === "unrest") return p.converted!.map((id) => ({id: `unrest:${id}`, label: `放置动荡：${SPACE_BY_ID[id].name}`}));
+    if (p.step === "rebelTarget") {
+        const targets = englishRebellionTargets(G);
+        return targets.length ? targets.map((id) => ({id: `rebel:${id}`, label: `叛乱目标：${SPACE_BY_ID[id].name}`})) :
+            [{id: "done", label: "无合法目标，完成叛乱"}];
+    }
+    if (p.step === "rebelLosses") return protestantUnits(G, p.target!, true);
+    if (p.step === "rebelSpaces") return [{id: "done", label: "完成叛乱"},
+        ...LAND_NEIGHBORS[p.target!].filter((n) => englishRebellionTargets(G).includes(n.id) && !protestantUnits(G, n.id).length)
+            .map((n) => ({id: `seize:${n.id}`, label: `扩展控制：${SPACE_BY_ID[n.id].name}`}))];
+    if (p.step === "jesuitPlace" || p.step === "jesuitDestination") {
+        const places = [
+        ...SPACES.filter((s) => s.area === "england" && !G.espionage?.jesuits.includes(s.id) &&
+            (p.step === "jesuitDestination" || !Object.values(G.spaces[s.id].land).some((u) => u && (u.regular + u.merc + u.cav) > 0) &&
+            !Object.values(G.spaces[s.id].naval).some((u) => navalCount(u) > 0) && G.spaces[s.id].leaders.length === 0))
+            .map((s) => ({id: `place:${s.id}`, label: `耶稣会士：${s.name}`})),
+        ];
+        return places.length && p.step === "jesuitPlace" ? places : [...places, {id: "done", label: "完成耶稣会士事件"}];
+    }
+    if (p.step === "jesuitMove") return [{id: "done", label: "完成耶稣会士事件"}, ...(G.espionage?.jesuits ?? []).filter((id) => p.used.includes(id)).map((id) =>
+        ({id: `move:${id}`, label: `移动耶稣会士：${SPACE_BY_ID[id].name}`}))];
+    return [];
+};
+
+const afterConversions = (G: VQGame, ctx: Ctx): void => {
+    const p = G.pendingEspionage!;
+    if (p.unrest && p.converted?.length) {p.step = "unrest"; return;}
+    if (p.rebellionAfterConversions) {p.step = "rebelTarget"; p.remaining = 0;}
+    else finish(G, ctx);
+};
+
+const afterNeutralize = (G: VQGame, ctx: Ctx): void => {
+    const p = G.pendingEspionage!;
+    if (p.neutralizeReturn === "walsingham") {p.neutralizedOperatives = []; p.kind = "intelligence"; p.attackBonus = 2; p.step = "responses"; beginResponses(G, ctx);}
+    else if (p.neutralizeReturn === "extraNeutralize") {p.step = "offense"; stage(G, ctx, p.power); if (p.remaining <= 0) finish(G, ctx);}
+    else if (p.neutralizeReturn === "topcliffe") {
+        p.remaining--;
+        if (p.remaining > 0 && espionageState(G).jesuits.length) {p.step = "neutralize"; stage(G, ctx, p.power);}
+        else startConversions(G, ctx, false, "protestant", 5);
+    } else {
+        const extra = roll(ctx, 1)[0];
+        if (extra >= 4 && operativeOptions(G, p, true).length) {p.step = "extraNeutralize"; stage(G, ctx, p.power);}
+        else if (p.remaining > 0) {p.step = "offense"; stage(G, ctx, p.power);}
+        else finish(G, ctx);
+    }
+};
+const neutralizeJesuit = (G: VQGame, ctx: Ctx, id: string): void => {
+    const p = G.pendingEspionage!;
+    p.protectedJesuit = id;
+    p.priestQueue = participatingPowers(G).filter((power) => G.powers[power].cards.includes("vq-090"));
+    if (p.priestQueue.length) {p.step = "priestHoles"; stage(G, ctx, p.priestQueue[0]);}
+    else {espionageState(G).jesuits = espionageState(G).jesuits.filter((s) => s !== id); afterNeutralize(G, ctx);}
+};
+
+export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): void | typeof INVALID_MOVE => {
+    const p = G.pendingEspionage;
+    if (!p || ctx.playerID !== ownerOf(G, p.responding) || !espionageOptions(G).some((o) => o.id === args.choice)) return INVALID_MOVE;
+    const choice = args.choice;
+    if (p.step === "responses") {
+        if (choice !== "continue") {
+            const id = choice.startsWith("walsingham:") ? "vq-081" : choice === "pistols" ? "vq-088" : "vq-089";
+            removeCardFromHand(G, p.responding, id); discardCard(G, p.responding, id, true);
+            if (choice.startsWith("walsingham:")) espionageState(G).walsingham = choice.endsWith("offensive") ? "offensive" : "defensive";
+            else {p.used.push(choice); p.attackBonus = (p.attackBonus ?? 0) + (choice === "pistols" ? 2 : 3);}
+            return;
+        }
+        p.responseQueue!.shift();
+        if (p.responseQueue!.length) stage(G, ctx, p.responseQueue![0]); else resolveRoll(G, ctx);
+        return;
+    }
+    if (p.step === "mary") {if (choice === "executeMary") executeMary(G); finish(G, ctx); return;}
+    if (p.step === "priestHoles") {
+        if (choice === "priestHoles") {
+            removeCardFromHand(G, p.responding, "vq-090"); discardCard(G, p.responding, "vq-090", true);
+            pushLog(G, "Priest Holes prevents Jesuit neutralization.");
+            afterNeutralize(G, ctx);
+        } else {
+            p.priestQueue!.shift();
+            if (p.priestQueue!.length) stage(G, ctx, p.priestQueue![0]);
+            else {espionageState(G).jesuits = espionageState(G).jesuits.filter((s) => s !== p.protectedJesuit); afterNeutralize(G, ctx);}
+        }
+        return;
+    }
+    if (choice === "topcliffeDone") {startConversions(G, ctx, false, "protestant", 5); return;}
+    if (choice === "done") {
+        if (p.event === "godsSecretAgents" && p.step === "jesuitPlace") {p.step = "jesuitMove"; return;}
+        finish(G, ctx); return;
+    }
+    if (p.step === "offense") {
+        p.used.push(choice); p.remaining--;
+        if (choice === "neutralize") {p.step = "neutralize"; p.neutralizeReturn = "offense"; return;}
+        if (choice === "inspect") inspect(G, p.power, p.targetPower);
+        if (choice === "discard") randomDiscard(G, ctx, p.targetPower, true);
+        if (p.remaining <= 0) finish(G, ctx);
+        return;
+    }
+    if (p.step === "neutralize" || p.step === "extraNeutralize") {
+        if (p.step === "extraNeutralize") p.neutralizeReturn = "extraNeutralize";
+        const [type, target] = choice.split(":");
+        if (type === "jesuit" || type === "informant") (p.neutralizedOperatives ??= []).push(choice);
+        if (type === "jesuit") {neutralizeJesuit(G, ctx, target); return;}
+        if (type === "informant") neutralizeInformant(G, target as Power, p.power);
+        afterNeutralize(G, ctx);
+        return;
+    }
+    if (p.step === "defense") {
+        p.used.push(choice); p.remaining--;
+        if (choice === "neutralize") neutralizeInformant(G, p.power, p.targetPower);
+        if (choice === "inspect") inspect(G, p.targetPower, p.power);
+        if (choice === "minusCard") espionageState(G).nextDraw[p.power] = (espionageState(G).nextDraw[p.power] ?? 0) - 1;
+        if (p.remaining <= 0 || !espionageOptions(G).some((o) => o.id !== "done")) finishOrMary(G, ctx);
+        return;
+    }
+    if (p.step === "conversions") {
+        if (choice === "cancelUnrest") {p.conversionDice![p.conversionDice!.indexOf(6)] = 5; p.unrest = false; return;}
+        if (choice === "conversionsDone") {afterConversions(G, ctx); return;}
+        const [type, value, idValue] = choice.split(":");
+        const id = type === "expand" ? value : idValue;
+        const die = type === "expand" ? 6 : Number(value);
+        if (type === "convert" && !p.used.includes("remainingConversions")) p.used.push("remainingConversions");
+        p.conversionDice!.splice(p.conversionDice!.indexOf(die), 1);
+        G.spaces[id].religion = p.conversionSide ?? "catholic"; p.converted!.push(id);
+        if (type === "expand") p.conversionBase!.push(id);
+        pushLog(G, `${p.conversionSide ?? "catholic"} conversion in ${SPACE_BY_ID[id].name}.`);
+        if (!p.conversionDice!.length) afterConversions(G, ctx);
+        return;
+    }
+    if (p.step === "unrest") {G.spaces[choice.slice(7)].unrest = true; p.unrest = false; afterConversions(G, ctx); return;}
+    if (p.step === "rebelTarget") {
+        p.target = choice.slice(6);
+        const units = protestantUnits(G, p.target, true);
+        p.remaining = units.length ? hits(roll(ctx, 5)) : 0;
+        if (!units.length) successfulRebellion(G, ctx);
+        else if (p.remaining) {p.step = "rebelLosses"; stage(G, ctx, "england");}
+        else finish(G, ctx);
+        return;
+    }
+    if (p.step === "rebelLosses") {
+        const [kind, owner] = choice.split(":") as [string, Controller];
+        const s = G.spaces[p.target!];
+        if (kind === "regular") s.land[owner]!.regular--;
+        else s.naval[owner]![kind as keyof NavalStack]--;
+        p.remaining--;
+        if (!protestantUnits(G, p.target!, true).length) successfulRebellion(G, ctx);
+        else if (!p.remaining) finish(G, ctx);
+        return;
+    }
+    if (p.step === "rebelSpaces") {seize(G, choice.slice(6)); p.remaining--; continueRebellion(G, ctx); return;}
+    if (p.step === "displace") {
+        const item = p.displacements!.shift()!, dest = choice.slice(9), source = G.spaces[item.from];
+        if (item.kind === "land") {
+            const units = source.land[item.controller];
+            if (units && dest !== "pool") {
+                const target = ensureLand(G, dest, item.controller);
+                target.regular += units.regular; target.merc += units.merc; target.cav += units.cav;
+            }
+            delete source.land[item.controller];
+        } else {
+            const units = source.naval[item.controller];
+            if (units && dest !== "pool") {
+                const target = ensureNaval(G, dest, item.controller);
+                for (const key of Object.keys(target) as (keyof NavalStack)[]) target[key] += units[key];
+            }
+            delete source.naval[item.controller];
+        }
+        for (const id of [...source.leaders]) if (LEADER_BY_ID[id]?.power === item.controller &&
+            LEADER_BY_ID[id].kind === (item.kind === "land" ? "army" : "naval")) {
+            source.leaders = source.leaders.filter((l) => l !== id);
+            G.leaders[id].location = dest;
+            if (dest !== "pool") G.spaces[dest].leaders.push(id);
+        }
+        continueRebellion(G, ctx); return;
+    }
+    if (p.step === "jesuitMove") {p.movingJesuit = choice.slice(5); p.step = "jesuitDestination"; return;}
+    if (p.step === "jesuitPlace" || p.step === "jesuitDestination") {
+        const state = espionageState(G), id = choice.slice(6);
+        if (p.step === "jesuitDestination") state.jesuits = state.jesuits.filter((s) => s !== p.movingJesuit);
+        else if (p.event === "godsSecretAgents") state.jesuitsOnCard--;
+        state.jesuits.push(id);
+        if (G.spaces[id].religion === "catholic" || SPACES.filter((s) => s.area === "england" && G.spaces[s.id].religion === "protestant").length > 1) G.spaces[id].religion = "catholic";
+        if (p.step === "jesuitDestination" || p.event === "englishCollegeAtDouai") finish(G, ctx);
+        else if (state.jesuitsOnCard <= 0) p.step = "jesuitMove";
+        return;
+    }
+};
+
+export const refreshJesuits = (G: VQGame): void => {
+    if (!espionageAvailable(G)) return;
+    const state = espionageState(G);
+    state.jesuitsOnCard = Math.max(state.jesuitsOnCard, Math.min(state.douai ? 2 : 1, 5 - state.jesuits.length));
+};
+
+/** Core related Event cards; unsupported choices remain outside this dispatcher. */
+export const isEspionageEvent = (handler: string): boolean => ["walsingham", "cipherKey", "englishCollegeAtDouai", "godsSecretAgents", "richardTopcliffe"].includes(handler);
+export const canPlayEspionageEvent = (G: VQGame, power: Power, handler: string, target?: string): boolean => {
+    if (!espionageAvailable(G)) return false;
+    if (handler === "walsingham") return power === "england" && (target === "offensive" || target === "defensive" ||
+        target !== undefined && isPower(target) && target !== power && !!ownerOf(G, target) && !isActivatedMajor(G, target));
+    if (handler === "cipherKey") return target === "remove" || target !== undefined && isPower(target) && target !== power && !!ownerOf(G, target) && !isActivatedMajor(G, target);
+    if (handler === "englishCollegeAtDouai") return ["lille", "dunkirk"].some((id) => G.spaces[id]?.religion === "catholic") &&
+        !G.espionage?.douai;
+    return handler === "godsSecretAgents" || handler === "richardTopcliffe";
+};
+export const beginEspionageEvent = (G: VQGame, ctx: Ctx, power: Power, handler: string, target?: string): void => {
+    const state = espionageState(G);
+    if (handler === "cipherKey") {
+        if (target === "remove") for (const p of POWERS) {if (state.cipherKeys[p] === power) delete state.cipherKeys[p];}
+        else state.cipherKeys[power] = target as Power;
+        return;
+    }
+    if (handler === "walsingham" && (target === "offensive" || target === "defensive")) {state.walsingham = target; return;}
+    const p: PendingEspionage = {kind: handler === "walsingham" ? "walsingham" : "jesuitEvent", power: handler === "walsingham" ? "england" : "spain",
+        targetPower: handler === "walsingham" ? target as Power : "england", responding: handler === "walsingham" ? "england" : "spain",
+        step: "jesuitPlace", cp: 0, remaining: 0, used: [], event: handler};
+    G.pendingEspionage = p;
+    if (handler === "richardTopcliffe") {
+        p.power = power; p.responding = power; p.remaining = 2; p.step = "neutralize"; p.neutralizeReturn = "topcliffe";
+        state.nextDraw.spain = (state.nextDraw.spain ?? 0) + 1;
+        if (!state.jesuits.length) {startConversions(G, ctx, false, "protestant", 5); return;}
+    }
+    if (handler === "godsSecretAgents") p.used = [...state.jesuits];
+    if (handler === "englishCollegeAtDouai") {
+        state.douai = true;
+        if (state.jesuits.length + state.jesuitsOnCard >= 5) {finish(G, ctx); return;}
+    }
+    if (handler === "walsingham") {
+        p.neutralizeReturn = "walsingham";
+        p.step = "neutralize";
+        // This option removes an operative before the bonus intelligence action.
+        if (!operativeOptions(G, p).length) {p.kind = "intelligence"; p.attackBonus = 2; beginResponses(G, ctx); return;}
+    } else if (handler === "godsSecretAgents" && !state.jesuitsOnCard) p.step = "jesuitMove";
+    stage(G, ctx, p.responding);
+};

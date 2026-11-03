@@ -29,7 +29,7 @@ function SpaceShape({id, G, selected, origin, onSelect, scale}: VQMapProps & {id
     const total = landN + navalN;
     const kind = G.scenario === "tutorial" ? TUTORIAL_KEYS.includes(id) ? "key" : TUTORIAL_FORTRESSES.includes(id) ? "fortress" : "open" :
         def.kind === "open" && st.fortress ? "fortress" : def.kind;
-    const title = `${def.name} · 控制：${st.control} · ${st.religion === "protestant" ? "新教" : "天主教"} · 陆军 ${landN} / 海军 ${navalN} / 将领 ${st.leaders.length}${excluded ? " · 教学禁入" : ""}${st.unrest ? " · 动荡" : ""}${st.siege ? " · 围困中" : ""}`;
+    const title = `${def.name} · 控制：${st.control} · ${st.religion === "protestant" ? "新教" : "天主教"} · 陆军 ${landN} / 海军 ${navalN} / 将领 ${st.leaders.length}${G.espionage?.jesuits.includes(id) ? " · 耶稣会士" : ""}${excluded ? " · 教学禁入" : ""}${st.unrest ? " · 动荡" : ""}${st.siege ? " · 围困中" : ""}`;
     return <g className="vq-map-node" role="button" tabIndex={0} aria-label={title} aria-pressed={isSelected}
               onClick={() => onSelect(id)} onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(id);}
@@ -43,6 +43,7 @@ function SpaceShape({id, G, selected, origin, onSelect, scale}: VQMapProps & {id
         {kind === "key" ? <rect x={x - 5.5} y={y - 5.5} width={11} height={11} fill={color} stroke={stroke} strokeWidth={1.4}/> :
             kind === "fortress" ? <polygon points={`${x},${y - 7} ${x + 7},${y} ${x},${y + 7} ${x - 7},${y}`} fill={color} stroke={stroke} strokeWidth={1.4}/> :
                 <circle cx={x} cy={y} r={4.5} fill={color} stroke={stroke} strokeWidth={1.4}/>}
+        {G.espionage?.jesuits.includes(id) && <text x={x - 12} y={y - 6} fontSize={12} fill="#582b70" fontWeight={700} pointerEvents="none">J</text>}
         {excluded && <text x={x} y={y + 3} textAnchor="middle" fontSize={11} fill="#9c3028">×</text>}
         {total > 0 && <g pointerEvents="none">
             <rect x={x + 5} y={y - 15} width={total > 9 ? 20 : 14} height={12} rx={3} fill="#faf5e7" stroke="#b39a6a" strokeWidth={0.5}/>

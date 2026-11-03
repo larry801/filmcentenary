@@ -57,6 +57,9 @@ const extra = (
  * Positions are real lon/lat; distances are only used by the schematic client.
  */
 export const ADDITIONAL_SPACES: OfficialSpaceDef[] = [
+    // Referenced by English College at Douai. Geography and links remain approximate.
+    extra("lille", "Lille", 3.06, 50.63, "spain", "open", {area: "netherlands"}),
+    extra("dunkirk", "Dunkirk", 2.38, 51.03, "spain", "fortress", {area: "netherlands", ports: ["englishChannel"]}),
     // Ottoman Balkans / Aegean
     extra("salonika", "Salonika", 22.94, 40.64, "ottoman", "key", {
         officialName: "Salonika",
@@ -148,9 +151,10 @@ export const ADDITIONAL_SPACES: OfficialSpaceDef[] = [
 
     // British Isles
     extra("berwick", "Berwick", -2.00, 55.77, "england", "fortress", {
+        area: "england",
         ports: ["northSea"],
     }),
-    extra("carlisle", "Carlisle", -2.93, 54.89, "england", "fortress", {}),
+    extra("carlisle", "Carlisle", -2.93, 54.89, "england", "fortress", {area: "england"}),
     extra("kinsale", "Kinsale", -8.52, 51.70, "ireland", "fortress", {
         ports: ["atlanticOcean"],
     }),
@@ -168,6 +172,10 @@ export const ADDITIONAL_SPACES: OfficialSpaceDef[] = [
 
 /** Links added for the new spaces. All are approximate reconstructions. */
 const ADDITIONAL_LINKS: [string, string, boolean?][] = [
+    ["lille", "dunkirk"],
+    ["lille", "brussels"],
+    ["lille", "calais"],
+    ["dunkirk", "calais"],
     // Ottoman
     ["salonika", "athens"],
     ["salonika", "edirne"],
@@ -257,6 +265,7 @@ export const OFFICIAL_SPACES: OfficialSpaceDef[] = [
         void religion;
         return {
             ...geography,
+            ...(geography.home === "england" ? {area: "england" as const} : {}),
             officialName:
                 s.id === "seville"
                     ? "Seville/Cadiz"

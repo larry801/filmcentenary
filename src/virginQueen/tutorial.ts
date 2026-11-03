@@ -19,7 +19,7 @@ export const tutorialSpaceAllowed = (id: string): boolean => {
 export const TUTORIAL_DISABLED_MOVES = [
     "playTreasure", "buildFortress", "claimSeaCaptain", "declareWar", "declareWarMinor", "makePeace", "formAlliance",
     "proposeBetroth", "acceptBetroth", "rejectBetroth", "preach", "suppress", "rebellion", "patronize",
-    "plantInformant", "gainIntelligence", "assassinate", "buildExpedition", "moveExpedition", "settleColony",
+    "plantInformant", "gainIntelligence", "assassinate", "englishCatholicRebellion", "buildExpedition", "moveExpedition", "settleColony",
     "commitForeignWarForce", "fightForeignWar", "reinforceForeignWar",
 ];
 

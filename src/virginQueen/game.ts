@@ -3,6 +3,7 @@ import {TurnOrder} from "boardgame.io/core";
 import {POWERS, Power, ScenarioID, VQGame} from "./constant/general";
 import {ownerOf, participatingPowers} from "./ownership";
 import {validateSetupData} from "./configuration";
+import {chooseEspionage} from "./espionage";
 import {chooseBattle} from "./combat";
 import {chooseTutorialEvent} from "./tutorialEvents";
 import {choosePiracy} from "./piracy";
@@ -29,6 +30,7 @@ import {
     plantInformant,
     gainIntelligence,
     assassinate,
+    englishCatholicRebellion,
     buildExpedition,
     moveExpedition,
     settleColony,
@@ -89,6 +91,7 @@ const powerOrder = {
 };
 
 const choiceStages = {
+    espionageChoice: {moves: {chooseEspionage}},
     cardEvent: {moves: {chooseCardEvent}},
     activateMajor: {moves: {chooseMajorActivation}},
     battleChoice: {moves: {chooseBattle}},
@@ -118,6 +121,8 @@ export const VirginQueenGameDef: Game<VQGame> = {
         if (!G.hreReligiousPreferenceRevealed && (playerID === null || ownerOf(G, "hre") !== playerID)) {
             delete r.hreReligiousPreference;
         }
+        if (r.espionage) r.espionage.inspections = r.espionage.inspections.filter((entry) =>
+            playerID !== null && ownerOf(G, entry.viewer) === playerID);
         r.handCounts = {};
         r.homeCardSetAsideCounts = {};
         for (const p of POWERS) {
@@ -209,6 +214,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
         plantInformant,
         gainIntelligence,
         assassinate,
+        englishCatholicRebellion,
         buildExpedition,
         moveExpedition,
         settleColony,

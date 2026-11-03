@@ -413,6 +413,8 @@ export interface PowerState {
 }
 
 export interface VQGame {
+    espionage?: import("../espionageTypes").EspionageState;
+    pendingEspionage?: import("../espionageTypes").PendingEspionage;
     playerPowers?: Record<string, Power[]>;
     activatedMajors?: Partial<Record<Power, {ally: Power; baseline: number}>>;
     majorInfluence?: Partial<Record<Power, Partial<Record<Power, number>>>>;
@@ -618,6 +620,7 @@ export type VictoryReason =
     | "military"
     | "protestantReligious"
     | "catholicReligious"
+    | "catholicRebellion"
     | "standard"
     | "domination"
     | "timeLimit";
@@ -626,6 +629,7 @@ export const VICTORY_TEXT: Record<VictoryReason, string> = {
     military: "军事胜利：控制足够多的关键城市",
     protestantReligious: "新教宗教胜利：新教影响超过半数宗教地区",
     catholicReligious: "天主教宗教胜利：新教影响被压缩到极限",
+    catholicRebellion: "天主教叛乱胜利：火药阴谋成功，西班牙获胜",
     standard: "标准胜利：达到 25 分",
     domination: "支配胜利：领先所有对手至少 5 分",
     timeLimit: "时限胜利：第 7 回合结束时分数最高",

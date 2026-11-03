@@ -15,6 +15,38 @@ const fakeCtx = (): Ctx => ({
 } as unknown as Ctx);
 
 describe("Virgin Queen board", () => {
+    it("exposes espionage result choices and private hand snapshots only to their owning seat", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.year = 3;
+        G.activePower = "spain";
+        G.pendingEspionage = {kind: "intelligence", power: "spain", targetPower: "france", responding: "spain",
+            step: "offense", cp: 2, remaining: 1, used: []};
+        G.espionage!.inspections = [{viewer: "spain", target: "france", cards: ["vq-020"]}];
+        const view = VirginQueenGameDef.playerView as any;
+        for (const playerID of ["1", "2", null]) {
+            const html = renderToStaticMarkup(<VirginQueenBoard {...{
+                G: view(G, fakeCtx(), playerID), ctx: {phase: "action", currentPlayer: "1", numPlayers: 6},
+                moves: {}, playerID, isActive: playerID === "1",
+            } as any}/>);
+            expect(html).toContain("谍报结算");
+            expect(html.includes(">秘密查看目标手牌<")).toBe(playerID === "1");
+            expect(html.includes("秘密情报 · 法国手牌快照")).toBe(playerID === "1");
+            expect(html).not.toContain(">获取情报 (2 CP)<");
+        }
+    });
+
+    it("shows Jesuits on the map and the official rebellion action in Spain's action panel", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.year = 3; G.activePower = "spain"; G.espionage!.jesuits = ["york"];
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: "1", numPlayers: 6}, moves: {}, playerID: "1", isActive: true,
+        } as any}/>);
+        expect(html).toContain("官方 Espionage Table");
+        expect(html).toContain(">英格兰天主教叛乱<");
+        expect(html).toContain("York · 控制：england · 天主教 · 陆军 0 / 海军 0 / 将领 0 · 耶稣会士");
+        expect(html).not.toContain("可玩近似");
+    });
+
     it.each([2, 6])("shows Grand Vizier effects only to Ottoman and limits the canal by player count (%s)", (numPlayers) => {
         const G = setupGame({...fakeCtx(), numPlayers: 6});
         G.pendingCardEvent = {kind: "grandVizier", cardId: "vq-001", responding: "ottoman", step: "effect", remaining: 4};

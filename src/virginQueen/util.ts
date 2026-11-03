@@ -1,4 +1,5 @@
 import {Ctx} from "boardgame.io";
+import {refreshJesuits} from "./espionage";
 import {
     AREA_NAMES,
     CardDef,
@@ -254,6 +255,9 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
             blocked[p] = [];
             return blocked;
         }, {} as VQGame["minorInfluenceBlocked"]),
+        espionage: {jesuits: [], jesuitsOnCard: scenario.powerCard.spain?.jesuits ?? 0,
+            douai: false, mary: scenarioId === "tournament" ? "captured" : "scotland",
+            cipherKeys: {}, nextDraw: {}, inspections: []},
         informants: [],
         assassinationUsed: [],
         worldCaptains: {},
@@ -412,11 +416,13 @@ export const drawCount = (G: VQGame, p: Power): number => {
     const info = POWER_INFO[p];
     const table = info.drawByKeys;
     const base = table[Math.min(keys, table.length - 1)] ?? 3;
-    return Math.max(1, base + info.ruler.cardBonus + G.powers[p].cardModifier);
+    const rulerBonus = p === "england" && G.powers.england.ruler === "elizabethDead" ? 0 : info.ruler.cardBonus;
+    return Math.max(1, base + rulerBonus + G.powers[p].cardModifier + (G.espionage?.nextDraw[p] ?? 0));
 };
 
 /** Deal a new year's hands. Home cards return, hands are trimmed to Admin. */
 export const dealYear = (G: VQGame, ctx: Ctx): void => {
+    refreshJesuits(G);
     const eligibleFuture: string[] = [];
     G.futureDeck = G.futureDeck.filter((id) => {
         const card = officialCardById(id);
@@ -442,7 +448,7 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
         ps.homeCardChoiceDone = false;
         // Keep at most the ruler's admin rating of non-home cards.
         const nonHome = ps.cards.filter((c) => cardById(c).kind !== "home");
-        const keep = Math.min(nonHome.length, G.scenario === "tutorial" ? 2 : POWER_INFO[p].ruler.admin);
+        const keep = Math.min(nonHome.length, G.scenario === "tutorial" ? 2 : p === "england" && ps.ruler === "elizabethDead" ? 1 : POWER_INFO[p].ruler.admin);
         const dropped = nonHome.slice(keep);
         for (const d of dropped) {
             ps.cards = ps.cards.filter((c) => c !== d);
@@ -450,6 +456,7 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
         }
         const n = drawCount(G, p);
         drawCards(G, ctx, p, n);
+        if (G.espionage) delete G.espionage.nextDraw[p];
         if (G.tutorialEffects) delete G.tutorialEffects.nextDraw[p];
         ps.passed = false;
         ps.cp = 0;
@@ -1344,8 +1351,9 @@ export const unitReligion = (c: Controller): Religion | "unaligned" => {
 
 const spaceHasReligionUnits = (G: VQGame, space: string, religion: Religion): boolean => {
     const s = G.spaces[space];
+    if (religion === "catholic" && G.espionage?.jesuits.includes(space)) return true;
     for (const c of Object.keys(s.land) as Controller[]) {
-        if (unitReligion(c) === religion && landCount(s.land[c]) > 0) {
+        if (unitReligion(c) === religion && (s.land[c]?.regular ?? 0) > 0) {
             return true;
         }
     }
@@ -1928,6 +1936,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     const neutralized = G.informants.filter((i) => i.neutralized).length;
     G.informants = G.informants.filter((i) => !i.neutralized);
     G.assassinationUsed = [];
+    if (G.espionage) {delete G.espionage.walsingham; delete G.espionage.maryBonusTurn; G.espionage.inspections = [];}
     for (const captain of Object.values(G.worldCaptains)) {
         captain.damaged = false;
     }
@@ -2031,6 +2040,7 @@ export const checkImmediateVictory = (G: VQGame): { winner: Power; reason: strin
         return controlledKeys(G, "ottoman").length >= TUTORIAL_POWER_CARDS.ottoman.military
             ? {winner: "ottoman", reason: "military"} : undefined;
     }
+    if (G.espionage?.catholicRebellionVictory) return {winner: "spain", reason: "catholicRebellion"};
     const n = protestantSpaceCount(G);
     if (n > 50) {
         return {winner: "protestant", reason: "protestantReligious"};

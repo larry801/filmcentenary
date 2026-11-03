@@ -4,6 +4,7 @@ import {tutorialActionError} from "./tutorial";
 import {LEADER_BY_ID} from "./constant/leaders";
 
 export const moveError = (G: VQGame, move: string, args?: unknown): string | undefined => {
+    if (G.pendingEspionage && move !== "chooseEspionage") return "请先完成当前谍报结算。";
     if (G.pendingCardEvent && move !== "chooseCardEvent") return "请先完成当前事件响应。";
     if ((G.pendingBattle || G.pendingTutorialEvent || G.pendingActivation || G.pendingPiracy || G.pendingAction || G.pendingIntercept) && !["chooseBattle", "chooseTutorialEvent", "chooseMajorActivation", "choosePiracy", "respondAction", "chooseInterception"].includes(move)) return "请先完成当前响应。";
     const tutorialError = tutorialActionError(G, move, args);
@@ -12,7 +13,7 @@ export const moveError = (G: VQGame, move: string, args?: unknown): string | und
     if (G.tutorialEffects?.stormImpulse === G.impulse && move === "moveLand" && G.tutorialEffects.movedAfterStorm?.includes((args as {from: string}).from)) return "暴风雨期间同一编队只能移动一次。";
     if (G.tutorialEffects?.haremImpulse === G.impulse && !["buildNaval", "moveNaval", "piracy", "pass", "endImpulse"].includes(move)) return "Sultan's Harem 的 CP 仅可用于建造海盗船、海军移动或海盗行动。";
     if (G.tutorialEffects?.haremImpulse === G.impulse && move === "buildNaval" && (args as {kind?: string})?.kind !== "corsair") return "Sultan's Harem 仅可建造海盗船。";
-    if (isActivatedMajor(G, G.activePower) && ["patronize", "buildExpedition", "gainIntelligence", "plantInformant", "assassinate"].includes(move)) {
+    if (isActivatedMajor(G, G.activePower) && ["patronize", "buildExpedition", "gainIntelligence", "plantInformant", "assassinate", "englishCatholicRebellion"].includes(move)) {
         return "激活强国不能执行赞助、探险或谍报行动。";
     }
     if (move === "assassinate") {

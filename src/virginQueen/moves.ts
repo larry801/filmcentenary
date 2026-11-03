@@ -1,4 +1,5 @@
 import {Ctx} from "boardgame.io";
+import {beginEspionageEvent, canPlayEspionageEvent, isEspionageEvent, plantOperative, startEspionage, espionageState} from "./espionage";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
     CardDef,
@@ -210,6 +211,12 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef):
             G.spaces[space.id].land = {};
         }
         addLand(G, "edinburgh", "scotland", "regular", 2);
+        const mary = espionageState(G);
+        if (mary.mary !== "dead") {
+            mary.mary = ["england", "protestant"].some((p) => G.powers[p as Power].alliedMinors.includes("scotland")) ? "captured" : "exiled";
+            const royal = G.royals.find((r) => r.id === "maryScots");
+            if (royal && mary.mary === "captured") royal.status = "captured";
+        }
         return true;
     }
     if (handler === "sultanaSafiye" && p !== "ottoman") {
@@ -299,6 +306,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         beginGrandVizierEvent(G, ctx, cardId);
     } else if (G.scenario === "tutorial") {
         beginTutorialEvent(G, ctx, p, cardId, true);
+    } else if (isEspionageEvent(handler)) {
+        beginEspionageEvent(G, ctx, p, handler, target);
     } else if (beneficiary !== undefined) {
         startForeignWar(G, cardId, beneficiary, Number(target));
     } else if (def.effect !== undefined) {
@@ -361,6 +370,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (args.asEvent === true && isGrandVizier(def) && !canPlayGrandVizier(G, p, ctx.numPlayers)) return INVALID_MOVE;
     const cardHandler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
     const beneficiary = foreignWarPower(cardHandler);
+    if (args.asEvent === true && isEspionageEvent(cardHandler) && !canPlayEspionageEvent(G, p, cardHandler, args.target)) return INVALID_MOVE;
     if (args.asEvent === true && beneficiary !== undefined) {
         const enemyUnits = Number(args.target);
         if ((enemyUnits !== 3 && enemyUnits !== 5) || G.foreignWars[beneficiary] !== undefined ||
@@ -995,81 +1005,24 @@ export const chooseMajorActivation = (G: VQGame, ctx: Ctx, args: {joinDefense?: 
     ctx.events?.endStage();
 };
 
-const espionageAvailable = (G: VQGame): boolean => G.year >= 3;
-
-export const plantInformant = (G: VQGame, ctx: Ctx, args: {target: Power}): void | typeof INVALID_MOVE => {
+export const plantInformant = (G: VQGame, ctx: Ctx, args: {target?: Power; space?: string; fromTarget?: Power}): void | typeof INVALID_MOVE => {
     if (moveError(G, "plantInformant", args)) return INVALID_MOVE;
-    if (ctx.phase !== "action" || !espionageAvailable(G)) return INVALID_MOVE;
-    const p = power(G, ctx);
-    if (args.target === p || G.informants.some((i) => i.target === args.target) ||
-        G.informants.filter((i) => i.owner === p).length >= 2 ||
-        !spend(G, p, 2)) return INVALID_MOVE;
-    G.informants.push({owner: p, target: args.target, neutralized: false, plantedImpulse: G.impulse});
-    pushLog(G, `${powerLabel(p)} plants an informant in ${powerLabel(args.target)}.`);
+    return plantOperative(G, ctx, args);
 };
 
 export const gainIntelligence = (G: VQGame, ctx: Ctx, args: {target: Power}): void | typeof INVALID_MOVE => {
     if (moveError(G, "gainIntelligence", args)) return INVALID_MOVE;
-    if (ctx.phase !== "action" || !espionageAvailable(G)) return INVALID_MOVE;
-    const p = power(G, ctx);
-    if (args.target === p || !spend(G, p, 2)) return INVALID_MOVE;
-    const bonus = G.informants.filter((i) => i.target === args.target && !i.neutralized && i.plantedImpulse < G.impulse).length * 2;
-    const dice = roll(ctx, 2 + bonus);
-    const successes = hits(dice);
-    const exposed = G.informants.filter((i) => i.owner !== p && i.target === args.target && !i.neutralized);
-    for (const informant of exposed.slice(0, successes)) informant.neutralized = true;
-    G.lastRolls = `Gain Intelligence: ${2 + bonus} dice [${dice.join(", ")}] = ${successes} hit(s)`;
-    pushLog(G, G.lastRolls);
-    if (successes > 0) {
-        const stealable = G.powers[args.target].cards.filter((id) => cardById(id).kind !== "home");
-        if (stealable.length > 0) {
-            const id = shuffle(ctx, stealable)[0];
-            removeCardFromHand(G, args.target, id);
-            G.powers[p].cards.push(id);
-            pushLog(G, `${powerLabel(p)} steals one card from ${powerLabel(args.target)}.`);
-        }
-        if (exposed.length > 0) pushLog(G, `${Math.min(successes, exposed.length)} informant(s) neutralized.`);
-    }
+    return startEspionage(G, ctx, "intelligence", args);
 };
 
 export const assassinate = (G: VQGame, ctx: Ctx, args: {target: string; cp: number}): void | typeof INVALID_MOVE => {
     if (moveError(G, "assassinate", args)) return INVALID_MOVE;
-    if (ctx.phase !== "action" || !espionageAvailable(G)) return INVALID_MOVE;
-    const p = power(G, ctx);
-    const isElizabeth = args.target === "elizabeth";
-    const royal = G.royals.find((r) => r.id === args.target);
-    const def = LEADER_BY_ID[args.target];
-    const eligibleLeader = def?.kind === "army" && G.leaders[args.target] !== undefined &&
-        G.leaders[args.target].location !== "pool" && G.leaders[args.target].location !== "captured" &&
-        G.leaders[args.target].location !== "offMap" &&
-        Object.values(G.spaces).some((space) => space.leaders.includes(args.target));
-    if (!Number.isInteger(args.cp) || args.cp < 2 || args.cp > 4 || G.assassinationUsed.includes(p) ||
-        (isElizabeth && p === "england") ||
-        !(isElizabeth ? royal?.alive === true : eligibleLeader) || def?.power === p || !spend(G, p, args.cp)) return INVALID_MOVE;
-    const targetPower = isElizabeth ? "england" : def!.power;
-    const attackDice = args.cp + 2 * G.informants.filter((i) => i.target === targetPower && !i.neutralized && i.plantedImpulse < G.impulse).length;
-    const defenseDice = 2 + 2 * G.informants.filter((i) => i.owner === targetPower && i.target === p && !i.neutralized && i.plantedImpulse < G.impulse).length;
-    const attack = roll(ctx, attackDice);
-    const defense = roll(ctx, defenseDice);
-    const attackHits = hits(attack);
-    const defenseHits = hits(defense);
-    G.assassinationUsed.push(p);
-    G.lastRolls = `Assassination: ${powerLabel(p)} ${attackDice} [${attack.join(", ")}] = ${attackHits}; ${powerLabel(targetPower)} ${defenseDice} [${defense.join(", ")}] = ${defenseHits}`;
-    pushLog(G, G.lastRolls);
-    if (attackHits > defenseHits) {
-        if (isElizabeth && royal !== undefined) {
-            royal.alive = false;
-            royal.status = "dead";
-        } else if (G.leaders[args.target] !== undefined) {
-            G.leaders[args.target].location = "pool";
-            for (const space of Object.values(G.spaces)) space.leaders = space.leaders.filter((id) => id !== args.target);
-            for (const zone of Object.values(G.seaZones)) zone.leaders = zone.leaders.filter((id) => id !== args.target);
-        }
-        addVp(G, p, 1);
-        pushLog(G, `${args.target} is assassinated; ${powerLabel(p)} gains 1 VP.`);
-    } else {
-        pushLog(G, `Assassination attempt against ${args.target} fails.`);
-    }
+    return startEspionage(G, ctx, "assassination", args);
+};
+
+export const englishCatholicRebellion = (G: VQGame, ctx: Ctx, args: {cp: number}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "englishCatholicRebellion", args)) return INVALID_MOVE;
+    return startEspionage(G, ctx, "rebellion", args);
 };
 
 export const buildExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; colony?: boolean}): void | typeof INVALID_MOVE => {
