@@ -721,7 +721,16 @@ const resolveCalvinistZeal = (G: VQGame, ctx: Ctx): void => {
     resolveConversions(G, ctx, "protestant", "protestant", "netherlands", 7, true);
 };
 
-const resolveGenoeseBankers = (G: VQGame, ctx: Ctx, p: Power): void => {
+const resolveGenoeseBankers = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    const captain = target !== undefined ? seaCaptainById(target) : undefined;
+    if (captain !== undefined && G.powers[p].seaCaptains.includes(captain.id) && G.worldCaptains[captain.id] === undefined &&
+        !(p === "hre" || (p === "ottoman" && !G.suezDone))) {
+        const start = p === "ottoman" ? "indianOcean" : "northAtlantic";
+        G.worldCaptains[captain.id] = {power: p, location: start, damaged: p === "ottoman", colony: true, route: [start]};
+        G.powers[p].cp += 3;
+        pushLog(G, `Genoese Bankers launch ${captain.nameEn}'s colonist expedition and grant 3 CP.`);
+        return;
+    }
     drawCards(G, ctx, p, 2);
     G.pendingCardDraws = [...(G.pendingCardDraws ?? []), {power: p, turn: G.year + 1, amount: -1}];
     pushLog(G, `${powerLabel(p)} draws two cards but draws one fewer next year.`);
@@ -1858,7 +1867,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "muscovyCompany") {
         resolveMuscovyCompany(G, p);
     } else if (handler === "card022") {
-        resolveGenoeseBankers(G, ctx, p);
+        resolveGenoeseBankers(G, ctx, p, target);
     } else if (handler === "calvinistZeal") {
         resolveCalvinistZeal(G, ctx);
     } else if (handler === "papalBull") {

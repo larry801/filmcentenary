@@ -199,7 +199,7 @@
 
 - 选项 1：立即抽 2 张，下一年抽牌阶段 -1；
 - 通过 `pendingCardDraws` 负数条目结算；
-- 选项 2（殖民者远征 +3 CP 海军/海盗）尚未接入。
+- 选项 2：指定已拥有的航海家，直接组建载殖民者远征队，并获得 3 CP（海军移动/海盗）。
 
 ### 莫斯科公司（#29）
 
@@ -1076,7 +1076,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #29 莫斯科公司接入后的验证：`jest src/virginQueen --runInBand --silent` 108 suites、530 tests passed（新增 1 项：英格兰连续两次额外抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#22 热那亚银行家（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 109 suites、531 tests passed（新增 1 项：抽 2/次年 -1）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#22 热那亚银行家接入后的验证：`jest src/virginQueen --runInBand --silent` 111 suites、534 tests passed（新增 2 项：殖民者远征 +3 CP、抽 2/次年 -1）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #32 加尔文主义狂热（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 110 suites、532 tests passed（新增 1 项：法/尼各 7 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
