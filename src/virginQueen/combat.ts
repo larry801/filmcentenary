@@ -102,7 +102,7 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
             if (number === 9) return battle.phase === "naval";
             if (number === 13) return battle.phase !== "naval";
             if (number === 40) return true;
-            if (number === 39) return battle.phase === "assault" && power !== battle.attacker;
+            if (number === 39) return battle.phase === "assault" && power !== battle.attacker && SPACE_BY_ID[battle.location]?.area === "netherlands";
             return false;
         });
         return [...candidates.map((id) => ({id: `card:${id}`, label: `打出 ${cardById(id).name}`})), {id: "done", label: "继续结算"}];

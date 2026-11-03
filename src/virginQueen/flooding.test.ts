@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
-import {chooseBattle, startBattle} from "./combat";
+import {battleOptions, chooseBattle, startBattle} from "./combat";
 import {setupGame} from "./util";
 
 const context = (playerID: string): Ctx => ({
@@ -14,6 +14,17 @@ const context = (playerID: string): Ctx => ({
 const game = (): VQGame => setupGame({...context("0"), phase: "action"} as Ctx);
 
 describe("Flooding (card #39)", () => {
+    it("is not offered outside the Netherlands", () => {
+        const G = game();
+        G.spaces.belgrade.control = "ottoman";
+        G.spaces.belgrade.siege = {by: "france", sinceImpulse: 1};
+        G.powers.ottoman.cards = ["vq-039"];
+        startBattle(G, context("0"), "assault", "belgrade", "france", ["ottoman"], "paris");
+        chooseBattle(G, context("3"), {choice: "done"});
+
+        expect(battleOptions(G).some((option) => option.id === "card:vq-039")).toBe(false);
+    });
+
     it("lifts the siege and halves the attacker's mercenaries", () => {
         const G = game();
         G.spaces.brussels.control = "spain";
