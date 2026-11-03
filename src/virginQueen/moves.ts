@@ -1525,8 +1525,11 @@ const resolveRudolfII = (G: VQGame, ctx: Ctx): void => {
     pushLog(G, "Rudolf II becomes Holy Roman Emperor; the capital moves to Prague.");
 };
 
-const resolvePortugueseRaid = (G: VQGame, p: Power, ctx: Ctx): void => {
-    const colony = Object.entries(G.worldColonies).find(([settlement, owner]) => {
+const resolvePortugueseRaid = (G: VQGame, p: Power, ctx: Ctx, target?: string): void => {
+    const targetDef = target !== undefined ? WORLD_SETTLEMENT_BY_ID[target] : undefined;
+    const targetValid = target !== undefined && G.worldColonies[target] !== undefined && targetDef !== undefined &&
+        ["southAtlantic", "indianOcean", "southPacific"].includes(targetDef.seaZone ?? "") && G.worldColonies[target] !== "spain";
+    const colony = targetValid ? [target, G.worldColonies[target]] as [string, Power] : Object.entries(G.worldColonies).find(([settlement, owner]) => {
         const def = WORLD_SETTLEMENT_BY_ID[settlement];
         return def !== undefined && ["southAtlantic", "indianOcean", "southPacific"].includes(def.seaZone ?? "") &&
             owner !== "spain";
@@ -1542,8 +1545,11 @@ const resolvePortugueseRaid = (G: VQGame, p: Power, ctx: Ctx): void => {
     pushLog(G, `Portuguese Raid removes the colony at ${settlement}${G.spaces.lisbon.control === p ? " and draws a treasure" : ""}.`);
 };
 
-const resolveLostColony = (G: VQGame, ctx: Ctx): void => {
-    const colony = Object.entries(G.worldColonies).find(([settlement]) => {
+const resolveLostColony = (G: VQGame, ctx: Ctx, target?: string): void => {
+    const targetDef = target !== undefined ? WORLD_SETTLEMENT_BY_ID[target] : undefined;
+    const targetValid = target !== undefined && G.worldColonies[target] !== undefined && targetDef !== undefined &&
+        (targetDef.region === "atlanticCoast" || targetDef.region === "northAmerica");
+    const colony = targetValid ? [target, G.worldColonies[target]] as [string, Power] : Object.entries(G.worldColonies).find(([settlement]) => {
         const def = WORLD_SETTLEMENT_BY_ID[settlement];
         return def !== undefined && (def.region === "atlanticCoast" || def.region === "northAmerica");
     });
@@ -1916,9 +1922,9 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "indexOfProhibitedBooks") {
         resolveIndex(G, ctx, target);
     } else if (handler === "lostColony") {
-        resolveLostColony(G, ctx);
+        resolveLostColony(G, ctx, target);
     } else if (handler === "portugueseRaid") {
-        resolvePortugueseRaid(G, p, ctx);
+        resolvePortugueseRaid(G, p, ctx, target);
     } else if (handler === "henryIII") {
         resolveHenryIII(G);
     } else if (handler === "muradIII") {

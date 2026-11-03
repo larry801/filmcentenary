@@ -18,14 +18,17 @@ describe("Portuguese Raid (card #77)", () => {
         const G = game();
         if (!G.powers.france.cards.includes("vq-077")) G.powers.france.cards.push("vq-077");
         G.worldColonies.southAmericaColony = "england";
+        G.worldColonies.asiaColony = "england";
         G.worldControls.southAmericaColony = "england";
+        G.worldControls.asiaColony = "england";
         G.spaces.lisbon.control = "france";
         G.spaces.lisbon.unrest = false;
         const treasures = G.powers.france.treasures.length;
 
-        expect(playCard(G, context(), {cardId: "vq-077", asEvent: true})).toBeUndefined();
+        expect(playCard(G, context(), {cardId: "vq-077", asEvent: true, target: "asiaColony"})).toBeUndefined();
 
-        expect(G.worldColonies.southAmericaColony).toBeUndefined();
+        expect(G.worldColonies.asiaColony).toBeUndefined();
+        expect(G.worldColonies.southAmericaColony).toBe("england");
         expect(G.powers.france.treasures.length).toBe(treasures + 1);
     });
 });
