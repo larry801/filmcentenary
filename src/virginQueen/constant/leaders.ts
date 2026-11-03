@@ -45,8 +45,22 @@ export const LEADERS: LeaderDef[] = [
     {id: "maurice", name: "Maurice of Nassau", power: "protestant", kind: "army", battle: 3, command: 8, start: "pool"},
 ];
 
+/** Rule 5.1 default army leaders: battle 0, command 6 (Ottoman 8). */
+export const DEFAULT_LEADERS: LeaderDef[] = [
+    {id: "default-ottoman", name: "Default Ottoman Leader", power: "ottoman", kind: "army", battle: 0, command: 8},
+    {id: "default-spain", name: "Default Spanish Leader", power: "spain", kind: "army", battle: 0, command: 6},
+    {id: "default-england", name: "Default English Leader", power: "england", kind: "army", battle: 0, command: 6},
+    {id: "default-france", name: "Default French Leader", power: "france", kind: "army", battle: 0, command: 6},
+    {id: "default-hre", name: "Default Holy Roman Leader", power: "hre", kind: "army", battle: 0, command: 6},
+    {id: "default-protestant", name: "Default Protestant Leader", power: "protestant", kind: "army", battle: 0, command: 6},
+];
+
+export const DEFAULT_LEADER_BY_POWER: Partial<Record<Power, LeaderDef>> = Object.fromEntries(
+    DEFAULT_LEADERS.map((leader) => [leader.power, leader]),
+);
+
 export const LEADER_BY_ID: Record<string, LeaderDef> = Object.fromEntries(
-    LEADERS.map((l) => [l.id, l]),
+    [...LEADERS, ...DEFAULT_LEADERS].map((l) => [l.id, l]),
 );
 
 export const leadersOf = (p: Power): LeaderDef[] => LEADERS.filter((l) => l.power === p);

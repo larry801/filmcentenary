@@ -356,7 +356,7 @@ describe("#76 Untimely Death", () => {
         expect(empty.powers.ottoman.cp).toBe(2);
     });
 
-    it("clears a foreign-war leader reference and logs a missing Default Leader", () => {
+    it("clears a foreign-war leader reference and places a Default Leader", () => {
         const G = setup();
         for (const id of ["schwendi", "mansfeld"]) {
             for (const s of Object.values(G.spaces)) s.leaders = s.leaders.filter((x) => x !== id);
@@ -368,6 +368,7 @@ describe("#76 Untimely Death", () => {
             units: {regular: 3, merc: 0, cav: 0}, winnerVp: false, status: "active", leaderId: "zrinyi"};
         playCard(G, context(), {cardId: "vq-076", asEvent: true, target: "zrinyi"});
         expect(G.foreignWars.hre?.leaderId).toBeUndefined();
-        expect(G.log.join("\n")).toMatch(/hre has no army leader left/);
+        expect(G.leaders["default-hre"]).toMatchObject({location: "pool", returnTurn: G.year + 1});
+        expect(G.log.join("\n")).toContain("Default Leader");
     });
 });

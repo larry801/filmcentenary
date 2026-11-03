@@ -5,7 +5,7 @@ import {LEADER_BY_ID} from "./constant/leaders";
 import {SPACE_BY_ID, SPACES} from "./mapData";
 import {ownerOf} from "./ownership";
 import {tutorialSpaceAllowed} from "./tutorial";
-import {addLand, addNaval, pushLog, removeCardFromGame, resolveEvent, spaceHasEnemyLand, spaceHasEnemyNaval} from "./util";
+import {addLand, addNaval, ensureDefaultLeader, pushLog, removeCardFromGame, resolveEvent, spaceHasEnemyLand, spaceHasEnemyNaval} from "./util";
 
 export interface CardEventOption {id: string; label: string}
 
@@ -113,9 +113,5 @@ export const resolveUntimelyDeath = (G: VQGame, target: string): void => {
     pushLog(G, `Untimely Death: ${LEADER_BY_ID[target]?.name ?? target} is removed from the game.`);
     const power = LEADER_BY_ID[target]?.power;
     const armyLeader = LEADER_BY_ID[target]?.kind === "army";
-    if (armyLeader && !Object.keys(G.leaders).some((id) => LEADER_BY_ID[id]?.power === power && LEADER_BY_ID[id]?.kind === "army" &&
-        G.leaders[id].location !== "offMap")) {
-        // Rule 5.1 Default Leaders: no default counter is modelled yet, so this is logged for manual resolution.
-        pushLog(G, `${power} has no army leader left; place its Default Leader on the Turn Track manually.`);
-    }
+    if (armyLeader && power !== undefined) ensureDefaultLeader(G, power);
 };

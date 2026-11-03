@@ -50,7 +50,7 @@ import {cardById, officialCardById} from "./constant/cards";
 import {OFFICIAL_CARDS} from "./data/cards";
 import {PatronageVpAward} from "./data/types";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
-import {LEADER_BY_ID, LEADERS, startingLeaders} from "./constant/leaders";
+import {DEFAULT_LEADER_BY_POWER, LEADER_BY_ID, LEADERS, startingLeaders} from "./constant/leaders";
 import {
     ScenarioSetupData,
     patronDef,
@@ -1241,25 +1241,70 @@ export const capitalOf = (G: VQGame, p: Power): string | undefined => {
 };
 
 /** Bring leaders waiting in the pool onto the map (Spring Deployment, 10.4). */
+const isDefaultLeader = (id: string): boolean => id.startsWith("default-");
+
+export const removeDefaultLeader = (G: VQGame, p: Power): void => {
+    const def = DEFAULT_LEADER_BY_POWER[p];
+    if (def === undefined) return;
+    const state = G.leaders[def.id];
+    if (state === undefined) return;
+    if (G.spaces[state.location] !== undefined) {
+        G.spaces[state.location].leaders = G.spaces[state.location].leaders.filter((id) => id !== def.id);
+    } else if (G.seaZones[state.location as SeaZoneID] !== undefined) {
+        G.seaZones[state.location as SeaZoneID].leaders = G.seaZones[state.location as SeaZoneID].leaders.filter((id) => id !== def.id);
+    }
+    delete G.leaders[def.id];
+    pushLog(G, `${def.name} leaves play because a standard army leader arrived.`);
+};
+
+/** Rule 5.1: add a default army leader after the last standard army leader is removed. */
+export const ensureDefaultLeader = (G: VQGame, p: Power): void => {
+    const def = DEFAULT_LEADER_BY_POWER[p];
+    if (def === undefined || G.leaders[def.id] !== undefined) return;
+    const standardInPlay = Object.keys(G.leaders).some((id) => {
+        const leader = LEADER_BY_ID[id];
+        const state = G.leaders[id];
+        return id !== def.id && leader?.power === p && leader.kind === "army" &&
+            state.location !== "pool" && state.location !== "offMap";
+    });
+    if (standardInPlay) return;
+    G.leaders[def.id] = {id: def.id, location: "pool", returnTurn: G.year + 1};
+    pushLog(G, `${powerLabel(p)} places a Default Leader on the Turn Track.`);
+};
+
 export const arriveLeaders = (G: VQGame): void => {
     for (const p of POWERS) {
         if (ownerOf(G, p) === undefined) continue;
         const cap = capitalOf(G, p);
-        if (cap === undefined || G.spaces[cap] === undefined) {
-            continue;
-        }
-        for (const id of Object.keys(G.leaders)) {
+        const ids = Object.keys(G.leaders);
+        for (const id of ids) {
             const def = LEADER_BY_ID[id];
             const st = G.leaders[id];
-            if (def === undefined || def.power !== p || st.location !== "pool" || (st.returnTurn ?? 0) > G.year) {
-                continue;
-            }
-            if (!friendlyControlled(G, p, cap) || G.spaces[cap].unrest) {
-                continue;
-            }
+            if (def === undefined || def.power !== p || isDefaultLeader(id) || st.location !== "pool" ||
+                (st.returnTurn ?? 0) > G.year) continue;
+            if (cap === undefined || G.spaces[cap] === undefined || !friendlyControlled(G, p, cap) || G.spaces[cap].unrest) continue;
             G.spaces[cap].leaders.push(id);
             G.leaders[id] = {id, location: cap};
             pushLog(G, `${def.name} arrives in ${SPACE_BY_ID[cap].name}.`);
+        }
+        const standardInPlay = Object.keys(G.leaders).some((id) => {
+            const leader = LEADER_BY_ID[id];
+            const state = G.leaders[id];
+            return leader?.power === p && leader.kind === "army" && !isDefaultLeader(id) &&
+                state.location !== "pool" && state.location !== "offMap";
+        });
+        if (standardInPlay) {
+            removeDefaultLeader(G, p);
+            continue;
+        }
+        const defaultDef = DEFAULT_LEADER_BY_POWER[p];
+        const defaultState = defaultDef === undefined ? undefined : G.leaders[defaultDef.id];
+        if (defaultDef !== undefined && defaultState !== undefined && defaultState.location === "pool" &&
+            (defaultState.returnTurn ?? 0) <= G.year &&
+            cap !== undefined && G.spaces[cap] !== undefined && friendlyControlled(G, p, cap) && !G.spaces[cap].unrest) {
+            G.spaces[cap].leaders.push(defaultDef.id);
+            G.leaders[defaultDef.id] = {id: defaultDef.id, location: cap};
+            pushLog(G, `${defaultDef.name} arrives in ${SPACE_BY_ID[cap].name}.`);
         }
     }
 };
