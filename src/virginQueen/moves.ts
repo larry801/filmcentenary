@@ -1603,7 +1603,9 @@ const resolveNorthwestPassage = (G: VQGame, ctx: Ctx, target?: string): void => 
 
 const resolveMenendez = (G: VQGame, ctx: Ctx, target?: string): void => {
     const florida = G.worldColonies.florida;
-    if (target !== "escort" && target !== "fortress" && florida !== undefined && florida !== "spain") {
+    const fortressTarget = target?.startsWith("fortress:") ? target.slice("fortress:".length) : undefined;
+    const wantFortress = target === "fortress" || fortressTarget !== undefined;
+    if (!wantFortress && target !== "escort" && florida !== undefined && florida !== "spain") {
         const informant = G.informants.some((info) => info.owner === "spain" && info.target === florida && !info.neutralized);
         const roll = informant ? 6 : die(ctx, 6);
         G.lastRolls = `Menéndez de Avilés: ${roll}${informant ? " (informant)" : ""}`;
@@ -1616,12 +1618,13 @@ const resolveMenendez = (G: VQGame, ctx: Ctx, target?: string): void => {
         }
         return;
     }
-    if (target !== "fortress" && (G.treasureFleetEscorts ?? 0) < 2) {
+    if (!wantFortress && (G.treasureFleetEscorts ?? 0) < 2) {
         G.treasureFleetEscorts = (G.treasureFleetEscorts ?? 0) + 1;
         pushLog(G, "Menéndez de Avilés adds a galleon to the Treasure Fleet escorts.");
         return;
     }
-    const settlement = WORLD_SETTLEMENTS.find((def) => G.worldControls[def.id] === "spain" && G.worldFortresses?.[def.id] === undefined);
+    const settlement = WORLD_SETTLEMENTS.find((def) => def.id === fortressTarget && G.worldControls[def.id] === "spain" && G.worldFortresses?.[def.id] === undefined) ??
+        WORLD_SETTLEMENTS.find((def) => G.worldControls[def.id] === "spain" && G.worldFortresses?.[def.id] === undefined);
     if (settlement !== undefined) {
         G.worldFortresses = {...(G.worldFortresses ?? {}), [settlement.id]: "spain"};
         const zone = settlement.seaZone;

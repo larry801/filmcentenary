@@ -42,6 +42,20 @@ describe("Menéndez de Avilés (card #61)", () => {
         expect(G.worldControls.florida).toBe("spain");
     });
 
+    it("can choose which settlement to fortify", () => {
+        const G = game();
+        prepare(G);
+        delete G.worldColonies.florida;
+        G.worldControls.atlanticCoast = "spain";
+        G.worldControls.antillesColony = "spain";
+        G.worldFortresses = {};
+
+        expect(playCard(G, context([3]), {cardId: "vq-061", asEvent: true, target: "fortress:atlanticCoast"})).toBeUndefined();
+
+        expect(G.worldFortresses?.atlanticCoast).toBe("spain");
+        expect(G.worldFortresses?.antillesColony).toBeUndefined();
+    });
+
     it("can choose the escort even when Florida is available", () => {
         const G = game();
         prepare(G);
