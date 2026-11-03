@@ -1047,7 +1047,10 @@ const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
         const leader = Object.values(G.leaders).find((state) => state.id !== "guise" && LEADER_BY_ID[state.id]?.power === targetPower && LEADER_BY_ID[state.id]?.kind === "army" &&
             (extra === undefined || state.id === extra) &&
             state.location !== "pool" && state.location !== "dead" && G.spaces[state.location] !== undefined);
-        const capital = capitalOf(G, targetPower) ?? SPACES.find((space) => space.home === targetPower && space.kind === "fortress")?.id;
+        const capitalCandidate = capitalOf(G, targetPower);
+        const capital = capitalCandidate !== undefined && G.spaces[capitalCandidate].siege === undefined
+            ? capitalCandidate
+            : SPACES.find((space) => space.home === targetPower && space.kind === "fortress" && G.spaces[space.id].siege === undefined)?.id ?? capitalCandidate;
         if (leader !== undefined && capital !== undefined && leader.location !== capital) {
             moveLeaders(G, leader.location, capital, [leader.id]);
             pushLog(G, `Ruler Falls Ill: ${leader.id} returns to ${SPACE_BY_ID[capital].name}.`);

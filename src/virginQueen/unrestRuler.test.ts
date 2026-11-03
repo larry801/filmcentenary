@@ -108,6 +108,19 @@ describe("Unrest in the Realm / Ruler Falls Ill", () => {
         expect(G.powers.spain.cards).toContain("vq-020");
     });
 
+    it("uses a home fortress when the capital is besieged", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-030"];
+        G.spaces.madrid.siege = {by: "france", sinceImpulse: 1};
+        G.leaders.alba = {id: "alba", location: "milan"};
+        G.spaces.milan.leaders = ["alba"];
+
+        expect(playCard(G, context(), {cardId: "vq-030", asEvent: true, target: "spain:return"})).toBeUndefined();
+
+        expect(G.leaders.alba.location).not.toBe("madrid");
+        expect(G.spaces[G.leaders.alba.location].siege).toBeUndefined();
+    });
+
     it("discards a random card from another power", () => {
         const G = game();
         G.powers.france.cards = ["vq-030"];
