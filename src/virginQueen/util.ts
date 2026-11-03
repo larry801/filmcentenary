@@ -1520,6 +1520,8 @@ export const fieldBattle = (
     attacker: Power,
     defenderOwners: Controller[],
     from: string,
+    /** Rule 16.3.4: transported units are eliminated, not retreated, if the battle is lost. */
+    transported = false,
 ): BattleResult => {
     const attackerUnits = totalLand(G, space, [attacker]);
     const defenderUnits = totalLand(G, space, defenderOwners);
@@ -1580,7 +1582,15 @@ export const fieldBattle = (
     } else {
         // Attacker loses. Survivors return to the space they came from.
         const attackerLeft = totalLand(G, space, [attacker]);
-        if (attackerLeft === 0) {
+        if (transported) {
+            // Rule 16.3.4: a lost field battle at the end of a naval
+            // transport eliminates the transported units; leaders are captured.
+            const st = G.spaces[space].land[attacker];
+            const count = landCount(st);
+            if (st !== undefined) delete G.spaces[space].land[attacker];
+            captureLeaders(G, space, [attacker], defenderOwners.find((c) => isPower(c)) as Power ?? attacker);
+            pushLog(G, `${powerLabel(attacker)} loses the battle at the end of a naval transport; ${count} transported unit(s) are eliminated.`);
+        } else if (attackerLeft === 0) {
             captureLeaders(G, space, [attacker], defenderOwners.find((c) => isPower(c)) as Power ?? attacker);
         } else if (G.spaces[from] !== undefined) {
             const st = G.spaces[space].land[attacker];

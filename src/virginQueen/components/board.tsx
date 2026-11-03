@@ -514,7 +514,6 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             .filter((m) => m !== "recruitMerc" || me !== "ottoman")
                             .filter((m) => m !== "recruitCav" || me === "ottoman")
                             .filter((m) => m !== "rebellion" || me === "protestant")
-                            .filter((m) => m !== "navalTransport" || G.scenario === "tutorial")
                             .filter((m) => G.scenario !== "tutorial" || !["buildFortress", "buildRacebuilt", "rebellion"].includes(m))
                             .map((m) => <MenuItem key={m} value={m}>{MODE_LABELS[m as Mode]}</MenuItem>)}
                     </Select>

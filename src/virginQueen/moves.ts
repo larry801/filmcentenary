@@ -1238,7 +1238,7 @@ export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string; cp: numbe
 // --------------------------------------------------------------------------
 
 export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: string; zones: string[]; units: Partial<LandStack>; leaders?: string[]}): void | typeof INVALID_MOVE => {
-    if (moveError(G, "navalTransport", args) || ctx.phase !== "action" || G.scenario !== "tutorial") return INVALID_MOVE;
+    if (moveError(G, "navalTransport", args) || ctx.phase !== "action") return INVALID_MOVE;
     const p = power(G, ctx);
     const source = G.spaces[args.from]?.land[p];
     const destination = G.spaces[args.to];
@@ -1246,7 +1246,6 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
     if (!source || !destination || !isPort(args.from) || !isPort(args.to) || args.from === args.to || !args.zones.length ||
         new Set(args.zones).size !== args.zones.length || !portZones(args.from).includes(args.zones[0] as keyof VQGame["seaZones"]) ||
         !portZones(args.to).includes(args.zones[args.zones.length - 1] as keyof VQGame["seaZones"])) return INVALID_MOVE;
-    if (G.spaces[args.from].siege && G.spaces[args.from].siege!.by !== p) return INVALID_MOVE;
     const stack = {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0};
     if (landCount(stack) < 1 || landCount(stack) > 5 || Object.entries(stack).some(([kind, count]) => count < 0 || !Number.isInteger(count) || count > source[kind as keyof LandStack])) return INVALID_MOVE;
     for (let index = 0; index < args.zones.length; index++) {
@@ -1271,10 +1270,18 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
         G.pendingIntercept!.transported = true;
         return;
     }
-    const enemies = ownersWithLand(G, args.to).filter((owner) => !friendlyController(G, p, owner));
+    const enemies = ownersWithLand(G, args.to)
+        .filter((owner) => !friendlyController(G, p, owner))
+        .filter((owner) => isPower(owner) ? atWar(G, p, owner) : true);
     if (enemies.length) {
-        startBattle(G, ctx, "field", args.to, p, enemies, args.from);
-        G.pendingBattle!.transported = true;
+        if (G.scenario === "tutorial") {
+            startBattle(G, ctx, "field", args.to, p, enemies, args.from);
+            G.pendingBattle!.transported = true;
+        } else {
+            // Rule 16.3.4: a lost field battle at the port eliminates the
+            // transported units instead of retreating them.
+            fieldBattle(G, ctx, args.to, p, enemies, args.from, true);
+        }
     } else if (isFortifiedSpace(G, args.to) && !friendlyControlled(G, p, args.to)) destination.siege = {by: p, sinceImpulse: G.impulse};
     pushLog(G, `${powerLabel(p)} transports ${landCount(stack)} units from ${args.from} to ${args.to}.`);
 };
