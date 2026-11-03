@@ -114,7 +114,7 @@ const MODE_LABELS: Record<Mode, string> = {
     moveLand: "陆军移动 (1/2 CP)",
     moveNaval: "海军移动 (1 CP)",
     navalTransport: "海运陆军 (海域数 + 1 CP)",
-    spring: "春季部署 (免费)",
+    spring: "春季部署 (免费编队)",
     control: "控制/清除动荡 (1 CP)",
     assault: "强攻 (1 CP)",
     buildFortress: "修筑要塞 (2 CP)",
@@ -519,7 +519,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             .map((m) => <MenuItem key={m} value={m}>{MODE_LABELS[m as Mode]}</MenuItem>)}
                     </Select>
                 </FormControl>
-                {(mode === "moveLand" || mode === "navalTransport") && from && <Stack spacing={0.5}>
+                {(mode === "moveLand" || mode === "navalTransport" || mode === "spring") && from && <Stack spacing={0.5}>
                     <Typography variant="caption">选择移动编队，再点击目的地。无将领最多 4 单位；最多两名将领。</Typography>
                     {mode === "navalTransport" && <>
                         <Typography variant="caption">按顺序选择运输海域，每个海域须有己方舰队，最多运输 5 单位。</Typography>
@@ -535,7 +535,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         setMovingUnits({...G.spaces[from].land[owner]!});
                         setMovingLeaders([]);
                     }}>
-                        {(Object.keys(G.spaces[from].land) as Controller[]).filter((owner) => (mode === "navalTransport" ? owner === me : friendlyController(G, me, owner)) && landCount(G.spaces[from].land[owner]) > 0)
+                        {(Object.keys(G.spaces[from].land) as Controller[]).filter((owner) => (mode === "navalTransport" || mode === "spring" ? owner === me : friendlyController(G, me, owner)) && landCount(G.spaces[from].land[owner]) > 0)
                             .map((owner) => <MenuItem key={owner} value={owner}>{controllerNameZh(owner)}</MenuItem>)}
                     </Select>
                     {(["regular", "merc", "cav"] as const).map((kind) => <Stack key={kind} direction="row" spacing={1}>

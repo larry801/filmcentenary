@@ -880,39 +880,76 @@ export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: stri
         G.springDone.push(p);
         return;
     }
-    const direct = LAND_NEIGHBORS[args.from].find((n) => n.id === to && !n.pass);
-    const sea = portZones(args.from).some((z) => portZones(to).includes(z));
-    if (direct === undefined && !sea) {
-        return INVALID_MOVE;
-    }
-    if (sea && !direct) {
-        const zones = portZones(args.from).filter((z) => portZones(to).includes(z));
-        if (zones.length === 0) {
-            return INVALID_MOVE;
+    // Rule 10.6: trace a path of any length from the capital, crossing at
+    // most one sea zone, with no passes, unrest or foreign units on the path.
+    const source = G.spaces[args.from].land[p];
+    if (source === undefined || landCount(source) === 0) return INVALID_MOVE;
+    const availableLeaders = G.spaces[args.from].leaders.filter((id) =>
+        LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id]?.kind === "army");
+    const leaders = args.leaders ?? availableLeaders.slice(0, 2);
+    const stack: LandStack = args.units
+        ? {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0}
+        : {...source};
+    if (leaders.length > 2 || new Set(leaders).size !== leaders.length ||
+        leaders.some((id) => !availableLeaders.includes(id))) return INVALID_MOVE;
+    const capacity = Math.max(4, leaders.reduce((sum, id) => sum + (LEADER_BY_ID[id].command ?? 0), 0));
+    if (landCount(stack) < 1 || landCount(stack) > capacity ||
+        Object.entries(stack).some(([kind, count]) => count < 0 || !Number.isInteger(count) ||
+            count > source[kind as keyof LandStack])) return INVALID_MOVE;
+    const pathSpaceAllowed = (id: string): boolean => {
+        const state = G.spaces[id];
+        if (state === undefined || !friendlyControlled(G, p, id) || state.unrest) return false;
+        if (ownersWithLand(G, id).some((owner) => !friendlyController(G, p, owner))) return false;
+        if (ownersWithNaval(G, id).some((owner) => !friendlyController(G, p, owner))) return false;
+        return state.leaders.every((leader) => {
+            const def = LEADER_BY_ID[leader];
+            return def === undefined || friendlyController(G, p, def.power);
+        });
+    };
+    if (to === args.from || !pathSpaceAllowed(to)) return INVALID_MOVE;
+    const queue: {id: string; crossedSea: boolean}[] = [{id: args.from, crossedSea: false}];
+    const seen = new Set<string>([`${args.from}:false`]);
+    let reachable = false;
+    while (queue.length > 0) {
+        const current = queue.shift() as {id: string; crossedSea: boolean};
+        for (const neighbor of LAND_NEIGHBORS[current.id] ?? []) {
+            if (neighbor.pass || !pathSpaceAllowed(neighbor.id)) continue;
+            const key = `${neighbor.id}:${current.crossedSea}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            if (neighbor.id === to) {reachable = true; break;}
+            queue.push({id: neighbor.id, crossedSea: current.crossedSea});
         }
-        const zone = zones[0];
-        const enemyShips = ownersWithNaval(G, zone).some((c) => isPower(c) && atWar(G, p, c) && navalCount(G.seaZones[zone].naval[c]) > 0);
-        if (enemyShips) {
-            return INVALID_MOVE;
+        if (reachable) break;
+        if (current.crossedSea || landCount(stack) > 5) continue;
+        for (const zone of portZones(current.id)) {
+            // Other major powers' naval units in ports of the zone block the
+            // crossing, even if they are allied (10.6).
+            if (zonePorts(zone).some((port) => ownersWithNaval(G, port).some((owner) => isPower(owner) && owner !== p))) continue;
+            if (ownersWithNaval(G, zone).some((owner) => !friendlyController(G, p, owner))) continue;
+            for (const port of zonePorts(zone)) {
+                if (port === current.id || !pathSpaceAllowed(port)) continue;
+                const key = `${port}:true`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                if (port === to) {reachable = true; break;}
+                queue.push({id: port, crossedSea: true});
+            }
+            if (reachable) break;
         }
     }
-    const stack = G.spaces[args.from].land[p];
-    if (stack === undefined || landCount(stack) === 0) {
-        return INVALID_MOVE;
+    if (!reachable) return INVALID_MOVE;
+    for (const kind of ["regular", "merc", "cav"] as const) {
+        source[kind] -= stack[kind];
     }
-    const leaders = G.spaces[args.from].leaders.filter((id) => LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id]?.kind === "army");
+    cleanupLand(G, args.from, p);
     const target = ensureLand(G, to, p);
     target.regular += stack.regular;
     target.merc += stack.merc;
     target.cav += stack.cav;
-    delete G.spaces[args.from].land[p];
-    for (const id of leaders) {
-        G.spaces[args.from].leaders = G.spaces[args.from].leaders.filter((x) => x !== id);
-        G.spaces[to].leaders.push(id);
-        G.leaders[id].location = to;
-    }
+    moveLeaders(G, args.from, to, leaders);
     G.springDone.push(p);
-    pushLog(G, `${powerLabel(p)} redeploys from ${SPACE_BY_ID[args.from].name} to ${SPACE_BY_ID[to].name}.`);
+    pushLog(G, `${powerLabel(p)} redeploys ${landCount(stack)} unit(s) from ${SPACE_BY_ID[args.from].name} to ${SPACE_BY_ID[to].name}.`);
 };
 
 // --------------------------------------------------------------------------

@@ -468,10 +468,11 @@ describe("Virgin Queen turn flow", () => {
             }
             expect(clients[0].getState().ctx.phase).toBe("spring");
             const before = clients[0].getState().G.spaces.edirne.land.ottoman?.regular ?? 0;
-            clients[0].moves.springDeploy({from: "istanbul", to: "edirne"});
+            clients[0].moves.springDeploy({from: "istanbul", to: "edirne", units: {regular: 6}, leaders: ["mehmed"]});
             const state = clients[0].getState();
-            expect(state.G.spaces.edirne.land.ottoman.regular).toBe(before + 8);
-            expect(state.G.spaces.istanbul.land.ottoman).toBeUndefined();
+            expect(state.G.spaces.edirne.land.ottoman.regular).toBe(before + 6);
+            expect(state.G.spaces.istanbul.land.ottoman.regular).toBe(2);
+            expect(state.G.spaces.istanbul.leaders).not.toContain("mehmed");
         } finally {
             stopClients(clients);
         }
