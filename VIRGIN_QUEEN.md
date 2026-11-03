@@ -1184,3 +1184,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #102 斯塔福德响应取消沃尔辛厄姆接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、587 tests passed（新增 1 项：取消沃尔辛厄姆）；`npm run build` 通过。
 
 #71 黑魔法选项 2 接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、597 tests passed（新增 1 项：指定弃牌）；`npm run build` 通过。
+
+#80 黑王后抽 2 选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、598 tests passed（新增 1 项：目标有牌时改抽 2）；`npm run build` 通过。

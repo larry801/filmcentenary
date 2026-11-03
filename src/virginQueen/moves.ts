@@ -1307,13 +1307,20 @@ const resolveDayOfBarricades = (G: VQGame): void => {
 };
 
 const resolveBlackQueen = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
-    if (target === undefined || !isPower(target) || target === p) return;
-    const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
+    if (target === undefined) return;
+    const [targetPower, mode] = target.split(":");
+    if (!isPower(targetPower) || targetPower === p) return;
+    if (mode === "draw") {
+        drawCards(G, ctx, p, 2);
+        pushLog(G, "The Black Queen draws two cards instead of taking one.");
+        return;
+    }
+    const cards = G.powers[targetPower].cards.filter((id) => cardById(id).kind !== "home");
     if (cards.length > 0) {
         const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
-        G.powers[target].cards = G.powers[target].cards.filter((id) => id !== card);
+        G.powers[targetPower].cards = G.powers[targetPower].cards.filter((id) => id !== card);
         G.powers[p].cards.push(card);
-        pushLog(G, `The Black Queen takes ${cardById(card).name} from ${powerLabel(target)}.`);
+        pushLog(G, `The Black Queen takes ${cardById(card).name} from ${powerLabel(targetPower)}.`);
         return;
     }
     drawCards(G, ctx, p, 2);
