@@ -138,6 +138,7 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
             treasurePlayed: false,
             bonusVp: 0,
             cardModifier: 0,
+            marriageCardModifier: 0,
             wars: [],
             warsMinors: [],
             allies: [],
@@ -427,13 +428,13 @@ export const drawCount = (G: VQGame, p: Power): number => {
     if (G.scenario === "tutorial" && (p === "ottoman" || p === "spain")) {
         const table = TUTORIAL_POWER_CARDS[p].draw;
         const rulerBonus = p === "spain" || G.powers.ottoman.ruler === "selimII" ? 1 : 0;
-        return Math.max(0, table[Math.min(keys, table.length - 1)] + rulerBonus + G.powers[p].cardModifier + (G.tutorialEffects?.nextDraw[p] ?? 0));
+        return Math.max(0, table[Math.min(keys, table.length - 1)] + rulerBonus + G.powers[p].cardModifier + (G.powers[p].marriageCardModifier ?? 0) + (G.tutorialEffects?.nextDraw[p] ?? 0));
     }
     const info = POWER_INFO[p];
     const table = info.drawByKeys;
     const base = table[Math.min(keys, table.length - 1)] ?? 3;
     const rulerBonus = p === "england" && G.powers.england.ruler === "elizabethDead" ? 0 : info.ruler.cardBonus;
-    return Math.max(1, base + rulerBonus + G.powers[p].cardModifier + (G.espionage?.nextDraw[p] ?? 0));
+    return Math.max(1, base + rulerBonus + G.powers[p].cardModifier + (G.powers[p].marriageCardModifier ?? 0) + (G.espionage?.nextDraw[p] ?? 0));
 };
 
 /** 8.4 Colony Table: each established colony rolls for survival/rewards. */
@@ -512,6 +513,7 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
             ps.allies = [];
         }
     }
+    for (const p of POWERS) G.powers[p].marriageCardModifier = 0;
     G.dealtYear = G.year;
     G.springDone = [];
     G.patronizedThisTurn = [];
@@ -2125,28 +2127,76 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
         }
         const d1 = die(ctx, 6);
         const d2 = die(ctx, 6);
-        const total = d1 + d2;
-        G.lastRolls = `Marriage roll: ${d1}+${d2}=${total}`;
+        const samePower = male.power === female.power;
+        const ratings = samePower
+            ? Math.max(male.eligibility ?? 0, female.eligibility ?? 0)
+            : (male.eligibility ?? 0) + (female.eligibility ?? 0);
+        const total = d1 + d2 + ratings;
+        G.lastRolls = `Marriage roll: ${d1}+${d2}+${ratings}=${total}`;
         pushLog(G, `${male.name} & ${female.name}: ${G.lastRolls}`);
-        if (total <= 4) {
-            pushLog(G, "The marriage negotiations fail.");
-        } else if (total <= 10) {
-            const vp = total >= 9 ? 2 : 1;
-            addVp(G, male.power, vp);
-            addVp(G, female.power, vp);
+        const involved = [...new Set([male.power, female.power])];
+        const grantVp = (amount: number): void => {
+            for (const p of involved) addVp(G, p, amount);
+        };
+        const grantCardMarker = (amount: number): void => {
+            for (const p of involved) G.powers[p].marriageCardModifier = (G.powers[p].marriageCardModifier ?? 0) + amount;
+        };
+        if (total >= 15) {
+            grantVp(2);
             male.married = true;
             female.married = true;
-            if (male.id === "philip" && female.id === "isabellaClaraEugenia") {
-                G.powers[male.power].patronageModifier = 1;
-            }
             G.marriages += 1;
-            pushLog(G, `A marriage is celebrated (+${vp} VP each).`);
-        } else if (total === 11) {
+            pushLog(G, "Founders of a Dynasty: each power gains 2 Wedding VP.");
+        } else if (total === 14) {
+            grantVp(1);
+            grantCardMarker(1);
+            male.married = true;
+            female.married = true;
+            G.marriages += 1;
+            pushLog(G, "True Love: each power gains 1 Wedding VP and a +1 Card marker.");
+        } else if (total === 13) {
+            grantVp(1);
+            male.married = true;
+            female.married = true;
+            G.marriages += 1;
+            pushLog(G, "Several Children: each power gains 1 Wedding VP.");
+        } else if (total === 12) {
+            grantCardMarker(1);
+            male.married = true;
+            female.married = true;
+            G.marriages += 1;
+            pushLog(G, "Benevolent Rulers: each power gains a +1 Card marker.");
+        } else if (total === 10 || total === 11) {
+            male.married = true;
+            female.married = true;
+            G.marriages += 1;
+            pushLog(G, "No Issue: the marriage produces no effect.");
+        } else if (total === 9) {
+            pushLog(G, "Last Minute Cancellation: both royals return to the pool.");
+        } else if (total === 8) {
+            grantCardMarker(-1);
+            male.married = true;
+            female.married = true;
+            G.marriages += 1;
+            pushLog(G, "Always Feuding: each power gains a -1 Card marker.");
+        } else if (total === 7) {
             female.alive = false;
-            pushLog(G, `Tragedy: ${female.name} dies in childbirth.`);
+            female.status = "dead";
+            male.married = true;
+            G.marriages += 1;
+            pushLog(G, `Death in Childbirth: ${female.name} dies.`);
         } else {
             male.alive = false;
-            pushLog(G, `Tragedy: ${male.name} is murdered.`);
+            male.status = "dead";
+            female.married = true;
+            G.marriages += 1;
+            pushLog(G, `Rumors of Murder: ${male.name} is murdered.`);
+        }
+        if (total !== 9) {
+            // Valois marriage bonus: +1 VP for each Valois royal who weds.
+            for (const royal of [male, female]) {
+                if (royal.family === "valois") addVp(G, "france", 1);
+            }
         }
     }
     G.betrothals = [];

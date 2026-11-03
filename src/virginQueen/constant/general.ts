@@ -385,6 +385,8 @@ export interface PowerState {
     bonusVp: number;
     /** Persistent -1/+1 card markers (foreign wars, Suez, etc.). */
     cardModifier: number;
+    /** Temporary marriage +1/-1 card markers, removed after the next Card Draw. */
+    marriageCardModifier?: number;
     wars: Power[];
     warsMinors: MinorPower[];
     allies: Power[];
