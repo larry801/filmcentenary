@@ -1759,6 +1759,12 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveSmallAid(G, target);
     } else if (cardId === "vq-055" && (target === "france" || target === "netherlands")) {
         resolveConversions(G, ctx, p, "protestant", target, 7, true, 0, {fivesAsSix: true}, true);
+    } else if (cardId === "vq-070") {
+        const areas = (["england", "scotland", "netherlands", "france"] as const)
+            .map((id) => ({id, count: SPACES.filter((space) => space.area === id && G.spaces[space.id].religion === "protestant").length}))
+            .sort((a, b) => b.count - a.count).slice(0, 2);
+        resolveConversions(G, ctx, p, "catholic", areas[0].id, 4, true);
+        resolveConversions(G, ctx, p, "catholic", areas[1].id, 4, false);
     } else if (isGrandVizier(def)) {
         beginGrandVizierEvent(G, ctx, cardId);
     } else if (G.scenario === "tutorial") {

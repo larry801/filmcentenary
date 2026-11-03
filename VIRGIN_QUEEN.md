@@ -184,6 +184,12 @@
 - 目标地区及一个相邻地区放置动荡。
 - 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
 
+### 特兰托教义问答（#70）
+
+- 在英格兰/苏格兰/尼德兰/法兰西中自动选新教最多的两个区域；
+- 每区进行 4 次天主教传播，仅第一次自动为 6；
+- 共 8 次。
+
 ### 塞利姆二世（#6）
 
 - 塞利姆二世继位奥斯曼，属性改为 2 Admin / +1 卡牌奖励；
@@ -842,6 +848,7 @@ src/virginQueen/
   grandTour.test.ts     #53 壮游
   iconoclasm.test.ts    #55 破坏圣像运动
   selimII.test.ts       #6 塞利姆二世
+  tridentine.test.ts    #70 特兰托教义问答
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -1110,3 +1117,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #55 破坏圣像运动接入后的验证：`jest src/virginQueen --runInBand --silent` 113 suites、538 tests passed（新增 1 项：无转化时每个 1 仍放置骚乱）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #6 塞利姆二世接入后的验证：`jest src/virginQueen --runInBand --silent` 115 suites、540 tests passed（新增 2 项：继位属性/目标、夺取后 +1 VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#70 特兰托教义问答接入后的验证：`jest src/virginQueen --runInBand --silent` 116 suites、542 tests passed（新增 1 项：两区各 4 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
