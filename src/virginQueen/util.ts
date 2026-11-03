@@ -2258,7 +2258,13 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
     const defenders = ownersWithLand(G, space).filter((c) => c !== p && (isPower(c) ? atWar(G, p, c) : true));
     const defendersUnits = totalLand(G, space, defenders);
     const attackerUnits = totalLand(G, space, [p]);
-    const aDice = (defendersUnits > 0 ? Math.ceil(attackerUnits / 2) : attackerUnits) + bestBattle(G, space, [p], "army");
+    const siegeEngineering = G.powers[p].cards.includes("vq-010");
+    if (siegeEngineering) {
+        removeCardFromHand(G, p, "vq-010");
+        discardCard(G, p, "vq-010", true);
+        pushLog(G, "Siege Engineering adds 3 dice to the assault.");
+    }
+    const aDice = (defendersUnits > 0 ? Math.ceil(attackerUnits / 2) : attackerUnits) + bestBattle(G, space, [p], "army") + (siegeEngineering ? 3 : 0);
     const defendingPower = defenders.find(isPower);
     const ravelin = defendingPower !== undefined && G.powers[defendingPower].scienceBonuses.includes("ravelin") ? 1 : 0;
     const dDice = defendersUnits + bestBattle(G, space, defenders, "army") + 1 + ravelin;

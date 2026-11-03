@@ -28,7 +28,27 @@ const prepare = (G: VQGame): void => {
     G.powers.france.cp = 10;
 };
 
+const attackerDice = (withCard: boolean): number => {
+    const G = game();
+    G.impulse = 2;
+    G.spaces.ghent.control = "spain";
+    G.spaces.ghent.siege = {by: "france", sinceImpulse: 1};
+    G.spaces.ghent.land.spain = {regular: 1, merc: 0, cav: 0};
+    G.spaces.ghent.land.france = {regular: 6, merc: 0, cav: 0};
+    G.spaces.brussels.control = "france";
+    G.spaces.brussels.unrest = false;
+    G.powers.spain.cards = [];
+    G.powers.france.cp = 10;
+    if (withCard) G.powers.france.cards = ["vq-010"];
+    assault(G, context(), {space: "ghent"});
+    return Number(G.lastRolls.match(/\((\d+) dice\)/)?.[1] ?? 0);
+};
+
 describe("Siege Engineering inland-waterway exception", () => {
+    it("adds three dice to an assault", () => {
+        expect(attackerDice(true)).toBe(attackerDice(false) + 3);
+    });
+
     it("blocks the assault without Siege Engineering", () => {
         const G = game();
         prepare(G);
