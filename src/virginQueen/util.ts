@@ -50,7 +50,7 @@ import {cardById, officialCardById} from "./constant/cards";
 import {OFFICIAL_CARDS} from "./data/cards";
 import {PatronageVpAward} from "./data/types";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
-import {DEFAULT_LEADER_BY_POWER, LEADER_BY_ID, LEADERS, startingLeaders} from "./constant/leaders";
+import {DEFAULT_LEADER_BY_POWER, LEADER_BY_ID, LEADERS, SEA_CAPTAIN_LEADER_BY_CAPTAIN, startingLeaders} from "./constant/leaders";
 import {
     ScenarioSetupData,
     patronDef,
@@ -2938,6 +2938,19 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     winterMorisco(G);
     resolveMarriages(G, ctx);
     resolvePatronage(G, ctx);
+    // English sea captains used as naval leaders return to the World Map pool.
+    for (const [captain, leaderId] of Object.entries(SEA_CAPTAIN_LEADER_BY_CAPTAIN)) {
+        const state = G.leaders[leaderId];
+        if (state === undefined) continue;
+        if (G.spaces[state.location] !== undefined) {
+            G.spaces[state.location].leaders = G.spaces[state.location].leaders.filter((id) => id !== leaderId);
+        } else if (G.seaZones[state.location as SeaZoneID] !== undefined) {
+            G.seaZones[state.location as SeaZoneID].leaders = G.seaZones[state.location as SeaZoneID].leaders.filter((id) => id !== leaderId);
+        }
+        delete G.leaders[leaderId];
+        if (!G.powers.england.seaCaptains.includes(captain)) G.powers.england.seaCaptains.push(captain);
+        pushLog(G, `${captain} returns to England's sea captain pool.`);
+    }
     const neutralized = G.informants.filter((i) => i.neutralized).length;
     G.informants = G.informants.filter((i) => !i.neutralized);
     G.assassinationUsed = [];

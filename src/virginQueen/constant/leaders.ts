@@ -59,8 +59,25 @@ export const DEFAULT_LEADER_BY_POWER: Partial<Record<Power, LeaderDef>> = Object
     DEFAULT_LEADERS.map((leader) => [leader.power, leader]),
 );
 
+/** English sea captains that can be used as naval leaders for one turn (10.2). */
+export const SEA_CAPTAIN_LEADERS: LeaderDef[] = [
+    {id: "captain-hawkins", name: "Hawkins", power: "england", kind: "naval", battle: 1},
+    {id: "captain-drake", name: "Francis Drake", power: "england", kind: "naval", battle: 1},
+    {id: "captain-frobisher", name: "Frobisher", power: "england", kind: "naval", battle: 1},
+    {id: "captain-raleigh", name: "Raleigh", power: "england", kind: "naval", battle: 1},
+    {id: "captain-cavendish", name: "Cavendish", power: "england", kind: "naval", battle: 1},
+];
+
+export const SEA_CAPTAIN_LEADER_BY_CAPTAIN: Record<string, string> = {
+    hawkins: "captain-hawkins",
+    drake: "captain-drake",
+    frobisher: "captain-frobisher",
+    raleigh: "captain-raleigh",
+    cavendish: "captain-cavendish",
+};
+
 export const LEADER_BY_ID: Record<string, LeaderDef> = Object.fromEntries(
-    [...LEADERS, ...DEFAULT_LEADERS].map((l) => [l.id, l]),
+    [...LEADERS, ...DEFAULT_LEADERS, ...SEA_CAPTAIN_LEADERS].map((l) => [l.id, l]),
 );
 
 export const leadersOf = (p: Power): LeaderDef[] => LEADERS.filter((l) => l.power === p);

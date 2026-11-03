@@ -42,7 +42,7 @@ import {
     powerAt,
 } from "../constant/general";
 import {cardById, cardImageUrl} from "../constant/cards";
-import {LEADER_BY_ID} from "../constant/leaders";
+import {LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN} from "../constant/leaders";
 import {patronDef, royalAvailable, scenarioSetup, scienceBonusById, seaCaptainById} from "../scenario";
 import {DUTCH_KEYS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "../mapData";
 import {WORLD_SEA_ZONES, WORLD_SETTLEMENTS} from "../data/world";
@@ -173,6 +173,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [movingLeaders, setMovingLeaders] = React.useState<string[]>([]);
     const [transportZones, setTransportZones] = React.useState<string[]>([]);
     const [rebelCp, setRebelCp] = React.useState(2);
+    const [seaCaptainChoice, setSeaCaptainChoice] = React.useState("");
+    const [seaCaptainPort, setSeaCaptainPort] = React.useState("");
     const [piracyZone, setPiracyZone] = React.useState("");
     const [piracyTarget, setPiracyTarget] = React.useState("");
     const [diploTarget, setDiploTarget] = React.useState<Power>("spain");
@@ -1003,6 +1005,35 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 {ps !== undefined && (ps.homeCardSetAside?.length ?? 0) > 0 && <Typography variant="caption" color="text.secondary">
                     面朝下放在势力卡上：{(ps.homeCardSetAside ?? []).map((id) => cardById(id).name).join("、")}
                 </Typography>}
+                {me === "england" && <Stack spacing={0.5}>
+                    <Typography variant="subtitle2">海船长作为海军将领</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        可把一名英国海船长放到有英国舰队的英国本土港口，作为本回合海军将领；冬季返回海船长池。
+                    </Typography>
+                    <FormControl size="small" fullWidth>
+                        <InputLabel id="vq-sea-captain">海船长</InputLabel>
+                        <Select labelId="vq-sea-captain" label="海船长" value={seaCaptainChoice}
+                                onChange={(e) => setSeaCaptainChoice(e.target.value)}>
+                            {G.powers.england.seaCaptains.filter((id) => SEA_CAPTAIN_LEADER_BY_CAPTAIN[id] &&
+                                (seaCaptainById(id)?.turn ?? 99) <= G.year &&
+                                G.leaders[SEA_CAPTAIN_LEADER_BY_CAPTAIN[id]] === undefined)
+                                .map((id) => <MenuItem key={id} value={id}>{seaCaptainById(id)?.nameEn ?? id}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <FormControl size="small" fullWidth>
+                        <InputLabel id="vq-sea-captain-port">港口</InputLabel>
+                        <Select labelId="vq-sea-captain-port" label="港口" value={seaCaptainPort}
+                                onChange={(e) => setSeaCaptainPort(e.target.value)}>
+                            {SPACES.filter((space) => space.control === "england" && space.home === "england" &&
+                                (space.ports?.length ?? 0) > 0 && navalCount(G.spaces[space.id].naval.england) > 0)
+                                .map((space) => <MenuItem key={space.id} value={space.id}>{space.name}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <Button size="small" variant="outlined" disabled={!myTurn || seaCaptainChoice === "" || seaCaptainPort === ""}
+                        onClick={() => moves.placeSeaCaptainLeader({captain: seaCaptainChoice, port: seaCaptainPort})}>
+                        放置海船长
+                    </Button>
+                </Stack>}
                 <FormControl size="small" fullWidth>
                     <InputLabel id="vq-spring-mode">行动</InputLabel>
                     <Select labelId="vq-spring-mode" label="行动" value={mode}

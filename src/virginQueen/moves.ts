@@ -36,7 +36,7 @@ import {startPiracy} from "./piracy";
 import {attemptNavalInterception, resolveNavalCombat} from "./navalCombat";
 import {offerInterception} from "./interception";
 import {tutorialSpaceAllowed} from "./tutorial";
-import {LEADER_BY_ID} from "./constant/leaders";
+import {LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN} from "./constant/leaders";
 import {
     CAPITAL_SPACES,
     KEY_SPACES,
@@ -543,6 +543,21 @@ export const endPhaseTurn = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE =>
         return INVALID_MOVE;
     }
     ctx.events?.endTurn();
+};
+
+export const placeSeaCaptainLeader = (G: VQGame, ctx: Ctx, args: {captain: string; port: string}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "spring" || power(G, ctx) !== "england") return INVALID_MOVE;
+    const leaderId = SEA_CAPTAIN_LEADER_BY_CAPTAIN[args.captain];
+    const captain = seaCaptainById(args.captain);
+    const port = G.spaces[args.port];
+    if (leaderId === undefined || captain === undefined || captain.turn > G.year ||
+        !G.powers.england.seaCaptains.includes(args.captain) || G.leaders[leaderId] !== undefined ||
+        port === undefined || port.control !== "england" || SPACE_BY_ID[args.port]?.home !== "england" ||
+        !isPort(args.port) || navalCount(port.naval.england) === 0) return INVALID_MOVE;
+    G.powers.england.seaCaptains = G.powers.england.seaCaptains.filter((id) => id !== args.captain);
+    G.leaders[leaderId] = {id: leaderId, location: args.port};
+    port.leaders.push(leaderId);
+    pushLog(G, `England places ${captain.nameEn} as a naval leader in ${SPACE_BY_ID[args.port].name}.`);
 };
 
 export const claimSeaCaptain = (G: VQGame, ctx: Ctx, args: {captain: string}): void | typeof INVALID_MOVE => {
