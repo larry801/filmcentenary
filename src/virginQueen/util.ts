@@ -443,8 +443,9 @@ export const drawCount = (G: VQGame, p: Power): number => {
         return Math.max(0, table[Math.min(keys, table.length - 1)] + rulerBonus + G.powers[p].cardModifier + (G.powers[p].marriageCardModifier ?? 0) + (G.tutorialEffects?.nextDraw[p] ?? 0));
     }
     const info = POWER_INFO[p];
-    const table = info.drawByKeys;
-    const base = table[Math.min(keys, table.length - 1)] ?? 3;
+    const base = p === "protestant"
+        ? 4 + Math.min(3, Math.min(controlledKeysInNetherlands(G, p).length, protestantKeysOutsideNetherlands(G).length))
+        : (info.drawByKeys[Math.min(keys, info.drawByKeys.length - 1)] ?? 3);
     const rulerBonus = rulerStats(G, p).cardBonus;
     return Math.max(1, base + rulerBonus + G.powers[p].cardModifier + (G.powers[p].marriageCardModifier ?? 0) + (G.espionage?.nextDraw[p] ?? 0));
 };
