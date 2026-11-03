@@ -1083,7 +1083,7 @@ const resolveDrakeHawkins = (G: VQGame): void => {
     const drake = seaCaptainById("drake");
     const hawkins = seaCaptainById("hawkins");
     if (drake === undefined || hawkins === undefined) return;
-    G.worldCaptains.drake = {power: "england", location: "northAtlantic", damaged: false, colony: false, route: ["northAtlantic"]};
+    G.worldCaptains.drake = {power: "england", location: "northAtlantic", damaged: false, colony: false, route: ["northAtlantic"], companion: "hawkins"};
     G.powers.england.seaCaptains = G.powers.england.seaCaptains.filter((id) => id !== "drake" && id !== "hawkins");
     G.seaCaptainsAvailable = G.seaCaptainsAvailable.filter((id) => id !== "drake" && id !== "hawkins");
     removeCardFromGame(G, "vq-106");

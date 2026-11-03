@@ -470,6 +470,11 @@ export const navigationCheck = (G: VQGame, ctx: Ctx, captainId: string): boolean
         `${mapProjection ? ` + ${mapProjection} Map Projection` : ""} = ${total}`;
     pushLog(G, G.lastRolls);
     if (total <= 6) {
+        if (expedition.companion !== undefined) {
+            pushLog(G, `${expedition.companion} is lost before ${captainId}; the companion absorbs the elimination.`);
+            delete expedition.companion;
+            return true;
+        }
         delete G.worldCaptains[captainId];
         if (captainId === "muratReis") {
             G.seaCaptainReturn = {...(G.seaCaptainReturn ?? {}), [captainId]: {power: expedition.power, turn: G.year + 1}};
