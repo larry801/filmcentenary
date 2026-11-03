@@ -687,6 +687,21 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #95 Louise of Lorraine enters the marriage pool for the playing power. */
 /** #106 Drake/Hawkins Expedition: combine both captains into one expedition. */
 /** #41 Border Reivers: raid a border power's hand or add Scottish influence. */
+/** #66 Sea Beggars: seize an undefended Dutch port. */
+const resolveSeaBeggars = (G: VQGame, target?: string): void => {
+    if (target === undefined) return;
+    const def = SPACE_BY_ID[target];
+    const state = G.spaces[target];
+    if (def === undefined || def.area !== "netherlands" || def.home !== "protestant" || !def.ports?.includes("northSea") ||
+        state === undefined || state.control === "protestant" || ownersWithLand(G, target).length > 0) return;
+    state.control = "protestant";
+    state.religion = "protestant";
+    addLand(G, target, "protestant", "regular", 1);
+    addNaval(G, target, "protestant", "galleon", 1);
+    if (["brielle", "flushing"].includes(target)) addNaval(G, target, "protestant", "galleon", 1);
+    pushLog(G, `Sea Beggars seize ${def.name} for the Protestant.`);
+};
+
 const resolveBorderReivers = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     const border = (power: Power): boolean => G.spaces.york.control === power ||
         SPACES.some((space) => space.area === "scotland" && G.spaces[space.id].control === power);
@@ -1532,6 +1547,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveDrakeHawkins(G);
     } else if (handler === "borderReivers") {
         resolveBorderReivers(G, ctx, p, target);
+    } else if (handler === "seaBeggars") {
+        resolveSeaBeggars(G, target);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {

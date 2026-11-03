@@ -176,6 +176,12 @@
 - 招募正规军或雇佣兵都受 `REGULAR_LIMITS` 限制，避免通过雇佣兵绕过 force pool。
 - 奥斯曼骑兵计数器上限 39；海军计数器上限按 VASSAL 计数器：奥斯曼 9、西班牙 7、英格兰 6、法国 4、HRE 1、新教 4，`buildNaval` 统一检查。
 
+### 海上乞丐（#66）
+
+- 新教取得一个无守军尼德兰北海港口控制权并转为新教；
+- 放置 1 艘荷兰大帆船与 1 个正规军；布里勒/法拉盛额外 +1 大帆船；
+- 免费的北海海盗行动尚未自动串接。
+
 ### 边境掠夺者（#41）
 
 - 控制约克或任一苏格兰地区的势力：从另一个同样控制边境地区的势力随机抽 1 张非本国牌。
@@ -692,6 +698,7 @@ src/virginQueen/
   louise.test.ts        #95 洛林的路易丝
   drakeHawkins.test.ts  #106 德雷克/霍金斯远征
   borderReivers.test.ts #41 边境掠夺者
+  seaBeggars.test.ts    #66 海上乞丐
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -918,3 +925,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #106 德雷克/霍金斯远征接入后的验证：`jest src/virginQueen --runInBand --silent` 92 suites、506 tests passed（新增 1 项：联合远征）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #41 边境掠夺者接入后的验证：`jest src/virginQueen --runInBand --silent` 93 suites、509 tests passed（新增 2 项：夺牌/苏格兰影响力）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#66 海上乞丐接入后的验证：`jest src/virginQueen --runInBand --silent` 94 suites、512 tests passed（新增 1 项：夺取港口/放置舰船）；`npm run build` 通过，仍有既有大体积 chunk 提示。
