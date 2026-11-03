@@ -701,6 +701,13 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #31 Treachery!: force an immediate assault on a besieged fortress. */
 /** #24 Holy League: influence the Papacy and Venice, then resolve. */
 /** #27 Knights of St. John: deploy the Knights when they are absent. */
+/** #29 Muscovy Company: extra card draws next year (and two years later for England). */
+const resolveMuscovyCompany = (G: VQGame, p: Power): void => {
+    G.pendingCardDraws = [...(G.pendingCardDraws ?? []), {power: p, turn: G.year + 1, amount: 1}];
+    if (p === "england") G.pendingCardDraws.push({power: p, turn: G.year + 2, amount: 1});
+    pushLog(G, `Muscovy Company grants ${powerLabel(p)} an extra card next year.`);
+};
+
 const resolveKnightsOfStJohn = (G: VQGame): void => {
     const onMap = (G.spaces.malta?.land.independent?.regular ?? 0) > 0;
     if (onMap) return;
@@ -1823,6 +1830,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveHolyLeague(G, ctx, p);
     } else if (handler === "knightsOfStJohn") {
         resolveKnightsOfStJohn(G);
+    } else if (handler === "muscovyCompany") {
+        resolveMuscovyCompany(G, p);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {

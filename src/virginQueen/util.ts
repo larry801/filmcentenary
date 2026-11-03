@@ -611,6 +611,16 @@ export const rebuildArmada = (G: VQGame): void => {
 };
 
 /** Deal a new year's hands. Home cards return, hands are trimmed to Admin. */
+export const applyPendingCardDraws = (G: VQGame): Partial<Record<Power, number>> => {
+    const bonuses: Partial<Record<Power, number>> = {};
+    G.pendingCardDraws = (G.pendingCardDraws ?? []).filter((entry) => {
+        if (entry.turn > G.year) return true;
+        bonuses[entry.power] = (bonuses[entry.power] ?? 0) + entry.amount;
+        return false;
+    });
+    return bonuses;
+};
+
 export const dealYear = (G: VQGame, ctx: Ctx): void => {
     returnSeaCaptains(G);
     rebuildArmada(G);
@@ -619,6 +629,7 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
     G.piracyZones = {};
     G.worldFortressesBuilt = 0;
     refreshJesuits(G);
+    const cardDrawBonuses = applyPendingCardDraws(G);
     const eligibleFuture: string[] = [];
     G.futureDeck = G.futureDeck.filter((id) => {
         const card = officialCardById(id);
@@ -650,7 +661,7 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
             ps.cards = ps.cards.filter((c) => c !== d);
             G.discard.push(d);
         }
-        const n = drawCount(G, p);
+        const n = drawCount(G, p) + (cardDrawBonuses[p] ?? 0);
         drawCards(G, ctx, p, n);
         if (G.espionage) delete G.espionage.nextDraw[p];
         if (G.tutorialEffects) delete G.tutorialEffects.nextDraw[p];

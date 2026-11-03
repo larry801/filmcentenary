@@ -184,6 +184,12 @@
 - 目标地区及一个相邻地区放置动荡。
 - 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
 
+### 莫斯科公司（#29）
+
+- 出牌方下一年抽牌阶段 +1 张；
+- 英格兰额外在两年后 +1 张；
+- 通过 `pendingCardDraws` 队列与 `applyPendingCardDraws` 在年度发牌时结算。
+
 ### 圣约翰骑士团（#27）
 
 - 骑士团不在马耳他时：
@@ -792,6 +798,7 @@ src/virginQueen/
   treachery.test.ts     #31 变节！
   holyLeague.test.ts    #24 神圣同盟
   knights.test.ts       #27 圣约翰骑士团
+  muscovy.test.ts       #29 莫斯科公司
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -1046,3 +1053,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #24 神圣同盟接入后的验证：`jest src/virginQueen --runInBand --silent` 106 suites、528 tests passed（新增 1 项：教廷/威尼斯影响力与评议）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #27 圣约翰骑士团接入后的验证：`jest src/virginQueen --runInBand --silent` 107 suites、529 tests passed（新增 1 项：马耳他驻军）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#29 莫斯科公司接入后的验证：`jest src/virginQueen --runInBand --silent` 108 suites、530 tests passed（新增 1 项：英格兰连续两次额外抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
