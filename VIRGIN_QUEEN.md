@@ -176,6 +176,12 @@
 - 招募正规军或雇佣兵都受 `REGULAR_LIMITS` 限制，避免通过雇佣兵绕过 force pool。
 - 奥斯曼骑兵计数器上限 39；海军计数器上限按 VASSAL 计数器：奥斯曼 9、西班牙 7、英格兰 6、法国 4、HRE 1、新教 4，`buildNaval` 统一检查。
 
+### 纳瓦拉的珍妮（#58）
+
+- 事件：在法兰西进行一次 5 CP 煽动叛乱；清除巴约纳所有非新教单位，巴约纳转新教控制并 +1 胡格诺正规军；
+- 响应：取消“法兰西的女管家”的效果尚未接入；
+- 事件/响应后移出游戏。
+
 ### 海上乞丐（#66）
 
 - 新教取得一个无守军尼德兰北海港口控制权并转为新教；
@@ -699,6 +705,7 @@ src/virginQueen/
   drakeHawkins.test.ts  #106 德雷克/霍金斯远征
   borderReivers.test.ts #41 边境掠夺者
   seaBeggars.test.ts    #66 海上乞丐
+  jeanne.test.ts        #58 纳瓦拉的珍妮
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -927,3 +934,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #41 边境掠夺者接入后的验证：`jest src/virginQueen --runInBand --silent` 93 suites、509 tests passed（新增 2 项：夺牌/苏格兰影响力）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #66 海上乞丐接入后的验证：`jest src/virginQueen --runInBand --silent` 94 suites、512 tests passed（夺取港口/放置舰船，并验证免费 3 骰海盗）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#58 纳瓦拉的珍妮（事件分支）接入后的验证：`jest src/virginQueen --runInBand --silent` 95 suites、513 tests passed（新增 1 项：巴约纳转新教并驻军）；`npm run build` 通过，仍有既有大体积 chunk 提示。

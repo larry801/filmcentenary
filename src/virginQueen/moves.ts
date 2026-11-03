@@ -688,6 +688,22 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #106 Drake/Hawkins Expedition: combine both captains into one expedition. */
 /** #41 Border Reivers: raid a border power's hand or add Scottish influence. */
 /** #66 Sea Beggars: seize an undefended Dutch port. */
+/** #58 Jeanne of Navarre: French rebellion and the fall of Bayonne. */
+const resolveJeanne = (G: VQGame, ctx: Ctx): void => {
+    const target = rebellionTargets(G).find((id) => SPACE_BY_ID[id]?.area === "france");
+    if (target !== undefined) resolveRebellion(G, ctx, "protestant", target, 5);
+    const bayonne = G.spaces.bayonne;
+    if (bayonne !== undefined) {
+        for (const owner of Object.keys(bayonne.land) as Power[]) {
+            if (owner !== "protestant") delete bayonne.land[owner];
+        }
+        bayonne.control = "protestant";
+        addLand(G, "bayonne", "protestant", "regular", 1);
+    }
+    removeCardFromGame(G, "vq-058");
+    pushLog(G, "Jeanne of Navarre raises the Protestant cause and takes Bayonne.");
+};
+
 const resolveSeaBeggars = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined) return;
     const def = SPACE_BY_ID[target];
@@ -1560,6 +1576,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveBorderReivers(G, ctx, p, target);
     } else if (handler === "seaBeggars") {
         resolveSeaBeggars(G, ctx, target);
+    } else if (handler === "jeanneOfNavarre") {
+        resolveJeanne(G, ctx);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
@@ -1690,7 +1708,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     if (args.asEvent === true && timedResponseCard && !isBeaconFires && !tutorialEvent && G.cardWindow?.kind !== "response" &&
-        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack", "dragutFalls", "gregorianCalendar", "borderReivers"].includes(cardHandler)) {
+        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack", "dragutFalls", "gregorianCalendar", "borderReivers", "jeanneOfNavarre"].includes(cardHandler)) {
         return INVALID_MOVE;
     }
     const cancellation = args.asEvent === true ? cancelEventResponder(G, def) : undefined;
