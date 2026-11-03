@@ -30,6 +30,6 @@ describe("Philosopher's Stone (card #64)", () => {
         G.year += 1;
         restorePatrons(G);
         expect(G.patronsAvailable).toContain(scientist!.id);
-        expect(G.removed).toContain("vq-064");
+        expect(G.discard).toContain("vq-064");
     });
 });

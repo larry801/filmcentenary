@@ -275,7 +275,7 @@
 - 取消一个待结算科学家赞助的工作进度；
 - 该赞助人留在可用池，下回合可重新赞助；
 - 本回合仍视为已赞助；事件牌移出游戏；
-- 赞助人从可用池移出并记录 `patronReturn`，下一年由 `restorePatrons` 放回。
+- 赞助人从可用池移出并记录 `patronReturn`，下一年由 `restorePatrons` 放回；#64 按数据 `removeOnEvent: false` 进入弃牌堆而非移出游戏。
 
 ### 约翰·霍金斯（#59）
 
@@ -1102,7 +1102,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #59 约翰·霍金斯接入后的验证：`jest src/virginQueen --runInBand --silent` 116 suites、544 tests passed（新增 2 项：+5 CP、升级快速帆船）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#64 贤者之石接入后的验证：`jest src/virginQueen --runInBand --silent` 101 suites、523 tests passed（取消科学家赞助，并验证下一年回到可用池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#64 贤者之石接入后的验证：`jest src/virginQueen --runInBand --silent` 128 suites、565 tests passed（取消科学家赞助、下一年回池、卡牌进弃牌堆）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #51 黄金国接入后的验证：`jest src/virginQueen --runInBand --silent` 102 suites、524 tests passed（新增 1 项：结束远征并安排回场）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
