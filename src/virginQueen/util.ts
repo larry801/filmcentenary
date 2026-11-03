@@ -2286,10 +2286,24 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
         discardCard(G, p, "vq-010", true);
         pushLog(G, "Siege Engineering adds 3 dice to the assault.");
     }
-    const aDice = (defendersUnits > 0 ? Math.ceil(attackerUnits / 2) : attackerUnits) + bestBattle(G, space, [p], "army") + (siegeEngineering ? 3 : 0);
+    let tilburyAttacker = 0;
+    if (!desperate && !siegeEngineering && G.powers[p].cards.includes("vq-040")) {
+        removeCardFromHand(G, p, "vq-040");
+        discardCard(G, p, "vq-040", true);
+        tilburyAttacker = p === "england" ? 4 : 2;
+        pushLog(G, `Tilbury Speech adds ${tilburyAttacker} dice to the assault.`);
+    }
+    let tilburyDefender = 0;
+    if (defending !== undefined && G.powers[defending].cards.includes("vq-040")) {
+        removeCardFromHand(G, defending, "vq-040");
+        discardCard(G, defending, "vq-040", true);
+        tilburyDefender = defending === "england" ? 4 : 2;
+        pushLog(G, `Tilbury Speech adds ${tilburyDefender} dice to the defense.`);
+    }
+    const aDice = (defendersUnits > 0 ? Math.ceil(attackerUnits / 2) : attackerUnits) + bestBattle(G, space, [p], "army") + (siegeEngineering ? 3 : 0) + tilburyAttacker;
     const defendingPower = defenders.find(isPower);
     const ravelin = defendingPower !== undefined && G.powers[defendingPower].scienceBonuses.includes("ravelin") ? 1 : 0;
-    const dDice = (defendersUnits + bestBattle(G, space, defenders, "army") + 1 + ravelin) * (desperate ? 2 : 1);
+    const dDice = (defendersUnits + bestBattle(G, space, defenders, "army") + 1 + ravelin) * (desperate ? 2 : 1) + tilburyDefender;
     const aRoll = roll(ctx, aDice);
     const aHits = desperate ? aRoll.filter((die) => die >= 4).length : hits(aRoll);
     const dHits = hits(roll(ctx, dDice));
