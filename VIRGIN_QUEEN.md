@@ -524,10 +524,10 @@
 
 ### 凯瑟琳的飞剪船（#42）
 
-- 作为响应牌可取消下列事件：军队哗变（#17）、变节！（#31）、福克斯殉道者名录（#52）、胡格诺派大斋期（#54）、破坏圣像运动（#55）。
+- 作为响应牌可取消下列事件：军队哗变（#17）、城邦起义（#18）、德意志募兵受限（#23）、变节！（#31）、福克斯殉道者名录（#52）、胡格诺派大斋期（#54）、破坏圣像运动（#55）。
 - 事件打出后若任一势力持有 #42，会暂停并提示该势力选择“允许事件/打出飞剪船取消”。
 - 取消后事件牌与 #42 均进入弃牌堆。
-- 目标针对法兰西地区的额外可取消事件（城邦起义、德意志的裁军、烧杀掳掠等）尚未列入。
+- 烧杀掳掠（#44）为 response 牌，当前取消框架只接受普通事件牌。
 
 ### 意大利的委托（#48）
 
@@ -992,7 +992,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #48 意大利的委托接入后的验证：`jest src/virginQueen --runInBand --silent` 53 suites、452 tests passed（新增 1 项：免费赞助不扣 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#42 凯瑟琳的飞剪船取消事件接入后的验证：`jest src/virginQueen --runInBand --silent` 54 suites、453 tests passed（新增 1 项：取消 #52 并保持英格兰宗教不变）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#42 凯瑟琳的飞剪船取消事件接入后的验证：`jest src/virginQueen --runInBand --silent` 116 suites、543 tests passed（新增 2 项：取消 #18/#52）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #35 科学与艺术的赞助人（选项 2）接入后的验证：`jest src/virginQueen --runInBand --silent` 55 suites、454 tests passed（新增 1 项：抽 2 张并交给另一势力 1 张）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 

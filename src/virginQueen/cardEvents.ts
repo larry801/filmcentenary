@@ -40,7 +40,7 @@ export const canPlayGrandVizier = (G: VQGame, power: Power, numPlayers: number):
     power === "ottoman" && effectOptions(G, numPlayers).length > 0;
 
 /** Only ordinary Event cards can be cancelled, even if another card is played as an event. */
-const CATHERINE_CANCELABLE = new Set(["vq-017", "vq-031", "vq-052", "vq-054", "vq-055"]);
+const CATHERINE_CANCELABLE = new Set(["vq-017", "vq-018", "vq-023", "vq-031", "vq-052", "vq-054", "vq-055"]);
 
 export const cancelEventResponder = (G: VQGame, card: CardDef): {power: Power; cardId: string} | undefined => {
     if (!(card.officialKind === "event" || (card.officialKind === undefined && card.kind === "event"))) return undefined;
