@@ -151,6 +151,11 @@
 - `recruit` 招募正规军前检查当前正规军总数（地图 + 境外战争 + 阿马达搭载），达到上限则非法。
 - 雇佣兵、骑兵、海军与海军重建延迟仍未纳入统一 force pool。
 
+### 科学与艺术的赞助人（#35）
+
+- 选项 2：HRE 从牌堆抽 2 张，然后把一张非本国牌/非强制事件牌交给另一势力。
+- 选项 1（指定意大利/随机 HRE 艺术家或科学家，3 CP 赞助）尚未接入。
+
 ### 凯瑟琳的飞剪船（#42）
 
 - 作为响应牌可取消下列事件：军队哗变（#17）、变节！（#31）、福克斯殉道者名录（#52）、胡格诺派大斋期（#54）、破坏圣像运动（#55）。
@@ -420,6 +425,7 @@ src/virginQueen/
   sack.test.ts          #44 烧杀掳掠相邻要塞投降
   italianExpert.test.ts #48 意大利的委托免费赞助
   catherineCancel.test.ts #42 飞剪船取消事件
+  patronOfArts.test.ts  #35 赞助人抽 2 给 1
   regularLimit.test.ts  17.1 正规军计数器上限
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
@@ -561,3 +567,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #48 意大利的委托接入后的验证：`jest src/virginQueen --runInBand --silent` 53 suites、452 tests passed（新增 1 项：免费赞助不扣 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #42 凯瑟琳的飞剪船取消事件接入后的验证：`jest src/virginQueen --runInBand --silent` 54 suites、453 tests passed（新增 1 项：取消 #52 并保持英格兰宗教不变）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#35 科学与艺术的赞助人（选项 2）接入后的验证：`jest src/virginQueen --runInBand --silent` 55 suites、454 tests passed（新增 1 项：抽 2 张并交给另一势力 1 张）；`npm run build` 通过，仍有既有大体积 chunk 提示。

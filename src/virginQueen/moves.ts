@@ -494,6 +494,21 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
 /** #46 Spanish Fury: take a card from the defender, then draw one. */
 /** #44 Sack!: adjacent enemy fortresses may surrender after a fortress falls. */
 /** #48 Italian Expert: sponsor an Italian patron for 3 CP without paying. */
+/** #35 Patron of Arts, option 2: draw two cards and give one to another power. */
+const resolvePatronOfArts = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target === undefined || !isPower(target) || target === "hre") return;
+    drawCards(G, ctx, "hre", 2);
+    const candidates = G.powers.hre.cards.filter((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory");
+    if (candidates.length === 0) {
+        pushLog(G, "Patron of Arts finds no card to give.");
+        return;
+    }
+    const card = candidates[Math.min(candidates.length - 1, Math.max(0, die(ctx, candidates.length) - 1))];
+    G.powers.hre.cards = G.powers.hre.cards.filter((id) => id !== card);
+    G.powers[target].cards.push(card);
+    pushLog(G, `Patron of Arts draws two cards and gives ${cardById(card).name} to ${powerLabel(target)}.`);
+};
+
 const resolveItalianExpert = (G: VQGame, p: Power, target?: string): void => {
     if (target === undefined) return;
     const patron = patronById(G, target);
@@ -776,6 +791,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveSack(G, ctx, p, target);
     } else if (handler === "italianExpert") {
         resolveItalianExpert(G, p, target);
+    } else if (handler === "patronOfArts") {
+        resolvePatronOfArts(G, ctx, target);
     } else if (handler === "beaconFires") {
         G.beaconFires = p;
         pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
