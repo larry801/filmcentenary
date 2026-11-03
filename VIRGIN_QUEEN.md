@@ -1175,3 +1175,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #12 威尼斯桨帆船战斗牌已限制为仅地中海海战、双方掷骰后提供；控制威尼斯桨帆船时额外骰从 3 改为 5。验证：`jest src/virginQueen --runInBand --silent` 134 suites、580 tests passed（新增 1 项：仅地中海提供）；`npm run build` 通过。
 
 #8 精锐部队测试已补：野战额外 +3 骰，且奥斯曼/西班牙后 3 骰命中 4–6。验证：`jest src/virginQueen --runInBand --silent` 135 suites、582 tests passed（新增 1 项：+3 骰）；`npm run build` 通过。
+
+#7 绝望强攻测试已补：攻城时进攻方命中 4–6，防守方掷双倍骰。验证：`jest src/virginQueen --runInBand --silent` 136 suites、583 tests passed（新增 1 项：防守骰翻倍）；`npm run build` 通过。
