@@ -286,6 +286,17 @@ export const chooseBattle = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
                     stack.merc -= removed;
                     remaining -= removed;
                 }
+                if (remaining > 0) {
+                    for (const space of Object.values(G.spaces)) {
+                        for (const stack of Object.values(space.land)) {
+                            if (remaining === 0) break;
+                            const removed = Math.min(remaining, stack?.merc ?? 0);
+                            if (stack !== undefined) stack.merc -= removed;
+                            remaining -= removed;
+                        }
+                        if (remaining === 0) break;
+                    }
+                }
             } else {
                 const stack = ensureLand(G, battle.location, battle.responding);
                 stack.merc += SPACE_BY_ID[battle.location].home === "hre" ? 4 : 2;
