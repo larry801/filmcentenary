@@ -14,6 +14,17 @@ const context = (player: string): Ctx => ({
 const game = (): VQGame => setupGame({...context("0"), phase: "action"} as Ctx);
 
 describe("Catherine's Flying Squadron (card #42)", () => {
+    it("cancels Sack!", () => {
+        const G = game();
+        G.powers.ottoman.cards = ["vq-044"];
+        G.powers.england.cards = ["vq-042"];
+
+        expect(playCard(G, context("0"), {cardId: "vq-044", asEvent: true, target: "rotterdam"})).toBeUndefined();
+        expect(G.pendingCardEvent?.kind).toBe("cancelEvent");
+        expect(chooseCardEvent(G, context("2"), {choice: "cancel"})).toBeUndefined();
+        expect(G.powers.england.cards).not.toContain("vq-042");
+    });
+
     it("cancels City State Rebels", () => {
         const G = game();
         G.powers.ottoman.cards = ["vq-018"];
