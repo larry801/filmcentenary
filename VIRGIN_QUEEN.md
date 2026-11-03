@@ -250,7 +250,7 @@
 
 - 默认对教廷与威尼斯各 +2 影响力，并立即分别评议；
 - 目标 `papacy`/`venice` 可让单方独得 4 点；
-- 目标 `hre`（仅 HRE 为非玩家且有 `majorInfluence.hre` 轨道）给 HRE +4 并立即进行 HRE 外交评议；
+- 目标 `hre`（HRE 非直接玩家且有 `majorInfluence.hre` 轨道，含被激活的 HRE）给 HRE +4 并立即进行 HRE 外交评议；
 - 支持 `hre:papacy`/`hre:venice` 等两方分配，以及 `papacy:venice:hre` 三方 2/1/1 分配。
 
 ### 变节！（#31）
@@ -574,7 +574,7 @@
 
 - 在本土港口舰队发动拦截、且拦截判定前，持有者可打出 #14：该次拦截自动成功，并在随后的海战中 +2 骰；
 - 引擎在非教学局自动拦截前暂停并开放 `beaconResponse` 阶段；拒绝则照常掷拦截骰；
-- 旧式预先打出路径仍保留以兼容旧测试/一键操作。
+- 已移除旧式预先打出路径；#14 只能通过拦截响应窗口使用。
 
 ### 苏丹后宫（#16）
 
@@ -1253,6 +1253,6 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 - #14 烽火拦截响应窗口：`22d4953`
 - 海军将领春季港口选择：`4ea1679`
 
-集成后验证：`jest src/virginQueen --runInBand --silent` 145 suites、675 tests passed；`jest --runInBand --silent` 150 suites、730 tests passed；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。
+集成后验证：`jest src/virginQueen --runInBand --silent` 145 suites、676 tests passed；`jest --runInBand --silent` 150 suites、731 tests passed；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。
 
 #36 童贞女王新增 `retrieve:<卡牌ID>:play[:<事件目标>]`：取回弃牌堆中的牌并立即按该牌自己的事件结算，复用 `playCard` 的时机/目标/合法性校验；无法打出时回滚并留在弃牌堆。验证：`jest src/virginQueen --runInBand --silent` 141 suites、649 tests passed（新增 4 项）；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。
