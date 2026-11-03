@@ -708,7 +708,9 @@ export interface VQGame {
     /**
      * Winter attrition losses awaiting the owner's choice of unit type. The
      * automatic result is already on the board; the Card Draw choice stage may
-     * swap it, and ending the turn keeps the automatic composition.
+     * swap it, and ending the turn keeps the automatic composition. A stack
+     * eliminated outright for want of winter quarters is recorded too, so its
+     * owner can confirm the removed composition.
      */
     winterLossChoices?: WinterLossChoice[];
     /**

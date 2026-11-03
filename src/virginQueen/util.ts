@@ -3180,9 +3180,14 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
             candidate.capital || candidate.distance === nearestFort);
         if (candidates.length === 0) {
             const leaders = winterArmyLeaders(G, id, p);
+            const removed = {...stack};
             const count = landCount(stack);
             delete state.land[p];
             winterLeadersHome(G, id, p, leaders);
+            // Rule 20.4 eliminates the whole army.  Apply that now, then let
+            // the owner confirm its composition during Card Draw; skipping the
+            // confirmation keeps this automatic result.
+            recordWinterLossChoice(G, p, id, removed);
             pushLog(G, `${powerLabel(p)} loses ${count} unit(s) in ${SPACE_BY_ID[id].name}: no winter quarters.`);
             continue;
         }

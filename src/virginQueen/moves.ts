@@ -2953,7 +2953,9 @@ const winterLossChoicesRemain = (G: VQGame, p: Power): boolean =>
  * Card Draw confirmation of a winter attrition loss.  The automatic losses
  * (mercenary, then cavalry, then regular) are already applied; `kind` replaces
  * them with the same number of the chosen type from the surviving stack.
- * Passing `kind: "auto"` keeps the automatic composition.
+ * Passing `kind: "auto"` keeps the automatic composition.  A stack eliminated
+ * for want of winter quarters has no survivors, so only "auto" is legal and
+ * simply confirms the automatic composition.
  */
 export const chooseWinterLoss = (G: VQGame, ctx: Ctx, args: {space: string; kind: keyof LandStack | "auto"}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "cardDraw") return INVALID_MOVE;
