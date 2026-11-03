@@ -750,13 +750,36 @@ export const chooseAbjuration = (G: VQGame, ctx: Ctx, args: {power: Power}): voi
 /** #22 Genoese Bankers, option 1: draw two now, one fewer next year. */
 /** #32 Calvinist Zeal, option 1: seven attempts in France and the Netherlands. */
 /** #5 Papal Bull: resolve the Papacy; an ally may make Catholic attempts. */
-const resolvePapalBull = (G: VQGame, ctx: Ctx): void => {
+const resolvePapalBull = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (!G.minorDiplomacyResolved.includes("papacy")) resolveMinorDiplomacy(G, ctx, "papacy");
     const ally = POWERS.find((power) => G.powers[power].alliedMinors.includes("papacy") && ownerOf(G, power) !== undefined);
     if (ally === undefined) return;
-    const area = (["france", "netherlands"] as const)
-        .map((id) => ({id, count: SPACES.filter((space) => space.area === id && G.spaces[space.id].religion === "protestant").length}))
-        .sort((a, b) => b.count - a.count)[0].id;
+    if (target === "excommunicate") {
+        if (G.elizabethExcommunicated) return;
+        G.elizabethExcommunicated = true;
+        pushLog(G, "Papal Bull excommunicates Elizabeth I.");
+        return;
+    }
+    if (target === "holyLeague") {
+        if (!G.discard.includes("vq-024")) return;
+        G.discard = G.discard.filter((id) => id !== "vq-024");
+        resolveHolyLeague(G, ctx, ally);
+        return;
+    }
+    if (target?.startsWith("patron:")) {
+        const patron = patronById(G, target.slice("patron:".length));
+        if (patron === undefined || patron.region !== "italy" || patron.rating === null ||
+            G.powers[ally].patrons.includes(patron.id) || G.patronizedThisTurn.includes(`${ally}:${patron.kind}`)) return;
+        G.pendingPatronage.push({power: ally, patronId: patron.id, cp: 3});
+        G.patronizedThisTurn.push(`${ally}:${patron.kind}`);
+        pushLog(G, `Papal Bull sponsors ${patron.name} for ${powerLabel(ally)}.`);
+        return;
+    }
+    const area = target === "france" || target === "netherlands"
+        ? target
+        : (["france", "netherlands"] as const)
+            .map((id) => ({id, count: SPACES.filter((space) => space.area === id && G.spaces[space.id].religion === "protestant").length}))
+            .sort((a, b) => b.count - a.count)[0].id;
     resolveConversions(G, ctx, ally, "catholic", area, 7);
     pushLog(G, `Papal Bull: ${powerLabel(ally)} makes seven Catholic attempts in ${area}.`);
 };
@@ -2131,7 +2154,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "calvinistZeal") {
         resolveCalvinistZeal(G, ctx);
     } else if (handler === "papalBull") {
-        resolvePapalBull(G, ctx);
+        resolvePapalBull(G, ctx, target);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {

@@ -459,6 +459,7 @@ export interface VQGame {
     dragutFought?: boolean;
     pendingAbjuration?: {offers: {power: Power; space: string}[]};
     lockedCards?: Partial<Record<Power, string[]>>;
+    elizabethExcommunicated?: boolean;
         dragutWindow?: boolean;
         moriscoSpace?: string;
         stormImpulse?: number;
@@ -634,6 +635,7 @@ export interface VQGame {
     dragutFought?: boolean;
     pendingAbjuration?: {offers: {power: Power; space: string}[]};
     lockedCards?: Partial<Record<Power, string[]>>;
+    elizabethExcommunicated?: boolean;
     cyprusTarget?: string;
     cyprusAwarded?: boolean;
     /** Naval counters lost this year; they return to the pool at Spring. */

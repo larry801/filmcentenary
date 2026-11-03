@@ -15,6 +15,30 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Papal Bull (card #5)", () => {
+    it("can excommunicate Elizabeth", () => {
+        const G = game();
+        G.powers.spain.cards = ["vq-005"];
+        G.powers.spain.alliedMinors = ["papacy"];
+        G.minorDiplomacyResolved = [...new Set([...G.minorDiplomacyResolved, "papacy"])];
+
+        expect(playCard(G, context(), {cardId: "vq-005", asEvent: true, target: "excommunicate"})).toBeUndefined();
+
+        expect(G.elizabethExcommunicated).toBe(true);
+    });
+
+    it("can recover Holy League from the discard pile", () => {
+        const G = game();
+        G.powers.spain.cards = ["vq-005"];
+        G.powers.spain.alliedMinors = ["papacy"];
+        G.minorDiplomacyResolved = [...new Set([...G.minorDiplomacyResolved, "papacy"])];
+        G.discard = ["vq-024"];
+
+        expect(playCard(G, context(), {cardId: "vq-005", asEvent: true, target: "holyLeague"})).toBeUndefined();
+
+        expect(G.discard).not.toContain("vq-024");
+        expect(G.log.join("\n")).toContain("Holy League");
+    });
+
     it("resolves the Papacy and makes Catholic attempts for its ally", () => {
         const G = game();
         G.powers.spain.cards = ["vq-005"];
