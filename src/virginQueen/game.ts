@@ -105,6 +105,8 @@ const turnBegin = (G: VQGame, ctx: Ctx): void => {
 };
 
 const phaseBegin = (G: VQGame): void => {
+    // #95 is only attached for the Diplomacy Phase in which it was played.
+    delete G.louiseAttachment;
     restorePatrons(G);
     G.activePower = participatingPowers(G)[0];
     G.phaseTurns = 0;

@@ -2500,7 +2500,10 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
             const reroll = die(ctx, 6);
             if (reroll > dice[low]) dice[low] = reroll;
         }
-        const samePower = male.power === female.power;
+        // Scenario Book #95 clarification: Louise is treated as a royal of the
+        // power that played the card, so only the higher eligibility is used.
+        const louiseMarriage = female.id === "louiseLorraine" || male.id === "louiseLorraine";
+        const samePower = male.power === female.power || louiseMarriage;
         const festivities = G.marriageFestivities === "france" &&
             (male.power === "france" || female.power === "france") ? 2 : 0;
         if (festivities > 0) delete G.marriageFestivities;
@@ -2585,7 +2588,9 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
             if (ids.includes("louiseColigny") && (male.power === "england" || male.power === "protestant")) {
                 G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
             }
-            if (ids.includes("henryIV") && female.power === "france") {
+            // #95 clarification/FAQ: Louise played by France is not a French
+            // royal for Henry of Navarre's marriage bonus.
+            if (ids.includes("henryIV") && female.power === "france" && female.id !== "louiseLorraine") {
                 G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
             }
             if (ids.includes("isabellaClaraEugenia") &&
@@ -3360,6 +3365,8 @@ export const returnWorldCaptains = (G: VQGame): void => {
 };
 
 export const winter = (G: VQGame, ctx: Ctx): void => {
+    // The attached-marriage window opened by #95 closes with the turn.
+    delete G.louiseAttachment;
     if (G.scenario === "tutorial" && G.year === 2 && G.powers.ottoman.ruler === "suleiman") {
         G.deck = G.deck.filter((id) => id !== "vq-006");
         G.discard = G.discard.filter((id) => id !== "vq-006");

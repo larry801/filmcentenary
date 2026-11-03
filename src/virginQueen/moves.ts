@@ -1216,6 +1216,11 @@ const resolveLouise = (G: VQGame, p: Power): void => {
         G.royals.push({id: "louiseLorraine", name: "Louise of Lorraine", power: p, gender: "female",
             eligibility: 2, status: "available", alive: true, married: false});
     }
+    // Official card #95: Louise is attached to the power that played the card
+    // for the current Diplomacy Phase, and counts as that power's royal for
+    // the wedding roll.  Any power that controls a male royal may agree to the
+    // attached marriage while she is available.
+    G.louiseAttachment = {power: p, available: true};
     removeCardFromGame(G, "vq-095");
     pushLog(G, `Louise of Lorraine enters the marriage pool for ${powerLabel(p)}.`);
 };
@@ -2774,7 +2779,13 @@ export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female
     if (!royalAvailable(male) || !royalAvailable(female) || (male.turn ?? 1) > G.year || (female.turn ?? 1) > G.year) {
         return INVALID_MOVE;
     }
-    if (male.power === female.power) {
+    // #95: Louise is treated as a royal of the power that played the card.
+    // That allows a same-power marriage (the card player's own male royal) even
+    // though ordinary same-power betrothals are not announced as agreements.
+    const louiseMarriage = female.id === "louiseLorraine";
+    const attachedLouise = louiseMarriage && G.louiseAttachment?.power === female.power &&
+        G.louiseAttachment.available;
+    if (male.power === female.power && !louiseMarriage) {
         return INVALID_MOVE;
     }
     if (male.family !== undefined && male.family === female.family) {
@@ -2786,6 +2797,12 @@ export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female
     if (p !== male.power && p !== female.power) {
         return INVALID_MOVE;
     }
+    if (male.power === female.power) {
+        G.betrothals.push({male: male.id, female: female.id, ...(attachedLouise ? {louiseAttached: true} : {})});
+        if (attachedLouise) G.louiseAttachment!.available = false;
+        pushLog(G, `${powerLabel(p)} announces the marriage of ${male.name} and ${female.name}.`);
+        return;
+    }
     const target = male.power === p ? female.power : male.power;
     if (catholicLeagueDealsBlocked(G, p, target)) {
         return INVALID_MOVE;
@@ -2794,13 +2811,15 @@ export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female
         const influence = G.majorInfluence?.hre?.[p] ?? 0;
         if (influence < 1) return INVALID_MOVE;
         G.majorInfluence!.hre![p] = influence - 1;
-        G.betrothals.push({male: male.id, female: female.id});
+        G.betrothals.push({male: male.id, female: female.id, ...(attachedLouise ? {louiseAttached: true} : {})});
+        if (attachedLouise) G.louiseAttachment!.available = false;
         pushLog(G, `${powerLabel(p)} spends 1 HRE influence to arrange a marriage between ${male.name} and ${female.name}.`);
         return;
     }
     const targetPlayerID = ownerOf(G, target);
     if (targetPlayerID === undefined) return INVALID_MOVE;
-    G.pendingBetrothal = {male: male.id, female: female.id, proposer: p, target};
+    G.pendingBetrothal = {male: male.id, female: female.id, proposer: p, target,
+        ...(attachedLouise ? {louiseAttached: true} : {})};
     pushLog(G, `${powerLabel(p)} proposes a marriage between ${male.name} and ${female.name}.`);
     ctx.events?.setActivePlayers?.({value: {[targetPlayerID]: "respondBetroth"}, moveLimit: 1});
 };
@@ -2811,10 +2830,14 @@ export const acceptBetroth = (G: VQGame, _ctx: Ctx): void | typeof INVALID_MOVE 
         return INVALID_MOVE;
     }
     if (_ctx.playerID !== undefined && ownerOf(G, G.pendingBetrothal.target) !== _ctx.playerID) return INVALID_MOVE;
-    const {male, female} = G.pendingBetrothal;
+    const {male, female, louiseAttached} = G.pendingBetrothal;
     const maleDef = G.royals.find((r) => r.id === male);
     const femaleDef = G.royals.find((r) => r.id === female);
-    G.betrothals.push({male, female});
+    G.betrothals.push({male, female, ...(louiseAttached ? {louiseAttached: true} : {})});
+    if (louiseAttached && G.louiseAttachment !== undefined) {
+        // The attached marriage is the one use of #95 this Diplomacy Phase.
+        G.louiseAttachment.available = false;
+    }
     G.pendingBetrothal = null;
     pushLog(G, `${maleDef?.name ?? male} and ${femaleDef?.name ?? female} are betrothed.`);
 };

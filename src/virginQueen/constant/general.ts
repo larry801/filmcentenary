@@ -550,9 +550,16 @@ export interface VQGame {
     suezDone: boolean;
     mercenariesForHire: number;
     /** Betrothals announced during the current Diplomacy Phase. */
-    betrothals: { male: string; female: string }[];
+    betrothals: { male: string; female: string; louiseAttached?: boolean }[];
     /** Marriage proposal awaiting the target power's response. */
-    pendingBetrothal: { male: string; female: string; proposer: Power; target: Power } | null;
+    pendingBetrothal: { male: string; female: string; proposer: Power; target: Power; louiseAttached?: boolean } | null;
+    /**
+     * #95 Louise of Lorraine was played this Diplomacy Phase.  She is attached
+     * to the playing power, which is also her royal power for the wedding roll.
+     * `available` becomes false once an attached marriage is agreed; the whole
+     * marker is cleared when the Diplomacy Phase (or winter) ends.
+     */
+    louiseAttachment?: { power: Power; available: boolean };
     /** Royal marriages resolved this year (used for "Virgin Queen" VP). */
     marriages: number;
     /** Virgin Queen bonus VP already awarded (maximum 5 per game). */
