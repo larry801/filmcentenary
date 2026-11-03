@@ -695,6 +695,16 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #21 Foreign Volunteers: three regulars in controlled spaces. */
 /** #59 John Hawkins: five CP for English naval operations. */
 /** #64 Philosopher's Stone: cancel a scientist's patronage work. */
+/** #51 El Dorado: send a northern South America captain to search. */
+const resolveElDorado = (G: VQGame, target?: string): void => {
+    if (target === undefined) return;
+    const expedition = G.worldCaptains[target];
+    if (expedition === undefined || !["spanishMain", "antilles"].includes(expedition.location)) return;
+    delete G.worldCaptains[target];
+    G.seaCaptainReturn = {...(G.seaCaptainReturn ?? {}), [target]: {power: expedition.power, turn: G.year + 1}};
+    pushLog(G, `${target} departs for El Dorado; the expedition ends and returns next turn.`);
+};
+
 const resolvePhilosophersStone = (G: VQGame, target?: string): void => {
     const candidates = G.pendingPatronage.filter((entry) => patronById(G, entry.patronId)?.kind === "scientist");
     const entry = target !== undefined ? candidates.find((candidate) => candidate.patronId === target) : candidates[0];
@@ -1698,6 +1708,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveJohnHawkins(G, p);
     } else if (handler === "philosophersStone") {
         resolvePhilosophersStone(G, target);
+    } else if (handler === "elDorado") {
+        resolveElDorado(G, target);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {

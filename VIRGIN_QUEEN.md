@@ -176,6 +176,12 @@
 - 招募正规军或雇佣兵都受 `REGULAR_LIMITS` 限制，避免通过雇佣兵绕过 force pool。
 - 奥斯曼骑兵计数器上限 39；海军计数器上限按 VASSAL 计数器：奥斯曼 9、西班牙 7、英格兰 6、法国 4、HRE 1、新教 4，`buildNaval` 统一检查。
 
+### 黄金国（#51）
+
+- 目标航海家须在 `spanishMain`/`antilles`；
+- 远征结束、航海家置于回合记录轨，下回合回到船长池；
+- 黄金国搜寻与宝藏丢失的后续步骤尚未接入。
+
 ### 贤者之石（#64）
 
 - 取消一个待结算科学家赞助的工作进度；
@@ -746,6 +752,7 @@ src/virginQueen/
   volunteersAid.test.ts #21 外国志愿军 / #26 小型救援
   johnHawkins.test.ts   #59 约翰·霍金斯
   philosopher.test.ts   #64 贤者之石
+  elDorado.test.ts      #51 黄金国
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -988,3 +995,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #59 约翰·霍金斯（CP 分支）接入后的验证：`jest src/virginQueen --runInBand --silent` 100 suites、522 tests passed（新增 1 项：+5 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #64 贤者之石接入后的验证：`jest src/virginQueen --runInBand --silent` 101 suites、523 tests passed（取消科学家赞助，并验证下一年回到可用池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#51 黄金国接入后的验证：`jest src/virginQueen --runInBand --silent` 102 suites、524 tests passed（新增 1 项：结束远征并安排回场）；`npm run build` 通过，仍有既有大体积 chunk 提示。
