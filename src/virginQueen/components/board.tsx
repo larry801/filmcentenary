@@ -1183,7 +1183,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     </Select>
                 </FormControl>
                 <Typography variant="caption" color="text.secondary">
-                    首都：{CAPITAL_SPACES_UI[me] ?? ""} {from !== null ? `· 起点 ${SPACE_BY_ID[from]?.name}` : ""}
+                    首都：{me === "hre" && G.hreCapital !== undefined ? SPACE_BY_ID[G.hreCapital]?.name ?? G.hreCapital : CAPITAL_SPACES_UI[me] ?? ""} {from !== null ? `· 起点 ${SPACE_BY_ID[from]?.name}` : ""}
                 </Typography>
                 <Button size="small" variant="outlined" disabled={!myTurn || choiceRequired || preferenceRequired} onClick={() => moves.endPhaseTurn()}>
                     结束春季部署

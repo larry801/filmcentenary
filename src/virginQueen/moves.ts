@@ -66,6 +66,7 @@ import {
     canControlSpace,
     canDeclareWar,
     capitalOf,
+    capitalSpacesFor,
     captureLeaders,
     catholicLeagueSpaceOptions,
     cleanupLand,
@@ -645,6 +646,16 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
     pushLog(G, "Murad III becomes Ottoman ruler.");
 };
 
+/** #87 Rudolf II succeeds Maximilian II and moves the HRE capital to Prague. */
+const resolveRudolfII = (G: VQGame, ctx: Ctx): void => {
+    G.powers.hre.ruler = "rudolfII";
+    G.powers.hre.rulerAdmin = 1;
+    G.powers.hre.rulerCardBonus = 1;
+    G.hreCapital = "prague";
+    if (ctx.numPlayers <= 5 && G.majorInfluence) resolveMajorDiplomacy(G, ctx, "hre");
+    pushLog(G, "Rudolf II becomes Holy Roman Emperor; the capital moves to Prague.");
+};
+
 const resolvePortugueseRaid = (G: VQGame, p: Power, ctx: Ctx): void => {
     const colony = Object.entries(G.worldColonies).find(([settlement, owner]) => {
         const def = WORLD_SETTLEMENT_BY_ID[settlement];
@@ -1015,6 +1026,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveHenryIII(G);
     } else if (handler === "muradIII") {
         resolveMuradIII(G, ctx);
+    } else if (handler === "rudolfII") {
+        resolveRudolfII(G, ctx);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {
@@ -1635,7 +1648,7 @@ export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: stri
     if (G.springDone.includes(p)) {
         return INVALID_MOVE;
     }
-    const caps = CAPITAL_SPACES[p];
+    const caps = capitalSpacesFor(G, p);
     if (!caps.includes(args.from) || G.spaces[args.from] === undefined) {
         return INVALID_MOVE;
     }

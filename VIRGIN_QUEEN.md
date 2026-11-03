@@ -174,7 +174,7 @@
 
 - #84：亨利三世继位法国，统治者属性改为 1 Admin / +1 卡牌奖励；未联姻的查理九世移出婚姻池并终止婚约。
 - #85：穆拉德三世继位奥斯曼，属性改为 1 Admin / 0 卡牌奖励；≤4 人局立即进行奥斯曼外交评议。
-- 鲁道夫二世（#87）与迁都布拉格尚未接入。
+- #87：鲁道夫二世继位 HRE，属性改为 1 Admin / +1 卡牌奖励；首都迁至布拉格，`capitalOf`/冬季返营/春季部署/替换均使用新首都。
 
 ### 进击的葡萄牙（#77）
 
@@ -497,6 +497,7 @@ src/virginQueen/
   lostColony.test.ts    #75 消失的殖民地
   portugueseRaid.test.ts #77 进击的葡萄牙
   rulerAccession.test.ts #84/#85 亨利三世/穆拉德三世继位
+  rudolfII.test.ts      #87 鲁道夫二世/迁都布拉格
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -665,3 +666,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #84/#85 继位事件接入后的验证：`jest src/virginQueen --runInBand --silent` 64 suites、467 tests passed（新增 2 项：亨利三世、穆拉德三世）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #57 爱尔兰叛乱增强后的验证：`jest src/virginQueen --runInBand --silent` 65 suites、468 tests passed（新增 1 项：减半/阿尔斯特叛军）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#87 鲁道夫二世与迁都接入后的验证：`jest src/virginQueen --runInBand --silent` 66 suites、469 tests passed（新增 1 项：继位属性与首都）；`npm run build` 通过，仍有既有大体积 chunk 提示。

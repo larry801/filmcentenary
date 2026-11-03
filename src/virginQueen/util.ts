@@ -1436,8 +1436,13 @@ export const isFortifiedSpace = (G: VQGame, id: string): boolean => {
     return def.kind !== "open" || G.spaces[id].fortress;
 };
 
+export const capitalSpacesFor = (G: VQGame, p: Power): string[] =>
+    p === "hre" && G.hreCapital !== undefined
+        ? [G.hreCapital, ...CAPITAL_SPACES.hre.filter((id) => id !== G.hreCapital)]
+        : CAPITAL_SPACES[p];
+
 export const capitalOf = (G: VQGame, p: Power): string | undefined => {
-    const controlledCap = CAPITAL_SPACES[p].find((id) => {
+    const controlledCap = capitalSpacesFor(G, p).find((id) => {
         const c = G.spaces[id].control;
         return c === p || (isPower(c) && allied(G, p, c));
     });
@@ -2694,18 +2699,18 @@ const winterNavalDistance = (from: SeaZoneID, port: string): number | undefined 
     return undefined;
 };
 
-const winterPortRank = (major: Controller, port: string): number =>
-    isPower(major) && CAPITAL_SPACES[major].includes(port) ? 0 : 1;
+const winterPortRank = (G: VQGame, major: Controller, port: string): number =>
+    isPower(major) && capitalSpacesFor(G, major).includes(port) ? 0 : 1;
 
 /** Home capitals that can receive this power's land units (20.4 exceptions). */
 const winterCapitalsFor = (G: VQGame, p: Power, origin?: string): string[] => {
-    const controlled = CAPITAL_SPACES[p].filter((id) => G.spaces[id]?.control === p);
+    const controlled = capitalSpacesFor(G, p).filter((id) => G.spaces[id]?.control === p);
     if (p !== "protestant" || origin === undefined) return controlled;
     const dutch = SPACE_BY_ID[origin]?.area === "netherlands";
     return controlled.filter((id) => dutch ? id === "amsterdam" : id === "laRochelle");
 };
 
-const winterIsCapital = (p: Power, id: string): boolean => CAPITAL_SPACES[p].includes(id);
+const winterIsCapital = (G: VQGame, p: Power, id: string): boolean => capitalSpacesFor(G, p).includes(id);
 
 /** Remove units from a stack, choosing mercenaries, then cavalry, then regulars. */
 const winterTakeUnits = (stack: LandStack, count: number): LandStack => {
@@ -2782,8 +2787,8 @@ const winterReturnNaval = (G: VQGame): void => {
                 if (distance === undefined) continue;
                 if (best === undefined || distance < best.distance ||
                     (distance === best.distance &&
-                        (winterPortRank(major, port) < winterPortRank(major, best.port) ||
-                            (winterPortRank(major, port) === winterPortRank(major, best.port) && port < best.port)))) {
+                        (winterPortRank(G, major, port) < winterPortRank(G, major, best.port) ||
+                            (winterPortRank(G, major, port) === winterPortRank(G, major, best.port) && port < best.port)))) {
                     best = {port, distance};
                 }
             }
@@ -2847,7 +2852,7 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
         if (stack === undefined || landCount(stack) === 0) continue;
         // Rule 23.1: the Morisco unit never moves during the Winter Phase.
         if (p === "ottoman" && G.morisco?.space === id) continue;
-        if (!isFortifiedSpace(G, id) || state.control !== p || winterIsCapital(p, id) || landCount(stack) <= 4) continue;
+        if (!isFortifiedSpace(G, id) || state.control !== p || winterIsCapital(G, p, id) || landCount(stack) <= 4) continue;
         const capitals = winterCapitalsFor(G, p, id)
             .map((cap) => ({id: cap, distance: winterDistance(id, cap)}))
             .filter((candidate): candidate is {id: string; distance: number} => candidate.distance !== undefined)
@@ -2881,14 +2886,14 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
             if (def.id === id) return false;
             const target = G.spaces[def.id];
             if (target.control !== p || !isFortifiedSpace(G, def.id)) return false;
-            if (winterIsCapital(p, def.id)) return capitals.includes(def.id);
+            if (winterIsCapital(G, p, def.id)) return capitals.includes(def.id);
             return landCount(target.land[p]) < 4;
         }).map((def) => def.id);
         const scored = destinations.map((dest) => ({
             dest,
             distance: winterDistance(id, dest) ?? Number.POSITIVE_INFINITY,
             clean: winterCleanPath(G, p, id, dest),
-            capital: winterIsCapital(p, dest),
+            capital: winterIsCapital(G, p, dest),
         })).filter((candidate) => Number.isFinite(candidate.distance));
         const nearestFort = Math.min(
             ...scored.filter((candidate) => !candidate.capital).map((candidate) => candidate.distance),
@@ -3263,7 +3268,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         winterReturnLand(G, p);
         // Replacements at each controlled capital (rule 20.6).
         if (ownerOf(G, p) !== undefined && p === "hre") {
-            const cap = CAPITAL_SPACES.hre[0];
+            const cap = capitalSpacesFor(G, "hre")[0];
             const state = G.spaces[cap];
             const friendlyCapital = (state.control === p || (isPower(state.control) && allied(G, p, state.control))) && !state.unrest;
             const canRegular = friendlyCapital;
@@ -3274,7 +3279,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
                 pushLog(G, "Holy Roman replacement: choose 1 regular, 2 mercenaries, or the Mercenaries for Hire marker 0→4.");
             }
         } else if (ownerOf(G, p) !== undefined) {
-            for (const cap of CAPITAL_SPACES[p]) {
+            for (const cap of capitalSpacesFor(G, p)) {
                 const state = G.spaces[cap];
                 if ((state.control === p || (isPower(state.control) && allied(G, p, state.control))) && !state.unrest) {
                     addLand(G, cap, p, "regular", 1);
