@@ -170,6 +170,13 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 公历纪年法（#101）
+
+- 指定任意势力开始下一个行动轮（可为刚结束者）；
+- 若与教廷结盟，出牌方抽 1 张；
+- 通过 `gregorianNext` 在 `turnEnd` 时接管下一行动轮；
+- 事件牌移出游戏。
+
 ### 波兰选王（#86）
 
 - 立即结束 HRE 与波兰的战争（视为 HRE 获胜）；
@@ -649,6 +656,7 @@ src/virginQueen/
   flooding.test.ts      #39 洪水
   dragut.test.ts        #11 德拉古特之死
   polishElection.test.ts #86 波兰选王
+  gregorian.test.ts     #101 公历纪年法
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -863,3 +871,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #11 德拉古特之死（事件分支）接入后的验证：`jest src/virginQueen --runInBand --silent` 87 suites、498 tests passed（新增 1 项：死亡/回池/VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #86 波兰选王接入后的验证：`jest src/virginQueen --runInBand --silent` 88 suites、499 tests passed（新增 1 项：结束战争/选王/VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#101 公历纪年法接入后的验证：`jest src/virginQueen --runInBand --silent` 89 suites、500 tests passed（新增 1 项：指定下一势力并生效）；`npm run build` 通过，仍有既有大体积 chunk 提示。

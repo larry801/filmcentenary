@@ -99,6 +99,12 @@ const phaseBegin = (G: VQGame): void => {
 };
 
 const turnEnd = (G: VQGame): void => {
+    if (G.gregorianNext !== undefined) {
+        G.activePower = G.gregorianNext;
+        delete G.gregorianNext;
+        G.phaseTurns = 0;
+        return;
+    }
     const powers = participatingPowers(G);
     const next = powers.find((power) => POWERS.indexOf(power) > POWERS.indexOf(G.activePower));
     G.phaseTurns = next === undefined ? 1 : 0;

@@ -676,6 +676,15 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #109 Union of Arras: remove Dutch mercenaries, secure five spaces, raise Walloons. */
 /** #11 Dragut Falls: kill Dragut and bring Uluch Ali next turn. */
 /** #86 Polish Royal Election: resolve bids and elect a king. */
+/** #101 Gregorian Calendar: choose the next power to act. */
+const resolveGregorianCalendar = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    if (target === undefined || !isPower(target)) return;
+    G.gregorianNext = target;
+    if (G.powers[p].alliedMinors.includes("papacy")) drawCards(G, ctx, p, 1);
+    removeCardFromGame(G, "vq-101");
+    pushLog(G, `Gregorian Calendar: ${powerLabel(target)} will begin the next action round.`);
+};
+
 const resolvePolishElection = (G: VQGame, ctx: Ctx): void => {
     if (G.foreignWars.hre?.enemy === "Poland") {
         delete G.foreignWars.hre;
@@ -1439,6 +1448,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveDragutFalls(G);
     } else if (handler === "polishRoyalElection") {
         resolvePolishElection(G, ctx);
+    } else if (handler === "gregorianCalendar") {
+        resolveGregorianCalendar(G, ctx, p, target);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
@@ -1568,7 +1579,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     if (args.asEvent === true && timedResponseCard && !isBeaconFires && !tutorialEvent && G.cardWindow?.kind !== "response" &&
-        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack", "dragutFalls"].includes(cardHandler)) {
+        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack", "dragutFalls", "gregorianCalendar"].includes(cardHandler)) {
         return INVALID_MOVE;
     }
     const cancellation = args.asEvent === true ? cancelEventResponder(G, def) : undefined;
