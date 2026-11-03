@@ -1312,6 +1312,8 @@ export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string; cp: numbe
 
 export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: string; zones: string[]; units: Partial<LandStack>; leaders?: string[]}): void | typeof INVALID_MOVE => {
     if (moveError(G, "navalTransport", args) || ctx.phase !== "action") return INVALID_MOVE;
+    // Rule 16.3: only one formation may be transported per impulse.
+    if (G.navalTransportImpulse === G.impulse) return INVALID_MOVE;
     const p = power(G, ctx);
     const source = G.spaces[args.from]?.land[p];
     const destination = G.spaces[args.to];
@@ -1366,6 +1368,7 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
             fieldBattle(G, ctx, args.to, p, enemies, args.from, true);
         }
     } else if (isFortifiedSpace(G, args.to) && !friendlyControlled(G, p, args.to)) destination.siege = {by: p, sinceImpulse: G.impulse};
+    G.navalTransportImpulse = G.impulse;
     pushLog(G, `${powerLabel(p)} transports ${landCount(stack)} units from ${args.from} to ${args.to}.`);
 };
 

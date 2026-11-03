@@ -65,6 +65,26 @@ describe("naval transport in the full game (rule 16.3)", () => {
         expect(G.log.join("\n")).toContain("transported unit(s) are eliminated");
     });
 
+    it("allows only one naval transport formation per impulse", () => {
+        const G = game();
+        G.powers.england.cp = 4;
+        G.seaZones.northSea.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+
+        expect(navalTransport(G, context(), {
+            from: "london", to: "norwich", zones: ["northSea"], units: {regular: 1},
+        })).toBeUndefined();
+        expect(navalTransport(G, context(), {
+            from: "london", to: "norwich", zones: ["northSea"], units: {regular: 1},
+        })).toBe(INVALID_MOVE);
+        expect(G.powers.england.cp).toBe(2);
+
+        G.impulse += 1;
+        expect(navalTransport(G, context(), {
+            from: "london", to: "norwich", zones: ["northSea"], units: {regular: 1},
+        })).toBeUndefined();
+        expect(G.powers.england.cp).toBe(0);
+    });
+
     it("does not allow a formation under siege to be transported", () => {
         const G = game();
         G.powers.england.cp = 3;

@@ -340,8 +340,22 @@ export const removeCardFromHand = (G: VQGame, p: Power, cardId: string): boolean
     return true;
 };
 
+export const removeCardFromGame = (G: VQGame, cardId: string): void => {
+    if (!G.removed.includes(cardId)) G.removed.push(cardId);
+    G.deck = G.deck.filter((id) => id !== cardId);
+    G.discard = G.discard.filter((id) => id !== cardId);
+    G.futureDeck = G.futureDeck.filter((id) => id !== cardId);
+    G.homeSetAside = G.homeSetAside.filter((id) => id !== cardId);
+    for (const p of POWERS) G.powers[p].cards = G.powers[p].cards.filter((id) => id !== cardId);
+};
+
 export const discardCard = (G: VQGame, p: Power, cardId: string, asEvent: boolean): void => {
     const def = cardById(cardId);
+    // Rule 20.10: Grand Tour (#53) leaves play if played after the League formed.
+    if (cardId === "vq-053" && G.catholicLeagueFormed === true) {
+        removeCardFromGame(G, cardId);
+        return;
+    }
     if (def.kind === "home") {
         // Used Home cards sit face up on the power card until the next Card
         // Draw.  A few Home cards (for example #111) are removed for good when
@@ -2684,10 +2698,7 @@ export const clearMorisco = (G: VQGame): void => {
         cleanupLand(G, morisco.space, "ottoman");
     }
     delete G.morisco;
-    if (!G.removed.includes("vq-028")) G.removed.push("vq-028");
-    G.deck = G.deck.filter((id) => id !== "vq-028");
-    G.discard = G.discard.filter((id) => id !== "vq-028");
-    G.futureDeck = G.futureDeck.filter((id) => id !== "vq-028");
+    removeCardFromGame(G, "vq-028");
     pushLog(G, "Morisco Revolt ends: the Morisco unit is removed and card #28 leaves play.");
 };
 

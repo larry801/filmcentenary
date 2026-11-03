@@ -8,7 +8,7 @@ import {actingPower, isActivatedMajor, ownerOf, participatingPowers} from "./own
 import {assassinationResult, catholicRebellionResult} from "./data/espionage";
 import {EspionageState, PendingEspionage} from "./espionageTypes";
 import {addLand, addVp, allied, atWar, capitalOf, discardCard, ensureLand, ensureNaval,
-    hits, isFortifiedSpace, pushLog, removeCardFromHand,
+    hits, isFortifiedSpace, pushLog, removeCardFromHand, removeCardFromGame,
     roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
 
 export const espionageState = (G: VQGame): EspionageState => G.espionage ??= {
@@ -192,6 +192,7 @@ const resolveRoll = (G: VQGame, ctx: Ctx): void => {
                 G.leaders[p.target!].location = "offMap";
                 // Off-map assassinated leaders never return in Spring.
                 G.leaders[p.target!].returnTurn = 99;
+                if (p.target === "dragut") removeCardFromGame(G, "vq-011");
             }
             addVp(G, p.power, 1);
             pushLog(G, `${p.target} killed; ${p.power} gains 1 VP.`);

@@ -538,6 +538,8 @@ export interface VQGame {
     pendingHreReplacement?: {canRegular: boolean; canMercs: boolean; canMarker: boolean};
     /** Morisco Revolt unit (rule 20.1 / card #28), if in play. */
     morisco?: {space: string; units: number};
+    /** Impulse in which a naval transport was already made (16.3). */
+    navalTransportImpulse?: number;
     /** Set at the end of the Action Phase so endIf can score the winter. */
     checkVictory: boolean;
     /** Key counts at setup, so starting positions do not trigger military victory. */
