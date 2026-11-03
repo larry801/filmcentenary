@@ -151,7 +151,13 @@
 - 15+：双方各 2 Wedding VP；14：双方各 1 VP + 1 张 +1 Card 标记；13：双方各 1 VP；12：双方各 1 张 +1 Card 标记；10/11：无效果；9：最后取消，双方回到婚姻池；8：双方各 1 张 −1 Card 标记；7：妻子死于难产；6 或更低：丈夫被谋杀。
 - 除 9 外双方王室离场（`married`）；+1/−1 Card 标记只影响下一次 Card Draw，抽牌后清除。
 - Valois 王室结婚时法国额外 +1 VP。
-- 已接入 Don Carlos/Anna of Austria 重掷、William of Orange 回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 卡牌标记、Isabella Clara Eugenia 赞助加值；Elizabeth 被弃婚表、部分统治者死亡效果等仍未接入。
+- 已接入 Don Carlos/Anna of Austria 重掷、William of Orange 回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 卡牌标记、Isabella Clara Eugenia 赞助加值；#36 童贞女王已接入弃婚与 Jilted Table；部分统治者死亡效果等仍未接入。
+
+### 童贞女王（#36）
+
+- 伊丽莎白已订婚时，可解除婚约；新郎势力按 Jilted Table 掷 1d6：6 得两张 +1 Card 标记，5 得一张，4/3/2 获得 4/3/2 CP 用于外交影响和/或雇佣兵，1 无补偿；英格兰随后抽一张牌。
+- 未订婚时，自动取回弃牌堆中第一张非本国牌并保留。
+- 伊丽莎白死亡后，此牌不能作为事件打出。
 
 ### 胜利
 
@@ -200,7 +206,7 @@ Card Draw 按参战强国依次确认，同一玩家控制的多个强国也需�
 - 冬季 20.4 的海军返港、陆军半损/4 单位上限/首都例外已实现；但目的地与损耗单位没有交互选择；海运已在正式局开放，但 Storms 响应、海运期间拦截与“每行动轮次只能海运一个编队”尚未实现；Catholic League（20.10）已接入，西班牙在下一外交阶段交互选地（春季未选完时自动补选）；Grand Tour #53 在联盟成立后打出即移出游戏，Dragut Falls #11 在 Dragut 离场时移出游戏；世界地图船长返航未实现
 - 阿马达的完整规则（相关本国牌仍做了简化判定）；正式局退入要塞仍未完整
 - 海军避战已接入但目的地/编队自动；海军拦截编队与多敌军顺序仍自动
-- 婚姻已按官方 Royal Wedding Table 结算（2d6 + 资格；同国只取较高资格；15+ 双方 2 VP、14 双方 1 VP+卡牌标记、13 双方 1 VP、12 +1 卡牌标记、10/11 无效果、9 最后取消、8 −1 卡牌标记、7 妻子死于难产、6- 丈夫被谋杀；Valois +1 VP）。已接入 Don Carlos 最高骰重掷、Anna of Austria 最低骰重掷、William of Orange 无 VP 结果回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 的卡牌标记、Isabella Clara Eugenia 赞助加值；Elizabeth 被弃婚表与部分统治者死亡效果仍未实现
+- 婚姻已按官方 Royal Wedding Table 结算（2d6 + 资格；同国只取较高资格；15+ 双方 2 VP、14 双方 1 VP+卡牌标记、13 双方 1 VP、12 +1 卡牌标记、10/11 无效果、9 最后取消、8 −1 卡牌标记、7 妻子死于难产、6- 丈夫被谋杀；Valois +1 VP）。已接入 Don Carlos 最高骰重掷、Anna of Austria 最低骰重掷、William of Orange 无 VP 结果回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 的卡牌标记、Isabella Clara Eugenia 赞助加值；#36 童贞女王已接入弃婚与 Jilted Table；部分统治者死亡效果仍未实现
 - 统治者死亡/更替、
   科学家/艺术家全部名单、计数器上限
 
@@ -247,6 +253,7 @@ src/virginQueen/
   colony.test.ts        8.4 Colony Table 消灭/无效果/宝藏/Virginia Dare VP/Plantation
   defaultLeader.test.ts 5.1 默认将领属性、最后将领移除、登场与标准将领替换
   marriageTable.test.ts 21.1 Royal Wedding Table 各档结果、同国资格与特殊婚姻加值
+  virginQueenCard.test.ts #36 童贞女王弃婚、Jilted Table、取回弃牌
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
 ```
@@ -307,3 +314,5 @@ Royal Wedding Table（21.1）接入后的验证：`jest src/virginQueen --runInB
 英国海船长作为海军将领（10.2）接入后的验证：`jest src/virginQueen --runInBand --silent` 28 suites、367 tests passed（新增 3 项：春季放置到有舰队的本土港口、阶段/权限/港口校验、冬季返回海船长池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 王室特殊婚姻加值接入后的验证：`jest src/virginQueen --runInBand --silent` 28 suites、370 tests passed（新增 3 项：Don Carlos/Anna of Austria 重掷、William of Orange 无 VP 回池、Anna of Saxony/Isabella Clara Eugenia 加值）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+童贞女王 #36 接入后的验证：`jest src/virginQueen --runInBand --silent` 29 suites、374 tests passed（新增 4 项：弃婚并应用 Jilted Table、2-4 给 CP、未订婚取回弃牌、伊丽莎白死后禁止打出）；`npm run build` 通过，仍有既有大体积 chunk 提示。

@@ -28,7 +28,7 @@ import {WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENT_BY_ID} from "./data/world";
 import {patronById, royalAvailable, seaCaptainById} from "./scenario";
 import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
-import {activateMajor, resolveMajorDiplomacy} from "./util";
+import {activateMajor, die, resolveMajorDiplomacy} from "./util";
 import {startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {beginGrandVizierEvent, canCancelCardEvent, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, grandVizierInHand, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
@@ -316,6 +316,44 @@ const payWarCost = (G: VQGame, p: Power, cost: number): boolean => {
 // Action Phase: impulses
 // --------------------------------------------------------------------------
 
+/** Virgin Queen home card: retrieve a discard or jilt Elizabeth's suitor. */
+const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power): void => {
+    const elizabeth = G.royals.find((r) => r.id === "elizabeth");
+    if (elizabeth === undefined || !elizabeth.alive) {
+        pushLog(G, "Elizabeth I is dead; the Virgin Queen event has no effect.");
+        return;
+    }
+    const betrothal = G.betrothals.find((b) => b.female === "elizabeth");
+    if (betrothal !== undefined) {
+        const groom = G.royals.find((r) => r.id === betrothal.male);
+        G.betrothals = G.betrothals.filter((b) => b !== betrothal);
+        if (groom === undefined) return;
+        const roll = die(ctx, 6);
+        G.lastRolls = `Jilted by Elizabeth: ${roll}`;
+        pushLog(G, `${powerLabel(groom.power)} is jilted by Elizabeth I: ${G.lastRolls}.`);
+        if (roll >= 5) {
+            const amount = roll === 6 ? 2 : 1;
+            G.powers[groom.power].marriageCardModifier = (G.powers[groom.power].marriageCardModifier ?? 0) + amount;
+            pushLog(G, `${powerLabel(groom.power)} gains ${amount} +1 Card marker(s).`);
+        } else if (roll >= 2) {
+            G.powers[groom.power].cp += roll;
+            pushLog(G, `${powerLabel(groom.power)} gains ${roll} CP for Diplomatic Influence and/or Mercenaries.`);
+        } else {
+            pushLog(G, "No compensation is awarded.");
+        }
+        drawCards(G, ctx, p, 1);
+        return;
+    }
+    const index = G.discard.findIndex((id) => cardById(id).kind !== "home");
+    if (index >= 0) {
+        const [card] = G.discard.splice(index, 1);
+        G.powers[p].cards.push(card);
+        pushLog(G, `England retrieves ${cardById(card).name} from the discard pile.`);
+    } else {
+        pushLog(G, "England finds no card in the discard pile.");
+    }
+};
+
 const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, target?: string): void => {
     const def = cardById(cardId);
     const handler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
@@ -336,6 +374,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveUntimelyDeath(G, target ?? "none");
     } else if (handler === "moriscoRevolt") {
         resolveMoriscoRevolt(G, p);
+    } else if (handler === "virginQueen") {
+        resolveVirginQueenEvent(G, ctx, p);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
@@ -402,6 +442,8 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (args.asEvent === true && cardHandler === "untimelyDeath" && G.scenario !== "tutorial" && !canPlayUntimelyDeath(G, args.target)) return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "moriscoRevolt" &&
         !(atWar(G, "ottoman", "spain") && G.morisco === undefined)) return INVALID_MOVE;
+    if (args.asEvent === true && cardHandler === "virginQueen" &&
+        !G.royals.some((royal) => royal.id === "elizabeth" && royal.alive)) return INVALID_MOVE;
     if (args.asEvent === true && beneficiary !== undefined) {
         const enemyUnits = Number(args.target);
         if ((enemyUnits !== 3 && enemyUnits !== 5) || G.foreignWars[beneficiary] !== undefined ||
