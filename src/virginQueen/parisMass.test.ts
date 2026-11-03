@@ -14,6 +14,22 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Paris is Worth a Mass (card #111)", () => {
+    it("can choose which adjacent spaces convert", () => {
+        const G = game();
+        G.powers.protestant.cards = ["vq-111"];
+        G.spaces.paris.control = "france";
+        G.spaces.paris.land = {};
+        G.spaces.orleans.control = "protestant";
+        G.spaces.orleans.land.protestant = {regular: 5, merc: 0, cav: 0};
+        G.spaces.rouen.control = "protestant";
+        G.leaders.navarre = {id: "navarre", power: "protestant", kind: "army", location: "orleans", command: 8};
+
+        expect(playCard(G, context(), {cardId: "vq-111", asEvent: true, target: "paris:orleans"})).toBeUndefined();
+
+        expect(G.spaces.paris.control).toBe("protestant");
+        expect(G.spaces.orleans.control).toBe("protestant");
+    });
+
     it("takes Paris and moves the Huguenot capital there", () => {
         const G = game();
         G.powers.protestant.cards = ["vq-111"];

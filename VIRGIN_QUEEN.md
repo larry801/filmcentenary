@@ -385,7 +385,7 @@
 
 - 条件：新教控制巴黎或 2 个巴黎相邻地区、巴黎 1 格内有 ≥5 新教正规军与纳瓦拉的亨利、且新教未与法国结盟。
 - 新教夺取巴黎及最多 3 个 1 格内地区控制权，首都迁至巴黎；事件牌移出游戏。
-- 当前自动选择优先巴黎及相邻地区。
+- 可用 `地区1:地区2:地区3` 指定巴黎及 1 格内地区；未指定时优先巴黎及相邻地区。
 
 ### 誓绝法案（#103）
 
@@ -1064,7 +1064,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #103 誓绝法案接入后的验证：`jest src/virginQueen --runInBand --silent` 82 suites、493 tests passed（新增 1 项：结盟/派兵/VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#111 巴黎值得一场弥撒接入后的验证：`jest src/virginQueen --runInBand --silent` 83 suites、494 tests passed（新增 1 项：夺取巴黎/迁都）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#111 巴黎值得一场弥撒接入后的验证：`jest src/virginQueen --runInBand --silent` 129 suites、572 tests passed（新增 2 项：夺取巴黎/迁都、指定转化地区）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #109 阿拉斯联盟接入后的验证：`jest src/virginQueen --runInBand --silent` 129 suites、571 tests passed（清雇佣兵、指定 5 地区/瓦隆卫队、尼德兰煽动拦截、西班牙本土化招募/建造）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 

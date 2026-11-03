@@ -1256,7 +1256,7 @@ const resolveUnionOfArras = (G: VQGame, target?: string): void => {
     pushLog(G, "Union of Arras removes Dutch mercenaries, secures five spaces, and raises Walloon guards.");
 };
 
-const resolveParisMass = (G: VQGame): void => {
+const resolveParisMass = (G: VQGame, target?: string): void => {
     if (allied(G, "protestant", "france")) return;
     const neighbors = landNeighbors("paris").map((neighbor) => neighbor.id);
     const adjacent = neighbors.filter((id) => G.spaces[id]?.control === "protestant").length;
@@ -1265,7 +1265,9 @@ const resolveParisMass = (G: VQGame): void => {
     const regulars = region.reduce((total, id) => total + (G.spaces[id]?.land.protestant?.regular ?? 0), 0);
     const navarre = G.leaders.navarre;
     if (regulars < 5 || navarre === undefined || !region.includes(navarre.location)) return;
-    for (const id of region.slice(0, 3)) G.spaces[id].control = "protestant";
+    const preferred = target?.split(":").filter((id) => region.includes(id)) ?? [];
+    const chosen = preferred.length > 0 ? preferred.slice(0, 3) : region.slice(0, 3);
+    for (const id of chosen) G.spaces[id].control = "protestant";
     G.protestantCapital = "paris";
     removeCardFromGame(G, "vq-111");
     pushLog(G, "Paris is Worth a Mass: the Protestant takes Paris and moves the Huguenot capital there.");
@@ -1932,7 +1934,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "actOfAbjuration") {
         resolveActOfAbjuration(G, ctx, p);
     } else if (handler === "parisIsWorthAMass") {
-        resolveParisMass(G);
+        resolveParisMass(G, target);
     } else if (handler === "unionOfArras") {
         resolveUnionOfArras(G, target);
     } else if (handler === "dragutFalls") {
