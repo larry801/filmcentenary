@@ -145,6 +145,11 @@
 
 地图中的英格兰家乡地区已补齐宗教区域标记；补入里尔与敦刻尔克供杜埃事件检查。新增点位与邻接仍是重建示意数据，将领战斗值也沿用现有近似值。此处没有完成全部自由响应时点和沃尔辛厄姆在另一行动中插入“移除人员＋获取情报”的嵌套响应；不能由本轮结果推断这些卡已完整自动化。大屠杀的“纳瓦拉与法国王室订婚”只检查当年外交阶段登记、尚未在冬季结算的订婚；纳瓦拉目前只在锦标赛的王室名单中，战役中他不会在第 3 回合自动加入，因此战役局里加强版条件实际上不会触发。计数器供应限制除五枚 Jesuit 外仍沿用原有实现。
 
+### 爱德华·斯塔福德爵士（#102）
+
+- 作为事件打出，检视目标势力的手牌与宝藏，并按混合手牌规则随机弃置一张非本国牌或一个宝藏。
+- 响应模式（取消沃尔辛厄姆）尚未接入。
+
 ### 苏格兰的玛丽女王（#89）
 
 - 玛丽在世时，作为事件打出：法国对苏格兰 +3 外交影响力，然后立即进行苏格兰外交评议。
@@ -366,6 +371,7 @@ src/virginQueen/
   foxesBook.test.ts     #52 福克斯殉道者名录
   experiencedNavigator.test.ts #43 老练领航员 +1 Navigation
   maryCard.test.ts      #89 玛丽事件 +3 影响力/苏格兰评议/死亡移除
+  stafford.test.ts      #102 斯塔福德随机弃牌/宝藏
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
 ```
@@ -490,3 +496,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #43 老练领航员接入后的验证：`jest src/virginQueen --runInBand --silent` 45 suites、441 tests passed（新增 1 项：+1 Navigation 改变检定结果）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #89 玛丽女王事件接入后的验证：`jest src/virginQueen --runInBand --silent` 46 suites、443 tests passed（新增 2 项：+3 影响力并评议苏格兰、玛丽死后移出游戏）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#102 斯塔福德事件接入后的验证：`jest src/virginQueen --runInBand --silent` 47 suites、445 tests passed（新增 2 项：随机弃牌、同数宝藏时弃宝藏）；`npm run build` 通过，仍有既有大体积 chunk 提示。

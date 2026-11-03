@@ -466,6 +466,27 @@ const resolveConquestOfPhilippines = (G: VQGame, ctx: Ctx): void => {
 
 /** #43 Experienced Navigator: +1 Navigation for one captain (max 3). */
 /** #89 Mary Queen of Scots event: +3 French influence then resolve Scotland. */
+/** #102 Sir Edward Stafford event: inspect and discard a card or treasure. */
+const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target === undefined || !isPower(target)) return;
+    const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
+    const treasures = G.powers[target].treasures;
+    if (cards.length === 0 && treasures.length === 0) {
+        pushLog(G, "Sir Edward Stafford finds nothing to discard.");
+        return;
+    }
+    if (treasures.length >= cards.length) {
+        const index = Math.min(treasures.length - 1, Math.max(0, die(ctx, treasures.length) - 1));
+        const [value] = treasures.splice(index, 1);
+        pushLog(G, `Sir Edward Stafford discards a ${value} CP treasure from ${powerLabel(target)}.`);
+    } else {
+        const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
+        G.powers[target].cards = G.powers[target].cards.filter((id) => id !== card);
+        G.discard.push(card);
+        pushLog(G, `Sir Edward Stafford discards ${cardById(card).name} from ${powerLabel(target)}.`);
+    }
+};
+
 const resolveMaryQueenOfScots = (G: VQGame, ctx: Ctx): void => {
     const mary = G.royals.find((royal) => royal.id === "maryScots");
     const alive = G.espionage?.mary !== "dead" && mary?.alive !== false;
@@ -678,6 +699,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveExperiencedNavigator(G, target);
     } else if (handler === "maryQueenOfScots") {
         resolveMaryQueenOfScots(G, ctx);
+    } else if (handler === "sirEdwardStafford") {
+        resolveSirEdwardStafford(G, ctx, target);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
@@ -792,7 +815,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     if (args.asEvent === true && timedResponseCard && !tutorialEvent && G.cardWindow?.kind !== "response" &&
-        !["experiencedNavigator", "maryQueenOfScots"].includes(cardHandler)) {
+        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford"].includes(cardHandler)) {
         return INVALID_MOVE;
     }
     const cancelWindow = args.asEvent === true && canCancelCardEvent(G, def);
