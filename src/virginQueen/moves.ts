@@ -24,7 +24,7 @@ import {
 } from "./constant/general";
 import {cardById} from "./constant/cards";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
-import {WORLD_HAZARDS, WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENT_BY_ID} from "./data/world";
+import {WORLD_HAZARDS, WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENT_BY_ID, WORLD_TRADE_WINDS} from "./data/world";
 import {patronById, royalAvailable, seaCaptainById} from "./scenario";
 import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
@@ -1208,7 +1208,10 @@ export const moveExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; zone
     if (expedition === undefined || expedition.power !== p || !WORLD_SEA_ZONE_BY_ID[args.zone] ||
         expedition.movedImpulse === G.impulse || !WORLD_SEA_ZONE_BY_ID[expedition.location].adjacent.includes(args.zone) ||
         (!moveAlreadyPaid && !spend(G, p, 1))) return INVALID_MOVE;
-    if (WORLD_HAZARDS.has(`${expedition.location}|${args.zone}`) && !navigationCheck(G, ctx, args.captain)) return;
+    const againstTradeWind = WORLD_TRADE_WINDS.has(`${args.zone}|${expedition.location}`) &&
+        !WORLD_TRADE_WINDS.has(`${expedition.location}|${args.zone}`);
+    if ((WORLD_HAZARDS.has(`${expedition.location}|${args.zone}`) || againstTradeWind) &&
+        !navigationCheck(G, ctx, args.captain)) return;
     const from = expedition.location;
     expedition.location = args.zone;
     expedition.movedImpulse = G.impulse;

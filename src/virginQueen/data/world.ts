@@ -78,6 +78,15 @@ export const WORLD_HAZARDS: ReadonlySet<string> = new Set([
     "indianOcean|southAtlantic",
 ]);
 
+/** Directed trade-wind arrows; moving in the opposite direction requires a Navigation check. */
+export const WORLD_TRADE_WINDS: ReadonlySet<string> = new Set([
+    "northAtlantic|antilles",
+    "guineaCoast|southAtlantic",
+    "mexicanCoast|southPacific",
+    "southPacific|indianOcean",
+    "indianOcean|southAtlantic",
+]);
+
 export const WORLD_SETTLEMENTS: WorldSettlement[] = [
     {
         id: "florida",

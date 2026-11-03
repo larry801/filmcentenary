@@ -63,6 +63,28 @@ describe("Navigation Table (rule 16.4)", () => {
         expect(G.powers.ottoman.seaCaptains).not.toContain("muratReis");
     });
 
+    it("requires a check when moving against a trade wind", () => {
+        const G = game();
+        G.powers.england.cp = 2;
+        G.worldCaptains.drake = {power: "england", location: "southAtlantic", damaged: false, colony: false};
+
+        expect(moveExpedition(G, context([1, 2]), {captain: "drake", zone: "guineaCoast"})).toBeUndefined();
+
+        expect(G.worldCaptains.drake).toBeUndefined();
+        expect(G.lastRolls).toContain("Navigation");
+    });
+
+    it("does not check when moving with a trade wind", () => {
+        const G = game();
+        G.powers.england.cp = 2;
+        G.worldCaptains.drake = {power: "england", location: "guineaCoast", damaged: false, colony: false};
+
+        expect(moveExpedition(G, context([1, 2]), {captain: "drake", zone: "southAtlantic"})).toBeUndefined();
+
+        expect(G.worldCaptains.drake.location).toBe("southAtlantic");
+        expect(G.worldCaptains.drake.damaged).toBe(false);
+    });
+
     it("returns a Turn Track captain to the pool in a later Card Draw", () => {
         const G = game();
         G.powers.england.seaCaptains = G.powers.england.seaCaptains.filter((id) => id !== "drake");
