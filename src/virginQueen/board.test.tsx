@@ -15,6 +15,34 @@ const fakeCtx = (): Ctx => ({
 } as unknown as Ctx);
 
 describe("Virgin Queen board", () => {
+    it("shows Spanish Road formation controls only to the Spanish responder", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+        G.pendingTutorialEvent = {cardId: "vq-003", power: "spain", responding: "spain", step: "roadFormation",
+            remaining: 1, tracks: [], roadFormation: {units: {}, leaders: []}};
+        for (const playerID of ["0", "1", null]) {
+            const html = renderToStaticMarkup(<VirginQueenBoard {...{
+                G, ctx: {phase: "action", currentPlayer: "1"}, moves: {}, playerID, isActive: playerID === "1",
+            } as any}/>);
+            expect(html).toContain("先选择米兰的部队与随军将领");
+            expect(html.includes(">不进行米兰部署<")).toBe(playerID === "1");
+        }
+    });
+
+    it("shows remaining rebel hits and naval loss choices to the targeted controller", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+        G.spaces.tunis.control = "spain";
+        G.spaces.tunis.naval = {spain: {galley: 1, galleon: 0, racebuilt: 0, corsair: 0}};
+        G.pendingTutorialEvent = {cardId: "vq-018", power: "ottoman", responding: "spain", step: "rebelLosses",
+            remaining: 2, tracks: [], space: "tunis"};
+        for (const playerID of ["0", "1", null]) {
+            const html = renderToStaticMarkup(<VirginQueenBoard {...{
+                G, ctx: {phase: "action", currentPlayer: "0"}, moves: {}, playerID, isActive: playerID === "1",
+            } as any}/>);
+            expect(html).toContain("还需分配 2 次损失");
+            expect(html.includes(">移除 西班牙 桨帆船<")).toBe(playerID === "1");
+        }
+    });
+
     it("prioritizes a battle response and exposes choices only to its responder", () => {
         const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
         G.pendingBattle = {phase: "field", location: "belgrade", from: "sofia", attacker: "ottoman", attackers: ["ottoman"],

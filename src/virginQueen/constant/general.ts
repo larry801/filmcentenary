@@ -440,6 +440,7 @@ export interface VQGame {
         space?: string;
         targetPower?: Power;
         tracks: string[];
+        roadFormation?: {units: Partial<Record<Controller, LandStack>>; leaders: string[]};
     };
     pendingPiracy?: {power: Power; target: Power; zone: SeaZoneID; step: "losses" | "rewards"; remaining: number; rewards: Record<string, number>};
     piracyUsed?: Partial<Record<Power, SeaZoneID[]>>;

@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {Controller, MinorPower, MINOR_POWERS, Power, VQGame, isPower, landCount, navalCount} from "./constant/general";
+import {Controller, LandStack, MinorPower, MINOR_POWERS, Power, VQGame, controllerNameZh, isPower, landCount, navalCount} from "./constant/general";
 import {cardById} from "./constant/cards";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {LAND_NEIGHBORS, SPACE_BY_ID, SPACES} from "./mapData";
@@ -9,10 +9,10 @@ import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
 import {TUTORIAL_KEYS, tutorialSpaceAllowed} from "./tutorial";
 import {startBattle} from "./combat";
 import {
-    addLand, addNaval, atWar, capitalOf, captureLeaders, discardCard, drawCards, friendlyControlled,
+    addLand, addNaval, atWar, atWarWithMinor, capitalOf, captureLeaders, cleanupLand, cleanupNaval, discardCard, drawCards, ensureLand, friendlyControlled,
     friendlyController, hits, isFortifiedSpace, isPort, minorAlly, moveLeaders, ownersWithLand,
     powerVp, pushLog, removeCardFromHand, resolveMajorDiplomacy, resolveMinorDiplomacy,
-    roll, setWar, shuffle, totalLand, totalNaval,
+    ownersWithNaval, roll, setWar, shuffle, totalLand, totalNaval,
 } from "./util";
 
 export interface TutorialEventOption {id: string; label: string}
@@ -26,6 +26,90 @@ const neighborsWithin = (from: string, distance: number): string[] => {
     let visited = [from];
     for (let index = 0; index < distance; index++) visited = [...new Set([...visited, ...visited.flatMap((id) => (LAND_NEIGHBORS[id] ?? []).map((neighbor) => neighbor.id))])];
     return visited;
+};
+
+const roadSize = (G: VQGame): number => Object.values(G.pendingTutorialEvent?.roadFormation?.units ?? {})
+    .reduce((sum, stack) => sum + landCount(stack), 0);
+const roadCapacity = (G: VQGame): number => Math.max(4,
+    (G.pendingTutorialEvent?.roadFormation?.leaders ?? []).map((id) => LEADER_BY_ID[id].command ?? 0)
+        .sort((a, b) => b - a).slice(0, 2).reduce((sum, rating) => sum + rating, 0));
+
+/** Spanish Road uses land paths through friendly or neutral spaces, with at most one pass. */
+export const spanishRoadDestinations = (G: VQGame): string[] => {
+    const queue = [{id: "milan", passes: 0}];
+    const seen = new Set<string>();
+    const destinations = new Set<string>();
+    while (queue.length) {
+        const current = queue.shift()!;
+        const key = `${current.id}:${current.passes}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (current.id !== "milan" && friendlyControlled(G, "spain", current.id)) destinations.add(current.id);
+        for (const link of LAND_NEIGHBORS[current.id] ?? []) {
+            const state = G.spaces[link.id];
+            const passes = current.passes + Number(link.pass);
+            if (passes > 1 || !tutorialSpaceAllowed(link.id) || state.unrest || state.siege) continue;
+            const controller = state.control;
+            if (isPower(controller) ? atWar(G, "spain", controller) : controller !== "independent" && atWarWithMinor(G, "spain", controller)) continue;
+            if ([...ownersWithLand(G, link.id), ...ownersWithNaval(G, link.id)].some((owner) => !friendlyController(G, "spain", owner))) continue;
+            queue.push({id: link.id, passes});
+        }
+    }
+    return [...destinations];
+};
+
+const cityRebelTargets = (G: VQGame) => activeSpaces().filter((space) => {
+    const control = G.spaces[space.id].control;
+    return isFortifiedSpace(G, space.id) && control !== space.home &&
+        !(isPower(control) && friendlyController(G, control, space.home));
+});
+
+const cityRebelLossOptions = (G: VQGame): TutorialEventOption[] => {
+    const pending = G.pendingTutorialEvent!;
+    const state = G.spaces[pending.space!];
+    const controlled = (owner: Controller) => owner === state.control ||
+        (isPower(state.control) && !isPower(owner) && owner !== "independent" && minorAlly(G, owner) === state.control);
+    const result: TutorialEventOption[] = [];
+    const names = {regular: "正规军", merc: "雇佣兵", cav: "骑兵", galley: "桨帆船", galleon: "大帆船", racebuilt: "快帆船", corsair: "海盗船"};
+    for (const [owner, stack] of Object.entries(state.land)) {
+        if (!controlled(owner as Controller)) continue;
+        for (const kind of ["regular", "merc", "cav"] as const) {
+            if (stack![kind] > 0) result.push(option(`loss:land:${owner}:${kind}`, `移除 ${controllerNameZh(owner as Controller)} ${names[kind]}`));
+        }
+    }
+    for (const [owner, stack] of Object.entries(state.naval)) {
+        if (!controlled(owner as Controller)) continue;
+        for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) {
+            if (stack![kind] > 0) result.push(option(`loss:naval:${owner}:${kind}`, `移除 ${controllerNameZh(owner as Controller)} ${names[kind]}`));
+        }
+    }
+    return result;
+};
+
+const finishCityRebels = (G: VQGame, ctx: Ctx): void => {
+    const pending = G.pendingTutorialEvent!;
+    const state = G.spaces[pending.space!];
+    if (totalLand(G, pending.space!, ownersWithLand(G, pending.space!)) + totalNaval(G, pending.space!, ownersWithNaval(G, pending.space!)) > 0) {
+        finish(G, ctx);
+        return;
+    }
+    // Naval leaders wait for next Spring; only army leaders are captured by the event.
+    const armyOwners: Controller[] = [];
+    for (const id of [...state.leaders]) {
+        const def = LEADER_BY_ID[id];
+        if (def?.kind === "naval") {
+            state.leaders = state.leaders.filter((leader) => leader !== id);
+            G.leaders[id] = {id, location: "pool", returnTurn: G.year + 1};
+        } else if (def) armyOwners.push(def.power);
+    }
+    captureLeaders(G, pending.space!, armyOwners, pending.power);
+    const home = SPACE_BY_ID[pending.space!].home;
+    state.control = !isPower(home) && home !== "independent" ? minorAlly(G, home) ?? home : home;
+    delete state.siege;
+    pending.step = "rebelRegular";
+    pending.responding = pending.power;
+    pending.remaining = 1;
+    prompt(G, ctx);
 };
 
 const influenceTracks = (G: VQGame, power: Power): string[] => {
@@ -57,6 +141,29 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
     if (!pending) return [];
     const power = pending.power;
     const number = cardById(pending.cardId).officialNumber;
+    if (pending.step === "roadFormation") {
+        const formation = pending.roadFormation!;
+        const result = [option("none", "不进行米兰部署")];
+        const unitNames = {regular: "正规军", merc: "雇佣兵", cav: "骑兵"};
+        for (const [owner, available] of Object.entries(G.spaces.milan.land)) {
+            if (owner !== "spain" && (isPower(owner) || !friendlyController(G, "spain", owner as Controller))) continue;
+            for (const kind of ["regular", "merc", "cav"] as const) {
+                const selected = formation.units[owner as Controller]?.[kind] ?? 0;
+                const label = `${controllerNameZh(owner as Controller)} ${unitNames[kind]}（已选 ${selected}）`;
+                if (selected < available![kind] && roadSize(G) < roadCapacity(G)) result.push(option(`add:${owner}:${kind}`, `增加 ${label}`));
+                if (selected > 0) result.push(option(`remove:${owner}:${kind}`, `减少 ${label}`));
+            }
+        }
+        for (const id of G.spaces.milan.leaders.filter((id) => LEADER_BY_ID[id]?.power === "spain" && LEADER_BY_ID[id].kind === "army")) {
+            result.push(option(`formationLeader:${id}`, `${formation.leaders.includes(id) ? "取消" : "选择"}随军将领：${LEADER_BY_ID[id].name}`));
+        }
+        if ((roadSize(G) > 0 || formation.leaders.length > 0) && roadSize(G) <= roadCapacity(G)) {
+            result.push(...spanishRoadDestinations(G).map((id) => option(`deploy:${id}`, `部署至 ${SPACE_BY_ID[id].name}（${roadSize(G)} 陆军）`)));
+        }
+        return result;
+    }
+    if (pending.step === "rebelLosses") return cityRebelLossOptions(G);
+    if (pending.step === "rebelRegular") return [option("regular", "增加 1 名家乡势力正规军"), option("none", "不增加正规军")];
     if (pending.step === "cancel") return [option("continue", "允许事件结算"), option("cancel", "打出 Grand Vizier 取消事件")];
     if (pending.step === "tribute") return [option("refuse", "拒绝进贡"), ...(drawableCards(G, "spain").length > 0 ? [option("offer", "提出进贡 1 张随机手牌")] : [])];
     if (pending.step === "acceptTribute") return [option("accept", "接受进贡，取消宣战并抽牌"), option("reject", "拒绝进贡，继续宣战")];
@@ -95,9 +202,7 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
     if (number === 13 || number === 23 || number === 17) return activeSpaces().flatMap((space) => Object.entries(G.spaces[space.id].land)
         .filter(([owner, stack]) => stack && (number === 17 ? isPower(owner) && owner !== power && landCount(stack) > 0 : stack.merc > 0))
         .map(([owner]) => option(`army:${space.id}:${owner}`, `${space.name} · ${owner}`)));
-    if (number === 18) return activeSpaces().filter((space) => isFortifiedSpace(G, space.id) &&
-        G.spaces[space.id].control !== space.home && !friendlyController(G, power, G.spaces[space.id].control))
-        .map((space) => spaceOption(space.id));
+    if (number === 18) return cityRebelTargets(G).map((space) => spaceOption(space.id));
     if (number === 19) return ["papacy", "venice", "hre"].flatMap((track) => (["ottoman", "spain"] as Power[])
         .filter((target) => target !== power && influenceValue(G, track, target) > 0).map((target) => option(`remove:${track}:${target}`, `移除 ${target} 对 ${track} 的影响力`)));
     if (number === 26) {
@@ -120,6 +225,7 @@ export const canPlayTutorialEvent = (G: VQGame, power: Power, cardId: string): b
     if ([7, 8, 9, 10, 12, 14, 15].includes(number)) return false;
     if (number === 16) return power === "ottoman";
     if (number === 3) return power === "spain" && G.spaces.milan.control === "spain" && !G.spaces.milan.siege && !G.spaces.milan.unrest;
+    if (number === 18) return cityRebelTargets(G).length > 0;
     if (number === 24) return powerVp(G, "ottoman") >= 13 && influenceTracks(G, power).length >= 2;
     if (number === 27) return power !== "ottoman" && !G.spaces.malta.siege;
     if (number === 28) return atWar(G, "ottoman", "spain") && !effects(G).moriscoSpace;
@@ -201,6 +307,54 @@ export const chooseTutorialEvent = (G: VQGame, ctx: Ctx, args: {choice: string})
     const power = pending.power;
     const number = cardById(pending.cardId).officialNumber!;
     const [action, target, other] = args.choice.split(":");
+    if (pending.step === "roadFormation") {
+        const formation = pending.roadFormation!;
+        if (action === "none") {finish(G, ctx); return;}
+        if (action === "add" || action === "remove") {
+            const owner = target as Controller;
+            const kind = other as keyof LandStack;
+            formation.units[owner] ??= {regular: 0, merc: 0, cav: 0};
+            formation.units[owner]![kind] += action === "add" ? 1 : -1;
+        } else if (action === "formationLeader") {
+            formation.leaders = formation.leaders.includes(target) ? formation.leaders.filter((id) => id !== target) : [...formation.leaders, target];
+        } else if (action === "deploy") {
+            for (const [owner, stack] of Object.entries(formation.units)) {
+                const source = G.spaces.milan.land[owner as Controller]!;
+                const destination = ensureLand(G, target, owner as Controller);
+                for (const kind of ["regular", "merc", "cav"] as const) {source[kind] -= stack![kind]; destination[kind] += stack![kind];}
+                cleanupLand(G, "milan", owner as Controller);
+                cleanupLand(G, target, owner as Controller);
+            }
+            moveLeaders(G, "milan", target, formation.leaders);
+            pushLog(G, `Spanish Road deploys ${roadSize(G)} land unit(s) from Milan to ${SPACE_BY_ID[target].name}.`);
+            finish(G, ctx);
+            return;
+        }
+        prompt(G, ctx);
+        return;
+    }
+    if (pending.step === "rebelLosses") {
+        const [, type, owner, kind] = args.choice.split(":");
+        const state = G.spaces[pending.space!];
+        if (type === "land") {
+            state.land[owner as Controller]![kind as keyof LandStack] -= 1;
+            cleanupLand(G, pending.space!, owner as Controller);
+        } else {
+            const stack = state.naval[owner as Controller]!;
+            stack[kind as keyof typeof stack] -= 1;
+            cleanupNaval(G, pending.space!, owner as Controller);
+        }
+        pending.remaining -= 1;
+        pushLog(G, `City State Rebels in ${SPACE_BY_ID[pending.space!].name}: ${args.choice}.`);
+        if (pending.remaining === 0 || cityRebelLossOptions(G).length === 0) finishCityRebels(G, ctx);
+        else prompt(G, ctx);
+        return;
+    }
+    if (pending.step === "rebelRegular") {
+        if (action === "regular") addLand(G, pending.space!, SPACE_BY_ID[pending.space!].home, "regular", 1);
+        finish(G, ctx);
+        return;
+    }
     if (pending.step === "cancel") {
         if (action === "cancel") {removeCardFromHand(G, "ottoman", "vq-001"); discardCard(G, "ottoman", "vq-001", true);}
         finish(G, ctx);
@@ -262,7 +416,10 @@ export const chooseTutorialEvent = (G: VQGame, ctx: Ctx, args: {choice: string})
             const destination = number === 3 ? "milan" : capitalOf(G, pending.targetPower!)!;
             if (destination) moveLeaders(G, leader.location, destination, [target]);
         }
-        pending.remaining = 0;
+        if (number === 3) {
+            pending.step = "roadFormation";
+            pending.roadFormation = {units: {}, leaders: []};
+        } else pending.remaining = 0;
     } else if (pending.step === "illness") {
         if (action === "discard") {
             const id = shuffle(ctx, G.powers[pending.responding].cards.filter((id) => id !== "vq-006"))[0];
@@ -297,19 +454,16 @@ export const chooseTutorialEvent = (G: VQGame, ctx: Ctx, args: {choice: string})
         pending.step = "payment";
     } else if (number === 18) {
         const state = G.spaces[target];
-        const owner = state.control;
-        const count = hits(roll(ctx, 5));
-        const units = state.land[owner];
-        if (units) {
-            let remaining = count;
-            for (const kind of ["merc", "regular", "cav"] as const) {const lost = Math.min(units[kind], remaining); units[kind] -= lost; remaining -= lost;}
-        }
-        if (totalLand(G, target, ownersWithLand(G, target)) + totalNaval(G, target, Object.keys(state.naval) as Controller[]) === 0) {
-            captureLeaders(G, target, [owner], power);
-            state.control = SPACE_BY_ID[target].home;
-            addLand(G, target, state.control, "regular", 1);
-        }
-        pending.remaining = 0;
+        const dice = roll(ctx, 5);
+        pending.space = target;
+        pending.remaining = hits(dice);
+        pending.step = "rebelLosses";
+        const controller = isPower(state.control) ? state.control : state.control === "independent" ? undefined : minorAlly(G, state.control);
+        pending.responding = controller && ownerOf(G, controller) !== undefined ? controller :
+            controller === "hre" && G.tutorialHreAlly ? G.tutorialHreAlly : power;
+        G.lastRolls = `City State Rebels: [${dice.join(", ")}] = ${pending.remaining} hit(s)`;
+        pushLog(G, G.lastRolls);
+        if (pending.remaining === 0 || cityRebelLossOptions(G).length === 0) {finishCityRebels(G, ctx); return;}
     } else if (number === 19) {
         setInfluence(G, target, other as Power, Math.max(0, influenceValue(G, target, other as Power) - 5));
         pending.remaining = 0;
