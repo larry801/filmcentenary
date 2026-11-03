@@ -704,6 +704,18 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #29 Muscovy Company: extra card draws next year (and two years later for England). */
 /** #22 Genoese Bankers, option 1: draw two now, one fewer next year. */
 /** #32 Calvinist Zeal, option 1: seven attempts in France and the Netherlands. */
+/** #5 Papal Bull: resolve the Papacy; an ally may make Catholic attempts. */
+const resolvePapalBull = (G: VQGame, ctx: Ctx): void => {
+    if (!G.minorDiplomacyResolved.includes("papacy")) resolveMinorDiplomacy(G, ctx, "papacy");
+    const ally = POWERS.find((power) => G.powers[power].alliedMinors.includes("papacy") && ownerOf(G, power) !== undefined);
+    if (ally === undefined) return;
+    const area = (["france", "netherlands"] as const)
+        .map((id) => ({id, count: SPACES.filter((space) => space.area === id && G.spaces[space.id].religion === "protestant").length}))
+        .sort((a, b) => b.count - a.count)[0].id;
+    resolveConversions(G, ctx, ally, "catholic", area, 7);
+    pushLog(G, `Papal Bull: ${powerLabel(ally)} makes seven Catholic attempts in ${area}.`);
+};
+
 const resolveCalvinistZeal = (G: VQGame, ctx: Ctx): void => {
     resolveConversions(G, ctx, "protestant", "protestant", "france", 7, true);
     resolveConversions(G, ctx, "protestant", "protestant", "netherlands", 7, true);
@@ -1849,6 +1861,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveGenoeseBankers(G, ctx, p);
     } else if (handler === "calvinistZeal") {
         resolveCalvinistZeal(G, ctx);
+    } else if (handler === "papalBull") {
+        resolvePapalBull(G, ctx);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {

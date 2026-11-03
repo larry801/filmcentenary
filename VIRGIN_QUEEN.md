@@ -184,6 +184,12 @@
 - 目标地区及一个相邻地区放置动荡。
 - 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
 
+### 教宗诏书（#5）
+
+- 立即进行教廷外交评议；
+- 若某玩家与教廷结盟，自动在该玩家新教地区最多的法兰西/尼德兰区域进行 7 次天主教传播；
+- 绝罚伊丽莎白、意大利赞助、找回神圣同盟等选项尚未接入。
+
 ### 加尔文主义狂热（#32）
 
 - 选项 1：在法兰西与尼德兰各进行 7 次新教传播，首个骰值自动为 6；
@@ -812,6 +818,7 @@ src/virginQueen/
   muscovy.test.ts       #29 莫斯科公司
   genoese.test.ts       #22 热那亚银行家
   calvinistZeal.test.ts #32 加尔文主义狂热
+  papalBull.test.ts     #5 教宗诏书
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -1072,3 +1079,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #22 热那亚银行家（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 109 suites、531 tests passed（新增 1 项：抽 2/次年 -1）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #32 加尔文主义狂热（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 110 suites、532 tests passed（新增 1 项：法/尼各 7 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#5 教宗诏书（传播分支）接入后的验证：`jest src/virginQueen --runInBand --silent` 111 suites、533 tests passed（新增 1 项：教廷评议+7 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
