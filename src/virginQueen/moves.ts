@@ -177,7 +177,7 @@ const haremResponseAllowed = (G: VQGame): boolean => {
     if (taken !== undefined) return taken > 1;
     // States assembled directly in tests may not have run a turn begin yet;
     // after the action phase wraps, the Ottoman is past its first impulse.
-    return G.phaseTurns > 0;
+    return G.phaseTurns > 0 || G.impulse > 1;
 };
 
 /**
