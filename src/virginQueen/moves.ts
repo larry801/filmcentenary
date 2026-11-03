@@ -33,6 +33,7 @@ import {startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {beginGrandVizierEvent, canCancelCardEvent, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, grandVizierInHand, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
 import {startPiracy} from "./piracy";
+import {resolveNavalCombat} from "./navalCombat";
 import {offerInterception} from "./interception";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {LEADER_BY_ID} from "./constant/leaders";
@@ -1588,66 +1589,7 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
         return;
     }
 
-    // Naval combat against enemy squadrons in a sea zone.
-    if (isSeaZone(to)) {
-        const zone = to as keyof VQGame["seaZones"];
-        const enemies = ownersWithNaval(G, to).filter((c) => c !== p && isPower(c) && atWar(G, p, c) && navalCount(G.seaZones[zone].naval[c]) > 0);
-        if (enemies.length > 0) {
-            const aUnits = navalCount(G.seaZones[zone].naval[p]);
-            const dUnits = enemies.reduce((n, c) => n + navalCount(G.seaZones[zone].naval[c]), 0);
-            const med = ["gulfOfLyon", "tyrrhenian", "ionian", "adriatic", "aegean", "easternMediterranean", "barbaryCoast", "northAfricanCoast"].includes(to);
-            const hasGalleys = (G.seaZones[zone].naval[p]?.galley ?? 0) > 0;
-            const galleyPenalty = !med && hasGalleys ? 1 : 0;
-            const aDice = Math.max(1, aUnits + bestBattle(G, to, [p], "naval") - galleyPenalty);
-            const dDice = Math.max(1, dUnits + bestBattle(G, to, enemies, "naval"));
-            const aHits = hits(roll(ctx, aDice));
-            const dHits = hits(roll(ctx, dDice));
-            G.lastRolls = `Naval battle at ${to}: ${aHits} hits (${aDice} dice) vs ${dHits} hits (${dDice} dice)`;
-            pushLog(G, G.lastRolls);
-            removeSeaNavalLosses(G, zone, enemies, aHits);
-            removeSeaNavalLosses(G, zone, [p], dHits);
-            if (aHits <= dHits) {
-                const left = G.seaZones[zone].naval[p];
-                if (left !== undefined) {
-                    const back = ensureNaval(G, from, p);
-                    back.galley += left.galley;
-                    back.galleon += left.galleon;
-                    back.racebuilt += left.racebuilt;
-                    back.corsair += left.corsair;
-                    delete G.seaZones[zone].naval[p];
-                }
-                pushLog(G, `${powerLabel(p)} loses the naval battle and returns to ${from}.`);
-            }
-        }
-    } else {
-        // Port combat: the only reason to enter a hostile port is to fight the
-        // squadron sheltering there.
-        const enemies = ownersWithNaval(G, to).filter((c) => c !== p && isPower(c) && atWar(G, p, c) && navalCount(G.spaces[to].naval[c]) > 0);
-        if (enemies.length > 0) {
-            const aUnits = navalCount(G.spaces[to].naval[p]);
-            const dUnits = enemies.reduce((n, c) => n + navalCount(G.spaces[to].naval[c]), 0);
-            const aDice = Math.max(1, aUnits + bestBattle(G, to, [p], "naval"));
-            const dDice = Math.max(1, dUnits + bestBattle(G, to, enemies, "naval"));
-            const aHits = hits(roll(ctx, aDice));
-            const dHits = hits(roll(ctx, dDice));
-            G.lastRolls = `Naval battle at ${to}: ${aHits} hits (${aDice} dice) vs ${dHits} hits (${dDice} dice)`;
-            pushLog(G, G.lastRolls);
-            removePortNavalLosses(G, to, enemies, aHits);
-            removePortNavalLosses(G, to, [p], dHits);
-            if (aHits <= dHits) {
-                const left = G.spaces[to].naval[p];
-                if (left !== undefined) {
-                    const back = ensureNaval(G, from, p);
-                    back.galley += left.galley;
-                    back.galleon += left.galleon;
-                    back.racebuilt += left.racebuilt;
-                    back.corsair += left.corsair;
-                    delete G.spaces[to].naval[p];
-                }
-                pushLog(G, `${powerLabel(p)} loses the naval battle and returns to ${from}.`);
-            }
-        }
-    }
+    resolveNavalCombat(G, ctx, to, p);
 };
 
 // --------------------------------------------------------------------------
