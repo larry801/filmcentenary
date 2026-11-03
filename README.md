@@ -27,14 +27,12 @@ master 分支的 CI（`.github/workflows/ci.docker.yml`）会构建并推送三�
 - `ghcr.io/larry801/film-centenary-base`：运行时依赖层
 - `ghcr.io/larry801/film-centenary-builder`：构建层
 
-同一个镜像也会同步推到 Docker Hub 的 `larry801/` 下。GHCR 包默认是私有的，
-部署机器拉取前需要登录（用带 `read:packages` 权限的 PAT）：
+同一个镜像也会同步推到 Docker Hub 的 `larry801/` 下。GHCR 上的包目前是公开的，
+可以直接匿名 `docker pull`；如果以后把包改成私有，部署机器拉取前需要先登录：
 
 ```shell
 echo "$GHCR_TOKEN" | docker login ghcr.io -u <你的用户名> --password-stdin
 ```
-
-或者在包的 Settings → Danger Zone 里把可见性改成 public，之后就能匿名拉取。
 
 ## 结构
 
