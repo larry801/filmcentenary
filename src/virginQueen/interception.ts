@@ -8,9 +8,9 @@ import {tutorialSpaceAllowed} from "./tutorial";
 import {startBattle} from "./combat";
 import {
     atWar, bestBattle, ensureLand, ensureNaval, friendlyControlled, friendlyController, isFortifiedSpace,
-    isSeaZone, moveLeaders, navalAdjacent, ownersWithLand, ownersWithNaval, pushLog, removeCardFromHand,
-    discardCard, roll, totalLand,
+    isSeaZone, moveLeaders, navalAdjacent, ownersWithLand, ownersWithNaval, powerLabel, pushLog, roll, totalLand,
 } from "./util";
+import {playBeaconFires} from "./navalCombat";
 
 const candidateSpaces = (G: VQGame): string[] => {
     const pending = G.pendingIntercept;
@@ -75,6 +75,9 @@ export const chooseInterception = (G: VQGame, ctx: Ctx, args: {choice: string; u
     if (!pending || ctx.playerID !== ownerOf(G, pending.defender) || !interceptionOptions(G).some((entry) => entry.id === args.choice)) return INVALID_MOVE;
     if (args.choice === "done") {complete(G, ctx); return;}
     const [action, from] = args.choice.split(":");
+    // #14 is legal only while its owner still holds the card and only from a
+    // home-port fleet (the option list is computed from the same conditions).
+    if (action === "beacon" && !G.powers[pending.defender].cards.includes("vq-014")) return INVALID_MOVE;
     const leaders = (isSeaZone(from) ? G.seaZones[from as SeaZoneID].leaders : G.spaces[from].leaders)
         .filter((id) => LEADER_BY_ID[id]?.power === pending.defender && LEADER_BY_ID[id].kind === (pending.phase === "field" ? "army" : "naval"));
     const selected = args.leaders ?? leaders.slice(0, 2);
@@ -94,8 +97,10 @@ export const chooseInterception = (G: VQGame, ctx: Ctx, args: {choice: string; u
     if (G.interceptedThisImpulse?.impulse !== G.impulse) G.interceptedThisImpulse = {impulse: G.impulse, spaces: []};
     G.interceptedThisImpulse!.spaces.push(from);
     let success = action === "beacon";
-    if (success) {removeCardFromHand(G, pending.defender, "vq-014"); discardCard(G, pending.defender, "vq-014", true);}
-    else {
+    if (success) {
+        // Same card, log and +2 dice state as the full-game beaconResponse stage.
+        playBeaconFires(G, pending.defender);
+    } else {
         const modifier = Math.max(0, ...selected.map((id) => LEADER_BY_ID[id].battle)) + (pending.phase === "field" && pending.defender === "ottoman" && (moving?.cav ?? 0) > 0 ? 1 : 0) -
             (pending.phase === "field" && pending.defender !== "ottoman" && (G.spaces[pending.to].land.ottoman?.cav ?? 0) > 0 ? 1 : 0);
         const dice = roll(ctx, 2);
@@ -115,8 +120,10 @@ export const chooseInterception = (G: VQGame, ctx: Ctx, args: {choice: string; u
         }
         moveLeaders(G, from, pending.to, selected);
         if (action === "beacon") {
+            pushLog(G, `${powerLabel(pending.defender)} intercepts the naval move into ${SPACE_BY_ID[pending.to]?.name ?? pending.to}.`);
             complete(G, ctx);
-            if (G.pendingBattle) G.pendingBattle.cards[pending.defender] = ["vq-014"];
+            // No battle follows, so the recorded +2 dice have nothing to apply to.
+            if (G.pendingBattle === undefined) delete G.navalDiceBonus;
             return;
         }
     }

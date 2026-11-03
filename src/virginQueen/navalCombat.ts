@@ -4,8 +4,8 @@ import {LEADER_BY_ID} from "./constant/leaders";
 import {SEA_ZONE_BY_ID, SPACE_BY_ID} from "./mapData";
 import {ownerOf} from "./ownership";
 import {
-    atWar, bestBattle, friendlyController, hits, isSeaZone, leaderPower, leadersAt, moveLeaders,
-    navalAdjacent, ownersWithNaval, powerLabel, pushLog, roll,
+    atWar, bestBattle, discardCard, friendlyController, hits, isSeaZone, leaderPower, leadersAt, moveLeaders,
+    navalAdjacent, ownersWithNaval, powerLabel, pushLog, removeCardFromHand, roll,
 } from "./util";
 
 const MEDITERRANEAN = new Set([
@@ -200,6 +200,21 @@ export const completeNavalInterception = (G: VQGame, power: Power, from: string,
 /** #14 legal only while a fleet in one of the power's own home ports intercepts. */
 export const canOfferBeaconResponse = (G: VQGame, power: Power, location: string): boolean =>
     !isSeaZone(location) && SPACE_BY_ID[location]?.home === power && G.powers[power].cards.includes("vq-014");
+
+/**
+ * Apply #14 Beacon Fires once its owner has chosen to play it: consume the
+ * card, make the interception automatic and record the +2 dice for the
+ * following naval battle.  Shared by the full-game `beaconResponse` stage and
+ * the two-player tutorial's interception choice so both have identical
+ * card, log and dice effects.
+ */
+export const playBeaconFires = (G: VQGame, defender: Power): boolean => {
+    if (!removeCardFromHand(G, defender, "vq-014")) return false;
+    discardCard(G, defender, "vq-014", true);
+    pushLog(G, `${powerLabel(defender)} plays Beacon Fires: interception succeeds automatically.`);
+    G.navalDiceBonus = {power: defender, amount: 2};
+    return true;
+};
 
 export type InterceptionCandidate = {location: string; power: Power};
 

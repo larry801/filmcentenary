@@ -36,7 +36,7 @@ import {canPlayBattleCard, playBattleCard, startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {beginGrandVizierEvent, cancelEventResponder, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
 import {startPiracy} from "./piracy";
-import {attemptNavalAvoidBattle, attemptNavalInterception, completeNavalInterception, interceptionOrderOptions, navalEnemies, resolveNavalCombat, resolveNavalCombatEnemy} from "./navalCombat";
+import {attemptNavalAvoidBattle, attemptNavalInterception, completeNavalInterception, interceptionOrderOptions, navalEnemies, playBeaconFires, resolveNavalCombat, resolveNavalCombatEnemy} from "./navalCombat";
 import type {InterceptionCandidate} from "./navalCombat";
 import {offerInterception} from "./interception";
 import {tutorialSpaceAllowed} from "./tutorial";
@@ -4235,10 +4235,7 @@ export const respondBeaconFires = (G: VQGame, ctx: Ctx, args: {choice: "play" | 
     delete G.pendingBeacon;
     ctx.events?.endStage();
     if (args.choice === "play") {
-        removeCardFromHand(G, pending.defender, "vq-014");
-        discardCard(G, pending.defender, "vq-014", true);
-        pushLog(G, `${powerLabel(pending.defender)} plays Beacon Fires: interception succeeds automatically.`);
-        G.navalDiceBonus = {power: pending.defender, amount: 2};
+        playBeaconFires(G, pending.defender);
         completeNavalInterception(G, pending.defender, pending.from, pending.to);
         finishNavalMove(G, ctx, pending.power, pending.moveFrom, pending.to, pending.destinationHadEnemy, true);
     } else {
