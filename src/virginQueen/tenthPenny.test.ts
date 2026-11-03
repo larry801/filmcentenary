@@ -23,5 +23,8 @@ describe("Tenth Penny (card #69)", () => {
 
         expect(G.powers.protestant.cards).toHaveLength(0);
         expect(G.powers.spain.cards).toContain("vq-020");
+        expect(G.lockedCards?.spain).toContain("vq-020");
+        G.powers.spain.cardPlayed = false;
+        expect(playCard(G, context("1"), {cardId: "vq-020", asEvent: true, target: "venice"})).toBe("INVALID_MOVE");
     });
 });

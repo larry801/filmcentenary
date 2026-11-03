@@ -1344,7 +1344,8 @@ const resolveTenthPenny = (G: VQGame, ctx: Ctx, p: Power): void => {
             const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
             G.powers.protestant.cards = G.powers.protestant.cards.filter((id) => id !== card);
             G.powers.spain.cards.push(card);
-            pushLog(G, `Tenth Penny: Spain takes ${cardById(card).name} from the Protestant.`);
+            G.lockedCards = {...(G.lockedCards ?? {}), spain: [...(G.lockedCards?.spain ?? []), card]};
+            pushLog(G, `Tenth Penny: Spain takes ${cardById(card).name} from the Protestant; it cannot be played this impulse.`);
         }
     }
 };
@@ -2070,6 +2071,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (!ps.cards.includes(args.cardId)) {
         return INVALID_MOVE;
     }
+    if (G.lockedCards?.[p]?.includes(args.cardId)) return INVALID_MOVE;
     const def = cardById(args.cardId);
     if (args.asEvent === true && isGrandVizier(def) && !canPlayGrandVizier(G, p, ctx.numPlayers)) return INVALID_MOVE;
     const cardHandler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";

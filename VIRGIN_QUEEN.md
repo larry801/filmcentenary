@@ -424,13 +424,13 @@
 
 - 新教打出：在尼德兰进行一次 5 CP 的煽动叛乱（自动选择首个目标）。
 - 西班牙打出：从新教手中随机抽 1 张非本国牌。
-- “抽到的牌不能立即使用”尚未单独建模。
+- 通过 `lockedCards` 禁止该牌在本次行动轮立即打出，下一次该势力行动轮开始时清除。
 
 ### 塔克西斯家族信使（#68）
 
 - 将一张非本国牌/非强制事件牌交给另一势力；
 - 然后从牌堆抽 1 张；
-- “抽到的牌不能立即使用”尚未单独建模。
+- 通过 `lockedCards` 禁止该牌在本次行动轮立即打出，下一次该势力行动轮开始时清除。
 
 ### 黑魔法（#71）/ 阿马达赦令（#104）
 
@@ -814,7 +814,7 @@ src/virginQueen/
   spanishPayShips.test.ts #67 西班牙运银船被截
   blackMagic.test.ts    #71 黑魔法 / #104 阿马达赦令
   taxis.test.ts         #68 塔克西斯家族信使
-  tenthPenny.test.ts    #69 第十便士
+  tenthPenny.test.ts    #69 第十便士/夺牌锁定
   campion.test.ts       #107 埃德蒙·坎皮恩
   donAntonio.test.ts    #105 唐·安东尼奥
   sultanaSafiye.test.ts #98 苏丹娜·萨菲耶选项 1
@@ -1161,3 +1161,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #89 玛丽死亡后以 CP 打出移出游戏接入后的验证：`jest src/virginQueen --runInBand --silent` 128 suites、566 tests passed（新增 1 项：死亡后 CP 打出进 removed）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #36 在伊丽莎白死亡后不能作为事件打出；若以 CP 打出，卡牌直接从游戏中移除，与场景书说明一致。验证：`jest src/virginQueen --runInBand --silent` 129 suites、567 tests passed。
+
+#69 第十便士夺牌锁定接入后的验证：`jest src/virginQueen --runInBand --silent` 129 suites、572 tests passed（增补断言：被夺卡牌本行动轮不可打出）；`npm run build` 通过，仍有既有大体积 chunk 提示。

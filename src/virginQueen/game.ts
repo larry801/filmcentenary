@@ -99,6 +99,7 @@ const turnBegin = (G: VQGame, ctx: Ctx): void => {
         G.powers[p].cardPlayed = false;
         G.powers[p].treasurePlayed = false;
         G.powers[p].passed = false;
+        if (G.lockedCards?.[p] !== undefined) delete G.lockedCards[p];
     }
 };
 
