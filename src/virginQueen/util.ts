@@ -436,6 +436,33 @@ export const drawCount = (G: VQGame, p: Power): number => {
     return Math.max(1, base + rulerBonus + G.powers[p].cardModifier + (G.espionage?.nextDraw[p] ?? 0));
 };
 
+/** 8.4 Colony Table: each established colony rolls for survival/rewards. */
+export const resolveColonies = (G: VQGame, ctx: Ctx): void => {
+    if (G.scenario === "tutorial") return;
+    for (const [settlement, power] of Object.entries(G.worldColonies)) {
+        if (power === undefined) continue;
+        const plantation = G.powers[power].scienceBonuses.includes("plantation") ? 1 : 0;
+        const dice = roll(ctx, 2);
+        const total = dice[0] + dice[1] + plantation;
+        G.lastRolls = `Colony ${settlement}: [${dice.join(",")}] + ${plantation} = ${total}`;
+        pushLog(G, G.lastRolls);
+        if (total <= 4) {
+            delete G.worldColonies[settlement];
+            if (G.worldControls[settlement] === power) delete G.worldControls[settlement];
+            pushLog(G, `Colony ${settlement} is eliminated.`);
+        } else if (total >= 12) {
+            addTreasure(G, ctx, power, 1);
+            addVp(G, power, 1);
+            pushLog(G, `Colony ${settlement} yields a treasure and 1 Virginia Dare VP.`);
+        } else if (total >= 9) {
+            addTreasure(G, ctx, power, 1);
+            pushLog(G, `Colony ${settlement} yields a treasure.`);
+        } else {
+            pushLog(G, `Colony ${settlement} has no effect this turn.`);
+        }
+    }
+};
+
 /** Deal a new year's hands. Home cards return, hands are trimmed to Admin. */
 export const dealYear = (G: VQGame, ctx: Ctx): void => {
     refreshJesuits(G);
@@ -492,6 +519,7 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
     if (G.scenario !== "tutorial" && G.powers.spain.treasures.length === 0) {
         G.powers.spain.treasures = Array.from({length: 4}, () => 1 + die(ctx, 5) - 1);
     }
+    resolveColonies(G, ctx);
 };
 
 export const shuffleTreasure = (ctx: Ctx): number => 1 + (die(ctx, 5) - 1);

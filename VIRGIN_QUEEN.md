@@ -184,7 +184,7 @@ Card Draw 按参战强国依次确认，同一玩家控制的多个强国也需�
 - 2–5 人局中除双人配置外的 Activated Major Power 变体
 - 小国激活与外交影响力判定已接入；完整的小国部队调度和事件例外仍需继续核对
 - 谍报三项行动已接入 2024 官方结果表、Jesuit 与 English Catholic Rebellion；自由时点的全部相关 Response / Event 卡组合仍未完整覆盖，见下方说明。
-- 世界地图已有海域航行、派出船长/殖民队、建立殖民地的可操作框架；世界地图点位仍是近似数据，导航/危险航路检定、环航、世界海盗、要塞和宝藏船队尚未自动结算。
+- 世界地图已有海域航行、派出船长/殖民队、建立殖民地的可操作框架；Card Draw 时已按 8.4 Colony Table 为每个殖民地掷 2d6（Plantation +1）：2–4 消灭、5–8 无效果、9–11 得宝藏、12+ 得宝藏与 1 Virginia Dare VP。世界地图点位仍是近似数据，导航/危险航路检定、环航、世界海盗、要塞和宝藏船队尚未自动结算。
 - 境外战争已接入“波斯战争”和“波兰战争”：配置 3/5 名敌军、派出 3–8 个部队、逐次投入 1 CP 作战、增援、战后返军与战争胜利 VP；波兰战争的 −1 抽牌与“波兰皇家选举”终止效果也已接入。
 - 正式局仍有部分 Response / Combat 卡与 Mandatory Event 需要手动结算；教学局使用的响应卡和 1–31 号卡已接入对应教学流程
 - 正式局已接入自动拦截（13.2）与自动陆军避战（13.3），但编队/尝试顺序由程序选择；退入要塞选项仍保留简化
@@ -235,6 +235,7 @@ src/virginQueen/
   navalCombat.ts        16.2 海战骰数、伤亡、撤退与双方全灭保留
   navalCombat.test.ts   海战骰数、奇数命中、港口守方加骰与全灭保留
   avoidBattle.test.ts   13.3 陆军避战成功、失败照常野战、无合法目的地
+  colony.test.ts        8.4 Colony Table 消灭/无效果/宝藏/Virginia Dare VP/Plantation
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
 ```
 
@@ -284,3 +285,5 @@ Virgin Queen VP 与王室年龄（21.2/21.3）修正后的验证：`jest src/vir
 海战规则（16.2）接入后的验证：`jest src/virginQueen --runInBand --silent` 24 suites、347 tests passed（新增 9 项：双桅帆船每艘 2 骰与每 2 命中损失 1 艘、奇数命中只加给败方、港口守方 +1 骰且攻方必撤回海域、海域防守方成功避战、多支敌军逐个交战、双方全灭时守方保留 1 艘、邻接舰队成功拦截空海域、拦截失败继续移动、目标已有敌军时不拦截）；`npm run build` 通过，仍有既有大体积 chunk 提示。攻方选择多支敌军的顺序与阿马达仍待补齐；海军拦截/避战的编队与顺序自动。
 
 陆军避战（13.3）接入后的验证：`jest src/virginQueen --runInBand --silent` 24 suites、346 tests passed（新增 3 项：成功避战移入相邻合法地区、失败照常野战、无合法相邻目的地不尝试）；`npm run build` 通过，仍有既有大体积 chunk 提示。避战目的地/单位选择自动，未做浏览器手动验收。
+
+殖民地表（8.4）接入后的验证：`jest src/virginQueen --runInBand --silent` 25 suites、352 tests passed（新增 5 项：2–4 消灭并清除控制、5–8 无效果、9–11 宝藏、12+ 宝藏与 1 VP、Plantation +1）；`npm run build` 通过，仍有既有大体积 chunk 提示。世界地图导航/危险航路/环航/海盗/要塞/宝藏船队仍待补齐。
