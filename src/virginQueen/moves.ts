@@ -1,5 +1,5 @@
 import {Ctx} from "boardgame.io";
-import {beginEspionageEvent, beginMassacre, beginNorthernRising, canPlayEspionageEvent, canPlayMassacre, canPlayNorthernRising, isEspionageEvent, plantOperative, startEspionage, espionageState} from "./espionage";
+import {beginEspionageEvent, beginInformantCut, beginMassacre, beginNorthernRising, canPlayEspionageEvent, canPlayInformantCut, canPlayMassacre, canPlayNorthernRising, isEspionageEvent, plantOperative, startEspionage, espionageState} from "./espionage";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
     CardDef,
@@ -1180,7 +1180,13 @@ const resolvePhilosophersStone = (G: VQGame, target?: string): void => {
     pushLog(G, `Philosopher's Stone cancels ${patronById(G, entry.patronId)?.name ?? entry.patronId}'s work.`);
 };
 
-const resolveJohnHawkins = (G: VQGame, p: Power, target?: string): void => {
+const resolveJohnHawkins = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    // Second option: England or Spain cuts an enemy informant on its own card
+    // and plants one on that power (#81 may answer before the cut).
+    if (target !== undefined && target.startsWith("cut:")) {
+        beginInformantCut(G, ctx, p, target);
+        return;
+    }
     if (p !== "england") return;
     if (target === "upgrade") {
         for (const space of SPACES.filter((def) => def.home === "england" && def.ports !== undefined && G.spaces[def.id].control === "england")) {
@@ -2406,7 +2412,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "foreignVolunteers") {
         resolveForeignVolunteers(G, p);
     } else if (handler === "johnHawkins") {
-        resolveJohnHawkins(G, p, target);
+        resolveJohnHawkins(G, ctx, p, target);
     } else if (handler === "philosophersStone") {
         resolvePhilosophersStone(G, target);
     } else if (handler === "elDorado") {
@@ -2535,6 +2541,8 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     // may only play it through the response window.
     if (args.asEvent === true && cardHandler === "sultansHarem" && p !== "ottoman") return INVALID_MOVE;
     if (args.asEvent === true && isEspionageEvent(cardHandler) && !canPlayEspionageEvent(G, p, cardHandler, args.target)) return INVALID_MOVE;
+    if (args.asEvent === true && cardHandler === "johnHawkins" && args.target?.startsWith("cut:") &&
+        !canPlayInformantCut(G, p, args.target)) return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "northernRising" && !canPlayNorthernRising(G)) return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "stBartholomewsDayMassacre" && !canPlayMassacre(G)) return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "untimelyDeath" && G.scenario !== "tutorial" && !canPlayUntimelyDeath(G, args.target)) return INVALID_MOVE;

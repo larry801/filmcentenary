@@ -15,7 +15,7 @@ export interface EspionageState {
 }
 
 export interface PendingEspionage {
-    kind: "intelligence" | "assassination" | "rebellion" | "jesuitEvent" | "walsingham" | "northernRising" | "massacre" | "doubleAgent";
+    kind: "intelligence" | "assassination" | "rebellion" | "jesuitEvent" | "walsingham" | "northernRising" | "massacre" | "doubleAgent" | "johnHawkins";
     power: Power;
     targetPower: Power;
     responding: Power;

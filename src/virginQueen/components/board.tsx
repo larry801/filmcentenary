@@ -141,6 +141,7 @@ const PHASE_LABELS: Record<string, string> = {
 export const EVENT_TARGET_EXAMPLES: Record<string, string> = {
     "vq-030": "spain:return:alba 或 france:skip",
     "vq-053": "peace:france、give:france:vq-020 或 move:paris",
+    "vq-059": "cut:spain（剪除本国板上的西班牙密探）、upgrade 或留空获得 5CP",
     "vq-061": "fortress:atlanticCoast",
     "vq-098": "france:vq-022:vq-021",
     "vq-105": "oporto",
