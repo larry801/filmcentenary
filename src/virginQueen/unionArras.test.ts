@@ -15,6 +15,19 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Union of Arras (card #109)", () => {
+    it("can choose the five secured spaces", () => {
+        const G = game();
+        G.powers.spain.cards = ["vq-109"];
+        const chosen = ["brussels", "ghent", "antwerp", "rotterdam", "flushing"];
+
+        expect(playCard(G, context(), {cardId: "vq-109", asEvent: true, target: chosen.join(":")})).toBeUndefined();
+
+        for (const id of chosen) {
+            expect(G.spaces[id].control).toBe("spain");
+            expect(G.spaces[id].religion).toBe("catholic");
+        }
+    });
+
     it("removes Dutch mercenaries and secures five spaces", () => {
         const G = game();
         G.powers.spain.cards = ["vq-109"];

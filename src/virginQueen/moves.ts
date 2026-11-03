@@ -1223,7 +1223,7 @@ const resolveDragutFalls = (G: VQGame): void => {
     pushLog(G, "Dragut falls; Uluch Ali returns next turn and Spain gains 1 VP.");
 };
 
-const resolveUnionOfArras = (G: VQGame): void => {
+const resolveUnionOfArras = (G: VQGame, target?: string): void => {
     for (const space of SPACES.filter((def) => def.area === "netherlands")) {
         const state = G.spaces[space.id];
         for (const owner of Object.keys(state.land) as Power[]) {
@@ -1233,7 +1233,10 @@ const resolveUnionOfArras = (G: VQGame): void => {
     }
     G.unionOfArras = true;
     G.dutchSpanishHome = true;
-    const selected = SPACES.filter((space) => space.area === "netherlands").slice(0, 5);
+    const preferred = target?.split(":").filter((id) => G.spaces[id] !== undefined && SPACE_BY_ID[id]?.area === "netherlands") ?? [];
+    const selected = preferred.length > 0
+        ? preferred.slice(0, 5).map((id) => SPACE_BY_ID[id])
+        : SPACES.filter((space) => space.area === "netherlands").slice(0, 5);
     for (const space of selected) {
         G.spaces[space.id].control = "spain";
         G.spaces[space.id].religion = "catholic";
@@ -1931,7 +1934,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "parisIsWorthAMass") {
         resolveParisMass(G);
     } else if (handler === "unionOfArras") {
-        resolveUnionOfArras(G);
+        resolveUnionOfArras(G, target);
     } else if (handler === "dragutFalls") {
         resolveDragutFalls(G);
     } else if (handler === "polishRoyalElection") {
