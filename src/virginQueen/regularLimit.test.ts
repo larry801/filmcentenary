@@ -63,7 +63,24 @@ describe("land counter limits (17.1)", () => {
         G.spaces.portsmouth.unrest = false;
         G.powers.england.cp = 10;
 
-        expect(buildNaval(G, context(), {port: "portsmouth", kind: "galleon"})).toBe(INVALID_MOVE);
+        const englandContext = {...context(), currentPlayer: "2", playerID: "2"} as Ctx;
+        expect(buildNaval(G, englandContext, {port: "portsmouth", kind: "galleon"})).toBe(INVALID_MOVE);
+    });
+
+    it("delays rebuilding while lost naval counters are returning", () => {
+        const G = game();
+        for (const zone of Object.values(G.seaZones)) delete zone.naval.england;
+        for (const space of Object.values(G.spaces)) delete space.naval.england;
+        G.spaces.london.naval.england = {galley: 0, galleon: 5, racebuilt: 0, corsair: 0};
+        G.navalLost = {england: {galley: 0, galleon: 1, racebuilt: 0, corsair: 0}};
+        G.spaces.portsmouth.control = "england";
+        G.spaces.portsmouth.unrest = false;
+        G.powers.england.cp = 10;
+
+        const englandContext = {...context(), currentPlayer: "2", playerID: "2"} as Ctx;
+        expect(buildNaval(G, englandContext, {port: "portsmouth", kind: "galleon"})).toBe(INVALID_MOVE);
+        delete G.navalLost.england;
+        expect(buildNaval(G, englandContext, {port: "portsmouth", kind: "galleon"})).toBeUndefined();
     });
 
     it("allows recruiting up to the limit", () => {

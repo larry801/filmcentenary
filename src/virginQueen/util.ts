@@ -999,6 +999,16 @@ export const friendlyControlled = (G: VQGame, p: Power, space: string): boolean 
 };
 
 /** Land counters (regular/mercenary are two sides of the same physical counter). */
+export const recordNavalLoss = (G: VQGame, owner: Controller, kind: keyof NavalStack, count = 1): void => {
+    if (!isPower(owner)) return;
+    G.navalLost ??= {};
+    const stack = G.navalLost[owner] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
+    stack[kind] += count;
+    G.navalLost[owner] = stack;
+};
+
+export const navalLostCount = (G: VQGame, p: Power): number => navalCount(G.navalLost?.[p]);
+
 export const navalForceCount = (G: VQGame, p: Power): number => {
     let total = 0;
     for (const zone of Object.values(G.seaZones)) total += navalCount(zone.naval[p]);

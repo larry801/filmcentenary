@@ -5,7 +5,7 @@ import {SEA_ZONE_BY_ID, SEA_ZONES, SPACE_BY_ID} from "./mapData";
 import {ownerOf} from "./ownership";
 import {cardById} from "./constant/cards";
 import {TUTORIAL_FORTRESSES, tutorialSpaceAllowed} from "./tutorial";
-import {atWar, bestPiracy, hits, isSeaZone, pushLog, removeCardFromHand, roll, shuffle, zonePorts} from "./util";
+import {atWar, bestPiracy, hits, isSeaZone, pushLog, recordNavalLoss, removeCardFromHand, roll, shuffle, zonePorts} from "./util";
 
 const stacks = (G: VQGame, location: string) => isSeaZone(location) ? G.seaZones[location as SeaZoneID].naval : G.spaces[location].naval;
 const adjacentLocations = (zone: SeaZoneID): string[] => [...zonePorts(zone).filter(tutorialSpaceAllowed), ...SEA_ZONE_BY_ID[zone].adjacent];
@@ -85,6 +85,7 @@ export const choosePiracy = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
     const [action, location, kind] = args.choice.split(":");
     if (pending.step === "losses") {
         G.seaZones[pending.zone].naval[pending.power]![location as "galley"] -= 1;
+        recordNavalLoss(G, pending.power, location as "galley");
         pending.remaining = Math.max(0, pending.remaining - 2);
         if (pending.remaining === 0 || piracyOptions(G).length === 0) rollPiracy(G, ctx);
         return;

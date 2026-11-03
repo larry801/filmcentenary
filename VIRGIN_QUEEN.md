@@ -913,7 +913,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #95 洛林的路易丝接入后的验证：`jest src/virginQueen --runInBand --silent` 91 suites、504 tests passed（新增 1 项：加入婚姻池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-陆军/骑兵/海军 force pool 修正后的验证：`jest src/virginQueen --runInBand --silent` 93 suites、510 tests passed（新增 3 项：雇佣兵合并计数、奥斯曼骑兵上限、英格兰海军上限）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+陆军/骑兵/海军 force pool 与重建延迟的验证：`jest src/virginQueen --runInBand --silent` 93 suites、511 tests passed（新增 4 项：雇佣兵合并计数、奥斯曼骑兵上限、英格兰海军上限、损失舰船延迟重建）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #106 德雷克/霍金斯远征接入后的验证：`jest src/virginQueen --runInBand --silent` 92 suites、506 tests passed（新增 1 项：联合远征）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 

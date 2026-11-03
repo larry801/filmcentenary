@@ -197,6 +197,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 phaseBegin(G);
                 G.turnsCompleted = 0;
                 G.springDone = [];
+                G.navalLost = {};
                 resolvePendingCatholicLeague(G);
                 resolvePendingHreReplacement(G);
                 arriveLeaders(G);

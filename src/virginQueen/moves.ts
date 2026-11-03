@@ -115,6 +115,7 @@ import {
     cavalryCount,
     landForceCount,
     navalForceCount,
+    navalLostCount,
     regularCount,
     removeLandLosses,
     removePortNavalLosses,
@@ -2384,7 +2385,7 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
     if (p === "ottoman" && kind === "galley" && ["algiers", "tripoli"].includes(port)) {
         return INVALID_MOVE;
     }
-    if (navalForceCount(G, p) >= NAVAL_LIMITS[p]) {
+    if (navalForceCount(G, p) + navalLostCount(G, p) >= NAVAL_LIMITS[p]) {
         return INVALID_MOVE;
     }
     if (kind === "galleon" && !portZones(port).some((z) => z === "atlanticOcean" || z === "englishChannel" || z === "northSea" || z === "irishSea" || z === "bayOfBiscay")) {

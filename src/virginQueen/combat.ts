@@ -9,7 +9,7 @@ import {tutorialSpaceAllowed} from "./tutorial";
 import {
     atWar, bestBattle, captureLeaders, discardCard, ensureLand, ensureNaval, friendlyControlled,
     friendlyController, hits, isFortifiedSpace, isSeaZone, minorAlly, moveLeaders, navalAdjacent,
-    ownersWithLand, ownersWithNaval, pushLog, removeCardFromHand, roll, totalLand, totalNaval,
+    ownersWithLand, ownersWithNaval, pushLog, recordNavalLoss, removeCardFromHand, roll, totalLand, totalNaval,
 } from "./util";
 
 type Battle = NonNullable<VQGame["pendingBattle"]>;
@@ -165,8 +165,13 @@ const finishCasualties = (G: VQGame, ctx: Ctx): void => {
         }
         const owners = sideOwners(battle, battle.loser === battle.attacker);
         for (const owner of owners) {
-            if (battle.phase === "naval") delete navalStacks(G, battle.location)[owner];
-            else delete G.spaces[battle.location].land[owner];
+            if (battle.phase === "naval") {
+                const stack = navalStacks(G, battle.location)[owner];
+                if (stack !== undefined) {
+                    for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) recordNavalLoss(G, owner, kind, stack[kind]);
+                }
+                delete navalStacks(G, battle.location)[owner];
+            } else delete G.spaces[battle.location].land[owner];
         }
         captureLeaders(G, battle.location, owners, battle.loser === battle.attacker ? battle.defender : battle.attacker);
     }
@@ -323,6 +328,7 @@ export const chooseBattle = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
         if (battle.phase === "naval") {
             const stack = navalStacks(G, battle.location)[owner as Controller]!;
             stack[kind as keyof typeof stack] -= 1;
+            recordNavalLoss(G, owner as Controller, kind as keyof typeof stack);
         } else {
             const stack = G.spaces[battle.location].land[owner as Controller]!;
             stack[kind as keyof typeof stack] -= 1;

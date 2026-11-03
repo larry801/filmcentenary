@@ -620,6 +620,8 @@ export interface VQGame {
     protestantCapital?: string;
     unionOfArras?: boolean;
     gregorianNext?: Power;
+    /** Naval counters lost this year; they return to the pool at Spring. */
+    navalLost?: Partial<Record<Power, NavalStack>>;
     spanishRoadAvailable?: boolean;
     /** Beacon Fires: next interception by this power succeeds and gains +2 dice. */
     beaconFires?: Power;
