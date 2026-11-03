@@ -552,9 +552,29 @@ export const returnSeaCaptains = (G: VQGame): void => {
     }
 };
 
+/** 6.3/20.7: Portuguese treasure row refresh and winter award. */
+export const refreshPortugueseTreasures = (G: VQGame, ctx: Ctx): void => {
+    if (G.portugalEntered === true && (G.portugueseTreasures?.length ?? 0) === 0) {
+        G.portugueseTreasures = Array.from({length: 3}, () => 1 + die(ctx, 5) - 1);
+    }
+};
+
+export const awardPortugueseTreasures = (G: VQGame, ctx: Ctx): void => {
+    if (G.portugalEntered !== true || (G.portugueseTreasures?.length ?? 0) === 0) return;
+    const controller = G.spaces.lisbon.control;
+    if (isPower(controller) && G.portugueseTreasures !== undefined) {
+        const index = die(ctx, G.portugueseTreasures.length) - 1;
+        const [treasure] = G.portugueseTreasures.splice(index, 1);
+        G.powers[controller].treasures.push(treasure);
+        pushLog(G, `${powerLabel(controller)} takes a Portuguese treasure.`);
+    }
+    G.portugueseTreasures = [];
+};
+
 /** Deal a new year's hands. Home cards return, hands are trimmed to Admin. */
 export const dealYear = (G: VQGame, ctx: Ctx): void => {
     returnSeaCaptains(G);
+    refreshPortugueseTreasures(G, ctx);
     G.piracyActions = {};
     G.piracyZones = {};
     G.worldFortressesBuilt = 0;
@@ -660,6 +680,7 @@ export const resolveMinorDiplomacy = (
     options: {exclude?: Power[]; modifier?: Partial<Record<Power, number>>} = {},
 ): Power | undefined => {
     if (!MINOR_POWERS.includes(minor) || G.minorDiplomacyResolved.includes(minor) || !minorAvailable(G, minor)) return undefined;
+    if (minor === "portugal") G.portugalEntered = true;
     const def = MINOR_DIPLOMACY[minor];
     const candidates = [...def.eligible, ...(G.scenario === "tutorial" && minor === "papacy" ? ["ottoman" as Power] : [])].filter((p) =>
         ownerOf(G, p) !== undefined &&
@@ -3180,6 +3201,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         G.powers[p].passed = false;
         G.powers[p].influence = {...G.minorInfluenceDefaults[p]};
     }
+    awardPortugueseTreasures(G, ctx);
     G.minorDiplomacyResolved = [];
     G.piracyUsed = {};
     for (const target of G.majorDiplomacyResolved ?? []) {

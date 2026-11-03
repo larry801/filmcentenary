@@ -203,6 +203,7 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef):
             G.minorInfluenceDefaults[major].portugal = major === "england" ? 1 : 0;
             G.powers[major].influence.portugal = G.minorInfluenceDefaults[major].portugal;
         }
+        G.portugalEntered = true;
         pushLog(G, "Portugal enters play; England starts with 1 diplomatic influence there.");
         return true;
     }
@@ -685,6 +686,34 @@ export const endPhaseTurn = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE =>
         return INVALID_MOVE;
     }
     ctx.events?.endTurn();
+};
+
+export const setTreasureFleetEscorts = (G: VQGame, ctx: Ctx, args: {count: number}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "spring" || power(G, ctx) !== "spain") return INVALID_MOVE;
+    const count = Number(args.count);
+    const current = G.treasureFleetEscorts ?? 0;
+    if (!Number.isInteger(count) || count < 0 || count > 2) return INVALID_MOVE;
+    if (count > current) {
+        let need = count - current;
+        for (const id of ["seville", "corunna", "lisbon"]) {
+            const stack = G.spaces[id]?.naval.spain;
+            if (stack === undefined) continue;
+            const take = Math.min(need, stack.galleon);
+            stack.galleon -= take;
+            need -= take;
+            if (stack.galleon + stack.galley + stack.racebuilt + stack.corsair === 0) delete G.spaces[id].naval.spain;
+            if (need === 0) break;
+        }
+        if (need > 0) return INVALID_MOVE;
+    } else if (count < current) {
+        const port = ["seville", "corunna", "lisbon"].find((id) => G.spaces[id].control === "spain");
+        if (port === undefined) return INVALID_MOVE;
+        const stack = G.spaces[port].naval.spain ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
+        stack.galleon += current - count;
+        G.spaces[port].naval.spain = stack;
+    }
+    G.treasureFleetEscorts = count;
+    pushLog(G, `Spain assigns ${count} galleon(s) to Treasure Fleet escort.`);
 };
 
 export const placeSeaCaptainLeader = (G: VQGame, ctx: Ctx, args: {captain: string; port: string}): void | typeof INVALID_MOVE => {

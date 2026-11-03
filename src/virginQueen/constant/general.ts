@@ -581,6 +581,11 @@ export interface VQGame {
     worldFortressesBuilt?: number;
     /** Spanish Armada: strength 2/4/6/8 and current port or sea zone. */
     armada?: {strength: 2 | 4 | 6 | 8; location: string; land?: LandStack};
+    /** Portugal has entered play and its three-treasure row. */
+    portugalEntered?: boolean;
+    portugueseTreasures?: number[];
+    /** Galleons assigned to the Treasure Fleet escorts box. */
+    treasureFleetEscorts?: number;
     /** Number of completed circumnavigations (first 2 VP, later 1 VP). */
     circumnavigations?: number;
     /** Sea captains on the Turn Track, returning to the pool in a future year. */

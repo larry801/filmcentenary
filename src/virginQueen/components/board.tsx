@@ -1073,6 +1073,15 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         放置海船长
                     </Button>
                 </Stack>}
+                {me === "spain" && <Stack spacing={0.5}>
+                    <Typography variant="subtitle2">珍宝舰队护航</Typography>
+                    <Typography variant="caption" color="text.secondary">最多 2 艘大帆船；仅春季调整，且本回合只能单向移动。</Typography>
+                    <Stack direction="row" spacing={0.5}>
+                        {[0, 1, 2].map((count) => <Button key={count} size="small" variant="outlined"
+                            disabled={!myTurn || (G.treasureFleetEscorts ?? 0) === count}
+                            onClick={() => moves.setTreasureFleetEscorts({count})}>护航 {count}</Button>)}
+                    </Stack>
+                </Stack>}
                 <FormControl size="small" fullWidth>
                     <InputLabel id="vq-spring-mode">行动</InputLabel>
                     <Select labelId="vq-spring-mode" label="行动" value={mode}
