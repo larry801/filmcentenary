@@ -1,6 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
 import {chooseAbjuration, playCard} from "./moves";
+import {moveError} from "./movePolicy";
 import {setupGame} from "./util";
 
 const context = (): Ctx => ({
@@ -26,6 +27,7 @@ describe("Act of Abjuration (card #103)", () => {
 
         expect(playCard(G, context(), {cardId: "vq-103", asEvent: true, target: "amsterdam"})).toBeUndefined();
         expect(G.pendingAbjuration?.offers.some((offer) => offer.power === "england")).toBe(true);
+        expect(moveError(G, "endImpulse")).toBeDefined();
         const protestantContext = {...context(), currentPlayer: "5", playerID: "5"} as Ctx;
         expect(chooseAbjuration(G, protestantContext, {power: "england"})).toBeUndefined();
 
