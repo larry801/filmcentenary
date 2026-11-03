@@ -647,6 +647,22 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 };
 
 /** #87 Rudolf II succeeds Maximilian II and moves the HRE capital to Prague. */
+/** #60 John Knox: convert all but one Scottish space, or add influence. */
+const resolveJohnKnox = (G: VQGame, p: Power, target?: string): void => {
+    const chosen = target !== undefined ? SPACE_BY_ID[target] : undefined;
+    if (chosen !== undefined && chosen.area === "scotland") {
+        for (const space of SPACES.filter((def) => def.area === "scotland" && def.id !== chosen.id)) {
+            G.spaces[space.id].religion = "protestant";
+        }
+        pushLog(G, `John Knox converts Scotland, sparing ${chosen.name}.`);
+        return;
+    }
+    if (p === "england" || p === "protestant") {
+        G.powers[p].influence.scotland = (G.powers[p].influence.scotland ?? 0) + 4;
+        pushLog(G, `John Knox adds 4 ${powerLabel(p)} influence in Scotland.`);
+    }
+};
+
 const resolveRudolfII = (G: VQGame, ctx: Ctx): void => {
     G.powers.hre.ruler = "rudolfII";
     G.powers.hre.rulerAdmin = 1;
@@ -1028,6 +1044,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveMuradIII(G, ctx);
     } else if (handler === "rudolfII") {
         resolveRudolfII(G, ctx);
+    } else if (handler === "johnKnox") {
+        resolveJohnKnox(G, p, target);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {

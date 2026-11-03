@@ -170,6 +170,11 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 约翰·诺克斯（#60）
+
+- 指定一个苏格兰地区：其余所有苏格兰地区转为新教；
+- 或英格兰/新教使用：对苏格兰 +4 外交影响力。
+
 ### 亨利三世 / 穆拉德三世（#84/#85）
 
 - #84：亨利三世继位法国，统治者属性改为 1 Admin / +1 卡牌奖励；未联姻的查理九世移出婚姻池并终止婚约。
@@ -498,6 +503,7 @@ src/virginQueen/
   portugueseRaid.test.ts #77 进击的葡萄牙
   rulerAccession.test.ts #84/#85 亨利三世/穆拉德三世继位
   rudolfII.test.ts      #87 鲁道夫二世/迁都布拉格
+  johnKnox.test.ts      #60 约翰·诺克斯
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -668,3 +674,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #57 爱尔兰叛乱增强后的验证：`jest src/virginQueen --runInBand --silent` 65 suites、468 tests passed（新增 1 项：减半/阿尔斯特叛军）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #87 鲁道夫二世与迁都接入后的验证：`jest src/virginQueen --runInBand --silent` 66 suites、469 tests passed（新增 1 项：继位属性与首都）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#60 约翰·诺克斯接入后的验证：`jest src/virginQueen --runInBand --silent` 67 suites、471 tests passed（新增 2 项：苏格兰转化/影响力）；`npm run build` 通过，仍有既有大体积 chunk 提示。
