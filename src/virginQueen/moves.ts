@@ -2025,7 +2025,10 @@ export const chooseCardEvent = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
 
 export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: boolean; target?: string }): void | typeof INVALID_MOVE => {
     if (moveError(G, "playCard", args)) return INVALID_MOVE;
-    if (ctx.phase !== "action") {
+    const earlyEffect = cardById(args.cardId).officialEffect;
+    const louiseDiplomacy = ctx.phase === "diplomacy" && args.asEvent === true &&
+        earlyEffect?.kind === "manual" && earlyEffect.handler === "louiseOfLorraine";
+    if (ctx.phase !== "action" && !louiseDiplomacy) {
         return INVALID_MOVE;
     }
     const p = power(G, ctx);

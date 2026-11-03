@@ -327,7 +327,7 @@
 
 - 非奥斯曼势力打出：将洛林的路易丝加入婚姻池，归属出牌势力、适婚可用；
 - 事件牌移出游戏；
-- 作为附带协议联姻与“宣布/确认协议”的时机尚未接入。
+- 可在外交阶段作为事件打出，将路易丝加入婚姻池；作为附带协议联姻与“宣布/确认协议”的绑定仍未接入。
 
 ### 敦刻尔克私掠者（#110）
 
@@ -1072,7 +1072,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #110 敦刻尔克私掠者接入后的验证：`jest src/virginQueen --runInBand --silent` 90 suites、503 tests passed（新增 1 项：免费 4 骰海盗）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#95 洛林的路易丝接入后的验证：`jest src/virginQueen --runInBand --silent` 91 suites、504 tests passed（新增 1 项：加入婚姻池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#95 洛林的路易丝接入后的验证：`jest src/virginQueen --runInBand --silent` 123 suites、556 tests passed（新增 2 项：加入婚姻池、外交阶段打出）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 陆军/骑兵/海军 force pool 与重建延迟的验证：`jest src/virginQueen --runInBand --silent` 93 suites、511 tests passed（新增 4 项：雇佣兵合并计数、奥斯曼骑兵上限、英格兰海军上限、损失舰船延迟重建）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 

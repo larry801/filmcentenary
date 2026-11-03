@@ -14,6 +14,17 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Louise of Lorraine (card #95)", () => {
+    it("can be played during diplomacy", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-095"];
+        G.royals = G.royals.filter((royal) => royal.id !== "louiseLorraine");
+        const diplomacy = {...context(), phase: "diplomacy"} as Ctx;
+
+        expect(playCard(G, diplomacy, {cardId: "vq-095", asEvent: true})).toBeUndefined();
+
+        expect(G.royals.some((royal) => royal.id === "louiseLorraine")).toBe(true);
+    });
+
     it("adds Louise to the marriage pool for the playing power", () => {
         const G = game();
         G.powers.france.cards = ["vq-095"];
