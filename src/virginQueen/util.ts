@@ -2125,14 +2125,24 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
         if (male === undefined || female === undefined || !male.alive || !female.alive || male.married || female.married) {
             continue;
         }
-        const d1 = die(ctx, 6);
-        const d2 = die(ctx, 6);
+        const dice = [die(ctx, 6), die(ctx, 6)];
+        // Don Carlos rerolls the highest die; Anna of Austria may reroll the
+        // lowest (automatic when the reroll improves it).
+        if (male.id === "donCarlos" || female.id === "donCarlos") {
+            const high = dice[0] >= dice[1] ? 0 : 1;
+            dice[high] = die(ctx, 6);
+        }
+        if (male.id === "annaAustria" || female.id === "annaAustria") {
+            const low = dice[0] <= dice[1] ? 0 : 1;
+            const reroll = die(ctx, 6);
+            if (reroll > dice[low]) dice[low] = reroll;
+        }
         const samePower = male.power === female.power;
         const ratings = samePower
             ? Math.max(male.eligibility ?? 0, female.eligibility ?? 0)
             : (male.eligibility ?? 0) + (female.eligibility ?? 0);
-        const total = d1 + d2 + ratings;
-        G.lastRolls = `Marriage roll: ${d1}+${d2}+${ratings}=${total}`;
+        const total = dice[0] + dice[1] + ratings;
+        G.lastRolls = `Marriage roll: ${dice[0]}+${dice[1]}+${ratings}=${total}`;
         pushLog(G, `${male.name} & ${female.name}: ${G.lastRolls}`);
         const involved = [...new Set([male.power, female.power])];
         const grantVp = (amount: number): void => {
@@ -2196,6 +2206,31 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
             // Valois marriage bonus: +1 VP for each Valois royal who weds.
             for (const royal of [male, female]) {
                 if (royal.family === "valois") addVp(G, "france", 1);
+            }
+            const ids = [male.id, female.id];
+            if (ids.includes("annaSaxony")) {
+                G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
+            }
+            if (ids.includes("charlesII") && (female.power === "england" || female.power === "protestant")) {
+                G.powers[female.power].marriageCardModifier = (G.powers[female.power].marriageCardModifier ?? 0) - 1;
+            }
+            if (ids.includes("louiseColigny") && (male.power === "england" || male.power === "protestant")) {
+                G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
+            }
+            if (ids.includes("henryIV") && female.power === "france") {
+                G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
+            }
+            if (ids.includes("isabellaClaraEugenia") &&
+                ["philip", "charlesIX", "henryIII", "rudolf"].includes(male.id)) {
+                G.powers[male.power].patronageModifier += 1;
+            }
+            const william = [male, female].find((royal) => royal.id === "williamOrange");
+            if (william !== undefined && [7, 8, 10, 11, 12].includes(total)) {
+                william.married = false;
+                william.status = "available";
+                william.eligibility = 2;
+                william.turn = G.year + 1;
+                pushLog(G, "William of Orange returns to the pool at eligibility 2 next turn.");
             }
         }
     }
