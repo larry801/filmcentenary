@@ -496,7 +496,20 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
 /** #48 Italian Expert: sponsor an Italian patron for 3 CP without paying. */
 /** #35 Patron of Arts, option 2: draw two cards and give one to another power. */
 const resolvePatronOfArts = (G: VQGame, ctx: Ctx, target?: string): void => {
-    if (target === undefined || !isPower(target) || target === "hre") return;
+    if (target === undefined) return;
+    const patron = patronById(G, target);
+    if (patron !== undefined && (patron.region === "italy" || patron.region === "hre") && patron.rating !== null &&
+        !POWERS.some((power) => G.powers[power].patrons.includes(patron.id))) {
+        const key = `hre:${patron.kind}`;
+        if (G.patronizedThisTurn.includes(key)) return;
+        G.pendingPatronage.push({power: "hre", patronId: patron.id, cp: 3});
+        G.patronizedThisTurn.push(key);
+        if (G.powers.hre.ruler === "rudolf") G.pragueCulturalCenter = patron.id;
+        drawCards(G, ctx, "hre", 1);
+        pushLog(G, `Patron of Arts sponsors ${patron.name} for the Holy Roman Empire.`);
+        return;
+    }
+    if (!isPower(target) || target === "hre") return;
     drawCards(G, ctx, "hre", 2);
     const candidates = G.powers.hre.cards.filter((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory");
     if (candidates.length === 0) {

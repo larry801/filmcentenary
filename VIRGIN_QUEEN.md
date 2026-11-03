@@ -153,8 +153,9 @@
 
 ### 科学与艺术的赞助人（#35）
 
+- 选项 1：指定意大利或 HRE 艺术家/科学家，视作 3 CP 赞助并加入待结算；鲁道夫在位时放置“+2 布拉格文化中心”标记；抽 1 张牌。
 - 选项 2：HRE 从牌堆抽 2 张，然后把一张非本国牌/非强制事件牌交给另一势力。
-- 选项 1（指定意大利/随机 HRE 艺术家或科学家，3 CP 赞助）尚未接入。
+- 布拉格 +2 标记尚未参与冬季赞助评分。
 
 ### 凯瑟琳的飞剪船（#42）
 
@@ -569,3 +570,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #42 凯瑟琳的飞剪船取消事件接入后的验证：`jest src/virginQueen --runInBand --silent` 54 suites、453 tests passed（新增 1 项：取消 #52 并保持英格兰宗教不变）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #35 科学与艺术的赞助人（选项 2）接入后的验证：`jest src/virginQueen --runInBand --silent` 55 suites、454 tests passed（新增 1 项：抽 2 张并交给另一势力 1 张）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#35 选项 1 接入后的验证：`jest src/virginQueen --runInBand --silent` 55 suites、455 tests passed（新增 1 项：意大利赞助与布拉格标记）；`npm run build` 通过，仍有既有大体积 chunk 提示。

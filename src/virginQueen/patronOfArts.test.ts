@@ -1,6 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
 import {playCard} from "./moves";
+import {patronById} from "./scenario";
 import {setupGame} from "./util";
 
 const context = (): Ctx => ({
@@ -14,6 +15,20 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Patron of Arts, option 2 (card #35)", () => {
+    it("sponsors an Italian patron and marks Prague while Rudolf rules", () => {
+        const G = game();
+        G.powers.hre.cards = ["vq-035"];
+        G.powers.hre.ruler = "rudolf";
+        const patron = G.patronsAvailable.map((id) => patronById(G, id)).find((candidate) =>
+            candidate?.region === "italy" && candidate.rating !== null && !G.powers.hre.patrons.includes(candidate.id));
+        expect(patron).toBeDefined();
+
+        expect(playCard(G, context(), {cardId: "vq-035", asEvent: true, target: patron!.id})).toBeUndefined();
+
+        expect(G.pendingPatronage.some((entry) => entry.patronId === patron!.id && entry.cp === 3)).toBe(true);
+        expect(G.pragueCulturalCenter).toBe(patron!.id);
+    });
+
     it("draws two cards and gives one to another power", () => {
         const G = game();
         G.powers.hre.cards = ["vq-035", "vq-020"];
