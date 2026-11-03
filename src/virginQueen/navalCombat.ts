@@ -239,8 +239,7 @@ export const attemptNavalInterception = (
         const source = navalAt(G, candidate.location)[candidate.power];
         const armadaOnly = source === undefined && candidate.power === "spain" && G.armada?.location === candidate.location;
         if (!armadaOnly && (source === undefined || navalCount(source) === 0)) continue;
-        if (beaconSkipAt !== candidate.location && G.beaconFires !== candidate.power &&
-            canOfferBeaconResponse(G, candidate.power, candidate.location)) {
+        if (beaconSkipAt !== candidate.location && canOfferBeaconResponse(G, candidate.power, candidate.location)) {
             G.pendingBeacon = {power: active, defender: candidate.power, from: candidate.location, moveFrom: from, to, destinationHadEnemy};
             ctx.events?.setActivePlayers({value: {[ownerOf(G, candidate.power)!]: "beaconResponse"}});
             return "paused";
@@ -250,17 +249,10 @@ export const attemptNavalInterception = (
             source.galleon + source.racebuilt > 0 ? -1 : 0;
         const telescope = G.powers[candidate.power].scienceBonuses.includes("telescope") ? 1 : 0;
         const modifier = bestBattle(G, candidate.location, [candidate.power], "naval") + galleonPenalty + telescope;
-        const beacon = G.beaconFires === candidate.power;
-        const dice = beacon ? [] : roll(ctx, 2);
-        const total = beacon ? 9 : dice[0] + dice[1] + modifier;
-        if (beacon) {
-            pushLog(G, `${powerLabel(candidate.power)} uses Beacon Fires: interception succeeds automatically.`);
-            G.navalDiceBonus = {power: candidate.power, amount: 2};
-            delete G.beaconFires;
-        } else {
-            pushLog(G, `${powerLabel(candidate.power)} naval interception from ${SPACE_BY_ID[candidate.location]?.name ?? candidate.location}: [${dice.join(",")}] + ${modifier} = ${total}.`);
-            if (total < 9) continue;
-        }
+        const dice = roll(ctx, 2);
+        const total = dice[0] + dice[1] + modifier;
+        pushLog(G, `${powerLabel(candidate.power)} naval interception from ${SPACE_BY_ID[candidate.location]?.name ?? candidate.location}: [${dice.join(",")}] + ${modifier} = ${total}.`);
+        if (total < 9) continue;
         completeNavalInterception(G, candidate.power, candidate.location, to);
         return true;
     }

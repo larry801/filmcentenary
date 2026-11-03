@@ -53,6 +53,16 @@ describe("Holy League with the non-player HRE (card #24)", () => {
         expect(G.minorDiplomacyResolved).not.toContain("venice");
     });
 
+    it("allows the activated non-player HRE to receive influence", () => {
+        const G = twoPlayerGame();
+        G.activatedMajors = {hre: {ally: "spain", baseline: 0}};
+
+        expect(playCard(G, context(2, "0"), {cardId: "vq-024", asEvent: true, target: "hre"})).toBeUndefined();
+
+        expect(G.majorInfluence!.hre!.spain).toBe(4);
+        expect(G.majorDiplomacyResolved).toContain("hre");
+    });
+
     it("does not resolve HRE diplomacy a second time", () => {
         const G = twoPlayerGame();
         G.majorDiplomacyResolved = ["hre"];

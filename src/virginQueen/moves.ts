@@ -997,7 +997,7 @@ type HolyLeagueTrack = "papacy" | "venice" | "hre";
 const holyLeagueTracks = (G: VQGame): HolyLeagueTrack[] => [
     "papacy",
     "venice",
-    ...(G.majorInfluence?.hre !== undefined && ownerOf(G, "hre") === undefined ? ["hre" as HolyLeagueTrack] : []),
+    ...(G.majorInfluence?.hre !== undefined && (G.playerPowers ? !Object.values(G.playerPowers).some((powers) => powers.includes("hre")) : ownerOf(G, "hre") === undefined) ? ["hre" as HolyLeagueTrack] : []),
 ];
 
 const resolveHolyLeague = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
@@ -2220,10 +2220,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     const def = cardById(cardId);
     const handler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
     const beneficiary = foreignWarPower(handler);
-    if (cardId === "vq-014") {
-        G.beaconFires = p;
-        pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
-    } else if (cardId === "vq-021") {
+    if (cardId === "vq-021") {
         resolveForeignVolunteers(G, p);
     } else if (cardId === "vq-026") {
         resolveSmallAid(G, target);
@@ -2404,9 +2401,6 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveOttomanTribute(G, ctx, target);
     } else if (handler === "spanishRoad") {
         resolveSpanishRoad(G);
-    } else if (handler === "beaconFires") {
-        G.beaconFires = p;
-        pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def, target)) {
@@ -2477,6 +2471,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     }
     if (G.lockedCards?.[p]?.includes(args.cardId)) return INVALID_MOVE;
     const def = cardById(args.cardId);
+    if (args.asEvent === true && def.id === "vq-014") return INVALID_MOVE;
     if (gregorianResponse !== undefined && (args.target === undefined || !isPower(args.target))) {
         return INVALID_MOVE;
     }
