@@ -141,6 +141,19 @@ import {
 
 const power = (G: VQGame, ctx: Ctx): Power => actingPower(G, ctx.currentPlayer);
 
+/**
+ * #101 is played as a response in the window opened after another power's turn
+ * ends.  The responder is identified by the pending window, not by the turn
+ * player, because the response happens before the next action turn begins.
+ */
+const gregorianResponsePower = (G: VQGame, ctx: Ctx): Power | undefined => {
+    const pending = G.gregorianResponse;
+    if (pending === undefined || ctx.playerID === undefined || ctx.playerID === null) return undefined;
+    if (ownerOf(G, pending.responder) !== ctx.playerID) return undefined;
+    if (ctx.activePlayers?.[ctx.playerID] !== "gregorianResponse") return undefined;
+    return pending.responder;
+};
+
 const countAtLocation = (G: VQGame, location: string, owner: Power): number => {
     const stack = isSeaZone(location) ? G.seaZones[location as keyof VQGame["seaZones"]].naval[owner] : G.spaces[location].naval[owner];
     if (stack !== undefined) return navalCount(stack);
@@ -1251,6 +1264,41 @@ const resolveGregorianCalendar = (G: VQGame, ctx: Ctx, p: Power, target?: string
     pushLog(G, `Gregorian Calendar: ${powerLabel(target)} will begin the next action round.`);
 };
 
+/**
+ * Starts the current power's Action Phase turn.  Normally this runs in
+ * `turn.onBegin`; it is deferred while a #101 response window is open so the
+ * interrupted power does not consume CP, an impulse or a card play.
+ */
+export const startActionTurn = (G: VQGame, ctx: Ctx): void => {
+    const p = G.activePower;
+    if (G.tutorialEffects?.skip.includes(p)) {
+        G.tutorialEffects.skip.splice(G.tutorialEffects.skip.indexOf(p), 1);
+        ctx.events?.endTurn();
+        return;
+    }
+    if (G.skipImpulse?.includes(p)) {
+        G.skipImpulse = G.skipImpulse.filter((power) => power !== p);
+        ctx.events?.endTurn();
+        return;
+    }
+    G.impulse += 1;
+    G.powers[p].cp = 0;
+    G.powers[p].cardPlayed = false;
+    G.powers[p].treasurePlayed = false;
+    G.powers[p].passed = false;
+    if (G.lockedCards?.[p] !== undefined) delete G.lockedCards[p];
+};
+
+/** Decline the #101 after-turn response and start the next power's turn. */
+export const declineGregorianCalendar = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    const pending = G.gregorianResponse;
+    if (pending === undefined || ctx.phase !== "action" ||
+        ownerOf(G, pending.responder) !== ctx.playerID) return INVALID_MOVE;
+    delete G.gregorianResponse;
+    ctx.events?.endStage();
+    startActionTurn(G, ctx);
+};
+
 const resolvePolishElection = (G: VQGame, ctx: Ctx, target?: string): void => {
     const manualBids = new Map<string, string>();
     for (const segment of target?.split("|") ?? []) {
@@ -2281,9 +2329,15 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (ctx.phase !== "action" && !louiseDiplomacy) {
         return INVALID_MOVE;
     }
-    const p = power(G, ctx);
+    const gregorianResponse = args.asEvent === true && args.cardId === "vq-101"
+        ? gregorianResponsePower(G, ctx) : undefined;
+    if (args.asEvent === true && args.cardId === "vq-101" && gregorianResponse === undefined) {
+        // #101 is a response card: it may only be played in the after-turn window.
+        return INVALID_MOVE;
+    }
+    const p = gregorianResponse ?? power(G, ctx);
     const ps = G.powers[p];
-    if (ps.cardPlayed) {
+    if (ps.cardPlayed && gregorianResponse === undefined) {
         return INVALID_MOVE;
     }
     if (!ps.cards.includes(args.cardId)) {
@@ -2291,6 +2345,9 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     }
     if (G.lockedCards?.[p]?.includes(args.cardId)) return INVALID_MOVE;
     const def = cardById(args.cardId);
+    if (gregorianResponse !== undefined && (args.target === undefined || !isPower(args.target))) {
+        return INVALID_MOVE;
+    }
     if (args.asEvent === true && isGrandVizier(def) && !canPlayGrandVizier(G, p, ctx.numPlayers)) return INVALID_MOVE;
     const cardHandler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
     const isBeaconFires = def.id === "vq-014";
@@ -2365,8 +2422,10 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (maryDead) removeCardFromGame(G, "vq-089");
     else if (elizabethDead) removeCardFromGame(G, "vq-036");
     else if (!cancelWindow) discardCard(G, p, args.cardId, args.asEvent === true);
-    ps.cardPlayed = true;
-    markAction(G, p);
+    if (gregorianResponse === undefined) {
+        ps.cardPlayed = true;
+        markAction(G, p);
+    }
     if (args.asEvent === true) {
         pushLog(G, `${powerLabel(p)} plays ${def.name} as an event.`);
         if (cancelWindow) {
@@ -2376,6 +2435,12 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
             return;
         }
         resolvePlayedCardEvent(G, ctx, p, args.cardId, args.target);
+        if (gregorianResponse !== undefined) {
+            // The response ends the interrupted turn; turnEnd pivots to the
+            // power chosen to begin the next action round.
+            delete G.gregorianResponse;
+            ctx.events?.endTurn();
+        }
     } else {
         ps.cp += def.cp;
         pushLog(G, `${powerLabel(p)} plays ${def.name} for ${def.cp} CP.`);

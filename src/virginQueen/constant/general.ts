@@ -632,6 +632,8 @@ export interface VQGame {
     unionOfArras?: boolean;
     dutchSpanishHome?: boolean;
     gregorianNext?: Power;
+    /** #101 response window opened after the named power finished its turn. */
+    gregorianResponse?: {after: Power; responder: Power};
     hawkinsBonus?: boolean;
     patronReturn?: Record<string, number>;
     pendingCardDraws?: {power: Power; turn: number; amount: number}[];

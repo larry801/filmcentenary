@@ -80,27 +80,25 @@ import {
     chooseMajorActivation,
     respondAction,
     navalTransport,
+    declineGregorianCalendar,
+    startActionTurn,
 } from "./moves";
 
 const turnBegin = (G: VQGame, ctx: Ctx): void => {
     if (ctx.phase === "action") {
-        const p = G.activePower;
-        if (G.tutorialEffects?.skip.includes(p)) {
-            G.tutorialEffects.skip.splice(G.tutorialEffects.skip.indexOf(p), 1);
-            ctx.events?.endTurn();
-            return;
+        // #101 opens after a power finishes its turn, before the next action
+        // turn starts.  Defer that turn's CP/impulse reset until the holder
+        // plays the response or declines it.
+        if (G.gregorianResponse !== undefined) {
+            const responder = G.gregorianResponse.responder;
+            if (G.powers[responder].cards.includes("vq-101") &&
+                ownerOf(G, responder) !== undefined) {
+                ctx.events?.setActivePlayers({value: {[ownerOf(G, responder)!]: "gregorianResponse"}});
+                return;
+            }
+            delete G.gregorianResponse;
         }
-        if (G.skipImpulse?.includes(p)) {
-            G.skipImpulse = G.skipImpulse.filter((power) => power !== p);
-            ctx.events?.endTurn();
-            return;
-        }
-        G.impulse += 1;
-        G.powers[p].cp = 0;
-        G.powers[p].cardPlayed = false;
-        G.powers[p].treasurePlayed = false;
-        G.powers[p].passed = false;
-        if (G.lockedCards?.[p] !== undefined) delete G.lockedCards[p];
+        startActionTurn(G, ctx);
     }
 };
 
@@ -111,12 +109,21 @@ const phaseBegin = (G: VQGame): void => {
     G.activePower = participatingPowers(G)[0];
     G.phaseTurns = 0;
     G.unionOfArras = false;
+    delete G.gregorianResponse;
 };
 
-const turnEnd = (G: VQGame): void => {
+const turnEnd = (G: VQGame, ctx: Ctx): void => {
+    if (ctx.phase === "action") {
+        const responder = participatingPowers(G).find((power) => G.powers[power].cards.includes("vq-101"));
+        if (responder === undefined) delete G.gregorianResponse;
+        else G.gregorianResponse = {after: G.activePower, responder};
+    }
     if (G.gregorianNext !== undefined) {
         G.activePower = G.gregorianNext;
         delete G.gregorianNext;
+        // #101 resets the action round, so the selected power starts a fresh
+        // pass cycle rather than inheriting the previous round's passes.
+        G.consecutivePasses = 0;
         G.phaseTurns = 0;
         return;
     }
@@ -141,6 +148,7 @@ const choiceStages = {
     tutorialEvent: {moves: {chooseTutorialEvent}},
     piracyChoice: {moves: {choosePiracy}},
     actionResponse: {moves: {respondAction}},
+    gregorianResponse: {moves: {playCard, declineGregorianCalendar}},
     interceptChoice: {moves: {chooseInterception}},
     respondBetroth: {moves: {acceptBetroth, rejectBetroth}},
 };

@@ -251,12 +251,14 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [foreignArmySize, setForeignArmySize] = React.useState(3);
     const [foreignWarUnits, setForeignWarUnits] = React.useState<{space: string; kind: keyof LandStack}[]>([]);
     const [foreignWarLeader, setForeignWarLeader] = React.useState("");
+    const [gregorianTarget, setGregorianTarget] = React.useState<Power>("france");
 
     const [viewPower, setViewPower] = React.useState<Power>();
     const owned = controlledPowers(G, playerID);
     const piracyResponder = G.pendingPiracy && (G.pendingPiracy.step === "losses" ? G.pendingPiracy.power : G.pendingPiracy.target);
     const actionResponder = G.pendingAction && (G.pendingAction.power === "ottoman" ? "spain" : "ottoman");
-    const responsePower = G.pendingIntercept && ownerOf(G, G.pendingIntercept.defender) === playerID ? G.pendingIntercept.defender :
+    const responsePower = G.gregorianResponse && ownerOf(G, G.gregorianResponse.responder) === playerID ? G.gregorianResponse.responder :
+        G.pendingIntercept && ownerOf(G, G.pendingIntercept.defender) === playerID ? G.pendingIntercept.defender :
         G.pendingEspionage && ownerOf(G, G.pendingEspionage.responding) === playerID ? G.pendingEspionage.responding :
         actionResponder && ownerOf(G, actionResponder) === playerID ? actionResponder :
         piracyResponder && ownerOf(G, piracyResponder) === playerID ? piracyResponder :
@@ -273,7 +275,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
     const hand = ps?.cards ?? [];
-    const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration;
+    const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse;
 
     React.useEffect(() => {
         setMode("inspect");
@@ -471,6 +473,21 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 <Button key={offer.power} variant="outlined" onClick={() => (moves as unknown as {chooseAbjuration: (args: {power: string}) => void}).chooseAbjuration({power: offer.power})}>
                     {POWER_NAMES[offer.power].short}：在 {SPACE_BY_ID[offer.space].name} 结盟
                 </Button>)}
+        </Stack>;
+        if (G.gregorianResponse) return <Stack spacing={1}>
+            <Typography>公历纪年法 · {POWER_NAMES[G.gregorianResponse.after].zh} 的回合已结束，等待 {POWER_NAMES[G.gregorianResponse.responder].zh} 决定是否响应。</Typography>
+            {ownerOf(G, G.gregorianResponse.responder) === playerID && <>
+                <Typography variant="body2">选择一个势力开始下一个行动轮（可以是刚结束回合的势力），并从牌堆抽一张牌（若与教廷结盟）。</Typography>
+                <Select size="small" value={gregorianTarget} onChange={(e) => setGregorianTarget(e.target.value as Power)}>
+                    {POWERS.map((power) => <MenuItem key={power} value={power}>{POWER_NAMES[power].zh}</MenuItem>)}
+                </Select>
+                <Stack direction="row" spacing={0.5}>
+                    <Button variant="contained" onClick={() => moves.playCard({cardId: "vq-101", asEvent: true, target: gregorianTarget})}>
+                        打出公历纪年法
+                    </Button>
+                    <Button variant="outlined" onClick={() => moves.declineGregorianCalendar()}>不打出</Button>
+                </Stack>
+            </>}
         </Stack>;
         if (G.pendingCardEvent) return <Stack spacing={1}>
             <Typography>{G.pendingCardEvent.kind === "cancelEvent" ? "事件响应" : "大维齐尔"} · 等待奥斯曼帝国选择。</Typography>
