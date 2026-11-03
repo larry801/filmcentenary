@@ -14,6 +14,18 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Sultana Safiye, option 1 (card #98)", () => {
+    it("can take the Venice influence option", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-098"];
+        G.powers.france.influence.venice = 0;
+        const franceContext = {...context(), currentPlayer: "3", playerID: "3"} as Ctx;
+
+        expect(playCard(G, franceContext, {cardId: "vq-098", asEvent: true, target: "venice"})).toBeUndefined();
+
+        expect(G.powers.france.influence.venice).toBe(2);
+        expect(G.minorDiplomacyResolved).toContain("venice");
+    });
+
     it("exchanges a card with another power and draws for England/France", () => {
         const G = game();
         G.powers.ottoman.ruler = "muradIII";

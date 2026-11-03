@@ -1339,6 +1339,13 @@ const resolveBlackQueen = (G: VQGame, ctx: Ctx, p: Power, target?: string): void
 };
 
 const resolveSultanaSafiye = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    if (target === "venice") {
+        if (!MINOR_DIPLOMACY.venice.eligible.includes(p) || G.minorDiplomacyResolved.includes("venice")) return;
+        G.powers[p].influence.venice = (G.powers[p].influence.venice ?? 0) + 2;
+        resolveMinorDiplomacy(G, ctx, "venice");
+        pushLog(G, `Sultana Safiye gives ${powerLabel(p)} 2 influence in Venice.`);
+        return;
+    }
     if (p !== "ottoman" || G.powers.ottoman.ruler !== "muradIII" || ctx.numPlayers < 5 ||
         target === undefined || !isPower(target) || target === "ottoman") return;
     const give = G.powers.ottoman.cards.find((id) => cardById(id).kind !== "home");
