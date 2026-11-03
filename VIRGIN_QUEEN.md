@@ -224,7 +224,7 @@
 ### 加尔文主义狂热（#32）
 
 - 选项 1：在法兰西与尼德兰各进行 7 次新教传播，首个骰值自动为 6；
-- 选项 2/3（单次或双地区煽动叛乱）尚未接入。
+- 选项 3：目标写 `double:地区1:地区2`，分别视为 4 CP/3 CP 煽动叛乱；选项 2 的单次 7 CP 叛乱仍未接入。
 
 ### 热那亚银行家（#22）
 
@@ -1205,3 +1205,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #35 指定给牌接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、616 tests passed（新增 1 项：指定交牌）；`npm run build` 通过。
 
 #5 教宗诏书选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、619 tests passed（新增 3 项：绝罚伊丽莎白、绝罚降低战争费用、找回神圣同盟）；`npm run build` 通过。
+
+#32 双地区叛乱接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、620 tests passed（新增 1 项：两地区叛乱）；`npm run build` 通过。

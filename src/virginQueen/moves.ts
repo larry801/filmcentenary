@@ -784,7 +784,13 @@ const resolvePapalBull = (G: VQGame, ctx: Ctx, target?: string): void => {
     pushLog(G, `Papal Bull: ${powerLabel(ally)} makes seven Catholic attempts in ${area}.`);
 };
 
-const resolveCalvinistZeal = (G: VQGame, ctx: Ctx): void => {
+const resolveCalvinistZeal = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target?.startsWith("double:")) {
+        const [first, second] = target.slice("double:".length).split(":");
+        if (first !== undefined) resolveRebellion(G, ctx, "protestant", first, 4);
+        if (second !== undefined) resolveRebellion(G, ctx, "protestant", second, 3);
+        return;
+    }
     resolveConversions(G, ctx, "protestant", "protestant", "france", 7, true);
     resolveConversions(G, ctx, "protestant", "protestant", "netherlands", 7, true);
 };
@@ -2152,7 +2158,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "grandTour") {
         resolveGrandTour(G, p, target);
     } else if (handler === "calvinistZeal") {
-        resolveCalvinistZeal(G, ctx);
+        resolveCalvinistZeal(G, ctx, target);
     } else if (handler === "papalBull") {
         resolvePapalBull(G, ctx, target);
     } else if (handler === "aSmallAid") {

@@ -15,6 +15,21 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Calvinist Zeal (card #32)", () => {
+    it("can trigger rebellions in two spaces", () => {
+        const G = game();
+        G.powers.protestant.cards = ["vq-032"];
+        G.spaces.orleans.control = "france";
+        G.spaces.orleans.religion = "protestant";
+        G.spaces.orleans.siege = undefined;
+        G.spaces.antwerp.control = "spain";
+        G.spaces.antwerp.religion = "protestant";
+        G.spaces.antwerp.siege = undefined;
+
+        expect(playCard(G, context(), {cardId: "vq-032", asEvent: true, target: "double:orleans:antwerp"})).toBeUndefined();
+
+        expect(G.log.filter((line) => line.toLowerCase().includes("rebellion")).length).toBeGreaterThanOrEqual(2);
+    });
+
     it("makes seven attempts in France and the Netherlands", () => {
         const G = game();
         G.powers.protestant.cards = ["vq-032"];
