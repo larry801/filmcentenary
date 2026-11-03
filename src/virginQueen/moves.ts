@@ -1779,9 +1779,12 @@ const resolveExperiencedNavigator = (G: VQGame, target?: string): void => {
 const resolveGouvernanteDeFrance = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (atWar(G, "france", "protestant") && G.powers.france.cards.length <= 2) {
         const result = die(ctx, 6) + 2;
-        const targets = SPACES.filter((space) => space.area === "france" &&
-            (G.spaces[space.id].control === "protestant" || G.spaces[space.id].religion === "protestant"))
-            .slice(0, result);
+        const eligible = SPACES.filter((space) => space.area === "france" &&
+            (G.spaces[space.id].control === "protestant" || G.spaces[space.id].religion === "protestant"));
+        const preferred = target?.startsWith("convert:")
+            ? target.slice("convert:".length).split(":").filter((id) => eligible.some((space) => space.id === id))
+            : [];
+        const targets = (preferred.length > 0 ? preferred.map((id) => SPACE_BY_ID[id]) : eligible).slice(0, result);
         for (const space of targets) {
             if (G.spaces[space.id].control === "protestant") G.spaces[space.id].control = "france";
             if (G.spaces[space.id].religion === "protestant") G.spaces[space.id].religion = "catholic";
