@@ -1147,3 +1147,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #45 坏血病强制航行选项接入后的验证：`jest src/virginQueen --runInBand --silent` 124 suites、557 tests passed（新增 1 项：强制检定并弃牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #108 英格兰拒绝国教者接入后的验证：`jest src/virginQueen --runInBand --silent` 125 suites、558 tests passed（新增 1 项：英/苏各 3 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#36 童贞女王新增 `retrieve` 目标：即使伊丽莎白有婚约，也可选择从弃牌堆取回一张牌而不解除婚约。验证：`jest src/virginQueen --runInBand --silent` 126 suites、559 tests passed。

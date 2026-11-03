@@ -356,14 +356,14 @@ const payWarCost = (G: VQGame, p: Power, cost: number): boolean => {
 // --------------------------------------------------------------------------
 
 /** Virgin Queen home card: retrieve a discard or jilt Elizabeth's suitor. */
-const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power): void => {
+const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     const elizabeth = G.royals.find((r) => r.id === "elizabeth");
     if (elizabeth === undefined || !elizabeth.alive) {
         pushLog(G, "Elizabeth I is dead; the Virgin Queen event has no effect.");
         return;
     }
     const betrothal = G.betrothals.find((b) => b.female === "elizabeth");
-    if (betrothal !== undefined) {
+    if (betrothal !== undefined && target !== "retrieve") {
         const groom = G.royals.find((r) => r.id === betrothal.male);
         G.betrothals = G.betrothals.filter((b) => b !== betrothal);
         if (groom === undefined) return;
@@ -1829,7 +1829,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "moriscoRevolt") {
         resolveMoriscoRevolt(G, p);
     } else if (handler === "virginQueen") {
-        resolveVirginQueenEvent(G, ctx, p);
+        resolveVirginQueenEvent(G, ctx, p, target);
     } else if (handler === "spanishArmada") {
         resolveSpanishArmada(G, p);
     } else if (handler === "treasureFleet") {
