@@ -23,9 +23,9 @@ describe("Edmund Campion (card #107)", () => {
             G.spaces[space.id].unrest = false;
         }
 
-        expect(playCard(G, context(), {cardId: "vq-107", asEvent: true})).toBeUndefined();
+        expect(playCard(G, context(), {cardId: "vq-107", asEvent: true, target: "york"})).toBeUndefined();
 
-        expect(G.espionage?.jesuits.length).toBeGreaterThan(0);
+        expect(G.espionage?.jesuits).toContain("york");
         expect(G.log.join("\n")).toContain("Edmund Campion");
     });
 });

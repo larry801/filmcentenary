@@ -1331,9 +1331,11 @@ const resolveSultanaSafiye = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
     pushLog(G, `Sultana Safiye exchanges a card with ${powerLabel(target)}.`);
 };
 
-const resolveEdmundCampion = (G: VQGame, ctx: Ctx): void => {
-    const target = SPACES.find((space) => space.area === "england" &&
-        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 && !G.spaces[space.id].unrest);
+const resolveEdmundCampion = (G: VQGame, ctx: Ctx, chosen?: string): void => {
+    const target = SPACES.find((space) => space.id === chosen && space.area === "england" &&
+        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 && !G.spaces[space.id].unrest) ??
+        SPACES.find((space) => space.area === "england" &&
+            totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 && !G.spaces[space.id].unrest);
     if (target === undefined) return;
     const state = espionageState(G);
     if (!state.jesuits.includes(target.id)) {
@@ -1952,7 +1954,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "tenthPenny") {
         resolveTenthPenny(G, ctx, p);
     } else if (handler === "edmundCampion") {
-        resolveEdmundCampion(G, ctx);
+        resolveEdmundCampion(G, ctx, target);
     } else if (handler === "sultanaSafiye") {
         resolveSultanaSafiye(G, ctx, p, target);
     } else if (handler === "sultansHarem") {
