@@ -1168,4 +1168,4 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #9 火船对西班牙阿马达额外 +4 骰已接入：若目标海域有阿马达，火船从 +2 改为 +4。验证：`jest src/virginQueen --runInBand --silent` 131 suites、575 tests passed。
 
-#10 攻城工程的特例已接入：持有 #10 时，即使守方控制安特卫普/鹿特丹的内河出海口且进攻方无北海舰队，也允许发起攻城。验证：`jest src/virginQueen --runInBand --silent` 131 suites、575 tests passed；`npm run build` 通过。
+#10 攻城工程的特例已接入：持有 #10 时，即使守方控制安特卫普/鹿特丹的内河出海口且进攻方无北海舰队，也允许发起攻城。验证：`jest src/virginQueen --runInBand --silent` 132 suites、577 tests passed（新增 2 项：持牌允许/无牌拒绝）；`npm run build` 通过。
