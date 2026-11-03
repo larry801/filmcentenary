@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
 import {playCard} from "./moves";
-import {setupGame} from "./util";
+import {setWar, setupGame} from "./util";
 
 const context = (): Ctx => ({
     currentPlayer: "3",
@@ -14,6 +14,17 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Grand Tour (card #53)", () => {
+    it("can make peace with a major power", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-053"];
+        setWar(G, "france", "spain");
+
+        expect(playCard(G, context(), {cardId: "vq-053", asEvent: true, target: "peace:spain"})).toBeUndefined();
+
+        expect(G.powers.france.wars).not.toContain("spain");
+        expect(G.powers.spain.wars).not.toContain("france");
+    });
+
     it("clears French unrest, recovers Nostradamus, and reinforces Paris", () => {
         const G = game();
         G.powers.france.cards = ["vq-053"];

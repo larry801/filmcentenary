@@ -722,7 +722,33 @@ const resolveCalvinistZeal = (G: VQGame, ctx: Ctx): void => {
 };
 
 /** #53 Grand Tour: clear French unrest, recover Nostradamus, reinforce Paris. */
-const resolveGrandTour = (G: VQGame, p: Power): void => {
+const resolveGrandTour = (G: VQGame, p: Power, target?: string): void => {
+    const [mode, value] = target?.split(":") ?? [];
+    if (mode === "peace" && value !== undefined && isPower(value) && G.powers[p].wars.includes(value)) {
+        G.powers[p].wars = G.powers[p].wars.filter((power) => power !== value);
+        G.powers[value].wars = G.powers[value].wars.filter((power) => power !== p);
+        pushLog(G, `Grand Tour makes peace between ${powerLabel(p)} and ${powerLabel(value)}.`);
+    }
+    if (mode === "give" && value !== undefined && isPower(value) && value !== p) {
+        const card = G.powers[p].cards.find((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory");
+        if (card !== undefined) {
+            G.powers[p].cards = G.powers[p].cards.filter((id) => id !== card);
+            G.powers[value].cards.push(card);
+        } else if (G.powers[p].treasures.length > 0) {
+            G.powers[value].treasures.push(G.powers[p].treasures.pop()!);
+        }
+    }
+    if (mode === "move" && value !== undefined && G.spaces[value] !== undefined && G.spaces[value].control === p) {
+        const source = G.spaces.paris.land[p];
+        if (source !== undefined) {
+            const targetStack = ensureLand(G, value, p);
+            for (const kind of ["regular", "merc", "cav"] as const) {
+                targetStack[kind] += source[kind];
+                source[kind] = 0;
+            }
+            delete G.spaces.paris.land[p];
+        }
+    }
     for (const space of SPACES.filter((def) => def.area === "france" || def.home === "france")) G.spaces[space.id].unrest = false;
     if (G.discard.includes("vq-063")) {
         G.discard = G.discard.filter((id) => id !== "vq-063");
@@ -1916,7 +1942,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "card022") {
         resolveGenoeseBankers(G, ctx, p, target);
     } else if (handler === "grandTour") {
-        resolveGrandTour(G, p);
+        resolveGrandTour(G, p, target);
     } else if (handler === "calvinistZeal") {
         resolveCalvinistZeal(G, ctx);
     } else if (handler === "papalBull") {
