@@ -859,6 +859,13 @@ export const canDeclareWar = (G: VQGame, a: Power, b: Power): boolean => {
     return true;
 };
 
+/**
+ * Powers whose victory in a diplomatic check would deactivate the target
+ * major power instead of taking control of it (Scenario Book p. 13).
+ */
+const majorDeactivatePowers = (target: Power): Power[] =>
+    target === "ottoman" ? ["spain"] : target === "hre" ? ["ottoman"] : [];
+
 export const settleActivatedMajorVp = (G: VQGame, only?: Power): void => {
     for (const power of POWERS) {
         if (only !== undefined && power !== only) continue;
@@ -964,7 +971,13 @@ export const activateMajor = (G: VQGame, ctx: Ctx, power: Power, ally: Power, op
 export const resolveMajorDiplomacy = (G: VQGame, ctx: Ctx, target: Power, aggressor?: Power): void => {
     if (!G.majorInfluence?.[target] || G.majorDiplomacyResolved?.includes(target)) return;
     if (G.scenario === "tutorial" && target !== "hre") return;
+    // Scenario Book p. 13: a declaration of war forces a status check, but the
+    // declarer and every "Deactivate" power are removed from the candidates so
+    // the winner becomes the new controlling ally.  The Deactivate powers stay
+    // eligible for ordinary event-driven checks.
+    const deactivators = aggressor === undefined ? [] : majorDeactivatePowers(target);
     const candidates = POWERS.filter((power) => power !== target && power !== aggressor &&
+        !deactivators.includes(power) &&
         G.majorInfluence![target]![power] !== undefined &&
         (ownerOf(G, power) !== undefined || (G.scenario === "tutorial" && power === "ottoman")));
     const results = candidates.map((power) => ({power, result: die(ctx) + (G.majorInfluence![target]![power] ?? 0)}))
@@ -974,7 +987,7 @@ export const resolveMajorDiplomacy = (G: VQGame, ctx: Ctx, target: Power, aggres
     G.majorDiplomacyResolved ??= [];
     G.majorDiplomacyResolved.push(target);
     pushLog(G, `${powerLabel(target)} diplomacy: ${results.map((entry) => `${powerLabel(entry.power)} ${entry.result}`).join("; ")}.`);
-    const deactivate = (target === "ottoman" && winner === "spain") || (target === "hre" && winner === "ottoman");
+    const deactivate = majorDeactivatePowers(target).includes(winner);
     if (G.scenario === "tutorial") {
         G.tutorialHreAlly = deactivate ? undefined : "spain";
         return;
