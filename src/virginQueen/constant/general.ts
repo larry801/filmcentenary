@@ -399,6 +399,8 @@ export interface PowerState {
     cardModifier: number;
     /** Temporary marriage +1/-1 card markers, removed after the next Card Draw. */
     marriageCardModifier?: number;
+    rulerAdmin?: number;
+    rulerCardBonus?: number;
     wars: Power[];
     warsMinors: MinorPower[];
     allies: Power[];

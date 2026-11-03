@@ -616,6 +616,29 @@ const resolveDutchRevolt = (G: VQGame): void => {
 
 /** #75 Lost Colony: destroy an Atlantic-coast colony unless it rolls 5-6. */
 /** #77 Portuguese Raid: remove a southern-ocean colony; draw if Lisbon is held. */
+/** #84 Henry III succeeds Charles IX. */
+const resolveHenryIII = (G: VQGame): void => {
+    G.powers.france.ruler = "henryIII";
+    G.powers.france.rulerAdmin = 1;
+    G.powers.france.rulerCardBonus = 1;
+    const charles = G.royals.find((royal) => royal.id === "charlesIX");
+    if (charles !== undefined && !charles.married) {
+        charles.alive = false;
+        charles.status = "dead";
+        G.betrothals = G.betrothals.filter((b) => b.male !== "charlesIX" && b.female !== "charlesIX");
+    }
+    pushLog(G, "Henry III becomes ruler of France.");
+};
+
+/** #85 Murad III succeeds Selim II. */
+const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
+    G.powers.ottoman.ruler = "muradIII";
+    G.powers.ottoman.rulerAdmin = 1;
+    G.powers.ottoman.rulerCardBonus = 0;
+    if (ctx.numPlayers <= 4 && G.majorInfluence) resolveMajorDiplomacy(G, ctx, "ottoman");
+    pushLog(G, "Murad III becomes Ottoman ruler.");
+};
+
 const resolvePortugueseRaid = (G: VQGame, p: Power, ctx: Ctx): void => {
     const colony = Object.entries(G.worldColonies).find(([settlement, owner]) => {
         const def = WORLD_SETTLEMENT_BY_ID[settlement];
@@ -982,6 +1005,10 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveLostColony(G, ctx);
     } else if (handler === "portugueseRaid") {
         resolvePortugueseRaid(G, p, ctx);
+    } else if (handler === "henryIII") {
+        resolveHenryIII(G);
+    } else if (handler === "muradIII") {
+        resolveMuradIII(G, ctx);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {

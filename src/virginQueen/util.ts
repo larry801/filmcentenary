@@ -432,6 +432,12 @@ export const rulerStats = (G: VQGame, p: Power): {cardBonus: number; admin: numb
     if (p === "france" && G.powers.france.ruler === "charlesIX" && dead("charlesIX")) return {cardBonus: 0, admin: 0};
     if (p === "france" && dead("henryIII")) return {cardBonus: 0, admin: 1};
     if (p === "hre" && dead("rudolf")) return {cardBonus: 0, admin: 1};
+    if (G.powers[p].rulerAdmin !== undefined || G.powers[p].rulerCardBonus !== undefined) {
+        return {
+            cardBonus: G.powers[p].rulerCardBonus ?? POWER_INFO[p].ruler.cardBonus,
+            admin: G.powers[p].rulerAdmin ?? POWER_INFO[p].ruler.admin,
+        };
+    }
     return {cardBonus: POWER_INFO[p].ruler.cardBonus, admin: POWER_INFO[p].ruler.admin};
 };
 
