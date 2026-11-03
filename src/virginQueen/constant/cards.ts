@@ -326,6 +326,7 @@ export const CARD_BY_ID: Record<string, CardDef> = Object.fromEntries(
             text: card.textZh,
             officialNumber: card.number,
             officialKind: card.kind,
+            officialEffect: card.effect,
             removeOnEvent: card.removeOnEvent,
             removeAfterUse: card.removeAfterUse,
         })),

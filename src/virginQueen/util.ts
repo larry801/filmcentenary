@@ -13,6 +13,7 @@ import {
     navalCount,
     POWER_COLORS,
     POWER_INFO,
+    POWER_INDEX,
     POWER_NAMES,
     POWERS,
     Power,
@@ -44,10 +45,12 @@ import {
 } from "./mapData";
 import {cardById, officialCardById} from "./constant/cards";
 import {OFFICIAL_CARDS} from "./data/cards";
+import {PatronageVpAward} from "./data/types";
 import {LEADER_BY_ID, LEADERS, startingLeaders} from "./constant/leaders";
 import {
     ScenarioSetupData,
     patronDef,
+    scienceBonusById,
     powerCardSummary,
     scenarioFromSetupData,
     scenarioLeaders,
@@ -59,6 +62,7 @@ import {
     scenarioSetup,
     scenarioSpaces,
 } from "./scenario";
+import {PATRONAGE_VP_AWARD_BY_ID} from "./data/patronage";
 
 export {SPACE_BY_ID, KEY_SPACES, DUTCH_KEYS, initialControl, initialReligion, initialLandFor, initialNavalFor};
 
@@ -126,6 +130,7 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
             patrons: [],
             seaCaptains: [],
             scienceBonuses: [],
+            patronageModifier: 0,
             scmOnCard: 0,
             passed: false,
         };
@@ -213,6 +218,8 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         cardDrawDone: [],
         royals: scenarioRoyals(scenario),
         patronsAvailable: scenarioPatrons(scenario),
+        vpAwardsAvailable: [...scenario.patronage.vpAwards],
+        pendingPatronage: [],
         seaCaptainsAvailable: scenarioSeaCaptains(scenario).filter((id) => seaCaptainById(id)?.power === "france/protestant"),
         scienceBonusesAvailable: [...scenario.patronage.scienceBonuses],
         protestantSpacesStart: scenario.protestantSpaces,
@@ -1027,14 +1034,17 @@ export const resolveConversions = (
     attempts: number,
     autoSix = false,
     extraUnrest = 0,
+    rollOptions: {fivesAsSix?: boolean; threesAsFour?: boolean} = {},
 ): string => {
     const dice: number[] = [];
     for (let i = 0; i < attempts; i++) {
         dice.push(i === 0 && autoSix ? 6 : die(ctx, 6));
     }
-    const ones = dice.filter((d) => d === 1).length;
-    const minor = dice.filter((d) => d === 4 || d === 5).length;
-    const major = dice.filter((d) => d === 6).length;
+    const adjusted = dice.map((d) => rollOptions.fivesAsSix && d === 5 ? 6 :
+        rollOptions.threesAsFour && d === 3 ? 4 : d);
+    const ones = adjusted.filter((d) => d === 1).length;
+    const minor = adjusted.filter((d) => d === 4 || d === 5).length;
+    const major = adjusted.filter((d) => d === 6).length;
     const converted: string[] = [];
     for (let i = 0; i < major; i++) {
         const target = pickCandidate(G, ctx, side, area, true);
@@ -1375,6 +1385,9 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
             addVp(G, female.power, vp);
             male.married = true;
             female.married = true;
+            if (male.id === "philip" && female.id === "isabellaClaraEugenia") {
+                G.powers[male.power].patronageModifier = 1;
+            }
             G.marriages += 1;
             pushLog(G, `A marriage is celebrated (+${vp} VP each).`);
         } else if (total === 11) {
@@ -1388,8 +1401,147 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
     G.betrothals = [];
 };
 
+const bestPatronageVpAward = (
+    G: VQGame,
+    kind: "artist" | "scientist",
+    maxVp: number,
+    artistType?: "writer" | "painter" | "architect",
+): PatronageVpAward | undefined => G.vpAwardsAvailable
+    .map((id) => PATRONAGE_VP_AWARD_BY_ID[id])
+    .filter((award): award is PatronageVpAward => award !== undefined && award.kind === kind && award.vp <= maxVp &&
+        (kind === "scientist" || award.vp === 1 || award.artistType === artistType))
+    .sort((a, b) => b.vp - a.vp)[0];
+
+const claimPatronageVpAward = (G: VQGame, p: Power, awardId: string | undefined): number => {
+    if (awardId === undefined || !G.vpAwardsAvailable.includes(awardId)) {
+        return 0;
+    }
+    const award = PATRONAGE_VP_AWARD_BY_ID[awardId];
+    if (award === undefined) {
+        return 0;
+    }
+    G.vpAwardsAvailable = G.vpAwardsAvailable.filter((id) => id !== awardId);
+    addVp(G, p, award.vp);
+    pushLog(G, `${powerLabel(p)} claims ${award.nameEn} (+${award.vp} VP).`);
+    return award.vp;
+};
+
+const eligibleScienceBonus = (G: VQGame, p: Power) =>
+    G.scienceBonusesAvailable
+        .map((id) => scienceBonusById(id))
+        .find((bonus) => bonus !== undefined &&
+            (bonus.eligible === "any" ||
+                (bonus.eligible === "any-except-spain" && p !== "spain") ||
+                (Array.isArray(bonus.eligible) && bonus.eligible.includes(p))));
+
+const claimScienceBonus = (G: VQGame, p: Power): boolean => {
+    const bonus = eligibleScienceBonus(G, p);
+    if (bonus === undefined) {
+        return false;
+    }
+    G.scienceBonusesAvailable = G.scienceBonusesAvailable.filter((id) => id !== bonus.id);
+    G.powers[p].scienceBonuses.push(bonus.id);
+    pushLog(G, `${powerLabel(p)} claims science bonus ${bonus.nameEn}.`);
+    return true;
+};
+
+const removePatronFromPool = (G: VQGame, patronId: string): void => {
+    G.patronsAvailable = G.patronsAvailable.filter((id) => id !== patronId);
+};
+
+/** Resolve the year's artists and scientists against the remaining award pool. */
+export const resolvePatronage = (G: VQGame, ctx: Ctx): void => {
+    const pending = G.pendingPatronage.slice().sort((a, b) => {
+        const pa = patronDef(a.patronId);
+        const pb = patronDef(b.patronId);
+        if (pa?.kind !== pb?.kind) {
+            return pa?.kind === "artist" ? -1 : 1;
+        }
+        const ratingDifference = (pb?.rating ?? 0) - (pa?.rating ?? 0);
+        return ratingDifference || POWER_INDEX[a.power] - POWER_INDEX[b.power];
+    });
+
+    for (const attempt of pending) {
+        const patron = patronDef(attempt.patronId);
+        if (patron === undefined || patron.rating === null) {
+            continue;
+        }
+        const cpBonus = attempt.cp - 2;
+        const observatoryBonus = patron.kind === "scientist" && G.powers[attempt.power].scienceBonuses.includes("observatory") ? 2 : 0;
+        const modifier = cpBonus + G.powers[attempt.power].patronageModifier + observatoryBonus;
+        const d1 = die(ctx);
+        const d2 = die(ctx);
+        const result = d1 + d2 + patron.rating + modifier;
+        G.lastRolls = `Patronage: ${patron.name} ${d1}+${d2}+rating ${patron.rating}+bonus ${modifier}=${result}`;
+        pushLog(G, `${powerLabel(attempt.power)} ${G.lastRolls}`);
+
+        if (result <= 6) {
+            removePatronFromPool(G, patron.id);
+            pushLog(G, `${patron.name} is removed from play (result 6 or less).`);
+            continue;
+        }
+        if (result <= 8) {
+            if (patron.rating === 1) {
+                removePatronFromPool(G, patron.id);
+                pushLog(G, `${patron.name} is removed from play (rating 1; result 7-8).`);
+            } else {
+                pushLog(G, `${patron.name} returns to the available pool (result 7-8).`);
+            }
+            continue;
+        }
+        if (result === 9) {
+            pushLog(G, `${patron.name} returns to the available pool (result 9).`);
+            continue;
+        }
+
+        let rewarded = false;
+        if (patron.kind === "artist") {
+            const maxVp = result >= 15 ? 3 : result >= 13 ? 2 : 1;
+            const award = bestPatronageVpAward(G, "artist", maxVp, patron.artistType);
+            rewarded = claimPatronageVpAward(G, attempt.power, award?.id) > 0;
+        } else {
+            const maxVp = result >= 13 ? 2 : 1;
+            const bonusAvailable = eligibleScienceBonus(G, attempt.power) !== undefined;
+            let vpClaimed = 0;
+            if (result >= 15) {
+                const award = bestPatronageVpAward(G, "scientist", 2);
+                vpClaimed = claimPatronageVpAward(G, attempt.power, award?.id);
+                rewarded = claimScienceBonus(G, attempt.power) || rewarded;
+            } else if (result >= 13 && bonusAvailable &&
+                G.vpAwardsAvailable.some((id) => PATRONAGE_VP_AWARD_BY_ID[id]?.kind === "scientist" && PATRONAGE_VP_AWARD_BY_ID[id]?.vp === 1)) {
+                const oneVp = G.vpAwardsAvailable.find((id) => {
+                    const award = PATRONAGE_VP_AWARD_BY_ID[id];
+                    return award?.kind === "scientist" && award.vp === 1;
+                });
+                vpClaimed = claimPatronageVpAward(G, attempt.power, oneVp);
+                rewarded = claimScienceBonus(G, attempt.power) || rewarded;
+            } else if (result >= 13) {
+                const award = bestPatronageVpAward(G, "scientist", 2);
+                vpClaimed = claimPatronageVpAward(G, attempt.power, award?.id);
+            } else {
+                const oneVp = bestPatronageVpAward(G, "scientist", 1);
+                vpClaimed = claimPatronageVpAward(G, attempt.power, oneVp?.id);
+                if (vpClaimed === 0) {
+                    rewarded = claimScienceBonus(G, attempt.power);
+                }
+            }
+            rewarded = rewarded || vpClaimed > 0;
+        }
+
+        if (rewarded) {
+            G.powers[attempt.power].patrons.push(patron.id);
+            removePatronFromPool(G, patron.id);
+            pushLog(G, `${patron.name} is finished and removed from the available pool.`);
+        } else {
+            pushLog(G, `${patron.name} returns to the available pool because no award was available.`);
+        }
+    }
+    G.pendingPatronage = [];
+};
+
 export const winter = (G: VQGame, ctx: Ctx): void => {
     resolveMarriages(G, ctx);
+    resolvePatronage(G, ctx);
     for (const p of POWERS) {
         // Land units outside friendly fortified quarters return home.
         for (const def of SPACES) {
@@ -1536,6 +1688,70 @@ export const resolveEvent = (G: VQGame, ctx: Ctx, p: Power, effect: CardDef["eff
     const effects = Array.isArray(effect) ? effect : [effect];
     for (const e of effects) {
         resolveOneEvent(G, ctx, p, e);
+    }
+};
+
+/** Resolve the subset of official card-table effects with deterministic targets. */
+export const resolveOfficialCardEffect = (
+    G: VQGame,
+    ctx: Ctx,
+    p: Power,
+    card: CardDef,
+    target?: string,
+): boolean => {
+    const effect = card.officialEffect;
+    if (effect === undefined || effect.kind === "manual" || effect.kind === "combat") {
+        return false;
+    }
+    switch (effect.kind) {
+        case "conversion": {
+            const area = target !== undefined && effect.areas.includes(target as ReligionArea)
+                ? target as ReligionArea
+                : effect.areas.length === 1 ? effect.areas[0] : undefined;
+            if (area === undefined) return false;
+            resolveConversions(G, ctx, p, effect.side, area, effect.dice, effect.autoSix, 0,
+                {fivesAsSix: effect.fivesAsSix, threesAsFour: effect.threesAsFour});
+            return true;
+        }
+        case "units": {
+            if (!effect.placement?.includes("any controlled space")) return false;
+            const candidates = SPACES.filter((def) => {
+                const state = G.spaces[def.id];
+                return state.control === p && !state.unrest && state.siege === undefined;
+            }).map((def) => def.id);
+            const space = target !== undefined && candidates.includes(target)
+                ? target
+                : candidates[0];
+            if (space === undefined) return false;
+            addLand(G, space, p, effect.unit, effect.count);
+            pushLog(G, `${powerLabel(p)} places ${effect.count} ${effect.unit} unit(s) in ${SPACE_BY_ID[space].name}.`);
+            return true;
+        }
+        case "draw": {
+            const drawn = drawCards(G, ctx, p, effect.count);
+            pushLog(G, `${powerLabel(p)} draws ${drawn.length} card(s).`);
+            return true;
+        }
+        case "treasure":
+            addTreasure(G, ctx, p, effect.count);
+            pushLog(G, `${powerLabel(p)} gains ${effect.count} treasure(s).`);
+            return true;
+        case "vp": {
+            const recipient = effect.power ?? p;
+            addVp(G, recipient, effect.amount);
+            pushLog(G, `${powerLabel(recipient)} gains ${effect.amount} VP.`);
+            return true;
+        }
+        case "unrest": {
+            const candidates = SPACES.filter((space) =>
+                (effect.areas === undefined || effect.areas.includes(space.area as ReligionArea)) && !G.spaces[space.id].unrest);
+            const chosen = shuffle(ctx, candidates.map((space) => space.id)).slice(0, effect.count);
+            chosen.forEach((id) => { G.spaces[id].unrest = true; });
+            pushLog(G, `Unrest is placed in ${chosen.map((id) => SPACE_BY_ID[id].name).join(", ") || "no eligible spaces"}.`);
+            return true;
+        }
+        default:
+            return false;
     }
 };
 

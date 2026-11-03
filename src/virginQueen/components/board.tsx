@@ -124,7 +124,6 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
     const [diploTarget, setDiploTarget] = React.useState<Power>("spain");
     const [maleRoyal, setMaleRoyal] = React.useState("");
     const [femaleRoyal, setFemaleRoyal] = React.useState("");
-    const [scienceBonus, setScienceBonus] = React.useState("");
     const [patronageCp, setPatronageCp] = React.useState(2);
 
     const me: Power | undefined = playerID === null ? undefined : powerAt(playerID);
@@ -271,7 +270,10 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
         }
         if (phase === "action") {
             const patronageSetup = scenarioSetup(G.scenario).patronage;
-            const vpAwards = patronageSetup.vpAwards.map((id) => PATRONAGE_VP_AWARD_BY_ID[id]).filter((award) => award !== undefined);
+            const vpAwards = patronageSetup.vpAwards.map((id) => PATRONAGE_VP_AWARD_BY_ID[id])
+                .filter((award): award is PatronageVpAward => award !== undefined);
+            const artistMarkersLeft = vpAwards.filter((award) => award.kind === "artist").length;
+            const scientistMarkersLeft = vpAwards.filter((award) => award.kind === "scientist").length;
             return <Stack spacing={1}>
                 <Stack direction="row" spacing={1} sx={{alignItems: "center"}}>
                     <Typography variant="body2">剩余 CP：<b>{cp}</b></Typography>
@@ -319,7 +321,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                 <Divider/>
                 <Typography variant="subtitle2">赞助 (每回合最多一位艺术家与一位科学家)</Typography>
                 <Typography variant="caption" color="text.secondary">
-                    VP 标记池：艺术家 {patronageSetup.artistVpMarkers} 枚、科学家 {patronageSetup.scientistVpMarkers} 枚（共 {patronageSetup.vpMarkers} 枚）
+                    剩余 VP 标记：艺术家 {artistMarkersLeft} 枚、科学家 {scientistMarkersLeft} 枚（共 {vpAwards.length} 枚）
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                     艺术奖励：{patronageAwardSummary(vpAwards, "artist")}
@@ -341,23 +343,13 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                     </Select>
                 </FormControl>
                 <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
-                    {G.patronsAvailable.map((id) => patronDef(id)).filter((p) => p !== undefined && !POWERS.some((x) => G.powers[x].patrons.includes(p.id))).map((p) =>
+                    {G.patronsAvailable.map((id) => patronDef(id)).filter((p) => p !== undefined && p.region === me && !POWERS.some((x) => G.powers[x].patrons.includes(p.id))).map((p) =>
                         <Button key={p.id} size="small" variant="outlined"
-                                disabled={!myTurn || cp < 2 || G.patronizedThisTurn.includes(`${me}:${p.kind}`) || (p.kind === "scientist" && scienceBonus === "")}
-                                onClick={() => moves.patronize({patron: p.id, cp: patronageCp, ...(p.kind === "scientist" ? {scienceBonus} : {})})}>
+                                disabled={!myTurn || cp < patronageCp || G.patronizedThisTurn.includes(`${me}:${p.kind}`)}
+                                onClick={() => moves.patronize({patron: p.id, cp: patronageCp})}>
                             {p.name}{p.rating === null ? " (评级待录)" : ` (评级 ${p.rating})`}{p.kind === "scientist" ? " · 科学家" : ""}
                         </Button>)}
                 </Stack>
-                <FormControl size="small" fullWidth>
-                    <InputLabel id="vq-science-bonus">科学奖励</InputLabel>
-                    <Select labelId="vq-science-bonus" label="科学奖励" value={scienceBonus}
-                            onChange={(e) => setScienceBonus(e.target.value)}>
-                        {G.scienceBonusesAvailable.map((id) => scienceBonusById(id)).filter((b) => b !== undefined &&
-                            (b.eligible === "any" || (b.eligible === "any-except-spain" && me !== "spain") ||
-                                (Array.isArray(b.eligible) && b.eligible.includes(me)))).map((b) =>
-                            <MenuItem key={b.id} value={b.id}>{b.nameZh} — {b.description}</MenuItem>)}
-                    </Select>
-                </FormControl>
                 {ps !== undefined && ps.seaCaptains.length > 0 && <>
                     <Divider/>
                     <Typography variant="subtitle2">船长</Typography>

@@ -18,7 +18,7 @@ import {
     powerAt,
 } from "./constant/general";
 import {cardById} from "./constant/cards";
-import {patronById, scienceBonusById, royalAvailable, seaCaptainById} from "./scenario";
+import {patronById, royalAvailable, seaCaptainById} from "./scenario";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {
     CAPITAL_SPACES,
@@ -74,6 +74,7 @@ import {
     removeSeaNavalLosses,
     resolveConversions,
     resolveEvent,
+    resolveOfficialCardEffect,
     resolveRebellion,
     roll,
     setWar,
@@ -136,7 +137,7 @@ const payWarCost = (G: VQGame, p: Power, cost: number): boolean => {
 // Action Phase: impulses
 // --------------------------------------------------------------------------
 
-export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: boolean }): void | typeof INVALID_MOVE => {
+export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: boolean; target?: string }): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
@@ -149,7 +150,27 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     const def = cardById(args.cardId);
-    if (args.asEvent === true && def.kind === "command") {
+    if (args.asEvent === true && def.officialEffect?.kind === "conversion" &&
+        def.officialEffect.areas.length > 1 && args.target === undefined) {
+        return INVALID_MOVE;
+    }
+    const mandatory = def.officialKind === "mandatory";
+    const timedCombatCard = def.officialKind === "combat";
+    const timedResponseCard = def.officialKind === "response";
+    if (mandatory && args.asEvent !== true) {
+        return INVALID_MOVE;
+    }
+    if (args.asEvent === true && def.kind === "command" && !mandatory && !timedCombatCard && !timedResponseCard) {
+        return INVALID_MOVE;
+    }
+    if (args.asEvent === true && timedCombatCard &&
+        (G.cardWindow?.kind !== "combat" || (def.officialEffect?.kind === "combat" &&
+            def.officialEffect.phase !== undefined && def.officialEffect.phase !== "any" &&
+            G.cardWindow.phase !== def.officialEffect.phase) ||
+            (G.cardWindow.attacker !== undefined && G.cardWindow.attacker !== p))) {
+        return INVALID_MOVE;
+    }
+    if (args.asEvent === true && timedResponseCard && G.cardWindow?.kind !== "response") {
         return INVALID_MOVE;
     }
     removeCardFromHand(G, p, args.cardId);
@@ -160,8 +181,16 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         pushLog(G, `${powerLabel(p)} plays ${def.name} as an event.`);
         if (def.effect !== undefined) {
             resolveEvent(G, ctx, p, def.effect);
+        } else if (def.officialEffect !== undefined &&
+            resolveOfficialCardEffect(G, ctx, p, def, args.target)) {
+            // The typed card-table effect resolved above.
         } else if (def.officialNumber !== undefined) {
             pushLog(G, `Official event text: ${def.text ?? ""}`);
+        }
+        if (mandatory) {
+            // Mandatory events resolve before their printed two command points.
+            ps.cp += 2;
+            pushLog(G, `${powerLabel(p)} receives 2 CP after the mandatory event.`);
         }
     } else {
         ps.cp += def.cp;
@@ -194,6 +223,9 @@ export const pass = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
         return INVALID_MOVE;
     }
     const p = power(ctx);
+    if (G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory")) {
+        return INVALID_MOVE;
+    }
     G.powers[p].cp = 0;
     G.powers[p].passed = true;
     G.consecutivePasses += 1;
@@ -206,6 +238,9 @@ export const endImpulse = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
         return INVALID_MOVE;
     }
     const p = power(ctx);
+    if (G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory")) {
+        return INVALID_MOVE;
+    }
     if (!G.powers[p].cardPlayed) {
         G.powers[p].passed = true;
         G.consecutivePasses += 1;
@@ -539,13 +574,13 @@ export const influence = (G: VQGame, ctx: Ctx, args: { target: MinorPower }): vo
     pushLog(G, `${powerLabel(p)} buys influence with ${args.target} (${cur + 1}).`);
 };
 
-export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string; cp: number; scienceBonus?: string }): void | typeof INVALID_MOVE => {
+export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string; cp: number }): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
     const p = power(ctx);
     const patron = patronById(G, args.patron);
-    if (patron === undefined) {
+    if (patron === undefined || patron.region !== p || patron.rating === null) {
         return INVALID_MOVE;
     }
     if (POWERS.some((x) => G.powers[x].patrons.includes(patron.id))) {
@@ -555,28 +590,12 @@ export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string; cp: numbe
     if (G.patronizedThisTurn.includes(patronageKey)) {
         return INVALID_MOVE;
     }
-    let scienceBonus: ReturnType<typeof scienceBonusById> = undefined;
-    if (patron.kind === "scientist") {
-        scienceBonus = args.scienceBonus === undefined ? undefined : scienceBonusById(args.scienceBonus);
-        const allowed = scienceBonus?.eligible === "any" ||
-            (scienceBonus?.eligible === "any-except-spain" && p !== "spain") ||
-            (Array.isArray(scienceBonus?.eligible) && scienceBonus.eligible.includes(p));
-        if (scienceBonus === undefined || !allowed || !G.scienceBonusesAvailable.includes(scienceBonus.id)) {
-            return INVALID_MOVE;
-        }
-    } else if (args.scienceBonus !== undefined) {
-        return INVALID_MOVE;
-    }
     if (!Number.isInteger(args.cp) || args.cp < 2 || args.cp > 4 || !spend(G, p, args.cp)) {
         return INVALID_MOVE;
     }
-    G.powers[p].patrons.push(patron.id);
-    if (scienceBonus !== undefined) {
-        G.scienceBonusesAvailable = G.scienceBonusesAvailable.filter((id) => id !== scienceBonus?.id);
-        G.powers[p].scienceBonuses.push(scienceBonus.id);
-    }
+    G.pendingPatronage.push({power: p, patronId: patron.id, cp: args.cp});
     G.patronizedThisTurn.push(patronageKey);
-    pushLog(G, `${powerLabel(p)} sponsors ${patron.name}${scienceBonus === undefined ? "" : ` and claims ${scienceBonus.nameEn}`}; Patronage Phase resolution is pending.`);
+    pushLog(G, `${powerLabel(p)} sponsors ${patron.name} for ${args.cp} CP; Winter Patronage resolution is pending.`);
 };
 
 // --------------------------------------------------------------------------

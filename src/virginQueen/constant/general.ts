@@ -1,3 +1,5 @@
+import type {CardEffect as OfficialCardEffect} from "../data/types";
+
 /**
  * Virgin Queen: Wars of Religion ~ 1559-1598
  *
@@ -311,8 +313,18 @@ export interface CardDef {
     /** Metadata preserved from the official 112-card table. */
     officialNumber?: number;
     officialKind?: "event" | "response" | "combat" | "mandatory" | "home";
+    /** Full typed effect from the official card table. */
+    officialEffect?: OfficialCardEffect;
     removeOnEvent?: boolean;
     removeAfterUse?: boolean;
+}
+
+export interface CardWindow {
+    kind: "response" | "combat";
+    phase?: "field" | "naval" | "assault";
+    location?: string;
+    attacker?: Power;
+    affectedPower?: Power;
 }
 
 export interface SpaceState {
@@ -361,6 +373,8 @@ export interface PowerState {
     seaCaptains: string[];
     /** Science bonuses this power has acquired. */
     scienceBonuses: string[];
+    /** Persistent patronage roll modifier (for example, Isabella Eugenia). */
+    patronageModifier: number;
     /** Square control markers printed on the power card. */
     scmOnCard: number;
     /** True when the power has passed and no one has acted since. */
@@ -411,6 +425,12 @@ export interface VQGame {
     royals: RoyalDef[];
     /** Patrons available under this scenario's patronage chart. */
     patronsAvailable: string[];
+    /** VP award markers still available to claim from the patronage chart. */
+    vpAwardsAvailable: string[];
+    /** Artists and scientists sponsored this year, resolved in the Winter Phase. */
+    pendingPatronage: {power: Power; patronId: string; cp: number}[];
+    /** Context gates response and combat cards at their printed timing. */
+    cardWindow?: CardWindow;
     /** Sea captains available under this scenario's power cards. */
     seaCaptainsAvailable: string[];
     /** Science bonuses available under this scenario's patronage chart. */
