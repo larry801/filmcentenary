@@ -2740,20 +2740,29 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
             delete s.siege;
         }
     }
-    // The Virgin Queen bonus: +1 VP to England for each year Elizabeth is unmarried.
+    // The Virgin Queen bonus: up to 5 VP for years Elizabeth remains unmarried (21.2).
     const elizabeth = G.royals.find((r) => r.id === "elizabeth");
-    if (elizabeth !== undefined && elizabeth.alive && !elizabeth.married) {
+    const virginQueenVp = G.virginQueenVpAwarded ?? 0;
+    if (elizabeth !== undefined && royalAvailable(elizabeth) && !elizabeth.married && virginQueenVp < 5) {
         addVp(G, "england", 1);
-        pushLog(G, "Elizabeth I remains unmarried: England gains 1 Virgin Queen VP.");
+        G.virginQueenVpAwarded = virginQueenVp + 1;
+        pushLog(G, `Elizabeth I remains unmarried: England gains 1 Virgin Queen VP (${G.virginQueenVpAwarded}/5).`);
     }
+    // Aging (21.3): a royal at eligibility 0 leaves the marriage pool.
     for (const r of G.royals) {
         if (!royalAvailable(r) || (r.turn ?? 1) > G.year) {
             continue;
         }
-        if (r.gender === "female") {
-            r.eligibility = Math.max(0, (r.eligibility ?? 0) - 1);
-        } else if (die(ctx) <= 4) {
-            r.eligibility = Math.max(0, (r.eligibility ?? 0) - 1);
+        let next = r.eligibility ?? 0;
+        if (r.gender === "female" || die(ctx) <= 4) {
+            next = Math.max(0, next - 1);
+        }
+        if (next <= 0) {
+            r.eligibility = 0;
+            r.status = "aged";
+            pushLog(G, `${r.name} is no longer eligible to marry.`);
+        } else {
+            r.eligibility = next;
         }
     }
     settleActivatedMajorVp(G);

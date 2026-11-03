@@ -519,6 +519,8 @@ export interface VQGame {
     pendingBetrothal: { male: string; female: string; proposer: Power; target: Power } | null;
     /** Royal marriages resolved this year (used for "Virgin Queen" VP). */
     marriages: number;
+    /** Virgin Queen bonus VP already awarded (maximum 5 per game). */
+    virginQueenVpAwarded?: number;
     log: string[];
     vpHistory: Record<string, Partial<Record<Power, number>>>;
     hreReligiousPreference?: HreReligiousPreference;
@@ -615,7 +617,7 @@ export interface RoyalDef {
     /** Current eligibility rating (campaign/tournament may lower it). */
     eligibility?: number;
     /** Scenario status: captured/dead/unused royals cannot be betrothed. */
-    status?: "captured" | "dead" | "unused" | "available";
+    status?: "captured" | "dead" | "unused" | "available" | "aged";
     alive: boolean;
     married: boolean;
 }
