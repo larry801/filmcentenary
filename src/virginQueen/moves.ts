@@ -33,7 +33,7 @@ import {startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {beginGrandVizierEvent, canCancelCardEvent, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, grandVizierInHand, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
 import {startPiracy} from "./piracy";
-import {attemptNavalInterception, resolveNavalCombat} from "./navalCombat";
+import {attemptNavalAvoidBattle, attemptNavalInterception, navalEnemies, resolveNavalCombat, resolveNavalCombatEnemy} from "./navalCombat";
 import {offerInterception} from "./interception";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN} from "./constant/leaders";
@@ -125,6 +125,12 @@ import {
 } from "./util";
 
 const power = (G: VQGame, ctx: Ctx): Power => actingPower(G, ctx.currentPlayer);
+
+const countAtLocation = (G: VQGame, location: string, owner: Power): number => {
+    const stack = isSeaZone(location) ? G.seaZones[location as keyof VQGame["seaZones"]].naval[owner] : G.spaces[location].naval[owner];
+    if (stack !== undefined) return navalCount(stack);
+    return owner === "spain" && G.armada?.location === location ? 1 : 0;
+};
 
 /** Rule 20.10: no deals between Spain and France/Protestant in the next Diplomacy Segment. */
 const catholicLeagueDealsBlocked = (G: VQGame, a: Power, b: Power): boolean =>
@@ -1930,7 +1936,16 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
     }
 
     const intercepted = attemptNavalInterception(G, ctx, p, from, to, destinationHadEnemy);
-    resolveNavalCombat(G, ctx, to, p, intercepted);
+    if (!intercepted) {
+        // Avoid battle is resolved before choosing the order of multiple enemies.
+        attemptNavalAvoidBattle(G, ctx, p, to);
+    }
+    const enemies = navalEnemies(G, to, p);
+    if (enemies.length > 1) {
+        G.pendingNavalOrder = {attacker: p, location: to, enemies};
+    } else {
+        resolveNavalCombat(G, ctx, to, p, intercepted, true);
+    }
 };
 
 // --------------------------------------------------------------------------
@@ -2004,6 +2019,16 @@ export const assault = (G: VQGame, ctx: Ctx, args: { space: string }): void | ty
     if (G.scenario === "tutorial") {
         startBattle(G, ctx, "assault", args.space, p, ownersWithLand(G, args.space).filter((owner) => !friendlyController(G, p, owner)), args.space);
     } else assaultSpace(G, ctx, p, args.space);
+};
+
+export const chooseNavalOrder = (G: VQGame, ctx: Ctx, args: {enemy: Power}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingNavalOrder;
+    if (pending === undefined || power(G, ctx) !== pending.attacker || !pending.enemies.includes(args.enemy)) return INVALID_MOVE;
+    resolveNavalCombatEnemy(G, ctx, pending.location, pending.attacker, args.enemy);
+    pending.enemies = pending.enemies.filter((enemy) => enemy !== args.enemy);
+    if (pending.enemies.length === 0 || countAtLocation(G, pending.location, pending.attacker) === 0 || !isSeaZone(pending.location)) {
+        delete G.pendingNavalOrder;
+    }
 };
 
 export const continueMove = (G: VQGame, ctx: Ctx, args: {to: string}): void | typeof INVALID_MOVE => {

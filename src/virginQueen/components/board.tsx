@@ -507,6 +507,13 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {ps !== undefined && ps.cardPlayed && <Chip size="small" color="success" label="本回合已出牌"/>}
                 </Stack>
                 {!myTurn && <Typography variant="caption" color="text.secondary">等待 {POWER_NAMES[G.activePower].zh} 行动。</Typography>}
+                {G.pendingNavalOrder !== undefined && G.pendingNavalOrder.attacker === me && <Paper variant="outlined" sx={{p: 1}}>
+                    <Typography variant="subtitle2">选择海战目标顺序</Typography>
+                    <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap", mt: 0.5}}>
+                        {G.pendingNavalOrder.enemies.map((enemy) => <Button key={enemy} size="small" variant="outlined" disabled={!myTurn}
+                            onClick={() => moves.chooseNavalOrder({enemy})}>{POWER_NAMES[enemy].zh}</Button>)}
+                    </Stack>
+                </Paper>}
                 {G.pendingContinue !== undefined && G.pendingContinue.power === me && <Paper variant="outlined" sx={{p: 1}}>
                     <Typography variant="subtitle2">守军退入要塞</Typography>
                     <Typography variant="caption" color="text.secondary">

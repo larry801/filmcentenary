@@ -11,6 +11,7 @@ import {chooseInterception} from "./interception";
 import {arriveLeaders, checkVictory, dealYear, resolvePendingCatholicLeague, resolvePendingHreReplacement, setupGame, winter} from "./util";
 import {
     assault,
+    chooseNavalOrder,
     continueMove,
     stopContinue,
     proposeBetroth,
@@ -253,7 +254,8 @@ export const VirginQueenGameDef: Game<VQGame> = {
         navalTransport,
         controlSpace,
         assault,
-        continueMove,
+        chooseNavalOrder,
+    continueMove,
         stopContinue,
         preach,
         suppress,

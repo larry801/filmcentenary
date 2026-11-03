@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {VQGame, navalCount} from "./constant/general";
-import {moveNaval} from "./moves";
+import {chooseNavalOrder, moveNaval} from "./moves";
 import {SPACES} from "./mapData";
 import {setWar, setupGame} from "./util";
 
@@ -123,6 +123,20 @@ describe("official naval combat (rule 16.2)", () => {
         expect(navalCount(G.seaZones.northSea.naval.england)).toBe(1);
     });
 
+    it("lets the attacker choose a non-impulse enemy first", () => {
+        const G = game();
+        setWar(G, "france", "spain");
+        G.powers.france.cp = 1;
+        G.spaces.calais.naval.france = {galley: 0, galleon: 4, racebuilt: 0, corsair: 0};
+        G.seaZones.englishChannel.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+        G.seaZones.englishChannel.naval.spain = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+
+        expect(moveNaval(G, context([1, 1, 1, 1]), {from: "calais", to: "englishChannel"})).toBeUndefined();
+        expect(chooseNavalOrder(G, context([...Array(10).fill(6)]), {enemy: "england"})).toBeUndefined();
+
+        expect(G.pendingNavalOrder?.enemies).toEqual(["spain"]);
+    });
+
     it("fights multiple enemy powers one at a time in impulse order", () => {
         const G = game();
         setWar(G, "france", "spain");
@@ -131,9 +145,12 @@ describe("official naval combat (rule 16.2)", () => {
         G.seaZones.englishChannel.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
         G.seaZones.englishChannel.naval.spain = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
 
-        expect(moveNaval(G, context([1, 1, 1, 1, ...Array(10).fill(6), ...Array(8).fill(6)]), {
-            from: "calais", to: "englishChannel",
-        })).toBeUndefined();
+        expect(moveNaval(G, context([1, 1, 1, 1]), {from: "calais", to: "englishChannel"})).toBeUndefined();
+        expect(G.pendingNavalOrder?.enemies).toEqual(["spain", "england"]);
+
+        expect(chooseNavalOrder(G, context([...Array(10).fill(6)]), {enemy: "spain"})).toBeUndefined();
+        expect(G.pendingNavalOrder?.enemies).toEqual(["england"]);
+        expect(chooseNavalOrder(G, context([...Array(8).fill(6)]), {enemy: "england"})).toBeUndefined();
 
         expect(G.log.join("\n").match(/Naval battle at/g)).toHaveLength(2);
         expect(navalCount(G.seaZones.englishChannel.naval.spain)).toBe(0);
