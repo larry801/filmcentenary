@@ -813,7 +813,7 @@ src/virginQueen/
   conventionEstates.test.ts #79 省议会
   spanishPayShips.test.ts #67 西班牙运银船被截
   blackMagic.test.ts    #71 黑魔法 / #104 阿马达赦令
-  taxis.test.ts         #68 塔克西斯家族信使
+  taxis.test.ts         #68 塔克西斯家族信使/抽牌锁定
   tenthPenny.test.ts    #69 第十便士/夺牌锁定
   campion.test.ts       #107 埃德蒙·坎皮恩
   donAntonio.test.ts    #105 唐·安东尼奥

@@ -24,5 +24,7 @@ describe("Taxis Family Courier (card #68)", () => {
         expect(G.powers.france.cards).toContain("vq-020");
         expect(G.powers.hre.cards).not.toContain("vq-020");
         expect(G.powers.hre.cards).toHaveLength(1);
+        expect(G.lockedCards?.hre).toHaveLength(1);
+        expect(G.lockedCards?.hre?.[0]).toBe(G.powers.hre.cards[0]);
     });
 });

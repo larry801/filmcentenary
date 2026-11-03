@@ -1359,7 +1359,8 @@ const resolveTaxis = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
             pushLog(G, `Taxis Family Courier gives ${cardById(card).name} to ${powerLabel(target)}.`);
         }
     }
-    drawCards(G, ctx, p, 1);
+    const drawn = drawCards(G, ctx, p, 1);
+    if (drawn.length > 0) G.lockedCards = {...(G.lockedCards ?? {}), [p]: [...(G.lockedCards?.[p] ?? []), ...drawn]};
 };
 
 const resolveBlackMagic = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
