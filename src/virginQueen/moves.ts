@@ -692,6 +692,26 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #25 Unrest in the Realm: place up to three unrest in a major's home. */
 /** #19 Diplomatic Faux Pas: remove up to five influence from a power. */
 /** #20 Eloquent Ambassador: three influence then a diplomacy resolution. */
+/** #21 Foreign Volunteers: three regulars in controlled spaces. */
+const resolveForeignVolunteers = (G: VQGame, p: Power): void => {
+    const targets = SPACES.filter((space) => G.spaces[space.id].control === p && !G.spaces[space.id].siege &&
+        !G.spaces[space.id].unrest).slice(0, 3);
+    if (targets.length === 0) return;
+    for (const space of targets) addLand(G, space.id, p, "regular", 1);
+    pushLog(G, `Foreign Volunteers place ${targets.length} regular(s) for ${powerLabel(p)}.`);
+};
+
+/** #26 A Small Aid: one regular in a small besieged fortress. */
+const resolveSmallAid = (G: VQGame, target?: string): void => {
+    if (target === undefined) return;
+    const state = G.spaces[target];
+    if (state === undefined || state.siege === undefined || !isPower(state.control)) return;
+    const defenders = totalLand(G, target, ownersWithLand(G, target));
+    if (defenders > 3) return;
+    addLand(G, target, state.control, "regular", 1);
+    pushLog(G, `A Small Aid adds a ${powerLabel(state.control)} regular to ${SPACE_BY_ID[target].name}.`);
+};
+
 const resolveEloquentAmbassador = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     if (target === undefined || !(target in MINOR_DIPLOMACY)) return;
     const minor = target as MinorPower;
@@ -1521,6 +1541,10 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     if (cardId === "vq-014") {
         G.beaconFires = p;
         pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
+    } else if (cardId === "vq-021") {
+        resolveForeignVolunteers(G, p);
+    } else if (cardId === "vq-026") {
+        resolveSmallAid(G, target);
     } else if (isGrandVizier(def)) {
         beginGrandVizierEvent(G, ctx, cardId);
     } else if (G.scenario === "tutorial") {
@@ -1639,6 +1663,10 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveDiplomaticFauxPas(G, target);
     } else if (handler === "eloquentAmbassador") {
         resolveEloquentAmbassador(G, ctx, p, target);
+    } else if (handler === "foreignVolunteers") {
+        resolveForeignVolunteers(G, p);
+    } else if (handler === "aSmallAid") {
+        resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {
         resolveGermanRecruitment(G, p, target);
     } else if (handler === "rulerFallsIll") {

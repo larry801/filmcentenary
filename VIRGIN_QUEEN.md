@@ -176,6 +176,12 @@
 - 招募正规军或雇佣兵都受 `REGULAR_LIMITS` 限制，避免通过雇佣兵绕过 force pool。
 - 奥斯曼骑兵计数器上限 39；海军计数器上限按 VASSAL 计数器：奥斯曼 9、西班牙 7、英格兰 6、法国 4、HRE 1、新教 4，`buildNaval` 统一检查。
 
+### 外国志愿军 / 小型救援（#21/#26）
+
+- #21：在己方控制、未被围城/骚乱的地区放置 3 个正规军（自动分配到前 3 个地区）。
+- #26：在守军 ≤3 的被围城设防地区放置 1 个正规军，归当前控制者。
+- 两张牌原为 typed `units` 效果，现补充了实际结算。
+
 ### 雄辩的大使（#20）
 
 - 对目标小国 +3 己方外交影响力；
@@ -725,6 +731,7 @@ src/virginQueen/
   unrestRuler.test.ts   #25 国内动荡 / #30 统治者病倒
   fauxPas.test.ts       #19 外交失礼 / #23 德意志募兵受限
   ambassador.test.ts    #20 雄辩的大使
+  volunteersAid.test.ts #21 外国志愿军 / #26 小型救援
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -961,3 +968,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #19/#23 接入后的验证：`jest src/virginQueen --runInBand --silent` 97 suites、518 tests passed（新增 3 项：移除影响力、HRE 双地区、清空雇佣兵）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #20 雄辩的大使接入后的验证：`jest src/virginQueen --runInBand --silent` 98 suites、519 tests passed（新增 1 项：+3 影响力并评议）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#21/#26 接入后的验证：`jest src/virginQueen --runInBand --silent` 99 suites、521 tests passed（新增 2 项：三地志愿军、被围城增援）；`npm run build` 通过，仍有既有大体积 chunk 提示。

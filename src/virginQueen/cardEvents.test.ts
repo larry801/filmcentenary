@@ -283,10 +283,6 @@ describe("Grand Vizier through multiplayer clients", () => {
             clients[1].moves.playCard({cardId: "vq-021", asEvent: true});
             expect(clients[0].getState()!.ctx.activePlayers).toEqual({"0": "cardEvent"});
             clients[0].moves.chooseCardEvent({choice: response});
-            if (response === "continue") {
-                expect(clients[1].getState()!.ctx.activePlayers).toEqual({"1": "tutorialEvent"});
-                for (let count = 0; count < 3; count++) clients[1].moves.chooseTutorialEvent({choice: "regular:madrid"});
-            }
             for (const client of clients) {
                 const state = client.getState()!;
                 expect(state.G.pendingCardEvent).toBeUndefined();
