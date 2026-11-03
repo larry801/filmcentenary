@@ -710,7 +710,7 @@
 - 目标 `retrieve:<卡牌ID>:play` 取回指定牌并立即按其事件结算；若当前 `cardWindow` 为匹配的战斗窗口，#7/#8/#9/#10/#40 可作为战斗牌注册并结算；`retrieve:<卡牌ID>:play:<事件目标>` 可同时传入该牌自身的事件目标（例如 `retrieve:vq-005:play:excommunicate`）。实现复用 `playCard`，因此仍受该牌的时机、目标与合法性限制；无法打出时牌留在弃牌堆，若事件可被取消则照常进入取消响应窗口。
 - **已支持的响应/战斗牌子集**：当 `G.cardWindow` 为该战斗的开窗时，参战方（进攻方或防守方）可立即打出印刷类别为 Combat 的战斗牌（#7 强攻、#8 精锐部队、#9 火攻战船、#10 围城工事、#40 提尔伯里演讲）；牌会登记到 `pendingBattle.cards[power]`，由战斗掷骰例程读取其加骰/改判效果，并照常进入弃牌堆。窗口的类别（野战/海战/攻城）必须与该牌印刷阶段一致，#40（任意阶段）除外。
   - 边界：防守方一侧只支持战斗的主防守方 `pendingBattle.defender`；其他防守同盟势力暂不登记（掷骰例程只读取 `battle.cards[battle.defender]`）。#7 强攻与 #10 围城工事仍按印刷文字仅限进攻方，防守方即时打出会被回滚并留在弃牌堆。依赖触发时机的 Response 牌（#12 威尼斯桨帆船、#13 黑骑士、#15 风暴等）与其他手动结算战斗牌（#39 洪水）仍走各自的 `chooseBattle`/响应阶段，不在此子集内；没有窗口时这些牌保持在弃牌堆。
-  - 可达性说明：boardgame.io 在战斗期间只让应对方进入 `battleChoice` 阶段，普通客户端无法在战斗中途调用 `playCard`；本子集为规则层能力（供直接调用/后续集成使用），`moveError` 仅在 `pendingBattle` 时放行 `playCard`，其余待响应状态仍全部拦截。测试通过直接驱动 `playCard` + `startBattle` 覆盖进攻方与防守方的成功、加骰与回滚。
+  - 可达性说明：boardgame.io 战斗期间只有 `battleChoice` 阶段的客户端可发牌。新增专用动作 `playVirginQueenCombat({target})`（仅英格兰席位、仅持有 #36、仅英格兰参战、仅 `retrieve:` 目标），由 `battleChoice` 阶段提供；`playCard` 仍只在规则层复用，普通客户端不能用它跳过战斗或打出其他事件。英格兰作为应对方时保持原 `battleChoice` 阶段；作为进攻方时由 `startBattle`/`prompt` 额外激活英格兰席位的辅助 `battleChoice` 阶段，打出后立即释放该阶段，战斗结束或回合结束不受影响。
 - 伊丽莎白死亡后，此牌不能作为事件打出。
 
 ### 胜利
@@ -1311,4 +1311,14 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 ## 三人 Campaign 配置
 
-按场景书第 12 页新增 3 人 Campaign：P1 西班牙、P2 英格兰+新教联盟、P3 法国；奥斯曼作为英格兰的已激活盟友起始参战，HRE 起始未激活，可由德国介入（#4）或对其宣战触发外交评议后激活。卡牌、王室、赞助、海船长与艺术家/科学家移除沿用双人列表（#4、#37 加入），但法国保留对奥斯曼的影响力标记，因此 3 人局不适用双人的“法国不得影响奥斯曼”限制。验证：`jest src/virginQueen --runInBand` 159 suites、783 tests passed；`jest --runInBand` 164 suites、838 tests passed；`tsc --noEmit` 与 `vite build` 通过（仅既有大体积 chunk 提示）。
+按场景书第 12 页新增 3 人 Campaign：P1 西班牙、P2 英格兰+新教联盟、P3 法国；奥斯曼作为英格兰的已激活盟友起始参战，HRE 起始未激活，可由德国介入（#4）或对其宣战触发外交评议后激活。卡牌、王室、赞助、海船长与艺术家/科学家移除沿用双人列表（#4、#37 加入），但法国保留对奥斯曼的影响力标记，因此 3 人局不适用双人的“法国不得影响奥斯曼”限制。
+
+## 四人 Campaign 配置
+
+按场景书第 11–12 页新增 4 人 Campaign：西班牙、英格兰、法国、新教联盟各一席；奥斯曼作为英格兰的已激活盟友，HRE 起始未激活。移除列表与双人相同，加入 #4/#37；影响力轨道按印刷设置。
+
+## #36 战斗阶段可达性
+
+新增 `playVirginQueenCombat` 动作并加入 `battleChoice` 阶段，仅英格兰席位、持有 #36、英格兰参战且目标为 `retrieve:` 时可调用；`playCard` 通过 `virginQueenBattlePower` 在战斗窗口中把英格兰当作行动方（应对方时 `ctx.currentPlayer` 仍是进攻方），并沿用 `resolveVirginQueenEvent` 的回滚。#36 持有者为非应对方时，`prompt` 额外把英格兰席位加入 `battleChoice` 辅助阶段，打出后 `endStage` 释放，战斗结束统一清空临时阶段。
+
+验证：`jest src/virginQueen/virginQueenBattleStage.test.ts --runInBand` 5 tests passed；`jest src/virginQueen --runInBand --silent` 159 suites、782 tests passed；`jest --runInBand --silent` 164 suites、837 tests passed；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。未做浏览器手动验收；真实战局中 #36 仍按规则只应在英格兰自己的行动轮打出。

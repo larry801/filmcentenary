@@ -20,17 +20,42 @@ const sideUnits = (G: VQGame, battle: Battle, attacker: boolean): number => batt
     ? totalNaval(G, battle.location, sideOwners(battle, attacker)) : totalLand(G, battle.location, sideOwners(battle, attacker));
 const navalStacks = (G: VQGame, location: string) => isSeaZone(location) ? G.seaZones[location as keyof VQGame["seaZones"]].naval : G.spaces[location].naval;
 
+/**
+ * Seat holding the Virgin Queen (#36) while England is fighting.  That seat
+ * gets an auxiliary `battleChoice` stage during the battle so the immediate
+ * combat play is reachable from a normal boardgame.io client; the stage's only
+ * usable move in that situation is `playVirginQueenCombat`.
+ */
+const virginQueenBattleHolder = (G: VQGame): string | undefined => {
+    const battle = G.pendingBattle;
+    if (battle === undefined) return undefined;
+    if (!G.powers.england.cards.includes("vq-036")) return undefined;
+    const englandInBattle = battle.attacker === "england" || battle.attackers.includes("england") ||
+        battle.defender === "england" || battle.defenders.includes("england");
+    return englandInBattle ? ownerOf(G, "england") : undefined;
+};
+
 const prompt = (G: VQGame, ctx: Ctx, step: Battle["step"], power: Power): void => {
     const battle = G.pendingBattle!;
     battle.step = step;
     battle.responding = power;
-    ctx.events?.setActivePlayers({value: {[ownerOf(G, power)!]: "battleChoice"}});
+    const responder = ownerOf(G, power)!;
+    const value: Record<string, string> = {[responder]: "battleChoice"};
+    // England may be the attacker or the non-controlling defender; either way
+    // #36 is playable only while it holds the card, so tell clients that the
+    // auxiliary stage exists without widening the normal battle choices.
+    const virginQueen = virginQueenBattleHolder(G);
+    if (virginQueen !== undefined && virginQueen !== responder) value[virginQueen] = "battleChoice";
+    ctx.events?.setActivePlayers({value});
 };
 
 const endBattle = (G: VQGame, ctx: Ctx): void => {
     delete G.pendingBattle;
     delete G.cardWindow;
     ctx.events?.endStage();
+    // Drop the auxiliary Virgin Queen stage too; endStage only ends the stage
+    // of the player who made the current move.
+    ctx.events?.setActivePlayers({value: {}});
 };
 
 const retreatOptions = (G: VQGame, battle: Battle, power: Power): string[] => {

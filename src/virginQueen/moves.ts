@@ -158,6 +158,25 @@ const gregorianResponsePower = (G: VQGame, ctx: Ctx): Power | undefined => {
     return pending.responder;
 };
 
+/**
+ * The Virgin Queen (#36) is England's Home card, so a play from an open battle
+ * window must always resolve as England.  `ctx.currentPlayer` still points at
+ * the attacking power while the battle stage is live, and multi-power seats
+ * resolve `power()` through `G.activePower`; both are the attacker when
+ * England is the responding defender.  `playVirginQueenCombat` is the only
+ * stage-level entry point for this move, so this override only applies to the
+ * #36 play and to the retrieved combat card that it resolves internally.
+ */
+const virginQueenBattlePower = (G: VQGame, ctx: Ctx, cardId: string): Power | undefined => {
+    const battle = G.pendingBattle;
+    if (battle === undefined || ctx.playerID === undefined || ctx.playerID === null) return undefined;
+    if (ownerOf(G, "england") !== ctx.playerID) return undefined;
+    const englandInBattle = battle.attacker === "england" || battle.attackers.includes("england") ||
+        battle.defender === "england" || battle.defenders.includes("england");
+    if (!englandInBattle || !G.powers.england.cards.includes(cardId)) return undefined;
+    return "england";
+};
+
 const countAtLocation = (G: VQGame, location: string, owner: Power): number => {
     const stack = isSeaZone(location) ? G.seaZones[location as keyof VQGame["seaZones"]].naval[owner] : G.spaces[location].naval[owner];
     if (stack !== undefined) return navalCount(stack);
@@ -2536,7 +2555,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         // #101 is a response card: it may only be played in the after-turn window.
         return INVALID_MOVE;
     }
-    const p = gregorianResponse ?? power(G, ctx);
+    const p = gregorianResponse ?? virginQueenBattlePower(G, ctx, args.cardId) ?? power(G, ctx);
     const ps = G.powers[p];
     if (ps.cardPlayed && gregorianResponse === undefined) {
         return INVALID_MOVE;
@@ -2653,6 +2672,37 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         ps.cp += def.cp;
         pushLog(G, `${powerLabel(p)} plays ${def.name} for ${def.cp} CP.`);
     }
+};
+
+/**
+ * Stage-level entry point for the Virgin Queen (#36) "retrieve and play
+ * immediately" option during an open battle.
+ *
+ * boardgame.io only exposes the `battleChoice` stage moves while a battle is
+ * being resolved, so the ordinary action-phase `playCard` move is unreachable
+ * there.  This wrapper keeps the window explicit: only England's seat, only
+ * while it holds #36, only while England is a battle participant, and only for
+ * a `retrieve:` target.  All event timing, target and ownership checks (and the
+ * rollback that leaves the retrieved card in the discard pile) stay inside
+ * {@link playCard}.
+ */
+export const playVirginQueenCombat = (G: VQGame, ctx: Ctx, args: {target?: string}): void | typeof INVALID_MOVE => {
+    const battle = G.pendingBattle;
+    if (battle === undefined || ctx.playerID === undefined || ctx.playerID === null) return INVALID_MOVE;
+    if (ownerOf(G, "england") !== ctx.playerID || !G.powers.england.cards.includes("vq-036")) return INVALID_MOVE;
+    const englandInBattle = battle.attacker === "england" || battle.attackers.includes("england") ||
+        battle.defender === "england" || battle.defenders.includes("england");
+    if (!englandInBattle) return INVALID_MOVE;
+    const target = args?.target;
+    if (target === undefined || !target.startsWith("retrieve:")) return INVALID_MOVE;
+    const result = playCard(G, ctx, {cardId: "vq-036", asEvent: true, target});
+    if (result === INVALID_MOVE) return result;
+    // When England is not the responding side it only has the auxiliary
+    // `battleChoice` stage for this immediate play.  End that stage so the
+    // responder (and then the normal turn flow) keeps control.  If the play
+    // opened a different response window, boardgame.io already replaced the
+    // active players and this is a no-op.
+    if (ctx.playerID !== ownerOf(G, battle.responding)) ctx.events?.endStage();
 };
 
 export const playTreasure = (G: VQGame, ctx: Ctx, args: { index: number }): void | typeof INVALID_MOVE => {
