@@ -464,6 +464,7 @@ export interface VQGame {
     pendingAction?: {power: Power; move: "moveLand" | "moveNaval" | "navalTransport" | "assault" | "piracy"; args: {from?: string; to?: string; space?: string; zone?: string; target?: Power; units?: Partial<LandStack>; leaders?: string[]; unitPower?: Controller; zones?: string[]}};
     resumeAction?: boolean;
     pendingNavalOrder?: {attacker: Power; location: string; enemies: Power[]};
+    pendingWithdraw?: {active: Power; defender: Power; space: string; origin: string};
     pendingContinue?: {power: Power; origin: string; space: string; units: LandStack; leaders: string[]};
     pendingIntercept?: {power: Power; defender: Power; from: string; to: string; phase: "field" | "naval"; attackers: Controller[]; attempted: string[]; succeeded: boolean; transported?: boolean};
     interceptedThisImpulse?: {impulse: number; spaces: string[]};

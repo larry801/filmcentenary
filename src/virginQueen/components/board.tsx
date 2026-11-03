@@ -514,6 +514,18 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             onClick={() => moves.chooseNavalOrder({enemy})}>{POWER_NAMES[enemy].zh}</Button>)}
                     </Stack>
                 </Paper>}
+                {G.pendingWithdraw !== undefined && G.pendingWithdraw.defender === me && <Paper variant="outlined" sx={{p: 1}}>
+                    <Typography variant="subtitle2">守军选择</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        {SPACE_BY_ID[G.pendingWithdraw.space]?.name ?? G.pendingWithdraw.space} 的守军可退入要塞，或出城野战。
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} sx={{mt: 0.5}}>
+                        <Button size="small" variant="outlined" disabled={!myTurn}
+                            onClick={() => moves.chooseWithdraw({withdraw: true})}>退入要塞</Button>
+                        <Button size="small" variant="outlined" color="error" disabled={!myTurn}
+                            onClick={() => moves.chooseWithdraw({withdraw: false})}>出城野战</Button>
+                    </Stack>
+                </Paper>}
                 {G.pendingContinue !== undefined && G.pendingContinue.power === me && <Paper variant="outlined" sx={{p: 1}}>
                     <Typography variant="subtitle2">守军退入要塞</Typography>
                     <Typography variant="caption" color="text.secondary">

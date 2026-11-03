@@ -12,6 +12,7 @@ import {arriveLeaders, checkVictory, dealYear, resolvePendingCatholicLeague, res
 import {
     assault,
     chooseNavalOrder,
+    chooseWithdraw,
     continueMove,
     stopContinue,
     proposeBetroth,
@@ -255,6 +256,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
         controlSpace,
         assault,
         chooseNavalOrder,
+        chooseWithdraw,
     continueMove,
         stopContinue,
         preach,

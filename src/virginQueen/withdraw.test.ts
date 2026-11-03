@@ -1,11 +1,11 @@
 import {Ctx} from "boardgame.io";
 import {VQGame, landCount} from "./constant/general";
-import {continueMove, moveLand, stopContinue} from "./moves";
+import {chooseWithdraw, continueMove, moveLand, stopContinue} from "./moves";
 import {setupGame} from "./util";
 
-const context = (): Ctx => ({
-    currentPlayer: "3",
-    playerID: "3",
+const context = (player = "3"): Ctx => ({
+    currentPlayer: player,
+    playerID: player,
     phase: "action",
     numPlayers: 6,
     random: {Die: () => 3, Shuffle: (cards: unknown[]) => cards},
@@ -35,6 +35,8 @@ describe("withdraw into fortifications (rule 13.4)", () => {
 
         expect(moveLand(G, context(), {from: "paris", to: "orleans", units: {regular: 2}, leaders: []})).toBeUndefined();
 
+        expect(G.pendingWithdraw).toMatchObject({active: "france", defender: "england", space: "orleans", origin: "paris"});
+        expect(chooseWithdraw(G, context("2"), {withdraw: true})).toBeUndefined();
         expect(G.pendingContinue).toMatchObject({power: "france", origin: "paris", space: "orleans"});
         expect(G.spaces.orleans.land.france.regular).toBe(2);
         expect(G.powers.france.cp).toBe(1);
@@ -44,6 +46,7 @@ describe("withdraw into fortifications (rule 13.4)", () => {
         const G = game();
         prepare(G);
         moveLand(G, context(), {from: "paris", to: "orleans", units: {regular: 2}, leaders: []});
+        chooseWithdraw(G, context("2"), {withdraw: true});
 
         expect(continueMove(G, context(), {to: "bourges"})).toBeUndefined();
 
@@ -53,10 +56,22 @@ describe("withdraw into fortifications (rule 13.4)", () => {
         expect(G.powers.france.cp).toBe(0);
     });
 
+    it("lets the defender fight a field battle instead of withdrawing", () => {
+        const G = game();
+        prepare(G);
+        moveLand(G, context(), {from: "paris", to: "orleans", units: {regular: 2}, leaders: []});
+
+        expect(chooseWithdraw(G, context("2"), {withdraw: false})).toBeUndefined();
+
+        expect(G.pendingWithdraw).toBeUndefined();
+        expect(G.log.join("\n")).toContain("Field battle");
+    });
+
     it("returns to the origin without spending CP", () => {
         const G = game();
         prepare(G);
         moveLand(G, context(), {from: "paris", to: "orleans", units: {regular: 2}, leaders: []});
+        chooseWithdraw(G, context("2"), {withdraw: true});
 
         expect(stopContinue(G, context())).toBeUndefined();
 

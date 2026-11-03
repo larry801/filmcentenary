@@ -156,9 +156,9 @@
 
 ### 退入要塞（13.4）
 
-- 守军不超过 4 个时自动退入要塞；若攻方单位多于守军，直接围城。
+- 守军不超过 4 个时由守方选择退入要塞或出城野战；退入后若攻方单位多于守军，直接围城。
 - 若攻方单位不多于守军且有至少 1 CP，形成待选状态：可花 1 CP 继续移动到相邻空地区，或免费返回出发地。
-- 继续行军只能进入无敌军且可进入的相邻地区；守方撤退选择仍自动。
+- 继续行军只能进入无敌军且可进入的相邻地区。
 
 ### 婚姻（21.1）
 
@@ -241,7 +241,7 @@ Card Draw 按参战强国依次确认，同一玩家控制的多个强国也需�
 - 正式局已接入自动拦截（13.2）与自动陆军避战（13.3），但编队/尝试顺序由程序选择；退入要塞选项仍保留简化
 - 冬季 20.4 的海军返港、陆军半损/4 单位上限/首都例外已实现；但目的地与损耗单位没有交互选择；海运已在正式局开放，但 Storms 响应、海运期间拦截与“每行动轮次只能海运一个编队”尚未实现；Catholic League（20.10）已接入，西班牙在下一外交阶段交互选地（春季未选完时自动补选）；Grand Tour #53 在联盟成立后打出即移出游戏，Dragut Falls #11 在 Dragut 离场时移出游戏；世界地图船长返航未实现
 - 西班牙阿马达已接入 #99 放置/升级、单独/随舰队移动、战斗骰与承受命中，并按强度/2计入海军封锁；载运陆军已接入港口装载/卸载、海上 1 CP 与相邻港口间运输及容量限制；可单独或随西班牙舰队拦截/避战/撤退，冬季从海域自动返回西班牙港口；被消灭后于下一 Turn Track 年份在塞维利亚/科伦纳/里斯本以强度 2 重建
-- 正式局退入要塞已接入自动撤退与攻方 1 CP 继续/返回选择；守方是否撤退仍自动
+- 正式局退入要塞已接入守方“退入要塞/出城野战”选择，以及攻方 1 CP 继续/返回选择
 - 海军避战已接入但目的地/编队自动；海军拦截编队仍自动；多敌军交战顺序已交互
 - 婚姻已按官方 Royal Wedding Table 结算（2d6 + 资格；同国只取较高资格；15+ 双方 2 VP、14 双方 1 VP+卡牌标记、13 双方 1 VP、12 +1 卡牌标记、10/11 无效果、9 最后取消、8 −1 卡牌标记、7 妻子死于难产、6- 丈夫被谋杀；Valois +1 VP）。已接入 Don Carlos 最高骰重掷、Anna of Austria 最低骰重掷、William of Orange 无 VP 结果回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 的卡牌标记、Isabella Clara Eugenia 赞助加值；#36 童贞女王已接入弃婚与 Jilted Table；Philip II/Charles IX/Henry III/Rudolf II/Elizabeth I 死亡效果已按 23.2–23.5 降低卡牌/Admin，并处理 Henry III 将领与 Elizabeth 牌
 - 统治者死亡/更替、
@@ -397,3 +397,5 @@ Royal Wedding Table（21.1）接入后的验证：`jest src/virginQueen --runInB
 新教荷兰/胡格诺抽牌（23.6）接入后的验证：`jest src/virginQueen --runInBand --silent` 37 suites、421 tests passed（新增 1 项：两行关键地区较低者决定 4/5/6/7 张）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --runInBand --silent` 37 suites、423 tests passed（新增 2 项：Elizabeth 死后处决被俘 Mary、Mary 在苏格兰时不被处决）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+守方主动撤退/野战选择接入后的验证：`jest src/virginQueen --runInBand --silent` 37 suites、424 tests passed（新增 1 项：守方选择出城野战；原继续/返回测试改为先由守方选择撤退）；`npm run build` 通过，仍有既有大体积 chunk 提示。

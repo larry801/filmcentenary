@@ -1819,6 +1819,11 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
             return;
         }
         if (isFortifiedSpace(G, to) && defenders <= 4) {
+            const defenderPower = hostile.find(isPower);
+            if (defenderPower !== undefined && ownerOf(G, defenderPower) !== undefined) {
+                G.pendingWithdraw = {active: p, defender: defenderPower, space: to, origin: from};
+                return;
+            }
             if (totalLand(G, to, [p]) > defenders) {
                 dest.siege = {by: p, sinceImpulse: G.impulse};
                 pushLog(G, `The defenders of ${SPACE_BY_ID[to].name} withdraw into the fortifications; the space is under siege.`);
@@ -2028,6 +2033,49 @@ export const chooseNavalOrder = (G: VQGame, ctx: Ctx, args: {enemy: Power}): voi
     pending.enemies = pending.enemies.filter((enemy) => enemy !== args.enemy);
     if (pending.enemies.length === 0 || countAtLocation(G, pending.location, pending.attacker) === 0 || !isSeaZone(pending.location)) {
         delete G.pendingNavalOrder;
+    }
+};
+
+export const chooseWithdraw = (G: VQGame, ctx: Ctx, args: {withdraw: boolean}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingWithdraw;
+    if (pending === undefined || ctx.playerID !== ownerOf(G, pending.defender)) return INVALID_MOVE;
+    const state = G.spaces[pending.space];
+    const defenders = totalLand(G, pending.space, ownersWithLand(G, pending.space).filter((owner) => owner !== pending.active));
+    const activeUnits = totalLand(G, pending.space, [pending.active]);
+    delete G.pendingWithdraw;
+    if (!args.withdraw) {
+        const hostile = ownersWithLand(G, pending.space).filter((owner) => !friendlyController(G, pending.active, owner));
+        const activeCtx = {...ctx, playerID: ownerOf(G, pending.active)!};
+        fieldBattle(G, activeCtx, pending.space, pending.active, hostile, pending.origin);
+        return;
+    }
+    if (activeUnits > defenders) {
+        state.siege = {by: pending.active, sinceImpulse: G.impulse};
+        pushLog(G, `The defenders of ${SPACE_BY_ID[pending.space].name} withdraw into the fortifications; the space is under siege.`);
+        return;
+    }
+    if (G.powers[pending.active].cp >= 1) {
+        const stack = state.land[pending.active];
+        if (stack !== undefined) {
+            const leaders = state.leaders.filter((id) => LEADER_BY_ID[id]?.power === pending.active && LEADER_BY_ID[id]?.kind === "army");
+            G.pendingContinue = {power: pending.active, origin: pending.origin, space: pending.space, units: {...stack}, leaders};
+            pushLog(G, "The defenders withdraw; the active formation may spend 1 CP to continue or return.");
+        }
+        return;
+    }
+    const stack = state.land[pending.active];
+    if (stack !== undefined) {
+        delete state.land[pending.active];
+        const back = ensureLand(G, pending.origin, pending.active);
+        back.regular += stack.regular;
+        back.merc += stack.merc;
+        back.cav += stack.cav;
+        for (const id of state.leaders.filter((leader) => LEADER_BY_ID[leader]?.power === pending.active)) {
+            state.leaders = state.leaders.filter((leader) => leader !== id);
+            G.spaces[pending.origin].leaders.push(id);
+            G.leaders[id].location = pending.origin;
+        }
+        pushLog(G, "Not enough troops to besiege the space; the formation returns.");
     }
 };
 
