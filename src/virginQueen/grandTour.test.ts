@@ -27,6 +27,17 @@ describe("Grand Tour (card #53)", () => {
         expect(G.discard).toContain("vq-063");
     });
 
+    it("can give a specific card to another power", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-053", "vq-020", "vq-021"];
+        G.powers.spain.cards = [];
+
+        expect(playCard(G, context(), {cardId: "vq-053", asEvent: true, target: "give:spain:vq-021"})).toBeUndefined();
+
+        expect(G.powers.spain.cards).toContain("vq-021");
+        expect(G.powers.france.cards).toContain("vq-020");
+    });
+
     it("clears French unrest, recovers Nostradamus, and reinforces Paris", () => {
         const G = game();
         G.powers.france.cards = ["vq-053"];

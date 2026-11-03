@@ -752,14 +752,16 @@ const resolveCalvinistZeal = (G: VQGame, ctx: Ctx): void => {
 
 /** #53 Grand Tour: clear French unrest, recover Nostradamus, reinforce Paris. */
 const resolveGrandTour = (G: VQGame, p: Power, target?: string): void => {
-    const [mode, value] = target?.split(":") ?? [];
+    const [mode, value, extra] = target?.split(":") ?? [];
     if (mode === "peace" && value !== undefined && isPower(value) && G.powers[p].wars.includes(value)) {
         G.powers[p].wars = G.powers[p].wars.filter((power) => power !== value);
         G.powers[value].wars = G.powers[value].wars.filter((power) => power !== p);
         pushLog(G, `Grand Tour makes peace between ${powerLabel(p)} and ${powerLabel(value)}.`);
     }
     if (mode === "give" && value !== undefined && isPower(value) && value !== p) {
-        const card = G.powers[p].cards.find((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory");
+        const card = extra !== undefined && G.powers[p].cards.includes(extra) && cardById(extra).kind !== "home" && cardById(extra).officialKind !== "mandatory"
+            ? extra
+            : G.powers[p].cards.find((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory");
         if (card !== undefined) {
             G.powers[p].cards = G.powers[p].cards.filter((id) => id !== card);
             G.powers[value].cards.push(card);
