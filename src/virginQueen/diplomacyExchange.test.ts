@@ -1,15 +1,15 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {VQGame} from "./constant/general";
-import {giveTreasure} from "./moves";
+import {giveMercenary, giveRandomCard, giveTreasure} from "./moves";
 import {setWar, setupGame} from "./util";
 
-const context = (): Ctx => ({
+const context = (values: number[] = []): Ctx => ({
     currentPlayer: "3",
     playerID: "3",
     phase: "diplomacy",
     numPlayers: 6,
-    random: {Die: () => 3, Shuffle: (cards: unknown[]) => cards},
+    random: {Die: () => values.shift() ?? 3, Shuffle: (cards: unknown[]) => cards},
 } as unknown as Ctx);
 
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
@@ -24,6 +24,27 @@ describe("diplomatic treasure exchange (rule 9.1)", () => {
 
         expect(G.powers.france.treasures).toEqual([3]);
         expect(G.powers.spain.treasures).toEqual([2]);
+    });
+
+    it("transfers a random non-home card", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-020", "vq-036"];
+        G.powers.spain.cards = [];
+
+        expect(giveRandomCard(G, context([1]), {target: "spain"})).toBeUndefined();
+
+        expect(G.powers.france.cards).not.toContain("vq-020");
+        expect(G.powers.spain.cards).toContain("vq-020");
+    });
+
+    it("transfers one mercenary in a selected space", () => {
+        const G = game();
+        G.spaces.paris.land.france = {regular: 0, merc: 1, cav: 0};
+
+        expect(giveMercenary(G, context(), {target: "spain", space: "paris"})).toBeUndefined();
+
+        expect(G.spaces.paris.land.france).toBeUndefined();
+        expect(G.spaces.paris.land.spain?.merc).toBe(1);
     });
 
     it("cannot transfer to an enemy or with an invalid index", () => {

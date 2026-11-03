@@ -154,7 +154,9 @@
 ### 外交交换（9.1）
 
 - 外交阶段可把手中的一个宝藏赠送给非交战国；界面列出己方宝藏价值。
-- 卡牌/雇佣兵交换与“随机抽牌”协议尚未实现。
+- 可随机赠送一张非本国牌；界面按钮从非本国牌中随机选择。
+- 可把选中地区的 1 个雇佣兵转给非交战国。
+- 尚未实现完整的双向随机交换协议。
 
 ### 海军借调（9.2）
 
@@ -426,3 +428,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #100 英格兰的局势接入后的验证：`jest src/virginQueen --runInBand --silent` 39 suites、427 tests passed（新增 1 项：1–16+ 各档 VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 外交宝藏赠送（9.1）接入后的验证：`jest src/virginQueen --runInBand --silent` 40 suites、429 tests passed（新增 2 项：宝藏转移、敌对/非法索引拒绝）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+外交卡牌/雇佣兵赠送接入后的验证：`jest src/virginQueen --runInBand --silent` 40 suites、431 tests passed（新增 2 项：随机非本国牌、雇佣兵转移）；`npm run build` 通过，仍有既有大体积 chunk 提示。

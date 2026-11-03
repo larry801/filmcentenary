@@ -958,6 +958,30 @@ export const formAlliance = (G: VQGame, ctx: Ctx, args: { target: Power }): void
     pushLog(G, `${powerLabel(p)} and ${powerLabel(t)} form an alliance for this turn.`);
 };
 
+export const giveRandomCard = (G: VQGame, ctx: Ctx, args: {target: Power}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "diplomacy") return INVALID_MOVE;
+    const p = power(G, ctx);
+    if (!isPower(args.target) || args.target === p || atWar(G, p, args.target)) return INVALID_MOVE;
+    const candidates = G.powers[p].cards.filter((id) => cardById(id).kind !== "home");
+    if (candidates.length === 0) return INVALID_MOVE;
+    const card = candidates[Math.min(candidates.length - 1, Math.max(0, die(ctx, candidates.length) - 1))];
+    G.powers[p].cards = G.powers[p].cards.filter((id) => id !== card);
+    G.powers[args.target].cards.push(card);
+    pushLog(G, `${powerLabel(p)} gives a random card to ${powerLabel(args.target)}.`);
+};
+
+export const giveMercenary = (G: VQGame, ctx: Ctx, args: {target: Power; space: string}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "diplomacy") return INVALID_MOVE;
+    const p = power(G, ctx);
+    if (!isPower(args.target) || args.target === p || atWar(G, p, args.target) || G.spaces[args.space] === undefined) return INVALID_MOVE;
+    const source = G.spaces[args.space].land[p];
+    if (source === undefined || source.merc < 1) return INVALID_MOVE;
+    source.merc -= 1;
+    if (landCount(source) === 0) delete G.spaces[args.space].land[p];
+    ensureLand(G, args.space, args.target).merc += 1;
+    pushLog(G, `${powerLabel(p)} gives a mercenary to ${powerLabel(args.target)} in ${SPACE_BY_ID[args.space].name}.`);
+};
+
 export const giveTreasure = (G: VQGame, ctx: Ctx, args: {target: Power; index: number}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "diplomacy") return INVALID_MOVE;
     const p = power(G, ctx);
