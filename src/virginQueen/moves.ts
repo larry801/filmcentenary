@@ -672,6 +672,22 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #80 The Black Queen, option 3: take a card or draw two. */
 /** #112 Day of the Barricades: seize Paris under the right conditions. */
 /** #103 Act of Abjuration: one power allies with the Protestant and sends troops. */
+/** #111 Paris is Worth a Mass: move the Huguenot capital to Paris. */
+const resolveParisMass = (G: VQGame): void => {
+    if (allied(G, "protestant", "france")) return;
+    const neighbors = landNeighbors("paris").map((neighbor) => neighbor.id);
+    const adjacent = neighbors.filter((id) => G.spaces[id]?.control === "protestant").length;
+    if (G.spaces.paris.control !== "protestant" && adjacent < 2) return;
+    const region = ["paris", ...neighbors];
+    const regulars = region.reduce((total, id) => total + (G.spaces[id]?.land.protestant?.regular ?? 0), 0);
+    const navarre = G.leaders.navarre;
+    if (regulars < 5 || navarre === undefined || !region.includes(navarre.location)) return;
+    for (const id of region.slice(0, 3)) G.spaces[id].control = "protestant";
+    G.protestantCapital = "paris";
+    removeCardFromGame(G, "vq-111");
+    pushLog(G, "Paris is Worth a Mass: the Protestant takes Paris and moves the Huguenot capital there.");
+};
+
 const resolveActOfAbjuration = (G: VQGame, p: Power, target?: string): void => {
     if (!["england", "france", "hre"].includes(p) || atWar(G, p, "protestant") ||
         target === undefined || SPACE_BY_ID[target]?.area !== "netherlands" ||
@@ -1334,6 +1350,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveDayOfBarricades(G);
     } else if (handler === "actOfAbjuration") {
         resolveActOfAbjuration(G, p, target);
+    } else if (handler === "parisIsWorthAMass") {
+        resolveParisMass(G);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {

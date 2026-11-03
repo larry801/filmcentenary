@@ -170,6 +170,12 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 巴黎值得一场弥撒（#111）
+
+- 条件：新教控制巴黎或 2 个巴黎相邻地区、巴黎 1 格内有 ≥5 新教正规军与纳瓦拉的亨利、且新教未与法国结盟。
+- 新教夺取巴黎及最多 3 个 1 格内地区控制权，首都迁至巴黎；事件牌移出游戏。
+- 当前自动选择优先巴黎及相邻地区。
+
 ### 誓绝法案（#103）
 
 - 英格兰/法国/HRE 向新教提议：立即结盟，并从本土向尼德兰新教控制、无其他势力部队的地区移动至多 5 个正规军；
@@ -604,6 +610,7 @@ src/virginQueen/
   blackQueen.test.ts    #80 黑太后选项 3
   dayBarricades.test.ts #112 街垒日
   actAbjuration.test.ts #103 誓绝法案
+  parisMass.test.ts     #111 巴黎值得一场弥撒
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -806,3 +813,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #112 街垒日接入后的验证：`jest src/virginQueen --runInBand --silent` 81 suites、492 tests passed（新增 1 项：西班牙夺取巴黎）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #103 誓绝法案接入后的验证：`jest src/virginQueen --runInBand --silent` 82 suites、493 tests passed（新增 1 项：结盟/派兵/VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#111 巴黎值得一场弥撒接入后的验证：`jest src/virginQueen --runInBand --silent` 83 suites、494 tests passed（新增 1 项：夺取巴黎/迁都）；`npm run build` 通过，仍有既有大体积 chunk 提示。

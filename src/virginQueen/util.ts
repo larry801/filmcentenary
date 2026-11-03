@@ -1436,10 +1436,15 @@ export const isFortifiedSpace = (G: VQGame, id: string): boolean => {
     return def.kind !== "open" || G.spaces[id].fortress;
 };
 
-export const capitalSpacesFor = (G: VQGame, p: Power): string[] =>
-    p === "hre" && G.hreCapital !== undefined
-        ? [G.hreCapital, ...CAPITAL_SPACES.hre.filter((id) => id !== G.hreCapital)]
-        : CAPITAL_SPACES[p];
+export const capitalSpacesFor = (G: VQGame, p: Power): string[] => {
+    if (p === "hre" && G.hreCapital !== undefined) {
+        return [G.hreCapital, ...CAPITAL_SPACES.hre.filter((id) => id !== G.hreCapital)];
+    }
+    if (p === "protestant" && G.protestantCapital !== undefined) {
+        return [G.protestantCapital, ...CAPITAL_SPACES.protestant.filter((id) => id !== G.protestantCapital)];
+    }
+    return CAPITAL_SPACES[p];
+};
 
 export const capitalOf = (G: VQGame, p: Power): string | undefined => {
     const controlledCap = capitalSpacesFor(G, p).find((id) => {
