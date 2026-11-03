@@ -36,6 +36,28 @@ describe("Flooding (card #39)", () => {
         expect(G.powers.spain.cards).not.toContain("vq-039");
     });
 
+    it("is canceled automatically by Siege Engineering in a campaign assault", () => {
+        const G = game();
+        G.impulse = 2;
+        G.spaces.ghent.control = "spain";
+        G.spaces.ghent.siege = {by: "france", sinceImpulse: 1};
+        G.spaces.ghent.land.spain = {regular: 1, merc: 0, cav: 0};
+        G.spaces.ghent.land.france = {regular: 6, merc: 4, cav: 0};
+        G.spaces.brussels.control = "france";
+        G.spaces.brussels.unrest = false;
+        G.powers.spain.cards = ["vq-039"];
+        G.powers.france.cards = ["vq-010"];
+        setWar(G, "france", "spain");
+        G.powers.france.cp = 10;
+        const franceContext = {...context("0"), currentPlayer: "3", playerID: "3"} as Ctx;
+
+        expect(assault(G, franceContext, {space: "ghent"})).toBeUndefined();
+
+        expect(G.log.join("\n")).toContain("Siege Engineering cancels Flooding");
+        expect(G.powers.france.cards).not.toContain("vq-010");
+        expect(G.powers.spain.cards).not.toContain("vq-039");
+    });
+
     it("is not offered outside the Netherlands", () => {
         const G = game();
         G.spaces.belgrade.control = "ottoman";

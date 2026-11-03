@@ -2264,11 +2264,17 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
         G.powers[defending].cards.includes("vq-039")) {
         removeCardFromHand(G, defending, "vq-039");
         discardCard(G, defending, "vq-039", true);
-        const stack = s.land[p];
-        if (stack !== undefined) stack.merc -= Math.ceil(stack.merc / 2);
-        delete s.siege;
-        pushLog(G, "Flooding lifts the siege and halves the attacker's mercenaries.");
-        return false;
+        if (G.powers[p].cards.includes("vq-010")) {
+            removeCardFromHand(G, p, "vq-010");
+            discardCard(G, p, "vq-010", true);
+            pushLog(G, "Siege Engineering cancels Flooding.");
+        } else {
+            const stack = s.land[p];
+            if (stack !== undefined) stack.merc -= Math.ceil(stack.merc / 2);
+            delete s.siege;
+            pushLog(G, "Flooding lifts the siege and halves the attacker's mercenaries.");
+            return false;
+        }
     }
     const siegeEngineering = !desperate && G.powers[p].cards.includes("vq-010");
     if (desperate) {
