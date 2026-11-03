@@ -654,6 +654,28 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #65 Puritans: draw a random English card or place three English unrest. */
 /** #79 Convention of Estates: convert three Netherlands spaces to Protestant. */
 /** #67 Spanish Pay Ships Seized: Spain loses two Netherlands regulars. */
+/** #71 Black Magic: take a random non-home card from another power. */
+const resolveBlackMagic = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    if (target === undefined || !isPower(target) || target === p) return;
+    const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
+    if (cards.length === 0) {
+        pushLog(G, "Black Magic: the target has no eligible card.");
+        return;
+    }
+    const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
+    G.powers[target].cards = G.powers[target].cards.filter((id) => id !== card);
+    G.powers[p].cards.push(card);
+    pushLog(G, `Black Magic takes ${cardById(card).name} from ${powerLabel(target)}.`);
+};
+
+/** #104 Armada Pardon: CP for the Armada. */
+const resolveArmadaPardon = (G: VQGame, p: Power): void => {
+    if (G.armada === undefined) return;
+    const papacy = G.powers[p].alliedMinors.includes("papacy") ? 1 : 0;
+    G.powers[p].cp += 4 + papacy;
+    pushLog(G, `Armada Pardon grants Spain ${4 + papacy} CP for the Armada.`);
+};
+
 const resolveSpanishPayShips = (G: VQGame, ctx: Ctx, p: Power): void => {
     let remaining = 2;
     for (const space of SPACES.filter((def) => def.area === "netherlands")) {
@@ -1167,6 +1189,10 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveConventionOfEstates(G);
     } else if (handler === "spanishPayShipsSeized") {
         resolveSpanishPayShips(G, ctx, p);
+    } else if (handler === "blackMagic") {
+        resolveBlackMagic(G, ctx, p, target);
+    } else if (handler === "armadaPardon") {
+        resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {
