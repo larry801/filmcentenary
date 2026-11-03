@@ -592,6 +592,27 @@ const resolveHolyRomanIntercession = (G: VQGame, ctx: Ctx, target?: string): voi
 };
 
 /** #56 Index of Prohibited Books, option 1: six Catholic attempts. */
+/** #83 Dutch Revolt mandatory VP table. */
+const resolveDutchRevolt = (G: VQGame): void => {
+    const controlled = SPACES.filter((space) => space.area === "netherlands" && !G.spaces[space.id].unrest &&
+        G.spaces[space.id].control === "spain").length;
+    pushLog(G, `Dutch Revolt: ${controlled} Netherlands space(s) under Spanish control.`);
+    if (controlled === 0) {
+        addVp(G, "protestant", 3);
+    } else if (controlled <= 7) {
+        addVp(G, "protestant", 2);
+        addVp(G, "england", 1);
+    } else if (controlled <= 11) {
+        addVp(G, "protestant", 1);
+        addVp(G, "england", 1);
+        addVp(G, "spain", 1);
+    } else if (controlled <= 19) {
+        addVp(G, "spain", 2);
+    } else {
+        addVp(G, "spain", 3);
+    }
+};
+
 const resolveIndex = (G: VQGame, ctx: Ctx): void => {
     for (let attempt = 0; attempt < 6; attempt++) {
         const areas = ["france", "netherlands", "scotland"] as const;
@@ -915,6 +936,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolvePatronOfArts(G, ctx, target);
     } else if (handler === "indexOfProhibitedBooks") {
         resolveIndex(G, ctx);
+    } else if (handler === "dutchRevolt") {
+        resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {
         resolveHolyRomanIntercession(G, ctx, target);
     } else if (handler === "ottomanTribute") {
