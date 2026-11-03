@@ -170,7 +170,7 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
     if (pending.step === "acceptTribute") return [option("accept", "接受进贡，取消宣战并抽牌"), option("reject", "拒绝进贡，继续宣战")];
     if (pending.step === "payment") return [option("none", "不支付，失去正规军"), ...G.powers[pending.responding].cards.filter((id) => cardById(id).officialKind !== "mandatory")
         .map((id) => option(`card:${id}`, `支付 ${cardById(id).name}，保留最多 ${cardById(id).cp * 2} 正规军`))];
-    if (pending.step === "illness") return [option("discard", "随机弃 1 张手牌"), option("skip", "跳过下次冲动并召回一名将领")].filter((entry) => entry.id !== "discard" || G.powers[pending.responding].cards.some((id) => id !== "vq-006"));
+    if (pending.step === "illness") return [option("discard", "随机弃 1 张手牌"), option("skip", "跳过下次行动轮次并召回一名将领")].filter((entry) => entry.id !== "discard" || G.powers[pending.responding].cards.some((id) => id !== "vq-006"));
     if (pending.step === "leader") return [option("none", "不移动将领"), ...Object.values(G.leaders).filter((leader) => {
         const def = LEADER_BY_ID[leader.id];
         return def?.power === (pending.targetPower ?? power) && def.kind === "army" && G.spaces[leader.location] &&

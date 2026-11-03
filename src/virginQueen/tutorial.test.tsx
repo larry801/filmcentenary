@@ -44,7 +44,7 @@ describe("two-player teaching lessons", () => {
         expect(JSON.stringify(G)).toBe(before);
         G.powers.ottoman.cp = 0;
         expect(tutorialLesson(G, "action")?.title).toBe("第 3 步：交给另一位玩家");
-        expect(tutorialLesson(G, "action")?.instruction).toContain("结束冲动");
+        expect(tutorialLesson(G, "action")?.instruction).toContain("结束行动轮次");
     });
 
     const responses: [string, Partial<VQGame>, Power][] = [

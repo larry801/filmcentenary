@@ -129,7 +129,7 @@ export const actionResponseOptions = (G: VQGame): {id: string; label: string}[] 
     const responder = pending.power === "ottoman" ? "spain" : "ottoman";
     return [{id: "continue", label: "允许行动"},
         ...(G.powers[responder].cards.includes("vq-015") ? [{id: "storms", label: "打出 Storms，中断行动"}] : []),
-        ...(pending.power === "ottoman" && G.impulse > 1 && G.powers[responder].cards.includes("vq-016") ? [{id: "harem", label: "打出 Sultan's Harem，奥斯曼跳过下次冲动"}] : [])];
+        ...(pending.power === "ottoman" && G.impulse > 1 && G.powers[responder].cards.includes("vq-016") ? [{id: "harem", label: "打出 Sultan's Harem，奥斯曼跳过下次行动轮次"}] : [])];
 };
 
 export const respondAction = (G: VQGame, ctx: Ctx, args: {choice: string}): void | typeof INVALID_MOVE => {

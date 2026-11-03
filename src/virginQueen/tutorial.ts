@@ -96,11 +96,11 @@ export const tutorialLesson = (G: VQGame, phase: string): TutorialLesson | undef
     };
     return G.powers[power].cp > 0 ? {
         title: "第 3 步：使用行动点",
-        instruction: "在行动下拉框选择征募、陆军移动或海军移动等操作，再点击地图目标。移动需先选起点、调整部队，再选目的地。完成后点击“结束冲动”交出行动权，剩余 CP 不会保留。",
+        instruction: "在行动下拉框选择征募、陆军移动或海军移动等操作，再点击地图目标。移动需先选起点、调整部队，再选目的地。完成后点击“结束行动轮次”交出行动权，剩余 CP 不会保留。",
         power,
     } : {
         title: "第 3 步：交给另一位玩家",
-        instruction: "本次出牌已结算，且没有剩余 CP。点击“结束冲动”交给对方；双方连续跳过后自动进行冬季结算并进入下一回合，或结束对局。",
+        instruction: "本次出牌已结算，且没有剩余 CP。点击“结束行动轮次”交给对方；双方连续跳过后自动进行冬季结算并进入下一回合，或结束对局。",
         power,
     };
 };

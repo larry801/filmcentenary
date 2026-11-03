@@ -544,7 +544,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <Button size="small" color="inherit" variant="outlined" disabled={!myTurn}
                             onClick={() => moves.pass()}>跳过</Button>
                     <Button size="small" variant="outlined" disabled={!myTurn}
-                            onClick={() => moves.endImpulse()}>结束冲动</Button>
+                            onClick={() => moves.endImpulse()}>结束行动轮次</Button>
                 </Stack>
                 <Divider/>
                 {G.foreignWars[me]?.status === "setup" && <Paper variant="outlined" sx={{p: 1}}>
@@ -686,7 +686,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     </Stack>
                 </>}
                 {G.informants.map((i) => <Typography key={`${i.owner}:${i.target}`} variant="caption">
-                    {POWER_NAMES[i.owner].zh} → {POWER_NAMES[i.target].zh}：{i.neutralized ? "已无效化，冬季回收" : i.plantedImpulse < G.impulse ? "+2 攻击骰" : "下次冲动起生效"}
+                    {POWER_NAMES[i.owner].zh} → {POWER_NAMES[i.target].zh}：{i.neutralized ? "已无效化，冬季回收" : i.plantedImpulse < G.impulse ? "+2 攻击骰" : "下次行动轮次起生效"}
                 </Typography>)}
                 <Divider/>
                 </ActionGroup>

@@ -143,7 +143,7 @@ describe("Virgin Queen board", () => {
             moves: {}, playerID: "0", isActive: true,
         } as any}/>);
         expect(html).toContain("对局结束 · 胜者：P2 西班牙");
-        expect(html).not.toContain(">结束冲动<");
+        expect(html).not.toContain(">结束行动轮次<");
         expect(html).toContain("教学结束：回顾本局");
     });
 
