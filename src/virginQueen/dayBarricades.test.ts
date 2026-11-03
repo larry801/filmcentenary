@@ -19,7 +19,8 @@ describe("Day of the Barricades (card #112)", () => {
         G.powers.spain.cards = ["vq-112"];
         G.spaces.paris.control = "france";
         G.spaces.paris.land = {france: {regular: 2, merc: 0, cav: 0}};
-        G.spaces.paris.leaders = [];
+        G.spaces.paris.leaders = ["henryIII"];
+        G.leaders.henryIII = {id: "henryIII", location: "paris"};
         G.spaces.paris.siege = undefined;
         const neighbors = ["orleans", "rouen"];
         for (const id of neighbors) G.spaces[id].control = "spain";
@@ -32,5 +33,7 @@ describe("Day of the Barricades (card #112)", () => {
         expect(G.spaces.paris.land.spain?.regular).toBe(4);
         expect(G.leaders.guise.location).toBe("paris");
         expect(G.removed).toContain("vq-112");
+        expect(G.leaders.henryIII.location).not.toBe("paris");
+        expect(G.spaces[G.leaders.henryIII.location].leaders).toContain("henryIII");
     });
 });

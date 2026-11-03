@@ -398,7 +398,7 @@
 
 - 条件：法国未与西班牙结盟、巴黎不由西班牙控制、西班牙控制 2 个巴黎相邻地区、巴黎/相邻地区有 ≥4 西班牙正规军且吉斯公爵在 1 格内。
 - 移除巴黎全部部队，西班牙取得巴黎控制权，放置 4 个正规军，并将吉斯公爵移入巴黎。
-- 巴黎原有将领“返回最近设防地区”尚未单独处理。
+- 巴黎原有非吉斯将领返回各自最近友方设防地区；吉斯公爵移入巴黎。
 
 ### 黑太后（#80）
 
@@ -1188,3 +1188,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #80 黑王后抽 2 选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、598 tests passed（新增 1 项：目标有牌时改抽 2）；`npm run build` 通过。
 
 #52 福克斯殉道者名录区域选择接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、599 tests passed（新增 1 项：固定苏格兰区域）；`npm run build` 通过。
+
+#112 巴黎原将领返回最近设防地区接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、599 tests passed（增补断言：亨利三世离开巴黎并进入设防地区）；`npm run build` 通过。

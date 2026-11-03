@@ -73,6 +73,7 @@ import {
     catholicLeagueSpaceOptions,
     cleanupLand,
     cleanupNaval,
+    nearestFriendlyFortified,
     clearWar,
     dealYear,
     discardCard,
@@ -1300,11 +1301,20 @@ const resolveDayOfBarricades = (G: VQGame): void => {
     const spanish = ["paris", ...neighbors].reduce((total, id) => total + (G.spaces[id]?.land.spain?.regular ?? 0), 0);
     const guise = G.leaders.guise;
     if (spanish < 4 || guise === undefined || !["paris", ...neighbors].includes(guise.location)) return;
+    const parisLeaders = [...G.spaces.paris.leaders];
     G.spaces.paris.land = {};
     G.spaces.paris.leaders = [];
     G.spaces.paris.control = "spain";
     addLand(G, "paris", "spain", "regular", 4);
     if (guise.location !== "paris") moveLeaders(G, guise.location, "paris", ["guise"]);
+    for (const id of parisLeaders) {
+        if (id === "guise") continue;
+        const leader = LEADER_BY_ID[id];
+        const destination = leader === undefined ? undefined : nearestFriendlyFortified(G, leader.power, "paris");
+        if (destination === undefined) continue;
+        G.spaces[destination].leaders.push(id);
+        G.leaders[id] = {id, location: destination};
+    }
     pushLog(G, "Day of the Barricades: Spain seizes Paris and places 4 regulars.");
 };
 
