@@ -14,6 +14,23 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Polish Royal Election (card #86)", () => {
+    it("can specify bids for all three powers", () => {
+        const G = game();
+        G.powers.hre.cards = ["vq-086", "vq-020"];
+        G.powers.france.cards = ["vq-001"];
+        G.powers.spain.cards = [];
+        G.powers.spain.treasures = [1];
+        G.powers.hre.treasures = [];
+        const vp = G.powers.france.bonusVp;
+
+        expect(playCard(G, context(), {cardId: "vq-086", asEvent: true, target: "france:vq-001|hre:vq-020|spain:treasure:1"})).toBeUndefined();
+
+        expect(G.powers.france.bonusVp).toBe(vp + 2);
+        expect(G.powers.france.cards).not.toContain("vq-001");
+        expect(G.powers.hre.cards).not.toContain("vq-020");
+        expect(G.powers.spain.treasures).not.toContain(1);
+    });
+
     it("can choose a specific treasure bid", () => {
         const G = game();
         G.powers.hre.cards = ["vq-086"];

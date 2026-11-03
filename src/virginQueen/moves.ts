@@ -1247,9 +1247,11 @@ const resolveGregorianCalendar = (G: VQGame, ctx: Ctx, p: Power, target?: string
 };
 
 const resolvePolishElection = (G: VQGame, ctx: Ctx, target?: string): void => {
-    const manualIndex = target?.indexOf(":") ?? -1;
-    const manualPower = manualIndex >= 0 ? target!.slice(0, manualIndex) : undefined;
-    const manualBid = manualIndex >= 0 ? target!.slice(manualIndex + 1) : undefined;
+    const manualBids = new Map<string, string>();
+    for (const segment of target?.split("|") ?? []) {
+        const index = segment.indexOf(":");
+        if (index > 0) manualBids.set(segment.slice(0, index), segment.slice(index + 1));
+    }
     if (G.foreignWars.hre?.enemy === "Poland") {
         delete G.foreignWars.hre;
         pushLog(G, "Polish Royal Election ends the Polish war; the Holy Roman Empire is considered victorious.");
@@ -1261,7 +1263,8 @@ const resolvePolishElection = (G: VQGame, ctx: Ctx, target?: string): void => {
             .filter((id) => cardById(id).officialKind !== "mandatory")
             .sort((a, b) => cardById(b).cp - cardById(a).cp)[0];
         let bid = 0;
-        const useManual = power === manualPower && manualBid !== undefined;
+        const manualBid = manualBids.get(power);
+        const useManual = manualBid !== undefined;
         const manualTreasure = useManual && manualBid.startsWith("treasure:") ? Number(manualBid.slice("treasure:".length)) : NaN;
         if (useManual && Number.isFinite(manualTreasure) && G.powers[power].treasures.includes(manualTreasure)) {
             bid = manualTreasure;
