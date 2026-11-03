@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {RoyalDef, VQGame} from "./constant/general";
-import {playCard} from "./moves";
-import {resolveMarriages, setupGame} from "./util";
+import {playCard, rebellion} from "./moves";
+import {resolveMarriages, setWar, setupGame} from "./util";
 
 const context = (values: number[] = []): Ctx => ({
     currentPlayer: "3",
@@ -32,6 +32,24 @@ describe("Gouvernante de France (card #33)", () => {
 
         expect(G.marriageFestivities).toBe("france");
         expect(G.powers.france.cards.length).toBe(hand);
+    });
+
+    it("uses option 2 when France is at war with the Protestant and short on cards", () => {
+        const G = game();
+        setWar(G, "france", "protestant");
+        G.powers.france.cards = ["vq-033", "vq-020"];
+        G.spaces.orleans.control = "protestant";
+        G.spaces.orleans.religion = "protestant";
+        G.spaces.bourges.control = "protestant";
+        G.spaces.bourges.religion = "protestant";
+
+        expect(playCard(G, context([6]), {cardId: "vq-033", asEvent: true})).toBeUndefined();
+
+        expect(G.protestantRebellionBlockedTurn).toBe(G.year);
+        expect(G.spaces.orleans.control).toBe("france");
+        expect(G.spaces.orleans.religion).toBe("catholic");
+        expect(rebellion(G, {currentPlayer: "5", playerID: "5", phase: "action", numPlayers: 6,
+            random: {Die: () => 3, Shuffle: (cards: unknown[]) => cards}} as never, {space: "orleans", cp: 2})).toBeDefined();
     });
 
     it("applies +2 to the French marriage roll", () => {

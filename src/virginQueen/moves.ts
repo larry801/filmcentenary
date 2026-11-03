@@ -425,6 +425,19 @@ const resolveTreasureFleet = (G: VQGame, ctx: Ctx): void => {
 /** #100 Enterprise of England mandatory event (23.3). */
 /** #33 Gouvernante de France: place +2 Wedding Festivities on a French match. */
 const resolveGouvernanteDeFrance = (G: VQGame, ctx: Ctx): void => {
+    if (atWar(G, "france", "protestant") && G.powers.france.cards.length <= 2) {
+        const result = die(ctx, 6) + 2;
+        const targets = SPACES.filter((space) => space.area === "france" &&
+            (G.spaces[space.id].control === "protestant" || G.spaces[space.id].religion === "protestant"))
+            .slice(0, result);
+        for (const space of targets) {
+            if (G.spaces[space.id].control === "protestant") G.spaces[space.id].control = "france";
+            if (G.spaces[space.id].religion === "protestant") G.spaces[space.id].religion = "catholic";
+        }
+        G.protestantRebellionBlockedTurn = G.year;
+        pushLog(G, `Gouvernante de France converts ${targets.length} French space(s); Protestant rebellions are blocked this turn.`);
+        return;
+    }
     const betrothal = G.betrothals.find((b) => {
         const male = G.royals.find((royal) => royal.id === b.male);
         const female = G.royals.find((royal) => royal.id === b.female);
@@ -2291,6 +2304,7 @@ export const suppress = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): voi
 };
 
 export const rebellion = (G: VQGame, ctx: Ctx, args: { space: string; cp: number }): void | typeof INVALID_MOVE => {
+    if (G.protestantRebellionBlockedTurn === G.year) return INVALID_MOVE;
     if (moveError(G, "rebellion", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;

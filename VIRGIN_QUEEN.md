@@ -149,7 +149,7 @@
 
 - 法国已有订婚时，可打出 #33 在該次法国联姻上放置“皇室婚宴 +2”标记，并从牌堆抽 1 张牌。
 - 婚姻结算时若涉及法国，掷骰总和 +2；结算后清除标记。
-- #33 的第二个选项（法国与新教交战时转化法国地区）尚未实现。
+- 选项 2：法国与新教交战且手牌数不超过 3 时，掷 1d6+2，自动转化该数量的法国新教控制/新教信仰地区为法国控制/天主教；本回合新教不能再在法国煽动叛乱。
 
 ### 英格兰的局势（#100）
 
@@ -441,3 +441,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 海军将领随借调接入后的验证：`jest src/virginQueen --runInBand --silent` 40 suites、432 tests passed（新增 1 项：将领随借、受助方战斗值、冬季归还）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #33 法兰西的女管家（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 41 suites、434 tests passed（新增 2 项：放置 +2 标记并抽牌、婚姻掷骰 +2 改变结果）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#33 选项 2 接入后的验证：`jest src/virginQueen --runInBand --silent` 41 suites、435 tests passed（新增 1 项：转化法国地区并封锁本回合叛乱）；`npm run build` 通过，仍有既有大体积 chunk 提示。
