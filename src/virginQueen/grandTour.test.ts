@@ -17,12 +17,14 @@ describe("Grand Tour (card #53)", () => {
     it("can make peace with a major power", () => {
         const G = game();
         G.powers.france.cards = ["vq-053"];
+        G.discard = ["vq-063"];
         setWar(G, "france", "spain");
 
         expect(playCard(G, context(), {cardId: "vq-053", asEvent: true, target: "peace:spain"})).toBeUndefined();
 
         expect(G.powers.france.wars).not.toContain("spain");
         expect(G.powers.spain.wars).not.toContain("france");
+        expect(G.discard).toContain("vq-063");
     });
 
     it("clears French unrest, recovers Nostradamus, and reinforces Paris", () => {

@@ -750,7 +750,8 @@ const resolveGrandTour = (G: VQGame, p: Power, target?: string): void => {
         }
     }
     for (const space of SPACES.filter((def) => def.area === "france" || def.home === "france")) G.spaces[space.id].unrest = false;
-    if (G.discard.includes("vq-063")) {
+    const choseMode = mode === "peace" || mode === "give" || mode === "move";
+    if (!choseMode && G.discard.includes("vq-063")) {
         G.discard = G.discard.filter((id) => id !== "vq-063");
         G.powers[p].cards.push("vq-063");
     }

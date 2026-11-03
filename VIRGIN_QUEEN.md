@@ -208,7 +208,7 @@
 - 若弃牌堆有诺查丹玛斯，将其取回法国手中；
 - 在巴黎 +1 法国正规军；
 - 天主教联盟已成立时事件移出游戏；
-- 可用 `peace:势力` 停战、`give:势力` 给牌/宝藏、`move:地区` 从巴黎发兵；当前每次仍会同时执行清动荡/取回诺查丹玛斯/巴黎增兵，未严格限制为“任选两项”。
+- 可用 `peace:势力` 停战、`give:势力` 给牌/宝藏、`move:地区` 从巴黎发兵；未指定模式时自动执行“取回诺查丹玛斯 + 巴黎增兵”，指定模式时改为该模式 + 巴黎增兵，严格保持两项选择。
 
 ### 教宗诏书（#5）
 
@@ -1116,7 +1116,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #5 教宗诏书（传播分支）接入后的验证：`jest src/virginQueen --runInBand --silent` 111 suites、533 tests passed（新增 1 项：教廷评议+7 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#53 壮游接入后的验证：`jest src/virginQueen --runInBand --silent` 116 suites、545 tests passed（新增 2 项：基础效果、停战）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#53 壮游接入后的验证：`jest src/virginQueen --runInBand --silent` 123 suites、556 tests passed（新增 2 项：基础效果、停战且不多取诺查丹玛斯）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #55 破坏圣像运动接入后的验证：`jest src/virginQueen --runInBand --silent` 113 suites、538 tests passed（新增 1 项：无转化时每个 1 仍放置骚乱）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
