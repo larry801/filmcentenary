@@ -96,7 +96,7 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
         const afterRoll = battle.step.endsWith("AfterRoll");
         const candidates = G.powers[power].cards.filter((id) => {
             const number = cardById(id).officialNumber;
-            if (afterRoll) return battle.phase === "naval" && number === 12;
+            if (afterRoll) return battle.phase === "naval" && number === 12 && SEA_ZONE_BY_ID[battle.location]?.kind === "mediterranean";
             if (number === 7 || number === 10) return battle.phase === "assault" && power === battle.attacker;
             if (number === 8) return battle.phase === "field";
             if (number === 9) return battle.phase === "naval";
