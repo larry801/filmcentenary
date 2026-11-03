@@ -1048,7 +1048,8 @@ const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
     }
     const cards = G.powers[targetPower].cards.filter((id) => cardById(id).kind !== "home");
     if (cards.length === 0) return;
-    const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
+    const chosen = mode === "discard" && extra !== undefined && cards.includes(extra) ? extra : undefined;
+    const card = chosen ?? cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
     G.powers[targetPower].cards = G.powers[targetPower].cards.filter((id) => id !== card);
     discardCard(G, targetPower, card, false);
     pushLog(G, `Ruler Falls Ill discards ${cardById(card).name} from ${powerLabel(targetPower)}.`);

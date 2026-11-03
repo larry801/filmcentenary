@@ -81,6 +81,17 @@ describe("Unrest in the Realm / Ruler Falls Ill", () => {
         expect(G.leaders.guise.location).toBe("paris");
     });
 
+    it("can discard a specifically named card", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-030"];
+        G.powers.spain.cards = ["vq-020", "vq-021"];
+
+        expect(playCard(G, context(), {cardId: "vq-030", asEvent: true, target: "spain:discard:vq-021"})).toBeUndefined();
+
+        expect(G.discard).toContain("vq-021");
+        expect(G.powers.spain.cards).toContain("vq-020");
+    });
+
     it("discards a random card from another power", () => {
         const G = game();
         G.powers.france.cards = ["vq-030"];
