@@ -20,6 +20,8 @@ describe("Act of Abjuration (card #103)", () => {
         G.spaces.amsterdam.control = "protestant";
         G.spaces.amsterdam.land = {};
         G.spaces.london.land.england = {regular: 5, merc: 0, cav: 0};
+        G.leaders.leicester = {id: "leicester", location: "london"};
+        G.spaces.london.leaders = ["leicester"];
         const vp = G.powers.england.bonusVp;
 
         expect(playCard(G, context(), {cardId: "vq-103", asEvent: true, target: "amsterdam"})).toBeUndefined();
@@ -30,6 +32,7 @@ describe("Act of Abjuration (card #103)", () => {
         expect(G.powers.england.allies).toContain("protestant");
         expect(G.spaces.amsterdam.land.england?.regular).toBe(5);
         expect(G.powers.england.bonusVp).toBe(vp + 1);
+        expect(G.leaders.leicester.location).toBe("amsterdam");
         expect(G.removed).toContain("vq-103");
     });
 });

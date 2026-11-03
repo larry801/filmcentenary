@@ -701,14 +701,22 @@ export const chooseAbjuration = (G: VQGame, ctx: Ctx, args: {power: Power}): voi
     G.powers[offer.power].allies.push("protestant");
     G.powers.protestant.allies.push(offer.power);
     let remaining = 5;
+    const sources: string[] = [];
     for (const space of SPACES.filter((def) => def.home === offer.power && G.spaces[def.id].control === offer.power)) {
         const stack = G.spaces[space.id].land[offer.power];
         if (stack === undefined) continue;
         const take = Math.min(remaining, stack.regular);
+        if (take > 0) sources.push(space.id);
         stack.regular -= take;
         remaining -= take;
         addLand(G, offer.space, offer.power, "regular", take);
         if (remaining === 0) break;
+    }
+    const leader = sources.flatMap((id) => G.spaces[id].leaders)
+        .find((id) => LEADER_BY_ID[id]?.power === offer.power && LEADER_BY_ID[id]?.kind === "army");
+    if (leader !== undefined) {
+        const from = G.leaders[leader].location;
+        moveLeaders(G, from, offer.space, [leader]);
     }
     addVp(G, offer.power, 1);
     delete G.pendingAbjuration;
