@@ -672,7 +672,10 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     const def = cardById(cardId);
     const handler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
     const beneficiary = foreignWarPower(handler);
-    if (isGrandVizier(def)) {
+    if (cardId === "vq-014") {
+        G.beaconFires = p;
+        pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
+    } else if (isGrandVizier(def)) {
         beginGrandVizierEvent(G, ctx, cardId);
     } else if (G.scenario === "tutorial") {
         beginTutorialEvent(G, ctx, p, cardId, true);
@@ -712,6 +715,9 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveSirEdwardStafford(G, ctx, target);
     } else if (handler === "scurvy") {
         resolveScurvy(G, target);
+    } else if (handler === "beaconFires") {
+        G.beaconFires = p;
+        pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
@@ -771,6 +777,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     const def = cardById(args.cardId);
     if (args.asEvent === true && isGrandVizier(def) && !canPlayGrandVizier(G, p, ctx.numPlayers)) return INVALID_MOVE;
     const cardHandler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
+    const isBeaconFires = def.id === "vq-014";
     const beneficiary = foreignWarPower(cardHandler);
     if (args.asEvent === true && isEspionageEvent(cardHandler) && !canPlayEspionageEvent(G, p, cardHandler, args.target)) return INVALID_MOVE;
     if (args.asEvent === true && cardHandler === "northernRising" && !canPlayNorthernRising(G)) return INVALID_MOVE;
@@ -818,14 +825,14 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (args.asEvent === true && def.kind === "command" && !mandatory && !timedCombatCard && !timedResponseCard) {
         return INVALID_MOVE;
     }
-    if (args.asEvent === true && timedCombatCard &&
+    if (args.asEvent === true && timedCombatCard && !isBeaconFires &&
         (G.cardWindow?.kind !== "combat" || (def.officialEffect?.kind === "combat" &&
             def.officialEffect.phase !== undefined && def.officialEffect.phase !== "any" &&
             G.cardWindow.phase !== def.officialEffect.phase) ||
             (G.cardWindow.attacker !== undefined && G.cardWindow.attacker !== p))) {
         return INVALID_MOVE;
     }
-    if (args.asEvent === true && timedResponseCard && !tutorialEvent && G.cardWindow?.kind !== "response" &&
+    if (args.asEvent === true && timedResponseCard && !isBeaconFires && !tutorialEvent && G.cardWindow?.kind !== "response" &&
         !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy"].includes(cardHandler)) {
         return INVALID_MOVE;
     }

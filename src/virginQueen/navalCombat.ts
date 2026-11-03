@@ -30,6 +30,7 @@ export const navalCombatDice = (G: VQGame, location: string, owners: Controller[
         if (stack === undefined) continue;
         dice += stack.corsair + stack.galleon * 2 + stack.racebuilt * 2 + stack.galley * galleyDice;
     }
+    if (G.navalDiceBonus !== undefined && owners.includes(G.navalDiceBonus.power)) dice += G.navalDiceBonus.amount;
     if (owners.includes("spain") && G.armada?.location === location) dice += G.armada.strength;
     dice += bestBattle(G, location, owners, "naval");
     if (defender && port) dice += 1;
@@ -215,10 +216,17 @@ export const attemptNavalInterception = (
             source.galleon + source.racebuilt > 0 ? -1 : 0;
         const telescope = G.powers[candidate.power].scienceBonuses.includes("telescope") ? 1 : 0;
         const modifier = bestBattle(G, candidate.location, [candidate.power], "naval") + galleonPenalty + telescope;
-        const dice = roll(ctx, 2);
-        const total = dice[0] + dice[1] + modifier;
-        pushLog(G, `${powerLabel(candidate.power)} naval interception from ${SPACE_BY_ID[candidate.location]?.name ?? candidate.location}: [${dice.join(",")}] + ${modifier} = ${total}.`);
-        if (total < 9) continue;
+        const beacon = G.beaconFires === candidate.power;
+        const dice = beacon ? [] : roll(ctx, 2);
+        const total = beacon ? 9 : dice[0] + dice[1] + modifier;
+        if (beacon) {
+            pushLog(G, `${powerLabel(candidate.power)} uses Beacon Fires: interception succeeds automatically.`);
+            G.navalDiceBonus = {power: candidate.power, amount: 2};
+            delete G.beaconFires;
+        } else {
+            pushLog(G, `${powerLabel(candidate.power)} naval interception from ${SPACE_BY_ID[candidate.location]?.name ?? candidate.location}: [${dice.join(",")}] + ${modifier} = ${total}.`);
+            if (total < 9) continue;
+        }
         if (!armadaOnly && source !== undefined) {
             const target = navalAt(G, to)[candidate.power] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
             target.galley += source.galley;
@@ -281,6 +289,8 @@ export const resolveNavalCombatEnemy = (G: VQGame, ctx: Ctx, location: string, a
         return;
     }
     if (defenderLeft > 0) retreatNaval(G, location, [enemy]);
+    if (G.navalDiceBonus !== undefined &&
+        (G.navalDiceBonus.power === attacker || G.navalDiceBonus.power === enemy)) delete G.navalDiceBonus;
 };
 
 /** Resolve all naval combats in impulse order (used where no interactive order is needed). */

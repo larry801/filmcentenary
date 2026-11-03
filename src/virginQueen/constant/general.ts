@@ -600,6 +600,9 @@ export interface VQGame {
     armadaReturn?: number;
     /** Spain has conquered the Philippines and uses the fifth treasure box. */
     philippinesSpanish?: boolean;
+    /** Beacon Fires: next interception by this power succeeds and gains +2 dice. */
+    beaconFires?: Power;
+    navalDiceBonus?: {power: Power; amount: number};
     /** Naval units loaned to an ally for one turn (rule 9.2). */
     loanedNaval?: {lender: Power; borrower: Power; kind: "galley" | "galleon" | "racebuilt"; fromPort: string; toPort: string; leader?: string}[];
     /** Portugal has entered play and its three-treasure row. */
