@@ -346,10 +346,19 @@
 
 ### 公历纪年法（#101）
 
-- 指定任意势力开始下一个行动轮（可为刚结束者）；
+- 在任一势力行动轮结束后的 `gregorianResponse` 窗口中，持有 #101 的玩家可打出或放弃；
+- 打出时指定任意势力开始下一个行动轮（可为刚结束者），并延迟下一势力行动轮的初始化；
 - 若与教廷结盟，出牌方抽 1 张；
-- 通过 `gregorianNext` 在 `turnEnd` 时接管下一行动轮；
-- 事件牌移出游戏。
+- 通过 `gregorianNext` 接管下一行动轮，并清空连续跳过计数；
+- 事件牌移出游戏；
+- 因 boardgame.io 不允许在 `turn.onEnd` 开启阶段，响应窗口在下一 `turnBegin` 打开；若行动阶段在该回合直接结束，则窗口不会开启。
+
+### 事件目标输入
+
+- 手牌详情抽屉为事件/本国牌/强制事件提供可选“事件目标”文本框；
+- 已有专用选择器（间谍、对外战争规模等）优先，否则把输入文本作为 `playCard.target`；
+- 留空时保持一键打出，不传目标；
+- 示例覆盖 #30/#53/#61/#86/#98/#105/#107/#110；输入不做逐卡校验。
 
 ### 波兰选王（#86）
 
@@ -1220,3 +1229,14 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #2 奥斯曼纳贡类型选择接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、629 tests passed（新增 1 项：强制索要宝藏）；`npm run build` 通过。
 
 #86 波兰选王出价接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、633 tests passed（新增 4 项：本国牌、宝藏、指定宝藏、三势力指定出价）；`npm run build` 通过。
+
+
+## 子代理集成验证
+
+三个并行子代理分别在独立 worktree 完成并提交，已 cherry-pick 到主分支：
+
+- #95 路易丝附带婚姻：`9173797`
+- #101 公历纪年法响应窗口：`6103695`
+- 界面事件目标输入：`b860daf`
+
+集成后验证：`jest src/virginQueen --runInBand --silent` 140 suites、645 tests passed；`jest --runInBand --silent` 145 suites、700 tests passed；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。
