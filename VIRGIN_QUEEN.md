@@ -184,6 +184,11 @@
 - 目标地区及一个相邻地区放置动荡。
 - 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
 
+### 神圣同盟（#24）
+
+- 对教廷与威尼斯各 +2 影响力，并立即分别评议；
+- 当前自动平均分配 4 点影响力，未提供任意分配与 HRE（非玩家）选项。
+
 ### 变节！（#31）
 
 - 目标为正在被围城的设防地区；
@@ -778,6 +783,7 @@ src/virginQueen/
   armyMutiny.test.ts    #17 军队哗变
   cityRebels.test.ts    #18 城邦起义
   treachery.test.ts     #31 变节！
+  holyLeague.test.ts    #24 神圣同盟
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -1028,3 +1034,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #18 城邦起义接入后的验证：`jest src/virginQueen --runInBand --silent` 104 suites、526 tests passed（新增 1 项：全灭/控制权回归）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #31 变节！接入后的验证：`jest src/virginQueen --runInBand --silent` 105 suites、527 tests passed（新增 1 项：强制攻城）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#24 神圣同盟接入后的验证：`jest src/virginQueen --runInBand --silent` 106 suites、528 tests passed（新增 1 项：教廷/威尼斯影响力与评议）；`npm run build` 通过，仍有既有大体积 chunk 提示。

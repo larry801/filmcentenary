@@ -699,6 +699,15 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #17 Army Mutiny: strip mercenaries and possibly regulars from a stack. */
 /** #18 City State Rebels: five dice against an occupying garrison. */
 /** #31 Treachery!: force an immediate assault on a besieged fortress. */
+/** #24 Holy League: influence the Papacy and Venice, then resolve. */
+const resolveHolyLeague = (G: VQGame, ctx: Ctx, p: Power): void => {
+    for (const minor of ["papacy", "venice"] as MinorPower[]) {
+        awardMinorInfluence(G, p, minor, 2);
+        if (!G.minorDiplomacyResolved.includes(minor)) resolveMinorDiplomacy(G, ctx, minor);
+    }
+    pushLog(G, `Holy League adds 2 influence each to the Papacy and Venice for ${powerLabel(p)}.`);
+};
+
 const resolveTreachery = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined) return;
     const state = G.spaces[target];
@@ -1791,6 +1800,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveCityStateRebels(G, ctx, target);
     } else if (handler === "treachery") {
         resolveTreachery(G, ctx, target);
+    } else if (handler === "holyLeague") {
+        resolveHolyLeague(G, ctx, p);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {
