@@ -363,7 +363,8 @@ const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power, target?: string)
         return;
     }
     const betrothal = G.betrothals.find((b) => b.female === "elizabeth");
-    if (betrothal !== undefined && target !== "retrieve") {
+    const retrieveTarget = target !== undefined && target.startsWith("retrieve:") ? target.slice(9) : undefined;
+    if (betrothal !== undefined && target !== "retrieve" && retrieveTarget === undefined) {
         const groom = G.royals.find((r) => r.id === betrothal.male);
         G.betrothals = G.betrothals.filter((b) => b !== betrothal);
         if (groom === undefined) return;
@@ -383,7 +384,7 @@ const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power, target?: string)
         drawCards(G, ctx, p, 1);
         return;
     }
-    const index = G.discard.findIndex((id) => cardById(id).kind !== "home");
+    const index = retrieveTarget !== undefined ? G.discard.indexOf(retrieveTarget) : G.discard.findIndex((id) => cardById(id).kind !== "home");
     if (index >= 0) {
         const [card] = G.discard.splice(index, 1);
         G.powers[p].cards.push(card);
