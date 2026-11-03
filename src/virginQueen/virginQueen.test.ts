@@ -311,7 +311,7 @@ describe("Virgin Queen turn flow", () => {
             clients[0].moves.recruit({space: "istanbul", kind: "regular"});
             const after = clients[0].getState().G.spaces.istanbul.land.ottoman.regular;
             expect(after).toBe(before + 1);
-            expect(clients[0].getState().G.powers.ottoman.cp).toBe(cp - 1);
+            expect(clients[0].getState().G.powers.ottoman.cp).toBe(cp - 2);
             clients[0].moves.endImpulse();
             expect(clients[0].getState().ctx.currentPlayer).toBe("1");
         } finally {

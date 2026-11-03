@@ -933,13 +933,8 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
         addLand(G, space, "hre", args.kind, 1);
         return;
     }
-    if (s.control !== p || s.unrest || !isFortifiedSpace(G, space)) {
-        return INVALID_MOVE;
-    }
-    if (def.home !== p && !(isPower(def.home) && allied(G, p, def.home))) {
-        return INVALID_MOVE;
-    }
-    if (spaceHasEnemyLand(G, p, space) || !hasLOC(G, p, space)) {
+    // Rule 17.2: any controlled home space not occupied by enemy units.
+    if (s.control !== p || s.unrest || def.home !== p || spaceHasEnemyLand(G, p, space)) {
         return INVALID_MOVE;
     }
     if (args.kind === "cav" && p !== "ottoman") {
@@ -948,7 +943,10 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
     if (args.kind === "merc" && p === "ottoman") {
         return INVALID_MOVE;
     }
-    if (!spend(G, p, G.scenario === "tutorial" && args.kind === "regular" ? 2 : 1)) {
+    // Rule 17.2 construction exceptions.
+    if (p === "ottoman" && ["algiers", "tripoli"].includes(space)) return INVALID_MOVE;
+    if (p === "spain" && ["oran", "malta"].includes(space)) return INVALID_MOVE;
+    if (!spend(G, p, args.kind === "regular" ? 2 : 1)) {
         return INVALID_MOVE;
     }
     addLand(G, space, p, args.kind, 1);
@@ -974,11 +972,14 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
         return INVALID_MOVE;
     }
     const kind = args.kind;
-    const cost: Record<string, number> = {galley: G.scenario === "tutorial" ? 2 : 1, galleon: 2, racebuilt: 2, corsair: 1};
+    const cost: Record<string, number> = {galley: 2, galleon: 2, racebuilt: 2, corsair: 1};
     if (kind === "racebuilt" && p !== "england") {
         return INVALID_MOVE;
     }
     if (kind === "corsair" && p !== "ottoman") {
+        return INVALID_MOVE;
+    }
+    if (p === "ottoman" && kind === "galley" && ["algiers", "tripoli"].includes(port)) {
         return INVALID_MOVE;
     }
     if (kind === "galleon" && !portZones(port).some((z) => z === "atlanticOcean" || z === "englishChannel" || z === "northSea" || z === "irishSea" || z === "bayOfBiscay")) {

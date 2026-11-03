@@ -104,10 +104,10 @@ type Mode =
 
 const MODE_LABELS: Record<Mode, string> = {
     inspect: "查看",
-    recruitRegular: "征募正规军 (1 CP)",
+    recruitRegular: "征募正规军 (2 CP)",
     recruitMerc: "征募雇佣兵 (1 CP)",
     recruitCav: "征募骑兵 (1 CP)",
-    buildGalley: "建造桨帆船 (1 CP)",
+    buildGalley: "建造桨帆船 (2 CP)",
     buildGalleon: "建造大帆船 (2 CP)",
     buildRacebuilt: "建造快帆船 (2 CP)",
     buildCorsair: "建造海盗船 (1 CP)",
