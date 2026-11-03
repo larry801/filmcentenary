@@ -8,6 +8,7 @@ import {
     ransom,
     buildFortress,
     buildNaval,
+    claimSeaCaptain,
     controlSpace,
     declareWar,
     declareWarMinor,
@@ -44,16 +45,18 @@ const turnBegin = (G: VQGame, ctx: Ctx): void => {
 
 export const VirginQueenGameDef: Game<VQGame> = {
     name: "virginQueen",
-    setup: (ctx: Ctx) => setupGame(ctx),
+    setup: (ctx: Ctx, setupData?: {scenario?: "campaign" | "tournament"}) => setupGame(ctx, setupData),
     minPlayers: 6,
     maxPlayers: 6,
     playerView: (G: VQGame, _ctx: Ctx, playerID: PlayerID | null) => {
         const r = JSON.parse(JSON.stringify(G)) as VQGame & {
             deckCount?: number;
+            futureDeckCount?: number;
             discardCount?: number;
             handCounts?: Partial<Record<Power, number>>;
         };
         r.deckCount = G.deck.length;
+        r.futureDeckCount = G.futureDeck.length;
         r.discardCount = G.discard.length;
         r.handCounts = {};
         const viewer = playerID === null ? undefined : powerAt(playerID);
@@ -65,11 +68,12 @@ export const VirginQueenGameDef: Game<VQGame> = {
             }
         }
         r.deck = [];
+        r.futureDeck = [];
         r.discard = [];
         return r;
     },
     phases: {
-        diplomacy: {
+        cardDraw: {
             start: true,
             onBegin: (G: VQGame, ctx: Ctx) => {
                 G.turnsCompleted = 0;
@@ -78,6 +82,10 @@ export const VirginQueenGameDef: Game<VQGame> = {
                     dealYear(G, ctx);
                 }
             },
+            turn: {order: TurnOrder.ONCE, onBegin: turnBegin},
+            next: "diplomacy",
+        },
+        diplomacy: {
             turn: {order: TurnOrder.ONCE, onBegin: turnBegin},
             next: "spring",
         },
@@ -100,7 +108,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
             onEnd: (G: VQGame, ctx: Ctx) => {
                 winter(G, ctx);
             },
-            next: "diplomacy",
+            next: "cardDraw",
         },
     },
     moves: {
@@ -109,12 +117,13 @@ export const VirginQueenGameDef: Game<VQGame> = {
         pass,
         endImpulse,
         endPhaseTurn,
+        claimSeaCaptain,
         declareWar,
         declareWarMinor,
         makePeace,
         formAlliance,
         betroth,
-    ransom,
+        ransom,
         springDeploy,
         recruit,
         buildNaval,

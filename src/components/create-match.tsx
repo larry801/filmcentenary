@@ -84,6 +84,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const [numPlayers, setNumPlayers] = React.useState(gameName === filmCentenaryName ? 4 : gameName === virginQueenName ? 6 : 2);
     const [isPublic, setIsPublic] = React.useState(true);
     const [matches, setMatches] = React.useState([]);
+    const [vqScenario, setVqScenario] = React.useState<"campaign" | "tournament">("campaign");
 
     React.useEffect(() => {
         if (matchID) {
@@ -93,7 +94,8 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
 
     const onClick = () => {
         setClicked(true);
-        createMatch(serverURL, gameName, isPublic ? Visibility.PUBLIC : Visibility.PRIVATE, numPlayers)
+        createMatch(serverURL, gameName, isPublic ? Visibility.PUBLIC : Visibility.PRIVATE, numPlayers,
+            gameName === virginQueenName ? {scenario: vqScenario} : undefined)
             .then((id) => setMatchID(id))
             .catch((err) => {
                 if(gameName === songJinnName){
@@ -248,6 +250,15 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                     </Select>
                 </Grid>
             </FormControl>
+
+            {gameName === virginQueenName && <FormControl variant="outlined" sx={styles.formControl}>
+                <InputLabel htmlFor="vq-scenario">场景</InputLabel>
+                <Select native value={vqScenario} onChange={(e) => setVqScenario(e.target.value as "campaign" | "tournament")} label="场景"
+                        inputProps={{name: "scenario", id: "vq-scenario"}}>
+                    <option value="campaign">Campaign · 拉罗谢尔之围</option>
+                    <option value="tournament">Tournament · 荷兰起义开始</option>
+                </Select>
+            </FormControl>}
 
             <Grid component="label" container spacing={1} sx={{alignItems: 'center'}}>
                 <Typography>{i18n.chain.lobby.privateGame}</Typography>

@@ -2,6 +2,7 @@ import {Controller} from "../constant/general";
 import {ALL_CARD_NUMBERS, campaignCards, tournamentCards} from "./deck";
 import {CAMPAIGN_ROYALS, TOURNAMENT_ROYALS, TOURNAMENT_ROYAL_STATUS} from "./royals";
 import {CAMPAIGN_PATRONAGE, TOURNAMENT_PATRONAGE} from "./patrons";
+import {CAMPAIGN_VP_AWARDS, TOURNAMENT_UNAVAILABLE_VP_AWARDS, TOURNAMENT_VP_AWARDS} from "./patronage";
 import {SCIENCE_BONUSES} from "./scienceBonuses";
 import {ScenarioPhase, ScenarioSetup, ScenarioSpaceSetup} from "./types";
 
@@ -196,6 +197,7 @@ export const CAMPAIGN: ScenarioSetup = {
         artistVpMarkers: 13,
         scientistVpMarkers: 6,
         scienceBonuses: [...allScienceBonusIds],
+        vpAwards: [...CAMPAIGN_VP_AWARDS],
     },
     cardsInPlay: campaignCards(),
     cardsRemoved: [4, 37],
@@ -360,6 +362,7 @@ export const TOURNAMENT: ScenarioSetup = {
         laRochelle: scm("protestant", {
             leaders: ["coligny"],
             units: {protestant: {regular: 1, merc: 2}},
+            religion: "protestant",
             notes: "Huguenot Capital",
         }),
         cognac: hcm("protestant"),
@@ -436,10 +439,8 @@ export const TOURNAMENT: ScenarioSetup = {
         artistVpMarkers: 11,
         scientistVpMarkers: 6,
         scienceBonuses: [...allScienceBonusIds],
-        unavailableVpAwards: [
-            "+2 VP Painter (Fight between Carnival and Lent)",
-            "+1 VP Artist (Elegy for Suleiman)",
-        ],
+        vpAwards: [...TOURNAMENT_VP_AWARDS],
+        unavailableVpAwards: [...TOURNAMENT_UNAVAILABLE_VP_AWARDS],
     },
     cardsInPlay: tournamentCards(),
     cardsRemoved: [4, 11, 37, 58],

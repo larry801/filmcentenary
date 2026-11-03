@@ -79,8 +79,18 @@ export interface PatronageSetup {
     artistVpMarkers: number;
     scientistVpMarkers: number;
     scienceBonuses: string[];
-    /** Scenario-specific patronage awards that are not available. */
+    /** IDs of the individual VP award markers included in the scenario. */
+    vpAwards: string[];
+    /** IDs of individual award markers removed from this scenario. */
     unavailableVpAwards?: string[];
+}
+
+export interface PatronageVpAward {
+    id: string;
+    nameEn: string;
+    kind: "artist" | "scientist";
+    vp: number;
+    artistType?: "writer" | "painter" | "architect";
 }
 
 export interface ScenarioSetup {
@@ -134,8 +144,10 @@ export interface Patron {
     kind: "artist" | "scientist";
     /** Home power or "italy" for the shared Italian pool. */
     region: Power | "italy";
-    /** Printed VP value, when known. The scenario book only gives totals. */
-    vp: number | null;
+    /** Printed counter rating. Null until it is transcribed from the counter. */
+    rating: number | null;
+    /** Artist award category; scientists do not have one. */
+    artistType?: "writer" | "painter" | "architect";
 }
 
 export interface SeaCaptain {

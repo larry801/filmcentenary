@@ -22,7 +22,6 @@ import {
     MINOR_NAMES,
     MINOR_POWERS,
     navalCount,
-    PATRONS,
     POWER_INFO,
     POWER_NAMES,
     POWERS,
@@ -34,7 +33,10 @@ import {
 } from "../constant/general";
 import {cardById} from "../constant/cards";
 import {LEADER_BY_ID} from "../constant/leaders";
+import {patronDef, royalAvailable, scenarioSetup, scienceBonusById, seaCaptainById} from "../scenario";
 import {DUTCH_KEYS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "../constant/spaces";
+import {PATRONAGE_VP_AWARD_BY_ID} from "../data/patronage";
+import {PatronageVpAward} from "../data/types";
 import {
     atWar,
     baseVp,
@@ -87,9 +89,27 @@ const MODE_LABELS: Record<Mode, string> = {
 };
 
 const PHASE_LABELS: Record<string, string> = {
+    cardDraw: "Card Draw 阶段",
     diplomacy: "外交阶段",
     spring: "春季部署",
     action: "行动阶段",
+};
+
+const patronageAwardSummary = (awards: PatronageVpAward[], kind: "artist" | "scientist"): string => {
+    const typeNames: Record<string, string> = {writer: "写作", painter: "绘画", architect: "建筑", any: "不限类型"};
+    const selected = awards.filter((award) => award.kind === kind);
+    const vpValues = [...new Set(selected.map((award) => award.vp))].sort((a, b) => b - a);
+    if (kind === "scientist") {
+        return vpValues.map((vp) => `${vp}VP ×${selected.filter((award) => award.vp === vp).length}`).join("、");
+    }
+    return vpValues.flatMap((vp) => {
+        const ofValue = selected.filter((award) => award.vp === vp);
+        const types = ["writer", "painter", "architect", "any"];
+        return types.flatMap((type) => {
+            const count = ofValue.filter((award) => (award.artistType ?? "any") === type).length;
+            return count > 0 ? [`${typeNames[type]} ${vp}VP ×${count}`] : [];
+        });
+    }).join("、");
 };
 
 const cell = (v: number): string => (v > 0 ? String(v) : "·");
@@ -104,6 +124,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
     const [diploTarget, setDiploTarget] = React.useState<Power>("spain");
     const [maleRoyal, setMaleRoyal] = React.useState("");
     const [femaleRoyal, setFemaleRoyal] = React.useState("");
+    const [scienceBonus, setScienceBonus] = React.useState("");
+    const [patronageCp, setPatronageCp] = React.useState(2);
 
     const me: Power | undefined = playerID === null ? undefined : powerAt(playerID);
     const myTurn = me !== undefined && ctx.currentPlayer === playerID;
@@ -229,7 +251,27 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
         if (me === undefined) {
             return <Typography variant="body2" color="text.secondary">旁观模式：只能查看局势。</Typography>;
         }
+        if (phase === "cardDraw") {
+            return <Stack spacing={1}>
+                <Typography variant="subtitle2">Card Draw 阶段 · 第 {G.year} 回合</Typography>
+                <Typography variant="body2">已按场景发放本国牌与年度手牌；确认手牌后结束本阶段。</Typography>
+                <Typography variant="caption" color="text.secondary">{G.scenario === "campaign" ? "拉罗谢尔之围（Campaign）" : "荷兰起义开始（Tournament）"}</Typography>
+                {me !== "france" && me !== "protestant" ? null : G.seaCaptainsAvailable.map((id) => {
+                    const captain = seaCaptainById(id);
+                    if (captain === undefined || captain.turn > G.year) {
+                        return null;
+                    }
+                    return <Button key={id} size="small" variant="outlined" disabled={!myTurn}
+                                   onClick={() => moves.claimSeaCaptain({captain: id})}>
+                        领取共享船长：{captain.nameZh ?? captain.nameEn}
+                    </Button>;
+                })}
+                <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.endPhaseTurn()}>结束 Card Draw 阶段</Button>
+            </Stack>;
+        }
         if (phase === "action") {
+            const patronageSetup = scenarioSetup(G.scenario).patronage;
+            const vpAwards = patronageSetup.vpAwards.map((id) => PATRONAGE_VP_AWARD_BY_ID[id]).filter((award) => award !== undefined);
             return <Stack spacing={1}>
                 <Stack direction="row" spacing={1} sx={{alignItems: "center"}}>
                     <Typography variant="body2">剩余 CP：<b>{cp}</b></Typography>
@@ -275,13 +317,62 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                                                              onClick={() => a.run()}>{a.label}</Button>)}
                 </Stack>
                 <Divider/>
-                <Typography variant="subtitle2">赞助 (2 CP，每回合一次)</Typography>
+                <Typography variant="subtitle2">赞助 (每回合最多一位艺术家与一位科学家)</Typography>
+                <Typography variant="caption" color="text.secondary">
+                    VP 标记池：艺术家 {patronageSetup.artistVpMarkers} 枚、科学家 {patronageSetup.scientistVpMarkers} 枚（共 {patronageSetup.vpMarkers} 枚）
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                    艺术奖励：{patronageAwardSummary(vpAwards, "artist")}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                    科学奖励：{patronageAwardSummary(vpAwards, "scientist")}
+                </Typography>
+                {patronageSetup.unavailableVpAwards?.map((id) => {
+                    const award = PATRONAGE_VP_AWARD_BY_ID[id];
+                    return award === undefined ? null : <Typography key={id} variant="caption" color="text.secondary">
+                        本场景移除：{award.nameEn}（{award.vp} VP{award.artistType ? ` · ${award.artistType}` : ""}）
+                    </Typography>;
+                })}
+                <FormControl size="small" fullWidth>
+                    <InputLabel id="vq-patron-cp">投入 CP</InputLabel>
+                    <Select labelId="vq-patron-cp" label="投入 CP" value={patronageCp}
+                            onChange={(e) => setPatronageCp(Number(e.target.value))}>
+                        {[2, 3, 4].map((n) => <MenuItem key={n} value={n}>{n} CP</MenuItem>)}
+                    </Select>
+                </FormControl>
                 <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
-                    {PATRONS.filter((p) => !POWERS.some((x) => G.powers[x].patrons.includes(p.id))).map((p) =>
+                    {G.patronsAvailable.map((id) => patronDef(id)).filter((p) => p !== undefined && !POWERS.some((x) => G.powers[x].patrons.includes(p.id))).map((p) =>
                         <Button key={p.id} size="small" variant="outlined"
-                                disabled={!myTurn || cp < 2 || G.patronizedThisTurn.includes(me)}
-                                onClick={() => moves.patronize({patron: p.id})}>{p.name} (+{p.vp})</Button>)}
+                                disabled={!myTurn || cp < 2 || G.patronizedThisTurn.includes(`${me}:${p.kind}`) || (p.kind === "scientist" && scienceBonus === "")}
+                                onClick={() => moves.patronize({patron: p.id, cp: patronageCp, ...(p.kind === "scientist" ? {scienceBonus} : {})})}>
+                            {p.name}{p.rating === null ? " (评级待录)" : ` (评级 ${p.rating})`}{p.kind === "scientist" ? " · 科学家" : ""}
+                        </Button>)}
                 </Stack>
+                <FormControl size="small" fullWidth>
+                    <InputLabel id="vq-science-bonus">科学奖励</InputLabel>
+                    <Select labelId="vq-science-bonus" label="科学奖励" value={scienceBonus}
+                            onChange={(e) => setScienceBonus(e.target.value)}>
+                        {G.scienceBonusesAvailable.map((id) => scienceBonusById(id)).filter((b) => b !== undefined &&
+                            (b.eligible === "any" || (b.eligible === "any-except-spain" && me !== "spain") ||
+                                (Array.isArray(b.eligible) && b.eligible.includes(me)))).map((b) =>
+                            <MenuItem key={b.id} value={b.id}>{b.nameZh} — {b.description}</MenuItem>)}
+                    </Select>
+                </FormControl>
+                {ps !== undefined && ps.seaCaptains.length > 0 && <>
+                    <Divider/>
+                    <Typography variant="subtitle2">船长</Typography>
+                    {ps.seaCaptains.map((id) => {
+                        const captain = seaCaptainById(id);
+                        return <Typography key={id} variant="caption">{captain?.nameZh ?? captain?.nameEn ?? id}：{captain?.bonus}</Typography>;
+                    })}
+                </>}
+                {ps !== undefined && ps.scienceBonuses.length > 0 && <>
+                    <Typography variant="subtitle2">已获得的科学奖励</Typography>
+                    {ps.scienceBonuses.map((id) => {
+                        const bonus = scienceBonusById(id);
+                        return <Typography key={id} variant="caption">{bonus?.nameZh ?? id}：{bonus?.description}</Typography>;
+                    })}
+                </>}
                 <Divider/>
                 <Typography variant="subtitle2">海盗 (1 CP)</Typography>
                 <Stack spacing={0.5}>
@@ -346,7 +437,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                     <InputLabel id="vq-male">男性王室</InputLabel>
                     <Select labelId="vq-male" label="男性王室" value={maleRoyal}
                             onChange={(e) => setMaleRoyal(e.target.value)}>
-                        {G.royals.filter((r) => r.gender === "male" && r.alive && !r.married).map((r) =>
+                        {G.royals.filter((r) => r.gender === "male" && royalAvailable(r) && (r.turn ?? 1) <= G.year).map((r) =>
                             <MenuItem key={r.id} value={r.id}>{r.name} ({POWER_NAMES[r.power].zh})</MenuItem>)}
                     </Select>
                 </FormControl>
@@ -354,7 +445,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                     <InputLabel id="vq-female">女性王室</InputLabel>
                     <Select labelId="vq-female" label="女性王室" value={femaleRoyal}
                             onChange={(e) => setFemaleRoyal(e.target.value)}>
-                        {G.royals.filter((r) => r.gender === "female" && r.alive && !r.married).map((r) =>
+                        {G.royals.filter((r) => r.gender === "female" && royalAvailable(r) && (r.turn ?? 1) <= G.year).map((r) =>
                             <MenuItem key={r.id} value={r.id}>{r.name} ({POWER_NAMES[r.power].zh})</MenuItem>)}
                     </Select>
                 </FormControl>

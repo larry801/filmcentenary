@@ -1,4 +1,5 @@
 import {CardDef, Power} from "./general";
+import {OFFICIAL_CARDS} from "../data/cards";
 
 /**
  * A compact reconstruction of the Virgin Queen deck.
@@ -314,7 +315,21 @@ export const COMMAND_CARDS: CardDef[] = COMMAND_SPECS.map(([id, name, cp]) => ({
 export const ALL_CARDS: CardDef[] = [...HOME_CARDS, ...EVENT_CARDS, ...COMMAND_CARDS];
 
 export const CARD_BY_ID: Record<string, CardDef> = Object.fromEntries(
-    ALL_CARDS.map((c) => [c.id, c]),
+    [
+        ...ALL_CARDS,
+        ...OFFICIAL_CARDS.map((card): CardDef => ({
+            id: card.id,
+            name: card.nameEn,
+            cp: card.cp ?? 3,
+            kind: card.kind === "home" ? "home" : card.kind === "event" ? "event" : "command",
+            power: card.power,
+            text: card.textZh,
+            officialNumber: card.number,
+            officialKind: card.kind,
+            removeOnEvent: card.removeOnEvent,
+            removeAfterUse: card.removeAfterUse,
+        })),
+    ].map((c) => [c.id, c]),
 );
 
 /** Cards that make up the shared deck (Home cards are dealt separately). */
@@ -327,5 +342,8 @@ export const cardById = (id: string): CardDef => {
     }
     return c;
 };
+
+export const officialCardById = (id: string) =>
+    OFFICIAL_CARDS.find((card) => card.id === id);
 
 export const cardName = (id: string): string => cardById(id).name;

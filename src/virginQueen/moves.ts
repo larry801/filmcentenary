@@ -8,7 +8,6 @@ import {
     MINOR_POWERS,
     NavalStack,
     navalCount,
-    PATRONS,
     POWER_INFO,
     POWERS,
     Power,
@@ -19,6 +18,7 @@ import {
     powerAt,
 } from "./constant/general";
 import {cardById} from "./constant/cards";
+import {patronById, scienceBonusById, royalAvailable, seaCaptainById} from "./scenario";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {
     CAPITAL_SPACES,
@@ -158,7 +158,11 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     markAction(G, p);
     if (args.asEvent === true) {
         pushLog(G, `${powerLabel(p)} plays ${def.name} as an event.`);
-        resolveEvent(G, ctx, p, def.effect);
+        if (def.effect !== undefined) {
+            resolveEvent(G, ctx, p, def.effect);
+        } else if (def.officialNumber !== undefined) {
+            pushLog(G, `Official event text: ${def.text ?? ""}`);
+        }
     } else {
         ps.cp += def.cp;
         pushLog(G, `${powerLabel(p)} plays ${def.name} for ${def.cp} CP.`);
@@ -212,10 +216,26 @@ export const endImpulse = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
 };
 
 export const endPhaseTurn = (_G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
-    if (ctx.phase !== "diplomacy" && ctx.phase !== "spring") {
+    if (ctx.phase !== "cardDraw" && ctx.phase !== "diplomacy" && ctx.phase !== "spring") {
         return INVALID_MOVE;
     }
     ctx.events?.endTurn();
+};
+
+export const claimSeaCaptain = (G: VQGame, ctx: Ctx, args: {captain: string}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "cardDraw") {
+        return INVALID_MOVE;
+    }
+    const p = power(ctx);
+    const captain = seaCaptainById(args.captain);
+    if (captain === undefined || captain.power !== "france/protestant" || captain.turn > G.year ||
+        !G.seaCaptainsAvailable.includes(captain.id) || G.powers[p].seaCaptains.includes(captain.id) ||
+        (p !== "france" && p !== "protestant")) {
+        return INVALID_MOVE;
+    }
+    G.seaCaptainsAvailable = G.seaCaptainsAvailable.filter((id) => id !== captain.id);
+    G.powers[p].seaCaptains.push(captain.id);
+    pushLog(G, `${powerLabel(p)} claims shared Sea Captain ${captain.nameEn}.`);
 };
 
 // --------------------------------------------------------------------------
@@ -303,7 +323,7 @@ export const betroth = (G: VQGame, ctx: Ctx, args: { male: string; female: strin
     if (male === undefined || female === undefined || male.gender !== "male" || female.gender !== "female") {
         return INVALID_MOVE;
     }
-    if (!male.alive || !female.alive || male.married || female.married) {
+    if (!royalAvailable(male) || !royalAvailable(female) || (male.turn ?? 1) > G.year || (female.turn ?? 1) > G.year) {
         return INVALID_MOVE;
     }
     if (male.power === female.power) {
@@ -477,8 +497,10 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
     if (!spend(G, p, cost[kind] ?? 2)) {
         return INVALID_MOVE;
     }
-    addNaval(G, port, p, kind, 1);
-    pushLog(G, `${powerLabel(p)} builds a ${kind} in ${def.name}.`);
+    const placedKind = kind === "galleon" && p === "england" && port === "london" && G.year >= 3 &&
+        G.powers.england.seaCaptains.includes("hawkins") ? "racebuilt" : kind;
+    addNaval(G, port, p, placedKind, 1);
+    pushLog(G, `${powerLabel(p)} builds a ${placedKind} in ${def.name}${placedKind !== kind ? " (Hawkins)" : ""}.`);
 };
 
 export const buildFortress = (G: VQGame, ctx: Ctx, args: { space: string }): void | typeof INVALID_MOVE => {
@@ -517,28 +539,44 @@ export const influence = (G: VQGame, ctx: Ctx, args: { target: MinorPower }): vo
     pushLog(G, `${powerLabel(p)} buys influence with ${args.target} (${cur + 1}).`);
 };
 
-export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string }): void | typeof INVALID_MOVE => {
+export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string; cp: number; scienceBonus?: string }): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
     const p = power(ctx);
-    if (G.patronizedThisTurn.includes(p)) {
-        return INVALID_MOVE;
-    }
-    const patron = PATRONS.find((x) => x.id === args.patron);
+    const patron = patronById(G, args.patron);
     if (patron === undefined) {
         return INVALID_MOVE;
     }
     if (POWERS.some((x) => G.powers[x].patrons.includes(patron.id))) {
         return INVALID_MOVE;
     }
-    if (!spend(G, p, 2)) {
+    const patronageKey = `${p}:${patron.kind}`;
+    if (G.patronizedThisTurn.includes(patronageKey)) {
+        return INVALID_MOVE;
+    }
+    let scienceBonus: ReturnType<typeof scienceBonusById> = undefined;
+    if (patron.kind === "scientist") {
+        scienceBonus = args.scienceBonus === undefined ? undefined : scienceBonusById(args.scienceBonus);
+        const allowed = scienceBonus?.eligible === "any" ||
+            (scienceBonus?.eligible === "any-except-spain" && p !== "spain") ||
+            (Array.isArray(scienceBonus?.eligible) && scienceBonus.eligible.includes(p));
+        if (scienceBonus === undefined || !allowed || !G.scienceBonusesAvailable.includes(scienceBonus.id)) {
+            return INVALID_MOVE;
+        }
+    } else if (args.scienceBonus !== undefined) {
+        return INVALID_MOVE;
+    }
+    if (!Number.isInteger(args.cp) || args.cp < 2 || args.cp > 4 || !spend(G, p, args.cp)) {
         return INVALID_MOVE;
     }
     G.powers[p].patrons.push(patron.id);
-    G.patronizedThisTurn.push(p);
-    addVp(G, p, patron.vp);
-    pushLog(G, `${powerLabel(p)} patronizes ${patron.name} (+${patron.vp} VP).`);
+    if (scienceBonus !== undefined) {
+        G.scienceBonusesAvailable = G.scienceBonusesAvailable.filter((id) => id !== scienceBonus?.id);
+        G.powers[p].scienceBonuses.push(scienceBonus.id);
+    }
+    G.patronizedThisTurn.push(patronageKey);
+    pushLog(G, `${powerLabel(p)} sponsors ${patron.name}${scienceBonus === undefined ? "" : ` and claims ${scienceBonus.nameEn}`}; Patronage Phase resolution is pending.`);
 };
 
 // --------------------------------------------------------------------------

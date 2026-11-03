@@ -26,12 +26,14 @@ import {
     emptyNaval,
 } from "./constant/general";
 import {
-    CAPITAL_SPACES,
-    DUTCH_KEYS,
     initialControl,
     initialLandFor,
     initialNavalFor,
     initialReligion,
+} from "./constant/spaces";
+import {
+    CAPITAL_SPACES,
+    DUTCH_KEYS,
     KEY_SPACES,
     LAND_NEIGHBORS,
     SEA_PORTS,
@@ -39,9 +41,24 @@ import {
     SEA_ZONES,
     SPACES,
     SPACE_BY_ID,
-} from "./constant/spaces";
-import {cardById, DECK_CARD_IDS, HOME_CARDS} from "./constant/cards";
+} from "./mapData";
+import {cardById, officialCardById} from "./constant/cards";
+import {OFFICIAL_CARDS} from "./data/cards";
 import {LEADER_BY_ID, LEADERS, startingLeaders} from "./constant/leaders";
+import {
+    ScenarioSetupData,
+    patronDef,
+    powerCardSummary,
+    scenarioFromSetupData,
+    scenarioLeaders,
+    scenarioPatrons,
+    scenarioRoyals,
+    seaCaptainById,
+    royalAvailable,
+    scenarioSeaCaptains,
+    scenarioSetup,
+    scenarioSpaces,
+} from "./scenario";
 
 export {SPACE_BY_ID, KEY_SPACES, DUTCH_KEYS, initialControl, initialReligion, initialLandFor, initialNavalFor};
 
@@ -80,35 +97,10 @@ export const sortByImpulse = (list: Power[]): Power[] =>
 // Initial state
 // --------------------------------------------------------------------------
 
-export const setupGame = (ctx: Ctx): VQGame => {
-    const spaces: VQGame["spaces"] = {};
-    for (const def of SPACES) {
-        const land: VQGame["spaces"][string]["land"] = {};
-        const naval: VQGame["spaces"][string]["naval"] = {};
-        for (const c of new Set<Controller>([
-            ...Object.keys(def.initial ?? {}) as Controller[],
-            ...Object.keys(def.initialNaval ?? {}) as Controller[],
-        ])) {
-            const l = initialLandFor(def, c);
-            if (l !== undefined && landCount(l) > 0) {
-                land[c] = l;
-            }
-            const n = initialNavalFor(def, c);
-            if (n !== undefined && navalCount(n) > 0) {
-                naval[c] = n;
-            }
-        }
-        const leaders = LEADERS.filter((l) => l.start === def.id).map((l) => l.id);
-        spaces[def.id] = {
-            control: initialControl(def),
-            religion: initialReligion(def),
-            land,
-            naval,
-            leaders,
-            unrest: false,
-            fortress: def.kind !== "open",
-        };
-    }
+export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
+    const scenarioId = scenarioFromSetupData(setupData);
+    const scenario = scenarioSetup(scenarioId);
+    const spaces = scenarioSpaces(scenario);
 
     const seaZones: VQGame["seaZones"] = {} as VQGame["seaZones"];
     for (const zone of SEA_ZONES) {
@@ -116,7 +108,6 @@ export const setupGame = (ctx: Ctx): VQGame => {
     }
 
     const powers = {} as VQGame["powers"];
-    const leaders: VQGame["leaders"] = {};
     for (const p of POWERS) {
         powers[p] = {
             power: p,
@@ -130,32 +121,55 @@ export const setupGame = (ctx: Ctx): VQGame => {
             wars: [],
             warsMinors: [],
             allies: [],
+            alliedMinors: [],
             influence: {},
             patrons: [],
+            seaCaptains: [],
+            scienceBonuses: [],
+            scmOnCard: 0,
             passed: false,
         };
-        for (const id of startingLeaders[p]) {
-            leaders[id] = {id, location: LEADER_BY_ID[id].start ?? "pool"};
+    }
+
+    // Scenario wars are undirected pairs on the Diplomatic Status Display.
+    for (const [a, b] of scenario.wars) {
+        if (!powers[a].wars.includes(b)) {
+            powers[a].wars.push(b);
+        }
+        if (!powers[b].wars.includes(a)) {
+            powers[b].wars.push(a);
         }
     }
-    // Leaders deliberately held off the map until a rebellion.
-    for (const l of LEADERS) {
-        if (leaders[l.id] === undefined) {
-            leaders[l.id] = {id: l.id, location: "pool"};
+    for (const [a, minor] of scenario.alliances) {
+        if (!powers[a].alliedMinors.includes(minor)) {
+            powers[a].alliedMinors.push(minor);
+        }
+    }
+    for (const p of POWERS) {
+        const influence = scenario.influence[p];
+        if (influence !== undefined) {
+            powers[p].influence = {...influence};
         }
     }
 
-    // Initial diplomatic situation (Treaty of Cateau-Cambresis leaves France and
-    // Spain at peace; the Ottomans are at war with the Habsburgs and the
-    // Huguenots are in open rebellion against the French crown).
-    powers.ottoman.wars = ["spain", "hre"];
-    powers.spain.wars = ["ottoman"];
-    powers.hre.wars = ["ottoman"];
-    powers.france.wars = ["protestant"];
-    powers.protestant.wars = ["france"];
+    let mercenariesForHire = 0;
+    for (const p of POWERS) {
+        const card = powerCardSummary(scenario, p);
+        powers[p].scmOnCard = card.scmOnCard;
+        powers[p].seaCaptains = [...card.seaCaptains];
+        mercenariesForHire += card.mercenariesForHire;
+        for (let i = 0; i < card.treasures; i++) {
+            powers[p].treasures.push(shuffleTreasure(ctx));
+        }
+    }
+
+    const leaders = scenarioLeaders(scenario, spaces);
 
     const G: VQGame = {
-        year: 1,
+        scenario: scenarioId,
+        startTurn: scenario.startTurn,
+        endTurn: scenario.endTurn,
+        year: scenario.startTurn,
         dealtYear: 0,
         turnsCompleted: 0,
         phaseTurns: 0,
@@ -166,26 +180,66 @@ export const setupGame = (ctx: Ctx): VQGame => {
         seaZones,
         powers,
         leaders,
-        deck: shuffle(ctx, DECK_CARD_IDS.slice()),
+        deck: shuffle(ctx, scenario.cardsInPlay
+            .filter((number) => {
+                const card = OFFICIAL_CARDS[number - 1];
+                return card !== undefined && card.kind !== "home" &&
+                    (card.availableFromTurn === "variable" || (typeof card.availableFromTurn === "number" && card.availableFromTurn <= scenario.startTurn));
+            })
+            .map((number) => OFFICIAL_CARDS[number - 1].id)),
+        futureDeck: shuffle(ctx, scenario.cardsInPlay
+            .filter((number) => {
+                const card = OFFICIAL_CARDS[number - 1];
+                return card !== undefined && card.kind !== "home" &&
+                    typeof card.availableFromTurn === "number" && card.availableFromTurn > scenario.startTurn;
+            })
+            .map((number) => OFFICIAL_CARDS[number - 1].id)),
         discard: [],
         removed: [],
         homeSetAside: [],
         doWCostEnglandSpain: 5,
-        suezAttempts: 0,
+        suezAttempts: scenario.powerCard.ottoman.suezAttempts ?? 0,
         suezDone: false,
+        mercenariesForHire,
         betrothals: [],
         marriages: 0,
         log: [],
         vpHistory: {},
         checkVictory: false,
-        lastAction: "1559 年开局",
+        lastAction: scenario.nameZh,
         lastRolls: "",
         springDone: [],
         patronizedThisTurn: [],
-        royals: ROYALS.map((r) => ({...r})),
+        cardDrawDone: [],
+        royals: scenarioRoyals(scenario),
+        patronsAvailable: scenarioPatrons(scenario),
+        seaCaptainsAvailable: scenarioSeaCaptains(scenario).filter((id) => seaCaptainById(id)?.power === "france/protestant"),
+        scienceBonusesAvailable: [...scenario.patronage.scienceBonuses],
+        protestantSpacesStart: scenario.protestantSpaces,
+        protestantSpacesMapAtStart: 0,
     };
-    pushLog(G, "Virgin Queen: Wars of Religion, 1559.");
-    dealYear(G, ctx);
+
+    G.protestantSpacesMapAtStart = mapProtestantSpaceCount(G);
+
+    // The VP track starts at the printed scenario value.  Keep that value as an
+    // offset so the dynamic base/religious scoring below still moves from it.
+    for (const p of POWERS) {
+        powers[p].bonusVp = scenario.vpStart[p] - (baseVp(G, p) + religiousSpecialVp(G, p));
+    }
+
+    pushLog(G, `Virgin Queen: ${scenario.nameZh}（第 ${scenario.startTurn}-${scenario.endTurn} 回合）`);
+    pushLog(G, `VP 起始：${POWERS.map((p) => `${POWER_NAMES[p].short} ${scenario.vpStart[p]}`).join(" / ")}`);
+    pushLog(G, `新教地区起始：${scenario.protestantSpaces}`);
+    pushLog(G, `已按 Scenario Book 设置 ${Object.keys(scenario.spaces).length} 个地区。`);
+    if (scenario.notes !== undefined) {
+        for (const note of scenario.notes) {
+            pushLog(G, `场景说明：${note}`);
+        }
+    }
+    const unknownPatrons = G.patronsAvailable.filter((id) => patronDef(id)?.rating === null);
+    if (unknownPatrons.length > 0) {
+        pushLog(G, `注意：${unknownPatrons.length} 位赞助人的评级未转录，冬季赞助结算需要手动处理。`);
+    }
     return G;
 };
 
@@ -232,7 +286,7 @@ export const discardCard = (G: VQGame, p: Power, cardId: string, asEvent: boolea
         G.homeSetAside.push(cardId);
         return;
     }
-    if (asEvent && def.kind === "event" && def.text?.includes("Remove from deck")) {
+    if (def.removeAfterUse || (asEvent && def.removeOnEvent) || (asEvent && def.kind === "event" && def.text?.includes("Remove from deck"))) {
         G.removed.push(cardId);
     } else {
         G.discard.push(cardId);
@@ -249,16 +303,27 @@ export const drawCount = (G: VQGame, p: Power): number => {
 
 /** Deal a new year's hands. Home cards return, hands are trimmed to Admin. */
 export const dealYear = (G: VQGame, ctx: Ctx): void => {
+    const scenario = scenarioSetup(G.scenario);
+    const eligibleFuture: string[] = [];
+    G.futureDeck = G.futureDeck.filter((id) => {
+        const card = officialCardById(id);
+        if (typeof card?.availableFromTurn === "number" && card.availableFromTurn <= G.year) {
+            eligibleFuture.push(id);
+            return false;
+        }
+        return true;
+    });
+    G.deck = shuffle(ctx, [...G.deck, ...G.discard, ...eligibleFuture]);
+    G.discard = [];
     for (const p of POWERS) {
         const ps = G.powers[p];
-        // Home cards set aside last year become available again.
-        const home = HOME_CARDS.filter((c) => c.power === p);
-        const availableHome = home.filter((c) => !ps.cards.includes(c.id));
-        for (const c of availableHome) {
-            if (G.homeSetAside.includes(c.id)) {
-                G.homeSetAside = G.homeSetAside.filter((id) => id !== c.id);
+        // Return all scenario home cards from the previous year to the hand.
+        ps.cards = ps.cards.filter((id) => cardById(id).kind !== "home");
+        for (const number of scenario.cardsInPlay) {
+            const card = OFFICIAL_CARDS[number - 1];
+            if (card?.kind === "home" && card.power === p) {
+                ps.cards.push(card.id);
             }
-            ps.cards.push(c.id);
         }
         // Keep at most the ruler's admin rating of non-home cards.
         const nonHome = ps.cards.filter((c) => cardById(c).kind !== "home");
@@ -274,12 +339,17 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
         ps.cp = 0;
         ps.cardPlayed = false;
         ps.treasurePlayed = false;
-        ps.influence = {};
-        ps.allies = [];
+        // The first Card Draw Phase preserves the scenario's printed alliances
+        // and influence.  Later years keep the existing simplified reset.
+        if (G.dealtYear !== 0) {
+            ps.influence = {};
+            ps.allies = [];
+        }
     }
     G.dealtYear = G.year;
     G.springDone = [];
     G.patronizedThisTurn = [];
+    G.cardDrawDone = [];
     if (G.powers.spain.treasures.length === 0) {
         G.powers.spain.treasures = Array.from({length: 4}, () => 1 + die(ctx, 5) - 1);
     }
@@ -416,8 +486,20 @@ export const baseVp = (G: VQGame, p: Power): number => {
     return table[Math.min(keys, table.length - 1)] ?? 0;
 };
 
-export const protestantSpaceCount = (G: VQGame): number =>
+/** Number of Protestant spaces currently printed on the map. */
+export const mapProtestantSpaceCount = (G: VQGame): number =>
     SPACES.filter((s) => s.area !== undefined && G.spaces[s.id].religion === "protestant" && !G.spaces[s.id].unrest).length;
+
+/**
+ * Official Protestant Spaces track.  The Scenario Book starts the marker at a
+ * printed value (18 Campaign / 30 Tournament) that does not match the number
+ * of spaces drawn on our reconstructed map.  Track changes to the map count so
+ * conversions move the official marker by the same amount.
+ */
+export const protestantSpaceCount = (G: VQGame): number => {
+    const current = mapProtestantSpaceCount(G);
+    return Math.max(0, G.protestantSpacesStart + (current - G.protestantSpacesMapAtStart));
+};
 
 export const protestantSpacesInArea = (G: VQGame, area: ReligionArea): number =>
     SPACES.filter((s) => s.area === area && G.spaces[s.id].religion === "protestant" && !G.spaces[s.id].unrest).length;
@@ -426,14 +508,14 @@ export const religiousSpecialVp = (G: VQGame, p: Power): number => {
     const n = protestantSpaceCount(G);
     switch (p) {
         case "spain":
-            return n <= 3 ? 3 : n <= 6 ? 2 : n <= 9 ? 1 : 0;
+            return n <= 8 ? 3 : n <= 16 ? 2 : n <= 25 ? 1 : 0;
         case "england":
-            return n <= 3 ? 0 : n <= 6 ? 1 : n <= 9 ? 2 : n <= 12 ? 2 : n <= 15 ? 3 : 4;
+            return n <= 8 ? 0 : n <= 16 ? 1 : n <= 25 ? 2 : n <= 33 ? 2 : n <= 42 ? 3 : 4;
         case "protestant":
-            return n <= 3 ? 0 : n <= 6 ? 1 : n <= 9 ? 2 : n <= 12 ? 3 : n <= 15 ? 4 : 5;
+            return n <= 8 ? 0 : n <= 16 ? 1 : n <= 25 ? 2 : n <= 33 ? 3 : n <= 42 ? 4 : 5;
         case "hre":
             // Secret religious preference is simplified to a balanced emperor.
-            return n >= 7 && n <= 13 ? 2 : 0;
+            return n >= 20 && n <= 36 ? 2 : 0;
         default:
             return 0;
     }
@@ -1135,7 +1217,9 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
     const defendersUnits = totalLand(G, space, defenders);
     const attackerUnits = totalLand(G, space, [p]);
     const aDice = (defendersUnits > 0 ? Math.ceil(attackerUnits / 2) : attackerUnits) + bestBattle(G, space, [p], "army");
-    const dDice = defendersUnits + bestBattle(G, space, defenders, "army") + 1;
+    const defendingPower = defenders.find(isPower);
+    const ravelin = defendingPower !== undefined && G.powers[defendingPower].scienceBonuses.includes("ravelin") ? 1 : 0;
+    const dDice = defendersUnits + bestBattle(G, space, defenders, "army") + 1 + ravelin;
     const aHits = hits(roll(ctx, aDice));
     const dHits = hits(roll(ctx, dDice));
     G.lastRolls = `Assault on ${SPACE_BY_ID[space].name}: ${aHits} hits (${aDice} dice) vs ${dHits} hits (${dDice} dice)`;
@@ -1366,23 +1450,28 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         pushLog(G, "Elizabeth I remains unmarried: England gains 1 Virgin Queen VP.");
     }
     for (const r of G.royals) {
-        if (r.alive) {
-            r.age += 1;
+        if (!royalAvailable(r) || (r.turn ?? 1) > G.year) {
+            continue;
+        }
+        if (r.gender === "female") {
+            r.eligibility = Math.max(0, (r.eligibility ?? 0) - 1);
+        } else if (die(ctx) <= 4) {
+            r.eligibility = Math.max(0, (r.eligibility ?? 0) - 1);
         }
     }
     G.vpHistory[String(G.year)] = Object.fromEntries(POWERS.map((p) => [p, powerVp(G, p)]));
     G.year += 1;
     G.checkVictory = true;
     G.impulse = 0;
-    pushLog(G, `Winter ends. Turn ${G.year} begins.`);
+    pushLog(G, G.year <= G.endTurn ? `Winter ends. Turn ${G.year} begins.` : `Winter ends. Scenario turn ${G.endTurn} is complete.`);
 };
 
 export const checkImmediateVictory = (G: VQGame): { winner: Power; reason: string } | undefined => {
     const n = protestantSpaceCount(G);
-    if (n >= 18) {
+    if (n > 50) {
         return {winner: "protestant", reason: "protestantReligious"};
     }
-    if (n <= 3) {
+    if (n <= 9) {
         const franceAndScotland = protestantSpacesInArea(G, "france") + protestantSpacesInArea(G, "scotland");
         return {winner: franceAndScotland <= 2 ? "france" : "spain", reason: "catholicReligious"};
     }
@@ -1421,7 +1510,7 @@ export const checkVictory = (G: VQGame): { winner: Power; reason: string } | und
         }
         return top.power;
     };
-    if (G.year > 7) {
+    if (G.year > G.endTurn) {
         return {winner: tiedWinner(), reason: "timeLimit"};
     }
     if (!G.checkVictory) {
@@ -1519,8 +1608,9 @@ const resolveOneEvent = (G: VQGame, ctx: Ctx, p: Power, e: EventEffect): void =>
                 break;
             }
             const r = die(ctx, 6);
-            const total = r + G.suezAttempts;
-            G.lastRolls = `Suez Canal attempt: ${r} + ${G.suezAttempts} = ${total}`;
+            const scienceBonus = G.powers.ottoman.scienceBonuses.includes("excavation") ? 2 : 0;
+            const total = r + G.suezAttempts + scienceBonus;
+            G.lastRolls = `Suez Canal attempt: ${r} + ${G.suezAttempts}${scienceBonus ? ` + ${scienceBonus} science` : ""} = ${total}`;
             pushLog(G, G.lastRolls);
             if (total >= 6) {
                 G.suezDone = true;

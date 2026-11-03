@@ -5,6 +5,7 @@ export * from "./spaces";
 export * from "./scenarios";
 export * from "./royals";
 export * from "./patrons";
+export * from "./patronage";
 export * from "./seaCaptains";
 export * from "./scienceBonuses";
 export * from "./leaders";

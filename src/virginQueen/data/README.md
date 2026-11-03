@@ -1,15 +1,16 @@
-# Virgin Queen Round 1 data layer
+# Virgin Queen official scenario data
 
-This folder holds the official scenario/setup data for the six-player game. It is
-deliberately separate from the playable runtime in `../constant/` and `../util/`;
-nothing here is wired into `setupGame` yet. Round 2 will select a scenario and
-consume these records.
+This folder holds the official scenario/setup data for the six-player game.
+`../scenario.ts`, `../game.ts`, and `../util.ts` adapt these records into the
+playable runtime. Match creation accepts `setupData.scenario` (`campaign` or
+`tournament`); local play offers the same selection.
 
 ## Sources
 
 | Data | Source |
 | --- | --- |
 | Campaign / Tournament setup, VP, wars, alliances, royals, patronage, science bonuses, sea captains, leader entries | `VQ_ScenarioBook_Final_Lo-Res.pdf` |
+| Patron ratings/categories and individual VP award markers | `Virgin_Queen_4.6.0.vmod` (`images/*.svg`, `buildFile.xml`) |
 | 112 card titles and Chinese effect text | `中文卡表.pdf` |
 | Card command points, first-turn availability and printed card category | `中文規則.pdf`, pages 42–56 |
 | Base 92-space map and 13 sea zones | existing runtime reconstruction (`../constant/spaces.ts`) |
@@ -72,18 +73,35 @@ rendered and no OCR was run.
 * Card pools are built in `deck.ts`; `cardsInPlay` and `cardsRemoved` partition
   the 112-card deck for each scenario.
 * The Tournament setup puts Morisco Revolt (`#28`) on the board.
-* Scenario `phaseOrder` is `cardDraw → diplomacy → spring → action`.
+* Scenario `phaseOrder` is `cardDraw → diplomacy → spring → action`; the runtime
+  now deals the scenario deck at the start of Card Draw and returns to it after
+  Winter.
 
 ## Other tables
 
 * `royals.ts`: marriage table, printed ratings and scenario availability.
-* `patrons.ts`: artists/scientists named by the two patronage charts. Printed VP
-  values are not in the Scenario Book, so `vp` is `null`.
+* `patrons.ts`: patron ratings and artist categories transcribed from the
+  supplied module's counter SVGs. It includes both scenario starting patrons
+  and later entrants.
+* `patronage.ts`: all 19 individual VP award markers with value and category.
+  Campaign has 13 artist markers (six 1 VP, four 2 VP, three 3 VP) and six
+  science markers (four 1 VP, two 2 VP). Tournament removes the +2 VP Painter
+  *Fight between Carnival and Lent* and +1 VP Artist *Elegy for Suleiman*,
+  leaving 11 artist and six science markers.
 * `seaCaptains.ts`: Sea Captain Table and per-scenario availability.
 * `scienceBonuses.ts`: all nine science bonuses.
 * `leaders.ts`: leaders referenced by the setups and the Leader Entry Table.
 * `world.ts`: coarse World Map skeleton (sea zones and settlements named in the
   supplied sources). The physical world map was not supplied.
+
+## Runtime coverage and limits
+
+The runtime uses the scenario spaces, initial VP tracks, Protestant Spaces
+track offsets, official card pools and turn availability, scenario royals,
+patron and science catalogs, and scenario captain assignments. Shared
+France/Protestant captains can be claimed during Card Draw. Scenario patron
+The current data includes patron ratings and the full VP award-marker pool.
+Complex card text also remains manual.
 
 ## Validation
 

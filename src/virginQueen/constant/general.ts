@@ -18,6 +18,8 @@ export const POWERS = [
 
 export type Power = typeof POWERS[number];
 
+export type ScenarioID = "campaign" | "tournament";
+
 export const POWER_INDEX: Record<Power, number> = {
     ottoman: 0,
     spain: 1,
@@ -306,6 +308,11 @@ export interface CardDef {
     power?: Power;
     text?: string;
     effect?: EventEffect | EventEffect[];
+    /** Metadata preserved from the official 112-card table. */
+    officialNumber?: number;
+    officialKind?: "event" | "response" | "combat" | "mandatory" | "home";
+    removeOnEvent?: boolean;
+    removeAfterUse?: boolean;
 }
 
 export interface SpaceState {
@@ -346,13 +353,27 @@ export interface PowerState {
     wars: Power[];
     warsMinors: MinorPower[];
     allies: Power[];
+    /** Minor powers allied through the scenario setup. */
+    alliedMinors: MinorPower[];
     influence: Partial<Record<MinorPower, number>>;
     patrons: string[];
+    /** Sea captains currently available to this power. */
+    seaCaptains: string[];
+    /** Science bonuses this power has acquired. */
+    scienceBonuses: string[];
+    /** Square control markers printed on the power card. */
+    scmOnCard: number;
     /** True when the power has passed and no one has acted since. */
     passed: boolean;
 }
 
 export interface VQGame {
+    /** Scenario selected when the match was created. */
+    scenario: ScenarioID;
+    /** First official turn of the scenario (1 for Campaign, 3 for Tournament). */
+    startTurn: number;
+    /** Last official turn of the scenario (7 for Campaign, 6 for Tournament). */
+    endTurn: number;
     /** 1-based game turn (the rulebook's seven turns compress 1559-1598). */
     year: number;
     dealtYear: number;
@@ -366,6 +387,8 @@ export interface VQGame {
     powers: Record<Power, PowerState>;
     leaders: Record<string, LeaderState>;
     deck: string[];
+    /** Official cards which enter the deck in later scenario turns. */
+    futureDeck: string[];
     discard: string[];
     removed: string[];
     /** Home cards set aside after being played this year. */
@@ -374,6 +397,7 @@ export interface VQGame {
     doWCostEnglandSpain: number;
     suezAttempts: number;
     suezDone: boolean;
+    mercenariesForHire: number;
     /** Betrothals announced during the current Diplomacy Phase. */
     betrothals: { male: string; female: string }[];
     /** Royal marriages resolved this year (used for "Virgin Queen" VP). */
@@ -385,42 +409,41 @@ export interface VQGame {
     lastAction: string;
     lastRolls: string;
     royals: RoyalDef[];
+    /** Patrons available under this scenario's patronage chart. */
+    patronsAvailable: string[];
+    /** Sea captains available under this scenario's power cards. */
+    seaCaptainsAvailable: string[];
+    /** Science bonuses available under this scenario's patronage chart. */
+    scienceBonusesAvailable: string[];
+    /** Official Protestant Spaces track at setup, and the map count then. */
+    protestantSpacesStart: number;
+    protestantSpacesMapAtStart: number;
     /** Filled in by playerView: public counts, hidden deck contents. */
     deckCount?: number;
+    futureDeckCount?: number;
     discardCount?: number;
     handCounts?: Partial<Record<Power, number>>;
     springDone: Power[];
-    patronizedThisTurn: Power[];
+    patronizedThisTurn: string[];
+    cardDrawDone: Power[];
 }
-
-export interface PatronDef {
-    id: string;
-    name: string;
-    kind: "artist" | "scientist";
-    vp: number;
-}
-
-export const PATRONS: PatronDef[] = [
-    {id: "titian", name: "Titian", kind: "artist", vp: 2},
-    {id: "elGreco", name: "El Greco", kind: "artist", vp: 2},
-    {id: "shakespeare", name: "William Shakespeare", kind: "artist", vp: 3},
-    {id: "montaigne", name: "Michel de Montaigne", kind: "artist", vp: 1},
-    {id: "veronese", name: "Paolo Veronese", kind: "artist", vp: 2},
-    {id: "cellini", name: "Benvenuto Cellini", kind: "artist", vp: 1},
-    {id: "tycho", name: "Tycho Brahe", kind: "scientist", vp: 3},
-    {id: "mercator", name: "Gerardus Mercator", kind: "scientist", vp: 2},
-    {id: "galileo", name: "Galileo Galilei", kind: "scientist", vp: 3},
-    {id: "vesalius", name: "Andreas Vesalius", kind: "scientist", vp: 2},
-];
 
 export interface RoyalDef {
     id: string;
     name: string;
+    nameZh?: string;
     power: Power;
     gender: "male" | "female";
     /** Family tag: Valois or Hapsburg royals may not intermarry. */
     family?: "valois" | "hapsburg";
-    age: number;
+    /** Age is not printed in the Scenario Book; it is left undefined. */
+    age?: number;
+    /** Turn the royal enters the game. */
+    turn?: number;
+    /** Current eligibility rating (campaign/tournament may lower it). */
+    eligibility?: number;
+    /** Scenario status: captured/dead/unused royals cannot be betrothed. */
+    status?: "captured" | "dead" | "unused" | "available";
     alive: boolean;
     married: boolean;
 }

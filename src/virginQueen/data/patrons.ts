@@ -2,40 +2,42 @@ import {Patron} from "./types";
 
 /**
  * Artists and scientists named by the Campaign and Tournament patronage
- * charts.  The Scenario Book lists only the available pool, not the printed VP
- * value of each patron, so `vp` stays null until the physical patron cards are
- * transcribed.
+ * charts. Ratings and artist categories are transcribed from the counter SVGs
+ * in the supplied VASSAL 4.6 module.
  */
 export const PATRONS: Patron[] = [
     // Artists
-    {id: "sinan", nameEn: "Sinan", nameZh: "锡南", kind: "artist", region: "ottoman", vp: null},
-    {id: "baki", nameEn: "Baki", nameZh: "巴基", kind: "artist", region: "ottoman", vp: null},
-    {id: "titian", nameEn: "Titian", nameZh: "提香", kind: "artist", region: "spain", vp: null},
+    {id: "sinan", nameEn: "Sinan", nameZh: "锡南", kind: "artist", region: "ottoman", rating: 4, artistType: "architect"},
+    {id: "baki", nameEn: "Baki", nameZh: "巴基", kind: "artist", region: "ottoman", rating: 2, artistType: "writer"},
+    {id: "titian", nameEn: "Titian", nameZh: "提香", kind: "artist", region: "spain", rating: 2, artistType: "painter"},
     {
         id: "bautista",
         nameEn: "Bautista",
         nameZh: "包蒂斯塔",
         kind: "artist",
         region: "spain",
-        vp: null,
+        rating: 2,
+        artistType: "architect",
     },
-    {id: "clouet", nameEn: "Clouet", nameZh: "克卢埃", kind: "artist", region: "france", vp: null},
+    {id: "clouet", nameEn: "Clouet", nameZh: "克卢埃", kind: "artist", region: "france", rating: 2, artistType: "painter"},
     {
         id: "delorme",
         nameEn: "de L'Orme",
         nameZh: "德洛尔姆",
         kind: "artist",
         region: "france",
-        vp: null,
+        rating: 2,
+        artistType: "architect",
     },
-    {id: "ronsard", nameEn: "Ronsard", nameZh: "龙萨", kind: "artist", region: "france", vp: null},
+    {id: "ronsard", nameEn: "Ronsard", nameZh: "龙萨", kind: "artist", region: "france", rating: 3, artistType: "writer"},
     {
         id: "brueghel",
         nameEn: "Brueghel",
         nameZh: "勃鲁盖尔",
         kind: "artist",
         region: "protestant",
-        vp: null,
+        rating: 3,
+        artistType: "painter",
     },
     {
         id: "marnix",
@@ -43,7 +45,8 @@ export const PATRONS: Patron[] = [
         nameZh: "马尼克斯",
         kind: "artist",
         region: "protestant",
-        vp: null,
+        rating: 2,
+        artistType: "writer",
     },
     {
         id: "hilliard",
@@ -51,7 +54,8 @@ export const PATRONS: Patron[] = [
         nameZh: "希利亚德",
         kind: "artist",
         region: "england",
-        vp: null,
+        rating: 1,
+        artistType: "painter",
     },
     {
         id: "arcimboldo",
@@ -59,7 +63,8 @@ export const PATRONS: Patron[] = [
         nameZh: "阿尔钦博托",
         kind: "artist",
         region: "hre",
-        vp: null,
+        rating: 1,
+        artistType: "painter",
     },
     {
         id: "spranger",
@@ -67,7 +72,8 @@ export const PATRONS: Patron[] = [
         nameZh: "施普兰格",
         kind: "artist",
         region: "hre",
-        vp: null,
+        rating: 2,
+        artistType: "painter",
     },
     {
         id: "palladio",
@@ -75,7 +81,8 @@ export const PATRONS: Patron[] = [
         nameZh: "帕拉第奥",
         kind: "artist",
         region: "italy",
-        vp: null,
+        rating: 3,
+        artistType: "architect",
     },
     {
         id: "tintoretto",
@@ -83,8 +90,16 @@ export const PATRONS: Patron[] = [
         nameZh: "丁托列托",
         kind: "artist",
         region: "italy",
-        vp: null,
+        rating: 2,
+        artistType: "painter",
     },
+    {id: "montaigne", nameEn: "Montaigne", kind: "artist", region: "france", rating: 2, artistType: "writer"},
+    {id: "daubigne", nameEn: "d'Aubigne", kind: "artist", region: "protestant", rating: 1, artistType: "writer"},
+    {id: "elGreco", nameEn: "El Greco", kind: "artist", region: "italy", rating: 4, artistType: "painter"},
+    {id: "cervantes", nameEn: "Cervantes", kind: "artist", region: "spain", rating: 4, artistType: "writer"},
+    {id: "marlowe", nameEn: "Marlowe", kind: "artist", region: "england", rating: 2, artistType: "writer"},
+    {id: "lopeDeVega", nameEn: "Lope de Vega", kind: "artist", region: "spain", rating: 2, artistType: "writer"},
+    {id: "shakespeare", nameEn: "Shakespeare", kind: "artist", region: "england", rating: 4, artistType: "writer"},
 
     // Scientists
     {
@@ -93,7 +108,7 @@ export const PATRONS: Patron[] = [
         nameZh: "赛义迪·阿里·雷斯",
         kind: "scientist",
         region: "ottoman",
-        vp: null,
+        rating: 1,
     },
     {
         id: "taqiAlDin",
@@ -101,7 +116,7 @@ export const PATRONS: Patron[] = [
         nameZh: "塔基丁",
         kind: "scientist",
         region: "ottoman",
-        vp: null,
+        rating: 3,
     },
     {
         id: "herrera",
@@ -109,16 +124,16 @@ export const PATRONS: Patron[] = [
         nameZh: "埃雷拉",
         kind: "scientist",
         region: "spain",
-        vp: null,
+        rating: 2,
     },
-    {id: "dee", nameEn: "Dee", nameZh: "迪伊", kind: "scientist", region: "england", vp: null},
+    {id: "dee", nameEn: "Dee", nameZh: "迪伊", kind: "scientist", region: "england", rating: 3},
     {
         id: "leTestu",
         nameEn: "Le Testu",
         nameZh: "勒泰斯蒂",
         kind: "scientist",
         region: "france",
-        vp: null,
+        rating: 1,
     },
     {
         id: "mercator",
@@ -126,7 +141,7 @@ export const PATRONS: Patron[] = [
         nameZh: "墨卡托",
         kind: "scientist",
         region: "hre",
-        vp: null,
+        rating: 2,
     },
     {
         id: "brahe",
@@ -134,7 +149,7 @@ export const PATRONS: Patron[] = [
         nameZh: "第谷·布拉赫",
         kind: "scientist",
         region: "hre",
-        vp: null,
+        rating: 3,
     },
     {
         id: "kepler",
@@ -142,7 +157,7 @@ export const PATRONS: Patron[] = [
         nameZh: "开普勒",
         kind: "scientist",
         region: "hre",
-        vp: null,
+        rating: 4,
     },
     {
         id: "leMoyne",
@@ -150,7 +165,7 @@ export const PATRONS: Patron[] = [
         nameZh: "勒莫因",
         kind: "scientist",
         region: "protestant",
-        vp: null,
+        rating: 1,
     },
     {
         id: "bellaso",
@@ -158,8 +173,13 @@ export const PATRONS: Patron[] = [
         nameZh: "贝拉索",
         kind: "scientist",
         region: "italy",
-        vp: null,
+        rating: 2,
     },
+    {id: "galileo", nameEn: "Galileo", kind: "scientist", region: "italy", rating: 4},
+    {id: "stevin", nameEn: "Stevin", kind: "scientist", region: "protestant", rating: 3},
+    {id: "bruno", nameEn: "Bruno", kind: "scientist", region: "italy", rating: 2},
+    {id: "gilbert", nameEn: "Gilbert", kind: "scientist", region: "england", rating: 2},
+    {id: "jansen", nameEn: "Jansen", kind: "scientist", region: "protestant", rating: 2},
 ];
 
 export const PATRON_BY_ID: Record<string, Patron> = Object.fromEntries(

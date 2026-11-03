@@ -7,6 +7,7 @@ import {LeaderDef, POWERS, Power} from "./general";
  */
 export const LEADERS: LeaderDef[] = [
     // Ottoman
+    {id: "mehmed", name: "Mehmed Pasha", power: "ottoman", kind: "army", battle: 2, command: 6, start: "pool"},
     {id: "lalaMustafa", name: "Lala Mustafa Pasha", power: "ottoman", kind: "army", battle: 2, command: 6, start: "istanbul"},
     {id: "sinanPasha", name: "Sinan Pasha", power: "ottoman", kind: "army", battle: 2, command: 7, start: "buda"},
     {id: "piyale", name: "Piyale Pasha", power: "ottoman", kind: "naval", battle: 2, start: "istanbul"},

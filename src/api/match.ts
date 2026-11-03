@@ -30,6 +30,7 @@ export const createMatch = async (
     gameName: string,
     visibility: Visibility,
     numPlayers: number = 3,
+    setupData?: Record<string, unknown>,
 ): Promise<string> => {
     const resp = await fetch(`${serverURL}/games/${gameName}/create`, {
         method: "POST",
@@ -37,6 +38,7 @@ export const createMatch = async (
         body: JSON.stringify({
             numPlayers: numPlayers,
             unlisted: visibility === Visibility.PRIVATE,
+            ...(setupData === undefined ? {} : {setupData}),
         }),
     });
     if (!resp.ok) {
