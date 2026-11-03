@@ -88,6 +88,7 @@ import {
     isPort,
     isSeaZone,
     landAdjacent,
+    leaderPower,
     landDistance,
     leadersAt,
     minorAvailable,
@@ -994,7 +995,7 @@ export const giveTreasure = (G: VQGame, ctx: Ctx, args: {target: Power; index: n
     pushLog(G, `${powerLabel(p)} gives a treasure to ${powerLabel(args.target)}.`);
 };
 
-export const loanNaval = (G: VQGame, ctx: Ctx, args: {target: Power; fromPort: string; toPort: string; kind: "galley" | "galleon" | "racebuilt"}): void | typeof INVALID_MOVE => {
+export const loanNaval = (G: VQGame, ctx: Ctx, args: {target: Power; fromPort: string; toPort: string; kind: "galley" | "galleon" | "racebuilt"; leader?: string}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "diplomacy") return INVALID_MOVE;
     const p = power(G, ctx);
     if (!isPower(args.target) || args.target === p || !allied(G, p, args.target) ||
@@ -1002,6 +1003,11 @@ export const loanNaval = (G: VQGame, ctx: Ctx, args: {target: Power; fromPort: s
         !seaPathBetweenPorts(args.fromPort, args.toPort)) return INVALID_MOVE;
     if ((G.loanedNaval ?? []).some((loan) =>
         (loan.lender === p && loan.borrower === args.target) || (loan.lender === args.target && loan.borrower === p))) return INVALID_MOVE;
+    if (args.leader !== undefined) {
+        const leader = G.leaders[args.leader];
+        if (leader === undefined || leader.location !== args.fromPort || leaderPower(G, args.leader) !== p ||
+            LEADER_BY_ID[args.leader]?.kind !== "naval") return INVALID_MOVE;
+    }
     const source = G.spaces[args.fromPort].naval[p];
     if (source === undefined || source[args.kind] < 1) return INVALID_MOVE;
     source[args.kind] -= 1;
@@ -1009,7 +1015,12 @@ export const loanNaval = (G: VQGame, ctx: Ctx, args: {target: Power; fromPort: s
     const target = G.spaces[args.toPort].naval[args.target] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
     target[args.kind] += 1;
     G.spaces[args.toPort].naval[args.target] = target;
-    G.loanedNaval = [...(G.loanedNaval ?? []), {lender: p, borrower: args.target, kind: args.kind, fromPort: args.fromPort, toPort: args.toPort}];
+    if (args.leader !== undefined) {
+        moveLeaders(G, args.fromPort, args.toPort, [args.leader]);
+        G.leaders[args.leader].loanedTo = args.target;
+    }
+    G.loanedNaval = [...(G.loanedNaval ?? []), {lender: p, borrower: args.target, kind: args.kind, fromPort: args.fromPort, toPort: args.toPort,
+        ...(args.leader !== undefined ? {leader: args.leader} : {})}];
     pushLog(G, `${powerLabel(p)} loans one ${args.kind} to ${powerLabel(args.target)}.`);
 };
 
@@ -1979,7 +1990,7 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
     const destinationHadEnemy = ownersWithNaval(G, to).some((owner) => !friendlyController(G, p, owner));
     if (stack === undefined && destinationHadEnemy) return INVALID_MOVE;
     const leaders = (isSeaZone(from) ? G.seaZones[from as keyof VQGame["seaZones"]].leaders : G.spaces[from].leaders)
-        .filter((id) => LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id]?.kind === "naval");
+        .filter((id) => leaderPower(G, id) === p && LEADER_BY_ID[id]?.kind === "naval");
     if (stack !== undefined) {
         if (isSeaZone(to)) {
             const dst = G.seaZones[to as keyof VQGame["seaZones"]];

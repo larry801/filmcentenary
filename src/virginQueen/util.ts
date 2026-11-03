@@ -583,6 +583,10 @@ export const returnLoanedNaval = (G: VQGame): void => {
             SPACES.find((def) => G.spaces[def.id].control === loan.lender && isPort(def.id) && !isInlandPort(def.id))?.id;
         if (port === undefined) continue;
         ensureNaval(G, port, loan.lender)[loan.kind] += 1;
+        if (loan.leader !== undefined && G.leaders[loan.leader] !== undefined) {
+            moveLeaders(G, G.leaders[loan.leader].location, port, [loan.leader]);
+            delete G.leaders[loan.leader].loanedTo;
+        }
         pushLog(G, `${powerLabel(loan.lender)}'s loaned ${loan.kind} returns from ${powerLabel(loan.borrower)}.`);
     }
     G.loanedNaval = [];
@@ -1222,6 +1226,9 @@ export const leadersAt = (G: VQGame, loc: string): string[] => {
 
 export const leaderDef = (id: string): LeaderDef => LEADER_BY_ID[id];
 
+export const leaderPower = (G: VQGame, id: string): Power | undefined =>
+    G.leaders[id]?.loanedTo ?? LEADER_BY_ID[id]?.power;
+
 export const bestBattle = (G: VQGame, loc: string, owners: Controller[], kind: "army" | "naval" = "army"): number => {
     let best = 0;
     for (const id of leadersAt(G, loc)) {
@@ -1229,7 +1236,8 @@ export const bestBattle = (G: VQGame, loc: string, owners: Controller[], kind: "
         if (def === undefined || def.kind !== kind) {
             continue;
         }
-        if (owners.includes(def.power)) {
+        const owner = leaderPower(G, id);
+        if (owner !== undefined && owners.includes(owner)) {
             best = Math.max(best, def.battle);
         }
     }
@@ -1240,7 +1248,8 @@ export const bestPiracy = (G: VQGame, loc: string, owners: Controller[]): number
     let best = 0;
     for (const id of leadersAt(G, loc)) {
         const def = LEADER_BY_ID[id];
-        if (def !== undefined && def.power !== undefined && owners.includes(def.power)) {
+        const owner = leaderPower(G, id);
+        if (def !== undefined && owner !== undefined && owners.includes(owner)) {
             best = Math.max(best, def.piracy ?? 0);
         }
     }

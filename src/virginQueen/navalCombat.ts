@@ -3,7 +3,7 @@ import {Controller, POWER_INDEX, Power, VQGame, isPower, landCount, navalCount} 
 import {LEADER_BY_ID} from "./constant/leaders";
 import {SEA_ZONE_BY_ID, SPACE_BY_ID} from "./mapData";
 import {
-    atWar, bestBattle, friendlyController, hits, isSeaZone, leadersAt, moveLeaders,
+    atWar, bestBattle, friendlyController, hits, isSeaZone, leaderPower, leadersAt, moveLeaders,
     navalAdjacent, ownersWithNaval, powerLabel, pushLog, roll,
 } from "./util";
 
@@ -122,7 +122,7 @@ export const retreatNaval = (G: VQGame, location: string, owners: Controller[], 
     if (candidates.length === 0) {
         for (const owner of owners) delete navalAt(G, location)[owner];
         const leaders = leadersAt(G, location).filter((id) => LEADER_BY_ID[id]?.kind === "naval" &&
-            owners.includes(LEADER_BY_ID[id].power));
+            leaderPower(G, id) !== undefined && owners.includes(leaderPower(G, id)!));
         if (leaders.length > 0) moveLeaders(G, location, "pool", leaders);
         if (owners.includes("spain") && G.armada?.location === location) delete G.armada;
         pushLog(G, `${owners.join("/")} naval force is eliminated (no retreat).`);
@@ -141,7 +141,7 @@ export const retreatNaval = (G: VQGame, location: string, owners: Controller[], 
         delete navalAt(G, location)[owner];
     }
     const leaders = leadersAt(G, location).filter((id) => LEADER_BY_ID[id]?.kind === "naval" &&
-        owners.includes(LEADER_BY_ID[id].power));
+        leaderPower(G, id) !== undefined && owners.includes(leaderPower(G, id)!));
     if (leaders.length > 0) moveLeaders(G, location, destination, leaders);
     if (owners.includes("spain") && G.armada?.location === location) G.armada.location = destination;
     pushLog(G, `${owners.join("/")} naval force retreats to ${SPACE_BY_ID[destination]?.name ?? destination}.`);
@@ -210,7 +210,7 @@ export const attemptNavalInterception = (
         if (!armadaOnly && (source === undefined || navalCount(source) === 0)) continue;
         if (!used.includes(candidate.location)) used.push(candidate.location);
         const leaders = leadersAt(G, candidate.location).filter((id) =>
-            LEADER_BY_ID[id]?.power === candidate.power && LEADER_BY_ID[id]?.kind === "naval");
+            leaderPower(G, id) === candidate.power && LEADER_BY_ID[id]?.kind === "naval");
         const galleonPenalty = source !== undefined && isSeaZone(to) && MEDITERRANEAN.has(to) &&
             source.galleon + source.racebuilt > 0 ? -1 : 0;
         const telescope = G.powers[candidate.power].scienceBonuses.includes("telescope") ? 1 : 0;

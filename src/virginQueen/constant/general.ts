@@ -169,6 +169,8 @@ export interface LeaderState {
     location: string;
     capturedBy?: Power;
     returnTurn?: number;
+    /** Naval leader temporarily loaned to an ally (rule 9.2). */
+    loanedTo?: Power;
 }
 
 export interface Ruler {
@@ -587,7 +589,7 @@ export interface VQGame {
     /** Armada Turn Track return year after elimination. */
     armadaReturn?: number;
     /** Naval units loaned to an ally for one turn (rule 9.2). */
-    loanedNaval?: {lender: Power; borrower: Power; kind: "galley" | "galleon" | "racebuilt"; fromPort: string; toPort: string}[];
+    loanedNaval?: {lender: Power; borrower: Power; kind: "galley" | "galleon" | "racebuilt"; fromPort: string; toPort: string; leader?: string}[];
     /** Portugal has entered play and its three-treasure row. */
     portugalEntered?: boolean;
     portugueseTreasures?: number[];

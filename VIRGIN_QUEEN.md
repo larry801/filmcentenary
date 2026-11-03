@@ -162,8 +162,8 @@
 
 - 同盟双方可借调海军：借出方在受控港口选择 1 艘桨帆船/大帆船/快帆船，经纯海域路径送到受助方受控港口。
 - 每对同盟每回合只能单向借调；海盗船、巡逻舰与阿马达不可借调。
-- 借调单位按受助方单位参战/移动；冬季 20.3 自动返回借出方港口。
-- 尚未实现海军将领随借调。
+- 借调单位按受助方单位参战/移动；可随带一名海军将领，借调期间按受助方将领计算战斗值。
+- 冬季 20.3 自动返回借出方港口，随借将领一并返回并清除借调标记。
 
 ### 新教抽牌（23.6）
 
@@ -430,3 +430,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 外交宝藏赠送（9.1）接入后的验证：`jest src/virginQueen --runInBand --silent` 40 suites、429 tests passed（新增 2 项：宝藏转移、敌对/非法索引拒绝）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 外交卡牌/雇佣兵赠送接入后的验证：`jest src/virginQueen --runInBand --silent` 40 suites、431 tests passed（新增 2 项：随机非本国牌、雇佣兵转移）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+海军将领随借调接入后的验证：`jest src/virginQueen --runInBand --silent` 40 suites、432 tests passed（新增 1 项：将领随借、受助方战斗值、冬季归还）；`npm run build` 通过，仍有既有大体积 chunk 提示。

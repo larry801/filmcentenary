@@ -182,6 +182,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [diploTarget, setDiploTarget] = React.useState<Power>("spain");
     const [loanFromPort, setLoanFromPort] = React.useState("");
     const [loanToPort, setLoanToPort] = React.useState("");
+    const [loanLeader, setLoanLeader] = React.useState("");
     const [domesticRoyal, setDomesticRoyal] = React.useState("");
     const [foreignRoyal, setForeignRoyal] = React.useState("");
     const [patronageCp, setPatronageCp] = React.useState(2);
@@ -988,11 +989,21 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                 .map((space) => <MenuItem key={space.id} value={space.id}>{space.name}</MenuItem>)}
                         </Select>
                     </FormControl>
+                    <FormControl size="small" fullWidth>
+                        <InputLabel id="vq-loan-leader">随借海军将领（可选）</InputLabel>
+                        <Select labelId="vq-loan-leader" label="随借海军将领（可选）" value={loanLeader}
+                                onChange={(e) => setLoanLeader(e.target.value)}>
+                            <MenuItem value="">不借将领</MenuItem>
+                            {(G.spaces[loanFromPort]?.leaders ?? []).filter((id) => LEADER_BY_ID[id]?.kind === "naval" &&
+                                LEADER_BY_ID[id]?.power === me).map((id) =>
+                                <MenuItem key={id} value={id}>{LEADER_BY_ID[id]?.name ?? id}</MenuItem>)}
+                        </Select>
+                    </FormControl>
                     <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                         {(["galley", "galleon", "racebuilt"] as const).map((kind) =>
                             <Button key={kind} size="small" variant="outlined"
                                 disabled={!myTurn || loanFromPort === "" || loanToPort === "" || !seaPathBetweenPorts(loanFromPort, loanToPort)}
-                                onClick={() => moves.loanNaval({target: diploTarget, fromPort: loanFromPort, toPort: loanToPort, kind})}>
+                                onClick={() => moves.loanNaval({target: diploTarget, fromPort: loanFromPort, toPort: loanToPort, kind, ...(loanLeader ? {leader: loanLeader} : {})})}>
                                 借出 {kind}
                             </Button>)}
                     </Stack>
