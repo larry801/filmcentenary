@@ -33,7 +33,7 @@ import {startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {beginGrandVizierEvent, canCancelCardEvent, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, grandVizierInHand, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
 import {startPiracy} from "./piracy";
-import {resolveNavalCombat} from "./navalCombat";
+import {attemptNavalInterception, resolveNavalCombat} from "./navalCombat";
 import {offerInterception} from "./interception";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {LEADER_BY_ID} from "./constant/leaders";
@@ -1545,6 +1545,7 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
     if (!spend(G, p, 1)) {
         return INVALID_MOVE;
     }
+    const destinationHadEnemy = ownersWithNaval(G, to).some((owner) => !friendlyController(G, p, owner));
     const leaders = (isSeaZone(from) ? G.seaZones[from as keyof VQGame["seaZones"]].leaders : G.spaces[from].leaders)
         .filter((id) => LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id]?.kind === "naval");
     if (isSeaZone(to)) {
@@ -1589,6 +1590,7 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
         return;
     }
 
+    attemptNavalInterception(G, ctx, p, from, to, destinationHadEnemy);
     resolveNavalCombat(G, ctx, to, p);
 };
 

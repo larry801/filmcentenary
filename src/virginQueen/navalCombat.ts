@@ -114,6 +114,58 @@ export const retreatNaval = (G: VQGame, location: string, owners: Controller[], 
     return true;
 };
 
+/** Automatic naval interception (16.1 step 4), used when the destination is empty. */
+export const attemptNavalInterception = (
+    G: VQGame,
+    ctx: Ctx,
+    active: Power,
+    from: string,
+    to: string,
+    destinationHadEnemy: boolean,
+): boolean => {
+    if (destinationHadEnemy) return false;
+    if (G.interceptedThisImpulse?.impulse !== G.impulse) G.interceptedThisImpulse = {impulse: G.impulse, spaces: []};
+    const used = G.interceptedThisImpulse.spaces;
+    const candidates: {location: string; power: Power}[] = [];
+    const locations = [...Object.keys(SEA_ZONE_BY_ID), ...Object.keys(SPACE_BY_ID)];
+    for (const id of locations) {
+        if (id === from || id === to || used.includes(id) || !navalAdjacent(to, id)) continue;
+        if (ownersWithNaval(G, id).some((owner) => isPower(owner) && friendlyController(G, active, owner))) continue;
+        const stacks = navalAt(G, id);
+        for (const owner of Object.keys(stacks) as Controller[]) {
+            if (!isPower(owner) || !atWar(G, owner, active) || navalCount(stacks[owner]) === 0) continue;
+            candidates.push({location: id, power: owner});
+        }
+    }
+    candidates.sort((a, b) => POWER_INDEX[a.power] - POWER_INDEX[b.power] || a.location.localeCompare(b.location));
+    for (const candidate of candidates) {
+        const source = navalAt(G, candidate.location)[candidate.power];
+        if (source === undefined || navalCount(source) === 0) continue;
+        if (!used.includes(candidate.location)) used.push(candidate.location);
+        const leaders = leadersAt(G, candidate.location).filter((id) =>
+            LEADER_BY_ID[id]?.power === candidate.power && LEADER_BY_ID[id]?.kind === "naval");
+        const galleonPenalty = isSeaZone(to) && MEDITERRANEAN.has(to) &&
+            source.galleon + source.racebuilt > 0 ? -1 : 0;
+        const telescope = G.powers[candidate.power].scienceBonuses.includes("telescope") ? 1 : 0;
+        const modifier = bestBattle(G, candidate.location, [candidate.power], "naval") + galleonPenalty + telescope;
+        const dice = roll(ctx, 2);
+        const total = dice[0] + dice[1] + modifier;
+        pushLog(G, `${powerLabel(candidate.power)} naval interception from ${SPACE_BY_ID[candidate.location]?.name ?? candidate.location}: [${dice.join(",")}] + ${modifier} = ${total}.`);
+        if (total < 9) continue;
+        const target = navalAt(G, to)[candidate.power] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
+        target.galley += source.galley;
+        target.galleon += source.galleon;
+        target.racebuilt += source.racebuilt;
+        target.corsair += source.corsair;
+        navalAt(G, to)[candidate.power] = target;
+        delete navalAt(G, candidate.location)[candidate.power];
+        if (leaders.length > 0) moveLeaders(G, candidate.location, to, leaders);
+        pushLog(G, `${powerLabel(candidate.power)} intercepts the naval move into ${SPACE_BY_ID[to]?.name ?? to}.`);
+        return true;
+    }
+    return false;
+};
+
 /** Resolve a full-game naval combat in a sea zone or port (16.2). */
 export const resolveNavalCombat = (G: VQGame, ctx: Ctx, location: string, attacker: Power): void => {
     const enemies = ownersWithNaval(G, location)

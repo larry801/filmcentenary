@@ -1,6 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {VQGame, navalCount} from "./constant/general";
 import {moveNaval} from "./moves";
+import {SPACES} from "./mapData";
 import {setWar, setupGame} from "./util";
 
 const context = (values: number[] = [6]): Ctx => ({
@@ -62,6 +63,46 @@ describe("official naval combat (rule 16.2)", () => {
 
         expect(G.lastRolls).toContain("(2 dice) vs England 0 hits (3 dice)");
         expect(navalCount(G.spaces.portsmouth.naval.france)).toBe(0);
+    });
+
+    it("lets an adjacent enemy fleet intercept an empty destination", () => {
+        const G = game();
+        G.powers.france.cp = 1;
+        G.spaces.calais.naval.france = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+        G.seaZones.northSea.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+
+        expect(moveNaval(G, context([6, 6, 6, 6, 6, 6]), {from: "calais", to: "englishChannel"})).toBeUndefined();
+
+        expect(G.log.join("\n")).toContain("intercepts the naval move into englishChannel");
+        expect(navalCount(G.seaZones.englishChannel.naval.england)).toBe(1);
+        expect(navalCount(G.seaZones.northSea.naval.england)).toBe(0);
+    });
+
+    it("continues the move when the naval interception roll fails", () => {
+        const G = game();
+        G.powers.france.cp = 1;
+        G.spaces.calais.naval.france = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+        for (const space of SPACES) delete G.spaces[space.id].naval.england;
+        G.seaZones.northSea.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+
+        expect(moveNaval(G, context([1, 1]), {from: "calais", to: "englishChannel"})).toBeUndefined();
+
+        expect(G.log.join("\n")).not.toContain("intercepts the naval move");
+        expect(navalCount(G.seaZones.northSea.naval.england)).toBe(1);
+        expect(navalCount(G.seaZones.englishChannel.naval.france)).toBe(1);
+    });
+
+    it("does not intercept when the destination already contains enemy naval units", () => {
+        const G = game();
+        G.powers.france.cp = 1;
+        G.spaces.calais.naval.france = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+        G.seaZones.englishChannel.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+        G.seaZones.northSea.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+
+        expect(moveNaval(G, context([6, 6, 6, 6, 6, 6]), {from: "calais", to: "englishChannel"})).toBeUndefined();
+
+        expect(G.log.join("\n")).not.toContain("intercepts the naval move");
+        expect(navalCount(G.seaZones.northSea.naval.england)).toBe(1);
     });
 
     it("fights multiple enemy powers one at a time in impulse order", () => {
