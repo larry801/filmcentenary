@@ -421,6 +421,33 @@ const resolveTreasureFleet = (G: VQGame, ctx: Ctx): void => {
     for (const treasure of fleet) G.powers.spain.treasures.push(treasure);
 };
 
+/** #100 Enterprise of England mandatory event (23.3). */
+const resolveEnterpriseOfEngland = (G: VQGame): void => {
+    const english = SPACES.filter((space) => space.area === "england");
+    const jesuits = (G.espionage?.jesuits ?? []).filter((space) => english.some((def) => def.id === space)).length;
+    const catholic = english.filter((space) => !G.spaces[space.id].unrest && G.spaces[space.id].religion === "catholic").length;
+    const spanishControl = english.filter((space) => !G.spaces[space.id].unrest && G.spaces[space.id].control === "spain").length;
+    const spanishRegulars = english.reduce((total, space) => total + (G.spaces[space.id].land.spain?.regular ?? 0), 0);
+    const total = jesuits + catholic + spanishControl + spanishRegulars;
+    pushLog(G, `Enterprise of England: ${jesuits} Jesuit(s), ${catholic} Catholic, ${spanishControl} Spanish-controlled, ${spanishRegulars} Spanish regulars = ${total}.`);
+    if (total <= 2) {
+        addVp(G, "england", 1);
+        addVp(G, "spain", -1);
+    } else if (total <= 4) {
+        addVp(G, "england", 1);
+    } else if (total <= 6) {
+        // No award.
+    } else if (total <= 10) {
+        addVp(G, "spain", 1);
+    } else if (total <= 15) {
+        addVp(G, "spain", 2);
+        addVp(G, "england", -1);
+    } else {
+        addVp(G, "spain", 3);
+        addVp(G, "england", -2);
+    }
+};
+
 const resolveSpanishArmada = (G: VQGame, p: Power): void => {
     if (G.armada === undefined) {
         const port = ["seville", "corunna", "lisbon"].find((id) => G.spaces[id].control === p && !G.spaces[id].unrest && G.spaces[id].siege === undefined);
@@ -544,6 +571,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveSpanishArmada(G, p);
     } else if (handler === "treasureFleet") {
         resolveTreasureFleet(G, ctx);
+    } else if (handler === "enterpriseOfEngland") {
+        resolveEnterpriseOfEngland(G);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
