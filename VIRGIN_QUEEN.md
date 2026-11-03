@@ -556,7 +556,7 @@
 ### 坏血病（#45）
 
 - 指定一名远征船长，使其下一次 Navigation Table 检定 -1；检定后清除。
-- “强制一次航行检定”的响应选项尚未接入。
+- 响应模式：`scurvyNavigation` 可强制一支远征队进行航行检定；事件模式 -1 已接入。
 
 ### 爱德华·斯塔福德爵士（#102）
 
@@ -1137,3 +1137,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #106 双船长伤害分担接入后的验证：`jest src/virginQueen --runInBand --silent` 122 suites、552 tests passed（新增 1 项：霍金斯吸收首次消灭）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #106 德雷克摧毁要塞接入后的验证：`jest src/virginQueen --runInBand --silent` 123 suites、553 tests passed（新增 1 项：海盗 6 摧毁要塞）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#45 坏血病强制航行选项接入后的验证：`jest src/virginQueen --runInBand --silent` 124 suites、557 tests passed（新增 1 项：强制检定并弃牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
