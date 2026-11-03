@@ -44,6 +44,7 @@ import {
     SEA_ZONES,
     SPACES,
     SPACE_BY_ID,
+    isInlandPort,
 } from "./mapData";
 import {cardById, officialCardById} from "./constant/cards";
 import {OFFICIAL_CARDS} from "./data/cards";
@@ -2231,7 +2232,7 @@ const winterReturnNaval = (G: VQGame): void => {
         for (const c of controllers) {
             const stack = zone.naval[c] as NavalStack;
             const major: Controller = isPower(c) ? c : minorAlly(G, c as MinorPower) ?? c;
-            const ports = SPACES.filter((def) => G.spaces[def.id].control === major && isPort(def.id))
+            const ports = SPACES.filter((def) => G.spaces[def.id].control === major && isPort(def.id) && !isInlandPort(def.id))
                 .map((def) => def.id);
             let best: {port: string; distance: number} | undefined;
             for (const port of ports) {

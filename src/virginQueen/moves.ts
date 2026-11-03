@@ -43,6 +43,8 @@ import {
     SEA_ZONE_BY_ID,
     SPACE_BY_ID,
     SPACES,
+    inlandPortLink,
+    isInlandPort,
 } from "./mapData";
 import {
     addLand,
@@ -965,6 +967,8 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
     if (s === undefined || def === undefined || !isPort(port)) {
         return INVALID_MOVE;
     }
+    // Rule 16.7: no naval unit may ever enter Antwerp or Rotterdam.
+    if (isInlandPort(port)) return INVALID_MOVE;
     if (s.control !== p || s.unrest || spaceHasEnemyLand(G, p, port)) {
         return INVALID_MOVE;
     }
@@ -977,6 +981,12 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
         return INVALID_MOVE;
     }
     if (kind === "corsair" && p !== "ottoman") {
+        return INVALID_MOVE;
+    }
+    if (kind === "galley" && !["ottoman", "spain", "france", "hre"].includes(p)) {
+        return INVALID_MOVE;
+    }
+    if (kind === "galleon" && !["spain", "england", "france", "protestant"].includes(p)) {
         return INVALID_MOVE;
     }
     if (p === "ottoman" && kind === "galley" && ["algiers", "tripoli"].includes(port)) {
@@ -1271,6 +1281,16 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
     if (!source || !destination || !isPort(args.from) || !isPort(args.to) || args.from === args.to || !args.zones.length ||
         new Set(args.zones).size !== args.zones.length || !portZones(args.from).includes(args.zones[0] as keyof VQGame["seaZones"]) ||
         !portZones(args.to).includes(args.zones[args.zones.length - 1] as keyof VQGame["seaZones"])) return INVALID_MOVE;
+    // Rule 16.7: the inland-port leg is a direct 1 CP move through the North
+    // Sea, available only while the linked port (Flushing/Brielle) is controlled.
+    const inland = isInlandPort(args.from) ? args.from : isInlandPort(args.to) ? args.to : undefined;
+    if (inland !== undefined) {
+        const other = inland === args.from ? args.to : args.from;
+        const link = inlandPortLink(inland) as string;
+        if (args.zones.length !== 1 || args.zones[0] !== "northSea" || !portZones(other).includes("northSea") ||
+            G.spaces[link].control !== p) return INVALID_MOVE;
+    }
+    const transportCost = inland !== undefined ? 1 : args.zones.length + 1;
     const stack = {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0};
     if (landCount(stack) < 1 || landCount(stack) > 5 || Object.entries(stack).some(([kind, count]) => count < 0 || !Number.isInteger(count) || count > source[kind as keyof LandStack])) return INVALID_MOVE;
     for (let index = 0; index < args.zones.length; index++) {
@@ -1285,9 +1305,9 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
     // Rule 20.10: the Duke of Guise may not leave the French religious struggle area.
     if (leaders.includes("guise") && !inFrenchReligiousArea(args.to)) return INVALID_MOVE;
     const capacity = Math.max(4, leaders.reduce((sum, id) => sum + (LEADER_BY_ID[id].command ?? 0), 0));
-    if (landCount(stack) > capacity || G.powers[p].cp < args.zones.length + 1) return INVALID_MOVE;
+    if (landCount(stack) > capacity || G.powers[p].cp < transportCost) return INVALID_MOVE;
     if (offerActionResponse(G, ctx, "navalTransport", args)) return;
-    if (!spend(G, p, args.zones.length + 1)) return INVALID_MOVE;
+    if (!spend(G, p, transportCost)) return INVALID_MOVE;
     const target = ensureLand(G, args.to, p);
     for (const kind of ["regular", "merc", "cav"] as const) {source[kind] -= stack[kind]; target[kind] += stack[kind];}
     moveLeaders(G, args.from, args.to, leaders);
@@ -1465,6 +1485,7 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
     if (stack === undefined || navalCount(stack) === 0) {
         return INVALID_MOVE;
     }
+    if (isInlandPort(from) || isInlandPort(to)) return INVALID_MOVE;
     if (G.spaces[to] !== undefined && G.spaces[to].control !== p && !friendlyControlled(G, p, to)) {
         const enemyNaval = ownersWithNaval(G, to).some((c) => isPower(c) && atWar(G, p, c));
         if (!enemyNaval) {
@@ -1638,6 +1659,12 @@ export const assault = (G: VQGame, ctx: Ctx, args: { space: string }): void | ty
     if (!hasLOC(G, p, args.space)) {
         return INVALID_MOVE;
     }
+    // Rule 16.7: Antwerp/Rotterdam may not be assaulted while the besieged
+    // power controls the linked inland-waterway port, unless the attacker has
+    // naval units in the North Sea.
+    const inlandLink = inlandPortLink(args.space);
+    if (inlandLink !== undefined && G.spaces[inlandLink].control === s.control &&
+        navalCount(G.seaZones.northSea.naval[p]) === 0) return INVALID_MOVE;
     if (G.powers[p].cp < 1) return INVALID_MOVE;
     if (offerActionResponse(G, ctx, "assault", args)) return;
     if (!spend(G, p, 1)) {

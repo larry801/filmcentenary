@@ -62,3 +62,13 @@ export const CAPITAL_SPACES: Record<Power, string[]> = OFFICIAL_CAPITAL_SPACES a
 >;
 
 export {DUTCH_KEYS};
+
+/** Rule 16.7: Antwerp and Rotterdam are inland ports linked to Flushing/Brielle. */
+export const INLAND_PORT_LINKS: Record<string, string> = {
+    antwerp: "flushing",
+    rotterdam: "brielle",
+};
+
+export const inlandPortLink = (id: string): string | undefined => INLAND_PORT_LINKS[id];
+
+export const isInlandPort = (id: string): boolean => INLAND_PORT_LINKS[id] !== undefined;
