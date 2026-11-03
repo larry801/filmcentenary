@@ -703,6 +703,12 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #27 Knights of St. John: deploy the Knights when they are absent. */
 /** #29 Muscovy Company: extra card draws next year (and two years later for England). */
 /** #22 Genoese Bankers, option 1: draw two now, one fewer next year. */
+/** #32 Calvinist Zeal, option 1: seven attempts in France and the Netherlands. */
+const resolveCalvinistZeal = (G: VQGame, ctx: Ctx): void => {
+    resolveConversions(G, ctx, "protestant", "protestant", "france", 7, true);
+    resolveConversions(G, ctx, "protestant", "protestant", "netherlands", 7, true);
+};
+
 const resolveGenoeseBankers = (G: VQGame, ctx: Ctx, p: Power): void => {
     drawCards(G, ctx, p, 2);
     G.pendingCardDraws = [...(G.pendingCardDraws ?? []), {power: p, turn: G.year + 1, amount: -1}];
@@ -1841,6 +1847,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveMuscovyCompany(G, p);
     } else if (handler === "card022") {
         resolveGenoeseBankers(G, ctx, p);
+    } else if (handler === "calvinistZeal") {
+        resolveCalvinistZeal(G, ctx);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {

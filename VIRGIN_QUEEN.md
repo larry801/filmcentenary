@@ -184,6 +184,11 @@
 - 目标地区及一个相邻地区放置动荡。
 - 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
 
+### 加尔文主义狂热（#32）
+
+- 选项 1：在法兰西与尼德兰各进行 7 次新教传播，首个骰值自动为 6；
+- 选项 2/3（单次或双地区煽动叛乱）尚未接入。
+
 ### 热那亚银行家（#22）
 
 - 选项 1：立即抽 2 张，下一年抽牌阶段 -1；
@@ -806,6 +811,7 @@ src/virginQueen/
   knights.test.ts       #27 圣约翰骑士团
   muscovy.test.ts       #29 莫斯科公司
   genoese.test.ts       #22 热那亚银行家
+  calvinistZeal.test.ts #32 加尔文主义狂热
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -1064,3 +1070,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #29 莫斯科公司接入后的验证：`jest src/virginQueen --runInBand --silent` 108 suites、530 tests passed（新增 1 项：英格兰连续两次额外抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #22 热那亚银行家（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 109 suites、531 tests passed（新增 1 项：抽 2/次年 -1）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#32 加尔文主义狂热（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 110 suites、532 tests passed（新增 1 项：法/尼各 7 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
