@@ -372,6 +372,42 @@ const resolveSpanishArmada = (G: VQGame, p: Power): void => {
     }
 };
 
+export const armadaTransport = (G: VQGame, ctx: Ctx, args: {port: string; direction: "load" | "unload"}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action" || power(G, ctx) !== "spain" || G.armada === undefined || !isSeaZone(G.armada.location) ||
+        !navalAdjacent(G.armada.location, args.port) || !friendlyControlled(G, "spain", args.port) ||
+        G.powers.spain.cp < 1) return INVALID_MOVE;
+    const port = G.spaces[args.port];
+    if (port === undefined) return INVALID_MOVE;
+    if (args.direction === "load") {
+        const source = port.land.spain;
+        if (source === undefined) return INVALID_MOVE;
+        const free = G.armada.strength - landCount(G.armada.land ?? {regular: 0, merc: 0, cav: 0});
+        if (free <= 0) return INVALID_MOVE;
+        const loaded: LandStack = {regular: 0, merc: 0, cav: 0};
+        let room = free;
+        for (const kind of ["regular", "merc", "cav"] as const) {
+            const take = Math.min(room, source[kind]);
+            loaded[kind] = take;
+            source[kind] -= take;
+            room -= take;
+        }
+        if (landCount(loaded) === 0) return INVALID_MOVE;
+        const current = G.armada.land ?? {regular: 0, merc: 0, cav: 0};
+        G.armada.land = {regular: current.regular + loaded.regular, merc: current.merc + loaded.merc, cav: current.cav + loaded.cav};
+        if (landCount(source) === 0) delete port.land.spain;
+    } else {
+        if (G.armada.land === undefined) return INVALID_MOVE;
+        const target = port.land.spain ?? {regular: 0, merc: 0, cav: 0};
+        target.regular += G.armada.land.regular;
+        target.merc += G.armada.land.merc;
+        target.cav += G.armada.land.cav;
+        port.land.spain = target;
+        delete G.armada.land;
+    }
+    if (!spend(G, "spain", 1)) return INVALID_MOVE;
+    pushLog(G, `Spain uses Armada naval transport at ${SPACE_BY_ID[args.port].name}.`);
+};
+
 export const loadArmada = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "action" || power(G, ctx) !== "spain" || G.armada === undefined) return INVALID_MOVE;
     const port = G.spaces[G.armada.location];

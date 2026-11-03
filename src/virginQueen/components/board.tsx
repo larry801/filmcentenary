@@ -523,6 +523,14 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {G.armada.land !== undefined && <Typography variant="caption" color="text.secondary">
                         搭载：{G.armada.land.regular} 正规 / {G.armada.land.merc} 雇佣 / {G.armada.land.cav} 骑兵（上限 {G.armada.strength}）
                     </Typography>}
+                    {G.seaZones[G.armada.location as keyof VQGame["seaZones"]] !== undefined &&
+                        SPACES.filter((space) => (space.ports ?? []).some((zone) => zone === G.armada!.location) && G.spaces[space.id].control === "spain").map((space) =>
+                        <Stack key={space.id} direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                            <Button size="small" variant="outlined" disabled={!myTurn || cp < 1}
+                                onClick={() => moves.armadaTransport({port: space.id, direction: "load"})}>从 {space.name} 装载</Button>
+                            <Button size="small" variant="outlined" disabled={!myTurn || cp < 1 || G.armada?.land === undefined}
+                                onClick={() => moves.armadaTransport({port: space.id, direction: "unload"})}>卸载到 {space.name}</Button>
+                        </Stack>)}
                 </Paper>}
                 <FormControl size="small" fullWidth>
                     <InputLabel id="vq-mode">行动</InputLabel>

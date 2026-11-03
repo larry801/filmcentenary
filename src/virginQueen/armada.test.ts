@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {VQGame} from "./constant/general";
-import {loadArmada, moveNaval, playCard, unloadArmada, upgradeArmada} from "./moves";
+import {armadaTransport, loadArmada, moveNaval, playCard, unloadArmada, upgradeArmada} from "./moves";
 import {applyNavalCombatLosses, navalCombatDice} from "./navalCombat";
 import {navalBlockadeSatisfied, setupGame} from "./util";
 
@@ -92,6 +92,23 @@ describe("Spanish Armada (rule 23.2)", () => {
         expect(unloadArmada(G, context())).toBeUndefined();
         expect(G.armada.land).toBeUndefined();
         expect(G.spaces.seville.land.spain.regular).toBe(3);
+    });
+
+    it("moves land between the Armada at sea and an adjacent port", () => {
+        const G = game();
+        G.powers.spain.cp = 2;
+        G.armada = {strength: 2, location: "englishChannel"};
+        G.spaces.portsmouth.control = "spain";
+        G.spaces.portsmouth.land.spain = {regular: 3, merc: 0, cav: 0};
+
+        expect(armadaTransport(G, context(), {port: "portsmouth", direction: "load"})).toBeUndefined();
+        expect(G.armada.land).toEqual({regular: 2, merc: 0, cav: 0});
+        expect(G.spaces.portsmouth.land.spain.regular).toBe(1);
+
+        expect(armadaTransport(G, context(), {port: "portsmouth", direction: "unload"})).toBeUndefined();
+        expect(G.armada.land).toBeUndefined();
+        expect(G.spaces.portsmouth.land.spain.regular).toBe(3);
+        expect(G.powers.spain.cp).toBe(0);
     });
 
     it("trims excess land when the Armada loses strength", () => {
