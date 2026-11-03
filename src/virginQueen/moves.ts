@@ -89,6 +89,7 @@ import {
     isPort,
     isSeaZone,
     landAdjacent,
+    landNeighbors,
     leaderPower,
     landDistance,
     leadersAt,
@@ -491,6 +492,31 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
 
 /** #45 Scurvy: -1 Navigation on the next navigation check. */
 /** #46 Spanish Fury: take a card from the defender, then draw one. */
+/** #44 Sack!: adjacent enemy fortresses may surrender after a fortress falls. */
+const resolveSack = (G: VQGame, ctx: Ctx, attacker: Power, target?: string): void => {
+    if (target === undefined || G.spaces[target] === undefined || G.spaces[target].control !== attacker) return;
+    let defender: Power | undefined;
+    for (const neighbor of landNeighbors(target)) {
+        const state = G.spaces[neighbor.id];
+        if (!state.fortress) continue;
+        const controllers = ownersWithLand(G, neighbor.id).filter((owner): owner is Power =>
+            isPower(owner) && !friendlyController(G, attacker, owner));
+        if (controllers.length === 0 || friendlyControlled(G, attacker, neighbor.id)) continue;
+        defender ??= controllers[0];
+        const defenders = totalLand(G, neighbor.id, controllers);
+        const roll = die(ctx, 6);
+        pushLog(G, `Sack! roll at ${SPACE_BY_ID[neighbor.id].name}: ${roll} vs ${defenders} defender(s).`);
+        if (roll <= defenders) continue;
+        state.control = attacker;
+        for (const owner of controllers) delete state.land[owner];
+        captureLeaders(G, neighbor.id, controllers, attacker);
+        pushLog(G, `${SPACE_BY_ID[neighbor.id].name} surrenders to ${powerLabel(attacker)}.`);
+    }
+    if (defender !== undefined) {
+        G.powers[defender].marriageCardModifier = (G.powers[defender].marriageCardModifier ?? 0) + 1;
+    }
+};
+
 const resolveSpanishFury = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined || !isPower(target) || target === "spain") return;
     const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
@@ -733,6 +759,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveScurvy(G, target);
     } else if (handler === "spanishFury") {
         resolveSpanishFury(G, ctx, target);
+    } else if (handler === "sack") {
+        resolveSack(G, ctx, p, target);
     } else if (handler === "beaconFires") {
         G.beaconFires = p;
         pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
@@ -851,7 +879,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     if (args.asEvent === true && timedResponseCard && !isBeaconFires && !tutorialEvent && G.cardWindow?.kind !== "response" &&
-        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury"].includes(cardHandler)) {
+        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack"].includes(cardHandler)) {
         return INVALID_MOVE;
     }
     const cancelWindow = args.asEvent === true && canCancelCardEvent(G, def);
