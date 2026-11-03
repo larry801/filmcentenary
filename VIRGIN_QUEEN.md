@@ -688,6 +688,7 @@
 
 - 伊丽莎白已订婚时，可解除婚约；新郎势力按 Jilted Table 掷 1d6：6 得两张 +1 Card 标记，5 得一张，4/3/2 获得 4/3/2 CP 用于外交影响和/或雇佣兵，1 无补偿；英格兰随后抽一张牌。
 - 未订婚时，自动取回弃牌堆中第一张非本国牌并保留。
+- 目标 `retrieve:<卡牌ID>:play` 取回指定牌并立即按其事件结算；`retrieve:<卡牌ID>:play:<事件目标>` 可同时传入该牌自身的事件目标（例如 `retrieve:vq-005:play:excommunicate`）。实现复用 `playCard`，因此仍受该牌的时机、目标与合法性限制；无法打出时牌留在弃牌堆，若事件可被取消则照常进入取消响应窗口。
 - 伊丽莎白死亡后，此牌不能作为事件打出。
 
 ### 胜利
@@ -1240,3 +1241,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 - 界面事件目标输入：`b860daf`
 
 集成后验证：`jest src/virginQueen --runInBand --silent` 140 suites、645 tests passed；`jest --runInBand --silent` 145 suites、700 tests passed；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。
+
+#36 童贞女王新增 `retrieve:<卡牌ID>:play[:<事件目标>]`：取回弃牌堆中的牌并立即按该牌自己的事件结算，复用 `playCard` 的时机/目标/合法性校验；无法打出时回滚并留在弃牌堆。验证：`jest src/virginQueen --runInBand --silent` 141 suites、649 tests passed（新增 4 项）；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。

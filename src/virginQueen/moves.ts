@@ -371,7 +371,20 @@ const payWarCost = (G: VQGame, p: Power, cost: number): boolean => {
 // Action Phase: impulses
 // --------------------------------------------------------------------------
 
-/** Virgin Queen home card: retrieve a discard or jilt Elizabeth's suitor. */
+/**
+ * Virgin Queen home card: retrieve a discard or jilt Elizabeth's suitor.
+ *
+ * Retrieve targets (card text: keep the card or play it immediately):
+ * - `retrieve`                       – take the first non-Home discard card into hand.
+ * - `retrieve:<cardId>`              – take that exact card into hand (kept).
+ * - `retrieve:<cardId>:play`         – take that card and resolve its event now.
+ * - `retrieve:<cardId>:play:<target>` – same, passing `<target>` as the card's
+ *   own event target (for example `retrieve:vq-005:play:france`).
+ *
+ * Immediate play delegates to {@link playCard}, so the retrieved card's normal
+ * event timing, target and eligibility requirements still apply.  If the card
+ * cannot legally be played in the current state it stays in the discard pile.
+ */
 const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     const elizabeth = G.royals.find((r) => r.id === "elizabeth");
     if (elizabeth === undefined || !elizabeth.alive) {
@@ -379,8 +392,25 @@ const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power, target?: string)
         return;
     }
     const betrothal = G.betrothals.find((b) => b.female === "elizabeth");
-    const retrieveTarget = target !== undefined && target.startsWith("retrieve:") ? target.slice(9) : undefined;
-    if (betrothal !== undefined && target !== "retrieve" && retrieveTarget === undefined) {
+    const retrievePrefix = "retrieve:";
+    const retrieveSpec = target !== undefined && target.startsWith(retrievePrefix)
+        ? target.slice(retrievePrefix.length) : undefined;
+    const isRetrieve = target === "retrieve" || retrieveSpec !== undefined;
+    let retrieveTarget = retrieveSpec;
+    let playImmediately = false;
+    let eventTarget: string | undefined;
+    if (retrieveSpec !== undefined) {
+        const separator = retrieveSpec.indexOf(":");
+        if (separator >= 0) {
+            const rest = retrieveSpec.slice(separator + 1);
+            if (rest === "play" || rest.startsWith("play:")) {
+                retrieveTarget = retrieveSpec.slice(0, separator);
+                playImmediately = true;
+                eventTarget = rest === "play" ? undefined : rest.slice("play:".length);
+            }
+        }
+    }
+    if (betrothal !== undefined && !isRetrieve) {
         const groom = G.royals.find((r) => r.id === betrothal.male);
         G.betrothals = G.betrothals.filter((b) => b !== betrothal);
         if (groom === undefined) return;
@@ -401,12 +431,38 @@ const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power, target?: string)
         return;
     }
     const index = retrieveTarget !== undefined ? G.discard.indexOf(retrieveTarget) : G.discard.findIndex((id) => cardById(id).kind !== "home");
-    if (index >= 0) {
-        const [card] = G.discard.splice(index, 1);
+    if (index < 0) {
+        pushLog(G, "England finds no card in the discard pile.");
+        return;
+    }
+    const card = G.discard[index];
+    if (!playImmediately) {
+        G.discard.splice(index, 1);
         G.powers[p].cards.push(card);
         pushLog(G, `England retrieves ${cardById(card).name} from the discard pile.`);
-    } else {
-        pushLog(G, "England finds no card in the discard pile.");
+        return;
+    }
+    const def = cardById(card);
+    if (def.kind === "home") {
+        pushLog(G, `England cannot play ${def.name} from the discard pile.`);
+        return;
+    }
+    G.discard.splice(index, 1);
+    G.powers[p].cards.push(card);
+    pushLog(G, `England takes ${def.name} from the discard pile.`);
+    // Delegate to the normal event play so the card's own timing/target rules
+    // apply.  cardPlayed is already true from the Virgin Queen card itself;
+    // clear it temporarily so playCard accepts the immediate event play.
+    const wasCardPlayed = G.powers[p].cardPlayed;
+    G.powers[p].cardPlayed = false;
+    const played = playCard(G, ctx, {cardId: card, asEvent: true, ...(eventTarget !== undefined ? {target: eventTarget} : {})});
+    if (played === INVALID_MOVE) {
+        // playCard validates before mutating, so undoing the retrieval restores
+        // the discard pile unchanged.
+        removeCardFromHand(G, p, card);
+        G.discard.splice(index, 0, card);
+        G.powers[p].cardPlayed = wasCardPlayed;
+        pushLog(G, `England cannot play ${def.name} now; it remains in the discard pile.`);
     }
 };
 
