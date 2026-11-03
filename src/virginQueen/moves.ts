@@ -487,6 +487,13 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
     }
 };
 
+/** #45 Scurvy: -1 Navigation on the next navigation check. */
+const resolveScurvy = (G: VQGame, target?: string): void => {
+    if (target === undefined || G.worldCaptains[target] === undefined) return;
+    G.worldCaptains[target].navigationPenalty = 1;
+    pushLog(G, `${seaCaptainById(target)?.nameEn ?? target} suffers scurvy (-1 Navigation).`);
+};
+
 const resolveMaryQueenOfScots = (G: VQGame, ctx: Ctx): void => {
     const mary = G.royals.find((royal) => royal.id === "maryScots");
     const alive = G.espionage?.mary !== "dead" && mary?.alive !== false;
@@ -701,6 +708,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveMaryQueenOfScots(G, ctx);
     } else if (handler === "sirEdwardStafford") {
         resolveSirEdwardStafford(G, ctx, target);
+    } else if (handler === "scurvy") {
+        resolveScurvy(G, target);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
@@ -815,7 +824,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     if (args.asEvent === true && timedResponseCard && !tutorialEvent && G.cardWindow?.kind !== "response" &&
-        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford"].includes(cardHandler)) {
+        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy"].includes(cardHandler)) {
         return INVALID_MOVE;
     }
     const cancelWindow = args.asEvent === true && canCancelCardEvent(G, def);
