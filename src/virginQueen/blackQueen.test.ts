@@ -25,6 +25,18 @@ describe("The Black Queen, option 3 (card #80)", () => {
         expect(G.powers.france.cards).toContain("vq-020");
     });
 
+    it("can run a free intelligence action", () => {
+        const G = game();
+        G.year = 3;
+        G.powers.france.cards = ["vq-080"];
+        G.powers.france.cp = 0;
+
+        expect(playCard(G, context(), {cardId: "vq-080", asEvent: true, target: "spy:spain"})).toBeUndefined();
+
+        expect(G.log.join("\n")).toContain("sends a spy against Spain");
+        expect(G.powers.france.cp).toBe(0);
+    });
+
     it("can launch a free assassination in France", () => {
         const G = game();
         G.powers.france.cards = ["vq-080"];

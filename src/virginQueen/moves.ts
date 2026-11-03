@@ -1374,6 +1374,19 @@ const resolveBlackQueen = (G: VQGame, ctx: Ctx, p: Power, target?: string): void
         pushLog(G, "The Black Queen sends two agents and draws a card.");
         return;
     }
+    if (target.startsWith("spy:")) {
+        const targetPower = target.slice("spy:".length);
+        if (!isPower(targetPower) || targetPower === p) return;
+        G.powers[p].cp += 2;
+        const result = startEspionage(G, ctx, "intelligence", {target: targetPower});
+        if (result === INVALID_MOVE) {
+            G.powers[p].cp -= 2;
+            return;
+        }
+        drawCards(G, ctx, p, 1);
+        pushLog(G, `The Black Queen sends a spy against ${powerLabel(targetPower)} and draws a card.`);
+        return;
+    }
     if (target.startsWith("assassinate:")) {
         const leader = target.slice("assassinate:".length);
         const location = G.leaders[leader]?.location;
