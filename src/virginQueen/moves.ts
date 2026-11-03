@@ -1693,6 +1693,22 @@ const resolvePatronOfArts = (G: VQGame, ctx: Ctx, target?: string): void => {
         target = G.patronsAvailable.map((id) => patronById(G, id)).find((patron) => patron?.region === "hre" && patron.rating !== null)?.id;
     }
     if (target === undefined) return;
+    const [targetPower, chosen] = target.split(":");
+    if (isPower(targetPower) && targetPower !== "hre") {
+        drawCards(G, ctx, "hre", 2);
+        const candidates = G.powers.hre.cards.filter((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory");
+        if (candidates.length === 0) {
+            pushLog(G, "Patron of Arts finds no card to give.");
+            return;
+        }
+        const card = chosen !== undefined && candidates.includes(chosen)
+            ? chosen
+            : candidates[Math.min(candidates.length - 1, Math.max(0, die(ctx, candidates.length) - 1))];
+        G.powers.hre.cards = G.powers.hre.cards.filter((id) => id !== card);
+        G.powers[targetPower].cards.push(card);
+        pushLog(G, `Patron of Arts draws two cards and gives ${cardById(card).name} to ${powerLabel(targetPower)}.`);
+        return;
+    }
     const patron = patronById(G, target);
     if (patron !== undefined && (patron.region === "italy" || patron.region === "hre") && patron.rating !== null &&
         !POWERS.some((power) => G.powers[power].patrons.includes(patron.id))) {
@@ -1703,19 +1719,7 @@ const resolvePatronOfArts = (G: VQGame, ctx: Ctx, target?: string): void => {
         if (G.powers.hre.ruler === "rudolf") G.pragueCulturalCenter = patron.id;
         drawCards(G, ctx, "hre", 1);
         pushLog(G, `Patron of Arts sponsors ${patron.name} for the Holy Roman Empire.`);
-        return;
     }
-    if (!isPower(target) || target === "hre") return;
-    drawCards(G, ctx, "hre", 2);
-    const candidates = G.powers.hre.cards.filter((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory");
-    if (candidates.length === 0) {
-        pushLog(G, "Patron of Arts finds no card to give.");
-        return;
-    }
-    const card = candidates[Math.min(candidates.length - 1, Math.max(0, die(ctx, candidates.length) - 1))];
-    G.powers.hre.cards = G.powers.hre.cards.filter((id) => id !== card);
-    G.powers[target].cards.push(card);
-    pushLog(G, `Patron of Arts draws two cards and gives ${cardById(card).name} to ${powerLabel(target)}.`);
 };
 
 const resolveItalianExpert = (G: VQGame, p: Power, target?: string): void => {

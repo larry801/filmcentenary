@@ -40,6 +40,16 @@ describe("Patron of Arts, option 2 (card #35)", () => {
         expect(G.pragueCulturalCenter).toBe(patron!.id);
     });
 
+    it("can choose which drawn card to give", () => {
+        const G = game();
+        G.powers.hre.cards = ["vq-035", "vq-020"];
+        G.powers.france.cards = [];
+
+        expect(playCard(G, context(), {cardId: "vq-035", asEvent: true, target: "france:vq-020"})).toBeUndefined();
+
+        expect(G.powers.france.cards).toContain("vq-020");
+    });
+
     it("draws two cards and gives one to another power", () => {
         const G = game();
         G.powers.hre.cards = ["vq-035", "vq-020"];
