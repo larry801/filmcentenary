@@ -204,15 +204,38 @@ export const canOfferBeaconResponse = (G: VQGame, power: Power, location: string
 /**
  * Apply #14 Beacon Fires once its owner has chosen to play it: consume the
  * card, make the interception automatic and record the +2 dice for the
- * following naval battle.  Shared by the full-game `beaconResponse` stage and
- * the two-player tutorial's interception choice so both have identical
- * card, log and dice effects.
+ * following naval battle.  Shared by the full-game and tutorial
+ * `beaconResponse` stages so both have identical card, log and dice effects.
  */
 export const playBeaconFires = (G: VQGame, defender: Power): boolean => {
     if (!removeCardFromHand(G, defender, "vq-014")) return false;
     discardCard(G, defender, "vq-014", true);
     pushLog(G, `${powerLabel(defender)} plays Beacon Fires: interception succeeds automatically.`);
     G.navalDiceBonus = {power: defender, amount: 2};
+    return true;
+};
+
+/**
+ * Single decision point for offering the #14 response: pause before the
+ * interception roll and activate the `beaconResponse` stage for the
+ * intercepting power's owner.  Used by the full-game interception loop and by
+ * the two-player tutorial, so both decide through the same stage and move.
+ */
+export const offerBeaconResponse = (
+    G: VQGame,
+    ctx: Ctx,
+    active: Power,
+    defender: Power,
+    from: string,
+    moveFrom: string,
+    to: string,
+    destinationHadEnemy: boolean,
+): boolean => {
+    if (!canOfferBeaconResponse(G, defender, from)) return false;
+    const owner = ownerOf(G, defender);
+    if (owner === undefined) return false;
+    G.pendingBeacon = {power: active, defender, from, moveFrom, to, destinationHadEnemy};
+    ctx.events?.setActivePlayers({value: {[owner]: "beaconResponse"}});
     return true;
 };
 
@@ -309,9 +332,8 @@ export const attemptNavalInterception = (
                 return "choice";
             }
         }
-        if (beaconSkipAt !== candidate.location && canOfferBeaconResponse(G, candidate.power, candidate.location)) {
-            G.pendingBeacon = {power: active, defender: candidate.power, from: candidate.location, moveFrom: from, to, destinationHadEnemy};
-            ctx.events?.setActivePlayers({value: {[ownerOf(G, candidate.power)!]: "beaconResponse"}});
+        if (beaconSkipAt !== candidate.location &&
+            offerBeaconResponse(G, ctx, active, candidate.power, candidate.location, from, to, destinationHadEnemy)) {
             return "paused";
         }
         if (!used.includes(candidate.location)) used.push(candidate.location);

@@ -38,7 +38,7 @@ import {beginGrandVizierEvent, cancelEventResponder, canPlayGrandVizier, canPlay
 import {startPiracy} from "./piracy";
 import {attemptNavalAvoidBattle, attemptNavalInterception, completeNavalInterception, interceptionOrderOptions, navalEnemies, playBeaconFires, resolveNavalCombat, resolveNavalCombatEnemy} from "./navalCombat";
 import type {InterceptionCandidate} from "./navalCombat";
-import {offerInterception} from "./interception";
+import {offerInterception, resolveBeaconInterception} from "./interception";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN} from "./constant/leaders";
 import {
@@ -4234,7 +4234,10 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
  * #14 Beacon Fires response: played by the intercepting power after a legal
  * home-port naval interception has been announced but before its die roll.
  * It consumes the card, makes the interception automatic and records the +2
- * dice for the resulting naval battle.
+ * dice for the resulting naval battle.  The same move serves the campaign
+ * interception loop and the two-player tutorial: the latter keeps
+ * `pendingIntercept` while the response window is open and resolves it in
+ * `resolveBeaconInterception`.
  */
 export const respondBeaconFires = (G: VQGame, ctx: Ctx, args: {choice: "play" | "decline"}): void | typeof INVALID_MOVE => {
     const pending = G.pendingBeacon;
@@ -4244,6 +4247,10 @@ export const respondBeaconFires = (G: VQGame, ctx: Ctx, args: {choice: "play" | 
     if (args.choice === "play" && !G.powers[pending.defender].cards.includes("vq-014")) return INVALID_MOVE;
     delete G.pendingBeacon;
     ctx.events?.endStage();
+    if (G.pendingIntercept !== undefined) {
+        resolveBeaconInterception(G, ctx, pending.from, args.choice === "play");
+        return;
+    }
     if (args.choice === "play") {
         playBeaconFires(G, pending.defender);
         completeNavalInterception(G, pending.defender, pending.from, pending.to);

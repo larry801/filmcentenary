@@ -10,7 +10,7 @@ import {
     atWar, bestBattle, ensureLand, ensureNaval, friendlyControlled, friendlyController, isFortifiedSpace,
     isSeaZone, moveLeaders, navalAdjacent, ownersWithLand, ownersWithNaval, powerLabel, pushLog, roll, totalLand,
 } from "./util";
-import {playBeaconFires} from "./navalCombat";
+import {completeNavalInterception, offerBeaconResponse, playBeaconFires} from "./navalCombat";
 
 const candidateSpaces = (G: VQGame): string[] => {
     const pending = G.pendingIntercept;
@@ -31,17 +31,18 @@ const candidateSpaces = (G: VQGame): string[] => {
     });
 };
 
+/**
+ * Choices for the tutorial's `interceptChoice` stage.  Beacon Fires is not a
+ * separate choice: selecting an eligible home-port stack first pauses on the
+ * shared `beaconResponse` stage, exactly like the full-game interception loop.
+ */
 export const interceptionOptions = (G: VQGame): {id: string; label: string}[] => {
     const pending = G.pendingIntercept;
     if (!pending) return [];
-    const result = candidateSpaces(G).flatMap((id) => {
-        const options = [{id: `intercept:${id}`, label: `从 ${SPACE_BY_ID[id]?.name ?? id} 尝试拦截`}];
-        if (pending.phase === "naval" && !isSeaZone(id) && SPACE_BY_ID[id].home === pending.defender && G.powers[pending.defender].cards.includes("vq-014")) {
-            options.push({id: `beacon:${id}`, label: `打出 Beacon Fires，从 ${SPACE_BY_ID[id].name} 自动拦截`});
-        }
-        return options;
-    });
-    return [...result, {id: "done", label: "结束拦截选择"}];
+    return [
+        ...candidateSpaces(G).map((id) => ({id: `intercept:${id}`, label: `从 ${SPACE_BY_ID[id]?.name ?? id} 尝试拦截`})),
+        {id: "done", label: "结束拦截选择"},
+    ];
 };
 
 const complete = (G: VQGame, ctx: Ctx): void => {
@@ -70,16 +71,99 @@ export const offerInterception = (G: VQGame, ctx: Ctx, phase: "field" | "naval",
     return true;
 };
 
+const leadersFor = (G: VQGame, pending: NonNullable<VQGame["pendingIntercept"]>, from: string): string[] =>
+    (isSeaZone(from) ? G.seaZones[from as SeaZoneID].leaders : G.spaces[from].leaders)
+        .filter((id) => LEADER_BY_ID[id]?.power === pending.defender && LEADER_BY_ID[id].kind === (pending.phase === "field" ? "army" : "naval"));
+
+/** Default stack for an interception the player has already committed to (a declined #14). */
+const defaultAttempt = (G: VQGame, pending: NonNullable<VQGame["pendingIntercept"]>, from: string): {selected: string[]; moving?: {regular: number; merc: number; cav: number}} => {
+    const selected = leadersFor(G, pending, from).slice(0, 2);
+    if (pending.phase !== "field") return {selected};
+    const source = G.spaces[from].land[pending.defender]!;
+    const capacity = Math.max(4, selected.reduce((sum, id) => sum + (LEADER_BY_ID[id].command ?? 0), 0));
+    let remaining = capacity;
+    const moving = {regular: 0, merc: 0, cav: 0};
+    for (const kind of ["regular", "merc", "cav"] as const) {moving[kind] = Math.min(source[kind], remaining); remaining -= moving[kind];}
+    return {selected, moving};
+};
+
+const markAttempt = (G: VQGame, from: string): void => {
+    G.pendingIntercept!.attempted.push(from);
+    if (G.interceptedThisImpulse?.impulse !== G.impulse) G.interceptedThisImpulse = {impulse: G.impulse, spaces: []};
+    G.interceptedThisImpulse!.spaces.push(from);
+};
+
+/**
+ * Resolve one tutorial interception attempt.  A `beacon` attempt is the #14
+ * response already played through the shared stage: automatic success, the
+ * same fleet move/log as the full-game path, and the +2 dice recorded by
+ * `playBeaconFires`.  Otherwise roll normally, as before.
+ */
+const attempt = (G: VQGame, ctx: Ctx, from: string, selected: string[], moving: {regular: number; merc: number; cav: number} | undefined, beacon = false): void => {
+    const pending = G.pendingIntercept!;
+    markAttempt(G, from);
+    let success = beacon;
+    if (!beacon) {
+        const modifier = Math.max(0, ...selected.map((id) => LEADER_BY_ID[id].battle)) + (pending.phase === "field" && pending.defender === "ottoman" && (moving?.cav ?? 0) > 0 ? 1 : 0) -
+            (pending.phase === "field" && pending.defender !== "ottoman" && (G.spaces[pending.to].land.ottoman?.cav ?? 0) > 0 ? 1 : 0);
+        const dice = roll(ctx, 2);
+        success = dice.reduce((sum, value) => sum + value, modifier) >= 9;
+        pushLog(G, `Interception from ${from}: [${dice.join(",")}] + ${modifier}: ${success ? "success" : "failed"}.`);
+    }
+    if (success) {
+        pending.succeeded = true;
+        if (beacon) {
+            completeNavalInterception(G, pending.defender, from, pending.to);
+        } else {
+            if (pending.phase === "field") {
+                const source = G.spaces[from].land[pending.defender]!;
+                const target = ensureLand(G, pending.to, pending.defender);
+                for (const kind of ["regular", "merc", "cav"] as const) {source[kind] -= moving![kind]; target[kind] += moving![kind];}
+            } else {
+                const source = (isSeaZone(from) ? G.seaZones[from as SeaZoneID].naval : G.spaces[from].naval)[pending.defender]!;
+                const target = ensureNaval(G, pending.to, pending.defender);
+                for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) {target[kind] += source[kind]; source[kind] = 0;}
+            }
+            moveLeaders(G, from, pending.to, selected);
+        }
+    }
+    // A #14 interception resolves the whole attempt at once; otherwise keep the
+    // choice open while other stacks may still try (as before).
+    if (beacon || !candidateSpaces(G).length) {
+        complete(G, ctx);
+    } else {
+        ctx.events?.setActivePlayers({value: {[ownerOf(G, pending.defender)!]: "interceptChoice"}});
+    }
+};
+
+/**
+ * Finish the tutorial's #14 response after `respondBeaconFires` validated it.
+ * Playing consumes the card through the shared helper and makes the
+ * interception automatic; declining resumes the ordinary interception roll
+ * for the stack the player had selected.
+ */
+export const resolveBeaconInterception = (G: VQGame, ctx: Ctx, from: string, play: boolean): void => {
+    const pending = G.pendingIntercept;
+    if (pending === undefined) return;
+    if (play) {
+        playBeaconFires(G, pending.defender);
+        attempt(G, ctx, from, [], undefined, true);
+        // No battle follows, so the recorded +2 dice have nothing to apply to.
+        if (G.pendingBattle === undefined) delete G.navalDiceBonus;
+        return;
+    }
+    pushLog(G, `${powerLabel(pending.defender)} declines Beacon Fires.`);
+    const {selected, moving} = defaultAttempt(G, pending, from);
+    attempt(G, ctx, from, selected, moving);
+};
+
 export const chooseInterception = (G: VQGame, ctx: Ctx, args: {choice: string; units?: {regular: number; merc: number; cav: number}; leaders?: string[]}): void | typeof INVALID_MOVE => {
     const pending = G.pendingIntercept;
     if (!pending || ctx.playerID !== ownerOf(G, pending.defender) || !interceptionOptions(G).some((entry) => entry.id === args.choice)) return INVALID_MOVE;
     if (args.choice === "done") {complete(G, ctx); return;}
     const [action, from] = args.choice.split(":");
-    // #14 is legal only while its owner still holds the card and only from a
-    // home-port fleet (the option list is computed from the same conditions).
-    if (action === "beacon" && !G.powers[pending.defender].cards.includes("vq-014")) return INVALID_MOVE;
-    const leaders = (isSeaZone(from) ? G.seaZones[from as SeaZoneID].leaders : G.spaces[from].leaders)
-        .filter((id) => LEADER_BY_ID[id]?.power === pending.defender && LEADER_BY_ID[id].kind === (pending.phase === "field" ? "army" : "naval"));
+    if (action !== "intercept" || from === undefined) return INVALID_MOVE;
+    const leaders = leadersFor(G, pending, from);
     const selected = args.leaders ?? leaders.slice(0, 2);
     if (selected.some((id) => !leaders.includes(id)) || new Set(selected).size !== selected.length || selected.length > 2) return INVALID_MOVE;
     let moving = args.units;
@@ -93,39 +177,9 @@ export const chooseInterception = (G: VQGame, ctx: Ctx, args: {choice: string; u
         }
         if (landCount(moving) < 1 || landCount(moving) > capacity || Object.entries(moving).some(([kind, count]) => count < 0 || !Number.isInteger(count) || count > source[kind as keyof typeof source])) return INVALID_MOVE;
     }
-    pending.attempted.push(from);
-    if (G.interceptedThisImpulse?.impulse !== G.impulse) G.interceptedThisImpulse = {impulse: G.impulse, spaces: []};
-    G.interceptedThisImpulse!.spaces.push(from);
-    let success = action === "beacon";
-    if (success) {
-        // Same card, log and +2 dice state as the full-game beaconResponse stage.
-        playBeaconFires(G, pending.defender);
-    } else {
-        const modifier = Math.max(0, ...selected.map((id) => LEADER_BY_ID[id].battle)) + (pending.phase === "field" && pending.defender === "ottoman" && (moving?.cav ?? 0) > 0 ? 1 : 0) -
-            (pending.phase === "field" && pending.defender !== "ottoman" && (G.spaces[pending.to].land.ottoman?.cav ?? 0) > 0 ? 1 : 0);
-        const dice = roll(ctx, 2);
-        success = dice.reduce((sum, value) => sum + value, modifier) >= 9;
-        pushLog(G, `Interception from ${from}: [${dice.join(",")}] + ${modifier}: ${success ? "success" : "failed"}.`);
-    }
-    if (success) {
-        pending.succeeded = true;
-        if (pending.phase === "field") {
-            const source = G.spaces[from].land[pending.defender]!;
-            const target = ensureLand(G, pending.to, pending.defender);
-            for (const kind of ["regular", "merc", "cav"] as const) {source[kind] -= moving![kind]; target[kind] += moving![kind];}
-        } else {
-            const source = (isSeaZone(from) ? G.seaZones[from as SeaZoneID].naval : G.spaces[from].naval)[pending.defender]!;
-            const target = ensureNaval(G, pending.to, pending.defender);
-            for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) {target[kind] += source[kind]; source[kind] = 0;}
-        }
-        moveLeaders(G, from, pending.to, selected);
-        if (action === "beacon") {
-            pushLog(G, `${powerLabel(pending.defender)} intercepts the naval move into ${SPACE_BY_ID[pending.to]?.name ?? pending.to}.`);
-            complete(G, ctx);
-            // No battle follows, so the recorded +2 dice have nothing to apply to.
-            if (G.pendingBattle === undefined) delete G.navalDiceBonus;
-            return;
-        }
-    }
-    if (!candidateSpaces(G).length) complete(G, ctx);
+    // Unified #14 decision: a home-port stack holding the card first pauses on
+    // the shared `beaconResponse` stage; the roll only happens if declined.
+    if (pending.phase === "naval" &&
+        offerBeaconResponse(G, ctx, pending.power, pending.defender, from, pending.from, pending.to, false)) return;
+    attempt(G, ctx, from, selected, moving);
 };

@@ -52,6 +52,11 @@ export const tutorialLesson = (G: VQGame, phase: string): TutorialLesson | undef
         instruction: "在行动面板选择增募及单位位置，或决定是否打出大维齐尔取消尚未结算的事件。",
         power: G.pendingCardEvent.responding,
     };
+    if (G.pendingBeacon) return {
+        title: "响应：是否打出烽火",
+        instruction: "本次拦截可自动成功并让拦截方在随后海战中额外掷 2 个骰子。在行动面板选择打出烽火或不打出；不打出则照常进行拦截判定。",
+        power: G.pendingBeacon.defender,
+    };
     if (G.pendingIntercept) return {
         title: "响应：选择是否拦截",
         instruction: "先在行动面板选择是否拦截。响应处理完毕后，才会继续原来的行动。",
