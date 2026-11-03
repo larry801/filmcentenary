@@ -14,6 +14,7 @@ import {
     navalCount,
     POWER_INDEX,
     POWER_INFO,
+    OTTOMAN_CAVALRY_LIMIT,
     REGULAR_LIMITS,
     POWERS,
     Power,
@@ -110,6 +111,7 @@ import {
     removeCardFromHand,
     removeCardFromGame,
     reliefBattle,
+    cavalryCount,
     landForceCount,
     regularCount,
     removeLandLosses,
@@ -2302,6 +2304,9 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
         return INVALID_MOVE;
     }
     if (args.kind === "cav" && p !== "ottoman") {
+        return INVALID_MOVE;
+    }
+    if (args.kind === "cav" && cavalryCount(G, p) >= OTTOMAN_CAVALRY_LIMIT) {
         return INVALID_MOVE;
     }
     if (args.kind === "merc" && p === "ottoman") {

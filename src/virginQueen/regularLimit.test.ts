@@ -23,7 +23,7 @@ const clearSpanishRegulars = (G: VQGame): void => {
     G.spaces.seville.unrest = false;
 };
 
-describe("regular counter limit (17.1)", () => {
+describe("land counter limits (17.1)", () => {
     it("blocks recruiting beyond the physical regular limit", () => {
         const G = game();
         clearSpanishRegulars(G);
@@ -38,6 +38,20 @@ describe("regular counter limit (17.1)", () => {
         G.spaces.madrid.land.spain = {regular: 41, merc: 1, cav: 0};
 
         expect(recruit(G, context(), {space: "seville", kind: "regular"})).toBe(INVALID_MOVE);
+    });
+
+    it("limits Ottoman cavalry counters", () => {
+        const G = game();
+        for (const space of Object.values(G.spaces)) {
+            if (space.land.ottoman !== undefined) space.land.ottoman.cav = 0;
+        }
+        G.powers.ottoman.cp = 10;
+        G.spaces.istanbul.control = "ottoman";
+        G.spaces.istanbul.unrest = false;
+        G.spaces.istanbul.land.ottoman = {regular: 0, merc: 0, cav: 39};
+        const ottomanContext = {...context(), currentPlayer: "0", playerID: "0"} as Ctx;
+
+        expect(recruit(G, ottomanContext, {space: "istanbul", kind: "cav"})).toBe(INVALID_MOVE);
     });
 
     it("allows recruiting up to the limit", () => {

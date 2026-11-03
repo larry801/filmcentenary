@@ -174,7 +174,7 @@
 
 - 正规军/雇佣兵是同一物理计数器两面，`landForceCount` 将两者合并计数；
 - 招募正规军或雇佣兵都受 `REGULAR_LIMITS` 限制，避免通过雇佣兵绕过 force pool。
-- 骑兵与海军计数器上限仍待补。
+- 奥斯曼骑兵计数器上限 39 已接入；其他势力无独立骑兵计数器，海军计数器上限仍待补。
 
 ### 德雷克/霍金斯远征（#106）
 
@@ -906,6 +906,6 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #95 洛林的路易丝接入后的验证：`jest src/virginQueen --runInBand --silent` 91 suites、504 tests passed（新增 1 项：加入婚姻池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-陆军 force pool 修正后的验证：`jest src/virginQueen --runInBand --silent` 91 suites、505 tests passed（新增 1 项：雇佣兵计入同一计数器池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+陆军/骑兵 force pool 修正后的验证：`jest src/virginQueen --runInBand --silent` 92 suites、507 tests passed（新增 2 项：雇佣兵计入同一计数器池、奥斯曼骑兵上限）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #106 德雷克/霍金斯远征接入后的验证：`jest src/virginQueen --runInBand --silent` 92 suites、506 tests passed（新增 1 项：联合远征）；`npm run build` 通过，仍有既有大体积 chunk 提示。

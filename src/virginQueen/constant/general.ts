@@ -40,6 +40,8 @@ export const isPower = (value: string): value is Power =>
     (POWERS as readonly string[]).includes(value);
 
 /** Physical regular-counter limits (points) for each major power. */
+export const OTTOMAN_CAVALRY_LIMIT = 39;
+
 export const REGULAR_LIMITS: Record<Power, number> = {
     ottoman: 39,
     spain: 42,
