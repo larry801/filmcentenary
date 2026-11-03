@@ -1339,6 +1339,7 @@ const resolveBlackQueen = (G: VQGame, ctx: Ctx, p: Power, target?: string): void
 };
 
 const resolveSultanaSafiye = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    if (target === undefined) return;
     if (target === "venice") {
         if (!MINOR_DIPLOMACY.venice.eligible.includes(p) || G.minorDiplomacyResolved.includes("venice")) return;
         G.powers[p].influence.venice = (G.powers[p].influence.venice ?? 0) + 2;
@@ -1346,18 +1347,21 @@ const resolveSultanaSafiye = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
         pushLog(G, `Sultana Safiye gives ${powerLabel(p)} 2 influence in Venice.`);
         return;
     }
+    const [targetPower, chosen] = target.split(":");
     if (p !== "ottoman" || G.powers.ottoman.ruler !== "muradIII" || ctx.numPlayers < 5 ||
-        target === undefined || !isPower(target) || target === "ottoman") return;
+        !isPower(targetPower) || targetPower === "ottoman") return;
     const give = G.powers.ottoman.cards.find((id) => cardById(id).kind !== "home");
-    const take = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
+    const take = G.powers[targetPower].cards.filter((id) => cardById(id).kind !== "home");
     if (give === undefined || take.length === 0) return;
-    const received = take[Math.min(take.length - 1, Math.max(0, die(ctx, take.length) - 1))];
+    const received = chosen !== undefined && take.includes(chosen)
+        ? chosen
+        : take[Math.min(take.length - 1, Math.max(0, die(ctx, take.length) - 1))];
     G.powers.ottoman.cards = G.powers.ottoman.cards.filter((id) => id !== give);
-    G.powers[target].cards = G.powers[target].cards.filter((id) => id !== received);
-    G.powers[target].cards.push(give);
+    G.powers[targetPower].cards = G.powers[targetPower].cards.filter((id) => id !== received);
+    G.powers[targetPower].cards.push(give);
     G.powers.ottoman.cards.push(received);
-    if (target === "england" || target === "france") drawCards(G, ctx, "ottoman", 1);
-    pushLog(G, `Sultana Safiye exchanges a card with ${powerLabel(target)}.`);
+    if (targetPower === "england" || targetPower === "france") drawCards(G, ctx, "ottoman", 1);
+    pushLog(G, `Sultana Safiye exchanges a card with ${powerLabel(targetPower)}.`);
 };
 
 const resolveEdmundCampion = (G: VQGame, ctx: Ctx, chosen?: string): void => {
