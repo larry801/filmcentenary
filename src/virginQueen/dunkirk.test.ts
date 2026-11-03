@@ -21,12 +21,15 @@ describe("Dunkirk Privateers (card #110)", () => {
         G.spaces.antwerp.unrest = false;
         G.spaces.london.control = "england";
         G.spaces.london.unrest = false;
+        G.spaces.norwich.control = "england";
+        G.spaces.norwich.unrest = false;
 
-        expect(playCard(G, context(), {cardId: "vq-110", asEvent: true})).toBeUndefined();
+        expect(playCard(G, context(), {cardId: "vq-110", asEvent: true, target: "norwich"})).toBeUndefined();
 
         expect(G.pendingPiracy?.zone).toBe("northSea");
         expect(G.pendingPiracy?.power).toBe("spain");
         expect(G.pendingPiracy?.remaining).toBe(4);
         expect(G.lastRolls).toContain("Dunkirk Privateers");
+        expect(G.log.join("\n")).toContain("Norwich");
     });
 });

@@ -1165,19 +1165,22 @@ const resolveLouise = (G: VQGame, p: Power): void => {
     pushLog(G, `Louise of Lorraine enters the marriage pool for ${powerLabel(p)}.`);
 };
 
-const resolveDunkirkPrivateers = (G: VQGame, ctx: Ctx): void => {
+const resolveDunkirkPrivateers = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (G.spaces.antwerp?.control !== "spain" && G.spaces.dunkirk?.control !== "spain" &&
         !SPACES.some((space) => space.area === "netherlands" && space.ports?.includes("northSea") &&
             G.spaces[space.id].control === "spain" && !G.spaces[space.id].unrest)) return;
-    const target = zonePorts("northSea").find((id) => ["england", "protestant"].includes(G.spaces[id].control) && !G.spaces[id].unrest);
-    if (target === undefined) return;
+    const targetPort = target !== undefined && zonePorts("northSea").includes(target) &&
+        ["england", "protestant"].includes(G.spaces[target].control) && !G.spaces[target].unrest
+        ? target
+        : zonePorts("northSea").find((id) => ["england", "protestant"].includes(G.spaces[id].control) && !G.spaces[id].unrest);
+    if (targetPort === undefined) return;
     const dice = roll(ctx, 4);
     const remaining = hits(dice);
     G.lastRolls = `Dunkirk Privateers [${dice.join(",")}] = ${remaining} hit(s)`;
-    pushLog(G, `${G.lastRolls} against ${SPACE_BY_ID[target].name}.`);
+    pushLog(G, `${G.lastRolls} against ${SPACE_BY_ID[targetPort].name}.`);
     if (remaining === 0) return;
-    G.pendingPiracy = {power: "spain", target: G.spaces[target].control as Power, zone: "northSea", step: "rewards", remaining, rewards: {}};
-    ctx.events?.setActivePlayers({value: {[ownerOf(G, G.spaces[target].control as Power)!]: "piracyChoice"}});
+    G.pendingPiracy = {power: "spain", target: G.spaces[targetPort].control as Power, zone: "northSea", step: "rewards", remaining, rewards: {}};
+    ctx.events?.setActivePlayers({value: {[ownerOf(G, G.spaces[targetPort].control as Power)!]: "piracyChoice"}});
 };
 
 const resolveGregorianCalendar = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
@@ -1978,7 +1981,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "gregorianCalendar") {
         resolveGregorianCalendar(G, ctx, p, target);
     } else if (handler === "dunkirkPrivateers") {
-        resolveDunkirkPrivateers(G, ctx);
+        resolveDunkirkPrivateers(G, ctx, target);
     } else if (handler === "louiseOfLorraine") {
         resolveLouise(G, p);
     } else if (handler === "drakeHawkinsExpedition") {
