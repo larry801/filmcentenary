@@ -176,6 +176,14 @@
 - 招募正规军或雇佣兵都受 `REGULAR_LIMITS` 限制，避免通过雇佣兵绕过 force pool。
 - 奥斯曼骑兵计数器上限 39；海军计数器上限按 VASSAL 计数器：奥斯曼 9、西班牙 7、英格兰 6、法国 4、HRE 1、新教 4，`buildNaval` 统一检查。
 
+### 军队哗变（#17）
+
+- 选择任意主要势力的陆军堆叠：移除全部雇佣兵；
+- 目标势力自动弃置最低 CP 的非强制手牌，按 CP 保留 2/4/6/全部正规军；
+- 无牌则全部正规军移除；
+- 目标地区及一个相邻地区放置动荡。
+- 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
+
 ### 黄金国（#51）
 
 - 目标航海家须在 `spanishMain`/`antilles`；
@@ -753,6 +761,7 @@ src/virginQueen/
   johnHawkins.test.ts   #59 约翰·霍金斯
   philosopher.test.ts   #64 贤者之石
   elDorado.test.ts      #51 黄金国
+  armyMutiny.test.ts    #17 军队哗变
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -997,3 +1006,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #64 贤者之石接入后的验证：`jest src/virginQueen --runInBand --silent` 101 suites、523 tests passed（取消科学家赞助，并验证下一年回到可用池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #51 黄金国接入后的验证：`jest src/virginQueen --runInBand --silent` 102 suites、524 tests passed（新增 1 项：结束远征并安排回场）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#17 军队哗变接入后的验证：`jest src/virginQueen --runInBand --silent` 103 suites、525 tests passed（新增 1 项：雇佣兵/正规军/动荡）；`npm run build` 通过，仍有既有大体积 chunk 提示。

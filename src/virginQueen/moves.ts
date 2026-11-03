@@ -696,6 +696,32 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #59 John Hawkins: five CP for English naval operations. */
 /** #64 Philosopher's Stone: cancel a scientist's patronage work. */
 /** #51 El Dorado: send a northern South America captain to search. */
+/** #17 Army Mutiny: strip mercenaries and possibly regulars from a stack. */
+const resolveArmyMutiny = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target === undefined || G.spaces[target] === undefined) return;
+    const state = G.spaces[target];
+    const owner = (Object.keys(state.land) as Power[]).find((power) => isPower(power));
+    if (owner === undefined) return;
+    const stack = state.land[owner]!;
+    stack.merc = 0;
+    const card = G.powers[owner].cards
+        .filter((id) => cardById(id).officialKind !== "mandatory")
+        .sort((a, b) => cardById(a).cp - cardById(b).cp)[0];
+    let keep = 0;
+    if (card !== undefined) {
+        const cp = cardById(card).cp;
+        keep = cp >= 4 ? stack.regular : cp * 2;
+        removeCardFromHand(G, owner, card);
+        discardCard(G, owner, card, false);
+    }
+    stack.regular = Math.min(stack.regular, keep);
+    if (stack.regular + stack.merc + stack.cav === 0) delete state.land[owner];
+    state.unrest = true;
+    const neighbor = landNeighbors(target).find((space) => G.spaces[space.id] !== undefined && !G.spaces[space.id].unrest);
+    if (neighbor !== undefined) G.spaces[neighbor.id].unrest = true;
+    pushLog(G, `Army Mutiny strikes ${powerLabel(owner)} in ${SPACE_BY_ID[target].name}.`);
+};
+
 const resolveElDorado = (G: VQGame, target?: string): void => {
     if (target === undefined) return;
     const expedition = G.worldCaptains[target];
@@ -1710,6 +1736,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolvePhilosophersStone(G, target);
     } else if (handler === "elDorado") {
         resolveElDorado(G, target);
+    } else if (handler === "armyMutiny") {
+        resolveArmyMutiny(G, ctx, target);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {
