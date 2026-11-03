@@ -959,7 +959,7 @@ const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
         return;
     }
     if (mode === "return") {
-        const leader = Object.values(G.leaders).find((state) => LEADER_BY_ID[state.id]?.power === targetPower && LEADER_BY_ID[state.id]?.kind === "army" &&
+        const leader = Object.values(G.leaders).find((state) => state.id !== "guise" && LEADER_BY_ID[state.id]?.power === targetPower && LEADER_BY_ID[state.id]?.kind === "army" &&
             state.location !== "pool" && state.location !== "dead" && G.spaces[state.location] !== undefined);
         const capital = capitalOf(G, targetPower) ?? SPACES.find((space) => space.home === targetPower && space.kind === "fortress")?.id;
         if (leader !== undefined && capital !== undefined && leader.location !== capital) {
