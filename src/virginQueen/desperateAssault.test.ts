@@ -1,6 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
 import {chooseBattle, startBattle} from "./combat";
+import {assault} from "./moves";
 import {setupGame} from "./util";
 
 const context = (playerID: string): Ctx => ({
@@ -25,6 +26,25 @@ const defenseDice = (withCard: boolean): number => {
 };
 
 describe("Desperate Assault (card #7)", () => {
+    it("is applied automatically in a campaign assault", () => {
+        const G = setupGame({...context("3"), phase: "action"} as Ctx);
+        G.impulse = 2;
+        G.spaces.ghent.control = "spain";
+        G.spaces.ghent.siege = {by: "france", sinceImpulse: 1};
+        G.spaces.ghent.land.spain = {regular: 1, merc: 0, cav: 0};
+        G.spaces.ghent.land.france = {regular: 6, merc: 0, cav: 0};
+        G.spaces.brussels.control = "france";
+        G.spaces.brussels.unrest = false;
+        G.powers.spain.cards = [];
+        G.powers.france.cp = 10;
+        G.powers.france.cards = ["vq-007"];
+
+        expect(assault(G, context("3"), {space: "ghent"})).toBeUndefined();
+
+        expect(G.log.join("\n")).toContain("Desperate Assault");
+        expect(G.powers.france.cards).not.toContain("vq-007");
+    });
+
     it("doubles defender dice", () => {
         expect(defenseDice(true)).toBe(defenseDice(false) * 2);
     });

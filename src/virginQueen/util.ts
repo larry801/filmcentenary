@@ -2258,8 +2258,13 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
     const defenders = ownersWithLand(G, space).filter((c) => c !== p && (isPower(c) ? atWar(G, p, c) : true));
     const defendersUnits = totalLand(G, space, defenders);
     const attackerUnits = totalLand(G, space, [p]);
-    const siegeEngineering = G.powers[p].cards.includes("vq-010");
-    if (siegeEngineering) {
+    const desperate = G.powers[p].cards.includes("vq-007");
+    const siegeEngineering = !desperate && G.powers[p].cards.includes("vq-010");
+    if (desperate) {
+        removeCardFromHand(G, p, "vq-007");
+        discardCard(G, p, "vq-007", true);
+        pushLog(G, "Desperate Assault makes attacker hits 4-6 and doubles defender dice.");
+    } else if (siegeEngineering) {
         removeCardFromHand(G, p, "vq-010");
         discardCard(G, p, "vq-010", true);
         pushLog(G, "Siege Engineering adds 3 dice to the assault.");
@@ -2267,8 +2272,9 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
     const aDice = (defendersUnits > 0 ? Math.ceil(attackerUnits / 2) : attackerUnits) + bestBattle(G, space, [p], "army") + (siegeEngineering ? 3 : 0);
     const defendingPower = defenders.find(isPower);
     const ravelin = defendingPower !== undefined && G.powers[defendingPower].scienceBonuses.includes("ravelin") ? 1 : 0;
-    const dDice = defendersUnits + bestBattle(G, space, defenders, "army") + 1 + ravelin;
-    const aHits = hits(roll(ctx, aDice));
+    const dDice = (defendersUnits + bestBattle(G, space, defenders, "army") + 1 + ravelin) * (desperate ? 2 : 1);
+    const aRoll = roll(ctx, aDice);
+    const aHits = desperate ? aRoll.filter((die) => die >= 4).length : hits(aRoll);
     const dHits = hits(roll(ctx, dDice));
     G.lastRolls = `Assault on ${SPACE_BY_ID[space].name}: ${aHits} hits (${aDice} dice) vs ${dHits} hits (${dDice} dice)`;
     pushLog(G, G.lastRolls);

@@ -1176,7 +1176,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #8 精锐部队测试已补：野战额外 +3 骰，且奥斯曼/西班牙后 3 骰命中 4–6。验证：`jest src/virginQueen --runInBand --silent` 135 suites、582 tests passed（新增 1 项：+3 骰）；`npm run build` 通过。
 
-#7 绝望强攻测试已补：攻城时进攻方命中 4–6，防守方掷双倍骰。验证：`jest src/virginQueen --runInBand --silent` 136 suites、583 tests passed（新增 1 项：防守骰翻倍）；`npm run build` 通过。
+#7 绝望强攻已补：攻城时进攻方命中 4–6，防守方掷双倍骰；正式局自动攻城也会消耗 #7 并应用。验证：`jest src/virginQueen --runInBand --silent` 138 suites、592 tests passed（新增 2 项：防守骰翻倍、自动攻城应用）；`npm run build` 通过。
 
 #50 血腥委员会奥兰治处理接入后的验证：`jest src/virginQueen --runInBand --silent` 137 suites、585 tests passed（新增 1 项：奥兰治进 Turn Track）；`npm run build` 通过。
 
