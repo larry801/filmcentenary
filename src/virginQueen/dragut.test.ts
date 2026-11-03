@@ -1,4 +1,5 @@
 import {Ctx} from "boardgame.io";
+import {INVALID_MOVE} from "boardgame.io/core";
 import {VQGame} from "./constant/general";
 import {dragutFallsRoll, playCard} from "./moves";
 import {setupGame} from "./util";
@@ -14,12 +15,19 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Dragut Falls (card #11)", () => {
+    it("requires Dragut to have fought", () => {
+        const G = game();
+        G.powers.spain.cards = ["vq-011"];
+        G.leaders.dragut = {id: "dragut", power: "ottoman", kind: "naval", location: "tripoli", battle: 3, piracy: 2};
+        expect(dragutFallsRoll(G, context())).toBe(INVALID_MOVE);
+    });
+
     it("rolls 4-6: Dragut dies and Uluch Ali returns", () => {
         const G = game();
         G.powers.spain.cards = ["vq-011"];
         G.spaces.tripoli.leaders = ["dragut"];
         G.leaders.dragut = {id: "dragut", power: "ottoman", kind: "naval", location: "tripoli", battle: 3, piracy: 2};
-
+        G.dragutFought = true;
         const highContext = {...context(), random: {Die: () => 6, Shuffle: (cards: unknown[]) => cards}} as unknown as Ctx;
         expect(dragutFallsRoll(G, highContext)).toBeUndefined();
 
@@ -33,6 +41,7 @@ describe("Dragut Falls (card #11)", () => {
         G.powers.spain.cards = ["vq-011"];
         G.spaces.tripoli.leaders = ["dragut"];
         G.leaders.dragut = {id: "dragut", power: "ottoman", kind: "naval", location: "tripoli", battle: 3, piracy: 2};
+        G.dragutFought = true;
         const lowContext = {...context(), random: {Die: () => 1, Shuffle: (cards: unknown[]) => cards}} as unknown as Ctx;
 
         expect(dragutFallsRoll(G, lowContext)).toBeUndefined();

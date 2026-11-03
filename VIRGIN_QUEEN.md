@@ -355,7 +355,7 @@
 
 - 西班牙控制杰尔巴/的黎波里时作为事件：德拉古特死亡，乌鲁奇·阿里置于回合记录轨下回合登场，西班牙 +1 战争胜利者 VP；
 - 事件牌移出游戏；
-- 战斗/海盗后响应：`dragutFallsRoll` 掷 1d6，4–6 死亡、乌鲁奇·阿里下回合登场且 #11 移出游戏，1–3 德拉古特下回合回池。
+- 战斗/海盗后响应：仅当 `dragutFought`（德拉古特参与战斗/海盗）时才可打出 `dragutFallsRoll`；掷 1d6，4–6 死亡、乌鲁奇·阿里下回合登场且 #11 移出游戏，1–3 德拉古特下回合回池。
 
 ### 洪水（#39）
 
@@ -1064,7 +1064,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #39 洪水接入后的验证：`jest src/virginQueen --runInBand --silent` 86 suites、497 tests passed（新增 1 项：解围/撤退/雇佣兵减半）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#11 德拉古特之死（事件 + 响应掷骰）接入后的验证：`jest src/virginQueen --runInBand --silent` 89 suites、502 tests passed（新增 3 项：事件/4–6 死亡/1–3 回池）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#11 德拉古特之死（事件 + 响应掷骰）接入后的验证：`jest src/virginQueen --runInBand --silent` 89 suites、502 tests passed（新增 4 项：事件/4–6 死亡/1–3 回池/参战时机）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #86 波兰选王接入后的验证：`jest src/virginQueen --runInBand --silent` 88 suites、499 tests passed（新增 1 项：结束战争/选王/VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 

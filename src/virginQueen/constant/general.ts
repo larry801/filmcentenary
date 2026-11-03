@@ -456,6 +456,7 @@ export interface VQGame {
         cyprusTarget?: string;
         cyprusAwarded?: boolean;
         haremImpulse?: number;
+    dragutFought?: boolean;
         dragutWindow?: boolean;
         moriscoSpace?: string;
         stormImpulse?: number;
@@ -628,6 +629,7 @@ export interface VQGame {
     stormImpulse?: number;
     stormMoved?: string[];
     haremImpulse?: number;
+    dragutFought?: boolean;
     cyprusTarget?: string;
     cyprusAwarded?: boolean;
     /** Naval counters lost this year; they return to the pool at Spring. */

@@ -2208,9 +2208,10 @@ export const maryInfluence = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE =
 export const dragutFallsRoll = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     const p = power(G, ctx);
     if (!G.powers[p].cards.includes("vq-011") || G.leaders.dragut === undefined ||
-        G.leaders.dragut.location === "pool") return INVALID_MOVE;
+        G.leaders.dragut.location === "pool" || G.dragutFought !== true) return INVALID_MOVE;
     removeCardFromHand(G, p, "vq-011");
     discardCard(G, p, "vq-011", true);
+    delete G.dragutFought;
     const dragut = G.leaders.dragut;
     if (G.spaces[dragut.location] !== undefined) {
         G.spaces[dragut.location].leaders = G.spaces[dragut.location].leaders.filter((id) => id !== "dragut");
@@ -3014,6 +3015,7 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
     if (settlements.length === 0 || !spend(G, p, 2)) return INVALID_MOVE;
     G.piracyActions = {...(G.piracyActions ?? {}), [p]: (G.piracyActions?.[p] ?? 0) + 1};
     G.piracyZones = {...(G.piracyZones ?? {}), [expedition.location]: [...(G.piracyZones?.[expedition.location] ?? []), p]};
+    if (args.captain === "dragut") G.dragutFought = true;
     const patrols = G.worldPatrols?.[expedition.location] ?? 0;
     const fortresses = settlements.filter((settlement) => G.worldFortresses?.[settlement.id] === "spain").length;
     const defenseDice = patrols + fortresses;

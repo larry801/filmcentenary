@@ -75,6 +75,8 @@ export const startBattle = (G: VQGame, ctx: Ctx, phase: Battle["phase"], locatio
     const defender = controllingDefender || (attacker === "ottoman" ? "spain" : "ottoman");
     G.pendingBattle = {phase, location, attacker, attackers, defenders, defender, from, responding: defender, step: "defend", cards: {}};
     G.cardWindow = {kind: "combat", phase, location, attacker};
+    const leaders = isSeaZone(location) ? G.seaZones[location as keyof VQGame["seaZones"]].leaders : G.spaces[location].leaders;
+    if (leaders.includes("dragut")) G.dragutFought = true;
     prompt(G, ctx, phase === "assault" ? "attackerCards" : "defend", phase === "assault" ? attacker : defender);
 };
 
