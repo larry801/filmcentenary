@@ -691,6 +691,14 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #58 Jeanne of Navarre: French rebellion and the fall of Bayonne. */
 /** #25 Unrest in the Realm: place up to three unrest in a major's home. */
 /** #19 Diplomatic Faux Pas: remove up to five influence from a power. */
+/** #20 Eloquent Ambassador: three influence then a diplomacy resolution. */
+const resolveEloquentAmbassador = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    if (target === undefined || !(target in MINOR_DIPLOMACY)) return;
+    const minor = target as MinorPower;
+    awardMinorInfluence(G, p, minor, 3);
+    if (!G.minorDiplomacyResolved.includes(minor)) resolveMinorDiplomacy(G, ctx, minor);
+};
+
 const resolveDiplomaticFauxPas = (G: VQGame, target?: string): void => {
     if (target === undefined || !isPower(target)) return;
     let remaining = 5;
@@ -1629,6 +1637,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveUnrestInRealm(G, target);
     } else if (handler === "diplomaticFauxPas") {
         resolveDiplomaticFauxPas(G, target);
+    } else if (handler === "eloquentAmbassador") {
+        resolveEloquentAmbassador(G, ctx, p, target);
     } else if (handler === "germanRecruitmentCurtailed") {
         resolveGermanRecruitment(G, p, target);
     } else if (handler === "rulerFallsIll") {
