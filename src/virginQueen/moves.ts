@@ -652,6 +652,13 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #61 Menéndez de Avilés: Florida raid, escort, or fortress/patrol. */
 /** #62 Northwest Passage: force a navigator to test the passage. */
 /** #65 Puritans: draw a random English card or place three English unrest. */
+/** #79 Convention of Estates: convert three Netherlands spaces to Protestant. */
+const resolveConventionOfEstates = (G: VQGame): void => {
+    const targets = SPACES.filter((space) => space.area === "netherlands" && G.spaces[space.id].religion !== "protestant").slice(0, 3);
+    for (const space of targets) G.spaces[space.id].religion = "protestant";
+    pushLog(G, `Convention of Estates converts ${targets.length} Netherlands space(s) to Protestant.`);
+};
+
 const resolvePuritans = (G: VQGame, ctx: Ctx, p: Power): void => {
     const cards = G.powers.england.cards.filter((id) => cardById(id).kind !== "home");
     if (cards.length > 0) {
@@ -1135,6 +1142,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveNorthwestPassage(G, ctx, target);
     } else if (handler === "puritans") {
         resolvePuritans(G, ctx, p);
+    } else if (handler === "conventionOfEstates") {
+        resolveConventionOfEstates(G);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {

@@ -170,6 +170,11 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 省议会（#79）
+
+- 将任意 3 个尼德兰地区转为新教（可不符合传教条件）；
+- 事件牌移出游戏。
+
 ### 清教徒（#65）
 
 - 英格兰有非本国牌时：清教徒随机抽 1 张，英格兰选择弃置或交给新教（当前自动交给新教）；
@@ -532,6 +537,7 @@ src/virginQueen/
   menendez.test.ts      #61 梅嫩德斯·德·阿维莱斯
   northwestPassage.test.ts #62 西北航道
   puritans.test.ts      #65 清教徒
+  conventionEstates.test.ts #79 省议会
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -712,3 +718,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #62 西北航道接入后的验证：`jest src/virginQueen --runInBand --silent` 70 suites、476 tests passed（新增 2 项：安全/死亡）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #65 清教徒接入后的验证：`jest src/virginQueen --runInBand --silent` 71 suites、478 tests passed（新增 2 项：抽牌/三地动荡）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#79 省议会接入后的验证：`jest src/virginQueen --runInBand --silent` 72 suites、479 tests passed（新增 1 项：3 个尼德兰转新教）；`npm run build` 通过，仍有既有大体积 chunk 提示。
