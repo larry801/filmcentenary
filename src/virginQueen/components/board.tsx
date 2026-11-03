@@ -18,6 +18,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
     AREA_NAMES,
@@ -130,6 +131,58 @@ const PHASE_LABELS: Record<string, string> = {
     action: "行动阶段",
 };
 
+/**
+ * Cards whose event target cannot be enumerated in the UI. The strings are the
+ * grammar `playCard` expects for those effects (see `resolvePlayedCardEvent`).
+ */
+export const EVENT_TARGET_EXAMPLES: Record<string, string> = {
+    "vq-030": "spain:return:alba 或 france:skip",
+    "vq-053": "peace:france、give:france:vq-020 或 move:paris",
+    "vq-061": "fortress:atlanticCoast",
+    "vq-086": "france:vq-001|hre:vq-020|spain:treasure:1",
+    "vq-098": "france:vq-022:vq-021",
+    "vq-105": "oporto",
+    "vq-107": "york",
+    "vq-110": "norwich",
+};
+
+export interface EventPlayTargets {
+    /** Target chosen through a dedicated selector, if the card has one. */
+    selected?: string;
+    /** Free-text target typed for this card. */
+    typed: string;
+}
+
+/** A dedicated selector wins over the free-text field; blank input means "no target". */
+export const eventPlayTarget = ({selected, typed}: EventPlayTargets): string | undefined => {
+    if (selected !== undefined) return selected;
+    const trimmed = typed.trim();
+    return trimmed === "" ? undefined : trimmed;
+};
+
+/** Calls playCard for an event, omitting `target` when the player entered none. */
+export const playEventCard = (
+    playCard: (args: {cardId: string; asEvent: true; target?: string}) => void,
+    cardId: string,
+    targets: EventPlayTargets,
+): void => {
+    const target = eventPlayTarget(targets);
+    playCard({cardId, asEvent: true, ...(target !== undefined ? {target} : {})});
+};
+
+/** Optional target argument for cards whose choices cannot be rendered as a list. */
+export const EventTargetField = ({cardId, value, onChange}: {
+    cardId: string;
+    value: string;
+    onChange: (value: string) => void;
+}) => {
+    const example = EVENT_TARGET_EXAMPLES[cardId];
+    return <TextField size="small" fullWidth label="事件目标（可选）" value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="例如 france、york、spain:return:alba"
+        helperText={example !== undefined ? `目标参数示例：${example}` : "按卡牌文本填写；留空则无目标结算。"}/>;
+};
+
 const patronageAwardSummary = (awards: PatronageVpAward[], kind: "artist" | "scientist"): string => {
     const typeNames: Record<string, string> = {writer: "写作", painter: "绘画", architect: "建筑", any: "不限类型"};
     const selected = awards.filter((award) => award.kind === kind);
@@ -165,6 +218,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [mobileView, setMobileView] = React.useState("map");
     const [handExpanded, setHandExpanded] = React.useState(true);
     const [selectedCard, setSelectedCard] = React.useState<string>();
+    const [eventTarget, setEventTarget] = React.useState("");
     const actionRef = React.useRef<HTMLElement>(null);
     const sidebarRef = React.useRef<HTMLElement>(null);
     const panelID = React.useId();
@@ -341,6 +395,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             (foreignWarPower === "hre" && atWar(G, "hre", "ottoman")) ||
             Object.values(G.spaces).filter((space) => space.siege === undefined)
                 .reduce((total, space) => total + landCount(space.land[foreignWarPower]), 0) < 3);
+        const canPlayAsEvent = def.kind !== "command" || def.officialKind === "mandatory" || G.scenario === "tutorial";
+        const showTargetField = canPlayAsEvent && espionageTargets.length === 0 && foreignWarPower === undefined;
         return <Paper key={id} variant="outlined" sx={{p: 0.75, mb: 0.5}}>
             <Stack direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
                 <Typography variant="caption" sx={{fontWeight: 700}}>{def.name}</Typography>
@@ -367,17 +423,25 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {[3, 5].map((n) => <MenuItem key={n} value={n}>{n} 个独立军</MenuItem>)}
                 </Select>
             </FormControl>}
+            {showTargetField && <Box sx={{mt: 0.5}}>
+                <EventTargetField cardId={id} value={eventTarget} onChange={setEventTarget}/>
+            </Box>}
             <Stack direction="row" spacing={0.5} sx={{mt: 0.5}}>
-                {(def.kind !== "command" || def.officialKind === "mandatory" || G.scenario === "tutorial") && <Button size="small" variant="contained"
+                {canPlayAsEvent && <Button size="small" variant="contained"
                                                   disabled={disabled || foreignWarBlocked ||
                                                       (isEspionageEvent(handler) && !canPlayEspionageEvent(G, me!, handler, espionageTarget)) ||
                                                       (handler === "untimelyDeath" && G.scenario !== "tutorial" && !canPlayUntimelyDeath(G, espionageTarget)) ||
                                                       (handler === "northernRising" && G.scenario !== "tutorial" && !canPlayNorthernRising(G)) ||
                                                       (isGrandVizier(def) && !canPlayGrandVizier(G, me!, ctx.numPlayers)) ||
                                                       (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
-                                                  onClick={() => {moves.playCard({cardId: id, asEvent: true,
-                                                      ...(espionageTargets.length ? {target: espionageTarget} : {}),
-                                                      ...(foreignWarPower !== undefined ? {target: String(foreignArmySize)} : {})}); setSelectedCard(undefined);}}>
+                                                  onClick={() => {
+                                                      playEventCard(moves.playCard, id, {
+                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : undefined,
+                                                          typed: eventTarget,
+                                                      });
+                                                      setEventTarget("");
+                                                      setSelectedCard(undefined);
+                                                  }}>
                     {def.kind === "home" ? "使用能力" : "作为事件"}
                 </Button>}
                 <Button size="small" variant="outlined" disabled={disabled || def.officialKind === "mandatory"}
@@ -1411,7 +1475,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {hand.length === 0 && <Typography variant="body2" color="text.secondary">{me ? "暂无手牌。" : "旁观模式仅展示公开牌数。"}</Typography>}
                     <div className="vq-card-tray">{hand.map((id) => {
                         const card = cardById(id);
-                        return <button key={id} className="vq-card" aria-label={`查看卡牌 ${card.name} · ${card.cp} CP`} onClick={() => setSelectedCard(id)}>
+                        return <button key={id} className="vq-card" aria-label={`查看卡牌 ${card.name} · ${card.cp} CP`} onClick={() => {setSelectedCard(id); setEventTarget("");}}>
                             <CardArt def={card} className="vq-card-art" lazy/>
                             <small>{card.kind === "home" ? "本国牌" : card.kind === "event" ? "事件牌" : "行动牌"}<span className="vq-card-cp">{card.cp} CP</span></small>
                             <strong>{card.name}</strong><small>查看详情 ↗</small>

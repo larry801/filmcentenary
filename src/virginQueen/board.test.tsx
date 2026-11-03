@@ -1,7 +1,7 @@
 import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
-import {VirginQueenBoard} from "./components/board";
+import {VirginQueenBoard, EventTargetField, playEventCard} from "./components/board";
 import {setupGame} from "./util";
 import {VQGame} from "./constant/general";
 import {VirginQueenGameDef} from "./game";
@@ -198,6 +198,29 @@ describe("Virgin Queen board", () => {
         expect(render(null)).not.toContain("秘密：天主教");
         G.hreReligiousPreferenceRevealed = true;
         expect(render(null)).toContain("已公开：天主教 · 5 VP");
+    });
+
+    it("forwards a typed event target to playCard and keeps one-click play without one", () => {
+        const played: {cardId: string; asEvent: true; target?: string}[] = [];
+        const playCard = (args: {cardId: string; asEvent: true; target?: string}): void => { played.push(args); };
+        playEventCard(playCard, "vq-030", {typed: " spain:return:alba "});
+        playEventCard(playCard, "vq-105", {typed: "   "});
+        playEventCard(playCard, "vq-061", {typed: "ignored", selected: "fortress:atlanticCoast"});
+        expect(played).toEqual([
+            {cardId: "vq-030", asEvent: true, target: "spain:return:alba"},
+            {cardId: "vq-105", asEvent: true},
+            {cardId: "vq-061", asEvent: true, target: "fortress:atlanticCoast"},
+        ]);
+    });
+
+    it("offers an optional target field with card-specific examples", () => {
+        const html = renderToStaticMarkup(<EventTargetField cardId="vq-030" value="spain:return:alba"
+            onChange={() => undefined}/>);
+        expect(html).toContain("事件目标（可选）");
+        expect(html).toContain("目标参数示例：spain:return:alba 或 france:skip");
+        expect(html).toContain('value="spain:return:alba"');
+        const generic = renderToStaticMarkup(<EventTargetField cardId="vq-055" value="" onChange={() => undefined}/>);
+        expect(generic).toContain("按卡牌文本填写；留空则无目标结算。");
     });
 
     it("renders the map, hand and action panel", () => {
