@@ -604,7 +604,7 @@
 
 ### 法兰西的女管家（#33）
 
-- 法国已有订婚时，可打出 #33 在該次法国联姻上放置“皇室婚宴 +2”标记，并从牌堆抽 1 张牌。
+- 法国已有订婚时，可打出 #33 在该次法国联姻上放置“皇室婚宴 +2”标记，并从牌堆抽 1 张牌；目标写 `retrieve` 时可改为从弃牌堆取回“大旅行”加入手牌。
 - 婚姻结算时若涉及法国，掷骰总和 +2；结算后清除标记。
 - 选项 2：法国与新教交战且手牌数不超过 3 时，掷 1d6+2，自动转化该数量的法国新教控制/新教信仰地区为法国控制/天主教；本回合新教不能再在法国煽动叛乱。
 
@@ -1191,3 +1191,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #52 福克斯殉道者名录区域选择接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、599 tests passed（新增 1 项：固定苏格兰区域）；`npm run build` 通过。
 
 #112 巴黎原将领返回最近设防地区接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、599 tests passed（增补断言：亨利三世离开巴黎并进入设防地区）；`npm run build` 通过。
+
+#33 大旅行取回选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、609 tests passed（新增 1 项：取回大旅行）；`npm run build` 通过。
