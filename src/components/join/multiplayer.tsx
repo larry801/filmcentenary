@@ -6,6 +6,8 @@ import {FilmCentenaryBoard} from "../board";
 import CircularProgress from "@mui/material/CircularProgress";
 import {SongJinnGameDef} from "../../songJinn/game";
 import {SongJinnBoard} from "../../songJinn/components/board";
+import {VirginQueenGameDef} from "../../virginQueen/game";
+import {VirginQueenBoard} from "../../virginQueen/components/board";
 
 interface ISpectateProps {
     matchID: string,
@@ -25,35 +27,38 @@ export const Loading = () => {
     return <CircularProgress size="20%"/>;
 }
 
-export const Spectate = ({matchID, server, gameName}: ISpectateProps) => {
-    const SpectateClient = gameName === 'film' ? Client({
-        game:FilmCentenaryGame,
-        board: FilmCentenaryBoard,
-        multiplayer: SocketIO({ server: server }),
-        loading: Loading,
-    }) : Client({
+const clientFor = (gameName: string, server: string) => {
+    if (gameName === 'virginQueen') {
+        return Client({
+            game: VirginQueenGameDef,
+            board: VirginQueenBoard,
+            multiplayer: SocketIO({server: server}),
+            loading: Loading,
+        });
+    }
+    if (gameName === 'film') {
+        return Client({
+            game: FilmCentenaryGame,
+            board: FilmCentenaryBoard,
+            multiplayer: SocketIO({server: server}),
+            loading: Loading,
+        });
+    }
+    return Client({
         game: SongJinnGameDef,
         board: SongJinnBoard,
-        multiplayer: SocketIO({ server: server }),
+        multiplayer: SocketIO({server: server}),
         loading: Loading,
-    })
-    return <SpectateClient matchID={matchID}/>
+    });
+};
+
+export const Spectate = ({matchID, server, gameName}: ISpectateProps) => {
+    const SpectateClient = clientFor(gameName, server);
+    return <SpectateClient matchID={matchID}/>;
 }
 
-export const MultiPlayer = ({matchID,serverURL,credentials,player,gameName}:MultiplayerProps) =>{
-
-    const MultiplayerClient = gameName === 'film' ? Client({
-        game:FilmCentenaryGame,
-        board: FilmCentenaryBoard,
-        multiplayer: SocketIO({ server: serverURL }),
-        loading: Loading,
-    }) : Client({
-        game: SongJinnGameDef,
-        board: SongJinnBoard,
-        multiplayer: SocketIO({ server: serverURL }),
-        loading: Loading,
-    })
-
+export const MultiPlayer = ({matchID, serverURL, credentials, player, gameName}: MultiplayerProps) => {
+    const MultiplayerClient = clientFor(gameName, serverURL);
     return <>
         <MultiplayerClient
             matchID={matchID}

@@ -2,20 +2,27 @@ import path from 'path';
 import * as Koa from "koa"
 import serve from 'koa-static';
 import {FilmCentenaryGame} from "./src/Game";
-import {Server} from "boardgame.io/server";
+import {Server, FlatFile} from "boardgame.io/server";
 import RedisStorage from "./ioredis-stroage";
 import {PostgresStore} from "bgio-postgres"
 import {SongJinnGameDef} from "./src/songJinn/game";
+import {VirginQueenGameDef} from "./src/virginQueen/game";
+import fs from 'fs';
+
+const DB_DIR = process.env.DB_DIR || process.env.FILE_DB_DIR;
+if (DB_DIR) {
+    fs.mkdirSync(DB_DIR, {recursive: true});
+}
 
 const server = process.env.REDIS_URL ? Server({
-    games: [FilmCentenaryGame,SongJinnGameDef],
+    games: [FilmCentenaryGame,SongJinnGameDef,VirginQueenGameDef],
     db: new RedisStorage(process.env.REDIS_URL),
     origins: [
         // Allow any domain connect.
         '*'
     ]
 }) : process.env.POSTGRES_URL ? Server({
-    games: [FilmCentenaryGame,SongJinnGameDef],
+    games: [FilmCentenaryGame,SongJinnGameDef,VirginQueenGameDef],
     db: new PostgresStore(
         process.env.POSTGRES_URL,
         {
@@ -27,8 +34,18 @@ const server = process.env.REDIS_URL ? Server({
         // Allow any domain connect.
         '*'
     ]
+}) : DB_DIR ? Server({
+    games: [FilmCentenaryGame,SongJinnGameDef,VirginQueenGameDef],
+    db: new FlatFile({
+        dir: DB_DIR,
+        logging: false,
+    }),
+    origins: [
+        // Allow any domain connect.
+        '*'
+    ]
 }) : Server({
-    games: [FilmCentenaryGame,SongJinnGameDef],
+    games: [FilmCentenaryGame,SongJinnGameDef,VirginQueenGameDef],
     origins: [
         // Allow any domain connect.
         '*'

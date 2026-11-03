@@ -16,7 +16,8 @@ import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
 import TableBody from "@mui/material/TableBody";
 import {LobbyClient} from 'boardgame.io/client';
-import {filmCentenaryName, songJinnName} from "../constant/multi-games";
+import {filmCentenaryName, songJinnName, virginQueenName} from "../constant/multi-games";
+import {POWER_NAMES, POWERS} from "../virginQueen/constant/general";
 
 type PlayerMetadata = {
     id: number;
@@ -80,7 +81,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const [clicked, setClicked] = React.useState(false);
     const [matchID, setMatchID] = React.useState("");
     const [error, setError] = React.useState("");
-    const [numPlayers, setNumPlayers] = React.useState(gameName === filmCentenaryName ? 4 : 2);
+    const [numPlayers, setNumPlayers] = React.useState(gameName === filmCentenaryName ? 4 : gameName === virginQueenName ? 6 : 2);
     const [isPublic, setIsPublic] = React.useState(true);
     const [matches, setMatches] = React.useState([]);
 
@@ -129,6 +130,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const errorMessage = <Typography>
         {error} {i18n.chain.drawer.pleaseTry}
         {gameName === 'film' ? <Link to={'/local4p'}>{i18n.chain.drawer.fourPlayer}</Link> :
+            gameName === virginQueenName ? <Link to={'/localVQ'}>本地热座</Link> :
             <Link to={'/local'}>本地</Link>}
     </Typography>
 
@@ -192,7 +194,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         <Grid container size={{xs: 12, sm: 4}}>
             <Grid container size={12} sx={{alignItems: 'center'}}>
                 <Grid size={12}>
-                    <Typography variant={"h4"}>{gameName === 'film' ? "电影百年" : "宋金战争"}</Typography>
+                    <Typography variant={"h4"}>{gameName === 'film' ? "电影百年" : gameName === virginQueenName ? "Virgin Queen" : "宋金战争"}</Typography>
                 </Grid>
                 <FormControl variant="outlined" sx={styles.formControl}>
                     <Grid component="label" container spacing={1} sx={{alignItems: 'center'}}>
@@ -206,11 +208,13 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                 name: 'numPlayers',
                                 id: 'outlined-numPlayers-native-simple',
                             }}>
-                            <option value={2}>2</option>
-                            {gameName === 'film' ? <>
-                                <option value={3}>3</option>
-                                <option value={4}>4</option>
-                            </> : <></>}
+                            {gameName === virginQueenName ? <option value={6}>6</option> : <>
+                                <option value={2}>2</option>
+                                {gameName === 'film' ? <>
+                                    <option value={3}>3</option>
+                                    <option value={4}>4</option>
+                                </> : <></>}
+                            </>}
                         </Select>
                     </Grid>
                 </FormControl>
@@ -227,16 +231,20 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                             name: 'numPlayers',
                             id: 'outlined-numPlayers-native-simple',
                         }}>
-                        {gameName === 'film' ? <option value={Player.P0}>{Player.P0}</option>
-                            : <option value={Player.P0}>宋</option>}
-                        {gameName === 'film' ? <option value={Player.P1}>{Player.P1}</option>
-                            : <option value={Player.P1}>金</option>}
-                        {gameName === 'film' && numPlayers >= 3 ?
-                            <option value={Player.P2}>{Player.P2}</option>
-                            : <></>}
-                        {gameName === 'film' && numPlayers >= 4 ?
-                            <option value={Player.P3}>{Player.P3}</option>
-                            : <></>}
+                        {gameName === virginQueenName ? <>
+                            {POWERS.map((p, idx) => <option key={p} value={String(idx)}>{`P${idx + 1} ${POWER_NAMES[p].zh}`}</option>)}
+                        </> : <>
+                            {gameName === 'film' ? <option value={Player.P0}>{Player.P0}</option>
+                                : <option value={Player.P0}>宋</option>}
+                            {gameName === 'film' ? <option value={Player.P1}>{Player.P1}</option>
+                                : <option value={Player.P1}>金</option>}
+                            {gameName === 'film' && numPlayers >= 3 ?
+                                <option value={Player.P2}>{Player.P2}</option>
+                                : <></>}
+                            {gameName === 'film' && numPlayers >= 4 ?
+                                <option value={Player.P3}>{Player.P3}</option>
+                                : <></>}
+                        </>}
                     </Select>
                 </Grid>
             </FormControl>

@@ -30,6 +30,8 @@ export enum Player {
     P1 = '1',
     P2 = '2',
     P3 = '3',
+    P4 = '4',
+    P5 = '5',
     SPECTATE = 'spectate',
 }
 
@@ -43,6 +45,10 @@ export const nameOf = (p: Player) => {
             return "P3"
         case Player.P3:
             return "P4"
+        case Player.P4:
+            return "P5"
+        case Player.P5:
+            return "P6"
     }
 }
 

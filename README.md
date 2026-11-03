@@ -1,4 +1,4 @@
-# 电影百年/宋金战争 网页版
+# 电影百年 / 宋金战争 / Virgin Queen 网页版
 
 用[boardgame.io](https://boardgame.io)框架实现的桌游网页版
 
@@ -9,7 +9,7 @@
 yarn install
 ```
 
-打开本地版 （远程多人不可用 /local4p 可用于测试）
+打开本地版 （远程多人不可用 /local4p、/local、/localVQ 可用于测试）
 ```shell
 yarn start
 ```
@@ -21,7 +21,11 @@ yarn serve
 
 ## 结构
 
-主要逻辑在 src/game/util.ts
+- 电影百年：`src/game/`
+- 宋金战争：`src/songJinn/`
+- Virgin Queen：`src/virginQueen/`（说明见 `VIRGIN_QUEEN.md`）
+
+电影百年主要逻辑在 src/game/util.ts。
 
 ## 调试日志
 

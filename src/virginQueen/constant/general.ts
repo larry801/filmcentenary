@@ -1,0 +1,451 @@
+/**
+ * Virgin Queen: Wars of Religion ~ 1559-1598
+ *
+ * Core types for the six-power, card-driven game. The rulebook supplied with the
+ * project ("vq_rules_final_lo-res.pdf") contains the rules but not the scenario
+ * book, the map, or the 112-card deck, so the map and deck in this module are a
+ * curated reconstruction (see VIRGIN_QUEEN.md).
+ */
+
+export const POWERS = [
+    "ottoman",
+    "spain",
+    "england",
+    "france",
+    "hre",
+    "protestant",
+] as const;
+
+export type Power = typeof POWERS[number];
+
+export const POWER_INDEX: Record<Power, number> = {
+    ottoman: 0,
+    spain: 1,
+    england: 2,
+    france: 3,
+    hre: 4,
+    protestant: 5,
+};
+
+export const powerAt = (playerID: string | null | undefined): Power => {
+    const idx = Number(playerID);
+    return POWERS[Number.isFinite(idx) && idx >= 0 && idx < POWERS.length ? idx : 0];
+};
+
+export const isPower = (value: string): value is Power =>
+    (POWERS as readonly string[]).includes(value);
+
+export const POWER_NAMES: Record<Power, { en: string; zh: string; short: string }> = {
+    ottoman: {en: "Ottoman Empire", zh: "奥斯曼帝国", short: "Ottoman"},
+    spain: {en: "Spain", zh: "西班牙", short: "Spain"},
+    england: {en: "England", zh: "英格兰", short: "England"},
+    france: {en: "France", zh: "法国", short: "France"},
+    hre: {en: "Holy Roman Empire", zh: "神圣罗马帝国", short: "Holy Roman"},
+    protestant: {en: "Protestants", zh: "新教联盟", short: "Protestant"},
+};
+
+export const POWER_COLORS: Record<Power, string> = {
+    ottoman: "#1b5e20",
+    spain: "#e0b42a",
+    england: "#c62828",
+    france: "#1a3f8f",
+    hre: "#2b2b2b",
+    protestant: "#ef7d1a",
+};
+
+export type MinorPower = "ireland" | "papacy" | "portugal" | "scotland" | "venice";
+export type Independent = "independent";
+
+export const MINOR_POWERS: MinorPower[] = [
+    "scotland",
+    "ireland",
+    "portugal",
+    "papacy",
+    "venice",
+];
+
+export type Controller = Power | MinorPower | Independent;
+
+export const MINOR_NAMES: Record<MinorPower | Independent, { en: string; zh: string }> = {
+    scotland: {en: "Scotland", zh: "苏格兰"},
+    ireland: {en: "Ireland", zh: "爱尔兰"},
+    portugal: {en: "Portugal", zh: "葡萄牙"},
+    papacy: {en: "Papacy", zh: "教宗国"},
+    venice: {en: "Venice", zh: "威尼斯"},
+    independent: {en: "Independent", zh: "独立"},
+};
+
+export const CONTROLLER_COLORS: Record<Controller, string> = {
+    ...POWER_COLORS,
+    scotland: "#4fc3f7",
+    ireland: "#66bb6a",
+    portugal: "#6d1b1b",
+    papacy: "#8e24aa",
+    venice: "#ec407a",
+    independent: "#9e9e9e",
+};
+
+export const controllerName = (c: Controller): string =>
+    isPower(c) ? POWER_NAMES[c].en : MINOR_NAMES[c].en;
+
+export const controllerNameZh = (c: Controller): string =>
+    isPower(c) ? POWER_NAMES[c].zh : MINOR_NAMES[c].zh;
+
+export type Religion = "catholic" | "protestant";
+export type ReligionArea = "england" | "scotland" | "netherlands" | "france";
+
+export const RELIGION_AREAS: ReligionArea[] = [
+    "england",
+    "scotland",
+    "netherlands",
+    "france",
+];
+
+export const AREA_NAMES: Record<ReligionArea, { en: string; zh: string }> = {
+    england: {en: "England", zh: "英格兰"},
+    scotland: {en: "Scotland", zh: "苏格兰"},
+    netherlands: {en: "Netherlands", zh: "尼德兰"},
+    france: {en: "France", zh: "法国"},
+};
+
+export interface LandStack {
+    regular: number;
+    merc: number;
+    cav: number;
+}
+
+export interface NavalStack {
+    galley: number;
+    galleon: number;
+    racebuilt: number;
+    corsair: number;
+}
+
+export const emptyLand = (): LandStack => ({regular: 0, merc: 0, cav: 0});
+
+export const emptyNaval = (): NavalStack => ({
+    galley: 0,
+    galleon: 0,
+    racebuilt: 0,
+    corsair: 0,
+});
+
+export const landCount = (s: LandStack | undefined): number =>
+    s === undefined ? 0 : s.regular + s.merc + s.cav;
+
+export const navalCount = (s: NavalStack | undefined): number =>
+    s === undefined ? 0 : s.galley + s.galleon + s.racebuilt + s.corsair;
+
+export type LeaderKind = "army" | "naval";
+
+export interface LeaderDef {
+    id: string;
+    name: string;
+    power: Power;
+    kind: LeaderKind;
+    /** Battle rating: adds dice and modifies intercept/avoid rolls. */
+    battle: number;
+    /** Command rating (army leaders only). */
+    command?: number;
+    /** Extra piracy dice (naval leaders such as Dragut). */
+    piracy?: number;
+    /** Starting location: a space id, a sea zone id, or "pool". */
+    start?: string;
+}
+
+export interface LeaderState {
+    id: string;
+    /** Space id, sea zone id, "pool" or "captured". */
+    location: string;
+    capturedBy?: Power;
+}
+
+export interface Ruler {
+    name: string;
+    /** Number of cards that may be kept between turns. */
+    admin: number;
+    /** Extra cards dealt each turn. */
+    cardBonus: number;
+}
+
+export interface PowerInfo {
+    power: Power;
+    ruler: Ruler;
+    /** Cards dealt (before ruler bonus) for 0,1,2,... controlled keys. */
+    drawByKeys: number[];
+    /** Base VP for 0,1,2,... controlled keys (Protestant uses its own rule). */
+    vpByKeys: number[];
+    /** Keys (not in unrest) needed for an immediate military victory. */
+    autoWinKeys: number;
+    homeCards: string[];
+}
+
+export const POWER_INFO: Record<Power, PowerInfo> = {
+    ottoman: {
+        power: "ottoman",
+        ruler: {name: "Suleiman the Magnificent", admin: 2, cardBonus: 1},
+        drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
+        vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
+        autoWinKeys: 7,
+        homeCards: ["vq-home-grand-vizier"],
+    },
+    spain: {
+        power: "spain",
+        ruler: {name: "Philip II", admin: 1, cardBonus: 0},
+        drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
+        vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
+        autoWinKeys: 8,
+        homeCards: ["vq-home-spanish-armada"],
+    },
+    england: {
+        power: "england",
+        ruler: {name: "Elizabeth I", admin: 2, cardBonus: 1},
+        drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
+        vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
+        autoWinKeys: 5,
+        homeCards: ["vq-home-virgin-queen"],
+    },
+    france: {
+        power: "france",
+        ruler: {name: "Henry III", admin: 1, cardBonus: 0},
+        drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
+        vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
+        autoWinKeys: 5,
+        homeCards: ["vq-home-valois-wedding"],
+    },
+    hre: {
+        power: "hre",
+        ruler: {name: "Ferdinand I", admin: 2, cardBonus: 0},
+        drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
+        vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
+        autoWinKeys: 5,
+        homeCards: ["vq-home-imperial-diet"],
+    },
+    protestant: {
+        power: "protestant",
+        ruler: {name: "Council of the Reformed Churches", admin: 2, cardBonus: 0},
+        drawByKeys: [4, 4, 5, 5, 6, 6, 7, 7, 7],
+        vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
+        autoWinKeys: 5,
+        homeCards: ["vq-home-huguenot-lent"],
+    },
+};
+
+export type SeaZoneID =
+    | "atlanticOcean"
+    | "irishSea"
+    | "englishChannel"
+    | "northSea"
+    | "bayOfBiscay"
+    | "gulfOfLyon"
+    | "tyrrhenian"
+    | "ionian"
+    | "adriatic"
+    | "aegean"
+    | "easternMediterranean"
+    | "barbaryCoast"
+    | "northAfricanCoast";
+
+export type SeaZoneKind = "atlantic" | "mediterranean";
+
+export interface SeaZoneDef {
+    id: SeaZoneID;
+    name: string;
+    kind: SeaZoneKind;
+    /** Label position (lon, lat) used by the schematic map. */
+    label: [number, number];
+    adjacent: SeaZoneID[];
+    ports: string[];
+}
+
+export type SpaceKind = "key" | "fortress" | "open";
+
+export interface SpaceDef {
+    id: string;
+    name: string;
+    /** Geographic coordinates used to place the space on the schematic map. */
+    lon: number;
+    lat: number;
+    /** Historical home power of the space. */
+    home: Controller;
+    kind: SpaceKind;
+    capitalOf?: Power;
+    area?: ReligionArea;
+    ports?: SeaZoneID[];
+    /** Initial political control, when it differs from the home power. */
+    control?: Controller;
+    /** Initial religious influence (defaults to Catholic). */
+    religion?: Religion;
+    initial?: Partial<Record<Controller, Partial<LandStack>>>;
+    initialNaval?: Partial<Record<Controller, Partial<NavalStack>>>;
+}
+
+export type CardKind = "event" | "home" | "command";
+
+export type EventEffect =
+    | {kind: "conversion"; side: Religion; area: ReligionArea; dice: number; autoSix?: boolean; unrest?: number}
+    | {kind: "unrestSpanish"; count: number}
+    | {kind: "unrestArea"; area: ReligionArea; count: number}
+    | {kind: "draw"; count: number}
+    | {kind: "treasure"; count: number}
+    | {kind: "vp"; power?: Power; relative?: boolean; amount: number; condition?: "unmarriedElizabeth" | "atWarEngland" | "controlsDutchKeys"}
+    | {kind: "mercs"; count: number}
+    | {kind: "dowCost"; amount: number}
+    | {kind: "suez"}
+    | {kind: "armada"}
+    | {kind: "discard"; count: number}
+    | {kind: "influence"; count: number};
+
+export interface CardDef {
+    id: string;
+    name: string;
+    /** Command point value. */
+    cp: number;
+    kind: CardKind;
+    /** Home cards belong to a power and return to that power every year. */
+    power?: Power;
+    text?: string;
+    effect?: EventEffect | EventEffect[];
+}
+
+export interface SpaceState {
+    control: Controller;
+    religion: Religion;
+    /** Land units, keyed by their owner (major, minor or independent). */
+    land: Partial<Record<Controller, LandStack>>;
+    /** Naval units in the port. */
+    naval: Partial<Record<Controller, NavalStack>>;
+    leaders: string[];
+    unrest: boolean;
+    /** A fortress marker is present. Keys are fortified by definition. */
+    fortress: boolean;
+    siege?: {
+        by: Power;
+        /** Impulse number in which the siege began. */
+        sinceImpulse: number;
+    };
+}
+
+export interface SeaState {
+    naval: Partial<Record<Controller, NavalStack>>;
+    leaders: string[];
+}
+
+export interface PowerState {
+    power: Power;
+    cards: string[];
+    treasures: number[];
+    /** Command points left in the current impulse. */
+    cp: number;
+    cardPlayed: boolean;
+    treasurePlayed: boolean;
+    /** Accumulated bonus VP (patronage, piracy, marriages, events). */
+    bonusVp: number;
+    /** Persistent -1/+1 card markers (foreign wars, Suez, etc.). */
+    cardModifier: number;
+    wars: Power[];
+    warsMinors: MinorPower[];
+    allies: Power[];
+    influence: Partial<Record<MinorPower, number>>;
+    patrons: string[];
+    /** True when the power has passed and no one has acted since. */
+    passed: boolean;
+}
+
+export interface VQGame {
+    /** 1-based game turn (the rulebook's seven turns compress 1559-1598). */
+    year: number;
+    dealtYear: number;
+    turnsCompleted: number;
+    phaseTurns: number;
+    consecutivePasses: number;
+    impulse: number;
+    activePower: Power;
+    spaces: Record<string, SpaceState>;
+    seaZones: Record<SeaZoneID, SeaState>;
+    powers: Record<Power, PowerState>;
+    leaders: Record<string, LeaderState>;
+    deck: string[];
+    discard: string[];
+    removed: string[];
+    /** Home cards set aside after being played this year. */
+    homeSetAside: string[];
+    /** England-Spain declaration-of-war cost, reduced by events. */
+    doWCostEnglandSpain: number;
+    suezAttempts: number;
+    suezDone: boolean;
+    /** Betrothals announced during the current Diplomacy Phase. */
+    betrothals: { male: string; female: string }[];
+    /** Royal marriages resolved this year (used for "Virgin Queen" VP). */
+    marriages: number;
+    log: string[];
+    vpHistory: Record<string, Partial<Record<Power, number>>>;
+    /** Set at the end of the Action Phase so endIf can score the winter. */
+    checkVictory: boolean;
+    lastAction: string;
+    lastRolls: string;
+    royals: RoyalDef[];
+    /** Filled in by playerView: public counts, hidden deck contents. */
+    deckCount?: number;
+    discardCount?: number;
+    handCounts?: Partial<Record<Power, number>>;
+    springDone: Power[];
+    patronizedThisTurn: Power[];
+}
+
+export interface PatronDef {
+    id: string;
+    name: string;
+    kind: "artist" | "scientist";
+    vp: number;
+}
+
+export const PATRONS: PatronDef[] = [
+    {id: "titian", name: "Titian", kind: "artist", vp: 2},
+    {id: "elGreco", name: "El Greco", kind: "artist", vp: 2},
+    {id: "shakespeare", name: "William Shakespeare", kind: "artist", vp: 3},
+    {id: "montaigne", name: "Michel de Montaigne", kind: "artist", vp: 1},
+    {id: "veronese", name: "Paolo Veronese", kind: "artist", vp: 2},
+    {id: "cellini", name: "Benvenuto Cellini", kind: "artist", vp: 1},
+    {id: "tycho", name: "Tycho Brahe", kind: "scientist", vp: 3},
+    {id: "mercator", name: "Gerardus Mercator", kind: "scientist", vp: 2},
+    {id: "galileo", name: "Galileo Galilei", kind: "scientist", vp: 3},
+    {id: "vesalius", name: "Andreas Vesalius", kind: "scientist", vp: 2},
+];
+
+export interface RoyalDef {
+    id: string;
+    name: string;
+    power: Power;
+    gender: "male" | "female";
+    /** Family tag: Valois or Hapsburg royals may not intermarry. */
+    family?: "valois" | "hapsburg";
+    age: number;
+    alive: boolean;
+    married: boolean;
+}
+
+export const ROYALS: RoyalDef[] = [
+    {id: "elizabeth", name: "Elizabeth I", power: "england", gender: "female", age: 26, alive: true, married: false},
+    {id: "philip", name: "Philip II", power: "spain", gender: "male", family: "hapsburg", age: 32, alive: true, married: false},
+    {id: "maryScots", name: "Mary Queen of Scots", power: "france", gender: "female", age: 17, alive: true, married: false},
+    {id: "henryIII", name: "Henry III", power: "france", gender: "male", family: "valois", age: 28, alive: true, married: false},
+    {id: "rudolf", name: "Rudolf II", power: "hre", gender: "male", family: "hapsburg", age: 17, alive: true, married: false},
+];
+
+export type VictoryReason =
+    | "military"
+    | "protestantReligious"
+    | "catholicReligious"
+    | "standard"
+    | "domination"
+    | "timeLimit";
+
+export const VICTORY_TEXT: Record<VictoryReason, string> = {
+    military: "军事胜利：控制足够多的关键城市",
+    protestantReligious: "新教宗教胜利：新教影响超过半数宗教地区",
+    catholicReligious: "天主教宗教胜利：新教影响被压缩到极限",
+    standard: "标准胜利：达到 25 分",
+    domination: "支配胜利：领先所有对手至少 5 分",
+    timeLimit: "时限胜利：第 7 回合结束时分数最高",
+};
