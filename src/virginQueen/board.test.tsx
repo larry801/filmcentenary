@@ -1,7 +1,7 @@
 import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
-import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices} from "./components/board";
+import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET} from "./components/board";
 import {proposeBetroth} from "./moves";
 import {setupGame} from "./util";
 import {Power, VQGame} from "./constant/general";
@@ -232,10 +232,12 @@ describe("Virgin Queen board", () => {
         playEventCard(playCard, "vq-030", {typed: " spain:return:alba "});
         playEventCard(playCard, "vq-105", {typed: "   "});
         playEventCard(playCard, "vq-061", {typed: "ignored", selected: "fortress:atlanticCoast"});
+        playEventCard(playCard, "vq-024", {typed: "", selected: "papacy:venice:hre"});
         expect(played).toEqual([
             {cardId: "vq-030", asEvent: true, target: "spain:return:alba"},
             {cardId: "vq-105", asEvent: true},
             {cardId: "vq-061", asEvent: true, target: "fortress:atlanticCoast"},
+            {cardId: "vq-024", asEvent: true, target: "papacy:venice:hre"},
         ]);
     });
 
@@ -247,6 +249,46 @@ describe("Virgin Queen board", () => {
         expect(html).toContain('value="spain:return:alba"');
         const generic = renderToStaticMarkup(<EventTargetField cardId="vq-055" value="" onChange={() => undefined}/>);
         expect(generic).toContain("按卡牌文本填写；留空则无目标结算。");
+    });
+
+    it("offers Holy League #24 targets and includes the HRE only as a non-player major", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2});
+        expect(holyLeagueHreAvailable(G)).toBe(true);
+        expect(holyLeagueTargetOptions(G).map((option) => option.value)).toEqual([
+            "papacy", "venice", "hre", "papacy:venice", "papacy:hre", "venice:hre",
+            "papacy:venice:hre", "venice:papacy:hre", "hre:papacy:venice",
+        ]);
+        const options = holyLeagueTargetOptions(G);
+        expect(options.find((option) => option.value === "hre")?.label).toBe("神圣罗马帝国 +4");
+        expect(options.find((option) => option.value === "papacy:venice:hre")?.label).toBe("教宗国 +2，威尼斯 +1，神圣罗马帝国 +1");
+        expect(holyLeagueTargetValue(G, "venice:hre")).toBe("venice:hre");
+        expect(holyLeagueTargetValue(G, "not-a-target")).toBe(HOLY_LEAGUE_DEFAULT_TARGET);
+
+        // An activated HRE is run by an ally, not a direct player, so it still
+        // belongs in the selector.
+        G.activatedMajors = {hre: {ally: "spain", baseline: 0}};
+        expect(holyLeagueHreAvailable(G)).toBe(true);
+        expect(holyLeagueTargetOptions(G).map((option) => option.value)).toContain("hre");
+
+        // A directly player-controlled HRE has no influence track to target.
+        G.playerPowers!["0"].push("hre");
+        expect(holyLeagueHreAvailable(G)).toBe(false);
+        expect(holyLeagueTargetOptions(G).map((option) => option.value)).toEqual(["papacy", "venice", "papacy:venice"]);
+        expect(holyLeagueTargetValue(G, "hre")).toBe(HOLY_LEAGUE_DEFAULT_TARGET);
+
+        // Six-player games have no non-player HRE influence track at all.
+        const sixPlayer = setupGame({...fakeCtx(), numPlayers: 6});
+        expect(sixPlayer.majorInfluence).toBeUndefined();
+        expect(holyLeagueHreAvailable(sixPlayer)).toBe(false);
+    });
+
+    it("renders the dedicated #24 selector with the default Papacy/Venice split", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2});
+        const html = renderToStaticMarkup(<HolyLeagueTargetSelect options={holyLeagueTargetOptions(G)}
+            value={holyLeagueTargetValue(G, "")} onChange={() => undefined}/>);
+        expect(html).toContain("神圣同盟目标");
+        expect(html).toContain("教宗国 +2，威尼斯 +2");
+        expect(html).not.toContain("事件目标（可选）");
     });
 
     it("renders the map, hand and action panel", () => {

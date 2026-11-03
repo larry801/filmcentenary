@@ -184,6 +184,77 @@ export const EventTargetField = ({cardId, value, onChange}: {
         helperText={example !== undefined ? `目标参数示例：${example}` : "按卡牌文本填写；留空则无目标结算。"}/>;
 };
 
+type HolyLeagueTrack = "papacy" | "venice" | "hre";
+
+const HOLY_LEAGUE_TRACK_NAMES: Record<HolyLeagueTrack, string> = {
+    papacy: MINOR_NAMES.papacy.zh,
+    venice: MINOR_NAMES.venice.zh,
+    hre: POWER_NAMES.hre.zh,
+};
+
+/** The card's default split, also what `playCard` does when no target is given. */
+export const HOLY_LEAGUE_DEFAULT_TARGET = "papacy:venice";
+
+/**
+ * #24 can influence the HRE track only while the HRE is a non-player major
+ * power.  An activated HRE is still non-player: it is run by an ally and only
+ * appears in `activatedMajors`, never directly in `playerPowers`.
+ */
+export const holyLeagueHreAvailable = (G: VQGame): boolean =>
+    G.majorInfluence?.hre !== undefined &&
+    (G.playerPowers !== undefined
+        ? !Object.values(G.playerPowers).some((powers) => powers.includes("hre"))
+        : ownerOf(G, "hre") === undefined);
+
+export interface HolyLeagueTargetOption {
+    /** Value forwarded to `playCard`, e.g. "papacy:venice:hre". */
+    value: string;
+    label: string;
+}
+
+/**
+ * Target choices for #24: each single track (4 influence), each pair (2/2),
+ * and, when the HRE track exists, the three 2/1/1 orderings.  `playCard`
+ * splits four influence by target order, so the order is part of the value.
+ */
+export const holyLeagueTargetOptions = (G: VQGame): HolyLeagueTargetOption[] => {
+    const hre = holyLeagueHreAvailable(G);
+    const values: string[] = hre
+        ? ["papacy", "venice", "hre", "papacy:venice", "papacy:hre", "venice:hre",
+            "papacy:venice:hre", "venice:papacy:hre", "hre:papacy:venice"]
+        : ["papacy", "venice", "papacy:venice"];
+    return values.map((value) => {
+        const tracks = value.split(":") as HolyLeagueTrack[];
+        const shares = tracks.length === 1 ? [4] : tracks.length === 2 ? [2, 2] : [2, 1, 1];
+        return {
+            value,
+            label: tracks.map((track, index) => `${HOLY_LEAGUE_TRACK_NAMES[track]} +${shares[index]}`).join("，"),
+        };
+    });
+};
+
+/** Falls back to the previous no-target behaviour (Papacy + Venice, 2/2). */
+export const holyLeagueTargetValue = (G: VQGame, selected: string): string => {
+    const options = holyLeagueTargetOptions(G);
+    if (options.some((option) => option.value === selected)) return selected;
+    return options.some((option) => option.value === HOLY_LEAGUE_DEFAULT_TARGET)
+        ? HOLY_LEAGUE_DEFAULT_TARGET
+        : options[0].value;
+};
+
+/** Dedicated #24 selector, replacing the free-text field for that card. */
+export const HolyLeagueTargetSelect = ({options, value, onChange}: {
+    options: HolyLeagueTargetOption[];
+    value: string;
+    onChange: (value: string) => void;
+}) => <FormControl size="small" fullWidth sx={{mt: 0.5}}>
+    <InputLabel id="vq-holy-league-target">神圣同盟目标</InputLabel>
+    <Select labelId="vq-holy-league-target" label="神圣同盟目标" value={value}
+            onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+    </Select>
+</FormControl>;
+
 export interface BetrothalChoices {
     /** Own royals selectable as the domestic side of the marriage. */
     domestic: RoyalDef[];
@@ -304,6 +375,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [catholicRebellionCp, setCatholicRebellionCp] = React.useState(3);
     const [informantSource, setInformantSource] = React.useState("");
     const [espionageEventTarget, setEspionageEventTarget] = React.useState("");
+    const [holyLeagueEventTarget, setHolyLeagueEventTarget] = React.useState("");
     const [expeditionCaptain, setExpeditionCaptain] = React.useState("");
     const [expeditionHasColony, setExpeditionHasColony] = React.useState(false);
     const [foreignArmySize, setForeignArmySize] = React.useState(3);
@@ -452,12 +524,14 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     handler === "untimelyDeath" && G.scenario !== "tutorial" ? (untimelyDeathTargets(G).length ? untimelyDeathTargets(G) : ["none"]) : [];
         const espionageTarget = espionageTargets.includes(espionageEventTarget) ? espionageEventTarget : espionageTargets[0];
         const foreignWarPower = handler === "warInPersia" ? "ottoman" : handler === "warWithPoland" ? "hre" : undefined;
+        const holyLeagueOptions = handler === "holyLeague" ? holyLeagueTargetOptions(G) : [];
+        const holyLeagueTarget = holyLeagueTargetValue(G, holyLeagueEventTarget);
         const foreignWarBlocked = foreignWarPower !== undefined && (G.foreignWars[foreignWarPower] !== undefined ||
             (foreignWarPower === "hre" && atWar(G, "hre", "ottoman")) ||
             Object.values(G.spaces).filter((space) => space.siege === undefined)
                 .reduce((total, space) => total + landCount(space.land[foreignWarPower]), 0) < 3);
         const canPlayAsEvent = def.kind !== "command" || def.officialKind === "mandatory" || G.scenario === "tutorial";
-        const showTargetField = canPlayAsEvent && espionageTargets.length === 0 && foreignWarPower === undefined;
+        const showTargetField = canPlayAsEvent && espionageTargets.length === 0 && foreignWarPower === undefined && holyLeagueOptions.length === 0;
         return <Paper key={id} variant="outlined" sx={{p: 0.75, mb: 0.5}}>
             <Stack direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
                 <Typography variant="caption" sx={{fontWeight: 700}}>{def.name}</Typography>
@@ -484,6 +558,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {[3, 5].map((n) => <MenuItem key={n} value={n}>{n} 个独立军</MenuItem>)}
                 </Select>
             </FormControl>}
+            {holyLeagueOptions.length > 0 && <HolyLeagueTargetSelect options={holyLeagueOptions}
+                value={holyLeagueTarget} onChange={setHolyLeagueEventTarget}/>}
             {showTargetField && <Box sx={{mt: 0.5}}>
                 <EventTargetField cardId={id} value={eventTarget} onChange={setEventTarget}/>
             </Box>}
@@ -497,10 +573,11 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                       (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
                                                   onClick={() => {
                                                       playEventCard(moves.playCard, id, {
-                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : undefined,
+                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : undefined,
                                                           typed: eventTarget,
                                                       });
                                                       setEventTarget("");
+                                                      setHolyLeagueEventTarget("");
                                                       setSelectedCard(undefined);
                                                   }}>
                     {def.kind === "home" ? "使用能力" : "作为事件"}
@@ -1571,7 +1648,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {hand.length === 0 && <Typography variant="body2" color="text.secondary">{me ? "暂无手牌。" : "旁观模式仅展示公开牌数。"}</Typography>}
                     <div className="vq-card-tray">{hand.map((id) => {
                         const card = cardById(id);
-                        return <button key={id} className="vq-card" aria-label={`查看卡牌 ${card.name} · ${card.cp} CP`} onClick={() => {setSelectedCard(id); setEventTarget("");}}>
+                        return <button key={id} className="vq-card" aria-label={`查看卡牌 ${card.name} · ${card.cp} CP`} onClick={() => {setSelectedCard(id); setEventTarget(""); setHolyLeagueEventTarget("");}}>
                             <CardArt def={card} className="vq-card-art" lazy/>
                             <small>{card.kind === "home" ? "本国牌" : card.kind === "event" ? "事件牌" : "行动牌"}<span className="vq-card-cp">{card.cp} CP</span></small>
                             <strong>{card.name}</strong><small>查看详情 ↗</small>
