@@ -31,4 +31,21 @@ describe("Tilbury Speech (card #40)", () => {
     it("adds four dice for England", () => {
         expect(defenseDice(true)).toBe(defenseDice(false) + 4);
     });
+
+    it("adds two dice for another power", () => {
+        const dice = (withCard: boolean): number => {
+            const G = setupGame({...context("0"), phase: "action"} as Ctx);
+            G.spaces.paris.control = "france";
+            G.spaces.paris.land.france = {regular: 1, merc: 0, cav: 0};
+            G.spaces.calais.land.spain = {regular: 1, merc: 0, cav: 0};
+            if (withCard) G.powers.france.cards = ["vq-040"];
+            startBattle(G, context("0"), "field", "paris", "spain", ["france"], "calais");
+            chooseBattle(G, context("3"), {choice: "fight"});
+            chooseBattle(G, context("1"), {choice: "done"});
+            if (withCard) chooseBattle(G, context("3"), {choice: "card:vq-040"});
+            chooseBattle(G, context("3"), {choice: "done"});
+            return G.pendingBattle!.rolls!.defender.length;
+        };
+        expect(dice(true)).toBe(dice(false) + 2);
+    });
 });
