@@ -8,6 +8,9 @@ export const moveError = (G: VQGame, move: string, args?: unknown): string | und
     if (G.pendingCardEvent && move !== "chooseCardEvent") return "请先完成当前事件响应。";
     if (G.pendingAbjuration && move !== "chooseAbjuration") return "请先完成誓绝法案的提议选择。";
     if (G.pendingBeacon && move !== "respondBeaconFires") return "请先完成烽火响应。";
+    if (G.pendingInterceptionOrder && move !== "chooseInterceptionOrder" && move !== "autoInterceptionOrder") {
+        return "请先选择海军拦截顺序。";
+    }
     if ((G.pendingBattle || G.pendingTutorialEvent || G.pendingActivation || G.pendingPiracy || G.pendingAction || G.pendingIntercept) && !["chooseBattle", "chooseTutorialEvent", "chooseMajorActivation", "choosePiracy", "respondAction", "chooseInterception"].includes(move)) return "请先完成当前响应。";
     if (G.navalLeaderArrivals?.some((entry) => entry.power === G.activePower) &&
         !["chooseNavalLeaderPort", "chooseHomeCard", "chooseHreReligiousPreference", "endPhaseTurn"].includes(move)) {

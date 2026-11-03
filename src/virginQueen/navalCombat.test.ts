@@ -87,6 +87,9 @@ describe("official naval combat (rule 16.2)", () => {
         const G = game();
         G.powers.france.cp = 1;
         G.spaces.calais.naval.france = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+        // A single eligible stack resolves automatically (the order choice is
+        // covered by interceptionOrder.test.ts).
+        delete G.spaces.portsmouth.naval.england;
         G.seaZones.northSea.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
 
         expect(moveNaval(G, context([6, 6, 6, 6, 6, 6]), {from: "calais", to: "englishChannel"})).toBeUndefined();

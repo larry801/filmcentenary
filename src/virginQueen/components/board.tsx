@@ -86,6 +86,7 @@ import {canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, isGrandVizie
 import {piracyOptions} from "../piracy";
 import {actionResponseOptions} from "../moves";
 import {interceptionOptions} from "../interception";
+import {interceptionOrderOptions} from "../navalCombat";
 import {assassinationTargets, espionageOptions, canPlayEspionageEvent, canPlayNorthernRising, doubleAgentTargets, isEspionageEvent} from "../espionage";
 
 type Mode =
@@ -389,6 +390,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const actionResponder = G.pendingAction && (G.pendingAction.responder ?? (G.pendingAction.power === "ottoman" ? "spain" : "ottoman"));
     const responsePower = G.gregorianResponse && ownerOf(G, G.gregorianResponse.responder) === playerID ? G.gregorianResponse.responder :
         G.pendingBeacon && ownerOf(G, G.pendingBeacon.defender) === playerID ? G.pendingBeacon.defender :
+        G.pendingInterceptionOrder && ownerOf(G, G.pendingInterceptionOrder.defender) === playerID ? G.pendingInterceptionOrder.defender :
         G.pendingIntercept && ownerOf(G, G.pendingIntercept.defender) === playerID ? G.pendingIntercept.defender :
         G.pendingEspionage && ownerOf(G, G.pendingEspionage.responding) === playerID ? G.pendingEspionage.responding :
         actionResponder && ownerOf(G, actionResponder) === playerID ? actionResponder :
@@ -406,7 +408,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
     const hand = ps?.cards ?? [];
-    const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon;
+    const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder;
 
     React.useEffect(() => {
         setMode("inspect");
@@ -650,6 +652,14 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         onClick={() => moves.respondBeaconFires({choice: "play"})}>打出烽火</Button>
                     <Button variant="outlined" onClick={() => moves.respondBeaconFires({choice: "decline"})}>不打出</Button>
                 </Stack>
+            </>}
+        </Stack>;
+        if (G.pendingInterceptionOrder) return <Stack spacing={1}>
+            <Typography>海军拦截顺序 · 等待 {POWER_NAMES[G.pendingInterceptionOrder.defender].zh} 选择先由哪支舰队拦截前往 {SPACE_BY_ID[G.pendingInterceptionOrder.to]?.name ?? G.pendingInterceptionOrder.to} 的移动。</Typography>
+            {ownerOf(G, G.pendingInterceptionOrder.defender) === playerID && <>
+                {interceptionOrderOptions(G).map((entry) =>
+                    <Button key={entry.id} onClick={() => moves.chooseInterceptionOrder({from: entry.id})}>{entry.label}</Button>)}
+                <Button variant="text" onClick={() => moves.autoInterceptionOrder({})}>按引擎顺序自动拦截</Button>
             </>}
         </Stack>;
         if (G.pendingIntercept) return <Stack spacing={1}>
@@ -1506,7 +1516,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         return list;
     };
 
-    const pendingPower = G.pendingBeacon?.defender ?? G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
+    const pendingPower = G.pendingBeacon?.defender ?? G.pendingInterceptionOrder?.defender ?? G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
         G.pendingEspionage?.responding ?? G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target;
     const hasResponse = pendingPower !== undefined && ctx.gameover === undefined;
     const selectedSea = selected ? G.seaZones[selected as keyof VQGame["seaZones"]] : undefined;

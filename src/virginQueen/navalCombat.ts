@@ -201,25 +201,16 @@ export const completeNavalInterception = (G: VQGame, power: Power, from: string,
 export const canOfferBeaconResponse = (G: VQGame, power: Power, location: string): boolean =>
     !isSeaZone(location) && SPACE_BY_ID[location]?.home === power && G.powers[power].cards.includes("vq-014");
 
+export type InterceptionCandidate = {location: string; power: Power};
+
 /**
- * Automatic naval interception (16.1 step 4), used when the destination is
- * empty.  When the next intercepting stack is a home-port fleet holding #14
- * the resolution pauses before that stack's roll so the owner can play the
- * response; `"paused"` tells the caller to resume after the response window.
+ * Eligible stacks for a naval interception in impulse order.  Within one
+ * power's block the engine order is a stable fallback; a player may instead
+ * choose the announcement order through `pendingInterceptionOrder`.
  */
-export const attemptNavalInterception = (
-    G: VQGame,
-    ctx: Ctx,
-    active: Power,
-    from: string,
-    to: string,
-    destinationHadEnemy: boolean,
-    beaconSkipAt?: string,
-): boolean | "paused" => {
-    if (destinationHadEnemy) return false;
-    if (G.interceptedThisImpulse?.impulse !== G.impulse) G.interceptedThisImpulse = {impulse: G.impulse, spaces: []};
-    const used = G.interceptedThisImpulse.spaces;
-    const candidates: {location: string; power: Power}[] = [];
+const interceptionCandidates = (G: VQGame, active: Power, from: string, to: string): InterceptionCandidate[] => {
+    const used = G.interceptedThisImpulse?.impulse === G.impulse ? G.interceptedThisImpulse.spaces : [];
+    const candidates: InterceptionCandidate[] = [];
     const locations = [...Object.keys(SEA_ZONE_BY_ID), ...Object.keys(SPACE_BY_ID)];
     for (const id of locations) {
         if (id === from || id === to || used.includes(id) || !navalAdjacent(to, id)) continue;
@@ -235,10 +226,74 @@ export const attemptNavalInterception = (
         }
     }
     candidates.sort((a, b) => POWER_INDEX[a.power] - POWER_INDEX[b.power] || a.location.localeCompare(b.location));
-    for (const candidate of candidates) {
+    return candidates;
+};
+
+/** Stacks the waiting power may choose between (rule 13.2 announcement order). */
+export const interceptionOrderOptions = (G: VQGame): {id: string; power: Power; label: string}[] => {
+    const pending = G.pendingInterceptionOrder;
+    if (pending === undefined) return [];
+    return interceptionCandidates(G, pending.power, pending.moveFrom, pending.to)
+        .filter((candidate) => candidate.power === pending.defender)
+        .map((candidate) => ({
+            id: candidate.location,
+            power: candidate.power,
+            label: `从 ${SPACE_BY_ID[candidate.location]?.name ?? candidate.location} 尝试拦截`,
+        }));
+};
+
+/**
+ * Naval interception (16.1 step 4), used when the destination is empty.
+ *
+ * When the next intercepting power has more than one eligible stack the
+ * resolution pauses with `pendingInterceptionOrder` so its owner can announce
+ * the order (rule 13.2).  `announced` forces a particular stack next (the
+ * order choice or a declined #14 response) and `autoOrder` resolves the
+ * remaining attempts in engine order.  A home-port fleet holding #14 still
+ * pauses before its roll; `"paused"` tells the caller to resume afterwards.
+ */
+export const attemptNavalInterception = (
+    G: VQGame,
+    ctx: Ctx,
+    active: Power,
+    from: string,
+    to: string,
+    destinationHadEnemy: boolean,
+    beaconSkipAt?: string,
+    announced?: InterceptionCandidate,
+    autoOrder = false,
+): boolean | "paused" | "choice" => {
+    if (destinationHadEnemy) return false;
+    if (G.interceptedThisImpulse?.impulse !== G.impulse) G.interceptedThisImpulse = {impulse: G.impulse, spaces: []};
+    const used = G.interceptedThisImpulse.spaces;
+    const candidates = interceptionCandidates(G, active, from, to);
+    let index = 0;
+    let announcedPending = false;
+    if (announced !== undefined) {
+        const found = candidates.findIndex((candidate) =>
+            candidate.location === announced.location && candidate.power === announced.power);
+        if (found >= 0) {
+            index = found;
+            announcedPending = true;
+        }
+    }
+    while (index < candidates.length) {
+        const candidate = candidates[index];
         const source = navalAt(G, candidate.location)[candidate.power];
         const armadaOnly = source === undefined && candidate.power === "spain" && G.armada?.location === candidate.location;
-        if (!armadaOnly && (source === undefined || navalCount(source) === 0)) continue;
+        if (!armadaOnly && (source === undefined || navalCount(source) === 0)) {index += 1; continue;}
+        // Rule 13.2: announce and resolve one stack before the next.  When the
+        // power whose turn it is in impulse order has several eligible stacks,
+        // let its owner announce which one goes now.
+        const own = candidates.slice(index).filter((entry) => entry.power === candidate.power);
+        if (!autoOrder && !announcedPending && own.length > 1) {
+            const owner = ownerOf(G, candidate.power);
+            if (owner !== undefined) {
+                G.pendingInterceptionOrder = {power: active, defender: candidate.power, moveFrom: from, to, destinationHadEnemy};
+                ctx.events?.setActivePlayers({value: {[owner]: "interceptionOrder"}});
+                return "choice";
+            }
+        }
         if (beaconSkipAt !== candidate.location && canOfferBeaconResponse(G, candidate.power, candidate.location)) {
             G.pendingBeacon = {power: active, defender: candidate.power, from: candidate.location, moveFrom: from, to, destinationHadEnemy};
             ctx.events?.setActivePlayers({value: {[ownerOf(G, candidate.power)!]: "beaconResponse"}});
@@ -252,6 +307,8 @@ export const attemptNavalInterception = (
         const dice = roll(ctx, 2);
         const total = dice[0] + dice[1] + modifier;
         pushLog(G, `${powerLabel(candidate.power)} naval interception from ${SPACE_BY_ID[candidate.location]?.name ?? candidate.location}: [${dice.join(",")}] + ${modifier} = ${total}.`);
+        announcedPending = false;
+        index += 1;
         if (total < 9) continue;
         completeNavalInterception(G, candidate.power, candidate.location, to);
         return true;

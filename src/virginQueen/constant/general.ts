@@ -516,6 +516,12 @@ export interface VQGame {
     pendingIntercept?: {power: Power; defender: Power; from: string; to: string; phase: "field" | "naval"; attackers: Controller[]; attempted: string[]; succeeded: boolean; transported?: boolean};
     /** #14 response window: a home-port interception attempt waits for the defender before its roll. */
     pendingBeacon?: {power: Power; defender: Power; from: string; moveFrom: string; to: string; destinationHadEnemy: boolean};
+    /**
+     * Rule 13.2 order choice: the intercepting power announces which of its
+     * adjacent stacks attempts next.  Only opened when that power has more
+     * than one eligible stack; impulse order still decides between powers.
+     */
+    pendingInterceptionOrder?: {power: Power; defender: Power; moveFrom: string; to: string; destinationHadEnemy: boolean};
     interceptedThisImpulse?: {impulse: number; spaces: string[]};
     pendingBattle?: {
         phase: "field" | "naval" | "assault";

@@ -36,7 +36,8 @@ import {startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {beginGrandVizierEvent, cancelEventResponder, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
 import {startPiracy} from "./piracy";
-import {attemptNavalAvoidBattle, attemptNavalInterception, completeNavalInterception, navalEnemies, resolveNavalCombat, resolveNavalCombatEnemy} from "./navalCombat";
+import {attemptNavalAvoidBattle, attemptNavalInterception, completeNavalInterception, interceptionOrderOptions, navalEnemies, resolveNavalCombat, resolveNavalCombatEnemy} from "./navalCombat";
+import type {InterceptionCandidate} from "./navalCombat";
 import {offerInterception} from "./interception";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN} from "./constant/leaders";
@@ -4003,25 +4004,12 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
 /**
  * Finish a naval move once the moving fleet is already in the destination:
  * resolve interception, avoid battle and the ensuing naval combat.  The
- * interception helper can pause for the #14 response window; the partial
- * state is kept in G.pendingBeacon and this helper is re-entered afterwards.
+ * interception helper can pause for the #14 response window or for the
+ * intercepting power's announcement order (rule 13.2); the partial state is
+ * kept in G.pendingBeacon / G.pendingInterceptionOrder and this helper is
+ * re-entered afterwards.
  */
-const finishNavalMove = (
-    G: VQGame,
-    ctx: Ctx,
-    p: Power,
-    from: string,
-    to: string,
-    destinationHadEnemy: boolean,
-    intercepted = false,
-    beaconSkipAt?: string,
-): void => {
-    let hit = intercepted;
-    if (!hit) {
-        const result = attemptNavalInterception(G, ctx, p, from, to, destinationHadEnemy, beaconSkipAt);
-        if (result === "paused") return;
-        hit = result;
-    }
+const resolveNavalArrival = (G: VQGame, ctx: Ctx, p: Power, to: string, hit: boolean): void => {
     if (!hit) {
         // Avoid battle is resolved before choosing the order of multiple enemies.
         attemptNavalAvoidBattle(G, ctx, p, to);
@@ -4032,6 +4020,26 @@ const finishNavalMove = (
     } else {
         resolveNavalCombat(G, ctx, to, p, hit, true);
     }
+};
+
+const finishNavalMove = (
+    G: VQGame,
+    ctx: Ctx,
+    p: Power,
+    from: string,
+    to: string,
+    destinationHadEnemy: boolean,
+    intercepted = false,
+    beaconSkipAt?: string,
+    announced?: InterceptionCandidate,
+): void => {
+    let hit = intercepted;
+    if (!hit) {
+        const result = attemptNavalInterception(G, ctx, p, from, to, destinationHadEnemy, beaconSkipAt, announced);
+        if (result === "paused" || result === "choice") return;
+        hit = result;
+    }
+    resolveNavalArrival(G, ctx, p, to, hit);
 };
 
 export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string }): void | typeof INVALID_MOVE => {
@@ -4143,8 +4151,44 @@ export const respondBeaconFires = (G: VQGame, ctx: Ctx, args: {choice: "play" | 
         finishNavalMove(G, ctx, pending.power, pending.moveFrom, pending.to, pending.destinationHadEnemy, true);
     } else {
         pushLog(G, `${powerLabel(pending.defender)} declines Beacon Fires.`);
-        finishNavalMove(G, ctx, pending.power, pending.moveFrom, pending.to, pending.destinationHadEnemy, false, pending.from);
+        finishNavalMove(G, ctx, pending.power, pending.moveFrom, pending.to, pending.destinationHadEnemy, false, pending.from,
+            {location: pending.from, power: pending.defender});
     }
+};
+
+/**
+ * Rule 13.2 announcement order: the intercepting power picks which of its
+ * eligible stacks attempts the interception next.  The choice is only opened
+ * when that power has more than one stack, so single-stack interceptions keep
+ * resolving automatically.
+ */
+export const chooseInterceptionOrder = (G: VQGame, ctx: Ctx, args: {from: string}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingInterceptionOrder;
+    if (pending === undefined || ctx.playerID === undefined || ctx.playerID === null ||
+        ownerOf(G, pending.defender) !== ctx.playerID) return INVALID_MOVE;
+    if (ctx.activePlayers?.[ctx.playerID] !== "interceptionOrder") return INVALID_MOVE;
+    const option = interceptionOrderOptions(G).find((entry) => entry.id === args.from);
+    if (option === undefined) return INVALID_MOVE;
+    delete G.pendingInterceptionOrder;
+    ctx.events?.endStage();
+    const result = attemptNavalInterception(G, ctx, pending.power, pending.moveFrom, pending.to, pending.destinationHadEnemy,
+        undefined, {location: option.id, power: option.power});
+    if (result === "paused" || result === "choice") return;
+    resolveNavalArrival(G, ctx, pending.power, pending.to, result);
+};
+
+/** Decline the order choice: resolve the remaining attempts in engine order. */
+export const autoInterceptionOrder = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    const pending = G.pendingInterceptionOrder;
+    if (pending === undefined || ctx.playerID === undefined || ctx.playerID === null ||
+        ownerOf(G, pending.defender) !== ctx.playerID) return INVALID_MOVE;
+    if (ctx.activePlayers?.[ctx.playerID] !== "interceptionOrder") return INVALID_MOVE;
+    delete G.pendingInterceptionOrder;
+    ctx.events?.endStage();
+    const result = attemptNavalInterception(G, ctx, pending.power, pending.moveFrom, pending.to, pending.destinationHadEnemy,
+        undefined, undefined, true);
+    if (result === "paused" || result === "choice") return;
+    resolveNavalArrival(G, ctx, pending.power, pending.to, result);
 };
 
 // --------------------------------------------------------------------------

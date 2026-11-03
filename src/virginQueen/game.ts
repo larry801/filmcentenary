@@ -11,6 +11,8 @@ import {chooseInterception} from "./interception";
 import {arriveLeaders, autoResolveWinterLossChoices, checkVictory, dealYear, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
 import {
     assault,
+    autoInterceptionOrder,
+    chooseInterceptionOrder,
     chooseNavalOrder,
     chooseWithdraw,
     continueMove,
@@ -169,6 +171,7 @@ const choiceStages = {
     piracyChoice: {moves: {choosePiracy}},
     actionResponse: {moves: {respondAction}},
     beaconResponse: {moves: {respondBeaconFires}},
+    interceptionOrder: {moves: {chooseInterceptionOrder, autoInterceptionOrder}},
     gregorianResponse: {moves: {playCard, declineGregorianCalendar}},
     interceptChoice: {moves: {chooseInterception}},
     respondBetroth: {moves: {acceptBetroth, rejectBetroth}},
@@ -350,6 +353,8 @@ export const VirginQueenGameDef: Game<VQGame> = {
         controlSpace,
         assault,
         chooseNavalOrder,
+        chooseInterceptionOrder,
+        autoInterceptionOrder,
         chooseWithdraw,
     continueMove,
         stopContinue,
