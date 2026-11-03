@@ -25,6 +25,19 @@ describe("Black Magic / Armada Pardon", () => {
         expect(G.powers.england.cards).toContain("vq-020");
     });
 
+    it("can discard a chosen card instead of taking one", () => {
+        const G = game();
+        G.powers.england.cards = ["vq-071"];
+        G.powers.spain.cards = ["vq-020", "vq-021"];
+
+        expect(playCard(G, context("2"), {cardId: "vq-071", asEvent: true, target: "spain:discard:vq-021"})).toBeUndefined();
+
+        expect(G.powers.spain.cards).toContain("vq-020");
+        expect(G.powers.spain.cards).not.toContain("vq-021");
+        expect(G.discard).toContain("vq-021");
+        expect(G.powers.england.cards).not.toContain("vq-021");
+    });
+
     it("grants Armada CP, with +1 for the Papacy alliance", () => {
         const G = game();
         G.powers.spain.cards = ["vq-104"];
