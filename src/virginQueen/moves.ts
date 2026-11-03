@@ -372,6 +372,42 @@ const resolveSpanishArmada = (G: VQGame, p: Power): void => {
     }
 };
 
+export const loadArmada = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action" || power(G, ctx) !== "spain" || G.armada === undefined) return INVALID_MOVE;
+    const port = G.spaces[G.armada.location];
+    if (port === undefined || G.armada.location === "englishChannel" || !isPort(G.armada.location)) return INVALID_MOVE;
+    const stack = port.land.spain;
+    if (stack === undefined) return INVALID_MOVE;
+    const free = G.armada.strength - landCount(G.armada.land ?? {regular: 0, merc: 0, cav: 0});
+    if (free <= 0) return INVALID_MOVE;
+    const loaded: LandStack = {regular: 0, merc: 0, cav: 0};
+    let room = free;
+    for (const kind of ["regular", "merc", "cav"] as const) {
+        const take = Math.min(room, stack[kind]);
+        loaded[kind] = take;
+        stack[kind] -= take;
+        room -= take;
+    }
+    if (landCount(loaded) === 0) return INVALID_MOVE;
+    const current = G.armada.land ?? {regular: 0, merc: 0, cav: 0};
+    G.armada.land = {regular: current.regular + loaded.regular, merc: current.merc + loaded.merc, cav: current.cav + loaded.cav};
+    if (landCount(stack) === 0) delete port.land.spain;
+    pushLog(G, `Spain loads ${landCount(loaded)} land unit(s) onto the Armada.`);
+};
+
+export const unloadArmada = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action" || power(G, ctx) !== "spain" || G.armada?.land === undefined) return INVALID_MOVE;
+    const port = G.spaces[G.armada.location];
+    if (port === undefined || !isPort(G.armada.location)) return INVALID_MOVE;
+    const stack = port.land.spain ?? {regular: 0, merc: 0, cav: 0};
+    stack.regular += G.armada.land.regular;
+    stack.merc += G.armada.land.merc;
+    stack.cav += G.armada.land.cav;
+    port.land.spain = stack;
+    delete G.armada.land;
+    pushLog(G, "Spain unloads the Armada's land units into port.");
+};
+
 export const upgradeArmada = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "action" || power(G, ctx) !== "spain" || G.armada === undefined || G.armada.strength >= 8 ||
         !["seville", "corunna", "lisbon"].includes(G.armada.location) || G.powers.spain.cp < 3) return INVALID_MOVE;

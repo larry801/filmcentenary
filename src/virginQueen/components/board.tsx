@@ -511,9 +511,18 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <Typography variant="caption" color="text.secondary">
                         位于 {SPACE_BY_ID[G.armada.location]?.name ?? G.armada.location}；与西班牙舰队同格时自动参战/随行。
                     </Typography>
-                    <Button size="small" variant="outlined" sx={{mt: 0.5}}
-                        disabled={!myTurn || cp < 3 || G.armada.strength >= 8 || !["seville", "corunna", "lisbon"].includes(G.armada.location)}
-                        onClick={() => moves.upgradeArmada()}>升级阿马达 (3 CP)</Button>
+                    <Stack direction="row" spacing={0.5} sx={{mt: 0.5, flexWrap: "wrap"}}>
+                        <Button size="small" variant="outlined"
+                            disabled={!myTurn || cp < 3 || G.armada.strength >= 8 || !["seville", "corunna", "lisbon"].includes(G.armada.location)}
+                            onClick={() => moves.upgradeArmada()}>升级阿马达 (3 CP)</Button>
+                        {G.spaces[G.armada.location] !== undefined && <Button size="small" variant="outlined"
+                            disabled={!myTurn} onClick={() => moves.loadArmada()}>装载陆军</Button>}
+                        {G.spaces[G.armada.location] !== undefined && G.armada.land !== undefined && <Button size="small" variant="outlined"
+                            disabled={!myTurn} onClick={() => moves.unloadArmada()}>卸载陆军</Button>}
+                    </Stack>
+                    {G.armada.land !== undefined && <Typography variant="caption" color="text.secondary">
+                        搭载：{G.armada.land.regular} 正规 / {G.armada.land.merc} 雇佣 / {G.armada.land.cav} 骑兵（上限 {G.armada.strength}）
+                    </Typography>}
                 </Paper>}
                 <FormControl size="small" fullWidth>
                     <InputLabel id="vq-mode">行动</InputLabel>

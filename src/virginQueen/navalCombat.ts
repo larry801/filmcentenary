@@ -1,5 +1,5 @@
 import {Ctx} from "boardgame.io";
-import {Controller, POWER_INDEX, Power, VQGame, isPower, navalCount} from "./constant/general";
+import {Controller, POWER_INDEX, Power, VQGame, isPower, landCount, navalCount} from "./constant/general";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {SEA_ZONE_BY_ID, SPACE_BY_ID} from "./mapData";
 import {
@@ -65,6 +65,15 @@ export const applyNavalCombatLosses = (
             pushLog(G, "The Spanish Armada is eliminated.");
         } else {
             G.armada.strength = remainingStrength as 2 | 4 | 6 | 8;
+            if (G.armada.land !== undefined) {
+                let excess = landCount(G.armada.land) - G.armada.strength;
+                for (const kind of ["regular", "merc", "cav"] as const) {
+                    const remove = Math.min(excess, G.armada.land[kind]);
+                    G.armada.land[kind] -= remove;
+                    excess -= remove;
+                }
+                if (landCount(G.armada.land) === 0) delete G.armada.land;
+            }
         }
     }
     let losses = Math.floor(hitsCount / 2) + (losing ? hitsCount % 2 : 0);

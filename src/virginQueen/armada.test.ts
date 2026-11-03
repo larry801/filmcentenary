@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {VQGame} from "./constant/general";
-import {moveNaval, playCard, upgradeArmada} from "./moves";
+import {loadArmada, moveNaval, playCard, unloadArmada, upgradeArmada} from "./moves";
 import {applyNavalCombatLosses, navalCombatDice} from "./navalCombat";
 import {navalBlockadeSatisfied, setupGame} from "./util";
 
@@ -78,6 +78,30 @@ describe("Spanish Armada (rule 23.2)", () => {
         expect(moveNaval(G, context([6, 6]), {from: "englishChannel", to: "northSea"})).toBeUndefined();
 
         expect(G.armada.location).toBe("northSea");
+    });
+
+    it("loads and unloads land units up to its strength", () => {
+        const G = game();
+        G.armada = {strength: 2, location: "seville"};
+        G.spaces.seville.land.spain = {regular: 3, merc: 0, cav: 0};
+
+        expect(loadArmada(G, context())).toBeUndefined();
+        expect(G.armada.land).toEqual({regular: 2, merc: 0, cav: 0});
+        expect(G.spaces.seville.land.spain).toEqual({regular: 1, merc: 0, cav: 0});
+
+        expect(unloadArmada(G, context())).toBeUndefined();
+        expect(G.armada.land).toBeUndefined();
+        expect(G.spaces.seville.land.spain.regular).toBe(3);
+    });
+
+    it("trims excess land when the Armada loses strength", () => {
+        const G = game();
+        G.armada = {strength: 4, location: "englishChannel", land: {regular: 4, merc: 0, cav: 0}};
+
+        applyNavalCombatLosses(G, "englishChannel", ["spain"], 2, false, []);
+
+        expect(G.armada.strength).toBe(2);
+        expect(G.armada.land?.regular).toBe(2);
     });
 
     it("contributes half its strength to a naval blockade", () => {
