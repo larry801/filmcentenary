@@ -95,6 +95,7 @@ const turnBegin = (G: VQGame, ctx: Ctx): void => {
 const phaseBegin = (G: VQGame): void => {
     G.activePower = participatingPowers(G)[0];
     G.phaseTurns = 0;
+    G.unionOfArras = false;
 };
 
 const turnEnd = (G: VQGame): void => {

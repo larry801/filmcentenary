@@ -2239,6 +2239,9 @@ export const rebellionTargets = (G: VQGame): string[] =>
         if (def.area !== "france" && def.area !== "netherlands") {
             return false;
         }
+        if (G.unionOfArras === true && def.area === "netherlands") {
+            return false;
+        }
         const s = G.spaces[def.id];
         if (s.religion !== "protestant" || s.siege !== undefined) {
             return false;
@@ -2251,7 +2254,8 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
         return false;
     }
     const def = SPACE_BY_ID[space];
-    if (def === undefined || (def.area !== "france" && def.area !== "netherlands")) {
+    if (def === undefined || (def.area !== "france" && def.area !== "netherlands") ||
+        (G.unionOfArras === true && def.area === "netherlands")) {
         return false;
     }
     const s = G.spaces[space];

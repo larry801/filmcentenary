@@ -2,7 +2,7 @@ import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
 import {playCard} from "./moves";
 import {SPACES} from "./mapData";
-import {setupGame} from "./util";
+import {rebellionTargets, setupGame} from "./util";
 
 const context = (): Ctx => ({
     currentPlayer: "1",
@@ -27,5 +27,6 @@ describe("Union of Arras (card #109)", () => {
         expect(G.unionOfArras).toBe(true);
         expect(SPACES.filter((space) => space.area === "netherlands" && G.spaces[space.id].control === "spain").length).toBeGreaterThanOrEqual(5);
         expect(G.removed).toContain("vq-109");
+        expect(rebellionTargets(G).some((id) => SPACES.find((space) => space.id === id)?.area === "netherlands")).toBe(false);
     });
 });
