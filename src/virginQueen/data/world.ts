@@ -18,7 +18,7 @@ export const WORLD_SEA_ZONES: WorldSeaZone[] = [
         id: "guineaCoast",
         nameEn: "Guinea Coast",
         nameZh: "几内亚海岸",
-        adjacent: ["northAtlantic", "southAtlantic", "spanishMain"],
+        adjacent: ["northAtlantic", "southAtlantic", "spanishMain", "indianOcean"],
     },
     {
         id: "spanishMain",
@@ -54,7 +54,7 @@ export const WORLD_SEA_ZONES: WorldSeaZone[] = [
         id: "indianOcean",
         nameEn: "Indian Ocean",
         nameZh: "印度洋",
-        adjacent: ["southPacific", "southAtlantic"],
+        adjacent: ["southPacific", "southAtlantic", "guineaCoast"],
     },
     {
         id: "southAtlantic",

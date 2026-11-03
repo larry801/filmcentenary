@@ -566,11 +566,13 @@ export interface VQGame {
     /** Powers that have used their once-per-turn assassination action. */
     assassinationUsed: Power[];
     /** Sea captains currently on the World Map, with an optional colony aboard. */
-    worldCaptains: Record<string, {power: Power; location: string; damaged: boolean; colony: boolean; movedImpulse?: number}>;
+    worldCaptains: Record<string, {power: Power; location: string; damaged: boolean; colony: boolean; movedImpulse?: number; route?: string[]}>;
     /** Settlements already occupied by a permanent colony. */
     worldColonies: Partial<Record<string, Power>>;
     /** Starting or event-granted world-space control markers. */
     worldControls: Partial<Record<string, Power>>;
+    /** Number of completed circumnavigations (first 2 VP, later 1 VP). */
+    circumnavigations?: number;
     /** Ottoman/Persian and HRE/Polish off-map conflicts. */
     foreignWars: Partial<Record<Power, ForeignWarState>>;
     /** Context gates response and combat cards at their printed timing. */

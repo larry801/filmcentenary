@@ -28,7 +28,7 @@ import {WORLD_HAZARDS, WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENT_BY_ID} from "./dat
 import {patronById, royalAvailable, seaCaptainById} from "./scenario";
 import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
-import {activateMajor, die, navigationCheck, resolveMajorDiplomacy} from "./util";
+import {activateMajor, checkCircumnavigation, die, navigationCheck, resolveMajorDiplomacy} from "./util";
 import {startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {beginGrandVizierEvent, canCancelCardEvent, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, grandVizierInHand, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
@@ -1195,7 +1195,7 @@ export const buildExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; col
     if (captain === undefined || captain.turn > G.year || !G.powers[p].seaCaptains.includes(args.captain) ||
         (args.colony === true && (p === "hre" || (p === "ottoman" && !G.suezDone))) ||
         G.worldCaptains[args.captain] !== undefined || !spend(G, p, cost)) return INVALID_MOVE;
-    G.worldCaptains[args.captain] = {power: p, location: start, damaged: p === "ottoman" && !G.suezDone, colony: args.colony === true};
+    G.worldCaptains[args.captain] = {power: p, location: start, damaged: p === "ottoman" && !G.suezDone, colony: args.colony === true, route: [start]};
     pushLog(G, `${powerLabel(p)} launches ${captain.nameEn}'s expedition from ${WORLD_SEA_ZONE_BY_ID[start].nameEn}${args.colony ? " with a colony" : ""}.`);
 };
 
@@ -1209,9 +1209,12 @@ export const moveExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; zone
         expedition.movedImpulse === G.impulse || !WORLD_SEA_ZONE_BY_ID[expedition.location].adjacent.includes(args.zone) ||
         (!moveAlreadyPaid && !spend(G, p, 1))) return INVALID_MOVE;
     if (WORLD_HAZARDS.has(`${expedition.location}|${args.zone}`) && !navigationCheck(G, ctx, args.captain)) return;
+    const from = expedition.location;
     expedition.location = args.zone;
     expedition.movedImpulse = G.impulse;
+    expedition.route = [...(expedition.route ?? [from]), args.zone];
     pushLog(G, `${args.captain} sails to ${WORLD_SEA_ZONE_BY_ID[args.zone].nameEn}.`);
+    checkCircumnavigation(G, args.captain, from, args.zone);
 };
 
 export const settleColony = (G: VQGame, ctx: Ctx, args: {captain: string; settlement: string}): void | typeof INVALID_MOVE => {

@@ -469,6 +469,37 @@ export const navigationCheck = (G: VQGame, ctx: Ctx, captainId: string): boolean
 };
 
 /** 8.4 Colony Table: each established colony rolls for survival/rewards. */
+/** 16.6 Circumnavigation, checked after an expedition enters an ocean zone. */
+export const checkCircumnavigation = (G: VQGame, captainId: string, from: string, to: string): boolean => {
+    const expedition = G.worldCaptains[captainId];
+    if (expedition === undefined) return false;
+    const recorded = expedition.route ?? [from];
+    const route = recorded[recorded.length - 1] === to ? recorded.slice(0, -1) : recorded;
+    const firstVisit = !route.includes(to);
+    let circumnavigated = false;
+    if (expedition.power === "ottoman") {
+        const returns = route.filter((zone) => zone === "indianOcean").length === 1;
+        const departedTo = from === "southPacific" ? "southPacific" : from === "guineaCoast" ? "guineaCoast" : undefined;
+        const departedFromIndia = departedTo !== undefined && route.indexOf("indianOcean") >= 0 &&
+            route.indexOf(departedTo) > route.indexOf("indianOcean");
+        if (to === "indianOcean" && returns && departedFromIndia) circumnavigated = true;
+    } else {
+        const toIndiaFromGuinea = route.some((zone, i) => zone === "guineaCoast" && route[i + 1] === "indianOcean");
+        const toChileFromAtlantic = route.some((zone, i) => zone === "southAtlantic" && route[i + 1] === "chileanCoast");
+        if (to === "southAtlantic" && from === "chileanCoast" && firstVisit && toIndiaFromGuinea) circumnavigated = true;
+        if (to === "guineaCoast" && from === "indianOcean" && firstVisit && toChileFromAtlantic) circumnavigated = true;
+    }
+    if (!circumnavigated) return false;
+    const number = (G.circumnavigations ?? 0) + 1;
+    G.circumnavigations = number;
+    const vp = number === 1 ? 2 : 1;
+    addVp(G, expedition.power, vp);
+    delete G.worldCaptains[captainId];
+    if (!G.powers[expedition.power].seaCaptains.includes(captainId)) G.powers[expedition.power].seaCaptains.push(captainId);
+    pushLog(G, `${captainId} completes a circumnavigation; ${powerLabel(expedition.power)} gains ${vp} VP.`);
+    return true;
+};
+
 export const resolveColonies = (G: VQGame, ctx: Ctx): void => {
     if (G.scenario === "tutorial") return;
     for (const [settlement, power] of Object.entries(G.worldColonies)) {
