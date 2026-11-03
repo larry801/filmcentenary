@@ -482,7 +482,11 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [viewPower, setViewPower] = React.useState<Power>();
     const owned = controlledPowers(G, playerID);
     const piracyResponder = G.pendingPiracy && (G.pendingPiracy.step === "losses" ? G.pendingPiracy.power : G.pendingPiracy.target);
-    const actionResponder = G.pendingAction && (G.pendingAction.responder ?? (G.pendingAction.power === "ottoman" ? "spain" : "ottoman"));
+    const actionResponders: Power[] = G.pendingAction
+        ? (G.pendingAction.responders ?? [G.pendingAction.responder ?? (G.pendingAction.power === "ottoman" ? "spain" : "ottoman")])
+        : [];
+    const myActionResponder = actionResponders.find((power) => ownerOf(G, power) === playerID);
+    const actionResponder = myActionResponder ?? actionResponders[0];
     const responsePower = G.gregorianResponse && ownerOf(G, G.gregorianResponse.responder) === playerID ? G.gregorianResponse.responder :
         G.pendingBeacon && ownerOf(G, G.pendingBeacon.defender) === playerID ? G.pendingBeacon.defender :
         G.pendingInterceptionOrder && ownerOf(G, G.pendingInterceptionOrder.defender) === playerID ? G.pendingInterceptionOrder.defender :
@@ -769,8 +773,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 <Button key={entry.id} onClick={() => moves.chooseInterception({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
         if (G.pendingAction) return <Stack spacing={1}>
-            <Typography>{G.pendingAction.move === "impulse" ? "行动轮开始响应" : "行动响应"} · 等待 {POWER_NAMES[actionResponder!].zh}。</Typography>
-            {ownerOf(G, actionResponder!) === playerID && actionResponseOptions(G).map((entry) =>
+            <Typography>{G.pendingAction.move === "impulse" ? "行动轮开始响应" : "行动响应"} · 等待 {actionResponders.map((power) => POWER_NAMES[power].zh).join("、")}。</Typography>
+            {myActionResponder !== undefined && actionResponseOptions(G, myActionResponder).map((entry) =>
                 <Button key={entry.id} onClick={() => moves.respondAction({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
         if (G.pendingPiracy) return <Stack spacing={1}>

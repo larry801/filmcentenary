@@ -64,7 +64,7 @@ describe("Sultan's Harem response (card #16)", () => {
     it("does not prompt the same holder again after the impulse window was declined", () => {
         const G = game();
         reachOttomanSecondImpulse(G);
-        expect(G.haremDeclinedImpulse).toBe(G.impulse);
+        expect(G.haremDeclinedImpulse).toEqual({spain: G.impulse});
         expect(G.pendingAction).toBeUndefined();
 
         expect(ottomanMove(G)).toBeUndefined();
@@ -110,7 +110,7 @@ describe("Sultan's Harem response (card #16)", () => {
         beginImpulse(G, "ottoman");
         expect(G.pendingAction).toMatchObject({power: "ottoman", responder: "england", move: "impulse"});
         expect(respondAction(G, context("2"), {choice: "continue"})).toBeUndefined();
-        expect(G.haremDeclinedImpulse).toBe(G.impulse);
+        expect(G.haremDeclinedImpulse).toEqual({england: G.impulse});
 
         expect(ottomanMove(G)).toBeUndefined();
 

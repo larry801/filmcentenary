@@ -525,7 +525,7 @@ export interface VQGame {
     };
     pendingPiracy?: {power: Power; target: Power; zone: SeaZoneID; step: "losses" | "rewards"; remaining: number; rewards: Record<string, number>};
     piracyUsed?: Partial<Record<Power, SeaZoneID[]>>;
-    pendingAction?: {power: Power; responder?: Power; move: "moveLand" | "moveNaval" | "navalTransport" | "assault" | "piracy" | "impulse"; args: {from?: string; to?: string; space?: string; zone?: string; target?: Power; units?: Partial<LandStack>; leaders?: string[]; unitPower?: Controller; zones?: string[]}};
+    pendingAction?: {power: Power; responder?: Power; /** Every eligible responder; `responder` is the first. */ responders?: Power[]; move: "moveLand" | "moveNaval" | "navalTransport" | "assault" | "piracy" | "impulse"; args: {from?: string; to?: string; space?: string; zone?: string; target?: Power; units?: Partial<LandStack>; leaders?: string[]; unitPower?: Controller; zones?: string[]}};
     resumeAction?: boolean;
     pendingNavalOrder?: {attacker: Power; location: string; enemies: Power[]};
     pendingWithdraw?: {active: Power; defender: Power; space: string; origin: string};
@@ -685,11 +685,13 @@ export interface VQGame {
     stormMoved?: string[];
     haremImpulse?: number;
     /**
-     * Impulse whose #16 impulse-start window was declined.  The card is offered
-     * at most once per Ottoman impulse, so the move-declaration harem window is
-     * suppressed for the rest of that impulse.
+     * Impulse in which each power declined its #16 impulse-start window.  The
+     * card is offered at most once per holder per Ottoman impulse, so only a
+     * holder that actually declined is suppressed for the rest of that
+     * impulse; a card transferred to another power can still be offered to the
+     * new holder.
      */
-    haremDeclinedImpulse?: number;
+    haremDeclinedImpulse?: Partial<Record<Power, number>>;
     dragutFought?: boolean;
     pendingAbjuration?: {offers: {power: Power; space: string}[]};
     lockedCards?: Partial<Record<Power, string[]>>;

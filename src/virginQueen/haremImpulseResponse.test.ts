@@ -93,7 +93,7 @@ describe("Sultan's Harem impulse response (card #16)", () => {
         const G = game();
         reachOttomanSecondImpulse(G);
         expect(respondAction(G, context("1"), {choice: "continue"})).toBeUndefined();
-        expect(G.haremDeclinedImpulse).toBe(G.impulse);
+        expect(G.haremDeclinedImpulse).toEqual({spain: G.impulse});
         expect(G.pendingAction).toBeUndefined();
 
         G.powers.ottoman.cp = 5;
