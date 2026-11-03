@@ -170,6 +170,11 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 苏丹娜·萨菲耶（#98）
+
+- 选项 1（穆拉德三世在位且 ≥5 人）：奥斯曼与目标势力交换一张非本国牌；目标为英格兰/法国时奥斯曼再抽 1 张。
+- 选项 2：任何可影响威尼斯的势力 +2 威尼斯影响力并立即评议（已原有）。
+
 ### 唐·安东尼奥（#105）
 
 - 葡萄牙已进入且出牌方未与其结盟：对葡萄牙 +3 影响力并立即评议。
@@ -578,6 +583,7 @@ src/virginQueen/
   tenthPenny.test.ts    #69 第十便士
   campion.test.ts       #107 埃德蒙·坎皮恩
   donAntonio.test.ts    #105 唐·安东尼奥
+  sultanaSafiye.test.ts #98 苏丹娜·萨菲耶选项 1
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -772,3 +778,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #107 埃德蒙·坎皮恩接入后的验证：`jest src/virginQueen --runInBand --silent` 77 suites、486 tests passed（新增 1 项：耶稣会士/转化）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #105 唐·安东尼奥接入后的验证：`jest src/virginQueen --runInBand --silent` 78 suites、488 tests passed（新增 2 项：影响力评议/结盟驻军）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#98 苏丹娜·萨菲耶选项 1 接入后的验证：`jest src/virginQueen --runInBand --silent` 79 suites、489 tests passed（新增 1 项：交换卡牌/抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。

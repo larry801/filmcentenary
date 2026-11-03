@@ -668,6 +668,22 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #68 Taxis Family Courier: give one card to another power and draw one. */
 /** #69 Tenth Penny: Protestant rebellion or Spanish card seizure. */
 /** #107 Edmund Campion: place a Jesuit and make conversion attempts. */
+/** #98 Sultana Safiye option 1: exchange a card with another power. */
+const resolveSultanaSafiye = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    if (p !== "ottoman" || G.powers.ottoman.ruler !== "muradIII" || ctx.numPlayers < 5 ||
+        target === undefined || !isPower(target) || target === "ottoman") return;
+    const give = G.powers.ottoman.cards.find((id) => cardById(id).kind !== "home");
+    const take = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
+    if (give === undefined || take.length === 0) return;
+    const received = take[Math.min(take.length - 1, Math.max(0, die(ctx, take.length) - 1))];
+    G.powers.ottoman.cards = G.powers.ottoman.cards.filter((id) => id !== give);
+    G.powers[target].cards = G.powers[target].cards.filter((id) => id !== received);
+    G.powers[target].cards.push(give);
+    G.powers.ottoman.cards.push(received);
+    if (target === "england" || target === "france") drawCards(G, ctx, "ottoman", 1);
+    pushLog(G, `Sultana Safiye exchanges a card with ${powerLabel(target)}.`);
+};
+
 const resolveEdmundCampion = (G: VQGame, ctx: Ctx): void => {
     const target = SPACES.find((space) => space.area === "england" &&
         totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 && !G.spaces[space.id].unrest);
@@ -1254,6 +1270,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveTenthPenny(G, ctx, p);
     } else if (handler === "edmundCampion") {
         resolveEdmundCampion(G, ctx);
+    } else if (handler === "sultanaSafiye") {
+        resolveSultanaSafiye(G, ctx, p, target);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
