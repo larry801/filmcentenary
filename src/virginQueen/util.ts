@@ -1920,6 +1920,280 @@ export const resolvePatronage = (G: VQGame, ctx: Ctx): void => {
     G.pendingPatronage = [];
 };
 
+// --------------------------------------------------------------------------
+// Winter return home (rule 20.4)
+// --------------------------------------------------------------------------
+
+/** Adjacency used by the winter return paths: land links plus port/sea hops. */
+const winterNeighbors = (id: string): string[] => {
+    if (isSeaZone(id)) {
+        const zone = SEA_ZONE_BY_ID[id as SeaZoneID];
+        return [...zone.adjacent, ...zonePorts(id as SeaZoneID)];
+    }
+    return [...landNeighbors(id).map((neighbor) => neighbor.id), ...portZones(id)];
+};
+
+/** Shortest distance ignoring political control, as required for "nearest" (20.4). */
+const winterDistance = (from: string, to: string): number | undefined => {
+    if (from === to) return 0;
+    const seen = new Set<string>([from]);
+    const queue: {id: string; distance: number}[] = [{id: from, distance: 0}];
+    while (queue.length > 0) {
+        const current = queue.shift() as {id: string; distance: number};
+        for (const next of winterNeighbors(current.id)) {
+            if (seen.has(next)) continue;
+            if (next === to) return current.distance + 1;
+            seen.add(next);
+            queue.push({id: next, distance: current.distance + 1});
+        }
+    }
+    return undefined;
+};
+
+/**
+ * True when a winter move can trace a path where every space after the origin
+ * is friendly-controlled and free of unrest.  Enemy units are ignored and any
+ * number of sea zones may be crossed (rule 20.4).
+ */
+const winterCleanPath = (G: VQGame, p: Power, from: string, to: string): boolean => {
+    if (from === to) return true;
+    const seen = new Set<string>([from]);
+    const queue = [from];
+    while (queue.length > 0) {
+        const current = queue.shift() as string;
+        for (const next of winterNeighbors(current)) {
+            if (seen.has(next)) continue;
+            if (!isSeaZone(next)) {
+                const state = G.spaces[next];
+                if (state === undefined || !friendlyControlled(G, p, next) || state.unrest) continue;
+            }
+            seen.add(next);
+            if (next === to) return true;
+            queue.push(next);
+        }
+    }
+    return false;
+};
+
+/** Distance from a sea zone to a port, counted in sea-zone hops. */
+const winterNavalDistance = (from: SeaZoneID, port: string): number | undefined => {
+    const seen = new Set<SeaZoneID>([from]);
+    const queue: {zone: SeaZoneID; distance: number}[] = [{zone: from, distance: 0}];
+    while (queue.length > 0) {
+        const current = queue.shift() as {zone: SeaZoneID; distance: number};
+        if (zonePorts(current.zone).includes(port)) return current.distance + 1;
+        for (const next of SEA_ZONE_BY_ID[current.zone].adjacent) {
+            if (seen.has(next)) continue;
+            seen.add(next);
+            queue.push({zone: next, distance: current.distance + 1});
+        }
+    }
+    return undefined;
+};
+
+const winterPortRank = (major: Controller, port: string): number =>
+    isPower(major) && CAPITAL_SPACES[major].includes(port) ? 0 : 1;
+
+/** Home capitals that can receive this power's land units (20.4 exceptions). */
+const winterCapitalsFor = (G: VQGame, p: Power, origin?: string): string[] => {
+    const controlled = CAPITAL_SPACES[p].filter((id) => G.spaces[id]?.control === p);
+    if (p !== "protestant" || origin === undefined) return controlled;
+    const dutch = SPACE_BY_ID[origin]?.area === "netherlands";
+    return controlled.filter((id) => dutch ? id === "amsterdam" : id === "laRochelle");
+};
+
+const winterIsCapital = (p: Power, id: string): boolean => CAPITAL_SPACES[p].includes(id);
+
+/** Remove units from a stack, choosing mercenaries, then cavalry, then regulars. */
+const winterTakeUnits = (stack: LandStack, count: number): LandStack => {
+    const taken = emptyLand();
+    let left = count;
+    for (const kind of ["merc", "cav", "regular"] as const) {
+        const n = Math.min(left, stack[kind]);
+        stack[kind] -= n;
+        taken[kind] = n;
+        left -= n;
+        if (left === 0) break;
+    }
+    return taken;
+};
+
+/** Lose half of a moving stack, rounded up.  Returns the number lost. */
+const winterAttrition = (units: LandStack): number => {
+    const losses = Math.ceil(landCount(units) / 2);
+    let left = losses;
+    for (const kind of ["merc", "cav", "regular"] as const) {
+        const n = Math.min(left, units[kind]);
+        units[kind] -= n;
+        left -= n;
+        if (left === 0) break;
+    }
+    return losses;
+};
+
+const winterAddUnits = (G: VQGame, space: string, p: Power, units: LandStack): void => {
+    if (landCount(units) === 0) return;
+    const target = ensureLand(G, space, p);
+    target.regular += units.regular;
+    target.merc += units.merc;
+    target.cav += units.cav;
+};
+
+const winterArmyLeaders = (G: VQGame, space: string, p: Power): string[] =>
+    G.spaces[space].leaders.filter((id) =>
+        LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id]?.kind === "army");
+
+/** A displaced leader returns to a controlled capital, or waits in the pool. */
+const winterLeadersHome = (G: VQGame, from: string, p: Power, leaders: string[]): void => {
+    if (leaders.length === 0) return;
+    const capital = CAPITAL_SPACES[p].find((id) => G.spaces[id]?.control === p);
+    moveLeaders(G, from, capital ?? "pool", leaders);
+    pushLog(G, `${powerLabel(p)} returns ${leaders.length} leader(s) home for the winter.`);
+};
+
+const winterReturnNaval = (G: VQGame): void => {
+    for (const zoneDef of SEA_ZONES) {
+        const zone = G.seaZones[zoneDef.id];
+        const controllers = (Object.keys(zone.naval) as Controller[])
+            .filter((c) => navalCount(zone.naval[c]) > 0);
+        const destinations: Partial<Record<Controller, string>> = {};
+        for (const c of controllers) {
+            const stack = zone.naval[c] as NavalStack;
+            const major: Controller = isPower(c) ? c : minorAlly(G, c as MinorPower) ?? c;
+            const ports = SPACES.filter((def) => G.spaces[def.id].control === major && isPort(def.id))
+                .map((def) => def.id);
+            let best: {port: string; distance: number} | undefined;
+            for (const port of ports) {
+                const distance = winterNavalDistance(zoneDef.id, port);
+                if (distance === undefined) continue;
+                if (best === undefined || distance < best.distance ||
+                    (distance === best.distance &&
+                        (winterPortRank(major, port) < winterPortRank(major, best.port) ||
+                            (winterPortRank(major, port) === winterPortRank(major, best.port) && port < best.port)))) {
+                    best = {port, distance};
+                }
+            }
+            if (best === undefined) {
+                pushLog(G, `${controllerLabel(c)} fleet in ${zoneDef.name} has no port to return to and is eliminated.`);
+                delete zone.naval[c];
+                continue;
+            }
+            const target = ensureNaval(G, best.port, c);
+            target.galley += stack.galley;
+            target.galleon += stack.galleon;
+            target.racebuilt += stack.racebuilt;
+            target.corsair += stack.corsair;
+            delete zone.naval[c];
+            destinations[c] = best.port;
+            pushLog(G, `${controllerLabel(c)} fleet returns from ${zoneDef.name} to ${SPACE_BY_ID[best.port].name}.`);
+        }
+        // A naval leader must return to a port with one of the units that
+        // started the phase in this sea zone (rule 20.4).
+        for (const id of [...zone.leaders]) {
+            const def = LEADER_BY_ID[id];
+            if (def === undefined || def.kind !== "naval") continue;
+            const port = destinations[def.power];
+            if (port !== undefined) {
+                moveLeaders(G, zoneDef.id, port, [id]);
+                pushLog(G, `${def.name} returns to ${SPACE_BY_ID[port].name} with the fleet.`);
+                continue;
+            }
+            const hadFleet = controllers.some((c) =>
+                (isPower(c) ? c : minorAlly(G, c as MinorPower)) === def.power);
+            if (hadFleet) {
+                const capital = CAPITAL_SPACES[def.power].find((cap) => G.spaces[cap]?.control === def.power);
+                moveLeaders(G, zoneDef.id, capital ?? "pool", [id]);
+                pushLog(G, `${def.name} loses the fleet and returns home.`);
+            }
+        }
+    }
+};
+
+const winterReturnLand = (G: VQGame, p: Power): void => {
+    const origins = SPACES.map((def) => def.id)
+        .filter((id) => landCount(G.spaces[id].land[p]) > 0);
+    // 1. Overstacked fortifications send the excess to a home capital.
+    for (const id of origins) {
+        const state = G.spaces[id];
+        const stack = state.land[p];
+        if (stack === undefined || landCount(stack) === 0) continue;
+        if (!isFortifiedSpace(G, id) || state.control !== p || winterIsCapital(p, id) || landCount(stack) <= 4) continue;
+        const capitals = winterCapitalsFor(G, p, id)
+            .map((cap) => ({id: cap, distance: winterDistance(id, cap)}))
+            .filter((candidate): candidate is {id: string; distance: number} => candidate.distance !== undefined)
+            .sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id));
+        const excess = landCount(stack) - 4;
+        if (capitals.length === 0) {
+            removeLandLosses(G, id, [p], excess);
+            cleanupLand(G, id, p);
+            pushLog(G, `${powerLabel(p)} has no capital and loses ${excess} overstacked unit(s) in ${SPACE_BY_ID[id].name}.`);
+            continue;
+        }
+        const capital = capitals[0];
+        const moving = winterTakeUnits(stack, excess);
+        const clean = winterCleanPath(G, p, id, capital.id);
+        const lost = clean ? 0 : winterAttrition(moving);
+        cleanupLand(G, id, p);
+        winterAddUnits(G, capital.id, p, moving);
+        pushLog(G, `${powerLabel(p)} returns ${excess - lost} overstacked unit(s) from ${SPACE_BY_ID[id].name} to ${SPACE_BY_ID[capital.id].name}${lost > 0 ? ` (${lost} lost to winter attrition)` : ""}.`);
+    }
+    // 2. Units outside friendly winter quarters must return home.
+    for (const id of origins) {
+        const state = G.spaces[id];
+        const stack = state.land[p];
+        if (stack === undefined || landCount(stack) === 0) continue;
+        // Friendly fortifications (including capitals) are valid winter quarters.
+        if (state.control === p && isFortifiedSpace(G, id)) continue;
+        const capitals = winterCapitalsFor(G, p, id);
+        const destinations = SPACES.filter((def) => {
+            if (def.id === id) return false;
+            const target = G.spaces[def.id];
+            if (target.control !== p || !isFortifiedSpace(G, def.id)) return false;
+            if (winterIsCapital(p, def.id)) return capitals.includes(def.id);
+            return landCount(target.land[p]) < 4;
+        }).map((def) => def.id);
+        const scored = destinations.map((dest) => ({
+            dest,
+            distance: winterDistance(id, dest) ?? Number.POSITIVE_INFINITY,
+            clean: winterCleanPath(G, p, id, dest),
+            capital: winterIsCapital(p, dest),
+        })).filter((candidate) => Number.isFinite(candidate.distance));
+        const nearestFort = Math.min(
+            ...scored.filter((candidate) => !candidate.capital).map((candidate) => candidate.distance),
+        );
+        // The legal choices are the home capital(s) or the nearest fortification
+        // with room; a clean path is chosen when one exists.
+        const candidates = scored.filter((candidate) =>
+            candidate.capital || candidate.distance === nearestFort);
+        if (candidates.length === 0) {
+            const leaders = winterArmyLeaders(G, id, p);
+            const count = landCount(stack);
+            delete state.land[p];
+            winterLeadersHome(G, id, p, leaders);
+            pushLog(G, `${powerLabel(p)} loses ${count} unit(s) in ${SPACE_BY_ID[id].name}: no winter quarters.`);
+            continue;
+        }
+        candidates.sort((a, b) =>
+            Number(b.clean) - Number(a.clean) ||
+            a.distance - b.distance ||
+            Number(b.capital) - Number(a.capital) ||
+            a.dest.localeCompare(b.dest));
+        const chosen = candidates[0];
+        const lost = chosen.clean ? 0 : winterAttrition(stack);
+        const leaders = winterArmyLeaders(G, id, p);
+        if (landCount(stack) === 0) {
+            cleanupLand(G, id, p);
+            winterLeadersHome(G, id, p, leaders);
+            pushLog(G, `${powerLabel(p)} loses ${lost} unit(s) to winter attrition in ${SPACE_BY_ID[id].name}.`);
+            continue;
+        }
+        winterAddUnits(G, chosen.dest, p, stack);
+        delete state.land[p];
+        moveLeaders(G, id, chosen.dest, leaders);
+        pushLog(G, `${powerLabel(p)} withdraws ${landCount(stack)} unit(s) from ${SPACE_BY_ID[id].name} to ${SPACE_BY_ID[chosen.dest].name}${lost > 0 ? ` (${lost} lost to winter attrition)` : ""}.`);
+    }
+};
+
 export const winter = (G: VQGame, ctx: Ctx): void => {
     if (G.scenario === "tutorial" && G.year === 2 && G.powers.ottoman.ruler === "suleiman") {
         G.deck = G.deck.filter((id) => id !== "vq-006");
@@ -1942,33 +2216,9 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     }
     if (neutralized > 0) pushLog(G, `${neutralized} neutralized informant(s) returned to their owners.`);
     // Captains finish their annual expedition in place; a colony already placed remains on the map.
+    winterReturnNaval(G);
     for (const p of POWERS) {
-        // Land units outside friendly fortified quarters return home.
-        for (const def of SPACES) {
-            const s = G.spaces[def.id];
-            const stack = s.land[p];
-            if (stack === undefined || landCount(stack) === 0) {
-                continue;
-            }
-            const friendlyHere = s.control === p || (isPower(s.control) && allied(G, p, s.control));
-            if (isFortifiedSpace(G, def.id) && friendlyHere && !s.unrest) {
-                continue;
-            }
-            const dest = nearestFriendlyFortified(G, p, def.id);
-            if (dest === undefined || dest === def.id) {
-                pushLog(G, `${powerLabel(p)} loses ${landCount(stack)} unit(s) to winter attrition in ${def.name}.`);
-                delete s.land[p];
-                continue;
-            }
-            const tgt = ensureLand(G, dest, p);
-            tgt.regular += stack.regular;
-            tgt.merc += stack.merc;
-            tgt.cav += stack.cav;
-            delete s.land[p];
-            const armyLeaders = s.leaders.filter((id) => LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id]?.kind === "army");
-            moveLeaders(G, def.id, dest, armyLeaders);
-            pushLog(G, `${powerLabel(p)} withdraws ${landCount(stack)} unit(s) from ${def.name} to ${SPACE_BY_ID[dest].name}.`);
-        }
+        winterReturnLand(G, p);
         // Replacements at each controlled capital.
         for (const cap of ownerOf(G, p) === undefined ? [] : CAPITAL_SPACES[p]) {
             const s = G.spaces[cap];
