@@ -2,6 +2,7 @@ import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
 import {playCard} from "./moves";
 import {SPACES} from "./mapData";
+import {patronById} from "./scenario";
 import {setupGame, warCost} from "./util";
 
 const context = (): Ctx => ({
@@ -24,6 +25,20 @@ describe("Papal Bull (card #5)", () => {
         expect(playCard(G, context(), {cardId: "vq-005", asEvent: true, target: "excommunicate"})).toBeUndefined();
 
         expect(G.elizabethExcommunicated).toBe(true);
+    });
+
+    it("can sponsor an Italian patron", () => {
+        const G = game();
+        G.powers.spain.cards = ["vq-005"];
+        G.powers.spain.alliedMinors = ["papacy"];
+        G.minorDiplomacyResolved = [...new Set([...G.minorDiplomacyResolved, "papacy"])];
+        const patron = G.patronsAvailable.map((id) => patronById(G, id)).find((candidate) =>
+            candidate?.region === "italy" && candidate.rating !== null && !G.powers.spain.patrons.includes(candidate.id));
+        expect(patron).toBeDefined();
+
+        expect(playCard(G, context(), {cardId: "vq-005", asEvent: true, target: `patron:${patron!.id}`})).toBeUndefined();
+
+        expect(G.pendingPatronage.some((entry) => entry.patronId === patron!.id && entry.power === "spain")).toBe(true);
     });
 
     it("reduces the England-Spain war cost by 2", () => {

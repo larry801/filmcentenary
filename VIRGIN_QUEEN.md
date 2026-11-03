@@ -1204,7 +1204,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #35 指定给牌接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、616 tests passed（新增 1 项：指定交牌）；`npm run build` 通过。
 
-#5 教宗诏书选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、619 tests passed（新增 3 项：绝罚伊丽莎白、绝罚降低战争费用、找回神圣同盟）；`npm run build` 通过。
+#5 教宗诏书选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、626 tests passed（新增 4 项：绝罚伊丽莎白、绝罚降低战争费用、意大利赞助、找回神圣同盟）；`npm run build` 通过。
 
 #32 双地区叛乱接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、620 tests passed（新增 1 项：两地区叛乱）；`npm run build` 通过。
 
