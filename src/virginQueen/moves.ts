@@ -674,6 +674,25 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #103 Act of Abjuration: one power allies with the Protestant and sends troops. */
 /** #111 Paris is Worth a Mass: move the Huguenot capital to Paris. */
 /** #109 Union of Arras: remove Dutch mercenaries, secure five spaces, raise Walloons. */
+/** #11 Dragut Falls: kill Dragut and bring Uluch Ali next turn. */
+const resolveDragutFalls = (G: VQGame): void => {
+    if (G.spaces.djerba?.control !== "spain" && G.spaces.tripoli?.control !== "spain") return;
+    const dragut = G.leaders.dragut;
+    if (dragut !== undefined && dragut.location !== "pool") {
+        if (G.spaces[dragut.location] !== undefined) {
+            G.spaces[dragut.location].leaders = G.spaces[dragut.location].leaders.filter((id) => id !== "dragut");
+        } else if (G.seaZones[dragut.location as keyof VQGame["seaZones"]] !== undefined) {
+            G.seaZones[dragut.location as keyof VQGame["seaZones"]].leaders =
+                G.seaZones[dragut.location as keyof VQGame["seaZones"]].leaders.filter((id) => id !== "dragut");
+        }
+    }
+    delete G.leaders.dragut;
+    G.leaders.uluchAli = {id: "uluchAli", location: "pool", returnTurn: G.year + 1};
+    addVp(G, "spain", 1);
+    removeCardFromGame(G, "vq-011");
+    pushLog(G, "Dragut falls; Uluch Ali returns next turn and Spain gains 1 VP.");
+};
+
 const resolveUnionOfArras = (G: VQGame): void => {
     for (const space of SPACES.filter((def) => def.area === "netherlands")) {
         const state = G.spaces[space.id];
@@ -1384,6 +1403,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveParisMass(G);
     } else if (handler === "unionOfArras") {
         resolveUnionOfArras(G);
+    } else if (handler === "dragutFalls") {
+        resolveDragutFalls(G);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
@@ -1513,7 +1534,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     if (args.asEvent === true && timedResponseCard && !isBeaconFires && !tutorialEvent && G.cardWindow?.kind !== "response" &&
-        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack"].includes(cardHandler)) {
+        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack", "dragutFalls"].includes(cardHandler)) {
         return INVALID_MOVE;
     }
     const cancellation = args.asEvent === true ? cancelEventResponder(G, def) : undefined;
