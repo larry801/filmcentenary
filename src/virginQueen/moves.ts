@@ -921,6 +921,9 @@ const resolveElDorado = (G: VQGame, target?: string): void => {
     if (expedition === undefined || !["spanishMain", "antilles"].includes(expedition.location)) return;
     delete G.worldCaptains[target];
     G.seaCaptainReturn = {...(G.seaCaptainReturn ?? {}), [target]: {power: expedition.power, turn: G.year + 1}};
+    if (expedition.companion !== undefined) {
+        G.seaCaptainReturn[expedition.companion] = {power: expedition.power, turn: G.year + 1};
+    }
     pushLog(G, `${target} departs for El Dorado; the expedition ends and returns next turn.`);
 };
 

@@ -17,11 +17,12 @@ describe("El Dorado (card #51)", () => {
     it("ends a northern South America expedition and schedules its return", () => {
         const G = game();
         G.powers.england.cards = ["vq-051"];
-        G.worldCaptains.drake = {power: "england", location: "spanishMain", damaged: false, colony: false};
+        G.worldCaptains.drake = {power: "england", location: "spanishMain", damaged: false, colony: false, companion: "hawkins"};
 
         expect(playCard(G, context(), {cardId: "vq-051", asEvent: true, target: "drake"})).toBeUndefined();
 
         expect(G.worldCaptains.drake).toBeUndefined();
         expect(G.seaCaptainReturn?.drake.turn).toBe(G.year + 1);
+        expect(G.seaCaptainReturn?.hawkins.turn).toBe(G.year + 1);
     });
 });
