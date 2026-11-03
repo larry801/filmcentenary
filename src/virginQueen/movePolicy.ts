@@ -4,6 +4,7 @@ import {tutorialActionError} from "./tutorial";
 import {LEADER_BY_ID} from "./constant/leaders";
 
 export const moveError = (G: VQGame, move: string, args?: unknown): string | undefined => {
+    if (G.pendingCardEvent && move !== "chooseCardEvent") return "请先完成当前事件响应。";
     if ((G.pendingBattle || G.pendingTutorialEvent || G.pendingActivation || G.pendingPiracy || G.pendingAction || G.pendingIntercept) && !["chooseBattle", "chooseTutorialEvent", "chooseMajorActivation", "choosePiracy", "respondAction", "chooseInterception"].includes(move)) return "请先完成当前响应。";
     const tutorialError = tutorialActionError(G, move, args);
     if (tutorialError) return tutorialError;

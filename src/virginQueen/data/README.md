@@ -121,7 +121,10 @@ track offsets, official card pools and turn availability, scenario royals,
 patron and science catalogs, and scenario captain assignments. Shared
 France/Protestant captains can be claimed during Card Draw. Scenario patron
 The current data includes patron ratings and the full VP award-marker pool.
-Complex card text outside the tutorial also remains manual. Tutorial handlers
+Most complex card text outside the tutorial remains manual. Grand Vizier's
+recruitment, Suez Canal attempt and event-cancellation window are implemented
+in `../cardEvents.ts` for normal games and the tutorial, with the printed
+player-count restrictions. Tutorial handlers
 live in `../tutorialEvents.ts`; the existence of a handler does not establish
 full coverage of every printed timing or choice (see the main coverage notes).
 

@@ -431,6 +431,19 @@ export interface VQGame {
         stormImpulse?: number;
         movedAfterStorm?: string[];
     };
+    pendingCardEvent?: {
+        kind: "grandVizier";
+        cardId: string;
+        responding: "ottoman";
+        step: "effect" | "recruit";
+        remaining: number;
+    } | {
+        kind: "cancelEvent";
+        cardId: string;
+        power: Power;
+        responding: "ottoman";
+        target?: string;
+    };
     pendingTutorialEvent?: {
         cardId: string;
         power: Power;

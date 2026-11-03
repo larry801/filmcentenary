@@ -75,6 +75,7 @@ import {scenarioName} from "../scenario";
 import {Controller} from "../constant/general";
 import {battleOptions} from "../combat";
 import {canPlayTutorialEvent, tutorialEventOptions} from "../tutorialEvents";
+import {canPlayGrandVizier, cardEventOptions, isGrandVizier} from "../cardEvents";
 import {piracyOptions} from "../piracy";
 import {actionResponseOptions} from "../moves";
 import {interceptionOptions} from "../interception";
@@ -181,6 +182,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
     const responsePower = G.pendingIntercept && ownerOf(G, G.pendingIntercept.defender) === playerID ? G.pendingIntercept.defender :
         actionResponder && ownerOf(G, actionResponder) === playerID ? actionResponder :
         piracyResponder && ownerOf(G, piracyResponder) === playerID ? piracyResponder :
+        G.pendingCardEvent && ownerOf(G, G.pendingCardEvent.responding) === playerID ? G.pendingCardEvent.responding :
         G.pendingTutorialEvent && ownerOf(G, G.pendingTutorialEvent.responding) === playerID ? G.pendingTutorialEvent.responding :
         G.pendingBattle && ownerOf(G, G.pendingBattle.responding) === playerID ? G.pendingBattle.responding :
         G.pendingBetrothal && ownerOf(G, G.pendingBetrothal.target) === playerID ? G.pendingBetrothal.target : undefined;
@@ -191,7 +193,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
     const hand = ps?.cards ?? [];
-    const canAct = myTurn && phase === "action" && !G.pendingBattle && !G.pendingActivation && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept;
+    const canAct = myTurn && phase === "action" && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept;
 
     React.useEffect(() => {
         setMode("inspect");
@@ -325,7 +327,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
             </FormControl>}
             <Stack direction="row" spacing={0.5} sx={{mt: 0.5}}>
                 {(def.kind !== "command" || def.officialKind === "mandatory" || G.scenario === "tutorial") && <Button size="small" variant="contained"
-                                                  disabled={disabled || foreignWarBlocked || (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
+                                                  disabled={disabled || foreignWarBlocked ||
+                                                      (isGrandVizier(def) && !canPlayGrandVizier(G, me!, ctx.numPlayers)) ||
+                                                      (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
                                                   onClick={() => {moves.playCard({cardId: id, asEvent: true,
                                                       ...(foreignWarPower !== undefined ? {target: String(foreignArmySize)} : {})}); setSelectedCard(undefined);}}>
                     {def.kind === "home" ? "使用能力" : "作为事件"}
@@ -337,6 +341,22 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
     };
 
     const actionPanel = () => {
+        if (G.pendingCardEvent) return <Stack spacing={1}>
+            <Typography>{G.pendingCardEvent.kind === "cancelEvent" ? "事件响应" : "大维齐尔"} · 等待奥斯曼帝国选择。</Typography>
+            {G.pendingCardEvent.kind === "cancelEvent" ? <Typography variant="body2">
+                {cardById(G.pendingCardEvent.cardId).name} 尚未结算；可打出大维齐尔取消此事件。
+            </Typography> : G.pendingCardEvent.step === "recruit" ? <Typography variant="body2">
+                还可增加 {G.pendingCardEvent.remaining} 个单位。正规军可放入合法家乡地区或境外战争；桨帆船限爱琴海家乡港口。
+            </Typography> : <Typography variant="body2">
+                选择增募单位或尝试建造运河。苏伊士运河仅限 5～6 人局；取消事件在其他事件结算前选择。
+            </Typography>}
+            {G.pendingCardEvent.kind === "grandVizier" && G.pendingCardEvent.step === "effect" && ctx.numPlayers >= 5 &&
+                !G.suezDone && <Typography variant="body2">
+                    运河判定：掷 1 骰，加累计失败 {G.suezAttempts} 次{G.powers.ottoman.scienceBonuses.includes("excavation") ? "，再加挖掘奖励 2" : ""}，达到 6 即成功；奖励 2 VP 和永久抽牌 +1。
+                </Typography>}
+            {ownerOf(G, G.pendingCardEvent.responding) === playerID && cardEventOptions(G, ctx.numPlayers).map((entry) =>
+                <Button key={entry.id} onClick={() => moves.chooseCardEvent({choice: entry.id})}>{entry.label}</Button>)}
+        </Stack>;
         if (G.pendingIntercept) return <Stack spacing={1}>
             <Typography>拦截 · 等待 {POWER_NAMES[G.pendingIntercept.defender].zh}。</Typography>
             {ownerOf(G, G.pendingIntercept.defender) === playerID && interceptionOptions(G).map((entry) =>
@@ -650,11 +670,13 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                     </Select>
                 </FormControl>
                 <Stack direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
-                    <Button size="small" variant="outlined" disabled={!myTurn || cp < expeditionCost || expeditionCaptain === "" || (me === "hre" && expeditionHasColony)}
+                    <Button size="small" variant="outlined" disabled={!myTurn || cp < expeditionCost || expeditionCaptain === "" ||
+                        (expeditionHasColony && (me === "hre" || (me === "ottoman" && !G.suezDone)))}
                             onClick={() => moves.buildExpedition({captain: expeditionCaptain, colony: expeditionHasColony})}>
                         建立探险队 ({expeditionCost} CP)
                     </Button>
                     <Button size="small" variant={expeditionHasColony ? "contained" : "outlined"}
+                            disabled={me === "hre" || (me === "ottoman" && !G.suezDone)}
                             onClick={() => setExpeditionHasColony(!expeditionHasColony)}>携带殖民地</Button>
                 </Stack>
                 <Divider/>
@@ -932,7 +954,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
     };
 
     const pendingPower = G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
-        G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target;
+        G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target;
     const hasResponse = pendingPower !== undefined && ctx.gameover === undefined;
     const selectedSea = selected ? G.seaZones[selected as keyof VQGame["seaZones"]] : undefined;
     const panelProps = (name: string) => ({id: `${panelID}-${name}`, role: isDesktop ? undefined : "tabpanel",
@@ -942,7 +964,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
             if (actionRef.current) actionRef.current.scrollTop = 0;
             if (sidebarRef.current) sidebarRef.current.scrollTop = 0;
         }
-    }, [hasResponse, pendingPower, G.pendingBattle?.step, G.pendingPiracy?.step, G.pendingTutorialEvent?.step]);
+    }, [hasResponse, pendingPower, G.pendingBattle?.step, G.pendingPiracy?.step, G.pendingTutorialEvent?.step, G.pendingCardEvent]);
 
     return <VQSurface><div className="vq-board">
         <header className="vq-status">

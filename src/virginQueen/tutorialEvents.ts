@@ -2,6 +2,7 @@ import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {Controller, LandStack, MinorPower, MINOR_POWERS, Power, VQGame, controllerNameZh, isPower, landCount, navalCount} from "./constant/general";
 import {cardById} from "./constant/cards";
+import {beginGrandVizierEvent, canPlayGrandVizier} from "./cardEvents";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {LAND_NEIGHBORS, SPACE_BY_ID, SPACES} from "./mapData";
 import {ownerOf} from "./ownership";
@@ -9,7 +10,7 @@ import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
 import {TUTORIAL_KEYS, tutorialSpaceAllowed} from "./tutorial";
 import {startBattle} from "./combat";
 import {
-    addLand, addNaval, atWar, atWarWithMinor, capitalOf, captureLeaders, cleanupLand, cleanupNaval, discardCard, drawCards, ensureLand, friendlyControlled,
+    addLand, atWar, atWarWithMinor, capitalOf, captureLeaders, cleanupLand, cleanupNaval, discardCard, drawCards, ensureLand, friendlyControlled,
     friendlyController, hits, isFortifiedSpace, isPort, minorAlly, moveLeaders, ownersWithLand,
     powerVp, pushLog, removeCardFromHand, resolveMajorDiplomacy, resolveMinorDiplomacy,
     ownersWithNaval, roll, setWar, shuffle, totalLand, totalNaval,
@@ -184,13 +185,12 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
         !G.spaces[space.id].unrest && totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 &&
         (number !== 28 || neighborsWithin(effects(G).moriscoSpace ?? "granada", 2).includes(space.id)))
         .map((space) => spaceOption(space.id));
-    if (number === 1 || number === 21) {
+    if (number === 21) {
         const result: TutorialEventOption[] = [];
         for (const space of activeSpaces()) {
             const state = G.spaces[space.id];
             if (state.control !== power || state.siege || state.unrest) continue;
-            if (number === 21 || (space.home === "ottoman" && !["algiers", "tripoli"].includes(space.id))) result.push(option(`regular:${space.id}`, `增加 1 正规军：${space.name}`));
-            if (number === 1 && space.home === "ottoman" && space.ports?.includes("aegean")) result.push(option(`galley:${space.id}`, `增加 1 桨帆船：${space.name}`));
+            result.push(option(`regular:${space.id}`, `增加 1 正规军：${space.name}`));
         }
         return result;
     }
@@ -222,6 +222,7 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
 export const canPlayTutorialEvent = (G: VQGame, power: Power, cardId: string): boolean => {
     const number = cardById(cardId).officialNumber;
     if (number === undefined || number > 31) return false;
+    if (number === 1) return canPlayGrandVizier(G, power, 2);
     if ([7, 8, 9, 10, 12, 14, 15].includes(number)) return false;
     if (number === 16) return power === "ottoman";
     if (number === 3) return power === "spain" && G.spaces.milan.control === "spain" && !G.spaces.milan.siege && !G.spaces.milan.unrest;
@@ -240,6 +241,7 @@ const resolveTrack = (G: VQGame, ctx: Ctx, track: string): void => {
 
 export const beginTutorialEvent = (G: VQGame, ctx: Ctx, power: Power, cardId: string, skipCancel = false): void => {
     const number = cardById(cardId).officialNumber!;
+    if (number === 1) {beginGrandVizierEvent(G, ctx, cardId); return;}
     G.tutorialEffects ??= {nextDraw: {}, skip: [], piracyVp: 0};
     if (!skipCancel && power !== "ottoman" && G.powers.ottoman.cards.includes("vq-001") &&
         cardById(cardId).officialKind === "event") {
@@ -273,7 +275,7 @@ export const beginTutorialEvent = (G: VQGame, ctx: Ctx, power: Power, cardId: st
         return;
     }
     let step = "target";
-    let remaining = number === 1 ? 4 : number === 21 || number === 25 ? 3 : number === 13 && power === "ottoman" ? 2 : 1;
+    let remaining = number === 21 || number === 25 ? 3 : number === 13 && power === "ottoman" ? 2 : 1;
     if (number === 20 || number === 24) {step = "influence"; remaining = number === 20 ? 3 : 4;}
     if (number === 25) step = "unrest";
     if (number === 3) {
@@ -431,9 +433,8 @@ export const chooseTutorialEvent = (G: VQGame, ctx: Ctx, args: {choice: string})
             pending.responding = power;
             pending.step = "leader";
         }
-    } else if (number === 1 || number === 21) {
-        if (action === "regular") addLand(G, target, power, "regular", 1);
-        else addNaval(G, target, power, "galley", 1);
+    } else if (number === 21) {
+        addLand(G, target, power, "regular", 1);
         pending.remaining -= 1;
     } else if (number === 2) {
         pending.space = target;

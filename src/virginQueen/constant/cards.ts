@@ -24,8 +24,8 @@ export const HOME_CARDS: CardDef[] = [
         "vq-home-grand-vizier",
         "ottoman",
         "Grand Vizier",
-        2,
-        "Extra CP; OR attempt to complete the Suez Canal (roll 6+, +1 per previous attempt, +2 with Excavation).",
+        5,
+        "Add 4 regulars/galleys; OR attempt the Suez Canal (5–6 players, roll 6+, +1 per failed attempt, +2 with Excavation); OR cancel an Event card before it resolves.",
         {kind: "suez"},
     ),
     home(

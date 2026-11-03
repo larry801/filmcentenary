@@ -42,6 +42,7 @@ import {
     patronize,
     piracy,
     playCard,
+    chooseCardEvent,
     playTreasure,
     preach,
     rebellion,
@@ -88,6 +89,7 @@ const powerOrder = {
 };
 
 const choiceStages = {
+    cardEvent: {moves: {chooseCardEvent}},
     activateMajor: {moves: {chooseMajorActivation}},
     battleChoice: {moves: {chooseBattle}},
     tutorialEvent: {moves: {chooseTutorialEvent}},

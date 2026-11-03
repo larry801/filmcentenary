@@ -15,6 +15,37 @@ const fakeCtx = (): Ctx => ({
 } as unknown as Ctx);
 
 describe("Virgin Queen board", () => {
+    it.each([2, 6])("shows Grand Vizier effects only to Ottoman and limits the canal by player count (%s)", (numPlayers) => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.pendingCardEvent = {kind: "grandVizier", cardId: "vq-001", responding: "ottoman", step: "effect", remaining: 4};
+        for (const playerID of ["0", "1", null]) {
+            const html = renderToStaticMarkup(<VirginQueenBoard {...{
+                G, ctx: {phase: "action", currentPlayer: "0", numPlayers}, moves: {}, playerID, isActive: playerID === "0",
+            } as any}/>);
+            expect(html.includes(">增募 4 个正规军／桨帆船<")).toBe(playerID === "0");
+            expect(html.includes(">尝试建造苏伊士运河<")).toBe(playerID === "0" && numPlayers === 6);
+            expect(html).toContain("需要响应 · 奥斯曼帝国");
+        }
+    });
+
+    it("shows recruitment counts and exposes cancellation only to the Ottoman responder", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+        G.powers.ottoman.cards = ["vq-001"];
+        G.pendingCardEvent = {kind: "grandVizier", cardId: "vq-001", responding: "ottoman", step: "recruit", remaining: 3};
+        const render = (playerID: string | null) => renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: "1", numPlayers: 2}, moves: {}, playerID, isActive: playerID === "0",
+        } as any}/>);
+        expect(render("0")).toContain("还可增加 3 个单位");
+        G.pendingCardEvent = {kind: "cancelEvent", cardId: "vq-021", power: "spain", responding: "ottoman"};
+        for (const playerID of ["0", "1", null]) {
+            const html = render(playerID);
+            expect(html).toContain("Foreign Volunteers");
+            expect(html.includes(">打出大维齐尔，取消事件<")).toBe(playerID === "0");
+            expect(html.includes(">允许事件结算<")).toBe(playerID === "0");
+            expect(html).toContain("响应：完成大维齐尔选择");
+        }
+    });
+
     it("shows Spanish Road formation controls only to the Spanish responder", () => {
         const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
         G.pendingTutorialEvent = {cardId: "vq-003", power: "spain", responding: "spain", step: "roadFormation",

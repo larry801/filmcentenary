@@ -30,6 +30,7 @@ import {moveError} from "./movePolicy";
 import {activateMajor, resolveMajorDiplomacy} from "./util";
 import {startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
+import {beginGrandVizierEvent, canCancelCardEvent, canPlayGrandVizier, cardEventOptions, chooseGrandVizierEvent, grandVizierInHand, isGrandVizier} from "./cardEvents";
 import {startPiracy} from "./piracy";
 import {offerInterception} from "./interception";
 import {tutorialSpaceAllowed} from "./tutorial";
@@ -290,6 +291,59 @@ const payWarCost = (G: VQGame, p: Power, cost: number): boolean => {
 // Action Phase: impulses
 // --------------------------------------------------------------------------
 
+const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, target?: string): void => {
+    const def = cardById(cardId);
+    const handler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
+    const beneficiary = foreignWarPower(handler);
+    if (isGrandVizier(def)) {
+        beginGrandVizierEvent(G, ctx, cardId);
+    } else if (G.scenario === "tutorial") {
+        beginTutorialEvent(G, ctx, p, cardId, true);
+    } else if (beneficiary !== undefined) {
+        startForeignWar(G, cardId, beneficiary, Number(target));
+    } else if (def.effect !== undefined) {
+        resolveEvent(G, ctx, p, def.effect);
+    } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
+        // Official minor-power event handler resolved above.
+    } else if (def.officialEffect !== undefined && resolveOfficialCardEffect(G, ctx, p, def, target)) {
+        // The typed card-table effect resolved above.
+    } else if (def.officialNumber !== undefined) {
+        pushLog(G, `Official event text: ${def.text ?? ""}`);
+    }
+    if (handler === "polishRoyalElection" && G.foreignWars.hre?.status === "active") {
+        endForeignWar(G, "hre");
+        pushLog(G, "The Polish Royal Election ends the HRE's foreign war.");
+    }
+    if (handler === "selimII") {
+        G.powers.ottoman.ruler = "selimII";
+        pushLog(G, "Selim II succeeds Suleiman; the Ottoman Home card exception ends.");
+    }
+    if (def.officialKind === "mandatory") {
+        G.powers[p].cp += 2;
+        pushLog(G, `${powerLabel(p)} receives 2 CP after the mandatory event.`);
+    }
+};
+
+export const chooseCardEvent = (G: VQGame, ctx: Ctx, args: {choice: string}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingCardEvent;
+    if (!pending || ctx.playerID !== ownerOf(G, pending.responding) ||
+        !cardEventOptions(G, ctx.numPlayers).some((option) => option.id === args.choice)) return INVALID_MOVE;
+    if (pending.kind === "grandVizier") return chooseGrandVizierEvent(G, ctx, args.choice);
+    delete G.pendingCardEvent;
+    ctx.events?.endStage();
+    if (args.choice === "cancel") {
+        discardCard(G, pending.power, pending.cardId, false);
+        const responseCard = grandVizierInHand(G)!;
+        removeCardFromHand(G, "ottoman", responseCard);
+        discardCard(G, "ottoman", responseCard, true);
+        pushLog(G, `Grand Vizier cancels ${cardById(pending.cardId).name}.`);
+    } else {
+        // Continue with the original power and target, without playing or discarding twice.
+        discardCard(G, pending.power, pending.cardId, true);
+        resolvePlayedCardEvent(G, {...ctx, playerID: ownerOf(G, pending.power)}, pending.power, pending.cardId, pending.target);
+    }
+};
+
 export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: boolean; target?: string }): void | typeof INVALID_MOVE => {
     if (moveError(G, "playCard", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
@@ -304,6 +358,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     const def = cardById(args.cardId);
+    if (args.asEvent === true && isGrandVizier(def) && !canPlayGrandVizier(G, p, ctx.numPlayers)) return INVALID_MOVE;
     const cardHandler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
     const beneficiary = foreignWarPower(cardHandler);
     if (args.asEvent === true && beneficiary !== undefined) {
@@ -354,39 +409,21 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (args.asEvent === true && timedResponseCard && !tutorialEvent && G.cardWindow?.kind !== "response") {
         return INVALID_MOVE;
     }
+    const cancelWindow = args.asEvent === true && canCancelCardEvent(G, def);
     removeCardFromHand(G, p, args.cardId);
-    discardCard(G, p, args.cardId, args.asEvent === true);
+    // Event-only removal is deferred until the Ottoman accepts or cancels the event.
+    if (!cancelWindow) discardCard(G, p, args.cardId, args.asEvent === true);
     ps.cardPlayed = true;
     markAction(G, p);
     if (args.asEvent === true) {
         pushLog(G, `${powerLabel(p)} plays ${def.name} as an event.`);
-        if (tutorialEvent) {
-            beginTutorialEvent(G, ctx, p, args.cardId);
-        } else if (beneficiary !== undefined) {
-            startForeignWar(G, args.cardId, beneficiary, Number(args.target));
-        } else if (def.effect !== undefined) {
-            resolveEvent(G, ctx, p, def.effect);
-        } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
-            // Official minor-power event handler resolved above.
-        } else if (def.officialEffect !== undefined &&
-            resolveOfficialCardEffect(G, ctx, p, def, args.target)) {
-            // The typed card-table effect resolved above.
-        } else if (def.officialNumber !== undefined) {
-            pushLog(G, `Official event text: ${def.text ?? ""}`);
+        if (cancelWindow) {
+            G.pendingCardEvent = {kind: "cancelEvent", cardId: args.cardId, power: p, responding: "ottoman",
+                ...(args.target !== undefined ? {target: args.target} : {})};
+            ctx.events?.setActivePlayers({value: {[ownerOf(G, "ottoman")!]: "cardEvent"}});
+            return;
         }
-        if (cardHandler === "polishRoyalElection" && G.foreignWars.hre?.status === "active") {
-            endForeignWar(G, "hre");
-            pushLog(G, "The Polish Royal Election ends the HRE's foreign war.");
-        }
-        if (cardHandler === "selimII") {
-            G.powers.ottoman.ruler = "selimII";
-            pushLog(G, "Selim II succeeds Suleiman; the Ottoman Home card exception ends.");
-        }
-        if (mandatory) {
-            // Mandatory events resolve before their printed two command points.
-            ps.cp += 2;
-            pushLog(G, `${powerLabel(p)} receives 2 CP after the mandatory event.`);
-        }
+        resolvePlayedCardEvent(G, ctx, p, args.cardId, args.target);
     } else {
         ps.cp += def.cp;
         pushLog(G, `${powerLabel(p)} plays ${def.name} for ${def.cp} CP.`);
@@ -1046,7 +1083,8 @@ export const buildExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; col
     const baseCost = captain?.bonus.startsWith("Costs 2 CP") === true ? 2 : 1;
     const cost = baseCost + (args.colony && !freeColonist && !freeScienceColony ? 1 : 0);
     if (captain === undefined || captain.turn > G.year || !G.powers[p].seaCaptains.includes(args.captain) ||
-        (args.colony === true && p === "hre") || G.worldCaptains[args.captain] !== undefined || !spend(G, p, cost)) return INVALID_MOVE;
+        (args.colony === true && (p === "hre" || (p === "ottoman" && !G.suezDone))) ||
+        G.worldCaptains[args.captain] !== undefined || !spend(G, p, cost)) return INVALID_MOVE;
     G.worldCaptains[args.captain] = {power: p, location: start, damaged: p === "ottoman" && !G.suezDone, colony: args.colony === true};
     pushLog(G, `${powerLabel(p)} launches ${captain.nameEn}'s expedition from ${WORLD_SEA_ZONE_BY_ID[start].nameEn}${args.colony ? " with a colony" : ""}.`);
 };
