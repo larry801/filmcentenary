@@ -74,9 +74,14 @@ export const applyNavalCombatLosses = (
     return removed;
 };
 
-/** Move a retreating stack to an adjacent legal location; eliminate it if none. */
-export const retreatNaval = (G: VQGame, location: string, owners: Controller[], portAttacker = false): boolean => {
-    const candidates = [...Object.keys(SEA_ZONE_BY_ID), ...Object.keys(SPACE_BY_ID)]
+/** Adjacent legal destinations for a retreating/avoiding naval force. */
+export const navalRetreatCandidates = (
+    G: VQGame,
+    location: string,
+    owners: Controller[],
+    portAttacker = false,
+): string[] =>
+    [...Object.keys(SEA_ZONE_BY_ID), ...Object.keys(SPACE_BY_ID)]
         .filter((id) => id !== location && navalAdjacent(location, id))
         .filter((id) => {
             if (portAttacker && !isSeaZone(id)) return false;
@@ -87,12 +92,16 @@ export const retreatNaval = (G: VQGame, location: string, owners: Controller[], 
             return true;
         })
         .sort((a, b) => Number(SPACE_BY_ID[b] !== undefined) - Number(SPACE_BY_ID[a] !== undefined));
+
+/** Move a retreating stack to an adjacent legal location; eliminate it if none. */
+export const retreatNaval = (G: VQGame, location: string, owners: Controller[], portAttacker = false): boolean => {
+    const candidates = navalRetreatCandidates(G, location, owners, portAttacker);
     if (candidates.length === 0) {
         for (const owner of owners) delete navalAt(G, location)[owner];
         const leaders = leadersAt(G, location).filter((id) => LEADER_BY_ID[id]?.kind === "naval" &&
             owners.includes(LEADER_BY_ID[id].power));
         if (leaders.length > 0) moveLeaders(G, location, "pool", leaders);
-        pushLog(G, `${owners.map((owner) => owner).join("/")} naval force is eliminated (no retreat).`);
+        pushLog(G, `${owners.join("/")} naval force is eliminated (no retreat).`);
         return false;
     }
     const destination = candidates[0];
@@ -112,6 +121,33 @@ export const retreatNaval = (G: VQGame, location: string, owners: Controller[], 
     if (leaders.length > 0) moveLeaders(G, location, destination, leaders);
     pushLog(G, `${owners.join("/")} naval force retreats to ${SPACE_BY_ID[destination]?.name ?? destination}.`);
     return true;
+};
+
+/** Automatic naval avoid-battle attempts (16.1 step 5) in a sea zone. */
+export const attemptNavalAvoidBattle = (G: VQGame, ctx: Ctx, active: Power, location: string): Power[] => {
+    if (!isSeaZone(location)) return [];
+    const avoided: Power[] = [];
+    const enemies = ownersWithNaval(G, location)
+        .filter((owner) => owner !== active && isPower(owner) && atWar(G, active, owner) &&
+            navalCount(stackAt(G, location, owner)) > 0)
+        .sort((a, b) => POWER_INDEX[a as Power] - POWER_INDEX[b as Power]) as Power[];
+    for (const enemy of enemies) {
+        const candidates = navalRetreatCandidates(G, location, [enemy]);
+        if (candidates.length === 0) continue;
+        const stack = stackAt(G, location, enemy);
+        if (stack === undefined) continue;
+        const galleonPenalty = MEDITERRANEAN.has(location) && stack.galleon + stack.racebuilt > 0 ? -1 : 0;
+        const telescope = G.powers[enemy].scienceBonuses.includes("telescope") ? 1 : 0;
+        const modifier = bestBattle(G, location, [enemy], "naval") + galleonPenalty + telescope;
+        const dice = roll(ctx, 2);
+        const total = dice[0] + dice[1] + modifier;
+        pushLog(G, `${powerLabel(enemy)} naval avoid battle at ${location}: [${dice.join(",")}] + ${modifier} = ${total}.`);
+        if (total < 9) continue;
+        retreatNaval(G, location, [enemy]);
+        avoided.push(enemy);
+        pushLog(G, `${powerLabel(enemy)} avoids naval battle.`);
+    }
+    return avoided;
 };
 
 /** Automatic naval interception (16.1 step 4), used when the destination is empty. */
@@ -167,7 +203,9 @@ export const attemptNavalInterception = (
 };
 
 /** Resolve a full-game naval combat in a sea zone or port (16.2). */
-export const resolveNavalCombat = (G: VQGame, ctx: Ctx, location: string, attacker: Power): void => {
+export const resolveNavalCombat = (G: VQGame, ctx: Ctx, location: string, attacker: Power, intercepted = false): void => {
+    // Avoid battle is only available in a sea zone entered without interception.
+    if (!intercepted) attemptNavalAvoidBattle(G, ctx, attacker, location);
     const enemies = ownersWithNaval(G, location)
         .filter((owner) => owner !== attacker && isPower(owner) && atWar(G, attacker, owner) &&
             navalCount(stackAt(G, location, owner)) > 0)

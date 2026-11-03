@@ -1593,8 +1593,8 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
         return;
     }
 
-    attemptNavalInterception(G, ctx, p, from, to, destinationHadEnemy);
-    resolveNavalCombat(G, ctx, to, p);
+    const intercepted = attemptNavalInterception(G, ctx, p, from, to, destinationHadEnemy);
+    resolveNavalCombat(G, ctx, to, p, intercepted);
 };
 
 // --------------------------------------------------------------------------

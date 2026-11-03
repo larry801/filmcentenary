@@ -29,7 +29,7 @@ describe("official naval combat (rule 16.2)", () => {
         G.spaces.calais.naval.france = {galley: 0, galleon: 2, racebuilt: 0, corsair: 0};
         G.seaZones.englishChannel.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
 
-        expect(moveNaval(G, context([6, 6, 6, 6, 6, 6]), {from: "calais", to: "englishChannel"})).toBeUndefined();
+        expect(moveNaval(G, context([1, 1, 6, 6, 6, 6, 6, 6]), {from: "calais", to: "englishChannel"})).toBeUndefined();
 
         expect(G.lastRolls).toContain("4 hits (4 dice) vs England 2 hits (2 dice)");
         expect(navalCount(G.seaZones.englishChannel.naval.france)).toBe(1);
@@ -43,7 +43,7 @@ describe("official naval combat (rule 16.2)", () => {
         G.seaZones.englishChannel.naval.england = {galley: 0, galleon: 3, racebuilt: 0, corsair: 0};
         const beforeEnglish = totalEnglish(G);
 
-        expect(moveNaval(G, context([6, 6, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1]), {
+        expect(moveNaval(G, context([1, 1, 6, 6, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1]), {
             from: "calais", to: "englishChannel",
         })).toBeUndefined();
 
@@ -51,6 +51,24 @@ describe("official naval combat (rule 16.2)", () => {
         expect(totalEnglish(G)).toBe(beforeEnglish - 2);
         expect(navalCount(G.seaZones.englishChannel.naval.england)).toBe(0);
         expect(navalCount(G.seaZones.englishChannel.naval.france)).toBe(3);
+    });
+
+    it("lets a sea-zone defender avoid battle on a successful roll", () => {
+        const G = game();
+        G.powers.france.cp = 1;
+        G.spaces.calais.naval.france = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+        for (const space of SPACES) delete G.spaces[space.id].naval.england;
+        G.seaZones.englishChannel.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+        G.spaces.portsmouth.control = "england";
+        G.spaces.plymouth.control = "england";
+        const beforeEnglish = totalEnglish(G);
+
+        expect(moveNaval(G, context([6, 6]), {from: "calais", to: "englishChannel"})).toBeUndefined();
+
+        expect(G.log.join("\n")).toContain("avoids naval battle");
+        expect(navalCount(G.seaZones.englishChannel.naval.england)).toBe(0);
+        expect(totalEnglish(G)).toBe(beforeEnglish);
+        expect(navalCount(G.seaZones.englishChannel.naval.france)).toBe(1);
     });
 
     it("adds the defender die in port combat and forces the attacker to sea", () => {
@@ -113,7 +131,7 @@ describe("official naval combat (rule 16.2)", () => {
         G.seaZones.englishChannel.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
         G.seaZones.englishChannel.naval.spain = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
 
-        expect(moveNaval(G, context([6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]), {
+        expect(moveNaval(G, context([1, 1, 1, 1, ...Array(10).fill(6), ...Array(8).fill(6)]), {
             from: "calais", to: "englishChannel",
         })).toBeUndefined();
 
@@ -129,7 +147,7 @@ describe("official naval combat (rule 16.2)", () => {
         G.spaces.calais.naval.france = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
         G.seaZones.englishChannel.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
 
-        expect(moveNaval(G, context([6, 6, 6, 6]), {from: "calais", to: "englishChannel"})).toBeUndefined();
+        expect(moveNaval(G, context([1, 1, 6, 6, 6, 6]), {from: "calais", to: "englishChannel"})).toBeUndefined();
 
         expect(navalCount(G.seaZones.englishChannel.naval.france)).toBe(0);
         expect(navalCount(G.seaZones.englishChannel.naval.england)).toBe(1);
