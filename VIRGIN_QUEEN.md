@@ -170,6 +170,14 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 阿拉斯联盟（#109）
+
+- 移除尼德兰所有雇佣兵；
+- 标记本回合新教不得在尼德兰煽动（标记已记录，煽动限制尚未接入）；
+- 西班牙选 5 个尼德兰地区转为天主教并由西班牙控制；
+- 在西班牙控制、未被围城的尼德兰地区最多放置 4 个瓦隆卫队，每 1 个替换 1 个西班牙正规军；
+- 事件牌移出游戏；“双色地区视为西班牙本土”尚未建模。
+
 ### 巴黎值得一场弥撒（#111）
 
 - 条件：新教控制巴黎或 2 个巴黎相邻地区、巴黎 1 格内有 ≥5 新教正规军与纳瓦拉的亨利、且新教未与法国结盟。
@@ -611,6 +619,7 @@ src/virginQueen/
   dayBarricades.test.ts #112 街垒日
   actAbjuration.test.ts #103 誓绝法案
   parisMass.test.ts     #111 巴黎值得一场弥撒
+  unionArras.test.ts    #109 阿拉斯联盟
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -815,3 +824,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #103 誓绝法案接入后的验证：`jest src/virginQueen --runInBand --silent` 82 suites、493 tests passed（新增 1 项：结盟/派兵/VP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #111 巴黎值得一场弥撒接入后的验证：`jest src/virginQueen --runInBand --silent` 83 suites、494 tests passed（新增 1 项：夺取巴黎/迁都）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#109 阿拉斯联盟接入后的验证：`jest src/virginQueen --runInBand --silent` 84 suites、495 tests passed（新增 1 项：清雇佣兵/5 地区/瓦隆卫队）；`npm run build` 通过，仍有既有大体积 chunk 提示。

@@ -673,6 +673,36 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #112 Day of the Barricades: seize Paris under the right conditions. */
 /** #103 Act of Abjuration: one power allies with the Protestant and sends troops. */
 /** #111 Paris is Worth a Mass: move the Huguenot capital to Paris. */
+/** #109 Union of Arras: remove Dutch mercenaries, secure five spaces, raise Walloons. */
+const resolveUnionOfArras = (G: VQGame): void => {
+    for (const space of SPACES.filter((def) => def.area === "netherlands")) {
+        const state = G.spaces[space.id];
+        for (const owner of Object.keys(state.land) as Power[]) {
+            const stack = state.land[owner];
+            if (stack !== undefined) stack.merc = 0;
+        }
+    }
+    G.unionOfArras = true;
+    const selected = SPACES.filter((space) => space.area === "netherlands").slice(0, 5);
+    for (const space of selected) {
+        G.spaces[space.id].control = "spain";
+        G.spaces[space.id].religion = "catholic";
+    }
+    let guards = 4;
+    for (const space of SPACES.filter((def) => def.area === "netherlands" && G.spaces[def.id].control === "spain" &&
+        G.spaces[def.id].siege === undefined && !G.spaces[def.id].unrest)) {
+        const stack = G.spaces[space.id].land.spain;
+        if (stack === undefined || stack.regular === 0) continue;
+        const take = Math.min(guards, stack.regular);
+        stack.regular -= take;
+        addLand(G, space.id, "spain", "merc", take);
+        guards -= take;
+        if (guards === 0) break;
+    }
+    removeCardFromGame(G, "vq-109");
+    pushLog(G, "Union of Arras removes Dutch mercenaries, secures five spaces, and raises Walloon guards.");
+};
+
 const resolveParisMass = (G: VQGame): void => {
     if (allied(G, "protestant", "france")) return;
     const neighbors = landNeighbors("paris").map((neighbor) => neighbor.id);
@@ -1352,6 +1382,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveActOfAbjuration(G, p, target);
     } else if (handler === "parisIsWorthAMass") {
         resolveParisMass(G);
+    } else if (handler === "unionOfArras") {
+        resolveUnionOfArras(G);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {

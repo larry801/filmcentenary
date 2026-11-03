@@ -606,6 +606,7 @@ export interface VQGame {
     pragueCulturalCenter?: string;
     hreCapital?: string;
     protestantCapital?: string;
+    unionOfArras?: boolean;
     spanishRoadAvailable?: boolean;
     /** Beacon Fires: next interception by this power succeeds and gains +2 dice. */
     beaconFires?: Power;
