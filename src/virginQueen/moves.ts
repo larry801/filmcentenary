@@ -1666,6 +1666,32 @@ export const endImpulse = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     ctx.events?.endTurn();
 };
 
+/** #11 response after Dragut fights: roll for death or return to the Turn Track. */
+export const dragutFallsRoll = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
+    const p = power(G, ctx);
+    if (!G.powers[p].cards.includes("vq-011") || G.leaders.dragut === undefined ||
+        G.leaders.dragut.location === "pool") return INVALID_MOVE;
+    removeCardFromHand(G, p, "vq-011");
+    discardCard(G, p, "vq-011", true);
+    const dragut = G.leaders.dragut;
+    if (G.spaces[dragut.location] !== undefined) {
+        G.spaces[dragut.location].leaders = G.spaces[dragut.location].leaders.filter((id) => id !== "dragut");
+    } else if (G.seaZones[dragut.location as keyof VQGame["seaZones"]] !== undefined) {
+        G.seaZones[dragut.location as keyof VQGame["seaZones"]].leaders =
+            G.seaZones[dragut.location as keyof VQGame["seaZones"]].leaders.filter((id) => id !== "dragut");
+    }
+    const roll = die(ctx, 6);
+    G.lastRolls = `Dragut Falls: ${roll}`;
+    if (roll >= 4) {
+        delete G.leaders.dragut;
+        G.leaders.uluchAli = {id: "uluchAli", location: "pool", returnTurn: G.year + 1};
+        pushLog(G, `${G.lastRolls} — Dragut dies; Uluch Ali returns next turn.`);
+    } else {
+        G.leaders.dragut = {id: "dragut", location: "pool", returnTurn: G.year + 1};
+        pushLog(G, `${G.lastRolls} — Dragut returns next turn.`);
+    }
+};
+
 export const endPhaseTurn = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     if (moveError(G, "endPhaseTurn")) return INVALID_MOVE;
     if (ctx.phase !== "cardDraw" && ctx.phase !== "diplomacy" && ctx.phase !== "spring") {
