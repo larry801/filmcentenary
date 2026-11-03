@@ -307,7 +307,7 @@
 ### 纳瓦拉的珍妮（#58）
 
 - 事件：在法兰西进行一次 5 CP 煽动叛乱；清除巴约纳所有非新教单位，巴约纳转新教控制并 +1 胡格诺正规军；
-- 响应：取消“法兰西的女管家”的效果尚未接入；
+- 响应：可在 #33 结算前打出 #58 取消其效果；
 - 事件/响应后移出游戏。
 
 ### 海上乞丐（#66）
@@ -1209,3 +1209,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #32 双地区叛乱接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、620 tests passed（新增 1 项：两地区叛乱）；`npm run build` 通过。
 
 #42 取消纳瓦拉的珍妮接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、623 tests passed（新增 1 项：Catherine 可取消 #58）；`npm run build` 通过。
+
+#58 取消法兰西的女管家接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、624 tests passed（新增 1 项：#58 取消 #33）；`npm run build` 通过。

@@ -2231,7 +2231,7 @@ export const chooseCardEvent = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
         const responseCard = pending.responseCard ?? (pending.responding === "ottoman" ? G.powers.ottoman.cards.find((id) => id === "vq-001" || id === "vq-home-grand-vizier") : undefined)!;
         removeCardFromHand(G, pending.responding, responseCard);
         discardCard(G, pending.responding, responseCard, true);
-        pushLog(G, `${pending.responding === "ottoman" && responseCard !== "vq-042" ? "Grand Vizier" : "Catherine's Flying Squadron"} cancels ${cardById(pending.cardId).name}.`);
+        pushLog(G, `${responseCard === "vq-042" ? "Catherine's Flying Squadron" : responseCard === "vq-058" ? "Jeanne of Navarre" : "Grand Vizier"} cancels ${cardById(pending.cardId).name}.`);
     } else {
         // Continue with the original power and target, without playing or discarding twice.
         discardCard(G, pending.power, pending.cardId, true);

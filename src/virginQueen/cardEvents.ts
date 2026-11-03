@@ -43,9 +43,14 @@ export const canPlayGrandVizier = (G: VQGame, power: Power, numPlayers: number):
 const CATHERINE_CANCELABLE = new Set(["vq-017", "vq-018", "vq-023", "vq-031", "vq-044", "vq-052", "vq-054", "vq-055", "vq-058"]);
 
 export const cancelEventResponder = (G: VQGame, card: CardDef): {power: Power; cardId: string} | undefined => {
-    if (!(card.officialKind === "event" || card.id === "vq-044" || card.id === "vq-058" || (card.officialKind === undefined && card.kind === "event"))) return undefined;
+    if (!(card.officialKind === "event" || card.id === "vq-033" || card.id === "vq-044" || card.id === "vq-058" || (card.officialKind === undefined && card.kind === "event"))) return undefined;
     const vizier = grandVizierInHand(G);
     if (vizier !== undefined && ownerOf(G, "ottoman") !== undefined) return {power: "ottoman", cardId: vizier};
+    if (card.id === "vq-033") {
+        const holder = (["ottoman", "spain", "england", "france", "hre", "protestant"] as Power[])
+            .find((power) => ownerOf(G, power) !== undefined && G.powers[power].cards.includes("vq-058"));
+        return holder === undefined ? undefined : {power: holder, cardId: "vq-058"};
+    }
     if (!CATHERINE_CANCELABLE.has(card.id)) return undefined;
     const holder = (["ottoman", "spain", "england", "france", "hre", "protestant"] as Power[])
         .find((power) => ownerOf(G, power) !== undefined && G.powers[power].cards.includes("vq-042"));
@@ -61,7 +66,7 @@ export const cardEventOptions = (G: VQGame, numPlayers: number): CardEventOption
         const responseCard = pending.responseCard ?? (pending.responding === "ottoman" ? grandVizierInHand(G) : undefined);
         return [
             {id: "continue", label: "允许事件结算"},
-            ...(responseCard ? [{id: "cancel", label: responseCard === "vq-042" ? "打出凯瑟琳的飞剪船，取消事件" : "打出大维齐尔，取消事件"}] : []),
+            ...(responseCard ? [{id: "cancel", label: responseCard === "vq-042" ? "打出凯瑟琳的飞剪船，取消事件" : responseCard === "vq-058" ? "打出纳瓦拉的珍妮，取消事件" : "打出大维齐尔，取消事件"}] : []),
         ];
     }
     return pending.step === "effect" ? effectOptions(G, numPlayers) : recruitmentOptions(G);

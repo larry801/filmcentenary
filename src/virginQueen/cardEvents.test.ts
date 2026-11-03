@@ -231,6 +231,24 @@ describe("Grand Vizier event cancellation", () => {
         expect(canCancelCardEvent(newGame(), cardById(id))).toBe(false);
     });
 
+    it("lets Jeanne of Navarre cancel Gouvernante de France", () => {
+        const G = newGame();
+        G.powers.france.cards = ["vq-033"];
+        G.powers.england.cards = ["vq-058"];
+        G.powers.ottoman.cards = [];
+        G.betrothals = [{male: "henryIII", female: "elizabeth"}];
+        const france = {...context(), currentPlayer: "3", playerID: "3"} as Ctx;
+
+        playCard(G, france, {cardId: "vq-033", asEvent: true});
+        expect(G.pendingCardEvent?.cardId).toBe("vq-033");
+        expect(G.marriageFestivities).toBeUndefined();
+        expect(cardEventOptions(G, 6).find((option) => option.id === "cancel")?.label).toContain("纳瓦拉的珍妮");
+
+        chooseCardEvent(G, {...context(), playerID: ownerOf(G, "england")}, {choice: "cancel"});
+        expect(G.marriageFestivities).toBeUndefined();
+        expect(G.pendingCardEvent).toBeUndefined();
+    });
+
     it("lets Catherine's Flying Squadron cancel Jeanne of Navarre", () => {
         const G = newGame();
         G.powers.france.cards = ["vq-042"];
