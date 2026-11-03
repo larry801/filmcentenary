@@ -170,6 +170,11 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 蒂尔伯里演说（#40）
+
+- 战斗牌：野战/海战/攻城额外 +2 骰，英格兰使用改为 +4 骰；
+- 已接入战斗牌选择与掷骰流程。
+
 ### 阿拉斯联盟（#109）
 
 - 移除尼德兰所有雇佣兵；
@@ -620,6 +625,7 @@ src/virginQueen/
   actAbjuration.test.ts #103 誓绝法案
   parisMass.test.ts     #111 巴黎值得一场弥撒
   unionArras.test.ts    #109 阿拉斯联盟
+  tilbury.test.ts       #40 蒂尔伯里演说
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -826,3 +832,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #111 巴黎值得一场弥撒接入后的验证：`jest src/virginQueen --runInBand --silent` 83 suites、494 tests passed（新增 1 项：夺取巴黎/迁都）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #109 阿拉斯联盟接入后的验证：`jest src/virginQueen --runInBand --silent` 84 suites、495 tests passed（清雇佣兵/5 地区/瓦隆卫队，并验证尼德兰煽动被拦截）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#40 蒂尔伯里演说接入后的验证：`jest src/virginQueen --runInBand --silent` 85 suites、496 tests passed（新增 1 项：英格兰 +4 骰）；`npm run build` 通过，仍有既有大体积 chunk 提示。

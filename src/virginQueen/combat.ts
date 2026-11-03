@@ -99,6 +99,7 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
             if (number === 8) return battle.phase === "field";
             if (number === 9) return battle.phase === "naval";
             if (number === 13) return battle.phase !== "naval";
+            if (number === 40) return true;
             return false;
         });
         return [...candidates.map((id) => ({id: `card:${id}`, label: `打出 ${cardById(id).name}`})), {id: "done", label: "继续结算"}];
@@ -213,6 +214,7 @@ const rollBattle = (G: VQGame, ctx: Ctx): void => {
             if (id === "vq-008" || id === "vq-010") values.push(...roll(ctx, 3));
             if (id === "vq-009") values.push(...roll(ctx, isSeaZone(battle.location) ? 2 : 4));
             if (id === "vq-014") values.push(...roll(ctx, 2));
+            if (id === "vq-040") values.push(...roll(ctx, power === "england" ? 4 : 2));
         }
         return values;
     };
