@@ -11,26 +11,30 @@ playable runtime. Match creation accepts `setupData.scenario` (`campaign` or
 | --- | --- |
 | Campaign / Tournament setup, VP, wars, alliances, royals, patronage, science bonuses, sea captains, leader entries | `VQ_ScenarioBook_Final_Lo-Res.pdf` |
 | Patron ratings/categories and individual VP award markers | `Virgin_Queen_4.6.0.vmod` (`images/*.svg`, `buildFile.xml`) |
-| 112 card titles and Chinese effect text | `中文卡表.pdf` |
+| 112 card titles and Chinese effect text | OCR of the scans in `public/vq-cards/` (RapidOCR + Apple Vision, hand-checked) |
 | Card command points, first-turn availability and printed card category | `中文規則.pdf`, pages 42–56 |
 | Base 92-space map and 13 sea zones | existing runtime reconstruction (`../constant/spaces.ts`) |
 
-Only the PDF text layer and font/size metadata were used. No images were
-rendered and no OCR was run.
+The PDF text layer and font/size metadata were used for the scenario and card
+table data. The card names and effect text were OCR'd from the card scans; no
+image OCR was used for any other data.
 
 ## Cards (`cards.ts`)
 
-* Card numbers come from the PDF reading order (3 columns × 6 rows per page).
-* Known anchors were checked against the Scenario Book: `#4` German
-  Intervention, `#5` Papal Bull, `#11` Dragut Falls, `#13` Reiters, `#28`
-  Morisco Revolt, `#37` The Sublime Porte, `#58` Jeanne of Navarre, `#59`
-  John Hawkins.
+* Card numbers come from the PDF reading order (3 columns × 6 rows per page)
+  and were verified against the numbers printed on the scans.
+* Known anchors were checked against the Scenario Book and the scans: `#4`
+  German Intervention, `#5` Papal Bull, `#11` Dragut Falls, `#13` Reiters,
+  `#28` Morisco Revolt, `#37` The Sublime Porte, `#58` Jeanne of Navarre,
+  `#59` John Hawkins.
 * The card table on pages 42–56 of `中文規則.pdf` supplies `cp`,
   `availableFromTurn` (the “輪” column) and the printed category. Every card has
   a CP value; `#111` and `#112` are marked `"variable"` because the table prints
   變動.
-* Chinese names and effect text are preserved. Layout line breaks were removed;
-  internal single spaces are kept.
+* Chinese names and effect text are OCR transcriptions of the scans, using the
+  simplified characters printed there. Layout line breaks were removed;
+  punctuation was added where OCR merged separate lines (for example in VP
+  tables and the two-line power-card bonuses).
 * Family/home cards are `#1` Grand Vizier and `#2` Ottoman Tribute (Ottoman),
   `#3` Spanish Road and `#99` Spanish Armada (Spain), `#32` Calvinist Zeal and
   `#111` Paris is Worth a Mass (Protestant), `#33` Gouvernante de France and

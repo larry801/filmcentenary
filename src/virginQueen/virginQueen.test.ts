@@ -2,6 +2,7 @@ import {Ctx} from "boardgame.io";
 import {Client} from "boardgame.io/client";
 import {Local} from "boardgame.io/multiplayer";
 import {VirginQueenGameDef} from "./game";
+import {untimelyDeathTargets} from "./cardEvents";
 import {POWERS, VQGame} from "./constant/general";
 import {ALL_CARDS, cardById} from "./constant/cards";
 import {SEA_ZONE_BY_ID, SEA_ZONES} from "./constant/spaces";
@@ -281,7 +282,11 @@ function passToEndAction(clients: any[]) {
         const hand = clients[idx].getState().G.powers[p].cards;
         const mandatory = hand.find((id: string) => cardById(id).officialKind === "mandatory");
         if (mandatory !== undefined) {
-            clients[idx].moves.playCard({cardId: mandatory, asEvent: true});
+            const def = cardById(mandatory);
+            // Untimely Death needs a leader choice; take the first legal one.
+            const target = def.officialEffect?.kind === "manual" && def.officialEffect.handler === "untimelyDeath"
+                ? (untimelyDeathTargets(state.G)[0] ?? "none") : undefined;
+            clients[idx].moves.playCard({cardId: mandatory, asEvent: true, ...(target !== undefined ? {target} : {})});
             clients[idx].moves.endImpulse();
         } else {
             clients[idx].moves.pass();

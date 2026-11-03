@@ -21,6 +21,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import {
     AREA_NAMES,
+    CardDef,
     CONTROLLER_COLORS,
     controllerNameZh,
     HRE_RELIGIOUS_PREFERENCE_NAMES,
@@ -40,7 +41,7 @@ import {
     isPower,
     powerAt,
 } from "../constant/general";
-import {cardById} from "../constant/cards";
+import {cardById, cardImageUrl} from "../constant/cards";
 import {LEADER_BY_ID} from "../constant/leaders";
 import {patronDef, royalAvailable, scenarioSetup, scienceBonusById, seaCaptainById} from "../scenario";
 import {DUTCH_KEYS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "../mapData";
@@ -76,11 +77,11 @@ import {scenarioName} from "../scenario";
 import {Controller} from "../constant/general";
 import {battleOptions} from "../combat";
 import {canPlayTutorialEvent, tutorialEventOptions} from "../tutorialEvents";
-import {canPlayGrandVizier, cardEventOptions, isGrandVizier} from "../cardEvents";
+import {canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, isGrandVizier, untimelyDeathTargets} from "../cardEvents";
 import {piracyOptions} from "../piracy";
 import {actionResponseOptions} from "../moves";
 import {interceptionOptions} from "../interception";
-import {assassinationTargets, espionageOptions, canPlayEspionageEvent, isEspionageEvent} from "../espionage";
+import {assassinationTargets, espionageOptions, canPlayEspionageEvent, canPlayNorthernRising, doubleAgentTargets, isEspionageEvent} from "../espionage";
 
 type Mode =
     | "inspect"
@@ -144,6 +145,15 @@ const patronageAwardSummary = (awards: PatronageVpAward[], kind: "artist" | "sci
 };
 
 const cell = (v: number): string => (v > 0 ? String(v) : "·");
+
+/** Scanned card art, with the text tile as the fallback when it is missing. */
+const CardArt = ({def, className, lazy = false}: {def: CardDef; className: string; lazy?: boolean}) => {
+    const [failed, setFailed] = React.useState(false);
+    const src = cardImageUrl(def);
+    if (src === undefined || failed) return null;
+    return <img className={className} src={src} alt={`${def.name} 卡牌图`} width={376} height={526}
+        loading={lazy ? "lazy" : "eager"} onError={() => setFailed(true)}/>;
+};
 
 export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: BoardProps<VQGame>) => {
     const [selected, setSelected] = React.useState<string | undefined>(G.scenario === "tutorial"
@@ -314,7 +324,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         const disabled = !canAct || ps === undefined || ps.cardPlayed;
         const handler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
         const espionageTargets = handler === "walsingham" ? ["offensive", "defensive", ...POWERS.filter((p) => p !== "england" && !isActivatedMajor(G, p))] :
-            handler === "cipherKey" ? ["remove", ...POWERS.filter((p) => p !== me && !isActivatedMajor(G, p))] : [];
+            handler === "cipherKey" ? ["remove", ...POWERS.filter((p) => p !== me && !isActivatedMajor(G, p))] :
+                handler === "doubleAgent" && me !== undefined ? doubleAgentTargets(G, me) :
+                    handler === "untimelyDeath" && G.scenario !== "tutorial" ? (untimelyDeathTargets(G).length ? untimelyDeathTargets(G) : ["none"]) : [];
         const espionageTarget = espionageTargets.includes(espionageEventTarget) ? espionageEventTarget : espionageTargets[0];
         const foreignWarPower = handler === "warInPersia" ? "ottoman" : handler === "warWithPoland" ? "hre" : undefined;
         const foreignWarBlocked = foreignWarPower !== undefined && (G.foreignWars[foreignWarPower] !== undefined ||
@@ -328,11 +340,16 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 {def.kind === "event" && <Chip size="small" variant="outlined" label="事件"/>}
                 {def.kind === "home" && <Chip size="small" variant="outlined" label="本国牌"/>}
             </Stack>
+            <CardArt def={def} className="vq-card-detail-art"/>
             {def.text !== undefined && <Typography variant="caption" color="text.secondary">{def.text}</Typography>}
             {espionageTargets.length > 0 && <Select size="small" fullWidth value={espionageTarget}
                 onChange={(e) => setEspionageEventTarget(e.target.value)}>
                 {espionageTargets.map((target) => <MenuItem key={target} value={target}>
-                    {target === "offensive" ? "进攻模式" : target === "defensive" ? "防御模式" : target === "remove" ? "移除本国所有敌方解码书" : POWER_NAMES[target as Power].zh}
+                    {target === "offensive" ? "进攻模式" : target === "defensive" ? "防御模式" : target === "remove" ? "移除本国所有敌方解码书" : target.includes(">")
+                        ? `策反 ${POWER_NAMES[target.split(">")[0] as Power].zh} 间谍（调回监视${POWER_NAMES[target.split(">")[1] as Power].zh}的本国间谍）`
+                        : handler === "doubleAgent" ? `策反 ${POWER_NAMES[target as Power].zh} 间谍`
+                        : handler === "untimelyDeath" ? (target === "none" ? "没有可移除的将领" : `移出游戏：${LEADER_BY_ID[target]?.name ?? target}`)
+                        : POWER_NAMES[target as Power].zh}
                 </MenuItem>)}
             </Select>}
             {foreignWarPower !== undefined && <FormControl size="small" sx={{mt: 0.5, minWidth: 130}}>
@@ -346,6 +363,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 {(def.kind !== "command" || def.officialKind === "mandatory" || G.scenario === "tutorial") && <Button size="small" variant="contained"
                                                   disabled={disabled || foreignWarBlocked ||
                                                       (isEspionageEvent(handler) && !canPlayEspionageEvent(G, me!, handler, espionageTarget)) ||
+                                                      (handler === "untimelyDeath" && G.scenario !== "tutorial" && !canPlayUntimelyDeath(G, espionageTarget)) ||
+                                                      (handler === "northernRising" && G.scenario !== "tutorial" && !canPlayNorthernRising(G)) ||
                                                       (isGrandVizier(def) && !canPlayGrandVizier(G, me!, ctx.numPlayers)) ||
                                                       (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
                                                   onClick={() => {moves.playCard({cardId: id, asEvent: true,
@@ -366,6 +385,10 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 G.pendingEspionage.step === "offense" ? `剩余 ${G.pendingEspionage.remaining} 次情报效果，每种效果最多一次。` :
                 G.pendingEspionage.step === "conversions" ? `在英格兰分配${G.pendingEspionage.conversionSide === "protestant" ? "新教" : "天主教"}转化骰；可用 6 点扩展基础，或保留至最后转化有部队的地区。` :
                 G.pendingEspionage.step === "rebelLosses" ? `英格兰还需分配 ${G.pendingEspionage.remaining} 次损失。` :
+                G.pendingEspionage.step === "massacreConvert" ? `圣巴托罗缪大屠杀：还可将 ${G.pendingEspionage.remaining} 个法国政治控制的新教地区改为天主教。` :
+                G.pendingEspionage.step === "massacreAssassinate" ? `法国可免费对科利尼进行一次 ${G.pendingEspionage.cp} CP 刺杀。` :
+                G.pendingEspionage.step === "northernConvert" ? `北方崛起：西班牙再选择 ${G.pendingEspionage.remaining} 个英格兰地区改为天主教（无新教部队，距事件开始时的天主教地区 2 格内）。` :
+                G.pendingEspionage.step === "northernUnrest" ? `北方崛起：西班牙未与英格兰交战，再放置 ${G.pendingEspionage.remaining} 个动荡（无人占领或天主教地区）。` :
                 "选择下方合法选项，完成官方结果表的后续结算。"}</Typography>
             {ownerOf(G, G.pendingEspionage.responding) === playerID && espionageOptions(G).map((entry) =>
                 <Button key={entry.id} variant="outlined" onClick={() => moves.chooseEspionage({choice: entry.id})}>{entry.label}</Button>)}
@@ -1177,6 +1200,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <div className="vq-card-tray">{hand.map((id) => {
                         const card = cardById(id);
                         return <button key={id} className="vq-card" aria-label={`查看卡牌 ${card.name} · ${card.cp} CP`} onClick={() => setSelectedCard(id)}>
+                            <CardArt def={card} className="vq-card-art" lazy/>
                             <small>{card.kind === "home" ? "本国牌" : card.kind === "event" ? "事件牌" : "行动牌"}<span className="vq-card-cp">{card.cp} CP</span></small>
                             <strong>{card.name}</strong><small>查看详情 ↗</small>
                         </button>;

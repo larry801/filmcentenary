@@ -4,10 +4,10 @@ import {Local} from "boardgame.io/multiplayer";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {POWERS, Power, VQGame} from "./constant/general";
 import {assassinationResult, catholicRebellionResult} from "./data/espionage";
-import {assassinationTargets, beginEspionageEvent, chooseEspionage, espionageDice, espionageOptions, refreshJesuits} from "./espionage";
+import {assassinationTargets, beginEspionageEvent, canPlayEspionageEvent, canPlayNorthernRising, chooseEspionage, massacreConversionTargets, doubleAgentTargets, espionageDice, espionageOptions, northernConversionTargets, northernUnrestTargets, refreshJesuits} from "./espionage";
 import {assassinate, endImpulse, englishCatholicRebellion, gainIntelligence, plantInformant, playCard} from "./moves";
 import {ownerOf} from "./ownership";
-import {arriveLeaders, checkImmediateVictory, dealYear, drawCount, resolveConversions, setupGame, winter} from "./util";
+import {arriveLeaders, atWar, checkImmediateVictory, dealYear, drawCount, resolveConversions, setWar, setupGame, winter} from "./util";
 import {VirginQueenGameDef} from "./game";
 import {LAND_NEIGHBORS, SPACE_BY_ID, SPACES} from "./mapData";
 
@@ -431,6 +431,50 @@ describe("espionage cards", () => {
         beginEspionageEvent(G, context("england"), "england", "cipherKey", "remove");
         expect(G.espionage!.cipherKeys.spain).toBeUndefined();
     });
+
+    describe("Double Agent", () => {
+        const informant = (owner: Power, target: Power, neutralized = false) => ({owner, target, neutralized, plantedImpulse: 1});
+
+        it("removes an enemy informant on the player's card and plants one of the player's own on that enemy", () => {
+            const G = game(); G.powers.spain.cards = ["vq-092"];
+            G.informants = [informant("england", "spain", true)];
+            expect(doubleAgentTargets(G, "spain")).toEqual(["england"]);
+            playCard(G, context(), {cardId: "vq-092", asEvent: true, target: "england"});
+            expect(G.informants).toEqual([{owner: "spain", target: "england", neutralized: false, plantedImpulse: 10}]);
+            expect(G.pendingEspionage).toBeUndefined();
+        });
+
+        it("needs an enemy informant on the player's own card and leaves state unchanged otherwise", () => {
+            const G = game(); G.powers.spain.cards = ["vq-092"];
+            G.informants = [informant("england", "france"), informant("spain", "france")];
+            expect(doubleAgentTargets(G, "spain")).toEqual([]);
+            const before = JSON.stringify(G);
+            expect(playCard(G, context(), {cardId: "vq-092", asEvent: true, target: "england"})).toBe(INVALID_MOVE);
+            expect(JSON.stringify(G)).toBe(before);
+            G.year = 2; G.informants = [informant("england", "spain")];
+            expect(canPlayEspionageEvent(G, "spain", "doubleAgent", "england")).toBe(false);
+        });
+
+        it("moves a non-neutralized own informant when both are in use", () => {
+            const G = game(); G.powers.spain.cards = ["vq-092"];
+            G.informants = [informant("france", "spain"), informant("spain", "england"), informant("spain", "ottoman", true)];
+            expect(doubleAgentTargets(G, "spain")).toEqual(["france>england"]);
+            expect(canPlayEspionageEvent(G, "spain", "doubleAgent", "france")).toBe(false);
+            playCard(G, context(), {cardId: "vq-092", asEvent: true, target: "france>england"});
+            expect(G.informants).toEqual([
+                {owner: "spain", target: "france", neutralized: false, plantedImpulse: 10},
+                informant("spain", "ottoman", true),
+            ]);
+        });
+
+        it("still removes the enemy informant when the player already spies on that enemy", () => {
+            const G = game(); G.powers.spain.cards = ["vq-092"];
+            G.informants = [informant("england", "spain"), informant("spain", "england", true), informant("spain", "france")];
+            expect(doubleAgentTargets(G, "spain")).toEqual(["england"]);
+            playCard(G, context(), {cardId: "vq-092", asEvent: true, target: "england"});
+            expect(G.informants).toEqual([informant("spain", "england", true), informant("spain", "france")]);
+        });
+    });
 });
 
 it("switches real multiplayer response stages between England and Spain and restores the original impulse", () => {
@@ -462,4 +506,147 @@ it("switches real multiplayer response stages between England and Spain and rest
         expect(clients[1].getState().G.espionage.inspections[0].cards).toHaveLength(3);
         expect(clients[2].getState().G.espionage.inspections).toEqual([]);
     } finally {clients.forEach((c) => c.stop());}
+});
+
+describe("#78 Northern Rising", () => {
+    const nr = (): VQGame => {
+        const G = game();
+        G.powers.spain.cards = ["vq-078"];
+        G.espionage!.mary = "captured";
+        // Flip a few spaces to Protestant so there is something to convert.
+        G.spaces.norwich.religion = "protestant"; G.spaces.plymouth.religion = "protestant";
+        G.spaces.berwick.religion = "protestant"; G.spaces.carlisle.religion = "protestant";
+        G.spaces.york.religion = "protestant";
+        return G;
+    };
+    it("requires Mary captured and rejects when she is not", () => {
+        const G = game(); G.powers.spain.cards = ["vq-078"];
+        G.espionage!.mary = "scotland";
+        expect(canPlayNorthernRising(G)).toBe(false);
+        expect(playCard(G, context(), {cardId: "vq-078", asEvent: true})).toBe(INVALID_MOVE);
+    });
+
+    it("lets Spain convert exactly 3 regions then place 4 unrest when not at war", () => {
+        const G = nr();
+        playCard(G, context(), {cardId: "vq-078", asEvent: true});
+        expect(G.pendingEspionage?.step).toBe("northernConvert");
+        expect(G.pendingEspionage?.responding).toBe("spain");
+        for (const id of ["norwich", "york", "plymouth"]) choose(G, `nconvert:${id}`);
+        expect(["norwich", "york", "plymouth"].map((id) => G.spaces[id].religion)).toEqual(["catholic", "catholic", "catholic"]);
+        expect(G.spaces.berwick.religion).toBe("protestant");
+        expect(G.pendingEspionage?.step).toBe("northernUnrest");
+        expect(G.pendingEspionage?.remaining).toBe(4);
+        for (const id of northernUnrestTargets(G).slice(0, 4)) choose(G, `nunrest:${id}`);
+        expect(G.pendingEspionage).toBeUndefined();
+        expect(Object.values(G.spaces).filter((s) => s.unrest).length).toBe(4);
+        expect(atWar(G, "spain", "england")).toBe(false);
+    });
+
+    it("excludes spaces with Protestant units and keeps the last Protestant English space", () => {
+        const G = nr();
+        G.spaces.york.land.england = {regular: 1, merc: 0, cav: 0};
+        expect(northernConversionTargets(G, ["london"])).not.toContain("york");
+        for (const id of ["norwich", "plymouth", "berwick", "york"]) G.spaces[id].religion = "catholic";
+        expect(northernConversionTargets(G, ["london"])).toEqual([]);
+        // Occupied Protestant spaces are not legal unrest targets.
+        G.spaces.carlisle.land.england = {regular: 1, merc: 0, cav: 0};
+        expect(northernUnrestTargets(G)).not.toContain("carlisle");
+    });
+
+    it("follows 19.4 from step 2 when at war, without using the rebellion marker", () => {
+        const G = nr();
+        setWar(G, "spain", "england");
+        playCard(G, context(), {cardId: "vq-078", asEvent: true});
+        for (const id of ["norwich", "york", "plymouth"]) choose(G, `nconvert:${id}`);
+        expect(G.pendingEspionage?.step).toBe("rebelTarget");
+        expect(G.assassinationUsed).not.toContain("spain");
+        choose(G, "rebel:norwich");
+        expect(G.spaces.norwich.control).toBe("spain");
+    });
+
+    it("goes straight to unrest when no space can be converted", () => {
+        const G = nr();
+        for (const id of ["norwich", "plymouth", "berwick", "york"]) G.spaces[id].religion = "catholic";
+        playCard(G, context(), {cardId: "vq-078", asEvent: true});
+        expect(G.pendingEspionage?.step).toBe("northernUnrest");
+    });
+});
+
+describe("#97 St. Bartholomew's Day Massacre", () => {
+    const PROTESTANT = ["laRochelle", "orleans", "bourges", "lyon", "toulouse", "poitiers", "limoges", "nimes"];
+    const massacre = (): VQGame => {
+        const G = game(); G.activePower = "france";
+        G.powers.france.cards = ["vq-097"];
+        for (const id of PROTESTANT) G.spaces[id].religion = "protestant";
+        G.spaces.lyon.land.protestant = {regular: 1, merc: 2, cav: 0};
+        G.spaces.antwerp.land.protestant = {regular: 0, merc: 1, cav: 0};
+        G.spaces.laRochelle.leaders.push("coligny");
+        G.leaders.coligny = {id: "coligny", location: "laRochelle"};
+        return G;
+    };
+    const fr = (values: number[] = []) => context("france", values);
+    const chooseFr = (G: VQGame, choice: string, values: number[] = []) => choose(G, choice, fr(values));
+
+    it("removes Protestant mercs in France only, gives +1 card, then converts up to 5 French-controlled spaces", () => {
+        const G = massacre();
+        G.spaces.nimes.control = "protestant";
+        playCard(G, fr(), {cardId: "vq-097", asEvent: true});
+        expect(G.spaces.lyon.land.protestant).toEqual({regular: 1, merc: 0, cav: 0});
+        expect(G.spaces.antwerp.land.protestant?.merc).toBe(1);
+        expect(G.espionage!.nextDraw.protestant).toBe(1);
+        expect(G.pendingEspionage?.step).toBe("massacreConvert");
+        expect(G.pendingEspionage?.remaining).toBe(5);
+        expect(massacreConversionTargets(G)).not.toContain("nimes");
+        expect(G.removed).toContain("vq-097");
+        for (const id of ["laRochelle", "orleans", "bourges", "lyon", "toulouse"]) chooseFr(G, `mconvert:${id}`);
+        expect(G.spaces.poitiers.religion).toBe("protestant");
+        expect(G.pendingEspionage?.step).toBe("massacreAssassinate");
+        expect(G.pendingEspionage?.cp).toBe(2);
+    });
+
+    it("raises the limit to 8 spaces and 4 CP when Navarre is betrothed to a French royal, keeping the last Protestant space", () => {
+        const G = massacre();
+        G.royals.push({id: "henryIV", name: "Henry IV", power: "protestant", gender: "male", alive: true, married: false},
+            {id: "margueriteValois", name: "Marguerite", power: "france", gender: "female", alive: true, married: false});
+        G.betrothals = [{male: "henryIV", female: "margueriteValois"}];
+        playCard(G, fr(), {cardId: "vq-097", asEvent: true});
+        expect(G.pendingEspionage?.remaining).toBe(8);
+        expect(G.pendingEspionage?.cp).toBe(4);
+        for (const id of PROTESTANT.slice(0, 7)) chooseFr(G, `mconvert:${id}`);
+        expect(G.spaces.nimes.religion).toBe("protestant");
+        expect(G.pendingEspionage?.step).toBe("massacreAssassinate");
+    });
+
+    it("runs a free assassination of Coligny that costs no CP and uses France's yearly marker", () => {
+        const G = massacre();
+        // An older French informant adds 2 dice: 2 CP + 2 = 4 attack dice against 1 + Coligny's battle 3 = 4 defense dice.
+        G.informants = [{owner: "france", target: "protestant", neutralized: false, plantedImpulse: 1}];
+        playCard(G, fr(), {cardId: "vq-097", asEvent: true});
+        chooseFr(G, "massacreConvertDone");
+        const cpBefore = G.powers.france.cp, vpBefore = G.powers.france.bonusVp;
+        expect(espionageDice(G, {...G.pendingEspionage!, kind: "assassination", power: "france", targetPower: "protestant", target: "coligny"}))
+            .toEqual({attack: 4, defense: 4});
+        chooseFr(G, "massacreAssassinate", [6, 6, 6, 6, 1, 1, 1, 1]);
+        expect(G.powers.france.cp).toBe(cpBefore);
+        expect(G.assassinationUsed).toContain("france");
+        expect(G.leaders.coligny.location).toBe("offMap");
+        expect(G.spaces.laRochelle.leaders).not.toContain("coligny");
+        expect(G.powers.france.bonusVp).toBe(vpBefore + 1);
+        expect(G.pendingEspionage).toBeUndefined();
+    });
+
+    it("skips the assassination when France already used its attempt or Coligny is off the map", () => {
+        const G = massacre();
+        G.assassinationUsed = ["france"];
+        playCard(G, fr(), {cardId: "vq-097", asEvent: true});
+        chooseFr(G, "massacreConvertDone");
+        expect(G.pendingEspionage).toBeUndefined();
+
+        const off = massacre();
+        off.spaces.laRochelle.leaders = []; off.leaders.coligny = {id: "coligny", location: "pool"};
+        for (const id of PROTESTANT.slice(0, 7)) off.spaces[id].religion = "catholic";
+        playCard(off, fr(), {cardId: "vq-097", asEvent: true});
+        expect(off.pendingEspionage).toBeUndefined();
+        expect(off.espionage!.nextDraw.protestant).toBe(1);
+    });
 });

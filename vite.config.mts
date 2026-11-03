@@ -2,8 +2,17 @@ import {defineConfig} from 'vite'
 import {fileURLToPath} from "node:url";
 import react from '@vitejs/plugin-react'
 
+const base = "/";
+
 // https://vite.dev/config/
 export default defineConfig({
+    base,
+    define: {
+        // constant/cards.ts builds card image URLs from this instead of
+        // `import.meta.env.BASE_URL`, because Jest's CommonJS runtime cannot
+        // parse `import.meta`. Keep it equal to `base`.
+        __VQ_BASE_URL__: JSON.stringify(base),
+    },
     build: {
         outDir: 'build',
         rollupOptions: {

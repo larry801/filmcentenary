@@ -2,7 +2,7 @@ import {Ctx} from "boardgame.io";
 import {Client} from "boardgame.io/client";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {Local} from "boardgame.io/multiplayer";
-import {canCancelCardEvent, cardEventOptions} from "./cardEvents";
+import {canCancelCardEvent, cardEventOptions, untimelyDeathTargets} from "./cardEvents";
 import {cardById} from "./constant/cards";
 import {VQGame} from "./constant/general";
 import {VirginQueenGameDef} from "./game";
@@ -299,5 +299,75 @@ describe("Grand Vizier through multiplayer clients", () => {
         } finally {
             for (const client of clients) client.stop();
         }
+    });
+});
+
+describe("#76 Untimely Death", () => {
+    const setup = (): VQGame => {
+        const G = newGame();
+        G.powers.ottoman.cards = ["vq-076"]; G.powers.ottoman.cp = 0;
+        return G;
+    };
+    const locationOf = (G: VQGame, id: string) => Object.keys(G.spaces).find((s) => G.spaces[s].leaders.includes(id));
+
+    it("removes the chosen listed leader from the map and the game, then gives 2 CP", () => {
+        const G = setup();
+        const from = locationOf(G, "alba");
+        expect(from).toBe("madrid");
+        playCard(G, context(), {cardId: "vq-076", asEvent: true, target: "alba"});
+        expect(G.leaders.alba).toBeUndefined();
+        expect(G.spaces[from!].leaders).not.toContain("alba");
+        expect(untimelyDeathTargets(G)).not.toContain("alba");
+        expect(G.powers.ottoman.cp).toBe(2);
+    });
+
+    it("rejects unlisted, missing, or scenario-excluded targets without changing state", () => {
+        const G = setup();
+        const before = JSON.stringify(G);
+        for (const target of [undefined, "drake", "none", "bogus"]) {
+            expect(playCard(G, context(), {cardId: "vq-076", asEvent: true, ...(target ? {target} : {})})).toBe(INVALID_MOVE);
+        }
+        expect(playCard(G, context(), {cardId: "vq-076"})).toBe(INVALID_MOVE);
+        expect(JSON.stringify(G)).toBe(before);
+        const tournament = setupGame(context(), {scenario: "tournament"});
+        expect(untimelyDeathTargets(tournament)).not.toContain("montmorency");
+        expect(untimelyDeathTargets(tournament)).not.toContain("zrinyi");
+    });
+
+    it("can remove captured or pool leaders, and allows 'none' only when every listed leader is gone", () => {
+        const G = setup();
+        G.leaders.leicester = {id: "leicester", location: "captured", capturedBy: "spain"};
+        for (const s of Object.values(G.spaces)) s.leaders = s.leaders.filter((id) => id !== "leicester");
+        playCard(G, context(), {cardId: "vq-076", asEvent: true, target: "leicester"});
+        expect(G.leaders.leicester).toBeUndefined();
+
+        const pool = setup();
+        expect(pool.leaders.donJohn.location).toBe("pool");
+        playCard(pool, context(), {cardId: "vq-076", asEvent: true, target: "donJohn"});
+        expect(pool.leaders.donJohn).toBeUndefined();
+
+        const empty = setup();
+        for (const id of untimelyDeathTargets(empty)) {
+            for (const s of Object.values(empty.spaces)) s.leaders = s.leaders.filter((x) => x !== id);
+            delete empty.leaders[id];
+        }
+        expect(untimelyDeathTargets(empty)).toEqual([]);
+        playCard(empty, context(), {cardId: "vq-076", asEvent: true, target: "none"});
+        expect(empty.powers.ottoman.cp).toBe(2);
+    });
+
+    it("clears a foreign-war leader reference and logs a missing Default Leader", () => {
+        const G = setup();
+        for (const id of ["schwendi", "mansfeld"]) {
+            for (const s of Object.values(G.spaces)) s.leaders = s.leaders.filter((x) => x !== id);
+            delete G.leaders[id];
+        }
+        for (const s of Object.values(G.spaces)) s.leaders = s.leaders.filter((x) => x !== "zrinyi");
+        G.leaders.zrinyi = {id: "zrinyi", location: "foreignWar"};
+        G.foreignWars.hre = {power: "hre", cardId: "vq-x", enemy: "Poland", enemyUnits: 3,
+            units: {regular: 3, merc: 0, cav: 0}, winnerVp: false, status: "active", leaderId: "zrinyi"};
+        playCard(G, context(), {cardId: "vq-076", asEvent: true, target: "zrinyi"});
+        expect(G.foreignWars.hre?.leaderId).toBeUndefined();
+        expect(G.log.join("\n")).toMatch(/hre has no army leader left/);
     });
 });

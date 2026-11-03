@@ -2,6 +2,21 @@ import {CardDef, Power} from "./general";
 import {OFFICIAL_CARDS} from "../data/cards";
 
 /**
+ * Card scans live in public/vq-cards/ (WebP, 376×526) and Vite copies them to
+ * the build root. Vite replaces `__VQ_BASE_URL__` with the configured base
+ * (see vite.config.mts); the fallback keeps Jest working, since its CommonJS
+ * runtime cannot parse `import.meta.env`.
+ */
+declare const __VQ_BASE_URL__: string | undefined;
+
+const assetBaseUrl = typeof __VQ_BASE_URL__ === "string" ? __VQ_BASE_URL__ : "/";
+
+/** Scanned card image for official cards; legacy deck cards have none. */
+export const cardImageUrl = (def: CardDef): string | undefined =>
+    def.officialNumber === undefined ? undefined
+        : `${assetBaseUrl}vq-cards/vq_${def.officialNumber}.webp`;
+
+/**
  * A compact reconstruction of the Virgin Queen deck.
  *
  * The printed game has 112 unique cards; the rules PDF does not include the
@@ -319,7 +334,8 @@ export const CARD_BY_ID: Record<string, CardDef> = Object.fromEntries(
         ...ALL_CARDS,
         ...OFFICIAL_CARDS.map((card): CardDef => ({
             id: card.id,
-            name: card.nameEn,
+            // The scans are Chinese, so show the OCR'd name to match them.
+            name: card.nameZh,
             cp: card.cp ?? 3,
             kind: card.kind === "home" ? "home" : card.kind === "event" ? "event" : "command",
             power: card.power,

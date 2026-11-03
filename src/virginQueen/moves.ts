@@ -1,5 +1,5 @@
 import {Ctx} from "boardgame.io";
-import {beginEspionageEvent, canPlayEspionageEvent, isEspionageEvent, plantOperative, startEspionage, espionageState} from "./espionage";
+import {beginEspionageEvent, beginMassacre, beginNorthernRising, canPlayEspionageEvent, canPlayMassacre, canPlayNorthernRising, isEspionageEvent, plantOperative, startEspionage, espionageState} from "./espionage";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
     CardDef,
@@ -31,7 +31,7 @@ import {moveError} from "./movePolicy";
 import {activateMajor, resolveMajorDiplomacy} from "./util";
 import {startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
-import {beginGrandVizierEvent, canCancelCardEvent, canPlayGrandVizier, cardEventOptions, chooseGrandVizierEvent, grandVizierInHand, isGrandVizier} from "./cardEvents";
+import {beginGrandVizierEvent, canCancelCardEvent, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, grandVizierInHand, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
 import {startPiracy} from "./piracy";
 import {offerInterception} from "./interception";
 import {tutorialSpaceAllowed} from "./tutorial";
@@ -310,6 +310,12 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         beginEspionageEvent(G, ctx, p, handler, target);
     } else if (beneficiary !== undefined) {
         startForeignWar(G, cardId, beneficiary, Number(target));
+    } else if (handler === "stBartholomewsDayMassacre") {
+        beginMassacre(G, ctx, p);
+    } else if (handler === "northernRising") {
+        beginNorthernRising(G, ctx, p);
+    } else if (handler === "untimelyDeath") {
+        resolveUntimelyDeath(G, target ?? "none");
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
@@ -371,6 +377,9 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     const cardHandler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
     const beneficiary = foreignWarPower(cardHandler);
     if (args.asEvent === true && isEspionageEvent(cardHandler) && !canPlayEspionageEvent(G, p, cardHandler, args.target)) return INVALID_MOVE;
+    if (args.asEvent === true && cardHandler === "northernRising" && !canPlayNorthernRising(G)) return INVALID_MOVE;
+    if (args.asEvent === true && cardHandler === "stBartholomewsDayMassacre" && !canPlayMassacre(G)) return INVALID_MOVE;
+    if (args.asEvent === true && cardHandler === "untimelyDeath" && G.scenario !== "tutorial" && !canPlayUntimelyDeath(G, args.target)) return INVALID_MOVE;
     if (args.asEvent === true && beneficiary !== undefined) {
         const enemyUnits = Number(args.target);
         if ((enemyUnits !== 3 && enemyUnits !== 5) || G.foreignWars[beneficiary] !== undefined ||

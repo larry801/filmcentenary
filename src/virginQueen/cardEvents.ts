@@ -1,6 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {CardDef, Power, VQGame, landCount} from "./constant/general";
+import {LEADER_BY_ID} from "./constant/leaders";
 import {SPACE_BY_ID, SPACES} from "./mapData";
 import {ownerOf} from "./ownership";
 import {tutorialSpaceAllowed} from "./tutorial";
@@ -79,4 +80,41 @@ export const chooseGrandVizierEvent = (G: VQGame, ctx: Ctx, choice: string): voi
     }
     delete G.pendingCardEvent;
     ctx.events?.endStage();
+};
+
+/** Leaders printed on #76 Untimely Death. */
+export const UNTIMELY_DEATH_LEADERS = ["piyale", "donJohn", "montmorency", "alba", "santaCruz", "leicester", "zrinyi"];
+
+/**
+ * Listed leaders that are still in the game: on the map, captured, or waiting to arrive.
+ * Leaders excluded by the scenario or already killed are not legal targets.
+ */
+export const untimelyDeathTargets = (G: VQGame): string[] =>
+    UNTIMELY_DEATH_LEADERS.filter((id) => G.leaders[id] !== undefined && G.leaders[id].location !== "offMap");
+
+/** "none" is only legal when no listed leader remains; the Mandatory Event still has to be played. */
+export const canPlayUntimelyDeath = (G: VQGame, target?: string): boolean => {
+    const targets = untimelyDeathTargets(G);
+    return targets.length === 0 ? target === "none" : target !== undefined && targets.includes(target);
+};
+
+export const resolveUntimelyDeath = (G: VQGame, target: string): void => {
+    if (target === "none") {
+        pushLog(G, "Untimely Death: no listed leader remains in play.");
+        return;
+    }
+    const location = G.leaders[target].location;
+    if (G.spaces[location] !== undefined) G.spaces[location].leaders = G.spaces[location].leaders.filter((id) => id !== target);
+    const zone = G.seaZones[location as keyof VQGame["seaZones"]];
+    if (zone !== undefined) zone.leaders = zone.leaders.filter((id) => id !== target);
+    for (const war of Object.values(G.foreignWars)) if (war?.leaderId === target) delete war.leaderId;
+    delete G.leaders[target];
+    pushLog(G, `Untimely Death: ${LEADER_BY_ID[target]?.name ?? target} is removed from the game.`);
+    const power = LEADER_BY_ID[target]?.power;
+    const armyLeader = LEADER_BY_ID[target]?.kind === "army";
+    if (armyLeader && !Object.keys(G.leaders).some((id) => LEADER_BY_ID[id]?.power === power && LEADER_BY_ID[id]?.kind === "army" &&
+        G.leaders[id].location !== "offMap")) {
+        // Rule 5.1 Default Leaders: no default counter is modelled yet, so this is logged for manual resolution.
+        pushLog(G, `${power} has no army leader left; place its Default Leader on the Turn Track manually.`);
+    }
 };

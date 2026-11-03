@@ -27,6 +27,8 @@ import {
 } from "./index";
 import {Controller, MINOR_POWERS, POWERS, SeaZoneID} from "../constant/general";
 import {SEA_ZONE_BY_ID} from "../constant/spaces";
+import fs from "node:fs";
+import path from "node:path";
 
 const controllers: Controller[] = [...POWERS, ...MINOR_POWERS, "independent"];
 
@@ -46,6 +48,15 @@ describe("Virgin Queen official data - cards", () => {
             expect(card.id).toBe(`vq-${String(card.number).padStart(3, "0")}`);
             expect(CARD_BY_NUMBER[card.number]).toBe(card);
             expect(CARD_BY_ID[card.id]).toBe(card);
+        }
+    });
+
+    it("ships a scanned WebP image for every official card", () => {
+        const dir = path.join(__dirname, "../../../public/vq-cards");
+        const images = fs.readdirSync(dir).filter((file) => /^vq_\d+\.webp$/.test(file));
+        expect(images).toHaveLength(OFFICIAL_CARDS.length);
+        for (const card of OFFICIAL_CARDS) {
+            expect(images).toContain(`vq_${card.number}.webp`);
         }
     });
 
@@ -128,13 +139,13 @@ describe("Virgin Queen official data - cards", () => {
             expect(card.nameZh.length).toBeGreaterThan(0);
             expect(card.textZh.length).toBeGreaterThan(0);
             expect(card.textZh).not.toContain("\n");
-            expect(card.source).toBe("中文卡表.pdf");
+            expect(card.source).toBe("vq_cards OCR");
         }
-        expect(CARD_BY_NUMBER[4].nameZh).toBe("日耳曼干涉");
-        expect(CARD_BY_NUMBER[11].nameZh).toBe("德拉加特戰死");
-        expect(CARD_BY_NUMBER[58].nameZh).toBe("納瓦拉的珍妮");
-        expect(CARD_BY_NUMBER[59].nameZh).toBe("約翰．霍金斯");
-        expect(CARD_BY_NUMBER[112].nameZh).toBe("街壘日†");
+        expect(CARD_BY_NUMBER[4].nameZh).toBe("德意志的介入");
+        expect(CARD_BY_NUMBER[11].nameZh).toBe("德拉古特之陨");
+        expect(CARD_BY_NUMBER[58].nameZh).toBe("纳瓦拉的珍妮");
+        expect(CARD_BY_NUMBER[59].nameZh).toBe("约翰·霍金斯");
+        expect(CARD_BY_NUMBER[112].nameZh).toBe("街垒日");
     });
 
     it("makes every complex effect explicit instead of silently faking it", () => {

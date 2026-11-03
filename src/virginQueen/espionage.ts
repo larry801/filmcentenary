@@ -7,7 +7,7 @@ import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "./mapData";
 import {actingPower, isActivatedMajor, ownerOf, participatingPowers} from "./ownership";
 import {assassinationResult, catholicRebellionResult} from "./data/espionage";
 import {EspionageState, PendingEspionage} from "./espionageTypes";
-import {addLand, addVp, allied, capitalOf, discardCard, ensureLand, ensureNaval,
+import {addLand, addVp, allied, atWar, capitalOf, discardCard, ensureLand, ensureNaval,
     hits, isFortifiedSpace, pushLog, removeCardFromHand,
     roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
 
@@ -430,6 +430,25 @@ export const espionageOptions = (G: VQGame): {id: string; label: string}[] => {
         ];
         return places.length && p.step === "jesuitPlace" ? places : [...places, {id: "done", label: "完成耶稣会士事件"}];
     }
+    if (p.step === "northernConvert") {
+        const targets = northernConversionTargets(G, p.conversionBase ?? []);
+        return targets.length ? targets.map((id) => ({id: `nconvert:${id}`, label: `北方崛起：${SPACE_BY_ID[id].name} 改为天主教`})) :
+            [{id: "nconvertDone", label: "没有其他合法地区，继续结算"}];
+    }
+    if (p.step === "massacreConvert") {
+        const targets = massacreConversionTargets(G);
+        return [{id: "massacreConvertDone", label: "结束转化"},
+            ...targets.map((id) => ({id: `mconvert:${id}`, label: `大屠杀：${SPACE_BY_ID[id].name} 改为天主教`}))];
+    }
+    if (p.step === "massacreAssassinate") return [
+        {id: "massacreAssassinate", label: `免费刺杀科利尼（${p.cp} CP）`},
+        {id: "massacreSkip", label: "放弃刺杀"},
+    ];
+    if (p.step === "northernUnrest") {
+        const targets = northernUnrestTargets(G);
+        return targets.length ? targets.map((id) => ({id: `nunrest:${id}`, label: `北方崛起：在 ${SPACE_BY_ID[id].name} 放置动荡`})) :
+            [{id: "done", label: "没有其他合法地区，完成事件"}];
+    }
     if (p.step === "jesuitMove") return [{id: "done", label: "完成耶稣会士事件"}, ...(G.espionage?.jesuits ?? []).filter((id) => p.used.includes(id)).map((id) =>
         ({id: `move:${id}`, label: `移动耶稣会士：${SPACE_BY_ID[id].name}`}))];
     return [];
@@ -495,6 +514,39 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
         return;
     }
     if (choice === "topcliffeDone") {startConversions(G, ctx, false, "protestant", 5); return;}
+    if (p.step === "massacreConvert") {
+        if (choice !== "massacreConvertDone") {
+            const id = choice.slice(9);
+            G.spaces[id].religion = "catholic"; p.remaining--;
+            pushLog(G, `St. Bartholomew's Day Massacre: ${SPACE_BY_ID[id].name} becomes Catholic.`);
+        }
+        if (choice === "massacreConvertDone" || p.remaining <= 0 || !massacreConversionTargets(G).length) afterMassacreConversions(G, ctx);
+        return;
+    }
+    if (p.step === "massacreAssassinate") {
+        if (choice === "massacreSkip") {finish(G, ctx); return;}
+        G.assassinationUsed.push("france");
+        p.kind = "assassination"; p.power = "france"; p.targetPower = "protestant"; p.target = "coligny"; p.used = [];
+        pushLog(G, `France attempts a free ${p.cp} CP assassination of Coligny.`);
+        beginResponses(G, ctx);
+        return;
+    }
+    if (p.step === "northernConvert") {
+        if (choice !== "nconvertDone") {
+            const id = choice.slice(9);
+            G.spaces[id].religion = "catholic"; p.converted!.push(id); p.remaining--;
+            pushLog(G, `Northern Rising: ${SPACE_BY_ID[id].name} becomes Catholic.`);
+        }
+        if (choice === "nconvertDone" || p.remaining <= 0 || !northernConversionTargets(G, p.conversionBase ?? []).length) afterNorthernConversions(G, ctx);
+        return;
+    }
+    if (p.step === "northernUnrest" && choice !== "done") {
+        const id = choice.slice(8);
+        G.spaces[id].unrest = true; p.remaining--;
+        pushLog(G, `Northern Rising: unrest in ${SPACE_BY_ID[id].name}.`);
+        if (p.remaining <= 0 || !northernUnrestTargets(G).length) finish(G, ctx);
+        return;
+    }
     if (choice === "done") {
         if (p.event === "godsSecretAgents" && p.step === "jesuitPlace") {p.step = "jesuitMove"; return;}
         finish(G, ctx); return;
@@ -597,16 +649,146 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
     }
 };
 
+// --------------------------------------------------------------------------
+// #78 Northern Rising (Rising of the North)
+// --------------------------------------------------------------------------
+
+/** Same adjacency as conversions (18.5): land connections and ports on a shared sea zone. */
+const conversionNeighbors = (id: string): string[] => [
+    ...LAND_NEIGHBORS[id].map((n) => n.id),
+    ...(SPACE_BY_ID[id].ports ?? []).flatMap((z) => zonePorts(z).filter((port) => port !== id)),
+];
+const withinTwo = (id: string, base: string[]): boolean => {
+    const near = new Set([id, ...conversionNeighbors(id)]);
+    for (const n of [...near]) for (const m of conversionNeighbors(n)) near.add(m);
+    return [...near].some((x) => base.includes(x));
+};
+
+/**
+ * English spaces Spain may flip: not Catholic, free of Protestant units, and within 2 spaces of a space
+ * that was Catholic when the event began. The last Protestant English space is kept (core presence).
+ */
+export const northernConversionTargets = (G: VQGame, base: string[]): string[] => {
+    const england = SPACES.filter((s) => s.area === "england");
+    if (england.filter((s) => G.spaces[s.id].religion !== "catholic").length <= 1) return [];
+    return england.filter((s) => G.spaces[s.id].religion !== "catholic" && !protestantUnits(G, s.id).length &&
+        withinTwo(s.id, base)).map((s) => s.id);
+};
+
+/** Unrest goes on English spaces that are unoccupied or under Catholic influence. */
+export const northernUnrestTargets = (G: VQGame): string[] => SPACES.filter((s) => {
+    const st = G.spaces[s.id];
+    const occupied = Object.values(st.land).some((u) => u && u.regular + u.merc + u.cav > 0) ||
+        Object.values(st.naval).some((u) => navalCount(u) > 0) || st.leaders.length > 0;
+    return s.area === "england" && !st.unrest && (!occupied || st.religion === "catholic");
+}).map((s) => s.id);
+
+export const canPlayNorthernRising = (G: VQGame): boolean =>
+    G.scenario !== "tutorial" && !G.pendingEspionage && espionageState(G).mary === "captured" && ownerOf(G, "spain") !== undefined;
+
+const afterNorthernConversions = (G: VQGame, ctx: Ctx): void => {
+    const p = G.pendingEspionage!;
+    if (atWar(G, "spain", "england")) {
+        // Scenario book: follow 19.4 from Step 2; this does not use Spain's once-per-turn rebellion marker.
+        p.step = "rebelTarget"; p.remaining = 0; stage(G, ctx, "spain");
+    } else {
+        p.step = "northernUnrest"; p.remaining = 4; stage(G, ctx, "spain");
+        if (!northernUnrestTargets(G).length) finish(G, ctx);
+    }
+};
+
+/** Any power may play the event; Spain makes every choice. */
+export const beginNorthernRising = (G: VQGame, ctx: Ctx, power: Power): void => {
+    const base = SPACES.filter((s) => G.spaces[s.id].religion === "catholic").map((s) => s.id);
+    G.pendingEspionage = {kind: "northernRising", power: "spain", targetPower: "england", responding: "spain",
+        step: "northernConvert", cp: 4, remaining: 3, used: [], converted: [], conversionBase: base, event: "northernRising"};
+    pushLog(G, `${power} plays Northern Rising; Spain resolves it.`);
+    if (!northernConversionTargets(G, base).length) {afterNorthernConversions(G, ctx); return;}
+    stage(G, ctx, "spain");
+};
+
+// --------------------------------------------------------------------------
+// #97 St. Bartholomew's Day Massacre
+// --------------------------------------------------------------------------
+
+const inFrance = (id: string): boolean => SPACE_BY_ID[id]?.area === "france" || SPACE_BY_ID[id]?.home === "france";
+
+/** Navarre is betrothed to a French royal this turn (betrothals resolve in Winter). */
+export const navarreBetrothedToFrance = (G: VQGame): boolean => G.betrothals.some((b) =>
+    [b.male, b.female].includes("henryIV") && [b.male, b.female].some((id) => G.royals.find((r) => r.id === id)?.power === "france"));
+
+/** Protestant spaces in France under French political control; the last Protestant space in the area is kept (18.1). */
+export const massacreConversionTargets = (G: VQGame): string[] => {
+    const area = SPACES.filter((s) => s.area === "france");
+    if (area.filter((s) => G.spaces[s.id].religion === "protestant").length <= 1) return [];
+    return SPACES.filter((s) => inFrance(s.id) && G.spaces[s.id].religion === "protestant" && G.spaces[s.id].control === "france").map((s) => s.id);
+};
+
+/** Scenario FAQ: no attempt if France already used its assassination this turn. */
+const massacreAssassinationAllowed = (G: VQGame): boolean => ownerOf(G, "france") !== undefined && !isActivatedMajor(G, "france") &&
+    !isActivatedMajor(G, "protestant") && !G.assassinationUsed.includes("france") && assassinationTargets(G, "france").includes("coligny");
+
+const afterMassacreConversions = (G: VQGame, ctx: Ctx): void => {
+    const p = G.pendingEspionage!;
+    if (massacreAssassinationAllowed(G)) {p.step = "massacreAssassinate"; stage(G, ctx, "france");}
+    else finish(G, ctx);
+};
+
+export const canPlayMassacre = (G: VQGame): boolean => G.scenario !== "tutorial" && !G.pendingEspionage;
+
+export const beginMassacre = (G: VQGame, ctx: Ctx, power: Power): void => {
+    const navarre = navarreBetrothedToFrance(G);
+    let mercs = 0;
+    for (const s of SPACES.filter((s) => inFrance(s.id))) {
+        const units = G.spaces[s.id].land.protestant;
+        if (units?.merc) {mercs += units.merc; units.merc = 0;}
+    }
+    const state = espionageState(G);
+    state.nextDraw.protestant = (state.nextDraw.protestant ?? 0) + 1;
+    pushLog(G, `St. Bartholomew's Day Massacre: ${mercs} Protestant mercenaries in France removed; the Protestant gains a +1 Card marker.`);
+    G.pendingEspionage = {kind: "massacre", power, targetPower: "protestant", responding: power, step: "massacreConvert",
+        cp: navarre ? 4 : 2, remaining: navarre ? 8 : 5, used: [], event: "stBartholomewsDayMassacre"};
+    if (!massacreConversionTargets(G).length) {afterMassacreConversions(G, ctx); return;}
+    stage(G, ctx, power);
+};
+
 export const refreshJesuits = (G: VQGame): void => {
     if (!espionageAvailable(G)) return;
     const state = espionageState(G);
     state.jesuitsOnCard = Math.max(state.jesuitsOnCard, Math.min(state.douai ? 2 : 1, 5 - state.jesuits.length));
 };
 
+/**
+ * Double Agent targets: "enemy" or "enemy>from". The enemy informant (neutralized or not) must be
+ * on the player's power card; "from" names one of the player's non-neutralized informants to move.
+ */
+export const doubleAgentTargets = (G: VQGame, power: Power): string[] => {
+    const own = G.informants.filter((i) => i.owner === power);
+    const movable = own.filter((i) => !i.neutralized).map((i) => i.target);
+    return G.informants.filter((i) => i.target === power && i.owner !== power && !isActivatedMajor(G, i.owner))
+        .flatMap((i) => own.length < 2 || own.some((o) => o.target === i.owner) ? [i.owner] :
+            movable.map((from) => `${i.owner}>${from}`));
+};
+
+const resolveDoubleAgent = (G: VQGame, power: Power, target: string): void => {
+    const [enemy, from] = target.split(">") as [Power, Power | undefined];
+    G.informants = G.informants.filter((i) => !(i.owner === enemy && i.target === power));
+    pushLog(G, `Double Agent: ${enemy}'s informant on ${power} returns to its force pool.`);
+    if (G.informants.some((i) => i.owner === power && i.target === enemy)) {
+        pushLog(G, `${power} already has an informant on ${enemy}; no informant is added.`);
+        return;
+    }
+    const moving = from !== undefined ? G.informants.find((i) => i.owner === power && i.target === from && !i.neutralized) : undefined;
+    if (moving) {moving.target = enemy; moving.plantedImpulse = G.impulse;}
+    else G.informants.push({owner: power, target: enemy, plantedImpulse: G.impulse, neutralized: false});
+    pushLog(G, `${power} adds an informant on ${enemy}.`);
+};
+
 /** Core related Event cards; unsupported choices remain outside this dispatcher. */
-export const isEspionageEvent = (handler: string): boolean => ["walsingham", "cipherKey", "englishCollegeAtDouai", "godsSecretAgents", "richardTopcliffe"].includes(handler);
+export const isEspionageEvent = (handler: string): boolean => ["walsingham", "cipherKey", "englishCollegeAtDouai", "godsSecretAgents", "richardTopcliffe", "doubleAgent"].includes(handler);
 export const canPlayEspionageEvent = (G: VQGame, power: Power, handler: string, target?: string): boolean => {
     if (!espionageAvailable(G)) return false;
+    if (handler === "doubleAgent") return !isActivatedMajor(G, power) && target !== undefined && doubleAgentTargets(G, power).includes(target);
     if (handler === "walsingham") return power === "england" && (target === "offensive" || target === "defensive" ||
         target !== undefined && isPower(target) && target !== power && !!ownerOf(G, target) && !isActivatedMajor(G, target));
     if (handler === "cipherKey") return target === "remove" || target !== undefined && isPower(target) && target !== power && !!ownerOf(G, target) && !isActivatedMajor(G, target);
@@ -616,6 +798,7 @@ export const canPlayEspionageEvent = (G: VQGame, power: Power, handler: string, 
 };
 export const beginEspionageEvent = (G: VQGame, ctx: Ctx, power: Power, handler: string, target?: string): void => {
     const state = espionageState(G);
+    if (handler === "doubleAgent") {resolveDoubleAgent(G, power, target!); return;}
     if (handler === "cipherKey") {
         if (target === "remove") for (const p of POWERS) {if (state.cipherKeys[p] === power) delete state.cipherKeys[p];}
         else state.cipherKeys[power] = target as Power;

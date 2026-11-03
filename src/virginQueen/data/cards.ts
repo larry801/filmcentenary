@@ -3,16 +3,19 @@ import {OfficialCardDef, CardCpCoverage} from "./types";
 /**
  * Official 112-card deck.
  *
- * Titles and effect text are transcribed from 中文卡表.pdf, whose page
- * reading order defines the official card numbers.  Command points, the
- * first turn each card is available, and the printed category come from
- * the card table on pages 42-56 of 中文規則.pdf.
+ * Card numbers follow the 中文卡表.pdf reading order, verified against the
+ * printed numbers on the scans in public/vq-cards/.
+ *
+ * nameZh and textZh are OCR transcriptions of those scans (RapidOCR
+ * cross-checked with Apple Vision, then hand-checked). Command points, the
+ * first turn each card is available, the printed category and the typed
+ * effects still come from the card table on pages 42-56 of 中文規則.pdf.
  */
 export const OFFICIAL_CARDS: OfficialCardDef[] = [
 {
         number: 1,
         id: "vq-001",
-        nameZh: "偉大的宰相",
+        nameZh: "大维齐尔",
         nameEn: "Grand Vizier",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -20,21 +23,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "home",
         timing: "Action Phase; also playable as a response to cancel an event",
-        textZh: "增加4 名任意組合的單位，這可以是正規軍或槳帆船(Galley)，新增的單位放到鄂圖曼家鄉地區和/或 境外戰爭卡上，海軍單位必須加到與愛琴海(Aegean Sea)相鄰的港口。─ 或者 ─馬上進行建造蘇伊士運河建造擲骰（限5～6 人遊戲使用）─ 或者 ─鄂圖曼將此卡當作回應卡，來取消任何當作事件施放的卡片。",
+        textZh: "选择以下选项中的一项执行：1、在奥斯曼本土地区及对外战争牌上增加4个单位（仍不能在阿尔及尔、杰尔巴招募正规军），可以是正规军及桨帆船的任意组合。海军部队必须放置于与爱琴海相邻的港口。2、立即对苏伊士运河工程进行投骰检定（仅限5到6人游戏）。3、作为响应牌使用，以取消任意1张普通事件牌的事件效果。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "grandVizier",
-            summary: "增加4 名任意組合的單位，這可以是正規軍或槳帆船(Galley)，新增的單位放到鄂圖曼家鄉地區和/或 境外戰爭卡上，海軍單位必須加到與愛琴海(Aegean Se"
+            summary: "选择以下选项中的一项执行：1、在奥斯曼本土地区及对外战争牌上增加4个单位（仍不能在阿尔及尔、杰尔巴招募正规军），可以是正规军及桨帆船的任意组合。海军部队必须放置"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "ottoman"
     },
 {
         number: 2,
         id: "vq-002",
-        nameZh: "鄂圖曼要求進貢",
+        nameZh: "奥斯曼贡金",
         nameEn: "Ottoman Tribute",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -42,22 +45,22 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "home",
         timing: "Action Phase",
-        textZh: "在行動階段時與神聖羅馬帝國、威尼斯或西班牙宣戰，獲得2 CP 進行行動。西班牙(或神聖羅馬帝國，如果西班牙拒絕進貢，且HRE 由玩家控制)可以提供進貢來取消掉此次宣戰。如果鄂圖曼接受進貢，鄂圖曼可以選擇從進貢的主要勢力那邊隨機地抽取1 張牌或1 個寶藏。然後鄂圖曼再從牌庫抽1 張牌。",
+        textZh: "行动阶段，向西班牙、神圣罗马帝国、威尼斯其中之一的势力威胁开战（不得与目标势力同盟）。西班牙和神圣罗马帝国（若是玩家）可以选择纳贡以询问奥斯曼是否取消这次宣战。若奥斯曼接受纳贡，可以选择从目标势力手中抽取一张卡牌或者一个宝藏，再从牌堆中抽一张牌，并取消宣战。否则，奥斯曼对目标势力宣战，并获得2CP用于行动。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "ottomanTribute",
-            summary: "在行動階段時與神聖羅馬帝國、威尼斯或西班牙宣戰，獲得2 CP 進行行動。西班牙(或神聖羅馬帝國，如果西班牙拒絕進貢，且HRE 由玩家控制)可以提供進貢來取消掉此"
+            summary: "行动阶段，向西班牙、神圣罗马帝国、威尼斯其中之一的势力威胁开战（不得与目标势力同盟）。西班牙和神圣罗马帝国（若是玩家）可以选择纳贡以询问奥斯曼是否取消这次宣战。"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "ottoman",
         notes: "Official Ottoman family card in the six-player game."
     },
 {
         number: 3,
         id: "vq-003",
-        nameZh: "西班牙大道",
+        nameZh: "西班牙之路",
         nameEn: "Spanish Road",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -65,21 +68,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "home",
         timing: "Action Phase",
-        textZh: "增加1 名正規軍到米蘭(Milan)，如果想要可以從任何地方移動1 名領袖到米蘭，然後西班牙玩家使用春季佈署規則來將軍隊從米蘭移出去。路途中可以使用中立控制的地區（或4～5 人局中未啟動神聖羅馬帝國地區），然而不能進入有著敵方單位的地區，路途可以自由地跨越1 條困難地形，但不能跨越任何海上區域。",
+        textZh: "若米兰处于西班牙控制下，在米兰增加1支正规军，同时可以将一个陆军将领从任意地区移至米兰。西班牙以春季部署规则从米兰发兵。行军路线可以途径中立势力所属地区（少于6人的游戏中，可途径未被激活的神圣罗马帝国地区），但路线地区不能有敌方部队。该行军路线可途径1处山路，但不能跨海。这张卡牌的移动不能被其他势力拦截或者插入结算。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "spanishRoad",
-            summary: "增加1 名正規軍到米蘭(Milan)，如果想要可以從任何地方移動1 名領袖到米蘭，然後西班牙玩家使用春季佈署規則來將軍隊從米蘭移出去。路途中可以使用中立控制的地"
+            summary: "若米兰处于西班牙控制下，在米兰增加1支正规军，同时可以将一个陆军将领从任意地区移至米兰。西班牙以春季部署规则从米兰发兵。行军路线可以途径中立势力所属地区（少于6"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain"
     },
 {
         number: 4,
         id: "vq-004",
-        nameZh: "日耳曼干涉",
+        nameZh: "德意志的介入",
         nameEn: "German Intervention",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -87,20 +90,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "Immediately when drawn",
-        textZh: "馬上決議神聖羅馬帝國的外交狀態。此卡每一時期都會洗回牌庫",
+        textZh: "立即进行神圣罗马帝国的外交评议。此牌每回合都会洗入牌堆",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "germanIntervention",
-            summary: "馬上決議神聖羅馬帝國的外交狀態。此卡每一時期都會洗回牌庫"
+            summary: "立即进行神圣罗马帝国的外交评议。此牌每回合都会洗入牌堆"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 5,
         id: "vq-005",
-        nameZh: "教皇的詔書",
+        nameZh: "教宗诏书",
         nameEn: "Papal Bull",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -108,21 +111,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "Immediately when drawn",
-        textZh: "馬上決議教皇的外交狀態，現在控制教皇的勢力可以選擇以下：(1)將伊莉莎白開除教籍，增加「ElizabethExcpmmunicated」標示物到外交狀態表上。─ 或者 ─(2)針對法國或荷蘭進行7 次天主教教改檢定。─ 或者 ─(3)選擇贊助義大利中的藝術家或科學家，如同你花費3 點去贊助。─ 或者 ─(4)從棄牌堆馬上找回神聖聯盟(Holy League)，並馬上做為一次事件施放。此卡每一時期洗回牌庫",
+        textZh: "立即进行教廷的外交评议。结盟教廷的玩家势力可以选择执行下其中一项（也可以选择什么都不执行）：①将伊丽莎白一世开除教籍，将“伊丽莎白被开除教籍”标记置于外交形势表上。②在法兰西地区或尼德兰地区执行7次天主教传教尝试。③选择1个来自意大利的艺术家或科学家，视为花费了3CP来执行1次赞助行动。本次赞助计入每回合的赞助限制。④若“神圣同盟”在弃牌堆中，且没有在本回合被执行事件，将其找回并执行事件。此牌每回合都会洗入牌堆",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "papalBull",
-            summary: "馬上決議教皇的外交狀態，現在控制教皇的勢力可以選擇以下：(1)將伊莉莎白開除教籍，增加「ElizabethExcpmmunicated」標示物到外交狀態表上。─"
+            summary: "立即进行教廷的外交评议。结盟教廷的玩家势力可以选择执行下其中一项（也可以选择什么都不执行）：①将伊丽莎白一世开除教籍，将“伊丽莎白被开除教籍”标记置于外交形势表"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         notes: "Elizabeth may only be excommunicated once per game."
     },
 {
         number: 6,
         id: "vq-006",
-        nameZh: "賽利姆二世",
+        nameZh: "塞利姆二世",
         nameEn: "Selim II",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -130,21 +133,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "When Suleiman dies / event",
-        textZh: "蘇萊曼駕崩，賽利姆二世取代蘇萊曼成為鄂圖曼的統治者；將此卡放到鄂圖曼的勢力卡上，放置塞普勒斯勝利點數標示物(Cyprus VP)到下列列表中，第一個非鄂圖曼控制的地區：塞普勒斯、克里特島(Candia)、科孚島(Corfu)，鄂圖曼如果未來控制這些地區的話，將可獲得此獎勵VP。內政等級：保留2 張卡片。卡片獎勵：額外1 張卡片。",
+        textZh: "苏莱曼去世。塞利姆二世接替苏莱曼一世成为奥斯曼的统治者。将这张牌放置在奥斯曼势力板上的统治者区域。将“塞浦路斯VP”标记置于下列首个非奥斯曼控制的地区上：塞浦路斯、干地亚、科孚。往后游戏中若奥斯曼成功夺取该据点的控制权时，可获得该VP。治理能力：保留2张手牌；手牌奖励：额外1张卡牌。FAQ：此牌第二回合开始时从摸牌堆加入奥斯曼手牌（2-4人游戏中改为第二回合冬季强制触发），且永远不会被强制弃置。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "selimII",
-            summary: "蘇萊曼駕崩，賽利姆二世取代蘇萊曼成為鄂圖曼的統治者；將此卡放到鄂圖曼的勢力卡上，放置塞普勒斯勝利點數標示物(Cyprus VP)到下列列表中，第一個非鄂圖曼控制"
+            summary: "苏莱曼去世。塞利姆二世接替苏莱曼一世成为奥斯曼的统治者。将这张牌放置在奥斯曼势力板上的统治者区域。将“塞浦路斯VP”标记置于下列首个非奥斯曼控制的地区上：塞浦路"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "ottoman"
     },
 {
         number: 7,
         id: "vq-007",
-        nameZh: "孤注一擲的突襲",
+        nameZh: "强攻",
         nameEn: "Desperate Assault",
         cp: 1,
         cpSource: "pdf-text-layer",
@@ -152,7 +155,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "combat",
         timing: "Before an assault you are attacking",
-        textZh: "在突襲前施放，且你是攻擊方。你所有骰子4～6 命中，然而防禦方擲骰數量為正常的2 倍（但依然只有5～6 命中）",
+        textZh: "本次攻城中，你的命中判定变为4、5、6，但防守方可以投掷双倍数量的骰子（这些骰子的命中判定不变）。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -162,12 +165,12 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             phase: "assault",
             condition: "Attacker hits on 4-6; defender rolls twice the normal dice but still hits only on 5-6."
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 8,
         id: "vq-008",
-        nameZh: "精英部隊",
+        nameZh: "精锐部队",
         nameEn: "Elite Troops",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -175,7 +178,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "combat",
         timing: "Before a field battle",
-        textZh: "施放此卡來在原野戰獲得額外3 顆骰。如果由鄂圖曼或西班牙施放，那3 顆骰出現4～6即算命中。",
+        textZh: "本次野战中，额外多掷3个骰子。若奥斯曼或者西班牙使用，这3个骰子的命中判定变为4、5、6。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -184,12 +187,12 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             phase: "field",
             condition: "Ottoman or Spain hits on 4-6 with these three dice."
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 9,
         id: "vq-009",
-        nameZh: "火燒船",
+        nameZh: "火攻战船",
         nameEn: "Fire Ships",
         cp: 1,
         cpSource: "pdf-text-layer",
@@ -197,7 +200,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "combat",
         timing: "Before a naval battle",
-        textZh: "在海戰時增加額外2 顆骰。如果攻擊位於海港地區的敵方艦隊，或如果對抗西班牙無敵艦隊時，則改為增加額外4 顆骰。",
+        textZh: "本次海战中，额外多掷2个骰子。若对港口内的敌方舰队、或者对西班牙无敌舰队发起海战，改为额外多掷4个骰子。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -207,12 +210,12 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             phase: "naval",
             condition: "Use 4 dice against a fleet in an enemy port or against the Spanish Armada."
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 10,
         id: "vq-010",
-        nameZh: "攻城工程學",
+        nameZh: "围城工事",
         nameEn: "Siege Engineering",
         cp: 1,
         cpSource: "pdf-text-layer",
@@ -220,7 +223,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "combat",
         timing: "Before an assault; or as a response to Flooding",
-        textZh: "在突襲當中，如果你是攻擊方則得到額外3 顆骰。此外，當一場突襲對安特衛普(Antwerp)或鹿特丹(Rotterdam)發動時此卡可以展示出來，即使防守方控制由內陸水道與那些地區相連的港口，也可以進行突襲。─ 或者 ─如果水淹七軍(Flooding)作為戰鬥卡針對你施放，你可以取消水淹七軍卡。",
+        textZh: "若你是攻城方，在本次攻城中额外多掷3个骰子。若是对安特卫普或鹿特丹进行攻城时，即使防守方控制与该地区通过内陆水道相连的港口，也可以攻城。-或-取消战斗牌“洪水”对你的影响。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -229,13 +232,13 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             phase: "assault",
             condition: "Attacker only; also cancels Flooding played against you."
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         notes: "The Flooding cancellation clause only applies when Flooding is in play."
     },
 {
         number: 11,
         id: "vq-011",
-        nameZh: "德拉加特戰死",
+        nameZh: "德拉古特之陨",
         nameEn: "Dragut Falls",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -243,22 +246,22 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "After a battle or piracy involving Dragut",
-        textZh: "在一場包涵德拉加特(Dragut)的戰鬥或海盜搶奪之後施放。在戰鬥結束後，或海盜步驟都完成後，投擲1 顆骰，如果出現4～6，德拉加特移出遊戲(阿里夏帕Uluch Ali領袖下一時期進場)，如果是1～3，將德拉加特放到時期欄位表，他下一時期返回遊戲內。─ 或者 ─如果西班牙控制傑爾巴/的黎波里(Djerba/Tripoli)時施放，德拉加特移出遊戲，阿里夏帕Uluch Ali 領袖下一時期進場。並給予西班牙1 點戰爭勝力者VP。如果德拉加特死亡則將此卡移出遊戲",
+        textZh: "当德拉古特参与战斗或海盗行动结束后，打出者投1个骰子。若骰值为4-6，德拉古特死亡，将乌鲁奇·阿里置于回合记录轨，下回合登场。若骰值为1-3，将德拉古特置于回合记录轨，下回合重新登场。-或-当西班牙控制杰尔巴/的黎波里时才可以使用。可以作为事件打出。德拉古特死亡，将乌鲁奇·阿里置于回合记录轨，下回合登场。西班牙获得1个“战争胜利者”VP。德拉古特死亡时，将此牌移出游戏",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "dragutFalls",
-            summary: "在一場包涵德拉加特(Dragut)的戰鬥或海盜搶奪之後施放。在戰鬥結束後，或海盜步驟都完成後，投擲1 顆骰，如果出現4～6，德拉加特移出遊戲(阿里夏帕Uluch"
+            summary: "当德拉古特参与战斗或海盗行动结束后，打出者投1个骰子。若骰值为4-6，德拉古特死亡，将乌鲁奇·阿里置于回合记录轨，下回合登场。若骰值为1-3，将德拉古特置于回合"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         removeCondition: "Remove from play if Dragut dies.",
         notes: "Uluch Ali enters at the start of the next turn if Dragut is eliminated."
     },
 {
         number: 12,
         id: "vq-012",
-        nameZh: "威尼斯加萊賽帆船",
+        nameZh: "加莱赛战船",
         nameEn: "Venetian Galleasses",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -266,7 +269,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "After both sides roll in a naval battle",
-        textZh: "如果海戰發生於地中海海域，給予任何玩家此海戰當中(非海盜掠奪)額外3 顆骰。如果你擁有威尼斯槳帆船(Galley)此數字增加到5 顆骰。在看完雙方擲骰結果後施放。",
+        textZh: "在地中海海域的海战中（不包括海盗行动），在双方掷骰后打出此牌。给予一个参战势力3个额外骰子。若该势力控制了威尼斯桨帆船参战，改为5个额外骰子。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -276,12 +279,12 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             phase: "naval",
             condition: "Mediterranean naval battle only; 5 dice if you have a Venetian galley."
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 13,
         id: "vq-013",
-        nameZh: "黑騎兵",
+        nameZh: "黑骑士",
         nameEn: "Reiters",
         cp: 1,
         cpSource: "pdf-text-layer",
@@ -289,15 +292,15 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "Action Phase",
-        textZh: "如果由鄂圖曼施放，他可以消滅地圖上任何2 名傭兵。如果由其他勢力施放，放置你的2 名傭兵到任何1 個地區，選擇的地區必須在友方控制下，但並不需要是你勢力的家鄉地區。如果選擇的地區與神聖羅馬帝國家鄉地區沒有超過2 條道路相連，則放置4 名傭兵。",
+        textZh: "若由奥斯曼打出，消灭地图上的任意2支雇佣兵（可以不为同一势力）。若由其他势力打出，则将2支雇佣兵放置至任意一己方控制地区（可以不为己方本土地区）。若所选地区距离神圣罗马帝国本土地区不超过2个陆地连接点（译者注：可理解为“距离神罗本土2条线及以内的地区”），可改为放置4支雇佣兵。FAQ：不能放置在骚乱或者被围城的地区。不能放置在其他主要势力陆军存在的地区。在执行另一项事件的过程中（如“海上乞丐”）时，亦不可在一处无陆军地区放置雇佣兵。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "reiters",
-            summary: "如果由鄂圖曼施放，他可以消滅地圖上任何2 名傭兵。如果由其他勢力施放，放置你的2 名傭兵到任何1 個地區，選擇的地區必須在友方控制下，但並不需要是你勢力的家鄉地"
+            summary: "若由奥斯曼打出，消灭地图上的任意2支雇佣兵（可以不为同一势力）。若由其他势力打出，则将2支雇佣兵放置至任意一己方控制地区（可以不为己方本土地区）。若所选地区距离"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         notes: "The chosen space may not be under siege or in unrest."
     },
 {
@@ -311,7 +314,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "Before intercepting with a home-port fleet",
-        textZh: "在你打算使用留在你家鄉港中的海軍艦隊進行攔截前施放。攔截檢定直接通過，在接下來發生的海戰你投擲額外2 顆骰。",
+        textZh: "在你位于本土地区港口中的海军舰队发动拦截时，进行拦截判定前打出。本次拦截自动成功，拦截方在本次海战中额外多掷2个骰子。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -321,12 +324,12 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             autoIntercept: true,
             condition: "Intercept automatically succeeds; +2 dice in the following naval battle."
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 15,
         id: "vq-015",
-        nameZh: "暴風雨",
+        nameZh: "风暴",
         nameEn: "Storms",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -334,21 +337,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "After another power spends CP on a movement action",
-        textZh: "在其他勢力回合當中，他們宣佈花費CP 來進行移動、突襲、海盜搶奪、海軍移動、或海軍運輸之後施放。失去那1 CP，接下來那一回合當中，該勢力的地面單位不能移動超過1 地區；也不能進行突襲、海盜強奪、海軍移動，和海軍運輸。─ 或者 ─強迫任何1 個探險隊進行一次航海檢定。",
+        textZh: "在其他主要势力的行动轮中，该玩家声明耗费CP来执行陆军行军、攻城、海盗行动、海军移动，或是海上运输后打出。目标玩家损失1CP，在该行动轮余下的时间里，其陆军单位不能移动超过1个地区，同时禁止执行攻城、海盗行动、海军移动，或是海上运输。-或-强制一支远征队执行航行检定。FAQ：1效果不能用来阻止“变节”，但可以阻止“苏丹的后宫”；2效果可以对自己的远征队使用。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "storms",
-            summary: "在其他勢力回合當中，他們宣佈花費CP 來進行移動、突襲、海盜搶奪、海軍移動、或海軍運輸之後施放。失去那1 CP，接下來那一回合當中，該勢力的地面單位不能移動超過"
+            summary: "在其他主要势力的行动轮中，该玩家声明耗费CP来执行陆军行军、攻城、海盗行动、海军移动，或是海上运输后打出。目标玩家损失1CP，在该行动轮余下的时间里，其陆军单位"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         notes: "Effects last for this impulse only and cannot stop Treachery!."
     },
 {
         number: 16,
         id: "vq-016",
-        nameZh: "蘇丹的後宮",
+        nameZh: "苏丹的后宫",
         nameEn: "Sultan's Harem",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -356,20 +359,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "Ottoman event, or a non-Ottoman response",
-        textZh: "可由鄂圖曼當作事件施放。鄂圖曼玩家得到可用來建造海盜船(Corsair)，海軍移動 和/或 海盜搶奪的5 點CP。此次所有海盜行動額外投擲1 顆骰。─ 或者 ─可由非鄂圖曼勢力作為回應施放，來強迫鄂圖曼跳過他下一回合，作為回應施放此卡的勢力從牌",
+        textZh: "仅奥斯曼玩家可作为事件牌打出。获得5CP用于执行建造海盗船、海军移动和海盗行动。以此法执行海盗行动时，额外多掷1个骰子。-或其他非奥斯曼的玩家可作为响应牌打出，奥斯曼跳过本回合中的下一个行动轮。将此牌作为响应牌打出的势力抽一张牌。FAQ：2效果不能用来跳过奥斯曼本回合的首轮行动。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "sultansHarem",
-            summary: "可由鄂圖曼當作事件施放。鄂圖曼玩家得到可用來建造海盜船(Corsair)，海軍移動 和/或 海盜搶奪的5 點CP。此次所有海盜行動額外投擲1 顆骰。─ 或者 ─"
+            summary: "仅奥斯曼玩家可作为事件牌打出。获得5CP用于执行建造海盗船、海军移动和海盗行动。以此法执行海盗行动时，额外多掷1个骰子。-或其他非奥斯曼的玩家可作为响应牌打出，"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 17,
         id: "vq-017",
-        nameZh: "軍團叛變",
+        nameZh: "军队哗变",
         nameEn: "Army Mutiny",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -377,20 +380,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "指定一個目標主要勢力控制的軍團(在無敵艦隊上的軍團不得指定)，移除此勢力其軍隊中所有傭兵，目標勢力同時失去所有正規軍，除非他們馬上棄掉卡片或寶藏，卡片/寶藏的價值決定保留正規軍的數量：1 CP = 2 正規軍 ； 2 CP = 4 正規軍3 CP = 6 正規軍 ； 4 CP = 所有正規軍",
+        textZh: "选择任意主要势力的一个陆军堆叠（不能在西班牙无敌舰队上或者国外战争牌上），移除该堆叠所有雇佣兵。除非该部队所属势力弃置1张手牌（可以为势力牌，不能为强制性事件牌），否则堆叠中所有正规军也将移除。所弃置手牌或宝藏的CP决定了保留正规军的数量：1CP=2正规军；2CP=4正规军；3CP=6正规军；4CP及以上=所有正规军。最后，在堆叠所属地区及1个相邻地区放置骚乱标记。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "armyMutiny",
-            summary: "指定一個目標主要勢力控制的軍團(在無敵艦隊上的軍團不得指定)，移除此勢力其軍隊中所有傭兵，目標勢力同時失去所有正規軍，除非他們馬上棄掉卡片或寶藏，卡片/寶藏的價"
+            summary: "选择任意主要势力的一个陆军堆叠（不能在西班牙无敌舰队上或者国外战争牌上），移除该堆叠所有雇佣兵。除非该部队所属势力弃置1张手牌（可以为势力牌，不能为强制性事件牌"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 18,
         id: "vq-018",
-        nameZh: "城邦反抗",
+        nameZh: "城邦起义",
         nameEn: "City State Rebels",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -398,20 +401,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "選擇1 個不由其家鄉勢力控制的堡壘地區(星形或方塊地區)作為攻擊目標。投擲5 顆骰，每一個命中(5～6)迫使控制此地區的勢力從該地區移除1 名地面單位或艦隊，如果在反抗過後沒有任何軍隊或海軍，發生以下事情：領袖被施放此卡的勢力俘虜；海軍領袖到時期欄位上；移除目前的控制標誌，放置控制標誌，然後你選擇從該地區",
+        textZh: "选择任意势力（可为次要势力）的一个被占领的本土设防地区。掷5个骰子，每个命中骰可以消灭目标地区的1支陆军或海军。若目标地区的军队被全歼，执行以下操作：①陆军将领被出牌势力俘虏；②海军将领置于回合记录轨上，下回合可重新上场；③移除当前控制标记，放置该设防地区原属势力控制标记（若为两个势力的本土，则出牌者选择一个），并加入1支属于该势力的正规军。FAQ：该地区的控制者必须不视该地区为本土，且不与接收方势力结盟。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "cityStateRebels",
-            summary: "選擇1 個不由其家鄉勢力控制的堡壘地區(星形或方塊地區)作為攻擊目標。投擲5 顆骰，每一個命中(5～6)迫使控制此地區的勢力從該地區移除1 名地面單位或艦隊，如"
+            summary: "选择任意势力（可为次要势力）的一个被占领的本土设防地区。掷5个骰子，每个命中骰可以消灭目标地区的1支陆军或海军。若目标地区的军队被全歼，执行以下操作：①陆军将领"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 19,
         id: "vq-019",
-        nameZh: "外交失誤",
+        nameZh: "外交失策",
         nameEn: "Diplomatic Faux Pas",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -419,20 +422,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "從單一勢力當中，移除另一個主要勢力最多5 點CP 的外交影響力。",
+        textZh: "移除另一个主要势力与其他势力的外交影响力（共计至多5点）。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "diplomaticFauxPas",
-            summary: "從單一勢力當中，移除另一個主要勢力最多5 點CP 的外交影響力。"
+            summary: "移除另一个主要势力与其他势力的外交影响力（共计至多5点）。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 20,
         id: "vq-020",
-        nameZh: "雄辯的大使",
+        nameZh: "雄辩的使节",
         nameEn: "Eloquent Ambassador",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -440,20 +443,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "得到3 點CP 的外交影響力，你可分配到任何勢力(們)，然後選擇1 勢力來決議其外交狀態(可以是剛剛投入影響力的勢力)。",
+        textZh: "任意分配3点己方外交影响力，之后选择一个势力进行外交评议。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "eloquentAmbassador",
-            summary: "得到3 點CP 的外交影響力，你可分配到任何勢力(們)，然後選擇1 勢力來決議其外交狀態(可以是剛剛投入影響力的勢力)。"
+            summary: "任意分配3点己方外交影响力，之后选择一个势力进行外交评议。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 21,
         id: "vq-021",
-        nameZh: "境外志願兵",
+        nameZh: "外国志愿军",
         nameEn: "Foreign Volunteers",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -461,7 +464,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "增加3 名正規軍到任何你控制的地區(以任意組合，這些地區並不需要是家鄉地區)，選擇的地區不能被圍城中，或處於動亂中。",
+        textZh: "放置3支正规军。可以任意分配在己方控制且未被围攻或骚乱的地区（包括通常禁止招募正规军的地区）。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -470,13 +473,13 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             count: 3,
             placement: "any controlled space not besieged or in unrest"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         notes: "Allows Spain to place regulars in Oran/Malta and the Ottoman in Algiers/Djerba-Tripoli."
     },
 {
         number: 22,
         id: "vq-022",
-        nameZh: "熱那亞銀行家",
+        nameZh: "热那亚银行家",
         nameEn: "Genoese Bankers",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -484,20 +487,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "從牌庫抽2 張牌，你下一時期少抽1 張牌。放置「-1 Card」標記到勢力卡上作為提示。─ 或者 ─讓1 探險隊帶著殖民地出洋，然後花費3 點CP到海軍移動或海盜搶奪上。",
+        textZh: "从牌堆中抽两张牌。下回合抽牌阶段你少抽一张牌。将一个“-1卡牌”的标记置于你的势力板上，直到下回合抽牌阶段结束。-或-组建一个载有殖民者的远征队，然后获得3CP用于海军移动或海盗行动。FAQ：奥斯曼在苏伊士运河竣工前，其远征队依然为受损状态，且无法携带殖民者。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "card022",
-            summary: "從牌庫抽2 張牌，你下一時期少抽1 張牌。放置「-1 Card」標記到勢力卡上作為提示。─ 或者 ─讓1 探險隊帶著殖民地出洋，然後花費3 點CP到海軍移動或海"
+            summary: "从牌堆中抽两张牌。下回合抽牌阶段你少抽一张牌。将一个“-1卡牌”的标记置于你的势力板上，直到下回合抽牌阶段结束。-或-组建一个载有殖民者的远征队，然后获得3CP"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 23,
         id: "vq-023",
-        nameZh: "日耳曼傭兵縮減招募",
+        nameZh: "德意志的裁军",
         nameEn: "German Recruitment Curtailed",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -505,20 +508,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "移除單一地區內的所有傭兵，如果數個勢力在此地區擁有傭兵，只有1 勢力會受到此事件影響。如果由神聖羅馬帝國施放，2 地區受到影響而非只有1 地區(每一地區可以不同的勢力受影響)，荷蘭和胡格諾部隊視為同一勢力。",
+        textZh: "移除一个地区的所有雇佣兵。若有多个主要势力的雇佣兵位于目标地区，只有其中1个主要势力的雇佣兵受此事件影响（荷兰军队与胡格诺派军队视为同一势力）。神圣罗马帝国执行事件时，可以指定两个地区（并且可以指定两个势力）。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "germanRecruitmentCurtailed",
-            summary: "移除單一地區內的所有傭兵，如果數個勢力在此地區擁有傭兵，只有1 勢力會受到此事件影響。如果由神聖羅馬帝國施放，2 地區受到影響而非只有1 地區(每一地區可以不同"
+            summary: "移除一个地区的所有雇佣兵。若有多个主要势力的雇佣兵位于目标地区，只有其中1个主要势力的雇佣兵受此事件影响（荷兰军队与胡格诺派军队视为同一势力）。神圣罗马帝国执行"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 24,
         id: "vq-024",
-        nameZh: "神聖同盟",
+        nameZh: "神圣同盟",
         nameEn: "Holy League",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -526,20 +529,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "只能由可以投入影響力到教宗、威尼斯或神聖羅馬帝國(如果非玩家勢力)的勢力施放。如果鄂圖曼VP 低於13 則不可施放。得到4 點影響力，可以自由分配到這些勢力(教宗、威尼斯、神聖羅馬帝國)當中，然後從這些勢力當中選2 個進行外交狀態決議。",
+        textZh: "仅对教廷、威尼斯或神圣罗马帝国（若为非玩家势力）中至少一个有潜在外交影响力的势力可作为事件打出。奥斯曼帝国的VP小于13时，不可作为事件打出。获得4点己方外交影响力，任意分配给教廷、威尼斯或神圣罗马帝国（若为非玩家势力）。若可能，对其中任意两个势力进行外交评议（尽可能全部进行评议）。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "holyLeague",
-            summary: "只能由可以投入影響力到教宗、威尼斯或神聖羅馬帝國(如果非玩家勢力)的勢力施放。如果鄂圖曼VP 低於13 則不可施放。得到4 點影響力，可以自由分配到這些勢力(教"
+            summary: "仅对教廷、威尼斯或神圣罗马帝国（若为非玩家势力）中至少一个有潜在外交影响力的势力可作为事件打出。奥斯曼帝国的VP小于13时，不可作为事件打出。获得4点己方外交影"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 25,
         id: "vq-025",
-        nameZh: "國土動亂",
+        nameZh: "本土叛乱",
         nameEn: "Unrest in the Realm",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -547,20 +550,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "放置動亂標記到最多3 個未被佔領的地區，此地區必須是這3 個勢力(鄂圖曼、神聖羅馬帝國、西班牙)的家鄉地區。如果西班牙是目標，則那些地區不能是尼德蘭。",
+        textZh: "在奥斯曼、神圣罗马帝国、西班牙之间选择一个主要势力。在目标势力的最多3个未驻军的本土地区放置骚乱标记。若目标势力为西班牙，则不能选择其在尼德兰地区的本土地区。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "card025",
-            summary: "放置動亂標記到最多3 個未被佔領的地區，此地區必須是這3 個勢力(鄂圖曼、神聖羅馬帝國、西班牙)的家鄉地區。如果西班牙是目標，則那些地區不能是尼德蘭。"
+            summary: "在奥斯曼、神圣罗马帝国、西班牙之间选择一个主要势力。在目标势力的最多3个未驻军的本土地区放置骚乱标记。若目标势力为西班牙，则不能选择其在尼德兰地区的本土地区。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 26,
         id: "vq-026",
-        nameZh: "微弱的幫助",
+        nameZh: "小型救援",
         nameEn: "A Small Aid",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -568,7 +571,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "增加1 名正規軍到1 個目前被圍城的堡壘地區(星形或方塊地區)，且此地區只有3 或更少單位在此地區裡面。選擇的地區可以由任何勢力控制(即使是中立)；增加的正規軍是從勢力控制的地區移過去的。",
+        textZh: "在一个被围城且仅有不多于3支军队防守的设防地区中放置1支正规军。目标地区可以被任何势力控制（包括中立势力）；放置的正规军为控制该地区的势力所属。可以在通常禁止招募正规军的地区放置。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -577,12 +580,12 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             count: 1,
             placement: "a besieged fortress with 3 or fewer units"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 27,
         id: "vq-027",
-        nameZh: "聖約翰騎士團",
+        nameZh: "圣约翰骑士团",
         nameEn: "Knights of St. John",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -590,20 +593,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "如果聖約翰騎士團已經在地圖上，尚未被圍城，且連接的海域與鄂圖曼控制的港口相鄰，鄂圖曼不是個非啟動的主要勢力，那麼不是鄂圖曼手中隨機抽取並保留1 張牌，就是讓鄂圖曼的海盜分數降1。─ 或者 ─如果騎士團沒有在地圖上，西班牙把2 單位的騎士標示物加到西班牙控制的家鄉港口，如果馬爾他(Malta)位於西班牙控制之下，尚未被圍城，將騎士放到此地區。不然將他們放到空的，西班牙非堡壘家鄉港口地區(非星狀或方塊地區)，並放置要塞到此地區。",
+        textZh: "若圣约翰骑士团在地图上，未被围城，且穿过1个海域与奥斯曼控制下的港口相连，同时奥斯曼不是未激活主要势力，出牌势力从奥斯曼玩家手中随机抽一张牌，或减少奥斯曼1点海盗VP。-或-若圣约翰骑士团不在地图上，西班牙控制马耳他且未被围城，西班牙可放置2支圣约翰骑士团正规军于马耳他。否则将2支圣约翰骑士团正规军放置在西班牙未驻军且非设防地区的本土港口，并在该地区放置要塞标记。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "knightsOfStJohn",
-            summary: "如果聖約翰騎士團已經在地圖上，尚未被圍城，且連接的海域與鄂圖曼控制的港口相鄰，鄂圖曼不是個非啟動的主要勢力，那麼不是鄂圖曼手中隨機抽取並保留1 張牌，就是讓鄂圖"
+            summary: "若圣约翰骑士团在地图上，未被围城，且穿过1个海域与奥斯曼控制下的港口相连，同时奥斯曼不是未激活主要势力，出牌势力从奥斯曼玩家手中随机抽一张牌，或减少奥斯曼1点海"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 28,
         id: "vq-028",
-        nameZh: "摩爾人反抗",
+        nameZh: "摩尔人起义",
         nameEn: "Morisco Revolt",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -611,15 +614,15 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "如果鄂圖曼與西班牙交戰則可施放。消滅所有在格拉納達(Granada)的地面單位，格拉納達進入動亂狀態，並加入標示著「摩爾人」(Morisco)的2 戰力鄂圖曼單位到此地區。遵照規則23.1 來使用此單位，放置動亂標示到2個未佔領，且距離格拉納達2 格內的地區上。如果摩爾人在冬季撤退階段時西班牙家鄉地區內，鄂圖曼放置動亂標記到到2 個未佔領，且距離摩爾單位2 格內的地區上。如果摩爾單位被消滅，或鄂圖曼和西班牙戰爭結束。那將此卡和摩爾單位移出遊戲",
+        textZh: "奥斯曼与西班牙交战时可打出。移除格拉纳达的所有陆军，在该地区放置骚乱标记。奥斯曼（2-4人游戏中为英国）将2支摩尔人部队放置于该地区，该部队用法限制参见规则23.1。奥斯曼在2个与格拉纳达距离不大于2的未驻军的地区上放置骚乱标记。冬季阶段开始时，若摩尔人部队仍存在于西班牙本土地区，奥斯曼在2个与格拉纳达距离不大于2的未驻军的地区上放置骚乱标记。FAQ：若有陆军将领因此卡被移除，改为由奥斯曼俘获该将领。若摩尔人部队被消灭，或奥斯曼与西班牙停战，将此牌从牌堆中移除，摩尔人部队移出游戏",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "moriscoRevolt",
-            summary: "如果鄂圖曼與西班牙交戰則可施放。消滅所有在格拉納達(Granada)的地面單位，格拉納達進入動亂狀態，並加入標示著「摩爾人」(Morisco)的2 戰力鄂圖曼單"
+            summary: "奥斯曼与西班牙交战时可打出。移除格拉纳达的所有陆军，在该地区放置骚乱标记。奥斯曼（2-4人游戏中为英国）将2支摩尔人部队放置于该地区，该部队用法限制参见规则23"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         removeCondition: "Remove from play if the Morisco unit is eliminated or the Ottoman-Spanish war ends.",
         notes: "In a 4-player game England spreads the additional unrest if the Ottoman is inactive."
     },
@@ -634,20 +637,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "放置「+1 Card」標示物到你的勢力卡上，你下一時期額外抽1 張卡(代表與莫斯科貿易的收入)，如果由英國施放，則放置額外1 個「+1 Card」標示物到時期欄位上的下兩時期。英國下兩個時期都獲得額外1 張牌。",
+        textZh: "将一个“+1卡牌”的标记置于你的势力板上。下回合抽牌阶段你额外抽一张牌。英格兰玩家执行事件时，再额外放置一个“+1卡牌”的标记在回合记录轨中两回合后的格子，英格兰玩家可以连续两回合抽牌阶段额外抽一张牌。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "muscovyCompany",
-            summary: "放置「+1 Card」標示物到你的勢力卡上，你下一時期額外抽1 張卡(代表與莫斯科貿易的收入)，如果由英國施放，則放置額外1 個「+1 Card」標示物到時期欄"
+            summary: "将一个“+1卡牌”的标记置于你的势力板上。下回合抽牌阶段你额外抽一张牌。英格兰玩家执行事件时，再额外放置一个“+1卡牌”的标记在回合记录轨中两回合后的格子，英格"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 30,
         id: "vq-030",
-        nameZh: "統治者重病",
+        nameZh: "国君病倒",
         nameEn: "Ruler Falls Ill",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -655,20 +658,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "可施放來對抗任何其他主要勢力。讓此勢力發生以下事情：(1)棄掉1 張牌（隨機選擇）─ 或者 ─(2)跳過他的下一回和，並讓你選擇返回他其中1 名軍事領袖到其首都(如果首都被圍城或被其他勢力控制，則他選擇另外的家鄉堡壘地區)。",
+        textZh: "对其他主要势力使用，随机丢弃目标势力的一张手牌。-或-跳过目标势力的下一个行动轮，且可以使目标势力的一个指挥官返回首都（不能指定吉斯公爵，因为吉斯公爵不能离开法兰西地区。若其首都被围城或被占领，则返回目标势力指定的一个本土设防地区）。FAQ：可以指定被围城中的陆军将领为目标；西班牙将领可自由选择回到哪个首都。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "rulerFallsIll",
-            summary: "可施放來對抗任何其他主要勢力。讓此勢力發生以下事情：(1)棄掉1 張牌（隨機選擇）─ 或者 ─(2)跳過他的下一回和，並讓你選擇返回他其中1 名軍事領袖到其首都"
+            summary: "对其他主要势力使用，随机丢弃目标势力的一张手牌。-或-跳过目标势力的下一个行动轮，且可以使目标势力的一个指挥官返回首都（不能指定吉斯公爵，因为吉斯公爵不能离开法"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 31,
         id: "vq-031",
-        nameZh: "叛徒！",
+        nameZh: "变节！",
         nameEn: "Treachery!",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -676,21 +679,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "During a siege",
-        textZh: "施放來對抗目前被圍城的堡壘地區(星狀或方塊的地區)，即使是圍城的勢力沒有滿足突襲的條件（像是因為缺乏補給線LOC 或因為敵方船艦的存在等）。圍城勢力馬上對防守方發動一次突襲。突襲過後，如果圍城單位數量仍然超過守方單位，則發生以下事情：所有防守單位被消滅，防守領袖被俘虜，該地區的控制權交由圍城方掌控。",
+        textZh: "针对一个当前正在被围城的设防地区打出，即使围城方未满足攻城的条件（如缺乏补给路线或守城方海军的存在），围城方立即对该地区发起一次攻城。在攻城后，若围城方部队依然多于守城方部队，执行以下效果：所有守城方部队被消灭；所有守城方将领被俘虏；围城方获得该地区的控制权。FAQ：计算单位时无视防守方的将领和海军单位。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "treachery",
-            summary: "施放來對抗目前被圍城的堡壘地區(星狀或方塊的地區)，即使是圍城的勢力沒有滿足突襲的條件（像是因為缺乏補給線LOC 或因為敵方船艦的存在等）。圍城勢力馬上對防守方"
+            summary: "针对一个当前正在被围城的设防地区打出，即使围城方未满足攻城的条件（如缺乏补给路线或守城方海军的存在），围城方立即对该地区发起一次攻城。在攻城后，若围城方部队依然"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         notes: "The besieging power may assault even without a normal LOC."
     },
 {
         number: 32,
         id: "vq-032",
-        nameZh: "加爾文主義狂熱",
+        nameZh: "加尔文宗狂热",
         nameEn: "Calvinist Zeal",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -698,21 +701,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "home",
         timing: "Action Phase",
-        textZh: "針對法國進行7 次新教徒教改檢定，然後在尼德蘭進行另外7 次檢定。這些地區的第1 顆骰自動為6，其餘的都是隨機骰。─ 或者 ─如同花費7 點CP 一樣在法國開始進行叛亂，或在荷蘭進行叛亂。─ 或者 ─進行2 場叛亂，一個在法國，一個在尼德蘭，就如同花費4 點CP 在區域，花費3 點CP 在另一區域一樣。",
+        textZh: "选择以下选项中的一项执行：1、在法兰西地区进行7次传播新教尝试，然后在尼德兰地区进行7次传播新教尝试。两地传播新教尝试的首个骰值默认为“6”，随机掷其余骰子。2、在法兰西地区或尼德兰地区进行一次7CP的煽动叛乱。3、在法兰西地区和尼德兰地区同时进行煽动叛乱，视作花费了4CP和3CP（自由分配）。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "calvinistZeal",
-            summary: "針對法國進行7 次新教徒教改檢定，然後在尼德蘭進行另外7 次檢定。這些地區的第1 顆骰自動為6，其餘的都是隨機骰。─ 或者 ─如同花費7 點CP 一樣在法國開始"
+            summary: "选择以下选项中的一项执行：1、在法兰西地区进行7次传播新教尝试，然后在尼德兰地区进行7次传播新教尝试。两地传播新教尝试的首个骰值默认为“6”，随机掷其余骰子。2"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "protestant"
     },
 {
         number: 33,
         id: "vq-033",
-        nameZh: "法國的家庭女教師",
+        nameZh: "法兰西的女管家",
         nameEn: "Gouvernante de France",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -720,21 +723,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "home",
         timing: "Diplomacy / Action Phase",
-        textZh: "如果法國皇室已經訂婚，放置「+2 結婚慶典」(+2 WeddingFestivities)到此婚姻上。然後選擇從牌庫抽1 張牌，或從棄牌堆檢取巡遊旅行(Grand Tour)卡。─ 或者 ─如果法國和新教徒交戰且法國手牌等於或少於3 張(包涵此家族卡)，移除雙方勢力的「At War」標誌，投擲1顆骰，新教徒選擇同等於骰數+2 的法國境內地區，這些地區他必須一一選擇，將新教徒政治控制換成法國政治控制，或新教徒宗教影響換成天主教的。這一時期不能再對法國進行叛亂。",
+        textZh: "选择以下选项中的一项执行：1、在有法国王室订婚时可以使用。在一次法国联姻中放置“皇室婚宴+2”的标记。然后从牌堆中抽一张牌，或从弃牌堆找回“大旅行”（可立即打出）。2、在法国与新教处于交战状态，且法国的手牌数不大于3时（包括此牌）可以使用。投掷1个骰子，骰值+2为最终结果。新教选择该结果数量的法兰西地区，这些地区要么从新教政治控制变为法国政治控制，要么转变为天主教。本回合的剩余时间，新教无法在法兰西地区煽动叛乱。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "gouvernanteDeFrance",
-            summary: "如果法國皇室已經訂婚，放置「+2 結婚慶典」(+2 WeddingFestivities)到此婚姻上。然後選擇從牌庫抽1 張牌，或從棄牌堆檢取巡遊旅行(Gran"
+            summary: "选择以下选项中的一项执行：1、在有法国王室订婚时可以使用。在一次法国联姻中放置“皇室婚宴+2”的标记。然后从牌堆中抽一张牌，或从弃牌堆找回“大旅行”（可立即打出"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "france"
     },
 {
         number: 34,
         id: "vq-034",
-        nameZh: "神聖羅馬調停",
+        nameZh: "神圣罗马的调解",
         nameEn: "Holy Roman Intercession",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -742,21 +745,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "home",
         timing: "Action Phase",
-        textZh: "神聖羅馬帝國施放來加入兩個交戰中主要勢力的戰爭中。增加「At War」標示物到其中1 個勢力當中(目前未與HRE 結盟)，並且與另外1 個勢力結盟(如果還未跟HRE 結盟)。增加任何2 名神聖羅馬帝國地面單位到HRE 家鄉地區；你同時可以移動HRE 軍隊領袖到此區域。現在與HRE 交戰的勢力投擲5 顆骰，並且每個出現「1」的骰子放置動亂標誌到神聖羅馬帝國任何家鄉地區中",
+        textZh: "神圣罗马帝国可选择介入其他两个主要势力之间的战争。对其中一方宣战（不得与目标势力结盟），同时与另一方结盟。在1个神圣罗马帝国本土地区放置2支正规军，同时可将1个陆军将领移至此地区。此时刚与神圣罗马帝国交战的势力可以掷5个骰子，每个骰值为“1”的骰子可在任意1个神圣罗马帝国本土地区放置1个骚乱标记。FAQ：神罗必须介入两个势力之间的战争，而不能直接宣战；骚乱标记可以放置在有驻军的地区；可以移动被围城中的将领。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "holyRomanIntercession",
-            summary: "神聖羅馬帝國施放來加入兩個交戰中主要勢力的戰爭中。增加「At War」標示物到其中1 個勢力當中(目前未與HRE 結盟)，並且與另外1 個勢力結盟(如果還未跟H"
+            summary: "神圣罗马帝国可选择介入其他两个主要势力之间的战争。对其中一方宣战（不得与目标势力结盟），同时与另一方结盟。在1个神圣罗马帝国本土地区放置2支正规军，同时可将1个"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "hre"
     },
 {
         number: 35,
         id: "vq-035",
-        nameZh: "藝術＆科學的贊助者",
+        nameZh: "科学与艺术的赞助人",
         nameEn: "Patron of Arts & Sciences",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -764,22 +767,22 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "home",
         timing: "Action Phase",
-        textZh: "選擇贊助1 名義大利裡的特定領域的藝術家或科學家，或者從神聖羅馬帝國裡隨機的藝術家或隨機科學家，就如同你花費3 點CP 到贊助行動上。如果目前皇帝是魯道夫(Rudolf)，增加「+2布拉格文化中心」(+2 Prague Cultural Center)標示物到藝術家或科學家上。從牌庫抽1 張牌。─ 或者 ─從牌庫抽2 張牌，然後將你手中的1 張牌給另一",
+        textZh: "选择以下选项中的一项执行：1、指定1个意大利艺术家或科学家，或者随机选择1个神圣罗马帝国艺术家或科学家，视作花费3CP给予赞助。如果鲁道夫二世是帝国皇帝，放置“+2布拉格文化中心”标记至该艺术家或科学家上。然后从牌堆中抽一张牌。本次赞助计入每回合的赞助限制。2、从牌堆中抽两张牌。将手牌中的一张牌（不能是势力牌或强制性事件牌）交给其他势力。FAQ：当鲁道夫二世联姻成功时（联姻判定先于赞助判定），立即将“+2布拉格文化中心”标记移出游戏。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "patronOfArts",
-            summary: "選擇贊助1 名義大利裡的特定領域的藝術家或科學家，或者從神聖羅馬帝國裡隨機的藝術家或隨機科學家，就如同你花費3 點CP 到贊助行動上。如果目前皇帝是魯道夫(Ru"
+            summary: "选择以下选项中的一项执行：1、指定1个意大利艺术家或科学家，或者随机选择1个神圣罗马帝国艺术家或科学家，视作花费3CP给予赞助。如果鲁道夫二世是帝国皇帝，放置“"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "hre",
         notes: "The +2 Prague Cultural Center marker applies while Rudolf is emperor."
     },
 {
         number: 36,
         id: "vq-036",
-        nameZh: "童貞女皇",
+        nameZh: "童贞女王",
         nameEn: "Virgin Queen",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -787,21 +790,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "home",
         timing: "Action Phase",
-        textZh: "如果伊莉莎白還活著，英國把此卡跟棄牌堆1 張牌交換，施放或保留那張牌。─ 或者 ─如果伊莉莎白同意結婚，他可以撕毀那婚約，受影響新郎的勢力投擲1 顆骰檢視「被伊莉莎白拋棄表」(Jilted by Elizabeth Table)，英國抽1 張牌。",
+        textZh: "选择以下选项中的一项执行：1、如果伊丽莎白一世活着，找回弃牌堆中的一张牌，选择保留或打出。2、如果伊丽莎白一世已经订婚，可以解除婚约。准新郎所属势力根据伊丽莎白悔婚补偿表掷骰并获取补偿。英格兰玩家从牌堆中抽一张牌。FAQ：若伊丽莎白一世死亡，此卡在本回合不能作为事件打出，且在本回合结束时移出游戏。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "virginQueen",
-            summary: "如果伊莉莎白還活著，英國把此卡跟棄牌堆1 張牌交換，施放或保留那張牌。─ 或者 ─如果伊莉莎白同意結婚，他可以撕毀那婚約，受影響新郎的勢力投擲1 顆骰檢視「被伊"
+            summary: "选择以下选项中的一项执行：1、如果伊丽莎白一世活着，找回弃牌堆中的一张牌，选择保留或打出。2、如果伊丽莎白一世已经订婚，可以解除婚约。准新郎所属势力根据伊丽莎白"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "england"
     },
 {
         number: 37,
         id: "vq-037",
-        nameZh: "壯麗的鄂圖曼宮廷",
+        nameZh: "奥斯曼高门",
         nameEn: "The Sublime Porte",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -809,20 +812,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "Immediately when drawn",
-        textZh: "對鄂圖曼進行外交狀態決議。此卡每一時期都會洗回牌庫",
+        textZh: "立即进行奥斯曼帝国的外交评议。此牌每回合都会洗入牌堆",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "sublimePorte",
-            summary: "對鄂圖曼進行外交狀態決議。此卡每一時期都會洗回牌庫"
+            summary: "立即进行奥斯曼帝国的外交评议。此牌每回合都会洗入牌堆"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 38,
         id: "vq-038",
-        nameZh: "寶藏船艦隊",
+        nameZh: "珍宝舰队",
         nameEn: "Treasure Fleet",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -830,20 +833,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "Immediately when drawn",
-        textZh: "西班牙寶藏船艦隊出現在隨機地點上，根據規則23.2 進行處理。(基本介紹：寶藏船會隨機出現在海上，如果同海域有探險隊則可以嘗試海盜搶奪寶藏)（註：如果英國有探險隊在表格上其中一個海域當中，且有間諜Informant 刺探西班牙，那英國則可以重骰隨機海域）此卡每一時期都會洗回牌庫",
+        textZh: "西班牙珍宝舰队在随机区域暴露行踪。根据章节23.2的程序处理。此牌每回合都会洗入牌堆",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "treasureFleet",
-            summary: "西班牙寶藏船艦隊出現在隨機地點上，根據規則23.2 進行處理。(基本介紹：寶藏船會隨機出現在海上，如果同海域有探險隊則可以嘗試海盜搶奪寶藏)（註：如果英國有探險"
+            summary: "西班牙珍宝舰队在随机区域暴露行踪。根据章节23.2的程序处理。此牌每回合都会洗入牌堆"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 39,
         id: "vq-039",
-        nameZh: "水淹七軍",
+        nameZh: "洪水",
         nameEn: "Flooding",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -851,20 +854,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "combat",
         timing: "Before assault dice are rolled",
-        textZh: "在敵方部隊對你荷蘭內的堡壘地區(星狀或方塊地區)進行突襲，但擲骰前施放。圍城解除，且敵方部隊必須撤退，在撤退前，敵方必須損失其一半的傭兵(四捨五入)，不能用來阻止「叛徒！」(Treachery！)卡。",
+        textZh: "当敌军对你在尼德兰地区的设防地区攻城时，在投骰前使用。围城解除，敌军撤退，敌军损失一半的雇佣兵（向上取整）。不能阻止“变节”。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "flooding",
-            summary: "在敵方部隊對你荷蘭內的堡壘地區(星狀或方塊地區)進行突襲，但擲骰前施放。圍城解除，且敵方部隊必須撤退，在撤退前，敵方必須損失其一半的傭兵(四捨五入)，不能用來阻"
+            summary: "当敌军对你在尼德兰地区的设防地区攻城时，在投骰前使用。围城解除，敌军撤退，敌军损失一半的雇佣兵（向上取整）。不能阻止“变节”。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 40,
         id: "vq-040",
-        nameZh: "蒂爾伯里演說",
+        nameZh: "提尔伯里演讲",
         nameEn: "Tilbury Speech",
         cp: 1,
         cpSource: "pdf-text-layer",
@@ -872,7 +875,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "combat",
         timing: "Before dice in field, naval or assault",
-        textZh: "在原野戰、海戰或突襲(但非海盜搶奪)當中增加額外2 顆骰，如果是英國施放，得到額外4 顆骰，必須在雙方擲骰前施放。",
+        textZh: "在野战、海战或攻城战（不能是海盗行动）中，额外多掷2个骰子。若英格兰使用此战斗牌，改为多掷4个骰子。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -882,12 +885,12 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             phase: "any",
             condition: "England gets 4 dice; not usable for piracy."
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 41,
         id: "vq-041",
-        nameZh: "邊境掠奪者",
+        nameZh: "边境掠夺者",
         nameEn: "Border Reivers",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -895,20 +898,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "Action Phase",
-        textZh: "只能由控制約克(York)、克萊爾(Carlisle)、伯維克(Berwick)或蘇格蘭任何地區的勢力施放。以另外控制勢力上述7 個地區的勢力作為目標，從那勢力隨機抽取並保留1 張牌。─ 或者 ─由英國、法國或新教徒施放，來馬上得到4 點蘇格蘭外交影響力。",
+        textZh: "只有控制约克、卡莱尔、贝里克郡或者苏格兰境内任意地区的势力可以使用。从在以上7个地区中控制任一地区的另一主要势力中选择一个目标玩家，从其手中随机抽一张牌并保留。-或-只有英格兰、法国或新教玩家可使用。对苏格兰获得4点外交影响力。FAQ：可以在自己的行动轮作为事件打出；可以在“苏格兰女王玛丽”为苏格兰添加影响力后打出。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "borderReivers",
-            summary: "只能由控制約克(York)、克萊爾(Carlisle)、伯維克(Berwick)或蘇格蘭任何地區的勢力施放。以另外控制勢力上述7 個地區的勢力作為目標，從那勢力"
+            summary: "只有控制约克、卡莱尔、贝里克郡或者苏格兰境内任意地区的势力可以使用。从在以上7个地区中控制任一地区的另一主要势力中选择一个目标玩家，从其手中随机抽一张牌并保留。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 42,
         id: "vq-042",
-        nameZh: "凱薩琳的機動部隊",
+        nameZh: "凯瑟琳的快反中队",
         nameEn: "Catherine's Flying Squadron",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -916,20 +919,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "As a response before an event resolves",
-        textZh: "可被任何玩家用來當作回應牌來取消下列任何一張牌。可隨時取消下列事件：福克斯殉道者名錄(Fox’s Book ofMartyrs)、胡格諾四旬齋(Huguenot Lent)、破壞聖像狂熱(Iconoclastic Fury)、納瓦拉的珍妮(Jeanne of Navarre)。下列事件如果以法國為目標則可以取消：軍團叛變(Army Mutiny)、城邦反抗(City State Rebels)、日耳曼傭兵縮減招募(German Recruitment Curtailed)、洗劫城市!(Sack!)、叛徒！(Treachery!)",
+        textZh: "任何玩家可当做响应牌取消下列事件。可在任何时机取消的事件：“福克斯殉道者名录”“破坏圣像运动”“纳瓦拉的珍妮”。可在事件的目标针对法兰西地区时取消的事件：“军队哗变”“城邦起义”“德意志的裁军”“烧杀掳掠”“变节！”。FAQ：若用来取消神圣罗马帝国打出的“德意志的裁军”，在神圣罗马帝国指定两个目标后打出，所有在法兰西地区的雇佣兵都会保留。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "catherinesFlyingSquadron",
-            summary: "可被任何玩家用來當作回應牌來取消下列任何一張牌。可隨時取消下列事件：福克斯殉道者名錄(Fox’s Book ofMartyrs)、胡格諾四旬齋(Huguenot"
+            summary: "任何玩家可当做响应牌取消下列事件。可在任何时机取消的事件：“福克斯殉道者名录”“破坏圣像运动”“纳瓦拉的珍妮”。可在事件的目标针对法兰西地区时取消的事件：“军队"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 43,
         id: "vq-043",
-        nameZh: "老練的領航員",
+        nameZh: "老练领航员",
         nameEn: "Experienced Navigator",
         cp: 1,
         cpSource: "pdf-text-layer",
@@ -937,20 +940,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "Before a navigation roll",
-        textZh: "從接下來的航海旅程當中，增加1 點航海等級到1 名船長上(N+1，最高到3 點航海等級)。除非在擲骰前施放，不然不會改變航海檢定的表格結果。",
+        textZh: "选择一位航海家，他在之后的航行中航海等级+1（最多为3）。将一个“老练领航员”标记置于此航海家上。除非在航行检定掷骰前使用，否则此次检定结果不变。FAQ：该牌的标记会随着远征队冬季停泊于殖民地消失；该牌的标记唯一；该牌可以作为事件打出。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "experiencedNavigator",
-            summary: "從接下來的航海旅程當中，增加1 點航海等級到1 名船長上(N+1，最高到3 點航海等級)。除非在擲骰前施放，不然不會改變航海檢定的表格結果。"
+            summary: "选择一位航海家，他在之后的航行中航海等级+1（最多为3）。将一个“老练领航员”标记置于此航海家上。除非在航行检定掷骰前使用，否则此次检定结果不变。FAQ：该牌的"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 44,
         id: "vq-044",
-        nameZh: "洗劫城市！",
+        nameZh: "烧杀掳掠",
         nameEn: "Sack!",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -958,20 +961,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "After capturing a fortress by assault",
-        textZh: "在一場突襲佔領堡壘地區後(星狀或方塊地區)。相鄰敵方控制的堡壘地區或許也會投降。對每一個相鄰堡壘地區投擲1 顆骰，如果骰子超過防禦此地區的地面單位數量，那地區的控制權也同樣給予突襲勝利方。在那些地區的防禦單位移防。最後給予原本突襲防禦方「+1 Card」標示物。",
+        textZh: "在攻城并占领设防地区后使用。目标地区相邻的敌方所属设防地区也可能会投降，对每个地区分别掷1个骰子，若骰值比地区上的守军多，进攻方获得该地区控制权，守军全部撤离。最后，防守方获得一个“+1卡牌”标记。FAQ：正在被围城的敌方设防地区也会因此效果投降，并且撤离守军。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "sack",
-            summary: "在一場突襲佔領堡壘地區後(星狀或方塊地區)。相鄰敵方控制的堡壘地區或許也會投降。對每一個相鄰堡壘地區投擲1 顆骰，如果骰子超過防禦此地區的地面單位數量，那地區的"
+            summary: "在攻城并占领设防地区后使用。目标地区相邻的敌方所属设防地区也可能会投降，对每个地区分别掷1个骰子，若骰值比地区上的守军多，进攻方获得该地区控制权，守军全部撤离。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 45,
         id: "vq-045",
-        nameZh: "壞血病",
+        nameZh: "坏血病",
         nameEn: "Scurvy",
         cp: 1,
         cpSource: "pdf-text-layer",
@@ -979,20 +982,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "Navigation roll",
-        textZh: "在航海擲骰檢定中，擲骰過後給予-1 骰數。─ 或者 ─強制讓任何1 個探險隊進行1 次航海檢定。",
+        textZh: "在一次航行检定掷骰后，使掷骰结果-1。-或-强制一个远征队（可以是己方远征队）进行一次航行检定。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "scurvy",
-            summary: "在航海擲骰檢定中，擲骰過後給予-1 骰數。─ 或者 ─強制讓任何1 個探險隊進行1 次航海檢定。"
+            summary: "在一次航行检定掷骰后，使掷骰结果-1。-或-强制一个远征队（可以是己方远征队）进行一次航行检定。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 46,
         id: "vq-046",
-        nameZh: "西班牙的憤怒",
+        nameZh: "西班牙人的狂暴",
         nameEn: "Spanish Fury",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -1000,20 +1003,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "After capturing a key by assault",
-        textZh: "在一場突襲獲得關鍵城市（方塊地區）後施放。突襲勝利勢力從敗方手中抽取1 張牌(如果還有牌)，並從牌庫抽另一張牌。最後，給予防禦玩家「+1 Card」標示物。",
+        textZh: "在攻城并占领核心地区后使用。进攻方可从防守方手中抽一张牌。然后再从牌堆中抽一张牌。防守方可获得一个“+1卡牌”标记。FAQ：如果被攻占的地区不是主要势力控制，或者防守方没有手牌，不会因此从牌堆中抽两张牌。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "spanishFury",
-            summary: "在一場突襲獲得關鍵城市（方塊地區）後施放。突襲勝利勢力從敗方手中抽取1 張牌(如果還有牌)，並從牌庫抽另一張牌。最後，給予防禦玩家「+1 Card」標示物。"
+            summary: "在攻城并占领核心地区后使用。进攻方可从防守方手中抽一张牌。然后再从牌堆中抽一张牌。防守方可获得一个“+1卡牌”标记。FAQ：如果被攻占的地区不是主要势力控制，或"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 47,
         id: "vq-047",
-        nameZh: "比利時信條",
+        nameZh: "比利时信条",
         nameEn: "Belgic Confession",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -1021,7 +1024,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "進行8 次新教徒教改檢定，只能針對尼德蘭產生影響。第一顆骰自動為「6」，其餘的骰子隨機骰，將所有出現「3」的骰數視為「4」。",
+        textZh: "在尼德兰地区进行8次传播新教尝试。首个骰值默认为“6”，随机掷其余骰子。所有骰值“3”均视为“4”",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1034,12 +1037,12 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             autoSix: true,
             threesAsFour: true
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 48,
         id: "vq-048",
-        nameZh: "委任義大利專家",
+        nameZh: "意大利的委托",
         nameEn: "Italian Expert",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -1047,20 +1050,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "你從義大利中選擇1 名某一領域的藝術家或科學家贊助(而非從你自己的作選擇)，當作你花費3點CP 在贊助行動上。放置你勢力的控制標記到藝術家或科學家底下，才能清楚顯示是哪一勢力雇傭他的。",
+        textZh: "指定1个意大利艺术家或科学家，视作花费3CP给予赞助。将己方控制标记置于该艺术家或科学家底下，以表示该艺术家或科学家所属。本次赞助计入每回合的赞助限制。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "italianExpert",
-            summary: "你從義大利中選擇1 名某一領域的藝術家或科學家贊助(而非從你自己的作選擇)，當作你花費3點CP 在贊助行動上。放置你勢力的控制標記到藝術家或科學家底下，才能清楚"
+            summary: "指定1个意大利艺术家或科学家，视作花费3CP给予赞助。将己方控制标记置于该艺术家或科学家底下，以表示该艺术家或科学家所属。本次赞助计入每回合的赞助限制。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 49,
         id: "vq-049",
-        nameZh: "征服菲律賓†",
+        nameZh: "征服菲律宾",
         nameEn: "Conquest of the Philippines†",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -1068,22 +1071,22 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "增加西班牙控制標誌到菲律賓地區。馬上增加1個寶藏到第五個寶藏格子上。從接下來的遊戲當中，西班牙每一期時開始額外增加1 個寶藏到此格上。如果作為事件施放，將此卡移出遊戲",
+        textZh: "在菲律宾群岛放置西班牙的控制标记。立即增加1个宝藏至西班牙的新世界宝藏轨第5格。之后的每回合开始时，西班牙可以放置第5个新世界宝藏。此牌作为事件打出后，移出游戏",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "card049",
-            summary: "增加西班牙控制標誌到菲律賓地區。馬上增加1個寶藏到第五個寶藏格子上。從接下來的遊戲當中，西班牙每一期時開始額外增加1 個寶藏到此格上。如果作為事件施放，將此卡移"
+            summary: "在菲律宾群岛放置西班牙的控制标记。立即增加1个宝藏至西班牙的新世界宝藏轨第5格。之后的每回合开始时，西班牙可以放置第5个新世界宝藏。此牌作为事件打出后，移出游戏"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain",
         notes: "Removed from play when played as an event."
     },
 {
         number: 50,
         id: "vq-050",
-        nameZh: "除暴委員會†",
+        nameZh: "血腥委员会",
         nameEn: "Council of Troubles†",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -1091,22 +1094,22 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "如果在荷蘭有5 個西班牙控制的地面單位（瓦隆Walloon 除外）即可施放。這一時期將奧蘭治親王威廉移除地圖，西班牙針對尼德蘭進行8 次天主教教改檢定，第一顆骰子自動為「6」，其餘的隨機骰。之後，西班牙最多重新獲得3 個目前處於新教徒政治控制下，且未被佔領、非關鍵城市(方塊地區)的荷蘭地區。將「+1 Card」標示物給予新教徒。如果作為事件施放，將此卡移出遊戲",
+        textZh: "当西班牙在尼德兰地区有不小于5支部队（不包括瓦隆卫队）时可作为事件打出。将威廉·奥兰治置于回合记录轨上，西班牙在尼德兰地区进行8次传播天主教尝试。首个骰值默认为“6”，随机掷其余骰子。之后，西班牙可夺取3个位于尼德兰地区、新教政治控制、无驻军、非核心的地区的政治控制权。新教获得一个“+1卡牌”标记。此牌作为事件打出后，移出游戏",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "councilOfTroubles",
-            summary: "如果在荷蘭有5 個西班牙控制的地面單位（瓦隆Walloon 除外）即可施放。這一時期將奧蘭治親王威廉移除地圖，西班牙針對尼德蘭進行8 次天主教教改檢定，第一顆骰"
+            summary: "当西班牙在尼德兰地区有不小于5支部队（不包括瓦隆卫队）时可作为事件打出。将威廉·奥兰治置于回合记录轨上，西班牙在尼德兰地区进行8次传播天主教尝试。首个骰值默认为"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain",
         notes: "Removed from play when played as an event."
     },
 {
         number: 51,
         id: "vq-051",
-        nameZh: "黃金城傳說",
+        nameZh: "黄金国",
         nameEn: "El Dorado",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1114,20 +1117,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "如果有船長目前位於加勒比海(Spanish Main)或安第列斯群島(Antilles)海域時施放。將此船長移除放到時期欄位上；探險隊花費這時期剩下的時間追尋黃金城傳說，此探險隊持有的寶藏全部棄掉。",
+        textZh: "当有航海家在南美北海岸与安地列斯群岛航行时可打出。将该航海家置于回合记录轨，在本回合的剩余时间里，该航海家将尝试寻找传说中的黄金国。远征结束，远征队失去载有的宝藏。FAQ：对德雷克/霍金斯联合探险队使用时，这两名航海家都会被置于回合记录轨。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "elDorado",
-            summary: "如果有船長目前位於加勒比海(Spanish Main)或安第列斯群島(Antilles)海域時施放。將此船長移除放到時期欄位上；探險隊花費這時期剩下的時間追尋黃"
+            summary: "当有航海家在南美北海岸与安地列斯群岛航行时可打出。将该航海家置于回合记录轨，在本回合的剩余时间里，该航海家将尝试寻找传说中的黄金国。远征结束，远征队失去载有的宝"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 52,
         id: "vq-052",
-        nameZh: "福克斯殉道者名錄",
+        nameZh: "福克斯殉道者名录",
         nameEn: "Foxe's Book of Martyrs",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1135,20 +1138,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "將英國2 地區的天主教宗教地區轉換成新教徒宗教地區。然後針對法國、荷蘭 和/或 蘇格蘭進行5 次新教徒教改檢定。",
+        textZh: "将英格兰地区中两个信仰天主教的地区转为信仰新教。在法兰西、尼德兰和苏格兰地区进行共计5次传播新教尝试。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "foxesBookOfMartyrs",
-            summary: "將英國2 地區的天主教宗教地區轉換成新教徒宗教地區。然後針對法國、荷蘭 和/或 蘇格蘭進行5 次新教徒教改檢定。"
+            summary: "将英格兰地区中两个信仰天主教的地区转为信仰新教。在法兰西、尼德兰和苏格兰地区进行共计5次传播新教尝试。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 53,
         id: "vq-053",
-        nameZh: "巡遊旅行†",
+        nameZh: "大旅行",
         nameEn: "Grand Tour†",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -1156,22 +1159,22 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "消除法國所有家鄉地區的動亂，法國然後執行下列兩樣不同的動作：(a)與主要勢力停戰(如果需要則將單位移防)。(b)從棄牌堆拿取「諾斯特拉達姆斯預言」(Nostradamus’ Prophecies)卡。(c)給予其他勢力1 張卡或1 個寶藏(d)加1 名正規軍到巴黎，然後使用春季佈署的規則從巴黎移動部隊到另外的法國家鄉地區。",
+        textZh: "移除所有法兰西地区的骚乱标记。法国玩家可选择执行以下其中两项：①与一个主要势力停战（若有需要应撤离部队）。②从弃牌堆找回“诺查丹玛斯的大预言”并保留。③选择一张手牌（不能是势力牌或强制性事件牌）或一个宝藏交给另一个玩家。④在巴黎增加1支正规军，然后依照春季部署的限制，将1个陆军堆叠从巴黎发兵至其他法国本土地区。若天主教联盟已成立，此牌作为事件或CP打出后须移出游戏",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "grandTour",
-            summary: "消除法國所有家鄉地區的動亂，法國然後執行下列兩樣不同的動作：(a)與主要勢力停戰(如果需要則將單位移防)。(b)從棄牌堆拿取「諾斯特拉達姆斯預言」(Nostra"
+            summary: "移除所有法兰西地区的骚乱标记。法国玩家可选择执行以下其中两项：①与一个主要势力停战（若有需要应撤离部队）。②从弃牌堆找回“诺查丹玛斯的大预言”并保留。③选择一张"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         removeCondition: "Remove from play if played after the Catholic League is formed, even if played for CP.",
         notes: "Removed from play if played after the Catholic League is formed."
     },
 {
         number: 54,
         id: "vq-054",
-        nameZh: "胡格諾四旬齋",
+        nameZh: "胡格诺派大斋期",
         nameEn: "Huguenot Lent",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -1179,7 +1182,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "針對法國進行8 次新教徒教改檢定，第一顆骰自動為「6」，其餘隨機擲骰。",
+        textZh: "在法兰西地区进行8次传播新教尝试。首个骰值默认为“6”，随机掷其余骰子。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1191,14 +1194,14 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             dice: 8,
             autoSix: true
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "protestant",
         notes: "A Protestant event; it is not a family/home card."
     },
 {
         number: 55,
         id: "vq-055",
-        nameZh: "破壞聖像狂熱",
+        nameZh: "破坏圣像运动",
         nameEn: "Iconoclastic Fury",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -1206,7 +1209,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "進行7 次新教徒教改檢定，可針對法國或尼德蘭其中一區域進行教改。將所有擲骰結果的「5」視為「6」。每骰出1 個「1」則1 地區陷入動亂(而非只有只要出現一個「1」)。",
+        textZh: "在法兰西地区和尼德兰地区中选择其一，进行7次传播新教尝试。所有骰值“5”均视为“6”。每个骰值“1”都会导致一个地区放置骚乱标记（而非原有的掷任何数量“1”仅会在一个地区放置骚乱标记）。不能在已有骚乱的地区再次放置骚乱标记。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1221,12 +1224,12 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             fivesAsSix: true,
             unrestOnOnes: true
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 56,
         id: "vq-056",
-        nameZh: "禁書目錄",
+        nameZh: "禁书目录",
         nameEn: "Index of Prohibited Books",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1234,20 +1237,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "針對法國、尼德蘭 和/或 蘇格蘭進行6 次天主教教改檢定，第一顆骰自動為「6」；其餘的隨機擲骰。─ 或者 ─取消藝術家或科學家贊助，將此藝術家或科學家從「Patronized for X CP」表格上移除，並放置到時期欄位上。",
+        textZh: "在法兰西、尼德兰和苏格兰地区进行6次传播天主教尝试。首个骰值默认为“6”随机掷其余骰子。-或-取消一个艺术家或科学家的工作进度，将他的标记从赞助表上移至回合记录轨上，该艺术家或科学家下回合可重新上场。该艺术家或科学家所属的势力仍然视为在本回合进行过赞助。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "indexOfProhibitedBooks",
-            summary: "針對法國、尼德蘭 和/或 蘇格蘭進行6 次天主教教改檢定，第一顆骰自動為「6」；其餘的隨機擲骰。─ 或者 ─取消藝術家或科學家贊助，將此藝術家或科學家從「Pat"
+            summary: "在法兰西、尼德兰和苏格兰地区进行6次传播天主教尝试。首个骰值默认为“6”随机掷其余骰子。-或-取消一个艺术家或科学家的工作进度，将他的标记从赞助表上移至回合记录"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 57,
         id: "vq-057",
-        nameZh: "愛爾蘭叛亂",
+        nameZh: "爱尔兰叛乱",
         nameEn: "Irish Rebellion",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -1255,20 +1258,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Diplomacy Phase",
-        textZh: "如果愛爾蘭外交狀態這一時期還未決議，此卡可由西班牙、法國或神聖羅馬帝國施放。得到愛爾蘭2 點外交影響力，然後對其進行外交決議，如果愛爾蘭啟動了，執行下列效果：(1)英國失去在都柏林(Dublin)和金沙爾(Kinsale)地區一半正規軍，和一半傭兵。(2)從阿爾斯特(Ulster)移除所有單位，在此增加愛爾蘭反抗軍，和選擇性地移動這些反抗軍 ─ 遵循啟動階段第6 步驟。",
+        textZh: "若本回合爱尔兰未进行外交评议，可由西班牙、法国或神圣罗马帝国作为事件打出。对爱尔兰获得2点外交影响力，并立即进行爱尔兰的外交评议。若爱尔兰与任一主要势力结盟，执行以下事项：移除英格兰位于都柏林和金赛尔的一半雇佣兵和正规军（分别向下取整且至少为1）。移除位于阿尔斯特的所有部队，并放置3支爱尔兰叛军。结盟爱尔兰的势力可以选择移动叛军，如章节24.2中启动流程步骤6所述。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "irishRebellion",
-            summary: "如果愛爾蘭外交狀態這一時期還未決議，此卡可由西班牙、法國或神聖羅馬帝國施放。得到愛爾蘭2 點外交影響力，然後對其進行外交決議，如果愛爾蘭啟動了，執行下列效果：("
+            summary: "若本回合爱尔兰未进行外交评议，可由西班牙、法国或神圣罗马帝国作为事件打出。对爱尔兰获得2点外交影响力，并立即进行爱尔兰的外交评议。若爱尔兰与任一主要势力结盟，执"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 58,
         id: "vq-058",
-        nameZh: "納瓦拉的珍妮",
+        nameZh: "纳瓦拉的珍妮",
         nameEn: "Jeanne of Navarre",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -1276,21 +1279,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "Action Phase; also a response to Gouvernante de France",
-        textZh: "作為一次事件，如同花費5 點CP 一樣在法國開始進行叛亂。除外，將巴約納港(Bayonne)的非新教徒單位移防，然後將此地區置於新教徒控制，放置1 名胡格諾正規軍於此。─ 或者 ─作為一次回應，來取消法國的家庭女教師家族卡施放。在以事件或回應施放過後移出遊戲",
+        textZh: "作为事件牌打出，新教在法兰西地区进行一次5CP的煽动叛乱。撤离巴约纳的所有非新教单位。巴约纳改为新教政治控制，并增加1支胡格诺派正规军。-或-作为响应牌打出，取消势力牌“法兰西的女管家”的效果。此牌作为事件或响应打出后，移出游戏",
         removeOnEvent: false,
         removeAfterUse: true,
         effect: {
             kind: "manual",
             handler: "jeanneOfNavarre",
-            summary: "作為一次事件，如同花費5 點CP 一樣在法國開始進行叛亂。除外，將巴約納港(Bayonne)的非新教徒單位移防，然後將此地區置於新教徒控制，放置1 名胡格諾正規"
+            summary: "作为事件牌打出，新教在法兰西地区进行一次5CP的煽动叛乱。撤离巴约纳的所有非新教单位。巴约纳改为新教政治控制，并增加1支胡格诺派正规军。-或-作为响应牌打出，取"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         notes: "Removed from play after being played as an event or response."
     },
 {
         number: 59,
         id: "vq-059",
-        nameZh: "約翰．霍金斯",
+        nameZh: "约翰·霍金斯",
         nameEn: "John Hawkins",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -1298,21 +1301,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "英國花費5 點CP 在建造海軍單位(包涵探險隊)、海軍移動 和/或 海盜搶奪上。這些行動當中，約翰．霍金斯在幾內亞海岸(Guinea Coast)和加勒比海(Spanish Main)時海盜等級增加到2。然而當霍金斯進行海盜搶奪時，英國沒有骰出任何一個4、5、6，英國必須受到販賣奴隸-1VP 懲罰(-1 VP SlaveTrader)。─ 或者 ─英國或西班牙可以移除敵方的間諜(Informant)並加自己的間諜到那敵人上。─ 或者 ─將英國所有家鄉港內的加利恩大帆船(Galleon)翻到快速大帆船那一面(Race-built)",
+        textZh: "英格兰获得5CP用于执行建造海军（包括远征队）、海军移动和海盗行动。在这些行动中，若航海家约翰·霍金斯在几内亚海岸或南美北海岸，则他的海盗等级变为2。此时每次约翰·霍金斯在海盗行动检定时未骰出“4”“5”“6”，英格兰拿取一个“-1奴隶贩子VP”标记。-或-英格兰或西班牙可以剪除1个敌方的密探，同时派遣1个密探去该势力。-或-将英格兰本土港口的所有大帆船翻面升级为快速帆船。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "johnHawkins",
-            summary: "英國花費5 點CP 在建造海軍單位(包涵探險隊)、海軍移動 和/或 海盜搶奪上。這些行動當中，約翰．霍金斯在幾內亞海岸(Guinea Coast)和加勒比海(S"
+            summary: "英格兰获得5CP用于执行建造海军（包括远征队）、海军移动和海盗行动。在这些行动中，若航海家约翰·霍金斯在几内亚海岸或南美北海岸，则他的海盗等级变为2。此时每次约"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "england"
     },
 {
         number: 60,
         id: "vq-060",
-        nameZh: "約翰．諾克斯",
+        nameZh: "约翰·诺克斯",
         nameEn: "John Knox",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1320,20 +1323,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "將蘇格蘭除了1 地區外所有地區轉換成新教徒宗教影響。─ 或者 ─由英國或新教徒施放，來增加4 點蘇格蘭外交影響力。",
+        textZh: "选择一个苏格兰地区，将除此之外的所有苏格兰地区转为信仰新教。-或-英格兰或新教可使用，对苏格兰增加4点外交影响力。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "johnKnox",
-            summary: "將蘇格蘭除了1 地區外所有地區轉換成新教徒宗教影響。─ 或者 ─由英國或新教徒施放，來增加4 點蘇格蘭外交影響力。"
+            summary: "选择一个苏格兰地区，将除此之外的所有苏格兰地区转为信仰新教。-或-英格兰或新教可使用，对苏格兰增加4点外交影响力。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 61,
         id: "vq-061",
-        nameZh: "梅嫩德斯．德阿維萊斯",
+        nameZh: "梅嫩德斯·德·阿维莱斯",
         nameEn: "Menéndez de Avilés",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1341,20 +1344,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "投擲1 顆骰，如果出現 3 或更高，從佛羅里達(Florida)移除1 個英國、法國、新教徒殖民地。此地區從此之後置於西班牙控制之下。如果西班牙有間諜在刺探目標勢力，那此檢定自動成功。─ 或者 ─西班牙建造一支放到寶藏船護衛艦隊(TreasureFleet Escorts box)的加利恩大帆船(Galleon)─ 或者 ─西班牙放置一座要塞到世界地圖上任何西班牙地區，和一支巡邏艦隊到任何海域。",
+        textZh: "掷1个骰子，若骰值不小于“3”，则移除英格兰、法国或新教在佛罗里达的殖民地。在之后的游戏中，该地区由西班牙控制。若西班牙在目标势力有密探，掷骰自动成功。-或-西班牙获得1支大帆船，并直接配置为珍宝舰队护航。-或-西班牙在世界地图上任意一个所属地区放置一个要塞，同时在任意一个大洋区放置1支海巡队。此牌放置的要塞不计入西班牙每回合要塞限制。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "menendezDeAviles",
-            summary: "投擲1 顆骰，如果出現 3 或更高，從佛羅里達(Florida)移除1 個英國、法國、新教徒殖民地。此地區從此之後置於西班牙控制之下。如果西班牙有間諜在刺探目標"
+            summary: "掷1个骰子，若骰值不小于“3”，则移除英格兰、法国或新教在佛罗里达的殖民地。在之后的游戏中，该地区由西班牙控制。若西班牙在目标势力有密探，掷骰自动成功。-或-西"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 62,
         id: "vq-062",
-        nameZh: "西北航線",
+        nameZh: "西北航道",
         nameEn: "Northwest Passage",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -1362,20 +1365,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "強迫讓位於幾內亞海岸(Guinea Coast)和北大西洋(North Atlantic)的船長投擲1 顆骰，如果骰數小於或等於船長的航海等級，那無效果。如果骰數超過他的等級，他分心於尋找西北航線，所有此探險隊持有的寶藏棄掉。投擲另外一顆骰，如果出現5 或6，船長死亡並移出遊戲，出現其骰數則探險隊被取消，將船長放到時期欄位上。",
+        textZh: "强制在几内亚海岸或北大西洋的航海家掷1骰检定。若骰值不大于其航海等级，则平安无事。否则该航海家将改道探索西北航道，远征队失去所有宝藏。然后再掷1骰，若骰值为“5”或“6”，则该航海家死亡并移出游戏。若为其他骰值则该远征失败，将航海家置于回合记录轨上，下回合可重新上场。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "northwestPassage",
-            summary: "強迫讓位於幾內亞海岸(Guinea Coast)和北大西洋(North Atlantic)的船長投擲1 顆骰，如果骰數小於或等於船長的航海等級，那無效果。如果骰"
+            summary: "强制在几内亚海岸或北大西洋的航海家掷1骰检定。若骰值不大于其航海等级，则平安无事。否则该航海家将改道探索西北航道，远征队失去所有宝藏。然后再掷1骰，若骰值为“5"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 63,
         id: "vq-063",
-        nameZh: "諾斯特拉達姆斯預言†",
+        nameZh: "诺查丹玛斯的大预言",
         nameEn: "Nostradamus' Prophecies†",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -1383,21 +1386,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "從牌庫抽取4 張牌，選擇1 張保留，以不展示其他牌的情況下把剩餘的牌洗回牌庫。如果由法國玩家施放，則抽8 張牌而非只有4 張。如果作為事件施放，將此卡移出遊戲",
+        textZh: "从牌堆抽4张牌，选择1张保留，将其余牌洗回牌堆。若法国玩家执行该事件，则改为抽取8张牌，选择1张保留，将其余牌洗回牌堆。此牌作为事件打出后移出游戏",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "card063",
-            summary: "從牌庫抽取4 張牌，選擇1 張保留，以不展示其他牌的情況下把剩餘的牌洗回牌庫。如果由法國玩家施放，則抽8 張牌而非只有4 張。如果作為事件施放，將此卡移出遊戲"
+            summary: "从牌堆抽4张牌，选择1张保留，将其余牌洗回牌堆。若法国玩家执行该事件，则改为抽取8张牌，选择1张保留，将其余牌洗回牌堆。此牌作为事件打出后移出游戏"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         notes: "Removed from play when played as an event."
     },
 {
         number: 64,
         id: "vq-064",
-        nameZh: "賢者之石",
+        nameZh: "贤者之石",
         nameEn: "Philosopher's Stone",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1405,15 +1408,15 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "取消科學加的贊助，從「Patronized for X CP」將此科學家標示移除，並放到時期欄位上，代表此勢力直到下一時期都不能在贊助另外一名科學家。此科學家下一時期重新進入遊戲。",
+        textZh: "取消一个科学家的工作进度，将他的标记从赞助表上移至回合记录轨上，该科学家下回合可重新上场。该科学家所属的势力仍然视为在本回合进行过科学家赞助。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "philosophersStone",
-            summary: "取消科學加的贊助，從「Patronized for X CP」將此科學家標示移除，並放到時期欄位上，代表此勢力直到下一時期都不能在贊助另外一名科學家。此科學家下"
+            summary: "取消一个科学家的工作进度，将他的标记从赞助表上移至回合记录轨上，该科学家下回合可重新上场。该科学家所属的势力仍然视为在本回合进行过科学家赞助。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 65,
@@ -1426,20 +1429,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "英國玩家必須選擇下列兩選項其中一個：(1)讓你從英國手上隨機抽一張牌(2)增加動亂指示物到3 個未佔領的英國地區如果英國選擇隨機抽牌，那抽的牌必須展示給所有玩家，然後可以選擇棄掉此隨機抽起的卡，或將此卡給予新教徒玩家（除非你是新教徒不然不能保留此卡）",
+        textZh: "令英格兰玩家选择让你执行：①从他手中随机抽1张牌。②在英格兰本土地区3个无驻军地区放置骚乱标记。若选择抽牌选项，你需要展示你抽到的手牌，英格兰可以选择弃置该牌或将其交给新教玩家。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "puritans",
-            summary: "英國玩家必須選擇下列兩選項其中一個：(1)讓你從英國手上隨機抽一張牌(2)增加動亂指示物到3 個未佔領的英國地區如果英國選擇隨機抽牌，那抽的牌必須展示給所有玩家"
+            summary: "令英格兰玩家选择让你执行：①从他手中随机抽1张牌。②在英格兰本土地区3个无驻军地区放置骚乱标记。若选择抽牌选项，你需要展示你抽到的手牌，英格兰可以选择弃置该牌或"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 66,
         id: "vq-066",
-        nameZh: "海上丐幫",
+        nameZh: "海上乞丐",
         nameEn: "Sea Beggars",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -1447,21 +1450,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "荷蘭獲得任何1 個未佔領的尼德蘭港口地區的政治控制權，如果此地區還不是新教徒宗教影響，則轉換過來。增加1 艘荷蘭加利恩大帆船(Galleon)和1 名荷蘭正規軍到此地區。如果地區的選擇為布里埃爾(Brielle)或法拉盛(Flushing)，增加額外1 艘荷蘭加利恩大帆船。如果西班牙控制連接到北海的港口，新教徒可進行免費的海盜骰。放置海盜標記到北海上，直接跳到海盜強奪的第5步驟，且新教徒骰3 顆海盜骰強奪西班牙北海港口。",
+        textZh: "新教可以获得任意1个在荷兰本土地区无守军港口的政治控制权，同时将该地区转为信仰新教。在该地区增加1支荷兰大帆船与1支正规军，若目标地区为布里勒或法拉盛，则可再额外放置1支大帆船。若西班牙控制任何与北海相邻的港口，且新教本回合可在北海海域进行海盗行动，则新教免费获得一次在北海海域，针对西班牙港口的海盗行动（无需在交战状态）。跳到海盗行动的第五步，新教获得3个骰子进行本次海盗行动。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "seaBeggars",
-            summary: "荷蘭獲得任何1 個未佔領的尼德蘭港口地區的政治控制權，如果此地區還不是新教徒宗教影響，則轉換過來。增加1 艘荷蘭加利恩大帆船(Galleon)和1 名荷蘭正規軍"
+            summary: "新教可以获得任意1个在荷兰本土地区无守军港口的政治控制权，同时将该地区转为信仰新教。在该地区增加1支荷兰大帆船与1支正规军，若目标地区为布里勒或法拉盛，则可再额"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "protestant"
     },
 {
         number: 67,
         id: "vq-067",
-        nameZh: "西班牙薪餉船被查封",
+        nameZh: "西班牙饷薪船被俘",
         nameEn: "Spanish Pay Ships Seized",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -1469,20 +1472,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "不可被西班牙施放。西班牙玩家必須移除2 名位於其控制尼德蘭地區的正規軍。西班牙可以選擇用2 名西班牙傭兵可以取代1 名正規軍移除。施放此卡的勢力從牌庫抽1 張牌。如果作為事件施放，將此卡移出遊戲",
+        textZh: "西班牙不能作为事件打出。西班牙必须移除在尼德兰地区的，由西班牙控制的2支正规军。每移除2支西班牙雇佣兵可代替1支正规军。出牌势力从牌堆中抽一张牌。此牌作为事件打出后移出游戏",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "spanishPayShipsSeized",
-            summary: "不可被西班牙施放。西班牙玩家必須移除2 名位於其控制尼德蘭地區的正規軍。西班牙可以選擇用2 名西班牙傭兵可以取代1 名正規軍移除。施放此卡的勢力從牌庫抽1 張牌"
+            summary: "西班牙不能作为事件打出。西班牙必须移除在尼德兰地区的，由西班牙控制的2支正规军。每移除2支西班牙雇佣兵可代替1支正规军。出牌势力从牌堆中抽一张牌。此牌作为事件打"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 68,
         id: "vq-068",
-        nameZh: "塔克西斯家族信差",
+        nameZh: "特克西斯家族信使",
         nameEn: "Taxis Family Courier",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1490,20 +1493,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "從你手中的1 張卡給予另外1 個勢力(不能你的家族卡或強制事件Mandatory Event)，然後從牌庫抽1 張牌；那張牌必須等到下一回合才能施放。",
+        textZh: "将你的1张手牌（不能是势力牌或强制性事件牌）交给另一个玩家。从牌堆中抽一张牌（即使你刚才没有手牌可以交给其他玩家）。从牌堆中抽的这张牌不能立即使用。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "taxisFamilyCourier",
-            summary: "從你手中的1 張卡給予另外1 個勢力(不能你的家族卡或強制事件Mandatory Event)，然後從牌庫抽1 張牌；那張牌必須等到下一回合才能施放。"
+            summary: "将你的1张手牌（不能是势力牌或强制性事件牌）交给另一个玩家。从牌堆中抽一张牌（即使你刚才没有手牌可以交给其他玩家）。从牌堆中抽的这张牌不能立即使用。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 69,
         id: "vq-069",
-        nameZh: "第十文錢",
+        nameZh: "什一税",
         nameEn: "Tenth Penny",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -1511,20 +1514,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "新教徒玩家如同花費5 點CP 一樣，馬上對尼德蘭進行一次叛亂行動。─ 或者 ─西班牙從新教徒手上隨機抽1 張牌，然後保留到之後的回合使用。",
+        textZh: "新教在尼德兰地区进行一次5CP的煽动叛乱。-或-西班牙从新教手中随机抽一张牌。这张牌不能立即使用。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "tenthPenny",
-            summary: "新教徒玩家如同花費5 點CP 一樣，馬上對尼德蘭進行一次叛亂行動。─ 或者 ─西班牙從新教徒手上隨機抽1 張牌，然後保留到之後的回合使用。"
+            summary: "新教在尼德兰地区进行一次5CP的煽动叛乱。-或-西班牙从新教手中随机抽一张牌。这张牌不能立即使用。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 70,
         id: "vq-070",
-        nameZh: "天特會議信綱",
+        nameZh: "天主教教理问答集",
         nameEn: "Tridentine Catechism",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -1532,7 +1535,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "針對任意兩宗教衝突區域進行8 次天主教教改檢定(即使是你勢力正常行動無法影響的區域)，第一顆骰自動為「6」，其餘隨機骰。",
+        textZh: "在任意两个宗教斗争区域进行共计8次传播天主教尝试（可选无法通过一般途径进行传教尝试的区域）。首个骰值默认为“6”，随机掷其余骰子。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1548,12 +1551,12 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             autoSix: true,
             chooseArea: true
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 71,
         id: "vq-071",
-        nameZh: "黑魔術",
+        nameZh: "巫术",
         nameEn: "Black Magic",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -1561,20 +1564,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "從任何其他勢力手中隨機並保留1 張牌。─ 或者 ─觀看任何其他勢力手中所有卡，並選擇1 張棄掉，家族卡不會受到上兩者效應影響。",
+        textZh: "从另一个势力手中随机抽一张牌并保留（不能抽取势力牌）。-或-检视另一个势力的手牌，选择一张弃掉（不能选择势力牌）。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "blackMagic",
-            summary: "從任何其他勢力手中隨機並保留1 張牌。─ 或者 ─觀看任何其他勢力手中所有卡，並選擇1 張棄掉，家族卡不會受到上兩者效應影響。"
+            summary: "从另一个势力手中随机抽一张牌并保留（不能抽取势力牌）。-或-检视另一个势力的手牌，选择一张弃掉（不能选择势力牌）。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 72,
         id: "vq-072",
-        nameZh: "波蘭戰爭",
+        nameZh: "波兰战争",
         nameEn: "War with Poland",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -1582,21 +1585,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "如果神聖羅馬帝國沒有與鄂圖曼交戰中則可施放。HRE 玩家必須從地圖上移除3 到8 名地面單位，並放到此境外戰爭卡上(可隨著任意1 名領袖)，波蘭開始於3 或5 名地面單位(由施放此卡的勢力選擇)，如果使用5 名單位，當HRE 結束此戰爭後，獲得戰爭勝利者1 分(1 War Winner)。直",
+        textZh: "若神圣罗马帝国和奥斯曼帝国未交战，可作为事件打出。神圣罗马帝国从地图上移除3-8支陆军部队（同时也可选择任意数量的将领），并将这些部队放置在这张国外战争牌上（章节23.7）。波兰军队起始有3或5支陆军部队（由出牌玩家随后决定）。若初始有5支陆军部队，则在此国外战争结束后神圣罗马帝国获得1个战争胜利者VP。另将一个“-1卡牌”标记给神圣罗马帝国玩家直到国外战争结束。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "warWithPoland",
-            summary: "如果神聖羅馬帝國沒有與鄂圖曼交戰中則可施放。HRE 玩家必須從地圖上移除3 到8 名地面單位，並放到此境外戰爭卡上(可隨著任意1 名領袖)，波蘭開始於3 或5 "
+            summary: "若神圣罗马帝国和奥斯曼帝国未交战，可作为事件打出。神圣罗马帝国从地图上移除3-8支陆军部队（同时也可选择任意数量的将领），并将这些部队放置在这张国外战争牌上（章"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "hre"
     },
 {
         number: 73,
         id: "vq-073",
-        nameZh: "波斯戰爭",
+        nameZh: "波斯战争",
         nameEn: "War in Persia",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -1604,21 +1607,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "鄂圖曼玩家必須從地圖上移除3 到8 名地面單位，並放到此境外戰爭卡上(可隨著任意1 名領袖)，波斯開始於3 或5 名地面單位(由施放此卡的勢力選擇)，如果使用5 名單位，當鄂圖曼結束此戰爭後，獲得戰爭勝利者1 分(1 War Winner)。直到戰爭結束前，鄂圖曼持有「-1 Card」標誌。",
+        textZh: "奥斯曼帝国从地图上移除3-8支陆军部队（同时也可选择任意数量的将领），并将这些部队放置在这张国外战争牌上（章节23.7）。波斯军队起始有3或5支陆军部队（由出牌玩家随后决定）。若初始有5支陆军部队，则在此国外战争结束后奥斯曼帝国获得1个战争胜利者VP。另将一个“-1卡牌”标记给奥斯曼帝国玩家直到国外战争结束。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "warInPersia",
-            summary: "鄂圖曼玩家必須從地圖上移除3 到8 名地面單位，並放到此境外戰爭卡上(可隨著任意1 名領袖)，波斯開始於3 或5 名地面單位(由施放此卡的勢力選擇)，如果使用5"
+            summary: "奥斯曼帝国从地图上移除3-8支陆军部队（同时也可选择任意数量的将领），并将这些部队放置在这张国外战争牌上（章节23.7）。波斯军队起始有3或5支陆军部队（由出牌"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "ottoman"
     },
 {
         number: 74,
         id: "vq-074",
-        nameZh: "蘇格蘭領主叛亂",
+        nameZh: "苏格兰的贵族叛变",
         nameEn: "Scottish Lords Rebel",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1626,20 +1629,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "Diplomacy Phase",
-        textZh: "蘇格蘭外交狀態進行決議，控制愛丁堡(Edinburgh)的勢力獲得+1 骰數調整(這是額外的骰數調整)。如果結果導致蘇格蘭與英國或新教徒同盟，且蘇格蘭女王瑪麗還活在蘇格蘭，他馬上被囚禁在英格蘭。將所有在蘇格蘭的軍隊從地圖上移除，然後放置2 名蘇格蘭正規軍到愛丁堡上。此卡每一時期都會洗回牌庫",
+        textZh: "立即进行苏格兰的外交评议，且给予控制爱丁堡的玩家额外+1掷骰修正。若结果是“与英格兰或新教结盟”，且苏格兰玛丽女王还生活在苏格兰，则她将被英格兰俘虏。赢得苏格兰外交评议的势力玩家获得所有苏格兰地区控制权，所有位于苏格兰地区、且非该玩家或其盟友的部队必须撤离。最后，移除所有苏格兰陆军，并在爱丁堡放置2支苏格兰正规军。此牌每回合都会洗入牌堆",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "scottishLordsRebel",
-            summary: "蘇格蘭外交狀態進行決議，控制愛丁堡(Edinburgh)的勢力獲得+1 骰數調整(這是額外的骰數調整)。如果結果導致蘇格蘭與英國或新教徒同盟，且蘇格蘭女王瑪麗還"
+            summary: "立即进行苏格兰的外交评议，且给予控制爱丁堡的玩家额外+1掷骰修正。若结果是“与英格兰或新教结盟”，且苏格兰玛丽女王还生活在苏格兰，则她将被英格兰俘虏。赢得苏格兰"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 75,
         id: "vq-075",
-        nameZh: "失落的執民地",
+        nameZh: "消失的殖民地",
         nameEn: "Lost Colony",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1647,20 +1650,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "Immediately when drawn",
-        textZh: "指定位於大西洋岸(Atlantic Coast)的殖民地，殖民地的擁有玩家必須投擲1 顆骰來保留他的殖民地，出現5 或6 則成功保留，如果出現其他數字，殖民地被消滅。如果在大西洋岸這些地區有殖民地，那麼此卡出現就必須擲骰，即使是殖民地擁有者施放此事件也一樣。此卡每一時期都會洗回牌庫",
+        textZh: "指定一个位于大西洋沿岸的殖民地，控制该殖民地的玩家须掷1个骰子来保护其殖民地。若骰值为“5”或“6”则殖民地保护成功；否则该殖民地被摧毁。打出此牌时，若有符合条件的殖民地存在，即使殖民地的所有者就是出牌者，也必须进行掷骰判定。此牌每回合都会洗入牌堆",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "lostColony",
-            summary: "指定位於大西洋岸(Atlantic Coast)的殖民地，殖民地的擁有玩家必須投擲1 顆骰來保留他的殖民地，出現5 或6 則成功保留，如果出現其他數字，殖民地被"
+            summary: "指定一个位于大西洋沿岸的殖民地，控制该殖民地的玩家须掷1个骰子来保护其殖民地。若骰值为“5”或“6”则殖民地保护成功；否则该殖民地被摧毁。打出此牌时，若有符合条"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 76,
         id: "vq-076",
-        nameZh: "意外的早逝",
+        nameZh: "英年早逝",
         nameEn: "Untimely Death",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1668,20 +1671,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "Immediately when drawn",
-        textZh: "將下列其中一名領袖移出遊戲：皮雅利 帕夏、唐 約翰、蒙莫朗西、阿爾瓦公爵、聖克魯斯、萊斯特，或 茲里尼(Piyale Pasha, Don John, Montmorency, Duke of Alva,Santa Cruz, Leicester, Zrinyi)此卡每一時期都會洗回牌庫",
+        textZh: "将下列任一已上场将领移出游戏（无论在何处）：皮雅利帕夏、唐胡安、蒙莫朗西、阿尔瓦公爵、圣克鲁斯、莱斯特伯爵、兹里尼。此牌每回合都会洗入牌堆。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "untimelyDeath",
-            summary: "將下列其中一名領袖移出遊戲：皮雅利 帕夏、唐 約翰、蒙莫朗西、阿爾瓦公爵、聖克魯斯、萊斯特，或 茲里尼(Piyale Pasha, Don John, Mont"
+            summary: "将下列任一已上场将领移出游戏（无论在何处）：皮雅利帕夏、唐胡安、蒙莫朗西、阿尔瓦公爵、圣克鲁斯、莱斯特伯爵、兹里尼。此牌每回合都会洗入牌堆。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 77,
         id: "vq-077",
-        nameZh: "葡萄牙襲擊",
+        nameZh: "进击的葡萄牙",
         nameEn: "Portuguese Raid",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1689,20 +1692,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "消滅任何與南大西洋(South Atlantic)、印度洋(Indian Ocean)或南太平洋(South Pacific ocean)相鄰的殖民地，如果此卡是由控制里斯本(Lisbon)的勢力施放，抽1 個寶藏，並留在手中供之後的回合使用。此卡不能用來消滅與葡萄牙同盟勢力的執民地。",
+        textZh: "移除一个邻近南大西洋、印度洋或南太平洋海域的殖民地。若打出此牌的势力控制里斯本，则再抽一个宝藏并保留，可在接下来的行动轮使用。无法使用此牌移除葡萄牙及其盟友的殖民地，或者西班牙殖民地。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "portugueseRaid",
-            summary: "消滅任何與南大西洋(South Atlantic)、印度洋(Indian Ocean)或南太平洋(South Pacific ocean)相鄰的殖民地，如果此卡"
+            summary: "移除一个邻近南大西洋、印度洋或南太平洋海域的殖民地。若打出此牌的势力控制里斯本，则再抽一个宝藏并保留，可在接下来的行动轮使用。无法使用此牌移除葡萄牙及其盟友的殖"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 78,
         id: "vq-078",
-        nameZh: "北方崛起",
+        nameZh: "北部叛乱",
         nameEn: "Northern Rising",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -1710,21 +1713,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "如果蘇格蘭女王瑪麗被囚禁在英格蘭，西班牙翻轉英國3 地區到天主教宗教影響，地區的選擇不能包含新教徒單位，且必須回合開始時距離天主教影響地區2 格內。然後，如果西班牙與英國交戰，西班牙可進行如同花費4 點CP 般在英國開啟叛亂，然而，如果西班牙沒有與英國交戰，西班牙在英國放置4 個動亂(地區選擇必須未佔領，或天主教影響地區)。",
+        textZh: "只有苏格兰的玛丽女王已经被英格兰俘虏，才可作为事件打出。西班牙选择3个英格兰地区转为信仰天主教。所选的地区不能有信仰新教的部队，且必须在本次行动开始时就距离已经信仰天主教的地区不超过2个地区。然后，若西班牙与英格兰正在交战，西班牙可以在英格兰进行一次4CP的煽动叛乱（与新教煽动叛乱相同）。若西班牙与英格兰未交战，西班牙可在英格兰地区选择至多4个未驻军或信仰天主教的地区放置骚乱标记。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "northernRising",
-            summary: "如果蘇格蘭女王瑪麗被囚禁在英格蘭，西班牙翻轉英國3 地區到天主教宗教影響，地區的選擇不能包含新教徒單位，且必須回合開始時距離天主教影響地區2 格內。然後，如果西"
+            summary: "只有苏格兰的玛丽女王已经被英格兰俘虏，才可作为事件打出。西班牙选择3个英格兰地区转为信仰天主教。所选的地区不能有信仰新教的部队，且必须在本次行动开始时就距离已经"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain"
     },
 {
         number: 79,
         id: "vq-079",
-        nameZh: "伊頓會議†",
+        nameZh: "埃姆登的宗教会议",
         nameEn: "Convention of Estates†",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -1732,21 +1735,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "翻轉尼德蘭任意3 地區到新教徒宗教影響，地區的選擇並不需要符合新教徒教改條件(規則18.5)。如果作為事件施放，將此卡移出遊戲",
+        textZh: "将任意3个尼德兰地区转为信仰新教。这些地区可以不符合传教条件（章节18.5）。此牌作为事件打出后移出游戏。",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "conventionOfEstates",
-            summary: "翻轉尼德蘭任意3 地區到新教徒宗教影響，地區的選擇並不需要符合新教徒教改條件(規則18.5)。如果作為事件施放，將此卡移出遊戲"
+            summary: "将任意3个尼德兰地区转为信仰新教。这些地区可以不符合传教条件（章节18.5）。此牌作为事件打出后移出游戏。"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         notes: "Removed from play when played as an event."
     },
 {
         number: 80,
         id: "vq-080",
-        nameZh: "黑女皇",
+        nameZh: "黑太后",
         nameEn: "The Black Queen",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -1754,21 +1757,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "home",
         timing: "Action Phase",
-        textZh: "放置間諜(Informant)到任何有軍事領袖待在法國的勢力，然後馬上對位於法國地區的目標執行一次暗殺行動，此暗殺視為使用4 點CP。─ 或者 ─選擇不是放置2 名間諜就是執行一次諜報行動(如同使用3 點CP)，然後從牌庫抽1 張牌。─ 或者 ─檢視任何其他玩家的所有手牌，然後選擇從該勢力隨機抽取並保留1 張牌，或從牌庫抽2 張牌。",
+        textZh: "选择以下选项中的一项执行：1、派遣1个密探至任意一个有陆军将领位于法兰西地区的1个势力，然后立即对法兰西地区的1个目标进行一次刺杀，视作花费4CP。本次刺杀计入每回合的刺杀限制。2、选择派遣2个密探，或进行1次花费3CP的间谍行动。然后从牌堆中抽一张牌。3、检视另一个势力的手牌。然后选择从该势力手中随机抽一张牌并保留，或从牌堆中抽两张牌。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "blackQueen",
-            summary: "放置間諜(Informant)到任何有軍事領袖待在法國的勢力，然後馬上對位於法國地區的目標執行一次暗殺行動，此暗殺視為使用4 點CP。─ 或者 ─選擇不是放置2"
+            summary: "选择以下选项中的一项执行：1、派遣1个密探至任意一个有陆军将领位于法兰西地区的1个势力，然后立即对法兰西地区的1个目标进行一次刺杀，视作花费4CP。本次刺杀计入"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "france"
     },
 {
         number: 81,
         id: "vq-081",
-        nameZh: "沃爾辛厄姆",
+        nameZh: "沃尔辛厄姆",
         nameEn: "Walsingham",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -1776,21 +1779,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "home",
         timing: "Event or response",
-        textZh: "英國可以當作事件或回應施放此卡，並選擇讓所有英國諜報攻擊骰4～6 就命中，或讓所有以英國為目標的諜報攻擊骰只有6 才算命中。此效果維持一整個時期(用英國勢力卡上的標示註明選擇)─ 或者 ─直接移除敵方的情報人員(operative)，然後額外投擲2 顆骰下進行竊取情報(Gain Intelligence)行動，移除的情報人員可以是耶穌會會士(Jesuit)或目前刺探英國的間諜(Informant)",
+        textZh: "选择以下选项中的一项执行：1、可作为事件牌或响应牌使用。直到回合结束前，选择让势力板上的“沃尔辛厄姆”标记处于攻势（己方间谍行动进攻骰“4”“5”“6”视为命中）或守势（敌方间谍行动进攻骰仅“6”视为命中）。2、移除1个英格兰势力板上的敌方密探或耶稣会士。然后可选择进行1次可额外掷2个骰子的获取情报。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "walsingham",
-            summary: "英國可以當作事件或回應施放此卡，並選擇讓所有英國諜報攻擊骰4～6 就命中，或讓所有以英國為目標的諜報攻擊骰只有6 才算命中。此效果維持一整個時期(用英國勢力卡上"
+            summary: "选择以下选项中的一项执行：1、可作为事件牌或响应牌使用。直到回合结束前，选择让势力板上的“沃尔辛厄姆”标记处于攻势（己方间谍行动进攻骰“4”“5”“6”视为命中"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "england"
     },
 {
         number: 82,
         id: "vq-082",
-        nameZh: "國王塞巴斯蒂昂駕崩†",
+        nameZh: "国王塞巴斯蒂安去世",
         nameEn: "King Sebastian Dies†",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1798,21 +1801,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "Action Phase",
-        textZh: "葡萄牙現在以次要勢力身份進入遊戲，成為宣戰和投入外交影響力的目標。放置標示物到葡萄牙上來反應西班牙、法國和英國的狀態(給予英國預設的1 點影響力)，任何控制里斯本(Lisbon)的勢力在冬季撤退階段時，從葡萄牙在世界地圖上的財富中獲得1 個寶藏(如果還有剩下的話)收入。施放過後，將此卡移出遊戲",
+        textZh: "葡萄牙作为次要势力进入游戏，可作为宣战和外交评议的对象。放置标志在外交影响评估板上，表示其与西班牙、法国和英格兰的外交状态（英格兰的初始外交影响力为1）。任何在冬季阶段控制里斯本的势力可以抽一个葡萄牙宝藏（如果还有剩余），作为葡萄牙在世界地图上的收入。此牌作为事件打出后移出游戏",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "kingSebastianDies",
-            summary: "葡萄牙現在以次要勢力身份進入遊戲，成為宣戰和投入外交影響力的目標。放置標示物到葡萄牙上來反應西班牙、法國和英國的狀態(給予英國預設的1 點影響力)，任何控制里斯"
+            summary: "葡萄牙作为次要势力进入游戏，可作为宣战和外交评议的对象。放置标志在外交影响评估板上，表示其与西班牙、法国和英格兰的外交状态（英格兰的初始外交影响力为1）。任何在"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         notes: "Removed from play after being played."
     },
 {
         number: 83,
         id: "vq-083",
-        nameZh: "荷蘭反抗",
+        nameZh: "荷兰起义",
         nameEn: "Dutch Revolt",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1820,15 +1823,15 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "Immediately when drawn",
-        textZh: "計算尼德蘭境內位於西班牙政治控制地區的數量(且非動亂地區)，根據下列列表給予荷蘭反抗分數(DutchRevolt VP)：0 個地區： 給予新教徒3 點VP1～7 個地區： 給予新教徒2 點VP給予英國1 點VP8～11 個地區： 給予新教徒、西班牙和英國各1 點VP12～19 個地區： 給予西班牙2 點VP20～21 個地區： 給予西班牙3 點VP此卡每一時期都會洗回牌庫",
+        textZh: "计算尼德兰地区处于西班牙政治控制下的地区数量（骚乱地区不计），按照以下说明给予VP奖励：0：新教+3VP；1-7：新教+2VP，英格兰+1VP；8-11：新教、英格兰、西班牙+1VP；12-19：西班牙+2VP；20-21：西班牙+3VP。此牌每回合都会洗入牌堆。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "dutchRevolt",
-            summary: "計算尼德蘭境內位於西班牙政治控制地區的數量(且非動亂地區)，根據下列列表給予荷蘭反抗分數(DutchRevolt VP)：0 個地區： 給予新教徒3 點VP1～"
+            summary: "计算尼德兰地区处于西班牙政治控制下的地区数量（骚乱地区不计），按照以下说明给予VP奖励：0：新教+3VP；1-7：新教+2VP，英格兰+1VP；8-11：新教、"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 84,
@@ -1841,15 +1844,15 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "When Charles IX dies",
-        textZh: "查理九世(Charles Ⅸ)駕崩，亨利三世(安茄的亨利)取代查理成為法國的統治者；放置此卡到法國的勢力卡統治者位置上。如果查理九世依然在年幼皇室成員(Young Royals)，或結婚還未結算，將查理移除遊戲，並終止此婚禮。內政等級：保留1 張卡片。卡片獎勵：額外1 張卡片。",
+        textZh: "查理九世去世。亨利三世接替查理九世成为法国统治者。将这张牌放置在法国势力板上的统治者区域。如果查理九世尚未联姻，则将其移出游戏并终止联姻。治理能力：保留1张手牌；手牌奖励：额外1张卡牌。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "henryIII",
-            summary: "查理九世(Charles Ⅸ)駕崩，亨利三世(安茄的亨利)取代查理成為法國的統治者；放置此卡到法國的勢力卡統治者位置上。如果查理九世依然在年幼皇室成員(Youn"
+            summary: "查理九世去世。亨利三世接替查理九世成为法国统治者。将这张牌放置在法国势力板上的统治者区域。如果查理九世尚未联姻，则将其移出游戏并终止联姻。治理能力：保留1张手牌"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "france"
     },
 {
@@ -1863,21 +1866,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "When Selim II dies",
-        textZh: "賽利姆二世駕崩，穆拉德三世取代賽利鉧成為鄂圖曼的統治者，將此卡放到鄂圖曼勢力卡的統治者位置。如果在4 名或更少玩家遊戲當中，馬上決議鄂圖曼的外交狀態。內政等級：保留1 張卡片。卡片獎勵：沒有額外卡片。",
+        textZh: "塞利姆二世去世。穆拉德三世接替塞利姆二世成为奥斯曼帝国的统治者。将这张牌放置在奥斯曼帝国势力板的统治者区域。如果游戏人数不大于4人，则立即进行奥斯曼帝国的外交评议。治理能力：保留1张手牌；手牌奖励：无额外卡牌。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "muradIII",
-            summary: "賽利姆二世駕崩，穆拉德三世取代賽利鉧成為鄂圖曼的統治者，將此卡放到鄂圖曼勢力卡的統治者位置。如果在4 名或更少玩家遊戲當中，馬上決議鄂圖曼的外交狀態。內政等級："
+            summary: "塞利姆二世去世。穆拉德三世接替塞利姆二世成为奥斯曼帝国的统治者。将这张牌放置在奥斯曼帝国势力板的统治者区域。如果游戏人数不大于4人，则立即进行奥斯曼帝国的外交评"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "ottoman"
     },
 {
         number: 86,
         id: "vq-086",
-        nameZh: "波蘭皇家選舉†",
+        nameZh: "波兰选王",
         nameEn: "Polish Royal Election†",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1885,21 +1888,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "Action Phase",
-        textZh: "HRE 與波蘭戰爭結束，然後西班牙、法國和神聖羅馬(如果是玩家勢力)都有施放卡片或寶藏的權力，來將他們各自的候選人推上波蘭王座。所有人同時展示自己的選擇，所有勢力投擲1 顆骰，並將所施放的卡片/寶藏上的CP 價值加上骰數。只要總和超過5，那最高總和的勢力成為波蘭國王，並獲得2 VP。如果最高總和等於或低於5，那無VP 獎賞。(恐怖伊凡Ivan the Terrible 當上波蘭國王)施放過後，將此卡移出遊戲",
+        textZh: "立即结束神圣罗马帝国与波兰的战争，然后西班牙、法国和神圣罗马帝国（若该势力为玩家）可以依次面朝下打出一张卡牌（可以为势力牌，不能为强制性事件牌）或宝藏并同时翻开以参与选王。然后每个势力掷1个骰子，加上其打出卡牌或宝藏的CP值作为最终分数。最终分数最大且大于5的势力成为波兰国王并获得2VP（平手按法、罗、西的顺序决定）。若最高分数不大于5则无VP奖励。以此法结束“波兰战争”时，视为神圣罗马帝国获得胜利。此牌作为事件打出后移出游戏",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "polishRoyalElection",
-            summary: "HRE 與波蘭戰爭結束，然後西班牙、法國和神聖羅馬(如果是玩家勢力)都有施放卡片或寶藏的權力，來將他們各自的候選人推上波蘭王座。所有人同時展示自己的選擇，所有勢"
+            summary: "立即结束神圣罗马帝国与波兰的战争，然后西班牙、法国和神圣罗马帝国（若该势力为玩家）可以依次面朝下打出一张卡牌（可以为势力牌，不能为强制性事件牌）或宝藏并同时翻开"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         notes: "Removed from play after being played."
     },
 {
         number: 87,
         id: "vq-087",
-        nameZh: "魯道夫二世",
+        nameZh: "鲁道夫二世",
         nameEn: "Rudolf II",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1907,21 +1910,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "When Maximilian II dies",
-        textZh: "馬克西米利安二世駕崩，魯道夫取代馬克西米利安成為神聖羅馬帝國皇帝，放置此卡到HRE 勢力卡統治者位置上。現在HRE 的首都為布拉格(Prague)。如果在5 名或更少玩家的遊戲當中，馬上對神聖羅馬帝國的外交狀態決議。內政等級：保留1 張卡片。卡片獎勵：額外1 張卡片。",
+        textZh: "马克西米利安二世去世。鲁道夫二世接替马克西米利安二世成为神圣罗马帝国的统治者。将这张牌放置在神圣罗马帝国势力板的统治者区域。神圣罗马帝国立即迁都到布拉格。如果游戏人数不大于5人，则立即进行神圣罗马帝国的外交评议。治理能力：保留1张手牌；手牌奖励：额外1张卡牌。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "rudolfII",
-            summary: "馬克西米利安二世駕崩，魯道夫取代馬克西米利安成為神聖羅馬帝國皇帝，放置此卡到HRE 勢力卡統治者位置上。現在HRE 的首都為布拉格(Prague)。如果在5 名"
+            summary: "马克西米利安二世去世。鲁道夫二世接替马克西米利安二世成为神圣罗马帝国的统治者。将这张牌放置在神圣罗马帝国势力板的统治者区域。神圣罗马帝国立即迁都到布拉格。如果游"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "hre"
     },
 {
         number: 88,
         id: "vq-088",
-        nameZh: "手槍",
+        nameZh: "手枪",
         nameEn: "Pistols",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -1929,7 +1932,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "Before an assassination roll",
-        textZh: "施放來增加任何玩家的暗殺嘗試2 顆骰。必須在擲骰前施放。",
+        textZh: "刺杀行动掷骰前打出。本次刺杀行动额外掷2个骰子。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1938,12 +1941,12 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             phase: "assassination",
             condition: "Adds 2 dice to any assassination attempt."
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 89,
         id: "vq-089",
-        nameZh: "蘇格蘭女王瑪麗",
+        nameZh: "苏格兰的玛丽女王",
         nameEn: "Mary Queen of Scots",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -1951,20 +1954,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "Event or response",
-        textZh: "如果蘇格蘭女王還活著才能施放。可作為以下能力施放(1) 作為回應法國增加4 點蘇格蘭外交影響力(2) 作為事件法國增加3 點蘇格蘭外交影響力，然後替蘇格蘭決議其外交狀態。(3) 作為回應增加3 顆骰到英國天主教叛亂上。(4) 作為回應增加3 顆骰對抗暗殺伊莉莎白的檢定。如果瑪麗被囚禁在蘇格蘭，則頭2 個選項不可使用。",
+        textZh: "如果苏格兰的玛丽女王还活着，执行以下其中一项：①作为响应牌打出，增加4点法国对苏格兰的外交影响力。②作为事件牌打出，增加3点法国对苏格兰的外交影响力，然后立即进行苏格兰的外交评议。③作为响应牌打出，在英格兰天主教起义中额外掷3个骰子。④作为响应牌打出，在针对伊丽莎白一世的刺杀行动中额外掷3个骰子。若苏格兰的玛丽女王已死，在当做事件、响应或CP打出后移出游戏",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "maryQueenOfScots",
-            summary: "如果蘇格蘭女王還活著才能施放。可作為以下能力施放(1) 作為回應法國增加4 點蘇格蘭外交影響力(2) 作為事件法國增加3 點蘇格蘭外交影響力，然後替蘇格蘭決議其"
+            summary: "如果苏格兰的玛丽女王还活着，执行以下其中一项：①作为响应牌打出，增加4点法国对苏格兰的外交影响力。②作为事件牌打出，增加3点法国对苏格兰的外交影响力，然后立即进"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 90,
         id: "vq-090",
-        nameZh: "神父藏身所",
+        nameZh: "神父藏身之洞",
         nameEn: "Priest Holes",
         cp: 1,
         cpSource: "pdf-text-layer",
@@ -1972,20 +1975,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "As a response to Jesuit neutralization",
-        textZh: "取消將耶穌會會士無效化(neutralization)的效果。移除耶穌會會士(Jesuit)的效果有成功地擷取情報(Gain Intelligence)行動，或理查．托普克里夫(Richard Topcliffe)或沃爾辛厄姆(Walsingham)事件卡效果。如果超過1 個耶穌會會士被無效",
+        textZh: "保留一个将被移除的耶稣会士。如果超过一个将被移除，出牌势力选择一个保留。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "priestHoles",
-            summary: "取消將耶穌會會士無效化(neutralization)的效果。移除耶穌會會士(Jesuit)的效果有成功地擷取情報(Gain Intelligence)行動，或"
+            summary: "保留一个将被移除的耶稣会士。如果超过一个将被移除，出牌势力选择一个保留。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 91,
         id: "vq-091",
-        nameZh: "暗碼解碼書",
+        nameZh: "密码表",
         nameEn: "Cipher Key",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -1993,20 +1996,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "選擇下列兩選項其中一個：(a)拿取你的暗碼解碼書(Cipher Key)標示物並移到另一玩家勢力卡上的「Informants Spying onYou」的格子內。(b)從你的勢力卡上移除敵方所有暗碼解碼書標示物。當你的暗碼解碼書在另一個勢力上，你對抗此勢力時獲得+1 密碼學獎勵。此效果不會跟密碼學科學獎勵重疊。",
+        textZh: "选择以下选项中的一项执行：①将一个“密码表”标记放置在其他势力的“被密探渗透”区（或者移动已被放置的标记）。②移除己方势力板上的“密码表”标记。“密码表”的加成不能和科技“密码学”叠加。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "cipherKey",
-            summary: "選擇下列兩選項其中一個：(a)拿取你的暗碼解碼書(Cipher Key)標示物並移到另一玩家勢力卡上的「Informants Spying onYou」的格子內"
+            summary: "选择以下选项中的一项执行：①将一个“密码表”标记放置在其他势力的“被密探渗透”区（或者移动已被放置的标记）。②移除己方势力板上的“密码表”标记。“密码表”的加成"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 92,
         id: "vq-092",
-        nameZh: "雙面間諜",
+        nameZh: "双面间谍",
         nameEn: "Double Agent",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -2014,20 +2017,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "移除敵方的間諜(Informant)並加你自己的間諜到那一勢力上。",
+        textZh: "剪除己方势力板上的1个密探。往另一个势力的势力板上派遣1个密探。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "doubleAgent",
-            summary: "移除敵方的間諜(Informant)並加你自己的間諜到那一勢力上。"
+            summary: "剪除己方势力板上的1个密探。往另一个势力的势力板上派遣1个密探。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 93,
         id: "vq-093",
-        nameZh: "杜埃英語大學",
+        nameZh: "杜埃英格兰学院",
         nameEn: "English College at Douai",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -2035,22 +2038,22 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "如果里爾(Lille)或敦刻爾克(Dunkirk)為天主教宗教影響地區則可施放此卡。西班牙從此之後每一時期開始時擺放2 名耶穌會會士(Jesuit)到他的勢力卡上(而非只有1 名)。西班牙拿取不在勢力卡上的額外耶穌會會士，並放置到英國未佔領的地區，馬上將此地區轉換成天主教宗教影響。如果作為事件施放，將此卡移出遊戲。",
+        textZh: "当里尔或敦刻尔克信仰天主教时才可以打出。在本局游戏中，每回合开始时西班牙可以额外放置一个耶稣会士在其势力板上。西班牙立即从势力板外获得一个额外的耶稣会士，将其放置在没有驻军的英格兰地区，并将该地区转为信仰天主教。此牌作为事件打出后，移出游戏",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "englishCollegeAtDouai",
-            summary: "如果里爾(Lille)或敦刻爾克(Dunkirk)為天主教宗教影響地區則可施放此卡。西班牙從此之後每一時期開始時擺放2 名耶穌會會士(Jesuit)到他的勢力卡"
+            summary: "当里尔或敦刻尔克信仰天主教时才可以打出。在本局游戏中，每回合开始时西班牙可以额外放置一个耶稣会士在其势力板上。西班牙立即从势力板外获得一个额外的耶稣会士，将其放"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain",
         notes: "Removed from play when played as an event."
     },
 {
         number: 94,
         id: "vq-094",
-        nameZh: "上帝的秘密特務",
+        nameZh: "上帝密使",
         nameEn: "God's Secret Agents",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -2058,21 +2061,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "西班牙移動所有在西班牙勢力卡上的耶穌會會士(Jesuit)到英國未佔領的地區。西班牙可以移動1 名已經在英國的耶穌會會士到新的地區。新的地區可以是被佔領的，但不能有另一名耶穌會會士。如果耶穌會會士(們)移動到的這些地區屬於新教徒宗教影響，馬上將這些地區轉換成天主教宗教影響。",
+        textZh: "西班牙将势力板上的所有耶稣会士移至没有驻军的英格兰地区。西班牙可以将一个之前已经在英格兰的耶稣会士移到英格兰境内的其他地区。目标地区可以有军队，但是不能有其他耶稣会士，然后将该地区转为信仰天主教。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "godsSecretAgents",
-            summary: "西班牙移動所有在西班牙勢力卡上的耶穌會會士(Jesuit)到英國未佔領的地區。西班牙可以移動1 名已經在英國的耶穌會會士到新的地區。新的地區可以是被佔領的，但不"
+            summary: "西班牙将势力板上的所有耶稣会士移至没有驻军的英格兰地区。西班牙可以将一个之前已经在英格兰的耶稣会士移到英格兰境内的其他地区。目标地区可以有军队，但是不能有其他耶"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain"
     },
 {
         number: 95,
         id: "vq-095",
-        nameZh: "洛林的路易絲",
+        nameZh: "洛林的路易丝",
         nameEn: "Louise of Lorraine",
         cp: 1,
         cpSource: "pdf-text-layer",
@@ -2080,21 +2083,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Diplomacy Phase",
-        textZh: "不可被鄂圖曼施放。在外交談判階段時施放，來將洛林的路易絲(Louise of Lorraine)加入到你勢力的新年輕皇室成員中。如果你宣告外交協議，在那時施放此卡。如果你正在確認外交協議，當你確認此協議後，那其他勢力將以你施放此卡作為附帶條件宣告與洛林的路易絲結婚如果作為事件施放，將此卡移出遊戲。",
+        textZh: "奥斯曼无法作为事件打出。在外交的谈判阶段使用，洛林的路易丝作为适婚对象上场（此前不会衰老）。若你在宣布协议，可以同时打出此牌。若你在确认协议，那么其他主要势力将以此卡牌为附带协议宣告与洛林的路易丝进行联姻。在联姻检定投骰时，视为打出此牌势力的王室成员。此牌作为事件打出后，移出游戏",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "louiseOfLorraine",
-            summary: "不可被鄂圖曼施放。在外交談判階段時施放，來將洛林的路易絲(Louise of Lorraine)加入到你勢力的新年輕皇室成員中。如果你宣告外交協議，在那時施放此"
+            summary: "奥斯曼无法作为事件打出。在外交的谈判阶段使用，洛林的路易丝作为适婚对象上场（此前不会衰老）。若你在宣布协议，可以同时打出此牌。若你在确认协议，那么其他主要势力将"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         notes: "Removed from play when played as an event."
     },
 {
         number: 96,
         id: "vq-096",
-        nameZh: "理查．托普克里夫",
+        nameZh: "理查德·托普克利夫",
         nameEn: "Richard Topcliffe",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -2102,21 +2105,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "最多無效化2 名目前在英國的耶穌會會士，然後針對英國進行5 次新教徒教改檢定，給予西班牙1 個「+1 Card」標示物。",
+        textZh: "移除2个位于英格兰地区的耶稣会士，然后在英格兰地区进行5次传播新教尝试。西班牙获得“+1卡牌”标记。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "richardTopcliffe",
-            summary: "最多無效化2 名目前在英國的耶穌會會士，然後針對英國進行5 次新教徒教改檢定，給予西班牙1 個「+1 Card」標示物。"
+            summary: "移除2个位于英格兰地区的耶稣会士，然后在英格兰地区进行5次传播新教尝试。西班牙获得“+1卡牌”标记。"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain"
     },
 {
         number: 97,
         id: "vq-097",
-        nameZh: "聖巴托羅繆日大屠殺†",
+        nameZh: "圣巴塞洛缪日大屠杀",
         nameEn: "St. Bartholomew's Day Massacre†",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -2124,22 +2127,22 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "新教徒玩家移除所有在法國的傭兵，給予新教徒玩家1 個「+1 Card」標示物，轉換法國最多5 個新教徒宗教影響，但處於法國政治控制下的地區到天主教宗教影響。法國玩家可以馬上對科利尼(Coligny)進行一次免費的暗殺行動(2CP)。如果納瓦拉與法國皇室訂婚的話，則數字增加到最多8地區，和暗殺獲得CP 到4 點。如果作為事件施放，將此卡移出遊戲",
+        textZh: "移除新教在法兰西地区的所有雇佣兵，新教可获得一个“+1卡牌”标记。将5个被法国控制的法国本土地区转为信仰天主教。法国可以视为立即对科利尼进行一次花费2CP的刺杀行动（计入每回合的刺杀限制）。若纳瓦拉的亨利正与法国王室订婚，则转信提高至8个地区，刺杀行动花费增至4CP。此牌作为事件打出后，移出游戏",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "stBartholomewsDayMassacre",
-            summary: "新教徒玩家移除所有在法國的傭兵，給予新教徒玩家1 個「+1 Card」標示物，轉換法國最多5 個新教徒宗教影響，但處於法國政治控制下的地區到天主教宗教影響。法國"
+            summary: "移除新教在法兰西地区的所有雇佣兵，新教可获得一个“+1卡牌”标记。将5个被法国控制的法国本土地区转为信仰天主教。法国可以视为立即对科利尼进行一次花费2CP的刺杀"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "france",
         notes: "Removed from play when played as an event."
     },
 {
         number: 98,
         id: "vq-098",
-        nameZh: "蘇丹王妃莎菲雅",
+        nameZh: "苏丹王妃萨菲耶",
         nameEn: "Sultana Safiye",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -2147,20 +2150,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "如果穆拉德三世是鄂圖曼的統治者才可施放。鄂圖曼選擇1 個其他勢力，並選擇1 張牌給那勢力。在觀看那張卡之前，被選擇的勢力必須從手上選擇1 張卡給鄂圖曼，如果被選擇的勢力為英國或法國，鄂圖曼然後從牌庫抽取額外1 張牌。─ 或者 ─由其他可以在威尼斯(Venice)投入外交影響力的勢力施放，得到威尼斯2 點外交影響力，並且對其進行外交狀態決議。",
+        textZh: "选择以下选项中的一项执行：①若穆拉德三世为奥斯曼帝国统治者，且游戏人数不小于5，可当作事件打出。奥斯曼帝国选择给予另一个势力1张手牌，该势力在看牌之前，需从手中选择1张卡牌交给奥斯曼帝国。若目标势力为英格兰或法国，奥斯曼帝国可以从牌堆中抽一张牌。②任何能以外交影响威尼斯的势力都可打出。获得2点对威尼斯的己方外交影响力，并立即进行威尼斯的外交评议。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "sultanaSafiye",
-            summary: "如果穆拉德三世是鄂圖曼的統治者才可施放。鄂圖曼選擇1 個其他勢力，並選擇1 張牌給那勢力。在觀看那張卡之前，被選擇的勢力必須從手上選擇1 張卡給鄂圖曼，如果被選"
+            summary: "选择以下选项中的一项执行：①若穆拉德三世为奥斯曼帝国统治者，且游戏人数不小于5，可当作事件打出。奥斯曼帝国选择给予另一个势力1张手牌，该势力在看牌之前，需从手中"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 99,
         id: "vq-099",
-        nameZh: "西班牙無敵艦隊",
+        nameZh: "西班牙无敌舰队",
         nameEn: "Spanish Armada",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -2168,21 +2171,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "home",
         timing: "Action Phase",
-        textZh: "如果無敵艦隊還未出現在地圖上，增加無敵艦隊到下列1 個西班牙控制的港口上：塞維爾(Seville)、科倫納(Corunna)、里斯本(Lisbon)然後花費5 點CP 在升級無敵艦隊，或根據規則23.2 建造地面單位。─ 或者 ─如果無敵艦隊已經在地圖上，可花費7 點CP 在無敵艦隊內建造地面單位、升級無敵艦隊、海軍移動，或海上運輸。不管哪一種行動，如果伊莉莎白被開除教籍，則多1 點CP 可花。",
+        textZh: "选择以下选项中的一项执行：1、如果西班牙无敌舰队不在地图上，将其放置于下列西班牙控制的港口中的一个：塞维利亚，科伦纳或里斯本。然后获得5CP来升级无敌舰队或在舰队上组建陆军部队（须在本土港口组建）。2、如果西班牙无敌舰队已经在地图上，获得7CP来在舰队上组建陆军部队（须在本土港口组建）、升级舰队（须在上述3个港口）、海军移动或海上运输。若伊丽莎白一世被绝罚，则以上两个选项均额外获得1CP。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "spanishArmada",
-            summary: "如果無敵艦隊還未出現在地圖上，增加無敵艦隊到下列1 個西班牙控制的港口上：塞維爾(Seville)、科倫納(Corunna)、里斯本(Lisbon)然後花費5 "
+            summary: "选择以下选项中的一项执行：1、如果西班牙无敌舰队不在地图上，将其放置于下列西班牙控制的港口中的一个：塞维利亚，科伦纳或里斯本。然后获得5CP来升级无敌舰队或在舰"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain"
     },
 {
         number: 100,
         id: "vq-100",
-        nameZh: "英國事業",
+        nameZh: "英格兰的局势",
         nameEn: "Enterprise of England",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -2190,20 +2193,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "mandatory",
         timing: "Immediately when drawn",
-        textZh: "計算下列總額：在英國耶穌會會士(Jesuit)數量，英國天主教宗教地區，英國內處於西班牙控制的地區，英國境內西班牙正規軍的數量，根據數字多寡給予英國事業分數(Enterprise of England VP)：1-2： 給英國1 VP，給西班牙 -1 VP3-4： 給英國1 VP5-6： 無人得到VP7-10： 給西班牙1 VP11-15：給西班牙2 VP，給英國 -1 VP16+： 給西班牙3 VP，給英國 -2 VP此卡每一時期都會洗回牌庫",
+        textZh: "计算在英格兰地区存在的耶稣会士、信仰天主教的地区、西班牙控制地区及西班牙正规军的数量的总和（骚乱地区不影响计数），计算VP：1-2：英格兰+1VP，西班牙-1VP；3-4：英格兰+1VP；5-6：无VP奖励；7-10：西班牙+1VP；11-15：西班牙+2VP，英格兰-1VP；16+：西班牙+3VP，英格兰-2VP。此牌每回合都会洗入牌堆。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "enterpriseOfEngland",
-            summary: "計算下列總額：在英國耶穌會會士(Jesuit)數量，英國天主教宗教地區，英國內處於西班牙控制的地區，英國境內西班牙正規軍的數量，根據數字多寡給予英國事業分數(E"
+            summary: "计算在英格兰地区存在的耶稣会士、信仰天主教的地区、西班牙控制地区及西班牙正规军的数量的总和（骚乱地区不影响计数），计算VP：1-2：英格兰+1VP，西班牙-1V"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 101,
         id: "vq-101",
-        nameZh: "格里高利公曆",
+        nameZh: "公历纪年法",
         nameEn: "Gregorian Calendar",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -2211,21 +2214,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "After a power finishes its turn",
-        textZh: "在一勢力剛結束他的回合時施放。重置回合順序到任何其他勢力上，讓那勢力進行下一個行動(可以是剛剛才行動過得同一勢力)。如果你控制教宗(Papacy)，從牌庫抽1 張牌。如果作為回應施放後，將此卡移出遊戲。",
+        textZh: "当一个势力结束其行动轮时打出。重置行动轮，指定任意势力开始下一个行动轮（可以是刚结束其行动轮的势力）。若你与教廷结盟，可从牌堆抽一张牌。此牌作为事件打出后移出游戏",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "gregorianCalendar",
-            summary: "在一勢力剛結束他的回合時施放。重置回合順序到任何其他勢力上，讓那勢力進行下一個行動(可以是剛剛才行動過得同一勢力)。如果你控制教宗(Papacy)，從牌庫抽1 "
+            summary: "当一个势力结束其行动轮时打出。重置行动轮，指定任意势力开始下一个行动轮（可以是刚结束其行动轮的势力）。若你与教廷结盟，可从牌堆抽一张牌。此牌作为事件打出后移出游"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         removeCondition: "Remove from play if played as a response."
     },
 {
         number: 102,
         id: "vq-102",
-        nameZh: "愛德華．斯塔福德爵士",
+        nameZh: "爱德华·斯塔福德爵士",
         nameEn: "Sir Edward Stafford",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -2233,20 +2236,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "response",
         timing: "As a response to Walsingham, or as an event",
-        textZh: "作為回應施放，當英國將沃爾辛厄姆家族卡作為事件或回應施放，取消那家族卡的施放。─ 或者 ─作為事件施放，檢視另一勢力手中所有卡片和寶藏，並選擇任何1 張卡或1 個寶藏棄掉。",
+        textZh: "选择以下选项中的一项执行：①作为响应牌打出，取消“沃尔辛厄姆”事件牌或响应牌的效果。②作为事件牌打出，检视一个势力的手牌和宝藏，并从中选择一张手牌或宝藏弃置。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "sirEdwardStafford",
-            summary: "作為回應施放，當英國將沃爾辛厄姆家族卡作為事件或回應施放，取消那家族卡的施放。─ 或者 ─作為事件施放，檢視另一勢力手中所有卡片和寶藏，並選擇任何1 張卡或1 "
+            summary: "选择以下选项中的一项执行：①作为响应牌打出，取消“沃尔辛厄姆”事件牌或响应牌的效果。②作为事件牌打出，检视一个势力的手牌和宝藏，并从中选择一张手牌或宝藏弃置。"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 103,
         id: "vq-103",
-        nameZh: "誓絕法案",
+        nameZh: "誓绝法案",
         nameEn: "Act of Abjuration",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -2254,21 +2257,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "英國、法國和神聖羅馬可以公開提供給新教徒，幫助保護他們在尼德蘭的軍隊。所有幫助必須馬上同意與新教徒同盟，並且同意從該勢力控制的數個家鄉地區移動最多5 名地面單位(加上軍事領袖)到尼德蘭的某一地區。新教徒可以選擇接受其中1 個幫助。如果新教徒接受幫助，移動所指定的軍隊，並且給予被選上的勢力1VP。如果幫助被接受則將此卡移出遊戲",
+        textZh: "英格兰、法国和神圣罗马帝国可以公开提议对新教势力提供军事帮助。每个势力的公开提议须为：立即与新教结盟，同时从本土地区移动至多5支陆军部队（可另加一个将领）至尼德兰地区任意一个新教控制地区。新教只可接受一个公开提议。如果新教接受了公开提议，马上执行协议内容，并给予该势力1VP。FAQ：与新教交战的国家无法提议；提议内容须声明足够清楚。目标地区必须由新教控制且没有新教以外的部队存在，但可以处于骚乱状态。此牌作为事件打出后，移出游戏",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "actOfAbjuration",
-            summary: "英國、法國和神聖羅馬可以公開提供給新教徒，幫助保護他們在尼德蘭的軍隊。所有幫助必須馬上同意與新教徒同盟，並且同意從該勢力控制的數個家鄉地區移動最多5 名地面單位"
+            summary: "英格兰、法国和神圣罗马帝国可以公开提议对新教势力提供军事帮助。每个势力的公开提议须为：立即与新教结盟，同时从本土地区移动至多5支陆军部队（可另加一个将领）至尼德"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         removeCondition: "Remove from play if the Protestant accepts an offer."
     },
 {
         number: 104,
         id: "vq-104",
-        nameZh: "無敵艦隊特赦",
+        nameZh: "无敌舰队的特权",
         nameEn: "Armada Pardon",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -2276,21 +2279,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "如果西班牙無敵艦隊在地圖上，施放此卡給予西班牙4點CP 花費，可在無敵艦隊內建造地面單位*，升級無敵艦隊+，海軍移動，或海上運輸。如果以下每一條件為真，則西班牙多1 點CP 可花用：(a) 目前與教宗同盟(Papacy)(b) 伊莉莎白被開除教籍＊無敵艦隊必須在西班牙家鄉港口＋無敵艦隊必須在塞維爾(Seville)、科倫納(Corunna)、里斯本(Lisbon)",
+        textZh: "若西班牙无敌舰队已经在地图上，西班牙获得4CP用于建造无敌舰队上的陆军部队（须在本土港口组建）、升级无敌舰队（须在特定的3个港口）、海军移动或海上运输。每达成以下一项条件时，可额外获得1CP：①与教廷结盟；②伊丽莎白一世被绝罚。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "armadaPardon",
-            summary: "如果西班牙無敵艦隊在地圖上，施放此卡給予西班牙4點CP 花費，可在無敵艦隊內建造地面單位*，升級無敵艦隊+，海軍移動，或海上運輸。如果以下每一條件為真，則西班牙"
+            summary: "若西班牙无敌舰队已经在地图上，西班牙获得4CP用于建造无敌舰队上的陆军部队（须在本土港口组建）、升级无敌舰队（须在特定的3个港口）、海军移动或海上运输。每达成以"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain"
     },
 {
         number: 105,
         id: "vq-105",
-        nameZh: "葡萄亞的唐．安東尼奧",
+        nameZh: "葡萄牙的唐·安东尼奥",
         nameEn: "Don Antonio of Portugal",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -2298,20 +2301,20 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "在葡萄牙因為「國王塞巴斯蒂昂駕崩」事件進入後，由可以在葡萄牙投入外交影響力的勢力施放。得到葡萄牙2 點外交影響力，然後進行外交狀態決議。─ 或者 ─已經與葡萄牙同盟的勢力施放。增加最多3 名新葡萄牙正規軍到任何葡萄牙控制的，且沒有被圍城的家鄉地區",
+        textZh: "选择以下选项中的一项执行：①如果“国王塞巴斯蒂安去世”事件已触发，可由能对葡萄牙进行外交影响的势力打出。对葡萄牙增加3点己方影响力，然后立即进行葡萄牙的外交评议。②可由已与葡萄牙结盟的势力打出。在葡萄牙控制下的一个未被围城的本土地区增加至多3支葡萄牙正规军。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "donAntonioOfPortugal",
-            summary: "在葡萄牙因為「國王塞巴斯蒂昂駕崩」事件進入後，由可以在葡萄牙投入外交影響力的勢力施放。得到葡萄牙2 點外交影響力，然後進行外交狀態決議。─ 或者 ─已經與葡萄牙"
+            summary: "选择以下选项中的一项执行：①如果“国王塞巴斯蒂安去世”事件已触发，可由能对葡萄牙进行外交影响的势力打出。对葡萄牙增加3点己方影响力，然后立即进行葡萄牙的外交评议"
         },
-        source: "中文卡表.pdf"
+        source: "vq_cards OCR"
     },
 {
         number: 106,
         id: "vq-106",
-        nameZh: "德雷克 / 霍金斯探險隊†",
+        nameZh: "德雷克-霍金斯联合探险队",
         nameEn: "Drake / Hawkins Expedition†",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -2319,21 +2322,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "如果霍金斯和德雷克都還活著，且不在地圖上，英國馬上放置由這兩名船長領軍的探險隊。使用德雷克的能力和獎勵。探險隊在海盜搶奪骰出「6」時，除了正常獎勵外還可以摧毀同一海域的要塞。每一個船長在被消滅前可以各被受傷一次。",
+        textZh: "若霍金斯与德雷克二人均不在地图上且都存活，英格兰立即组建一支由这两位船长带领的远征队，使用德雷克的等级与奖励，可携带最多2份宝藏。该远征队在海盗检定骰出“6”时，除了一般效果外，还可摧毁同一海域的一座堡垒（即使只剩一位船长）。在移除一个船长前，每位船长可先各自承受1点损伤。FAQ：在“西北航道”检定时，使用德雷克的航海能力，若检定失败再分别检定各自的航海能力。此牌作为事件打出后，移出游戏",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "drakeHawkinsExpedition",
-            summary: "如果霍金斯和德雷克都還活著，且不在地圖上，英國馬上放置由這兩名船長領軍的探險隊。使用德雷克的能力和獎勵。探險隊在海盜搶奪骰出「6」時，除了正常獎勵外還可以摧毀同"
+            summary: "若霍金斯与德雷克二人均不在地图上且都存活，英格兰立即组建一支由这两位船长带领的远征队，使用德雷克的等级与奖励，可携带最多2份宝藏。该远征队在海盗检定骰出“6”时"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "england"
     },
 {
         number: 107,
         id: "vq-107",
-        nameZh: "艾德蒙‧坎庇恩",
+        nameZh: "埃德蒙·坎皮恩",
         nameEn: "Edmund Campion",
         cp: 3,
         cpSource: "pdf-text-layer",
@@ -2341,21 +2344,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "西班牙從他的勢力卡上拿取1 名耶穌會會士到英國未佔領的地區。如果此地區位於新教徒宗教影響下，則馬上轉換成天主教宗教影響。現在計算此地區相鄰的位置有幾個是處於新教徒宗教影響下。西班牙馬上針對英國 和/或 蘇格蘭進行同樣數量的天主教教改檢定。",
+        textZh: "西班牙将势力板上的一个耶稣会士移至英格兰地区的1个无驻军地区，同时将该地区转为信仰天主教。计算出与目标地区相邻的信仰新教地区的总和，然后西班牙可以在英格兰及苏格兰地区进行与上述结果等量次数的传播天主教尝试。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "edmundCampion",
-            summary: "西班牙從他的勢力卡上拿取1 名耶穌會會士到英國未佔領的地區。如果此地區位於新教徒宗教影響下，則馬上轉換成天主教宗教影響。現在計算此地區相鄰的位置有幾個是處於新教"
+            summary: "西班牙将势力板上的一个耶稣会士移至英格兰地区的1个无驻军地区，同时将该地区转为信仰天主教。计算出与目标地区相邻的信仰新教地区的总和，然后西班牙可以在英格兰及苏格"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain"
     },
 {
         number: 108,
         id: "vq-108",
-        nameZh: "英國境內不服國教者",
+        nameZh: "反国教的英国人",
         nameEn: "Recusants in England",
         cp: 2,
         cpSource: "pdf-text-layer",
@@ -2363,7 +2366,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "西班牙針對英國 和/或 蘇格蘭進行6 次天主教教改檢定，第一顆骰自動為「6」，其餘的骰子隨機骰。",
+        textZh: "西班牙在英格兰和苏格兰地区进行共计6次传播天主教尝试。首个骰值默认为“6”，随机掷其余骰子。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2377,13 +2380,13 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
             autoSix: true,
             chooseArea: true
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain"
     },
 {
         number: 109,
         id: "vq-109",
-        nameZh: "阿拉斯同盟†",
+        nameZh: "阿拉斯同盟",
         nameEn: "Union of Arras†",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -2391,22 +2394,22 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "從尼德蘭移除所有傭兵，此時期不得在尼德蘭進行叛亂。從此之後，所有橘色/黃色分隔的地區都視為西班牙家鄉地區。西班牙然後選擇5 個橘色/黃色地區，這些地區不是改變政治控制到西班牙，或宗教影響到天主教。增加4 名瓦隆兵(Walloon)到尼德蘭境內西班牙控制的地區。每增加1 名瓦隆兵，將西班牙的1 名正規軍移出尼德蘭。如果作為事件施放，將此卡移出遊戲",
+        textZh: "移除尼德兰地区的所有雇佣兵。本回合新教无法在尼德兰地区煽动叛乱。本局游戏中，尼德兰的双色地区视为仅对西班牙的本土地区。西班牙选择5个尼德兰双色地区，将其转为信仰天主教或己方政治控制。西班牙在一个其控制的未被围城的尼德兰地区放置至多4支瓦隆卫队。每放置1支瓦隆卫队，需撤离尼德兰地区的1支西班牙正规军（不满足则无需撤离）。FAQ：新教的首都可能因此牌被置于回合记录轨上；西班牙不能选择无效目标；不能选择存在与西班牙交战的势力部队、被围城或处于骚乱的地区。此牌作为事件打出后，移出游戏",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "unionOfArras",
-            summary: "從尼德蘭移除所有傭兵，此時期不得在尼德蘭進行叛亂。從此之後，所有橘色/黃色分隔的地區都視為西班牙家鄉地區。西班牙然後選擇5 個橘色/黃色地區，這些地區不是改變政"
+            summary: "移除尼德兰地区的所有雇佣兵。本回合新教无法在尼德兰地区煽动叛乱。本局游戏中，尼德兰的双色地区视为仅对西班牙的本土地区。西班牙选择5个尼德兰双色地区，将其转为信仰"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain",
         notes: "Removed from play when played as an event."
     },
 {
         number: 110,
         id: "vq-110",
-        nameZh: "敦刻爾克私掠船",
+        nameZh: "敦刻尔克私掠船",
         nameEn: "Dunkirk Privateers",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -2414,21 +2417,21 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "如果西班牙控制尼德蘭的港口，且港口沒有動亂中。西班牙得到免費的海盜搶奪骰，攻擊目標為英國或新教徒在北海(North Sea)的港口。跳到第5步驟的海盜搶奪，並且西班牙對抗被選擇上的目標投擲4 顆骰。",
+        textZh: "若西班牙控制任何未被骚乱的尼德兰港口，则西班牙获得一次免费的在北海海域，针对英格兰或新教港口的海盗行动。跳到海盗行动的第五步，西班牙获得4个骰子进行本次海盗行动。FAQ：此牌不会放置海盗标记；即使西班牙没有海军存在于地图上，也可以投掷海盗骰。",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "dunkirkPrivateers",
-            summary: "如果西班牙控制尼德蘭的港口，且港口沒有動亂中。西班牙得到免費的海盜搶奪骰，攻擊目標為英國或新教徒在北海(North Sea)的港口。跳到第5步驟的海盜搶奪，並且"
+            summary: "若西班牙控制任何未被骚乱的尼德兰港口，则西班牙获得一次免费的在北海海域，针对英格兰或新教港口的海盗行动。跳到海盗行动的第五步，西班牙获得4个骰子进行本次海盗行动"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain"
     },
 {
         number: 111,
         id: "vq-111",
-        nameZh: "巴黎值得一場彌撒†",
+        nameZh: "巴黎足抵一场弥撒",
         nameEn: "Paris is Worth a Mass†",
         cp: 5,
         cpSource: "pdf-text-layer",
@@ -2436,22 +2439,22 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "home",
         timing: "Action Phase",
-        textZh: "如果胡格諾控制巴黎或巴黎相鄰的2 個地區，如果這裡至少有5 名胡格諾正規軍和納瓦拉的亨利(Henry Navarre)在巴黎1 格之內的距離，和如果法國和新教徒沒有同盟則可施放。新教徒玩家選擇最多3 個距離巴黎1 格內的地區(可能會是巴黎本身)，得到這些地區的政治控制權。新教徒將其胡格諾首都移到巴黎。如果作為事件施放，將此卡移出遊戲",
+        textZh: "如果胡格诺派控制巴黎或是2个与巴黎相邻的地区，至少有5支胡格诺派正规军及纳瓦拉的亨利距离巴黎1格或以内，且新教与法国非同盟状态时，可作为事件打出。新教在距离巴黎1格或以内的地区中（优先为巴黎），选择至多3个地区并夺取其政治控制权，胡格诺派迁都巴黎，此后其也视为胡格诺派本土。FAQ：巴黎非法国控制时也可打出；新教首都位于回合进度条上时也可因此牌迁都至巴黎。此牌作为事件打出后，移出游戏",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "parisIsWorthAMass",
-            summary: "如果胡格諾控制巴黎或巴黎相鄰的2 個地區，如果這裡至少有5 名胡格諾正規軍和納瓦拉的亨利(Henry Navarre)在巴黎1 格之內的距離，和如果法國和新教徒"
+            summary: "如果胡格诺派控制巴黎或是2个与巴黎相邻的地区，至少有5支胡格诺派正规军及纳瓦拉的亨利距离巴黎1格或以内，且新教与法国非同盟状态时，可作为事件打出。新教在距离巴黎"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "protestant",
         notes: "Removed from play when played as an event."
     },
 {
         number: 112,
         id: "vq-112",
-        nameZh: "街壘日†",
+        nameZh: "街垒日",
         nameEn: "Day of the Barricades†",
         cp: 4,
         cpSource: "pdf-text-layer",
@@ -2459,15 +2462,15 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         turnSource: "pdf-text-layer",
         kind: "event",
         timing: "Action Phase",
-        textZh: "如果西班牙控制巴黎相鄰的2 個地區(但不控制巴黎本身)，如果這裡至少有4 名西班牙正規軍和吉斯公爵(Duke of Guise)在巴黎1 格之內的距離，和如果法國和西班牙沒有同盟則可施放。西班牙玩家得到這些巴黎的政治控制權。所有在巴黎的單位移防。在巴黎增加4 名額外的西班牙正規軍，並將吉斯公爵移動到巴黎。如果作為事件施放，將此卡移出遊戲",
+        textZh: "如果法国未和西班牙结盟，西班牙控制2个与巴黎相邻的地区，但并未控制巴黎，且至少有4支西班牙正规军及吉斯公爵距离巴黎1格或以内，可作为事件打出。移除巴黎所有的部队，将领返回最近的设防地区。西班牙可获得巴黎的政治控制权。若如此做，西班牙在巴黎放置4支正规军，并将吉斯公爵移至巴黎。FAQ：巴黎非法国控制时也可打出；执行事件时，瓦隆卫队不计入西班牙正规军数量。此牌作为事件打出后，移出游戏",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
             kind: "manual",
             handler: "dayOfTheBarricades",
-            summary: "如果西班牙控制巴黎相鄰的2 個地區(但不控制巴黎本身)，如果這裡至少有4 名西班牙正規軍和吉斯公爵(Duke of Guise)在巴黎1 格之內的距離，和如果法"
+            summary: "如果法国未和西班牙结盟，西班牙控制2个与巴黎相邻的地区，但并未控制巴黎，且至少有4支西班牙正规军及吉斯公爵距离巴黎1格或以内，可作为事件打出。移除巴黎所有的部队"
         },
-        source: "中文卡表.pdf",
+        source: "vq_cards OCR",
         power: "spain",
         notes: "Removed from play when played as an event."
     },

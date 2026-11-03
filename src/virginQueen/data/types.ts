@@ -242,7 +242,7 @@ export interface OfficialCardDef {
     removeAfterUse: boolean;
     removeCondition?: string;
     effect: CardEffect;
-    source: "中文卡表.pdf";
+    source: "vq_cards OCR";
     notes?: string;
 }
 

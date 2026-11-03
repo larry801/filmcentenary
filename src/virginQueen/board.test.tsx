@@ -71,7 +71,7 @@ describe("Virgin Queen board", () => {
         G.pendingCardEvent = {kind: "cancelEvent", cardId: "vq-021", power: "spain", responding: "ottoman"};
         for (const playerID of ["0", "1", null]) {
             const html = render(playerID);
-            expect(html).toContain("Foreign Volunteers");
+            expect(html).toContain("外国志愿军");
             expect(html.includes(">打出大维齐尔，取消事件<")).toBe(playerID === "0");
             expect(html.includes(">允许事件结算<")).toBe(playerID === "0");
             expect(html).toContain("响应：完成大维齐尔选择");
@@ -217,6 +217,23 @@ describe("Virgin Queen board", () => {
         expect(html).toContain("London");
         expect(html).toContain("奥斯曼帝国");
         expect(html).toContain("行动阶段");
+    });
+
+    it("shows scanned card art in the hand for official cards but not legacy cards", () => {
+        const render = (cards: string[]): string => {
+            const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+            G.activePower = "ottoman";
+            G.powers.ottoman.cards = cards;
+            return renderToStaticMarkup(<VirginQueenBoard {...{
+                G, ctx: {phase: "action", currentPlayer: "0", numPlayers: 2}, moves: {}, playerID: "0", isActive: true,
+            } as any}/>);
+        };
+        const official = render(["vq-001"]);
+        expect(official).toContain('src="/vq-cards/vq_1.webp"');
+        expect(official).toContain("大维齐尔");
+        const legacy = render(["vq-ev-morisco-revolt"]);
+        expect(legacy).toContain("Morisco Revolt");
+        expect(legacy).not.toContain("<img");
     });
 
     it("renders the diplomacy panel and map for a spectator", () => {

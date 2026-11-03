@@ -15,13 +15,14 @@ export interface EspionageState {
 }
 
 export interface PendingEspionage {
-    kind: "intelligence" | "assassination" | "rebellion" | "jesuitEvent" | "walsingham";
+    kind: "intelligence" | "assassination" | "rebellion" | "jesuitEvent" | "walsingham" | "northernRising" | "massacre";
     power: Power;
     targetPower: Power;
     responding: Power;
     step: "responses" | "offense" | "neutralize" | "extraNeutralize" | "defense" | "mary" |
         "conversions" | "unrest" | "rebelTarget" | "rebelLosses" | "rebelSpaces" |
-        "jesuitPlace" | "jesuitMove" | "jesuitDestination" | "priestHoles" | "displace";
+        "jesuitPlace" | "jesuitMove" | "jesuitDestination" | "priestHoles" | "displace" |
+        "northernConvert" | "northernUnrest" | "massacreConvert" | "massacreAssassinate";
     target?: string;
     cp: number;
     remaining: number;
