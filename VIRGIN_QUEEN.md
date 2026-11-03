@@ -184,6 +184,12 @@
 - 目标地区及一个相邻地区放置动荡。
 - 当前为自动选牌，未提供目标势力选择是否弃牌的交互。
 
+### 热那亚银行家（#22）
+
+- 选项 1：立即抽 2 张，下一年抽牌阶段 -1；
+- 通过 `pendingCardDraws` 负数条目结算；
+- 选项 2（殖民者远征 +3 CP 海军/海盗）尚未接入。
+
 ### 莫斯科公司（#29）
 
 - 出牌方下一年抽牌阶段 +1 张；
@@ -799,6 +805,7 @@ src/virginQueen/
   holyLeague.test.ts    #24 神圣同盟
   knights.test.ts       #27 圣约翰骑士团
   muscovy.test.ts       #29 莫斯科公司
+  genoese.test.ts       #22 热那亚银行家
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -1055,3 +1062,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #27 圣约翰骑士团接入后的验证：`jest src/virginQueen --runInBand --silent` 107 suites、529 tests passed（新增 1 项：马耳他驻军）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #29 莫斯科公司接入后的验证：`jest src/virginQueen --runInBand --silent` 108 suites、530 tests passed（新增 1 项：英格兰连续两次额外抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#22 热那亚银行家（选项 1）接入后的验证：`jest src/virginQueen --runInBand --silent` 109 suites、531 tests passed（新增 1 项：抽 2/次年 -1）；`npm run build` 通过，仍有既有大体积 chunk 提示。

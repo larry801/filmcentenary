@@ -702,6 +702,13 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #24 Holy League: influence the Papacy and Venice, then resolve. */
 /** #27 Knights of St. John: deploy the Knights when they are absent. */
 /** #29 Muscovy Company: extra card draws next year (and two years later for England). */
+/** #22 Genoese Bankers, option 1: draw two now, one fewer next year. */
+const resolveGenoeseBankers = (G: VQGame, ctx: Ctx, p: Power): void => {
+    drawCards(G, ctx, p, 2);
+    G.pendingCardDraws = [...(G.pendingCardDraws ?? []), {power: p, turn: G.year + 1, amount: -1}];
+    pushLog(G, `${powerLabel(p)} draws two cards but draws one fewer next year.`);
+};
+
 const resolveMuscovyCompany = (G: VQGame, p: Power): void => {
     G.pendingCardDraws = [...(G.pendingCardDraws ?? []), {power: p, turn: G.year + 1, amount: 1}];
     if (p === "england") G.pendingCardDraws.push({power: p, turn: G.year + 2, amount: 1});
@@ -1832,6 +1839,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveKnightsOfStJohn(G);
     } else if (handler === "muscovyCompany") {
         resolveMuscovyCompany(G, p);
+    } else if (handler === "card022") {
+        resolveGenoeseBankers(G, ctx, p);
     } else if (handler === "aSmallAid") {
         resolveSmallAid(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {
