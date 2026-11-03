@@ -690,6 +690,29 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #66 Sea Beggars: seize an undefended Dutch port. */
 /** #58 Jeanne of Navarre: French rebellion and the fall of Bayonne. */
 /** #25 Unrest in the Realm: place up to three unrest in a major's home. */
+/** #19 Diplomatic Faux Pas: remove up to five influence from a power. */
+const resolveDiplomaticFauxPas = (G: VQGame, target?: string): void => {
+    if (target === undefined || !isPower(target)) return;
+    let remaining = 5;
+    const influences = G.powers[target].influence;
+    for (const minor of (Object.keys(influences) as MinorPower[]).sort((a, b) => (influences[b] ?? 0) - (influences[a] ?? 0))) {
+        if (remaining <= 0) break;
+        const take = Math.min(remaining, influences[minor] ?? 0);
+        influences[minor] = (influences[minor] ?? 0) - take;
+        remaining -= take;
+    }
+    pushLog(G, `Diplomatic Faux Pas removes ${5 - remaining} influence from ${powerLabel(target)}.`);
+};
+
+/** #23 German Recruitment Curtailed: remove all mercenaries in a space. */
+const resolveGermanRecruitment = (G: VQGame, target?: string): void => {
+    if (target === undefined || G.spaces[target] === undefined) return;
+    for (const stack of Object.values(G.spaces[target].land)) {
+        if (stack !== undefined) stack.merc = 0;
+    }
+    pushLog(G, `German Recruitment Curtailed removes all mercenaries in ${SPACE_BY_ID[target].name}.`);
+};
+
 const resolveUnrestInRealm = (G: VQGame, target?: string): void => {
     if (target === undefined || !["ottoman", "hre", "spain"].includes(target)) return;
     const homes = SPACES.filter((space) => space.home === target && !G.spaces[space.id].unrest &&
@@ -1601,6 +1624,10 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveJeanne(G, ctx);
     } else if (handler === "card025") {
         resolveUnrestInRealm(G, target);
+    } else if (handler === "diplomaticFauxPas") {
+        resolveDiplomaticFauxPas(G, target);
+    } else if (handler === "germanRecruitmentCurtailed") {
+        resolveGermanRecruitment(G, target);
     } else if (handler === "rulerFallsIll") {
         resolveRulerFallsIll(G, ctx, p, target);
     } else if (handler === "armadaPardon") {
