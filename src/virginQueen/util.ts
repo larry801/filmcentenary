@@ -3078,8 +3078,20 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
             .sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id));
         const excess = landCount(stack) - 4;
         if (capitals.length === 0) {
+            // No home capital can receive the excess, so it is destroyed.  Apply
+            // the automatic composition now, then let the owner swap the unit
+            // types during Card Draw; skipping the choice keeps that composition.
+            const before = {...stack};
             removeLandLosses(G, id, [p], excess);
             cleanupLand(G, id, p);
+            const surviving = G.spaces[id].land[p];
+            if (surviving !== undefined) {
+                const removed = emptyLand();
+                for (const kind of ["regular", "merc", "cav"] as const) {
+                    removed[kind] = before[kind] - surviving[kind];
+                }
+                recordWinterLossChoice(G, p, id, removed);
+            }
             pushLog(G, `${powerLabel(p)} has no capital and loses ${excess} overstacked unit(s) in ${SPACE_BY_ID[id].name}.`);
             continue;
         }

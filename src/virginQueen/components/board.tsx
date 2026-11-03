@@ -818,7 +818,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 {winterLosses.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
                     <Typography variant="subtitle2">冬季损失：选择失去的单位类型</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        已按雇佣兵、骑兵、正规军的顺序自动移除；可为每处损失改选该地现有足够数量的类型，或保留自动结果。
+                        已自动移除相应数量的单位；可为每处损失改选该地现有足够数量的类型，或保留自动结果。
                     </Typography>
                     {winterLosses.map((entry, index) => {
                         const stack = G.spaces[entry.space]?.land[me];
