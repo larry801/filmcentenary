@@ -170,6 +170,11 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 唐·安东尼奥（#105）
+
+- 葡萄牙已进入且出牌方未与其结盟：对葡萄牙 +3 影响力并立即评议。
+- 出牌方已与葡萄牙结盟：在葡萄牙控制、未被围城的本土地区放置 3 个葡萄牙正规军。
+
 ### 埃德蒙·坎皮恩（#107）
 
 - 在英格兰一个无驻军地区放置耶稣会士并转为天主教；
@@ -572,6 +577,7 @@ src/virginQueen/
   taxis.test.ts         #68 塔克西斯家族信使
   tenthPenny.test.ts    #69 第十便士
   campion.test.ts       #107 埃德蒙·坎皮恩
+  donAntonio.test.ts    #105 唐·安东尼奥
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -764,3 +770,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #69 第十便士接入后的验证：`jest src/virginQueen --runInBand --silent` 76 suites、485 tests passed（新增 1 项：西班牙抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #107 埃德蒙·坎皮恩接入后的验证：`jest src/virginQueen --runInBand --silent` 77 suites、486 tests passed（新增 1 项：耶稣会士/转化）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#105 唐·安东尼奥接入后的验证：`jest src/virginQueen --runInBand --silent` 78 suites、488 tests passed（新增 2 项：影响力评议/结盟驻军）；`npm run build` 通过，仍有既有大体积 chunk 提示。

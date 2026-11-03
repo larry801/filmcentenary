@@ -266,12 +266,22 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef):
         resolveMinorDiplomacy(G, ctx, "venice");
         return true;
     }
-    if (handler === "donAntonioOfPortugal" && !G.powers[p].alliedMinors.includes("portugal")) {
-        if (!MINOR_DIPLOMACY.portugal.eligible.includes(p) || G.minorDiplomacyResolved.includes("portugal") ||
-            !minorAvailable(G, "portugal")) return false;
-        awardMinorInfluence(G, p, "portugal", 2);
-        resolveMinorDiplomacy(G, ctx, "portugal");
-        return true;
+    if (handler === "donAntonioOfPortugal") {
+        if (!G.powers[p].alliedMinors.includes("portugal")) {
+            if (!MINOR_DIPLOMACY.portugal.eligible.includes(p) || G.minorDiplomacyResolved.includes("portugal") ||
+                !minorAvailable(G, "portugal")) return false;
+            awardMinorInfluence(G, p, "portugal", 3);
+            resolveMinorDiplomacy(G, ctx, "portugal");
+            return true;
+        }
+        const home = SPACES.find((space) => space.home === "portugal" && G.spaces[space.id].control === "portugal" &&
+            G.spaces[space.id].siege === undefined);
+        if (home !== undefined) {
+            addLand(G, home.id, "portugal", "regular", 3);
+            pushLog(G, `Don Antonio places 3 Portuguese regulars in ${home.name}.`);
+            return true;
+        }
+        return false;
     }
     return false;
 };
