@@ -145,6 +145,12 @@
 
 地图中的英格兰家乡地区已补齐宗教区域标记；补入里尔与敦刻尔克供杜埃事件检查。新增点位与邻接仍是重建示意数据，将领战斗值也沿用现有近似值。此处没有完成全部自由响应时点和沃尔辛厄姆在另一行动中插入“移除人员＋获取情报”的嵌套响应；不能由本轮结果推断这些卡已完整自动化。大屠杀的“纳瓦拉与法国王室订婚”只检查当年外交阶段登记、尚未在冬季结算的订婚；纳瓦拉目前只在锦标赛的王室名单中，战役中他不会在第 3 回合自动加入，因此战役局里加强版条件实际上不会触发。计数器供应限制除五枚 Jesuit 外仍沿用原有实现。
 
+### 苏格兰的玛丽女王（#89）
+
+- 玛丽在世时，作为事件打出：法国对苏格兰 +3 外交影响力，然后立即进行苏格兰外交评议。
+- 玛丽已死时，作为事件/CP 打出后移出游戏。
+- 响应模式（+4 影响力、叛乱/刺杀 +3 骰）尚未接入。
+
 ### 老练领航员（#43）
 
 - 选择一名在远征中的船长，其 Navigation 值 +1（上限 3），并在之后的 Navigation Table 检定中使用。
@@ -359,6 +365,7 @@ src/virginQueen/
   councilOfTroubles.test.ts #50 血腥委员会条件/转化/夺地/卡牌标记
   foxesBook.test.ts     #52 福克斯殉道者名录
   experiencedNavigator.test.ts #43 老练领航员 +1 Navigation
+  maryCard.test.ts      #89 玛丽事件 +3 影响力/苏格兰评议/死亡移除
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
 ```
@@ -481,3 +488,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #52 福克斯殉道者名录接入后的验证：`jest src/virginQueen --runInBand --silent` 44 suites、440 tests passed（新增 1 项：2 个英格兰转化 + 5 次传播）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #43 老练领航员接入后的验证：`jest src/virginQueen --runInBand --silent` 45 suites、441 tests passed（新增 1 项：+1 Navigation 改变检定结果）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#89 玛丽女王事件接入后的验证：`jest src/virginQueen --runInBand --silent` 46 suites、443 tests passed（新增 2 项：+3 影响力并评议苏格兰、玛丽死后移出游戏）；`npm run build` 通过，仍有既有大体积 chunk 提示。

@@ -104,6 +104,7 @@ import {
     rebellionTargets,
     religionCandidates,
     removeCardFromHand,
+    removeCardFromGame,
     reliefBattle,
     removeLandLosses,
     removePortNavalLosses,
@@ -464,6 +465,20 @@ const resolveConquestOfPhilippines = (G: VQGame, ctx: Ctx): void => {
 };
 
 /** #43 Experienced Navigator: +1 Navigation for one captain (max 3). */
+/** #89 Mary Queen of Scots event: +3 French influence then resolve Scotland. */
+const resolveMaryQueenOfScots = (G: VQGame, ctx: Ctx): void => {
+    const mary = G.royals.find((royal) => royal.id === "maryScots");
+    const alive = G.espionage?.mary !== "dead" && mary?.alive !== false;
+    if (!alive) {
+        removeCardFromGame(G, "vq-089");
+        pushLog(G, "Mary Queen of Scots is dead; the card is removed after play.");
+        return;
+    }
+    G.powers.france.influence.scotland = (G.powers.france.influence.scotland ?? 0) + 3;
+    pushLog(G, "Mary Queen of Scots adds 3 French influence in Scotland.");
+    resolveMinorDiplomacy(G, ctx, "scotland");
+};
+
 const resolveExperiencedNavigator = (G: VQGame, target?: string): void => {
     if (target === undefined || G.worldCaptains[target] === undefined) return;
     const captain = seaCaptainById(target);
@@ -661,6 +676,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveFoxesBook(G, ctx);
     } else if (handler === "experiencedNavigator") {
         resolveExperiencedNavigator(G, target);
+    } else if (handler === "maryQueenOfScots") {
+        resolveMaryQueenOfScots(G, ctx);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
@@ -775,7 +792,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     if (args.asEvent === true && timedResponseCard && !tutorialEvent && G.cardWindow?.kind !== "response" &&
-        cardHandler !== "experiencedNavigator") {
+        !["experiencedNavigator", "maryQueenOfScots"].includes(cardHandler)) {
         return INVALID_MOVE;
     }
     const cancelWindow = args.asEvent === true && canCancelCardEvent(G, def);
