@@ -170,6 +170,12 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 第十便士（#69）
+
+- 新教打出：在尼德兰进行一次 5 CP 的煽动叛乱（自动选择首个目标）。
+- 西班牙打出：从新教手中随机抽 1 张非本国牌。
+- “抽到的牌不能立即使用”尚未单独建模。
+
 ### 塔克西斯家族信使（#68）
 
 - 将一张非本国牌/非强制事件牌交给另一势力；
@@ -558,6 +564,7 @@ src/virginQueen/
   spanishPayShips.test.ts #67 西班牙运银船被截
   blackMagic.test.ts    #71 黑魔法 / #104 阿马达赦令
   taxis.test.ts         #68 塔克西斯家族信使
+  tenthPenny.test.ts    #69 第十便士
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -746,3 +753,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #71 黑魔法与 #104 阿马达赦令接入后的验证：`jest src/virginQueen --runInBand --silent` 74 suites、483 tests passed（新增 2 项：随机夺牌、阿马达 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #68 塔克西斯家族信使接入后的验证：`jest src/virginQueen --runInBand --silent` 75 suites、484 tests passed（新增 1 项：交牌并抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#69 第十便士接入后的验证：`jest src/virginQueen --runInBand --silent` 76 suites、485 tests passed（新增 1 项：西班牙抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。

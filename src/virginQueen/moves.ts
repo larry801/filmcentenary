@@ -656,6 +656,24 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #67 Spanish Pay Ships Seized: Spain loses two Netherlands regulars. */
 /** #71 Black Magic: take a random non-home card from another power. */
 /** #68 Taxis Family Courier: give one card to another power and draw one. */
+/** #69 Tenth Penny: Protestant rebellion or Spanish card seizure. */
+const resolveTenthPenny = (G: VQGame, ctx: Ctx, p: Power): void => {
+    if (p === "protestant") {
+        const space = rebellionTargets(G)[0];
+        if (space !== undefined) resolveRebellion(G, ctx, "protestant", space, 5);
+        return;
+    }
+    if (p === "spain") {
+        const cards = G.powers.protestant.cards.filter((id) => cardById(id).kind !== "home");
+        if (cards.length > 0) {
+            const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
+            G.powers.protestant.cards = G.powers.protestant.cards.filter((id) => id !== card);
+            G.powers.spain.cards.push(card);
+            pushLog(G, `Tenth Penny: Spain takes ${cardById(card).name} from the Protestant.`);
+        }
+    }
+};
+
 const resolveTaxis = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     if (target !== undefined && isPower(target) && target !== p) {
         const card = G.powers[p].cards.find((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory");
@@ -1206,6 +1224,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveBlackMagic(G, ctx, p, target);
     } else if (handler === "taxisFamilyCourier") {
         resolveTaxis(G, ctx, p, target);
+    } else if (handler === "tenthPenny") {
+        resolveTenthPenny(G, ctx, p);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
