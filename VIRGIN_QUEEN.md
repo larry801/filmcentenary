@@ -1129,3 +1129,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 正式局 Storms 响应接入后的验证：`jest src/virginQueen --runInBand --silent` 119 suites、549 tests passed（新增 1 项：中断行动并禁止海军移动）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #15 暴风雨的强制航行检定选项已接入 `stormNavigation`：持有 #15 时可对现役远征队执行 Navigation Table 检定并弃置卡牌。验证：`jest src/virginQueen --runInBand --silent` 120 suites、550 tests passed。
+
+#16 苏丹后宫的事件模式已接入：奥斯曼获得 5 CP，本行动轮只能建造海盗船/海军移动/海盗；响应模式可跳过奥斯曼下一行动轮并让出牌方抽 1 张。验证：`jest src/virginQueen --runInBand --silent` 121 suites、551 tests passed。

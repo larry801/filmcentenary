@@ -1892,6 +1892,10 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveEdmundCampion(G, ctx);
     } else if (handler === "sultanaSafiye") {
         resolveSultanaSafiye(G, ctx, p, target);
+    } else if (handler === "sultansHarem") {
+        G.powers.ottoman.cp += 5;
+        G.haremImpulse = G.impulse;
+        pushLog(G, "Sultan's Harem grants the Ottoman 5 CP for corsairs, naval movement, or piracy.");
     } else if (handler === "blackQueen") {
         resolveBlackQueen(G, ctx, p, target);
     } else if (handler === "dayOfTheBarricades") {
@@ -2093,7 +2097,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         return INVALID_MOVE;
     }
     if (args.asEvent === true && timedResponseCard && !isBeaconFires && !tutorialEvent && G.cardWindow?.kind !== "response" &&
-        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack", "dragutFalls", "gregorianCalendar", "borderReivers", "jeanneOfNavarre"].includes(cardHandler)) {
+        !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack", "dragutFalls", "gregorianCalendar", "borderReivers", "jeanneOfNavarre", "sultansHarem"].includes(cardHandler)) {
         return INVALID_MOVE;
     }
     const cancellation = args.asEvent === true ? cancelEventResponder(G, def) : undefined;
