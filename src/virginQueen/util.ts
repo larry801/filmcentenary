@@ -2545,7 +2545,8 @@ export const resolvePatronage = (G: VQGame, ctx: Ctx): void => {
         }
         const cpBonus = attempt.cp - 2;
         const observatoryBonus = patron.kind === "scientist" && G.powers[attempt.power].scienceBonuses.includes("observatory") ? 2 : 0;
-        const modifier = cpBonus + G.powers[attempt.power].patronageModifier + observatoryBonus;
+        const pragueBonus = G.pragueCulturalCenter === patron.id ? 2 : 0;
+        const modifier = cpBonus + G.powers[attempt.power].patronageModifier + observatoryBonus + pragueBonus;
         const d1 = die(ctx);
         const d2 = die(ctx);
         const result = d1 + d2 + patron.rating + modifier;

@@ -155,7 +155,7 @@
 
 - 选项 1：指定意大利或 HRE 艺术家/科学家，视作 3 CP 赞助并加入待结算；鲁道夫在位时放置“+2 布拉格文化中心”标记；抽 1 张牌。
 - 选项 2：HRE 从牌堆抽 2 张，然后把一张非本国牌/非强制事件牌交给另一势力。
-- 布拉格 +2 标记尚未参与冬季赞助评分。
+- 布拉格 +2 标记已在冬季赞助结算中为该赞助人提供 +2。
 
 ### 凯瑟琳的飞剪船（#42）
 
@@ -427,6 +427,7 @@ src/virginQueen/
   italianExpert.test.ts #48 意大利的委托免费赞助
   catherineCancel.test.ts #42 飞剪船取消事件
   patronOfArts.test.ts  #35 赞助人抽 2 给 1
+  praguePatronage.test.ts 布拉格文化中心 +2 赞助
   regularLimit.test.ts  17.1 正规军计数器上限
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
@@ -572,3 +573,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #35 科学与艺术的赞助人（选项 2）接入后的验证：`jest src/virginQueen --runInBand --silent` 55 suites、454 tests passed（新增 1 项：抽 2 张并交给另一势力 1 张）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #35 选项 1 接入后的验证：`jest src/virginQueen --runInBand --silent` 55 suites、455 tests passed（新增 1 项：意大利赞助与布拉格标记）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+布拉格文化中心 +2 赞助接入后的验证：`jest src/virginQueen --runInBand --silent` 56 suites、456 tests passed（新增 1 项：标记赞助人 +2）；`npm run build` 通过，仍有既有大体积 chunk 提示。
