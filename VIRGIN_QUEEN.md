@@ -1165,3 +1165,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #69 第十便士夺牌锁定接入后的验证：`jest src/virginQueen --runInBand --silent` 129 suites、572 tests passed（增补断言：被夺卡牌本行动轮不可打出）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 海军将领春季入场港口修正后的验证：`jest src/virginQueen --runInBand --silent` 130 suites、574 tests passed（新增 1 项：圣克鲁斯进入本土港口而非马德里）；`npm run build` 通过。
+
+#9 火船对西班牙阿马达额外 +4 骰已接入：若目标海域有阿马达，火船从 +2 改为 +4。验证：`jest src/virginQueen --runInBand --silent` 131 suites、575 tests passed。

@@ -222,7 +222,7 @@ const rollBattle = (G: VQGame, ctx: Ctx): void => {
         const values = roll(ctx, count);
         for (const id of battle.cards[power] ?? []) {
             if (id === "vq-008" || id === "vq-010") values.push(...roll(ctx, 3));
-            if (id === "vq-009") values.push(...roll(ctx, isSeaZone(battle.location) ? 2 : 4));
+            if (id === "vq-009") values.push(...roll(ctx, isSeaZone(battle.location) && G.armada?.location !== battle.location ? 2 : 4));
             if (id === "vq-014") values.push(...roll(ctx, 2));
             if (id === "vq-040") values.push(...roll(ctx, power === "england" ? 4 : 2));
         }
