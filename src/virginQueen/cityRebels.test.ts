@@ -14,6 +14,20 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("City State Rebels (card #18)", () => {
+    it("returns naval leaders to the pool", () => {
+        const G = game();
+        G.powers.england.cards = ["vq-018"];
+        G.spaces.rotterdam.control = "spain";
+        G.spaces.rotterdam.land = {spain: {regular: 1, merc: 0, cav: 0}};
+        G.leaders.santaCruz = {id: "santaCruz", location: "rotterdam"};
+        G.spaces.rotterdam.leaders = ["santaCruz"];
+
+        expect(playCard(G, context(), {cardId: "vq-018", asEvent: true, target: "rotterdam"})).toBeUndefined();
+
+        expect(G.leaders.santaCruz.location).toBe("pool");
+        expect(G.leaders.santaCruz.returnTurn).toBe(G.year + 1);
+    });
+
     it("wipes out a small garrison and restores the home power", () => {
         const G = game();
         G.powers.england.cards = ["vq-018"];

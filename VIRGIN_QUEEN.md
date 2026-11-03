@@ -257,7 +257,7 @@
 - 目标为一个被占领的本土设防地区；
 - 掷 5 骰，每个命中消灭 1 个陆军/海军单位；
 - 若守军全灭，控制权回归原属势力并放置 1 个正规军；
-- 若守军全灭，地区内属于守方的陆军将领被出牌方俘虏；海军将领回回合记录轨的区分尚未接入。
+- 若守军全灭：陆军将领被出牌方俘虏；海军将领置于回合记录轨，下回合回池。
 
 ### 黄金国（#51）
 
@@ -1096,7 +1096,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #17 军队哗变接入后的验证：`jest src/virginQueen --runInBand --silent` 103 suites、525 tests passed（新增 1 项：雇佣兵/正规军/动荡）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#18 城邦起义接入后的验证：`jest src/virginQueen --runInBand --silent` 116 suites、545 tests passed（全灭/控制权回归，并验证将领被俘）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#18 城邦起义接入后的验证：`jest src/virginQueen --runInBand --silent` 116 suites、546 tests passed（全灭/控制权回归、陆军将领被俘、海军将领回场）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #31 变节！接入后的验证：`jest src/virginQueen --runInBand --silent` 105 suites、527 tests passed（新增 1 项：强制攻城）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 

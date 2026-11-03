@@ -847,6 +847,12 @@ const resolveCityStateRebels = (G: VQGame, ctx: Ctx, p: Power, target?: string):
         }
     }
     if (totalLand(G, target, ownersWithLand(G, target)) === 0 && totalNaval(G, target, ownersWithNaval(G, target)) === 0) {
+        for (const id of [...state.leaders]) {
+            const leader = LEADER_BY_ID[id];
+            if (leader?.kind !== "naval" || leader.power !== controller) continue;
+            state.leaders = state.leaders.filter((leaderId) => leaderId !== id);
+            G.leaders[id] = {id, location: "pool", returnTurn: G.year + 1};
+        }
         captureLeaders(G, target, [controller], p);
         state.control = def.home;
         addLand(G, target, def.home, "regular", 1);
