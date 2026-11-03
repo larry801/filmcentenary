@@ -31,6 +31,23 @@ describe("Reiters (card #13)", () => {
         expect(G.spaces.london.land.england?.merc).toBe(2);
     });
 
+    it("places four mercenaries near the HRE", () => {
+        const G = game();
+        G.powers.england.cards = ["vq-013"];
+        G.spaces.ghent.control = "england";
+        G.spaces.ghent.unrest = false;
+        G.spaces.ghent.siege = undefined;
+        G.spaces.ghent.land = {england: {regular: 1, merc: 0, cav: 0}};
+        G.spaces.calais.land.spain = {regular: 1, merc: 0, cav: 0};
+
+        startBattle(G, context("1"), "field", "ghent", "spain", ["england"], "calais");
+        chooseBattle(G, context("2"), {choice: "fight"});
+        chooseBattle(G, context("1"), {choice: "done"});
+        expect(chooseBattle(G, context("2"), {choice: "card:vq-013"})).toBeUndefined();
+
+        expect(G.spaces.ghent.land.england?.merc).toBe(4);
+    });
+
     it("lets the Ottoman remove two mercenaries anywhere", () => {
         const G = game();
         G.powers.ottoman.cards = ["vq-013"];

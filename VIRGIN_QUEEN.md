@@ -1172,7 +1172,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #10 攻城工程的特例已接入：持有 #10 时，即使守方控制安特卫普/鹿特丹的内河出海口且进攻方无北海舰队，也允许发起攻城。验证：`jest src/virginQueen --runInBand --silent` 138 suites、591 tests passed（新增 4 项：持牌允许/无牌拒绝/取消洪水/+3 骰）；`npm run build` 通过。
 
-#13 雇佣骑兵：奥斯曼分支可在地图任意处移除 2 支雇佣兵；非奥斯曼改为在合法己方控制地区放置 2 支，距 HRE 本土 2 格内改为 4 支。验证：`jest src/virginQueen --runInBand --silent` 133 suites、578 tests passed（新增 2 项：任意移除 2 雇佣兵、非奥斯曼放置 2 支）；`npm run build` 通过。
+#13 雇佣骑兵：奥斯曼分支可在地图任意处移除 2 支雇佣兵；非奥斯曼改为在合法己方控制地区放置 2 支，距 HRE 本土 2 格内改为 4 支。验证：`jest src/virginQueen --runInBand --silent` 133 suites、578 tests passed（新增 3 项：任意移除 2 雇佣兵、非奥斯曼放置 2 支、距 HRE 2 格内放置 4 支）；`npm run build` 通过。
 
 #12 威尼斯桨帆船战斗牌已限制为仅地中海海战、双方掷骰后提供；控制威尼斯桨帆船时额外骰从 3 改为 5；可选择加给进攻方或防守方。验证：`jest src/virginQueen --runInBand --silent` 138 suites、590 tests passed（新增 2 项：仅地中海提供、加给进攻方）；`npm run build` 通过。
 
