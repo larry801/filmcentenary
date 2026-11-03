@@ -24,7 +24,7 @@ import {
 } from "./constant/general";
 import {cardById} from "./constant/cards";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
-import {WORLD_HAZARDS, WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENT_BY_ID, WORLD_TRADE_WINDS} from "./data/world";
+import {WORLD_HAZARDS, WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENTS, WORLD_SETTLEMENT_BY_ID, WORLD_TRADE_WINDS} from "./data/world";
 import {patronById, royalAvailable, seaCaptainById} from "./scenario";
 import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
@@ -1218,6 +1218,81 @@ export const moveExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; zone
     expedition.route = [...(expedition.route ?? [from]), args.zone];
     pushLog(G, `${args.captain} sails to ${WORLD_SEA_ZONE_BY_ID[args.zone].nameEn}.`);
     checkCircumnavigation(G, args.captain, from, args.zone);
+};
+
+export const buildPatrol = (G: VQGame, ctx: Ctx, args: {zone: string}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action" || power(G, ctx) !== "spain") return INVALID_MOVE;
+    if (WORLD_SEA_ZONE_BY_ID[args.zone] === undefined) return INVALID_MOVE;
+    const connected = WORLD_SETTLEMENTS.some((settlement) => settlement.seaZone === args.zone &&
+        (G.worldControls[settlement.id] === "spain" || G.worldColonies[settlement.id] === "spain"));
+    if (!connected || G.powers.spain.cp < 2) return INVALID_MOVE;
+    if (!spend(G, "spain", 2)) return INVALID_MOVE;
+    G.worldPatrols = {...(G.worldPatrols ?? {}), [args.zone]: (G.worldPatrols?.[args.zone] ?? 0) + 1};
+    pushLog(G, `Spain builds a patrol in ${WORLD_SEA_ZONE_BY_ID[args.zone].nameEn}.`);
+};
+
+export const buildWorldFortress = (G: VQGame, ctx: Ctx, args: {settlement: string}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action" || power(G, ctx) !== "spain") return INVALID_MOVE;
+    const settlement = WORLD_SETTLEMENT_BY_ID[args.settlement];
+    if (settlement === undefined || (G.worldFortresses?.[args.settlement] !== undefined) ||
+        (G.worldControls[args.settlement] !== "spain" && G.worldColonies[args.settlement] !== "spain") ||
+        (G.worldFortressesBuilt ?? 0) >= 2 || G.powers.spain.cp < 2) return INVALID_MOVE;
+    if (!spend(G, "spain", 2)) return INVALID_MOVE;
+    G.worldFortresses = {...(G.worldFortresses ?? {}), [args.settlement]: "spain"};
+    G.worldFortressesBuilt = (G.worldFortressesBuilt ?? 0) + 1;
+    pushLog(G, `Spain builds a fortress at ${settlement.nameEn}.`);
+};
+
+export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "action") return INVALID_MOVE;
+    const p = power(G, ctx);
+    const expedition = G.worldCaptains[args.captain];
+    const captain = seaCaptainById(args.captain);
+    if (expedition === undefined || expedition.power !== p || captain === undefined || p === "spain" ||
+        (G.piracyActions?.[p] ?? 0) >= 3 || (G.piracyZones?.[expedition.location] ?? []).includes(p) ||
+        G.powers[p].cp < 2) return INVALID_MOVE;
+    const settlements = WORLD_SETTLEMENTS.filter((settlement) => settlement.seaZone === expedition.location &&
+        (G.worldControls[settlement.id] === "spain" || G.worldColonies[settlement.id] === "spain"));
+    if (settlements.length === 0 || !spend(G, p, 2)) return INVALID_MOVE;
+    G.piracyActions = {...(G.piracyActions ?? {}), [p]: (G.piracyActions?.[p] ?? 0) + 1};
+    G.piracyZones = {...(G.piracyZones ?? {}), [expedition.location]: [...(G.piracyZones?.[expedition.location] ?? []), p]};
+    const patrols = G.worldPatrols?.[expedition.location] ?? 0;
+    const fortresses = settlements.filter((settlement) => G.worldFortresses?.[settlement.id] === "spain").length;
+    const defenseDice = patrols + fortresses;
+    if (defenseDice > 0) {
+        const dice = roll(ctx, defenseDice);
+        const hits = dice.filter((die) => die >= 5).length;
+        G.lastRolls = `World piracy defense: [${dice.join(",")}] = ${hits} hit(s)`;
+        pushLog(G, G.lastRolls);
+        if (expedition.damaged ? hits >= 1 : hits >= 2) {
+            delete G.worldCaptains[args.captain];
+            G.powers[p].seaCaptains = G.powers[p].seaCaptains.filter((id) => id !== args.captain);
+            pushLog(G, `${captain.nameEn} is eliminated during world piracy.`);
+            return;
+        }
+        if (hits === 1) expedition.damaged = true;
+    }
+    const base = expedition.damaged || settlements.length === 1 ? 1 : 2;
+    const piracyDice = base + captain.piracy;
+    const dice = roll(ctx, piracyDice);
+    const hits = dice.filter((die) => die >= 5).length;
+    G.lastRolls = `World piracy (${captain.nameEn}): [${dice.join(",")}] = ${hits} hit(s)`;
+    pushLog(G, G.lastRolls);
+    let remaining = hits;
+    while (remaining > 0) {
+        if ((G.worldPatrols?.[expedition.location] ?? 0) > 0) {
+            G.worldPatrols![expedition.location] = (G.worldPatrols?.[expedition.location] ?? 0) - 1;
+            pushLog(G, "A Spanish patrol is eliminated.");
+        } else if (G.powers.spain.treasures.length > 0) {
+            const treasure = G.powers.spain.treasures.pop()!;
+            G.powers[p].treasures.push(treasure);
+            pushLog(G, `${powerLabel(p)} captures a ${treasure} CP Spanish treasure.`);
+        } else {
+            addVp(G, p, 1);
+            pushLog(G, `${powerLabel(p)} gains 1 piracy VP.`);
+        }
+        remaining -= 1;
+    }
 };
 
 export const settleColony = (G: VQGame, ctx: Ctx, args: {captain: string; settlement: string}): void | typeof INVALID_MOVE => {

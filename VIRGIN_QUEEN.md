@@ -208,7 +208,7 @@ Card Draw 按参战强国依次确认，同一玩家控制的多个强国也需�
 - 2–5 人局中除双人配置外的 Activated Major Power 变体
 - 小国激活与外交影响力判定已接入；完整的小国部队调度和事件例外仍需继续核对
 - 谍报三项行动已接入 2024 官方结果表、Jesuit 与 English Catholic Rebellion；自由时点的全部相关 Response / Event 卡组合仍未完整覆盖，见下方说明。
-- 世界地图已有海域航行、派出船长/殖民队、建立殖民地的可操作框架；Card Draw 时已按 8.4 Colony Table 为每个殖民地掷 2d6（Plantation +1）：2–4 消灭、5–8 无效果、9–11 得宝藏、12+ 得宝藏与 1 Virginia Dare VP。危险航路已按 16.4 Navigation Table 检定（2d6 + 船长导航值 + Map Projection；2–6 消灭、7–8 受损、9+ 无效果；已受损再受损则消灭）；当前危险航路集合为合恩角、麦哲伦海峡、好望角；环航（16.6）已按四条官方路线判定，首次 2 VP、之后 1 VP。船长返航已按 16.4 修正：导航 2–6 消灭时船长移出游戏（Murat Reis 例外，放 Turn Track 下回合回池）；已受损再受损/环航结束时船长放 Turn Track，于下一年 Card Draw 回池。贸易风已接入 5 条有向边界（北大西洋→安的列斯、几内亚→南大西洋、墨西哥→南太平洋、南太平洋→印度洋、印度洋→南大西洋），逆风航行需按 Navigation Table 检定；世界海盗、要塞和宝藏船队尚未自动结算，世界地图点位仍是近似数据。
+- 世界地图已有海域航行、派出船长/殖民队、建立殖民地的可操作框架；Card Draw 时已按 8.4 Colony Table 为每个殖民地掷 2d6（Plantation +1）：2–4 消灭、5–8 无效果、9–11 得宝藏、12+ 得宝藏与 1 Virginia Dare VP。危险航路已按 16.4 Navigation Table 检定（2d6 + 船长导航值 + Map Projection；2–6 消灭、7–8 受损、9+ 无效果；已受损再受损则消灭）；当前危险航路集合为合恩角、麦哲伦海峡、好望角；环航（16.6）已按四条官方路线判定，首次 2 VP、之后 1 VP。船长返航已按 16.4 修正：导航 2–6 消灭时船长移出游戏（Murat Reis 例外，放 Turn Track 下回合回池）；已受损再受损/环航结束时船长放 Turn Track，于下一年 Card Draw 回池。贸易风已接入 5 条有向边界（北大西洋→安的列斯、几内亚→南大西洋、墨西哥→南太平洋、南太平洋→印度洋、印度洋→南大西洋），逆风航行需按 Navigation Table 检定。西班牙可建造世界巡逻舰（2 CP，海域须连接西班牙殖民地/控制点）与世界要塞（2 CP，每回合最多 2 个）；世界海盗（16.5）已接入：船长花费 2 CP 袭击西班牙，先掷巡逻/要塞防御骰，再按 P 值掷海盗骰，命中依次消灭巡逻、夺宝藏或得 1 VP，并有每海域每势力一次、每势力每回合三次的限制。宝藏船队尚未自动结算，世界地图点位仍是近似数据。
 - 境外战争已接入“波斯战争”和“波兰战争”：配置 3/5 名敌军、派出 3–8 个部队、逐次投入 1 CP 作战、增援、战后返军与战争胜利 VP；波兰战争的 −1 抽牌与“波兰皇家选举”终止效果也已接入。
 - 正式局仍有部分 Response / Combat 卡与 Mandatory Event 需要手动结算；教学局使用的响应卡和 1–31 号卡已接入对应教学流程
 - 正式局已接入自动拦截（13.2）与自动陆军避战（13.3），但编队/尝试顺序由程序选择；退入要塞选项仍保留简化
@@ -266,6 +266,7 @@ src/virginQueen/
   navigation.test.ts     16.4 Navigation Table 消灭/受损/连续受损/Map Projection
   circumnavigation.test.ts 16.6 首次/后续 VP、缺少前置航段、奥斯曼路线
   rulerDeath.test.ts    23.2–23.5 统治者死亡后的卡牌/Admin/将领/Elizabeth 牌
+  worldPiracy.test.ts   16.5/17.3 巡逻舰、世界要塞、世界海盗防御/奖励/限制
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
 ```
@@ -338,3 +339,5 @@ Royal Wedding Table（21.1）接入后的验证：`jest src/virginQueen --runInB
 统治者死亡（23.2–23.5）接入后的验证：`jest src/virginQueen --runInBand --silent` 32 suites、389 tests passed（新增 5 项：Philip II、Henry III、Elizabeth I、Mary Queen of Scots、Rudolf II 死亡效果）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 贸易风（16.4）接入后的验证：`jest src/virginQueen --runInBand --silent` 32 suites、391 tests passed（新增 2 项：逆风检定、顺风不检定）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+世界海盗/巡逻舰/要塞（16.5/17.3）接入后的验证：`jest src/virginQueen --runInBand --silent` 33 suites、396 tests passed（新增 5 项：建造巡逻舰与要塞、巡逻/宝藏/VP 奖励顺序、无巡逻无宝藏给 VP、两防御命中消灭船长、每海域每势力一次限制）；`npm run build` 通过，仍有既有大体积 chunk 提示。

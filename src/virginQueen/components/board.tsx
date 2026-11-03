@@ -716,7 +716,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 <Divider/>
                 </ActionGroup>
                 <ActionGroup title="世界地图 · 探险与殖民">
-                <Typography variant="caption" color="text.secondary">海域按已录入的粗略邻接关系逐区航行；尚未录入的官方航行检定与海盗规则不会自动结算。</Typography>
+                <Typography variant="caption" color="text.secondary">海域按已录入的粗略邻接关系逐区航行；危险航路、贸易风、殖民地与西班牙巡逻/要塞、世界海盗已接入自动结算。</Typography>
                 <Stack spacing={0.5}>
                     {WORLD_SEA_ZONES.map((zone) => {
                         const here = Object.entries(G.worldCaptains).filter(([, ex]) => ex.location === zone.id);
@@ -727,13 +727,26 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             </Typography>)}
                             {WORLD_SETTLEMENTS.filter((s) => s.seaZone === zone.id).map((s) => <Typography key={s.id} variant="caption" sx={{display: "block"}}>
                                 {s.nameZh}：{G.worldControls[s.id] === undefined ? "空置" : `${POWER_NAMES[G.worldControls[s.id]!].zh}控制`}
+                                {G.worldFortresses?.[s.id] !== undefined ? ` · ${POWER_NAMES[G.worldFortresses[s.id]!].zh}要塞` : ""}
                             </Typography>)}
+                            {(G.worldPatrols?.[zone.id] ?? 0) > 0 && <Typography variant="caption" sx={{display: "block"}}>西班牙巡逻舰：{G.worldPatrols?.[zone.id]}</Typography>}
+                            {me === "spain" && WORLD_SETTLEMENTS.some((s) => s.seaZone === zone.id &&
+                                (G.worldControls[s.id] === "spain" || G.worldColonies[s.id] === "spain")) &&
+                                <Button size="small" variant="outlined" disabled={!myTurn || cp < 2}
+                                    onClick={() => moves.buildPatrol({zone: zone.id})}>建造巡逻舰 (2 CP)</Button>}
+                            {me === "spain" && WORLD_SETTLEMENTS.filter((s) => s.seaZone === zone.id &&
+                                (G.worldControls[s.id] === "spain" || G.worldColonies[s.id] === "spain") &&
+                                G.worldFortresses?.[s.id] === undefined).map((s) =>
+                                <Button key={`fort-${s.id}`} size="small" variant="outlined" disabled={!myTurn || cp < 2 || (G.worldFortressesBuilt ?? 0) >= 2}
+                                    onClick={() => moves.buildWorldFortress({settlement: s.id})}>在{s.nameZh}建要塞 (2 CP)</Button>)}
                             {here.filter(([, ex]) => ex.power === me).map(([id]) => <Stack key={id} direction="row" spacing={0.5} sx={{mt: 0.5, flexWrap: "wrap"}}>
                                 {zone.adjacent.map((next) => <Button key={next} size="small" variant="text" disabled={!myTurn || (cp < 1 && !Object.values(G.worldCaptains).some((ex) => ex.power === me && ex.movedImpulse === G.impulse)) || G.worldCaptains[id].movedImpulse === G.impulse}
                                     onClick={() => moves.moveExpedition({captain: id, zone: next})}>航行至 {WORLD_SEA_ZONES.find((z) => z.id === next)?.nameZh}</Button>)}
                                 {WORLD_SETTLEMENTS.filter((s) => s.seaZone === zone.id && s.id !== "philippines" && G.worldControls[s.id] === undefined && G.worldCaptains[id].colony).map((s) =>
                                     <Button key={s.id} size="small" variant="text" disabled={!myTurn || cp < 1}
                                         onClick={() => moves.settleColony({captain: id, settlement: s.id})}>在{s.nameZh}建立殖民地</Button>)}
+                                {me !== "spain" && <Button size="small" variant="outlined" disabled={!myTurn || cp < 2}
+                                    onClick={() => moves.worldPiracy({captain: id})}>世界海盗 (2 CP)</Button>}
                             </Stack>)}
                         </Paper>;
                     })}

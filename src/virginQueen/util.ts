@@ -555,6 +555,9 @@ export const returnSeaCaptains = (G: VQGame): void => {
 /** Deal a new year's hands. Home cards return, hands are trimmed to Admin. */
 export const dealYear = (G: VQGame, ctx: Ctx): void => {
     returnSeaCaptains(G);
+    G.piracyActions = {};
+    G.piracyZones = {};
+    G.worldFortressesBuilt = 0;
     refreshJesuits(G);
     const eligibleFuture: string[] = [];
     G.futureDeck = G.futureDeck.filter((id) => {

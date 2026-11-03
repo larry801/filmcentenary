@@ -571,6 +571,14 @@ export interface VQGame {
     worldColonies: Partial<Record<string, Power>>;
     /** Starting or event-granted world-space control markers. */
     worldControls: Partial<Record<string, Power>>;
+    /** Spanish patrols by ocean zone. */
+    worldPatrols?: Partial<Record<string, number>>;
+    /** World Map fortresses by settlement. */
+    worldFortresses?: Partial<Record<string, Power>>;
+    /** Piracy actions and targeted zones this turn. */
+    piracyActions?: Partial<Record<Power, number>>;
+    piracyZones?: Partial<Record<string, Power[]>>;
+    worldFortressesBuilt?: number;
     /** Number of completed circumnavigations (first 2 VP, later 1 VP). */
     circumnavigations?: number;
     /** Sea captains on the Turn Track, returning to the pool in a future year. */
