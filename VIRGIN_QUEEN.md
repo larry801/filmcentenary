@@ -151,6 +151,13 @@
 - `recruit` 招募正规军前检查当前正规军总数（地图 + 境外战争 + 阿马达搭载），达到上限则非法。
 - 雇佣兵、骑兵、海军与海军重建延迟仍未纳入统一 force pool。
 
+### 神圣罗马的调解（#34）
+
+- 指定交战双方（格式 `盟友:敌国`）：HRE 与一方结盟、对另一方宣战；
+- 在一个 HRE 本土地区放置 2 个正规军；
+- 敌国掷 5 骰，每个 1 在 HRE 本土地区放置 1 个动荡；
+- 陆军将领移动与逐地区选择尚未接入。
+
 ### 科学与艺术的赞助人（#35）
 
 - 选项 1：指定意大利或 HRE 艺术家/科学家，视作 3 CP 赞助并加入待结算；鲁道夫在位时放置“+2 布拉格文化中心”标记；抽 1 张牌。
@@ -427,6 +434,7 @@ src/virginQueen/
   italianExpert.test.ts #48 意大利的委托免费赞助
   catherineCancel.test.ts #42 飞剪船取消事件
   patronOfArts.test.ts  #35 赞助人抽 2 给 1
+  hreIntercession.test.ts #34 神圣罗马的调解
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
   regularLimit.test.ts  17.1 正规军计数器上限
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
@@ -575,3 +583,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #35 选项 1 接入后的验证：`jest src/virginQueen --runInBand --silent` 55 suites、455 tests passed（新增 1 项：意大利赞助与布拉格标记）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 布拉格文化中心 +2 赞助接入后的验证：`jest src/virginQueen --runInBand --silent` 56 suites、456 tests passed（新增 1 项：标记赞助人 +2）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#34 神圣罗马的调解接入后的验证：`jest src/virginQueen --runInBand --silent` 57 suites、457 tests passed（新增 1 项：结盟/宣战/2 正规军/动荡）；`npm run build` 通过，仍有既有大体积 chunk 提示。

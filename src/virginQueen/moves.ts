@@ -495,6 +495,24 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
 /** #44 Sack!: adjacent enemy fortresses may surrender after a fortress falls. */
 /** #48 Italian Expert: sponsor an Italian patron for 3 CP without paying. */
 /** #35 Patron of Arts, option 2: draw two cards and give one to another power. */
+/** #34 Holy Roman Intercession: join one side of a war and punish the other. */
+const resolveHolyRomanIntercession = (G: VQGame, ctx: Ctx, target?: string): void => {
+    if (target === undefined) return;
+    const [ally, enemy] = target.split(":");
+    if (!isPower(ally) || !isPower(enemy) || ally === enemy || !atWar(G, ally, enemy)) return;
+    G.powers.hre.allies.push(ally);
+    G.powers[ally].allies.push("hre");
+    setWar(G, "hre", enemy);
+    const home = SPACES.find((space) => space.home === "hre" && G.spaces[space.id].control === "hre" && !G.spaces[space.id].unrest);
+    if (home !== undefined) addLand(G, home.id, "hre", "regular", 2);
+    const dice = roll(ctx, 5);
+    const ones = dice.filter((die) => die === 1).length;
+    const unrestTargets = SPACES.filter((space) => space.home === "hre" && !G.spaces[space.id].unrest).slice(0, ones);
+    for (const space of unrestTargets) G.spaces[space.id].unrest = true;
+    G.lastRolls = `Holy Roman Intercession: [${dice.join(",")}] = ${ones} unrest`;
+    pushLog(G, `${powerLabel("hre")} allies with ${powerLabel(ally)}, declares war on ${powerLabel(enemy)}, and places ${ones} unrest (${G.lastRolls}).`);
+};
+
 const resolvePatronOfArts = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined) return;
     const patron = patronById(G, target);
@@ -806,6 +824,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveItalianExpert(G, p, target);
     } else if (handler === "patronOfArts") {
         resolvePatronOfArts(G, ctx, target);
+    } else if (handler === "holyRomanIntercession") {
+        resolveHolyRomanIntercession(G, ctx, target);
     } else if (handler === "beaconFires") {
         G.beaconFires = p;
         pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
