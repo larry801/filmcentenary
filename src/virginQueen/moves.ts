@@ -689,6 +689,27 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #41 Border Reivers: raid a border power's hand or add Scottish influence. */
 /** #66 Sea Beggars: seize an undefended Dutch port. */
 /** #58 Jeanne of Navarre: French rebellion and the fall of Bayonne. */
+/** #25 Unrest in the Realm: place up to three unrest in a major's home. */
+const resolveUnrestInRealm = (G: VQGame, target?: string): void => {
+    if (target === undefined || !["ottoman", "hre", "spain"].includes(target)) return;
+    const homes = SPACES.filter((space) => space.home === target && !G.spaces[space.id].unrest &&
+        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 &&
+        !(target === "spain" && space.area === "netherlands")).slice(0, 3);
+    for (const space of homes) G.spaces[space.id].unrest = true;
+    pushLog(G, `Unrest in the Realm places ${homes.length} unrest in ${powerLabel(target as Power)} home spaces.`);
+};
+
+/** #30 Ruler Falls Ill: discard a random card from another power. */
+const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    if (target === undefined || !isPower(target) || target === p) return;
+    const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
+    if (cards.length === 0) return;
+    const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
+    G.powers[target].cards = G.powers[target].cards.filter((id) => id !== card);
+    discardCard(G, target, card, false);
+    pushLog(G, `Ruler Falls Ill discards ${cardById(card).name} from ${powerLabel(target)}.`);
+};
+
 const resolveJeanne = (G: VQGame, ctx: Ctx): void => {
     const target = rebellionTargets(G).find((id) => SPACE_BY_ID[id]?.area === "france");
     if (target !== undefined) resolveRebellion(G, ctx, "protestant", target, 5);
@@ -1578,6 +1599,10 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveSeaBeggars(G, ctx, target);
     } else if (handler === "jeanneOfNavarre") {
         resolveJeanne(G, ctx);
+    } else if (handler === "card025") {
+        resolveUnrestInRealm(G, target);
+    } else if (handler === "rulerFallsIll") {
+        resolveRulerFallsIll(G, ctx, p, target);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
