@@ -1608,6 +1608,119 @@ export const fieldBattle = (
     return {attackerHits: aHits, defenderHits: dHits, attackerDice: aDice, defenderDice: dDice, winner};
 };
 
+export interface ReliefResult {
+    attackerHits: number;
+    defenderHits: number;
+    attackerDice: number;
+    defenderDice: number;
+    winner: "attacker" | "defender";
+}
+
+/** Move up to `count` units of one power from `from` to `to` (mercenaries first). */
+const transferLandUnits = (G: VQGame, from: string, to: string, p: Power, count: number): number => {
+    const stack = G.spaces[from].land[p];
+    if (stack === undefined || count <= 0) return 0;
+    const taken = emptyLand();
+    let left = count;
+    for (const kind of ["merc", "cav", "regular"] as const) {
+        const n = Math.min(left, stack[kind]);
+        stack[kind] -= n;
+        taken[kind] = n;
+        left -= n;
+        if (left === 0) break;
+    }
+    const moved = count - left;
+    if (moved > 0) {
+        const target = ensureLand(G, to, p);
+        target.regular += taken.regular;
+        target.merc += taken.merc;
+        target.cav += taken.cav;
+    }
+    cleanupLand(G, from, p);
+    return moved;
+};
+
+/**
+ * Field battle fought by a relief force entering a besieged fortification
+ * (rule 15.2).  All friendly units inside the fortification participate; on a
+ * loss, up to 4 units remain inside and the rest fall back to the relief
+ * force's origin.  The player choices (withholding units, which losses, which
+ * units retreat inside) are resolved automatically for now.
+ */
+export const reliefBattle = (
+    G: VQGame,
+    ctx: Ctx,
+    space: string,
+    p: Power,
+    from: string,
+    reliefStack: LandStack,
+    reliefLeaders: string[],
+    pUnitsInside: number,
+): ReliefResult => {
+    const siege = G.spaces[space].siege;
+    if (siege === undefined) {
+        return {attackerHits: 0, defenderHits: 0, attackerDice: 0, defenderDice: 0, winner: "defender"};
+    }
+    const besieger = siege.by;
+    const attackers = ownersWithLand(G, space).filter((c) => friendlyController(G, p, c));
+    const defenders = ownersWithLand(G, space).filter((c) => !friendlyController(G, p, c));
+    const attackerUnits = totalLand(G, space, attackers);
+    const defenderUnits = totalLand(G, space, defenders);
+    const aDice = attackerUnits + bestBattle(G, space, attackers, "army");
+    const dDice = defenderUnits + bestBattle(G, space, defenders, "army") + 1;
+    const aHits = hits(roll(ctx, aDice));
+    const dHits = hits(roll(ctx, dDice));
+    pushLog(G, `${powerLabel(p)} brings ${landCount(reliefStack)} relief unit(s) into ${SPACE_BY_ID[space].name}.`);
+    G.lastRolls = `Relief battle at ${SPACE_BY_ID[space].name}: ${powerLabel(p)} ${aHits} hits (${aDice} dice) vs besiegers ${dHits} hits (${dDice} dice)`;
+    pushLog(G, G.lastRolls);
+    removeLandLosses(G, space, defenders, aHits);
+    // Attacker losses come from the relief force first, then from allies inside.
+    const pBefore = totalLand(G, space, [p]);
+    removeLandLosses(G, space, [p], dHits);
+    const pRemoved = pBefore - totalLand(G, space, [p]);
+    const otherAttackers = attackers.filter((c) => c !== p);
+    if (dHits > pRemoved) removeLandLosses(G, space, otherAttackers, dHits - pRemoved);
+    const winner: "attacker" | "defender" = aHits > dHits ? "attacker" : "defender";
+    const besiegerLeaders = leadersAt(G, space).filter((id) => LEADER_BY_ID[id]?.power === besieger);
+    if (winner === "attacker") {
+        const defendersLeft = totalLand(G, space, defenders);
+        if (defendersLeft === 0) {
+            captureLeaders(G, space, defenders, p);
+        } else {
+            retreatLand(G, besieger, space, defenders, besiegerLeaders, p, [from]);
+        }
+        delete G.spaces[space].siege;
+        pushLog(G, `${powerLabel(p)} wins the relief battle; the siege of ${SPACE_BY_ID[space].name} is broken.`);
+        return {attackerHits: aHits, defenderHits: dHits, attackerDice: aDice, defenderDice: dDice, winner};
+    }
+    // The relief force loses.  Units that were already inside may retreat back
+    // inside (at most 4); the relief force falls back to where it came from.
+    const pUnits = totalLand(G, space, [p]);
+    // Equal hits: any participating unit may retreat inside (max 4).  A
+    // decisive loss: only units that started the impulse inside may stay.
+    const keepLimit = Math.min(4, aHits === dHits ? pUnits : pUnitsInside);
+    const movedOut = pUnits > 0 ? transferLandUnits(G, space, from, p, Math.max(0, pUnits - keepLimit)) : 0;
+    if (totalLand(G, space, [p]) === 0) {
+        captureLeaders(G, space, [p], besieger);
+    } else if (movedOut > 0) {
+        const retreating = reliefLeaders.filter((id) => G.spaces[space].leaders.includes(id));
+        if (retreating.length > 0) moveLeaders(G, space, from, retreating);
+    }
+    const insideAfter = ownersWithLand(G, space).filter((c) => c !== besieger);
+    const besiegersLeft = totalLand(G, space, [besieger]);
+    const defendersLeft = totalLand(G, space, insideAfter);
+    if (besiegersLeft === 0) {
+        if (besiegerLeaders.length > 0) captureLeaders(G, space, [besieger], p);
+        delete G.spaces[space].siege;
+    } else if (besiegersLeft <= defendersLeft) {
+        retreatLand(G, besieger, space, [besieger], besiegerLeaders, p, [from]);
+        delete G.spaces[space].siege;
+        pushLog(G, `The siege of ${SPACE_BY_ID[space].name} is broken.`);
+    }
+    pushLog(G, `${powerLabel(p)} loses the relief battle at ${SPACE_BY_ID[space].name}${movedOut > 0 ? ` and falls back to ${SPACE_BY_ID[from].name}` : ""}.`);
+    return {attackerHits: aHits, defenderHits: dHits, attackerDice: aDice, defenderDice: dDice, winner};
+};
+
 export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): boolean => {
     const s = G.spaces[space];
     const siege = s.siege;

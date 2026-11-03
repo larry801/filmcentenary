@@ -91,6 +91,7 @@ import {
     rebellionTargets,
     religionCandidates,
     removeCardFromHand,
+    reliefBattle,
     removeLandLosses,
     removePortNavalLosses,
     removeSeaNavalLosses,
@@ -1319,6 +1320,13 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
         return INVALID_MOVE;
     }
     const dest = G.spaces[to];
+    const siegeBefore = dest.siege;
+    // Rule 15.2: moving a friendly formation into a besieged fortification
+    // starts a relief battle instead of a normal siege or field battle.
+    const isRelief = G.scenario !== "tutorial" && siegeBefore !== undefined && siegeBefore.by !== p &&
+        ownersWithLand(G, to).some((owner) => owner !== siegeBefore.by && friendlyController(G, p, owner)) &&
+        atWar(G, p, siegeBefore.by);
+    const pUnitsInside = totalLand(G, to, [p]);
     const destControl = dest.control;
     const canEnter = friendlyControlled(G, p, to)
         || destControl === "independent"
@@ -1347,6 +1355,10 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
         G.leaders[id].location = to;
     }
     pushLog(G, `${powerLabel(p)} moves ${landCount(stack)} unit(s) from ${SPACE_BY_ID[from].name} to ${SPACE_BY_ID[to].name}.`);
+    if (isRelief) {
+        reliefBattle(G, ctx, to, p, from, stack, leaders, pUnitsInside);
+        return;
+    }
     if (G.tutorialEffects?.stormImpulse === G.impulse) G.tutorialEffects.movedAfterStorm?.push(to);
     // Marching the besiegers away lifts the siege (rule 15.3).
     const oldSiege = G.spaces[from].siege;
