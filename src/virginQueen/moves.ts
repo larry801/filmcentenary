@@ -670,6 +670,23 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #107 Edmund Campion: place a Jesuit and make conversion attempts. */
 /** #98 Sultana Safiye option 1: exchange a card with another power. */
 /** #80 The Black Queen, option 3: take a card or draw two. */
+/** #112 Day of the Barricades: seize Paris under the right conditions. */
+const resolveDayOfBarricades = (G: VQGame): void => {
+    if (allied(G, "france", "spain") || G.spaces.paris.control === "spain") return;
+    const neighbors = landNeighbors("paris").map((neighbor) => neighbor.id);
+    const controlled = neighbors.filter((id) => G.spaces[id]?.control === "spain").length;
+    if (controlled < 2) return;
+    const spanish = ["paris", ...neighbors].reduce((total, id) => total + (G.spaces[id]?.land.spain?.regular ?? 0), 0);
+    const guise = G.leaders.guise;
+    if (spanish < 4 || guise === undefined || !["paris", ...neighbors].includes(guise.location)) return;
+    G.spaces.paris.land = {};
+    G.spaces.paris.leaders = [];
+    G.spaces.paris.control = "spain";
+    addLand(G, "paris", "spain", "regular", 4);
+    if (guise.location !== "paris") moveLeaders(G, guise.location, "paris", ["guise"]);
+    pushLog(G, "Day of the Barricades: Spain seizes Paris and places 4 regulars.");
+};
+
 const resolveBlackQueen = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     if (target === undefined || !isPower(target) || target === p) return;
     const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
@@ -1288,6 +1305,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveSultanaSafiye(G, ctx, p, target);
     } else if (handler === "blackQueen") {
         resolveBlackQueen(G, ctx, p, target);
+    } else if (handler === "dayOfTheBarricades") {
+        resolveDayOfBarricades(G);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {

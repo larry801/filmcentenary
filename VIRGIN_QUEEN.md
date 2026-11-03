@@ -170,6 +170,12 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 街垒日（#112）
+
+- 条件：法国未与西班牙结盟、巴黎不由西班牙控制、西班牙控制 2 个巴黎相邻地区、巴黎/相邻地区有 ≥4 西班牙正规军且吉斯公爵在 1 格内。
+- 移除巴黎全部部队，西班牙取得巴黎控制权，放置 4 个正规军，并将吉斯公爵移入巴黎。
+- 巴黎原有将领“返回最近设防地区”尚未单独处理。
+
 ### 黑太后（#80）
 
 - 选项 3：检视另一势力手牌后，随机抽一张非本国牌并保留；若其无可用牌，改抽 2 张。
@@ -590,6 +596,7 @@ src/virginQueen/
   donAntonio.test.ts    #105 唐·安东尼奥
   sultanaSafiye.test.ts #98 苏丹娜·萨菲耶选项 1
   blackQueen.test.ts    #80 黑太后选项 3
+  dayBarricades.test.ts #112 街垒日
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -788,3 +795,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #98 苏丹娜·萨菲耶选项 1 接入后的验证：`jest src/virginQueen --runInBand --silent` 79 suites、489 tests passed（新增 1 项：交换卡牌/抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #80 黑太后选项 3 接入后的验证：`jest src/virginQueen --runInBand --silent` 80 suites、491 tests passed（新增 2 项：抽牌/抽 2）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#112 街垒日接入后的验证：`jest src/virginQueen --runInBand --silent` 81 suites、492 tests passed（新增 1 项：西班牙夺取巴黎）；`npm run build` 通过，仍有既有大体积 chunk 提示。
