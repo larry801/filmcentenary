@@ -2958,6 +2958,35 @@ export const autoResolveWinterLossChoices = (G: VQGame, p?: Power): void => {
     else G.winterLossChoices = remaining;
 };
 
+/**
+ * Record a no-port naval elimination so its owner may confirm the lost ship
+ * types during the Card Draw phase. Rule 20.4 removes the whole squadron, so
+ * the automatic elimination is already applied and the record cannot save any
+ * ship; a skipped choice keeps that automatic composition.
+ */
+const recordWinterNavalLossChoice = (G: VQGame, p: Power, zone: string, removed: NavalStack): void => {
+    const amount = navalCount(removed);
+    if (amount === 0 || G.seaZones[zone as SeaZoneID] === undefined) return;
+    G.winterNavalLossChoices = [...(G.winterNavalLossChoices ?? []), {power: p, zone, amount, removed}];
+};
+
+/**
+ * Safe fallback for a pending winter naval loss choice.  The automatic
+ * elimination is already on the board, so dropping the records keeps the
+ * automatic ship-type composition.  With no power given every pending naval
+ * choice is dropped (used when Card Draw ends or the next phase begins).
+ */
+export const autoResolveWinterNavalLossChoices = (G: VQGame, p?: Power): void => {
+    const pending = G.winterNavalLossChoices;
+    if (pending === undefined) return;
+    const remaining = p === undefined ? [] : pending.filter((entry) => entry.power !== p);
+    if (p !== undefined && remaining.length !== pending.length) {
+        pushLog(G, `${powerLabel(p)} keeps the automatic winter naval loss composition.`);
+    }
+    if (remaining.length === 0) delete G.winterNavalLossChoices;
+    else G.winterNavalLossChoices = remaining;
+};
+
 const winterAddUnits = (G: VQGame, space: string, p: Power, units: LandStack): void => {
     if (landCount(units) === 0) return;
     const target = ensureLand(G, space, p);
@@ -3012,8 +3041,14 @@ const winterReturnNaval = (G: VQGame): void => {
                 }
             }
             if (best === undefined) {
+                const removed = {...stack};
                 pushLog(G, `${controllerLabel(c)} fleet in ${zoneDef.name} has no port to return to and is eliminated.`);
                 delete zone.naval[c];
+                // The whole squadron is gone (20.4). The owner still confirms
+                // its ship-type composition during Card Draw; a skipped choice
+                // keeps this automatic result.
+                const owner = isPower(c) ? c : minorAlly(G, c as MinorPower);
+                if (owner !== undefined) recordWinterNavalLossChoice(G, owner, zoneDef.id, removed);
                 continue;
             }
             const target = ensureNaval(G, best.port, c);

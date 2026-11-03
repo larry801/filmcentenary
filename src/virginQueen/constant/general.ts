@@ -169,6 +169,23 @@ export interface WinterLossChoice {
     removed: LandStack;
 }
 
+/**
+ * A winter naval loss whose ship-type composition has not been confirmed by
+ * the owner yet. Rule 20.4 eliminates a squadron that has no port to return
+ * to, so the automatic result is already applied in full; the Card Draw
+ * choice only records which ship types the owner declares lost (and keeps the
+ * automatic order when skipped). A no-port squadron is never partially saved.
+ */
+export interface WinterNavalLossChoice {
+    power: Power;
+    /** Sea zone the eliminated squadron started the Winter Phase in. */
+    zone: string;
+    /** Number of ships eliminated by the automatic no-port rule. */
+    amount: number;
+    /** Ship types removed by the automatic elimination. */
+    removed: NavalStack;
+}
+
 export const emptyLand = (): LandStack => ({regular: 0, merc: 0, cav: 0});
 
 export const emptyNaval = (): NavalStack => ({
@@ -694,6 +711,13 @@ export interface VQGame {
      * swap it, and ending the turn keeps the automatic composition.
      */
     winterLossChoices?: WinterLossChoice[];
+    /**
+     * Winter naval losses awaiting the owner's confirmation. Rule 20.4
+     * eliminates the whole squadron when no port can receive it; the automatic
+     * elimination is already on the board, and the Card Draw choice stage lets
+     * the owner record the lost ship types or keep the automatic composition.
+     */
+    winterNavalLossChoices?: WinterNavalLossChoice[];
     spanishRoadAvailable?: boolean;
     /** Beacon Fires: next interception by this power succeeds and gains +2 dice. */
     navalDiceBonus?: {power: Power; amount: number};

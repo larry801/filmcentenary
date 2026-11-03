@@ -32,6 +32,7 @@ import {
     MINOR_POWERS,
     LandStack,
     navalCount,
+    NavalStack,
     POWER_INFO,
     POWER_NAMES,
     POWERS,
@@ -812,7 +813,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             const powers = participatingPowers(G);
             const nextPhase = G.scenario === "tutorial" ? "春季部署阶段" : "外交阶段";
             const winterLosses = (G.winterLossChoices ?? []).filter((entry) => entry.power === me);
+            const winterNavalLosses = (G.winterNavalLossChoices ?? []).filter((entry) => entry.power === me);
             const unitNames: Record<keyof LandStack, string> = {regular: "正规军", merc: "雇佣兵", cav: "骑兵"};
+            const shipNames: Record<keyof NavalStack, string> = {galley: "桨帆船", galleon: "大帆船", racebuilt: "快帆船", corsair: "海盗船"};
             return <Stack spacing={1}>
                 <Typography variant="subtitle2">Card Draw 阶段 · 第 {G.year} 回合</Typography>
                 {winterLosses.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
@@ -841,6 +844,32 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             </Stack>
                         </Stack>;
                     })}
+                </Stack>}
+                {winterNavalLosses.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
+                    <Typography variant="subtitle2">冬季海军损失：确认损失的舰型</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        无可用返港港口时整支舰队按 20.4 消灭；可为每处损失确认损失的舰型，或保留自动结果（不会因此保留舰船）。
+                    </Typography>
+                    {winterNavalLosses.map((entry, index) => (
+                        <Stack key={`${entry.zone}-${index}`} spacing={0.5}>
+                            <Typography variant="body2">
+                                {SEA_ZONE_BY_ID[entry.zone]?.name ?? entry.zone} · 损失 {entry.amount} 艘舰船
+                            </Typography>
+                            <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                                {(Object.keys(shipNames) as (keyof NavalStack)[])
+                                    .filter((kind) => entry.removed[kind] > 0)
+                                    .map((kind) => <Button key={kind} size="small" variant="outlined"
+                                        disabled={!myTurn}
+                                        onClick={() => moves.chooseWinterNavalLoss({zone: entry.zone, kind})}>
+                                        确认 {shipNames[kind]} ×{entry.removed[kind]}
+                                    </Button>)}
+                                <Button size="small" variant="outlined" disabled={!myTurn}
+                                    onClick={() => moves.chooseWinterNavalLoss({zone: entry.zone, kind: "auto"})}>
+                                    保留自动结果
+                                </Button>
+                            </Stack>
+                        </Stack>
+                    ))}
                 </Stack>}
                 <Typography variant="body2" color={myTurn ? "primary" : "text.secondary"}>
                     {`${myTurn ? "请确认" : "等待"} P${Number(ctx.currentPlayer) + 1} · ${POWER_NAMES[G.activePower].zh} 完成抽牌（${powers.indexOf(G.activePower) + 1}/${powers.length}）。`}

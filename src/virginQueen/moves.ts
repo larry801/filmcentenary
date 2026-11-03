@@ -66,6 +66,7 @@ import {
     atWarWithMinor,
     autoPlaceNavalLeaderArrivals,
     autoResolveWinterLossChoices,
+    autoResolveWinterNavalLossChoices,
     bestBattle,
     bestPiracy,
     canControlSpace,
@@ -2772,7 +2773,10 @@ export const endPhaseTurn = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE =>
     if (ctx.phase === "spring") autoPlaceNavalLeaderArrivals(G, power(G, ctx));
     // Safe fallback: leaving Card Draw without a choice keeps the automatic
     // winter attrition composition.
-    if (ctx.phase === "cardDraw") autoResolveWinterLossChoices(G, power(G, ctx));
+    if (ctx.phase === "cardDraw") {
+        autoResolveWinterLossChoices(G, power(G, ctx));
+        autoResolveWinterNavalLossChoices(G, power(G, ctx));
+    }
     ctx.events?.endTurn();
 };
 
@@ -2933,6 +2937,18 @@ const WINTER_LOSS_KIND_NAMES: Record<keyof LandStack, string> = {
     cav: "cavalry",
 };
 
+const WINTER_NAVAL_KIND_NAMES: Record<keyof NavalStack, string> = {
+    galley: "galley",
+    galleon: "galleon",
+    racebuilt: "race-built galleon",
+    corsair: "corsair",
+};
+
+/** True while this power still has any winter loss choice to confirm. */
+const winterLossChoicesRemain = (G: VQGame, p: Power): boolean =>
+    (G.winterLossChoices ?? []).some((entry) => entry.power === p) ||
+    (G.winterNavalLossChoices ?? []).some((entry) => entry.power === p);
+
 /**
  * Card Draw confirmation of a winter attrition loss.  The automatic losses
  * (mercenary, then cavalry, then regular) are already applied; `kind` replaces
@@ -2960,7 +2976,35 @@ export const chooseWinterLoss = (G: VQGame, ctx: Ctx, args: {space: string; kind
     }
     G.winterLossChoices = (G.winterLossChoices ?? []).filter((entry) => entry !== pending);
     if (G.winterLossChoices.length === 0) delete G.winterLossChoices;
-    if (!(G.winterLossChoices ?? []).some((entry) => entry.power === p)) ctx.events?.endStage();
+    if (!winterLossChoicesRemain(G, p)) ctx.events?.endStage();
+};
+
+/**
+ * Card Draw confirmation of a no-port naval winter loss. Rule 20.4 already
+ * eliminated the whole squadron when it could not return to a port; `kind`
+ * declares which ship type the owner attributes the loss to, and "auto" keeps
+ * the automatic composition. The elimination itself cannot be reversed.
+ */
+export const chooseWinterNavalLoss = (G: VQGame, ctx: Ctx, args: {zone: string; kind: keyof NavalStack | "auto"}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "cardDraw") return INVALID_MOVE;
+    if (moveError(G, "chooseWinterNavalLoss", args)) return INVALID_MOVE;
+    const p = power(G, ctx);
+    if (ctx.playerID !== undefined && ctx.playerID !== null && ownerOf(G, p) !== ctx.playerID) return INVALID_MOVE;
+    const pending = (G.winterNavalLossChoices ?? []).find((entry) => entry.power === p && entry.zone === args.zone);
+    if (pending === undefined) return INVALID_MOVE;
+    const zoneName = SEA_ZONE_BY_ID[args.zone as keyof typeof SEA_ZONE_BY_ID]?.name ?? args.zone;
+    if (args.kind !== "auto") {
+        if (args.kind !== "galley" && args.kind !== "galleon" && args.kind !== "racebuilt" && args.kind !== "corsair") {
+            return INVALID_MOVE;
+        }
+        if (pending.removed[args.kind] <= 0) return INVALID_MOVE;
+        pushLog(G, `${powerLabel(p)} records ${pending.removed[args.kind]} ${WINTER_NAVAL_KIND_NAMES[args.kind]} unit(s) lost in ${zoneName} with no winter port.`);
+    } else {
+        pushLog(G, `${powerLabel(p)} keeps the automatic winter naval losses in ${zoneName}.`);
+    }
+    G.winterNavalLossChoices = (G.winterNavalLossChoices ?? []).filter((entry) => entry !== pending);
+    if (G.winterNavalLossChoices.length === 0) delete G.winterNavalLossChoices;
+    if (!winterLossChoicesRemain(G, p)) ctx.events?.endStage();
 };
 
 export const makePeace = (G: VQGame, ctx: Ctx, args: { target: Power }): void | typeof INVALID_MOVE => {

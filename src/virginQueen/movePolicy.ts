@@ -25,8 +25,9 @@ export const moveError = (G: VQGame, move: string, args?: unknown): string | und
         !["chooseNavalLeaderPort", "chooseHomeCard", "chooseHreReligiousPreference", "endPhaseTurn"].includes(move)) {
         return "请先选择返回海军将领的本土港口。";
     }
-    if (G.winterLossChoices?.some((entry) => entry.power === G.activePower) &&
-        !["chooseWinterLoss", "endPhaseTurn"].includes(move)) {
+    if ((G.winterLossChoices?.some((entry) => entry.power === G.activePower) ||
+        G.winterNavalLossChoices?.some((entry) => entry.power === G.activePower)) &&
+        !["chooseWinterLoss", "chooseWinterNavalLoss", "endPhaseTurn"].includes(move)) {
         return "请先确认冬季损失的单位类型。";
     }
     const tutorialError = tutorialActionError(G, move, args);
