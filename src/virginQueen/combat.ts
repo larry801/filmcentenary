@@ -311,6 +311,14 @@ export const chooseBattle = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
             }
         }
         if (id === "vq-039") {
+            if (G.powers[battle.attacker].cards.includes("vq-010")) {
+                removeCardFromHand(G, battle.attacker, "vq-010");
+                discardCard(G, battle.attacker, "vq-010", true);
+                battle.cards[battle.attacker] ??= [];
+                battle.cards[battle.attacker]!.push("vq-010");
+                pushLog(G, "Siege Engineering cancels Flooding.");
+                return;
+            }
             for (const owner of sideOwners(battle, true)) {
                 const stack = G.spaces[battle.location].land[owner];
                 if (stack !== undefined) stack.merc -= Math.ceil(stack.merc / 2);
