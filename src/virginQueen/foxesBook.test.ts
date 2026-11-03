@@ -15,6 +15,18 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Foxe's Book of Martyrs (card #52)", () => {
+    it("can focus the five attempts on one area", () => {
+        const G = game();
+        if (!G.powers.england.cards.includes("vq-052")) G.powers.england.cards.push("vq-052");
+        G.spaces.paris.religion = "catholic";
+        G.spaces.edinburgh.religion = "catholic";
+
+        expect(playCard(G, context(), {cardId: "vq-052", asEvent: true, target: "scotland"})).toBeUndefined();
+
+        expect(G.spaces.edinburgh.religion).toBe("protestant");
+        expect(G.spaces.paris.religion).toBe("catholic");
+    });
+
     it("converts two English Catholic spaces and makes five Protestant attempts", () => {
         const G = game();
         if (!G.powers.england.cards.includes("vq-052")) G.powers.england.cards.push("vq-052");

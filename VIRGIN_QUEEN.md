@@ -584,7 +584,7 @@
 ### 福克斯殉道者名录（#52）
 
 - 将英格兰最多 2 个天主教地区转为新教。
-- 在法兰西/尼德兰/苏格兰进行共 5 次新教传播尝试；自动选择当前天主教地区最多的区域逐个结算。
+- 在法兰西/尼德兰/苏格兰进行共 5 次新教传播尝试；默认自动选择当前天主教地区最多的区域，可用目标 `france`/`netherlands`/`scotland` 固定区域。
 - 自动分配区域，尚未提供逐次选择。
 
 ### 血腥委员会（#50）
@@ -1186,3 +1186,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #71 黑魔法选项 2 接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、597 tests passed（新增 1 项：指定弃牌）；`npm run build` 通过。
 
 #80 黑王后抽 2 选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、598 tests passed（新增 1 项：目标有牌时改抽 2）；`npm run build` 通过。
+
+#52 福克斯殉道者名录区域选择接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、599 tests passed（新增 1 项：固定苏格兰区域）；`npm run build` 通过。

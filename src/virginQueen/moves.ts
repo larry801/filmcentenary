@@ -456,15 +456,17 @@ const resolveTreasureFleet = (G: VQGame, ctx: Ctx): void => {
 /** #49 Conquest of the Philippines. */
 /** #50 Council of Troubles. */
 /** #52 Foxe's Book of Martyrs. */
-const resolveFoxesBook = (G: VQGame, ctx: Ctx): void => {
+const resolveFoxesBook = (G: VQGame, ctx: Ctx, target?: string): void => {
     const english = SPACES.filter((space) => space.area === "england" && G.spaces[space.id].religion === "catholic").slice(0, 2);
     for (const space of english) G.spaces[space.id].religion = "protestant";
     pushLog(G, `Foxe's Book of Martyrs converts ${english.length} English Catholic space(s).`);
     for (let attempt = 0; attempt < 5; attempt++) {
         const areas = ["france", "netherlands", "scotland"] as const;
-        const area = areas
-            .map((id) => ({id, count: SPACES.filter((space) => space.area === id && G.spaces[space.id].religion === "catholic").length}))
-            .sort((a, b) => b.count - a.count)[0].id;
+        const area = target !== undefined && areas.includes(target as typeof areas[number])
+            ? target as typeof areas[number]
+            : areas
+                .map((id) => ({id, count: SPACES.filter((space) => space.area === id && G.spaces[space.id].religion === "catholic").length}))
+                .sort((a, b) => b.count - a.count)[0].id;
         resolveConversions(G, ctx, "protestant", "protestant", area, 1);
     }
 };
@@ -1937,7 +1939,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "councilOfTroubles") {
         resolveCouncilOfTroubles(G, ctx);
     } else if (handler === "foxesBookOfMartyrs") {
-        resolveFoxesBook(G, ctx);
+        resolveFoxesBook(G, ctx, target);
     } else if (handler === "experiencedNavigator") {
         resolveExperiencedNavigator(G, target);
     } else if (handler === "maryQueenOfScots") {
