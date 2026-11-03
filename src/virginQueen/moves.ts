@@ -214,7 +214,7 @@ const awardMinorInfluence = (G: VQGame, p: Power, minor: MinorPower, amount: num
     G.powers[p].influence[minor] = Math.min(9, current + amount);
 };
 
-const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef): boolean => {
+const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef, target?: string): boolean => {
     const handler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
     if ((handler === "germanIntervention" || handler === "sublimePorte") && G.majorInfluence) {
         resolveMajorDiplomacy(G, ctx, handler === "germanIntervention" ? "hre" : "ottoman");
@@ -281,8 +281,10 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef):
             resolveMinorDiplomacy(G, ctx, "portugal");
             return true;
         }
-        const home = SPACES.find((space) => space.home === "portugal" && G.spaces[space.id].control === "portugal" &&
-            G.spaces[space.id].siege === undefined);
+        const home = SPACES.find((space) => space.id === target && space.home === "portugal" && G.spaces[space.id].control === "portugal" &&
+            G.spaces[space.id].siege === undefined) ??
+            SPACES.find((space) => space.home === "portugal" && G.spaces[space.id].control === "portugal" &&
+                G.spaces[space.id].siege === undefined);
         if (home !== undefined) {
             addLand(G, home.id, "portugal", "regular", 3);
             pushLog(G, `Don Antonio places 3 Portuguese regulars in ${home.name}.`);
@@ -2132,7 +2134,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
-    } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
+    } else if (resolveMinorDiplomacyCard(G, ctx, p, def, target)) {
         // Official minor-power event handler resolved above.
     } else if (def.officialEffect !== undefined && resolveOfficialCardEffect(G, ctx, p, def, target)) {
         // The typed card-table effect resolved above.

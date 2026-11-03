@@ -414,7 +414,7 @@
 ### 唐·安东尼奥（#105）
 
 - 葡萄牙已进入且出牌方未与其结盟：对葡萄牙 +3 影响力并立即评议。
-- 出牌方已与葡萄牙结盟：在葡萄牙控制、未被围城的本土地区放置 3 个葡萄牙正规军。
+- 出牌方已与葡萄牙结盟：在葡萄牙控制、未被围城的本土地区放置 3 个葡萄牙正规军；可用 `地区ID` 指定，未指定时选择首个合法地区。
 
 ### 埃德蒙·坎皮恩（#107）
 
@@ -1056,7 +1056,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #107 埃德蒙·坎皮恩接入后的验证：`jest src/virginQueen --runInBand --silent` 77 suites、486 tests passed（新增 1 项：耶稣会士/转化）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#105 唐·安东尼奥接入后的验证：`jest src/virginQueen --runInBand --silent` 78 suites、488 tests passed（新增 2 项：影响力评议/结盟驻军）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#105 唐·安东尼奥接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、610 tests passed（新增 3 项：影响力评议/结盟驻军/指定驻军地区）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #98 苏丹娜·萨菲耶选项 1 接入后的验证：`jest src/virginQueen --runInBand --silent` 79 suites、489 tests passed（新增 1 项：交换卡牌/抽牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
