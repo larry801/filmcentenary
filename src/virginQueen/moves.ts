@@ -669,6 +669,20 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #69 Tenth Penny: Protestant rebellion or Spanish card seizure. */
 /** #107 Edmund Campion: place a Jesuit and make conversion attempts. */
 /** #98 Sultana Safiye option 1: exchange a card with another power. */
+/** #80 The Black Queen, option 3: take a card or draw two. */
+const resolveBlackQueen = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    if (target === undefined || !isPower(target) || target === p) return;
+    const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
+    if (cards.length > 0) {
+        const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
+        G.powers[target].cards = G.powers[target].cards.filter((id) => id !== card);
+        G.powers[p].cards.push(card);
+        pushLog(G, `The Black Queen takes ${cardById(card).name} from ${powerLabel(target)}.`);
+        return;
+    }
+    drawCards(G, ctx, p, 2);
+};
+
 const resolveSultanaSafiye = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     if (p !== "ottoman" || G.powers.ottoman.ruler !== "muradIII" || ctx.numPlayers < 5 ||
         target === undefined || !isPower(target) || target === "ottoman") return;
@@ -1272,6 +1286,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveEdmundCampion(G, ctx);
     } else if (handler === "sultanaSafiye") {
         resolveSultanaSafiye(G, ctx, p, target);
+    } else if (handler === "blackQueen") {
+        resolveBlackQueen(G, ctx, p, target);
     } else if (handler === "armadaPardon") {
         resolveArmadaPardon(G, p);
     } else if (handler === "dutchRevolt") {
