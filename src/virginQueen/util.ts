@@ -457,7 +457,8 @@ export const navigationCheck = (G: VQGame, ctx: Ctx, captainId: string): boolean
     if (expedition === undefined || captain === undefined) return false;
     const mapProjection = G.powers[expedition.power].scienceBonuses.includes("mapProjection") ? 1 : 0;
     const dice = roll(ctx, 2);
-    const total = dice[0] + dice[1] + captain.navigation + mapProjection;
+    const navigation = expedition.navigationBonus ?? captain.navigation;
+    const total = dice[0] + dice[1] + navigation + mapProjection;
     G.lastRolls = `Navigation (${captain.nameEn}): [${dice.join(",")}] + ${captain.navigation}` +
         `${mapProjection ? ` + ${mapProjection} Map Projection` : ""} = ${total}`;
     pushLog(G, G.lastRolls);

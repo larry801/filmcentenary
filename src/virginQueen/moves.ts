@@ -463,6 +463,15 @@ const resolveConquestOfPhilippines = (G: VQGame, ctx: Ctx): void => {
     pushLog(G, "Spain conquers the Philippines and gains a fifth New World treasure box.");
 };
 
+/** #43 Experienced Navigator: +1 Navigation for one captain (max 3). */
+const resolveExperiencedNavigator = (G: VQGame, target?: string): void => {
+    if (target === undefined || G.worldCaptains[target] === undefined) return;
+    const captain = seaCaptainById(target);
+    if (captain === undefined) return;
+    G.worldCaptains[target].navigationBonus = Math.min(3, captain.navigation + 1);
+    pushLog(G, `${captain.nameEn} becomes an Experienced Navigator (Navigation ${G.worldCaptains[target].navigationBonus}).`);
+};
+
 const resolveGouvernanteDeFrance = (G: VQGame, ctx: Ctx): void => {
     if (atWar(G, "france", "protestant") && G.powers.france.cards.length <= 2) {
         const result = die(ctx, 6) + 2;
@@ -650,6 +659,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveCouncilOfTroubles(G, ctx);
     } else if (handler === "foxesBookOfMartyrs") {
         resolveFoxesBook(G, ctx);
+    } else if (handler === "experiencedNavigator") {
+        resolveExperiencedNavigator(G, target);
     } else if (def.effect !== undefined) {
         resolveEvent(G, ctx, p, def.effect);
     } else if (resolveMinorDiplomacyCard(G, ctx, p, def)) {
@@ -763,7 +774,8 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
             (G.cardWindow.attacker !== undefined && G.cardWindow.attacker !== p))) {
         return INVALID_MOVE;
     }
-    if (args.asEvent === true && timedResponseCard && !tutorialEvent && G.cardWindow?.kind !== "response") {
+    if (args.asEvent === true && timedResponseCard && !tutorialEvent && G.cardWindow?.kind !== "response" &&
+        cardHandler !== "experiencedNavigator") {
         return INVALID_MOVE;
     }
     const cancelWindow = args.asEvent === true && canCancelCardEvent(G, def);
