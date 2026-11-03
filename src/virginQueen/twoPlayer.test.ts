@@ -155,6 +155,26 @@ describe("Lepanto tutorial", () => {
 });
 
 describe("national turns through the client reducer", () => {
+    it("advances a two-player tournament from Card Draw to diplomacy for both clients", () => {
+        const game = {...VirginQueenGameDef, setup: (ctx: Ctx) => setupGame(ctx, {scenario: "tournament"})};
+        const multiplayer = Local();
+        const clients = ["0", "1"].map((playerID) => Client({game, multiplayer, numPlayers: 2, playerID}));
+        for (const client of clients) client.start();
+        try {
+            for (const power of ["ottoman", "spain", "england", "france", "protestant"]) {
+                const state = clients[0].getState()!;
+                expect(state.ctx.phase).toBe("cardDraw");
+                expect(state.G.activePower).toBe(power);
+                clients[Number(state.ctx.currentPlayer)].moves.endPhaseTurn();
+            }
+            for (const client of clients) {
+                expect(client.getState()!.ctx.phase).toBe("diplomacy");
+            }
+        } finally {
+            for (const client of clients) client.stop();
+        }
+    });
+
     it("gives the same player consecutive national turns and skips inactive HRE", () => {
         const client = Client({game: VirginQueenGameDef, numPlayers: 2});
         client.start();

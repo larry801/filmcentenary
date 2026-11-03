@@ -205,6 +205,18 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                 <Grid size={12}>
                     <Typography variant={"h4"}>{gameName === 'film' ? "电影百年" : gameName === virginQueenName ? "Virgin Queen" : "宋金战争"}</Typography>
                 </Grid>
+                {gameName === virginQueenName && <Grid size={12}>
+                    <Button variant="outlined" sx={{mr: 1, mb: 1}}
+                            onClick={() => {setVqScenario("tutorial"); setNumPlayers(2); setPlayer(Player.P0);}}>
+                        选择双人教学（在线）
+                    </Button>
+                    <Button component={Link} to="/localVQ/tutorial" variant="contained" sx={{mb: 1}}>
+                        开始本地双人教学
+                    </Button>
+                    {vqScenario === "tutorial" && <Typography variant="body2">
+                        双人教学 · 勒班陀海战：P1 奥斯曼帝国，P2 西班牙，共 3 回合；创建房间后邀请另一位玩家加入。
+                    </Typography>}
+                </Grid>}
                 <FormControl variant="outlined" sx={styles.formControl}>
                     <Grid component="label" container spacing={1} sx={{alignItems: 'center'}}>
                         <InputLabel htmlFor="outlined-numPlayers-native-simple">{i18n.chain.lobby.numPlayers}</InputLabel>

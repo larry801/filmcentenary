@@ -5,7 +5,11 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import FormControl from "@mui/material/FormControl";
-import Grid from "@mui/material/Grid";
+import Drawer from "@mui/material/Drawer";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import {ActionGroup, VQSurface} from "./theme";
 import InputLabel from "@mui/material/InputLabel";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -64,7 +68,8 @@ import {
     friendlyController,
 } from "../util";
 import {VQMap} from "./map";
-import {controlledPowers, ownerOf, isActivatedMajor} from "../ownership";
+import {TutorialGuide} from "./tutorial-guide";
+import {controlledPowers, ownerOf, isActivatedMajor, participatingPowers} from "../ownership";
 import {tutorialFortressVp, tutorialSpaceAllowed} from "../tutorial";
 import {scenarioName} from "../scenario";
 import {Controller} from "../constant/general";
@@ -138,7 +143,15 @@ const patronageAwardSummary = (awards: PatronageVpAward[], kind: "artist" | "sci
 const cell = (v: number): string => (v > 0 ? String(v) : "·");
 
 export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps<VQGame>) => {
-    const [selected, setSelected] = React.useState<string | undefined>("london");
+    const [selected, setSelected] = React.useState<string | undefined>(G.scenario === "tutorial"
+        ? playerID === "1" ? "madrid" : "istanbul" : "london");
+    const isDesktop = useMediaQuery("(min-width:1024px)");
+    const [mobileView, setMobileView] = React.useState("map");
+    const [handExpanded, setHandExpanded] = React.useState(true);
+    const [selectedCard, setSelectedCard] = React.useState<string>();
+    const actionRef = React.useRef<HTMLElement>(null);
+    const sidebarRef = React.useRef<HTMLElement>(null);
+    const panelID = React.useId();
     const [mode, setMode] = React.useState<Mode>("inspect");
     const [from, setFrom] = React.useState<string | null>(null);
     const [movingUnits, setMovingUnits] = React.useState<LandStack>({regular: 0, merc: 0, cav: 0});
@@ -173,7 +186,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
         G.pendingBetrothal && ownerOf(G, G.pendingBetrothal.target) === playerID ? G.pendingBetrothal.target : undefined;
     const me: Power | undefined = responsePower ?? (ctx.currentPlayer === playerID ? G.activePower :
         viewPower && owned.includes(viewPower) ? viewPower : owned[0]);
-    const myTurn = me !== undefined && ctx.currentPlayer === playerID && me === G.activePower;
+    const myTurn = ctx.gameover === undefined && me !== undefined && ctx.currentPlayer === playerID && me === G.activePower;
     const phase = ctx.phase ?? "";
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
@@ -187,7 +200,11 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
         setForeignWarLeader("");
     }, [ctx.phase, ctx.currentPlayer, G.activePower]);
 
+    React.useEffect(() => {setSelectedCard(undefined);}, [me, playerID]);
+
     const doSpaceAction = (id: string): void => {
+        // Sea labels share selection with cities, but only naval movement accepts a sea target.
+        if (G.spaces[id] === undefined && mode !== "moveNaval") return;
         if ((!canAct && !(myTurn && phase === "spring" && mode === "spring")) || me === undefined) {
             return;
         }
@@ -309,12 +326,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
             <Stack direction="row" spacing={0.5} sx={{mt: 0.5}}>
                 {(def.kind !== "command" || def.officialKind === "mandatory" || G.scenario === "tutorial") && <Button size="small" variant="contained"
                                                   disabled={disabled || foreignWarBlocked || (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
-                                                  onClick={() => moves.playCard({cardId: id, asEvent: true,
-                                                      ...(foreignWarPower !== undefined ? {target: String(foreignArmySize)} : {})})}>
+                                                  onClick={() => {moves.playCard({cardId: id, asEvent: true,
+                                                      ...(foreignWarPower !== undefined ? {target: String(foreignArmySize)} : {})}); setSelectedCard(undefined);}}>
                     {def.kind === "home" ? "使用能力" : "作为事件"}
                 </Button>}
                 <Button size="small" variant="outlined" disabled={disabled || def.officialKind === "mandatory"}
-                        onClick={() => moves.playCard({cardId: id})}>作为 CP</Button>
+                        onClick={() => {moves.playCard({cardId: id}); setSelectedCard(undefined);}}>作为 CP</Button>
             </Stack>
         </Paper>;
     };
@@ -362,12 +379,13 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
             return <Typography variant="body2" color="text.secondary">旁观模式：只能查看局势。</Typography>;
         }
         if (phase === "cardDraw") {
+            const powers = participatingPowers(G);
+            const nextPhase = G.scenario === "tutorial" ? "春季部署阶段" : "外交阶段";
             return <Stack spacing={1}>
                 <Typography variant="subtitle2">Card Draw 阶段 · 第 {G.year} 回合</Typography>
-                <Typography variant="body2">已按本回合可用性发放本国牌与年度手牌。拥有两张可用本国牌的强国，将在春季部署时秘密保留一张。</Typography>
-                {G.powers.ottoman.ruler === "suleiman" &&
-                    <Typography variant="caption" color="text.secondary">苏莱曼一世在位时，奥斯曼可保留两张本国牌。</Typography>}
-                <Typography variant="caption" color="text.secondary">{scenarioName(G.scenario)}</Typography>
+                <Typography variant="body2" color={myTurn ? "primary" : "text.secondary"}>
+                    {`${myTurn ? "请确认" : "等待"} P${Number(ctx.currentPlayer) + 1} · ${POWER_NAMES[G.activePower].zh} 完成抽牌（${powers.indexOf(G.activePower) + 1}/${powers.length}）。`}
+                </Typography>
                 {me !== "france" && me !== "protestant" ? null : G.seaCaptainsAvailable.map((id) => {
                     const captain = seaCaptainById(id);
                     if (captain === undefined || captain.turn > G.year) {
@@ -378,7 +396,16 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                         领取共享船长：{captain.nameZh ?? captain.nameEn}
                     </Button>;
                 })}
-                <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.endPhaseTurn()}>结束 Card Draw 阶段</Button>
+                <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.endPhaseTurn()}>
+                    {`确认${POWER_NAMES[G.activePower].zh}抽牌完成`}
+                </Button>
+                <ActionGroup title="抽牌与本国牌规则">
+                <Typography variant="body2">已按本回合可用性发放本国牌与年度手牌。拥有两张可用本国牌的强国，将在春季部署时秘密保留一张。</Typography>
+                <Typography variant="body2">{`各参战强国依次确认后进入${nextPhase}；同一玩家控制的强国也需分别确认。`}</Typography>
+                {G.powers.ottoman.ruler === "suleiman" &&
+                    <Typography variant="caption" color="text.secondary">苏莱曼一世在位时，奥斯曼可保留两张本国牌。</Typography>}
+                <Typography variant="caption" color="text.secondary">{scenarioName(G.scenario)}</Typography>
+                </ActionGroup>
             </Stack>;
         }
         if (phase === "action") {
@@ -449,8 +476,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                 </FormControl>}
                 <Typography variant="caption" color="text.secondary">
                     {mode === "inspect" ? "在地图上点击城市查看详情。" : "在地图上点击目标城市执行行动。"}
-                    {from !== null ? ` 已选择起点：${SPACE_BY_ID[from]?.name ?? from}` : ""}
+                    {from !== null ? ` 已选择起点：${SPACE_BY_ID[from]?.name ?? SEA_ZONE_BY_ID[from]?.name ?? from}` : ""}
                 </Typography>
+                <Stack direction="row" spacing={1}>
+                    {!isDesktop && <Button size="small" variant="contained" onClick={() => setMobileView("map")}>前往地图</Button>}
+                    {from !== null && <Button size="small" onClick={() => setFrom(null)}>取消起点</Button>}
+                </Stack>
                 <Divider/>
                 <Stack direction="row" spacing={1} sx={{flexWrap: "wrap"}}>
                     <Button size="small" color="inherit" variant="outlined" disabled={!myTurn}
@@ -503,15 +534,15 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                     </Stack>
                 </Paper>}
                 <Divider/>
-                {G.scenario !== "tutorial" && <><Typography variant="subtitle2">宗教行动</Typography>
+                {G.scenario !== "tutorial" && <ActionGroup title="宗教行动">
                 <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                     {religionActions(me).map((a) => <Button key={a.label} size="small" variant="outlined"
                                                              disabled={!myTurn || cp < 2}
                                                              onClick={() => a.run()}>{a.label}</Button>)}
                 </Stack>
                 <Divider/>
-                </>}
-                <Typography variant="subtitle2">小国影响力与外交</Typography>
+                </ActionGroup>}
+                <ActionGroup title="小国影响力与外交">
                 <Typography variant="caption" color="text.secondary">
                     购买影响力每枚 1 CP；事件或对小国宣战触发外交决议，同一小国每回合只能决议一次。
                 </Typography>
@@ -541,7 +572,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                         </Stack>)}
                 </Stack>
                 <Divider/>
-                {G.scenario !== "tutorial" && !isActivatedMajor(G, me) && <><Typography variant="subtitle2">间谍与刺杀</Typography>
+                </ActionGroup>
+                {G.scenario !== "tutorial" && !isActivatedMajor(G, me) && <><ActionGroup title="间谍与刺杀">
                 <Typography variant="caption" color="text.secondary">
                     第 3 回合起开放。间谍按 2 CP 派遣；情报行动为 2 CP；刺杀每回合一次，投入 2–4 CP。
                 </Typography>
@@ -579,7 +611,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                             onClick={() => moves.assassinate({target: assassinationTarget, cp: assassinationCp})}>尝试刺杀</Button>
                 </Stack>
                 <Divider/>
-                <Typography variant="subtitle2">世界地图 · 探险与殖民</Typography>
+                </ActionGroup>
+                <ActionGroup title="世界地图 · 探险与殖民">
                 <Typography variant="caption" color="text.secondary">海域按已录入的粗略邻接关系逐区航行；尚未录入的官方航行检定与海盗规则不会自动结算。</Typography>
                 <Stack spacing={0.5}>
                     {WORLD_SEA_ZONES.map((zone) => {
@@ -619,7 +652,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                             onClick={() => setExpeditionHasColony(!expeditionHasColony)}>携带殖民地</Button>
                 </Stack>
                 <Divider/>
-                <Typography variant="subtitle2">赞助 (每回合最多一位艺术家与一位科学家)</Typography>
+                </ActionGroup>
+                <ActionGroup title="赞助（每回合各一位）">
                 <Typography variant="caption" color="text.secondary">
                     剩余 VP 标记：艺术家 {artistMarkersLeft} 枚、科学家 {scientistMarkersLeft} 枚（共 {vpAwards.length} 枚）
                 </Typography>
@@ -650,7 +684,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                             {p.name}{p.rating === null ? " (评级待录)" : ` (评级 ${p.rating})`}{p.kind === "scientist" ? " · 科学家" : ""}
                         </Button>)}
                 </Stack>
-                </>}
+                </ActionGroup></>}
                 {ps !== undefined && ps.seaCaptains.length > 0 && <>
                     <Divider/>
                     <Typography variant="subtitle2">船长</Typography>
@@ -667,7 +701,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                     })}
                 </>}
                 <Divider/>
-                <Typography variant="subtitle2">海盗 (1 CP)</Typography>
+                <ActionGroup title="海盗 (1 CP)">
                 <Stack spacing={0.5}>
                     <FormControl size="small" fullWidth>
                         <InputLabel id="vq-pirate-zone">海域</InputLabel>
@@ -687,6 +721,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                     <Button size="small" variant="outlined" disabled={!myTurn || cp < 1 || piracyZone === "" || piracyTarget === ""}
                             onClick={() => moves.piracy({zone: piracyZone, target: piracyTarget})}>发动海盗</Button>
                 </Stack>
+                </ActionGroup>
             </Stack>;
         }
         if (phase === "diplomacy") {
@@ -890,110 +925,62 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
         return list;
     };
 
-    return <Box sx={{p: 1}}>
-        {ctx.gameover !== undefined && <Paper sx={{p: 1, mb: 1, bgcolor: "#e8f5e9"}}>
-            <Typography variant="h6">对局结束 · 胜者：P{Number(ctx.gameover.winner) + 1} {POWER_NAMES[(ctx.gameover.power ?? powerAt(String(ctx.gameover.winner))) as Power].zh}</Typography>
-            <Typography variant="caption">原因：{ctx.gameover.reason ?? ""}</Typography>
-        </Paper>}
-        <Paper sx={{p: 1, mb: 1}}>
-            {owned.length > 1 && <Stack direction="row" spacing={1}>
-                {owned.map((power) => <Button key={power} size="small" disabled={myTurn || !!responsePower}
-                    variant={me === power ? "contained" : "outlined"} onClick={() => setViewPower(power)}>{POWER_NAMES[power].zh}</Button>)}
-            </Stack>}
-            {G.scenario === "tutorial" && <Stack spacing={0.5}>
-                <Typography variant="subtitle1">勒班陀海战 · 第 {Math.min(G.year, 3)} / 3 回合</Typography>
-                <Typography variant="body2">奥斯曼：军事胜利立即获胜；回合结束达到 20 VP 获胜。第 3 回合结束未达成则西班牙获胜。</Typography>
-                <Typography variant="body2">奥斯曼 {powerVp(G, "ottoman")} VP（关键城市 {baseVp(G, "ottoman")}，无动荡要塞 {tutorialFortressVp(G)}，其他 {G.powers.ottoman.bonusVp}）。剩余回合：{Math.max(0, 4 - G.year)}。</Typography>
-                <Typography variant="caption">当前阶段：{PHASE_LABELS[phase] ?? phase}。地图 × 标记地区禁止进入。双方持续交战。</Typography>
-            </Stack>}
-            <Stack direction="row" spacing={1} sx={{alignItems: "center", flexWrap: "wrap"}}>
-                <Typography variant="h6" sx={{fontWeight: 700}}>Virgin Queen</Typography>
-                <Chip color="primary" label={`第 ${G.year} 回合`}/>
-                <Chip variant="outlined" label={PHASE_LABELS[phase] ?? phase}/>
-                <Chip variant="outlined" label={`当前：${POWER_NAMES[G.activePower].zh}`}/>
-                <Chip variant="outlined" label={`牌堆 ${G.deckCount ?? 0}`}/>
-                <Chip variant="outlined" label={`新教地区 ${protestantSpaceCount(G)}`}/>
-                <Box sx={{flexGrow: 1}}/>
-                {standings.map((s) => <Chip key={s.power} size="small"
-                                             label={`${POWER_NAMES[s.power].short} ${s.vp}`}
-                                             sx={{
-                                                 bgcolor: CONTROLLER_COLORS[s.power],
-                                                 color: s.power === "spain" || s.power === "england" ? "#fff" : "#fff",
-                                             }}/>) }
-            </Stack>
-            {G.lastRolls !== "" && <Typography variant="caption" color="text.secondary">最近掷骰：{G.lastRolls}</Typography>}
-        </Paper>
-        <Grid container spacing={1}>
-            <Grid size={{xs: 12, md: 8}}>
-                <VQMap G={G} selected={selected} onSelect={onSelect}/>
-                <Paper sx={{p: 1, mt: 1, maxHeight: 150, overflow: "auto"}}>
-                    <Typography variant="subtitle2">日志</Typography>
-                    <List dense disablePadding>
-                        {G.log.slice(-10).reverse().map((l, i) => <ListItem key={i} disableGutters sx={{py: 0}}>
-                            <Typography variant="caption">{l}</Typography>
-                        </ListItem>)}
-                    </List>
-                </Paper>
-            </Grid>
-            <Grid size={{xs: 12, md: 4}}>
-                {phase === "diplomacy" && <Paper sx={{p: 1, mb: 1}}>
-                    <Typography variant="subtitle2" gutterBottom>外交</Typography>
-                    {actionPanel()}
-                </Paper>}
-                {me !== undefined && ps !== undefined && <Paper sx={{p: 1, mb: 1}}>
-                    <Stack direction="row" spacing={1} sx={{alignItems: "center"}}>
-                        <Box sx={{width: 14, height: 14, bgcolor: CONTROLLER_COLORS[me], borderRadius: 0.5}}/>
-                        <Typography variant="subtitle1" sx={{fontWeight: 700}}>{POWER_NAMES[me].zh}</Typography>
-                        <Chip size="small" label={`${powerVp(G, me)} VP`}/>
-                        <Chip size="small" variant="outlined" label={`${controlledKeys(G, me).length} 关键城市`}/>
-                    </Stack>
-                    <Typography variant="caption" color="text.secondary">
-                        统治者：{RULER_NAMES[ps.ruler] ?? POWER_INFO[me].ruler.name}（行政 {POWER_INFO[me].ruler.admin} / 额外牌 {POWER_INFO[me].ruler.cardBonus}）
-                        · 基础 {baseVp(G, me)} + 宗教 {religiousSpecialVp(G, me)} + 奖励 {ps.bonusVp}
-                    </Typography>
-                    <Stack direction="row" spacing={1} sx={{mt: 0.5}}>
-                        <Typography variant="caption">战争：{ps.wars.length > 0 ? ps.wars.map((w) => POWER_NAMES[w].short).join(", ") : "无"}</Typography>
-                        <Typography variant="caption">同盟：{ps.allies.length > 0 ? ps.allies.map((w) => POWER_NAMES[w].short).join(", ") : "无"}</Typography>
-                        <Typography variant="caption">宝藏：{ps.treasures.length}</Typography>
-                    </Stack>
-                </Paper>}
-                {me !== undefined && <Paper sx={{p: 1, mb: 1, maxHeight: 320, overflow: "auto"}}>
-                    <Stack direction="row" sx={{alignItems: "center", justifyContent: "space-between"}}>
-                        <Typography variant="subtitle2">手牌</Typography>
-                        <Stack direction="row" spacing={0.5}>
-                            {ps !== undefined && ps.treasures.map((t, i) =>
-                                <Button key={i} size="small" variant="outlined"
-                                        disabled={!canAct || !ps.cardPlayed || ps.treasurePlayed}
-                                        onClick={() => moves.playTreasure({index: i})}>{t} CP</Button>)}
-                        </Stack>
-                    </Stack>
-                    {hand.length === 0 && <Typography variant="caption" color="text.secondary">（无手牌）</Typography>}
-                    {hand.map(cardView)}
-                </Paper>}
-                <Paper sx={{p: 1, mb: 1}}>
-                    <Typography variant="subtitle2" gutterBottom>列强概览</Typography>
-                    {POWERS.map((p) => <Stack key={p} direction="row" spacing={0.5} sx={{alignItems: "center", mb: 0.25}}>
-                        <Box sx={{width: 10, height: 10, bgcolor: CONTROLLER_COLORS[p], borderRadius: 0.5}}/>
-                        <Typography variant="caption" sx={{minWidth: 72}}>{POWER_NAMES[p].short} · {ownerOf(G, p) === undefined ? "未激活" : `P${Number(ownerOf(G, p)) + 1}`}</Typography>
-                        <Chip size="small" label={`${powerVp(G, p)} VP`}/>
-                        {p === "hre" && G.hreReligiousPreferenceChosen && <Chip size="small" variant="outlined"
-                            label={G.hreReligiousPreference !== undefined && (me === "hre" || G.hreReligiousPreferenceRevealed)
-                                ? `${G.hreReligiousPreferenceRevealed ? "已公开" : "秘密"}：${HRE_RELIGIOUS_PREFERENCE_NAMES[G.hreReligiousPreference]} · ${hreReligiousVp(G)} VP${G.hreReligiousPreferenceRevealed ? "" : "（未计入）"}`
-                                : "宗教倾向已秘密选择"}/>}
-                        <Chip size="small" variant="outlined" label={`${controlledKeys(G, p).length}K`}/>
-                        <Chip size="small" variant="outlined" label={`${G.handCounts?.[p] ?? G.powers[p].cards.length}牌`}/>
-                        {(G.homeCardSetAsideCounts?.[p] ?? 0) > 0 &&
-                            <Chip size="small" variant="outlined" label={`面朝下 ${G.homeCardSetAsideCounts?.[p]}`}/>}
-                        {G.powers[p].wars.length > 0 && <Typography variant="caption" color="text.secondary">
-                            战:{G.powers[p].wars.map((w) => POWER_NAMES[w].short).join("/")}
-                        </Typography>}
-                    </Stack>)}
-                </Paper>
-                {phase !== "diplomacy" && <Paper sx={{p: 1, mb: 1}}>
-                    <Typography variant="subtitle2" gutterBottom>行动</Typography>
-                    {actionPanel()}
-                </Paper>}
-                {space !== undefined && spaceDef !== undefined && <Paper sx={{p: 1}}>
+    const pendingPower = G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
+        G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target;
+    const hasResponse = pendingPower !== undefined && ctx.gameover === undefined;
+    const selectedSea = selected ? G.seaZones[selected as keyof VQGame["seaZones"]] : undefined;
+    const panelProps = (name: string) => ({id: `${panelID}-${name}`, role: isDesktop ? undefined : "tabpanel",
+        "aria-labelledby": isDesktop ? undefined : `${panelID}-tab-${name}`, hidden: !isDesktop && mobileView !== name});
+    React.useEffect(() => {
+        if (hasResponse) {
+            if (actionRef.current) actionRef.current.scrollTop = 0;
+            if (sidebarRef.current) sidebarRef.current.scrollTop = 0;
+        }
+    }, [hasResponse, pendingPower, G.pendingBattle?.step, G.pendingPiracy?.step, G.pendingTutorialEvent?.step]);
+
+    return <VQSurface><div className="vq-board">
+        <header className="vq-status">
+            <div><div className="vq-eyebrow">A game of diplomacy & empire · 1559–1598</div>
+                <h1 className="vq-title">Virgin Queen</h1></div>
+            <div className="vq-status-meta">
+                <span>{scenarioName(G.scenario)} · 第 {G.year}{G.scenario === "tutorial" ? " / 3" : ""} 回合</span>
+                <span> / {PHASE_LABELS[phase] ?? phase}</span>
+                <strong>{ctx.gameover !== undefined ? "对局结束" : `当前：${POWER_NAMES[G.activePower].zh}`}</strong>
+                <span>{me ? `${POWER_NAMES[me].zh} · ${cp} CP` : "旁观模式"}</span>
+                {standings.map((entry) => <span key={entry.power} className="vq-score">
+                    <i className="vq-dot" style={{background: CONTROLLER_COLORS[entry.power]}}/>{POWER_NAMES[entry.power].short} <b>{entry.vp} VP</b>
+                </span>)}
+            </div>
+        </header>
+        {hasResponse && <div className="vq-response" role="status">
+            <span>需要响应 · {POWER_NAMES[pendingPower].zh}{ownerOf(G, pendingPower) === playerID ? " · 轮到你选择" : " · 等待选择"}</span>
+            {!isDesktop && <Button size="small" onClick={() => setMobileView("action")}>查看响应</Button>}
+        </div>}
+        <Tabs className="vq-mobile-tabs" value={mobileView} onChange={(_event, value) => setMobileView(value)} variant="fullWidth" aria-label="对局分区">
+            {[["map", "地图"], ["action", hasResponse ? "行动 · 待响应" : "行动"], ["hand", `手牌 ${hand.length}`], ["intel", "局势"]].map(([value, label]) =>
+                <Tab key={value} id={`${panelID}-tab-${value}`} aria-controls={`${panelID}-${value}`} value={value} label={label}/>)}
+        </Tabs>
+        <div className="vq-workspace">
+            <section className="vq-panel vq-map-panel" {...panelProps("map")}>
+                <VQMap G={G} selected={selected} origin={from} onSelect={onSelect}/>
+                {!isDesktop && selected && <div className="vq-map-selection">
+                    <Button size="small" variant="contained" onClick={() => setMobileView("action")}>{spaceDef?.name ?? SEA_ZONE_BY_ID[selected]?.name} · 详情 / 操作</Button>
+                </div>}
+            </section>
+            <aside className="vq-sidebar" ref={sidebarRef}>
+            <section className="vq-panel vq-actions" ref={actionRef} {...panelProps("action")}>
+                <TutorialGuide G={G} ctx={ctx} playerID={playerID}/>
+                <div className="vq-panel-heading"><h2>{hasResponse ? "响应与结算" : "当前行动"}</h2>
+                    <Chip variant="outlined" label={me ? `${cp} CP` : "旁观"}/></div>
+                {owned.length > 1 && <Stack direction="row" spacing={0.5} useFlexGap sx={{flexWrap: "wrap", mb: 1}}>
+                    {owned.map((power) => <Button key={power} size="small" disabled={myTurn || !!responsePower}
+                        variant={me === power ? "contained" : "outlined"} onClick={() => setViewPower(power)}>{POWER_NAMES[power].zh}</Button>)}
+                </Stack>}
+                {ctx.gameover !== undefined ? <Paper variant="outlined" sx={{p: 1.5, mb: 1}} role="status">
+                    <Typography variant="h6">对局结束 · 胜者：P{Number(ctx.gameover.winner) + 1} {POWER_NAMES[(ctx.gameover.power ?? powerAt(String(ctx.gameover.winner))) as Power].zh}</Typography>
+                    <Typography variant="body2">原因：{ctx.gameover.reason ?? ""}</Typography>
+                </Paper> : actionPanel()}
+                {space !== undefined && spaceDef !== undefined && <section className="vq-space-detail" aria-label="选中地区详情">
                     <Typography variant="subtitle2">{spaceDef.name}</Typography>
                     <Typography variant="caption" color="text.secondary">
                         {spaceDef.kind === "key" ? "关键城市" : spaceDef.kind === "fortress" ? "要塞" : "开放城市"}
@@ -1027,10 +1014,96 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive}: BoardProps
                     {space.leaders.length > 0 && <Typography variant="caption" sx={{display: "block"}}>
                         将领：{space.leaders.map((id) => LEADER_BY_ID[id]?.name ?? id).join("、")}
                     </Typography>}
-                </Paper>}
-            </Grid>
-        </Grid>
-    </Box>;
+                </section>}
+                {selectedSea && selected && <section className="vq-space-detail" aria-label="选中海域详情">
+                    <Typography variant="subtitle2">{SEA_ZONE_BY_ID[selected]?.name}</Typography>
+                    <Typography variant="caption">海域舰队</Typography>
+                    {Object.entries(selectedSea.naval).map(([controller, stack]) => <Typography key={controller} variant="body2">
+                        {controllerNameZh(controller as Controller)}：桨帆 {stack?.galley ?? 0} / 大帆 {stack?.galleon ?? 0} / 快帆 {stack?.racebuilt ?? 0} / 海盗 {stack?.corsair ?? 0}
+                    </Typography>)}
+                    {Object.keys(selectedSea.naval).length === 0 && <Typography variant="body2">此海域无舰队。</Typography>}
+                </section>}
+            </section>
+            <section className="vq-panel vq-intel" {...panelProps("intel")}>
+                <ActionGroup title="列强概览">
+                    {POWERS.map((p) => <Stack key={p} direction="row" spacing={0.5} sx={{alignItems: "center", mb: 0.25}}>
+                        <Box sx={{width: 10, height: 10, bgcolor: CONTROLLER_COLORS[p], borderRadius: 0.5}}/>
+                        <Typography variant="caption" sx={{minWidth: 72}}>{POWER_NAMES[p].short} · {ownerOf(G, p) === undefined ? "未激活" : `P${Number(ownerOf(G, p)) + 1}`}</Typography>
+                        <Chip size="small" label={`${powerVp(G, p)} VP`}/>
+                        {p === "hre" && G.hreReligiousPreferenceChosen && <Chip size="small" variant="outlined"
+                            label={G.hreReligiousPreference !== undefined && (me === "hre" || G.hreReligiousPreferenceRevealed)
+                                ? `${G.hreReligiousPreferenceRevealed ? "已公开" : "秘密"}：${HRE_RELIGIOUS_PREFERENCE_NAMES[G.hreReligiousPreference]} · ${hreReligiousVp(G)} VP${G.hreReligiousPreferenceRevealed ? "" : "（未计入）"}`
+                                : "宗教倾向已秘密选择"}/>}
+                        <Chip size="small" variant="outlined" label={`${controlledKeys(G, p).length}K`}/>
+                        <Chip size="small" variant="outlined" label={`${G.handCounts?.[p] ?? G.powers[p].cards.length}牌`}/>
+                        {(G.homeCardSetAsideCounts?.[p] ?? 0) > 0 &&
+                            <Chip size="small" variant="outlined" label={`面朝下 ${G.homeCardSetAsideCounts?.[p]}`}/>}
+                        {G.powers[p].wars.length > 0 && <Typography variant="caption" color="text.secondary">
+                            战:{G.powers[p].wars.map((w) => POWER_NAMES[w].short).join("/")}
+                        </Typography>}
+                    </Stack>)}
+                </ActionGroup>
+                {me !== undefined && ps !== undefined && <ActionGroup title="我的势力">
+                    <Stack direction="row" spacing={1} sx={{alignItems: "center"}}>
+                        <Box sx={{width: 14, height: 14, bgcolor: CONTROLLER_COLORS[me], borderRadius: 0.5}}/>
+                        <Typography variant="subtitle1" sx={{fontWeight: 700}}>{POWER_NAMES[me].zh}</Typography>
+                        <Chip size="small" label={`${powerVp(G, me)} VP`}/>
+                        <Chip size="small" variant="outlined" label={`${controlledKeys(G, me).length} 关键城市`}/>
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">
+                        统治者：{RULER_NAMES[ps.ruler] ?? POWER_INFO[me].ruler.name}（行政 {POWER_INFO[me].ruler.admin} / 额外牌 {POWER_INFO[me].ruler.cardBonus}）
+                        · 基础 {baseVp(G, me)} + 宗教 {religiousSpecialVp(G, me)} + 奖励 {ps.bonusVp}
+                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{mt: 0.5}}>
+                        <Typography variant="caption">战争：{ps.wars.length > 0 ? ps.wars.map((w) => POWER_NAMES[w].short).join(", ") : "无"}</Typography>
+                        <Typography variant="caption">同盟：{ps.allies.length > 0 ? ps.allies.map((w) => POWER_NAMES[w].short).join(", ") : "无"}</Typography>
+                        <Typography variant="caption">宝藏：{ps.treasures.length}</Typography>
+                    </Stack>
+                </ActionGroup>}
+
+                <ActionGroup title={`对局日志 · ${G.log.length}`}>
+                    {G.lastRolls && <Typography variant="body2">最近掷骰：{G.lastRolls}</Typography>}
+                    <List dense disablePadding>{G.log.slice(-30).reverse().map((line, index) => <ListItem key={index} disableGutters sx={{py: 0.5}}>
+                        <Typography variant="caption">{line}</Typography>
+                    </ListItem>)}</List>
+                </ActionGroup>
+                <ActionGroup title="场景与胜利条件">
+                    <Typography variant="body2">{scenarioName(G.scenario)} · 牌堆 {G.deckCount ?? 0} · 新教地区 {protestantSpaceCount(G)}</Typography>
+                    {G.scenario === "tutorial" && <>
+                        <Typography variant="body2">奥斯曼：军事胜利立即获胜；回合结束达到 20 VP 获胜。第 3 回合结束未达成则西班牙获胜。</Typography>
+                        <Typography variant="body2">奥斯曼 {powerVp(G, "ottoman")} VP（关键城市 {baseVp(G, "ottoman")}，无动荡要塞 {tutorialFortressVp(G)}，其他 {G.powers.ottoman.bonusVp}）。剩余回合：{Math.max(0, 4 - G.year)}。</Typography>
+                    </>}
+                </ActionGroup>
+            </section>
+            </aside>
+            <section className="vq-panel vq-hand" {...panelProps("hand")}>
+                <div className="vq-panel-heading"><h2>手牌 <span style={{fontWeight: 400}}>· {hand.length} 张</span></h2>
+                    <Stack direction="row" spacing={0.5}>
+                        {ps?.treasures.map((treasure, index) => <Button key={index} size="small" variant="outlined"
+                            disabled={!canAct || !ps.cardPlayed || ps.treasurePlayed} onClick={() => moves.playTreasure({index})}>宝藏 {treasure} CP</Button>)}
+                        {isDesktop && <Button size="small" aria-expanded={handExpanded} aria-controls={`${panelID}-cards`}
+                            onClick={() => setHandExpanded(!handExpanded)}>{handExpanded ? "收起手牌" : "展开手牌"}</Button>}
+                    </Stack>
+                </div>
+                <div id={`${panelID}-cards`} hidden={isDesktop && !handExpanded}>
+                    {hand.length === 0 && <Typography variant="body2" color="text.secondary">{me ? "暂无手牌。" : "旁观模式仅展示公开牌数。"}</Typography>}
+                    <div className="vq-card-tray">{hand.map((id) => {
+                        const card = cardById(id);
+                        return <button key={id} className="vq-card" aria-label={`查看卡牌 ${card.name} · ${card.cp} CP`} onClick={() => setSelectedCard(id)}>
+                            <small>{card.kind === "home" ? "本国牌" : card.kind === "event" ? "事件牌" : "行动牌"}<span className="vq-card-cp">{card.cp} CP</span></small>
+                            <strong>{card.name}</strong><small>查看详情 ↗</small>
+                        </button>;
+                    })}</div>
+                </div>
+            </section>
+        </div>
+        <Drawer anchor="right" open={selectedCard !== undefined && hand.includes(selectedCard)} onClose={() => setSelectedCard(undefined)}>
+            {selectedCard && hand.includes(selectedCard) && <div className="vq-surface vq-card-detail" role="dialog" aria-modal="true" aria-label={`卡牌详情 ${cardById(selectedCard).name}`}>
+                <div className="vq-panel-heading"><h2>卡牌详情</h2><Button onClick={() => setSelectedCard(undefined)}>关闭详情</Button></div>
+                {cardView(selectedCard)}
+            </div>}
+        </Drawer>
+    </div></VQSurface>;
 };
 
 const CAPITAL_SPACES_UI: Record<Power, string> = {

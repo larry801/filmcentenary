@@ -1,4 +1,4 @@
-import {Link} from 'react-router-dom'
+import {Link, useLocation} from 'react-router-dom'
 import React from "react";
 import Drawer from "@mui/material/Drawer";
 import MenuIcon from '@mui/icons-material/Menu';
@@ -50,6 +50,7 @@ const AntSwitch = styled(Switch)(({theme}) => ({
 const DrawerAppBar = () => {
 
     i18n.use();
+    const isVQ = /^\/(localVQ(?:\/|$)|join\/virginQueen\/)/.test(useLocation().pathname);
     const [open, setOpen] = React.useState(false);
     const [checked, setChecked] = React.useState(true);
     const handleOpen = () => setOpen(true);
@@ -64,8 +65,8 @@ const DrawerAppBar = () => {
         setChecked(event.target.checked);
     };
     return <React.Fragment>
-        <AppBar position={"sticky"}>
-        <Toolbar>
+        <AppBar position={"sticky"} sx={isVQ ? {height: 48, bgcolor: "#211b16", color: "#ead7af", boxShadow: "none", borderBottom: "1px solid #80633a"} : undefined}>
+        <Toolbar sx={isVQ ? {minHeight: "47px !important", gap: 1} : undefined}>
             <IconButton
                 color="inherit"
                 aria-label="open drawer"
@@ -83,6 +84,7 @@ const DrawerAppBar = () => {
                     <Grid>English</Grid>
                 </Grid>
             </Typography>
+            {isVQ && <Typography sx={{ml: "auto", fontSize: 11, letterSpacing: ".15em", fontFamily: "Georgia, serif"}}>VIRGIN QUEEN</Typography>}
         </Toolbar>
     </AppBar>
         <MUIDrawer open={open} anchor={"left"} onClose={handleClose}>
@@ -93,6 +95,7 @@ const DrawerAppBar = () => {
                 <ListItem><Button><Link to={'/about'}>{i18n.chain.drawer.about}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/songJinn'}>{"宋金战争"}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/virginQueen'}>{"Virgin Queen 处女女王"}</Link></Button></ListItem>
+                <ListItem><Button><Link to={'/localVQ/tutorial'}>{"Virgin Queen 双人教学"}</Link></Button></ListItem>
             </List>
         </MUIDrawer>
     </React.Fragment>

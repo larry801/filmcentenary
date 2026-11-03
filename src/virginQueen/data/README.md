@@ -125,7 +125,21 @@ Complex card text outside the tutorial also remains manual. Tutorial handlers
 live in `../tutorialEvents.ts`; the existence of a handler does not establish
 full coverage of every printed timing or choice (see the main coverage notes).
 
-## Validation
+## Offline geographic background
+
+`land-background.json` is a clipped, preprojected SVG path generated from
+[Natural Earth 1:50m land](https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-land/).
+The source data is [public domain](https://www.naturalearthdata.com/about/terms-of-use/).
+It supplies coastlines only; game spaces, ownership and connections continue to
+come from the existing scenario catalogue. No map tiles or external requests are
+needed at runtime.
+
+To regenerate, download `ne_50m_land.geojson` from the Natural Earth vector
+repository and run `python3 scripts/generate-vq-land.py /path/to/ne_50m_land.geojson`.
+The generated file records the source SHA-256 and geographic extent. The extent
+and projection in `components/map-geometry.ts` must match the generator.
+
+## Test commands
 
 ```sh
 ./node_modules/.bin/jest src/virginQueen/data

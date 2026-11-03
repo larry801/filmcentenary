@@ -12,6 +12,7 @@ import AboutPage from "./components/about-page";
 import Lobby from "./components/lobby";
 import Local from "./songJinn/components/local";
 import LocalVirginQueen from "./virginQueen/components/local";
+import "./virginQueen/components/virgin-queen.css";
 
 const rootElement = document.getElementById("root")!;
 
@@ -36,6 +37,7 @@ createRoot(rootElement).render(
             <Route path="/join/:matchID/:player" element={<JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
             <Route path="/local" element={<Local/>}/>
             <Route path="/localVQ" element={<LocalVirginQueen/>}/>
+            <Route path="/localVQ/tutorial" element={<LocalVirginQueen initialScenario="tutorial"/>}/>
             <Route path="/local2p" element={<Local2p/>}/>
             <Route path="/local4p" element={<Local4p/>}/>
             <Route path="*" element={<Navigate replace to="/"/>}/>
