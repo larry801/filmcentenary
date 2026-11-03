@@ -151,6 +151,11 @@
 - `recruit` 招募正规军前检查当前正规军总数（地图 + 境外战争 + 阿马达搭载），达到上限则非法。
 - 雇佣兵、骑兵、海军与海军重建延迟仍未纳入统一 force pool。
 
+### 意大利的委托（#48）
+
+- 指定一个意大利艺术家/科学家，视作花费 3 CP 给予赞助并加入待结算赞助；不实际扣除 CP。
+- 计入本回合每类赞助限制。
+
 ### 烧杀掳掠（#44）
 
 - 作为事件打出并指定刚攻占的设防地区；其相邻敌方设防地区逐个掷 1d6：
@@ -406,6 +411,7 @@ src/virginQueen/
   beaconFires.test.ts   #14 烽火自动拦截/+2 骰
   spanishFury.test.ts   #46 西班牙人的狂暴夺牌/抽牌/标记
   sack.test.ts          #44 烧杀掳掠相邻要塞投降
+  italianExpert.test.ts #48 意大利的委托免费赞助
   regularLimit.test.ts  17.1 正规军计数器上限
   seaCaptainLeader.test.ts 10.2 英国海船长作为海军将领、冬季归池
   tutorialEvents.test.ts  西班牙大道部署、城邦反抗陆海损失与双客户端事件响应
@@ -543,3 +549,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #46 西班牙人的狂暴接入后的验证：`jest src/virginQueen --runInBand --silent` 51 suites、450 tests passed（新增 1 项：夺牌/抽牌/+1 Card）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #44 烧杀掳掠接入后的验证：`jest src/virginQueen --runInBand --silent` 52 suites、451 tests passed（新增 1 项：相邻要塞投降）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#48 意大利的委托接入后的验证：`jest src/virginQueen --runInBand --silent` 53 suites、452 tests passed（新增 1 项：免费赞助不扣 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。

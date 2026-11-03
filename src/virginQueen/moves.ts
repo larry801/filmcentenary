@@ -493,6 +493,19 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
 /** #45 Scurvy: -1 Navigation on the next navigation check. */
 /** #46 Spanish Fury: take a card from the defender, then draw one. */
 /** #44 Sack!: adjacent enemy fortresses may surrender after a fortress falls. */
+/** #48 Italian Expert: sponsor an Italian patron for 3 CP without paying. */
+const resolveItalianExpert = (G: VQGame, p: Power, target?: string): void => {
+    if (target === undefined) return;
+    const patron = patronById(G, target);
+    if (patron === undefined || patron.region !== "italy" || patron.rating === null ||
+        POWERS.some((power) => G.powers[power].patrons.includes(patron.id))) return;
+    const key = `${p}:${patron.kind}`;
+    if (G.patronizedThisTurn.includes(key)) return;
+    G.pendingPatronage.push({power: p, patronId: patron.id, cp: 3});
+    G.patronizedThisTurn.push(key);
+    pushLog(G, `Italian Expert sponsors ${patron.name} for ${powerLabel(p)}.`);
+};
+
 const resolveSack = (G: VQGame, ctx: Ctx, attacker: Power, target?: string): void => {
     if (target === undefined || G.spaces[target] === undefined || G.spaces[target].control !== attacker) return;
     let defender: Power | undefined;
@@ -761,6 +774,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveSpanishFury(G, ctx, target);
     } else if (handler === "sack") {
         resolveSack(G, ctx, p, target);
+    } else if (handler === "italianExpert") {
+        resolveItalianExpert(G, p, target);
     } else if (handler === "beaconFires") {
         G.beaconFires = p;
         pushLog(G, `${powerLabel(p)} prepares Beacon Fires for the next interception.`);
