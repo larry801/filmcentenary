@@ -667,6 +667,12 @@ export interface VQGame {
     stormImpulse?: number;
     stormMoved?: string[];
     haremImpulse?: number;
+    /**
+     * Impulse whose #16 impulse-start window was declined.  The card is offered
+     * at most once per Ottoman impulse, so the move-declaration harem window is
+     * suppressed for the rest of that impulse.
+     */
+    haremDeclinedImpulse?: number;
     dragutFought?: boolean;
     pendingAbjuration?: {offers: {power: Power; space: string}[]};
     lockedCards?: Partial<Record<Power, string[]>>;

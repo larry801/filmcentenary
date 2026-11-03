@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {Power, VQGame} from "./constant/general";
-import {actionResponseOptions, pass, recruit, respondAction, startActionTurn} from "./moves";
+import {actionResponseOptions, moveLand, pass, recruit, respondAction, startActionTurn} from "./moves";
 import {setupGame} from "./util";
 
 const context = (playerID = "0"): Ctx => ({
@@ -87,6 +87,29 @@ describe("Sultan's Harem impulse response (card #16)", () => {
         expect(G.spaces.istanbul.land.ottoman?.regular ?? 0).toBe(before + 1);
         expect(G.powers.ottoman.cp).toBe(0);
         expect(G.powers.spain.cards).toEqual(["vq-016"]);
+    });
+
+    it("suppresses the move-declaration window for the rest of the declined impulse", () => {
+        const G = game();
+        reachOttomanSecondImpulse(G);
+        expect(respondAction(G, context("1"), {choice: "continue"})).toBeUndefined();
+        expect(G.haremDeclinedImpulse).toBe(G.impulse);
+        expect(G.pendingAction).toBeUndefined();
+
+        G.powers.ottoman.cp = 5;
+        expect(moveLand(G, context("0"), {from: "istanbul", to: "edirne", units: {regular: 1}, leaders: []})).toBeUndefined();
+
+        // The same holder is not asked again in this impulse, and the march
+        // still happens normally.
+        expect(G.pendingAction).toBeUndefined();
+        expect(G.powers.spain.cards).toContain("vq-016");
+        expect(G.spaces.edirne.land.ottoman?.regular ?? 0).toBe(1);
+
+        // A later Ottoman impulse opens a fresh impulse-start window.
+        beginImpulse(G, "spain");
+        const {setActivePlayers} = beginImpulse(G, "ottoman");
+        expect(G.pendingAction).toMatchObject({power: "ottoman", responder: "spain", move: "impulse"});
+        expect(setActivePlayers).toHaveBeenCalledWith({value: {"1": "actionResponse"}});
     });
 
     it("covers a pass impulse", () => {

@@ -189,6 +189,16 @@ const haremResponseHolder = (G: VQGame): Power | undefined =>
         G.powers[power].cards.includes("vq-016"));
 
 /**
+ * In addition to the first-impulse restriction, #16 is offered at most once
+ * per Ottoman impulse: once the impulse-start window is declined, the
+ * move-declaration window must not ask the same holder again in that impulse.
+ * Impulses without an impulse-start window (the first impulse, or one where
+ * the card was not held yet) keep the move-declaration window.
+ */
+const haremActionResponseAllowed = (G: VQGame): boolean =>
+    haremResponseAllowed(G) && G.haremDeclinedImpulse !== G.impulse;
+
+/**
  * Spain remains the default Storms responder, but card #16 is a response any
  * non-Ottoman power may play.  When Spain cannot play Storms, hand the window
  * to the first non-Ottoman holder of #16.
@@ -196,7 +206,7 @@ const haremResponseHolder = (G: VQGame): Power | undefined =>
 const actionResponseResponder = (G: VQGame, active: Power): Power => {
     if (active !== "ottoman") return "ottoman";
     if (G.powers.spain.cards.includes("vq-015")) return "spain";
-    if (haremResponseAllowed(G)) {
+    if (haremActionResponseAllowed(G)) {
         const holder = haremResponseHolder(G);
         if (holder !== undefined) return holder;
     }
@@ -211,7 +221,7 @@ const offerActionResponse = (G: VQGame, ctx: Ctx, move: NonNullable<VQGame["pend
     const active = power(G, ctx);
     const responder = actionResponseResponder(G, active);
     const canStorm = G.powers[responder].cards.includes("vq-015");
-    const canHarem = active === "ottoman" && responder !== "ottoman" && haremResponseAllowed(G) &&
+    const canHarem = active === "ottoman" && responder !== "ottoman" && haremActionResponseAllowed(G) &&
         G.powers[responder].cards.includes("vq-016");
     if (!canStorm && !canHarem) return false;
     G.pendingAction = {power: active, responder, move, args};
@@ -241,7 +251,7 @@ export const actionResponseOptions = (G: VQGame): {id: string; label: string}[] 
     const responder = pendingResponder(G, pending);
     return [{id: "continue", label: "允许行动"},
         ...(pending.move !== "impulse" && G.powers[responder].cards.includes("vq-015") ? [{id: "storms", label: "打出 Storms，中断行动"}] : []),
-        ...(pending.power === "ottoman" && responder !== "ottoman" && haremResponseAllowed(G) &&
+        ...(pending.power === "ottoman" && responder !== "ottoman" && haremActionResponseAllowed(G) &&
             G.powers[responder].cards.includes("vq-016") ? [{id: "harem", label: "打出 Sultan's Harem，奥斯曼跳过下次行动轮次"}] : [])];
 };
 
@@ -268,7 +278,12 @@ export const respondAction = (G: VQGame, ctx: Ctx, args: {choice: string}): void
         pushLog(G, `${powerLabel(responder)} plays Sultan's Harem: the Ottoman skips its next action round and ${powerLabel(responder)} draws a card.`);
     }
     // An impulse-start window has no interrupted action to resume.
-    if (pending.move === "impulse") return;
+    if (pending.move === "impulse") {
+        // Declining consumes this impulse's single #16 offer, so the same
+        // holder is not prompted again when the Ottoman declares its action.
+        if (args.choice === "continue") G.haremDeclinedImpulse = G.impulse;
+        return;
+    }
     G.resumeAction = true;
     const activeCtx = {...ctx, playerID: ownerOf(G, pending.power)};
     if (pending.move === "moveLand") moveLand(G, activeCtx, pending.args as Parameters<typeof moveLand>[2]);
