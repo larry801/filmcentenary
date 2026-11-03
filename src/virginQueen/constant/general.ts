@@ -524,6 +524,12 @@ export interface VQGame {
     hreReligiousPreference?: HreReligiousPreference;
     hreReligiousPreferenceChosen: boolean;
     hreReligiousPreferenceRevealed: boolean;
+    /** Catholic League formed (rule 20.10); the check is skipped afterwards. */
+    catholicLeagueFormed?: boolean;
+    /** Year whose Diplomacy Segment bars deals between Spain and France/Protestant. */
+    catholicLeagueNoDealsUntil?: number;
+    /** The spaces Spain took when the League formed (Reims first). */
+    catholicLeagueSpaces?: string[];
     /** Set at the end of the Action Phase so endIf can score the winter. */
     checkVictory: boolean;
     /** Key counts at setup, so starting positions do not trigger military victory. */

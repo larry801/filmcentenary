@@ -122,6 +122,11 @@ export const ADDITIONAL_SPACES: OfficialSpaceDef[] = [
     extra("calais", "Calais", 1.86, 50.95, "france", "fortress", {
         ports: ["englishChannel"],
     }),
+    // Catholic League (20.10) requires Reims. It is printed as an unfortified
+    // French home space; the League places a fortress there when it forms.
+    extra("reims", "Reims", 4.03, 49.26, "france", "open", {
+        area: "france",
+    }),
     extra("amboise", "Amboise", 0.98, 47.41, "france", "open", {
         area: "france",
     }),
@@ -213,6 +218,10 @@ const ADDITIONAL_LINKS: [string, string, boolean?][] = [
     // France
     ["calais", "amiens"],
     ["calais", "rouen"],
+    ["reims", "paris"],
+    ["reims", "amiens"],
+    ["reims", "dijon"],
+    ["reims", "metz"],
     ["amboise", "orleans"],
     ["amboise", "nantes"],
     ["rennes", "nantes"],

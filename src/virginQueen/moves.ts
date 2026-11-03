@@ -75,6 +75,7 @@ import {
     hits,
     homeCardChoiceRequired,
     hreReligiousPreferenceRequired,
+    inFrenchReligiousArea,
     isFortifiedSpace,
     isPort,
     isSeaZone,
@@ -111,6 +112,12 @@ import {
 } from "./util";
 
 const power = (G: VQGame, ctx: Ctx): Power => actingPower(G, ctx.currentPlayer);
+
+/** Rule 20.10: no deals between Spain and France/Protestant in the next Diplomacy Segment. */
+const catholicLeagueDealsBlocked = (G: VQGame, a: Power, b: Power): boolean =>
+    G.catholicLeagueNoDealsUntil === G.year &&
+    ((a === "spain" && (b === "france" || b === "protestant")) ||
+        (b === "spain" && (a === "france" || a === "protestant")));
 
 const offerActionResponse = (G: VQGame, ctx: Ctx, move: NonNullable<VQGame["pendingAction"]>["move"], args: NonNullable<VQGame["pendingAction"]>["args"]): boolean => {
     if (G.resumeAction) {delete G.resumeAction; return false;}
@@ -603,6 +610,9 @@ export const makePeace = (G: VQGame, ctx: Ctx, args: { target: Power }): void | 
     if (!atWar(G, p, args.target)) {
         return INVALID_MOVE;
     }
+    if (catholicLeagueDealsBlocked(G, p, args.target)) {
+        return INVALID_MOVE;
+    }
     if ((p === "england" && args.target === "spain") || (p === "spain" && args.target === "england")) {
         return INVALID_MOVE;
     }
@@ -618,6 +628,9 @@ export const formAlliance = (G: VQGame, ctx: Ctx, args: { target: Power }): void
     const p = power(G, ctx);
     const t = args.target;
     if (!isPower(t) || p === t || atWar(G, p, t) || allied(G, p, t)) {
+        return INVALID_MOVE;
+    }
+    if (catholicLeagueDealsBlocked(G, p, t)) {
         return INVALID_MOVE;
     }
     if ((p === "spain" && t === "protestant") || (p === "protestant" && t === "spain")) {
@@ -664,6 +677,9 @@ export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female
         return INVALID_MOVE;
     }
     const target = male.power === p ? female.power : male.power;
+    if (catholicLeagueDealsBlocked(G, p, target)) {
+        return INVALID_MOVE;
+    }
     if (target === "hre" && G.playerPowers && ownerOf(G, "hre") === undefined) {
         const influence = G.majorInfluence?.hre?.[p] ?? 0;
         if (influence < 1) return INVALID_MOVE;
@@ -1242,6 +1258,8 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
         !(isPower(destination.control) ? atWar(G, p, destination.control) : atWarWithMinor(G, p, destination.control as MinorPower)))) return INVALID_MOVE;
     const leaders = args.leaders ?? [];
     if (leaders.length > 2 || new Set(leaders).size !== leaders.length || leaders.some((id) => !G.spaces[args.from].leaders.includes(id) || LEADER_BY_ID[id]?.power !== p || LEADER_BY_ID[id]?.kind !== "army")) return INVALID_MOVE;
+    // Rule 20.10: the Duke of Guise may not leave the French religious struggle area.
+    if (leaders.includes("guise") && !inFrenchReligiousArea(args.to)) return INVALID_MOVE;
     const capacity = Math.max(4, leaders.reduce((sum, id) => sum + (LEADER_BY_ID[id].command ?? 0), 0));
     if (landCount(stack) > capacity || G.powers[p].cp < args.zones.length + 1) return INVALID_MOVE;
     if (offerActionResponse(G, ctx, "navalTransport", args)) return;
@@ -1286,6 +1304,8 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     const availableLeaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === unitPower && LEADER_BY_ID[id]?.kind === "army");
     const leaders = args.leaders ?? availableLeaders;
     if (new Set(leaders).size !== leaders.length || leaders.some((id) => !availableLeaders.includes(id))) return INVALID_MOVE;
+    // Rule 20.10: the Duke of Guise may not leave the French religious struggle area.
+    if (leaders.includes("guise") && !inFrenchReligiousArea(to)) return INVALID_MOVE;
     if (G.scenario === "tutorial" && (leaders.length > 2 || landCount(stack) > Math.max(4, leaders.reduce((total, id) => total + (LEADER_BY_ID[id].command ?? 0), 0)))) return INVALID_MOVE;
     if (spaceHasEnemyLand(G, p, from) && G.spaces[from].siege !== undefined && G.spaces[from].siege?.by !== p) {
         // Units under siege may not move; the besieger may march away.

@@ -61,6 +61,8 @@ image OCR was used for any other data.
   's-Hertogenbosch, Maastricht, Calais, Amboise, Rennes, Poitiers, Limoges,
   Montpellier, Avignon, Cognac, Bayonne, Berwick, Carlisle, Kinsale, Perth,
   Szigetvar).
+* Adds Reims for Catholic League formation (rules 20.10). The Scenario Book
+does not place starting units there; its four links are approximate.
 * New land connections are marked `approximate: true` and
   `source: "scenario-book"`. They are geographic reconstructions, not scans of
   the printed map.

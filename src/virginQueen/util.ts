@@ -2047,8 +2047,19 @@ const winterArmyLeaders = (G: VQGame, space: string, p: Power): string[] =>
 const winterLeadersHome = (G: VQGame, from: string, p: Power, leaders: string[]): void => {
     if (leaders.length === 0) return;
     const capital = CAPITAL_SPACES[p].find((id) => G.spaces[id]?.control === p);
-    moveLeaders(G, from, capital ?? "pool", leaders);
-    pushLog(G, `${powerLabel(p)} returns ${leaders.length} leader(s) home for the winter.`);
+    let moving = leaders;
+    // Rule 20.10: if winter return would force Guise out of the French
+    // religious struggle area, he is eliminated instead.
+    if (p === "france" && moving.includes("guise") &&
+        (capital === undefined || !inFrenchReligiousArea(capital))) {
+        G.spaces[from].leaders = G.spaces[from].leaders.filter((id) => id !== "guise");
+        delete G.leaders.guise;
+        moving = moving.filter((id) => id !== "guise");
+        pushLog(G, "The Duke of Guise cannot leave the French religious struggle area and is eliminated.");
+    }
+    if (moving.length === 0) return;
+    moveLeaders(G, from, capital ?? "pool", moving);
+    pushLog(G, `${powerLabel(p)} returns ${moving.length} leader(s) home for the winter.`);
 };
 
 const winterReturnNaval = (G: VQGame): void => {
@@ -2189,9 +2200,158 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
         }
         winterAddUnits(G, chosen.dest, p, stack);
         delete state.land[p];
-        moveLeaders(G, id, chosen.dest, leaders);
+        let movingLeaders = leaders;
+        if (p === "france" && movingLeaders.includes("guise") && !inFrenchReligiousArea(chosen.dest)) {
+            state.leaders = state.leaders.filter((leader) => leader !== "guise");
+            delete G.leaders.guise;
+            movingLeaders = movingLeaders.filter((leader) => leader !== "guise");
+            pushLog(G, "The Duke of Guise cannot leave the French religious struggle area and is eliminated.");
+        }
+        moveLeaders(G, id, chosen.dest, movingLeaders);
         pushLog(G, `${powerLabel(p)} withdraws ${landCount(stack)} unit(s) from ${SPACE_BY_ID[id].name} to ${SPACE_BY_ID[chosen.dest].name}${lost > 0 ? ` (${lost} lost to winter attrition)` : ""}.`);
     }
+};
+
+// --------------------------------------------------------------------------
+// Catholic League (rule 20.10)
+// --------------------------------------------------------------------------
+
+/**
+ * French religious struggle area (2.3): French home spaces, Huguenot home
+ * spaces in France, and Metz (explicitly included by 20.10).
+ */
+export const inFrenchReligiousArea = (id: string): boolean => {
+    const def = SPACE_BY_ID[id];
+    return def !== undefined && (def.home === "france" ||
+        (def.home === "protestant" && def.area === "france") || id === "metz");
+};
+
+const frenchHomeSpaces = (): string[] =>
+    SPACES.filter((def) => def.home === "france").map((def) => def.id);
+
+const frenchKeySpaces = (): string[] =>
+    SPACES.filter((def) => def.kind === "key" && inFrenchReligiousArea(def.id)).map((def) => def.id);
+
+/** Remove a specific unit type, taking from the largest stacks first. */
+const removeLandKind = (G: VQGame, p: Power, kind: keyof LandStack, count: number): number => {
+    let left = count;
+    const spaces = SPACES.filter((def) => (G.spaces[def.id].land[p]?.[kind] ?? 0) > 0)
+        .sort((a, b) => (G.spaces[b.id].land[p]?.[kind] ?? 0) - (G.spaces[a.id].land[p]?.[kind] ?? 0) ||
+            a.id.localeCompare(b.id));
+    for (const def of spaces) {
+        const stack = G.spaces[def.id].land[p];
+        if (stack === undefined) continue;
+        while (left > 0 && stack[kind] > 0) {
+            stack[kind] -= 1;
+            left -= 1;
+        }
+        cleanupLand(G, def.id, p);
+        if (left === 0) break;
+    }
+    return count - left;
+};
+
+/** A fortress built at Reims before the League forms displaces its garrison (12.5). */
+const displaceReimsGarrison = (G: VQGame): void => {
+    const reims = G.spaces.reims;
+    if (reims === undefined || !reims.fortress) return;
+    for (const owner of ownersWithLand(G, "reims")) {
+        const stack = reims.land[owner];
+        if (stack === undefined) continue;
+        if (!isPower(owner)) {
+            delete reims.land[owner];
+            continue;
+        }
+        const dest = nearestFriendlyFortified(G, owner, "reims");
+        if (dest === undefined) {
+            delete reims.land[owner];
+            continue;
+        }
+        winterAddUnits(G, dest, owner, stack);
+        delete reims.land[owner];
+        const leaders = reims.leaders.filter((id) => LEADER_BY_ID[id]?.power === owner);
+        if (leaders.length > 0) moveLeaders(G, "reims", dest, leaders);
+    }
+};
+
+/**
+ * Check for Catholic League formation at the end of Winter (rule 20.10).
+ * The Spanish player's two additional space choices are currently made by a
+ * deterministic priority (Protestant-controlled first, then French-controlled,
+ * then nearest to Reims); the rest of the formation procedure is official.
+ */
+export const checkCatholicLeague = (G: VQGame, ctx: Ctx): boolean => {
+    if (G.scenario === "tutorial" || G.catholicLeagueFormed === true || G.year < 3 || G.year > 6) {
+        return false;
+    }
+    const keys = frenchKeySpaces().filter((id) => G.spaces[id].control === "protestant").length;
+    const homes = frenchHomeSpaces().filter((id) => G.spaces[id].control === "protestant").length;
+    let formed = false;
+    if (keys >= 3) {
+        formed = true;
+        pushLog(G, `Catholic League check: the Protestants control ${keys} keys in France, so the League forms automatically.`);
+    } else if (homes <= 5) {
+        pushLog(G, `Catholic League check: ${homes} French home space(s) under Protestant control; not formed this year.`);
+        return false;
+    } else {
+        const rolled = die(ctx);
+        const total = rolled + homes;
+        formed = total >= 12;
+        pushLog(G, `Catholic League check: ${homes} French home space(s) + die ${rolled} = ${total}${formed ? " — formed!" : " — not formed."}`);
+    }
+    if (!formed) return false;
+
+    displaceReimsGarrison(G);
+    const candidates = SPACES.filter((def) => def.home === "france" && def.id !== "reims" &&
+        !isFortifiedSpace(G, def.id))
+        .sort((a, b) => {
+            const priority = (id: string): number => {
+                const control = G.spaces[id].control;
+                return control === "protestant" ? 0 : control === "france" ? 1 : 2;
+            };
+            return priority(a.id) - priority(b.id) ||
+                (winterDistance("reims", a.id) ?? 999) - (winterDistance("reims", b.id) ?? 999) ||
+                a.id.localeCompare(b.id);
+        });
+    const chosen = candidates.slice(0, 2).map((def) => def.id);
+    for (const id of ["reims", ...chosen]) {
+        G.spaces[id].control = "spain";
+        G.spaces[id].religion = "catholic";
+    }
+    pushLog(G, `Catholic League: Spain takes ${["reims", ...chosen].map((id) => SPACE_BY_ID[id].name).join(", ")}.`);
+
+    const regularsBefore = SPACES.reduce((n, def) => n + (G.spaces[def.id].land.france?.regular ?? 0), 0);
+    const mercsBefore = SPACES.reduce((n, def) => n + (G.spaces[def.id].land.france?.merc ?? 0), 0);
+    const regularsRemoved = removeLandKind(G, "france", "regular", Math.ceil(regularsBefore / 3));
+    const mercsRemoved = removeLandKind(G, "france", "merc", Math.ceil(mercsBefore / 3));
+    if (regularsRemoved > 0 || mercsRemoved > 0) {
+        pushLog(G, `Catholic League: France removes ${regularsRemoved} regular(s) and ${mercsRemoved} mercenar(y/ies).`);
+    }
+    if (regularsRemoved > 0) addLand(G, "reims", "spain", "regular", regularsRemoved);
+    if (mercsRemoved > 0) addLand(G, "reims", "spain", "merc", mercsRemoved);
+    const spanishRegulars = G.spaces.reims.land.spain?.regular ?? 0;
+    if (spanishRegulars < 4) {
+        addLand(G, "reims", "spain", "regular", 4 - spanishRegulars);
+        pushLog(G, "Catholic League: Spain raises the Reims garrison to 4 regulars.");
+    }
+    G.spaces.reims.fortress = true;
+    const guise = G.leaders.guise;
+    if (guise !== undefined) {
+        if (G.spaces[guise.location] !== undefined || G.seaZones[guise.location as SeaZoneID] !== undefined) {
+            moveLeaders(G, guise.location, "reims", ["guise"]);
+        } else if (!G.spaces.reims.leaders.includes("guise")) {
+            G.spaces.reims.leaders.push("guise");
+            G.leaders.guise = {id: "guise", location: "reims"};
+        }
+        pushLog(G, "Catholic League: the Duke of Guise joins the League in Reims.");
+    }
+    if (!atWar(G, "spain", "france")) setWar(G, "spain", "france");
+    if (!atWar(G, "spain", "protestant")) setWar(G, "spain", "protestant");
+    G.catholicLeagueSpaces = ["reims", ...chosen];
+    G.catholicLeagueNoDealsUntil = G.year + 1;
+    G.catholicLeagueFormed = true;
+    pushLog(G, "The Catholic League has formed; Spain may make no deals with France or the Protestant this coming Diplomacy Segment.");
+    return true;
 };
 
 export const winter = (G: VQGame, ctx: Ctx): void => {
@@ -2269,6 +2429,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         }
     }
     settleActivatedMajorVp(G);
+    checkCatholicLeague(G, ctx);
     G.year += 1;
     G.checkVictory = true;
     if (hreReligiousPreferenceEnabled(G) && !G.hreReligiousPreferenceRevealed && hreReligiousVp(G) > 0) {
