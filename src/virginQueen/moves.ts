@@ -1776,7 +1776,7 @@ const resolveExperiencedNavigator = (G: VQGame, target?: string): void => {
     pushLog(G, `${captain.nameEn} becomes an Experienced Navigator (Navigation ${G.worldCaptains[target].navigationBonus}).`);
 };
 
-const resolveGouvernanteDeFrance = (G: VQGame, ctx: Ctx): void => {
+const resolveGouvernanteDeFrance = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (atWar(G, "france", "protestant") && G.powers.france.cards.length <= 2) {
         const result = die(ctx, 6) + 2;
         const targets = SPACES.filter((space) => space.area === "france" &&
@@ -1800,8 +1800,14 @@ const resolveGouvernanteDeFrance = (G: VQGame, ctx: Ctx): void => {
         return;
     }
     G.marriageFestivities = "france";
-    drawCards(G, ctx, "france", 1);
-    pushLog(G, "Gouvernante de France places +2 Wedding Festivities on a French marriage and draws a card.");
+    if (target === "retrieve" && G.discard.includes("vq-053")) {
+        G.discard = G.discard.filter((id) => id !== "vq-053");
+        G.powers.france.cards.push("vq-053");
+        pushLog(G, "Gouvernante de France retrieves Grand Tour from the discard pile.");
+    } else {
+        drawCards(G, ctx, "france", 1);
+        pushLog(G, "Gouvernante de France places +2 Wedding Festivities on a French marriage and draws a card.");
+    }
 };
 
 const resolveEnterpriseOfEngland = (G: VQGame): void => {
@@ -1974,7 +1980,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "enterpriseOfEngland") {
         resolveEnterpriseOfEngland(G);
     } else if (handler === "gouvernanteDeFrance") {
-        resolveGouvernanteDeFrance(G, ctx);
+        resolveGouvernanteDeFrance(G, ctx, target);
     } else if (handler === "card049") {
         resolveConquestOfPhilippines(G, ctx);
     } else if (handler === "councilOfTroubles") {

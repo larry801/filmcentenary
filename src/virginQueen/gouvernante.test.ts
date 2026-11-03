@@ -34,6 +34,23 @@ describe("Gouvernante de France (card #33)", () => {
         expect(G.powers.france.cards.length).toBe(hand);
     });
 
+    it("can retrieve Grand Tour instead of drawing", () => {
+        const G = game();
+        if (!G.powers.france.cards.includes("vq-033")) G.powers.france.cards.push("vq-033");
+        const male = royal("henryIII", "france", "male");
+        const female = royal("fg3", "england", "female");
+        G.royals = G.royals.filter((r) => r.id !== male.id && r.id !== female.id);
+        G.royals.push(male, female);
+        G.betroths = undefined;
+        G.betrothals = [{male: male.id, female: female.id}];
+        G.discard = ["vq-053"];
+
+        expect(playCard(G, context([6]), {cardId: "vq-033", asEvent: true, target: "retrieve"})).toBeUndefined();
+
+        expect(G.marriageFestivities).toBe("france");
+        expect(G.powers.france.cards).toContain("vq-053");
+    });
+
     it("uses option 2 when France is at war with the Protestant and short on cards", () => {
         const G = game();
         setWar(G, "france", "protestant");
