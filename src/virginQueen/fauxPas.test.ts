@@ -26,6 +26,19 @@ describe("Diplomatic Faux Pas / German Recruitment Curtailed", () => {
         expect(G.powers.spain.influence.papacy).toBe(0);
     });
 
+    it("lets the HRE choose two spaces", () => {
+        const G = game();
+        G.powers.hre.cards = ["vq-023"];
+        G.spaces.brussels.land.spain = {regular: 1, merc: 2, cav: 0};
+        G.spaces.antwerp.land.spain = {regular: 1, merc: 3, cav: 0};
+        const hreContext = {...context(), currentPlayer: "4", playerID: "4"} as Ctx;
+
+        expect(playCard(G, hreContext, {cardId: "vq-023", asEvent: true, target: "brussels:antwerp"})).toBeUndefined();
+
+        expect(G.spaces.brussels.land.spain?.merc).toBe(0);
+        expect(G.spaces.antwerp.land.spain?.merc).toBe(0);
+    });
+
     it("removes all mercenaries in a space", () => {
         const G = game();
         G.powers.france.cards = ["vq-023"];

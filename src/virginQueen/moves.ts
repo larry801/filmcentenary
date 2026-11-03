@@ -705,12 +705,15 @@ const resolveDiplomaticFauxPas = (G: VQGame, target?: string): void => {
 };
 
 /** #23 German Recruitment Curtailed: remove all mercenaries in a space. */
-const resolveGermanRecruitment = (G: VQGame, target?: string): void => {
-    if (target === undefined || G.spaces[target] === undefined) return;
-    for (const stack of Object.values(G.spaces[target].land)) {
-        if (stack !== undefined) stack.merc = 0;
+const resolveGermanRecruitment = (G: VQGame, p: Power, target?: string): void => {
+    if (target === undefined) return;
+    const areas = (p === "hre" ? target.split(":") : [target]).filter((id) => G.spaces[id] !== undefined);
+    for (const area of areas) {
+        for (const stack of Object.values(G.spaces[area].land)) {
+            if (stack !== undefined) stack.merc = 0;
+        }
     }
-    pushLog(G, `German Recruitment Curtailed removes all mercenaries in ${SPACE_BY_ID[target].name}.`);
+    pushLog(G, `German Recruitment Curtailed removes all mercenaries in ${areas.map((id) => SPACE_BY_ID[id].name).join(" and ")}.`);
 };
 
 const resolveUnrestInRealm = (G: VQGame, target?: string): void => {
@@ -1627,7 +1630,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "diplomaticFauxPas") {
         resolveDiplomaticFauxPas(G, target);
     } else if (handler === "germanRecruitmentCurtailed") {
-        resolveGermanRecruitment(G, target);
+        resolveGermanRecruitment(G, p, target);
     } else if (handler === "rulerFallsIll") {
         resolveRulerFallsIll(G, ctx, p, target);
     } else if (handler === "armadaPardon") {

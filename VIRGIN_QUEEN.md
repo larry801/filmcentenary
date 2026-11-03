@@ -179,7 +179,7 @@
 ### 外交失礼 / 德意志募兵受限（#19/#23）
 
 - #19：从另一主要势力移除至多 5 点小国影响力（自动从最高项扣起）。
-- #23：移除目标地区所有势力的雇佣兵；HRE 执行时可指定两个地区尚未接入。
+- #23：移除目标地区所有势力的雇佣兵；HRE 执行时可用 `地区1:地区2` 指定两个地区。
 
 ### 国内动荡 / 统治者病倒（#25/#30）
 
@@ -951,4 +951,4 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #25/#30 接入后的验证：`jest src/virginQueen --runInBand --silent` 96 suites、515 tests passed（新增 2 项：三地动荡、随机弃牌）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#19/#23 接入后的验证：`jest src/virginQueen --runInBand --silent` 97 suites、517 tests passed（新增 2 项：移除影响力、清空雇佣兵）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#19/#23 接入后的验证：`jest src/virginQueen --runInBand --silent` 97 suites、518 tests passed（新增 3 项：移除影响力、HRE 双地区、清空雇佣兵）；`npm run build` 通过，仍有既有大体积 chunk 提示。
