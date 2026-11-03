@@ -11,7 +11,15 @@ import {
     ShowPlanPhaseConfig, StagedTurnConfig,
     TurnEndPhaseConfig
 } from "./constant/config";
-import {Country, setupSongJinn, SJPlayer, SongJinnGame, VictoryReason} from "./constant/general";
+import {
+    ActiveEvents,
+    Country,
+    ProvinceID,
+    setupSongJinn,
+    SJPlayer,
+    SongJinnGame,
+    VictoryReason,
+} from "./constant/general";
 import {diplomaticVictory, getJinnPower, getSongPower} from "./util";
 
 
@@ -66,6 +74,13 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
                 reason: VictoryReason.PowerOfNation
             }
         }
+        if (G.events.includes(ActiveEvents.JianYanNanDu)
+            && G.jinn.provinces.includes(ProvinceID.LIANGZHELU)) {
+            return {
+                winner: SJPlayer.P2,
+                reason: VictoryReason.GuoPoJiaWang
+            }
+        }
         const dipVic = diplomaticVictory(G);
         if (dipVic !== null) {
             switch (dipVic) {
@@ -76,7 +91,7 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
                     }
                 case Country.SONG:
                     return {
-                        winner: SJPlayer.P2,
+                        winner: SJPlayer.P1,
                         reason: VictoryReason.Diplomacy
                     }
             }
@@ -89,5 +104,3 @@ export const SongJinnGameDef: Game<SongJinnGame> = {
         }
     }
 }
-
-

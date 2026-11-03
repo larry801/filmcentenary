@@ -22,6 +22,7 @@ import {
 import ChoiceDialog from "../../components/modals";
 import {TakeDamageDialog} from "./take-damage";
 import {getProvinceById} from "../constant/province";
+import {actualStage} from "../../game/util";
 import CheckBoxDialog from "./choice";
 import {ChooseUnitsDialog} from "./recruit";
 import {
@@ -126,7 +127,7 @@ enum TakeDamageStep {
     READY
 }
 
-const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
+const TroopOperation = ({ G, ctx, pid, isActive, moves }: IPlayerHandProps) => {
     const [expanded, setExpanded] = React.useState('');
 
     const emptyTroop: Troop = { p: RegionID.R19, u: [0, 0, 0, 0, 0, 0], c: null, g: Country.SONG };
@@ -455,7 +456,7 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
                 disabled: false
             }
         })} defaultChoice={""}
-        show={isActive && deployNewStep === DeployNewStep.CITY} title={"补充城市"} toggleText={"补充城市"}
+        show={isActive && ctx.phase === 'deploy' && deployNewStep === DeployNewStep.CITY} title={"补充城市"} toggleText={"补充城市"}
         initial={true} />
 
     const deployNewCityUnitsDialog = <ChooseUnitsDialog
@@ -464,20 +465,24 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
             setDeployNewStep(DeployNewStep.TROOP);
         }}
         max={pub.ready} initUnits={unitNames.map(() => 0)}
-        show={isActive && deployNewStep === DeployNewStep.UNITS} title={"补充部队"} toggleText={"补充部队"}
+         show={isActive && ctx.phase === 'deploy' && deployNewStep === DeployNewStep.UNITS} title={"补充部队"} toggleText={"补充部队"}
         initial={true} country={ctr}
     />
-    const generals = [...getReadyGenerals(G, pid), ...getPresentGeneral(G, pid)]
+    // J16 奖励是「将1个在场的将领移出游戏」，所以只列在场的将领
+    const removableGenerals = getPresentGeneral(G, pid);
 
     const removeGeneralDialog = <ChoiceDialog
         callback={(g) => {
             moves.removeOwnGeneral(parseInt(g));
-        }} choices={generals.map(g => {
+        }} choices={removableGenerals.map(g => {
             return { label: getGeneralNameByCountry(ctr, g), value: g.toString(), disabled: false, hidden: false }
-        })} defaultChoice={""} show={isActive} title={"移除将领"} toggleText={"移除将领"} initial={false} />
+        })} defaultChoice={""}
+        show={isActive && actualStage(G, ctx) === 'removeGeneral'}
+        title={"移除将领"} toggleText={"移除将领"} initial={false} />
 
     const [removeUnitStep, setRemoveUnitStep] = React.useState(RemoveStep.TROOP);
     const [removeUnitTroop, setRemoveUnitTroop] = React.useState(emptyTroop);
+    // J06 奖励是「消灭总共2耐久度的部队」，只有拿到奖励（stage=removeUnit）时才能点
     const removeUnitDialog = <ChooseUnitsDialog
         callback={(u) => {
             setRemoveUnitStep(RemoveStep.TROOP)
@@ -487,7 +492,8 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
                 country: removeUnitTroop.g
             })
         }} max={removeUnitTroop.u} initUnits={removeUnitTroop.u.map(() => 0)}
-        show={isActive && removeUnitStep === RemoveStep.UNITS} title={"选择要消灭的部队"}
+        show={isActive && actualStage(G, ctx) === 'removeUnit' && removeUnitStep === RemoveStep.UNITS}
+        title={"选择要消灭的部队"}
         toggleText={"消灭部队"} initial={true} country={removeUnitTroop.g} />
 
     const [placeStep, setPlaceStep] = useState(PlaceStep.TROOP);
@@ -729,8 +735,8 @@ const TroopOperation = ({ G, pid, isActive, moves }: IPlayerHandProps) => {
                             variant={"contained"}
                             key={`grid-ops-${idx}-deploy`}
                             // disabled={t.c === null}
-                            disabled={
-                                troopIsWeiKun(G, t) || troopCanSiege(G, t) || t.c === null
+                                 disabled={
+                                 ctx.phase !== 'deploy' || troopIsWeiKun(G, t) || troopCanSiege(G, t) || t.c === null
                                 || (t.g === Country.JINN && !checkColonyCity(G, t.c))
                             }
                             onClick={

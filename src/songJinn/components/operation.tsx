@@ -4,9 +4,11 @@ import Grid from "@mui/material/Grid";
 import ChoiceDialog from "../../components/modals";
 import {
     ActiveEvents,
+    CityID,
     Country,
     DevelopChoice,
     General, MAX_DICES,
+    ProvinceID,
     SJPlayer, SongJinnGame,
 } from "../constant/general";
 import Button from "@mui/material/Button";
@@ -23,6 +25,7 @@ import {
     playerById, sjCardById, confirmRespondChoices, canChoosePlan, getPlanById, getStage
 } from "../util";
 import {Dices} from "./dices";
+import {getProvinceById} from "../constant/province";
 
 
 export interface IOperationProps {
@@ -246,6 +249,48 @@ export const Operation = ({
         title={"请选择拥立目标城市"} toggleText={"拥立"} initial={false}
     />
 
+    // 【岳飞登场】第一步：淮南两路 / 荆湖两路 二选一
+    const yueFeiProvince = [ProvinceID.HUAINANLIANGLU, ProvinceID.JINHULIANGLU];
+    const chooseProvinceDialog = <ChoiceDialog
+        callback={(c) => {
+            moves.chooseProvince({province: c})
+        }}
+        choices={yueFeiProvince.map(p => {
+            return {
+                label: getProvinceById(p).name,
+                value: p,
+                disabled: false,
+                hidden: false
+            }
+        })}
+        defaultChoice={""}
+        show={isActive && actualStage(G, ctx) === 'chooseProvince'}
+        title={"请选择岳飞登场的路（淮南两路 / 荆湖两路）"}
+        toggleText={"选择路"} initial={true}
+    />
+
+    // 【岳飞登场】第二步：在选中的那一路里选一个城市
+    const yueFeiProv = G.pending.province;
+    const yueFeiCities: CityID[] = yueFeiProv === null ? [] :
+        [...getProvinceById(yueFeiProv).capital, ...getProvinceById(yueFeiProv).other];
+    const chooseYueFeiCityDialog = <ChoiceDialog
+        callback={(c) => {
+            moves.chooseGeneralCity({city: c})
+        }}
+        choices={yueFeiCities.map(c => {
+            return {
+                label: getCityText(c),
+                value: c,
+                disabled: false,
+                hidden: false
+            }
+        })}
+        defaultChoice={""}
+        show={isActive && actualStage(G, ctx) === 'chooseCity'}
+        title={`请选择岳飞登场的城市（${yueFeiProv === null ? "" : getProvinceById(yueFeiProv).name}）`}
+        toggleText={"选择城市"} initial={true}
+    />
+
     const confirmRespondDialog = <ChoiceDialog
         callback={(c) => {
             moves.confirmRespond({choice: c, text: confirmRespondLogText(G, c, ctr)})
@@ -433,6 +478,8 @@ export const Operation = ({
         {developDialog}
         {returnToHandDialog}
         {emperorDialog}
+        {chooseProvinceDialog}
+        {chooseYueFeiCityDialog}
         {chooseFirstDialog}
         {choosePlanDialog}
         {generalSkillDialog}

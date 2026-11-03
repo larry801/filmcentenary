@@ -15,11 +15,12 @@ import {
     SongJinnGame, TroopPlace
 } from "../constant/general";
 import {getProvinceById} from "../constant/province";
+import {actualStage} from "../../game/util";
 import {
     currentProvStatus,
     getCityText,
     getCountryById,
-    getGeneralNameByCountry, getPlanById,
+    getGeneralNameByCountry, getPlanById, getReinforcementCities,
     getReadyGenerals,
     getRegionText, optionToPlace,
     pid2pub, placeToOption, placeToStr, provPlaces,
@@ -72,7 +73,8 @@ export const AdjustOps = ({
                 hidden: false
             }
         })} defaultChoice={""}
-        show={isActive}
+        // 只有拿到【移除国家】奖励（J18）时才显示
+        show={isActive && actualStage(G, ctx) === 'removeNation'}
         title={"选择移除国家"} toggleText={"移除国家"} initial={false}/>
     const adjustNationDialog = <ChoiceDialog
         callback={(c) => {
@@ -86,7 +88,8 @@ export const AdjustOps = ({
                 hidden: false
             }
         })} defaultChoice={""}
-        show={isActive}
+        // 只有拿到【调整外交】奖励（J04/J13）时才显示
+        show={isActive && actualStage(G, ctx) === 'adjustNation'}
         title={"选择调整国家"} toggleText={"调整外交"} initial={false}/>
 
     const takePlan = (choices: string[]) => {
@@ -176,7 +179,8 @@ export const AdjustOps = ({
         defaultChoice={""}
         title={"请选择要移动的将领"} toggleText={"移动将领"} initial={false}/>
 
-    const completedPlans = [...G.song.completedPlan, ...G.jinn.completedPlan];
+    // 奖励只能移除自己已完成的计划，所以只列自己的
+    const completedPlans = pub.completedPlan;
     const removeCompletedPlanDialog = <ChoiceDialog
         callback={(c) => moves.removeCompletedPlan(c)}
         choices={completedPlans.map((pid) => {
@@ -190,7 +194,8 @@ export const AdjustOps = ({
             }
         )}
         defaultChoice={''}
-        show={isActive && ctx.phase === 'resolvePlan'}
+        // 只有拿到【移除作战计划】奖励（J17）时才显示
+        show={isActive && actualStage(G, ctx) === 'removeCompletedPlan'}
         title={"请选择1张已完成作战计划移除"} toggleText={"移除完成作战计划"}
         initial={false}/>;
 
@@ -205,14 +210,14 @@ export const AdjustOps = ({
                     moves.deployGeneral({country: ctr, general: readyGenerals[0], dst: c})
                 }
             }
-        } choices={pub.cities.map(c => {
+        } choices={getReinforcementCities(G, ctr).map(c => {
         return {
             label: getCityText(c),
             value: c,
             disabled: false,
             hidden: false,
         }
-    })} defaultChoice={""} show={isActive && readyGenerals.length > 0 && !deployCityChosen}
+    })} defaultChoice={""} show={isActive && ctx.phase === 'deploy' && readyGenerals.length > 0 && !deployCityChosen}
         title={"请选择要派遣的城市"} toggleText={"派遣将领"} initial={false}/>
 
     const deployGeneralDialog = <ChoiceDialog
@@ -227,7 +232,7 @@ export const AdjustOps = ({
             disabled: false,
             hidden: false
         }
-    })} show={isActive && readyGenerals.length > 0 && deployCityChosen}
+    })} show={isActive && ctx.phase === 'deploy' && readyGenerals.length > 0 && deployCityChosen}
         defaultChoice={""}
         title={"请选择派遣将领"} toggleText={"派遣将领"} initial={false}/>
 

@@ -6,7 +6,9 @@ import {
     cardEvent,
     checkProvince,
     chooseFirst,
+    chooseGeneralCity,
     choosePlan,
+    chooseProvince,
     chooseTop,
     combatCard,
     confirmRespond,
@@ -34,6 +36,7 @@ import {
     moveGeneral,
     moveTroop,
     op,
+    paiQIan,
     opponentMove,
     placeTroop,
     placeUnit,
@@ -73,7 +76,8 @@ import {
     getJinnPower,
     getSongPower,
     pid2pub,
-    playerById
+    playerById,
+    resolveDeployPhase
 } from "../util";
 import {changePlayerStage} from "../../game/logFix";
 
@@ -97,6 +101,7 @@ const moves = {
     deployGeneral: deployGeneral,
     emptyRound: emptyRound,
     op: op,
+    paiQIan: paiQIan,
     recruitUnit: recruitUnit,
     cardEvent: cardEvent,
     developCard: developCard,
@@ -230,6 +235,16 @@ export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
                 removeNation: removeNation
             }
         },
+        removeGeneral: {
+            moves: {
+                removeOwnGeneral: removeOwnGeneral
+            }
+        },
+        removeUnit: {
+            moves: {
+                removeUnit: removeUnit
+            }
+        },
         removeCompletedPlan: {
             moves: {
                 removeCompletedPlan: removeCompletedPlan
@@ -238,6 +253,16 @@ export const StagedTurnConfig: TurnConfig<SongJinnGame> = {
         adjustNation: {
             moves: {
                 adjustNation: adjustNation
+            }
+        },
+        chooseProvince: {
+            moves: {
+                chooseProvince: chooseProvince
+            }
+        },
+        chooseCity: {
+            moves: {
+                chooseGeneralCity: chooseGeneralCity
             }
         },
     },
@@ -322,14 +347,15 @@ export const ChoosePlanPhaseConfig: PhaseConfig<SongJinnGame> = {
         log.push(`|p${firstPid}|${player.plans}`);
         if (player.plans.filter((pid) => canChoosePlan(G, ctx, firstPid, pid)).length === 0) {
             log.push(`|cannot chose`)
-            G.secret.planDeck.concat(player.plans);
+            // concat 不会修改原数组，必须 push 回去，否则这些计划牌会被丢掉
+            G.secret.planDeck.push(...player.plans);
             player.plans = [];
             const secondPid = G.order[1];
             drawPlanForPlayer(G, secondPid);
             const secondPlayer = playerById(G, secondPid);
             log.push(`|p${secondPid}|${secondPlayer.plans}`);
-            if (secondPlayer.plans.filter((p) => canChoosePlan(G, ctx, secondPid, p))) {
-                G.secret.planDeck.concat(secondPlayer.plans);
+            if (secondPlayer.plans.filter((p) => canChoosePlan(G, ctx, secondPid, p)).length === 0) {
+                G.secret.planDeck.push(...secondPlayer.plans);
                 secondPlayer.plans = [];
                 log.push(`|cannot|chose|goto|action`);
                 ctx.events?.setPhase('showPlan');
@@ -463,6 +489,11 @@ export const DiplomacyPhaseConfig: PhaseConfig<SongJinnGame> = {
     }
 }
 export const DeployPhaseConfig: PhaseConfig<SongJinnGame> = {
+    onBegin: (G: SongJinnGame, _ctx: Ctx) => {
+        // 规则 5.2.8 的补给、围困和腐败步骤在玩家选择补充城市前
+        // 自动结算；玩家随后只决定预备部队和将领的具体放置。
+        resolveDeployPhase(G);
+    },
     onEnd: (G, _ctx) => {
         const log = [`deployPhase|onEnd`];
         log.push(`|clean ready units`);

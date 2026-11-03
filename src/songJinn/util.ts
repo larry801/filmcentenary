@@ -39,6 +39,7 @@ import {
     Nations,
     NationState,
     PendingEvents,
+    PendingReward,
     PlanID,
     PlayerPendingEffect,
     ProvinceID,
@@ -338,44 +339,17 @@ export const getSupplyAdj = (G: SongJinnGame, src: TroopPlace, ctr: Country): Tr
             if (ctr2pub(G, ctr).nations.includes(p)) {
                 log.push(`|${p}|ally`);
                 path.push(p);
-                // TODO recursive check
-                // const pAdj = getSupplyAdj(G,p,ctr);
-                // if(
-                //     pAdj.filter(pa=>checkedPlaces.includes(pa))
-                //         .length === pAdj.length
-                // ) {
-                //     return;
-                // }
             }
         } else {
-            if (isRegionID(p)) {
-                const reg = getRegionById(p);
-                if (reg.pass.includes(p)) {
-                    // @ts-ignore
-                    const pass = passAdjToPass(G, src, p);
-                    if (pass !== null) {
-                        const ot = getOpponentPlaceTroopByCtr(G, ctr, pass);
-                        if (ot !== null) {
-                            log.push(`|${getSimpleTroopText(G, ot)}|ot|pass`);
-                            return;
-                        }
-                    }
-                } else {
-                    const ot = getOpponentPlaceTroopByCtr(G, ctr, p);
-                    if (ot !== null) {
-                        log.push(`|${getSimpleTroopText(G, ot)}|ot|region`);
-                        return;
-                    } else {
-                        path.push(p);
-                    }
-                }
-            } else {
-                if (isMountainPassID(p)) {
-                    return;
-                } else {
-
-                }
+            // A supply route may use neutral and engagement regions, but an
+            // enemy army blocks it.  A defeated mechanical-only force does not.
+            const opponent = getOpponentPlaceTroopByCtr(G, ctr, p);
+            const own = getTroopByCountryPlace(G, ctr, p);
+            if (opponent !== null && own === null && troopEndurance(G, opponent) > 0) {
+                log.push(`|${getSimpleTroopText(G, opponent)}|blocked`);
+                return;
             }
+            path.push(p);
         }
     })
     logger.debug(`${G.matchID}|${log.join('')}`);
@@ -388,12 +362,14 @@ export const checkSupply = (G: SongJinnGame, src: TroopPlace, ctr: Country): boo
     let res = false;
     if (isRegionID(src)) {
         const ot = getOpponentPlaceTroopByCtr(G, ctr, src);
-        if (ot !== null) {
+        if (ot !== null && troopEndurance(G, ot) > 0) {
             log.push(`|${getSimpleTroopText(G, ot)}|ot|region`);
         } else {
             const cid = getRegionById(src).city;
             if (cid !== null) {
-                if (checkCtrCity(G, ctr, cid)) {
+                // A besieged city supplies only the army inside the city, not
+                // a field army standing in its adjacent region.
+                if (checkCtrCity(G, ctr, cid) && !cityIsBesieged(G, cid)) {
                     log.push(`|${ctr}control${cid}`);
                     res = true;
                 }
@@ -407,6 +383,11 @@ export const checkSupply = (G: SongJinnGame, src: TroopPlace, ctr: Country): boo
 export const getSupplyRegions = (G: SongJinnGame, src: TroopPlace, ctr: Country): boolean => {
     const log = [`getSupplyRegions`];
     log.push(`|${placeToStr(src)}|${ctr}`);
+    if (isNationID(src) && !ctr2pub(G, ctr).nations.includes(src)) {
+        log.push(`|not|ally|nation`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return false;
+    }
     const checkedPlaces: TroopPlace[] = [];
     const path: TroopPlace[] = [src];
     while (path.length > 0) {
@@ -844,17 +825,231 @@ export const getDeployCities = (G: SongJinnGame, ctr: Country) => {
     return ctr === Country.SONG ? getSongDeployCities(G) : getJinnDeployCities(G);
 }
 
+/**
+ * 城市是否被围困（规则 10.1）：与该城市相邻的野外区域被对方军团控制。
+ * 本作的野外区域就是城市所在 region，因此该 region 上有对方军团即为被围困。
+ * 按城市归属方来判断「对方」。
+ */
+export const cityIsBesieged = (G: SongJinnGame, city: CityID): boolean => {
+    const region = getCityById(city).region;
+    const owner = G.song.cities.includes(city) ? Country.SONG
+        : (G.jinn.cities.includes(city) ? Country.JINN : null);
+    if (owner === null) {
+        return false;
+    }
+    return getOpponentPlaceTroopByCtr(G, owner, region) !== null;
+}
+
+/**
+ * 城市的补给等级（规则 2.1.6、5.2.8、10.3.2）。
+ * 皇帝和宗泽的加成只作用于他们实际所在的城市；宗泽在城市所属
+ * 野外区域时，若该区域没有敌军，也视为同时位于该城市。
+ */
+export const getCitySupplyLevel = (G: SongJinnGame, city: CityID): number => {
+    const cityInfo = getCityById(city);
+    let level = cityInfo.capital ? 2 : 1;
+    const region = cityInfo.region;
+    if (G.song.emperor === city || G.jinn.emperor === city) {
+        level++;
+    }
+    if (G.song.generals[SongGeneral.ZongZe] === GeneralStatus.TROOP) {
+        const place = G.song.generalPlace[SongGeneral.ZongZe];
+        const inCity = place === city || (
+            place === region && getJinnTroopByPlace(G, region) === null
+        );
+        if (inCity) {
+            level++;
+        }
+    }
+    return level;
+}
+
+/** 城市所在野外区域是否为交战区域。 */
+export const cityAdjacentToEngagement = (G: SongJinnGame, city: CityID): boolean => {
+    const region = getCityById(city).region;
+    return getSongTroopByPlace(G, region) !== null && getJinnTroopByPlace(G, region) !== null;
+}
+
+/** 补充阶段可补充的城市。已有本方军团的城市同样是合法目标。 */
+export const getReinforcementCities = (G: SongJinnGame, ctr: Country): CityID[] => {
+    const pid = ctr2pid(ctr);
+    return pid2pub(G, pid).cities.filter(city => {
+        if (cityIsBesieged(G, city) || cityAdjacentToEngagement(G, city)) {
+            return false;
+        }
+        if (ctr === Country.JINN && !checkColonyCity(G, city)) {
+            return false;
+        }
+        return checkControlCity(G, pid, city);
+    });
+}
+
+const deploymentKey = (ctr: Country, city: CityID) => `${ctr}:${city}`;
+
+/** 本补充阶段该城市已经放置的部队数量。 */
+export const getDeployedInCity = (G: SongJinnGame, ctr: Country, city: CityID): number => {
+    return G.pending.deployPlaced?.[deploymentKey(ctr, city)] || 0;
+}
+
+export const recordDeployment = (G: SongJinnGame, ctr: Country, city: CityID, count: number): void => {
+    if (G.pending.deployPlaced === undefined) {
+        G.pending.deployPlaced = {};
+    }
+    const key = deploymentKey(ctr, city);
+    G.pending.deployPlaced[key] = getDeployedInCity(G, ctr, city) + count;
+}
+
+/**
+ * 从地图上消灭部队。项目的数据模型没有单独的备用兵库数组，因而
+ * 被消灭的部队直接从地图移除，不会进入预备兵区；受创击溃仍使用
+ * 原有的 removeUnitByIdx 流程进入预备兵区。
+ */
+export const eliminateUnitsFromTroop = (G: SongJinnGame, troop: Troop, count: number): number => {
+    const pub = ctr2pub(G, troop.g);
+    let remaining = Math.max(0, Math.floor(count));
+    let removed = 0;
+    for (let i = 0; i < troop.u.length && remaining > 0; i++) {
+        const amount = Math.min(troop.u[i], remaining);
+        troop.u[i] -= amount;
+        remaining -= amount;
+        removed += amount;
+    }
+    if (troopEmpty(troop)) {
+        getPlaceCountryGeneral(G, troop.g, troop.p).forEach(g => {
+            removeGeneral(G, ctr2pid(troop.g), g);
+        });
+        const idx = pub.troops.indexOf(troop);
+        if (idx >= 0) {
+            pub.troops.splice(idx, 1);
+        }
+    }
+    return removed;
+}
+
+const removeCorruptReady = (G: SongJinnGame, ctr: Country): number => {
+    const pub = ctr2pub(G, ctr);
+    let remaining = Math.max(0, pub.corruption);
+    let removed = 0;
+    // The public "ready" area is the reserve troop area used by the game
+    // model; "standby" is the off-map supply pool.
+    for (let i = 0; i < pub.ready.length && remaining > 0; i++) {
+        const amount = Math.min(pub.ready[i], remaining);
+        pub.ready[i] -= amount;
+        remaining -= amount;
+        removed += amount;
+    }
+    return removed;
+}
+
+const isGeneralAtCity = (G: SongJinnGame, ctr: Country, general: General, city: CityID): boolean => {
+    const pub = ctr2pub(G, ctr);
+    if (pub.generals[general] !== GeneralStatus.TROOP) {
+        return false;
+    }
+    const place = pub.generalPlace[general];
+    const region = getCityById(city).region;
+    return place === city || (place === region && getOpponentPlaceTroopByCtr(G, ctr, region) === null);
+}
+
+const resolveBesiegedCities = (G: SongJinnGame, ctr: Country): void => {
+    const pub = ctr2pub(G, ctr);
+    [...pub.troops].forEach(troop => {
+        if (!isCityID(troop.p) || troop.c !== troop.p || !cityIsBesieged(G, troop.p)) {
+            return;
+        }
+        const city = troop.p;
+        const cityLevel = getCitySupplyLevel(G, city);
+        const count = troop.u.reduce(accumulator);
+        let destroyed = Math.ceil(Math.max(0, count - cityLevel) / 2);
+        if (ctr === Country.JINN && isGeneralAtCity(G, ctr, JinnGeneral.YinShuKe, city)) {
+            destroyed++;
+        }
+        eliminateUnitsFromTroop(G, troop, destroyed);
+    });
+}
+
+const resolveOutOfSupply = (G: SongJinnGame, ctr: Country): void => {
+    // 【掠夺】明确允许金军在缺乏补给时继续行动，因此也不在补充阶段
+    // 因缺乏补给被消灭。
+    if (ctr === Country.JINN && G.events.includes(ActiveEvents.LueDuo)) {
+        return;
+    }
+    const pub = ctr2pub(G, ctr);
+    [...pub.troops].forEach(troop => {
+        if (!hasSupply(G, troop)) {
+            eliminateUnitsFromTroop(G, troop, troop.u.reduce(accumulator));
+        }
+    });
+}
+
+/** 补充阶段自动结算的前四步（规则 5.2.8）。 */
+export const resolveDeployPhase = (G: SongJinnGame): void => {
+    G.pending.deployPlaced = {};
+    G.op = 0;
+    const order = G.order.length === 2 ? G.order : [SJPlayer.P1, SJPlayer.P2];
+    order.forEach(pid => resolveOutOfSupply(G, pid2ctr(pid)));
+    order.forEach(pid => resolveBesiegedCities(G, pid2ctr(pid)));
+    order.forEach(pid => removeCorruptReady(G, pid2ctr(pid)));
+}
+
+/** 该将领现在能否被【派遣】：在场（不是预备兵区 / 未移除），且所在军团没有被围困 */
+export const getDispatchableGenerals = (G: SongJinnGame, pid: PlayerID): General[] => {
+    return getPresentGeneral(G, pid).filter(g => !generalIsBesieged(G, pid, g));
+}
+
+/**
+ * 将领所在军团是否被围困（规则 7.5 / 10.1）。
+ * 被围困：将领随军团退入城中（此时将领位置就是城市），
+ * 或将领所在的野外区域被对方军团控制，且本方没有军团在那里（单独在场）。
+ */
+export const generalIsBesieged = (G: SongJinnGame, pid: PlayerID, general: General): boolean => {
+    const pub = pid2pub(G, pid);
+    const place = pub.generalPlace[general];
+    // 军团在城内（被围困时 p 与 c 相同，或将领位置直接就是城市）
+    if (isCityID(place) || pub.troops.some(t => t.p === place && t.c === (place as unknown as CityID))) {
+        return true;
+    }
+    return getOpponentPlaceTroopById(G, pid, place) !== null
+        && !pub.troops.some(t => t.p === place);
+}
+
+/** 【派遣】的合法目标：本方军团所在的区域或关隘边界（规则 7.5） */
+export const getDispatchDsts = (G: SongJinnGame, pid: PlayerID): TroopPlace[] => {
+    const pub = pid2pub(G, pid);
+    const places: TroopPlace[] = [];
+    pub.troops.forEach(t => {
+        if (!places.includes(t.p)) {
+            places.push(t.p);
+        }
+    });
+    return places;
+}
+
+/**
+ * 某个位置是否处于「被围困」（规则 10.1）：
+ * 位置本身是城市（守军退入城中），或该位置的野外区域上有对方军团。
+ */
+export const placeIsBesieged = (G: SongJinnGame, pid: PlayerID, place: TroopPlace): boolean => {
+    if (isCityID(place)) {
+        return true;
+    }
+    return getOpponentPlaceTroopById(G, pid, place) !== null;
+}
+
+/**
+ * 贴军（规则 7.7，金国专属行动）：可用的目标城市 —— 本方控制且没有被围困。
+ * 与补充不同，贴军不受殖民能力限制，所以这里不筛 colonizeLevel。
+ */
+export const getTieJunCities = (G: SongJinnGame): CityID[] => {
+    return G.jinn.cities.filter(cid => !cityIsBesieged(G, cid));
+}
+
 export const getSongDeployCities = (G: SongJinnGame) => {
-    return G.song.cities.filter((cid) => {
-        return getSongTroopByCity(G, cid) === null;
-    })
+    return getReinforcementCities(G, Country.SONG);
 }
 
 export const getJinnDeployCities = (G: SongJinnGame) => {
-    return G.jinn.cities.filter((cid) => {
-        const city = getCityById(cid)
-        return getJinnTroopByCity(G, cid) === null && city.colonizeLevel <= G.colony;
-    })
+    return getReinforcementCities(G, Country.JINN);
 }
 
 export const getPolicy = (G: SongJinnGame) => {
@@ -1478,12 +1673,17 @@ export const idToCard = {
         combat: false,
         effectText: "移除宗泽，在准南两路或荆湖两路放置岳飞。",
         pre: (G: SongJinnGame, _ctx: Ctx) => G.song.military >= 4,
-        event: (G: SongJinnGame, _ctx: Ctx) => {
-            removeGeneral(G, SJPlayer.P1, SongGeneral.ZongZe);
-            moveGeneralToReady(G, SJPlayer.P1, SongGeneral.YueFei);
-            // TODO auto
-            // ctx.events?.setStage('chooseCity');
-            // G.pending = "placeGeneral";
+        event: (G: SongJinnGame, ctx: Ctx) => {
+            const pid = ctr2pid(Country.SONG);
+            removeGeneral(G, pid, SongGeneral.ZongZe);
+            moveGeneralToReady(G, pid, SongGeneral.YueFei);
+            // 先选一路，再选该路内的一个城市；两路的区域放进 pending.places 作为合法标记
+            G.pending.places = [
+                ...getProvinceById(ProvinceID.HUAINANLIANGLU).regions,
+                ...getProvinceById(ProvinceID.JINHULIANGLU).regions,
+            ];
+            G.pending.province = null;
+            changePlayerStage(G, ctx, 'chooseProvince', pid as SJPlayer);
         }
     },
     [SongBaseCardID.S20]: {
@@ -3757,7 +3957,7 @@ export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
     log.push(`|${pub.ready}pub.ready`);
     log.push(`|${pub.standby}pub.standby`);
     for (let i = 0; i < units.length; i++) {
-        if (pub.standby[i] > units[i]) {
+        if (pub.standby[i] >= units[i]) {
             actualUnits[i] = units[i]
             pub.standby[i] -= units[i];
         } else {
@@ -3784,15 +3984,27 @@ export const doRecruit = (G: SongJinnGame, units: number[], pid: PlayerID) => {
 }
 
 
+/**
+ * 某个兵种现在是否有征募许可（规则 7.4 / 7.7 注意）。
+ * 没有许可的兵种既不能征募也不能贴军；签军需要【大起】类事件解锁。
+ */
+export const canRecruitUnitType = (G: SongJinnGame, ctr: Country, idx: number): boolean => {
+    if (ctr === Country.JINN && (idx === 5 || idx === 6)) {
+        return G.events.includes(ActiveEvents.JianLiDaQi);
+    }
+    const base = ctr === Country.SONG ? INITIAL_RECRUIT_PERMISSION[0] : INITIAL_RECRUIT_PERMISSION[1];
+    return base[idx] === true;
+}
+
 export const getCtrRecruitCost = (G: SongJinnGame, ctr: Country) => {
     let cost: number[];
     if (ctr === Country.SONG) {
-        cost = INITIAL_RECRUIT_COST[0];
+        cost = [...INITIAL_RECRUIT_COST[0]];
         if (G.events.includes(ActiveEvents.ShenBiGong)) {
             cost[1] = 2;
         }
     } else {
-        cost = INITIAL_RECRUIT_COST[1];
+        cost = [...INITIAL_RECRUIT_COST[1]];
         if (G.events.includes(ActiveEvents.XuZhouYeTie)) {
             cost[2] = 1;
         }
@@ -4211,9 +4423,8 @@ const idToPlan = {
         "provinces": [ProvinceID.JINGDONGLIANGLU],
         "vp": 1,
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
-            // TODO limit adjust nation to one time
-            // changePlayerStage(G, ctx, 'adjustNation', pid);
-
+            // 调整1个其他国家【外交】状态1级，只允许调整1次
+            grantReward(G, ctx, pid, PendingReward.AdjustNation);
         }
     },
     [PlanID.J05]: {
@@ -4235,8 +4446,8 @@ const idToPlan = {
         "provinces": [ProvinceID.HEDONGLU],
         "vp": 1,
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
-            // TODO limit remove unit by endurance
-            // changePlayerStage(G, ctx, 'removeUnit', pid);
+            // 消灭总共2耐久度的部队（耐久按单位基础耐久表计算）
+            grantReward(G, ctx, pid, PendingReward.RemoveUnit);
         }
     },
     [PlanID.J07]: {
@@ -4324,6 +4535,8 @@ const idToPlan = {
         "provinces": [ProvinceID.JINGDONGLIANGLU],
         "vp": 2,
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
+            // 调整1个其他国家【外交】状态1级，只允许调整1次
+            grantReward(G, ctx, pid, PendingReward.AdjustNation);
         }
     },
     [PlanID.J14]: {
@@ -4364,7 +4577,8 @@ const idToPlan = {
         "provinces": [ProvinceID.SHANXILIULU, ProvinceID.CHUANSHANSILU],
         "vp": 4,
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
-            // changePlayerStage(G, ctx, 'removeGeneral', pid);
+            // 将1个在场的【将领】移出游戏
+            grantReward(G, ctx, pid, PendingReward.RemoveGeneral);
         }
     },
     [PlanID.J17]: {
@@ -4375,7 +4589,8 @@ const idToPlan = {
         "provinces": [ProvinceID.JINGJILU, ProvinceID.JINGXILIANGLU],
         "vp": 4,
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
-            // changePlayerStage(G, ctx, 'removeCompletedPlan', pid);
+            // 将1个已完成的【作战计划】移出游戏
+            grantReward(G, ctx, pid, PendingReward.RemovePlan);
         }
     },
     [PlanID.J18]: {
@@ -4386,7 +4601,8 @@ const idToPlan = {
         "provinces": [ProvinceID.HUAINANLIANGLU, ProvinceID.JINGDONGLIANGLU],
         "vp": 4,
         effect: (G: SongJinnGame, ctx: Ctx, pid: PlayerID) => {
-            // changePlayerStage(G, ctx, 'removeNation', pid);
+            // 将1个其他国家移出游戏
+            grantReward(G, ctx, pid, PendingReward.RemoveNation);
         }
     },
     [PlanID.J19]: {
@@ -4732,7 +4948,7 @@ export const getLogText = (G: SongJinnGame, l: LogEntry): string => {
                                 `用${sjCardById(arg).name}贴军`
                             ;
                             break;
-                        case 'paiQian':
+                        case 'paiQIan':
                             log +=
                                 `用${sjCardById(arg).name}派遣`
                             ;
@@ -6915,20 +7131,28 @@ export function getTroopText(G: SongJinnGame, t: Troop) {
 }
 
 
+/**
+ * 单位基础耐久表（不含地形修正）。
+ * 奖励【消灭总共N耐久度的部队】按这张表累计；战斗/受创结算用 troopEndurance（含地形修正）。
+ */
+export function baseUnitEndurance(G: SongJinnGame, ctr: Country): number[] {
+    if (ctr === Country.SONG) {
+        const endurance = [2, 1, 1, 0, 0, 2];
+        if (G.events.includes(ActiveEvents.ZhongBuBing)) {
+            endurance[0] = 3;
+        }
+        return endurance;
+    } else {
+        return [2, 1, 2, 0, 0, 1, 1];
+    }
+}
+
 export function troopEndurance(G: SongJinnGame, troop: Troop): number {
     const log = [`troopEndurance${JSON.stringify(troop)}`];
     let endurance = 0;
     const terrainType = getTerrainTypeByTroop(troop);
     log.push(`|${terrainType}terrainType`);
-    let unitEndurance: number[] = [];
-    if (troop.g === Country.SONG) {
-        unitEndurance = [2, 1, 1, 0, 0, 2];
-        if (G.events.includes(ActiveEvents.ZhongBuBing)) {
-            unitEndurance[0] = 3;
-        }
-    } else {
-        unitEndurance = [2, 1, 2, 0, 0, 1, 1]
-    }
+    const unitEndurance: number[] = [...baseUnitEndurance(G, troop.g)];
     if (terrainType === TerrainType.SWAMP) {
         unitEndurance[3] = 2;
     }
@@ -6955,6 +7179,8 @@ export const getSongScore = (G: SongJinnGame): number => {
     score += G.song.civil;
     log.push(`|${score}score`);
     score += G.song.specialPlan;
+    log.push(`|${score}score`);
+    score += G.song.nations.length;
     log.push(`|${score}score`);
 
     if (G.events.includes(ActiveEvents.YanJingYiNan)) {
@@ -7027,6 +7253,8 @@ export const getJinnScore = (G: SongJinnGame): number => {
     score += G.jinn.civil;
     log.push(`|${score}score`);
     score += G.jinn.specialPlan;
+    log.push(`|${score}score`);
+    score += G.jinn.nations.length;
     log.push(`|${score}score`);
     logger.warn(`${G.matchID}|${log.join('')}`);
     return score;
@@ -7244,6 +7472,11 @@ export const checkSeizePlan = (G: SongJinnGame, _ctx: Ctx, plan: PlanID, pid: Pl
     const pub = pid2pub(G, pid);
     const oppoPub = pid2pub(G, oppoPid(pid));
     const planObj = getPlanById(plan);
+    if (SpecialPlan.includes(plan)) {
+        log.push(`|special|cannot|seize`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return;
+    }
     log.push(`|${plan}|${planObj.name}|planObj.name`);
     log.push(`|${pid2ctr(pid)}`);
     log.push(`|${JSON.stringify(pub.completedPlan)}|pub`);
@@ -7302,7 +7535,8 @@ export const checkPlan = (G: SongJinnGame, ctx: Ctx, plan: PlanID) => {
             province.capital.forEach(c => cities.push(c));
             province.other.forEach(c => cities.push(c));
         })
-        const cityCount = cities.filter(c => G.song.cities.includes(c)).length;
+        const owner = plan === PlanID.J23 ? G.song : G.jinn;
+        const cityCount = cities.filter(c => owner.cities.includes(c)).length;
         log.push(`|${cityCount}|cityCount`);
         if (plan === PlanID.J23) {
             G.song.specialPlan = cityCount;
@@ -7341,7 +7575,13 @@ export const endTurnCheck = (G: SongJinnGame, ctx: Ctx) => {
         const jinnScore = getJinnScore(G);
         log.push(`|${songScore}songScore`);
         log.push(`|${jinnScore}jinnScore`);
-        const winner = jinnScore > songScore ? SJPlayer.P2 : SJPlayer.P1;
+        const winner = jinnScore > songScore
+            ? SJPlayer.P2
+            : songScore > jinnScore
+                ? SJPlayer.P1
+                : G.policy > 0
+                    ? SJPlayer.P1
+                    : SJPlayer.P2;
         log.push(`|${winner}winner`);
         ctx.events?.endGame({
             winner: winner,
@@ -7415,6 +7655,49 @@ export const doGeneralSkill = (G: SongJinnGame, pid: PlayerID, g: General) => {
         G.op = 2;
     }
     log.push(`|after${pub.generalSkill}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+/**
+ * 把「需要玩家自己选目标」的计划完成奖励交给 pid。
+ * 与 changePlayerStage 一样，后一次调用会覆盖前一次的 stage；
+ * 若上一个奖励还没结算，这里打 warning 并覆盖（保留原有覆盖语义）。
+ */
+export const grantReward = (G: SongJinnGame, ctx: Ctx, pid: PlayerID, reward: PendingReward) => {
+    const log = [`grantReward|${pid}|${reward}`];
+    if (G.pending.reward !== null) {
+        log.push(`|overwrite|${G.pending.reward}`);
+        logger.warn(`${G.matchID}|${log.join('')}`);
+    }
+    G.pending.reward = reward;
+    switch (reward) {
+        case PendingReward.RemoveUnit:
+            changePlayerStage(G, ctx, 'removeUnit', pid);
+            break;
+        case PendingReward.RemoveGeneral:
+            changePlayerStage(G, ctx, 'removeGeneral', pid);
+            break;
+        case PendingReward.RemovePlan:
+            changePlayerStage(G, ctx, 'removeCompletedPlan', pid);
+            break;
+        case PendingReward.RemoveNation:
+            changePlayerStage(G, ctx, 'removeNation', pid);
+            break;
+        case PendingReward.AdjustNation:
+            changePlayerStage(G, ctx, 'adjustNation', pid);
+            break;
+    }
+    logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+/**
+ * 奖励结算完毕：清标志并结束 stage（回到当前回合玩家的正常流程）。
+ */
+export const finishReward = (G: SongJinnGame, ctx: Ctx, reward: PendingReward) => {
+    const log = [`finishReward|${reward}`];
+    log.push(`|${G.pending.reward}|G.pending.reward`);
+    G.pending.reward = null;
+    ctx.events?.endStage();
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 

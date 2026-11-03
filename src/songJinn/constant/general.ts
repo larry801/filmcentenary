@@ -3,6 +3,8 @@ import {shuffle} from "../../game/util";
 
 export const MAX_ROUND = 8;
 export const MAX_DICES = 30;
+/** 【早期河东路】等计划奖励：一次最多消灭的部队耐久度（按单位基础耐久表累计） */
+export const REWARD_REMOVE_UNIT_BUDGET = 2;
 
 export enum PendingEvents {
     XiJunQuDuan = "西军曲端",
@@ -83,6 +85,19 @@ export const enum PlayerPendingEffect {
     FourDevelopPoint = "四点发展",
 }
 
+/**
+ * 作战计划完成奖励中，需要玩家自己选择目标的几种。
+ * 结算时写入 G.pending.reward，并把对应 stage 给到该玩家；
+ * 选择完成后清空 pending.reward 并 endStage。
+ */
+export enum PendingReward {
+    RemoveUnit = "消灭部队",
+    RemoveGeneral = "移除将领",
+    RemovePlan = "移除作战计划",
+    RemoveNation = "移除国家",
+    AdjustNation = "调整外交",
+}
+
 export interface Troop {
     p: TroopPlace,
     c: CityID | null,
@@ -109,7 +124,8 @@ export const enum VictoryReason {
     WuShanLiMa = "吴山立马",
     HuanWoHeShan = "还我河山",
     ZhiDaoHuangLong = "直捣黄龙",
-    Diplomacy = "外交"
+    Diplomacy = "外交",
+    GuoPoJiaWang = "国破家亡"
 }
 
 export enum NationID {
@@ -192,7 +208,7 @@ export function isMountainPassID(place: TroopPlace): place is MountainPassID {
     return typeof place === 'string' && Object.values(MountainPassID).includes(place as MountainPassID);
 }
 
-export function isCityID(place: TroopPlace): place is MountainPassID {
+export function isCityID(place: TroopPlace): place is CityID {
     return typeof place === 'string' && Object.values(CityID).includes(place as CityID);
 }
 
@@ -1131,6 +1147,12 @@ export interface SongJinnGame {
         places: TroopPlace[],
         generals: General[],
         cards: SJEventCardID[],
+        reward: PendingReward | null,
+        province: ProvinceID | null,
+        /** 已经打出一张事件牌进入【派遣】状态（规则 7.5） */
+        dispatch: boolean,
+        /** 本补充阶段每座城市已经补充的部队数量。 */
+        deployPlaced: Record<string, number>,
     }
     op: number,
     qi: ProvinceID[],
@@ -1173,6 +1195,10 @@ export const setupSongJinn: (ctx: Ctx, setupData: any) => SongJinnGame = (ctx: C
             places: [],
             generals: [],
             cards: [],
+            reward: null,
+            province: null,
+            dispatch: false,
+            deployPlaced: {},
         },
         qi: [],
         op: 0,

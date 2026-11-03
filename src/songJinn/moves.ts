@@ -1,4 +1,4 @@
-import {Ctx, LongFormMove} from "boardgame.io";
+import {Ctx, LongFormMove, PlayerID} from "boardgame.io";
 import {
     accumulator,
     ActiveEvents,
@@ -10,19 +10,24 @@ import {
     Country,
     DevelopChoice,
     General,
+    GeneralStatus,
     isCityID,
     isRegionID,
     JinnBaseCardID,
     JinnGeneral,
     LetterOfCredence,
     NationID,
+    Nations,
     PendingEvents,
+    PendingReward,
     PlanID,
     PlayerPendingEffect,
     ProvinceID, ProvinceState,
+    REWARD_REMOVE_UNIT_BUDGET,
     SJEventCardID,
     SJPlayer,
     SongBaseCardID,
+    SongGeneral,
     SongJinnGame,
     Troop,
     TroopPlace
@@ -32,18 +37,20 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {actualStage, shuffle} from "../game/util";
 import {getRegionById} from "./constant/regions";
 import {changePlayerStage} from "../game/logFix";
-import {merge} from "lodash";
 
 import {
     addTroop,
+    baseUnitEndurance,
     canForceRoundTwo,
     canRoundTwo, canStalemate,
     cardToSearch,
     changeCivil,
     changeMilitary,
     checkMoveDst,
+    canRecruitUnitType,
     checkRecruitCivil,
     checkSongLoseEmperor,
+    cityIsBesieged,
     ciAtkInfo,
     ciAtkPid,
     ciAtkTroop,
@@ -75,13 +82,21 @@ import {
     endCombat,
     endDraw,
     endRoundCheck,
+    finishReward,
     getCombatStateById,
+    getCitySupplyLevel,
+    getCtrRecruitCost,
     getCountryById,
+    getDispatchableGenerals,
+    getDeployedInCity,
+    getReinforcementCities,
     getGeneralNameByCountry,
     getJinnTroopByCity,
     getJinnTroopByPlace,
     getOpponentPlaceTroopByCtr,
+    getPlaceCountryGeneral,
     getPlanById,
+    getPresentGeneral,
     getSimpleTroopText,
     getSongTroopByCity,
     getSongTroopByPlace,
@@ -102,6 +117,7 @@ import {
     pid2cci,
     pid2ctr,
     pid2pub,
+    placeIsBesieged,
     placeToStr,
     playerById,
     policyDown,
@@ -110,6 +126,7 @@ import {
     removeReadyUnitByCountry,
     removeUnitByCountryPlace,
     removeZeroTroop,
+    recordDeployment,
     rollDiceByPid,
     roundTwo,
     setTroopPlaceByCtr,
@@ -124,6 +141,7 @@ import {
     zhuDuiShiYuanChengJinn
 } from "./util";
 import {getCityById} from "./constant/city";
+import {getProvinceById} from "./constant/province";
 
 export const opponentMove: LongFormMove = {
     move: (G, ctx) => {
@@ -156,6 +174,30 @@ interface ICheckProvince {
     text: string
 }
 
+/**
+ * 就地深合并进 Immer draft（对象递归合并，数组与标量直接覆盖）。
+ * lodash 的 merge 会返回新对象，用在 draft 上会丢掉所有修改。
+ */
+const deepMergeInto = (target: any, src: any) => {
+    if (target === null || src === null || typeof target !== 'object' || typeof src !== 'object') {
+        return src;
+    }
+    Object.keys(src).forEach(key => {
+        const v = src[key];
+        if (Array.isArray(v)) {
+            target[key] = v;
+        } else if (v !== null && typeof v === 'object') {
+            if (target[key] === null || typeof target[key] !== 'object') {
+                target[key] = {};
+            }
+            deepMergeInto(target[key], v);
+        } else {
+            target[key] = v;
+        }
+    });
+    return target;
+}
+
 export const modifyGameState: LongFormMove = {
     move: (G, ctx, arg: Partial<SongJinnGame>) => {
         const pid = ctx.playerID;
@@ -169,7 +211,9 @@ export const modifyGameState: LongFormMove = {
         logger.info(`${G.matchID}|p${pid}.moves.modifyGameState(${JSON.stringify(arg)})`);
         log.push(`|${JSON.stringify(arg)}|arg\n`);
         log.push(`|${JSON.stringify(G)}|G\n`);
-        G = merge(G, arg);
+        // 注意：不能写 G = merge(G, arg)，那会把 Immer 的 draft 换成普通对象，
+        // 之后的修改不会被提交，等于整个 move 变成空操作。必须就地深合并进 draft。
+        deepMergeInto(G, arg);
         log.push(`|${JSON.stringify(G)}|G\n`);
         logger.debug(`${G.matchID}|${log.join('')}`);
     },
@@ -424,10 +468,21 @@ export const takeDamage: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`p${pid}.takeDamage(${JSON.stringify(arg)})`);
+        if (!G.combat.ongoing || pid2ctr(pid) !== arg.c || actualStage(G, ctx) !== 'takeDamage') {
+            return INVALID_MOVE;
+        }
         const {c, src, standby, ready, city} = arg;
         const pub = ctr2pub(G, c);
         const log = [`takeDamage|${src}|${placeToStr(src)}`];
         log.push(`|si${unitsToString(standby)}|kui${unitsToString(ready)}`);
+
+        const expectedLength = c === Country.SONG ? 6 : 7;
+        if (!Array.isArray(standby) || !Array.isArray(ready)
+            || standby.length !== expectedLength || ready.length !== expectedLength
+            || standby.some(u => !Number.isInteger(u) || u < 0)
+            || ready.some(u => !Number.isInteger(u) || u < 0)) {
+            return INVALID_MOVE;
+        }
 
         let troop = c === Country.SONG ? getSongTroopByPlace(G, src) : getJinnTroopByPlace(G, src);
         if (troop === null) {
@@ -442,6 +497,29 @@ export const takeDamage: LongFormMove = {
         const ci = G.combat;
         log.push(`|${JSON.stringify(troop)}|troop`);
         log.push(`|before|${unitsToString(pub.ready)}|${unitsToString(pub.standby)}`);
+        for (let i = 0; i < expectedLength; i++) {
+            if (standby[i] + ready[i] > troop.u[i]) {
+                return INVALID_MOVE;
+            }
+        }
+        const readyEndurance = troopEndurance(G, {
+            g: c,
+            c: null,
+            p: src,
+            u: ready
+        });
+        const standbyEndurance = troopEndurance(G, {
+            g: c,
+            c: null,
+            p: src,
+            u: standby
+        });
+        const cci = ciCtrInfo(G, c);
+        if (readyEndurance + standbyEndurance !== cci.damageLeft) {
+            log.push(`|damage|does|not|match|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
         for (let i = 0; i < arg.standby.length; i++) {
             troop.u[i] -= standby[i];
             troop.u[i] -= ready[i];
@@ -464,21 +542,8 @@ export const takeDamage: LongFormMove = {
             }
         }
 
-        const readyEndurance = troopEndurance(G, {
-            g: c,
-            c: null,
-            p: src,
-            u: ready
-        })
-        const standbyEndurance = troopEndurance(G, {
-            g: c,
-            c: null,
-            p: src,
-            u: standby
-        })
         log.push(`|${readyEndurance}|readyEndurance`);
         log.push(`|${standbyEndurance}|standbyEndurance`);
-        const cci = ciCtrInfo(G, c);
         log.push(`|${cci.damageLeft}|cci.damageLeft`);
         cci.damageLeft -= readyEndurance;
         cci.damageLeft -= standbyEndurance;
@@ -605,6 +670,17 @@ export const deployGeneral: LongFormMove = {
         logger.info(`p${pid}.moves.deployGeneral(${JSON.stringify(args)})`);
         const log = [`p${pid}.deployGeneral`];
         const {general, dst} = args;
+        if (ctx.phase === 'deploy') {
+            if (args.country !== pid2ctr(pid)) {
+                return INVALID_MOVE;
+            }
+            const pub = pid2pub(G, pid);
+            if (pub.generals[general] !== GeneralStatus.READY || !getReinforcementCities(G, args.country).includes(dst as CityID)) {
+                return INVALID_MOVE;
+            }
+            moveGeneralByPid(G, pid, general, dst);
+            return;
+        }
         let newDst = dst;
         if (isCityID(dst)) {
             const weiKunTroop = getTroopByCountryPlace(G, pid2ctr(pid), dst);
@@ -713,11 +789,33 @@ export const removeUnit: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`${G.matchID}|p${pid}.moves.removeUnit(${JSON.stringify(arg)})`);
+        const log = [`removeUnit`];
         const {src, units, country} = arg;
         if (units.reduce(accumulator) === 0) {
             return INVALID_MOVE;
         }
-        removeUnitByCountryPlace(G, ctx, units, country, src);
+        // 计划奖励【消灭总共2耐久度的部队】：只在这一步允许，且以单位基础耐久表累计上限2
+        if (G.pending.reward === PendingReward.RemoveUnit) {
+            if (getStage(ctx) !== 'removeUnit') {
+                log.push(`|${getStage(ctx)}|not|removeUnit|stage|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+            const budget = units.reduce((sum, count, idx) => {
+                return sum + count * baseUnitEndurance(G, country)[idx];
+            }, 0);
+            log.push(`|${budget}|budget`);
+            if (budget > REWARD_REMOVE_UNIT_BUDGET) {
+                log.push(`|over|budget|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+            removeUnitByCountryPlace(G, ctx, units, country, src);
+            finishReward(G, ctx, PendingReward.RemoveUnit);
+        } else {
+            removeUnitByCountryPlace(G, ctx, units, country, src);
+        }
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
 
@@ -727,17 +825,17 @@ export interface IDeployUnitArgs {
     country: Country
 }
 
-function doDeployUnits(G: SongJinnGame, _ctx: Ctx, country: Country, units: number[], city: CityID) {
+function doDeployUnits(G: SongJinnGame, _ctx: Ctx, country: Country, units: number[], city: CityID): boolean {
     const log = [`doDeployUnits|${country}`];
     const target = ctr2pid(country);
     const pub = pid2pub(G, target);
-    pub.ready.forEach((u, idx) => {
-        if (u < units[idx]) {
-            log.push(`${u}<${units[idx]}|INVALID_MOVE`);
+    for (let i = 0; i < pub.ready.length; i++) {
+        if (units[i] > pub.ready[i]) {
+            log.push(`${pub.ready[i]}<${units[i]}|INVALID_MOVE`);
             logger.debug(`${G.matchID}|${log.join('')}`);
-            return INVALID_MOVE;
+            return false;
         }
-    })
+    }
     const t = country === Country.SONG ? getSongTroopByCity(G, city) : getJinnTroopByCity(G, city);
     if (t === null) {
         log.push(`|noTroop|insertNew`);
@@ -759,30 +857,39 @@ function doDeployUnits(G: SongJinnGame, _ctx: Ctx, country: Country, units: numb
         log.push(`|after|${unitsToString(t.u)}${JSON.stringify(t)}`);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
+    return true;
 }
 
 export const deploy: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, args: IDeployUnitArgs) => {
         logger.info(`p${ctx.playerID}.deploy(${JSON.stringify(args)})`);
         const {city, country, units} = args;
-        if (ctx.playerID === undefined) {
+        if (ctx.playerID === undefined || ctx.phase !== 'deploy' || pid2ctr(ctx.playerID) !== country) {
             return INVALID_MOVE;
         }
-        if (city === null) {
+        const expectedLength = country === Country.SONG ? 6 : 7;
+        if (city === null || !getCityById(city) || !Array.isArray(units) || units.length !== expectedLength) {
             return INVALID_MOVE;
         }
         const target = ctr2pid(country);
         const pub = pid2pub(G, target);
-        pub.ready.forEach((u, idx) => {
-            if (u < units[idx]) {
-                return INVALID_MOVE;
-            }
-        })
-        if (args.units.reduce(accumulator) === 0) {
+        if (units.some(u => !Number.isInteger(u) || u < 0) || args.units.reduce(accumulator) === 0) {
             return INVALID_MOVE;
-        } else {
-            doDeployUnits(G, ctx, country, units, city);
         }
+        if (!getReinforcementCities(G, country).includes(city)) {
+            return INVALID_MOVE;
+        }
+        const currentCityUnits = country === Country.SONG ? getSongTroopByCity(G, city) : getJinnTroopByCity(G, city);
+        const currentCount = currentCityUnits === null ? 0 : currentCityUnits.u.reduce(accumulator);
+        const cityLimit = getCitySupplyLevel(G, city);
+        const placed = getDeployedInCity(G, country, city);
+        if (placed + units.reduce(accumulator) > cityLimit || currentCount + units.reduce(accumulator) > 10) {
+            return INVALID_MOVE;
+        }
+        if (!doDeployUnits(G, ctx, country, units, city)) {
+            return INVALID_MOVE;
+        }
+        recordDeployment(G, country, city, units.reduce(accumulator));
     }
 }
 
@@ -823,17 +930,83 @@ export const discard: LongFormMove = {
 }
 
 
+/**
+ * 贴军（规则 7.7，金国专属行动）：
+ * 打出一张事件牌，等价支付征募消耗的行动力，把预备兵区的部队直接补充上场。
+ * 需要遵守补充规则（不能放进被围困的城市），但不受殖民能力限制。
+ * 没有征募许可的兵种（征募消耗为 0）不能贴军。
+ */
+interface ITieJunArgs {
+    card: SJEventCardID,
+    city: CityID,
+    units: number[],
+}
+
 export const tieJun: LongFormMove = {
-    move: (G, ctx, args: SJEventCardID) => {
-        if (ctx.playerID === undefined) {
+    move: (G, ctx, args: ITieJunArgs) => {
+        const pid = ctx.playerID;
+        const log = [`tieJun`];
+        if (pid === undefined || pid !== SJPlayer.P2) {
             return INVALID_MOVE;
         }
-        const player = playerById(G, ctx.playerID);
-        if (player.hand.includes(args)) {
-            player.hand.splice(player.hand.indexOf(args), 1);
+        logger.info(`${G.matchID}|p${pid}.moves.tieJun(${JSON.stringify(args)})`);
+        if (args === undefined) {
+            return INVALID_MOVE;
         }
+        const {card, city, units} = args;
+        const player = playerById(G, pid);
+        if (!player.hand.includes(card)) {
+            log.push(`|${card}|not|in|hand|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        if (units.reduce(accumulator) === 0) {
+            log.push(`|0Units|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        const pub = G.jinn;
+        // 预备兵区要有这么多部队
+        for (let i = 0; i < units.length; i++) {
+            if (pub.standby[i] < units[i]) {
+                log.push(`|standby${unitsToString(pub.standby)}<${unitsToString(units)}|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+        }
+        // 不能贴军到被围困的城市
+        if (cityIsBesieged(G, city)) {
+            log.push(`|${city}|besieged|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        // 贴军消耗 = 各部队的征募消耗；没有征募许可的兵种不能贴军（规则 7.7 注意）
+        const cost = getCtrRecruitCost(G, Country.JINN);
+        let op = 0;
+        for (let i = 0; i < units.length; i++) {
+            if (units[i] > 0 && !canRecruitUnitType(G, Country.JINN, i)) {
+                log.push(`|unit${i}|no|recruit|permission|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+            op += cost[i] * units[i];
+        }
+        log.push(`|${op}|op|${G.op}G.op`);
+        if (G.op < op) {
+            log.push(`|not|enough|op|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        G.op -= op;
+        player.hand.splice(player.hand.indexOf(card), 1);
+        pub.discard.push(card);
+        // 军团是驻扎在区域上的，城市要换算成它所在的区域才能并入已有军团
+        doPlaceUnit(G, ctx, units, Country.JINN, getCityById(city).region);
+        log.push(`|after|${G.op}G.op|${unitsToString(pub.standby)}standby`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
+
 // export const chooseUnit: LongFormMove = {
 //     move: (G, ctx, args) => {
 //
@@ -863,7 +1036,6 @@ export const rollDices: LongFormMove = {
 }
 
 export const removeCompletedPlan: LongFormMove = {
-    client: false,
     move: (G, ctx, arg: PlanID) => {
         const pid = ctx.playerID;
         const log = [`removeCompletedPlan`];
@@ -871,15 +1043,33 @@ export const removeCompletedPlan: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`${G.matchID}|p${pid}.moves.removeCompletedPlan(${JSON.stringify(arg)})`);
-        if (G.song.completedPlan.includes(arg)) {
-            log.push(`|${JSON.stringify(G.song.completedPlan)}G.song.completedPlan`);
-            G.song.completedPlan.splice(G.song.completedPlan.indexOf(arg), 1);
-            log.push(`|${JSON.stringify(G.song.completedPlan)}G.song.completedPlan`);
+        const pub = pid2pub(G, pid);
+        if (G.pending.reward === PendingReward.RemovePlan) {
+            if (getStage(ctx) !== 'removeCompletedPlan') {
+                log.push(`|${getStage(ctx)}|not|removeCompletedPlan|stage|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+            // 奖励只能移除自己已完成的计划
+            if (!pub.completedPlan.includes(arg)) {
+                log.push(`|${JSON.stringify(pub.completedPlan)}|own|not|completed|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+            pub.completedPlan.splice(pub.completedPlan.indexOf(arg), 1);
+            log.push(`|${JSON.stringify(pub.completedPlan)}|pub.completedPlan`);
+            finishReward(G, ctx, PendingReward.RemovePlan);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return;
         }
-        if (G.jinn.completedPlan.includes(arg)) {
-            log.push(`|${JSON.stringify(G.jinn.completedPlan)}G.jinn.completedPlan`);
-            G.jinn.completedPlan.splice(G.jinn.completedPlan.indexOf(arg), 1);
-            log.push(`|${JSON.stringify(G.jinn.completedPlan)}G.jinn.completedPlan`);
+        if (pub.completedPlan.includes(arg)) {
+            log.push(`|${JSON.stringify(pub.completedPlan)}pub.completedPlan`);
+            pub.completedPlan.splice(pub.completedPlan.indexOf(arg), 1);
+            log.push(`|${JSON.stringify(pub.completedPlan)}pub.completedPlan`);
+        } else {
+            log.push(`|${JSON.stringify(pub.completedPlan)}|not|completed|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
@@ -953,8 +1143,36 @@ export const moveGeneral: LongFormMove = {
         if (dst === null) {
             return INVALID_MOVE;
         }
-        const log = [`p${pid}.moveReadyGeneral`];
+        const log = [`p${pid}.moveReadyGeneral|${placeToStr(dst)}`];
+        // 这是【派遣】（规则 7.5），必须先打出一张事件牌进入派遣状态
+        if (!G.pending.dispatch) {
+            log.push(`|no|pending|dispatch|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        // 预备兵区的将领、以及所在军团被围困的将领不能派遣
+        if (!getDispatchableGenerals(G, pid).includes(general)) {
+            log.push(`|not|dispatchable|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+
+        // 目标必须没有被围困（规则 7.5）
+        if (placeIsBesieged(G, pid, dst)) {
+            log.push(`|${placeToStr(dst)}|besieged|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        // 目标必须是本方军团所在的区域或关隘边界
+        const dstTroop = getTroopByCountryPlace(G, pid2ctr(pid), dst);
+        if (dstTroop === null) {
+            log.push(`|no|own|troop|at|dst|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
         moveGeneralByPid(G, pid, general, dst);
+        G.pending.dispatch = false;
+        log.push(`|done|${getGeneralNameByCountry(pid2ctr(pid), general)}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -1045,7 +1263,7 @@ export const jianLiDaQi: LongFormMove = {
         // const ctr = getCountryById(ctx.playerID);
         // const pub = pid2pub(G, ctx.playerID);
         // const player = playerById(G, ctx.playerID);
-        if (args.length !== 3) {
+        if (args.length !== 3 || new Set(args).size !== args.length) {
             log.push(`|not3prov`);
             return INVALID_MOVE;
         } else {
@@ -1054,6 +1272,9 @@ export const jianLiDaQi: LongFormMove = {
             }
         }
         G.qi = [...args]
+        if (!G.events.includes(ActiveEvents.JianLiDaQi)) {
+            G.events.push(ActiveEvents.JianLiDaQi);
+        }
         log.push(`|${G.qi}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         ctx.events?.endStage();
@@ -1074,6 +1295,89 @@ export const chooseRegion: LongFormMove = {
         if (G.pending.regions.includes(arg)) {
 
         }
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    }
+}
+
+interface IChooseProvinceArg {
+    province: ProvinceID
+}
+
+/**
+ * 【岳飞登场】第一步：在淮南两路 / 荆湖两路里选一路。
+ * 合法范围由 G.pending.places（两路的区域）决定，选中的路写入 G.pending.province。
+ */
+export const chooseProvince: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, arg: IChooseProvinceArg) => {
+        const pid = ctx.playerID;
+        const log = [`chooseProvince`];
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`${G.matchID}|p${pid}.moves.chooseProvince(${JSON.stringify(arg)})`);
+        const {province} = arg;
+        if (getStage(ctx) !== 'chooseProvince') {
+            log.push(`|${getStage(ctx)}|not|chooseProvince|stage|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        // 只有【岳飞登场】等待选路，且只能选淮南两路 / 荆湖两路
+        if (![ProvinceID.HUAINANLIANGLU, ProvinceID.JINHULIANGLU].includes(province)) {
+            log.push(`|${province}|not|selectable|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        if (G.pending.places.length === 0) {
+            log.push(`|no|pending|places|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        G.pending.province = province;
+        log.push(`|${province}|G.pending.province`);
+        changePlayerStage(G, ctx, 'chooseCity', pid);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+    }
+}
+
+interface IChooseGeneralCityArg {
+    city: CityID
+}
+
+/**
+ * 【岳飞登场】第二步：在选中的那一路里选一个城市，把岳飞放到该城市。
+ */
+export const chooseGeneralCity: LongFormMove = {
+    move: (G: SongJinnGame, ctx: Ctx, arg: IChooseGeneralCityArg) => {
+        const pid = ctx.playerID;
+        const log = [`chooseGeneralCity`];
+        if (pid === undefined) {
+            return INVALID_MOVE;
+        }
+        logger.info(`${G.matchID}|p${pid}.moves.chooseGeneralCity(${JSON.stringify(arg)})`);
+        const {city} = arg;
+        if (getStage(ctx) !== 'chooseCity') {
+            log.push(`|${getStage(ctx)}|not|chooseCity|stage|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        const province = G.pending.province;
+        if (province === null) {
+            log.push(`|no|pending|province|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        const provObj = getProvinceById(province);
+        const cities: CityID[] = [...provObj.capital, ...provObj.other];
+        if (!cities.includes(city)) {
+            log.push(`|${city}|not|in|${province}|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        moveGeneralByPid(G, pid, SongGeneral.YueFei, city);
+        log.push(`|yueFei|${placeToStr(city)}`);
+        G.pending.province = null;
+        G.pending.places = [];
+        ctx.events?.endStage();
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -1676,19 +1980,37 @@ export const op: LongFormMove = {
 };
 
 
-export const paiQian: LongFormMove = {
-    client: false,
-
+/**
+ * 派遣（规则 7.5）：打出一张事件牌，把 1 个在场的本方将领
+ * 放到 1 个没有被围困的、有本方军团的区域或关隘边界。
+ * 预备兵区的将领、以及所在军团被围困的将领不能派遣。
+ */
+export const paiQIan: LongFormMove = {
     move: (G: SongJinnGame, ctx: Ctx, cid: SJEventCardID) => {
-        if (ctx.playerID === undefined) {
+        const pid = ctx.playerID;
+        const log = [`paiQian|${cid}`];
+        if (pid === undefined) {
             return INVALID_MOVE;
         }
-        const pub = pid2pub(G, ctx.playerID);
-        const player = playerById(G, ctx.playerID);
-        if (player.hand.includes(cid)) {
-            player.hand.splice(player.hand.indexOf(cid), 1);
-            pub.discard.push(cid);
+        logger.info(`${G.matchID}|p${pid}.moves.paiQIan(${cid})`);
+        const pub = pid2pub(G, pid);
+        const player = playerById(G, pid);
+        if (!player.hand.includes(cid)) {
+            log.push(`|not|in|hand|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
         }
+        const dispatchable = getDispatchableGenerals(G, pid);
+        if (dispatchable.length === 0) {
+            log.push(`|no|dispatchable|general|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        player.hand.splice(player.hand.indexOf(cid), 1);
+        pub.discard.push(cid);
+        G.pending.dispatch = true;
+        log.push(`|${JSON.stringify(dispatchable)}|dispatchable`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
     }
 };
 
@@ -1952,18 +2274,13 @@ export const confirmRespond: LongFormMove = {
                 }
             }
             if (ci.phase === CombatPhase.ZhuDuiShiY) {
-                // TODO  yue fei / jian sun zhu dui shi
-                const poppedEvent = G.pending.events.pop()
-                if (poppedEvent !== undefined) {
-                    switch (poppedEvent) {
-                        case PendingEvents.YueFeiZhuDuiShi:
-
-                        case PendingEvents.JianSunZhuDuiShi:
-
-                        default:
-                            return;
-                    }
-                }
+                // 这里原本有一个 switch(PendingEvents.YueFeiZhuDuiShi / JianSunZhuDuiShi)，
+                // 但它会 pop 掉 pending.events 后直接 return，既丢掉了别的待结算事件，
+                // 又让玩家在驻队矢远程阶段无法继续响应。
+                // 两者的规则文本（岳飞 / 减损）在仓库内没有数据，无法凭猜测实现；
+                // 岳飞在鸣金阶段的特例已由 canForceRoundTwo/mingJin 实现。
+                // 因此这里不再拦截，按正常响应流程继续。
+                log.push(`|zhuDuiShiY|not|blocking`);
             }
             if (ci.phase === CombatPhase.MingJin) {
                 if (ctr === ci.atk) {
@@ -2252,7 +2569,23 @@ export const removeOwnGeneral: LongFormMove = {
             return INVALID_MOVE;
         }
         logger.info(`${G.matchID}|p${pid}.moves.removeOwnGeneral(${JSON.stringify(arg)})`);
-        removeGeneral(G, pid, arg);
+        if (G.pending.reward === PendingReward.RemoveGeneral) {
+            if (getStage(ctx) !== 'removeGeneral') {
+                log.push(`|${getStage(ctx)}|not|removeGeneral|stage|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+            const present = getPlaceCountryGeneral(G, pid2ctr(pid), pid2pub(G, pid).generalPlace[arg]);
+            if (!present.includes(arg)) {
+                log.push(`|${getGeneralNameByCountry(pid2ctr(pid), arg)}|not|present|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+            removeGeneral(G, pid, arg);
+            finishReward(G, ctx, PendingReward.RemoveGeneral);
+        } else {
+            removeGeneral(G, pid, arg);
+        }
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -2280,7 +2613,27 @@ export const recruitUnit: LongFormMove = {
         if (pid === undefined) {
             return INVALID_MOVE;
         }
-        if (units.reduce(accumulator) === 0) {
+        const expectedLength = pid === SJPlayer.P1 ? 6 : 7;
+        if (!Array.isArray(units) || units.length !== expectedLength
+            || units.some(u => !Number.isInteger(u) || u < 0)
+            || units.reduce(accumulator) === 0) {
+            return INVALID_MOVE;
+        }
+        if (units.some((count, idx) => count > 0 && !canRecruitUnitType(G, pid2ctr(pid), idx))) {
+            log.push(`|no|recruit|permission|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        const pub = pid2pub(G, pid);
+        if (units.some((count, idx) => count > pub.standby[idx])) {
+            log.push(`|not|enough|standby|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return INVALID_MOVE;
+        }
+        const cost = units.reduce((sum, count, idx) => sum + count * getCtrRecruitCost(G, pid2ctr(pid))[idx], 0);
+        if ((ctx.phase === 'action' || ctx.phase === 'deploy') && G.op < cost) {
+            log.push(`|not|enough|op|invalid`);
+            logger.debug(`${G.matchID}|${log.join('')}`);
             return INVALID_MOVE;
         }
         if (ctx.phase === 'action') {
@@ -2416,6 +2769,30 @@ export const removeNation: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
+        const log = [`removeNation|${arg}`];
+        if (G.pending.reward === PendingReward.RemoveNation) {
+            if (getStage(ctx) !== 'removeNation') {
+                log.push(`|${getStage(ctx)}|not|removeNation|stage|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+            // 只能移出1个其他国家；已经移出过的不能再选
+            if (G.removedNation.includes(arg)) {
+                log.push(`|already|removed|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+            if (!Nations.includes(arg)) {
+                log.push(`|not|a|nation|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+            doRemoveNation(G, arg);
+            log.push(`|${JSON.stringify(G.removedNation)}|G.removedNation`);
+            finishReward(G, ctx, PendingReward.RemoveNation);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return;
+        }
         doRemoveNation(G, arg);
     }
 }
@@ -2424,11 +2801,32 @@ export const adjustNation: LongFormMove = {
         if (ctx.playerID === undefined) {
             return INVALID_MOVE;
         }
-        if (ctx.playerID === SJPlayer.P1) {
-            nationMoveSong(G, arg);
-        } else {
-            nationMoveJinn(G, arg);
+        const log = [`adjustNation|${arg}`];
+        if (G.pending.reward === PendingReward.AdjustNation) {
+            if (getStage(ctx) !== 'adjustNation') {
+                log.push(`|${getStage(ctx)}|not|adjustNation|stage|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+            // 奖励只允许调整1次，也不能调整已经移出游戏的国家
+            if (G.removedNation.includes(arg)) {
+                log.push(`|already|removed|invalid`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return INVALID_MOVE;
+            }
+            doAdjustNation(G, ctx.playerID as SJPlayer, arg);
+            finishReward(G, ctx, PendingReward.AdjustNation);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            return;
         }
+        doAdjustNation(G, ctx.playerID as SJPlayer, arg);
     }
 }
 
+const doAdjustNation = (G: SongJinnGame, pid: SJPlayer, arg: NationID) => {
+    if (pid === SJPlayer.P1) {
+        nationMoveSong(G, arg);
+    } else {
+        nationMoveJinn(G, arg);
+    }
+}

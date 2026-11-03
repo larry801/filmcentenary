@@ -2,7 +2,17 @@ import React, {useState} from "react";
 import {Ctx, PlayerID} from "boardgame.io"
 import Grid from "@mui/material/Grid";
 import ChoiceDialog from "../../components/modals";
-import {JinnBaseCardID, Country, Nations, SongBaseCardID, SongJinnGame} from "../constant/general";
+import {ChooseUnitsDialog} from "./recruit";
+import {
+    BaseCardID,
+    CityID,
+    General,
+    JinnBaseCardID,
+    Country,
+    Nations,
+    SongBaseCardID,
+    SongJinnGame
+} from "../constant/general";
 
 import Button from "@mui/material/Button";
 import Accordion from '@mui/material/Accordion';
@@ -12,12 +22,19 @@ import Typography from "@mui/material/Typography";
 
 import {
     canSendLetter,
+    cityIsBesieged,
     getCardLabel,
     getCityText,
     getCountryById,
+    getDispatchDsts,
+    getDispatchableGenerals,
     getFullDesc,
+    getGeneralNameByCountry,
     heYiCities,
+    optionToPlace,
     pid2ctr,
+    placeToOption,
+    placeToStr,
     playerById,
     sjCardById
 } from "../util";
@@ -42,6 +59,85 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
     const hand = player.hand;
     const [heYiChosen, setHeYiChosen] = useState(false);
     const [heYiCard, setHeYiCard] = useState([SongBaseCardID.S01, JinnBaseCardID.J01]);
+    // 贴军：先选牌，再选目标城市，最后选要贴军的部队
+    const [tieJunCard, setTieJunCard] = useState<BaseCardID | null>(null);
+    const [tieJunCity, setTieJunCity] = useState<CityID | null>(null);
+    const tieJunCityDialog = <ChoiceDialog
+        callback={(c) => {
+            setTieJunCity(c as unknown as CityID);
+        }}
+        choices={G.jinn.cities.filter(cid => !cityIsBesieged(G, cid)).map(cid => {
+            return {
+                label: getCityText(cid),
+                value: cid,
+                disabled: false,
+                hidden: false
+            }
+        })}
+        defaultChoice={""}
+        show={isActive && inPhase && tieJunCard !== null && tieJunCity === null}
+        title={"选择贴军的目标城市（不能是被围困的城市）"} toggleText={"选择贴军城市"}
+        initial={false}/>
+    const tieJunUnitsDialog = <ChooseUnitsDialog
+        callback={(u) => {
+            if (tieJunCard === null || tieJunCity === null) {
+                return;
+            }
+            moves.tieJun({card: tieJunCard, city: tieJunCity, units: u});
+            setTieJunCard(null);
+            setTieJunCity(null);
+        }}
+        max={[...G.jinn.standby]} initUnits={G.jinn.standby.map(() => 0)}
+        show={isActive && inPhase && tieJunCard !== null && tieJunCity !== null}
+        title={"选择要贴军的预备部队"} toggleText={"选择贴军部队"}
+        initial={false} country={Country.JINN} />
+    // 派遣（规则 7.5）：先选牌，再选要派遣的将领，最后选目标区域
+    const [paiQianCard, setPaiQianCard] = useState<BaseCardID | null>(null);
+    const [paiQianGeneral, setPaiQianGeneral] = useState<General | null>(null);
+    const dispatchableGenerals = getDispatchableGenerals(G, pid);
+    const dispatchDsts = getDispatchDsts(G, pid);
+    const paiQianGeneralDialog = <ChoiceDialog
+        callback={(g) => {
+            setPaiQianGeneral(parseInt(g) as General);
+        }}
+        choices={dispatchableGenerals.map(gen => {
+            return {
+                label: getGeneralNameByCountry(pid2ctr(pid), gen),
+                value: gen.toString(),
+                disabled: false,
+                hidden: false
+            }
+        })}
+        defaultChoice={""}
+        show={isActive && inPhase && paiQianCard !== null && paiQianGeneral === null}
+        title={"选择要派遣的将领"} toggleText={"选择派遣将领"}
+        initial={false}/>
+    const paiQianDstDialog = <ChoiceDialog
+        callback={(c) => {
+            if (paiQianCard === null || paiQianGeneral === null) {
+                return;
+            }
+            const dst = optionToPlace(c);
+            if (dst === null) {
+                console.log(`${c}|cannot|convertToPlace`);
+                return;
+            }
+            moves.moveGeneral({dst: dst, general: paiQianGeneral, country: pid2ctr(pid)});
+            setPaiQianCard(null);
+            setPaiQianGeneral(null);
+        }}
+        choices={dispatchDsts.map(p => {
+            return {
+                label: placeToStr(p),
+                value: placeToOption(p),
+                disabled: false,
+                hidden: false
+            }
+        })}
+        defaultChoice={""}
+        show={isActive && inPhase && paiQianCard !== null && paiQianGeneral !== null}
+        title={"选择派遣的目标（本方军团所在的区域或关隘）"} toggleText={"选择派遣目标"}
+        initial={false}/>
     return <Grid container>
         <Button fullWidth onClick={() => {
             setDetail(!detail)
@@ -104,8 +200,12 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
                         onClick={() => moves.cardEvent(cid)}
                     >事件</Button>
                     <Button
-                        disabled={!(isActive && inPhase)}
-                        onClick={() => moves.paiQIan(cid)}
+                        disabled={!(isActive && inPhase) || dispatchableGenerals.length === 0}
+                        onClick={() => {
+                            setPaiQianGeneral(null);
+                            setPaiQianCard(cid);
+                            moves.paiQIan(cid);
+                        }}
                     >派遣</Button>
                     <Button
                         disabled={!(isActive && inPhase)}
@@ -128,7 +228,10 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
                                     setHeYiCard([cid]);
                                 }}
                         >和议</Button> : <Button
-                            onClick={() => moves.tieJun(cid)}
+                            onClick={() => {
+                                setTieJunCity(null);
+                                setTieJunCard(cid);
+                            }}
                             disabled={!(isActive && inPhase)}
                         >贴军</Button>
                     }
@@ -136,6 +239,11 @@ export const SJPlayerHand = ({G, ctx, pid, isActive, moves}: IPlayerHandProps) =
 
             </Accordion>
         })}
+
+        {tieJunCityDialog}
+        {tieJunUnitsDialog}
+        {paiQianGeneralDialog}
+        {paiQianDstDialog}
     </Grid>
 
 }
