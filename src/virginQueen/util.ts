@@ -844,7 +844,7 @@ const WAR_COST: Record<string, number> = {
 
 export const warCost = (G: VQGame, a: Power, b: Power): number => {
     if ((a === "england" && b === "spain") || (a === "spain" && b === "england")) {
-        return Math.max(1, G.doWCostEnglandSpain);
+        return Math.max(1, G.doWCostEnglandSpain - (G.elizabethExcommunicated ? 2 : 0));
     }
     return WAR_COST[[a, b].sort().join("-")] ?? 2;
 };

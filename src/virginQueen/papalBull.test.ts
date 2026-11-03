@@ -2,7 +2,7 @@ import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
 import {playCard} from "./moves";
 import {SPACES} from "./mapData";
-import {setupGame} from "./util";
+import {setupGame, warCost} from "./util";
 
 const context = (): Ctx => ({
     currentPlayer: "1",
@@ -24,6 +24,14 @@ describe("Papal Bull (card #5)", () => {
         expect(playCard(G, context(), {cardId: "vq-005", asEvent: true, target: "excommunicate"})).toBeUndefined();
 
         expect(G.elizabethExcommunicated).toBe(true);
+    });
+
+    it("reduces the England-Spain war cost by 2", () => {
+        const G = game();
+        G.doWCostEnglandSpain = 6;
+        expect(warCost(G, "england", "spain")).toBe(6);
+        G.elizabethExcommunicated = true;
+        expect(warCost(G, "england", "spain")).toBe(4);
     });
 
     it("can recover Holy League from the discard pile", () => {

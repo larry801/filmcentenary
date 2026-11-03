@@ -219,7 +219,7 @@
 
 - 立即进行教廷外交评议；
 - 若某玩家与教廷结盟，自动在该玩家新教地区最多的法兰西/尼德兰区域进行 7 次天主教传播；
-- 目标 `excommunicate` 可放置伊丽莎白绝罚标记；`france`/`netherlands` 可指定 7 次传播区域；`patron:赞助人ID` 可进行 3 CP 意大利赞助；`holyLeague` 可从弃牌堆找回并执行 #24。
+- 目标 `excommunicate` 可放置伊丽莎白绝罚标记，使英格兰-西班牙宣战费用 -2；`france`/`netherlands` 可指定 7 次传播区域；`patron:赞助人ID` 可进行 3 CP 意大利赞助；`holyLeague` 可从弃牌堆找回并执行 #24。
 
 ### 加尔文主义狂热（#32）
 
@@ -1204,4 +1204,4 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #35 指定给牌接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、616 tests passed（新增 1 项：指定交牌）；`npm run build` 通过。
 
-#5 教宗诏书选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、618 tests passed（新增 2 项：绝罚伊丽莎白、找回神圣同盟）；`npm run build` 通过。
+#5 教宗诏书选项接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、619 tests passed（新增 3 项：绝罚伊丽莎白、绝罚降低战争费用、找回神圣同盟）；`npm run build` 通过。
