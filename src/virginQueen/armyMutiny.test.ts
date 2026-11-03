@@ -14,6 +14,17 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Army Mutiny (card #17)", () => {
+    it("can target a specific owner in a shared space", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-017", "vq-090"];
+        G.spaces.brussels.land.france = {regular: 2, merc: 2, cav: 0};
+        G.spaces.brussels.land.spain = {regular: 2, merc: 2, cav: 0};
+        expect(playCard(G, context(), {cardId: "vq-017", asEvent: true, target: "brussels:france"})).toBeUndefined();
+
+        expect(G.spaces.brussels.land.france?.merc).toBe(0);
+        expect(G.spaces.brussels.land.spain?.merc).toBe(2);
+    });
+
     it("removes mercenaries and limits regulars by the discarded card", () => {
         const G = game();
         G.powers.france.cards = ["vq-017"];

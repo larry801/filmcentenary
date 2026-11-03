@@ -16,6 +16,22 @@ const context = (): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Unrest in the Realm / Ruler Falls Ill", () => {
+    it("can choose the three home spaces", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-025"];
+        for (const id of ["istanbul", "edirne", "athens", "sofia"]) {
+            G.spaces[id].land = {};
+            G.spaces[id].unrest = false;
+        }
+
+        expect(playCard(G, context(), {cardId: "vq-025", asEvent: true, target: "ottoman:istanbul:edirne:athens"})).toBeUndefined();
+
+        expect(G.spaces.istanbul.unrest).toBe(true);
+        expect(G.spaces.edirne.unrest).toBe(true);
+        expect(G.spaces.athens.unrest).toBe(true);
+        expect(G.spaces.sofia.unrest).toBe(false);
+    });
+
     it("places three unrest in Ottoman home spaces", () => {
         const G = game();
         G.powers.france.cards = ["vq-025"];

@@ -893,9 +893,13 @@ const resolveCityStateRebels = (G: VQGame, ctx: Ctx, p: Power, target?: string):
 };
 
 const resolveArmyMutiny = (G: VQGame, ctx: Ctx, target?: string): void => {
-    if (target === undefined || G.spaces[target] === undefined) return;
-    const state = G.spaces[target];
-    const owner = (Object.keys(state.land) as Power[]).find((power) => isPower(power));
+    if (target === undefined) return;
+    const [spaceId, ownerId] = target.split(":");
+    if (G.spaces[spaceId] === undefined) return;
+    const state = G.spaces[spaceId];
+    const owner = ownerId !== undefined && isPower(ownerId) && state.land[ownerId] !== undefined
+        ? ownerId
+        : (Object.keys(state.land) as Power[]).find((power) => isPower(power));
     if (owner === undefined) return;
     const stack = state.land[owner]!;
     stack.merc = 0;
@@ -912,9 +916,9 @@ const resolveArmyMutiny = (G: VQGame, ctx: Ctx, target?: string): void => {
     stack.regular = Math.min(stack.regular, keep);
     if (stack.regular + stack.merc + stack.cav === 0) delete state.land[owner];
     state.unrest = true;
-    const neighbor = landNeighbors(target).find((space) => G.spaces[space.id] !== undefined && !G.spaces[space.id].unrest);
+    const neighbor = landNeighbors(spaceId).find((space) => G.spaces[space.id] !== undefined && !G.spaces[space.id].unrest);
     if (neighbor !== undefined) G.spaces[neighbor.id].unrest = true;
-    pushLog(G, `Army Mutiny strikes ${powerLabel(owner)} in ${SPACE_BY_ID[target].name}.`);
+    pushLog(G, `Army Mutiny strikes ${powerLabel(owner)} in ${SPACE_BY_ID[spaceId].name}.`);
 };
 
 const resolveElDorado = (G: VQGame, target?: string): void => {
@@ -1017,12 +1021,16 @@ const resolveGermanRecruitment = (G: VQGame, p: Power, target?: string): void =>
 };
 
 const resolveUnrestInRealm = (G: VQGame, target?: string): void => {
-    if (target === undefined || !["ottoman", "hre", "spain"].includes(target)) return;
-    const homes = SPACES.filter((space) => space.home === target && !G.spaces[space.id].unrest &&
+    if (target === undefined) return;
+    const [targetPower, ...preferred] = target.split(":");
+    if (!["ottoman", "hre", "spain"].includes(targetPower)) return;
+    const eligible = SPACES.filter((space) => space.home === targetPower && !G.spaces[space.id].unrest &&
         totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 &&
-        !(target === "spain" && space.area === "netherlands")).slice(0, 3);
+        !(targetPower === "spain" && space.area === "netherlands"));
+    const chosen = preferred.length > 0 ? eligible.filter((space) => preferred.includes(space.id)) : eligible;
+    const homes = chosen.slice(0, 3);
     for (const space of homes) G.spaces[space.id].unrest = true;
-    pushLog(G, `Unrest in the Realm places ${homes.length} unrest in ${powerLabel(target as Power)} home spaces.`);
+    pushLog(G, `Unrest in the Realm places ${homes.length} unrest in ${powerLabel(targetPower as Power)} home spaces.`);
 };
 
 /** #30 Ruler Falls Ill: discard a random card from another power. */
