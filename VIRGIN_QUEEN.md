@@ -170,6 +170,13 @@
   - 盟方可移动叛军（尚未单独界面）。
 - 事件可在外交阶段由西班牙/法国/HRE 打出。
 
+### 梅嫩德斯·德·阿维莱斯（#61）
+
+- 若佛罗里达有非西班牙殖民地：掷 1d6，3+ 移除殖民地并由西班牙控制。
+- 否则若护航不足 2：增加 1 艘珍宝舰队护航。
+- 否则在西班牙世界定居点建要塞并增加 1 支巡逻队。
+- 三选项自动按优先级选择；间谍自动成功尚未接入。
+
 ### 诺查丹玛斯的大预言（#63）
 
 - 从牌堆抽 4 张（法国玩家抽 8 张），保留 CP 最高的一张，其余洗回牌堆；
@@ -510,6 +517,7 @@ src/virginQueen/
   rudolfII.test.ts      #87 鲁道夫二世/迁都布拉格
   johnKnox.test.ts      #60 约翰·诺克斯
   nostradamus.test.ts   #63 诺查丹玛斯抽牌保留最高 CP
+  menendez.test.ts      #61 梅嫩德斯·德·阿维莱斯
   irishRebellion.test.ts #57 爱尔兰叛乱
   dutchRevolt.test.ts   #83 荷兰起义 VP 表
   praguePatronage.test.ts 布拉格文化中心 +2 赞助
@@ -684,3 +692,5 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 #60 约翰·诺克斯接入后的验证：`jest src/virginQueen --runInBand --silent` 67 suites、471 tests passed（新增 2 项：苏格兰转化/影响力）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #63 诺查丹玛斯接入后的验证：`jest src/virginQueen --runInBand --silent` 68 suites、472 tests passed（新增 1 项：抽牌保留最高 CP）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+
+#61 梅嫩德斯接入后的验证：`jest src/virginQueen --runInBand --silent` 69 suites、474 tests passed（新增 2 项：佛罗里达殖民地/护航）；`npm run build` 通过，仍有既有大体积 chunk 提示。

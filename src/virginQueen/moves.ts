@@ -649,6 +649,35 @@ const resolveMuradIII = (G: VQGame, ctx: Ctx): void => {
 /** #87 Rudolf II succeeds Maximilian II and moves the HRE capital to Prague. */
 /** #60 John Knox: convert all but one Scottish space, or add influence. */
 /** #63 Nostradamus' Prophecies: draw 4 (8 for France) and keep one. */
+/** #61 Menéndez de Avilés: Florida raid, escort, or fortress/patrol. */
+const resolveMenendez = (G: VQGame, ctx: Ctx): void => {
+    const florida = G.worldColonies.florida;
+    if (florida !== undefined && florida !== "spain") {
+        const roll = die(ctx, 6);
+        G.lastRolls = `Menéndez de Avilés: ${roll}`;
+        if (roll >= 3) {
+            delete G.worldColonies.florida;
+            G.worldControls.florida = "spain";
+            pushLog(G, `${G.lastRolls} — the Florida colony is removed and Spain takes control.`);
+        } else {
+            pushLog(G, `${G.lastRolls} — the Florida colony survives.`);
+        }
+        return;
+    }
+    if ((G.treasureFleetEscorts ?? 0) < 2) {
+        G.treasureFleetEscorts = (G.treasureFleetEscorts ?? 0) + 1;
+        pushLog(G, "Menéndez de Avilés adds a galleon to the Treasure Fleet escorts.");
+        return;
+    }
+    const settlement = WORLD_SETTLEMENTS.find((def) => G.worldControls[def.id] === "spain" && G.worldFortresses?.[def.id] === undefined);
+    if (settlement !== undefined) {
+        G.worldFortresses = {...(G.worldFortresses ?? {}), [settlement.id]: "spain"};
+        const zone = settlement.seaZone;
+        if (zone !== undefined) G.worldPatrols = {...(G.worldPatrols ?? {}), [zone]: (G.worldPatrols?.[zone] ?? 0) + 1};
+        pushLog(G, `Menéndez de Avilés fortifies ${settlement.nameEn} and adds a patrol.`);
+    }
+};
+
 const resolveNostradamus = (G: VQGame, ctx: Ctx, p: Power): void => {
     const drawn = drawCards(G, ctx, p, p === "france" ? 8 : 4);
     if (drawn.length === 0) return;
@@ -1062,6 +1091,8 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveJohnKnox(G, p, target);
     } else if (handler === "card063") {
         resolveNostradamus(G, ctx, p);
+    } else if (handler === "menendezDeAviles") {
+        resolveMenendez(G, ctx);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {

@@ -1,0 +1,43 @@
+import {Ctx} from "boardgame.io";
+import {VQGame} from "./constant/general";
+import {playCard} from "./moves";
+import {setupGame} from "./util";
+
+const context = (values: number[] = []): Ctx => ({
+    currentPlayer: "1",
+    playerID: "1",
+    phase: "action",
+    numPlayers: 6,
+    random: {Die: () => values.shift() ?? 3, Shuffle: (cards: unknown[]) => cards},
+} as unknown as Ctx);
+
+const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
+
+const prepare = (G: VQGame): void => {
+    if (!G.powers.spain.cards.includes("vq-061")) G.powers.spain.cards.push("vq-061");
+};
+
+describe("Menéndez de Avilés (card #61)", () => {
+    it("removes a Florida colony on 3+", () => {
+        const G = game();
+        prepare(G);
+        G.worldColonies.florida = "england";
+        G.worldControls.florida = "england";
+
+        expect(playCard(G, context([3]), {cardId: "vq-061", asEvent: true})).toBeUndefined();
+
+        expect(G.worldColonies.florida).toBeUndefined();
+        expect(G.worldControls.florida).toBe("spain");
+    });
+
+    it("adds a treasure-fleet escort when Florida is not available", () => {
+        const G = game();
+        prepare(G);
+        G.worldColonies.florida = undefined;
+        G.treasureFleetEscorts = 0;
+
+        expect(playCard(G, context([3]), {cardId: "vq-061", asEvent: true})).toBeUndefined();
+
+        expect(G.treasureFleetEscorts).toBe(1);
+    });
+});
