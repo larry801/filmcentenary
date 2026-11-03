@@ -1347,10 +1347,12 @@ const resolveSultanaSafiye = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
         pushLog(G, `Sultana Safiye gives ${powerLabel(p)} 2 influence in Venice.`);
         return;
     }
-    const [targetPower, chosen] = target.split(":");
+    const [targetPower, chosen, given] = target.split(":");
     if (p !== "ottoman" || G.powers.ottoman.ruler !== "muradIII" || ctx.numPlayers < 5 ||
         !isPower(targetPower) || targetPower === "ottoman") return;
-    const give = G.powers.ottoman.cards.find((id) => cardById(id).kind !== "home");
+    const give = given !== undefined && G.powers.ottoman.cards.includes(given) && cardById(given).kind !== "home"
+        ? given
+        : G.powers.ottoman.cards.find((id) => cardById(id).kind !== "home");
     const take = G.powers[targetPower].cards.filter((id) => cardById(id).kind !== "home");
     if (give === undefined || take.length === 0) return;
     const received = chosen !== undefined && take.includes(chosen)
