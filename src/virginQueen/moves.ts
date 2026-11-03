@@ -1253,7 +1253,10 @@ const resolveUnionOfArras = (G: VQGame, target?: string): void => {
     }
     G.unionOfArras = true;
     G.dutchSpanishHome = true;
-    const preferred = target?.split(":").filter((id) => G.spaces[id] !== undefined && SPACE_BY_ID[id]?.area === "netherlands") ?? [];
+    const guardMatch = target?.match(/^guards:(\d+)$/);
+    const guardLimit = guardMatch ? Math.max(0, Math.min(4, Number(guardMatch[1]))) : 4;
+    const spaceTarget = guardMatch ? undefined : target;
+    const preferred = spaceTarget?.split(":").filter((id) => G.spaces[id] !== undefined && SPACE_BY_ID[id]?.area === "netherlands") ?? [];
     const selected = preferred.length > 0
         ? preferred.slice(0, 5).map((id) => SPACE_BY_ID[id])
         : SPACES.filter((space) => space.area === "netherlands").slice(0, 5);
@@ -1261,7 +1264,7 @@ const resolveUnionOfArras = (G: VQGame, target?: string): void => {
         G.spaces[space.id].control = "spain";
         G.spaces[space.id].religion = "catholic";
     }
-    let guards = 4;
+    let guards = guardLimit;
     for (const space of SPACES.filter((def) => def.area === "netherlands" && G.spaces[def.id].control === "spain" &&
         G.spaces[def.id].siege === undefined && !G.spaces[def.id].unrest)) {
         const stack = G.spaces[space.id].land.spain;

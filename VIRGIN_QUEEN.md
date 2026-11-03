@@ -1068,7 +1068,7 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 #111 巴黎值得一场弥撒接入后的验证：`jest src/virginQueen --runInBand --silent` 129 suites、572 tests passed（新增 2 项：夺取巴黎/迁都、指定转化地区）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
-#109 阿拉斯联盟接入后的验证：`jest src/virginQueen --runInBand --silent` 129 suites、571 tests passed（清雇佣兵、指定 5 地区/瓦隆卫队、尼德兰煽动拦截、西班牙本土化招募/建造）；`npm run build` 通过，仍有既有大体积 chunk 提示。
+#109 阿拉斯联盟接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、611 tests passed（清雇佣兵、指定 5 地区、瓦隆卫队数量、尼德兰煽动拦截、西班牙本土化招募/建造）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 
 #40 蒂尔伯里演说接入后的验证：`jest src/virginQueen --runInBand --silent` 138 suites、603 tests passed（新增 3 项：英格兰 +4 骰、其他国家 +2 骰、自动攻城）；`npm run build` 通过，仍有既有大体积 chunk 提示。
 

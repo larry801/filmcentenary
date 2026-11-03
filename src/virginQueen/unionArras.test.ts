@@ -28,6 +28,20 @@ describe("Union of Arras (card #109)", () => {
         }
     });
 
+    it("can limit the number of Walloon guards", () => {
+        const G = game();
+        G.powers.spain.cards = ["vq-109"];
+        for (const id of ["antwerp", "brussels", "ghent", "rotterdam", "flushing"]) {
+            G.spaces[id].land.spain = {regular: 0, merc: 0, cav: 0};
+        }
+        G.spaces.brussels.land.spain = {regular: 4, merc: 0, cav: 0};
+
+        expect(playCard(G, context(), {cardId: "vq-109", asEvent: true, target: "guards:1"})).toBeUndefined();
+
+        expect(G.spaces.brussels.land.spain?.regular).toBe(3);
+        expect(G.spaces.brussels.land.spain?.merc).toBe(1);
+    });
+
     it("removes Dutch mercenaries and secures five spaces", () => {
         const G = game();
         G.powers.spain.cards = ["vq-109"];
