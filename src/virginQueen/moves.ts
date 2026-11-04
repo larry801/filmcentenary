@@ -1918,7 +1918,9 @@ const resolveEdmundCampion = (G: VQGame, ctx: Ctx, chosen?: string): void => {
 
 const resolveTenthPenny = (G: VQGame, ctx: Ctx, p: Power): void => {
     if (p === "protestant") {
-        const space = rebellionTargets(G)[0];
+        // Printed text: the 5 CP rebellion must be in the Netherlands.  Do
+        // not silently fall through to an eligible French space.
+        const space = rebellionTargets(G).find((id) => SPACE_BY_ID[id]?.area === "netherlands");
         if (space !== undefined) resolveRebellion(G, ctx, "protestant", space, 5);
         return;
     }
@@ -2020,8 +2022,8 @@ const resolvePuritans = (G: VQGame, ctx: Ctx, p: Power, target?: string): void =
             discardCard(G, "england", card, true);
             pushLog(G, `Puritans draw ${cardById(card).name} from England; England discards it.`);
         } else {
-            G.powers[p].cards.push(card);
-            pushLog(G, `Puritans draw ${cardById(card).name} from England; England gives it to ${powerLabel(p)}.`);
+            G.powers.protestant.cards.push(card);
+            pushLog(G, `Puritans draw ${cardById(card).name} from England; England gives it to ${powerLabel("protestant")}.`);
         }
         return;
     }

@@ -38,6 +38,18 @@ describe("Puritans (card #65)", () => {
         expect(G.discard).toContain("vq-020");
     });
 
+    it("gives the drawn card to the Protestant even when another power plays the event", () => {
+        const G = game();
+        G.powers.spain.cards = ["vq-065"];
+        G.powers.england.cards = ["vq-020"];
+
+        expect(playCard(G, {...context(), playerID: "1", currentPlayer: "1"}, {cardId: "vq-065", asEvent: true})).toBeUndefined();
+
+        expect(G.powers.england.cards).toHaveLength(0);
+        expect(G.powers.protestant.cards).toContain("vq-020");
+        expect(G.powers.spain.cards).not.toContain("vq-020");
+    });
+
     it("places three unrest when England has no cards", () => {
         const G = game();
         if (!G.powers.protestant.cards.includes("vq-065")) G.powers.protestant.cards.push("vq-065");
