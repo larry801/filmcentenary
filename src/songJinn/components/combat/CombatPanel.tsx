@@ -6,7 +6,7 @@ import { CombatHeader } from "./CombatHeader";
 import { ForceCard } from "./ForceCard";
 import { CombatActions } from "./CombatActions";
 import { actualStage } from "../../game/util";
-import { getCityText, getRegionText } from "../../util";
+import { sjCardById } from "../../util";
 import styles from "../../styles/combat.module.css";
 import "../../styles/variables.css";
 import "../../styles/typography.css";
@@ -23,17 +23,35 @@ export interface ICombatInfo {
 export const CombatPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) => {
   const s = G.combat;
 
+  React.useEffect(() => {
+    if (isActive && actualStage(G, ctx) === 'showCC') {
+      if (pid !== null) {
+        moves.showCC(G.player[pid as SJPlayer].combatCard);
+      }
+    }
+  }, [isActive, ctx.activePlayers]);
+
+  React.useEffect(() => {
+    if (isActive && actualStage(G, ctx) === 'combatCard') {
+      if (pid !== null) {
+        if (G.player[pid as SJPlayer].hand.filter((c: string) => sjCardById(c).combat).length === 0) {
+          moves.combatCard([]);
+        }
+      }
+    }
+  }, [isActive, ctx.activePlayers]);
+
   if (!s.ongoing) {
     return <></>;
   }
 
   const pub = pid === SJPlayer.P1 ? G.song : pid === SJPlayer.P2 ? G.jinn : G.song;
   
-  const songTroopsInCombat = G.song.troops.filter(t => 
+  const songTroopsInCombat = G.song.troops.filter((t: any) => 
     (s.region !== null && t.p === s.region) || (s.city !== null && t.c === s.city)
   );
   
-  const jinnTroopsInCombat = G.jinn.troops.filter(t => 
+  const jinnTroopsInCombat = G.jinn.troops.filter((t: any) => 
     (s.region !== null && t.p === s.region) || (s.city !== null && t.c === s.city)
   );
 
