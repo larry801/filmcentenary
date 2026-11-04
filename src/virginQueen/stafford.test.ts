@@ -14,7 +14,7 @@ const context = (values: number[] = []): Ctx => ({
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
 describe("Sir Edward Stafford (card #102)", () => {
-    it("discards a random non-home card from the target", () => {
+    it("automatically discards a non-home card from the target", () => {
         const G = game();
         G.year = 4;
         if (!G.powers.england.cards.includes("vq-102")) G.powers.england.cards.push("vq-102");
@@ -27,7 +27,7 @@ describe("Sir Edward Stafford (card #102)", () => {
         expect(G.discard.length).toBeGreaterThan(0);
     });
 
-    it("discards a treasure when the target has as many treasures as cards", () => {
+    it("automatically discards a treasure when the target has as many treasures as cards", () => {
         const G = game();
         G.year = 4;
         if (!G.powers.england.cards.includes("vq-102")) G.powers.england.cards.push("vq-102");

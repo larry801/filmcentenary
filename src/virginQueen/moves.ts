@@ -703,22 +703,42 @@ const resolveConquestOfPhilippines = (G: VQGame, ctx: Ctx): void => {
 /** #89 Mary Queen of Scots event: +3 French influence then resolve Scotland. */
 /** #102 Sir Edward Stafford event: inspect and discard a card or treasure. */
 const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void => {
-    if (target === undefined || !isPower(target)) return;
-    const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
-    const treasures = G.powers[target].treasures;
+    if (target === undefined) return;
+    // Target grammar: "power" (automatic fallback), "power:card:<card id>",
+    // or "power:treasure:<value>".  An unavailable choice falls back to the
+    // original automatic selection so older callers keep working.
+    const [targetPower, kind, chosen] = target.split(":");
+    if (!isPower(targetPower)) return;
+    const cards = G.powers[targetPower].cards.filter((id) => cardById(id).kind !== "home");
+    const treasures = G.powers[targetPower].treasures;
     if (cards.length === 0 && treasures.length === 0) {
         pushLog(G, "Sir Edward Stafford finds nothing to discard.");
         return;
     }
+    if (kind === "card" && chosen !== undefined && cards.includes(chosen)) {
+        G.powers[targetPower].cards = G.powers[targetPower].cards.filter((id) => id !== chosen);
+        discardCard(G, targetPower, chosen, false);
+        pushLog(G, `Sir Edward Stafford discards ${cardById(chosen).name} from ${powerLabel(targetPower)}.`);
+        return;
+    }
+    if (kind === "treasure" && chosen !== undefined && chosen.trim() !== "") {
+        const value = Number(chosen);
+        const index = Number.isFinite(value) ? treasures.indexOf(value) : -1;
+        if (index >= 0) {
+            G.powers[targetPower].treasures.splice(index, 1);
+            pushLog(G, `Sir Edward Stafford discards a ${value} CP treasure from ${powerLabel(targetPower)}.`);
+            return;
+        }
+    }
     if (treasures.length >= cards.length) {
         const index = Math.min(treasures.length - 1, Math.max(0, die(ctx, treasures.length) - 1));
         const [value] = treasures.splice(index, 1);
-        pushLog(G, `Sir Edward Stafford discards a ${value} CP treasure from ${powerLabel(target)}.`);
+        pushLog(G, `Sir Edward Stafford discards a ${value} CP treasure from ${powerLabel(targetPower)}.`);
     } else {
         const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
-        G.powers[target].cards = G.powers[target].cards.filter((id) => id !== card);
-        G.discard.push(card);
-        pushLog(G, `Sir Edward Stafford discards ${cardById(card).name} from ${powerLabel(target)}.`);
+        G.powers[targetPower].cards = G.powers[targetPower].cards.filter((id) => id !== card);
+        discardCard(G, targetPower, card, false);
+        pushLog(G, `Sir Edward Stafford discards ${cardById(card).name} from ${powerLabel(targetPower)}.`);
     }
 };
 
