@@ -1606,9 +1606,8 @@ const resolveLouise = (G: VQGame, p: Power): void => {
 };
 
 const resolveDunkirkPrivateers = (G: VQGame, ctx: Ctx, target?: string): void => {
-    if (G.spaces.antwerp?.control !== "spain" && G.spaces.dunkirk?.control !== "spain" &&
-        !SPACES.some((space) => space.area === "netherlands" && space.ports?.includes("northSea") &&
-            G.spaces[space.id].control === "spain" && !G.spaces[space.id].unrest)) return;
+    if (!SPACES.some((space) => space.area === "netherlands" && space.ports?.includes("northSea") &&
+        G.spaces[space.id].control === "spain" && !G.spaces[space.id].unrest)) return;
     const targetPort = target !== undefined && zonePorts("northSea").includes(target) &&
         ["england", "protestant"].includes(G.spaces[target].control) && !G.spaces[target].unrest
         ? target
