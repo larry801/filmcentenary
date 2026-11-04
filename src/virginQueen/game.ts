@@ -89,9 +89,14 @@ import {
     declineGregorianCalendar,
     respondBeaconFires,
     startActionTurn,
+    autoResolveCityRebelsLosses,
+    chooseCityRebelsLoss,
 } from "./moves";
 
 const turnBegin = (G: VQGame, ctx: Ctx): void => {
+    // Safety net: an abandoned #18 allocation is completed with the automatic
+    // unit order before the next turn begins.
+    if (G.pendingCityRebels !== undefined) autoResolveCityRebelsLosses(G);
     if (ctx.phase === "cardDraw" &&
         (G.winterLossChoices?.some((entry) => entry.power === G.activePower) ||
             G.winterNavalLossChoices?.some((entry) => entry.power === G.activePower))) {
@@ -129,6 +134,8 @@ const turnBegin = (G: VQGame, ctx: Ctx): void => {
 };
 
 const phaseBegin = (G: VQGame): void => {
+    // A #18 choice cannot cross a phase boundary; apply the automatic order.
+    if (G.pendingCityRebels !== undefined) autoResolveCityRebelsLosses(G);
     // #95 is only attached for the Diplomacy Phase in which it was played.
     delete G.louiseAttachment;
     restorePatrons(G);
@@ -171,6 +178,9 @@ const choiceStages = {
     cardEvent: {moves: {chooseCardEvent}},
     activateMajor: {moves: {chooseMajorActivation}},
     abjurationChoice: {moves: {chooseAbjuration}},
+    // #18 losses: each hit is a separate unit-type choice, with "auto"
+    // assigning the rest in the printed fallback order.
+    cityRebelsLossChoice: {moves: {chooseCityRebelsLoss}},
     battleChoice: {moves: {chooseBattle, playVirginQueenCombat}},
     tutorialEvent: {moves: {chooseTutorialEvent}},
     piracyChoice: {moves: {choosePiracy}},
@@ -321,6 +331,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
         loanNaval,
         dragutFallsRoll,
     chooseAbjuration,
+    chooseCityRebelsLoss,
     giveTreasure,
     cancelWalsingham,
     scurvyNavigation,

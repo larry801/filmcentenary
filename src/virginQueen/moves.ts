@@ -3,6 +3,7 @@ import {beginEspionageEvent, beginInformantCut, beginMassacre, beginNorthernRisi
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
     CardDef,
+    CityRebelsLossChoice,
     Controller,
     HreReligiousPreference,
     HRE_RELIGIOUS_PREFERENCE_NAMES,
@@ -1126,6 +1127,159 @@ const resolveTreachery = (G: VQGame, ctx: Ctx, target?: string): void => {
     pushLog(G, `Treachery! forces an assault on ${SPACE_BY_ID[target].name}.`);
 };
 
+export type CityRebelsLossKind = keyof LandStack | keyof NavalStack;
+
+const CITY_REBELS_LAND_KINDS = ["merc", "regular", "cav"] as const;
+const CITY_REBELS_NAVAL_KINDS = ["corsair", "galley", "galleon", "racebuilt"] as const;
+const CITY_REBELS_LOSS_LABELS: Record<CityRebelsLossKind, string> = {
+    regular: "正规军",
+    merc: "雇佣兵",
+    cav: "骑兵",
+    corsair: "海盗船",
+    galley: "桨帆船",
+    galleon: "大帆船",
+    racebuilt: "快帆船",
+};
+
+const cityRebelsLossKinds = (G: VQGame, space: string, controller: Power): CityRebelsLossKind[] => {
+    const state = G.spaces[space];
+    if (state === undefined) return [];
+    const result: CityRebelsLossKind[] = [];
+    const land = state.land[controller];
+    if (land !== undefined) {
+        for (const kind of CITY_REBELS_LAND_KINDS) {
+            if (land[kind] > 0) result.push(kind);
+        }
+    }
+    const naval = state.naval[controller];
+    if (naval !== undefined) {
+        for (const kind of CITY_REBELS_NAVAL_KINDS) {
+            if (naval[kind] > 0) result.push(kind);
+        }
+    }
+    return result;
+};
+
+/** Legal unit-type choices for the #18 loss currently awaiting the controller. */
+export const cityRebelsLossOptions = (G: VQGame): {kind: CityRebelsLossKind; label: string}[] => {
+    const pending = G.pendingCityRebels;
+    if (pending === undefined) return [];
+    return cityRebelsLossKinds(G, pending.space, pending.controller)
+        .map((kind) => ({kind, label: CITY_REBELS_LOSS_LABELS[kind]}));
+};
+
+/** Remove one unit of the chosen type, rejecting types the controller lacks. */
+const removeCityRebelsUnit = (G: VQGame, space: string, controller: Power, kind: CityRebelsLossKind): boolean => {
+    const state = G.spaces[space];
+    if (state === undefined) return false;
+    if (kind === "regular" || kind === "merc" || kind === "cav") {
+        const stack = state.land[controller];
+        if (stack === undefined || stack[kind] <= 0) return false;
+        stack[kind] -= 1;
+        cleanupLand(G, space, controller);
+        return true;
+    }
+    const stack = state.naval[controller];
+    if (stack === undefined || stack[kind] <= 0) return false;
+    stack[kind] -= 1;
+    cleanupNaval(G, space, controller);
+    return true;
+};
+
+/**
+ * Apply the automatic loss order to every hit still pending: mercenary, then
+ * regular, then cavalry, then corsair, galley, galleon and race-built. This is
+ * the fallback when the controller chooses "auto" or the choice is abandoned.
+ */
+const applyCityRebelsAutoLosses = (G: VQGame, pending: CityRebelsLossChoice): void => {
+    if (pending.remaining <= 0) return;
+    const state = G.spaces[pending.space];
+    if (state === undefined) {
+        pending.remaining = 0;
+        return;
+    }
+    let hitCount = pending.remaining;
+    const land = state.land[pending.controller];
+    if (land !== undefined) {
+        for (const kind of CITY_REBELS_LAND_KINDS) {
+            const take = Math.min(hitCount, land[kind]);
+            land[kind] -= take;
+            hitCount -= take;
+        }
+    }
+    const naval = state.naval[pending.controller];
+    if (naval !== undefined) {
+        for (const kind of CITY_REBELS_NAVAL_KINDS) {
+            const take = Math.min(hitCount, naval[kind]);
+            naval[kind] -= take;
+            hitCount -= take;
+        }
+    }
+    cleanupLand(G, pending.space, pending.controller);
+    cleanupNaval(G, pending.space, pending.controller);
+    pending.remaining = Math.max(0, hitCount);
+};
+
+/** Finish a #18 allocation: apply any remaining auto hits, then resolve capture. */
+const finishCityRebelsLoss = (G: VQGame, pending: CityRebelsLossChoice, ctx?: Ctx): void => {
+    applyCityRebelsAutoLosses(G, pending);
+    const def = SPACE_BY_ID[pending.space];
+    const state = G.spaces[pending.space];
+    if (def !== undefined && state !== undefined) {
+        if (totalLand(G, pending.space, ownersWithLand(G, pending.space)) === 0 &&
+            totalNaval(G, pending.space, ownersWithNaval(G, pending.space)) === 0) {
+            for (const id of [...state.leaders]) {
+                const leader = LEADER_BY_ID[id];
+                if (leader?.kind !== "naval" || leader.power !== pending.controller) continue;
+                state.leaders = state.leaders.filter((leaderId) => leaderId !== id);
+                G.leaders[id] = {id, location: "pool", returnTurn: G.year + 1};
+            }
+            captureLeaders(G, pending.space, [pending.controller], pending.power);
+            state.control = def.home;
+            addLand(G, pending.space, def.home, "regular", 1);
+        }
+        G.lastRolls = `City State Rebels [${pending.values.join(",")}] = ${hits(pending.values)} hit(s)`;
+        pushLog(G, `${G.lastRolls} in ${def.name}.`);
+    }
+    if (G.pendingCityRebels === pending) delete G.pendingCityRebels;
+    ctx?.events?.endStage();
+};
+
+/**
+ * Allocate one hit of #18 City State Rebels. `kind` removes exactly one unit
+ * of that type from the target controller's stack; `"auto"` assigns every
+ * remaining hit with the automatic order. The choice is bounded to the hits of
+ * the one event, and `autoResolveCityRebelsLosses` applies the same fallback
+ * if play ever leaves the choice behind.
+ */
+export const chooseCityRebelsLoss = (
+    G: VQGame,
+    ctx: Ctx,
+    args: {kind: CityRebelsLossKind | "auto"},
+): void | typeof INVALID_MOVE => {
+    const pending = G.pendingCityRebels;
+    if (pending === undefined) return INVALID_MOVE;
+    if (ctx.playerID !== undefined && ctx.playerID !== null && ownerOf(G, pending.controller) !== ctx.playerID) {
+        return INVALID_MOVE;
+    }
+    if (args.kind === "auto") {
+        finishCityRebelsLoss(G, pending, ctx);
+        return;
+    }
+    if (!cityRebelsLossOptions(G).some((option) => option.kind === args.kind)) return INVALID_MOVE;
+    if (!removeCityRebelsUnit(G, pending.space, pending.controller, args.kind)) return INVALID_MOVE;
+    pending.remaining -= 1;
+    if (pending.remaining <= 0 || cityRebelsLossOptions(G).length === 0) {
+        finishCityRebelsLoss(G, pending, ctx);
+    }
+};
+
+/** Safe fallback for an abandoned #18 choice: apply the automatic order. */
+export const autoResolveCityRebelsLosses = (G: VQGame, ctx?: Ctx): void => {
+    const pending = G.pendingCityRebels;
+    if (pending !== undefined) finishCityRebelsLoss(G, pending, ctx);
+};
+
 const resolveCityStateRebels = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     if (target === undefined) return;
     const def = SPACE_BY_ID[target];
@@ -1133,39 +1287,22 @@ const resolveCityStateRebels = (G: VQGame, ctx: Ctx, p: Power, target?: string):
     if (def === undefined || state === undefined || def.kind !== "fortress" || !isPower(state.control)) return;
     const controller = state.control;
     const values = roll(ctx, 5);
-    let hitCount = hits(values);
+    const hitCount = hits(values);
     G.lastRolls = `City State Rebels [${values.join(",")}] = ${hitCount} hit(s)`;
-    for (const owner of [controller]) {
-        const stack = state.land[owner];
-        if (stack !== undefined) {
-            for (const kind of ["merc", "regular", "cav"] as const) {
-                const take = Math.min(hitCount, stack[kind]);
-                stack[kind] -= take;
-                hitCount -= take;
-            }
-            if (stack.regular + stack.merc + stack.cav === 0) delete state.land[owner];
-        }
-        const naval = state.naval[owner];
-        if (naval !== undefined && hitCount > 0) {
-            for (const kind of ["corsair", "galley", "galleon", "racebuilt"] as const) {
-                const take = Math.min(hitCount, naval[kind]);
-                naval[kind] -= take;
-                hitCount -= take;
-            }
-        }
+    const pending: CityRebelsLossChoice = {power: p, controller, space: target, remaining: hitCount, values};
+    // Only open the stage when composition is actually in doubt: every unit
+    // dies regardless when hits cover the stack, and one surviving unit type
+    // has no alternative to choose. This keeps small garrisons automatic.
+    if (hitCount > 0 &&
+        landCount(state.land[controller]) + navalCount(state.naval[controller]) > hitCount &&
+        cityRebelsLossKinds(G, target, controller).length > 1 &&
+        ownerOf(G, controller) !== undefined) {
+        G.pendingCityRebels = pending;
+        ctx.events?.setActivePlayers({value: {[ownerOf(G, controller)!]: "cityRebelsLossChoice"}});
+        pushLog(G, `City State Rebels: ${powerLabel(controller)} must allocate ${hitCount} hit(s) in ${def.name}.`);
+        return;
     }
-    if (totalLand(G, target, ownersWithLand(G, target)) === 0 && totalNaval(G, target, ownersWithNaval(G, target)) === 0) {
-        for (const id of [...state.leaders]) {
-            const leader = LEADER_BY_ID[id];
-            if (leader?.kind !== "naval" || leader.power !== controller) continue;
-            state.leaders = state.leaders.filter((leaderId) => leaderId !== id);
-            G.leaders[id] = {id, location: "pool", returnTurn: G.year + 1};
-        }
-        captureLeaders(G, target, [controller], p);
-        state.control = def.home;
-        addLand(G, target, def.home, "regular", 1);
-    }
-    pushLog(G, `${G.lastRolls} in ${def.name}.`);
+    finishCityRebelsLoss(G, pending);
 };
 
 const resolveArmyMutiny = (G: VQGame, ctx: Ctx, target?: string): void => {

@@ -187,6 +187,26 @@ export interface WinterNavalLossChoice {
     removed: NavalStack;
 }
 
+/**
+ * #18 City State Rebels: the target fortress controller allocates each hit to
+ * one of its land or naval units. The dice are already rolled and `remaining`
+ * counts the hits still to allocate; the automatic
+ * mercenary/regular/cavalry then corsair/galley/galleon/race-built order is
+ * used for any hit the controller leaves to the auto fallback.
+ */
+export interface CityRebelsLossChoice {
+    /** Power that played the event; captures army leaders when the target empties. */
+    power: Power;
+    /** Power controlling the target fortress and choosing the losses. */
+    controller: Power;
+    /** Fortress whose garrison is taking the losses. */
+    space: string;
+    /** Hits still to allocate, at most the five dice rolled. */
+    remaining: number;
+    /** The five dice, kept for the final log line. */
+    values: number[];
+}
+
 export const emptyLand = (): LandStack => ({regular: 0, merc: 0, cav: 0});
 
 export const emptyNaval = (): NavalStack => ({
@@ -708,6 +728,14 @@ export interface VQGame {
      * first still-legal port is used automatically.
      */
     navalLeaderArrivals?: {leader: string; power: Power; ports: string[]}[];
+    /**
+     * #18 City State Rebels losses awaiting the target controller's allocation.
+     * Each hit is assigned to one land or naval unit by `chooseCityRebelsLoss`;
+     * the automatic order resolves any hits left to the fallback. Because the
+     * choice is only opened while more units than hits remain, it can never
+     * change whether the fortress is emptied, only which units are removed.
+     */
+    pendingCityRebels?: CityRebelsLossChoice;
     /**
      * Winter attrition losses awaiting the owner's choice of unit type. The
      * automatic result is already on the board; the Card Draw choice stage may

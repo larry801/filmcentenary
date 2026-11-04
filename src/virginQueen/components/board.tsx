@@ -85,7 +85,7 @@ import {battleOptions, canPlayBattleCard} from "../combat";
 import {canPlayTutorialEvent, tutorialEventOptions} from "../tutorialEvents";
 import {canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, isGrandVizier, untimelyDeathTargets} from "../cardEvents";
 import {piracyOptions} from "../piracy";
-import {actionResponseOptions} from "../moves";
+import {actionResponseOptions, cityRebelsLossOptions} from "../moves";
 import {interceptionOptions} from "../interception";
 import {interceptionOrderOptions} from "../navalCombat";
 import {assassinationTargets, espionageOptions, canPlayEspionageEvent, canPlayNorthernRising, doubleAgentTargets, isEspionageEvent} from "../espionage";
@@ -673,6 +673,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         piracyResponder && ownerOf(G, piracyResponder) === playerID ? piracyResponder :
         G.pendingCardEvent && ownerOf(G, G.pendingCardEvent.responding) === playerID ? G.pendingCardEvent.responding :
         G.pendingTutorialEvent && ownerOf(G, G.pendingTutorialEvent.responding) === playerID ? G.pendingTutorialEvent.responding :
+        G.pendingCityRebels && ownerOf(G, G.pendingCityRebels.controller) === playerID ? G.pendingCityRebels.controller :
         G.pendingBattle && ownerOf(G, G.pendingBattle.responding) === playerID ? G.pendingBattle.responding :
         G.pendingBetrothal && ownerOf(G, G.pendingBetrothal.target) === playerID ? G.pendingBetrothal.target : undefined;
     const me: Power | undefined = responsePower ?? (ctx.currentPlayer === playerID ? G.activePower :
@@ -684,7 +685,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
     const hand = ps?.cards ?? [];
-    const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder;
+    const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels;
     const vqCombatRetrieve = virginQueenCombatRetrieveOptions(G, playerID);
 
     React.useEffect(() => {
@@ -919,6 +920,27 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     }}>接受 {selected.powerName} 的提议</Button>
                 </>}
                 {!ownedOffer && <Typography variant="body2">等待新教玩家选择；其他势力此时无法行动。</Typography>}
+            </Stack>;
+        }
+        if (G.pendingCityRebels) {
+            const pending = G.pendingCityRebels;
+            const canChoose = ownerOf(G, pending.controller) === playerID;
+            return <Stack spacing={1}>
+                <Typography>城邦起义（#18） · 等待 {POWER_NAMES[pending.controller].zh} 分配损失。</Typography>
+                {canChoose && <>
+                    <Typography variant="body2">
+                        {SPACE_BY_ID[pending.space]?.name ?? pending.space}：还需选择 {pending.remaining} 个损失单位，每次一个陆军或海军单位。
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                        {cityRebelsLossOptions(G).map((entry) => <Button key={entry.kind} size="small" variant="outlined"
+                            onClick={() => moves.chooseCityRebelsLoss({kind: entry.kind})}>
+                            {entry.label}
+                        </Button>)}
+                        <Button size="small" variant="text" onClick={() => moves.chooseCityRebelsLoss({kind: "auto"})}>
+                            自动分配剩余
+                        </Button>
+                    </Stack>
+                </>}
             </Stack>;
         }
         if (G.gregorianResponse) return <Stack spacing={1}>

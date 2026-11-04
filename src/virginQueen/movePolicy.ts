@@ -7,6 +7,7 @@ export const moveError = (G: VQGame, move: string, args?: unknown): string | und
     if (G.pendingEspionage && move !== "chooseEspionage") return "请先完成当前谍报结算。";
     if (G.pendingCardEvent && move !== "chooseCardEvent") return "请先完成当前事件响应。";
     if (G.pendingAbjuration && move !== "chooseAbjuration") return "请先完成誓绝法案的提议选择。";
+    if (G.pendingCityRebels && move !== "chooseCityRebelsLoss") return "请先完成城邦起义的损失选择。";
     if (G.pendingBeacon && move !== "respondBeaconFires") return "请先完成烽火响应。";
     if (G.pendingInterceptionOrder && move !== "chooseInterceptionOrder" && move !== "autoInterceptionOrder") {
         return "请先选择海军拦截顺序。";
