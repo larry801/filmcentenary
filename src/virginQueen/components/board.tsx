@@ -142,7 +142,6 @@ export const EVENT_TARGET_EXAMPLES: Record<string, string> = {
     "vq-030": "spain:return:alba 或 france:skip",
     "vq-053": "peace:france、give:france:vq-020 或 move:paris",
     "vq-059": "cut:spain（剪除本国板上的西班牙密探）、upgrade 或留空获得 5CP",
-    "vq-061": "fortress:atlanticCoast",
     "vq-098": "france:vq-022:vq-021",
     "vq-105": "oporto",
     "vq-107": "york",
@@ -175,15 +174,16 @@ export const playEventCard = (
 
 /**
  * Which targeting control the event-card drawer renders.  Cards with a
- * dedicated selector never fall back to free text, so #24 and #86 can only be
- * played through their enumerated choices.
+ * dedicated selector never fall back to free text, so #24, #61 and #86 can only
+ * be played through their enumerated choices.
  */
-export type EventTargetMode = "espionage" | "foreignWar" | "holyLeague" | "polishElection" | "freeText";
+export type EventTargetMode = "espionage" | "foreignWar" | "holyLeague" | "menendez" | "polishElection" | "freeText";
 
 export const eventTargetMode = (handler: string, espionageTargetCount: number): EventTargetMode => {
     if (espionageTargetCount > 0) return "espionage";
     if (handler === "warInPersia" || handler === "warWithPoland") return "foreignWar";
     if (handler === "holyLeague") return "holyLeague";
+    if (handler === "menendezDeAviles") return "menendez";
     if (handler === "polishRoyalElection") return "polishElection";
     return "freeText";
 };
@@ -224,6 +224,45 @@ export const EventTargetField = ({cardId, value, onChange}: {
         placeholder="例如 france、york、spain:return:alba"
         helperText={example !== undefined ? `目标参数示例：${example}` : "按卡牌文本填写；留空则无目标结算。"}/>;
 };
+
+export interface MenendezTargetOption {
+    /** Target grammar for `playCard`; "" omits the target and resolves the Florida branch. */
+    value: string;
+    label: string;
+}
+
+/**
+ * #61 has three branches.  Florida is the no-target branch, the escort is the
+ * literal `escort` argument, and each Spanish-controlled settlement without a
+ * fortress can be fortified with `fortress:<id>`.
+ */
+export const menendezTargetOptions = (G: VQGame): MenendezTargetOption[] => [
+    {value: "", label: "佛罗里达殖民地（不指定目标：掷骰 3+ 夺取）"},
+    {value: "escort", label: "珍宝舰队护航（+1 大帆船）"},
+    ...WORLD_SETTLEMENTS
+        .filter((settlement) => G.worldControls[settlement.id] === "spain" &&
+            G.worldFortresses?.[settlement.id] === undefined)
+        .map((settlement) => ({value: `fortress:${settlement.id}`, label: `要塞：${settlement.nameZh}`})),
+];
+
+/** Drops a stale #61 selection; Florida (blank) yields `undefined` so no target is sent. */
+export const menendezTargetValue = (G: VQGame, selected: string): string | undefined => {
+    const value = menendezTargetOptions(G).some((option) => option.value === selected) ? selected : "";
+    return value === "" ? undefined : value;
+};
+
+/** Dedicated #61 selector, replacing the free-text field for that card. */
+export const MenendezTargetSelect = ({options, value, onChange}: {
+    options: MenendezTargetOption[];
+    value: string;
+    onChange: (value: string) => void;
+}) => <FormControl size="small" fullWidth sx={{mt: 0.5}}>
+    <InputLabel id="vq-menendez-target">梅嫩德斯目标</InputLabel>
+    <Select labelId="vq-menendez-target" label="梅嫩德斯目标" value={value}
+            onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+    </Select>
+</FormControl>;
 
 type HolyLeagueTrack = "papacy" | "venice" | "hre";
 
@@ -534,6 +573,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [informantSource, setInformantSource] = React.useState("");
     const [espionageEventTarget, setEspionageEventTarget] = React.useState("");
     const [holyLeagueEventTarget, setHolyLeagueEventTarget] = React.useState("");
+    const [menendezEventTarget, setMenendezEventTarget] = React.useState("");
     const [polishElectionBids, setPolishElectionBids] = React.useState<PolishElectionBidChoices>({});
     const [expeditionCaptain, setExpeditionCaptain] = React.useState("");
     const [expeditionHasColony, setExpeditionHasColony] = React.useState(false);
@@ -695,6 +735,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         const foreignWarPower = targetMode === "foreignWar" ? (handler === "warInPersia" ? "ottoman" : "hre") : undefined;
         const holyLeagueOptions = targetMode === "holyLeague" ? holyLeagueTargetOptions(G) : [];
         const holyLeagueTarget = holyLeagueTargetValue(G, holyLeagueEventTarget);
+        const menendezOptions = targetMode === "menendez" ? menendezTargetOptions(G) : [];
+        const menendezTarget = menendezTargetValue(G, menendezEventTarget);
         const polishElection = targetMode === "polishElection";
         const foreignWarBlocked = foreignWarPower !== undefined && (G.foreignWars[foreignWarPower] !== undefined ||
             (foreignWarPower === "hre" && atWar(G, "hre", "ottoman")) ||
@@ -730,6 +772,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             </FormControl>}
             {holyLeagueOptions.length > 0 && <HolyLeagueTargetSelect options={holyLeagueOptions}
                 value={holyLeagueTarget} onChange={setHolyLeagueEventTarget}/>}
+            {menendezOptions.length > 0 && <MenendezTargetSelect options={menendezOptions}
+                value={menendezTarget ?? ""} onChange={setMenendezEventTarget}/>}
             {polishElection && <PolishElectionTargetSelect G={G} value={polishElectionBids}
                 onChange={(power, choice) => setPolishElectionBids((current) => ({...current, [power]: choice}))}/>}
             {showTargetField && <Box sx={{mt: 0.5}}>
@@ -745,12 +789,13 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                       (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
                                                   onClick={() => {
                                                       playEventCard(moves.playCard, id, {
-                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : undefined,
+                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : menendezOptions.length > 0 ? menendezTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : undefined,
                                                           // Free text is only honoured for cards without a dedicated selector.
                                                           typed: targetMode === "freeText" ? eventTarget : "",
                                                       });
                                                       setEventTarget("");
                                                       setHolyLeagueEventTarget("");
+                                                      setMenendezEventTarget("");
                                                       setPolishElectionBids({});
                                                       setSelectedCard(undefined);
                                                   }}>
@@ -1911,7 +1956,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {hand.length === 0 && <Typography variant="body2" color="text.secondary">{me ? "暂无手牌。" : "旁观模式仅展示公开牌数。"}</Typography>}
                     <div className="vq-card-tray">{hand.map((id) => {
                         const card = cardById(id);
-                        return <button key={id} className="vq-card" aria-label={`查看卡牌 ${card.name} · ${card.cp} CP`} onClick={() => {setSelectedCard(id); setEventTarget(""); setHolyLeagueEventTarget(""); setPolishElectionBids({});}}>
+                        return <button key={id} className="vq-card" aria-label={`查看卡牌 ${card.name} · ${card.cp} CP`} onClick={() => {setSelectedCard(id); setEventTarget(""); setHolyLeagueEventTarget(""); setMenendezEventTarget(""); setPolishElectionBids({});}}>
                             <CardArt def={card} className="vq-card-art" lazy/>
                             <small>{card.kind === "home" ? "本国牌" : card.kind === "event" ? "事件牌" : "行动牌"}<span className="vq-card-cp">{card.cp} CP</span></small>
                             <strong>{card.name}</strong><small>查看详情 ↗</small>

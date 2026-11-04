@@ -2,7 +2,7 @@ import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions} from "./components/board";
+import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions} from "./components/board";
 import {proposeBetroth, respondAction} from "./moves";
 import {setupGame} from "./util";
 import {ownerOf} from "./ownership";
@@ -454,6 +454,66 @@ describe("Virgin Queen board", () => {
         expect(html).toContain("神圣罗马帝国 出价");
         expect(html).toContain("西班牙 出价");
         expect(html).toContain("大维齐尔（手牌 5 CP）");
+        expect(html).not.toContain("事件目标（可选）");
+    });
+
+    it("offers #61 Florida, escort and legal fortress targets", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.worldControls = {florida: "spain"};
+        const base = menendezTargetOptions(G);
+        expect(base.map((option) => option.value)).toEqual(["", "escort", "fortress:florida"]);
+        expect(base[0].label).toContain("佛罗里达殖民地");
+        expect(base[1].label).toBe("珍宝舰队护航（+1 大帆船）");
+        expect(base[2].label).toBe("要塞：佛罗里达");
+
+        // Only settlements Spain controls and that have no fortress yet.
+        G.worldControls.atlanticCoast = "spain";
+        G.worldControls.antillesColony = "england";
+        G.worldFortresses = {florida: "spain"};
+        expect(menendezTargetOptions(G).map((option) => option.value))
+            .toEqual(["", "escort", "fortress:atlanticCoast"]);
+
+        expect(menendezTargetValue(G, "")).toBeUndefined();
+        expect(menendezTargetValue(G, "escort")).toBe("escort");
+        expect(menendezTargetValue(G, "fortress:atlanticCoast")).toBe("fortress:atlanticCoast");
+        // A target that is no longer legal is dropped instead of sent stale.
+        expect(menendezTargetValue(G, "fortress:florida")).toBeUndefined();
+        expect(menendezTargetValue(G, "fortress:antillesColony")).toBeUndefined();
+        expect(menendezTargetValue(G, "not-a-target")).toBeUndefined();
+    });
+
+    it("forwards the #61 branch and keeps free-text targeting off that card", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.worldControls = {florida: "spain", atlanticCoast: "spain"};
+        const played: {cardId: string; asEvent: true; target?: string}[] = [];
+        const playCard = (args: {cardId: string; asEvent: true; target?: string}): void => { played.push(args); };
+
+        playEventCard(playCard, "vq-061", {typed: "", selected: menendezTargetValue(G, "")});
+        playEventCard(playCard, "vq-061", {typed: "ignored free text", selected: menendezTargetValue(G, "escort")});
+        playEventCard(playCard, "vq-061", {typed: "ignored free text", selected: menendezTargetValue(G, "fortress:atlanticCoast")});
+
+        expect(played).toEqual([
+            {cardId: "vq-061", asEvent: true},
+            {cardId: "vq-061", asEvent: true, target: "escort"},
+            {cardId: "vq-061", asEvent: true, target: "fortress:atlanticCoast"},
+        ]);
+        expect(eventTargetMode("menendezDeAviles", 0)).toBe("menendez");
+        // Other event cards keep their free-text targeting.
+        expect(eventTargetMode("johnKnox", 0)).toBe("freeText");
+        const field = renderToStaticMarkup(<EventTargetField cardId="vq-061" value="fortress:florida"
+            onChange={() => undefined}/>);
+        expect(field).toContain("按卡牌文本填写");
+    });
+
+    it("renders the dedicated #61 selector with the chosen branch and no free text", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.worldControls = {florida: "spain", atlanticCoast: "spain"};
+        const html = renderToStaticMarkup(<MenendezTargetSelect options={menendezTargetOptions(G)}
+            value={menendezTargetValue(G, "escort") ?? ""} onChange={() => undefined}/>);
+        expect(html).toContain("梅嫩德斯目标");
+        // Menu items render only once the MUI menu opens, so the closed select
+        // shows the chosen branch; the option labels are covered above.
+        expect(html).toContain("珍宝舰队护航（+1 大帆船）");
         expect(html).not.toContain("事件目标（可选）");
     });
 
