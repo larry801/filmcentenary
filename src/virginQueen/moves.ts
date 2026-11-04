@@ -4140,6 +4140,7 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
         }
     }
     const portugueseTreasureAvailable = targetIsPortugal && (G.portugueseTreasures?.length ?? 0) > 0;
+    const capacity = expedition.damaged ? 1 : 2;
     let remaining = hits;
     while (remaining > 0) {
         if ((G.worldPatrols?.[expedition.location] ?? 0) > 0) {
@@ -4147,21 +4148,19 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
             pushLog(G, targetIsPortugal ? "A Portuguese patrol is eliminated." : "A Spanish patrol is eliminated.");
         } else if (portugueseTreasureAvailable) {
             const treasure = (G.portugueseTreasures as number[]).pop()!;
-            if (expedition.treasureValues !== undefined && expedition.treasureValues.length < 2) {
+            if (expedition.treasureValues !== undefined && expedition.treasureValues.length < capacity) {
                 expedition.treasureValues.push(treasure);
                 pushLog(G, `${powerLabel(p)} loads a ${treasure} CP treasure onto the expedition.`);
             } else {
-                G.powers[p].treasures.push(treasure);
-                pushLog(G, `${powerLabel(p)} captures a ${treasure} CP Portuguese treasure.`);
+                pushLog(G, `${powerLabel(p)} discards a ${treasure} CP Portuguese treasure (no room).`);
             }
         } else if (G.powers.spain.treasures.length > 0) {
             const treasure = G.powers.spain.treasures.pop()!;
-            if (expedition.treasureValues !== undefined && expedition.treasureValues.length < 2) {
+            if (expedition.treasureValues !== undefined && expedition.treasureValues.length < capacity) {
                 expedition.treasureValues.push(treasure);
                 pushLog(G, `${powerLabel(p)} loads a ${treasure} CP treasure onto the expedition.`);
             } else {
-                G.powers[p].treasures.push(treasure);
-                pushLog(G, `${powerLabel(p)} captures a ${treasure} CP Spanish treasure.`);
+                pushLog(G, `${powerLabel(p)} discards a ${treasure} CP Spanish treasure (no room).`);
             }
         } else {
             addVp(G, p, 1);
