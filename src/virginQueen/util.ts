@@ -577,9 +577,13 @@ export const checkCircumnavigation = (G: VQGame, captainId: string, from: string
     let circumnavigated = false;
     if (expedition.power === "ottoman") {
         const returns = route.filter((zone) => zone === "indianOcean").length === 1;
-        const departedTo = from === "southPacific" ? "southPacific" : from === "guineaCoast" ? "guineaCoast" : undefined;
-        const departedFromIndia = departedTo !== undefined && route.indexOf("indianOcean") >= 0 &&
-            route.indexOf(departedTo) > route.indexOf("indianOcean");
+        const indianIndex = route.indexOf("indianOcean");
+        let departedFromIndia = false;
+        if (indianIndex >= 0) {
+            const afterIndia = route.slice(indianIndex + 1);
+            if (from === "guineaCoast") departedFromIndia = afterIndia.includes("southPacific");
+            else if (from === "southPacific") departedFromIndia = afterIndia.includes("guineaCoast");
+        }
         if (to === "indianOcean" && returns && departedFromIndia) circumnavigated = true;
     } else {
         const toIndiaFromGuinea = route.some((zone, i) => zone === "guineaCoast" && route[i + 1] === "indianOcean");

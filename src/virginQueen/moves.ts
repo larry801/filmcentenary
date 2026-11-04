@@ -4072,12 +4072,13 @@ export const buildPatrol = (G: VQGame, ctx: Ctx, args: {zone: string}): void | t
 export const buildWorldFortress = (G: VQGame, ctx: Ctx, args: {settlement: string}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "action" || power(G, ctx) !== "spain") return INVALID_MOVE;
     const settlement = WORLD_SETTLEMENT_BY_ID[args.settlement];
+    const maxFortresses = G.powers.spain.scienceBonuses.includes("coastalFortification") ? 2 : 1;
+    const currentFortresses = Object.values(G.worldFortresses ?? {}).filter((v) => v === "spain").length;
     if (settlement === undefined || (G.worldFortresses?.[args.settlement] !== undefined) ||
         (G.worldControls[args.settlement] !== "spain" && G.worldColonies[args.settlement] !== "spain") ||
-        (G.worldFortressesBuilt ?? 0) >= 2 || G.powers.spain.cp < 2) return INVALID_MOVE;
+        currentFortresses >= maxFortresses || G.powers.spain.cp < 2) return INVALID_MOVE;
     if (!spend(G, "spain", 2)) return INVALID_MOVE;
     G.worldFortresses = {...(G.worldFortresses ?? {}), [args.settlement]: "spain"};
-    G.worldFortressesBuilt = (G.worldFortressesBuilt ?? 0) + 1;
     pushLog(G, `Spain builds a fortress at ${settlement.nameEn}.`);
 };
 
@@ -4106,7 +4107,7 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
     const patrols = G.worldPatrols?.[expedition.location] ?? 0;
     const fortresses = settlements.filter((settlement) => G.worldFortresses?.[settlement.id] === "spain").length;
     const portugueseGalleons = targetIsPortugal ? (G.spaces.lisbon.naval.portugal?.galleon ?? 0) + (G.spaces.oporto.naval.portugal?.galleon ?? 0) : 0;
-    const defenseDice = patrols + fortresses + portugueseGalleons;
+    const defenseDice = targetIsPortugal ? portugueseSettlements.length : patrols + fortresses;
     if (defenseDice > 0) {
         const dice = roll(ctx, defenseDice);
         const hits = dice.filter((die) => die >= 5).length;
