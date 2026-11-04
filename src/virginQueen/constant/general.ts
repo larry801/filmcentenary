@@ -158,6 +158,7 @@ export interface NavalStack {
  * yet. The automatic losses have already been applied; choosing another unit
  * type restores the automatically removed units to `space` and takes the
  * chosen type instead. If the choice is skipped the automatic result stands.
+ * The Morisco regulars removed by the Winter Phase use the same confirmation.
  */
 export interface WinterLossChoice {
     power: Power;

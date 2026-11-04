@@ -3461,30 +3461,45 @@ export const placeMoriscoUnrest = (G: VQGame, origin?: string): string[] => {
     return chosen;
 };
 
-export const clearMorisco = (G: VQGame): void => {
+/**
+ * Remove the Morisco unit and card #28.  The Morisco counters are regular
+ * units, so the removal is recorded as a winter loss choice when it happens
+ * during the Winter Phase (`recordWinterChoice`); the owner then confirms the
+ * removed unit types in the following Card Draw phase.  Peace and status
+ * checks during the Action Phase keep the default and remove the unit
+ * immediately, without leaving a choice that would block that phase.
+ */
+export const clearMorisco = (G: VQGame, recordWinterChoice = false): void => {
     const morisco = G.morisco;
     if (morisco === undefined) return;
-    const stack = G.spaces[morisco.space]?.land.ottoman;
+    const space = morisco.space;
+    const stack = G.spaces[space]?.land.ottoman;
+    let removed = 0;
     if (stack !== undefined) {
-        const removed = Math.min(morisco.units, stack.regular);
+        removed = Math.min(morisco.units, stack.regular);
         stack.regular -= removed;
-        cleanupLand(G, morisco.space, "ottoman");
+        cleanupLand(G, space, "ottoman");
     }
     delete G.morisco;
     removeCardFromGame(G, "vq-028");
     pushLog(G, "Morisco Revolt ends: the Morisco unit is removed and card #28 leaves play.");
+    if (recordWinterChoice && removed > 0) {
+        // The automatic removal is already applied; a skipped confirmation
+        // keeps it, exactly like the other winter loss choices.
+        recordWinterLossChoice(G, "ottoman", space, {regular: removed, merc: 0, cav: 0});
+    }
 };
 
-export const checkMoriscoStatus = (G: VQGame): void => {
+export const checkMoriscoStatus = (G: VQGame, recordWinterChoice = false): void => {
     const morisco = G.morisco;
     if (morisco === undefined) return;
     if (!atWar(G, "ottoman", "spain")) {
-        clearMorisco(G);
+        clearMorisco(G, recordWinterChoice);
         return;
     }
     const count = G.spaces[morisco.space] === undefined ? 0 : landCount(G.spaces[morisco.space].land.ottoman);
     if (count <= 0) {
-        clearMorisco(G);
+        clearMorisco(G, recordWinterChoice);
         return;
     }
     morisco.units = Math.min(morisco.units, count);
@@ -3509,17 +3524,17 @@ const winterMorisco = (G: VQGame): void => {
     const morisco = G.morisco;
     if (morisco === undefined) return;
     if (!atWar(G, "ottoman", "spain")) {
-        clearMorisco(G);
+        clearMorisco(G, true);
         return;
     }
     const state = G.spaces[morisco.space];
     if (state?.siege?.by === "ottoman" && isFortifiedSpace(G, morisco.space)) {
         pushLog(G, "Morisco Revolt: the Morisco unit is besieging a fortified space at Winter and is eliminated.");
-        clearMorisco(G);
+        clearMorisco(G, true);
         return;
     }
     placeMoriscoUnrest(G, morisco.space);
-    checkMoriscoStatus(G);
+    checkMoriscoStatus(G, true);
 };
 
 export const returnWorldCaptains = (G: VQGame): void => {
