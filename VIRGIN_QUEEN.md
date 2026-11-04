@@ -1435,3 +1435,10 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 - #26 A Small Aid 支持中立/小国被围要塞：`2ee64b2`
 
 集成后验证（按要求未运行 build）：`jest src/virginQueen --runInBand --silent` 192 suites、1018 tests passed；`jest --runInBand --silent` 197 suites、1073 tests passed；`tsc --noEmit` 通过。
+
+
+## 修正：#74 胜者路径的玛丽状态
+
+`#74 苏格兰领主叛乱` 走胜者分支时，此前无论外交评议结果一律把玛丽写成 `captured`，否则写成 `exiled`。规则书 23.3 与卡牌原文只规定：当评议使苏格兰成为英格兰或新教的盟友、且玛丽仍“在世于苏格兰”时，她才转为“被英格兰俘虏”（`captured`）；法国胜出或无人胜出时玛丽状态保持不变。游戏并不存在 `exiled` 这一状态（此前也只有赋值、没有任何读取），已从 `EspionageState.mary` 中移除，并改为按“胜者属于英格兰/新教且苏格兰确已成为其盟友 + 玛丽此刻在世于苏格兰”的精确条件触发。回归测试见 `src/virginQueen/scottishLordsMary.test.ts`。
+
+验证（按要求未运行 build）：`jest src/virginQueen --runInBand --silent` 193 suites、1025 tests passed；`tsc --noEmit` 通过。

@@ -4,7 +4,7 @@ export interface EspionageState {
     jesuits: string[];
     jesuitsOnCard: number;
     douai: boolean;
-    mary: "scotland" | "captured" | "exiled" | "dead";
+    mary: "scotland" | "captured" | "dead";
     maryBonusTurn?: number;
     walsingham?: "offensive" | "defensive";
     cipherKeys: Partial<Record<Power, Power>>;

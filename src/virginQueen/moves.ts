@@ -410,14 +410,19 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef, 
         // the map, then replace them with the two regulars at Edinburgh.
         for (const space of SPACES) delete G.spaces[space.id].land.scotland;
         addLand(G, "edinburgh", "scotland", "regular", 2);
+        // Rules 23.3 / card #74: Scottish Lords Rebel moves Mary to "Captured
+        // in England" only when the check makes Scotland an English or
+        // Protestant ally and she is still alive in Scotland.  Every other
+        // result (a French alliance, or no winner at all) leaves her status
+        // untouched — there is no separate "exiled" state.
         const mary = espionageState(G);
-        if (winner !== undefined && mary.mary !== "dead") {
-            // FAQ #74 step 1: only an English or Protestant alliance captures
-            // Mary.  With no winner no such alliance can result, so her status
-            // (normally still "Alive in Scotland") is left untouched.
-            mary.mary = ["england", "protestant"].some((p) => G.powers[p as Power].alliedMinors.includes("scotland")) ? "captured" : "exiled";
+        const englishOrProtestantAlly = winner !== undefined &&
+            (winner === "england" || winner === "protestant") &&
+            G.powers[winner].alliedMinors.includes("scotland");
+        if (englishOrProtestantAlly && mary.mary === "scotland") {
+            mary.mary = "captured";
             const royal = G.royals.find((r) => r.id === "maryScots");
-            if (royal && mary.mary === "captured") royal.status = "captured";
+            if (royal !== undefined) royal.status = "captured";
         }
         return true;
     }
