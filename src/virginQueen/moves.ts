@@ -98,6 +98,7 @@ import {
     homeCardChoiceRequired,
     hreReligiousPreferenceRequired,
     inFrenchReligiousArea,
+    isCityRebelsTarget,
     isFortifiedSpace,
     isPort,
     isSeaZone,
@@ -1344,11 +1345,23 @@ export const autoResolveCityRebelsLosses = (G: VQGame, ctx?: Ctx): void => {
     if (pending !== undefined) finishCityRebelsLoss(G, pending, ctx);
 };
 
+/**
+ * #18 play validation: the main-game loss stage is offered to the target's
+ * major-power controller, so the city-state itself must have a major control
+ * marker.  The FAQ eligibility (not home, not allied with the receiving home
+ * power) is shared with the tutorial event through {@link isCityRebelsTarget}.
+ */
+export const canPlayCityStateRebels = (G: VQGame, target?: string): boolean => {
+    if (target === undefined) return false;
+    const state = G.spaces[target];
+    return state !== undefined && isPower(state.control) && isCityRebelsTarget(G, target);
+};
+
 const resolveCityStateRebels = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
-    if (target === undefined) return;
+    if (target === undefined || !canPlayCityStateRebels(G, target)) return;
     const def = SPACE_BY_ID[target];
     const state = G.spaces[target];
-    if (def === undefined || state === undefined || def.kind !== "fortress" || !isPower(state.control)) return;
+    if (def === undefined || state === undefined || !isPower(state.control)) return;
     const controller = state.control;
     const values = roll(ctx, 5);
     const hitCount = hits(values);
@@ -2858,6 +2871,8 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     const isBeaconFires = def.id === "vq-014";
     const beneficiary = foreignWarPower(cardHandler);
     if (args.asEvent === true && cardHandler === "holyLeague" && !canPlayHolyLeague(G, p)) return INVALID_MOVE;
+    if (args.asEvent === true && cardHandler === "cityStateRebels" && G.scenario !== "tutorial" &&
+        !canPlayCityStateRebels(G, args.target)) return INVALID_MOVE;
     // #16: only the Ottoman may use Sultan's Harem as an event; other holders
     // may only play it through the response window.
     if (args.asEvent === true && cardHandler === "sultansHarem" && p !== "ottoman") return INVALID_MOVE;

@@ -1991,6 +1991,25 @@ export const arriveLeaders = (G: VQGame, options?: {interactive?: boolean}): voi
 export const isHomeSpace = (id: string, p: Power): boolean =>
     SPACE_BY_ID[id]?.home === p;
 
+/**
+ * #18 City State Rebels (FAQ): an occupied, fortified home space is a legal
+ * target only when its controller neither treats it as home nor is allied
+ * with the home power that would receive the space if the garrison is wiped
+ * out. An independent home power has no allies, so only the "treats it as
+ * home" restriction can apply to those city states.
+ */
+export const isCityRebelsTarget = (G: VQGame, id: string): boolean => {
+    const def = SPACE_BY_ID[id];
+    const state = G.spaces[id];
+    if (def === undefined || state === undefined || !isFortifiedSpace(G, id)) return false;
+    if (state.control === def.home) return false;
+    if (isPower(state.control)) return !friendlyController(G, state.control, def.home);
+    // A minor control marker is allied to the receiving home power only when
+    // that major power has activated it.
+    if (isPower(def.home)) return !friendlyController(G, def.home, state.control);
+    return true;
+};
+
 export const nearestFriendlyFortified = (G: VQGame, p: Power, from: string): string | undefined => {
     const queue = [from];
     const seen = new Set([from]);

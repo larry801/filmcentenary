@@ -11,7 +11,7 @@ import {TUTORIAL_KEYS, tutorialSpaceAllowed} from "./tutorial";
 import {startBattle} from "./combat";
 import {
     addLand, atWar, atWarWithMinor, capitalOf, captureLeaders, cleanupLand, cleanupNaval, discardCard, drawCards, ensureLand, friendlyControlled,
-    friendlyController, hits, isFortifiedSpace, isPort, minorAlly, moveLeaders, ownersWithLand,
+    friendlyController, hits, isCityRebelsTarget, isPort, minorAlly, moveLeaders, ownersWithLand,
     powerVp, pushLog, removeCardFromHand, resolveMajorDiplomacy, resolveMinorDiplomacy,
     ownersWithNaval, roll, setWar, shuffle, totalLand, totalNaval,
 } from "./util";
@@ -59,11 +59,7 @@ export const spanishRoadDestinations = (G: VQGame): string[] => {
     return [...destinations];
 };
 
-const cityRebelTargets = (G: VQGame) => activeSpaces().filter((space) => {
-    const control = G.spaces[space.id].control;
-    return isFortifiedSpace(G, space.id) && control !== space.home &&
-        !(isPower(control) && friendlyController(G, control, space.home));
-});
+const cityRebelTargets = (G: VQGame) => activeSpaces().filter((space) => isCityRebelsTarget(G, space.id));
 
 const cityRebelLossOptions = (G: VQGame): TutorialEventOption[] => {
     const pending = G.pendingTutorialEvent!;
