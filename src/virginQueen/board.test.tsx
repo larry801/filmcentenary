@@ -2,7 +2,7 @@ import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions, abjurationOfferDetails, abjurationOffers, abjurationSelection, abjurationOfferMove, acceptAbjurationOffer} from "./components/board";
+import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions, abjurationOfferDetails, abjurationOffers, abjurationSelection, abjurationOfferMove, acceptAbjurationOffer, ArmyMutinyTargetSelect, armyMutinySpaceOptions, armyMutinyOwnerOptions, armyMutinySpaceValue, armyMutinyOwnerValue, armyMutinyTargetValue} from "./components/board";
 import {chooseAbjuration, proposeBetroth, respondAction} from "./moves";
 import {moveError} from "./movePolicy";
 import {setupGame} from "./util";
@@ -548,6 +548,71 @@ describe("Virgin Queen board", () => {
         // Menu items render only once the MUI menu opens, so the closed select
         // shows the chosen branch; the option labels are covered above.
         expect(html).toContain("珍宝舰队护航（+1 大帆船）");
+    });
+    it("offers #17 shared-space stack targets and builds the space:owner grammar", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        for (const space of Object.values(G.spaces)) space.land = {};
+        G.spaces.brussels.land.france = {regular: 2, merc: 2, cav: 0};
+        G.spaces.brussels.land.spain = {regular: 1, merc: 0, cav: 0};
+        G.spaces.london.land.england = {regular: 3, merc: 0, cav: 1};
+
+        expect(armyMutinySpaceOptions(G).map((option) => option.value).sort()).toEqual(["brussels", "london"]);
+        expect(armyMutinySpaceOptions(G).find((option) => option.value === "brussels")?.label).toBe("Brussels");
+
+        // POWERS order, not map order, and each label shows the stack composition.
+        expect(armyMutinyOwnerOptions(G, "brussels")).toEqual([
+            {value: "spain", label: "西班牙（正规军 1）"},
+            {value: "france", label: "法国（正规军 2，雇佣兵 2）"},
+        ]);
+        expect(armyMutinyOwnerOptions(G, "london").map((option) => option.value)).toEqual(["england"]);
+        expect(armyMutinyOwnerOptions(G, "nowhere")).toEqual([]);
+
+        expect(armyMutinyTargetValue(G, {space: "brussels", owner: "france"})).toBe("brussels:france");
+        // An owner that is not in the chosen space falls back to that space's first stack.
+        expect(armyMutinyTargetValue(G, {space: "london", owner: "spain"})).toBe("london:england");
+        // Blank and stale spaces default to the first legal space instead of forwarding bad input.
+        const first = armyMutinySpaceOptions(G)[0].value;
+        expect(armyMutinySpaceValue(G, "")).toBe(first);
+        expect(armyMutinySpaceValue(G, "nowhere")).toBe(first);
+        expect(armyMutinyOwnerValue(G, "brussels", undefined)).toBe("spain");
+        expect(armyMutinyTargetValue(G, {space: ""})).toBe(`${first}:${armyMutinyOwnerOptions(G, first)[0].value}`);
+        expect(armyMutinyTargetValue(G, {space: "nowhere", owner: "france"}))
+            .toBe(`${first}:${armyMutinyOwnerValue(G, first, "france")}`);
+    });
+
+    it("keeps minor stacks out of #17 and omits the target when no major stack is legal", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        for (const space of Object.values(G.spaces)) space.land = {};
+        G.spaces.london.land.papacy = {regular: 3, merc: 0, cav: 0};
+
+        expect(armyMutinySpaceOptions(G)).toEqual([]);
+        expect(armyMutinyOwnerOptions(G, "london")).toEqual([]);
+        expect(armyMutinyTargetValue(G, {space: "london"})).toBeUndefined();
+
+        const played: {cardId: string; asEvent: true; target?: string}[] = [];
+        const playCard = (args: {cardId: string; asEvent: true; target?: string}): void => { played.push(args); };
+        playEventCard(playCard, "vq-017", {typed: "", selected: armyMutinyTargetValue(G, {space: "london"})});
+        expect(played).toEqual([{cardId: "vq-017", asEvent: true}]);
+
+        // #17 now owns a dedicated control; cards without one keep the free-text fallback.
+        expect(eventTargetMode("armyMutiny", 0)).toBe("armyMutiny");
+        expect(eventTargetMode("rulerFallsIll", 0)).toBe("freeText");
+        expect(eventTargetMode("", 0)).toBe("freeText");
+    });
+
+    it("renders the dedicated #17 space and owner selector", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        for (const space of Object.values(G.spaces)) space.land = {};
+        G.spaces.brussels.land.france = {regular: 2, merc: 2, cav: 0};
+        G.spaces.brussels.land.spain = {regular: 1, merc: 0, cav: 0};
+        const html = renderToStaticMarkup(<ArmyMutinyTargetSelect G={G} value={{space: "brussels", owner: "france"}}
+            onChange={() => undefined}/>);
+        expect(html).toContain("军队哗变目标");
+        expect(html).toContain("目标地区");
+        expect(html).toContain("军队所属势力");
+        expect(html).toContain("Brussels");
+        expect(html).toContain("法国（正规军 2，雇佣兵 2）");
+>>>>>>> 94b8cd0 (feat(vq): add dedicated Army Mutiny target selector)
         expect(html).not.toContain("事件目标（可选）");
     });
 

@@ -174,10 +174,10 @@ export const playEventCard = (
 
 /**
  * Which targeting control the event-card drawer renders.  Cards with a
- * dedicated selector never fall back to free text, so #24, #61 and #86 can only
- * be played through their enumerated choices.
+ * dedicated selector never fall back to free text, so #17, #24, #61 and #86 can
+ * only be played through their enumerated choices.
  */
-export type EventTargetMode = "espionage" | "foreignWar" | "holyLeague" | "menendez" | "polishElection" | "freeText";
+export type EventTargetMode = "espionage" | "foreignWar" | "holyLeague" | "menendez" | "polishElection" | "armyMutiny" | "freeText";
 
 export const eventTargetMode = (handler: string, espionageTargetCount: number): EventTargetMode => {
     if (espionageTargetCount > 0) return "espionage";
@@ -185,6 +185,7 @@ export const eventTargetMode = (handler: string, espionageTargetCount: number): 
     if (handler === "holyLeague") return "holyLeague";
     if (handler === "menendezDeAviles") return "menendez";
     if (handler === "polishRoyalElection") return "polishElection";
+    if (handler === "armyMutiny") return "armyMutiny";
     return "freeText";
 };
 
@@ -491,6 +492,115 @@ export interface VirginQueenCombatRetrieveOption {
     label: string;
 }
 
+export interface ArmyMutinyTargetOption {
+    /** Space id, in map order. */
+    value: string;
+    label: string;
+}
+
+export interface ArmyMutinyOwnerOption {
+    /** Major power owning the stack. */
+    value: Power;
+    label: string;
+}
+
+export interface ArmyMutinyTargetSelection {
+    /** Selected space id; blank means "the first legal space". */
+    space: string;
+    /** Owner inside that space; undefined means "the first major power there". */
+    owner?: Power;
+}
+
+/**
+ * Target spaces for #17: every space holding at least one land stack of a
+ * major power, in map order.  A stack on the Spanish Armada or on a foreign
+ * war card is not in `G.spaces`, so it cannot appear here, which matches the
+ * card's "not on the Armada or a foreign war" restriction.
+ */
+export const armyMutinySpaceOptions = (G: VQGame): ArmyMutinyTargetOption[] =>
+    SPACES.filter((def) => G.spaces[def.id] !== undefined &&
+        POWERS.some((power) => landCount(G.spaces[def.id].land[power]) > 0))
+        .map((def) => ({value: def.id, label: def.name}));
+
+/** Major powers with a land stack in `spaceId`, in the engine's power order. */
+export const armyMutinyOwnerOptions = (G: VQGame, spaceId: string): ArmyMutinyOwnerOption[] => {
+    const space = G.spaces[spaceId];
+    if (space === undefined) return [];
+    return POWERS.flatMap((power) => {
+        const stack = space.land[power];
+        if (stack === undefined) return [];
+        const parts = [
+            stack.regular > 0 ? `正规军 ${stack.regular}` : "",
+            stack.merc > 0 ? `雇佣兵 ${stack.merc}` : "",
+            stack.cav > 0 ? `骑兵 ${stack.cav}` : "",
+        ].filter((part) => part !== "");
+        return parts.length === 0 ? [] : [{value: power, label: `${POWER_NAMES[power].zh}（${parts.join("，")}）`}];
+    });
+};
+
+/** First legal space when the stored selection is stale or blank ("" if none). */
+export const armyMutinySpaceValue = (G: VQGame, selected: string | undefined): string => {
+    const options = armyMutinySpaceOptions(G);
+    return selected !== undefined && options.some((option) => option.value === selected)
+        ? selected
+        : options[0]?.value ?? "";
+};
+
+/** First legal owner in `spaceId` when the stored selection is stale or missing. */
+export const armyMutinyOwnerValue = (G: VQGame, spaceId: string, selected: Power | undefined): Power | undefined => {
+    const options = armyMutinyOwnerOptions(G, spaceId);
+    return selected !== undefined && options.some((option) => option.value === selected)
+        ? selected
+        : options[0]?.value;
+};
+
+/**
+ * Builds the `space:owner` argument `resolveArmyMutiny` already parses.  The
+ * owner is always explicit so a shared space cannot silently default to
+ * whichever power the engine happens to enumerate first.
+ */
+export const armyMutinyTargetValue = (G: VQGame, selection: ArmyMutinyTargetSelection): string | undefined => {
+    const space = armyMutinySpaceValue(G, selection.space);
+    const owner = armyMutinyOwnerValue(G, space, selection.owner);
+    return space === "" || owner === undefined ? undefined : `${space}:${owner}`;
+};
+
+/** Dedicated #17 selector: target space and the stack's owning major power. */
+export const ArmyMutinyTargetSelect = ({G, value, onChange}: {
+    G: VQGame;
+    value: ArmyMutinyTargetSelection;
+    onChange: (space: string, owner: Power) => void;
+}) => {
+    const space = armyMutinySpaceValue(G, value.space);
+    const owners = armyMutinyOwnerOptions(G, space);
+    const owner = armyMutinyOwnerValue(G, space, value.owner);
+    return <Stack spacing={0.5} sx={{mt: 1}}>
+        <Typography variant="caption" color="text.secondary">
+            军队哗变目标（选择地区，再选择该地区陆军堆叠所属势力）
+        </Typography>
+        <FormControl size="small" fullWidth>
+            <InputLabel id="vq-army-mutiny-space">目标地区</InputLabel>
+            <Select labelId="vq-army-mutiny-space" label="目标地区" value={space}
+                    onChange={(event) => {
+                        const nextSpace = event.target.value;
+                        const nextOwner = armyMutinyOwnerValue(G, nextSpace, undefined);
+                        if (nextOwner !== undefined) onChange(nextSpace, nextOwner);
+                    }}>
+                {armyMutinySpaceOptions(G).map((option) =>
+                    <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+            </Select>
+        </FormControl>
+        <FormControl size="small" fullWidth disabled={owners.length === 0}>
+            <InputLabel id="vq-army-mutiny-owner">军队所属势力</InputLabel>
+            <Select labelId="vq-army-mutiny-owner" label="军队所属势力" value={owner ?? ""}
+                    onChange={(event) => onChange(space, event.target.value as Power)}>
+                {owners.map((option) =>
+                    <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+            </Select>
+        </FormControl>
+    </Stack>;
+};
+
 /**
  * #36 "retrieve and play immediately" choices for the battle panel.
  *
@@ -645,6 +755,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [holyLeagueEventTarget, setHolyLeagueEventTarget] = React.useState("");
     const [menendezEventTarget, setMenendezEventTarget] = React.useState("");
     const [polishElectionBids, setPolishElectionBids] = React.useState<PolishElectionBidChoices>({});
+    const [armyMutinySelection, setArmyMutinySelection] = React.useState<ArmyMutinyTargetSelection>({space: ""});
     const [expeditionCaptain, setExpeditionCaptain] = React.useState("");
     const [expeditionHasColony, setExpeditionHasColony] = React.useState(false);
     const [foreignArmySize, setForeignArmySize] = React.useState(3);
@@ -810,6 +921,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         const menendezOptions = targetMode === "menendez" ? menendezTargetOptions(G) : [];
         const menendezTarget = menendezTargetValue(G, menendezEventTarget);
         const polishElection = targetMode === "polishElection";
+        const armyMutiny = targetMode === "armyMutiny";
         const foreignWarBlocked = foreignWarPower !== undefined && (G.foreignWars[foreignWarPower] !== undefined ||
             (foreignWarPower === "hre" && atWar(G, "hre", "ottoman")) ||
             Object.values(G.spaces).filter((space) => space.siege === undefined)
@@ -848,6 +960,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 value={menendezTarget ?? ""} onChange={setMenendezEventTarget}/>}
             {polishElection && <PolishElectionTargetSelect G={G} value={polishElectionBids}
                 onChange={(power, choice) => setPolishElectionBids((current) => ({...current, [power]: choice}))}/>}
+            {armyMutiny && <ArmyMutinyTargetSelect G={G} value={armyMutinySelection}
+                onChange={(space, owner) => setArmyMutinySelection({space, owner})}/>}
             {showTargetField && <Box sx={{mt: 0.5}}>
                 <EventTargetField cardId={id} value={eventTarget} onChange={setEventTarget}/>
             </Box>}
@@ -861,7 +975,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                       (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
                                                   onClick={() => {
                                                       playEventCard(moves.playCard, id, {
-                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : menendezOptions.length > 0 ? menendezTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : undefined,
+                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : menendezOptions.length > 0 ? menendezTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : armyMutiny ? armyMutinyTargetValue(G, armyMutinySelection) : undefined,
                                                           // Free text is only honoured for cards without a dedicated selector.
                                                           typed: targetMode === "freeText" ? eventTarget : "",
                                                       });
@@ -869,6 +983,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                       setHolyLeagueEventTarget("");
                                                       setMenendezEventTarget("");
                                                       setPolishElectionBids({});
+                                                      setArmyMutinySelection({space: ""});
                                                       setSelectedCard(undefined);
                                                   }}>
                     {def.kind === "home" ? "使用能力" : "作为事件"}
