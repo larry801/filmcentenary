@@ -34,6 +34,6 @@ describe("Conquest of the Philippines (card #49)", () => {
 
         dealYear(G, context("cardDraw"));
 
-        expect(G.powers.spain.treasures).toHaveLength(5);
+        expect(G.spanishTreasureRow).toHaveLength(5);
     });
 });

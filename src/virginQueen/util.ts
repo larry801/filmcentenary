@@ -779,8 +779,8 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
     G.springDone = [];
     G.patronizedThisTurn = [];
     G.cardDrawDone = [];
-    if (G.scenario !== "tutorial" && G.powers.spain.treasures.length === 0) {
-        G.powers.spain.treasures = Array.from({length: G.philippinesSpanish === true ? 5 : 4}, () => 1 + die(ctx, 5) - 1);
+    if (G.scenario !== "tutorial" && G.powers.spain.treasures.length === 0 && (G.spanishTreasureRow ?? []).length === 0) {
+        G.spanishTreasureRow = Array.from({length: G.philippinesSpanish === true ? 5 : 4}, () => 1 + die(ctx, 5) - 1);
     }
     resolveColonies(G, ctx);
 };
@@ -4399,6 +4399,9 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     // brought home by returning sea captains are added after the hand reset and
     // survive into the next turn.
     returnWorldCaptains(G);
+    // Rule 20.7: remaining Spanish row treasures enter the hand.
+    G.powers.spain.treasures.push(...(G.spanishTreasureRow ?? []));
+    G.spanishTreasureRow = [];
     if (G.espionage) {delete G.espionage.walsingham; delete G.espionage.maryBonusTurn; G.espionage.inspections = [];}
     awardPortugueseTreasures(G, ctx);
     G.minorDiplomacyResolved = [];

@@ -690,6 +690,7 @@ export interface VQGame {
     peaceMadeThisPhase?: [Power, Power][];
     lostBattleImpulse?: {impulse: number; owners: Controller[]};
     rebellionAreasThisImpulse?: {impulse: number; areas: string[]};
+    spanishTreasureRow?: number[];
     /** Impulse in which a naval transport was already made (16.3). */
     navalTransportImpulse?: number;
     /** Impulse in which a Naval Move action was already taken (rule 16.1). */
