@@ -1,0 +1,153 @@
+import React from "react";
+import {BoardProps} from "boardgame.io/react";
+import {VQGame} from "../../../constant/general";
+import {PendingEspionagePanel} from "./PendingPanels/EspionagePanel";
+import {PendingAbjurationPanel} from "./PendingPanels/AbjurationPanel";
+import {PendingCityRebelsPanel} from "./PendingPanels/CityRebelsPanel";
+import {PendingGregorianPanel} from "./PendingPanels/GregorianPanel";
+import {PendingCardEventPanel} from "./PendingPanels/CardEventPanel";
+import {PendingBeaconPanel} from "./PendingPanels/BeaconPanel";
+import {PendingInterceptionOrderPanel} from "./PendingPanels/InterceptionOrderPanel";
+import {PendingInterceptPanel} from "./PendingPanels/InterceptPanel";
+import {PendingActionPanel} from "./PendingPanels/ActionResponsePanel";
+import {PendingPiracyPanel} from "./PendingPanels/PiracyPanel";
+import {PendingTutorialEventPanel} from "./PendingPanels/TutorialEventPanel";
+import {PendingBattlePanel} from "./PendingPanels/BattlePanel";
+import {PendingActivationPanel} from "./PendingPanels/ActivationPanel";
+import {CardDrawPanel} from "./PhasePanels/CardDrawPanel";
+import {DiplomacyPanel} from "./PhasePanels/DiplomacyPanel";
+import {SpringPanel} from "./PhasePanels/SpringPanel";
+import {ActionPhasePanel} from "./PhasePanels/ActionPhasePanel";
+
+interface ActionPanelProps extends BoardProps<VQGame> {
+    me?: string;
+    cp?: number;
+    canAct?: boolean;
+    myTurn?: boolean;
+    phase: string;
+    owned: string[];
+    selectedActionResponder?: string;
+    setSelectedActionResponder: (p: any) => void;
+    myActionChoices: any[];
+    actionResponder?: string;
+    actionResponders: string[];
+    piracyResponder?: string;
+    responsePower?: string;
+    playerID: string | null;
+    // UI state
+    selectedCard?: string;
+    setSelectedCard: (c?: string) => void;
+    eventTarget: string;
+    setEventTarget: (t: string) => void;
+    espionageTargetSelection: string;
+    setEspionageTarget: (t: string) => void;
+    setHolyLeagueEventTarget: (t: string) => void;
+    setMenendezEventTarget: (t: string) => void;
+    setPolishElectionBids: (b: any) => void;
+    setArmyMutinySelection: (s: any) => void;
+    setStaffordSelection: (s: any) => void;
+    setGermanRecruitmentSelection: (s: any) => void;
+    selectedAbjurationPower?: string;
+    setSelectedAbjurationPower: (p?: string) => void;
+    gregorianTarget: string;
+    setGregorianTarget: (t: string) => void;
+    mode: string;
+    setMode: (m: any) => void;
+    from: string | null;
+    setFrom: (f: string | null) => void;
+    movingUnits: any;
+    setMovingUnits: (u: any) => void;
+    movingOwner: any;
+    setMovingOwner: (o: any) => void;
+    movingLeaders: string[];
+    setMovingLeaders: (l: string[]) => void;
+    transportZones: string[];
+    setTransportZones: (z: string[]) => void;
+    rebelCp: number;
+    setRebelCp: (c: number) => void;
+    seaCaptainChoice: string;
+    setSeaCaptainChoice: (c: string) => void;
+    seaCaptainPort: string;
+    setSeaCaptainPort: (p: string) => void;
+    piracyZone: string;
+    setPiracyZone: (z: string) => void;
+    piracyTarget: string;
+    setPiracyTarget: (t: string) => void;
+    diploTarget: any;
+    setDiploTarget: (t: any) => void;
+    loanFromPort: string;
+    setLoanFromPort: (p: string) => void;
+    loanToPort: string;
+    setLoanToPort: (p: string) => void;
+    loanLeader: string;
+    setLoanLeader: (l: string) => void;
+    domesticRoyal: string;
+    setDomesticRoyal: (r: string) => void;
+    foreignRoyal: string;
+    setForeignRoyal: (r: string) => void;
+    patronageCp: number;
+    setPatronageCp: (c: number) => void;
+    assassinationTarget: string;
+    setAssassinationTarget: (t: string) => void;
+    assassinationCp: number;
+    setAssassinationCp: (c: number) => void;
+    catholicRebellionCp: number;
+    setCatholicRebellionCp: (c: number) => void;
+    informantSource: string;
+    setInformantSource: (s: string) => void;
+    espionageEventTarget: string;
+    setEspionageEventTarget: (t: string) => void;
+    holyLeagueEventTarget: string;
+    setHolyLeagueEventTarget: (t: string) => void;
+    menendezEventTarget: string;
+    setMenendezEventTarget: (t: string) => void;
+    polishElectionBids: any;
+    setPolishElectionBids: (b: any) => void;
+    armyMutinySelection: any;
+    setArmyMutinySelection: (s: any) => void;
+    staffordSelection: any;
+    setStaffordSelection: (s: any) => void;
+    germanRecruitmentSelection: any;
+    setGermanRecruitmentSelection: (s: any) => void;
+    expeditionCaptain: string;
+    setExpeditionCaptain: (c: string) => void;
+    expeditionHasColony: boolean;
+    setExpeditionHasColony: (b: boolean) => void;
+    foreignArmySize: number;
+    setForeignArmySize: (s: number) => void;
+    foreignWarUnits: any[];
+    setForeignWarUnits: (u: any[]) => void;
+    foreignWarLeader: string;
+    setForeignWarLeader: (l: string) => void;
+}
+
+export const ActionPanel: React.FC<ActionPanelProps> = (props) => {
+    const {G, ctx, moves, playerID, me, cp, canAct, myTurn, phase} = props;
+    
+    // Check for pending responses first - prioritize them
+    if (G.pendingEspionage) return <PendingEspionagePanel {...props} />;
+    if (G.pendingAbjuration) return <PendingAbjurationPanel {...props} />;
+    if (G.pendingCityRebels) return <PendingCityRebelsPanel {...props} />;
+    if (G.gregorianResponse) return <PendingGregorianPanel {...props} />;
+    if (G.pendingCardEvent) return <PendingCardEventPanel {...props} />;
+    if (G.pendingBeacon) return <PendingBeaconPanel {...props} />;
+    if (G.pendingInterceptionOrder) return <PendingInterceptionOrderPanel {...props} />;
+    if (G.pendingIntercept) return <PendingInterceptPanel {...props} />;
+    if (G.pendingAction) return <PendingActionPanel {...props} />;
+    if (G.pendingPiracy) return <PendingPiracyPanel {...props} />;
+    if (G.pendingTutorialEvent) return <PendingTutorialEventPanel {...props} />;
+    if (G.pendingBattle) return <PendingBattlePanel {...props} />;
+    if (G.pendingActivation) return <PendingActivationPanel {...props} />;
+    
+    if (me === undefined) {
+        return <div>旁观模式：只能查看局势。</div>;
+    }
+    
+    // Phase-based panels
+    if (phase === "cardDraw") return <CardDrawPanel {...props} />;
+    if (phase === "diplomacy") return <DiplomacyPanel {...props} />;
+    if (phase === "spring") return <SpringPanel {...props} />;
+    if (phase === "action") return <ActionPhasePanel {...props} />;
+    
+    return null;
+};

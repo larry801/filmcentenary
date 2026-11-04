@@ -1416,7 +1416,10 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
 
     const actionPanel = () => {
         if (G.pendingEspionage) return <Stack spacing={1}>
-            <Typography>谍报结算 · 等待 {POWER_NAMES[G.pendingEspionage.responding].zh} 选择。</Typography>
+            <Paper variant="outlined" sx={{p: 1.5, bgcolor: "warning.light", borderColor: "warning.main"}}>
+                <Typography variant="subtitle1" sx={{fontWeight: 700, color: "warning.dark"}}>⚠ 谍报结算 - 需要响应</Typography>
+                <Typography sx={{mt: 0.5}}>等待 {POWER_NAMES[G.pendingEspionage.responding].zh} 选择。</Typography>
+            </Paper>
             <Typography variant="body2">{G.pendingEspionage.step === "responses" ? "可在掷骰前使用响应牌。" :
                 G.pendingEspionage.step === "offense" ? `剩余 ${G.pendingEspionage.remaining} 次情报效果，每种效果最多一次。` :
                 G.pendingEspionage.step === "conversions" ? `在英格兰分配${G.pendingEspionage.conversionSide === "protestant" ? "新教" : "天主教"}转化骰；可用 6 点扩展基础，或保留至最后转化有部队的地区。` :
@@ -1427,7 +1430,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 G.pendingEspionage.step === "northernUnrest" ? `北方崛起：西班牙未与英格兰交战，再放置 ${G.pendingEspionage.remaining} 个动荡（无人占领或天主教地区）。` :
                 "选择下方合法选项，完成官方结果表的后续结算。"}</Typography>
             {ownerOf(G, G.pendingEspionage.responding) === playerID && espionageOptions(G).map((entry) =>
-                <Button key={entry.id} variant="outlined" onClick={() => moves.chooseEspionage({choice: entry.id})}>{entry.label}</Button>)}
+                <Button key={entry.id} variant="contained" onClick={() => moves.chooseEspionage({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
         if (G.pendingAbjuration) {
             const offers = abjurationOffers(G);

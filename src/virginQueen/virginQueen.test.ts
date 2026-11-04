@@ -287,10 +287,25 @@ function passToEndAction(clients: any[]) {
             clients[POWERS.indexOf(responder)].moves.respondAction({choice: "continue"});
             continue;
         }
+        // #101 opens an after-turn response window for its holder before the
+        // next impulse begins; declining it is what starts that next impulse.
+        if (state.G.gregorianResponse !== undefined) {
+            clients[POWERS.indexOf(state.G.gregorianResponse.responder)].moves.declineGregorianCalendar();
+            continue;
+        }
         const idx = Number(state.ctx.currentPlayer);
-        const p = POWERS[idx];
-        const r = clients[idx].moves.pass();
-        console.log("PASS:", r, "consec after:", clients[idx].getState().G.consecutivePasses);
+        const hand = clients[idx].getState().G.powers[POWERS[idx]].cards;
+        const mandatory = hand.find((id: string) => cardById(id).officialKind === "mandatory");
+        if (mandatory !== undefined) {
+            const def = cardById(mandatory);
+            // Untimely Death needs a leader choice; take the first legal one.
+            const target = def.officialEffect?.kind === "manual" && def.officialEffect.handler === "untimelyDeath"
+                ? (untimelyDeathTargets(state.G)[0] ?? "none") : undefined;
+            clients[idx].moves.playCard({cardId: mandatory, asEvent: true, ...(target !== undefined ? {target} : {})});
+            clients[idx].moves.endImpulse();
+        } else {
+            clients[idx].moves.pass();
+        }
     }
 }
 
