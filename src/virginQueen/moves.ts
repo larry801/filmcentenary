@@ -399,13 +399,21 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef, 
             // and only units friendly to that power remain there.
             for (const space of scottishSpaces) G.spaces[space.id].control = winner;
             displaceNonFriendlyUnits(G, winner, scottishSpaces.map((space) => space.id));
+        } else {
+            // FAQ #74 steps 2-3 presuppose a winner.  If nobody can win the
+            // check (all competing powers are blocked/ineligible), no power
+            // gains control and no units are displaced.
+            pushLog(G, "Scottish Lords Rebel: no power wins the Scottish diplomacy check; Scottish control is unchanged and no units are displaced.");
         }
-        // FAQ #74: remove all Scottish land units from the map, then replace
-        // them with the two regulars that enter at Edinburgh.
+        // FAQ #74 step 4 is unconditional: remove all Scottish land units from
+        // the map, then replace them with the two regulars at Edinburgh.
         for (const space of SPACES) delete G.spaces[space.id].land.scotland;
         addLand(G, "edinburgh", "scotland", "regular", 2);
         const mary = espionageState(G);
-        if (mary.mary !== "dead") {
+        if (winner !== undefined && mary.mary !== "dead") {
+            // FAQ #74 step 1: only an English or Protestant alliance captures
+            // Mary.  With no winner no such alliance can result, so her status
+            // (normally still "Alive in Scotland") is left untouched.
             mary.mary = ["england", "protestant"].some((p) => G.powers[p as Power].alliedMinors.includes("scotland")) ? "captured" : "exiled";
             const royal = G.royals.find((r) => r.id === "maryScots");
             if (royal && mary.mary === "captured") royal.status = "captured";
