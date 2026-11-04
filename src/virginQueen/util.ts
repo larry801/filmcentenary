@@ -3004,6 +3004,13 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
                 if (royal.family === "valois") addVp(G, "france", 1);
             }
             const ids = [male.id, female.id];
+            // #35 FAQ: Rudolf II's successful marriage removes the +2 Prague
+            // Cultural Center marker from play.  Marriage resolution precedes
+            // patronage resolution, so the marker cannot aid this Winter.
+            if ((ids.includes("rudolf") || ids.includes("rudolfII")) && G.pragueCulturalCenter !== undefined) {
+                delete G.pragueCulturalCenter;
+                pushLog(G, "Rudolf II marries; the +2 Prague Cultural Center marker is removed from the game.");
+            }
             if (ids.includes("annaSaxony")) {
                 G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
             }
