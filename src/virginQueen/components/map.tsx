@@ -7,7 +7,7 @@ import {Controller, landCount, navalCount, Religion, VQGame, CONTROLLER_COLORS} 
 import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES} from "../mapData";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, tutorialSpaceAllowed} from "../tutorial";
 import land from "../data/land-background.json";
-import {clampView, INITIAL_VIEW, isMapDrag, MapView, project, zoomView} from "./map-geometry";
+import {clampView, INITIAL_VIEW, isMapDrag, MapView, nearestMapTarget, project, zoomView} from "./map-geometry";
 
 export interface VQMapProps {
     G: VQGame;
@@ -31,7 +31,7 @@ function SpaceShape({id, G, selected, origin, onSelect, scale}: VQMapProps & {id
         def.kind === "open" && st.fortress ? "fortress" : def.kind;
     const title = `${def.name} · 控制：${st.control} · ${st.religion === "protestant" ? "新教" : "天主教"} · 陆军 ${landN} / 海军 ${navalN} / 将领 ${st.leaders.length}${G.espionage?.jesuits.includes(id) ? " · 耶稣会士" : ""}${excluded ? " · 教学禁入" : ""}${st.unrest ? " · 动荡" : ""}${st.siege ? " · 围困中" : ""}`;
     return <g className="vq-map-node" role="button" tabIndex={0} aria-label={title} aria-pressed={isSelected}
-              onClick={() => onSelect(id)} onKeyDown={(event) => {
+              onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(id);}
               }} style={{cursor: "pointer"}} opacity={excluded ? 0.3 : 1}>
         <title>{title}</title>
@@ -61,9 +61,25 @@ export const VQMap = ({G, selected, origin, onSelect}: VQMapProps) => {
     const start = React.useRef<[number, number]>([0, 0]);
     const dragged = React.useRef(false);
     const svgRef = React.useRef<SVGSVGElement>(null);
-    const coordinates = (event: React.PointerEvent<SVGSVGElement>) => {
+    const coordinates = (event: {clientX: number; clientY: number}) => {
         const matrix = svgRef.current?.getScreenCTM();
         return matrix ? new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse()) : {x: 0, y: 0};
+    };
+    const selectNearest = (event: React.MouseEvent<SVGSVGElement>) => {
+        if (dragged.current) return;
+        const point = coordinates(event);
+        const x = (point.x - view.x) / view.scale;
+        const y = (point.y - view.y) / view.scale;
+        const spaces = SPACES.map((space) => {
+            const [markerX, markerY] = project(space.lon, space.lat);
+            return {id: space.id, x: markerX, y: markerY};
+        });
+        const zones = SEA_ZONES.map((zone) => {
+            const [markerX, markerY] = project(zone.label[0], zone.label[1]);
+            return {id: zone.id, x: markerX, y: markerY};
+        });
+        const id = nearestMapTarget(x, y, spaces, zones);
+        if (id !== undefined) onSelect(id);
     };
     const release = (event: React.PointerEvent<SVGSVGElement>) => {
         pointers.current.delete(event.pointerId);
@@ -72,6 +88,7 @@ export const VQMap = ({G, selected, origin, onSelect}: VQMapProps) => {
     };
     return <div className="vq-map">
         <svg ref={svgRef} viewBox="0 0 1000 620" role="group" aria-label="欧洲与地中海游戏地图"
+             onClick={selectNearest}
              onPointerDown={(event) => {
                  if (event.button !== 0) return;
                  if (!pointers.current.size) {dragged.current = false; start.current = [event.clientX, event.clientY];}
@@ -118,7 +135,7 @@ export const VQMap = ({G, selected, origin, onSelect}: VQMapProps) => {
                     const [x, y] = project(zone.label[0], zone.label[1]);
                     const count = Object.values(G.seaZones[zone.id].naval).reduce((sum, stack) => sum + navalCount(stack), 0);
                     return <g key={zone.id} role="button" tabIndex={0} aria-label={`${zone.name} · 海军 ${count}`} aria-pressed={selected === zone.id}
-                              className="vq-map-node" style={{cursor: "pointer"}} onClick={() => onSelect(zone.id)} onKeyDown={(event) => {
+                              className="vq-map-node" style={{cursor: "pointer"}} onKeyDown={(event) => {
                                   if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(zone.id);}
                               }}>
                         <rect className="vq-hit" x={x - 44} y={y - 12} width={88} height={25} rx={5} fill={selected === zone.id ? "#faf3df" : "#c8dcd680"}

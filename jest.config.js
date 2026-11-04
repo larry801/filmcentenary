@@ -4,6 +4,6 @@ module.exports = {
   testEnvironment: 'node',
   // The perf harness has its own config (perf/jest.config.js) and needs
   // jsdom + asset stubs, so it is kept out of the normal test run.
-  testPathIgnorePatterns: ["/node_modules/", "/perf/"],
+  testPathIgnorePatterns: ["/node_modules/", "/perf/", "/e2e/"],
   setupFilesAfterEnv: ["./config.js"]
 };

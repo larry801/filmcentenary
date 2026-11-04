@@ -18,6 +18,7 @@
     "@i18n-chain/react": "^2.0.1",
     "@mui/icons-material": "^9.4.0",
     "@mui/material": "^9.4.0",
+    "@playwright/test": "1.64.1",
     "@types/jest": "^30.0.0",
     "@types/koa-static": "^4.0.4",
     "@types/lodash": "^4.17.20",
@@ -99,6 +100,7 @@
     "build:server": "tsc -p tsconfig.server.json --module node16 --moduleResolution node16",
     "start:server": "node build/server.js",
     "test": "jest",
+    "test:e2e": "playwright test",
     "a": "yarn build",
     "serve": "yarn build  && yarn build:server && yarn start:server"
   },

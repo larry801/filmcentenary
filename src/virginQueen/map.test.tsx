@@ -4,7 +4,7 @@ import {Ctx} from "boardgame.io";
 import {SPACES, SEA_ZONES} from "./mapData";
 import {setupGame} from "./util";
 import {VQMap} from "./components/map";
-import {clampView, INITIAL_VIEW, isMapDrag, MAP_EXTENT, project, zoomView} from "./components/map-geometry";
+import {clampView, INITIAL_VIEW, isMapDrag, MAP_EXTENT, nearestMapTarget, project, zoomView} from "./components/map-geometry";
 import land from "./data/land-background.json";
 
 describe("offline geographic map", () => {
@@ -47,6 +47,26 @@ describe("offline geographic map", () => {
         expect(clampView({scale: 2, x: -99999, y: 99999})).toEqual({scale: 2, x: -1000, y: 0});
         expect(isMapDrag(Math.hypot(20, 15))).toBe(true);
         expect(isMapDrag(Math.hypot(2, 1))).toBe(false);
+    });
+
+    it("selects the closest marker when neighbouring hit areas overlap", () => {
+        const [veniceX, veniceY] = project(12.33, 45.44);
+        const [paduaX, paduaY] = project(11.88, 45.41);
+        const spaces = [
+            {id: "venice", x: veniceX, y: veniceY},
+            {id: "padua", x: paduaX, y: paduaY},
+        ];
+        expect(nearestMapTarget(veniceX, veniceY, spaces, [])).toBe("venice");
+        expect(nearestMapTarget(paduaX, paduaY, spaces, [])).toBe("padua");
+        expect(nearestMapTarget(veniceX + 40, veniceY + 40, spaces, [])).toBeUndefined();
+    });
+
+    it("falls back to a sea zone only when no marker is within reach", () => {
+        const [zoneX, zoneY] = project(25.2, 38.4);
+        const zones = [{id: "aegean", x: zoneX, y: zoneY}];
+        expect(nearestMapTarget(zoneX, zoneY, [], zones)).toBe("aegean");
+        expect(nearestMapTarget(zoneX + 60, zoneY + 30, [], zones)).toBeUndefined();
+        expect(nearestMapTarget(zoneX + 4, zoneY, [{id: "city", x: zoneX, y: zoneY}], zones)).toBe("city");
     });
 
     it("provides keyboard-selectable sea zones, zoom controls and tutorial exclusions", () => {
