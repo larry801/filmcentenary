@@ -907,6 +907,218 @@ const majorDeactivatePowers = (target: Power): Power[] =>
 /** Scenario Book p. 14: deactivating the HRE also deactivates these allies. */
 const HRE_DEACTIVATION_MINORS: MinorPower[] = ["papacy", "venice", "ireland"];
 
+type MinorHome = (typeof SPACES)[number];
+
+/** Nearest home space by printed map position; ties break by space id. */
+const nearestHomeSpace = (from: string, candidates: MinorHome[]): MinorHome | undefined => {
+    const origin = SPACE_BY_ID[from];
+    if (origin === undefined) return undefined;
+    return [...candidates].sort((first, second) =>
+        Math.hypot(first.lon - origin.lon, first.lat - origin.lat) -
+        Math.hypot(second.lon - origin.lon, second.lat - origin.lat) ||
+        first.id.localeCompare(second.id))[0];
+};
+
+/** Sea-zone hops from a space or sea zone to a port (sea zones count as spaces). */
+const navalDistanceToPort = (from: string, port: string): number | undefined => {
+    if (from === port) return 0;
+    const startZones = isSeaZone(from) ? [from as SeaZoneID] : portZones(from);
+    let nearest: number | undefined;
+    for (const zone of startZones) {
+        const distance = winterNavalDistance(zone, port);
+        if (distance !== undefined && (nearest === undefined || distance < nearest)) nearest = distance;
+    }
+    return nearest;
+};
+
+/** Map point of a space or sea zone (sea zones use their printed label). */
+const mapPoint = (id: string): {lon: number; lat: number} | undefined => {
+    const space = SPACE_BY_ID[id];
+    if (space !== undefined) return space;
+    const zone = SEA_ZONE_BY_ID[id];
+    return zone === undefined ? undefined : {lon: zone.label[0], lat: zone.label[1]};
+};
+
+const nearestMinorHomePort = (G: VQGame, minor: MinorPower, from: string): MinorHome | undefined => {
+    const origin = mapPoint(from);
+    return SPACES.filter((def) => def.home === minor && G.spaces[def.id].control === minor && isPort(def.id))
+        .map((def) => ({
+            def,
+            distance: navalDistanceToPort(from, def.id),
+            geographic: origin === undefined ? Number.POSITIVE_INFINITY :
+                Math.hypot(def.lon - origin.lon, def.lat - origin.lat),
+        }))
+        .filter((entry): entry is {def: MinorHome; distance: number; geographic: number} => entry.distance !== undefined)
+        .sort((first, second) => first.distance - second.distance ||
+            first.geographic - second.geographic || first.def.id.localeCompare(second.def.id))[0]?.def;
+};
+
+/** Nearest friendly-controlled port for a displaced major (rule 12.5). */
+const nearestFriendlyPortFromSpace = (G: VQGame, owner: Power, from: string): string | undefined => {
+    const origin = mapPoint(from);
+    return SPACES.filter((def) => isPort(def.id) && friendlyControlled(G, owner, def.id))
+        .map((def) => ({
+            def,
+            distance: navalDistanceToPort(from, def.id),
+            geographic: origin === undefined ? Number.POSITIVE_INFINITY :
+                Math.hypot(def.lon - origin.lon, def.lat - origin.lat),
+        }))
+        .filter((entry): entry is {def: MinorHome; distance: number; geographic: number} => entry.distance !== undefined)
+        .sort((first, second) => first.distance - second.distance ||
+            first.geographic - second.geographic || first.def.id.localeCompare(second.def.id))[0]?.def.id;
+};
+
+/**
+ * Rule 12.5: a displaced unit moves to the nearest friendly-controlled
+ * fortified space, counting sea zones as spaces and ignoring intervening
+ * control.
+ */
+const nearestFriendlyFortifiedFrom = (G: VQGame, owner: Power, from: string): string | undefined => {
+    const origin = mapPoint(from);
+    return SPACES.filter((def) => def.id !== from && friendlyControlled(G, owner, def.id) && isFortifiedSpace(G, def.id))
+        .map((def) => ({
+            def,
+            distance: winterDistance(from, def.id),
+            geographic: origin === undefined ? Number.POSITIVE_INFINITY :
+                Math.hypot(def.lon - origin.lon, def.lat - origin.lat),
+        }))
+        .filter((entry): entry is {def: MinorHome; distance: number; geographic: number} => entry.distance !== undefined)
+        .sort((first, second) => first.distance - second.distance ||
+            first.geographic - second.geographic || first.def.id.localeCompare(second.def.id))[0]?.def.id;
+};
+
+const moveLandStack = (G: VQGame, from: string, to: string, owner: Controller): void => {
+    const source = G.spaces[from].land[owner];
+    if (source === undefined) return;
+    const target = ensureLand(G, to, owner);
+    target.regular += source.regular;
+    target.merc += source.merc;
+    target.cav += source.cav;
+    delete G.spaces[from].land[owner];
+};
+
+const moveNavalStack = (G: VQGame, from: string, to: string, owner: Controller): void => {
+    const source = navalStateAt(G, from).naval[owner];
+    if (source === undefined) return;
+    const target = ensureNaval(G, to, owner);
+    for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) target[kind] += source[kind];
+    delete navalStateAt(G, from).naval[owner];
+};
+
+const stackLeaders = (G: VQGame, location: string, owner: Power, kind: "army" | "naval"): string[] =>
+    navalStateAt(G, location).leaders.filter((id) =>
+        LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === kind);
+
+/**
+ * Scenario Book p. 14 / rule 24.4: deactivating the HRE also deactivates the
+ * Papacy, Venice or Ireland when they are its minor allies.  Their land units
+ * return to the nearest friendly-controlled fortified home space (or the
+ * nearest unfortified home space); naval units return to the nearest friendly-
+ * controlled home port.  Units with no legal destination are eliminated.
+ */
+const returnCascadedMinorUnits = (G: VQGame, minor: MinorPower): void => {
+    const homes = SPACES.filter((def) => def.home === minor && G.spaces[def.id].control === minor);
+    const fortifiedHomes = homes.filter((def) => isFortifiedSpace(G, def.id));
+    for (const def of SPACES) {
+        const stack = G.spaces[def.id].land[minor];
+        if (stack === undefined || landCount(stack) === 0) continue;
+        const destination = nearestHomeSpace(def.id, fortifiedHomes.length > 0 ? fortifiedHomes : homes);
+        if (destination === undefined) {
+            delete G.spaces[def.id].land[minor];
+            pushLog(G, `${controllerLabel(minor)} land units in ${SPACE_BY_ID[def.id].name} are eliminated (no friendly home space).`);
+            continue;
+        }
+        if (destination.id === def.id) continue;
+        moveLandStack(G, def.id, destination.id, minor);
+        pushLog(G, `${controllerLabel(minor)} land units return from ${SPACE_BY_ID[def.id].name} to ${SPACE_BY_ID[destination.id].name}.`);
+    }
+    for (const def of SPACES) {
+        const stack = G.spaces[def.id].naval[minor];
+        if (stack === undefined || navalCount(stack) === 0) continue;
+        const destination = nearestMinorHomePort(G, minor, def.id);
+        if (destination === undefined) {
+            delete G.spaces[def.id].naval[minor];
+            pushLog(G, `${controllerLabel(minor)} naval units in ${SPACE_BY_ID[def.id].name} are eliminated (no friendly home port).`);
+            continue;
+        }
+        if (destination.id === def.id) continue;
+        moveNavalStack(G, def.id, destination.id, minor);
+        pushLog(G, `${controllerLabel(minor)} naval units return from ${SPACE_BY_ID[def.id].name} to ${SPACE_BY_ID[destination.id].name}.`);
+    }
+    for (const zone of SEA_ZONES) {
+        const stack = G.seaZones[zone.id].naval[minor];
+        if (stack === undefined || navalCount(stack) === 0) continue;
+        const destination = nearestMinorHomePort(G, minor, zone.id);
+        if (destination === undefined) {
+            delete G.seaZones[zone.id].naval[minor];
+            pushLog(G, `${controllerLabel(minor)} naval units in ${zone.name} are eliminated (no friendly home port).`);
+            continue;
+        }
+        moveNavalStack(G, zone.id, destination.id, minor);
+        pushLog(G, `${controllerLabel(minor)} naval units return from ${zone.name} to ${SPACE_BY_ID[destination.id].name}.`);
+    }
+};
+
+/**
+ * Rule 24.4 displacement: after the former ally's control markers leave a
+ * minor home space, units of other powers there move to the nearest friendly-
+ * controlled fortified space (land) or port (naval).  The HRE's own units are
+ * left for the ordinary deactivation relocation below.  Units without a legal
+ * destination are removed (and any leaders return to the pool).
+ */
+const displaceFromHreMinorHomes = (G: VQGame, homeSpaces: string[], cascaded: Set<MinorPower>): void => {
+    for (const id of homeSpaces) {
+        const space = G.spaces[id];
+        const controllers = new Set<Controller>([
+            ...Object.keys(space.land),
+            ...Object.keys(space.naval),
+        ] as Controller[]);
+        for (const controller of controllers) {
+            // Independent units are not a power and the HRE's own units are
+            // relocated by the ordinary deactivation pass below.  The units of
+            // the cascaded minors are sent home by returnCascadedMinorUnits.
+            if (controller === "independent" || controller === "hre" ||
+                (!isPower(controller) && cascaded.has(controller))) continue;
+            const owner = isPower(controller) ? controller : minorAlly(G, controller);
+            const land = space.land[controller];
+            const naval = space.naval[controller];
+            if (owner === undefined) {
+                if (land !== undefined) delete space.land[controller];
+                if (naval !== undefined) delete space.naval[controller];
+                pushLog(G, `${controllerLabel(controller)} units in ${SPACE_BY_ID[id].name} are eliminated (no friendly power).`);
+                continue;
+            }
+            if (land !== undefined && landCount(land) > 0) {
+                const destination = nearestFriendlyFortifiedFrom(G, owner, id);
+                const leaders = isPower(controller) ? stackLeaders(G, id, controller, "army") : [];
+                if (destination !== undefined) {
+                    moveLandStack(G, id, destination, controller);
+                    if (leaders.length > 0) moveLeaders(G, id, destination, leaders);
+                    pushLog(G, `${controllerLabel(controller)} land units are displaced from ${SPACE_BY_ID[id].name} to ${SPACE_BY_ID[destination].name}.`);
+                } else {
+                    delete space.land[controller];
+                    if (leaders.length > 0) moveLeaders(G, id, "pool", leaders);
+                    pushLog(G, `${controllerLabel(controller)} land units in ${SPACE_BY_ID[id].name} are eliminated (no friendly fortified space).`);
+                }
+            }
+            if (naval !== undefined && navalCount(naval) > 0) {
+                const destination = nearestFriendlyPortFromSpace(G, owner, id);
+                const leaders = isPower(controller) ? stackLeaders(G, id, controller, "naval") : [];
+                if (destination !== undefined) {
+                    moveNavalStack(G, id, destination, controller);
+                    if (leaders.length > 0) moveLeaders(G, id, destination, leaders);
+                    pushLog(G, `${controllerLabel(controller)} naval units are displaced from ${SPACE_BY_ID[id].name} to ${SPACE_BY_ID[destination].name}.`);
+                } else {
+                    delete space.naval[controller];
+                    if (leaders.length > 0) moveLeaders(G, id, "pool", leaders);
+                    pushLog(G, `${controllerLabel(controller)} naval units in ${SPACE_BY_ID[id].name} are eliminated (no friendly port).`);
+                }
+            }
+        }
+    }
+};
+
+
 export const settleActivatedMajorVp = (G: VQGame, only?: Power): void => {
     for (const power of POWERS) {
         if (only !== undefined && power !== only) continue;
@@ -945,15 +1157,26 @@ export const deactivateMajor = (G: VQGame, power: Power): void => {
     G.majorDiplomacyResolved ??= [];
     if (!G.majorDiplomacyResolved.includes(power)) G.majorDiplomacyResolved.push(power);
     if (power === "hre") {
+        const cascaded = new Set<MinorPower>();
+        const freedHomeSpaces: string[] = [];
         for (const minor of state.alliedMinors) {
             for (const def of SPACES.filter((space) => space.home === minor)) {
-                if (G.spaces[def.id].control === power) G.spaces[def.id].control = minor;
+                if (G.spaces[def.id].control === power) {
+                    G.spaces[def.id].control = minor;
+                    freedHomeSpaces.push(def.id);
+                }
             }
             if (HRE_DEACTIVATION_MINORS.includes(minor)) {
+                cascaded.add(minor);
                 pushLog(G, `${minor} is deactivated with the Holy Roman Empire.`);
             }
         }
         state.alliedMinors = [];
+        // Rule 24.4: first displace other powers from the home spaces whose
+        // HRE control marker was just removed, then send the deactivated
+        // minor powers' own units home (or eliminate them).
+        displaceFromHreMinorHomes(G, freedHomeSpaces, cascaded);
+        for (const minor of cascaded) returnCascadedMinorUnits(G, minor);
     }
     for (const def of SPACES) {
         for (const other of POWERS) {
