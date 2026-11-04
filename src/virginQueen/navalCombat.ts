@@ -1,5 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {Controller, POWER_INDEX, Power, VQGame, isPower, landCount, navalCount} from "./constant/general";
+import {recordNavalLoss} from "./util";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {SEA_ZONE_BY_ID, SPACE_BY_ID} from "./mapData";
 import {ownerOf} from "./ownership";
@@ -79,21 +80,71 @@ export const applyNavalCombatLosses = (
             }
         }
     }
-    let losses = Math.floor(hitsCount / 2) + (losing ? hitsCount % 2 : 0);
     let removed = 0;
-    for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) {
+    const record = (owner: Controller, kind: "galley" | "galleon" | "racebuilt" | "corsair"): void => {
+        recordNavalLoss(G, owner, kind, 1);
+    };
+    if (owners.includes("ottoman")) {
+        // Rule 16.2 step 8: non-corsair ships take 2 hits each. Any hits left
+        // after that kill corsairs one-for-one; an odd hit on the losing side
+        // kills one more non-corsair ship, while a winner's odd hit is ignored.
+        let remaining = hitsCount;
+        for (const kind of ["galley", "galleon", "racebuilt"] as const) {
+            for (const owner of owners) {
+                const stack = stackAt(G, location, owner);
+                if (stack === undefined) continue;
+                while (remaining >= 2 && stack[kind] > 0) {
+                    stack[kind] -= 1;
+                    remaining -= 2;
+                    removed += 1;
+                    record(owner, kind);
+                }
+            }
+        }
         for (const owner of owners) {
+            if (owner !== "ottoman") continue;
             const stack = stackAt(G, location, owner);
             if (stack === undefined) continue;
-            while (losses > 0 && stack[kind] > 0) {
-                stack[kind] -= 1;
-                losses -= 1;
+            while (remaining > 0 && stack.corsair > 0) {
+                stack.corsair -= 1;
+                remaining -= 1;
                 removed += 1;
+                record(owner, "corsair");
             }
-            if (stack.galley + stack.galleon + stack.racebuilt + stack.corsair === 0) {
-                delete navalAt(G, location)[owner];
+        }
+        if (losing && remaining > 0) {
+            for (const kind of ["galley", "galleon", "racebuilt"] as const) {
+                for (const owner of owners) {
+                    const stack = stackAt(G, location, owner);
+                    if (stack === undefined || stack[kind] <= 0) continue;
+                    stack[kind] -= 1;
+                    removed += 1;
+                    record(owner, kind);
+                    remaining = 0;
+                    break;
+                }
+                if (remaining === 0) break;
             }
-            if (losses === 0) return removed;
+        }
+    } else {
+        let losses = Math.floor(hitsCount / 2) + (losing ? hitsCount % 2 : 0);
+        for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) {
+            for (const owner of owners) {
+                const stack = stackAt(G, location, owner);
+                if (stack === undefined) continue;
+                while (losses > 0 && stack[kind] > 0) {
+                    stack[kind] -= 1;
+                    losses -= 1;
+                    removed += 1;
+                    record(owner, kind);
+                }
+            }
+        }
+    }
+    for (const owner of owners) {
+        const stack = stackAt(G, location, owner);
+        if (stack !== undefined && stack.galley + stack.galleon + stack.racebuilt + stack.corsair === 0) {
+            delete navalAt(G, location)[owner];
         }
     }
     return removed;
@@ -122,7 +173,15 @@ export const navalRetreatCandidates = (
 export const retreatNaval = (G: VQGame, location: string, owners: Controller[], portAttacker = false): boolean => {
     const candidates = navalRetreatCandidates(G, location, owners, portAttacker);
     if (candidates.length === 0) {
-        for (const owner of owners) delete navalAt(G, location)[owner];
+        for (const owner of owners) {
+            const stack = stackAt(G, location, owner);
+            if (stack !== undefined) {
+                for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) {
+                    recordNavalLoss(G, owner, kind, stack[kind]);
+                }
+            }
+            delete navalAt(G, location)[owner];
+        }
         const leaders = leadersAt(G, location).filter((id) => LEADER_BY_ID[id]?.kind === "naval" &&
             leaderPower(G, id) !== undefined && owners.includes(leaderPower(G, id)!));
         if (leaders.length > 0) moveLeaders(G, location, "pool", leaders);

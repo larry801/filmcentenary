@@ -37,7 +37,7 @@ import {canPlayHolyLeague, holyLeagueTracks} from "./holyLeague";
 import type {HolyLeagueTrack} from "./holyLeague";
 import {beginGrandVizierEvent, cancelEventResponder, canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, chooseGrandVizierEvent, isGrandVizier, resolveUntimelyDeath} from "./cardEvents";
 import {startPiracy} from "./piracy";
-import {attemptNavalAvoidBattle, attemptNavalInterception, completeNavalInterception, interceptionOrderOptions, navalEnemies, playBeaconFires, resolveNavalCombat, resolveNavalCombatEnemy} from "./navalCombat";
+import {attemptNavalAvoidBattle, attemptNavalInterception, completeNavalInterception, interceptionOrderOptions, navalEnemies, playBeaconFires, resolveNavalCombat, resolveNavalCombatEnemy, retreatNaval} from "./navalCombat";
 import type {InterceptionCandidate} from "./navalCombat";
 import {offerInterception, resolveBeaconInterception} from "./interception";
 import {tutorialSpaceAllowed} from "./tutorial";
@@ -129,6 +129,7 @@ import {
     removeCardFromHand,
     removeCardFromGame,
     reliefBattle,
+    retreatLand,
     cavalryCount,
     landForceCount,
     navalForceCount,
@@ -143,6 +144,7 @@ import {
     resolveOfficialCardEffect,
     resolveMinorDiplomacy,
     resolveRebellion,
+    rulerStats,
     roll,
     rudolfIsHreRuler,
     setWar,
@@ -429,6 +431,7 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef, 
             G.powers[winner].alliedMinors.includes("scotland");
         if (englishOrProtestantAlly && mary.mary === "scotland") {
             mary.mary = "captured";
+            G.doWCostEnglandSpain = Math.max(1, G.doWCostEnglandSpain - 2);
             const royal = G.royals.find((r) => r.id === "maryScots");
             if (royal !== undefined) royal.status = "captured";
         }
@@ -490,7 +493,7 @@ const spend = (G: VQGame, p: Power, cost: number): boolean => {
     return true;
 };
 
-const canUseCardForWar = (c: CardDef): boolean => c.kind !== "home";
+const canUseCardForWar = (c: CardDef): boolean => c.kind !== "home" && c.officialKind !== "mandatory";
 
 const payWarCost = (G: VQGame, p: Power, cost: number): boolean => {
     const usable = G.powers[p].cards
@@ -3022,7 +3025,10 @@ export const pass = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
         return INVALID_MOVE;
     }
     const p = power(G, ctx);
-    if (G.foreignWars[p]?.status === "setup" || G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory")) {
+    const hasHomeCard = G.powers[p].cards.some((id) => cardById(id).kind === "home");
+    const overAdmin = G.powers[p].cards.length > rulerStats(G, p).admin;
+    if (G.foreignWars[p]?.status === "setup" || G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory") ||
+        hasHomeCard || overAdmin) {
         return INVALID_MOVE;
     }
     G.powers[p].cp = 0;
@@ -3256,6 +3262,12 @@ export const declareWarMinor = (G: VQGame, ctx: Ctx, args: { target: MinorPower 
     });
     if (winner !== undefined && G.powers[winner].alliedMinors.includes(target)) {
         setWar(G, winner, p);
+        const shared = SPACES.map((d) => d.id).filter((id) => {
+            const s = G.spaces[id];
+            if (s === undefined) return false;
+            return ownersWithLand(G, id).includes(winner) && ownersWithLand(G, id).includes(p);
+        });
+        displaceNonFriendlyUnits(G, winner, shared);
     }
 };
 
@@ -3395,6 +3407,8 @@ export const makePeace = (G: VQGame, ctx: Ctx, args: { target: Power }): void | 
         return INVALID_MOVE;
     }
     clearWar(G, p, args.target);
+    if (G.peaceMadeThisPhase === undefined) G.peaceMadeThisPhase = [];
+    G.peaceMadeThisPhase.push([p, args.target]);
     pushLog(G, `${powerLabel(p)} and ${powerLabel(args.target)} end their war by agreement.`);
 };
 
@@ -3599,16 +3613,13 @@ export const ransom = (G: VQGame, ctx: Ctx, args: { leaderId: string }): void | 
         return INVALID_MOVE;
     }
     const usable = G.powers[p].cards.filter((id) => cardById(id).kind !== "home");
-    if (usable.length > 0) {
-        const paid = shuffle(ctx, usable)[0];
-        removeCardFromHand(G, p, paid);
-        if (tutorialHreRansom) G.powers.ottoman.cards.push(paid);
-        else discardCard(G, p, paid, false);
-    } else if (G.powers[p].treasures.length > 0) {
-        G.powers[p].treasures.pop();
-    } else {
+    if (usable.length === 0) {
         return INVALID_MOVE;
     }
+    const paid = shuffle(ctx, usable)[0];
+    removeCardFromHand(G, p, paid);
+    const captor = st.capturedBy ?? (tutorialHreRansom ? "ottoman" : p);
+    G.powers[captor].cards.push(paid);
     const dest = capitalOf(G, tutorialHreRansom ? "hre" : p) ?? KEY_SPACES.find((id) => G.spaces[id].control === (tutorialHreRansom ? "hre" : p));
     if (dest === undefined) {
         return INVALID_MOVE;
@@ -3897,6 +3908,9 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
         return INVALID_MOVE;
     }
     if (p === "ottoman" && kind === "galley" && ["algiers", "tripoli"].includes(port)) {
+        return INVALID_MOVE;
+    }
+    if (p === "spain" && def.area === "netherlands" && (kind === "galley" || kind === "galleon")) {
         return INVALID_MOVE;
     }
     if (!isMinorPort && navalForceCount(G, p) + navalLostCount(G, p) >= NAVAL_LIMITS[p]) {
@@ -4332,7 +4346,15 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
         if (args.zones.length !== 1 || args.zones[0] !== "northSea" || !portZones(other).includes("northSea") ||
             G.spaces[link].control !== p) return INVALID_MOVE;
     }
-    const transportCost = inland !== undefined ? 1 : args.zones.length + 1;
+    // Rule 9.5/9.4: Spain may not transport into Ireland/Scotland until war cost <=3.
+    if (p === "spain" && (spaceHomes(SPACE_BY_ID[args.to]).includes("ireland" as never) || spaceHomes(SPACE_BY_ID[args.to]).includes("scotland" as never))) {
+        if (warCost(G, "spain", "england") > 3) return INVALID_MOVE;
+        if (!atWar(G, "spain", "england")) setWar(G, "spain", "england");
+    }
+    if (p === "england" && SPACE_BY_ID[args.to]?.area === "netherlands") {
+        if (!atWar(G, "england", "spain")) setWar(G, "england", "spain");
+    }
+    const transportCost = args.zones.length + 1 - (inland !== undefined ? 1 : 0);
     const stack = {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0};
     if (landCount(stack) < 1 || landCount(stack) > 5 || Object.entries(stack).some(([kind, count]) => count < 0 || !Number.isInteger(count) || count > source[kind as keyof LandStack])) return INVALID_MOVE;
     for (let index = 0; index < args.zones.length; index++) {
@@ -4408,6 +4430,7 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     // Rule 5.2: a Move action moves one formation, which may not contain more
     // land units than the Command Ratings of its leaders allow.
     if (landCount(stack) > formationCapacity(leaders)) return INVALID_MOVE;
+    if (G.lostBattleImpulse?.impulse === G.impulse && G.lostBattleImpulse.owners.includes(unitPower)) return INVALID_MOVE;
     if (spaceHasEnemyLand(G, p, from) && G.spaces[from].siege !== undefined && !besiegerOwners(G, from).includes(p)) {
         // Units under siege may not move; the besieger may march away.
         return INVALID_MOVE;
@@ -4424,6 +4447,16 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
         besiegerOwners(G, to).some((b) => atWar(G, p, b));
     const pUnitsInside = totalLand(G, to, [p]);
     const destControl = dest.control;
+    // Rule 9.5/9.4: Spain may not enter Ireland/Scotland until the war cost is
+    // 3 or less; entry then triggers war with England. English entry into the
+    // Netherlands likewise triggers war with Spain.
+    if (p === "spain" && (spaceHomes(SPACE_BY_ID[to]).includes("ireland" as never) || spaceHomes(SPACE_BY_ID[to]).includes("scotland" as never))) {
+        if (warCost(G, "spain", "england") > 3) return INVALID_MOVE;
+        if (!atWar(G, "spain", "england")) setWar(G, "spain", "england");
+    }
+    if (p === "england" && SPACE_BY_ID[to]?.area === "netherlands") {
+        if (!atWar(G, "england", "spain")) setWar(G, "england", "spain");
+    }
     const canEnter = friendlyControlled(G, p, to)
         || destControl === "independent"
         || (isPower(destControl) ? atWar(G, p, destControl) : atWarWithMinor(G, p, destControl as MinorPower));
@@ -4472,6 +4505,13 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
         if (stillBesieging <= defenders) {
             delete G.spaces[from].siege;
             pushLog(G, `The siege of ${SPACE_BY_ID[from].name} is lifted.`);
+            // Rule 15.3: the remaining besiegers must now retreat.
+            const captor = isPower(G.spaces[from].control) ? G.spaces[from].control : p;
+            for (const owner of [...besiegerOwners(G, from)]) {
+                if (!isPower(owner)) continue;
+                const leaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === "army");
+                retreatLand(G, owner, from, [owner], leaders, captor);
+            }
         }
     }
 
@@ -4493,9 +4533,12 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
         }
         if (isFortifiedSpace(G, to) && defenders <= 4) {
             const defenderPower = hostile.find(isPower);
-            if (defenderPower !== undefined && ownerOf(G, defenderPower) !== undefined) {
-                G.pendingWithdraw = {active: p, defender: defenderPower, space: to, origin: from};
-                return;
+            if (defenderPower !== undefined && friendlyControlled(G, defenderPower as Power, to)) {
+                const decider = (isPower(G.spaces[to].control) ? G.spaces[to].control : defenderPower) as Power;
+                if (ownerOf(G, decider) !== undefined) {
+                    G.pendingWithdraw = {active: p, defender: decider, space: to, origin: from};
+                    return;
+                }
             }
             if (totalLand(G, to, [p]) > defenders) {
                 addBesieger(G, to, p);
@@ -4594,16 +4637,20 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string 
         return INVALID_MOVE;
     }
     if (isInlandPort(from) || isInlandPort(to)) return INVALID_MOVE;
-    if (G.spaces[to] !== undefined && G.spaces[to].control !== p && !friendlyControlled(G, p, to)) {
+    if (G.spaces[to] !== undefined) {
         const enemyNaval = ownersWithNaval(G, to).some((c) => isPower(c) && atWar(G, p, c));
-        if (!enemyNaval) {
+        if (G.spaces[to].control !== p && !enemyNaval) {
             return INVALID_MOVE;
         }
     }
-    if (G.powers[p].cp < 1) return INVALID_MOVE;
+    if (G.powers[p].cp < 1 && G.navalMoveImpulse !== G.impulse) return INVALID_MOVE;
     if (offerActionResponse(G, ctx, "moveNaval", args)) return;
-    if (!spend(G, p, 1)) {
-        return INVALID_MOVE;
+    const firstNavalMove = G.navalMoveImpulse !== G.impulse;
+    if (firstNavalMove) {
+        if (!spend(G, p, 1)) {
+            return INVALID_MOVE;
+        }
+        G.navalMoveImpulse = G.impulse;
     }
     const destinationHadEnemy = ownersWithNaval(G, to).some((owner) => !friendlyController(G, p, owner));
     if (stack === undefined && destinationHadEnemy) return INVALID_MOVE;
@@ -4741,11 +4788,11 @@ export const controlSpace = (G: VQGame, ctx: Ctx, args: { space: string }): void
         return INVALID_MOVE;
     }
     if (s.unrest) {
-        const friendlyPresent = ownersWithLand(G, space).some((c) => friendlyController(G, p, c));
-        const adjacentFriendly = LAND_NEIGHBORS[space].some((n) => ownersWithLand(G, n.id).some((c) => friendlyController(G, p, c)));
-        if (!friendlyPresent && !adjacentFriendly) {
-            return INVALID_MOVE;
-        }
+        const ownPresent = ownersWithLand(G, space).some((c) => c === p && landCount(G.spaces[space].land[c]) > 0);
+        const adjacentOwn = LAND_NEIGHBORS[space].some((n) => !n.pass && ownersWithLand(G, n.id).some((c) => c === p && landCount(G.spaces[n.id].land[c]) > 0));
+        const enemyAdjacent = LAND_NEIGHBORS[space].some((n) => !n.pass && spaceHasEnemyLand(G, p, n.id));
+        if (!ownPresent && !adjacentOwn) return INVALID_MOVE;
+        if (enemyAdjacent) return INVALID_MOVE;
         if (!spend(G, p, 1)) {
             return INVALID_MOVE;
         }
@@ -4761,6 +4808,12 @@ export const controlSpace = (G: VQGame, ctx: Ctx, args: { space: string }): void
         return INVALID_MOVE;
     }
     s.control = p;
+    if (isPort(space)) {
+        for (const c of [...ownersWithNaval(G, space)]) {
+            if (c === p) continue;
+            retreatNaval(G, space, [c]);
+        }
+    }
     pushLog(G, `${powerLabel(p)} takes control of ${def.name}.`);
 };
 
@@ -4852,15 +4905,16 @@ export const chooseWithdraw = (G: VQGame, ctx: Ctx, args: {withdraw: boolean}): 
 
 export const continueMove = (G: VQGame, ctx: Ctx, args: {to: string}): void | typeof INVALID_MOVE => {
     const pending = G.pendingContinue;
+    const cost = pending !== undefined ? (passBetween(pending.space, args.to) ? 2 : 1) : 1;
     if (pending === undefined || power(G, ctx) !== pending.power || !landAdjacent(pending.space, args.to) ||
-        G.powers[pending.power].cp < 1 || args.to === pending.origin) return INVALID_MOVE;
+        G.powers[pending.power].cp < cost || args.to === pending.origin) return INVALID_MOVE;
     const destination = G.spaces[args.to];
     if (destination === undefined) return INVALID_MOVE;
     const hostile = ownersWithLand(G, args.to).some((owner) => !friendlyController(G, pending.power, owner));
     if (hostile) return INVALID_MOVE;
     const canEnter = friendlyControlled(G, pending.power, args.to) || destination.control === "independent" ||
         (isPower(destination.control) ? atWar(G, pending.power, destination.control) : atWarWithMinor(G, pending.power, destination.control));
-    if (!canEnter || !spend(G, pending.power, 1)) return INVALID_MOVE;
+    if (!canEnter || !spend(G, pending.power, cost)) return INVALID_MOVE;
     const source = G.spaces[pending.space].land[pending.power];
     if (source === undefined || source.regular < pending.units.regular || source.merc < pending.units.merc || source.cav < pending.units.cav) return INVALID_MOVE;
     source.regular -= pending.units.regular;
@@ -4919,7 +4973,7 @@ export const preach = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): void 
     }
     const p = power(G, ctx);
     const side = allowedPreach(p, args.area);
-    if (side === undefined || !spend(G, p, 2)) {
+    if (side === undefined || religionCandidates(G, side, args.area).length === 0 || !spend(G, p, 2)) {
         return INVALID_MOVE;
     }
     pushLog(G, `${powerLabel(p)} preaches a sermon in ${args.area}.`);
@@ -4940,7 +4994,7 @@ export const suppress = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): voi
     } else if (p === "france" && (args.area === "france" || args.area === "scotland")) {
         side = "catholic";
     }
-    if (side === undefined || !spend(G, p, 2)) {
+    if (side === undefined || religionCandidates(G, side, args.area).length === 0 || !spend(G, p, 2)) {
         return INVALID_MOVE;
     }
     pushLog(G, `${powerLabel(p)} suppresses heresy in ${args.area}.`);

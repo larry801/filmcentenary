@@ -24,6 +24,7 @@ const scoringGame = (): VQGame => {
     G.year = 4;
     G.hreReligiousPreference = "catholic";
     G.hreReligiousPreferenceChosen = true;
+    G.spaces.paris.unrest = true;
     G.royals.find((royal) => royal.id === "elizabeth")!.married = true;
     for (const power of POWERS) setScore(G, power, 18);
     return G;

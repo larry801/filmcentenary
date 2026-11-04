@@ -264,6 +264,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 // pending keeps its automatic composition.
                 autoResolveWinterLossChoices(G);
                 autoResolveWinterNavalLossChoices(G);
+                G.peaceMadeThisPhase = [];
                 phaseBegin(G);
             },
             turn: {
