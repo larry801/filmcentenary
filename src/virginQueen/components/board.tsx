@@ -139,6 +139,7 @@ const PHASE_LABELS: Record<string, string> = {
  * grammar `playCard` expects for those effects (see `resolvePlayedCardEvent`).
  */
 export const EVENT_TARGET_EXAMPLES: Record<string, string> = {
+    "vq-023": "brussels:spain（移除西班牙雇佣兵）；神圣罗马帝国可写 brussels:spain:antwerp:france",
     "vq-030": "spain:return:alba 或 france:skip",
     "vq-053": "peace:france、give:france:vq-020 或 move:paris",
     "vq-059": "cut:spain（剪除本国板上的西班牙密探）、upgrade 或留空获得 5CP",

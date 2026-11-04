@@ -1467,16 +1467,64 @@ const resolveDiplomaticFauxPas = (G: VQGame, target?: string): void => {
     pushLog(G, `Diplomatic Faux Pas removes ${5 - remaining} influence from ${powerLabel(targetPower)}.`);
 };
 
-/** #23 German Recruitment Curtailed: remove all mercenaries in a space. */
+interface GermanRecruitmentPick {
+    space: string;
+    /** The one major power whose mercenaries are removed; undefined means auto-pick. */
+    power?: Power;
+}
+
+/** Dutch and Huguenot forces are both Protestant, so either name means that controller. */
+const germanRecruitmentPower = (token: string): Power | undefined => {
+    if (token === "dutch" || token === "huguenot") return "protestant";
+    return isPower(token) ? token : undefined;
+};
+
+/**
+ * #23 target grammar: `space[:power]`, and for the HRE up to two such groups
+ * (`space[:power]:space[:power]`).  Space tokens are recognised by the map, so
+ * `brussels:spain:antwerp:france` names a different power in each space while
+ * the existing `brussels:antwerp` still names two spaces.
+ */
+const germanRecruitmentPicks = (G: VQGame, p: Power, target: string): GermanRecruitmentPick[] => {
+    const picks: GermanRecruitmentPick[] = [];
+    const maxSpaces = p === "hre" ? 2 : 1;
+    for (const token of target.split(":").map((part) => part.trim()).filter((part) => part !== "")) {
+        if (G.spaces[token] !== undefined) {
+            // The HRE chooses two distinct spaces; a repeated id cannot remove
+            // a second power from the same space.
+            if (picks.some((pick) => pick.space === token)) continue;
+            if (picks.length === maxSpaces) break;
+            picks.push({space: token});
+            continue;
+        }
+        const power = germanRecruitmentPower(token);
+        if (power === undefined) continue;
+        const last = picks[picks.length - 1];
+        if (last !== undefined && last.power === undefined) last.power = power;
+    }
+    return picks;
+};
+
+/**
+ * #23 German Recruitment Curtailed: remove all mercenaries of ONE major power
+ * in a space.  Without an explicit power the first major power with
+ * mercenaries there is chosen (canonical power order), never every stack.
+ */
 const resolveGermanRecruitment = (G: VQGame, p: Power, target?: string): void => {
     if (target === undefined) return;
-    const areas = (p === "hre" ? target.split(":") : [target]).filter((id) => G.spaces[id] !== undefined);
-    for (const area of areas) {
-        for (const stack of Object.values(G.spaces[area].land)) {
-            if (stack !== undefined) stack.merc = 0;
-        }
+    const picks = germanRecruitmentPicks(G, p, target);
+    const removed: string[] = [];
+    for (const pick of picks) {
+        const state = G.spaces[pick.space];
+        const power = pick.power ?? POWERS.find((candidate) => (state.land[candidate]?.merc ?? 0) > 0);
+        if (power === undefined) continue;
+        const stack = state.land[power];
+        if (stack === undefined || stack.merc === 0) continue;
+        const count = stack.merc;
+        stack.merc = 0;
+        removed.push(`${count} ${powerLabel(power)} mercenar${count === 1 ? "y" : "ies"} in ${SPACE_BY_ID[pick.space].name}`);
     }
-    pushLog(G, `German Recruitment Curtailed removes all mercenaries in ${areas.map((id) => SPACE_BY_ID[id].name).join(" and ")}.`);
+    pushLog(G, `German Recruitment Curtailed removes ${removed.length > 0 ? removed.join("; ") : "no mercenaries"}.`);
 };
 
 const resolveUnrestInRealm = (G: VQGame, target?: string): void => {
