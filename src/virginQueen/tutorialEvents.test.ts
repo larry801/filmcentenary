@@ -3,7 +3,7 @@ import {Client} from "boardgame.io/client";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {Local} from "boardgame.io/multiplayer";
 import {VirginQueenGameDef} from "./game";
-import {VQGame} from "./constant/general";
+import {POWERS, VQGame} from "./constant/general";
 import {ownerOf} from "./ownership";
 import {setupGame} from "./util";
 import {beginTutorialEvent, canPlayTutorialEvent, chooseTutorialEvent, spanishRoadDestinations, tutorialEventOptions} from "./tutorialEvents";
@@ -254,6 +254,47 @@ describe("City State Rebels", () => {
         expect(G.spaces.venice.control).toBe("spain");
         expect(G.spaces.venice.land.venice!.regular).toBe(1);
         expect(G.spaces.venice.land.spain).toBeUndefined();
+    });
+});
+
+describe("Papal Bull retrieving Holy League", () => {
+    const startPapalBull = (G: VQGame): void => {
+        G.powers.ottoman.cards = [];
+        for (const p of POWERS) G.powers[p].influence.papacy = 0;
+        G.powers.spain.influence.papacy = 9;
+        G.discard = ["vq-024"];
+        beginTutorialEvent(G, context(), "spain", "vq-005", true);
+    };
+
+    it("does not offer #24 while the Ottoman has fewer than 13 VP", () => {
+        const G = tutorialGame();
+        G.powers.ottoman.bonusVp -= 1;
+        startPapalBull(G);
+        expect(G.pendingTutorialEvent?.step).toBe("papalBenefit");
+        expect(choices(G)).toEqual(["none"]);
+        choose(G, "none");
+        expect(G.discard).toContain("vq-024");
+        expect(G.pendingTutorialEvent).toBeUndefined();
+    });
+
+    it("retrieves and starts #24 at 13 VP when a track is available", () => {
+        const G = tutorialGame();
+        startPapalBull(G);
+        expect(choices(G)).toContain("holyLeague");
+        const veniceBefore = G.powers.spain.influence.venice;
+        choose(G, "holyLeague");
+        expect(G.pendingTutorialEvent).toMatchObject({cardId: "vq-024", step: "influence"});
+        choose(G, "influence:venice");
+        expect(G.powers.spain.influence.venice).toBe(veniceBefore + 1);
+    });
+
+    it("does not offer #24 once every available track is resolved", () => {
+        const G = tutorialGame();
+        G.minorDiplomacyResolved.push("venice");
+        G.majorDiplomacyResolved.push("hre");
+        startPapalBull(G);
+        expect(G.pendingTutorialEvent?.step).toBe("papalBenefit");
+        expect(choices(G)).toEqual(["none"]);
     });
 });
 

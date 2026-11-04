@@ -9,6 +9,7 @@ import {ownerOf} from "./ownership";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
 import {TUTORIAL_KEYS, tutorialSpaceAllowed} from "./tutorial";
 import {startBattle} from "./combat";
+import {canPlayHolyLeague} from "./holyLeague";
 import {
     addLand, atWar, atWarWithMinor, capitalOf, captureLeaders, cleanupLand, cleanupNaval, discardCard, drawCards, ensureLand, friendlyControlled,
     friendlyController, hits, isCityRebelsTarget, isPort, minorAlly, moveLeaders, ownersWithLand,
@@ -172,7 +173,8 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
         return def?.power === (pending.targetPower ?? power) && def.kind === "army" && G.spaces[leader.location] &&
             (number !== 3 || !G.spaces[leader.location].siege);
     }).map((leader) => option(`leader:${leader.id}`, LEADER_BY_ID[leader.id].name))];
-    if (pending.step === "papalBenefit") return [option("none", "不领取额外奖励"), ...(G.discard.includes("vq-024") ? [option("holyLeague", "取回并立即打出 Holy League")] : [])];
+    if (pending.step === "papalBenefit") return [option("none", "不领取额外奖励"),
+        ...(G.discard.includes("vq-024") && canPlayHolyLeague(G, power) ? [option("holyLeague", "取回并立即打出 Holy League")] : [])];
     if (pending.step === "resolve") return influenceTracks(G, power).filter((track) => !pending.tracks.includes(track))
         .map((track) => option(`resolve:${track}`, `决议 ${track} 的外交状态`));
     if (pending.step === "influence") return influenceTracks(G, power).filter((track) => influenceValue(G, track, power) < 9)
@@ -390,7 +392,7 @@ export const chooseTutorialEvent = (G: VQGame, ctx: Ctx, args: {choice: string})
     }
     if (pending.step === "papalBenefit") {
         finish(G, ctx);
-        if (action === "holyLeague") {
+        if (action === "holyLeague" && G.discard.includes("vq-024") && canPlayHolyLeague(G, power)) {
             G.discard = G.discard.filter((id) => id !== "vq-024");
             G.discard.push("vq-024");
             beginTutorialEvent(G, ctx, "spain", "vq-024");
