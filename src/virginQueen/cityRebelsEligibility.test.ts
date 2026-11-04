@@ -56,14 +56,14 @@ describe("City State Rebels eligibility (#18 FAQ)", () => {
 
     it("rejects a controller allied with the major home power and permits a retry after peace", () => {
         const G = game();
-        G.spaces.rotterdam.control = "spain";
-        G.spaces.rotterdam.land = {spain: {regular: 1, merc: 0, cav: 0}};
-        G.powers.spain.allies.push("protestant");
+        G.spaces.rotterdam.control = "france";
+        G.spaces.rotterdam.land = {france: {regular: 1, merc: 0, cav: 0}};
+        G.powers.france.allies.push("protestant");
 
         expectRejectedWithoutSideEffects(G, "rotterdam");
         expect(canPlayCityStateRebels(G, "rotterdam")).toBe(false);
 
-        G.powers.spain.allies = G.powers.spain.allies.filter((power) => power !== "protestant");
+        G.powers.france.allies = G.powers.france.allies.filter((power) => power !== "protestant");
         expect(canPlayCityStateRebels(G, "rotterdam")).toBe(true);
         expect(play(G, "rotterdam")).toBeUndefined();
         expect(G.spaces.rotterdam.control).toBe("protestant");
@@ -89,8 +89,8 @@ describe("City State Rebels eligibility (#18 FAQ)", () => {
 
     it("allows an occupied fortress controlled by an unaligned major", () => {
         const G = game();
-        G.spaces.rotterdam.control = "spain";
-        G.spaces.rotterdam.land = {spain: {regular: 1, merc: 0, cav: 0}};
+        G.spaces.rotterdam.control = "france";
+        G.spaces.rotterdam.land = {france: {regular: 1, merc: 0, cav: 0}};
 
         expect(canPlayCityStateRebels(G, "rotterdam")).toBe(true);
         expect(play(G, "rotterdam")).toBeUndefined();

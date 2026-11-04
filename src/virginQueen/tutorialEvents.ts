@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {Controller, LandStack, MinorPower, MINOR_POWERS, Power, VQGame, controllerNameZh, isPower, landCount, navalCount} from "./constant/general";
+import {Controller, LandStack, MinorPower, MINOR_POWERS, Power, VQGame, controllerNameZh, isPower, landCount, navalCount, spaceHomes} from "./constant/general";
 import {cardById} from "./constant/cards";
 import {beginGrandVizierEvent, canPlayGrandVizier} from "./cardEvents";
 import {LEADER_BY_ID} from "./constant/leaders";
@@ -11,7 +11,7 @@ import {TUTORIAL_KEYS, tutorialSpaceAllowed} from "./tutorial";
 import {startBattle} from "./combat";
 import {canPlayHolyLeague} from "./holyLeague";
 import {
-    addLand, atWar, atWarWithMinor, capitalOf, captureLeaders, cleanupLand, cleanupNaval, discardCard, drawCards, ensureLand, friendlyControlled,
+    addLand, atWar, atWarWithMinor, capitalOf, captureLeaders, cleanupLand, cleanupNaval, defenderLandCount, discardCard, drawCards, ensureLand, friendlyControlled,
     friendlyController, hits, isCityRebelsTarget, isPort, minorAlly, moveLeaders, ownersWithLand,
     powerVp, pushLog, removeCardFromHand, resolveMajorDiplomacy, resolveMinorDiplomacy,
     ownersWithNaval, roll, setWar, shuffle, totalLand, totalNaval,
@@ -205,7 +205,7 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
         .filter((target) => target !== power && influenceValue(G, track, target) > 0).map((target) => option(`remove:${track}:${target}`, `移除 ${target} 对 ${track} 的影响力`)));
     if (number === 26) {
         if (!pending.space) return activeSpaces().filter((space) => !!G.spaces[space.id].siege &&
-            totalLand(G, space.id, ownersWithLand(G, space.id).filter((owner) => owner !== G.spaces[space.id].siege!.by)) <= 3)
+            defenderLandCount(G, space.id) <= 3)
             .map((space) => spaceOption(space.id));
         return activeSpaces().filter((space) => space.id !== pending.space && G.spaces[space.id].control === G.spaces[pending.space!].control &&
             (G.spaces[space.id].land[G.spaces[pending.space!].control]?.regular ?? 0) > 0).map((space) => spaceOption(space.id));
@@ -439,7 +439,7 @@ export const chooseTutorialEvent = (G: VQGame, ctx: Ctx, args: {choice: string})
         pending.step = "tribute";
         pending.responding = "spain";
     } else if (number === 13 && power !== "ottoman") {
-        const nearHre = neighborsWithin(target, 2).some((id) => SPACE_BY_ID[id]?.home === "hre");
+        const nearHre = neighborsWithin(target, 2).some((id) => spaceHomes(SPACE_BY_ID[id]!).includes("hre"));
         addLand(G, target, power, "merc", nearHre ? 4 : 2);
         pending.remaining = 0;
     } else if (number === 13 || number === 23) {

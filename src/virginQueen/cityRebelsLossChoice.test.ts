@@ -25,9 +25,9 @@ const game = (): VQGame => {
  */
 const pendingGame = (): VQGame => {
     const G = game();
-    G.spaces.rotterdam.control = "spain";
-    G.spaces.rotterdam.land = {spain: {regular: 2, merc: 2, cav: 1}};
-    G.spaces.rotterdam.naval = {spain: {galley: 1, galleon: 0, racebuilt: 0, corsair: 0}};
+    G.spaces.rotterdam.control = "france";
+    G.spaces.rotterdam.land = {france: {regular: 2, merc: 2, cav: 1}};
+    G.spaces.rotterdam.naval = {france: {galley: 1, galleon: 0, racebuilt: 0, corsair: 0}};
     G.spaces.rotterdam.leaders = [];
     expect(playCard(G, context(), {cardId: "vq-018", asEvent: true, target: "rotterdam"})).toBeUndefined();
     return G;
@@ -37,24 +37,24 @@ describe("City State Rebels loss choice (#18)", () => {
     it("opens a bounded controller choice without removing units immediately", () => {
         const G = game();
         const setActivePlayers = jest.fn();
-        G.spaces.rotterdam.control = "spain";
-        G.spaces.rotterdam.land = {spain: {regular: 2, merc: 2, cav: 1}};
-        G.spaces.rotterdam.naval = {spain: {galley: 1, galleon: 0, racebuilt: 0, corsair: 0}};
+        G.spaces.rotterdam.control = "france";
+        G.spaces.rotterdam.land = {france: {regular: 2, merc: 2, cav: 1}};
+        G.spaces.rotterdam.naval = {france: {galley: 1, galleon: 0, racebuilt: 0, corsair: 0}};
 
         expect(playCard(G, {...context(), events: {setActivePlayers}} as unknown as Ctx,
             {cardId: "vq-018", asEvent: true, target: "rotterdam"})).toBeUndefined();
 
         expect(G.pendingCityRebels).toMatchObject({
             power: "england",
-            controller: "spain",
+            controller: "france",
             space: "rotterdam",
             remaining: 5,
         });
         expect(G.pendingCityRebels?.values).toHaveLength(5);
         // The controller allocates every hit; nothing is auto-removed yet.
-        expect(G.spaces.rotterdam.land.spain).toEqual({regular: 2, merc: 2, cav: 1});
-        expect(G.spaces.rotterdam.naval.spain?.galley).toBe(1);
-        expect(setActivePlayers).toHaveBeenCalledWith({value: {"1": "cityRebelsLossChoice"}});
+        expect(G.spaces.rotterdam.land.france).toEqual({regular: 2, merc: 2, cav: 1});
+        expect(G.spaces.rotterdam.naval.france?.galley).toBe(1);
+        expect(setActivePlayers).toHaveBeenCalledWith({value: {"3": "cityRebelsLossChoice"}});
         expect(cityRebelsLossOptions(G).map((entry) => entry.kind))
             .toEqual(["merc", "regular", "cav", "galley"]);
     });
@@ -62,29 +62,29 @@ describe("City State Rebels loss choice (#18)", () => {
     it("assigns one hit per move and finishes when all hits are allocated", () => {
         const G = pendingGame();
         const endStage = jest.fn();
-        const spanish = {...context("1"), events: {endStage}} as unknown as Ctx;
+        const french = {...context("3"), events: {endStage}} as unknown as Ctx;
 
-        expect(chooseCityRebelsLoss(G, spanish, {kind: "regular"})).toBeUndefined();
-        expect(G.spaces.rotterdam.land.spain).toEqual({regular: 1, merc: 2, cav: 1});
+        expect(chooseCityRebelsLoss(G, french, {kind: "regular"})).toBeUndefined();
+        expect(G.spaces.rotterdam.land.france).toEqual({regular: 1, merc: 2, cav: 1});
         expect(G.pendingCityRebels?.remaining).toBe(4);
         expect(endStage).not.toHaveBeenCalled();
 
-        expect(chooseCityRebelsLoss(G, spanish, {kind: "regular"})).toBeUndefined();
-        expect(G.spaces.rotterdam.land.spain).toEqual({regular: 0, merc: 2, cav: 1});
+        expect(chooseCityRebelsLoss(G, french, {kind: "regular"})).toBeUndefined();
+        expect(G.spaces.rotterdam.land.france).toEqual({regular: 0, merc: 2, cav: 1});
         expect(G.pendingCityRebels?.remaining).toBe(3);
 
-        expect(chooseCityRebelsLoss(G, spanish, {kind: "galley"})).toBeUndefined();
-        expect(G.spaces.rotterdam.naval.spain).toBeUndefined();
+        expect(chooseCityRebelsLoss(G, french, {kind: "galley"})).toBeUndefined();
+        expect(G.spaces.rotterdam.naval.france).toBeUndefined();
         expect(G.pendingCityRebels?.remaining).toBe(2);
 
-        expect(chooseCityRebelsLoss(G, spanish, {kind: "merc"})).toBeUndefined();
-        expect(chooseCityRebelsLoss(G, spanish, {kind: "merc"})).toBeUndefined();
+        expect(chooseCityRebelsLoss(G, french, {kind: "merc"})).toBeUndefined();
+        expect(chooseCityRebelsLoss(G, french, {kind: "merc"})).toBeUndefined();
 
         expect(G.pendingCityRebels).toBeUndefined();
         expect(endStage).toHaveBeenCalledTimes(1);
-        expect(landCount(G.spaces.rotterdam.land.spain)).toBe(1);
-        expect(navalCount(G.spaces.rotterdam.naval.spain)).toBe(0);
-        expect(G.spaces.rotterdam.control).toBe("spain");
+        expect(landCount(G.spaces.rotterdam.land.france)).toBe(1);
+        expect(navalCount(G.spaces.rotterdam.naval.france)).toBe(0);
+        expect(G.spaces.rotterdam.control).toBe("france");
         expect(G.log.join("\n")).toContain("City State Rebels");
         expect(G.log.join("\n")).toContain("in Rotterdam");
     });
@@ -93,14 +93,14 @@ describe("City State Rebels loss choice (#18)", () => {
         const G = pendingGame();
         const endStage = jest.fn();
 
-        expect(chooseCityRebelsLoss(G, {...context("1"), events: {endStage}} as unknown as Ctx,
+        expect(chooseCityRebelsLoss(G, {...context("3"), events: {endStage}} as unknown as Ctx,
             {kind: "auto"})).toBeUndefined();
 
         // The five automatic land losses (2 merc, 2 regular, 1 cavalry) leave
         // the galley as the only survivor; the fortress stays Spanish.
-        expect(G.spaces.rotterdam.land.spain).toBeUndefined();
-        expect(G.spaces.rotterdam.naval.spain?.galley).toBe(1);
-        expect(G.spaces.rotterdam.control).toBe("spain");
+        expect(G.spaces.rotterdam.land.france).toBeUndefined();
+        expect(G.spaces.rotterdam.naval.france?.galley).toBe(1);
+        expect(G.spaces.rotterdam.control).toBe("france");
         expect(G.pendingCityRebels).toBeUndefined();
         expect(endStage).toHaveBeenCalledTimes(1);
     });
@@ -108,19 +108,19 @@ describe("City State Rebels loss choice (#18)", () => {
     it("rejects absent types and choices made by another seat", () => {
         const G = pendingGame();
         const remaining = G.pendingCityRebels;
-        const spanish = context("1");
+        const french = context("3");
 
-        expect(chooseCityRebelsLoss(G, spanish, {kind: "galleon"})).toBe(INVALID_MOVE);
-        expect(chooseCityRebelsLoss(G, spanish, {kind: "corsair"})).toBe(INVALID_MOVE);
+        expect(chooseCityRebelsLoss(G, french, {kind: "galleon"})).toBe(INVALID_MOVE);
+        expect(chooseCityRebelsLoss(G, french, {kind: "corsair"})).toBe(INVALID_MOVE);
         expect(chooseCityRebelsLoss(G, context("2"), {kind: "regular"})).toBe(INVALID_MOVE);
         expect(G.pendingCityRebels).toBe(remaining);
-        expect(G.spaces.rotterdam.land.spain).toEqual({regular: 2, merc: 2, cav: 1});
+        expect(G.spaces.rotterdam.land.france).toEqual({regular: 2, merc: 2, cav: 1});
 
         expect(moveError(G, "claimSeaCaptain")).toBeDefined();
         expect(moveError(G, "chooseCityRebelsLoss")).toBeUndefined();
 
-        expect(chooseCityRebelsLoss(G, spanish, {kind: "auto"})).toBeUndefined();
-        expect(chooseCityRebelsLoss(G, spanish, {kind: "auto"})).toBe(INVALID_MOVE);
+        expect(chooseCityRebelsLoss(G, french, {kind: "auto"})).toBeUndefined();
+        expect(chooseCityRebelsLoss(G, french, {kind: "auto"})).toBe(INVALID_MOVE);
     });
 
     it("keeps the automatic composition when the choice is abandoned", () => {
@@ -129,22 +129,22 @@ describe("City State Rebels loss choice (#18)", () => {
         autoResolveCityRebelsLosses(G);
 
         expect(G.pendingCityRebels).toBeUndefined();
-        expect(G.spaces.rotterdam.land.spain).toBeUndefined();
-        expect(G.spaces.rotterdam.naval.spain?.galley).toBe(1);
-        expect(G.spaces.rotterdam.control).toBe("spain");
+        expect(G.spaces.rotterdam.land.france).toBeUndefined();
+        expect(G.spaces.rotterdam.naval.france?.galley).toBe(1);
+        expect(G.spaces.rotterdam.control).toBe("france");
     });
 
     it("resolves immediately when the stack has no real unit-type choice", () => {
         const G = game();
-        G.spaces.rotterdam.control = "spain";
+        G.spaces.rotterdam.control = "france";
         // Seven regulars and five hits: one kind, so the fallback applies now.
-        G.spaces.rotterdam.land = {spain: {regular: 7, merc: 0, cav: 0}};
+        G.spaces.rotterdam.land = {france: {regular: 7, merc: 0, cav: 0}};
 
         expect(playCard(G, context(), {cardId: "vq-018", asEvent: true, target: "rotterdam"})).toBeUndefined();
 
         expect(G.pendingCityRebels).toBeUndefined();
-        expect(G.spaces.rotterdam.land.spain).toEqual({regular: 2, merc: 0, cav: 0});
-        expect(G.spaces.rotterdam.control).toBe("spain");
+        expect(G.spaces.rotterdam.land.france).toEqual({regular: 2, merc: 0, cav: 0});
+        expect(G.spaces.rotterdam.control).toBe("france");
     });
 
     it("keeps the automatic wipe and control restoration when hits cover the stack", () => {

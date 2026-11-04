@@ -64,6 +64,24 @@ describe("A Small Aid (#26) in neutral-controlled fortresses", () => {
         expect(G.spaces.brussels.land.spain?.regular).toBe(4);
     });
 
+    it("excludes an allied second besieger from the defender count", () => {
+        const G = game();
+        G.spaces.brussels.control = "spain";
+        // France besieges; HRE (allied to France) is a second besieger; Spain
+        // holds the fortress with 3.  A Small Aid must succeed.
+        G.spaces.brussels.siege = {by: "france", besiegers: ["france", "hre"], sinceImpulse: 1};
+        G.powers.france.allies.push("hre");
+        G.spaces.brussels.land = {
+            spain: {regular: 3, merc: 0, cav: 0},
+            france: {regular: 5, merc: 0, cav: 0},
+            hre: {regular: 5, merc: 0, cav: 0},
+        };
+
+        expect(playSmallAid(G, "brussels")).toBeUndefined();
+
+        expect(G.spaces.brussels.land.spain?.regular).toBe(4);
+    });
+
     it("rejects a neutral fortress defended by more than three units", () => {
         const G = game();
         G.spaces.metz.control = "independent";
@@ -73,7 +91,9 @@ describe("A Small Aid (#26) in neutral-controlled fortresses", () => {
             spain: {regular: 1, merc: 0, cav: 0},
         };
 
-        expect(playSmallAid(G, "metz")).toBeUndefined();
+        // #26 is pre-validated now: an illegal target is INVALID_MOVE rather
+        // than a silent no-op that still consumes the card.
+        expect(playSmallAid(G, "metz")).toBe("INVALID_MOVE");
 
         expect(landCount(G.spaces.metz.land.independent)).toBe(4);
         expect(G.log.join("\n")).not.toContain("A Small Aid adds");
@@ -85,7 +105,7 @@ describe("A Small Aid (#26) in neutral-controlled fortresses", () => {
         G.spaces.metz.siege = undefined;
         G.spaces.metz.land = {independent: {regular: 1, merc: 0, cav: 0}};
 
-        expect(playSmallAid(G, "metz")).toBeUndefined();
+        expect(playSmallAid(G, "metz")).toBe("INVALID_MOVE");
 
         expect(G.spaces.metz.land.independent?.regular).toBe(1);
         expect(G.log.join("\n")).not.toContain("A Small Aid adds");

@@ -27,6 +27,8 @@ describe("Catherine's Flying Squadron (card #42)", () => {
 
     it("cancels City State Rebels", () => {
         const G = game();
+        G.spaces.rotterdam.control = "france";
+        G.spaces.rotterdam.land = {france: {regular: 2, merc: 0, cav: 0}};
         G.powers.ottoman.cards = ["vq-018"];
         G.powers.england.cards = ["vq-042"];
 

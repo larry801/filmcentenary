@@ -7,6 +7,7 @@ import {ownerOf} from "./ownership";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {startBattle} from "./combat";
 import {
+    addBesieger,
     atWar, bestBattle, ensureLand, ensureNaval, friendlyControlled, friendlyController, isFortifiedSpace,
     isSeaZone, moveLeaders, navalAdjacent, ownersWithLand, ownersWithNaval, powerLabel, pushLog, roll, totalLand,
 } from "./util";
@@ -55,7 +56,7 @@ const complete = (G: VQGame, ctx: Ctx): void => {
         G.pendingBattle!.intercepted = pending.succeeded;
         G.pendingBattle!.transported = pending.transported;
     } else {
-        if (pending.phase === "field" && isFortifiedSpace(G, pending.to) && !friendlyControlled(G, pending.power, pending.to)) G.spaces[pending.to].siege = {by: pending.power, sinceImpulse: G.impulse};
+        if (pending.phase === "field" && isFortifiedSpace(G, pending.to) && !friendlyControlled(G, pending.power, pending.to)) addBesieger(G, pending.to, pending.power);
         ctx.events?.endStage();
     }
 };

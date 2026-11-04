@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {CardDef, Power, VQGame, landCount} from "./constant/general";
+import {CardDef, Power, VQGame, landCount, spaceHomes} from "./constant/general";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {SPACE_BY_ID, SPACES} from "./mapData";
 import {ownerOf} from "./ownership";
@@ -17,7 +17,7 @@ const recruitmentOptions = (G: VQGame): CardEventOption[] => {
     const options: CardEventOption[] = [];
     for (const space of SPACES) {
         const state = G.spaces[space.id];
-        if (space.home !== "ottoman" || state.control !== "ottoman" || state.siege || state.unrest ||
+        if (!spaceHomes(space).includes("ottoman") || state.control !== "ottoman" || state.siege || state.unrest ||
             (G.scenario === "tutorial" && !tutorialSpaceAllowed(space.id)) ||
             spaceHasEnemyLand(G, "ottoman", space.id) || spaceHasEnemyNaval(G, "ottoman", space.id)) continue;
         if (!["algiers", "tripoli"].includes(space.id)) options.push({id: `regular:${space.id}`, label: `增加 1 正规军：${space.name}`});

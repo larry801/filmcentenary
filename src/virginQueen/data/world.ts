@@ -107,6 +107,28 @@ export const WORLD_SETTLEMENTS: WorldSettlement[] = [
         seaZone: "indianOcean",
         notes: "Conquest of the Philippines adds a Spanish control marker and a recurring treasure.",
     },
+    // Portuguese settlements (Rule 16.5): may be targeted by world piracy even
+    // before Portugal enters play when adjacent to the expedition's zone.
+    {
+        id: "portugueseGuinea",
+        nameEn: "Portuguese Guinea",
+        nameZh: "葡属几内亚",
+        region: "africa",
+        kind: "settlement",
+        seaZone: "guineaCoast",
+        home: "portugal",
+        notes: "Portuguese settlement adjacent to the Guinea Coast ocean zone.",
+    },
+    {
+        id: "portugueseCeylon",
+        nameEn: "Portuguese Ceylon",
+        nameZh: "葡属锡兰",
+        region: "asia",
+        kind: "settlement",
+        seaZone: "indianOcean",
+        home: "portugal",
+        notes: "Portuguese settlement adjacent to the Indian Ocean ocean zone.",
+    },
     // The physical World Map was not supplied with the source set. These
     // generic slots let an expedition settle the named region without
     // inventing an exact printed location.

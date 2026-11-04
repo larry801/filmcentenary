@@ -20,8 +20,7 @@ import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import {
-    AREA_NAMES,
+import {AREA_NAMES,
     CardDef,
     CONTROLLER_COLORS,
     controllerNameZh,
@@ -42,8 +41,7 @@ import {
     ReligionArea,
     VQGame,
     isPower,
-    powerAt,
-} from "../constant/general";
+    powerAt, spaceHomes} from "../constant/general";
 import {cardById, cardImageUrl} from "../constant/cards";
 import {LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN} from "../constant/leaders";
 import {patronDef, royalAvailable, scenarioSetup, scienceBonusById, seaCaptainById} from "../scenario";
@@ -292,7 +290,7 @@ export interface AbjurationOffer {
 export const abjurationOfferDetails = (G: VQGame, offer: {power: Power; space: string}): AbjurationOffer => {
     let remaining = 5;
     const sources: string[] = [];
-    for (const space of SPACES.filter((def) => def.home === offer.power && G.spaces[def.id].control === offer.power)) {
+    for (const space of SPACES.filter((def) => spaceHomes(def).includes(offer.power) && G.spaces[def.id].control === offer.power)) {
         const stack = G.spaces[space.id].land[offer.power];
         if (stack === undefined) continue;
         const take = Math.min(remaining, stack.regular);
@@ -1196,7 +1194,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         piracyResponder && ownerOf(G, piracyResponder) === playerID ? piracyResponder :
         G.pendingCardEvent && ownerOf(G, G.pendingCardEvent.responding) === playerID ? G.pendingCardEvent.responding :
         G.pendingTutorialEvent && ownerOf(G, G.pendingTutorialEvent.responding) === playerID ? G.pendingTutorialEvent.responding :
-        G.pendingCityRebels && ownerOf(G, G.pendingCityRebels.controller) === playerID ? G.pendingCityRebels.controller :
+        G.pendingCityRebels && isPower(G.pendingCityRebels.controller) && ownerOf(G, G.pendingCityRebels.controller) === playerID ? G.pendingCityRebels.controller :
         G.pendingBattle && ownerOf(G, G.pendingBattle.responding) === playerID ? G.pendingBattle.responding :
         G.pendingBetrothal && ownerOf(G, G.pendingBetrothal.target) === playerID ? G.pendingBetrothal.target : undefined;
     const me: Power | undefined = responsePower ?? (ctx.currentPlayer === playerID ? G.activePower :
@@ -1461,9 +1459,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         }
         if (G.pendingCityRebels) {
             const pending = G.pendingCityRebels;
-            const canChoose = ownerOf(G, pending.controller) === playerID;
+            const canChoose = isPower(pending.controller) && ownerOf(G, pending.controller) === playerID;
             return <Stack spacing={1}>
-                <Typography>城邦起义（#18） · 等待 {POWER_NAMES[pending.controller].zh} 分配损失。</Typography>
+                <Typography>城邦起义（#18） · 等待 {isPower(pending.controller) ? POWER_NAMES[pending.controller].zh : pending.controller} 分配损失。</Typography>
                 {canChoose && <>
                     <Typography variant="body2">
                         {SPACE_BY_ID[pending.space]?.name ?? pending.space}：还需选择 {pending.remaining} 个损失单位，每次一个陆军或海军单位。
@@ -2370,7 +2368,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <InputLabel id="vq-sea-captain-port">港口</InputLabel>
                         <Select labelId="vq-sea-captain-port" label="港口" value={seaCaptainPort}
                                 onChange={(e) => setSeaCaptainPort(e.target.value)}>
-                            {SPACES.filter((space) => space.control === "england" && space.home === "england" &&
+                            {SPACES.filter((space) => space.control === "england" && spaceHomes(space).includes("england") &&
                                 (space.ports?.length ?? 0) > 0 && navalCount(G.spaces[space.id].naval.england) > 0)
                                 .map((space) => <MenuItem key={space.id} value={space.id}>{space.name}</MenuItem>)}
                         </Select>

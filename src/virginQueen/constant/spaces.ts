@@ -86,37 +86,37 @@ export const SPACES: SpaceDef[] = [
         initial: {france: {regular: 1}},
     }),
     space("amiens", "Amiens", 2.30, 49.89, "france", "open"),
-    space("orleans", "Orleans", 1.90, 47.90, "france", "fortress", {
+    space("orleans", "Orleans", 1.90, 47.90, "france", "fortress", { homes: ["france", "protestant"],
         area: "france",
         initial: {france: {regular: 1}},
     }),
     space("dijon", "Dijon", 5.04, 47.32, "france", "fortress", {
         initial: {france: {regular: 1}},
     }),
-    space("bourges", "Bourges", 2.40, 47.08, "france", "open", {
+    space("bourges", "Bourges", 2.40, 47.08, "france", "open", { homes: ["france", "protestant"],
         area: "france",
     }),
-    space("clermont", "Clermont", 3.09, 45.78, "france", "open", {
+    space("clermont", "Clermont", 3.09, 45.78, "france", "open", { homes: ["france", "protestant"],
         area: "france",
     }),
-    space("lyon", "Lyon", 4.84, 45.76, "france", "key", {
+    space("lyon", "Lyon", 4.84, 45.76, "france", "key", { homes: ["france", "protestant"],
         area: "france",
         initial: {france: {regular: 2}},
     }),
-    space("marseille", "Marseille", 5.37, 43.30, "france", "fortress", {
+    space("marseille", "Marseille", 5.37, 43.30, "france", "fortress", { homes: ["france", "protestant"],
         ports: ["gulfOfLyon"],
         initial: {france: {regular: 2}},
         initialNaval: {france: {galley: 1}},
     }),
-    space("toulouse", "Toulouse", 1.44, 43.60, "france", "open", {
+    space("toulouse", "Toulouse", 1.44, 43.60, "france", "open", { homes: ["france", "protestant"],
         area: "france",
         initial: {france: {regular: 1}},
     }),
-    space("bordeaux", "Bordeaux", -0.58, 44.84, "france", "fortress", {
+    space("bordeaux", "Bordeaux", -0.58, 44.84, "france", "fortress", { homes: ["france", "protestant"],
         ports: ["bayOfBiscay"],
         initial: {france: {regular: 2}},
     }),
-    space("nantes", "Nantes", -1.55, 47.22, "france", "open", {
+    space("nantes", "Nantes", -1.55, 47.22, "france", "open", { homes: ["france", "protestant"],
         ports: ["bayOfBiscay"],
         initialNaval: {france: {galleon: 1}},
     }),
@@ -150,41 +150,41 @@ export const SPACES: SpaceDef[] = [
     }),
 
     // ----------------------------------------------------------- Netherlands
-    space("brussels", "Brussels", 4.35, 50.85, "protestant", "key", {
+    space("brussels", "Brussels", 4.35, 50.85, "spain", "key", { homes: ["spain", "protestant"],
         area: "netherlands",
         control: "spain",
         initial: {spain: {regular: 3}},
     }),
-    space("antwerp", "Antwerp", 4.40, 51.22, "protestant", "key", {
+    space("antwerp", "Antwerp", 4.40, 51.22, "spain", "key", { homes: ["spain", "protestant"],
         area: "netherlands",
         ports: ["northSea"],
         control: "spain",
         initial: {spain: {regular: 1}},
     }),
-    space("amsterdam", "Amsterdam", 4.90, 52.37, "protestant", "key", {
+    space("amsterdam", "Amsterdam", 4.90, 52.37, "spain", "key", { homes: ["spain", "protestant"],
         area: "netherlands",
         ports: ["northSea"],
         control: "spain",
         religion: "protestant",
     }),
-    space("rotterdam", "Rotterdam", 4.48, 51.92, "protestant", "fortress", {
+    space("rotterdam", "Rotterdam", 4.48, 51.92, "spain", "fortress", { homes: ["spain", "protestant"],
         area: "netherlands",
         ports: ["northSea"],
         control: "spain",
         religion: "protestant",
     }),
-    space("flushing", "Flushing", 3.57, 51.44, "protestant", "fortress", {
+    space("flushing", "Flushing", 3.57, 51.44, "spain", "fortress", { homes: ["spain", "protestant"],
         area: "netherlands",
         ports: ["northSea"],
         control: "spain",
         religion: "protestant",
     }),
-    space("brielle", "Brielle", 4.20, 51.90, "protestant", "fortress", {
+    space("brielle", "Brielle", 4.20, 51.90, "spain", "fortress", { homes: ["spain", "protestant"],
         area: "netherlands",
         ports: ["northSea"],
         control: "spain",
     }),
-    space("ghent", "Ghent", 3.72, 51.05, "protestant", "fortress", {
+    space("ghent", "Ghent", 3.72, 51.05, "spain", "fortress", { homes: ["spain", "protestant"],
         area: "netherlands",
         control: "spain",
         religion: "protestant",

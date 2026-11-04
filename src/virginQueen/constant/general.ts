@@ -61,6 +61,23 @@ export const REGULAR_LIMITS: Record<Power, number> = {
     protestant: 48,
 };
 
+/** Minor-power force-pool caps (Rule 24.3 — proxies until printed counters are digitised). */
+export const MINOR_REGULAR_LIMITS: Record<string, number> = {
+    scotland: 12,
+    ireland: 12,
+    portugal: 12,
+    papacy: 12,
+    venice: 12,
+};
+
+export const MINOR_NAVAL_LIMITS: Record<string, number> = {
+    scotland: 2,
+    ireland: 2,
+    portugal: 4,
+    papacy: 4,
+    venice: 6,
+};
+
 export const POWER_NAMES: Record<Power, { en: string; zh: string; short: string }> = {
     ottoman: {en: "Ottoman Empire", zh: "奥斯曼帝国", short: "Ottoman"},
     spain: {en: "Spain", zh: "西班牙", short: "Spain"},
@@ -206,8 +223,8 @@ export interface WinterNavalLossChoice {
 export interface CityRebelsLossChoice {
     /** Power that played the event; captures army leaders when the target empties. */
     power: Power;
-    /** Power controlling the target fortress and choosing the losses. */
-    controller: Power;
+    /** Controller of the target fortress and choosing the losses. */
+    controller: Controller;
     /** Fortress whose garrison is taking the losses. */
     space: string;
     /** Hits still to allocate, at most the five dice rolled. */
@@ -380,6 +397,12 @@ export interface SpaceDef {
     lat: number;
     /** Historical home power of the space. */
     home: Controller;
+    /**
+     * All home powers for split-home spaces (Rule 2.5).  `home` remains the
+     * initial (bottom) home for back-compat reads; `homes` is authoritative
+     * for construction, return, LOC and #18 eligibility.
+     */
+    homes?: Controller[];
     kind: SpaceKind;
     capitalOf?: Power;
     area?: ReligionArea;
@@ -391,6 +414,9 @@ export interface SpaceDef {
     initial?: Partial<Record<Controller, Partial<LandStack>>>;
     initialNaval?: Partial<Record<Controller, Partial<NavalStack>>>;
 }
+
+/** All home powers for a space (split-home aware). */
+export const spaceHomes = (def: SpaceDef): Controller[] => def.homes ?? [def.home];
 
 export type CardKind = "event" | "home" | "command";
 
@@ -435,6 +461,17 @@ export interface CardWindow {
     affectedPower?: Power;
 }
 
+export interface SiegeState {
+    /** Legacy single-besieger field; kept for back-compat reads. New writes populate `besiegers`. */
+    by: Power;
+    /** All allied besiegers (Rules: two allied powers may besiege at once). */
+    besiegers?: Power[];
+    /** Controllers whose stacks are physically inside the fortification. When absent, derived from control/allies. */
+    inside?: Controller[];
+    /** Impulse number in which the siege began. */
+    sinceImpulse: number;
+}
+
 export interface SpaceState {
     control: Controller;
     religion: Religion;
@@ -446,11 +483,7 @@ export interface SpaceState {
     unrest: boolean;
     /** A fortress marker is present. Keys are fortified by definition. */
     fortress: boolean;
-    siege?: {
-        by: Power;
-        /** Impulse number in which the siege began. */
-        sinceImpulse: number;
-    };
+    siege?: SiegeState;
 }
 
 export interface SeaState {

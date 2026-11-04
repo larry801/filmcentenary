@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {Controller, NavalStack, Power, POWERS, VQGame, isPower, navalCount} from "./constant/general";
+import {Controller, NavalStack, Power, POWERS, VQGame, isPower, navalCount, spaceHomes} from "./constant/general";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {cardById} from "./constant/cards";
 import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "./mapData";
@@ -23,12 +23,20 @@ const crypto = (G: VQGame, p: Power, target: Power): number =>
 const maryAlive = (G: VQGame): boolean => G.espionage?.mary !== "dead" &&
     G.royals.find((r) => r.id === "maryScots")?.alive !== false;
 
+/**
+ * Canonical assassination target for Rudolf.  The Scenario Book pool uses
+ * `rudolfII`; the initial pool uses `rudolf`.  Assassination and Prague
+ * cleanup must treat the two spellings as the same person.
+ */
+export const rudolfRoyal = (G: VQGame): {id: string} | undefined =>
+    G.royals.find((r) => r.id === "rudolf" && r.alive) ?? G.royals.find((r) => r.id === "rudolfII" && r.alive);
+
 export const assassinationTargets = (G: VQGame, p: Power): string[] => [
     ...(p !== "england" && G.royals.some((r) => r.id === "elizabeth" && r.alive) ? ["elizabeth"] : []),
     // #35 FAQ: Rudolf's death (like Elizabeth's) has ruler effects, so he
     // is an assassination-eligible royal; he can only die that way (and
     // through the marriage table), never as an army leader.
-    ...(p !== "hre" && G.royals.some((r) => (r.id === "rudolf" || r.id === "rudolfII") && r.alive) ? ["rudolf"] : []),
+    ...(p !== "hre" && rudolfRoyal(G) !== undefined ? [rudolfRoyal(G)!.id] : []),
     ...Object.keys(G.leaders).filter((id) => {
         const def = LEADER_BY_ID[id];
         const loc = G.leaders[id].location;
@@ -37,6 +45,8 @@ export const assassinationTargets = (G: VQGame, p: Power): string[] => [
             !isActivatedMajor(G, def.power) && !!G.spaces[loc] && G.spaces[loc].leaders.includes(id);
     }),
 ];
+
+const isRudolfTarget = (target: string | undefined): boolean => target === "rudolf" || target === "rudolfII";
 
 export const espionageDice = (G: VQGame, pending: PendingEspionage): {attack: number; defense: number} => {
     const {power: p, targetPower: target, kind} = pending;
@@ -48,20 +58,20 @@ export const espionageDice = (G: VQGame, pending: PendingEspionage): {attack: nu
         if (pending.target === "elizabeth") {
             attack += maryAlive(G) ? 1 : 0;
             defense += 3;
-        } else if (pending.target === "rudolf" || pending.target === "rudolfII") {
+        } else if (isRudolfTarget(pending.target)) {
             // Rudolf is a royal, not an army leader: defend him like a
             // ruler (base defense + a home-capital bonus, no battle rating).
             if (SPACE_BY_ID["prague"]?.home === target && G.spaces["prague"].control === target) defense++;
         } else {
             const def = LEADER_BY_ID[pending.target!];
-            defense += def.battle;
-            const loc = G.leaders[pending.target!].location;
-            if (SPACE_BY_ID[loc]?.home === target && G.spaces[loc].control === target) defense++;
+            defense += def?.battle ?? 0;
+            const loc = G.leaders[pending.target!]?.location;
+            if (loc !== undefined && SPACE_BY_ID[loc]?.home === target && G.spaces[loc].control === target) defense++;
         }
     } else {
         attack += G.espionage?.jesuits.length ?? 0;
         if (maryAlive(G) || G.espionage?.maryBonusTurn === G.year) attack += 3;
-        if (SPACES.some((s) => (s.home === "ireland" || s.area === "scotland") && (G.spaces[s.id].land.spain?.regular ?? 0) > 0)) attack += 2;
+        if (SPACES.some((s) => (spaceHomes(s).includes("ireland") || s.area === "scotland") && (G.spaces[s.id].land.spain?.regular ?? 0) > 0)) attack += 2;
         if (SPACES.some((s) => s.area === "england" && (G.spaces[s.id].land.spain?.regular ?? 0) > 0)) attack += 4;
     }
     return {attack, defense};
@@ -201,7 +211,8 @@ const resolveRoll = (G: VQGame, ctx: Ctx): void => {
         return;
     }
     if (p.kind === "assassination") {
-        const result = assassinationResult(diff, p.target === "elizabeth" ? 2 : LEADER_BY_ID[p.target!].battle);
+        const battleRating = p.target === "elizabeth" ? 2 : isRudolfTarget(p.target) ? 0 : LEADER_BY_ID[p.target!]?.battle ?? 0;
+        const result = assassinationResult(diff, battleRating);
         if (result.reroll) {
             // A new response window also avoids an unbounded synchronous reroll loop.
             p.step = "responses"; p.responseQueue = [p.power]; stage(G, ctx, p.power);
@@ -216,14 +227,17 @@ const resolveRoll = (G: VQGame, ctx: Ctx): void => {
                 G.removed.push(...["vq-036", "vq-home-virgin-queen"].filter((id) => !G.removed.includes(id)));
                 G.powers.england.cards = G.powers.england.cards.filter((id) => !G.removed.includes(id));
                 if (espionageState(G).mary === "captured") {executeMary(G); espionageState(G).maryBonusTurn = G.year;}
-            } else if (p.target === "rudolf" || p.target === "rudolfII") {
+            } else if (isRudolfTarget(p.target)) {
                 // #35 FAQ: Rudolf's death removes the +2 Prague Cultural
                 // Center marker.  (He is not an army leader, so a direct
                 // assassination uses the royal-kill branch rather than the
-                // leader branch below.)
-                const royal = G.royals.find((r) => r.id === p.target);
-                if (royal !== undefined) {royal.alive = false; royal.status = "dead";}
+                // leader branch below.)  Match either spelling so the
+                // Scenario Book pool (`rudolfII`) and the initial pool
+                // (`rudolf`) both die.
+                const royal = G.royals.find((r) => r.id === "rudolf" || r.id === "rudolfII");
+                if (royal !== undefined) {royal.alive = false; royal.status = "dead"; royal.id = p.target === "rudolfII" && royal.id === "rudolf" ? "rudolf" : royal.id;}
                 removePragueCulturalCenterOnRudolfDeath(G);
+                pushLog(G, "Rudolf II is assassinated; the Holy Roman Empire drops to 1 Admin and 0 card bonus.");
             } else {
                 const loc = G.leaders[p.target!].location;
                 G.spaces[loc].leaders = G.spaces[loc].leaders.filter((id) => id !== p.target);
@@ -274,7 +288,9 @@ const beginResponses = (G: VQGame, ctx: Ctx): void => {
 export const startEspionage = (G: VQGame, ctx: Ctx, kind: "intelligence" | "assassination" | "rebellion", args: {target?: string; cp?: number; event?: string; deferredEvent?: PendingEspionage["deferredEvent"]}): void | typeof INVALID_MOVE => {
     const power = actingPower(G, ctx.currentPlayer);
     const cp = kind === "intelligence" ? 2 : args.cp!;
-    const targetPower = kind === "intelligence" ? args.target as Power : kind === "rebellion" || args.target === "elizabeth" ? "england" : LEADER_BY_ID[args.target!]?.power;
+    const isRudolf = kind === "assassination" && isRudolfTarget(args.target);
+    const targetPower = kind === "intelligence" ? args.target as Power : kind === "rebellion" || args.target === "elizabeth" ? "england" :
+        isRudolf ? "hre" : LEADER_BY_ID[args.target!]?.power;
     if (ctx.phase !== "action" || !espionageAvailable(G) || isActivatedMajor(G, power) || !isPower(targetPower) || targetPower === power ||
         !ownerOf(G, targetPower) || isActivatedMajor(G, targetPower) || G.pendingEspionage ||
         !Number.isInteger(cp) || cp < (kind === "rebellion" ? 3 : 2) || cp > (kind === "rebellion" ? 5 : kind === "assassination" ? 4 : 2) ||
@@ -860,7 +876,7 @@ export const beginNorthernRising = (G: VQGame, ctx: Ctx, power: Power): void => 
 // #97 St. Bartholomew's Day Massacre
 // --------------------------------------------------------------------------
 
-const inFrance = (id: string): boolean => SPACE_BY_ID[id]?.area === "france" || SPACE_BY_ID[id]?.home === "france";
+const inFrance = (id: string): boolean => SPACE_BY_ID[id]?.area === "france" || spaceHomes(SPACE_BY_ID[id]!).includes("france");
 
 /** Navarre is betrothed to a French royal this turn (betrothals resolve in Winter). */
 export const navarreBetrothedToFrance = (G: VQGame): boolean => G.betrothals.some((b) =>
