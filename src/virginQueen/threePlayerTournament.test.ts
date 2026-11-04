@@ -26,13 +26,11 @@ const tournamentGame = () => setupGame(context(), {scenario: "tournament"});
 describe("three-player Tournament setup", () => {
     it("is offered as an official configuration without disturbing existing ones", () => {
         expect(validateSetupData({scenario: "tournament"}, 3)).toBeUndefined();
-        expect(SCENARIO_OPTIONS.find((entry) => entry.id === "tournament")!.players).toEqual([2, 3, 5, 6]);
+        expect(SCENARIO_OPTIONS.find((entry) => entry.id === "tournament")!.players).toEqual([2, 3, 4, 5, 6]);
         expect(seatLabels("tournament", 3)).toEqual(["西班牙", "英格兰 / 新教联盟", "法国"]);
 
-        // Existing Tournament counts still validate, and four players remains
-        // unsupported by this bounded change.
         expect(validateSetupData({scenario: "tournament"}, 2)).toBeUndefined();
-        expect(validateSetupData({scenario: "tournament"}, 4)).toBeDefined();
+        expect(validateSetupData({scenario: "tournament"}, 4)).toBeUndefined();
         expect(validateSetupData({scenario: "tournament"}, 5)).toBeUndefined();
         expect(validateSetupData({scenario: "tournament"}, 6)).toBeUndefined();
         expect(SCENARIO_OPTIONS.find((entry) => entry.id === "campaign")!.players).toEqual([2, 3, 4, 5, 6]);

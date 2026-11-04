@@ -50,13 +50,12 @@ const diplomacyContext = (playerID: string, events: Events): Ctx => ({
 
 describe("four-player Tournament setup", () => {
     it("is offered as an official four-player configuration", () => {
-        expect(SCENARIO_OPTIONS.find((entry) => entry.id === "tournament")!.players).toEqual([2, 4, 5, 6]);
+        expect(SCENARIO_OPTIONS.find((entry) => entry.id === "tournament")!.players).toEqual([2, 3, 4, 5, 6]);
         expect(validateSetupData({scenario: "tournament"}, 4)).toBeUndefined();
         // Existing five- and six-player support is unchanged.
         expect(validateSetupData({scenario: "tournament"}, 5)).toBeUndefined();
         expect(validateSetupData({scenario: "tournament"}, 6)).toBeUndefined();
-        // Three-player Tournament remains outside the official configuration list.
-        expect(validateSetupData({scenario: "tournament"}, 3)).toContain("2、4、5、6");
+        expect(validateSetupData({scenario: "tournament"}, 3)).toBeUndefined();
         expect(seatLabels("tournament", 4)).toEqual(["西班牙", "英格兰", "法国", "新教联盟"]);
     });
 
