@@ -188,6 +188,30 @@ export const eventTargetMode = (handler: string, espionageTargetCount: number): 
     return "freeText";
 };
 
+/** Every responder in the open action window, in the engine's offer order. */
+export const actionWindowResponders = (G: VQGame): Power[] => G.pendingAction === undefined ? [] :
+    (G.pendingAction.responders ?? [G.pendingAction.responder ?? (G.pendingAction.power === "ottoman" ? "spain" : "ottoman")]);
+
+export interface ActionResponderChoice {
+    responder: Power;
+    /** Power name shown in the responder selector. */
+    label: string;
+    /** Options `respondAction` validates for this responder. */
+    options: {id: string; label: string}[];
+}
+
+/**
+ * Action-window responders controlled by this seat, each with its own
+ * validated response options.  A seat may own more than one eligible
+ * responder (for example England+Protestant both holding #16), so the board
+ * must offer every one instead of silently showing only the first.
+ */
+export const actionResponderChoices = (G: VQGame, playerID: string | null): ActionResponderChoice[] =>
+    actionWindowResponders(G)
+        .filter((responder) => ownerOf(G, responder) === playerID)
+        .map((responder) => ({responder, label: POWER_NAMES[responder].zh,
+            options: actionResponseOptions(G, responder)}));
+
 /** Optional target argument for cards whose choices cannot be rendered as a list. */
 export const EventTargetField = ({cardId, value, onChange}: {
     cardId: string;
@@ -517,15 +541,18 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [foreignWarUnits, setForeignWarUnits] = React.useState<{space: string; kind: keyof LandStack}[]>([]);
     const [foreignWarLeader, setForeignWarLeader] = React.useState("");
     const [gregorianTarget, setGregorianTarget] = React.useState<Power>("france");
+    const [selectedActionResponder, setSelectedActionResponder] = React.useState<Power>();
 
     const [viewPower, setViewPower] = React.useState<Power>();
     const owned = controlledPowers(G, playerID);
     const piracyResponder = G.pendingPiracy && (G.pendingPiracy.step === "losses" ? G.pendingPiracy.power : G.pendingPiracy.target);
-    const actionResponders: Power[] = G.pendingAction
-        ? (G.pendingAction.responders ?? [G.pendingAction.responder ?? (G.pendingAction.power === "ottoman" ? "spain" : "ottoman")])
-        : [];
-    const myActionResponder = actionResponders.find((power) => ownerOf(G, power) === playerID);
-    const actionResponder = myActionResponder ?? actionResponders[0];
+    const actionResponders = actionWindowResponders(G);
+    const myActionChoices = actionResponderChoices(G, playerID);
+    const myActionResponders = myActionChoices.map((choice) => choice.responder);
+    // Ignore a stale selection when the response window shrinks (another
+    // holder answered) or a new window offers a different set of powers.
+    const actionResponder = (selectedActionResponder !== undefined && myActionResponders.includes(selectedActionResponder)
+        ? selectedActionResponder : undefined) ?? myActionResponders[0] ?? actionResponders[0];
     const responsePower = G.gregorianResponse && ownerOf(G, G.gregorianResponse.responder) === playerID ? G.gregorianResponse.responder :
         G.pendingBeacon && ownerOf(G, G.pendingBeacon.defender) === playerID ? G.pendingBeacon.defender :
         G.pendingInterceptionOrder && ownerOf(G, G.pendingInterceptionOrder.defender) === playerID ? G.pendingInterceptionOrder.defender :
@@ -812,11 +839,25 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             {ownerOf(G, G.pendingIntercept.defender) === playerID && interceptionOptions(G).map((entry) =>
                 <Button key={entry.id} onClick={() => moves.chooseInterception({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
-        if (G.pendingAction) return <Stack spacing={1}>
-            <Typography>{G.pendingAction.move === "impulse" ? "行动轮开始响应" : "行动响应"} · 等待 {actionResponders.map((power) => POWER_NAMES[power].zh).join("、")}。</Typography>
-            {myActionResponder !== undefined && actionResponseOptions(G, myActionResponder).map((entry) =>
-                <Button key={entry.id} onClick={() => moves.respondAction({choice: entry.id})}>{entry.label}</Button>)}
-        </Stack>;
+        if (G.pendingAction) {
+            const choice = myActionChoices.find((entry) => entry.responder === actionResponder);
+            return <Stack spacing={1}>
+                <Typography>{G.pendingAction.move === "impulse" ? "行动轮开始响应" : "行动响应"} · 等待 {actionResponders.map((power) => POWER_NAMES[power].zh).join("、")}。</Typography>
+                {myActionChoices.length > 1 && <>
+                    <Typography variant="body2">你控制多个可响应势力，请选择由哪个势力进行响应。</Typography>
+                    <FormControl size="small" fullWidth>
+                        <InputLabel id="vq-action-responder">行动响应势力</InputLabel>
+                        <Select labelId="vq-action-responder" label="行动响应势力" value={actionResponder}
+                                onChange={(event) => setSelectedActionResponder(event.target.value as Power)}>
+                            {myActionChoices.map((entry) =>
+                                <MenuItem key={entry.responder} value={entry.responder}>{entry.label}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                </>}
+                {choice?.options.map((entry) =>
+                    <Button key={entry.id} onClick={() => moves.respondAction({choice: entry.id, responder: choice.responder})}>{entry.label}</Button>)}
+            </Stack>;
+        }
         if (G.pendingPiracy) return <Stack spacing={1}>
             <Typography>海盗行动 · 等待 {POWER_NAMES[piracyResponder!].zh} 选择。</Typography>
             {ownerOf(G, piracyResponder!) === playerID && piracyOptions(G).map((entry) =>

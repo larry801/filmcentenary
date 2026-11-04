@@ -283,12 +283,17 @@ export const actionResponseOptions = (G: VQGame, responderOverride?: Power): {id
             G.powers[responder].cards.includes("vq-016") ? [{id: "harem", label: "打出 Sultan's Harem，奥斯曼跳过下次行动轮次"}] : [])];
 };
 
-export const respondAction = (G: VQGame, ctx: Ctx, args: {choice: string}): void | typeof INVALID_MOVE => {
+export const respondAction = (G: VQGame, ctx: Ctx, args: {choice: string; responder?: Power}): void | typeof INVALID_MOVE => {
     const pending = G.pendingAction;
     if (!pending) return INVALID_MOVE;
     const responders = pending.responders ?? [pendingResponder(G, pending)];
-    const responder = responders.find((candidate) => ownerOf(G, candidate) === ctx.playerID);
-    if (responder === undefined || !actionResponseOptions(G, responder).some((entry) => entry.id === args.choice)) return INVALID_MOVE;
+    // A seat that controls more than one eligible responder names the one that
+    // answers.  An explicit responder must be in this window and owned by the
+    // calling seat; no fallback keeps a stale selection from answering as a
+    // different power.
+    const responder = args.responder ?? responders.find((candidate) => ownerOf(G, candidate) === ctx.playerID);
+    if (responder === undefined || !responders.includes(responder) || ownerOf(G, responder) !== ctx.playerID) return INVALID_MOVE;
+    if (!actionResponseOptions(G, responder).some((entry) => entry.id === args.choice)) return INVALID_MOVE;
     if (args.choice === "continue") {
         G.haremDeclinedImpulse = {...(G.haremDeclinedImpulse ?? {}), [responder]: G.impulse};
     }

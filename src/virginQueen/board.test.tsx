@@ -1,8 +1,9 @@
 import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
-import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, virginQueenCombatRetrieveOptions} from "./components/board";
-import {proposeBetroth} from "./moves";
+import {INVALID_MOVE} from "boardgame.io/core";
+import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions} from "./components/board";
+import {proposeBetroth, respondAction} from "./moves";
 import {setupGame} from "./util";
 import {ownerOf} from "./ownership";
 import {Power, VQGame} from "./constant/general";
@@ -560,5 +561,98 @@ describe("Virgin Queen board", () => {
         const html = renderToStaticMarkup(<VirginQueenBoard {...props}/>);
         expect(html).toContain("外交阶段");
         expect(html).toContain("旁观模式");
+    });
+
+    describe("action-window responders", () => {
+        /** Three-player seat P2 owns England and Protestant, both holding #16. */
+        const multiHolderGame = (): VQGame => {
+            const G = setupGame({...fakeCtx(), numPlayers: 3});
+            G.phaseTurns = 1;
+            G.impulse = 2;
+            G.powers.england.cards = ["vq-016"];
+            G.powers.protestant.cards = ["vq-016"];
+            G.pendingAction = {power: "ottoman", responder: "england", responders: ["england", "protestant"],
+                move: "impulse", args: {}};
+            return G;
+        };
+
+        const responseCtx = (playerID: string): Ctx => ({
+            ...fakeCtx(), numPlayers: 3, currentPlayer: "0", playerID, phase: "action",
+            events: {setActivePlayers: jest.fn(), endStage: jest.fn(), endTurn: jest.fn()},
+        } as unknown as Ctx);
+
+        const renderBoard = (G: VQGame, playerID: string | null): string =>
+            renderToStaticMarkup(<VirginQueenBoard {...{
+                G, ctx: {phase: "action", currentPlayer: "0", numPlayers: 3},
+                moves: {}, playerID, isActive: playerID === "1",
+            } as any}/>);
+
+        it("lists every eligible responder owned by one seat with its own validated options", () => {
+            const G = multiHolderGame();
+            expect(actionWindowResponders(G)).toEqual(["england", "protestant"]);
+
+            const choices = actionResponderChoices(G, "1");
+            expect(choices.map((choice) => choice.responder)).toEqual(["england", "protestant"]);
+            expect(choices.map((choice) => choice.label)).toEqual(["英格兰", "新教联盟"]);
+            for (const choice of choices) {
+                expect(choice.options.map((option) => option.id)).toEqual(["continue", "harem"]);
+            }
+
+            // A seat that owns no responder still gets no action buttons.
+            expect(actionResponderChoices(G, "0")).toEqual([]);
+            expect(actionResponderChoices(G, null)).toEqual([]);
+        });
+
+        it("keeps Storms and #16 options when the responders belong to different seats", () => {
+            const G = setupGame({...fakeCtx(), numPlayers: 3});
+            G.phaseTurns = 1;
+            G.impulse = 2;
+            G.powers.spain.cards = ["vq-015"];
+            G.powers.england.cards = ["vq-016"];
+            G.pendingAction = {power: "ottoman", responder: "spain", responders: ["spain", "england"],
+                move: "moveLand", args: {from: "istanbul", to: "edirne"}};
+
+            expect(actionResponderChoices(G, "0").map((choice) => choice.responder)).toEqual(["spain"]);
+            expect(actionResponderChoices(G, "0")[0].options.map((option) => option.id)).toEqual(["continue", "storms"]);
+            expect(actionResponderChoices(G, "1").map((choice) => choice.responder)).toEqual(["england"]);
+            expect(actionResponderChoices(G, "1")[0].options.map((option) => option.id)).toEqual(["continue", "harem"]);
+
+            // A single owned responder keeps the old button-only panel.
+            const html = renderBoard(G, "0");
+            expect(html).toContain("打出 Storms，中断行动");
+            expect(html).not.toContain("行动响应势力");
+        });
+
+        it("renders a selector so the seat can choose between its owned responders", () => {
+            const html = renderBoard(multiHolderGame(), "1");
+            expect(html).toContain("行动轮开始响应");
+            expect(html).toContain("你控制多个可响应势力");
+            expect(html).toContain("行动响应势力");
+            expect(html).toContain("英格兰");
+            expect(html).toContain("新教联盟");
+            // The default is the first offered responder, England, whose #16
+            // option must still be rendered.
+            expect(html).toContain("奥斯曼跳过下次行动轮次");
+        });
+
+        it("routes an explicit responder and rejects a stale or foreign one", () => {
+            const G = multiHolderGame();
+            const ctx = responseCtx("1");
+
+            expect(respondAction(G, ctx, {choice: "harem", responder: "spain"})).toBe(INVALID_MOVE);
+            expect(respondAction(G, ctx, {choice: "storms", responder: "england"})).toBe(INVALID_MOVE);
+            expect(respondAction(G, ctx, {choice: "harem", responder: "protestant"})).toBeUndefined();
+            expect(G.pendingAction).toBeUndefined();
+            expect(G.skipImpulse).toContain("ottoman");
+            expect(G.powers.protestant.cards).not.toContain("vq-016");
+            expect(G.powers.england.cards).toContain("vq-016");
+        });
+
+        it("keeps the first-owned fallback for callers that do not name a responder", () => {
+            const G = multiHolderGame();
+            expect(respondAction(G, responseCtx("1"), {choice: "continue"})).toBeUndefined();
+            expect(G.pendingAction?.responders).toEqual(["protestant"]);
+            expect(G.haremDeclinedImpulse).toEqual({england: G.impulse});
+        });
     });
 });
