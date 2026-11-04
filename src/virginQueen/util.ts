@@ -2617,7 +2617,10 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
     const attackerUnits = totalLand(G, space, [p]);
     const desperate = G.powers[p].cards.includes("vq-007");
     const defending = defenders.find(isPower);
-    if (defending !== undefined && SPACE_BY_ID[space]?.area === "netherlands" &&
+    // #39 Flooding cannot prevent a #31 Treachery assault.  Treachery opens
+    // its battle through `startBattle`, so the defensive auto-play shortcut
+    // must not fire while such a battle is pending.
+    if (G.pendingBattle?.treachery !== true && defending !== undefined && SPACE_BY_ID[space]?.area === "netherlands" &&
         G.powers[defending].cards.includes("vq-039")) {
         removeCardFromHand(G, defending, "vq-039");
         discardCard(G, defending, "vq-039", true);

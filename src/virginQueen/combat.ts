@@ -127,7 +127,9 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
             if (number === 9) return battle.phase === "naval";
             if (number === 13) return battle.phase !== "naval";
             if (number === 40) return true;
-            if (number === 39) return battle.phase === "assault" && power !== battle.attacker && SPACE_BY_ID[battle.location]?.area === "netherlands";
+            // #39 Flooding cannot prevent a #31 Treachery assault (printed
+            // card text), so it is never offered to the defender there.
+            if (number === 39) return battle.phase === "assault" && !battle.treachery && power !== battle.attacker && SPACE_BY_ID[battle.location]?.area === "netherlands";
             return false;
         });
         return [
@@ -373,6 +375,10 @@ export const chooseBattle = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
     }
     if (choice.startsWith("card:")) {
         const [, id, sideChoice] = choice.split(":");
+        // Defence in depth for #39: `battleOptions` already omits Flooding in
+        // a #31 Treachery assault, but reject the play before any hand,
+        // discard or battle-card mutation if a client submits it directly.
+        if (id === "vq-039" && battle.treachery) return INVALID_MOVE;
         removeCardFromHand(G, battle.responding, id);
         discardCard(G, battle.responding, id, true);
         battle.cards[battle.responding] ??= [];
