@@ -887,6 +887,9 @@ export const canDeclareWar = (G: VQGame, a: Power, b: Power): boolean => {
 const majorDeactivatePowers = (target: Power): Power[] =>
     target === "ottoman" ? ["spain"] : target === "hre" ? ["ottoman"] : [];
 
+/** Scenario Book p. 14: deactivating the HRE also deactivates these allies. */
+const HRE_DEACTIVATION_MINORS: MinorPower[] = ["papacy", "venice", "ireland"];
+
 export const settleActivatedMajorVp = (G: VQGame, only?: Power): void => {
     for (const power of POWERS) {
         if (only !== undefined && power !== only) continue;
@@ -914,6 +917,12 @@ export const deactivateMajor = (G: VQGame, power: Power): void => {
     state.influence = {};
     for (const card of state.cards) discardCard(G, power, card, false);
     state.cards = [];
+    // Scenario Book p. 14: all cards and treasures in the deactivating power's
+    // hand are immediately discarded (rule 24.4 / Activated Major Deactivation).
+    if (state.treasures.length > 0) {
+        pushLog(G, `${powerLabel(power)} discards ${state.treasures.length} treasure(s).`);
+        state.treasures = [];
+    }
     state.cp = 0;
     state.cardModifier = 0;
     G.majorDiplomacyResolved ??= [];
@@ -922,6 +931,9 @@ export const deactivateMajor = (G: VQGame, power: Power): void => {
         for (const minor of state.alliedMinors) {
             for (const def of SPACES.filter((space) => space.home === minor)) {
                 if (G.spaces[def.id].control === power) G.spaces[def.id].control = minor;
+            }
+            if (HRE_DEACTIVATION_MINORS.includes(minor)) {
+                pushLog(G, `${minor} is deactivated with the Holy Roman Empire.`);
             }
         }
         state.alliedMinors = [];
