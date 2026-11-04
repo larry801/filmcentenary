@@ -38,12 +38,12 @@ const diplomacyContext = (playerID: string, events: Events): Ctx => ({
 describe("four-player campaign setup", () => {
     it("is an official campaign option with four labelled seats", () => {
         expect(validateSetupData({scenario: "campaign"}, 4)).toBeUndefined();
-        expect(SCENARIO_OPTIONS.find((entry) => entry.id === "campaign")!.players).toEqual([2, 4, 5, 6]);
+        expect(SCENARIO_OPTIONS.find((entry) => entry.id === "campaign")!.players).toEqual([2, 3, 4, 5, 6]);
         expect(seatLabels("campaign", 4)).toEqual(["西班牙", "英格兰", "法国", "新教联盟"]);
         // The existing two- and five-player seat labels are unchanged.
         expect(seatLabels("campaign", 2)).toEqual(["西班牙 / 法国", "英格兰 / 新教联盟"]);
         expect(seatLabels("campaign", 5)).toEqual(["奥斯曼帝国", "西班牙", "英格兰", "法国", "新教联盟"]);
-        expect(validateSetupData({scenario: "tournament"}, 4)).toContain("2、6");
+        expect(validateSetupData({scenario: "tournament"}, 4)).toContain("2、5、6");
     });
 
     it("seats four players, starts the Ottoman as England's ally and leaves the HRE inactive", () => {

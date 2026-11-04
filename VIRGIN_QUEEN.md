@@ -750,7 +750,7 @@ Card Draw 按参战强国依次确认，同一玩家控制的多个强国也需�
 
 这些部分在规则书里存在，但本轮没有做（大多需要场景书或额外数据）：
 
-- 4 人局以及 3/5 人 Tournament 的 Activated Major Power 变体
+- 3 人 Tournament 的 Activated Major Power 变体（3/4 人 Campaign 与 5 人 Tournament 已接入）
 - 小国激活与外交影响力判定已接入；完整的小国部队调度和事件例外仍需继续核对
 - 谍报三项行动已接入 2024 官方结果表、Jesuit 与 English Catholic Rebellion；自由时点的全部相关 Response / Event 卡组合仍未完整覆盖，见下方说明。
 - 世界地图已有海域航行、派出船长/殖民队、建立殖民地的可操作框架；Card Draw 时已按 8.4 Colony Table 为每个殖民地掷 2d6（Plantation +1）：2–4 消灭、5–8 无效果、9–11 得宝藏、12+ 得宝藏与 1 Virginia Dare VP。危险航路已按 16.4 Navigation Table 检定（2d6 + 船长导航值 + Map Projection；2–6 消灭、7–8 受损、9+ 无效果；已受损再受损则消灭）；当前危险航路集合为合恩角、麦哲伦海峡、好望角；环航（16.6）已按四条官方路线判定，首次 2 VP、之后 1 VP。船长返航已按 16.4 修正：导航 2–6 消灭时船长移出游戏（Murat Reis 例外，放 Turn Track 下回合回池）；已受损再受损/环航结束时船长放 Turn Track，于下一年 Card Draw 回池。贸易风已接入 5 条有向边界（北大西洋→安的列斯、几内亚→南大西洋、墨西哥→南太平洋、南太平洋→印度洋、印度洋→南大西洋），逆风航行需按 Navigation Table 检定。西班牙可建造世界巡逻舰（2 CP，海域须连接西班牙殖民地/控制点）与世界要塞（2 CP，每回合最多 2 个）；世界海盗（16.5）已接入：船长花费 2 CP 袭击西班牙，先掷巡逻/要塞防御骰，再按 P 值掷海盗骰，命中依次消灭巡逻、夺宝藏或得 1 VP，并有每海域每势力一次、每势力每回合三次的限制。西班牙珍宝舰队护航（春季最多 2 艘大帆船）与葡萄牙三格宝藏行已接入：葡萄牙进入游戏后每回合补充 3 个宝藏，冬季由里斯本控制者随机取 1 个、其余丢弃；#38 珍宝舰队强制事件已按 23.2 自动结算：补 1 宝藏、按护航数选 2/3 个、随机海域、同海域船长按 impulse 顺序无 CP 袭击（P 骰对 1+护航骰），命中可夺宝/得 VP/消灭护航，剩余宝藏回西班牙。世界地图点位仍是近似数据。
@@ -1322,3 +1322,19 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 新增 `playVirginQueenCombat` 动作并加入 `battleChoice` 阶段，仅英格兰席位、持有 #36、英格兰参战且目标为 `retrieve:` 时可调用；`playCard` 通过 `virginQueenBattlePower` 在战斗窗口中把英格兰当作行动方（应对方时 `ctx.currentPlayer` 仍是进攻方），并沿用 `resolveVirginQueenEvent` 的回滚。#36 持有者为非应对方时，`prompt` 额外把英格兰席位加入 `battleChoice` 辅助阶段，打出后 `endStage` 释放，战斗结束统一清空临时阶段。
 
 验证：`jest src/virginQueen/virginQueenBattleStage.test.ts --runInBand` 5 tests passed；`jest src/virginQueen --runInBand --silent` 159 suites、782 tests passed；`jest --runInBand --silent` 164 suites、837 tests passed；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。未做浏览器手动验收；真实战局中 #36 仍按规则只应在英格兰自己的行动轮打出。
+
+
+## 八子代理集成验证（第三轮）
+
+八个并行子代理分别在独立 worktree 完成并提交，已 cherry-pick 到主分支：
+
+- 3 人 Campaign 配置：`20ddfef`
+- 4 人 Campaign 配置：`5c1441b`
+- 5 人 Tournament 配置：`3b7374d`
+- #16 按持有者记录放弃并合并多响应者：`dfa8cb2`
+- #36 战斗阶段可达：`0e767be`
+- 沃尔辛厄姆响应 #59 密探切断：`6af8941`
+- #14 教程统一响应阶段：`1094c9d`
+- 冬季无营地全灭确认：`171eb04`
+
+集成后验证：`jest src/virginQueen --runInBand --silent` 165 suites、825 tests passed；`jest --runInBand --silent` 170 suites、880 tests passed；`tsc --noEmit` 通过；`npm run build` 通过（仅既有大体积 chunk 提示）。
