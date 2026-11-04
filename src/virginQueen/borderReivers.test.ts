@@ -27,6 +27,21 @@ describe("Border Reivers (card #41)", () => {
         expect(G.powers.england.cards).toContain("vq-020");
     });
 
+    it("counts Carlisle and Berwick as border spaces", () => {
+        const G = game();
+        G.powers.england.cards = ["vq-041"];
+        G.powers.france.cards = ["vq-020"];
+        G.spaces.york.control = "hre";
+        G.spaces.carlisle.control = "france";
+        G.spaces.berwick.control = "england";
+        for (const id of ["edinburgh", "stirling", "aberdeen", "glasgow", "perth"]) G.spaces[id].control = "independent";
+
+        expect(playCard(G, context(), {cardId: "vq-041", asEvent: true, target: "france"})).toBeUndefined();
+
+        expect(G.powers.france.cards).toHaveLength(0);
+        expect(G.powers.england.cards).toContain("vq-020");
+    });
+
     it("adds four Scottish influence without a target", () => {
         const G = game();
         G.powers.england.cards = ["vq-041"];

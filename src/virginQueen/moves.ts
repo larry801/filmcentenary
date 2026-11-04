@@ -1540,8 +1540,11 @@ const resolveSeaBeggars = (G: VQGame, ctx: Ctx, target?: string): void => {
     }
 };
 
+/** #41: York, Carlisle, Berwick, or any space in Scotland. */
+const BORDER_REIVER_SPACES = ["york", "carlisle", "berwick"] as const;
+
 const resolveBorderReivers = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
-    const border = (power: Power): boolean => G.spaces.york.control === power ||
+    const border = (power: Power): boolean => BORDER_REIVER_SPACES.some((id) => G.spaces[id]?.control === power) ||
         SPACES.some((space) => space.area === "scotland" && G.spaces[space.id].control === power);
     if (target !== undefined && isPower(target) && target !== p && border(p) && border(target)) {
         const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");

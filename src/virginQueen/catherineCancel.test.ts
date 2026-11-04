@@ -53,4 +53,28 @@ describe("Catherine's Flying Squadron (card #42)", () => {
         expect(G.spaces.london.religion).toBe("catholic");
         expect(G.spaces.york.religion).toBe("catholic");
     });
+
+    it("does not cancel Huguenot Lent, which is not on the printed list", () => {
+        const G = game();
+        G.powers.ottoman.cards = ["vq-054"];
+        G.powers.england.cards = ["vq-042"];
+
+        expect(playCard(G, context("0"), {cardId: "vq-054", asEvent: true})).toBeUndefined();
+
+        expect(G.pendingCardEvent).toBeUndefined();
+        expect(G.powers.england.cards).toContain("vq-042");
+    });
+
+    it("still cancels Jeanne of Navarre", () => {
+        const G = game();
+        G.powers.ottoman.cards = ["vq-058"];
+        G.powers.england.cards = ["vq-042"];
+
+        expect(playCard(G, context("0"), {cardId: "vq-058", asEvent: true})).toBeUndefined();
+        expect(G.pendingCardEvent?.kind).toBe("cancelEvent");
+        expect(G.pendingCardEvent?.responding).toBe("england");
+
+        expect(chooseCardEvent(G, context("2"), {choice: "cancel"})).toBeUndefined();
+        expect(G.powers.england.cards).not.toContain("vq-042");
+    });
 });

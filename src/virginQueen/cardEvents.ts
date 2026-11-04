@@ -39,8 +39,12 @@ const effectOptions = (G: VQGame, numPlayers: number): CardEventOption[] => [
 export const canPlayGrandVizier = (G: VQGame, power: Power, numPlayers: number): boolean =>
     power === "ottoman" && effectOptions(G, numPlayers).length > 0;
 
-/** Only ordinary Event cards can be cancelled, even if another card is played as an event. */
-const CATHERINE_CANCELABLE = new Set(["vq-017", "vq-018", "vq-023", "vq-031", "vq-044", "vq-052", "vq-054", "vq-055", "vq-058"]);
+// Only ordinary Event cards can be cancelled, even if another card is played
+// as an event. Printed list on #42: Foxe's Book of Martyrs (#52), Iconoclastic Fury (#55),
+// Jeanne of Navarre (#58), plus Army Mutiny (#17), City State Rebels (#18),
+// German Recruitment Curtailed (#23), Sack! (#44) and Treachery! (#31) when
+// they target France. Huguenot Lent (#54) is not on the card.
+const CATHERINE_CANCELABLE = new Set(["vq-017", "vq-018", "vq-023", "vq-031", "vq-044", "vq-052", "vq-055", "vq-058"]);
 
 export const cancelEventResponder = (G: VQGame, card: CardDef): {power: Power; cardId: string} | undefined => {
     if (!(card.officialKind === "event" || card.id === "vq-033" || card.id === "vq-044" || card.id === "vq-058" || (card.officialKind === undefined && card.kind === "event"))) return undefined;
