@@ -1484,6 +1484,20 @@ export const totalLand = (G: VQGame, space: string, owners: Controller[]): numbe
 export const totalNaval = (G: VQGame, space: string, owners: Controller[]): number =>
     owners.reduce((n, c) => n + navalCount(navalStateAt(G, space).naval[c]), 0);
 
+/**
+ * Rule 5.2: the maximum number of land units a single formation may contain,
+ * based on its army leaders.  No leader caps the formation at 4 units; one
+ * leader uses its Command Rating; two or more use the sum of the two highest
+ * Command Ratings.  Army leaders themselves never count against the limit.
+ */
+export const formationCapacity = (leaders: string[]): number => {
+    const commands = leaders
+        .map((id) => LEADER_BY_ID[id]?.command ?? 0)
+        .sort((a, b) => b - a)
+        .slice(0, 2);
+    return Math.max(4, commands.reduce((sum, command) => sum + command, 0));
+};
+
 export const enemyOwners = (G: VQGame, p: Power, space: string): Controller[] =>
     ownersWithLand(G, space).filter((c) => {
         if (friendlyController(G, p, c) || c === "independent") return false;
@@ -2633,10 +2647,17 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
         tilburyDefender = defending === "england" ? 4 : 2;
         pushLog(G, `Tilbury Speech adds ${tilburyDefender} dice to the defense.`);
     }
-    const aDice = (defendersUnits > 0 ? Math.ceil(attackerUnits / 2) : attackerUnits) + bestBattle(G, space, [p], "army") + (siegeEngineering ? 3 : 0) + tilburyAttacker;
+    // Rule 15.1 step 3/4: cavalry units are ignored when adding assault dice
+    // (they still count for the "1 or more defending land units" condition and
+    // for breaking a siege under 15.3).
+    const cavalryIn = (owners: Controller[]): number =>
+        owners.reduce((total, c) => total + (G.spaces[space].land[c]?.cav ?? 0), 0);
+    const attackerDiceUnits = attackerUnits - cavalryIn([p]);
+    const defenderDiceUnits = defendersUnits - cavalryIn(defenders);
+    const aDice = (defendersUnits > 0 ? Math.ceil(attackerDiceUnits / 2) : attackerDiceUnits) + bestBattle(G, space, [p], "army") + (siegeEngineering ? 3 : 0) + tilburyAttacker;
     const defendingPower = defenders.find(isPower);
     const ravelin = defendingPower !== undefined && G.powers[defendingPower].scienceBonuses.includes("ravelin") ? 1 : 0;
-    const dDice = (defendersUnits + bestBattle(G, space, defenders, "army") + 1 + ravelin) * (desperate ? 2 : 1) + tilburyDefender;
+    const dDice = (defenderDiceUnits + bestBattle(G, space, defenders, "army") + 1 + ravelin) * (desperate ? 2 : 1) + tilburyDefender;
     const aRoll = roll(ctx, aDice);
     const aHits = desperate ? aRoll.filter((die) => die >= 4).length : hits(aRoll);
     const dHits = hits(roll(ctx, dDice));

@@ -88,6 +88,7 @@ import {
     exactLand,
     exactNaval,
     fieldBattle,
+    formationCapacity,
     friendlyController,
     friendlyControlled,
     hasLOC,
@@ -4200,6 +4201,9 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     // Rule 20.10: the Duke of Guise may not leave the French religious struggle area.
     if (leaders.includes("guise") && !inFrenchReligiousArea(to)) return INVALID_MOVE;
     if (G.scenario === "tutorial" && (leaders.length > 2 || landCount(stack) > Math.max(4, leaders.reduce((total, id) => total + (LEADER_BY_ID[id].command ?? 0), 0)))) return INVALID_MOVE;
+    // Rule 5.2: a Move action moves one formation, which may not contain more
+    // land units than the Command Ratings of its leaders allow.
+    if (landCount(stack) > formationCapacity(leaders)) return INVALID_MOVE;
     if (spaceHasEnemyLand(G, p, from) && G.spaces[from].siege !== undefined && G.spaces[from].siege?.by !== p) {
         // Units under siege may not move; the besieger may march away.
         return INVALID_MOVE;
