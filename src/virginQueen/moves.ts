@@ -3041,10 +3041,7 @@ export const pass = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
         return INVALID_MOVE;
     }
     const p = power(G, ctx);
-    const hasHomeCard = G.powers[p].cards.some((id) => cardById(id).kind === "home");
-    const overAdmin = G.powers[p].cards.length > rulerStats(G, p).admin;
-    if (G.foreignWars[p]?.status === "setup" || G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory") ||
-        hasHomeCard || overAdmin) {
+    if (G.foreignWars[p]?.status === "setup" || G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory")) {
         return INVALID_MOVE;
     }
     G.powers[p].cp = 0;

@@ -289,21 +289,8 @@ function passToEndAction(clients: any[]) {
         }
         const idx = Number(state.ctx.currentPlayer);
         const p = POWERS[idx];
-        const hand = clients[idx].getState().G.powers[p].cards;
-        const mandatory = hand.find((id: string) => cardById(id).officialKind === "mandatory");
-        const homeCard = hand.find((id: string) => cardById(id).kind === "home");
-        const overAdmin = hand.length > rulerStats(state.G, p).admin;
-        if (mandatory !== undefined || homeCard !== undefined || overAdmin) {
-            const cardToPlay = mandatory ?? homeCard ?? hand[0];
-            const def = cardById(cardToPlay);
-            // Untimely Death needs a leader choice; take the first legal one.
-            const target = def.officialEffect?.kind === "manual" && def.officialEffect.handler === "untimelyDeath"
-                ? (untimelyDeathTargets(state.G)[0] ?? "none") : undefined;
-            clients[idx].moves.playCard({cardId: cardToPlay, asEvent: true, ...(target !== undefined ? {target} : {})});
-            clients[idx].moves.endImpulse();
-        } else {
-            clients[idx].moves.pass();
-        }
+        const r = clients[idx].moves.pass();
+        console.log("PASS:", r, "consec after:", clients[idx].getState().G.consecutivePasses);
     }
 }
 
