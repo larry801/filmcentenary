@@ -7,7 +7,7 @@ import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "./mapData";
 import {actingPower, isActivatedMajor, ownerOf, participatingPowers} from "./ownership";
 import {assassinationResult, catholicRebellionResult} from "./data/espionage";
 import {EspionageState, PendingEspionage} from "./espionageTypes";
-import {addLand, addVp, allied, atWar, capitalOf, discardCard, ensureLand, ensureNaval,
+import {addLand, addVp, allied, atWar, capitalOf, discardCard, drawCards, ensureLand, ensureNaval,
     ensureDefaultLeader, hits, isFortifiedSpace, pushLog, removeCardFromHand, removeCardFromGame,
     roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
 
@@ -105,7 +105,15 @@ const finish = (G: VQGame, ctx: Ctx): void => {
         resumeWalsinghamOuter(G, ctx, outer, choice, step);
         return;
     }
+    const deferred = p.deferredEvent;
     delete G.pendingEspionage;
+    // A card event which launched this Espionage action (for example #80 The
+    // Black Queen) resolves its remaining printed effect only now, so a nested
+    // #81 response cannot lose or duplicate it.
+    if (deferred !== undefined) {
+        if (deferred.draw !== undefined) drawCards(G, ctx, deferred.power, deferred.draw);
+        if (deferred.log !== undefined) pushLog(G, deferred.log);
+    }
     ctx.events?.endStage();
 };
 const neutralizeInformant = (G: VQGame, owner: Power, target: Power): void => {
@@ -246,7 +254,7 @@ const beginResponses = (G: VQGame, ctx: Ctx): void => {
     else resolveRoll(G, ctx);
 };
 
-export const startEspionage = (G: VQGame, ctx: Ctx, kind: "intelligence" | "assassination" | "rebellion", args: {target?: string; cp?: number}): void | typeof INVALID_MOVE => {
+export const startEspionage = (G: VQGame, ctx: Ctx, kind: "intelligence" | "assassination" | "rebellion", args: {target?: string; cp?: number; event?: string; deferredEvent?: PendingEspionage["deferredEvent"]}): void | typeof INVALID_MOVE => {
     const power = actingPower(G, ctx.currentPlayer);
     const cp = kind === "intelligence" ? 2 : args.cp!;
     const targetPower = kind === "intelligence" ? args.target as Power : kind === "rebellion" || args.target === "elizabeth" ? "england" : LEADER_BY_ID[args.target!]?.power;
@@ -259,7 +267,9 @@ export const startEspionage = (G: VQGame, ctx: Ctx, kind: "intelligence" | "assa
     espionageState(G);
     spend(G, power, cp);
     if (kind !== "intelligence") G.assassinationUsed.push(power);
-    G.pendingEspionage = {kind, power, targetPower, target: args.target, cp, responding: power, step: "responses", remaining: 0, used: []};
+    G.pendingEspionage = {kind, power, targetPower, target: args.target, cp, responding: power, step: "responses", remaining: 0, used: [],
+        ...(args.event !== undefined ? {event: args.event} : {}),
+        ...(args.deferredEvent !== undefined ? {deferredEvent: args.deferredEvent} : {})};
     beginResponses(G, ctx);
 };
 

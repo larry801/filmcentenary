@@ -1680,13 +1680,15 @@ const resolveBlackQueen = (G: VQGame, ctx: Ctx, p: Power, target?: string): void
         const targetPower = target.slice("spy:".length);
         if (!isPower(targetPower) || targetPower === p) return;
         G.powers[p].cp += 2;
-        const result = startEspionage(G, ctx, "intelligence", {target: targetPower});
+        // The card's "then draw a card" is part of the event, but the espionage
+        // action it launches resolves first (including a nested #81 response).
+        const result = startEspionage(G, ctx, "intelligence", {target: targetPower, event: "blackQueen",
+            deferredEvent: {power: p, draw: 1, log: "The Black Queen draws a card."}});
         if (result === INVALID_MOVE) {
             G.powers[p].cp -= 2;
             return;
         }
-        drawCards(G, ctx, p, 1);
-        pushLog(G, `The Black Queen sends a spy against ${powerLabel(targetPower)} and draws a card.`);
+        pushLog(G, `The Black Queen sends a spy against ${powerLabel(targetPower)}.`);
         return;
     }
     if (target.startsWith("assassinate:")) {

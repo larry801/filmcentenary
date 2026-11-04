@@ -49,6 +49,12 @@ export interface PendingEspionage {
     /** The outer neutralization choice held while England decides on #81. */
     walsinghamChoice?: string;
     walsinghamStep?: "neutralize" | "extraNeutralize" | "defense" | "event";
+    /**
+     * A card event's remaining printed effect (for example #80 The Black
+     * Queen's "then draw a card") waits until its embedded Espionage action
+     * finishes, including a nested #81 response.
+     */
+    deferredEvent?: {power: Power; draw?: number; log?: string};
     protectedJesuit?: string;
     priestQueue?: Power[];
     displacements?: {owner: Power; controller: Controller; from: string; kind: "land" | "naval"}[];
