@@ -3157,21 +3157,38 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
         pushLog(G, "The rebellion fails.");
         return false;
     }
-    // Displace non-Catholic units and leaders.
+    // Displace non-Catholic units, leaders, and naval stacks.
+    // Leaders of non-Protestant powers return to the pool.
+    const displacedLeaders = (G.spaces[space].leaders ?? []).filter((id) => {
+        const lp = leaderPower(G, id);
+        return lp !== undefined && lp !== "protestant";
+    });
+    for (const id of displacedLeaders) {
+        G.spaces[space].leaders = G.spaces[space].leaders.filter((l) => l !== id);
+        if (G.leaders[id] !== undefined) G.leaders[id].location = "pool";
+    }
+    // Naval units of non-Protestant controllers retreat / are displaced.
+    for (const c of [...ownersWithNaval(G, space)]) {
+        if (c === "protestant") continue;
+        delete G.spaces[space].naval[c];
+    }
     for (const c of ownersWithLand(G, space)) {
         const st = G.spaces[space].land[c];
         const hasMercOrCav = st !== undefined && (st.merc > 0 || st.cav > 0);
         if (c !== "protestant" && (unitReligion(c) !== "catholic" || hasMercOrCav)) {
-            const dest = nearestFriendlyFortified(G, isPower(c) ? c : "spain", space);
+            const owner = isPower(c) ? c : (minorAlly(G, c as never) ?? "spain");
+            const dest = nearestFriendlyFortified(G, owner, space);
             if (dest !== undefined) {
-                const st = s.land[c];
-                if (st !== undefined) {
+                const st2 = s.land[c];
+                if (st2 !== undefined) {
                     const tgt = ensureLand(G, dest, c);
-                    tgt.regular += st.regular;
-                    tgt.merc += st.merc;
-                    tgt.cav += st.cav;
+                    tgt.regular += st2.regular;
+                    tgt.merc += st2.merc;
+                    tgt.cav += st2.cav;
                     delete s.land[c];
                 }
+            } else {
+                delete s.land[c];
             }
         }
     }
