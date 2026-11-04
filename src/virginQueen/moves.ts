@@ -983,7 +983,11 @@ const resolvePapalBull = (G: VQGame, ctx: Ctx, target?: string): void => {
         return;
     }
     if (target === "holyLeague") {
-        if (!G.discard.includes("vq-024")) return;
+        // The retrieved card is executed as an event by the Papal ally, so it
+        // must satisfy #24's own play conditions too.  This runs after the
+        // Papacy resolution above, which is correct: the Papal track is now
+        // resolved and cannot count as potential influence for the retrieval.
+        if (!G.discard.includes("vq-024") || !canPlayHolyLeague(G, ally)) return;
         G.discard = G.discard.filter((id) => id !== "vq-024");
         resolveHolyLeague(G, ctx, ally);
         return;

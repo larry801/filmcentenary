@@ -55,6 +55,8 @@ describe("Papal Bull (card #5)", () => {
         G.powers.spain.alliedMinors = ["papacy"];
         G.minorDiplomacyResolved = [...new Set([...G.minorDiplomacyResolved, "papacy"])];
         G.discard = ["vq-024"];
+        // #24 itself may only be executed once the Ottoman has 13+ VP.
+        G.powers.ottoman.bonusVp += 2;
 
         expect(playCard(G, context(), {cardId: "vq-005", asEvent: true, target: "holyLeague"})).toBeUndefined();
 
