@@ -81,7 +81,7 @@ import {controlledPowers, ownerOf, isActivatedMajor, participatingPowers, player
 import {tutorialFortressVp, tutorialSpaceAllowed} from "../tutorial";
 import {scenarioName} from "../scenario";
 import {Controller} from "../constant/general";
-import {battleOptions} from "../combat";
+import {battleOptions, canPlayBattleCard} from "../combat";
 import {canPlayTutorialEvent, tutorialEventOptions} from "../tutorialEvents";
 import {canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, isGrandVizier, untimelyDeathTargets} from "../cardEvents";
 import {piracyOptions} from "../piracy";
@@ -350,6 +350,45 @@ export const PolishElectionTargetSelect = ({G, value, onChange}: {
     })}
 </Stack>;
 
+export interface VirginQueenCombatRetrieveOption {
+    /** Card in the discard pile that the immediate play would retrieve. */
+    cardId: string;
+    /** Argument for `playVirginQueenCombat`, e.g. `retrieve:vq-008:play`. */
+    target: string;
+    label: string;
+}
+
+/**
+ * #36 "retrieve and play immediately" choices for the battle panel.
+ *
+ * The battle stage only exposes `playVirginQueenCombat`, so the client must
+ * offer that move's `retrieve:<cardId>:play` argument itself.  An option is
+ * listed only when the viewing seat is England, England still holds #36, a
+ * battle card window is open, and the discard card could be registered for
+ * England in that window right now (`canPlayBattleCard`, the same guard
+ * `playCard` uses before it mutates the hand/discard piles).  This mirrors the
+ * move's own guards; it does not add any rule of its own.
+ */
+export const virginQueenCombatRetrieveOptions = (
+    G: VQGame,
+    playerID: string | null | undefined,
+): VirginQueenCombatRetrieveOption[] => {
+    if (playerID === null || playerID === undefined) return [];
+    if (ownerOf(G, "england") !== playerID) return [];
+    if (!G.powers.england.cards.includes("vq-036")) return [];
+    if (G.pendingBattle === undefined || G.cardWindow?.kind !== "combat") return [];
+    const seen = new Set<string>();
+    return G.discard.flatMap((cardId) => {
+        if (seen.has(cardId) || !canPlayBattleCard(G, "england", cardId)) return [];
+        seen.add(cardId);
+        return [{
+            cardId,
+            target: `retrieve:${cardId}:play`,
+            label: `取回并立即打出 ${cardById(cardId).name}`,
+        }];
+    });
+};
+
 export interface BetrothalChoices {
     /** Own royals selectable as the domestic side of the marriage. */
     domestic: RoyalDef[];
@@ -508,6 +547,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const cp = ps?.cp ?? 0;
     const hand = ps?.cards ?? [];
     const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder;
+    const vqCombatRetrieve = virginQueenCombatRetrieveOptions(G, playerID);
 
     React.useEffect(() => {
         setMode("inspect");
@@ -797,6 +837,14 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             <Typography>战斗：{SPACE_BY_ID[G.pendingBattle.location]?.name ?? G.pendingBattle.location} · 等待 {POWER_NAMES[G.pendingBattle.responding].zh} 选择。</Typography>
             {ownerOf(G, G.pendingBattle.responding) === playerID && battleOptions(G).map((option) =>
                 <Button key={option.id} onClick={() => moves.chooseBattle({choice: option.id})}>{option.label}</Button>)}
+            {vqCombatRetrieve.length > 0 && <Stack spacing={0.5}>
+                <Typography variant="body2">童贞女王（#36）：取回弃牌堆中的战斗牌并立即打出</Typography>
+                <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                    {vqCombatRetrieve.map((option) =>
+                        <Button key={option.cardId} size="small" variant="outlined"
+                                onClick={() => moves.playVirginQueenCombat({target: option.target})}>{option.label}</Button>)}
+                </Stack>
+            </Stack>}
         </Stack>;
         if (G.pendingActivation) {
             const pending = G.pendingActivation;

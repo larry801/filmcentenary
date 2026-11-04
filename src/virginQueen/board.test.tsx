@@ -1,9 +1,10 @@
 import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
-import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL} from "./components/board";
+import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, virginQueenCombatRetrieveOptions} from "./components/board";
 import {proposeBetroth} from "./moves";
 import {setupGame} from "./util";
+import {ownerOf} from "./ownership";
 import {Power, VQGame} from "./constant/general";
 import {VirginQueenGameDef} from "./game";
 import {cardById} from "./constant/cards";
@@ -39,6 +40,24 @@ const renderDiplomacy = (G: VQGame, playerID: string | null, currentPlayer = "1"
     renderToStaticMarkup(<VirginQueenBoard {...{
         G, ctx: {phase: "diplomacy", currentPlayer}, moves: {}, playerID, isActive: playerID === currentPlayer,
     } as any}/>);
+
+/**
+ * Two-player campaign: seat "1" is England, seat "0" is Spain/France.  England
+ * holds #36 and is the attacker in a field battle, leaving Spain as the normal
+ * responder; the battle card window is open for #8 in the discard pile.
+ */
+const virginQueenBattleGame = (): VQGame => {
+    const G = setupGame({...fakeCtx(), numPlayers: 2});
+    G.activePower = "england";
+    G.powers.england.cards = ["vq-036"];
+    G.powers.spain.cards = [];
+    G.discard = ["vq-008", "vq-005", "vq-009"];
+    G.pendingBattle = {phase: "field", location: "belgrade", from: "sofia", attacker: "england",
+        attackers: ["england"], defenders: ["spain"], defender: "spain", responding: "spain",
+        step: "defend", cards: {}};
+    G.cardWindow = {kind: "combat", phase: "field", location: "belgrade", attacker: "england"};
+    return G;
+};
 
 describe("Virgin Queen board", () => {
     it("exposes espionage result choices and private hand snapshots only to their owning seat", () => {
@@ -145,6 +164,67 @@ describe("Virgin Queen board", () => {
             expect(html).toContain("响应：完成战斗选择");
             expect(html.includes(">迎战<")).toBe(playerID === "1");
         }
+    });
+
+    it("lists only legal #36 retrieve-and-play Combat cards for England", () => {
+        const G = virginQueenBattleGame();
+        const england = ownerOf(G, "england")!;
+        expect(virginQueenCombatRetrieveOptions(G, england)).toEqual([{
+            cardId: "vq-008",
+            target: "retrieve:vq-008:play",
+            label: "取回并立即打出 精锐部队",
+        }]);
+
+        // #9 is naval and #5 is mandatory, so neither can be registered in the
+        // open field window even though both are in the discard pile.
+        expect(virginQueenCombatRetrieveOptions(G, ownerOf(G, "spain"))).toEqual([]);
+        expect(virginQueenCombatRetrieveOptions(G, null)).toEqual([]);
+
+        const withoutCard = virginQueenBattleGame();
+        withoutCard.powers.england.cards = [];
+        expect(virginQueenCombatRetrieveOptions(withoutCard, england)).toEqual([]);
+
+        const closedWindow = virginQueenBattleGame();
+        delete closedWindow.cardWindow;
+        expect(virginQueenCombatRetrieveOptions(closedWindow, england)).toEqual([]);
+
+        const responseWindow = virginQueenBattleGame();
+        responseWindow.cardWindow = {kind: "response", phase: "field"};
+        expect(virginQueenCombatRetrieveOptions(responseWindow, england)).toEqual([]);
+
+        const wrongPhase = virginQueenBattleGame();
+        wrongPhase.pendingBattle!.phase = "naval";
+        wrongPhase.cardWindow = {kind: "combat", phase: "naval", location: "belgrade", attacker: "england"};
+        expect(virginQueenCombatRetrieveOptions(wrongPhase, england)).toEqual([{
+            cardId: "vq-009",
+            target: "retrieve:vq-009:play",
+            label: "取回并立即打出 火攻战船",
+        }]);
+
+        const noBattle = virginQueenBattleGame();
+        delete noBattle.pendingBattle;
+        expect(virginQueenCombatRetrieveOptions(noBattle, england)).toEqual([]);
+    });
+
+    it("renders the #36 combat affordance only to England while the window is open", () => {
+        const G = virginQueenBattleGame();
+        const england = ownerOf(G, "england")!;
+        const render = (playerID: string | null, currentPlayer = england): string =>
+            renderToStaticMarkup(<VirginQueenBoard {...{
+                G, ctx: {phase: "action", currentPlayer}, moves: {}, playerID, isActive: playerID === currentPlayer,
+            } as any}/>);
+
+        const html = render(england);
+        expect(html).toContain("童贞女王（#36）：取回弃牌堆中的战斗牌并立即打出");
+        expect(html).toContain("取回并立即打出 精锐部队");
+        expect(html).not.toContain("取回并立即打出 火攻战船");
+        expect(html).not.toContain("取回并立即打出 教宗诏书");
+
+        expect(render(ownerOf(G, "spain"))).not.toContain("取回并立即打出");
+        expect(render(null)).not.toContain("取回并立即打出");
+
+        delete G.cardWindow;
+        expect(render(england)).not.toContain("取回并立即打出");
     });
 
     it("only renders the viewing seat's hand summaries and leaves playing to card details", () => {
