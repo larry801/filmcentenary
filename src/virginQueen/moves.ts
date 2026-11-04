@@ -4157,33 +4157,54 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
     }
     const portugueseTreasureAvailable = targetIsPortugal && (G.portugueseTreasures?.length ?? 0) > 0;
     const capacity = expedition.damaged ? 1 : 2;
+    // Track reward counts for even division.
+    const rewardCounts: Record<string, number> = {patrol: 0, treasure: 0, vp: 0};
     let remaining = hits;
     while (remaining > 0) {
-        if ((G.worldPatrols?.[expedition.location] ?? 0) > 0) {
+        // Build available reward options.
+        const options: string[] = [];
+        if ((G.worldPatrols?.[expedition.location] ?? 0) > 0) options.push("patrol");
+        if (portugueseTreasureAvailable && (G.portugueseTreasures?.length ?? 0) > 0) options.push("treasure");
+        else if (!targetIsPortugal && G.powers.spain.treasures.length > 0) options.push("treasure");
+        // VP always available as fallback.
+        options.push("vp");
+        // Pick the option with the fewest hits so far (even division).
+        let chosen = options[0];
+        let minCount = rewardCounts[chosen] ?? 0;
+        for (const opt of options) {
+            if ((rewardCounts[opt] ?? 0) < minCount) {
+                minCount = rewardCounts[opt] ?? 0;
+                chosen = opt;
+            }
+        }
+        if (chosen === "patrol") {
             G.worldPatrols![expedition.location] = (G.worldPatrols?.[expedition.location] ?? 0) - 1;
             pushLog(G, targetIsPortugal ? "A Portuguese patrol is eliminated." : "A Spanish patrol is eliminated.");
-        } else if (portugueseTreasureAvailable) {
-            const treasure = (G.portugueseTreasures as number[]).pop()!;
-            if (expedition.treasureValues === undefined) expedition.treasureValues = [];
-            if (expedition.treasureValues.length < capacity) {
-                expedition.treasureValues.push(treasure);
-                pushLog(G, `${powerLabel(p)} loads a ${treasure} CP treasure onto the expedition.`);
-            } else {
-                pushLog(G, `${powerLabel(p)} discards a ${treasure} CP Portuguese treasure (no room).`);
-            }
-        } else if (!targetIsPortugal && G.powers.spain.treasures.length > 0) {
-            const treasure = G.powers.spain.treasures.pop()!;
-            if (expedition.treasureValues === undefined) expedition.treasureValues = [];
-            if (expedition.treasureValues.length < capacity) {
-                expedition.treasureValues.push(treasure);
-                pushLog(G, `${powerLabel(p)} loads a ${treasure} CP treasure onto the expedition.`);
-            } else {
-                pushLog(G, `${powerLabel(p)} discards a ${treasure} CP Spanish treasure (no room).`);
+        } else if (chosen === "treasure") {
+            if (portugueseTreasureAvailable && (G.portugueseTreasures?.length ?? 0) > 0) {
+                const treasure = (G.portugueseTreasures as number[]).pop()!;
+                if (expedition.treasureValues === undefined) expedition.treasureValues = [];
+                if (expedition.treasureValues.length < capacity) {
+                    expedition.treasureValues.push(treasure);
+                    pushLog(G, `${powerLabel(p)} loads a ${treasure} CP treasure onto the expedition.`);
+                } else {
+                    pushLog(G, `${powerLabel(p)} discards a ${treasure} CP Portuguese treasure (no room).`);
+                }
+            } else if (!targetIsPortugal && G.powers.spain.treasures.length > 0) {
+                const treasure = G.powers.spain.treasures.pop()!;
+                if (expedition.treasureValues === undefined) expedition.treasureValues = [];
+                if (expedition.treasureValues.length < capacity) {
+                    expedition.treasureValues.push(treasure);
+                    pushLog(G, `${powerLabel(p)} loads a ${treasure} CP treasure onto the expedition.`);
+                } else {
+                    pushLog(G, `${powerLabel(p)} discards a ${treasure} CP Spanish treasure (no room).`);
+                }
             }
         } else {
             addVp(G, p, 1);
             pushLog(G, `${powerLabel(p)} gains 1 piracy VP.`);
         }
+        rewardCounts[chosen] = (rewardCounts[chosen] ?? 0) + 1;
         remaining -= 1;
     }
 };
