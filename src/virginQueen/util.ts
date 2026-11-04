@@ -3840,7 +3840,6 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         if (!G.removed.includes("vq-006")) G.removed.push("vq-006");
         pushLog(G, "Selim II succeeds Suleiman before Turn 3 (Scenario Book card clarification #6).");
     }
-    returnWorldCaptains(G);
     winterMorisco(G);
     resolveMarriages(G, ctx);
     resolvePatronage(G, ctx);
@@ -3900,6 +3899,10 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         G.powers[p].influence = G.scenario !== "tutorial" && G.playerPowers !== undefined && p === "hre" &&
             G.activatedMajors?.hre === undefined ? {} : {...G.minorInfluenceDefaults[p]};
     }
+    // Rule 20.2 (discard unused treasures) precedes rule 20.4, so the treasures
+    // brought home by returning sea captains are added after the hand reset and
+    // survive into the next turn.
+    returnWorldCaptains(G);
     awardPortugueseTreasures(G, ctx);
     G.minorDiplomacyResolved = [];
     G.piracyUsed = {};

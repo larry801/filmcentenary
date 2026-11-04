@@ -139,4 +139,19 @@ describe("winter return home (rule 20.4)", () => {
             expect(G.powers[p].treasures).toEqual([]);
         }
     });
+
+    it("keeps treasures brought home by a returning sea captain", () => {
+        const G = game();
+        G.worldCaptains.drake = {
+            power: "england", location: "spanishMain", damaged: false, colony: false, treasureValues: [3, 4],
+        };
+        G.powers.england.treasures = [];
+
+        winter(G, context());
+
+        // Rule 20.2 (discard unused treasures) happens before the 20.4 return,
+        // so the captain's accumulated treasures are available next turn.
+        expect(G.worldCaptains.drake).toBeUndefined();
+        expect(G.powers.england.treasures).toEqual([3, 4]);
+    });
 });

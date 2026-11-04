@@ -3510,6 +3510,19 @@ export const chooseHreReligiousPreference = (G: VQGame, ctx: Ctx, args: {prefere
     pushLog(G, "Holy Roman records its secret religious preference.");
 };
 
+/**
+ * Rule 4.2 formation size: no leaders = 4, one leader = its command rating,
+ * two or more leaders = the sum of the two highest command ratings.
+ */
+const formationCapacity = (leaders: string[]): number => {
+    if (leaders.length === 0) return 4;
+    return leaders
+        .map((id) => LEADER_BY_ID[id]?.command ?? 0)
+        .sort((a, b) => b - a)
+        .slice(0, 2)
+        .reduce((sum, command) => sum + command, 0);
+};
+
 export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: string; units?: Partial<LandStack>; leaders?: string[]; path?: string[] }): void | typeof INVALID_MOVE => {
     if (moveError(G, "springDeploy", args)) return INVALID_MOVE;
     if (ctx.phase !== "spring") {
@@ -3536,8 +3549,8 @@ export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: stri
         const stack = args.units ? {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0} : {...available};
         const availableLeaders = G.spaces[args.from].leaders.filter((id) => LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id].kind === "army");
         const leaders = args.leaders ?? availableLeaders.slice(0, 2);
-        const capacity = Math.max(4, leaders.reduce((sum, id) => sum + (LEADER_BY_ID[id]?.command ?? 0), 0));
-        if (leaders.length > 2 || new Set(leaders).size !== leaders.length || leaders.some((id) => !availableLeaders.includes(id)) ||
+        const capacity = formationCapacity(leaders);
+        if (new Set(leaders).size !== leaders.length || leaders.some((id) => !availableLeaders.includes(id)) ||
             landCount(stack) < 1 || landCount(stack) > capacity || Object.entries(stack).some(([kind, count]) => count < 0 || !Number.isInteger(count) || count > available[kind as keyof LandStack])) return INVALID_MOVE;
         const queue: {id: string; crossedSea: boolean}[] = [{id: args.from, crossedSea: false}];
         const seen = new Set<string>();
@@ -3579,9 +3592,9 @@ export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: stri
     const stack: LandStack = args.units
         ? {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0}
         : {...source};
-    if (leaders.length > 2 || new Set(leaders).size !== leaders.length ||
+    if (new Set(leaders).size !== leaders.length ||
         leaders.some((id) => !availableLeaders.includes(id))) return INVALID_MOVE;
-    const capacity = Math.max(4, leaders.reduce((sum, id) => sum + (LEADER_BY_ID[id].command ?? 0), 0));
+    const capacity = formationCapacity(leaders);
     if (landCount(stack) < 1 || landCount(stack) > capacity ||
         Object.entries(stack).some(([kind, count]) => count < 0 || !Number.isInteger(count) ||
             count > source[kind as keyof LandStack])) return INVALID_MOVE;

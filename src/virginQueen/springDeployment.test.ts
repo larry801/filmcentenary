@@ -106,4 +106,28 @@ describe("spring deployment (rule 10.6)", () => {
             from: "istanbul", to: "edirne", units: {regular: 2}, leaders: ["mehmed"],
         })).toBe(INVALID_MOVE);
     });
+
+    it("allows three army leaders and caps the formation with the two highest command ratings", () => {
+        const G = game();
+        const leaders = ["guise", "henryIII", "montmorency"];
+        // Rule 4.2: three leaders still form a legal formation; the two
+        // highest command ratings (7 + 6) cap it at 13 land units.
+        for (const space of Object.values(G.spaces)) {
+            space.leaders = space.leaders.filter((id) => !leaders.includes(id));
+        }
+        for (const id of leaders) G.leaders[id] = {id, location: "paris"};
+        G.spaces.paris.leaders = [...leaders];
+        G.spaces.paris.land.france = {regular: 14, merc: 0, cav: 0};
+
+        expect(springDeploy(G, context("3"), {
+            from: "paris", to: "reims", units: {regular: 14}, leaders,
+        })).toBe(INVALID_MOVE);
+        expect(springDeploy(G, context("3"), {
+            from: "paris", to: "reims", units: {regular: 13}, leaders,
+        })).toBeUndefined();
+
+        expect(G.leaders.guise.location).toBe("reims");
+        expect(G.leaders.henryIII.location).toBe("reims");
+        expect(G.leaders.montmorency.location).toBe("reims");
+    });
 });
