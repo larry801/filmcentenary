@@ -1,7 +1,7 @@
 import React from "react";
 import { Country, SJPlayer } from "../../constant/general";
 import { Ctx } from "boardgame.io";
-import { actualStage } from "../../game/util";
+import { actualStage } from "../../../game/util";
 import styles from "../../styles/combat.module.css";
 
 interface CombatActionsProps {

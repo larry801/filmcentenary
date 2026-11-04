@@ -24,8 +24,8 @@ export const ForceCard = ({ G, country, troops, combatCards, dices, damageLeft, 
     return sum + getRangeStrength(G, troop);
   }, 0);
 
-  const maxHP = troops.reduce((sum, troop) => {
-    return sum + troop.u.reduce((s, count) => s + count, 0);
+  const maxHP = troops.reduce((sum: number, troop: any) => {
+    return sum + troop.u.reduce((s: number, count: number) => s + count, 0);
   }, 0);
 
   return (
@@ -64,9 +64,9 @@ export const ForceCard = ({ G, country, troops, combatCards, dices, damageLeft, 
         <div className={styles.combatCardsSection}>
           <div className={styles.sectionTitle}>战斗牌</div>
           <div className={styles.combatCardsList}>
-            {combatCards.map((cardId, idx) => (
+            {combatCards.map((cardId: string, idx: number) => (
               <div key={idx} className={`${styles.combatCard} ${country === Country.SONG ? styles.song : styles.jinn}`}>
-                {sjCardById(cardId).name}
+                {sjCardById(cardId as any).name}
               </div>
             ))}
           </div>

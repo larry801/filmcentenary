@@ -5,7 +5,7 @@ import Paper from "@mui/material/Paper";
 import { CombatHeader } from "./CombatHeader";
 import { ForceCard } from "./ForceCard";
 import { CombatActions } from "./CombatActions";
-import { actualStage } from "../../game/util";
+import { actualStage } from "../../../game/util";
 import { sjCardById } from "../../util";
 import styles from "../../styles/combat.module.css";
 import "../../styles/variables.css";
@@ -34,7 +34,7 @@ export const CombatPanel = ({ G, ctx, pid, moves, isActive }: ICombatInfo) => {
   React.useEffect(() => {
     if (isActive && actualStage(G, ctx) === 'combatCard') {
       if (pid !== null) {
-        if (G.player[pid as SJPlayer].hand.filter((c: string) => sjCardById(c).combat).length === 0) {
+        if (G.player[pid as SJPlayer].hand.filter((c: string) => (sjCardById as any)(c).combat).length === 0) {
           moves.combatCard([]);
         }
       }
