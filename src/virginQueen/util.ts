@@ -299,6 +299,13 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
 
     G.protestantSpacesMapAtStart = mapProtestantSpaceCount(G);
 
+    // Scenario Book p. 12: in the two- to five-player configurations the HRE
+    // is not a player power.  Set its Papacy/Venice/Ireland influence markers
+    // aside until an ally activates it; `activateMajor` places them again.
+    if (G.playerPowers !== undefined && scenarioId !== "tutorial") {
+        powers.hre.influence = {};
+    }
+
     // The VP track starts at the printed scenario value.  Keep that value as an
     // offset so the dynamic base/religious scoring below still moves from it.
     for (const p of POWERS) {
@@ -438,8 +445,20 @@ export const homeCardChoiceRequired = (G: VQGame, p: Power): boolean =>
     !G.powers[p].homeCardChoiceDone &&
     homeCardsInHand(G, p).length > 1;
 
-export const hreReligiousPreferenceEnabled = (G: VQGame): boolean =>
-    G.scenario !== "tutorial" && !G.playerPowers;
+/**
+ * The secret preference belongs to a full Holy Roman power.  Six-player games
+ * always have one.  In the five-player configuration the HRE is the activated
+ * non-player major power, so the preference comes into play only after an ally
+ * has taken control of it through the influence track.  The two-, three- and
+ * four-player configurations leave the HRE inactive and skip it entirely
+ * (Scenario Book p. 12).
+ */
+export const hreReligiousPreferenceEnabled = (G: VQGame): boolean => {
+    if (G.scenario === "tutorial") return false;
+    if (G.playerPowers === undefined) return true;
+    return playerCount(G) === 5 && G.activatedMajors?.hre !== undefined &&
+        !Object.values(G.playerPowers).some((powers) => powers.includes("hre"));
+};
 
 export const hreReligiousPreferenceRequired = (G: VQGame, p: Power): boolean =>
     p === "hre" && hreReligiousPreferenceEnabled(G) && G.year === G.startTurn &&
@@ -3626,7 +3645,10 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         G.powers[p].cp = 0;
         G.powers[p].cardPlayed = false;
         G.powers[p].passed = false;
-        G.powers[p].influence = {...G.minorInfluenceDefaults[p]};
+        // Keep the non-player HRE's Papacy/Venice/Ireland markers set aside
+        // until it is activated (Scenario Book p. 12).
+        G.powers[p].influence = G.scenario !== "tutorial" && G.playerPowers !== undefined && p === "hre" &&
+            G.activatedMajors?.hre === undefined ? {} : {...G.minorInfluenceDefaults[p]};
     }
     awardPortugueseTreasures(G, ctx);
     G.minorDiplomacyResolved = [];
