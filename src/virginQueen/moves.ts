@@ -5068,47 +5068,19 @@ export const piracy = (G: VQGame, ctx: Ctx, args: { zone: string; target: Power 
     if (!atWar(G, p, args.target) && !corsair) {
         return INVALID_MOVE;
     }
-    if (G.scenario === "tutorial") {
+    if (G.scenario !== "tutorial") {
         const used = G.piracyUsed?.[p] ?? [];
         const zoneUsers = Object.values(G.piracyUsed ?? {}).filter((zones) => zones?.includes(zone)).length;
         if (used.includes(zone) || used.length >= 3 || zoneUsers >= 2 || G.powers[p].cp < 2) return INVALID_MOVE;
         if (offerActionResponse(G, ctx, "piracy", args)) return;
         if (!spend(G, p, 2)) return INVALID_MOVE;
+        G.piracyActions = {...(G.piracyActions ?? {}), [p]: (G.piracyActions?.[p] ?? 0) + 1};
+        G.piracyZones = {...(G.piracyZones ?? {}), [zone]: [...(G.piracyZones?.[zone] ?? []), p]};
+        // #11 Dragut Falls may be played after a piracy action involving Dragut.
+        if (G.seaZones[zone].leaders.includes("dragut") && leaderPower(G, "dragut") === p) G.dragutFought = true;
         startPiracy(G, ctx, p, args.target, zone);
         return;
     }
-    if (!spend(G, p, 1)) {
-        return INVALID_MOVE;
-    }
-    // #11 Dragut Falls may be played after a piracy action involving Dragut.
-    if (G.seaZones[zone].leaders.includes("dragut") && leaderPower(G, "dragut") === p) G.dragutFought = true;
-    const diceN = navalCount(ownStack) + bestPiracy(G, args.zone, [p]);
-    const r = roll(ctx, diceN);
-    const h = hits(r);
-    G.lastRolls = `Piracy: ${diceN} dice [${r.join(", ")}] = ${h} hit(s)`;
-    pushLog(G, G.lastRolls);
-    let stolenCards = 0;
-    let stolenTreasures = 0;
-    let vp = 0;
-    for (let i = 0; i < h; i++) {
-        const target = G.powers[args.target];
-        const stealable = target.cards.filter((id) => cardById(id).kind !== "home");
-        if (stealable.length > 0) {
-            const picked = shuffle(ctx, stealable)[0];
-            removeCardFromHand(G, args.target, picked);
-            G.powers[p].cards.push(picked);
-            stolenCards += 1;
-        } else if (target.treasures.length > 0) {
-            const idx = Math.floor(ctx.random?.Die(target.treasures.length) ?? 1) - 1;
-            const [v] = target.treasures.splice(idx, 1);
-            G.powers[p].treasures.push(v);
-            stolenTreasures += 1;
-        } else {
-            addVp(G, p, 1);
-            vp += 1;
-        }
-    }
-    pushLog(G, `Piracy results: ${stolenCards} card(s), ${stolenTreasures} treasure(s), ${vp} VP.`);
 };
 
 // --------------------------------------------------------------------------
