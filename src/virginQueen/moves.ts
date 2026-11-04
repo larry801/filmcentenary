@@ -1557,7 +1557,7 @@ const resolveBorderReivers = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
         return;
     }
     if (p === "england" || p === "france" || p === "protestant") {
-        G.powers[p].influence.scotland = (G.powers[p].influence.scotland ?? 0) + 4;
+        awardMinorInfluence(G, p, "scotland", 4);
         pushLog(G, `Border Reivers add 4 ${powerLabel(p)} influence in Scotland.`);
     }
 };
@@ -1867,7 +1867,7 @@ const resolveSultanaSafiye = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
     if (target === undefined) return;
     if (target === "venice") {
         if (!MINOR_DIPLOMACY.venice.eligible.includes(p) || G.minorDiplomacyResolved.includes("venice")) return;
-        G.powers[p].influence.venice = (G.powers[p].influence.venice ?? 0) + 2;
+        awardMinorInfluence(G, p, "venice", 2);
         resolveMinorDiplomacy(G, ctx, "venice");
         pushLog(G, `Sultana Safiye gives ${powerLabel(p)} 2 influence in Venice.`);
         return;
@@ -2101,7 +2101,7 @@ const resolveJohnKnox = (G: VQGame, p: Power, target?: string): void => {
         return;
     }
     if (p === "england" || p === "protestant") {
-        G.powers[p].influence.scotland = (G.powers[p].influence.scotland ?? 0) + 4;
+        awardMinorInfluence(G, p, "scotland", 4);
         pushLog(G, `John Knox adds 4 ${powerLabel(p)} influence in Scotland.`);
     }
 };
@@ -2279,7 +2279,7 @@ const resolveMaryQueenOfScots = (G: VQGame, ctx: Ctx): void => {
         pushLog(G, "Mary Queen of Scots is dead; the card is removed after play.");
         return;
     }
-    G.powers.france.influence.scotland = (G.powers.france.influence.scotland ?? 0) + 3;
+    awardMinorInfluence(G, "france", "scotland", 3);
     pushLog(G, "Mary Queen of Scots adds 3 French influence in Scotland.");
     resolveMinorDiplomacy(G, ctx, "scotland");
 };
@@ -2949,7 +2949,7 @@ export const maryInfluence = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE =
     const p = power(G, ctx);
     const mary = G.royals.find((royal) => royal.id === "maryScots");
     if (p !== "france" || !G.powers.france.cards.includes("vq-089") || G.espionage?.mary === "dead" || mary?.alive === false) return INVALID_MOVE;
-    G.powers.france.influence.scotland = (G.powers.france.influence.scotland ?? 0) + 4;
+    awardMinorInfluence(G, "france", "scotland", 4);
     removeCardFromHand(G, "france", "vq-089");
     discardCard(G, "france", "vq-089", true);
     pushLog(G, "Mary Queen of Scots adds 4 French influence in Scotland.");
@@ -3271,6 +3271,11 @@ export const formAlliance = (G: VQGame, ctx: Ctx, args: { target: Power }): void
     }
     if ((p === "spain" && t === "protestant") || (p === "protestant" && t === "spain")) {
         return INVALID_MOVE;
+    }
+    // Rule 9.2: Spain and England may not ally while the DOW cost between them
+    // is 3 CP or less (including the Elizabeth-excommunication reduction).
+    if ((p === "spain" && t === "england") || (p === "england" && t === "spain")) {
+        if (warCost(G, p, t) <= 3) return INVALID_MOVE;
     }
     if (p === "france") {
         if ((t === "spain" && G.powers.france.allies.includes("protestant"))

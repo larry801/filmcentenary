@@ -4221,7 +4221,8 @@ const resolveOneEvent = (G: VQGame, ctx: Ctx, p: Power, e: EventEffect): void =>
         }
         case "influence": {
             const minor = MINOR_POWERS.find((m) => (G.powers[p].influence[m] ?? 0) < 9) ?? "papacy";
-            G.powers[p].influence[minor] = (G.powers[p].influence[minor] ?? 0) + e.count;
+            // Rule 24.5: the Influence track stops at 9; excess influence is lost.
+            G.powers[p].influence[minor] = Math.min(9, (G.powers[p].influence[minor] ?? 0) + e.count);
             pushLog(G, `${powerLabel(p)} gains ${e.count} influence with ${minor}.`);
             break;
         }
