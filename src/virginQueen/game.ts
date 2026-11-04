@@ -8,7 +8,7 @@ import {chooseBattle} from "./combat";
 import {chooseTutorialEvent} from "./tutorialEvents";
 import {choosePiracy} from "./piracy";
 import {chooseInterception} from "./interception";
-import {arriveLeaders, autoResolveWinterLossChoices, autoResolveWinterNavalLossChoices, checkVictory, dealYear, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
+import {arriveLeaders, autoResolveWinterLossChoices, autoResolveWinterNavalLossChoices, checkVictory, chooseReliefSplit, dealYear, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
 import {
     assault,
     autoInterceptionOrder,
@@ -377,6 +377,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
         chooseInterceptionOrder,
         autoInterceptionOrder,
         chooseWithdraw,
+        chooseReliefSplit,
     continueMove,
         stopContinue,
         preach,

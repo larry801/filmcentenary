@@ -38,7 +38,7 @@ describe("Dragut Falls (card #11) after piracy", () => {
         expect(G.dragutFought).toBe(true);
         expect(G.leaders.dragut.location).toBe("northAfricanCoast");
         expect(G.seaZones.northAfricanCoast.naval.ottoman!.corsair).toBe(2);
-        expect(G.powers.ottoman.cp).toBe(1);
+        expect(G.powers.ottoman.cp).toBe(0);
     });
 
     it("does not mark Dragut as having fought when he is not in the piracy zone", () => {

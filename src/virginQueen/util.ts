@@ -1,4 +1,5 @@
 import {Ctx} from "boardgame.io";
+import {INVALID_MOVE} from "boardgame.io/core";
 import {refreshJesuits} from "./espionage";
 import {
     AREA_NAMES,
@@ -2813,26 +2814,44 @@ export const reliefBattle = (
     // Equal hits: any participating unit may retreat inside (max 4).  A
     // decisive loss: only units that started the impulse inside may stay.
     const keepLimit = Math.min(4, aHits === dHits ? pUnits : pUnitsInside);
-    const movedOut = pUnits > 0 ? transferLandUnits(G, space, from, p, Math.max(0, pUnits - keepLimit)) : 0;
-    if (totalLand(G, space, [p]) === 0) {
-        captureLeaders(G, space, [p], besieger);
-    } else if (movedOut > 0) {
-        const retreating = reliefLeaders.filter((id) => G.spaces[space].leaders.includes(id));
-        if (retreating.length > 0) moveLeaders(G, space, from, retreating);
-    }
-    const insideAfter = defenderOwners(G, space);
-    const besiegersLeft = totalLand(G, space, besiegers);
-    const defendersLeft = totalLand(G, space, insideAfter);
-    if (besiegersLeft === 0) {
-        if (besiegerLeaders.length > 0) captureLeaders(G, space, [besieger], p);
-        delete G.spaces[space].siege;
-    } else if (besiegersLeft <= defendersLeft) {
-        retreatLand(G, besieger, space, [besieger], besiegerLeaders, p, [from]);
-        delete G.spaces[space].siege;
-        pushLog(G, `The siege of ${SPACE_BY_ID[space].name} is broken.`);
-    }
-    pushLog(G, `${powerLabel(p)} loses the relief battle at ${SPACE_BY_ID[space].name}${movedOut > 0 ? ` and falls back to ${SPACE_BY_ID[from].name}` : ""}.`);
+    // Interactive: let the player choose how many units stay inside.
+    G.pendingReliefSplit = {space, from, power: p, keepLimit, pUnits};
+    pushLog(G, `${powerLabel(p)} relief force is defeated; choose how many units stay inside (max ${keepLimit}).`);
     return {attackerHits: aHits, defenderHits: dHits, attackerDice: aDice, defenderDice: dDice, winner};
+};
+
+export const chooseReliefSplit = (G: VQGame, ctx: Ctx, args: {keep: number}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingReliefSplit;
+    if (!pending) return INVALID_MOVE;
+    const {space, from, power: p, keepLimit, pUnits} = pending;
+    const keep = Math.max(0, Math.min(args.keep, keepLimit));
+    const moveOut = Math.max(0, pUnits - keep);
+    if (moveOut > 0) transferLandUnits(G, space, from, p, moveOut);
+    const besieger = G.spaces[space].siege?.by;
+    if (totalLand(G, space, [p]) === 0) {
+        if (besieger !== undefined) captureLeaders(G, space, [p], besieger);
+    } else if (moveOut > 0) {
+        const reliefLeaders = G.spaces[space].leaders.filter((id) => (LEADER_BY_ID as any)[id]?.power === p && (LEADER_BY_ID as any)[id]?.kind === "army");
+        if (reliefLeaders.length > 0) moveLeaders(G, space, from, reliefLeaders);
+    }
+    if (besieger !== undefined) {
+        const besiegers = besiegerOwners(G, space);
+        const insideAfter = defenderOwners(G, space);
+        const besiegersLeft = totalLand(G, space, besiegers);
+        const defendersLeft = totalLand(G, space, insideAfter);
+        if (besiegersLeft === 0) {
+            const besiegerLeaders = leadersAt(G, space).filter((id) => LEADER_BY_ID[id]?.power === besieger);
+            if (besiegerLeaders.length > 0) captureLeaders(G, space, [besieger], p);
+            delete G.spaces[space].siege;
+        } else if (besiegersLeft <= defendersLeft) {
+            const besiegerLeaders = leadersAt(G, space).filter((id) => LEADER_BY_ID[id]?.power === besieger);
+            retreatLand(G, besieger, space, [besieger], besiegerLeaders, p, [from]);
+            delete G.spaces[space].siege;
+            pushLog(G, `The siege of ${SPACE_BY_ID[space].name} is broken.`);
+        }
+    }
+    pushLog(G, `${keep} unit(s) stay inside; ${moveOut} fall back to ${SPACE_BY_ID[from]?.name ?? from}.`);
+    delete G.pendingReliefSplit;
 };
 
 /**

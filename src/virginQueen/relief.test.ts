@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {VQGame, landCount} from "./constant/general";
 import {moveLand} from "./moves";
-import {atWar, setupGame} from "./util";
+import {atWar, chooseReliefSplit, setupGame} from "./util";
 
 const context = (values: number[] = [6]): Ctx => ({
     currentPlayer: "3",
@@ -45,11 +45,12 @@ describe("relief forces (rule 15.2)", () => {
         expect(moveLand(G, context([1, 1, 1, 1, 6, 6, 6, 6, 6, 6, 6]), {
             from: "paris", to: "rouen", units: {regular: 2}, leaders: [],
         })).toBeUndefined();
+        chooseReliefSplit(G, context(), {keep: 0});
 
         expect(G.spaces.rouen.siege).toEqual({by: "england", sinceImpulse: 1});
         expect(landCount(G.spaces.rouen.land.france)).toBe(0);
         expect(landCount(G.spaces.rouen.land.england)).toBe(6);
-        expect(G.log.join("\n")).toContain("loses the relief battle");
+        expect(G.log.join("\n")).toContain("relief force is defeated");
     });
 
     it("retreats excess units back out while keeping four inside on an inconclusive battle", () => {
@@ -59,6 +60,7 @@ describe("relief forces (rule 15.2)", () => {
         expect(moveLand(G, context([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), {
             from: "paris", to: "rouen", units: {regular: 4}, leaders: [],
         })).toBeUndefined();
+        chooseReliefSplit(G, context(), {keep: 4});
 
         // France had 6 units in Rouen after the move.  Four remain inside and
         // two fall back to Paris; 6 besiegers still outnumber them, so the
@@ -66,7 +68,7 @@ describe("relief forces (rule 15.2)", () => {
         expect(landCount(G.spaces.rouen.land.france)).toBe(4);
         expect(landCount(G.spaces.paris.land.france)).toBe(2);
         expect(G.spaces.rouen.siege).toBeDefined();
-        expect(G.log.join("\n")).toContain("falls back to Paris");
+        expect(G.log.join("\n")).toContain("fall back to");
     });
 
     it("keeps only the units that started inside after a decisive defeat", () => {
@@ -76,6 +78,7 @@ describe("relief forces (rule 15.2)", () => {
         expect(moveLand(G, context([1, 1, 1, 1, 1, 1, 6, 6, 1, 1, 1, 1, 1]), {
             from: "paris", to: "rouen", units: {regular: 4}, leaders: [],
         })).toBeUndefined();
+        chooseReliefSplit(G, context(), {keep: 2});
 
         // Two units were inside at the start of the impulse, so at most two
         // remain in Rouen; the other two survivors fall back to Paris.
@@ -93,6 +96,7 @@ describe("relief forces (rule 15.2)", () => {
         expect(moveLand(G, context([1, 1, 1, 1, 6, 6, 6, 6, 6, 6, 6]), {
             from: "paris", to: "rouen", units: {regular: 2}, leaders: ["henryIII"],
         })).toBeUndefined();
+        chooseReliefSplit(G, context(), {keep: 0});
 
         expect(G.leaders.henryIII.location).toBe("captured");
         expect(G.leaders.henryIII.capturedBy).toBe("england");

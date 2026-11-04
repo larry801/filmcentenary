@@ -1206,7 +1206,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
     const hand = ps?.cards ?? [];
-    const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels;
+    const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingReliefSplit;
     const vqCombatRetrieve = virginQueenCombatRetrieveOptions(G, playerID);
 
     React.useEffect(() => {
@@ -1721,6 +1721,17 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             onClick={() => moves.chooseWithdraw({withdraw: true})}>退入要塞</Button>
                         <Button size="small" variant="outlined" color="error" disabled={!myTurn}
                             onClick={() => moves.chooseWithdraw({withdraw: false})}>出城野战</Button>
+                    </Stack>
+                </Paper>}
+                {G.pendingReliefSplit !== undefined && G.pendingReliefSplit.power === me && <Paper variant="outlined" sx={{p: 1}}>
+                    <Typography variant="subtitle2">救援失败 · 选择留驻单位</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        {SPACE_BY_ID[G.pendingReliefSplit.space]?.name ?? G.pendingReliefSplit.space}：最多 {G.pendingReliefSplit.keepLimit} 个单位可留在城内，其余回撤。
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} sx={{mt: 0.5, flexWrap: "wrap"}}>
+                        {Array.from({length: G.pendingReliefSplit.keepLimit + 1}, (_, i) => i).map((k) =>
+                            <Button key={k} size="small" variant="outlined" disabled={!myTurn}
+                                onClick={() => moves.chooseReliefSplit({keep: k})}>留 {k} 个</Button>)}
                     </Stack>
                 </Paper>}
                 {G.pendingContinue !== undefined && G.pendingContinue.power === me && <Paper variant="outlined" sx={{p: 1}}>

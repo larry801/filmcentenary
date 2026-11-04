@@ -594,6 +594,7 @@ export interface VQGame {
     resumeAction?: boolean;
     pendingNavalOrder?: {attacker: Power; location: string; enemies: Power[]};
     pendingWithdraw?: {active: Power; defender: Power; space: string; origin: string};
+    pendingReliefSplit?: {space: string; from: string; power: Power; keepLimit: number; pUnits: number};
     pendingContinue?: {power: Power; origin: string; space: string; units: LandStack; leaders: string[]};
     pendingIntercept?: {power: Power; defender: Power; from: string; to: string; phase: "field" | "naval"; attackers: Controller[]; attempted: string[]; succeeded: boolean; transported?: boolean};
     /** #14 response window: a home-port interception attempt waits for the defender before its roll. */
