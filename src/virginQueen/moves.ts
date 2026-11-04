@@ -484,11 +484,23 @@ const startForeignWar = (G: VQGame, cardId: string, beneficiary: "ottoman" | "hr
     pushLog(G, `${enemyUnits}-unit foreign army appears in ${enemy}; ${powerLabel(beneficiary)} must commit 3–8 land units.`);
 };
 
-const spend = (G: VQGame, p: Power, cost: number): boolean => {
+const spend = (G: VQGame, p: Power, cost: number, actionType?: string): boolean => {
     if (G.powers[p].cp < cost) {
         return false;
     }
+    const ps = G.powers[p];
+    // E4: treasure-extension actions must differ in type from card-phase actions.
+    if (actionType !== undefined && ps.treasurePlayed && ps.cardActionCount !== undefined) {
+        const cardActions = (ps.actionsThisImpulse ?? []).slice(0, ps.cardActionCount);
+        if (cardActions.includes(actionType)) {
+            return false;
+        }
+    }
     G.powers[p].cp -= cost;
+    if (actionType !== undefined) {
+        if (ps.actionsThisImpulse === undefined) ps.actionsThisImpulse = [];
+        ps.actionsThisImpulse.push(actionType);
+    }
     markAction(G, p);
     return true;
 };
@@ -2944,6 +2956,9 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     else if (!cancelWindow) discardCard(G, p, args.cardId, args.asEvent === true);
     if (gregorianResponse === undefined) {
         ps.cardPlayed = true;
+        ps.actionsThisImpulse = [];
+        ps.cardActionCount = undefined;
+        ps.treasurePlayed = false;
         markAction(G, p);
     }
     if (args.asEvent === true) {
@@ -3014,6 +3029,7 @@ export const playTreasure = (G: VQGame, ctx: Ctx, args: { index: number }): void
         return INVALID_MOVE;
     }
     ps.treasures.splice(idx, 1);
+    ps.cardActionCount = ps.actionsThisImpulse?.length ?? 0;
     ps.cp += value;
     ps.treasurePlayed = true;
     pushLog(G, `${powerLabel(p)} extends the impulse with a ${value} CP treasure.`);

@@ -501,6 +501,8 @@ export interface PowerState {
     cp: number;
     cardPlayed: boolean;
     treasurePlayed: boolean;
+    actionsThisImpulse?: string[];
+    cardActionCount?: number;
     /** Accumulated bonus VP (patronage, piracy, marriages, events). */
     bonusVp: number;
     /** Persistent -1/+1 card markers (foreign wars, Suez, etc.). */
