@@ -24,7 +24,7 @@ import i18n from "../../constant/i18n";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
-import {CombatInfoPanel} from "./combat-info";
+import {CombatPanel} from "./combat/CombatPanel";
 import ExportLogButton from "../../components/export-log-button";
 import CircularProgress from "@mui/material/CircularProgress";
 
@@ -126,7 +126,7 @@ export const SongJinnBoard = ({
                     <PubInfo G={G} ctx={ctx}/>
                 </Grid>
                 <Grid size={{xs: 12, sm: 6}}>
-                    <CombatInfoPanel isActive={isActive} moves={moves} pid={playerID} G={G} ctx={ctx} log={log}/>
+                    <CombatPanel isActive={isActive} moves={moves} pid={playerID} G={G} ctx={ctx} log={log}/>
                 </Grid>
                 <Grid size={{xs: 12, sm: 6}}>
                     <LogView log={log} getPlayerName={sjPlayerName} G={G}/>

@@ -1,0 +1,124 @@
+/* Song-Jinn Game Design System - Warm Historical Aesthetic */
+
+/* ===== Color Tokens ===== */
+
+/* Song Dynasty Colors */
+:root {
+  --song-primary: #B96420;
+  --song-primary-dark: #A35719;
+  --song-primary-light: #D4824D;
+  --song-secondary: #5C3D2E;
+  --song-background: #F5EFE6;
+  --song-background-gradient-start: #F5EFE6;
+  --song-background-gradient-end: #E8DCC8;
+  --song-border: #8B6F47;
+  --song-text: #2B1D14;
+}
+
+/* Jinn Dynasty Colors */
+:root {
+  --jinn-primary: #2C4A52;
+  --jinn-primary-dark: #1F353B;
+  --jinn-primary-light: #3D5F68;
+  --jinn-secondary: #1E222E;
+  --jinn-background: #E8E4DC;
+  --jinn-background-gradient-start: #E8E4DC;
+  --jinn-background-gradient-end: #D4D0C8;
+  --jinn-border: #4A5F6A;
+  --jinn-text: #1E222E;
+}
+
+/* Neutral & UI Colors */
+:root {
+  --neutral-paper: #FAF8F3;
+  --neutral-surface: #F5F2ED;
+  --neutral-border: #D4CFC4;
+  --neutral-text: #3E3832;
+  --neutral-text-secondary: #6B6560;
+}
+
+/* Semantic Colors */
+:root {
+  --combat-active: #F87171;
+  --combat-inactive: #9CA3AF;
+  --success: #86A873;
+  --warning: #FBBF24;
+  --danger: #DC2626;
+  --info: #60A5FA;
+}
+
+/* ===== Spacing Scale ===== */
+:root {
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+}
+
+/* ===== Border Radius ===== */
+:root {
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-pill: 999px;
+}
+
+/* ===== Shadows ===== */
+:root {
+  --shadow-sm: 0 1px 3px rgba(43, 29, 20, 0.08);
+  --shadow-md: 0 4px 12px rgba(43, 29, 20, 0.15);
+  --shadow-lg: 0 8px 24px rgba(43, 29, 20, 0.2);
+  --shadow-combat: 0 4px 16px rgba(248, 113, 113, 0.3);
+}
+
+/* ===== Typography Scale ===== */
+:root {
+  --font-serif: Georgia, "Times New Roman", serif;
+  --font-sans: -apple-system, "Segoe UI", system-ui, sans-serif;
+  
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  
+  --letter-spacing-tight: -0.01em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.025em;
+  --letter-spacing-wider: 0.05em;
+}
+
+/* ===== Transitions ===== */
+:root {
+  --transition-fast: 150ms ease-in-out;
+  --transition-base: 200ms ease-in-out;
+  --transition-slow: 300ms ease-in-out;
+}
+
+/* ===== Z-Index Scale ===== */
+:root {
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-tooltip: 700;
+}

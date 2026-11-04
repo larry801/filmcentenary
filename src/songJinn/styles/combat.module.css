@@ -1,0 +1,451 @@
+/* Song-Jinn Combat UI Styles */
+
+@import './variables.css';
+
+/* ===== Combat Panel ===== */
+.combatPanel {
+  background: linear-gradient(135deg, var(--neutral-paper) 0%, var(--neutral-surface) 100%);
+  border: 2px solid var(--neutral-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-md);
+  transition: box-shadow var(--transition-base);
+}
+
+.combatPanel.active {
+  border-color: var(--combat-active);
+  box-shadow: var(--shadow-combat);
+  animation: combatPulse 2s ease-in-out infinite;
+}
+
+.combatPanel.inactive {
+  opacity: 0.8;
+}
+
+@keyframes combatPulse {
+  0%, 100% {
+    box-shadow: var(--shadow-combat);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(248, 113, 113, 0.5);
+  }
+}
+
+/* ===== Combat Header ===== */
+.combatHeader {
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 2px solid var(--neutral-border);
+}
+
+.combatTitle {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-serif);
+  color: var(--neutral-text);
+  margin-bottom: var(--space-sm);
+  text-align: center;
+}
+
+.combatMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+}
+
+.combatBadge {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-pill);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.combatBadge.siege {
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  color: white;
+}
+
+.combatBadge.field {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: white;
+}
+
+.combatBadge.breakout {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: white;
+}
+
+.phaseIndicator {
+  color: var(--neutral-text);
+  font-weight: var(--font-weight-medium);
+}
+
+.locationName {
+  color: var(--neutral-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ===== Forces Container ===== */
+.forcesContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+@media (max-width: 768px) {
+  .forcesContainer {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Force Card ===== */
+.forceCard {
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  border: 2px solid;
+  position: relative;
+  transition: all var(--transition-base);
+}
+
+.forceCard.song {
+  background: linear-gradient(135deg, var(--song-background) 0%, var(--song-background-gradient-end) 100%);
+  border-color: var(--song-border);
+}
+
+.forceCard.jinn {
+  background: linear-gradient(135deg, var(--jinn-background) 0%, var(--jinn-background-gradient-end) 100%);
+  border-color: var(--jinn-border);
+}
+
+.forceCard.active {
+  box-shadow: var(--shadow-md);
+  transform: scale(1.02);
+}
+
+.forceCard.song.active {
+  border-color: var(--song-primary);
+}
+
+.forceCard.jinn.active {
+  border-color: var(--jinn-primary);
+}
+
+/* Dynasty Name */
+.countryName {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+  margin-bottom: var(--space-md);
+  letter-spacing: 0.2em;
+}
+
+.countryName.song {
+  color: var(--song-primary);
+}
+
+.countryName.jinn {
+  color: var(--jinn-primary);
+}
+
+/* ===== Section Titles ===== */
+.sectionTitle {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wider);
+  color: var(--neutral-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+/* ===== Troop Section ===== */
+.troopSection {
+  margin-bottom: var(--space-md);
+}
+
+.troopList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.troopItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+  padding: var(--space-xs);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-sm);
+}
+
+.troopIcon {
+  font-size: var(--font-size-base);
+}
+
+/* ===== Strength Stats ===== */
+.strengthStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.statItem {
+  text-align: center;
+  padding: var(--space-sm);
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--neutral-border);
+}
+
+.statLabel {
+  font-size: var(--font-size-xs);
+  color: var(--neutral-text-secondary);
+  margin-bottom: var(--space-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.statValue {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+.statValue.song {
+  color: var(--song-primary);
+}
+
+.statValue.jinn {
+  color: var(--jinn-primary);
+}
+
+/* ===== Combat Cards ===== */
+.combatCardsSection {
+  margin-bottom: var(--space-md);
+}
+
+.combatCardsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.combatCard {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-align: center;
+  border: 1px solid;
+}
+
+.combatCard.song {
+  background: rgba(185, 100, 32, 0.1);
+  border-color: var(--song-border);
+  color: var(--song-text);
+}
+
+.combatCard.jinn {
+  background: rgba(44, 74, 82, 0.1);
+  border-color: var(--jinn-border);
+  color: var(--jinn-text);
+}
+
+/* ===== Dice Display ===== */
+.diceContainer {
+  margin-bottom: var(--space-md);
+}
+
+.diceGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm);
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--neutral-border);
+}
+
+.diceFace {
+  font-size: var(--font-size-2xl);
+  line-height: 1;
+  padding: var(--space-xs);
+  background: white;
+  border: 1px solid var(--neutral-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.diceFace.success {
+  background: linear-gradient(135deg, #86A873 0%, #6B8A5A 100%);
+  color: white;
+  border-color: var(--success);
+}
+
+.diceStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  font-size: var(--font-size-xs);
+}
+
+.diceStat {
+  display: flex;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-sm);
+}
+
+.diceCount {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ===== Damage Bar ===== */
+.damageSection {
+  margin-bottom: var(--space-sm);
+}
+
+.damageBar {
+  position: relative;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--neutral-border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.damageBarFill {
+  height: 100%;
+  transition: width var(--transition-base), background var(--transition-base);
+  border-radius: var(--radius-pill);
+}
+
+.damageBarFill.healthy {
+  background: linear-gradient(90deg, var(--success) 0%, #6B8A5A 100%);
+}
+
+.damageBarFill.damaged {
+  background: linear-gradient(90deg, var(--warning) 0%, #F59E0B 100%);
+}
+
+.damageBarFill.critical {
+  background: linear-gradient(90deg, var(--danger) 0%, #DC2626 100%);
+  animation: pulseCritical 1s ease-in-out infinite;
+}
+
+@keyframes pulseCritical {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.damageLabel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--neutral-text);
+  text-shadow: 0 0 4px white, 0 0 4px white;
+}
+
+/* ===== Combat Actions ===== */
+.combatActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+  padding-top: var(--space-md);
+  border-top: 2px solid var(--neutral-border);
+}
+
+.actionButton {
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-sans);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 44px;
+  min-width: 100px;
+}
+
+.actionButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.actionButton:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.actionButton:not(:disabled):active {
+  transform: translateY(0);
+}
+
+.actionButton.primary {
+  background: linear-gradient(135deg, var(--info) 0%, #3B82F6 100%);
+  color: white;
+}
+
+.actionButton.secondary {
+  background: linear-gradient(135deg, var(--neutral-surface) 0%, var(--neutral-border) 100%);
+  color: var(--neutral-text);
+  border: 1px solid var(--neutral-border);
+}
+
+.actionButton.danger {
+  background: linear-gradient(135deg, var(--danger) 0%, #B91C1C 100%);
+  color: white;
+}
+
+/* ===== Responsive Adjustments ===== */
+@media (max-width: 768px) {
+  .combatPanel {
+    padding: var(--space-sm);
+  }
+  
+  .forceCard {
+    padding: var(--space-sm);
+  }
+  
+  .countryName {
+    font-size: var(--font-size-3xl);
+  }
+  
+  .statValue {
+    font-size: var(--font-size-xl);
+  }
+  
+  .diceFace {
+    font-size: var(--font-size-xl);
+  }
+  
+  .combatActions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .actionButton {
+    width: 100%;
+  }
+}
