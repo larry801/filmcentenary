@@ -28,8 +28,9 @@ export const assassinationTargets = (G: VQGame, p: Power): string[] => [
     ...Object.keys(G.leaders).filter((id) => {
         const def = LEADER_BY_ID[id];
         const loc = G.leaders[id].location;
-        return def?.kind === "army" && def.power !== p && !isActivatedMajor(G, def.power) &&
-            !!G.spaces[loc] && G.spaces[loc].leaders.includes(id);
+        // 19.3: default army leaders are not eligible targets.
+        return def?.kind === "army" && !id.startsWith("default-") && def.power !== p &&
+            !isActivatedMajor(G, def.power) && !!G.spaces[loc] && G.spaces[loc].leaders.includes(id);
     }),
 ];
 

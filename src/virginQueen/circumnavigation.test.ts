@@ -44,6 +44,18 @@ describe("circumnavigation (rule 16.6)", () => {
         expect(G.powers.england.bonusVp).toBe(vp + 1);
     });
 
+    it("delivers loot treasures to the hand when the voyage completes", () => {
+        const G = game();
+        prepare(G, ["guineaCoast", "indianOcean", "chileanCoast"], "chileanCoast");
+        G.worldCaptains.drake.treasureValues = [4, 5];
+        const before = [...G.powers.england.treasures];
+
+        expect(moveExpedition(G, context([6, 6]), {captain: "drake", zone: "southAtlantic"})).toBeUndefined();
+
+        expect(G.powers.england.treasures).toEqual([...before, 4, 5]);
+        expect(G.worldCaptains.drake).toBeUndefined();
+    });
+
     it("does not award VP without the prerequisite Indian Ocean leg", () => {
         const G = game();
         prepare(G, ["chileanCoast"], "chileanCoast");

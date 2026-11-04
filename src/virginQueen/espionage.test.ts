@@ -254,6 +254,13 @@ describe("assassination results", () => {
         for (const target of ["howard", "unknown", "orange"]) expect(assassinationTargets(G, "spain")).not.toContain(target);
         G.leaders.leicester = {id: "leicester", location: "captured"};
         expect(assassinationTargets(G, "spain")).not.toContain("leicester");
+        // 19.3 also excludes default army leaders, even when serving on the map.
+        G.leaders.leicester = {id: "leicester", location: "london"};
+        G.spaces.london.leaders.push("leicester");
+        G.leaders["default-england"] = {id: "default-england", location: "london"};
+        G.spaces.london.leaders.push("default-england");
+        expect(assassinationTargets(G, "spain")).toContain("leicester");
+        expect(assassinationTargets(G, "spain")).not.toContain("default-england");
     });
 });
 

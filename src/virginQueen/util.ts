@@ -562,6 +562,8 @@ export const checkCircumnavigation = (G: VQGame, captainId: string, from: string
     G.circumnavigations = number;
     const vp = number === 1 ? 2 : 1;
     addVp(G, expedition.power, vp);
+    // 16.6: immediately add any loot treasures to the player's hand.
+    if (expedition.treasureValues !== undefined) G.powers[expedition.power].treasures.push(...expedition.treasureValues);
     delete G.worldCaptains[captainId];
     G.seaCaptainReturn = {...(G.seaCaptainReturn ?? {}), [captainId]: {power: expedition.power, turn: G.year + 1}};
     pushLog(G, `${captainId} completes a circumnavigation; ${powerLabel(expedition.power)} gains ${vp} VP.`);
