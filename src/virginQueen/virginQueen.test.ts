@@ -29,6 +29,7 @@ import {
     resolveEvent,
     resolveRebellion,
     setupGame,
+    setWar,
     winter,
 } from "./util";
 import {chooseHomeCard, chooseHreReligiousPreference, endPhaseTurn, fightForeignWar, gainIntelligence, playCard} from "./moves";
@@ -132,6 +133,7 @@ describe("Virgin Queen setup and data", () => {
         const G = newGame();
         addLand(G, "zagreb", "ottoman", "regular", 2);
         G.spaces.zagreb.control = "hre";
+        setWar(G, "ottoman", "hre");
         expect(G.spaces.zagreb.unrest).toBe(false);
         const check = canControlSpace(G, "ottoman", "zagreb");
         expect(check.ok).toBe(true);

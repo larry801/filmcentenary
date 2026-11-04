@@ -2447,9 +2447,8 @@ export const resolveConversions = (
     const minor = adjusted.filter((d) => d === 4 || d === 5).length;
     const major = adjusted.filter((d) => d === 6).length;
     const converted: string[] = [];
-    const base = SPACES.filter((s) => s.area === area && G.spaces[s.id].religion === side).map((s) => s.id);
     for (let i = 0; i < major; i++) {
-        const target = pickCandidate(G, ctx, side, area, true, base);
+        const target = pickCandidate(G, ctx, side, area, true);
         if (target === undefined) {
             break;
         }
@@ -2457,7 +2456,7 @@ export const resolveConversions = (
         converted.push(target);
     }
     for (let i = 0; i < minor; i++) {
-        const target = pickCandidate(G, ctx, side, area, false, base);
+        const target = pickCandidate(G, ctx, side, area, false);
         if (target === undefined) {
             break;
         }

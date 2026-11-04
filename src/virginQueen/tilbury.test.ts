@@ -44,6 +44,10 @@ describe("Tilbury Speech (card #40)", () => {
             G.spaces.ghent.land.france = {regular: 6, merc: 0, cav: 0};
             G.spaces.brussels.control = "france";
             G.spaces.brussels.unrest = false;
+            G.spaces.brussels.land = {france: {regular: 1, merc: 0, cav: 0}};
+            G.spaces.amiens.control = "france";
+            G.spaces.amiens.unrest = false;
+            G.spaces.amiens.land = {france: {regular: 1, merc: 0, cav: 0}};
             G.powers.spain.cards = [];
             setWar(G, "france", "spain");
             G.powers.france.cp = 10;
