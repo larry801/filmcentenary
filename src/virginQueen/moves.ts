@@ -4171,7 +4171,7 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
             } else {
                 pushLog(G, `${powerLabel(p)} discards a ${treasure} CP Portuguese treasure (no room).`);
             }
-        } else if (G.powers.spain.treasures.length > 0) {
+        } else if (!targetIsPortugal && G.powers.spain.treasures.length > 0) {
             const treasure = G.powers.spain.treasures.pop()!;
             if (expedition.treasureValues === undefined) expedition.treasureValues = [];
             if (expedition.treasureValues.length < capacity) {
