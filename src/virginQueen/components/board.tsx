@@ -175,10 +175,10 @@ export const playEventCard = (
 
 /**
  * Which targeting control the event-card drawer renders.  Cards with a
- * dedicated selector never fall back to free text, so #17, #24, #61 and #86 can
- * only be played through their enumerated choices.
+ * dedicated selector never fall back to free text, so #17, #24, #61, #86 and
+ * #102 can only be played through their enumerated choices.
  */
-export type EventTargetMode = "espionage" | "foreignWar" | "holyLeague" | "menendez" | "polishElection" | "armyMutiny" | "freeText";
+export type EventTargetMode = "espionage" | "foreignWar" | "holyLeague" | "menendez" | "polishElection" | "armyMutiny" | "stafford" | "freeText";
 
 export const eventTargetMode = (handler: string, espionageTargetCount: number): EventTargetMode => {
     if (espionageTargetCount > 0) return "espionage";
@@ -187,6 +187,7 @@ export const eventTargetMode = (handler: string, espionageTargetCount: number): 
     if (handler === "menendezDeAviles") return "menendez";
     if (handler === "polishRoyalElection") return "polishElection";
     if (handler === "armyMutiny") return "armyMutiny";
+    if (handler === "sirEdwardStafford") return "stafford";
     return "freeText";
 };
 
@@ -603,6 +604,132 @@ export const ArmyMutinyTargetSelect = ({G, value, onChange}: {
 };
 
 /**
+ * #102 Sir Edward Stafford targets a power's hand and treasures, then names
+ * one non-home card or one treasure to discard.  Only powers with something
+ * discardable are offered, so the selector never proposes an effect that would
+ * find nothing to discard.
+ */
+export interface StaffordPowerOption {
+    value: Power;
+    label: string;
+}
+
+export interface StaffordDiscardOption {
+    /** Segment after the power, e.g. `card:vq-020` or `treasure:5`. */
+    value: string;
+    label: string;
+}
+
+export interface StaffordTargetSelection {
+    /** Target power; blank means "the first power with something to discard". */
+    power: string;
+    /** Chosen discard segment; undefined means "the first legal choice". */
+    discard?: string;
+}
+
+/** Non-home cards in a power's hand, in the order the engine would inspect them. */
+const staffordCards = (G: VQGame, power: Power): string[] =>
+    G.powers[power].cards.filter((id) => cardById(id).kind !== "home");
+
+/** Target powers that have at least one discardable card or treasure. */
+export const staffordPowerOptions = (G: VQGame): StaffordPowerOption[] =>
+    POWERS.flatMap((power) => {
+        const cards = staffordCards(G, power).length;
+        const treasures = G.powers[power].treasures.length;
+        return cards === 0 && treasures === 0 ? [] : [{
+            value: power,
+            label: `${POWER_NAMES[power].zh}（手牌 ${cards}，财宝 ${treasures}）`,
+        }];
+    });
+
+/**
+ * One choice per discardable card, then one per distinct treasure value (the
+ * engine's grammar names a value, not a treasure counter, so duplicate values
+ * collapse into one choice).  Cards are listed by descending CP like #86.
+ */
+export const staffordDiscardOptions = (G: VQGame, power: Power | string): StaffordDiscardOption[] => {
+    if (!isPower(power)) return [];
+    const cards = [...staffordCards(G, power)]
+        .sort((a, b) => cardById(b).cp - cardById(a).cp || a.localeCompare(b))
+        .map((id) => {
+            const def = cardById(id);
+            return {value: `card:${id}`, label: `${def.name}（手牌 ${def.cp} CP）`};
+        });
+    const treasures = [...new Set(G.powers[power].treasures)].sort((a, b) => b - a)
+        .map((value) => {
+            const count = G.powers[power].treasures.filter((treasure) => treasure === value).length;
+            return {
+                value: `treasure:${value}`,
+                label: `财宝 ${value}（${value} CP${count > 1 ? `，共 ${count} 件` : ""}）`,
+            };
+        });
+    return [...cards, ...treasures];
+};
+
+/** First legal target power when the stored selection is stale or blank ("" if none). */
+export const staffordPowerValue = (G: VQGame, selected: string | undefined): string => {
+    const options = staffordPowerOptions(G);
+    return selected !== undefined && options.some((option) => option.value === selected)
+        ? selected
+        : options[0]?.value ?? "";
+};
+
+/** First legal discard choice for `power` when the stored one is stale or missing ("" if none). */
+export const staffordDiscardValue = (G: VQGame, power: string, selected: string | undefined): string => {
+    const options = staffordDiscardOptions(G, power);
+    return selected !== undefined && options.some((option) => option.value === selected)
+        ? selected
+        : options[0]?.value ?? "";
+};
+
+/**
+ * Builds the `power:card:<id>` / `power:treasure:<value>` argument
+ * `resolveSirEdwardStafford` already parses.  The discard segment is always
+ * explicit, so the engine never falls back to its automatic mixed selection.
+ */
+export const staffordTargetValue = (G: VQGame, selection: StaffordTargetSelection): string | undefined => {
+    const power = staffordPowerValue(G, selection.power);
+    const discard = staffordDiscardValue(G, power, selection.discard);
+    return power === "" || discard === "" ? undefined : `${power}:${discard}`;
+};
+
+/** Dedicated #102 selector: target power, then a card or treasure to discard. */
+export const StaffordTargetSelect = ({G, value, onChange}: {
+    G: VQGame;
+    value: StaffordTargetSelection;
+    onChange: (power: Power, discard: string) => void;
+}) => {
+    const power = staffordPowerValue(G, value.power);
+    const options = staffordDiscardOptions(G, power);
+    const discard = staffordDiscardValue(G, power, value.discard);
+    return <Stack spacing={0.5} sx={{mt: 1}}>
+        <Typography variant="caption" color="text.secondary">
+            斯塔福德目标（选择势力，再选择要弃置的手牌或财宝）
+        </Typography>
+        <FormControl size="small" fullWidth disabled={staffordPowerOptions(G).length === 0}>
+            <InputLabel id="vq-stafford-power">目标势力</InputLabel>
+            <Select labelId="vq-stafford-power" label="目标势力" value={power}
+                    onChange={(event) => {
+                        const nextPower = event.target.value as Power;
+                        const nextDiscard = staffordDiscardValue(G, nextPower, undefined);
+                        if (nextDiscard !== "") onChange(nextPower, nextDiscard);
+                    }}>
+                {staffordPowerOptions(G).map((option) =>
+                    <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+            </Select>
+        </FormControl>
+        <FormControl size="small" fullWidth disabled={options.length === 0}>
+            <InputLabel id="vq-stafford-discard">弃置手牌或财宝</InputLabel>
+            <Select labelId="vq-stafford-discard" label="弃置手牌或财宝" value={discard}
+                    onChange={(event) => onChange(power as Power, event.target.value)}>
+                {options.map((option) =>
+                    <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+            </Select>
+        </FormControl>
+    </Stack>;
+};
+
+/**
  * #36 "retrieve and play immediately" choices for the battle panel.
  *
  * The battle stage only exposes `playVirginQueenCombat`, so the client must
@@ -757,6 +884,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [menendezEventTarget, setMenendezEventTarget] = React.useState("");
     const [polishElectionBids, setPolishElectionBids] = React.useState<PolishElectionBidChoices>({});
     const [armyMutinySelection, setArmyMutinySelection] = React.useState<ArmyMutinyTargetSelection>({space: ""});
+    const [staffordSelection, setStaffordSelection] = React.useState<StaffordTargetSelection>({power: ""});
     const [expeditionCaptain, setExpeditionCaptain] = React.useState("");
     const [expeditionHasColony, setExpeditionHasColony] = React.useState(false);
     const [foreignArmySize, setForeignArmySize] = React.useState(3);
@@ -923,6 +1051,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         const menendezTarget = menendezTargetValue(G, menendezEventTarget);
         const polishElection = targetMode === "polishElection";
         const armyMutiny = targetMode === "armyMutiny";
+        const stafford = targetMode === "stafford";
         const foreignWarBlocked = foreignWarPower !== undefined && (G.foreignWars[foreignWarPower] !== undefined ||
             (foreignWarPower === "hre" && atWar(G, "hre", "ottoman")) ||
             Object.values(G.spaces).filter((space) => space.siege === undefined)
@@ -963,6 +1092,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 onChange={(power, choice) => setPolishElectionBids((current) => ({...current, [power]: choice}))}/>}
             {armyMutiny && <ArmyMutinyTargetSelect G={G} value={armyMutinySelection}
                 onChange={(space, owner) => setArmyMutinySelection({space, owner})}/>}
+            {stafford && <StaffordTargetSelect G={G} value={staffordSelection}
+                onChange={(power, discard) => setStaffordSelection({power, discard})}/>}
             {showTargetField && <Box sx={{mt: 0.5}}>
                 <EventTargetField cardId={id} value={eventTarget} onChange={setEventTarget}/>
             </Box>}
@@ -976,7 +1107,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                       (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
                                                   onClick={() => {
                                                       playEventCard(moves.playCard, id, {
-                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : menendezOptions.length > 0 ? menendezTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : armyMutiny ? armyMutinyTargetValue(G, armyMutinySelection) : undefined,
+                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : menendezOptions.length > 0 ? menendezTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : armyMutiny ? armyMutinyTargetValue(G, armyMutinySelection) : stafford ? staffordTargetValue(G, staffordSelection) : undefined,
                                                           // Free text is only honoured for cards without a dedicated selector.
                                                           typed: targetMode === "freeText" ? eventTarget : "",
                                                       });
@@ -985,6 +1116,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                       setMenendezEventTarget("");
                                                       setPolishElectionBids({});
                                                       setArmyMutinySelection({space: ""});
+                                                      setStaffordSelection({power: ""});
                                                       setSelectedCard(undefined);
                                                   }}>
                     {def.kind === "home" ? "使用能力" : "作为事件"}
@@ -2189,7 +2321,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {hand.length === 0 && <Typography variant="body2" color="text.secondary">{me ? "暂无手牌。" : "旁观模式仅展示公开牌数。"}</Typography>}
                     <div className="vq-card-tray">{hand.map((id) => {
                         const card = cardById(id);
-                        return <button key={id} className="vq-card" aria-label={`查看卡牌 ${card.name} · ${card.cp} CP`} onClick={() => {setSelectedCard(id); setEventTarget(""); setHolyLeagueEventTarget(""); setMenendezEventTarget(""); setPolishElectionBids({});}}>
+                        return <button key={id} className="vq-card" aria-label={`查看卡牌 ${card.name} · ${card.cp} CP`} onClick={() => {setSelectedCard(id); setEventTarget(""); setHolyLeagueEventTarget(""); setMenendezEventTarget(""); setPolishElectionBids({}); setStaffordSelection({power: ""});}}>
                             <CardArt def={card} className="vq-card-art" lazy/>
                             <small>{card.kind === "home" ? "本国牌" : card.kind === "event" ? "事件牌" : "行动牌"}<span className="vq-card-cp">{card.cp} CP</span></small>
                             <strong>{card.name}</strong><small>查看详情 ↗</small>

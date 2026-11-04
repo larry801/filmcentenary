@@ -2,12 +2,12 @@ import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions, abjurationOfferDetails, abjurationOffers, abjurationSelection, abjurationOfferMove, acceptAbjurationOffer, ArmyMutinyTargetSelect, armyMutinySpaceOptions, armyMutinyOwnerOptions, armyMutinySpaceValue, armyMutinyOwnerValue, armyMutinyTargetValue} from "./components/board";
+import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions, abjurationOfferDetails, abjurationOffers, abjurationSelection, abjurationOfferMove, acceptAbjurationOffer, ArmyMutinyTargetSelect, armyMutinySpaceOptions, armyMutinyOwnerOptions, armyMutinySpaceValue, armyMutinyOwnerValue, armyMutinyTargetValue, StaffordTargetSelect, staffordPowerOptions, staffordDiscardOptions, staffordPowerValue, staffordDiscardValue, staffordTargetValue} from "./components/board";
 import {chooseAbjuration, proposeBetroth, respondAction} from "./moves";
 import {moveError} from "./movePolicy";
 import {setupGame} from "./util";
 import {ownerOf} from "./ownership";
-import {Power, VQGame} from "./constant/general";
+import {Power, POWERS, VQGame} from "./constant/general";
 import {SPACES} from "./mapData";
 import {VirginQueenGameDef} from "./game";
 import {cardById} from "./constant/cards";
@@ -613,6 +613,92 @@ describe("Virgin Queen board", () => {
         expect(html).toContain("Brussels");
         expect(html).toContain("法国（正规军 2，雇佣兵 2）");
         expect(html).not.toContain("事件目标（可选）");
+    });
+
+    it("offers #102 Stafford target powers with their discardable cards and treasures", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        for (const power of POWERS) {
+            G.powers[power].cards = [];
+            G.powers[power].treasures = [];
+        }
+        G.powers.spain.cards = ["vq-003", "vq-020", "vq-021"];
+        G.powers.spain.treasures = [3, 5, 5];
+        G.powers.protestant.cards = ["vq-032"];
+        G.powers.france.treasures = [1];
+
+        expect(staffordPowerOptions(G)).toEqual([
+            {value: "spain", label: "西班牙（手牌 2，财宝 3）"},
+            {value: "france", label: "法国（手牌 0，财宝 1）"},
+        ]);
+        expect(staffordDiscardOptions(G, "spain")).toEqual([
+            {value: "card:vq-020", label: "雄辩的使节（手牌 5 CP）"},
+            {value: "card:vq-021", label: "外国志愿军（手牌 5 CP）"},
+            {value: "treasure:5", label: "财宝 5（5 CP，共 2 件）"},
+            {value: "treasure:3", label: "财宝 3（3 CP）"},
+        ]);
+        // Home cards are never discardable, so a power holding only one is not offered.
+        expect(staffordDiscardOptions(G, "protestant")).toEqual([]);
+        expect(staffordPowerOptions(G).map((option) => option.value)).not.toContain("protestant");
+
+        // Stale or blank selections fall back to the first legal choice, never forwarding bad input.
+        expect(staffordPowerValue(G, "protestant")).toBe("spain");
+        expect(staffordPowerValue(G, "not-a-power")).toBe("spain");
+        expect(staffordDiscardValue(G, "spain", "card:vq-102")).toBe("card:vq-020");
+        expect(staffordDiscardValue(G, "spain", undefined)).toBe("card:vq-020");
+        expect(staffordTargetValue(G, {power: "spain", discard: "treasure:5"})).toBe("spain:treasure:5");
+        expect(staffordTargetValue(G, {power: "spain", discard: "treasure:9"})).toBe("spain:card:vq-020");
+        expect(staffordTargetValue(G, {power: "protestant"})).toBe("spain:card:vq-020");
+    });
+
+    it("omits the #102 target when no power has anything to discard", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        for (const power of POWERS) {
+            G.powers[power].cards = [];
+            G.powers[power].treasures = [];
+        }
+        expect(staffordPowerOptions(G)).toEqual([]);
+        expect(staffordDiscardOptions(G, "spain")).toEqual([]);
+        expect(staffordTargetValue(G, {power: ""})).toBeUndefined();
+
+        // #102 now owns a dedicated control; unrelated cards keep the free-text fallback.
+        expect(eventTargetMode("sirEdwardStafford", 0)).toBe("stafford");
+        expect(eventTargetMode("rulerFallsIll", 0)).toBe("freeText");
+    });
+
+    it("forwards the dedicated #102 Stafford target and keeps free-text targeting off that card", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.powers.spain.cards = ["vq-020"];
+        G.powers.spain.treasures = [5];
+        const played: {cardId: string; asEvent: true; target?: string}[] = [];
+        const playCard = (args: {cardId: string; asEvent: true; target?: string}): void => { played.push(args); };
+
+        playEventCard(playCard, "vq-102", {typed: "ignored free text", selected: staffordTargetValue(G, {power: "spain", discard: "treasure:5"})});
+        playEventCard(playCard, "vq-102", {typed: "ignored free text", selected: staffordTargetValue(G, {power: "spain", discard: "card:vq-102"})});
+
+        expect(played).toEqual([
+            {cardId: "vq-102", asEvent: true, target: "spain:treasure:5"},
+            {cardId: "vq-102", asEvent: true, target: "spain:card:vq-020"},
+        ]);
+    });
+
+    it("renders the dedicated #102 Stafford power and discard selector", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.powers.spain.cards = ["vq-020", "vq-021"];
+        G.powers.spain.treasures = [5, 5];
+        const html = renderToStaticMarkup(<StaffordTargetSelect G={G} value={{power: "spain", discard: "treasure:5"}}
+            onChange={() => undefined}/>);
+        expect(html).toContain("斯塔福德目标（选择势力，再选择要弃置的手牌或财宝）");
+        expect(html).toContain("目标势力");
+        expect(html).toContain("弃置手牌或财宝");
+        expect(html).toContain("西班牙（手牌 2，财宝 2）");
+        expect(html).toContain("财宝 5（5 CP，共 2 件）");
+        expect(html).not.toContain("事件目标（可选）");
+
+        // Blank state highlights the first legal power and the first legal discard.
+        const defaults = renderToStaticMarkup(<StaffordTargetSelect G={G} value={{power: ""}}
+            onChange={() => undefined}/>);
+        expect(defaults).toContain("西班牙（手牌 2，财宝 2）");
+        expect(defaults).toContain("雄辩的使节（手牌 5 CP）");
     });
 
     it("renders the map, hand and action panel", () => {
