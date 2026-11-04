@@ -1,13 +1,8 @@
 import React from "react";
 import {SocketIO} from 'boardgame.io/multiplayer';
 import {Client} from 'boardgame.io/react';
-import {FilmCentenaryGame, Player} from "../../Game";
-import {FilmCentenaryBoard} from "../board";
+import type {Player} from "../../Game";
 import CircularProgress from "@mui/material/CircularProgress";
-import {SongJinnGameDef} from "../../songJinn/game";
-import {SongJinnBoard} from "../../songJinn/components/board";
-import {VirginQueenGameDef} from "../../virginQueen/game";
-import {VirginQueenBoard} from "../../virginQueen/components/board";
 
 interface ISpectateProps {
     matchID: string,
@@ -27,8 +22,14 @@ export const Loading = () => {
     return <CircularProgress size="20%"/>;
 }
 
-const clientFor = (gameName: string, server: string) => {
+type GameClient = React.ComponentType<any>;
+
+const buildClient = async (gameName: string, server: string): Promise<GameClient> => {
     if (gameName === 'virginQueen') {
+        const [{VirginQueenGameDef}, {VirginQueenBoard}] = await Promise.all([
+            import("../../virginQueen/game"),
+            import("../../virginQueen/components/board"),
+        ]);
         return Client({
             game: VirginQueenGameDef,
             board: VirginQueenBoard,
@@ -37,6 +38,10 @@ const clientFor = (gameName: string, server: string) => {
         });
     }
     if (gameName === 'film') {
+        const [{FilmCentenaryGame}, {FilmCentenaryBoard}] = await Promise.all([
+            import("../../Game"),
+            import("../board"),
+        ]);
         return Client({
             game: FilmCentenaryGame,
             board: FilmCentenaryBoard,
@@ -44,6 +49,10 @@ const clientFor = (gameName: string, server: string) => {
             loading: Loading,
         });
     }
+    const [{SongJinnGameDef}, {SongJinnBoard}] = await Promise.all([
+        import("../../songJinn/game"),
+        import("../../songJinn/components/board"),
+    ]);
     return Client({
         game: SongJinnGameDef,
         board: SongJinnBoard,
@@ -52,13 +61,52 @@ const clientFor = (gameName: string, server: string) => {
     });
 };
 
+// Cache the promise so each game is imported once per server, even when both
+// the player and spectator views mount at the same time.
+const clientCache = new Map<string, Promise<GameClient>>();
+
+const clientFor = (gameName: string, server: string) => {
+    const key = `${gameName}|${server}`;
+    let client = clientCache.get(key);
+    if (!client) {
+        client = buildClient(gameName, server);
+        clientCache.set(key, client);
+    }
+    return client;
+};
+
+const useGameClient = (gameName: string, server: string) => {
+    const [gameClient, setGameClient] = React.useState<GameClient | null>(null);
+    const [error, setError] = React.useState("");
+    React.useEffect(() => {
+        let active = true;
+        setGameClient(null);
+        setError("");
+        clientFor(gameName, server)
+            .then((client) => {
+                if (active) setGameClient(() => client);
+            })
+            .catch((err) => {
+                if (active) setError(String(err));
+            });
+        return () => {
+            active = false;
+        };
+    }, [gameName, server]);
+    return {gameClient, error};
+};
+
 export const Spectate = ({matchID, server, gameName}: ISpectateProps) => {
-    const SpectateClient = clientFor(gameName, server);
+    const {gameClient: SpectateClient, error} = useGameClient(gameName, server);
+    if (error) return <div>{error}</div>;
+    if (!SpectateClient) return <Loading/>;
     return <SpectateClient matchID={matchID}/>;
 }
 
 export const MultiPlayer = ({matchID, serverURL, credentials, player, gameName}: MultiplayerProps) => {
-    const MultiplayerClient = clientFor(gameName, serverURL);
+    const {gameClient: MultiplayerClient, error} = useGameClient(gameName, serverURL);
+    if (error) return <div>{error}</div>;
+    if (!MultiplayerClient) return <Loading/>;
     return <>
         <MultiplayerClient
             matchID={matchID}

@@ -24,10 +24,11 @@ import i18n from "../../constant/i18n";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
-import {GeoMap} from "./geo";
-import {ParentSize} from "@visx/responsive";
 import {CombatInfoPanel} from "./combat-info";
 import ExportLogButton from "../../components/export-log-button";
+import CircularProgress from "@mui/material/CircularProgress";
+
+const GeoMap = React.lazy(() => import("./geo"));
 
 export const SongJinnBoard = ({
                                   G,
@@ -133,9 +134,9 @@ export const SongJinnBoard = ({
                 </Grid>
                 {showMap &&
                     <Grid size={{xs: 12, sm: 6}}>
-                        <ParentSize>
-                            {parent => <GeoMap G={G} moves={moves} height={640} width={parent.width}/>}
-                        </ParentSize>
+                        <React.Suspense fallback={<CircularProgress size="20%"/>}>
+                            <GeoMap G={G} moves={moves} height={640}/>
+                        </React.Suspense>
                     </Grid>}
 
                 <Grid size={{xs: 12, sm: 6}}>

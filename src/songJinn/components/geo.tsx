@@ -5,6 +5,7 @@ import {geoMercator} from '@visx/vendor/d3-geo';
 import {Zoom} from '@visx/zoom';
 import {MapData} from "../constant/map";
 import {Text} from "@visx/text";
+import {ParentSize} from "@visx/responsive";
 import {getRegionById} from "../constant/regions";
 import {RegionID, SongJinnGame, TerrainType} from "../constant/general";
 import {green, orange, red, blue, purple} from "@mui/material/colors";
@@ -271,3 +272,11 @@ export function GeoMap({width, height, G}: GeoCustomProps) {
         </>
     );
 }
+
+export const GeoMapPanel = ({G, moves, height = 640}: Omit<GeoCustomProps, 'width' | 'height'> & {height?: number}) => (
+    <ParentSize>
+        {parent => <GeoMap G={G} moves={moves} height={height} width={parent.width}/>}
+    </ParentSize>
+);
+
+export default GeoMapPanel;
