@@ -3534,19 +3534,6 @@ export const chooseHreReligiousPreference = (G: VQGame, ctx: Ctx, args: {prefere
     pushLog(G, "Holy Roman records its secret religious preference.");
 };
 
-/**
- * Rule 4.2 formation size: no leaders = 4, one leader = its command rating,
- * two or more leaders = the sum of the two highest command ratings.
- */
-const formationCapacity = (leaders: string[]): number => {
-    if (leaders.length === 0) return 4;
-    return leaders
-        .map((id) => LEADER_BY_ID[id]?.command ?? 0)
-        .sort((a, b) => b - a)
-        .slice(0, 2)
-        .reduce((sum, command) => sum + command, 0);
-};
-
 export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: string; units?: Partial<LandStack>; leaders?: string[]; path?: string[] }): void | typeof INVALID_MOVE => {
     if (moveError(G, "springDeploy", args)) return INVALID_MOVE;
     if (ctx.phase !== "spring") {

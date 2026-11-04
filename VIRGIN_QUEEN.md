@@ -1375,3 +1375,19 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 - 沃尔辛厄姆嵌套中 #90 保留耶稣会士测试：`e8c52c5`
 
 集成后验证（按要求未运行 build）：`jest src/virginQueen --runInBand --silent` 175 suites、911 tests passed；`jest --runInBand --silent` 180 suites、966 tests passed；`tsc --noEmit` 通过。
+
+
+## 八子代理审计修复（第六轮）
+
+八个并行子代理按子系统对照官方规则审计并修复高置信度问题，已 cherry-pick：
+
+- 移动/战斗：`427c905`（陆军编队 4/指挥上限、攻城骰不计骑兵）
+- 冬季/春季：`75ec843`（春季编队取最高两个指挥值、返航船长宝藏不再被冬季弃置）
+- 外交/小国：`4151e96`（西班牙-英格兰在费用≤3时禁盟、5 处影响力写入统一封顶 9）
+- #1–30：`57f4c11`（#21 固定放置 3 正规军、#30 return 同时跳过行动轮）
+- #31–60：`b407932`（#41 补 Carlisle/Berwick、#42 不再错误取消 #54）
+- #61–90：`c6585fc`（#69 仅尼德兰叛乱、#65 给新教而非出牌方）
+- #91–112：`bc21635`（#100 动荡不计入统计、#104 西班牙获得 4+Papacy+绝罚 CP）
+- 谍报/世界：`3281ae9`（默认将领不可被刺杀、环航宝藏交付）
+
+集成后验证（按要求未运行 build）：`jest src/virginQueen --runInBand --silent` 179 suites、940 tests passed；`jest --runInBand --silent` 184 suites、995 tests passed；`tsc --noEmit` 通过。
