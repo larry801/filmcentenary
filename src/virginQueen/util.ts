@@ -4227,7 +4227,9 @@ export const placeMoriscoUnrest = (G: VQGame, origin?: string): string[] => {
     if (G.morisco === undefined) return [];
     const center = origin ?? G.morisco.space;
     const candidates = landWithin(center, 2).filter((id) =>
-        id !== center && G.spaces[id] !== undefined && !G.spaces[id].unrest && ownersWithLand(G, id).length === 0);
+        id !== center && G.spaces[id] !== undefined && !G.spaces[id].unrest &&
+        ownersWithLand(G, id).length === 0 && ownersWithNaval(G, id).length === 0 &&
+        (G.spaces[id].leaders?.length ?? 0) === 0);
     const chosen = candidates.slice(0, 2);
     for (const id of chosen) {
         G.spaces[id].unrest = true;
