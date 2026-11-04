@@ -2,7 +2,7 @@ import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions, abjurationOfferDetails, abjurationOffers, abjurationSelection, abjurationOfferMove, acceptAbjurationOffer, ArmyMutinyTargetSelect, armyMutinySpaceOptions, armyMutinyOwnerOptions, armyMutinySpaceValue, armyMutinyOwnerValue, armyMutinyTargetValue, StaffordTargetSelect, staffordPowerOptions, staffordDiscardOptions, staffordPowerValue, staffordDiscardValue, staffordTargetValue} from "./components/board";
+import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions, abjurationOfferDetails, abjurationOffers, abjurationSelection, abjurationOfferMove, acceptAbjurationOffer, ArmyMutinyTargetSelect, armyMutinySpaceOptions, armyMutinyOwnerOptions, armyMutinySpaceValue, armyMutinyOwnerValue, armyMutinyTargetValue, StaffordTargetSelect, staffordPowerOptions, staffordDiscardOptions, staffordPowerValue, staffordDiscardValue, staffordTargetValue, GermanRecruitmentTargetSelect, germanRecruitmentSpaceOptions, germanRecruitmentPowerOptions, germanRecruitmentSpaceValue, germanRecruitmentPowerValue, germanRecruitmentTargetValue} from "./components/board";
 import {chooseAbjuration, proposeBetroth, respondAction} from "./moves";
 import {moveError} from "./movePolicy";
 import {setupGame} from "./util";
@@ -699,6 +699,116 @@ describe("Virgin Queen board", () => {
             onChange={() => undefined}/>);
         expect(defaults).toContain("西班牙（手牌 2，财宝 2）");
         expect(defaults).toContain("雄辩的使节（手牌 5 CP）");
+    });
+    it("offers #23 mercenary spaces/powers and builds the space:power grammar", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.activePower = "france";
+        for (const space of Object.values(G.spaces)) space.land = {};
+        G.spaces.brussels.land.spain = {regular: 1, merc: 3, cav: 0};
+        G.spaces.brussels.land.france = {regular: 2, merc: 2, cav: 0};
+        G.spaces.antwerp.land.france = {regular: 0, merc: 4, cav: 0};
+        G.spaces.london.land.england = {regular: 3, merc: 0, cav: 0};
+
+        // Only spaces with major-power mercenaries are selectable, in map order.
+        expect(germanRecruitmentSpaceOptions(G).map((option) => option.value).sort()).toEqual(["antwerp", "brussels"]);
+        expect(germanRecruitmentSpaceOptions(G).find((option) => option.value === "brussels")?.label).toBe("Brussels");
+        // POWERS order, and the label shows the exact number of mercenaries removed.
+        expect(germanRecruitmentPowerOptions(G, "brussels")).toEqual([
+            {value: "spain", label: "西班牙（雇佣兵 3）"},
+            {value: "france", label: "法国（雇佣兵 2）"},
+        ]);
+        expect(germanRecruitmentPowerOptions(G, "london")).toEqual([]);
+        expect(germanRecruitmentPowerOptions(G, "nowhere")).toEqual([]);
+
+        expect(germanRecruitmentTargetValue(G, {space: "brussels", power: "france"})).toBe("brussels:france");
+        // A power without mercenaries in the chosen space falls back to its first legal power.
+        expect(germanRecruitmentTargetValue(G, {space: "brussels", power: "england"})).toBe("brussels:spain");
+        const first = germanRecruitmentSpaceOptions(G)[0].value;
+        expect(germanRecruitmentSpaceValue(G, "")).toBe(first);
+        expect(germanRecruitmentSpaceValue(G, "nowhere")).toBe(first);
+        expect(germanRecruitmentPowerValue(G, "brussels", undefined)).toBe("spain");
+        expect(germanRecruitmentTargetValue(G, {space: ""}))
+            .toBe(`${first}:${germanRecruitmentPowerOptions(G, first)[0].value}`);
+    });
+
+    it("builds the two-space HRE #23 target and keeps non-HRE targets to one space", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        for (const space of Object.values(G.spaces)) space.land = {};
+        G.spaces.brussels.land.spain = {regular: 1, merc: 2, cav: 0};
+        G.spaces.brussels.land.england = {regular: 1, merc: 3, cav: 0};
+        G.spaces.antwerp.land.france = {regular: 1, merc: 4, cav: 0};
+        G.spaces.antwerp.land.england = {regular: 1, merc: 5, cav: 0};
+
+        const twoSpaces = {space: "brussels", power: "spain" as const,
+            secondSpace: "antwerp", secondPower: "france" as const};
+        expect(germanRecruitmentTargetValue(G, twoSpaces, true))
+            .toBe("brussels:spain:antwerp:france");
+        // The active HRE gets the two-space form without an explicit flag.
+        G.activePower = "hre";
+        expect(germanRecruitmentTargetValue(G, twoSpaces)).toBe("brussels:spain:antwerp:france");
+        // A non-HRE power can remove mercenaries from only the first named space.
+        expect(germanRecruitmentTargetValue(G, twoSpaces, false)).toBe("brussels:spain");
+        // The second pair is optional and must be a distinct space.
+        expect(germanRecruitmentTargetValue(G, {space: "brussels", power: "spain"}, true)).toBe("brussels:spain");
+        expect(germanRecruitmentTargetValue(G, {space: "brussels", power: "spain",
+            secondSpace: "brussels", secondPower: "england"}, true)).toBe("brussels:spain");
+        // A stale second power falls back to the first mercenary power in that space.
+        expect(germanRecruitmentTargetValue(G, {space: "brussels", power: "spain",
+            secondSpace: "antwerp", secondPower: "spain"}, true)).toBe("brussels:spain:antwerp:england");
+        // The list shape carries both HRE picks as well.
+        expect(germanRecruitmentTargetValue(G, {picks: [
+            {space: "brussels", power: "spain"}, {space: "antwerp", power: "france"},
+        ]}, {hre: true})).toBe("brussels:spain:antwerp:france");
+    });
+
+    it("omits #23 when no major mercenaries are present and forwards the chosen target", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        for (const space of Object.values(G.spaces)) space.land = {};
+        G.spaces.london.land.england = {regular: 3, merc: 0, cav: 0};
+
+        expect(germanRecruitmentSpaceOptions(G)).toEqual([]);
+        expect(germanRecruitmentTargetValue(G, {space: "london", power: "england"})).toBeUndefined();
+
+        G.spaces.brussels.land.france = {regular: 1, merc: 2, cav: 0};
+        const target = germanRecruitmentTargetValue(G, {space: "brussels", power: "france"});
+        const played: {cardId: string; asEvent: true; target?: string}[] = [];
+        const playCard = (args: {cardId: string; asEvent: true; target?: string}): void => { played.push(args); };
+        playEventCard(playCard, "vq-023", {typed: "ignored free text", selected: target});
+        playEventCard(playCard, "vq-023", {typed: "", selected: undefined});
+        expect(played).toEqual([
+            {cardId: "vq-023", asEvent: true, target: "brussels:france"},
+            {cardId: "vq-023", asEvent: true},
+        ]);
+
+        // #23 now owns a dedicated control; other cards keep the free-text fallback.
+        expect(eventTargetMode("germanRecruitmentCurtailed", 0)).toBe("germanRecruitment");
+        expect(eventTargetMode("rulerFallsIll", 0)).toBe("freeText");
+        expect(eventTargetMode("", 0)).toBe("freeText");
+    });
+
+    it("renders the dedicated #23 space and power selector, with an HRE second pair", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        for (const space of Object.values(G.spaces)) space.land = {};
+        G.spaces.brussels.land.spain = {regular: 1, merc: 3, cav: 0};
+        G.spaces.brussels.land.france = {regular: 2, merc: 2, cav: 0};
+        G.spaces.antwerp.land.france = {regular: 0, merc: 4, cav: 0};
+        const html = renderToStaticMarkup(<GermanRecruitmentTargetSelect G={G} hre
+            value={{space: "brussels", power: "france", secondSpace: "antwerp", secondPower: "france"}}
+            onChange={() => undefined}/>);
+        expect(html).toContain("德意志裁军目标");
+        expect(html).toContain("目标地区");
+        expect(html).toContain("雇佣兵所属势力");
+        expect(html).toContain("Brussels");
+        expect(html).toContain("法国（雇佣兵 2）");
+        expect(html).toContain("第二目标地区（神圣罗马帝国）");
+        expect(html).toContain("法国（雇佣兵 4）");
+        expect(html).not.toContain("事件目标（可选）");
+
+        const single = renderToStaticMarkup(<GermanRecruitmentTargetSelect G={G} hre={false}
+            value={{space: "brussels", power: "spain"}} onChange={() => undefined}/>);
+        expect(single).toContain("西班牙（雇佣兵 3）");
+        expect(single).not.toContain("第二目标地区");
+>>>>>>> 512b795 (feat(vq): add dedicated #23 German Recruitment target selector)
     });
 
     it("renders the map, hand and action panel", () => {

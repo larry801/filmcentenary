@@ -139,7 +139,6 @@ const PHASE_LABELS: Record<string, string> = {
  * grammar `playCard` expects for those effects (see `resolvePlayedCardEvent`).
  */
 export const EVENT_TARGET_EXAMPLES: Record<string, string> = {
-    "vq-023": "brussels:spain（移除西班牙雇佣兵）；神圣罗马帝国可写 brussels:spain:antwerp:france",
     "vq-030": "spain:return:alba 或 france:skip",
     "vq-053": "peace:france、give:france:vq-020 或 move:paris",
     "vq-059": "cut:spain（剪除本国板上的西班牙密探）、upgrade 或留空获得 5CP",
@@ -175,10 +174,10 @@ export const playEventCard = (
 
 /**
  * Which targeting control the event-card drawer renders.  Cards with a
- * dedicated selector never fall back to free text, so #17, #24, #61, #86 and
- * #102 can only be played through their enumerated choices.
+ * dedicated selector never fall back to free text, so #17, #23, #24, #61,
+ * #86 and #102 can only be played through their enumerated choices.
  */
-export type EventTargetMode = "espionage" | "foreignWar" | "holyLeague" | "menendez" | "polishElection" | "armyMutiny" | "stafford" | "freeText";
+export type EventTargetMode = "espionage" | "foreignWar" | "holyLeague" | "menendez" | "polishElection" | "armyMutiny" | "stafford" | "germanRecruitment" | "freeText";
 
 export const eventTargetMode = (handler: string, espionageTargetCount: number): EventTargetMode => {
     if (espionageTargetCount > 0) return "espionage";
@@ -188,6 +187,7 @@ export const eventTargetMode = (handler: string, espionageTargetCount: number): 
     if (handler === "polishRoyalElection") return "polishElection";
     if (handler === "armyMutiny") return "armyMutiny";
     if (handler === "sirEdwardStafford") return "stafford";
+    if (handler === "germanRecruitmentCurtailed" || handler === "germanRecruitment") return "germanRecruitment";
     return "freeText";
 };
 
@@ -603,6 +603,288 @@ export const ArmyMutinyTargetSelect = ({G, value, onChange}: {
     </Stack>;
 };
 
+export interface GermanRecruitmentTargetOption {
+    /** Space id, in map order. */
+    value: string;
+    label: string;
+}
+
+export interface GermanRecruitmentPowerOption {
+    /** Major power with mercenaries in the chosen space. */
+    value: Power;
+    label: string;
+}
+
+/** Alias matching #17's "owner" wording; #23 removes that power's mercenaries. */
+export type GermanRecruitmentOwnerOption = GermanRecruitmentPowerOption;
+
+export interface GermanRecruitmentPick {
+    /** Space whose mercenaries are removed. */
+    space: string;
+    /** Power whose mercenaries are removed; undefined means the first power there. */
+    power?: Power;
+}
+
+/**
+ * Stored #23 selection.  The flat `space`/`power` pair is the common
+ * single-space case; the HRE may add a second, distinct pair.  `owner` and the
+ * list aliases are accepted so the target builder can also consume the shape
+ * produced by older callers without duplicating grammar in the component.
+ */
+export interface GermanRecruitmentTargetSelection {
+    space?: string;
+    power?: Power;
+    /** Alias for `power`. */
+    owner?: Power;
+    /** Alternate first-pair names used by some callers. */
+    firstSpace?: string;
+    firstPower?: Power;
+    secondSpace?: string;
+    secondPower?: Power;
+    /** Alias for `secondPower`. */
+    secondOwner?: Power;
+    first?: GermanRecruitmentPick;
+    second?: GermanRecruitmentPick;
+    picks?: readonly GermanRecruitmentPick[];
+    spaces?: readonly GermanRecruitmentPick[];
+    /** HRE marker, for callers that carry the acting power in the selection. */
+    hre?: boolean;
+    /** Explicit cap; the HRE uses two, every other power one. */
+    maxSpaces?: number;
+}
+
+export type GermanRecruitmentSelection = GermanRecruitmentTargetSelection | readonly GermanRecruitmentPick[];
+
+/**
+ * #23 target spaces: every space holding mercenaries of at least one major
+ * power, in map order.  Minor/independent mercenaries are not selectable
+ * because the card removes one major power's mercenaries, and the engine's
+ * explicit-power token only accepts a major power.
+ */
+export const germanRecruitmentSpaceOptions = (G: VQGame, _hre?: boolean): GermanRecruitmentTargetOption[] =>
+    SPACES.filter((def) => G.spaces[def.id] !== undefined &&
+        POWERS.some((power) => (G.spaces[def.id].land[power]?.merc ?? 0) > 0))
+        .map((def) => ({value: def.id, label: def.name}));
+
+/** Major powers with mercenaries in `spaceId`, in the engine's power order. */
+export const germanRecruitmentPowerOptions = (G: VQGame, spaceId: string, _hre?: boolean): GermanRecruitmentPowerOption[] => {
+    const space = G.spaces[spaceId];
+    if (space === undefined) return [];
+    return POWERS.flatMap((power) => {
+        const merc = space.land[power]?.merc ?? 0;
+        return merc > 0 ? [{value: power, label: `${POWER_NAMES[power].zh}（雇佣兵 ${merc}）`}] : [];
+    });
+};
+
+/** Alias matching #17's owner naming. */
+export const germanRecruitmentOwnerOptions = germanRecruitmentPowerOptions;
+
+/** Spaces other than the first pick, for the HRE's second pair. */
+export const germanRecruitmentSecondSpaceOptions = (
+    G: VQGame,
+    firstSpace?: string,
+): GermanRecruitmentTargetOption[] =>
+    germanRecruitmentSpaceOptions(G).filter((option) => option.value !== firstSpace);
+
+/** The stored selection as ordered picks, accepting both flat and list shapes. */
+const germanRecruitmentStoredPicks = (value: GermanRecruitmentSelection): GermanRecruitmentPick[] => {
+    if (Array.isArray(value)) return [...value];
+    const selection = value as GermanRecruitmentTargetSelection;
+    const listed = selection.picks ?? selection.spaces;
+    if (listed !== undefined) return [...listed];
+    const picks: GermanRecruitmentPick[] = [];
+    if (selection.first !== undefined) picks.push(selection.first);
+    else if (selection.space !== undefined || selection.power !== undefined || selection.owner !== undefined ||
+        selection.firstSpace !== undefined || selection.firstPower !== undefined) {
+        const power = selection.power ?? selection.owner ?? selection.firstPower;
+        picks.push({space: selection.space ?? selection.firstSpace ?? "", ...(power !== undefined ? {power} : {})});
+    }
+    if (selection.second !== undefined) picks.push(selection.second);
+    else if (selection.secondSpace !== undefined || selection.secondPower !== undefined || selection.secondOwner !== undefined) {
+        const power = selection.secondPower ?? selection.secondOwner;
+        picks.push({space: selection.secondSpace ?? "", ...(power !== undefined ? {power} : {})});
+    }
+    return picks;
+};
+
+/** First legal space when the stored selection is stale or blank ("" if none). */
+export const germanRecruitmentSpaceValue = (G: VQGame, selected: string | undefined): string => {
+    const options = germanRecruitmentSpaceOptions(G);
+    return selected !== undefined && options.some((option) => option.value === selected)
+        ? selected
+        : options[0]?.value ?? "";
+};
+
+/** First legal power in `spaceId` when the stored selection is stale or missing. */
+export const germanRecruitmentPowerValue = (G: VQGame, spaceId: string, selected: Power | undefined): Power | undefined => {
+    const options = germanRecruitmentPowerOptions(G, spaceId);
+    return selected !== undefined && options.some((option) => option.value === selected)
+        ? selected
+        : options[0]?.value;
+};
+
+/** Alias matching #17's owner naming. */
+export const germanRecruitmentOwnerValue = germanRecruitmentPowerValue;
+
+const germanRecruitmentMaxSpaces = (
+    G: VQGame,
+    hre?: boolean | Power | {hre?: boolean; maxSpaces?: number},
+): number => {
+    if (typeof hre === "object" && hre !== null) return hre.maxSpaces ?? (hre.hre === true ? 2 : 1);
+    if (typeof hre === "boolean") return hre ? 2 : 1;
+    if (hre !== undefined) return hre === "hre" ? 2 : 1;
+    // A card drawer opened for the HRE can offer the two-space variant without
+    // an extra prop; callers that know the acting power can still pass it.
+    return G.activePower === "hre" ? 2 : 1;
+};
+
+/**
+ * Builds the `space:power` argument `resolveGermanRecruitment` already parses.
+ * The first legal space/power is used when the selection is blank or stale.
+ * A second group is emitted only for the HRE (at most two distinct spaces) and
+ * is never defaulted from an empty second selection, so a one-space target
+ * cannot accidentally remove mercenaries from a second space.
+ */
+export const germanRecruitmentTargetValue = (
+    G: VQGame,
+    selection: GermanRecruitmentSelection,
+    hre?: boolean | Power | {hre?: boolean; maxSpaces?: number},
+): string | undefined => {
+    const flat = Array.isArray(selection) ? undefined : selection as GermanRecruitmentTargetSelection;
+    const selectionMax = flat?.maxSpaces;
+    const selectionHre = flat?.hre;
+    const maxSpaces = selectionMax ?? germanRecruitmentMaxSpaces(G, hre ?? selectionHre);
+    const stored = germanRecruitmentStoredPicks(selection);
+    const parts: string[] = [];
+    const chosen: string[] = [];
+    for (const pick of stored) {
+        if (parts.length >= maxSpaces) break;
+        const space = pick === stored[0] ? germanRecruitmentSpaceValue(G, pick.space) : pick.space;
+        if (space === "" || chosen.includes(space)) continue;
+        if (!germanRecruitmentSpaceOptions(G).some((option) => option.value === space)) continue;
+        const power = germanRecruitmentPowerValue(G, space, pick.power);
+        if (power === undefined) continue;
+        chosen.push(space);
+        parts.push(`${space}:${power}`);
+    }
+    return parts.length > 0 ? parts.join(":") : undefined;
+};
+
+/** Alias used by some callers/tests that describe the value rather than the target. */
+export const germanRecruitmentSelectionValue = germanRecruitmentTargetValue;
+
+/** Flat `space:power` choices, useful for a single-space picker. */
+export const germanRecruitmentTargetOptions = (G: VQGame, hre?: boolean | Power | {hre?: boolean; maxSpaces?: number}): {value: string; label: string}[] =>
+    germanRecruitmentSpaceOptions(G).flatMap((space) =>
+        germanRecruitmentPowerOptions(G, space.value).map((power) => ({
+            value: `${space.value}:${power.value}`,
+            label: `${space.label} · ${power.label}`,
+        })));
+
+/** Dedicated #23 selector: space + power, plus a second distinct pair for the HRE. */
+export const GermanRecruitmentTargetSelect = ({G, value, onChange, hre, isHre, maxSpaces, twoSpaces}: {
+    G: VQGame;
+    value: GermanRecruitmentSelection;
+    onChange: (...args: any[]) => void;
+    hre?: boolean;
+    /** Alias for `hre`. */
+    isHre?: boolean;
+    maxSpaces?: number;
+    twoSpaces?: boolean;
+}) => {
+    const flat = Array.isArray(value) ? undefined : value as GermanRecruitmentTargetSelection;
+    const hreSide = hre === true || isHre === true;
+    const limit = maxSpaces ?? flat?.maxSpaces ??
+        (twoSpaces === true || hreSide || flat?.hre === true ||
+            G.activePower === "hre" ? 2 : 1);
+    const stored = germanRecruitmentStoredPicks(value);
+    const spaceOptions = germanRecruitmentSpaceOptions(G);
+    const space = germanRecruitmentSpaceValue(G, stored[0]?.space);
+    const powers = germanRecruitmentPowerOptions(G, space);
+    const power = germanRecruitmentPowerValue(G, space, stored[0]?.power);
+    const secondOptions = spaceOptions.filter((option) => option.value !== space);
+    const storedSecond = stored[1]?.space;
+    const secondSpace = limit > 1 && storedSecond !== undefined &&
+        secondOptions.some((option) => option.value === storedSecond) ? storedSecond : "";
+    const secondPowers = germanRecruitmentPowerOptions(G, secondSpace);
+    const secondPower = germanRecruitmentPowerValue(G, secondSpace, stored[1]?.power);
+    const emit = (nextSpace: string, nextPower: Power | undefined,
+        nextSecondSpace: string, nextSecondPower: Power | undefined): void => {
+        onChange(nextSpace, nextPower, nextSecondSpace === "" ? undefined : nextSecondSpace,
+            nextSecondSpace === "" ? undefined : nextSecondPower);
+    };
+    const firstSpaceSelect = <FormControl size="small" fullWidth>
+        <InputLabel id="vq-german-recruitment-space">目标地区</InputLabel>
+        <Select labelId="vq-german-recruitment-space" label="目标地区" value={space}
+                onChange={(event) => {
+                    const nextSpace = event.target.value;
+                    const nextPower = germanRecruitmentPowerValue(G, nextSpace, undefined);
+                    const keepSecond = secondSpace !== "" && secondSpace !== nextSpace ? secondSpace : "";
+                    const keepSecondPower = keepSecond === "" ? undefined : germanRecruitmentPowerValue(G, keepSecond, secondPower);
+                    emit(nextSpace, nextPower, keepSecond, keepSecondPower);
+                }}>
+            {spaceOptions.map((option) =>
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+        </Select>
+    </FormControl>;
+    const firstPowerSelect = <FormControl size="small" fullWidth disabled={powers.length === 0}>
+        <InputLabel id="vq-german-recruitment-power">雇佣兵所属势力</InputLabel>
+        <Select labelId="vq-german-recruitment-power" label="雇佣兵所属势力" value={power ?? ""}
+                onChange={(event) => emit(space, event.target.value as Power, secondSpace, secondPower)}>
+            {powers.map((option) =>
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+        </Select>
+    </FormControl>;
+    const secondSpaceSelect = <FormControl size="small" fullWidth>
+        <InputLabel id="vq-german-recruitment-second-space">第二目标地区（神圣罗马帝国）</InputLabel>
+        <Select labelId="vq-german-recruitment-second-space" label="第二目标地区（神圣罗马帝国）"
+                displayEmpty value={secondSpace}
+                onChange={(event) => {
+                    const nextSecondSpace = event.target.value;
+                    const nextSecondPower = nextSecondSpace === "" ? undefined : germanRecruitmentPowerValue(G, nextSecondSpace, undefined);
+                    emit(space, power, nextSecondSpace, nextSecondPower);
+                }}>
+            <MenuItem value="">不指定第二地区</MenuItem>
+            {secondOptions.map((option) =>
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+        </Select>
+    </FormControl>;
+    const secondPowerSelect = <FormControl size="small" fullWidth disabled={secondPowers.length === 0}>
+        <InputLabel id="vq-german-recruitment-second-power">第二雇佣兵所属势力</InputLabel>
+        <Select labelId="vq-german-recruitment-second-power" label="第二雇佣兵所属势力"
+                displayEmpty value={secondPower ?? ""}
+                onChange={(event) => {
+                    const nextPowerValue = event.target.value as string;
+                    const nextPower = nextPowerValue === "" ? undefined : nextPowerValue as Power;
+                    emit(space, power, secondSpace, nextPower);
+                }}>
+            <MenuItem value="">不指定第二势力</MenuItem>
+            {secondPowers.map((option) =>
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+        </Select>
+    </FormControl>;
+    return <Stack spacing={0.5} sx={{mt: 1}}>
+        <Typography variant="caption" color="text.secondary">
+            德意志裁军目标（募兵受限；选择地区，再选择该地区拥有雇佣兵的势力）
+        </Typography>
+        {firstSpaceSelect}
+        {firstPowerSelect}
+        {limit > 1 && <>
+            <Typography variant="caption" color="text.secondary">
+                神圣罗马帝国执行时可额外选择第二个地区（两个地区必须不同）
+            </Typography>
+            {secondSpaceSelect}
+            {secondPowerSelect}
+        </>}
+    </Stack>;
+};
+
+/** Short aliases for callers that name the card rather than its target. */
+export const GermanRecruitmentSelect = GermanRecruitmentTargetSelect;
+export const germanRecruitmentValue = germanRecruitmentTargetValue;
+export const germanRecruitmentOptions = germanRecruitmentTargetOptions;
+export const germanRecruitmentSecondPowerOptions = germanRecruitmentPowerOptions;
+
 /**
  * #102 Sir Edward Stafford targets a power's hand and treasures, then names
  * one non-home card or one treasure to discard.  Only powers with something
@@ -885,6 +1167,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [polishElectionBids, setPolishElectionBids] = React.useState<PolishElectionBidChoices>({});
     const [armyMutinySelection, setArmyMutinySelection] = React.useState<ArmyMutinyTargetSelection>({space: ""});
     const [staffordSelection, setStaffordSelection] = React.useState<StaffordTargetSelection>({power: ""});
+    const [germanRecruitmentSelection, setGermanRecruitmentSelection] = React.useState<GermanRecruitmentTargetSelection>({space: ""});
     const [expeditionCaptain, setExpeditionCaptain] = React.useState("");
     const [expeditionHasColony, setExpeditionHasColony] = React.useState(false);
     const [foreignArmySize, setForeignArmySize] = React.useState(3);
@@ -1052,6 +1335,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         const polishElection = targetMode === "polishElection";
         const armyMutiny = targetMode === "armyMutiny";
         const stafford = targetMode === "stafford";
+        const germanRecruitment = targetMode === "germanRecruitment";
         const foreignWarBlocked = foreignWarPower !== undefined && (G.foreignWars[foreignWarPower] !== undefined ||
             (foreignWarPower === "hre" && atWar(G, "hre", "ottoman")) ||
             Object.values(G.spaces).filter((space) => space.siege === undefined)
@@ -1094,6 +1378,10 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 onChange={(space, owner) => setArmyMutinySelection({space, owner})}/>}
             {stafford && <StaffordTargetSelect G={G} value={staffordSelection}
                 onChange={(power, discard) => setStaffordSelection({power, discard})}/>}
+            {germanRecruitment && <GermanRecruitmentTargetSelect G={G} hre={me === "hre"}
+                value={germanRecruitmentSelection}
+                onChange={(space: string, power?: Power, secondSpace?: string, secondPower?: Power) =>
+                    setGermanRecruitmentSelection({space, power, secondSpace, secondPower})}/>}
             {showTargetField && <Box sx={{mt: 0.5}}>
                 <EventTargetField cardId={id} value={eventTarget} onChange={setEventTarget}/>
             </Box>}
@@ -1107,7 +1395,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                       (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
                                                   onClick={() => {
                                                       playEventCard(moves.playCard, id, {
-                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : menendezOptions.length > 0 ? menendezTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : armyMutiny ? armyMutinyTargetValue(G, armyMutinySelection) : stafford ? staffordTargetValue(G, staffordSelection) : undefined,
+                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : menendezOptions.length > 0 ? menendezTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : armyMutiny ? armyMutinyTargetValue(G, armyMutinySelection) : stafford ? staffordTargetValue(G, staffordSelection) : germanRecruitment ? germanRecruitmentTargetValue(G, germanRecruitmentSelection, me === "hre") : undefined,
                                                           // Free text is only honoured for cards without a dedicated selector.
                                                           typed: targetMode === "freeText" ? eventTarget : "",
                                                       });
@@ -1117,6 +1405,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                       setPolishElectionBids({});
                                                       setArmyMutinySelection({space: ""});
                                                       setStaffordSelection({power: ""});
+                                                      setGermanRecruitmentSelection({space: ""});
                                                       setSelectedCard(undefined);
                                                   }}>
                     {def.kind === "home" ? "使用能力" : "作为事件"}
