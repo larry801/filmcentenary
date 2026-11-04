@@ -3923,12 +3923,9 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
     if (kind === "galleon" && !["spain", "england", "france", "protestant"].includes(p)) {
         return INVALID_MOVE;
     }
-    if (p === "ottoman" && kind === "galley" && ["algiers", "tripoli"].includes(port)) {
-        return INVALID_MOVE;
-    }
-    if (p === "spain" && def.area === "netherlands" && (kind === "galley" || kind === "galleon")) {
-        return INVALID_MOVE;
-    }
+     if (p === "ottoman" && kind === "galley" && ["algiers", "tripoli"].includes(port)) {
+         return INVALID_MOVE;
+     }
     if (!isMinorPort && navalForceCount(G, p) + navalLostCount(G, p) >= NAVAL_LIMITS[p]) {
         return INVALID_MOVE;
     }
