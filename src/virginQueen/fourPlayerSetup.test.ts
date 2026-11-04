@@ -43,7 +43,8 @@ describe("four-player campaign setup", () => {
         // The existing two- and five-player seat labels are unchanged.
         expect(seatLabels("campaign", 2)).toEqual(["西班牙 / 法国", "英格兰 / 新教联盟"]);
         expect(seatLabels("campaign", 5)).toEqual(["奥斯曼帝国", "西班牙", "英格兰", "法国", "新教联盟"]);
-        expect(validateSetupData({scenario: "tournament"}, 4)).toContain("2、3、5、6");
+        // Four-player Tournament support is covered by fourPlayerTournament.test.ts.
+        expect(validateSetupData({scenario: "tournament"}, 4)).toBeUndefined();
     });
 
     it("seats four players, starts the Ottoman as England's ally and leaves the HRE inactive", () => {

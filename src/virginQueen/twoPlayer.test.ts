@@ -28,10 +28,11 @@ describe("Virgin Queen configurations and ownership", () => {
         expect(validateSetupData({scenario: "tutorial"}, 6)).toContain("仅支持 2");
         expect(validateSetupData({scenario: "campaign"}, 3)).toBeUndefined();
         expect(validateSetupData({scenario: "campaign"}, 4)).toBeUndefined();
+        expect(validateSetupData({scenario: "tournament"}, 4)).toBeUndefined();
         expect(validateSetupData({scenario: "typo"}, 2)).toContain("非法剧本");
         expect(validateSetupData({scenario: null}, 2)).toContain("非法剧本");
         expect(() => setupGame(context(7))).toThrow();
-        expect(() => setupGame(context(4), {scenario: "tournament"})).toThrow();
+        expect(() => setupGame(context(3), {scenario: "tournament"})).toThrow();
     });
 
     it("maps all controlled powers and preserves legacy six-player ownership", () => {

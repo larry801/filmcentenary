@@ -2,7 +2,7 @@ import {POWER_NAMES, POWERS, Power, ScenarioID} from "./constant/general";
 
 export const SCENARIO_OPTIONS: {id: ScenarioID; label: string; players: number[]}[] = [
     {id: "campaign", label: "Campaign · 拉罗谢尔之围", players: [2, 3, 4, 5, 6]},
-    {id: "tournament", label: "Tournament · 荷兰起义开始", players: [2, 3, 5, 6]},
+    {id: "tournament", label: "Tournament · 荷兰起义开始", players: [2, 3, 4, 5, 6]},
     {id: "tutorial", label: "教学 · 勒班陀海战", players: [2]},
 ];
 
