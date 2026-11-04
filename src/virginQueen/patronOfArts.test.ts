@@ -14,7 +14,11 @@ const context = (): Ctx => ({
 
 const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
 
-describe("Patron of Arts, option 2 (card #35)", () => {
+const italianPatron = (G: VQGame) =>
+    G.patronsAvailable.map((id) => patronById(G, id)).find((candidate) =>
+        candidate?.region === "italy" && candidate.rating !== null && !G.powers.hre.patrons.includes(candidate.id));
+
+describe("Patron of Arts (card #35)", () => {
     it("sponsors a random HRE patron without a target", () => {
         const G = game();
         G.powers.hre.cards = ["vq-035"];
@@ -24,19 +28,50 @@ describe("Patron of Arts, option 2 (card #35)", () => {
         expect(playCard(G, context(), {cardId: "vq-035", asEvent: true})).toBeUndefined();
 
         expect(G.pendingPatronage.some((entry) => entry.patronId === patron!.id && entry.cp === 3)).toBe(true);
+        expect(G.pragueCulturalCenter).toBeUndefined();
     });
 
-    it("sponsors an Italian patron and marks Prague while Rudolf rules", () => {
+    it("sponsors an Italian patron and marks Prague while Rudolf II rules", () => {
         const G = game();
         G.powers.hre.cards = ["vq-035"];
-        G.powers.hre.ruler = "rudolf";
-        const patron = G.patronsAvailable.map((id) => patronById(G, id)).find((candidate) =>
-            candidate?.region === "italy" && candidate.rating !== null && !G.powers.hre.patrons.includes(candidate.id));
+        G.powers.hre.ruler = "rudolfII";
+        const patron = italianPatron(G);
         expect(patron).toBeDefined();
 
         expect(playCard(G, context(), {cardId: "vq-035", asEvent: true, target: patron!.id})).toBeUndefined();
 
         expect(G.pendingPatronage.some((entry) => entry.patronId === patron!.id && entry.cp === 3)).toBe(true);
+        expect(G.pragueCulturalCenter).toBe(patron!.id);
+    });
+
+    it("accepts the legacy rudolf ruler id for the Prague marker", () => {
+        const G = game();
+        G.powers.hre.cards = ["vq-035"];
+        G.powers.hre.ruler = "rudolf";
+        const patron = italianPatron(G);
+        expect(patron).toBeDefined();
+
+        expect(playCard(G, context(), {cardId: "vq-035", asEvent: true, target: patron!.id})).toBeUndefined();
+
+        expect(G.pragueCulturalCenter).toBe(patron!.id);
+    });
+
+    it("marks Prague after the #87 Rudolf II accession event", () => {
+        const G = game();
+        if (!G.powers.hre.cards.includes("vq-087")) G.powers.hre.cards.push("vq-087");
+
+        expect(playCard(G, context(), {cardId: "vq-087", asEvent: true})).toBeUndefined();
+        expect(G.powers.hre.ruler).toBe("rudolfII");
+
+        // The accession is a separate event; the Patron card is played later
+        // in an action round.
+        G.powers.hre.cardPlayed = false;
+        G.powers.hre.cards = ["vq-035"];
+        const patron = italianPatron(G);
+        expect(patron).toBeDefined();
+
+        expect(playCard(G, context(), {cardId: "vq-035", asEvent: true, target: patron!.id})).toBeUndefined();
+
         expect(G.pragueCulturalCenter).toBe(patron!.id);
     });
 

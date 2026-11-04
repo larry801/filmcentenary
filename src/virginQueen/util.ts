@@ -437,6 +437,14 @@ export const homeCardsInHand = (G: VQGame, p: Power): string[] =>
 export const suleimanIsOttomanRuler = (G: VQGame): boolean =>
     G.powers.ottoman.ruler === "suleiman";
 
+/**
+ * #87 installs Rudolf II as the HRE ruler and stores the stable ruler id
+ * "rudolfII" (the royal pool id is "rudolf").  Accept the legacy spelling as
+ * well so old saves and hand-built states remain valid.
+ */
+export const rudolfIsHreRuler = (G: VQGame): boolean =>
+    G.powers.hre.ruler === "rudolfII" || G.powers.hre.ruler === "rudolf";
+
 export const keepsBothHomeCards = (G: VQGame, p: Power): boolean =>
     p === "ottoman" && suleimanIsOttomanRuler(G);
 

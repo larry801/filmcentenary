@@ -49,4 +49,16 @@ describe("ruler accession events", () => {
         expect(G.powers.ottoman.rulerAdmin).toBe(1);
         expect(G.powers.ottoman.rulerCardBonus).toBe(0);
     });
+
+    it("Rudolf II succeeds Maximilian II with the rudolfII ruler id", () => {
+        const G = game();
+        if (!G.powers.hre.cards.includes("vq-087")) G.powers.hre.cards.push("vq-087");
+
+        expect(playCard(G, context("4"), {cardId: "vq-087", asEvent: true})).toBeUndefined();
+
+        expect(G.powers.hre.ruler).toBe("rudolfII");
+        expect(G.powers.hre.rulerAdmin).toBe(1);
+        expect(G.powers.hre.rulerCardBonus).toBe(1);
+        expect(G.hreCapital).toBe("prague");
+    });
 });

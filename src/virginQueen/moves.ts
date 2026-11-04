@@ -134,6 +134,7 @@ import {
     resolveMinorDiplomacy,
     resolveRebellion,
     roll,
+    rudolfIsHreRuler,
     setWar,
     shuffle,
     spaceHasEnemyLand,
@@ -2222,7 +2223,7 @@ const resolvePatronOfArts = (G: VQGame, ctx: Ctx, target?: string): void => {
         if (G.patronizedThisTurn.includes(key)) return;
         G.pendingPatronage.push({power: "hre", patronId: patron.id, cp: 3});
         G.patronizedThisTurn.push(key);
-        if (G.powers.hre.ruler === "rudolf") G.pragueCulturalCenter = patron.id;
+        if (rudolfIsHreRuler(G)) G.pragueCulturalCenter = patron.id;
         drawCards(G, ctx, "hre", 1);
         pushLog(G, `Patron of Arts sponsors ${patron.name} for the Holy Roman Empire.`);
     }
