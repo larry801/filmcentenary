@@ -1601,7 +1601,10 @@ const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
         }
         return;
     }
-    const cards = G.powers[targetPower].cards.filter((id) => cardById(id).kind !== "home");
+    // Printed text discards "a hand card", so Home cards are in the pool
+    // (discardCard sets them aside instead of putting them in the discard
+    // pile).  Only Mandatory Events are immune: they must be played that turn.
+    const cards = G.powers[targetPower].cards.filter((id) => cardById(id).officialKind !== "mandatory");
     if (cards.length === 0) return;
     const chosen = mode === "discard" && extra !== undefined && cards.includes(extra) ? extra : undefined;
     const card = chosen ?? cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
