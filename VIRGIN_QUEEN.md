@@ -1391,3 +1391,19 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 - 谍报/世界：`3281ae9`（默认将领不可被刺杀、环航宝藏交付）
 
 集成后验证（按要求未运行 build）：`jest src/virginQueen --runInBand --silent` 179 suites、940 tests passed；`jest --runInBand --silent` 184 suites、995 tests passed；`tsc --noEmit` 通过。
+
+
+## 八子代理修复（第七轮）
+
+八个并行子代理针对上一轮审计发现的问题修复并集成：
+
+- #74 Scottish Lords Rebel 按印刷文本处理控制权与撤退：`e1b9971`
+- #35 Prague +2 标记兼容 `rudolfII`：`f57acea`
+- #39 洪水不能在 #31 变节攻城中打出：`ec5f0d1`
+- #102 Stafford 可选择弃置卡牌/宝藏：`1d3106b`
+- #110 敦刻尔克私掠者要求无动荡北海港口：`ab89b11`
+- #23 德意志裁军只影响一个主要势力：`616c199`
+- #24 神圣同盟强制奥斯曼 VP≥13 与可影响轨道：`e1d5c49`
+- #17 允许本国牌被哗变弃置，#30 回首都避开敌军占领：`1e4e357`
+
+集成后验证（按要求未运行 build）：`jest src/virginQueen --runInBand --silent` 186 suites、980 tests passed；`jest --runInBand --silent` 191 suites、1035 tests passed；`tsc --noEmit` 通过。
