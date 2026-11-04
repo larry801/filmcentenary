@@ -4323,6 +4323,9 @@ export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string; cp: numbe
     if (patron === undefined || patron.region !== p || patron.rating === null) {
         return INVALID_MOVE;
     }
+    if (G.pendingPatronage.some((e) => e.patronId === patron.id)) {
+        return INVALID_MOVE;
+    }
     if (POWERS.some((x) => G.powers[x].patrons.includes(patron.id))) {
         return INVALID_MOVE;
     }

@@ -3382,12 +3382,38 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
             applyRulerDeath(G, female.id);
             pushLog(G, `Death in Childbirth: ${female.name} dies.`);
         } else {
-            male.alive = false;
-            male.status = "dead";
-            female.married = true;
-            G.marriages += 1;
-            applyRulerDeath(G, male.id);
-            pushLog(G, `Rumors of Murder: ${male.name} is murdered.`);
+            if (male.id === "williamOrange") {
+                // Rule 21.1: William is only removed if the result earns VP.
+                male.married = false;
+                male.status = "available";
+                male.eligibility = 2;
+                male.turn = G.year + 1;
+                female.married = true;
+                G.marriages += 1;
+                pushLog(G, "William of Orange returns to the pool at eligibility 2 next turn.");
+            } else {
+                male.alive = false;
+                male.status = "dead";
+                female.married = true;
+                G.marriages += 1;
+                applyRulerDeath(G, male.id);
+                // Rule 21.1: if the husband was an army leader, remove him from
+                // the map and place a default leader if he was the only one.
+                const leaderDef = LEADER_BY_ID[male.id];
+                if (leaderDef !== undefined && leaderDef.kind === "army") {
+                    const state = G.leaders[male.id];
+                    if (state !== undefined) {
+                        if (G.spaces[state.location] !== undefined) {
+                            G.spaces[state.location].leaders = G.spaces[state.location].leaders.filter((l) => l !== male.id);
+                        } else if (G.seaZones[state.location as SeaZoneID] !== undefined) {
+                            G.seaZones[state.location as SeaZoneID].leaders = G.seaZones[state.location as SeaZoneID].leaders.filter((l) => l !== male.id);
+                        }
+                        delete G.leaders[male.id];
+                    }
+                    ensureDefaultLeader(G, leaderDef.power);
+                }
+                pushLog(G, `Rumors of Murder: ${male.name} is murdered.`);
+            }
         }
         if (total !== 9) {
             // Valois marriage bonus: +1 VP for each Valois royal who weds.

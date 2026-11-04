@@ -247,6 +247,12 @@ const resolveRoll = (G: VQGame, ctx: Ctx): void => {
                 if (p.target === "dragut") removeCardFromGame(G, "vq-011");
                 const deadDef = LEADER_BY_ID[p.target!];
                 if (deadDef?.kind === "army") ensureDefaultLeader(G, deadDef.power);
+                // Rule 21.4: an assassinated Henry III cancels any betrothal.
+                if (p.target === "henryIII") {
+                    const royal = G.royals.find((r) => r.id === "henryIII");
+                    if (royal !== undefined) { royal.alive = false; royal.status = "dead"; }
+                    G.betrothals = G.betrothals.filter((b) => b.male !== "henryIII" && b.female !== "henryIII");
+                }
             }
             addVp(G, p.power, 1);
             pushLog(G, `${p.target} killed; ${p.power} gains 1 VP.`);
