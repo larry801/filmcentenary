@@ -47,7 +47,7 @@ describe("World Map piracy and patrols (rules 16.5/17.3)", () => {
 
         expect(G.worldPatrols?.northAtlantic).toBe(0);
         expect(G.powers.spain.treasures).toEqual([]);
-        expect(G.powers.england.treasures).toContain(5);
+        expect(G.worldCaptains.drake.treasureValues).toContain(5);
         expect(G.powers.england.bonusVp).toBe(0);
     });
 

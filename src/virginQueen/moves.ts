@@ -4164,7 +4164,8 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
             pushLog(G, targetIsPortugal ? "A Portuguese patrol is eliminated." : "A Spanish patrol is eliminated.");
         } else if (portugueseTreasureAvailable) {
             const treasure = (G.portugueseTreasures as number[]).pop()!;
-            if (expedition.treasureValues !== undefined && expedition.treasureValues.length < capacity) {
+            if (expedition.treasureValues === undefined) expedition.treasureValues = [];
+            if (expedition.treasureValues.length < capacity) {
                 expedition.treasureValues.push(treasure);
                 pushLog(G, `${powerLabel(p)} loads a ${treasure} CP treasure onto the expedition.`);
             } else {
@@ -4172,7 +4173,8 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
             }
         } else if (G.powers.spain.treasures.length > 0) {
             const treasure = G.powers.spain.treasures.pop()!;
-            if (expedition.treasureValues !== undefined && expedition.treasureValues.length < capacity) {
+            if (expedition.treasureValues === undefined) expedition.treasureValues = [];
+            if (expedition.treasureValues.length < capacity) {
                 expedition.treasureValues.push(treasure);
                 pushLog(G, `${powerLabel(p)} loads a ${treasure} CP treasure onto the expedition.`);
             } else {

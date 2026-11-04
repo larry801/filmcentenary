@@ -4340,8 +4340,6 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         pushLog(G, "Selim II succeeds Suleiman before Turn 3 (Scenario Book card clarification #6).");
     }
     winterMorisco(G);
-    resolveMarriages(G, ctx);
-    resolvePatronage(G, ctx);
     // English sea captains used as naval leaders return to the World Map pool.
     for (const [captain, leaderId] of Object.entries(SEA_CAPTAIN_LEADER_BY_CAPTAIN)) {
         const state = G.leaders[leaderId];
@@ -4358,7 +4356,6 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     const neutralized = G.informants.filter((i) => i.neutralized).length;
     G.informants = G.informants.filter((i) => !i.neutralized);
     G.assassinationUsed = [];
-    if (G.espionage) {delete G.espionage.walsingham; delete G.espionage.maryBonusTurn; G.espionage.inspections = [];}
     for (const captain of Object.values(G.worldCaptains)) {
         captain.damaged = false;
     }
@@ -4368,6 +4365,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     winterReturnNaval(G);
     for (const p of POWERS) {
         winterReturnLand(G, p);
+        G.powers[p].allies = [];
         // Replacements at each controlled capital (rule 20.6).
         if (ownerOf(G, p) !== undefined && p === "hre") {
             const cap = capitalSpacesFor(G, "hre")[0];
@@ -4388,7 +4386,6 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
                 }
             }
         }
-        G.powers[p].allies = [];
         G.powers[p].treasures = [];
         G.powers[p].cp = 0;
         G.powers[p].cardPlayed = false;
@@ -4402,6 +4399,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     // brought home by returning sea captains are added after the hand reset and
     // survive into the next turn.
     returnWorldCaptains(G);
+    if (G.espionage) {delete G.espionage.walsingham; delete G.espionage.maryBonusTurn; G.espionage.inspections = [];}
     awardPortugueseTreasures(G, ctx);
     G.minorDiplomacyResolved = [];
     G.piracyUsed = {};
@@ -4452,6 +4450,8 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
             r.eligibility = next;
         }
     }
+    resolveMarriages(G, ctx);
+    resolvePatronage(G, ctx);
     awardAnnualLocationVp(G);
     settleActivatedMajorVp(G);
     checkCatholicLeague(G, ctx);

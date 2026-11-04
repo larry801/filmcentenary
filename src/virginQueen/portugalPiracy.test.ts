@@ -37,7 +37,7 @@ describe("world piracy against Portugal", () => {
         G.portugueseTreasures = [3, 2];
 
         expect(worldPiracy(G, context("england", [6, 6, 6, 6]), {captain: "drake"})).toBeUndefined();
-        expect(G.powers.england.treasures).toContain(2);
+        expect(G.worldCaptains.drake.treasureValues).toContain(2);
         expect(G.log.join("\n")).toContain("Portuguese");
     });
 
