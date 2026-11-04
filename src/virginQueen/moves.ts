@@ -1339,7 +1339,7 @@ const resolveArmyMutiny = (G: VQGame, ctx: Ctx, target?: string): void => {
     const stack = state.land[owner]!;
     stack.merc = 0;
     const card = G.powers[owner].cards
-        .filter((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory")
+        .filter((id) => cardById(id).officialKind !== "mandatory")
         .sort((a, b) => cardById(a).cp - cardById(b).cp)[0];
     let keep = 0;
     if (card !== undefined) {
@@ -1510,10 +1510,14 @@ const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
         const leader = Object.values(G.leaders).find((state) => state.id !== "guise" && LEADER_BY_ID[state.id]?.power === targetPower && LEADER_BY_ID[state.id]?.kind === "army" &&
             (extra === undefined || state.id === extra) &&
             state.location !== "pool" && state.location !== "dead" && G.spaces[state.location] !== undefined);
+        // Printed text: return to the capital, unless it is besieged or
+        // occupied by enemy units; then use an available home fortress.
+        const usableReturnSpace = (id: string): boolean => G.spaces[id] !== undefined &&
+            G.spaces[id].siege === undefined && !spaceHasEnemyLand(G, targetPower, id);
         const capitalCandidate = capitalOf(G, targetPower);
-        const capital = capitalCandidate !== undefined && G.spaces[capitalCandidate].siege === undefined
+        const capital = capitalCandidate !== undefined && usableReturnSpace(capitalCandidate)
             ? capitalCandidate
-            : SPACES.find((space) => space.home === targetPower && space.kind === "fortress" && G.spaces[space.id].siege === undefined)?.id ?? capitalCandidate;
+            : SPACES.find((space) => space.home === targetPower && space.kind === "fortress" && usableReturnSpace(space.id))?.id ?? capitalCandidate;
         if (leader !== undefined && capital !== undefined && leader.location !== capital) {
             moveLeaders(G, leader.location, capital, [leader.id]);
             pushLog(G, `Ruler Falls Ill: ${leader.id} returns to ${SPACE_BY_ID[capital].name}.`);

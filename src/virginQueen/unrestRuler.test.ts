@@ -133,6 +133,35 @@ describe("Unrest in the Realm / Ruler Falls Ill", () => {
         expect(G.spaces[G.leaders.alba.location].siege).toBeUndefined();
     });
 
+    it("uses a home fortress when the capital is occupied by enemy units", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-030"];
+        // Madrid is still Spanish-controlled but an Ottoman army is sitting on
+        // it, so the capital counts as occupied for the return.
+        G.spaces.madrid.land.ottoman = {regular: 2, merc: 0, cav: 0};
+        G.leaders.alba = {id: "alba", location: "milan"};
+        G.spaces.milan.leaders = ["alba"];
+
+        expect(playCard(G, context(), {cardId: "vq-030", asEvent: true, target: "spain:return"})).toBeUndefined();
+
+        expect(G.leaders.alba.location).not.toBe("madrid");
+        expect(G.spaces[G.leaders.alba.location].siege).toBeUndefined();
+        expect(G.spaces[G.leaders.alba.location].land.ottoman).toBeUndefined();
+    });
+
+    it("skips an enemy-occupied home fortress", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-030"];
+        G.spaces.madrid.siege = {by: "france", sinceImpulse: 1};
+        G.spaces.barcelona.land.ottoman = {regular: 2, merc: 0, cav: 0};
+        G.leaders.alba = {id: "alba", location: "milan"};
+        G.spaces.milan.leaders = ["alba"];
+
+        expect(playCard(G, context(), {cardId: "vq-030", asEvent: true, target: "spain:return"})).toBeUndefined();
+
+        expect(G.leaders.alba.location).toBe("seville");
+    });
+
     it("discards a random card from another power", () => {
         const G = game();
         G.powers.france.cards = ["vq-030"];
