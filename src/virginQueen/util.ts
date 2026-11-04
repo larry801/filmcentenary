@@ -446,19 +446,16 @@ export const homeCardChoiceRequired = (G: VQGame, p: Power): boolean =>
     homeCardsInHand(G, p).length > 1;
 
 /**
- * The secret preference belongs to a full Holy Roman power.  Six-player games
- * always have one.  In the five-player configuration the HRE is the activated
- * non-player major power, so the preference comes into play only after an ally
- * has taken control of it through the influence track.  The two-, three- and
- * four-player configurations leave the HRE inactive and skip it entirely
- * (Scenario Book p. 12).
+ * The secret religious preference is a six-player rule.  Spring Deployment
+ * step 3 in the rules manual limits the choice to "the first turn of a
+ * 6-player game", and Scenario Book p. 13 (Activated Major Powers, Additional
+ * Considerations) tells players to skip the choice and its VP "in the 2 to
+ * 5-player games".  Activating the non-player HRE in a smaller game gives the
+ * ally control of a full power, but it does not add the six-player-only
+ * preference; the Tutorial is likewise outside the rule.
  */
-export const hreReligiousPreferenceEnabled = (G: VQGame): boolean => {
-    if (G.scenario === "tutorial") return false;
-    if (G.playerPowers === undefined) return true;
-    return playerCount(G) === 5 && G.activatedMajors?.hre !== undefined &&
-        !Object.values(G.playerPowers).some((powers) => powers.includes("hre"));
-};
+export const hreReligiousPreferenceEnabled = (G: VQGame): boolean =>
+    G.scenario !== "tutorial" && playerCount(G) === 6;
 
 export const hreReligiousPreferenceRequired = (G: VQGame, p: Power): boolean =>
     p === "hre" && hreReligiousPreferenceEnabled(G) && G.year === G.startTurn &&

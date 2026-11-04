@@ -61,7 +61,7 @@
    - 赎回被俘将领
    - 英格兰-西班牙战争费用从 5 CP 开始，可被事件降低
 3. **春季部署**（`spring`）：先秘密选择保留 1 张本国牌（未选中的面朝下放在势力卡上；苏莱曼一世在位时奥斯曼可保留两张）；西班牙可用护航按钮把最多 2 艘大帆船移入/移出珍宝舰队护航区；英国还可把一名可用海船长放到有英国舰队的英国本土港口，作为本回合海军将领（冬季返回海船长池）。再从首都免费移动一支陆军编队到友好控制区：路径可为任意长度，陆地各格须友方控制、无动荡、无外国单位，不能经过山口；最多跨一个海域（两岸港口须友方控制；若其他主要势力在沿海港口有舰队，即使是盟友，也不能跨；跨海最多 5 个陆军单位）；编队受将领指挥上限限制，西班牙/新教可从任一首都出发。
-   - 六人局 HRE 在剧本首回合秘密选择天主教、新教或平衡倾向，此后不能更改；五人局仅在非玩家 HRE 已被激活时进行该选择（并在激活时放回其 Papacy/Venice/Ireland 影响力标记）；二至四人局与教学局跳过
+   - 仅六人局：HRE 在剧本首回合秘密选择天主教、新教或平衡倾向，此后不能更改。二至五人局与教学局一律跳过该选择及其 VP（Scenario Book p. 13；规则书春季部署第 3 步限定为六人局），即使非玩家 HRE 已被激活也不选择。非玩家 HRE 的 Papacy/Venice/Ireland 影响力标记在激活前另行放置，激活时恢复默认值
    - 按官方 Protestant Spaces 表计算潜在宗教 VP；只有足以赢得胜利或阻止他国支配胜利时才在冬季自动公开，公开后持续计分。隐藏期间不计入公共 VP 和历年平分记录
 4. **行动阶段**（`action`）：按行动轮次顺序循环，直到连续 6 国 pass
    - 出牌为 CP 或事件；出牌后可用宝藏延长行动轮次
@@ -1354,3 +1354,8 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 - 5 人局 HRE 宗教偏好：`7b6af8c`
 
 集成后验证（按要求未运行 build）：`jest src/virginQueen --runInBand --silent` 171 suites、874 tests passed；`jest --runInBand --silent` 176 suites、929 tests passed；`tsc --noEmit` 通过。
+
+
+## 修正：2–5 人局跳过 HRE 宗教偏好
+
+规则书（2024 Living）春季部署第 3 步把记录 HRE 秘密宗教倾向限定在“六人局首回合”；Scenario Book（2024 Living）第 13 页 Activated Major Powers 的 Additional Considerations 进一步要求“2 至 5 人局跳过 HRE 选择秘密宗教倾向（以及由此获得的 VP）”。因此 `hreReligiousPreferenceEnabled` 现在只在六人局（非教学局）返回 `true`：2–5 人局即使激活非玩家 HRE，也不进行该选择、不计偏好 VP、不在冬季自动公开；此前 `7b6af8c` 允许已激活的 5 人局 HRE 选择偏好，与该条印刷规则冲突，已修正。非玩家 HRE 的 Papacy/Venice/Ireland 影响力标记仍在激活前放置、激活时恢复默认值（Scenario Book p. 12 与激活步骤 5），这一独立规则保持不变。回归测试见 `src/virginQueen/hrePreferenceRule.test.ts`。
