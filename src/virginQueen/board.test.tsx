@@ -612,7 +612,6 @@ describe("Virgin Queen board", () => {
         expect(html).toContain("军队所属势力");
         expect(html).toContain("Brussels");
         expect(html).toContain("法国（正规军 2，雇佣兵 2）");
->>>>>>> 94b8cd0 (feat(vq): add dedicated Army Mutiny target selector)
         expect(html).not.toContain("事件目标（可选）");
     });
 

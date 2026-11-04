@@ -263,7 +263,7 @@
 ### 城邦起义（#18）
 
 - 目标为一个被占领的本土设防地区；
-- 掷 5 骰，每个命中消灭 1 个陆军/海军单位；
+- 掷 5 骰，每个命中消灭 1 个陆军/海军单位；存在多种合法单位时由目标控制方逐次选择，自动分配为兜底；
 - 若守军全灭，控制权回归原属势力并放置 1 个正规军；
 - 若守军全灭：陆军将领被出牌方俘虏；海军将领置于回合记录轨，下回合回池。
 
@@ -1359,3 +1359,19 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 ## 修正：2–5 人局跳过 HRE 宗教偏好
 
 规则书（2024 Living）春季部署第 3 步把记录 HRE 秘密宗教倾向限定在“六人局首回合”；Scenario Book（2024 Living）第 13 页 Activated Major Powers 的 Additional Considerations 进一步要求“2 至 5 人局跳过 HRE 选择秘密宗教倾向（以及由此获得的 VP）”。因此 `hreReligiousPreferenceEnabled` 现在只在六人局（非教学局）返回 `true`：2–5 人局即使激活非玩家 HRE，也不进行该选择、不计偏好 VP、不在冬季自动公开；此前 `7b6af8c` 允许已激活的 5 人局 HRE 选择偏好，与该条印刷规则冲突，已修正。非玩家 HRE 的 Papacy/Venice/Ireland 影响力标记仍在激活前放置、激活时恢复默认值（Scenario Book p. 12 与激活步骤 5），这一独立规则保持不变。回归测试见 `src/virginQueen/hrePreferenceRule.test.ts`。
+
+
+## 八子代理集成验证（第五轮）
+
+八个并行子代理分别在独立 worktree 完成并提交，已 cherry-pick 到主分支：
+
+- HRE 宗教偏好改回仅 6 人局：`cd7e360`
+- #61 梅嫩德斯目标选择器：`c84a77a`
+- 冬季摩尔人移除仅确认：`732c5f6`
+- #103 誓绝法案提议标签/选择：`2ce3480`
+- #18 城邦起义逐次损失选择：`fa8200d`
+- #17 军队哗变目标选择器：`157f1ae`
+- 失活时 HRE 小国部队返还/外国单位位移：`600bf63`
+- 沃尔辛厄姆嵌套中 #90 保留耶稣会士测试：`e8c52c5`
+
+集成后验证（按要求未运行 build）：`jest src/virginQueen --runInBand --silent` 175 suites、911 tests passed；`jest --runInBand --silent` 180 suites、966 tests passed；`tsc --noEmit` 通过。
