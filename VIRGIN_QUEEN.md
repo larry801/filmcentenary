@@ -1421,3 +1421,17 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 - #18 城邦起义 FAQ 目标合法性：`6ede8d1`
 
 集成后验证（按要求未运行 build）：`jest src/virginQueen --runInBand --silent` 192 suites、1014 tests passed；`jest --runInBand --silent` 197 suites、1069 tests passed；`tsc --noEmit` 通过。
+
+
+## 八子代理修复（第九轮）
+
+- #5 教宗诏书找回并执行 #24 时应用 #24 条件：`20392b9`
+- #23 德意志裁军专用目标选择器：`ecbc149`
+- #35 Rudolf II 结婚移除 Prague +2 标记：`d662f92`
+- #30 随机弃牌允许本国牌：`74cd712`
+- #74 苏格兰领主叛乱无胜者分支：`890e0c5`
+- #102 Stafford 专用目标选择器：`ba736a7`
+- #18 城邦起义 FAQ 目标合法性：`6ede8d1`
+- #26 A Small Aid 支持中立/小国被围要塞：`2ee64b2`
+
+集成后验证（按要求未运行 build）：`jest src/virginQueen --runInBand --silent` 192 suites、1018 tests passed；`jest --runInBand --silent` 197 suites、1073 tests passed；`tsc --noEmit` 通过。

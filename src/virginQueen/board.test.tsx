@@ -808,7 +808,6 @@ describe("Virgin Queen board", () => {
             value={{space: "brussels", power: "spain"}} onChange={() => undefined}/>);
         expect(single).toContain("西班牙（雇佣兵 3）");
         expect(single).not.toContain("第二目标地区");
->>>>>>> 512b795 (feat(vq): add dedicated #23 German Recruitment target selector)
     });
 
     it("renders the map, hand and action panel", () => {
