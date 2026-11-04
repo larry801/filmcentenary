@@ -9,7 +9,7 @@ import {assassinationResult, catholicRebellionResult} from "./data/espionage";
 import {EspionageState, PendingEspionage} from "./espionageTypes";
 import {addLand, addVp, allied, atWar, capitalOf, discardCard, drawCards, ensureLand, ensureNaval,
     ensureDefaultLeader, hits, isFortifiedSpace, pushLog, removeCardFromHand, removeCardFromGame,
-    roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
+    removePragueCulturalCenterOnRudolfDeath, roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
 
 export const espionageState = (G: VQGame): EspionageState => G.espionage ??= {
     jesuits: [], jesuitsOnCard: G.scenario === "tournament" ? 1 : 0, douai: false,
@@ -25,6 +25,10 @@ const maryAlive = (G: VQGame): boolean => G.espionage?.mary !== "dead" &&
 
 export const assassinationTargets = (G: VQGame, p: Power): string[] => [
     ...(p !== "england" && G.royals.some((r) => r.id === "elizabeth" && r.alive) ? ["elizabeth"] : []),
+    // #35 FAQ: Rudolf's death (like Elizabeth's) has ruler effects, so he
+    // is an assassination-eligible royal; he can only die that way (and
+    // through the marriage table), never as an army leader.
+    ...(p !== "hre" && G.royals.some((r) => (r.id === "rudolf" || r.id === "rudolfII") && r.alive) ? ["rudolf"] : []),
     ...Object.keys(G.leaders).filter((id) => {
         const def = LEADER_BY_ID[id];
         const loc = G.leaders[id].location;
@@ -44,6 +48,10 @@ export const espionageDice = (G: VQGame, pending: PendingEspionage): {attack: nu
         if (pending.target === "elizabeth") {
             attack += maryAlive(G) ? 1 : 0;
             defense += 3;
+        } else if (pending.target === "rudolf" || pending.target === "rudolfII") {
+            // Rudolf is a royal, not an army leader: defend him like a
+            // ruler (base defense + a home-capital bonus, no battle rating).
+            if (SPACE_BY_ID["prague"]?.home === target && G.spaces["prague"].control === target) defense++;
         } else {
             const def = LEADER_BY_ID[pending.target!];
             defense += def.battle;
@@ -208,6 +216,14 @@ const resolveRoll = (G: VQGame, ctx: Ctx): void => {
                 G.removed.push(...["vq-036", "vq-home-virgin-queen"].filter((id) => !G.removed.includes(id)));
                 G.powers.england.cards = G.powers.england.cards.filter((id) => !G.removed.includes(id));
                 if (espionageState(G).mary === "captured") {executeMary(G); espionageState(G).maryBonusTurn = G.year;}
+            } else if (p.target === "rudolf" || p.target === "rudolfII") {
+                // #35 FAQ: Rudolf's death removes the +2 Prague Cultural
+                // Center marker.  (He is not an army leader, so a direct
+                // assassination uses the royal-kill branch rather than the
+                // leader branch below.)
+                const royal = G.royals.find((r) => r.id === p.target);
+                if (royal !== undefined) {royal.alive = false; royal.status = "dead";}
+                removePragueCulturalCenterOnRudolfDeath(G);
             } else {
                 const loc = G.leaders[p.target!].location;
                 G.spaces[loc].leaders = G.spaces[loc].leaders.filter((id) => id !== p.target);

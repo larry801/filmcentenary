@@ -445,6 +445,14 @@ export const suleimanIsOttomanRuler = (G: VQGame): boolean =>
 export const rudolfIsHreRuler = (G: VQGame): boolean =>
     G.powers.hre.ruler === "rudolfII" || G.powers.hre.ruler === "rudolf";
 
+/** #35 FAQ: Rudolf's death (like his marriage) removes the Prague marker. */
+export const removePragueCulturalCenterOnRudolfDeath = (G: VQGame): void => {
+    if (G.pragueCulturalCenter !== undefined) {
+        delete G.pragueCulturalCenter;
+        pushLog(G, "Rudolf II dies; the +2 Prague Cultural Center marker is removed from the game.");
+    }
+};
+
 export const keepsBothHomeCards = (G: VQGame, p: Power): boolean =>
     p === "ottoman" && suleimanIsOttomanRuler(G);
 
@@ -477,7 +485,7 @@ export const rulerStats = (G: VQGame, p: Power): {cardBonus: number; admin: numb
     if (p === "spain" && dead("philip")) return {cardBonus: 0, admin: 1};
     if (p === "france" && G.powers.france.ruler === "charlesIX" && dead("charlesIX")) return {cardBonus: 0, admin: 0};
     if (p === "france" && dead("henryIII")) return {cardBonus: 0, admin: 1};
-    if (p === "hre" && dead("rudolf")) return {cardBonus: 0, admin: 1};
+    if (p === "hre" && (dead("rudolf") || dead("rudolfII"))) return {cardBonus: 0, admin: 1};
     if (G.powers[p].rulerAdmin !== undefined || G.powers[p].rulerCardBonus !== undefined) {
         return {
             cardBonus: G.powers[p].rulerCardBonus ?? POWER_INFO[p].ruler.cardBonus,
@@ -2917,7 +2925,14 @@ const applyRulerDeath = (G: VQGame, id: string): void => {
         pushLog(G, "Philip II is murdered; Spain drops to 1 Admin and 0 card bonus.");
     } else if (id === "charlesIX") {
         pushLog(G, "Charles IX is murdered; France drops to 0 Admin and 0 card bonus until Henry III takes the throne.");
-    } else if (id === "rudolf") {
+    } else if (id === "rudolf" || id === "rudolfII") {
+        // #35 FAQ: the +2 Prague Cultural Center marker is removed not only
+        // when Rudolf marries, but also when he dies (here through murder or
+        // death in childbirth in the marriage table; assassination kills the
+        // royal directly, so see the direct-death cleanup in espionage too).
+        // The pool hosts both spellings: "rudolf" from the initial setup and
+        // "rudolfII" from the scenario-book data.
+        removePragueCulturalCenterOnRudolfDeath(G);
         pushLog(G, "Rudolf II is murdered; the Holy Roman Empire drops to 1 Admin and 0 card bonus.");
     } else if (id === "maryScots") {
         if (G.espionage !== undefined) G.espionage.mary = "dead";
@@ -3024,9 +3039,13 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
             }
             const ids = [male.id, female.id];
             // #35 FAQ: Rudolf II's successful marriage removes the +2 Prague
-            // Cultural Center marker from play.  Marriage resolution precedes
-            // patronage resolution, so the marker cannot aid this Winter.
-            if ((ids.includes("rudolf") || ids.includes("rudolfII")) && G.pragueCulturalCenter !== undefined) {
+            // Cultural Center marker from play.  Death removes it too (handled
+            // in applyRulerDeath, since the marker check below would precede
+            // the death branch for totals <= 7 and report "marries" for what
+            // was a murder).  Only a surviving marriage therefore lands here.
+            const rudolfMarried = (ids.includes("rudolf") || ids.includes("rudolfII")) &&
+                male.alive && female.alive;
+            if (rudolfMarried && G.pragueCulturalCenter !== undefined) {
                 delete G.pragueCulturalCenter;
                 pushLog(G, "Rudolf II marries; the +2 Prague Cultural Center marker is removed from the game.");
             }
@@ -3045,7 +3064,7 @@ export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
                 G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
             }
             if (ids.includes("isabellaClaraEugenia") &&
-                ["philip", "charlesIX", "henryIII", "rudolf"].includes(male.id)) {
+                ["philip", "charlesIX", "henryIII", "rudolf", "rudolfII"].includes(male.id)) {
                 G.powers[male.power].patronageModifier += 1;
             }
             const william = [male, female].find((royal) => royal.id === "williamOrange");

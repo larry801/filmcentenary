@@ -1954,7 +1954,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <Select labelId="vq-assassination-target" label="刺杀目标" value={assassinationTarget}
                             onChange={(e) => setAssassinationTarget(e.target.value)}>
                         <MenuItem value="elizabeth" disabled={!assassinationTargets(G, me).includes("elizabeth")}>伊丽莎白一世</MenuItem>
-                        {assassinationTargets(G, me).filter((id) => id !== "elizabeth").map((id) =>
+                        {assassinationTargets(G, me).includes("rudolf") && <MenuItem value="rudolf">鲁道夫二世 (布拉格)</MenuItem>}
+                        {assassinationTargets(G, me).filter((id) => id !== "elizabeth" && id !== "rudolf").map((id) =>
                             <MenuItem key={id} value={id}>{LEADER_BY_ID[id].name} ({POWER_NAMES[LEADER_BY_ID[id].power].zh})</MenuItem>)}
                     </Select>
                 </FormControl>

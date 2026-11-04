@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {Power, RoyalDef, VQGame} from "./constant/general";
 import {patronById} from "./scenario";
-import {resolveMarriages, setupGame, winter} from "./util";
+import {resolveMarriages, rulerStats, setupGame, winter} from "./util";
 
 /** Dice are returned in order; the default keeps other rolls deterministic. */
 const context = (values: number[] = [], phase = "action"): Ctx => ({
@@ -28,7 +28,42 @@ const activePragueMarkerPatron = (G: VQGame) =>
     G.patronsAvailable.map((id) => patronById(G, id)).find((patron) => patron?.rating !== null);
 
 describe("#35 FAQ: Prague Cultural Center marker and Rudolf II's marriage", () => {
-    it("removes the active marker when Rudolf II marries", () => {
+    it("removes the active marker when Rudolf II dies in the marriage table", () => {
+        const G = game();
+        const patron = activePragueMarkerPatron(G);
+        expect(patron).toBeDefined();
+        G.pragueCulturalCenter = patron!.id;
+        pair(G, royal("rudolf", "hre", "male", 0), royal("f9", "england", "female", 0));
+
+        // 3+3=6 -> "Rumors of Murder": Rudolf is the male, so he is murdered.
+        resolveMarriages(G, context([3, 3]));
+
+        expect(G.lastRolls).toBe("Marriage roll: 3+3+0=6");
+        expect(G.pragueCulturalCenter).toBeUndefined();
+        // Death removes the marker, not a marriage report.
+        expect(G.log.join("\n")).toContain("Rudolf II dies");
+        expect(G.log.join("\n")).not.toContain("Rudolf II marries");
+        expect(rulerStats(G, "hre")).toEqual({cardBonus: 0, admin: 1});
+    });
+
+    it("removes the marker for the rudolfII id when he dies (death in childbirth)", () => {
+        const G = game();
+        const patron = activePragueMarkerPatron(G);
+        expect(patron).toBeDefined();
+        G.pragueCulturalCenter = patron!.id;
+        pair(G, royal("m9", "spain", "male", 0), royal("rudolfII", "hre", "female", 0));
+
+        // 4+3=7 -> "Death in Childbirth": the female (here the rudolfII
+        // royal) dies, so the dead-ruler penalty and marker cleanup apply.
+        // (In real play Rudolf is male; this exercises the female-death
+        // branch that routes through applyRulerDeath as well.)
+        resolveMarriages(G, context([4, 3]));
+
+        expect(G.pragueCulturalCenter).toBeUndefined();
+        expect(rulerStats(G, "hre")).toEqual({cardBonus: 0, admin: 1});
+    });
+
+    it("keeps the marker when Rudolf survives a cancellation", () => {
         const G = game();
         const patron = activePragueMarkerPatron(G);
         expect(patron).toBeDefined();
