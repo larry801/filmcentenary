@@ -2,11 +2,13 @@ import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions} from "./components/board";
-import {proposeBetroth, respondAction} from "./moves";
+import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions, abjurationOfferDetails, abjurationOffers, abjurationSelection, abjurationOfferMove, acceptAbjurationOffer} from "./components/board";
+import {chooseAbjuration, proposeBetroth, respondAction} from "./moves";
+import {moveError} from "./movePolicy";
 import {setupGame} from "./util";
 import {ownerOf} from "./ownership";
 import {Power, VQGame} from "./constant/general";
+import {SPACES} from "./mapData";
 import {VirginQueenGameDef} from "./game";
 import {cardById} from "./constant/cards";
 
@@ -713,6 +715,136 @@ describe("Virgin Queen board", () => {
             expect(respondAction(G, responseCtx("1"), {choice: "continue"})).toBeUndefined();
             expect(G.pendingAction?.responders).toEqual(["protestant"]);
             expect(G.haremDeclinedImpulse).toEqual({england: G.impulse});
+        });
+    });
+
+    describe("Act of Abjuration offers (#103)", () => {
+        /**
+         * Six-player game with three pending offers.  Home stacks and leaders
+         * are cleared so the tested previews are deterministic: England has
+         * five regulars in London, France three in Paris and the HRE two in
+         * Vienna, each with one army leader.
+         */
+        const abjurationGame = (): VQGame => {
+            const G = setupGame({...fakeCtx(), numPlayers: 6});
+            G.year = 4;
+            G.activePower = "england";
+            G.pendingAbjuration = {offers: [
+                {power: "england", space: "amsterdam"},
+                {power: "france", space: "brussels"},
+                {power: "hre", space: "rotterdam"},
+            ]};
+            for (const def of SPACES) {
+                if (def.home !== "england" && def.home !== "france" && def.home !== "hre") continue;
+                G.spaces[def.id].land[def.home] = {regular: 0, merc: 0, cav: 0};
+                G.spaces[def.id].leaders = [];
+            }
+            for (const space of ["amsterdam", "brussels", "rotterdam"]) {
+                G.spaces[space].control = "protestant";
+                G.spaces[space].land = {};
+            }
+            G.spaces.london.land.england = {regular: 5, merc: 0, cav: 0};
+            G.spaces.london.leaders = ["leicester"];
+            G.leaders.leicester.location = "london";
+            G.spaces.paris.land.france = {regular: 3, merc: 0, cav: 0};
+            G.spaces.paris.leaders = ["guise"];
+            G.leaders.guise.location = "paris";
+            G.spaces.vienna.land.hre = {regular: 2, merc: 0, cav: 0};
+            G.spaces.vienna.leaders = ["schwendi"];
+            G.leaders.schwendi.location = "vienna";
+            return G;
+        };
+
+        it("labels every offer with its power, destination, troops and leader", () => {
+            const offers = abjurationOffers(abjurationGame());
+            expect(offers.map((offer) => offer.power)).toEqual(["england", "france", "hre"]);
+            expect(offers.map((offer) => offer.label)).toEqual([
+                "英格兰：在 Amsterdam 结盟 · 5 正规军 + Earl of Leicester",
+                "法国：在 Brussels 结盟 · 3 正规军 + Duke of Guise",
+                "神圣罗马帝国：在 Rotterdam 结盟 · 2 正规军 + Lazarus von Schwendi",
+            ]);
+            expect(offers.map(({powerName, space, spaceName, units, leaderId}) =>
+                ({powerName, space, spaceName, units, leaderId}))).toEqual([
+                {powerName: "英格兰", space: "amsterdam", spaceName: "Amsterdam", units: 5, leaderId: "leicester"},
+                {powerName: "法国", space: "brussels", spaceName: "Brussels", units: 3, leaderId: "guise"},
+                {powerName: "神圣罗马帝国", space: "rotterdam", spaceName: "Rotterdam", units: 2, leaderId: "schwendi"},
+            ]);
+            // An offer with no home regulars still labels the destination.
+            const empty = abjurationGame();
+            empty.spaces.london.land.england = {regular: 0, merc: 0, cav: 0};
+            empty.spaces.london.leaders = [];
+            expect(abjurationOfferDetails(empty, {power: "england", space: "amsterdam"}).label)
+                .toBe("英格兰：在 Amsterdam 结盟 · 无正规军");
+            expect(abjurationOffers({...empty, pendingAbjuration: undefined} as VQGame)).toEqual([]);
+        });
+
+        it("highlights exactly one offer and lets each one be selected for the move", () => {
+            const offers = abjurationOffers(abjurationGame());
+            expect(abjurationSelection(offers, undefined)).toBe(offers[0]);
+            for (const offer of offers) expect(abjurationSelection(offers, offer.power)).toBe(offer);
+            expect(abjurationSelection(offers, "spain" as Power)).toBe(offers[0]);
+            expect(abjurationSelection([], "england")).toBeUndefined();
+
+            const moves = {chooseAbjuration: jest.fn()};
+            for (const offer of offers) {
+                acceptAbjurationOffer(moves as any, offer);
+                expect(moves.chooseAbjuration).toHaveBeenLastCalledWith(abjurationOfferMove(offer));
+            }
+            expect(moves.chooseAbjuration.mock.calls.map(([args]) => args.power))
+                .toEqual(["england", "france", "hre"]);
+        });
+
+        it.each(["england", "france", "hre"] as Power[])("accepts the %s offer, moves the previewed troops, then unblocks actions", (power) => {
+            const G = abjurationGame();
+            const protestant = ownerOf(G, "protestant")!;
+            const ctx = {...fakeCtx(), numPlayers: 6, currentPlayer: protestant, playerID: protestant, phase: "action"} as Ctx;
+            const offer = G.pendingAbjuration!.offers.find((candidate) => candidate.power === power)!;
+            const preview = abjurationOfferDetails(G, offer);
+            const before = G.spaces[offer.space].land[power]?.regular ?? 0;
+
+            // While the offer is pending, every other move is rejected.
+            for (const move of ["endImpulse", "playCard", "moveLand", "recruit", "pass", "chooseCardEvent"]) {
+                expect(moveError(G, move)).toBe("请先完成誓绝法案的提议选择。");
+            }
+            expect(moveError(G, "chooseAbjuration")).toBeUndefined();
+
+            expect(chooseAbjuration(G, ctx, {power})).toBeUndefined();
+            expect(G.pendingAbjuration).toBeUndefined();
+            expect(G.powers[power].allies).toContain("protestant");
+            expect(G.powers.protestant.allies).toContain(power);
+            expect(G.spaces[offer.space].land[power]?.regular ?? 0).toBe(before + preview.units);
+            if (preview.leaderId !== undefined) expect(G.leaders[preview.leaderId].location).toBe(offer.space);
+            expect(moveError(G, "endImpulse")).toBeUndefined();
+        });
+
+        it("renders the labelled offers and the current selection only to the Protestant seat", () => {
+            const G = abjurationGame();
+            const protestant = ownerOf(G, "protestant")!;
+            const render = (playerID: string): string => renderToStaticMarkup(<VirginQueenBoard {...{
+                G, ctx: {phase: "action", currentPlayer: "1", numPlayers: 6},
+                moves: {}, playerID, isActive: playerID === protestant,
+            } as any}/>);
+
+            const html = render(protestant);
+            expect(html).toContain("誓绝法案 · 等待新教选择一项提议。");
+            expect(html).toContain("英格兰：在 Amsterdam 结盟 · 5 正规军 + Earl of Leicester");
+            expect(html).toContain("法国：在 Brussels 结盟 · 3 正规军 + Duke of Guise");
+            expect(html).toContain("神圣罗马帝国：在 Rotterdam 结盟 · 2 正规军 + Lazarus von Schwendi");
+            expect(html).toContain("已选：英格兰 → Amsterdam · 5 正规军 + Earl of Leicester");
+            expect(html).toContain("接受 英格兰 的提议");
+            // The first offer is selected by default and reflected in the
+            // highlight attribute and the "已选" summary below it.
+            expect(html).toContain('aria-pressed="true"');
+            expect(html.match(/接受 英格兰 的提议/g) ?? []).toHaveLength(1);
+            // The ordinary action panel is replaced, so its actions are unavailable.
+            expect(html).not.toContain("结束行动轮次");
+
+            const other = render("1");
+            expect(other).toContain("誓绝法案 · 等待新教选择一项提议。");
+            expect(other).toContain("等待新教玩家选择；其他势力此时无法行动。");
+            expect(other).not.toContain("英格兰：在 Amsterdam 结盟 · 5 正规军 + Earl of Leicester");
+            expect(other).not.toContain("接受 英格兰 的提议");
+            expect(other).not.toContain("结束行动轮次");
         });
     });
 });

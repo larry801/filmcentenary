@@ -264,6 +264,76 @@ export const MenendezTargetSelect = ({options, value, onChange}: {
     </Select>
 </FormControl>;
 
+export interface AbjurationOffer {
+    power: Power;
+    powerName: string;
+    /** Netherlands space the accepted offer would reinforce. */
+    space: string;
+    spaceName: string;
+    /** Regulars the engine would move now, capped by the card's five. */
+    units: number;
+    /** Army leader that would accompany the regulars, when one is available. */
+    leaderId?: string;
+    leaderName?: string;
+    /** Offer button label: power, destination, troops and leader. */
+    label: string;
+}
+
+/**
+ * Previews one #103 offer without mutating the game.  `chooseAbjuration`
+ * deterministically takes regulars from the offering power's controlled home
+ * spaces, in map order, until five have been moved; this mirrors that source
+ * selection so the Protestant can see the destination and exact troops before
+ * accepting.
+ */
+export const abjurationOfferDetails = (G: VQGame, offer: {power: Power; space: string}): AbjurationOffer => {
+    let remaining = 5;
+    const sources: string[] = [];
+    for (const space of SPACES.filter((def) => def.home === offer.power && G.spaces[def.id].control === offer.power)) {
+        const stack = G.spaces[space.id].land[offer.power];
+        if (stack === undefined) continue;
+        const take = Math.min(remaining, stack.regular);
+        if (take > 0) sources.push(space.id);
+        remaining -= take;
+        if (remaining === 0) break;
+    }
+    const units = 5 - remaining;
+    const leaderId = sources.flatMap((id) => G.spaces[id].leaders)
+        .find((id) => LEADER_BY_ID[id]?.power === offer.power && LEADER_BY_ID[id]?.kind === "army");
+    const leader = leaderId !== undefined ? LEADER_BY_ID[leaderId] : undefined;
+    const powerName = POWER_NAMES[offer.power].zh;
+    const spaceName = SPACE_BY_ID[offer.space]?.name ?? offer.space;
+    const troops = units > 0 ? `${units} 正规军` : "无正规军";
+    return {
+        power: offer.power,
+        powerName,
+        space: offer.space,
+        spaceName,
+        units,
+        ...(leaderId !== undefined ? {leaderId} : {}),
+        ...(leader !== undefined ? {leaderName: leader.name} : {}),
+        label: `${powerName}：在 ${spaceName} 结盟 · ${troops}${leader !== undefined ? ` + ${leader.name}` : ""}`,
+    };
+};
+
+/** Every pending #103 offer, ready for the offer buttons. */
+export const abjurationOffers = (G: VQGame): AbjurationOffer[] =>
+    (G.pendingAbjuration?.offers ?? []).map((offer) => abjurationOfferDetails(G, offer));
+
+/**
+ * The offer whose button is highlighted.  A stale/unknown selection falls
+ * back to the first offer so the panel always shows exactly one selection.
+ */
+export const abjurationSelection = (offers: AbjurationOffer[], power: Power | undefined): AbjurationOffer | undefined =>
+    offers.find((offer) => offer.power === power) ?? offers[0];
+
+/** Argument passed to `chooseAbjuration` when the Protestant accepts an offer. */
+export const abjurationOfferMove = (offer: AbjurationOffer): {power: Power} => ({power: offer.power});
+
+/** Routes an accepted offer through the boardgame.io move set. */
+export const acceptAbjurationOffer = (moves: BoardProps<VQGame>["moves"], offer: AbjurationOffer): void =>
+    (moves as unknown as {chooseAbjuration: (args: {power: Power}) => void})
+        .chooseAbjuration(abjurationOfferMove(offer));
 type HolyLeagueTrack = "papacy" | "venice" | "hre";
 
 const HOLY_LEAGUE_TRACK_NAMES: Record<HolyLeagueTrack, string> = {
@@ -582,6 +652,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [foreignWarLeader, setForeignWarLeader] = React.useState("");
     const [gregorianTarget, setGregorianTarget] = React.useState<Power>("france");
     const [selectedActionResponder, setSelectedActionResponder] = React.useState<Power>();
+    const [selectedAbjurationPower, setSelectedAbjurationPower] = React.useState<Power>();
 
     const [viewPower, setViewPower] = React.useState<Power>();
     const owned = controlledPowers(G, playerID);
@@ -822,13 +893,34 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             {ownerOf(G, G.pendingEspionage.responding) === playerID && espionageOptions(G).map((entry) =>
                 <Button key={entry.id} variant="outlined" onClick={() => moves.chooseEspionage({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
-        if (G.pendingAbjuration) return <Stack spacing={1}>
-            <Typography>誓绝法案 · 等待新教选择一项提议。</Typography>
-            {ownerOf(G, "protestant") === playerID && G.pendingAbjuration.offers.map((offer) =>
-                <Button key={offer.power} variant="outlined" onClick={() => (moves as unknown as {chooseAbjuration: (args: {power: string}) => void}).chooseAbjuration({power: offer.power})}>
-                    {POWER_NAMES[offer.power].short}：在 {SPACE_BY_ID[offer.space].name} 结盟
+        if (G.pendingAbjuration) {
+            const offers = abjurationOffers(G);
+            const selected = abjurationSelection(offers, selectedAbjurationPower);
+            const ownedOffer = ownerOf(G, "protestant") === playerID;
+            return <Stack spacing={1}>
+                <Typography>誓绝法案 · 等待新教选择一项提议。</Typography>
+                <Typography variant="body2">
+                    每个提议立即与新教结盟，并从提议方本土控制地区抽调至多 5 个正规军（可随行 1 个陆军将领）。新教只能接受一项。
+                </Typography>
+                {ownedOffer && offers.map((offer) => <Button key={offer.power}
+                        variant={selected?.power === offer.power ? "contained" : "outlined"}
+                        aria-pressed={selected?.power === offer.power}
+                        onClick={() => setSelectedAbjurationPower(offer.power)}>
+                    {offer.label}
                 </Button>)}
-        </Stack>;
+                {ownedOffer && selected !== undefined && <>
+                    <Typography variant="caption" color="text.secondary">
+                        已选：{selected.powerName} → {selected.spaceName} · {selected.units > 0 ? `${selected.units} 正规军` : "无正规军"}
+                        {selected.leaderName !== undefined ? ` + ${selected.leaderName}` : ""}；接受后立即结算。
+                    </Typography>
+                    <Button variant="contained" color="success" onClick={() => {
+                        acceptAbjurationOffer(moves, selected);
+                        setSelectedAbjurationPower(undefined);
+                    }}>接受 {selected.powerName} 的提议</Button>
+                </>}
+                {!ownedOffer && <Typography variant="body2">等待新教玩家选择；其他势力此时无法行动。</Typography>}
+            </Stack>;
+        }
         if (G.gregorianResponse) return <Stack spacing={1}>
             <Typography>公历纪年法 · {POWER_NAMES[G.gregorianResponse.after].zh} 的回合已结束，等待 {POWER_NAMES[G.gregorianResponse.responder].zh} 决定是否响应。</Typography>
             {ownerOf(G, G.gregorianResponse.responder) === playerID && <>
