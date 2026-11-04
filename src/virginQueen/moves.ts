@@ -78,6 +78,7 @@ import {
     catholicLeagueSpaceOptions,
     cleanupLand,
     cleanupNaval,
+    controllerLabel,
     nearestFriendlyFortified,
     clearWar,
     dealYear,
@@ -1457,15 +1458,18 @@ const resolveForeignVolunteers = (G: VQGame, p: Power): void => {
     pushLog(G, `Foreign Volunteers place 3 regular(s) for ${powerLabel(p)}.`);
 };
 
-/** #26 A Small Aid: one regular in a small besieged fortress. */
+/** #26 A Small Aid: one regular in a small besieged fortress, owned by its controller. */
 const resolveSmallAid = (G: VQGame, target?: string): void => {
     if (target === undefined) return;
     const state = G.spaces[target];
-    if (state === undefined || state.siege === undefined || !isPower(state.control)) return;
-    const defenders = totalLand(G, target, ownersWithLand(G, target));
+    if (state === undefined || state.siege === undefined || !isFortifiedSpace(G, target)) return;
+    // The card counts only the units defending the fortress; besieging units
+    // share the space in this model and must not disqualify the target.
+    const defenders = totalLand(G, target,
+        ownersWithLand(G, target).filter((owner) => owner !== state.siege!.by));
     if (defenders > 3) return;
     addLand(G, target, state.control, "regular", 1);
-    pushLog(G, `A Small Aid adds a ${powerLabel(state.control)} regular to ${SPACE_BY_ID[target].name}.`);
+    pushLog(G, `A Small Aid adds 1 ${controllerLabel(state.control)} regular to ${SPACE_BY_ID[target].name}.`);
 };
 
 const resolveEloquentAmbassador = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
