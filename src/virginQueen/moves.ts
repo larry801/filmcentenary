@@ -4321,7 +4321,15 @@ export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string; cp: numbe
         return INVALID_MOVE;
     }
     const p = power(G, ctx);
-    const patron = patronById(G, args.patron);
+    let patronId = args.patron;
+    // Rule 22.1/22.2: select the patron at random from those available.
+    // Validate the supplied id; if it is unavailable, draw one at random.
+    if (!G.patronsAvailable.includes(patronId)) {
+        const available = G.patronsAvailable.filter((id) => patronById(G, id)?.region === p);
+        if (available.length === 0) return INVALID_MOVE;
+        patronId = shuffle(ctx, available.slice())[0];
+    }
+    const patron = patronById(G, patronId);
     if (patron === undefined || patron.region !== p || patron.rating === null) {
         return INVALID_MOVE;
     }
