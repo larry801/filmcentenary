@@ -56,4 +56,31 @@ describe("Black Magic / Armada Pardon", () => {
         playCard(G2, context("1"), {cardId: "vq-104", asEvent: true});
         expect(G2.powers.spain.cp).toBe(5);
     });
+
+    it("adds +1 CP when Elizabeth I is excommunicated", () => {
+        const G = game();
+        G.powers.spain.cards = ["vq-104"];
+        G.armada = {strength: 2, location: "seville"};
+        G.powers.spain.alliedMinors = [];
+        G.powers.spain.cp = 0;
+        G.elizabethExcommunicated = true;
+
+        expect(playCard(G, context("1"), {cardId: "vq-104", asEvent: true})).toBeUndefined();
+        expect(G.powers.spain.cp).toBe(5);
+    });
+
+    it("awards the CP to Spain when another power plays the card", () => {
+        const G = game();
+        G.powers.england.cards = ["vq-104"];
+        G.armada = {strength: 2, location: "seville"};
+        G.powers.spain.alliedMinors = ["papacy"];
+        G.powers.spain.cp = 0;
+        G.powers.england.cp = 0;
+        G.elizabethExcommunicated = true;
+
+        expect(playCard(G, context("2"), {cardId: "vq-104", asEvent: true})).toBeUndefined();
+
+        expect(G.powers.spain.cp).toBe(6);
+        expect(G.powers.england.cp).toBe(0);
+    });
 });

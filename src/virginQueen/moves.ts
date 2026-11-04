@@ -1974,11 +1974,15 @@ const resolveBlackMagic = (G: VQGame, ctx: Ctx, p: Power, target?: string): void
 };
 
 /** #104 Armada Pardon: CP for the Armada. */
-const resolveArmadaPardon = (G: VQGame, p: Power): void => {
+const resolveArmadaPardon = (G: VQGame): void => {
     if (G.armada === undefined) return;
-    const papacy = G.powers[p].alliedMinors.includes("papacy") ? 1 : 0;
-    G.powers[p].cp += 4 + papacy;
-    pushLog(G, `Armada Pardon grants Spain ${4 + papacy} CP for the Armada.`);
+    // The printed effect names Spain, so another power holding the card still
+    // awards these CP to Spain.  Both listed conditions add one CP each.
+    const papacy = G.powers.spain.alliedMinors.includes("papacy") ? 1 : 0;
+    const excommunicated = G.elizabethExcommunicated ? 1 : 0;
+    const cp = 4 + papacy + excommunicated;
+    G.powers.spain.cp += cp;
+    pushLog(G, `Armada Pardon grants Spain ${cp} CP for the Armada.`);
 };
 
 const resolveSpanishPayShips = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
@@ -2342,8 +2346,10 @@ const resolveGouvernanteDeFrance = (G: VQGame, ctx: Ctx, target?: string): void 
 const resolveEnterpriseOfEngland = (G: VQGame): void => {
     const english = SPACES.filter((space) => space.area === "england");
     const jesuits = (G.espionage?.jesuits ?? []).filter((space) => english.some((def) => def.id === space)).length;
-    const catholic = english.filter((space) => !G.spaces[space.id].unrest && G.spaces[space.id].religion === "catholic").length;
-    const spanishControl = english.filter((space) => !G.spaces[space.id].unrest && G.spaces[space.id].control === "spain").length;
+    // Scenario Book FAQ: ignore Unrest entirely for these counts.  Unrest in a
+    // space does not remove it from the Catholic or Spanish-controlled totals.
+    const catholic = english.filter((space) => G.spaces[space.id].religion === "catholic").length;
+    const spanishControl = english.filter((space) => G.spaces[space.id].control === "spain").length;
     const spanishRegulars = english.reduce((total, space) => total + (G.spaces[space.id].land.spain?.regular ?? 0), 0);
     const total = jesuits + catholic + spanishControl + spanishRegulars;
     pushLog(G, `Enterprise of England: ${jesuits} Jesuit(s), ${catholic} Catholic, ${spanishControl} Spanish-controlled, ${spanishRegulars} Spanish regulars = ${total}.`);
@@ -2638,7 +2644,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "rulerFallsIll") {
         resolveRulerFallsIll(G, ctx, p, target);
     } else if (handler === "armadaPardon") {
-        resolveArmadaPardon(G, p);
+        resolveArmadaPardon(G);
     } else if (handler === "dutchRevolt") {
         resolveDutchRevolt(G);
     } else if (handler === "holyRomanIntercession") {
