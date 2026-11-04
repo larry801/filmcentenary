@@ -3226,6 +3226,25 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
     } else {
         setWar(G, "protestant", "spain");
     }
+    // Rule 18.5 steps 7-8: designate a capital and place an available leader.
+    if (G.protestantCapital === undefined && spaceHomes(def).includes("protestant") && isFortifiedSpace(G, space)) {
+        G.protestantCapital = space;
+        pushLog(G, `The Protestant designates ${SPACE_BY_ID[space].name} as its capital.`);
+    }
+    // Place an available army leader in the target space.
+    const availableLeader = LEADERS.find((l) => l.power === "protestant" && l.kind === "army" &&
+        (G.leaders[l.id] === undefined || G.leaders[l.id].location === "pool"));
+    if (availableLeader !== undefined) {
+        if (G.leaders[availableLeader.id] === undefined) {
+            G.leaders[availableLeader.id] = {id: availableLeader.id, location: space};
+        } else {
+            G.leaders[availableLeader.id].location = space;
+        }
+        if (!G.spaces[space].leaders.includes(availableLeader.id)) {
+            G.spaces[space].leaders.push(availableLeader.id);
+        }
+        pushLog(G, `${availableLeader.name} joins the rebellion in ${SPACE_BY_ID[space].name}.`);
+    }
     if (G.rebellionAreasThisImpulse !== undefined) G.rebellionAreasThisImpulse.areas.push(def.area);
     return true;
 };
