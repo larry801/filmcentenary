@@ -1072,18 +1072,21 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             return <Stack spacing={1}>
                 <Typography variant="subtitle2">Card Draw 阶段 · 第 {G.year} 回合</Typography>
                 {winterLosses.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
-                    <Typography variant="subtitle2">冬季损失：选择失去的单位类型</Typography>
+                    <Typography variant="subtitle2">冬季损失：选择或确认失去的单位类型</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        已自动移除相应数量的单位；可为每处损失改选该地现有足够数量的类型，或保留自动结果。
+                        已自动移除相应数量的单位；普通冬季损失可改选该地现有足够数量的类型，或保留自动结果；莫里斯科人随 #28 离场，只能确认。
                     </Typography>
                     {winterLosses.map((entry, index) => {
                         const stack = G.spaces[entry.space]?.land[me];
-                        const choices = (["regular", "merc", "cav"] as const)
+                        const choices = entry.confirmOnly ? [] : (["regular", "merc", "cav"] as const)
                             .filter((kind) => (stack?.[kind] ?? 0) >= entry.amount);
                         return <Stack key={`${entry.space}-${index}`} spacing={0.5}>
                             <Typography variant="body2">
                                 {SPACE_BY_ID[entry.space]?.name ?? entry.space} · 需失去 {entry.amount} 个单位
                             </Typography>
+                            {entry.confirmOnly && <Typography variant="caption" color="text.secondary">
+                                莫里斯科人（#28）随牌离场，只能确认移除，不能改为失去其他兵种。
+                            </Typography>}
                             <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                                 {choices.map((kind) => <Button key={kind} size="small" variant="outlined"
                                     disabled={!myTurn}
@@ -1092,7 +1095,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                 </Button>)}
                                 <Button size="small" variant="outlined" disabled={!myTurn}
                                     onClick={() => moves.chooseWinterLoss({space: entry.space, kind: "auto"})}>
-                                    保留自动结果
+                                    {entry.confirmOnly ? "确认移除" : "保留自动结果"}
                                 </Button>
                             </Stack>
                         </Stack>;

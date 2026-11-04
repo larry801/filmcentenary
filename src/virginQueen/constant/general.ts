@@ -158,7 +158,9 @@ export interface NavalStack {
  * yet. The automatic losses have already been applied; choosing another unit
  * type restores the automatically removed units to `space` and takes the
  * chosen type instead. If the choice is skipped the automatic result stands.
- * The Morisco regulars removed by the Winter Phase use the same confirmation.
+ * The Morisco regulars removed by the Winter Phase are recorded as a
+ * confirmation-only choice, because they leave play with card #28 and cannot
+ * be exchanged for other unit types in the surviving stack.
  */
 export interface WinterLossChoice {
     power: Power;
@@ -168,6 +170,13 @@ export interface WinterLossChoice {
     amount: number;
     /** Unit types removed by the automatic mercenary/cavalry/regular rule. */
     removed: LandStack;
+    /**
+     * The removal is already final: the owner may only confirm it with
+     * `kind: "auto"`. Used for the Morisco regulars removed at Winter, which
+     * cannot be swapped for mercenaries or cavalry even when the stack at
+     * `space` has survivors of those types.
+     */
+    confirmOnly?: boolean;
 }
 
 /**

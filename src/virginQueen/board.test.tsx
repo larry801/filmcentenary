@@ -281,6 +281,38 @@ describe("Virgin Queen board", () => {
         expect(render("0")).toContain("各参战强国依次确认后进入外交阶段");
     });
 
+    it("offers only confirmation for the Morisco winter removal but swaps ordinary losses", () => {
+        const G = setupGame(fakeCtx(), {scenario: "tournament"});
+        G.activePower = "ottoman";
+        G.winterLossChoices = [{
+            power: "ottoman", space: "granada", amount: 2,
+            removed: {regular: 2, merc: 0, cav: 0}, confirmOnly: true,
+        }];
+        const render = (): string => renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "cardDraw", currentPlayer: "0"}, moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+
+        const confirmOnly = render();
+        expect(confirmOnly).toContain("莫里斯科人（#28）随牌离场");
+        expect(confirmOnly).toContain("确认移除");
+        for (const kind of ["正规军", "雇佣兵", "骑兵"]) {
+            expect(confirmOnly).not.toContain(`改为失去 ${kind}`);
+        }
+
+        // An ordinary winter loss keeps the unit-type swap buttons.
+        G.winterLossChoices = [{
+            power: "ottoman", space: "granada", amount: 1,
+            removed: {regular: 1, merc: 0, cav: 0},
+        }];
+        G.spaces.granada.land.ottoman = {regular: 1, merc: 1, cav: 1};
+        const ordinary = render();
+        expect(ordinary).toContain("改为失去 正规军");
+        expect(ordinary).toContain("改为失去 雇佣兵");
+        expect(ordinary).toContain("改为失去 骑兵");
+        expect(ordinary).toContain("保留自动结果");
+        expect(ordinary).not.toContain("确认移除");
+    });
+
     it("offers all three religious preferences to HRE in its first Spring", () => {
         const G = setupGame(fakeCtx());
         G.activePower = "hre";

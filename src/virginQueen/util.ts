@@ -24,6 +24,7 @@ import {
     ROYALS,
     SeaZoneID,
     VQGame,
+    WinterLossChoice,
     isPower,
     emptyLand,
     emptyNaval,
@@ -2982,12 +2983,18 @@ const winterAttrition = (units: LandStack): LandStack => {
 /**
  * Record a winter attrition loss so its owner may pick the unit type during
  * the Card Draw phase.  The automatic losses are already applied; a skipped
- * choice therefore keeps the automatic composition.
+ * choice therefore keeps the automatic composition.  `confirmOnly` marks a
+ * removal that is already final (the Morisco regulars leaving play with card
+ * #28), so the owner may only confirm it during Card Draw.
  */
-const recordWinterLossChoice = (G: VQGame, p: Power, space: string, removed: LandStack): void => {
+const recordWinterLossChoice = (
+    G: VQGame, p: Power, space: string, removed: LandStack, confirmOnly = false,
+): void => {
     const amount = landCount(removed);
     if (amount === 0 || G.spaces[space] === undefined) return;
-    G.winterLossChoices = [...(G.winterLossChoices ?? []), {power: p, space, amount, removed}];
+    const entry: WinterLossChoice = {power: p, space, amount, removed};
+    if (confirmOnly) entry.confirmOnly = true;
+    G.winterLossChoices = [...(G.winterLossChoices ?? []), entry];
 };
 
 /**
@@ -3493,8 +3500,10 @@ export const placeMoriscoUnrest = (G: VQGame, origin?: string): string[] => {
  * Remove the Morisco unit and card #28.  The Morisco counters are regular
  * units, so the removal is recorded as a winter loss choice when it happens
  * during the Winter Phase (`recordWinterChoice`); the owner then confirms the
- * removed unit types in the following Card Draw phase.  Peace and status
- * checks during the Action Phase keep the default and remove the unit
+ * removed unit types in the following Card Draw phase.  That choice is
+ * confirmation-only: the cards left play with the Morisco, so their regulars
+ * cannot be swapped for other unit types in the surviving stack.  Peace and
+ * status checks during the Action Phase keep the default and remove the unit
  * immediately, without leaving a choice that would block that phase.
  */
 export const clearMorisco = (G: VQGame, recordWinterChoice = false): void => {
@@ -3512,9 +3521,9 @@ export const clearMorisco = (G: VQGame, recordWinterChoice = false): void => {
     removeCardFromGame(G, "vq-028");
     pushLog(G, "Morisco Revolt ends: the Morisco unit is removed and card #28 leaves play.");
     if (recordWinterChoice && removed > 0) {
-        // The automatic removal is already applied; a skipped confirmation
-        // keeps it, exactly like the other winter loss choices.
-        recordWinterLossChoice(G, "ottoman", space, {regular: removed, merc: 0, cav: 0});
+        // The automatic removal is already applied and final; the owner only
+        // confirms it, so no surviving mercenary or cavalry can replace it.
+        recordWinterLossChoice(G, "ottoman", space, {regular: removed, merc: 0, cav: 0}, true);
     }
 };
 

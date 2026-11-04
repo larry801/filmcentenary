@@ -3174,7 +3174,9 @@ const winterLossChoicesRemain = (G: VQGame, p: Power): boolean =>
  * them with the same number of the chosen type from the surviving stack.
  * Passing `kind: "auto"` keeps the automatic composition.  A stack eliminated
  * for want of winter quarters has no survivors, so only "auto" is legal and
- * simply confirms the automatic composition.
+ * simply confirms the automatic composition.  A `confirmOnly` record (the
+ * Morisco regulars removed with card #28) likewise accepts only "auto": those
+ * units left play with the card and cannot be exchanged for other types.
  */
 export const chooseWinterLoss = (G: VQGame, ctx: Ctx, args: {space: string; kind: keyof LandStack | "auto"}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "cardDraw") return INVALID_MOVE;
@@ -3184,6 +3186,7 @@ export const chooseWinterLoss = (G: VQGame, ctx: Ctx, args: {space: string; kind
     const pending = (G.winterLossChoices ?? []).find((entry) => entry.power === p && entry.space === args.space);
     if (pending === undefined) return INVALID_MOVE;
     if (args.kind !== "auto") {
+        if (pending.confirmOnly) return INVALID_MOVE;
         if (args.kind !== "regular" && args.kind !== "merc" && args.kind !== "cav") return INVALID_MOVE;
         const stack = G.spaces[args.space]?.land[p];
         if (stack === undefined || stack[args.kind] < pending.amount) return INVALID_MOVE;
@@ -3192,6 +3195,8 @@ export const chooseWinterLoss = (G: VQGame, ctx: Ctx, args: {space: string; kind
         stack[args.kind] -= pending.amount;
         cleanupLand(G, args.space, p);
         pushLog(G, `${powerLabel(p)} loses ${pending.amount} ${WINTER_LOSS_KIND_NAMES[args.kind]} unit(s) in ${SPACE_BY_ID[args.space].name} to winter attrition.`);
+    } else if (pending.confirmOnly) {
+        pushLog(G, `${powerLabel(p)} confirms the Morisco removal in ${SPACE_BY_ID[args.space].name}.`);
     } else {
         pushLog(G, `${powerLabel(p)} keeps the automatic winter losses in ${SPACE_BY_ID[args.space].name}.`);
     }

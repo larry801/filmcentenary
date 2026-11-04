@@ -58,6 +58,7 @@ describe("winter Morisco removal confirmation", () => {
             space: "granada",
             amount: 2,
             removed: {regular: 2, merc: 0, cav: 0},
+            confirmOnly: true,
         }]);
         expect(moveError(G, "claimSeaCaptain")).toBeDefined();
         expect(moveError(G, "chooseWinterLoss")).toBeUndefined();
@@ -76,6 +77,7 @@ describe("winter Morisco removal confirmation", () => {
             space: "granada",
             amount: 2,
             removed: {regular: 2, merc: 0, cav: 0},
+            confirmOnly: true,
         }]);
     });
 
@@ -90,7 +92,7 @@ describe("winter Morisco removal confirmation", () => {
         expect(G.spaces.granada.land.ottoman).toBeUndefined();
         expect(G.winterLossChoices).toBeUndefined();
         expect(endStage).toHaveBeenCalledTimes(1);
-        expect(G.log.join("\n")).toContain("keeps the automatic winter losses");
+        expect(G.log.join("\n")).toContain("confirms the Morisco removal in Granada");
     });
 
     it("does not record a choice when peace removes the Morisco during the Action Phase", () => {
