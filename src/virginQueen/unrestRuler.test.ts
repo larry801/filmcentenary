@@ -60,6 +60,18 @@ describe("Unrest in the Realm / Ruler Falls Ill", () => {
         expect(G.skipImpulse).not.toContain("spain");
     });
 
+    it("also skips the target's next action round when returning a leader", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-030"];
+        G.leaders.alba = {id: "alba", location: "rotterdam"};
+        G.spaces.rotterdam.leaders = ["alba"];
+
+        expect(playCard(G, context(), {cardId: "vq-030", asEvent: true, target: "spain:return"})).toBeUndefined();
+
+        expect(G.leaders.alba.location).toBe("madrid");
+        expect(G.skipImpulse).toContain("spain");
+    });
+
     it("can send a target leader back to its capital", () => {
         const G = game();
         G.powers.france.cards = ["vq-030"];

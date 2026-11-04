@@ -30,6 +30,22 @@ describe("Foreign Volunteers / A Small Aid", () => {
         expect(SPACES.filter((space) => space.home === "france" && (G.spaces[space.id].land.france?.regular ?? 0) === 1)).toHaveLength(3);
     });
 
+    it("still places all three regulars when only one space is eligible", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-021"];
+        for (const space of SPACES) {
+            if (G.spaces[space.id].control === "france") G.spaces[space.id].control = "spain";
+        }
+        G.spaces.paris.control = "france";
+        G.spaces.paris.land.france = {regular: 0, merc: 0, cav: 0};
+        G.spaces.paris.siege = undefined;
+        G.spaces.paris.unrest = false;
+
+        expect(playCard(G, context(), {cardId: "vq-021", asEvent: true})).toBeUndefined();
+
+        expect(G.spaces.paris.land.france?.regular).toBe(3);
+    });
+
     it("adds a regular to a small besieged fortress", () => {
         const G = game();
         G.powers.france.cards = ["vq-026"];

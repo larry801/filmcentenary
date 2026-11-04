@@ -1395,8 +1395,12 @@ const resolveForeignVolunteers = (G: VQGame, p: Power): void => {
     const targets = SPACES.filter((space) => G.spaces[space.id].control === p && !G.spaces[space.id].siege &&
         !G.spaces[space.id].unrest).slice(0, 3);
     if (targets.length === 0) return;
-    for (const space of targets) addLand(G, space.id, p, "regular", 1);
-    pushLog(G, `Foreign Volunteers place ${targets.length} regular(s) for ${powerLabel(p)}.`);
+    // The card always places exactly three regulars; when fewer than three
+    // spaces are eligible the remaining regulars go to the eligible spaces.
+    for (let index = 0; index < 3; index += 1) {
+        addLand(G, targets[index % targets.length].id, p, "regular", 1);
+    }
+    pushLog(G, `Foreign Volunteers place 3 regular(s) for ${powerLabel(p)}.`);
 };
 
 /** #26 A Small Aid: one regular in a small besieged fortress. */
@@ -1478,6 +1482,10 @@ const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
         return;
     }
     if (mode === "return") {
+        // Option two is "skip the target's next action round AND may return a
+        // commander"; the leader move does not replace the skipped impulse.
+        G.skipImpulse = [...(G.skipImpulse ?? []), targetPower];
+        pushLog(G, `Ruler Falls Ill: ${powerLabel(targetPower)} will skip its next action round.`);
         const leader = Object.values(G.leaders).find((state) => state.id !== "guise" && LEADER_BY_ID[state.id]?.power === targetPower && LEADER_BY_ID[state.id]?.kind === "army" &&
             (extra === undefined || state.id === extra) &&
             state.location !== "pool" && state.location !== "dead" && G.spaces[state.location] !== undefined);
