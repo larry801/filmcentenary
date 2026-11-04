@@ -82,6 +82,7 @@ import {
     clearWar,
     dealYear,
     discardCard,
+    displaceNonFriendlyUnits,
     drawCards,
     ensureLand,
     ensureNaval,
@@ -390,10 +391,17 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef, 
         if (G.minorDiplomacyResolved.includes("scotland")) return false;
         const edinburghController = G.spaces.edinburgh?.control;
         const modifier = isPower(edinburghController) ? {[edinburghController]: 1} : {};
-        resolveMinorDiplomacy(G, ctx, "scotland", {modifier});
-        for (const space of SPACES.filter((s) => s.area === "scotland")) {
-            G.spaces[space.id].land = {};
+        const winner = resolveMinorDiplomacy(G, ctx, "scotland", {modifier});
+        const scottishSpaces = SPACES.filter((space) => space.area === "scotland");
+        if (winner !== undefined) {
+            // FAQ #74: every Scottish space comes under the winner's control,
+            // and only units friendly to that power remain there.
+            for (const space of scottishSpaces) G.spaces[space.id].control = winner;
+            displaceNonFriendlyUnits(G, winner, scottishSpaces.map((space) => space.id));
         }
+        // FAQ #74: remove all Scottish land units from the map, then replace
+        // them with the two regulars that enter at Edinburgh.
+        for (const space of SPACES) delete G.spaces[space.id].land.scotland;
         addLand(G, "edinburgh", "scotland", "regular", 2);
         const mary = espionageState(G);
         if (mary.mary !== "dead") {

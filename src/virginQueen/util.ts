@@ -1070,6 +1070,64 @@ const returnCascadedMinorUnits = (G: VQGame, minor: MinorPower): void => {
 };
 
 /**
+ * FAQ #74 (Scottish Lords Rebel): displace every land and naval unit in the
+ * given spaces that is not friendly to the power that won the diplomatic
+ * check.  Land units (with their army leaders) move to the nearest friendly-
+ * controlled fortified space and naval units (with their naval leaders) to the
+ * nearest friendly-controlled port.  Units with no legal destination are
+ * eliminated and their leaders return to the pool.
+ */
+export const displaceNonFriendlyUnits = (G: VQGame, winner: Power, spaceIds: string[]): void => {
+    for (const id of spaceIds) {
+        const space = G.spaces[id];
+        if (space === undefined) continue;
+        const controllers = new Set<Controller>([
+            ...Object.keys(space.land),
+            ...Object.keys(space.naval),
+        ] as Controller[]);
+        for (const controller of controllers) {
+            if (friendlyController(G, winner, controller)) continue;
+            const owner = isPower(controller) ? controller :
+                controller === "independent" ? undefined : minorAlly(G, controller);
+            const land = space.land[controller];
+            const naval = space.naval[controller];
+            if (owner === undefined) {
+                if (land !== undefined) delete space.land[controller];
+                if (naval !== undefined) delete space.naval[controller];
+                pushLog(G, `${controllerLabel(controller)} units in ${SPACE_BY_ID[id].name} are eliminated (no friendly power).`);
+                continue;
+            }
+            if (land !== undefined && landCount(land) > 0) {
+                const destination = nearestFriendlyFortifiedFrom(G, owner, id);
+                const leaders = isPower(controller) ? stackLeaders(G, id, controller, "army") : [];
+                if (destination !== undefined) {
+                    moveLandStack(G, id, destination, controller);
+                    if (leaders.length > 0) moveLeaders(G, id, destination, leaders);
+                    pushLog(G, `${controllerLabel(controller)} land units withdraw from ${SPACE_BY_ID[id].name} to ${SPACE_BY_ID[destination].name}.`);
+                } else {
+                    delete space.land[controller];
+                    if (leaders.length > 0) moveLeaders(G, id, "pool", leaders);
+                    pushLog(G, `${controllerLabel(controller)} land units in ${SPACE_BY_ID[id].name} are eliminated (no friendly fortified space).`);
+                }
+            }
+            if (naval !== undefined && navalCount(naval) > 0) {
+                const destination = nearestFriendlyPortFromSpace(G, owner, id);
+                const leaders = isPower(controller) ? stackLeaders(G, id, controller, "naval") : [];
+                if (destination !== undefined) {
+                    moveNavalStack(G, id, destination, controller);
+                    if (leaders.length > 0) moveLeaders(G, id, destination, leaders);
+                    pushLog(G, `${controllerLabel(controller)} naval units withdraw from ${SPACE_BY_ID[id].name} to ${SPACE_BY_ID[destination].name}.`);
+                } else {
+                    delete space.naval[controller];
+                    if (leaders.length > 0) moveLeaders(G, id, "pool", leaders);
+                    pushLog(G, `${controllerLabel(controller)} naval units in ${SPACE_BY_ID[id].name} are eliminated (no friendly port).`);
+                }
+            }
+        }
+    }
+};
+
+/**
  * Rule 24.4 displacement: after the former ally's control markers leave a
  * minor home space, units of other powers there move to the nearest friendly-
  * controlled fortified space (land) or port (naval).  The HRE's own units are
