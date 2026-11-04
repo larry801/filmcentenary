@@ -20,6 +20,8 @@ const twoPlayerGame = (): VQGame => {
     G.majorInfluence!.hre!.spain = 0;
     G.majorDiplomacyResolved = [];
     G.minorDiplomacyResolved = [];
+    // The Campaign scenario starts the Ottoman at 11 VP; #24 requires 13+.
+    G.powers.ottoman.bonusVp += 2;
     return G;
 };
 
@@ -95,6 +97,8 @@ describe("Holy League with the non-player HRE (card #24)", () => {
         G.powers.spain.influence.papacy = 0;
         G.powers.spain.influence.venice = 0;
         G.minorDiplomacyResolved = [];
+        // The Campaign scenario starts the Ottoman at 11 VP; #24 requires 13+.
+        G.powers.ottoman.bonusVp += 2;
 
         expect(playCard(G, context(6, "1"), {cardId: "vq-024", asEvent: true, target: "hre"})).toBeUndefined();
 

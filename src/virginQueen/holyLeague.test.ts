@@ -11,7 +11,12 @@ const context = (): Ctx => ({
     random: {Die: () => 3, Shuffle: (cards: unknown[]) => cards},
 } as unknown as Ctx);
 
-const game = (): VQGame => setupGame({...context(), phase: "action"} as Ctx);
+const game = (): VQGame => {
+    const G = setupGame({...context(), phase: "action"} as Ctx);
+    // The Campaign scenario starts the Ottoman at 11 VP; #24 requires 13+.
+    G.powers.ottoman.bonusVp += 2;
+    return G;
+};
 
 describe("Holy League (card #24)", () => {
     it("can give all four influence to one minor", () => {

@@ -113,6 +113,7 @@ import {
     portZones,
     seaPathBetweenPorts,
     powerLabel,
+    powerVp,
     pushLog,
     rebellionTargets,
     religionCandidates,
@@ -1103,6 +1104,26 @@ const holyLeagueTracks = (G: VQGame): HolyLeagueTrack[] => [
     "venice",
     ...(G.majorInfluence?.hre !== undefined && (G.playerPowers ? !Object.values(G.playerPowers).some((powers) => powers.includes("hre")) : ownerOf(G, "hre") === undefined) ? ["hre" as HolyLeagueTrack] : []),
 ];
+
+/**
+ * #24 Holy League is playable by "any power eligible to have diplomatic
+ * influence with the Papacy, Venice or Holy Roman Empire (if not a player
+ * power)", and not at all while the Ottoman has fewer than 13 VP.  A track
+ * offers potential influence only while it has not been resolved this turn,
+ * so an already-resolved Papacy/Venice (and, when available, HRE) cannot
+ * satisfy the condition.
+ */
+export const canPlayHolyLeague = (G: VQGame, p: Power): boolean => {
+    if (powerVp(G, "ottoman") < 13) return false;
+    return holyLeagueTracks(G).some((track) => {
+        if (track === "hre") {
+            return G.majorInfluence?.hre?.[p] !== undefined && !G.majorDiplomacyResolved?.includes("hre");
+        }
+        const eligible = MINOR_DIPLOMACY[track].eligible.includes(p) ||
+            (G.scenario === "tutorial" && p === "ottoman" && track === "papacy");
+        return eligible && !G.minorDiplomacyResolved.includes(track);
+    });
+};
 
 const resolveHolyLeague = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     const available = holyLeagueTracks(G);
@@ -2809,6 +2830,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     const cardHandler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
     const isBeaconFires = def.id === "vq-014";
     const beneficiary = foreignWarPower(cardHandler);
+    if (args.asEvent === true && cardHandler === "holyLeague" && !canPlayHolyLeague(G, p)) return INVALID_MOVE;
     // #16: only the Ottoman may use Sultan's Harem as an event; other holders
     // may only play it through the response window.
     if (args.asEvent === true && cardHandler === "sultansHarem" && p !== "ottoman") return INVALID_MOVE;
