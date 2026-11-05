@@ -60,7 +60,7 @@ const JoinPage = ({serverURL, gameName}: JoinPageProps) => {
                     setError(JSON.stringify(err));
                 })
         }
-    }, [serverURL, matchID, player, credential, history]);
+    }, [serverURL, matchID, player, credential]);
 
     const handleLeave = (choice: string) => {
         if (choice === "yes") {
@@ -69,7 +69,7 @@ const JoinPage = ({serverURL, gameName}: JoinPageProps) => {
                     deleteCredentials(matchID, player);
                     navigate('/');
                 })
-                .catch((err) => setError(err.toString))
+                .catch((err) => setError(err?.toString?.() ?? String(err)))
 
         }
     }
