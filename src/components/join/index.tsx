@@ -6,6 +6,7 @@ import {getMatch, joinMatch, leaveMatch} from "../../api/match";
 import {MultiPlayer, Spectate} from "./multiplayer";
 import {ShareLink} from "./share";
 import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 import i18n from "../../constant/i18n";
 import ChoiceDialog from "../modals";
 import Link  from "@mui/material/Link"
@@ -96,20 +97,21 @@ const JoinPage = ({serverURL, gameName}: JoinPageProps) => {
                 title={i18n.chain.lobby.leave} toggleText={i18n.chain.lobby.leave}
             />
         </>
-    return <>
-        {error !== "" ? <Typography>{error}</Typography> : <>
-            {gameContent}
-            <Link href={window.location.href}>本页链接</Link>
-        </>}
-        {numPlayers > 0 ? <>
+    return (
+        <Box sx={{p: 2}}>
+            {error !== "" ? <Typography color="error">{error}</Typography> : <>
+                {gameContent}
+                <Link href={window.location.href} sx={{display: "block", mt: 1}}>本页链接</Link>
+            </>}
+            {numPlayers > 0 ? (
                 <ShareLink
                     player={player}
                     matchID={matchID}
                     numPlayer={numPlayers}
                     gameName={gameName}
                 />
-            </>
-            : <></>}
-    </>
+            ) : null}
+        </Box>
+    )
 }
 export default JoinPage;
