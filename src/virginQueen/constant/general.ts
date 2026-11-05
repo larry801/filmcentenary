@@ -128,19 +128,28 @@ export const CONTROLLER_COLORS: Record<Controller, string> = {
     independent: "#9e9e9e",
 };
 
-export const controllerName = (c: Controller): string =>
-    isPower(c) ? POWER_NAMES[c].en : MINOR_NAMES[c].en;
+export type VQLocale = "en" | "zh_CN";
 
-export const controllerNameZh = (c: Controller): string =>
-    isPower(c) ? POWER_NAMES[c].zh : MINOR_NAMES[c].zh;
+export const powerName = (p: Power, locale: VQLocale = "zh_CN"): string =>
+    POWER_NAMES[p][locale === "en" ? "en" : "zh"];
+
+export const minorName = (m: MinorPower | Independent, locale: VQLocale = "zh_CN"): string =>
+    MINOR_NAMES[m][locale === "en" ? "en" : "zh"];
+
+export const controllerName = (c: Controller, locale: VQLocale = "zh_CN"): string =>
+    isPower(c) ? powerName(c, locale) : minorName(c as MinorPower | Independent, locale);
 
 export type Religion = "catholic" | "protestant";
 export type HreReligiousPreference = Religion | "balanced";
-export const HRE_RELIGIOUS_PREFERENCE_NAMES: Record<HreReligiousPreference, string> = {
-    catholic: "天主教",
-    protestant: "新教",
-    balanced: "平衡",
+export const HRE_RELIGIOUS_PREFERENCE_NAMES: Record<HreReligiousPreference, { en: string; zh: string }> = {
+    catholic: {en: "Catholic", zh: "天主教"},
+    protestant: {en: "Protestant", zh: "新教"},
+    balanced: {en: "Balanced", zh: "平衡"},
 };
+export const hreReligiousPreferenceName = (
+    pref: HreReligiousPreference,
+    locale: VQLocale = "zh_CN",
+): string => HRE_RELIGIOUS_PREFERENCE_NAMES[pref][locale === "en" ? "en" : "zh"];
 export type ReligionArea = "england" | "scotland" | "netherlands" | "france";
 
 export const RELIGION_AREAS: ReligionArea[] = [
@@ -156,6 +165,9 @@ export const AREA_NAMES: Record<ReligionArea, { en: string; zh: string }> = {
     netherlands: {en: "Netherlands", zh: "尼德兰"},
     france: {en: "France", zh: "法国"},
 };
+
+export const areaName = (area: ReligionArea, locale: VQLocale = "zh_CN"): string =>
+    AREA_NAMES[area][locale === "en" ? "en" : "zh"];
 
 export interface LandStack {
     regular: number;
@@ -349,15 +361,20 @@ export const POWER_INFO: Record<Power, PowerInfo> = {
 };
 
 /** Display names for the ruler ids stored on each power state. */
-export const RULER_NAMES: Record<string, string> = {
-    suleiman: "Suleiman the Magnificent",
-    selimII: "Selim II",
-    muradIII: "Murad III",
-    philipII: "Philip II",
-    elizabethI: "Elizabeth I",
-    henryIII: "Henry III",
-    ferdinandI: "Ferdinand I",
-    reformedChurches: "Council of the Reformed Churches",
+export const RULER_NAMES: Record<string, { en: string; zh: string }> = {
+    suleiman: {en: "Suleiman the Magnificent", zh: "苏莱曼一世"},
+    selimII: {en: "Selim II", zh: "塞利姆二世"},
+    muradIII: {en: "Murad III", zh: "穆拉德三世"},
+    philipII: {en: "Philip II", zh: "腓力二世"},
+    elizabethI: {en: "Elizabeth I", zh: "伊丽莎白一世"},
+    henryIII: {en: "Henry III", zh: "亨利三世"},
+    ferdinandI: {en: "Ferdinand I", zh: "斐迪南一世"},
+    reformedChurches: {en: "Council of the Reformed Churches", zh: "改革派教会会议"},
+};
+export const rulerName = (id: string, locale: VQLocale = "zh_CN"): string => {
+    const entry = RULER_NAMES[id];
+    if (entry === undefined) return id;
+    return locale === "en" ? entry.en : entry.zh;
 };
 
 export type SeaZoneID =
@@ -892,12 +909,18 @@ export type VictoryReason =
     | "domination"
     | "timeLimit";
 
-export const VICTORY_TEXT: Record<VictoryReason, string> = {
-    military: "军事胜利：控制足够多的关键城市",
-    protestantReligious: "新教宗教胜利：新教影响超过半数宗教地区",
-    catholicReligious: "天主教宗教胜利：新教影响被压缩到极限",
-    catholicRebellion: "天主教叛乱胜利：火药阴谋成功，西班牙获胜",
-    standard: "标准胜利：达到 25 分",
-    domination: "支配胜利：领先所有对手至少 5 分",
-    timeLimit: "时限胜利：第 7 回合结束时分数最高",
+export const VICTORY_TEXT: Record<VictoryReason, { en: string; zh: string }> = {
+    military: {en: "Military victory: control enough key cities", zh: "军事胜利：控制足够多的关键城市"},
+    protestantReligious: {en: "Protestant religious victory: Protestant influence in more than half the religious areas", zh: "新教宗教胜利：新教影响超过半数宗教地区"},
+    catholicReligious: {en: "Catholic religious victory: Protestant influence compressed to the limit", zh: "天主教宗教胜利：新教影响被压缩到极限"},
+    catholicRebellion: {en: "Catholic rebellion victory: the Gunpowder Plot succeeds and Spain wins", zh: "天主教叛乱胜利：火药阴谋成功，西班牙获胜"},
+    standard: {en: "Standard victory: reach 25 VP", zh: "标准胜利：达到 25 分"},
+    domination: {en: "Domination victory: lead every opponent by at least 5 VP", zh: "支配胜利：领先所有对手至少 5 分"},
+    timeLimit: {en: "Time-limit victory: highest score at the end of turn 7", zh: "时限胜利：第 7 回合结束时分数最高"},
 };
+export const victoryText = (reason: VictoryReason, locale: VQLocale = "zh_CN"): string => {
+    const entry = VICTORY_TEXT[reason];
+    return locale === "en" ? entry.en : entry.zh;
+};
+export const royalName = (royal: RoyalDef, locale: VQLocale = "zh_CN"): string =>
+    locale === "en" ? royal.name : (royal.nameZh ?? royal.name);

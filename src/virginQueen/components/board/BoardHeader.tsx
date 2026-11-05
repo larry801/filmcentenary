@@ -1,15 +1,12 @@
 import React from "react";
+import i18n from "../../constant/i18n";
 import {VQGame} from "../../constant/general";
-import {POWER_NAMES, CONTROLLER_COLORS} from "../../constant/general";
+import {POWER_NAMES, powerName, Power} from "../../constant/general";
+import {CONTROLLER_COLORS} from "../../constant/general";
 import {scenarioName} from "../../scenario";
 import {victoryStandings} from "../../util";
 
-const PHASE_LABELS: Record<string, string> = {
-    cardDraw: "Card Draw 阶段",
-    diplomacy: "外交阶段",
-    spring: "春季部署",
-    action: "行动阶段",
-};
+const PHASE_LABELS: Record<string, string> = {};
 
 interface BoardHeaderProps {
     G: VQGame;
@@ -19,20 +16,23 @@ interface BoardHeaderProps {
 }
 
 export const BoardHeader: React.FC<BoardHeaderProps> = ({G, ctx, me, cp}) => {
+    i18n.use();
+    const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     const phase = ctx.phase ?? "";
+    const phaseLabel = i18n.chain.vq.header.phase[phase as keyof typeof i18n.chain.vq.header.phase] ?? phase;
     const standings = victoryStandings(G);
     
     return (
         <header className="vq-status">
             <div>
-                <div className="vq-eyebrow">A game of diplomacy & empire · 1559–1598</div>
-                <h1 className="vq-title">Virgin Queen</h1>
+                <div className="vq-eyebrow">{i18n.chain.vq.header.eyebrow}</div>
+                <h1 className="vq-title">{i18n.chain.vq.header.title}</h1>
             </div>
             <div className="vq-status-meta">
-                <span>{scenarioName(G.scenario)} · 第 {G.year}{G.scenario === "tutorial" ? " / 3" : ""} 回合</span>
-                <span> / {PHASE_LABELS[phase] ?? phase}</span>
-                <strong>{ctx.gameover !== undefined ? "对局结束" : `当前：${POWER_NAMES[G.activePower as keyof typeof POWER_NAMES].zh}`}</strong>
-                <span>{me ? `${POWER_NAMES[me as keyof typeof POWER_NAMES].zh} · ${cp} CP` : "旁观模式"}</span>
+                <span>{scenarioName(G.scenario)} · {i18n.chain.vq.header.turn} {G.year}{G.scenario === "tutorial" ? " / 3" : ""}</span>
+                <span> / {phaseLabel}</span>
+                <strong>{ctx.gameover !== undefined ? i18n.chain.vq.header.gameOver : `${i18n.chain.vq.header.current}：${powerName(G.activePower, vqLocale)}`}</strong>
+                <span>{me ? `${powerName(me as Power, vqLocale)} · ${cp} CP` : i18n.chain.vq.header.spectator}</span>
                 {standings.map((entry: any) => (
                     <span key={entry.power} className="vq-score">
                         <i className="vq-dot" style={{background: (CONTROLLER_COLORS as any)[entry.power]}}/>

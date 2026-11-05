@@ -1,6 +1,7 @@
 import React from "react";
 import Button from "@mui/material/Button";
-import {POWER_NAMES} from "../../constant/general";
+import i18n from "../../constant/i18n";
+import {POWER_NAMES, powerName, Power} from "../../constant/general";
 import {ownerOf} from "../../ownership";
 
 interface ResponseBannerProps {
@@ -20,15 +21,17 @@ export const ResponseBanner: React.FC<ResponseBannerProps> = ({
     isDesktop,
     onViewResponse
 }) => {
+    i18n.use();
+    const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     if (!hasResponse || !pendingPower) return null;
     
     return (
         <div className="vq-response" role="status">
             <span>
-                需要响应 · {POWER_NAMES[pendingPower as keyof typeof POWER_NAMES].zh}
-                {ownerOf(G, pendingPower) === playerID ? " · 轮到你选择" : " · 等待选择"}
+                {i18n.chain.vq.response.needsResponse} · {powerName(pendingPower as Power, vqLocale)}
+                {ownerOf(G, pendingPower) === playerID ? i18n.chain.vq.response.youChoose : i18n.chain.vq.response.waiting}
             </span>
-            {!isDesktop && <Button size="small" onClick={onViewResponse}>查看响应</Button>}
+            {!isDesktop && <Button size="small" onClick={onViewResponse}>{i18n.chain.vq.response.viewResponse}</Button>}
         </div>
     );
 };

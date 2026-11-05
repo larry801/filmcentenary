@@ -1,4 +1,5 @@
 import React from "react";
+import i18n from "../../../constant/i18n";
 import {BoardProps} from "boardgame.io/react";
 import {VQGame} from "../../../constant/general";
 import {PendingEspionagePanel} from "./PendingPanels/EspionagePanel";
@@ -122,6 +123,7 @@ interface ActionPanelProps extends BoardProps<VQGame> {
 }
 
 export const ActionPanel: React.FC<ActionPanelProps> = (props) => {
+    i18n.use();
     const {G, ctx, moves, playerID, me, cp, canAct, myTurn, phase} = props;
     
     // Check for pending responses first - prioritize them
@@ -140,7 +142,7 @@ export const ActionPanel: React.FC<ActionPanelProps> = (props) => {
     if (G.pendingActivation) return <PendingActivationPanel {...props} />;
     
     if (me === undefined) {
-        return <div>旁观模式：只能查看局势。</div>;
+        return <div>{i18n.chain.vq.actionPanel.spectator}</div>;
     }
     
     // Phase-based panels

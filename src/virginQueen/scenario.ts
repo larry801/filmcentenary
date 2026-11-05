@@ -8,6 +8,7 @@ import {
     RoyalDef,
     ScenarioID,
     SpaceState,
+    VQLocale,
     emptyLand,
     emptyNaval,
 } from "./constant/general";
@@ -101,7 +102,26 @@ export const scenarioSetup = (id: ScenarioID, numPlayers = 6): ScenarioSetup => 
     return SCENARIOS[id];
 };
 
-export const scenarioName = (id: ScenarioID): string => SCENARIOS[id].nameZh;
+export const scenarioName = (id: ScenarioID, locale: VQLocale = "zh_CN"): string => {
+    const setup = SCENARIOS[id];
+    return locale === "en" ? (setup.nameEn ?? setup.nameZh) : setup.nameZh;
+};
+export const patronName = (patron: {nameEn: string; nameZh?: string} | undefined, locale: VQLocale = "zh_CN"): string => {
+    if (patron === undefined) return "";
+    return locale === "en" ? patron.nameEn : (patron.nameZh ?? patron.nameEn);
+};
+export const royalDisplayName = (royal: {nameEn: string; nameZh?: string} | undefined, locale: VQLocale = "zh_CN"): string => {
+    if (royal === undefined) return "";
+    return locale === "en" ? royal.nameEn : (royal.nameZh ?? royal.nameEn);
+};
+export const seaCaptainName = (captain: {nameEn: string; nameZh?: string} | undefined, locale: VQLocale = "zh_CN"): string => {
+    if (captain === undefined) return "";
+    return locale === "en" ? captain.nameEn : (captain.nameZh ?? captain.nameEn);
+};
+export const scienceBonusName = (bonus: {nameEn: string; nameZh?: string} | undefined, locale: VQLocale = "zh_CN"): string => {
+    if (bonus === undefined) return "";
+    return locale === "en" ? bonus.nameEn : (bonus.nameZh ?? bonus.nameEn);
+};
 
 // --------------------------------------------------------------------------
 // Spaces

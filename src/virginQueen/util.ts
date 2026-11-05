@@ -26,6 +26,7 @@ import {
     SeaZoneID,
     SpaceDef,
     VQGame,
+    VQLocale,
     WinterLossChoice,
     isPower,
     emptyLand,
@@ -101,10 +102,15 @@ export const pushLog = (G: VQGame, msg: string): void => {
     }
 };
 
-export const powerLabel = (p: Power): string => POWER_NAMES[p].zh;
+export const powerLabel = (p: Power, locale: VQLocale = "zh_CN"): string =>
+    POWER_NAMES[p][locale === "en" ? "en" : "zh"];
 
-export const controllerLabel = (c: Controller): string =>
-    isPower(c) ? POWER_NAMES[c].zh : c === "independent" ? "独立" : c.charAt(0).toUpperCase() + c.slice(1);
+export const controllerLabel = (c: Controller, locale: VQLocale = "zh_CN"): string =>
+    isPower(c)
+        ? POWER_NAMES[c][locale === "en" ? "en" : "zh"]
+        : c === "independent"
+            ? (locale === "en" ? "Independent" : "独立")
+            : c.charAt(0).toUpperCase() + c.slice(1);
 
 /** Label for any controller (major, minor or independent). */
 export const anyControllerLabel = (c: Controller): string =>
@@ -4487,7 +4493,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
             (publicVictory?.reason === "domination" && publicVictory.winner !== "hre" &&
                 secretVictory?.reason !== "domination")) {
             G.hreReligiousPreferenceRevealed = true;
-            pushLog(G, `Holy Roman reveals religious preference: ${HRE_RELIGIOUS_PREFERENCE_NAMES[G.hreReligiousPreference!]} (${hreReligiousVp(G)} VP).`);
+            pushLog(G, `Holy Roman reveals religious preference: ${HRE_RELIGIOUS_PREFERENCE_NAMES[G.hreReligiousPreference!].zh} (${hreReligiousVp(G)} VP).`);
         }
     }
     G.vpHistory[String(G.year - 1)] = Object.fromEntries(POWERS.map((p) => [p, powerVp(G, p)]));

@@ -20,14 +20,18 @@ import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import i18n from "../../constant/i18n";
 import {AREA_NAMES,
+    areaName,
     CardDef,
     CONTROLLER_COLORS,
-    controllerNameZh,
+    controllerName,
+    powerName,
+    minorName,
     HRE_RELIGIOUS_PREFERENCE_NAMES,
+    hreReligiousPreferenceName,
     HreReligiousPreference,
     landCount,
-    MINOR_NAMES,
     MINOR_POWERS,
     LandStack,
     navalCount,
@@ -37,7 +41,7 @@ import {AREA_NAMES,
     POWERS,
     Power,
     RoyalDef,
-    RULER_NAMES,
+    rulerName,
     ReligionArea,
     VQGame,
     isPower,
@@ -106,23 +110,44 @@ type Mode =
     | "buildFortress"
     | "rebellion";
 
-const MODE_LABELS: Record<Mode, string> = {
-    inspect: "查看",
-    recruitRegular: "征募正规军 (2 CP)",
-    recruitMerc: "征募雇佣兵 (1 CP)",
-    recruitCav: "征募骑兵 (1 CP)",
-    buildGalley: "建造桨帆船 (2 CP)",
-    buildGalleon: "建造大帆船 (2 CP)",
-    buildRacebuilt: "建造快帆船 (2 CP)",
-    buildCorsair: "建造海盗船 (1 CP)",
-    moveLand: "陆军移动 (1/2 CP)",
-    moveNaval: "海军移动 (1 CP)",
-    navalTransport: "海运陆军 (海域数 + 1 CP)",
-    spring: "春季部署 (免费编队)",
-    control: "控制/清除动荡 (1 CP)",
-    assault: "强攻 (1 CP)",
-    buildFortress: "修筑要塞 (2 CP)",
-    rebellion: "新教叛乱 (2-5 CP)",
+const modeLabel = (mode: Mode, locale: "en" | "zh_CN"): string => {
+    const zh: Record<Mode, string> = {
+        inspect: "查看",
+        recruitRegular: "征募正规军 (2 CP)",
+        recruitMerc: "征募雇佣兵 (1 CP)",
+        recruitCav: "征募骑兵 (1 CP)",
+        buildGalley: "建造桨帆船 (2 CP)",
+        buildGalleon: "建造大帆船 (2 CP)",
+        buildRacebuilt: "建造快帆船 (2 CP)",
+        buildCorsair: "建造海盗船 (1 CP)",
+        moveLand: "陆军移动 (1/2 CP)",
+        moveNaval: "海军移动 (1 CP)",
+        navalTransport: "海运陆军 (海域数 + 1 CP)",
+        spring: "春季部署 (免费编队)",
+        control: "控制/清除动荡 (1 CP)",
+        assault: "强攻 (1 CP)",
+        buildFortress: "修筑要塞 (2 CP)",
+        rebellion: "新教叛乱 (2-5 CP)",
+    };
+    const en: Record<Mode, string> = {
+        inspect: "Inspect",
+        recruitRegular: "Recruit regulars (2 CP)",
+        recruitMerc: "Recruit mercenaries (1 CP)",
+        recruitCav: "Recruit cavalry (1 CP)",
+        buildGalley: "Build galley (2 CP)",
+        buildGalleon: "Build galleon (2 CP)",
+        buildRacebuilt: "Build race-built (2 CP)",
+        buildCorsair: "Build corsair (1 CP)",
+        moveLand: "Land move (1/2 CP)",
+        moveNaval: "Naval move (1 CP)",
+        navalTransport: "Naval transport (zones + 1 CP)",
+        spring: "Spring deployment (free stack)",
+        control: "Control/clear unrest (1 CP)",
+        assault: "Assault (1 CP)",
+        buildFortress: "Build fortress (2 CP)",
+        rebellion: "Protestant rebellion (2-5 CP)",
+    };
+    return locale === "en" ? en[mode] : zh[mode];
 };
 
 const PHASE_LABELS: Record<string, string> = {
@@ -210,7 +235,7 @@ export interface ActionResponderChoice {
 export const actionResponderChoices = (G: VQGame, playerID: string | null): ActionResponderChoice[] =>
     actionWindowResponders(G)
         .filter((responder) => ownerOf(G, responder) === playerID)
-        .map((responder) => ({responder, label: POWER_NAMES[responder].zh,
+        .map((responder) => ({responder, label: powerName(responder, "zh_CN"),
             options: actionResponseOptions(G, responder)}));
 
 /** Optional target argument for cards whose choices cannot be rendered as a list. */
@@ -220,10 +245,10 @@ export const EventTargetField = ({cardId, value, onChange}: {
     onChange: (value: string) => void;
 }) => {
     const example = EVENT_TARGET_EXAMPLES[cardId];
-    return <TextField size="small" fullWidth label="事件目标（可选）" value={value}
+    return <TextField size="small" fullWidth label={i18n.chain.vq.board.eventTarget} value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="例如 france、york、spain:return:alba"
-        helperText={example !== undefined ? `目标参数示例：${example}` : "按卡牌文本填写；留空则无目标结算。"}/>;
+        placeholder={i18n.chain.vq.board.placeholder}
+        helperText={example !== undefined ? `${i18n.chain.vq.board.example}：${example}` : i18n.chain.vq.board.noTarget}/>;
 };
 
 export interface MenendezTargetOption {
@@ -238,12 +263,12 @@ export interface MenendezTargetOption {
  * fortress can be fortified with `fortress:<id>`.
  */
 export const menendezTargetOptions = (G: VQGame): MenendezTargetOption[] => [
-    {value: "", label: "佛罗里达殖民地（不指定目标：掷骰 3+ 夺取）"},
-    {value: "escort", label: "珍宝舰队护航（+1 大帆船）"},
+    {value: "", label: i18n.chain.vq.board.florida},
+    {value: "escort", label: i18n.chain.vq.board.escort},
     ...WORLD_SETTLEMENTS
         .filter((settlement) => G.worldControls[settlement.id] === "spain" &&
             G.worldFortresses?.[settlement.id] === undefined)
-        .map((settlement) => ({value: `fortress:${settlement.id}`, label: `要塞：${settlement.nameZh}`})),
+        .map((settlement) => ({value: `fortress:${settlement.id}`, label: `${i18n.chain.vq.board.fortress}：${settlement.nameZh}`})),
 ];
 
 /** Drops a stale #61 selection; Florida (blank) yields `undefined` so no target is sent. */
@@ -258,8 +283,8 @@ export const MenendezTargetSelect = ({options, value, onChange}: {
     value: string;
     onChange: (value: string) => void;
 }) => <FormControl size="small" fullWidth sx={{mt: 0.5}}>
-    <InputLabel id="vq-menendez-target">梅嫩德斯目标</InputLabel>
-    <Select labelId="vq-menendez-target" label="梅嫩德斯目标" value={value}
+    <InputLabel id="vq-menendez-target">{i18n.chain.vq.board.menendezTarget}</InputLabel>
+    <Select labelId="vq-menendez-target" label={i18n.chain.vq.board.menendezTarget} value={value}
             onChange={(event) => onChange(event.target.value)}>
         {options.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
     </Select>
@@ -302,18 +327,18 @@ export const abjurationOfferDetails = (G: VQGame, offer: {power: Power; space: s
     const leaderId = sources.flatMap((id) => G.spaces[id].leaders)
         .find((id) => LEADER_BY_ID[id]?.power === offer.power && LEADER_BY_ID[id]?.kind === "army");
     const leader = leaderId !== undefined ? LEADER_BY_ID[leaderId] : undefined;
-    const powerName = POWER_NAMES[offer.power].zh;
+    const powerNameStr = powerName(offer.power, "zh_CN");
     const spaceName = SPACE_BY_ID[offer.space]?.name ?? offer.space;
-    const troops = units > 0 ? `${units} 正规军` : "无正规军";
+    const troops = units > 0 ? `${units} ${i18n.chain.vq.board.regulars}` : i18n.chain.vq.board.noRegulars;
     return {
         power: offer.power,
-        powerName,
+        powerName: powerNameStr,
         space: offer.space,
         spaceName,
         units,
         ...(leaderId !== undefined ? {leaderId} : {}),
         ...(leader !== undefined ? {leaderName: leader.name} : {}),
-        label: `${powerName}：在 ${spaceName} 结盟 · ${troops}${leader !== undefined ? ` + ${leader.name}` : ""}`,
+        label: `${powerNameStr}：在 ${spaceName} 结盟 · ${troops}${leader !== undefined ? ` + ${leader.name}` : ""}`,
     };
 };
 
@@ -338,9 +363,9 @@ export const acceptAbjurationOffer = (moves: BoardProps<VQGame>["moves"], offer:
 type HolyLeagueTrack = "papacy" | "venice" | "hre";
 
 const HOLY_LEAGUE_TRACK_NAMES: Record<HolyLeagueTrack, string> = {
-    papacy: MINOR_NAMES.papacy.zh,
-    venice: MINOR_NAMES.venice.zh,
-    hre: POWER_NAMES.hre.zh,
+    papacy: minorName("papacy", "zh_CN"),
+    venice: minorName("venice", "zh_CN"),
+    hre: powerName("hre", "zh_CN"),
 };
 
 /** The card's default split, also what `playCard` does when no target is given. */
@@ -399,8 +424,8 @@ export const HolyLeagueTargetSelect = ({options, value, onChange}: {
     value: string;
     onChange: (value: string) => void;
 }) => <FormControl size="small" fullWidth sx={{mt: 0.5}}>
-    <InputLabel id="vq-holy-league-target">神圣同盟目标</InputLabel>
-    <Select labelId="vq-holy-league-target" label="神圣同盟目标" value={value}
+    <InputLabel id="vq-holy-league-target">{i18n.chain.vq.board.holyLeagueTarget}</InputLabel>
+    <Select labelId="vq-holy-league-target" label={i18n.chain.vq.board.holyLeagueTarget} value={value}
             onChange={(event) => onChange(event.target.value)}>
         {options.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
     </Select>
@@ -421,7 +446,7 @@ export interface PolishElectionBidOption {
 export type PolishElectionBidChoices = Partial<Record<PolishElectionPower, string>>;
 
 /** What `resolvePolishElection` does without a segment: highest-CP card, else highest treasure. */
-export const POLISH_ELECTION_AUTO_LABEL = "自动：最高 CP 手牌，否则最大财宝";
+export const POLISH_ELECTION_AUTO_LABEL = i18n.chain.vq.board.polishAuto;
 
 /**
  * Bid choices for one power in #86, in the same order the engine considers
@@ -434,10 +459,10 @@ export const polishElectionBidOptions = (G: VQGame, power: PolishElectionPower):
         .sort((a, b) => cardById(b).cp - cardById(a).cp || a.localeCompare(b))
         .map((id) => {
             const def = cardById(id);
-            return {value: id, label: `${def.name}（手牌 ${def.cp} CP）`};
+            return {value: id, label: `${def.name}（${i18n.chain.vq.board.hand} ${def.cp} CP）`};
         });
     const treasures = [...G.powers[power].treasures].sort((a, b) => b - a)
-        .map((value) => ({value: `treasure:${value}`, label: `财宝 ${value}（${value} CP）`}));
+        .map((value) => ({value: `treasure:${value}`, label: `${i18n.chain.vq.board.treasure} ${value}（${value} CP）`}));
     return [{value: "", label: POLISH_ELECTION_AUTO_LABEL}, ...cards, ...treasures];
 };
 
@@ -471,7 +496,7 @@ export const PolishElectionTargetSelect = ({G, value, onChange}: {
     </Typography>
     {POLISH_ELECTION_POWERS.map((power) => {
         const labelId = `vq-polish-bid-${power}`;
-        const label = `${POWER_NAMES[power].zh} 出价`;
+        const label = `${powerName(power, "zh_CN")} 出价`;
         return <FormControl key={power} size="small" fullWidth>
             <InputLabel id={labelId}>{label}</InputLabel>
             <Select labelId={labelId} label={label} displayEmpty
@@ -530,11 +555,11 @@ export const armyMutinyOwnerOptions = (G: VQGame, spaceId: string): ArmyMutinyOw
         const stack = space.land[power];
         if (stack === undefined) return [];
         const parts = [
-            stack.regular > 0 ? `正规军 ${stack.regular}` : "",
-            stack.merc > 0 ? `雇佣兵 ${stack.merc}` : "",
-            stack.cav > 0 ? `骑兵 ${stack.cav}` : "",
+            stack.regular > 0 ? `${i18n.chain.vq.board.regulars} ${stack.regular}` : "",
+            stack.merc > 0 ? `${i18n.chain.vq.board.merc} ${stack.merc}` : "",
+            stack.cav > 0 ? `${i18n.chain.vq.board.cav} ${stack.cav}` : "",
         ].filter((part) => part !== "");
-        return parts.length === 0 ? [] : [{value: power, label: `${POWER_NAMES[power].zh}（${parts.join("，")}）`}];
+        return parts.length === 0 ? [] : [{value: power, label: `${powerName(power, "zh_CN")}（${parts.join("，")}）`}];
     });
 };
 
@@ -579,8 +604,8 @@ export const ArmyMutinyTargetSelect = ({G, value, onChange}: {
             军队哗变目标（选择地区，再选择该地区陆军堆叠所属势力）
         </Typography>
         <FormControl size="small" fullWidth>
-            <InputLabel id="vq-army-mutiny-space">目标地区</InputLabel>
-            <Select labelId="vq-army-mutiny-space" label="目标地区" value={space}
+            <InputLabel id="vq-army-mutiny-space">{i18n.chain.vq.board.targetRegion}</InputLabel>
+            <Select labelId="vq-army-mutiny-space" label={i18n.chain.vq.board.targetRegion} value={space}
                     onChange={(event) => {
                         const nextSpace = event.target.value;
                         const nextOwner = armyMutinyOwnerValue(G, nextSpace, undefined);
@@ -591,8 +616,8 @@ export const ArmyMutinyTargetSelect = ({G, value, onChange}: {
             </Select>
         </FormControl>
         <FormControl size="small" fullWidth disabled={owners.length === 0}>
-            <InputLabel id="vq-army-mutiny-owner">军队所属势力</InputLabel>
-            <Select labelId="vq-army-mutiny-owner" label="军队所属势力" value={owner ?? ""}
+            <InputLabel id="vq-army-mutiny-owner">{i18n.chain.vq.board.armyOwner}</InputLabel>
+            <Select labelId="vq-army-mutiny-owner" label={i18n.chain.vq.board.armyOwner} value={owner ?? ""}
                     onChange={(event) => onChange(space, event.target.value as Power)}>
                 {owners.map((option) =>
                     <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
@@ -670,7 +695,7 @@ export const germanRecruitmentPowerOptions = (G: VQGame, spaceId: string, _hre?:
     if (space === undefined) return [];
     return POWERS.flatMap((power) => {
         const merc = space.land[power]?.merc ?? 0;
-        return merc > 0 ? [{value: power, label: `${POWER_NAMES[power].zh}（雇佣兵 ${merc}）`}] : [];
+        return merc > 0 ? [{value: power, label: `${powerName(power, "zh_CN")}（${i18n.chain.vq.board.merc} ${merc}）`}] : [];
     });
 };
 
@@ -812,8 +837,8 @@ export const GermanRecruitmentTargetSelect = ({G, value, onChange, hre, isHre, m
             nextSecondSpace === "" ? undefined : nextSecondPower);
     };
     const firstSpaceSelect = <FormControl size="small" fullWidth>
-        <InputLabel id="vq-german-recruitment-space">目标地区</InputLabel>
-        <Select labelId="vq-german-recruitment-space" label="目标地区" value={space}
+        <InputLabel id="vq-german-recruitment-space">{i18n.chain.vq.board.targetRegion}</InputLabel>
+        <Select labelId="vq-german-recruitment-space" label={i18n.chain.vq.board.targetRegion} value={space}
                 onChange={(event) => {
                     const nextSpace = event.target.value;
                     const nextPower = germanRecruitmentPowerValue(G, nextSpace, undefined);
@@ -826,50 +851,50 @@ export const GermanRecruitmentTargetSelect = ({G, value, onChange, hre, isHre, m
         </Select>
     </FormControl>;
     const firstPowerSelect = <FormControl size="small" fullWidth disabled={powers.length === 0}>
-        <InputLabel id="vq-german-recruitment-power">雇佣兵所属势力</InputLabel>
-        <Select labelId="vq-german-recruitment-power" label="雇佣兵所属势力" value={power ?? ""}
+        <InputLabel id="vq-german-recruitment-power">{i18n.chain.vq.board.mercOwner}</InputLabel>
+        <Select labelId="vq-german-recruitment-power" label={i18n.chain.vq.board.mercOwner} value={power ?? ""}
                 onChange={(event) => emit(space, event.target.value as Power, secondSpace, secondPower)}>
             {powers.map((option) =>
                 <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
         </Select>
     </FormControl>;
     const secondSpaceSelect = <FormControl size="small" fullWidth>
-        <InputLabel id="vq-german-recruitment-second-space">第二目标地区（神圣罗马帝国）</InputLabel>
-        <Select labelId="vq-german-recruitment-second-space" label="第二目标地区（神圣罗马帝国）"
+        <InputLabel id="vq-german-recruitment-second-space">{i18n.chain.vq.board.secondSpace}</InputLabel>
+        <Select labelId="vq-german-recruitment-second-space" label={i18n.chain.vq.board.secondSpace}
                 displayEmpty value={secondSpace}
                 onChange={(event) => {
                     const nextSecondSpace = event.target.value;
                     const nextSecondPower = nextSecondSpace === "" ? undefined : germanRecruitmentPowerValue(G, nextSecondSpace, undefined);
                     emit(space, power, nextSecondSpace, nextSecondPower);
                 }}>
-            <MenuItem value="">不指定第二地区</MenuItem>
+            <MenuItem value="">{i18n.chain.vq.board.noSecondRegion}</MenuItem>
             {secondOptions.map((option) =>
                 <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
         </Select>
     </FormControl>;
     const secondPowerSelect = <FormControl size="small" fullWidth disabled={secondPowers.length === 0}>
-        <InputLabel id="vq-german-recruitment-second-power">第二雇佣兵所属势力</InputLabel>
-        <Select labelId="vq-german-recruitment-second-power" label="第二雇佣兵所属势力"
+        <InputLabel id="vq-german-recruitment-second-power">{i18n.chain.vq.board.secondPower}</InputLabel>
+        <Select labelId="vq-german-recruitment-second-power" label={i18n.chain.vq.board.secondPower}
                 displayEmpty value={secondPower ?? ""}
                 onChange={(event) => {
                     const nextPowerValue = event.target.value as string;
                     const nextPower = nextPowerValue === "" ? undefined : nextPowerValue as Power;
                     emit(space, power, secondSpace, nextPower);
                 }}>
-            <MenuItem value="">不指定第二势力</MenuItem>
+            <MenuItem value="">{i18n.chain.vq.board.noSecondPower}</MenuItem>
             {secondPowers.map((option) =>
                 <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
         </Select>
     </FormControl>;
     return <Stack spacing={0.5} sx={{mt: 1}}>
         <Typography variant="caption" color="text.secondary">
-            德意志裁军目标（募兵受限；选择地区，再选择该地区拥有雇佣兵的势力）
+            {i18n.chain.vq.board.germanRecruitment}
         </Typography>
         {firstSpaceSelect}
         {firstPowerSelect}
         {limit > 1 && <>
             <Typography variant="caption" color="text.secondary">
-                神圣罗马帝国执行时可额外选择第二个地区（两个地区必须不同）
+                {i18n.chain.vq.board.germanSecond}
             </Typography>
             {secondSpaceSelect}
             {secondPowerSelect}
@@ -918,7 +943,7 @@ export const staffordPowerOptions = (G: VQGame): StaffordPowerOption[] =>
         const treasures = G.powers[power].treasures.length;
         return cards === 0 && treasures === 0 ? [] : [{
             value: power,
-            label: `${POWER_NAMES[power].zh}（手牌 ${cards}，财宝 ${treasures}）`,
+            label: `${powerName(power, "zh_CN")}（${i18n.chain.vq.board.hand} ${cards}，${i18n.chain.vq.board.treasure} ${treasures}）`,
         }];
     });
 
@@ -933,14 +958,14 @@ export const staffordDiscardOptions = (G: VQGame, power: Power | string): Staffo
         .sort((a, b) => cardById(b).cp - cardById(a).cp || a.localeCompare(b))
         .map((id) => {
             const def = cardById(id);
-            return {value: `card:${id}`, label: `${def.name}（手牌 ${def.cp} CP）`};
+            return {value: `card:${id}`, label: `${def.name}（${i18n.chain.vq.board.hand} ${def.cp} CP）`};
         });
     const treasures = [...new Set(G.powers[power].treasures)].sort((a, b) => b - a)
         .map((value) => {
             const count = G.powers[power].treasures.filter((treasure) => treasure === value).length;
             return {
                 value: `treasure:${value}`,
-                label: `财宝 ${value}（${value} CP${count > 1 ? `，共 ${count} 件` : ""}）`,
+                label: `${i18n.chain.vq.board.treasure} ${value}（${value} CP${count > 1 ? `，${i18n.chain.vq.board.total} ${count} ${i18n.chain.vq.board.pieces}` : ""}）`,
             };
         });
     return [...cards, ...treasures];
@@ -984,11 +1009,11 @@ export const StaffordTargetSelect = ({G, value, onChange}: {
     const discard = staffordDiscardValue(G, power, value.discard);
     return <Stack spacing={0.5} sx={{mt: 1}}>
         <Typography variant="caption" color="text.secondary">
-            斯塔福德目标（选择势力，再选择要弃置的手牌或财宝）
+            {i18n.chain.vq.board.staffordTarget}
         </Typography>
         <FormControl size="small" fullWidth disabled={staffordPowerOptions(G).length === 0}>
-            <InputLabel id="vq-stafford-power">目标势力</InputLabel>
-            <Select labelId="vq-stafford-power" label="目标势力" value={power}
+            <InputLabel id="vq-stafford-power">{i18n.chain.vq.board.targetPower}</InputLabel>
+            <Select labelId="vq-stafford-power" label={i18n.chain.vq.board.targetPower} value={power}
                     onChange={(event) => {
                         const nextPower = event.target.value as Power;
                         const nextDiscard = staffordDiscardValue(G, nextPower, undefined);
@@ -999,8 +1024,8 @@ export const StaffordTargetSelect = ({G, value, onChange}: {
             </Select>
         </FormControl>
         <FormControl size="small" fullWidth disabled={options.length === 0}>
-            <InputLabel id="vq-stafford-discard">弃置手牌或财宝</InputLabel>
-            <Select labelId="vq-stafford-discard" label="弃置手牌或财宝" value={discard}
+            <InputLabel id="vq-stafford-discard">{i18n.chain.vq.board.discard}</InputLabel>
+            <Select labelId="vq-stafford-discard" label={i18n.chain.vq.board.discard} value={discard}
                     onChange={(event) => onChange(power as Power, event.target.value)}>
                 {options.map((option) =>
                     <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
@@ -1035,7 +1060,7 @@ export const virginQueenCombatRetrieveOptions = (
         return [{
             cardId,
             target: `retrieve:${cardId}:play`,
-            label: `取回并立即打出 ${cardById(cardId).name}`,
+            label: `${i18n.chain.vq.board.retrievePlay} ${cardById(cardId).name}`,
         }];
     });
 };
@@ -1098,7 +1123,7 @@ export const betrothalChoices = (
 };
 
 const patronageAwardSummary = (awards: PatronageVpAward[], kind: "artist" | "scientist"): string => {
-    const typeNames: Record<string, string> = {writer: "写作", painter: "绘画", architect: "建筑", any: "不限类型"};
+    const typeNames: Record<string, string> = {writer: i18n.chain.vq.board.writer, painter: i18n.chain.vq.board.painter, architect: i18n.chain.vq.board.architect, any: i18n.chain.vq.board.anyType};
     const selected = awards.filter((award) => award.kind === kind);
     const vpValues = [...new Set(selected.map((award) => award.vp))].sort((a, b) => b - a);
     if (kind === "scientist") {
@@ -1121,11 +1146,13 @@ const CardArt = ({def, className, lazy = false}: {def: CardDef; className: strin
     const [failed, setFailed] = React.useState(false);
     const src = cardImageUrl(def);
     if (src === undefined || failed) return null;
-    return <img className={className} src={src} alt={`${def.name} 卡牌图`} width={376} height={526}
+    return <img className={className} src={src} alt={`${def.name} ${i18n.chain.vq.board.cardImage}`} width={376} height={526}
         loading={lazy ? "lazy" : "eager"} onError={() => setFailed(true)}/>;
 };
 
 export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: BoardProps<VQGame>) => {
+    i18n.use();
+    const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     const [selected, setSelected] = React.useState<string | undefined>(G.scenario === "tutorial"
         ? playerID === "1" ? "madrid" : "istanbul" : "london");
     const isDesktop = useMediaQuery("(min-width:1024px)");
@@ -1344,26 +1371,26 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             <Stack direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
                 <Typography variant="caption" sx={{fontWeight: 700}}>{def.name}</Typography>
                 <Chip size="small" label={`${def.cp} CP`} color={def.kind === "home" ? "secondary" : "default"}/>
-                {def.kind === "event" && <Chip size="small" variant="outlined" label="事件"/>}
-                {def.kind === "home" && <Chip size="small" variant="outlined" label="本国牌"/>}
+                {def.kind === "event" && <Chip size="small" variant="outlined" label={i18n.chain.vq.board.event}/> }
+                {def.kind === "home" && <Chip size="small" variant="outlined" label={i18n.chain.vq.board.homeCard}/> }
             </Stack>
             <CardArt def={def} className="vq-card-detail-art"/>
             {def.text !== undefined && <Typography variant="caption" color="text.secondary">{def.text}</Typography>}
             {espionageTargets.length > 0 && <Select size="small" fullWidth value={espionageTarget}
                 onChange={(e) => setEspionageEventTarget(e.target.value)}>
                 {espionageTargets.map((target) => <MenuItem key={target} value={target}>
-                    {target === "offensive" ? "进攻模式" : target === "defensive" ? "防御模式" : target === "remove" ? "移除本国所有敌方解码书" : target.includes(">")
-                        ? `策反 ${POWER_NAMES[target.split(">")[0] as Power].zh} 间谍（调回监视${POWER_NAMES[target.split(">")[1] as Power].zh}的本国间谍）`
-                        : handler === "doubleAgent" ? `策反 ${POWER_NAMES[target as Power].zh} 间谍`
-                        : handler === "untimelyDeath" ? (target === "none" ? "没有可移除的将领" : `移出游戏：${LEADER_BY_ID[target]?.name ?? target}`)
-                        : POWER_NAMES[target as Power].zh}
+                    {target === "offensive" ? i18n.chain.vq.board.offensive : target === "defensive" ? i18n.chain.vq.board.defensive : target === "remove" ? i18n.chain.vq.board.removeAll : target.includes(">")
+                        ? `${i18n.chain.vq.board.defect} ${powerName(target.split(">")[0] as Power, vqLocale)} ${i18n.chain.vq.board.spy}（${i18n.chain.vq.board.recall} ${powerName(target.split(">")[1] as Power, vqLocale)} ${i18n.chain.vq.board.ownSpy}）`
+                        : handler === "doubleAgent" ? `${i18n.chain.vq.board.defect} ${powerName(target as Power, vqLocale)} ${i18n.chain.vq.board.spy}`
+                        : handler === "untimelyDeath" ? (target === "none" ? i18n.chain.vq.board.noRemovableLeader : `${i18n.chain.vq.board.removeGame}: ${LEADER_BY_ID[target]?.name ?? target}`)
+                        : powerName(target as Power, vqLocale)}
                 </MenuItem>)}
             </Select>}
             {foreignWarPower !== undefined && <FormControl size="small" sx={{mt: 0.5, minWidth: 130}}>
-                <InputLabel id={`vq-war-size-${id}`}>境外军规模</InputLabel>
-                <Select labelId={`vq-war-size-${id}`} label="境外军规模" value={foreignArmySize}
+                <InputLabel id={`vq-war-size-${id}`}>{i18n.chain.vq.board.foreignArmySize}</InputLabel>
+                <Select labelId={`vq-war-size-${id}`} label={i18n.chain.vq.board.foreignArmySize} value={foreignArmySize}
                         onChange={(e) => setForeignArmySize(Number(e.target.value))}>
-                    {[3, 5].map((n) => <MenuItem key={n} value={n}>{n} 个独立军</MenuItem>)}
+                    {[3, 5].map((n) => <MenuItem key={n} value={n}>{n} {i18n.chain.vq.board.independentArmies}</MenuItem>)}
                 </Select>
             </FormControl>}
             {holyLeagueOptions.length > 0 && <HolyLeagueTargetSelect options={holyLeagueOptions}
@@ -1406,10 +1433,10 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                       setGermanRecruitmentSelection({space: ""});
                                                       setSelectedCard(undefined);
                                                   }}>
-                    {def.kind === "home" ? "使用能力" : "作为事件"}
+                    {def.kind === "home" ? i18n.chain.vq.board.useAbility : i18n.chain.vq.board.asEvent}
                 </Button>}
                 <Button size="small" variant="outlined" disabled={disabled || def.officialKind === "mandatory"}
-                        onClick={() => {moves.playCard({cardId: id}); setSelectedCard(undefined);}}>作为 CP</Button>
+                        onClick={() => {moves.playCard({cardId: id}); setSelectedCard(undefined);}}>{i18n.chain.vq.board.asCp}</Button>
             </Stack>
         </Paper>;
     };
@@ -1417,18 +1444,18 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const actionPanel = () => {
         if (G.pendingEspionage) return <Stack spacing={1}>
             <Paper variant="outlined" sx={{p: 1.5, bgcolor: "warning.light", borderColor: "warning.main"}}>
-                <Typography variant="subtitle1" sx={{fontWeight: 700, color: "warning.dark"}}>⚠ 谍报结算 - 需要响应</Typography>
-                <Typography sx={{mt: 0.5}}>等待 {POWER_NAMES[G.pendingEspionage.responding].zh} 选择。</Typography>
+                <Typography variant="subtitle1" sx={{fontWeight: 700, color: "warning.dark"}}>⚠ {i18n.chain.vq.board.espionageTitle}</Typography>
+                <Typography sx={{mt: 0.5}}>{i18n.chain.vq.board.waiting} {powerName(G.pendingEspionage.responding, vqLocale)} {i18n.chain.vq.board.choose}。</Typography>
             </Paper>
-            <Typography variant="body2">{G.pendingEspionage.step === "responses" ? "可在掷骰前使用响应牌。" :
-                G.pendingEspionage.step === "offense" ? `剩余 ${G.pendingEspionage.remaining} 次情报效果，每种效果最多一次。` :
-                G.pendingEspionage.step === "conversions" ? `在英格兰分配${G.pendingEspionage.conversionSide === "protestant" ? "新教" : "天主教"}转化骰；可用 6 点扩展基础，或保留至最后转化有部队的地区。` :
-                G.pendingEspionage.step === "rebelLosses" ? `英格兰还需分配 ${G.pendingEspionage.remaining} 次损失。` :
-                G.pendingEspionage.step === "massacreConvert" ? `圣巴托罗缪大屠杀：还可将 ${G.pendingEspionage.remaining} 个法国政治控制的新教地区改为天主教。` :
-                G.pendingEspionage.step === "massacreAssassinate" ? `法国可免费对科利尼进行一次 ${G.pendingEspionage.cp} CP 刺杀。` :
-                G.pendingEspionage.step === "northernConvert" ? `北方崛起：西班牙再选择 ${G.pendingEspionage.remaining} 个英格兰地区改为天主教（无新教部队，距事件开始时的天主教地区 2 格内）。` :
-                G.pendingEspionage.step === "northernUnrest" ? `北方崛起：西班牙未与英格兰交战，再放置 ${G.pendingEspionage.remaining} 个动荡（无人占领或天主教地区）。` :
-                "选择下方合法选项，完成官方结果表的后续结算。"}</Typography>
+            <Typography variant="body2">{G.pendingEspionage.step === "responses" ? i18n.chain.vq.espionage.responses :
+                G.pendingEspionage.step === "offense" ? `${i18n.chain.vq.espionage.offense} ${G.pendingEspionage.remaining} ${i18n.chain.vq.espionage.offenseMax}` :
+                G.pendingEspionage.step === "conversions" ? `${i18n.chain.vq.espionage.conversions} ${G.pendingEspionage.conversionSide === "protestant" ? i18n.chain.vq.espionage.protestant : i18n.chain.vq.espionage.catholic} ${i18n.chain.vq.espionage.conversions2}` :
+                G.pendingEspionage.step === "rebelLosses" ? `${i18n.chain.vq.espionage.rebelLosses} ${G.pendingEspionage.remaining} ${i18n.chain.vq.espionage.rebelLosses2}` :
+                G.pendingEspionage.step === "massacreConvert" ? `${i18n.chain.vq.espionage.massacreConvert} ${G.pendingEspionage.remaining} ${i18n.chain.vq.espionage.massacreConvert2}` :
+                G.pendingEspionage.step === "massacreAssassinate" ? `${i18n.chain.vq.espionage.massacreAssassinate} ${G.pendingEspionage.cp} ${i18n.chain.vq.espionage.massacreAssassinate2}` :
+                G.pendingEspionage.step === "northernConvert" ? `${i18n.chain.vq.espionage.northernConvert} ${G.pendingEspionage.remaining} ${i18n.chain.vq.espionage.northernConvert2}` :
+                G.pendingEspionage.step === "northernUnrest" ? `${i18n.chain.vq.espionage.northernUnrest} ${G.pendingEspionage.remaining} ${i18n.chain.vq.espionage.northernUnrest2}` :
+                i18n.chain.vq.espionage.default}</Typography>
             {ownerOf(G, G.pendingEspionage.responding) === playerID && espionageOptions(G).map((entry) =>
                 <Button key={entry.id} variant="contained" onClick={() => moves.chooseEspionage({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
@@ -1437,9 +1464,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             const selected = abjurationSelection(offers, selectedAbjurationPower);
             const ownedOffer = ownerOf(G, "protestant") === playerID;
             return <Stack spacing={1}>
-                <Typography>誓绝法案 · 等待新教选择一项提议。</Typography>
+                <Typography>{i18n.chain.vq.abjuration.title}</Typography>
                 <Typography variant="body2">
-                    每个提议立即与新教结盟，并从提议方本土控制地区抽调至多 5 个正规军（可随行 1 个陆军将领）。新教只能接受一项。
+                    {i18n.chain.vq.abjuration.desc}
                 </Typography>
                 {ownedOffer && offers.map((offer) => <Button key={offer.power}
                         variant={selected?.power === offer.power ? "contained" : "outlined"}
@@ -1449,25 +1476,25 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 </Button>)}
                 {ownedOffer && selected !== undefined && <>
                     <Typography variant="caption" color="text.secondary">
-                        已选：{selected.powerName} → {selected.spaceName} · {selected.units > 0 ? `${selected.units} 正规军` : "无正规军"}
-                        {selected.leaderName !== undefined ? ` + ${selected.leaderName}` : ""}；接受后立即结算。
+                        {i18n.chain.vq.abjuration.selected}：{selected.powerName} → {selected.spaceName} · {selected.units > 0 ? `${selected.units} ${i18n.chain.vq.abjuration.regulars}` : i18n.chain.vq.abjuration.noRegulars}
+                        {selected.leaderName !== undefined ? ` + ${selected.leaderName}` : ""}{i18n.chain.vq.abjuration.settle}
                     </Typography>
                     <Button variant="contained" color="success" onClick={() => {
                         acceptAbjurationOffer(moves, selected);
                         setSelectedAbjurationPower(undefined);
-                    }}>接受 {selected.powerName} 的提议</Button>
+                    }}>{i18n.chain.vq.abjuration.accept} {selected.powerName} {i18n.chain.vq.abjuration.proposal}</Button>
                 </>}
-                {!ownedOffer && <Typography variant="body2">等待新教玩家选择；其他势力此时无法行动。</Typography>}
+                {!ownedOffer && <Typography variant="body2">{i18n.chain.vq.abjuration.waiting}</Typography>}
             </Stack>;
         }
         if (G.pendingCityRebels) {
             const pending = G.pendingCityRebels;
             const canChoose = isPower(pending.controller) && ownerOf(G, pending.controller) === playerID;
             return <Stack spacing={1}>
-                <Typography>城邦起义（#18） · 等待 {isPower(pending.controller) ? POWER_NAMES[pending.controller].zh : pending.controller} 分配损失。</Typography>
+                <Typography>{i18n.chain.vq.cityRebels.title} · {i18n.chain.vq.cityRebels.waiting} {isPower(pending.controller) ? powerName(pending.controller, vqLocale) : pending.controller} {i18n.chain.vq.cityRebels.allocate}。</Typography>
                 {canChoose && <>
                     <Typography variant="body2">
-                        {SPACE_BY_ID[pending.space]?.name ?? pending.space}：还需选择 {pending.remaining} 个损失单位，每次一个陆军或海军单位。
+                        {SPACE_BY_ID[pending.space]?.name ?? pending.space}：{i18n.chain.vq.cityRebels.remaining} {pending.remaining} {i18n.chain.vq.cityRebels.units}。
                     </Typography>
                     <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                         {cityRebelsLossOptions(G).map((entry) => <Button key={entry.kind} size="small" variant="outlined"
@@ -1475,76 +1502,76 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             {entry.label}
                         </Button>)}
                         <Button size="small" variant="text" onClick={() => moves.chooseCityRebelsLoss({kind: "auto"})}>
-                            自动分配剩余
+                            {i18n.chain.vq.cityRebels.auto}
                         </Button>
                     </Stack>
                 </>}
             </Stack>;
         }
         if (G.gregorianResponse) return <Stack spacing={1}>
-            <Typography>公历纪年法 · {POWER_NAMES[G.gregorianResponse.after].zh} 的回合已结束，等待 {POWER_NAMES[G.gregorianResponse.responder].zh} 决定是否响应。</Typography>
+            <Typography>{i18n.chain.vq.gregorian.title} · {powerName(G.gregorianResponse.after, vqLocale)} {i18n.chain.vq.gregorian.ended}，{i18n.chain.vq.gregorian.waiting} {powerName(G.gregorianResponse.responder, vqLocale)} {i18n.chain.vq.gregorian.decide}。</Typography>
             {ownerOf(G, G.gregorianResponse.responder) === playerID && <>
-                <Typography variant="body2">选择一个势力开始下一个行动轮（可以是刚结束回合的势力），并从牌堆抽一张牌（若与教廷结盟）。</Typography>
+                <Typography variant="body2">{i18n.chain.vq.gregorian.chooseNext}</Typography>
                 <Select size="small" value={gregorianTarget} onChange={(e) => setGregorianTarget(e.target.value as Power)}>
-                    {POWERS.map((power) => <MenuItem key={power} value={power}>{POWER_NAMES[power].zh}</MenuItem>)}
+                    {POWERS.map((power) => <MenuItem key={power} value={power}>{powerName(power, vqLocale)}</MenuItem>)}
                 </Select>
                 <Stack direction="row" spacing={0.5}>
                     <Button variant="contained" onClick={() => moves.playCard({cardId: "vq-101", asEvent: true, target: gregorianTarget})}>
-                        打出公历纪年法
+                        {i18n.chain.vq.gregorian.play}
                     </Button>
-                    <Button variant="outlined" onClick={() => moves.declineGregorianCalendar()}>不打出</Button>
+                    <Button variant="outlined" onClick={() => moves.declineGregorianCalendar()}>{i18n.chain.vq.gregorian.decline}</Button>
                 </Stack>
             </>}
         </Stack>;
         if (G.pendingCardEvent) return <Stack spacing={1}>
-            <Typography>{G.pendingCardEvent.kind === "cancelEvent" ? "事件响应" : "大维齐尔"} · 等待奥斯曼帝国选择。</Typography>
+            <Typography>{G.pendingCardEvent.kind === "cancelEvent" ? i18n.chain.vq.board.response : i18n.chain.vq.board.vizier} · {i18n.chain.vq.board.waitingOttoman}</Typography>
             {G.pendingCardEvent.kind === "cancelEvent" ? <Typography variant="body2">
-                {cardById(G.pendingCardEvent.cardId).name} 尚未结算；可打出大维齐尔取消此事件。
+                {cardById(G.pendingCardEvent.cardId).name} {i18n.chain.vq.board.notResolved}
             </Typography> : G.pendingCardEvent.step === "recruit" ? <Typography variant="body2">
-                还可增加 {G.pendingCardEvent.remaining} 个单位。正规军可放入合法家乡地区或境外战争；桨帆船限爱琴海家乡港口。
+                {i18n.chain.vq.board.canAdd} {G.pendingCardEvent.remaining} {i18n.chain.vq.board.units}. {i18n.chain.vq.board.regularsHome}
             </Typography> : <Typography variant="body2">
-                选择增募单位或尝试建造运河。苏伊士运河仅限 5～6 人局；取消事件在其他事件结算前选择。
+                {i18n.chain.vq.board.chooseRecruit}
             </Typography>}
             {G.pendingCardEvent.kind === "grandVizier" && G.pendingCardEvent.step === "effect" && ctx.numPlayers >= 5 &&
                 !G.suezDone && <Typography variant="body2">
-                    运河判定：掷 1 骰，加累计失败 {G.suezAttempts} 次{G.powers.ottoman.scienceBonuses.includes("excavation") ? "，再加挖掘奖励 2" : ""}，达到 6 即成功；奖励 2 VP 和永久抽牌 +1。
+                    {i18n.chain.vq.board.canalRoll}: {G.suezAttempts}{G.powers.ottoman.scienceBonuses.includes("excavation") ? i18n.chain.vq.board.excavation : ""}{i18n.chain.vq.board.canalSuccess}
                 </Typography>}
             {ownerOf(G, G.pendingCardEvent.responding) === playerID && cardEventOptions(G, ctx.numPlayers).map((entry) =>
                 <Button key={entry.id} onClick={() => moves.chooseCardEvent({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
         if (G.pendingBeacon) return <Stack spacing={1}>
-            <Typography>烽火 · {POWER_NAMES[G.pendingBeacon.defender].zh} 正在从 {SPACE_BY_ID[G.pendingBeacon.from]?.name ?? G.pendingBeacon.from} 拦截，可在此次拦截判定前打出 #14。</Typography>
+            <Typography>{i18n.chain.vq.beacon.title} · {powerName(G.pendingBeacon.defender, vqLocale)} {i18n.chain.vq.beacon.intercepting} {SPACE_BY_ID[G.pendingBeacon.from]?.name ?? G.pendingBeacon.from}，{i18n.chain.vq.beacon.canPlay}</Typography>
             {ownerOf(G, G.pendingBeacon.defender) === playerID && <>
-                <Typography variant="body2">本次拦截自动成功，拦截方在随后海战中额外掷 2 个骰子。</Typography>
+                <Typography variant="body2">{i18n.chain.vq.beacon.autoSuccess}</Typography>
                 <Stack direction="row" spacing={0.5}>
                     <Button variant="contained" disabled={!G.powers[G.pendingBeacon.defender].cards.includes("vq-014")}
-                        onClick={() => moves.respondBeaconFires({choice: "play"})}>打出烽火</Button>
-                    <Button variant="outlined" onClick={() => moves.respondBeaconFires({choice: "decline"})}>不打出</Button>
+                        onClick={() => moves.respondBeaconFires({choice: "play"})}>{i18n.chain.vq.beacon.play}</Button>
+                    <Button variant="outlined" onClick={() => moves.respondBeaconFires({choice: "decline"})}>{i18n.chain.vq.beacon.decline}</Button>
                 </Stack>
             </>}
         </Stack>;
         if (G.pendingInterceptionOrder) return <Stack spacing={1}>
-            <Typography>海军拦截顺序 · 等待 {POWER_NAMES[G.pendingInterceptionOrder.defender].zh} 选择先由哪支舰队拦截前往 {SPACE_BY_ID[G.pendingInterceptionOrder.to]?.name ?? G.pendingInterceptionOrder.to} 的移动。</Typography>
+            <Typography>{i18n.chain.vq.interceptionOrder.title} · {i18n.chain.vq.intercept.waiting} {powerName(G.pendingInterceptionOrder.defender, vqLocale)} {i18n.chain.vq.interceptionOrder.choose} {SPACE_BY_ID[G.pendingInterceptionOrder.to]?.name ?? G.pendingInterceptionOrder.to} {i18n.chain.vq.interceptionOrder.move}。</Typography>
             {ownerOf(G, G.pendingInterceptionOrder.defender) === playerID && <>
                 {interceptionOrderOptions(G).map((entry) =>
                     <Button key={entry.id} onClick={() => moves.chooseInterceptionOrder({from: entry.id})}>{entry.label}</Button>)}
-                <Button variant="text" onClick={() => moves.autoInterceptionOrder({})}>按引擎顺序自动拦截</Button>
+                <Button variant="text" onClick={() => moves.autoInterceptionOrder({})}>{i18n.chain.vq.interceptionOrder.auto}</Button>
             </>}
         </Stack>;
         if (G.pendingIntercept) return <Stack spacing={1}>
-            <Typography>拦截 · 等待 {POWER_NAMES[G.pendingIntercept.defender].zh}。</Typography>
+            <Typography>{i18n.chain.vq.intercept.title} · {i18n.chain.vq.intercept.waiting} {powerName(G.pendingIntercept.defender, vqLocale)}。</Typography>
             {ownerOf(G, G.pendingIntercept.defender) === playerID && interceptionOptions(G).map((entry) =>
                 <Button key={entry.id} onClick={() => moves.chooseInterception({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
         if (G.pendingAction) {
             const choice = myActionChoices.find((entry) => entry.responder === actionResponder);
             return <Stack spacing={1}>
-                <Typography>{G.pendingAction.move === "impulse" ? "行动轮开始响应" : "行动响应"} · 等待 {actionResponders.map((power) => POWER_NAMES[power].zh).join("、")}。</Typography>
+                <Typography>{G.pendingAction.move === "impulse" ? i18n.chain.vq.actionResponse.impulse : i18n.chain.vq.actionResponse.response} · {i18n.chain.vq.actionResponse.waiting} {actionResponders.map((power) => powerName(power, vqLocale)).join("、")}。</Typography>
                 {myActionChoices.length > 1 && <>
-                    <Typography variant="body2">你控制多个可响应势力，请选择由哪个势力进行响应。</Typography>
+                    <Typography variant="body2">{i18n.chain.vq.actionResponse.multi}</Typography>
                     <FormControl size="small" fullWidth>
-                        <InputLabel id="vq-action-responder">行动响应势力</InputLabel>
-                        <Select labelId="vq-action-responder" label="行动响应势力" value={actionResponder}
+                        <InputLabel id="vq-action-responder">{i18n.chain.vq.actionResponse.responder}</InputLabel>
+                        <Select labelId="vq-action-responder" label={i18n.chain.vq.actionResponse.responder} value={actionResponder}
                                 onChange={(event) => setSelectedActionResponder(event.target.value as Power)}>
                             {myActionChoices.map((entry) =>
                                 <MenuItem key={entry.responder} value={entry.responder}>{entry.label}</MenuItem>)}
@@ -1556,27 +1583,27 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             </Stack>;
         }
         if (G.pendingPiracy) return <Stack spacing={1}>
-            <Typography>海盗行动 · 等待 {POWER_NAMES[piracyResponder!].zh} 选择。</Typography>
+            <Typography>{i18n.chain.vq.piracy.title} · {i18n.chain.vq.intercept.waiting} {powerName(piracyResponder!, vqLocale)} {i18n.chain.vq.piracy.choose}。</Typography>
             {ownerOf(G, piracyResponder!) === playerID && piracyOptions(G).map((entry) =>
                 <Button key={entry.id} onClick={() => moves.choosePiracy({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
         if (G.pendingTutorialEvent) return <Stack spacing={1}>
-            <Typography>{cardById(G.pendingTutorialEvent.cardId).name} · 等待 {POWER_NAMES[G.pendingTutorialEvent.responding].zh} 选择。</Typography>
+            <Typography>{cardById(G.pendingTutorialEvent.cardId).name} · {i18n.chain.vq.tutorialEvent.waiting} {powerName(G.pendingTutorialEvent.responding, vqLocale)} {i18n.chain.vq.tutorialEvent.choose}。</Typography>
             {G.pendingTutorialEvent.step === "roadFormation" && <Typography variant="body2">
-                先选择米兰的部队与随军将领，再选择部署目的地；最多跨越一个山口，不能渡海。也可不部署。
+                {i18n.chain.vq.tutorialEvent.roadFormation}
             </Typography>}
             {G.pendingTutorialEvent.step === "rebelLosses" && <Typography variant="body2">
-                {SPACE_BY_ID[G.pendingTutorialEvent.space!].name}：还需分配 {G.pendingTutorialEvent.remaining} 次损失，可选择陆军或舰队。
+                {SPACE_BY_ID[G.pendingTutorialEvent.space!].name}：{i18n.chain.vq.tutorialEvent.remaining} {G.pendingTutorialEvent.remaining} {i18n.chain.vq.tutorialEvent.losses}。
             </Typography>}
             {ownerOf(G, G.pendingTutorialEvent.responding) === playerID && tutorialEventOptions(G).map((entry) =>
                 <Button key={entry.id} onClick={() => moves.chooseTutorialEvent({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
         if (G.pendingBattle) return <Stack spacing={1}>
-            <Typography>战斗：{SPACE_BY_ID[G.pendingBattle.location]?.name ?? G.pendingBattle.location} · 等待 {POWER_NAMES[G.pendingBattle.responding].zh} 选择。</Typography>
+            <Typography>{i18n.chain.vq.battle.title}: {SPACE_BY_ID[G.pendingBattle.location]?.name ?? G.pendingBattle.location} · {i18n.chain.vq.battle.waiting} {powerName(G.pendingBattle.responding, vqLocale)} {i18n.chain.vq.battle.choose}。</Typography>
             {ownerOf(G, G.pendingBattle.responding) === playerID && battleOptions(G).map((option) =>
                 <Button key={option.id} onClick={() => moves.chooseBattle({choice: option.id})}>{option.label}</Button>)}
             {vqCombatRetrieve.length > 0 && <Stack spacing={0.5}>
-                <Typography variant="body2">童贞女王（#36）：取回弃牌堆中的战斗牌并立即打出</Typography>
+                <Typography variant="body2">{i18n.chain.vq.battle.retrieve}</Typography>
                 <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                     {vqCombatRetrieve.map((option) =>
                         <Button key={option.cardId} size="small" variant="outlined"
@@ -1588,31 +1615,31 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             const pending = G.pendingActivation;
             const canRespond = ownerOf(G, pending.ally) === playerID;
             return <Stack spacing={1}>
-                <Typography>等待 {POWER_NAMES[pending.ally].zh} 激活 {POWER_NAMES[pending.power].zh}。</Typography>
+                <Typography>{i18n.chain.vq.activation.waiting} {powerName(pending.ally, vqLocale)} {i18n.chain.vq.activation.activate} {powerName(pending.power, vqLocale)}。</Typography>
                 {canRespond && <>
-                    <Button onClick={() => moves.chooseMajorActivation({})}>激活，不追加宣战</Button>
-                    {pending.aggressor && <Button onClick={() => moves.chooseMajorActivation({joinDefense: true})}>协同参战并激活</Button>}
+                    <Button onClick={() => moves.chooseMajorActivation({})}>{i18n.chain.vq.activation.activateNoWar}</Button>
+                    {pending.aggressor && <Button onClick={() => moves.chooseMajorActivation({joinDefense: true})}>{i18n.chain.vq.activation.joinDefense}</Button>}
                     {POWERS.filter((power) => power !== pending.power && ownerOf(G, power) !== playerID && ownerOf(G, power) !== undefined)
-                        .map((power) => <Button key={power} onClick={() => moves.chooseMajorActivation({war: power})}>激活并向{POWER_NAMES[power].zh}宣战</Button>)}
+                        .map((power) => <Button key={power} onClick={() => moves.chooseMajorActivation({war: power})}>{i18n.chain.vq.activation.activateWar} {powerName(power, vqLocale)}</Button>)}
                 </>}
             </Stack>;
         }
         if (me === undefined) {
-            return <Typography variant="body2" color="text.secondary">旁观模式：只能查看局势。</Typography>;
+            return <Typography variant="body2" color="text.secondary">{i18n.chain.vq.actionPanel.spectator}</Typography>;
         }
         if (phase === "cardDraw") {
             const powers = participatingPowers(G);
-            const nextPhase = G.scenario === "tutorial" ? "春季部署阶段" : "外交阶段";
+            const nextPhase = G.scenario === "tutorial" ? i18n.chain.vq.cardDraw.springPhase : i18n.chain.vq.cardDraw.diplomacyPhase;
             const winterLosses = (G.winterLossChoices ?? []).filter((entry) => entry.power === me);
             const winterNavalLosses = (G.winterNavalLossChoices ?? []).filter((entry) => entry.power === me);
-            const unitNames: Record<keyof LandStack, string> = {regular: "正规军", merc: "雇佣兵", cav: "骑兵"};
-            const shipNames: Record<keyof NavalStack, string> = {galley: "桨帆船", galleon: "大帆船", racebuilt: "快帆船", corsair: "海盗船"};
+            const unitNames: Record<keyof LandStack, string> = {regular: i18n.chain.vq.cardDraw.regular, merc: i18n.chain.vq.cardDraw.merc, cav: i18n.chain.vq.cardDraw.cav};
+            const shipNames: Record<keyof NavalStack, string> = {galley: i18n.chain.vq.cardDraw.galley, galleon: i18n.chain.vq.cardDraw.galleon, racebuilt: i18n.chain.vq.cardDraw.racebuilt, corsair: i18n.chain.vq.cardDraw.corsair};
             return <Stack spacing={1}>
-                <Typography variant="subtitle2">Card Draw 阶段 · 第 {G.year} 回合</Typography>
+                <Typography variant="subtitle2">{i18n.chain.vq.cardDraw.cardDrawPhase} · {i18n.chain.vq.cardDraw.turn} {G.year}</Typography>
                 {winterLosses.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
-                    <Typography variant="subtitle2">冬季损失：选择或确认失去的单位类型</Typography>
+                    <Typography variant="subtitle2">{i18n.chain.vq.cardDraw.winterLosses}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        已自动移除相应数量的单位；普通冬季损失可改选该地现有足够数量的类型，或保留自动结果；莫里斯科人随 #28 离场，只能确认。
+                        {i18n.chain.vq.cardDraw.winterLossesDesc}
                     </Typography>
                     {winterLosses.map((entry, index) => {
                         const stack = G.spaces[entry.space]?.land[me];
@@ -1620,34 +1647,34 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             .filter((kind) => (stack?.[kind] ?? 0) >= entry.amount);
                         return <Stack key={`${entry.space}-${index}`} spacing={0.5}>
                             <Typography variant="body2">
-                                {SPACE_BY_ID[entry.space]?.name ?? entry.space} · 需失去 {entry.amount} 个单位
+                                {SPACE_BY_ID[entry.space]?.name ?? entry.space} · {i18n.chain.vq.cardDraw.needLose} {entry.amount} {i18n.chain.vq.cardDraw.units}
                             </Typography>
                             {entry.confirmOnly && <Typography variant="caption" color="text.secondary">
-                                莫里斯科人（#28）随牌离场，只能确认移除，不能改为失去其他兵种。
+                                {i18n.chain.vq.cardDraw.morisco}
                             </Typography>}
                             <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                                 {choices.map((kind) => <Button key={kind} size="small" variant="outlined"
                                     disabled={!myTurn}
                                     onClick={() => moves.chooseWinterLoss({space: entry.space, kind})}>
-                                    改为失去 {unitNames[kind]}
+                                    {i18n.chain.vq.cardDraw.changeTo} {unitNames[kind]}
                                 </Button>)}
                                 <Button size="small" variant="outlined" disabled={!myTurn}
                                     onClick={() => moves.chooseWinterLoss({space: entry.space, kind: "auto"})}>
-                                    {entry.confirmOnly ? "确认移除" : "保留自动结果"}
+                                    {entry.confirmOnly ? i18n.chain.vq.cardDraw.confirmRemove : i18n.chain.vq.cardDraw.keepAuto}
                                 </Button>
                             </Stack>
                         </Stack>;
                     })}
                 </Stack>}
                 {winterNavalLosses.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
-                    <Typography variant="subtitle2">冬季海军损失：确认损失的舰型</Typography>
+                    <Typography variant="subtitle2">{i18n.chain.vq.cardDraw.winterNavalLosses}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        无可用返港港口时整支舰队按 20.4 消灭；可为每处损失确认损失的舰型，或保留自动结果（不会因此保留舰船）。
+                        {i18n.chain.vq.cardDraw.winterNavalDesc}
                     </Typography>
                     {winterNavalLosses.map((entry, index) => (
                         <Stack key={`${entry.zone}-${index}`} spacing={0.5}>
                             <Typography variant="body2">
-                                {SEA_ZONE_BY_ID[entry.zone]?.name ?? entry.zone} · 损失 {entry.amount} 艘舰船
+                                {SEA_ZONE_BY_ID[entry.zone]?.name ?? entry.zone} · {i18n.chain.vq.cardDraw.lost} {entry.amount} {i18n.chain.vq.cardDraw.ships}
                             </Typography>
                             <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                                 {(Object.keys(shipNames) as (keyof NavalStack)[])
@@ -1655,18 +1682,18 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                     .map((kind) => <Button key={kind} size="small" variant="outlined"
                                         disabled={!myTurn}
                                         onClick={() => moves.chooseWinterNavalLoss({zone: entry.zone, kind})}>
-                                        确认 {shipNames[kind]} ×{entry.removed[kind]}
+                                        {i18n.chain.vq.cardDraw.confirm} {shipNames[kind]} ×{entry.removed[kind]}
                                     </Button>)}
                                 <Button size="small" variant="outlined" disabled={!myTurn}
                                     onClick={() => moves.chooseWinterNavalLoss({zone: entry.zone, kind: "auto"})}>
-                                    保留自动结果
+                                    {i18n.chain.vq.cardDraw.keepAuto}
                                 </Button>
                             </Stack>
                         </Stack>
                     ))}
                 </Stack>}
                 <Typography variant="body2" color={myTurn ? "primary" : "text.secondary"}>
-                    {`${myTurn ? "请确认" : "等待"} P${Number(ctx.currentPlayer) + 1} · ${POWER_NAMES[G.activePower].zh} 完成抽牌（${powers.indexOf(G.activePower) + 1}/${powers.length}）。`}
+                    {`${myTurn ? i18n.chain.vq.cardDraw.pleaseConfirm : i18n.chain.vq.cardDraw.waiting} P${Number(ctx.currentPlayer) + 1} · ${powerName(G.activePower, vqLocale)} ${i18n.chain.vq.cardDraw.completeDraw}（${powers.indexOf(G.activePower) + 1}/${powers.length}）。`}
                 </Typography>
                 {me !== "france" && me !== "protestant" ? null : G.seaCaptainsAvailable.map((id) => {
                     const captain = seaCaptainById(id);
@@ -1675,17 +1702,17 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     }
                     return <Button key={id} size="small" variant="outlined" disabled={!myTurn}
                                    onClick={() => moves.claimSeaCaptain({captain: id})}>
-                        领取共享船长：{captain.nameZh ?? captain.nameEn}
+                        {i18n.chain.vq.cardDraw.claimCaptain}: {captain.nameZh ?? captain.nameEn}
                     </Button>;
                 })}
                 <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.endPhaseTurn()}>
-                    {`确认${POWER_NAMES[G.activePower].zh}抽牌完成`}
+                    {`${i18n.chain.vq.cardDraw.confirm}${powerName(G.activePower, vqLocale)}${i18n.chain.vq.cardDraw.drawDone}`}
                 </Button>
-                <ActionGroup title="抽牌与本国牌规则">
-                <Typography variant="body2">已按本回合可用性发放本国牌与年度手牌。拥有两张可用本国牌的强国，将在春季部署时秘密保留一张。</Typography>
-                <Typography variant="body2">{`各参战强国依次确认后进入${nextPhase}；同一玩家控制的强国也需分别确认。`}</Typography>
+                <ActionGroup title={i18n.chain.vq.cardDraw.rules}>
+                <Typography variant="body2">{i18n.chain.vq.cardDraw.rule1}</Typography>
+                <Typography variant="body2">{`${i18n.chain.vq.cardDraw.rule2a}${nextPhase}${i18n.chain.vq.cardDraw.rule2b}`}</Typography>
                 {G.powers.ottoman.ruler === "suleiman" &&
-                    <Typography variant="caption" color="text.secondary">苏莱曼一世在位时，奥斯曼可保留两张本国牌。</Typography>}
+                    <Typography variant="caption" color="text.secondary">{i18n.chain.vq.cardDraw.suleiman}</Typography>}
                 <Typography variant="caption" color="text.secondary">{scenarioName(G.scenario)}</Typography>
                 </ActionGroup>
             </Stack>;
@@ -1702,103 +1729,103 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             const expeditionCost = expeditionBaseCost + (expeditionHasColony && !hasFreeColonist ? 1 : 0);
             return <Stack spacing={1}>
                 <Stack direction="row" spacing={1} sx={{alignItems: "center"}}>
-                    <Typography variant="body2">剩余 CP：<b>{cp}</b></Typography>
-                    <Chip size="small" label={`手牌 ${hand.length}`}/>
-                    {ps !== undefined && ps.cardPlayed && <Chip size="small" color="success" label="本回合已出牌"/>}
+                    <Typography variant="body2">{i18n.chain.vq.board.remainingCp}: <b>{cp}</b></Typography>
+                    <Chip size="small" label={`${i18n.chain.vq.board.hand} ${hand.length}`}/>
+                    {ps !== undefined && ps.cardPlayed && <Chip size="small" color="success" label={i18n.chain.vq.board.playedThisTurn}/>}
                 </Stack>
-                {!myTurn && <Typography variant="caption" color="text.secondary">等待 {POWER_NAMES[G.activePower].zh} 行动。</Typography>}
+                {!myTurn && <Typography variant="caption" color="text.secondary">{i18n.chain.vq.board.waiting} {powerName(G.activePower, vqLocale)} {i18n.chain.vq.board.act}。</Typography>}
                 {G.pendingNavalOrder !== undefined && G.pendingNavalOrder.attacker === me && <Paper variant="outlined" sx={{p: 1}}>
-                    <Typography variant="subtitle2">选择海战目标顺序</Typography>
+                    <Typography variant="subtitle2">{i18n.chain.vq.board.chooseNavalTarget}</Typography>
                     <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap", mt: 0.5}}>
                         {G.pendingNavalOrder.enemies.map((enemy) => <Button key={enemy} size="small" variant="outlined" disabled={!myTurn}
-                            onClick={() => moves.chooseNavalOrder({enemy})}>{POWER_NAMES[enemy].zh}</Button>)}
+                            onClick={() => moves.chooseNavalOrder({enemy})}>{powerName(enemy, vqLocale)}</Button>)}
                     </Stack>
                 </Paper>}
                 {G.pendingWithdraw !== undefined && G.pendingWithdraw.defender === me && <Paper variant="outlined" sx={{p: 1}}>
-                    <Typography variant="subtitle2">守军选择</Typography>
+                    <Typography variant="subtitle2">{i18n.chain.vq.board.defenderChoice}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        {SPACE_BY_ID[G.pendingWithdraw.space]?.name ?? G.pendingWithdraw.space} 的守军可退入要塞，或出城野战。
+                        {SPACE_BY_ID[G.pendingWithdraw.space]?.name ?? G.pendingWithdraw.space} {i18n.chain.vq.board.withdrawOrField}。
                     </Typography>
                     <Stack direction="row" spacing={0.5} sx={{mt: 0.5}}>
                         <Button size="small" variant="outlined" disabled={!myTurn}
-                            onClick={() => moves.chooseWithdraw({withdraw: true})}>退入要塞</Button>
+                            onClick={() => moves.chooseWithdraw({withdraw: true})}>{i18n.chain.vq.board.retreatInto}</Button>
                         <Button size="small" variant="outlined" color="error" disabled={!myTurn}
-                            onClick={() => moves.chooseWithdraw({withdraw: false})}>出城野战</Button>
+                            onClick={() => moves.chooseWithdraw({withdraw: false})}>{i18n.chain.vq.board.fieldBattle}</Button>
                     </Stack>
                 </Paper>}
                 {G.pendingReliefSplit !== undefined && G.pendingReliefSplit.power === me && <Paper variant="outlined" sx={{p: 1}}>
-                    <Typography variant="subtitle2">救援失败 · 选择留驻单位</Typography>
+                    <Typography variant="subtitle2">{i18n.chain.vq.board.reliefFail}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        {SPACE_BY_ID[G.pendingReliefSplit.space]?.name ?? G.pendingReliefSplit.space}：最多 {G.pendingReliefSplit.keepLimit} 个单位可留在城内，其余回撤。
+                        {SPACE_BY_ID[G.pendingReliefSplit.space]?.name ?? G.pendingReliefSplit.space}：{i18n.chain.vq.board.maxKeep} {G.pendingReliefSplit.keepLimit} {i18n.chain.vq.board.unitsStay}。
                     </Typography>
                     <Stack direction="row" spacing={0.5} sx={{mt: 0.5, flexWrap: "wrap"}}>
                         {Array.from({length: G.pendingReliefSplit.keepLimit + 1}, (_, i) => i).map((k) =>
                             <Button key={k} size="small" variant="outlined" disabled={!myTurn}
-                                onClick={() => moves.chooseReliefSplit({keep: k})}>留 {k} 个</Button>)}
+                                onClick={() => moves.chooseReliefSplit({keep: k})}>{i18n.chain.vq.board.keep} {k} {i18n.chain.vq.board.pieces}</Button>)}
                     </Stack>
                 </Paper>}
                 {G.pendingContinue !== undefined && G.pendingContinue.power === me && <Paper variant="outlined" sx={{p: 1}}>
-                    <Typography variant="subtitle2">守军退入要塞</Typography>
+                    <Typography variant="subtitle2">{i18n.chain.vq.board.retreatFortress}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        可花 1 CP 继续行军到相邻空地区，或返回 {SPACE_BY_ID[G.pendingContinue.origin]?.name ?? G.pendingContinue.origin}。
+                        {i18n.chain.vq.board.continueMarch}，{i18n.chain.vq.board.orReturn} {SPACE_BY_ID[G.pendingContinue.origin]?.name ?? G.pendingContinue.origin}。
                     </Typography>
                     <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap", mt: 0.5}}>
                         {landNeighbors(G.pendingContinue.space).filter((neighbor) => !neighbor.pass).map((neighbor) =>
                             <Button key={neighbor.id} size="small" variant="outlined" disabled={!myTurn || cp < 1}
                                 onClick={() => moves.continueMove({to: neighbor.id})}>{SPACE_BY_ID[neighbor.id]?.name ?? neighbor.id}</Button>)}
-                        <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.stopContinue()}>返回出发地</Button>
+                        <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.stopContinue()}>{i18n.chain.vq.board.returnOrigin}</Button>
                     </Stack>
                 </Paper>}
                 {me === "spain" && G.armada !== undefined && <Paper variant="outlined" sx={{p: 1}}>
-                    <Typography variant="subtitle2">西班牙阿马达 · 强度 {G.armada.strength}</Typography>
+                    <Typography variant="subtitle2">{i18n.chain.vq.board.armada} · {i18n.chain.vq.board.strength} {G.armada.strength}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        位于 {SPACE_BY_ID[G.armada.location]?.name ?? G.armada.location}；与西班牙舰队同格时自动参战/随行。
+                        {i18n.chain.vq.board.locatedAt} {SPACE_BY_ID[G.armada.location]?.name ?? G.armada.location}；{i18n.chain.vq.board.armadaJoin}。
                     </Typography>
                     <Stack direction="row" spacing={0.5} sx={{mt: 0.5, flexWrap: "wrap"}}>
                         <Button size="small" variant="outlined"
                             disabled={!myTurn || cp < 3 || G.armada.strength >= 8 || !["seville", "corunna", "lisbon"].includes(G.armada.location)}
-                            onClick={() => moves.upgradeArmada()}>升级阿马达 (3 CP)</Button>
+                            onClick={() => moves.upgradeArmada()}>{i18n.chain.vq.board.upgradeArmada}</Button>
                         {G.spaces[G.armada.location] !== undefined && <Button size="small" variant="outlined"
-                            disabled={!myTurn} onClick={() => moves.loadArmada()}>装载陆军</Button>}
+                            disabled={!myTurn} onClick={() => moves.loadArmada()}>{i18n.chain.vq.board.loadArmy}</Button>}
                         {G.spaces[G.armada.location] !== undefined && G.armada.land !== undefined && <Button size="small" variant="outlined"
-                            disabled={!myTurn} onClick={() => moves.unloadArmada()}>卸载陆军</Button>}
+                            disabled={!myTurn} onClick={() => moves.unloadArmada()}>{i18n.chain.vq.board.unloadArmy}</Button>}
                     </Stack>
                     {G.armada.land !== undefined && <Typography variant="caption" color="text.secondary">
-                        搭载：{G.armada.land.regular} 正规 / {G.armada.land.merc} 雇佣 / {G.armada.land.cav} 骑兵（上限 {G.armada.strength}）
+                        {i18n.chain.vq.board.carrying}: {G.armada.land.regular} {i18n.chain.vq.board.regulars} / {G.armada.land.merc} {i18n.chain.vq.board.merc} / {G.armada.land.cav} {i18n.chain.vq.board.cav}（{i18n.chain.vq.board.max} {G.armada.strength}）
                     </Typography>}
                     {G.seaZones[G.armada.location as keyof VQGame["seaZones"]] !== undefined &&
                         SPACES.filter((space) => (space.ports ?? []).some((zone) => zone === G.armada!.location) && G.spaces[space.id].control === "spain").map((space) =>
                         <Stack key={space.id} direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                             <Button size="small" variant="outlined" disabled={!myTurn || cp < 1}
-                                onClick={() => moves.armadaTransport({port: space.id, direction: "load"})}>从 {space.name} 装载</Button>
+                                onClick={() => moves.armadaTransport({port: space.id, direction: "load"})}>{i18n.chain.vq.board.loadFrom} {space.name}</Button>
                             <Button size="small" variant="outlined" disabled={!myTurn || cp < 1 || G.armada?.land === undefined}
-                                onClick={() => moves.armadaTransport({port: space.id, direction: "unload"})}>卸载到 {space.name}</Button>
+                                onClick={() => moves.armadaTransport({port: space.id, direction: "unload"})}>{i18n.chain.vq.board.unloadTo} {space.name}</Button>
                         </Stack>)}
                 </Paper>}
                 <FormControl size="small" fullWidth>
-                    <InputLabel id="vq-mode">行动</InputLabel>
-                    <Select labelId="vq-mode" label="行动" value={mode}
+                    <InputLabel id="vq-mode">{i18n.chain.vq.spring.action}</InputLabel>
+                    <Select labelId="vq-mode" label={i18n.chain.vq.spring.action} value={mode}
                             onChange={(e) => {
                                 setMode(e.target.value as Mode);
                                 setFrom(null);
                             }}>
-                        {Object.keys(MODE_LABELS)
+                        {Object.keys({inspect:1,recruitRegular:1,recruitMerc:1,recruitCav:1,buildGalley:1,buildGalleon:1,buildRacebuilt:1,buildCorsair:1,moveLand:1,moveNaval:1,navalTransport:1,spring:1,control:1,assault:1,buildFortress:1,rebellion:1})
                             .filter((m) => m !== "recruitMerc" || me !== "ottoman")
                             .filter((m) => m !== "recruitCav" || me === "ottoman")
                             .filter((m) => m !== "rebellion" || me === "protestant")
                             .filter((m) => G.scenario !== "tutorial" || !["buildFortress", "buildRacebuilt", "rebellion"].includes(m))
-                            .map((m) => <MenuItem key={m} value={m}>{MODE_LABELS[m as Mode]}</MenuItem>)}
+                            .map((m) => <MenuItem key={m} value={m}>{modeLabel(m as Mode, vqLocale)}</MenuItem>)}
                     </Select>
                 </FormControl>
                 {(mode === "moveLand" || mode === "navalTransport" || mode === "spring") && from && <Stack spacing={0.5}>
-                    <Typography variant="caption">选择移动编队，再点击目的地。无将领最多 4 单位；最多两名将领。</Typography>
+                    <Typography variant="caption">{i18n.chain.vq.board.moveHint}</Typography>
                     {mode === "navalTransport" && <>
-                        <Typography variant="caption">按顺序选择运输海域，每个海域须有己方舰队，最多运输 5 单位。</Typography>
+                        <Typography variant="caption">{i18n.chain.vq.board.transportHint}</Typography>
                         <Select size="small" multiple value={transportZones} onChange={(event) => setTransportZones(typeof event.target.value === "string" ? event.target.value.split(",") : event.target.value)}>
                             {Object.values(SEA_ZONE_BY_ID).filter((zone) => navalCount(G.seaZones[zone.id].naval[me]) > 0)
                                 .map((zone) => <MenuItem key={zone.id} value={zone.id}>{zone.name}</MenuItem>)}
                         </Select>
-                        <Typography variant="caption">航线：{transportZones.map((zone) => SEA_ZONE_BY_ID[zone].name).join(" → ") || "尚未选择"}</Typography>
+                        <Typography variant="caption">{i18n.chain.vq.board.route}: {transportZones.map((zone) => SEA_ZONE_BY_ID[zone].name).join(" → ") || i18n.chain.vq.board.notSelected}</Typography>
                     </>}
                     <Select size="small" value={movingOwner} onChange={(event) => {
                         const owner = event.target.value as Controller;
@@ -1807,7 +1834,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         setMovingLeaders([]);
                     }}>
                         {(Object.keys(G.spaces[from].land) as Controller[]).filter((owner) => (mode === "navalTransport" || mode === "spring" ? owner === me : friendlyController(G, me, owner)) && landCount(G.spaces[from].land[owner]) > 0)
-                            .map((owner) => <MenuItem key={owner} value={owner}>{controllerNameZh(owner)}</MenuItem>)}
+                            .map((owner) => <MenuItem key={owner} value={owner}>{controllerName(owner, vqLocale)}</MenuItem>)}
                     </Select>
                     {(["regular", "merc", "cav"] as const).map((kind) => <Stack key={kind} direction="row" spacing={1}>
                         <Typography variant="caption">{kind}</Typography>
@@ -1819,7 +1846,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <Button key={leader} variant={movingLeaders.includes(leader) ? "contained" : "outlined"} onClick={() => setMovingLeaders(movingLeaders.includes(leader) ? movingLeaders.filter((id) => id !== leader) : [...movingLeaders, leader])}>{LEADER_BY_ID[leader].name}</Button>)}
                 </Stack>}
                 {mode === "rebellion" && <FormControl size="small" fullWidth>
-                    <InputLabel id="vq-rebel">叛乱投入 CP</InputLabel>
+                    <InputLabel id="vq-rebel">{i18n.chain.vq.board.rebelCp}</InputLabel>
                     <Select labelId="vq-rebel" label="叛乱投入 CP" value={rebelCp}
                             onChange={(e) => setRebelCp(Number(e.target.value))}>
                         {[2, 3, 4, 5].map((n) => <MenuItem key={n} value={n}>{n} CP</MenuItem>)}
@@ -1919,7 +1946,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             !G.minorInfluenceBlocked[me].includes(minor);
                         return <Stack key={minor} direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
                             <Typography variant="caption" sx={{minWidth: 78}}>
-                                {MINOR_NAMES[minor].zh} {ally ? `· ${POWER_NAMES[ally].zh}盟友` : "· 未激活"}
+                                {minorName(minor, vqLocale)} {ally ? `· ${powerName(ally, vqLocale)}盟友` : "· 未激活"}
                             </Typography>
                             <Chip size="small" variant="outlined" label={`影响力 ${influence}`} />
                             <Button size="small" variant="outlined"
@@ -1930,7 +1957,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     })}
                     {G.majorInfluence && (["ottoman", "hre"] as Power[]).filter((target) => G.majorInfluence![target]?.[me] !== undefined)
                         .map((target) => <Stack key={target} direction="row" spacing={0.5}>
-                            <Typography variant="caption">{POWER_NAMES[target].zh} · 影响力 {G.majorInfluence![target]![me]}</Typography>
+                            <Typography variant="caption">{powerName(target, vqLocale)} · 影响力 {G.majorInfluence![target]![me]}</Typography>
                             <Button size="small" disabled={!myTurn || cp < 1 || G.majorDiplomacyResolved?.includes(target)}
                                 onClick={() => moves.influence({target})}>+1 影响力</Button>
                         </Stack>)}
@@ -1942,16 +1969,16 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     第 3 回合起开放。情报与派遣人员各 2 CP；刺杀 2–4 CP，天主教叛乱 3–5 CP，两者共用每回合一次标记。
                 </Typography>
                 <FormControl size="small" fullWidth>
-                    <InputLabel id="vq-espionage-target">目标势力</InputLabel>
-                    <Select labelId="vq-espionage-target" label="目标势力" value={espionageTarget}
+                    <InputLabel id="vq-espionage-target">{i18n.chain.vq.board.targetPower}</InputLabel>
+                    <Select labelId="vq-espionage-target" label={i18n.chain.vq.board.targetPower} value={espionageTarget}
                             onChange={(e) => setEspionageTarget(e.target.value as Power)}>
-                        {POWERS.filter((p) => p !== me && !isActivatedMajor(G, p)).map((p) => <MenuItem key={p} value={p}>{POWER_NAMES[p].zh}</MenuItem>)}
+                        {POWERS.filter((p) => p !== me && !isActivatedMajor(G, p)).map((p) => <MenuItem key={p} value={p}>{powerName(p, vqLocale)}</MenuItem>)}
                     </Select>
                 </FormControl>
                 <Select size="small" value={informantSource} onChange={(e) => setInformantSource(e.target.value)} displayEmpty>
                     <MenuItem value="">使用人员池中的间谍</MenuItem>
                     {G.informants.filter((i) => i.owner === me && !i.neutralized).map((i) =>
-                        <MenuItem key={i.target} value={i.target}>调动在{POWER_NAMES[i.target].zh}的间谍</MenuItem>)}
+                        <MenuItem key={i.target} value={i.target}>调动在{powerName(i.target, vqLocale)}的间谍</MenuItem>)}
                 </Select>
                 <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                     <Button size="small" variant="outlined" disabled={!canAct || cp < 2 || G.year < 3 || espionageTarget === me ||
@@ -1968,7 +1995,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <MenuItem value="elizabeth" disabled={!assassinationTargets(G, me).includes("elizabeth")}>伊丽莎白一世</MenuItem>
                         {assassinationTargets(G, me).includes("rudolf") && <MenuItem value="rudolf">鲁道夫二世 (布拉格)</MenuItem>}
                         {assassinationTargets(G, me).filter((id) => id !== "elizabeth" && id !== "rudolf").map((id) =>
-                            <MenuItem key={id} value={id}>{LEADER_BY_ID[id].name} ({POWER_NAMES[LEADER_BY_ID[id].power].zh})</MenuItem>)}
+                            <MenuItem key={id} value={id}>{LEADER_BY_ID[id].name} ({powerName(LEADER_BY_ID[id].power, vqLocale)})</MenuItem>)}
                     </Select>
                 </FormControl>
                 <Stack direction="row" spacing={0.5} sx={{alignItems: "center"}}>
@@ -1994,7 +2021,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     </Stack>
                 </>}
                 {G.informants.map((i) => <Typography key={`${i.owner}:${i.target}`} variant="caption">
-                    {POWER_NAMES[i.owner].zh} → {POWER_NAMES[i.target].zh}：{i.neutralized ? "已无效化，冬季回收" : i.plantedImpulse < G.impulse ? "+2 攻击骰" : "下次行动轮次起生效"}
+                    {powerName(i.owner, vqLocale)} → {powerName(i.target, vqLocale)}：{i.neutralized ? "已无效化，冬季回收" : i.plantedImpulse < G.impulse ? "+2 攻击骰" : "下次行动轮次起生效"}
                 </Typography>)}
                 <Divider/>
                 </ActionGroup>
@@ -2006,11 +2033,11 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         return <Paper key={zone.id} variant="outlined" sx={{p: 0.5}}>
                             <Typography variant="caption" sx={{fontWeight: 700}}>{zone.nameZh} ({zone.nameEn})</Typography>
                             {here.map(([id, ex]) => <Typography key={id} variant="caption" sx={{display: "block"}}>
-                                {seaCaptainById(id)?.nameZh ?? id} · {POWER_NAMES[ex.power].zh}{ex.damaged ? " · 受损" : ""}{ex.colony ? " · 携带殖民地" : ""}
+                                {seaCaptainById(id)?.nameZh ?? id} · {powerName(ex.power, vqLocale)}{ex.damaged ? " · 受损" : ""}{ex.colony ? " · 携带殖民地" : ""}
                             </Typography>)}
                             {WORLD_SETTLEMENTS.filter((s) => s.seaZone === zone.id).map((s) => <Typography key={s.id} variant="caption" sx={{display: "block"}}>
-                                {s.nameZh}：{G.worldControls[s.id] === undefined ? "空置" : `${POWER_NAMES[G.worldControls[s.id]!].zh}控制`}
-                                {G.worldFortresses?.[s.id] !== undefined ? ` · ${POWER_NAMES[G.worldFortresses[s.id]!].zh}要塞` : ""}
+                                {s.nameZh}：{G.worldControls[s.id] === undefined ? "空置" : `${powerName(G.worldControls[s.id]!, vqLocale)}控制`}
+                                {G.worldFortresses?.[s.id] !== undefined ? ` · ${powerName(G.worldFortresses[s.id]!, vqLocale)}要塞` : ""}
                             </Typography>)}
                             {(G.worldPatrols?.[zone.id] ?? 0) > 0 && <Typography variant="caption" sx={{display: "block"}}>西班牙巡逻舰：{G.worldPatrols?.[zone.id]}</Typography>}
                             {me === "spain" && WORLD_SETTLEMENTS.some((s) => s.seaZone === zone.id &&
@@ -2116,7 +2143,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <InputLabel id="vq-pirate-target">目标</InputLabel>
                         <Select labelId="vq-pirate-target" label="目标" value={piracyTarget}
                                 onChange={(e) => setPiracyTarget(e.target.value)}>
-                            {POWERS.filter((p) => p !== me).map((p) => <MenuItem key={p} value={p}>{POWER_NAMES[p].zh}</MenuItem>)}
+                            {POWERS.filter((p) => p !== me).map((p) => <MenuItem key={p} value={p}>{powerName(p, vqLocale)}</MenuItem>)}
                         </Select>
                     </FormControl>
                     <Button size="small" variant="outlined" disabled={!myTurn || cp < 1 || piracyZone === "" || piracyTarget === ""}
@@ -2161,7 +2188,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <InputLabel id="vq-diplo">目标强国</InputLabel>
                     <Select labelId="vq-diplo" label="目标强国" value={diploTarget}
                             onChange={(e) => setDiploTarget(e.target.value as Power)}>
-                        {POWERS.filter((p) => p !== me).map((p) => <MenuItem key={p} value={p}>{POWER_NAMES[p].zh}</MenuItem>)}
+                        {POWERS.filter((p) => p !== me).map((p) => <MenuItem key={p} value={p}>{powerName(p, vqLocale)}</MenuItem>)}
                     </Select>
                 </FormControl>
                 <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
@@ -2186,7 +2213,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         onClick={() => selected !== null && moves.giveMercenary({target: diploTarget, space: selected})}>赠送选中地区1雇佣兵</Button>
                 </Stack>
                 {ps !== undefined && ps.treasures.length > 0 && <Stack spacing={0.5}>
-                    <Typography variant="subtitle2">赠送宝藏给 {POWER_NAMES[diploTarget].zh}</Typography>
+                    <Typography variant="subtitle2">赠送宝藏给 {powerName(diploTarget, vqLocale)}</Typography>
                     <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                         {ps.treasures.map((value, index) => <Button key={`${value}-${index}`} size="small" variant="outlined"
                             disabled={!myTurn || atWar(G, me, diploTarget)}
@@ -2237,7 +2264,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                           POWERS.some((major) => G.powers[major].alliedMinors.includes(m)) ||
                                                           !minorAvailable(G, m)}
                                                       onClick={() => moves.declareWarMinor({target: m})}>
-                        {MINOR_NAMES[m].zh}
+                        {minorName(m, vqLocale)}
                     </Button>)}
                 </Stack>
                 <Divider/>
@@ -2245,7 +2272,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 {playerID !== null && ctx.activePlayers?.[playerID] === "respondBetroth" && G.pendingBetrothal !== null ? (
                     <Stack spacing={1}>
                         <Typography variant="body2">
-                            {POWER_NAMES[G.pendingBetrothal.proposer].zh} 提议联姻：
+                            {powerName(G.pendingBetrothal.proposer, vqLocale)} 提议联姻：
                             {G.royals.find((r) => r.id === G.pendingBetrothal!.male)?.name ?? G.pendingBetrothal.male}
                             {" ↔ "}
                             {G.royals.find((r) => r.id === G.pendingBetrothal!.female)?.name ?? G.pendingBetrothal.female}
@@ -2259,7 +2286,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     </Stack>
                 ) : G.pendingBetrothal !== null && G.pendingBetrothal.proposer === me ? (
                     <Typography variant="body2" color="text.secondary">
-                        ⏳ 等待 {POWER_NAMES[G.pendingBetrothal.target].zh} 回应联姻提议…
+                        ⏳ 等待 {powerName(G.pendingBetrothal.target, vqLocale)} 回应联姻提议…
                     </Typography>
                 ) : (<>
                     <FormControl size="small" fullWidth>
@@ -2279,7 +2306,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                 <MenuItem key={r.id} value={r.id}>{r.name}
                                     {r.id === "louiseLorraine" && betrothal.samePowerLouise
                                         ? "（同国联姻）"
-                                        : ` (${POWER_NAMES[r.power].zh})`}</MenuItem>)}
+                                        : ` (${powerName(r.power, vqLocale)})`}</MenuItem>)}
                         </Select>
                     </FormControl>
                     {betrothal.louiseAttachable && <Typography variant="caption" color="success.main">
@@ -2337,7 +2364,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         {(Object.keys(HRE_RELIGIOUS_PREFERENCE_NAMES) as HreReligiousPreference[]).map((preference) =>
                             <Button key={preference} size="small" variant="outlined" disabled={!myTurn}
                                     onClick={() => moves.chooseHreReligiousPreference({preference})}>
-                                {HRE_RELIGIOUS_PREFERENCE_NAMES[preference]}
+                                {hreReligiousPreferenceName(preference, vqLocale)}
                             </Button>)}
                     </Stack>
                 </Stack>}
@@ -2403,7 +2430,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 </Stack>}
                 <FormControl size="small" fullWidth>
                     <InputLabel id="vq-spring-mode">行动</InputLabel>
-                    <Select labelId="vq-spring-mode" label="行动" value={mode}
+                    <Select labelId="vq-spring-mode" label={i18n.chain.vq.spring.action} value={mode}
                             onChange={(e) => {
                                 setMode(e.target.value as Mode);
                                 setFrom(null);
@@ -2470,15 +2497,15 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             <div className="vq-status-meta">
                 <span>{scenarioName(G.scenario)} · 第 {G.year}{G.scenario === "tutorial" ? " / 3" : ""} 回合</span>
                 <span> / {PHASE_LABELS[phase] ?? phase}</span>
-                <strong>{ctx.gameover !== undefined ? "对局结束" : `当前：${POWER_NAMES[G.activePower].zh}`}</strong>
-                <span>{me ? `${POWER_NAMES[me].zh} · ${cp} CP` : "旁观模式"}</span>
+                <strong>{ctx.gameover !== undefined ? "对局结束" : `当前：${powerName(G.activePower, vqLocale)}`}</strong>
+                <span>{me ? `${powerName(me, vqLocale)} · ${cp} CP` : "旁观模式"}</span>
                 {standings.map((entry) => <span key={entry.power} className="vq-score">
                     <i className="vq-dot" style={{background: CONTROLLER_COLORS[entry.power]}}/>{POWER_NAMES[entry.power].short} <b>{entry.vp} VP</b>
                 </span>)}
             </div>
         </header>
         {hasResponse && <div className="vq-response" role="status">
-            <span>需要响应 · {POWER_NAMES[pendingPower].zh}{ownerOf(G, pendingPower) === playerID ? " · 轮到你选择" : " · 等待选择"}</span>
+            <span>需要响应 · {powerName(pendingPower, vqLocale)}{ownerOf(G, pendingPower) === playerID ? " · 轮到你选择" : " · 等待选择"}</span>
             {!isDesktop && <Button size="small" onClick={() => setMobileView("action")}>查看响应</Button>}
         </div>}
         <Tabs className="vq-mobile-tabs" value={mobileView} onChange={(_event, value) => setMobileView(value)} variant="fullWidth" aria-label="对局分区">
@@ -2499,10 +2526,10 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <Chip variant="outlined" label={me ? `${cp} CP` : "旁观"}/></div>
                 {owned.length > 1 && <Stack direction="row" spacing={0.5} useFlexGap sx={{flexWrap: "wrap", mb: 1}}>
                     {owned.map((power) => <Button key={power} size="small" disabled={myTurn || !!responsePower}
-                        variant={me === power ? "contained" : "outlined"} onClick={() => setViewPower(power)}>{POWER_NAMES[power].zh}</Button>)}
+                        variant={me === power ? "contained" : "outlined"} onClick={() => setViewPower(power)}>{powerName(power, vqLocale)}</Button>)}
                 </Stack>}
                 {ctx.gameover !== undefined ? <Paper variant="outlined" sx={{p: 1.5, mb: 1}} role="status">
-                    <Typography variant="h6">对局结束 · 胜者：P{Number(ctx.gameover.winner) + 1} {POWER_NAMES[(ctx.gameover.power ?? powerAt(String(ctx.gameover.winner))) as Power].zh}</Typography>
+                    <Typography variant="h6">对局结束 · 胜者：P{Number(ctx.gameover.winner) + 1} {powerName((ctx.gameover.power ?? powerAt(String(ctx.gameover.winner))) as Power, vqLocale)}</Typography>
                     <Typography variant="body2">原因：{ctx.gameover.reason ?? ""}</Typography>
                     {matchID !== undefined && <ExportLogButton gameName="virginQueen" matchID={matchID}/>}
                 </Paper> : actionPanel()}
@@ -2511,10 +2538,10 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <Typography variant="caption" color="text.secondary">
                         {spaceDef.kind === "key" ? "关键城市" : spaceDef.kind === "fortress" ? "要塞" : "开放城市"}
                         {spaceDef.ports !== undefined && spaceDef.ports.length > 0 ? ` · 港口：${spaceDef.ports.join(", ")}` : ""}
-                        {spaceDef.area !== undefined ? ` · ${AREA_NAMES[spaceDef.area].zh}` : ""}
+                        {spaceDef.area !== undefined ? ` · ${areaName(spaceDef.area, vqLocale)}` : ""}
                     </Typography>
                     <Typography variant="body2" sx={{mt: 0.5}}>
-                        控制：<b>{isPower(space.control) ? POWER_NAMES[space.control].zh : space.control}</b>
+                        控制：<b>{isPower(space.control) ? powerName(space.control, vqLocale) : space.control}</b>
                         {" · "}{space.religion === "protestant" ? "新教" : "天主教"}
                         {space.unrest ? " · 动荡" : ""}
                         {space.siege !== undefined ? ` · 被 ${POWER_NAMES[space.siege.by].short} 围困` : ""}
@@ -2525,7 +2552,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             return null;
                         }
                         return <Typography key={c} variant="caption" sx={{display: "block"}}>
-                            陆军 {controllerNameZh(c as any)}: 正规 {cell(st.regular)} / 雇佣 {cell(st.merc)} / 骑兵 {cell(st.cav)}
+                            陆军 {controllerName(c as any, vqLocale)}: 正规 {cell(st.regular)} / 雇佣 {cell(st.merc)} / 骑兵 {cell(st.cav)}
                         </Typography>;
                     })}
                     {Object.keys(space.naval).map((c) => {
@@ -2534,7 +2561,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             return null;
                         }
                         return <Typography key={c} variant="caption" sx={{display: "block"}}>
-                            海军 {controllerNameZh(c as any)}: 桨帆 {cell(st.galley)} / 大帆 {cell(st.galleon)} / 快帆 {cell(st.racebuilt)} / 海盗 {cell(st.corsair)}
+                            海军 {controllerName(c as any, vqLocale)}: 桨帆 {cell(st.galley)} / 大帆 {cell(st.galleon)} / 快帆 {cell(st.racebuilt)} / 海盗 {cell(st.corsair)}
                         </Typography>;
                     })}
                     {G.espionage?.jesuits.includes(selected!) && <Chip size="small" label="耶稣会士"/>}
@@ -2546,7 +2573,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <Typography variant="subtitle2">{SEA_ZONE_BY_ID[selected]?.name}</Typography>
                     <Typography variant="caption">海域舰队</Typography>
                     {Object.entries(selectedSea.naval).map(([controller, stack]) => <Typography key={controller} variant="body2">
-                        {controllerNameZh(controller as Controller)}：桨帆 {stack?.galley ?? 0} / 大帆 {stack?.galleon ?? 0} / 快帆 {stack?.racebuilt ?? 0} / 海盗 {stack?.corsair ?? 0}
+                        {controllerName(controller as Controller, vqLocale)}：桨帆 {stack?.galley ?? 0} / 大帆 {stack?.galleon ?? 0} / 快帆 {stack?.racebuilt ?? 0} / 海盗 {stack?.corsair ?? 0}
                     </Typography>)}
                     {Object.keys(selectedSea.naval).length === 0 && <Typography variant="body2">此海域无舰队。</Typography>}
                 </section>}
@@ -2561,7 +2588,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <Chip size="small" label={`${powerVp(G, p)} VP`}/>
                         {p === "hre" && G.hreReligiousPreferenceChosen && <Chip size="small" variant="outlined"
                             label={G.hreReligiousPreference !== undefined && (me === "hre" || G.hreReligiousPreferenceRevealed)
-                                ? `${G.hreReligiousPreferenceRevealed ? "已公开" : "秘密"}：${HRE_RELIGIOUS_PREFERENCE_NAMES[G.hreReligiousPreference]} · ${hreReligiousVp(G)} VP${G.hreReligiousPreferenceRevealed ? "" : "（未计入）"}`
+                                ? `${G.hreReligiousPreferenceRevealed ? "已公开" : "秘密"}：${hreReligiousPreferenceName(G.hreReligiousPreference, vqLocale)} · ${hreReligiousVp(G)} VP${G.hreReligiousPreferenceRevealed ? "" : "（未计入）"}`
                                 : "宗教倾向已秘密选择"}/>}
                         <Chip size="small" variant="outlined" label={`${controlledKeys(G, p).length}K`}/>
                         <Chip size="small" variant="outlined" label={`${G.handCounts?.[p] ?? G.powers[p].cards.length}牌`}/>
@@ -2575,12 +2602,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 {me !== undefined && ps !== undefined && <ActionGroup title="我的势力">
                     <Stack direction="row" spacing={1} sx={{alignItems: "center"}}>
                         <Box sx={{width: 14, height: 14, bgcolor: CONTROLLER_COLORS[me], borderRadius: 0.5}}/>
-                        <Typography variant="subtitle1" sx={{fontWeight: 700}}>{POWER_NAMES[me].zh}</Typography>
+                        <Typography variant="subtitle1" sx={{fontWeight: 700}}>{powerName(me, vqLocale)}</Typography>
                         <Chip size="small" label={`${powerVp(G, me)} VP`}/>
                         <Chip size="small" variant="outlined" label={`${controlledKeys(G, me).length} 关键城市`}/>
                     </Stack>
                     <Typography variant="caption" color="text.secondary">
-                        统治者：{ps.ruler === "elizabethDead" ? "伊丽莎白逝世后的继任政府" : RULER_NAMES[ps.ruler] ?? POWER_INFO[me].ruler.name}（行政 {ps.ruler === "elizabethDead" ? 1 : POWER_INFO[me].ruler.admin} / 额外牌 {ps.ruler === "elizabethDead" ? 0 : POWER_INFO[me].ruler.cardBonus}）
+                        统治者：{ps.ruler === "elizabethDead" ? "伊丽莎白逝世后的继任政府" : rulerName(ps.ruler, vqLocale)}（行政 {ps.ruler === "elizabethDead" ? 1 : POWER_INFO[me].ruler.admin} / 额外牌 {ps.ruler === "elizabethDead" ? 0 : POWER_INFO[me].ruler.cardBonus}）
                         · 基础 {baseVp(G, me)} + 宗教 {religiousSpecialVp(G, me)} + 奖励 {ps.bonusVp}
                     </Typography>
                     <Stack direction="row" spacing={1} sx={{mt: 0.5}}>
@@ -2591,7 +2618,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 </ActionGroup>}
 
                 {G.espionage?.inspections.filter((entry) => playerID !== null && ownerOf(G, entry.viewer) === playerID).map((entry) =>
-                    <ActionGroup key={`${entry.viewer}:${entry.target}`} title={`秘密情报 · ${POWER_NAMES[entry.target].zh}手牌快照`}>
+                    <ActionGroup key={`${entry.viewer}:${entry.target}`} title={`秘密情报 · ${powerName(entry.target, vqLocale)}手牌快照`}>
                         <Typography variant="caption">仅你可见；记录查看时的手牌，不随对方后续行动更新。</Typography>
                         {entry.cards.map((id) => <Typography key={id} variant="body2">{cardById(id).name} · {cardById(id).cp} CP</Typography>)}
                     </ActionGroup>)}

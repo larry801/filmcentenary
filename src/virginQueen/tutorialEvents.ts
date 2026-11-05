@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {Controller, LandStack, MinorPower, MINOR_POWERS, Power, VQGame, controllerNameZh, isPower, landCount, navalCount, spaceHomes} from "./constant/general";
+import {Controller, LandStack, MinorPower, MINOR_POWERS, Power, VQGame, controllerName, isPower, landCount, navalCount, spaceHomes} from "./constant/general";
 import {cardById} from "./constant/cards";
 import {beginGrandVizierEvent, canPlayGrandVizier} from "./cardEvents";
 import {LEADER_BY_ID} from "./constant/leaders";
@@ -72,13 +72,13 @@ const cityRebelLossOptions = (G: VQGame): TutorialEventOption[] => {
     for (const [owner, stack] of Object.entries(state.land)) {
         if (!controlled(owner as Controller)) continue;
         for (const kind of ["regular", "merc", "cav"] as const) {
-            if (stack![kind] > 0) result.push(option(`loss:land:${owner}:${kind}`, `移除 ${controllerNameZh(owner as Controller)} ${names[kind]}`));
+            if (stack![kind] > 0) result.push(option(`loss:land:${owner}:${kind}`, `移除 ${controllerName(owner as Controller, "zh_CN")} ${names[kind]}`));
         }
     }
     for (const [owner, stack] of Object.entries(state.naval)) {
         if (!controlled(owner as Controller)) continue;
         for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) {
-            if (stack![kind] > 0) result.push(option(`loss:naval:${owner}:${kind}`, `移除 ${controllerNameZh(owner as Controller)} ${names[kind]}`));
+            if (stack![kind] > 0) result.push(option(`loss:naval:${owner}:${kind}`, `移除 ${controllerName(owner as Controller, "zh_CN")} ${names[kind]}`));
         }
     }
     return result;
@@ -147,7 +147,7 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
             if (owner !== "spain" && (isPower(owner) || !friendlyController(G, "spain", owner as Controller))) continue;
             for (const kind of ["regular", "merc", "cav"] as const) {
                 const selected = formation.units[owner as Controller]?.[kind] ?? 0;
-                const label = `${controllerNameZh(owner as Controller)} ${unitNames[kind]}（已选 ${selected}）`;
+                const label = `${controllerName(owner as Controller, "zh_CN")} ${unitNames[kind]}（已选 ${selected}）`;
                 if (selected < available![kind] && roadSize(G) < roadCapacity(G)) result.push(option(`add:${owner}:${kind}`, `增加 ${label}`));
                 if (selected > 0) result.push(option(`remove:${owner}:${kind}`, `减少 ${label}`));
             }

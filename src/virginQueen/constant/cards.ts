@@ -363,4 +363,11 @@ export const cardById = (id: string): CardDef => {
 export const officialCardById = (id: string) =>
     OFFICIAL_CARDS.find((card) => card.id === id);
 
-export const cardName = (id: string): string => cardById(id).name;
+export const cardName = (id: string, locale: "en" | "zh_CN" = "zh_CN"): string => {
+    const def = cardById(id);
+    const official = officialCardById(id);
+    if (official !== undefined) {
+        return locale === "en" ? (official.nameEn ?? official.nameZh) : official.nameZh;
+    }
+    return def.name;
+};

@@ -1,4 +1,5 @@
 import React from "react";
+import i18n from "../../constant/i18n";
 import IconButton from "@mui/material/IconButton";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
@@ -17,6 +18,7 @@ export interface VQMapProps {
 }
 
 function SpaceShape({id, G, selected, origin, onSelect, scale}: VQMapProps & {id: string; scale: number}) {
+    const e = i18n.chain.vq.map;
     const def = SPACE_BY_ID[id];
     const excluded = G.scenario === "tutorial" && !tutorialSpaceAllowed(id);
     const st = G.spaces[id];
@@ -29,7 +31,7 @@ function SpaceShape({id, G, selected, origin, onSelect, scale}: VQMapProps & {id
     const total = landN + navalN;
     const kind = G.scenario === "tutorial" ? TUTORIAL_KEYS.includes(id) ? "key" : TUTORIAL_FORTRESSES.includes(id) ? "fortress" : "open" :
         def.kind === "open" && st.fortress ? "fortress" : def.kind;
-    const title = `${def.name} · 控制：${st.control} · ${st.religion === "protestant" ? "新教" : "天主教"} · 陆军 ${landN} / 海军 ${navalN} / 将领 ${st.leaders.length}${G.espionage?.jesuits.includes(id) ? " · 耶稣会士" : ""}${excluded ? " · 教学禁入" : ""}${st.unrest ? " · 动荡" : ""}${st.siege ? " · 围困中" : ""}`;
+    const title = `${def.name} · ${e.control}：${st.control} · ${st.religion === "protestant" ? e.protestant : e.catholic} · ${e.army} ${landN} / ${e.navy} ${navalN} / ${e.leaders} ${st.leaders.length}${G.espionage?.jesuits.includes(id) ? ` · ${e.jesuits}` : ""}${excluded ? ` · ${e.noEntry}` : ""}${st.unrest ? ` · ${e.unrest}` : ""}${st.siege ? ` · ${e.siege}` : ""}`;
     return <g className="vq-map-node" role="button" tabIndex={0} aria-label={title} aria-pressed={isSelected}
               onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(id);}
@@ -56,6 +58,8 @@ function SpaceShape({id, G, selected, origin, onSelect, scale}: VQMapProps & {id
 }
 
 export const VQMap = ({G, selected, origin, onSelect}: VQMapProps) => {
+    i18n.use();
+    const {G: _G} = {G};
     const [view, setView] = React.useState<MapView>(INITIAL_VIEW);
     const pointers = React.useRef(new Map<number, {x: number; y: number}>());
     const start = React.useRef<[number, number]>([0, 0]);
@@ -87,15 +91,13 @@ export const VQMap = ({G, selected, origin, onSelect}: VQMapProps) => {
         if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
     };
     return <div className="vq-map">
-        <svg ref={svgRef} viewBox="0 0 1000 620" role="group" aria-label="欧洲与地中海游戏地图"
+        <svg ref={svgRef} viewBox="0 0 1000 620" role="group" aria-label={i18n.chain.vq.map.ariaLabel}
              onClick={selectNearest}
              onPointerDown={(event) => {
                  if (event.button !== 0) return;
                  if (!pointers.current.size) {dragged.current = false; start.current = [event.clientX, event.clientY];}
                  pointers.current.set(event.pointerId, coordinates(event));
                  if (pointers.current.size > 1) dragged.current = true;
-                 // Capture on the original marker so taps still produce a normal
-                 // marker click, while a drag leaving the SVG always gets released.
                  (event.target as Element).setPointerCapture(event.pointerId);
              }}
              onPointerMove={(event) => {
@@ -134,7 +136,7 @@ export const VQMap = ({G, selected, origin, onSelect}: VQMapProps) => {
                 {SEA_ZONES.map((zone) => {
                     const [x, y] = project(zone.label[0], zone.label[1]);
                     const count = Object.values(G.seaZones[zone.id].naval).reduce((sum, stack) => sum + navalCount(stack), 0);
-                    return <g key={zone.id} role="button" tabIndex={0} aria-label={`${zone.name} · 海军 ${count}`} aria-pressed={selected === zone.id}
+                    return <g key={zone.id} role="button" tabIndex={0} aria-label={`${zone.name} · ${i18n.chain.vq.map.navy} ${count}`} aria-pressed={selected === zone.id}
                               className="vq-map-node" style={{cursor: "pointer"}} onKeyDown={(event) => {
                                   if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(zone.id);}
                               }}>
@@ -149,13 +151,13 @@ export const VQMap = ({G, selected, origin, onSelect}: VQMapProps) => {
             </g>
         </svg>
         <div className="vq-map-controls">
-            <IconButton size="small" aria-label="放大地图" disabled={view.scale >= 4} onClick={() => setView((current) => zoomView(current, 1.35, [500, 310]))}><AddIcon fontSize="small"/></IconButton>
+            <IconButton size="small" aria-label={i18n.chain.vq.map.zoomIn} disabled={view.scale >= 4} onClick={() => setView((current) => zoomView(current, 1.35, [500, 310]))}><AddIcon fontSize="small"/></IconButton>
             <span style={{minWidth: 36, textAlign: "center", fontSize: 11}} aria-live="polite">{Math.round(view.scale * 100)}%</span>
-            <IconButton size="small" aria-label="缩小地图" disabled={view.scale <= 1} onClick={() => setView((current) => zoomView(current, 1 / 1.35, [500, 310]))}><RemoveIcon fontSize="small"/></IconButton>
-            <IconButton size="small" aria-label="复位地图" onClick={() => setView(INITIAL_VIEW)}><RestartAltIcon fontSize="small"/></IconButton>
+            <IconButton size="small" aria-label={i18n.chain.vq.map.zoomOut} disabled={view.scale <= 1} onClick={() => setView((current) => zoomView(current, 1 / 1.35, [500, 310]))}><RemoveIcon fontSize="small"/></IconButton>
+            <IconButton size="small" aria-label={i18n.chain.vq.map.reset} onClick={() => setView(INITIAL_VIEW)}><RestartAltIcon fontSize="small"/></IconButton>
         </div>
-        <div className="vq-map-caption"><span>■ 关键城市 · ◆ 要塞 · ● 城市 · 虚线圈 动荡 · 金色圈 围困</span><span className="vq-map-help">拖动平移 · 双指缩放 · Made with Natural Earth</span></div>
+        <div className="vq-map-caption"><span>{i18n.chain.vq.map.legend}</span><span className="vq-map-help">{i18n.chain.vq.map.help}</span></div>
     </div>;
 };
 
-export const religionLabel = (r: Religion): string => r === "protestant" ? "新教" : "天主教";
+export const religionLabel = (r: Religion): string => r === "protestant" ? i18n.chain.vq.map.protestant : i18n.chain.vq.map.catholic;
