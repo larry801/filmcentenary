@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useRef} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Player} from "../Game";
 import {Link, useNavigate} from "react-router-dom";
 import {createMatch, Visibility} from "../api/match";
@@ -17,6 +17,11 @@ import TableCell from "@mui/material/TableCell";
 import TableBody from "@mui/material/TableBody";
 import TableContainer from "@mui/material/TableContainer";
 import Paper from "@mui/material/Paper";
+import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
+import Alert from "@mui/material/Alert";
+import CircularProgress from "@mui/material/CircularProgress";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import {LobbyClient} from 'boardgame.io/client';
 import {filmCentenaryName, songJinnName, virginQueenName} from "../constant/multi-games";
 import {ScenarioID} from "../virginQueen/constant/general";
@@ -72,23 +77,79 @@ const useInterval: IUseInterval = (callback, interval) => {
     }, [interval]);
 };
 
+interface MatchRowData {
+    match: MatchData;
+    createdText: string;
+    updatedText: string;
+    seats?: string[];
+}
+
+interface MatchRowProps {
+    data: MatchRowData;
+    serverURL: string;
+}
+
+const MatchRow = React.memo(({data, serverURL}: MatchRowProps) => {
+    const {match, createdText, updatedText, seats} = data;
+    return (
+        <TableRow hover>
+            <TableCell component="th" scope="row">
+                <Chip label={match.matchID} size="small" variant="outlined"/>
+            </TableCell>
+            <TableCell>{match.players.length}</TableCell>
+            <TableCell>
+                <Box sx={{display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center"}}>
+                    {match.players.map((p, idx) => {
+                        if (p.name === undefined) {
+                            return (
+                                <a key={idx} href={`${serverURL}/join/${match.gameName}/${match.matchID}/${idx}`} style={{marginRight: 8}}>
+                                    {`${i18n.chain.lobby.join}|${idx + 1}${seats ? ` ${seats[idx]}` : ""}`}
+                                </a>
+                            );
+                        }
+                        return (
+                            <Typography key={idx} component="span" variant="body2" sx={{mr: 1, display: "inline-flex", alignItems: "center", gap: 0.5}}>
+                                {p.name} {seats?.[idx]}
+                                <Chip size="small" label={p.isConnected ? "(+)" : "(-)"} color={p.isConnected ? "success" : "default"} variant="outlined"/>
+                            </Typography>
+                        );
+                    })}
+                </Box>
+            </TableCell>
+            <TableCell>
+                <a href={`${serverURL}/join/${match.gameName}/${match.matchID}/spectate`}>
+                    {i18n.chain.lobby.spectate}
+                </a>
+            </TableCell>
+            <TableCell>{createdText}</TableCell>
+            <TableCell>{updatedText}</TableCell>
+        </TableRow>
+    );
+}, (prev, next) => {
+    return prev.serverURL === next.serverURL
+        && prev.data.match.matchID === next.data.match.matchID
+        && prev.data.match.updatedAt === next.data.match.updatedAt
+        && JSON.stringify(prev.data.seats) === JSON.stringify(next.data.seats);
+});
+
 const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     i18n.use();
     const navigate = useNavigate();
-    const [player, setPlayer] = React.useState<Player>(Player.P0);
-    const [clicked, setClicked] = React.useState(false);
-    const [matchID, setMatchID] = React.useState("");
-    const [error, setError] = React.useState("");
-    const [numPlayers, setNumPlayers] = React.useState(gameName === filmCentenaryName ? 4 : gameName === virginQueenName ? 6 : 2);
-    const [isPublic, setIsPublic] = React.useState(true);
-    const [matches, setMatches] = React.useState<MatchData[]>([]);
-    const [vqScenario, setVqScenario] = React.useState<ScenarioID>("campaign");
+    const [player, setPlayer] = useState<Player>(Player.P0);
+    const [clicked, setClicked] = useState(false);
+    const [matchID, setMatchID] = useState("");
+    const [error, setError] = useState("");
+    const [numPlayers, setNumPlayers] = useState(gameName === filmCentenaryName ? 4 : gameName === virginQueenName ? 6 : 2);
+    const [isPublic, setIsPublic] = useState(true);
+    const [matches, setMatches] = useState<MatchData[]>([]);
+    const [vqScenario, setVqScenario] = useState<ScenarioID>("campaign");
+    const [loading, setLoading] = useState(true);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (Number(player) >= numPlayers) setPlayer(Player.P0);
     }, [numPlayers, player]);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (matchID) {
             navigate(`/join/${gameName}/${matchID}/${player}`);
         }
@@ -97,9 +158,13 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const lobbyClient = useMemo(() => new LobbyClient({server: serverURL}), [serverURL]);
 
     const refreshLobby = useCallback(() => {
+        if (document.hidden) return;
+        setLoading(true);
         lobbyClient.listMatches(gameName, {isGameover: false}).then((result: any) => {
             setMatches(result?.matches ?? []);
         }).catch(() => {
+        }).finally(() => {
+            setLoading(false);
         });
     }, [lobbyClient, gameName]);
 
@@ -145,186 +210,159 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const gameTitle = gameName === 'film' ? "电影百年" : gameName === virginQueenName ? "Virgin Queen" : "宋金战争";
 
     const errorMessage = error ? (
-        <Typography color="error">
+        <Alert severity="error" sx={{mb: 1}}>
             {error} {i18n.chain.drawer.pleaseTry}
             {gameName === 'film' ? <Link to={'/local4p'}>{i18n.chain.drawer.fourPlayer}</Link> :
                 gameName === virginQueenName ? <Link to={'/localVQ'}>本地热座</Link> :
                 <Link to={'/local'}>本地</Link>}
-        </Typography>
+        </Alert>
     ) : null;
 
+    const rowData: MatchRowData[] = useMemo(() => matches.map((match) => ({
+        match,
+        createdText: new Date(match.createdAt).toLocaleString(),
+        updatedText: new Date(match.updatedAt).toLocaleString(),
+        seats: match.gameName === virginQueenName ? seatLabels(match.setupData?.scenario ?? "campaign", match.players.length) : undefined,
+    })), [matches]);
+
     return (
-        <Grid container spacing={2} sx={{p: 2}}>
-            <Grid size={{xs: 12, sm: 8}}>
-                <Button fullWidth color="secondary" onClick={refreshLobby} sx={{mb: 1}}>
-                    {i18n.chain.dialog.buyCard.refresh}
-                </Button>
-                <TableContainer component={Paper}>
-                    <Table size="small" aria-label="Public match table">
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Match ID</TableCell>
-                                <TableCell>{i18n.chain.lobby.numPlayers}</TableCell>
-                                <TableCell>{i18n.chain.lobby.join}</TableCell>
-                                <TableCell>{i18n.chain.lobby.spectate}</TableCell>
-                                <TableCell>Created</TableCell>
-                                <TableCell>Updated</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {matches.length === 0 && (
+        <Grid container spacing={3} sx={{p: {xs: 1, sm: 2, md: 3}, maxWidth: 1280, mx: "auto"}}>
+            <Grid size={{xs: 12, md: 8}}>
+                <Paper elevation={2} sx={{p: 2}}>
+                    <Box sx={{display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1}}>
+                        <Typography variant="h6">公开对局</Typography>
+                        <Button variant="outlined" size="small" startIcon={loading ? <CircularProgress size={16}/> : <RefreshIcon/>} onClick={refreshLobby} disabled={loading}>
+                            {i18n.chain.dialog.buyCard.refresh}
+                        </Button>
+                    </Box>
+                    <TableContainer sx={{maxHeight: 520}}>
+                        <Table size="small" aria-label="Public match table" stickyHeader>
+                            <TableHead>
                                 <TableRow>
-                                    <TableCell colSpan={6} align="center">
-                                        <Typography variant="body2" color="text.secondary">
-                                            No matches yet
-                                        </Typography>
-                                    </TableCell>
+                                    <TableCell>Match ID</TableCell>
+                                    <TableCell>{i18n.chain.lobby.numPlayers}</TableCell>
+                                    <TableCell>{i18n.chain.lobby.join}</TableCell>
+                                    <TableCell>{i18n.chain.lobby.spectate}</TableCell>
+                                    <TableCell>Created</TableCell>
+                                    <TableCell>Updated</TableCell>
                                 </TableRow>
-                            )}
-                            {matches.map((match: MatchData) => {
-                                const createdDate = new Date(match.createdAt);
-                                const updateDate = new Date(match.updatedAt);
-                                const seats = match.gameName === virginQueenName ? seatLabels(match.setupData?.scenario ?? "campaign", match.players.length) : undefined;
-                                return (
-                                    <TableRow key={match.matchID}>
-                                        <TableCell component="th" scope="row">
-                                            {match.matchID}
-                                        </TableCell>
-                                        <TableCell>
-                                            {match.players.length}
-                                        </TableCell>
-                                        <TableCell>
-                                            {match.players.map((p, idx) => {
-                                                if (p.name === undefined) {
-                                                    return (
-                                                        <a key={idx} href={`${serverURL}/join/${match.gameName}/${match.matchID}/${idx}`} style={{marginRight: 8}}>
-                                                            {`${i18n.chain.lobby.join}|${idx + 1}${seats ? ` ${seats[idx]}` : ""}`}
-                                                        </a>
-                                                    );
-                                                }
-                                                return (
-                                                    <Typography key={idx} component="span" sx={{mr: 1}}>
-                                                        {p.name} {seats?.[idx]} {p.isConnected ? "(+)" : "(-)"}
-                                                    </Typography>
-                                                );
-                                            })}
-                                        </TableCell>
-                                        <TableCell>
-                                            <a href={`${serverURL}/join/${match.gameName}/${match.matchID}/spectate`}>
-                                                {i18n.chain.lobby.spectate}
-                                            </a>
-                                        </TableCell>
-                                        <TableCell>
-                                            {createdDate.toLocaleString()}
-                                        </TableCell>
-                                        <TableCell>
-                                            {updateDate.toLocaleString()}
+                            </TableHead>
+                            <TableBody>
+                                {rowData.length === 0 && !loading && (
+                                    <TableRow>
+                                        <TableCell colSpan={6} align="center">
+                                            <Typography variant="body2" color="text.secondary">
+                                                No matches yet
+                                            </Typography>
                                         </TableCell>
                                     </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                                )}
+                                {loading && rowData.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={6} align="center">
+                                            <CircularProgress size={24}/>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {rowData.map((data) => (
+                                    <MatchRow key={data.match.matchID} data={data} serverURL={serverURL}/>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Paper>
             </Grid>
-            <Grid size={{xs: 12, sm: 4}} container spacing={2} sx={{alignContent: "flex-start"}}>
+            <Grid size={{xs: 12, md: 4}} container spacing={2} sx={{alignContent: "flex-start"}}>
                 <Grid size={12}>
-                    <Typography variant="h4">{gameTitle}</Typography>
-                </Grid>
-                {gameName === virginQueenName && (
-                    <Grid size={12}>
-                        <Button variant="outlined" sx={{mr: 1, mb: 1}}
-                                onClick={() => {setVqScenario("tutorial"); setNumPlayers(2); setPlayer(Player.P0);}}>
-                            选择双人教学（在线）
-                        </Button>
-                        <Button component={Link} to="/localVQ/tutorial" variant="contained" sx={{mb: 1}}>
-                            开始本地双人教学
-                        </Button>
-                        {vqScenario === "tutorial" && (
-                            <Typography variant="body2">
-                                双人教学 · 勒班陀海战：P1 奥斯曼帝国，P2 西班牙，共 3 回合；创建房间后邀请另一位玩家加入。
-                            </Typography>
+                    <Paper elevation={2} sx={{p: 2}}>
+                        <Typography variant="h5" gutterBottom>{gameTitle}</Typography>
+                        {gameName === virginQueenName && (
+                            <Box sx={{display: "flex", flexWrap: "wrap", gap: 1, mb: 1}}>
+                                <Button variant="outlined" size="small" onClick={() => {setVqScenario("tutorial"); setNumPlayers(2); setPlayer(Player.P0);}}>
+                                    选择双人教学（在线）
+                                </Button>
+                                <Button component={Link} to="/localVQ/tutorial" variant="contained" size="small">
+                                    开始本地双人教学
+                                </Button>
+                                {vqScenario === "tutorial" && (
+                                    <Typography variant="body2" sx={{width: "100%"}}>
+                                        双人教学 · 勒班陀海战：P1 奥斯曼帝国，P2 西班牙，共 3 回合；创建房间后邀请另一位玩家加入。
+                                    </Typography>
+                                )}
+                            </Box>
                         )}
-                    </Grid>
-                )}
-                <Grid size={12}>
-                    <FormControl variant="outlined" sx={styles.formControl} fullWidth>
-                        <InputLabel htmlFor="outlined-numPlayers-native-simple">{i18n.chain.lobby.numPlayers}</InputLabel>
-                        <Select
-                            native
-                            value={numPlayers}
-                            onChange={handleChange}
-                            label={i18n.chain.lobby.numPlayers}
-                            inputProps={{
-                                name: 'numPlayers',
-                                id: 'outlined-numPlayers-native-simple',
-                            }}>
-                            {gameName === virginQueenName ? SCENARIO_OPTIONS.find((entry) => entry.id === vqScenario)!.players.map((count) => <option key={count} value={count}>{count}</option>) : <>
-                                <option value={2}>2</option>
-                                {gameName === 'film' ? <>
-                                    <option value={3}>3</option>
-                                    <option value={4}>4</option>
-                                </> : <></>}
-                            </>}
-                        </Select>
-                    </FormControl>
-                </Grid>
-                <Grid size={12}>
-                    <FormControl variant="outlined" sx={styles.formControl} fullWidth>
-                        <InputLabel htmlFor="outlined-player-native-simple">{i18n.chain.lobby.player}</InputLabel>
-                        <Select
-                            native
-                            value={player}
-                            onChange={handlePlayerChange}
-                            label={i18n.chain.lobby.player}
-                            inputProps={{
-                                name: 'player',
-                                id: 'outlined-player-native-simple',
-                            }}>
-                            {gameName === virginQueenName ? <>
-                                {seatLabels(vqScenario, numPlayers).map((label, index) => <option key={index} value={String(index)}>{`P${index + 1} ${label}`}</option>)}
-                            </> : <>
-                                {gameName === 'film' ? <option value={Player.P0}>{Player.P0}</option>
-                                    : <option value={Player.P0}>宋</option>}
-                                {gameName === 'film' ? <option value={Player.P1}>{Player.P1}</option>
-                                    : <option value={Player.P1}>金</option>}
-                                {gameName === 'film' && numPlayers >= 3 ?
-                                    <option value={Player.P2}>{Player.P2}</option>
-                                    : <></>}
-                                {gameName === 'film' && numPlayers >= 4 ?
-                                    <option value={Player.P3}>{Player.P3}</option>
-                                    : <></>}
-                            </>}
-                        </Select>
-                    </FormControl>
-                </Grid>
-                {gameName === virginQueenName && (
-                    <Grid size={12}>
                         <FormControl variant="outlined" sx={styles.formControl} fullWidth>
-                            <InputLabel htmlFor="vq-scenario">场景</InputLabel>
-                            <Select native value={vqScenario} onChange={(e) => {
-                                const scenario = e.target.value as ScenarioID;
-                                setVqScenario(scenario);
-                                if (scenario === "tutorial") setNumPlayers(2);
-                            }} label="场景"
-                                    inputProps={{name: "scenario", id: "vq-scenario"}}>
-                                {SCENARIO_OPTIONS.map((entry) => <option key={entry.id} value={entry.id}>{entry.label}</option>)}
+                            <InputLabel htmlFor="outlined-numPlayers-native-simple">{i18n.chain.lobby.numPlayers}</InputLabel>
+                            <Select
+                                native
+                                value={numPlayers}
+                                onChange={handleChange}
+                                label={i18n.chain.lobby.numPlayers}
+                                inputProps={{
+                                    name: 'numPlayers',
+                                    id: 'outlined-numPlayers-native-simple',
+                                }}>
+                                {gameName === virginQueenName ? SCENARIO_OPTIONS.find((entry) => entry.id === vqScenario)!.players.map((count) => <option key={count} value={count}>{count}</option>) : <>
+                                    <option value={2}>2</option>
+                                    {gameName === 'film' ? <>
+                                        <option value={3}>3</option>
+                                        <option value={4}>4</option>
+                                    </> : <></>}
+                                </>}
                             </Select>
                         </FormControl>
-                    </Grid>
-                )}
-                <Grid size={12}>
-                    <Grid component="label" container spacing={1} sx={{alignItems: 'center'}}>
-                        <Typography>{i18n.chain.lobby.privateGame}</Typography>
-                        <Switch checked={isPublic} onChange={handlePublicChange}/>
-                        <Typography>{i18n.chain.lobby.publicGame}</Typography>
-                    </Grid>
-                </Grid>
-                <Grid size={12}>
-                    {errorMessage}
-                    <Button onClick={onClick} disabled={clicked} fullWidth color="primary" variant="contained">
-                        {i18n.chain.lobby.createPrivateMatch}
-                    </Button>
+                        <FormControl variant="outlined" sx={styles.formControl} fullWidth>
+                            <InputLabel htmlFor="outlined-player-native-simple">{i18n.chain.lobby.player}</InputLabel>
+                            <Select
+                                native
+                                value={player}
+                                onChange={handlePlayerChange}
+                                label={i18n.chain.lobby.player}
+                                inputProps={{
+                                    name: 'player',
+                                    id: 'outlined-player-native-simple',
+                                }}>
+                                {gameName === virginQueenName ? <>
+                                    {seatLabels(vqScenario, numPlayers).map((label, index) => <option key={index} value={String(index)}>{`P${index + 1} ${label}`}</option>)}
+                                </> : <>
+                                    {gameName === 'film' ? <option value={Player.P0}>{Player.P0}</option>
+                                        : <option value={Player.P0}>宋</option>}
+                                    {gameName === 'film' ? <option value={Player.P1}>{Player.P1}</option>
+                                        : <option value={Player.P1}>金</option>}
+                                    {gameName === 'film' && numPlayers >= 3 ?
+                                        <option value={Player.P2}>{Player.P2}</option>
+                                        : <></>}
+                                    {gameName === 'film' && numPlayers >= 4 ?
+                                        <option value={Player.P3}>{Player.P3}</option>
+                                        : <></>}
+                                </>}
+                            </Select>
+                        </FormControl>
+                        {gameName === virginQueenName && (
+                            <FormControl variant="outlined" sx={styles.formControl} fullWidth>
+                                <InputLabel htmlFor="vq-scenario">场景</InputLabel>
+                                <Select native value={vqScenario} onChange={(e) => {
+                                    const scenario = e.target.value as ScenarioID;
+                                    setVqScenario(scenario);
+                                    if (scenario === "tutorial") setNumPlayers(2);
+                                }} label="场景"
+                                        inputProps={{name: "scenario", id: "vq-scenario"}}>
+                                    {SCENARIO_OPTIONS.map((entry) => <option key={entry.id} value={entry.id}>{entry.label}</option>)}
+                                </Select>
+                            </FormControl>
+                        )}
+                        <Grid container spacing={1} sx={{alignItems: 'center', mt: 1}}>
+                            <Typography>{i18n.chain.lobby.privateGame}</Typography>
+                            <Switch checked={isPublic} onChange={handlePublicChange}/>
+                            <Typography>{i18n.chain.lobby.publicGame}</Typography>
+                        </Grid>
+                        <Grid size={12} sx={{mt: 1}}>
+                            {errorMessage}
+                            <Button onClick={onClick} disabled={clicked} fullWidth color="primary" variant="contained">
+                                {i18n.chain.lobby.createPrivateMatch}
+                            </Button>
+                        </Grid>
+                    </Paper>
                 </Grid>
             </Grid>
         </Grid>
