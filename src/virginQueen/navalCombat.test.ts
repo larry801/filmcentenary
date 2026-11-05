@@ -31,7 +31,7 @@ describe("official naval combat (rule 16.2)", () => {
 
         expect(moveNaval(G, context([1, 1, 6, 6, 6, 6, 6, 6]), {from: "calais", to: "englishChannel"})).toBeUndefined();
 
-        expect(G.lastRolls).toContain("4 hits (4 dice) vs England 2 hits (2 dice)");
+        expect(G.lastRolls).toContain("4 hits (4 dice) vs 英格兰 2 hits (2 dice)");
         expect(navalCount(G.seaZones.englishChannel.naval.france)).toBe(1);
         expect(navalCount(G.seaZones.englishChannel.naval.england)).toBe(0);
     });
@@ -47,7 +47,7 @@ describe("official naval combat (rule 16.2)", () => {
             from: "calais", to: "englishChannel",
         })).toBeUndefined();
 
-        expect(G.lastRolls).toContain("3 hits (6 dice) vs England 0 hits (6 dice)");
+        expect(G.lastRolls).toContain("3 hits (6 dice) vs 英格兰 0 hits (6 dice)");
         expect(totalEnglish(G)).toBe(beforeEnglish - 2);
         expect(navalCount(G.seaZones.englishChannel.naval.england)).toBe(0);
         expect(navalCount(G.seaZones.englishChannel.naval.france)).toBe(3);
@@ -79,7 +79,7 @@ describe("official naval combat (rule 16.2)", () => {
 
         expect(moveNaval(G, context([1, 1, 1, 1, 1]), {from: "englishChannel", to: "portsmouth"})).toBeUndefined();
 
-        expect(G.lastRolls).toContain("(2 dice) vs England 0 hits (3 dice)");
+        expect(G.lastRolls).toContain("(2 dice) vs 英格兰 0 hits (3 dice)");
         expect(navalCount(G.spaces.portsmouth.naval.france)).toBe(0);
     });
 

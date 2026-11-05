@@ -56,7 +56,7 @@ describe("winter no-quarters elimination choice", () => {
         }]);
         // Rule 20.4 already removed the entire army before the choice.
         expect(G.spaces.clermont.land.england).toBeUndefined();
-        expect(G.log.join("\n")).toContain("England loses 4 unit(s) in Clermont: no winter quarters");
+        expect(G.log.join("\n")).toContain("英格兰 loses 4 unit(s) in Clermont: no winter quarters");
     });
 
     it("keeps the automatic composition when the owner confirms it", () => {
@@ -118,7 +118,7 @@ describe("winter no-quarters elimination choice", () => {
         expect(englishChoices(G)).toEqual([]);
         expect(G.spaces.clermont.land.england).toBeUndefined();
         expect(endTurn).toHaveBeenCalledTimes(1);
-        expect(G.log.join("\n")).toContain("England keeps the automatic winter loss composition");
+        expect(G.log.join("\n")).toContain("英格兰 keeps the automatic winter loss composition");
     });
 
     it("opens the Card Draw winter-loss stage for the owning player only", () => {

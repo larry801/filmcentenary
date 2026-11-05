@@ -60,7 +60,7 @@ describe("winter return home (rule 20.4)", () => {
         winter(G, context());
 
         expect(navalCount(G.seaZones.adriatic.naval.hre)).toBe(0);
-        expect(G.log.join("\n")).toContain("Holy Roman fleet in Adriatic Sea has no port");
+        expect(G.log.join("\n")).toContain("神圣罗马帝国 fleet in Adriatic Sea has no port");
     });
 
     it("loses half of a land stack, rounded up, when no clean winter path exists", () => {

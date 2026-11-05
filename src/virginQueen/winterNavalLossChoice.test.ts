@@ -79,7 +79,7 @@ describe("winter no-port naval loss choice", () => {
         }]);
         // Rule 20.4: no port means the whole squadron is gone, not reduced.
         expect(navalCount(G.seaZones.adriatic.naval.hre)).toBe(0);
-        expect(G.log.join("\n")).toContain("Holy Roman fleet in Adriatic Sea has no port to return to and is eliminated");
+        expect(G.log.join("\n")).toContain("神圣罗马帝国 fleet in Adriatic Sea has no port to return to and is eliminated");
     });
 
     it("lets the owner confirm one lost ship type without restoring any ship", () => {

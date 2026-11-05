@@ -33,7 +33,7 @@ describe("The Black Queen, option 3 (card #80)", () => {
 
         expect(playCard(G, context(), {cardId: "vq-080", asEvent: true, target: "spy:spain"})).toBeUndefined();
 
-        expect(G.log.join("\n")).toContain("sends a spy against Spain");
+        expect(G.log.join("\n")).toContain("sends a spy against 西班牙");
         expect(G.powers.france.cp).toBe(0);
     });
 

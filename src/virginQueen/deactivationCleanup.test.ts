@@ -36,7 +36,7 @@ describe("Activated Major Power deactivation cleanup", () => {
         deactivateMajor(G, "hre");
 
         expect(G.powers.hre.treasures).toEqual([]);
-        expect(G.log.join("\n")).toContain("Holy Roman Empire discards 3 treasure(s).");
+        expect(G.log.join("\n")).toContain("神圣罗马帝国 discards 3 treasure(s).");
     });
 
     it("discards treasures for any deactivated major, not only the HRE", () => {

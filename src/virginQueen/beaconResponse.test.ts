@@ -70,7 +70,7 @@ describe("Beacon Fires response (card #14)", () => {
         expect(ctx.events!.endStage).toHaveBeenCalled();
         // No interception roll is made: the +2 dice belong to the battle.
         // England's single galleon rolls 2 dice, plus Beacon Fires' 2 = 4.
-        expect(G.lastRolls).toContain("vs England");
+        expect(G.lastRolls).toContain("vs 英格兰");
         expect(G.lastRolls).toContain("(4 dice)");
     });
 
@@ -86,7 +86,7 @@ describe("Beacon Fires response (card #14)", () => {
         expect(G.powers.england.cards).toContain("vq-014");
         expect(G.log.join("\n")).toContain("naval interception from Portsmouth");
         expect(G.log.join("\n")).toContain("intercepts the naval move into");
-        expect(G.lastRolls).toContain("vs England");
+        expect(G.lastRolls).toContain("vs 英格兰");
         expect(G.lastRolls).toContain("(2 dice)");
         expect(G.navalDiceBonus).toBeUndefined();
     });

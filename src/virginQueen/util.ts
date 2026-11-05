@@ -101,10 +101,10 @@ export const pushLog = (G: VQGame, msg: string): void => {
     }
 };
 
-export const powerLabel = (p: Power): string => POWER_NAMES[p].en;
+export const powerLabel = (p: Power): string => POWER_NAMES[p].zh;
 
 export const controllerLabel = (c: Controller): string =>
-    isPower(c) ? POWER_NAMES[c].short : c === "independent" ? "Independent" : c.charAt(0).toUpperCase() + c.slice(1);
+    isPower(c) ? POWER_NAMES[c].zh : c === "independent" ? "独立" : c.charAt(0).toUpperCase() + c.slice(1);
 
 /** Label for any controller (major, minor or independent). */
 export const anyControllerLabel = (c: Controller): string =>

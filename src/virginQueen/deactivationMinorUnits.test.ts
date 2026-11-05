@@ -150,7 +150,7 @@ describe("HRE deactivation cascades to its allied minor units", () => {
             merc: before.merc + 1,
             cav: before.cav,
         });
-        expect(G.log.join("\n")).toContain("Spain land units are displaced from Rome to Naples.");
+        expect(G.log.join("\n")).toContain("西班牙 land units are displaced from Rome to Naples.");
     });
 
     it("displaces foreign minor units to their controlling major's friendly space", () => {
@@ -178,7 +178,7 @@ describe("HRE deactivation cascades to its allied minor units", () => {
 
         expect(G.spaces.rome.naval.spain).toBeUndefined();
         expect(G.spaces.naples.naval.spain?.galley).toBe(before + 2);
-        expect(G.log.join("\n")).toContain("Spain naval units are displaced from Rome to Naples.");
+        expect(G.log.join("\n")).toContain("西班牙 naval units are displaced from Rome to Naples.");
     });
 
     it("does not return a minor that is not one of the printed HRE deactivation allies", () => {

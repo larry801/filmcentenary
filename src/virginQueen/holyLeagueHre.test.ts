@@ -39,7 +39,7 @@ describe("Holy League with the non-player HRE (card #24)", () => {
         expect(G.majorDiplomacyResolved).toContain("hre");
         expect(G.minorDiplomacyResolved).not.toContain("papacy");
         expect(G.minorDiplomacyResolved).not.toContain("venice");
-        expect(G.log.join("\n")).toContain("Holy Roman Empire diplomacy");
+        expect(G.log.join("\n")).toContain("神圣罗马帝国 diplomacy");
     });
 
     it("splits two and two between the non-player HRE and the Papacy", () => {
@@ -73,7 +73,7 @@ describe("Holy League with the non-player HRE (card #24)", () => {
 
         expect(G.majorInfluence!.hre!.spain).toBe(4);
         expect(G.majorDiplomacyResolved).toEqual(["hre"]);
-        expect(G.log.join("\n")).not.toContain("Holy Roman Empire diplomacy");
+        expect(G.log.join("\n")).not.toContain("神圣罗马帝国 diplomacy");
     });
 
     it("falls back to the Papacy and Venice when the HRE is player-controlled", () => {

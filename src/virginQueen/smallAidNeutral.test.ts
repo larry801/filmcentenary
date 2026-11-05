@@ -32,7 +32,7 @@ describe("A Small Aid (#26) in neutral-controlled fortresses", () => {
 
         expect(G.spaces.metz.land.independent?.regular).toBe(2);
         expect(G.spaces.metz.land.france?.regular).toBe(5);
-        expect(G.log.join("\n")).toContain("A Small Aid adds 1 Independent regular to Metz.");
+        expect(G.log.join("\n")).toContain("A Small Aid adds 1 独立 regular to Metz.");
     });
 
     it("places a minor-power regular in a minor-controlled besieged fortress", () => {

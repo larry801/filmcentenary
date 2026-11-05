@@ -92,7 +92,7 @@ describe("Virgin Queen (#36) from a normal battle stage", () => {
             expect(state.G.powers.england.cards).not.toContain("vq-008");
             expect(state.G.powers.england.cards).not.toContain("vq-036");
             expect(state.G.homeSetAside).toContain("vq-036");
-            expect(state.G.log.join("\n")).toContain("England plays 精锐部队 for the field battle");
+            expect(state.G.log.join("\n")).toContain("英格兰 plays 精锐部队 for the field battle");
             expect(state.ctx.activePlayers).toEqual({"2": "battleChoice"});
 
             // Normal battle choices still drive the same battle.

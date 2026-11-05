@@ -87,7 +87,7 @@ describe("Virgin Queen (#36) defender-side immediate Combat play", () => {
         expect(G.powers.england.cards).toEqual([]);
         expect(G.discard).toContain("vq-008");
         expect(G.homeSetAside).toContain("vq-036");
-        expect(G.log.join("\n")).toContain("England plays 精锐部队 for the field battle");
+        expect(G.log.join("\n")).toContain("英格兰 plays 精锐部队 for the field battle");
 
         // Elite Troops adds three dice to the defending side.
         expect(fieldDefenderDice(G)).toBe(baseDice + 3);
@@ -107,7 +107,7 @@ describe("Virgin Queen (#36) defender-side immediate Combat play", () => {
         })).toBeUndefined();
 
         expect(G.pendingBattle!.cards.england).toEqual(["vq-009"]);
-        expect(G.log.join("\n")).toContain("England plays 火攻战船 for the naval battle");
+        expect(G.log.join("\n")).toContain("英格兰 plays 火攻战船 for the naval battle");
 
         // Fire Ships adds two dice in an ordinary naval battle.
         expect(navalDefenderDice(G)).toBe(baseDice + 2);
