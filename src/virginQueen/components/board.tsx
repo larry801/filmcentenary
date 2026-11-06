@@ -2595,7 +2595,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         {entry.cards.map((id) => <Typography key={id} variant="body2">{cardName(id, vqLocale)} · {cardById(id).cp} CP</Typography>)}
                     </ActionGroup>)}
                 <ActionGroup title={`${i18n.chain.vq.intel.log} · ${G.log.length}`}>
-                    <LogPanel log={G.log} marks={G.logMarks}
+                    <LogPanel log={G.log} marks={G.logMarks} codes={G.logI18n}
                               myName={me !== undefined ? powerName(me, vqLocale) : undefined}
                               onSelectSpace={(id) => setSelected(id)}/>
                 </ActionGroup>

@@ -555,6 +555,14 @@ export interface PowerState {
     homeCardChoiceDone: boolean;
 }
 
+/** A setup log line that can be translated when the log is rendered. */
+export interface SetupLogCode {
+    /** Index in `VQGame.log`. */
+    at: number;
+    key: "scenario" | "vpStart" | "protestantSpaces" | "spacesPlaced" | "scenarioNote" | "unknownPatrons";
+    params: Record<string, string | number>;
+}
+
 export interface VQGame {
     espionage?: import("../espionageTypes").EspionageState;
     pendingEspionage?: import("../espionageTypes").PendingEspionage;
@@ -695,6 +703,13 @@ export interface VQGame {
      * string log that the moves and tests consume.
      */
     logMarks?: {at: number; turn: number; phase: string; year?: number}[];
+    /**
+     * Localizable setup messages, keyed by their index in {@link log}.  The
+     * board translates these when it renders the log so an English client sees
+     * English setup notes even when the match was created by a server running
+     * the default locale.
+     */
+    logI18n?: SetupLogCode[];
     vpHistory: Record<string, Partial<Record<Power, number>>>;
     hreReligiousPreference?: HreReligiousPreference;
     hreReligiousPreferenceChosen: boolean;

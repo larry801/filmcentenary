@@ -11,17 +11,21 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import {Client} from "boardgame.io/react";
 import {Local} from "boardgame.io/multiplayer";
-import {SCENARIO_OPTIONS, seatLabels} from "../configuration";
+import {SCENARIO_OPTIONS, scenarioOptionLabel, seatLabels} from "../configuration";
 import {VirginQueenGameDef} from "../game";
 import {VirginQueenBoard} from "./board";
 import {setupGame} from "../util";
 import {ScenarioID} from "../constant/general";
 import {VQSurface} from "./theme";
 
-const configurations = SCENARIO_OPTIONS.flatMap((scenario) => scenario.players.map((numPlayers) => ({
+/**
+ * Board clients are created once so switching seats or locales never remounts
+ * a game.  Labels and seat names are resolved per render from these defs.
+ */
+const configurationDefs = SCENARIO_OPTIONS.flatMap((scenario) => scenario.players.map((numPlayers) => ({
     id: `${scenario.id}-${numPlayers}`,
-    label: `${scenario.label} · ${numPlayers} ${i18n.chain.vq.local.players}`,
-    seats: seatLabels(scenario.id, numPlayers),
+    scenarioId: scenario.id,
+    numPlayers,
     BoardClient: Client({
         numPlayers,
         game: {...VirginQueenGameDef, setup: (ctx) => setupGame(ctx, {scenario: scenario.id})},
@@ -53,6 +57,12 @@ const LocalVirginQueen = ({initialScenario = "campaign"}: {initialScenario?: Sce
         apply();
         return () => observer.disconnect();
     }, []);
+    const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
+    const configurations = React.useMemo(() => configurationDefs.map((entry) => ({
+        ...entry,
+        label: `${scenarioOptionLabel(entry.scenarioId, vqLocale)} · ${entry.numPlayers} ${e.players}`,
+        seats: seatLabels(entry.scenarioId, entry.numPlayers, vqLocale),
+    })), [vqLocale, e.players]);
     const initialConfigurationID = `${initialScenario}-${initialScenario === "tutorial" ? 2 : 6}`;
     const [configurationID, setConfigurationID] = React.useState(initialConfigurationID);
     React.useEffect(() => {

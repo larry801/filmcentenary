@@ -25,7 +25,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import {LobbyClient} from 'boardgame.io/client';
 import {filmCentenaryName, songJinnName, virginQueenName} from "../constant/multi-games";
 import {ScenarioID} from "../virginQueen/constant/general";
-import {SCENARIO_OPTIONS, seatLabels} from "../virginQueen/configuration";
+import {SCENARIO_OPTIONS, scenarioOptionLabel, seatLabels} from "../virginQueen/configuration";
 
 type PlayerMetadata = {
     id: number;
@@ -134,6 +134,7 @@ const MatchRow = React.memo(({data, serverURL}: MatchRowProps) => {
 
 const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     i18n.use();
+    const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     const navigate = useNavigate();
     const [player, setPlayer] = useState<Player>(Player.P0);
     const [clicked, setClicked] = useState(false);
@@ -213,7 +214,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         <Alert severity="error" sx={{mb: 1}}>
             {error} {i18n.chain.drawer.pleaseTry}
             {gameName === 'film' ? <Link to={'/local4p'}>{i18n.chain.drawer.fourPlayer}</Link> :
-                gameName === virginQueenName ? <Link to={'/localVQ'}>本地热座</Link> :
+                gameName === virginQueenName ? <Link to={'/localVQ'}>{i18n.chain.vq.local.hotseat}</Link> :
                 <Link to={'/local'}>本地</Link>}
         </Alert>
     ) : null;
@@ -222,8 +223,8 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         match,
         createdText: new Date(match.createdAt).toLocaleString(),
         updatedText: new Date(match.updatedAt).toLocaleString(),
-        seats: match.gameName === virginQueenName ? seatLabels(match.setupData?.scenario ?? "campaign", match.players.length) : undefined,
-    })), [matches]);
+        seats: match.gameName === virginQueenName ? seatLabels(match.setupData?.scenario ?? "campaign", match.players.length, vqLocale) : undefined,
+    })), [matches, vqLocale]);
 
     return (
         <Grid container spacing={3} sx={{p: {xs: 1, sm: 2, md: 3}, maxWidth: 1280, mx: "auto"}}>
@@ -323,7 +324,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                     id: 'outlined-player-native-simple',
                                 }}>
                                 {gameName === virginQueenName ? <>
-                                    {seatLabels(vqScenario, numPlayers).map((label, index) => <option key={index} value={String(index)}>{`P${index + 1} ${label}`}</option>)}
+                                    {seatLabels(vqScenario, numPlayers, vqLocale).map((label, index) => <option key={index} value={String(index)}>{`P${index + 1} ${label}`}</option>)}
                                 </> : <>
                                     {gameName === 'film' ? <option value={Player.P0}>{Player.P0}</option>
                                         : <option value={Player.P0}>宋</option>}
@@ -340,14 +341,14 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                         </FormControl>
                         {gameName === virginQueenName && (
                             <FormControl variant="outlined" sx={styles.formControl} fullWidth>
-                                <InputLabel htmlFor="vq-scenario">场景</InputLabel>
+                                <InputLabel htmlFor="vq-scenario">{i18n.chain.vq.local.scenario}</InputLabel>
                                 <Select native value={vqScenario} onChange={(e) => {
                                     const scenario = e.target.value as ScenarioID;
                                     setVqScenario(scenario);
                                     if (scenario === "tutorial") setNumPlayers(2);
-                                }} label="场景"
+                                }} label={i18n.chain.vq.local.scenario}
                                         inputProps={{name: "scenario", id: "vq-scenario"}}>
-                                    {SCENARIO_OPTIONS.map((entry) => <option key={entry.id} value={entry.id}>{entry.label}</option>)}
+                                    {SCENARIO_OPTIONS.map((entry) => <option key={entry.id} value={entry.id}>{scenarioOptionLabel(entry.id, vqLocale)}</option>)}
                                 </Select>
                             </FormControl>
                         )}

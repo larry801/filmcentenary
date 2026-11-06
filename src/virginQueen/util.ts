@@ -107,13 +107,35 @@ export const pushLog = (G: VQGame, msg: string): void => {
     if (G.log.length > 250) {
         const removed = G.log.length - 250;
         G.log.splice(0, removed);
-        // Keep the turn/phase markers pointing at the retained entries.
+        // Keep the turn/phase and translation markers pointing at the
+        // retained entries.
         if (G.logMarks !== undefined) {
             G.logMarks = G.logMarks
                 .map((mark) => ({...mark, at: mark.at - removed}))
                 .filter((mark) => mark.at >= 0);
         }
+        if (G.logI18n !== undefined) {
+            G.logI18n = G.logI18n
+                .map((code) => ({...code, at: code.at - removed}))
+                .filter((code) => code.at >= 0);
+        }
     }
+};
+
+/**
+ * Pushes a setup line twice: the plain fallback string (used by exports and by
+ * code that only knows `G.log`) and a translation code the board can resolve
+ * when it renders, which keeps setup notes in the viewer's language even when
+ * the match was created under a different locale.
+ */
+export const pushSetupLog = (
+    G: VQGame,
+    key: NonNullable<VQGame["logI18n"]>[number]["key"],
+    params: Record<string, string | number>,
+    fallback: string,
+): void => {
+    pushLog(G, fallback);
+    G.logI18n = [...(G.logI18n ?? []), {at: G.log.length - 1, key, params}];
 };
 
 export const powerLabel = (p: Power, locale: VQLocale = "zh_CN"): string =>
@@ -344,18 +366,23 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         G.activatedMajors!.ottoman = {ally: "england", baseline: powerVp(G, "ottoman")};
     }
 
-    pushLog(G, `Virgin Queen: ${scenario.nameZh}（第 ${scenario.startTurn}-${scenario.endTurn} 回合）`);
-    pushLog(G, `VP 起始：${POWERS.map((p) => `${POWER_NAMES[p].short} ${scenario.vpStart[p]}`).join(" / ")}`);
-    pushLog(G, `新教地区起始：${scenario.protestantSpaces}`);
-    pushLog(G, `已按 Scenario Book 设置 ${Object.keys(scenario.spaces).length} 个地区。`);
+    pushSetupLog(G, "scenario", {id: scenarioId, start: scenario.startTurn, end: scenario.endTurn},
+        `Virgin Queen: ${scenario.nameZh}（第 ${scenario.startTurn}-${scenario.endTurn} 回合）`);
+    const vpStart = POWERS.map((p) => `${POWER_NAMES[p].short} ${scenario.vpStart[p]}`).join(" / ");
+    pushSetupLog(G, "vpStart", {values: vpStart}, `VP 起始：${vpStart}`);
+    pushSetupLog(G, "protestantSpaces", {count: scenario.protestantSpaces},
+        `新教地区起始：${scenario.protestantSpaces}`);
+    pushSetupLog(G, "spacesPlaced", {count: Object.keys(scenario.spaces).length},
+        `已按 Scenario Book 设置 ${Object.keys(scenario.spaces).length} 个地区。`);
     if (scenario.notes !== undefined) {
         for (const note of scenario.notes) {
-            pushLog(G, `场景说明：${note}`);
+            pushSetupLog(G, "scenarioNote", {note}, `场景说明：${note}`);
         }
     }
     const unknownPatrons = G.patronsAvailable.filter((id) => patronDef(id)?.rating === null);
     if (unknownPatrons.length > 0) {
-        pushLog(G, `注意：${unknownPatrons.length} 位赞助人的评级未转录，冬季赞助结算需要手动处理。`);
+        pushSetupLog(G, "unknownPatrons", {count: unknownPatrons.length},
+            `注意：${unknownPatrons.length} 位赞助人的评级未转录，冬季赞助结算需要手动处理。`);
     }
     return G;
 };

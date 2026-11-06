@@ -1387,6 +1387,8 @@ const zh_CN: Locale = {
         },
         local: {
             players: "人",
+            hotseat: "本地热座",
+            scenario: "场景",
             hotseatScenario: "本地热座 · 场景",
             seatPanel: "本地玩家面板",
             shortcut: "快捷键",
@@ -1556,6 +1558,14 @@ const zh_CN: Locale = {
             siege: "围困圈",
             closed: "禁入（教学）",
             legal: "合法目标",
+        },
+        setupLog: {
+            scenario: "Virgin Queen: {scenario}（第 {start}-{end} 回合）",
+            vpStart: "VP 起始：{values}",
+            protestantSpaces: "新教地区起始：{count}",
+            spacesPlaced: "已按 Scenario Book 设置 {count} 个地区。",
+            scenarioNote: "场景说明：{note}",
+            unknownPatrons: "注意：{count} 位赞助人的评级未转录，冬季赞助结算需要手动处理。",
         },
         engine: {
             fight: "迎战",

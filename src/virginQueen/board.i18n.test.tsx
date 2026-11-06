@@ -7,6 +7,7 @@ import {setupGame} from "./util";
 import {VQGame} from "./constant/general";
 import {SPACES} from "./mapData";
 import {ownerOf} from "./ownership";
+import {scenarioOptionLabel, seatLabels} from "./configuration";
 
 /**
  * English-mode UI guard.
@@ -26,8 +27,9 @@ const fakeCtx = (): Ctx => ({
     },
 } as unknown as Ctx);
 
-const renderBoard = (G: VQGame, phase: string, playerID: string | null, currentPlayer = "1", numPlayers = 6): string => {
-    G.log = [];
+const renderBoard = (G: VQGame, phase: string, playerID: string | null, currentPlayer = "1", numPlayers = 6,
+                     clearLog = true): string => {
+    if (clearLog) G.log = [];
     return renderToStaticMarkup(<VirginQueenBoard {...{
         G,
         ctx: {...fakeCtx(), numPlayers, phase, currentPlayer, playOrder: Array.from({length: numPlayers}, (_, index) => String(index))},
@@ -104,6 +106,27 @@ describe("Virgin Queen board in English", () => {
         expectEnglish(html, "diplomacy phase");
     });
 
+
+
+    it("renders the setup log in English", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.activePower = "spain";
+        const html = renderBoard(G, "action", "1", "1", 6, false);
+        expectEnglish(html, "setup log");
+        expect(html).toContain("The Siege of La Rochelle");
+        expect(html).toContain("Starting VP");
+        expect(html).toContain("Scenario note");
+    });
+
+    it("localizes lobby scenario and seat options", () => {
+        expect(scenarioOptionLabel("campaign", "en")).toBe("Campaign · The Siege of La Rochelle");
+        expect(scenarioOptionLabel("tutorial", "en")).toBe("Tutorial · The Battle of Lepanto");
+        expect(scenarioOptionLabel("tutorial", "zh_CN")).toBe("教学 · 勒班陀海战");
+        expect(seatLabels("campaign", 6, "en")[0]).toBe("Ottoman Empire");
+        expect(seatLabels("campaign", 2, "en")).toEqual(["Spain / France", "England / Protestants"]);
+        expect(seatLabels("tutorial", 2, "en")).toEqual(["Ottoman Empire", "Spain"]);
+        expect(seatLabels("campaign", 6, "zh_CN")[0]).toBe("奥斯曼帝国");
+    });
 
     it("renders the pending battle window without CJK", () => {
         const G = setupGame({...fakeCtx(), numPlayers: 2});

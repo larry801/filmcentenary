@@ -2,7 +2,9 @@ import React from "react";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import i18n from "../../../constant/i18n";
+import {SetupLogCode} from "../../constant/general";
 import {SPACES} from "../../mapData";
+import {scenarioName} from "../../scenario";
 
 export interface LogMark {
     /** Index in `log` where this turn/phase starts. */
@@ -17,6 +19,8 @@ export interface LogPanelProps {
     /** Localized name of the viewer's power, used to highlight their entries. */
     myName?: string;
     marks?: LogMark[];
+    /** Optional setup messages that should be translated at render time. */
+    codes?: SetupLogCode[];
     /** Selects a space on the map when its name is clicked. */
     onSelectSpace?: (id: string) => void;
     /** Number of entries shown before "show all". */
@@ -80,19 +84,38 @@ const groupLabel = (mark: LogMark | undefined): string | undefined => {
 };
 
 /**
+ * Renders a setup line from its translation code, falling back to the stored
+ * string when the code is unknown (older saves, engine-authored messages).
+ */
+const translateCode = (code: SetupLogCode, locale: "en" | "zh_CN", fallback: string): string => {
+    const template = (i18n.chain.vq.setupLog as unknown as Record<string, string>)[code.key];
+    if (template === undefined) return fallback;
+    const params: Record<string, string> = {};
+    for (const [key, value] of Object.entries(code.params)) params[key] = String(value);
+    if (code.key === "scenario" && typeof code.params.id === "string") {
+        params.scenario = scenarioName(code.params.id as Parameters<typeof scenarioName>[0], locale);
+    }
+    return Object.entries(params).reduce((text, [key, value]) => text.split(`{${key}}`).join(value), template);
+};
+
+/**
  * Grouped, filterable game log.  Entries are plain strings produced by the
  * moves; `marks` (recorded by the game when a phase begins) supply the turn and
  * phase headers.  Newest entries are shown first and the list is capped until
  * the viewer asks for everything.
  */
 export const LogPanel = ({
-    log, myName, marks, onSelectSpace, pageSize = 30,
+    log, myName, marks, codes, onSelectSpace, pageSize = 30,
 }: LogPanelProps) => {
     i18n.use();
     const [filter, setFilter] = React.useState<Filter>("all");
     const [expanded, setExpanded] = React.useState(false);
 
-    const entries = log.map((text, index) => {
+    const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
+    const codesByIndex = new Map((codes ?? []).map((code) => [code.at, code]));
+    const entries = log.map((raw, index) => {
+        const code = codesByIndex.get(index);
+        const text = code === undefined ? raw : translateCode(code, vqLocale, raw);
         const mark = [...(marks ?? [])].reverse().find((candidate) => candidate.at <= index);
         return {text, index, mark, group: groupLabel(mark)};
     });

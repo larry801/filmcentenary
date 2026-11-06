@@ -1313,6 +1313,8 @@ const en = {
         },
         local: {
             players: "players",
+            hotseat: "Local hotseat",
+            scenario: "Scenario",
             hotseatScenario: "Local hotseat · scenario",
             seatPanel: "Local player panels",
             shortcut: "Shortcut",
@@ -1482,6 +1484,14 @@ const en = {
             siege: "Siege ring",
             closed: "Closed (tutorial)",
             legal: "Legal target",
+        },
+        setupLog: {
+            scenario: "Virgin Queen: {scenario} (turns {start}-{end})",
+            vpStart: "Starting VP: {values}",
+            protestantSpaces: "Protestant spaces start at {count}.",
+            spacesPlaced: "Placed {count} spaces from the Scenario Book.",
+            scenarioNote: "Scenario note: {note}",
+            unknownPatrons: "Note: {count} patron ratings are not transcribed; resolve winter patronage manually.",
         },
         engine: {
             fight: "Fight",
