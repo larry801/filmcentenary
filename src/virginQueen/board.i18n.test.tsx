@@ -5,6 +5,8 @@ import i18n from "../constant/i18n";
 import {VirginQueenBoard} from "./components/board";
 import {setupGame} from "./util";
 import {VQGame} from "./constant/general";
+import {SPACES} from "./mapData";
+import {ownerOf} from "./ownership";
 
 /**
  * English-mode UI guard.
@@ -24,11 +26,11 @@ const fakeCtx = (): Ctx => ({
     },
 } as unknown as Ctx);
 
-const renderBoard = (G: VQGame, phase: string, playerID: string | null, currentPlayer = "1"): string => {
+const renderBoard = (G: VQGame, phase: string, playerID: string | null, currentPlayer = "1", numPlayers = 6): string => {
     G.log = [];
     return renderToStaticMarkup(<VirginQueenBoard {...{
         G,
-        ctx: {...fakeCtx(), numPlayers: 6, phase, currentPlayer, playOrder: ["0", "1", "2", "3", "4", "5"]},
+        ctx: {...fakeCtx(), numPlayers, phase, currentPlayer, playOrder: Array.from({length: numPlayers}, (_, index) => String(index))},
         moves: {},
         playerID,
         isActive: playerID === currentPlayer,
@@ -100,6 +102,122 @@ describe("Virgin Queen board in English", () => {
         G.powers.france.treasures = [2];
         const html = renderBoard(G, "diplomacy", "1", "1");
         expectEnglish(html, "diplomacy phase");
+    });
+
+
+    it("renders the pending battle window without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2});
+        G.activePower = "england";
+        G.powers.england.cards = ["vq-036"];
+        G.powers.spain.cards = [];
+        G.discard = ["vq-008", "vq-005", "vq-009"];
+        G.pendingBattle = {phase: "field", location: "belgrade", from: "sofia", attacker: "england",
+            attackers: ["england"], defenders: ["spain"], defender: "spain", responding: "spain",
+            step: "defend", cards: {}};
+        G.cardWindow = {kind: "combat", phase: "field", location: "belgrade", attacker: "england"};
+        expectEnglish(renderBoard(G, "action", "1", "1"), "pending battle");
+    });
+
+    it("renders the espionage window without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.year = 3;
+        G.activePower = "spain";
+        G.pendingEspionage = {kind: "intelligence", power: "spain", targetPower: "france", responding: "spain",
+            step: "offense", cp: 2, remaining: 1, used: []};
+        G.espionage = {...(G.espionage ?? {}), inspections: []} as NonNullable<VQGame["espionage"]>;
+        expectEnglish(renderBoard(G, "action", "1", "1"), "pending espionage");
+    });
+
+    it("renders the Act of Abjuration offers without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.year = 4;
+        G.activePower = "england";
+        G.pendingAbjuration = {offers: [
+            {power: "england", space: "amsterdam"},
+            {power: "france", space: "brussels"},
+            {power: "hre", space: "rotterdam"},
+        ]};
+        for (const def of SPACES) {
+            if (def.home !== "england" && def.home !== "france" && def.home !== "hre") continue;
+            G.spaces[def.id].land[def.home] = {regular: 0, merc: 0, cav: 0};
+            G.spaces[def.id].leaders = [];
+        }
+        for (const id of ["amsterdam", "brussels", "rotterdam"]) {
+            G.spaces[id].control = "protestant";
+            G.spaces[id].land = {};
+        }
+        G.spaces.london.land.england = {regular: 5, merc: 0, cav: 0};
+        G.spaces.london.leaders = ["leicester"];
+        expectEnglish(renderBoard(G, "action", "5", "5"), "pending abjuration");
+    });
+
+    it("renders the Grand Vizier window without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.pendingCardEvent = {kind: "grandVizier", cardId: "vq-001", responding: "ottoman", step: "effect", remaining: 4};
+        expectEnglish(renderBoard(G, "action", "0", "0"), "pending grand vizier");
+    });
+
+
+
+    it("renders the intercept window without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.activePower = "england";
+        G.pendingIntercept = {power: "england", defender: "spain", from: "london", to: "englishChannel",
+            phase: "naval", attackers: ["england"], attempted: [], succeeded: false};
+        expectEnglish(renderBoard(G, "action", ownerOf(G, "spain") ?? "1", "1"), "pending intercept");
+    });
+
+    it("renders the interception-order window without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.activePower = "england";
+        G.pendingInterceptionOrder = {power: "england", defender: "spain", moveFrom: "london",
+            to: "englishChannel", destinationHadEnemy: false};
+        expectEnglish(renderBoard(G, "action", ownerOf(G, "spain") ?? "1", "1"), "pending interception order");
+    });
+
+    it("renders the action-response window without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.activePower = "spain";
+        G.pendingAction = {power: "spain", responder: "england", responders: ["england"],
+            move: "impulse", args: {}};
+        expectEnglish(renderBoard(G, "action", ownerOf(G, "england") ?? "2", "1"), "pending action response");
+    });
+
+    it("renders the piracy window without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.activePower = "spain";
+        G.pendingPiracy = {power: "spain", target: "england", zone: "englishChannel",
+            step: "rewards", remaining: 1, rewards: {}};
+        expectEnglish(renderBoard(G, "action", ownerOf(G, "england") ?? "2", "1"), "pending piracy");
+    });
+
+    it("renders the tutorial event window without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+        G.pendingTutorialEvent = {cardId: "vq-003", power: "spain", responding: "spain", step: "roadFormation",
+            remaining: 1, tracks: [], roadFormation: {units: {}, leaders: []}} as NonNullable<VQGame["pendingTutorialEvent"]>;
+        expectEnglish(renderBoard(G, "action", "1", "1", 2), "pending tutorial event");
+    });
+
+    it("renders the city-rebels window without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.activePower = "spain";
+        G.pendingCityRebels = {power: "spain", controller: "spain", space: "brussels", remaining: 2, values: [5, 5, 4, 3, 2]};
+        expectEnglish(renderBoard(G, "action", ownerOf(G, "spain") ?? "1", "1"), "pending city rebels");
+    });
+
+    it("renders the Gregorian response window without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.activePower = "spain";
+        G.gregorianResponse = {after: "spain", responder: "england"};
+        expectEnglish(renderBoard(G, "action", ownerOf(G, "england") ?? "2", "1"), "pending gregorian");
+    });
+
+    it("renders the tutorial guide without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+        G.activePower = "ottoman";
+        for (const phase of ["cardDraw", "spring", "action"]) {
+            expectEnglish(renderBoard(G, phase, "0", "0", 2), `tutorial ${phase}`);
+        }
     });
 
     it("renders the spring deployment phase without CJK", () => {

@@ -7,7 +7,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import {POWER_NAMES, VQGame, powerName, Power} from "../constant/general";
 import {ownerOf} from "../ownership";
-import {tutorialLesson} from "../tutorial";
+import {tutorialLesson, tutorialLessonInstruction, tutorialLessonTitle} from "../tutorial";
 
 export const TutorialGuide = ({G, ctx, playerID}: Pick<BoardProps<VQGame>, "G" | "ctx" | "playerID">) => {
     i18n.use();
@@ -28,14 +28,14 @@ export const TutorialGuide = ({G, ctx, playerID}: Pick<BoardProps<VQGame>, "G" |
                 color={!finished && step === index ? "primary" : "default"}
                 variant={!finished && step === index ? "filled" : "outlined"}/>)}
         </Stack>
-        <Typography variant="subtitle2">{finished ? e.finished : lesson?.title}</Typography>
+        <Typography variant="subtitle2">{finished ? e.finished : lesson === undefined ? "" : tutorialLessonTitle(lesson, vqLocale)}</Typography>
         {!finished && lesson && <>
             <Typography variant="body2" color={owner === playerID ? "primary" : "text.secondary"} sx={{my: 0.5}}>
                 {`${e.currentOp}${i18n.chain.vq.punct.colon}P${Number(owner) + 1} · ${powerName(lesson.power, vqLocale)}${i18n.chain.vq.punct.period}`}
                 {playerID === null ? e.spectator : owner === playerID
                     ? e.yourTurn : `${e.waitOther} P${Number(owner) + 1} ${e.tab}.`}
             </Typography>
-            <Typography variant="body2">{lesson.instruction}</Typography>
+            <Typography variant="body2">{tutorialLessonInstruction(lesson, vqLocale)}</Typography>
         </>}
         {finished && <Typography variant="body2">{e.review}</Typography>}
         <Button size="small" aria-expanded={expanded} aria-controls={contentID} sx={{px: 0}}

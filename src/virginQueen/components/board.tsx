@@ -1070,7 +1070,7 @@ export const virginQueenCombatRetrieveOptions = (
         return [{
             cardId,
             target: `retrieve:${cardId}:play`,
-            label: `${i18n.chain.vq.board.retrievePlay} ${cardById(cardId).name}`,
+            label: `${i18n.chain.vq.board.retrievePlay} ${cardName(cardId, i18n.getLocaleName() === "en" ? "en" : "zh_CN")}`,
         }];
     });
 };
@@ -1156,7 +1156,7 @@ const CardArt = ({def, className, lazy = false}: {def: CardDef; className: strin
     const [failed, setFailed] = React.useState(false);
     const src = cardImageUrl(def);
     if (src === undefined || failed) return null;
-    return <img className={className} src={src} alt={`${def.name} ${i18n.chain.vq.board.cardImage}`} width={376} height={526}
+    return <img className={className} src={src} alt={`${cardName(def.id, i18n.getLocaleName() === "en" ? "en" : "zh_CN")} ${i18n.chain.vq.board.cardImage}`} width={376} height={526}
         loading={lazy ? "lazy" : "eager"} onError={() => setFailed(true)}/>;
 };
 
@@ -1464,7 +1464,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         const showTargetField = canPlayAsEvent && targetMode === "freeText";
         return <Paper key={id} variant="outlined" sx={{p: 0.75, mb: 0.5}}>
             <Stack direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
-                <Typography variant="caption" sx={{fontWeight: 700}}>{def.name}</Typography>
+                <Typography variant="caption" sx={{fontWeight: 700}}>{cardName(id, vqLocale)}</Typography>
                 <Chip size="small" label={`${def.cp} CP`} color={def.kind === "home" ? "secondary" : "default"}/>
                 {def.kind === "event" && <Chip size="small" variant="outlined" label={i18n.chain.vq.board.event}/> }
                 {def.kind === "home" && <Chip size="small" variant="outlined" label={i18n.chain.vq.board.homeCard}/> }
@@ -1538,25 +1538,25 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
 
     const actionPanel = () => {
         if (G.pendingEspionage) return <PendingEspionagePanel G={G} moves={moves} playerID={playerID}/>;
-                if (G.pendingAbjuration) return <PendingAbjurationPanel G={G} moves={moves} playerID={playerID}
+        if (G.pendingAbjuration) return <PendingAbjurationPanel G={G} moves={moves} playerID={playerID}
             selectedPower={selectedAbjurationPower} onSelect={setSelectedAbjurationPower}/>;
-                if (G.pendingCityRebels) return <PendingCityRebelsPanel G={G} moves={moves} playerID={playerID}/>;
-                if (G.gregorianResponse) return <PendingGregorianPanel G={G} moves={moves} playerID={playerID}
+        if (G.pendingCityRebels) return <PendingCityRebelsPanel G={G} moves={moves} playerID={playerID}/>;
+        if (G.gregorianResponse) return <PendingGregorianPanel G={G} moves={moves} playerID={playerID}
             target={gregorianTarget} onTargetChange={setGregorianTarget}/>;
-                if (G.pendingCardEvent) return <PendingCardEventPanel G={G} moves={moves} playerID={playerID}
+        if (G.pendingCardEvent) return <PendingCardEventPanel G={G} moves={moves} playerID={playerID}
             numPlayers={ctx.numPlayers ?? 6}/>;
-                if (G.pendingBeacon) return <PendingBeaconPanel G={G} moves={moves} playerID={playerID}/>;
+        if (G.pendingBeacon) return <PendingBeaconPanel G={G} moves={moves} playerID={playerID}/>;
         if (G.pendingInterceptionOrder) return <PendingInterceptionOrderPanel G={G} moves={moves} playerID={playerID}/>;
         if (G.pendingIntercept) return <PendingInterceptPanel G={G} moves={moves} playerID={playerID}/>;
         if (G.pendingAction) return <PendingActionResponsePanel G={G} moves={moves} playerID={playerID}
             responders={actionResponders} choices={myActionChoices} responder={actionResponder}
             onSelectResponder={(power) => setSelectedActionResponder(power)}/>;
-                if (G.pendingPiracy) return <PendingPiracyPanel G={G} moves={moves} playerID={playerID}
+        if (G.pendingPiracy) return <PendingPiracyPanel G={G} moves={moves} playerID={playerID}
             responder={piracyResponder as Power}/>;
-                if (G.pendingTutorialEvent) return <PendingTutorialEventPanel G={G} moves={moves} playerID={playerID}/>;
-                if (G.pendingBattle) return <PendingBattlePanel G={G} moves={moves} playerID={playerID} retrieve={vqCombatRetrieve}/>;
-                if (G.pendingActivation) return <PendingActivationPanel G={G} moves={moves} playerID={playerID}/>;
-                if (me === undefined) {
+        if (G.pendingTutorialEvent) return <PendingTutorialEventPanel G={G} moves={moves} playerID={playerID}/>;
+        if (G.pendingBattle) return <PendingBattlePanel G={G} moves={moves} playerID={playerID} retrieve={vqCombatRetrieve}/>;
+        if (G.pendingActivation) return <PendingActivationPanel G={G} moves={moves} playerID={playerID}/>;
+        if (me === undefined) {
             return <Typography variant="body2" color="text.secondary">{i18n.chain.vq.actionPanel.spectator}</Typography>;
         }
         if (phase === "cardDraw") {
@@ -2592,10 +2592,10 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 {G.espionage?.inspections.filter((entry) => playerID !== null && ownerOf(G, entry.viewer) === playerID).map((entry) =>
                     <ActionGroup key={`${entry.viewer}:${entry.target}`} title={`${i18n.chain.vq.intel.secretIntel} · ${powerName(entry.target, vqLocale)}${i18n.chain.vq.intel.handSnapshot}`}>
                         <Typography variant="caption">{i18n.chain.vq.intel.onlyYou}</Typography>
-                        {entry.cards.map((id) => <Typography key={id} variant="body2">{cardById(id).name} · {cardById(id).cp} CP</Typography>)}
+                        {entry.cards.map((id) => <Typography key={id} variant="body2">{cardName(id, vqLocale)} · {cardById(id).cp} CP</Typography>)}
                     </ActionGroup>)}
                 <ActionGroup title={`${i18n.chain.vq.intel.log} · ${G.log.length}`}>
-                    <LogPanel log={G.log} marks={G.logMarks} me={me}
+                    <LogPanel log={G.log} marks={G.logMarks}
                               myName={me !== undefined ? powerName(me, vqLocale) : undefined}
                               onSelectSpace={(id) => setSelected(id)}/>
                 </ActionGroup>

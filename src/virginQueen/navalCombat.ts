@@ -1,4 +1,5 @@
 import {Ctx} from "boardgame.io";
+import i18n from "../constant/i18n";
 import {Controller, POWER_INDEX, Power, VQGame, isPower, landCount, navalCount} from "./constant/general";
 import {recordNavalLoss} from "./util";
 import {LEADER_BY_ID} from "./constant/leaders";
@@ -335,7 +336,7 @@ export const interceptionOrderOptions = (G: VQGame): {id: string; power: Power; 
         .map((candidate) => ({
             id: candidate.location,
             power: candidate.power,
-            label: `从 ${SPACE_BY_ID[candidate.location]?.name ?? candidate.location} 尝试拦截`,
+            label: `${i18n.chain.vq.engine.interceptFrom} ${SPACE_BY_ID[candidate.location]?.name ?? candidate.location}`,
         }));
 };
 

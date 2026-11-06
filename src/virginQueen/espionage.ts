@@ -3,6 +3,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {Controller, NavalStack, Power, POWERS, VQGame, isPower, navalCount, spaceHomes} from "./constant/general";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {cardById} from "./constant/cards";
+import i18n from "../constant/i18n";
 import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "./mapData";
 import {actingPower, isActivatedMajor, ownerOf, participatingPowers} from "./ownership";
 import {assassinationResult, catholicRebellionResult} from "./data/espionage";
@@ -139,27 +140,41 @@ const neutralizeInformant = (G: VQGame, owner: Power, target: Power): void => {
     const i = G.informants.find((i) => i.owner === owner && i.target === target && !i.neutralized);
     if (i) i.neutralized = true;
 };
+/** Localized display name for a unit kind used inside option labels. */
+const unitName = (kind: string): string => {
+    switch (kind) {
+        case "regular": return i18n.chain.vq.engine.unitRegular;
+        case "merc": return i18n.chain.vq.engine.unitMerc;
+        case "cav": return i18n.chain.vq.engine.unitCav;
+        case "galley": return i18n.chain.vq.engine.unitGalley;
+        case "galleon": return i18n.chain.vq.engine.unitGalleon;
+        case "racebuilt": return i18n.chain.vq.engine.unitRacebuilt;
+        case "corsair": return i18n.chain.vq.engine.unitCorsair;
+        default: return kind;
+    }
+};
+
 const operativeOptions = (G: VQGame, p: PendingEspionage, extra = false): {id: string; label: string}[] => p.event === "richardTopcliffe" ?
-    (G.espionage?.jesuits ?? []).filter((id) => !p.neutralizedOperatives?.includes(`jesuit:${id}`)).map((id) => ({id: `jesuit:${id}`, label: `无效化耶稣会士：${SPACE_BY_ID[id].name}`})) : [
+    (G.espionage?.jesuits ?? []).filter((id) => !p.neutralizedOperatives?.includes(`jesuit:${id}`)).map((id) => ({id: `jesuit:${id}`, label: i18n.chain.vq.engine.neutralizeJesuit.replace("{space}", SPACE_BY_ID[id].name)})) : [
     ...G.informants.filter((i) => i.target === p.power && !i.neutralized && (extra || p.kind === "walsingham" || i.owner === p.targetPower))
-        .map((i) => ({id: `informant:${i.owner}`, label: `无效化 ${i.owner} 在本国的间谍`})),
+        .map((i) => ({id: `informant:${i.owner}`, label: i18n.chain.vq.engine.neutralizeSpy.replace("{owner}", i.owner)})),
     ...(p.power === "england" && (p.kind === "walsingham" || p.targetPower === "spain") ? (G.espionage?.jesuits ?? []).filter((id) => !p.neutralizedOperatives?.includes(`jesuit:${id}`))
-        .map((id) => ({id: `jesuit:${id}`, label: `无效化耶稣会士：${SPACE_BY_ID[id].name}`})) : []),
+        .map((id) => ({id: `jesuit:${id}`, label: i18n.chain.vq.engine.neutralizeJesuit.replace("{space}", SPACE_BY_ID[id].name)})) : []),
 ];
 
 const responseOptions = (G: VQGame, p: PendingEspionage): {id: string; label: string}[] => {
     const cards = G.powers[p.responding].cards;
     return [
-        {id: "continue", label: "继续掷骰"},
+        {id: "continue", label: i18n.chain.vq.engine.continueRoll},
         ...(cards.includes("vq-081") && !G.espionage?.walsingham ? [
-            {id: "walsingham:offensive", label: "沃尔辛厄姆：英格兰攻击骰 4–6 命中"},
-            {id: "walsingham:defensive", label: "沃尔辛厄姆：攻击英格兰仅 6 命中"},
+            {id: "walsingham:offensive", label: i18n.chain.vq.engine.walsinghamOffensive},
+            {id: "walsingham:defensive", label: i18n.chain.vq.engine.walsinghamDefensive},
         ] : []),
         ...(p.kind === "assassination" && cards.includes("vq-088") && !p.used.includes("pistols") ?
-            [{id: "pistols", label: "手枪：刺杀攻击 +2 骰"}] : []),
+            [{id: "pistols", label: i18n.chain.vq.engine.pistols}] : []),
         ...((p.kind === "rebellion" || p.kind === "assassination" && p.target === "elizabeth") &&
         cards.includes("vq-089") && maryAlive(G) && !p.used.includes("maryCard") ?
-            [{id: "maryCard", label: "苏格兰女王玛丽：攻击 +3 骰"}] : []),
+            [{id: "maryCard", label: i18n.chain.vq.engine.maryQueenOfScots}] : []),
     ];
 };
 
@@ -344,8 +359,8 @@ const protestantUnits = (G: VQGame, id: string, englishOnly = false): {id: strin
     const s = G.spaces[id];
     const controllers = Object.keys({...s.land, ...s.naval}) as Controller[];
     return controllers.filter((c) => unitReligion(c) === "protestant" && (!englishOnly || c === "england" || !isPower(c) && G.powers.england.alliedMinors.includes(c as any))).flatMap((c) => [
-        ...((s.land[c]?.regular ?? 0) > 0 ? [{id: `regular:${c}`, label: `移除 ${c} 正规军`}] : []),
-        ...Object.entries(s.naval[c] ?? {}).filter(([, n]) => n > 0).map(([kind]) => ({id: `${kind}:${c}`, label: `移除 ${c} ${kind}`})),
+        ...((s.land[c]?.regular ?? 0) > 0 ? [{id: `regular:${c}`, label: i18n.chain.vq.engine.removeUnits.replace("{owner}", c).replace("{unit}", i18n.chain.vq.engine.unitRegular)}] : []),
+        ...Object.entries(s.naval[c] ?? {}).filter(([, n]) => n > 0).map(([kind]) => ({id: `${kind}:${c}`, label: i18n.chain.vq.engine.removeUnits.replace("{owner}", c).replace("{unit}", unitName(kind))})),
     ]);
 };
 
@@ -353,7 +368,7 @@ const adjacentConversions = (G: VQGame, id: string, base: string[]): boolean =>
     LAND_NEIGHBORS[id].some((n) => base.includes(n.id)) || (SPACE_BY_ID[id].ports ?? []).some((z) => zonePorts(z).some((port) => port !== id && base.includes(port)));
 const conversionOptions = (G: VQGame, p: PendingEspionage): {id: string; label: string}[] => {
     const dice = p.conversionDice ?? [];
-    const opts = [{id: "conversionsDone", label: "完成宗教转化"}];
+    const opts = [{id: "conversionsDone", label: i18n.chain.vq.engine.finishConversions}];
     const side = p.conversionSide ?? "catholic";
     if (SPACES.filter((s) => s.area === "england" && G.spaces[s.id].religion !== side).length <= 1) return opts;
     for (const d of [...new Set(dice)]) {
@@ -364,12 +379,12 @@ const conversionOptions = (G: VQGame, p: PendingEspionage): {id: string; label: 
                     unitReligion(c as Controller) === "catholic" && ((G.spaces[s.id].land[c as Controller]?.regular ?? 0) > 0 || navalCount(G.spaces[s.id].naval[c as Controller]) > 0));
             if (G.spaces[s.id].religion === side || !adjacentConversions(G, s.id, p.conversionBase ?? []) ||
                 d !== 6 && opposing) continue;
-            opts.push({id: `convert:${d}:${s.id}`, label: `${d} 点转化：${s.name}`});
+            opts.push({id: `convert:${d}:${s.id}`, label: i18n.chain.vq.engine.conversionPoints.replace("{points}", String(d)).replace("{space}", s.name)});
             // Expanding the base is legal only without opposing units; it consumes this major.
-            if (d === 6 && !p.used.includes("remainingConversions") && !opposing) opts.push({id: `expand:${s.id}`, label: `6 点扩展${side === "catholic" ? "天主教" : "新教"}基础：${s.name}`});
+            if (d === 6 && !p.used.includes("remainingConversions") && !opposing) opts.push({id: `expand:${s.id}`, label: (side === "catholic" ? i18n.chain.vq.engine.expandCatholicBase : i18n.chain.vq.engine.expandProtestantBase).replace("{space}", s.name)});
         }
     }
-    if (p.unrest && dice.includes(6)) opts.push({id: "cancelUnrest", label: "将一颗 6 降为 5，取消动荡"});
+    if (p.unrest && dice.includes(6)) opts.push({id: "cancelUnrest", label: i18n.chain.vq.engine.cancelUnrest});
     return opts.some((o) => o.id.startsWith("convert:") || o.id.startsWith("expand:")) ? opts.filter((o) => o.id !== "conversionsDone") : opts;
 };
 
@@ -449,77 +464,78 @@ export const espionageOptions = (G: VQGame): {id: string; label: string}[] => {
     if (!p) return [];
     if (p.step === "displace") {
         const dest = displacementDestinations(G, p.displacements![0]);
-        return dest.length ? dest.map((id) => ({id: `displace:${id}`, label: `遣返${p.displacements![0].kind === "land" ? "陆军与将领" : "海军与将领"}：${SPACE_BY_ID[id].name}`})) :
-            [{id: "displace:pool", label: "无合法遣返地区，返回人员池"}];
+        const label = p.displacements![0].kind === "land" ? i18n.chain.vq.engine.displaceLand : i18n.chain.vq.engine.displaceNaval;
+        return dest.length ? dest.map((id) => ({id: `displace:${id}`, label: label.replace("{space}", SPACE_BY_ID[id].name)})) :
+            [{id: "displace:pool", label: i18n.chain.vq.engine.displaceToPool}];
     }
     if (p.step === "responses") return responseOptions(G, p);
     if (p.step === "walsinghamResponse") return [
-        {id: "walsingham", label: "打出沃尔辛厄姆：先移除人员，再以 +2 骰获取情报"},
-        {id: "continue", label: "允许无效化"},
+        {id: "walsingham", label: i18n.chain.vq.engine.playWalsingham},
+        {id: "continue", label: i18n.chain.vq.engine.allowNeutralize},
     ];
-    if (p.step === "mary") return [{id: "spareMary", label: "不处决玛丽"}, {id: "executeMary", label: "处决玛丽（英格兰 −1 VP）"}];
-    if (p.step === "priestHoles") return [{id: "allowNeutralize", label: "允许耶稣会士无效化"},
-        ...(G.powers[p.responding].cards.includes("vq-090") ? [{id: "priestHoles", label: "神父藏身所：保留耶稣会士"}] : [])];
+    if (p.step === "mary") return [{id: "spareMary", label: i18n.chain.vq.engine.spareMary}, {id: "executeMary", label: i18n.chain.vq.engine.executeMary}];
+    if (p.step === "priestHoles") return [{id: "allowNeutralize", label: i18n.chain.vq.engine.allowJesuitNeutralize},
+        ...(G.powers[p.responding].cards.includes("vq-090") ? [{id: "priestHoles", label: i18n.chain.vq.engine.priestHoles}] : [])];
     if (p.step === "offense") {
         const result = [
-        ...(!p.used.includes("neutralize") && operativeOptions(G, p).length ? [{id: "neutralize", label: "无效化敌方情报人员"}] : []),
-        ...(!p.used.includes("inspect") ? [{id: "inspect", label: "秘密查看目标手牌"}] : []),
+        ...(!p.used.includes("neutralize") && operativeOptions(G, p).length ? [{id: "neutralize", label: i18n.chain.vq.engine.neutralizeEnemyOperative}] : []),
+        ...(!p.used.includes("inspect") ? [{id: "inspect", label: i18n.chain.vq.engine.inspectTargetHand}] : []),
         ...(!p.used.includes("discard") && (G.handCounts?.[p.targetPower] ?? G.powers[p.targetPower].cards.length) >= 3 && p.attack?.includes(6) ?
-            [{id: "discard", label: "迫使目标随机弃一张牌或宝藏"}] : []),
+            [{id: "discard", label: i18n.chain.vq.engine.forceDiscard}] : []),
         ];
-        return result.length ? result : [{id: "done", label: "完成情报行动"}];
+        return result.length ? result : [{id: "done", label: i18n.chain.vq.engine.finishIntelligence}];
     }
     if (p.step === "neutralize" || p.step === "extraNeutralize") return [
         ...operativeOptions(G, p, p.step === "extraNeutralize"),
-        ...(p.step === "extraNeutralize" ? [{id: "skipNeutralize", label: "跳过额外无效化"}] : []),
-        ...(p.event === "richardTopcliffe" ? [{id: "topcliffeDone", label: "完成耶稣会士无效化，进行新教转化"}] : []),
+        ...(p.step === "extraNeutralize" ? [{id: "skipNeutralize", label: i18n.chain.vq.engine.skipExtraNeutralize}] : []),
+        ...(p.event === "richardTopcliffe" ? [{id: "topcliffeDone", label: i18n.chain.vq.engine.topcliffeDone}] : []),
     ];
     if (p.step === "defense") return [
-        ...(!p.used.includes("neutralize") && activeInformant(G, p.power, p.targetPower) ? [{id: "neutralize", label: "无效化协助本次刺杀的间谍"}] : []),
-        ...(!p.used.includes("inspect") ? [{id: "inspect", label: "秘密查看刺杀方手牌"}] : []),
-        ...(!p.used.includes("minusCard") ? [{id: "minusCard", label: "刺杀方下一回合少抽一张牌"}] : []),
+        ...(!p.used.includes("neutralize") && activeInformant(G, p.power, p.targetPower) ? [{id: "neutralize", label: i18n.chain.vq.engine.neutralizeAssassinationSpy}] : []),
+        ...(!p.used.includes("inspect") ? [{id: "inspect", label: i18n.chain.vq.engine.inspectAssassinHand}] : []),
+        ...(!p.used.includes("minusCard") ? [{id: "minusCard", label: i18n.chain.vq.engine.assassinMinusCard}] : []),
     ];
     if (p.step === "conversions") return conversionOptions(G, p);
-    if (p.step === "unrest") return p.converted!.map((id) => ({id: `unrest:${id}`, label: `放置动荡：${SPACE_BY_ID[id].name}`}));
+    if (p.step === "unrest") return p.converted!.map((id) => ({id: `unrest:${id}`, label: i18n.chain.vq.engine.placeUnrest.replace("{space}", SPACE_BY_ID[id].name)}));
     if (p.step === "rebelTarget") {
         const targets = englishRebellionTargets(G);
-        return targets.length ? targets.map((id) => ({id: `rebel:${id}`, label: `叛乱目标：${SPACE_BY_ID[id].name}`})) :
-            [{id: "done", label: "无合法目标，完成叛乱"}];
+        return targets.length ? targets.map((id) => ({id: `rebel:${id}`, label: i18n.chain.vq.engine.rebellionTarget.replace("{space}", SPACE_BY_ID[id].name)})) :
+            [{id: "done", label: i18n.chain.vq.engine.noRebellionTarget}];
     }
     if (p.step === "rebelLosses") return protestantUnits(G, p.target!, true);
-    if (p.step === "rebelSpaces") return [{id: "done", label: "完成叛乱"},
+    if (p.step === "rebelSpaces") return [{id: "done", label: i18n.chain.vq.engine.finishRebellion},
         ...LAND_NEIGHBORS[p.target!].filter((n) => englishRebellionTargets(G).includes(n.id) && !protestantUnits(G, n.id).length)
-            .map((n) => ({id: `seize:${n.id}`, label: `扩展控制：${SPACE_BY_ID[n.id].name}`}))];
+            .map((n) => ({id: `seize:${n.id}`, label: i18n.chain.vq.engine.expandControl.replace("{space}", SPACE_BY_ID[n.id].name)}))];
     if (p.step === "jesuitPlace" || p.step === "jesuitDestination") {
         const places = [
         ...SPACES.filter((s) => s.area === "england" && !G.espionage?.jesuits.includes(s.id) &&
             (p.step === "jesuitDestination" || !Object.values(G.spaces[s.id].land).some((u) => u && (u.regular + u.merc + u.cav) > 0) &&
             !Object.values(G.spaces[s.id].naval).some((u) => navalCount(u) > 0) && G.spaces[s.id].leaders.length === 0))
-            .map((s) => ({id: `place:${s.id}`, label: `耶稣会士：${s.name}`})),
+            .map((s) => ({id: `place:${s.id}`, label: i18n.chain.vq.engine.placeJesuit.replace("{space}", s.name)})),
         ];
-        return places.length && p.step === "jesuitPlace" ? places : [...places, {id: "done", label: "完成耶稣会士事件"}];
+        return places.length && p.step === "jesuitPlace" ? places : [...places, {id: "done", label: i18n.chain.vq.engine.finishJesuitEvent}];
     }
     if (p.step === "northernConvert") {
         const targets = northernConversionTargets(G, p.conversionBase ?? []);
-        return targets.length ? targets.map((id) => ({id: `nconvert:${id}`, label: `北方崛起：${SPACE_BY_ID[id].name} 改为天主教`})) :
-            [{id: "nconvertDone", label: "没有其他合法地区，继续结算"}];
+        return targets.length ? targets.map((id) => ({id: `nconvert:${id}`, label: i18n.chain.vq.engine.northernConvert.replace("{space}", SPACE_BY_ID[id].name)})) :
+            [{id: "nconvertDone", label: i18n.chain.vq.engine.noOtherRegionContinue}];
     }
     if (p.step === "massacreConvert") {
         const targets = massacreConversionTargets(G);
-        return [{id: "massacreConvertDone", label: "结束转化"},
-            ...targets.map((id) => ({id: `mconvert:${id}`, label: `大屠杀：${SPACE_BY_ID[id].name} 改为天主教`}))];
+        return [{id: "massacreConvertDone", label: i18n.chain.vq.engine.endConversions},
+            ...targets.map((id) => ({id: `mconvert:${id}`, label: i18n.chain.vq.engine.massacreConvert.replace("{space}", SPACE_BY_ID[id].name)}))];
     }
     if (p.step === "massacreAssassinate") return [
-        {id: "massacreAssassinate", label: `免费刺杀科利尼（${p.cp} CP）`},
-        {id: "massacreSkip", label: "放弃刺杀"},
+        {id: "massacreAssassinate", label: i18n.chain.vq.engine.freeAssassinateColigny.replace("{cp}", String(p.cp))},
+        {id: "massacreSkip", label: i18n.chain.vq.engine.skipAssassination},
     ];
     if (p.step === "northernUnrest") {
         const targets = northernUnrestTargets(G);
-        return targets.length ? targets.map((id) => ({id: `nunrest:${id}`, label: `北方崛起：在 ${SPACE_BY_ID[id].name} 放置动荡`})) :
-            [{id: "done", label: "没有其他合法地区，完成事件"}];
+        return targets.length ? targets.map((id) => ({id: `nunrest:${id}`, label: i18n.chain.vq.engine.northernUnrest.replace("{space}", SPACE_BY_ID[id].name)})) :
+            [{id: "done", label: i18n.chain.vq.engine.noOtherRegionDone}];
     }
-    if (p.step === "jesuitMove") return [{id: "done", label: "完成耶稣会士事件"}, ...(G.espionage?.jesuits ?? []).filter((id) => p.used.includes(id)).map((id) =>
-        ({id: `move:${id}`, label: `移动耶稣会士：${SPACE_BY_ID[id].name}`}))];
+    if (p.step === "jesuitMove") return [{id: "done", label: i18n.chain.vq.engine.finishJesuitEvent}, ...(G.espionage?.jesuits ?? []).filter((id) => p.used.includes(id)).map((id) =>
+        ({id: `move:${id}`, label: i18n.chain.vq.engine.moveJesuit.replace("{space}", SPACE_BY_ID[id].name)}))];
     return [];
 };
 

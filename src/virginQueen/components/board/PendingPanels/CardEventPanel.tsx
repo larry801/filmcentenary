@@ -4,7 +4,7 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import i18n from "../../../../constant/i18n";
 import {powerName} from "../../../constant/general";
-import {cardById} from "../../../constant/cards";
+import {cardName} from "../../../constant/cards";
 import {ownerOf} from "../../../ownership";
 import {cardEventOptions} from "../../../cardEvents";
 import {PendingPanelProps} from "./types";
@@ -22,7 +22,7 @@ export const PendingCardEventPanel = ({G, moves, playerID, numPlayers}: PendingC
     return <Stack spacing={1}>
         <Typography>{pending.kind === "cancelEvent" ? i18n.chain.vq.board.response : i18n.chain.vq.board.vizier} · {i18n.chain.vq.board.waitingOttoman}</Typography>
         {pending.kind === "cancelEvent" ? <Typography variant="body2">
-            {cardById(pending.cardId).name} {i18n.chain.vq.board.notResolved}
+            {cardName(pending.cardId, vqLocale)} {i18n.chain.vq.board.notResolved}
         </Typography> : pending.step === "recruit" ? <Typography variant="body2">
             {i18n.chain.vq.board.canAdd} {pending.remaining} {i18n.chain.vq.board.units}. {i18n.chain.vq.board.regularsHome}
         </Typography> : <Typography variant="body2">

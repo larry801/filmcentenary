@@ -2,7 +2,6 @@ import React from "react";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import i18n from "../../../constant/i18n";
-import {Power} from "../../constant/general";
 import {SPACES} from "../../mapData";
 
 export interface LogMark {
@@ -15,7 +14,6 @@ export interface LogMark {
 
 export interface LogPanelProps {
     log: string[];
-    me?: Power;
     /** Localized name of the viewer's power, used to highlight their entries. */
     myName?: string;
     marks?: LogMark[];

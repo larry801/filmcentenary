@@ -25,6 +25,7 @@ import {CardDef,
     isPower,
     powerAt, spaceHomes, MINOR_REGULAR_LIMITS, MINOR_NAVAL_LIMITS} from "./constant/general";
 import {cardById} from "./constant/cards";
+import i18n from "../constant/i18n";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
 import {WORLD_HAZARDS, WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENTS, WORLD_SETTLEMENT_BY_ID, WORLD_TRADE_WINDS} from "./data/world";
 import {patronById, royalAvailable, seaCaptainById} from "./scenario";
@@ -294,10 +295,10 @@ export const actionResponseOptions = (G: VQGame, responderOverride?: Power): {id
     if (!pending) return [];
     const responder = responderOverride ?? pendingResponder(G, pending);
     if (pending.responders !== undefined && !pending.responders.includes(responder)) return [];
-    return [{id: "continue", label: "允许行动"},
-        ...(pending.move !== "impulse" && G.powers[responder].cards.includes("vq-015") ? [{id: "storms", label: "打出 Storms，中断行动"}] : []),
+    return [{id: "continue", label: i18n.chain.vq.engine.allowAction},
+        ...(pending.move !== "impulse" && G.powers[responder].cards.includes("vq-015") ? [{id: "storms", label: i18n.chain.vq.engine.playStorms}] : []),
         ...(pending.power === "ottoman" && responder !== "ottoman" && haremActionResponseAllowed(G, responder) &&
-            G.powers[responder].cards.includes("vq-016") ? [{id: "harem", label: "打出 Sultan's Harem，奥斯曼跳过下次行动轮次"}] : [])];
+            G.powers[responder].cards.includes("vq-016") ? [{id: "harem", label: i18n.chain.vq.engine.playSultansHarem}] : [])];
 };
 
 export const respondAction = (G: VQGame, ctx: Ctx, args: {choice: string; responder?: Power}): void | typeof INVALID_MOVE => {
@@ -1192,15 +1193,15 @@ export type CityRebelsLossKind = keyof LandStack | keyof NavalStack;
 
 const CITY_REBELS_LAND_KINDS = ["merc", "regular", "cav"] as const;
 const CITY_REBELS_NAVAL_KINDS = ["corsair", "galley", "galleon", "racebuilt"] as const;
-const CITY_REBELS_LOSS_LABELS: Record<CityRebelsLossKind, string> = {
-    regular: "正规军",
-    merc: "雇佣兵",
-    cav: "骑兵",
-    corsair: "海盗船",
-    galley: "桨帆船",
-    galleon: "大帆船",
-    racebuilt: "快帆船",
-};
+const cityRebelsLossLabels = (): Record<CityRebelsLossKind, string> => ({
+    regular: i18n.chain.vq.engine.unitRegular,
+    merc: i18n.chain.vq.engine.unitMerc,
+    cav: i18n.chain.vq.engine.unitCav,
+    corsair: i18n.chain.vq.engine.unitCorsair,
+    galley: i18n.chain.vq.engine.unitGalley,
+    galleon: i18n.chain.vq.engine.unitGalleon,
+    racebuilt: i18n.chain.vq.engine.unitRacebuilt,
+});
 
 const cityRebelsLossKinds = (G: VQGame, space: string, controller: Controller): CityRebelsLossKind[] => {
     const state = G.spaces[space];
@@ -1225,8 +1226,9 @@ const cityRebelsLossKinds = (G: VQGame, space: string, controller: Controller): 
 export const cityRebelsLossOptions = (G: VQGame): {kind: CityRebelsLossKind; label: string}[] => {
     const pending = G.pendingCityRebels;
     if (pending === undefined) return [];
+    const labels = cityRebelsLossLabels();
     return cityRebelsLossKinds(G, pending.space, pending.controller)
-        .map((kind) => ({kind, label: CITY_REBELS_LOSS_LABELS[kind]}));
+        .map((kind) => ({kind, label: labels[kind]}));
 };
 
 /** Remove one unit of the chosen type, rejecting types the controller lacks. */

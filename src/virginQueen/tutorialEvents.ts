@@ -1,10 +1,11 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {Controller, LandStack, MinorPower, MINOR_POWERS, Power, VQGame, controllerName, isPower, landCount, navalCount, spaceHomes} from "./constant/general";
-import {cardById} from "./constant/cards";
+import {cardById, cardName} from "./constant/cards";
 import {beginGrandVizierEvent, canPlayGrandVizier} from "./cardEvents";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {LAND_NEIGHBORS, SPACE_BY_ID, SPACES} from "./mapData";
+import i18n from "../constant/i18n";
 import {ownerOf} from "./ownership";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
 import {TUTORIAL_KEYS, tutorialSpaceAllowed} from "./tutorial";
@@ -22,6 +23,20 @@ type PendingEvent = NonNullable<VQGame["pendingTutorialEvent"]>;
 const option = (id: string, label: string): TutorialEventOption => ({id, label});
 const activeSpaces = () => SPACES.filter((space) => tutorialSpaceAllowed(space.id));
 const spaceOption = (id: string) => option(`space:${id}`, SPACE_BY_ID[id].name);
+const locale = (): "en" | "zh_CN" => i18n.getLocaleName() === "en" ? "en" : "zh_CN";
+/** Localized display name for a unit kind used inside option labels. */
+const unitName = (kind: string): string => {
+    switch (kind) {
+        case "regular": return i18n.chain.vq.engine.unitRegular;
+        case "merc": return i18n.chain.vq.engine.unitMerc;
+        case "cav": return i18n.chain.vq.engine.unitCav;
+        case "galley": return i18n.chain.vq.engine.unitGalley;
+        case "galleon": return i18n.chain.vq.engine.unitGalleon;
+        case "racebuilt": return i18n.chain.vq.engine.unitRacebuilt;
+        case "corsair": return i18n.chain.vq.engine.unitCorsair;
+        default: return kind;
+    }
+};
 const effects = (G: VQGame) => G.tutorialEffects ?? {nextDraw: {}, skip: [], piracyVp: 0};
 const drawableCards = (G: VQGame, power: Power): string[] => G.powers[power].cards.filter((id) => cardById(id).kind !== "home");
 const neighborsWithin = (from: string, distance: number): string[] => {
@@ -68,17 +83,18 @@ const cityRebelLossOptions = (G: VQGame): TutorialEventOption[] => {
     const controlled = (owner: Controller) => owner === state.control ||
         (isPower(state.control) && !isPower(owner) && owner !== "independent" && minorAlly(G, owner) === state.control);
     const result: TutorialEventOption[] = [];
-    const names = {regular: "正规军", merc: "雇佣兵", cav: "骑兵", galley: "桨帆船", galleon: "大帆船", racebuilt: "快帆船", corsair: "海盗船"};
+    const names = {regular: i18n.chain.vq.engine.unitRegular, merc: i18n.chain.vq.engine.unitMerc, cav: i18n.chain.vq.engine.unitCav,
+        galley: i18n.chain.vq.engine.unitGalley, galleon: i18n.chain.vq.engine.unitGalleon, racebuilt: i18n.chain.vq.engine.unitRacebuilt, corsair: i18n.chain.vq.engine.unitCorsair};
     for (const [owner, stack] of Object.entries(state.land)) {
         if (!controlled(owner as Controller)) continue;
         for (const kind of ["regular", "merc", "cav"] as const) {
-            if (stack![kind] > 0) result.push(option(`loss:land:${owner}:${kind}`, `移除 ${controllerName(owner as Controller, "zh_CN")} ${names[kind]}`));
+            if (stack![kind] > 0) result.push(option(`loss:land:${owner}:${kind}`, i18n.chain.vq.engine.removeUnits.replace("{owner}", controllerName(owner as Controller, locale())).replace("{unit}", names[kind])));
         }
     }
     for (const [owner, stack] of Object.entries(state.naval)) {
         if (!controlled(owner as Controller)) continue;
         for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) {
-            if (stack![kind] > 0) result.push(option(`loss:naval:${owner}:${kind}`, `移除 ${controllerName(owner as Controller, "zh_CN")} ${names[kind]}`));
+            if (stack![kind] > 0) result.push(option(`loss:naval:${owner}:${kind}`, i18n.chain.vq.engine.removeUnits.replace("{owner}", controllerName(owner as Controller, locale())).replace("{unit}", names[kind])));
         }
     }
     return result;
@@ -141,44 +157,45 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
     const number = cardById(pending.cardId).officialNumber;
     if (pending.step === "roadFormation") {
         const formation = pending.roadFormation!;
-        const result = [option("none", "不进行米兰部署")];
-        const unitNames = {regular: "正规军", merc: "雇佣兵", cav: "骑兵"};
+        const result = [option("none", i18n.chain.vq.engine.noMilanDeployment)];
+        const unitNames = {regular: i18n.chain.vq.engine.unitRegular, merc: i18n.chain.vq.engine.unitMerc, cav: i18n.chain.vq.engine.unitCav};
         for (const [owner, available] of Object.entries(G.spaces.milan.land)) {
             if (owner !== "spain" && (isPower(owner) || !friendlyController(G, "spain", owner as Controller))) continue;
             for (const kind of ["regular", "merc", "cav"] as const) {
                 const selected = formation.units[owner as Controller]?.[kind] ?? 0;
-                const label = `${controllerName(owner as Controller, "zh_CN")} ${unitNames[kind]}（已选 ${selected}）`;
-                if (selected < available![kind] && roadSize(G) < roadCapacity(G)) result.push(option(`add:${owner}:${kind}`, `增加 ${label}`));
-                if (selected > 0) result.push(option(`remove:${owner}:${kind}`, `减少 ${label}`));
+                const label = i18n.chain.vq.engine.selectedUnit.replace("{owner}", controllerName(owner as Controller, locale()))
+                    .replace("{unit}", unitNames[kind]).replace("{count}", String(selected));
+                if (selected < available![kind] && roadSize(G) < roadCapacity(G)) result.push(option(`add:${owner}:${kind}`, `${i18n.chain.vq.engine.addUnit} ${label}`));
+                if (selected > 0) result.push(option(`remove:${owner}:${kind}`, `${i18n.chain.vq.engine.removeUnit} ${label}`));
             }
         }
         for (const id of G.spaces.milan.leaders.filter((id) => LEADER_BY_ID[id]?.power === "spain" && LEADER_BY_ID[id].kind === "army")) {
-            result.push(option(`formationLeader:${id}`, `${formation.leaders.includes(id) ? "取消" : "选择"}随军将领：${LEADER_BY_ID[id].name}`));
+            result.push(option(`formationLeader:${id}`, (formation.leaders.includes(id) ? i18n.chain.vq.engine.deselectLeader : i18n.chain.vq.engine.selectLeader).replace("{leader}", LEADER_BY_ID[id].name)));
         }
         if ((roadSize(G) > 0 || formation.leaders.length > 0) && roadSize(G) <= roadCapacity(G)) {
-            result.push(...spanishRoadDestinations(G).map((id) => option(`deploy:${id}`, `部署至 ${SPACE_BY_ID[id].name}（${roadSize(G)} 陆军）`)));
+            result.push(...spanishRoadDestinations(G).map((id) => option(`deploy:${id}`, i18n.chain.vq.engine.deployTo.replace("{space}", SPACE_BY_ID[id].name).replace("{count}", String(roadSize(G))))));
         }
         return result;
     }
     if (pending.step === "rebelLosses") return cityRebelLossOptions(G);
-    if (pending.step === "rebelRegular") return [option("regular", "增加 1 名家乡势力正规军"), option("none", "不增加正规军")];
-    if (pending.step === "cancel") return [option("continue", "允许事件结算"), option("cancel", "打出 Grand Vizier 取消事件")];
-    if (pending.step === "tribute") return [option("refuse", "拒绝进贡"), ...(drawableCards(G, "spain").length > 0 ? [option("offer", "提出进贡 1 张随机手牌")] : [])];
-    if (pending.step === "acceptTribute") return [option("accept", "接受进贡，取消宣战并抽牌"), option("reject", "拒绝进贡，继续宣战")];
-    if (pending.step === "payment") return [option("none", "不支付，失去正规军"), ...G.powers[pending.responding].cards.filter((id) => cardById(id).officialKind !== "mandatory")
-        .map((id) => option(`card:${id}`, `支付 ${cardById(id).name}，保留最多 ${cardById(id).cp * 2} 正规军`))];
-    if (pending.step === "illness") return [option("discard", "随机弃 1 张手牌"), option("skip", "跳过下次行动轮次并召回一名将领")].filter((entry) => entry.id !== "discard" || G.powers[pending.responding].cards.some((id) => id !== "vq-006"));
-    if (pending.step === "leader") return [option("none", "不移动将领"), ...Object.values(G.leaders).filter((leader) => {
+    if (pending.step === "rebelRegular") return [option("regular", i18n.chain.vq.engine.addHomeRegular), option("none", i18n.chain.vq.engine.noRegular)];
+    if (pending.step === "cancel") return [option("continue", i18n.chain.vq.engine.allowEventResolution), option("cancel", i18n.chain.vq.engine.playGrandVizierCancel)];
+    if (pending.step === "tribute") return [option("refuse", i18n.chain.vq.engine.refuseTribute), ...(drawableCards(G, "spain").length > 0 ? [option("offer", i18n.chain.vq.engine.offerTribute)] : [])];
+    if (pending.step === "acceptTribute") return [option("accept", i18n.chain.vq.engine.acceptTribute), option("reject", i18n.chain.vq.engine.rejectTribute)];
+    if (pending.step === "payment") return [option("none", i18n.chain.vq.engine.noPayment), ...G.powers[pending.responding].cards.filter((id) => cardById(id).officialKind !== "mandatory")
+        .map((id) => option(`card:${id}`, i18n.chain.vq.engine.payCard.replace("{card}", cardName(id, locale())).replace("{count}", String(cardById(id).cp * 2))))];
+    if (pending.step === "illness") return [option("discard", i18n.chain.vq.engine.discardRandomCard), option("skip", i18n.chain.vq.engine.skipAndRecallLeader)].filter((entry) => entry.id !== "discard" || G.powers[pending.responding].cards.some((id) => id !== "vq-006"));
+    if (pending.step === "leader") return [option("none", i18n.chain.vq.engine.noLeaderMove), ...Object.values(G.leaders).filter((leader) => {
         const def = LEADER_BY_ID[leader.id];
         return def?.power === (pending.targetPower ?? power) && def.kind === "army" && G.spaces[leader.location] &&
             (number !== 3 || !G.spaces[leader.location].siege);
     }).map((leader) => option(`leader:${leader.id}`, LEADER_BY_ID[leader.id].name))];
-    if (pending.step === "papalBenefit") return [option("none", "不领取额外奖励"),
-        ...(G.discard.includes("vq-024") && canPlayHolyLeague(G, power) ? [option("holyLeague", "取回并立即打出 Holy League")] : [])];
+    if (pending.step === "papalBenefit") return [option("none", i18n.chain.vq.engine.noExtraBenefit),
+        ...(G.discard.includes("vq-024") && canPlayHolyLeague(G, power) ? [option("holyLeague", i18n.chain.vq.engine.playHolyLeague)] : [])];
     if (pending.step === "resolve") return influenceTracks(G, power).filter((track) => !pending.tracks.includes(track))
-        .map((track) => option(`resolve:${track}`, `决议 ${track} 的外交状态`));
+        .map((track) => option(`resolve:${track}`, i18n.chain.vq.engine.resolveTrack.replace("{track}", track)));
     if (pending.step === "influence") return influenceTracks(G, power).filter((track) => influenceValue(G, track, power) < 9)
-        .map((track) => option(`influence:${track}`, `向 ${track} 投入 1 影响力`));
+        .map((track) => option(`influence:${track}`, i18n.chain.vq.engine.investInfluence.replace("{track}", track)));
     if (pending.step === "unrest") return activeSpaces().filter((space) => ["ottoman", "spain", "hre"].includes(space.home) &&
         !G.spaces[space.id].unrest && totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 &&
         (number !== 28 || neighborsWithin(effects(G).moriscoSpace ?? "granada", 2).includes(space.id)))
@@ -188,21 +205,21 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
         for (const space of activeSpaces()) {
             const state = G.spaces[space.id];
             if (state.control !== power || state.siege || state.unrest) continue;
-            result.push(option(`regular:${space.id}`, `增加 1 正规军：${space.name}`));
+            result.push(option(`regular:${space.id}`, i18n.chain.vq.engine.addRegularTo.replace("{space}", space.name)));
         }
         return result;
     }
     if (number === 2) return ["hre", "venice", "spain"].filter((target) => target === "spain" ? !atWar(G, "ottoman", "spain") :
         target === "hre" ? !atWar(G, "ottoman", "hre") && !G.majorDiplomacyResolved?.includes("hre") :
             !G.powers.ottoman.warsMinors.includes("venice") && !G.minorDiplomacyResolved.includes("venice"))
-        .map((target) => option(`war:${target}`, `向 ${target} 宣战`));
+        .map((target) => option(`war:${target}`, i18n.chain.vq.engine.declareWarOn.replace("{target}", target)));
     if (number === 13 && power !== "ottoman") return activeSpaces().filter((space) => friendlyControlled(G, power, space.id)).map((space) => spaceOption(space.id));
     if (number === 13 || number === 23 || number === 17) return activeSpaces().flatMap((space) => Object.entries(G.spaces[space.id].land)
         .filter(([owner, stack]) => stack && (number === 17 ? isPower(owner) && owner !== power && landCount(stack) > 0 : stack.merc > 0))
         .map(([owner]) => option(`army:${space.id}:${owner}`, `${space.name} · ${owner}`)));
     if (number === 18) return cityRebelTargets(G).map((space) => spaceOption(space.id));
     if (number === 19) return ["papacy", "venice", "hre"].flatMap((track) => (["ottoman", "spain"] as Power[])
-        .filter((target) => target !== power && influenceValue(G, track, target) > 0).map((target) => option(`remove:${track}:${target}`, `移除 ${target} 对 ${track} 的影响力`)));
+        .filter((target) => target !== power && influenceValue(G, track, target) > 0).map((target) => option(`remove:${track}:${target}`, i18n.chain.vq.engine.removeInfluence.replace("{target}", target).replace("{track}", track))));
     if (number === 26) {
         if (!pending.space) return activeSpaces().filter((space) => !!G.spaces[space.id].siege &&
             defenderLandCount(G, space.id) <= 3)
@@ -210,9 +227,9 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
         return activeSpaces().filter((space) => space.id !== pending.space && G.spaces[space.id].control === G.spaces[pending.space!].control &&
             (G.spaces[space.id].land[G.spaces[pending.space!].control]?.regular ?? 0) > 0).map((space) => spaceOption(space.id));
     }
-    if (number === 27) return [option("card", "从奥斯曼随机抽取 1 张牌"), option("vp", "奥斯曼海盗 VP 减少 1")]
+    if (number === 27) return [option("card", i18n.chain.vq.engine.drawRandomFromOttoman), option("vp", i18n.chain.vq.engine.ottomanPiracyVpMinusOne)]
         .filter((entry) => entry.id === "card" ? drawableCards(G, "ottoman").length > 0 : effects(G).piracyVp > 0);
-    if (number === 30) return [option("power:ottoman", "奥斯曼帝国"), option("power:spain", "西班牙")].filter((entry) => entry.id !== `power:${power}`);
+    if (number === 30) return [option("power:ottoman", i18n.chain.vq.engine.powerOttoman), option("power:spain", i18n.chain.vq.engine.powerSpain)].filter((entry) => entry.id !== `power:${power}`);
     if (number === 31) return activeSpaces().filter((space) => !!G.spaces[space.id].siege).map((space) => spaceOption(space.id));
     return [];
 };

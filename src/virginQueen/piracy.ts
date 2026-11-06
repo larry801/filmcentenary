@@ -4,6 +4,7 @@ import {Power, SeaZoneID, VQGame, navalCount} from "./constant/general";
 import {SEA_ZONE_BY_ID, SEA_ZONES, SPACE_BY_ID} from "./mapData";
 import {ownerOf} from "./ownership";
 import {cardById} from "./constant/cards";
+import i18n from "../constant/i18n";
 import {TUTORIAL_FORTRESSES, tutorialSpaceAllowed} from "./tutorial";
 import {atWar, bestPiracy, hits, isSeaZone, leaderPower, pushLog, recordNavalLoss, removeCardFromHand, roll, shuffle, zonePorts} from "./util";
 
@@ -19,18 +20,18 @@ export const piracyOptions = (G: VQGame): {id: string; label: string}[] => {
     const pending = G.pendingPiracy;
     if (!pending) return [];
     if (pending.step === "losses") return ["galley", "galleon", "racebuilt"].filter((kind) =>
-        (G.seaZones[pending.zone].naval[pending.power]?.[kind as "galley"] ?? 0) > 0).map((kind) => ({id: `loss:${kind}`, label: `移除 1 ${kind}`}));
+        (G.seaZones[pending.zone].naval[pending.power]?.[kind as "galley"] ?? 0) > 0).map((kind) => ({id: `loss:${kind}`, label: `${i18n.chain.vq.engine.removeOne} ${kind}`}));
     const result: {id: string; label: string; reward: string}[] = [];
     const locations = [pending.zone, ...adjacentLocations(pending.zone)];
     for (const location of locations) {
         for (const [kind, count] of Object.entries(stacks(G, location)[pending.target] ?? {})) {
-            if (count > 0) result.push({id: `ship:${location}:${kind}`, label: `移除舰队：${SPACE_BY_ID[location]?.name ?? location} ${kind}`, reward: "ship"});
+            if (count > 0) result.push({id: `ship:${location}:${kind}`, label: i18n.chain.vq.engine.removeFleet.replace("{space}", SPACE_BY_ID[location]?.name ?? location).replace("{kind}", kind), reward: "ship"});
         }
     }
-    if (G.powers[pending.target].cards.some((id) => cardById(id).kind !== "home")) result.push({id: "card", label: "允许对方随机抽取 1 张手牌", reward: "card"});
+    if (G.powers[pending.target].cards.some((id) => cardById(id).kind !== "home")) result.push({id: "card", label: i18n.chain.vq.engine.allowRandomDraw, reward: "card"});
     if (pending.power === "ottoman") {
-        if ((G.tutorialEffects?.piracyVp ?? 0) < 10) result.push({id: "vp", label: "给予奥斯曼 1 海盗 VP", reward: "vp"});
-    } else if ((G.tutorialEffects?.piracyVp ?? 0) > 0 || result.length === 0) result.push({id: "vp", label: "奥斯曼海盗 VP 减少 1", reward: "vp"});
+        if ((G.tutorialEffects?.piracyVp ?? 0) < 10) result.push({id: "vp", label: i18n.chain.vq.engine.giveOttomanPiracyVp, reward: "vp"});
+    } else if ((G.tutorialEffects?.piracyVp ?? 0) > 0 || result.length === 0) result.push({id: "vp", label: i18n.chain.vq.engine.ottomanPiracyVpMinusOne, reward: "vp"});
     const minimum = Math.min(...result.map((entry) => pending.rewards[entry.reward] ?? 0));
     return result.filter((entry) => (pending.rewards[entry.reward] ?? 0) === minimum);
 };

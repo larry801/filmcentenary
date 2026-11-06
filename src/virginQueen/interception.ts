@@ -1,4 +1,5 @@
 import {Ctx} from "boardgame.io";
+import i18n from "../constant/i18n";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {Controller, Power, SeaZoneID, VQGame, landCount, navalCount} from "./constant/general";
 import {LEADER_BY_ID} from "./constant/leaders";
@@ -41,8 +42,8 @@ export const interceptionOptions = (G: VQGame): {id: string; label: string}[] =>
     const pending = G.pendingIntercept;
     if (!pending) return [];
     return [
-        ...candidateSpaces(G).map((id) => ({id: `intercept:${id}`, label: `从 ${SPACE_BY_ID[id]?.name ?? id} 尝试拦截`})),
-        {id: "done", label: "结束拦截选择"},
+        ...candidateSpaces(G).map((id) => ({id: `intercept:${id}`, label: `${i18n.chain.vq.engine.interceptFrom} ${SPACE_BY_ID[id]?.name ?? id}`})),
+        {id: "done", label: i18n.chain.vq.engine.finishInterception},
     ];
 };
 

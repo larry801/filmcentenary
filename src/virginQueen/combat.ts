@@ -1,7 +1,8 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {Controller, Power, VQGame, isPower, landCount, navalCount, spaceHomes} from "./constant/general";
-import {cardById} from "./constant/cards";
+import {cardById, cardName} from "./constant/cards";
+import i18n from "../constant/i18n";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "./mapData";
 import {ownerOf} from "./ownership";
@@ -110,12 +111,13 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
     const battle = G.pendingBattle;
     if (!battle) return [];
     const power = battle.responding;
+    const locale: "en" | "zh_CN" = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
     if (battle.step === "defend") {
-        const options = [{id: "fight", label: "迎战"}];
+        const options = [{id: "fight", label: i18n.chain.vq.engine.fight}];
         if (battle.intercepted) return options;
         if (battle.phase === "naval" && !isSeaZone(battle.location)) return options;
-        if (isFortifiedSpace(G, battle.location) && sideUnits(G, battle, false) <= 4) options.push({id: "fortify", label: "退入要塞"});
-        for (const destination of retreatOptions(G, battle, power)) options.push({id: `avoid:${destination}`, label: `尝试避战至 ${SPACE_BY_ID[destination]?.name ?? SEA_ZONE_BY_ID[destination]?.name ?? destination}`});
+        if (isFortifiedSpace(G, battle.location) && sideUnits(G, battle, false) <= 4) options.push({id: "fortify", label: i18n.chain.vq.engine.retreatIntoFortress});
+        for (const destination of retreatOptions(G, battle, power)) options.push({id: `avoid:${destination}`, label: `${i18n.chain.vq.engine.avoidBattleTo} ${SPACE_BY_ID[destination]?.name ?? SEA_ZONE_BY_ID[destination]?.name ?? destination}`});
         return options;
     }
     if (battle.step === "attackerCards" || battle.step === "defenderCards" || battle.step === "attackerAfterRoll" || battle.step === "defenderAfterRoll") {
@@ -135,10 +137,10 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
         });
         return [
             ...candidates.flatMap((id) => id === "vq-012" ? [
-                {id: "card:vq-012:attacker", label: "威尼斯桨帆船：给进攻方 +3/+5 骰"},
-                {id: "card:vq-012:defender", label: "威尼斯桨帆船：给防守方 +3/+5 骰"},
-            ] : [{id: `card:${id}`, label: `打出 ${cardById(id).name}`}]),
-            {id: "done", label: "继续结算"},
+                {id: "card:vq-012:attacker", label: i18n.chain.vq.engine.venetianGalleassesAttacker},
+                {id: "card:vq-012:defender", label: i18n.chain.vq.engine.venetianGalleassesDefender},
+            ] : [{id: `card:${id}`, label: `${i18n.chain.vq.engine.playCard} ${cardName(id, locale)}`}]),
+            {id: "done", label: i18n.chain.vq.engine.continueResolution},
         ];
     }
     if (battle.step === "attackerLosses" || battle.step === "defenderLosses") {
@@ -149,12 +151,12 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
             for (const [kind, count] of Object.entries(stack ?? {})) {
                 const remaining = battle.losses![battle.step === "attackerLosses" ? "attacker" : "defender"];
                 const loser = battle.hitCounts!.attacker > battle.hitCounts!.defender ? battle.defender : battle.attacker;
-                if (count > 0 && (battle.phase !== "naval" || kind === "corsair" || remaining >= 2 || power === loser)) result.push({id: `loss:${owner}:${kind}`, label: `移除 1 ${owner} ${kind}`});
+                if (count > 0 && (battle.phase !== "naval" || kind === "corsair" || remaining >= 2 || power === loser)) result.push({id: `loss:${owner}:${kind}`, label: `${i18n.chain.vq.engine.removeOne} ${owner} ${kind}`});
             }
         }
         return result;
     }
-    return retreatOptions(G, battle, battle.loser!).map((id) => ({id: `retreat:${id}`, label: `撤退至 ${SPACE_BY_ID[id]?.name ?? id}`}));
+    return retreatOptions(G, battle, battle.loser!).map((id) => ({id: `retreat:${id}`, label: `${i18n.chain.vq.engine.retreatTo} ${SPACE_BY_ID[id]?.name ?? id}`}));
 };
 
 const finishCasualties = (G: VQGame, ctx: Ctx): void => {

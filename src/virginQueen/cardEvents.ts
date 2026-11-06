@@ -3,6 +3,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {CardDef, Power, VQGame, landCount, spaceHomes} from "./constant/general";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {SPACE_BY_ID, SPACES} from "./mapData";
+import i18n from "../constant/i18n";
 import {ownerOf} from "./ownership";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {addLand, addNaval, ensureDefaultLeader, pushLog, removeCardFromGame, resolveEvent, spaceHasEnemyLand, spaceHasEnemyNaval} from "./util";
@@ -20,20 +21,20 @@ const recruitmentOptions = (G: VQGame): CardEventOption[] => {
         if (!spaceHomes(space).includes("ottoman") || state.control !== "ottoman" || state.siege || state.unrest ||
             (G.scenario === "tutorial" && !tutorialSpaceAllowed(space.id)) ||
             spaceHasEnemyLand(G, "ottoman", space.id) || spaceHasEnemyNaval(G, "ottoman", space.id)) continue;
-        if (!["algiers", "tripoli"].includes(space.id)) options.push({id: `regular:${space.id}`, label: `增加 1 正规军：${space.name}`});
-        if (space.ports?.includes("aegean")) options.push({id: `galley:${space.id}`, label: `增加 1 桨帆船：${space.name}`});
+        if (!["algiers", "tripoli"].includes(space.id)) options.push({id: `regular:${space.id}`, label: i18n.chain.vq.engine.addRegularTo.replace("{space}", space.name)});
+        if (space.ports?.includes("aegean")) options.push({id: `galley:${space.id}`, label: i18n.chain.vq.engine.addGalleyTo.replace("{space}", space.name)});
     }
     const war = G.foreignWars.ottoman;
     if (G.scenario !== "tutorial" && war?.status === "active" && landCount(war.units) < 8) {
-        options.push({id: "regular:foreignWar", label: "增加 1 正规军：波斯境外战争"});
+        options.push({id: "regular:foreignWar", label: i18n.chain.vq.engine.addRegularPersia});
     }
     return options;
 };
 
 const effectOptions = (G: VQGame, numPlayers: number): CardEventOption[] => [
-    ...(recruitmentOptions(G).length ? [{id: "recruit", label: "增募 4 个正规军／桨帆船"}] : []),
+    ...(recruitmentOptions(G).length ? [{id: "recruit", label: i18n.chain.vq.engine.recruitFour}] : []),
     ...(G.scenario !== "tutorial" && [5, 6].includes(numPlayers) && !G.suezDone
-        ? [{id: "suez", label: "尝试建造苏伊士运河"}] : []),
+        ? [{id: "suez", label: i18n.chain.vq.engine.attemptSuez}] : []),
 ];
 
 export const canPlayGrandVizier = (G: VQGame, power: Power, numPlayers: number): boolean =>
@@ -69,8 +70,8 @@ export const cardEventOptions = (G: VQGame, numPlayers: number): CardEventOption
     if (pending.kind === "cancelEvent") {
         const responseCard = pending.responseCard ?? (pending.responding === "ottoman" ? grandVizierInHand(G) : undefined);
         return [
-            {id: "continue", label: "允许事件结算"},
-            ...(responseCard ? [{id: "cancel", label: responseCard === "vq-042" ? "打出凯瑟琳的飞剪船，取消事件" : responseCard === "vq-058" ? "打出纳瓦拉的珍妮，取消事件" : "打出大维齐尔，取消事件"}] : []),
+            {id: "continue", label: i18n.chain.vq.engine.allowEventResolution},
+            ...(responseCard ? [{id: "cancel", label: responseCard === "vq-042" ? i18n.chain.vq.engine.playCatherinePrivateer : responseCard === "vq-058" ? i18n.chain.vq.engine.playJeanneOfNavarre : i18n.chain.vq.engine.playGrandVizierCancel}] : []),
         ];
     }
     return pending.step === "effect" ? effectOptions(G, numPlayers) : recruitmentOptions(G);
