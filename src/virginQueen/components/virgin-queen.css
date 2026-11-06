@@ -162,3 +162,15 @@
     .vq-response { animation: none; }
     .vq-map-node, .vq-card, .vq-guide { transition: none; }
 }
+
+/* Phase 2 — grouped action buttons replace the old mode dropdown. */
+.vq-action-picker { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 8px; }
+.vq-action-picker > .MuiButton-root { align-self: flex-start; }
+.vq-action-group { display: flex; flex-direction: column; gap: 3px; }
+.vq-action-group-title { color: #7a6a4c; letter-spacing: .04em; text-transform: uppercase; font-size: 10px !important; }
+.vq-action-group .MuiButton-root { min-height: 30px; padding-top: 2px; padding-bottom: 2px; }
+.vq-tip { display: inline-flex; }
+@media (max-width: 599px) {
+    .vq-action-picker { gap: 6px; }
+    .vq-action-group .MuiButton-root { font-size: 12px; }
+}

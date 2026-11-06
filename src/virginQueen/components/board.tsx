@@ -20,6 +20,7 @@ import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import {ActionGroup, VQSurface} from "./theme";
 import {ConfirmDialog} from "./board/ConfirmDialog";
+import {StepBanner} from "./board/StepBanner";
 import ExportLogButton from "../../components/export-log-button";
 import InputLabel from "@mui/material/InputLabel";
 import List from "@mui/material/List";
@@ -86,6 +87,7 @@ import {
     friendlyController,
     landNeighbors,
     seaPathBetweenPorts,
+    legalTargets,
 } from "../util";
 import {VQMap} from "./map";
 import {TutorialGuide} from "./tutorial-guide";
@@ -1235,6 +1237,42 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingReliefSplit;
     const vqCombatRetrieve = virginQueenCombatRetrieveOptions(G, playerID);
 
+    /** Why an action mode is unavailable, or undefined when it can be picked. */
+    const modeDisabledReason = (candidate: Mode): string | undefined => {
+        if (!myTurn || me === undefined) return i18n.chain.vq.turn.notYourTurn;
+        if (!canAct && candidate !== "spring") return i18n.chain.vq.turn.disabled;
+        const cost = MODE_COST[candidate];
+        if (cp < cost) return i18n.chain.vq.turn.neededCp.replace("{need}", String(cost));
+        return undefined;
+    };
+
+    const isMoveMode = (candidate: Mode): boolean =>
+        candidate === "moveLand" || candidate === "moveNaval" || candidate === "navalTransport" || candidate === "spring";
+
+    /** Steps to display in the map banner for the current multi-step action. */
+    const stepState = (): {steps: string[]; active: number} | undefined => {
+        if (!isMoveMode(mode)) return undefined;
+        const e = i18n.chain.vq.step;
+        const steps = mode === "moveNaval"
+            ? [e.chooseOrigin, e.chooseTarget]
+            : [e.chooseOrigin, e.chooseUnit, e.chooseTarget];
+        return {steps, active: from === null ? 0 : 1};
+    };
+
+    const mapHighlights = mode === "inspect" ? undefined : legalTargets(G, me, mode, from);
+    const stepInfo = stepState();
+
+    /** Sea zones that can be appended next to the transport route. */
+    const transportCandidates = (() => {
+        if (mode !== "navalTransport" || from === null) return [];
+        const last = transportZones[transportZones.length - 1];
+        const zones = last !== undefined ? SEA_ZONE_BY_ID[last]?.adjacent ?? [] : (SPACE_BY_ID[from]?.ports ?? []);
+        return [...new Set(zones)]
+            .filter((id) => !transportZones.includes(id))
+            .map((id) => SEA_ZONE_BY_ID[id])
+            .filter((zone) => zone !== undefined);
+    })();
+
     React.useEffect(() => {
         setMode("inspect");
         setFrom(null);
@@ -1244,9 +1282,31 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
 
     React.useEffect(() => {setSelectedCard(undefined);}, [me, playerID]);
 
+    React.useEffect(() => {
+        const cancelOnEscape = (event: KeyboardEvent) => {
+            if (event.key !== "Escape" || event.defaultPrevented || confirmAction !== null) return;
+            if (from !== null) {
+                event.preventDefault();
+                setFrom(null);
+                setTransportZones([]);
+            } else if (mode !== "inspect") {
+                event.preventDefault();
+                setMode("inspect");
+            }
+        };
+        window.addEventListener("keydown", cancelOnEscape);
+        return () => window.removeEventListener("keydown", cancelOnEscape);
+    }, [from, mode, confirmAction]);
+
     const doSpaceAction = (id: string): void => {
-        // Sea labels share selection with cities, but only naval movement accepts a sea target.
-        if (G.spaces[id] === undefined && mode !== "moveNaval") return;
+        // Sea labels share selection with cities; only naval moves and transport routes accept them.
+        if (G.spaces[id] === undefined && mode !== "moveNaval" && mode !== "navalTransport") return;
+        // While routing a naval transport, clicking sea zones appends them to the
+        // ordered route instead of executing anything.
+        if (mode === "navalTransport" && from !== null && G.spaces[id] === undefined) {
+            setTransportZones((zones) => zones.includes(id) ? zones : [...zones, id]);
+            return;
+        }
         if ((!canAct && !(myTurn && phase === "spring" && mode === "spring")) || me === undefined) {
             return;
         }
@@ -1508,7 +1568,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             </Stack>;
         }
         if (G.gregorianResponse) return <Stack spacing={1}>
-            <Typography>{i18n.chain.vq.gregorian.title} · {powerName(G.gregorianResponse.after, vqLocale)} {i18n.chain.vq.gregorian.ended}{i18n.chain.vq.punct.comma}{i18n.chain.vq.gregorian.waiting} {powerName(G.gregorianResponse.responder, vqLocale)} {i18n.chain.vq.gregorian.decide}{i18n.chain.vq.punct.period}</Typography>
+            <Typography>{i18n.chain.vq.gregorian.title} · {powerName(G.gregorianResponse.after, vqLocale)} {i18n.chain.vq.gregorian.ended}{i18n.chain.vq.punct.comma}{i18n.chain.vq.gregorian.waiting} {powerName(G.gregorianResponse.responder, vqLocale)} {i18n.chain.vq.gregorian.decide}</Typography>
             {ownerOf(G, G.gregorianResponse.responder) === playerID && <>
                 <Typography variant="body2">{i18n.chain.vq.gregorian.chooseNext}</Typography>
                 <Select size="small" value={gregorianTarget} onChange={(e) => setGregorianTarget(e.target.value as Power)}>
@@ -1801,29 +1861,55 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                 onClick={() => moves.armadaTransport({port: space.id, direction: "unload"})}>{i18n.chain.vq.board.unloadTo} {space.name}</Button>
                         </Stack>)}
                 </Paper>}
-                <FormControl size="small" fullWidth>
-                    <InputLabel id="vq-mode">{i18n.chain.vq.spring.action}</InputLabel>
-                    <Select labelId="vq-mode" label={i18n.chain.vq.spring.action} value={mode}
-                            onChange={(e) => {
-                                setMode(e.target.value as Mode);
-                                setFrom(null);
-                            }}>
-                        {Object.keys({inspect:1,recruitRegular:1,recruitMerc:1,recruitCav:1,buildGalley:1,buildGalleon:1,buildRacebuilt:1,buildCorsair:1,moveLand:1,moveNaval:1,navalTransport:1,spring:1,control:1,assault:1,buildFortress:1,rebellion:1})
-                            .filter((m) => m !== "recruitMerc" || me !== "ottoman")
-                            .filter((m) => m !== "recruitCav" || me === "ottoman")
-                            .filter((m) => m !== "rebellion" || me === "protestant")
-                            .filter((m) => G.scenario !== "tutorial" || !["buildFortress", "buildRacebuilt", "rebellion"].includes(m))
-                            .map((m) => <MenuItem key={m} value={m}>{modeLabel(m as Mode)}</MenuItem>)}
-                    </Select>
-                </FormControl>
+                <div className="vq-action-picker" role="group" aria-label={i18n.chain.vq.shell.currentAction}>
+                    <Button size="small" variant={mode === "inspect" ? "contained" : "outlined"}
+                            onClick={() => {setMode("inspect"); setFrom(null); setTransportZones([]);}}>
+                        {modeLabel("inspect")}
+                    </Button>
+                    {Object.entries(ACTION_BUTTON_GROUPS).map(([group, candidates]) => {
+                        const visible = candidates.filter((candidate) =>
+                            (candidate !== "recruitMerc" || me !== "ottoman") &&
+                            (candidate !== "recruitCav" || me === "ottoman") &&
+                            (candidate !== "rebellion" || me === "protestant") &&
+                            (G.scenario !== "tutorial" || !["buildFortress", "buildRacebuilt", "rebellion"].includes(candidate)));
+                        if (visible.length === 0) return null;
+                        return <div key={group} className="vq-action-group">
+                            <Typography variant="caption" className="vq-action-group-title">
+                                {(i18n.chain.vq.action as unknown as Record<string, string>)[group] ?? group}
+                            </Typography>
+                            <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                                {visible.map((candidate) => {
+                                    const reason = modeDisabledReason(candidate);
+                                    const button = <Button size="small"
+                                        variant={mode === candidate ? "contained" : "outlined"}
+                                        disabled={reason !== undefined}
+                                        onClick={() => {setMode(candidate); setFrom(null); setTransportZones([]);}}>
+                                        {modeLabel(candidate)}
+                                    </Button>;
+                                    return reason === undefined ? <React.Fragment key={candidate}>{button}</React.Fragment>
+                                        : <Tooltip key={candidate} title={reason}><span className="vq-tip">{button}</span></Tooltip>;
+                                })}
+                            </Stack>
+                        </div>;
+                    })}
+                </div>
                 {(mode === "moveLand" || mode === "navalTransport" || mode === "spring") && from && <Stack spacing={0.5}>
                     <Typography variant="caption">{i18n.chain.vq.board.moveHint}</Typography>
                     {mode === "navalTransport" && <>
                         <Typography variant="caption">{i18n.chain.vq.board.transportHint}</Typography>
-                        <Select size="small" multiple value={transportZones} onChange={(event) => setTransportZones(typeof event.target.value === "string" ? event.target.value.split(",") : event.target.value)}>
-                            {Object.values(SEA_ZONE_BY_ID).filter((zone) => navalCount(G.seaZones[zone.id].naval[me]) > 0)
-                                .map((zone) => <MenuItem key={zone.id} value={zone.id}>{zone.name}</MenuItem>)}
-                        </Select>
+                        <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap", alignItems: "center"}}>
+                            {transportZones.map((zone, index) => <Chip key={zone} size="small"
+                                label={`${index + 1}. ${SEA_ZONE_BY_ID[zone].name}`}
+                                onDelete={() => setTransportZones(transportZones.filter((candidate) => candidate !== zone))}/>)}
+                            {transportZones.length === 0 &&
+                                <Typography variant="caption" color="text.secondary">{i18n.chain.vq.board.notSelected}</Typography>}
+                        </Stack>
+                        <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                            {transportCandidates.map((zone) => <Button key={zone.id} size="small" variant="outlined"
+                                onClick={() => setTransportZones([...transportZones, zone.id])}>{zone.name}</Button>)}
+                            {transportZones.length > 0 && <Button size="small"
+                                onClick={() => setTransportZones([])}>{i18n.chain.vq.actionUi.clear}</Button>}
+                        </Stack>
                         <Typography variant="caption">{i18n.chain.vq.board.route}: {transportZones.map((zone) => SEA_ZONE_BY_ID[zone].name).join(" → ") || i18n.chain.vq.board.notSelected}</Typography>
                     </>}
                     <Select size="small" value={movingOwner} onChange={(event) => {
@@ -2524,7 +2610,10 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         </Tabs>
         <div className="vq-workspace">
             <section className="vq-panel vq-map-panel" {...panelProps("map")}>
-                <VQMap G={G} selected={selected} origin={from} onSelect={onSelect}/>
+                <VQMap G={G} selected={selected} origin={from} onSelect={onSelect}
+                       highlights={mapHighlights} dimUnavailable/>
+                {stepInfo !== undefined && <StepBanner steps={stepInfo.steps} active={stepInfo.active}
+                    onCancel={() => {setFrom(null); setTransportZones([]);}}/>}
                 {!isDesktop && selected && <div className="vq-map-selection">
                     <Button size="small" variant="contained" onClick={() => setMobileView("action")}>{spaceDef?.name ?? SEA_ZONE_BY_ID[selected]?.name} · {i18n.chain.vq.shell.detailOps}</Button>
                 </div>}
