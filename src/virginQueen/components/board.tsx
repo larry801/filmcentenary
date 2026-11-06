@@ -11,12 +11,23 @@ import Tabs from "@mui/material/Tabs";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import Tooltip from "@mui/material/Tooltip";
 import {ActionGroup, VQSurface} from "./theme";
+import {abjurationOffers, abjurationSelection, acceptAbjurationOffer} from "../abjuration";
 import {ConfirmDialog} from "./board/ConfirmDialog";
 import {StepBanner} from "./board/StepBanner";
 import {LogPanel} from "./board/LogPanel";
 import {DiceToast} from "./board/DiceToast";
 import {MobileSpaceSheet} from "./board/MobileSpaceSheet";
 import {PendingBeaconPanel} from "./board/PendingPanels/BeaconPanel";
+import {PendingEspionagePanel} from "./board/PendingPanels/EspionagePanel";
+import {PendingAbjurationPanel} from "./board/PendingPanels/AbjurationPanel";
+import {PendingCityRebelsPanel} from "./board/PendingPanels/CityRebelsPanel";
+import {PendingGregorianPanel} from "./board/PendingPanels/GregorianPanel";
+import {PendingCardEventPanel} from "./board/PendingPanels/CardEventPanel";
+import {PendingActionResponsePanel} from "./board/PendingPanels/ActionResponsePanel";
+import {PendingPiracyPanel} from "./board/PendingPanels/PiracyPanel";
+import {PendingTutorialEventPanel} from "./board/PendingPanels/TutorialEventPanel";
+import {PendingBattlePanel} from "./board/PendingPanels/BattlePanel";
+import {PendingActivationPanel} from "./board/PendingPanels/ActivationPanel";
 import {PendingInterceptPanel} from "./board/PendingPanels/InterceptPanel";
 import {PendingInterceptionOrderPanel} from "./board/PendingPanels/InterceptionOrderPanel";
 import {useNotificationPermission, useTurnNotification} from "./board/useNotifications";
@@ -92,14 +103,13 @@ import {controlledPowers, ownerOf, isActivatedMajor, participatingPowers, player
 import {tutorialFortressVp, tutorialSpaceAllowed} from "../tutorial";
 import {scenarioName} from "../scenario";
 import {Controller} from "../constant/general";
-import {battleOptions, canPlayBattleCard} from "../combat";
-import {canPlayTutorialEvent, tutorialEventOptions} from "../tutorialEvents";
-import {canPlayGrandVizier, canPlayUntimelyDeath, cardEventOptions, isGrandVizier, untimelyDeathTargets} from "../cardEvents";
-import {piracyOptions} from "../piracy";
-import {actionResponseOptions, cityRebelsLossOptions} from "../moves";
+import {canPlayBattleCard} from "../combat";
+import {canPlayTutorialEvent} from "../tutorialEvents";
+import {canPlayGrandVizier, canPlayUntimelyDeath, isGrandVizier, untimelyDeathTargets} from "../cardEvents";
+import {actionResponseOptions} from "../moves";
 import {interceptionOptions} from "../interception";
 import {interceptionOrderOptions} from "../navalCombat";
-import {assassinationTargets, espionageOptions, canPlayEspionageEvent, canPlayNorthernRising, doubleAgentTargets, isEspionageEvent} from "../espionage";
+import {assassinationTargets, canPlayEspionageEvent, canPlayNorthernRising, doubleAgentTargets, isEspionageEvent} from "../espionage";
 
 export type Mode =
     | "inspect"
@@ -282,76 +292,11 @@ export const MenendezTargetSelect = ({options, value, onChange}: {
     </Select>
 </FormControl>;
 
-export interface AbjurationOffer {
-    power: Power;
-    powerName: string;
-    /** Netherlands space the accepted offer would reinforce. */
-    space: string;
-    spaceName: string;
-    /** Regulars the engine would move now, capped by the card's five. */
-    units: number;
-    /** Army leader that would accompany the regulars, when one is available. */
-    leaderId?: string;
-    leaderName?: string;
-    /** Offer button label: power, destination, troops and leader. */
-    label: string;
-}
+// Act of Abjuration helpers live in their own module so the pending panel can
+// share them without a circular import.
+export {abjurationOfferDetails, abjurationOffers, abjurationSelection, abjurationOfferMove, acceptAbjurationOffer} from "../abjuration";
+export type {AbjurationOffer} from "../abjuration";
 
-/**
- * Previews one #103 offer without mutating the game.  `chooseAbjuration`
- * deterministically takes regulars from the offering power's controlled home
- * spaces, in map order, until five have been moved; this mirrors that source
- * selection so the Protestant can see the destination and exact troops before
- * accepting.
- */
-export const abjurationOfferDetails = (G: VQGame, offer: {power: Power; space: string}, locale: "en" | "zh_CN" = "zh_CN"): AbjurationOffer => {
-    let remaining = 5;
-    const sources: string[] = [];
-    for (const space of SPACES.filter((def) => spaceHomes(def).includes(offer.power) && G.spaces[def.id].control === offer.power)) {
-        const stack = G.spaces[space.id].land[offer.power];
-        if (stack === undefined) continue;
-        const take = Math.min(remaining, stack.regular);
-        if (take > 0) sources.push(space.id);
-        remaining -= take;
-        if (remaining === 0) break;
-    }
-    const units = 5 - remaining;
-    const leaderId = sources.flatMap((id) => G.spaces[id].leaders)
-        .find((id) => LEADER_BY_ID[id]?.power === offer.power && LEADER_BY_ID[id]?.kind === "army");
-    const leader = leaderId !== undefined ? LEADER_BY_ID[leaderId] : undefined;
-    const powerNameStr = powerName(offer.power, locale);
-    const spaceName = SPACE_BY_ID[offer.space]?.name ?? offer.space;
-    const troops = units > 0 ? `${units} ${i18n.chain.vq.board.regulars}` : i18n.chain.vq.board.noRegulars;
-    return {
-        power: offer.power,
-        powerName: powerNameStr,
-        space: offer.space,
-        spaceName,
-        units,
-        ...(leaderId !== undefined ? {leaderId} : {}),
-        ...(leader !== undefined ? {leaderName: leader.name} : {}),
-        label: `${powerNameStr}${i18n.chain.vq.eventTargets.abjurationAlliedAt}${spaceName}${i18n.chain.vq.eventTargets.abjurationAlliedSuffix}${troops}${leader !== undefined ? ` + ${leader.name}` : ""}`,
-    };
-};
-
-/** Every pending #103 offer, ready for the offer buttons. */
-export const abjurationOffers = (G: VQGame): AbjurationOffer[] =>
-    (G.pendingAbjuration?.offers ?? []).map((offer) => abjurationOfferDetails(G, offer, i18n.getLocaleName() === "en" ? "en" : "zh_CN"));
-
-/**
- * The offer whose button is highlighted.  A stale/unknown selection falls
- * back to the first offer so the panel always shows exactly one selection.
- */
-export const abjurationSelection = (offers: AbjurationOffer[], power: Power | undefined): AbjurationOffer | undefined =>
-    offers.find((offer) => offer.power === power) ?? offers[0];
-
-/** Argument passed to `chooseAbjuration` when the Protestant accepts an offer. */
-export const abjurationOfferMove = (offer: AbjurationOffer): {power: Power} => ({power: offer.power});
-
-/** Routes an accepted offer through the boardgame.io move set. */
-export const acceptAbjurationOffer = (moves: BoardProps<VQGame>["moves"], offer: AbjurationOffer): void =>
-    (moves as unknown as {chooseAbjuration: (args: {power: Power}) => void})
-        .chooseAbjuration(abjurationOfferMove(offer));
 type HolyLeagueTrack = "papacy" | "venice" | "hre";
 
 const HOLY_LEAGUE_TRACK_NAMES: Record<HolyLeagueTrack, string> = {
@@ -1592,168 +1537,26 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     };
 
     const actionPanel = () => {
-        if (G.pendingEspionage) return <Stack spacing={1}>
-            <Paper variant="outlined" sx={{p: 1.5, bgcolor: "warning.light", borderColor: "warning.main"}}>
-                <Typography variant="subtitle1" sx={{fontWeight: 700, color: "warning.dark"}}>⚠ {i18n.chain.vq.board.espionageTitle}</Typography>
-                <Typography sx={{mt: 0.5}}>{i18n.chain.vq.board.waiting} {powerName(G.pendingEspionage.responding, vqLocale)} {i18n.chain.vq.board.choose}{i18n.chain.vq.punct.period}</Typography>
-            </Paper>
-            <Typography variant="body2">{G.pendingEspionage.step === "responses" ? i18n.chain.vq.espionage.responses :
-                G.pendingEspionage.step === "offense" ? `${i18n.chain.vq.espionage.offense} ${G.pendingEspionage.remaining} ${i18n.chain.vq.espionage.offenseMax}` :
-                G.pendingEspionage.step === "conversions" ? `${i18n.chain.vq.espionage.conversions} ${G.pendingEspionage.conversionSide === "protestant" ? i18n.chain.vq.espionage.protestant : i18n.chain.vq.espionage.catholic} ${i18n.chain.vq.espionage.conversions2}` :
-                G.pendingEspionage.step === "rebelLosses" ? `${i18n.chain.vq.espionage.rebelLosses} ${G.pendingEspionage.remaining} ${i18n.chain.vq.espionage.rebelLosses2}` :
-                G.pendingEspionage.step === "massacreConvert" ? `${i18n.chain.vq.espionage.massacreConvert} ${G.pendingEspionage.remaining} ${i18n.chain.vq.espionage.massacreConvert2}` :
-                G.pendingEspionage.step === "massacreAssassinate" ? `${i18n.chain.vq.espionage.massacreAssassinate} ${G.pendingEspionage.cp} ${i18n.chain.vq.espionage.massacreAssassinate2}` :
-                G.pendingEspionage.step === "northernConvert" ? `${i18n.chain.vq.espionage.northernConvert} ${G.pendingEspionage.remaining} ${i18n.chain.vq.espionage.northernConvert2}` :
-                G.pendingEspionage.step === "northernUnrest" ? `${i18n.chain.vq.espionage.northernUnrest} ${G.pendingEspionage.remaining} ${i18n.chain.vq.espionage.northernUnrest2}` :
-                i18n.chain.vq.espionage.default}</Typography>
-            {ownerOf(G, G.pendingEspionage.responding) === playerID && espionageOptions(G).map((entry) =>
-                <Button key={entry.id} variant="contained" onClick={() => moves.chooseEspionage({choice: entry.id})}>{entry.label}</Button>)}
-        </Stack>;
-        if (G.pendingAbjuration) {
-            const offers = abjurationOffers(G);
-            const selected = abjurationSelection(offers, selectedAbjurationPower);
-            const ownedOffer = ownerOf(G, "protestant") === playerID;
-            return <Stack spacing={1}>
-                <Typography>{i18n.chain.vq.abjuration.title}</Typography>
-                <Typography variant="body2">
-                    {i18n.chain.vq.abjuration.desc}
-                </Typography>
-                {ownedOffer && offers.map((offer) => <Button key={offer.power}
-                        variant={selected?.power === offer.power ? "contained" : "outlined"}
-                        aria-pressed={selected?.power === offer.power}
-                        onClick={() => setSelectedAbjurationPower(offer.power)}>
-                    {offer.label}
-                </Button>)}
-                {ownedOffer && selected !== undefined && <>
-                    <Typography variant="caption" color="text.secondary">
-                        {i18n.chain.vq.abjuration.selected}{i18n.chain.vq.punct.colon}{selected.powerName} → {selected.spaceName} · {selected.units > 0 ? `${selected.units} ${i18n.chain.vq.abjuration.regulars}` : i18n.chain.vq.abjuration.noRegulars}
-                        {selected.leaderName !== undefined ? ` + ${selected.leaderName}` : ""}{i18n.chain.vq.abjuration.settle}
-                    </Typography>
-                    <Button variant="contained" color="success" onClick={() => {
-                        acceptAbjurationOffer(moves, selected);
-                        setSelectedAbjurationPower(undefined);
-                    }}>{i18n.chain.vq.abjuration.accept} {selected.powerName} {i18n.chain.vq.abjuration.proposal}</Button>
-                </>}
-                {!ownedOffer && <Typography variant="body2">{i18n.chain.vq.abjuration.waiting}</Typography>}
-            </Stack>;
-        }
-        if (G.pendingCityRebels) {
-            const pending = G.pendingCityRebels;
-            const canChoose = isPower(pending.controller) && ownerOf(G, pending.controller) === playerID;
-            return <Stack spacing={1}>
-                <Typography>{i18n.chain.vq.cityRebels.title} · {i18n.chain.vq.cityRebels.waiting} {isPower(pending.controller) ? powerName(pending.controller, vqLocale) : pending.controller} {i18n.chain.vq.cityRebels.allocate}{i18n.chain.vq.punct.period}</Typography>
-                {canChoose && <>
-                    <Typography variant="body2">
-                        {SPACE_BY_ID[pending.space]?.name ?? pending.space}{i18n.chain.vq.punct.colon}{i18n.chain.vq.cityRebels.remaining} {pending.remaining} {i18n.chain.vq.cityRebels.units}{i18n.chain.vq.punct.period}
-                    </Typography>
-                    <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
-                        {cityRebelsLossOptions(G).map((entry) => <Button key={entry.kind} size="small" variant="outlined"
-                            onClick={() => moves.chooseCityRebelsLoss({kind: entry.kind})}>
-                            {entry.label}
-                        </Button>)}
-                        <Button size="small" variant="text" onClick={() => moves.chooseCityRebelsLoss({kind: "auto"})}>
-                            {i18n.chain.vq.cityRebels.auto}
-                        </Button>
-                    </Stack>
-                </>}
-            </Stack>;
-        }
-        if (G.gregorianResponse) return <Stack spacing={1}>
-            <Typography>{i18n.chain.vq.gregorian.title} · {powerName(G.gregorianResponse.after, vqLocale)} {i18n.chain.vq.gregorian.ended}{i18n.chain.vq.punct.comma}{i18n.chain.vq.gregorian.waiting} {powerName(G.gregorianResponse.responder, vqLocale)} {i18n.chain.vq.gregorian.decide}</Typography>
-            {ownerOf(G, G.gregorianResponse.responder) === playerID && <>
-                <Typography variant="body2">{i18n.chain.vq.gregorian.chooseNext}</Typography>
-                <Select size="small" value={gregorianTarget} onChange={(e) => setGregorianTarget(e.target.value as Power)}>
-                    {POWERS.map((power) => <MenuItem key={power} value={power}>{powerName(power, vqLocale)}</MenuItem>)}
-                </Select>
-                <Stack direction="row" spacing={0.5}>
-                    <Button variant="contained" onClick={() => moves.playCard({cardId: "vq-101", asEvent: true, target: gregorianTarget})}>
-                        {i18n.chain.vq.gregorian.play}
-                    </Button>
-                    <Button variant="outlined" onClick={() => moves.declineGregorianCalendar()}>{i18n.chain.vq.gregorian.decline}</Button>
-                </Stack>
-            </>}
-        </Stack>;
-        if (G.pendingCardEvent) return <Stack spacing={1}>
-            <Typography>{G.pendingCardEvent.kind === "cancelEvent" ? i18n.chain.vq.board.response : i18n.chain.vq.board.vizier} · {i18n.chain.vq.board.waitingOttoman}</Typography>
-            {G.pendingCardEvent.kind === "cancelEvent" ? <Typography variant="body2">
-                {cardById(G.pendingCardEvent.cardId).name} {i18n.chain.vq.board.notResolved}
-            </Typography> : G.pendingCardEvent.step === "recruit" ? <Typography variant="body2">
-                {i18n.chain.vq.board.canAdd} {G.pendingCardEvent.remaining} {i18n.chain.vq.board.units}. {i18n.chain.vq.board.regularsHome}
-            </Typography> : <Typography variant="body2">
-                {i18n.chain.vq.board.chooseRecruit}
-            </Typography>}
-            {G.pendingCardEvent.kind === "grandVizier" && G.pendingCardEvent.step === "effect" && ctx.numPlayers >= 5 &&
-                !G.suezDone && <Typography variant="body2">
-                    {i18n.chain.vq.board.canalRoll}: {G.suezAttempts}{G.powers.ottoman.scienceBonuses.includes("excavation") ? i18n.chain.vq.board.excavation : ""}{i18n.chain.vq.board.canalSuccess}
-                </Typography>}
-            {ownerOf(G, G.pendingCardEvent.responding) === playerID && cardEventOptions(G, ctx.numPlayers).map((entry) =>
-                <Button key={entry.id} onClick={() => moves.chooseCardEvent({choice: entry.id})}>{entry.label}</Button>)}
-        </Stack>;
-        if (G.pendingBeacon) return <PendingBeaconPanel G={G} moves={moves} playerID={playerID}/>;
+        if (G.pendingEspionage) return <PendingEspionagePanel G={G} moves={moves} playerID={playerID}/>;
+                if (G.pendingAbjuration) return <PendingAbjurationPanel G={G} moves={moves} playerID={playerID}
+            selectedPower={selectedAbjurationPower} onSelect={setSelectedAbjurationPower}/>;
+                if (G.pendingCityRebels) return <PendingCityRebelsPanel G={G} moves={moves} playerID={playerID}/>;
+                if (G.gregorianResponse) return <PendingGregorianPanel G={G} moves={moves} playerID={playerID}
+            target={gregorianTarget} onTargetChange={setGregorianTarget}/>;
+                if (G.pendingCardEvent) return <PendingCardEventPanel G={G} moves={moves} playerID={playerID}
+            numPlayers={ctx.numPlayers ?? 6}/>;
+                if (G.pendingBeacon) return <PendingBeaconPanel G={G} moves={moves} playerID={playerID}/>;
         if (G.pendingInterceptionOrder) return <PendingInterceptionOrderPanel G={G} moves={moves} playerID={playerID}/>;
         if (G.pendingIntercept) return <PendingInterceptPanel G={G} moves={moves} playerID={playerID}/>;
-        if (G.pendingAction) {
-            const choice = myActionChoices.find((entry) => entry.responder === actionResponder);
-            return <Stack spacing={1}>
-                <Typography>{G.pendingAction.move === "impulse" ? i18n.chain.vq.actionResponse.impulse : i18n.chain.vq.actionResponse.response} · {i18n.chain.vq.actionResponse.waiting} {actionResponders.map((power) => powerName(power, vqLocale)).join(i18n.chain.vq.punct.list)}{i18n.chain.vq.punct.period}</Typography>
-                {myActionChoices.length > 1 && <>
-                    <Typography variant="body2">{i18n.chain.vq.actionResponse.multi}</Typography>
-                    <FormControl size="small" fullWidth>
-                        <InputLabel id="vq-action-responder">{i18n.chain.vq.actionResponse.responder}</InputLabel>
-                        <Select labelId="vq-action-responder" label={i18n.chain.vq.actionResponse.responder} value={actionResponder}
-                                onChange={(event) => setSelectedActionResponder(event.target.value as Power)}>
-                            {myActionChoices.map((entry) =>
-                                <MenuItem key={entry.responder} value={entry.responder}>{entry.label}</MenuItem>)}
-                        </Select>
-                    </FormControl>
-                </>}
-                {choice?.options.map((entry) =>
-                    <Button key={entry.id} onClick={() => moves.respondAction({choice: entry.id, responder: choice.responder})}>{entry.label}</Button>)}
-            </Stack>;
-        }
-        if (G.pendingPiracy) return <Stack spacing={1}>
-            <Typography>{i18n.chain.vq.piracy.title} · {i18n.chain.vq.intercept.waiting} {powerName(piracyResponder!, vqLocale)} {i18n.chain.vq.piracy.choose}{i18n.chain.vq.punct.period}</Typography>
-            {ownerOf(G, piracyResponder!) === playerID && piracyOptions(G).map((entry) =>
-                <Button key={entry.id} onClick={() => moves.choosePiracy({choice: entry.id})}>{entry.label}</Button>)}
-        </Stack>;
-        if (G.pendingTutorialEvent) return <Stack spacing={1}>
-            <Typography>{cardById(G.pendingTutorialEvent.cardId).name} · {i18n.chain.vq.tutorialEvent.waiting} {powerName(G.pendingTutorialEvent.responding, vqLocale)} {i18n.chain.vq.tutorialEvent.choose}{i18n.chain.vq.punct.period}</Typography>
-            {G.pendingTutorialEvent.step === "roadFormation" && <Typography variant="body2">
-                {i18n.chain.vq.tutorialEvent.roadFormation}
-            </Typography>}
-            {G.pendingTutorialEvent.step === "rebelLosses" && <Typography variant="body2">
-                {SPACE_BY_ID[G.pendingTutorialEvent.space!].name}{i18n.chain.vq.punct.colon}{i18n.chain.vq.tutorialEvent.remaining} {G.pendingTutorialEvent.remaining} {i18n.chain.vq.tutorialEvent.losses}{i18n.chain.vq.punct.period}
-            </Typography>}
-            {ownerOf(G, G.pendingTutorialEvent.responding) === playerID && tutorialEventOptions(G).map((entry) =>
-                <Button key={entry.id} onClick={() => moves.chooseTutorialEvent({choice: entry.id})}>{entry.label}</Button>)}
-        </Stack>;
-        if (G.pendingBattle) return <Stack spacing={1}>
-            <Typography>{i18n.chain.vq.battle.title}: {SPACE_BY_ID[G.pendingBattle.location]?.name ?? G.pendingBattle.location} · {i18n.chain.vq.battle.waiting} {powerName(G.pendingBattle.responding, vqLocale)} {i18n.chain.vq.battle.choose}{i18n.chain.vq.punct.period}</Typography>
-            {ownerOf(G, G.pendingBattle.responding) === playerID && battleOptions(G).map((option) =>
-                <Button key={option.id} onClick={() => moves.chooseBattle({choice: option.id})}>{option.label}</Button>)}
-            {vqCombatRetrieve.length > 0 && <Stack spacing={0.5}>
-                <Typography variant="body2">{i18n.chain.vq.battle.retrieve}</Typography>
-                <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
-                    {vqCombatRetrieve.map((option) =>
-                        <Button key={option.cardId} size="small" variant="outlined"
-                                onClick={() => moves.playVirginQueenCombat({target: option.target})}>{option.label}</Button>)}
-                </Stack>
-            </Stack>}
-        </Stack>;
-        if (G.pendingActivation) {
-            const pending = G.pendingActivation;
-            const canRespond = ownerOf(G, pending.ally) === playerID;
-            return <Stack spacing={1}>
-                <Typography>{i18n.chain.vq.activation.waiting} {powerName(pending.ally, vqLocale)} {i18n.chain.vq.activation.activate} {powerName(pending.power, vqLocale)}{i18n.chain.vq.punct.period}</Typography>
-                {canRespond && <>
-                    <Button onClick={() => moves.chooseMajorActivation({})}>{i18n.chain.vq.activation.activateNoWar}</Button>
-                    {pending.aggressor && <Button onClick={() => moves.chooseMajorActivation({joinDefense: true})}>{i18n.chain.vq.activation.joinDefense}</Button>}
-                    {POWERS.filter((power) => power !== pending.power && ownerOf(G, power) !== playerID && ownerOf(G, power) !== undefined)
-                        .map((power) => <Button key={power} onClick={() => moves.chooseMajorActivation({war: power})}>{i18n.chain.vq.activation.activateWar} {powerName(power, vqLocale)}</Button>)}
-                </>}
-            </Stack>;
-        }
-        if (me === undefined) {
+        if (G.pendingAction) return <PendingActionResponsePanel G={G} moves={moves} playerID={playerID}
+            responders={actionResponders} choices={myActionChoices} responder={actionResponder}
+            onSelectResponder={(power) => setSelectedActionResponder(power)}/>;
+                if (G.pendingPiracy) return <PendingPiracyPanel G={G} moves={moves} playerID={playerID}
+            responder={piracyResponder as Power}/>;
+                if (G.pendingTutorialEvent) return <PendingTutorialEventPanel G={G} moves={moves} playerID={playerID}/>;
+                if (G.pendingBattle) return <PendingBattlePanel G={G} moves={moves} playerID={playerID} retrieve={vqCombatRetrieve}/>;
+                if (G.pendingActivation) return <PendingActivationPanel G={G} moves={moves} playerID={playerID}/>;
+                if (me === undefined) {
             return <Typography variant="body2" color="text.secondary">{i18n.chain.vq.actionPanel.spectator}</Typography>;
         }
         if (phase === "cardDraw") {
