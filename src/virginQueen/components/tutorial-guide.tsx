@@ -31,7 +31,7 @@ export const TutorialGuide = ({G, ctx, playerID}: Pick<BoardProps<VQGame>, "G" |
         <Typography variant="subtitle2">{finished ? e.finished : lesson?.title}</Typography>
         {!finished && lesson && <>
             <Typography variant="body2" color={owner === playerID ? "primary" : "text.secondary"} sx={{my: 0.5}}>
-                {`${e.currentOp}：P${Number(owner) + 1} · ${powerName(lesson.power, vqLocale)}。`}
+                {`${e.currentOp}${i18n.chain.vq.punct.colon}P${Number(owner) + 1} · ${powerName(lesson.power, vqLocale)}${i18n.chain.vq.punct.period}`}
                 {playerID === null ? e.spectator : owner === playerID
                     ? e.yourTurn : `${e.waitOther} P${Number(owner) + 1} ${e.tab}.`}
             </Typography>

@@ -96,3 +96,69 @@
     .vq-status-meta .vq-secondary-stat { display: none; }
     .vq-response { font-size: 12px; padding: 6px 8px; }
 }
+
+/* Legal-target highlighting */
+.vq-legal-ring { fill: none; stroke: #1f7a4d; stroke-width: 2; stroke-linejoin: round; }
+.vq-map-node.vq-dim { opacity: .35; }
+
+/* Compact map legend, bottom-right above the caption */
+.vq-map-legend { position: absolute; right: 12px; bottom: 36px; z-index: 2; max-width: min(260px, calc(100% - 24px)); pointer-events: auto; font-size: 11px; color: #3d3426; background: #faf3e4f2; border: 1px solid #b49e72; border-radius: 6px; box-shadow: 0 2px 8px #30291e22; }
+.vq-map-legend > summary { padding: 4px 9px; cursor: pointer; font-weight: 650; list-style: none; }
+.vq-map-legend > summary::-webkit-details-marker { display: none; }
+.vq-map-legend[open] > summary { border-bottom: 1px solid #d6c8ad; }
+.vq-legend-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; padding: 6px 9px 8px; }
+.vq-legend-item { display: inline-flex; align-items: center; gap: 5px; min-width: 0; white-space: nowrap; }
+.vq-legend-swatch { box-sizing: border-box; width: 12px; height: 12px; flex: 0 0 12px; display: inline-flex; align-items: center; justify-content: center; }
+.vq-legend-swatch-key { background: #9e9e9e; border: 1.4px solid #392d20; }
+.vq-legend-swatch-fortress { width: 10px; height: 10px; margin: 1px; background: #9e9e9e; border: 1.4px solid #392d20; transform: rotate(45deg); }
+.vq-legend-swatch-open { width: 9px; height: 9px; margin: 1.5px; background: #9e9e9e; border: 1.4px solid #392d20; border-radius: 50%; }
+.vq-legend-swatch-jesuits { font: 700 11px/1 Georgia, "Songti SC", serif; color: #582b70; }
+.vq-legend-swatch-unrest { border: 1.6px dashed #b6362a; border-radius: 50%; }
+.vq-legend-swatch-siege { border: 1.8px solid #c47b16; border-radius: 50%; }
+.vq-legend-swatch-closed { color: #9c3028; font-weight: 700; font-size: 13px; line-height: 1; }
+
+@media (max-width: 599px) {
+    .vq-map-legend { right: 8px; bottom: 36px; max-width: 64%; }
+    .vq-legend-items { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Phase 1 — turn controls: pass is deliberately quiet and separated from end impulse. */
+.vq-turn-actions { display: flex; align-items: center; gap: 12px; margin: 2px 0 4px; }
+.vq-turn-actions .vq-pass { color: #6b6353; opacity: .8; margin-right: auto; }
+.vq-turn-actions .vq-pass:hover { opacity: 1; }
+.vq-turn-actions .vq-end-impulse { min-width: 132px; box-shadow: none; }
+
+/* Phase 2 — multi-step banner over the map. */
+.vq-step-banner { position: absolute; left: 12px; right: 12px; bottom: 44px; z-index: 3; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid #b49e72; border-radius: 6px; background: #faf3e4f2; box-shadow: 0 2px 8px #30291e22; font-size: 12px; color: #3f3527; pointer-events: auto; }
+.vq-step-list { display: flex; align-items: center; gap: 6px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+.vq-step-list li { display: inline-flex; align-items: center; gap: 5px; opacity: .55; }
+.vq-step-list li + li::before { content: "\2192"; margin-right: 2px; color: #8a7a5c; }
+.vq-step-list li.vq-step-active { opacity: 1; font-weight: 700; color: #5b4212; }
+.vq-step-list li.vq-step-done { opacity: .8; }
+.vq-step-index { display: inline-flex; width: 16px; height: 16px; border-radius: 50%; background: #e2d3b2; color: #5b4212; font-size: 10px; align-items: center; justify-content: center; }
+.vq-step-active .vq-step-index { background: #805012; color: #fff; }
+.vq-step-hint { color: #6b5a3a; }
+@media (max-width: 599px) {
+    .vq-step-banner { left: 8px; right: 8px; font-size: 11px; }
+}
+
+/* Phase 4 — grouped, filterable game log. */
+.vq-log-filters { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+.vq-log-list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow: auto; }
+.vq-log-group { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: #7a6a4c; margin: 8px 0 2px; }
+.vq-log-line { font-size: 11.5px; line-height: 1.5; padding: 3px 0; border-bottom: 1px solid #e4d8bf; }
+.vq-log-line.vq-log-mine { border-left: 3px solid #a8792e; padding-left: 6px; background: #f3e9d2; }
+.vq-log-space { border: 0; background: none; padding: 0; font: inherit; color: #2d6b71; text-decoration: underline dotted; cursor: pointer; }
+.vq-log-space:hover { color: #17494e; }
+.vq-log-empty { font-size: 12px; color: #7a6a4c; }
+
+/* Phase 4 — dice read-out. */
+.vq-dice-label { font-weight: 600; }
+.vq-dice-row { display: inline-flex; gap: 4px; margin-left: 8px; }
+.vq-die { display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; border-radius: 4px; background: #fffdf6; color: #30291e; font-weight: 700; border: 1px solid #b39a6a; }
+
+/* Phase 5 — respect the user's motion preference. */
+@media (prefers-reduced-motion: reduce) {
+    .vq-response { animation: none; }
+    .vq-map-node, .vq-card, .vq-guide { transition: none; }
+}

@@ -11,7 +11,12 @@ import {
     landCount,
     LeaderDef,
     MinorPower,
+    MINOR_NAVAL_LIMITS,
     MINOR_POWERS,
+    MINOR_REGULAR_LIMITS,
+    NAVAL_LIMITS,
+    OTTOMAN_CAVALRY_LIMIT,
+    REGULAR_LIMITS,
     NavalStack,
     navalCount,
     POWER_COLORS,
@@ -49,6 +54,7 @@ import {
     SEA_ZONES,
     SPACES,
     SPACE_BY_ID,
+    inlandPortLink,
     isInlandPort,
 } from "./mapData";
 import {cardById, officialCardById} from "./constant/cards";
@@ -76,6 +82,7 @@ import {WORLD_HAZARDS} from "./data/world";
 import {validateSetupData} from "./configuration";
 import {canActivateMajor, isActivatedMajor, ownerOf, participatingPowers, playerCount, samePlayer} from "./ownership";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, TUTORIAL_POWER_CARDS, tutorialFortressVp, tutorialSpaceAllowed} from "./tutorial";
+import {moveError} from "./movePolicy";
 
 export {SPACE_BY_ID, KEY_SPACES, DUTCH_KEYS, initialControl, initialReligion, initialLandFor, initialNavalFor};
 
@@ -4762,3 +4769,413 @@ const resolveOneEvent = (G: VQGame, ctx: Ctx, p: Power, e: EventEffect): void =>
 
 export const patronTaken = (G: VQGame, id: string): boolean =>
     POWERS.some((p) => G.powers[p].patrons.includes(id));
+
+// --------------------------------------------------------------------------
+// Legal action targets (map highlighting)
+// --------------------------------------------------------------------------
+
+/**
+ * The board's action modes.  Every entry mirrors one `moves.ts` move; the UI
+ * calls `legalTargets` with the currently selected mode to highlight only the
+ * spaces that the current step can legally act on.
+ */
+export type LegalTargetMode =
+    | "inspect" | "recruitRegular" | "recruitMerc" | "recruitCav"
+    | "buildGalley" | "buildGalleon" | "buildRacebuilt" | "buildCorsair"
+    | "moveLand" | "moveNaval" | "navalTransport" | "spring"
+    | "control" | "assault" | "buildFortress" | "rebellion";
+
+/** All land-space ids known to the running game, in scenario order. */
+const legalTargetSpaceIds = (G: VQGame): string[] => Object.keys(G.spaces);
+
+/** Rule 17.2 recruitment: mirrors the body of the `recruit` move. */
+const canRecruitAt = (G: VQGame, p: Power, id: string, kind: "regular" | "merc" | "cav"): boolean => {
+    const s = G.spaces[id];
+    const def = SPACE_BY_ID[id];
+    if (s === undefined || def === undefined) return false;
+    const cost = kind === "regular" ? 2 : 1;
+    if (G.powers[p].cp < cost) return false; // `spend()` in `recruit`.
+    const homes = spaceHomes(def);
+    // Tutorial seam: Spain may recruit in an HRE home when the HRE is its tutorial ally.
+    if (G.scenario === "tutorial" && p === "spain" && G.tutorialHreAlly === "spain" && homes.includes("hre")) {
+        return s.control === "hre" && !s.unrest && s.siege === undefined && kind !== "cav";
+    }
+    // Rule 24: regulars may be raised in an allied minor's home.
+    const minorHome = homes.find((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never));
+    if (minorHome !== undefined) {
+        return kind === "regular" && s.control === minorHome && !s.unrest && !spaceHasEnemyLand(G, p, id) &&
+            landForceCountController(G, minorHome) < (MINOR_REGULAR_LIMITS[minorHome] ?? 12);
+    }
+    // Rule 17.2: a controlled home space not occupied by enemy units.
+    if (s.control !== p || s.unrest || spaceHasEnemyLand(G, p, id)) return false;
+    const spanishDutchHome = G.dutchSpanishHome === true && p === "spain" && def.area === "netherlands";
+    if (!homes.includes(p) && !spanishDutchHome) return false;
+    if (kind === "cav" && (p !== "ottoman" || cavalryCount(G, p) >= OTTOMAN_CAVALRY_LIMIT)) return false;
+    if (kind === "merc" && p === "ottoman") return false;
+    if (p === "ottoman" && (id === "algiers" || id === "tripoli")) return false;
+    if (p === "spain" && (id === "oran" || id === "malta")) return false;
+    if (landForceCount(G, p) >= REGULAR_LIMITS[p]) return false;
+    return true;
+};
+
+/** Rule 16.7 naval construction: mirrors the body of the `buildNaval` move. */
+const canBuildNavalAt = (G: VQGame, p: Power, port: string, kind: keyof NavalStack): boolean => {
+    const s = G.spaces[port];
+    const def = SPACE_BY_ID[port];
+    if (s === undefined || def === undefined || !isPort(port) || isInlandPort(port)) return false;
+    const cost = kind === "corsair" ? 1 : 2;
+    if (G.powers[p].cp < cost) return false;
+    const homes = spaceHomes(def);
+    const minorHome = homes.find((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never));
+    if (minorHome !== undefined) {
+        if (s.control !== minorHome || s.unrest || spaceHasEnemyLand(G, p, port)) return false;
+    } else {
+        if (s.control !== p || s.unrest || spaceHasEnemyLand(G, p, port)) return false;
+        const spanishDutchHome = G.dutchSpanishHome === true && p === "spain" && def.area === "netherlands";
+        if (!homes.includes(p) && !spanishDutchHome) return false;
+    }
+    if (kind === "racebuilt" && p !== "england") return false;
+    if (kind === "corsair" && p !== "ottoman") return false;
+    if (kind === "galley" && !["ottoman", "spain", "france", "hre"].includes(p)) return false;
+    if (kind === "galleon" && !["spain", "england", "france", "protestant"].includes(p)) return false;
+    if (p === "ottoman" && kind === "galley" && (port === "algiers" || port === "tripoli")) return false;
+    if (minorHome === undefined && navalForceCount(G, p) + navalLostCount(G, p) >= NAVAL_LIMITS[p]) return false;
+    if (kind === "galleon" && !portZones(port).some((z) =>
+        z === "atlanticOcean" || z === "englishChannel" || z === "northSea" || z === "irishSea" || z === "bayOfBiscay")) {
+        return false;
+    }
+    if (minorHome !== undefined &&
+        navalForceCountController(G, minorHome) + navalLostCountController(G, minorHome) >= (MINOR_NAVAL_LIMITS[minorHome] ?? 4)) {
+        return false;
+    }
+    return true;
+};
+
+/** Rule 17.2 fortress construction: mirrors the body of `buildFortress`. */
+const canBuildFortressAt = (G: VQGame, p: Power, id: string): boolean => {
+    const s = G.spaces[id];
+    const def = SPACE_BY_ID[id];
+    if (s === undefined || def === undefined) return false;
+    if (G.powers[p].cp < 2) return false;
+    const homes = spaceHomes(def);
+    const alliedMinorHome = homes.some((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never));
+    const minorFortress = alliedMinorHome && s.control !== p && homes.includes(s.control);
+    const minorFortressHome = homes.find((h) => !isPower(h) && h !== "independent");
+    if (def.kind !== "open" || s.fortress) return false;
+    if ((!minorFortress && s.control !== p) || (minorFortress && s.control !== minorFortressHome)) return false;
+    if (s.unrest) return false;
+    if (!minorFortress && !homes.includes(p)) return false;
+    return true;
+};
+
+/** Rule 15.2 assault: mirrors the body of the `assault` move. */
+const canAssaultAt = (G: VQGame, p: Power, id: string): boolean => {
+    const s = G.spaces[id];
+    if (s === undefined || s.siege === undefined || !besiegerOwners(G, id).includes(p)) return false;
+    if (s.siege.sinceImpulse >= G.impulse) return false; // one impulse of siege first
+    if (!hasLOC(G, p, id)) return false;
+    // Rule 16.7: the inland-waterway link blocks an assault unless the
+    // attacker holds the North Sea (or plays #10).
+    const link = inlandPortLink(id);
+    if (link !== undefined && G.spaces[link]?.control === s.control &&
+        navalCount(G.seaZones.northSea.naval[p]) === 0 && !G.powers[p].cards.includes("vq-010")) return false;
+    if (!navalBlockadeSatisfied(G, p, id)) return false;
+    if (G.powers[p].cp < 1) return false;
+    return true;
+};
+
+/** Rule 10.6: the capital a Spring Deployment may start from. */
+const canSpringFrom = (G: VQGame, p: Power, from: string): boolean => {
+    if (G.springDone.includes(p)) return false;
+    const s = G.spaces[from];
+    if (s === undefined || !capitalSpacesFor(G, p).includes(from)) return false;
+    if (s.control !== p && !friendlyControlled(G, p, from)) return false;
+    return landCount(s.land[p]) > 0;
+};
+
+/**
+ * Rule 10.6 destinations: trace a path of any length from the capital,
+ * crossing at most one sea zone, with no passes, unrest, foreign units or
+ * foreign leaders on the path.  Mirrors the BFS in `springDeploy`.
+ */
+const springTargetsFrom = (G: VQGame, p: Power, from: string): Set<string> => {
+    const out = new Set<string>();
+    const source = G.spaces[from]?.land[p];
+    if (source === undefined || landCount(source) === 0) return out;
+    const pathSpaceAllowed = (id: string): boolean => {
+        const state = G.spaces[id];
+        if (state === undefined || !friendlyControlled(G, p, id) || state.unrest) return false;
+        if (ownersWithLand(G, id).some((owner) => !friendlyController(G, p, owner))) return false;
+        if (ownersWithNaval(G, id).some((owner) => !friendlyController(G, p, owner))) return false;
+        return state.leaders.every((leader) => {
+            const def = LEADER_BY_ID[leader];
+            return def === undefined || friendlyController(G, p, def.power);
+        });
+    };
+    const canCrossSea = landCount(source) <= 5;
+    const seen = new Set<string>([`${from}:false`]);
+    const queue: {id: string; crossedSea: boolean}[] = [{id: from, crossedSea: false}];
+    while (queue.length > 0) {
+        const current = queue.shift() as {id: string; crossedSea: boolean};
+        for (const neighbor of landNeighbors(current.id)) {
+            if (neighbor.pass || !pathSpaceAllowed(neighbor.id)) continue;
+            const key = `${neighbor.id}:${current.crossedSea}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            out.add(neighbor.id);
+            queue.push({id: neighbor.id, crossedSea: current.crossedSea});
+        }
+        if (current.crossedSea || !canCrossSea) continue;
+        for (const zone of portZones(current.id)) {
+            // Other major powers' naval units in the zone's ports block the
+            // crossing even when allied (10.6).
+            if (zonePorts(zone).some((port) => ownersWithNaval(G, port).some((owner) => isPower(owner) && owner !== p))) continue;
+            if (ownersWithNaval(G, zone).some((owner) => !friendlyController(G, p, owner))) continue;
+            for (const port of zonePorts(zone)) {
+                if (port === current.id || !pathSpaceAllowed(port)) continue;
+                const key = `${port}:true`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                out.add(port);
+                queue.push({id: port, crossedSea: true});
+            }
+        }
+    }
+    out.delete(from); // `springDeploy` rejects a zero-length redeployment.
+    return out;
+};
+
+/** Rule 5.2 land movement: mirrors the destination checks in `moveLand`. */
+const canMoveLandTo = (G: VQGame, p: Power, from: string, to: string): boolean => {
+    const src = G.spaces[from];
+    const dst = G.spaces[to];
+    if (src === undefined || dst === undefined || from === to) return false;
+    if (!landNeighbors(from).some((n) => n.id === to)) return false;
+    const unitPowers = (Object.keys(src.land) as Controller[])
+        .filter((owner) => friendlyController(G, p, owner) && landCount(src.land[owner]) > 0);
+    if (unitPowers.length === 0) return false;
+    const defTo = SPACE_BY_ID[to];
+    const spainIberianPenalty = p === "spain" && defTo !== undefined &&
+        (spaceHomes(defTo).includes("ireland") || spaceHomes(defTo).includes("scotland")) &&
+        warCost(G, "spain", "england") > 3;
+    if (spainIberianPenalty) return false;
+    const cost = passBetween(from, to) ? 2 : 1;
+    if (G.powers[p].cp < cost) return false;
+    return unitPowers.some((unitPower) => {
+        // Rule 23.1: Morisco units may never move more than 2 spaces from Granada.
+        if (p === "ottoman" && unitPower === "ottoman" && G.morisco?.space === from &&
+            (landDistance("granada", to) ?? Number.POSITIVE_INFINITY) > 2) return false;
+        if (G.lostBattleImpulse?.impulse === G.impulse && G.lostBattleImpulse.owners.includes(unitPower)) return false;
+        // Units inside a besieged fortress may not march out; the besieger may.
+        if (spaceHasEnemyLand(G, p, from) && src.siege !== undefined && !besiegerOwners(G, from).includes(p)) return false;
+        const canEnter = friendlyControlled(G, p, to) || dst.control === "independent" ||
+            (isPower(dst.control) ? atWar(G, p, dst.control) : atWarWithMinor(G, p, dst.control as MinorPower));
+        const otherUnits = ownersWithLand(G, to).filter((owner) => !friendlyController(G, p, owner));
+        if (!canEnter && (G.scenario === "tutorial" || otherUnits.length === 0)) return false;
+        return true;
+    });
+};
+
+/** Rule 16.1 naval movement: mirrors the destination checks in `moveNaval`. */
+const canMoveNavalTo = (G: VQGame, p: Power, from: string, to: string): boolean => {
+    if (!isSeaZone(from) && G.spaces[from] === undefined) return false;
+    if (!isSeaZone(to) && G.spaces[to] === undefined) return false;
+    if (!navalAdjacent(from, to)) return false;
+    if (isInlandPort(from) || isInlandPort(to)) return false;
+    const stack = isSeaZone(from) ? G.seaZones[from as SeaZoneID].naval[p] : G.spaces[from].naval[p];
+    const armadaHere = p === "spain" && G.armada?.location === from;
+    if (navalCount(stack) === 0 && !armadaHere) return false;
+    if (G.spaces[to] !== undefined) {
+        const enemyNaval = ownersWithNaval(G, to).some((c) => isPower(c) && atWar(G, p, c));
+        if (G.spaces[to].control !== p && !enemyNaval) return false;
+    }
+    // Rule 16.1: the first naval move of an impulse costs 1 CP; later ones are free.
+    if (G.powers[p].cp < 1 && G.navalMoveImpulse !== G.impulse) return false;
+    const destinationHadEnemy = ownersWithNaval(G, to).some((owner) => !friendlyController(G, p, owner));
+    if (stack === undefined && destinationHadEnemy) return false;
+    return true;
+};
+
+/** Rule 16.3 naval transport: the sea zones reachable as the first leg. */
+const transportZonesFrom = (G: VQGame, p: Power, from: string): Set<string> => {
+    const out = new Set<string>();
+    if (G.navalTransportImpulse === G.impulse) return out; // one formation per impulse
+    const s = G.spaces[from];
+    if (s === undefined || landCount(s.land[p]) === 0 || !isPort(from)) return out;
+    if (s.siege !== undefined && s.siege.by !== p) return out;
+    if (isInlandPort(from)) {
+        // Rule 16.7: the inland leg is a direct 1 CP move through the North Sea
+        // while the linked port (Flushing/Brielle) is controlled.
+        const link = inlandPortLink(from);
+        if (link !== undefined && G.spaces[link]?.control === p && G.powers[p].cp >= 1 &&
+            navalCount(G.seaZones.northSea.naval[p]) > 0) {
+            out.add("northSea");
+        }
+        return out;
+    }
+    if (G.powers[p].cp < 2) return out; // one sea zone costs 2 CP
+    for (const zone of portZones(from)) {
+        if (navalCount(G.seaZones[zone].naval[p]) > 0) out.add(zone);
+    }
+    return out;
+};
+
+/**
+ * Return the space ids (and, for `moveNaval`/`navalTransport`, sea-zone ids)
+ * that `mode` can legally act on for the current step.
+ *
+ * Movement modes follow the "choose origin, then target" flow: with no
+ * `from` they return the legal origins, with a `from` the legal destinations.
+ * The function is pure and allocation-light so the board may call it on every
+ * render.  Global response windows and storm/harem restrictions are honoured
+ * through the same `moveError` policy the moves themselves use.
+ */
+export const legalTargets = (
+    G: VQGame,
+    me: Power | undefined,
+    mode: LegalTargetMode | string,
+    from?: string | null,
+): Set<string> => {
+    const targets = new Set<string>();
+    if (mode === "inspect") return targets; // nothing to highlight
+    // Only the active power may act; stale seats and spectators get no targets.
+    if (me === undefined || G.powers[me] === undefined || me !== G.activePower) return targets;
+    const origin = from === undefined || from === null || from === "" ? null : from;
+    const moveAllowed = (move: string, args: unknown): boolean => moveError(G, move, args) === undefined;
+
+    switch (mode) {
+        case "recruitRegular":
+        case "recruitMerc":
+        case "recruitCav": {
+            const kind = mode === "recruitRegular" ? "regular" : mode === "recruitMerc" ? "merc" : "cav";
+            for (const id of legalTargetSpaceIds(G)) {
+                if (canRecruitAt(G, me, id, kind) && moveAllowed("recruit", {space: id, kind})) targets.add(id);
+            }
+            return targets;
+        }
+        case "buildGalley":
+        case "buildGalleon":
+        case "buildRacebuilt":
+        case "buildCorsair": {
+            const kind: keyof NavalStack = mode === "buildGalley" ? "galley" :
+                mode === "buildGalleon" ? "galleon" : mode === "buildRacebuilt" ? "racebuilt" : "corsair";
+            for (const id of legalTargetSpaceIds(G)) {
+                if (canBuildNavalAt(G, me, id, kind) && moveAllowed("buildNaval", {port: id, kind})) targets.add(id);
+            }
+            return targets;
+        }
+        case "buildFortress": {
+            for (const id of legalTargetSpaceIds(G)) {
+                if (canBuildFortressAt(G, me, id) && moveAllowed("buildFortress", {space: id})) targets.add(id);
+            }
+            return targets;
+        }
+        case "control": {
+            // Rule 12: exactly the `canControlSpace` check; the move itself
+            // also charges 1 CP (see `controlSpace`).
+            for (const id of legalTargetSpaceIds(G)) {
+                if (canControlSpace(G, me, id).ok) targets.add(id);
+            }
+            return targets;
+        }
+        case "assault": {
+            for (const id of legalTargetSpaceIds(G)) {
+                if (canAssaultAt(G, me, id) && moveAllowed("assault", {space: id})) targets.add(id);
+            }
+            return targets;
+        }
+        case "rebellion": {
+            // Rule 20.10: the Reformed rebellion in France/the Netherlands.
+            if (me !== "protestant" || G.protestantRebellionBlockedTurn === G.year || G.powers[me].cp < 2) return targets;
+            for (const id of rebellionTargets(G)) {
+                if (moveAllowed("rebellion", {space: id, cp: 2})) targets.add(id);
+            }
+            return targets;
+        }
+        case "spring": {
+            if (origin === null) {
+                const capital = capitalOf(G, me);
+                if (capital !== undefined && canSpringFrom(G, me, capital) && moveAllowed("springDeploy", {from: capital})) {
+                    targets.add(capital);
+                }
+                return targets;
+            }
+            if (!canSpringFrom(G, me, origin) || !moveAllowed("springDeploy", {from: origin})) return targets;
+            for (const id of springTargetsFrom(G, me, origin)) {
+                if (moveAllowed("springDeploy", {from: origin, to: id})) targets.add(id);
+            }
+            return targets;
+        }
+        case "moveLand": {
+            if (origin === null) {
+                // Origins: a friendly controller (self or ally) has land units.
+                if (G.powers[me].cp < 1) return targets;
+                for (const id of legalTargetSpaceIds(G)) {
+                    const s = G.spaces[id];
+                    if (s === undefined) continue;
+                    const movable = (Object.keys(s.land) as Controller[]).filter((owner) =>
+                        friendlyController(G, me, owner) && landCount(s.land[owner]) > 0 &&
+                        !(G.lostBattleImpulse?.impulse === G.impulse && G.lostBattleImpulse.owners.includes(owner)));
+                    if (movable.length === 0) continue;
+                    if (spaceHasEnemyLand(G, me, id) && s.siege !== undefined && !besiegerOwners(G, id).includes(me)) continue;
+                    if (!moveAllowed("moveLand", {from: id})) continue;
+                    targets.add(id);
+                }
+                return targets;
+            }
+            if (G.powers[me].cp < 1) return targets;
+            for (const neighbor of landNeighbors(origin)) {
+                if (canMoveLandTo(G, me, origin, neighbor.id) && moveAllowed("moveLand", {from: origin, to: neighbor.id})) {
+                    targets.add(neighbor.id);
+                }
+            }
+            return targets;
+        }
+        case "moveNaval": {
+            const canSailNow = G.powers[me].cp >= 1 || G.navalMoveImpulse === G.impulse;
+            if (!canSailNow || !moveAllowed("moveNaval", {})) return targets;
+            if (origin === null) {
+                // Origins: sea zones and ports holding this power's naval units.
+                for (const zone of SEA_ZONES) {
+                    if (navalCount(G.seaZones[zone.id].naval[me]) > 0) targets.add(zone.id);
+                }
+                for (const id of legalTargetSpaceIds(G)) {
+                    const s = G.spaces[id];
+                    if (s === undefined || isInlandPort(id)) continue;
+                    if (navalCount(s.naval[me]) > 0) targets.add(id);
+                }
+                const armada = G.armada?.location;
+                if (me === "spain" && armada !== undefined && !isInlandPort(armada) &&
+                    (isSeaZone(armada) || G.spaces[armada] !== undefined)) {
+                    targets.add(armada);
+                }
+                return targets;
+            }
+            const candidates = new Set<string>();
+            if (isSeaZone(origin)) {
+                for (const zone of SEA_ZONE_BY_ID[origin].adjacent) candidates.add(zone);
+                for (const port of zonePorts(origin as SeaZoneID)) candidates.add(port);
+            } else {
+                for (const zone of portZones(origin)) candidates.add(zone);
+            }
+            for (const id of candidates) {
+                if (canMoveNavalTo(G, me, origin, id) && moveAllowed("moveNaval", {from: origin, to: id})) targets.add(id);
+            }
+            return targets;
+        }
+        case "navalTransport": {
+            if (!moveAllowed("navalTransport", origin === null ? {} : {from: origin})) return targets;
+            if (origin === null) {
+                // Origins: ports holding this power's land units.
+                for (const id of legalTargetSpaceIds(G)) {
+                    if (transportZonesFrom(G, me, id).size > 0) targets.add(id);
+                }
+                return targets;
+            }
+            for (const zone of transportZonesFrom(G, me, origin)) targets.add(zone);
+            return targets;
+        }
+        default:
+            return targets;
+    }
+};

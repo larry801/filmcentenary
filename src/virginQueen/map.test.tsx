@@ -78,4 +78,45 @@ describe("offline geographic map", () => {
         expect(html).toContain("教学禁入");
         expect(html).not.toContain("<image");
     });
+
+    it("marks legal targets with a ring and dims the rest only when highlights are supplied", () => {
+        const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
+        const plain = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}}/>);
+        expect(plain).not.toContain("vq-legal-target");
+        expect(plain).not.toContain("vq-legal-ring");
+        expect(plain).not.toContain("vq-dim");
+
+        const html = renderToStaticMarkup(
+            <VQMap G={G} selected="venice" origin="aegean" onSelect={() => {}} highlights={new Set(["venice", "aegean"])}/>,
+        );
+        expect(html).toMatch(/class="vq-map-node vq-legal-target" role="button" tabindex="0" aria-label="Venice · [^"]*合法目标"/);
+        expect(html).toMatch(/class="vq-map-node vq-dim" role="button" tabindex="0" aria-label="Padua/);
+        expect(html).toMatch(/class="vq-map-node vq-legal-target" role="button" tabindex="0" aria-label="Aegean Sea · [^"]*合法目标"/);
+        expect(html).toContain('class="vq-legal-ring" cx=');
+        expect(html).toContain('class="vq-legal-ring" x=');
+        expect(html).toContain('fill="#f2d59188"');
+
+        const undimmed = renderToStaticMarkup(
+            <VQMap G={G} onSelect={() => {}} highlights={new Set(["venice"])} dimUnavailable={false}/>,
+        );
+        expect(undimmed).not.toContain("vq-dim");
+        expect(undimmed).toContain("vq-legal-target");
+    });
+
+    it("renders the compact legend with swatches for every map marker", () => {
+        const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
+        const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}}/>);
+        expect(html).toContain('class="vq-map-legend"');
+        expect(html).toContain("<summary>图例</summary>");
+        expect(html).toContain("关键城市");
+        expect(html).toContain("要塞");
+        expect(html).toContain("开放城市");
+        expect(html).toContain("J = 耶稣会士");
+        expect(html).toContain("动荡圈");
+        expect(html).toContain("围困圈");
+        expect(html).toContain("禁入（教学）");
+        for (const kind of ["key", "fortress", "open", "jesuits", "unrest", "siege", "closed"]) {
+            expect(html).toContain(`vq-legend-swatch-${kind}`);
+        }
+    });
 });

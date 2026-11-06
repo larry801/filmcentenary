@@ -689,6 +689,12 @@ export interface VQGame {
     /** Virgin Queen bonus VP already awarded (maximum 5 per game). */
     virginQueenVpAwarded?: number;
     log: string[];
+    /**
+     * Turn/phase markers pointing into {@link log}.  Recorded when a phase
+     * begins so the log panel can group entries without changing the plain
+     * string log that the moves and tests consume.
+     */
+    logMarks?: {at: number; turn: number; phase: string; year?: number}[];
     vpHistory: Record<string, Partial<Record<Power, number>>>;
     hreReligiousPreference?: HreReligiousPreference;
     hreReligiousPreferenceChosen: boolean;

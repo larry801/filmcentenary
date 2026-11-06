@@ -4,7 +4,7 @@ import IconButton from "@mui/material/IconButton";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import {Controller, landCount, navalCount, Religion, VQGame, CONTROLLER_COLORS} from "../constant/general";
+import {Controller, landCount, navalCount, Religion, VQGame, CONTROLLER_COLORS, controllerName} from "../constant/general";
 import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES} from "../mapData";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, tutorialSpaceAllowed} from "../tutorial";
 import land from "../data/land-background.json";
@@ -15,12 +15,18 @@ export interface VQMapProps {
     selected?: string;
     origin?: string | null;
     onSelect: (id: string) => void;
+    /** Space / sea-zone ids that are legal targets for the current action. */
+    highlights?: ReadonlySet<string>;
+    /** Dim every node outside `highlights`; defaults to true when highlights are provided. */
+    dimUnavailable?: boolean;
 }
 
-function SpaceShape({id, G, selected, origin, onSelect, scale}: VQMapProps & {id: string; scale: number}) {
+function SpaceShape({id, G, selected, origin, onSelect, scale, highlights, dimUnavailable = true}: VQMapProps & {id: string; scale: number}) {
     const e = i18n.chain.vq.map;
     const def = SPACE_BY_ID[id];
     const excluded = G.scenario === "tutorial" && !tutorialSpaceAllowed(id);
+    const highlighted = highlights?.has(id) === true;
+    const dimmed = highlights !== undefined && dimUnavailable && !highlighted;
     const st = G.spaces[id];
     const [x, y] = project(def.lon, def.lat);
     const color = CONTROLLER_COLORS[st.control] ?? "#9e9e9e";
@@ -31,13 +37,17 @@ function SpaceShape({id, G, selected, origin, onSelect, scale}: VQMapProps & {id
     const total = landN + navalN;
     const kind = G.scenario === "tutorial" ? TUTORIAL_KEYS.includes(id) ? "key" : TUTORIAL_FORTRESSES.includes(id) ? "fortress" : "open" :
         def.kind === "open" && st.fortress ? "fortress" : def.kind;
-    const title = `${def.name} · ${e.control}：${st.control} · ${st.religion === "protestant" ? e.protestant : e.catholic} · ${e.army} ${landN} / ${e.navy} ${navalN} / ${e.leaders} ${st.leaders.length}${G.espionage?.jesuits.includes(id) ? ` · ${e.jesuits}` : ""}${excluded ? ` · ${e.noEntry}` : ""}${st.unrest ? ` · ${e.unrest}` : ""}${st.siege ? ` · ${e.siege}` : ""}`;
-    return <g className="vq-map-node" role="button" tabIndex={0} aria-label={title} aria-pressed={isSelected}
+    const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
+    const baseTitle = `${def.name} · ${e.control}${i18n.chain.vq.punct.colon}${controllerName(st.control, vqLocale)} · ${st.religion === "protestant" ? e.protestant : e.catholic} · ${e.army} ${landN} / ${e.navy} ${navalN} / ${e.leaders} ${st.leaders.length}${G.espionage?.jesuits.includes(id) ? ` · ${e.jesuits}` : ""}${excluded ? ` · ${e.noEntry}` : ""}${st.unrest ? ` · ${e.unrest}` : ""}${st.siege ? ` · ${e.siege}` : ""}`;
+    const title = highlighted ? `${baseTitle} · ${i18n.chain.vq.legend.legal}` : baseTitle;
+    const className = `vq-map-node${dimmed ? " vq-dim" : ""}${highlighted ? " vq-legal-target" : ""}`;
+    return <g className={className} role="button" tabIndex={0} aria-label={title} aria-pressed={isSelected}
               onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(id);}
-              }} style={{cursor: "pointer"}} opacity={excluded ? 0.3 : 1}>
+              }} style={{cursor: "pointer"}} opacity={dimmed ? 0.35 : excluded ? 0.3 : 1}>
         <title>{title}</title>
         <circle className="vq-hit" cx={x} cy={y} r={12} fill="transparent"/>
+        {highlighted && <circle className="vq-legal-ring" cx={x} cy={y} r={13} fill="none"/>}
         {origin === id && <circle cx={x} cy={y} r={15} fill="none" stroke="#2d6b71" strokeWidth={2} strokeDasharray="3 2"/>}
         {isSelected && <circle cx={x} cy={y} r={12} fill="#f2d59188" stroke="#805012" strokeWidth={2}/>}
         {st.unrest && <circle cx={x} cy={y} r={9.5} fill="none" stroke="#b6362a" strokeWidth={1.6} strokeDasharray="2 2"/>}
@@ -57,7 +67,23 @@ function SpaceShape({id, G, selected, origin, onSelect, scale}: VQMapProps & {id
     </g>;
 }
 
-export const VQMap = ({G, selected, origin, onSelect}: VQMapProps) => {
+function MapLegend() {
+    const l = i18n.chain.vq.legend;
+    return <details className="vq-map-legend">
+        <summary>{l.title}</summary>
+        <div className="vq-legend-items">
+            <span className="vq-legend-item"><span className="vq-legend-swatch vq-legend-swatch-key" aria-hidden="true"/>{l.key}</span>
+            <span className="vq-legend-item"><span className="vq-legend-swatch vq-legend-swatch-fortress" aria-hidden="true"/>{l.fortress}</span>
+            <span className="vq-legend-item"><span className="vq-legend-swatch vq-legend-swatch-open" aria-hidden="true"/>{l.open}</span>
+            <span className="vq-legend-item"><span className="vq-legend-swatch vq-legend-swatch-jesuits" aria-hidden="true">J</span>{l.jesuits}</span>
+            <span className="vq-legend-item"><span className="vq-legend-swatch vq-legend-swatch-unrest" aria-hidden="true"/>{l.unrest}</span>
+            <span className="vq-legend-item"><span className="vq-legend-swatch vq-legend-swatch-siege" aria-hidden="true"/>{l.siege}</span>
+            <span className="vq-legend-item"><span className="vq-legend-swatch vq-legend-swatch-closed" aria-hidden="true">×</span>{l.closed}</span>
+        </div>
+    </details>;
+}
+
+export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable = true}: VQMapProps) => {
     i18n.use();
     const {G: _G} = {G};
     const [view, setView] = React.useState<MapView>(INITIAL_VIEW);
@@ -136,20 +162,29 @@ export const VQMap = ({G, selected, origin, onSelect}: VQMapProps) => {
                 {SEA_ZONES.map((zone) => {
                     const [x, y] = project(zone.label[0], zone.label[1]);
                     const count = Object.values(G.seaZones[zone.id].naval).reduce((sum, stack) => sum + navalCount(stack), 0);
-                    return <g key={zone.id} role="button" tabIndex={0} aria-label={`${zone.name} · ${i18n.chain.vq.map.navy} ${count}`} aria-pressed={selected === zone.id}
-                              className="vq-map-node" style={{cursor: "pointer"}} onKeyDown={(event) => {
+                    const highlighted = highlights?.has(zone.id) === true;
+                    const dimmed = highlights !== undefined && dimUnavailable && !highlighted;
+                    const label = `${zone.name} · ${i18n.chain.vq.map.navy} ${count}` +
+                        (highlighted ? ` · ${i18n.chain.vq.legend.legal}` : "");
+                    return <g key={zone.id} className={`vq-map-node${dimmed ? " vq-dim" : ""}${highlighted ? " vq-legal-target" : ""}`}
+                              role="button" tabIndex={0} aria-label={label} aria-pressed={selected === zone.id}
+                              opacity={dimmed ? 0.35 : undefined}
+                              style={{cursor: "pointer"}} onKeyDown={(event) => {
                                   if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(zone.id);}
                               }}>
+                        {highlights !== undefined && <title>{label}</title>}
                         <rect className="vq-hit" x={x - 44} y={y - 12} width={88} height={25} rx={5} fill={selected === zone.id ? "#faf3df" : "#c8dcd680"}
                               stroke={origin === zone.id ? "#2d6b71" : selected === zone.id ? "#805012" : "transparent"}
                               strokeDasharray={origin === zone.id ? "3 2" : undefined}/>
                         <text x={x} y={y} fontSize={9} fill="#2e5d5b" fontFamily="Georgia, serif" fontStyle="italic" textAnchor="middle">{zone.name}</text>
                         {count > 0 && <text x={x} y={y + 10} fontSize={8} textAnchor="middle" fill="#244c49">⚓ {count}</text>}
+                        {highlighted && <rect className="vq-legal-ring" x={x - 46} y={y - 14} width={92} height={29} rx={7} fill="none"/>}
                     </g>;
                 })}
-                {SPACES.map((space) => <SpaceShape key={space.id} id={space.id} G={G} selected={selected} origin={origin} onSelect={onSelect} scale={view.scale}/>)}
+                {SPACES.map((space) => <SpaceShape key={space.id} id={space.id} G={G} selected={selected} origin={origin} onSelect={onSelect} scale={view.scale} highlights={highlights} dimUnavailable={dimUnavailable}/>)}
             </g>
         </svg>
+        <MapLegend/>
         <div className="vq-map-controls">
             <IconButton size="small" aria-label={i18n.chain.vq.map.zoomIn} disabled={view.scale >= 4} onClick={() => setView((current) => zoomView(current, 1.35, [500, 310]))}><AddIcon fontSize="small"/></IconButton>
             <span style={{minWidth: 36, textAlign: "center", fontSize: 11}} aria-live="polite">{Math.round(view.scale * 100)}%</span>

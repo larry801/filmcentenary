@@ -133,7 +133,7 @@ const turnBegin = (G: VQGame, ctx: Ctx): void => {
     }
 };
 
-const phaseBegin = (G: VQGame): void => {
+const phaseBegin = (G: VQGame, ctx?: Ctx): void => {
     // A #18 choice cannot cross a phase boundary; apply the automatic order.
     if (G.pendingCityRebels !== undefined) autoResolveCityRebelsLosses(G);
     // #95 is only attached for the Diplomacy Phase in which it was played.
@@ -144,6 +144,10 @@ const phaseBegin = (G: VQGame): void => {
     G.actionTurnsThisTurn = {};
     G.unionOfArras = false;
     delete G.gregorianResponse;
+    // Record where this phase starts so the log can be grouped by turn/phase.
+    if (ctx !== undefined) {
+        G.logMarks = [...(G.logMarks ?? []), {at: G.log.length, turn: ctx.turn, phase: ctx.phase ?? "", year: G.year}];
+    }
 };
 
 const turnEnd = (G: VQGame, ctx: Ctx): void => {
@@ -248,7 +252,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
         cardDraw: {
             start: true,
             onBegin: (G: VQGame, ctx: Ctx) => {
-                phaseBegin(G);
+                phaseBegin(G, ctx);
                 G.turnsCompleted = 0;
                 G.consecutivePasses = 0;
                 if (G.dealtYear !== G.year) {
@@ -259,13 +263,13 @@ export const VirginQueenGameDef: Game<VQGame> = {
             next: (G: VQGame) => G.scenario === "tutorial" ? "spring" : "diplomacy",
         },
         diplomacy: {
-            onBegin: (G: VQGame) => {
+            onBegin: (G: VQGame, ctx: Ctx) => {
                 // Winter loss choices are bounded to Card Draw. Anything still
                 // pending keeps its automatic composition.
                 autoResolveWinterLossChoices(G);
                 autoResolveWinterNavalLossChoices(G);
                 G.peaceMadeThisPhase = [];
-                phaseBegin(G);
+                phaseBegin(G, ctx);
             },
             turn: {
                 order: powerOrder,
@@ -276,8 +280,8 @@ export const VirginQueenGameDef: Game<VQGame> = {
             next: "spring",
         },
         spring: {
-            onBegin: (G: VQGame) => {
-                phaseBegin(G);
+            onBegin: (G: VQGame, ctx: Ctx) => {
+                phaseBegin(G, ctx);
                 G.turnsCompleted = 0;
                 G.springDone = [];
                 G.navalLost = {};
@@ -295,8 +299,8 @@ export const VirginQueenGameDef: Game<VQGame> = {
             next: "action",
         },
         action: {
-            onBegin: (G: VQGame) => {
-                phaseBegin(G);
+            onBegin: (G: VQGame, ctx: Ctx) => {
+                phaseBegin(G, ctx);
                 G.checkVictory = false;
                 G.turnsCompleted = 0;
                 G.consecutivePasses = 0;

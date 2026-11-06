@@ -91,7 +91,7 @@ describe("Virgin Queen board", () => {
         } as any}/>);
         expect(html).toContain("官方 Espionage Table");
         expect(html).toContain(">英格兰天主教叛乱<");
-        expect(html).toContain("York · 控制：england · 天主教 · 陆军 0 / 海军 0 / 将领 0 · 耶稣会士");
+        expect(html).toContain("York · 控制：英格兰 · 天主教 · 陆军 0 / 海军 0 / 将领 0 · 耶稣会士");
         expect(html).not.toContain("可玩近似");
     });
 
