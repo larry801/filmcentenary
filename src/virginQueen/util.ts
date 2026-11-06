@@ -105,7 +105,14 @@ export const hits = (dice: number[]): number =>
 export const pushLog = (G: VQGame, msg: string): void => {
     G.log.push(msg);
     if (G.log.length > 250) {
-        G.log.splice(0, G.log.length - 250);
+        const removed = G.log.length - 250;
+        G.log.splice(0, removed);
+        // Keep the turn/phase markers pointing at the retained entries.
+        if (G.logMarks !== undefined) {
+            G.logMarks = G.logMarks
+                .map((mark) => ({...mark, at: mark.at - removed}))
+                .filter((mark) => mark.at >= 0);
+        }
     }
 };
 
