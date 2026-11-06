@@ -78,7 +78,7 @@ import {PatronageVpAward} from "../data/types";
 import {
     atWar,
     baseVp,
-    capitalOf,
+    capitalSpacesFor,
     catholicLeagueSpaceOptions,
     controlledKeys,
     homeCardChoiceRequired,
@@ -94,6 +94,7 @@ import {
     warCost,
     zonePorts,
     minorAvailable,
+    formationCapacity,
     friendlyController,
     landNeighbors,
     seaPathBetweenPorts,
@@ -134,7 +135,7 @@ export type Mode =
 export const ACTION_BUTTON_GROUPS: Record<string, Mode[]> = {
     recruit: ["recruitRegular", "recruitMerc", "recruitCav"],
     build: ["buildGalley", "buildGalleon", "buildRacebuilt", "buildCorsair"],
-    move: ["moveLand", "moveNaval", "navalTransport", "spring"],
+    move: ["moveLand", "moveNaval", "navalTransport"],
     military: ["control", "assault", "buildFortress", "rebellion"],
 };
 
@@ -1326,12 +1327,72 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             .filter((zone) => zone !== undefined);
     })();
 
+    /**
+     * Units staged by default when an origin is chosen: the whole stack clipped
+     * to the formation limit so the obvious next click does not fail silently.
+     */
+    const defaultFormationUnits = (origin: string, leaders: string[]): LandStack => {
+        const available = (me !== undefined ? G.spaces[origin]?.land[me] : undefined) ?? {regular: 0, merc: 0, cav: 0};
+        let remaining = formationCapacity(leaders);
+        const units: LandStack = {regular: 0, merc: 0, cav: 0};
+        for (const kind of ["regular", "merc", "cav"] as const) {
+            const take = Math.min(available[kind], remaining);
+            units[kind] = take;
+            remaining -= take;
+        }
+        return units;
+    };
+
+    /**
+     * Owner, unit-count and leader controls for a staged land formation.
+     * Spring Deployment moves only the active power's own troops, so it hides
+     * the owner picker.
+     */
+    const stackPicker = (spring: boolean) => {
+        if (from === null) return null;
+        const source = G.spaces[from];
+        if (source === undefined) return null;
+        const owner: Controller = spring && me !== undefined ? me : movingOwner;
+        const available = source.land[owner] ?? {regular: 0, merc: 0, cav: 0};
+        const capacity = formationCapacity(movingLeaders);
+        const chosen = landCount(movingUnits);
+        return <>
+            {!spring && <Select size="small" value={movingOwner} onChange={(event) => {
+                const nextOwner = event.target.value as Controller;
+                setMovingOwner(nextOwner);
+                setMovingUnits({...G.spaces[from].land[nextOwner]!});
+                setMovingLeaders([]);
+            }}>
+                {(Object.keys(G.spaces[from].land) as Controller[])
+                    .filter((candidate) => ((spring || mode === "navalTransport") ? candidate === me : friendlyController(G, me, candidate)) &&
+                        landCount(G.spaces[from].land[candidate]) > 0)
+                    .map((candidate) => <MenuItem key={candidate} value={candidate}>{controllerName(candidate, vqLocale)}</MenuItem>)}
+            </Select>}
+            {(["regular", "merc", "cav"] as const).map((kind) => <Stack key={kind} direction="row" spacing={1}>
+                <Typography variant="caption">{unitLabel(kind)}</Typography>
+                <Select size="small" value={movingUnits[kind]} onChange={(event) => setMovingUnits({...movingUnits, [kind]: Number(event.target.value)})}>
+                    {Array.from({length: (available[kind] ?? 0) + 1}, (_, count) => <MenuItem key={count} value={count}>{count}</MenuItem>)}
+                </Select>
+            </Stack>)}
+            <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                {source.leaders.filter((leader) => LEADER_BY_ID[leader]?.power === owner && LEADER_BY_ID[leader]?.kind === "army").map((leader) =>
+                    <Button key={leader} variant={movingLeaders.includes(leader) ? "contained" : "outlined"} onClick={() => setMovingLeaders(movingLeaders.includes(leader) ? movingLeaders.filter((id) => id !== leader) : [...movingLeaders, leader])}>{LEADER_BY_ID[leader].name}</Button>)}
+            </Stack>
+            <Typography variant="caption" color={chosen > capacity ? "error" : "text.secondary"}>
+                {i18n.chain.vq.springUi.commandLimit.replace("{count}", String(capacity))}
+                {chosen > capacity ? ` · ${i18n.chain.vq.springUi.overCapacity}` : ""}
+            </Typography>
+        </>;
+    };
+
     React.useEffect(() => {
-        setMode("inspect");
+        // Spring deployment is the only map action available in the spring
+        // phase, so arm it automatically instead of asking for a dropdown pick.
+        setMode(ctx.phase === "spring" && myTurn ? "spring" : "inspect");
         setFrom(null);
         setForeignWarUnits([]);
         setForeignWarLeader("");
-    }, [ctx.phase, ctx.currentPlayer, G.activePower]);
+    }, [ctx.phase, ctx.currentPlayer, G.activePower, myTurn]);
 
     React.useEffect(() => {setSelectedCard(undefined);}, [me, playerID]);
 
@@ -1344,12 +1405,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 setTransportZones([]);
             } else if (mode !== "inspect") {
                 event.preventDefault();
-                setMode("inspect");
+                setMode(phase === "spring" ? "spring" : "inspect");
             }
         };
         window.addEventListener("keydown", cancelOnEscape);
         return () => window.removeEventListener("keydown", cancelOnEscape);
-    }, [from, mode, confirmAction]);
+    }, [from, mode, confirmAction, phase]);
 
     const doSpaceAction = (id: string): void => {
         // Sea labels share selection with cities; only naval moves and transport routes accept them.
@@ -1417,11 +1478,15 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 break;
             case "spring":
                 if (from === null) {
-                    if ([capitalOf(G, me)].includes(id)) {
+                    const stack = G.spaces[id].land[me];
+                    if (capitalSpacesFor(G, me).includes(id) && stack !== undefined && landCount(stack) > 0) {
+                        const leaders = G.spaces[id].leaders
+                            .filter((leader) => LEADER_BY_ID[leader]?.power === me && LEADER_BY_ID[leader]?.kind === "army")
+                            .slice(0, 2);
                         setFrom(id);
                         setMovingOwner(me);
-                        setMovingUnits({...G.spaces[id].land[me] ?? {regular: 0, merc: 0, cav: 0}});
-                        setMovingLeaders(G.spaces[id].leaders.filter((leader) => LEADER_BY_ID[leader]?.power === me && LEADER_BY_ID[leader]?.kind === "army").slice(0, 2));
+                        setMovingLeaders(leaders);
+                        setMovingUnits(defaultFormationUnits(id, leaders));
                     }
                 } else {
                     moves.springDeploy({from, to: id, units: movingUnits, leaders: movingLeaders});
@@ -1801,7 +1866,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         </div>;
                     })}
                 </div>
-                {(mode === "moveLand" || mode === "navalTransport" || mode === "spring") && from && <Stack spacing={0.5}>
+                {(mode === "moveLand" || mode === "navalTransport") && from && <Stack spacing={0.5}>
                     <Typography variant="caption">{i18n.chain.vq.board.moveHint}</Typography>
                     {mode === "navalTransport" && <>
                         <Typography variant="caption">{i18n.chain.vq.board.transportHint}</Typography>
@@ -1820,23 +1885,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         </Stack>
                         <Typography variant="caption">{i18n.chain.vq.board.route}: {transportZones.map((zone) => SEA_ZONE_BY_ID[zone].name).join(" → ") || i18n.chain.vq.board.notSelected}</Typography>
                     </>}
-                    <Select size="small" value={movingOwner} onChange={(event) => {
-                        const owner = event.target.value as Controller;
-                        setMovingOwner(owner);
-                        setMovingUnits({...G.spaces[from].land[owner]!});
-                        setMovingLeaders([]);
-                    }}>
-                        {(Object.keys(G.spaces[from].land) as Controller[]).filter((owner) => (mode === "navalTransport" || mode === "spring" ? owner === me : friendlyController(G, me, owner)) && landCount(G.spaces[from].land[owner]) > 0)
-                            .map((owner) => <MenuItem key={owner} value={owner}>{controllerName(owner, vqLocale)}</MenuItem>)}
-                    </Select>
-                    {(["regular", "merc", "cav"] as const).map((kind) => <Stack key={kind} direction="row" spacing={1}>
-                        <Typography variant="caption">{unitLabel(kind)}</Typography>
-                        <Select size="small" value={movingUnits[kind]} onChange={(event) => setMovingUnits({...movingUnits, [kind]: Number(event.target.value)})}>
-                            {Array.from({length: (G.spaces[from].land[movingOwner]?.[kind] ?? 0) + 1}, (_, count) => <MenuItem key={count} value={count}>{count}</MenuItem>)}
-                        </Select>
-                    </Stack>)}
-                    {G.spaces[from].leaders.filter((leader) => LEADER_BY_ID[leader]?.power === movingOwner && LEADER_BY_ID[leader]?.kind === "army").map((leader) =>
-                        <Button key={leader} variant={movingLeaders.includes(leader) ? "contained" : "outlined"} onClick={() => setMovingLeaders(movingLeaders.includes(leader) ? movingLeaders.filter((id) => id !== leader) : [...movingLeaders, leader])}>{LEADER_BY_ID[leader].name}</Button>)}
+                    {stackPicker(false)}
                 </Stack>}
                 {mode === "rebellion" && <FormControl size="small" fullWidth>
                     <InputLabel id="vq-rebel">{i18n.chain.vq.board.rebelCp}</InputLabel>
@@ -2432,20 +2481,13 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             onClick={() => moves.setTreasureFleetEscorts({count})}>{i18n.chain.vq.spring.escort} {count}</Button>)}
                     </Stack>
                 </Stack>}
-                <FormControl size="small" fullWidth>
-                    <InputLabel id="vq-spring-mode">{i18n.chain.vq.spring.action}</InputLabel>
-                    <Select labelId="vq-spring-mode" label={i18n.chain.vq.spring.action} value={mode}
-                            onChange={(e) => {
-                                setMode(e.target.value as Mode);
-                                setFrom(null);
-                            }}>
-                        <MenuItem value="inspect">{i18n.chain.vq.spring.inspect}</MenuItem>
-                        <MenuItem value="spring">{i18n.chain.vq.spring.springDeploy2}</MenuItem>
-                    </Select>
-                </FormControl>
                 <Typography variant="caption" color="text.secondary">
-                    {i18n.chain.vq.spring.capital}: {me === "hre" && G.hreCapital !== undefined ? SPACE_BY_ID[G.hreCapital]?.name ?? G.hreCapital : me === "protestant" && G.protestantCapital !== undefined ? SPACE_BY_ID[G.protestantCapital]?.name ?? G.protestantCapital : CAPITAL_SPACES_UI[me] ?? ""} {from !== null ? `· ${i18n.chain.vq.spring.origin} ${SPACE_BY_ID[from]?.name}` : ""}
+                    {i18n.chain.vq.spring.capital}: {(me !== undefined ? capitalSpacesFor(G, me) : []).map((id) => SPACE_BY_ID[id]?.name ?? id).join(" / ")} {from !== null ? `· ${i18n.chain.vq.spring.origin} ${SPACE_BY_ID[from]?.name}` : ""}
                 </Typography>
+                {from !== null && <Stack spacing={0.5}>
+                    <Typography variant="caption">{i18n.chain.vq.board.moveHint}</Typography>
+                    {stackPicker(true)}
+                </Stack>}
                 <Button size="small" variant="outlined" disabled={!myTurn || choiceRequired || preferenceRequired || navalPortChoices.length > 0} onClick={() => moves.endPhaseTurn()}>
                     {i18n.chain.vq.spring.endSpring}
                 </Button>
@@ -2521,9 +2563,22 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 <VQMap G={G} selected={selected} origin={from} onSelect={onSelect}
                        highlights={mapHighlights} dimUnavailable/>
                 {stepInfo !== undefined && <StepBanner steps={stepInfo.steps} active={stepInfo.active}
+                    hint={from !== null && (mode === "spring" || mode === "moveLand" || mode === "navalTransport")
+                        ? i18n.chain.vq.step.unitsHint : undefined}
                     onCancel={() => {setFrom(null); setTransportZones([]);}}/>}
-                {!isDesktop && selected && <div className="vq-map-selection">
-                    <Button size="small" variant="contained" onClick={() => setMobileView("action")}>{spaceDef?.name ?? SEA_ZONE_BY_ID[selected]?.name} · {i18n.chain.vq.shell.detailOps}</Button>
+                {from !== null && (mode === "spring" || mode === "moveLand" || mode === "navalTransport") &&
+                    <Paper className="vq-map-stack" variant="outlined">
+                        <Stack spacing={0.5}>
+                            <Typography variant="caption" sx={{fontWeight: 700}}>
+                                {i18n.chain.vq.step.chooseUnit} · {SPACE_BY_ID[from]?.name ?? from}
+                            </Typography>
+                            {stackPicker(mode === "spring")}
+                        </Stack>
+                    </Paper>}
+                {!isDesktop && selected && from === null && <div className="vq-map-selection">
+                    <Button size="small" variant="contained" onClick={() => setMobileView("action")}>
+                        {`${spaceDef?.name ?? SEA_ZONE_BY_ID[selected]?.name} · ${i18n.chain.vq.shell.detailOps}`}
+                    </Button>
                 </div>}
             </section>
             <aside className="vq-sidebar" ref={sidebarRef}>
@@ -2689,11 +2744,3 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     </div></VQSurface>;
 };
 
-const CAPITAL_SPACES_UI: Record<Power, string> = {
-    ottoman: "Istanbul",
-    spain: "Madrid / Milan",
-    england: "London",
-    france: "Paris",
-    hre: "Vienna",
-    protestant: "La Rochelle / Amsterdam",
-};

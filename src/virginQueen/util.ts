@@ -5128,9 +5128,10 @@ export const legalTargets = (
         }
         case "spring": {
             if (origin === null) {
-                const capital = capitalOf(G, me);
-                if (capital !== undefined && canSpringFrom(G, me, capital) && moveAllowed("springDeploy", {from: capital})) {
-                    targets.add(capital);
+                for (const capital of capitalSpacesFor(G, me)) {
+                    if (canSpringFrom(G, me, capital) && moveAllowed("springDeploy", {from: capital})) {
+                        targets.add(capital);
+                    }
                 }
                 return targets;
             }

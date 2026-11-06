@@ -1438,6 +1438,7 @@ const en = {
             chooseOrigin: "Choose origin",
             chooseUnit: "Choose units",
             chooseTarget: "Choose target",
+            unitsHint: "Adjust units, then choose the destination",
             cancel: "Cancel",
         },
         shell: {
@@ -1724,6 +1725,8 @@ const en = {
             deployHint: "Spring deployment: you may move one army stack from your capital for free.",
             deployHintChoice: "Spring deployment: first secretly choose the home card to keep this turn (the unchosen one goes face down on your power card), then you may move one army stack from your capital for free.",
             seaCaptain: "Sea captain",
+            commandLimit: "Command limit: {count} units",
+            overCapacity: "Over the command limit",
         },
         religionActions: {
             preachEngland: "Preach: England (2 CP)",

@@ -1512,6 +1512,7 @@ const zh_CN: Locale = {
             chooseOrigin: "选择起点",
             chooseUnit: "选择单位",
             chooseTarget: "选择目标",
+            unitsHint: "调整部队后点击目的地",
             cancel: "取消",
         },
         shell: {
@@ -1798,6 +1799,8 @@ const zh_CN: Locale = {
             deployHint: "春季部署：可从首都免费调动一支陆军编队。",
             deployHintChoice: "春季部署：先秘密选择本回合保留的本国牌（未选中的面朝下放在势力卡上），然后可从首都免费调动一支陆军编队。",
             seaCaptain: "海船长",
+            commandLimit: "指挥上限：{count} 个单位",
+            overCapacity: "已超过指挥上限",
         },
         religionActions: {
             preachEngland: "布道：英格兰 (2 CP)",

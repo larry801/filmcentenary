@@ -190,10 +190,11 @@ describe("legalTargets", () => {
         expect(destinations).not.toContain("london");
     });
 
-    it("spring returns the capital as origin and reachable friendly spaces as destinations", () => {
+    it("spring returns every legal capital as origin and reachable friendly spaces as destinations", () => {
         const G = activeSpain(0); // Spring Deployment is free.
         const origins = legalTargets(G, "spain", "spring");
-        expect([...origins]).toEqual(["madrid"]);
+        // Spain may deploy from either Madrid or Milan (rule 10.6).
+        expect([...origins]).toEqual(["madrid", "milan"]);
 
         const destinations = legalTargets(G, "spain", "spring", "madrid");
         expect(destinations.has("madrid")).toBe(false);
@@ -201,6 +202,20 @@ describe("legalTargets", () => {
         expect(destinations).toContain("valencia");
         expect([...destinations].every((id) =>
             friendlyControlled(G, "spain", id) && !G.spaces[id].unrest)).toBe(true);
+
+        // Milan is a real second origin, not just a decorative label.
+        const fromMilan = legalTargets(G, "spain", "spring", "milan");
+        expect(fromMilan.size).toBeGreaterThan(0);
+        expect(fromMilan).toContain("genoa");
+    });
+
+    it("spring follows a relocated HRE capital", () => {
+        const G = campaign();
+        G.activePower = "hre";
+        G.hreCapital = "prague";
+        const origins = legalTargets(G, "hre", "spring");
+        expect(origins).toContain("prague");
+        expect(origins).toContain("vienna");
     });
 
     it("rebellion accepts the Protestant targets from rebellionTargets", () => {
