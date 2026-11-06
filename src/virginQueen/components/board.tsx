@@ -30,6 +30,8 @@ import {PendingBattlePanel} from "./board/PendingPanels/BattlePanel";
 import {PendingActivationPanel} from "./board/PendingPanels/ActivationPanel";
 import {PendingInterceptPanel} from "./board/PendingPanels/InterceptPanel";
 import {PendingInterceptionOrderPanel} from "./board/PendingPanels/InterceptionOrderPanel";
+import {EventBranchPanel} from "./board/EventBranchPanel";
+import {branchParamValues, effectiveBranchIds, eventBranchChoice, eventBranchTarget} from "../eventBranches";
 import {useNotificationPermission, useTurnNotification} from "./board/useNotifications";
 import ExportLogButton from "../../components/export-log-button";
 import InputLabel from "@mui/material/InputLabel";
@@ -885,6 +887,10 @@ interface EventSelectionState {
     armyMutiny: ArmyMutinyTargetSelection;
     stafford: StaffordTargetSelection;
     germanRecruitment: GermanRecruitmentTargetSelection;
+    /** Selected event branch ids (#53 may select two). */
+    branches: string[];
+    /** Parameter values keyed by branch id, then parameter id. */
+    branchParams: Record<string, Record<string, string>>;
 }
 
 const EMPTY_EVENT_SELECTION: EventSelectionState = {
@@ -896,6 +902,8 @@ const EMPTY_EVENT_SELECTION: EventSelectionState = {
     armyMutiny: {space: ""},
     stafford: {power: ""},
     germanRecruitment: {space: ""},
+    branches: [],
+    branchParams: {},
 };
 
 type EventSelectionAction =
@@ -908,7 +916,9 @@ type EventSelectionAction =
     | {type: "setPolish"; value: PolishElectionBidChoices | ((current: PolishElectionBidChoices) => PolishElectionBidChoices)}
     | {type: "setArmyMutiny"; value: ArmyMutinyTargetSelection}
     | {type: "setStafford"; value: StaffordTargetSelection}
-    | {type: "setGermanRecruitment"; value: GermanRecruitmentTargetSelection};
+    | {type: "setGermanRecruitment"; value: GermanRecruitmentTargetSelection}
+    | {type: "setBranches"; value: string[]}
+    | {type: "setBranchParam"; branchId: string; paramId: string; value: string};
 
 /**
  * One reducer for every card-specific target selection.  Opening a card clears
@@ -937,6 +947,13 @@ const eventSelectionReducer = (state: EventSelectionState, action: EventSelectio
             return {...state, stafford: action.value};
         case "setGermanRecruitment":
             return {...state, germanRecruitment: action.value};
+        case "setBranches":
+            return {...state, branches: action.value};
+        case "setBranchParam":
+            return {...state, branchParams: {
+                ...state.branchParams,
+                [action.branchId]: {...(state.branchParams[action.branchId] ?? {}), [action.paramId]: action.value},
+            }};
         default:
             return state;
     }
@@ -1213,6 +1230,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const setArmyMutinySelection = (value: ArmyMutinyTargetSelection): void => dispatchEventSelection({type: "setArmyMutiny", value});
     const setStaffordSelection = (value: StaffordTargetSelection): void => dispatchEventSelection({type: "setStafford", value});
     const setGermanRecruitmentSelection = (value: GermanRecruitmentTargetSelection): void => dispatchEventSelection({type: "setGermanRecruitment", value});
+    const setEventBranches = (value: string[]): void => dispatchEventSelection({type: "setBranches", value});
+    const setEventBranchParam = (branchId: string, paramId: string, value: string): void =>
+        dispatchEventSelection({type: "setBranchParam", branchId, paramId, value});
     /** Opens a card and clears every target selection that belonged to the previous one. */
     const openCard = (cardId: string): void => {
         setSelectedCard(cardId);
@@ -1461,7 +1481,17 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             Object.values(G.spaces).filter((space) => space.siege === undefined)
                 .reduce((total, space) => total + landCount(space.land[foreignWarPower]), 0) < 3);
         const canPlayAsEvent = def.kind !== "command" || def.officialKind === "mandatory" || G.scenario === "tutorial";
-        const showTargetField = canPlayAsEvent && targetMode === "freeText";
+        const branchChoice = canPlayAsEvent && me !== undefined ? eventBranchChoice(G, id, me, ctx.numPlayers ?? 6) : undefined;
+        const branchIds = branchChoice !== undefined ? effectiveBranchIds(branchChoice, eventSelection.branches) : [];
+        const branchDefs = branchChoice !== undefined
+            ? branchChoice.branches.filter((entry) => branchIds.includes(entry.id))
+            : [];
+        const branchValues: Record<string, Record<string, string>> = {};
+        for (const entry of branchDefs) branchValues[entry.id] = branchParamValues(entry, eventSelection.branchParams[entry.id]);
+        const branchTarget = branchChoice !== undefined ? eventBranchTarget(branchDefs, branchValues) : undefined;
+        const branchComplete = branchChoice === undefined ||
+            branchIds.length >= Math.min(branchChoice.maxSelections, branchChoice.branches.length);
+        const showTargetField = canPlayAsEvent && branchChoice === undefined && targetMode === "freeText";
         return <Paper key={id} variant="outlined" sx={{p: 0.75, mb: 0.5}}>
             <Stack direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
                 <Typography variant="caption" sx={{fontWeight: 700}}>{cardName(id, vqLocale)}</Typography>
@@ -1471,7 +1501,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             </Stack>
             <CardArt def={def} className="vq-card-detail-art"/>
             {def.text !== undefined && <Typography variant="caption" color="text.secondary">{def.text}</Typography>}
-            {espionageTargets.length > 0 && <Select size="small" fullWidth value={espionageTarget}
+            {branchChoice !== undefined && <EventBranchPanel choice={branchChoice} selected={eventSelection.branches}
+                params={eventSelection.branchParams} onSelect={setEventBranches} onParam={setEventBranchParam}/>}
+            {branchChoice === undefined && espionageTargets.length > 0 && <Select size="small" fullWidth value={espionageTarget}
                 onChange={(e) => setEspionageEventTarget(e.target.value)}>
                 {espionageTargets.map((target) => <MenuItem key={target} value={target}>
                     {target === "offensive" ? i18n.chain.vq.board.offensive : target === "defensive" ? i18n.chain.vq.board.defensive : target === "remove" ? i18n.chain.vq.board.removeAll : target.includes(">")
@@ -1481,24 +1513,24 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         : powerName(target as Power, vqLocale)}
                 </MenuItem>)}
             </Select>}
-            {foreignWarPower !== undefined && <FormControl size="small" sx={{mt: 0.5, minWidth: 130}}>
+            {branchChoice === undefined && foreignWarPower !== undefined && <FormControl size="small" sx={{mt: 0.5, minWidth: 130}}>
                 <InputLabel id={`vq-war-size-${id}`}>{i18n.chain.vq.board.foreignArmySize}</InputLabel>
                 <Select labelId={`vq-war-size-${id}`} label={i18n.chain.vq.board.foreignArmySize} value={foreignArmySize}
                         onChange={(e) => setForeignArmySize(Number(e.target.value))}>
                     {[3, 5].map((n) => <MenuItem key={n} value={n}>{n} {i18n.chain.vq.board.independentArmies}</MenuItem>)}
                 </Select>
             </FormControl>}
-            {holyLeagueOptions.length > 0 && <HolyLeagueTargetSelect options={holyLeagueOptions}
+            {branchChoice === undefined && holyLeagueOptions.length > 0 && <HolyLeagueTargetSelect options={holyLeagueOptions}
                 value={holyLeagueTarget} onChange={setHolyLeagueEventTarget}/>}
-            {menendezOptions.length > 0 && <MenendezTargetSelect options={menendezOptions}
+            {branchChoice === undefined && menendezOptions.length > 0 && <MenendezTargetSelect options={menendezOptions}
                 value={menendezTarget ?? ""} onChange={setMenendezEventTarget}/>}
-            {polishElection && <PolishElectionTargetSelect G={G} value={polishElectionBids}
+            {branchChoice === undefined && polishElection && <PolishElectionTargetSelect G={G} value={polishElectionBids}
                 onChange={(power, choice) => setPolishElectionBids((current) => ({...current, [power]: choice}))}/>}
-            {armyMutiny && <ArmyMutinyTargetSelect G={G} value={armyMutinySelection}
+            {branchChoice === undefined && armyMutiny && <ArmyMutinyTargetSelect G={G} value={armyMutinySelection}
                 onChange={(space, owner) => setArmyMutinySelection({space, owner})}/>}
-            {stafford && <StaffordTargetSelect G={G} value={staffordSelection}
+            {branchChoice === undefined && stafford && <StaffordTargetSelect G={G} value={staffordSelection}
                 onChange={(power, discard) => setStaffordSelection({power, discard})}/>}
-            {germanRecruitment && <GermanRecruitmentTargetSelect G={G} hre={me === "hre"}
+            {branchChoice === undefined && germanRecruitment && <GermanRecruitmentTargetSelect G={G} hre={me === "hre"}
                 value={germanRecruitmentSelection}
                 onChange={(space: string, power?: Power, secondSpace?: string, secondPower?: Power) =>
                     setGermanRecruitmentSelection({space, power, secondSpace, secondPower})}/>}
@@ -1507,17 +1539,19 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             </Box>}
             <Stack direction="row" spacing={0.5} sx={{mt: 0.5}}>
                 {canPlayAsEvent && <Button size="small" variant="contained"
-                                                  disabled={disabled || foreignWarBlocked ||
-                                                      (isEspionageEvent(handler) && !canPlayEspionageEvent(G, me!, handler, espionageTarget)) ||
+                                                  disabled={disabled || foreignWarBlocked || !branchComplete ||
+                                                      (branchChoice === undefined && isEspionageEvent(handler) && !canPlayEspionageEvent(G, me!, handler, espionageTarget)) ||
+                                                      (branchChoice !== undefined && isEspionageEvent(handler) &&
+                                                          !canPlayEspionageEvent(G, me!, handler, branchTarget)) ||
                                                       (handler === "untimelyDeath" && G.scenario !== "tutorial" && !canPlayUntimelyDeath(G, espionageTarget)) ||
                                                       (handler === "northernRising" && G.scenario !== "tutorial" && !canPlayNorthernRising(G)) ||
                                                       (isGrandVizier(def) && !canPlayGrandVizier(G, me!, ctx.numPlayers)) ||
                                                       (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
                                                   onClick={() => {
                                                       playEventCard(moves.playCard, id, {
-                                                          selected: espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : menendezOptions.length > 0 ? menendezTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : armyMutiny ? armyMutinyTargetValue(G, armyMutinySelection) : stafford ? staffordTargetValue(G, staffordSelection) : germanRecruitment ? germanRecruitmentTargetValue(G, germanRecruitmentSelection, me === "hre") : undefined,
+                                                          selected: branchChoice !== undefined ? branchTarget : espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : menendezOptions.length > 0 ? menendezTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : armyMutiny ? armyMutinyTargetValue(G, armyMutinySelection) : stafford ? staffordTargetValue(G, staffordSelection) : germanRecruitment ? germanRecruitmentTargetValue(G, germanRecruitmentSelection, me === "hre") : undefined,
                                                           // Free text is only honoured for cards without a dedicated selector.
-                                                          typed: targetMode === "freeText" ? eventTarget : "",
+                                                          typed: branchChoice === undefined && targetMode === "freeText" ? eventTarget : "",
                                                       });
                                                       setEventTarget("");
                                                       setHolyLeagueEventTarget("");
@@ -1526,6 +1560,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                       setArmyMutinySelection({space: ""});
                                                       setStaffordSelection({power: ""});
                                                       setGermanRecruitmentSelection({space: ""});
+                                                      setEventBranches([]);
                                                       setSelectedCard(undefined);
                                                   }}>
                     {def.kind === "home" ? i18n.chain.vq.board.useAbility : i18n.chain.vq.board.asEvent}

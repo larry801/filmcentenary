@@ -1013,6 +1013,8 @@ export const chooseAbjuration = (G: VQGame, ctx: Ctx, args: {power: Power}): voi
 /** #5 Papal Bull: resolve the Papacy; an ally may make Catholic attempts. */
 const resolvePapalBull = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (!G.minorDiplomacyResolved.includes("papacy")) resolveMinorDiplomacy(G, ctx, "papacy");
+    // The printed event explicitly allows the Papal ally to choose no effect.
+    if (target === "skip") return;
     const ally = POWERS.find((power) => G.powers[power].alliedMinors.includes("papacy") && ownerOf(G, power) !== undefined);
     if (ally === undefined) return;
     if (target === "excommunicate") {
@@ -1064,43 +1066,71 @@ const resolveCalvinistZeal = (G: VQGame, ctx: Ctx, target?: string): void => {
     resolveConversions(G, ctx, "protestant", "protestant", "netherlands", 7, true);
 };
 
-/** #53 Grand Tour: clear French unrest, recover Nostradamus, reinforce Paris. */
+/** #53 Grand Tour: clear French unrest, then resolve two of the four printed choices. */
 const resolveGrandTour = (G: VQGame, p: Power, target?: string): void => {
-    const [mode, value, extra] = target?.split(":") ?? [];
-    if (mode === "peace" && value !== undefined && isPower(value) && G.powers[p].wars.includes(value)) {
-        G.powers[p].wars = G.powers[p].wars.filter((power) => power !== value);
-        G.powers[value].wars = G.powers[value].wars.filter((power) => power !== p);
-        pushLog(G, `Grand Tour makes peace between ${powerLabel(p)} and ${powerLabel(value)}.`);
+    const segments = target?.split("|").map((segment) => segment.trim()).filter((segment) => segment !== "") ?? [];
+    const multi = segments.length > 1;
+    const chosen = new Set<string>();
+    for (const segment of segments) {
+        const [mode] = segment.split(":");
+        if (mode === "move" || mode === "reinforce" || mode === "paris") chosen.add(mode === "move" ? "move" : "reinforce");
+        if (mode === "retrieve" || mode === "nostradamus") chosen.add("retrieve");
     }
-    if (mode === "give" && value !== undefined && isPower(value) && value !== p) {
-        const card = extra !== undefined && G.powers[p].cards.includes(extra) && cardById(extra).kind !== "home" && cardById(extra).officialKind !== "mandatory"
-            ? extra
-            : G.powers[p].cards.find((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory");
-        if (card !== undefined) {
-            G.powers[p].cards = G.powers[p].cards.filter((id) => id !== card);
-            G.powers[value].cards.push(card);
-        } else if (G.powers[p].treasures.length > 0) {
-            G.powers[value].treasures.push(G.powers[p].treasures.pop()!);
+    // The printed option adds one French regular in Paris before moving the stack.
+    if (multi && p === "france" && (chosen.has("move") || chosen.has("reinforce"))) {
+        addLand(G, "paris", "france", "regular", 1);
+    }
+    for (const segment of segments) {
+        const [mode, value, extra] = segment.split(":");
+        if (mode === "peace" && value !== undefined && isPower(value) && G.powers[p].wars.includes(value)) {
+            G.powers[p].wars = G.powers[p].wars.filter((power) => power !== value);
+            G.powers[value].wars = G.powers[value].wars.filter((power) => power !== p);
+            pushLog(G, `Grand Tour makes peace between ${powerLabel(p)} and ${powerLabel(value)}.`);
+            chosen.add("peace");
         }
-    }
-    if (mode === "move" && value !== undefined && G.spaces[value] !== undefined && G.spaces[value].control === p) {
-        const source = G.spaces.paris.land[p];
-        if (source !== undefined) {
-            const targetStack = ensureLand(G, value, p);
-            for (const kind of ["regular", "merc", "cav"] as const) {
-                targetStack[kind] += source[kind];
-                source[kind] = 0;
+        if (mode === "give" && value !== undefined && isPower(value) && value !== p) {
+            const card = extra !== undefined && G.powers[p].cards.includes(extra) && cardById(extra).kind !== "home" && cardById(extra).officialKind !== "mandatory"
+                ? extra
+                : G.powers[p].cards.find((id) => cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory");
+            if (card !== undefined) {
+                G.powers[p].cards = G.powers[p].cards.filter((id) => id !== card);
+                G.powers[value].cards.push(card);
+            } else if (G.powers[p].treasures.length > 0) {
+                G.powers[value].treasures.push(G.powers[p].treasures.pop()!);
             }
-            delete G.spaces.paris.land[p];
+            chosen.add("give");
         }
+        if (mode === "move" && value !== undefined && G.spaces[value] !== undefined && G.spaces[value].control === p) {
+            const source = G.spaces.paris.land[p];
+            if (source !== undefined) {
+                const targetStack = ensureLand(G, value, p);
+                for (const kind of ["regular", "merc", "cav"] as const) {
+                    targetStack[kind] += source[kind];
+                    source[kind] = 0;
+                }
+                delete G.spaces.paris.land[p];
+            }
+            chosen.add("move");
+        }
+        if (mode === "retrieve" || mode === "nostradamus") chosen.add("retrieve");
+        if (mode === "reinforce" || mode === "paris") chosen.add("reinforce");
     }
     for (const space of SPACES.filter((def) => def.area === "france" || spaceHomes(def).includes("france"))) G.spaces[space.id].unrest = false;
-    const choseMode = mode === "peace" || mode === "give" || mode === "move";
-    if (!choseMode && G.discard.includes("vq-063")) {
-        G.discard = G.discard.filter((id) => id !== "vq-063");
-        G.powers[p].cards.push("vq-063");
+    // Legacy single/no-target calls keep the old "Nostradamus + Paris regular"
+    // behaviour; the new drawer always sends the two explicitly chosen modes.
+    if (!multi) {
+        const choseMode = chosen.has("peace") || chosen.has("give") || chosen.has("move");
+        if (!choseMode && G.discard.includes("vq-063")) {
+            G.discard = G.discard.filter((id) => id !== "vq-063");
+            G.powers[p].cards.push("vq-063");
+        }
+        if (p === "france") addLand(G, "paris", "france", "regular", 1);
+    } else {
+        if (chosen.has("retrieve") && G.discard.includes("vq-063")) {
+            G.discard = G.discard.filter((id) => id !== "vq-063");
+            G.powers[p].cards.push("vq-063");
+        }
     }
-    if (p === "france") addLand(G, "paris", "france", "regular", 1);
     if (G.catholicLeagueFormed === true) removeCardFromGame(G, "vq-053");
     pushLog(G, `Grand Tour clears French unrest and reinforces Paris for ${powerLabel(p)}.`);
 };
@@ -2157,7 +2187,7 @@ const resolveConventionOfEstates = (G: VQGame): void => {
 
 const resolvePuritans = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     const cards = G.powers.england.cards.filter((id) => cardById(id).kind !== "home");
-    if (cards.length > 0) {
+    if (cards.length > 0 && target !== "unrest") {
         const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
         G.powers.england.cards = G.powers.england.cards.filter((id) => id !== card);
         if (target === "discard") {
@@ -2445,7 +2475,15 @@ const resolveExperiencedNavigator = (G: VQGame, target?: string): void => {
 };
 
 const resolveGouvernanteDeFrance = (G: VQGame, ctx: Ctx, target?: string): void => {
-    if (atWar(G, "france", "protestant") && G.powers.france.cards.length <= 2) {
+    const conversionAvailable = atWar(G, "france", "protestant") && G.powers.france.cards.length <= 2;
+    const betrothal = G.betrothals.find((b) => {
+        const male = G.royals.find((royal) => royal.id === b.male);
+        const female = G.royals.find((royal) => royal.id === b.female);
+        return male?.power === "france" || female?.power === "france";
+    });
+    const conversionBranch = target === "convert" || target?.startsWith("convert:");
+    const festivityBranch = target === "festivity" || target === "retrieve";
+    const convert = (): void => {
         const result = die(ctx, 6) + 2;
         const eligible = SPACES.filter((space) => space.area === "france" &&
             (G.spaces[space.id].control === "protestant" || G.spaces[space.id].religion === "protestant"));
@@ -2459,26 +2497,37 @@ const resolveGouvernanteDeFrance = (G: VQGame, ctx: Ctx, target?: string): void 
         }
         G.protestantRebellionBlockedTurn = G.year;
         pushLog(G, `Gouvernante de France converts ${targets.length} French space(s); Protestant rebellions are blocked this turn.`);
+    };
+    const festivity = (): void => {
+        if (betrothal === undefined) {
+            pushLog(G, "Gouvernante de France: no French betrothal is available.");
+            return;
+        }
+        G.marriageFestivities = "france";
+        if (target === "retrieve" && G.discard.includes("vq-053")) {
+            G.discard = G.discard.filter((id) => id !== "vq-053");
+            G.powers.france.cards.push("vq-053");
+            pushLog(G, "Gouvernante de France retrieves Grand Tour from the discard pile.");
+        } else {
+            drawCards(G, ctx, "france", 1);
+            pushLog(G, "Gouvernante de France places +2 Wedding Festivities on a French marriage and draws a card.");
+        }
+    };
+    // Explicit branch ids let the drawer pick the legal option even when both
+    // printed conditions happen to be true; legacy calls keep the old priority.
+    if (conversionBranch) {
+        if (conversionAvailable) convert();
         return;
     }
-    const betrothal = G.betrothals.find((b) => {
-        const male = G.royals.find((royal) => royal.id === b.male);
-        const female = G.royals.find((royal) => royal.id === b.female);
-        return male?.power === "france" || female?.power === "france";
-    });
-    if (betrothal === undefined) {
-        pushLog(G, "Gouvernante de France: no French betrothal is available.");
+    if (festivityBranch) {
+        festivity();
         return;
     }
-    G.marriageFestivities = "france";
-    if (target === "retrieve" && G.discard.includes("vq-053")) {
-        G.discard = G.discard.filter((id) => id !== "vq-053");
-        G.powers.france.cards.push("vq-053");
-        pushLog(G, "Gouvernante de France retrieves Grand Tour from the discard pile.");
-    } else {
-        drawCards(G, ctx, "france", 1);
-        pushLog(G, "Gouvernante de France places +2 Wedding Festivities on a French marriage and draws a card.");
+    if (conversionAvailable) {
+        convert();
+        return;
     }
+    festivity();
 };
 
 const resolveEnterpriseOfEngland = (G: VQGame): void => {
@@ -2509,9 +2558,12 @@ const resolveEnterpriseOfEngland = (G: VQGame): void => {
     }
 };
 
-const resolveSpanishArmada = (G: VQGame, p: Power): void => {
+const resolveSpanishArmada = (G: VQGame, p: Power, target?: string): void => {
     if (G.armada === undefined) {
-        const port = ["seville", "corunna", "lisbon"].find((id) => G.spaces[id].control === p && !G.spaces[id].unrest && G.spaces[id].siege === undefined);
+        const requested = target?.startsWith("deploy:") ? target.slice("deploy:".length) : undefined;
+        const ports = ["seville", "corunna", "lisbon"];
+        const port = ports.find((id) => id === requested && G.spaces[id].control === p && !G.spaces[id].unrest && G.spaces[id].siege === undefined) ??
+            ports.find((id) => G.spaces[id].control === p && !G.spaces[id].unrest && G.spaces[id].siege === undefined);
         if (port === undefined) {
             pushLog(G, "Spain has no legal port for the Armada.");
             return;
@@ -2626,7 +2678,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         resolveConversions(G, ctx, p, "catholic", "england", 3, true);
         resolveConversions(G, ctx, p, "catholic", "scotland", 3, false);
     } else if (isGrandVizier(def)) {
-        beginGrandVizierEvent(G, ctx, cardId);
+        beginGrandVizierEvent(G, ctx, cardId, target);
     } else if (G.scenario === "tutorial") {
         beginTutorialEvent(G, ctx, p, cardId, true);
     } else if (isEspionageEvent(handler)) {
@@ -2644,7 +2696,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "virginQueen") {
         resolveVirginQueenEvent(G, ctx, p, target);
     } else if (handler === "spanishArmada") {
-        resolveSpanishArmada(G, p);
+        resolveSpanishArmada(G, p, target);
     } else if (handler === "treasureFleet") {
         resolveTreasureFleet(G, ctx);
     } else if (handler === "enterpriseOfEngland") {

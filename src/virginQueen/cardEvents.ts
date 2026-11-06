@@ -14,7 +14,7 @@ export const isGrandVizier = (card: CardDef): boolean => card.officialNumber ===
 export const grandVizierInHand = (G: VQGame): string | undefined => G.powers.ottoman.cards.find((id) =>
     id === "vq-001" || id === "vq-home-grand-vizier");
 
-const recruitmentOptions = (G: VQGame): CardEventOption[] => {
+export const recruitmentOptions = (G: VQGame): CardEventOption[] => {
     const options: CardEventOption[] = [];
     for (const space of SPACES) {
         const state = G.spaces[space.id];
@@ -77,8 +77,16 @@ export const cardEventOptions = (G: VQGame, numPlayers: number): CardEventOption
     return pending.step === "effect" ? effectOptions(G, numPlayers) : recruitmentOptions(G);
 };
 
-export const beginGrandVizierEvent = (G: VQGame, ctx: Ctx, cardId: string): void => {
-    G.pendingCardEvent = {kind: "grandVizier", cardId, responding: "ottoman", step: "effect", remaining: 4};
+export const beginGrandVizierEvent = (G: VQGame, ctx: Ctx, cardId: string, choice?: string): void => {
+    // The card drawer now asks for the branch before the event starts:
+    // "recruit" opens the four-unit placement stage directly and "suez"
+    // resolves the canal attempt without an intermediate option panel.
+    if (choice === "suez") {
+        resolveEvent(G, ctx, "ottoman", {kind: "suez"});
+        return;
+    }
+    const step = choice === "recruit" ? "recruit" : "effect";
+    G.pendingCardEvent = {kind: "grandVizier", cardId, responding: "ottoman", step, remaining: 4};
     ctx.events?.setActivePlayers({value: {[ownerOf(G, "ottoman")!]: "cardEvent"}});
 };
 
