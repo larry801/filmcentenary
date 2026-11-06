@@ -174,3 +174,9 @@
     .vq-action-picker { gap: 6px; }
     .vq-action-group .MuiButton-root { font-size: 12px; }
 }
+
+/* Phase 5 — space detail bottom sheet on phones. */
+.vq-sheet { padding: 6px 16px calc(16px + env(safe-area-inset-bottom)); background: #f4eddd; overflow-wrap: anywhere; }
+.vq-sheet-handle { width: 44px; height: 4px; margin: 4px auto 8px; border-radius: 2px; background: #c3ae86; }
+.vq-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.vq-sheet .MuiChip-root { margin-top: 6px; }

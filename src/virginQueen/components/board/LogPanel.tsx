@@ -2,8 +2,8 @@ import React from "react";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import i18n from "../../../constant/i18n";
-import {Power} from "../../../constant/general";
-import {SPACES} from "../../../mapData";
+import {Power} from "../../constant/general";
+import {SPACES} from "../../mapData";
 
 export interface LogMark {
     /** Index in `log` where this turn/phase starts. */
@@ -112,7 +112,7 @@ export const LogPanel = ({
             {FILTERS.map((candidate) => <Chip key={candidate} size="small" clickable
                 variant={filter === candidate ? "filled" : "outlined"}
                 color={filter === candidate ? "primary" : "default"}
-                label={i18n.chain.vq.log[FILTER_LABEL[candidate]]}
+                label={(i18n.chain.vq.log as unknown as Record<string, string>)[FILTER_LABEL[candidate]] ?? candidate}
                 aria-pressed={filter === candidate}
                 onClick={() => setFilter(candidate)}/>)}
         </div>

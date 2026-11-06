@@ -37,6 +37,22 @@ const LocalVirginQueen = ({initialScenario = "campaign"}: {initialScenario?: Sce
     i18n.use();
     const e = i18n.chain.vq.local;
     const [tab, setTab] = React.useState(0);
+    const toolbarRef = React.useRef<HTMLDivElement>(null);
+    // The toolbar wraps to two or three rows on narrow screens; measuring it is
+    // more reliable than the fixed 112px/152px heights in the stylesheet.
+    React.useEffect(() => {
+        const node = toolbarRef.current;
+        const root = node?.parentElement ?? null;
+        if (node === null || root === null || typeof ResizeObserver === "undefined") return undefined;
+        const apply = (): void => {
+            const height = Math.ceil(node.getBoundingClientRect().height);
+            if (height > 0) root.style.setProperty("--vq-shell-height", `${height}px`);
+        };
+        const observer = new ResizeObserver(apply);
+        observer.observe(node);
+        apply();
+        return () => observer.disconnect();
+    }, []);
     const initialConfigurationID = `${initialScenario}-${initialScenario === "tutorial" ? 2 : 6}`;
     const [configurationID, setConfigurationID] = React.useState(initialConfigurationID);
     React.useEffect(() => {
@@ -67,7 +83,7 @@ const LocalVirginQueen = ({initialScenario = "campaign"}: {initialScenario?: Sce
         return () => window.removeEventListener("keydown", switchSeat);
     }, [tab, seatCount]);
     return <VQSurface className="vq-local">
-        <div className="vq-local-toolbar">
+        <div className="vq-local-toolbar" ref={toolbarRef}>
             <FormControl size="small" sx={{width: {xs: 220, sm: 240}, maxWidth: "100%", flexShrink: 0}}>
                 <InputLabel id="local-vq-scenario">{e.hotseatScenario}</InputLabel>
                 <Select labelId="local-vq-scenario" label={e.hotseatScenario} value={configurationID}

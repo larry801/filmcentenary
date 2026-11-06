@@ -9,22 +9,19 @@ import Drawer from "@mui/material/Drawer";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import IconButton from "@mui/material/IconButton";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContentText from "@mui/material/DialogContentText";
 import Tooltip from "@mui/material/Tooltip";
-import Snackbar from "@mui/material/Snackbar";
-import Alert from "@mui/material/Alert";
 import {ActionGroup, VQSurface} from "./theme";
 import {ConfirmDialog} from "./board/ConfirmDialog";
 import {StepBanner} from "./board/StepBanner";
+import {LogPanel} from "./board/LogPanel";
+import {DiceToast} from "./board/DiceToast";
+import {MobileSpaceSheet} from "./board/MobileSpaceSheet";
+import {PendingBeaconPanel} from "./board/PendingPanels/BeaconPanel";
+import {PendingInterceptPanel} from "./board/PendingPanels/InterceptPanel";
+import {PendingInterceptionOrderPanel} from "./board/PendingPanels/InterceptionOrderPanel";
+import {useNotificationPermission, useTurnNotification} from "./board/useNotifications";
 import ExportLogButton from "../../components/export-log-button";
 import InputLabel from "@mui/material/InputLabel";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Select from "@mui/material/Select";
@@ -931,6 +928,75 @@ export interface StaffordTargetSelection {
     discard?: string;
 }
 
+/** Everything the card drawer remembers while the player picks an event target. */
+interface EventSelectionState {
+    /** Card the selection belongs to; opening another card resets the rest. */
+    cardId?: string;
+    text: string;
+    espionage: string;
+    holyLeague: string;
+    menendez: string;
+    polish: PolishElectionBidChoices;
+    armyMutiny: ArmyMutinyTargetSelection;
+    stafford: StaffordTargetSelection;
+    germanRecruitment: GermanRecruitmentTargetSelection;
+}
+
+const EMPTY_EVENT_SELECTION: EventSelectionState = {
+    text: "",
+    espionage: "",
+    holyLeague: "",
+    menendez: "",
+    polish: {},
+    armyMutiny: {space: ""},
+    stafford: {power: ""},
+    germanRecruitment: {space: ""},
+};
+
+type EventSelectionAction =
+    | {type: "open"; cardId?: string}
+    | {type: "reset"}
+    | {type: "setText"; value: string}
+    | {type: "setEspionage"; value: string}
+    | {type: "setHolyLeague"; value: string}
+    | {type: "setMenendez"; value: string}
+    | {type: "setPolish"; value: PolishElectionBidChoices | ((current: PolishElectionBidChoices) => PolishElectionBidChoices)}
+    | {type: "setArmyMutiny"; value: ArmyMutinyTargetSelection}
+    | {type: "setStafford"; value: StaffordTargetSelection}
+    | {type: "setGermanRecruitment"; value: GermanRecruitmentTargetSelection};
+
+/**
+ * One reducer for every card-specific target selection.  Opening a card clears
+ * the whole selection, which replaces the manual reset chain that used to live
+ * in the hand's onClick handler.
+ */
+const eventSelectionReducer = (state: EventSelectionState, action: EventSelectionAction): EventSelectionState => {
+    switch (action.type) {
+        case "open":
+            return {...EMPTY_EVENT_SELECTION, cardId: action.cardId};
+        case "reset":
+            return EMPTY_EVENT_SELECTION;
+        case "setText":
+            return {...state, text: action.value};
+        case "setEspionage":
+            return {...state, espionage: action.value};
+        case "setHolyLeague":
+            return {...state, holyLeague: action.value};
+        case "setMenendez":
+            return {...state, menendez: action.value};
+        case "setPolish":
+            return {...state, polish: typeof action.value === "function" ? action.value(state.polish) : action.value};
+        case "setArmyMutiny":
+            return {...state, armyMutiny: action.value};
+        case "setStafford":
+            return {...state, stafford: action.value};
+        case "setGermanRecruitment":
+            return {...state, germanRecruitment: action.value};
+        default:
+            return state;
+    }
+};
+
 /** Non-home cards in a power's hand, in the order the engine would inspect them. */
 const staffordCards = (G: VQGame, power: Power): string[] =>
     G.powers[power].cards.filter((id) => cardById(id).kind !== "home");
@@ -1158,7 +1224,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [mobileView, setMobileView] = React.useState("map");
     const [handExpanded, setHandExpanded] = React.useState(true);
     const [selectedCard, setSelectedCard] = React.useState<string>();
-    const [eventTarget, setEventTarget] = React.useState("");
+    const [eventSelection, dispatchEventSelection] = React.useReducer(eventSelectionReducer, EMPTY_EVENT_SELECTION);
     const actionRef = React.useRef<HTMLElement>(null);
     const sidebarRef = React.useRef<HTMLElement>(null);
     const panelID = React.useId();
@@ -1185,13 +1251,28 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [assassinationCp, setAssassinationCp] = React.useState(2);
     const [catholicRebellionCp, setCatholicRebellionCp] = React.useState(3);
     const [informantSource, setInformantSource] = React.useState("");
-    const [espionageEventTarget, setEspionageEventTarget] = React.useState("");
-    const [holyLeagueEventTarget, setHolyLeagueEventTarget] = React.useState("");
-    const [menendezEventTarget, setMenendezEventTarget] = React.useState("");
-    const [polishElectionBids, setPolishElectionBids] = React.useState<PolishElectionBidChoices>({});
-    const [armyMutinySelection, setArmyMutinySelection] = React.useState<ArmyMutinyTargetSelection>({space: ""});
-    const [staffordSelection, setStaffordSelection] = React.useState<StaffordTargetSelection>({power: ""});
-    const [germanRecruitmentSelection, setGermanRecruitmentSelection] = React.useState<GermanRecruitmentTargetSelection>({space: ""});
+    const eventTarget = eventSelection.text;
+    const espionageEventTarget = eventSelection.espionage;
+    const holyLeagueEventTarget = eventSelection.holyLeague;
+    const menendezEventTarget = eventSelection.menendez;
+    const polishElectionBids = eventSelection.polish;
+    const armyMutinySelection = eventSelection.armyMutiny;
+    const staffordSelection = eventSelection.stafford;
+    const germanRecruitmentSelection = eventSelection.germanRecruitment;
+    const setEventTarget = (value: string): void => dispatchEventSelection({type: "setText", value});
+    const setEspionageEventTarget = (value: string): void => dispatchEventSelection({type: "setEspionage", value});
+    const setHolyLeagueEventTarget = (value: string): void => dispatchEventSelection({type: "setHolyLeague", value});
+    const setMenendezEventTarget = (value: string): void => dispatchEventSelection({type: "setMenendez", value});
+    const setPolishElectionBids = (value: PolishElectionBidChoices | ((current: PolishElectionBidChoices) => PolishElectionBidChoices)): void =>
+        dispatchEventSelection({type: "setPolish", value});
+    const setArmyMutinySelection = (value: ArmyMutinyTargetSelection): void => dispatchEventSelection({type: "setArmyMutiny", value});
+    const setStaffordSelection = (value: StaffordTargetSelection): void => dispatchEventSelection({type: "setStafford", value});
+    const setGermanRecruitmentSelection = (value: GermanRecruitmentTargetSelection): void => dispatchEventSelection({type: "setGermanRecruitment", value});
+    /** Opens a card and clears every target selection that belonged to the previous one. */
+    const openCard = (cardId: string): void => {
+        setSelectedCard(cardId);
+        dispatchEventSelection({type: "open", cardId});
+    };
     const [expeditionCaptain, setExpeditionCaptain] = React.useState("");
     const [expeditionHasColony, setExpeditionHasColony] = React.useState(false);
     const [foreignArmySize, setForeignArmySize] = React.useState(3);
@@ -1202,6 +1283,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const [selectedAbjurationPower, setSelectedAbjurationPower] = React.useState<Power>();
     // Pass / end-impulse are destructive enough to deserve a confirmation.
     const [confirmAction, setConfirmAction] = React.useState<"pass" | "endImpulse" | null>(null);
+    const [sheetOpen, setSheetOpen] = React.useState(false);
 
     const [viewPower, setViewPower] = React.useState<Power>();
     const owned = controlledPowers(G, playerID);
@@ -1230,6 +1312,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const legalEspionageTargets = POWERS.filter((p) => p !== me && !isActivatedMajor(G, p));
     const espionageTarget = legalEspionageTargets.includes(espionageTargetSelection) ? espionageTargetSelection : legalEspionageTargets[0];
     const myTurn = ctx.gameover === undefined && me !== undefined && ctx.currentPlayer === playerID && me === G.activePower;
+    useTurnNotification({
+        isMyTurn: myTurn,
+        needsResponse: responsePower !== undefined && ctx.gameover === undefined,
+        titleSuffix: responsePower !== undefined ? i18n.chain.vq.shell.responseNeeded : myTurn ? i18n.chain.vq.shell.yourTurn : undefined,
+    });
+    useNotificationPermission(myTurn || responsePower !== undefined);
     const phase = ctx.phase ?? "";
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
@@ -1395,6 +1483,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     const onSelect = (id: string): void => {
         setSelected(id);
         doSpaceAction(id);
+        // Read-only taps open the bottom sheet on phones; an active action keeps
+        // the map in front so the target can still be chosen.
+        if (!isDesktop && mode === "inspect" && G.spaces[id] !== undefined) setSheetOpen(true);
     };
 
     const space = selected !== undefined ? G.spaces[selected] : undefined;
@@ -1598,30 +1689,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             {ownerOf(G, G.pendingCardEvent.responding) === playerID && cardEventOptions(G, ctx.numPlayers).map((entry) =>
                 <Button key={entry.id} onClick={() => moves.chooseCardEvent({choice: entry.id})}>{entry.label}</Button>)}
         </Stack>;
-        if (G.pendingBeacon) return <Stack spacing={1}>
-            <Typography>{i18n.chain.vq.beacon.title} · {powerName(G.pendingBeacon.defender, vqLocale)} {i18n.chain.vq.beacon.intercepting} {SPACE_BY_ID[G.pendingBeacon.from]?.name ?? G.pendingBeacon.from}{i18n.chain.vq.punct.comma}{i18n.chain.vq.beacon.canPlay}</Typography>
-            {ownerOf(G, G.pendingBeacon.defender) === playerID && <>
-                <Typography variant="body2">{i18n.chain.vq.beacon.autoSuccess}</Typography>
-                <Stack direction="row" spacing={0.5}>
-                    <Button variant="contained" disabled={!G.powers[G.pendingBeacon.defender].cards.includes("vq-014")}
-                        onClick={() => moves.respondBeaconFires({choice: "play"})}>{i18n.chain.vq.beacon.play}</Button>
-                    <Button variant="outlined" onClick={() => moves.respondBeaconFires({choice: "decline"})}>{i18n.chain.vq.beacon.decline}</Button>
-                </Stack>
-            </>}
-        </Stack>;
-        if (G.pendingInterceptionOrder) return <Stack spacing={1}>
-            <Typography>{i18n.chain.vq.interceptionOrder.title} · {i18n.chain.vq.intercept.waiting} {powerName(G.pendingInterceptionOrder.defender, vqLocale)} {i18n.chain.vq.interceptionOrder.choose} {SPACE_BY_ID[G.pendingInterceptionOrder.to]?.name ?? G.pendingInterceptionOrder.to} {i18n.chain.vq.interceptionOrder.move}{i18n.chain.vq.punct.period}</Typography>
-            {ownerOf(G, G.pendingInterceptionOrder.defender) === playerID && <>
-                {interceptionOrderOptions(G).map((entry) =>
-                    <Button key={entry.id} onClick={() => moves.chooseInterceptionOrder({from: entry.id})}>{entry.label}</Button>)}
-                <Button variant="text" onClick={() => moves.autoInterceptionOrder({})}>{i18n.chain.vq.interceptionOrder.auto}</Button>
-            </>}
-        </Stack>;
-        if (G.pendingIntercept) return <Stack spacing={1}>
-            <Typography>{i18n.chain.vq.intercept.title} · {i18n.chain.vq.intercept.waiting} {powerName(G.pendingIntercept.defender, vqLocale)}{i18n.chain.vq.punct.period}</Typography>
-            {ownerOf(G, G.pendingIntercept.defender) === playerID && interceptionOptions(G).map((entry) =>
-                <Button key={entry.id} onClick={() => moves.chooseInterception({choice: entry.id})}>{entry.label}</Button>)}
-        </Stack>;
+        if (G.pendingBeacon) return <PendingBeaconPanel G={G} moves={moves} playerID={playerID}/>;
+        if (G.pendingInterceptionOrder) return <PendingInterceptionOrderPanel G={G} moves={moves} playerID={playerID}/>;
+        if (G.pendingIntercept) return <PendingInterceptPanel G={G} moves={moves} playerID={playerID}/>;
         if (G.pendingAction) {
             const choice = myActionChoices.find((entry) => entry.responder === actionResponder);
             return <Stack spacing={1}>
@@ -2600,7 +2670,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 </span>)}
             </div>
         </header>
-        {hasResponse && <div className="vq-response" role="status">
+        {hasResponse && <div className="vq-response" role="status" aria-live="polite">
             <span>{i18n.chain.vq.shell.responseNeeded} · {powerName(pendingPower, vqLocale)}{ownerOf(G, pendingPower) === playerID ? ` · ${i18n.chain.vq.shell.yourTurn}` : ` · ${i18n.chain.vq.shell.waiting}`}</span>
             {!isDesktop && <Button size="small" onClick={() => setMobileView("action")}>{i18n.chain.vq.shell.viewResponse}</Button>}
         </div>}
@@ -2722,10 +2792,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         {entry.cards.map((id) => <Typography key={id} variant="body2">{cardById(id).name} · {cardById(id).cp} CP</Typography>)}
                     </ActionGroup>)}
                 <ActionGroup title={`${i18n.chain.vq.intel.log} · ${G.log.length}`}>
-                    {G.lastRolls && <Typography variant="body2">{i18n.chain.vq.intel.lastRolls}: {G.lastRolls}</Typography>}
-                    <List dense disablePadding>{G.log.slice(-30).reverse().map((line, index) => <ListItem key={index} disableGutters sx={{py: 0.5}}>
-                        <Typography variant="caption">{line}</Typography>
-                    </ListItem>)}</List>
+                    <LogPanel log={G.log} marks={G.logMarks} me={me}
+                              myName={me !== undefined ? powerName(me, vqLocale) : undefined}
+                              onSelectSpace={(id) => setSelected(id)}/>
                 </ActionGroup>
                 <ActionGroup title={i18n.chain.vq.intel.scenario}>
                     <Typography variant="body2">{scenarioName(G.scenario, vqLocale)} · {i18n.chain.vq.intel.deck} {G.deckCount ?? 0} · {i18n.chain.vq.intel.protestantSpaces} {protestantSpaceCount(G)}</Typography>
@@ -2749,7 +2818,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {hand.length === 0 && <Typography variant="body2" color="text.secondary">{me ? i18n.chain.vq.cardTray.noCards : i18n.chain.vq.cardTray.spectator}</Typography>}
                     <div className="vq-card-tray">{hand.map((id) => {
                         const card = cardById(id);
-                        return <button key={id} className="vq-card" aria-label={`${i18n.chain.vq.cardTray.viewCard} ${cardName(id, vqLocale)} · ${card.cp} CP`} onClick={() => {setSelectedCard(id); setEventTarget(""); setHolyLeagueEventTarget(""); setMenendezEventTarget(""); setPolishElectionBids({}); setStaffordSelection({power: ""});}}>
+                        return <button key={id} className="vq-card" aria-label={`${i18n.chain.vq.cardTray.viewCard} ${cardName(id, vqLocale)} · ${card.cp} CP`} onClick={() => openCard(id)}>
                             <CardArt def={card} className="vq-card-art" lazy/>
                             <small>{card.kind === "home" ? i18n.chain.vq.board.homeCard : card.kind === "event" ? i18n.chain.vq.cardTray.eventCard : i18n.chain.vq.cardTray.actionCard}<span className="vq-card-cp">{card.cp} CP</span></small>
                             <strong>{cardName(id, vqLocale)}</strong><small>{i18n.chain.vq.cardTray.viewDetails} ↗</small>
@@ -2764,6 +2833,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 {cardView(selectedCard)}
             </div>}
         </Drawer>
+        <DiceToast rolls={G.lastRolls}/>
+        {!isDesktop && <MobileSpaceSheet G={G} spaceId={selected} open={sheetOpen}
+                                         onClose={() => setSheetOpen(false)}/>}
         <ConfirmDialog
             open={confirmAction !== null}
             title={confirmAction === "endImpulse" ? i18n.chain.vq.turn.confirmEnd : i18n.chain.vq.turn.confirmPass}
