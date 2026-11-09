@@ -269,6 +269,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 autoResolveWinterLossChoices(G);
                 autoResolveWinterNavalLossChoices(G);
                 G.peaceMadeThisPhase = [];
+                G.diplomacyGifts = {};
                 phaseBegin(G, ctx);
             },
             turn: {

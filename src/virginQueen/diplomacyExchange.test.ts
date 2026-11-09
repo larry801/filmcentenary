@@ -54,4 +54,49 @@ describe("diplomatic treasure exchange (rule 9.1)", () => {
         expect(giveTreasure(G, context(), {target: "spain", index: 0})).toBe(INVALID_MOVE);
         expect(giveTreasure(G, context(), {target: "england", index: 2})).toBe(INVALID_MOVE);
     });
+
+    it("limits random card gifts to 2 per direction per phase", () => {
+        const G = game();
+        G.diplomacyGifts = {};
+        G.powers.france.cards = ["vq-020", "vq-036", "vq-050"];
+        G.powers.spain.cards = [];
+
+        expect(giveRandomCard(G, context([1]), {target: "spain"})).toBeUndefined();
+        expect(giveRandomCard(G, context([1]), {target: "spain"})).toBeUndefined();
+        expect(giveRandomCard(G, context([1]), {target: "spain"})).toBe(INVALID_MOVE);
+    });
+
+    it("limits treasure gifts to 2 per direction per phase", () => {
+        const G = game();
+        G.diplomacyGifts = {};
+        G.powers.france.treasures = [1, 2, 3];
+
+        expect(giveTreasure(G, context(), {target: "spain", index: 0})).toBeUndefined();
+        expect(giveTreasure(G, context(), {target: "spain", index: 0})).toBeUndefined();
+        expect(giveTreasure(G, context(), {target: "spain", index: 0})).toBe(INVALID_MOVE);
+    });
+
+    it("limits mercenary gifts to 4 per direction per phase", () => {
+        const G = game();
+        G.diplomacyGifts = {};
+        G.spaces.paris.land.france = {regular: 0, merc: 5, cav: 0};
+
+        expect(giveMercenary(G, context(), {target: "spain", space: "paris"})).toBeUndefined();
+        expect(giveMercenary(G, context(), {target: "spain", space: "paris"})).toBeUndefined();
+        expect(giveMercenary(G, context(), {target: "spain", space: "paris"})).toBeUndefined();
+        expect(giveMercenary(G, context(), {target: "spain", space: "paris"})).toBeUndefined();
+        expect(giveMercenary(G, context(), {target: "spain", space: "paris"})).toBe(INVALID_MOVE);
+    });
+
+    it("tracks limits per direction independently", () => {
+        const G = game();
+        G.diplomacyGifts = {};
+        G.powers.france.treasures = [1, 2, 3, 4];
+
+        expect(giveTreasure(G, context(), {target: "spain", index: 0})).toBeUndefined();
+        expect(giveTreasure(G, context(), {target: "spain", index: 0})).toBeUndefined();
+        expect(giveTreasure(G, context(), {target: "spain", index: 0})).toBe(INVALID_MOVE);
+        // Different target is still allowed
+        expect(giveTreasure(G, context(), {target: "england", index: 0})).toBeUndefined();
+    });
 });

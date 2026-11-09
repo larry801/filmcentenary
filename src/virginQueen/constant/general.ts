@@ -133,6 +133,10 @@ export type VQLocale = "en" | "zh_CN";
 export const powerName = (p: Power, locale: VQLocale = "zh_CN"): string =>
     POWER_NAMES[p][locale === "en" ? "en" : "zh"];
 
+/** Compact power label for dense rows: the English short form, or the Chinese name. */
+export const powerShortName = (p: Power, locale: VQLocale = "zh_CN"): string =>
+    locale === "en" ? POWER_NAMES[p].short : POWER_NAMES[p].zh;
+
 export const minorName = (m: MinorPower | Independent, locale: VQLocale = "zh_CN"): string =>
     MINOR_NAMES[m][locale === "en" ? "en" : "zh"];
 
@@ -727,6 +731,8 @@ export interface VQGame {
     /** Morisco Revolt unit (rule 20.1 / card #28), if in play. */
     morisco?: {space: string; units: number};
     peaceMadeThisPhase?: [Power, Power][];
+    /** Per-phase diplomacy gift counts. Key is "giver->receiver". */
+    diplomacyGifts?: Record<string, {cards: number; treasures: number; mercenaries: number}>;
     lostBattleImpulse?: {impulse: number; owners: Controller[]};
     rebellionAreasThisImpulse?: {impulse: number; areas: string[]};
     spanishTreasureRow?: number[];

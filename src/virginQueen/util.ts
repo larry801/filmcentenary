@@ -657,15 +657,16 @@ export const resolveColonies = (G: VQGame, ctx: Ctx): void => {
     for (const [settlement, power] of Object.entries(G.worldColonies)) {
         if (power === undefined) continue;
         const plantation = G.powers[power].scienceBonuses.includes("plantation") ? 1 : 0;
+        const fort = G.worldFortresses?.[settlement] === power ? 1 : 0;
         const dice = roll(ctx, 2);
-        const total = dice[0] + dice[1] + plantation;
-        G.lastRolls = `Colony ${settlement}: [${dice.join(",")}] + ${plantation} = ${total}`;
+        const total = dice[0] + dice[1] + plantation + fort;
+        G.lastRolls = `Colony ${settlement}: [${dice.join(",")}] + ${plantation} plantation + ${fort} fortress = ${total}`;
         pushLog(G, G.lastRolls);
         if (total <= 4) {
             delete G.worldColonies[settlement];
             if (G.worldControls[settlement] === power) delete G.worldControls[settlement];
             pushLog(G, `Colony ${settlement} is eliminated.`);
-        } else if (total >= 12) {
+        } else if (total >= 11) {
             addTreasure(G, ctx, power, 1);
             addVp(G, power, 1);
             pushLog(G, `Colony ${settlement} yields a treasure and 1 Virginia Dare VP.`);

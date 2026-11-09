@@ -41,11 +41,11 @@ describe("Colony Table at Card Draw (rule 8.4)", () => {
         expect(G.powers.spain.treasures.length).toBe(before + 1);
     });
 
-    it("awards a treasure and Virginia Dare VP on 12 or more", () => {
+    it("awards a treasure and Virginia Dare VP on 11 or more", () => {
         const G = withFlorida();
         const treasures = G.powers.spain.treasures.length;
         const vp = G.powers.spain.bonusVp;
-        resolveColonies(G, context([6, 6, 3]));
+        resolveColonies(G, context([5, 6, 3]));
         expect(G.powers.spain.treasures.length).toBe(treasures + 1);
         expect(G.powers.spain.bonusVp).toBe(vp + 1);
     });
@@ -56,6 +56,22 @@ describe("Colony Table at Card Draw (rule 8.4)", () => {
         const before = G.powers.spain.treasures.length;
         resolveColonies(G, context([4, 4, 3]));
         expect(G.powers.spain.treasures.length).toBe(before + 1);
-        expect(G.lastRolls).toContain("+ 1 = 9");
+        expect(G.lastRolls).toContain("1 plantation");
+    });
+
+    it("adds 1 for a fortress at the colony", () => {
+        const G = withFlorida();
+        G.worldFortresses = {florida: "spain"};
+        const treasures = G.powers.spain.treasures.length;
+        resolveColonies(G, context([4, 4, 3]));
+        expect(G.powers.spain.treasures.length).toBe(treasures + 1);
+        expect(G.lastRolls).toContain("1 fortress");
+    });
+
+    it("does not add fortress bonus when owned by another power", () => {
+        const G = withFlorida();
+        G.worldFortresses = {florida: "england"};
+        resolveColonies(G, context([4, 4]));
+        expect(G.lastRolls).toContain("0 fortress");
     });
 });
