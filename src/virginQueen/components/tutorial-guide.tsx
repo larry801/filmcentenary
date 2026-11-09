@@ -21,6 +21,9 @@ export const TutorialGuide = ({G, ctx, playerID}: Pick<BoardProps<VQGame>, "G" |
     const finished = ctx.gameover !== undefined;
     const steps = [e.step1, e.step2, e.step3];
     const step = ["cardDraw", "spring", "action"].indexOf(ctx.phase ?? "");
+    // The stored sentence ends with a period; English needs a space before the
+    // next sentence, Chinese does not.
+    const sentenceGap = vqLocale === "en" ? " " : "";
     return <div className="vq-guide">
         <div className="vq-guide-title">{e.title}</div>
         <Stack direction="row" spacing={0.5} useFlexGap sx={{flexWrap: "wrap", mb: 1}}>
@@ -32,7 +35,7 @@ export const TutorialGuide = ({G, ctx, playerID}: Pick<BoardProps<VQGame>, "G" |
         {!finished && lesson && <>
             <Typography variant="body2" color={owner === playerID ? "primary" : "text.secondary"} sx={{my: 0.5}}>
                 {`${e.currentOp}${i18n.chain.vq.punct.colon}P${Number(owner) + 1} · ${powerName(lesson.power, vqLocale)}${i18n.chain.vq.punct.period}`}
-                {playerID === null ? e.spectator : owner === playerID
+                {sentenceGap}{playerID === null ? e.spectator : owner === playerID
                     ? e.yourTurn : `${e.waitOther} P${Number(owner) + 1} ${e.tab}.`}
             </Typography>
             <Typography variant="body2">{tutorialLessonInstruction(lesson, vqLocale)}</Typography>

@@ -17,10 +17,10 @@ export const PendingActivationPanel = ({G, moves, playerID}: PendingPanelProps) 
     return <Stack spacing={1}>
         <Typography>{i18n.chain.vq.activation.waiting} {powerName(pending.ally, vqLocale)} {i18n.chain.vq.activation.activate} {powerName(pending.power, vqLocale)}{i18n.chain.vq.punct.period}</Typography>
         {canRespond && <>
-            <Button onClick={() => moves.chooseMajorActivation({})}>{i18n.chain.vq.activation.activateNoWar}</Button>
-            {pending.aggressor && <Button onClick={() => moves.chooseMajorActivation({joinDefense: true})}>{i18n.chain.vq.activation.joinDefense}</Button>}
+            <Button variant="outlined" onClick={() => moves.chooseMajorActivation({})}>{i18n.chain.vq.activation.activateNoWar}</Button>
+            {pending.aggressor && <Button variant="outlined" onClick={() => moves.chooseMajorActivation({joinDefense: true})}>{i18n.chain.vq.activation.joinDefense}</Button>}
             {POWERS.filter((power) => power !== pending.power && ownerOf(G, power) !== playerID && ownerOf(G, power) !== undefined)
-                .map((power) => <Button key={power} onClick={() => moves.chooseMajorActivation({war: power})}>{i18n.chain.vq.activation.activateWar} {powerName(power, vqLocale)}</Button>)}
+                .map((power) => <Button key={power} variant="outlined" onClick={() => moves.chooseMajorActivation({war: power})}>{i18n.chain.vq.activation.activateWar} {powerName(power, vqLocale)}</Button>)}
         </>}
     </Stack>;
 };

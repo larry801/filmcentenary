@@ -23,7 +23,7 @@ export const PendingInterceptionOrderPanel = ({G, moves, playerID}: PendingPanel
         <Typography>{i18n.chain.vq.interceptionOrder.title} · {i18n.chain.vq.intercept.waiting} {powerName(G.pendingInterceptionOrder.defender, vqLocale)} {i18n.chain.vq.interceptionOrder.choose} {spaceName(G.pendingInterceptionOrder.to, vqLocale)} {i18n.chain.vq.interceptionOrder.move}{i18n.chain.vq.punct.period}</Typography>
         {ownerOf(G, G.pendingInterceptionOrder.defender) === playerID && <>
             {interceptionOrderOptions(G).map((entry: {id: string; label: string}) =>
-                <Button key={entry.id} onClick={() => moves.chooseInterceptionOrder({from: entry.id})}>{entry.label}</Button>)}
+                <Button key={entry.id} variant="outlined" onClick={() => moves.chooseInterceptionOrder({from: entry.id})}>{entry.label}</Button>)}
             <Button variant="text" onClick={() => moves.autoInterceptionOrder({})}>{i18n.chain.vq.interceptionOrder.auto}</Button>
         </>}
     </Stack>;

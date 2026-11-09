@@ -21,6 +21,6 @@ export const PendingInterceptPanel = ({G, moves, playerID}: PendingPanelProps) =
     return <Stack spacing={1}>
         <Typography>{i18n.chain.vq.intercept.title} · {i18n.chain.vq.intercept.waiting} {powerName(G.pendingIntercept.defender, vqLocale)}{i18n.chain.vq.punct.period}</Typography>
         {ownerOf(G, G.pendingIntercept.defender) === playerID && interceptionOptions(G).map((entry: {id: string; label: string}) =>
-            <Button key={entry.id} onClick={() => moves.chooseInterception({choice: entry.id})}>{entry.label}</Button>)}
+            <Button key={entry.id} variant="outlined" onClick={() => moves.chooseInterception({choice: entry.id})}>{entry.label}</Button>)}
     </Stack>;
 };

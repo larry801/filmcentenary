@@ -313,6 +313,30 @@ describe("Virgin Queen board", () => {
         expect(ordinary).not.toContain("确认移除");
     });
 
+    it("flags winter attrition and city-rebel choices as pending responses", () => {
+        const render = (G: VQGame, phase: string, playerID: string): string =>
+            renderToStaticMarkup(<VirginQueenBoard {...{
+                G, ctx: {phase, currentPlayer: playerID}, moves: {}, playerID, isActive: true,
+            } as any}/>);
+
+        const winter = setupGame(fakeCtx(), {scenario: "tournament"});
+        winter.activePower = "ottoman";
+        winter.winterLossChoices = [{
+            power: "ottoman", space: "granada", amount: 1,
+            removed: {regular: 1, merc: 0, cav: 0},
+        }];
+        const winterHtml = render(winter, "cardDraw", "0");
+        expect(winterHtml).toContain("冬季损失：选择或确认失去的单位类型");
+        expect(winterHtml).toContain("行动 · 待响应");
+
+        const city = setupGame(fakeCtx(), {numPlayers: 6});
+        city.activePower = "spain";
+        city.pendingCityRebels = {power: "spain", controller: "spain", space: "brussels", remaining: 2, values: [5, 5, 4, 3, 2]};
+        const cityHtml = render(city, "action", "1");
+        expect(cityHtml).toContain("需要响应 · 西班牙");
+        expect(cityHtml).toContain("行动 · 待响应");
+    });
+
     it("offers all three religious preferences to HRE in its first Spring", () => {
         const G = setupGame(fakeCtx());
         G.activePower = "hre";

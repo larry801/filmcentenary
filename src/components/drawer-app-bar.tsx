@@ -52,17 +52,17 @@ const DrawerAppBar = () => {
     i18n.use();
     const isVQ = /^\/(localVQ(?:\/|$)|join\/virginQueen\/)/.test(useLocation().pathname);
     const [open, setOpen] = React.useState(false);
-    const [checked, setChecked] = React.useState(true);
+    // Derive the switch position from the active locale: the app starts in
+    // zh_CN, so a hard-coded `true` made the first click a no-op.
+    const checked = i18n.getLocaleName() === "en";
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const switchChecked = event.target.checked;
-        if(switchChecked){
+        if(event.target.checked){
             i18n.locale("en").then(()=>{});
         }else {
             i18n.locale("zh_CN").then(()=>{});
         }
-        setChecked(event.target.checked);
     };
     return <React.Fragment>
         <AppBar position={"sticky"} sx={isVQ ? {height: 48, bgcolor: "#211b16", color: "#ead7af", boxShadow: "none", borderBottom: "1px solid #80633a"} : undefined}>

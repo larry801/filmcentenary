@@ -33,6 +33,6 @@ export const PendingCardEventPanel = ({G, moves, playerID, numPlayers}: PendingC
                 {i18n.chain.vq.board.canalRoll}: {G.suezAttempts}{G.powers.ottoman.scienceBonuses.includes("excavation") ? i18n.chain.vq.board.excavation : ""}{i18n.chain.vq.board.canalSuccess}
             </Typography>}
         {ownerOf(G, pending.responding) === playerID && cardEventOptions(G, numPlayers).map((entry) =>
-            <Button key={entry.id} onClick={() => moves.chooseCardEvent({choice: entry.id})}>{entry.label}</Button>)}
+            <Button key={entry.id} variant="outlined" onClick={() => moves.chooseCardEvent({choice: entry.id})}>{entry.label}</Button>)}
     </Stack>;
 };

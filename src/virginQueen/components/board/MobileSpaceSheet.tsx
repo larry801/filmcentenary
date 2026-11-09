@@ -4,8 +4,8 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import i18n from "../../../constant/i18n";
-import {Controller, isPower, powerName, controllerName, POWER_NAMES, VQGame} from "../../constant/general";
-import {SPACE_BY_ID, spaceName} from "../../mapData";
+import {Controller, isPower, powerName, powerShortName, controllerName, VQGame} from "../../constant/general";
+import {SPACE_BY_ID, seaZoneName, spaceName} from "../../mapData";
 import {leaderName} from "../../constant/leaders";
 
 export interface MobileSpaceSheetProps {
@@ -16,7 +16,7 @@ export interface MobileSpaceSheetProps {
     onClose: () => void;
 }
 
-const cell = (value: number): string => (value > 0 ? String(value) : "\u00b7");
+const cell = (value: number): string => (value > 0 ? String(value) : "\u2014");
 
 /**
  * Bottom sheet with the selected space's details for narrow screens, so players
@@ -38,14 +38,14 @@ export const MobileSpaceSheet = ({G, spaceId, open, onClose}: MobileSpaceSheetPr
             </div>
             <Typography variant="caption" color="text.secondary">
                 {def.kind === "key" ? e.keyCity : def.kind === "fortress" ? e.fortress : e.openCity}
-                {def.ports !== undefined && def.ports.length > 0 ? ` \u00b7 ${e.port}: ${def.ports.join(", ")}` : ""}
+                {def.ports !== undefined && def.ports.length > 0 ? ` \u00b7 ${e.port}: ${def.ports.map((id) => seaZoneName(id, vqLocale)).join(", ")}` : ""}
             </Typography>
             <Typography variant="body2" sx={{mt: 0.5}}>
                 {e.control}{i18n.chain.vq.punct.colon}
                 <b>{isPower(space.control) ? powerName(space.control, vqLocale) : space.control}</b>
                 {" \u00b7 "}{space.religion === "protestant" ? e.protestant : e.catholic}
                 {space.unrest ? ` \u00b7 ${e.unrest}` : ""}
-                {space.siege !== undefined ? ` \u00b7 ${e.besiegedBy} ${POWER_NAMES[space.siege.by].short}` : ""}
+                {space.siege !== undefined ? ` \u00b7 ${e.besiegedBy} ${powerShortName(space.siege.by, vqLocale)}` : ""}
             </Typography>
             {Object.keys(space.land).map((controller) => {
                 const stack = space.land[controller as Controller];

@@ -25,6 +25,6 @@ export const PendingTutorialEventPanel = ({G, moves, playerID}: PendingPanelProp
             {spaceName(pending.space!, vqLocale)}{i18n.chain.vq.punct.colon}{i18n.chain.vq.tutorialEvent.remaining} {pending.remaining} {i18n.chain.vq.tutorialEvent.losses}{i18n.chain.vq.punct.period}
         </Typography>}
         {ownerOf(G, pending.responding) === playerID && tutorialEventOptions(G).map((entry) =>
-            <Button key={entry.id} onClick={() => moves.chooseTutorialEvent({choice: entry.id})}>{entry.label}</Button>)}
+            <Button key={entry.id} variant="outlined" onClick={() => moves.chooseTutorialEvent({choice: entry.id})}>{entry.label}</Button>)}
     </Stack>;
 };

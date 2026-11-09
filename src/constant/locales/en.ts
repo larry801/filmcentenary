@@ -1063,6 +1063,8 @@ const en = {
             secondSpace: "Second target region (Holy Roman Empire)",
             secondPower: "Second mercenary owner",
             eventTarget: "Event target (optional)",
+            eventTargetChoice: "Event target",
+            eventTargetAuto: "Automatic",
             placeholder: "e.g. france, york, spain:return:alba",
             example: "Target parameter example",
             noTarget: "Fill per card text; leave blank for no target.",
@@ -1457,6 +1459,7 @@ const en = {
         },
         shell: {
             map: "Map",
+            skipToActions: "Skip to actions",
             action: "Action",
             hand: "Hand",
             intel: "Intel",

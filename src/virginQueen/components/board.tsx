@@ -32,6 +32,9 @@ import {PendingInterceptPanel} from "./board/PendingPanels/InterceptPanel";
 import {PendingInterceptionOrderPanel} from "./board/PendingPanels/InterceptionOrderPanel";
 import {EventBranchPanel} from "./board/EventBranchPanel";
 import {branchParamValues, effectiveBranchIds, eventBranchChoice, eventBranchTarget} from "../eventBranches";
+import {eventTargetOptions, eventTargetValue} from "../eventTargets";
+export {eventTargetOptions, eventTargetValue} from "../eventTargets";
+export type {EventTargetOption} from "../eventTargets";
 import {useNotificationPermission, useTurnNotification} from "./board/useNotifications";
 import ExportLogButton from "../../components/export-log-button";
 import InputLabel from "@mui/material/InputLabel";
@@ -48,6 +51,7 @@ import {AREA_NAMES,
     CONTROLLER_COLORS,
     controllerName,
     powerName,
+    powerShortName,
     minorName,
     HRE_RELIGIOUS_PREFERENCE_NAMES,
     hreReligiousPreferenceName,
@@ -58,7 +62,6 @@ import {AREA_NAMES,
     navalCount,
     NavalStack,
     POWER_INFO,
-    POWER_NAMES,
     POWERS,
     Power,
     RoyalDef,
@@ -217,8 +220,9 @@ export const playEventCard = (
 
 /**
  * Which targeting control the event-card drawer renders.  Cards with a
- * dedicated selector never fall back to free text, so #17, #23, #24, #61,
- * #86 and #102 can only be played through their enumerated choices.
+ * dedicated selector never use the generic target list, so #17, #23, #24, #61,
+ * #86 and #102 can only be played through their enumerated choices.  The
+ * `freeText` fallback now renders the enumerated options from `eventTargets.ts`.
  */
 export type EventTargetMode = "espionage" | "foreignWar" | "holyLeague" | "menendez" | "polishElection" | "armyMutiny" | "stafford" | "germanRecruitment" | "freeText";
 
@@ -258,7 +262,7 @@ export const actionResponderChoices = (G: VQGame, playerID: string | null): Acti
         .map((responder) => ({responder, label: powerName(responder, "zh_CN"),
             options: actionResponseOptions(G, responder)}));
 
-/** Optional target argument for cards whose choices cannot be rendered as a list. */
+/** Legacy free-text field retained for older imports; the board now uses `EventTargetSelect`. */
 export const EventTargetField = ({cardId, value, onChange}: {
     cardId: string;
     value: string;
@@ -271,6 +275,24 @@ export const EventTargetField = ({cardId, value, onChange}: {
         onChange={(event) => onChange(event.target.value)}
         placeholder={i18n.chain.vq.board.placeholder}
         helperText={example !== undefined ? `${i18n.chain.vq.board.example}${i18n.chain.vq.eventTargets.exampleSeparator}${example}` : i18n.chain.vq.board.noTarget}/>;
+};
+
+/** Dropdown replacement for the old free-text event target field. */
+export const EventTargetSelect = ({cardId, options, value, onChange}: {
+    cardId: string;
+    options: {value: string; label: string}[];
+    value: string;
+    onChange: (value: string) => void;
+}) => {
+    const labelId = `vq-event-target-${cardId}`;
+    return <FormControl size="small" fullWidth sx={{mt: 0.5}}>
+        <InputLabel id={labelId}>{i18n.chain.vq.board.eventTargetChoice}</InputLabel>
+        <Select labelId={labelId} label={i18n.chain.vq.board.eventTargetChoice} displayEmpty value={value}
+                renderValue={(selected: string) => options.find((option) => option.value === selected)?.label ?? ""}
+                onChange={(event) => onChange(event.target.value)}>
+            {options.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+        </Select>
+    </FormControl>;
 };
 
 export interface MenendezTargetOption {
@@ -1184,7 +1206,7 @@ const patronageAwardSummary = (awards: PatronageVpAward[], kind: "artist" | "sci
     }).join(i18n.chain.vq.punct.list);
 };
 
-const cell = (v: number): string => (v > 0 ? String(v) : "·");
+const cell = (v: number): string => (v > 0 ? String(v) : "\u2014");
 
 /** Scanned card art, with the text tile as the fallback when it is missing. */
 const CardArt = ({def, className, lazy = false}: {def: CardDef; className: string; lazy?: boolean}) => {
@@ -1575,7 +1597,11 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         const branchTarget = branchChoice !== undefined ? eventBranchTarget(branchDefs, branchValues) : undefined;
         const branchComplete = branchChoice === undefined ||
             branchIds.length >= Math.min(branchChoice.maxSelections, branchChoice.branches.length);
-        const showTargetField = canPlayAsEvent && branchChoice === undefined && targetMode === "freeText";
+        // Cards without an effect-branch entry or a dedicated selector get an
+        // enumerable target dropdown; the old free-text field is gone.
+        const targetOptions = canPlayAsEvent && branchChoice === undefined && targetMode === "freeText" && me !== undefined
+            ? eventTargetOptions(G, id, me) : [];
+        const targetChoice = eventTargetValue(targetOptions, eventTarget);
         return <Paper key={id} variant="outlined" sx={{p: 0.75, mb: 0.5}}>
             <Stack direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
                 <Typography variant="caption" sx={{fontWeight: 700}}>{cardName(id, vqLocale)}</Typography>
@@ -1618,9 +1644,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 value={germanRecruitmentSelection}
                 onChange={(space: string, power?: Power, secondSpace?: string, secondPower?: Power) =>
                     setGermanRecruitmentSelection({space, power, secondSpace, secondPower})}/>}
-            {showTargetField && <Box sx={{mt: 0.5}}>
-                <EventTargetField cardId={id} value={eventTarget} onChange={setEventTarget}/>
-            </Box>}
+            {targetOptions.length > 0 && <EventTargetSelect cardId={id} options={targetOptions}
+                value={targetChoice ?? ""} onChange={setEventTarget}/>}
             <Stack direction="row" spacing={0.5} sx={{mt: 0.5}}>
                 {canPlayAsEvent && <Button size="small" variant="contained"
                                                   disabled={disabled || foreignWarBlocked || !branchComplete ||
@@ -1633,9 +1658,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                                       (G.scenario === "tutorial" && !canPlayTutorialEvent(G, me!, id))}
                                                   onClick={() => {
                                                       playEventCard(moves.playCard, id, {
-                                                          selected: branchChoice !== undefined ? branchTarget : espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : menendezOptions.length > 0 ? menendezTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : armyMutiny ? armyMutinyTargetValue(G, armyMutinySelection) : stafford ? staffordTargetValue(G, staffordSelection) : germanRecruitment ? germanRecruitmentTargetValue(G, germanRecruitmentSelection, me === "hre") : undefined,
-                                                          // Free text is only honoured for cards without a dedicated selector.
-                                                          typed: branchChoice === undefined && targetMode === "freeText" ? eventTarget : "",
+                                                          selected: branchChoice !== undefined ? branchTarget : espionageTargets.length > 0 ? espionageTarget : foreignWarPower !== undefined ? String(foreignArmySize) : holyLeagueOptions.length > 0 ? holyLeagueTarget : menendezOptions.length > 0 ? menendezTarget : polishElection ? polishElectionTargetValue(G, polishElectionBids) : armyMutiny ? armyMutinyTargetValue(G, armyMutinySelection) : stafford ? staffordTargetValue(G, staffordSelection) : germanRecruitment ? germanRecruitmentTargetValue(G, germanRecruitmentSelection, me === "hre") : targetOptions.length > 0 ? targetChoice : undefined,
+                                                          // Every target is now picked from a selector.
+                                                          typed: "",
                                                       });
                                                       setEventTarget("");
                                                       setHolyLeagueEventTarget("");
@@ -1782,11 +1807,11 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     </Button>;
                 })}
                 <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.endPhaseTurn()}>
-                    {`${i18n.chain.vq.cardDraw.confirm}${powerName(G.activePower, vqLocale)}${i18n.chain.vq.cardDraw.drawDone}`}
+                    {`${i18n.chain.vq.cardDraw.confirm}${vqLocale === "en" ? " " : ""}${powerName(G.activePower, vqLocale)}${vqLocale === "en" ? " " : ""}${i18n.chain.vq.cardDraw.drawDone}`}
                 </Button>
                 <ActionGroup title={i18n.chain.vq.cardDraw.rules}>
                 <Typography variant="body2">{i18n.chain.vq.cardDraw.rule1}</Typography>
-                <Typography variant="body2">{`${i18n.chain.vq.cardDraw.rule2a}${nextPhase}${i18n.chain.vq.cardDraw.rule2b}`}</Typography>
+                <Typography variant="body2">{`${i18n.chain.vq.cardDraw.rule2a}${vqLocale === "en" ? " " : ""}${nextPhase}${i18n.chain.vq.cardDraw.rule2b}`}</Typography>
                 {G.powers.ottoman.ruler === "suleiman" &&
                     <Typography variant="caption" color="text.secondary">{i18n.chain.vq.cardDraw.suleiman}</Typography>}
                 <Typography variant="caption" color="text.secondary">{scenarioName(G.scenario, vqLocale)}</Typography>
@@ -2583,20 +2608,35 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         return list;
     };
 
-    const pendingPower = G.pendingBeacon?.defender ?? G.pendingInterceptionOrder?.defender ?? G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
-        G.pendingEspionage?.responding ?? G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target ?? G.pendingRebelMove?.power;
+    const pendingPower = G.gregorianResponse?.responder ?? G.pendingBeacon?.defender ?? G.pendingInterceptionOrder?.defender ?? G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
+        G.pendingEspionage?.responding ?? G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target ?? G.pendingRebelMove?.power ??
+        G.pendingReliefSplit?.power ?? G.pendingForeignWar?.power ??
+        (G.pendingCityRebels !== undefined ? (isPower(G.pendingCityRebels.controller) ? G.pendingCityRebels.controller : G.pendingCityRebels.power) : undefined) ??
+        (G.pendingAbjuration !== undefined ? "protestant" as Power : undefined);
     const hasResponse = pendingPower !== undefined && ctx.gameover === undefined;
+    // Winter attrition choices are mandatory but are not `pending*` responses,
+    // so they need their own cue on the action tab (especially on mobile).
+    const winterLandChoice = me !== undefined && (G.winterLossChoices ?? []).some((entry) => entry.power === me);
+    const winterNavalChoice = me !== undefined && (G.winterNavalLossChoices ?? []).some((entry) => entry.power === me);
+    const winterChoiceRequired = phase === "cardDraw" && (winterLandChoice || winterNavalChoice);
+    const needsAction = hasResponse || winterChoiceRequired;
+    const winterChoiceLabel = winterLandChoice && winterNavalChoice
+        ? `${i18n.chain.vq.cardDraw.winterLosses} / ${i18n.chain.vq.cardDraw.winterNavalLosses}`
+        : winterLandChoice ? i18n.chain.vq.cardDraw.winterLosses : i18n.chain.vq.cardDraw.winterNavalLosses;
     const selectedSea = selected ? G.seaZones[selected as keyof VQGame["seaZones"]] : undefined;
     const panelProps = (name: string) => ({id: `${panelID}-${name}`, role: isDesktop ? undefined : "tabpanel",
-        "aria-labelledby": isDesktop ? undefined : `${panelID}-tab-${name}`, hidden: !isDesktop && mobileView !== name});
+        "aria-labelledby": isDesktop ? undefined : `${panelID}-tab-${name}`, hidden: !isDesktop && mobileView !== name,
+        // Lets the skip link land on the action panel for keyboard users.
+        tabIndex: name === "action" ? -1 : undefined});
     React.useEffect(() => {
-        if (hasResponse) {
+        if (needsAction) {
             if (actionRef.current) actionRef.current.scrollTop = 0;
             if (sidebarRef.current) sidebarRef.current.scrollTop = 0;
         }
-    }, [hasResponse, pendingPower, G.pendingBattle?.step, G.pendingPiracy?.step, G.pendingTutorialEvent?.step, G.pendingCardEvent, G.pendingEspionage?.step]);
+    }, [needsAction, pendingPower, G.pendingBattle?.step, G.pendingPiracy?.step, G.pendingTutorialEvent?.step, G.pendingCardEvent, G.pendingEspionage?.step]);
 
     return <VQSurface><div className="vq-board">
+        <a className="vq-skip-link" href={`#${panelID}-action`}>{i18n.chain.vq.shell.skipToActions}</a>
         <header className="vq-status">
             <div><div className="vq-eyebrow">A game of diplomacy & empire · 1559–1598</div>
                 <h1 className="vq-title">Virgin Queen</h1></div>
@@ -2606,7 +2646,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 <strong>{ctx.gameover !== undefined ? i18n.chain.vq.header.gameOver : `${i18n.chain.vq.header.current}${i18n.chain.vq.punct.colon}${powerName(G.activePower, vqLocale)}`}</strong>
                 <span>{me ? `${powerName(me, vqLocale)} · ${cp} CP` : i18n.chain.vq.header.spectator}</span>
                 {standings.map((entry) => <span key={entry.power} className="vq-score">
-                    <i className="vq-dot" style={{background: CONTROLLER_COLORS[entry.power]}}/>{POWER_NAMES[entry.power].short} <b>{entry.vp} VP</b>
+                    <i className="vq-dot" style={{background: CONTROLLER_COLORS[entry.power]}}/>{powerShortName(entry.power, vqLocale)} <b>{entry.vp} VP</b>
                 </span>)}
             </div>
         </header>
@@ -2614,8 +2654,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             <span>{i18n.chain.vq.shell.responseNeeded} · {powerName(pendingPower, vqLocale)}{ownerOf(G, pendingPower) === playerID ? ` · ${i18n.chain.vq.shell.yourTurn}` : ` · ${i18n.chain.vq.shell.waiting}`}</span>
             {!isDesktop && <Button size="small" onClick={() => setMobileView("action")}>{i18n.chain.vq.shell.viewResponse}</Button>}
         </div>}
+        {!hasResponse && winterChoiceRequired && <div className="vq-response" role="status" aria-live="polite">
+            <span>{winterChoiceLabel}{me !== undefined ? ` · ${powerName(me, vqLocale)}` : ""}</span>
+            {!isDesktop && <Button size="small" onClick={() => setMobileView("action")}>{i18n.chain.vq.shell.viewResponse}</Button>}
+        </div>}
         <Tabs className="vq-mobile-tabs" value={mobileView} onChange={(_event, value) => setMobileView(value)} variant="fullWidth" aria-label={i18n.chain.vq.shellUi.panelsAria}>
-            {[["map", i18n.chain.vq.shell.map], ["action", hasResponse ? i18n.chain.vq.shell.actionNeeded : i18n.chain.vq.shell.action], ["hand", `${i18n.chain.vq.shell.hand} ${hand.length}`], ["intel", i18n.chain.vq.shell.intel]].map(([value, label]) =>
+            {[["map", i18n.chain.vq.shell.map], ["action", needsAction ? i18n.chain.vq.shell.actionNeeded : i18n.chain.vq.shell.action], ["hand", `${i18n.chain.vq.shell.hand} ${hand.length}`], ["intel", i18n.chain.vq.shell.intel]].map(([value, label]) =>
                 <Tab key={value} id={`${panelID}-tab-${value}`} aria-controls={`${panelID}-${value}`} value={value} label={label}/>)}
         </Tabs>
         <div className="vq-workspace">
@@ -2659,14 +2703,14 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <Typography variant="subtitle2">{placeLabel(spaceDef.id)}</Typography>
                     <Typography variant="caption" color="text.secondary">
                         {spaceDef.kind === "key" ? i18n.chain.vq.board.keyCity : spaceDef.kind === "fortress" ? i18n.chain.vq.board.fortress : i18n.chain.vq.board.openCity}
-                        {spaceDef.ports !== undefined && spaceDef.ports.length > 0 ? ` · ${i18n.chain.vq.board.port}: ${spaceDef.ports.join(", ")}` : ""}
+                        {spaceDef.ports !== undefined && spaceDef.ports.length > 0 ? ` · ${i18n.chain.vq.board.port}: ${spaceDef.ports.map((id) => seaZoneName(id, vqLocale)).join(", ")}` : ""}
                         {spaceDef.area !== undefined ? ` · ${areaName(spaceDef.area, vqLocale)}` : ""}
                     </Typography>
                     <Typography variant="body2" sx={{mt: 0.5}}>
                         {i18n.chain.vq.board.control}: <b>{isPower(space.control) ? powerName(space.control, vqLocale) : space.control}</b>
                         {" · "}{space.religion === "protestant" ? i18n.chain.vq.board.protestant : i18n.chain.vq.board.catholic}
                         {space.unrest ? ` · ${i18n.chain.vq.board.unrest}` : ""}
-                        {space.siege !== undefined ? ` · ${i18n.chain.vq.board.besiegedBy} ${POWER_NAMES[space.siege.by].short}` : ""}
+                        {space.siege !== undefined ? ` · ${i18n.chain.vq.board.besiegedBy} ${powerShortName(space.siege.by, vqLocale)}` : ""}
                     </Typography>
                     {Object.keys(space.land).map((c) => {
                         const st = space.land[c as keyof typeof space.land];
@@ -2704,7 +2748,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 <ActionGroup title={i18n.chain.vq.intel.overview}>
                     {POWERS.map((p) => <Stack key={p} direction="row" spacing={0.5} sx={{alignItems: "center", mb: 0.25}}>
                         <Box sx={{width: 10, height: 10, bgcolor: CONTROLLER_COLORS[p], borderRadius: 0.5}}/>
-                        <Typography variant="caption" sx={{minWidth: 72}}>{POWER_NAMES[p].short} · {ownerOf(G, p) === undefined ? i18n.chain.vq.intel.unactivated : `P${Number(ownerOf(G, p)) + 1}`}</Typography>
+                        <Typography variant="caption" sx={{minWidth: 72}}>{powerShortName(p, vqLocale)} · {ownerOf(G, p) === undefined ? i18n.chain.vq.intel.unactivated : `P${Number(ownerOf(G, p)) + 1}`}</Typography>
                         {isActivatedMajor(G, p) && <Chip size="small" variant="outlined"
                             label={ownerOf(G, p) === undefined ? i18n.chain.vq.intel.pendingActivation : i18n.chain.vq.intel.activated}/>}
                         <Chip size="small" label={`${powerVp(G, p)} VP`}/>
@@ -2712,12 +2756,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             label={G.hreReligiousPreference !== undefined && (me === "hre" || G.hreReligiousPreferenceRevealed)
                                 ? `${G.hreReligiousPreferenceRevealed ? i18n.chain.vq.intel.revealed : i18n.chain.vq.intel.secret}${i18n.chain.vq.punct.colon}${hreReligiousPreferenceName(G.hreReligiousPreference, vqLocale)} · ${hreReligiousVp(G)} VP${G.hreReligiousPreferenceRevealed ? "" : i18n.chain.vq.intel.notCounted}`
                                 : i18n.chain.vq.intel.secretChosen}/>}
-                        <Chip size="small" variant="outlined" label={`${controlledKeys(G, p).length}K`}/>
+                        <Chip size="small" variant="outlined" label={`${controlledKeys(G, p).length} ${i18n.chain.vq.intel.keys}`}/>
                         <Chip size="small" variant="outlined" label={`${G.handCounts?.[p] ?? G.powers[p].cards.length}${i18n.chain.vq.intel.cards}`}/>
                         {(G.homeCardSetAsideCounts?.[p] ?? 0) > 0 &&
                             <Chip size="small" variant="outlined" label={`${i18n.chain.vq.intel.faceDown} ${G.homeCardSetAsideCounts?.[p]}`}/>}
                         {G.powers[p].wars.length > 0 && <Typography variant="caption" color="text.secondary">
-                            {i18n.chain.vq.intel.war}{i18n.chain.vq.punct.colon}{G.powers[p].wars.map((w) => POWER_NAMES[w].short).join("/")}
+                            {i18n.chain.vq.intel.war}{i18n.chain.vq.punct.colon}{G.powers[p].wars.map((w) => powerShortName(w, vqLocale)).join("/")}
                         </Typography>}
                     </Stack>)}
                 </ActionGroup>
@@ -2733,8 +2777,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         · {i18n.chain.vq.intel.base} {baseVp(G, me)} + {i18n.chain.vq.intel.religion} {religiousSpecialVp(G, me)} + {i18n.chain.vq.intel.bonus} {ps.bonusVp}
                     </Typography>
                     <Stack direction="row" spacing={1} sx={{mt: 0.5}}>
-                        <Typography variant="caption">{i18n.chain.vq.intel.wars}: {ps.wars.length > 0 ? ps.wars.map((w) => POWER_NAMES[w].short).join(", ") : i18n.chain.vq.intel.none}</Typography>
-                        <Typography variant="caption">{i18n.chain.vq.intel.allies}: {ps.allies.length > 0 ? ps.allies.map((w) => POWER_NAMES[w].short).join(", ") : i18n.chain.vq.intel.none}</Typography>
+                        <Typography variant="caption">{i18n.chain.vq.intel.wars}: {ps.wars.length > 0 ? ps.wars.map((w) => powerShortName(w, vqLocale)).join(", ") : i18n.chain.vq.intel.none}</Typography>
+                        <Typography variant="caption">{i18n.chain.vq.intel.allies}: {ps.allies.length > 0 ? ps.allies.map((w) => powerShortName(w, vqLocale)).join(", ") : i18n.chain.vq.intel.none}</Typography>
                         <Typography variant="caption">{i18n.chain.vq.intel.treasures}: {ps.treasures.length}</Typography>
                     </Stack>
                 </ActionGroup>}

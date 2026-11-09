@@ -1137,6 +1137,8 @@ const zh_CN: Locale = {
             secondSpace: "第二目标地区（神圣罗马帝国）",
             secondPower: "第二雇佣兵所属势力",
             eventTarget: "事件目标（可选）",
+            eventTargetChoice: "事件目标",
+            eventTargetAuto: "自动选择",
             placeholder: "例如 france、york、spain:return:alba",
             example: "目标参数示例",
             noTarget: "按卡牌文本填写；留空则无目标结算。",
@@ -1531,6 +1533,7 @@ const zh_CN: Locale = {
         },
         shell: {
             map: "地图",
+            skipToActions: "跳到行动面板",
             action: "行动",
             hand: "手牌",
             intel: "局势",

@@ -22,7 +22,7 @@ export const PendingBattlePanel = ({G, moves, playerID, retrieve}: PendingBattle
     return <Stack spacing={1}>
         <Typography>{i18n.chain.vq.battle.title}{i18n.chain.vq.punct.colon}{spaceName(G.pendingBattle.location, vqLocale)} · {i18n.chain.vq.battle.waiting} {powerName(G.pendingBattle.responding, vqLocale)} {i18n.chain.vq.battle.choose}{i18n.chain.vq.punct.period}</Typography>
         {ownerOf(G, G.pendingBattle.responding) === playerID && battleOptions(G).map((option) =>
-            <Button key={option.id} onClick={() => moves.chooseBattle({choice: option.id})}>{option.label}</Button>)}
+            <Button key={option.id} variant="outlined" onClick={() => moves.chooseBattle({choice: option.id})}>{option.label}</Button>)}
         {retrieve.length > 0 && <Stack spacing={0.5}>
             <Typography variant="body2">{i18n.chain.vq.battle.retrieve}</Typography>
             <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>

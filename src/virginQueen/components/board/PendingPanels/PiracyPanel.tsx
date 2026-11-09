@@ -20,6 +20,6 @@ export const PendingPiracyPanel = ({G, moves, playerID, responder}: PendingPirac
     return <Stack spacing={1}>
         <Typography>{i18n.chain.vq.piracy.title} · {i18n.chain.vq.intercept.waiting} {powerName(responder, vqLocale)} {i18n.chain.vq.piracy.choose}{i18n.chain.vq.punct.period}</Typography>
         {ownerOf(G, responder) === playerID && piracyOptions(G).map((entry) =>
-            <Button key={entry.id} onClick={() => moves.choosePiracy({choice: entry.id})}>{entry.label}</Button>)}
+            <Button key={entry.id} variant="outlined" onClick={() => moves.choosePiracy({choice: entry.id})}>{entry.label}</Button>)}
     </Stack>;
 };

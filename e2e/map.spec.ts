@@ -3,8 +3,8 @@ import {expect, test} from "@playwright/test";
 test("selects sea zones and cities on the rendered SVG map", async ({page}) => {
     await page.goto("/localVQ/tutorial");
 
-    const aegean = page.getByRole("button", {name: /^Aegean Sea · 海军 \d+$/});
-    const venice = page.getByRole("button", {name: /^Venice · 控制：/});
+    const aegean = page.getByRole("button", {name: /^爱琴海 · 海军 \d+$/});
+    const venice = page.getByRole("button", {name: /^威尼斯 · 控制：/});
     await expect(aegean).toHaveAttribute("aria-pressed", "false");
 
     await aegean.click();

@@ -46,6 +46,6 @@ export const PendingActionResponsePanel = ({
             </FormControl>
         </>}
         {choice?.options.map((entry) =>
-            <Button key={entry.id} onClick={() => moves.respondAction({choice: entry.id, responder: choice.responder})}>{entry.label}</Button>)}
+            <Button key={entry.id} variant="outlined" onClick={() => moves.respondAction({choice: entry.id, responder: choice.responder})}>{entry.label}</Button>)}
     </Stack>;
 };
