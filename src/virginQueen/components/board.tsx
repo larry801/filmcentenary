@@ -1289,6 +1289,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
     // Pass / end-impulse are destructive enough to deserve a confirmation.
     const [confirmAction, setConfirmAction] = React.useState<"pass" | "endImpulse" | null>(null);
     const [sheetOpen, setSheetOpen] = React.useState(false);
+    // Phones edit the staged formation in a bottom sheet instead of a map overlay.
+    const [formationSheetOpen, setFormationSheetOpen] = React.useState(false);
 
     const [viewPower, setViewPower] = React.useState<Power>();
     const owned = controlledPowers(G, playerID);
@@ -1426,6 +1428,15 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         </>;
     };
 
+    /** One-line read-out for the map dock that replaces the picker on phones. */
+    const formationSummary = (): string => {
+        const units = (["regular", "merc", "cav"] as const)
+            .map((kind) => `${unitLabel(kind)} ${movingUnits[kind]}`)
+            .join(" · ");
+        const leaders = movingLeaders.length > 0 ? ` · ${movingLeaders.map(leaderLabel).join(" + ")}` : "";
+        return `${units}${leaders} · ${i18n.chain.vq.springUi.commandLimit.replace("{count}", String(formationCapacity(movingLeaders)))}`;
+    };
+
     React.useEffect(() => {
         // Spring deployment is the only map action available in the spring
         // phase, so arm it automatically instead of asking for a dropdown pick.
@@ -1434,6 +1445,14 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         setForeignWarUnits([]);
         setForeignWarLeader("");
     }, [ctx.phase, ctx.currentPlayer, G.activePower, myTurn]);
+
+    React.useEffect(() => {
+        // The sheet only exists while a formation is being staged; close it as
+        // soon as the move ends, the action changes, or the viewport is wide.
+        if (isDesktop || from === null || (mode !== "spring" && mode !== "moveLand" && mode !== "navalTransport")) {
+            setFormationSheetOpen(false);
+        }
+    }, [from, mode, isDesktop]);
 
     React.useEffect(() => {setSelectedCard(undefined);}, [me, playerID]);
 
@@ -2671,14 +2690,24 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         ? i18n.chain.vq.step.unitsHint : undefined}
                     onCancel={() => {setFrom(null); setTransportZones([]);}}/>}
                 {from !== null && (mode === "spring" || mode === "moveLand" || mode === "navalTransport") &&
-                    <Paper className="vq-map-stack" variant="outlined">
-                        <Stack spacing={0.5}>
-                            <Typography variant="caption" sx={{fontWeight: 700}}>
-                                {i18n.chain.vq.step.chooseUnit} · {placeLabel(from)}
+                    (isDesktop
+                        ? <Paper className="vq-map-stack" variant="outlined">
+                            <Stack spacing={0.5}>
+                                <Typography variant="caption" sx={{fontWeight: 700}}>
+                                    {i18n.chain.vq.step.chooseUnit} · {placeLabel(from)}
+                                </Typography>
+                                {stackPicker(mode === "spring")}
+                            </Stack>
+                        </Paper>
+                        : <Paper className="vq-map-formation" variant="outlined">
+                            <Typography className="vq-formation-summary" variant="caption" aria-live="polite"
+                                color={landCount(movingUnits) > formationCapacity(movingLeaders) ? "error" : undefined}>
+                                {formationSummary()}
                             </Typography>
-                            {stackPicker(mode === "spring")}
-                        </Stack>
-                    </Paper>}
+                            <Button size="small" variant="outlined" onClick={() => setFormationSheetOpen(true)}>
+                                {i18n.chain.vq.springUi.adjustFormation}
+                            </Button>
+                        </Paper>)}
                 {!isDesktop && selected && from === null && <div className="vq-map-selection">
                     <Button size="small" variant="contained" onClick={() => setMobileView("action")}>
                         {`${spaceDef !== undefined ? placeLabel(spaceDef.id) : seaZoneName(selected, vqLocaleNow())} · ${i18n.chain.vq.shell.detailOps}`}
@@ -2833,6 +2862,23 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
         <DiceToast rolls={G.lastRolls}/>
         {!isDesktop && <MobileSpaceSheet G={G} spaceId={selected} open={sheetOpen}
                                          onClose={() => setSheetOpen(false)}/>}
+        {!isDesktop && <Drawer anchor="bottom" open={formationSheetOpen && from !== null}
+                              onClose={() => setFormationSheetOpen(false)}
+                              slotProps={{paper: {className: "vq-sheet", sx: {maxHeight: "72dvh", borderRadius: "14px 14px 0 0"}}}}>
+            <div className="vq-sheet-handle" aria-hidden="true"/>
+            <div className="vq-sheet-head">
+                <Typography variant="subtitle1" sx={{fontWeight: 700}}>
+                    {i18n.chain.vq.step.chooseUnit}{from !== null ? ` · ${placeLabel(from)}` : ""}
+                </Typography>
+                <Button size="small" onClick={() => setFormationSheetOpen(false)}>{i18n.chain.vq.shell.close}</Button>
+            </div>
+            {from !== null && <Stack spacing={0.75}>
+                {stackPicker(mode === "spring")}
+                <Button variant="contained" fullWidth onClick={() => setFormationSheetOpen(false)}>
+                    {i18n.chain.vq.step.chooseTarget}
+                </Button>
+            </Stack>}
+        </Drawer>}
         <ConfirmDialog
             open={confirmAction !== null}
             title={confirmAction === "endImpulse" ? i18n.chain.vq.turn.confirmEnd : i18n.chain.vq.turn.confirmPass}

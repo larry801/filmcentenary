@@ -1818,6 +1818,7 @@ const zh_CN: Locale = {
             seaCaptain: "海船长",
             commandLimit: "指挥上限：{count} 个单位",
             overCapacity: "已超过指挥上限",
+            adjustFormation: "调整编队",
         },
         religionActions: {
             preachEngland: "布道：英格兰 (2 CP)",

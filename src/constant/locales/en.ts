@@ -1744,6 +1744,7 @@ const en = {
             seaCaptain: "Sea captain",
             commandLimit: "Command limit: {count} units",
             overCapacity: "Over the command limit",
+            adjustFormation: "Adjust formation",
         },
         religionActions: {
             preachEngland: "Preach: England (2 CP)",
