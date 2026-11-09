@@ -1,9 +1,9 @@
 import {isPower, Power, powerName, POWERS, spaceHomes, VQGame} from "./constant/general";
 import {cardById, cardName} from "./constant/cards";
-import {LEADER_BY_ID} from "./constant/leaders";
+import {LEADER_BY_ID, leaderName} from "./constant/leaders";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
 import {WORLD_SETTLEMENTS} from "./data/world";
-import {SPACE_BY_ID, SPACES} from "./mapData";
+import {SPACE_BY_ID, SPACES, spaceName} from "./mapData";
 import {isActivatedMajor, ownerOf} from "./ownership";
 import {patronById, seaCaptainById, seaCaptainName, patronName} from "./scenario";
 import {minorAvailable, rebellionTargets} from "./util";
@@ -68,7 +68,7 @@ const powerOptions = (powers: Power[]): EventBranchOptionValue[] =>
     powers.map((power) => ({value: power, label: powerName(power, locale())}));
 
 const spaceOptions = (ids: string[]): EventBranchOptionValue[] =>
-    ids.map((id) => ({value: id, label: SPACE_BY_ID[id]?.name ?? id}));
+    ids.map((id) => ({value: id, label: SPACE_BY_ID[id] !== undefined ? spaceName(id, locale()) : id}));
 
 const cardOptions = (ids: string[]): EventBranchOptionValue[] =>
     ids.map((id) => ({value: id, label: cardName(id, locale())}));
@@ -83,7 +83,7 @@ const captainOptions = (ids: string[]): EventBranchOptionValue[] =>
     ids.map((id) => ({value: id, label: seaCaptainName(seaCaptainById(id), locale())}));
 
 const leaderOptions = (G: VQGame, ids: string[]): EventBranchOptionValue[] =>
-    ids.map((id) => ({value: id, label: LEADER_BY_ID[id]?.name ?? id}));
+    ids.map((id) => ({value: id, label: LEADER_BY_ID[id] !== undefined ? leaderName(id, locale()) : id}));
 
 const playerPowers = (G: VQGame, except?: Power): Power[] =>
     POWERS.filter((power) => power !== except && ownerOf(G, power) !== undefined);

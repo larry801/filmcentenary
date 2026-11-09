@@ -1,4 +1,4 @@
-import {Power, SeaZoneDef, SeaZoneID, SpaceDef} from "./constant/general";
+import {Power, SeaZoneDef, SeaZoneID, SpaceDef, VQLocale, localizedName} from "./constant/general";
 import {
     DUTCH_KEYS,
     SEA_ZONES as RECONSTRUCTION_SEA_ZONES,
@@ -62,6 +62,22 @@ export const CAPITAL_SPACES: Record<Power, string[]> = OFFICIAL_CAPITAL_SPACES a
 >;
 
 export {DUTCH_KEYS};
+
+/** Localized display name for a land space id. */
+export const spaceName = (id: string, locale: VQLocale = "zh_CN"): string => {
+    const def = SPACE_BY_ID[id];
+    return def === undefined ? id : localizedName(def, locale);
+};
+
+/** Localized display name for a sea zone id. */
+export const seaZoneName = (id: string, locale: VQLocale = "zh_CN"): string => {
+    const def = SEA_ZONE_BY_ID[id];
+    return def === undefined ? id : localizedName(def, locale);
+};
+
+/** Localized display name for a place id that may be either land or sea. */
+export const mapName = (id: string, locale: VQLocale = "zh_CN"): string =>
+    SPACE_BY_ID[id] !== undefined ? spaceName(id, locale) : seaZoneName(id, locale);
 
 /** Rule 16.7: Antwerp and Rotterdam are inland ports linked to Flushing/Brielle. */
 export const INLAND_PORT_LINKS: Record<string, string> = {

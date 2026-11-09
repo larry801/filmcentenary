@@ -4,7 +4,7 @@ import {Controller, NavalStack, Power, POWERS, VQGame, isPower, navalCount, spac
 import {LEADER_BY_ID} from "./constant/leaders";
 import {cardById} from "./constant/cards";
 import i18n from "../constant/i18n";
-import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "./mapData";
+import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES, mapName} from "./mapData";
 import {actingPower, isActivatedMajor, ownerOf, participatingPowers} from "./ownership";
 import {assassinationResult, catholicRebellionResult} from "./data/espionage";
 import {EspionageState, PendingEspionage} from "./espionageTypes";
@@ -155,11 +155,11 @@ const unitName = (kind: string): string => {
 };
 
 const operativeOptions = (G: VQGame, p: PendingEspionage, extra = false): {id: string; label: string}[] => p.event === "richardTopcliffe" ?
-    (G.espionage?.jesuits ?? []).filter((id) => !p.neutralizedOperatives?.includes(`jesuit:${id}`)).map((id) => ({id: `jesuit:${id}`, label: i18n.chain.vq.engine.neutralizeJesuit.replace("{space}", SPACE_BY_ID[id].name)})) : [
+    (G.espionage?.jesuits ?? []).filter((id) => !p.neutralizedOperatives?.includes(`jesuit:${id}`)).map((id) => ({id: `jesuit:${id}`, label: i18n.chain.vq.engine.neutralizeJesuit.replace("{space}", mapName(id))})) : [
     ...G.informants.filter((i) => i.target === p.power && !i.neutralized && (extra || p.kind === "walsingham" || i.owner === p.targetPower))
         .map((i) => ({id: `informant:${i.owner}`, label: i18n.chain.vq.engine.neutralizeSpy.replace("{owner}", i.owner)})),
     ...(p.power === "england" && (p.kind === "walsingham" || p.targetPower === "spain") ? (G.espionage?.jesuits ?? []).filter((id) => !p.neutralizedOperatives?.includes(`jesuit:${id}`))
-        .map((id) => ({id: `jesuit:${id}`, label: i18n.chain.vq.engine.neutralizeJesuit.replace("{space}", SPACE_BY_ID[id].name)})) : []),
+        .map((id) => ({id: `jesuit:${id}`, label: i18n.chain.vq.engine.neutralizeJesuit.replace("{space}", mapName(id))})) : []),
 ];
 
 const responseOptions = (G: VQGame, p: PendingEspionage): {id: string; label: string}[] => {
@@ -379,9 +379,9 @@ const conversionOptions = (G: VQGame, p: PendingEspionage): {id: string; label: 
                     unitReligion(c as Controller) === "catholic" && ((G.spaces[s.id].land[c as Controller]?.regular ?? 0) > 0 || navalCount(G.spaces[s.id].naval[c as Controller]) > 0));
             if (G.spaces[s.id].religion === side || !adjacentConversions(G, s.id, p.conversionBase ?? []) ||
                 d !== 6 && opposing) continue;
-            opts.push({id: `convert:${d}:${s.id}`, label: i18n.chain.vq.engine.conversionPoints.replace("{points}", String(d)).replace("{space}", s.name)});
+            opts.push({id: `convert:${d}:${s.id}`, label: i18n.chain.vq.engine.conversionPoints.replace("{points}", String(d)).replace("{space}", mapName(s.id))});
             // Expanding the base is legal only without opposing units; it consumes this major.
-            if (d === 6 && !p.used.includes("remainingConversions") && !opposing) opts.push({id: `expand:${s.id}`, label: (side === "catholic" ? i18n.chain.vq.engine.expandCatholicBase : i18n.chain.vq.engine.expandProtestantBase).replace("{space}", s.name)});
+            if (d === 6 && !p.used.includes("remainingConversions") && !opposing) opts.push({id: `expand:${s.id}`, label: (side === "catholic" ? i18n.chain.vq.engine.expandCatholicBase : i18n.chain.vq.engine.expandProtestantBase).replace("{space}", mapName(s.id))});
         }
     }
     if (p.unrest && dice.includes(6)) opts.push({id: "cancelUnrest", label: i18n.chain.vq.engine.cancelUnrest});
@@ -465,7 +465,7 @@ export const espionageOptions = (G: VQGame): {id: string; label: string}[] => {
     if (p.step === "displace") {
         const dest = displacementDestinations(G, p.displacements![0]);
         const label = p.displacements![0].kind === "land" ? i18n.chain.vq.engine.displaceLand : i18n.chain.vq.engine.displaceNaval;
-        return dest.length ? dest.map((id) => ({id: `displace:${id}`, label: label.replace("{space}", SPACE_BY_ID[id].name)})) :
+        return dest.length ? dest.map((id) => ({id: `displace:${id}`, label: label.replace("{space}", mapName(id))})) :
             [{id: "displace:pool", label: i18n.chain.vq.engine.displaceToPool}];
     }
     if (p.step === "responses") return responseOptions(G, p);
@@ -496,34 +496,34 @@ export const espionageOptions = (G: VQGame): {id: string; label: string}[] => {
         ...(!p.used.includes("minusCard") ? [{id: "minusCard", label: i18n.chain.vq.engine.assassinMinusCard}] : []),
     ];
     if (p.step === "conversions") return conversionOptions(G, p);
-    if (p.step === "unrest") return p.converted!.map((id) => ({id: `unrest:${id}`, label: i18n.chain.vq.engine.placeUnrest.replace("{space}", SPACE_BY_ID[id].name)}));
+    if (p.step === "unrest") return p.converted!.map((id) => ({id: `unrest:${id}`, label: i18n.chain.vq.engine.placeUnrest.replace("{space}", mapName(id))}));
     if (p.step === "rebelTarget") {
         const targets = englishRebellionTargets(G);
-        return targets.length ? targets.map((id) => ({id: `rebel:${id}`, label: i18n.chain.vq.engine.rebellionTarget.replace("{space}", SPACE_BY_ID[id].name)})) :
+        return targets.length ? targets.map((id) => ({id: `rebel:${id}`, label: i18n.chain.vq.engine.rebellionTarget.replace("{space}", mapName(id))})) :
             [{id: "done", label: i18n.chain.vq.engine.noRebellionTarget}];
     }
     if (p.step === "rebelLosses") return protestantUnits(G, p.target!, true);
     if (p.step === "rebelSpaces") return [{id: "done", label: i18n.chain.vq.engine.finishRebellion},
         ...LAND_NEIGHBORS[p.target!].filter((n) => englishRebellionTargets(G).includes(n.id) && !protestantUnits(G, n.id).length)
-            .map((n) => ({id: `seize:${n.id}`, label: i18n.chain.vq.engine.expandControl.replace("{space}", SPACE_BY_ID[n.id].name)}))];
+            .map((n) => ({id: `seize:${n.id}`, label: i18n.chain.vq.engine.expandControl.replace("{space}", mapName(n.id))}))];
     if (p.step === "jesuitPlace" || p.step === "jesuitDestination") {
         const places = [
         ...SPACES.filter((s) => s.area === "england" && !G.espionage?.jesuits.includes(s.id) &&
             (p.step === "jesuitDestination" || !Object.values(G.spaces[s.id].land).some((u) => u && (u.regular + u.merc + u.cav) > 0) &&
             !Object.values(G.spaces[s.id].naval).some((u) => navalCount(u) > 0) && G.spaces[s.id].leaders.length === 0))
-            .map((s) => ({id: `place:${s.id}`, label: i18n.chain.vq.engine.placeJesuit.replace("{space}", s.name)})),
+            .map((s) => ({id: `place:${s.id}`, label: i18n.chain.vq.engine.placeJesuit.replace("{space}", mapName(s.id))})),
         ];
         return places.length && p.step === "jesuitPlace" ? places : [...places, {id: "done", label: i18n.chain.vq.engine.finishJesuitEvent}];
     }
     if (p.step === "northernConvert") {
         const targets = northernConversionTargets(G, p.conversionBase ?? []);
-        return targets.length ? targets.map((id) => ({id: `nconvert:${id}`, label: i18n.chain.vq.engine.northernConvert.replace("{space}", SPACE_BY_ID[id].name)})) :
+        return targets.length ? targets.map((id) => ({id: `nconvert:${id}`, label: i18n.chain.vq.engine.northernConvert.replace("{space}", mapName(id))})) :
             [{id: "nconvertDone", label: i18n.chain.vq.engine.noOtherRegionContinue}];
     }
     if (p.step === "massacreConvert") {
         const targets = massacreConversionTargets(G);
         return [{id: "massacreConvertDone", label: i18n.chain.vq.engine.endConversions},
-            ...targets.map((id) => ({id: `mconvert:${id}`, label: i18n.chain.vq.engine.massacreConvert.replace("{space}", SPACE_BY_ID[id].name)}))];
+            ...targets.map((id) => ({id: `mconvert:${id}`, label: i18n.chain.vq.engine.massacreConvert.replace("{space}", mapName(id))}))];
     }
     if (p.step === "massacreAssassinate") return [
         {id: "massacreAssassinate", label: i18n.chain.vq.engine.freeAssassinateColigny.replace("{cp}", String(p.cp))},
@@ -531,11 +531,11 @@ export const espionageOptions = (G: VQGame): {id: string; label: string}[] => {
     ];
     if (p.step === "northernUnrest") {
         const targets = northernUnrestTargets(G);
-        return targets.length ? targets.map((id) => ({id: `nunrest:${id}`, label: i18n.chain.vq.engine.northernUnrest.replace("{space}", SPACE_BY_ID[id].name)})) :
+        return targets.length ? targets.map((id) => ({id: `nunrest:${id}`, label: i18n.chain.vq.engine.northernUnrest.replace("{space}", mapName(id))})) :
             [{id: "done", label: i18n.chain.vq.engine.noOtherRegionDone}];
     }
     if (p.step === "jesuitMove") return [{id: "done", label: i18n.chain.vq.engine.finishJesuitEvent}, ...(G.espionage?.jesuits ?? []).filter((id) => p.used.includes(id)).map((id) =>
-        ({id: `move:${id}`, label: i18n.chain.vq.engine.moveJesuit.replace("{space}", SPACE_BY_ID[id].name)}))];
+        ({id: `move:${id}`, label: i18n.chain.vq.engine.moveJesuit.replace("{space}", mapName(id))}))];
     return [];
 };
 

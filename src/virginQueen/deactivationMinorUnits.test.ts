@@ -80,9 +80,9 @@ describe("HRE deactivation cascades to its allied minor units", () => {
         expect(G.spaces.kinsale.land.ireland).toEqual({regular: 1, merc: 1, cav: 0});
         expect(G.spaces.cork.land.ireland).toBeUndefined();
         const log = G.log.join("\n");
-        expect(log).toContain("Papacy land units return from Naples to Rome.");
-        expect(log).toContain("Venice land units return from Milan to Venice.");
-        expect(log).toContain("Ireland land units return from Cork to Kinsale.");
+        expect(log).toContain("教宗国 land units return from Naples to Rome.");
+        expect(log).toContain("威尼斯 land units return from Milan to Venice.");
+        expect(log).toContain("爱尔兰 land units return from Cork to Kinsale.");
     });
 
     it("returns the cascaded minors' naval units to the nearest home port", () => {
@@ -116,7 +116,7 @@ describe("HRE deactivation cascades to its allied minor units", () => {
 
         expect(G.spaces.ancona.land.papacy).toEqual({regular: 1, merc: 0, cav: 0});
         expect(G.spaces.ravenna.land.papacy).toBeUndefined();
-        expect(G.log.join("\n")).toContain("Papacy land units return from Naples to Ancona.");
+        expect(G.log.join("\n")).toContain("教宗国 land units return from Naples to Ancona.");
     });
 
     it("eliminates minor land and naval units with no friendly home or home port", () => {
@@ -131,8 +131,8 @@ describe("HRE deactivation cascades to its allied minor units", () => {
         expect(G.spaces.naples.land.papacy).toBeUndefined();
         expect(G.seaZones.tyrrhenian.naval.papacy).toBeUndefined();
         const log = G.log.join("\n");
-        expect(log).toContain("Papacy land units in Naples are eliminated (no friendly home space).");
-        expect(log).toContain("Papacy naval units in Tyrrhenian Sea are eliminated (no friendly home port).");
+        expect(log).toContain("教宗国 land units in Naples are eliminated (no friendly home space).");
+        expect(log).toContain("教宗国 naval units in Tyrrhenian Sea are eliminated (no friendly home port).");
     });
 
     it("displaces foreign land units from a home space whose HRE control marker was removed", () => {
@@ -164,7 +164,7 @@ describe("HRE deactivation cascades to its allied minor units", () => {
 
         expect(G.spaces.rome.land.venice).toBeUndefined();
         expect(G.spaces.naples.land.venice).toEqual({regular: 1, merc: 0, cav: 0});
-        expect(G.log.join("\n")).toContain("Venice land units are displaced from Rome to Naples.");
+        expect(G.log.join("\n")).toContain("威尼斯 land units are displaced from Rome to Naples.");
     });
 
     it("displaces foreign naval units from a home space whose HRE control marker was removed", () => {

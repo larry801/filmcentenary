@@ -5,8 +5,8 @@ import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import i18n from "../../../constant/i18n";
 import {Controller, isPower, powerName, controllerName, POWER_NAMES, VQGame} from "../../constant/general";
-import {SPACE_BY_ID} from "../../mapData";
-import {LEADER_BY_ID} from "../../constant/leaders";
+import {SPACE_BY_ID, spaceName} from "../../mapData";
+import {leaderName} from "../../constant/leaders";
 
 export interface MobileSpaceSheetProps {
     G: VQGame;
@@ -30,10 +30,10 @@ export const MobileSpaceSheet = ({G, spaceId, open, onClose}: MobileSpaceSheetPr
     const space = spaceId !== undefined ? G.spaces[spaceId] : undefined;
     return <Drawer anchor="bottom" open={open && def !== undefined && space !== undefined} onClose={onClose}
                    slotProps={{paper: {className: "vq-sheet", sx: {maxHeight: "72dvh", borderRadius: "14px 14px 0 0"}}}}>
-        {def !== undefined && space !== undefined && <div role="dialog" aria-modal="true" aria-label={`${def.name} \u00b7 ${e.spaceDetailLabel}`}>
+        {def !== undefined && space !== undefined && <div role="dialog" aria-modal="true" aria-label={`${spaceName(def.id, vqLocale)} \u00b7 ${e.spaceDetailLabel}`}>
             <div className="vq-sheet-handle" aria-hidden="true"/>
             <div className="vq-sheet-head">
-                <Typography variant="subtitle1" sx={{fontWeight: 700}}>{def.name}</Typography>
+                <Typography variant="subtitle1" sx={{fontWeight: 700}}>{spaceName(def.id, vqLocale)}</Typography>
                 <Button size="small" onClick={onClose}>{i18n.chain.vq.shell.close}</Button>
             </div>
             <Typography variant="caption" color="text.secondary">
@@ -63,7 +63,7 @@ export const MobileSpaceSheet = ({G, spaceId, open, onClose}: MobileSpaceSheetPr
             })}
             {G.espionage?.jesuits.includes(def.id) && <Chip size="small" label={e.jesuits}/>}
             {space.leaders.length > 0 && <Typography variant="caption" sx={{display: "block"}}>
-                {e.leaders}{i18n.chain.vq.punct.colon} {space.leaders.map((id) => LEADER_BY_ID[id]?.name ?? id).join(", ")}
+                {e.leaders}{i18n.chain.vq.punct.colon} {space.leaders.map((id) => leaderName(id, vqLocale)).join(", ")}
             </Typography>}
         </div>}
     </Drawer>;

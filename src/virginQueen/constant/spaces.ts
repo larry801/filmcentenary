@@ -9,6 +9,7 @@ import {
     SpaceDef,
     SpaceKind,
 } from "./general";
+import {SEA_ZONE_NAME_ZH, SPACE_NAME_ZH} from "./names";
 
 /**
  * The Europe map used by this implementation. Positions are real longitude /
@@ -407,6 +408,10 @@ export const SPACES: SpaceDef[] = [
     }),
 ];
 
+for (const space of SPACES) {
+    space.nameZh ??= SPACE_NAME_ZH[space.id];
+}
+
 /** Undirected land links. The third element marks a pass (2 CP to cross). */
 export const LAND_LINKS: [string, string, boolean?][] = [
     // Iberia
@@ -675,6 +680,10 @@ export const SEA_ZONES: SeaZoneDef[] = [
         ports: [],
     },
 ];
+
+for (const zone of SEA_ZONES) {
+    zone.nameZh ??= SEA_ZONE_NAME_ZH[zone.id];
+}
 
 export const SPACE_BY_ID: Record<string, SpaceDef> = Object.fromEntries(
     SPACES.map((s) => [s.id, s]),

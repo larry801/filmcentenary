@@ -6,7 +6,7 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
 import {Controller, landCount, navalCount, Religion, VQGame, CONTROLLER_COLORS, controllerName} from "../constant/general";
-import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES} from "../mapData";
+import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES, seaZoneName, spaceName} from "../mapData";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, tutorialSpaceAllowed} from "../tutorial";
 import land from "../data/land-background.json";
 import {centerView, clampView, INITIAL_VIEW, isMapDrag, MAP_HEIGHT, MAP_WIDTH, MapView, nearestMapTarget, nodeHitRadius, project, zoomView} from "./map-geometry";
@@ -34,14 +34,15 @@ export const spaceSummary = (G: VQGame, id: string): string => {
     const excluded = G.scenario === "tutorial" && !tutorialSpaceAllowed(id);
     const landN = Object.keys(st.land).reduce((n, c) => n + landCount(st.land[c as Controller]), 0);
     const navalN = Object.keys(st.naval).reduce((n, c) => n + navalCount(st.naval[c as Controller]), 0);
-    return `${def.name} · ${e.control}${i18n.chain.vq.punct.colon}${controllerName(st.control, vqLocale)} · ${st.religion === "protestant" ? e.protestant : e.catholic} · ${e.army} ${landN} / ${e.navy} ${navalN} / ${e.leaders} ${st.leaders.length}${G.espionage?.jesuits.includes(id) ? ` · ${e.jesuits}` : ""}${excluded ? ` · ${e.noEntry}` : ""}${st.unrest ? ` · ${e.unrest}` : ""}${st.siege ? ` · ${e.siege}` : ""}`;
+    return `${spaceName(id, vqLocale)} · ${e.control}${i18n.chain.vq.punct.colon}${controllerName(st.control, vqLocale)} · ${st.religion === "protestant" ? e.protestant : e.catholic} · ${e.army} ${landN} / ${e.navy} ${navalN} / ${e.leaders} ${st.leaders.length}${G.espionage?.jesuits.includes(id) ? ` · ${e.jesuits}` : ""}${excluded ? ` · ${e.noEntry}` : ""}${st.unrest ? ` · ${e.unrest}` : ""}${st.siege ? ` · ${e.siege}` : ""}`;
 };
 
 const seaSummary = (G: VQGame, id: string): string => {
     const zone = SEA_ZONES.find((candidate) => candidate.id === id);
     if (zone === undefined) return "";
+    const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     const count = Object.values(G.seaZones[zone.id].naval).reduce((sum, stack) => sum + navalCount(stack), 0);
-    return `${zone.name} · ${i18n.chain.vq.map.navy} ${count}`;
+    return `${seaZoneName(zone.id, vqLocale)} · ${i18n.chain.vq.map.navy} ${count}`;
 };
 
 /** Zoom level from which every city name is drawn, not just occupied or key spaces. */
@@ -49,6 +50,7 @@ export const LABEL_ALL_SCALE = 1.4;
 
 function SpaceShape({id, G, selected, origin, onSelect, scale, highlights, dimUnavailable = true, onHover}: VQMapProps & {id: string; scale: number; onHover: (id: string | undefined) => void}) {
     const def = SPACE_BY_ID[id];
+    const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     const excluded = G.scenario === "tutorial" && !tutorialSpaceAllowed(id);
     const highlighted = highlights?.has(id) === true;
     const dimmed = highlights !== undefined && dimUnavailable && !highlighted;
@@ -92,7 +94,7 @@ function SpaceShape({id, G, selected, origin, onSelect, scale, highlights, dimUn
         </g>}
         {showLabel &&
             <text x={x} y={y + 18} textAnchor="middle" fontSize={isSelected ? 12 : 9} fill="#30291e" fontWeight={isSelected ? 700 : 500}
-                  paintOrder="stroke" stroke="#f4eddd" strokeWidth={3} strokeLinejoin="round" pointerEvents="none">{def.name}</text>}
+                  paintOrder="stroke" stroke="#f4eddd" strokeWidth={3} strokeLinejoin="round" pointerEvents="none">{spaceName(id, vqLocale)}</text>}
     </g>;
 }
 
@@ -114,6 +116,7 @@ function MapLegend() {
 
 export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable = true, homeSpace}: VQMapProps) => {
     i18n.use();
+    const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     const [view, setView] = React.useState<MapView>(INITIAL_VIEW);
     const [hovered, setHovered] = React.useState<string>();
     const pointers = React.useRef(new Map<number, {x: number; y: number}>());
@@ -217,7 +220,7 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
                         <rect className="vq-hit" x={x - 44} y={y - 12} width={88} height={25} rx={5} fill={selected === zone.id ? "#faf3df" : "#c8dcd680"}
                               stroke={origin === zone.id ? "#2d6b71" : selected === zone.id ? "#805012" : "transparent"}
                               strokeDasharray={origin === zone.id ? "3 2" : undefined}/>
-                        <text x={x} y={y} fontSize={9} fill="#2e5d5b" fontFamily="Georgia, serif" fontStyle="italic" textAnchor="middle">{zone.name}</text>
+                        <text x={x} y={y} fontSize={9} fill="#2e5d5b" fontFamily="Georgia, serif" fontStyle="italic" textAnchor="middle">{seaZoneName(zone.id, vqLocale)}</text>
                         {count > 0 && <text x={x} y={y + 10} fontSize={8} textAnchor="middle" fill="#244c49">⚓ {count}</text>}
                         {highlighted && <rect className="vq-legal-ring" x={x - 46} y={y - 14} width={92} height={29} rx={7} fill="none"/>}
                     </g>;
@@ -230,7 +233,7 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
             <IconButton size="small" aria-label={i18n.chain.vq.map.zoomIn} disabled={view.scale >= 4} onClick={() => setView((current) => zoomView(current, 1.35, [500, 310]))}><AddIcon fontSize="small"/></IconButton>
             <span style={{minWidth: 36, textAlign: "center", fontSize: 11}} aria-live="polite">{Math.round(view.scale * 100)}%</span>
             <IconButton size="small" aria-label={i18n.chain.vq.map.zoomOut} disabled={view.scale <= 1} onClick={() => setView((current) => zoomView(current, 1 / 1.35, [500, 310]))}><RemoveIcon fontSize="small"/></IconButton>
-            {home !== undefined && <IconButton size="small" aria-label={`${i18n.chain.vq.map.centerHome} · ${home.name}`} title={`${i18n.chain.vq.map.centerHome} · ${home.name}`}
+            {home !== undefined && <IconButton size="small" aria-label={`${i18n.chain.vq.map.centerHome} · ${spaceName(home.id, vqLocale)}`} title={`${i18n.chain.vq.map.centerHome} · ${spaceName(home.id, vqLocale)}`}
                 onClick={() => setView((current) => centerView(project(home.lon, home.lat), Math.max(current.scale, 2)))}><MyLocationIcon fontSize="small"/></IconButton>}
             <IconButton size="small" aria-label={i18n.chain.vq.map.reset} onClick={() => setView(INITIAL_VIEW)}><RestartAltIcon fontSize="small"/></IconButton>
         </div>

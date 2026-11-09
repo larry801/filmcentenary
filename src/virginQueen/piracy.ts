@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {Power, SeaZoneID, VQGame, navalCount} from "./constant/general";
-import {SEA_ZONE_BY_ID, SEA_ZONES, SPACE_BY_ID} from "./mapData";
+import {SEA_ZONE_BY_ID, SEA_ZONES, SPACE_BY_ID, mapName} from "./mapData";
 import {ownerOf} from "./ownership";
 import {cardById} from "./constant/cards";
 import i18n from "../constant/i18n";
@@ -25,7 +25,7 @@ export const piracyOptions = (G: VQGame): {id: string; label: string}[] => {
     const locations = [pending.zone, ...adjacentLocations(pending.zone)];
     for (const location of locations) {
         for (const [kind, count] of Object.entries(stacks(G, location)[pending.target] ?? {})) {
-            if (count > 0) result.push({id: `ship:${location}:${kind}`, label: i18n.chain.vq.engine.removeFleet.replace("{space}", SPACE_BY_ID[location]?.name ?? location).replace("{kind}", kind), reward: "ship"});
+            if (count > 0) result.push({id: `ship:${location}:${kind}`, label: i18n.chain.vq.engine.removeFleet.replace("{space}", mapName(location)).replace("{kind}", kind), reward: "ship"});
         }
     }
     if (G.powers[pending.target].cards.some((id) => cardById(id).kind !== "home")) result.push({id: "card", label: i18n.chain.vq.engine.allowRandomDraw, reward: "card"});

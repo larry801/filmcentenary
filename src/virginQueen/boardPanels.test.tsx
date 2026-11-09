@@ -19,11 +19,11 @@ describe("board side panels", () => {
     it("turns space names in the log into clickable buttons", () => {
         const html = renderToStaticMarkup(<LogPanel log={["Spain moves into Paris"]} onSelectSpace={() => undefined}/>);
         expect(html).toContain('class="vq-log-space"');
-        expect(html).toContain(">Paris<");
+        expect(html).toContain(">巴黎<");
     });
 
     it("highlights entries about the viewer's power", () => {
-        const html = renderToStaticMarkup(<LogPanel log={["England wins a battle"]} myName="England"/>);
+        const html = renderToStaticMarkup(<LogPanel log={["England wins a battle"]} myName="英格兰"/>);
         expect(html).toContain("vq-log-mine");
     });
 

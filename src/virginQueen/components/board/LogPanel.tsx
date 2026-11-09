@@ -4,6 +4,7 @@ import Chip from "@mui/material/Chip";
 import i18n from "../../../constant/i18n";
 import {SetupLogCode} from "../../constant/general";
 import {SPACES} from "../../mapData";
+import {localizeLogLine} from "../../logText";
 import {scenarioName} from "../../scenario";
 
 export interface LogMark {
@@ -32,9 +33,9 @@ type Filter = "all" | "combat" | "diplomacy" | "religion";
 const FILTERS: Filter[] = ["all", "combat", "diplomacy", "religion"];
 
 const KEYWORDS: Record<Exclude<Filter, "all">, RegExp> = {
-    combat: /battle|combat|assault|siege|besieg|dice|roll|intercept|naval|fleet|army|unit|merc|mercenar|cavalry|regular|storm|fire ?ship|withdraw|retreat|capture|sack|piracy|pirate/i,
-    diplomacy: /diplomac|allian|war\b|war |peace|influence|betroth|marriage|married|minor|venice|papacy|scotland|ireland|portugal|treaty|declar/i,
-    religion: /religio|protestant|catholic|jesuit|preach|suppress|unrest|revolt|rebel|excommunicat|conversion|convert|huguenot|pope|papal|inquisition/i,
+    combat: /battle|combat|assault|siege|besieg|dice|roll|intercept|naval|fleet|army|unit|merc|mercenar|cavalry|regular|storm|fire ?ship|withdraw|retreat|capture|sack|piracy|pirate|战斗|战役|海战|骰|围城|强攻|拦截|舰队|陆军|单位|雇佣兵|骑兵|正规军|风暴|火船|撤退|攻占|掠夺|海盗/i,
+    diplomacy: /diplomac|allian|war\b|war |peace|influence|betroth|marriage|married|minor|venice|papacy|scotland|ireland|portugal|treaty|declar|外交|联盟|宣战|战争|议和|和平|影响|订婚|婚姻|结婚|小国|威尼斯|教宗|苏格兰|爱尔兰|葡萄牙|条约/i,
+    religion: /religio|protestant|catholic|jesuit|preach|suppress|unrest|revolt|rebel|excommunicat|conversion|convert|huguenot|pope|papal|inquisition|宗教|新教|天主教|耶稣会|布道|镇压|动荡|叛乱|起义|绝罚|转化|胡格诺|教皇|诏书|异端/i,
 };
 
 const FILTER_LABEL: Record<Filter, string> = {
@@ -44,15 +45,16 @@ const FILTER_LABEL: Record<Filter, string> = {
     religion: "religion",
 };
 
-/** Space names, longest first, so "Atlantic Coast" wins over "Atlantic". */
+/** Space names (English and Chinese, longest first), so both log locales link. */
 const SPACE_NAMES: {id: string; name: string}[] = [...SPACES]
-    .map((space) => ({id: space.id, name: space.name}))
+    .flatMap((space) => [space.name, space.nameZh].filter((name): name is string => name !== undefined)
+        .map((name) => ({id: space.id, name})))
     .sort((a, b) => b.name.length - a.name.length);
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const SPACE_PATTERN = new RegExp(
-    `\\b(${SPACE_NAMES.map((space) => escapeRegExp(space.name)).join("|")})\\b`, "g");
+    `(^|[^\\p{L}\\p{N}])(${SPACE_NAMES.map((space) => escapeRegExp(space.name)).join("|")})(?=$|[^\\p{L}\\p{N}])`, "gu");
 
 const spaceIdByName = new Map(SPACE_NAMES.map((space) => [space.name.toLowerCase(), space.id]));
 
@@ -65,12 +67,14 @@ const LogLine = ({text, onSelectSpace}: {text: string; onSelectSpace?: (id: stri
     const parts: React.ReactNode[] = [];
     let last = 0;
     for (const match of text.matchAll(SPACE_PATTERN)) {
-        const id = spaceIdByName.get(match[0].toLowerCase());
+        const name = match[2];
+        const id = spaceIdByName.get(name.toLowerCase());
+        const start = (match.index ?? 0) + match[1].length;
         if (id === undefined || match.index === undefined) continue;
-        if (match.index > last) parts.push(text.slice(last, match.index));
-        parts.push(<button key={`${id}-${match.index}`} type="button" className="vq-log-space"
-                           onClick={() => onSelectSpace(id)}>{match[0]}</button>);
-        last = match.index + match[0].length;
+        if (start > last) parts.push(text.slice(last, start));
+        parts.push(<button key={`${id}-${start}`} type="button" className="vq-log-space"
+                           onClick={() => onSelectSpace(id)}>{name}</button>);
+        last = start + name.length;
     }
     if (last < text.length) parts.push(text.slice(last));
     return <>{parts}</>;
@@ -115,7 +119,7 @@ export const LogPanel = ({
     const codesByIndex = new Map((codes ?? []).map((code) => [code.at, code]));
     const entries = log.map((raw, index) => {
         const code = codesByIndex.get(index);
-        const text = code === undefined ? raw : translateCode(code, vqLocale, raw);
+        const text = code === undefined ? localizeLogLine(raw, vqLocale) : translateCode(code, vqLocale, raw);
         const mark = [...(marks ?? [])].reverse().find((candidate) => candidate.at <= index);
         return {text, index, mark, group: groupLabel(mark)};
     });

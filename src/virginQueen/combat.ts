@@ -4,7 +4,7 @@ import {Controller, Power, VQGame, isPower, landCount, navalCount, spaceHomes} f
 import {cardById, cardName} from "./constant/cards";
 import i18n from "../constant/i18n";
 import {LEADER_BY_ID} from "./constant/leaders";
-import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "./mapData";
+import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES, mapName} from "./mapData";
 import {ownerOf} from "./ownership";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {
@@ -117,7 +117,7 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
         if (battle.intercepted) return options;
         if (battle.phase === "naval" && !isSeaZone(battle.location)) return options;
         if (isFortifiedSpace(G, battle.location) && sideUnits(G, battle, false) <= 4) options.push({id: "fortify", label: i18n.chain.vq.engine.retreatIntoFortress});
-        for (const destination of retreatOptions(G, battle, power)) options.push({id: `avoid:${destination}`, label: `${i18n.chain.vq.engine.avoidBattleTo} ${SPACE_BY_ID[destination]?.name ?? SEA_ZONE_BY_ID[destination]?.name ?? destination}`});
+        for (const destination of retreatOptions(G, battle, power)) options.push({id: `avoid:${destination}`, label: `${i18n.chain.vq.engine.avoidBattleTo} ${mapName(destination)}`});
         return options;
     }
     if (battle.step === "attackerCards" || battle.step === "defenderCards" || battle.step === "attackerAfterRoll" || battle.step === "defenderAfterRoll") {
@@ -156,7 +156,7 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
         }
         return result;
     }
-    return retreatOptions(G, battle, battle.loser!).map((id) => ({id: `retreat:${id}`, label: `${i18n.chain.vq.engine.retreatTo} ${SPACE_BY_ID[id]?.name ?? id}`}));
+    return retreatOptions(G, battle, battle.loser!).map((id) => ({id: `retreat:${id}`, label: `${i18n.chain.vq.engine.retreatTo} ${mapName(id)}`}));
 };
 
 const finishCasualties = (G: VQGame, ctx: Ctx): void => {

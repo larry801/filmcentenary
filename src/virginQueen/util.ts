@@ -12,6 +12,7 @@ import {
     LeaderDef,
     MinorPower,
     MINOR_NAVAL_LIMITS,
+    MINOR_NAMES,
     MINOR_POWERS,
     MINOR_REGULAR_LIMITS,
     MERC_LIMITS,
@@ -150,7 +151,7 @@ export const controllerLabel = (c: Controller, locale: VQLocale = "zh_CN"): stri
         ? POWER_NAMES[c][locale === "en" ? "en" : "zh"]
         : c === "independent"
             ? (locale === "en" ? "Independent" : "独立")
-            : c.charAt(0).toUpperCase() + c.slice(1);
+            : MINOR_NAMES[c][locale === "en" ? "en" : "zh"];
 
 /** Label for any controller (major, minor or independent). */
 export const anyControllerLabel = (c: Controller): string =>

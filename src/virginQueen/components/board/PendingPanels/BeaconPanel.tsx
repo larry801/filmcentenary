@@ -4,7 +4,7 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import i18n from "../../../../constant/i18n";
 import {powerName, VQGame} from "../../../constant/general";
-import {SPACE_BY_ID} from "../../../mapData";
+import {spaceName} from "../../../mapData";
 import {ownerOf} from "../../../ownership";
 
 export interface PendingPanelProps {
@@ -19,7 +19,7 @@ export const PendingBeaconPanel = ({G, moves, playerID}: PendingPanelProps) => {
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     if (G.pendingBeacon === undefined) return null;
     return <Stack spacing={1}>
-        <Typography>{i18n.chain.vq.beacon.title} · {powerName(G.pendingBeacon.defender, vqLocale)} {i18n.chain.vq.beacon.intercepting} {SPACE_BY_ID[G.pendingBeacon.from]?.name ?? G.pendingBeacon.from}{i18n.chain.vq.punct.comma}{i18n.chain.vq.beacon.canPlay}</Typography>
+        <Typography>{i18n.chain.vq.beacon.title} · {powerName(G.pendingBeacon.defender, vqLocale)} {i18n.chain.vq.beacon.intercepting} {spaceName(G.pendingBeacon.from, vqLocale)}{i18n.chain.vq.punct.comma}{i18n.chain.vq.beacon.canPlay}</Typography>
         {ownerOf(G, G.pendingBeacon.defender) === playerID && <>
             <Typography variant="body2">{i18n.chain.vq.beacon.autoSuccess}</Typography>
             <Stack direction="row" spacing={0.5}>

@@ -68,9 +68,9 @@ import {AREA_NAMES,
     isPower,
     powerAt, spaceHomes} from "../constant/general";
 import {cardById, cardImageUrl, cardName} from "../constant/cards";
-import {LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN} from "../constant/leaders";
+import {LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN, leaderName} from "../constant/leaders";
 import {patronDef, royalAvailable, scenarioSetup, scienceBonusById, seaCaptainById, seaCaptainName} from "../scenario";
-import {DUTCH_KEYS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES} from "../mapData";
+import {DUTCH_KEYS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES, seaZoneName, spaceName} from "../mapData";
 import {WORLD_SEA_ZONES, WORLD_SETTLEMENTS} from "../data/world";
 import {PATRONAGE_VP_AWARD_BY_ID} from "../data/patronage";
 import {MINOR_DIPLOMACY} from "../data/minorDiplomacy";
@@ -159,6 +159,23 @@ const phaseLabel = (phase: string): string =>
 /** Picks the active locale's name from data that carries English and Chinese labels. */
 const dataName = (def: {nameEn: string; nameZh?: string} | undefined): string =>
     def === undefined ? "" : (i18n.getLocaleName() === "en" ? def.nameEn : (def.nameZh ?? def.nameEn));
+
+const vqLocaleNow = (): "en" | "zh_CN" => i18n.getLocaleName() === "en" ? "en" : "zh_CN";
+
+/** Localized label for a land space or sea zone id. */
+const placeLabel = (id: string): string =>
+    SPACE_BY_ID[id] !== undefined ? spaceName(id, vqLocaleNow()) : seaZoneName(id, vqLocaleNow());
+
+/** Localized leader name for a counter id. */
+const leaderLabel = (id: string): string => leaderName(id, vqLocaleNow());
+
+/** Localized royal name for a runtime royal. */
+const royalLabel = (royal: {name: string; nameZh?: string}): string =>
+    vqLocaleNow() === "en" ? royal.name : (royal.nameZh ?? royal.name);
+
+/** Localized patron name (`RuntimePatron` stores the English name in `name`). */
+const patronLabel = (patron: {name: string; nameZh?: string}): string =>
+    vqLocaleNow() === "en" ? patron.name : (patron.nameZh ?? patron.name);
 
 /**
  * Cards whose event target cannot be enumerated in the UI. The strings are the
@@ -486,7 +503,7 @@ export interface ArmyMutinyTargetSelection {
 export const armyMutinySpaceOptions = (G: VQGame): ArmyMutinyTargetOption[] =>
     SPACES.filter((def) => G.spaces[def.id] !== undefined &&
         POWERS.some((power) => landCount(G.spaces[def.id].land[power]) > 0))
-        .map((def) => ({value: def.id, label: def.name}));
+        .map((def) => ({value: def.id, label: spaceName(def.id, vqLocaleNow())}));
 
 /** Major powers with a land stack in `spaceId`, in the engine's power order. */
 export const armyMutinyOwnerOptions = (G: VQGame, spaceId: string, locale: "en" | "zh_CN" = "zh_CN"): ArmyMutinyOwnerOption[] => {
@@ -631,7 +648,7 @@ export type GermanRecruitmentSelection = GermanRecruitmentTargetSelection | read
 export const germanRecruitmentSpaceOptions = (G: VQGame, _hre?: boolean): GermanRecruitmentTargetOption[] =>
     SPACES.filter((def) => G.spaces[def.id] !== undefined &&
         POWERS.some((power) => (G.spaces[def.id].land[power]?.merc ?? 0) > 0))
-        .map((def) => ({value: def.id, label: def.name}));
+        .map((def) => ({value: def.id, label: spaceName(def.id, vqLocaleNow())}));
 
 /** Major powers with mercenaries in `spaceId`, in the engine's power order. */
 export const germanRecruitmentPowerOptions = (G: VQGame, spaceId: string, _hre?: boolean): GermanRecruitmentPowerOption[] => {
@@ -1378,7 +1395,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             </Stack>)}
             <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                 {source.leaders.filter((leader) => LEADER_BY_ID[leader]?.power === owner && LEADER_BY_ID[leader]?.kind === "army").map((leader) =>
-                    <Button key={leader} variant={movingLeaders.includes(leader) ? "contained" : "outlined"} onClick={() => setMovingLeaders(movingLeaders.includes(leader) ? movingLeaders.filter((id) => id !== leader) : [...movingLeaders, leader])}>{LEADER_BY_ID[leader].name}</Button>)}
+                    <Button key={leader} variant={movingLeaders.includes(leader) ? "contained" : "outlined"} onClick={() => setMovingLeaders(movingLeaders.includes(leader) ? movingLeaders.filter((id) => id !== leader) : [...movingLeaders, leader])}>{leaderLabel(leader)}</Button>)}
             </Stack>
             <Typography variant="caption" color={chosen > capacity ? "error" : "text.secondary"}>
                 {i18n.chain.vq.springUi.commandLimit.replace("{count}", String(capacity))}
@@ -1576,7 +1593,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {target === "offensive" ? i18n.chain.vq.board.offensive : target === "defensive" ? i18n.chain.vq.board.defensive : target === "remove" ? i18n.chain.vq.board.removeAll : target.includes(">")
                         ? `${i18n.chain.vq.board.defect} ${powerName(target.split(">")[0] as Power, vqLocale)} ${i18n.chain.vq.board.spy}${i18n.chain.vq.punct.openParen}${i18n.chain.vq.board.recall} ${powerName(target.split(">")[1] as Power, vqLocale)} ${i18n.chain.vq.board.ownSpy}${i18n.chain.vq.punct.closeParen}`
                         : handler === "doubleAgent" ? `${i18n.chain.vq.board.defect} ${powerName(target as Power, vqLocale)} ${i18n.chain.vq.board.spy}`
-                        : handler === "untimelyDeath" ? (target === "none" ? i18n.chain.vq.board.noRemovableLeader : `${i18n.chain.vq.board.removeGame}: ${LEADER_BY_ID[target]?.name ?? target}`)
+                        : handler === "untimelyDeath" ? (target === "none" ? i18n.chain.vq.board.noRemovableLeader : `${i18n.chain.vq.board.removeGame}: ${leaderLabel(target)}`)
                         : powerName(target as Power, vqLocale)}
                 </MenuItem>)}
             </Select>}
@@ -1666,11 +1683,11 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
             return <Stack spacing={1}>
                 <Typography>{powerName(pending.power, locale)}: {i18n.chain.vq.board.rebelMove}</Typography>
                 <Typography variant="body2">
-                    {pending.minor} {i18n.chain.vq.board.rebelsIn} {SPACE_BY_ID[pending.space]?.name ?? pending.space}
+                    {minorName(pending.minor, locale)} {i18n.chain.vq.board.rebelsIn} {placeLabel(pending.space)}
                 </Typography>
                 {isResponder && targets.map((id) =>
                     <Button key={id} onClick={() => moves.chooseRebelMove({to: id})}>
-                        {i18n.chain.vq.board.moveTo} {SPACE_BY_ID[id]?.name ?? id}
+                        {i18n.chain.vq.board.moveTo} {placeLabel(id)}
                     </Button>)}
                 {isResponder && <Button onClick={() => moves.chooseRebelMove({to: "decline"})}>
                     {i18n.chain.vq.board.declineRebelMove}
@@ -1692,7 +1709,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 {(G.colonyRolls?.length ?? 0) > 0 && <Stack spacing={0.25} sx={{p: 1, border: 1, borderColor: "divider", borderRadius: 1}}>
                     <Typography variant="subtitle2">{i18n.chain.vq.cardDraw.colonies}</Typography>
                     {(G.colonyRolls ?? []).map((entry) => <Typography key={entry.settlement} variant="caption">
-                        {SPACE_BY_ID[entry.settlement]?.name ?? entry.settlement} · {powerName(entry.power, vqLocale)} · {entry.total} · {i18n.chain.vq.cardDraw[entry.result === "eliminated" ? "colonyEliminated" : entry.result === "none" ? "colonyNone" : entry.result === "treasure" ? "colonyTreasure" : "colonyTreasureVp"]}
+                        {placeLabel(entry.settlement)} · {powerName(entry.power, vqLocale)} · {entry.total} · {i18n.chain.vq.cardDraw[entry.result === "eliminated" ? "colonyEliminated" : entry.result === "none" ? "colonyNone" : entry.result === "treasure" ? "colonyTreasure" : "colonyTreasureVp"]}
                     </Typography>)}
                 </Stack>}
                 {winterLosses.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
@@ -1706,7 +1723,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             .filter((kind) => (stack?.[kind] ?? 0) >= entry.amount);
                         return <Stack key={`${entry.space}-${index}`} spacing={0.5}>
                             <Typography variant="body2">
-                                {SPACE_BY_ID[entry.space]?.name ?? entry.space} · {i18n.chain.vq.cardDraw.needLose} {entry.amount} {i18n.chain.vq.cardDraw.units}
+                                {placeLabel(entry.space)} · {i18n.chain.vq.cardDraw.needLose} {entry.amount} {i18n.chain.vq.cardDraw.units}
                             </Typography>
                             {entry.confirmOnly && <Typography variant="caption" color="text.secondary">
                                 {i18n.chain.vq.cardDraw.morisco}
@@ -1733,7 +1750,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {winterNavalLosses.map((entry, index) => (
                         <Stack key={`${entry.zone}-${index}`} spacing={0.5}>
                             <Typography variant="body2">
-                                {SEA_ZONE_BY_ID[entry.zone]?.name ?? entry.zone} · {i18n.chain.vq.cardDraw.lost} {entry.amount} {i18n.chain.vq.cardDraw.ships}
+                                {seaZoneName(entry.zone, vqLocaleNow())} · {i18n.chain.vq.cardDraw.lost} {entry.amount} {i18n.chain.vq.cardDraw.ships}
                             </Typography>
                             <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                                 {(Object.keys(shipNames) as (keyof NavalStack)[])
@@ -1805,7 +1822,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 {G.pendingWithdraw !== undefined && G.pendingWithdraw.defender === me && <Paper variant="outlined" sx={{p: 1}}>
                     <Typography variant="subtitle2">{i18n.chain.vq.board.defenderChoice}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        {SPACE_BY_ID[G.pendingWithdraw.space]?.name ?? G.pendingWithdraw.space} {i18n.chain.vq.board.withdrawOrField}{i18n.chain.vq.punct.period}
+                        {placeLabel(G.pendingWithdraw.space)} {i18n.chain.vq.board.withdrawOrField}{i18n.chain.vq.punct.period}
                     </Typography>
                     <Stack direction="row" spacing={0.5} sx={{mt: 0.5}}>
                         <Button size="small" variant="outlined" disabled={!myTurn}
@@ -1817,7 +1834,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 {G.pendingReliefSplit !== undefined && G.pendingReliefSplit.power === me && <Paper variant="outlined" sx={{p: 1}}>
                     <Typography variant="subtitle2">{i18n.chain.vq.board.reliefFail}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        {SPACE_BY_ID[G.pendingReliefSplit.space]?.name ?? G.pendingReliefSplit.space}{i18n.chain.vq.punct.colon}{i18n.chain.vq.board.maxKeep} {G.pendingReliefSplit.keepLimit} {i18n.chain.vq.board.unitsStay}{i18n.chain.vq.punct.period}
+                        {placeLabel(G.pendingReliefSplit.space)}{i18n.chain.vq.punct.colon}{i18n.chain.vq.board.maxKeep} {G.pendingReliefSplit.keepLimit} {i18n.chain.vq.board.unitsStay}{i18n.chain.vq.punct.period}
                     </Typography>
                     <Stack direction="row" spacing={0.5} sx={{mt: 0.5, flexWrap: "wrap"}}>
                         {Array.from({length: G.pendingReliefSplit.keepLimit + 1}, (_, i) => i).map((k) =>
@@ -1828,19 +1845,19 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 {G.pendingContinue !== undefined && G.pendingContinue.power === me && <Paper variant="outlined" sx={{p: 1}}>
                     <Typography variant="subtitle2">{i18n.chain.vq.board.retreatFortress}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        {i18n.chain.vq.board.continueMarch}{i18n.chain.vq.punct.comma}{i18n.chain.vq.board.orReturn} {SPACE_BY_ID[G.pendingContinue.origin]?.name ?? G.pendingContinue.origin}{i18n.chain.vq.punct.period}
+                        {i18n.chain.vq.board.continueMarch}{i18n.chain.vq.punct.comma}{i18n.chain.vq.board.orReturn} {placeLabel(G.pendingContinue.origin)}{i18n.chain.vq.punct.period}
                     </Typography>
                     <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap", mt: 0.5}}>
                         {landNeighbors(G.pendingContinue.space).filter((neighbor) => !neighbor.pass).map((neighbor) =>
                             <Button key={neighbor.id} size="small" variant="outlined" disabled={!myTurn || cp < 1}
-                                onClick={() => moves.continueMove({to: neighbor.id})}>{SPACE_BY_ID[neighbor.id]?.name ?? neighbor.id}</Button>)}
+                                onClick={() => moves.continueMove({to: neighbor.id})}>{placeLabel(neighbor.id)}</Button>)}
                         <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.stopContinue()}>{i18n.chain.vq.board.returnOrigin}</Button>
                     </Stack>
                 </Paper>}
                 {me === "spain" && G.armada !== undefined && <Paper variant="outlined" sx={{p: 1}}>
                     <Typography variant="subtitle2">{i18n.chain.vq.board.armada} · {i18n.chain.vq.board.strength} {G.armada.strength}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        {i18n.chain.vq.board.locatedAt} {SPACE_BY_ID[G.armada.location]?.name ?? G.armada.location}{i18n.chain.vq.punct.semicolon}{i18n.chain.vq.board.armadaJoin}{i18n.chain.vq.punct.period}
+                        {i18n.chain.vq.board.locatedAt} {placeLabel(G.armada.location)}{i18n.chain.vq.punct.semicolon}{i18n.chain.vq.board.armadaJoin}{i18n.chain.vq.punct.period}
                     </Typography>
                     <Stack direction="row" spacing={0.5} sx={{mt: 0.5, flexWrap: "wrap"}}>
                         <Button size="small" variant="outlined"
@@ -1858,9 +1875,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         SPACES.filter((space) => (space.ports ?? []).some((zone) => zone === G.armada!.location) && G.spaces[space.id].control === "spain").map((space) =>
                         <Stack key={space.id} direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                             <Button size="small" variant="outlined" disabled={!myTurn || cp < 1}
-                                onClick={() => moves.armadaTransport({port: space.id, direction: "load"})}>{i18n.chain.vq.board.loadFrom} {space.name}</Button>
+                                onClick={() => moves.armadaTransport({port: space.id, direction: "load"})}>{i18n.chain.vq.board.loadFrom} {placeLabel(space.id)}</Button>
                             <Button size="small" variant="outlined" disabled={!myTurn || cp < 1 || G.armada?.land === undefined}
-                                onClick={() => moves.armadaTransport({port: space.id, direction: "unload"})}>{i18n.chain.vq.board.unloadTo} {space.name}</Button>
+                                onClick={() => moves.armadaTransport({port: space.id, direction: "unload"})}>{i18n.chain.vq.board.unloadTo} {placeLabel(space.id)}</Button>
                         </Stack>)}
                 </Paper>}
                 <div className="vq-action-picker" role="group" aria-label={i18n.chain.vq.shell.currentAction}>
@@ -1901,18 +1918,18 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <Typography variant="caption">{i18n.chain.vq.board.transportHint}</Typography>
                         <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap", alignItems: "center"}}>
                             {transportZones.map((zone, index) => <Chip key={zone} size="small"
-                                label={`${index + 1}. ${SEA_ZONE_BY_ID[zone].name}`}
+                                label={`${index + 1}. ${seaZoneName(zone, vqLocaleNow())}`}
                                 onDelete={() => setTransportZones(transportZones.filter((candidate) => candidate !== zone))}/>)}
                             {transportZones.length === 0 &&
                                 <Typography variant="caption" color="text.secondary">{i18n.chain.vq.board.notSelected}</Typography>}
                         </Stack>
                         <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                             {transportCandidates.map((zone) => <Button key={zone.id} size="small" variant="outlined"
-                                onClick={() => setTransportZones([...transportZones, zone.id])}>{zone.name}</Button>)}
+                                onClick={() => setTransportZones([...transportZones, zone.id])}>{seaZoneName(zone.id, vqLocaleNow())}</Button>)}
                             {transportZones.length > 0 && <Button size="small"
                                 onClick={() => setTransportZones([])}>{i18n.chain.vq.actionUi.clear}</Button>}
                         </Stack>
-                        <Typography variant="caption">{i18n.chain.vq.board.route}: {transportZones.map((zone) => SEA_ZONE_BY_ID[zone].name).join(" → ") || i18n.chain.vq.board.notSelected}</Typography>
+                        <Typography variant="caption">{i18n.chain.vq.board.route}: {transportZones.map((zone) => seaZoneName(zone, vqLocaleNow())).join(" → ") || i18n.chain.vq.board.notSelected}</Typography>
                     </>}
                     {stackPicker(false)}
                 </Stack>}
@@ -1925,7 +1942,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                 </FormControl>}
                 <Typography variant="caption" color="text.secondary">
                     {mode === "inspect" ? i18n.chain.vq.actionUi.clickCityDetail : i18n.chain.vq.actionUi.clickTargetCity}
-                    {from !== null ? ` ${i18n.chain.vq.actionUi.originSelected}${SPACE_BY_ID[from]?.name ?? SEA_ZONE_BY_ID[from]?.name ?? from}` : ""}
+                    {from !== null ? ` ${i18n.chain.vq.actionUi.originSelected}${placeLabel(from)}` : ""}
                 </Typography>
                 <Stack direction="row" spacing={1}>
                     {!isDesktop && <Button size="small" variant="contained" onClick={() => setMobileView("map")}>{i18n.chain.vq.shell.goToMap}</Button>}
@@ -1968,11 +1985,11 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <Typography variant="caption" color="text.secondary">{i18n.chain.vq.actionUi.foreignWarSetupHint}</Typography>
                     <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap", my: 0.5}}>
                         {foreignWarUnits.map((unit, index) => <Chip key={`${unit.space}-${unit.kind}-${index}`} size="small"
-                            label={`${SPACE_BY_ID[unit.space]?.name ?? unit.space} ${unitLabel(unit.kind)}`} onDelete={() => setForeignWarUnits((old) => old.filter((_, i) => i !== index))}/>)}
+                            label={`${placeLabel(unit.space)} ${unitLabel(unit.kind)}`} onDelete={() => setForeignWarUnits((old) => old.filter((_, i) => i !== index))}/>)}
                         {foreignWarUnits.length > 0 && <Button size="small" onClick={() => setForeignWarUnits([])}>{i18n.chain.vq.actionUi.clear}</Button>}
                     </Stack>
                     {Object.entries(G.spaces).filter(([, state]) => state.siege === undefined && landCount(state.land[me]) > 0).map(([spaceId, state]) => <Stack key={spaceId} direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
-                        <Typography variant="caption" sx={{minWidth: 80}}>{SPACE_BY_ID[spaceId]?.name ?? spaceId}</Typography>
+                        <Typography variant="caption" sx={{minWidth: 80}}>{placeLabel(spaceId)}</Typography>
                         {(["regular", "merc", "cav"] as const).filter((kind) => (state.land[me]?.[kind] ?? 0) > 0).map((kind) => {
                             const picked = foreignWarUnits.filter((unit) => unit.space === spaceId && unit.kind === kind).length;
                             return <Button key={kind} size="small" variant="outlined" disabled={foreignWarUnits.length >= 8 || picked >= (state.land[me]?.[kind] ?? 0)}
@@ -1986,7 +2003,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             <MenuItem value="">{i18n.chain.vq.actionUi.noLeader}</MenuItem>
                             {Object.values(G.leaders).filter((leader) => LEADER_BY_ID[leader.id]?.power === me && LEADER_BY_ID[leader.id]?.kind === "army" &&
                                 Object.values(G.spaces).some((state) => state.leaders.includes(leader.id))).map((leader) =>
-                                <MenuItem key={leader.id} value={leader.id}>{LEADER_BY_ID[leader.id]?.name ?? leader.id}</MenuItem>)}
+                                <MenuItem key={leader.id} value={leader.id}>{leaderLabel(leader.id)}</MenuItem>)}
                         </Select>
                     </FormControl>
                     <Button size="small" variant="contained" sx={{mt: 0.5}} disabled={(!myTurn && G.pendingForeignWar?.power !== me) || foreignWarUnits.length < 3 || foreignWarUnits.length > 8}
@@ -1996,7 +2013,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <Typography variant="subtitle2">{i18n.chain.vq.actionUi.foreignWarActive} · {G.foreignWars[me]?.enemy}</Typography>
                     <Typography variant="caption" color="text.secondary">
                         {i18n.chain.vq.actionUi.ourSide} {landCount(G.foreignWars[me]!.units)} {i18n.chain.vq.actionUi.men} · {i18n.chain.vq.actionUi.enemySide} {G.foreignWars[me]!.enemyUnits} {i18n.chain.vq.actionUi.men}
-                        {G.foreignWars[me]!.leaderId ? ` · ${i18n.chain.vq.actionUi.leader} ${LEADER_BY_ID[G.foreignWars[me]!.leaderId!]?.name}` : ""}
+                        {G.foreignWars[me]!.leaderId ? ` · ${i18n.chain.vq.actionUi.leader} ${leaderLabel(G.foreignWars[me]!.leaderId!)}` : ""}
                     </Typography>
                     <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap", mt: 0.5}}>
                         <Button size="small" variant="contained" disabled={!myTurn || cp < 1 || landCount(G.foreignWars[me]!.units) === 0}
@@ -2077,7 +2094,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <MenuItem value="elizabeth" disabled={!assassinationTargets(G, me).includes("elizabeth")}>{i18n.chain.vq.empire.targetElizabeth}</MenuItem>
                         {assassinationTargets(G, me).includes("rudolf") && <MenuItem value="rudolf">{i18n.chain.vq.empire.targetRudolf}</MenuItem>}
                         {assassinationTargets(G, me).filter((id) => id !== "elizabeth" && id !== "rudolf").map((id) =>
-                            <MenuItem key={id} value={id}>{LEADER_BY_ID[id].name} ({powerName(LEADER_BY_ID[id].power, vqLocale)})</MenuItem>)}
+                            <MenuItem key={id} value={id}>{leaderLabel(id)} ({powerName(LEADER_BY_ID[id].power, vqLocale)})</MenuItem>)}
                     </Select>
                 </FormControl>
                 <Stack direction="row" spacing={0.5} sx={{alignItems: "center"}}>
@@ -2092,7 +2109,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <Typography variant="caption">{i18n.chain.vq.empire.jesuitsOnCard} {G.espionage?.jesuitsOnCard ?? 0} / {i18n.chain.vq.empire.england} {G.espionage?.jesuits.length ?? 0} / {i18n.chain.vq.empire.jesuitsCapNote}</Typography>
                     <Button size="small" variant="outlined" disabled={!canAct || cp < 2 || G.year < 3 || (G.espionage?.jesuitsOnCard ?? 0) < 1 ||
                         spaceDef?.area !== "england" || G.espionage?.jesuits.includes(selected!)}
-                        onClick={() => moves.plantInformant({space: selected})}>{i18n.chain.vq.empire.deployJesuitTo} {spaceDef?.area === "england" ? spaceDef.name : i18n.chain.vq.empire.selectedRegion} (2 CP)</Button>
+                        onClick={() => moves.plantInformant({space: selected})}>{i18n.chain.vq.empire.deployJesuitTo} {spaceDef?.area === "england" ? placeLabel(spaceDef.id) : i18n.chain.vq.empire.selectedRegion} (2 CP)</Button>
                     <Stack direction="row" spacing={0.5}>
                         <Select size="small" value={catholicRebellionCp} onChange={(e) => setCatholicRebellionCp(Number(e.target.value))}>
                             {[3, 4, 5].map((n) => <MenuItem key={n} value={n}>{n} CP</MenuItem>)}
@@ -2191,7 +2208,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <Button key={p.id} size="small" variant="outlined"
                                 disabled={!myTurn || cp < patronageCp || G.patronizedThisTurn.includes(`${me}:${p.kind}`)}
                                 onClick={() => moves.patronize({patron: p.id, cp: patronageCp})}>
-                            {p.name}{p.rating === null ? ` (${i18n.chain.vq.worldUi.ratingPending})` : ` (${i18n.chain.vq.worldUi.rating} ${p.rating})`}{p.kind === "scientist" ? ` · ${i18n.chain.vq.worldUi.scientist}` : ""}
+                            {patronLabel(p)}{p.rating === null ? ` (${i18n.chain.vq.worldUi.ratingPending})` : ` (${i18n.chain.vq.worldUi.rating} ${p.rating})`}{p.kind === "scientist" ? ` · ${i18n.chain.vq.worldUi.scientist}` : ""}
                         </Button>)}
                 </Stack>
                 </ActionGroup></>}
@@ -2218,7 +2235,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <Select labelId="vq-pirate-zone" label={i18n.chain.vq.worldUi.seaZone} value={piracyZone}
                                 onChange={(e) => setPiracyZone(e.target.value)}>
                             {Object.keys(G.seaZones).filter((z) => G.seaZones[z as keyof VQGame["seaZones"]].naval[me] !== undefined)
-                                .map((z) => <MenuItem key={z} value={z}>{SEA_ZONE_BY_ID[z]?.name ?? z}</MenuItem>)}
+                                .map((z) => <MenuItem key={z} value={z}>{seaZoneName(z, vqLocaleNow())}</MenuItem>)}
                         </Select>
                     </FormControl>
                     <FormControl size="small" fullWidth>
@@ -2249,7 +2266,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     </Typography>
                     {me === "spain" ? <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                         {catholicLeagueSpaceOptions(G).map((id) => <Button key={id} size="small" variant="outlined" disabled={!myTurn}
-                            onClick={() => moves.chooseCatholicLeagueSpace({space: id})}>{SPACE_BY_ID[id].name}</Button>)}
+                            onClick={() => moves.chooseCatholicLeagueSpace({space: id})}>{placeLabel(id)}</Button>)}
                     </Stack> : <Typography variant="body2" color="text.secondary">{i18n.chain.vq.diplomacy.waitingSpain}</Typography>}
                 </Stack>}
                 {G.pendingHreReplacement !== undefined && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "divider", borderRadius: 1}}>
@@ -2305,7 +2322,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             (G.leaders[id].capturedBy === undefined || G.leaders[id].capturedBy === me)).map((id) =>
                             <Button key={id} size="small" variant="outlined" disabled={!myTurn}
                                 onClick={() => (moves as unknown as {returnCapturedLeader: (args: {leaderId: string}) => void}).returnCapturedLeader({leaderId: id})}>
-                                {LEADER_BY_ID[id]?.name ?? id}
+                                {leaderLabel(id)}
                             </Button>)}
                     </Stack>
                 </Stack>}
@@ -2323,7 +2340,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <Select labelId="vq-loan-from" label={i18n.chain.vq.diplomacy.loanFrom} value={loanFromPort}
                                 onChange={(e) => setLoanFromPort(e.target.value)}>
                             {SPACES.filter((space) => space.control === me && (space.ports?.length ?? 0) > 0)
-                                .map((space) => <MenuItem key={space.id} value={space.id}>{space.name}</MenuItem>)}
+                                .map((space) => <MenuItem key={space.id} value={space.id}>{placeLabel(space.id)}</MenuItem>)}
                         </Select>
                     </FormControl>
                     <FormControl size="small" fullWidth>
@@ -2331,7 +2348,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <Select labelId="vq-loan-to" label={i18n.chain.vq.diplomacy.loanTo} value={loanToPort}
                                 onChange={(e) => setLoanToPort(e.target.value)}>
                             {SPACES.filter((space) => space.control === diploTarget && (space.ports?.length ?? 0) > 0)
-                                .map((space) => <MenuItem key={space.id} value={space.id}>{space.name}</MenuItem>)}
+                                .map((space) => <MenuItem key={space.id} value={space.id}>{placeLabel(space.id)}</MenuItem>)}
                         </Select>
                     </FormControl>
                     <FormControl size="small" fullWidth>
@@ -2341,7 +2358,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             <MenuItem value="">{i18n.chain.vq.diplomacy.noLeader}</MenuItem>
                             {(G.spaces[loanFromPort]?.leaders ?? []).filter((id) => LEADER_BY_ID[id]?.kind === "naval" &&
                                 LEADER_BY_ID[id]?.power === me).map((id) =>
-                                <MenuItem key={id} value={id}>{LEADER_BY_ID[id]?.name ?? id}</MenuItem>)}
+                                <MenuItem key={id} value={id}>{leaderLabel(id)}</MenuItem>)}
                         </Select>
                     </FormControl>
                     <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
@@ -2369,9 +2386,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <Stack spacing={1}>
                         <Typography variant="body2">
                             {powerName(G.pendingBetrothal.proposer, vqLocale)} {i18n.chain.vq.diplomacyUi.proposal}
-                            {G.royals.find((r) => r.id === G.pendingBetrothal!.male)?.name ?? G.pendingBetrothal.male}
+                            {royalLabel(G.royals.find((r) => r.id === G.pendingBetrothal!.male) ?? {name: G.pendingBetrothal.male})}
                             {" ↔ "}
-                            {G.royals.find((r) => r.id === G.pendingBetrothal!.female)?.name ?? G.pendingBetrothal.female}
+                            {royalLabel(G.royals.find((r) => r.id === G.pendingBetrothal!.female) ?? {name: G.pendingBetrothal.female})}
                         </Typography>
                         <Stack direction="row" spacing={1}>
                             <Button size="small" variant="contained" color="success"
@@ -2390,7 +2407,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         <Select labelId="vq-domestic" label={i18n.chain.vq.diplomacyUi.domesticRoyal} value={domesticRoyal}
                                 onChange={(e) => { setDomesticRoyal(e.target.value as string); setForeignRoyal(""); }}>
                             {betrothal.domestic.map((r) =>
-                                <MenuItem key={r.id} value={r.id}>{r.name} ({r.gender === "male" ? i18n.chain.vq.diplomacyUi.male : i18n.chain.vq.diplomacyUi.female})</MenuItem>)}
+                                <MenuItem key={r.id} value={r.id}>{royalLabel(r)} ({r.gender === "male" ? i18n.chain.vq.diplomacyUi.male : i18n.chain.vq.diplomacyUi.female})</MenuItem>)}
                         </Select>
                     </FormControl>
                     <FormControl size="small" fullWidth>
@@ -2399,7 +2416,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                 onChange={(e) => setForeignRoyal(e.target.value as string)}
                                 disabled={domesticRoyal === ""}>
                             {betrothal.foreign.map((r) =>
-                                <MenuItem key={r.id} value={r.id}>{r.name}
+                                <MenuItem key={r.id} value={r.id}>{royalLabel(r)}
                                     {r.id === "louiseLorraine" && betrothal.samePowerLouise
                                         ? i18n.chain.vq.diplomacyUi.samePowerMarriage
                                         : ` (${powerName(r.power, vqLocale)})`}</MenuItem>)}
@@ -2421,7 +2438,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         {Object.keys(G.leaders).filter((id) => G.leaders[id].location === "captured" && LEADER_BY_ID[id]?.power === me)
                             .map((id) => <Button key={id} size="small" variant="outlined" disabled={!myTurn}
                                                  onClick={() => moves.ransom({leaderId: id})}>
-                                {LEADER_BY_ID[id]?.name ?? id}
+                                {leaderLabel(id)}
                             </Button>)}
                     </Stack>
                 </>}
@@ -2444,11 +2461,11 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                         {i18n.chain.vq.spring.navalReturnDesc}
                     </Typography>
                     {navalPortChoices.map((entry) => <Stack key={entry.leader} spacing={0.5}>
-                        <Typography variant="body2">{LEADER_BY_ID[entry.leader]?.name ?? entry.leader}</Typography>
+                        <Typography variant="body2">{leaderLabel(entry.leader)}</Typography>
                         <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                             {entry.ports.map((port) => <Button key={port} size="small" variant="outlined" disabled={!myTurn}
                                 onClick={() => moves.chooseNavalLeaderPort({leader: entry.leader, port})}>
-                                {SPACE_BY_ID[port]?.name ?? port}
+                                {placeLabel(port)}
                             </Button>)}
                         </Stack>
                     </Stack>)}
@@ -2498,7 +2515,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                             {G.powers.england.seaCaptains.filter((id) => SEA_CAPTAIN_LEADER_BY_CAPTAIN[id] &&
                                 (seaCaptainById(id)?.turn ?? 99) <= G.year &&
                                 G.leaders[SEA_CAPTAIN_LEADER_BY_CAPTAIN[id]] === undefined)
-                                .map((id) => <MenuItem key={id} value={id}>{seaCaptainById(id)?.nameEn ?? id}</MenuItem>)}
+                                .map((id) => <MenuItem key={id} value={id}>{seaCaptainName(seaCaptainById(id), vqLocaleNow()) || id}</MenuItem>)}
                         </Select>
                     </FormControl>
                     <FormControl size="small" fullWidth>
@@ -2507,7 +2524,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                                 onChange={(e) => setSeaCaptainPort(e.target.value)}>
                             {SPACES.filter((space) => space.control === "england" && spaceHomes(space).includes("england") &&
                                 (space.ports?.length ?? 0) > 0 && navalCount(G.spaces[space.id].naval.england) > 0)
-                                .map((space) => <MenuItem key={space.id} value={space.id}>{space.name}</MenuItem>)}
+                                .map((space) => <MenuItem key={space.id} value={space.id}>{placeLabel(space.id)}</MenuItem>)}
                         </Select>
                     </FormControl>
                     <Button size="small" variant="outlined" disabled={!myTurn || seaCaptainChoice === "" || seaCaptainPort === ""}
@@ -2525,7 +2542,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     </Stack>
                 </Stack>}
                 <Typography variant="caption" color="text.secondary">
-                    {i18n.chain.vq.spring.capital}: {(me !== undefined ? capitalSpacesFor(G, me) : []).map((id) => SPACE_BY_ID[id]?.name ?? id).join(" / ")} {from !== null ? `· ${i18n.chain.vq.spring.origin} ${SPACE_BY_ID[from]?.name}` : ""}
+                    {i18n.chain.vq.spring.capital}: {(me !== undefined ? capitalSpacesFor(G, me) : []).map((id) => placeLabel(id)).join(" / ")} {from !== null ? `· ${i18n.chain.vq.spring.origin} ${placeLabel(from)}` : ""}
                 </Typography>
                 {from !== null && <Stack spacing={0.5}>
                     <Typography variant="caption">{i18n.chain.vq.board.moveHint}</Typography>
@@ -2613,14 +2630,14 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     <Paper className="vq-map-stack" variant="outlined">
                         <Stack spacing={0.5}>
                             <Typography variant="caption" sx={{fontWeight: 700}}>
-                                {i18n.chain.vq.step.chooseUnit} · {SPACE_BY_ID[from]?.name ?? from}
+                                {i18n.chain.vq.step.chooseUnit} · {placeLabel(from)}
                             </Typography>
                             {stackPicker(mode === "spring")}
                         </Stack>
                     </Paper>}
                 {!isDesktop && selected && from === null && <div className="vq-map-selection">
                     <Button size="small" variant="contained" onClick={() => setMobileView("action")}>
-                        {`${spaceDef?.name ?? SEA_ZONE_BY_ID[selected]?.name} · ${i18n.chain.vq.shell.detailOps}`}
+                        {`${spaceDef !== undefined ? placeLabel(spaceDef.id) : seaZoneName(selected, vqLocaleNow())} · ${i18n.chain.vq.shell.detailOps}`}
                     </Button>
                 </div>}
             </section>
@@ -2639,7 +2656,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     {matchID !== undefined && <ExportLogButton gameName="virginQueen" matchID={matchID}/>}
                 </Paper> : actionPanel()}
                 {space !== undefined && spaceDef !== undefined && <section className="vq-space-detail" aria-label={i18n.chain.vq.board.spaceDetailLabel}>
-                    <Typography variant="subtitle2">{spaceDef.name}</Typography>
+                    <Typography variant="subtitle2">{placeLabel(spaceDef.id)}</Typography>
                     <Typography variant="caption" color="text.secondary">
                         {spaceDef.kind === "key" ? i18n.chain.vq.board.keyCity : spaceDef.kind === "fortress" ? i18n.chain.vq.board.fortress : i18n.chain.vq.board.openCity}
                         {spaceDef.ports !== undefined && spaceDef.ports.length > 0 ? ` · ${i18n.chain.vq.board.port}: ${spaceDef.ports.join(", ")}` : ""}
@@ -2671,11 +2688,11 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID}: B
                     })}
                     {G.espionage?.jesuits.includes(selected!) && <Chip size="small" label={i18n.chain.vq.board.jesuits}/>}
                     {space.leaders.length > 0 && <Typography variant="caption" sx={{display: "block"}}>
-                        {i18n.chain.vq.board.leaders}: {space.leaders.map((id) => LEADER_BY_ID[id]?.name ?? id).join(", ")}
+                        {i18n.chain.vq.board.leaders}: {space.leaders.map((id) => leaderLabel(id)).join(", ")}
                     </Typography>}
                 </section>}
                 {selectedSea && selected && <section className="vq-space-detail" aria-label={i18n.chain.vq.board.seaDetailLabel}>
-                    <Typography variant="subtitle2">{SEA_ZONE_BY_ID[selected]?.name}</Typography>
+                    <Typography variant="subtitle2">{seaZoneName(selected, vqLocaleNow())}</Typography>
                     <Typography variant="caption">{i18n.chain.vq.board.seaFleets}</Typography>
                     {Object.entries(selectedSea.naval).map(([controller, stack]) => <Typography key={controller} variant="body2">
                         {controllerName(controller as Controller, vqLocale)}: {i18n.chain.vq.board.galley} {stack?.galley ?? 0} / {i18n.chain.vq.board.galleon} {stack?.galleon ?? 0} / {i18n.chain.vq.board.racebuilt} {stack?.racebuilt ?? 0} / {i18n.chain.vq.board.corsair} {stack?.corsair ?? 0}

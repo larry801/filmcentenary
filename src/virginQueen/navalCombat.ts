@@ -2,8 +2,8 @@ import {Ctx} from "boardgame.io";
 import i18n from "../constant/i18n";
 import {Controller, POWER_INDEX, Power, VQGame, isPower, landCount, navalCount} from "./constant/general";
 import {recordNavalLoss} from "./util";
-import {LEADER_BY_ID} from "./constant/leaders";
-import {SEA_ZONE_BY_ID, SPACE_BY_ID} from "./mapData";
+import {LEADER_BY_ID, leaderName} from "./constant/leaders";
+import {SEA_ZONE_BY_ID, SPACE_BY_ID, mapName} from "./mapData";
 import {ownerOf} from "./ownership";
 import {
     atWar, bestBattle, discardCard, friendlyController, hits, isSeaZone, leaderPower, leadersAt, moveLeaders,
@@ -336,7 +336,7 @@ export const interceptionOrderOptions = (G: VQGame): {id: string; power: Power; 
         .map((candidate) => ({
             id: candidate.location,
             power: candidate.power,
-            label: `${i18n.chain.vq.engine.interceptFrom} ${SPACE_BY_ID[candidate.location]?.name ?? candidate.location}`,
+            label: `${i18n.chain.vq.engine.interceptFrom} ${mapName(candidate.location)}`,
         }));
 };
 

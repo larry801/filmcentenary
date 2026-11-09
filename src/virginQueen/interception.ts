@@ -2,8 +2,8 @@ import {Ctx} from "boardgame.io";
 import i18n from "../constant/i18n";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {Controller, Power, SeaZoneID, VQGame, landCount, navalCount} from "./constant/general";
-import {LEADER_BY_ID} from "./constant/leaders";
-import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID} from "./mapData";
+import {LEADER_BY_ID, leaderName} from "./constant/leaders";
+import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, mapName} from "./mapData";
 import {ownerOf} from "./ownership";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {startBattle} from "./combat";
@@ -42,7 +42,7 @@ export const interceptionOptions = (G: VQGame): {id: string; label: string}[] =>
     const pending = G.pendingIntercept;
     if (!pending) return [];
     return [
-        ...candidateSpaces(G).map((id) => ({id: `intercept:${id}`, label: `${i18n.chain.vq.engine.interceptFrom} ${SPACE_BY_ID[id]?.name ?? id}`})),
+        ...candidateSpaces(G).map((id) => ({id: `intercept:${id}`, label: `${i18n.chain.vq.engine.interceptFrom} ${mapName(id)}`})),
         {id: "done", label: i18n.chain.vq.engine.finishInterception},
     ];
 };

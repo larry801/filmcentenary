@@ -1,4 +1,5 @@
 import {LeaderDef, POWERS, Power} from "./general";
+import {LEADER_NAME_ZH} from "./names";
 
 /**
  * Leader ratings derived from tutorial battle examples, VASSAL module counter
@@ -82,11 +83,14 @@ export const LEADER_BY_ID: Record<string, LeaderDef> = Object.fromEntries(
     [...LEADERS, ...DEFAULT_LEADERS, ...SEA_CAPTAIN_LEADERS].map((l) => [l.id, l]),
 );
 
+for (const leader of [...LEADERS, ...DEFAULT_LEADERS, ...SEA_CAPTAIN_LEADERS]) {
+    leader.nameZh ??= LEADER_NAME_ZH[leader.id];
+}
+
 export const leaderName = (id: string, locale: "en" | "zh_CN" = "zh_CN"): string => {
     const def = LEADER_BY_ID[id];
     if (def === undefined) return id;
-    void locale;
-    return def.name;
+    return locale === "en" ? def.name : (def.nameZh ?? def.name);
 };
 
 export const leadersOf = (p: Power): LeaderDef[] => LEADERS.filter((l) => l.power === p);

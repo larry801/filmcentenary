@@ -91,7 +91,7 @@ describe("Virgin Queen board", () => {
         } as any}/>);
         expect(html).toContain("官方 Espionage Table");
         expect(html).toContain(">英格兰天主教叛乱<");
-        expect(html).toContain("York · 控制：英格兰 · 天主教 · 陆军 0 / 海军 0 / 将领 0 · 耶稣会士");
+        expect(html).toContain("约克 · 控制：英格兰 · 天主教 · 陆军 0 / 海军 0 / 将领 0 · 耶稣会士");
         expect(html).not.toContain("可玩近似");
     });
 
@@ -258,14 +258,14 @@ describe("Virgin Queen board", () => {
 
     it("shows teaching guidance and opens the tutorial at each player's capital", () => {
         const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
-        for (const [playerID, capital] of [["0", "Istanbul"], ["1", "Madrid"]]) {
+        for (const [playerID, capital] of [["0", "伊斯坦布尔"], ["1", "马德里"]]) {
             const html = renderToStaticMarkup(<VirginQueenBoard {...{
                 G, ctx: {phase: "cardDraw", currentPlayer: "0"}, moves: {}, playerID, isActive: playerID === "0",
             } as any}/>);
             expect(html).toContain("双人教学模式 · 勒班陀海战");
             expect(html).toContain("第 1 步：确认手牌");
             expect(html).toMatch(new RegExp(`<h6[^>]*>${capital}</h6>`));
-            expect(html).not.toMatch(/<h6[^>]*>London<\/h6>/);
+            expect(html).not.toMatch(/<h6[^>]*>伦敦<\/h6>/);
         }
     });
 
@@ -557,7 +557,7 @@ describe("Virgin Queen board", () => {
         G.spaces.london.land.england = {regular: 3, merc: 0, cav: 1};
 
         expect(armyMutinySpaceOptions(G).map((option) => option.value).sort()).toEqual(["brussels", "london"]);
-        expect(armyMutinySpaceOptions(G).find((option) => option.value === "brussels")?.label).toBe("Brussels");
+        expect(armyMutinySpaceOptions(G).find((option) => option.value === "brussels")?.label).toBe("布鲁塞尔");
 
         // POWERS order, not map order, and each label shows the stack composition.
         expect(armyMutinyOwnerOptions(G, "brussels")).toEqual([
@@ -610,7 +610,7 @@ describe("Virgin Queen board", () => {
         expect(html).toContain("军队哗变目标");
         expect(html).toContain("目标地区");
         expect(html).toContain("军队所属势力");
-        expect(html).toContain("Brussels");
+        expect(html).toContain("布鲁塞尔");
         expect(html).toContain("法国（正规军 2，雇佣兵 2）");
         expect(html).not.toContain("事件目标（可选）");
     });
@@ -711,7 +711,7 @@ describe("Virgin Queen board", () => {
 
         // Only spaces with major-power mercenaries are selectable, in map order.
         expect(germanRecruitmentSpaceOptions(G).map((option) => option.value).sort()).toEqual(["antwerp", "brussels"]);
-        expect(germanRecruitmentSpaceOptions(G).find((option) => option.value === "brussels")?.label).toBe("Brussels");
+        expect(germanRecruitmentSpaceOptions(G).find((option) => option.value === "brussels")?.label).toBe("布鲁塞尔");
         // POWERS order, and the label shows the exact number of mercenaries removed.
         expect(germanRecruitmentPowerOptions(G, "brussels")).toEqual([
             {value: "spain", label: "西班牙（雇佣兵 3）"},
@@ -798,7 +798,7 @@ describe("Virgin Queen board", () => {
         expect(html).toContain("德意志裁军目标");
         expect(html).toContain("目标地区");
         expect(html).toContain("雇佣兵所属势力");
-        expect(html).toContain("Brussels");
+        expect(html).toContain("布鲁塞尔");
         expect(html).toContain("法国（雇佣兵 2）");
         expect(html).toContain("第二目标地区（神圣罗马帝国）");
         expect(html).toContain("法国（雇佣兵 4）");
@@ -824,7 +824,7 @@ describe("Virgin Queen board", () => {
         };
         const html = renderToStaticMarkup(<VirginQueenBoard {...props}/>);
         expect(html).toContain("Virgin Queen");
-        expect(html).toContain("London");
+        expect(html).toContain("伦敦");
         expect(html).toContain("奥斯曼帝国");
         expect(html).toContain("行动阶段");
     });
@@ -1050,22 +1050,22 @@ describe("Virgin Queen board", () => {
             const offers = abjurationOffers(abjurationGame());
             expect(offers.map((offer) => offer.power)).toEqual(["england", "france", "hre"]);
             expect(offers.map((offer) => offer.label)).toEqual([
-                "英格兰：在 Amsterdam 结盟 · 5 正规军 + Earl of Leicester",
-                "法国：在 Brussels 结盟 · 3 正规军 + Duke of Guise",
-                "神圣罗马帝国：在 Rotterdam 结盟 · 2 正规军 + Lazarus von Schwendi",
+                "英格兰：在 阿姆斯特丹 结盟 · 5 正规军 + 莱斯特伯爵",
+                "法国：在 布鲁塞尔 结盟 · 3 正规军 + 吉斯公爵",
+                "神圣罗马帝国：在 鹿特丹 结盟 · 2 正规军 + 拉扎鲁斯·冯·施文迪",
             ]);
             expect(offers.map(({powerName, space, spaceName, units, leaderId}) =>
                 ({powerName, space, spaceName, units, leaderId}))).toEqual([
-                {powerName: "英格兰", space: "amsterdam", spaceName: "Amsterdam", units: 5, leaderId: "leicester"},
-                {powerName: "法国", space: "brussels", spaceName: "Brussels", units: 3, leaderId: "guise"},
-                {powerName: "神圣罗马帝国", space: "rotterdam", spaceName: "Rotterdam", units: 2, leaderId: "schwendi"},
+                {powerName: "英格兰", space: "amsterdam", spaceName: "阿姆斯特丹", units: 5, leaderId: "leicester"},
+                {powerName: "法国", space: "brussels", spaceName: "布鲁塞尔", units: 3, leaderId: "guise"},
+                {powerName: "神圣罗马帝国", space: "rotterdam", spaceName: "鹿特丹", units: 2, leaderId: "schwendi"},
             ]);
             // An offer with no home regulars still labels the destination.
             const empty = abjurationGame();
             empty.spaces.london.land.england = {regular: 0, merc: 0, cav: 0};
             empty.spaces.london.leaders = [];
             expect(abjurationOfferDetails(empty, {power: "england", space: "amsterdam"}).label)
-                .toBe("英格兰：在 Amsterdam 结盟 · 无正规军");
+                .toBe("英格兰：在 阿姆斯特丹 结盟 · 无正规军");
             expect(abjurationOffers({...empty, pendingAbjuration: undefined} as VQGame)).toEqual([]);
         });
 
@@ -1118,10 +1118,10 @@ describe("Virgin Queen board", () => {
 
             const html = render(protestant);
             expect(html).toContain("誓绝法案 · 等待新教选择一项提议。");
-            expect(html).toContain("英格兰：在 Amsterdam 结盟 · 5 正规军 + Earl of Leicester");
-            expect(html).toContain("法国：在 Brussels 结盟 · 3 正规军 + Duke of Guise");
-            expect(html).toContain("神圣罗马帝国：在 Rotterdam 结盟 · 2 正规军 + Lazarus von Schwendi");
-            expect(html).toContain("已选：英格兰 → Amsterdam · 5 正规军 + Earl of Leicester");
+            expect(html).toContain("英格兰：在 阿姆斯特丹 结盟 · 5 正规军 + 莱斯特伯爵");
+            expect(html).toContain("法国：在 布鲁塞尔 结盟 · 3 正规军 + 吉斯公爵");
+            expect(html).toContain("神圣罗马帝国：在 鹿特丹 结盟 · 2 正规军 + 拉扎鲁斯·冯·施文迪");
+            expect(html).toContain("已选：英格兰 → 阿姆斯特丹 · 5 正规军 + 莱斯特伯爵");
             expect(html).toContain("接受 英格兰 的提议");
             // The first offer is selected by default and reflected in the
             // highlight attribute and the "已选" summary below it.
@@ -1133,7 +1133,7 @@ describe("Virgin Queen board", () => {
             const other = render("1");
             expect(other).toContain("誓绝法案 · 等待新教选择一项提议。");
             expect(other).toContain("等待新教玩家选择；其他势力此时无法行动。");
-            expect(other).not.toContain("英格兰：在 Amsterdam 结盟 · 5 正规军 + Earl of Leicester");
+            expect(other).not.toContain("英格兰：在 阿姆斯特丹 结盟 · 5 正规军 + 莱斯特伯爵");
             expect(other).not.toContain("接受 英格兰 的提议");
             expect(other).not.toContain("结束行动轮次");
         });

@@ -1,8 +1,8 @@
 import {BoardProps} from "boardgame.io/react";
 import i18n from "../constant/i18n";
 import {Power, powerName, spaceHomes, VQGame} from "./constant/general";
-import {LEADER_BY_ID} from "./constant/leaders";
-import {SPACES, SPACE_BY_ID} from "./mapData";
+import {LEADER_BY_ID, leaderName} from "./constant/leaders";
+import {SPACES, spaceName as localizedSpaceName} from "./mapData";
 
 /**
  * Act of Abjuration (#103) previews.  Kept in its own module so the pending
@@ -45,10 +45,10 @@ export const abjurationOfferDetails = (G: VQGame, offer: {power: Power; space: s
     const units = 5 - remaining;
     const leaderId = sources.flatMap((id) => G.spaces[id].leaders)
         .find((id) => LEADER_BY_ID[id]?.power === offer.power && LEADER_BY_ID[id]?.kind === "army");
-    const leader = leaderId !== undefined ? LEADER_BY_ID[leaderId] : undefined;
     const powerNameStr = powerName(offer.power, locale);
-    const spaceName = SPACE_BY_ID[offer.space]?.name ?? offer.space;
+    const spaceName = localizedSpaceName(offer.space, locale);
     const troops = units > 0 ? `${units} ${i18n.chain.vq.board.regulars}` : i18n.chain.vq.board.noRegulars;
+    const leaderDisplayName = leaderId !== undefined ? leaderName(leaderId, locale) : undefined;
     return {
         power: offer.power,
         powerName: powerNameStr,
@@ -56,8 +56,8 @@ export const abjurationOfferDetails = (G: VQGame, offer: {power: Power; space: s
         spaceName,
         units,
         ...(leaderId !== undefined ? {leaderId} : {}),
-        ...(leader !== undefined ? {leaderName: leader.name} : {}),
-        label: `${powerNameStr}${i18n.chain.vq.eventTargets.abjurationAlliedAt}${spaceName}${i18n.chain.vq.eventTargets.abjurationAlliedSuffix}${troops}${leader !== undefined ? ` + ${leader.name}` : ""}`,
+        ...(leaderDisplayName !== undefined ? {leaderName: leaderDisplayName} : {}),
+        label: `${powerNameStr}${i18n.chain.vq.eventTargets.abjurationAlliedAt}${spaceName}${i18n.chain.vq.eventTargets.abjurationAlliedSuffix}${troops}${leaderDisplayName !== undefined ? ` + ${leaderDisplayName}` : ""}`,
     };
 };
 

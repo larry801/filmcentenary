@@ -3,8 +3,8 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {Controller, LandStack, MinorPower, MINOR_POWERS, Power, VQGame, controllerName, isPower, landCount, navalCount, spaceHomes} from "./constant/general";
 import {cardById, cardName} from "./constant/cards";
 import {beginGrandVizierEvent, canPlayGrandVizier} from "./cardEvents";
-import {LEADER_BY_ID} from "./constant/leaders";
-import {LAND_NEIGHBORS, SPACE_BY_ID, SPACES} from "./mapData";
+import {LEADER_BY_ID, leaderName} from "./constant/leaders";
+import {LAND_NEIGHBORS, SPACE_BY_ID, SPACES, mapName} from "./mapData";
 import i18n from "../constant/i18n";
 import {ownerOf} from "./ownership";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
@@ -22,7 +22,7 @@ export interface TutorialEventOption {id: string; label: string}
 type PendingEvent = NonNullable<VQGame["pendingTutorialEvent"]>;
 const option = (id: string, label: string): TutorialEventOption => ({id, label});
 const activeSpaces = () => SPACES.filter((space) => tutorialSpaceAllowed(space.id));
-const spaceOption = (id: string) => option(`space:${id}`, SPACE_BY_ID[id].name);
+const spaceOption = (id: string) => option(`space:${id}`, mapName(id));
 const locale = (): "en" | "zh_CN" => i18n.getLocaleName() === "en" ? "en" : "zh_CN";
 /** Localized display name for a unit kind used inside option labels. */
 const unitName = (kind: string): string => {
@@ -170,7 +170,7 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
             }
         }
         for (const id of G.spaces.milan.leaders.filter((id) => LEADER_BY_ID[id]?.power === "spain" && LEADER_BY_ID[id].kind === "army")) {
-            result.push(option(`formationLeader:${id}`, (formation.leaders.includes(id) ? i18n.chain.vq.engine.deselectLeader : i18n.chain.vq.engine.selectLeader).replace("{leader}", LEADER_BY_ID[id].name)));
+            result.push(option(`formationLeader:${id}`, (formation.leaders.includes(id) ? i18n.chain.vq.engine.deselectLeader : i18n.chain.vq.engine.selectLeader).replace("{leader}", leaderName(id))));
         }
         if ((roadSize(G) > 0 || formation.leaders.length > 0) && roadSize(G) <= roadCapacity(G)) {
             result.push(...spanishRoadDestinations(G).map((id) => option(`deploy:${id}`, i18n.chain.vq.engine.deployTo.replace("{space}", SPACE_BY_ID[id].name).replace("{count}", String(roadSize(G))))));
@@ -189,7 +189,7 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
         const def = LEADER_BY_ID[leader.id];
         return def?.power === (pending.targetPower ?? power) && def.kind === "army" && G.spaces[leader.location] &&
             (number !== 3 || !G.spaces[leader.location].siege);
-    }).map((leader) => option(`leader:${leader.id}`, LEADER_BY_ID[leader.id].name))];
+    }).map((leader) => option(`leader:${leader.id}`, leaderName(leader.id)))];
     if (pending.step === "papalBenefit") return [option("none", i18n.chain.vq.engine.noExtraBenefit),
         ...(G.discard.includes("vq-024") && canPlayHolyLeague(G, power) ? [option("holyLeague", i18n.chain.vq.engine.playHolyLeague)] : [])];
     if (pending.step === "resolve") return influenceTracks(G, power).filter((track) => !pending.tracks.includes(track))

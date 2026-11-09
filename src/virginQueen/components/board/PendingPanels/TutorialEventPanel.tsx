@@ -5,7 +5,7 @@ import Button from "@mui/material/Button";
 import i18n from "../../../../constant/i18n";
 import {powerName} from "../../../constant/general";
 import {cardName} from "../../../constant/cards";
-import {SPACE_BY_ID} from "../../../mapData";
+import {spaceName} from "../../../mapData";
 import {ownerOf} from "../../../ownership";
 import {tutorialEventOptions} from "../../../tutorialEvents";
 import {PendingPanelProps} from "./types";
@@ -22,7 +22,7 @@ export const PendingTutorialEventPanel = ({G, moves, playerID}: PendingPanelProp
             {i18n.chain.vq.tutorialEvent.roadFormation}
         </Typography>}
         {pending.step === "rebelLosses" && <Typography variant="body2">
-            {SPACE_BY_ID[pending.space!].name}{i18n.chain.vq.punct.colon}{i18n.chain.vq.tutorialEvent.remaining} {pending.remaining} {i18n.chain.vq.tutorialEvent.losses}{i18n.chain.vq.punct.period}
+            {spaceName(pending.space!, vqLocale)}{i18n.chain.vq.punct.colon}{i18n.chain.vq.tutorialEvent.remaining} {pending.remaining} {i18n.chain.vq.tutorialEvent.losses}{i18n.chain.vq.punct.period}
         </Typography>}
         {ownerOf(G, pending.responding) === playerID && tutorialEventOptions(G).map((entry) =>
             <Button key={entry.id} onClick={() => moves.chooseTutorialEvent({choice: entry.id})}>{entry.label}</Button>)}

@@ -1,4 +1,5 @@
 import {Controller, SeaZoneID, SpaceDef, SpaceKind} from "../constant/general";
+import {SPACE_NAME_ZH} from "../constant/names";
 import {
     LAND_LINKS,
     SEA_ZONE_BY_ID,
@@ -43,6 +44,7 @@ const extra = (
 ): OfficialSpaceDef => ({
     id,
     name,
+    nameZh: SPACE_NAME_ZH[id],
     lon,
     lat,
     home,

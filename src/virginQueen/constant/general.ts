@@ -148,6 +148,12 @@ export const CONTROLLER_COLORS: Record<Controller, string> = {
 
 export type VQLocale = "en" | "zh_CN";
 
+/** Picks the active locale's display name from a bilingual data entry. */
+export const localizedName = (
+    entry: {name: string; nameZh?: string},
+    locale: VQLocale = "zh_CN",
+): string => locale === "en" ? entry.name : (entry.nameZh ?? entry.name);
+
 export const powerName = (p: Power, locale: VQLocale = "zh_CN"): string =>
     POWER_NAMES[p][locale === "en" ? "en" : "zh"];
 
@@ -287,6 +293,8 @@ export type LeaderKind = "army" | "naval";
 export interface LeaderDef {
     id: string;
     name: string;
+    /** Chinese display name; falls back to `name` when absent. */
+    nameZh?: string;
     power: Power;
     kind: LeaderKind;
     /** Battle rating: adds dice and modifies intercept/avoid rolls. */
@@ -419,6 +427,8 @@ export type SeaZoneKind = "atlantic" | "mediterranean";
 export interface SeaZoneDef {
     id: SeaZoneID;
     name: string;
+    /** Chinese display name; falls back to `name` when absent. */
+    nameZh?: string;
     kind: SeaZoneKind;
     /** Label position (lon, lat) used by the schematic map. */
     label: [number, number];
@@ -431,6 +441,8 @@ export type SpaceKind = "key" | "fortress" | "open";
 export interface SpaceDef {
     id: string;
     name: string;
+    /** Chinese display name; falls back to `name` when absent. */
+    nameZh?: string;
     /** Geographic coordinates used to place the space on the schematic map. */
     lon: number;
     lat: number;

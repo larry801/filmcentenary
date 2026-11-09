@@ -2,7 +2,7 @@ import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {CardDef, Power, VQGame, landCount, spaceHomes} from "./constant/general";
 import {LEADER_BY_ID} from "./constant/leaders";
-import {SPACE_BY_ID, SPACES} from "./mapData";
+import {SPACE_BY_ID, SPACES, mapName} from "./mapData";
 import i18n from "../constant/i18n";
 import {ownerOf} from "./ownership";
 import {tutorialSpaceAllowed} from "./tutorial";
@@ -21,8 +21,8 @@ export const recruitmentOptions = (G: VQGame): CardEventOption[] => {
         if (!spaceHomes(space).includes("ottoman") || state.control !== "ottoman" || state.siege || state.unrest ||
             (G.scenario === "tutorial" && !tutorialSpaceAllowed(space.id)) ||
             spaceHasEnemyLand(G, "ottoman", space.id) || spaceHasEnemyNaval(G, "ottoman", space.id)) continue;
-        if (!["algiers", "tripoli"].includes(space.id)) options.push({id: `regular:${space.id}`, label: i18n.chain.vq.engine.addRegularTo.replace("{space}", space.name)});
-        if (space.ports?.includes("aegean")) options.push({id: `galley:${space.id}`, label: i18n.chain.vq.engine.addGalleyTo.replace("{space}", space.name)});
+        if (!["algiers", "tripoli"].includes(space.id)) options.push({id: `regular:${space.id}`, label: i18n.chain.vq.engine.addRegularTo.replace("{space}", mapName(space.id))});
+        if (space.ports?.includes("aegean")) options.push({id: `galley:${space.id}`, label: i18n.chain.vq.engine.addGalleyTo.replace("{space}", mapName(space.id))});
     }
     const war = G.foreignWars.ottoman;
     if (G.scenario !== "tutorial" && war?.status === "active" && landCount(war.units) < 8) {

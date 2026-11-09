@@ -72,7 +72,7 @@ describe("offline geographic map", () => {
     it("provides keyboard-selectable sea zones, zoom controls and tutorial exclusions", () => {
         const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx, {scenario: "tutorial"});
         const html = renderToStaticMarkup(<VQMap G={G} selected="aegean" origin="istanbul" onSelect={() => {}}/>);
-        expect(html).toMatch(/role="button" tabindex="0" aria-label="Aegean Sea · 海军 \d+" aria-pressed="true"/);
+        expect(html).toMatch(/role="button" tabindex="0" aria-label="爱琴海 · 海军 \d+" aria-pressed="true"/);
         expect(html).toContain('aria-label="放大地图"');
         expect(html).toContain('aria-label="复位地图"');
         expect(html).toContain("教学禁入");
@@ -89,9 +89,9 @@ describe("offline geographic map", () => {
         const html = renderToStaticMarkup(
             <VQMap G={G} selected="venice" origin="aegean" onSelect={() => {}} highlights={new Set(["venice", "aegean"])}/>,
         );
-        expect(html).toMatch(/class="vq-map-node vq-legal-target" role="button" tabindex="0" aria-label="Venice · [^"]*合法目标"/);
-        expect(html).toMatch(/class="vq-map-node vq-dim" role="button" tabindex="0" aria-label="Padua/);
-        expect(html).toMatch(/class="vq-map-node vq-legal-target" role="button" tabindex="0" aria-label="Aegean Sea · [^"]*合法目标"/);
+        expect(html).toMatch(/class="vq-map-node vq-legal-target" role="button" tabindex="0" aria-label="威尼斯 · [^"]*合法目标"/);
+        expect(html).toMatch(/class="vq-map-node vq-dim" role="button" tabindex="0" aria-label="帕多瓦/);
+        expect(html).toMatch(/class="vq-map-node vq-legal-target" role="button" tabindex="0" aria-label="爱琴海 · [^"]*合法目标"/);
         expect(html).toContain('class="vq-legal-ring" cx=');
         expect(html).toContain('class="vq-legal-ring" x=');
         expect(html).toContain('fill="#f2d59188"');
