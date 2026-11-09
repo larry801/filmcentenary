@@ -1,5 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
+import {VirginQueenGameDef} from "./game";
 import {resolveColonies, setupGame} from "./util";
 
 const context = (values: number[]): Ctx => ({
@@ -37,17 +38,26 @@ describe("Colony Table at Card Draw (rule 8.4)", () => {
     it("awards a treasure on 9-11", () => {
         const G = withFlorida();
         const before = G.powers.spain.treasures.length;
-        resolveColonies(G, context([4, 5, 3]));
+        resolveColonies(G, context([4, 5]));
         expect(G.powers.spain.treasures.length).toBe(before + 1);
     });
 
-    it("awards a treasure and Virginia Dare VP on 11 or more", () => {
+    it("awards a treasure and Virginia Dare VP on 12 or more", () => {
         const G = withFlorida();
         const treasures = G.powers.spain.treasures.length;
         const vp = G.powers.spain.bonusVp;
-        resolveColonies(G, context([5, 6, 3]));
+        resolveColonies(G, context([6, 6]));
         expect(G.powers.spain.treasures.length).toBe(treasures + 1);
         expect(G.powers.spain.bonusVp).toBe(vp + 1);
+    });
+
+    it("awards only a treasure on exactly 11", () => {
+        const G = withFlorida();
+        const treasures = G.powers.spain.treasures.length;
+        const vp = G.powers.spain.bonusVp;
+        resolveColonies(G, context([5, 6]));
+        expect(G.powers.spain.treasures.length).toBe(treasures + 1);
+        expect(G.powers.spain.bonusVp).toBe(vp);
     });
 
     it("adds 1 for the Plantation science bonus", () => {
@@ -73,5 +83,19 @@ describe("Colony Table at Card Draw (rule 8.4)", () => {
         G.worldFortresses = {florida: "england"};
         resolveColonies(G, context([4, 4]));
         expect(G.lastRolls).toContain("0 fortress");
+    });
+
+    it("rolls every established colony during the Card Draw phase", () => {
+        const G = withFlorida();
+        G.dealtYear = 0;
+        G.year = 1;
+        const onBegin = VirginQueenGameDef.phases!.cardDraw!.onBegin as (g: VQGame, c: Ctx) => void;
+
+        onBegin(G, context([4, 4]));
+
+        expect(G.dealtYear).toBe(1);
+        expect(G.log.join("\n")).toContain("Colony florida");
+        expect(G.lastRolls).toContain("Colony florida");
+        expect(G.colonyRolls).toEqual([{settlement: "florida", power: "spain", total: 8, result: "none"}]);
     });
 });

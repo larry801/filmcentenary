@@ -61,6 +61,24 @@ export const REGULAR_LIMITS: Record<Power, number> = {
     protestant: 48,
 };
 
+/** Per-power mercenary force-pool limits (counter mix). Ottomans cannot recruit mercs. */
+export const MERC_LIMITS: Record<Power, number> = {
+    ottoman: 0, spain: 15, england: 10, france: 15, hre: 20, protestant: 15,
+};
+
+/** Per-power per-ship-type naval force-pool limits (counter mix). */
+export const GALLEY_LIMITS: Record<Power, number> = {
+    ottoman: 20, spain: 10, england: 0, france: 5, hre: 0, protestant: 0,
+};
+
+export const GALLEON_LIMITS: Record<Power, number> = {
+    ottoman: 0, spain: 10, england: 10, france: 5, hre: 0, protestant: 5,
+};
+
+export const CORSAIR_LIMITS: Record<Power, number> = {
+    ottoman: 10, spain: 0, england: 0, france: 0, hre: 0, protestant: 0,
+};
+
 /** Minor-power force-pool caps (Rule 24.3 — proxies until printed counters are digitised). */
 export const MINOR_REGULAR_LIMITS: Record<string, number> = {
     scotland: 12,
@@ -530,6 +548,12 @@ export interface PowerState {
     cardModifier: number;
     /** Temporary marriage +1/-1 card markers, removed after the next Card Draw. */
     marriageCardModifier?: number;
+    /**
+     * #36 "Jilted by Elizabeth" compensation CP.  Rule 23.3 restricts the
+     * grant to Diplomatic Influence and/or mercenary recruitment, so it is
+     * kept out of the general `cp` pool and consumed first by those actions.
+     */
+    jiltedCp?: number;
     rulerAdmin?: number;
     rulerCardBonus?: number;
     wars: Power[];
@@ -617,6 +641,9 @@ export interface VQGame {
         tracks: string[];
         roadFormation?: {units: Partial<Record<Controller, LandStack>>; leaders: string[]};
     };
+    pendingTribute?: {target: Power; choices: string[]};
+    pendingMutiny?: {space: string; owner: Power};
+    pendingPolishElection?: {bids: Partial<Record<Power, string>>; remaining: Power[]};
     pendingPiracy?: {power: Power; target: Power; zone: SeaZoneID; step: "losses" | "rewards"; remaining: number; rewards: Record<string, number>};
     piracyUsed?: Partial<Record<Power, SeaZoneID[]>>;
     pendingAction?: {power: Power; responder?: Power; /** Every eligible responder; `responder` is the first. */ responders?: Power[]; move: "moveLand" | "moveNaval" | "navalTransport" | "assault" | "piracy" | "impulse"; args: {from?: string; to?: string; space?: string; zone?: string; target?: Power; units?: Partial<LandStack>; leaders?: string[]; unitPower?: Controller; zones?: string[]}};
@@ -735,6 +762,8 @@ export interface VQGame {
     diplomacyGifts?: Record<string, {cards: number; treasures: number; mercenaries: number}>;
     lostBattleImpulse?: {impulse: number; owners: Controller[]};
     rebellionAreasThisImpulse?: {impulse: number; areas: string[]};
+    /** Most recent fortress capture; gates Sack! (#44) and Spanish Fury (#46). */
+    lastCapture?: {space: string; attacker: Power; impulse: number};
     spanishTreasureRow?: number[];
     /** Impulse in which a naval transport was already made (16.3). */
     navalTransportImpulse?: number;
@@ -767,6 +796,8 @@ export interface VQGame {
     worldCaptains: Record<string, {power: Power; location: string; damaged: boolean; colony: boolean; movedImpulse?: number; route?: string[]; navigationBonus?: number; navigationPenalty?: number; companion?: string; treasureValues?: number[]}>;
     /** Settlements already occupied by a permanent colony. */
     worldColonies: Partial<Record<string, Power>>;
+    /** Colony Table results from the current Card Draw (rule 8.4). */
+    colonyRolls?: {settlement: string; power: Power; total: number; result: "eliminated" | "none" | "treasure" | "treasureVp"}[];
     /** Starting or event-granted world-space control markers. */
     worldControls: Partial<Record<string, Power>>;
     /** Spanish patrols by ocean zone. */
@@ -832,6 +863,11 @@ export interface VQGame {
      */
     pendingCityRebels?: CityRebelsLossChoice;
     /**
+     * After Irish Rebellion places rebels in Ulster, the allied power may
+     * move them one space as per section 24.2 step 6.
+     */
+    pendingRebelMove?: {power: Power; space: string; minor: MinorPower};
+    /**
      * Winter attrition losses awaiting the owner's choice of unit type. The
      * automatic result is already on the board; the Card Draw choice stage may
      * swap it, and ending the turn keeps the automatic composition. A stack
@@ -866,6 +902,12 @@ export interface VQGame {
     seaCaptainReturn?: Record<string, {power: Power; turn: number}>;
     /** Ottoman/Persian and HRE/Polish off-map conflicts. */
     foreignWars: Partial<Record<Power, ForeignWarState>>;
+    /**
+     * A Foreign War card has just been played and the affected power still has
+     * to choose its 3-8 land units.  The affected power acts even when another
+     * power played the event, so this is a separate interaction window.
+     */
+    pendingForeignWar?: {power: "ottoman" | "hre"};
     /** Context gates response and combat cards at their printed timing. */
     cardWindow?: CardWindow;
     /** Sea captains available under this scenario's power cards. */

@@ -22,8 +22,10 @@ describe("diplomatic treasure exchange (rule 9.1)", () => {
 
         expect(giveTreasure(G, context(), {target: "spain", index: 0})).toBeUndefined();
 
-        expect(G.powers.france.treasures).toEqual([3]);
-        expect(G.powers.spain.treasures).toEqual([2]);
+        // Rule 9.1: the treasure is drawn at random, not chosen by index.
+        expect(G.powers.france.treasures).toHaveLength(1);
+        expect(G.powers.spain.treasures).toHaveLength(1);
+        expect([...G.powers.france.treasures, ...G.powers.spain.treasures].sort()).toEqual([2, 3]);
     });
 
     it("transfers a random non-home card", () => {
@@ -44,7 +46,9 @@ describe("diplomatic treasure exchange (rule 9.1)", () => {
         expect(giveMercenary(G, context(), {target: "spain", space: "paris"})).toBeUndefined();
 
         expect(G.spaces.paris.land.france).toBeUndefined();
-        expect(G.spaces.paris.land.spain?.merc).toBe(1);
+        // Rule 9.1: received mercenaries are placed in the receiver's capital.
+        const capital = G.spaces.madrid.control === "spain" ? "madrid" : "milan";
+        expect(G.spaces[capital].land.spain?.merc).toBe(1);
     });
 
     it("cannot transfer to an enemy or with an invalid index", () => {
@@ -96,7 +100,34 @@ describe("diplomatic treasure exchange (rule 9.1)", () => {
         expect(giveTreasure(G, context(), {target: "spain", index: 0})).toBeUndefined();
         expect(giveTreasure(G, context(), {target: "spain", index: 0})).toBeUndefined();
         expect(giveTreasure(G, context(), {target: "spain", index: 0})).toBe(INVALID_MOVE);
-        // Different target is still allowed
-        expect(giveTreasure(G, context(), {target: "england", index: 0})).toBeUndefined();
+        // A different recipient is still allowed (France is at war with
+        // England in the campaign setup, so use the HRE here).
+        expect(giveTreasure(G, context(), {target: "hre", index: 0})).toBeUndefined();
+    });
+
+    it("prevents both powers from giving the same kind of item in one turn", () => {
+        const G = game();
+        G.diplomacyGifts = {};
+        G.powers.france.treasures = [1, 2, 3, 4];
+        G.powers.spain.treasures = [5];
+
+        expect(giveTreasure(G, context(), {target: "spain", index: 0})).toBeUndefined();
+        expect(giveTreasure(G, {...context(), currentPlayer: "1", playerID: "1"},
+            {target: "france", index: 0})).toBe(INVALID_MOVE);
+    });
+
+    it("applies the mercenary giving/receiving restrictions", () => {
+        const G = game();
+        G.diplomacyGifts = {};
+        G.spaces.istanbul.land.ottoman = {regular: 0, merc: 1, cav: 0};
+        G.spaces.paris.land.france = {regular: 0, merc: 1, cav: 0};
+        G.powers.france.wars = G.powers.france.wars.filter((p) => p !== "hre");
+        G.powers.hre.wars = G.powers.hre.wars.filter((p) => p !== "france");
+
+        // The Ottoman may not give mercenaries at all.
+        expect(giveMercenary(G, {...context(), currentPlayer: "0", playerID: "0"},
+            {target: "france", space: "istanbul"})).toBe(INVALID_MOVE);
+        // The HRE may not receive mercenaries.
+        expect(giveMercenary(G, context("3"), {target: "hre", space: "paris"})).toBe(INVALID_MOVE);
     });
 });

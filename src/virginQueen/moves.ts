@@ -31,7 +31,7 @@ import {WORLD_HAZARDS, WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENTS, WORLD_SETTLEMENT
 import {patronById, royalAvailable, seaCaptainById} from "./scenario";
 import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
-import {activateMajor, checkCircumnavigation, die, navigationCheck, resolveMajorDiplomacy, landForceCountController, navalForceCountController, navalLostCountController} from "./util";
+import {activateMajor, checkCircumnavigation, die, navigationCheck, resolveMajorDiplomacy, landForceCountController, navalForceCountController, navalLostCountController, springSeaCrossingBlocked} from "./util";
 import {canPlayBattleCard, playBattleCard, startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {canPlayHolyLeague, holyLeagueTracks} from "./holyLeague";
@@ -397,6 +397,14 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef, 
             ulster.control = "ireland";
             addLand(G, "ulster", "ireland", "regular", 3);
             pushLog(G, "Ireland rises: Ulster is cleared and 3 Irish rebels are placed.");
+            const ally = POWERS.find((major) => G.powers[major].alliedMinors.includes("ireland"));
+            if (ally !== undefined) {
+                G.pendingRebelMove = {power: ally, space: "ulster", minor: "ireland"};
+                const allyOwner = ownerOf(G, ally);
+                if (allyOwner !== undefined) {
+                    ctx.events?.setActivePlayers({value: {[allyOwner]: "rebelMoveChoice"}});
+                }
+            }
         }
         return true;
     }
@@ -469,7 +477,7 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef, 
 const foreignWarPower = (handler: string): "ottoman" | "hre" | undefined =>
     handler === "warInPersia" ? "ottoman" : handler === "warWithPoland" ? "hre" : undefined;
 
-const startForeignWar = (G: VQGame, cardId: string, beneficiary: "ottoman" | "hre", enemyUnits: number): void => {
+const startForeignWar = (G: VQGame, ctx: Ctx, cardId: string, beneficiary: "ottoman" | "hre", enemyUnits: number): void => {
     const enemy = beneficiary === "ottoman" ? "Persia" : "Poland";
     G.foreignWars[beneficiary] = {
         power: beneficiary,
@@ -483,6 +491,13 @@ const startForeignWar = (G: VQGame, cardId: string, beneficiary: "ottoman" | "hr
     G.powers[beneficiary].cardModifier -= 1;
     G.discard = G.discard.filter((id) => id !== cardId);
     pushLog(G, `${enemyUnits}-unit foreign army appears in ${enemy}; ${powerLabel(beneficiary)} must commit 3–8 land units.`);
+    // Rule 23.7: the affected power selects the units immediately, even when
+    // another power played the event.  Give that power its own action window.
+    G.pendingForeignWar = {power: beneficiary};
+    const owner = ownerOf(G, beneficiary);
+    if (owner !== undefined) {
+        ctx.events?.setActivePlayers({value: {[owner]: "foreignWarSetup"}});
+    }
 };
 
 const spend = (G: VQGame, p: Power, cost: number, actionType?: string): boolean => {
@@ -505,6 +520,29 @@ const spend = (G: VQGame, p: Power, cost: number, actionType?: string): boolean 
     markAction(G, p);
     return true;
 };
+
+/**
+ * Spend CP for the two actions allowed by the Jilted by Elizabeth table
+ * (Diplomatic Influence and mercenaries).  Restricted CP is consumed before
+ * ordinary CP, and is never available to any other action.
+ */
+const spendInfluenceOrMerc = (G: VQGame, p: Power, cost: number): boolean => {
+    const ps = G.powers[p];
+    const restricted = Math.min(ps.jiltedCp ?? 0, cost);
+    const normal = cost - restricted;
+    if (ps.cp < normal) return false;
+    if (normal > 0 && !spend(G, p, normal)) return false;
+    if (restricted > 0) {
+        ps.jiltedCp = (ps.jiltedCp ?? 0) - restricted;
+        if (ps.jiltedCp === 0) delete ps.jiltedCp;
+        markAction(G, p);
+    }
+    return true;
+};
+
+/** Rule 6.1/11: Mandatory Events must be played during this turn's Action Phase. */
+const hasUnplayedMandatory = (G: VQGame, p: Power): boolean =>
+    G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory");
 
 const canUseCardForWar = (c: CardDef): boolean => c.kind !== "home" && c.officialKind !== "mandatory";
 
@@ -592,7 +630,9 @@ const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power, target?: string)
             G.powers[groom.power].marriageCardModifier = (G.powers[groom.power].marriageCardModifier ?? 0) + amount;
             pushLog(G, `${powerLabel(groom.power)} gains ${amount} +1 Card marker(s).`);
         } else if (roll >= 2) {
-            G.powers[groom.power].cp += roll;
+            // Rule 23.3: this compensation may only buy Diplomatic Influence
+            // and/or mercenaries, so it is tracked separately from normal CP.
+            G.powers[groom.power].jiltedCp = (G.powers[groom.power].jiltedCp ?? 0) + roll;
             pushLog(G, `${powerLabel(groom.power)} gains ${roll} CP for Diplomatic Influence and/or Mercenaries.`);
         } else {
             pushLog(G, "No compensation is awarded.");
@@ -796,30 +836,103 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
 /** #48 Italian Expert: sponsor an Italian patron for 3 CP without paying. */
 /** #35 Patron of Arts, option 2: draw two cards and give one to another power. */
 /** #34 Holy Roman Intercession: join one side of a war and punish the other. */
-/** #2 Ottoman Tribute: threaten a power; auto-resolve tribute or war. */
+/** #2 Ottoman Tribute: the Ottoman picks a target; the target then chooses. */
 const resolveOttomanTribute = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined) return;
-    const [targetPower, mode] = target.split(":");
+    const targetPower = target.split(":")[0];
     if (!isPower(targetPower) || targetPower === "ottoman" || allied(G, "ottoman", targetPower)) return;
     const cards = G.powers[targetPower].cards.filter((id) => cardById(id).kind !== "home");
     const treasures = G.powers[targetPower].treasures;
-    if (cards.length > 0 || treasures.length > 0) {
-        if ((mode === "treasure" && treasures.length > 0) || (mode !== "card" && treasures.length >= cards.length)) {
-            const value = treasures.splice(Math.max(0, die(ctx, treasures.length) - 1), 1)[0];
-            G.powers.ottoman.treasures.push(value);
-            pushLog(G, `${powerLabel(targetPower)} pays tribute: the Ottoman takes a treasure.`);
-        } else {
-            const card = cards[Math.max(0, die(ctx, cards.length) - 1)];
-            G.powers[targetPower].cards = G.powers[targetPower].cards.filter((id) => id !== card);
-            G.powers.ottoman.cards.push(card);
-            pushLog(G, `${powerLabel(targetPower)} pays tribute: the Ottoman takes a card.`);
-        }
-        drawCards(G, ctx, "ottoman", 1);
+    if (cards.length === 0 && treasures.length === 0) {
+        // Nothing to pay – automatic war.
+        setWar(G, "ottoman", targetPower);
+        G.powers.ottoman.cp += 2;
+        pushLog(G, `${powerLabel(targetPower)} has nothing to pay; the Ottoman declares war and gains 2 CP.`);
         return;
     }
-    setWar(G, "ottoman", targetPower);
-    G.powers.ottoman.cp += 2;
-    pushLog(G, `${powerLabel(targetPower)} refuses tribute; the Ottoman declares war and gains 2 CP.`);
+    // Build the set of choices the target power may pick from.
+    const choices: string[] = [];
+    if (treasures.length > 0) choices.push("pay_treasure");
+    if (cards.length > 0) choices.push("pay_card");
+    choices.push("refuse");
+    G.pendingTribute = {target: targetPower as Power, choices};
+    const targetOwner = ownerOf(G, targetPower as Power);
+    if (targetOwner !== undefined) {
+        ctx.events?.setActivePlayers({value: {[targetOwner]: "tributeChoice"}});
+    }
+};
+
+/** Resolve the target's answer to Ottoman Tribute (#2). */
+const resolveOttomanTributeChoice = (G: VQGame, ctx: Ctx, power: Power, choice: string): void => {
+    if (choice === "pay_treasure") {
+        const treasures = G.powers[power].treasures;
+        const value = treasures.splice(Math.max(0, die(ctx, treasures.length) - 1), 1)[0];
+        G.powers.ottoman.treasures.push(value);
+        pushLog(G, `${powerLabel(power)} pays tribute: the Ottoman takes a treasure.`);
+        drawCards(G, ctx, "ottoman", 1);
+    } else if (choice === "pay_card") {
+        const cards = G.powers[power].cards.filter((id) => cardById(id).kind !== "home");
+        const card = cards[Math.max(0, die(ctx, cards.length) - 1)];
+        G.powers[power].cards = G.powers[power].cards.filter((id) => id !== card);
+        G.powers.ottoman.cards.push(card);
+        pushLog(G, `${powerLabel(power)} pays tribute: the Ottoman takes a card.`);
+        drawCards(G, ctx, "ottoman", 1);
+    } else {
+        setWar(G, "ottoman", power);
+        G.powers.ottoman.cp += 2;
+        pushLog(G, `${powerLabel(power)} refuses tribute; the Ottoman declares war and gains 2 CP.`);
+    }
+};
+
+export const tributeOptions = (G: VQGame): {id: string; label: string}[] => {
+    const pending = G.pendingTribute;
+    if (pending === undefined) return [];
+    return pending.choices.map((id) => ({
+        id,
+        label: id === "pay_treasure" ? "Pay a treasure" : id === "pay_card" ? "Pay a card" : "Refuse (war)",
+    }));
+};
+
+export const chooseTribute = (G: VQGame, ctx: Ctx, args: {choice: string}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingTribute;
+    if (pending === undefined || !pending.choices.includes(args.choice)) return INVALID_MOVE;
+    if (ctx.playerID !== ownerOf(G, pending.target)) return INVALID_MOVE;
+    const {target} = pending;
+    delete G.pendingTribute;
+    ctx.events?.endStage();
+    resolveOttomanTributeChoice(G, ctx, target, args.choice);
+};
+
+/**
+ * Section 24.2 step 6: the allied power may move newly placed minor
+ * rebels one space after activation.  "decline" skips the movement.
+ */
+export const chooseRebelMove = (G: VQGame, ctx: Ctx, args: {to: string}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingRebelMove;
+    if (pending === undefined) return INVALID_MOVE;
+    if (ctx.playerID !== ownerOf(G, pending.power)) return INVALID_MOVE;
+    const from = pending.space;
+    const minor = pending.minor;
+    if (args.to === "decline") {
+        delete G.pendingRebelMove;
+        ctx.events?.endStage();
+        pushLog(G, `${powerLabel(pending.power)} declines to move ${minor} rebels.`);
+        return;
+    }
+    if (!landNeighbors(from).some((n) => n.id === args.to)) return INVALID_MOVE;
+    const source = G.spaces[from]?.land[minor];
+    if (source === undefined || landCount(source) === 0) return INVALID_MOVE;
+    const stack = {...source};
+    const tgt = ensureLand(G, args.to, minor);
+    tgt.regular += stack.regular;
+    tgt.merc += stack.merc;
+    tgt.cav += stack.cav;
+    source.regular = 0;
+    source.merc = 0;
+    source.cav = 0;
+    delete G.pendingRebelMove;
+    ctx.events?.endStage();
+    pushLog(G, `${minor} rebels move from ${from} to ${args.to}.`);
 };
 
 /** #3 Spanish Road: place a regular in Milan and prepare one special move. */
@@ -878,16 +991,21 @@ export const spanishRoadMove = (G: VQGame, ctx: Ctx, args: {to: string; units?: 
 
 const resolveHolyRomanIntercession = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined) return;
-    const [ally, enemy] = target.split(":");
+    const parts = target.split(":");
+    const [ally, enemy] = parts;
+    const chosenSpace = parts[2];
     if (!isPower(ally) || !isPower(enemy) || ally === enemy || !atWar(G, ally, enemy)) return;
     G.powers.hre.allies.push(ally);
     G.powers[ally].allies.push("hre");
     setWar(G, "hre", enemy);
-    const home = SPACES.find((space) => spaceHomes(space).includes("hre") && G.spaces[space.id].control === "hre" && !G.spaces[space.id].unrest);
+    const validHomes = SPACES.filter((space) => spaceHomes(space).includes("hre") && G.spaces[space.id].control === "hre" && !G.spaces[space.id].unrest);
+    const chosen = chosenSpace !== undefined ? validHomes.find((s) => s.id === chosenSpace) : undefined;
+    const home = chosen ?? validHomes[0];
     if (home !== undefined) addLand(G, home.id, "hre", "regular", 2);
     const dice = roll(ctx, 5);
     const ones = dice.filter((die) => die === 1).length;
-    const unrestTargets = SPACES.filter((space) => spaceHomes(space).includes("hre") && !G.spaces[space.id].unrest).slice(0, ones);
+    const unrestCandidates = SPACES.filter((space) => spaceHomes(space).includes("hre") && !G.spaces[space.id].unrest);
+    const unrestTargets = unrestCandidates.sort(() => (die(ctx, 6) <= 3 ? -1 : 1)).slice(0, ones);
     for (const space of unrestTargets) G.spaces[space.id].unrest = true;
     G.lastRolls = `Holy Roman Intercession: [${dice.join(",")}] = ${ones} unrest`;
     pushLog(G, `${powerLabel("hre")} allies with ${powerLabel(ally)}, declares war on ${powerLabel(enemy)}, and places ${ones} unrest (${G.lastRolls}).`);
@@ -1425,22 +1543,49 @@ const resolveArmyMutiny = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (owner === undefined) return;
     const stack = state.land[owner]!;
     stack.merc = 0;
-    const card = G.powers[owner].cards
-        .filter((id) => cardById(id).officialKind !== "mandatory")
-        .sort((a, b) => cardById(a).cp - cardById(b).cp)[0];
-    let keep = 0;
-    if (card !== undefined) {
-        const cp = cardById(card).cp;
-        keep = cp >= 4 ? stack.regular : cp * 2;
-        removeCardFromHand(G, owner, card);
-        discardCard(G, owner, card, false);
-    }
-    stack.regular = Math.min(stack.regular, keep);
-    if (stack.regular + stack.merc + stack.cav === 0) delete state.land[owner];
     state.unrest = true;
     const neighbor = landNeighbors(spaceId).find((space) => G.spaces[space.id] !== undefined && !G.spaces[space.id].unrest);
     if (neighbor !== undefined) G.spaces[neighbor.id].unrest = true;
     pushLog(G, `Army Mutiny strikes ${powerLabel(owner)} in ${SPACE_BY_ID[spaceId].name}.`);
+    const discardable = G.powers[owner].cards.filter((id) => cardById(id).officialKind !== "mandatory");
+    if (discardable.length <= 1) {
+        // Zero or one eligible card – resolve immediately (no choice).
+        finishMutinyDiscard(G, spaceId, owner, discardable[0]);
+        return;
+    }
+    G.pendingMutiny = {space: spaceId, owner};
+    const targetOwner = ownerOf(G, owner);
+    if (targetOwner !== undefined) {
+        ctx.events?.setActivePlayers({value: {[targetOwner]: "mutinyChoice"}});
+    }
+};
+
+const finishMutinyDiscard = (G: VQGame, spaceId: string, owner: Power, cardId?: string): void => {
+    const state = G.spaces[spaceId];
+    if (state === undefined) return;
+    const stack = state.land[owner];
+    if (stack === undefined) return;
+    let keep = 0;
+    if (cardId !== undefined) {
+        const cp = cardById(cardId).cp;
+        keep = cp >= 4 ? stack.regular : cp * 2;
+        removeCardFromHand(G, owner, cardId);
+        discardCard(G, owner, cardId, false);
+    }
+    stack.regular = Math.min(stack.regular, keep);
+    if (stack.regular + stack.merc + stack.cav === 0) delete state.land[owner];
+};
+
+export const chooseMutinyDiscard = (G: VQGame, ctx: Ctx, args: {card: string}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingMutiny;
+    if (pending === undefined) return INVALID_MOVE;
+    if (ctx.playerID !== ownerOf(G, pending.owner)) return INVALID_MOVE;
+    const discardable = G.powers[pending.owner].cards.filter((id) => cardById(id).officialKind !== "mandatory");
+    if (!discardable.includes(args.card)) return INVALID_MOVE;
+    const {space, owner} = pending;
+    delete G.pendingMutiny;
+    ctx.events?.endStage();
+    finishMutinyDiscard(G, space, owner, args.card);
 };
 
 const resolveElDorado = (G: VQGame, target?: string): void => {
@@ -1842,6 +1987,7 @@ export const declineGregorianCalendar = (G: VQGame, ctx: Ctx): void | typeof INV
 };
 
 const resolvePolishElection = (G: VQGame, ctx: Ctx, target?: string): void => {
+    // If manual bids were provided via pipe syntax, resolve immediately.
     const manualBids = new Map<string, string>();
     for (const segment of target?.split("|") ?? []) {
         const index = segment.indexOf(":");
@@ -1851,6 +1997,31 @@ const resolvePolishElection = (G: VQGame, ctx: Ctx, target?: string): void => {
         delete G.foreignWars.hre;
         pushLog(G, "Polish Royal Election ends the Polish war; the Holy Roman Empire is considered victorious.");
     }
+    if (manualBids.size > 0) {
+        // Legacy / test path: all bids provided up front.
+        finishPolishElection(G, ctx, manualBids);
+        return;
+    }
+    // Interactive path: collect bids from each power sequentially.
+    const order: Power[] = ["france", "hre", "spain"];
+    const remaining = order.filter((p) =>
+        G.powers[p].cards.some((id) => cardById(id).officialKind !== "mandatory") ||
+        G.powers[p].treasures.length > 0);
+    if (remaining.length === 0 || ctx.events?.setActivePlayers === undefined) {
+        // Direct/headless callers (and tests) resolve with each power's best
+        // available bid.
+        finishPolishElection(G, ctx, new Map());
+        return;
+    }
+    G.pendingPolishElection = {bids: {}, remaining};
+    const first = remaining[0];
+    const firstOwner = ownerOf(G, first);
+    if (firstOwner !== undefined) {
+        ctx.events?.setActivePlayers({value: {[firstOwner]: "polishElectionBid"}});
+    }
+};
+
+const finishPolishElection = (G: VQGame, ctx: Ctx, manualBids: Map<string, string>): void => {
     const order: Power[] = ["france", "hre", "spain"];
     const scores: {power: Power; score: number}[] = [];
     for (const power of order) {
@@ -1888,6 +2059,37 @@ const resolvePolishElection = (G: VQGame, ctx: Ctx, target?: string): void => {
         pushLog(G, "No candidate exceeds 5; no Polish election VP is awarded.");
     }
     removeCardFromGame(G, "vq-086");
+};
+
+export const choosePolishBid = (G: VQGame, ctx: Ctx, args: {bid: string}): void | typeof INVALID_MOVE => {
+    const pending = G.pendingPolishElection;
+    if (pending === undefined) return INVALID_MOVE;
+    const current = pending.remaining[0];
+    if (current === undefined || ctx.playerID !== ownerOf(G, current)) return INVALID_MOVE;
+    const {bid} = args;
+    if (bid !== "pass") {
+        const isCard = G.powers[current].cards.includes(bid) && cardById(bid).officialKind !== "mandatory";
+        const isTreasure = bid.startsWith("treasure:") && G.powers[current].treasures.includes(Number(bid.slice("treasure:".length)));
+        if (!isCard && !isTreasure) return INVALID_MOVE;
+    }
+    pending.bids[current] = bid === "pass" ? undefined : bid;
+    pending.remaining = pending.remaining.slice(1);
+    ctx.events?.endStage();
+    if (pending.remaining.length > 0) {
+        const next = pending.remaining[0];
+        const nextOwner = ownerOf(G, next);
+        if (nextOwner !== undefined) {
+            ctx.events?.setActivePlayers({value: {[nextOwner]: "polishElectionBid"}});
+        }
+        return;
+    }
+    // All bids collected – resolve.
+    const bids = new Map<string, string>();
+    for (const [power, bid] of Object.entries(pending.bids)) {
+        if (bid !== undefined) bids.set(power, bid);
+    }
+    delete G.pendingPolishElection;
+    finishPolishElection(G, ctx, bids);
 };
 
 const resolveDragutFalls = (G: VQGame): void => {
@@ -2410,6 +2612,8 @@ const resolveItalianExpert = (G: VQGame, p: Power, target?: string): void => {
 
 const resolveSack = (G: VQGame, ctx: Ctx, attacker: Power, target?: string): void => {
     if (target === undefined || G.spaces[target] === undefined || G.spaces[target].control !== attacker) return;
+    // Sack! requires a recent capture this impulse by the playing power.
+    if (G.lastCapture === undefined || G.lastCapture.impulse !== G.impulse || G.lastCapture.attacker !== attacker) return;
     let defender: Power | undefined;
     for (const neighbor of landNeighbors(target)) {
         const state = G.spaces[neighbor.id];
@@ -2434,6 +2638,8 @@ const resolveSack = (G: VQGame, ctx: Ctx, attacker: Power, target?: string): voi
 
 const resolveSpanishFury = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined || !isPower(target) || target === "spain") return;
+    // Spanish Fury requires a recent capture this impulse.
+    if (G.lastCapture === undefined || G.lastCapture.impulse !== G.impulse) return;
     const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
     if (cards.length === 0) {
         pushLog(G, "Spanish Fury: the defender has no cards to seize.");
@@ -2684,7 +2890,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (isEspionageEvent(handler)) {
         beginEspionageEvent(G, ctx, p, handler, target);
     } else if (beneficiary !== undefined) {
-        startForeignWar(G, cardId, beneficiary, Number(target));
+        startForeignWar(G, ctx, cardId, beneficiary, Number(target));
     } else if (handler === "stBartholomewsDayMassacre") {
         beginMassacre(G, ctx, p);
     } else if (handler === "northernRising") {
@@ -3095,7 +3301,8 @@ export const pass = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
         return INVALID_MOVE;
     }
     const p = power(G, ctx);
-    if (G.foreignWars[p]?.status === "setup" || G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory")) {
+    if (G.pendingForeignWar !== undefined && G.pendingForeignWar.power !== p) autoResolveForeignWarForce(G);
+    if (G.foreignWars[p]?.status === "setup" || hasUnplayedMandatory(G, p)) {
         return INVALID_MOVE;
     }
     if (G.powers[p].cards.length > rulerStats(G, p).admin) {
@@ -3114,6 +3321,7 @@ export const endImpulse = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
         return INVALID_MOVE;
     }
     const p = power(G, ctx);
+    if (G.pendingForeignWar !== undefined && G.pendingForeignWar.power !== p) autoResolveForeignWarForce(G);
     if (G.foreignWars[p]?.status === "setup") {
         return INVALID_MOVE;
     }
@@ -3122,7 +3330,7 @@ export const endImpulse = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
         // while a Mandatory Event is still in hand.  After a card has been
         // played the impulse may end normally, even if another Mandatory Event
         // is waiting for a later impulse this turn.
-        if (G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory")) {
+        if (hasUnplayedMandatory(G, p)) {
             return INVALID_MOVE;
         }
         G.powers[p].passed = true;
@@ -3521,12 +3729,78 @@ const giftEntry = (G: VQGame, from: Power, to: Power) => {
     return G.diplomacyGifts[key];
 };
 
+/**
+ * Rule 9.1: a card/treasure/mercenary exchange is one-directional per turn.
+ * Once the receiving power has given the active power an item of the same
+ * kind, the active power may not give one back.
+ */
+const reciprocalGift = (G: VQGame, from: Power, to: Power, kind: "cards" | "treasures" | "mercenaries"): boolean =>
+    (G.diplomacyGifts?.[`${to}->${from}`]?.[kind] ?? 0) > 0;
+
+/**
+ * Yield political control of one space (rule 9.1).  Only the four printed
+ * cases are binding:
+ *  (a) returning the space to its Home power,
+ *  (b) French spaces exchanged between France and the Protestant,
+ *  (c) Netherlands spaces exchanged between Spain and the Protestant,
+ *  (d) an Independent home space adjacent / in the same sea zone as a Home
+ *      space of the receiving power.
+ * Occupying units are displaced (12.5).
+ */
+export const yieldSpace = (G: VQGame, ctx: Ctx, args: {target: Power; space: string}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "yieldSpace", args)) return INVALID_MOVE;
+    if (ctx.phase !== "diplomacy") return INVALID_MOVE;
+    const p = power(G, ctx);
+    const target = args.target;
+    const state = G.spaces[args.space];
+    const def = SPACE_BY_ID[args.space];
+    if (!isPower(target) || target === p || state === undefined || def === undefined) return INVALID_MOVE;
+    if (state.control !== p) return INVALID_MOVE;
+    if (catholicLeagueDealsBlocked(G, p, target)) return INVALID_MOVE;
+    const homes = spaceHomes(def);
+    const receiverHomes = SPACES.filter((space) => spaceHomes(space).includes(target)).map((space) => space.id);
+    const returningHome = homes.includes(target);
+    const frenchExchange = def.area === "france" &&
+        ((p === "france" && target === "protestant") || (p === "protestant" && target === "france"));
+    const dutchExchange = def.area === "netherlands" &&
+        ((p === "spain" && target === "protestant") || (p === "protestant" && target === "spain"));
+    const independentAdjacent = homes.includes("independent") &&
+        (receiverHomes.some((id) => landAdjacent(id, args.space)) ||
+            receiverHomes.some((id) => (SPACE_BY_ID[id]?.ports ?? []).some((zone) => (def.ports ?? []).includes(zone))));
+    if (!returningHome && !frenchExchange && !dutchExchange && !independentAdjacent) return INVALID_MOVE;
+    state.control = target;
+    displaceNonFriendlyUnits(G, target, [args.space]);
+    pushLog(G, `${powerLabel(p)} yields control of ${def.name} to ${powerLabel(target)}.`);
+};
+
+/**
+ * Rule 9.1: a captured army leader may be returned by agreement (without the
+ * random-card ransom of 9.3).  The leader returns to his capital when
+ * possible, otherwise to a friendly home key.
+ */
+export const returnCapturedLeader = (G: VQGame, ctx: Ctx, args: {leaderId: string}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "returnCapturedLeader", args)) return INVALID_MOVE;
+    if (ctx.phase !== "diplomacy") return INVALID_MOVE;
+    const p = power(G, ctx);
+    const def = LEADER_BY_ID[args.leaderId];
+    const state = G.leaders[args.leaderId];
+    if (def === undefined || state === undefined || state.location !== "captured") return INVALID_MOVE;
+    if (state.capturedBy !== undefined && state.capturedBy !== p) return INVALID_MOVE;
+    const destination = capitalSpacesFor(G, def.power).find((id) => G.spaces[id]?.control === def.power) ??
+        SPACES.find((space) => space.kind === "key" && spaceHomes(space).includes(def.power) &&
+            G.spaces[space.id]?.control === def.power && !G.spaces[space.id].unrest)?.id;
+    if (destination === undefined) return INVALID_MOVE;
+    G.leaders[args.leaderId] = {id: args.leaderId, location: destination};
+    if (!G.spaces[destination].leaders.includes(args.leaderId)) G.spaces[destination].leaders.push(args.leaderId);
+    pushLog(G, `${powerLabel(p)} returns ${def.name} to ${powerLabel(def.power)} in ${SPACE_BY_ID[destination].name}.`);
+};
+
 export const giveRandomCard = (G: VQGame, ctx: Ctx, args: {target: Power}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "diplomacy") return INVALID_MOVE;
     const p = power(G, ctx);
     if (!isPower(args.target) || args.target === p || atWar(G, p, args.target)) return INVALID_MOVE;
     const entry = giftEntry(G, p, args.target);
-    if (entry.cards >= 2) return INVALID_MOVE;
+    if (entry.cards >= 2 || reciprocalGift(G, p, args.target, "cards")) return INVALID_MOVE;
     const candidates = G.powers[p].cards.filter((id) => cardById(id).kind !== "home");
     if (candidates.length === 0) return INVALID_MOVE;
     const card = candidates[Math.min(candidates.length - 1, Math.max(0, die(ctx, candidates.length) - 1))];
@@ -3536,31 +3810,45 @@ export const giveRandomCard = (G: VQGame, ctx: Ctx, args: {target: Power}): void
     pushLog(G, `${powerLabel(p)} gives a random card to ${powerLabel(args.target)}.`);
 };
 
-export const giveMercenary = (G: VQGame, ctx: Ctx, args: {target: Power; space: string}): void | typeof INVALID_MOVE => {
+export const giveMercenary = (G: VQGame, ctx: Ctx, args: {target: Power; space?: string}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "diplomacy") return INVALID_MOVE;
     const p = power(G, ctx);
-    if (!isPower(args.target) || args.target === p || atWar(G, p, args.target) || G.spaces[args.space] === undefined) return INVALID_MOVE;
+    if (!isPower(args.target) || args.target === p || atWar(G, p, args.target)) return INVALID_MOVE;
+    // Rule 9.1: the Ottoman may not give mercenaries, and neither the Ottoman
+    // nor the Holy Roman Empire may receive them.
+    if (p === "ottoman" || args.target === "ottoman" || args.target === "hre") return INVALID_MOVE;
     const entry = giftEntry(G, p, args.target);
-    if (entry.mercenaries >= 4) return INVALID_MOVE;
-    const source = G.spaces[args.space].land[p];
-    if (source === undefined || source.merc < 1) return INVALID_MOVE;
-    source.merc -= 1;
-    if (landCount(source) === 0) delete G.spaces[args.space].land[p];
-    ensureLand(G, args.space, args.target).merc += 1;
+    if (entry.mercenaries >= 4 || reciprocalGift(G, p, args.target, "mercenaries")) return INVALID_MOVE;
+    // The HRE may pay from its Mercenaries for Hire track; otherwise the
+    // counter comes from one selected space on the map.
+    const fromTrack = p === "hre" && (G.mercenariesForHire ?? 0) > 0 && (args.space === undefined || G.spaces[args.space]?.land.hre?.merc === undefined);
+    if (fromTrack) {
+        G.mercenariesForHire = (G.mercenariesForHire ?? 0) - 1;
+    } else {
+        const source = args.space !== undefined ? G.spaces[args.space]?.land[p] : undefined;
+        if (source === undefined || source.merc < 1) return INVALID_MOVE;
+        source.merc -= 1;
+        if (landCount(source) === 0) delete G.spaces[args.space!].land[p];
+    }
+    // Receiving mercenaries are placed in the receiver's capital (either
+    // capital for Spain/Protestant), which must be friendly and free of unrest.
+    const capital = capitalSpacesFor(G, args.target).find((id) => G.spaces[id]?.control === args.target && !G.spaces[id].unrest);
+    if (capital === undefined) return INVALID_MOVE;
+    ensureLand(G, capital, args.target).merc += 1;
     entry.mercenaries += 1;
-    pushLog(G, `${powerLabel(p)} gives a mercenary to ${powerLabel(args.target)} in ${SPACE_BY_ID[args.space].name}.`);
+    pushLog(G, `${powerLabel(p)} gives a mercenary to ${powerLabel(args.target)} in ${SPACE_BY_ID[capital].name}.`);
 };
 
-export const giveTreasure = (G: VQGame, ctx: Ctx, args: {target: Power; index: number}): void | typeof INVALID_MOVE => {
+export const giveTreasure = (G: VQGame, ctx: Ctx, args: {target: Power; index?: number}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "diplomacy") return INVALID_MOVE;
     const p = power(G, ctx);
     if (!isPower(args.target) || args.target === p || atWar(G, p, args.target)) return INVALID_MOVE;
     const entry = giftEntry(G, p, args.target);
-    if (entry.treasures >= 2) return INVALID_MOVE;
-    const index = Number(args.index);
-    const value = G.powers[p].treasures[index];
-    if (value === undefined) return INVALID_MOVE;
-    G.powers[p].treasures.splice(index, 1);
+    if (entry.treasures >= 2 || reciprocalGift(G, p, args.target, "treasures")) return INVALID_MOVE;
+    const treasures = G.powers[p].treasures;
+    if (treasures.length === 0) return INVALID_MOVE;
+    // Rule 9.1: the treasure is drawn at random, never chosen.
+    const value = treasures.splice(Math.min(treasures.length - 1, Math.max(0, die(ctx, treasures.length) - 1)), 1)[0];
     G.powers[args.target].treasures.push(value);
     entry.treasures += 1;
     pushLog(G, `${powerLabel(p)} gives a treasure to ${powerLabel(args.target)}.`);
@@ -3860,8 +4148,9 @@ export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: stri
         if (current.crossedSea || landCount(stack) > 5) continue;
         for (const zone of portZones(current.id)) {
             // Other major powers' naval units in ports of the zone block the
-            // crossing, even if they are allied (10.6).
-            if (zonePorts(zone).some((port) => ownersWithNaval(G, port).some((owner) => isPower(owner) && owner !== p))) continue;
+            // crossing, even if they are allied (10.6).  Units loaned to this
+            // power are stacked as its own units and do not block.
+            if (springSeaCrossingBlocked(G, p, zone)) continue;
             if (ownersWithNaval(G, zone).some((owner) => !friendlyController(G, p, owner))) continue;
             for (const port of zonePorts(zone)) {
                 if (port === current.id || !pathSpaceAllowed(port)) continue;
@@ -3943,7 +4232,9 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
     if (p === "ottoman" && ["algiers", "tripoli"].includes(space)) return INVALID_MOVE;
     if (p === "spain" && ["oran", "malta"].includes(space)) return INVALID_MOVE;
     if (landForceCount(G, p) >= REGULAR_LIMITS[p]) return INVALID_MOVE;
-    if (!spend(G, p, args.kind === "regular" ? 2 : 1)) {
+    const recruitCost = args.kind === "regular" ? 2 : 1;
+    const paid = args.kind === "merc" ? spendInfluenceOrMerc(G, p, recruitCost) : spend(G, p, recruitCost);
+    if (!paid) {
         return INVALID_MOVE;
     }
     addLand(G, space, p, args.kind, 1);
@@ -4052,7 +4343,7 @@ export const influence = (G: VQGame, ctx: Ctx, args: { target: MinorPower | Powe
     const target = args.target;
     if (isPower(target)) {
         const track = G.majorInfluence?.[target];
-        if (!track || track[p] === undefined || G.majorDiplomacyResolved?.includes(target) || target === p || (track[p] ?? 0) >= 9 || !spend(G, p, 1)) return INVALID_MOVE;
+        if (!track || track[p] === undefined || G.majorDiplomacyResolved?.includes(target) || target === p || (track[p] ?? 0) >= 9 || !spendInfluenceOrMerc(G, p, 1)) return INVALID_MOVE;
         track[p] = (track[p] ?? 0) + 1;
         return;
     }
@@ -4063,7 +4354,7 @@ export const influence = (G: VQGame, ctx: Ctx, args: { target: MinorPower | Powe
         return INVALID_MOVE;
     }
     const cur = G.powers[p].influence[target] ?? 0;
-    if (cur >= 9 || !spend(G, p, 1)) {
+    if (cur >= 9 || !spendInfluenceOrMerc(G, p, 1)) {
         return INVALID_MOVE;
     }
     G.powers[p].influence[target] = cur + 1;
@@ -4297,7 +4588,20 @@ export const commitForeignWarForce = (
     args: {units: {space: string; kind: keyof LandStack}[]; leaderId?: string},
 ): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "action") return INVALID_MOVE;
-    const p = power(G, ctx);
+    const pending = G.pendingForeignWar;
+    let p: Power;
+    if (pending !== undefined) {
+        // The affected power chooses even when another power played the event.
+        // A power without a controlling seat (for example an inactive HRE in a
+        // small game) is automated.
+        const owner = ownerOf(G, pending.power);
+        if (owner !== undefined && (ctx.playerID === undefined || ctx.playerID === null || owner !== ctx.playerID)) {
+            return INVALID_MOVE;
+        }
+        p = pending.power;
+    } else {
+        p = power(G, ctx);
+    }
     const war = G.foreignWars[p];
     if ((p !== "ottoman" && p !== "hre") || war?.status !== "setup" || !Array.isArray(args.units) ||
         args.units.length < 3 || args.units.length > 8) return INVALID_MOVE;
@@ -4331,7 +4635,44 @@ export const commitForeignWarForce = (
         war.leaderId = args.leaderId;
     }
     war.status = "active";
+    if (pending !== undefined) {
+        delete G.pendingForeignWar;
+        ctx.events?.endStage();
+    }
     pushLog(G, `${powerLabel(p)} commits ${landCount(war.units)} unit(s)${war.leaderId ? ` and ${war.leaderId}` : ""} to the ${war.enemy} war.`);
+};
+
+/**
+ * Safety fallback for an abandoned foreign-war selection: commit the first
+ * available 3 units (preferring unbesieged stacks and regulars) so the event
+ * cannot indefinitely block the Action Phase.
+ */
+export const autoResolveForeignWarForce = (G: VQGame): boolean => {
+    const pending = G.foreignWars[G.pendingForeignWar?.power ?? "ottoman"];
+    const beneficiary = G.pendingForeignWar?.power;
+    if (beneficiary === undefined || pending?.status !== "setup") return false;
+    const units: {space: string; kind: keyof LandStack}[] = [];
+    for (const [spaceId, state] of Object.entries(G.spaces)) {
+        if (state.siege !== undefined) continue;
+        for (const kind of ["regular", "merc", "cav"] as const) {
+            for (let i = 0; i < (state.land[beneficiary]?.[kind] ?? 0) && units.length < 3; i++) {
+                units.push({space: spaceId, kind});
+            }
+            if (units.length >= 3) break;
+        }
+        if (units.length >= 3) break;
+    }
+    if (units.length < 3) {
+        delete G.pendingForeignWar;
+        return false;
+    }
+    const leader = Object.values(G.leaders).find((state) =>
+        LEADER_BY_ID[state.id]?.power === beneficiary && LEADER_BY_ID[state.id]?.kind === "army" &&
+        state.location !== "pool" && state.location !== "captured" && G.spaces[state.location]?.leaders.includes(state.id));
+    const owner = ownerOf(G, beneficiary);
+    const fakeCtx = {currentPlayer: owner ?? "0", playerID: owner, phase: "action", events: {endStage: () => undefined}} as unknown as Ctx;
+    commitForeignWarForce(G, fakeCtx, {units, ...(leader !== undefined ? {leaderId: leader.id} : {})});
+    return true;
 };
 
 const loseForeignWarUnits = (units: LandStack, losses: number): number => {

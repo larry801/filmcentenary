@@ -4,11 +4,12 @@ import IconButton from "@mui/material/IconButton";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import MyLocationIcon from "@mui/icons-material/MyLocation";
 import {Controller, landCount, navalCount, Religion, VQGame, CONTROLLER_COLORS, controllerName} from "../constant/general";
 import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES} from "../mapData";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, tutorialSpaceAllowed} from "../tutorial";
 import land from "../data/land-background.json";
-import {clampView, INITIAL_VIEW, isMapDrag, MapView, nearestMapTarget, project, zoomView} from "./map-geometry";
+import {centerView, clampView, INITIAL_VIEW, isMapDrag, MAP_HEIGHT, MAP_WIDTH, MapView, nearestMapTarget, nodeHitRadius, project, zoomView} from "./map-geometry";
 
 export interface VQMapProps {
     G: VQGame;
@@ -19,10 +20,34 @@ export interface VQMapProps {
     highlights?: ReadonlySet<string>;
     /** Dim every node outside `highlights`; defaults to true when highlights are provided. */
     dimUnavailable?: boolean;
+    /** Space the "centre on my capital" control jumps to; the control is hidden without one. */
+    homeSpace?: string;
 }
 
-function SpaceShape({id, G, selected, origin, onSelect, scale, highlights, dimUnavailable = true}: VQMapProps & {id: string; scale: number}) {
+/** One-line description of a space, shared by its tooltip, aria-label and the hover read-out. */
+export const spaceSummary = (G: VQGame, id: string): string => {
     const e = i18n.chain.vq.map;
+    const def = SPACE_BY_ID[id];
+    const st = G.spaces[id];
+    if (def === undefined || st === undefined) return "";
+    const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
+    const excluded = G.scenario === "tutorial" && !tutorialSpaceAllowed(id);
+    const landN = Object.keys(st.land).reduce((n, c) => n + landCount(st.land[c as Controller]), 0);
+    const navalN = Object.keys(st.naval).reduce((n, c) => n + navalCount(st.naval[c as Controller]), 0);
+    return `${def.name} · ${e.control}${i18n.chain.vq.punct.colon}${controllerName(st.control, vqLocale)} · ${st.religion === "protestant" ? e.protestant : e.catholic} · ${e.army} ${landN} / ${e.navy} ${navalN} / ${e.leaders} ${st.leaders.length}${G.espionage?.jesuits.includes(id) ? ` · ${e.jesuits}` : ""}${excluded ? ` · ${e.noEntry}` : ""}${st.unrest ? ` · ${e.unrest}` : ""}${st.siege ? ` · ${e.siege}` : ""}`;
+};
+
+const seaSummary = (G: VQGame, id: string): string => {
+    const zone = SEA_ZONES.find((candidate) => candidate.id === id);
+    if (zone === undefined) return "";
+    const count = Object.values(G.seaZones[zone.id].naval).reduce((sum, stack) => sum + navalCount(stack), 0);
+    return `${zone.name} · ${i18n.chain.vq.map.navy} ${count}`;
+};
+
+/** Zoom level from which every city name is drawn, not just occupied or key spaces. */
+export const LABEL_ALL_SCALE = 1.4;
+
+function SpaceShape({id, G, selected, origin, onSelect, scale, highlights, dimUnavailable = true, onHover}: VQMapProps & {id: string; scale: number; onHover: (id: string | undefined) => void}) {
     const def = SPACE_BY_ID[id];
     const excluded = G.scenario === "tutorial" && !tutorialSpaceAllowed(id);
     const highlighted = highlights?.has(id) === true;
@@ -37,14 +62,18 @@ function SpaceShape({id, G, selected, origin, onSelect, scale, highlights, dimUn
     const total = landN + navalN;
     const kind = G.scenario === "tutorial" ? TUTORIAL_KEYS.includes(id) ? "key" : TUTORIAL_FORTRESSES.includes(id) ? "fortress" : "open" :
         def.kind === "open" && st.fortress ? "fortress" : def.kind;
-    const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
-    const baseTitle = `${def.name} · ${e.control}${i18n.chain.vq.punct.colon}${controllerName(st.control, vqLocale)} · ${st.religion === "protestant" ? e.protestant : e.catholic} · ${e.army} ${landN} / ${e.navy} ${navalN} / ${e.leaders} ${st.leaders.length}${G.espionage?.jesuits.includes(id) ? ` · ${e.jesuits}` : ""}${excluded ? ` · ${e.noEntry}` : ""}${st.unrest ? ` · ${e.unrest}` : ""}${st.siege ? ` · ${e.siege}` : ""}`;
+    const baseTitle = spaceSummary(G, id);
     const title = highlighted ? `${baseTitle} · ${i18n.chain.vq.legend.legal}` : baseTitle;
     const className = `vq-map-node${dimmed ? " vq-dim" : ""}${highlighted ? " vq-legal-target" : ""}`;
+    const showLabel = isSelected || highlighted || origin === id || scale >= LABEL_ALL_SCALE ||
+        (!excluded && (total > 0 || kind === "key"));
     return <g className={className} role="button" tabIndex={0} aria-label={title} aria-pressed={isSelected}
               onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(id);}
-              }} style={{cursor: "pointer"}} opacity={dimmed ? 0.35 : excluded ? 0.3 : 1}>
+              }} onFocus={() => onHover(id)} onBlur={() => onHover(undefined)}
+              onPointerEnter={(event) => {if (event.pointerType === "mouse") onHover(id);}}
+              onPointerLeave={(event) => {if (event.pointerType === "mouse") onHover(undefined);}}
+              style={{cursor: "pointer"}} opacity={dimmed ? 0.35 : excluded ? 0.3 : 1}>
         <title>{title}</title>
         <circle className="vq-hit" cx={x} cy={y} r={12} fill="transparent"/>
         {highlighted && <circle className="vq-legal-ring" cx={x} cy={y} r={13} fill="none"/>}
@@ -61,7 +90,7 @@ function SpaceShape({id, G, selected, origin, onSelect, scale, highlights, dimUn
             <rect x={x + 5} y={y - 15} width={total > 9 ? 20 : 14} height={12} rx={3} fill="#faf5e7" stroke="#b39a6a" strokeWidth={0.5}/>
             <text x={x + 8} y={y - 6} fontSize={9} fill="#30291e" fontWeight={700}>{total}</text>
         </g>}
-        {(isSelected || scale >= 1.7 || (!excluded && (total > 0 || kind === "key"))) &&
+        {showLabel &&
             <text x={x} y={y + 18} textAnchor="middle" fontSize={isSelected ? 12 : 9} fill="#30291e" fontWeight={isSelected ? 700 : 500}
                   paintOrder="stroke" stroke="#f4eddd" strokeWidth={3} strokeLinejoin="round" pointerEvents="none">{def.name}</text>}
     </g>;
@@ -83,13 +112,14 @@ function MapLegend() {
     </details>;
 }
 
-export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable = true}: VQMapProps) => {
+export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable = true, homeSpace}: VQMapProps) => {
     i18n.use();
-    const {G: _G} = {G};
     const [view, setView] = React.useState<MapView>(INITIAL_VIEW);
+    const [hovered, setHovered] = React.useState<string>();
     const pointers = React.useRef(new Map<number, {x: number; y: number}>());
     const start = React.useRef<[number, number]>([0, 0]);
     const dragged = React.useRef(false);
+    const coarsePointer = React.useRef(false);
     const svgRef = React.useRef<SVGSVGElement>(null);
     const coordinates = (event: {clientX: number; clientY: number}) => {
         const matrix = svgRef.current?.getScreenCTM();
@@ -108,7 +138,12 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
             const [markerX, markerY] = project(zone.label[0], zone.label[1]);
             return {id: zone.id, x: markerX, y: markerY};
         });
-        const id = nearestMapTarget(x, y, spaces, zones);
+        // CSS pixels per map unit at the current zoom: the SVG keeps its aspect
+        // ratio, so the smaller axis decides the rendered scale.
+        const rect = svgRef.current?.getBoundingClientRect();
+        const pixelsPerUnit = rect !== undefined && rect.width > 0
+            ? Math.min(rect.width / MAP_WIDTH, rect.height / MAP_HEIGHT) * view.scale : 0;
+        const id = nearestMapTarget(x, y, spaces, zones, nodeHitRadius(pixelsPerUnit, coarsePointer.current));
         if (id !== undefined) onSelect(id);
     };
     const release = (event: React.PointerEvent<SVGSVGElement>) => {
@@ -116,11 +151,14 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
         const target = event.target as Element;
         if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
     };
+    const home = homeSpace !== undefined ? SPACE_BY_ID[homeSpace] : undefined;
+    const readout = hovered === undefined ? undefined : G.spaces[hovered] !== undefined ? spaceSummary(G, hovered) : seaSummary(G, hovered);
     return <div className="vq-map">
         <svg ref={svgRef} viewBox="0 0 1000 620" role="group" aria-label={i18n.chain.vq.map.ariaLabel}
              onClick={selectNearest}
              onPointerDown={(event) => {
                  if (event.button !== 0) return;
+                 coarsePointer.current = event.pointerType === "touch" || event.pointerType === "pen";
                  if (!pointers.current.size) {dragged.current = false; start.current = [event.clientX, event.clientY];}
                  pointers.current.set(event.pointerId, coordinates(event));
                  if (pointers.current.size > 1) dragged.current = true;
@@ -164,11 +202,14 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
                     const count = Object.values(G.seaZones[zone.id].naval).reduce((sum, stack) => sum + navalCount(stack), 0);
                     const highlighted = highlights?.has(zone.id) === true;
                     const dimmed = highlights !== undefined && dimUnavailable && !highlighted;
-                    const label = `${zone.name} · ${i18n.chain.vq.map.navy} ${count}` +
+                    const label = seaSummary(G, zone.id) +
                         (highlighted ? ` · ${i18n.chain.vq.legend.legal}` : "");
                     return <g key={zone.id} className={`vq-map-node${dimmed ? " vq-dim" : ""}${highlighted ? " vq-legal-target" : ""}`}
                               role="button" tabIndex={0} aria-label={label} aria-pressed={selected === zone.id}
                               opacity={dimmed ? 0.35 : undefined}
+                              onFocus={() => setHovered(zone.id)} onBlur={() => setHovered(undefined)}
+                              onPointerEnter={(event) => {if (event.pointerType === "mouse") setHovered(zone.id);}}
+                              onPointerLeave={(event) => {if (event.pointerType === "mouse") setHovered(undefined);}}
                               style={{cursor: "pointer"}} onKeyDown={(event) => {
                                   if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(zone.id);}
                               }}>
@@ -181,7 +222,7 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
                         {highlighted && <rect className="vq-legal-ring" x={x - 46} y={y - 14} width={92} height={29} rx={7} fill="none"/>}
                     </g>;
                 })}
-                {SPACES.map((space) => <SpaceShape key={space.id} id={space.id} G={G} selected={selected} origin={origin} onSelect={onSelect} scale={view.scale} highlights={highlights} dimUnavailable={dimUnavailable}/>)}
+                {SPACES.map((space) => <SpaceShape key={space.id} id={space.id} G={G} selected={selected} origin={origin} onSelect={onSelect} scale={view.scale} highlights={highlights} dimUnavailable={dimUnavailable} onHover={setHovered}/>)}
             </g>
         </svg>
         <MapLegend/>
@@ -189,8 +230,11 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
             <IconButton size="small" aria-label={i18n.chain.vq.map.zoomIn} disabled={view.scale >= 4} onClick={() => setView((current) => zoomView(current, 1.35, [500, 310]))}><AddIcon fontSize="small"/></IconButton>
             <span style={{minWidth: 36, textAlign: "center", fontSize: 11}} aria-live="polite">{Math.round(view.scale * 100)}%</span>
             <IconButton size="small" aria-label={i18n.chain.vq.map.zoomOut} disabled={view.scale <= 1} onClick={() => setView((current) => zoomView(current, 1 / 1.35, [500, 310]))}><RemoveIcon fontSize="small"/></IconButton>
+            {home !== undefined && <IconButton size="small" aria-label={`${i18n.chain.vq.map.centerHome} · ${home.name}`} title={`${i18n.chain.vq.map.centerHome} · ${home.name}`}
+                onClick={() => setView((current) => centerView(project(home.lon, home.lat), Math.max(current.scale, 2)))}><MyLocationIcon fontSize="small"/></IconButton>}
             <IconButton size="small" aria-label={i18n.chain.vq.map.reset} onClick={() => setView(INITIAL_VIEW)}><RestartAltIcon fontSize="small"/></IconButton>
         </div>
+        {readout !== undefined && readout !== "" && <div className="vq-map-readout" aria-hidden="true">{readout}</div>}
         <div className="vq-map-caption"><span>{i18n.chain.vq.map.legend}</span><span className="vq-map-help">{i18n.chain.vq.map.help}</span></div>
     </div>;
 };

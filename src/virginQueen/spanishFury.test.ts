@@ -18,6 +18,7 @@ describe("Spanish Fury (card #46)", () => {
         const G = game();
         if (!G.powers.spain.cards.includes("vq-046")) G.powers.spain.cards.push("vq-046");
         G.powers.england.cards = ["vq-020", "vq-021"];
+        G.lastCapture = {space: "antwerp", attacker: "spain", impulse: G.impulse};
 
         expect(playCard(G, context(), {cardId: "vq-046", asEvent: true, target: "england"})).toBeUndefined();
 

@@ -22,6 +22,7 @@ describe("Sack! (card #44)", () => {
         G.spaces.dover.control = "france";
         G.spaces.dover.fortress = true;
         G.spaces.dover.land.france = {regular: 1, merc: 0, cav: 0};
+        G.lastCapture = {space: "portsmouth", attacker: "england", impulse: G.impulse};
 
         expect(playCard(G, context(), {cardId: "vq-044", asEvent: true, target: "portsmouth"})).toBeUndefined();
 

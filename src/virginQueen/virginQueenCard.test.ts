@@ -47,7 +47,9 @@ describe("Virgin Queen home card (rule 21.3)", () => {
 
         expect(playCard(G, context([4]), {cardId: "vq-036", asEvent: true})).toBeUndefined();
 
-        expect(G.powers.spain.cp).toBe(cp + 4);
+        // Rule 23.3: the CP is restricted to influence / mercenary actions.
+        expect(G.powers.spain.cp).toBe(cp);
+        expect(G.powers.spain.jiltedCp).toBe(4);
         expect(G.powers.spain.marriageCardModifier).toBe(0);
     });
 

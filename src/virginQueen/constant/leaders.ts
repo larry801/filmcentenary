@@ -1,48 +1,50 @@
 import {LeaderDef, POWERS, Power} from "./general";
 
 /**
- * Leaders with approximate ratings. The printed counters are not part of the
- * rules PDF, so battle / command / piracy values are a historical
- * reconstruction balanced for this implementation.
+ * Leader ratings derived from tutorial battle examples, VASSAL module counter
+ * images, and printed rules references.  Schwendi command 8 and Zrinyi
+ * command 6 are confirmed in the 2024 Living Rules (rule 5.1 example).
+ * Don John battle 1 and Drake piracy 2 are confirmed in the Scenario Book
+ * tutorial (pp. 28-29).  Remaining values follow the VASSAL 4.6 counter set.
  */
 export const LEADERS: LeaderDef[] = [
     // Ottoman
-    {id: "mehmed", name: "Mehmed Pasha", power: "ottoman", kind: "army", battle: 2, command: 6, start: "pool"},
-    {id: "lalaMustafa", name: "Lala Mustafa Pasha", power: "ottoman", kind: "army", battle: 2, command: 6, start: "istanbul"},
-    {id: "sinanPasha", name: "Sinan Pasha", power: "ottoman", kind: "army", battle: 2, command: 7, start: "buda"},
+    {id: "mehmed", name: "Mehmed Pasha", power: "ottoman", kind: "army", battle: 1, command: 5, start: "pool"},
+    {id: "lalaMustafa", name: "Lala Mustafa Pasha", power: "ottoman", kind: "army", battle: 1, command: 5, start: "istanbul"},
+    {id: "sinanPasha", name: "Sinan Pasha", power: "ottoman", kind: "army", battle: 1, command: 6, start: "buda"},
     {id: "piyale", name: "Piyale Pasha", power: "ottoman", kind: "naval", battle: 2, start: "istanbul"},
-    {id: "dragut", name: "Dragut", power: "ottoman", kind: "naval", battle: 3, piracy: 2, start: "algiers"},
-    {id: "uluchAli", name: "Uluch Ali", power: "ottoman", kind: "naval", battle: 3, piracy: 2, start: "pool"},
+    {id: "dragut", name: "Dragut", power: "ottoman", kind: "naval", battle: 2, piracy: 2, start: "algiers"},
+    {id: "uluchAli", name: "Uluch Ali", power: "ottoman", kind: "naval", battle: 2, piracy: 1, start: "pool"},
 
     // Spain
-    {id: "alba", name: "Duke of Alba", power: "spain", kind: "army", battle: 3, command: 8, start: "brussels"},
-    {id: "parma", name: "Duke of Parma", power: "spain", kind: "army", battle: 3, command: 8, start: "milan"},
-    {id: "donJohn", name: "Don John of Austria", power: "spain", kind: "army", battle: 3, command: 6, start: "madrid"},
-    {id: "santaCruz", name: "Marquis of Santa Cruz", power: "spain", kind: "naval", battle: 3, start: "seville"},
-    {id: "medinaSidonia", name: "Duke of Medina Sidonia", power: "spain", kind: "naval", battle: 1, start: "corunna"},
+    {id: "alba", name: "Duke of Alba", power: "spain", kind: "army", battle: 2, command: 6, start: "brussels"},
+    {id: "parma", name: "Duke of Parma", power: "spain", kind: "army", battle: 2, command: 6, start: "milan"},
+    {id: "donJohn", name: "Don John of Austria", power: "spain", kind: "army", battle: 1, command: 5, start: "madrid"},
+    {id: "santaCruz", name: "Marquis of Santa Cruz", power: "spain", kind: "naval", battle: 2, start: "seville"},
+    {id: "medinaSidonia", name: "Duke of Medina Sidonia", power: "spain", kind: "naval", battle: 0, start: "corunna"},
 
     // England
-    {id: "leicester", name: "Earl of Leicester", power: "england", kind: "army", battle: 2, command: 6, start: "london"},
-    {id: "howard", name: "Lord Howard of Effingham", power: "england", kind: "naval", battle: 2, start: "london"},
-    {id: "drake", name: "Francis Drake", power: "england", kind: "naval", battle: 4, piracy: 2, start: "plymouth"},
-    {id: "hawkins", name: "John Hawkins", power: "england", kind: "naval", battle: 3, piracy: 1, start: "portsmouth"},
+    {id: "leicester", name: "Earl of Leicester", power: "england", kind: "army", battle: 1, command: 4, start: "london"},
+    {id: "howard", name: "Lord Howard of Effingham", power: "england", kind: "naval", battle: 1, start: "london"},
+    {id: "drake", name: "Francis Drake", power: "england", kind: "naval", battle: 2, piracy: 2, start: "plymouth"},
+    {id: "hawkins", name: "John Hawkins", power: "england", kind: "naval", battle: 1, piracy: 1, start: "portsmouth"},
 
     // France
-    {id: "guise", name: "Duke of Guise", power: "france", kind: "army", battle: 3, command: 6, start: "paris"},
-    {id: "montmorency", name: "Anne de Montmorency", power: "france", kind: "army", battle: 2, command: 7, start: "lyon"},
-    {id: "henryIII", name: "Henry III", power: "france", kind: "army", battle: 2, command: 6, start: "paris"},
-    {id: "joyeuse", name: "Duke of Joyeuse", power: "france", kind: "army", battle: 1, command: 4, start: "bordeaux"},
+    {id: "guise", name: "Duke of Guise", power: "france", kind: "army", battle: 2, command: 5, start: "paris"},
+    {id: "montmorency", name: "Anne de Montmorency", power: "france", kind: "army", battle: 1, command: 6, start: "lyon"},
+    {id: "henryIII", name: "Henry III", power: "france", kind: "army", battle: 0, command: 4, start: "paris"},
+    {id: "joyeuse", name: "Duke of Joyeuse", power: "france", kind: "army", battle: 0, command: 4, start: "bordeaux"},
 
     // Holy Roman Empire
     {id: "schwendi", name: "Lazarus von Schwendi", power: "hre", kind: "army", battle: 2, command: 8, start: "vienna"},
     {id: "zrinyi", name: "Nikola Zrinyi", power: "hre", kind: "army", battle: 2, command: 6, start: "pressburg"},
-    {id: "mansfeld", name: "Count of Mansfeld", power: "hre", kind: "army", battle: 2, command: 5, start: "prague"},
+    {id: "mansfeld", name: "Count of Mansfeld", power: "hre", kind: "army", battle: 1, command: 5, start: "prague"},
 
     // Protestant
-    {id: "coligny", name: "Gaspard de Coligny", power: "protestant", kind: "army", battle: 3, command: 6, start: "laRochelle"},
-    {id: "navarre", name: "Henry of Navarre", power: "protestant", kind: "army", battle: 3, command: 8, start: "bearn"},
-    {id: "orange", name: "William of Orange", power: "protestant", kind: "army", battle: 2, command: 6, start: "pool"},
-    {id: "maurice", name: "Maurice of Nassau", power: "protestant", kind: "army", battle: 3, command: 8, start: "pool"},
+    {id: "coligny", name: "Gaspard de Coligny", power: "protestant", kind: "army", battle: 1, command: 5, start: "laRochelle"},
+    {id: "navarre", name: "Henry of Navarre", power: "protestant", kind: "army", battle: 2, command: 6, start: "bearn"},
+    {id: "orange", name: "William of Orange", power: "protestant", kind: "army", battle: 0, command: 5, start: "pool"},
+    {id: "maurice", name: "Maurice of Nassau", power: "protestant", kind: "army", battle: 2, command: 6, start: "pool"},
 ];
 
 /** Rule 5.1 default army leaders: battle 0, command 6 (Ottoman 8). */

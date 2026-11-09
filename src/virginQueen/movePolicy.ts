@@ -6,6 +6,14 @@ import {LEADER_BY_ID} from "./constant/leaders";
 export const moveError = (G: VQGame, move: string, args?: unknown): string | undefined => {
     if (G.pendingEspionage && move !== "chooseEspionage") return "请先完成当前谍报结算。";
     if (G.pendingCardEvent && move !== "chooseCardEvent") return "请先完成当前事件响应。";
+    if (G.pendingRebelMove && move !== "chooseRebelMove") return "请先完成叛军移动。";
+    // Rule 23.7: the affected power (not necessarily the event player) must
+    // commit its foreign-war force before the impulse can continue.  The event
+    // player may end that impulse to fall back to the automatic selection.
+    if (G.pendingForeignWar !== undefined && move !== "commitForeignWarForce" &&
+        !((move === "endImpulse" || move === "pass") && G.pendingForeignWar.power !== G.activePower)) {
+        return "请先完成境外战争的部队选择。";
+    }
     if (G.pendingAbjuration && move !== "chooseAbjuration") return "请先完成誓绝法案的提议选择。";
     if (G.pendingCityRebels && move !== "chooseCityRebelsLoss") return "请先完成城邦起义的损失选择。";
     if (G.pendingBeacon && move !== "respondBeaconFires") return "请先完成烽火响应。";

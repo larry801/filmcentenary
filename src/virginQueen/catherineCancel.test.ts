@@ -18,6 +18,7 @@ describe("Catherine's Flying Squadron (card #42)", () => {
         const G = game();
         G.powers.ottoman.cards = ["vq-044"];
         G.powers.england.cards = ["vq-042"];
+        G.lastCapture = {space: "rotterdam", attacker: "ottoman", impulse: G.impulse};
 
         expect(playCard(G, context("0"), {cardId: "vq-044", asEvent: true, target: "rotterdam"})).toBeUndefined();
         expect(G.pendingCardEvent?.kind).toBe("cancelEvent");

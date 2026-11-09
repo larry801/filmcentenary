@@ -48,9 +48,9 @@ describe("land formation limits (rule 5.2)", () => {
         expect(moveLand(G, context(), {from: "paris", to: "rouen", units: {regular: 5}, leaders: []})).toBe(INVALID_MOVE);
         expect(moveLand(G, context(), {from: "paris", to: "rouen", units: {regular: 7}, leaders: ["guise"]})).toBe(INVALID_MOVE);
 
-        // Guise has Command Rating 6.
-        expect(moveLand(G, context(), {from: "paris", to: "rouen", units: {regular: 6}, leaders: ["guise"]})).toBeUndefined();
-        expect(G.spaces.rouen.land.france).toEqual({regular: 6, merc: 0, cav: 0});
+        // Guise has Command Rating 5.
+        expect(moveLand(G, context(), {from: "paris", to: "rouen", units: {regular: 5}, leaders: ["guise"]})).toBeUndefined();
+        expect(G.spaces.rouen.land.france).toEqual({regular: 5, merc: 0, cav: 0});
         expect(G.spaces.rouen.leaders).toContain("guise");
     });
 
@@ -60,13 +60,13 @@ describe("land formation limits (rule 5.2)", () => {
         G.spaces.paris.land.france = {regular: 14, merc: 0, cav: 0};
         G.spaces.paris.leaders = ["guise", "montmorency"];
 
-        // Guise 6 + Montmorency 7 = 13.
+        // Guise 5 + Montmorency 6 = 11.
         expect(moveLand(G, context(), {
-            from: "paris", to: "rouen", units: {regular: 14}, leaders: ["guise", "montmorency"],
+            from: "paris", to: "rouen", units: {regular: 12}, leaders: ["guise", "montmorency"],
         })).toBe(INVALID_MOVE);
         expect(moveLand(G, context(), {
-            from: "paris", to: "rouen", units: {regular: 13}, leaders: ["guise", "montmorency"],
+            from: "paris", to: "rouen", units: {regular: 11}, leaders: ["guise", "montmorency"],
         })).toBeUndefined();
-        expect(G.spaces.rouen.land.france).toEqual({regular: 13, merc: 0, cav: 0});
+        expect(G.spaces.rouen.land.france).toEqual({regular: 11, merc: 0, cav: 0});
     });
 });

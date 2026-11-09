@@ -55,7 +55,7 @@ describe("naval loans to an ally (rule 9.2)", () => {
 
         expect(G.leaders.howard.location).toBe("corunna");
         expect(G.leaders.howard.loanedTo).toBe("spain");
-        expect(bestBattle(G, "corunna", ["spain"], "naval")).toBe(2);
+        expect(bestBattle(G, "corunna", ["spain"], "naval")).toBe(1);
 
         returnLoanedNaval(G);
         expect(G.leaders.howard.location).toBe("london");

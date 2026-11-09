@@ -33,7 +33,7 @@ import {
     setWar,
     winter,
 } from "./util";
-import {chooseHomeCard, chooseHreReligiousPreference, endPhaseTurn, fightForeignWar, gainIntelligence, playCard} from "./moves";
+import {chooseHomeCard, chooseHreReligiousPreference, choosePolishBid, endPhaseTurn, fightForeignWar, gainIntelligence, playCard} from "./moves";
 import {INVALID_MOVE} from "boardgame.io/core";
 
 const fakeCtx = (roll = () => 6): Ctx => ({
@@ -201,6 +201,9 @@ describe("Virgin Queen setup and data", () => {
         playCard(G, ctx, {cardId: "vq-073", asEvent: true, target: "3"});
         expect(G.powers.ottoman.cardModifier).toBe(-1);
 
+        // The event now opens the affected power's unit-selection window;
+        // this unit test resolves that stage directly.
+        delete G.pendingForeignWar;
         G.foreignWars.ottoman!.status = "active";
         G.foreignWars.ottoman!.units.regular = 3;
         G.foreignWars.ottoman!.enemyUnits = 1;
@@ -293,6 +296,16 @@ function passToEndAction(clients: any[]) {
             clients[POWERS.indexOf(state.G.gregorianResponse.responder)].moves.declineGregorianCalendar();
             continue;
         }
+        // Polish Royal Election is a Mandatory Event that asks each power for
+        // a bid; bid the first legal card (or pass when there is none).
+        if (state.G.pendingPolishElection !== undefined) {
+            const power = state.G.pendingPolishElection.remaining[0];
+            const idx = POWERS.indexOf(power);
+            const hand = clients[idx].getState().G.powers[power].cards;
+            const card = hand.find((id: string) => cardById(id).officialKind !== "mandatory");
+            clients[idx].moves.choosePolishBid({bid: card ?? "pass"});
+            continue;
+        }
         const idx = Number(state.ctx.currentPlayer);
         const hand = clients[idx].getState().G.powers[POWERS[idx]].cards;
         const mandatory = hand.find((id: string) => cardById(id).officialKind === "mandatory");
@@ -302,6 +315,12 @@ function passToEndAction(clients: any[]) {
             const target = def.officialEffect?.kind === "manual" && def.officialEffect.handler === "untimelyDeath"
                 ? (untimelyDeathTargets(state.G)[0] ?? "none") : undefined;
             clients[idx].moves.playCard({cardId: mandatory, asEvent: true, ...(target !== undefined ? {target} : {})});
+            clients[idx].moves.endImpulse();
+        } else if (hand.length > rulerStats(state.G, POWERS[idx]).admin) {
+            // Rule 11: a power may not pass while holding more cards than its
+            // ruler's Administrative Rating.  Burn a card for CP instead.
+            const card = hand.find((id: string) => cardById(id).kind !== "home") ?? hand[0];
+            clients[idx].moves.playCard({cardId: card});
             clients[idx].moves.endImpulse();
         } else {
             clients[idx].moves.pass();
@@ -489,10 +508,11 @@ describe("Virgin Queen turn flow", () => {
                 clients[0].moves.chooseNavalLeaderPort({leader: entry.leader, port: entry.ports[0]});
             }
             const before = clients[0].getState().G.spaces.edirne.land.ottoman?.regular ?? 0;
-            clients[0].moves.springDeploy({from: "istanbul", to: "edirne", units: {regular: 6}, leaders: ["mehmed"]});
+            // Mehmed's command rating is 5, so at most 5 units deploy.
+            clients[0].moves.springDeploy({from: "istanbul", to: "edirne", units: {regular: 5}, leaders: ["mehmed"]});
             const state = clients[0].getState();
-            expect(state.G.spaces.edirne.land.ottoman.regular).toBe(before + 6);
-            expect(state.G.spaces.istanbul.land.ottoman.regular).toBe(2);
+            expect(state.G.spaces.edirne.land.ottoman.regular).toBe(before + 5);
+            expect(state.G.spaces.istanbul.land.ottoman.regular).toBe(3);
             expect(state.G.spaces.istanbul.leaders).not.toContain("mehmed");
         } finally {
             stopClients(clients);

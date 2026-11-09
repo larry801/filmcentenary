@@ -14,7 +14,11 @@ import {
     MINOR_NAVAL_LIMITS,
     MINOR_POWERS,
     MINOR_REGULAR_LIMITS,
+    MERC_LIMITS,
     NAVAL_LIMITS,
+    GALLEY_LIMITS,
+    GALLEON_LIMITS,
+    CORSAIR_LIMITS,
     OTTOMAN_CAVALRY_LIMIT,
     REGULAR_LIMITS,
     NavalStack,
@@ -654,6 +658,7 @@ export const checkCircumnavigation = (G: VQGame, captainId: string, from: string
 
 export const resolveColonies = (G: VQGame, ctx: Ctx): void => {
     if (G.scenario === "tutorial") return;
+    G.colonyRolls = [];
     for (const [settlement, power] of Object.entries(G.worldColonies)) {
         if (power === undefined) continue;
         const plantation = G.powers[power].scienceBonuses.includes("plantation") ? 1 : 0;
@@ -665,15 +670,19 @@ export const resolveColonies = (G: VQGame, ctx: Ctx): void => {
         if (total <= 4) {
             delete G.worldColonies[settlement];
             if (G.worldControls[settlement] === power) delete G.worldControls[settlement];
+            G.colonyRolls.push({settlement, power, total, result: "eliminated"});
             pushLog(G, `Colony ${settlement} is eliminated.`);
-        } else if (total >= 11) {
+        } else if (total >= 12) {
             addTreasure(G, ctx, power, 1);
             addVp(G, power, 1);
+            G.colonyRolls.push({settlement, power, total, result: "treasureVp"});
             pushLog(G, `Colony ${settlement} yields a treasure and 1 Virginia Dare VP.`);
         } else if (total >= 9) {
             addTreasure(G, ctx, power, 1);
+            G.colonyRolls.push({settlement, power, total, result: "treasure"});
             pushLog(G, `Colony ${settlement} yields a treasure.`);
         } else {
+            G.colonyRolls.push({settlement, power, total, result: "none"});
             pushLog(G, `Colony ${settlement} has no effect this turn.`);
         }
     }
@@ -1510,6 +1519,27 @@ export const navalLostCountController = (G: VQGame, c: Controller): number => na
 
 export const cavalryCount = (G: VQGame, p: Power): number =>
     Object.values(G.spaces).reduce((total, space) => total + (space.land[p]?.cav ?? 0), 0);
+
+/** Total mercs for a major power (map + foreign wars + armada). */
+export const mercCount = (G: VQGame, p: Power): number => {
+    let total = 0;
+    for (const space of Object.values(G.spaces)) total += space.land[p]?.merc ?? 0;
+    total += G.foreignWars[p]?.units.merc ?? 0;
+    if (p === "spain" && G.armada?.land !== undefined) total += G.armada.land.merc;
+    return total;
+};
+
+/** Total naval units on the map of a given type for a major power. */
+export const navalForceCountByKind = (G: VQGame, p: Power, kind: keyof NavalStack): number => {
+    let total = 0;
+    for (const zone of Object.values(G.seaZones)) total += zone.naval[p]?.[kind] ?? 0;
+    for (const space of Object.values(G.spaces)) total += space.naval[p]?.[kind] ?? 0;
+    return total;
+};
+
+/** Naval units sunk but still counted against the force-pool limit, by type. */
+export const navalLostCountByKind = (G: VQGame, p: Power, kind: keyof NavalStack): number =>
+    G.navalLost?.[p]?.[kind] ?? 0;
 
 export const landForceCount = (G: VQGame, p: Power): number =>
     Object.values(G.spaces).reduce((total, space) => {
@@ -3122,6 +3152,7 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
     if (defendersListLeft === 0 && aHits > 0 && attackerLeft > 0) {
         s.control = p;
         delete s.siege;
+        G.lastCapture = {space, attacker: p, impulse: G.impulse};
         // Rule 15.1 step 9: naval units and naval leaders in a captured port go
         // to the next turn of the Turn Track; they may be rebuilt later.
         for (const c of ownersWithNaval(G, space)) {
@@ -4456,6 +4487,8 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         }
         G.powers[p].treasures = [];
         G.powers[p].cp = 0;
+        // Jilted compensation is immediate/current-turn only.
+        delete G.powers[p].jiltedCp;
         G.powers[p].cardPlayed = false;
         G.powers[p].passed = false;
         // Keep the non-player HRE's Papacy/Venice/Ireland markers set aside
@@ -4846,7 +4879,7 @@ const canRecruitAt = (G: VQGame, p: Power, id: string, kind: "regular" | "merc" 
     const spanishDutchHome = G.dutchSpanishHome === true && p === "spain" && def.area === "netherlands";
     if (!homes.includes(p) && !spanishDutchHome) return false;
     if (kind === "cav" && (p !== "ottoman" || cavalryCount(G, p) >= OTTOMAN_CAVALRY_LIMIT)) return false;
-    if (kind === "merc" && p === "ottoman") return false;
+    if (kind === "merc" && mercCount(G, p) >= MERC_LIMITS[p]) return false;
     if (p === "ottoman" && (id === "algiers" || id === "tripoli")) return false;
     if (p === "spain" && (id === "oran" || id === "malta")) return false;
     if (landForceCount(G, p) >= REGULAR_LIMITS[p]) return false;
@@ -4875,6 +4908,18 @@ const canBuildNavalAt = (G: VQGame, p: Power, port: string, kind: keyof NavalSta
     if (kind === "galleon" && !["spain", "england", "france", "protestant"].includes(p)) return false;
     if (p === "ottoman" && kind === "galley" && (port === "algiers" || port === "tripoli")) return false;
     if (minorHome === undefined && navalForceCount(G, p) + navalLostCount(G, p) >= NAVAL_LIMITS[p]) return false;
+    // Per-ship-type force-pool limits (counter mix).
+    if (minorHome === undefined) {
+        const PER_TYPE: Partial<Record<keyof NavalStack, Record<Power, number>>> = {
+            galley: GALLEY_LIMITS, galleon: GALLEON_LIMITS, corsair: CORSAIR_LIMITS,
+        };
+        const typeCap = PER_TYPE[kind];
+        if (typeCap !== undefined) {
+            const onMap = navalForceCountByKind(G, p, kind);
+            const lost = navalLostCountByKind(G, p, kind);
+            if (onMap + lost >= typeCap[p]) return false;
+        }
+    }
     if (kind === "galleon" && !portZones(port).some((z) =>
         z === "atlanticOcean" || z === "englishChannel" || z === "northSea" || z === "irishSea" || z === "bayOfBiscay")) {
         return false;
@@ -4929,6 +4974,15 @@ const canSpringFrom = (G: VQGame, p: Power, from: string): boolean => {
 };
 
 /**
+ * Rule 10.6: a sea zone may not be crossed during Spring Deployment while any
+ * other major power has naval units in one of its ports, even an ally's.
+ * Units loaned to the deploying power are already stacked as that power's
+ * units (the `loanedNaval` record tracks their return), so they do not block.
+ */
+export const springSeaCrossingBlocked = (G: VQGame, p: Power, zone: SeaZoneID): boolean =>
+    zonePorts(zone).some((port) => ownersWithNaval(G, port).some((owner) => isPower(owner) && owner !== p));
+
+/**
  * Rule 10.6 destinations: trace a path of any length from the capital,
  * crossing at most one sea zone, with no passes, unrest, foreign units or
  * foreign leaders on the path.  Mirrors the BFS in `springDeploy`.
@@ -4964,7 +5018,7 @@ const springTargetsFrom = (G: VQGame, p: Power, from: string): Set<string> => {
         for (const zone of portZones(current.id)) {
             // Other major powers' naval units in the zone's ports block the
             // crossing even when allied (10.6).
-            if (zonePorts(zone).some((port) => ownersWithNaval(G, port).some((owner) => isPower(owner) && owner !== p))) continue;
+            if (springSeaCrossingBlocked(G, p, zone)) continue;
             if (ownersWithNaval(G, zone).some((owner) => !friendlyController(G, p, owner))) continue;
             for (const port of zonePorts(zone)) {
                 if (port === current.id || !pathSpaceAllowed(port)) continue;

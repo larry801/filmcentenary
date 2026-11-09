@@ -88,6 +88,18 @@ describe("spring deployment (rule 10.6)", () => {
         })).toBe(INVALID_MOVE);
     });
 
+    it("blocks even an allied major power's naval units in a bordering port", () => {
+        const G = game();
+        G.powers.spain.allies = ["france"];
+        G.powers.france.allies = ["spain"];
+        for (const port of zonePorts("gulfOfLyon")) G.spaces[port].naval = {};
+        G.spaces.marseille.naval.france = {galley: 1, galleon: 0, racebuilt: 0, corsair: 0};
+
+        expect(springDeploy(G, context("1"), {
+            from: "madrid", to: "genoa", units: {regular: 2}, leaders: [],
+        })).toBe(INVALID_MOVE);
+    });
+
     it("allows at most 5 units to cross a sea zone", () => {
         const G = game();
         for (const port of zonePorts("gulfOfLyon")) G.spaces[port].naval = {};
@@ -111,7 +123,7 @@ describe("spring deployment (rule 10.6)", () => {
         const G = game();
         const leaders = ["guise", "henryIII", "montmorency"];
         // Rule 4.2: three leaders still form a legal formation; the two
-        // highest command ratings (7 + 6) cap it at 13 land units.
+        // highest command ratings (6 + 5) cap it at 11 land units.
         for (const space of Object.values(G.spaces)) {
             space.leaders = space.leaders.filter((id) => !leaders.includes(id));
         }
@@ -122,8 +134,9 @@ describe("spring deployment (rule 10.6)", () => {
         expect(springDeploy(G, context("3"), {
             from: "paris", to: "reims", units: {regular: 14}, leaders,
         })).toBe(INVALID_MOVE);
+        // Two highest command ratings (Montmorency 6 + Guise 5) cap it at 11.
         expect(springDeploy(G, context("3"), {
-            from: "paris", to: "reims", units: {regular: 13}, leaders,
+            from: "paris", to: "reims", units: {regular: 11}, leaders,
         })).toBeUndefined();
 
         expect(G.leaders.guise.location).toBe("reims");

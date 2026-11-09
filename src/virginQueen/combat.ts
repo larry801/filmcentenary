@@ -181,6 +181,7 @@ const finishCasualties = (G: VQGame, ctx: Ctx): void => {
             captureLeaders(G, battle.location, battle.defenders, battle.attacker);
             G.spaces[battle.location].control = battle.attacker;
             delete G.spaces[battle.location].siege;
+            G.lastCapture = {space: battle.location, attacker: battle.attacker, impulse: G.impulse};
             checkCyprusVp(G, battle.attacker, battle.location);
             endBattle(G, ctx);
             return;
@@ -188,6 +189,7 @@ const finishCasualties = (G: VQGame, ctx: Ctx): void => {
         if (attackerUnits > 0 && defenderUnits === 0 && battle.hitCounts!.attacker > 0) {
             G.spaces[battle.location].control = battle.attacker;
             delete G.spaces[battle.location].siege;
+            G.lastCapture = {space: battle.location, attacker: battle.attacker, impulse: G.impulse};
             checkCyprusVp(G, battle.attacker, battle.location);
         } else if (attackerUnits <= defenderUnits) {
             delete G.spaces[battle.location].siege;

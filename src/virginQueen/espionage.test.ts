@@ -65,9 +65,9 @@ describe("official Espionage Table", () => {
         G.powers.england.scienceBonuses = ["cryptography"];
         G.informants.push({owner: "england", target: "spain", neutralized: false, plantedImpulse: 1});
         const p = {kind: "assassination", power: "spain", targetPower: "england", target: "leicester", cp: 2} as any;
-        expect(espionageDice(G, p)).toEqual({attack: 2, defense: 5});
+        expect(espionageDice(G, p)).toEqual({attack: 2, defense: 4});
         G.spaces.london.control = "france";
-        expect(espionageDice(G, p).defense).toBe(4);
+        expect(espionageDice(G, p).defense).toBe(3);
     });
     it("adds each Jesuit and the presence bonuses once, irrespective of regular count", () => {
         const G = game(); G.espionage!.jesuits = ["york", "london"];
@@ -632,7 +632,7 @@ describe("#97 St. Bartholomew's Day Massacre", () => {
         chooseFr(G, "massacreConvertDone");
         const cpBefore = G.powers.france.cp, vpBefore = G.powers.france.bonusVp;
         expect(espionageDice(G, {...G.pendingEspionage!, kind: "assassination", power: "france", targetPower: "protestant", target: "coligny"}))
-            .toEqual({attack: 4, defense: 4});
+            .toEqual({attack: 4, defense: 2});
         chooseFr(G, "massacreAssassinate", [6, 6, 6, 6, 1, 1, 1, 1]);
         expect(G.powers.france.cp).toBe(cpBefore);
         expect(G.assassinationUsed).toContain("france");
