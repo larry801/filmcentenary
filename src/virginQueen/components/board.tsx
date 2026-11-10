@@ -1216,7 +1216,7 @@ export interface VirginQueenBoardProps extends BoardProps<VQGame> {
     hotseat?: boolean;
 }
 
-export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, hotseat = false}: VirginQueenBoardProps) => {
+export const VirginQueenBoard = ({G, log, ctx, moves, playerID, isActive, matchID, hotseat = false}: VirginQueenBoardProps) => {
     i18n.use();
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     const militaryKeyCount = (p: Power): number =>
@@ -2880,7 +2880,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                     {ctx.gameover.reason === "military" && ctx.gameover.power !== undefined && <Typography variant="caption">
                         {militaryGoal(ctx.gameover.power as Power)}
                     </Typography>}
-                    {matchID !== undefined && <ExportLogButton gameName="virginQueen" matchID={matchID}/>}
+                    {matchID !== undefined && <ExportLogButton gameName="virginQueen" matchID={matchID} log={log}/>}
                 </Paper> : actionPanel()}
                 {space !== undefined && spaceDef !== undefined && <section className="vq-space-detail" aria-label={i18n.chain.vq.board.spaceDetailLabel}>
                     <Typography variant="subtitle2">{placeLabel(spaceDef.id)}</Typography>

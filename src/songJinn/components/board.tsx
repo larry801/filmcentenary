@@ -118,7 +118,7 @@ export const SongJinnBoard = ({
                 title={`${sjPlayerName(ctx.gameover.winner)}胜利 ${ctx.gameover.reason}`}
                 toggleText={"游戏结束"} initial={true}/>}
             {ctx.gameover !== undefined && <Grid size={12}>
-                <ExportLogButton gameName="songJinn" matchID={matchID}/>
+                <ExportLogButton gameName="songJinn" matchID={matchID} log={log}/>
             </Grid>}
 
             <Grid container size={12}>

@@ -114,6 +114,50 @@ export const listMatchIDs = async (
 };
 
 /**
+ * The server has no stored log for this match. This is expected for local
+ * hotseat games, which never reach the server, and also happens when the page
+ * is served by a static host that answers every unknown path with index.html.
+ */
+export class MissingServerLogError extends Error {
+}
+
+/** Save arbitrary log data as a pretty-printed JSON download. */
+export const downloadLog = (data: unknown, filename: string): void => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+};
+
+/** Fetch the server's unredacted log for a finished match. */
+export const fetchFullLog = async (
+    serverURL: string,
+    gameName: string,
+    matchID: string
+): Promise<unknown> => {
+    const resp = await fetch(`${serverURL}/games/${encodeURIComponent(gameName)}/${encodeURIComponent(matchID)}/log`);
+    const contentType = resp.headers.get("content-type") ?? "";
+    if (!resp.ok) {
+        const body = await resp.text();
+        if (resp.status === 404) {
+            throw new MissingServerLogError(body);
+        }
+        throw new Error("failed to export log: " + body);
+    }
+    // A static host or dev server answers unknown paths with index.html and a
+    // 200, so checking only `resp.ok` would surface a raw JSON parse error.
+    if (!contentType.includes("application/json")) {
+        throw new MissingServerLogError("server did not return a log");
+    }
+    return resp.json();
+};
+
+/**
  * Download the full, unredacted log of a finished match as a JSON file.
  * The server refuses (403) while the match is still running.
  */
@@ -122,20 +166,24 @@ export const exportFullLog = async (
     gameName: string,
     matchID: string
 ): Promise<void> => {
-    const resp = await fetch(`${serverURL}/games/${encodeURIComponent(gameName)}/${encodeURIComponent(matchID)}/log`);
-    if (!resp.ok) {
-        throw new Error("failed to export log: " + (await resp.text()));
-    }
-    const data = await resp.json();
-    const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${gameName}-${matchID}-log.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    const data = await fetchFullLog(serverURL, gameName, matchID);
+    downloadLog(data, `${gameName}-${matchID}-log.json`);
+};
+
+/**
+ * Download the log the browser holds for a local (hotseat) match. There is no
+ * server copy, and the engine hides other seats' redacted move arguments, so
+ * the file is marked as local.
+ */
+export const exportLocalLog = (
+    gameName: string,
+    matchID: string | undefined,
+    log: unknown
+): void => {
+    downloadLog(
+        {gameName, matchID: matchID ?? "local", local: true, log},
+        `${gameName}-${matchID ?? "local"}-local-log.json`
+    );
 };
 
 /** Get information about a match. */

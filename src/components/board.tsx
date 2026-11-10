@@ -299,7 +299,7 @@ export const FilmCentenaryBoard = ({
                         <Typography variant="h6" component="h2">{getName(ctx.gameover.winner)}</Typography>
                     </Paper>
                     <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
-                    <ExportLogButton gameName="film" matchID={matchID}/>
+                    <ExportLogButton gameName="film" matchID={matchID} log={log}/>
                 </DialogContent>
             </Dialog>
         </>
