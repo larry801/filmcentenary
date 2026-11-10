@@ -99,6 +99,11 @@ const translateCode = (code: SetupLogCode, locale: "en" | "zh_CN", fallback: str
     if (template === undefined) return fallback;
     const params: Record<string, string> = {};
     for (const [key, value] of Object.entries(code.params)) params[key] = String(value);
+    // Scenario notes carry a Chinese variant; the engine log keeps the
+    // English fallback so exported logs stay locale-independent.
+    if (code.key === "scenarioNote" && locale === "zh_CN" && typeof params.noteZh === "string") {
+        params.note = params.noteZh;
+    }
     // Setup lines store power short names (English) in their params; localize
     // them when the surrounding template is Chinese.
     if (code.key === "vpStart") params.values = localizeLogLine(params.values, locale);

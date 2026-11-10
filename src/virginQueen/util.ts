@@ -383,8 +383,9 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
     pushSetupLog(G, "spacesPlaced", {count: Object.keys(scenario.spaces).length},
         `已按 Scenario Book 设置 ${Object.keys(scenario.spaces).length} 个地区。`);
     if (scenario.notes !== undefined) {
-        for (const note of scenario.notes) {
-            pushSetupLog(G, "scenarioNote", {note}, `场景说明：${note}`);
+        for (const [index, note] of scenario.notes.entries()) {
+            const noteZh = scenario.notesZh?.[index];
+            pushSetupLog(G, "scenarioNote", noteZh === undefined ? {note} : {note, noteZh}, `场景说明：${note}`);
         }
     }
     const unknownPatrons = G.patronsAvailable.filter((id) => patronDef(id)?.rating === null);

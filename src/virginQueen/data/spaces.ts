@@ -122,6 +122,7 @@ export const ADDITIONAL_SPACES: OfficialSpaceDef[] = [
 
     // France
     extra("calais", "Calais", 1.86, 50.95, "france", "fortress", {
+        area: "france",
         ports: ["englishChannel"],
     }),
     // Catholic League (20.10) requires Reims. It is printed as an unfortified

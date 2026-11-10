@@ -7,6 +7,12 @@ import {SCIENCE_BONUSES} from "./scienceBonuses";
 import {ScenarioPhase, ScenarioSetup, ScenarioSpaceSetup} from "./types";
 import {tutorialSpaceAllowed} from "../tutorial";
 
+/**
+ * Scenario Book convention: upper-case SCM/HCM marks the Catholic side and
+ * lower-case scm/hcm marks the Protestant side.  The marker colour still
+ * identifies the controlling power, so lower-case entries keep that control
+ * and must also set `religion: "protestant"`.
+ */
 const scm = (control: Controller, extra: ScenarioSpaceSetup = {}): ScenarioSpaceSetup => ({
     control,
     controlMarker: "scm",
@@ -102,15 +108,15 @@ export const CAMPAIGN: ScenarioSetup = {
         antwerp: scm("spain", {units: {spain: {regular: 1}}, notes: "Walloon regular"}),
         sHertogenbosch: hcm("spain"),
         flushing: hcm("spain"),
-        ghent: hcm("spain"),
+        ghent: hcm("spain", {religion: "protestant"}),
         brussels: scm("spain", {units: {spain: {regular: 1}}}),
         maastricht: hcm("spain"),
 
         // England
-        london: scm("england", {units: {england: {regular: 2}}}),
+        london: scm("england", {units: {england: {regular: 2}}, religion: "protestant"}),
         portsmouth: {naval: {england: {galleon: 1}}},
-        bristol: scm("england", {units: {england: {regular: 1}}}),
-        york: scm("england"),
+        bristol: scm("england", {units: {england: {regular: 1}}, religion: "protestant"}),
+        york: scm("england", {religion: "protestant"}),
         berwick: hcm("england", {
             units: {england: {regular: 2}},
             naval: {england: {galleon: 1}},
@@ -122,20 +128,21 @@ export const CAMPAIGN: ScenarioSetup = {
             leaders: ["montmorency"],
             units: {france: {regular: 3}},
         }),
+        orleans: {units: {france: {regular: 1}}},
         calais: scm("france", {naval: {france: {galleon: 1}}}),
-        rouen: scm("france"),
+        rouen: scm("france", {religion: "protestant"}),
         metz: scm("france", {units: {france: {regular: 1}}}),
         lyon: scm("france", {units: {france: {regular: 1}}}),
         marseille: scm("france", {units: {france: {regular: 1}}}),
         bordeaux: {units: {france: {regular: 1}}},
         laRochelle: scm("france", {religion: "protestant"}),
-        nantes: hcm("france"),
-        amboise: hcm("france"),
+        nantes: hcm("france", {religion: "protestant"}),
+        amboise: hcm("france", {religion: "protestant"}),
         brest: {naval: {france: {galley: 1}}},
         edinburgh: scm("france", {units: {france: {regular: 1}}}),
         glasgow: hcm("france"),
         stirling: hcm("france"),
-        perth: hcm("france"),
+        perth: hcm("france", {religion: "protestant"}),
 
         // Holy Roman Empire
         vienna: scm("hre", {
@@ -144,8 +151,8 @@ export const CAMPAIGN: ScenarioSetup = {
             notes: "Holy Roman Capital",
         }),
         prague: scm("hre", {units: {hre: {regular: 1}}}),
-        augsburg: scm("hre", {units: {hre: {regular: 1}}}),
-        frankfurt: scm("hre", {units: {hre: {regular: 1}}}),
+        augsburg: scm("hre", {units: {hre: {regular: 1}}, religion: "protestant"}),
+        frankfurt: scm("hre", {units: {hre: {regular: 1}}, religion: "protestant"}),
         szigetvar: {leaders: ["zrinyi"], units: {hre: {regular: 1}}},
 
         // Minor powers
@@ -213,6 +220,14 @@ export const CAMPAIGN: ScenarioSetup = {
         "Elisabeth de Valois has a prearranged marriage to Philip II; breaking it costs Spain one card on Turn 2.",
         "Protestant Spaces card starts at 18.",
         "VP track: Protestants 1, English 6, HRE 8, French 9, Ottoman 11, Spanish 17.",
+    ],
+    notesZh: [
+        "六人战役设置。#4 德意志的介入与 #37 崇高的门被移除。",
+        "西班牙与教宗国结盟；法国与苏格兰结盟；奥斯曼-西班牙、英格兰-法国处于战争。",
+        "第 1 回合谈判中不得结束这两场初始战争。",
+        "瓦卢瓦的伊丽莎白与腓力二世已有婚约；若毁约，西班牙在第 2 回合少抽 1 张牌。",
+        "新教地区标记从 18 开始。",
+        "VP 轨道：新教 1、英格兰 6、神圣罗马帝国 8、法国 9、奥斯曼帝国 11、西班牙 17。",
     ],
 };
 
@@ -302,19 +317,19 @@ export const TOURNAMENT: ScenarioSetup = {
             units: {venice: {regular: 1}},
             notes: "+1 VP Cyprus marker",
         }),
-        alkmaar: hcm("spain"),
+        alkmaar: hcm("spain", {religion: "protestant"}),
         haarlem: hcm("spain"),
-        amsterdam: scm("spain"),
+        amsterdam: scm("spain", {religion: "protestant"}),
         rotterdam: hcm("spain"),
         utrecht: hcm("spain", {units: {spain: {regular: 1}}}),
         arnhem: hcm("spain"),
-        brielle: hcm("spain"),
+        brielle: hcm("spain", {religion: "protestant"}),
         antwerp: scm("spain", {
             units: {spain: {regular: 2}},
             notes: "Walloon regulars",
         }),
         sHertogenbosch: hcm("spain"),
-        flushing: hcm("spain"),
+        flushing: hcm("spain", {religion: "protestant"}),
         ghent: hcm("spain"),
         brussels: scm("spain", {leaders: ["alba"], units: {spain: {regular: 1}}}),
         maastricht: hcm("spain"),
@@ -324,9 +339,10 @@ export const TOURNAMENT: ScenarioSetup = {
             leaders: ["leicester"],
             units: {england: {regular: 3}},
             naval: {england: {galleon: 1}},
+            religion: "protestant",
         }),
-        york: scm("england", {units: {england: {regular: 1}}}),
-        bristol: scm("england", {units: {england: {regular: 1}}}),
+        york: scm("england", {units: {england: {regular: 1}}, religion: "protestant"}),
+        bristol: scm("england", {units: {england: {regular: 1}}, religion: "protestant"}),
         portsmouth: {naval: {england: {galleon: 1}}},
         plymouth: {naval: {england: {galleon: 1}}},
         dublin: scm("england", {units: {england: {regular: 1}}}),
@@ -343,13 +359,13 @@ export const TOURNAMENT: ScenarioSetup = {
         lyon: scm("france"),
         marseille: scm("france", {units: {france: {regular: 1}}}),
         bordeaux: {units: {france: {regular: 1}}},
-        rennes: hcm("france"),
-        nantes: hcm("france"),
-        amboise: hcm("france"),
-        poitiers: hcm("france"),
-        limoges: hcm("france"),
-        montpellier: hcm("france"),
-        avignon: hcm("france"),
+        rennes: hcm("france", {religion: "protestant"}),
+        nantes: hcm("france", {religion: "protestant"}),
+        amboise: hcm("france", {religion: "protestant"}),
+        poitiers: hcm("france", {religion: "protestant"}),
+        limoges: hcm("france", {religion: "protestant"}),
+        montpellier: hcm("france", {religion: "protestant"}),
+        avignon: hcm("france", {religion: "protestant"}),
 
         // Holy Roman Empire
         vienna: scm("hre", {
@@ -358,8 +374,8 @@ export const TOURNAMENT: ScenarioSetup = {
             notes: "Holy Roman Capital",
         }),
         prague: scm("hre", {units: {hre: {regular: 1}}}),
-        augsburg: scm("hre", {units: {hre: {regular: 1}}}),
-        frankfurt: scm("hre", {units: {hre: {regular: 1}}}),
+        augsburg: scm("hre", {units: {hre: {regular: 1}}, religion: "protestant"}),
+        frankfurt: scm("hre", {units: {hre: {regular: 1}}, religion: "protestant"}),
 
         // Protestant - Huguenot and Dutch
         laRochelle: scm("protestant", {
@@ -368,12 +384,12 @@ export const TOURNAMENT: ScenarioSetup = {
             religion: "protestant",
             notes: "Huguenot Capital",
         }),
-        cognac: hcm("protestant"),
-        toulouse: hcm("protestant", {units: {protestant: {regular: 1}}, fortress: true}),
-        bayonne: hcm("protestant", {units: {protestant: {regular: 1}}}),
-        edinburgh: scm("protestant", {units: {scotland: {regular: 2}}}),
-        perth: hcm("protestant"),
-        stirling: hcm("protestant"),
+        cognac: hcm("protestant", {religion: "protestant"}),
+        toulouse: hcm("protestant", {units: {protestant: {regular: 1}}, fortress: true, religion: "protestant"}),
+        bayonne: hcm("protestant", {units: {protestant: {regular: 1}}, religion: "protestant"}),
+        edinburgh: scm("protestant", {units: {scotland: {regular: 2}}, religion: "protestant"}),
+        perth: hcm("protestant", {religion: "protestant"}),
+        stirling: hcm("protestant", {religion: "protestant"}),
         glasgow: hcm("protestant"),
 
         // Minor powers
@@ -460,6 +476,17 @@ export const TOURNAMENT: ScenarioSetup = {
         "Protestant Spaces card starts at 30.",
         "VP track: HRE 8, French 10, Protestants 10, English 11, Ottoman 14, Spanish 15.",
     ],
+    notesZh: [
+        "六人锦标赛设置；第 3-6 回合（1570-1593）。",
+        "移除 #11 德拉古特之陨与 #58 纳瓦拉的珍妮，作为第 1-2 回合已结算的事件。",
+        "六人局同样移除 #4 德意志的介入与 #37 崇高的门。",
+        "摩尔人起义（#28）已在场上。",
+        "西班牙与教宗国、西班牙与威尼斯结盟；奥斯曼-西班牙、法国-新教处于战争。",
+        "第 3 回合谈判中不得结束初始战争。",
+        "苏格兰女王玛丽被俘；沃尔辛厄姆未使用；奥兰治的威廉在场外。",
+        "新教地区标记从 30 开始。",
+        "VP 轨道：神圣罗马帝国 8、法国 10、新教 10、英格兰 11、奥斯曼帝国 14、西班牙 15。",
+    ],
 };
 
 export const TUTORIAL: ScenarioSetup = {
@@ -484,6 +511,7 @@ export const TUTORIAL: ScenarioSetup = {
     cardsOnBoard: [],
     phaseOrder: ["cardDraw", "spring", "action"],
     notes: ["Scenario Book pp. 4–5: Ottoman vs Spain, turns 1–3; HRE has no independent hand."],
+    notesZh: ["剧本第 4–5 页：奥斯曼对西班牙，第 1–3 回合；神圣罗马帝国不单独持有手牌。"],
 };
 
 export const SCENARIOS: Record<ScenarioSetup["id"], ScenarioSetup> = {

@@ -2,6 +2,7 @@ import React from "react";
 import Alert from "@mui/material/Alert";
 import Snackbar from "@mui/material/Snackbar";
 import i18n from "../../../constant/i18n";
+import {localizeLogLine} from "../../logText";
 
 export interface DiceToastProps {
     /** Raw roll summary from the game state, e.g. "3, 5, 5". */
@@ -22,6 +23,16 @@ const face = (value: string, index: number): React.ReactNode => {
 /** The individual die faces from a `G.lastRolls` summary. */
 export const DiceFaces = ({rolls}: {rolls: string}) => {
     const values = rolls.split(/[,\s]+/).filter((value) => value !== "");
+    const allDice = values.length > 0 && values.every((value) => /^\d+$/.test(value));
+    // G.lastRolls also carries summaries such as
+    // "catholic conversions in France: [4, 5]".  Splitting those into die
+    // faces glued the words together ("catholicconversionsinFrance"); render
+    // the localized summary instead.
+    if (!allDice) {
+        const locale = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
+        const localized = localizeLogLine(rolls, locale);
+        return <span className="vq-dice-row" aria-label={localized}>{localized}</span>;
+    }
     return <span className="vq-dice-row" aria-label={rolls}>{values.map(face)}</span>;
 };
 

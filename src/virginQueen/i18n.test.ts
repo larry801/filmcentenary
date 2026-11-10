@@ -41,6 +41,9 @@ describe("VQ bilingual helpers (zh_CN default, en on request)", () => {
         expect(rulerName("suleiman", "en")).toBe("Suleiman the Magnificent");
         expect(victoryText("standard")).toBe("标准胜利：达到 25 分");
         expect(victoryText("standard", "en")).toBe("Standard victory: reach 25 VP");
+        expect(victoryText("protestantReligious")).toBe("新教宗教胜利：新教影响超过 50 个地区");
+        expect(victoryText("protestantReligious", "en")).toBe("Protestant religious victory: Protestant influence over 50 spaces");
+        expect(victoryText("catholicReligious", "en")).toBe("Catholic religious victory: Protestant spaces reduced to 9");
     });
     it("card, scenario, captain, patron, science names flip", () => {
         const c = cardName("vq-001");
@@ -95,6 +98,16 @@ describe("VQ bilingual helpers (zh_CN default, en on request)", () => {
             .toBe("天主教联盟检查：法国本土 6 + 掷骰 6 = 12，成立！");
         expect(localizeLogLine("Portugal enters play; England starts with 1 diplomatic influence there."))
             .toBe("葡萄牙 进入游戏；英格兰初始拥有 1 点外交影响力。");
+        expect(localizeLogLine("Papal Bull: France makes seven Catholic attempts in France."))
+            .toBe("教皇诏书：法国 在 法国 进行 7 次天主教转化尝试。");
+        expect(localizeLogLine("Untimely Death: Piyale Pasha is removed from the game."))
+            .toBe("英年早逝：皮雅利帕夏 移出游戏。");
+        expect(localizeLogLine("France: catholic conversions in France: [4, 5]"))
+            .toBe("法国: 天主教在 法国 的转化：[4, 5]");
+        expect(localizeLogLine("catholic conversions in France: [4, 5]"))
+            .toBe("天主教在 法国 的转化：[4, 5]");
+        expect(localizeLogLine("protestant conversions in France: [3, 2, 2, 2, 5]"))
+            .toBe("新教在 法国 的转化：[3, 2, 2, 2, 5]");
         const source = "Rudolf II dies; the +2 Prague Cultural Center marker is removed from the game.";
         expect(localizeLogLine(source, "en")).toBe(source);
     });

@@ -91,7 +91,7 @@ describe("Virgin Queen board", () => {
         } as any}/>);
         expect(html).toContain("官方 Espionage Table");
         expect(html).toContain(">英格兰天主教叛乱<");
-        expect(html).toContain("约克 · 控制：英格兰 · 天主教 · 陆军 0 / 海军 0 / 将领 0 · 耶稣会士");
+        expect(html).toContain("约克 · 控制：英格兰 · 新教 · 陆军 0 / 海军 0 / 将领 0 · 耶稣会士");
         expect(html).not.toContain("可玩近似");
     });
 
@@ -328,6 +328,70 @@ describe("Virgin Queen board", () => {
         expect(html).toContain("对局结束 · 胜者：P2 西班牙");
         expect(html).not.toContain(">结束行动轮次<");
         expect(html).toContain("教学结束：回顾本局");
+    });
+
+    it("localizes the game-over reason and hides the cleared phase key", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: undefined, currentPlayer: "0", gameover: {winner: "1", power: "spain", reason: "military"}},
+            moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("军事胜利：控制足够多的关键城市");
+        expect(html).not.toContain("原因: military");
+        expect(html).not.toContain("vq.header.phase.");
+    });
+
+    it("caps the displayed turn at the scenario's final turn after a time-limit game", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "campaign"});
+        G.year = G.endTurn + 1;
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: undefined, currentPlayer: "0", gameover: {winner: "1", power: "spain", reason: "timeLimit"}},
+            moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("回合 7");
+        expect(html).not.toContain("回合 8");
+        expect(html).toContain("时限胜利：第 7 回合结束时分数最高");
+    });
+
+    it("shows the Protestant spaces target in the scenario panel", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "campaign"});
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: "0"}, moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("新教地区 18 / 51");
+        expect(html).toContain("超过 50 个时立即取得新教宗教胜利");
+    });
+
+    it("shows a Protestant religious victory with the correct threshold text", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "campaign"});
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: undefined, currentPlayer: "0",
+                gameover: {winner: "5", power: "protestant", reason: "protestantReligious"}},
+            moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("对局结束 · 胜者：P6 新教联盟");
+        expect(html).toContain("新教宗教胜利：新教影响超过 50 个地区");
+    });
+
+    it("offers a Polish election bid instead of an End Impulse button", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.pendingPolishElection = {bids: {}, remaining: ["france"]};
+        G.activePower = "spain";
+        const props = {
+            G, ctx: {phase: "action", currentPlayer: "1", numPlayers: 6},
+            moves: {}, playerID: "3", isActive: false, hotseat: true,
+        };
+        const france = renderToStaticMarkup(<VirginQueenBoard {...props as any}/>);
+        expect(france).toContain("波兰选王 · 竞标");
+        expect(france).toContain("当前竞标：法国");
+        expect(france).toContain("提交竞标");
+        expect(france).not.toContain(">结束行动轮次<");
+
+        const ottoman = renderToStaticMarkup(<VirginQueenBoard {...{...props, playerID: "0"} as any}/>);
+        expect(ottoman).toContain("等待 法国 竞标");
+        expect(ottoman).toContain("请切换到 P4 标签页");
+        expect(ottoman).toContain("需要响应 · 法国");
+        expect(ottoman).not.toContain(">结束行动轮次<");
     });
 
     it("shows teaching guidance and opens the tutorial at each player's capital", () => {
@@ -925,6 +989,10 @@ describe("Virgin Queen board", () => {
         expect(html).toContain("伦敦");
         expect(html).toContain("奥斯曼帝国");
         expect(html).toContain("行动阶段");
+        // Scenario notes are translated at render time without changing the
+        // English stored in the exported log.
+        expect(html).toContain("场景说明：六人战役设置");
+        expect(html).not.toContain("Six-player Campaign setup");
     });
 
     it("shows scanned card art in the hand for official cards but not legacy cards", () => {

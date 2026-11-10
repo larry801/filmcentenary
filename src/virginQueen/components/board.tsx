@@ -32,9 +32,26 @@ import {PendingBattlePanel} from "./board/PendingPanels/BattlePanel";
 import {PendingActivationPanel} from "./board/PendingPanels/ActivationPanel";
 import {PendingInterceptPanel} from "./board/PendingPanels/InterceptPanel";
 import {PendingInterceptionOrderPanel} from "./board/PendingPanels/InterceptionOrderPanel";
+import {PendingPolishElectionPanel} from "./board/PendingPanels/PolishElectionPanel";
 import {EventBranchPanel} from "./board/EventBranchPanel";
 import {branchParamValues, effectiveBranchIds, eventBranchChoice, eventBranchTarget} from "../eventBranches";
 import {eventTargetOptions, eventTargetValue} from "../eventTargets";
+import {
+    POLISH_ELECTION_POWERS,
+    polishElectionBidOptions,
+    polishElectionBidValue,
+    polishElectionTargetValue,
+    type PolishElectionBidChoices,
+    type PolishElectionPower,
+} from "../polishElection";
+export {
+    POLISH_ELECTION_POWERS,
+    POLISH_ELECTION_AUTO_LABEL,
+    polishElectionBidOptions,
+    polishElectionBidValue,
+    polishElectionTargetValue,
+} from "../polishElection";
+export type {PolishElectionBidChoices, PolishElectionBidOption, PolishElectionPower} from "../polishElection";
 export {eventTargetOptions, eventTargetValue} from "../eventTargets";
 export type {EventTargetOption} from "../eventTargets";
 import {useNotificationPermission, useTurnNotification} from "./board/useNotifications";
@@ -71,7 +88,7 @@ import {AREA_NAMES,
     ReligionArea,
     VQGame,
     isPower,
-    powerAt, spaceHomes} from "../constant/general";
+    powerAt, spaceHomes, VictoryReason, VICTORY_TEXT, victoryText} from "../constant/general";
 import {cardById, cardImageUrl, cardName} from "../constant/cards";
 import {LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN, leaderName} from "../constant/leaders";
 import {patronDef, royalAvailable, scenarioSetup, scienceBonusById, seaCaptainById, seaCaptainName} from "../scenario";
@@ -167,7 +184,13 @@ export const unitLabel = (kind: "regular" | "merc" | "cav"): string =>
 
 /** Phase label resolved at render time so it follows the active locale. */
 const phaseLabel = (phase: string): string =>
-    (i18n.chain.vq.header.phase as unknown as Record<string, string>)[phase] ?? phase;
+    phase === "" ? "" : ((i18n.chain.vq.header.phase as unknown as Record<string, string>)[phase] ?? phase);
+
+/** Localized game-over reason; unknown reasons stay readable instead of blank. */
+export const gameOverReasonText = (reason: string | undefined, locale: "en" | "zh_CN"): string => {
+    if (reason === undefined || reason === "") return "";
+    return reason in VICTORY_TEXT ? victoryText(reason as VictoryReason, locale) : reason;
+};
 
 /** Picks the active locale's name from data that carries English and Chinese labels. */
 const dataName = (def: {nameEn: string; nameZh?: string} | undefined): string =>
@@ -419,60 +442,6 @@ export const HolyLeagueTargetSelect = ({options, value, onChange}: {
         {options.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
     </Select>
 </FormControl>;
-
-type PolishElectionPower = "france" | "hre" | "spain";
-
-/** #86 bids are resolved in this fixed order, which also breaks ties. */
-export const POLISH_ELECTION_POWERS: PolishElectionPower[] = ["france", "hre", "spain"];
-
-export interface PolishElectionBidOption {
-    /** Segment value for one power: "" (auto), a card id, or "treasure:N". */
-    value: string;
-    label: string;
-}
-
-/** Chosen segment per bidding power; a missing or empty entry means auto. */
-export type PolishElectionBidChoices = Partial<Record<PolishElectionPower, string>>;
-
-/** What `resolvePolishElection` does without a segment: highest-CP card, else highest treasure. */
-export const POLISH_ELECTION_AUTO_LABEL = i18n.chain.vq.board.polishAuto;
-
-/**
- * Bid choices for one power in #86, in the same order the engine considers
- * them: non-mandatory hand cards by descending CP, then treasures.  Mandatory
- * cards are never legal bids, so they are not offered.
- */
-export const polishElectionBidOptions = (G: VQGame, power: PolishElectionPower, locale: "en" | "zh_CN" = "zh_CN"): PolishElectionBidOption[] => {
-    const cards = [...G.powers[power].cards]
-        .filter((id) => cardById(id).officialKind !== "mandatory")
-        .sort((a, b) => cardById(b).cp - cardById(a).cp || a.localeCompare(b))
-        .map((id) => {
-            const def = cardById(id);
-            return {value: id, label: `${cardName(id, locale)}${i18n.chain.vq.eventTargets.parenOpen}${i18n.chain.vq.board.hand} ${def.cp} CP${i18n.chain.vq.eventTargets.parenClose}`};
-        });
-    const treasures = [...G.powers[power].treasures].sort((a, b) => b - a)
-        .map((value) => ({value: `treasure:${value}`, label: `${i18n.chain.vq.board.treasure} ${value}${i18n.chain.vq.eventTargets.parenOpen}${value} CP${i18n.chain.vq.eventTargets.parenClose}`}));
-    return [{value: "", label: i18n.chain.vq.board.polishAuto}, ...cards, ...treasures];
-};
-
-/** Drops a stored bid that is no longer a legal choice for that power. */
-export const polishElectionBidValue = (G: VQGame, power: PolishElectionPower, selected: string | undefined): string => {
-    const value = selected ?? "";
-    return polishElectionBidOptions(G, power).some((option) => option.value === value) ? value : "";
-};
-
-/**
- * Builds the `france:card|hre:card|spain:treasure:N` grammar `playCard`
- * expects.  Auto-bidding powers are omitted; no explicit bid at all yields
- * `undefined` so `playCard` keeps its no-target defaults.
- */
-export const polishElectionTargetValue = (G: VQGame, choices: PolishElectionBidChoices): string | undefined => {
-    const segments = POLISH_ELECTION_POWERS
-        .map((power) => ({power, value: polishElectionBidValue(G, power, choices[power])}))
-        .filter((entry) => entry.value !== "")
-        .map((entry) => `${entry.power}:${entry.value}`);
-    return segments.length > 0 ? segments.join("|") : undefined;
-};
 
 /** Dedicated #86 selector: one bid dropdown per participating power. */
 export const PolishElectionTargetSelect = ({G, value, onChange}: {
@@ -1332,7 +1301,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
     // holder answered) or a new window offers a different set of powers.
     const actionResponder = (selectedActionResponder !== undefined && myActionResponders.includes(selectedActionResponder)
         ? selectedActionResponder : undefined) ?? myActionResponders[0] ?? actionResponders[0];
-    const responsePower = G.gregorianResponse && ownerOf(G, G.gregorianResponse.responder) === playerID ? G.gregorianResponse.responder :
+    const responsePower = G.pendingPolishElection && ownerOf(G, G.pendingPolishElection.remaining[0]) === playerID ? G.pendingPolishElection.remaining[0] :
+        G.gregorianResponse && ownerOf(G, G.gregorianResponse.responder) === playerID ? G.gregorianResponse.responder :
         G.pendingBeacon && ownerOf(G, G.pendingBeacon.defender) === playerID ? G.pendingBeacon.defender :
         G.pendingInterceptionOrder && ownerOf(G, G.pendingInterceptionOrder.defender) === playerID ? G.pendingInterceptionOrder.defender :
         G.pendingIntercept && ownerOf(G, G.pendingIntercept.defender) === playerID ? G.pendingIntercept.defender :
@@ -1365,6 +1335,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
     });
     useNotificationPermission(myTurn || responsePower !== undefined);
     const phase = ctx.phase ?? "";
+    // boardgame.io clears ctx.phase when the game ends; showing the empty key
+    // would render "vq.header.phase." and spam the i18n missing-key warning.
+    const phaseText = phaseLabel(phase);
+    // The winter step advances the year before endIf reports the time-limit
+    // winner, so cap the header at the scenario's final turn on game over.
+    const displayYear = ctx.gameover !== undefined ? Math.min(G.year, G.endTurn) : G.year;
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
     const hand = ps?.cards ?? [];
@@ -1401,7 +1377,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
         const tab = switchToTab(G.activePower);
         return tab === undefined ? base : `${base} ${tab}`;
     };
-    const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingReliefSplit && !G.pendingRebelMove && !G.pendingForeignWar;
+    const canAct = myTurn && phase === "action" && !G.pendingPolishElection && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingReliefSplit && !G.pendingRebelMove && !G.pendingForeignWar;
     const vqCombatRetrieve = virginQueenCombatRetrieveOptions(G, playerID);
 
     /** Why an action mode is unavailable, or undefined when it can be picked. */
@@ -1537,6 +1513,17 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
     }, [from, mode, isDesktop]);
 
     React.useEffect(() => {setSelectedCard(undefined);}, [me, playerID]);
+
+    React.useEffect(() => {
+        // Hotseat boards stay mounted while other seats finish the game.  A
+        // pass/end-impulse confirmation left open on an earlier tab would
+        // otherwise sit on top of the game-over panel and look clickable.
+        if (ctx.gameover === undefined) return;
+        setConfirmAction(null);
+        setSelectedCard(undefined);
+        setFrom(null);
+        setTransportZones([]);
+    }, [ctx.gameover]);
 
     React.useEffect(() => {
         const cancelOnEscape = (event: KeyboardEvent) => {
@@ -1788,6 +1775,12 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
     };
 
     const actionPanel = () => {
+        if (G.pendingPolishElection) {
+            const bidder = G.pendingPolishElection.remaining[0];
+            return <PendingPolishElectionPanel G={G} playerID={playerID}
+                onBid={(bid) => moves.choosePolishBid({bid})}
+                switchToTab={bidder !== undefined ? switchToTab(bidder) : undefined}/>;
+        }
         if (G.pendingEspionage) return <PendingEspionagePanel G={G} moves={moves} playerID={playerID}/>;
         if (G.pendingAbjuration) return <PendingAbjurationPanel G={G} moves={moves} playerID={playerID}
             selectedPower={selectedAbjurationPower} onSelect={setSelectedAbjurationPower}/>;
@@ -2776,7 +2769,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
         return list;
     };
 
-    const pendingPower = G.gregorianResponse?.responder ?? G.pendingBeacon?.defender ?? G.pendingInterceptionOrder?.defender ?? G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
+    const pendingPower = G.pendingPolishElection?.remaining[0] ?? G.gregorianResponse?.responder ?? G.pendingBeacon?.defender ?? G.pendingInterceptionOrder?.defender ?? G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
         G.pendingEspionage?.responding ?? G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target ?? G.pendingRebelMove?.power ??
         G.pendingReliefSplit?.power ?? G.pendingForeignWar?.power ??
         (G.pendingCityRebels !== undefined ? (isPower(G.pendingCityRebels.controller) ? G.pendingCityRebels.controller : G.pendingCityRebels.power) : undefined) ??
@@ -2809,8 +2802,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
             <div><div className="vq-eyebrow">A game of diplomacy & empire · 1559–1598</div>
                 <h1 className="vq-title">Virgin Queen</h1></div>
             <div className="vq-status-meta">
-                <span>{scenarioName(G.scenario, vqLocale)} · {i18n.chain.vq.header.turn} {G.year}{G.scenario === "tutorial" ? " / 3" : ""}</span>
-                <span> / {phaseLabel(phase)}</span>
+                <span>{scenarioName(G.scenario, vqLocale)} · {i18n.chain.vq.header.turn} {displayYear}{G.scenario === "tutorial" ? " / 3" : ""}</span>
+                {phaseText !== "" && <span> / {phaseText}</span>}
                 <strong>{ctx.gameover !== undefined ? i18n.chain.vq.header.gameOver : `${i18n.chain.vq.header.current}${i18n.chain.vq.punct.colon}${powerName(G.activePower, vqLocale)}`}</strong>
                 <span>{me ? `${i18n.chain.vq.header.viewing} ${powerName(me, vqLocale)} · ${cp} CP` : i18n.chain.vq.header.spectator}</span>
                 {standings.map((entry) => <span key={entry.power} className="vq-score">
@@ -2874,7 +2867,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                 </Stack>}
                 {ctx.gameover !== undefined ? <Paper variant="outlined" sx={{p: 1.5, mb: 1}} role="status">
                     <Typography variant="h6">{i18n.chain.vq.shell.gameOver} · {i18n.chain.vq.shell.winner}{i18n.chain.vq.punct.colon}P{Number(ctx.gameover.winner) + 1} {powerName((ctx.gameover.power ?? powerAt(String(ctx.gameover.winner))) as Power, vqLocale)}</Typography>
-                    <Typography variant="body2">{i18n.chain.vq.shell.reason}: {ctx.gameover.reason ?? ""}</Typography>
+                    <Typography variant="body2">{i18n.chain.vq.shell.reason}: {gameOverReasonText(ctx.gameover.reason, vqLocale)}</Typography>
                     {matchID !== undefined && <ExportLogButton gameName="virginQueen" matchID={matchID}/>}
                 </Paper> : actionPanel()}
                 {space !== undefined && spaceDef !== undefined && <section className="vq-space-detail" aria-label={i18n.chain.vq.board.spaceDetailLabel}>
@@ -2972,7 +2965,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                               onSelectSpace={(id) => setSelected(id)}/>
                 </ActionGroup>
                 <ActionGroup title={i18n.chain.vq.intel.scenario}>
-                    <Typography variant="body2">{scenarioName(G.scenario, vqLocale)} · {i18n.chain.vq.intel.deck} {G.deckCount ?? 0} · {i18n.chain.vq.intel.protestantSpaces} {protestantSpaceCount(G)}</Typography>
+                    <Typography variant="body2" title={G.scenario === "tutorial" ? undefined : i18n.chain.vq.intel.protestantSpacesGoalHint}>{scenarioName(G.scenario, vqLocale)} · {i18n.chain.vq.intel.deck} {G.deckCount ?? 0} · {G.scenario === "tutorial"
+                        ? `${i18n.chain.vq.intel.protestantSpaces} ${protestantSpaceCount(G)}`
+                        : i18n.chain.vq.intel.protestantSpacesGoal.replace("{count}", String(protestantSpaceCount(G)))}</Typography>
                     {G.scenario === "tutorial" && <>
                         <Typography variant="body2">{i18n.chain.vq.intel.tutorialOttoman}</Typography>
                         <Typography variant="body2">{i18n.chain.vq.intel.tutorialOttoman2} {powerVp(G, "ottoman")} VP ({i18n.chain.vq.intel.keys} {baseVp(G, "ottoman")}, {i18n.chain.vq.intel.fortress} {tutorialFortressVp(G)}, {i18n.chain.vq.intel.other} {G.powers.ottoman.bonusVp}). {i18n.chain.vq.intel.remainingTurns}: {Math.max(0, 4 - G.year)}.</Typography>
@@ -3008,7 +3003,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                 {cardView(selectedCard)}
             </div>}
         </Drawer>
-        <DiceToast rolls={G.lastRolls}/>
+        <DiceToast rolls={ctx.gameover === undefined ? G.lastRolls : undefined}/>
         <Snackbar open={actionNotice !== undefined} autoHideDuration={3000} onClose={() => setActionNotice(undefined)}
                   anchorOrigin={{vertical: "bottom", horizontal: "center"}}>
             <Alert severity="error" variant="filled" onClose={() => setActionNotice(undefined)}>{actionNotice}</Alert>

@@ -1,0 +1,20 @@
+对局结束 · 胜者：P6 新教联盟
+原因: 新教宗教胜利：新教影响超过 50 个地区
+
+track = 51
+year = 5
+scenario = Tournament · 荷兰起义开始
+
+最后一次行动：
+新教联盟 plays 加尔文宗狂热 as an event.
+新教联盟: protestant conversions in France: [6, 4, 3, 1, 5, 2, 3]
+Converted: Calais; unrest in 1 space(s).
+新教联盟: protestant conversions in Netherlands: [6, 2, 2, 3, 5, 5, 3]
+Converted: Brussels, Maastricht, Lille.
+
+终点状态：
+ctx.gameover = {winner: "5", power: "protestant", reason: "protestantReligious"}
+
+另一次实测中的法国转化（证明巴黎/第戎/梅斯已进入法国宗教区）：
+新教联盟: protestant conversions in France: [4, 5, 6, 6, 4]
+Converted: Paris, Metz, Dijon, Nimes, Reims.

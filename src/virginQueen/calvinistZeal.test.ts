@@ -21,6 +21,11 @@ describe("Calvinist Zeal (card #32)", () => {
         G.spaces.orleans.control = "france";
         G.spaces.orleans.religion = "protestant";
         G.spaces.orleans.siege = undefined;
+        // The Campaign setup places a French regular in Orleans; clear it so
+        // the rebellion test still exercises the event, not the garrison.
+        G.spaces.orleans.land = {};
+        G.spaces.orleans.naval = {};
+        G.spaces.orleans.leaders = [];
 
         expect(playCard(G, context(), {cardId: "vq-032", asEvent: true, target: "rebel:orleans"})).toBeUndefined();
 
@@ -33,6 +38,9 @@ describe("Calvinist Zeal (card #32)", () => {
         G.spaces.orleans.control = "france";
         G.spaces.orleans.religion = "protestant";
         G.spaces.orleans.siege = undefined;
+        G.spaces.orleans.land = {};
+        G.spaces.orleans.naval = {};
+        G.spaces.orleans.leaders = [];
         G.spaces.antwerp.control = "spain";
         G.spaces.antwerp.religion = "protestant";
         G.spaces.antwerp.siege = undefined;

@@ -81,7 +81,7 @@ const localizeNames = (text: string): string =>
         `${prefix}${names.get(english) ?? english}`);
 
 const side = (value: string): string => value === "field" ? "野战" : value === "naval" ? "海战" : "强攻";
-const religion = (value: string): string => value === "catholic" ? "天主教" : value === "protestant" ? "新教" : value;
+const religion = (value: string): string => value === "catholic" ? "天主教" : value === "protestant" ? "新教" : value === "新教联盟" ? "新教" : value;
 const phase = (value: string): string => value === "spring" ? "春季部署" : value === "action" ? "行动阶段" : value === "diplomacy" ? "外交阶段" : value;
 const unitKind = (value: string): string => ({
     regular: "正规军", merc: "雇佣兵", mercenary: "雇佣兵", cav: "骑兵", cavalry: "骑兵",
@@ -245,7 +245,11 @@ const RULES: Rule[] = [
     [/^Converted: (.+?); unrest in (\d+) space\(s\)\.$/, (_m, places, n) => `已转化：${places}；${n} 个地区出现动荡。`],
     [/^Converted: (.+)$/, (_m, places) => `已转化：${places}`],
     [/^No conversions possible\.$/, "没有可转化的地区。"],
-    [/^(.+) conversions in (.+): \[(.+)\]$/, (_m, sideName, area, dice) => `${religion(sideName)}在 ${area} 的转化：[${dice}]`],
+    [/^(?:([^:]+): )?([a-z]+|新教|新教联盟|天主教) conversions in (.+): \[(.+)\]$/, (_m, prefix, sideName, area, dice) =>
+        `${prefix !== undefined && prefix !== "" ? `${prefix}: ` : ""}${religion(sideName)}在 ${area} 的转化：[${dice}]`],
+    [/^Papal Bull: (.+) makes seven (?:Catholic|天主教) attempts in (.+)\.$/, (_m, p, area) =>
+        `教皇诏书：${p} 在 ${area} 进行 7 次天主教转化尝试。`],
+    [/^Untimely Death: (.+) is removed from the game\.$/, (_m, name) => `英年早逝：${name} 移出游戏。`],
     [/^(.+) conversion in (.+)\.$/, (_m, sideName, place) => `${place} 转为${religion(sideName)}。`],
 
     // ---------------------------------------------------------------- rulers, royals, marriages

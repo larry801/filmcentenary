@@ -1010,8 +1010,8 @@ export type VictoryReason =
 
 export const VICTORY_TEXT: Record<VictoryReason, { en: string; zh: string }> = {
     military: {en: "Military victory: control enough key cities", zh: "军事胜利：控制足够多的关键城市"},
-    protestantReligious: {en: "Protestant religious victory: Protestant influence in more than half the religious areas", zh: "新教宗教胜利：新教影响超过半数宗教地区"},
-    catholicReligious: {en: "Catholic religious victory: Protestant influence compressed to the limit", zh: "天主教宗教胜利：新教影响被压缩到极限"},
+    protestantReligious: {en: "Protestant religious victory: Protestant influence over 50 spaces", zh: "新教宗教胜利：新教影响超过 50 个地区"},
+    catholicReligious: {en: "Catholic religious victory: Protestant spaces reduced to 9", zh: "天主教宗教胜利：新教地区降至 9 个"},
     catholicRebellion: {en: "Catholic rebellion victory: the Gunpowder Plot succeeds and Spain wins", zh: "天主教叛乱胜利：火药阴谋成功，西班牙获胜"},
     standard: {en: "Standard victory: reach 25 VP", zh: "标准胜利：达到 25 分"},
     domination: {en: "Domination victory: lead every opponent by at least 5 VP", zh: "支配胜利：领先所有对手至少 5 分"},

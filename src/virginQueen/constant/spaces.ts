@@ -79,19 +79,22 @@ export const SPACES: SpaceDef[] = [
 
     // ---------------------------------------------------------------- France
     space("paris", "Paris", 2.35, 48.86, "france", "key", {
+        area: "france",
         capitalOf: "france",
         initial: {france: {regular: 4}},
     }),
     space("rouen", "Rouen", 1.10, 49.44, "france", "fortress", {
+        area: "france",
         ports: ["englishChannel"],
         initial: {france: {regular: 1}},
     }),
-    space("amiens", "Amiens", 2.30, 49.89, "france", "open"),
+    space("amiens", "Amiens", 2.30, 49.89, "france", "open", { area: "france" }),
     space("orleans", "Orleans", 1.90, 47.90, "france", "fortress", { homes: ["france", "protestant"],
         area: "france",
         initial: {france: {regular: 1}},
     }),
     space("dijon", "Dijon", 5.04, 47.32, "france", "fortress", {
+        area: "france",
         initial: {france: {regular: 1}},
     }),
     space("bourges", "Bourges", 2.40, 47.08, "france", "open", { homes: ["france", "protestant"],
@@ -105,6 +108,7 @@ export const SPACES: SpaceDef[] = [
         initial: {france: {regular: 2}},
     }),
     space("marseille", "Marseille", 5.37, 43.30, "france", "fortress", { homes: ["france", "protestant"],
+        area: "france",
         ports: ["gulfOfLyon"],
         initial: {france: {regular: 2}},
         initialNaval: {france: {galley: 1}},
@@ -114,14 +118,17 @@ export const SPACES: SpaceDef[] = [
         initial: {france: {regular: 1}},
     }),
     space("bordeaux", "Bordeaux", -0.58, 44.84, "france", "fortress", { homes: ["france", "protestant"],
+        area: "france",
         ports: ["bayOfBiscay"],
         initial: {france: {regular: 2}},
     }),
     space("nantes", "Nantes", -1.55, 47.22, "france", "open", { homes: ["france", "protestant"],
+        area: "france",
         ports: ["bayOfBiscay"],
         initialNaval: {france: {galleon: 1}},
     }),
     space("brest", "Brest", -4.49, 48.39, "france", "fortress", {
+        area: "france",
         ports: ["atlanticOcean", "bayOfBiscay"],
         initialNaval: {france: {galleon: 1}},
     }),
@@ -144,6 +151,7 @@ export const SPACES: SpaceDef[] = [
         area: "france",
     }),
     space("metz", "Metz", 6.18, 49.12, "independent", "key", {
+        area: "france",
         initial: {hre: {regular: 1}},
     }),
     space("geneva", "Geneva", 6.14, 46.20, "independent", "fortress", {

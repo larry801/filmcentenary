@@ -122,6 +122,8 @@ export interface ScenarioSetup {
     /** Official setup order, before the Action Phase. */
     phaseOrder: ScenarioPhase[];
     notes?: string[];
+    /** Chinese rendering of `notes`, in the same order. */
+    notesZh?: string[];
 }
 
 export type ScenarioPhase = "cardDraw" | "diplomacy" | "spring" | "action";

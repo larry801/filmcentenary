@@ -551,11 +551,17 @@ describe("#78 Northern Rising", () => {
 
     it("excludes spaces with Protestant units and keeps the last Protestant English space", () => {
         const G = nr();
+        // Normalize England so the last Protestant space is unambiguous; the
+        // Campaign setup now marks London, Bristol and York Protestant.
+        for (const space of SPACES.filter((def) => def.area === "england")) G.spaces[space.id].religion = "catholic";
+        G.spaces.london.religion = "protestant";
+        G.spaces.york.religion = "protestant";
         G.spaces.york.land.england = {regular: 1, merc: 0, cav: 0};
         expect(northernConversionTargets(G, ["london"])).not.toContain("york");
         for (const id of ["norwich", "plymouth", "berwick", "york"]) G.spaces[id].religion = "catholic";
         expect(northernConversionTargets(G, ["london"])).toEqual([]);
         // Occupied Protestant spaces are not legal unrest targets.
+        G.spaces.carlisle.religion = "protestant";
         G.spaces.carlisle.land.england = {regular: 1, merc: 0, cav: 0};
         expect(northernUnrestTargets(G)).not.toContain("carlisle");
     });
@@ -573,7 +579,8 @@ describe("#78 Northern Rising", () => {
 
     it("goes straight to unrest when no space can be converted", () => {
         const G = nr();
-        for (const id of ["norwich", "plymouth", "berwick", "york"]) G.spaces[id].religion = "catholic";
+        for (const space of SPACES.filter((def) => def.area === "england")) G.spaces[space.id].religion = "catholic";
+        G.spaces.london.religion = "protestant";
         playCard(G, context(), {cardId: "vq-078", asEvent: true});
         expect(G.pendingEspionage?.step).toBe("northernUnrest");
     });
@@ -584,6 +591,10 @@ describe("#97 St. Bartholomew's Day Massacre", () => {
     const massacre = (): VQGame => {
         const G = game(); G.activePower = "france";
         G.powers.france.cards = ["vq-097"];
+        // Normalize the area first: newer setup fixes mark additional French
+        // spaces Protestant (Rouen, Nantes, Amboise), which would otherwise
+        // change the number of legal conversion targets mid-test.
+        for (const space of SPACES.filter((def) => def.area === "france")) G.spaces[space.id].religion = "catholic";
         for (const id of PROTESTANT) G.spaces[id].religion = "protestant";
         G.spaces.lyon.land.protestant = {regular: 1, merc: 2, cav: 0};
         G.spaces.antwerp.land.protestant = {regular: 0, merc: 1, cav: 0};

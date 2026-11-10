@@ -686,4 +686,18 @@ describe("Virgin Queen victory", () => {
         expect(v?.winner).toBe("spain");
         expect(v?.reason).toBe("standard");
     });
+
+    it("detects a Protestant religious victory only above 50 spaces", () => {
+        const G = newGame();
+        const need = 51 - protestantSpaceCount(G);
+        const catholic = SPACES.filter((space) => space.area !== undefined &&
+            G.spaces[space.id].religion === "catholic" && !G.spaces[space.id].unrest);
+        expect(catholic.length).toBeGreaterThanOrEqual(need);
+        for (const space of catholic.slice(0, need - 1)) G.spaces[space.id].religion = "protestant";
+        expect(protestantSpaceCount(G)).toBe(50);
+        expect(checkVictory(G)).toBeUndefined();
+        G.spaces[catholic[need - 1].id].religion = "protestant";
+        expect(protestantSpaceCount(G)).toBe(51);
+        expect(checkVictory(G)).toEqual({winner: "protestant", reason: "protestantReligious"});
+    });
 });
