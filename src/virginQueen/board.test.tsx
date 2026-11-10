@@ -269,6 +269,20 @@ describe("Virgin Queen board", () => {
         expect(html).toMatch(/<button[^>]*disabled[^>]*>结束行动轮次<\/button>/);
     });
 
+    it("lets the impulse end after a card, even with a Home card still in hand", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+        G.activePower = "ottoman";
+        G.powers.ottoman.cards = ["vq-001", "vq-002", "vq-003"];
+        G.powers.ottoman.cardPlayed = true;
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: "0", numPlayers: 2}, moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        // Pass stays illegal, but "结束行动轮次" is the normal way to finish
+        // an impulse after spending a card (rule 11).
+        expect(html).toMatch(/<button[^>]*disabled[^>]*>跳过<\/button>/);
+        expect(html).not.toMatch(/<button[^>]*disabled[^>]*>结束行动轮次<\/button>/);
+    });
+
     it("clamps the diplomacy target away from the viewing power", () => {
         expect(legalDiplomacyTarget("spain", "spain")).toBe("ottoman");
         expect(legalDiplomacyTarget("spain", "france")).toBe("france");

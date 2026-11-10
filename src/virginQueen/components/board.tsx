@@ -1392,7 +1392,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
     const passBlockReason = passBlockCodes.length > 0 ? passBlockCodes.map(passBlockText).join(" · ") : undefined;
     // Ending after a card is the normal way to finish an impulse; only the
     // no-card path is a pass and subject to the pass restrictions.
-    const endImpulseBlocked = passBlockCodes.some((code) => code !== "played");
+    const endImpulseBlocked = passBlockCodes.length > 0 && !passBlockCodes.includes("played");
     // Hotseat: every mounted seat shares one screen, so an idle panel has to
     // say which tab the device user should open next.
     const hotseatWaitHint = (): string | undefined => {
