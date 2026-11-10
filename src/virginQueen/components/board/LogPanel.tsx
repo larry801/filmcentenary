@@ -84,7 +84,10 @@ const groupLabel = (mark: LogMark | undefined): string | undefined => {
     if (mark === undefined) return undefined;
     const phase = (i18n.chain.vq.header.phase as unknown as Record<string, string>)[mark.phase] ?? mark.phase;
     const turn = i18n.chain.vq.header.turn;
-    return `${turn} ${mark.turn}${mark.year !== undefined ? ` \u00b7 ${mark.year}` : ""} \u00b7 ${phase}`;
+    // `mark.turn` is boardgame.io's internal turn counter (it increments for
+    // every player impulse); display the game's own turn/year instead.
+    const turnNumber = mark.year ?? mark.turn;
+    return `${turn} ${turnNumber} \u00b7 ${phase}`;
 };
 
 /**

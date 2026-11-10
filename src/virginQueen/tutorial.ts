@@ -119,8 +119,8 @@ export const tutorialLesson = (G: VQGame, phase: string): TutorialLesson | undef
     if (!G.powers[power].cardPlayed) return {
         title: "第 3 步：先打出一张牌",
         titleEn: "Step 3: play a card first",
-        instruction: "打开手牌详情，选择“作为 CP”来获得行动点，或选择可用的事件／本国牌能力。每个行动轮次先出一张牌；没有必须打出的强制事件时，也可以点击“跳过”。",
-        instructionEn: "Open a card and choose “as CP” to gain action points, or use an available event or home-card ability. You play one card at the start of each impulse; if no mandatory event applies you may also pass.",
+        instruction: "如果手牌中有强制事件（红色卡名），先打开它并选择“作为事件”打出；否则可选择“作为 CP”获得行动点，或使用可用的事件／本国牌能力。每个行动轮次先出一张牌；没有必须打出的强制事件时，也可以点击“跳过”。",
+        instructionEn: "If you hold a Mandatory Event (red card name), open it and choose “as event” first. Otherwise choose “as CP” for action points, or use an available event/home-card ability. You play one card at the start of each impulse; if no Mandatory Event applies you may also pass.",
         power,
     };
     return G.powers[power].cp > 0 ? {

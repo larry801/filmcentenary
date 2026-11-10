@@ -322,6 +322,9 @@ export const VirginQueenGameDef: Game<VQGame> = {
             turn: {order: powerOrder, onBegin: turnBegin, onEnd: turnEnd, stages: choiceStages},
             endIf: (G: VQGame) => G.consecutivePasses >= participatingPowers(G).length,
             onEnd: (G: VQGame, ctx: Ctx) => {
+                // Winter resolution happens after the last action impulse; give
+                // its log lines their own group instead of the previous action.
+                G.logMarks = [...(G.logMarks ?? []), {at: G.log.length, turn: ctx.turn, phase: "winter", year: G.year}];
                 winter(G, ctx);
             },
             next: "cardDraw",

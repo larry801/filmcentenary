@@ -58,3 +58,50 @@ describe("Pass — admin rating guard (rule 11)", () => {
         expect(endImpulse(G, ctx)).toBeUndefined();
     });
 });
+
+describe("Pass — rule 11 home-card and end-impulse guards", () => {
+    it("blocks pass while a Home card is still in hand", () => {
+        const G = game();
+        const ctx = context();
+        G.powers.ottoman.cards = ["vq-001"];
+        G.foreignWars.ottoman = undefined;
+        expect(pass(G, ctx)).toBe(INVALID_MOVE);
+        expect(G.powers.ottoman.passed).toBeFalsy();
+    });
+
+    it("blocks endImpulse while the hand exceeds the admin rating", () => {
+        const G = game();
+        const ctx = context();
+        G.powers.ottoman.cards = ["vq-020", "vq-050", "vq-070"];
+        G.foreignWars.ottoman = undefined;
+        expect(endImpulse(G, ctx)).toBe(INVALID_MOVE);
+        expect(G.powers.ottoman.passed).toBeFalsy();
+    });
+
+    it("blocks endImpulse while a Home card is still in hand", () => {
+        const G = game();
+        const ctx = context();
+        G.powers.ottoman.cards = ["vq-001"];
+        G.foreignWars.ottoman = undefined;
+        expect(endImpulse(G, ctx)).toBe(INVALID_MOVE);
+        expect(G.powers.ottoman.passed).toBeFalsy();
+    });
+
+    it("allows endImpulse after a card was played even with a Home card", () => {
+        const G = game();
+        const ctx = context();
+        G.powers.ottoman.cards = ["vq-001"];
+        G.powers.ottoman.cardPlayed = true;
+        G.foreignWars.ottoman = undefined;
+        expect(endImpulse(G, ctx)).toBeUndefined();
+    });
+
+    it("blocks pass after a card was played (use endImpulse instead)", () => {
+        const G = game();
+        const ctx = context();
+        G.powers.ottoman.cards = ["vq-020"];
+        G.powers.ottoman.cardPlayed = true;
+        G.foreignWars.ottoman = undefined;
+        expect(pass(G, ctx)).toBe(INVALID_MOVE);
+    });
+});

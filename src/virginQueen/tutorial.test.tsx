@@ -45,6 +45,7 @@ describe("two-player teaching lessons", () => {
         G.powers.ottoman.cp = 0;
         expect(tutorialLesson(G, "action")?.title).toBe("第 3 步：交给另一位玩家");
         expect(tutorialLesson(G, "action")?.instruction).toContain("结束行动轮次");
+        expect(tutorialLesson(tutorialGame(), "action")?.instruction).toContain("强制事件");
     });
 
     const responses: [string, Partial<VQGame>, Power][] = [
@@ -92,6 +93,7 @@ describe("two-player teaching UI", () => {
         const G = tutorialGame();
         expect(renderGuide(G, context(), "0")).toContain("轮到你操作。");
         expect(renderGuide(G, context(), "1")).toContain("本地热座请切换到 P1 标签页。");
+        expect(renderGuide(G, context(), "1")).not.toContain("。.");
         expect(renderGuide(G, context(), null)).toContain("旁观教学：仅查看公开提示。");
     });
 

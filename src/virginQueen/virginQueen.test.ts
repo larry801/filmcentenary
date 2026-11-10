@@ -28,12 +28,11 @@ import {
     resolveMinorDiplomacy,
     resolveEvent,
     resolveRebellion,
-    rulerStats,
     setupGame,
     setWar,
     winter,
 } from "./util";
-import {chooseHomeCard, chooseHreReligiousPreference, choosePolishBid, endPhaseTurn, fightForeignWar, gainIntelligence, playCard} from "./moves";
+import {chooseHomeCard, chooseHreReligiousPreference, choosePolishBid, endPhaseTurn, fightForeignWar, gainIntelligence, passBlock, playCard} from "./moves";
 import {INVALID_MOVE} from "boardgame.io/core";
 
 const fakeCtx = (roll = () => 6): Ctx => ({
@@ -307,20 +306,32 @@ function passToEndAction(clients: any[]) {
             continue;
         }
         const idx = Number(state.ctx.currentPlayer);
-        const hand = clients[idx].getState().G.powers[POWERS[idx]].cards;
-        const mandatory = hand.find((id: string) => cardById(id).officialKind === "mandatory");
-        if (mandatory !== undefined) {
+        const power = POWERS[idx];
+        // Local multiplayer clients sync via the store; read the acting
+        // client's own G so a just-played card is visible immediately.
+        const localG = clients[idx].getState().G;
+        const hand = localG.powers[power].cards;
+        const blocked = passBlock(localG, power);
+        if (blocked === "mandatory") {
+            const mandatory = hand.find((id: string) => cardById(id).officialKind === "mandatory");
             const def = cardById(mandatory);
             // Untimely Death needs a leader choice; take the first legal one.
             const target = def.officialEffect?.kind === "manual" && def.officialEffect.handler === "untimelyDeath"
-                ? (untimelyDeathTargets(state.G)[0] ?? "none") : undefined;
+                ? (untimelyDeathTargets(localG)[0] ?? "none") : undefined;
             clients[idx].moves.playCard({cardId: mandatory, asEvent: true, ...(target !== undefined ? {target} : {})});
             clients[idx].moves.endImpulse();
-        } else if (hand.length > rulerStats(state.G, POWERS[idx]).admin) {
+        } else if (blocked === "home") {
+            // Rule 11: play the Home card before passing.
+            const home = hand.find((id: string) => cardById(id).kind === "home");
+            clients[idx].moves.playCard({cardId: home});
+            clients[idx].moves.endImpulse();
+        } else if (blocked === "admin") {
             // Rule 11: a power may not pass while holding more cards than its
             // ruler's Administrative Rating.  Burn a card for CP instead.
             const card = hand.find((id: string) => cardById(id).kind !== "home") ?? hand[0];
             clients[idx].moves.playCard({cardId: card});
+            clients[idx].moves.endImpulse();
+        } else if (blocked === "played") {
             clients[idx].moves.endImpulse();
         } else {
             clients[idx].moves.pass();

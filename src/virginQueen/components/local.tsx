@@ -18,6 +18,11 @@ import {setupGame} from "../util";
 import {ScenarioID} from "../constant/general";
 import {VQSurface} from "./theme";
 
+/** Local boards know that every seat is mounted, so pending choices can say
+ * which tab the device user should open next. */
+const HotseatBoard = (props: React.ComponentProps<typeof VirginQueenBoard>) =>
+    <VirginQueenBoard {...props} hotseat/>;
+
 /**
  * Board clients are created once so switching seats or locales never remounts
  * a game.  Labels and seat names are resolved per render from these defs.
@@ -29,7 +34,7 @@ const configurationDefs = SCENARIO_OPTIONS.flatMap((scenario) => scenario.player
     BoardClient: Client({
         numPlayers,
         game: {...VirginQueenGameDef, setup: (ctx) => setupGame(ctx, {scenario: scenario.id})},
-        board: VirginQueenBoard,
+        board: HotseatBoard,
         multiplayer: Local(),
         debug: false,
     }),

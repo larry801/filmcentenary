@@ -2,7 +2,7 @@ import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {VirginQueenBoard, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions, abjurationOfferDetails, abjurationOffers, abjurationSelection, abjurationOfferMove, acceptAbjurationOffer, ArmyMutinyTargetSelect, armyMutinySpaceOptions, armyMutinyOwnerOptions, armyMutinySpaceValue, armyMutinyOwnerValue, armyMutinyTargetValue, StaffordTargetSelect, staffordPowerOptions, staffordDiscardOptions, staffordPowerValue, staffordDiscardValue, staffordTargetValue, GermanRecruitmentTargetSelect, germanRecruitmentSpaceOptions, germanRecruitmentPowerOptions, germanRecruitmentSpaceValue, germanRecruitmentPowerValue, germanRecruitmentTargetValue} from "./components/board";
+import {VirginQueenBoard, legalDiplomacyTarget, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions, abjurationOfferDetails, abjurationOffers, abjurationSelection, abjurationOfferMove, acceptAbjurationOffer, ArmyMutinyTargetSelect, armyMutinySpaceOptions, armyMutinyOwnerOptions, armyMutinySpaceValue, armyMutinyOwnerValue, armyMutinyTargetValue, StaffordTargetSelect, staffordPowerOptions, staffordDiscardOptions, staffordPowerValue, staffordDiscardValue, staffordTargetValue, GermanRecruitmentTargetSelect, germanRecruitmentSpaceOptions, germanRecruitmentPowerOptions, germanRecruitmentSpaceValue, germanRecruitmentPowerValue, germanRecruitmentTargetValue} from "./components/board";
 import {chooseAbjuration, proposeBetroth, respondAction} from "./moves";
 import {moveError} from "./movePolicy";
 import {setupGame} from "./util";
@@ -243,6 +243,66 @@ describe("Virgin Queen board", () => {
             expect(html.includes(`查看卡牌 ${cardById("vq-003").name}`)).toBe(playerID === "1");
             expect(html).not.toContain(">作为 CP<");
         }
+    });
+
+    it("labels mandatory, response and combat cards by their printed type", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+        G.activePower = "ottoman";
+        G.powers.ottoman.cards = ["vq-006", "vq-015", "vq-039"];
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: "0", numPlayers: 2}, moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("强制事件牌");
+        expect(html).toContain("响应牌");
+        expect(html).toContain("战斗牌");
+    });
+
+    it("disables pass and end-impulse while a mandatory event is unplayed", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+        G.activePower = "ottoman";
+        G.powers.ottoman.cards = ["vq-006"];
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: "0", numPlayers: 2}, moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("请先打出强制事件：塞利姆二世");
+        expect(html).toMatch(/<button[^>]*disabled[^>]*>跳过<\/button>/);
+        expect(html).toMatch(/<button[^>]*disabled[^>]*>结束行动轮次<\/button>/);
+    });
+
+    it("clamps the diplomacy target away from the viewing power", () => {
+        expect(legalDiplomacyTarget("spain", "spain")).toBe("ottoman");
+        expect(legalDiplomacyTarget("spain", "france")).toBe("france");
+        expect(legalDiplomacyTarget(undefined, "spain")).toBe("spain");
+    });
+
+    it("labels the viewed power's CP in the top bar", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+        G.activePower = "spain";
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: "1", numPlayers: 2}, moves: {}, playerID: "1", isActive: true,
+        } as any}/>);
+        expect(html).toContain("查看 西班牙");
+    });
+
+    it("tells hotseat users which tab holds a pending response", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+        G.pendingAction = {power: "ottoman", move: "moveLand", args: {}};
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: "0", numPlayers: 2}, moves: {}, playerID: "0", isActive: true,
+            hotseat: true,
+        } as any}/>);
+        expect(html).toContain("请切换到 P2 标签页");
+    });
+
+    it("points hotseat users at the HRE tab while the winter choice is pending", () => {
+        const G = setupGame({...fakeCtx()});
+        G.activePower = "hre";
+        G.pendingHreReplacement = {canRegular: true, canMercs: true, canMarker: true};
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "diplomacy", currentPlayer: "4", numPlayers: 6}, moves: {}, playerID: "0", isActive: false,
+            hotseat: true,
+        } as any}/>);
+        expect(html).toContain("请切换到 P5 标签页");
     });
 
     it("replaces playable actions with the result after game over", () => {

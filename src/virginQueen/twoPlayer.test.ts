@@ -6,7 +6,7 @@ import {VirginQueenGameDef} from "./game";
 import {SCENARIO_OPTIONS, validateSetupData} from "./configuration";
 import {ownerOf, controlledPowers} from "./ownership";
 import {activateMajor, checkVictory, controlledKeys, dealYear, deactivateMajor, drawCount, powerVp, setupGame, settleActivatedMajorVp, winter} from "./util";
-import {buildFortress, declareWar, influence, moveLand, navalTransport, piracy} from "./moves";
+import {buildFortress, declareWar, influence, moveLand, navalTransport, passBlock, piracy} from "./moves";
 import {battleOptions, chooseBattle, startBattle} from "./combat";
 import {tutorialEventOptions} from "./tutorialEvents";
 import {homeCardChoiceRequired} from "./util";
@@ -217,8 +217,13 @@ describe("national turns through the client reducer", () => {
             } else if (ctx.phase === "spring" && homeCardChoiceRequired(G, G.activePower)) {
                 client.moves.chooseHomeCard({cardId: G.powers[G.activePower].cards.find((id) => cardById(id).kind === "home")});
             } else if (ctx.phase === "action") {
-                const mandatory = G.powers[G.activePower].cards.find((id) => cardById(id).officialKind === "mandatory");
-                if (mandatory && !G.powers[G.activePower].cardPlayed) client.moves.playCard({cardId: mandatory, asEvent: true});
+                const power = G.activePower;
+                const hand = G.powers[power].cards;
+                const mandatory = hand.find((id) => cardById(id).officialKind === "mandatory");
+                const blocked = passBlock(G, power);
+                if (mandatory && !G.powers[power].cardPlayed) client.moves.playCard({cardId: mandatory, asEvent: true});
+                else if (blocked === "home") client.moves.playCard({cardId: hand.find((id) => cardById(id).kind === "home")});
+                else if (blocked === "admin") client.moves.playCard({cardId: hand.find((id) => cardById(id).kind !== "home") ?? hand[0]});
                 else client.moves.endImpulse();
             } else client.moves.endPhaseTurn();
             expect({phase: client.getState()!.ctx.phase, stateID: client.getState()!._stateID})

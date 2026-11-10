@@ -75,6 +75,18 @@ describe("VQ bilingual helpers (zh_CN default, en on request)", () => {
         expect(localizeLogLine("西班牙 land units return from Naples to Ancona."))
             .toBe("西班牙 的陆军单位从 那不勒斯 返回 安科纳。");
         expect(localizeLogLine("Spain moves into Paris")).toBe("西班牙 moves into 巴黎");
+        expect(localizeLogLine("Holy Roman replacement: +1 regular in Vienna."))
+            .toBe("神圣罗马帝国 冬季补员：维也纳 +1 正规军。");
+        expect(localizeLogLine("Holy Roman replacement: +2 mercenaries in Vienna."))
+            .toBe("神圣罗马帝国 冬季补员：维也纳 +2 雇佣兵。");
+        expect(localizeLogLine("Holy Roman replacement: Mercenaries for Hire marker moves from 0 to 4."))
+            .toBe("神圣罗马帝国 冬季补员：雇佣兵征募标记从 0 移到 4。");
+        expect(localizeLogLine("Holy Roman replacement: choose 1 regular, 2 mercenaries, or the Mercenaries for Hire marker 0→4."))
+            .toBe("神圣罗马帝国 冬季补员：选择 1 正规军、2 雇佣兵，或将 雇佣兵征募标记 从 0 移到 4。");
+        expect(localizeLogLine("Holy Roman records its secret religious preference."))
+            .toBe("神圣罗马帝国 记录了秘密宗教倾向。");
+        expect(localizeLogLine("France gains 1 Paris VP."))
+            .toBe("法国 获得 1 点巴黎 VP。");
         const source = "Rudolf II dies; the +2 Prague Cultural Center marker is removed from the game.";
         expect(localizeLogLine(source, "en")).toBe(source);
     });

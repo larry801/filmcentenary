@@ -292,6 +292,10 @@ describe("Grand Vizier through multiplayer clients", () => {
         const game = {...VirginQueenGameDef, seed: "vizier-response", setup: () => {
             const G = newGame(2, true);
             G.dealtYear = G.year;
+            // Start the action phase on Spain; the Ottoman keeps the Grand
+            // Vizier in hand for the cancellation response.  Skipping avoids
+            // an illegal no-card pass while holding a Home card (rule 11).
+            G.skipImpulse = ["ottoman"];
             G.powers.spain.cards = ["vq-021"];
             return G;
         }};
@@ -303,7 +307,6 @@ describe("Grand Vizier through multiplayer clients", () => {
                 const ctx = clients[0].getState()!.ctx;
                 clients[Number(ctx.currentPlayer)].moves.endPhaseTurn();
             }
-            clients[0].moves.endImpulse();
             clients[1].moves.playCard({cardId: "vq-021", asEvent: true});
             expect(clients[0].getState()!.ctx.activePlayers).toEqual({"0": "cardEvent"});
             clients[0].moves.chooseCardEvent({choice: response});

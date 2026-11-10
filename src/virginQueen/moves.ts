@@ -544,6 +544,23 @@ const spendInfluenceOrMerc = (G: VQGame, p: Power, cost: number): boolean => {
 const hasUnplayedMandatory = (G: VQGame, p: Power): boolean =>
     G.powers[p].cards.some((id) => cardById(id).officialKind === "mandatory");
 
+/** Rule 11: why a power may not pass (or end an impulse without playing a card). */
+export type PassBlock = "played" | "mandatory" | "home" | "admin";
+
+/**
+ * Rule 11: a power may not pass while it has already played a card, while a
+ * Home card or Mandatory Event is still in hand, or while its hand exceeds the
+ * ruler's Administrative Rating.  Keep this shared by `pass` and `endImpulse`;
+ * the UI uses the same codes to disable the buttons and explain why.
+ */
+export const passBlock = (G: VQGame, p: Power): PassBlock | undefined => {
+    if (G.powers[p].cardPlayed) return "played";
+    if (hasUnplayedMandatory(G, p)) return "mandatory";
+    if (G.powers[p].cards.some((id) => cardById(id).kind === "home")) return "home";
+    if (G.powers[p].cards.length > rulerStats(G, p).admin) return "admin";
+    return undefined;
+};
+
 const canUseCardForWar = (c: CardDef): boolean => c.kind !== "home" && c.officialKind !== "mandatory";
 
 const payWarCost = (G: VQGame, p: Power, cost: number): boolean => {
@@ -3302,10 +3319,7 @@ export const pass = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     }
     const p = power(G, ctx);
     if (G.pendingForeignWar !== undefined && G.pendingForeignWar.power !== p) autoResolveForeignWarForce(G);
-    if (G.foreignWars[p]?.status === "setup" || hasUnplayedMandatory(G, p)) {
-        return INVALID_MOVE;
-    }
-    if (G.powers[p].cards.length > rulerStats(G, p).admin) {
+    if (G.foreignWars[p]?.status === "setup" || passBlock(G, p) !== undefined) {
         return INVALID_MOVE;
     }
     G.powers[p].cp = 0;
@@ -3326,11 +3340,11 @@ export const endImpulse = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
         return INVALID_MOVE;
     }
     if (!G.powers[p].cardPlayed) {
-        // Ending an impulse without playing a card is a pass, which is illegal
-        // while a Mandatory Event is still in hand.  After a card has been
-        // played the impulse may end normally, even if another Mandatory Event
-        // is waiting for a later impulse this turn.
-        if (hasUnplayedMandatory(G, p)) {
+        // Ending an impulse without playing a card is a pass: apply rule 11's
+        // Home-card, Mandatory-Event and Administrative-Rating restrictions.
+        // After a card has been played the impulse may end normally, even if a
+        // Mandatory Event is waiting for a later impulse this turn.
+        if (passBlock(G, p) !== undefined) {
             return INVALID_MOVE;
         }
         G.powers[p].passed = true;
