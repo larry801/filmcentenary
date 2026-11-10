@@ -341,6 +341,20 @@ describe("Virgin Queen board", () => {
         expect(html).not.toContain("vq.header.phase.");
     });
 
+    it("shows the winning key count on a military victory panel", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "campaign"});
+        for (const id of ["vienna", "prague", "augsburg", "frankfurt", "buda", "brussels", "antwerp", "amsterdam"]) {
+            G.spaces[id].control = "hre";
+        }
+        G.activePower = "spain";
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: undefined, currentPlayer: "1", gameover: {winner: "4", power: "hre", reason: "military"}},
+            moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("对局结束 · 胜者：P5 神圣罗马帝国");
+        expect(html).toContain("8 / 8 关键城市");
+    });
+
     it("caps the displayed turn at the scenario's final turn after a time-limit game", () => {
         const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "campaign"});
         G.year = G.endTurn + 1;
@@ -360,6 +374,20 @@ describe("Virgin Queen board", () => {
         } as any}/>);
         expect(html).toContain("新教地区 18 / 51");
         expect(html).toContain("超过 50 个时立即取得新教宗教胜利");
+    });
+
+    it("shows each power's military victory progress and the printed targets", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "campaign"});
+        for (const id of ["barcelona", "seville", "malta"]) G.spaces[id].control = "spain";
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: "0"}, moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("11 / 14 关键城市");
+        expect(html).toContain("0 / 5 关键城市");
+        expect(html).toContain("军事胜利门槛（关键城市）");
+        expect(html).toContain("奥斯曼帝国 10");
+        expect(html).toContain("西班牙 14");
+        expect(html).toContain("新教联盟 5");
     });
 
     it("shows a Protestant religious victory with the correct threshold text", () => {

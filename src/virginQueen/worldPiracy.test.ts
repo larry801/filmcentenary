@@ -41,6 +41,7 @@ describe("World Map piracy and patrols (rules 16.5/17.3)", () => {
         preparePirate(G);
         G.worldPatrols = {northAtlantic: 1};
         G.powers.spain.treasures = [5];
+        const vpBefore = G.powers.england.bonusVp;
 
         // One defense die (miss), then four piracy dice: two hits.
         expect(worldPiracy(G, context([1, 5, 5, 1, 1]), {captain: "drake"})).toBeUndefined();
@@ -48,7 +49,7 @@ describe("World Map piracy and patrols (rules 16.5/17.3)", () => {
         expect(G.worldPatrols?.northAtlantic).toBe(0);
         expect(G.powers.spain.treasures).toEqual([]);
         expect(G.worldCaptains.drake.treasureValues).toContain(5);
-        expect(G.powers.england.bonusVp).toBe(0);
+        expect(G.powers.england.bonusVp).toBe(vpBefore);
     });
 
     it("awards piracy VP when no patrol or treasure remains", () => {

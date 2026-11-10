@@ -1823,7 +1823,7 @@ const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
         const capitalCandidate = capitalOf(G, targetPower);
         const capital = capitalCandidate !== undefined && usableReturnSpace(capitalCandidate)
             ? capitalCandidate
-            : SPACES.find((space) => spaceHomes(space).includes(targetPower) && space.kind === "fortress" && usableReturnSpace(space.id))?.id ?? capitalCandidate;
+            : SPACES.find((space) => spaceHomes(space).includes(targetPower) && isFortifiedSpace(G, space.id) && usableReturnSpace(space.id))?.id ?? capitalCandidate;
         if (leader !== undefined && capital !== undefined && leader.location !== capital) {
             moveLeaders(G, leader.location, capital, [leader.id]);
             pushLog(G, `Ruler Falls Ill: ${leader.id} returns to ${SPACE_BY_ID[capital].name}.`);

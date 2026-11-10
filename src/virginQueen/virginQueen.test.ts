@@ -141,8 +141,10 @@ describe("Virgin Queen setup and data", () => {
 
     it("counts keys and base VP", () => {
         const G = newGame();
-        expect(controlledKeys(G, "spain")).toHaveLength(8);
-        expect(baseVp(G, "spain")).toBe(20);
+        // Scenario Book Campaign setup: Madrid, Barcelona, Seville, Milan,
+        // Genoa, Rome, Naples, Malta, Amsterdam, Antwerp and Brussels.
+        expect(controlledKeys(G, "spain")).toHaveLength(11);
+        expect(baseVp(G, "spain")).toBe(11);
         expect(protestantSpaceCount(G)).toBeGreaterThan(8);
         expect(powerVp(G, "spain")).toBeGreaterThanOrEqual(6);
     });
@@ -151,9 +153,10 @@ describe("Virgin Queen setup and data", () => {
         const G = newGame();
         expect(checkImmediateVictory(G)).toBeUndefined();
 
-        for (const id of ["vienna", "prague", "buda", "brussels", "antwerp"]) {
+        for (const id of ["vienna", "prague", "augsburg", "frankfurt", "buda", "brussels", "antwerp", "amsterdam"]) {
             G.spaces[id].control = "hre";
         }
+        expect(controlledKeys(G, "hre")).toHaveLength(8);
         expect(checkImmediateVictory(G)).toEqual({winner: "hre", reason: "military"});
     });
 
@@ -669,7 +672,7 @@ describe("Virgin Queen events", () => {
 describe("Virgin Queen victory", () => {
     it("detects a military victory", () => {
         const G = newGame();
-        (["vienna", "prague", "buda", "brussels", "antwerp"] as string[]).forEach((id) => {
+        (["vienna", "prague", "augsburg", "frankfurt", "buda", "brussels", "antwerp", "amsterdam"] as string[]).forEach((id) => {
             G.spaces[id].control = "hre";
         });
         const v = checkVictory(G);

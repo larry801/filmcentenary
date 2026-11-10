@@ -362,47 +362,60 @@ export const POWER_INFO: Record<Power, PowerInfo> = {
         power: "ottoman",
         ruler: {id: "suleiman", name: "Suleiman the Magnificent", admin: 2, cardBonus: 1},
         drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
-        vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
-        autoWinKeys: 7,
+        // Printed Ottoman power card, keys 0-9 (Auto Win at 10).
+        vpByKeys: [0, 1, 3, 5, 7, 9, 11, 13, 15, 17],
+        // Printed Ottoman power card: the Auto Win box is the tenth key.
+        autoWinKeys: 10,
         homeCards: ["vq-001", "vq-002"],
     },
     spain: {
         power: "spain",
         ruler: {id: "philipII", name: "Philip II", admin: 1, cardBonus: 0},
         drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
-        vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
-        autoWinKeys: 8,
+        // Printed Spanish power card, keys 0-13 (Auto Win at 14).
+        vpByKeys: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+        // Printed Spanish power card: the Auto Win box is the fourteenth key.
+        autoWinKeys: 14,
         homeCards: ["vq-003", "vq-099"],
     },
     england: {
         power: "england",
         ruler: {id: "elizabethI", name: "Elizabeth I", admin: 2, cardBonus: 1},
         drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
-        vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
-        autoWinKeys: 5,
+        // Printed English power card, keys 0-6 (Auto Win at 7).
+        vpByKeys: [0, 0, 2, 4, 6, 8, 10],
+        // Printed English power card: the Auto Win box is the seventh key.
+        autoWinKeys: 7,
         homeCards: ["vq-036", "vq-081"],
     },
     france: {
         power: "france",
         ruler: {id: "henryIII", name: "Henry III", admin: 1, cardBonus: 0},
         drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
-        vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
-        autoWinKeys: 5,
+        // Printed French power card, keys 0-9 (Auto Win at 10).
+        vpByKeys: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        // Printed French power card: the Auto Win box is the tenth key.
+        autoWinKeys: 10,
         homeCards: ["vq-033", "vq-080"],
     },
     hre: {
         power: "hre",
         ruler: {id: "ferdinandI", name: "Ferdinand I", admin: 2, cardBonus: 0},
         drawByKeys: [3, 3, 4, 4, 5, 5, 6, 6, 7],
-        vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
-        autoWinKeys: 5,
+        // Printed Holy Roman power card, keys 0-7 (Auto Win at 8).
+        vpByKeys: [0, 2, 4, 6, 8, 10, 12, 14],
+        // Printed Holy Roman power card: the Auto Win box is the eighth key.
+        autoWinKeys: 8,
         homeCards: ["vq-034", "vq-035"],
     },
     protestant: {
         power: "protestant",
         ruler: {id: "reformedChurches", name: "Council of the Reformed Churches", admin: 2, cardBonus: 0},
         drawByKeys: [4, 4, 5, 5, 6, 6, 7, 7, 7],
-        vpByKeys: [0, 1, 2, 4, 6, 9, 12, 16, 20],
+        // The Protestant power card uses 3 VP per Dutch key and 2 VP per key
+        // outside the Netherlands; baseVp handles that rule directly.
+        vpByKeys: [0, 2, 4, 6, 8, 10],
+        // Printed Protestant power card: five keys outside the Netherlands.
         autoWinKeys: 5,
         homeCards: ["vq-032", "vq-111"],
     },

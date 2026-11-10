@@ -36,7 +36,7 @@ export const SPACES: SpaceDef[] = [
         capitalOf: "spain",
         initial: {spain: {regular: 3}},
     }),
-    space("barcelona", "Barcelona", 2.17, 41.39, "spain", "fortress", {
+    space("barcelona", "Barcelona", 2.17, 41.39, "spain", "key", {
         ports: ["gulfOfLyon"],
         initial: {spain: {regular: 1}},
         initialNaval: {spain: {galley: 2}},
@@ -45,7 +45,7 @@ export const SPACES: SpaceDef[] = [
         ports: ["gulfOfLyon"],
         initial: {spain: {regular: 1}},
     }),
-    space("seville", "Seville", -5.98, 37.39, "spain", "fortress", {
+    space("seville", "Seville", -5.98, 37.39, "spain", "key", {
         ports: ["atlanticOcean"],
         initial: {spain: {regular: 1}},
         initialNaval: {spain: {galleon: 1}},
@@ -83,7 +83,7 @@ export const SPACES: SpaceDef[] = [
         capitalOf: "france",
         initial: {france: {regular: 4}},
     }),
-    space("rouen", "Rouen", 1.10, 49.44, "france", "fortress", {
+    space("rouen", "Rouen", 1.10, 49.44, "france", "key", {
         area: "france",
         ports: ["englishChannel"],
         initial: {france: {regular: 1}},
@@ -107,7 +107,7 @@ export const SPACES: SpaceDef[] = [
         area: "france",
         initial: {france: {regular: 2}},
     }),
-    space("marseille", "Marseille", 5.37, 43.30, "france", "fortress", { homes: ["france", "protestant"],
+    space("marseille", "Marseille", 5.37, 43.30, "france", "key", { homes: ["france", "protestant"],
         area: "france",
         ports: ["gulfOfLyon"],
         initial: {france: {regular: 2}},
@@ -210,7 +210,7 @@ export const SPACES: SpaceDef[] = [
     space("cologne", "Cologne", 6.96, 50.94, "hre", "fortress"),
     space("mainz", "Mainz", 8.27, 50.00, "hre", "open"),
     space("trier", "Trier", 6.64, 49.75, "hre", "open"),
-    space("frankfurt", "Frankfurt", 8.68, 50.11, "hre", "fortress", {
+    space("frankfurt", "Frankfurt", 8.68, 50.11, "hre", "key", {
         initial: {hre: {regular: 1}},
     }),
     space("nuremberg", "Nuremberg", 11.08, 49.45, "hre", "fortress", {
@@ -219,7 +219,7 @@ export const SPACES: SpaceDef[] = [
     space("munich", "Munich", 11.58, 48.14, "hre", "fortress", {
         initial: {hre: {regular: 2}},
     }),
-    space("augsburg", "Augsburg", 10.90, 48.37, "hre", "open", {
+    space("augsburg", "Augsburg", 10.90, 48.37, "hre", "key", {
         initial: {hre: {regular: 1}},
     }),
     space("innsbruck", "Innsbruck", 11.40, 47.27, "hre", "fortress"),
@@ -251,7 +251,7 @@ export const SPACES: SpaceDef[] = [
     space("york", "York", -1.08, 53.96, "england", "key", {
         initial: {england: {regular: 1}},
     }),
-    space("bristol", "Bristol", -2.59, 51.45, "england", "fortress", {
+    space("bristol", "Bristol", -2.59, 51.45, "england", "key", {
         ports: ["atlanticOcean"],
         initial: {england: {regular: 1}},
     }),
@@ -373,12 +373,12 @@ export const SPACES: SpaceDef[] = [
     space("sofia", "Sofia", 23.32, 42.70, "ottoman", "open", {
         initial: {ottoman: {regular: 2}},
     }),
-    space("athens", "Athens", 23.73, 37.98, "ottoman", "open", {
+    space("athens", "Athens", 23.73, 37.98, "ottoman", "key", {
         ports: ["aegean"],
         initial: {ottoman: {regular: 1}},
         initialNaval: {ottoman: {galley: 1}},
     }),
-    space("edirne", "Edirne", 26.55, 41.67, "ottoman", "key", {
+    space("edirne", "Edirne", 26.55, 41.67, "ottoman", "fortress", {
         initial: {ottoman: {regular: 2}},
     }),
     space("istanbul", "Istanbul", 28.97, 41.01, "ottoman", "key", {
@@ -406,7 +406,7 @@ export const SPACES: SpaceDef[] = [
         ports: ["barbaryCoast", "northAfricanCoast"],
         initial: {independent: {regular: 2}},
     }),
-    space("algiers", "Algiers", 3.06, 36.75, "ottoman", "fortress", {
+    space("algiers", "Algiers", 3.06, 36.75, "ottoman", "key", {
         ports: ["barbaryCoast"],
         initial: {ottoman: {regular: 2}},
     }),

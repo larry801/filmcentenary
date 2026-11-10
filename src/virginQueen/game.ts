@@ -408,8 +408,8 @@ export const VirginQueenGameDef: Game<VQGame> = {
         rebellion,
         piracy,
     },
-    endIf: (G: VQGame) => {
-        const v = checkVictory(G);
+    endIf: (G: VQGame, ctx) => {
+        const v = checkVictory(G, false, ctx.phase);
         if (v !== undefined) {
             return {winner: ownerOf(G, v.winner), power: v.winner, reason: v.reason};
         }

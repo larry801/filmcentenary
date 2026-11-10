@@ -1,0 +1,61 @@
+Military victory hotseat verification (2026-11-10, Campaign, 6 players)
+=====================================================================
+
+Method: the local hotseat board was opened at /localVQ.  Because a normal
+playthrough cannot reach six different Auto Win counts in one session, the
+already-loaded boardgame.io master state was cloned and given a near-win set
+of keys for one power at a time, then the phase was advanced through the real
+flow.  checkVictory/endIf and the rendered board then produced the normal game
+over state.  This exercises the same victory check, phase gate and UI path as
+a played key capture.  The six Auto Win counts and unrest/Netherlands rules
+are also covered by unit and flow tests (militaryVictory.test.ts).
+
+1) Ottoman 10 / 10 keys
+对局结束 · 胜者：P1 奥斯曼帝国
+原因: 军事胜利：控制足够多的关键城市
+10 / 10 关键城市
+
+2) Spain 14 / 14 keys
+对局结束 · 胜者：P2 西班牙
+原因: 军事胜利：控制足够多的关键城市
+14 / 14 关键城市
+
+3) England 7 / 7 keys
+对局结束 · 胜者：P3 英格兰
+原因: 军事胜利：控制足够多的关键城市
+7 / 7 关键城市
+
+4) France 10 / 10 keys
+对局结束 · 胜者：P4 法国
+原因: 军事胜利：控制足够多的关键城市
+10 / 10 关键城市
+
+5) Holy Roman Empire 8 / 8 keys
+对局结束 · 胜者：P5 神圣罗马帝国
+原因: 军事胜利：控制足够多的关键城市
+8 / 8 关键城市
+
+6) Protestant 5 / 5 keys outside the Netherlands
+对局结束 · 胜者：P6 新教联盟
+原因: 军事胜利：控制足够多的关键城市
+5 / 5 关键城市
+
+Phase gate (rule 25.1)
+----------------------
+State with England on 7 keys:
+- setPhase("diplomacy") -> phase = "diplomacy", no gameover
+- setPhase("action")    -> gameover = {power: "england", reason: "military", winner: "2"}
+
+Campaign start (after fixes)
+----------------------------
+power       keys  autoWin  baseVP  specialVP  bonusVP  totalVP
+ottoman        6       10      11          0        0       11
+spain         11       14      11          6        0       17
+england        4        7       6          0        0        6
+france         8       10       9          0        0        9
+hre            4        8       8          0        0        8
+protestant     0        5       0          1        0        1
+
+Tournament start
+----------------
+ottoman 7, spain 12, england 4, france 6, hre 4, protestant 2 (outside).

@@ -1624,13 +1624,20 @@ export const hreReligiousVp = (G: VQGame): number => {
 export const religiousSpecialVp = (G: VQGame, p: Power): number => {
     if (G.scenario === "tutorial") return 0;
     const n = protestantSpaceCount(G);
+    // Protestant Spaces Card, "Special VP by Power".  Rows cover 5-space bands
+    // starting at 10; above 50 the Protestant religious victory already ended
+    // the game, so the last band is used as a clamp.
+    const row = Math.max(0, Math.min(8, Math.floor((n - 10) / 5)));
+    const table = {
+        spain: [7, 6, 5, 4, 3, 2, 1, 0, 0],
+        england: [0, 0, 1, 1, 2, 2, 3, 3, 3],
+        protestant: [0, 1, 2, 3, 4, 5, 6, 7, 7],
+    };
     switch (p) {
         case "spain":
-            return n <= 8 ? 3 : n <= 16 ? 2 : n <= 25 ? 1 : 0;
         case "england":
-            return n <= 8 ? 0 : n <= 16 ? 1 : n <= 25 ? 2 : n <= 33 ? 2 : n <= 42 ? 3 : 4;
         case "protestant":
-            return n <= 8 ? 0 : n <= 16 ? 1 : n <= 25 ? 2 : n <= 33 ? 3 : n <= 42 ? 4 : 5;
+            return table[p][row];
         case "hre":
             return G.hreReligiousPreferenceRevealed ? hreReligiousVp(G) : 0;
         default:
@@ -4580,7 +4587,11 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     pushLog(G, G.year <= G.endTurn ? `Winter ends. Turn ${G.year} begins.` : `Winter ends. Scenario turn ${G.endTurn} is complete.`);
 };
 
-export const checkImmediateVictory = (G: VQGame): { winner: Power; reason: string } | undefined => {
+export const checkImmediateVictory = (G: VQGame, phase?: string): { winner: Power; reason: string } | undefined => {
+    // Rule 25.1: automatic victories are resolved in the Action Phase.  A key
+    // gained during Diplomacy does not end the game unless it is still held
+    // when the Action Phase begins.
+    if (phase !== undefined && phase !== "action") return undefined;
     if (G.scenario === "tutorial") {
         return controlledKeys(G, "ottoman").length >= TUTORIAL_POWER_CARDS.ottoman.military
             ? {winner: "ottoman", reason: "military"} : undefined;
@@ -4604,8 +4615,8 @@ export const checkImmediateVictory = (G: VQGame): { winner: Power; reason: strin
     return undefined;
 };
 
-export const checkVictory = (G: VQGame, includeSecretHreVp = false): { winner: Power; reason: string } | undefined => {
-    const immediate = checkImmediateVictory(G);
+export const checkVictory = (G: VQGame, includeSecretHreVp = false, phase?: string): { winner: Power; reason: string } | undefined => {
+    const immediate = checkImmediateVictory(G, phase);
     if (immediate !== undefined) {
         return immediate;
     }

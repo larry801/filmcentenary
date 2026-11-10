@@ -108,6 +108,7 @@ import {
     hreReligiousVp,
     keepsBothHomeCards,
     powerVp,
+    protestantKeysOutsideNetherlands,
     protestantSpaceCount,
     religionCandidates,
     rebellionTargets,
@@ -126,7 +127,7 @@ import {
 import {VQMap} from "./map";
 import {TutorialGuide} from "./tutorial-guide";
 import {controlledPowers, ownerOf, isActivatedMajor, participatingPowers, playerCount} from "../ownership";
-import {tutorialFortressVp, tutorialSpaceAllowed} from "../tutorial";
+import {tutorialFortressVp, tutorialSpaceAllowed, TUTORIAL_POWER_CARDS} from "../tutorial";
 import {scenarioName} from "../scenario";
 import {Controller} from "../constant/general";
 import {canPlayBattleCard} from "../combat";
@@ -1218,6 +1219,14 @@ export interface VirginQueenBoardProps extends BoardProps<VQGame> {
 export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, hotseat = false}: VirginQueenBoardProps) => {
     i18n.use();
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
+    const militaryKeyCount = (p: Power): number =>
+        p === "protestant" ? protestantKeysOutsideNetherlands(G).length : controlledKeys(G, p).length;
+    const militaryGoalFor = (p: Power): number => G.scenario === "tutorial"
+        ? ((TUTORIAL_POWER_CARDS as Record<string, {military: number}>)[p]?.military ?? POWER_INFO[p].autoWinKeys)
+        : POWER_INFO[p].autoWinKeys;
+    const militaryGoal = (p: Power): string => i18n.chain.vq.intel.militaryGoal
+        .replace("{count}", String(militaryKeyCount(p)))
+        .replace("{goal}", String(militaryGoalFor(p)));
     const [selected, setSelected] = React.useState<string | undefined>(G.scenario === "tutorial"
         ? playerID === "1" ? "madrid" : "istanbul" : "london");
     const isDesktop = useMediaQuery("(min-width:1024px)");
@@ -2868,6 +2877,9 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                 {ctx.gameover !== undefined ? <Paper variant="outlined" sx={{p: 1.5, mb: 1}} role="status">
                     <Typography variant="h6">{i18n.chain.vq.shell.gameOver} · {i18n.chain.vq.shell.winner}{i18n.chain.vq.punct.colon}P{Number(ctx.gameover.winner) + 1} {powerName((ctx.gameover.power ?? powerAt(String(ctx.gameover.winner))) as Power, vqLocale)}</Typography>
                     <Typography variant="body2">{i18n.chain.vq.shell.reason}: {gameOverReasonText(ctx.gameover.reason, vqLocale)}</Typography>
+                    {ctx.gameover.reason === "military" && ctx.gameover.power !== undefined && <Typography variant="caption">
+                        {militaryGoal(ctx.gameover.power as Power)}
+                    </Typography>}
                     {matchID !== undefined && <ExportLogButton gameName="virginQueen" matchID={matchID}/>}
                 </Paper> : actionPanel()}
                 {space !== undefined && spaceDef !== undefined && <section className="vq-space-detail" aria-label={i18n.chain.vq.board.spaceDetailLabel}>
@@ -2927,7 +2939,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                             label={G.hreReligiousPreference !== undefined && (me === "hre" || G.hreReligiousPreferenceRevealed)
                                 ? `${G.hreReligiousPreferenceRevealed ? i18n.chain.vq.intel.revealed : i18n.chain.vq.intel.secret}${i18n.chain.vq.punct.colon}${hreReligiousPreferenceName(G.hreReligiousPreference, vqLocale)} · ${hreReligiousVp(G)} VP${G.hreReligiousPreferenceRevealed ? "" : i18n.chain.vq.intel.notCounted}`
                                 : i18n.chain.vq.intel.secretChosen}/>}
-                        <Chip size="small" variant="outlined" label={`${controlledKeys(G, p).length} ${i18n.chain.vq.intel.keys}`}/>
+                        <Chip size="small" variant="outlined" label={militaryGoal(p)}
+                              title={i18n.chain.vq.intel.militaryGoalHint.replace("{goal}", String(militaryGoalFor(p)))}/>
                         <Chip size="small" variant="outlined" label={`${G.handCounts?.[p] ?? G.powers[p].cards.length}${i18n.chain.vq.intel.cards}`}/>
                         {(G.homeCardSetAsideCounts?.[p] ?? 0) > 0 &&
                             <Chip size="small" variant="outlined" label={`${i18n.chain.vq.intel.faceDown} ${G.homeCardSetAsideCounts?.[p]}`}/>}
@@ -2941,7 +2954,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                         <Box sx={{width: 14, height: 14, bgcolor: CONTROLLER_COLORS[me], borderRadius: 0.5}}/>
                         <Typography variant="subtitle1" sx={{fontWeight: 700}}>{powerName(me, vqLocale)}</Typography>
                         <Chip size="small" label={`${powerVp(G, me)} VP`}/>
-                        <Chip size="small" variant="outlined" label={`${controlledKeys(G, me).length} ${i18n.chain.vq.intel.keys}`}/>
+                        <Chip size="small" variant="outlined" label={militaryGoal(me)}
+                              title={i18n.chain.vq.intel.militaryGoalHint.replace("{goal}", String(militaryGoalFor(me)))}/>
                     </Stack>
                     <Typography variant="caption" color="text.secondary">
                         {i18n.chain.vq.intel.ruler}{i18n.chain.vq.punct.colon}{ps.ruler === "elizabethDead" ? i18n.chain.vq.intel.elizabethDead : rulerName(ps.ruler, vqLocale)}{i18n.chain.vq.punct.openParen}{i18n.chain.vq.intel.admin} {ps.ruler === "elizabethDead" ? 1 : POWER_INFO[me].ruler.admin} / {i18n.chain.vq.intel.extraCards} {ps.ruler === "elizabethDead" ? 0 : POWER_INFO[me].ruler.cardBonus}{i18n.chain.vq.punct.closeParen}
@@ -2968,6 +2982,10 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                     <Typography variant="body2" title={G.scenario === "tutorial" ? undefined : i18n.chain.vq.intel.protestantSpacesGoalHint}>{scenarioName(G.scenario, vqLocale)} · {i18n.chain.vq.intel.deck} {G.deckCount ?? 0} · {G.scenario === "tutorial"
                         ? `${i18n.chain.vq.intel.protestantSpaces} ${protestantSpaceCount(G)}`
                         : i18n.chain.vq.intel.protestantSpacesGoal.replace("{count}", String(protestantSpaceCount(G)))}</Typography>
+                    {G.scenario !== "tutorial" && <Typography variant="body2" title={i18n.chain.vq.intel.militaryGoalSummaryHint}>
+                        {i18n.chain.vq.intel.militaryGoalSummary.replace("{targets}",
+                            POWERS.map((p) => `${powerShortName(p, vqLocale)} ${POWER_INFO[p].autoWinKeys}`).join(" / "))}
+                    </Typography>}
                     {G.scenario === "tutorial" && <>
                         <Typography variant="body2">{i18n.chain.vq.intel.tutorialOttoman}</Typography>
                         <Typography variant="body2">{i18n.chain.vq.intel.tutorialOttoman2} {powerVp(G, "ottoman")} VP ({i18n.chain.vq.intel.keys} {baseVp(G, "ottoman")}, {i18n.chain.vq.intel.fortress} {tutorialFortressVp(G)}, {i18n.chain.vq.intel.other} {G.powers.ottoman.bonusVp}). {i18n.chain.vq.intel.remainingTurns}: {Math.max(0, 4 - G.year)}.</Typography>

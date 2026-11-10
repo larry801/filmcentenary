@@ -81,7 +81,7 @@ export const ADDITIONAL_SPACES: OfficialSpaceDef[] = [
     extra("genoa", "Genoa", 8.93, 44.41, "spain", "key", {
         ports: ["gulfOfLyon", "tyrrhenian"],
     }),
-    extra("malta", "Malta", 14.51, 35.90, "spain", "fortress", {
+    extra("malta", "Malta", 14.51, 35.90, "spain", "key", {
         ports: ["tyrrhenian", "ionian"],
     }),
     extra("zara", "Zara", 15.23, 44.12, "venice", "fortress", {
@@ -121,7 +121,7 @@ export const ADDITIONAL_SPACES: OfficialSpaceDef[] = [
     }),
 
     // France
-    extra("calais", "Calais", 1.86, 50.95, "france", "fortress", {
+    extra("calais", "Calais", 1.86, 50.95, "france", "key", {
         area: "france",
         ports: ["englishChannel"],
     }),
