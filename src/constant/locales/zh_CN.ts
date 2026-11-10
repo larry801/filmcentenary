@@ -1809,6 +1809,13 @@ const zh_CN: Locale = {
         worldUi: {
             title: "世界地图 · 探险与殖民",
             intro: "海域按已录入的粗略邻接关系逐区航行；危险航路、贸易风、殖民地与西班牙巡逻/要塞、世界海盗已接入自动结算。",
+            worldMap: "世界地图",
+            coloniesShort: "个殖民地",
+            worldMapAria: "世界地图与殖民地位置",
+            colony: "殖民地",
+            spanishHome: "西班牙属地",
+            portugueseHome: "葡萄牙属地",
+            unoccupiedSpace: "可殖民空位",
             damaged: "受损",
             carryingColony: "携带殖民地",
             vacant: "空置",

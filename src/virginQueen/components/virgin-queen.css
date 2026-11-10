@@ -114,6 +114,22 @@
 .vq-legal-ring { fill: none; stroke: #1f7a4d; stroke-width: 2; stroke-linejoin: round; }
 .vq-map-node.vq-dim { opacity: .35; }
 
+/* World-map inset: the physical board's peripheral colony spaces, redrawn as a
+   compact collapsible map over the Atlantic. */
+.vq-world-map { position: absolute; left: 12px; bottom: 36px; z-index: 3; width: min(340px, calc(100% - 24px)); background: #faf3e4f2; border: 1px solid #b49e72; border-radius: 6px; box-shadow: 0 2px 8px #30291e22; color: #3d3426; font-size: 11px; pointer-events: auto; }
+.vq-world-map > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 9px; cursor: pointer; font-weight: 650; list-style: none; }
+.vq-world-map > summary::-webkit-details-marker { display: none; }
+.vq-world-map[open] > summary { border-bottom: 1px solid #d6c8ad; }
+.vq-world-map-count { color: #77551f; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.vq-world-map-body { padding: 5px; }
+.vq-world-map svg { display: block; width: 100%; height: auto; border: 1px solid #c8b48a; border-radius: 4px; }
+.vq-world-location { cursor: help; }
+.vq-world-colony polygon { filter: drop-shadow(0 0 1.5px #fffdf6); }
+.vq-world-label-leader { stroke: #6b5739; stroke-width: .45; stroke-dasharray: 1 1.5; opacity: .65; }
+.vq-world-map-key { display: flex; flex-wrap: wrap; gap: 4px 9px; padding: 4px 2px 1px; font-size: 9.5px; color: #5a4a33; }
+.vq-world-map-key span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.vq-world-map-key i { width: 7px; height: 7px; display: inline-block; transform: rotate(45deg); border: 1px solid #4b3d2b; }
+
 /* Compact map legend, bottom-right above the caption */
 .vq-map-legend { position: absolute; right: 12px; bottom: 36px; z-index: 2; max-width: min(260px, calc(100% - 24px)); pointer-events: auto; font-size: 11px; color: #3d3426; background: #faf3e4f2; border: 1px solid #b49e72; border-radius: 6px; box-shadow: 0 2px 8px #30291e22; }
 .vq-map-legend > summary { padding: 4px 9px; cursor: pointer; font-weight: 650; list-style: none; }
@@ -133,6 +149,8 @@
 @media (max-width: 599px) {
     .vq-map-legend { right: 8px; bottom: 36px; max-width: 64%; }
     .vq-legend-items { grid-template-columns: minmax(0, 1fr); }
+    .vq-world-map { left: 8px; bottom: 36px; width: min(300px, calc(100% - 16px)); }
+    .vq-world-map[open] { max-height: 48vh; overflow: auto; }
 }
 
 /* Phase 1 — turn controls: pass is deliberately quiet and separated from end impulse. */

@@ -9,6 +9,7 @@ import {Controller, landCount, navalCount, Religion, VQGame, CONTROLLER_COLORS, 
 import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES, seaZoneName, spaceName, spacePoint} from "../mapData";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, tutorialSpaceAllowed} from "../tutorial";
 import land from "../data/land-background.json";
+import {WorldMapInset} from "./world-map";
 
 const GRATICULE_LATS = [30, 34, 38, 42, 46, 50, 54, 59] as const;
 const GRATICULE_LONS = [-13, -5, 3, 11, 19, 27, 37] as const;
@@ -306,6 +307,7 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
             </g>
         </svg>
         <MapLegend/>
+        <WorldMapInset G={G}/>
         <div className="vq-map-controls">
             <IconButton size="small" aria-label={i18n.chain.vq.map.zoomIn} disabled={view.scale >= 4} onClick={() => setView((current) => zoomView(current, 1.35, [500, 310]))}><AddIcon fontSize="small"/></IconButton>
             <span style={{minWidth: 36, textAlign: "center", fontSize: 11}} aria-live="polite">{Math.round(view.scale * 100)}%</span>

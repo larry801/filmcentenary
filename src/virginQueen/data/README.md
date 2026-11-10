@@ -148,6 +148,13 @@ repository and run `python3 scripts/generate-vq-land.py /path/to/ne_50m_land.geo
 The generated file records the source SHA-256 and geographic extent. The extent
 and projection in `components/map-geometry.ts` must match the generator.
 
+The World Map inset uses `world-background.json`, generated the same way from
+the smaller `ne_110m_land.geojson`:
+`python3 scripts/generate-vq-world.py /path/to/ne_110m_land.geojson`.
+`data/world-map.ts` supplies the printed triangular settlement names, true
+lon/lat positions and home colours; `components/world-map.tsx` overlays current
+control/colony state on that map.
+
 The background is stored in the raw geographic projection. At runtime
 `warpSvgPath` applies the same board-style regional magnification as the city
 and sea-zone layers: the Low Countries, Rhineland and northern Italy are

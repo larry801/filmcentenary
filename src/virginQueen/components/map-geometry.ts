@@ -276,6 +276,10 @@ export interface LabelLayoutOptions {
     fontSize?: number;
     /** Visual obstacles other than markers, such as sea-zone labels. */
     obstacles?: readonly MapLabelBox[];
+    /** Drawing bounds when the labels belong to an inset; defaults to the Europe map. */
+    bounds?: {width: number; height: number};
+    /** Candidate distances from a marker to the label centre. */
+    candidateDistances?: readonly number[];
 }
 
 /** Approximate rendered width in SVG map units.  CJK glyphs are full-width. */
@@ -345,14 +349,18 @@ export const placeMapLabels = (
 ): Record<string, MapLabelPlacement> => {
     const fontSize = options.fontSize ?? 9.5;
     const height = fontSize + 3;
+    const bounds = options.bounds ?? {width: MAP_WIDTH, height: MAP_HEIGHT};
+    const distances = options.candidateDistances ?? LABEL_DISTANCES;
     const occupied: MapLabelBox[] = [];
     // Reserve room for the marker itself, its selection/highlight halo and the
     // small unit-count badge that sits just above/right of the marker.
+    const markerWidth = fontSize * 3.55;
+    const markerHeight = fontSize * 3.15;
     const markers = labels.map((label) => ({
-        x: label.x - 10,
-        y: label.y - 18,
-        width: 34,
-        height: 30,
+        x: label.x - markerWidth * 0.3,
+        y: label.y - markerHeight * 0.6,
+        width: markerWidth,
+        height: markerHeight,
     }));
     const padBox = (box: MapLabelBox, padding: number): MapLabelBox => ({
         x: box.x - padding,
@@ -378,7 +386,7 @@ export const placeMapLabels = (
             overlap: number;
         } | undefined;
         const ownMarker = markers[labels.indexOf(label)];
-        for (const distance of LABEL_DISTANCES) {
+        for (const distance of distances) {
             for (const [ux, uy, textAnchor] of LABEL_DIRECTIONS) {
                 const x = label.x + ux * distance;
                 const y = label.y + uy * distance;
@@ -391,8 +399,8 @@ export const placeMapLabels = (
                     overlap += overlapArea(paddedBox, markers[index]);
                 }
                 // Out-of-bounds labels are never useful on a pan/zoom map.
-                const outside = Math.max(0, 8 - box.x) + Math.max(0, box.x + box.width - (MAP_WIDTH - 8)) +
-                    Math.max(0, 8 - box.y) + Math.max(0, box.y + box.height - (MAP_HEIGHT - 8));
+                const outside = Math.max(0, 8 - box.x) + Math.max(0, box.x + box.width - (bounds.width - 8)) +
+                    Math.max(0, 8 - box.y) + Math.max(0, box.y + box.height - (bounds.height - 8));
                 const score = overlap * 50 + outside * 80 + distance * 0.12 + (uy > 0 && Math.abs(ux) < 0.1 ? 1.5 : 0);
                 if (best === undefined || score < best.score) {
                     best = {x, y, textAnchor, box, score, overlap};

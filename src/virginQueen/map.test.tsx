@@ -6,6 +6,8 @@ import {setupGame} from "./util";
 import {VQMap} from "./components/map";
 import {clampView, INITIAL_VIEW, isMapDrag, MAP_EXTENT, mapProject, nearestMapTarget, placeMapLabels, project, relaxMapPoints, warpSvgPath, zoomView} from "./components/map-geometry";
 import land from "./data/land-background.json";
+import worldLand from "./data/world-background.json";
+import {WORLD_MAP_HEIGHT, WORLD_MAP_LOCATIONS, WORLD_MAP_WIDTH, projectWorld} from "./data/world-map";
 
 describe("offline geographic map", () => {
     it("uses the same projection extent as the generated coastline", () => {
@@ -165,6 +167,30 @@ describe("offline geographic map", () => {
                 const overlapHeight = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
                 expect(overlapWidth > 0 && overlapHeight > 0).toBe(false);
             }
+        }
+    });
+
+    it("draws the printed World Map settlement triangles and overlays active colonies", () => {
+        const G = setupGame({numPlayers: 6, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
+        G.worldColonies.florida = "england";
+        G.worldControls.florida = "england";
+        const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}}/>);
+        expect(html).toContain("世界地图");
+        expect(html).toContain("1 个殖民地");
+        expect(html).toContain("vq-world-colony");
+        expect(html).toMatch(/aria-label="佛罗里达 · 英格兰 · 殖民地"/);
+        expect(html).toContain("皇家查尔斯堡");
+        expect(html).toContain("迪奥斯港/巴拿马");
+        expect(worldLand.extent).toEqual([-180, 80, 180, -60]);
+        expect(worldLand.width).toBe(WORLD_MAP_WIDTH);
+        expect(worldLand.height).toBe(WORLD_MAP_HEIGHT);
+        expect(WORLD_MAP_LOCATIONS.length).toBeGreaterThanOrEqual(25);
+        for (const location of WORLD_MAP_LOCATIONS) {
+            const [x, y] = projectWorld(location.lon, location.lat);
+            expect(x).toBeGreaterThan(0);
+            expect(x).toBeLessThan(WORLD_MAP_WIDTH);
+            expect(y).toBeGreaterThan(0);
+            expect(y).toBeLessThan(WORLD_MAP_HEIGHT);
         }
     });
 

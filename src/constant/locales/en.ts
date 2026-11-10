@@ -1735,6 +1735,13 @@ const en = {
         worldUi: {
             title: "World map · Exploration & colonization",
             intro: "Expeditions sail zone by zone along the recorded coarse adjacencies; hazardous routes, trade winds, colonies, Spanish patrols and fortresses, and world piracy all resolve automatically.",
+            worldMap: "World map",
+            coloniesShort: "colonies",
+            worldMapAria: "World map and colony locations",
+            colony: "colony",
+            spanishHome: "Spanish settlement",
+            portugueseHome: "Portuguese settlement",
+            unoccupiedSpace: "Open settlement",
             damaged: "damaged",
             carryingColony: "carrying colony",
             vacant: "vacant",
