@@ -87,6 +87,14 @@ describe("VQ bilingual helpers (zh_CN default, en on request)", () => {
             .toBe("神圣罗马帝国 记录了秘密宗教倾向。");
         expect(localizeLogLine("France gains 1 Paris VP."))
             .toBe("法国 获得 1 点巴黎 VP。");
+        expect(localizeLogLine("Catholic League check: 0 French home space(s) under Protestant control; not formed this year."))
+            .toBe("天主教联盟检查：新教控制 0 个法国本土地区；本年度未成立。");
+        expect(localizeLogLine("Catholic League check: the Protestants control 3 keys in France, so the League forms automatically."))
+            .toBe("天主教联盟检查：新教控制法国 3 个关键地区，联盟自动成立。");
+        expect(localizeLogLine("Catholic League check: 6 French home space(s) + die 6 = 12 — formed!"))
+            .toBe("天主教联盟检查：法国本土 6 + 掷骰 6 = 12，成立！");
+        expect(localizeLogLine("Portugal enters play; England starts with 1 diplomatic influence there."))
+            .toBe("葡萄牙 进入游戏；英格兰初始拥有 1 点外交影响力。");
         const source = "Rudolf II dies; the +2 Prague Cultural Center marker is removed from the game.";
         expect(localizeLogLine(source, "en")).toBe(source);
     });

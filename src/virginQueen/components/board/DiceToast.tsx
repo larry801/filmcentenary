@@ -10,10 +10,19 @@ export interface DiceToastProps {
     duration?: number;
 }
 
-const face = (value: string): React.ReactNode => {
+const face = (value: string, index: number): React.ReactNode => {
     const trimmed = value.trim();
     if (!/^\d+$/.test(trimmed)) return trimmed;
-    return <span key={trimmed} className="vq-die" aria-hidden="true">{trimmed}</span>;
+    // Index in the key: a roll may show the same face several times (e.g.
+    // "3, 3, 5"), and keying by the face alone makes React warn about
+    // duplicate children.
+    return <span key={`${index}-${trimmed}`} className="vq-die" aria-hidden="true">{trimmed}</span>;
+};
+
+/** The individual die faces from a `G.lastRolls` summary. */
+export const DiceFaces = ({rolls}: {rolls: string}) => {
+    const values = rolls.split(/[,\s]+/).filter((value) => value !== "");
+    return <span className="vq-dice-row" aria-label={rolls}>{values.map(face)}</span>;
 };
 
 /**
@@ -35,13 +44,12 @@ export const DiceToast = ({rolls, duration = 5000}: DiceToastProps) => {
     }, [rolls, seen, duration]);
 
     if (rolls === undefined || rolls === "") return null;
-    const values = rolls.split(/[,\s]+/).filter((value) => value !== "");
     return <Snackbar open={open} onClose={() => setOpen(false)} autoHideDuration={duration}
                      anchorOrigin={{vertical: "bottom", horizontal: "center"}}>
         <Alert severity="info" variant="filled" onClose={() => setOpen(false)}
                sx={{alignItems: "center", gap: 1}} icon={false}>
             <span className="vq-dice-label">{i18n.chain.vq.log.recentRolls}</span>
-            <span className="vq-dice-row" aria-label={rolls}>{values.map(face)}</span>
+            <DiceFaces rolls={rolls}/>
         </Alert>
     </Snackbar>;
 };

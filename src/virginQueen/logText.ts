@@ -38,7 +38,10 @@ for (const settlement of WORLD_SETTLEMENTS) {
     addName(settlement.nameEn, settlement.nameZh);
     addName(settlement.id, settlement.nameZh);
 }
-for (const [id, entry] of Object.entries(MINOR_NAMES)) addName(id, entry.zh);
+for (const [id, entry] of Object.entries(MINOR_NAMES)) {
+    addName(id, entry.zh);
+    addName(entry.en, entry.zh);
+}
 for (const power of POWERS) {
     addName(power, POWER_NAMES[power].zh);
     addName(POWER_NAMES[power].en, POWER_NAMES[power].zh);
@@ -103,6 +106,15 @@ const RULES: Rule[] = [
     [/^(.+) replacement: \+2 mercenaries in (.+)\.$/, (_m, p, space) => `${p} 冬季补员：${space} +2 雇佣兵。`],
     [/^(.+) replacement: (.+) marker moves from 0 to 4\.$/, (_m, p, marker) => `${p} 冬季补员：${marker.trim()}从 0 移到 4。`],
     [/^(.+) replacement: choose 1 regular, 2 mercenaries, or the (.+) marker 0→4\.$/, (_m, p, marker) => `${p} 冬季补员：选择 1 正规军、2 雇佣兵，或将 ${marker.trim()} 从 0 移到 4。`],
+    // The engine logs the Catholic League check verbatim; without these rules
+    // the line keeps most of its English text even in the Chinese UI.
+    [/^(?:Catholic League|天主教联盟) check: the (?:Protestants|新教联盟) control (\d+) keys in (?:France|法国), so the League forms automatically\.$/,
+        (_m, keys) => `天主教联盟检查：新教控制法国 ${keys} 个关键地区，联盟自动成立。`],
+    [/^(?:Catholic League|天主教联盟) check: (\d+) (?:French|法国) home space\(s\) under (?:Protestant|新教) control; not formed this year\.$/,
+        (_m, homes) => `天主教联盟检查：新教控制 ${homes} 个法国本土地区；本年度未成立。`],
+    [/^(?:Catholic League|天主教联盟) check: (\d+) (?:French|法国) home space\(s\) \+ die (\d+) = (\d+) — (formed!|not formed\.)$/,
+        (_m, homes, rolled, total, outcome) =>
+            `天主教联盟检查：法国本土 ${homes} + 掷骰 ${rolled} = ${total}${outcome === "formed!" ? "，成立！" : "，未成立。"}`],
     [/^(.+) records its secret religious preference\.$/, (_m, p) => `${p} 记录了秘密宗教倾向。`],
     [/^(.+) gains (\d+) 巴黎 VP\.$/, (_m, p, n) => `${p} 获得 ${n} 点巴黎 VP。`],
     [/^(.+) returns to the pool; (.+) must choose a home port\.$/, (_m, leader, p) => `${leader} 返回人员池；${p} 必须选择本国港口。`],
@@ -428,7 +440,7 @@ const RULES: Rule[] = [
     [/^(.+) raises the Protestant cause and takes Bayonne\.$/, (_m, card) => `${card} 振奋新教事业并夺取巴约讷。`],
     [/^(.+) raises the Protestant cause and takes (.+)\.$/, (_m, card, place) => `${card} 振奋新教事业并夺取 ${place}。`],
     [/^(.+) enters the marriage pool for (.+)\.$/, (_m, royal, p) => `${royal} 进入 ${p} 的婚姻池。`],
-    [/^(.+) enters play; England starts with 1 diplomatic influence there\.$/, (_m, power) => `${power} 进入游戏；英格兰初始拥有 1 点外交影响力。`],
+    [/^(.+) enters play; (?:England|英格兰) starts with 1 diplomatic influence there\.$/, (_m, power) => `${power} 进入游戏；英格兰初始拥有 1 点外交影响力。`],
     [/^(.+) rises: Ulster is cleared and 3 Irish rebels are placed\.$/, (_m, event) => `${event}：阿尔斯特被清空，并放置 3 个爱尔兰叛军。`],
     [/^(.+) places 3 Portuguese regulars in (.+)\.$/, (_m, who, place) => `${who} 在 ${place} 放置 3 个葡萄牙正规军。`],
     [/^(.+) appears in (.+); (.+) must commit 3–8 land units\.$/, (_m, n, enemy, p) => `${n} 个单位的敌军出现在 ${enemy}；${p} 必须投入 3–8 个陆军单位。`],
