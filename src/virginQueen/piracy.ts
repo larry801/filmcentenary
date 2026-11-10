@@ -1,12 +1,12 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {Power, SeaZoneID, VQGame, navalCount} from "./constant/general";
+import {POWERS, Power, SeaZoneID, VQGame, isPower, navalCount} from "./constant/general";
 import {SEA_ZONE_BY_ID, SEA_ZONES, SPACE_BY_ID, mapName} from "./mapData";
 import {ownerOf} from "./ownership";
 import {cardById} from "./constant/cards";
 import i18n from "../constant/i18n";
 import {TUTORIAL_FORTRESSES, tutorialSpaceAllowed} from "./tutorial";
-import {atWar, bestPiracy, hits, isSeaZone, leaderPower, pushLog, recordNavalLoss, removeCardFromHand, roll, shuffle, zonePorts} from "./util";
+import {addVp, atWar, bestPiracy, hits, isSeaZone, leaderPower, pushLog, recordNavalLoss, removeCardFromHand, roll, shuffle, zonePorts} from "./util";
 
 const stacks = (G: VQGame, location: string) => isSeaZone(location) ? G.seaZones[location as SeaZoneID].naval : G.spaces[location].naval;
 const adjacentLocations = (zone: SeaZoneID): string[] => [...zonePorts(zone).filter(tutorialSpaceAllowed), ...SEA_ZONE_BY_ID[zone].adjacent];
@@ -29,9 +29,16 @@ export const piracyOptions = (G: VQGame): {id: string; label: string}[] => {
         }
     }
     if (G.powers[pending.target].cards.some((id) => cardById(id).kind !== "home")) result.push({id: "card", label: i18n.chain.vq.engine.allowRandomDraw, reward: "card"});
-    if (pending.power === "ottoman") {
-        if ((G.tutorialEffects?.piracyVp ?? 0) < 10) result.push({id: "vp", label: i18n.chain.vq.engine.giveOttomanPiracyVp, reward: "vp"});
-    } else if ((G.tutorialEffects?.piracyVp ?? 0) > 0 || result.length === 0) result.push({id: "vp", label: i18n.chain.vq.engine.ottomanPiracyVpMinusOne, reward: "vp"});
+    if (G.scenario === "tutorial") {
+        if (pending.power === "ottoman") {
+            if ((G.tutorialEffects?.piracyVp ?? 0) < 10) result.push({id: "vp", label: i18n.chain.vq.engine.giveOttomanPiracyVp, reward: "vp"});
+        } else if ((G.tutorialEffects?.piracyVp ?? 0) > 0 || result.length === 0) {
+            result.push({id: "vp", label: i18n.chain.vq.engine.ottomanPiracyVpMinusOne, reward: "vp"});
+        }
+    } else {
+        // Rule 16.4 step 5c: any active power may be awarded 1 VP for Piracy.
+        result.push({id: "vp", label: i18n.chain.vq.engine.awardPiracyVp, reward: "vp"});
+    }
     const minimum = Math.min(...result.map((entry) => pending.rewards[entry.reward] ?? 0));
     return result.filter((entry) => (pending.rewards[entry.reward] ?? 0) === minimum);
 };
@@ -58,15 +65,22 @@ export const startPiracy = (G: VQGame, ctx: Ctx, power: Power, target: Power, zo
     G.piracyUsed[power]!.push(zone);
     // #11 Dragut Falls may be played after a piracy action involving Dragut.
     if (G.seaZones[zone].leaders.includes("dragut") && leaderPower(G, "dragut") === power) G.dragutFought = true;
-    let dice = 2 * navalCount(G.seaZones[zone].naval[target]);
+    let dice = power === "ottoman" && (G.seaZones[zone].naval.ottoman?.corsair ?? 0) > 0
+        ? 2 * navalCount(G.seaZones[zone].naval[target])
+        : 0;
     for (const location of adjacentLocations(zone)) {
-        for (const other of ["ottoman", "spain"] as Power[]) {
+        for (const other of POWERS) {
             if (other !== target && !atWar(G, power, other)) continue;
             const stack = stacks(G, location)[other];
             if (stack) dice += stack.galley + stack.galleon + stack.racebuilt;
         }
     }
-    dice += zonePorts(zone).filter((id) => TUTORIAL_FORTRESSES.includes(id) && G.spaces[id].control === target && !G.spaces[id].unrest && !G.spaces[id].siege).length;
+    dice += zonePorts(zone).filter((id) => {
+        const space = G.spaces[id];
+        if (space.unrest || space.siege || !isPower(space.control)) return false;
+        if (space.control !== target && !atWar(G, power, space.control)) return false;
+        return G.scenario === "tutorial" ? TUTORIAL_FORTRESSES.includes(id) : SPACE_BY_ID[id]?.kind === "fortress";
+    }).length;
     if (power === "ottoman" && zonePorts(zone).includes("malta") && (G.spaces.malta.land.spain?.regular ?? 0) > 0) dice += 1;
     const defense = roll(ctx, dice);
     let remaining = hits(defense);
@@ -100,9 +114,13 @@ export const choosePiracy = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
         G.powers[pending.power].cards.push(id);
     }
     if (action === "vp") {
-        const change = pending.power === "ottoman" ? 1 : (G.tutorialEffects!.piracyVp > 0 ? -1 : 0);
-        G.tutorialEffects!.piracyVp += change;
-        G.powers.ottoman.bonusVp += change;
+        if (G.scenario === "tutorial") {
+            const change = pending.power === "ottoman" ? 1 : (G.tutorialEffects!.piracyVp > 0 ? -1 : 0);
+            G.tutorialEffects!.piracyVp += change;
+            G.powers.ottoman.bonusVp += change;
+        } else {
+            addVp(G, pending.power, 1);
+        }
     }
     pending.rewards[action] = (pending.rewards[action] ?? 0) + 1;
     pending.remaining -= 1;

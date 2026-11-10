@@ -2986,6 +2986,9 @@ export const VirginQueenBoard = ({G, log, ctx, moves, playerID, isActive, matchI
                         {i18n.chain.vq.intel.militaryGoalSummary.replace("{targets}",
                             POWERS.map((p) => `${powerShortName(p, vqLocale)} ${POWER_INFO[p].autoWinKeys}`).join(" / "))}
                     </Typography>}
+                    {G.scenario !== "tutorial" && <Typography variant="body2" title={i18n.chain.vq.intel.vpVictoryGoalHint}>
+                        {i18n.chain.vq.intel.vpVictoryGoal}
+                    </Typography>}
                     {G.scenario === "tutorial" && <>
                         <Typography variant="body2">{i18n.chain.vq.intel.tutorialOttoman}</Typography>
                         <Typography variant="body2">{i18n.chain.vq.intel.tutorialOttoman2} {powerVp(G, "ottoman")} VP ({i18n.chain.vq.intel.keys} {baseVp(G, "ottoman")}, {i18n.chain.vq.intel.fortress} {tutorialFortressVp(G)}, {i18n.chain.vq.intel.other} {G.powers.ottoman.bonusVp}). {i18n.chain.vq.intel.remainingTurns}: {Math.max(0, 4 - G.year)}.</Typography>

@@ -703,4 +703,22 @@ describe("Virgin Queen victory", () => {
         expect(protestantSpaceCount(G)).toBe(51);
         expect(checkVictory(G)).toEqual({winner: "protestant", reason: "protestantReligious"});
     });
+
+    it("awards a domination victory from the end of turn 4 but not earlier", () => {
+        const G = newGame();
+        G.powers.spain.bonusVp += 3;
+        G.checkVictory = true;
+        G.year = 4;
+        expect(checkVictory(G)).toBeUndefined();
+        G.year = 5;
+        expect(checkVictory(G)).toEqual({winner: "spain", reason: "domination"});
+    });
+
+    it("prefers a standard victory when the leader also has 25 VP", () => {
+        const G = newGame();
+        G.powers.spain.bonusVp += 10;
+        G.checkVictory = true;
+        G.year = 5;
+        expect(checkVictory(G)).toEqual({winner: "spain", reason: "standard"});
+    });
 });

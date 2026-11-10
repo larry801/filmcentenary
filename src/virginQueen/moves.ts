@@ -5522,6 +5522,8 @@ export const piracy = (G: VQGame, ctx: Ctx, args: { zone: string; target: Power 
     if (!atWar(G, p, args.target) && !corsair) {
         return INVALID_MOVE;
     }
+    // Rule 16.4: Spain may not initiate piracy in a sea zone occupied by the Armada.
+    if (p === "spain" && G.armada?.location === zone) return INVALID_MOVE;
     if (G.scenario !== "tutorial") {
         const used = G.piracyUsed?.[p] ?? [];
         const zoneUsers = Object.values(G.piracyUsed ?? {}).filter((zones) => zones?.includes(zone)).length;

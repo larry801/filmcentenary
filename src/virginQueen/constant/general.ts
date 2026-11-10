@@ -1027,7 +1027,7 @@ export const VICTORY_TEXT: Record<VictoryReason, { en: string; zh: string }> = {
     catholicReligious: {en: "Catholic religious victory: Protestant spaces reduced to 9", zh: "天主教宗教胜利：新教地区降至 9 个"},
     catholicRebellion: {en: "Catholic rebellion victory: the Gunpowder Plot succeeds and Spain wins", zh: "天主教叛乱胜利：火药阴谋成功，西班牙获胜"},
     standard: {en: "Standard victory: reach 25 VP", zh: "标准胜利：达到 25 分"},
-    domination: {en: "Domination victory: lead every opponent by at least 5 VP", zh: "支配胜利：领先所有对手至少 5 分"},
+    domination: {en: "Domination victory: from Turn 4, under 25 VP and at least 5 VP ahead of every opponent", zh: "支配胜利：第 4 回合起，VP 低于 25 且领先所有对手至少 5 分"},
     timeLimit: {en: "Time-limit victory: highest score at the end of turn 7", zh: "时限胜利：第 7 回合结束时分数最高"},
 };
 export const victoryText = (reason: VictoryReason, locale: VQLocale = "zh_CN"): string => {
