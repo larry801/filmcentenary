@@ -162,6 +162,12 @@ export interface SeaCaptain {
     /** Printed navigation value (N) on the counter. */
     navigation: number;
     bonus: string;
+    /** Localized rules text for the same bonus. */
+    bonusZh?: string;
+    /** Printed CP cost to build an expedition with this captain (default 1). */
+    expeditionCost?: number;
+    /** The captain may add a colony without paying the extra CP. */
+    freeColonist?: boolean;
     notes?: string;
 }
 

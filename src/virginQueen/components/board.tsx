@@ -115,7 +115,8 @@ import {Controller} from "../constant/general";
 import {canPlayBattleCard} from "../combat";
 import {canPlayTutorialEvent} from "../tutorialEvents";
 import {canPlayGrandVizier, canPlayUntimelyDeath, isGrandVizier, untimelyDeathTargets} from "../cardEvents";
-import {actionResponseOptions, passBlock, type PassBlock} from "../moves";
+import {actionResponseOptions, passBlockReasons, type PassBlock} from "../moves";
+import {diplomacyActionState, diplomacyBlockText, giftState} from "../diplomacyPolicy";
 import {interceptionOptions} from "../interception";
 import {interceptionOrderOptions} from "../navalCombat";
 import {assassinationTargets, canPlayEspionageEvent, canPlayNorthernRising, doubleAgentTargets, isEspionageEvent} from "../espionage";
@@ -1367,7 +1368,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
     const hand = ps?.cards ?? [];
-    const passBlockCode: PassBlock | undefined = myTurn && phase === "action" && me !== undefined ? passBlock(G, me) : undefined;
+    const passBlockCodes: PassBlock[] = myTurn && phase === "action" && me !== undefined ? passBlockReasons(G, me) : [];
     const passBlockText = (code: PassBlock): string => {
         switch (code) {
             case "played":
@@ -1386,10 +1387,20 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                     .replace("{admin}", me !== undefined ? String(rulerStats(G, me).admin) : "");
         }
     };
-    const passBlockReason = passBlockCode !== undefined ? passBlockText(passBlockCode) : undefined;
+    // Every rule that blocks a pass is listed, not just the first one: a large
+    // hand plus an unplayed Home card are independent restrictions.
+    const passBlockReason = passBlockCodes.length > 0 ? passBlockCodes.map(passBlockText).join(" · ") : undefined;
     // Ending after a card is the normal way to finish an impulse; only the
     // no-card path is a pass and subject to the pass restrictions.
-    const endImpulseBlocked = passBlockCode !== undefined && passBlockCode !== "played";
+    const endImpulseBlocked = passBlockCodes.some((code) => code !== "played");
+    // Hotseat: every mounted seat shares one screen, so an idle panel has to
+    // say which tab the device user should open next.
+    const hotseatWaitHint = (): string | undefined => {
+        if (myTurn || me === undefined) return undefined;
+        const base = `${i18n.chain.vq.board.waiting} ${powerName(G.activePower, vqLocale)} ${i18n.chain.vq.board.act}${i18n.chain.vq.punct.period}`;
+        const tab = switchToTab(G.activePower);
+        return tab === undefined ? base : `${base} ${tab}`;
+    };
     const canAct = myTurn && phase === "action" && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingReliefSplit && !G.pendingRebelMove && !G.pendingForeignWar;
     const vqCombatRetrieve = virginQueenCombatRetrieveOptions(G, playerID);
 
@@ -1890,7 +1901,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                     ))}
                 </Stack>}
                 <Typography variant="body2" color={myTurn ? "primary" : "text.secondary"}>
-                    {`${myTurn ? i18n.chain.vq.cardDraw.pleaseConfirm : i18n.chain.vq.cardDraw.waiting} P${Number(ctx.currentPlayer) + 1} · ${powerName(G.activePower, vqLocale)} ${i18n.chain.vq.cardDraw.completeDraw}${i18n.chain.vq.punct.openParen}${powers.indexOf(G.activePower) + 1}/${powers.length}${i18n.chain.vq.punct.closeParen}${i18n.chain.vq.punct.period}`}
+                    {`${myTurn ? i18n.chain.vq.cardDraw.pleaseConfirm : i18n.chain.vq.cardDraw.waiting} P${Number(ctx.currentPlayer) + 1} · ${powerName(G.activePower, vqLocale)} ${i18n.chain.vq.cardDraw.completeDraw}${i18n.chain.vq.punct.openParen}${powers.indexOf(G.activePower) + 1}/${powers.length}${i18n.chain.vq.punct.closeParen}${i18n.chain.vq.punct.period}${!myTurn && switchToTab(G.activePower) !== undefined ? ` ${switchToTab(G.activePower)}` : ""}`}
                 </Typography>
                 {me !== "france" && me !== "protestant" ? null : G.seaCaptainsAvailable.map((id) => {
                     const captain = seaCaptainById(id);
@@ -1921,8 +1932,8 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
             const artistMarkersLeft = vpAwards.filter((award) => award.kind === "artist").length;
             const scientistMarkersLeft = vpAwards.filter((award) => award.kind === "scientist").length;
             const expeditionCaptainDef = seaCaptainById(expeditionCaptain);
-            const expeditionBaseCost = expeditionCaptainDef?.bonus.startsWith("Costs 2 CP") ? 2 : 1;
-            const hasFreeColonist = expeditionCaptainDef?.bonus.startsWith("Free colonist") || ps?.scienceBonuses.includes("plantation");
+            const expeditionBaseCost = expeditionCaptainDef?.expeditionCost ?? 1;
+            const hasFreeColonist = expeditionCaptainDef?.freeColonist === true || ps?.scienceBonuses.includes("plantation");
             const expeditionCost = expeditionBaseCost + (expeditionHasColony && !hasFreeColonist ? 1 : 0);
             return <Stack spacing={1}>
                 <Stack direction="row" spacing={1} sx={{alignItems: "center"}}>
@@ -1932,7 +1943,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                     <Chip size="small" label={`${i18n.chain.vq.board.hand} ${hand.length}`}/>
                     {ps !== undefined && ps.cardPlayed && <Chip size="small" color="success" label={i18n.chain.vq.board.playedThisTurn}/>}
                 </Stack>
-                {!myTurn && <Typography variant="caption" color="text.secondary">{i18n.chain.vq.board.waiting} {powerName(G.activePower, vqLocale)} {i18n.chain.vq.board.act}{i18n.chain.vq.punct.period}</Typography>}
+                {hotseatWaitHint() !== undefined && <Typography variant="caption" color="text.secondary">{hotseatWaitHint()}</Typography>}
                 {G.pendingNavalOrder !== undefined && G.pendingNavalOrder.attacker === me && <Paper variant="outlined" sx={{p: 1}}>
                     <Typography variant="subtitle2">{i18n.chain.vq.board.chooseNavalTarget}</Typography>
                     <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap", mt: 0.5}}>
@@ -2077,7 +2088,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                     <Tooltip title={!myTurn ? i18n.chain.vq.turn.notYourTurn : passBlockReason ?? ""}>
                         <span>
                             <Button size="small" color="inherit" variant="text" className="vq-pass"
-                                    disabled={!myTurn || passBlockCode !== undefined}
+                                    disabled={!myTurn || passBlockCodes.length > 0}
                                     onClick={() => setConfirmAction("pass")}>{i18n.chain.vq.turn.pass}</Button>
                         </span>
                     </Tooltip>
@@ -2342,7 +2353,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                     <Typography variant="subtitle2">{i18n.chain.vq.worldUi.seaCaptains}</Typography>
                     {ps.seaCaptains.map((id) => {
                         const captain = seaCaptainById(id);
-                        return <Typography key={id} variant="caption">{seaCaptainName(captain, vqLocale) || id}{i18n.chain.vq.punct.colon}{captain?.bonus}</Typography>;
+                        return <Typography key={id} variant="caption">{seaCaptainName(captain, vqLocale) || id}{i18n.chain.vq.punct.colon}{captain === undefined ? "" : (vqLocale === "en" ? captain.bonus : (captain.bonusZh ?? captain.bonus))}</Typography>;
                     })}
                 </>}
                 {ps !== undefined && ps.scienceBonuses.length > 0 && <>
@@ -2379,8 +2390,35 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
         if (phase === "diplomacy") {
             const handCp = hand.reduce((n, id) => n + cardById(id).cp, 0);
             const betrothal = betrothalChoices(G, me, domesticRoyal, foreignRoyal);
+            const warState = me !== undefined ? diplomacyActionState(G, me, diploTargetValue, "declareWar") : undefined;
+            const peaceState = me !== undefined ? diplomacyActionState(G, me, diploTargetValue, "makePeace") : undefined;
+            const allianceState = me !== undefined ? diplomacyActionState(G, me, diploTargetValue, "formAlliance") : undefined;
+            const diplomacyReasons = [...new Set([
+                warState?.ok === false && warState.reason !== "alreadyAtWar" ? warState.reason : undefined,
+                peaceState?.ok === false && peaceState.reason !== "notAtWar" ? peaceState.reason : undefined,
+                allianceState?.ok === false && allianceState.reason !== "alreadyAtWar" ? allianceState.reason : undefined,
+            ].filter((reason): reason is NonNullable<typeof reason> => reason !== undefined)
+                .map((reason) => diplomacyBlockText(reason, i18n.chain.vq.diplomacy.blocks)))];
+            const actionTitle = (state: {ok: boolean; reason?: Parameters<typeof diplomacyBlockText>[0]} | undefined): string => {
+                if (!myTurn) return i18n.chain.vq.turn.notYourTurn;
+                if (state === undefined || state.ok || state.reason === undefined) return "";
+                return diplomacyBlockText(state.reason, i18n.chain.vq.diplomacy.blocks);
+            };
+            const cardGift = me !== undefined ? giftState(G, me, diploTargetValue, "cards") : undefined;
+            const mercGift = me !== undefined ? giftState(G, me, diploTargetValue, "mercenaries", selected) : undefined;
+            const treasureGift = me !== undefined ? giftState(G, me, diploTargetValue, "treasures") : undefined;
+            const giftReason = (state: {ok: boolean; reason?: keyof typeof i18n.chain.vq.diplomacy.giftBlocks} | undefined): string => {
+                if (!myTurn) return i18n.chain.vq.turn.notYourTurn;
+                if (state === undefined || state.ok || state.reason === undefined) return "";
+                return i18n.chain.vq.diplomacy.giftBlocks[state.reason];
+            };
+            const giftNotice = [...new Set([cardGift, mercGift, treasureGift]
+                .filter((state): state is {ok: false; reason: "limit" | "reciprocal" | "ottomanMercs"} =>
+                    state?.ok === false && (state.reason === "limit" || state.reason === "reciprocal" || state.reason === "ottomanMercs"))
+                .map((state) => i18n.chain.vq.diplomacy.giftBlocks[state.reason]))];
             return <Stack spacing={1}>
                 <Typography variant="subtitle2">{i18n.chain.vq.diplomacy.title}</Typography>
+                {hotseatWaitHint() !== undefined && <Typography variant="body2" color="text.secondary">{hotseatWaitHint()}</Typography>}
                 <Typography variant="caption" color="text.secondary">
                     {i18n.chain.vq.diplomacy.handCp}: {handCp} · {i18n.chain.vq.diplomacy.handCpNote}
                 </Typography>
@@ -2411,34 +2449,59 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                 <FormControl size="small" fullWidth>
                     <InputLabel id="vq-diplo">{i18n.chain.vq.diplomacy.targetPower}</InputLabel>
                     <Select labelId="vq-diplo" label={i18n.chain.vq.diplomacy.targetPower} value={diploTargetValue}
+                            disabled={!myTurn}
                             onChange={(e) => setDiploTarget(e.target.value as Power)}>
                         {POWERS.filter((p) => p !== me).map((p) => <MenuItem key={p} value={p}>{powerName(p, vqLocale)}</MenuItem>)}
                     </Select>
                 </FormControl>
                 <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
-                    <Button size="small" variant="outlined" disabled={!myTurn || atWar(G, me, diploTargetValue)}
-                            onClick={() => moves.declareWar({target: diploTargetValue})}>
-                        {i18n.chain.vq.diplomacy.declareWar} ({warCost(G, me, diploTargetValue)} CP)
-                    </Button>
-                    <Button size="small" variant="outlined" disabled={!myTurn || !atWar(G, me, diploTargetValue)}
-                            onClick={() => moves.makePeace({target: diploTargetValue})}>{i18n.chain.vq.diplomacy.makePeace}</Button>
-                    <Button size="small" variant="outlined" disabled={!myTurn || atWar(G, me, diploTargetValue)}
-                            onClick={() => moves.formAlliance({target: diploTargetValue})}>{i18n.chain.vq.diplomacy.alliance}</Button>
+                    <Tooltip title={actionTitle(warState)}>
+                        <span>
+                            <Button size="small" variant="outlined" disabled={!myTurn || warState?.ok === false}
+                                    onClick={() => moves.declareWar({target: diploTargetValue})}>
+                                {i18n.chain.vq.diplomacy.declareWar} ({warCost(G, me, diploTargetValue)} CP)
+                            </Button>
+                        </span>
+                    </Tooltip>
+                    <Tooltip title={actionTitle(peaceState)}>
+                        <span>
+                            <Button size="small" variant="outlined" disabled={!myTurn || peaceState?.ok === false}
+                                    onClick={() => moves.makePeace({target: diploTargetValue})}>{i18n.chain.vq.diplomacy.makePeace}</Button>
+                        </span>
+                    </Tooltip>
+                    <Tooltip title={actionTitle(allianceState)}>
+                        <span>
+                            <Button size="small" variant="outlined" disabled={!myTurn || allianceState?.ok === false}
+                                    onClick={() => moves.formAlliance({target: diploTargetValue})}>{i18n.chain.vq.diplomacy.alliance}</Button>
+                        </span>
+                    </Tooltip>
                 </Stack>
+                {myTurn && diplomacyReasons.length > 0 && <Typography variant="caption" color="text.secondary" role="status">
+                    {diplomacyReasons.join(" · ")}
+                </Typography>}
                 <Typography variant="caption" color="text.secondary">
                     {i18n.chain.vq.diplomacy.note}
                 </Typography>
                 <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
-                    <Button size="small" variant="outlined" disabled={!myTurn || atWar(G, me, diploTargetValue) ||
-                        !ps?.cards.some((id) => cardById(id).kind !== "home")}
-                        onClick={() => moves.giveRandomCard({target: diploTargetValue})}>{i18n.chain.vq.diplomacy.randomGift}</Button>
-                    <Button size="small" variant="outlined" disabled={!myTurn || atWar(G, me, diploTargetValue) || selected === undefined ||
-                        (G.spaces[selected]?.land[me]?.merc ?? 0) < 1}
-                        onClick={() => selected !== null && moves.giveMercenary({target: diploTargetValue, space: selected})}>{i18n.chain.vq.diplomacy.giftMerc}</Button>
+                    <Tooltip title={giftReason(cardGift)}>
+                        <span>
+                            <Button size="small" variant="outlined" disabled={!myTurn || cardGift?.ok === false}
+                                onClick={() => moves.giveRandomCard({target: diploTargetValue})}>{i18n.chain.vq.diplomacy.randomGift}</Button>
+                        </span>
+                    </Tooltip>
+                    <Tooltip title={giftReason(mercGift)}>
+                        <span>
+                            <Button size="small" variant="outlined" disabled={!myTurn || selected === undefined || mercGift?.ok === false}
+                                onClick={() => selected !== null && moves.giveMercenary({target: diploTargetValue, space: selected})}>{i18n.chain.vq.diplomacy.giftMerc}</Button>
+                        </span>
+                    </Tooltip>
                     <Button size="small" variant="outlined" disabled={!myTurn || selected === undefined ||
                         G.spaces[selected]?.control !== me}
                         onClick={() => selected !== undefined && (moves as unknown as {yieldSpace: (args: {target: Power; space: string}) => void}).yieldSpace({target: diploTargetValue, space: selected})}>{i18n.chain.vq.diplomacy.yieldSpace}</Button>
                 </Stack>
+                {myTurn && giftNotice.length > 0 && <Typography variant="caption" color="text.secondary" role="status">
+                    {giftNotice.join(" · ")}
+                </Typography>}
                 {Object.keys(G.leaders).filter((id) => G.leaders[id].location === "captured" &&
                     (G.leaders[id].capturedBy === undefined || G.leaders[id].capturedBy === me)).length > 0 && <Stack spacing={0.5}>
                     <Typography variant="subtitle2">{i18n.chain.vq.diplomacy.returnLeader}</Typography>
@@ -2452,10 +2515,14 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
                     </Stack>
                 </Stack>}
                 {ps !== undefined && ps.treasures.length > 0 && <Stack direction="row" spacing={0.5} sx={{alignItems: "center"}}>
-                    <Button size="small" variant="outlined" disabled={!myTurn || atWar(G, me, diploTargetValue)}
-                        onClick={() => moves.giveTreasure({target: diploTargetValue})}>
-                        {i18n.chain.vq.diplomacy.giftTreasure} {powerName(diploTargetValue, vqLocale)}
-                    </Button>
+                    <Tooltip title={giftReason(treasureGift)}>
+                        <span>
+                            <Button size="small" variant="outlined" disabled={!myTurn || treasureGift?.ok === false}
+                                onClick={() => moves.giveTreasure({target: diploTargetValue})}>
+                                {i18n.chain.vq.diplomacy.giftTreasure} {powerName(diploTargetValue, vqLocale)}
+                            </Button>
+                        </span>
+                    </Tooltip>
                     <Typography variant="caption" color="text.secondary">{i18n.chain.vq.diplomacy.randomTreasure}</Typography>
                 </Stack>}
                 {G.powers[me].allies.includes(diploTargetValue) && <Stack spacing={0.5}>
@@ -2580,6 +2647,7 @@ export const VirginQueenBoard = ({G, ctx, moves, playerID, isActive, matchID, ho
             const mayKeepBoth = keepsBothHomeCards(G, me);
             const navalPortChoices = (G.navalLeaderArrivals ?? []).filter((entry) => entry.power === me);
             return <Stack spacing={1}>
+                {hotseatWaitHint() !== undefined && <Typography variant="body2" color="text.secondary">{hotseatWaitHint()}</Typography>}
                 {navalPortChoices.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
                     <Typography variant="subtitle2">{i18n.chain.vq.spring.navalReturn}</Typography>
                     <Typography variant="caption" color="text.secondary">

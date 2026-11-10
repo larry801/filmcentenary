@@ -16,6 +16,7 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         piracy: 1,
         navigation: 1,
         bonus: "Never dies from navigation rolls; if eliminated by navigation, re-enters next turn.",
+        bonusZh: "永不因航行检定死亡；若因航行检定被消灭，下回合重新入场。",
     },
     {
         id: "hawkins",
@@ -27,6 +28,7 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         navigation: 1,
         bonus:
             "Creates race-built galleons: starting Turn 3, galleons built in London are placed race-built if Hawkins is there.",
+        bonusZh: "建造快帆船：从第 3 回合起，霍金斯在伦敦时，在伦敦建造的大帆船以快帆船面放置。",
     },
     {
         id: "leTestu",
@@ -37,6 +39,7 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         piracy: 1,
         navigation: 2,
         bonus: "May instead be used as a scientist.",
+        bonusZh: "也可当作科学家使用。",
     },
     {
         id: "villegaignon",
@@ -47,6 +50,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         piracy: 1,
         navigation: 1,
         bonus: "Free colonist: add a colony marker to his expedition without paying the usual extra CP.",
+        bonusZh: "免费殖民者：为其远征添加一个殖民地标记，无需支付额外 CP。",
+        freeColonist: true,
     },
     {
         id: "deSores",
@@ -57,6 +62,7 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         piracy: 1,
         navigation: 1,
         bonus: "Fortresses do not roll against him; available to France or the Protestant, first come first served.",
+        bonusZh: "要塞不会向他开火；法国或新教联盟先到先得。",
     },
     {
         id: "leClerc",
@@ -67,6 +73,7 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         piracy: 1,
         navigation: 1,
         bonus: "P2 in the Antilles; available to France or the Protestant, first come first served.",
+        bonusZh: "在小安的列斯群岛海盗值 P2；法国或新教联盟先到先得。",
     },
     {
         id: "henszlein",
@@ -77,6 +84,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         piracy: 0,
         navigation: 0,
         bonus: "Costs 2 CP to Build Expedition; the HRE has no colonies, so none may be added.",
+        bonusZh: "建造远征需 2 CP；神圣罗马帝国没有殖民地，不能添加殖民地。",
+        expeditionCost: 2,
     },
     {
         id: "laudonniere",
@@ -87,6 +96,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         piracy: 0,
         navigation: 1,
         bonus: "Free colonist: add a colony marker to his expedition without paying the usual extra CP.",
+        bonusZh: "免费殖民者：为其远征添加一个殖民地标记，无需支付额外 CP。",
+        freeColonist: true,
     },
     {
         id: "drake",
@@ -98,6 +109,7 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         navigation: 3,
         bonus:
             "England chooses the piracy reward; Drake may spend a piracy hit to repair his damaged expedition.",
+        bonusZh: "由英格兰选择海盗奖励；德雷克可消耗一次海盗命中修复受损的远征队。",
     },
     {
         id: "frobisher",
@@ -108,6 +120,7 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         piracy: 1,
         navigation: 2,
         bonus: "Special Northwest Passage effects: his expedition is cancelled by that event but he is never killed.",
+        bonusZh: "西北航道的特殊效果：其远征会被该事件取消，但他永远不会死亡。",
     },
     {
         id: "raleigh",
@@ -118,6 +131,8 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         piracy: 1,
         navigation: 1,
         bonus: "Free colonist: add a colony marker to his expedition without paying the usual extra CP.",
+        bonusZh: "免费殖民者：为其远征添加一个殖民地标记，无需支付额外 CP。",
+        freeColonist: true,
     },
     {
         id: "cavendish",
@@ -128,6 +143,7 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         piracy: 1,
         navigation: 3,
         bonus: "P2 in the Mexican and Chilean Coasts.",
+        bonusZh: "在墨西哥海岸与智利海岸海盗值 P2。",
     },
     {
         id: "vanNoort",
@@ -138,6 +154,7 @@ export const SEA_CAPTAINS: SeaCaptain[] = [
         piracy: 1,
         navigation: 2,
         bonus: "P2 in the Mexican and Chilean Coasts.",
+        bonusZh: "在墨西哥海岸与智利海岸海盗值 P2。",
     },
 ];
 

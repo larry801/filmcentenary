@@ -18,14 +18,14 @@ test.describe("local hotseat turn notification", () => {
         expect((await page.title()).match(/轮到你选择/g)).toHaveLength(1);
 
         await page.getByRole("button", {name: "确认奥斯曼帝国抽牌完成"}).click();
-        await expect(visibleText(page, /切换到 P2 标签页/)).toBeVisible();
+        await expect(visibleText(page, /切换到 P2 标签页/).first()).toBeVisible();
         await expect.poll(() => page.title()).toBe(TITLE_ZH);
         expect((await page.title()).match(/轮到你选择/g)).toHaveLength(1);
 
         const tabs = page.getByRole("tablist", {name: "本地玩家面板"});
         await tabs.getByRole("tab", {name: /P2 西班牙/}).click();
         await page.getByRole("button", {name: "确认西班牙抽牌完成"}).click();
-        await expect(visibleText(page, /切换到 P1 标签页/)).toBeVisible();
+        await expect(visibleText(page, /切换到 P1 标签页/).first()).toBeVisible();
         await expect.poll(() => page.title()).toBe(TITLE_ZH);
         expect((await page.title()).match(/轮到你选择/g)).toHaveLength(1);
     });

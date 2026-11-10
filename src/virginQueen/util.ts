@@ -143,8 +143,11 @@ export const pushSetupLog = (
     G.logI18n = [...(G.logI18n ?? []), {at: G.log.length - 1, key, params}];
 };
 
-export const powerLabel = (p: Power, locale: VQLocale = "zh_CN"): string =>
-    POWER_NAMES[p][locale === "en" ? "en" : "zh"];
+export const powerLabel = (p: Power, locale: VQLocale = "zh_CN"): string => {
+    const entry = POWER_NAMES[p];
+    if (entry === undefined) return String(p);
+    return entry[locale === "en" ? "en" : "zh"];
+};
 
 export const controllerLabel = (c: Controller, locale: VQLocale = "zh_CN"): string =>
     isPower(c)
@@ -1012,9 +1015,9 @@ export const canDeclareWar = (G: VQGame, a: Power, b: Power): boolean => {
     if (a === b || samePlayer(G, a, b) || atWar(G, a, b) || allied(G, a, b)) {
         return false;
     }
-    if ((a === "spain" && b === "protestant") || (a === "protestant" && b === "spain")) {
-        return false;
-    }
+    // Rule 9.2 forbids Spain and the Protestant from *allying*, not from going
+    // to war.  They may declare war on each other (and do when the Catholic
+    // League forms), so no extra restriction belongs here.
     if (G.peaceMadeThisPhase?.some(([x, y]) => (x === a && y === b) || (x === b && y === a))) {
         return false;
     }

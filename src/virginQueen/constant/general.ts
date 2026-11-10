@@ -154,15 +154,26 @@ export const localizedName = (
     locale: VQLocale = "zh_CN",
 ): string => locale === "en" ? entry.name : (entry.nameZh ?? entry.name);
 
-export const powerName = (p: Power, locale: VQLocale = "zh_CN"): string =>
-    POWER_NAMES[p][locale === "en" ? "en" : "zh"];
+export const powerName = (p: Power, locale: VQLocale = "zh_CN"): string => {
+    // Panels occasionally receive a stale or unexpected controller during a
+    // pending event; echo the raw value instead of crashing the whole board.
+    const entry = POWER_NAMES[p];
+    if (entry === undefined) return String(p);
+    return entry[locale === "en" ? "en" : "zh"];
+};
 
 /** Compact power label for dense rows: the English short form, or the Chinese name. */
-export const powerShortName = (p: Power, locale: VQLocale = "zh_CN"): string =>
-    locale === "en" ? POWER_NAMES[p].short : POWER_NAMES[p].zh;
+export const powerShortName = (p: Power, locale: VQLocale = "zh_CN"): string => {
+    const entry = POWER_NAMES[p];
+    if (entry === undefined) return String(p);
+    return locale === "en" ? entry.short : entry.zh;
+};
 
-export const minorName = (m: MinorPower | Independent, locale: VQLocale = "zh_CN"): string =>
-    MINOR_NAMES[m][locale === "en" ? "en" : "zh"];
+export const minorName = (m: MinorPower | Independent, locale: VQLocale = "zh_CN"): string => {
+    const entry = MINOR_NAMES[m];
+    if (entry === undefined) return String(m);
+    return entry[locale === "en" ? "en" : "zh"];
+};
 
 export const controllerName = (c: Controller, locale: VQLocale = "zh_CN"): string =>
     isPower(c) ? powerName(c, locale) : minorName(c as MinorPower | Independent, locale);
@@ -177,7 +188,11 @@ export const HRE_RELIGIOUS_PREFERENCE_NAMES: Record<HreReligiousPreference, { en
 export const hreReligiousPreferenceName = (
     pref: HreReligiousPreference,
     locale: VQLocale = "zh_CN",
-): string => HRE_RELIGIOUS_PREFERENCE_NAMES[pref][locale === "en" ? "en" : "zh"];
+): string => {
+    const entry = HRE_RELIGIOUS_PREFERENCE_NAMES[pref];
+    if (entry === undefined) return String(pref);
+    return entry[locale === "en" ? "en" : "zh"];
+};
 export type ReligionArea = "england" | "scotland" | "netherlands" | "france";
 
 export const RELIGION_AREAS: ReligionArea[] = [
@@ -194,8 +209,11 @@ export const AREA_NAMES: Record<ReligionArea, { en: string; zh: string }> = {
     france: {en: "France", zh: "法国"},
 };
 
-export const areaName = (area: ReligionArea, locale: VQLocale = "zh_CN"): string =>
-    AREA_NAMES[area][locale === "en" ? "en" : "zh"];
+export const areaName = (area: ReligionArea, locale: VQLocale = "zh_CN"): string => {
+    const entry = AREA_NAMES[area];
+    if (entry === undefined) return String(area);
+    return entry[locale === "en" ? "en" : "zh"];
+};
 
 export interface LandStack {
     regular: number;

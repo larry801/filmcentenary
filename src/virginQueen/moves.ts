@@ -553,13 +553,16 @@ export type PassBlock = "played" | "mandatory" | "home" | "admin";
  * ruler's Administrative Rating.  Keep this shared by `pass` and `endImpulse`;
  * the UI uses the same codes to disable the buttons and explain why.
  */
-export const passBlock = (G: VQGame, p: Power): PassBlock | undefined => {
-    if (G.powers[p].cardPlayed) return "played";
-    if (hasUnplayedMandatory(G, p)) return "mandatory";
-    if (G.powers[p].cards.some((id) => cardById(id).kind === "home")) return "home";
-    if (G.powers[p].cards.length > rulerStats(G, p).admin) return "admin";
-    return undefined;
+export const passBlockReasons = (G: VQGame, p: Power): PassBlock[] => {
+    const reasons: PassBlock[] = [];
+    if (G.powers[p].cardPlayed) reasons.push("played");
+    if (hasUnplayedMandatory(G, p)) reasons.push("mandatory");
+    if (G.powers[p].cards.some((id) => cardById(id).kind === "home")) reasons.push("home");
+    if (G.powers[p].cards.length > rulerStats(G, p).admin) reasons.push("admin");
+    return reasons;
 };
+
+export const passBlock = (G: VQGame, p: Power): PassBlock | undefined => passBlockReasons(G, p)[0];
 
 const canUseCardForWar = (c: CardDef): boolean => c.kind !== "home" && c.officialKind !== "mandatory";
 
@@ -4414,9 +4417,9 @@ export const buildExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; col
     const p = power(G, ctx);
     const captain = seaCaptainById(args.captain);
     const start = p === "ottoman" ? "indianOcean" : "northAtlantic";
-    const freeColonist = captain?.bonus.startsWith("Free colonist") === true;
+    const freeColonist = captain?.freeColonist === true;
     const freeScienceColony = G.powers[p].scienceBonuses.includes("plantation");
-    const baseCost = captain?.bonus.startsWith("Costs 2 CP") === true ? 2 : 1;
+    const baseCost = captain?.expeditionCost ?? 1;
     const cost = baseCost + (args.colony && !freeColonist && !freeScienceColony ? 1 : 0);
     if (captain === undefined || captain.turn > G.year || !G.powers[p].seaCaptains.includes(args.captain) ||
         (args.colony === true && (p === "hre" || (p === "ottoman" && !G.suezDone))) ||
