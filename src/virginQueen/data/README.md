@@ -148,6 +148,15 @@ repository and run `python3 scripts/generate-vq-land.py /path/to/ne_50m_land.geo
 The generated file records the source SHA-256 and geographic extent. The extent
 and projection in `components/map-geometry.ts` must match the generator.
 
+The background is stored in the raw geographic projection. At runtime
+`warpSvgPath` applies the same board-style regional magnification as the city
+and sea-zone layers: the Low Countries, Rhineland and northern Italy are
+slightly enlarged so their many spaces remain readable, while the rest of the
+map stays close to true scale. `mapData.ts` then applies a deterministic
+relaxation pass to remove any remaining marker collisions. The printed board
+was used as the visual reference for choosing these enlarged regions; the
+underlying lon/lat data and game adjacency are unchanged.
+
 ## Test commands
 
 ```sh

@@ -75,6 +75,7 @@
 .vq-map-caption span { background: #faf3e4e6; padding: 4px 7px; border-radius: 3px; }
 .vq-map-node:focus { outline: none; }
 .vq-map-node:focus .vq-hit { stroke: #8e5a17; stroke-width: 3; }
+.vq-label-leader { stroke: #6b5739; stroke-width: .8; stroke-dasharray: 1.6 2; opacity: .7; }
 .vq-card-detail { padding: 24px; width: min(520px, 100vw); overflow-wrap: anywhere; }
 .vq-card-detail-art { display: block; width: 376px; max-width: 100%; height: auto; margin: 8px auto 4px; border: 1px solid #c2a66d; border-radius: 4px; background: #fff; }
 .vq-card-detail .MuiPaper-root { background: transparent; border: 0; padding: 0; }

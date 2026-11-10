@@ -4,6 +4,7 @@ import {
     SEA_ZONES as RECONSTRUCTION_SEA_ZONES,
     SEA_ZONE_BY_ID as RECONSTRUCTION_SEA_ZONE_BY_ID,
 } from "./constant/spaces";
+import {mapProject, relaxMapPoints} from "./components/map-geometry";
 import {
     OFFICIAL_CAPITAL_SPACES,
     OFFICIAL_KEY_SPACES,
@@ -26,6 +27,27 @@ import {
 export const SPACES: SpaceDef[] = OFFICIAL_SPACES;
 
 export const SPACE_BY_ID: Record<string, SpaceDef> = OFFICIAL_SPACE_BY_ID;
+
+/**
+ * Display positions used by the interactive map.
+ *
+ * The anchors above remain true longitude/latitude coordinates.  `SPACE_POINTS`
+ * is a de-cluttered cartographic layout: densely packed areas (the Low
+ * Countries, Rhineland and northern Italy) are gently expanded so neighbouring
+ * city markers and labels do not sit on top of each other.  The map draws a
+ * faint leader from the real coordinate to any marker that was moved.
+ *
+ * Keeping this as a separate display layer means rules code continues to use
+ * the real projection and geographic adjacency without any layout concerns.
+ */
+export const SPACE_POINTS: Record<string, {x: number; y: number}> = relaxMapPoints(
+    SPACES.map((space) => {
+        const [x, y] = mapProject(space.lon, space.lat);
+        return {id: space.id, x, y};
+    }),
+);
+
+export const spacePoint = (id: string): {x: number; y: number} => SPACE_POINTS[id];
 
 export const LAND_LINKS: [string, string, boolean?][] = OFFICIAL_LAND_LINKS.map((link) => [
     link.a,

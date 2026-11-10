@@ -6,10 +6,17 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
 import {Controller, landCount, navalCount, Religion, VQGame, CONTROLLER_COLORS, controllerName} from "../constant/general";
-import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES, seaZoneName, spaceName} from "../mapData";
+import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES, seaZoneName, spaceName, spacePoint} from "../mapData";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, tutorialSpaceAllowed} from "../tutorial";
 import land from "../data/land-background.json";
-import {centerView, clampView, INITIAL_VIEW, isMapDrag, MAP_HEIGHT, MAP_WIDTH, MapView, nearestMapTarget, nodeHitRadius, project, zoomView} from "./map-geometry";
+
+const GRATICULE_LATS = [30, 34, 38, 42, 46, 50, 54, 59] as const;
+const GRATICULE_LONS = [-13, -5, 3, 11, 19, 27, 37] as const;
+const meridianPath = (lon: number): string => GRATICULE_LATS
+    .map((lat) => mapProject(lon, lat).join(",")).join(" ");
+const parallelPath = (lat: number): string => GRATICULE_LONS
+    .map((lon) => mapProject(lon, lat).join(",")).join(" ");
+import {centerView, clampView, INITIAL_VIEW, isMapDrag, MAP_HEIGHT, MAP_WIDTH, MapLabelPlacement, MapView, mapProject, nearestMapTarget, nodeHitRadius, placeMapLabels, warpSvgPath, zoomView} from "./map-geometry";
 
 export interface VQMapProps {
     G: VQGame;
@@ -48,14 +55,47 @@ const seaSummary = (G: VQGame, id: string): string => {
 /** Zoom level from which every city name is drawn, not just occupied or key spaces. */
 export const LABEL_ALL_SCALE = 1.4;
 
-function SpaceShape({id, G, selected, origin, onSelect, scale, highlights, dimUnavailable = true, onHover}: VQMapProps & {id: string; scale: number; onHover: (id: string | undefined) => void}) {
+const MAP_LABEL_FONT_SIZE = 9.5;
+
+const spaceLabelPriority = (G: VQGame, id: string, selected?: string, origin?: string | null,
+                            highlights?: ReadonlySet<string>): number => {
+    const st = G.spaces[id];
+    if (st === undefined) return 0;
+    const total = Object.keys(st.land).reduce((n, c) => n + landCount(st.land[c as Controller]), 0) +
+        Object.keys(st.naval).reduce((n, c) => n + navalCount(st.naval[c as Controller]), 0);
+    const kind = G.scenario === "tutorial" && TUTORIAL_KEYS.includes(id) ? "key" : SPACE_BY_ID[id].kind;
+    let priority = total > 0 ? 450 : 120;
+    if (kind === "key") priority = Math.max(priority, 600);
+    if (origin === id) priority = Math.max(priority, 750);
+    if (highlights?.has(id) === true) priority = Math.max(priority, 900);
+    if (selected === id) priority = Math.max(priority, 1000);
+    return priority;
+};
+
+const shouldShowSpaceLabel = (G: VQGame, id: string, scale: number, selected?: string, origin?: string | null,
+                               highlights?: ReadonlySet<string>): boolean => {
+    const st = G.spaces[id];
+    if (st === undefined || SPACE_BY_ID[id] === undefined) return false;
+    const excluded = G.scenario === "tutorial" && !tutorialSpaceAllowed(id);
+    const total = Object.keys(st.land).reduce((n, c) => n + landCount(st.land[c as Controller]), 0) +
+        Object.keys(st.naval).reduce((n, c) => n + navalCount(st.naval[c as Controller]), 0);
+    const kind = G.scenario === "tutorial" && TUTORIAL_KEYS.includes(id) ? "key" : SPACE_BY_ID[id].kind;
+    return selected === id || highlights?.has(id) === true || origin === id || scale >= LABEL_ALL_SCALE ||
+        (!excluded && (total > 0 || kind === "key"));
+};
+
+function SpaceShape({id, G, selected, origin, onSelect, highlights, dimUnavailable = true, onHover, label}: VQMapProps & {
+    id: string;
+    label?: MapLabelPlacement;
+    onHover: (id: string | undefined) => void;
+}) {
     const def = SPACE_BY_ID[id];
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     const excluded = G.scenario === "tutorial" && !tutorialSpaceAllowed(id);
     const highlighted = highlights?.has(id) === true;
     const dimmed = highlights !== undefined && dimUnavailable && !highlighted;
     const st = G.spaces[id];
-    const [x, y] = project(def.lon, def.lat);
+    const {x, y} = spacePoint(id);
     const color = CONTROLLER_COLORS[st.control] ?? "#9e9e9e";
     const stroke = st.religion === "protestant" ? "#fffdf6" : "#392d20";
     const isSelected = selected === id;
@@ -67,8 +107,6 @@ function SpaceShape({id, G, selected, origin, onSelect, scale, highlights, dimUn
     const baseTitle = spaceSummary(G, id);
     const title = highlighted ? `${baseTitle} · ${i18n.chain.vq.legend.legal}` : baseTitle;
     const className = `vq-map-node${dimmed ? " vq-dim" : ""}${highlighted ? " vq-legal-target" : ""}`;
-    const showLabel = isSelected || highlighted || origin === id || scale >= LABEL_ALL_SCALE ||
-        (!excluded && (total > 0 || kind === "key"));
     return <g className={className} role="button" tabIndex={0} aria-label={title} aria-pressed={isSelected}
               onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(id);}
@@ -92,9 +130,12 @@ function SpaceShape({id, G, selected, origin, onSelect, scale, highlights, dimUn
             <rect x={x + 5} y={y - 15} width={total > 9 ? 20 : 14} height={12} rx={3} fill="#faf5e7" stroke="#b39a6a" strokeWidth={0.5}/>
             <text x={x + 8} y={y - 6} fontSize={9} fill="#30291e" fontWeight={700}>{total}</text>
         </g>}
-        {showLabel &&
-            <text x={x} y={y + 18} textAnchor="middle" fontSize={isSelected ? 12 : 9} fill="#30291e" fontWeight={isSelected ? 700 : 500}
-                  paintOrder="stroke" stroke="#f4eddd" strokeWidth={3} strokeLinejoin="round" pointerEvents="none">{spaceName(id, vqLocale)}</text>}
+        {label !== undefined && <g pointerEvents="none">
+            {label.leader !== undefined && <line className="vq-label-leader" {...label.leader}/>}
+            <text x={label.x} y={label.y} textAnchor={label.textAnchor} dominantBaseline="central"
+                  fontSize={MAP_LABEL_FONT_SIZE} fill="#30291e" fontWeight={isSelected ? 700 : 500}
+                  paintOrder="stroke" stroke="#f4eddd" strokeWidth={3} strokeLinejoin="round">{spaceName(id, vqLocale)}</text>
+        </g>}
     </g>;
 }
 
@@ -119,6 +160,30 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     const [view, setView] = React.useState<MapView>(INITIAL_VIEW);
     const [hovered, setHovered] = React.useState<string>();
+    const landPath = React.useMemo(() => warpSvgPath(land.path), []);
+    /**
+     * Labels are laid out together rather than independently.  At the default
+     * zoom the printed board's dense clusters (Low Countries, Rhineland, north
+     * Italy) are exactly where naive labels collide, so each visible label gets
+     * the nearest free callout slot and a hairline back to its marker.
+     */
+    const labelPlacements = React.useMemo(() => {
+        const obstacles = SEA_ZONES.map((zone) => {
+            const [x, y] = mapProject(zone.label[0], zone.label[1]);
+            return {x: x - 44, y: y - 12.5, width: 88, height: 25};
+        });
+        return placeMapLabels(SPACES.map((space) => {
+            const {x, y} = spacePoint(space.id);
+            return {
+                id: space.id,
+                x,
+                y,
+                text: spaceName(space.id, vqLocale),
+                priority: spaceLabelPriority(G, space.id, selected, origin, highlights),
+                visible: shouldShowSpaceLabel(G, space.id, view.scale, selected, origin, highlights),
+            };
+        }), {fontSize: MAP_LABEL_FONT_SIZE, obstacles});
+    }, [G, selected, origin, highlights, view.scale, vqLocale]);
     const pointers = React.useRef(new Map<number, {x: number; y: number}>());
     const start = React.useRef<[number, number]>([0, 0]);
     const dragged = React.useRef(false);
@@ -134,11 +199,11 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
         const x = (point.x - view.x) / view.scale;
         const y = (point.y - view.y) / view.scale;
         const spaces = SPACES.map((space) => {
-            const [markerX, markerY] = project(space.lon, space.lat);
-            return {id: space.id, x: markerX, y: markerY};
+            const point = spacePoint(space.id);
+            return {id: space.id, x: point.x, y: point.y};
         });
         const zones = SEA_ZONES.map((zone) => {
-            const [markerX, markerY] = project(zone.label[0], zone.label[1]);
+            const [markerX, markerY] = mapProject(zone.label[0], zone.label[1]);
             return {id: zone.id, x: markerX, y: markerY};
         });
         // CSS pixels per map unit at the current zoom: the SVG keeps its aspect
@@ -190,18 +255,30 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
              onClickCapture={(event) => {if (event.detail !== 0 && dragged.current) {event.preventDefault(); event.stopPropagation();}}}>
             <rect width={1000} height={620} fill="#b8d0cb"/>
             <g transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
-                <path d={land.path} fill="#e7dab9" stroke="#8a967b" strokeWidth={0.9} fillRule="evenodd"/>
-                {[0, 10, 20, 30].map((lon) => <line key={lon} x1={project(lon, 59)[0]} y1={0} x2={project(lon, 30)[0]} y2={620} stroke="#597f7920" strokeDasharray="2 6"/>)}
-                {[35, 45, 55].map((lat) => <line key={lat} x1={0} y1={project(-13, lat)[1]} x2={1000} y2={project(37, lat)[1]} stroke="#597f7920" strokeDasharray="2 6"/>)}
+                <path d={landPath} fill="#e7dab9" stroke="#8a967b" strokeWidth={0.9} fillRule="evenodd"/>
+                {[0, 10, 20, 30].map((lon) => <polyline key={lon} points={meridianPath(lon)} fill="none" stroke="#597f7920" strokeDasharray="2 6"/>)}
+                {[35, 45, 55].map((lat) => <polyline key={lat} points={parallelPath(lat)} fill="none" stroke="#597f7920" strokeDasharray="2 6"/>)}
                 <text x={480} y={110} fontFamily="Georgia, serif" fontSize={28} letterSpacing={12} fill="#8c754333" pointerEvents="none">EUROPA</text>
+                {/* Faint geographic anchor leaders for places nudged into a
+                    readable cartographic position. */}
+                {SPACES.map((space) => {
+                    const [anchorX, anchorY] = mapProject(space.lon, space.lat);
+                    const point = spacePoint(space.id);
+                    if (Math.hypot(point.x - anchorX, point.y - anchorY) < 5) return null;
+                    return <g key={`anchor-${space.id}`} pointerEvents="none" opacity={0.45}>
+                        <line x1={anchorX} y1={anchorY} x2={point.x} y2={point.y}
+                              stroke="#7e6948" strokeWidth={0.65} strokeDasharray="1.4 2.2"/>
+                        <circle cx={anchorX} cy={anchorY} r={1.4} fill="#7e6948"/>
+                    </g>;
+                })}
                 {LAND_LINKS.map(([a, b, pass], i) => {
-                    const [ax, ay] = project(SPACE_BY_ID[a].lon, SPACE_BY_ID[a].lat);
-                    const [bx, by] = project(SPACE_BY_ID[b].lon, SPACE_BY_ID[b].lat);
-                    return <line key={i} x1={ax} y1={ay} x2={bx} y2={by} stroke={pass ? "#85644b" : "#8b7954"} strokeWidth={pass ? 1.4 : 0.8}
+                    const aPoint = spacePoint(a);
+                    const bPoint = spacePoint(b);
+                    return <line key={i} x1={aPoint.x} y1={aPoint.y} x2={bPoint.x} y2={bPoint.y} stroke={pass ? "#85644b" : "#8b7954"} strokeWidth={pass ? 1.4 : 0.8}
                                  strokeDasharray={pass ? "3 2" : undefined} opacity={0.65} pointerEvents="none"/>;
                 })}
                 {SEA_ZONES.map((zone) => {
-                    const [x, y] = project(zone.label[0], zone.label[1]);
+                    const [x, y] = mapProject(zone.label[0], zone.label[1]);
                     const count = Object.values(G.seaZones[zone.id].naval).reduce((sum, stack) => sum + navalCount(stack), 0);
                     const highlighted = highlights?.has(zone.id) === true;
                     const dimmed = highlights !== undefined && dimUnavailable && !highlighted;
@@ -225,7 +302,7 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
                         {highlighted && <rect className="vq-legal-ring" x={x - 46} y={y - 14} width={92} height={29} rx={7} fill="none"/>}
                     </g>;
                 })}
-                {SPACES.map((space) => <SpaceShape key={space.id} id={space.id} G={G} selected={selected} origin={origin} onSelect={onSelect} scale={view.scale} highlights={highlights} dimUnavailable={dimUnavailable} onHover={setHovered}/>)}
+                {SPACES.map((space) => <SpaceShape key={space.id} id={space.id} G={G} selected={selected} origin={origin} onSelect={onSelect} highlights={highlights} dimUnavailable={dimUnavailable} onHover={setHovered} label={labelPlacements[space.id]}/>)}
             </g>
         </svg>
         <MapLegend/>
@@ -234,7 +311,7 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
             <span style={{minWidth: 36, textAlign: "center", fontSize: 11}} aria-live="polite">{Math.round(view.scale * 100)}%</span>
             <IconButton size="small" aria-label={i18n.chain.vq.map.zoomOut} disabled={view.scale <= 1} onClick={() => setView((current) => zoomView(current, 1 / 1.35, [500, 310]))}><RemoveIcon fontSize="small"/></IconButton>
             {home !== undefined && <IconButton size="small" aria-label={`${i18n.chain.vq.map.centerHome} · ${spaceName(home.id, vqLocale)}`} title={`${i18n.chain.vq.map.centerHome} · ${spaceName(home.id, vqLocale)}`}
-                onClick={() => setView((current) => centerView(project(home.lon, home.lat), Math.max(current.scale, 2)))}><MyLocationIcon fontSize="small"/></IconButton>}
+                onClick={() => setView((current) => {const point = spacePoint(home.id); return centerView([point.x, point.y], Math.max(current.scale, 2));})}><MyLocationIcon fontSize="small"/></IconButton>}
             <IconButton size="small" aria-label={i18n.chain.vq.map.reset} onClick={() => setView(INITIAL_VIEW)}><RestartAltIcon fontSize="small"/></IconButton>
         </div>
         {readout !== undefined && readout !== "" && <div className="vq-map-readout" aria-hidden="true">{readout}</div>}

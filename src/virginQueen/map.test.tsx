@@ -1,10 +1,10 @@
 import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
-import {SPACES, SEA_ZONES} from "./mapData";
+import {SPACE_POINTS, SPACES, SEA_ZONES, spacePoint} from "./mapData";
 import {setupGame} from "./util";
 import {VQMap} from "./components/map";
-import {clampView, INITIAL_VIEW, isMapDrag, MAP_EXTENT, nearestMapTarget, project, zoomView} from "./components/map-geometry";
+import {clampView, INITIAL_VIEW, isMapDrag, MAP_EXTENT, mapProject, nearestMapTarget, placeMapLabels, project, relaxMapPoints, warpSvgPath, zoomView} from "./components/map-geometry";
 import land from "./data/land-background.json";
 
 describe("offline geographic map", () => {
@@ -101,6 +101,71 @@ describe("offline geographic map", () => {
         );
         expect(undimmed).not.toContain("vq-dim");
         expect(undimmed).toContain("vq-legal-target");
+    });
+
+    it("magnifies crowded regions without changing the geographic source projection", () => {
+        const trueAmsterdam = project(4.90, 52.37);
+        const trueUtrecht = project(5.12, 52.09);
+        const displayAmsterdam = mapProject(4.90, 52.37);
+        const displayUtrecht = mapProject(5.12, 52.09);
+        const trueDistance = Math.hypot(trueAmsterdam[0] - trueUtrecht[0], trueAmsterdam[1] - trueUtrecht[1]);
+        const displayDistance = Math.hypot(displayAmsterdam[0] - displayUtrecht[0], displayAmsterdam[1] - displayUtrecht[1]);
+        expect(displayDistance).toBeGreaterThan(trueDistance * 1.35);
+        // The raw projection remains the canonical lon/lat mapping used by data
+        // and by the coastline generator.
+        expect(project(-13, 59)).toEqual([20, 20]);
+        expect(warpSvgPath("M100,100L110,110Z")).not.toBe("M100,100L110,110Z");
+    });
+
+    it("relaxes local clusters while keeping distant points near their anchors", () => {
+        const points = [
+            {id: "a", x: 100, y: 100},
+            {id: "b", x: 101, y: 101},
+            {id: "c", x: 500, y: 300},
+        ];
+        const relaxed = relaxMapPoints(points, {minDistance: 34, iterations: 600});
+        const distanceAB = Math.hypot(relaxed.a.x - relaxed.b.x, relaxed.a.y - relaxed.b.y);
+        const distanceAC = Math.hypot(relaxed.a.x - relaxed.c.x, relaxed.a.y - relaxed.c.y);
+        expect(distanceAB).toBeGreaterThan(16);
+        expect(distanceAC).toBeGreaterThan(350);
+        let closest = Infinity;
+        const displayedPoints = Object.values(SPACE_POINTS);
+        for (let i = 0; i < displayedPoints.length; i += 1) {
+            for (let j = i + 1; j < displayedPoints.length; j += 1) {
+                closest = Math.min(closest, Math.hypot(
+                    displayedPoints[i].x - displayedPoints[j].x,
+                    displayedPoints[i].y - displayedPoints[j].y,
+                ));
+            }
+        }
+        expect(closest).toBeGreaterThan(20);
+        for (const [id] of Object.entries(SPACE_POINTS)) {
+            expect(id).not.toBe("");
+            const displayed = spacePoint(id);
+            expect(displayed.x).toBeGreaterThan(0);
+            expect(displayed.x).toBeLessThan(1000);
+            expect(displayed.y).toBeGreaterThan(0);
+            expect(displayed.y).toBeLessThan(620);
+        }
+    });
+
+    it("puts crowded labels in separate callout slots", () => {
+        const placements = placeMapLabels([
+            {id: "one", x: 300, y: 200, text: "布鲁塞尔", priority: 600, visible: true},
+            {id: "two", x: 304, y: 202, text: "安特卫普", priority: 500, visible: true},
+            {id: "three", x: 301, y: 205, text: "阿姆斯特丹", priority: 400, visible: true},
+        ]);
+        const boxes = Object.values(placements).map((placement) => placement.box);
+        expect(boxes.length).toBeGreaterThanOrEqual(2);
+        for (let i = 0; i < boxes.length; i += 1) {
+            for (let j = i + 1; j < boxes.length; j += 1) {
+                const a = boxes[i];
+                const b = boxes[j];
+                const overlapWidth = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+                const overlapHeight = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+                expect(overlapWidth > 0 && overlapHeight > 0).toBe(false);
+            }
+        }
     });
 
     it("renders the compact legend with swatches for every map marker", () => {
