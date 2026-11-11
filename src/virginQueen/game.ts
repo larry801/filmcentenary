@@ -8,7 +8,7 @@ import {chooseBattle} from "./combat";
 import {chooseTutorialEvent} from "./tutorialEvents";
 import {choosePiracy} from "./piracy";
 import {chooseInterception} from "./interception";
-import {arriveLeaders, autoResolveWinterLossChoices, autoResolveWinterNavalLossChoices, checkVictory, chooseReliefSplit, dealYear, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
+import {arriveLeaders, autoResolveWinterLossChoices, autoResolveWinterNavalLossChoices, checkImmediateVictory, checkVictory, chooseReliefSplit, dealYear, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
 import {
     assault,
     autoInterceptionOrder,
@@ -322,6 +322,11 @@ export const VirginQueenGameDef: Game<VQGame> = {
             turn: {order: powerOrder, onBegin: turnBegin, onEnd: turnEnd, stages: choiceStages},
             endIf: (G: VQGame) => G.consecutivePasses >= participatingPowers(G).length,
             onEnd: (G: VQGame, ctx: Ctx) => {
+                // boardgame.io runs the phase's onEnd hook even when the game
+                // ends during the Action Phase.  An automatic victory (military,
+                // religious or Catholic Rebellion) must end the game immediately,
+                // so do not let that hook resolve Winter and advance the year.
+                if (checkImmediateVictory(G, "action") !== undefined) return;
                 // Winter resolution happens after the last action impulse; give
                 // its log lines their own group instead of the previous action.
                 G.logMarks = [...(G.logMarks ?? []), {at: G.log.length, turn: ctx.turn, phase: "winter", year: G.year}];

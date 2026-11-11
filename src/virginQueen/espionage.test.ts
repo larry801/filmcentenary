@@ -271,6 +271,19 @@ describe("English Catholic Rebellion results and continuation", () => {
         expect(checkImmediateVictory(G)).toEqual({winner: "spain", reason: "catholicRebellion"});
         expect(G.powers.spain.bonusVp).toBe(vp);
     });
+    it("ends the game without resolving Winter after the Gunpowder Plot succeeds", () => {
+        const G = game();
+        rebel(G, 4, 0);
+        expect(G.espionage!.catholicRebellionVictory).toBe(true);
+        const year = G.year;
+        // boardgame.io calls the phase onEnd hook even when endIf already
+        // declared the game over.  That must not resolve Winter first.
+        (VirginQueenGameDef.phases!.action!.onEnd as (G: VQGame, ctx: Ctx) => void)(G, context());
+        expect(G.year).toBe(year);
+        expect(G.log.some((line) => line.includes("Winter ends"))).toBe(false);
+        expect((VirginQueenGameDef.endIf as (G: VQGame, ctx: Ctx) => unknown)(G, context()))
+            .toEqual({winner: "1", power: "spain", reason: "catholicRebellion"});
+    });
     it.each([[1, 0, "spain", "england"], [0, 1, "england", "spain"]] as const)("reveals only to the correct viewer (%s,%s)", (a,d,viewer,target) => {
         const G = game(); G.powers.england.cards = ["vq-020"]; G.powers.spain.cards = ["vq-021"];
         rebel(G, a, d);

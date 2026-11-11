@@ -15,10 +15,12 @@ export const PendingEspionagePanel = ({G, moves, playerID}: PendingPanelProps) =
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     if (G.pendingEspionage === undefined) return null;
     const step = G.pendingEspionage;
+    const isResponder = ownerOf(G, step.responding) === playerID;
     return <Stack spacing={1}>
         <Paper variant="outlined" sx={{p: 1.5, bgcolor: "warning.light", borderColor: "warning.main"}}>
             <Typography variant="subtitle1" sx={{fontWeight: 700, color: "warning.dark"}}>⚠ {i18n.chain.vq.board.espionageTitle}</Typography>
-            <Typography sx={{mt: 0.5}}>{i18n.chain.vq.board.waiting} {powerName(step.responding, vqLocale)} {i18n.chain.vq.board.choose}{i18n.chain.vq.punct.period}</Typography>
+            <Typography sx={{mt: 0.5}}>{isResponder ? i18n.chain.vq.espionage.yourChoice :
+                `${i18n.chain.vq.board.waiting} ${powerName(step.responding, vqLocale)} ${i18n.chain.vq.board.choose}${i18n.chain.vq.punct.period}`}</Typography>
         </Paper>
         <Typography variant="body2">{step.step === "responses" ? i18n.chain.vq.espionage.responses :
             step.step === "offense" ? `${i18n.chain.vq.espionage.offense} ${step.remaining} ${i18n.chain.vq.espionage.offenseMax}` :

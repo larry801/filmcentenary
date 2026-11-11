@@ -98,6 +98,7 @@ import {PATRONAGE_VP_AWARD_BY_ID} from "../data/patronage";
 import {MINOR_DIPLOMACY} from "../data/minorDiplomacy";
 import {PatronageVpAward} from "../data/types";
 import {
+    allied,
     atWar,
     baseVp,
     capitalSpacesFor,
@@ -2253,7 +2254,7 @@ export const VirginQueenBoard = ({G, log, ctx, moves, playerID, isActive, matchI
                             {[3, 4, 5].map((n) => <MenuItem key={n} value={n}>{n} CP</MenuItem>)}
                         </Select>
                         <Button size="small" variant="outlined" disabled={!canAct || cp < catholicRebellionCp || G.year < 3 ||
-                            G.assassinationUsed.includes("spain") || G.powers.spain.allies.includes("england")}
+                            G.assassinationUsed.includes("spain") || allied(G, "spain", "england")}
                             onClick={() => moves.englishCatholicRebellion({cp: catholicRebellionCp})}>{i18n.chain.vq.empire.englishCatholicRebellion}</Button>
                     </Stack>
                 </>}
@@ -2868,8 +2869,9 @@ export const VirginQueenBoard = ({G, log, ctx, moves, playerID, isActive, matchI
             <aside className="vq-sidebar" ref={sidebarRef}>
             <section className="vq-panel vq-actions" ref={actionRef} {...panelProps("action")}>
                 <TutorialGuide G={G} ctx={ctx} playerID={playerID}/>
-                <div className="vq-panel-heading"><h2>{hasResponse ? i18n.chain.vq.shell.responseSettlement : i18n.chain.vq.shell.currentAction}</h2>
-                    <Chip variant="outlined" label={me ? `${cp} CP` : i18n.chain.vq.shell.spectator}/></div>
+                <div className="vq-panel-heading"><h2>{ctx.gameover !== undefined ? i18n.chain.vq.shell.gameOver :
+                    hasResponse ? i18n.chain.vq.shell.responseSettlement : i18n.chain.vq.shell.currentAction}</h2>
+                    {ctx.gameover === undefined && <Chip variant="outlined" label={me ? `${cp} CP` : i18n.chain.vq.shell.spectator}/>}</div>
                 {owned.length > 1 && <Stack direction="row" spacing={0.5} useFlexGap sx={{flexWrap: "wrap", mb: 1}}>
                     {owned.map((power) => <Button key={power} size="small" disabled={myTurn || !!responsePower}
                         variant={me === power ? "contained" : "outlined"} onClick={() => setViewPower(power)}>{powerName(power, vqLocale)}</Button>)}

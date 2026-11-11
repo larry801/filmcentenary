@@ -1410,6 +1410,7 @@ const zh_CN: Locale = {
             northernUnrest: "北方崛起：西班牙未与英格兰交战，再放置",
             northernUnrest2: "个动荡（无人占领或天主教地区）。",
             default: "选择下方合法选项，完成官方结果表的后续结算。",
+            yourChoice: "请选择下方选项。",
         },
         gregorian: {
             title: "公历纪年法",

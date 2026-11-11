@@ -83,6 +83,24 @@ describe("Virgin Queen board", () => {
         }
     });
 
+    it("tells the responding hotseat to choose instead of waiting for itself", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.year = 3;
+        G.activePower = "spain";
+        G.pendingEspionage = {kind: "rebellion", power: "spain", targetPower: "england", responding: "england",
+            step: "responses", cp: 3, remaining: 0, used: [], responseQueue: ["england"]};
+        const render = (playerID: string): string => renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: "1", numPlayers: 6},
+            moves: {}, playerID, isActive: playerID === "2", hotseat: true,
+        } as any}/>);
+        const england = render("2");
+        expect(england).toContain("请选择下方选项。");
+        expect(england).not.toContain("等待 英格兰 选择。");
+        const spain = render("1");
+        expect(spain).toContain("等待 英格兰 选择。");
+        expect(spain).toContain("请切换到 P3 标签页");
+    });
+
     it("shows Jesuits on the map and the official rebellion action in Spain's action panel", () => {
         const G = setupGame({...fakeCtx(), numPlayers: 6});
         G.year = 3; G.activePower = "spain"; G.espionage!.jesuits = ["york"];
@@ -399,6 +417,23 @@ describe("Virgin Queen board", () => {
         } as any}/>);
         expect(html).toContain("对局结束 · 胜者：P6 新教联盟");
         expect(html).toContain("新教宗教胜利：新教影响超过 50 个地区");
+    });
+
+    it("shows a Catholic Rebellion victory in the Action Phase without an extra Winter", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "campaign"});
+        G.year = 3;
+        G.espionage!.catholicRebellionVictory = true;
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: undefined, currentPlayer: "1",
+                gameover: {winner: "1", power: "spain", reason: "catholicRebellion"}},
+            moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("对局结束 · 胜者：P2 西班牙");
+        expect(html).toContain("天主教叛乱胜利：火药阴谋成功，西班牙获胜");
+        expect(html).toContain("回合 3");
+        expect(html).not.toContain("回合 4");
+        expect(html).toContain("对局结束</h2>");
+        expect(html).not.toContain("当前行动");
     });
 
     it("offers a Polish election bid instead of an End Impulse button", () => {

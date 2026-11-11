@@ -1336,6 +1336,7 @@ const en = {
             northernUnrest: "Rise of the North: Spain (not at war with England) places",
             northernUnrest2: "more unrest (unoccupied or Catholic regions).",
             default: "Choose a legal option below to complete the official result table.",
+            yourChoice: "Choose an option below.",
         },
         gregorian: {
             title: "Gregorian Calendar",
