@@ -58,6 +58,28 @@ export const LABEL_ALL_SCALE = 1.4;
 
 const MAP_LABEL_FONT_SIZE = 9.5;
 
+/** Distance from the centre to each of the octagram's eight points. */
+const FORTRESS_RADIUS = 7;
+
+/**
+ * Outline of the printed fortress marker: the union of two congruent squares,
+ * one rotated 45 degrees. Eight outer tips (four square corners and four
+ * diamond vertices) alternate with eight concave notches where the edges of
+ * the two squares cross. Keeping a single outline (rather than drawing two
+ * stroked squares) avoids the internal crossing lines and matches the board.
+ */
+export const octagramPoints = (cx: number, cy: number, radius: number = FORTRESS_RADIUS): string => {
+    const a = radius / Math.SQRT2; // half-side of the axis-aligned square
+    const d = radius - a;          // notch where a square edge meets a diamond edge
+    const vertices: ReadonlyArray<readonly [number, number]> = [
+        [0, -radius], [d, -a], [a, -a], [a, -d],
+        [radius, 0], [a, d], [a, a], [d, a],
+        [0, radius], [-d, a], [-a, a], [-a, d],
+        [-radius, 0], [-a, -d], [-a, -a], [-d, -a],
+    ];
+    return vertices.map(([dx, dy]) => `${cx + dx},${cy + dy}`).join(" ");
+};
+
 const spaceLabelPriority = (G: VQGame, id: string, selected?: string, origin?: string | null,
                             highlights?: ReadonlySet<string>): number => {
     const st = G.spaces[id];
@@ -123,7 +145,7 @@ function SpaceShape({id, G, selected, origin, onSelect, highlights, dimUnavailab
         {st.unrest && <circle cx={x} cy={y} r={9.5} fill="none" stroke="#b6362a" strokeWidth={1.6} strokeDasharray="2 2"/>}
         {st.siege && <circle cx={x} cy={y} r={11} fill="none" stroke="#c47b16" strokeWidth={1.8}/>}
         {kind === "key" ? <rect x={x - 5.5} y={y - 5.5} width={11} height={11} fill={color} stroke={stroke} strokeWidth={1.4}/> :
-            kind === "fortress" ? <polygon points={`${x},${y - 7} ${x + 7},${y} ${x},${y + 7} ${x - 7},${y}`} fill={color} stroke={stroke} strokeWidth={1.4}/> :
+            kind === "fortress" ? <polygon data-marker="fortress" points={octagramPoints(x, y)} fill={color} stroke={stroke} strokeWidth={1.4}/> :
                 <circle cx={x} cy={y} r={4.5} fill={color} stroke={stroke} strokeWidth={1.4}/>}
         {G.espionage?.jesuits.includes(id) && <text x={x - 12} y={y - 6} fontSize={12} fill="#582b70" fontWeight={700} pointerEvents="none">J</text>}
         {excluded && <text x={x} y={y + 3} textAnchor="middle" fontSize={11} fill="#9c3028">×</text>}
@@ -146,7 +168,13 @@ function MapLegend() {
         <summary>{l.title}</summary>
         <div className="vq-legend-items">
             <span className="vq-legend-item"><span className="vq-legend-swatch vq-legend-swatch-key" aria-hidden="true"/>{l.key}</span>
-            <span className="vq-legend-item"><span className="vq-legend-swatch vq-legend-swatch-fortress" aria-hidden="true"/>{l.fortress}</span>
+            <span className="vq-legend-item">
+                <span className="vq-legend-swatch vq-legend-swatch-fortress" aria-hidden="true">
+                    <svg viewBox="-9 -9 18 18">
+                        <polygon data-marker="fortress" points={octagramPoints(0, 0, 8)} fill="#9e9e9e" stroke="#392d20" strokeWidth={1.4}/>
+                    </svg>
+                </span>{l.fortress}
+            </span>
             <span className="vq-legend-item"><span className="vq-legend-swatch vq-legend-swatch-open" aria-hidden="true"/>{l.open}</span>
             <span className="vq-legend-item"><span className="vq-legend-swatch vq-legend-swatch-jesuits" aria-hidden="true">J</span>{l.jesuits}</span>
             <span className="vq-legend-item"><span className="vq-legend-swatch vq-legend-swatch-unrest" aria-hidden="true"/>{l.unrest}</span>

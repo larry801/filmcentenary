@@ -3,7 +3,7 @@ import {renderToStaticMarkup} from "react-dom/server";
 import {Ctx} from "boardgame.io";
 import {SPACE_POINTS, SPACES, SEA_ZONES, spacePoint} from "./mapData";
 import {setupGame} from "./util";
-import {VQMap} from "./components/map";
+import {VQMap, octagramPoints} from "./components/map";
 import {clampView, INITIAL_VIEW, isMapDrag, MAP_EXTENT, mapProject, nearestMapTarget, placeMapLabels, project, relaxMapPoints, warpSvgPath, zoomView} from "./components/map-geometry";
 import land from "./data/land-background.json";
 import worldLand from "./data/world-background.json";
@@ -209,5 +209,36 @@ describe("offline geographic map", () => {
         for (const kind of ["key", "fortress", "open", "jesuits", "unrest", "siege", "closed"]) {
             expect(html).toContain(`vq-legend-swatch-${kind}`);
         }
+    });
+
+    it("builds the fortress octagram from two congruent squares crossed at 45 degrees", () => {
+        const radius = 7;
+        const a = radius / Math.SQRT2;
+        const d = radius - a;
+        const points = octagramPoints(0, 0, radius).split(" ").map((pair) => pair.split(",").map(Number));
+        // Eight outer tips: four square corners and four diamond vertices.
+        expect(points).toHaveLength(16);
+        expect(points).toContainEqual([0, -radius]);
+        expect(points).toContainEqual([radius, 0]);
+        expect(points).toContainEqual([a, -a]);
+        expect(points).toContainEqual([-a, a]);
+        // Eight concave notches where a square edge meets a rotated edge.
+        expect(points).toContainEqual([d, -a]);
+        expect(points).toContainEqual([a, -d]);
+        const radii = points.map(([x, y]) => Math.hypot(x, y));
+        expect(radii.filter((r) => Math.abs(r - radius) < 1e-9)).toHaveLength(8);
+        expect(radii.filter((r) => r < radius)).toHaveLength(8);
+    });
+
+    it("renders the octagram on fortress spaces and in the map legend", () => {
+        const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
+        const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}}/>);
+        const polygons = [...html.matchAll(/<polygon data-marker="fortress" points="([^"]+)"/g)];
+        // One marker per fortress space plus the compact legend swatch.
+        expect(polygons.length).toBeGreaterThan(1);
+        for (const [, points] of polygons) {
+            expect(points.trim().split(/\s+/)).toHaveLength(16);
+        }
+        expect(html).toMatch(/vq-legend-swatch-fortress[\s\S]{0,200}<polygon data-marker="fortress"/);
     });
 });

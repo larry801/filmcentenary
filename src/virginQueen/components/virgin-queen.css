@@ -139,7 +139,9 @@
 .vq-legend-item { display: inline-flex; align-items: center; gap: 5px; min-width: 0; white-space: nowrap; }
 .vq-legend-swatch { box-sizing: border-box; width: 12px; height: 12px; flex: 0 0 12px; display: inline-flex; align-items: center; justify-content: center; }
 .vq-legend-swatch-key { background: #9e9e9e; border: 1.4px solid #392d20; }
-.vq-legend-swatch-fortress { width: 10px; height: 10px; margin: 1px; background: #9e9e9e; border: 1.4px solid #392d20; transform: rotate(45deg); }
+/* Fortress swatch: the printed two-square octagram, drawn inline as SVG. */
+.vq-legend-swatch-fortress { background: none; border: 0; transform: none; }
+.vq-legend-swatch-fortress svg { display: block; width: 12px; height: 12px; overflow: visible; }
 .vq-legend-swatch-open { width: 9px; height: 9px; margin: 1.5px; background: #9e9e9e; border: 1.4px solid #392d20; border-radius: 50%; }
 .vq-legend-swatch-jesuits { font: 700 11px/1 Georgia, "Songti SC", serif; color: #582b70; }
 .vq-legend-swatch-unrest { border: 1.6px dashed #b6362a; border-radius: 50%; }

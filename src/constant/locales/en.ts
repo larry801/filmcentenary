@@ -1204,7 +1204,7 @@ const en = {
             zoomIn: "Zoom in",
             zoomOut: "Zoom out",
             reset: "Reset map",
-            legend: "■ Key city · ◆ Fortress · ● City · dashed circle unrest · golden circle besieged",
+            legend: "■ Key city · ✸ Fortress · ● City · dashed circle unrest · golden circle besieged",
             centerHome: "Centre on my capital",
             help: "Drag to pan · pinch to zoom · Made with Natural Earth",
         },

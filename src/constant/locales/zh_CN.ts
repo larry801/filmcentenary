@@ -1278,7 +1278,7 @@ const zh_CN: Locale = {
             zoomIn: "放大地图",
             zoomOut: "缩小地图",
             reset: "复位地图",
-            legend: "■ 关键城市 · ◆ 要塞 · ● 城市 · 虚线圈 动荡 · 金色圈 围困",
+            legend: "■ 关键城市 · ✸ 要塞 · ● 城市 · 虚线圈 动荡 · 金色圈 围困",
             centerHome: "定位到我的首都",
             help: "拖动平移 · 双指缩放 · Made with Natural Earth",
         },
