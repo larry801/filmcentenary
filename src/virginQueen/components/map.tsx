@@ -7,11 +7,13 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
 import PublicIcon from "@mui/icons-material/Public";
 import MapIcon from "@mui/icons-material/Map";
+import LayersIcon from "@mui/icons-material/Layers";
 import {Controller, landCount, navalCount, Religion, VQGame, CONTROLLER_COLORS, controllerName} from "../constant/general";
 import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES, seaZoneName, spaceName, spacePoint} from "../mapData";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, tutorialSpaceAllowed} from "../tutorial";
 import land from "../data/land-background.json";
 import {WorldMapInset} from "./world-map";
+import {VQBoardMap} from "./board-map";
 
 const GRATICULE_LATS = [30, 34, 38, 42, 46, 50, 54, 59] as const;
 const GRATICULE_LONS = [-13, -5, 3, 11, 19, 27, 37] as const;
@@ -36,6 +38,8 @@ export interface VQMapProps {
     defaultPrimaryMap?: "europe" | "world";
     /** Starting open state of the collapsible Europe inset in the world view. */
     defaultEuropeInsetOpen?: boolean;
+    /** Which Europe rendering to show initially; both stay switchable in the UI. */
+    defaultMapStyle?: "geographic" | "board";
 }
 
 /** One-line description of a space, shared by its tooltip, aria-label and the hover read-out. */
@@ -190,11 +194,12 @@ function MapLegend() {
     </details>;
 }
 
-export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable = true, homeSpace, defaultPrimaryMap = "europe", defaultEuropeInsetOpen}: VQMapProps) => {
+export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable = true, homeSpace, defaultPrimaryMap = "europe", defaultEuropeInsetOpen, defaultMapStyle = "board"}: VQMapProps) => {
     i18n.use();
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     const [view, setView] = React.useState<MapView>(INITIAL_VIEW);
     const [hovered, setHovered] = React.useState<string>();
+    const [mapStyle, setMapStyle] = React.useState<"geographic" | "board">(defaultMapStyle);
     const [primaryMap, setPrimaryMap] = React.useState<"europe" | "world">(defaultPrimaryMap);
     const worldPrimary = primaryMap === "world";
     // Mirrors the world-map inset: expanded on desktop, folded away on phones.
@@ -261,6 +266,13 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
     };
     const home = homeSpace !== undefined ? SPACE_BY_ID[homeSpace] : undefined;
     const readout = hovered === undefined ? undefined : G.spaces[hovered] !== undefined ? spaceSummary(G, hovered) : seaSummary(G, hovered);
+    // The board redraw is a self-contained sibling view.  Keeping it behind an
+    // early return leaves the geographic renderer (and its tests) untouched.
+    if (mapStyle === "board") {
+        return <VQBoardMap G={G} selected={selected} origin={origin} onSelect={onSelect}
+                           highlights={highlights} dimUnavailable={dimUnavailable} homeSpace={homeSpace}
+                           onSwitchStyle={() => setMapStyle("geographic")}/>;
+    }
     return <div className={`vq-map${worldPrimary ? " vq-map-world-primary" : ""}`}>
         <details className="vq-europe-inset" open={worldPrimary ? europeInsetOpen : true}
                  onToggle={(event) => {if (worldPrimary) setEuropeInsetOpen((event.currentTarget as HTMLDetailsElement).open);}}>
@@ -368,6 +380,10 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
                         title={worldPrimary ? i18n.chain.vq.map.switchToEurope : i18n.chain.vq.map.switchToWorld}
                         onClick={() => setPrimaryMap(worldPrimary ? "europe" : "world")}>
                 {worldPrimary ? <MapIcon fontSize="small"/> : <PublicIcon fontSize="small"/>}
+            </IconButton>
+            <IconButton size="small" aria-label={i18n.chain.vq.map.switchToBoardMap}
+                        title={i18n.chain.vq.map.switchToBoardMap} onClick={() => setMapStyle("board")}>
+                <LayersIcon fontSize="small"/>
             </IconButton>
         </div>
         {!worldPrimary && readout !== undefined && readout !== "" && <div className="vq-map-readout" aria-hidden="true">{readout}</div>}

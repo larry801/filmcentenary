@@ -1210,6 +1210,17 @@ const en = {
             switchToWorld: "Switch to world map",
             switchToEurope: "Switch to Europe map",
             europeInset: "Europe map (inset)",
+            switchToBoardMap: "Switch to printed-board map",
+            switchToGeographicMap: "Switch to geographic map",
+            boardAriaLabel: "Full game board redrawn from the printed map (with the world-map triangle strip)",
+            boardHelp: "Drag to pan · pinch to zoom · vector redraw of the printed board",
+            boardCaption: "Board layout · fills show historical homes, rings show control · triangle strips are colonies",
+            boardColonies: "▲ Colonies (world-map triangles)",
+            boardOceanLabels: {
+                atlantic: "N. ATLANTIC",
+                southAtlantic: "S. ATLANTIC",
+                indian: "INDIAN OCEAN",
+            },
         },
         spring: {
             navalReturn: "Naval leader returns: choose port",

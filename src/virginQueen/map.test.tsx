@@ -73,7 +73,7 @@ describe("offline geographic map", () => {
 
     it("provides keyboard-selectable sea zones, zoom controls and tutorial exclusions", () => {
         const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx, {scenario: "tutorial"});
-        const html = renderToStaticMarkup(<VQMap G={G} selected="aegean" origin="istanbul" onSelect={() => {}}/>);
+        const html = renderToStaticMarkup(<VQMap defaultMapStyle="geographic" G={G} selected="aegean" origin="istanbul" onSelect={() => {}}/>);
         expect(html).toMatch(/role="button" tabindex="0" aria-label="爱琴海 · 海军 \d+" aria-pressed="true"/);
         expect(html).toContain('aria-label="放大地图"');
         expect(html).toContain('aria-label="复位地图"');
@@ -83,13 +83,13 @@ describe("offline geographic map", () => {
 
     it("marks legal targets with a ring and dims the rest only when highlights are supplied", () => {
         const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
-        const plain = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}}/>);
+        const plain = renderToStaticMarkup(<VQMap defaultMapStyle="geographic" G={G} onSelect={() => {}}/>);
         expect(plain).not.toContain("vq-legal-target");
         expect(plain).not.toContain("vq-legal-ring");
         expect(plain).not.toContain("vq-dim");
 
         const html = renderToStaticMarkup(
-            <VQMap G={G} selected="venice" origin="aegean" onSelect={() => {}} highlights={new Set(["venice", "aegean"])}/>,
+            <VQMap defaultMapStyle="geographic" G={G} selected="venice" origin="aegean" onSelect={() => {}} highlights={new Set(["venice", "aegean"])}/>,
         );
         expect(html).toMatch(/class="vq-map-node vq-legal-target" role="button" tabindex="0" aria-label="威尼斯 · [^"]*合法目标"/);
         expect(html).toMatch(/class="vq-map-node vq-dim" role="button" tabindex="0" aria-label="帕多瓦/);
@@ -99,7 +99,7 @@ describe("offline geographic map", () => {
         expect(html).toContain('fill="#f2d59188"');
 
         const undimmed = renderToStaticMarkup(
-            <VQMap G={G} onSelect={() => {}} highlights={new Set(["venice"])} dimUnavailable={false}/>,
+            <VQMap defaultMapStyle="geographic" G={G} onSelect={() => {}} highlights={new Set(["venice"])} dimUnavailable={false}/>,
         );
         expect(undimmed).not.toContain("vq-dim");
         expect(undimmed).toContain("vq-legal-target");
@@ -174,7 +174,7 @@ describe("offline geographic map", () => {
         const G = setupGame({numPlayers: 6, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
         G.worldColonies.florida = "england";
         G.worldControls.florida = "england";
-        const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}}/>);
+        const html = renderToStaticMarkup(<VQMap defaultMapStyle="geographic" G={G} onSelect={() => {}}/>);
         expect(html).toContain("世界地图");
         expect(html).toContain("1 个殖民地");
         expect(html).toContain("vq-world-colony");
@@ -196,7 +196,7 @@ describe("offline geographic map", () => {
 
     it("defaults to the Europe board and offers a switch to the world map", () => {
         const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
-        const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}}/>);
+        const html = renderToStaticMarkup(<VQMap defaultMapStyle="geographic" G={G} onSelect={() => {}}/>);
         expect(html).toContain('class="vq-map"');
         expect(html).not.toContain("vq-map-world-primary");
         expect(html).toContain('<details class="vq-world-map"');
@@ -211,7 +211,7 @@ describe("offline geographic map", () => {
 
     it("can swap the world map into the primary view with Europe as an inset", () => {
         const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
-        const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}} defaultPrimaryMap="world"/>);
+        const html = renderToStaticMarkup(<VQMap defaultMapStyle="geographic" G={G} onSelect={() => {}} defaultPrimaryMap="world"/>);
         expect(html).toContain('class="vq-map vq-map-world-primary"');
         expect(html).toContain('class="vq-world-map vq-world-map-primary"');
         expect(html).not.toContain('<details class="vq-world-map"');
@@ -231,7 +231,7 @@ describe("offline geographic map", () => {
 
     it("can start with the Europe inset folded away like the world map inset", () => {
         const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
-        const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}} defaultPrimaryMap="world" defaultEuropeInsetOpen={false}/>);
+        const html = renderToStaticMarkup(<VQMap defaultMapStyle="geographic" G={G} onSelect={() => {}} defaultPrimaryMap="world" defaultEuropeInsetOpen={false}/>);
         expect(html).toMatch(/<details class="vq-europe-inset"[^>]*>/);
         expect(html).not.toMatch(/<details class="vq-europe-inset"[^>]* open/);
         // Folding only hides the board: its heading, back button and data stay.
@@ -242,7 +242,7 @@ describe("offline geographic map", () => {
 
     it("renders the compact legend with swatches for every map marker", () => {
         const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
-        const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}}/>);
+        const html = renderToStaticMarkup(<VQMap defaultMapStyle="geographic" G={G} onSelect={() => {}}/>);
         expect(html).toContain('class="vq-map-legend"');
         expect(html).toContain("<summary>图例</summary>");
         expect(html).toContain("关键城市");
@@ -278,7 +278,7 @@ describe("offline geographic map", () => {
 
     it("renders the octagram on fortress spaces and in the map legend", () => {
         const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
-        const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}}/>);
+        const html = renderToStaticMarkup(<VQMap defaultMapStyle="geographic" G={G} onSelect={() => {}}/>);
         const polygons = [...html.matchAll(/<polygon data-marker="fortress" points="([^"]+)"/g)];
         // One marker per fortress space plus the compact legend swatch.
         expect(polygons.length).toBeGreaterThan(1);

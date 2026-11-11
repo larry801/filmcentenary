@@ -151,6 +151,20 @@
 .vq-legend-swatch-siege { border: 1.8px solid #c47b16; border-radius: 50%; }
 .vq-legend-swatch-closed { color: #9c3028; font-weight: 700; font-size: 13px; line-height: 1; }
 
+/* Printed-board map: the vector redraw of VQ.png.  One surface holds Europe
+   and the L-shaped world-map triangle strip, so there is no Europe/world
+   switch and no inset panel here. */
+.vq-board-surface { position: absolute; inset: 0; }
+.vq-board-surface > svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; background: #82b3d2; }
+.vq-board-map .vq-map-controls { border-color: #8a744e; }
+.vq-board-map .vq-label-leader { stroke: #6b5739; stroke-width: .55; stroke-dasharray: 1 1.5; opacity: .65; }
+.vq-board-triangle-leader { stroke: #4b7f92; stroke-width: .4; stroke-dasharray: 1 1.4; opacity: .7; }
+.vq-board-triangle.vq-board-colony polygon { filter: drop-shadow(0 0 1.5px #fffdf6); }
+.vq-board-legend .vq-legend-swatch-key,
+.vq-board-legend .vq-legend-swatch-open { background: #e3c06d; }
+.vq-legend-swatch-colonies { color: #a67c1e; font-size: 11px; line-height: 1; }
+.vq-board-node .vq-legal-ring { stroke-width: 2.4; }
+
 @media (max-width: 599px) {
     .vq-map-legend { right: 8px; bottom: 36px; max-width: 64%; }
     .vq-legend-items { grid-template-columns: minmax(0, 1fr); }

@@ -1284,6 +1284,17 @@ const zh_CN: Locale = {
             switchToWorld: "切换到世界地图",
             switchToEurope: "切换到欧洲地图",
             europeInset: "欧洲地图（缩略）",
+            switchToBoardMap: "切换到棋盘版地图",
+            switchToGeographicMap: "切换到地理版地图",
+            boardAriaLabel: "按实体棋盘重绘的完整游戏地图（含世界地图三角区）",
+            boardHelp: "拖动平移 · 双指缩放 · 按 VQ 实体棋盘矢量重绘",
+            boardCaption: "棋盘版 · 填充色为历史归属，外圈为当前控制 · 左侧与底部为殖民地三角区",
+            boardColonies: "▲ 殖民地（世界地图三角区）",
+            boardOceanLabels: {
+                atlantic: "北大西洋",
+                southAtlantic: "南大西洋",
+                indian: "印度洋",
+            },
         },
         spring: {
             navalReturn: "海军将领归国：选择港口",
