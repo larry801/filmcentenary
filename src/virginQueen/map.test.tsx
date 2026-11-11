@@ -194,6 +194,52 @@ describe("offline geographic map", () => {
         }
     });
 
+    it("defaults to the Europe board and offers a switch to the world map", () => {
+        const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
+        const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}}/>);
+        expect(html).toContain('class="vq-map"');
+        expect(html).not.toContain("vq-map-world-primary");
+        expect(html).toContain('<details class="vq-world-map"');
+        expect(html).toContain('aria-label="切换到世界地图"');
+        expect(html).toContain('class="vq-map-legend"');
+        expect(html).toContain('aria-label="放大地图"');
+        // The Europe board is always a <details> panel; only its summary is
+        // shown once it becomes the inset.
+        expect(html).toMatch(/<details class="vq-europe-inset" open/);
+        expect(html).toContain('class="vq-europe-inset-heading"');
+    });
+
+    it("can swap the world map into the primary view with Europe as an inset", () => {
+        const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
+        const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}} defaultPrimaryMap="world"/>);
+        expect(html).toContain('class="vq-map vq-map-world-primary"');
+        expect(html).toContain('class="vq-world-map vq-world-map-primary"');
+        expect(html).not.toContain('<details class="vq-world-map"');
+        expect(html).toContain('aria-label="切换到欧洲地图"');
+        expect(html).toContain("欧洲地图（缩略）");
+        expect(html).toContain("切换到欧洲地图");
+        expect(html).toMatch(/<details class="vq-europe-inset" open/);
+        expect(html).toContain('class="vq-europe-inset-heading"');
+        // Europe-only chrome is hidden, but both boards are still drawn.
+        expect(html).not.toContain('class="vq-map-legend"');
+        expect(html).not.toContain('aria-label="放大地图"');
+        expect(html).not.toContain("vq-map-caption");
+        expect(html).toContain('viewBox="0 0 1000 620"');
+        expect(html).toContain("vq-world-map-key");
+        expect(html).toContain("vq-world-location");
+    });
+
+    it("can start with the Europe inset folded away like the world map inset", () => {
+        const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
+        const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}} defaultPrimaryMap="world" defaultEuropeInsetOpen={false}/>);
+        expect(html).toMatch(/<details class="vq-europe-inset"[^>]*>/);
+        expect(html).not.toMatch(/<details class="vq-europe-inset"[^>]* open/);
+        // Folding only hides the board: its heading, back button and data stay.
+        expect(html).toContain("欧洲地图（缩略）");
+        expect(html).toContain("切换到欧洲地图");
+        expect(html).toContain('viewBox="0 0 1000 620"');
+    });
+
     it("renders the compact legend with swatches for every map marker", () => {
         const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
         const html = renderToStaticMarkup(<VQMap G={G} onSelect={() => {}}/>);

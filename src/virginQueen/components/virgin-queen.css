@@ -68,8 +68,11 @@
 }
 .vq-board > .vq-mobile-tabs { display: none; }
 .vq-map { height: 100%; width: 100%; position: relative; min-height: 0; }
-.vq-map > svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; }
-.vq-map-controls { position: absolute; top: 12px; left: 12px; display: flex; gap: 4px; align-items: center; padding: 3px; border-radius: 6px; border: 1px solid #b49e72; background: #faf3e4f2; box-shadow: 0 2px 8px #30291e22; }
+.vq-europe-inset { position: absolute; inset: 0; }
+.vq-europe-inset > summary { display: none; }
+.vq-europe-inset > svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; }
+.vq-europe-inset:not([open]) > svg { display: none; }
+.vq-map-controls { position: absolute; top: 12px; left: 12px; z-index: 4; display: flex; gap: 4px; align-items: center; padding: 3px; border-radius: 6px; border: 1px solid #b49e72; background: #faf3e4f2; box-shadow: 0 2px 8px #30291e22; }
 .vq-map-controls button { color: #49391f; }
 .vq-map-caption { position: absolute; bottom: 9px; left: 12px; right: 12px; display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; pointer-events: none; font-size: 10px; color: #514a37; }
 .vq-map-caption span { background: #faf3e4e6; padding: 4px 7px; border-radius: 3px; }
@@ -234,4 +237,50 @@
     .vq-title { font-size: 20px; }
     .vq-status { padding: 8px 10px; gap: 6px; }
     .vq-status-meta { font-size: 11px; }
+}
+
+/* Primary-view swap: the world map fills the board and the Europe map moves
+   into the same corner inset the world map normally occupies.  Both insets are
+   collapsible <details> panels, so either can be folded away to uncover the
+   board underneath. */
+.vq-map.vq-map-world-primary .vq-europe-inset {
+    inset: auto auto 36px 12px; z-index: 3;
+    width: min(340px, calc(100% - 24px)); height: auto; overflow: hidden;
+    border: 1px solid #b49e72; border-radius: 6px; background: #faf3e4f2;
+    box-shadow: 0 2px 8px #30291e22; color: #3d3426; font-size: 11px;
+}
+.vq-map.vq-map-world-primary .vq-europe-inset > summary {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 4px 9px; cursor: pointer; font-weight: 650; list-style: none;
+}
+.vq-map.vq-map-world-primary .vq-europe-inset > summary::-webkit-details-marker { display: none; }
+.vq-map.vq-map-world-primary .vq-europe-inset[open] > summary { border-bottom: 1px solid #d6c8ad; }
+.vq-europe-inset-heading button {
+    border: 0; background: none; padding: 0; color: #2d6b71;
+    font: inherit; font-weight: 650; text-decoration: underline; cursor: pointer;
+}
+.vq-map.vq-map-world-primary .vq-europe-inset > svg {
+    width: 100%; height: auto; aspect-ratio: 1000 / 620; background: #b8d0cb;
+    pointer-events: none;
+}
+.vq-world-map.vq-world-map-primary {
+    position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 1;
+    width: auto; height: auto; display: flex; flex-direction: column;
+    border: 0; border-radius: 0; box-shadow: none; background: #faf3e4;
+}
+.vq-world-map-primary .vq-world-map-heading {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    /* Leave room for the always-visible view-switch control in the top left. */
+    padding: 7px 12px 7px 72px; font-weight: 650; border-bottom: 1px solid #d6c8ad;
+}
+.vq-world-map-primary .vq-world-map-body {
+    flex: 1; min-height: 0; padding: 8px 12px 12px;
+    display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 6px;
+}
+.vq-world-map-primary .vq-world-map-body > svg {
+    width: 100%; height: 100%; min-height: 0; background: #b8d0cb;
+}
+.vq-world-map-primary .vq-world-map-key { justify-content: flex-end; }
+@media (max-width: 599px) {
+    .vq-map.vq-map-world-primary .vq-europe-inset { left: 8px; width: min(300px, calc(100% - 16px)); }
 }

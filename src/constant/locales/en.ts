@@ -1207,6 +1207,9 @@ const en = {
             legend: "■ Key city · ✸ Fortress · ● City · dashed circle unrest · golden circle besieged",
             centerHome: "Centre on my capital",
             help: "Drag to pan · pinch to zoom · Made with Natural Earth",
+            switchToWorld: "Switch to world map",
+            switchToEurope: "Switch to Europe map",
+            europeInset: "Europe map (inset)",
         },
         spring: {
             navalReturn: "Naval leader returns: choose port",

@@ -5,6 +5,8 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
+import PublicIcon from "@mui/icons-material/Public";
+import MapIcon from "@mui/icons-material/Map";
 import {Controller, landCount, navalCount, Religion, VQGame, CONTROLLER_COLORS, controllerName} from "../constant/general";
 import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES, seaZoneName, spaceName, spacePoint} from "../mapData";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, tutorialSpaceAllowed} from "../tutorial";
@@ -30,6 +32,10 @@ export interface VQMapProps {
     dimUnavailable?: boolean;
     /** Space the "centre on my capital" control jumps to; the control is hidden without one. */
     homeSpace?: string;
+    /** Starting primary view; the other board is shown as a corner inset. */
+    defaultPrimaryMap?: "europe" | "world";
+    /** Starting open state of the collapsible Europe inset in the world view. */
+    defaultEuropeInsetOpen?: boolean;
 }
 
 /** One-line description of a space, shared by its tooltip, aria-label and the hover read-out. */
@@ -184,11 +190,16 @@ function MapLegend() {
     </details>;
 }
 
-export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable = true, homeSpace}: VQMapProps) => {
+export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable = true, homeSpace, defaultPrimaryMap = "europe", defaultEuropeInsetOpen}: VQMapProps) => {
     i18n.use();
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     const [view, setView] = React.useState<MapView>(INITIAL_VIEW);
     const [hovered, setHovered] = React.useState<string>();
+    const [primaryMap, setPrimaryMap] = React.useState<"europe" | "world">(defaultPrimaryMap);
+    const worldPrimary = primaryMap === "world";
+    // Mirrors the world-map inset: expanded on desktop, folded away on phones.
+    const [europeInsetOpen, setEuropeInsetOpen] = React.useState(() =>
+        defaultEuropeInsetOpen ?? (typeof window === "undefined" || window.innerWidth >= 600));
     const landPath = React.useMemo(() => warpSvgPath(land.path), []);
     /**
      * Labels are laid out together rather than independently.  At the default
@@ -250,102 +261,117 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
     };
     const home = homeSpace !== undefined ? SPACE_BY_ID[homeSpace] : undefined;
     const readout = hovered === undefined ? undefined : G.spaces[hovered] !== undefined ? spaceSummary(G, hovered) : seaSummary(G, hovered);
-    return <div className="vq-map">
-        <svg ref={svgRef} viewBox="0 0 1000 620" role="group" aria-label={i18n.chain.vq.map.ariaLabel}
-             onClick={selectNearest}
-             onPointerDown={(event) => {
-                 if (event.button !== 0) return;
-                 coarsePointer.current = event.pointerType === "touch" || event.pointerType === "pen";
-                 if (!pointers.current.size) {dragged.current = false; start.current = [event.clientX, event.clientY];}
-                 pointers.current.set(event.pointerId, coordinates(event));
-                 if (pointers.current.size > 1) dragged.current = true;
-                 (event.target as Element).setPointerCapture(event.pointerId);
-             }}
-             onPointerMove={(event) => {
-                 const previous = pointers.current.get(event.pointerId);
-                 if (!previous) return;
-                 const next = coordinates(event);
-                 if (isMapDrag(Math.hypot(event.clientX - start.current[0], event.clientY - start.current[1]))) dragged.current = true;
-                 const other = [...pointers.current.entries()].find(([id]) => id !== event.pointerId)?.[1];
-                 if (other) {
-                     const before = Math.hypot(previous.x - other.x, previous.y - other.y);
-                     const after = Math.hypot(next.x - other.x, next.y - other.y);
-                     if (before > 0) setView((current) => {
-                         const zoomed = zoomView(current, after / before, [(previous.x + other.x) / 2, (previous.y + other.y) / 2]);
-                         return clampView({...zoomed, x: zoomed.x + (next.x - previous.x) / 2, y: zoomed.y + (next.y - previous.y) / 2});
-                     });
-                 } else if (dragged.current) {
-                     setView((current) => clampView({...current, x: current.x + next.x - previous.x, y: current.y + next.y - previous.y}));
-                 }
-                 pointers.current.set(event.pointerId, next);
-             }}
-             onPointerUp={release} onPointerCancel={(event) => {dragged.current = true; release(event);}}
-             onLostPointerCapture={(event) => pointers.current.delete(event.pointerId)}
-             onClickCapture={(event) => {if (event.detail !== 0 && dragged.current) {event.preventDefault(); event.stopPropagation();}}}>
-            <rect width={1000} height={620} fill="#b8d0cb"/>
-            <g transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
-                <path d={landPath} fill="#e7dab9" stroke="#8a967b" strokeWidth={0.9} fillRule="evenodd"/>
-                {[0, 10, 20, 30].map((lon) => <polyline key={lon} points={meridianPath(lon)} fill="none" stroke="#597f7920" strokeDasharray="2 6"/>)}
-                {[35, 45, 55].map((lat) => <polyline key={lat} points={parallelPath(lat)} fill="none" stroke="#597f7920" strokeDasharray="2 6"/>)}
-                <text x={480} y={110} fontFamily="Georgia, serif" fontSize={28} letterSpacing={12} fill="#8c754333" pointerEvents="none">EUROPA</text>
-                {/* Faint geographic anchor leaders for places nudged into a
-                    readable cartographic position. */}
-                {SPACES.map((space) => {
-                    const [anchorX, anchorY] = mapProject(space.lon, space.lat);
-                    const point = spacePoint(space.id);
-                    if (Math.hypot(point.x - anchorX, point.y - anchorY) < 5) return null;
-                    return <g key={`anchor-${space.id}`} pointerEvents="none" opacity={0.45}>
-                        <line x1={anchorX} y1={anchorY} x2={point.x} y2={point.y}
-                              stroke="#7e6948" strokeWidth={0.65} strokeDasharray="1.4 2.2"/>
-                        <circle cx={anchorX} cy={anchorY} r={1.4} fill="#7e6948"/>
-                    </g>;
-                })}
-                {LAND_LINKS.map(([a, b, pass], i) => {
-                    const aPoint = spacePoint(a);
-                    const bPoint = spacePoint(b);
-                    return <line key={i} x1={aPoint.x} y1={aPoint.y} x2={bPoint.x} y2={bPoint.y} stroke={pass ? "#85644b" : "#8b7954"} strokeWidth={pass ? 1.4 : 0.8}
-                                 strokeDasharray={pass ? "3 2" : undefined} opacity={0.65} pointerEvents="none"/>;
-                })}
-                {SEA_ZONES.map((zone) => {
-                    const [x, y] = mapProject(zone.label[0], zone.label[1]);
-                    const count = Object.values(G.seaZones[zone.id].naval).reduce((sum, stack) => sum + navalCount(stack), 0);
-                    const highlighted = highlights?.has(zone.id) === true;
-                    const dimmed = highlights !== undefined && dimUnavailable && !highlighted;
-                    const label = seaSummary(G, zone.id) +
-                        (highlighted ? ` · ${i18n.chain.vq.legend.legal}` : "");
-                    return <g key={zone.id} className={`vq-map-node${dimmed ? " vq-dim" : ""}${highlighted ? " vq-legal-target" : ""}`}
-                              role="button" tabIndex={0} aria-label={label} aria-pressed={selected === zone.id}
-                              opacity={dimmed ? 0.35 : undefined}
-                              onFocus={() => setHovered(zone.id)} onBlur={() => setHovered(undefined)}
-                              onPointerEnter={(event) => {if (event.pointerType === "mouse") setHovered(zone.id);}}
-                              onPointerLeave={(event) => {if (event.pointerType === "mouse") setHovered(undefined);}}
-                              style={{cursor: "pointer"}} onKeyDown={(event) => {
-                                  if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(zone.id);}
-                              }}>
-                        {highlights !== undefined && <title>{label}</title>}
-                        <rect className="vq-hit" x={x - 44} y={y - 12} width={88} height={25} rx={5} fill={selected === zone.id ? "#faf3df" : "#c8dcd680"}
-                              stroke={origin === zone.id ? "#2d6b71" : selected === zone.id ? "#805012" : "transparent"}
-                              strokeDasharray={origin === zone.id ? "3 2" : undefined}/>
-                        <text x={x} y={y} fontSize={9} fill="#2e5d5b" fontFamily="Georgia, serif" fontStyle="italic" textAnchor="middle">{seaZoneName(zone.id, vqLocale)}</text>
-                        {count > 0 && <text x={x} y={y + 10} fontSize={8} textAnchor="middle" fill="#244c49">⚓ {count}</text>}
-                        {highlighted && <rect className="vq-legal-ring" x={x - 46} y={y - 14} width={92} height={29} rx={7} fill="none"/>}
-                    </g>;
-                })}
-                {SPACES.map((space) => <SpaceShape key={space.id} id={space.id} G={G} selected={selected} origin={origin} onSelect={onSelect} highlights={highlights} dimUnavailable={dimUnavailable} onHover={setHovered} label={labelPlacements[space.id]}/>)}
-            </g>
-        </svg>
-        <MapLegend/>
-        <WorldMapInset G={G}/>
+    return <div className={`vq-map${worldPrimary ? " vq-map-world-primary" : ""}`}>
+        <details className="vq-europe-inset" open={worldPrimary ? europeInsetOpen : true}
+                 onToggle={(event) => {if (worldPrimary) setEuropeInsetOpen((event.currentTarget as HTMLDetailsElement).open);}}>
+            <summary className="vq-europe-inset-heading">
+                <span>{i18n.chain.vq.map.europeInset}</span>
+                <button type="button" onClick={(event) => {event.preventDefault(); event.stopPropagation(); setPrimaryMap("europe");}}>{i18n.chain.vq.map.switchToEurope}</button>
+            </summary>
+            <svg ref={svgRef} viewBox="0 0 1000 620" role="group" aria-label={i18n.chain.vq.map.ariaLabel}
+                 onClick={selectNearest}
+                 onPointerDown={(event) => {
+                     if (event.button !== 0) return;
+                     coarsePointer.current = event.pointerType === "touch" || event.pointerType === "pen";
+                     if (!pointers.current.size) {dragged.current = false; start.current = [event.clientX, event.clientY];}
+                     pointers.current.set(event.pointerId, coordinates(event));
+                     if (pointers.current.size > 1) dragged.current = true;
+                     (event.target as Element).setPointerCapture(event.pointerId);
+                 }}
+                 onPointerMove={(event) => {
+                     const previous = pointers.current.get(event.pointerId);
+                     if (!previous) return;
+                     const next = coordinates(event);
+                     if (isMapDrag(Math.hypot(event.clientX - start.current[0], event.clientY - start.current[1]))) dragged.current = true;
+                     const other = [...pointers.current.entries()].find(([id]) => id !== event.pointerId)?.[1];
+                     if (other) {
+                         const before = Math.hypot(previous.x - other.x, previous.y - other.y);
+                         const after = Math.hypot(next.x - other.x, next.y - other.y);
+                         if (before > 0) setView((current) => {
+                             const zoomed = zoomView(current, after / before, [(previous.x + other.x) / 2, (previous.y + other.y) / 2]);
+                             return clampView({...zoomed, x: zoomed.x + (next.x - previous.x) / 2, y: zoomed.y + (next.y - previous.y) / 2});
+                         });
+                     } else if (dragged.current) {
+                         setView((current) => clampView({...current, x: current.x + next.x - previous.x, y: current.y + next.y - previous.y}));
+                     }
+                     pointers.current.set(event.pointerId, next);
+                 }}
+                 onPointerUp={release} onPointerCancel={(event) => {dragged.current = true; release(event);}}
+                 onLostPointerCapture={(event) => pointers.current.delete(event.pointerId)}
+                 onClickCapture={(event) => {if (event.detail !== 0 && dragged.current) {event.preventDefault(); event.stopPropagation();}}}>
+                <rect width={1000} height={620} fill="#b8d0cb"/>
+                <g transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
+                    <path d={landPath} fill="#e7dab9" stroke="#8a967b" strokeWidth={0.9} fillRule="evenodd"/>
+                    {[0, 10, 20, 30].map((lon) => <polyline key={lon} points={meridianPath(lon)} fill="none" stroke="#597f7920" strokeDasharray="2 6"/>)}
+                    {[35, 45, 55].map((lat) => <polyline key={lat} points={parallelPath(lat)} fill="none" stroke="#597f7920" strokeDasharray="2 6"/>)}
+                    <text x={480} y={110} fontFamily="Georgia, serif" fontSize={28} letterSpacing={12} fill="#8c754333" pointerEvents="none">EUROPA</text>
+                    {/* Faint geographic anchor leaders for places nudged into a
+                        readable cartographic position. */}
+                    {SPACES.map((space) => {
+                        const [anchorX, anchorY] = mapProject(space.lon, space.lat);
+                        const point = spacePoint(space.id);
+                        if (Math.hypot(point.x - anchorX, point.y - anchorY) < 5) return null;
+                        return <g key={`anchor-${space.id}`} pointerEvents="none" opacity={0.45}>
+                            <line x1={anchorX} y1={anchorY} x2={point.x} y2={point.y}
+                                  stroke="#7e6948" strokeWidth={0.65} strokeDasharray="1.4 2.2"/>
+                            <circle cx={anchorX} cy={anchorY} r={1.4} fill="#7e6948"/>
+                        </g>;
+                    })}
+                    {LAND_LINKS.map(([a, b, pass], i) => {
+                        const aPoint = spacePoint(a);
+                        const bPoint = spacePoint(b);
+                        return <line key={i} x1={aPoint.x} y1={aPoint.y} x2={bPoint.x} y2={bPoint.y} stroke={pass ? "#85644b" : "#8b7954"} strokeWidth={pass ? 1.4 : 0.8}
+                                     strokeDasharray={pass ? "3 2" : undefined} opacity={0.65} pointerEvents="none"/>;
+                    })}
+                    {SEA_ZONES.map((zone) => {
+                        const [x, y] = mapProject(zone.label[0], zone.label[1]);
+                        const count = Object.values(G.seaZones[zone.id].naval).reduce((sum, stack) => sum + navalCount(stack), 0);
+                        const highlighted = highlights?.has(zone.id) === true;
+                        const dimmed = highlights !== undefined && dimUnavailable && !highlighted;
+                        const label = seaSummary(G, zone.id) +
+                            (highlighted ? ` · ${i18n.chain.vq.legend.legal}` : "");
+                        return <g key={zone.id} className={`vq-map-node${dimmed ? " vq-dim" : ""}${highlighted ? " vq-legal-target" : ""}`}
+                                  role="button" tabIndex={0} aria-label={label} aria-pressed={selected === zone.id}
+                                  opacity={dimmed ? 0.35 : undefined}
+                                  onFocus={() => setHovered(zone.id)} onBlur={() => setHovered(undefined)}
+                                  onPointerEnter={(event) => {if (event.pointerType === "mouse") setHovered(zone.id);}}
+                                  onPointerLeave={(event) => {if (event.pointerType === "mouse") setHovered(undefined);}}
+                                  style={{cursor: "pointer"}} onKeyDown={(event) => {
+                                      if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(zone.id);}
+                                  }}>
+                            {highlights !== undefined && <title>{label}</title>}
+                            <rect className="vq-hit" x={x - 44} y={y - 12} width={88} height={25} rx={5} fill={selected === zone.id ? "#faf3df" : "#c8dcd680"}
+                                  stroke={origin === zone.id ? "#2d6b71" : selected === zone.id ? "#805012" : "transparent"}
+                                  strokeDasharray={origin === zone.id ? "3 2" : undefined}/>
+                            <text x={x} y={y} fontSize={9} fill="#2e5d5b" fontFamily="Georgia, serif" fontStyle="italic" textAnchor="middle">{seaZoneName(zone.id, vqLocale)}</text>
+                            {count > 0 && <text x={x} y={y + 10} fontSize={8} textAnchor="middle" fill="#244c49">⚓ {count}</text>}
+                            {highlighted && <rect className="vq-legal-ring" x={x - 46} y={y - 14} width={92} height={29} rx={7} fill="none"/>}
+                        </g>;
+                    })}
+                    {SPACES.map((space) => <SpaceShape key={space.id} id={space.id} G={G} selected={selected} origin={origin} onSelect={onSelect} highlights={highlights} dimUnavailable={dimUnavailable} onHover={setHovered} label={labelPlacements[space.id]}/>)}
+                </g>
+            </svg>
+        </details>
+        {!worldPrimary && <MapLegend/>}
+        <WorldMapInset G={G} primary={worldPrimary}/>
         <div className="vq-map-controls">
-            <IconButton size="small" aria-label={i18n.chain.vq.map.zoomIn} disabled={view.scale >= 4} onClick={() => setView((current) => zoomView(current, 1.35, [500, 310]))}><AddIcon fontSize="small"/></IconButton>
-            <span style={{minWidth: 36, textAlign: "center", fontSize: 11}} aria-live="polite">{Math.round(view.scale * 100)}%</span>
-            <IconButton size="small" aria-label={i18n.chain.vq.map.zoomOut} disabled={view.scale <= 1} onClick={() => setView((current) => zoomView(current, 1 / 1.35, [500, 310]))}><RemoveIcon fontSize="small"/></IconButton>
-            {home !== undefined && <IconButton size="small" aria-label={`${i18n.chain.vq.map.centerHome} · ${spaceName(home.id, vqLocale)}`} title={`${i18n.chain.vq.map.centerHome} · ${spaceName(home.id, vqLocale)}`}
-                onClick={() => setView((current) => {const point = spacePoint(home.id); return centerView([point.x, point.y], Math.max(current.scale, 2));})}><MyLocationIcon fontSize="small"/></IconButton>}
-            <IconButton size="small" aria-label={i18n.chain.vq.map.reset} onClick={() => setView(INITIAL_VIEW)}><RestartAltIcon fontSize="small"/></IconButton>
+            {!worldPrimary && <>
+                <IconButton size="small" aria-label={i18n.chain.vq.map.zoomIn} disabled={view.scale >= 4} onClick={() => setView((current) => zoomView(current, 1.35, [500, 310]))}><AddIcon fontSize="small"/></IconButton>
+                <span style={{minWidth: 36, textAlign: "center", fontSize: 11}} aria-live="polite">{Math.round(view.scale * 100)}%</span>
+                <IconButton size="small" aria-label={i18n.chain.vq.map.zoomOut} disabled={view.scale <= 1} onClick={() => setView((current) => zoomView(current, 1 / 1.35, [500, 310]))}><RemoveIcon fontSize="small"/></IconButton>
+                {home !== undefined && <IconButton size="small" aria-label={`${i18n.chain.vq.map.centerHome} · ${spaceName(home.id, vqLocale)}`} title={`${i18n.chain.vq.map.centerHome} · ${spaceName(home.id, vqLocale)}`}
+                    onClick={() => setView((current) => {const point = spacePoint(home.id); return centerView([point.x, point.y], Math.max(current.scale, 2));})}><MyLocationIcon fontSize="small"/></IconButton>}
+                <IconButton size="small" aria-label={i18n.chain.vq.map.reset} onClick={() => setView(INITIAL_VIEW)}><RestartAltIcon fontSize="small"/></IconButton>
+            </>}
+            <IconButton size="small"
+                        aria-label={worldPrimary ? i18n.chain.vq.map.switchToEurope : i18n.chain.vq.map.switchToWorld}
+                        title={worldPrimary ? i18n.chain.vq.map.switchToEurope : i18n.chain.vq.map.switchToWorld}
+                        onClick={() => setPrimaryMap(worldPrimary ? "europe" : "world")}>
+                {worldPrimary ? <MapIcon fontSize="small"/> : <PublicIcon fontSize="small"/>}
+            </IconButton>
         </div>
-        {readout !== undefined && readout !== "" && <div className="vq-map-readout" aria-hidden="true">{readout}</div>}
-        <div className="vq-map-caption"><span>{i18n.chain.vq.map.legend}</span><span className="vq-map-help">{i18n.chain.vq.map.help}</span></div>
+        {!worldPrimary && readout !== undefined && readout !== "" && <div className="vq-map-readout" aria-hidden="true">{readout}</div>}
+        {!worldPrimary && <div className="vq-map-caption"><span>{i18n.chain.vq.map.legend}</span><span className="vq-map-help">{i18n.chain.vq.map.help}</span></div>}
     </div>;
 };
 

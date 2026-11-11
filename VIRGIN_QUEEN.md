@@ -1460,3 +1460,9 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 引擎补充：#1 抽屉直达招募/苏伊士、#5 可跳过、#33 显式分支优先、#53 四选二（`a:b|c:d` 管道语法）、#65 可选动荡、#99 可选择无敌舰队部署港口。回归测试见 `src/virginQueen/eventBranches.test.tsx`。
 
 验证：`tsc --noEmit` 通过；`jest src/virginQueen --runInBand --silent` 202 suites、1101 tests passed；`vite build` 通过。
+
+## 世界地图 / 欧洲地图主视图切换
+
+地图左上角控件新增切换按钮（地球 / 折叠地图图标，中英文 aria-label 同步）：默认欧洲地图铺满版面、世界地图为左下角可折叠小窗；点击后世界地图放大为主视图、欧洲地图缩成同位置的小窗。两张小窗都使用 `<details>` + `<summary>`，点标题栏即可收起/展开：收起后只剩一条标题栏，完整露出下方主图。欧洲小窗标题栏右侧另有「切换到欧洲地图 / Switch to Europe map」按钮可切回；桌面默认展开，窄屏默认折叠。世界主视图下隐藏只属于欧洲版的缩放/复位控件、单位图例与 hover 读数，世界地图图例靠右排布，避免与左下角小窗重叠。`VQMap` 新增可选 `defaultPrimaryMap`（默认 `europe`）与 `defaultEuropeInsetOpen` 指定初始主视图/小窗折叠状态；`WorldMapInset` 新增 `primary` 模式，改为带标题栏的 `<section>` 而非可折叠的 `<details>`。
+
+验证：`tsc --noEmit` 通过；`jest src/virginQueen/map.test.tsx --runInBand --silent` 18 tests passed（新增 3 项：默认欧洲主视图、世界主视图与欧洲小窗、欧洲小窗初始折叠态）；`jest src/virginQueen --silent --maxWorkers=4` 213 suites、1213 tests passed；`npm run build` 通过（仅既有大体积 chunk 提示）；浏览器实测中英文文案、双向切换、欧洲小窗收起/展开与返回按钮。

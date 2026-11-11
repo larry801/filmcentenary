@@ -1281,6 +1281,9 @@ const zh_CN: Locale = {
             legend: "■ 关键城市 · ✸ 要塞 · ● 城市 · 虚线圈 动荡 · 金色圈 围困",
             centerHome: "定位到我的首都",
             help: "拖动平移 · 双指缩放 · Made with Natural Earth",
+            switchToWorld: "切换到世界地图",
+            switchToEurope: "切换到欧洲地图",
+            europeInset: "欧洲地图（缩略）",
         },
         spring: {
             navalReturn: "海军将领归国：选择港口",
