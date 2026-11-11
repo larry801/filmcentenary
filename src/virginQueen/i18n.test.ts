@@ -43,7 +43,7 @@ describe("VQ bilingual helpers (zh_CN default, en on request)", () => {
         expect(victoryText("standard", "en")).toBe("Standard victory: reach 25 VP");
         expect(victoryText("protestantReligious")).toBe("新教宗教胜利：新教影响超过 50 个地区");
         expect(victoryText("protestantReligious", "en")).toBe("Protestant religious victory: Protestant influence over 50 spaces");
-        expect(victoryText("catholicReligious", "en")).toBe("Catholic religious victory: Protestant spaces reduced to 9");
+        expect(victoryText("catholicReligious", "en")).toBe("Catholic religious victory: Protestant spaces reduced to 9 or fewer");
     });
     it("card, scenario, captain, patron, science names flip", () => {
         const c = cardName("vq-001");

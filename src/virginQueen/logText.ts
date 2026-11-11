@@ -244,6 +244,8 @@ const RULES: Rule[] = [
     [/^Unrest is placed in (.+)\.$/, (_m, places) => `在 ${places} 放置动荡。`],
     [/^Converted: (.+?); unrest in (\d+) space\(s\)\.$/, (_m, places, n) => `已转化：${places}；${n} 个地区出现动荡。`],
     [/^Converted: (.+)$/, (_m, places) => `已转化：${places}`],
+    [/^Converted off-map: (\d+) Protestant space\(s\)\.$/, (_m, n) => `已转化 ${n} 个未绘制的新教地区。`],
+    [/^Restored off-map: (\d+) Protestant space\(s\)\.$/, (_m, n) => `已恢复 ${n} 个未绘制的新教地区。`],
     [/^No conversions possible\.$/, "没有可转化的地区。"],
     [/^(?:([^:]+): )?([a-z]+|新教|新教联盟|天主教) conversions in (.+): \[(.+)\]$/, (_m, prefix, sideName, area, dice) =>
         `${prefix !== undefined && prefix !== "" ? `${prefix}: ` : ""}${religion(sideName)}在 ${area} 的转化：[${dice}]`],

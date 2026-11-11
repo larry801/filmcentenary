@@ -38,6 +38,7 @@
 * 复杂卡牌效果统一记为 `{kind: "manual", handler: ...}`，没有被静默简化。
 * 建局选 Campaign 或 Tournament；Card Draw 阶段按场景卡池和首次可用回合发牌。
 * 开局 VP 与 Protestant Spaces 轨道按场景数据设置；王室和共享船长受场景可用性约束。
+* 重建地图比 Scenario Book 少绘制 9 个新教地区（Campaign 18→9、Tournament 30→21）。这些地区以 `protestantOffMapInitial` 记录并在四个宗教斗争区按比例分配；天主教转化可在该区域只剩最后一个地图新教地区后移除未绘制地区，使印刷轨道仍能降到天主教胜利门槛 9。新教转化在该区域地图只剩最后一个天主教地区时可恢复未绘制地区。
 * 赞助人评级、艺术类别及 VP 标记分布来自 VASSAL 4.6 模块的计数片和标记定义。
 
 验证命令：

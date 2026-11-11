@@ -392,6 +392,19 @@ describe("Virgin Queen board", () => {
         } as any}/>);
         expect(html).toContain("新教地区 18 / 51");
         expect(html).toContain("超过 50 个时立即取得新教宗教胜利");
+        expect(html).toContain("天主教宗教胜利：新教地区 ≤ 9");
+        expect(html).toContain("地图未绘制 9 个");
+    });
+
+    it("shows the Catholic religious victory reason and winner", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "campaign"});
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: undefined, currentPlayer: "3", gameover: {winner: "3", power: "france", reason: "catholicReligious"}},
+            moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("对局结束 · 胜者：P4 法国");
+        expect(html).toContain("天主教宗教胜利：新教地区降至 9 个或以下");
+        expect(html).toContain("法国在法国与苏格兰合计保留 3 个或更少新教地区时由法国获胜");
     });
 
     it("shows each power's military victory progress and the printed targets", () => {

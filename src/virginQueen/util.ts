@@ -163,6 +163,39 @@ export const anyControllerLabel = (c: Controller): string =>
 export const sortByImpulse = (list: Power[]): Power[] =>
     [...list].sort((a, b) => POWERS.indexOf(a) - POWERS.indexOf(b));
 
+/**
+ * Split the official-track surplus (spaces the Scenario Book counts but the
+ * reduced map cannot draw) across the four struggle areas in proportion to
+ * the displayed map count.  Largest remainders receive the leftover spaces.
+ */
+const apportionOffMapSpaces = (
+    total: number,
+    mapByArea: Record<ReligionArea, number>,
+): Record<ReligionArea, number> => {
+    const areas = Object.keys(mapByArea) as ReligionArea[];
+    const mapTotal = areas.reduce((sum, area) => sum + mapByArea[area], 0);
+    const result = {france: 0, netherlands: 0, england: 0, scotland: 0};
+    if (total <= 0 || mapTotal <= 0) return result;
+    const shares = areas.map((area) => {
+        const exact = (total * mapByArea[area]) / mapTotal;
+        return {area, whole: Math.floor(exact), remainder: exact - Math.floor(exact)};
+    });
+    let assigned = 0;
+    for (const share of shares) {
+        result[share.area] = share.whole;
+        assigned += share.whole;
+    }
+    const order = shares.slice().sort((a, b) =>
+        b.remainder - a.remainder ||
+        mapByArea[b.area] - mapByArea[a.area] ||
+        areas.indexOf(a.area) - areas.indexOf(b.area));
+    for (let i = 0; assigned < total; i += 1) {
+        result[order[i % order.length].area] += 1;
+        assigned += 1;
+    }
+    return result;
+};
+
 // --------------------------------------------------------------------------
 // Initial state
 // --------------------------------------------------------------------------
@@ -356,6 +389,19 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
     };
 
     G.protestantSpacesMapAtStart = mapProtestantSpaceCount(G);
+    // The printable map in this repository draws fewer Protestant spaces than
+    // the Scenario Book's track (18/30).  Keep the difference as off-map
+    // spaces per struggle area so conversions can reach the printed Catholic
+    // victory threshold of 9 instead of stopping at the reduced map's floor.
+    const mapByArea: Record<ReligionArea, number> = {
+        france: protestantSpacesInArea(G, "france"),
+        netherlands: protestantSpacesInArea(G, "netherlands"),
+        england: protestantSpacesInArea(G, "england"),
+        scotland: protestantSpacesInArea(G, "scotland"),
+    };
+    const offMapTotal = Math.max(0, G.protestantSpacesStart - G.protestantSpacesMapAtStart);
+    G.protestantOffMapInitial = apportionOffMapSpaces(offMapTotal, mapByArea);
+    G.protestantOffMapConverted = {france: 0, netherlands: 0, england: 0, scotland: 0};
 
     // Scenario Book p. 12: in the two- to five-player configurations the HRE
     // is not a player power.  Set its Papacy/Venice/Ireland influence markers
@@ -1599,12 +1645,31 @@ export const mapProtestantSpaceCount = (G: VQGame): number =>
 /**
  * Official Protestant Spaces track.  The Scenario Book starts the marker at a
  * printed value (18 Campaign / 30 Tournament) that does not match the number
- * of spaces drawn on our reconstructed map.  Track changes to the map count so
- * conversions move the official marker by the same amount.
+ * of spaces drawn on our reconstructed map.  The surplus is kept as off-map
+ * spaces (`protestantOffMapInitial` / `protestantOffMapConverted`), so map
+ * conversions and Catholic conversions of the missing spaces both move the
+ * official marker.
  */
 export const protestantSpaceCount = (G: VQGame): number => {
     const current = mapProtestantSpaceCount(G);
-    return Math.max(0, G.protestantSpacesStart + (current - G.protestantSpacesMapAtStart));
+    if (G.protestantOffMapConverted === undefined) {
+        return Math.max(0, G.protestantSpacesStart + (current - G.protestantSpacesMapAtStart));
+    }
+    const convertedOffMap = Object.values(G.protestantOffMapConverted).reduce((sum, n) => sum + n, 0);
+    return Math.max(0, G.protestantSpacesStart + (current - G.protestantSpacesMapAtStart) - convertedOffMap);
+};
+
+/** Off-map Protestant spaces still counted by the printed track. */
+export const protestantOffMapCount = (G: VQGame): number => {
+    if (G.protestantOffMapInitial === undefined || G.protestantOffMapConverted === undefined) return 0;
+    return Math.max(0, Object.values(G.protestantOffMapInitial).reduce((sum, n) => sum + n, 0) -
+        Object.values(G.protestantOffMapConverted).reduce((sum, n) => sum + n, 0));
+};
+
+/** Off-map Protestant spaces still counted in one struggle area. */
+export const protestantOffMapInArea = (G: VQGame, area: ReligionArea): number => {
+    if (G.protestantOffMapInitial === undefined || G.protestantOffMapConverted === undefined) return 0;
+    return Math.max(0, (G.protestantOffMapInitial[area] ?? 0) - (G.protestantOffMapConverted[area] ?? 0));
 };
 
 export const protestantSpacesInArea = (G: VQGame, area: ReligionArea): number =>
@@ -2537,9 +2602,54 @@ export const resolveConversions = (
     const minor = adjusted.filter((d) => d === 4 || d === 5).length;
     const major = adjusted.filter((d) => d === 6).length;
     const converted: string[] = [];
+    let offMapConverted = 0;
+    let offMapRestored = 0;
+    // The reduced map may already be at an area's final Protestant space while
+    // the printed track still counts spaces that are not drawn.  Catholic
+    // conversions remove those off-map spaces so the official marker can fall
+    // to the printed Catholic-victory threshold.
+    if (G.protestantOffMapInitial === undefined) {
+        const mapByArea: Record<ReligionArea, number> = {
+            france: protestantSpacesInArea(G, "france"),
+            netherlands: protestantSpacesInArea(G, "netherlands"),
+            england: protestantSpacesInArea(G, "england"),
+            scotland: protestantSpacesInArea(G, "scotland"),
+        };
+        G.protestantOffMapInitial = apportionOffMapSpaces(
+            Math.max(0, G.protestantSpacesStart - G.protestantSpacesMapAtStart), mapByArea);
+    }
+    if (G.protestantOffMapConverted === undefined) {
+        G.protestantOffMapConverted = {france: 0, netherlands: 0, england: 0, scotland: 0};
+    }
+    const convertOffMap = (): boolean => {
+        if (side !== "catholic" || G.protestantOffMapInitial === undefined ||
+            G.protestantOffMapConverted === undefined) return false;
+        const remainingMap = SPACES.filter((s) => s.area === area &&
+            G.spaces[s.id].religion === "protestant").length;
+        if (remainingMap !== 1) return false;
+        const remaining = (G.protestantOffMapInitial[area] ?? 0) - (G.protestantOffMapConverted[area] ?? 0);
+        if (remaining <= 0) return false;
+        G.protestantOffMapConverted[area] += 1;
+        offMapConverted += 1;
+        return true;
+    };
+    const restoreOffMap = (): boolean => {
+        if (side !== "protestant" || G.protestantOffMapConverted === undefined) return false;
+        // Only fall back to a missing (off-map) space when the map itself has
+        // at most its final Catholic space in this area.  Otherwise the normal
+        // adjacency and core-presence checks stay authoritative.
+        const remainingCatholic = SPACES.filter((s) => s.area === area &&
+            G.spaces[s.id].religion === "catholic").length;
+        const convertedOffMap = G.protestantOffMapConverted[area] ?? 0;
+        if (remainingCatholic > 1 || remainingCatholic + convertedOffMap <= 1) return false;
+        G.protestantOffMapConverted[area] -= 1;
+        offMapRestored += 1;
+        return true;
+    };
     for (let i = 0; i < major; i++) {
         const target = pickCandidate(G, ctx, side, area, true);
         if (target === undefined) {
+            if (restoreOffMap() || convertOffMap()) continue;
             break;
         }
         G.spaces[target].religion = side;
@@ -2548,6 +2658,7 @@ export const resolveConversions = (
     for (let i = 0; i < minor; i++) {
         const target = pickCandidate(G, ctx, side, area, false);
         if (target === undefined) {
+            if (restoreOffMap() || convertOffMap()) continue;
             break;
         }
         G.spaces[target].religion = side;
@@ -2573,8 +2684,14 @@ export const resolveConversions = (
     pushLog(G, `${powerLabel(p)}: ${G.lastRolls}`);
     if (converted.length > 0) {
         pushLog(G, `Converted: ${converted.map((id) => SPACE_BY_ID[id].name).join(", ")}${unrestTokens > 0 ? `; unrest in ${unrestTokens} space(s)` : ""}.`);
-    } else {
+    } else if (offMapConverted === 0 && offMapRestored === 0) {
         pushLog(G, "No conversions possible.");
+    }
+    if (offMapConverted > 0) {
+        pushLog(G, `Converted off-map: ${offMapConverted} Protestant space(s).`);
+    }
+    if (offMapRestored > 0) {
+        pushLog(G, `Restored off-map: ${offMapRestored} Protestant space(s).`);
     }
     return G.lastRolls;
 };
@@ -4602,7 +4719,8 @@ export const checkImmediateVictory = (G: VQGame, phase?: string): { winner: Powe
         return {winner: "protestant", reason: "protestantReligious"};
     }
     if (n <= 9) {
-        const franceAndScotland = protestantSpacesInArea(G, "france") + protestantSpacesInArea(G, "scotland");
+        const franceAndScotland = protestantSpacesInArea(G, "france") + protestantSpacesInArea(G, "scotland") +
+            protestantOffMapInArea(G, "france") + protestantOffMapInArea(G, "scotland");
         return {winner: franceAndScotland <= 3 ? "france" : "spain", reason: "catholicReligious"};
     }
     for (const p of POWERS) {

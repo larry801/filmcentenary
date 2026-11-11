@@ -110,6 +110,7 @@ import {
     keepsBothHomeCards,
     powerVp,
     protestantKeysOutsideNetherlands,
+    protestantOffMapCount,
     protestantSpaceCount,
     religionCandidates,
     rebellionTargets,
@@ -2882,6 +2883,9 @@ export const VirginQueenBoard = ({G, log, ctx, moves, playerID, isActive, matchI
                     {ctx.gameover.reason === "military" && ctx.gameover.power !== undefined && <Typography variant="caption">
                         {militaryGoal(ctx.gameover.power as Power)}
                     </Typography>}
+                    {ctx.gameover.reason === "catholicReligious" && <Typography variant="caption">
+                        {i18n.chain.vq.shell.catholicReligiousRule}
+                    </Typography>}
                     {matchID !== undefined && <ExportLogButton gameName="virginQueen" matchID={matchID} log={log}/>}
                 </Paper> : actionPanel()}
                 {space !== undefined && spaceDef !== undefined && <section className="vq-space-detail" aria-label={i18n.chain.vq.board.spaceDetailLabel}>
@@ -2984,6 +2988,12 @@ export const VirginQueenBoard = ({G, log, ctx, moves, playerID, isActive, matchI
                     <Typography variant="body2" title={G.scenario === "tutorial" ? undefined : i18n.chain.vq.intel.protestantSpacesGoalHint}>{scenarioName(G.scenario, vqLocale)} · {i18n.chain.vq.intel.deck} {G.deckCount ?? 0} · {G.scenario === "tutorial"
                         ? `${i18n.chain.vq.intel.protestantSpaces} ${protestantSpaceCount(G)}`
                         : i18n.chain.vq.intel.protestantSpacesGoal.replace("{count}", String(protestantSpaceCount(G)))}</Typography>
+                    {G.scenario !== "tutorial" && <Typography variant="body2" title={protestantOffMapCount(G) > 0
+                        ? `${i18n.chain.vq.intel.protestantSpacesGoalHint} ${i18n.chain.vq.intel.protestantOffMapHint}`
+                        : i18n.chain.vq.intel.protestantSpacesGoalHint}>
+                        {i18n.chain.vq.intel.catholicReligiousGoal}
+                        {protestantOffMapCount(G) > 0 && ` · ${i18n.chain.vq.intel.protestantOffMap.replace("{count}", String(protestantOffMapCount(G)))}`}
+                    </Typography>}
                     {G.scenario !== "tutorial" && <Typography variant="body2" title={i18n.chain.vq.intel.militaryGoalSummaryHint}>
                         {i18n.chain.vq.intel.militaryGoalSummary.replace("{targets}",
                             POWERS.map((p) => `${powerShortName(p, vqLocale)} ${POWER_INFO[p].autoWinKeys}`).join(" / "))}

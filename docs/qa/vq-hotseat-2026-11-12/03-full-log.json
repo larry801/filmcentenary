@@ -1,0 +1,795 @@
+{
+  "gameName": "virginQueen",
+  "matchID": "local_virgin_queen-campaign-6",
+  "local": true,
+  "log": [
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "0"
+        }
+      },
+      "_stateID": 0,
+      "turn": 1,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 0,
+      "turn": 1,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "1"
+        }
+      },
+      "_stateID": 1,
+      "turn": 2,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 1,
+      "turn": 2,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "2"
+        }
+      },
+      "_stateID": 2,
+      "turn": 3,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 2,
+      "turn": 3,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "3"
+        }
+      },
+      "_stateID": 3,
+      "turn": 4,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 3,
+      "turn": 4,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "4"
+        }
+      },
+      "_stateID": 4,
+      "turn": 5,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 4,
+      "turn": 5,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "5"
+        }
+      },
+      "_stateID": 5,
+      "turn": 6,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 5,
+      "turn": 6,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 5,
+      "turn": 6,
+      "phase": "cardDraw",
+      "automatic": true
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endPhase"
+        }
+      },
+      "_stateID": 5,
+      "turn": 6,
+      "phase": "cardDraw"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "0"
+        }
+      },
+      "_stateID": 6,
+      "turn": 7,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 6,
+      "turn": 7,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "1"
+        }
+      },
+      "_stateID": 7,
+      "turn": 8,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 7,
+      "turn": 8,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "2"
+        }
+      },
+      "_stateID": 8,
+      "turn": 9,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 8,
+      "turn": 9,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "3"
+        }
+      },
+      "_stateID": 9,
+      "turn": 10,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 9,
+      "turn": 10,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "4"
+        }
+      },
+      "_stateID": 10,
+      "turn": 11,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 10,
+      "turn": 11,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "5"
+        }
+      },
+      "_stateID": 11,
+      "turn": 12,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 11,
+      "turn": 12,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 11,
+      "turn": 12,
+      "phase": "diplomacy",
+      "automatic": true
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endPhase"
+        }
+      },
+      "_stateID": 11,
+      "turn": 12,
+      "phase": "diplomacy"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "0"
+        }
+      },
+      "_stateID": 12,
+      "turn": 13,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 12,
+      "turn": 13,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "1"
+        }
+      },
+      "_stateID": 13,
+      "turn": 14,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 13,
+      "turn": 14,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "2"
+        }
+      },
+      "_stateID": 14,
+      "turn": 15,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 14,
+      "turn": 15,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "3"
+        }
+      },
+      "_stateID": 15,
+      "turn": 16,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 15,
+      "turn": 16,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "chooseHreReligiousPreference",
+          "args": null,
+          "playerID": "4"
+        }
+      },
+      "_stateID": 16,
+      "turn": 17,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "chooseHomeCard",
+          "args": null,
+          "playerID": "4"
+        }
+      },
+      "_stateID": 17,
+      "turn": 17,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "4"
+        }
+      },
+      "_stateID": 18,
+      "turn": 17,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 18,
+      "turn": 17,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endPhaseTurn",
+          "args": [
+            null
+          ],
+          "playerID": "5"
+        }
+      },
+      "_stateID": 19,
+      "turn": 18,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 19,
+      "turn": 18,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 19,
+      "turn": 18,
+      "phase": "spring",
+      "automatic": true
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endPhase"
+        }
+      },
+      "_stateID": 19,
+      "turn": 18,
+      "phase": "spring"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "playCard",
+          "args": [
+            {
+              "cardId": "vq-001"
+            }
+          ],
+          "playerID": "0"
+        }
+      },
+      "_stateID": 20,
+      "turn": 19,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endImpulse",
+          "args": [
+            null
+          ],
+          "playerID": "0"
+        }
+      },
+      "_stateID": 21,
+      "turn": 19,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 21,
+      "turn": 19,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "playCard",
+          "args": [
+            {
+              "cardId": "vq-003"
+            }
+          ],
+          "playerID": "1"
+        }
+      },
+      "_stateID": 22,
+      "turn": 20,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "preach",
+          "args": [
+            {
+              "area": "england"
+            }
+          ],
+          "playerID": "1"
+        }
+      },
+      "_stateID": 23,
+      "turn": 20,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "preach",
+          "args": [
+            {
+              "area": "england"
+            }
+          ],
+          "playerID": "1"
+        }
+      },
+      "_stateID": 24,
+      "turn": 20,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endImpulse",
+          "args": [
+            null
+          ],
+          "playerID": "1"
+        }
+      },
+      "_stateID": 25,
+      "turn": 20,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 25,
+      "turn": 20,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "playCard",
+          "args": [
+            {
+              "cardId": "vq-036"
+            }
+          ],
+          "playerID": "2"
+        }
+      },
+      "_stateID": 26,
+      "turn": 21,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "endImpulse",
+          "args": [
+            null
+          ],
+          "playerID": "2"
+        }
+      },
+      "_stateID": 27,
+      "turn": 21,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endTurn"
+        }
+      },
+      "_stateID": 27,
+      "turn": 21,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "playCard",
+          "args": [
+            {
+              "cardId": "vq-033"
+            }
+          ],
+          "playerID": "3"
+        }
+      },
+      "_stateID": 28,
+      "turn": 22,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "suppress",
+          "args": [
+            {
+              "area": "france"
+            }
+          ],
+          "playerID": "3"
+        }
+      },
+      "_stateID": 29,
+      "turn": 22,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "MAKE_MOVE",
+        "payload": {
+          "type": "suppress",
+          "args": [
+            {
+              "area": "france"
+            }
+          ],
+          "playerID": "3"
+        }
+      },
+      "_stateID": 30,
+      "turn": 22,
+      "phase": "action"
+    },
+    {
+      "action": {
+        "type": "GAME_EVENT",
+        "payload": {
+          "type": "endPhase"
+        }
+      },
+      "_stateID": 30,
+      "turn": 22,
+      "phase": "action"
+    }
+  ]
+}
