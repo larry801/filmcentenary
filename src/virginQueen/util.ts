@@ -4713,24 +4713,50 @@ export const checkImmediateVictory = (G: VQGame, phase?: string): { winner: Powe
         return controlledKeys(G, "ottoman").length >= TUTORIAL_POWER_CARDS.ottoman.military
             ? {winner: "ottoman", reason: "military"} : undefined;
     }
-    if (G.espionage?.catholicRebellionVictory) return {winner: "spain", reason: "catholicRebellion"};
+    const candidates: { winner: Power; reason: string }[] = [];
+    if (G.espionage?.catholicRebellionVictory) candidates.push({winner: "spain", reason: "catholicRebellion"});
     const n = protestantSpaceCount(G);
     if (n > 50) {
-        return {winner: "protestant", reason: "protestantReligious"};
+        candidates.push({winner: "protestant", reason: "protestantReligious"});
     }
     if (n <= 9) {
         const franceAndScotland = protestantSpacesInArea(G, "france") + protestantSpacesInArea(G, "scotland") +
             protestantOffMapInArea(G, "france") + protestantOffMapInArea(G, "scotland");
-        return {winner: franceAndScotland <= 3 ? "france" : "spain", reason: "catholicReligious"};
+        candidates.push({winner: franceAndScotland <= 3 ? "france" : "spain", reason: "catholicReligious"});
     }
     for (const p of POWERS) {
         if (ownerOf(G, p) === undefined || isActivatedMajor(G, p)) continue;
         const keys = p === "protestant" ? protestantKeysOutsideNetherlands(G).length : controlledKeys(G, p).length;
         if (keys >= POWER_INFO[p].autoWinKeys && keys > G.militaryVictoryBaseline[p]) {
-            return {winner: p, reason: "military"};
+            candidates.push({winner: p, reason: "military"});
         }
     }
-    return undefined;
+    const winners = [...new Set(candidates.map((c) => c.winner))];
+    if (winners.length <= 1) return candidates[0];
+    // Rule 25.1: two powers earning automatic victories from the same action
+    // are resolved by current VP, then the Standard Victory tie-breaker
+    // starting from the last completed turn.
+    const best = Math.max(...winners.map((p) => powerVp(G, p)));
+    const tied = winners.filter((p) => powerVp(G, p) === best);
+    const winner = breakVpTie(G, tied, G.year - 1);
+    return candidates.find((c) => c.winner === winner);
+};
+
+/**
+ * Rule 25.3 tie-breaker: among `tied`, the power with the highest recorded
+ * end-of-turn VP on `fromYear` wins; if still tied, narrow to those leaders
+ * and step back one turn at a time.  Recorded totals exclude unrevealed HRE
+ * religious VP (23.5).  An unbreakable tie falls back to the first listed.
+ */
+export const breakVpTie = (G: VQGame, tied: Power[], fromYear: number): Power => {
+    let remaining = tied;
+    for (let year = fromYear; year >= G.startTurn && remaining.length > 1; year--) {
+        const hist = G.vpHistory[String(year)];
+        if (hist === undefined) continue;
+        const best = Math.max(...remaining.map((p) => hist[p] ?? 0));
+        remaining = remaining.filter((p) => (hist[p] ?? 0) === best);
+    }
+    return remaining[0];
 };
 
 export const checkVictory = (G: VQGame, includeSecretHreVp = false, phase?: string): { winner: Power; reason: string } | undefined => {
@@ -4746,24 +4772,10 @@ export const checkVictory = (G: VQGame, includeSecretHreVp = false, phase?: stri
     const standings = victoryStandings(G, includeSecretHreVp);
     const top = standings[0];
     const second = standings[1];
-    const tiedWinner = (): Power => {
-        const tied = standings.filter((s) => s.vp === top.vp);
-        if (tied.length === 1) {
-            return top.power;
-        }
-        for (let year = G.year - 2; year >= G.startTurn; year--) {
-            const hist = G.vpHistory[String(year)];
-            if (hist === undefined) {
-                continue;
-            }
-            const best = Math.max(...tied.map((t) => hist[t.power] ?? 0));
-            const leaders = tied.filter((t) => (hist[t.power] ?? 0) === best);
-            if (leaders.length === 1) {
-                return leaders[0].power;
-            }
-        }
-        return top.power;
-    };
+    // Victory Determination runs after Winter advanced G.year, so the turn
+    // just completed is G.year - 1 and the "previous turn" is G.year - 2.
+    const tiedWinner = (): Power =>
+        breakVpTie(G, standings.filter((s) => s.vp === top.vp).map((s) => s.power), G.year - 2);
     if (G.year > G.endTurn) {
         return {winner: tiedWinner(), reason: "timeLimit"};
     }
