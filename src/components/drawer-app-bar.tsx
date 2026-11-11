@@ -8,8 +8,12 @@ import IconButton from '@mui/material/IconButton';
 import Toolbar from '@mui/material/Toolbar';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemText from '@mui/material/ListItemText';
+import ListSubheader from '@mui/material/ListSubheader';
+import Divider from '@mui/material/Divider';
+import Box from '@mui/material/Box';
 import Switch from "@mui/material/Switch"
-import Button from '@mui/material/Button';
 import {styled} from '@mui/material/styles';
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -47,10 +51,22 @@ const AntSwitch = styled(Switch)(({theme}) => ({
     },
 }));
 
+interface DrawerNavItem {
+    to: string;
+    label: string;
+}
+
+interface DrawerNavGroup {
+    key: string;
+    title: string;
+    items: DrawerNavItem[];
+}
+
 const DrawerAppBar = () => {
 
     i18n.use();
-    const isVQ = /^\/(localVQ(?:\/|$)|join\/virginQueen\/)/.test(useLocation().pathname);
+    const {pathname} = useLocation();
+    const isVQ = /^\/(localVQ(?:\/|$)|join\/virginQueen\/)/.test(pathname);
     const [open, setOpen] = React.useState(false);
     // Derive the switch position from the active locale: the app starts in
     // zh_CN, so a hard-coded `true` made the first click a no-op.
@@ -64,6 +80,45 @@ const DrawerAppBar = () => {
             i18n.locale("zh_CN").then(()=>{});
         }
     };
+    const drawer = i18n.chain.drawer;
+    const navGroups: DrawerNavGroup[] = [
+        {
+            key: 'general',
+            title: drawer.section.general,
+            items: [
+                {to: '/cards', label: drawer.cards},
+                {to: '/about', label: drawer.about},
+                {to: '/lobby', label: drawer.globalLobby},
+            ],
+        },
+        {
+            key: 'film',
+            title: drawer.section.film,
+            items: [
+                {to: '/', label: drawer.film.multiplayer},
+                {to: '/local2p', label: drawer.film.local2p},
+                {to: '/local3p', label: drawer.film.local3p},
+                {to: '/local4p', label: drawer.film.local4p},
+            ],
+        },
+        {
+            key: 'songJinn',
+            title: drawer.section.songJinn,
+            items: [
+                {to: '/songJinn', label: drawer.songJinn.multiplayer},
+                {to: '/local', label: drawer.songJinn.local},
+            ],
+        },
+        {
+            key: 'virginQueen',
+            title: drawer.section.virginQueen,
+            items: [
+                {to: '/virginQueen', label: drawer.virginQueen.multiplayer},
+                {to: '/localVQ', label: drawer.virginQueen.local},
+                {to: '/localVQ/tutorial', label: drawer.virginQueen.tutorial},
+            ],
+        },
+    ];
     return <React.Fragment>
         <AppBar position={"sticky"} sx={isVQ ? {height: 48, bgcolor: "#211b16", color: "#ead7af", boxShadow: "none", borderBottom: "1px solid #80633a"} : undefined}>
         <Toolbar sx={isVQ ? {minHeight: "47px !important", gap: 1} : undefined}>
@@ -88,15 +143,51 @@ const DrawerAppBar = () => {
         </Toolbar>
     </AppBar>
         <MUIDrawer open={open} anchor={"left"} onClose={handleClose}>
-            <List>
-                <ListItem><Button><Link to={'/'}>{i18n.chain.drawer.lobby}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/cards'}>{i18n.chain.drawer.cards}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/local4p'}>{i18n.chain.drawer.fourPlayer}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/about'}>{i18n.chain.drawer.about}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/songJinn'}>{"宋金战争"}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/virginQueen'}>{"Virgin Queen 童贞女王"}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/localVQ/tutorial'}>{"Virgin Queen 童贞女王双人教学"}</Link></Button></ListItem>
-            </List>
+            <Box
+                component="nav"
+                aria-label={drawer.navigation}
+                sx={{width: 280, bgcolor: "background.paper", pb: 1}}
+            >
+                {navGroups.map((group, index) => (
+                    <React.Fragment key={group.key}>
+                        {index > 0 && <Divider/>}
+                        <List
+                            dense
+                            subheader={
+                                <ListSubheader
+                                    component="div"
+                                    disableSticky
+                                    sx={{
+                                        bgcolor: "background.paper",
+                                        color: "text.primary",
+                                        fontWeight: 700,
+                                        fontSize: "0.78rem",
+                                        letterSpacing: ".08em",
+                                        textTransform: "uppercase",
+                                        pt: 1.5,
+                                    }}
+                                >
+                                    {group.title}
+                                </ListSubheader>
+                            }
+                        >
+                            {group.items.map(item => (
+                                <ListItem key={item.to} disablePadding>
+                                    <ListItemButton
+                                        component={Link}
+                                        to={item.to}
+                                        selected={pathname === item.to}
+                                        onClick={handleClose}
+                                        sx={{mx: 1, borderRadius: 1}}
+                                    >
+                                        <ListItemText primary={item.label}/>
+                                    </ListItemButton>
+                                </ListItem>
+                            ))}
+                        </List>
+                    </React.Fragment>
+                ))}
+            </Box>
         </MUIDrawer>
     </React.Fragment>
 }

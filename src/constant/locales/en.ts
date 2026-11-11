@@ -528,6 +528,29 @@ const en = {
         lobby: "Remote multiplayer lobby",
         cards: "Card list",
         about: "Rules & Help",
+        navigation: "Navigation",
+        globalLobby: "Multiplayer lobby (global)",
+        section: {
+            general: "General",
+            film: "Film Centenary",
+            songJinn: "SongJinn",
+            virginQueen: "Virgin Queen",
+        },
+        film: {
+            multiplayer: "Multiplayer / create match",
+            local2p: "Local 2 players",
+            local3p: "Local 3 players",
+            local4p: "Local 4 players",
+        },
+        songJinn: {
+            multiplayer: "Multiplayer / create match",
+            local: "Local game",
+        },
+        virginQueen: {
+            multiplayer: "Multiplayer / create match",
+            local: "Local hotseat",
+            tutorial: "Two-player tutorial",
+        },
     },
     title: "Film Centenary",
     lobby: {

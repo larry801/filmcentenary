@@ -8,6 +8,7 @@ import DrawerAppBar from "./components/drawer-app-bar";
 import "./virginQueen/components/virgin-queen.css";
 
 const Local4p = React.lazy(() => import("./components/single/4p"));
+const Local3p = React.lazy(() => import("./components/single/3p"));
 const Local2p = React.lazy(() => import("./components/single/2p"));
 const MUICreateMatch = React.lazy(() => import("./components/create-match"));
 const JoinPage = React.lazy(() => import("./components/join"));
@@ -49,6 +50,7 @@ createRoot(rootElement).render(
                 <Route path="/localVQ" element={<LocalVirginQueen/>}/>
                 <Route path="/localVQ/tutorial" element={<LocalVirginQueen initialScenario="tutorial"/>}/>
                 <Route path="/local2p" element={<Local2p/>}/>
+                <Route path="/local3p" element={<Local3p/>}/>
                 <Route path="/local4p" element={<Local4p/>}/>
                 <Route path="*" element={<Navigate replace to="/"/>}/>
             </Routes>
