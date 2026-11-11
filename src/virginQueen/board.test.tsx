@@ -1381,3 +1381,23 @@ describe("Virgin Queen board", () => {
         });
     });
 });
+
+describe("VP history table", () => {
+    it("is hidden before any turn is recorded", () => {
+        const G = setupGame(fakeCtx());
+        G.vpHistory = {};
+        expect(renderDiplomacy(G, "0")).not.toContain("vq-vp-history");
+    });
+
+    it("shows end-of-turn VP per power under the powers overview", () => {
+        const G = setupGame(fakeCtx());
+        G.vpHistory = {"1": {spain: 12, france: 9}, "2": {spain: 14, france: 17}};
+        const html = renderDiplomacy(G, "0");
+        expect(html).toContain("vq-vp-history");
+        expect(html.indexOf("列强概览")).toBeLessThan(html.indexOf("VP 记录"));
+        expect(html).toContain("第1回合");
+        expect(html).toContain("第2回合");
+        expect(html).toMatch(/class="vq-vp-leader[^"]*"[^>]*>17</);
+        expect(html).not.toMatch(/class="vq-vp-leader[^"]*"[^>]*>9</);
+    });
+});

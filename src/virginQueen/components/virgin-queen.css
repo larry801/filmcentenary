@@ -10,8 +10,19 @@
 .vq-board { height: calc(100dvh - var(--vq-appbar-height, 48px) - var(--vq-shell-height, 48px)); min-height: min(520px, calc(100dvh - var(--vq-appbar-height, 48px) - var(--vq-shell-height, 48px))); padding: 12px; position: relative; display: flex; flex-direction: column; gap: 10px; background: radial-gradient(ellipse at top, #4c3b2a, #251e19 75%); }
 .vq-skip-link { position: absolute; top: 8px; left: 8px; z-index: 30; padding: 8px 12px; border: 2px solid #77551f; border-radius: 6px; background: #f4eddd; color: #30291e; text-decoration: none; font-size: 13px; clip-path: inset(50%); }
 .vq-skip-link:focus { clip-path: none; }
-.vq-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border: 1px solid #846a41; border-radius: 7px; background: #33291f; color: #f6ecd5; }
-.vq-title { font-family: Georgia, "Songti SC", serif; font-size: 25px; line-height: 1.1; letter-spacing: .025em; margin: 0; }
+/* Game status floats over the map, below the zoom controls, and collapses to a pill. */
+.vq-status { position: absolute; top: 56px; left: 12px; z-index: 5; display: flex; flex-direction: column; gap: 6px; max-width: min(520px, calc(100% - 24px)); padding: 8px 8px 10px 12px; border: 1px solid #846a41; border-radius: 7px; background: #33291fe6; color: #f6ecd5; box-shadow: 0 2px 10px #0004; backdrop-filter: blur(2px); }
+.vq-status-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.vq-status-titles { flex: 1; min-width: 0; }
+.vq-status-toggle.MuiIconButton-root { color: #edcd85; min-width: 32px; min-height: 32px; padding: 4px; margin-left: auto; }
+.vq-status-turn-dot { width: 11px; height: 11px; box-shadow: 0 0 0 2px #33291f, 0 0 0 3px var(--vq-turn-color, #edcd85); }
+.vq-status--collapsed { padding: 3px 4px 3px 10px; border-radius: 999px; }
+.vq-status--collapsed .vq-title { font-size: 13px; }
+.vq-status--collapsed .vq-status-titles { flex: 0 0 auto; }
+.vq-status-summary { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.vq-status-summary strong { color: #edcd85; }
+.vq-status-meta[hidden] { display: none; }
+.vq-title { font-family: Georgia, "Songti SC", serif; font-size: 22px; line-height: 1.1; letter-spacing: .025em; margin: 0; }
 .vq-eyebrow { color: #c5aa78; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; margin-bottom: 4px; }
 .vq-status-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; }
 .vq-status-meta strong { color: #edcd85; }
@@ -23,12 +34,12 @@
 .vq-sidebar .vq-intel { border-top: 1px solid #c8b48a; }
 .vq-panel { min-width: 0; min-height: 0; border: 1px solid #c8b48a; border-radius: 7px; background: #f4eddd; overflow: auto; scrollbar-color: #b59b72 #ede3cf; }
 .vq-map-panel { position: relative; overflow: hidden; background: #b8d0cb; }
-.vq-map-selection { position: absolute; top: 65px; left: 8px; right: 8px; pointer-events: none; }
+.vq-map-selection { position: absolute; top: 96px; left: 8px; right: 8px; pointer-events: none; }
 .vq-map-selection button { pointer-events: auto; max-width: 100%; }
 .vq-map-stack { position: absolute; top: 12px; right: 12px; z-index: 4; width: min(320px, calc(100% - 24px)); max-height: calc(100% - 96px); overflow: auto; padding: 8px; background: #faf3e4f2; box-shadow: 0 2px 8px #30291e22; pointer-events: auto; }
 .vq-map-stack .MuiStack-root { min-width: 0; }
 /* Phone layout: the picker lives in a bottom sheet; this dock only shows the staged formation. */
-.vq-map-formation { position: absolute; top: 52px; left: 8px; right: 8px; z-index: 4; display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: #faf3e4f2; box-shadow: 0 2px 8px #30291e22; pointer-events: auto; }
+.vq-map-formation { position: absolute; top: 92px; left: 8px; right: 8px; z-index: 4; display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: #faf3e4f2; box-shadow: 0 2px 8px #30291e22; pointer-events: auto; }
 .vq-map-formation .vq-formation-summary { flex: 1; min-width: 0; line-height: 1.35; overflow-wrap: anywhere; }
 .vq-map-formation .MuiButton-root { flex-shrink: 0; white-space: nowrap; }
 .vq-actions { padding: 14px; }
@@ -86,8 +97,8 @@
 .vq-card-detail .MuiStack-root { flex-wrap: wrap; gap: 8px; }
 @media (max-width: 1023px) {
     .vq-board { padding: 8px; gap: 8px; min-height: min(500px, calc(100dvh - var(--vq-appbar-height, 48px) - var(--vq-shell-height, 48px))); }
-    .vq-status { padding: 10px 12px; gap: 8px; }
-    .vq-title { font-size: 22px; }
+    .vq-status { top: 50px; left: 8px; max-width: calc(100% - 16px); }
+    .vq-title { font-size: 20px; }
     .vq-eyebrow { font-size: 10px; }
     .vq-status-meta { gap: 6px; font-size: 11px; }
     .vq-board > .vq-mobile-tabs { display: block; background: #f4eddd; border-radius: 6px; flex-shrink: 0; }
@@ -248,8 +259,7 @@
    viewport without forcing a page scroll. */
 @media (max-width: 599px) and (max-height: 660px) {
     .vq-eyebrow { display: none; }
-    .vq-title { font-size: 20px; }
-    .vq-status { padding: 8px 10px; gap: 6px; }
+    .vq-title { font-size: 18px; }
     .vq-status-meta { font-size: 11px; }
 }
 
@@ -297,4 +307,18 @@
 .vq-world-map-primary .vq-world-map-key { justify-content: flex-end; }
 @media (max-width: 599px) {
     .vq-map.vq-map-world-primary .vq-europe-inset { left: 8px; width: min(300px, calc(100% - 16px)); }
+}
+
+/* Whose turn: the work area is framed in the colour of the power being waited on.
+   Solid when this seat must act, dashed and faded while waiting on someone else. */
+.vq-board--my-turn .vq-map-panel, .vq-board--my-turn .vq-sidebar { outline: 3px solid var(--vq-turn-color, #77551f); outline-offset: -1px; }
+.vq-board--waiting .vq-map-panel, .vq-board--waiting .vq-sidebar { outline: 2px dashed color-mix(in srgb, var(--vq-turn-color, #77551f) 55%, transparent); outline-offset: -1px; }
+.vq-waiting.MuiAlert-root { align-items: center; font-weight: 600; background: #eadfc6; color: #3d3426; }
+.vq-waiting .vq-dot { margin-right: 4px; vertical-align: -1px; }
+
+/* Collapsed action groups advertise how many of their actions are usable now. */
+.vq-disclosure-badge { margin-left: 8px; vertical-align: 1px; display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #77551f; color: #fff8e8; font-size: 11px; font-weight: 700; }
+.vq-disclosure--available > summary { color: #5b4212; }
+@media (prefers-reduced-motion: no-preference) {
+    .vq-board--my-turn .vq-map-panel, .vq-board--my-turn .vq-sidebar { transition: outline-color .3s; }
 }

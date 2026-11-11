@@ -37,5 +37,22 @@ export const virginQueenTheme = createTheme({
 export const VQSurface = ({children, className = ""}: React.PropsWithChildren<{className?: string}>) =>
     <ThemeProvider theme={virginQueenTheme}><div className={`vq-surface ${className}`}>{children}</div></ThemeProvider>;
 
-export const ActionGroup = ({title, children}: React.PropsWithChildren<{title: string}>) =>
-    <details className="vq-disclosure"><summary>{title}</summary><div className="vq-disclosure-content">{children}</div></details>;
+export interface ActionGroupProps {
+    title: string;
+    /**
+     * Number of actions currently available inside the group. When positive,
+     * the collapsed header shows it as a badge so legal options are not hidden.
+     */
+    available?: number;
+    /** Accessible text for the badge, e.g. "3 available". */
+    availableLabel?: string;
+}
+
+export const ActionGroup = ({title, available, availableLabel, children}: React.PropsWithChildren<ActionGroupProps>) => {
+    const active = available !== undefined && available > 0;
+    return <details className={`vq-disclosure${active ? " vq-disclosure--available" : ""}`}>
+        <summary>{title}{active && <span className="vq-disclosure-badge"
+            aria-label={availableLabel ?? String(available)}>{available}</span>}</summary>
+        <div className="vq-disclosure-content">{children}</div>
+    </details>;
+};
