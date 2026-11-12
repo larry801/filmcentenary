@@ -325,8 +325,8 @@ yarn build:server          # produces build/server.js, which the spec requires
 spec builds its own frontend into `/tmp/ie/spectator-dist` and writes its
 playwright output under `/tmp/ie/spectator-test-results`.
 
-**Full evidence for this refresh:** the IE Jest suite passes **2607/2607 tests
-in 199/199 suites**; `tsc`, server `tsc`, `yarn build` and `yarn build:server` are
+**Full evidence for this refresh:** the IE Jest suite passes **2610/2610 tests
+in 200/200 suites**; `tsc`, server `tsc`, `yarn build` and `yarn build:server` are
 clean; `python3 scripts/extract-imperial-elegy.py --check` verifies **501
 assets**. The declared `@i18n-chain/react@2.0.1` is now installed in this
 checkout’s `node_modules`, so no shim is needed (see
