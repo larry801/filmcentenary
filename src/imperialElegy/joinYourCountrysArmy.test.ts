@@ -13,7 +13,7 @@ import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {outbreakGreatWar} from "./engine/greatWar";
 import {beginGwTurn, placeJoinYourCountrysArmy} from "./engine/greatWarFlow";
-import {gwDraft} from "./moves";
+import {gwDraft, resolvePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -151,10 +151,20 @@ describe("Join Your Country's Army! (33.2 / 25.6.1)", () => {
     G.activePower = "UK";
     G.powers.UK.gwBudget = 4;
     G.pending = null;
-    expect(gwDraft(G, makeCtx([], seat("UK")), "london")).toBeUndefined();
+    const ctx = makeCtx([], seat("UK"));
+    expect(gwDraft(G, ctx, "scotland")).toBeUndefined();
+    // 27.5.2: "no more than one per space", so the second reduced army asks
+    // for a different controlled home key.
+    expect(G.pending?.kind).toBe("gwDraft");
+    expect(G.pending?.options.map((entry) => entry.id)).not.toContain("scotland");
+    const second = G.pending!.options[0].id;
+    expect(resolvePending(G, ctx, second)).toBeUndefined();
 
-    const drafted = londonArmies(G).filter((unit) => unit!.steps === 1);
-    expect(drafted.length).toBe(2);
+    const drafted = Object.values(G.units).filter(
+      (unit) => unit.owner === "UK" && unit.kind === "army" && unit.steps === 1,
+    );
+    expect(drafted).toHaveLength(2);
+    expect(drafted.map((unit) => unit.space).sort()).toEqual(["scotland", second].sort());
     expect(londonArmies(G).filter((unit) => unit!.steps === 2)).toHaveLength(fullStrength);
     expect(G.powers.UK.manpower).toBe(manpowerBefore - 1);
     // The marker stays on the original free armies.

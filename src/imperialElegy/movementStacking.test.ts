@@ -20,7 +20,7 @@ import {
   PORT_NAVAL_LIMIT,
 } from "./engine/rules";
 import {beginGwTurn, performGwManeuver} from "./engine/greatWarFlow";
-import {navalMove, redeploy, tsrrRailMove} from "./moves";
+import {navalMove, redeploy, resolvePending, tsrrRailMove} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -322,5 +322,84 @@ describe("other movement-end capacity paths", () => {
     if (!allowed.ok) throw new Error(allowed.message);
     expect(allowed.ok).toBe(true);
     expect(G.units[reserve].space).toBe("berlin");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 27.5.2 draft placement
+// ---------------------------------------------------------------------------
+
+describe("27.5.2 draft split placement", () => {
+  const reducedArmies = (G: ImperialElegyState, space: string) =>
+    landUnitsIn(G, space).filter((unit) => unit.owner === "GE" && unit.kind === "army" && unit.steps === 1);
+
+  test("a draft places one army, then asks for a different second space", () => {
+    const {G, ctx} = gw();
+    clearLand(G, "berlin");
+    G.powers.GE.manpower = 3;
+    G.powers.GE.gwBudget = 3;
+    const res = performGwManeuver(G, ctx, {kind: "draft", power: "GE", space: "berlin"});
+    expect(res.ok).toBe(true);
+
+    expect(reducedArmies(G, "berlin")).toHaveLength(1);
+    expect(G.pending?.kind).toBe("gwDraft");
+    expect(G.pending?.power).toBe("GE");
+    const options = G.pending!.options.map((entry) => entry.id);
+    expect(options).not.toContain("berlin");
+    expect(options).toContain("pomerania");
+
+    // The printed "no more than one per space": the first space is not legal.
+    expect(resolvePending(G, ctx, "berlin")).toBe(INVALID_MOVE);
+    expect(G.pending?.kind).toBe("gwDraft");
+    const second = options[0];
+    expect(resolvePending(G, ctx, second)).toBeUndefined();
+    expect(G.pending).toBeNull();
+    expect(reducedArmies(G, second)).toHaveLength(1);
+    // The single 1 CP / 1 manpower cost covers both armies.
+    expect(G.powers.GE.gwBudget).toBe(2);
+    expect(G.powers.GE.manpower).toBe(2);
+  });
+
+  test("an overstacked first space refuses the whole draft", () => {
+    const {G, ctx} = gw();
+    clearLand(G, "berlin");
+    for (let i = 0; i < 3; i += 1) placeUnit(G, "GE", "army", "berlin", 2);
+    const before = JSON.stringify({budget: G.powers.GE.gwBudget, manpower: G.powers.GE.manpower});
+    const res = performGwManeuver(G, ctx, {kind: "draft", power: "GE", space: "berlin"});
+    expect(res.ok).toBe(false);
+    expect(G.pending).toBeNull();
+    expect(JSON.stringify({budget: G.powers.GE.gwBudget, manpower: G.powers.GE.manpower})).toBe(before);
+  });
+
+  test("the second space must be trench-free and have room for one army", () => {
+    const {G, ctx} = gw();
+    clearLand(G, "berlin");
+    clearLand(G, "westphalia");
+    clearLand(G, "silesia");
+    // The occupiers' own counter pools do not matter: 5.5.1 counts every
+    // owner's armies in the space.
+    for (let i = 0; i < 3; i += 1) placeUnit(G, "FR", "army", "westphalia", 2);
+    G.spaces.silesia.trench = {status: "deadlock", turn: 1};
+    const res = performGwManeuver(G, ctx, {kind: "draft", power: "GE", space: "berlin"});
+    expect(res.ok).toBe(true);
+    const options = G.pending!.options.map((entry) => entry.id);
+    expect(options).not.toContain("berlin");
+    expect(options).not.toContain("westphalia");
+    expect(options).not.toContain("silesia");
+    expect(options).toContain("pomerania");
+  });
+
+  test("no legal second space places only the first army and does not deadlock", () => {
+    const {G, ctx} = gw();
+    for (const space of ["westphalia", "silesia", "pomerania", "prussia"]) {
+      clearLand(G, space);
+      for (let i = 0; i < 3; i += 1) placeUnit(G, "FR", "army", space, 2);
+    }
+    clearLand(G, "berlin");
+    const res = performGwManeuver(G, ctx, {kind: "draft", power: "GE", space: "berlin"});
+    expect(res.ok).toBe(true);
+    expect(G.pending).toBeNull();
+    expect(reducedArmies(G, "berlin")).toHaveLength(1);
+    expect(G.log.some((entry) => entry.key === "gwDraftSecondForfeited" && entry.args?.reason === "noSpace")).toBe(true);
   });
 });
